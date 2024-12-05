@@ -10,3 +10,5 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
+/deps/CANDY/installation/dist/
+/deps/CANDY/installation/candy.egg-info/dependency_links.txt
