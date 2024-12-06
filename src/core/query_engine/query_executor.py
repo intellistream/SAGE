@@ -1,7 +1,7 @@
-# src/core/query_engine/query_executor.py
 import logging
 import threading
 import time
+
 
 class QueryExecutor:
     def __init__(self, memory_layers):
@@ -15,7 +15,7 @@ class QueryExecutor:
         :return: Final result from the DAG execution.
         """
         results = {}
-        for node in dag.nodes:
+        for node in dag.get_topological_order():
             result = node.execute()
             results[node.operator_name] = result
         return results
