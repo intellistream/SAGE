@@ -1,10 +1,10 @@
 import logging
 from src.core.query_engine.query_compiler import QueryCompiler
 from src.core.query_engine.query_executor import QueryExecutor
-from src.core.query_engine.query_optimizer import QueryOptimizer
 from src.utils.logger import configure_logging
 
-def interactive_console(compiler, executor, optimizer):
+
+def interactive_console(compiler, executor):
     """
     Start an interactive console for user interaction.
     """
@@ -21,19 +21,18 @@ def interactive_console(compiler, executor, optimizer):
             break
 
         try:
-            if user_input.upper().startswith("EXECUTE") or user_input.upper().startswith("REGISTER"):
-                # Compile HQL queries into DAG
-                query_plan = compiler.compile_hql(user_input)
+            # Compile the query or natural language input
+            dag, execution_type = compiler.compile(user_input)
+
+            # Execute the DAG based on its type
+            if execution_type == "one_shot":
+                result = executor.execute(dag)
+                print(f"Result: {result}")
+            elif execution_type == "continuous":
+                executor.register_continuous_query(dag)
+                print(f"Continuous query registered successfully.")
             else:
-                # Compile natural language queries into DAG
-                query_plan = compiler.compile_natural_query(user_input)
-
-            # Optimize the DAG
-            optimized_plan = optimizer.optimize(query_plan)
-
-            # Execute the optimized DAG
-            result = executor.execute(optimized_plan)
-            print(f"Result: {result}")
+                raise ValueError("Unknown execution type.")
 
         except Exception as e:
             logging.error(f"Error processing input: {str(e)}")
@@ -53,8 +52,7 @@ if __name__ == "__main__":
 
     # Initialize query components
     compiler = QueryCompiler(memory_layers)
-    optimizer = QueryOptimizer()
     executor = QueryExecutor(memory_layers)
 
     # Start the interactive console
-    interactive_console(compiler, executor, optimizer)
+    interactive_console(compiler, executor)
