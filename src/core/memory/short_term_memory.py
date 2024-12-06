@@ -1,10 +1,11 @@
-from src.core.memory.base_memory import BaseMemory
+from src.core.memory.persistent_memory import PersistentMemory
 
 
-class ShortTermMemory(BaseMemory):
+class ShortTermMemory(PersistentMemory):
     """
-    Short-term memory for storing session-specific key-value pairs generated during interactions.
+    Short-term memory layer inheriting from PersistentMemory.
     """
 
-    def __init__(self, vector_dim=128, search_algorithm="knnsearch"):
-        super().__init__(vector_dim, search_algorithm, multimodal=False)
+    def __init__(self, vector_dim, search_algorithm):
+        super().__init__(vector_dim, search_algorithm)
+        self.logger.info("Short-term memory initialized.")

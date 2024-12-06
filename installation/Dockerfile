@@ -32,6 +32,7 @@ RUN apt-get update && apt-get install -y --fix-missing --allow-change-held-packa
     libmpfr-dev \
     libmpc-dev \
     clang-format \
+    cuda-toolkit-11-7 \
     software-properties-common && \
     apt-get clean
 
