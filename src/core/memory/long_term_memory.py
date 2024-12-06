@@ -1,10 +1,11 @@
-from src.core.memory.base_memory import BaseMemory
+from src.core.memory.persistent_memory import PersistentMemory
 
 
-class LongTermMemory(BaseMemory):
+class LongTermMemory(PersistentMemory):
     """
-    Long-term memory for persistent knowledge storage and retrieval.
+    Long-term memory layer inheriting from PersistentMemory.
     """
 
-    def __init__(self, vector_dim=128, search_algorithm="knnsearch"):
-        super().__init__(vector_dim, search_algorithm, multimodal=True)
+    def __init__(self, vector_dim, search_algorithm):
+        super().__init__(vector_dim, search_algorithm)
+        self.logger.info("Long-term memory initialized.")
