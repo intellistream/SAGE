@@ -14,7 +14,6 @@ def display_welcome_message():
     print("You can:\n  - Ask natural language questions\n  "
           "- Submit EXECUTE or REGISTER queries in HQL\n  - Type 'exit' to quit")
 
-
 def process_user_input(user_input, compiler, executor):
     """
     Process the user input by compiling and executing the query.

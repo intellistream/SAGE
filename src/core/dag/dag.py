@@ -10,9 +10,9 @@ class DAG:
         """
         Initialize an empty DAG.
         """
-        self.nodes = set()
+        self.nodes = []  # Changed from set to list
         self.edges = {}  # Dictionary to store edges as {parent: [children]}
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def add_node(self, node):
         """
@@ -20,7 +20,7 @@ class DAG:
         :param node: DAGNode instance to add.
         """
         if node not in self.nodes:
-            self.nodes.add(node)
+            self.nodes.append(node)  # Maintain order of addition
             self.edges[node] = []
             self.logger.info(f"Node added: {node.name}")
 
@@ -37,21 +37,6 @@ class DAG:
         else:
             self.edges[parent].append(child)
             self.logger.info(f"Edge added from {parent.name} to {child.name}.")
-
-    def get_predecessors(self, node):
-        """
-        Get all predecessor nodes of the given node.
-        :param node: DAGNode instance.
-        :return: List of predecessor nodes.
-        """
-        return [parent for parent, children in self.edges.items() if node in children]
-
-    def get_terminal_nodes(self):
-        """
-        Get all terminal nodes (nodes with no children).
-        :return: List of terminal nodes.
-        """
-        return [node for node, children in self.edges.items() if not children]
 
     def get_topological_order(self):
         """
