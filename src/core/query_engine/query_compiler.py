@@ -1,6 +1,5 @@
 from src.core.dag.dag import DAG
 from src.core.dag.dag_node import DAGNode
-from src.core.operators.embedder import Embedder
 from src.core.operators.retriever import Retriever
 from src.core.operators.generator import Generator
 from src.core.query_engine.query_optimizer import QueryOptimizer
@@ -18,14 +17,11 @@ class QueryCompiler:
         :return: Optimized DAG and execution type.
         """
         if input_text.upper().startswith("EXECUTE"):
-            dag = self._compile_one_shot(input_text)
-            execution_type = "one_shot"
+            dag, execution_type = self._compile_one_shot(input_text), "one_shot"
         elif input_text.upper().startswith("REGISTER"):
-            dag = self._compile_continuous(input_text)
-            execution_type = "continuous"
+            dag, execution_type = self._compile_continuous(input_text), "continuous"
         else:
-            dag = self.compile_natural_query(input_text)
-            execution_type = "one_shot"
+            dag, execution_type = self.compile_natural_query(input_text), "one_shot"
 
         # Optimize the DAG
         optimized_dag = self.optimizer.optimize(dag)
@@ -34,23 +30,44 @@ class QueryCompiler:
     def compile_natural_query(self, question):
         """
         Compile a natural language query into a DAG.
+        :param question: The natural language query string.
+        :return: DAG instance.
         """
-        retriever_node = DAGNode("Retriever", {"query": question}, Retriever(self.memory_layers))
-        generator_node = DAGNode("Generator", {"retriever": retriever_node}, Generator())
-        return DAG([retriever_node, generator_node])  # Retriever -> Generator
+        dag = DAG()
+        retriever_node = DAGNode("Retriever", Retriever(self.memory_layers), is_spout=True)
+        generator_node = DAGNode("Generator", Generator())
+
+        # Add nodes and edges
+        dag.add_node(retriever_node)
+        dag.add_node(generator_node)
+        dag.add_edge(retriever_node, generator_node)
+
+        return dag
 
     def _compile_one_shot(self, query):
         """
         Compile a one-shot HQL query into a DAG.
+        :param query: HQL query string.
+        :return: DAG instance.
         """
+        dag = DAG()
         operation = "Retriever" if "RETRIEVE" in query.upper() else "Updater"
-        operator_class = Retriever if operation == "Retriever" else None  # Replace None with an Updater operator
-        operator_node = DAGNode(operation, {"query": query}, operator_class(self.memory_layers))
-        return DAG([operator_node])
+        operator_class = Retriever if operation == "Retriever" else None  # Replace with actual Updater class
+        operator_node = DAGNode(operation, operator_class(self.memory_layers), is_spout=True)
+
+        dag.add_node(operator_node)
+
+        return dag
 
     def _compile_continuous(self, query):
         """
-        Compile a continuous HQL query.
+        Compile a continuous HQL query into a DAG.
+        :param query: HQL query string.
+        :return: DAG instance.
         """
-        operator_node = DAGNode("ContinuousQuery", {"query": query}, None)  # Placeholder
-        return DAG([operator_node])
+        dag = DAG()
+        operator_node = DAGNode("ContinuousQuery", None, is_spout=True)  # Placeholder for continuous operator
+
+        dag.add_node(operator_node)
+
+        return dag
