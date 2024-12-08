@@ -8,6 +8,19 @@ ENV PASSWD=llh
 # 设置环境变量，防止apt-get进行交互式操作
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Add deadsnakes PPA, remove Python 3.10, and install Python 3.11
+RUN add-apt-repository -y ppa:deadsnakes/ppa && \
+    apt-get update && apt-get purge -y python3.10 python3.10-dev python3.10-minimal && \
+    apt-get install -y python3.11 python3.11-distutils python3.11-venv python3-pip python3.11-dev && \
+    apt-get autoremove -y && rm -rf /usr/bin/python3.10* /usr/lib/python3.10*
+
+# Set Python 3.11 as the default system Python
+RUN ln -sf /usr/bin/python3.11 /usr/bin/python3 && \
+    ln -sf /usr/bin/python3.11 /usr/bin/python
+
+# Verify Python installation
+RUN python3 --version && python --version && python3.11 -m pip install --upgrade pip
+
 # Install essential packages and dependencies
 RUN apt-get update && apt-get install -y --fix-missing --allow-change-held-packages \
     sudo \
@@ -35,19 +48,6 @@ RUN apt-get update && apt-get install -y --fix-missing --allow-change-held-packa
     cuda-toolkit-11-7 \
     software-properties-common && \
     apt-get clean
-
-# Add deadsnakes PPA, remove Python 3.10, and install Python 3.11
-RUN add-apt-repository -y ppa:deadsnakes/ppa && \
-    apt-get update && apt-get purge -y python3.10 python3.10-dev python3.10-minimal && \
-    apt-get install -y python3.11 python3.11-distutils python3.11-venv python3-pip python3.11-dev && \
-    apt-get autoremove -y && rm -rf /usr/bin/python3.10* /usr/lib/python3.10*
-
-# Set Python 3.11 as the default system Python
-RUN ln -sf /usr/bin/python3.11 /usr/bin/python3 && \
-    ln -sf /usr/bin/python3.11 /usr/bin/python
-
-# Verify Python installation
-RUN python3 --version && python --version && python3.11 -m pip install --upgrade pip
 
 # Install Python dependencies for the native Python environment
 RUN python3.11 -m pip install --no-cache-dir torch matplotlib pandas==2.0.0 transformers
