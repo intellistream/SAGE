@@ -1,6 +1,5 @@
-from src.core.dag.dag import DAG
 from src.core.query_engine.query_optimization.base_optimization import BaseOptimization
-from src.core.query_engine.query_optimization.default_optimization import DefaultOptimization
+from src.core.query_engine.query_optimization.no_op_optimization import NoOpOptimization
 
 
 class QueryOptimizer:
@@ -9,7 +8,7 @@ class QueryOptimizer:
         Initialize the QueryOptimizer with a list of optimization strategies.
         """
         if optimization_methods is None:
-            optimization_methods = [DefaultOptimization()]  # Use default strategy if none provided
+            optimization_methods = [NoOpOptimization()]  # Use NoOpOptimization as the default strategy
         self.optimization_methods = optimization_methods
 
     def optimize(self, dag):

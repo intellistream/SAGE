@@ -2,6 +2,8 @@ from src.core.dag.dag import DAG
 from src.core.dag.dag_node import DAGNode
 from src.core.operators.retriever import Retriever
 from src.core.operators.generator import Generator
+from src.core.operators.spout import Spout
+from src.core.operators.summarizer import Summarizer
 from src.core.query_engine.query_optimizer import QueryOptimizer
 
 
@@ -27,22 +29,82 @@ class QueryCompiler:
         optimized_dag = self.optimizer.optimize(dag)
         return optimized_dag, execution_type
 
-    def compile_natural_query(self, question):
+    def compile_natural_query(self, natural_query):
         """
         Compile a natural language query into a DAG.
-        :param question: The natural language query string.
+        :param natural_query: The natural language query string.
         :return: DAG instance.
         """
-        dag = DAG()
-        retriever_node = DAGNode("Retriever", Retriever(self.memory_layers), is_spout=True)
-        generator_node = DAGNode("Generator", Generator())
+        # Step 1: Parse the question to understand the user's intent
+        intent = self._parse_query(natural_query)
 
-        # Add nodes and edges
-        dag.add_node(retriever_node)
-        dag.add_node(generator_node)
-        dag.add_edge(retriever_node, generator_node)
+        # Step 2: Create the DAG and add the Spout node
+        dag = DAG()
+        spout_node = DAGNode(
+            name="Spout",
+            operator=Spout(input_data=natural_query),
+            config={"query": natural_query},  # Pass the user input in the config for debugging/tracing
+            is_spout=True
+        )
+        dag.add_node(spout_node)
+
+        # Step 3: Add downstream nodes based on intent
+        if intent == "information_retrieval":
+            retriever_node = DAGNode(
+                name="Retriever",
+                operator=Retriever(self.memory_layers),
+                config={"k": 5}  # Example: setting k in the config
+            )
+            dag.add_node(retriever_node)
+            dag.add_edge(spout_node, retriever_node)
+        elif intent == "summarization":
+            retriever_node = DAGNode(
+                name="Retriever",
+                operator=Retriever(self.memory_layers),
+                config={"k": 5}
+            )
+            summarizer_node = DAGNode(
+                name="Summarizer",
+                operator=Summarizer(),
+                config={"summary_length": 100}  # Example additional parameter
+            )
+            dag.add_node(retriever_node)
+            dag.add_node(summarizer_node)
+            dag.add_edge(spout_node, retriever_node)
+            dag.add_edge(retriever_node, summarizer_node)
+        elif intent == "question_answering":
+            retriever_node = DAGNode(
+                name="Retriever",
+                operator=Retriever(self.memory_layers),
+                config={"k": 3}
+            )
+            generator_node = DAGNode(
+                name="Generator",
+                operator=Generator(),
+                config={"max_length": 50}  # Example additional parameter
+            )
+            dag.add_node(retriever_node)
+            dag.add_node(generator_node)
+            dag.add_edge(spout_node, retriever_node)
+            dag.add_edge(retriever_node, generator_node)
+        else:
+            raise ValueError(f"Unsupported query type: {intent}")
 
         return dag
+
+    def _parse_query(self, natural_query):
+        """
+        A basic NLP-based method to extract intent from a query.
+        TODO: This can be replaced by an advanced NLP pipeline.
+        :param natural_query: The query to process.
+        :return: The detected intent.
+        """
+        if "summarize" in natural_query.lower():
+            return "summarization"
+        elif "who" in natural_query.lower() or "is" in natural_query.lower():
+            return "information_retrieval"
+        else:
+            return "question_answering"  # Default intent for other types
 
     def _compile_one_shot(self, query):
         """
@@ -51,12 +113,12 @@ class QueryCompiler:
         :return: DAG instance.
         """
         dag = DAG()
-        operation = "Retriever" if "RETRIEVE" in query.upper() else "Updater"
-        operator_class = Retriever if operation == "Retriever" else None  # Replace with actual Updater class
+        operation = "Retriever" if "RETRIEVE" in query.upper() else None
+        if not operation:
+            raise ValueError("Unsupported HQL operation.")
+        operator_class = Retriever if operation == "Retriever" else None
         operator_node = DAGNode(operation, operator_class(self.memory_layers), is_spout=True)
-
         dag.add_node(operator_node)
-
         return dag
 
     def _compile_continuous(self, query):
@@ -66,8 +128,6 @@ class QueryCompiler:
         :return: DAG instance.
         """
         dag = DAG()
-        operator_node = DAGNode("ContinuousQuery", None, is_spout=True)  # Placeholder for continuous operator
-
+        operator_node = DAGNode("ContinuousQuery", None, is_spout=True)
         dag.add_node(operator_node)
-
         return dag

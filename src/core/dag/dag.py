@@ -1,5 +1,9 @@
 import logging
 from collections import deque
+from typing import List
+
+from src.core.dag.dag_node import DAGNode
+
 
 class DAG:
     """
@@ -36,12 +40,13 @@ class DAG:
             self.logger.warning(f"Edge already exists from {parent.name} to {child.name}.")
         else:
             self.edges[parent].append(child)
+            parent.add_downstream_node(child)
             self.logger.info(f"Edge added from {parent.name} to {child.name}.")
 
-    def get_topological_order(self):
+    def get_topological_order(self) -> List['DAGNode']:
         """
         Perform topological sorting of the DAG nodes.
-        :return: List of nodes in topological order.
+        :return: List of DAGNode instances in topological order.
         """
         in_degree = {node: 0 for node in self.nodes}
         for parent in self.edges:
