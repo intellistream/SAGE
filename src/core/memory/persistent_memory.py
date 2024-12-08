@@ -33,7 +33,7 @@ class PersistentMemory(BaseMemory):
         :return: Retrieved embeddings or items.
         """
         try:
-            tensor = torch.from_numpy(query) if isinstance(query, (list, tuple)) else query
+            tensor = torch.from_numpy(query)
             results = self.db.query_nearest_tensors(tensor.clone(), k)
             self.logger.info(f"Retrieved {len(results)} item(s) from CANDY database.")
             return results
@@ -47,7 +47,7 @@ class PersistentMemory(BaseMemory):
         :param item: Embedding or tensor to delete.
         """
         try:
-            tensor = torch.from_numpy(item) if isinstance(item, (list, tuple)) else item
+            tensor = torch.from_numpy(item)
             success = self.db.remove_tensor(tensor.clone())
             if success:
                 self.logger.info("Successfully deleted item from CANDY database.")

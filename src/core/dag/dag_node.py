@@ -20,7 +20,7 @@ class DAGNode:
         self.operator = operator
         self.config = config or {}
         self.is_spout = is_spout
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.output_queue = Queue()
         self.upstream_nodes = []  # List of upstream DAGNodes
         self.downstream_nodes = []  # List of downstream DAGNodes
@@ -50,15 +50,21 @@ class DAGNode:
         """
         self.logger.info(f"Node '{self.name}' starting execution.")
         try:
-            # Fetch input if not a spout
-            input_data = None if self.is_spout else self._fetch_input()
-            if input_data is None and not self.is_spout:
-                self.logger.warning(f"Node '{self.name}' has no input to process.")
-                return
+            # If the node is a spout, directly execute the operator without fetching input
+            if self.is_spout:
+                self.logger.info(f"Node '{self.name}' is a spout. Executing without fetching input.")
+                self.operator.output_queue = self.output_queue  # Set operator's output queue
+                self.operator.execute()  # Spout handles its own input
+            else:
+                # For non-spout nodes, fetch input from upstream nodes
+                input_data = self._fetch_input()
+                if input_data is None:
+                    self.logger.warning(f"Node '{self.name}' has no input to process.")
+                    return
 
-            # Execute the operator logic
-            self.operator.output_queue = self.output_queue  # Set operator's output queue
-            self.operator.execute(input_data, **self.config)
+                # Extract `k` or other parameters from config and pass them to the operator
+                self.operator.output_queue = self.output_queue  # Set operator's output queue
+                self.operator.execute(input_data, **self.config)
 
         except Exception as e:
             self.logger.error(f"Error in node '{self.name}': {str(e)}")

@@ -2,13 +2,16 @@ import logging
 import threading
 import time
 
+from src.core.dag.dag import DAG
+from src.core.dag.dag_node import DAGNode
+
 
 class QueryExecutor:
     def __init__(self, memory_layers):
         self.memory_layers = memory_layers
         self.continuous_queries = []
 
-    def execute(self, dag):
+    def execute(self, dag: DAG) -> dict:
         """
         Execute a one-shot query by running the DAG nodes sequentially.
         :param dag: Optimized DAG to execute.
@@ -16,8 +19,9 @@ class QueryExecutor:
         """
         results = {}
         for node in dag.get_topological_order():
+            assert isinstance(node, DAGNode), f"Expected DAGNode, got {type(node).__name__}"
             result = node.execute()
-            results[node.operator_name] = result
+            results[node.name] = result
         return results
 
     def register_continuous_query(self, dag, interval=10):
