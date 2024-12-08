@@ -5,6 +5,12 @@
       <excludeFolder url="file://$MODULE_DIR$/deps/CANDY/.idea" />
       <excludeFolder url="file://$MODULE_DIR$/deps/CANDY/build" />
       <excludeFolder url="file://$MODULE_DIR$/deps/CANDY/cmake-build-debug" />
+      <excludeFolder url="file://$MODULE_DIR$/installation/build" />
+      <excludeFolder url="file://$MODULE_DIR$/installation/candy" />
+      <excludeFolder url="file://$MODULE_DIR$/installation/candy.egg-info" />
+      <excludeFolder url="file://$MODULE_DIR$/installation/candy" />
+      <excludeFolder url="file://$MODULE_DIR$/installation/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/installation/dist" />
     </content>
     <orderEntry type="jdk" jdkName="llh" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

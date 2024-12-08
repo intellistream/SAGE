@@ -1,0 +1,10 @@
+Instruction:
+You are an intelligent assistant with access to a knowledge base. Your task is to answer the given question using only the provided context.
+
+Question:
+{{ question }}
+
+Context:
+{{ context }}
+
+Answer:

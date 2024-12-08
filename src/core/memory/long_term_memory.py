@@ -30,8 +30,8 @@ class LongTermMemory(BaseMemory):
             embedding = embedding.cpu()
         embedding = embedding.detach()  # Ensure no gradient tracking
 
-        # Convert tensor to bytes directly
-        embedding_bytes = embedding.contiguous().view(-1).to(torch.uint8).numpy().tobytes()
+        # Convert tensor to bytes without changing its type
+        embedding_bytes = embedding.contiguous().view(-1).numpy().tobytes()
 
         # Create a SHA256 hash
         return hashlib.sha256(embedding_bytes).hexdigest()
@@ -61,13 +61,13 @@ class LongTermMemory(BaseMemory):
 
     def retrieve(self, query, k=1, **kwargs):
         """
-        Retrieve embeddings and their associated raw data.
+        Retrieve the raw data contents associated with the query's nearest embeddings.
         """
         try:
             # Query the database for nearest neighbors
             embeddings = self.db.query_nearest_tensors(query.clone(), k)
 
-            # Map each embedding to its raw data
+            # Retrieve raw data contents
             results = []
             for embedding in embeddings:
                 # Generate the same hash key for retrieval
@@ -77,13 +77,24 @@ class LongTermMemory(BaseMemory):
                 raw_id = self.embedding_to_raw_map.get(embedding_key)
 
                 if raw_id is not None:
-                    # Retrieve raw data using the raw ID
-                    raw_data = self.raw_data_storage.get_rawdata(raw_id)
-                    results.append((embedding, raw_data))
+                    # Retrieve raw data file path using the raw ID
+                    raw_data_path = self.raw_data_storage.get_rawdata(raw_id)
+                    if raw_data_path:
+                        try:
+                            # Read the contents of the file
+                            with open(raw_data_path, 'r') as file:
+                                raw_data = file.read()
+                            results.append(raw_data)
+                            self.logger.debug(f"Retrieved context: {results}.")
+                        except Exception as e:
+                            self.logger.error(f"Error reading raw data file {raw_data_path}: {str(e)}")
+                            results.append(None)  # Handle file read error
+                    else:
+                        results.append(None)  # Handle missing file path
                 else:
-                    results.append((embedding, None))  # Handle missing data
+                    results.append(None)  # Handle missing raw ID
 
-            self.logger.info(f"Retrieved {len(results)} items from persistent memory.")
+            self.logger.info(f"Retrieved {len(results)} raw data items from persistent memory.")
             return results
         except Exception as e:
             self.logger.error(f"Error retrieving items: {str(e)}")
