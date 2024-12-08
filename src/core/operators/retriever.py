@@ -1,6 +1,8 @@
 import logging
 from src.core.embedding.text_preprocessor import TextPreprocessor
 from src.core.operators.base_operator import BaseOperator
+from src.core.prompts.utils import generate_prompt
+from src.utils.file_path import QAPROMPT_TEP
 
 
 class Retriever(BaseOperator):
@@ -39,10 +41,12 @@ class Retriever(BaseOperator):
             results = self.long_term_memory.retrieve(query=query_embedding, k=k)
             if results:
                 self.logger.info(f"Data retrieved successfully: {len(results)} result(s) found.")
-                return results
 
-            self.logger.warning("No data found in long-term memory.")
-            return None
+                prompt = generate_prompt(QAPROMPT_TEP, question=input_data, context=results)
+
+                self.emit(prompt)
+            else:
+                self.logger.warning("No data found in long-term memory.")
 
         except Exception as e:
             self.logger.error(f"Error during retrieval: {str(e)}")

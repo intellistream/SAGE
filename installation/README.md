@@ -66,14 +66,6 @@ python db_client.py
 # Try whatever command you want for verification of CRUD.
 ```
 
-> In case if "ImportError: /opt/conda/envs/llh/lib/python3.11/site-packages/torch/lib/../../../.././libstdc++.so.6:
-version `GLIBCXX_3.4.30' not found (required by /root/.local/lib/python3.11/site-packages/libCANDY.so)
-"
-
-```bash
-conda install -c conda-forge libstdcxx-ng
-```
-
 ### Try LLH (refactored)
 
 Make sure you are in `llh` env.
@@ -86,3 +78,14 @@ huggingface-cli login --token #your_token
 ```
 
 Then, you can interact with the system through api/interactive_cli.py
+
+### Known issues
+> In case if "ImportError: /opt/conda/envs/llh/lib/python3.11/site-packages/torch/lib/../../../.././libstdc++.so.6:
+version `GLIBCXX_3.4.30' not found (required by /root/.local/lib/python3.11/site-packages/libCANDY.so)
+"
+
+> In case if "gdb error", you may use `conda install gdb`, and then `which gdb`. use this gdb instead of the default system gdb.
+
+```bash
+conda install -c conda-forge libstdcxx-ng
+```

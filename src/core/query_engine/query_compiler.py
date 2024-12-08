@@ -52,15 +52,7 @@ class QueryCompiler:
         dag.add_node(spout_node)
 
         # Step 3: Add downstream nodes based on intent
-        if intent == "information_retrieval":
-            retriever_node = DAGNode(
-                name="Retriever",
-                operator=Retriever(self.memory_layers.get("long_term")),  # Use long-term memory for retrieval
-                config={"k": 5}  # Example: retrieving top-5 results
-            )
-            dag.add_node(retriever_node)
-            dag.add_edge(spout_node, retriever_node)
-        elif intent == "summarization":
+        if intent == "summarization":
             retriever_node = DAGNode(
                 name="Retriever",
                 operator=Retriever(self.memory_layers.get("long_term")),  # Use long-term memory
@@ -104,8 +96,6 @@ class QueryCompiler:
         """
         if "summarize" in natural_query.lower():
             return "summarization"
-        elif "who" in natural_query.lower() or "is" in natural_query.lower():
-            return "information_retrieval"
         else:
             return "question_answering"  # Default intent for other types
 
