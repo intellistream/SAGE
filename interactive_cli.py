@@ -2,7 +2,7 @@ import logging
 from src.core.query_engine.query_compiler import QueryCompiler
 from src.core.query_engine.query_executor import QueryExecutor
 from src.utils.logger import configure_logging
-from src.utils.helpers import initialize_memory_layers
+from src.core.memory.utils import initialize_memory_layers
 
 
 def display_welcome_message():
