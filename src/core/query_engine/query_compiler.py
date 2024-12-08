@@ -9,6 +9,10 @@ from src.core.query_engine.query_optimizer import QueryOptimizer
 
 class QueryCompiler:
     def __init__(self, memory_layers):
+        """
+        Initialize the QueryCompiler with memory layers.
+        :param memory_layers: Dictionary containing memory layer instances.
+        """
         self.memory_layers = memory_layers
         self.optimizer = QueryOptimizer()
 
@@ -43,7 +47,6 @@ class QueryCompiler:
         spout_node = DAGNode(
             name="Spout",
             operator=Spout(input_data=natural_query),
-            config={"query": natural_query},  # Pass the user input in the config for debugging/tracing
             is_spout=True
         )
         dag.add_node(spout_node)
@@ -52,15 +55,15 @@ class QueryCompiler:
         if intent == "information_retrieval":
             retriever_node = DAGNode(
                 name="Retriever",
-                operator=Retriever(self.memory_layers),
-                config={"k": 5}  # Example: setting k in the config
+                operator=Retriever(self.memory_layers.get("long_term")),  # Use long-term memory for retrieval
+                config={"k": 5}  # Example: retrieving top-5 results
             )
             dag.add_node(retriever_node)
             dag.add_edge(spout_node, retriever_node)
         elif intent == "summarization":
             retriever_node = DAGNode(
                 name="Retriever",
-                operator=Retriever(self.memory_layers),
+                operator=Retriever(self.memory_layers.get("long_term")),  # Use long-term memory
                 config={"k": 5}
             )
             summarizer_node = DAGNode(
@@ -75,8 +78,8 @@ class QueryCompiler:
         elif intent == "question_answering":
             retriever_node = DAGNode(
                 name="Retriever",
-                operator=Retriever(self.memory_layers),
-                config={"k": 3}
+                operator=Retriever(self.memory_layers.get("long_term")),  # Use long-term memory
+                config={"k": 3}  # Retrieve top-3 relevant items
             )
             generator_node = DAGNode(
                 name="Generator",
@@ -95,7 +98,7 @@ class QueryCompiler:
     def _parse_query(self, natural_query):
         """
         A basic NLP-based method to extract intent from a query.
-        TODO: This can be replaced by an advanced NLP pipeline.
+        TODO: Replace with an advanced NLP pipeline.
         :param natural_query: The query to process.
         :return: The detected intent.
         """
@@ -116,9 +119,12 @@ class QueryCompiler:
         operation = "Retriever" if "RETRIEVE" in query.upper() else None
         if not operation:
             raise ValueError("Unsupported HQL operation.")
-        operator_class = Retriever if operation == "Retriever" else None
-        operator_node = DAGNode(operation, operator_class(self.memory_layers), is_spout=True)
-        dag.add_node(operator_node)
+        retriever_node = DAGNode(
+            name="Retriever",
+            operator=Retriever(self.memory_layers.get("long_term")),  # Use long-term memory
+            is_spout=True
+        )
+        dag.add_node(retriever_node)
         return dag
 
     def _compile_continuous(self, query):

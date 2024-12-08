@@ -26,6 +26,7 @@ LLH/
 │   │   │   ├── __init__.py               # Marks this directory as a Python package.
 │   │   │   ├── short_term_memory.py      # Short-term memory (KV-pairs from LLM) backed by CANDY.
 │   │   │   ├── long_term_memory.py       # Long-term memory (persistent knowledge) backed by CANDY.
+│   │   │   ├── ...                       # Other memory types.
 │   │   ├── operators/                    # Core operators implementing functionalities.
 │   │   │   ├── __init__.py               # Marks this directory as a Python package.
 │   │   │   ├── base_operator.py          # Base operator
@@ -45,17 +46,7 @@ LLH/
 │   │   ├── query_agent.py                # AI agent assisting with query planning.
 │   │   ├── network_agent.py              # Handles data retrieval from external sources (e.g., internet).
 ├── tests/
-│   ├── test_query_compiler.py            # Tests for query compilation logic.
-│   ├── test_query_optimizer.py           # Tests for query optimization logic.
-│   ├── test_query_executor.py            # Tests for query execution logic.
-│   ├── test_dag.py                       # Tests for DAG management and execution.
-│   ├── operators/                        # Tests for individual operators.
-│   │   ├── test_hallucination_detection.py
-│   │   ├── test_prompter.py
-│   │   ├── test_retriever.py
-│   │   ├── test_generator.py
-│   │   ├── test_model_editor.py
-│   │   ├── test_docwriter.py
+│   │   ├── ...                           #
 ├── deps/                                 # External dependencies and submodules.
 │   ├── vLLM/                             # LLM inference submodule for generation and editing.
 │   │   ├── ...                           #

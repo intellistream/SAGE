@@ -5,41 +5,45 @@ from src.core.operators.base_operator import BaseOperator
 
 class Retriever(BaseOperator):
     """
-    Operator for retrieving data from memory layers or external sources.
+    Operator for retrieving data from the long-term memory.
     """
 
-    def __init__(self, memory_layers, embedder_model="sentence-transformers/all-MiniLM-L6-v2"):
+    def __init__(self, long_term_memory, embedder_model="sentence-transformers/all-MiniLM-L6-v2"):
         """
         Initialize the Retriever operator.
-        :param memory_layers: Dictionary of memory layers to retrieve data from.
-        :param embedder_model: The model to use for embedding generation.
+        :param long_term_memory: The long-term memory instance to retrieve data from.
+        :param embedder: An embedder instance to generate embeddings.
         """
         super().__init__()
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.memory_layers = memory_layers
+        self.long_term_memory = long_term_memory
         self.embedder = TextPreprocessor(model_name=embedder_model)  # Instantiate the embedder
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def execute(self, input_data, **kwargs):
         """
-        Retrieve data relevant to the input query.
+        Retrieve data relevant to the input query from long-term memory.
         :param input_data: Query or context to retrieve data for.
         :param kwargs: Additional parameters (e.g., number of results).
         :return: Retrieved data.
         """
         try:
-            k = kwargs.get("k", 1)
+            k = kwargs.get("k", 1)  # Number of results to retrieve
             self.logger.info(f"Generating embedding for query: {input_data}")
+
+            # Generate embedding from the query
             query_embedding = self.embedder.generate_embedding(input_data)
 
-            self.logger.info(f"Retrieving data for query: {input_data}")
-            for layer_name, memory in self.memory_layers.items():  # Iterate over dictionary
-                results = memory.retrieve(query_embedding, k)
-                if results:
-                    self.logger.info(f"Data retrieved successfully from {layer_name}.")
-                    return results
+            self.logger.info(f"Retrieving data from long-term memory for query: {input_data}")
 
-            self.logger.warning("No data found in any memory layer.")
+            # Retrieve results from long-term memory
+            results = self.long_term_memory.retrieve(query=query_embedding, k=k)
+            if results:
+                self.logger.info(f"Data retrieved successfully: {len(results)} result(s) found.")
+                return results
+
+            self.logger.warning("No data found in long-term memory.")
             return None
+
         except Exception as e:
             self.logger.error(f"Error during retrieval: {str(e)}")
             raise RuntimeError(f"Retriever execution failed: {str(e)}")
