@@ -21,3 +21,6 @@ CMakeUserPresets.json
 /installation/dist/
 /installation/dist/
 /installation/candy/
+
+/deps/CANDY/.github/
+.github/

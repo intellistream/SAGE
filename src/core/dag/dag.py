@@ -69,3 +69,15 @@ class DAG:
 
         self.logger.info("Topological sort completed.")
         return sorted_nodes
+
+    def get_node_by_name(self, name: str) -> 'DAGNode':
+        """
+        Retrieve a node from the DAG by its name.
+        :param name: The name of the node to retrieve.
+        :return: The DAGNode instance with the given name.
+        :raises ValueError: If no node with the given name exists in the DAG.
+        """
+        for node in self.nodes:
+            if node.name == name:
+                return node
+        raise ValueError(f"Node with name '{name}' not found in the DAG.")
