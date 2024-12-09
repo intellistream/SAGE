@@ -5,6 +5,7 @@ from src.core.operators.generator import Generator
 from src.core.operators.spout import Spout
 from src.core.operators.summarizer import Summarizer
 from src.core.query_engine.query_optimizer import QueryOptimizer
+from src.core.query_engine.query_pipelines.pipeline_manager import PipelineManager
 
 
 class QueryCompiler:
@@ -33,6 +34,21 @@ class QueryCompiler:
         optimized_dag = self.optimizer.optimize(dag)
         return optimized_dag, execution_type
 
+    def _initialize_dag_with_spout(self, natural_query):
+        """
+        Initialize a DAG with a Spout node.
+        :param natural_query: The natural language query string.
+        :return: Initialized DAG with a Spout node.
+        """
+        dag = DAG()
+        spout_node = DAGNode(
+            name="Spout",
+            operator=Spout(input_data=natural_query),
+            is_spout=True
+        )
+        dag.add_node(spout_node)
+        return dag
+
     def compile_natural_query(self, natural_query):
         """
         Compile a natural language query into a DAG.
@@ -42,46 +58,17 @@ class QueryCompiler:
         # Step 1: Parse the question to understand the user's intent
         intent = self._parse_query(natural_query)
 
-        # Step 2: Create the DAG and add the Spout node
-        dag = DAG()
-        spout_node = DAGNode(
-            name="Spout",
-            operator=Spout(input_data=natural_query),
-            is_spout=True
-        )
-        dag.add_node(spout_node)
+        # Step 2: Initialize the DAG and add the Spout node
+        dag = self._initialize_dag_with_spout(natural_query)
 
-        # Step 3: Add downstream nodes based on intent
+        # Step 3: Use PipelineManager to add the pipeline
+        pipeline_manager = PipelineManager(self.memory_layers)
+        spout_node = dag.get_node_by_name("Spout")
+
         if intent == "summarization":
-            retriever_node = DAGNode(
-                name="Retriever",
-                operator=Retriever(self.memory_layers.get("long_term")),  # Use long-term memory
-                config={"k": 5}
-            )
-            summarizer_node = DAGNode(
-                name="Summarizer",
-                operator=Summarizer(),
-                config={"summary_length": 100}  # Example additional parameter
-            )
-            dag.add_node(retriever_node)
-            dag.add_node(summarizer_node)
-            dag.add_edge(spout_node, retriever_node)
-            dag.add_edge(retriever_node, summarizer_node)
+            pipeline_manager.add_summarization_pipeline(dag, spout_node)
         elif intent == "question_answering":
-            retriever_node = DAGNode(
-                name="Retriever",
-                operator=Retriever(self.memory_layers.get("long_term")),  # Use long-term memory
-                config={"k": 3}  # Retrieve top-3 relevant items
-            )
-            generator_node = DAGNode(
-                name="Generator",
-                operator=Generator(),
-                config={"max_length": 50}  # Example additional parameter
-            )
-            dag.add_node(retriever_node)
-            dag.add_node(generator_node)
-            dag.add_edge(spout_node, retriever_node)
-            dag.add_edge(retriever_node, generator_node)
+            pipeline_manager.add_question_answering_pipeline(dag, spout_node)
         else:
             raise ValueError(f"Unsupported query type: {intent}")
 
