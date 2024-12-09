@@ -1,4 +1,4 @@
-from src.core.operators.base_operator import BaseOperator
+from src.core.query_engine.operators.base_operator import BaseOperator
 class Embedder(BaseOperator):
     """
     Base class for all operators.

@@ -1,7 +1,9 @@
-from src.core.query_engine.dag import DAGNode
-from src.core.operators.generator import Generator
-from src.core.operators.retriever import Retriever
-from src.core.operators.summarizer import Summarizer
+from src.core.query_engine.operators.generator import Generator
+from src.core.query_engine.operators.prompter import PromptOperator
+from src.core.query_engine.operators.retriever import Retriever
+from src.core.query_engine.operators.summarizer import Summarizer
+from src.core.query_engine.dag.one_shot_dag_node import OneShotDAGNode
+from src.utils.file_path import SUMMARIZATION_PROMPT_TEMPLATE, QAPROMPT_TEMPLATE
 
 
 class PipelineManager:
@@ -22,20 +24,29 @@ class PipelineManager:
         :param dag: The DAG instance to modify.
         :param spout_node: The Spout node to connect the pipeline to.
         """
-        retriever_node = DAGNode(
+        retriever_node = OneShotDAGNode(
             name="Retriever",
             operator=Retriever(self.memory_layers.get("long_term")),
-            config={"k": 5}
+            config={"k": 5}  # Retrieve top-5 results
         )
-        summarizer_node = DAGNode(
+        prompt_node = OneShotDAGNode(
+            name="PromptGenerator",
+            operator=PromptOperator(prompt_template=SUMMARIZATION_PROMPT_TEMPLATE)
+        )
+        summarizer_node = OneShotDAGNode(
             name="Summarizer",
             operator=Summarizer(),
-            config={"summary_length": 100}
+            config={"summary_length": 100}  # Example configuration for summarization
         )
+
         dag.add_node(retriever_node)
+        dag.add_node(prompt_node)
         dag.add_node(summarizer_node)
+
+        # Define edges
         dag.add_edge(spout_node, retriever_node)
-        dag.add_edge(retriever_node, summarizer_node)
+        dag.add_edge(retriever_node, prompt_node)
+        dag.add_edge(prompt_node, summarizer_node)
 
     def add_question_answering_pipeline(self, dag, spout_node):
         """
@@ -43,17 +54,27 @@ class PipelineManager:
         :param dag: The DAG instance to modify.
         :param spout_node: The Spout node to connect the pipeline to.
         """
-        retriever_node = DAGNode(
+        retriever_node = OneShotDAGNode(
             name="Retriever",
             operator=Retriever(self.memory_layers.get("long_term")),
-            config={"k": 3}
+            config={"k": 3}  # Retrieve top-3 results
         )
-        generator_node = DAGNode(
+        prompt_node = OneShotDAGNode(
+            name="PromptGenerator",
+            operator=PromptOperator(prompt_template=QAPROMPT_TEMPLATE)
+        )
+        generator_node = OneShotDAGNode(
             name="Generator",
             operator=Generator(),
-            config={"max_length": 50}
+            config={"max_length": 50}  # Example configuration for generation
         )
+
         dag.add_node(retriever_node)
+        dag.add_node(prompt_node)
         dag.add_node(generator_node)
+
+        # Define edges
         dag.add_edge(spout_node, retriever_node)
-        dag.add_edge(retriever_node, generator_node)
+        dag.add_edge(retriever_node, prompt_node)
+        dag.add_edge(prompt_node, generator_node)
+

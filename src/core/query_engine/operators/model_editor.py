@@ -1,5 +1,5 @@
 import logging
-from src.core.operators.base_operator import BaseOperator
+from src.core.query_engine.operators.base_operator import BaseOperator
 from vllm import LLMEngine
 from vllm.lora.request import LoRARequest
 

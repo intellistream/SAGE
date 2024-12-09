@@ -2,7 +2,7 @@ import logging
 from collections import deque
 from typing import List
 
-from src.core.query_engine.dag.dag_node import DAGNode
+from src.core.query_engine.dag.base_dag_node import BaseDAGNode
 
 
 class DAG:
@@ -43,7 +43,7 @@ class DAG:
             parent.add_downstream_node(child)
             self.logger.info(f"Edge added from {parent.name} to {child.name}.")
 
-    def get_topological_order(self) -> List['DAGNode']:
+    def get_topological_order(self) -> List['BaseDAGNode']:
         """
         Perform topological sorting of the DAG nodes.
         :return: List of DAGNode instances in topological order.
@@ -70,7 +70,7 @@ class DAG:
         self.logger.info("Topological sort completed.")
         return sorted_nodes
 
-    def get_node_by_name(self, name: str) -> 'DAGNode':
+    def get_node_by_name(self, name: str) -> 'BaseDAGNode':
         """
         Retrieve a node from the DAG by its name.
         :param name: The name of the node to retrieve.

@@ -12,13 +12,12 @@ class LongTermMemory(BaseMemory):
     Long-term memory layer that uses VectorDB for storage and retrieval.
     """
 
-    def __init__(self, vector_dim, search_algorithm, retain_raw_data=False):
+    def __init__(self, vector_dim, search_algorithm):
         """
         Initialize the LongTermMemory with a VectorDB and optional raw data retention.
 
         :param vector_dim: Dimensionality of the embeddings.
         :param search_algorithm: Search algorithm to use in VectorDB.
-        :param retain_raw_data: Boolean flag to retain raw data storage on initialization.
         """
         super().__init__()
         self.db = VectorDB(vector_dim, search_algorithm)
@@ -26,13 +25,6 @@ class LongTermMemory(BaseMemory):
             RAW_FILE
         )
         self.embedding_to_raw_map = {}
-
-        # Delete raw data storage unless retention is requested
-        if not retain_raw_data:
-            self.raw_data_storage.delete_all_data()
-            self.logger.info("Raw data storage cleared during initialization.")
-        else:
-            self.logger.info("Raw data storage retained during initialization.")
 
         self.logger.info("Persistent memory initialized with VectorDB.")
 
@@ -100,7 +92,7 @@ class LongTermMemory(BaseMemory):
                             with open(raw_data_path, 'r') as file:
                                 raw_data = file.read()
                             results.append(raw_data)
-                            self.logger.debug(f"Retrieved context: {results}.")
+                            self.logger.debug(f"Retrieved context: {raw_data}.")
                         except Exception as e:
                             self.logger.error(f"Error reading raw data file {raw_data_path}: {str(e)}")
                             results.append(None)  # Handle file read error
@@ -134,3 +126,10 @@ class LongTermMemory(BaseMemory):
         except Exception as e:
             self.logger.error(f"Error deleting embedding: {str(e)}")
             raise RuntimeError(f"Failed to delete embedding: {str(e)}")
+
+    def clean(self):
+        """
+        Clear all items in memory.
+        """
+        self.raw_data_storage.delete_all_data()
+        self.logger.info("Memory cleared.")
