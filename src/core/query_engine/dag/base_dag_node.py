@@ -1,16 +1,17 @@
-from queue import Queue
+from queue import Queue, Empty
 import logging
+import threading
+import time
 
 
-class DAGNode:
+class BaseDAGNode:
     """
-    Represents an individual node in a DAG.
-    Each node encapsulates an operator and manages execution with message passing.
+    Base class for DAG nodes, defining shared functionality for all node types.
     """
 
     def __init__(self, name, operator, config=None, is_spout=False):
         """
-        Initialize the DAG node.
+        Initialize the base DAG node.
         :param name: Unique name of the node.
         :param operator: An operator implementing the execution logic.
         :param config: Optional dictionary of configuration parameters for the operator.
@@ -24,11 +25,12 @@ class DAGNode:
         self.output_queue = Queue()
         self.upstream_nodes = []  # List of upstream DAGNodes
         self.downstream_nodes = []  # List of downstream DAGNodes
+        self.is_executed = False
 
     def add_upstream_node(self, node):
         """
         Add an upstream node. This node fetches input from the upstream node's output queue.
-        :param node: A DAGNode instance.
+        :param node: A BaseDAGNode instance.
         """
         if node not in self.upstream_nodes:
             self.upstream_nodes.append(node)
@@ -37,40 +39,14 @@ class DAGNode:
     def add_downstream_node(self, node):
         """
         Add a downstream node. The downstream node uses this node's output queue as its input source.
-        :param node: A DAGNode instance.
+        :param node: A BaseDAGNode instance.
         """
         if node not in self.downstream_nodes:
             self.downstream_nodes.append(node)
             node.add_upstream_node(self)
             self.logger.info(f"Node '{self.name}' connected to downstream node '{node.name}'.")
 
-    def execute(self):
-        """
-        Fetch input from upstream nodes, execute the operator logic, and deliver output to the output queue.
-        """
-        self.logger.info(f"Node '{self.name}' starting execution.")
-        try:
-            # If the node is a spout, directly execute the operator without fetching input
-            if self.is_spout:
-                self.logger.info(f"Node '{self.name}' is a spout. Executing without fetching input.")
-                self.operator.output_queue = self.output_queue  # Set operator's output queue
-                self.operator.execute()  # Spout handles its own input
-            else:
-                # For non-spout nodes, fetch input from upstream nodes
-                input_data = self._fetch_input()
-                if input_data is None:
-                    self.logger.warning(f"Node '{self.name}' has no input to process.")
-                    return
-
-                # Extract `k` or other parameters from config and pass them to the operator
-                self.operator.output_queue = self.output_queue  # Set operator's output queue
-                self.operator.execute(input_data, **self.config)
-
-        except Exception as e:
-            self.logger.error(f"Error in node '{self.name}': {str(e)}")
-            raise RuntimeError(f"Execution failed in node '{self.name}': {str(e)}")
-
-    def _fetch_input(self):
+    def fetch_input(self):
         """
         Fetch input from upstream nodes' output queues.
         :return: Aggregated input data from upstream nodes or None if no data is available.
@@ -79,8 +55,10 @@ class DAGNode:
         for upstream_node in self.upstream_nodes:
             while not upstream_node.output_queue.empty():
                 aggregated_input.append(upstream_node.output_queue.get())
-
         return aggregated_input if aggregated_input else None
 
-    def __repr__(self):
-        return f"DAGNode(name={self.name}, operator={self.operator.__class__.__name__})"
+    def execute(self):
+        """
+        This method must be implemented by subclasses to define specific execution behavior.
+        """
+        raise NotImplementedError("Subclasses must implement the `execute` method.")

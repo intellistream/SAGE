@@ -2,27 +2,35 @@ import logging
 import threading
 import time
 
-from src.core.dag.dag import DAG
-from src.core.dag.dag_node import DAGNode
+from src.core.query_engine.dag.dag import DAG
+from src.core.query_engine.query_execution.sequential_execution import SequentialExecutionStrategy
 
 
 class QueryExecutor:
-    def __init__(self, memory_layers):
+    def __init__(self, memory_layers, strategy=None):
+        """
+        Initialize the query executor with a specific execution strategy.
+        :param memory_layers: Memory layers available for queries.
+        :param strategy: Execution strategy (default is SequentialExecutionStrategy).
+        """
         self.memory_layers = memory_layers
+        self.strategy = strategy or SequentialExecutionStrategy()
         self.continuous_queries = []
+
+    def set_strategy(self, strategy):
+        """
+        Set the execution strategy.
+        :param strategy: Instance of an execution strategy.
+        """
+        self.strategy = strategy
 
     def execute(self, dag: DAG) -> dict:
         """
-        Execute a one-shot query by running the DAG nodes sequentially.
+        Execute a one-shot query using the selected strategy.
         :param dag: Optimized DAG to execute.
         :return: Final result from the DAG execution.
         """
-        results = {}
-        for node in dag.get_topological_order():
-            assert isinstance(node, DAGNode), f"Expected DAGNode, got {type(node).__name__}"
-            result = node.execute()
-            results[node.name] = result
-        return results
+        return self.strategy.execute(dag)
 
     def register_continuous_query(self, dag, interval=10):
         """
