@@ -80,12 +80,14 @@ huggingface-cli login --token #your_token
 Then, you can interact with the system through api/interactive_cli.py
 
 ### Known issues
+1. 
 > In case if "ImportError: /opt/conda/envs/llh/lib/python3.11/site-packages/torch/lib/../../../.././libstdc++.so.6:
 version `GLIBCXX_3.4.30' not found (required by /root/.local/lib/python3.11/site-packages/libCANDY.so)
 "
-
-> In case if "gdb error", you may use `conda install gdb`, and then `which gdb`. use this gdb instead of the default system gdb.
-
 ```bash
 conda install -c conda-forge libstdcxx-ng
 ```
+
+2.
+> In case if "gdb error", you may use `conda install gdb`, and then `which gdb`. use this gdb instead of the default system gdb.
+

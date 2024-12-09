@@ -1,6 +1,6 @@
 import logging
-from src.core.query_engine.query_compiler import QueryCompiler
-from src.core.query_engine.query_executor import QueryExecutor
+from src.core.query_engine.query_compilation.query_compiler import QueryCompiler
+from src.core.query_engine.query_execution.query_executor import QueryExecutor
 from src.core.memory.utils import initialize_memory_layers
 from src.utils.logger import configure_logging
 

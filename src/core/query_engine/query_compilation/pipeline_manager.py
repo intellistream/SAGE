@@ -1,4 +1,4 @@
-from src.core.dag.dag_node import DAGNode
+from src.core.query_engine.dag import DAGNode
 from src.core.operators.generator import Generator
 from src.core.operators.retriever import Retriever
 from src.core.operators.summarizer import Summarizer

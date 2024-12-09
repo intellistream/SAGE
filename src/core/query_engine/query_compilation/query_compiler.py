@@ -1,13 +1,21 @@
-from src.core.dag.dag import DAG
-from src.core.dag.dag_node import DAGNode
+from src.core.query_engine.dag.continous_dag_node import ContinuousDAGNode
+from src.core.query_engine.dag.dag import DAG
 from src.core.operators.retriever import Retriever
-from src.core.operators.generator import Generator
 from src.core.operators.spout import Spout
-from src.core.operators.summarizer import Summarizer
-from src.core.query_engine.query_optimizer import QueryOptimizer
-from src.core.query_engine.query_pipelines.pipeline_manager import PipelineManager
+from src.core.query_engine.dag.one_shot_dag_node import OneShotDAGNode
+from src.core.query_engine.query_compilation.pipeline_manager import PipelineManager
+from src.core.query_engine.query_optimization.query_optimizer import QueryOptimizer
 
+"""
+Tasks of QueryCompiler
 
+1. Syntax Parsing:
+    Transform the user query into a base DAG structure.
+2. Basic Intent Analysis:
+    Determine whether the query is a retrieval, summarization, or generation task.
+3. Straightforward Node Insertion:
+    Add DAG nodes in an order that reflects logical query execution
+"""
 class QueryCompiler:
     def __init__(self, memory_layers):
         """
@@ -34,14 +42,29 @@ class QueryCompiler:
         optimized_dag = self.optimizer.optimize(dag)
         return optimized_dag, execution_type
 
-    def _initialize_dag_with_spout(self, natural_query):
+    def add_one_shot_spout(self, natural_query):
         """
         Initialize a DAG with a Spout node.
         :param natural_query: The natural language query string.
         :return: Initialized DAG with a Spout node.
         """
         dag = DAG()
-        spout_node = DAGNode(
+        spout_node = OneShotDAGNode(
+            name="Spout",
+            operator=Spout(input_data=natural_query),
+            is_spout=True
+        )
+        dag.add_node(spout_node)
+        return dag
+
+    def add_continous_spout(self, natural_query):
+        """
+        Initialize a DAG with a Spout node.
+        :param natural_query: The natural language query string.
+        :return: Initialized DAG with a Spout node.
+        """
+        dag = DAG()
+        spout_node = ContinuousDAGNode(
             name="Spout",
             operator=Spout(input_data=natural_query),
             is_spout=True
@@ -59,7 +82,7 @@ class QueryCompiler:
         intent = self._parse_query(natural_query)
 
         # Step 2: Initialize the DAG and add the Spout node
-        dag = self._initialize_dag_with_spout(natural_query)
+        dag = self.add_one_shot_spout(natural_query)
 
         # Step 3: Use PipelineManager to add the pipeline
         pipeline_manager = PipelineManager(self.memory_layers)
@@ -96,7 +119,7 @@ class QueryCompiler:
         operation = "Retriever" if "RETRIEVE" in query.upper() else None
         if not operation:
             raise ValueError("Unsupported HQL operation.")
-        retriever_node = DAGNode(
+        retriever_node = OneShotDAGNode(
             name="Retriever",
             operator=Retriever(self.memory_layers.get("long_term")),  # Use long-term memory
             is_spout=True
@@ -111,6 +134,6 @@ class QueryCompiler:
         :return: DAG instance.
         """
         dag = DAG()
-        operator_node = DAGNode("ContinuousQuery", None, is_spout=True)
+        operator_node = ContinuousDAGNode("ContinuousQuery", None, is_spout=True)
         dag.add_node(operator_node)
         return dag

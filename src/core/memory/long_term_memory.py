@@ -12,13 +12,28 @@ class LongTermMemory(BaseMemory):
     Long-term memory layer that uses VectorDB for storage and retrieval.
     """
 
-    def __init__(self, vector_dim, search_algorithm):
+    def __init__(self, vector_dim, search_algorithm, retain_raw_data=False):
+        """
+        Initialize the LongTermMemory with a VectorDB and optional raw data retention.
+
+        :param vector_dim: Dimensionality of the embeddings.
+        :param search_algorithm: Search algorithm to use in VectorDB.
+        :param retain_raw_data: Boolean flag to retain raw data storage on initialization.
+        """
         super().__init__()
         self.db = VectorDB(vector_dim, search_algorithm)
         self.raw_data_storage = LocalRawDataStorage(
             RAW_FILE
         )
         self.embedding_to_raw_map = {}
+
+        # Delete raw data storage unless retention is requested
+        if not retain_raw_data:
+            self.raw_data_storage.delete_all_data()
+            self.logger.info("Raw data storage cleared during initialization.")
+        else:
+            self.logger.info("Raw data storage retained during initialization.")
+
         self.logger.info("Persistent memory initialized with VectorDB.")
 
     def _generate_embedding_key(self, embedding):

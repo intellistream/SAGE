@@ -2,7 +2,7 @@ import logging
 from collections import deque
 from typing import List
 
-from src.core.dag.dag_node import DAGNode
+from src.core.query_engine.dag.dag_node import DAGNode
 
 
 class DAG:
