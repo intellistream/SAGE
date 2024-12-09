@@ -5,16 +5,13 @@ from src.core.memory.utils import initialize_memory_layers
 from src.utils.logger import configure_logging
 
 
-def run_debug_pipeline(input_text):
+def run_debug_pipeline(input_text, memory_layers):
     """
     Runs the entire pipeline for a single input, from compilation to execution.
     :param input_text: The query or natural language input to process.
+    :param memory_layers: The initialized memory layers.
     """
     try:
-        # Initialize logging and memory layers
-        configure_logging(level=logging.DEBUG)
-        memory_layers = initialize_memory_layers()
-
         # Initialize query components
         compiler = QueryCompiler(memory_layers)
         executor = QueryExecutor(memory_layers)
@@ -41,15 +38,29 @@ def run_debug_pipeline(input_text):
 
 
 if __name__ == "__main__":
-    # Define test inputs for debugging
-    test_inputs = [
-        "What is the Eiffel Tower?",  # Natural language query for information retrieval
-        # "summarize sanguo",  # Natural language query for summarization
-        # "EXECUTE RETRIEVE key=value",  # HQL query for one-shot execution
-        # "REGISTER RETRIEVE key=value"  # HQL query for continuous execution
-    ]
+    # Configure logging
+    configure_logging(level=logging.DEBUG)
 
-    # Run each input through the debug pipeline
-    for test_input in test_inputs:
-        print(f"\nProcessing test input: {test_input}")
-        run_debug_pipeline(test_input)
+    # Initialize memory layers
+    memory_layers = initialize_memory_layers()
+
+    try:
+        # Define test inputs for debugging
+        test_inputs = [
+            "What is the Eiffel Tower?",  # Natural language query for information retrieval
+            "Summarize Sanguo",  # Natural language query for summarization
+            # "EXECUTE RETRIEVE key=value",  # HQL query for one-shot execution
+            # "REGISTER RETRIEVE key=value"  # HQL query for continuous execution
+        ]
+
+        # Run each input through the debug pipeline
+        for test_input in test_inputs:
+            print(f"\nProcessing test input: {test_input}")
+            run_debug_pipeline(test_input, memory_layers)
+
+    finally:
+        # Reset memory layers after testing
+        logging.info("Resetting memory layers...")
+        for layer_name, layer in memory_layers.items():
+            layer.clean()
+        logging.info("Memory layers reset successfully.")

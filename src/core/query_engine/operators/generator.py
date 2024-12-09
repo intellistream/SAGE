@@ -1,6 +1,6 @@
 import logging
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-from src.core.operators.base_operator import BaseOperator
+from src.core.query_engine.operators.base_operator import BaseOperator
 
 class Generator(BaseOperator):
     """

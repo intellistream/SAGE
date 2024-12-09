@@ -1,6 +1,6 @@
 import logging
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-from src.core.operators.base_operator import BaseOperator
+from src.core.query_engine.operators.base_operator import BaseOperator
 
 
 class Summarizer(BaseOperator):
@@ -33,6 +33,10 @@ class Summarizer(BaseOperator):
             length_penalty = kwargs.get("length_penalty", 2.0)
             num_beams = kwargs.get("num_beams", 4)
 
+            # Handle input data: join list elements if input_data is a list
+            if isinstance(input_data, list):
+                input_data = " ".join(map(str, input_data))
+
             # Encode input and generate summary
             self.logger.info(f"Summarizing input: {input_data}")
             inputs = self.tokenizer.encode(input_data, return_tensors="pt", truncation=True, max_length=1024)
@@ -54,3 +58,4 @@ class Summarizer(BaseOperator):
         except Exception as e:
             self.logger.error(f"Error during summarization: {str(e)}")
             raise RuntimeError(f"Summarization failed: {str(e)}")
+
