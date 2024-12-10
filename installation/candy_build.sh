@@ -1,22 +1,22 @@
 #!/bin/bash
 
-# Navigate to the project root directory
-cd "$(dirname "$0")/../.." || exit
+# Navigate to the CANDY project directory from the installation folder
+cd "$(dirname "$0")/../deps/CANDY" || exit
 
-# Project root directory
-PROJ_DIR=$(pwd)
+# CANDY project directory
+CANDY_DIR=$(pwd)
 
-echo "Building CANDY project in $PROJ_DIR"
+echo "Building CANDY project in $CANDY_DIR"
 
 # Clean up any previous build directory
-if [ -d "$PROJ_DIR/build" ]; then
+if [ -d "$CANDY_DIR/build" ]; then
     echo "Removing existing build directory..."
-    rm -rf "$PROJ_DIR/build"
+    rm -rf "$CANDY_DIR/build"
 fi
 
 # Create a fresh build directory
-mkdir "$PROJ_DIR/build"
-cd "$PROJ_DIR/build" || exit
+mkdir "$CANDY_DIR/build"
+cd "$CANDY_DIR/build" || exit
 
 # Run CMake to configure the project
 echo "Running CMake configuration..."
