@@ -43,6 +43,13 @@ with `llh`.
 
 ### 2.2 Compile CANDY and install pycandy
 
+Get the `CANDY`:
+
+```bash
+cd deps
+git clone https://github.com/intellistream/CANDY.git
+```
+
 Use the following command to auto install `pycandy`:
 
 ```bash
