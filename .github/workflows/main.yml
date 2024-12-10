@@ -29,16 +29,22 @@ jobs:
       # Remove conflicting CUDA repositories
       - name: Remove Existing CUDA Repositories
         run: sudo rm -f /etc/apt/sources.list.d/cuda* /etc/apt/sources.list.d/nvidia-*
-
-      # Install CUDA Toolkit 11.8
-      - name: Install CUDA Toolkit
+      - name: Install Base Dependencies
         run: |
-          sudo apt-get update && sudo apt-get install -y wget gnupg ca-certificates build-essential
-          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
-          sudo dpkg -i cuda-keyring_1.1-1_all.deb
-          sudo apt-get update
-          sudo apt-get install -y cuda-11-8
-          nvcc --version
+          mamba install -y python=3.11 pip
+          mamba clean --all -y
+        
+      - name: Install CUDA and PyTorch
+        run: |
+          mamba install -y \
+            pytorch=2.4.0 \
+            pytorch-cuda=12.1 \
+            torchaudio=2.4.0 \
+            torchvision=0.19.0 \
+            cuda-runtime=12.1.0 \
+            -c pytorch -c nvidia
+          mamba clean --all -y
+          conda clean --all -y
 
       # Setup Miniconda and Python environment
       - name: Setup Miniconda
