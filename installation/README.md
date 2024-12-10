@@ -43,9 +43,7 @@ with `llh`.
 
 ### 2.2 Compile CANDY and install pycandy
 
-Go to the CANDY project directory, and find the `installation`.
-
-In the directory, use the following command to auto install `pycandy`:
+Use the following command to auto install `pycandy`:
 
 ```bash
 conda deactivate # ensure in non conda env
