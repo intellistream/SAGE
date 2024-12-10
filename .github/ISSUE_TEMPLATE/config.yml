@@ -1,0 +1,67 @@
+blank_issues_enabled: false
+contact_links:
+  # Common Templates
+  - name: "Bug Report"
+    url: "/intellistream/CANDY/issues/new?template=bug_report.md"
+    about: "Report a bug or unexpected behavior"
+
+  - name: "Feature Request"
+    url: "/intellistream/CANDY/issues/new?template=feature_request.md"
+    about: "Suggest a new feature or improvement"
+
+  - name: "Documentation Request"
+    url: "/intellistream/CANDY/issues/new?template=documentation_request.md"
+    about: "Request improvements or additions to documentation"
+
+  - name: "Question"
+    url: "/intellistream/CANDY/issues/new?template=question.md"
+    about: "Ask a question about the project"
+
+  - name: "Enhancement Request"
+    url: "/intellistream/CANDY/issues/new?template=enhancement_request.md"
+    about: "Request an improvement or optimization"
+
+  - name: "Performance Issue"
+    url: "/intellistream/CANDY/issues/new?template=performance_issue.md"
+    about: "Report a performance issue or inefficiency"
+
+  - name: "Security Vulnerability"
+    url: "/intellistream/CANDY/issues/new?template=security_vulnerability.md"
+    about: "Report a security vulnerability (confidential)"
+
+  - name: "Refactor Request"
+    url: "/intellistream/CANDY/issues/new?template=refactor_request.md"
+    about: "Suggest a refactoring to improve code quality"
+
+  - name: "Task"
+    url: "/intellistream/CANDY/issues/new?template=task.md"
+    about: "Log a general task or maintenance activity"
+
+  # Research-Specific Templates
+  - name: "Paper Discussion"
+    url: "/intellistream/CANDY/issues/new?template=paper_discussion.md"
+    about: "Discuss insights, critiques, or questions about a research paper"
+
+  - name: "Experiment Tracking"
+    url: "/intellistream/CANDY/issues/new?template=experiment_tracking.md"
+    about: "Log the setup, execution, and results of an experiment"
+
+  - name: "Dataset Request"
+    url: "/intellistream/CANDY/issues/new?template=dataset_request.md"
+    about: "Request a dataset for experiments or analysis"
+
+  - name: "Research Collaboration Request"
+    url: "/intellistream/CANDY/issues/new?template=research_collaboration_request.md"
+    about: "Request collaboration on a research topic, project, or experiment"
+
+  - name: "Research Paper Progress"
+    url: "/intellistream/CANDY/issues/new?template=research_paper_progress.md"
+    about: "Log and track the progress of an ongoing research paper"
+
+  - name: "Literature Review Request"
+    url: "/intellistream/CANDY/issues/new?template=literature_review_request.md"
+    about: "Request a literature review on a specific research topic"
+
+  - name: "Algorithm Exploration"
+    url: "/intellistream/CANDY/issues/new?template=algorithm_exploration.md"
+    about: "Explore and document findings on a new algorithm or method"
