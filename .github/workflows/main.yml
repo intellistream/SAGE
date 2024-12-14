@@ -111,7 +111,7 @@ jobs:
         run: |
           if conda env list | grep -q "llh"; then
             echo "Environment 'llh' already exists. Updating..."
-            mamba env update --name llh --file installation/environment.yml --prune
+            mamba env update --name llh --file installation/environment.yml
           else
             echo "Creating environment 'llh'..."
             mamba env create --file installation/environment.yml
