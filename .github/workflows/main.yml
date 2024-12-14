@@ -37,7 +37,6 @@ jobs:
           miniforge-version: latest
           use-mamba: true
           python-version: "3.11"
-          activate-environment: llh
           auto-activate-base: false
 
       # Install Base Dependencies
@@ -57,25 +56,17 @@ jobs:
             cuda-runtime=12.1.0 \
             -c pytorch -c nvidia
           mamba clean --all -y
-          conda clean --all -y
 
-      # Intialize Conda for env activation
-      - name: Initialize Conda
-        run: |
-          conda init
-          source ~/.bashrc
-
-      # Create and activate the environment using environment.yml
+      # Create or Update Conda Environment
       - name: Create or Update Environment
         run: |
           if conda env list | grep -q "llh"; then
             echo "Environment 'llh' already exists. Updating..."
-            mamba env update --name llh  --file installation/environment.yml
+            mamba env update --name llh --file installation/environment.yml --prune
           else
             echo "Creating environment 'llh'..."
-            mamba env create -f installation/environment.yml
+            mamba env create --file installation/environment.yml
           fi
-          conda deactivate
 
       # Use Deploy Key to Clone CANDY Repository
       - name: Configure SSH for Deploy Key
@@ -88,28 +79,28 @@ jobs:
       # Clone CANDY Repository
       - name: Clone CANDY Repository
         run: |
+          mkdir -p deps
           cd deps
           git clone https://github.com/intellistream/CANDY.git
 
       # Install `pycandy`
       - name: Install pycandy
         run: |
-          cd installation
+          cd deps/CANDY/installation
           bash candy_build.sh
-          conda activate llh
-          bash install_pycandy.sh
-          cd ..
+          conda run -n llh bash install_pycandy.sh
+          cd ../../../
 
-      # Install extra pip dependencies not in environment.yml
+      # Install Extra Pip Dependencies
       - name: Install Extra Pip Dependencies
         run: |
-          pip install --no-cache-dir \
+          conda run -n llh pip install --no-cache-dir \
             rouge-score==0.1.2 \
             evaluate==0.4.3 \
             datasets==3.0.1
-          python -c "import nltk; nltk.download('wordnet')"
+          conda run -n llh python -c "import nltk; nltk.download('wordnet')"
 
       # Run Pytest
       - name: Run Tests
         run: |
-          pytest -v tests/
+          conda run -n llh pytest -v tests/
