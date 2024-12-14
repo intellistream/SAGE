@@ -54,6 +54,16 @@ jobs:
             torchaudio==2.4.0 \
             --index-url https://download.pytorch.org/whl/cpu
 
+      # Setup Miniconda and Python environment
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          use-mamba: true
+          python-version: "3.11"
+          activate-environment: llh
+          auto-activate-base: false
+
       # Use Deploy Key to Clone CANDY Repository
       - name: Configure SSH for Deploy Key
         run: |
@@ -69,14 +79,14 @@ jobs:
           cd deps
           git clone git@github.com:intellistream/CANDY.git
 
-      # Setup Miniconda and Python environment
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniforge-version: latest
-          use-mamba: true
-          python-version: "3.11"
-          auto-activate-base: false
+       # Install `pycandy`
+      - name: Install pycandy
+        run: |
+          cd deps/CANDY/installation
+          bash candy_build.sh
+          cd ../../../installation/
+          conda run -n llh bash install_pycandy.sh
+          cd ../
           
       # Install Base Dependencies
       - name: Install Base Dependencies
@@ -107,14 +117,7 @@ jobs:
             mamba env create --file installation/environment.yml
           fi
 
-      # Install `pycandy`
-      - name: Install pycandy
-        run: |
-          cd deps/CANDY/installation
-          bash candy_build.sh
-          cd ../../../installation/
-          conda run -n llh bash install_pycandy.sh
-          cd ../
+     
 
       # Install Extra Pip Dependencies
       - name: Install Extra Pip Dependencies
