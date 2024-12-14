@@ -29,11 +29,24 @@ jobs:
       # Remove conflicting CUDA repositories
       - name: Remove Existing CUDA Repositories
         run: sudo rm -f /etc/apt/sources.list.d/cuda* /etc/apt/sources.list.d/nvidia-*
+
+      # Setup Miniconda and Python environment
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          use-mamba: true
+          python-version: "3.11"
+          activate-environment: llh
+          auto-activate-base: false
+
+      # Install Base Dependencies
       - name: Install Base Dependencies
         run: |
           mamba install -y python=3.11 pip
           mamba clean --all -y
-        
+
+      # Install CUDA Toolkit system-wide
       - name: Install CUDA and PyTorch
         run: |
           mamba install -y \
@@ -46,21 +59,12 @@ jobs:
           mamba clean --all -y
           conda clean --all -y
 
-      # Setup Miniconda and Python environment
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniforge-version: latest
-          use-mamba: true
-          python-version: "3.11"
-          activate-environment: llh
-          auto-activate-base: false
-
       # Create and activate the environment using environment.yml
       - name: Create Environment from environment.yml
         run: |
           mamba env create -f installation/environment.yml
           conda deactivate
+
       # Use Deploy Key to Clone CANDY Repository
       - name: Configure SSH for Deploy Key
         run: |
@@ -68,10 +72,13 @@ jobs:
           echo "${{ secrets.CANDY_DEPLOY_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      # Clone CANDY Repository
       - name: Clone CANDY Repository
         run: |
           cd deps
           git clone https://github.com/intellistream/CANDY.git
+
       # Install `pycandy`
       - name: Install pycandy
         run: |
