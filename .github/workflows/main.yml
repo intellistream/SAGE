@@ -131,4 +131,5 @@ jobs:
       # Run Pytest
       - name: Run Tests
         run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
           conda run -n llh pytest -v tests/
