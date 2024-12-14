@@ -1,5 +1,6 @@
 name: llh
 channels:
+  - conda-forge
   - pytorch
   - nvidia
   - defaults
