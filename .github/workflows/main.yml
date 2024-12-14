@@ -45,6 +45,15 @@ jobs:
           python --version
           python3.11 -m pip install --upgrade pip
 
+      # Install PyTorch CPU Version in Base Python
+      - name: Install PyTorch CPU Version in Base Python
+        run: |
+          pip install --no-cache-dir \
+            torch==2.4.0 \
+            torchvision==0.19.0 \
+            torchaudio==2.4.0 \
+            --index-url https://download.pytorch.org/whl/cpu
+
       # Use Deploy Key to Clone CANDY Repository
       - name: Configure SSH for Deploy Key
         run: |
@@ -86,15 +95,6 @@ jobs:
             cuda-runtime=12.1.0 \
             -c pytorch -c nvidia
           mamba clean --all -y
-
-      # Install PyTorch CPU Version in Base Python
-      - name: Install PyTorch CPU Version in Base Python
-        run: |
-          pip install --no-cache-dir \
-            torch==2.4.0 \
-            torchvision==0.19.0 \
-            torchaudio==2.4.0 \
-            --index-url https://download.pytorch.org/whl/cpu
 
       # Create or Update Conda Environment
       - name: Create or Update Environment
