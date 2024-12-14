@@ -60,9 +60,15 @@ jobs:
           conda clean --all -y
 
       # Create and activate the environment using environment.yml
-      - name: Create Environment from environment.yml
+      - name: Create or Update Environment
         run: |
-          mamba env create -f installation/environment.yml
+          if conda env list | grep -q "llh"; then
+            echo "Environment 'llh' already exists. Updating..."
+            mamba env update --name llh  --file installation/environment.yml
+          else
+            echo "Creating environment 'llh'..."
+            mamba env create -f installation/environment.yml
+          fi
           conda deactivate
 
       # Use Deploy Key to Clone CANDY Repository
