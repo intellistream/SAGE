@@ -29,11 +29,23 @@ jobs:
       # Remove conflicting CUDA repositories
       - name: Remove Existing CUDA Repositories
         run: sudo rm -f /etc/apt/sources.list.d/cuda* /etc/apt/sources.list.d/nvidia-*
+
+      # Setup Miniconda and Python environment
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          use-mamba: true
+          python-version: "3.11"
+          auto-activate-base: false
+
+      # Install Base Dependencies
       - name: Install Base Dependencies
         run: |
           mamba install -y python=3.11 pip
           mamba clean --all -y
-        
+
+      # Install CUDA Toolkit system-wide
       - name: Install CUDA and PyTorch
         run: |
           mamba install -y \
@@ -44,23 +56,18 @@ jobs:
             cuda-runtime=12.1.0 \
             -c pytorch -c nvidia
           mamba clean --all -y
-          conda clean --all -y
 
-      # Setup Miniconda and Python environment
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniforge-version: latest
-          use-mamba: true
-          python-version: "3.11"
-          activate-environment: llh
-          auto-activate-base: false
-
-      # Create and activate the environment using environment.yml
-      - name: Create Environment from environment.yml
+      # Create or Update Conda Environment
+      - name: Create or Update Environment
         run: |
-          mamba env create -f installation/environment.yml
-          conda deactivate
+          if conda env list | grep -q "llh"; then
+            echo "Environment 'llh' already exists. Updating..."
+            mamba env update --name llh --file installation/environment.yml --prune
+          else
+            echo "Creating environment 'llh'..."
+            mamba env create --file installation/environment.yml
+          fi
+
       # Use Deploy Key to Clone CANDY Repository
       - name: Configure SSH for Deploy Key
         run: |
@@ -68,29 +75,32 @@ jobs:
           echo "${{ secrets.CANDY_DEPLOY_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      # Clone CANDY Repository
       - name: Clone CANDY Repository
         run: |
+          mkdir -p deps
           cd deps
           git clone https://github.com/intellistream/CANDY.git
+
       # Install `pycandy`
       - name: Install pycandy
         run: |
-          cd installation
+          cd deps/CANDY/installation
           bash candy_build.sh
-          conda activate llh
-          bash install_pycandy.sh
-          cd ..
+          conda run -n llh bash install_pycandy.sh
+          cd ../../../
 
-      # Install extra pip dependencies not in environment.yml
+      # Install Extra Pip Dependencies
       - name: Install Extra Pip Dependencies
         run: |
-          pip install --no-cache-dir \
+          conda run -n llh pip install --no-cache-dir \
             rouge-score==0.1.2 \
             evaluate==0.4.3 \
             datasets==3.0.1
-          python -c "import nltk; nltk.download('wordnet')"
+          conda run -n llh python -c "import nltk; nltk.download('wordnet')"
 
       # Run Pytest
       - name: Run Tests
         run: |
-          pytest -v tests/
+          conda run -n llh pytest -v tests/
