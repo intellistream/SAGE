@@ -68,26 +68,7 @@ jobs:
           use-mamba: true
           python-version: "3.11"
           auto-activate-base: false
-
-      # Install PyTorch CPU Version in Base Python
-      - name: Install PyTorch CPU Version in Base Python
-        run: |
-          pip install --no-cache-dir \
-            torch==2.4.0 \
-            torchvision==0.19.0 \
-            torchaudio==2.4.0 \
-            --index-url https://download.pytorch.org/whl/cpu
-
-      # Install `pycandy`
-      - name: Install pycandy
-        run: |
-          cd deps/CANDY/installation
-          bash candy_build.sh
-          cd ../../../installation/
-          bash install_pycandy.sh
-          conda run -n llh bash install_pycandy.sh
           
-
       # Install Base Dependencies
       - name: Install Base Dependencies
         run: |
@@ -106,6 +87,15 @@ jobs:
             -c pytorch -c nvidia
           mamba clean --all -y
 
+      # Install PyTorch CPU Version in Base Python
+      - name: Install PyTorch CPU Version in Base Python
+        run: |
+          pip install --no-cache-dir \
+            torch==2.4.0 \
+            torchvision==0.19.0 \
+            torchaudio==2.4.0 \
+            --index-url https://download.pytorch.org/whl/cpu
+
       # Create or Update Conda Environment
       - name: Create or Update Environment
         run: |
@@ -117,6 +107,14 @@ jobs:
             mamba env create --file installation/environment.yml
           fi
 
+      # Install `pycandy`
+      - name: Install pycandy
+        run: |
+          cd deps/CANDY/installation
+          bash candy_build.sh
+          cd ../../../installation/
+          conda run -n llh bash install_pycandy.sh
+          cd ../
 
       # Install Extra Pip Dependencies
       - name: Install Extra Pip Dependencies
