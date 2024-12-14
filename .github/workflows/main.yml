@@ -59,6 +59,12 @@ jobs:
           mamba clean --all -y
           conda clean --all -y
 
+      # Intialize Conda for env activation
+      - name: Initialize Conda
+        run: |
+          conda init
+          source ~/.bashrc
+
       # Create and activate the environment using environment.yml
       - name: Create or Update Environment
         run: |
