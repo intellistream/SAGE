@@ -83,9 +83,10 @@ jobs:
         run: |
           cd deps/CANDY/installation
           bash candy_build.sh
+          cd ../../../installation/
           bash install_pycandy.sh
           conda run -n llh bash install_pycandy.sh
-          cd ../../../
+          
 
       # Install Base Dependencies
       - name: Install Base Dependencies
