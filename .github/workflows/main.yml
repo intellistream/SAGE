@@ -30,6 +30,21 @@ jobs:
       - name: Remove Existing CUDA Repositories
         run: sudo rm -f /etc/apt/sources.list.d/cuda* /etc/apt/sources.list.d/nvidia-*
 
+      # Use Deploy Key to Clone CANDY Repository
+      - name: Configure SSH for Deploy Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.CANDY_DEPLOY_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      # Clone CANDY Repository
+      - name: Clone CANDY Repository
+        run: |
+          mkdir -p deps
+          cd deps
+          git clone git@github.com:intellistream/CANDY.git
+
       # Setup Miniconda and Python environment
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
@@ -57,6 +72,15 @@ jobs:
             -c pytorch -c nvidia
           mamba clean --all -y
 
+      # Install PyTorch CPU Version in Base Python
+      - name: Install PyTorch CPU Version in Base Python
+        run: |
+          pip install --no-cache-dir \
+            torch==2.4.0 \
+            torchvision==0.19.0 \
+            torchaudio==2.4.0 \
+            --index-url https://download.pytorch.org/whl/cpu
+
       # Create or Update Conda Environment
       - name: Create or Update Environment
         run: |
@@ -67,21 +91,6 @@ jobs:
             echo "Creating environment 'llh'..."
             mamba env create --file installation/environment.yml
           fi
-
-      # Use Deploy Key to Clone CANDY Repository
-      - name: Configure SSH for Deploy Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.CANDY_DEPLOY_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-
-      # Clone CANDY Repository
-      - name: Clone CANDY Repository
-        run: |
-          mkdir -p deps
-          cd deps
-          git clone git@github.com:intellistream/CANDY.git
 
       # Install `pycandy`
       - name: Install pycandy
