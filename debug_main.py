@@ -4,7 +4,6 @@ from src.core.query_engine.query_execution.query_executor import QueryExecutor
 from src.core.memory.utils import initialize_memory_layers
 from src.utils.logger import configure_logging
 
-
 def run_debug_pipeline(input_text, memory_layers):
     """
     Runs the entire pipeline for a single input, from compilation to execution.
