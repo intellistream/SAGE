@@ -31,7 +31,7 @@ class PipelineManager:
         )
         prompt_node = OneShotDAGNode(
             name="PromptGenerator",
-            operator=PromptOperator(prompt_template=SUMMARIZATION_PROMPT_TEMPLATE)
+            operator=PromptOperator(prompt_template=SUMMARIZATION_PROMPT_TEMPLATE, format_keys = ["context", "summary_length"])
         )
         summarizer_node = OneShotDAGNode(
             name="Summarizer",
@@ -61,7 +61,7 @@ class PipelineManager:
         )
         prompt_node = OneShotDAGNode(
             name="PromptGenerator",
-            operator=PromptOperator(prompt_template=QAPROMPT_TEMPLATE)
+            operator=PromptOperator(prompt_template=QAPROMPT_TEMPLATE, format_keys = ["question", "context"])
         )
         generator_node = OneShotDAGNode(
             name="Generator",
