@@ -1,108 +1,145 @@
-# Docker Container Setup with Conda Environment
+# Docker Container Setup with Conda Environment for LLH
 
-This Docker container is pre-configured to set up a Conda environment specifically for the `LLH` project, including
-`Haystack` dependencies.
+This Docker container is pre-configured to set up a Conda environment specifically for the `LLH` project, including `Haystack` and `CANDY` dependencies.
+
+---
 
 ## 1. Setting up the Docker Container
 
-To initialize this container, simply run the provided setup script:
+### Option 1: Using Prebuilt Docker Image
+To use the prebuilt Docker image from Docker Hub, simply run the provided setup script in the `installation/simplified_docker_setup` directory:
 
 ```bash
 bash start.sh
 ```
 
-This script will build and start the Docker container with all necessary configurations.
+This script will pull the image, set up the container, and mount the workspace for you.
 
-## 2. Conda Environment Setup with `auto_env_setup.sh` in Docker Container
+### Option 2: Build the Docker Image Locally
+If you prefer to build the Docker image from scratch, you can also use the same `start.sh` script:
 
-Once the Docker container is running, you can configure the Conda environment using `auto_env_setup.sh` inside the
-docker instance. This script sets up the `llh` environment with all required dependencies.
+```bash
+bash start.sh
+```
 
-### 2.1 Steps to Run `auto_env_setup.sh`
+The script will:
+- Build the Docker image from your local `Dockerfile`.
+- Set up the container with all necessary configurations.
 
-1. **Access the Running Container**: Connect to the container’s CLI either through Docker or SSH:
-    - Docker CLI:
-      ```bash
-      docker exec -it <container_name> /bin/bash
-      ```
-    - SSH (if configured):
-      ```bash
-      ssh -p 2222 root@<CONTAINER_IP>
-      ```
+---
 
-2. **Run the Setup Script**: Once connected, execute the script to set up the Conda environment, make sure to update github `username` and `token` for CANDY clone:
+## 2. Setting up the Conda Environment in the Docker Container
+
+Once the Docker container is running, use the `auto_env_setup.sh` script inside the container to set up the `llh` Conda environment with all required dependencies.
+
+### 2.1 Running `auto_env_setup.sh`
+
+1. **Access the Running Container**:
+   - Use Docker CLI:
+     ```bash
+     docker exec -it <container_name> /bin/bash
+     ```
+   - Alternatively, connect via SSH (if SSH is configured):
+     ```bash
+     ssh -p 2222 root@<CONTAINER_IP>
+     ```
+
+2. **Run the Setup Script**:
+   Inside the container, run the setup script. Ensure you update the GitHub `username` and `token` for cloning the `CANDY` repository:
    ```bash
    bash auto_env_setup.sh
    ```
 
-3. **Test LLH Test**: Execute the script to do pytest:
+3. **Verify the Environment**:
+   After the setup is complete, activate the environment and run the test suite:
    ```bash
    conda activate llh
    cd /workspace/
    pytest -v tests/
    ```
 
-The environment `llh` will then be ready for use, and you can configure it in PyCharm or other IDEs to start working
-with `llh`.
+The environment `llh` is now ready to use. You can configure it in PyCharm or any IDE to start working on the `LLH` project.
 
-> Files Included in `/workspace`
->   - `environment.yml`: Defines the Conda environment configuration for LLH.
->     - `auto_env_setup.sh`: Automates the Conda environment setup inside the container.
+---
 
-You can do everything the aforementioned scripts, and you can also try seting up the rest of environment manually using the following commands.
+## 3. CANDY and PyCANDY Setup
 
-### 2.2 Compile CANDY and install pycandy
+### 3.1 Compile CANDY and Install PyCANDY
 
-Get the `CANDY`:
+1. **Clone the CANDY Repository**:
+   ```bash
+   cd deps
+   git clone https://github.com/intellistream/CANDY.git
+   ```
 
+2. **Build and Install PyCANDY**:
+   - Ensure you are outside the Conda environment:
+     ```bash
+     conda deactivate
+     ```
+   - Run the build script:
+     ```bash
+     bash candy_build.sh
+     ```
+   - Activate the `llh` Conda environment and install `pycandy`:
+     ```bash
+     conda activate llh
+     bash install_pycandy.sh
+     ```
+
+---
+
+## 4. Verifying PyCANDY Installation
+
+To verify that `pycandy` is installed correctly, run the CANDY `DBClient` application:
+
+1. Navigate to the `DBClient` directory:
+   ```bash
+   cd deps/CANDY/api/Python/DBClient
+   ```
+
+2. Run the client script:
+   ```bash
+   python db_client.py
+   ```
+   Test the script with your desired CRUD operations to confirm `pycandy` is working properly.
+
+---
+
+## 5. Running LLH Interactively
+
+### 5.1 Hugging Face Authentication
+
+Before running the LLH system, ensure you log in to Hugging Face:
 ```bash
-cd deps
-git clone https://github.com/intellistream/CANDY.git
+huggingface-cli login --token <your_huggingface_token>
 ```
 
-Use the following command to auto install `pycandy`:
+### 5.2 Interactive CLI
 
+You can interact with the LLH system using the interactive CLI:
 ```bash
-conda deactivate # ensure in non conda env
-bash candy_build.sh
-conda activate llh # install pycandy in llh env
-bash install_pycandy.sh
+python api/interactive_cli.py
 ```
 
-## 3. Verify whether pycandy is installed
+---
 
-To verify whether the `pycandy` is installed in any env (including `non conda` or `flow`) env, you can try running the
-CANDY `apps/Python/DBClient/db_client.py`:
-Make sure you are in the CANDY project directory, then run:
+## 6. Known Issues and Troubleshooting
 
-```bash
-cd api/Python/DBClient
-python db_client.py
-# Try whatever command you want for verification of CRUD.
+### Issue 1: GLIBCXX Version Mismatch
+If you encounter the following error:
+```plaintext
+ImportError: /opt/conda/envs/llh/lib/python3.11/site-packages/torch/lib/../../../.././libstdc++.so.6: version `GLIBCXX_3.4.30' not found
 ```
-
-### Try LLH (refactored)
-
-Make sure you are in `llh` env.
-
-And, make sure you have huggingface token.
-
-```bash
-# Log in to Hugging Face using token from the first argument
-huggingface-cli login --token #your_token
-```
-
-Then, you can interact with the system through api/interactive_cli.py
-
-### Known issues
-1. 
-> In case if "ImportError: /opt/conda/envs/llh/lib/python3.11/site-packages/torch/lib/../../../.././libstdc++.so.6:
-version `GLIBCXX_3.4.30' not found (required by /root/.local/lib/python3.11/site-packages/libCANDY.so)
-"
+Fix it by installing an updated `libstdcxx-ng` package:
 ```bash
 conda install -c conda-forge libstdcxx-ng
 ```
 
-2.
-> In case if "gdb error", you may use `conda install gdb`, and then `which gdb`. use this gdb instead of the default system gdb.
-
+### Issue 2: GDB Errors
+If you experience GDB-related issues, install GDB via Conda and use the installed version instead of the system default:
+```bash
+conda install gdb
+which gdb
+```
+Use the Conda-installed GDB path for debugging.
