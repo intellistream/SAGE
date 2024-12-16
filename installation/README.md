@@ -29,9 +29,17 @@ docker instance. This script sets up the `llh` environment with all required dep
       ```bash
       ssh -p 2222 root@<CONTAINER_IP>
       ```
-2. **Run the Setup Script**: Once connected, execute the script to set up the Conda environment:
+
+2. **Run the Setup Script**: Once connected, execute the script to set up the Conda environment, make sure to update github `username` and `token` for CANDY clone:
    ```bash
    bash auto_env_setup.sh
+   ```
+
+3. **Test LLH Test**: Execute the script to do pytest:
+   ```bash
+   conda activate llh
+   cd /workspace/
+   pytest -v tests/
    ```
 
 The environment `llh` will then be ready for use, and you can configure it in PyCharm or other IDEs to start working
@@ -40,6 +48,8 @@ with `llh`.
 > Files Included in `/workspace`
 >   - `environment.yml`: Defines the Conda environment configuration for LLH.
 >     - `auto_env_setup.sh`: Automates the Conda environment setup inside the container.
+
+You can do everything the aforementioned scripts, and you can also try seting up the rest of environment manually using the following commands.
 
 ### 2.2 Compile CANDY and install pycandy
 
