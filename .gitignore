@@ -23,3 +23,7 @@ CMakeUserPresets.json
 /installation/candy/
 
 /deps/CANDY/.github/
+
+
+id_llm
+auto_env_setup.log
