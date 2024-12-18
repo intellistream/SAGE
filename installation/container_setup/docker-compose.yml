@@ -1,11 +1,11 @@
 services:
   llh:
-    build: ./
+    image: intellistream/llh:devel-ubuntu22.04
     environment:
       - CUDACXX=/usr/local/cuda/bin/nvcc
       - NVIDIA_VISIBLE_DEVICES=all  # Expose all GPUs (optional)
     volumes:
-      - "..:/workspace"
+      - "../..:/workspace"
     working_dir: /workspace
     entrypoint: /usr/sbin/sshd -D
     stdin_open: true
