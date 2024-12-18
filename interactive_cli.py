@@ -2,15 +2,15 @@ import logging
 from src.core.query_engine.query_compilation.query_compiler import QueryCompiler
 from src.core.query_engine.query_execution.query_executor import QueryExecutor
 from src.utils.logger import configure_logging
-from src.core.memory.utils import initialize_memory_layers
+from src.core.llh.memory import initialize_memory_layers
 
 
 def display_welcome_message():
     """
     Display the welcome message for the console.
     """
-    logging.info("Starting LLH Interactive Console")
-    print("Welcome to the LLH Interactive Console")
+    logging.info("Starting SAGE Interactive Console")
+    print("Welcome to the SAGE Interactive Console")
     print("You can:\n  - Ask natural language questions\n  "
           "- Submit EXECUTE or REGISTER queries in HQL\n  - Type 'exit' to quit")
 
@@ -51,7 +51,7 @@ def interactive_console(compiler, executor):
         user_input = input("\n>>> ").strip()
 
         if user_input.lower() == "exit":
-            logging.info("Exiting LLH Interactive Console")
+            logging.info("Exiting SAGE Interactive Console")
             print("Goodbye!")
             break
 
