@@ -3,8 +3,9 @@ import hashlib
 import torch
 from pycandy import VectorDB
 
-from src.core.llh.memory.base_memory import BaseMemory
-from src.core.llh.memory.raw.local_raw_data_storage import LocalRawDataStorage, RAW_FILE
+from src.core.neuromem.memory.base_memory import BaseMemory
+from src.core.neuromem.memory.raw.local_raw_data_storage import LocalRawDataStorage
+from src.utils.file_path import RAW_FILE
 
 
 class ExternalMemory(BaseMemory):

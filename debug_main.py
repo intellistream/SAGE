@@ -1,7 +1,7 @@
 import logging
 from src.core.query_engine.query_compilation.query_compiler import QueryCompiler
 from src.core.query_engine.query_execution.query_executor import QueryExecutor
-from src.core.llh.memory import initialize_memory_layers
+from src.core.neuromem.memory.utils import initialize_memory_layers
 from src.utils.logger import configure_logging
 
 def run_debug_pipeline(input_text, memory_layers):
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         # Define test inputs for debugging
         test_inputs = [
             "What is the Eiffel Tower?",  # Natural language query for information retrieval
-            "Summarize Sanguo",  # Natural language query for summarization
+            "Summarize",  # Natural language query for summarization
             # "EXECUTE RETRIEVE key=value",  # HQL query for one-shot execution
             # "REGISTER RETRIEVE key=value"  # HQL query for continuous execution
         ]

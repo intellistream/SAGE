@@ -1,7 +1,7 @@
 import logging
 
-from src.core.llh.memory.external_memory import ExternalMemory
-from src.core.llh.memory.internal_memory import KVCacheMemory
+from src.core.neuromem.memory.external_memory import ExternalMemory
+from src.core.neuromem.memory.internal_memory import KVCacheMemory
 from src.utils.file_path import TEST_FILE
 from src.utils.text_processing import process_text_to_embedding
 
