@@ -1,6 +1,6 @@
-# LLH
+# SAGA
 ```
-LLH/
+SAGA/
 ├── interactive_cli.py                    # Interactive CLI for natural language queries and HQL input.
 ├── README.md                             # Overview, setup instructions, and usage examples.
 ├── requirements.txt                      # Python dependencies required for the project.
@@ -50,7 +50,7 @@ LLH/
 ├── deps/                                 # External dependencies and submodules.
 │   ├── vLLM/                             # LLM inference submodule for generation and editing.
 │   │   ├── ...                           #
-│   ├── CANDY/                            # C++ vector database submodule for LLH memory.
+│   ├── CANDY/                            # C++ vector database submodule for SAGA memory.
 │   │   ├── ...                           #
 ```
 

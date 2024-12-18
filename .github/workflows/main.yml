@@ -1,4 +1,4 @@
-name: Test LLH with Pytest and Conda
+name: Test SAGE with Pytest and Conda
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    name: Test LLH
+    name: Test SAGE
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 5
