@@ -1,4 +1,4 @@
-from src.core.llh.memory.base_memory import BaseMemory
+from src.core.neuromem.memory.base_memory import BaseMemory
 
 
 class KVCacheMemory(BaseMemory):

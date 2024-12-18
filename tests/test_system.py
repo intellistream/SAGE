@@ -2,7 +2,7 @@ import logging
 import pytest
 from src.core.query_engine.query_compilation.query_compiler import QueryCompiler
 from src.core.query_engine.query_execution.query_executor import QueryExecutor
-from src.core.llh.memory import initialize_memory_layers
+from src.core.neuromem.memory.utils import initialize_memory_layers
 from src.utils.logger import configure_logging
 
 
@@ -35,7 +35,7 @@ def test_pipeline(input_text, expected_execution_type, memory_layers):
     """
     try:
         # Configure logging for the test
-        configure_logging(level=logging.DEBUG)
+        configure_logging(level=logging.info)
 
         # Initialize query components
         compiler = QueryCompiler(memory_layers)
