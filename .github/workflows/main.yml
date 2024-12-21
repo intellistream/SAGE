@@ -61,7 +61,7 @@ jobs:
           miniforge-version: latest
           use-mamba: true
           python-version: "3.11"
-          activate-environment: llh
+          activate-environment: sage
           auto-activate-base: false
 
       # Use Deploy Key to Clone CANDY Repository
@@ -84,9 +84,9 @@ jobs:
         run: |
           cd deps/CANDY/installation
           bash candy_build.sh
-          cd ../../../installation/
-          conda run -n llh bash install_pycandy.sh
-          cd ../
+          cd install_pycandy
+          conda run -n sage bash install_pycandy.sh
+          cd ../../../../
           
       # Install Base Dependencies
       - name: Install Base Dependencies
@@ -109,12 +109,12 @@ jobs:
       # Create or Update Conda Environment
       - name: Create or Update Environment
         run: |
-          if conda env list | grep -q "llh"; then
-            echo "Environment 'llh' already exists. Updating..."
-            mamba env update --name llh --file installation/environment.yml
+          if conda env list | grep -q "sage"; then
+            echo "Environment 'sage' already exists. Updating..."
+            mamba env update --name sage --file installation/env_setup/environment.yml
           else
-            echo "Creating environment 'llh'..."
-            mamba env create --file installation/environment.yml
+            echo "Creating environment 'sage'..."
+            mamba env create --file installation/env_setup/environment.yml
           fi
 
      
@@ -122,14 +122,14 @@ jobs:
       # Install Extra Pip Dependencies
       - name: Install Extra Pip Dependencies
         run: |
-          conda run -n llh pip install --no-cache-dir \
+          conda run -n sage pip install --no-cache-dir \
             rouge-score==0.1.2 \
             evaluate==0.4.3 \
             datasets==3.0.1
-          conda run -n llh python -c "import nltk; nltk.download('wordnet')"
+          conda run -n sage python -c "import nltk; nltk.download('wordnet')"
 
       # Run Pytest
       - name: Run Tests
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)
-          conda run -n llh pytest -v tests/
+          conda run -n sage pytest -v tests/

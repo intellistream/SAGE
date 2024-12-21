@@ -1,12 +1,17 @@
-# Docker Container Setup with Conda Environment for LLH
+# Docker Container Setup with Conda Environment for SAGE
 
-This Docker container is pre-configured to set up a Conda environment specifically for the `LLH` project, including `Haystack` and `CANDY` dependencies.
+This Docker container is pre-configured to set up a Conda environment specifically for the `SAGE` project, including  and `CANDY` dependencies.
 
 ---
 
+
+## 0. (Optional) Build a new Docker Image
+
+To build a new docker image for our project, you may access contents in `installation/build_image`.
+
 ## 1. Setting up the Docker Container
 
-To use the prebuilt Docker image from Docker Hub, simply run the provided setup script in the `installation/simplified_docker_setup` directory:
+To use the prebuilt Docker image from Docker Hub, simply run the provided setup script in the `installation/container_setup` directory:
 
 ```bash
 bash start.sh
@@ -15,24 +20,28 @@ This script will pull the image, set up the container, and mount the workspace f
 
 ---
 
-## 2. Setting up the Conda Environment in the Docker Container
+## 2. Install the dep
 
-Once the Docker container is running, use the `auto_env_setup.sh` script inside the container to set up the `llh` Conda environment with all required dependencies.
+Once the Docker container is running, use the `env_setup/install_dep.sh` script inside the container to set up the `SAGE` Conda environment with all required dependencies.
 
-### 2.1 Running `auto_env_setup.sh`
+## 3. Setting up the Conda Environment in the Docker Container
+
+Once the Docker container is running, use the `env_setup/auto_env_setup.sh` script inside the container to set up the `SAGE` Conda environment with all required dependencies.
+
+### 3.1 Running `auto_env_setup.sh`
 
 1. **Run the Setup Script**:
    Inside the container, run the setup script. Ensure you update the GitHub `username` and `token` for cloning the `CANDY` repository:
    ```bash
-   bash auto_env_setup.sh
+   bash auto_env_setup.sh $(your_user_name) $(your_token)
    ```
 
-The environment `llh` is now ready to use. You can configure it in PyCharm or any IDE to start working on the `LLH` project.
+The environment `SAGE` is now ready to use. You can configure it in PyCharm or any IDE to start working on the `SAGE` project.
 
 2. **Verify the Setup**:
    After the setup is complete, activate the environment and run the test suite:
    ```bash
-   conda activate llh
+   conda activate SAGE
    cd /workspace/
    pytest -v tests/
    ```
@@ -48,25 +57,25 @@ The environment `llh` is now ready to use. You can configure it in PyCharm or an
 >     ```
 ---
 
-## 3. Running LLH Interactively
+## 4. Running SAGE Interactively
 
-### 3.1 Hugging Face Authentication
+### 4.1 Hugging Face Authentication
 
-Before running the LLH system, ensure you log in to Hugging Face:
+Before running the SAGE system, ensure you log in to Hugging Face:
 ```bash
 huggingface-cli login --token <your_huggingface_token>
 ```
 
-### 3.2 Interactive CLI
+### 4.2 Interactive CLI
 
-You can interact with the LLH system using the interactive CLI:
+You can interact with the SAGE system using the interactive CLI:
 ```bash
 python api/interactive_cli.py
 ```
 
 ---
 
-## 4. Known Issues and Troubleshooting
+## 5. Known Issues and Troubleshooting
 
 If you faced build failure in Clion environment. You may add the following ENV variable to the cmake option in Clion
 
