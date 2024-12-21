@@ -38,7 +38,11 @@ def run_debug_pipeline(input_text, memory_layers):
 
 if __name__ == "__main__":
     # Configure logging
-    configure_logging(level=logging.DEBUG)
+    configure_logging(level=logging.INFO)
+
+    from huggingface_hub import login
+
+    login(token="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")
 
     # Initialize memory layers
     memory_layers = initialize_memory_layers()
@@ -47,7 +51,7 @@ if __name__ == "__main__":
         # Define test inputs for debugging
         test_inputs = [
             "What is the Eiffel Tower?",  # Natural language query for information retrieval
-            "Summarize",  # Natural language query for summarization
+            # "Summarize the contexts you have loaded.",  # Natural language query for summarization
             # "EXECUTE RETRIEVE key=value",  # HQL query for one-shot execution
             # "REGISTER RETRIEVE key=value"  # HQL query for continuous execution
         ]

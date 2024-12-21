@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Check for arguments and provide usage information if not supplied
+if [ -z "$1" ] || [ -z "$2" ]; then
+  echo "Usage: $0 <GIT_USERNAME> <GIT_TOKEN>"
+  echo "Please provide your GitHub username and personal access token as arguments."
+  exit 1
+fi
+
 GIT_USERNAME="$1"
 GIT_TOKEN="$2"
 
@@ -30,5 +37,4 @@ fi
 echo "Building and installing CANDY..."
 cd $PROJ_DIR/deps/CANDY/installation/
 bash candy_build.sh
-cd $PROJ_DIR/deps/CANDY/installation/install_pycandy
-conda run -n sage bash install_pycandy.sh
+cd $PROJ_DIR/deps/CANDY/installation/install_pyc
