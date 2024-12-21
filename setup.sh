@@ -92,6 +92,7 @@ function configure_huggingface_auth() {
     echo "Hugging Face authentication is required to run the SAGE system."
     echo "Please enter your Hugging Face token to log in."
     echo "You can find or generate your token here: https://huggingface.co/settings/tokens"
+    echo "If you want to use huggingface mirror, refer to https://hf-mirror.com/"
     read -sp "Enter your Hugging Face token: " HF_TOKEN
     echo ""
     docker exec -it "$DOCKER_CONTAINER_NAME" bash -c "huggingface-cli login --token $HF_TOKEN"
