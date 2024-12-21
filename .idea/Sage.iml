@@ -11,6 +11,7 @@
       <excludeFolder url="file://$MODULE_DIR$/installation/candy" />
       <excludeFolder url="file://$MODULE_DIR$/installation/dist" />
       <excludeFolder url="file://$MODULE_DIR$/installation/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/deps/CANDY/installation/build" />
     </content>
     <orderEntry type="jdk" jdkName="llh" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
