@@ -4,12 +4,12 @@
 # Dynamically detects the Docker container name and reuses it across functions.
 
 # Variables
-DOCKER_COMPOSE_FILE="installation/container_setup/docker-compose.yml"
 START_SCRIPT="installation/container_setup/start.sh"
 INSTALL_DEP_SCRIPT="installation/env_setup/install_dep.sh"
 AUTO_ENV_SETUP_SCRIPT="installation/env_setup/auto_env_setup.sh"
 TEST_COMMAND="pytest -v tests/"
 DOCKER_CONTAINER_NAME=""  # To be set dynamically
+HUGGINGFACE_LOGGED_IN=0  # Track if Hugging Face login is detected
 
 # Functions
 function print_header() {
@@ -83,12 +83,23 @@ function setup_conda_environment() {
 }
 
 function run_tests() {
+    check_huggingface_auth
+    if [ "$HUGGINGFACE_LOGGED_IN" -eq 0 ]; then
+        echo "Hugging Face authentication is required to run tests."
+        echo "Please log in using the following command:"
+        echo "huggingface-cli login --token <your_huggingface_token>"
+        pause
+        return
+    fi
+
     detect_container || return
     echo "Running project tests inside Docker container..."
-    docker exec -it "$DOCKER_CONTAINER_NAME" bash -c "bash -c '$TEST_COMMAND'"
+    docker exec -it "$DOCKER_CONTAINER_NAME" bash -c "PYTHONPATH=/workspace conda run -n sage pytest -v tests/" > test_output.log
+    cat test_output.log
     echo "Tests completed successfully."
     pause
 }
+
 
 function troubleshooting() {
     echo "Known Issues and Troubleshooting:"
@@ -104,6 +115,79 @@ function enter_docker_instance() {
     docker exec -it "$DOCKER_CONTAINER_NAME" bash
 }
 
+function check_huggingface_auth() {
+    detect_container || return
+
+    # Check Hugging Face authentication inside the Docker container
+    if docker exec -it "$DOCKER_CONTAINER_NAME" huggingface-cli whoami &>/dev/null; then
+        HUGGINGFACE_LOGGED_IN=1
+    else
+        HUGGINGFACE_LOGGED_IN=0
+    fi
+}
+
+function configure_huggingface_auth() {
+    detect_container || return
+
+    echo "===================================================="
+    echo "         Configuring Hugging Face Authentication"
+    echo "===================================================="
+    echo "Hugging Face authentication is required to run the SAGE system."
+    echo "Please enter your Hugging Face token to log in."
+    echo "You can find or generate your token here: https://huggingface.co/settings/tokens"
+    echo ""
+
+    # Prompt for Hugging Face token
+    read -sp "Enter your Hugging Face token: " HF_TOKEN
+    echo ""
+
+    # Execute the Hugging Face login inside the Docker container using --token
+    docker exec -it "$DOCKER_CONTAINER_NAME" bash -c "huggingface-cli login --token $HF_TOKEN"
+
+    # Check if the login was successful
+    if docker exec -it "$DOCKER_CONTAINER_NAME" huggingface-cli whoami &>/dev/null; then
+        echo "Hugging Face authentication successful!"
+    else
+        echo "Hugging Face authentication failed. Please check your token and try again."
+    fi
+
+    pause
+}
+
+
+
+function display_huggingface_auth_reminder() {
+    if [ "$HUGGINGFACE_LOGGED_IN" -eq 0 ]; then
+        echo "===================================================="
+        echo "Reminder: Hugging Face Authentication Required"
+        echo "===================================================="
+        echo "You have not logged into Hugging Face during this session."
+        echo "Please log in before running the SAGE system:"
+        echo ""
+        echo "Command:"
+        echo "huggingface-cli login --token <your_huggingface_token>"
+        echo ""
+    fi
+}
+
+function display_ide_setup() {
+    echo "===================================================="
+    echo "            Setting Up SAGE on an IDE"
+    echo "===================================================="
+    echo "To set up SAGE on an IDE like PyCharm or VS Code:"
+    echo ""
+    echo "1. Update the Python interpreter to use the Conda environment 'sage',"
+    echo "   which is automatically configured by the installation scripts."
+    echo ""
+    echo "2. Ensure the working directory in your IDE is set to the project root."
+    echo ""
+    echo "3. Run interactive scripts or tests using the configured environment."
+    echo ""
+    echo "If you face any issues, log them in our issue tracker."
+    echo ""
+    pause
+}
+
 function main_menu() {
     while true; do
         clear
@@ -116,9 +200,11 @@ function main_menu() {
         echo "5. Run Tests"
         echo "6. Troubleshooting Guide"
         echo "7. Enter Docker Instance"
+        echo "8. Hugging Face Authentication"
+        echo "9. IDE Setup Guide"
         echo "0. Exit"
         echo "===================================================="
-        read -p "Enter your choice [0-6]: " choice
+        read -p "Enter your choice [0-9]: " choice
 
         case $choice in
             1) check_docker_installed ;;
@@ -128,7 +214,12 @@ function main_menu() {
             5) run_tests ;;
             6) troubleshooting ;;
             7) enter_docker_instance ;;
-            0) echo "Exiting setup script. Goodbye!"; exit 0 ;;
+            8) configure_huggingface_auth ;;
+            9) display_ide_setup ;;
+            0)
+                display_huggingface_auth_reminder
+                echo "Exiting setup script. Goodbye!"
+                exit 0 ;;
             *) echo "Invalid choice. Please try again."; pause ;;
         esac
     done

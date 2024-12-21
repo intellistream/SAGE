@@ -10,7 +10,7 @@ If you are using Windows, please install `Docker Desktop` first, and install a w
     Docker Desktop uses the WSL 2 backend to enable GPU support on Windows.
     GPU passthrough and NVIDIA Container Toolkit are designed to work with WSL 2.
 
-## 2. Running SAGE Interactively
+## 2. Running SAGE Interactively inside the docker instance
 
 ### 2.1 Hugging Face Authentication
 

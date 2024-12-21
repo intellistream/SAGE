@@ -35,7 +35,7 @@ def test_pipeline(input_text, expected_execution_type, memory_layers):
     """
     try:
         # Configure logging for the test
-        configure_logging(level=logging.info)
+        configure_logging(level=logging.debug)
 
         # Initialize query components
         compiler = QueryCompiler(memory_layers)
