@@ -31,3 +31,4 @@ echo "Building and installing CANDY..."
 cd $PROJ_DIR/deps/CANDY/installation/
 bash candy_build.sh
 cd $PROJ_DIR/deps/CANDY/installation/install_pycandy
+conda run -n sage bash install_pycandy.sh
