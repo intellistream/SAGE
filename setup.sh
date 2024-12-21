@@ -82,10 +82,10 @@ function setup_conda_environment() {
     pause
 }
 
-function run_tests() {
+function run_debug_main() {
     check_huggingface_auth
     if [ "$HUGGINGFACE_LOGGED_IN" -eq 0 ]; then
-        echo "Hugging Face authentication is required to run tests."
+        echo "Hugging Face authentication is required to run debug_main.py."
         echo "Please log in using the following command:"
         echo "huggingface-cli login --token <your_huggingface_token>"
         pause
@@ -93,10 +93,9 @@ function run_tests() {
     fi
 
     detect_container || return
-    echo "Running project tests inside Docker container..."
-    docker exec -it "$DOCKER_CONTAINER_NAME" bash -c "PYTHONPATH=/workspace conda run -n sage pytest -v tests/" > test_output.log
-    cat test_output.log
-    echo "Tests completed successfully."
+    echo "Running debug_main.py inside Docker container..."
+    docker exec -it "$DOCKER_CONTAINER_NAME" bash -c "PYTHONPATH=/workspace conda run -n sage python /workspace/debug_main.py"
+    echo "debug_main.py executed successfully."
     pause
 }
 
@@ -211,7 +210,7 @@ function main_menu() {
             2) start_docker_container ;;
             3) install_dependencies ;;
             4) setup_conda_environment ;;
-            5) run_tests ;;
+            5) run_debug_main ;;
             6) troubleshooting ;;
             7) enter_docker_instance ;;
             8) configure_huggingface_auth ;;
