@@ -57,22 +57,6 @@ The environment `SAGE` is now ready to use. You can configure it in PyCharm or a
 >     ```
 ---
 
-## 4. Running SAGE Interactively
-
-### 4.1 Hugging Face Authentication
-
-Before running the SAGE system, ensure you log in to Hugging Face:
-```bash
-huggingface-cli login --token <your_huggingface_token>
-```
-
-### 4.2 Interactive CLI
-
-You can interact with the SAGE system using the interactive CLI:
-```bash
-python api/interactive_cli.py
-```
-
 ---
 
 ## 5. Known Issues and Troubleshooting

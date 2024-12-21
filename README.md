@@ -1,10 +1,31 @@
 # SAGE
-```
+
+## 1. Installation
+
 Please refer to `installation\README.md` for project installation.
 
 If you are using Windows, please install `Docker Desktop` first.
 
+## 2. Running SAGE Interactively
+
+### 2.1 Hugging Face Authentication
+
+Before running the SAGE system, ensure you log in to Hugging Face:
+```bash
+huggingface-cli login --token <your_huggingface_token>
 ```
+
+### 2.2 Interactive CLI
+
+You can interact with the SAGE system using the interactive CLI:
+```bash
+python api/interactive_cli.py
+```
+
+
+### 2.3 If you use Pycharm or other IDE to run SAGE
+
+Please remember to update the python interpreter to use conda, sage environment configured automatically by our installation scripts.
 
 ```
 1. Use Case: Handling a Natural Language Query
