@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Navigate to the CANDY project directory from the installation folder
-cd "$(dirname "$0")/../deps/CANDY" || exit
+cd "$(dirname "$0")/../../deps/CANDY" || exit
 
 # CANDY project directory
 CANDY_DIR=$(pwd)

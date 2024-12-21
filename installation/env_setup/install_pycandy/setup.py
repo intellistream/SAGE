@@ -6,7 +6,7 @@ if __name__ == "__main__":
         name="candy",
         version="0.1.0",
         description="A Python package that includes compiled C++ extensions of CANDY.",
-        long_description=open("README.md").read(),
+        long_description=open("../../README.md").read(),
         long_description_content_type="text/markdown",
         author="IntelliStream",
         author_email="your_email@example.com",

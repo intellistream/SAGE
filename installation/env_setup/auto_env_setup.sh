@@ -1,7 +1,7 @@
 #!/bin/bash
 
-GIT_USERNAME="Use your Github user name here"
-GIT_TOKEN="Use your Github token here"
+GIT_USERNAME=$1
+GIT_TOKEN=$2
 
 # Exit immediately if a command exits with a non-zero status
 set -e
