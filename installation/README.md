@@ -24,6 +24,11 @@ This script will pull the image, set up the container, and mount the workspace f
 
 Once the Docker container is running, use the `env_setup/install_dep.sh` script inside the container to set up the `SAGE` Conda environment with all required dependencies.
 
+```bash
+Inside the docker instance, go to `workspace/installation`.
+
+```
+
 ## 3. Setting up the Conda Environment in the Docker Container
 
 Once the Docker container is running, use the `env_setup/auto_env_setup.sh` script inside the container to set up the `SAGE` Conda environment with all required dependencies.
