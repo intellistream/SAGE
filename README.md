@@ -22,10 +22,11 @@ You can interact with the SAGE system using the interactive CLI:
 python api/interactive_cli.py
 ```
 
-
 ### 2.3 If you use Pycharm or other IDE to run SAGE
 
 Please remember to update the python interpreter to use conda, sage environment configured automatically by our installation scripts.
+
+If you face any other issues, please log them in our issues board.
 
 ```
 1. Use Case: Handling a Natural Language Query
