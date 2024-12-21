@@ -50,7 +50,7 @@ if __name__ == "__main__":
     try:
         # Define test inputs for debugging
         test_inputs = [
-            "What is the Eiffel Tower?",  # Natural language query for information retrieval
+            "What is the Everest?",  # Natural language query for information retrieval
             # "Summarize the contexts you have loaded.",  # Natural language query for summarization
             # "EXECUTE RETRIEVE key=value",  # HQL query for one-shot execution
             # "REGISTER RETRIEVE key=value"  # HQL query for continuous execution
