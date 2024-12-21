@@ -9,7 +9,7 @@ class Generator(BaseOperator):
     Operator for generating natural language responses using Hugging Face's Transformers.
     """
 
-    def __init__(self, model_name="meta-llama/Llama-3.2-1B", device=None, seed=42):
+    def __init__(self, model_name="bigscience/bloom", device=None, seed=42):
         """
         Initialize the generator with a specified model.
         :param model_name: The Hugging Face model to use for generation.

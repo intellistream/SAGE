@@ -128,7 +128,7 @@ jobs:
 
       - name: Set up Hugging Face CLI
         run: |
-          huggingface-cli login --token ${{ secrets.HF_TOKEN }}
+          conda run -n sage huggingface-cli login --token ${{ secrets.HF_TOKEN }}
 
       # Run Pytest
       - name: Run Tests
