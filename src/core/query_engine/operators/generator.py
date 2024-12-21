@@ -9,15 +9,21 @@ class Generator(BaseOperator):
     Operator for generating natural language responses using Hugging Face's Transformers.
     """
 
-    def __init__(self, model_name="meta-llama/Llama-3.2-1B", device=None):
+    def __init__(self, model_name="meta-llama/Llama-3.2-1B", device=None, seed=42):
         """
         Initialize the generator with a specified model.
         :param model_name: The Hugging Face model to use for generation.
         :param device: The device to load the model on ("cuda" for GPU or "cpu").
                        If None, the device is automatically selected.
+        :param seed: Seed for reproducibility.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info(f"Initializing Generator with model: {model_name}...")
+
+        # Set random seed for reproducibility
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
 
         # Automatically detect device if not provided
         if device is None:
@@ -57,18 +63,20 @@ class Generator(BaseOperator):
 
             # Default generation parameters
             max_new_tokens = kwargs.get("max_new_tokens", 100)
-            temperature = kwargs.get("temperature", 0.7)
-            top_p = kwargs.get("top_p", 0.9)
+            temperature = kwargs.get("temperature", None)  # Use None if not sampling
+            top_p = kwargs.get("top_p", None)             # Use None if not sampling
+            do_sample = temperature is not None or top_p is not None
 
             # Generate output
             outputs = self.model.generate(
                 input_ids=inputs["input_ids"],
                 attention_mask=inputs["attention_mask"],
                 max_new_tokens=max_new_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                do_sample=True,
+                temperature=temperature if do_sample else 1.0,
+                top_p=top_p if do_sample else None,
+                do_sample=do_sample,
                 pad_token_id=self.tokenizer.pad_token_id,
+                num_return_sequences=1,  # Ensure a single output
             )
 
             # Decode the response
@@ -97,4 +105,3 @@ class Generator(BaseOperator):
             # Handle cases where additional formatting is needed
             return after_answer.split("\n")[0].strip()  # Take only the first line after "Answer:"
         return generated_output.strip()
-
