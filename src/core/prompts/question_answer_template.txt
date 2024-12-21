@@ -1,5 +1,5 @@
 Instruction:
-You are an intelligent assistant with access to a knowledge base. Your task is to answer the given question using only the provided context.
+You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.
 
 Question:
 {{ question }}
