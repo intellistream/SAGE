@@ -22,7 +22,6 @@ function pause() {
 }
 
 function detect_container() {
-    # Detect the Docker container name dynamically
     if [ -z "$DOCKER_CONTAINER_NAME" ]; then
         DOCKER_CONTAINER_NAME=$(docker ps --filter "ancestor=intellistream/sage:devel-ubuntu22.04" --format "{{.Names}}" | head -n 1)
         if [ -z "$DOCKER_CONTAINER_NAME" ]; then
@@ -76,6 +75,15 @@ function setup_conda_environment() {
     pause
 }
 
+function check_huggingface_auth() {
+    detect_container || return
+    if docker exec -it "$DOCKER_CONTAINER_NAME" huggingface-cli whoami &>/dev/null; then
+        HUGGINGFACE_LOGGED_IN=1
+    else
+        HUGGINGFACE_LOGGED_IN=0
+    fi
+}
+
 function configure_huggingface_auth() {
     detect_container || return
     echo "===================================================="
@@ -84,7 +92,6 @@ function configure_huggingface_auth() {
     echo "Hugging Face authentication is required to run the SAGE system."
     echo "Please enter your Hugging Face token to log in."
     echo "You can find or generate your token here: https://huggingface.co/settings/tokens"
-    echo ""
     read -sp "Enter your Hugging Face token: " HF_TOKEN
     echo ""
     docker exec -it "$DOCKER_CONTAINER_NAME" bash -c "huggingface-cli login --token $HF_TOKEN"
@@ -102,7 +109,6 @@ function run_debug_main() {
     check_huggingface_auth
     if [ "$HUGGINGFACE_LOGGED_IN" -eq 0 ]; then
         echo "Hugging Face authentication is required to run debug_main.py."
-        echo "Some models may require authentication on the Hugging Face website."
         echo "Please log in using the following command:"
         echo "huggingface-cli login --token <your_huggingface_token>"
         pause
@@ -112,6 +118,18 @@ function run_debug_main() {
     echo "Running debug_main.py inside Docker container..."
     docker exec -it "$DOCKER_CONTAINER_NAME" bash -c "PYTHONPATH=/workspace conda run -n sage python /workspace/debug_main.py"
     echo "debug_main.py executed successfully."
+    pause
+}
+
+function troubleshooting() {
+    echo "===================================================="
+    echo "         Known Issues and Troubleshooting"
+    echo "===================================================="
+    echo "1. If the build fails in CLion, add the following CMake options:"
+    echo "-DCMAKE_EXE_LINKER_FLAGS='-L/usr/local/cuda/lib64'"
+    echo "-DCMAKE_SHARED_LINKER_FLAGS='-L/usr/local/cuda/lib64'"
+    echo "2. Ensure Hugging Face authentication is completed before using private models."
+    echo ""
     pause
 }
 
@@ -125,27 +143,9 @@ function display_ide_setup() {
     echo "===================================================="
     echo "            Setting Up SAGE on an IDE"
     echo "===================================================="
-    echo "To set up SAGE on an IDE like PyCharm or VS Code:"
-    echo ""
     echo "1. Update the Python interpreter to use the Conda environment 'sage'."
     echo "2. Ensure the working directory in your IDE is set to the project root."
     echo "3. Run interactive scripts or tests using the configured environment."
-    echo ""
-    echo "If you face any issues, log them in our issue tracker."
-    echo ""
-    pause
-}
-
-function troubleshooting() {
-    echo "===================================================="
-    echo "         Known Issues and Troubleshooting"
-    echo "===================================================="
-    echo "1. If the build fails in CLion, add the following CMake options:"
-    echo "-DCMAKE_EXE_LINKER_FLAGS='-L/usr/local/cuda/lib64'"
-    echo "-DCMAKE_SHARED_LINKER_FLAGS='-L/usr/local/cuda/lib64'"
-    echo ""
-    echo "2. Ensure Hugging Face authentication is completed before using private models."
-    echo ""
     pause
 }
 
