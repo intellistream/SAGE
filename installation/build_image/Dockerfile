@@ -83,13 +83,12 @@ ENV PATH="/usr/bin:$PATH"
 # Set up a workspace directory, defaulted to root for debugging # DO NOT CHANGE THIS!
 WORKDIR /workspace
 
-# Install Conda and create llh venv
+# Install Conda and create sage venv
 RUN curl -o ~/miniconda.sh -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     chmod +x ~/miniconda.sh && ~/miniconda.sh -b -p /opt/conda && \
     rm ~/miniconda.sh && \
     /opt/conda/bin/conda init bash && \
-    conda config --set auto_activate_base false && \
-    conda create -n llh python=3.11 -y
+    conda config --set auto_activate_base false
 
 # Set up a new user and configure password
 RUN useradd -m ${USER} && echo "${USER}:${PASSWD}" | chpasswd && usermod -G sudo ${USER}

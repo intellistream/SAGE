@@ -14,4 +14,4 @@ container_name=$(docker-compose ps -q $service_name)
 sleep 5  # Wait to ensure that container is properly up
 
 # Automatically attach to the container's bash shell
-docker exec -it $container_name /bin/bash
+ssh root@localhost -p 2222
