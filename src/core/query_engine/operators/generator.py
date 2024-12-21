@@ -1,4 +1,5 @@
 import logging
+import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from src.core.query_engine.operators.base_operator import BaseOperator
 
@@ -8,24 +9,33 @@ class Generator(BaseOperator):
     Operator for generating natural language responses using Hugging Face's Transformers.
     """
 
-    def __init__(self, model_name="meta-llama/Llama-3.2-1B", device="cuda"):
+    def __init__(self, model_name="meta-llama/Llama-3.2-1B", device=None):
         """
         Initialize the generator with a specified model.
         :param model_name: The Hugging Face model to use for generation.
         :param device: The device to load the model on ("cuda" for GPU or "cpu").
+                       If None, the device is automatically selected.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.info(f"Loading model and tokenizer for {model_name}...")
+        self.logger.info(f"Initializing Generator with model: {model_name}...")
+
+        # Automatically detect device if not provided
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = device
+        self.logger.info(f"Selected device: {self.device}")
 
         # Load tokenizer and model
+        self.logger.info(f"Loading model and tokenizer for {model_name}...")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         # Ensure padding token is set
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        self.model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto")
-        self.device = device
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name, device_map="auto" if self.device == "cuda" else None
+        ).to(self.device)
 
         self.logger.info("Model and tokenizer loaded successfully.")
 
