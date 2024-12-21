@@ -29,3 +29,5 @@ id_llm
 auto_env_setup.log
 /.idea/
 /deps/CANDY/installation/build/
+/deps/CANDY/installation/install_pycandy/candy.egg-info/
+/deps/CANDY/installation/install_pycandy/build/
