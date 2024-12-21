@@ -28,3 +28,4 @@ CMakeUserPresets.json
 id_llm
 auto_env_setup.log
 /.idea/
+/deps/CANDY/installation/build/
