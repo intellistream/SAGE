@@ -76,3 +76,12 @@ python api/interactive_cli.py
 ---
 
 ## 5. Known Issues and Troubleshooting
+
+If you faced build failure in Clion environment. You may add the following ENV variable to the cmake option in Clion
+
+```bash
+# Go to Settings -> Build, Execution, Deployment -> CMake.
+# Modify CMake Configuration in CLion: Add the following to the CMake Options:
+-DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64"
+-DCMAKE_SHARED_LINKER_FLAGS="-L/usr/local/cuda/lib64"
+```
