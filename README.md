@@ -2,6 +2,8 @@
 ```
 Please refer to `installation\README.md` for project installation.
 
+If you are using Windows, please install `Docker Desktop` first.
+
 ```
 
 ```
