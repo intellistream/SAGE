@@ -1,57 +1,7 @@
 # SAGE
 ```
-SAGE/
-├── interactive_cli.py                    # Interactive CLI for natural language queries and HQL input.
-├── README.md                             # Overview, setup instructions, and usage examples.
-├── requirements.txt                      # Python dependencies required for the project.
-├── src/                                  # Main source code directory.
-│   ├── __init__.py                       # Marks this directory as a Python package.
-│   ├── core/                             # Core system logic.
-│   │   ├── __init__.py                   # Marks this directory as a Python package.
-│   │   ├── embedding/                    # text, image data embedding.
-│   │   │   ├── __init__.py               # Marks this directory as a Python package.
-│   │   │   ├── text_preprocessor.py      # Embedding texts.
-│   │   │   ├── multimodal_preprocessor.py # Embedding multimodal data.
-│   │   ├── query_engine/                 # Query compilation, optimization, and execution.
-│   │   │   ├── __init__.py               # Marks this directory as a Python package.
-│   │   │   ├── query_compiler.py         # Compiles queries (HQL or natural) into DAGs.
-│   │   │   ├── query_optimizer.py        # Optimizes and reorders DAGs into efficient query plans.
-│   │   │   ├── query_executor.py         # Executes one-shot or continuous query plans using DAG.
-│   │   ├── dag/                          # DAG components for query execution.
-│   │   │   ├── __init__.py               # Marks this directory as a Python package.
-│   │   │   ├── dag.py                    # DAG class for managing nodes and execution flow.
-│   │   │   ├── dag_node.py               # Represents individual nodes, wrapping operators.
-│   │   │   ├── dag_executor.py           # Executes the DAG for queries via the query engine.
-│   │   ├── memory/                       # Hierarchical memory layer logic.
-│   │   │   ├── __init__.py               # Marks this directory as a Python package.
-│   │   │   ├── short_term_memory.py      # Short-term memory (KV-pairs from LLM) backed by CANDY.
-│   │   │   ├── long_term_memory.py       # Long-term memory (persistent knowledge) backed by CANDY.
-│   │   │   ├── ...                       # Other memory types.
-│   │   ├── operators/                    # Core operators implementing functionalities.
-│   │   │   ├── __init__.py               # Marks this directory as a Python package.
-│   │   │   ├── base_operator.py          # Base operator
-│   │   │   ├── hallucination_detection.py # Optional operator for hallucination detection and retries.
-│   │   │   ├── prompter.py               # Generates dynamic prompts based on user queries.
-│   │   │   ├── retriever.py              # Retrieves data from memory or external sources.
-│   │   │   ├── generator.py              # Generates responses using vLLM.
-│   │   │   ├── model_editor.py           # Dynamically updates the LLM model.
-│   │   │   ├── docwriter.py              # Generates structured outputs or documentation.
-│   ├── utils/                            # Utility functions for logging, configuration, and helpers.
-│   │   ├── __init__.py                   # Marks this directory as a Python package.
-│   │   ├── logger.py                     # Configures logging for the system.
-│   │   ├── helpers.py                    # Common helper functions.
-│   │   ├── config.py                     # Manages configuration settings.
-│   ├── agents/                         # External integrations or extensions.
-│   │   ├── __init__.py                   # Marks this directory as a Python package.
-│   │   ├── query_agent.py                # AI agent assisting with query planning.
-│   │   ├── network_agent.py              # Handles data retrieval from external sources (e.g., internet).
-├── tests/
-│   │   ├── ...                           #
-├── deps/                                 # External dependencies and submodules.
-│   ├── vLLM/                             # LLM inference submodule for generation and editing.
-│   │   ├── ...                           #
-│   ├── CANDY/                            # C++ vector database submodule for SAGE memory.
-│   │   ├── ...                           #
+Please refer to `installation\README.md` for project installation.
+
 ```
 
 ```
