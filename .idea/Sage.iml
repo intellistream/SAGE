@@ -13,7 +13,7 @@
       <excludeFolder url="file://$MODULE_DIR$/installation/dist" />
       <excludeFolder url="file://$MODULE_DIR$/deps/CANDY/installation/build" />
     </content>
-    <orderEntry type="jdk" jdkName="llh" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="sage" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
