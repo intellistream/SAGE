@@ -98,6 +98,12 @@ function troubleshooting() {
     pause
 }
 
+function enter_docker_instance() {
+    detect_container || return
+    echo "Opening a terminal inside the Docker container..."
+    docker exec -it "$DOCKER_CONTAINER_NAME" bash
+}
+
 function main_menu() {
     while true; do
         clear
@@ -109,6 +115,7 @@ function main_menu() {
         echo "4. Set Up Conda Environment"
         echo "5. Run Tests"
         echo "6. Troubleshooting Guide"
+        echo "7. Enter Docker Instance"
         echo "0. Exit"
         echo "===================================================="
         read -p "Enter your choice [0-6]: " choice
@@ -120,6 +127,7 @@ function main_menu() {
             4) setup_conda_environment ;;
             5) run_tests ;;
             6) troubleshooting ;;
+            7) enter_docker_instance ;;
             0) echo "Exiting setup script. Goodbye!"; exit 0 ;;
             *) echo "Invalid choice. Please try again."; pause ;;
         esac

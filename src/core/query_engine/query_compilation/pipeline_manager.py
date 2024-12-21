@@ -77,4 +77,3 @@ class PipelineManager:
         dag.add_edge(spout_node, retriever_node)
         dag.add_edge(retriever_node, prompt_node)
         dag.add_edge(prompt_node, generator_node)
-
