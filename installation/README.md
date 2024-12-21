@@ -20,11 +20,15 @@ This script will pull the image, set up the container, and mount the workspace f
 
 ---
 
-## 2. Setting up the Conda Environment in the Docker Container
+## 2. Install the dep
 
-Once the Docker container is running, use the `auto_env_setup.sh` script inside the container to set up the `SAGE` Conda environment with all required dependencies.
+Once the Docker container is running, use the `env_setup/install_dep.sh` script inside the container to set up the `SAGE` Conda environment with all required dependencies.
 
-### 2.1 Running `auto_env_setup.sh`
+## 3. Setting up the Conda Environment in the Docker Container
+
+Once the Docker container is running, use the `env_setup/auto_env_setup.sh` script inside the container to set up the `SAGE` Conda environment with all required dependencies.
+
+### 3.1 Running `auto_env_setup.sh`
 
 1. **Run the Setup Script**:
    Inside the container, run the setup script. Ensure you update the GitHub `username` and `token` for cloning the `CANDY` repository:
@@ -53,16 +57,16 @@ The environment `SAGE` is now ready to use. You can configure it in PyCharm or a
 >     ```
 ---
 
-## 3. Running SAGE Interactively
+## 4. Running SAGE Interactively
 
-### 3.1 Hugging Face Authentication
+### 4.1 Hugging Face Authentication
 
 Before running the SAGE system, ensure you log in to Hugging Face:
 ```bash
 huggingface-cli login --token <your_huggingface_token>
 ```
 
-### 3.2 Interactive CLI
+### 4.2 Interactive CLI
 
 You can interact with the SAGE system using the interactive CLI:
 ```bash
@@ -71,4 +75,4 @@ python api/interactive_cli.py
 
 ---
 
-## 4. Known Issues and Troubleshooting
+## 5. Known Issues and Troubleshooting
