@@ -117,8 +117,6 @@ jobs:
             mamba env create --file installation/env_setup/environment.yml
           fi
 
-     
-
       # Install Extra Pip Dependencies
       - name: Install Extra Pip Dependencies
         run: |
@@ -127,6 +125,10 @@ jobs:
             evaluate==0.4.3 \
             datasets==3.0.1
           conda run -n sage python -c "import nltk; nltk.download('wordnet')"
+
+      - name: Set up Hugging Face CLI
+        run: |
+          huggingface-cli login --token ${{ secrets.HF_TOKEN }}
 
       # Run Pytest
       - name: Run Tests
