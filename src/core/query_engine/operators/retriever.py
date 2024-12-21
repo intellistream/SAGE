@@ -36,7 +36,18 @@ class Retriever(BaseOperator):
             self.logger.info(f"Retrieving data from long-term memory for query: {input_data}")
 
             # Retrieve results from long-term memory
-            results = self.long_term_memory.retrieve(query=query_embedding, k=k)
+            # results = self.neuromemory.retrieve(short_term, k=?).filter().summary().compareTo(retrieve(long_term))
+            # results = self.neuromemory.window().retrieve().
+            # results = self.long_term_memory.retrieve(query=query_embedding, k=k)
+
+            # SQL:
+            # SELECT *
+            # FROM self.neuromemory
+            #
+
+            # Graph-RAG
+            #
+
             if results:
                 self.logger.info(f"Data retrieved successfully: {len(results)} result(s) found.")
                 # Emit the raw query and results
