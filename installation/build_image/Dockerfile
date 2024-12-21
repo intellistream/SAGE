@@ -2,8 +2,8 @@
 FROM nvidia/cuda:12.5.1-cudnn-devel-ubuntu22.04
 
 # Environment variables
-ENV USER=llh
-ENV PASSWD=llh
+ENV USER=sage
+ENV PASSWD=sage
 
 # 设置环境变量，防止apt-get进行交互式操作
 ENV DEBIAN_FRONTEND=noninteractive
@@ -80,7 +80,7 @@ RUN python3 -m pip install --no-cache-dir torch matplotlib pandas==2.0.0 transfo
 ENV PATH="/opt/conda/bin:$PATH"
 ENV PATH="/usr/bin:$PATH"
 
-# Set up a workspace directory, defaulted to root for debugging
+# Set up a workspace directory, defaulted to root for debugging # DO NOT CHANGE THIS!
 WORKDIR /workspace
 
 # Install Conda and create llh venv
