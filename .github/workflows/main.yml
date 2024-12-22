@@ -20,6 +20,22 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # Cache Conda Environment
+      - name: Cache Conda Environment
+        uses: actions/cache@v3
+        with:
+          path: |
+            $HOME/miniconda3/envs/sage
+            $HOME/.conda/envs/sage
+            $HOME/.cache/pip
+            $HOME/miniconda3/pkgs
+            $HOME/.condarc
+          key: ${{ runner.os }}-conda-${{ hashFiles('installation/env_setup/environment.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-conda-
+        env:
+          ACTIONS_STEP_DEBUG: true
+
       # Free disk space for CUDA and dependencies
       - name: Free Disk Space
         run: |
@@ -64,6 +80,16 @@ jobs:
           activate-environment: sage
           auto-activate-base: false
 
+      # Cache CANDY Installation
+      - name: Cache CANDY Installation
+        id: cache-candy  # Add step ID
+        uses: actions/cache@v3
+        with:
+          path: deps/CANDY
+          key: ${{ runner.os }}-candy-${{ hashFiles('deps/CANDY/installation/candy_build.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-candy-
+
       # Use Deploy Key to Clone CANDY Repository
       - name: Configure SSH for Deploy Key
         run: |
@@ -74,12 +100,13 @@ jobs:
 
       # Clone CANDY Repository
       - name: Clone CANDY Repository
+        if: steps.cache-candy.outputs.cache-hit != 'true'
         run: |
           mkdir -p deps
           cd deps
           git clone git@github.com:intellistream/CANDY.git
 
-       # Install `pycandy`
+       # Install pycandy
       - name: Install pycandy
         run: |
           cd deps/CANDY/installation
@@ -87,7 +114,7 @@ jobs:
           cd install_pycandy
           conda run -n sage bash install_pycandy.sh
           cd ../../../../
-          
+
       # Install Base Dependencies
       - name: Install Base Dependencies
         run: |
@@ -117,8 +144,6 @@ jobs:
             mamba env create --file installation/env_setup/environment.yml
           fi
 
-     
-
       # Install Extra Pip Dependencies
       - name: Install Extra Pip Dependencies
         run: |
@@ -127,6 +152,10 @@ jobs:
             evaluate==0.4.3 \
             datasets==3.0.1
           conda run -n sage python -c "import nltk; nltk.download('wordnet')"
+
+      - name: Set up Hugging Face CLI
+        run: |
+          conda run -n sage huggingface-cli login --token ${{ secrets.HF_TOKEN }}
 
       # Run Pytest
       - name: Run Tests

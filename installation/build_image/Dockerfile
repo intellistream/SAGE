@@ -1,4 +1,4 @@
-# Base image with CUDA 11.7 and Python 3.10
+# Base image
 FROM nvidia/cuda:12.5.1-cudnn-devel-ubuntu22.04
 
 # Environment variables

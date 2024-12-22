@@ -4,9 +4,13 @@
 
 Please refer to `installation\README.md` for project installation.
 
-If you are using Windows, please install `Docker Desktop` first.
+If you are using Windows, please install `Docker Desktop` first, and install a wsl2 distro via `wsl --install` to enable GPU access inside docker instance.
 
-## 2. Running SAGE Interactively
+> WSL 2 is required because:
+    Docker Desktop uses the WSL 2 backend to enable GPU support on Windows.
+    GPU passthrough and NVIDIA Container Toolkit are designed to work with WSL 2.
+
+## 2. Running SAGE Interactively inside the docker instance
 
 ### 2.1 Hugging Face Authentication
 
@@ -27,6 +31,14 @@ python api/interactive_cli.py
 Please remember to update the python interpreter to use conda, sage environment configured automatically by our installation scripts.
 
 If you face any other issues, please log them in our issues board.
+
+## Known Issues
+
+> docker run --rm --gpus all intellistream/sage:devel-ubuntu22.04 nvidia-smi
+docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error running hook #0: error running hook: exit status 1, stdout: , stderr: Auto-detected mode as 'legacy'
+nvidia-container-cli: requirement error: unsatisfied condition: cuda>=12.5, please update your driver to a newer version, or use an earlier cuda container: unknown.
+
+> update your NVIDIA driver on your host machine to a version compatible with CUDA 12.5 (≥ 545.23).
 
 ```
 1. Use Case: Handling a Natural Language Query

@@ -31,23 +31,24 @@ class Retriever(BaseOperator):
             self.logger.info(f"Generating embedding for query: {input_data}")
 
             # Generate embedding from the query
-            query_embedding = self.embedder.generate_embedding(input_data)
+            query_embedding = self.embedder.generate_embedding(input_data) ### NLPer how to best embedding the question.
 
             self.logger.info(f"Retrieving data from long-term memory for query: {input_data}")
 
             # Retrieve results from long-term memory
+            # results=self.neuromemory.smart_query(query_embedding)
+
+            # Is the Similarity = Usefulness?
+
             # results = self.neuromemory.retrieve(short_term, k=?).filter().summary().compareTo(retrieve(long_term))
             # results = self.neuromemory.window().retrieve().
-            # results = self.long_term_memory.retrieve(query=query_embedding, k=k)
-
+            # clean_results = post_processing(results) ### NLPer how to best clean up the results.
             # SQL:
             # SELECT *
             # FROM self.neuromemory
-            #
-
             # Graph-RAG
-            #
 
+            results = self.long_term_memory.retrieve(query=query_embedding, k=k)
             if results:
                 self.logger.info(f"Data retrieved successfully: {len(results)} result(s) found.")
                 # Emit the raw query and results
