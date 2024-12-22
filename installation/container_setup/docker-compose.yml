@@ -12,3 +12,4 @@ services:
     tty: true
     ports:
       - "2222:22"  # Expose SSH port for remote connection
+    runtime: nvidia # Use the NVIDIA runtime

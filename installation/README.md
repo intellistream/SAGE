@@ -24,16 +24,29 @@ This script will pull the image, set up the container, and mount the workspace f
 
 Once the Docker container is running, use the `env_setup/install_dep.sh` script inside the container to set up the `SAGE` Conda environment with all required dependencies.
 
+```bash
+Inside the docker instance, go to `workspace/installation`.
+
+```
+
 ## 3. Setting up the Conda Environment in the Docker Container
 
 Once the Docker container is running, use the `env_setup/auto_env_setup.sh` script inside the container to set up the `SAGE` Conda environment with all required dependencies.
 
-### 3.1 Running `auto_env_setup.sh`
+### 3.1 Running `install_dep.sh`
 
 1. **Run the Setup Script**:
    Inside the container, run the setup script. Ensure you update the GitHub `username` and `token` for cloning the `CANDY` repository:
    ```bash
-   bash auto_env_setup.sh $(your_user_name) $(your_token)
+   bash install_dep.sh $(your_user_name) $(your_token)
+   ```
+   
+### 3.2 Running `auto_env_setup.sh`
+
+1. **Run the Setup Script**:
+   Inside the container, run the setup script. 
+   ```bash
+   bash auto_env_setup.sh
    ```
 
 The environment `SAGE` is now ready to use. You can configure it in PyCharm or any IDE to start working on the `SAGE` project.
