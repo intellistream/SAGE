@@ -22,7 +22,6 @@ jobs:
 
       # Cache Conda Environment
       - name: Cache Conda Environment
-        id: cache-conda  # Add step ID
         uses: actions/cache@v3
         with:
           path: |
@@ -34,6 +33,9 @@ jobs:
           key: ${{ runner.os }}-conda-${{ hashFiles('installation/env_setup/environment.yml') }}
           restore-keys: |
             ${{ runner.os }}-conda-
+        env:
+          ACTIONS_STEP_DEBUG: true
+
 
       # Free Disk Space
       - name: Free Disk Space
