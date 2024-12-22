@@ -57,7 +57,7 @@ class PipelineManager:
         retriever_node = OneShotDAGNode(
             name="Retriever",
             operator=Retriever(self.memory_layers.get("long_term")),
-            config={"k": 3}  # Retrieve top-3 results
+            config={"k": 5}  # Retrieve top-5 results
         )
         prompt_node = OneShotDAGNode(
             name="PromptGenerator",

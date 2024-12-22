@@ -39,14 +39,13 @@ def run_debug_pipeline(input_text, memory_layers):
 if __name__ == "__main__":
     # Configure logging
     configure_logging(level=logging.INFO)
-
     # Initialize memory layers
     memory_layers = initialize_memory_layers()
 
     try:
         # Define test inputs for debugging
         test_inputs = [
-            "What is the Everest?",  # Natural language query for information retrieval
+            "What is the Lisa?",  # Natural language query for information retrieval
             # "Summarize the contexts you have loaded.",  # Natural language query for summarization
             # "EXECUTE RETRIEVE key=value",  # HQL query for one-shot execution
             # "REGISTER RETRIEVE key=value"  # HQL query for continuous execution
