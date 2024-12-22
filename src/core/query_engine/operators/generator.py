@@ -9,7 +9,7 @@ class Generator(BaseOperator):
     Operator for generating natural language responses using Hugging Face's Transformers.
     """
 
-    def __init__(self, model_name="EleutherAI/gpt-neo-2.7B", device=None, seed=42):
+    def __init__(self, model_name="google/flan-t5-small", device=None, seed=42):
         """
         Initialize the generator with a specified model.
         :param model_name: The Hugging Face model to use for generation.
