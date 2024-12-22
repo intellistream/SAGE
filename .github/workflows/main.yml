@@ -105,14 +105,17 @@ jobs:
           cd install_pycandy
           conda run -n sage bash install_pycandy.sh
 
-      # Install CUDA and PyTorch
+      # Install CUDA Toolkit and PyTorch
       - name: Install CUDA and PyTorch
         run: |
           mamba install -y \
             pytorch=2.4.0 \
             pytorch-cuda=12.1 \
+            torchaudio=2.4.0 \
+            torchvision=0.19.0 \
             cuda-runtime=12.1.0 \
             -c pytorch -c nvidia
+          mamba clean --all -y
 
       # Create or Update Conda Environment
       - name: Create or Update Environment
