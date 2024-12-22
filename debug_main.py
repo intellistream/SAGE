@@ -3,7 +3,7 @@ from src.core.query_engine.query_compilation.query_compiler import QueryCompiler
 from src.core.query_engine.query_execution.query_executor import QueryExecutor
 from src.core.neuromem.memory.utils import initialize_memory_layers
 from src.utils.logger import configure_logging
-
+import os
 def run_debug_pipeline(input_text, memory_layers):
     """
     Runs the entire pipeline for a single input, from compilation to execution.
@@ -40,9 +40,8 @@ if __name__ == "__main__":
     # Configure logging
     configure_logging(level=logging.INFO)
 
-    from huggingface_hub import login
-
-    login(token="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")
+    # Configure HF mirrors
+    os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
     # Initialize memory layers
     memory_layers = initialize_memory_layers()
