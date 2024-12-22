@@ -1,6 +1,6 @@
 import logging
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from src.core.query_engine.operators.base_operator import BaseOperator
 
 
@@ -13,8 +13,7 @@ class Generator(BaseOperator):
         """
         Initialize the generator with a specified model.
         :param model_name: The Hugging Face model to use for generation.
-        :param device: The device to load the model on ("cuda" for GPU or "cpu").
-                       If None, the device is automatically selected.
+        :param device: The device to load the model on ("cpu" for GitHub workflows).
         :param seed: Seed for reproducibility.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -22,8 +21,6 @@ class Generator(BaseOperator):
 
         # Set random seed for reproducibility
         torch.manual_seed(seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(seed)
 
         # Automatically detect device if not provided
         if device is None:
@@ -39,7 +36,7 @@ class Generator(BaseOperator):
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        self.model = AutoModelForCausalLM.from_pretrained(
+        self.model = AutoModelForSeq2SeqLM.from_pretrained(
             model_name, trust_remote_code=True
         ).to(self.device)
 
@@ -63,20 +60,22 @@ class Generator(BaseOperator):
 
             # Default generation parameters
             max_new_tokens = kwargs.get("max_new_tokens", 100)
-            temperature = kwargs.get("temperature", None)  # Use None if not sampling
-            top_p = kwargs.get("top_p", None)             # Use None if not sampling
-            do_sample = temperature is not None or top_p is not None
+            num_beams = kwargs.get("num_beams", 4)  # Use beam search for better quality
+            do_sample = kwargs.get("do_sample", False)  # Disable sampling for consistency
+            temperature = kwargs.get("temperature", 1.0)  # Default temperature
+            top_p = kwargs.get("top_p", None)  # Disable top-p sampling by default
 
             # Generate output
             outputs = self.model.generate(
                 input_ids=inputs["input_ids"],
                 attention_mask=inputs["attention_mask"],
                 max_new_tokens=max_new_tokens,
-                temperature=temperature if do_sample else 1.0,
-                top_p=top_p if do_sample else None,
+                num_beams=num_beams,
                 do_sample=do_sample,
+                temperature=temperature,
+                top_p=top_p,
                 pad_token_id=self.tokenizer.pad_token_id,
-                num_return_sequences=1,  # Ensure a single output
+                num_return_sequences=1,  # Single output sequence
             )
 
             # Decode the response

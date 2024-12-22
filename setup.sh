@@ -130,7 +130,8 @@ function troubleshooting() {
     echo "-DCMAKE_EXE_LINKER_FLAGS='-L/usr/local/cuda/lib64'"
     echo "-DCMAKE_SHARED_LINKER_FLAGS='-L/usr/local/cuda/lib64'"
     echo "2. Ensure Hugging Face authentication is completed before using private models."
-    echo ""
+    echo "3. If you use HF Mirror, remember to refer to https://hf-mirror.com/ carefully to configure bashrc inside the docker instance"
+    echo "3.5. If you use Pycharm, remember to configure HF_ENDPOINT=https://hf-mirror.com in Pycharm's environment variable."
     pause
 }
 
