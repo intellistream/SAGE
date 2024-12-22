@@ -9,7 +9,7 @@ class Generator(BaseOperator):
     Operator for generating natural language responses using Hugging Face's Transformers.
     """
 
-    def __init__(self, model_name="bigscience/bloom", device=None, seed=42):
+    def __init__(self, model_name="distributed/optimized-gpt2-2b", device=None, seed=42):
         """
         Initialize the generator with a specified model.
         :param model_name: The Hugging Face model to use for generation.
@@ -32,7 +32,7 @@ class Generator(BaseOperator):
         self.logger.info(f"Selected device: {self.device}")
 
         # Load tokenizer and model
-        self.logger.info(f"Loading model and tokenizer for {model_name}...")
+        self.logger.info(f"Lo ading model and tokenizer for {model_name}...")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         # Ensure padding token is set

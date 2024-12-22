@@ -20,6 +20,22 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # Cache conda environment and pip dependencies
+      - name: Cache Conda Environment
+        uses: actions/cache@v3
+        env:
+          # Change the cache name and hash key if you change the environment file
+          CACHE_NUMBER: 0  # You can change this number to invalidate the cache
+        with:
+          path: |
+            /opt/hostedtoolcache/Windows/Conda/x64/conda-latest
+            $HOME/.cache/pip
+            $HOME/miniconda3/envs/sage
+          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('installation/env_setup/environment.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-
+            ${{ runner.os }}-conda-
+
       # Free disk space for CUDA and dependencies
       - name: Free Disk Space
         run: |
