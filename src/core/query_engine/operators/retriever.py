@@ -1,4 +1,7 @@
 import logging
+
+from pandas.tests.series.methods.test_rank import results
+
 from src.core.embedding.text_preprocessor import TextPreprocessor
 from src.core.query_engine.operators.base_operator import BaseOperator
 
@@ -48,7 +51,11 @@ class Retriever(BaseOperator):
             # FROM self.neuromemory
             # Graph-RAG
 
-            results = self.long_term_memory.retrieve(query=query_embedding, k=k)
+            results = []
+
+            results.append(self.short_term_memory.retrieve(query=query_embedding, k=k))
+            results.append(self.long_term_memory.retrieve(query=query_embedding, k=k))
+
             if results:
                 self.logger.info(f"Data retrieved successfully: {len(results)} result(s) found.")
                 # Emit the raw query and results
