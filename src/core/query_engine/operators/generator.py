@@ -86,6 +86,8 @@ class Generator(BaseOperator):
             answer = self._extract_answer(response)
             self.logger.info(f"Extracted answer: {answer}")
 
+            self.emit({"question": input_data, "answer": answer})
+
             return answer
 
         except Exception as e:

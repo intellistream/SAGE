@@ -9,30 +9,30 @@ class LongTermMemory(BaseMemory):
 
     def __init__(self):
         super().__init__()
-        self.store = {} # {userid|session_id -> {q->a, q->a, ...}}
+        self.storage = {} # {userid|session_id -> {q->a, q->a, ...}}
 
     def store(self, item, key=None):
         """
         Store an item in memory with an optional key.
         """
-        key = key or len(self.store)  # Auto-generate key if not provided
-        self.store[key] = item
+        key = key or len(self.storage)  # Auto-generate key if not provided
+        self.storage[key] = item
         self.logger.info(f"Stored item with key: {key}")
 
-    def retrieve(self, key, k=1, **kwargs):
+    def retrieve(self, key=None, k=1, **kwargs):
         """
         Retrieve an item by key or return the first `k` items.
         """
         if key is not None:
-            return self.store.get(key)
-        return list(self.store.values())[:k]
+            return self.storage.get(key)
+        return list(self.storage.values())[:k]
 
     def delete(self, key):
         """
         Delete an item by key.
         """
-        if key in self.store:
-            del self.store[key]
+        if key in self.storage:
+            del self.storage[key]
             self.logger.info(f"Deleted item with key: {key}")
         else:
             self.logger.warning(f"Key '{key}' not found.")
@@ -41,5 +41,5 @@ class LongTermMemory(BaseMemory):
         """
         Clear all items in memory.
         """
-        self.store.clear()
+        self.storage.clear()
         self.logger.info("Memory cleared.")
