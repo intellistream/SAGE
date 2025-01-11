@@ -10,10 +10,17 @@ class NeuronMemManager:
     Contextual Knowledge Integration Pipeline
     """
 
-    def __init__(self):
+    def __init__(self, memory_layers):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.pipelines = {}
         self.backend_pipelines = {}
+        self.memory_layers = memory_layers
+
+    def get_memory_layers(self):
+        return self.memory_layers
+
+    def get_memory_layers_by_name(self, name):
+        return self.memory_layers[name]
 
     def execute(self, pipeline_name):
         """

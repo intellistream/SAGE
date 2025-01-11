@@ -11,12 +11,12 @@ class PipelineManager:
     Manages the addition of pipelines to a DAG based on intent.
     """
 
-    def __init__(self, memory_layers):
+    def __init__(self, memory_manager):
         """
         Initialize the manager with necessary resources.
-        :param memory_layers: A dictionary of memory layers (e.g., long-term, short-term).
+        :param memory_manager: A manager of memory layers (e.g., long-term, short-term, dynamic-contextual).
         """
-        self.memory_layers = memory_layers
+        self.memory_manager = memory_manager
 
     def add_summarization_pipeline(self, dag, spout_node):
         """
@@ -26,7 +26,7 @@ class PipelineManager:
         """
         retriever_node = OneShotDAGNode(
             name="Retriever",
-            operator=Retriever(self.memory_layers.get("long_term")),
+            operator=Retriever(self.memory_manager),
             config={"k": 5}  # Retrieve top-5 results
         )
         prompt_node = OneShotDAGNode(
@@ -56,7 +56,7 @@ class PipelineManager:
         """
         retriever_node = OneShotDAGNode(
             name="Retriever",
-            operator=Retriever(self.memory_layers.get("long_term")),
+            operator=Retriever(self.memory_manager),
             config={"k": 5}  # Retrieve top-5 results
         )
         prompt_node = OneShotDAGNode(

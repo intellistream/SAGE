@@ -1,19 +1,19 @@
 import logging
 from src.core.query_engine.query_compilation.query_compiler import QueryCompiler
 from src.core.query_engine.query_execution.query_executor import QueryExecutor
-from src.core.neuromem.memory.utils import initialize_memory_layers
+from src.core.neuromem.memory.utils import initialize_memory_manager
 from src.utils.logger import configure_logging
 
-def run_debug_pipeline(input_text, memory_layers):
+def run_debug_pipeline(input_text, memory_manager):
     """
     Runs the entire pipeline for a single input, from compilation to execution.
     :param input_text: The query or natural language input to process.
-    :param memory_layers: The initialized memory layers.
+    :param memory_manager: The initialized memory manager for memory layers.
     """
     try:
         # Initialize query components
-        compiler = QueryCompiler(memory_layers)
-        executor = QueryExecutor(memory_layers)
+        compiler = QueryCompiler(memory_manager)
+        executor = QueryExecutor(memory_manager)
 
         # Compile the query
         logging.info(f"Compiling input: {input_text}")
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     # Configure logging
     configure_logging(level=logging.INFO)
     # Initialize memory layers
-    memory_layers = initialize_memory_layers()
+    memory_manager = initialize_memory_manager()
 
     try:
         # Define test inputs for debugging
@@ -54,11 +54,11 @@ if __name__ == "__main__":
         # Run each input through the debug pipeline
         for test_input in test_inputs:
             print(f"\nProcessing test input: {test_input}")
-            run_debug_pipeline(test_input, memory_layers)
+            run_debug_pipeline(test_input, memory_manager)
 
     finally:
         # Reset memory layers after testing
         logging.info("Resetting memory layers...")
-        for layer_name, layer in memory_layers.items():
+        for layer_name, layer in memory_manager.get_memory_layers().items():
             layer.clean()
         logging.info("Memory layers reset successfully.")
