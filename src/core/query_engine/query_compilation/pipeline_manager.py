@@ -1,4 +1,7 @@
+from urllib3.filepost import writer
+
 from src.core.query_engine.operators.generator import Generator
+from src.core.query_engine.operators.memwriter import MemWriter
 from src.core.query_engine.operators.prompter import PromptOperator
 from src.core.query_engine.operators.retriever import Retriever
 from src.core.query_engine.operators.summarizer import Summarizer
@@ -69,11 +72,18 @@ class PipelineManager:
             config={"max_length": 50}  # Example configuration for generation
         )
 
+        writer_node = OneShotDAGNode(
+            name="MemWriter",
+            operator=MemWriter(self.memory_manager),
+        )
+
         dag.add_node(retriever_node)
         dag.add_node(prompt_node)
         dag.add_node(generator_node)
+        dag.add_node(writer_node)
 
         # Define edges
         dag.add_edge(spout_node, retriever_node)
         dag.add_edge(retriever_node, prompt_node)
         dag.add_edge(prompt_node, generator_node)
+        dag.add_edge(generator_node, writer_node)

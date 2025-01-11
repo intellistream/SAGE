@@ -24,6 +24,7 @@ class Retriever(BaseOperator):
         self.embedder = TextPreprocessor(model_name=embedder_model)  # Instantiate the embedder
         self.logger = logging.getLogger(self.__class__.__name__)
 
+    # TODO: determine the type of the input data, the current type is list, but we need to figure out why we need a list here.
     def execute(self, input_data, **kwargs):
         """
         Retrieve data relevant to the input query from long-term memory.
@@ -38,7 +39,7 @@ class Retriever(BaseOperator):
             # Generate embedding from the query
             query_embedding = self.embedder.generate_embedding(input_data) ### NLPer how to best embedding the question.
 
-            self.logger.info(f"Retrieving data from long-term memory for query: {input_data}")
+            self.logger.info(f"Retrieving data from memory manager for query: {input_data}")
 
             # Retrieve results from long-term memory
             # results=self.neuromemory.smart_query(query_embedding)
@@ -55,13 +56,14 @@ class Retriever(BaseOperator):
 
             results = []
 
-            results.append(self.memory_manager.get_memory_layers_by_name("short-term").retrieve(query=query_embedding, k=k))
-            results.append(self.memory_manager.get_memory_layers_by_name("long-term").retrieve(query=query_embedding, k=k))
+            results.append(self.memory_manager.get_memory_layers_by_name("short_term").retrieve(k=k))
+            results.append(self.memory_manager.get_memory_layers_by_name("long_term").retrieve(k=k))
+            results.append(self.memory_manager.get_memory_layers_by_name("dynamic_contextual").retrieve(query=query_embedding, k=k))
 
             if results:
                 self.logger.info(f"Data retrieved successfully: {len(results)} result(s) found.")
                 # Emit the raw query and results
-                self.emit((input_data, results))
+                self.emit((input_data[0], results))
             else:
                 self.logger.warning("No data found in long-term memory.")
 
