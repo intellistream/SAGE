@@ -7,13 +7,13 @@ from src.core.query_engine.query_execution.sequential_execution import Sequentia
 
 
 class QueryExecutor:
-    def __init__(self, memory_layers, strategy=None):
+    def __init__(self, memory_manager, strategy=None):
         """
         Initialize the query executor with a specific execution strategy.
-        :param memory_layers: Memory layers available for queries.
+        :param memory_manager: Memory manager available for queries.
         :param strategy: Execution strategy (default is SequentialExecutionStrategy).
         """
-        self.memory_layers = memory_layers
+        self.memory_manager = memory_manager
         self.strategy = strategy or SequentialExecutionStrategy()
         self.continuous_queries = []
 

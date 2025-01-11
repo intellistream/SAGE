@@ -2,7 +2,7 @@ import logging
 from src.core.query_engine.query_compilation.query_compiler import QueryCompiler
 from src.core.query_engine.query_execution.query_executor import QueryExecutor
 from src.utils.logger import configure_logging
-from src.core.neuromem.memory.utils import initialize_memory_layers
+from src.core.neuromem.memory.utils import initialize_memory_manager
 
 
 def display_welcome_message():
@@ -66,7 +66,7 @@ def main():
     configure_logging()
 
     # Initialize memory layers
-    memory_layers = initialize_memory_layers()
+    memory_layers = initialize_memory_manager()
 
     # Initialize query components
     compiler = QueryCompiler(memory_layers)

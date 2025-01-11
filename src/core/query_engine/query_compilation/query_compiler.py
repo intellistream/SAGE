@@ -17,12 +17,12 @@ Tasks of QueryCompiler
     Add DAG nodes in an order that reflects logical query execution
 """
 class QueryCompiler:
-    def __init__(self, memory_layers):
+    def __init__(self, memory_manager):
         """
         Initialize the QueryCompiler with memory layers.
-        :param memory_layers: Dictionary containing memory layer instances.
+        :param memory_manager: Memory manager for managing memory layers.
         """
-        self.memory_layers = memory_layers
+        self.memory_manager = memory_manager
         self.optimizer = QueryOptimizer()
 
     def compile(self, input_text):
@@ -85,7 +85,7 @@ class QueryCompiler:
         dag = self.add_one_shot_spout(natural_query)
 
         # Step 3: Use PipelineManager to add the pipeline
-        pipeline_manager = PipelineManager(self.memory_layers)
+        pipeline_manager = PipelineManager(self.memory_manager)
         spout_node = dag.get_node_by_name("Spout")
 
         if intent == "summarization":
@@ -121,7 +121,7 @@ class QueryCompiler:
             raise ValueError("Unsupported HQL operation.")
         retriever_node = OneShotDAGNode(
             name="Retriever",
-            operator=Retriever(self.memory_layers.get("long_term")),  # Use long-term memory
+            operator=Retriever(self.memory_manager),  # Use long-term memory
             is_spout=True
         )
         dag.add_node(retriever_node)

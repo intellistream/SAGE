@@ -3,6 +3,7 @@ import logging
 from pandas.tests.series.methods.test_rank import results
 
 from src.core.embedding.text_preprocessor import TextPreprocessor
+from src.core.neuromem.manager.memory_manager import NeuronMemManager
 from src.core.query_engine.operators.base_operator import BaseOperator
 
 
@@ -10,15 +11,16 @@ class Retriever(BaseOperator):
     """
     Operator for retrieving data from the long-term memory.
     """
+    memory_manager: NeuronMemManager
 
-    def __init__(self, long_term_memory, embedder_model="sentence-transformers/all-MiniLM-L6-v2"):
+    def __init__(self, memory_manager, embedder_model="sentence-transformers/all-MiniLM-L6-v2"):
         """
         Initialize the Retriever operator.
-        :param long_term_memory: The long-term memory instance to retrieve data from.
+        :param memory_manager: The memory manager instance to retrieve memory from varying layers.
         :param embedder: An embedder instance to generate embeddings.
         """
         super().__init__()
-        self.long_term_memory = long_term_memory
+        self.memory_manager = memory_manager
         self.embedder = TextPreprocessor(model_name=embedder_model)  # Instantiate the embedder
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -53,8 +55,8 @@ class Retriever(BaseOperator):
 
             results = []
 
-            results.append(self.short_term_memory.retrieve(query=query_embedding, k=k))
-            results.append(self.long_term_memory.retrieve(query=query_embedding, k=k))
+            results.append(self.memory_manager.get_memory_layers_by_name("short-term").retrieve(query=query_embedding, k=k))
+            results.append(self.memory_manager.get_memory_layers_by_name("long-term").retrieve(query=query_embedding, k=k))
 
             if results:
                 self.logger.info(f"Data retrieved successfully: {len(results)} result(s) found.")
