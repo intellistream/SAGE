@@ -16,7 +16,7 @@ class BaseMemory:
         """
         raise NotImplementedError("Store method must be implemented in subclasses.")
 
-    def retrieve(self, query, k=1, **kwargs):
+    def retrieve(self, query_embedding, k=1, **kwargs):
         """
         Retrieve items from memory.
         """

@@ -4,6 +4,7 @@ from src.core.query_engine.query_execution.query_executor import QueryExecutor
 from src.core.neuromem.memory.utils import initialize_memory_manager
 from src.utils.logger import configure_logging
 
+
 def run_debug_pipeline(input_text, memory_manager):
     """
     Runs the entire pipeline for a single input, from compilation to execution.
@@ -51,6 +52,20 @@ if __name__ == "__main__":
             # "Summarize the contexts you have loaded.",  # Natural language query for summarization
             # "EXECUTE RETRIEVE key=value",  # HQL query for one-shot execution
             # "REGISTER RETRIEVE key=value"  # HQL query for continuous execution
+        ]
+
+        # Run each input through the debug pipeline
+        for test_input in test_inputs:
+            print(f"\nProcessing test input: {test_input}")
+            run_debug_pipeline(test_input, memory_manager)
+
+        # Flush STM to LTM after session ending
+        logging.info(f"Flushing session context to LTM")
+        memory_manager.flush_stm_to_ltm()
+
+        # Define test inputs for debugging
+        test_inputs = [
+            "What is the Lisa? Fourth Round, New session",  # Natural language query for information retrieval
         ]
 
         # Run each input through the debug pipeline

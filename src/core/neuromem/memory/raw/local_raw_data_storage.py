@@ -2,7 +2,7 @@ import os
 import json
 import threading
 
-from src.utils.file_path import RAW_FILE
+from src.utils.file_path import RAW_FILE_DCM
 
 
 # Utility for file and directory operations
@@ -165,6 +165,6 @@ class ConsoleInterface:
                 print("Invalid choice. Please try again.")
 
 if __name__ == "__main__":
-    storage = LocalRawDataStorage(storage_file_path=RAW_FILE)
+    storage = LocalRawDataStorage(storage_file_path=RAW_FILE_DCM)
     console = ConsoleInterface(storage)
     console.run()

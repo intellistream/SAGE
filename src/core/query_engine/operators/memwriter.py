@@ -21,13 +21,12 @@ class MemWriter(BaseOperator):
         :param kwargs: Additional parameters for memory operations.
         """
         try:
-            # Validate memory layer
-            memory = self.memory_manager.get_memory_layers_by_name(memory_layer)
-            if not memory:
-                raise ValueError(f"Memory layer '{memory_layer}' not found.")
+            # Validate input data structure
+            if not isinstance(input_data[0], dict) or "question" not in input_data[0] or "answer" not in input_data[0]:
+                raise ValueError("input_data must be a dictionary with 'question' and 'answer' keys.")
 
-            # Write data into the specified memory layer
-            memory.store(input_data[0])
+            # Write to the specified memory layer
+            self.memory_manager.store_to_memory(data=input_data[0], memory_layer=memory_layer, **kwargs)
             self.logger.info(f"Data written to {memory_layer}: {input_data[0]}")
 
         except Exception as e:

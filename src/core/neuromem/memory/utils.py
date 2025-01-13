@@ -67,7 +67,10 @@ def initialize_memory_manager():
     short_term_memory = ShortTermMemory()
 
     # Long-term memory
-    long_term_memory = LongTermMemory()
+    long_term_memory = LongTermMemory(
+        vector_dim=128,  # Vector dimensions
+        search_algorithm="knnsearch"  # Search algorithm
+    )
 
     # Dynamic-contextual memory
     dynamic_contextual_memory = DynamicContextualMemory(
