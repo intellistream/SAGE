@@ -5,7 +5,23 @@ from pycandy import VectorDB
 
 from src.core.neuromem.memory.base_memory import BaseMemory
 from src.core.neuromem.memory.raw.local_raw_data_storage import LocalRawDataStorage
-from src.utils.file_path import RAW_FILE
+from src.utils.file_path import RAW_FILE_DCM
+
+
+def _generate_embedding_key(embedding):
+    """
+    Generate a unique, consistent hash key for the embedding.
+    """
+    # Ensure the tensor is on the CPU and detached
+    if embedding.device.type != 'cpu':
+        embedding = embedding.cpu()
+    embedding = embedding.detach()  # Ensure no gradient tracking
+
+    # Convert tensor to bytes without changing its type
+    embedding_bytes = embedding.contiguous().view(-1).numpy().tobytes()
+
+    # Create a SHA256 hash
+    return hashlib.sha256(embedding_bytes).hexdigest()
 
 
 class DynamicContextualMemory(BaseMemory):
@@ -22,27 +38,10 @@ class DynamicContextualMemory(BaseMemory):
         """
         super().__init__()
         self.db = VectorDB(vector_dim, search_algorithm)
-        self.raw_data_storage = LocalRawDataStorage(
-            RAW_FILE
-        )
+        self.raw_data_storage = LocalRawDataStorage(RAW_FILE_DCM)
         self.embedding_to_raw_map = {}
 
         self.logger.info("Persistent memory initialized with VectorDB.")
-
-    def _generate_embedding_key(self, embedding):
-        """
-        Generate a unique, consistent hash key for the embedding.
-        """
-        # Ensure the tensor is on the CPU and detached
-        if embedding.device.type != 'cpu':
-            embedding = embedding.cpu()
-        embedding = embedding.detach()  # Ensure no gradient tracking
-
-        # Convert tensor to bytes without changing its type
-        embedding_bytes = embedding.contiguous().view(-1).numpy().tobytes()
-
-        # Create a SHA256 hash
-        return hashlib.sha256(embedding_bytes).hexdigest()
 
     def store(self, embedding, raw_data=None):
         """
@@ -55,7 +54,7 @@ class DynamicContextualMemory(BaseMemory):
         raw_id = self.raw_data_storage.add_text_as_rawdata(raw_data)
 
         # Generate a hash key for the embedding
-        embedding_key = self._generate_embedding_key(embedding)
+        embedding_key = _generate_embedding_key(embedding)
 
         # Insert the embedding into VectorDB
 
@@ -67,19 +66,19 @@ class DynamicContextualMemory(BaseMemory):
         self.logger.info(f"Stored embedding with Raw ID: {raw_id}")
         return raw_id
 
-    def retrieve(self, query, k=1, **kwargs):
+    def retrieve(self, query_embedding, k=1, **kwargs):
         """
         Retrieve the raw data contents associated with the query's nearest embeddings.
         """
         try:
             # Query the database for nearest neighbors
-            embeddings = self.db.query_nearest_tensors(query.clone(), k)
+            embeddings = self.db.query_nearest_tensors(query_embedding.clone(), k)
 
             # Retrieve raw data contents
             results = []
             for embedding in embeddings:
                 # Generate the same hash key for retrieval
-                embedding_key = self._generate_embedding_key(embedding)
+                embedding_key = _generate_embedding_key(embedding)
 
                 # Retrieve the raw ID using the hash key
                 raw_id = self.embedding_to_raw_map.get(embedding_key)

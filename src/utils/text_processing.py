@@ -44,3 +44,11 @@ def process_text_to_embedding(text, max_length=512, stride=256):
         logger.error(f"Error processing text to embedding: {str(e)}")
         raise RuntimeError(f"Text processing failed: {str(e)}")
 
+
+def process_session_text_to_embedding(session_texts):
+    """
+    Process session texts into a single embedding using parallel processing.
+    """
+    # TODO: can be parallelized for optimization
+    session_embedding = torch.mean(torch.stack([process_text_to_embedding(text) for text in session_texts]), dim=0)
+    return session_embedding

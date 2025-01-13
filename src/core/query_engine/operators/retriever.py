@@ -7,6 +7,24 @@ from src.core.neuromem.manager.memory_manager import NeuronMemManager
 from src.core.query_engine.operators.base_operator import BaseOperator
 
 
+def _aggregate_results(*results):
+    """
+    Aggregate and deduplicate results from multiple memory layers.
+
+    :param results: Lists of results from memory layers.
+    :return: Combined, deduplicated list of results.
+    """
+    seen = set()
+    aggregated = []
+    for result_list in results:
+        for result in result_list:
+            result_key = str(result)  # Convert result to a hashable key
+            if result_key not in seen:
+                aggregated.append(result)
+                seen.add(result_key)
+    return aggregated
+
+
 class Retriever(BaseOperator):
     """
     Operator for retrieving data from the long-term memory.
@@ -39,7 +57,8 @@ class Retriever(BaseOperator):
             # Generate embedding from the query
             query_embedding = self.embedder.generate_embedding(input_data) ### NLPer how to best embedding the question.
 
-            self.logger.info(f"Retrieving data from memory manager for query: {input_data}")
+            # Retrieve results from memory layers
+            self.logger.info(f"Retrieving data from memory layers for query: {input_data}")
 
             # Retrieve results from long-term memory
             # results=self.neuromemory.smart_query(query_embedding)
@@ -54,19 +73,30 @@ class Retriever(BaseOperator):
             # FROM self.neuromemory
             # Graph-RAG
 
-            results = []
+            # results.append(self.memory_manager.get_memory_layers_by_name("short_term").retrieve(k=k))
+            # results.append(self.memory_manager.get_memory_layers_by_name("long_term").retrieve(k=k))
+            # results.append(self.memory_manager.get_memory_layers_by_name("dynamic_contextual").retrieve(query=query_embedding, k=k))
+            short_term_results = self.memory_manager.retrieve_from_memory(memory_layer="short_term", k=k)
+            long_term_results = self.memory_manager.retrieve_from_memory(
+                memory_layer="long_term", query_embedding=query_embedding, k=k
+            )
+            contextual_results = self.memory_manager.retrieve_from_memory(
+                memory_layer="dynamic_contextual", query_embedding=query_embedding, k=k
+            )
 
-            results.append(self.memory_manager.get_memory_layers_by_name("short_term").retrieve(k=k))
-            results.append(self.memory_manager.get_memory_layers_by_name("long_term").retrieve(k=k))
-            results.append(self.memory_manager.get_memory_layers_by_name("dynamic_contextual").retrieve(query=query_embedding, k=k))
+            # Combine results
+            combined_results = _aggregate_results(
+                short_term_results, long_term_results, contextual_results
+            )
 
-            if results:
-                self.logger.info(f"Data retrieved successfully: {len(results)} result(s) found.")
+            if combined_results:
+                self.logger.info(f"Data retrieved successfully: {len(combined_results)} result(s) found.")
                 # Emit the raw query and results
-                self.emit((input_data[0], results))
+                self.emit((input_data[0], combined_results))
             else:
                 self.logger.warning("No data found in long-term memory.")
 
         except Exception as e:
             self.logger.error(f"Error during retrieval: {str(e)}")
             raise RuntimeError(f"Retriever execution failed: {str(e)}")
+

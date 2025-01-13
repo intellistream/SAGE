@@ -1,45 +1,142 @@
+import hashlib
+import torch
+from pycandy import VectorDB
+
 from src.core.neuromem.memory.base_memory import BaseMemory
+from src.core.neuromem.memory.raw.local_raw_data_storage import LocalRawDataStorage
+from src.utils.text_processing import process_session_text_to_embedding
+from src.utils.file_path import RAW_FILE_LTM
+
+
+def _generate_embedding_key(embedding):
+    """
+    Generate a unique, consistent hash key for the embedding.
+    """
+    # Ensure the tensor is on the CPU and detached
+    if embedding.device.type != 'cpu':
+        embedding = embedding.cpu()
+    embedding = embedding.detach()  # Ensure no gradient tracking
+
+    # Convert tensor to bytes without changing its type
+    embedding_bytes = embedding.contiguous().view(-1).numpy().tobytes()
+
+    # Create a SHA256 hash
+    return hashlib.sha256(embedding_bytes).hexdigest()
 
 
 class LongTermMemory(BaseMemory):
     """
-    A simple in-memory key-value store.
-    Used for short-term memory in the system.
+    Long-term memory layer that stores entire sessions in a VectorDB for retrieval based on similarity.
     """
 
-    def __init__(self):
+    def __init__(self, vector_dim, search_algorithm):
+        """
+        Initialize the LongTermMemory with a VectorDB for session storage and retrieval.
+
+        :param vector_dim: Dimensionality of the embeddings.
+        :param search_algorithm: Search algorithm to use in VectorDB.
+        """
         super().__init__()
-        self.storage = {} # {userid|session_id -> {q->a, q->a, ...}}
+        self.db = VectorDB(vector_dim, search_algorithm)
+        self.raw_data_storage = LocalRawDataStorage(RAW_FILE_LTM)
+        self.session_to_raw_map = {}
 
-    def store(self, item, key=None):
-        """
-        Store an item in memory with an optional key.
-        """
-        key = key or len(self.storage)  # Auto-generate key if not provided
-        self.storage[key] = item
-        self.logger.info(f"Stored item with key: {key}")
+        self.logger.info("Long-term memory initialized with VectorDB for session storage.")
 
-    def retrieve(self, key=None, k=1, **kwargs):
+    def store(self, session_embedding, raw_data=None):
         """
-        Retrieve an item by key or return the first `k` items.
-        """
-        if key is not None:
-            return self.storage.get(key)
-        return list(self.storage.values())[:k]
+        Store a session embedding and its corresponding raw session data.
 
-    def delete(self, key):
+        :param session_embedding: The aggregated embedding representing the session.
+        :param raw_data: The raw session data (e.g., list of queries and answers).
         """
-        Delete an item by key.
+        if not raw_data:
+            raise ValueError("Session data must be provided for long-term memory storage.")
+
+        # Save the raw session data and get its ID
+        raw_id = self.raw_data_storage.add_text_as_rawdata(str(raw_data))
+
+        # Generate a unique key for the session embedding
+        session_key = _generate_embedding_key(session_embedding)
+
+        # Insert the session embedding into VectorDB
+        self.db.insert_tensor(session_embedding.clone())
+
+        # Map the session key to the raw session ID
+        self.session_to_raw_map[session_key] = raw_id
+
+        self.logger.info(f"Stored session with Raw ID: {raw_id}")
+        return raw_id
+
+    def retrieve(self, query_embedding, k=1, **kwargs):
         """
-        if key in self.storage:
-            del self.storage[key]
-            self.logger.info(f"Deleted item with key: {key}")
-        else:
-            self.logger.warning(f"Key '{key}' not found.")
+        Retrieve sessions most similar to the given query embedding.
+
+        :param query_embedding: The embedding of the query.
+        :param k: Number of similar sessions to retrieve.
+        :return: A list of raw session data.
+        """
+        try:
+            # Query the database for the nearest neighbors
+            embeddings = self.db.query_nearest_tensors(query_embedding.clone(), k)
+
+            # Retrieve the raw session data for the similar embeddings
+            results = []
+            for embedding in embeddings:
+                # Generate a hash key for the embedding
+                session_key = _generate_embedding_key(embedding)
+
+                # Retrieve the raw ID using the hash key
+                raw_id = self.session_to_raw_map.get(session_key)
+
+                if raw_id is not None:
+                    # Retrieve raw session data file path
+                    raw_data_path = self.raw_data_storage.get_rawdata(raw_id)
+                    if raw_data_path:
+                        try:
+                            with open(raw_data_path, 'r') as file:
+                                raw_data = file.read()
+                            results.append(raw_data)
+                            self.logger.debug(f"Retrieved session: {raw_data}.")
+                        except Exception as e:
+                            self.logger.error(f"Error reading session data file {raw_data_path}: {str(e)}")
+                            results.append(None)  # Handle file read error
+                    else:
+                        results.append(None)  # Handle missing file path
+                else:
+                    results.append(None)  # Handle missing raw ID
+
+            self.logger.info(f"Retrieved {len(results)} similar sessions from long-term memory.")
+            return results
+        except Exception as e:
+            self.logger.error(f"Error retrieving similar sessions: {str(e)}")
+            raise RuntimeError(f"Failed to retrieve similar sessions: {str(e)}")
+
+    def delete_session(self, session_embedding):
+        """
+        Delete a session and its associated embedding.
+
+        :param session_data: The raw session data to delete.
+        """
+        try:
+            # Generate a session key
+            session_key = _generate_embedding_key(session_embedding)
+
+            # Remove the embedding and raw data
+            raw_id = self.session_to_raw_map.pop(session_key, None)
+            if raw_id:
+                self.raw_data_storage.delete_rawdata(raw_id)
+                self.logger.info(f"Deleted session raw data with ID: {raw_id}")
+            else:
+                self.logger.warning(f"Session key not found for deletion: {session_key}")
+        except Exception as e:
+            self.logger.error(f"Error deleting session: {str(e)}")
+            raise RuntimeError(f"Failed to delete session: {str(e)}")
 
     def clean(self):
         """
-        Clear all items in memory.
+        Clear all session data and embeddings from long-term memory.
         """
-        self.storage.clear()
-        self.logger.info("Memory cleared.")
+        self.raw_data_storage.delete_all_data()
+        self.session_to_raw_map.clear()
+        self.logger.info("Cleared all sessions from long-term memory.")
