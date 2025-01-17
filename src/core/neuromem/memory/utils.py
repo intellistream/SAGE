@@ -5,8 +5,9 @@ from src.core.neuromem.memory.dynamic_contextual_memory import DynamicContextual
 from src.core.neuromem.memory.long_term_memory import LongTermMemory
 from src.core.neuromem.memory.short_term_memory import ShortTermMemory
 from src.utils.file_path import TEST_FILE
+from src.utils.file_path import CORPUS_FILE
 from src.utils.text_processing import process_text_to_embedding
-
+from src.utils.external_corpus import Corpus
 
 def preload_short_term_memory(memory, file_path):
     """
@@ -39,18 +40,30 @@ def preload_dynamic_contextual_memory(memory, file_path):
     logging.info(f"Preloading data into dynamic-external memory from {file_path}...")
 
     try:
-        with open(file_path, "r") as file:
-            for line in file:
-                line = line.strip()
-                if line:  # Ensure the line is not empty
-                    # Process the text into an embedding
-                    embedding = process_text_to_embedding(line)
-
-                    # Store embedding in memory
-                    memory.store(embedding, line)
-                    logging.info(f"Preloaded text: {line}")
-
+        corpus = Corpus(file_path)
+        # Currently only the first five corpora are input for testing
+        # for i in range(corpus.get_len()):
+        for i in range(5):
+            text = corpus.get_item_text(i)
+            embedding = process_text_to_embedding(text)
+            corpus.set_db_id(i, memory.store(embedding, text))
+            logging.info(f"Preloaded text: {text}")
         logging.info("Preloading completed successfully.")
+
+        # # Former test_corpus
+        # with open(file_path, "r") as file:
+        #     for line in file:
+        #         line = line.strip()
+        #         if line:  # Ensure the line is not empty
+        #             # Process the text into an embedding
+        #             embedding = process_text_to_embedding(line)
+        #
+        #             # Store embedding in memory
+        #             memory.store(embedding, line)
+        #             logging.info(f"Preloaded text: {line}")
+        #
+        # logging.info("Preloading completed successfully.")
+
     except Exception as e:
         logging.error(f"Error during preloading: {str(e)}")
         raise RuntimeError(f"Failed to preload long-term memory: {str(e)}")
@@ -79,7 +92,7 @@ def initialize_memory_manager():
     )
 
     # Preload data into long-term memory
-    preload_dynamic_contextual_memory(dynamic_contextual_memory, TEST_FILE)
+    preload_dynamic_contextual_memory(dynamic_contextual_memory, CORPUS_FILE)
 
     # Return memory layers
     memory_layers = {

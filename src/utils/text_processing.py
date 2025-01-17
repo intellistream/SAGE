@@ -15,6 +15,15 @@ def process_text_to_embedding(text, max_length=512, stride=256):
     text_preprocessor = TextPreprocessor()
 
     try:
+        """
+            待修复，最大仅支持512个token不太够用!！
+        """
+        # Tokenize the text to check its length
+        tokens = text_preprocessor.tokenizer.tokenize(text)
+        if len(tokens) > max_length:
+            logger.warning(f"Input text length ({len(tokens)}) exceeds model's max length ({max_length}). Truncating text.")
+            text = text_preprocessor.tokenizer.decode(text_preprocessor.tokenizer.encode(text, max_length=max_length, truncation=True))
+
         # Tokenize with truncation, stride, and overlapping chunks
         tokens = text_preprocessor.tokenizer(
             text,
