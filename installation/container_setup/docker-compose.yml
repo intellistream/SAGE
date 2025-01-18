@@ -1,5 +1,5 @@
 services:
-  sage:
+  sage_lijiaqi:
     image: intellistream/sage:devel-ubuntu22.04
     environment:
       - CUDACXX=/usr/local/cuda/bin/nvcc
@@ -11,5 +11,5 @@ services:
     stdin_open: true
     tty: true
     ports:
-      - "2222:22"  # Expose SSH port for remote connection
-    runtime: nvidia # Use the NVIDIA runtime
+      - "2223:22"  # Expose SSH port for remote connection
+    # runtime: nvidia # Use the NVIDIA runtime

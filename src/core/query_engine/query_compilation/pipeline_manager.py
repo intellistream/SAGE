@@ -1,9 +1,14 @@
 from src.core.query_engine.operators.generator import Generator
 from src.core.query_engine.operators.prompter import PromptOperator
+from src.core.query_engine.operators.web_workflow.hybrid_retriever import HybridRetriever
+from src.core.query_engine.operators.kg_retriever import KGRetriever
 from src.core.query_engine.operators.retriever import Retriever
+# from src.core.query_engine.operators.reranker import BGEReranker
+from src.core.query_engine.operators.reranker import ListT5Reranker
 from src.core.query_engine.operators.summarizer import Summarizer
 from src.core.query_engine.dag.one_shot_dag_node import OneShotDAGNode
-from src.utils.file_path import SUMMARIZATION_PROMPT_TEMPLATE, QAPROMPT_TEMPLATE
+from src.core.query_engine.operators.domain_classifier import DomainClassifier
+from src.utils.file_path import SUMMARIZATION_PROMPT_TEMPLATE, QAPROMPT_TEMPLATE, QA_SELF_EVAL_PROMPT_TEMPLATE, QA_DOMAIN_CLASSIFICATION_TEMPLATE
 
 
 class PipelineManager:
@@ -57,7 +62,12 @@ class PipelineManager:
         retriever_node = OneShotDAGNode(
             name="Retriever",
             operator=Retriever(self.memory_layers.get("long_term")),
-            config={"k": 5}  # Retrieve top-5 results
+            config={"k": 10}  # Retrieve top-5 results
+        )
+        reranker_node = OneShotDAGNode(
+            name="Reranker",
+            operator=ListT5Reranker(),
+            config={"top_k": 5}  # Example configuration for re-ranking
         )
         prompt_node = OneShotDAGNode(
             name="PromptGenerator",
@@ -66,14 +76,54 @@ class PipelineManager:
         generator_node = OneShotDAGNode(
             name="Generator",
             operator=Generator(),
-            config={"max_length": 50}  # Example configuration for generation
+            config={"max_length": 50, }  
         )
 
         dag.add_node(retriever_node)
+        dag.add_node(reranker_node)
         dag.add_node(prompt_node)
         dag.add_node(generator_node)
 
         # Define edges
         dag.add_edge(spout_node, retriever_node)
+        dag.add_edge(retriever_node, reranker_node)
+        dag.add_edge(reranker_node, prompt_node)
+        dag.add_edge(prompt_node, generator_node)
+
+    def add_question_answering_pipeline_kg(self, dag, spout_node):
+        """
+        Add nodes and edges for a question-answering pipeline with KG.
+        :param dag: The DAG instance to modify.
+        :param spout_node: The Spout node to connect the pipeline to.
+        """
+        domain_classifier_node = OneShotDAGNode(
+            name="DomainClassifier",
+            operator=DomainClassifier(prompt_template=QA_DOMAIN_CLASSIFICATION_TEMPLATE, model_name="meta-llama/Meta-Llama-3-8B-Instruct")
+        )
+        retriever_node = OneShotDAGNode(
+            name="Retriever",
+            operator=KGRetriever(), 
+        )
+        prompt_node = OneShotDAGNode(
+            name="PromptGenerator",
+            operator=PromptOperator(prompt_template=QA_SELF_EVAL_PROMPT_TEMPLATE),
+        )
+        generator_node = OneShotDAGNode(
+            name="Generator",
+            operator=Generator(),
+            config={
+                "max_length": 50,
+                "memory_layers": self.memory_layers
+            }  
+        )
+
+        dag.add_node(domain_classifier_node)
+        dag.add_node(retriever_node)
+        dag.add_node(prompt_node)   
+        dag.add_node(generator_node)
+
+        # Define edges
+        dag.add_edge(spout_node, domain_classifier_node)
+        dag.add_edge(domain_classifier_node, retriever_node)
         dag.add_edge(retriever_node, prompt_node)
         dag.add_edge(prompt_node, generator_node)

@@ -1,15 +1,16 @@
 import logging
 import torch
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import json
+from transformers import AutoTokenizer, LlamaForCausalLM
 from src.core.query_engine.operators.base_operator import BaseOperator
-
+from src.core.query_engine.operators.web_workflow.workflow import WebWorkFlow
 
 class Generator(BaseOperator):
     """
     Operator for generating natural language responses using Hugging Face's Transformers.
     """
 
-    def __init__(self, model_name="google/flan-t5-small", device=None, seed=42):
+    def __init__(self, model_name="meta-llama/Meta-Llama-3-8B-Instruct", device=None, seed=42):
         """
         Initialize the generator with a specified model.
         :param model_name: The Hugging Face model to use for generation.
@@ -30,16 +31,8 @@ class Generator(BaseOperator):
 
         # Load tokenizer and model
         self.logger.info(f"Loading model and tokenizer for {model_name}...")
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-
-        # Ensure padding token is set
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-
-        self.model = AutoModelForSeq2SeqLM.from_pretrained(
-            model_name, trust_remote_code=True
-        ).to(self.device)
-
+        self.llm = LlamaForCausalLM.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, legacy=False)
         self.logger.info("Model and tokenizer loaded successfully.")
 
     def execute(self, input_data, **kwargs):
@@ -51,56 +44,60 @@ class Generator(BaseOperator):
         """
         try:
             # Log the received input
-            self.logger.info(f"Generating response for input data:\n{input_data}")
+            prompt = input_data[0]
+            self.logger.info(f"Generating response for input data:\n{prompt}")
 
-            # Tokenize input_data
-            inputs = self.tokenizer(
-                input_data, return_tensors="pt", padding=True, truncation=True
-            ).to(self.device)
-
-            # Default generation parameters
-            max_new_tokens = kwargs.get("max_new_tokens", 100)
-            num_beams = kwargs.get("num_beams", 4)  # Use beam search for better quality
-            do_sample = kwargs.get("do_sample", False)  # Disable sampling for consistency
-            temperature = kwargs.get("temperature", 1.0)  # Default temperature
-            top_p = kwargs.get("top_p", None)  # Disable top-p sampling by default
-
-            # Generate output
-            outputs = self.model.generate(
-                input_ids=inputs["input_ids"],
-                attention_mask=inputs["attention_mask"],
-                max_new_tokens=max_new_tokens,
-                num_beams=num_beams,
-                do_sample=do_sample,
-                temperature=temperature,
-                top_p=top_p,
-                pad_token_id=self.tokenizer.pad_token_id,
-                num_return_sequences=1,  # Single output sequence
+            inputs = self.tokenizer(prompt, return_tensors="pt")
+            outputs = self.llm.generate(
+                **inputs,
+                max_new_tokens=50,  # Maximum number of tokens to generate per output sequence.
+                do_sample=True,
+                top_p=0.9,  # Float that controls the cumulative probability of the top tokens to consider.
+                temperature=0.1,  # Randomness of the sampling
+                num_return_sequences=1  # Number of output sequences to return for each prompt.
             )
+            response_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            # print(f"Generated response: {response_text}")
 
-            # Decode the response
-            response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            self.logger.info(f"Decoded output: {response}")
-
-            # Extract the actual answer from the generated output
-            answer = self._extract_answer(response)
-            self.logger.info(f"Extracted answer: {answer}")
-
-            return answer
-
+            entities = self._extract_entities(response_text)
+            entity = entities[0]
+            self.logger.info(f"Generated response from KG workflow: {entity}")
+ 
+            answer = entity["answer"]
+            confidence = entity["confidence"]
+            if answer == "I don't know" or confidence != "high":
+                # activate Web Workflow
+                self.logger.info("Activate Web Workflow:")
+                memory = kwargs.get("memory_layers")
+                webflow = WebWorkFlow()
+                webflow.execute(memory)
+            else:
+                self.logger.info({"Generated answer from KG Workflow:" + "answer": answer, "confidence": confidence})
+               
         except Exception as e:
             self.logger.error(f"Error during response generation: {str(e)}")
             raise RuntimeError(f"Response generation failed: {str(e)}")
-
-    def _extract_answer(self, generated_output):
+        
+    def _extract_entities(self, generated_output, decoder=json.JSONDecoder()):
         """
-        Extract the answer from the generated output.
+        Extract the JSON data from the generated output.
         :param generated_output: The full text generated by the model.
-        :return: The extracted answer or the full output if extraction fails.
+        :return: A list of extracted JSON objects or the full output if extraction fails.
         """
-        # Extract the answer portion
-        if "Answer:" in generated_output:
-            after_answer = generated_output.split("Answer:")[1].strip()
-            # Handle cases where additional formatting is needed
-            return after_answer.split("\n")[0].strip()  # Take only the first line after "Answer:"
-        return generated_output.strip()
+        # Extract the text after "assistant"
+        if "assistant" in generated_output:
+            text = generated_output.split("assistant")[1].strip()
+            
+        pos = 0
+        results = []
+        while True:
+            match = text.find("{", pos)
+            if match == -1:
+                break
+            try:
+                result, index = decoder.raw_decode(text[match:])
+                results.append(result)
+                pos = match + index
+            except ValueError:
+                pos = match + 1
+        return results

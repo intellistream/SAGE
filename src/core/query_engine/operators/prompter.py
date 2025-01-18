@@ -1,23 +1,24 @@
 import logging
 from src.core.query_engine.operators.base_operator import BaseOperator
 from src.core.prompts.utils import generate_prompt
+from transformers import AutoTokenizer
 
+MAX_CONTEXT_REFERENCES_LENGTH = 4000
 
 class PromptOperator(BaseOperator):
     """
     Operator for generating prompts based on input data and context.
     """
 
-    def __init__(self, prompt_template, format_keys=None):
+    def __init__(self, prompt_template, model_name="meta-llama/Meta-Llama-3-8B-Instruct"):
         """
         Initialize the PromptOperator.
         :param prompt_template: Path to the prompt template.
-        :param format_keys: List of keys expected in the input dictionary.
-                            Example: ["question", "context", "summary_length"]
+        :param model_name: The Hugging Face model to use for generation.
         """
         super().__init__()
         self.prompt_template = prompt_template
-        self.format_keys = format_keys or []  # Default to an empty list if not provided
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def execute(self, input_data, **kwargs):
@@ -29,22 +30,44 @@ class PromptOperator(BaseOperator):
         """
         try:
             # Convert input_data to a dictionary if needed
-            if not isinstance(input_data, dict):
-                if self.format_keys and isinstance(input_data, (tuple, list)):
-                    input_data = dict(zip(self.format_keys, input_data))
-                else:
-                    raise ValueError(
-                        "input_data must be a dictionary or match the structure defined in format_keys."
-                    )
+            query, query_time, retrieval_results = input_data[0]
 
-            # Log the input data for debugging
-            self.logger.debug(f"Generating prompt with input data: {input_data}")
+            kg_results = ""
+            for result in retrieval_results:
+                kg_results += f"- {result.strip()}\n" 
 
-            # Generate the prompt
-            prompt = generate_prompt(self.prompt_template, **input_data)
+            formatted_prompts = []
+            references = ""
+
+            with open(self.prompt_template, "r") as f:
+                system_prompt = f.read()
+            
+            # Limit the length of references to fit the model's input size.
+            kg_references = kg_results[: MAX_CONTEXT_REFERENCES_LENGTH]
+            references = "### References\n" + \
+                "# Knowledge Graph\n" + \
+                kg_references
+            
+            user_message = ""
+            user_message += f"{references}\n------\n\n"
+            user_message 
+            user_message += f"Using only the references listed above, answer the following question: \n"
+            user_message += f"Current Time: {query_time}\n"
+            user_message += f"Question: {query}\n"
+
+            formatted_prompts.append(
+                self.tokenizer.apply_chat_template(
+                    [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_message},
+                    ],
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+            )
 
             # Emit the generated prompt
-            self.emit(prompt)
+            self.emit(formatted_prompts)
             self.logger.debug("Prompt generated successfully.")
         except Exception as e:
             self.logger.error(f"Error during prompt generation: {str(e)}")

@@ -1,0 +1,10 @@
+You are given a Query and Query Time. Do the following:
+
+1. Determine the domain the query is about. The domain should be one of the following: "finance", "sports", "music", "movie". If the query does not clearly belong to any of these domains, or if the model's confidence in the domain classification is less than 90%, use "open" as the domain.
+2. Use "domain" as the key in the result json.
+
+For example, if the query is about a movie and the model is 95% confident, the result should be:
+{"domain": "movie"}
+
+If the query is about a topic that does not fit into the specified domains, or if the model is only 85% confident, the result should be:
+{"domain": "open"}

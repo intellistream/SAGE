@@ -9,14 +9,14 @@ class KVCacheMemory(BaseMemory):
 
     def __init__(self):
         super().__init__()
-        self.store = {}
+        self._store = {}
 
     def store(self, item, key=None):
         """
         Store an item in memory with an optional key.
         """
         key = key or len(self.store)  # Auto-generate key if not provided
-        self.store[key] = item
+        self._store[key] = item
         self.logger.info(f"Stored item with key: {key}")
 
     def retrieve(self, key, k=1, **kwargs):
@@ -24,8 +24,8 @@ class KVCacheMemory(BaseMemory):
         Retrieve an item by key or return the first `k` items.
         """
         if key is not None:
-            return self.store.get(key)
-        return list(self.store.values())[:k]
+            return self._store.get(key)
+        return list(self._store.values())[:k]
 
     def delete(self, key):
         """
@@ -41,5 +41,5 @@ class KVCacheMemory(BaseMemory):
         """
         Clear all items in memory.
         """
-        self.store.clear()
+        self._store.clear()
         self.logger.info("Memory cleared.")

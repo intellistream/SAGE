@@ -28,12 +28,13 @@ class QueryCompiler:
     def compile(self, input_text):
         """
         Compile a query or natural language input into a DAG.
-        :param input_text: User-provided query or question.
+        :param input_text: (query, query_time).
         :return: Optimized DAG and execution type.
         """
-        if input_text.upper().startswith("EXECUTE"):
+        query, query_time = input_text
+        if query.upper().startswith("EXECUTE"):
             dag, execution_type = self._compile_one_shot(input_text), "one_shot"
-        elif input_text.upper().startswith("REGISTER"):
+        elif query.upper().startswith("REGISTER"):
             dag, execution_type = self._compile_continuous(input_text), "continuous"
         else:
             dag, execution_type = self.compile_natural_query(input_text), "one_shot"
@@ -42,16 +43,16 @@ class QueryCompiler:
         optimized_dag = self.optimizer.optimize(dag)
         return optimized_dag, execution_type
 
-    def add_one_shot_spout(self, natural_query):
+    def add_one_shot_spout(self, input_text):
         """
         Initialize a DAG with a Spout node.
-        :param natural_query: The natural language query string.
+        :param input_text: (query, query_time).
         :return: Initialized DAG with a Spout node.
         """
         dag = DAG()
         spout_node = OneShotDAGNode(
             name="Spout",
-            operator=Spout(input_data=natural_query),
+            operator=Spout(input_data=input_text),
             is_spout=True
         )
         dag.add_node(spout_node)
@@ -72,17 +73,18 @@ class QueryCompiler:
         dag.add_node(spout_node)
         return dag
 
-    def compile_natural_query(self, natural_query):
+    def compile_natural_query(self, input_text):
         """
         Compile a natural language query into a DAG.
-        :param natural_query: The natural language query string.
+        :param input_text: (query, query_time).
         :return: DAG instance.
         """
+        natural_query, query_time = input_text
         # Step 1: Parse the question to understand the user's intent
         intent = self._parse_query(natural_query)
 
         # Step 2: Initialize the DAG and add the Spout node
-        dag = self.add_one_shot_spout(natural_query)
+        dag = self.add_one_shot_spout(input_text)
 
         # Step 3: Use PipelineManager to add the pipeline
         pipeline_manager = PipelineManager(self.memory_layers)
@@ -91,7 +93,8 @@ class QueryCompiler:
         if intent == "summarization":
             pipeline_manager.add_summarization_pipeline(dag, spout_node)
         elif intent == "question_answering":
-            pipeline_manager.add_question_answering_pipeline(dag, spout_node)
+            # pipeline_manager.add_question_answering_pipeline(dag, spout_node)
+            pipeline_manager.add_question_answering_pipeline_kg(dag, spout_node)
         else:
             raise ValueError(f"Unsupported query type: {intent}")
 

@@ -1,0 +1,15 @@
+services:
+  mysage:
+    image: intellistream/sage:devel-ubuntu22.04
+    environment:
+      - CUDACXX=/usr/local/cuda/bin/nvcc
+      - NVIDIA_VISIBLE_DEVICES=all  # Expose all GPUs (optional)
+    volumes:
+      - "../..:/workspace"
+    working_dir: /workspace #DO NOT CHANGE THIS!
+    entrypoint: /usr/sbin/sshd -D
+    stdin_open: true
+    tty: true
+    ports:
+      - "2222:22"  # Expose SSH port for remote connection
+    # runtime: nvidia # Use the NVIDIA runtime

@@ -1,0 +1,2379 @@
+Starting runtime script...
+Cloning CANDY repository...
+CANDY directory already exists. Checking if it's a valid repository...
+CANDY directory exists but is not a valid Git repository. Removing it.
+Repository URL: https://ljqcore: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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@github.com/intellistream/CANDY.git
+Cloning into 'CANDY'...
+remote: Support for password authentication was removed on August 13, 2021.
+remote: Please see https://docs.github.com/get-started/getting-started-with-git/about-remote-repositories#cloning-with-https-urls for information on currently recommended modes of authentication.
+fatal: Authentication failed for 'https://github.com/intellistream/CANDY.git/'
+Error: Failed to clone repository. Removing partial/incomplete directory.
+Starting runtime script...
+Cloning CANDY repository...
+Repository URL: https://Yun-Chai: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@github.com/intellistream/CANDY.git
+Cloning into 'CANDY'...
+CANDY repository cloned successfully.
+Building and installing CANDY...
+Building CANDY project in /workspace/deps/CANDY
+Running CMake configuration...
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found valid CUDA compiler: /usr/local/cuda-12.5/bin/nvcc
+-- CUDA version: 12.5
+-- Finally using CUDA compiler at /usr/local/cuda-12.5/bin/nvcc
+-- PyTorch CMake path from Python: /usr/local/lib/python3.11/dist-packages/torch/share/cmake
+-- Updated CMAKE_PREFIX_PATH: ;/usr/local/lib/python3.11/dist-packages/torch/share/cmake
+-- Found CUDA: /usr/local/cuda (found version "12.5") 
+-- The CUDA compiler identification is NVIDIA 12.5.82
+-- Detecting CUDA compiler ABI info
+-- Detecting CUDA compiler ABI info - done
+-- Check for working CUDA compiler: /usr/local/cuda-12.5/bin/nvcc - skipped
+-- Detecting CUDA compile features
+-- Detecting CUDA compile features - done
+-- Found CUDAToolkit: /usr/local/cuda-12.5/include (found version "12.5.82") 
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Caffe2: CUDA detected: 12.5
+-- Caffe2: CUDA nvcc is: /usr/local/cuda/bin/nvcc
+-- Caffe2: CUDA toolkit directory: /usr/local/cuda
+-- Caffe2: Header version is: 12.5
+-- Found Python: /usr/bin/python3.11 (found version "3.11.11") found components: Interpreter 
+CMake Warning at /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/public/cuda.cmake:140 (message):
+  Failed to compute shorthash for libnvrtc.so
+Call Stack (most recent call first):
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake:86 (include)
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:68 (find_package)
+  CMakeLists.txt:12 (find_package)
+
+
+CMake Warning (dev) at /usr/local/share/cmake-3.27/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+  The package name passed to `find_package_handle_standard_args` (nvtx3) does
+  not match the name of the calling package (Caffe2).  This can lead to
+  problems in calling code that expects `find_package` result variables
+  (e.g., `_FOUND`) to follow a certain pattern.
+Call Stack (most recent call first):
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/public/cuda.cmake:174 (find_package_handle_standard_args)
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake:86 (include)
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:68 (find_package)
+  CMakeLists.txt:12 (find_package)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Could NOT find nvtx3 (missing: nvtx3_dir) 
+CMake Warning at /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/public/cuda.cmake:180 (message):
+  Cannot find NVTX3, find old NVTX instead
+Call Stack (most recent call first):
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake:86 (include)
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:68 (find_package)
+  CMakeLists.txt:12 (find_package)
+
+
+-- USE_CUDNN is set to 0. Compiling without cuDNN support
+-- USE_CUSPARSELT is set to 0. Compiling without cuSPARSELt support
+-- USE_CUDSS is set to 0. Compiling without cuDSS support
+-- USE_CUFILE is set to 0. Compiling without cuFile support
+-- Automatic GPU detection failed. Building for common architectures.
+-- Autodetected CUDA architecture(s): 5.0;8.0;8.6;8.9;9.0;9.0a
+-- Added CUDA NVCC flags for: -gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86;-gencode;arch=compute_89,code=sm_89;-gencode;arch=compute_90,code=sm_90;-gencode;arch=compute_90a,code=sm_90a
+CMake Warning at /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:22 (message):
+  static library kineto_LIBRARY-NOTFOUND not found.
+Call Stack (most recent call first):
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:120 (append_torchlib_if_found)
+  CMakeLists.txt:12 (find_package)
+
+
+-- Found Torch: /usr/local/lib/python3.11/dist-packages/torch/lib/libtorch.so  
+-- g++ version 11.4.0 found
+-- Compilation flags set
+-- clang-format not found or clang-format version is not 11, 14 or 18
+-- Found Python: /usr/bin/python3.11 (found version "3.11.11") found components: Interpreter Development Development.Module Development.Embed 
+-- CUDA enabled: ON
+-- Performing Test HAVE_FLAG__ffile_prefix_map__workspace_deps_CANDY_third_party_Catch2__
+-- Performing Test HAVE_FLAG__ffile_prefix_map__workspace_deps_CANDY_third_party_Catch2__ - Success
+-- pybind11 v2.13.6 
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.11.11", minimum required is "3.7") 
+-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.11.so
+-- Performing Test HAS_FLTO
+-- Performing Test HAS_FLTO - Success
+-- CANDY_SOURCE_FILES: /workspace/deps/CANDY/src/Utils/Param.cpp;/workspace/deps/CANDY/src/Utils/error_handling.cpp;/workspace/deps/CANDY/src/Utils/file_loader.cpp;/workspace/deps/CANDY/src/Utils/TensorOP.cpp;/workspace/deps/CANDY/src/Utils/IntelliLog.cpp;/workspace/deps/CANDY/src/Utils/IntelliTimeStampGenerator.cpp;/workspace/deps/CANDY/src/Utils/timing.cpp;/workspace/deps/CANDY/src/Utils/thread_pool.cpp;/workspace/deps/CANDY/src/Utils/UtilityFunction.cpp;/workspace/deps/CANDY/src/Transaction/deadlock_prevention.cpp;/workspace/deps/CANDY/src/Performance/benchmark.cpp;/workspace/deps/CANDY/src/Performance/gpu_benchmark.cpp;/workspace/deps/CANDY/src/Performance/monitoring.cpp;/workspace/deps/CANDY/src/Parallelism/locks.cpp;/workspace/deps/CANDY/src/Parallelism/task_scheduler.cpp;/workspace/deps/CANDY/src/Optimization/drl_optimization.cpp;/workspace/deps/CANDY/src/Optimization/ml_models.cpp;/workspace/deps/CANDY/src/Optimization/model_training.cpp;/workspace/deps/CANDY/src/IO/backup_restore.cpp;/workspace/deps/CANDY/src/IO/data_loader.cpp;/workspace/deps/CANDY/src/IO/s3_storage.cpp;/workspace/deps/CANDY/src/IO/wal.cpp;/workspace/deps/CANDY/src/GPU/gpu_kernels.cu;/workspace/deps/CANDY/src/GPU/gpu_memory.cpp;/workspace/deps/CANDY/src/GPU/gpu_scheduler.cpp;/workspace/deps/CANDY/src/DataLoader/AbstractDataLoader.cpp;/workspace/deps/CANDY/src/DataLoader/DataLoaderTable.cpp;/workspace/deps/CANDY/src/DataLoader/RandomDataLoader.cpp;/workspace/deps/CANDY/src/DataLoader/FVECSDataLoader.cpp;/workspace/deps/CANDY/src/Core/partitioning.cpp;/workspace/deps/CANDY/src/Core/transaction.cpp;/workspace/deps/CANDY/src/Core/vector_db.cpp;/workspace/deps/CANDY/src/Core/versioning.cpp;/workspace/deps/CANDY/src/API/StreamAPI.cpp;/workspace/deps/CANDY/src/Algorithms/SONG/SONG.cu;/workspace/deps/CANDY/src/Algorithms/ANNSBase.cpp;/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp;/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/FlatGPUIndex.cpp;/workspace/deps/CANDY/src/Algorithms/Vamana/vamana.cpp;/workspace/deps/CANDY/src/Algorithms/Vamana/vamana_base.cpp;/workspace/deps/CANDY/src/Algorithms/LSH/LSHSearch.cpp;/workspace/deps/CANDY/src/Algorithms/KNN/KNNSearch.cpp;/workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp;/workspace/deps/CANDY/src/Algorithms/HNSW/hnsw_base.cpp;/workspace/deps/CANDY/src/Algorithms/HNSW/hnsw.cpp
+-- Linked libs: torch;torch_library;/usr/local/lib/python3.11/dist-packages/torch/lib/libc10.so;/usr/local/cuda/lib64/libnvrtc.so;torch::nvtoolsext;/usr/local/lib/python3.11/dist-packages/torch/lib/libc10_cuda.so;cublas;cudart
+-- PyTorch library path: /usr/local/lib/python3.11/dist-packages/torch/lib
+-- Enable testing: ON
+-- PyTorch library path: /usr/local/lib/python3.11/dist-packages/torch/lib
+-- Configuring done (15.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: /workspace/deps/CANDY/build
+Building the project...
+[  1%] Building CXX object tools/CMakeFiles/run_format.dir/run_clang_format.cpp.o
+[  1%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/Param.cpp.o
+[  2%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/error_handling.cpp.o
+[  3%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/catch_chronometer.cpp.o
+[  4%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_analyse.cpp.o
+[  4%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/file_loader.cpp.o
+[  5%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/TensorOP.cpp.o
+[  5%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_benchmark_function.cpp.o
+[  6%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_run_for_at_least.cpp.o
+[  6%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/IntelliLog.cpp.o
+[  6%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_stats.cpp.o
+[  7%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/IntelliTimeStampGenerator.cpp.o
+[  8%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generator_exception.cpp.o
+[  8%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generators.cpp.o
+[  9%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generators_random.cpp.o
+[ 10%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_automake.cpp.o
+[ 11%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/timing.cpp.o
+[ 11%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/thread_pool.cpp.o
+[ 11%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_common_base.cpp.o
+In file included from /workspace/deps/CANDY/src/Utils/thread_pool.cpp:8:
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp: In constructor 'ThreadPool::thread_worker::thread_worker(ThreadPool*, int)':
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:32:17: warning: 'ThreadPool::thread_worker::m_pool' will be initialized after [-Wreorder]
+   32 |     ThreadPool* m_pool;
+      |                 ^~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:31:9: warning:   'int ThreadPool::thread_worker::m_id' [-Wreorder]
+   31 |     int m_id;
+      |         ^~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:35:5: warning:   when initialized here [-Wreorder]
+   35 |     thread_worker(ThreadPool* pool, const int id) : m_pool(pool), m_id(id) {}
+      |     ^~~~~~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp: In constructor 'ThreadPool::ThreadPool(int)':
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:25:28: warning: 'ThreadPool::m_threads' will be initialized after [-Wreorder]
+   25 |   std::vector<std::thread> m_threads;
+      |                            ^~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:23:8: warning:   'bool ThreadPool::m_shutdown' [-Wreorder]
+   23 |   bool m_shutdown;
+      |        ^~~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:41:3: warning:   when initialized here [-Wreorder]
+   41 |   ThreadPool(const int n_threads)
+      |   ^~~~~~~~~~
+[ 12%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/UtilityFunction.cpp.o
+[ 12%] Linking CXX executable run_format
+[ 13%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_compact.cpp.o
+[ 13%] Built target run_format
+[ 13%] Building CXX object CMakeFiles/CANDY.dir/src/Transaction/deadlock_prevention.cpp.o
+[ 13%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_console.cpp.o
+[ 14%] Building CXX object CMakeFiles/CANDY.dir/src/Performance/benchmark.cpp.o
+[ 14%] Building CXX object CMakeFiles/CANDY.dir/src/Performance/gpu_benchmark.cpp.o
+[ 15%] Building CXX object CMakeFiles/CANDY.dir/src/Performance/monitoring.cpp.o
+[ 16%] Building CXX object CMakeFiles/CANDY.dir/src/Parallelism/locks.cpp.o
+[ 16%] Building CXX object CMakeFiles/CANDY.dir/src/Parallelism/task_scheduler.cpp.o
+[ 17%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_cumulative_base.cpp.o
+[ 18%] Building CXX object CMakeFiles/CANDY.dir/src/Optimization/drl_optimization.cpp.o
+[ 18%] Building CXX object CMakeFiles/CANDY.dir/src/Optimization/ml_models.cpp.o
+[ 19%] Building CXX object CMakeFiles/CANDY.dir/src/Optimization/model_training.cpp.o
+[ 19%] Building CXX object CMakeFiles/CANDY.dir/src/IO/backup_restore.cpp.o
+[ 20%] Building CXX object CMakeFiles/CANDY.dir/src/IO/data_loader.cpp.o
+[ 21%] Building CXX object CMakeFiles/CANDY.dir/src/IO/s3_storage.cpp.o
+[ 21%] Building CXX object CMakeFiles/CANDY.dir/src/IO/wal.cpp.o
+[ 21%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_event_listener.cpp.o
+[ 22%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_helpers.cpp.o
+[ 23%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_json.cpp.o
+[ 23%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_junit.cpp.o
+[ 24%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_multi.cpp.o
+[ 24%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_registrars.cpp.o
+[ 25%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_sonarqube.cpp.o
+[ 26%] Building CUDA object CMakeFiles/CANDY.dir/src/GPU/gpu_kernels.cu.o
+[ 26%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_streaming_base.cpp.o
+[ 27%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_tap.cpp.o
+[ 28%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_teamcity.cpp.o
+[ 28%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_xml.cpp.o
+[ 28%] Building CXX object CMakeFiles/CANDY.dir/src/GPU/gpu_memory.cpp.o
+[ 29%] Building CXX object CMakeFiles/CANDY.dir/src/GPU/gpu_scheduler.cpp.o
+[ 30%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_capture.cpp.o
+[ 30%] Building CXX object CMakeFiles/CANDY.dir/src/DataLoader/AbstractDataLoader.cpp.o
+[ 30%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_config.cpp.o
+[ 31%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_exception.cpp.o
+[ 31%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_generatortracker.cpp.o
+[ 32%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_registry_hub.cpp.o
+[ 33%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_reporter.cpp.o
+[ 33%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_reporter_factory.cpp.o
+[ 34%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_testcase.cpp.o
+[ 35%] Building CXX object CMakeFiles/CANDY.dir/src/DataLoader/DataLoaderTable.cpp.o
+[ 35%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_approx.cpp.o
+[ 36%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_assertion_result.cpp.o
+[ 36%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_config.cpp.o
+[ 37%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_get_random_seed.cpp.o
+[ 38%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_message.cpp.o
+[ 38%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_registry_hub.cpp.o
+[ 39%] Building CXX object CMakeFiles/CANDY.dir/src/DataLoader/RandomDataLoader.cpp.o
+[ 40%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_session.cpp.o
+[ 40%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_tag_alias_autoregistrar.cpp.o
+[ 41%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_test_case_info.cpp.o
+[ 41%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_test_spec.cpp.o
+[ 42%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_timer.cpp.o
+[ 43%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_tostring.cpp.o
+[ 43%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_totals.cpp.o
+[ 44%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_translate_exception.cpp.o
+[ 44%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_version.cpp.o
+[ 45%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_assertion_handler.cpp.o
+[ 45%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_case_insensitive_comparisons.cpp.o
+[ 46%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_clara.cpp.o
+[ 47%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_commandline.cpp.o
+[ 47%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_console_colour.cpp.o
+[ 48%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_context.cpp.o
+[ 48%] Building CXX object CMakeFiles/CANDY.dir/src/DataLoader/FVECSDataLoader.cpp.o
+[ 48%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_debug_console.cpp.o
+[ 49%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_debugger.cpp.o
+[ 49%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_decomposer.cpp.o
+[ 50%] Building CXX object CMakeFiles/CANDY.dir/src/Core/partitioning.cpp.o
+[ 51%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_enforce.cpp.o
+[ 51%] Building CXX object CMakeFiles/CANDY.dir/src/Core/transaction.cpp.o
+[ 52%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_enum_values_registry.cpp.o
+[ 53%] Building CXX object CMakeFiles/CANDY.dir/src/Core/vector_db.cpp.o
+[ 53%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_errno_guard.cpp.o
+[ 54%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_exception_translator_registry.cpp.o
+[ 54%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_fatal_condition_handler.cpp.o
+[ 55%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_floating_point_helpers.cpp.o
+[ 55%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_getenv.cpp.o
+[ 56%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_istream.cpp.o
+[ 57%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_jsonwriter.cpp.o
+[ 57%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_lazy_expr.cpp.o
+[ 58%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_leak_detector.cpp.o
+[ 58%] Building CXX object CMakeFiles/CANDY.dir/src/Core/versioning.cpp.o
+[ 59%] Building CXX object CMakeFiles/CANDY.dir/src/API/StreamAPI.cpp.o
+[ 59%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_list.cpp.o
+[ 60%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_message_info.cpp.o
+[ 60%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_output_redirect.cpp.o
+[ 61%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_parse_numbers.cpp.o
+[ 62%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_polyfills.cpp.o
+[ 62%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_random_number_generator.cpp.o
+[ 63%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_random_seed_generation.cpp.o
+[ 63%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reporter_registry.cpp.o
+[ 64%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reporter_spec_parser.cpp.o
+[ 64%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reusable_string_stream.cpp.o
+[ 65%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_run_context.cpp.o
+[ 66%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_section.cpp.o
+[ 66%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_singletons.cpp.o
+[ 67%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_source_line_info.cpp.o
+[ 67%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_startup_exception_registry.cpp.o
+[ 68%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_stdstreams.cpp.o
+[ 68%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_string_manip.cpp.o
+/workspace/deps/CANDY/src/API/StreamAPI.cpp: In member function 'VectorDBStream& VectorDBStream::map_to_embedding(const std::function<at::Tensor(const std::basic_string<char>&)>&)':
+/workspace/deps/CANDY/src/API/StreamAPI.cpp:46:20: warning: unused variable 'tensor' [-Wunused-variable]
+   46 |   for (const auto& tensor : tensors) {
+      |                    ^~~~~~
+[ 69%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_stringref.cpp.o
+[ 70%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_tag_alias_registry.cpp.o
+[ 70%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_info_hasher.cpp.o
+[ 71%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_registry_impl.cpp.o
+[ 72%] Building CUDA object CMakeFiles/CANDY.dir/src/Algorithms/SONG/SONG.cu.o
+[ 72%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_tracker.cpp.o
+[ 73%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_failure_exception.cpp.o
+[ 73%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_registry.cpp.o
+[ 74%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_spec_parser.cpp.o
+[ 75%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_textflow.cpp.o
+[ 75%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/ANNSBase.cpp.o
+[ 75%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_uncaught_exceptions.cpp.o
+[ 76%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_wildcard_pattern.cpp.o
+[ 76%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_xmlwriter.cpp.o
+[ 77%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers.cpp.o
+[ 77%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_container_properties.cpp.o
+[ 78%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_exception.cpp.o
+[ 79%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp.o
+[ 80%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_floating_point.cpp.o
+[ 80%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_predicate.cpp.o
+[ 81%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_quantifiers.cpp.o
+[ 81%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_string.cpp.o
+[ 82%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_templated.cpp.o
+[ 82%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/internal/catch_matchers_impl.cpp.o
+[ 83%] Linking CXX static library libCatch2.a
+[ 83%] Built target Catch2
+[ 83%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/FlatGPUIndex/FlatGPUIndex.cpp.o
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp: In member function 'at::Tensor CANDY_ALGO::PlainMemBufferTU::getTensorInline(int64_t, int64_t)':
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:88:11: warning: unused variable 'diskOffset' [-Wunused-variable]
+   88 |   int64_t diskOffset;
+      |           ^~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp: In member function 'std::vector<long unsigned int> CANDY_ALGO::PlainMemBufferTU::getU64(int64_t, int64_t)':
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:106:11: warning: unused variable 'bufferBegin' [-Wunused-variable]
+  106 |   int64_t bufferBegin = u64Begin;
+      |           ^~~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp: In member function 'bool CANDY_ALGO::PlainMemBufferTU::reviseU64(int64_t, std::vector<long unsigned int>&)':
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:138:11: warning: unused variable 'remainSizeRu' [-Wunused-variable]
+  138 |   int64_t remainSizeRu;
+      |           ^~~~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:139:11: warning: unused variable 'diskOffset' [-Wunused-variable]
+  139 |   int64_t diskOffset;
+      |           ^~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:141:11: warning: unused variable 'bufferBegin' [-Wunused-variable]
+  141 |   int64_t bufferBegin = u64Begin;
+      |           ^~~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp: In member function 'bool CANDY_ALGO::PlainMemBufferTU::deleteU64(int64_t, int64_t)':
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:178:11: warning: variable 'diskOffset' set but not used [-Wunused-but-set-variable]
+  178 |   int64_t diskOffset;
+      |           ^~~~~~~~~~
+[ 84%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/Vamana/vamana.cpp.o
+[ 85%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2WithMain.dir/catch2/internal/catch_main.cpp.o
+[ 85%] Linking CXX static library libCatch2Main.a
+[ 85%] Built target Catch2WithMain
+[ 85%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/Vamana/vamana_base.cpp.o
+[ 86%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/LSH/LSHSearch.cpp.o
+[ 87%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/KNN/KNNSearch.cpp.o
+[ 87%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/KDTree/KDTree.cpp.o
+In file included from /workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:10,
+                 from /workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:7:
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp: In constructor 'ResultSet::ResultSet(int64_t)':
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:55:11: warning: 'ResultSet::max_size' will be initialized after [-Wreorder]
+   55 |   int64_t max_size;
+      |           ^~~~~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:54:11: warning:   'int64_t ResultSet::size_' [-Wreorder]
+   54 |   int64_t size_;
+      |           ^~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:58:3: warning:   when initialized here [-Wreorder]
+   58 |   ResultSet(int64_t max_size) : max_size(max_size), size_(0) {
+      |   ^~~~~~~~~
+In file included from /workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:7:
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp: In constructor 'CANDY_ALGO::KDTree::KDTree(size_t)':
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:25:10: warning: 'CANDY_ALGO::KDTree::vecDim' will be initialized after [-Wreorder]
+   25 |   size_t vecDim;
+      |          ^~~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:22:10: warning:   'float* CANDY_ALGO::KDTree::mean' [-Wreorder]
+   22 |   float* mean;
+      |          ^~~~
+/workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:31:1: warning:   when initialized here [-Wreorder]
+   31 | KDTree::KDTree(size_t dimensions)
+      | ^~~~~~
+In file included from /workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:7:
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:34:7: warning: 'CANDY_ALGO::KDTree::checks' will be initialized after [-Wreorder]
+   34 |   int checks;
+      |       ^~~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:24:12: warning:   'uint64_t CANDY_ALGO::KDTree::ntotal' [-Wreorder]
+   24 |   uint64_t ntotal;
+      |            ^~~~~~
+/workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:31:1: warning:   when initialized here [-Wreorder]
+   31 | KDTree::KDTree(size_t dimensions)
+      | ^~~~~~
+[ 88%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/HNSW/hnsw_base.cpp.o
+[ 88%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/HNSW/hnsw.cpp.o
+[ 89%] Building CUDA object CMakeFiles/CANDY.dir/src/Algorithms/AlgorithmTable.cpp.o
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+[ 89%] Linking CXX shared library libCANDY.so
+[ 89%] Built target CANDY
+[ 89%] Building CUDA object apps/CPlusPlus/CMakeFiles/Main.dir/Main.cpp.o
+[ 90%] Building CXX object test/CoreTests/CMakeFiles/torch_tests.dir/TorchTests.cpp.o
+[ 91%] Building CXX object test/UtilsTests/CMakeFiles/config_parser_tests.dir/config_parser_tests.cpp.o
+[ 91%] Building CXX object test/UtilsTests/CMakeFiles/thread_pool_tests.dir/thread_pool_tests.cpp.o
+In file included from /workspace/deps/CANDY/test/UtilsTests/config_parser_tests.cpp:7:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /workspace/deps/CANDY/include/Utils/IntelliLog.hpp:16,
+                 from /workspace/deps/CANDY/include/Utils/ConfigMap.hpp:11,
+                 from /workspace/deps/CANDY/test/UtilsTests/config_parser_tests.cpp:6:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+In file included from /workspace/deps/CANDY/test/UtilsTests/thread_pool_tests.cpp:6:
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp: In constructor 'ThreadPool::thread_worker::thread_worker(ThreadPool*, int)':
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:32:17: warning: 'ThreadPool::thread_worker::m_pool' will be initialized after [-Wreorder]
+   32 |     ThreadPool* m_pool;
+      |                 ^~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:31:9: warning:   'int ThreadPool::thread_worker::m_id' [-Wreorder]
+   31 |     int m_id;
+      |         ^~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:35:5: warning:   when initialized here [-Wreorder]
+   35 |     thread_worker(ThreadPool* pool, const int id) : m_pool(pool), m_id(id) {}
+      |     ^~~~~~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp: In constructor 'ThreadPool::ThreadPool(int)':
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:25:28: warning: 'ThreadPool::m_threads' will be initialized after [-Wreorder]
+   25 |   std::vector<std::thread> m_threads;
+      |                            ^~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:23:8: warning:   'bool ThreadPool::m_shutdown' [-Wreorder]
+   23 |   bool m_shutdown;
+      |        ^~~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:41:3: warning:   when initialized here [-Wreorder]
+   41 |   ThreadPool(const int n_threads)
+      |   ^~~~~~~~~~
+[ 91%] Linking CXX executable thread_pool_tests
+In file included from /workspace/deps/CANDY/test/CoreTests/TorchTests.cpp:7:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue_inl.h:26,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue.h:1581,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List_inl.h:4,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List.h:488,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef_inl.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef.h:631,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/WrapDimUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/TensorNames.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/NamedTensorUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/variable.h:11,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/all.h:7,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/torch.h:3,
+                 from /workspace/deps/CANDY/include/Algorithms/ANNSBase.hpp:10,
+                 from /workspace/deps/CANDY/include/Core/vector_db.hpp:13,
+                 from /workspace/deps/CANDY/test/CoreTests/TorchTests.cpp:6:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+[ 92%] Linking CXX executable config_parser_tests
+[ 92%] Built target thread_pool_tests
+[ 92%] Building CXX object test/UtilsTests/CMakeFiles/file_loader_tests.dir/file_loader_tests.cpp.o
+[ 92%] Built target config_parser_tests
+[ 93%] Building CXX object test/AlgorithmsTests/CMakeFiles/KdTreeTests.dir/KdTreeTests.cpp.o
+[ 94%] Linking CXX executable file_loader_tests
+In file included from /workspace/deps/CANDY/test/AlgorithmsTests/KdTreeTests.cpp:8:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue_inl.h:26,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue.h:1581,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List_inl.h:4,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List.h:488,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef_inl.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef.h:631,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/WrapDimUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/TensorNames.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/NamedTensorUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/variable.h:11,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/all.h:7,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/torch.h:3,
+                 from /workspace/deps/CANDY/test/AlgorithmsTests/KdTreeTests.cpp:7:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+[ 94%] Built target file_loader_tests
+[ 95%] Building CXX object test/AlgorithmsTests/CMakeFiles/HNSWTests.dir/HNSWTests.cpp.o
+In file included from /workspace/deps/CANDY/test/AlgorithmsTests/HNSWTests.cpp:10:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue_inl.h:26,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue.h:1581,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List_inl.h:4,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List.h:488,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef_inl.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef.h:631,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/WrapDimUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/TensorNames.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/NamedTensorUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/variable.h:11,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/all.h:7,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/torch.h:3,
+                 from /workspace/deps/CANDY/test/AlgorithmsTests/HNSWTests.cpp:7:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+In file included from /workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:10,
+                 from /workspace/deps/CANDY/test/AlgorithmsTests/KdTreeTests.cpp:12:
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp: In constructor 'ResultSet::ResultSet(int64_t)':
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:55:11: warning: 'ResultSet::max_size' will be initialized after [-Wreorder]
+   55 |   int64_t max_size;
+      |           ^~~~~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:54:11: warning:   'int64_t ResultSet::size_' [-Wreorder]
+   54 |   int64_t size_;
+      |           ^~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:58:3: warning:   when initialized here [-Wreorder]
+   58 |   ResultSet(int64_t max_size) : max_size(max_size), size_(0) {
+      |   ^~~~~~~~~
+[ 95%] Linking CXX executable KdTreeTests
+[ 96%] Linking CXX executable torch_tests
+[ 96%] Built target KdTreeTests
+[ 97%] Building CXX object test/AlgorithmsTests/CMakeFiles/LSHTests.dir/LSHTests.cpp.o
+[ 97%] Built target torch_tests
+[ 98%] Building CXX object python_bindings/pybind11_bindings/CMakeFiles/pycandy.dir/vectordb_pybind.cpp.o
+In file included from /workspace/deps/CANDY/test/AlgorithmsTests/LSHTests.cpp:9:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue_inl.h:26,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue.h:1581,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List_inl.h:4,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List.h:488,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef_inl.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef.h:631,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/WrapDimUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/TensorNames.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/NamedTensorUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/variable.h:11,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/all.h:7,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/torch.h:3,
+                 from /workspace/deps/CANDY/test/AlgorithmsTests/LSHTests.cpp:7:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+[ 98%] Linking CXX executable HNSWTests
+[ 98%] Built target HNSWTests
+[ 99%] Linking CXX executable LSHTests
+[ 99%] Built target LSHTests
+[ 99%] Linking CXX shared module pycandy.so
+Installing pycandy shared library at /root/.local/lib/python3.11/site-packages
+[ 99%] Built target pycandy
+Starting runtime script...
+Cloning CANDY repository...
+CANDY directory already exists. Checking if it's a valid repository...
+CANDY repository is valid. Skipping clone.
+/workspace/installation/env_setup/install_dep.sh: line 40: return: can only `return' from a function or sourced script
+[100%] Linking CUDA executable Main
+[100%] Built target Main
+Installing the project...
+[ 26%] Built target CANDY
+[ 27%] Built target run_format
+[ 88%] Built target Catch2
+[ 89%] Built target Catch2WithMain
+[ 90%] Built target Main
+[ 92%] Built target torch_tests
+[ 93%] Built target thread_pool_tests
+[ 94%] Built target config_parser_tests
+[ 95%] Built target file_loader_tests
+[ 96%] Built target KdTreeTests
+[ 97%] Built target HNSWTests
+[ 99%] Built target LSHTests
+[100%] Built target pycandy
+Install the project...
+-- Install configuration: "Release"
+-- Installing: /root/.local/lib/python3.11/site-packages/pycandy.so
+-- Set runtime path of "/root/.local/lib/python3.11/site-packages/pycandy.so" to "$ORIGIN:/usr/local/lib/python3.11/dist-packages/torch/lib"
+-- Installing: /root/.local/lib/python3.11/site-packages/libCANDY.so
+-- Set runtime path of "/root/.local/lib/python3.11/site-packages/libCANDY.so" to "$ORIGIN:/usr/local/lib/python3.11/dist-packages/torch/lib"
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Transaction
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Transaction/deadlock_prevention.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Parallelism
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Parallelism/locks.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Parallelism/task_scheduler.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/HNSW
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/HNSW/hnsw_base.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/HNSW/hnsw.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/AbstractANNSAlgorithm.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Vamana
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Vamana/vamana.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Vamana/vamana_base.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/LSH
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/LSH/LSHSearch.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/AlgorithmTable.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KDTree
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KDTree/KDTree.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Utils
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Utils/metric_type.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/ANNSBase.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KNN
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KNN/KNNSearch.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/FlatGPUIndex
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/FlatGPUIndex/FlatGPUIndex.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/FlatGPUIndex/disk_mem_buffer.h
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/SONG.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/data.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/cuckoofilter.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/warp_astar_accelerator.cuh
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/blocked_bloomfilter.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/fixhash.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/smmh2.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/config.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/bin_heap.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/kernelgraph.cuh
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/bloomfilter.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/ConfigMap.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/Param.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/TensorOP.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/file_loader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/IntelliLog.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/thread_pool.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/Computation.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/timing.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/safe_queue.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/TimeStampGenerator.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/error_handling.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/MicroDataSet.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/UtilityFunctions.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Performance
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Performance/monitoring.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Performance/gpu_benchmark.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Performance/benchmark.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/wal.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/data_loader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/s3_storage.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/backup_restore.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Optimization
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Optimization/drl_optimization.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Optimization/ml_models.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Optimization/model_training.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/API
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/API/StreamAPI.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader/DataLoaderTable.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader/AbstractDataLoader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader/FVECSDataLoader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader/RandomDataLoader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/GPU
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/GPU/gpu_scheduler.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/GPU/gpu_memory.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/GPU/gpu_kernels.cuh
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core/versioning.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core/vector_db.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core/transaction.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core/partitioning.hpp
+Build and installation complete.
+Copying .so files from /root/.local/lib/python3.11/site-packages to ./candy
+Ensuring ./candy/__init__.py exists...
+Building the Python package...
+running sdist
+running egg_info
+creating candy.egg-info
+writing candy.egg-info/PKG-INFO
+writing dependency_links to candy.egg-info/dependency_links.txt
+writing top-level names to candy.egg-info/top_level.txt
+writing manifest file 'candy.egg-info/SOURCES.txt'
+reading manifest file 'candy.egg-info/SOURCES.txt'
+writing manifest file 'candy.egg-info/SOURCES.txt'
+running check
+warning: check: missing required meta-data: url
+
+creating candy-0.1.0
+creating candy-0.1.0/candy
+creating candy-0.1.0/candy.egg-info
+copying files to candy-0.1.0...
+copying README.md -> candy-0.1.0
+copying setup.py -> candy-0.1.0
+copying candy/__init__.py -> candy-0.1.0/candy
+copying candy/libCANDY.so -> candy-0.1.0/candy
+copying candy/pycandy.so -> candy-0.1.0/candy
+copying candy.egg-info/PKG-INFO -> candy-0.1.0/candy.egg-info
+copying candy.egg-info/SOURCES.txt -> candy-0.1.0/candy.egg-info
+copying candy.egg-info/dependency_links.txt -> candy-0.1.0/candy.egg-info
+copying candy.egg-info/not-zip-safe -> candy-0.1.0/candy.egg-info
+copying candy.egg-info/top_level.txt -> candy-0.1.0/candy.egg-info
+Writing candy-0.1.0/setup.cfg
+Creating tar archive
+removing 'candy-0.1.0' (and everything under it)
+running bdist_wheel
+running build
+running build_py
+creating build
+creating build/lib
+creating build/lib/candy
+copying candy/__init__.py -> build/lib/candy
+copying candy/pycandy.so -> build/lib/candy
+copying candy/libCANDY.so -> build/lib/candy
+/usr/lib/python3/dist-packages/setuptools/command/install.py:34: SetuptoolsDeprecationWarning: setup.py install is deprecated. Use build and pip and other standards-based tools.
+  warnings.warn(
+installing to build/bdist.linux-x86_64/wheel
+running install
+running install_lib
+creating build/bdist.linux-x86_64
+creating build/bdist.linux-x86_64/wheel
+creating build/bdist.linux-x86_64/wheel/candy
+copying build/lib/candy/pycandy.so -> build/bdist.linux-x86_64/wheel/candy
+copying build/lib/candy/__init__.py -> build/bdist.linux-x86_64/wheel/candy
+copying build/lib/candy/libCANDY.so -> build/bdist.linux-x86_64/wheel/candy
+running install_egg_info
+Copying candy.egg-info to build/bdist.linux-x86_64/wheel/candy-0.1.0.egg-info
+running install_scripts
+creating build/bdist.linux-x86_64/wheel/candy-0.1.0.dist-info/WHEEL
+creating 'dist/candy-0.1.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+adding 'candy/__init__.py'
+adding 'candy/libCANDY.so'
+adding 'candy/pycandy.so'
+adding 'candy-0.1.0.dist-info/METADATA'
+adding 'candy-0.1.0.dist-info/WHEEL'
+adding 'candy-0.1.0.dist-info/top_level.txt'
+adding 'candy-0.1.0.dist-info/RECORD'
+removing build/bdist.linux-x86_64/wheel
+Installing ./dist/candy-0.1.0-py3-none-any.whl...
+Processing ./dist/candy-0.1.0-py3-none-any.whl
+Installing collected packages: candy
+Successfully installed candy-0.1.0
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable.It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+Package installed successfully.
+Starting runtime script...
+Cloning CANDY repository...
+CANDY directory already exists. Checking if it's a valid repository...
+CANDY repository is valid. Skipping clone.
+/workspace/installation/env_setup/install_dep.sh: line 40: return: can only `return' from a function or sourced script
+Starting runtime script...
+Cloning CANDY repository...
+Repository URL: https://Yun-Chai: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@github.com/intellistream/CANDY.git
+Cloning into 'CANDY'...
+CANDY repository cloned successfully.
+Building and installing CANDY...
+Building CANDY project in /workspace/deps/CANDY
+Running CMake configuration...
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found valid CUDA compiler: /usr/local/cuda-12.5/bin/nvcc
+-- CUDA version: 12.5
+-- Finally using CUDA compiler at /usr/local/cuda-12.5/bin/nvcc
+-- PyTorch CMake path from Python: /usr/local/lib/python3.11/dist-packages/torch/share/cmake
+-- Updated CMAKE_PREFIX_PATH: ;/usr/local/lib/python3.11/dist-packages/torch/share/cmake
+-- Found CUDA: /usr/local/cuda (found version "12.5") 
+-- The CUDA compiler identification is NVIDIA 12.5.82
+-- Detecting CUDA compiler ABI info
+-- Detecting CUDA compiler ABI info - done
+-- Check for working CUDA compiler: /usr/local/cuda-12.5/bin/nvcc - skipped
+-- Detecting CUDA compile features
+-- Detecting CUDA compile features - done
+-- Found CUDAToolkit: /usr/local/cuda-12.5/include (found version "12.5.82") 
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Caffe2: CUDA detected: 12.5
+-- Caffe2: CUDA nvcc is: /usr/local/cuda/bin/nvcc
+-- Caffe2: CUDA toolkit directory: /usr/local/cuda
+-- Caffe2: Header version is: 12.5
+-- Found Python: /usr/bin/python3.11 (found version "3.11.11") found components: Interpreter 
+CMake Warning at /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/public/cuda.cmake:140 (message):
+  Failed to compute shorthash for libnvrtc.so
+Call Stack (most recent call first):
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake:86 (include)
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:68 (find_package)
+  CMakeLists.txt:12 (find_package)
+
+
+CMake Warning (dev) at /usr/local/share/cmake-3.27/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+  The package name passed to `find_package_handle_standard_args` (nvtx3) does
+  not match the name of the calling package (Caffe2).  This can lead to
+  problems in calling code that expects `find_package` result variables
+  (e.g., `_FOUND`) to follow a certain pattern.
+Call Stack (most recent call first):
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/public/cuda.cmake:174 (find_package_handle_standard_args)
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake:86 (include)
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:68 (find_package)
+  CMakeLists.txt:12 (find_package)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Could NOT find nvtx3 (missing: nvtx3_dir) 
+CMake Warning at /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/public/cuda.cmake:180 (message):
+  Cannot find NVTX3, find old NVTX instead
+Call Stack (most recent call first):
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake:86 (include)
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:68 (find_package)
+  CMakeLists.txt:12 (find_package)
+
+
+-- USE_CUDNN is set to 0. Compiling without cuDNN support
+-- USE_CUSPARSELT is set to 0. Compiling without cuSPARSELt support
+-- USE_CUDSS is set to 0. Compiling without cuDSS support
+-- USE_CUFILE is set to 0. Compiling without cuFile support
+-- Automatic GPU detection failed. Building for common architectures.
+-- Autodetected CUDA architecture(s): 5.0;8.0;8.6;8.9;9.0;9.0a
+-- Added CUDA NVCC flags for: -gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86;-gencode;arch=compute_89,code=sm_89;-gencode;arch=compute_90,code=sm_90;-gencode;arch=compute_90a,code=sm_90a
+CMake Warning at /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:22 (message):
+  static library kineto_LIBRARY-NOTFOUND not found.
+Call Stack (most recent call first):
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:120 (append_torchlib_if_found)
+  CMakeLists.txt:12 (find_package)
+
+
+-- Found Torch: /usr/local/lib/python3.11/dist-packages/torch/lib/libtorch.so  
+-- g++ version 11.4.0 found
+-- Compilation flags set
+-- clang-format not found or clang-format version is not 11, 14 or 18
+-- Found Python: /usr/bin/python3.11 (found version "3.11.11") found components: Interpreter Development Development.Module Development.Embed 
+-- CUDA enabled: ON
+-- Performing Test HAVE_FLAG__ffile_prefix_map__workspace_deps_CANDY_third_party_Catch2__
+-- Performing Test HAVE_FLAG__ffile_prefix_map__workspace_deps_CANDY_third_party_Catch2__ - Success
+-- pybind11 v2.13.6 
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.11.11", minimum required is "3.7") 
+-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.11.so
+-- Performing Test HAS_FLTO
+-- Performing Test HAS_FLTO - Success
+-- CANDY_SOURCE_FILES: /workspace/deps/CANDY/src/Utils/Param.cpp;/workspace/deps/CANDY/src/Utils/error_handling.cpp;/workspace/deps/CANDY/src/Utils/file_loader.cpp;/workspace/deps/CANDY/src/Utils/TensorOP.cpp;/workspace/deps/CANDY/src/Utils/IntelliLog.cpp;/workspace/deps/CANDY/src/Utils/IntelliTimeStampGenerator.cpp;/workspace/deps/CANDY/src/Utils/timing.cpp;/workspace/deps/CANDY/src/Utils/thread_pool.cpp;/workspace/deps/CANDY/src/Utils/UtilityFunction.cpp;/workspace/deps/CANDY/src/Transaction/deadlock_prevention.cpp;/workspace/deps/CANDY/src/Performance/benchmark.cpp;/workspace/deps/CANDY/src/Performance/gpu_benchmark.cpp;/workspace/deps/CANDY/src/Performance/monitoring.cpp;/workspace/deps/CANDY/src/Parallelism/locks.cpp;/workspace/deps/CANDY/src/Parallelism/task_scheduler.cpp;/workspace/deps/CANDY/src/Optimization/drl_optimization.cpp;/workspace/deps/CANDY/src/Optimization/ml_models.cpp;/workspace/deps/CANDY/src/Optimization/model_training.cpp;/workspace/deps/CANDY/src/IO/backup_restore.cpp;/workspace/deps/CANDY/src/IO/data_loader.cpp;/workspace/deps/CANDY/src/IO/s3_storage.cpp;/workspace/deps/CANDY/src/IO/wal.cpp;/workspace/deps/CANDY/src/GPU/gpu_kernels.cu;/workspace/deps/CANDY/src/GPU/gpu_memory.cpp;/workspace/deps/CANDY/src/GPU/gpu_scheduler.cpp;/workspace/deps/CANDY/src/DataLoader/AbstractDataLoader.cpp;/workspace/deps/CANDY/src/DataLoader/DataLoaderTable.cpp;/workspace/deps/CANDY/src/DataLoader/RandomDataLoader.cpp;/workspace/deps/CANDY/src/DataLoader/FVECSDataLoader.cpp;/workspace/deps/CANDY/src/Core/partitioning.cpp;/workspace/deps/CANDY/src/Core/transaction.cpp;/workspace/deps/CANDY/src/Core/vector_db.cpp;/workspace/deps/CANDY/src/Core/versioning.cpp;/workspace/deps/CANDY/src/API/StreamAPI.cpp;/workspace/deps/CANDY/src/Algorithms/SONG/SONG.cu;/workspace/deps/CANDY/src/Algorithms/ANNSBase.cpp;/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp;/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/FlatGPUIndex.cpp;/workspace/deps/CANDY/src/Algorithms/Vamana/vamana.cpp;/workspace/deps/CANDY/src/Algorithms/Vamana/vamana_base.cpp;/workspace/deps/CANDY/src/Algorithms/LSH/LSHSearch.cpp;/workspace/deps/CANDY/src/Algorithms/KNN/KNNSearch.cpp;/workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp;/workspace/deps/CANDY/src/Algorithms/HNSW/hnsw_base.cpp;/workspace/deps/CANDY/src/Algorithms/HNSW/hnsw.cpp
+-- Linked libs: torch;torch_library;/usr/local/lib/python3.11/dist-packages/torch/lib/libc10.so;/usr/local/cuda/lib64/libnvrtc.so;torch::nvtoolsext;/usr/local/lib/python3.11/dist-packages/torch/lib/libc10_cuda.so;cublas;cudart
+-- PyTorch library path: /usr/local/lib/python3.11/dist-packages/torch/lib
+-- Enable testing: ON
+-- PyTorch library path: /usr/local/lib/python3.11/dist-packages/torch/lib
+-- Configuring done (15.4s)
+-- Generating done (0.1s)
+-- Build files have been written to: /workspace/deps/CANDY/build
+Building the project...
+[  1%] Building CXX object tools/CMakeFiles/run_format.dir/run_clang_format.cpp.o
+[  1%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/Param.cpp.o
+[  2%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/error_handling.cpp.o
+[  3%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/catch_chronometer.cpp.o
+[  3%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/file_loader.cpp.o
+[  4%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_analyse.cpp.o
+[  4%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_benchmark_function.cpp.o
+[  5%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_run_for_at_least.cpp.o
+[  5%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_stats.cpp.o
+[  6%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/TensorOP.cpp.o
+[  7%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generator_exception.cpp.o
+[  7%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/IntelliLog.cpp.o
+[  7%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generators.cpp.o
+[  8%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/IntelliTimeStampGenerator.cpp.o
+[  9%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generators_random.cpp.o
+[ 10%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_automake.cpp.o
+[ 10%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_common_base.cpp.o
+[ 11%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/timing.cpp.o
+[ 12%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_compact.cpp.o
+[ 12%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_console.cpp.o
+[ 12%] Linking CXX executable run_format
+[ 13%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_cumulative_base.cpp.o
+[ 13%] Built target run_format
+[ 13%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_event_listener.cpp.o
+[ 14%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_helpers.cpp.o
+[ 15%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_json.cpp.o
+[ 15%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_junit.cpp.o
+[ 15%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/thread_pool.cpp.o
+[ 16%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_multi.cpp.o
+In file included from /workspace/deps/CANDY/src/Utils/thread_pool.cpp:8:
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp: In constructor 'ThreadPool::thread_worker::thread_worker(ThreadPool*, int)':
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:32:17: warning: 'ThreadPool::thread_worker::m_pool' will be initialized after [-Wreorder]
+   32 |     ThreadPool* m_pool;
+      |                 ^~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:31:9: warning:   'int ThreadPool::thread_worker::m_id' [-Wreorder]
+   31 |     int m_id;
+      |         ^~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:35:5: warning:   when initialized here [-Wreorder]
+   35 |     thread_worker(ThreadPool* pool, const int id) : m_pool(pool), m_id(id) {}
+      |     ^~~~~~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp: In constructor 'ThreadPool::ThreadPool(int)':
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:25:28: warning: 'ThreadPool::m_threads' will be initialized after [-Wreorder]
+   25 |   std::vector<std::thread> m_threads;
+      |                            ^~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:23:8: warning:   'bool ThreadPool::m_shutdown' [-Wreorder]
+   23 |   bool m_shutdown;
+      |        ^~~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:41:3: warning:   when initialized here [-Wreorder]
+   41 |   ThreadPool(const int n_threads)
+      |   ^~~~~~~~~~
+[ 16%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_registrars.cpp.o
+[ 17%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/UtilityFunction.cpp.o
+[ 17%] Building CXX object CMakeFiles/CANDY.dir/src/Transaction/deadlock_prevention.cpp.o
+[ 18%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_sonarqube.cpp.o
+[ 19%] Building CXX object CMakeFiles/CANDY.dir/src/Performance/benchmark.cpp.o
+[ 19%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_streaming_base.cpp.o
+[ 20%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_tap.cpp.o
+[ 20%] Building CXX object CMakeFiles/CANDY.dir/src/Performance/gpu_benchmark.cpp.o
+[ 21%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_teamcity.cpp.o
+[ 21%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_xml.cpp.o
+[ 22%] Building CXX object CMakeFiles/CANDY.dir/src/Performance/monitoring.cpp.o
+[ 23%] Building CXX object CMakeFiles/CANDY.dir/src/Parallelism/locks.cpp.o
+[ 24%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_capture.cpp.o
+[ 24%] Building CXX object CMakeFiles/CANDY.dir/src/Parallelism/task_scheduler.cpp.o
+[ 24%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_config.cpp.o
+[ 25%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_exception.cpp.o
+[ 25%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_generatortracker.cpp.o
+[ 26%] Building CXX object CMakeFiles/CANDY.dir/src/Optimization/drl_optimization.cpp.o
+[ 27%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_registry_hub.cpp.o
+[ 28%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_reporter.cpp.o
+[ 28%] Building CXX object CMakeFiles/CANDY.dir/src/Optimization/ml_models.cpp.o
+[ 29%] Building CXX object CMakeFiles/CANDY.dir/src/Optimization/model_training.cpp.o
+[ 29%] Building CXX object CMakeFiles/CANDY.dir/src/IO/backup_restore.cpp.o
+[ 29%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_reporter_factory.cpp.o
+[ 30%] Building CXX object CMakeFiles/CANDY.dir/src/IO/data_loader.cpp.o
+[ 31%] Building CXX object CMakeFiles/CANDY.dir/src/IO/s3_storage.cpp.o
+[ 31%] Building CXX object CMakeFiles/CANDY.dir/src/IO/wal.cpp.o
+[ 32%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_testcase.cpp.o
+[ 33%] Building CUDA object CMakeFiles/CANDY.dir/src/GPU/gpu_kernels.cu.o
+[ 33%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_approx.cpp.o
+[ 34%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_assertion_result.cpp.o
+[ 34%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_config.cpp.o
+[ 35%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_get_random_seed.cpp.o
+[ 36%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_message.cpp.o
+[ 36%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_registry_hub.cpp.o
+[ 37%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_session.cpp.o
+[ 37%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_tag_alias_autoregistrar.cpp.o
+[ 37%] Building CXX object CMakeFiles/CANDY.dir/src/GPU/gpu_memory.cpp.o
+[ 38%] Building CXX object CMakeFiles/CANDY.dir/src/GPU/gpu_scheduler.cpp.o
+[ 38%] Building CXX object CMakeFiles/CANDY.dir/src/DataLoader/AbstractDataLoader.cpp.o
+[ 39%] Building CXX object CMakeFiles/CANDY.dir/src/DataLoader/DataLoaderTable.cpp.o
+[ 40%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_test_case_info.cpp.o
+[ 40%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_test_spec.cpp.o
+[ 41%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_timer.cpp.o
+[ 42%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_tostring.cpp.o
+[ 42%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_totals.cpp.o
+[ 43%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_translate_exception.cpp.o
+[ 43%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_version.cpp.o
+[ 44%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_assertion_handler.cpp.o
+[ 44%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_case_insensitive_comparisons.cpp.o
+[ 45%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_clara.cpp.o
+[ 46%] Building CXX object CMakeFiles/CANDY.dir/src/DataLoader/RandomDataLoader.cpp.o
+[ 47%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_commandline.cpp.o
+[ 47%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_console_colour.cpp.o
+[ 48%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_context.cpp.o
+[ 48%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_debug_console.cpp.o
+[ 49%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_debugger.cpp.o
+[ 49%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_decomposer.cpp.o
+[ 50%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_enforce.cpp.o
+[ 51%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_enum_values_registry.cpp.o
+[ 51%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_errno_guard.cpp.o
+[ 52%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_exception_translator_registry.cpp.o
+[ 52%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_fatal_condition_handler.cpp.o
+[ 53%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_floating_point_helpers.cpp.o
+[ 53%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_getenv.cpp.o
+[ 54%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_istream.cpp.o
+[ 55%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_jsonwriter.cpp.o
+[ 55%] Building CXX object CMakeFiles/CANDY.dir/src/DataLoader/FVECSDataLoader.cpp.o
+[ 55%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_lazy_expr.cpp.o
+[ 56%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_leak_detector.cpp.o
+[ 57%] Building CXX object CMakeFiles/CANDY.dir/src/Core/partitioning.cpp.o
+[ 57%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_list.cpp.o
+[ 58%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_message_info.cpp.o
+[ 58%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_output_redirect.cpp.o
+[ 59%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_parse_numbers.cpp.o
+[ 60%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_polyfills.cpp.o
+[ 60%] Building CXX object CMakeFiles/CANDY.dir/src/Core/transaction.cpp.o
+[ 60%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_random_number_generator.cpp.o
+[ 61%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_random_seed_generation.cpp.o
+[ 62%] Building CXX object CMakeFiles/CANDY.dir/src/Core/vector_db.cpp.o
+[ 62%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reporter_registry.cpp.o
+[ 63%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reporter_spec_parser.cpp.o
+[ 63%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reusable_string_stream.cpp.o
+[ 64%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_run_context.cpp.o
+[ 65%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_section.cpp.o
+[ 65%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_singletons.cpp.o
+[ 66%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_source_line_info.cpp.o
+[ 66%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_startup_exception_registry.cpp.o
+[ 67%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_stdstreams.cpp.o
+[ 67%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_string_manip.cpp.o
+[ 67%] Building CXX object CMakeFiles/CANDY.dir/src/Core/versioning.cpp.o
+[ 68%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_stringref.cpp.o
+[ 69%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_tag_alias_registry.cpp.o
+[ 69%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_info_hasher.cpp.o
+[ 70%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_registry_impl.cpp.o
+[ 71%] Building CXX object CMakeFiles/CANDY.dir/src/API/StreamAPI.cpp.o
+[ 71%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_tracker.cpp.o
+[ 72%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_failure_exception.cpp.o
+[ 72%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_registry.cpp.o
+[ 73%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_spec_parser.cpp.o
+[ 74%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_textflow.cpp.o
+[ 74%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_uncaught_exceptions.cpp.o
+[ 75%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_wildcard_pattern.cpp.o
+[ 75%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_xmlwriter.cpp.o
+[ 76%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers.cpp.o
+[ 76%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_container_properties.cpp.o
+[ 77%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_exception.cpp.o
+[ 78%] Building CUDA object CMakeFiles/CANDY.dir/src/Algorithms/SONG/SONG.cu.o
+[ 79%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_floating_point.cpp.o
+[ 79%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_predicate.cpp.o
+/workspace/deps/CANDY/src/API/StreamAPI.cpp: In member function 'VectorDBStream& VectorDBStream::map_to_embedding(const std::function<at::Tensor(const std::basic_string<char>&)>&)':
+/workspace/deps/CANDY/src/API/StreamAPI.cpp:46:20: warning: unused variable 'tensor' [-Wunused-variable]
+   46 |   for (const auto& tensor : tensors) {
+      |                    ^~~~~~
+[ 80%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_quantifiers.cpp.o
+[ 80%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/ANNSBase.cpp.o
+[ 80%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_string.cpp.o
+[ 81%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_templated.cpp.o
+[ 81%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/internal/catch_matchers_impl.cpp.o
+[ 82%] Linking CXX static library libCatch2.a
+[ 82%] Built target Catch2
+[ 83%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp.o
+[ 83%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/FlatGPUIndex/FlatGPUIndex.cpp.o
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp: In member function 'at::Tensor CANDY_ALGO::PlainMemBufferTU::getTensorInline(int64_t, int64_t)':
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:88:11: warning: unused variable 'diskOffset' [-Wunused-variable]
+   88 |   int64_t diskOffset;
+      |           ^~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp: In member function 'std::vector<long unsigned int> CANDY_ALGO::PlainMemBufferTU::getU64(int64_t, int64_t)':
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:106:11: warning: unused variable 'bufferBegin' [-Wunused-variable]
+  106 |   int64_t bufferBegin = u64Begin;
+      |           ^~~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp: In member function 'bool CANDY_ALGO::PlainMemBufferTU::reviseU64(int64_t, std::vector<long unsigned int>&)':
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:138:11: warning: unused variable 'remainSizeRu' [-Wunused-variable]
+  138 |   int64_t remainSizeRu;
+      |           ^~~~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:139:11: warning: unused variable 'diskOffset' [-Wunused-variable]
+  139 |   int64_t diskOffset;
+      |           ^~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:141:11: warning: unused variable 'bufferBegin' [-Wunused-variable]
+  141 |   int64_t bufferBegin = u64Begin;
+      |           ^~~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp: In member function 'bool CANDY_ALGO::PlainMemBufferTU::deleteU64(int64_t, int64_t)':
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:178:11: warning: variable 'diskOffset' set but not used [-Wunused-but-set-variable]
+  178 |   int64_t diskOffset;
+      |           ^~~~~~~~~~
+[ 84%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2WithMain.dir/catch2/internal/catch_main.cpp.o
+[ 84%] Linking CXX static library libCatch2Main.a
+[ 84%] Built target Catch2WithMain
+[ 85%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/Vamana/vamana.cpp.o
+[ 85%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/Vamana/vamana_base.cpp.o
+[ 86%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/LSH/LSHSearch.cpp.o
+[ 87%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/KNN/KNNSearch.cpp.o
+[ 87%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/KDTree/KDTree.cpp.o
+[ 88%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/HNSW/hnsw_base.cpp.o
+[ 88%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/HNSW/hnsw.cpp.o
+In file included from /workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:10,
+                 from /workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:7:
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp: In constructor 'ResultSet::ResultSet(int64_t)':
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:55:11: warning: 'ResultSet::max_size' will be initialized after [-Wreorder]
+   55 |   int64_t max_size;
+      |           ^~~~~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:54:11: warning:   'int64_t ResultSet::size_' [-Wreorder]
+   54 |   int64_t size_;
+      |           ^~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:58:3: warning:   when initialized here [-Wreorder]
+   58 |   ResultSet(int64_t max_size) : max_size(max_size), size_(0) {
+      |   ^~~~~~~~~
+In file included from /workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:7:
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp: In constructor 'CANDY_ALGO::KDTree::KDTree(size_t)':
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:25:10: warning: 'CANDY_ALGO::KDTree::vecDim' will be initialized after [-Wreorder]
+   25 |   size_t vecDim;
+      |          ^~~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:22:10: warning:   'float* CANDY_ALGO::KDTree::mean' [-Wreorder]
+   22 |   float* mean;
+      |          ^~~~
+/workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:31:1: warning:   when initialized here [-Wreorder]
+   31 | KDTree::KDTree(size_t dimensions)
+      | ^~~~~~
+In file included from /workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:7:
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:34:7: warning: 'CANDY_ALGO::KDTree::checks' will be initialized after [-Wreorder]
+   34 |   int checks;
+      |       ^~~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:24:12: warning:   'uint64_t CANDY_ALGO::KDTree::ntotal' [-Wreorder]
+   24 |   uint64_t ntotal;
+      |            ^~~~~~
+/workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:31:1: warning:   when initialized here [-Wreorder]
+   31 | KDTree::KDTree(size_t dimensions)
+      | ^~~~~~
+[ 89%] Building CUDA object CMakeFiles/CANDY.dir/src/Algorithms/AlgorithmTable.cpp.o
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+[ 89%] Linking CXX shared library libCANDY.so
+[ 89%] Built target CANDY
+[ 89%] Building CUDA object apps/CPlusPlus/CMakeFiles/Main.dir/Main.cpp.o
+[ 90%] Building CXX object test/CoreTests/CMakeFiles/torch_tests.dir/TorchTests.cpp.o
+[ 91%] Building CXX object test/UtilsTests/CMakeFiles/thread_pool_tests.dir/thread_pool_tests.cpp.o
+[ 91%] Building CXX object test/UtilsTests/CMakeFiles/config_parser_tests.dir/config_parser_tests.cpp.o
+In file included from /workspace/deps/CANDY/test/UtilsTests/config_parser_tests.cpp:7:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /workspace/deps/CANDY/include/Utils/IntelliLog.hpp:16,
+                 from /workspace/deps/CANDY/include/Utils/ConfigMap.hpp:11,
+                 from /workspace/deps/CANDY/test/UtilsTests/config_parser_tests.cpp:6:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+In file included from /workspace/deps/CANDY/test/UtilsTests/thread_pool_tests.cpp:6:
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp: In constructor 'ThreadPool::thread_worker::thread_worker(ThreadPool*, int)':
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:32:17: warning: 'ThreadPool::thread_worker::m_pool' will be initialized after [-Wreorder]
+   32 |     ThreadPool* m_pool;
+      |                 ^~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:31:9: warning:   'int ThreadPool::thread_worker::m_id' [-Wreorder]
+   31 |     int m_id;
+      |         ^~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:35:5: warning:   when initialized here [-Wreorder]
+   35 |     thread_worker(ThreadPool* pool, const int id) : m_pool(pool), m_id(id) {}
+      |     ^~~~~~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp: In constructor 'ThreadPool::ThreadPool(int)':
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:25:28: warning: 'ThreadPool::m_threads' will be initialized after [-Wreorder]
+   25 |   std::vector<std::thread> m_threads;
+      |                            ^~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:23:8: warning:   'bool ThreadPool::m_shutdown' [-Wreorder]
+   23 |   bool m_shutdown;
+      |        ^~~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:41:3: warning:   when initialized here [-Wreorder]
+   41 |   ThreadPool(const int n_threads)
+      |   ^~~~~~~~~~
+[ 91%] Linking CXX executable thread_pool_tests
+In file included from /workspace/deps/CANDY/test/CoreTests/TorchTests.cpp:7:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue_inl.h:26,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue.h:1581,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List_inl.h:4,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List.h:488,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef_inl.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef.h:631,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/WrapDimUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/TensorNames.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/NamedTensorUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/variable.h:11,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/all.h:7,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/torch.h:3,
+                 from /workspace/deps/CANDY/include/Algorithms/ANNSBase.hpp:10,
+                 from /workspace/deps/CANDY/include/Core/vector_db.hpp:13,
+                 from /workspace/deps/CANDY/test/CoreTests/TorchTests.cpp:6:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+[ 92%] Linking CXX executable config_parser_tests
+[ 92%] Built target thread_pool_tests
+[ 92%] Building CXX object test/UtilsTests/CMakeFiles/file_loader_tests.dir/file_loader_tests.cpp.o
+[ 92%] Built target config_parser_tests
+[ 93%] Building CXX object test/AlgorithmsTests/CMakeFiles/KdTreeTests.dir/KdTreeTests.cpp.o
+[ 94%] Linking CXX executable file_loader_tests
+In file included from /workspace/deps/CANDY/test/AlgorithmsTests/KdTreeTests.cpp:8:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue_inl.h:26,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue.h:1581,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List_inl.h:4,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List.h:488,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef_inl.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef.h:631,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/WrapDimUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/TensorNames.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/NamedTensorUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/variable.h:11,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/all.h:7,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/torch.h:3,
+                 from /workspace/deps/CANDY/test/AlgorithmsTests/KdTreeTests.cpp:7:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+[ 94%] Built target file_loader_tests
+[ 95%] Building CXX object test/AlgorithmsTests/CMakeFiles/HNSWTests.dir/HNSWTests.cpp.o
+In file included from /workspace/deps/CANDY/test/AlgorithmsTests/HNSWTests.cpp:10:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue_inl.h:26,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue.h:1581,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List_inl.h:4,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List.h:488,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef_inl.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef.h:631,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/WrapDimUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/TensorNames.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/NamedTensorUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/variable.h:11,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/all.h:7,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/torch.h:3,
+                 from /workspace/deps/CANDY/test/AlgorithmsTests/HNSWTests.cpp:7:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+In file included from /workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:10,
+                 from /workspace/deps/CANDY/test/AlgorithmsTests/KdTreeTests.cpp:12:
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp: In constructor 'ResultSet::ResultSet(int64_t)':
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:55:11: warning: 'ResultSet::max_size' will be initialized after [-Wreorder]
+   55 |   int64_t max_size;
+      |           ^~~~~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:54:11: warning:   'int64_t ResultSet::size_' [-Wreorder]
+   54 |   int64_t size_;
+      |           ^~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:58:3: warning:   when initialized here [-Wreorder]
+   58 |   ResultSet(int64_t max_size) : max_size(max_size), size_(0) {
+      |   ^~~~~~~~~
+[ 95%] Linking CXX executable KdTreeTests
+[ 96%] Linking CXX executable torch_tests
+[ 96%] Built target KdTreeTests
+[ 97%] Building CXX object test/AlgorithmsTests/CMakeFiles/LSHTests.dir/LSHTests.cpp.o
+[ 97%] Built target torch_tests
+[ 98%] Building CXX object python_bindings/pybind11_bindings/CMakeFiles/pycandy.dir/vectordb_pybind.cpp.o
+In file included from /workspace/deps/CANDY/test/AlgorithmsTests/LSHTests.cpp:9:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue_inl.h:26,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue.h:1581,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List_inl.h:4,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List.h:488,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef_inl.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef.h:631,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/WrapDimUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/TensorNames.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/NamedTensorUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/variable.h:11,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/all.h:7,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/torch.h:3,
+                 from /workspace/deps/CANDY/test/AlgorithmsTests/LSHTests.cpp:7:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+[ 98%] Linking CXX executable HNSWTests
+[ 98%] Built target HNSWTests
+[ 99%] Linking CXX executable LSHTests
+[ 99%] Built target LSHTests
+[ 99%] Linking CXX shared module pycandy.so
+Installing pycandy shared library at /root/.local/lib/python3.11/site-packages
+[ 99%] Built target pycandy
+[100%] Linking CUDA executable Main
+[100%] Built target Main
+Installing the project...
+[ 26%] Built target CANDY
+[ 27%] Built target run_format
+[ 88%] Built target Catch2
+[ 89%] Built target Catch2WithMain
+[ 90%] Built target Main
+[ 92%] Built target torch_tests
+[ 93%] Built target thread_pool_tests
+[ 94%] Built target config_parser_tests
+[ 95%] Built target file_loader_tests
+[ 96%] Built target KdTreeTests
+[ 97%] Built target HNSWTests
+[ 99%] Built target LSHTests
+[100%] Built target pycandy
+Install the project...
+-- Install configuration: "Release"
+-- Installing: /root/.local/lib/python3.11/site-packages/pycandy.so
+-- Set runtime path of "/root/.local/lib/python3.11/site-packages/pycandy.so" to "$ORIGIN:/usr/local/lib/python3.11/dist-packages/torch/lib"
+-- Installing: /root/.local/lib/python3.11/site-packages/libCANDY.so
+-- Set runtime path of "/root/.local/lib/python3.11/site-packages/libCANDY.so" to "$ORIGIN:/usr/local/lib/python3.11/dist-packages/torch/lib"
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Transaction
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Transaction/deadlock_prevention.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Parallelism
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Parallelism/locks.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Parallelism/task_scheduler.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/HNSW
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/HNSW/hnsw_base.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/HNSW/hnsw.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/AbstractANNSAlgorithm.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Vamana
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Vamana/vamana.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Vamana/vamana_base.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/LSH
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/LSH/LSHSearch.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/AlgorithmTable.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KDTree
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KDTree/KDTree.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Utils
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Utils/metric_type.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/ANNSBase.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KNN
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KNN/KNNSearch.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/FlatGPUIndex
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/FlatGPUIndex/FlatGPUIndex.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/FlatGPUIndex/disk_mem_buffer.h
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/SONG.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/data.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/cuckoofilter.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/warp_astar_accelerator.cuh
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/blocked_bloomfilter.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/fixhash.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/smmh2.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/config.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/bin_heap.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/kernelgraph.cuh
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/bloomfilter.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/ConfigMap.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/Param.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/TensorOP.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/file_loader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/IntelliLog.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/thread_pool.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/Computation.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/timing.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/safe_queue.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/TimeStampGenerator.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/error_handling.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/MicroDataSet.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/UtilityFunctions.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Performance
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Performance/monitoring.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Performance/gpu_benchmark.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Performance/benchmark.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/wal.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/data_loader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/s3_storage.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/backup_restore.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Optimization
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Optimization/drl_optimization.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Optimization/ml_models.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Optimization/model_training.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/API
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/API/StreamAPI.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader/DataLoaderTable.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader/AbstractDataLoader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader/FVECSDataLoader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader/RandomDataLoader.hpp
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/GPU
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/GPU/gpu_scheduler.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/GPU/gpu_memory.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/GPU/gpu_kernels.cuh
+-- Up-to-date: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core/versioning.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core/vector_db.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core/transaction.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core/partitioning.hpp
+Build and installation complete.
+Copying .so files from /root/.local/lib/python3.11/site-packages to ./candy
+Ensuring ./candy/__init__.py exists...
+Building the Python package...
+running sdist
+running egg_info
+creating candy.egg-info
+writing candy.egg-info/PKG-INFO
+writing dependency_links to candy.egg-info/dependency_links.txt
+writing top-level names to candy.egg-info/top_level.txt
+writing manifest file 'candy.egg-info/SOURCES.txt'
+reading manifest file 'candy.egg-info/SOURCES.txt'
+writing manifest file 'candy.egg-info/SOURCES.txt'
+running check
+warning: check: missing required meta-data: url
+
+creating candy-0.1.0
+creating candy-0.1.0/candy
+creating candy-0.1.0/candy.egg-info
+copying files to candy-0.1.0...
+copying README.md -> candy-0.1.0
+copying setup.py -> candy-0.1.0
+copying candy/__init__.py -> candy-0.1.0/candy
+copying candy/libCANDY.so -> candy-0.1.0/candy
+copying candy/pycandy.so -> candy-0.1.0/candy
+copying candy.egg-info/PKG-INFO -> candy-0.1.0/candy.egg-info
+copying candy.egg-info/SOURCES.txt -> candy-0.1.0/candy.egg-info
+copying candy.egg-info/dependency_links.txt -> candy-0.1.0/candy.egg-info
+copying candy.egg-info/not-zip-safe -> candy-0.1.0/candy.egg-info
+copying candy.egg-info/top_level.txt -> candy-0.1.0/candy.egg-info
+Writing candy-0.1.0/setup.cfg
+Creating tar archive
+removing 'candy-0.1.0' (and everything under it)
+running bdist_wheel
+running build
+running build_py
+creating build
+creating build/lib
+creating build/lib/candy
+copying candy/__init__.py -> build/lib/candy
+copying candy/pycandy.so -> build/lib/candy
+copying candy/libCANDY.so -> build/lib/candy
+/usr/lib/python3/dist-packages/setuptools/command/install.py:34: SetuptoolsDeprecationWarning: setup.py install is deprecated. Use build and pip and other standards-based tools.
+  warnings.warn(
+installing to build/bdist.linux-x86_64/wheel
+running install
+running install_lib
+creating build/bdist.linux-x86_64
+creating build/bdist.linux-x86_64/wheel
+creating build/bdist.linux-x86_64/wheel/candy
+copying build/lib/candy/pycandy.so -> build/bdist.linux-x86_64/wheel/candy
+copying build/lib/candy/__init__.py -> build/bdist.linux-x86_64/wheel/candy
+copying build/lib/candy/libCANDY.so -> build/bdist.linux-x86_64/wheel/candy
+running install_egg_info
+Copying candy.egg-info to build/bdist.linux-x86_64/wheel/candy-0.1.0.egg-info
+running install_scripts
+creating build/bdist.linux-x86_64/wheel/candy-0.1.0.dist-info/WHEEL
+creating 'dist/candy-0.1.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+adding 'candy/__init__.py'
+adding 'candy/libCANDY.so'
+adding 'candy/pycandy.so'
+adding 'candy-0.1.0.dist-info/METADATA'
+adding 'candy-0.1.0.dist-info/WHEEL'
+adding 'candy-0.1.0.dist-info/top_level.txt'
+adding 'candy-0.1.0.dist-info/RECORD'
+removing build/bdist.linux-x86_64/wheel
+Installing ./dist/candy-0.1.0-py3-none-any.whl...
+Processing ./dist/candy-0.1.0-py3-none-any.whl
+Installing collected packages: candy
+  Attempting uninstall: candy
+    Found existing installation: candy 0.1.0
+    Uninstalling candy-0.1.0:
+      Successfully uninstalled candy-0.1.0
+Successfully installed candy-0.1.0
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable.It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+Package installed successfully.
+Starting runtime script...
+Cloning CANDY repository...
+CANDY directory already exists. Checking if it's a valid repository...
+Starting runtime script...
+Cloning CANDY repository...
+Repository URL: https://Yun-Chai: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@github.com/intellistream/CANDY.git
+Cloning into 'CANDY'...
+CANDY repository cloned successfully.
+Building and installing CANDY...
+Building CANDY project in /workspace/deps/CANDY
+Running CMake configuration...
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found valid CUDA compiler: /usr/local/cuda-12.5/bin/nvcc
+-- CUDA version: 12.5
+-- Finally using CUDA compiler at /usr/local/cuda-12.5/bin/nvcc
+-- PyTorch CMake path from Python: /usr/local/lib/python3.11/dist-packages/torch/share/cmake
+-- Updated CMAKE_PREFIX_PATH: ;/usr/local/lib/python3.11/dist-packages/torch/share/cmake
+-- Found CUDA: /usr/local/cuda (found version "12.5") 
+-- The CUDA compiler identification is NVIDIA 12.5.82
+-- Detecting CUDA compiler ABI info
+-- Detecting CUDA compiler ABI info - done
+-- Check for working CUDA compiler: /usr/local/cuda-12.5/bin/nvcc - skipped
+-- Detecting CUDA compile features
+-- Detecting CUDA compile features - done
+-- Found CUDAToolkit: /usr/local/cuda-12.5/include (found version "12.5.82") 
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Caffe2: CUDA detected: 12.5
+-- Caffe2: CUDA nvcc is: /usr/local/cuda/bin/nvcc
+-- Caffe2: CUDA toolkit directory: /usr/local/cuda
+-- Caffe2: Header version is: 12.5
+-- Found Python: /usr/bin/python3.11 (found version "3.11.11") found components: Interpreter 
+CMake Warning at /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/public/cuda.cmake:140 (message):
+  Failed to compute shorthash for libnvrtc.so
+Call Stack (most recent call first):
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake:86 (include)
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:68 (find_package)
+  CMakeLists.txt:12 (find_package)
+
+
+CMake Warning (dev) at /usr/local/share/cmake-3.27/Modules/FindPackageHandleStandardArgs.cmake:438 (message):
+  The package name passed to `find_package_handle_standard_args` (nvtx3) does
+  not match the name of the calling package (Caffe2).  This can lead to
+  problems in calling code that expects `find_package` result variables
+  (e.g., `_FOUND`) to follow a certain pattern.
+Call Stack (most recent call first):
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/public/cuda.cmake:174 (find_package_handle_standard_args)
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake:86 (include)
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:68 (find_package)
+  CMakeLists.txt:12 (find_package)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Could NOT find nvtx3 (missing: nvtx3_dir) 
+CMake Warning at /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/public/cuda.cmake:180 (message):
+  Cannot find NVTX3, find old NVTX instead
+Call Stack (most recent call first):
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Caffe2/Caffe2Config.cmake:86 (include)
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:68 (find_package)
+  CMakeLists.txt:12 (find_package)
+
+
+-- USE_CUDNN is set to 0. Compiling without cuDNN support
+-- USE_CUSPARSELT is set to 0. Compiling without cuSPARSELt support
+-- USE_CUDSS is set to 0. Compiling without cuDSS support
+-- USE_CUFILE is set to 0. Compiling without cuFile support
+-- Automatic GPU detection failed. Building for common architectures.
+-- Autodetected CUDA architecture(s): 5.0;8.0;8.6;8.9;9.0;9.0a
+-- Added CUDA NVCC flags for: -gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86;-gencode;arch=compute_89,code=sm_89;-gencode;arch=compute_90,code=sm_90;-gencode;arch=compute_90a,code=sm_90a
+CMake Warning at /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:22 (message):
+  static library kineto_LIBRARY-NOTFOUND not found.
+Call Stack (most recent call first):
+  /usr/local/lib/python3.11/dist-packages/torch/share/cmake/Torch/TorchConfig.cmake:120 (append_torchlib_if_found)
+  CMakeLists.txt:12 (find_package)
+
+
+-- Found Torch: /usr/local/lib/python3.11/dist-packages/torch/lib/libtorch.so  
+-- g++ version 11.4.0 found
+-- Compilation flags set
+-- clang-format not found or clang-format version is not 11, 14 or 18
+-- Found Python: /usr/bin/python3.11 (found version "3.11.11") found components: Interpreter Development Development.Module Development.Embed 
+-- CUDA enabled: ON
+-- Performing Test HAVE_FLAG__ffile_prefix_map__workspace_deps_CANDY_third_party_Catch2__
+-- Performing Test HAVE_FLAG__ffile_prefix_map__workspace_deps_CANDY_third_party_Catch2__ - Success
+-- pybind11 v2.13.6 
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.11.11", minimum required is "3.7") 
+-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.11.so
+-- Performing Test HAS_FLTO
+-- Performing Test HAS_FLTO - Success
+-- CANDY_SOURCE_FILES: /workspace/deps/CANDY/src/ComputeEngine/BasicComputeEngine.cpp;/workspace/deps/CANDY/src/Utils/Param.cpp;/workspace/deps/CANDY/src/Utils/error_handling.cpp;/workspace/deps/CANDY/src/Utils/file_loader.cpp;/workspace/deps/CANDY/src/Utils/TensorOP.cpp;/workspace/deps/CANDY/src/Utils/IntelliLog.cpp;/workspace/deps/CANDY/src/Utils/IntelliTimeStampGenerator.cpp;/workspace/deps/CANDY/src/Utils/timing.cpp;/workspace/deps/CANDY/src/Utils/thread_pool.cpp;/workspace/deps/CANDY/src/Utils/UtilityFunction.cpp;/workspace/deps/CANDY/src/Transaction/deadlock_prevention.cpp;/workspace/deps/CANDY/src/Performance/benchmark.cpp;/workspace/deps/CANDY/src/Performance/gpu_benchmark.cpp;/workspace/deps/CANDY/src/Performance/monitoring.cpp;/workspace/deps/CANDY/src/Parallelism/locks.cpp;/workspace/deps/CANDY/src/Parallelism/task_scheduler.cpp;/workspace/deps/CANDY/src/Optimization/drl_optimization.cpp;/workspace/deps/CANDY/src/Optimization/ml_models.cpp;/workspace/deps/CANDY/src/Optimization/model_training.cpp;/workspace/deps/CANDY/src/IO/backup_restore.cpp;/workspace/deps/CANDY/src/IO/data_loader.cpp;/workspace/deps/CANDY/src/IO/s3_storage.cpp;/workspace/deps/CANDY/src/IO/wal.cpp;/workspace/deps/CANDY/src/IO/BasicStorage.cpp;/workspace/deps/CANDY/src/GPU/gpu_kernels.cu;/workspace/deps/CANDY/src/GPU/gpu_memory.cpp;/workspace/deps/CANDY/src/GPU/gpu_scheduler.cpp;/workspace/deps/CANDY/src/DataLoader/AbstractDataLoader.cpp;/workspace/deps/CANDY/src/DataLoader/DataLoaderTable.cpp;/workspace/deps/CANDY/src/DataLoader/RandomDataLoader.cpp;/workspace/deps/CANDY/src/DataLoader/FVECSDataLoader.cpp;/workspace/deps/CANDY/src/Core/partitioning.cpp;/workspace/deps/CANDY/src/Core/transaction.cpp;/workspace/deps/CANDY/src/Core/vector_db.cpp;/workspace/deps/CANDY/src/Core/versioning.cpp;/workspace/deps/CANDY/src/API/StreamAPI.cpp;/workspace/deps/CANDY/src/Algorithms/SONG/SONG.cu;/workspace/deps/CANDY/src/Algorithms/ANNSBase.cpp;/workspace/deps/CANDY/src/Algorithms/SeparateANNSBase.cpp;/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp;/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/FlatGPUIndex.cpp;/workspace/deps/CANDY/src/Algorithms/Vamana/vamana.cpp;/workspace/deps/CANDY/src/Algorithms/Vamana/vamana_base.cpp;/workspace/deps/CANDY/src/Algorithms/LSH/LSHSearch.cpp;/workspace/deps/CANDY/src/Algorithms/KNN/KNNSearch.cpp;/workspace/deps/CANDY/src/Algorithms/KNN/SeparateKNNSearch.cpp;/workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp;/workspace/deps/CANDY/src/Algorithms/HNSW/hnsw_base.cpp;/workspace/deps/CANDY/src/Algorithms/HNSW/hnsw.cpp
+-- Linked libs: torch;torch_library;/usr/local/lib/python3.11/dist-packages/torch/lib/libc10.so;/usr/local/cuda/lib64/libnvrtc.so;torch::nvtoolsext;/usr/local/lib/python3.11/dist-packages/torch/lib/libc10_cuda.so;cublas;cudart
+-- PyTorch library path: /usr/local/lib/python3.11/dist-packages/torch/lib
+-- Enable testing: ON
+-- PyTorch library path: /usr/local/lib/python3.11/dist-packages/torch/lib
+-- Configuring done (15.3s)
+-- Generating done (0.1s)
+-- Build files have been written to: /workspace/deps/CANDY/build
+Building the project...
+[  1%] Building CXX object tools/CMakeFiles/run_format.dir/run_clang_format.cpp.o
+[  1%] Building CXX object CMakeFiles/CANDY.dir/src/ComputeEngine/BasicComputeEngine.cpp.o
+[  2%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/Param.cpp.o
+[  3%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/catch_chronometer.cpp.o
+[  3%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_analyse.cpp.o
+[  3%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/error_handling.cpp.o
+[  4%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_benchmark_function.cpp.o
+[  4%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_run_for_at_least.cpp.o
+[  5%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/file_loader.cpp.o
+[  6%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/benchmark/detail/catch_stats.cpp.o
+[  6%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generator_exception.cpp.o
+[  7%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generators.cpp.o
+[  7%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/TensorOP.cpp.o
+[  7%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/generators/catch_generators_random.cpp.o
+[  8%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_automake.cpp.o
+[  9%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_common_base.cpp.o
+[  9%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_compact.cpp.o
+[ 10%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_console.cpp.o
+[ 10%] Linking CXX executable run_format
+[ 10%] Built target run_format
+[ 11%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/IntelliLog.cpp.o
+[ 11%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/IntelliTimeStampGenerator.cpp.o
+[ 11%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_cumulative_base.cpp.o
+[ 12%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_event_listener.cpp.o
+[ 13%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/timing.cpp.o
+[ 14%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/thread_pool.cpp.o
+[ 14%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_helpers.cpp.o
+In file included from /workspace/deps/CANDY/src/Utils/thread_pool.cpp:8:
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp: In constructor 'ThreadPool::thread_worker::thread_worker(ThreadPool*, int)':
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:32:17: warning: 'ThreadPool::thread_worker::m_pool' will be initialized after [-Wreorder]
+   32 |     ThreadPool* m_pool;
+      |                 ^~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:31:9: warning:   'int ThreadPool::thread_worker::m_id' [-Wreorder]
+   31 |     int m_id;
+      |         ^~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:35:5: warning:   when initialized here [-Wreorder]
+   35 |     thread_worker(ThreadPool* pool, const int id) : m_pool(pool), m_id(id) {}
+      |     ^~~~~~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp: In constructor 'ThreadPool::ThreadPool(int)':
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:25:28: warning: 'ThreadPool::m_threads' will be initialized after [-Wreorder]
+   25 |   std::vector<std::thread> m_threads;
+      |                            ^~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:23:8: warning:   'bool ThreadPool::m_shutdown' [-Wreorder]
+   23 |   bool m_shutdown;
+      |        ^~~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:41:3: warning:   when initialized here [-Wreorder]
+   41 |   ThreadPool(const int n_threads)
+      |   ^~~~~~~~~~
+[ 15%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_json.cpp.o
+[ 15%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_junit.cpp.o
+[ 16%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_multi.cpp.o
+[ 16%] Building CXX object CMakeFiles/CANDY.dir/src/Utils/UtilityFunction.cpp.o
+[ 17%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_registrars.cpp.o
+[ 17%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_sonarqube.cpp.o
+[ 18%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_streaming_base.cpp.o
+[ 18%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_tap.cpp.o
+[ 19%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_teamcity.cpp.o
+[ 19%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/reporters/catch_reporter_xml.cpp.o
+[ 20%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_capture.cpp.o
+[ 21%] Building CXX object CMakeFiles/CANDY.dir/src/Transaction/deadlock_prevention.cpp.o
+[ 22%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_config.cpp.o
+[ 22%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_exception.cpp.o
+[ 22%] Building CXX object CMakeFiles/CANDY.dir/src/Performance/benchmark.cpp.o
+[ 23%] Building CXX object CMakeFiles/CANDY.dir/src/Performance/gpu_benchmark.cpp.o
+[ 23%] Building CXX object CMakeFiles/CANDY.dir/src/Performance/monitoring.cpp.o
+[ 24%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_generatortracker.cpp.o
+[ 24%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_registry_hub.cpp.o
+[ 25%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_reporter.cpp.o
+[ 25%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_reporter_factory.cpp.o
+[ 26%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/interfaces/catch_interfaces_testcase.cpp.o
+[ 26%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_approx.cpp.o
+[ 27%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_assertion_result.cpp.o
+[ 28%] Building CXX object CMakeFiles/CANDY.dir/src/Parallelism/locks.cpp.o
+[ 29%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_config.cpp.o
+[ 29%] Building CXX object CMakeFiles/CANDY.dir/src/Parallelism/task_scheduler.cpp.o
+[ 30%] Building CXX object CMakeFiles/CANDY.dir/src/Optimization/drl_optimization.cpp.o
+[ 30%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_get_random_seed.cpp.o
+[ 31%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_message.cpp.o
+[ 31%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_registry_hub.cpp.o
+[ 32%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_session.cpp.o
+[ 32%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_tag_alias_autoregistrar.cpp.o
+[ 33%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_test_case_info.cpp.o
+[ 33%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_test_spec.cpp.o
+[ 34%] Building CXX object CMakeFiles/CANDY.dir/src/Optimization/ml_models.cpp.o
+[ 35%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_timer.cpp.o
+[ 36%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_tostring.cpp.o
+[ 36%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_totals.cpp.o
+[ 37%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_translate_exception.cpp.o
+[ 37%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/catch_version.cpp.o
+[ 37%] Building CXX object CMakeFiles/CANDY.dir/src/Optimization/model_training.cpp.o
+[ 38%] Building CXX object CMakeFiles/CANDY.dir/src/IO/backup_restore.cpp.o
+[ 39%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_assertion_handler.cpp.o
+[ 39%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_case_insensitive_comparisons.cpp.o
+[ 40%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_clara.cpp.o
+[ 40%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_commandline.cpp.o
+[ 41%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_console_colour.cpp.o
+[ 41%] Building CXX object CMakeFiles/CANDY.dir/src/IO/data_loader.cpp.o
+[ 42%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_context.cpp.o
+[ 43%] Building CXX object CMakeFiles/CANDY.dir/src/IO/s3_storage.cpp.o
+[ 43%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_debug_console.cpp.o
+[ 44%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_debugger.cpp.o
+[ 44%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_decomposer.cpp.o
+[ 45%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_enforce.cpp.o
+[ 45%] Building CXX object CMakeFiles/CANDY.dir/src/IO/wal.cpp.o
+[ 45%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_enum_values_registry.cpp.o
+[ 46%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_errno_guard.cpp.o
+[ 47%] Building CXX object CMakeFiles/CANDY.dir/src/IO/BasicStorage.cpp.o
+[ 47%] Building CUDA object CMakeFiles/CANDY.dir/src/GPU/gpu_kernels.cu.o
+[ 48%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_exception_translator_registry.cpp.o
+[ 48%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_fatal_condition_handler.cpp.o
+[ 49%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_floating_point_helpers.cpp.o
+[ 49%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_getenv.cpp.o
+[ 50%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_istream.cpp.o
+[ 50%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_jsonwriter.cpp.o
+[ 51%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_lazy_expr.cpp.o
+[ 51%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_leak_detector.cpp.o
+[ 52%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_list.cpp.o
+[ 53%] Building CXX object CMakeFiles/CANDY.dir/src/GPU/gpu_memory.cpp.o
+[ 54%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_message_info.cpp.o
+[ 54%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_output_redirect.cpp.o
+[ 55%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_parse_numbers.cpp.o
+[ 55%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_polyfills.cpp.o
+[ 56%] Building CXX object CMakeFiles/CANDY.dir/src/GPU/gpu_scheduler.cpp.o
+[ 57%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_random_number_generator.cpp.o
+[ 57%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_random_seed_generation.cpp.o
+[ 58%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reporter_registry.cpp.o
+[ 58%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reporter_spec_parser.cpp.o
+[ 59%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_reusable_string_stream.cpp.o
+[ 59%] Building CXX object CMakeFiles/CANDY.dir/src/DataLoader/AbstractDataLoader.cpp.o
+[ 60%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_run_context.cpp.o
+[ 60%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_section.cpp.o
+[ 61%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_singletons.cpp.o
+[ 61%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_source_line_info.cpp.o
+[ 62%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_startup_exception_registry.cpp.o
+[ 62%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_stdstreams.cpp.o
+[ 63%] Building CXX object CMakeFiles/CANDY.dir/src/DataLoader/DataLoaderTable.cpp.o
+[ 64%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_string_manip.cpp.o
+[ 64%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_stringref.cpp.o
+[ 65%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_tag_alias_registry.cpp.o
+[ 66%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_info_hasher.cpp.o
+[ 66%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_registry_impl.cpp.o
+[ 67%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_case_tracker.cpp.o
+[ 67%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_failure_exception.cpp.o
+[ 68%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_registry.cpp.o
+[ 68%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_test_spec_parser.cpp.o
+[ 69%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_textflow.cpp.o
+[ 70%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_uncaught_exceptions.cpp.o
+[ 70%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_wildcard_pattern.cpp.o
+[ 71%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/internal/catch_xmlwriter.cpp.o
+[ 71%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers.cpp.o
+[ 72%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_container_properties.cpp.o
+[ 72%] Building CXX object CMakeFiles/CANDY.dir/src/DataLoader/RandomDataLoader.cpp.o
+[ 72%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_exception.cpp.o
+[ 73%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_floating_point.cpp.o
+[ 73%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_predicate.cpp.o
+[ 74%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_quantifiers.cpp.o
+[ 75%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_string.cpp.o
+[ 75%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/catch_matchers_templated.cpp.o
+[ 76%] Building CXX object CMakeFiles/CANDY.dir/src/DataLoader/FVECSDataLoader.cpp.o
+[ 76%] Building CXX object CMakeFiles/CANDY.dir/src/Core/partitioning.cpp.o
+[ 77%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2.dir/catch2/matchers/internal/catch_matchers_impl.cpp.o
+[ 78%] Building CXX object CMakeFiles/CANDY.dir/src/Core/transaction.cpp.o
+[ 78%] Building CXX object CMakeFiles/CANDY.dir/src/Core/vector_db.cpp.o
+[ 78%] Linking CXX static library libCatch2.a
+[ 78%] Built target Catch2
+[ 79%] Building CXX object CMakeFiles/CANDY.dir/src/Core/versioning.cpp.o
+[ 80%] Building CXX object CMakeFiles/CANDY.dir/src/API/StreamAPI.cpp.o
+/workspace/deps/CANDY/src/API/StreamAPI.cpp: In member function 'VectorDBStream& VectorDBStream::map_to_embedding(const std::function<at::Tensor(const std::basic_string<char>&)>&)':
+/workspace/deps/CANDY/src/API/StreamAPI.cpp:46:20: warning: unused variable 'tensor' [-Wunused-variable]
+   46 |   for (const auto& tensor : tensors) {
+      |                    ^~~~~~
+[ 80%] Building CUDA object CMakeFiles/CANDY.dir/src/Algorithms/SONG/SONG.cu.o
+[ 81%] Building CXX object third-party/Catch2/src/CMakeFiles/Catch2WithMain.dir/catch2/internal/catch_main.cpp.o
+[ 82%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/ANNSBase.cpp.o
+[ 82%] Linking CXX static library libCatch2Main.a
+[ 82%] Built target Catch2WithMain
+[ 82%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/SeparateANNSBase.cpp.o
+[ 83%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp.o
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp: In member function 'at::Tensor CANDY_ALGO::PlainMemBufferTU::getTensorInline(int64_t, int64_t)':
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:88:11: warning: unused variable 'diskOffset' [-Wunused-variable]
+   88 |   int64_t diskOffset;
+      |           ^~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp: In member function 'std::vector<long unsigned int> CANDY_ALGO::PlainMemBufferTU::getU64(int64_t, int64_t)':
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:106:11: warning: unused variable 'bufferBegin' [-Wunused-variable]
+  106 |   int64_t bufferBegin = u64Begin;
+      |           ^~~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp: In member function 'bool CANDY_ALGO::PlainMemBufferTU::reviseU64(int64_t, std::vector<long unsigned int>&)':
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:138:11: warning: unused variable 'remainSizeRu' [-Wunused-variable]
+  138 |   int64_t remainSizeRu;
+      |           ^~~~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:139:11: warning: unused variable 'diskOffset' [-Wunused-variable]
+  139 |   int64_t diskOffset;
+      |           ^~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:141:11: warning: unused variable 'bufferBegin' [-Wunused-variable]
+  141 |   int64_t bufferBegin = u64Begin;
+      |           ^~~~~~~~~~~
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp: In member function 'bool CANDY_ALGO::PlainMemBufferTU::deleteU64(int64_t, int64_t)':
+/workspace/deps/CANDY/src/Algorithms/FlatGPUIndex/disk_mem_buffer.cpp:178:11: warning: variable 'diskOffset' set but not used [-Wunused-but-set-variable]
+  178 |   int64_t diskOffset;
+      |           ^~~~~~~~~~
+[ 83%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/FlatGPUIndex/FlatGPUIndex.cpp.o
+[ 84%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/Vamana/vamana.cpp.o
+[ 85%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/Vamana/vamana_base.cpp.o
+[ 85%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/LSH/LSHSearch.cpp.o
+[ 86%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/KNN/KNNSearch.cpp.o
+[ 86%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/KNN/SeparateKNNSearch.cpp.o
+[ 87%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/KDTree/KDTree.cpp.o
+[ 87%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/HNSW/hnsw_base.cpp.o
+[ 88%] Building CXX object CMakeFiles/CANDY.dir/src/Algorithms/HNSW/hnsw.cpp.o
+[ 88%] Building CUDA object CMakeFiles/CANDY.dir/src/Algorithms/AlgorithmTable.cpp.o
+In file included from /workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:10,
+                 from /workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:7:
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp: In constructor 'ResultSet::ResultSet(int64_t)':
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:55:11: warning: 'ResultSet::max_size' will be initialized after [-Wreorder]
+   55 |   int64_t max_size;
+      |           ^~~~~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:54:11: warning:   'int64_t ResultSet::size_' [-Wreorder]
+   54 |   int64_t size_;
+      |           ^~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:58:3: warning:   when initialized here [-Wreorder]
+   58 |   ResultSet(int64_t max_size) : max_size(max_size), size_(0) {
+      |   ^~~~~~~~~
+In file included from /workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:7:
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp: In constructor 'CANDY_ALGO::KDTree::KDTree(size_t)':
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:25:10: warning: 'CANDY_ALGO::KDTree::vecDim' will be initialized after [-Wreorder]
+   25 |   size_t vecDim;
+      |          ^~~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:22:10: warning:   'float* CANDY_ALGO::KDTree::mean' [-Wreorder]
+   22 |   float* mean;
+      |          ^~~~
+/workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:31:1: warning:   when initialized here [-Wreorder]
+   31 | KDTree::KDTree(size_t dimensions)
+      | ^~~~~~
+In file included from /workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:7:
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:34:7: warning: 'CANDY_ALGO::KDTree::checks' will be initialized after [-Wreorder]
+   34 |   int checks;
+      |       ^~~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:24:12: warning:   'uint64_t CANDY_ALGO::KDTree::ntotal' [-Wreorder]
+   24 |   uint64_t ntotal;
+      |            ^~~~~~
+/workspace/deps/CANDY/src/Algorithms/KDTree/KDTree.cpp:31:1: warning:   when initialized here [-Wreorder]
+   31 | KDTree::KDTree(size_t dimensions)
+      | ^~~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(48): warning #997-D: function "CANDY::AbstractANNS::loadInitialTensor(at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::loadInitialTensor" -- virtual function override intended?
+    bool loadInitialTensor(const torch::Tensor& t);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(50): warning #997-D: function "CANDY::AbstractANNS::deleteTensor(at::Tensor &, int64_t)" is hidden by "CANDY_ALGO::KDTree::deleteTensor" -- virtual function override intended?
+    bool deleteTensor(const torch::Tensor& t, int64_t k = 1);
+         ^
+
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp(52): warning #997-D: function "CANDY::AbstractANNS::reviseTensor(at::Tensor &, at::Tensor &)" is hidden by "CANDY_ALGO::KDTree::reviseTensor" -- virtual function override intended?
+    bool reviseTensor(const torch::Tensor& t, const torch::Tensor& w);
+         ^
+
+[ 89%] Linking CXX shared library libCANDY.so
+[ 89%] Built target CANDY
+[ 89%] Building CUDA object apps/CPlusPlus/CMakeFiles/Main.dir/Main.cpp.o
+[ 90%] Building CXX object test/CoreTests/CMakeFiles/torch_tests.dir/TorchTests.cpp.o
+[ 91%] Building CXX object test/UtilsTests/CMakeFiles/thread_pool_tests.dir/thread_pool_tests.cpp.o
+[ 91%] Building CXX object test/UtilsTests/CMakeFiles/config_parser_tests.dir/config_parser_tests.cpp.o
+In file included from /workspace/deps/CANDY/test/UtilsTests/config_parser_tests.cpp:7:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /workspace/deps/CANDY/include/Utils/IntelliLog.hpp:16,
+                 from /workspace/deps/CANDY/include/Utils/ConfigMap.hpp:11,
+                 from /workspace/deps/CANDY/test/UtilsTests/config_parser_tests.cpp:6:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+In file included from /workspace/deps/CANDY/test/UtilsTests/thread_pool_tests.cpp:6:
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp: In constructor 'ThreadPool::thread_worker::thread_worker(ThreadPool*, int)':
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:32:17: warning: 'ThreadPool::thread_worker::m_pool' will be initialized after [-Wreorder]
+   32 |     ThreadPool* m_pool;
+      |                 ^~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:31:9: warning:   'int ThreadPool::thread_worker::m_id' [-Wreorder]
+   31 |     int m_id;
+      |         ^~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:35:5: warning:   when initialized here [-Wreorder]
+   35 |     thread_worker(ThreadPool* pool, const int id) : m_pool(pool), m_id(id) {}
+      |     ^~~~~~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp: In constructor 'ThreadPool::ThreadPool(int)':
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:25:28: warning: 'ThreadPool::m_threads' will be initialized after [-Wreorder]
+   25 |   std::vector<std::thread> m_threads;
+      |                            ^~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:23:8: warning:   'bool ThreadPool::m_shutdown' [-Wreorder]
+   23 |   bool m_shutdown;
+      |        ^~~~~~~~~~
+/workspace/deps/CANDY/include/Utils/thread_pool.hpp:41:3: warning:   when initialized here [-Wreorder]
+   41 |   ThreadPool(const int n_threads)
+      |   ^~~~~~~~~~
+[ 91%] Linking CXX executable thread_pool_tests
+In file included from /workspace/deps/CANDY/test/CoreTests/TorchTests.cpp:7:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue_inl.h:26,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue.h:1581,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List_inl.h:4,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List.h:488,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef_inl.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef.h:631,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/WrapDimUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/TensorNames.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/NamedTensorUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/variable.h:11,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/all.h:7,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/torch.h:3,
+                 from /workspace/deps/CANDY/include/Algorithms/SeparateANNSBase.hpp:9,
+                 from /workspace/deps/CANDY/include/Core/vector_db.hpp:13,
+                 from /workspace/deps/CANDY/test/CoreTests/TorchTests.cpp:6:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+[ 92%] Linking CXX executable config_parser_tests
+[ 92%] Built target thread_pool_tests
+[ 92%] Building CXX object test/UtilsTests/CMakeFiles/file_loader_tests.dir/file_loader_tests.cpp.o
+[ 92%] Built target config_parser_tests
+[ 93%] Building CXX object test/AlgorithmsTests/CMakeFiles/KdTreeTests.dir/KdTreeTests.cpp.o
+[ 94%] Linking CXX executable file_loader_tests
+In file included from /workspace/deps/CANDY/test/AlgorithmsTests/KdTreeTests.cpp:8:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue_inl.h:26,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue.h:1581,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List_inl.h:4,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List.h:488,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef_inl.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef.h:631,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/WrapDimUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/TensorNames.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/NamedTensorUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/variable.h:11,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/all.h:7,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/torch.h:3,
+                 from /workspace/deps/CANDY/test/AlgorithmsTests/KdTreeTests.cpp:7:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+[ 94%] Built target file_loader_tests
+[ 95%] Building CXX object test/AlgorithmsTests/CMakeFiles/HNSWTests.dir/HNSWTests.cpp.o
+In file included from /workspace/deps/CANDY/test/AlgorithmsTests/HNSWTests.cpp:10:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue_inl.h:26,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue.h:1581,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List_inl.h:4,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List.h:488,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef_inl.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef.h:631,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/WrapDimUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/TensorNames.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/NamedTensorUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/variable.h:11,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/all.h:7,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/torch.h:3,
+                 from /workspace/deps/CANDY/test/AlgorithmsTests/HNSWTests.cpp:7:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+In file included from /workspace/deps/CANDY/include/Algorithms/KDTree/KDTree.hpp:10,
+                 from /workspace/deps/CANDY/test/AlgorithmsTests/KdTreeTests.cpp:12:
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp: In constructor 'ResultSet::ResultSet(int64_t)':
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:55:11: warning: 'ResultSet::max_size' will be initialized after [-Wreorder]
+   55 |   int64_t max_size;
+      |           ^~~~~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:54:11: warning:   'int64_t ResultSet::size_' [-Wreorder]
+   54 |   int64_t size_;
+      |           ^~~~~
+/workspace/deps/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp:58:3: warning:   when initialized here [-Wreorder]
+   58 |   ResultSet(int64_t max_size) : max_size(max_size), size_(0) {
+      |   ^~~~~~~~~
+[ 96%] Linking CXX executable KdTreeTests
+[ 96%] Built target KdTreeTests
+[ 97%] Linking CXX executable torch_tests
+[ 97%] Building CXX object test/AlgorithmsTests/CMakeFiles/LSHTests.dir/LSHTests.cpp.o
+In file included from /workspace/deps/CANDY/test/AlgorithmsTests/LSHTests.cpp:9:
+/workspace/deps/CANDY/third-party/Catch2/src/catch2/catch_test_macros.hpp:134: warning: "CHECK" redefined
+  134 |   #define CHECK( ... ) INTERNAL_CATCH_TEST( "CHECK", Catch::ResultDisposition::ContinueOnFailure, __VA_ARGS__ )
+      | 
+In file included from /usr/local/lib/python3.11/dist-packages/torch/include/c10/util/Logging.h:29,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue_inl.h:26,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/ivalue.h:1581,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List_inl.h:4,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/List.h:488,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef_inl.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/core/IListRef.h:631,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/WrapDimUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/TensorNames.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/ATen/NamedTensorUtils.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/variable.h:11,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/autograd/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/autograd.h:3,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/all.h:7,
+                 from /usr/local/lib/python3.11/dist-packages/torch/include/torch/csrc/api/include/torch/torch.h:3,
+                 from /workspace/deps/CANDY/test/AlgorithmsTests/LSHTests.cpp:7:
+/usr/local/lib/python3.11/dist-packages/torch/include/c10/util/logging_is_not_google_glog.h:121: note: this is the location of the previous definition
+  121 | #define CHECK(condition) FATAL_IF(condition) << "Check failed: " #condition " "
+      | 
+[ 97%] Built target torch_tests
+[ 98%] Building CXX object python_bindings/pybind11_bindings/CMakeFiles/pycandy.dir/vectordb_pybind.cpp.o
+[ 98%] Linking CXX executable HNSWTests
+[ 98%] Built target HNSWTests
+[ 99%] Linking CXX executable LSHTests
+[ 99%] Built target LSHTests
+[ 99%] Linking CXX shared module pycandy.so
+Installing pycandy shared library at /root/.local/lib/python3.11/site-packages
+[ 99%] Built target pycandy
+[100%] Linking CUDA executable Main
+[100%] Built target Main
+Installing the project...
+[ 28%] Built target CANDY
+[ 29%] Built target run_format
+[ 88%] Built target Catch2
+[ 89%] Built target Catch2WithMain
+[ 90%] Built target Main
+[ 92%] Built target torch_tests
+[ 93%] Built target thread_pool_tests
+[ 94%] Built target config_parser_tests
+[ 95%] Built target file_loader_tests
+[ 97%] Built target KdTreeTests
+[ 98%] Built target HNSWTests
+[ 99%] Built target LSHTests
+[100%] Built target pycandy
+Install the project...
+-- Install configuration: "Release"
+-- Installing: /root/.local/lib/python3.11/site-packages/pycandy.so
+-- Set runtime path of "/root/.local/lib/python3.11/site-packages/pycandy.so" to "$ORIGIN:/usr/local/lib/python3.11/dist-packages/torch/lib"
+-- Installing: /root/.local/lib/python3.11/site-packages/libCANDY.so
+-- Set runtime path of "/root/.local/lib/python3.11/site-packages/libCANDY.so" to "$ORIGIN:/usr/local/lib/python3.11/dist-packages/torch/lib"
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Transaction
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Transaction/deadlock_prevention.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Parallelism
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Parallelism/locks.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Parallelism/task_scheduler.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/HNSW
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/HNSW/hnsw_base.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/HNSW/hnsw.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/AbstractANNSAlgorithm.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Vamana
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Vamana/vamana.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Vamana/vamana_base.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/LSH
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/LSH/LSHSearch.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/AbstractSeparateANNSAlgorithm.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/AlgorithmTable.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KDTree
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KDTree/KDTreeUtils.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KDTree/KDTree.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Utils
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/Utils/metric_type.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/ANNSBase.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KNN
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KNN/SeparateKNNSearch.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/KNN/KNNSearch.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SeparateANNSBase.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/FlatGPUIndex
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/FlatGPUIndex/FlatGPUIndex.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/FlatGPUIndex/disk_mem_buffer.h
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/SONG.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/data.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/cuckoofilter.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/warp_astar_accelerator.cuh
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/blocked_bloomfilter.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/fixhash.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/smmh2.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/config.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/bin_heap.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/kernelgraph.cuh
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Algorithms/SONG/bloomfilter.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/ConfigMap.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/Param.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/TensorOP.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/file_loader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/IntelliLog.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/thread_pool.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/Computation.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/timing.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/safe_queue.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/TimeStampGenerator.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/error_handling.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/MicroDataSet.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Utils/UtilityFunctions.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Performance
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Performance/monitoring.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Performance/gpu_benchmark.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Performance/benchmark.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/wal.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/BasicStorage.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/data_loader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/s3_storage.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/AbstractStorageEngine.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/IO/backup_restore.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Optimization
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Optimization/drl_optimization.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Optimization/ml_models.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Optimization/model_training.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/API
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/API/StreamAPI.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader/DataLoaderTable.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader/AbstractDataLoader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader/FVECSDataLoader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/DataLoader/RandomDataLoader.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/GPU
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/GPU/gpu_scheduler.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/GPU/gpu_memory.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/GPU/gpu_kernels.cuh
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/ComputeEngine
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/ComputeEngine/BasicComputeEngine.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/ComputeEngine/AbstractComputeEngine.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core/versioning.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core/vector_db.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core/transaction.hpp
+-- Installing: /root/.local/lib/python3.11/site-packages/include/CANDY/include/Core/partitioning.hpp
+Build and installation complete.
+Copying .so files from /root/.local/lib/python3.11/site-packages to ./candy
+Ensuring ./candy/__init__.py exists...
+Building the Python package...
+running sdist
+running egg_info
+creating candy.egg-info
+writing candy.egg-info/PKG-INFO
+writing dependency_links to candy.egg-info/dependency_links.txt
+writing top-level names to candy.egg-info/top_level.txt
+writing manifest file 'candy.egg-info/SOURCES.txt'
+reading manifest file 'candy.egg-info/SOURCES.txt'
+writing manifest file 'candy.egg-info/SOURCES.txt'
+running check
+warning: check: missing required meta-data: url
+
+creating candy-0.1.0
+creating candy-0.1.0/candy
+creating candy-0.1.0/candy.egg-info
+copying files to candy-0.1.0...
+copying README.md -> candy-0.1.0
+copying setup.py -> candy-0.1.0
+copying candy/__init__.py -> candy-0.1.0/candy
+copying candy/libCANDY.so -> candy-0.1.0/candy
+copying candy/pycandy.so -> candy-0.1.0/candy
+copying candy.egg-info/PKG-INFO -> candy-0.1.0/candy.egg-info
+copying candy.egg-info/SOURCES.txt -> candy-0.1.0/candy.egg-info
+copying candy.egg-info/dependency_links.txt -> candy-0.1.0/candy.egg-info
+copying candy.egg-info/not-zip-safe -> candy-0.1.0/candy.egg-info
+copying candy.egg-info/top_level.txt -> candy-0.1.0/candy.egg-info
+Writing candy-0.1.0/setup.cfg
+Creating tar archive
+removing 'candy-0.1.0' (and everything under it)
+running bdist_wheel
+running build
+running build_py
+creating build
+creating build/lib
+creating build/lib/candy
+copying candy/__init__.py -> build/lib/candy
+copying candy/pycandy.so -> build/lib/candy
+copying candy/libCANDY.so -> build/lib/candy
+/usr/lib/python3/dist-packages/setuptools/command/install.py:34: SetuptoolsDeprecationWarning: setup.py install is deprecated. Use build and pip and other standards-based tools.
+  warnings.warn(
+installing to build/bdist.linux-x86_64/wheel
+running install
+running install_lib
+creating build/bdist.linux-x86_64
+creating build/bdist.linux-x86_64/wheel
+creating build/bdist.linux-x86_64/wheel/candy
+copying build/lib/candy/pycandy.so -> build/bdist.linux-x86_64/wheel/candy
+copying build/lib/candy/__init__.py -> build/bdist.linux-x86_64/wheel/candy
+copying build/lib/candy/libCANDY.so -> build/bdist.linux-x86_64/wheel/candy
+running install_egg_info
+Copying candy.egg-info to build/bdist.linux-x86_64/wheel/candy-0.1.0.egg-info
+running install_scripts
+creating build/bdist.linux-x86_64/wheel/candy-0.1.0.dist-info/WHEEL
+creating 'dist/candy-0.1.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+adding 'candy/__init__.py'
+adding 'candy/libCANDY.so'
+adding 'candy/pycandy.so'
+adding 'candy-0.1.0.dist-info/METADATA'
+adding 'candy-0.1.0.dist-info/WHEEL'
+adding 'candy-0.1.0.dist-info/top_level.txt'
+adding 'candy-0.1.0.dist-info/RECORD'
+removing build/bdist.linux-x86_64/wheel
+Installing ./dist/candy-0.1.0-py3-none-any.whl...
+Processing ./dist/candy-0.1.0-py3-none-any.whl
+Installing collected packages: candy
+Successfully installed candy-0.1.0
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable.It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+Package installed successfully.
