@@ -42,7 +42,7 @@ class Generator(BaseOperator):
 
         self.logger.info("Model and tokenizer loaded successfully.")
 
-    def execute(self, input_data, **kwargs):
+    def execute(self, input_data, memorag=1, **kwargs):
         """
         Generate a response using the model.
         :param input_data: Preformatted QA-template input string.
@@ -87,7 +87,9 @@ class Generator(BaseOperator):
             self.logger.info(f"Extracted answer: {answer}")
 
             self.emit({"question": input_data, "answer": answer})
-
+            if memorag == 1:
+                with open("/workspace/experiment/memorag/output.txt", "a", encoding="utf-8") as f:
+                        f.write(answer + "\n")  # 每行末尾添加换行符
             return answer
 
         except Exception as e:

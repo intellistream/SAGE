@@ -86,3 +86,16 @@ class Query:
         for n in range(len(self.dialogues)):
             for turn, query, response in self.iter_dialogue(n):
                 yield n, turn, query, response
+
+    def get_all_response(self):
+        """
+        Returns all the lines spoken by the agent in all the conversations.
+        :return: A list containing all the lines spoken by the agent.
+        """
+        agent_responses = []
+        for dialogue in self.dialogues:
+            for utterance in dialogue:
+                if utterance["speaker"] == "agent":
+                    agent_responses.append(utterance["text"])
+        return agent_responses
+

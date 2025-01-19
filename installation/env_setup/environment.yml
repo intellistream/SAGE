@@ -258,4 +258,5 @@ dependencies:
       - xxhash==3.5.0
       - yarl==1.14.0
       - zipp==3.20.2
+      - rouge==1.0.1
 prefix: /miniconda3/envs/sage
