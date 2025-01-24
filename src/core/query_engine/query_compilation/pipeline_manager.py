@@ -6,7 +6,7 @@ from src.core.query_engine.operators.prompter import PromptOperator
 from src.core.query_engine.operators.retriever import Retriever
 from src.core.query_engine.operators.summarizer import Summarizer
 from src.core.query_engine.dag.one_shot_dag_node import OneShotDAGNode
-from src.utils.file_path import SUMMARIZATION_PROMPT_TEMPLATE, QAPROMPT_TEMPLATE
+from src.utils.file_path import SUMMARIZATION_PROMPT_TEMPLATE, QAPROMPT_TEMPLATE, REORGANIZE_TEMPLATE
 
 
 class PipelineManager:
@@ -74,7 +74,7 @@ class PipelineManager:
 
         writer_node = OneShotDAGNode(
             name="MemWriter",
-            operator=MemWriter(self.memory_manager),
+            operator=MemWriter(self.memory_manager, reorganize_template=REORGANIZE_TEMPLATE),
         )
 
         dag.add_node(retriever_node)

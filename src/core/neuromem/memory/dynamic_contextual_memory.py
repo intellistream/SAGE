@@ -101,7 +101,7 @@ class DynamicContextualMemory(BaseMemory):
                 else:
                     results.append(None)  # Handle missing raw ID
 
-            self.logger.info(f"Retrieved {len(results)} raw data items from persistent memory.")
+            self.logger.info(f"Retrieved {len(results)} raw data items from dynamic contextual memory.")
             return results
         except Exception as e:
             self.logger.error(f"Error retrieving items: {str(e)}")

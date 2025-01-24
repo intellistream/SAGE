@@ -36,6 +36,10 @@ def bert_recall(reference, generated):
     """
     计算 BERT Recall 分数
     """
+    if not generated.strip():  # 检查生成的文本是否为空
+        print(f"Error: Generated text is empty for reference: '{reference}'")
+        return 0.0  # 如果为空，返回 0 分
+
     inputs_ref = tokenizer(reference, return_tensors="pt", padding=True, truncation=True)
     inputs_gen = tokenizer(generated, return_tensors="pt", padding=True, truncation=True)
 
@@ -50,6 +54,8 @@ def rouge_l(reference, generated):
     """
     计算 ROUGE-L 分数
     """
+    if not generated.strip():  # 检查生成的文本是否为空
+        return 0.0  # 如果为空，返回 0 分
     scores = rouge.get_scores(generated, reference)
     return scores[0]['rouge-l']['f']
 
@@ -117,6 +123,9 @@ def main():
     groundtruth_file = QUERY_FILE
     generated_file = '/workspace/experiment/memorag/output.txt'
     groundtruth, generated_texts = load_data(groundtruth_file, generated_file)
+
+    print(f"generateNum: {len(generated_texts)}")
+    print(f"groundtruthNum: {len(groundtruth)}")
 
     results = evaluate_all(groundtruth[:len(generated_texts)], generated_texts)
 

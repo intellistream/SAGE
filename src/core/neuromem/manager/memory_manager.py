@@ -47,7 +47,7 @@ class NeuronMemManager:
                 memory.store(data, raw_data=raw_data)
             else:
                 memory.store(data, key=key)
-            self.logger.info(f"Stored data in {memory_layer}: {data}")
+            self.logger.info(f"Stored data in {memory_layer}")#: {data}")
         except Exception as e:
             self.logger.error(f"Failed to store data in {memory_layer}: {str(e)}")
             raise RuntimeError(f"Error storing data in {memory_layer}: {str(e)}")
@@ -75,7 +75,7 @@ class NeuronMemManager:
             else:
                 data = memory.retrieve(key=key, k=k)
 
-            self.logger.info(f"Retrieved data from {memory_layer}: {data}")
+            self.logger.info(f"Retrieved data from {memory_layer}")#(: {data}")
             return data
         except Exception as e:
             self.logger.error(f"Failed to retrieve data from {memory_layer}: {str(e)}")
@@ -92,14 +92,14 @@ class NeuronMemManager:
 
             # Retrieve all STM data
             session_data = stm.retrieve(k=len(stm.storage))
-            self.logger.info(f"Flushing session data from STM to LTM: {session_data}")
+            self.logger.info(f"Flushing session data from STM to LTM")# : {session_data}")
 
             # Process and store session data in LTM
             if session_data:
                 combined_session_text = ' '.join(str(item) for item in session_data)
                 session_embedding = process_text_to_embedding(combined_session_text)
                 ltm.store(session_embedding, combined_session_text)
-                self.logger.info(f"Flushed session data to LTM: {combined_session_text}")
+                self.logger.info(f"Flushed session data to LTM:")# {combined_session_text}")
 
             # Clear STM
             stm.clean()

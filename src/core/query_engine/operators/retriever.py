@@ -1,4 +1,5 @@
 import logging
+from idlelib import history
 
 from pandas.tests.series.methods.test_rank import results
 
@@ -85,15 +86,21 @@ class Retriever(BaseOperator):
             )
 
             # Combine results
-            combined_results = _aggregate_results(
-                short_term_results, long_term_results, contextual_results
-            )
+            contextual_results = [item for item in contextual_results if item is not None]
+            combined_results = _aggregate_results(contextual_results)
+            short_term_results = [item for item in short_term_results if item is not None]
+            long_term_results = [item for item in long_term_results if item is not None]
+            history = _aggregate_results(short_term_results, long_term_results)
 
             if combined_results:
                 self.logger.info(f"Data retrieved successfully: {len(combined_results)} result(s) found.")
                 # Emit the raw query and results
-                self.emit((input_data[0], combined_results))
+                if history is not None:
+                    self.emit({"question": input_data, "context": combined_results, "history": history})
+                else:
+                    self.emit({"question": input_data, "context": combined_results})
             else:
+                self.emit({"question": input_data})
                 self.logger.warning("No data found in long-term memory.")
 
         except Exception as e:

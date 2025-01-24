@@ -20,5 +20,6 @@ SRC_DIR = os.path.join(BASE_DIR, "src")
 CORE_DIR = os.path.join(SRC_DIR, "core")
 PROMPTS_DIR = os.path.join(CORE_DIR, "prompts")
 QAPROMPT_TEMPLATE = os.path.join(PROMPTS_DIR, "question_answer_template.txt")
+REORGANIZE_TEMPLATE = os.path.join(PROMPTS_DIR, "reorganize_template.txt")
 SUMMARIZATION_PROMPT_TEMPLATE = os.path.join(PROMPTS_DIR, "summarization_template.txt")
 

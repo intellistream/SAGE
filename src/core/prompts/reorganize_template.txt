@@ -1,0 +1,10 @@
+Instruction:
+This is a historical dialogue information. Please pay attention to this information when answering questions to provide more coherent answers
+Former Question:
+{{ question }}
+{%- if context %}
+Relevant corpus for the above question:
+{{ context }}
+{%- endif %}
+Answer for the above qustion:
+{{ answer }}

@@ -34,7 +34,7 @@ class BaseDAGNode:
         """
         if node not in self.upstream_nodes:
             self.upstream_nodes.append(node)
-            self.logger.info(f"Node '{self.name}' connected to upstream node '{node.name}'.")
+            # self.logger.info(f"Node '{self.name}' connected to upstream node '{node.name}'.")
 
     def add_downstream_node(self, node):
         """
@@ -44,7 +44,7 @@ class BaseDAGNode:
         if node not in self.downstream_nodes:
             self.downstream_nodes.append(node)
             node.add_upstream_node(self)
-            self.logger.info(f"Node '{self.name}' connected to downstream node '{node.name}'.")
+            # self.logger.info(f"Node '{self.name}' connected to downstream node '{node.name}'.")
 
     def fetch_input(self):
         """

@@ -5,7 +5,7 @@ import logging
 from src.core.query_engine.query_compilation.query_compiler import QueryCompiler
 from src.core.query_engine.query_execution.query_executor import QueryExecutor
 from src.core.neuromem.memory.utils import initialize_memory_manager
-from src.utils.logger import configure_logging
+from src.utils.logger import configure_logging, get_logger
 from src.utils.query import Query
 from src.utils.file_path import QUERY_FILE
 
@@ -42,8 +42,16 @@ def run_debug_pipeline(input_text, memory_manager):
 
 
 if __name__ == "__main__":
-    # Configure logging
-    configure_logging(level=logging.INFO)
+    # # Configure logging
+    # configure_logging(level=logging.INFO)
+    # Configure logging to save to /log directory
+    log_dir = "/workspace/experiment/memorag/log"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)  # Create /log directory if it doesn't exist
+
+    log_file = os.path.join(log_dir, "debug_pipeline.log")
+    configure_logging(level=logging.INFO, log_file=log_file)  # 使用你原有的 configure_logging 函数
+    logger = get_logger(__name__)  # 使用你原有的 get_logger 函数
     # Initialize memory layers
     memory_manager = initialize_memory_manager()
 
@@ -56,10 +64,6 @@ if __name__ == "__main__":
             if turn == query.dialogue_info[dialogue_index]["dialogue_length"] - 1:
                 logging.info(f"Flushing session context to LTM")
                 memory_manager.flush_stm_to_ltm()
-
-            # end of test
-            if dialogue_index == 1:
-                break
 
     finally:
         # Reset memory layers after testing

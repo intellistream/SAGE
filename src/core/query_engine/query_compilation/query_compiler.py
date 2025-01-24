@@ -31,12 +31,15 @@ class QueryCompiler:
         :param input_text: User-provided query or question.
         :return: Optimized DAG and execution type.
         """
-        if input_text.upper().startswith("EXECUTE"):
-            dag, execution_type = self._compile_one_shot(input_text), "one_shot"
-        elif input_text.upper().startswith("REGISTER"):
-            dag, execution_type = self._compile_continuous(input_text), "continuous"
-        else:
-            dag, execution_type = self.compile_natural_query(input_text), "one_shot"
+        # memorag 实验备注 before
+        # if input_text.upper().startswith("EXECUTE"):
+        #     dag, execution_type = self._compile_one_shot(input_text), "one_shot"
+        # elif input_text.upper().startswith("REGISTER"):
+        #     dag, execution_type = self._compile_continuous(input_text), "continuous"
+        # else:
+        #     dag, execution_type = self.compile_natural_query(input_text), "one_shot"
+        # memorag 实验备注 after
+        dag, execution_type = self.compile_natural_query(input_text), "one_shot"
 
         # Optimize the DAG
         optimized_dag = self.optimizer.optimize(dag)
@@ -104,10 +107,11 @@ class QueryCompiler:
         :param natural_query: The query to process.
         :return: The detected intent.
         """
-        if "summarize" in natural_query.lower():
-            return "summarization"
-        else:
-            return "question_answering"  # Default intent for other types
+        # if "summarize" in natural_query.lower():
+        #     return "summarization"
+        # else:
+        #     return "question_answering"  # Default intent for other types
+        return "question_answering"
 
     def _compile_one_shot(self, query):
         """
