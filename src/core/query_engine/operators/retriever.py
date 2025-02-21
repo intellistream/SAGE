@@ -54,8 +54,9 @@ class Retriever(BaseOperator):
             k = kwargs.get("k", 1)  # Number of results to retrieve
             self.logger.info(f"Generating embedding for query: {input_data}")
 
-            # Generate embedding from the query
-            query_embedding = self.embedder.generate_embedding(input_data) ### NLPer how to best embedding the question.
+
+            # # Generate embedding from the query
+            # query_embedding = self.embedder.generate_embedding(input_data) ### NLPer how to best embedding the question.
 
             # Retrieve results from memory layers
             self.logger.info(f"Retrieving data from memory layers for query: {input_data}")
@@ -76,25 +77,34 @@ class Retriever(BaseOperator):
             # results.append(self.memory_manager.get_memory_layers_by_name("short_term").retrieve(k=k))
             # results.append(self.memory_manager.get_memory_layers_by_name("long_term").retrieve(k=k))
             # results.append(self.memory_manager.get_memory_layers_by_name("dynamic_contextual").retrieve(query=query_embedding, k=k))
-            short_term_results = self.memory_manager.retrieve_from_memory(memory_layer="short_term", k=k)
-            long_term_results = self.memory_manager.retrieve_from_memory(
-                memory_layer="long_term", query_embedding=query_embedding, k=k
-            )
-            contextual_results = self.memory_manager.retrieve_from_memory(
-                memory_layer="dynamic_contextual", query_embedding=query_embedding, k=k
-            )
+            # short_term_results = self.memory_manager.retrieve_from_memory(memory_layer="short_term", k=k)
+            # long_term_results = self.memory_manager.retrieve_from_memory(
+            #     memory_layer="long_term", query_embedding=query_embedding, k=k
+            # )
+            # contextual_results = self.memory_manager.retrieve_from_memory(
+            #     memory_layer="dynamic_contextual", query_embedding=query_embedding, k=k
+            # )
+            #
+            # # Combine results
+            # combined_results = _aggregate_results(
+            #     short_term_results, long_term_results, contextual_results
+            # )
+            #
+            # if combined_results:
+            #     self.logger.info(f"Data retrieved successfully: {len(combined_results)} result(s) found.")
+            #     # Emit the raw query and results
+            #     self.emit((input_data[0], combined_results))
+            # else:
+            #     self.logger.warning("No data found in long-term memory.")
 
-            # Combine results
-            combined_results = _aggregate_results(
-                short_term_results, long_term_results, contextual_results
-            )
+            # Call memory manager (integration pipeline will handle retrieval strategy)
+            retrieved_data = self.memory_manager.retrieve(input_data[0])
 
-            if combined_results:
-                self.logger.info(f"Data retrieved successfully: {len(combined_results)} result(s) found.")
-                # Emit the raw query and results
-                self.emit((input_data[0], combined_results))
+            if retrieved_data:
+                self.logger.info(f"Retrieved {len(retrieved_data)} relevant results.")
+                self.emit((input_data[0], retrieved_data))
             else:
-                self.logger.warning("No data found in long-term memory.")
+                self.logger.warning("No relevant data found.")
 
         except Exception as e:
             self.logger.error(f"Error during retrieval: {str(e)}")
