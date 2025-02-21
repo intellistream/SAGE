@@ -3,6 +3,7 @@ import logging
 from src.core.neuromem.memory.dynamic_contextual_memory import DynamicContextualMemory
 from src.core.neuromem.memory.long_term_memory import LongTermMemory
 from src.core.neuromem.memory.short_term_memory import ShortTermMemory
+from src.core.neuromem.pipelines.integration_pipeline import IntegrationPipeline
 from src.utils.text_processing import process_session_text_to_embedding, process_text_to_embedding
 
 
@@ -18,9 +19,10 @@ class NeuronMemManager:
 
     def __init__(self, memory_layers):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.pipelines = {}
-        self.backend_pipelines = {}
+        # self.pipelines = {}
+        # self.backend_pipelines = {}
         self.memory_layers = memory_layers
+        self.integration_pipeline = IntegrationPipeline(memory_layers)  # Encapsulated pipeline
 
 
     def get_memory_layers(self):
@@ -29,6 +31,20 @@ class NeuronMemManager:
 
     def get_memory_layers_by_name(self, name):
         return self.memory_layers[name]
+
+
+    def retrieve(self, query):
+        """
+        Retrieve relevant data for a given query using an adaptive retrieval plan.
+        :param query: User's query (plain text).
+        :return: Retrieved data.
+        """
+        try:
+            return self.integration_pipeline.execute(query)
+
+        except Exception as e:
+            self.logger.error(f"Retrieval error: {str(e)}")
+            raise RuntimeError(f"Error in adaptive retrieval: {str(e)}")
 
 
     def store_to_memory(self, data, raw_data=None, key=None, memory_layer="short_term"):
@@ -116,6 +132,7 @@ class NeuronMemManager:
         raise NotImplementedError("Pipeline execution is not yet implemented.")
 
     # Start a chrono thread that can run backend pipeline periodically.
+
 
 
 if __name__ == '__main__':
