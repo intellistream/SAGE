@@ -43,7 +43,7 @@ def preload_dynamic_contextual_memory(memory, file_path):
         corpus = Corpus(file_path)
         # Currently only the first five corpora are input for testing
         # for i in range(corpus.get_len()):
-        for i in range(5):
+        for i in range(2):
             text = corpus.get_item_text(i)
             embedding = process_text_to_embedding(text)
             corpus.set_db_id(i, memory.store(embedding, text))

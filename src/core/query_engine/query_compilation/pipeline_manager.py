@@ -72,10 +72,10 @@ class PipelineManager:
             operator=Generator(),
             config={"max_length": 50}  # Example configuration for generation
         )
-        dialogue_distillation_node = OneShotDAGNode(
-            name="DialogueDistillation",
-            operator=DialogueDistillation(),
-        )
+        # dialogue_distillation_node = OneShotDAGNode(
+        #     name="DialogueDistillation",
+        #     operator=DialogueDistillation(),
+        # )
         writer_node = OneShotDAGNode(
             name="MemWriter",
             operator=MemWriter(self.memory_manager, reorganize_template=REORGANIZE_TEMPLATE),
