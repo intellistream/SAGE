@@ -2,6 +2,7 @@ from urllib3.filepost import writer
 
 from src.core.query_engine.operators.generator import Generator
 from src.core.query_engine.operators.memwriter import MemWriter
+from src.core.query_engine.operators.dialogue_distillation import DialogueDistillation
 from src.core.query_engine.operators.prompter import PromptOperator
 from src.core.query_engine.operators.retriever import Retriever
 from src.core.query_engine.operators.summarizer import Summarizer
@@ -71,7 +72,10 @@ class PipelineManager:
             operator=Generator(),
             config={"max_length": 50}  # Example configuration for generation
         )
-
+        dialogue_distillation_node = OneShotDAGNode(
+            name="DialogueDistillation",
+            operator=DialogueDistillation(),
+        )
         writer_node = OneShotDAGNode(
             name="MemWriter",
             operator=MemWriter(self.memory_manager, reorganize_template=REORGANIZE_TEMPLATE),
@@ -80,10 +84,17 @@ class PipelineManager:
         dag.add_node(retriever_node)
         dag.add_node(prompt_node)
         dag.add_node(generator_node)
+        # dag.add_node(dialogue_distillation_node)
         dag.add_node(writer_node)
 
         # Define edges
         dag.add_edge(spout_node, retriever_node)
         dag.add_edge(retriever_node, prompt_node)
         dag.add_edge(prompt_node, generator_node)
+
+        # with distillation
+        # dag.add_edge(generator_node, dialogue_distillation_node)
+        # dag.add_edge(dialogue_distillation_node, writer_node)
+
+        # # without distillation
         dag.add_edge(generator_node, writer_node)

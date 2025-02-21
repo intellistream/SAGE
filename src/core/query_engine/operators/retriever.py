@@ -61,22 +61,6 @@ class Retriever(BaseOperator):
             # Retrieve results from memory layers
             self.logger.info(f"Retrieving data from memory layers for query: {input_data}")
 
-            # Retrieve results from long-term memory
-            # results=self.neuromemory.smart_query(query_embedding)
-
-            # Is the Similarity = Usefulness?
-
-            # results = self.neuromemory.retrieve(short_term, k=?).filter().summary().compareTo(retrieve(long_term))
-            # results = self.neuromemory.window().retrieve().
-            # clean_results = post_processing(results) ### NLPer how to best clean up the results.
-            # SQL:
-            # SELECT *
-            # FROM self.neuromemory
-            # Graph-RAG
-
-            # results.append(self.memory_manager.get_memory_layers_by_name("short_term").retrieve(k=k))
-            # results.append(self.memory_manager.get_memory_layers_by_name("long_term").retrieve(k=k))
-            # results.append(self.memory_manager.get_memory_layers_by_name("dynamic_contextual").retrieve(query=query_embedding, k=k))
             short_term_results = self.memory_manager.retrieve_from_memory(memory_layer="short_term", k=k)
             long_term_results = self.memory_manager.retrieve_from_memory(
                 memory_layer="long_term", query_embedding=query_embedding, k=k
@@ -99,9 +83,10 @@ class Retriever(BaseOperator):
                     self.emit({"question": input_data, "context": combined_results, "history": history})
                 else:
                     self.emit({"question": input_data, "context": combined_results})
+                    self.logger.warning("No data found in long-term memory.")
             else:
                 self.emit({"question": input_data})
-                self.logger.warning("No data found in long-term memory.")
+                self.logger.warning("No data found in memory.")
 
         except Exception as e:
             self.logger.error(f"Error during retrieval: {str(e)}")

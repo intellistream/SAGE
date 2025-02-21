@@ -42,17 +42,14 @@ def run_debug_pipeline(input_text, memory_manager):
 
 
 if __name__ == "__main__":
-    # # Configure logging
-    # configure_logging(level=logging.INFO)
-    # Configure logging to save to /log directory
     log_dir = "/workspace/experiment/memorag/log"
     if not os.path.exists(log_dir):
-        os.makedirs(log_dir)  # Create /log directory if it doesn't exist
+        os.makedirs(log_dir)
 
     log_file = os.path.join(log_dir, "debug_pipeline.log")
-    configure_logging(level=logging.INFO, log_file=log_file)  # 使用你原有的 configure_logging 函数
-    logger = get_logger(__name__)  # 使用你原有的 get_logger 函数
-    # Initialize memory layers
+    configure_logging(level=logging.INFO, log_file=log_file)
+    logger = get_logger(__name__)
+
     memory_manager = initialize_memory_manager()
 
     try:

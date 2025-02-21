@@ -25,7 +25,8 @@ class ShortTermMemory(BaseMemory):
         """
         if key is not None:
             return self.storage.get(key)
-        return list(self.storage.values())[:k]
+        # Sliding window
+        return list(self.storage)[-k:]
 
     def delete(self, key):
         """

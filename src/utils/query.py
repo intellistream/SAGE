@@ -102,7 +102,7 @@ class Query:
 if __name__ == "__main__":
     from src.utils.file_path import QUERY_FILE
     query = Query(QUERY_FILE)
-    i = 0
+
     for dialogue_index, turn, q, r in query.iter_all_dialogues():
-        i += 1
-    print(i)
+        print(dialogue_index)
+        print(turn)

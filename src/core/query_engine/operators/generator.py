@@ -95,8 +95,7 @@ class Generator(BaseOperator):
             self.logger.info(f"Extracted answer: {answer}")
 
             self.emit({"raw_data": raw_data, "answer": answer})
-            with open("/workspace/experiment/memorag/qa_history.txt", "a", encoding="utf-8") as f:
-                f.write(f"Answer-{answer}" + "\n")  # 每行末尾添加换行符
+
             if memorag == 1:
                 with open("/workspace/experiment/memorag/output.txt", "a", encoding="utf-8") as f:
                         f.write(answer + "\n")  # 每行末尾添加换行符
