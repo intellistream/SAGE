@@ -1,88 +1,150 @@
+import logging
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from src.utils.text_processing import process_text_to_embedding
+
 
 class QueryPlanner:
     """
-    Uses LLaMA-1B for adaptive retrieval planning based on query reasoning.
+    LLaMA-based query planner for adaptive retrieval and summarization.
     """
 
     def __init__(self, model_name="meta-llama/Llama-3.2-1B-Instruct", device=None):
         """
-        Initialize the LLaMA-based query planner.
-        :param model_name: Pretrained LLaMA model.
-        :param device: CPU or GPU.
+        Initialize the query planner with a language model for classification.
+        :param model_name: LLaMA model used for query classification.
+        :param device: Compute device (CUDA or CPU).
         """
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.logger = logging.getLogger(self.__class__.__name__)
 
-        # Load tokenizer and model
+        # Select device
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = device
+
+        # Load model and tokenizer
+        self.logger.info(f"Loading LLaMA model {model_name} for query classification...")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForCausalLM.from_pretrained(model_name).to(self.device)
-        self.model.eval()  # Set model to evaluation mode
+        self.logger.info("LLaMA model loaded successfully.")
 
     def plan_retrieval(self, query):
         """
-        Use LLaMA to plan retrieval strategies dynamically.
+        Plan the retrieval process based on the query's complexity and intent.
         :param query: The user query string.
-        :return: Retrieval plan dictionary.
+        :return: A retrieval plan dict containing memory layer, retrieval method, and summarization strategy.
         """
+        # Step 1: Classify query complexity
+        query_complexity = self.classify_query_complexity(query)
 
-        # Few-shot Prompt with Retrieval Planning
-        prompt = f"""
-        Given the user query, determine:
-        - Query complexity (simple, moderate, complex)
-        - Best memory source (STM, LTM, DCM)
-        - Retrieval strategy (exact match, semantic search, hybrid)
-        - Summarization approach (extractive, abstractive)
-        - Confidence score (0-100) indicating whether retrieval is needed.
+        # Step 2: Decide memory layer(s) to retrieve from
+        memory_layers = self.decide_memory_layers(query_complexity)
 
-        Examples:
-        Query: "What is the capital of France?"
-        Plan: Simple | STM | Exact match | Extractive | 30%
+        # Step 3: Choose retrieval strategy
+        retrieval_strategy = self.decide_retrieval_strategy(query_complexity)
 
-        Query: "Explain the impact of climate change on global economies."
-        Plan: Moderate | LTM | Semantic search | Abstractive | 70%
+        # Step 4: Determine number of results (k)
+        k = self.determine_k(query_complexity)
 
-        Query: "How does quantum entanglement enable secure communication in cryptography?"
-        Plan: Complex | DCM | Hybrid | Abstractive | 95%
+        # Step 5: Decide summarization method (if needed)
+        summarization = self.decide_summarization(query_complexity)
 
-        Now generate a retrieval plan for:
-        Query: "{query}"
-        Plan: 
-        """
+        # Build and return retrieval plan
+        retrieval_plan = {
+            "memory_layers": memory_layers,
+            "retrieval_strategy": retrieval_strategy,
+            "k": k,
+            "summarization": summarization
+        }
 
-        # Tokenize and generate response
-        input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
-        with torch.no_grad():
-            output = self.model.generate(input_ids, max_new_tokens=50)
-
-        # Decode output
-        response = self.tokenizer.decode(output[0], skip_special_tokens=True).strip()
-
-        # Parse the response
-        retrieval_plan = self._parse_plan(response)
+        self.logger.info(f"Generated retrieval plan: {retrieval_plan}")
         return retrieval_plan
 
-    def _parse_plan(self, response):
+    def classify_query_complexity(self, query):
         """
-        Parses LLaMA output into a structured retrieval plan.
+        Uses LLaMA to classify query complexity.
+        :param query: User query string.
+        :return: Complexity level (simple, moderate, complex).
         """
-        try:
-            parts = response.split(" | ")
-            return {
-                "complexity": parts[0].strip(),
-                "memory_layer": parts[1].strip(),
-                "retrieval_strategy": parts[2].strip(),
-                "summarization": parts[3].strip(),
-                "confidence": int(parts[4].replace("%", "").strip())
-            }
-        except Exception as e:
-            print(f"Error parsing plan: {e}")
-            return {"complexity": "unknown", "memory_layer": "STM", "retrieval_strategy": "exact", "summarization": "extractive", "confidence": 50}
+        prompt = f"Classify the complexity of this query: '{query}'. Respond with one of [simple, moderate, complex]."
+
+        input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
+        with torch.no_grad():
+            output = self.model.generate(input_ids, max_new_tokens=5)
+        response = self.tokenizer.decode(output[0], skip_special_tokens=True).strip().lower()
+
+        if "simple" in response:
+            return "simple"
+        elif "moderate" in response:
+            return "moderate"
+        elif "complex" in response:
+            return "complex"
+        else:
+            return "moderate"  # Default if classification is unclear
+
+    def decide_memory_layers(self, query_complexity):
+        """
+        Decide which memory layers (STM, LTM, DCM) to retrieve from.
+        :param query_complexity: Query classification.
+        :return: List of memory layers.
+        """
+        if query_complexity == "simple":
+            return ["short_term", "dynamic_contextual"]  # Recent memory is enough
+        elif query_complexity == "moderate":
+            return ["short_term", "long_term", "dynamic_contextual"]  # Need broader knowledge
+        else:
+            return ["short_term", "long_term", "dynamic_contextual"]  # Complex requires deep knowledge
+
+    def decide_retrieval_strategy(self, query_complexity):
+        """
+        Choose the retrieval method based on query complexity.
+        :param query_complexity: Query classification.
+        :return: Retrieval strategy (exact, semantic, hybrid).
+        """
+        if query_complexity == "simple":
+            return "exact match"
+        elif query_complexity == "moderate":
+            return "semantic search"
+        else:
+            return "hybrid"  # Mix of exact + semantic
+
+    def determine_k(self, query_complexity):
+        """
+        Dynamically decide the number of retrieved documents (k).
+        :param query_complexity: Query classification.
+        :return: Number of results to retrieve.
+        """
+        if query_complexity == "simple":
+            return 2
+        elif query_complexity == "moderate":
+            return 4
+        else:
+            return 6  # Complex queries need more context
+
+    def decide_summarization(self, query_complexity):
+        """
+        Determine if and how to summarize retrieved data.
+        :param query_complexity: Query classification.
+        :return: Summarization method (none, extractive, abstractive).
+        """
+        if query_complexity == "simple":
+            return "none"
+        elif query_complexity == "moderate":
+            return "extractive"
+        else:
+            return "abstractive"  # Complex queries need deeper summarization
 
 
 if __name__ == '__main__':
-    # Example Usage
-    planner = QueryPlanner()
-    query = "Explain the impact of AI in modern healthcare systems."
-    plan = planner.plan_retrieval(query)
+    query_planner = QueryPlanner()
+    query = "Who invented the light bulb?"
+    plan = query_planner.plan_retrieval(query)
+    print(plan)
+
+    query = "What are the main causes of climate change?"
+    plan = query_planner.plan_retrieval(query)
+    print(plan)
+
+    query = "How do quantum computers leverage superposition to perform parallel computations?"
+    plan = query_planner.plan_retrieval(query)
     print(plan)

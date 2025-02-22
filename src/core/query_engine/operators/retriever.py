@@ -100,11 +100,11 @@ class Retriever(BaseOperator):
             # Call memory manager (integration pipeline will handle retrieval strategy)
             retrieved_data = self.memory_manager.retrieve(input_data[0])
 
-            if retrieved_data:
-                self.logger.info(f"Retrieved {len(retrieved_data)} relevant results.")
-                self.emit((input_data[0], retrieved_data))
-            else:
-                self.logger.warning("No relevant data found.")
+            # if retrieved_data:
+            self.logger.info(f"Retrieved {len(retrieved_data)} relevant results.")
+            self.emit((input_data[0], retrieved_data))
+            # else:
+            #     self.logger.warning("No relevant data found.")
 
         except Exception as e:
             self.logger.error(f"Error during retrieval: {str(e)}")

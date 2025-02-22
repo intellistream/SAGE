@@ -22,9 +22,13 @@ class ShortTermMemory(BaseMemory):
     def retrieve(self, key=None, k=1, **kwargs):
         """
         Retrieve an item by key or return the first `k` items.
+        :param key: Specific key to retrieve.
+        :param k: Number of items to retrieve if no key is provided.
+        :return: Retrieved data.
         """
         if key is not None:
-            return self.storage.get(key)
+            value = self.storage.get(key)
+            return [value] if value is not None else []
         return list(self.storage.values())[:k]
 
     def delete(self, key):
