@@ -22,7 +22,7 @@ class NeuronMemManager:
         # self.pipelines = {}
         # self.backend_pipelines = {}
         self.memory_layers = memory_layers
-        self.integration_pipeline = IntegrationPipeline(memory_layers)  # Encapsulated pipeline
+        self.integration_pipeline = IntegrationPipeline(self)
 
 
     def get_memory_layers(self):

@@ -2,6 +2,7 @@ import logging
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from sentence_transformers import SentenceTransformer, util
+
 from src.utils.text_processing import process_text_to_embedding
 from src.core.neuromem.pipelines.query_planner import QueryPlanner
 
@@ -34,40 +35,42 @@ class IntegrationPipeline:
         :param query: The user input query.
         :return: Retrieved and summarized data.
         """
-        # Step 1: Generate retrieval plan using LLaMA
+        # Step 1: Generate retrieval plan
         retrieval_plan = self.query_planner.plan_retrieval(query)
         self.logger.info(f"Generated Retrieval Plan: {retrieval_plan}")
 
-        memory_layer = retrieval_plan["memory_layer"]
+        layers = retrieval_plan["memory_layers"]  # ["STM", "LTM", "DCM"]
         retrieval_strategy = retrieval_plan["retrieval_strategy"]
+        k = retrieval_plan["k"]  # Number of results
         summarization = retrieval_plan["summarization"]
-        k = retrieval_plan["k"]
 
         # Step 2: Convert query to embedding if needed
-        query_embedding = None
-        if retrieval_strategy in ["semantic search", "hybrid"]:
-            query_embedding = process_text_to_embedding(query)
+        # query_embedding = None # TODO: Can be optimized if LTM DCM not queried
+        # if retrieval_strategy in ["semantic search", "hybrid"]:
+        query_embedding = process_text_to_embedding(query)
+        key = None
 
-        # Step 3: Retrieve data from selected memory layer
-        retrieved_data = self.memory_manager.retrieve_from_memory(
-            memory_layer=memory_layer,
-            query_embedding=query_embedding,
-            k=k
-        )
+        # Step 3: Retrieve from selected memory layers
+        retrieved_data = []
+        for layer in layers:
+            data = self.memory_manager.retrieve_from_memory(
+                memory_layer=layer,
+                query_embedding=query_embedding,
+                key = key,
+                k=k)
+            retrieved_data.extend(data)
 
-        # Step 4: Filter Irrelevant Data
-        retrieved_data = self.relevance_filter(query, retrieved_data)
+        # # Step 4: Adaptive Summarization Strategy
+        # total_tokens = sum(len(self.tokenizer.encode(text)) for text in retrieved_data)
+        # max_tokens = self.model.config.max_position_embeddings * 0.8  # 80% of token limit
 
-        # Step 5: Adaptive Summarization Strategy
-        total_tokens = sum(len(self.tokenizer.encode(text)) for text in retrieved_data)
-        max_tokens = self.model.config.max_position_embeddings * 0.8  # 80% of token limit
-
-        if total_tokens < max_tokens:
-            summarized_data = retrieved_data  # No need for summarization
-        elif total_tokens < max_tokens * 1.5:
-            summarized_data = self.extractive_summary(retrieved_data)
-        else:
-            summarized_data = self.hierarchical_summary(query, retrieved_data)
+        summarized_data = retrieved_data
+        # if total_tokens < max_tokens:
+        #     summarized_data = retrieved_data  # No need for summarization
+        # elif total_tokens < max_tokens * 1.5:
+        #     summarized_data = self.extractive_summary(retrieved_data)
+        # else:
+        #     summarized_data = self.hierarchical_summary(query, retrieved_data)
 
         self.logger.info(f"Final Summarized Data: {summarized_data}")
         return summarized_data
