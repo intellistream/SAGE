@@ -3,11 +3,11 @@ import logging
 from src.core.neuromem.memory.dynamic_contextual_memory import DynamicContextualMemory
 from src.core.neuromem.memory.long_term_memory import LongTermMemory
 from src.core.neuromem.memory.short_term_memory import ShortTermMemory
+from src.core.neuromem.pipelines.ingestion_pipeline import DynamicIngestionPipeline
 from src.core.neuromem.pipelines.integration_pipeline import IntegrationPipeline
 from src.utils.text_processing import process_session_text_to_embedding, process_text_to_embedding
 
 
-#
 class NeuronMemManager:
     """
     负责 长短期记忆的选择
@@ -19,10 +19,9 @@ class NeuronMemManager:
 
     def __init__(self, memory_layers):
         self.logger = logging.getLogger(self.__class__.__name__)
-        # self.pipelines = {}
-        # self.backend_pipelines = {}
         self.memory_layers = memory_layers
         self.integration_pipeline = IntegrationPipeline(self)
+        self.ingestion_pipeline = DynamicIngestionPipeline(self)  # Initialize ingestion pipeline
 
 
     def get_memory_layers(self):
@@ -45,6 +44,15 @@ class NeuronMemManager:
         except Exception as e:
             self.logger.error(f"Retrieval error: {str(e)}")
             raise RuntimeError(f"Error in adaptive retrieval: {str(e)}")
+
+
+    def store(self, content, trigger_event):
+        """
+        Public API for ingestion. Decides where to store based on trigger event.
+        :param content: Data to store (only needed for STM ingestion).
+        :param trigger_event: Reason for storing (e.g., "LLM Response is valid", "Session Ended").
+        """
+        self.ingestion_pipeline.execute(content, trigger_event)
 
 
     def store_to_memory(self, data, raw_data=None, key=None, memory_layer="short_term"):

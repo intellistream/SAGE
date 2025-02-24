@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
         # Flush STM to LTM after session ending
         logging.info(f"Flushing session context to LTM")
-        memory_manager.flush_stm_to_ltm()
+        memory_manager.store(content=None, trigger_event="Session_Ended")
 
         # Define test inputs for debugging
         test_inputs = [
