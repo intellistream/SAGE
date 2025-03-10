@@ -28,24 +28,29 @@ class PromptOperator(BaseOperator):
         :return: Generated prompt.
         """
         try:
-            # Convert input_data to a dictionary if needed
-            if not isinstance(input_data, dict):
-                if self.format_keys and isinstance(input_data, (tuple, list)):
-                    input_data = dict(zip(self.format_keys, input_data))
-                else:
-                    raise ValueError(
-                        "input_data must be a dictionary or match the structure defined in format_keys."
-                    )
 
-            # Log the input data for debugging
-            self.logger.debug(f"Generating prompt with input data: {input_data}")
+            # 合并 context_stm 和 context_ltm 到 history_dialogue
+            history_dialogue = input_data.context_ltm + input_data.context_stm
+            history_dialogue = "".join(history_dialogue) if history_dialogue else None
+
+            # 将 external_docs 放入 external_corpus
+            external_corpus = input_data.external_docs
+            external_corpus = "".join(external_corpus) if external_corpus else None
+
+            # 构建 prompt_data 字典
+            prompt_data = {
+                "question": input_data.natural_query,
+                "history_dialogue": history_dialogue,
+                "external_corpus": external_corpus
+            }
 
             # Generate the prompt
-            prompt = generate_prompt(self.prompt_template, **input_data)
+            input_data.set_last_prompt(generate_prompt(self.prompt_template, **prompt_data))
 
             # Emit the generated prompt
-            self.emit(prompt)
+            self.emit(input_data)
             self.logger.debug("Prompt generated successfully.")
+
         except Exception as e:
             self.logger.error(f"Error during prompt generation: {str(e)}")
             raise RuntimeError(f"Prompt generation failed: {str(e)}")

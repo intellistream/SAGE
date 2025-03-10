@@ -26,7 +26,7 @@ class DAG:
         if node not in self.nodes:
             self.nodes.append(node)  # Maintain order of addition
             self.edges[node] = []
-            self.logger.info(f"Node added: {node.name}")
+            # self.logger.info(f"Node added: {node.name}")
 
     def add_edge(self, parent, child):
         """
@@ -41,7 +41,7 @@ class DAG:
         else:
             self.edges[parent].append(child)
             parent.add_downstream_node(child)
-            self.logger.info(f"Edge added from {parent.name} to {child.name}.")
+            # self.logger.info(f"Edge added from {parent.name} to {child.name}.")
 
     def get_topological_order(self) -> List['BaseDAGNode']:
         """

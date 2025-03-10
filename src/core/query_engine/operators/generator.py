@@ -1,6 +1,6 @@
 import logging
 import torch
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM
 from src.core.query_engine.operators.base_operator import BaseOperator
 
 
@@ -8,8 +8,9 @@ class Generator(BaseOperator):
     """
     Operator for generating natural language responses using Hugging Face's Transformers.
     """
-
-    def __init__(self, model_name="google/flan-t5-small", device=None, seed=42):
+    # meta-llama/Llama-3.2-1B-Instruct
+    # google/flan-t5-small
+    def __init__(self, model_name="google/flan-t5-base", device=None, seed=42):
         """
         Initialize the generator with a specified model.
         :param model_name: The Hugging Face model to use for generation.
@@ -36,13 +37,18 @@ class Generator(BaseOperator):
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
+        # google/flan-t5-small
         self.model = AutoModelForSeq2SeqLM.from_pretrained(
             model_name, trust_remote_code=True
         ).to(self.device)
+        # meta-llama/Llama-3.2-1B-Instruct
+        # self.model = AutoModelForCausalLM.from_pretrained(
+        #     model_name, trust_remote_code=True
+        # ).to(self.device)
 
         self.logger.info("Model and tokenizer loaded successfully.")
 
-    def execute(self, input_data, **kwargs):
+    def execute(self, input_data, memorag=1, **kwargs):
         """
         Generate a response using the model.
         :param input_data: Preformatted QA-template input string.
@@ -51,12 +57,16 @@ class Generator(BaseOperator):
         """
         try:
             # Log the received input
-            self.logger.info(f"Generating response for input data:\n{input_data}")
+            self.logger.info(f"Generating response for input data.")#\n{input_data}")
 
             # Tokenize input_data
             inputs = self.tokenizer(
-                input_data, return_tensors="pt", padding=True, truncation=True
+                input_data.last_prompt, return_tensors="pt", padding=True, truncation=True
             ).to(self.device)
+
+            if memorag == 1:
+                with open("/workspace/experiment/memorag/output_prompt.txt", "a", encoding="utf-8") as f:
+                        f.write(input_data.last_prompt + "\n")  # 每行末尾添加换行符
 
             # Default generation parameters
             max_new_tokens = kwargs.get("max_new_tokens", 100)
@@ -80,12 +90,19 @@ class Generator(BaseOperator):
 
             # Decode the response
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            self.logger.info(f"Decoded output: {response}")
+            # self.logger.info(f"Decoded output: {response}")
 
             # Extract the actual answer from the generated output
             answer = self._extract_answer(response)
+            input_data.set_answer(answer)
+
             self.logger.info(f"Extracted answer: {answer}")
 
+            self.emit(input_data)
+
+            if memorag == 1:
+                with open("/workspace/experiment/memorag/output.txt", "a", encoding="utf-8") as f:
+                        f.write(answer + "\n\n")  # 每行末尾添加换行符
             return answer
 
         except Exception as e:

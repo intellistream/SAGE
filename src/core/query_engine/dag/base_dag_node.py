@@ -34,7 +34,7 @@ class BaseDAGNode:
         """
         if node not in self.upstream_nodes:
             self.upstream_nodes.append(node)
-            self.logger.info(f"Node '{self.name}' connected to upstream node '{node.name}'.")
+            # self.logger.info(f"Node '{self.name}' connected to upstream node '{node.name}'.")
 
     def add_downstream_node(self, node):
         """
@@ -44,17 +44,21 @@ class BaseDAGNode:
         if node not in self.downstream_nodes:
             self.downstream_nodes.append(node)
             node.add_upstream_node(self)
-            self.logger.info(f"Node '{self.name}' connected to downstream node '{node.name}'.")
+            # self.logger.info(f"Node '{self.name}' connected to downstream node '{node.name}'.")
 
     def fetch_input(self):
         """
         Fetch input from upstream nodes' output queues.
         :return: Aggregated input data from upstream nodes or None if no data is available.
         """
-        aggregated_input = []
-        for upstream_node in self.upstream_nodes:
-            while not upstream_node.output_queue.empty():
-                aggregated_input.append(upstream_node.output_queue.get())
+        # 多个上游结点的代码
+        # aggregated_input = []
+        # for upstream_node in self.upstream_nodes:
+        #     while not upstream_node.output_queue.empty():
+        #         aggregated_input.append(upstream_node.output_queue.get())
+
+        # 单个上游代码
+        aggregated_input = self.upstream_nodes[0].output_queue.get()
         return aggregated_input if aggregated_input else None
 
     def execute(self):

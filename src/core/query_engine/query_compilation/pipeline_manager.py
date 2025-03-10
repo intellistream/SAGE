@@ -1,9 +1,13 @@
+from urllib3.filepost import writer
+
 from src.core.query_engine.operators.generator import Generator
+from src.core.query_engine.operators.memwriter import MemWriter
+from src.core.query_engine.operators.dialogue_distillation import DialogueDistillation
 from src.core.query_engine.operators.prompter import PromptOperator
 from src.core.query_engine.operators.retriever import Retriever
 from src.core.query_engine.operators.summarizer import Summarizer
 from src.core.query_engine.dag.one_shot_dag_node import OneShotDAGNode
-from src.utils.file_path import SUMMARIZATION_PROMPT_TEMPLATE, QAPROMPT_TEMPLATE
+from src.utils.file_path import SUMMARIZATION_PROMPT_TEMPLATE, QAPROMPT_TEMPLATE, REORGANIZE_TEMPLATE
 
 
 class PipelineManager:
@@ -11,12 +15,12 @@ class PipelineManager:
     Manages the addition of pipelines to a DAG based on intent.
     """
 
-    def __init__(self, memory_layers):
+    def __init__(self, memory_manager):
         """
         Initialize the manager with necessary resources.
-        :param memory_layers: A dictionary of memory layers (e.g., long-term, short-term).
+        :param memory_manager: A manager of memory layers (e.g., long-term, short-term, dynamic-contextual).
         """
-        self.memory_layers = memory_layers
+        self.memory_manager = memory_manager
 
     def add_summarization_pipeline(self, dag, spout_node):
         """
@@ -26,7 +30,7 @@ class PipelineManager:
         """
         retriever_node = OneShotDAGNode(
             name="Retriever",
-            operator=Retriever(self.memory_layers.get("long_term")),
+            operator=Retriever(self.memory_manager),
             config={"k": 5}  # Retrieve top-5 results
         )
         prompt_node = OneShotDAGNode(
@@ -56,7 +60,7 @@ class PipelineManager:
         """
         retriever_node = OneShotDAGNode(
             name="Retriever",
-            operator=Retriever(self.memory_layers.get("long_term")),
+            operator=Retriever(self.memory_manager),
             config={"k": 5}  # Retrieve top-5 results
         )
         prompt_node = OneShotDAGNode(
@@ -68,12 +72,29 @@ class PipelineManager:
             operator=Generator(),
             config={"max_length": 50}  # Example configuration for generation
         )
+        # dialogue_distillation_node = OneShotDAGNode(
+        #     name="DialogueDistillation",
+        #     operator=DialogueDistillation(),
+        # )
+        writer_node = OneShotDAGNode(
+            name="MemWriter",
+            operator=MemWriter(self.memory_manager, reorganize_template=REORGANIZE_TEMPLATE),
+        )
 
         dag.add_node(retriever_node)
         dag.add_node(prompt_node)
         dag.add_node(generator_node)
+        # dag.add_node(dialogue_distillation_node)
+        dag.add_node(writer_node)
 
         # Define edges
         dag.add_edge(spout_node, retriever_node)
         dag.add_edge(retriever_node, prompt_node)
         dag.add_edge(prompt_node, generator_node)
+
+        # with distillation
+        # dag.add_edge(generator_node, dialogue_distillation_node)
+        # dag.add_edge(dialogue_distillation_node, writer_node)
+
+        # # without distillation
+        dag.add_edge(generator_node, writer_node)
