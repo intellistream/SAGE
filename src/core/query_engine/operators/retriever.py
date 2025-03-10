@@ -53,13 +53,13 @@ class Retriever(BaseOperator):
         """
         try:
             k = kwargs.get("k", 1)  # Number of results to retrieve
-            self.logger.info(f"Generating embedding for query: {input_data}")
+            self.logger.info(f"Generating embedding for query: {input_data.natural_query}")
 
             # Generate embedding from the query
-            query_embedding = self.embedder.generate_embedding(input_data) ### NLPer how to best embedding the question.
+            query_embedding = self.embedder.generate_embedding(input_data.natural_query) ### NLPer how to best embedding the question.
 
             # Retrieve results from memory layers
-            self.logger.info(f"Retrieving data from memory layers for query: {input_data}")
+            self.logger.info(f"Retrieving data from memory layers for query: {input_data.natural_query}")
 
             short_term_results = self.memory_manager.retrieve_from_memory(memory_layer="short_term", k=k)
             long_term_results = self.memory_manager.retrieve_from_memory(
@@ -69,24 +69,16 @@ class Retriever(BaseOperator):
                 memory_layer="dynamic_contextual", query_embedding=query_embedding, k=k
             )
 
-            # Combine results
             contextual_results = [item for item in contextual_results if item is not None]
-            combined_results = _aggregate_results(contextual_results)
             short_term_results = [item for item in short_term_results if item is not None]
             long_term_results = [item for item in long_term_results if item is not None]
-            history = _aggregate_results(short_term_results, long_term_results)
 
-            if combined_results:
-                self.logger.info(f"Data retrieved successfully: {len(combined_results)} result(s) found.")
-                # Emit the raw query and results
-                if history is not None:
-                    self.emit({"question": input_data, "context": combined_results, "history": history})
-                else:
-                    self.emit({"question": input_data, "context": combined_results})
-                    self.logger.warning("No data found in long-term memory.")
-            else:
-                self.emit({"question": input_data})
-                self.logger.warning("No data found in memory.")
+            input_data.add_external_doc(contextual_results)
+            input_data.add_context_stm(short_term_results)
+            input_data.add_context_ltm(long_term_results)
+
+            self.emit(input_data)
+            self.logger.warning("No data found in memory.")
 
         except Exception as e:
             self.logger.error(f"Error during retrieval: {str(e)}")

@@ -18,9 +18,8 @@ class Corpus:
         with open(path, "r", encoding="utf-8") as file:
             for line in file:
                 data = json.loads(line.strip())
-                id = data.get("_id")
                 text = data.get("text")
-                self.items.append({"external_id": id, "text": text, "db_id": ""})
+                self.items.append({"text": text, "db_id": ""})
 
     def get_item_text(self, n):
         """
@@ -59,3 +58,18 @@ class Corpus:
             self.items[n]["db_id"] = db_id
         else:
             raise IndexError(f"Index {n} is out of range. Corpus has {self.len} items.")
+
+if "__main__" == __name__:
+    from src.utils.file_path import CORPUS_FILE
+    corpus = Corpus("/tmp/pycharm_project_986/data/corpus/govt.jsonl")
+    corpus1 = Corpus("/tmp/pycharm_project_986/data/corpus/clapnq.jsonl")
+    corpus2 = Corpus("/tmp/pycharm_project_986/data/corpus/fiqa.jsonl")
+    corpus3 = Corpus("/tmp/pycharm_project_986/data/corpus/cloud.jsonl")
+
+    print(corpus.get_len())
+    print(corpus1.get_len())
+    print(corpus2.get_len())
+    print(corpus3.get_len())
+    # for i in range(2):
+    #     text = corpus.get_item_text(i)
+    #     print(text)

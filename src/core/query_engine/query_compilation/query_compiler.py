@@ -82,7 +82,7 @@ class QueryCompiler:
         :return: DAG instance.
         """
         # Step 1: Parse the question to understand the user's intent
-        intent = self._parse_query(natural_query)
+        intent = self._parse_query(natural_query.natural_query)
 
         # Step 2: Initialize the DAG and add the Spout node
         dag = self.add_one_shot_spout(natural_query)

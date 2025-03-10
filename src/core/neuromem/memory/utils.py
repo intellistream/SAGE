@@ -48,6 +48,7 @@ def preload_dynamic_contextual_memory(memory, file_path):
             embedding = process_text_to_embedding(text)
             corpus.set_db_id(i, memory.store(embedding, text))
             logging.info(f"Preloaded text: {text}")
+
         logging.info("Preloading completed successfully.")
 
         # # Former test_corpus

@@ -49,3 +49,8 @@ Average ROUGE-L Score: 0.8456
 
 Detailed results have been saved to /workspace/experiment/memorag/evaluation_results.txt
 ```
+
+
+performance monitoring
+mprof run memorag_main.py
+mprof plot --output memory_usage.png

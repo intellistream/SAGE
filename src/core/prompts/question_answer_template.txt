@@ -1,13 +1,13 @@
 Instruction:
 You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.
-{%- if history %}
+{%- if history_dialogue %}
 The following are historical Q&A records and related language materials:
-{{ history }}
+{{ history_dialogue }}
 {%- endif %}
 Question:
 {{ question }}
-{%- if context %}
+{%- if external_corpus %}
 Relevant corpus for the current question:
-{{ context }}
+{{ external_corpus }}
 {%- endif %}
 Answer(Must respond):

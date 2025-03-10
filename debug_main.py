@@ -1,14 +1,15 @@
 import logging
+from src.core.query_engine.query_compilation.query_state import QueryState
 from src.core.query_engine.query_compilation.query_compiler import QueryCompiler
 from src.core.query_engine.query_execution.query_executor import QueryExecutor
 from src.core.neuromem.memory.utils import initialize_memory_manager
 from src.utils.logger import configure_logging
 
 
-def run_debug_pipeline(input_text, memory_manager):
+def run_debug_pipeline(query, memory_manager):
     """
     Runs the entire pipeline for a single input, from compilation to execution.
-    :param input_text: The query or natural language input to process.
+    :param query: The query or natural language input to process.
     :param memory_manager: The initialized memory manager for memory layers.
     """
     try:
@@ -17,8 +18,8 @@ def run_debug_pipeline(input_text, memory_manager):
         executor = QueryExecutor(memory_manager)
 
         # Compile the query
-        logging.info(f"Compiling input: {input_text}")
-        dag, execution_type = compiler.compile(input_text)
+        logging.info(f"Compiling input: {query.natural_query}")
+        dag, execution_type = compiler.compile(query)
         logging.info(f"Compiled DAG: {dag}")
 
         # Execute the query
@@ -56,8 +57,9 @@ if __name__ == "__main__":
 
         # Run each input through the debug pipeline
         for test_input in test_inputs:
-            print(f"\nProcessing test input: {test_input}")
-            run_debug_pipeline(test_input, memory_manager)
+            current_query = QueryState(test_input)
+            print(f"\nProcessing test input: {current_query.natural_query}")
+            run_debug_pipeline(current_query, memory_manager)
 
         # Flush STM to LTM after session ending
         logging.info(f"Flushing session context to LTM")
@@ -70,7 +72,8 @@ if __name__ == "__main__":
 
         # Run each input through the debug pipeline
         for test_input in test_inputs:
-            print(f"\nProcessing test input: {test_input}")
+            current_query = QueryState(test_input)
+            print(f"\nProcessing test input: {current_query.natural_query}")
             run_debug_pipeline(test_input, memory_manager)
 
     finally:

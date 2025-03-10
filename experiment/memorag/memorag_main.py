@@ -2,6 +2,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import logging
+from src.core.query_engine.query_compilation.query_state import QueryState
 from src.core.query_engine.query_compilation.query_compiler import QueryCompiler
 from src.core.query_engine.query_execution.query_executor import QueryExecutor
 from src.core.neuromem.memory.utils import initialize_memory_manager
@@ -56,7 +57,9 @@ if __name__ == "__main__":
         query = Query(QUERY_FILE)
         for dialogue_index, turn, q, r in query.iter_all_dialogues():
             print(f"\nProcessing dialogue-{dialogue_index} query-{turn}: {q}")
-            run_debug_pipeline(q, memory_manager)
+            current_query = QueryState(q)
+            print(f"\nProcessing test input: {current_query.natural_query}")
+            run_debug_pipeline(current_query, memory_manager)
 
             if turn == query.dialogue_info[dialogue_index]["dialogue_length"] - 1:
                 logging.info(f"Flushing session context to LTM")

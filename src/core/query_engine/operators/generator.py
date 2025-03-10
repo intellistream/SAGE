@@ -57,14 +57,16 @@ class Generator(BaseOperator):
         """
         try:
             # Log the received input
-            self.logger.info(f"Generating response for input data:")#\n{input_data}")
-            input_data = input_data[0]
-            raw_data = input_data["raw_data"]
-            input_data = input_data["prompt"]
+            self.logger.info(f"Generating response for input data.")#\n{input_data}")
+
             # Tokenize input_data
             inputs = self.tokenizer(
-                input_data, return_tensors="pt", padding=True, truncation=True
+                input_data.last_prompt, return_tensors="pt", padding=True, truncation=True
             ).to(self.device)
+
+            if memorag == 1:
+                with open("/workspace/experiment/memorag/output_prompt.txt", "a", encoding="utf-8") as f:
+                        f.write(input_data.last_prompt + "\n")  # 每行末尾添加换行符
 
             # Default generation parameters
             max_new_tokens = kwargs.get("max_new_tokens", 100)
@@ -92,13 +94,15 @@ class Generator(BaseOperator):
 
             # Extract the actual answer from the generated output
             answer = self._extract_answer(response)
+            input_data.set_answer(answer)
+
             self.logger.info(f"Extracted answer: {answer}")
 
-            self.emit({"raw_data": raw_data, "answer": answer})
+            self.emit(input_data)
 
             if memorag == 1:
                 with open("/workspace/experiment/memorag/output.txt", "a", encoding="utf-8") as f:
-                        f.write(answer + "\n")  # 每行末尾添加换行符
+                        f.write(answer + "\n\n")  # 每行末尾添加换行符
             return answer
 
         except Exception as e:
