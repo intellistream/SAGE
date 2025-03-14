@@ -27,3 +27,10 @@ def get_logger(name):
     :return: Configured logger instance.
     """
     return logging.getLogger(name)
+logger = logging.getLogger("sage")
+logger.propagate = False  # prevent log message send to root loggger
+# Let the main application configure the handlers
+logger.setLevel(logging.INFO)
+
+# Set httpx logging level to WARNING
+logging.getLogger("httpx").setLevel(logging.WARNING)
