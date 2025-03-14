@@ -38,14 +38,15 @@ class PromptOperator(BaseOperator):
             external_corpus = "".join(external_corpus) if external_corpus else None
 
             # 构建 prompt_data 字典
-            prompt_data = {
-                "question": input_data.natural_query,
+            base_system_prompt_data = {
                 "history_dialogue": history_dialogue,
                 "external_corpus": external_corpus
             }
+            system_prompt={"role":"system","content":generate_prompt(self.prompt_template, **base_system_prompt_data)}
+            user_prompt={"role":"user","content":f"Question: {input_data.natural_query}"}
 
             # Generate the prompt
-            input_data.set_last_prompt(generate_prompt(self.prompt_template, **prompt_data))
+            input_data.set_last_prompt([system_prompt,user_prompt])
 
             # Emit the generated prompt
             self.emit(input_data)

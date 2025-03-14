@@ -4,49 +4,161 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausa
 from src.core.query_engine.operators.base_operator import BaseOperator
 
 
+# class Generator(BaseOperator):
+#     """
+#     Operator for generating natural language responses using Hugging Face's Transformers.
+#     """
+#     # meta-llama/Llama-3.2-1B-Instruct
+#     # google/flan-t5-small
+#     def __init__(self, model_name="google/flan-t5-base", device=None, seed=42):
+#         """
+#         Initialize the generator with a specified model.
+#         :param model_name: The Hugging Face model to use for generation.
+#         :param device: The device to load the model on ("cpu" for GitHub workflows).
+#         :param seed: Seed for reproducibility.
+#         """
+#         self.logger = logging.getLogger(self.__class__.__name__)
+#         self.logger.info(f"Initializing Generator with model: {model_name}...")
+
+#         # Set random seed for reproducibility
+#         torch.manual_seed(seed)
+
+#         # Automatically detect device if not provided
+#         if device is None:
+#             device = "cuda" if torch.cuda.is_available() else "cpu"
+#         self.device = device
+#         self.logger.info(f"Selected device: {self.device}")
+
+#         # Load tokenizer and model
+#         self.logger.info(f"Loading model and tokenizer for {model_name}...")
+#         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+#         # Ensure padding token is set
+#         if self.tokenizer.pad_token is None:
+#             self.tokenizer.pad_token = self.tokenizer.eos_token
+
+#         # google/flan-t5-small
+#         self.model = AutoModelForSeq2SeqLM.from_pretrained(
+#             model_name, trust_remote_code=True
+#         ).to(self.device)
+#         # meta-llama/Llama-3.2-1B-Instruct
+#         # self.model = AutoModelForCausalLM.from_pretrained(
+#         #     model_name, trust_remote_code=True
+#         # ).to(self.device)
+
+#         self.logger.info("Model and tokenizer loaded successfully.")
+
+#     def execute(self, input_data, memorag=1, **kwargs):
+#         """
+#         Generate a response using the model.
+#         :param input_data: Preformatted QA-template input string.
+#         :param kwargs: Additional parameters for generation.
+#         :return: Generated response.
+#         """
+#         try:
+#             # Log the received input
+#             self.logger.info(f"Generating response for input data.")#\n{input_data}")
+
+#             # Tokenize input_data
+#             inputs = self.tokenizer(
+#                 input_data.last_prompt, return_tensors="pt", padding=True, truncation=True
+#             ).to(self.device)
+
+#             if memorag == 1:
+#                 with open("./experiment/memorag/output_prompt.txt", "a", encoding="utf-8") as f:
+#                         f.write(input_data.last_prompt + "\n")  # 每行末尾添加换行符
+
+#             # Default generation parameters
+#             max_new_tokens = kwargs.get("max_new_tokens", 100)
+#             num_beams = kwargs.get("num_beams", 4)  # Use beam search for better quality
+#             do_sample = kwargs.get("do_sample", False)  # Disable sampling for consistency
+#             temperature = kwargs.get("temperature", 1.0)  # Default temperature
+#             top_p = kwargs.get("top_p", None)  # Disable top-p sampling by default
+
+#             # Generate output
+#             outputs = self.model.generate(
+#                 input_ids=inputs["input_ids"],
+#                 attention_mask=inputs["attention_mask"],
+#                 max_new_tokens=max_new_tokens,
+#                 num_beams=num_beams,
+#                 do_sample=do_sample,
+#                 temperature=temperature,
+#                 top_p=top_p,
+#                 pad_token_id=self.tokenizer.pad_token_id,
+#                 num_return_sequences=1,  # Single output sequence
+#             )
+
+#             # Decode the response
+#             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+#             # self.logger.info(f"Decoded output: {response}")
+
+#             # Extract the actual answer from the generated output
+#             answer = self._extract_answer(response)
+#             input_data.set_answer(answer)
+
+#             self.logger.info(f"Extracted answer: {answer}")
+
+#             self.emit(input_data)
+
+#             if memorag == 1:
+#                 with open("/workspace/experiment/memorag/output.txt", "a", encoding="utf-8") as f:
+#                         f.write(answer + "\n\n")  # 每行末尾添加换行符
+#             return answer
+
+#         except Exception as e:
+#             self.logger.error(f"Error during response generation: {str(e)}")
+#             raise RuntimeError(f"Response generation failed: {str(e)}")
+
+#     def _extract_answer(self, generated_output):
+#         """
+#         Extract the answer from the generated output.
+#         :param generated_output: The full text generated by the model.
+#         :return: The extracted answer or the full output if extraction fails.
+#         """
+#         # Extract the answer portion
+#         if "Answer:" in generated_output:
+#             after_answer = generated_output.split("Answer:")[1].strip()
+#             # Handle cases where additional formatting is needed
+#             return after_answer.split("\n")[0].strip()  # Take only the first line after "Answer:"
+#         return generated_output.strip()
+
+
+import openai
+from openai import OpenAI
 class Generator(BaseOperator):
     """
-    Operator for generating natural language responses using Hugging Face's Transformers.
+    Operator for generating natural language responses 
+
+    Alibaba Could API:
+        model_name="qwen-max"
+        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+        api_key="sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"
+
+    Ollama API:
+        model_name="llama3.1:8b"
+        base_url="http://222.20.77.1:11434/v1"   
+        api_key="ollama"
+    
     """
-    # meta-llama/Llama-3.2-1B-Instruct
-    # google/flan-t5-small
-    def __init__(self, model_name="google/flan-t5-base", device=None, seed=42):
+
+    def __init__(self,model_name="qwen-max",base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",api_key="sk-b21a67cf99d14ead9d1c5bf8c2eb90ef",seed=42):
         """
-        Initialize the generator with a specified model.
+        Initialize the generator with a specified model and base_url.
         :param model_name: The Hugging Face model to use for generation.
-        :param device: The device to load the model on ("cpu" for GitHub workflows).
+        :param base_url: The base url to request.
+        :param api_key: Api key to validate.
         :param seed: Seed for reproducibility.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info(f"Initializing Generator with model: {model_name}...")
-
-        # Set random seed for reproducibility
-        torch.manual_seed(seed)
-
-        # Automatically detect device if not provided
-        if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.device = device
-        self.logger.info(f"Selected device: {self.device}")
-
-        # Load tokenizer and model
-        self.logger.info(f"Loading model and tokenizer for {model_name}...")
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-
-        # Ensure padding token is set
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
-
-        # google/flan-t5-small
-        self.model = AutoModelForSeq2SeqLM.from_pretrained(
-            model_name, trust_remote_code=True
-        ).to(self.device)
-        # meta-llama/Llama-3.2-1B-Instruct
-        # self.model = AutoModelForCausalLM.from_pretrained(
-        #     model_name, trust_remote_code=True
-        # ).to(self.device)
-
-        self.logger.info("Model and tokenizer loaded successfully.")
+        
+        self.model_name=model_name
+        self.base_url=base_url
+        self.client = OpenAI(
+            base_url= base_url, 
+            api_key=api_key,
+        )
+        self.seed=seed
 
     def execute(self, input_data, memorag=1, **kwargs):
         """
@@ -56,41 +168,49 @@ class Generator(BaseOperator):
         :return: Generated response.
         """
         try:
-            # Log the received input
             self.logger.info(f"Generating response for input data.")#\n{input_data}")
 
-            # Tokenize input_data
-            inputs = self.tokenizer(
-                input_data.last_prompt, return_tensors="pt", padding=True, truncation=True
-            ).to(self.device)
+            prompt=input_data.last_prompt
 
             if memorag == 1:
-                with open("/workspace/experiment/memorag/output_prompt.txt", "a", encoding="utf-8") as f:
-                        f.write(input_data.last_prompt + "\n")  # 每行末尾添加换行符
+                with open("./experiment/memorag/output_prompt.txt", "a", encoding="utf-8") as f:
+                        f.write(prompt[1]["content"] + "\n")  # 每行末尾添加换行符
 
             # Default generation parameters
-            max_new_tokens = kwargs.get("max_new_tokens", 100)
-            num_beams = kwargs.get("num_beams", 4)  # Use beam search for better quality
-            do_sample = kwargs.get("do_sample", False)  # Disable sampling for consistency
+            max_tokens = kwargs.get("max_new_tokens", 100)
             temperature = kwargs.get("temperature", 1.0)  # Default temperature
             top_p = kwargs.get("top_p", None)  # Disable top-p sampling by default
-
+            stream= kwargs.get("stream", False)
+            frequency_penalty= kwargs.get("frequency_penalty", 0) #The higher it is, the more it reduces repetitive wording and prevents looping responses.
             # Generate output
-            outputs = self.model.generate(
-                input_ids=inputs["input_ids"],
-                attention_mask=inputs["attention_mask"],
-                max_new_tokens=max_new_tokens,
-                num_beams=num_beams,
-                do_sample=do_sample,
-                temperature=temperature,
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=prompt,
                 top_p=top_p,
-                pad_token_id=self.tokenizer.pad_token_id,
-                num_return_sequences=1,  # Single output sequence
+                temperature=temperature,
+                stream=stream,
+                max_tokens=max_tokens,
+                n=1,
+                seed=self.seed,
+                frequency_penalty=frequency_penalty,
             )
+            
+            if stream:
+                collected_response = ""
+                for chunk in response:
 
-            # Decode the response
-            response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            # self.logger.info(f"Decoded output: {response}")
+                    if hasattr(chunk, "choices") and len(chunk.choices) > 0:
+                        delta = chunk.choices[0].delta 
+                        if hasattr(delta, "content") and delta.content:  
+                            collected_response=delta.content
+                        if chunk.choices[0].finish_reason:  
+                            break  
+            
+                response = collected_response 
+            else:
+                response=response.choices[0].message.content
+
+            self.logger.info(f"Response: {response}")
 
             # Extract the actual answer from the generated output
             answer = self._extract_answer(response)
@@ -101,14 +221,14 @@ class Generator(BaseOperator):
             self.emit(input_data)
 
             if memorag == 1:
-                with open("/workspace/experiment/memorag/output.txt", "a", encoding="utf-8") as f:
+                with open("./experiment/memorag/output.txt", "a", encoding="utf-8") as f:
                         f.write(answer + "\n\n")  # 每行末尾添加换行符
             return answer
 
         except Exception as e:
             self.logger.error(f"Error during response generation: {str(e)}")
             raise RuntimeError(f"Response generation failed: {str(e)}")
-
+        
     def _extract_answer(self, generated_output):
         """
         Extract the answer from the generated output.

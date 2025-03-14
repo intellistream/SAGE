@@ -10,7 +10,7 @@ args = parser.parse_args()
 
 def bm25test():
     # 设置索引和语料库路径
-    index_dir = "app/index_constructor/test/index/bm25/clapnq"
+    index_dir = "app/index_constructor/test/index/bm25/clapnq_test"
     corpus_path = os.path.join(index_dir, "corpus.jsonl")
 
     # 初始化BM25Retriever
