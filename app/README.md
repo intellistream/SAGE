@@ -1,5 +1,8 @@
 # 测试内容
 
+## 0 安装依赖
+pip install bm25s
+pip install pystemmer
 
 ## 1 创建索引
 
