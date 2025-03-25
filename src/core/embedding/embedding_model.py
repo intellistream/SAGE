@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 from dataclasses import dataclass
 
 import numpy as np
@@ -49,7 +50,7 @@ class EmbeddingModel:
             "nvidia_openai": nvidia_openai.nvidia_openai_embed,
             "ollama": ollama.ollama_embed,
             "siliconcloud": siliconcloud.siliconcloud_embedding,
-            "cohere": cohere.cohere_embed,
+            "cohere": _cohere.cohere_embed,
             # "instructor": instructor.instructor_embed
         }
         if method not in mapping:
@@ -77,18 +78,19 @@ class EmbeddingModel:
 async def _test():
     # huggingface example
     embedding_model = EmbeddingModel("hf", model_name="sentence-transformers/all-MiniLM-L6-v2")
+
     print(await embedding_model.embed(["123"]))
 
-    # mistralai example "mistral-embed"
+    #mistralai example "mistral-embed"
     embedding_model2 = EmbeddingModel("openai", model="mistral-embed", base_url="https://api.mistral.ai/v1",
                                       api_key=os.environ.get("MISTRAL_API_KEY"))
     print(await embedding_model2.embed(["123"]))
 
     # cohere example
-    print(os.environ.get("COHERE_API_KEY"))
-    embedding_model3 = EmbeddingModel("cohere", model="embed-multilingual-v3.0",
-                                      api_key=os.environ.get("COHERE_API_KEY"))
-    print(await embedding_model3.embed(["123"]))
+    # print(os.environ.get("COHERE_API_KEY"))
+    # embedding_model3 = EmbeddingModel("cohere", model="embed-multilingual-v3.0",
+    #                                   api_key=os.environ.get("COHERE_API_KEY"))
+    # print(await embedding_model3.embed(["123"]))
 
     # jina example
     embedding_model4 = EmbeddingModel("jina", api_key=os.environ.get('JINA_API_KEY'))

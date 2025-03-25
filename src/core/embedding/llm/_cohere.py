@@ -23,14 +23,14 @@ async def cohere_embed(
     return np.array(response.embeddings)
 
 
-async def main():
-    from dotenv import load_dotenv
-
-    load_dotenv()
-    print(await cohere_embed(["123"], api_key=os.environ.get("COHERE_API_KEY")))
-
-
-asyncio.run(main())
+# async def main():
+#     from dotenv import load_dotenv
+#
+#     load_dotenv()
+#     print(await cohere_embed(["123"], api_key=os.environ.get("COHERE_API_KEY")))
+#
+#
+# asyncio.run(main())
 
 
 
