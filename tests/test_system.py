@@ -1,9 +1,9 @@
 import logging
 import pytest
-from src.core.query_engine.query_compilation.query_compiler import QueryCompiler
-from src.core.query_engine.query_execution.query_executor import QueryExecutor
-from src.core.neuromem.memory.utils import initialize_memory_manager
-from src.utils.logger import configure_logging
+from sage.core.query_engine.query_compilation.query_compiler import QueryCompiler
+from sage.core.query_engine.query_execution.query_executor import QueryExecutor
+from sage.core.neuromem.memory.utils import initialize_memory_manager
+from sage.utils.logger import configure_logging
 
 
 @pytest.fixture(scope="module")
