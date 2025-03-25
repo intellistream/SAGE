@@ -1,0 +1,103 @@
+import sage
+
+# ---- Initialize Memory ----
+# Define short-term memory (e.g., for current session context)
+short_term_memory = sage.memory.create(
+    "short_term_memory",
+    memory_backend="kv_store.rocksdb",
+    embedding_model=sage.embedding_model.EmbeddingModel()
+)
+
+# Define long-term memory (e.g., for persistent knowledge base)
+long_term_memory = sage.memory.create(
+    "long_term_memory",
+    memory_backend="vector_db.candy",
+    embedding_model=sage.embedding_model.EmbeddingModel()
+)
+
+# Define dynamic contextual memory (e.g., for adapting memory per request context)
+dynamic_contextual_memory = sage.memory.create(
+    "dynamic_contextual_memory",
+    memory_backend="vector_db.candy",
+    embedding_model=sage.embedding_model.EmbeddingModel()
+)
+
+
+# ---- Implement Operators ----
+# Kafka source operator: reads user queries from a Kafka topic
+class KafkaSource(sage.operator.SourceFunction):
+    def __init__(self):
+        super().__init__()
+        self.kafka_consumer = sage.KafkaConsumerImpl("topic", addr="localhost:9092")
+
+    # Produces a query string from Kafka
+    def execute(self, context=None) -> str:
+        # return self.kafka_consumer.get_message()
+        # TODO: Mock the original example
+        return "What is the Lisa?"
+
+
+# Retriever operator: embeds the query and retrieves top-k relevant chunks from memory
+class SimpleRetriever(sage.operator.RetrieverFunction):
+    def __init__(self):
+        super().__init__()
+        # Initialize the embedding model for vectorization
+        self.embedding_model = sage.embedding_model.EmbeddingModel()
+        # Connect to multiple memory collections (STM, LTM, DCM)
+        self.memory_collections = sage.memory.connect(
+            "short_term_memory", "long_term_memory", "dynamic_contextual_memory"
+        )
+        # Define the retrieval function (e.g., weighted aggregation, similarity ranking)
+        self.retrieval_func = sage.memory.retrieval_func
+
+    # Returns both the original query and the retrieved memory chunks
+    def execute(self, input_query: str, context=None) -> Tuple[str, List[str]]:
+        embedding = self.embedding_model.embed(input_query)
+        chunks = self.memory_collections.retrieve(embedding, self.retrieval_func)
+        return input_query, chunks
+
+
+# Prompt constructor: takes the query and chunks and builds a complete prompt
+class SimplePromptConstructor(sage.operator.PromptFunction):
+    def __init__(self):
+        super().__init__()
+        # Initialize a prompt construction logic (template-based, few-shot, etc.)
+        self.prompt_constructor = sage.prompt_construct.PromptConstructorImpl()
+
+    # Constructs the prompt and returns (query, prompt) tuple
+    def execute(self, inputs: Tuple[str, List[str]], context=None) -> Tuple[str, str]:
+        query, chunks = inputs
+        return query, self.prompt_constructor.construct(query, chunks)
+
+
+# Generator operator: generates a final response from the prompt using an LLM
+class LlamaGenerator(sage.operator.GeneratorFunction):
+    def __init__(self):
+        super().__init__()
+        # Load or configure a local or remote LLM (e.g., llama_8b)
+        self.model = sage.model.apply("llama_8b")
+
+    # Generates the model's response given a prompt string
+    def execute(self, combined_prompt: str, context=None) -> str:
+        return self.model.generate(combined_prompt)
+
+
+# ---- Initialize and Submit Pipeline ----
+# Create a new pipeline instance
+pipeline = sage.pipeline.Pipeline("example_pipeline")
+
+# Step 1: Define the data source (e.g., incoming user query)
+query_stream = pipeline.add_source(KafkaSource())
+
+# Step 2: Use a retriever to fetch relevant chunks from vector memory
+query_and_chunks_stream = query_stream.retrieve(SimpleRetriever())
+
+# Step 3: Construct a prompt by combining the query and the retrieved chunks
+prompt_stream = query_and_chunks_stream.construct_prompt(SimplePromptConstructor())
+
+# Step 4: Generate the final response using a language model
+response_stream = prompt_stream.generate_response(LlamaGenerator())
+
+# Submit the pipeline to the SAGE runtime
+pipeline.submit()
+

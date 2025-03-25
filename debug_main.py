@@ -1,11 +1,11 @@
 import logging
 import time
 
-from src.core.neuromem.memory.utils import initialize_memory_manager
-from src.core.query_engine.query_compilation.query_compiler import QueryCompiler
-from src.core.query_engine.query_execution.query_executor import QueryExecutor
-from src.utils.logger import configure_logging
-from src.core.query_engine.query_execution.query_queue import QueryQueue
+from sage.core.neuromem.memory.utils import initialize_memory_manager
+from sage.core.query_engine.query_compilation.query_compiler import QueryCompiler
+from sage.core.query_engine.query_execution.query_executor import QueryExecutor
+from sage.utils.logger import configure_logging
+from sage.core.query_engine.query_execution.query_queue import QueryQueue
 
 def run_debug_pipeline(input_text, memory_manager):
     """
