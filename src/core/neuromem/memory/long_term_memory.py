@@ -1,6 +1,6 @@
 import hashlib
 import torch
-from pycandy import VectorDB
+from candy.pycandy import VectorDB
 
 from src.core.neuromem.memory.base_memory import BaseMemory
 from src.core.neuromem.memory.raw.local_raw_data_storage import LocalRawDataStorage

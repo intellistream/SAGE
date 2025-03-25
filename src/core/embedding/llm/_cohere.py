@@ -10,7 +10,8 @@ async def cohere_embed(
         embedding_types: [str] = ["float"]
 ) -> np.ndarray:
     if api_key is None:
-        api_key = os.getenv("COHERE_API_KEY")
+        api_key = os.environ.get("COHERE_API_KEY")
+    # print(api_key)
     co = cohere.AsyncClient(api_key=api_key)
 
     response = await co.embed(
@@ -20,3 +21,17 @@ async def cohere_embed(
         # embedding_types=embedding_types
     )
     return np.array(response.embeddings)
+
+
+async def main():
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    print(await cohere_embed(["123"], api_key=os.environ.get("COHERE_API_KEY")))
+
+
+asyncio.run(main())
+
+
+
+

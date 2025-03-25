@@ -45,7 +45,6 @@ async def siliconcloud_embedding(
 ) -> np.ndarray:
     if api_key and not api_key.startswith("Bearer "):
         api_key = "Bearer " + api_key
-
     headers = {"Authorization": api_key, "Content-Type": "application/json"}
 
     truncate_texts = [text[0:max_token_size] for text in texts]
