@@ -1,38 +1,37 @@
 import sage
+from typing import Tuple, List
+
 
 # ---- Initialize Memory ----
 # Define short-term memory (e.g., for current session context)
 short_term_memory = sage.memory.create(
-    "short_term_memory",
-    memory_backend="kv_store.rocksdb",
-    embedding_model=sage.embedding_model.EmbeddingModel()
+    memory_name="short_term_memory",
+    memory_backend="kv_store.rocksdb"
 )
 
 # Define long-term memory (e.g., for persistent knowledge base)
 long_term_memory = sage.memory.create(
-    "long_term_memory",
+    memory_name="long_term_memory",
     memory_backend="vector_db.candy",
-    embedding_model=sage.embedding_model.EmbeddingModel()
+    embedding_model=sage.model.apply_embedding_model("default")
 )
 
 # Define dynamic contextual memory (e.g., for adapting memory per request context)
 dynamic_contextual_memory = sage.memory.create(
-    "dynamic_contextual_memory",
+    memory_name="dynamic_contextual_memory",
     memory_backend="vector_db.candy",
-    embedding_model=sage.embedding_model.EmbeddingModel()
+    embedding_model=sage.model.apply_embedding_model("default")
 )
 
 
 # ---- Implement Operators ----
-# Kafka source operator: reads user queries from a Kafka topic
-class KafkaSource(sage.operator.SourceFunction):
+# Text source operator: reads user queries from a Kafka topic
+class TextSource(sage.operator.SourceFunction):
     def __init__(self):
         super().__init__()
-        self.kafka_consumer = sage.KafkaConsumerImpl("topic", addr="localhost:9092")
 
-    # Produces a query string from Kafka
+    # Produces a query from text
     def execute(self, context=None) -> str:
-        # return self.kafka_consumer.get_message()
         # TODO: Mock the original example
         return "What is the Lisa?"
 
@@ -42,13 +41,13 @@ class SimpleRetriever(sage.operator.RetrieverFunction):
     def __init__(self):
         super().__init__()
         # Initialize the embedding model for vectorization
-        self.embedding_model = sage.embedding_model.EmbeddingModel()
+        self.embedding_model = sage.model.apply_embedding_model("default")
         # Connect to multiple memory collections (STM, LTM, DCM)
         self.memory_collections = sage.memory.connect(
             "short_term_memory", "long_term_memory", "dynamic_contextual_memory"
         )
         # Define the retrieval function (e.g., weighted aggregation, similarity ranking)
-        self.retrieval_func = sage.memory.retrieval_func
+        self.retrieval_func = sage.memory.retrieve_func
 
     # Returns both the original query and the retrieved memory chunks
     def execute(self, input_query: str, context=None) -> Tuple[str, List[str]]:
@@ -62,7 +61,7 @@ class SimplePromptConstructor(sage.operator.PromptFunction):
     def __init__(self):
         super().__init__()
         # Initialize a prompt construction logic (template-based, few-shot, etc.)
-        self.prompt_constructor = sage.prompt_construct.PromptConstructorImpl()
+        self.prompt_constructor = sage.prompt.create_prompt_constructor("default")
 
     # Constructs the prompt and returns (query, prompt) tuple
     def execute(self, inputs: Tuple[str, List[str]], context=None) -> Tuple[str, str]:
@@ -75,7 +74,7 @@ class LlamaGenerator(sage.operator.GeneratorFunction):
     def __init__(self):
         super().__init__()
         # Load or configure a local or remote LLM (e.g., llama_8b)
-        self.model = sage.model.apply("llama_8b")
+        self.model = sage.model.apply_generator_model("llama_8b")
 
     # Generates the model's response given a prompt string
     def execute(self, combined_prompt: str, context=None) -> str:
@@ -87,7 +86,7 @@ class LlamaGenerator(sage.operator.GeneratorFunction):
 pipeline = sage.pipeline.Pipeline("example_pipeline")
 
 # Step 1: Define the data source (e.g., incoming user query)
-query_stream = pipeline.add_source(KafkaSource())
+query_stream = pipeline.add_source(TextSource())
 
 # Step 2: Use a retriever to fetch relevant chunks from vector memory
 query_and_chunks_stream = query_stream.retrieve(SimpleRetriever())
