@@ -10,7 +10,7 @@ from sage.utils.file_path import RAW_FILE_DCM
 
 def _generate_embedding_key(embedding):
     """
-    Generate a unique, consistent hash key for the embedding.
+    Generate a unique, consistent hash key for the embedding_model.
     """
     # Ensure the tensor is on the CPU and detached
     if embedding.device.type != 'cpu':
@@ -45,7 +45,7 @@ class DynamicContextualMemory(BaseMemory):
 
     def store(self, embedding, raw_data=None):
         """
-        Store an embedding and its raw data.
+        Store an embedding_model and its raw data.
         """
         if raw_data is None:
             raise ValueError("Raw data must be provided for persistent memory.")
@@ -53,17 +53,17 @@ class DynamicContextualMemory(BaseMemory):
         # Save the raw data and get its ID
         raw_id = self.raw_data_storage.add_text_as_rawdata(raw_data)
 
-        # Generate a hash key for the embedding
+        # Generate a hash key for the embedding_model
         embedding_key = _generate_embedding_key(embedding)
 
-        # Insert the embedding into VectorDB
+        # Insert the embedding_model into VectorDB
 
         self.db.insert_tensor(embedding.clone())
 
-        # Map the embedding hash to the raw ID
+        # Map the embedding_model hash to the raw ID
         self.embedding_to_raw_map[embedding_key] = raw_id
 
-        self.logger.info(f"Stored embedding with Raw ID: {raw_id}")
+        self.logger.info(f"Stored embedding_model with Raw ID: {raw_id}")
         return raw_id
 
     def retrieve(self, query_embedding, k=1, **kwargs):
@@ -109,23 +109,23 @@ class DynamicContextualMemory(BaseMemory):
 
     def delete(self, embedding):
         """
-        Delete an embedding and its associated raw data.
+        Delete an embedding_model and its associated raw data.
         """
         try:
-            # Remove the embedding from VectorDB
+            # Remove the embedding_model from VectorDB
             tensor = torch.from_numpy(embedding)
             self.db.remove_tensor(tensor.clone())
 
-            # Remove the embedding-to-raw mapping and raw data
+            # Remove the embedding_model-to-raw mapping and raw data
             embedding_key = tuple(embedding.tolist())
             raw_id = self.embedding_to_raw_map.pop(embedding_key, None)
             if raw_id:
                 self.raw_data_storage.delete_rawdata(raw_id)
 
-            self.logger.info("Deleted embedding and its associated raw data.")
+            self.logger.info("Deleted embedding_model and its associated raw data.")
         except Exception as e:
-            self.logger.error(f"Error deleting embedding: {str(e)}")
-            raise RuntimeError(f"Failed to delete embedding: {str(e)}")
+            self.logger.error(f"Error deleting embedding_model: {str(e)}")
+            raise RuntimeError(f"Failed to delete embedding_model: {str(e)}")
 
     def clean(self):
         """

@@ -44,7 +44,7 @@ class IntegrationPipeline:
         k = retrieval_plan["k"]  # Number of results
         summarization = retrieval_plan["summarization"]
 
-        # Step 2: Convert query to embedding if needed
+        # Step 2: Convert query to embedding_model if needed
         # query_embedding = None # TODO: Can be optimized if LTM DCM not queried
         # if retrieval_strategy in ["semantic search", "hybrid"]:
         query_embedding = process_text_to_embedding(query)
@@ -77,7 +77,7 @@ class IntegrationPipeline:
 
     def relevance_filter(self, query, retrieved_data, threshold=0.6):
         """
-        Filter out irrelevant retrieved results using sentence embedding similarity.
+        Filter out irrelevant retrieved results using sentence embedding_model similarity.
         """
         query_embedding = self.embedder.encode(query, convert_to_tensor=True)
         filtered_data = []

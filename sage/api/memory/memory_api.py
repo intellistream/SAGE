@@ -4,23 +4,23 @@ from sage.core.neuronmem.collection import MemoryCollection
 from sage.core.neuronmem.manager import NeuronMemManager
 
 
-def create(memory_name: str, memory_backend: str, embedding_model=None) -> MemoryCollection:
+def create_table(memory_table_name: str, memory_table_backend: str, embedding_model=None) -> MemoryCollection:
     """
-    Create a new memory collection with specified backend and optional embedding model.
+    Create a new memory collection with specified backend and optional embedding_model model.
 
     Args:
-        memory_name: unique name for the memory instance.
-        memory_backend: backend identifier (e.g., "kv_store.rocksdb", "vector_db.candy").
-        embedding_model: embedding model used for vector memory; only required for vector backends.
+        memory_table_name: unique name for the memory instance.
+        memory_table_backend: backend identifier (e.g., "kv_store.rocksdb", "vector_db.candy").
+        embedding_model: embedding_model model used for vector memory; only required for vector backends.
 
     Returns:
         A MemoryCollection instance.
     """
-    if embedding_model is None and memory_backend.startswith("vector_db"):
-        raise ValueError("Vector memory backend requires an embedding model.")
+    if embedding_model is None and memory_table_backend.startswith("vector_db"):
+        raise ValueError("Vector memory backend requires an embedding_model model.")
 
-    memory = MemoryCollection(name=memory_name, backend=memory_backend, embedding_model=embedding_model)
-    NeuronMemManager.register(memory_name, memory)
+    memory = MemoryCollection(name=memory_table_name, backend=memory_table_backend, embedding_model=embedding_model)
+    NeuronMemManager.register(memory_table_name, memory)
     return memory
 
 def connect(*memory_names: str):

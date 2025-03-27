@@ -10,7 +10,7 @@ from sage.utils.file_path import RAW_FILE_LTM
 
 def _generate_embedding_key(embedding):
     """
-    Generate a unique, consistent hash key for the embedding.
+    Generate a unique, consistent hash key for the embedding_model.
     """
     # Ensure the tensor is on the CPU and detached
     if embedding.device.type != 'cpu':
@@ -45,9 +45,9 @@ class LongTermMemory(BaseMemory):
 
     def store(self, session_embedding, raw_data=None):
         """
-        Store a session embedding and its corresponding raw session data.
+        Store a session embedding_model and its corresponding raw session data.
 
-        :param session_embedding: The aggregated embedding representing the session.
+        :param session_embedding: The aggregated embedding_model representing the session.
         :param raw_data: The raw session data (e.g., list of queries and answers).
         """
         if not raw_data:
@@ -56,10 +56,10 @@ class LongTermMemory(BaseMemory):
         # Save the raw session data and get its ID
         raw_id = self.raw_data_storage.add_text_as_rawdata(str(raw_data))
 
-        # Generate a unique key for the session embedding
+        # Generate a unique key for the session embedding_model
         session_key = _generate_embedding_key(session_embedding)
 
-        # Insert the session embedding into VectorDB
+        # Insert the session embedding_model into VectorDB
         self.db.insert_tensor(session_embedding.clone())
 
         # Map the session key to the raw session ID
@@ -70,9 +70,9 @@ class LongTermMemory(BaseMemory):
 
     def retrieve(self, query_embedding, k=1, **kwargs):
         """
-        Retrieve sessions most similar to the given query embedding.
+        Retrieve sessions most similar to the given query embedding_model.
 
-        :param query_embedding: The embedding of the query.
+        :param query_embedding: The embedding_model of the query.
         :param k: Number of similar sessions to retrieve.
         :return: A list of raw session data.
         """
@@ -83,7 +83,7 @@ class LongTermMemory(BaseMemory):
             # Retrieve the raw session data for the similar embeddings
             results = []
             for embedding in embeddings:
-                # Generate a hash key for the embedding
+                # Generate a hash key for the embedding_model
                 session_key = _generate_embedding_key(embedding)
 
                 # Retrieve the raw ID using the hash key
@@ -114,7 +114,7 @@ class LongTermMemory(BaseMemory):
 
     def delete_session(self, session_embedding):
         """
-        Delete a session and its associated embedding.
+        Delete a session and its associated embedding_model.
 
         :param session_data: The raw session data to delete.
         """
@@ -122,7 +122,7 @@ class LongTermMemory(BaseMemory):
             # Generate a session key
             session_key = _generate_embedding_key(session_embedding)
 
-            # Remove the embedding and raw data
+            # Remove the embedding_model and raw data
             raw_id = self.session_to_raw_map.pop(session_key, None)
             if raw_id:
                 self.raw_data_storage.delete_rawdata(raw_id)

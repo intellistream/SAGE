@@ -84,7 +84,7 @@ class NeuronMemManager:
         :param memory_layer: The memory layer to retrieve from ("short_term" or "long_term").
         :param key: Optional key for specific data. If None, retrieves the first `k` items.
         :param k: Number of items to retrieve if no key is provided.
-        :param query_embedding: For long-term memory, the embedding to query similar sessions.
+        :param query_embedding: For long-term memory, the embedding_model to query similar sessions.
         :return: Retrieved data.
         """
         try:
@@ -94,7 +94,7 @@ class NeuronMemManager:
 
             if memory_layer == "long_term" or memory_layer == "dynamic_contextual":
                 if query_embedding is None:
-                    raise ValueError("Query embedding must be provided for long-term memory retrieval.")
+                    raise ValueError("Query embedding_model must be provided for long-term memory retrieval.")
                 data = memory.retrieve(query_embedding=query_embedding, k=k)
             else:
                 data = memory.retrieve(key=key, k=k)

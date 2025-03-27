@@ -1,8 +1,6 @@
 import logging
 
-from pandas.tests.series.methods.test_rank import results
-
-from sage.core.embedding.text_preprocessor import TextPreprocessor
+from sage.core.model.embedding_model import TextPreprocessor
 from sage.core.neuromem.manager.memory_manager import NeuronMemManager
 from sage.core.query_engine.operators.base_operator import BaseOperator
 
@@ -55,8 +53,8 @@ class Retriever(BaseOperator):
             self.logger.info(f"Generating embedding for query: {input_data}")
 
 
-            # # Generate embedding from the query
-            # query_embedding = self.embedder.generate_embedding(input_data) ### NLPer how to best embedding the question.
+            # # Generate embedding_model from the query
+            # query_embedding = self.embedder.generate_embedding(input_data) ### NLPer how to best embedding_model the question.
 
             # Retrieve results from memory layers
             self.logger.info(f"Retrieving data from memory layers for query: {input_data}")

@@ -23,6 +23,6 @@ class Pipeline:
         Submit the pipeline to the SAGE engine.
         The engine is responsible for compiling and executing the DAG.
         """
-        engine = Engine.get_instance()
-        engine.submit_pipeline(self)
+        engine = Engine.get_instance() # client side
+        engine.submit_pipeline(self) # compile dag -> register engine
         print(f"[Pipeline] Pipeline '{self.name}' submitted to engine.
