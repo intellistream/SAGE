@@ -1,5 +1,7 @@
+from typing import List, Optional
+
 import sage
-from typing import Tuple, List
+
 
 # 无人机依靠大模型做决策，ds做到无人机上，缺乏实时信息，ds给的建议不准确。
 # 我们系统替代ds部署，操作员联系无人机，无人机可以针对性采集周围数据
@@ -17,12 +19,32 @@ class WebSource(sage.operator.SourceFunction):
     def __init__(self):
         super().__init__()
 
-    # Produces a query from text
     def execute(self, context=None) -> str:
-        # TODO: Mock the original example
-        return "What is the Lisa?"
+        # TODO: Replace with real web fetcher
+        return "Lisa is an open-source language model developed by XYZ Labs. It focuses on efficient reasoning."
 
-#
+class WebChunker(sage.operator.ChunkFunction):
+    def __init__(self, max_tokens: int = 20):
+        super().__init__()
+        self.max_tokens = max_tokens
+
+    def execute(self, input: str, context=None) -> List[str]:
+        words = input.split()
+        return [" ".join(words[i:i+self.max_tokens]) for i in range(0, len(words), self.max_tokens)]
+
+class SimpleSummarizer(sage.operator.SummarizeFunction):
+    def __init__(self):
+        super().__init__()
+        self.model = None
+
+    def _init_model(self):
+        if self.model is None:
+            self.model = sage.model.apply_generator_model("llama_8b")
+
+    def execute(self, chunk: str, context=None) -> str:
+        self._init_model()
+        return self.model.generate("Summarize this:\n" + chunk)
+
 class MemoryWriter(sage.operator.WriterFunction):
     def __init__(self, session_id: Optional[str] = None):
         super().__init__()
@@ -35,15 +57,13 @@ class MemoryWriter(sage.operator.WriterFunction):
 
 
 # ---- Initialize and Submit Pipeline ----
-# Create a new pipeline instance
-pipeline = sage.pipeline.Pipeline("example_pipeline")
+pipeline = sage.pipeline.Pipeline("external_memory_ingestion")
 
-# Step 1: Define the data source (e.g., incoming user query)
 knowledge_stream = pipeline.add_source(WebSource())
+chunked_stream = knowledge_stream.chunk(WebChunker())
+summarized_stream = chunked_stream.summarize(SimpleSummarizer())
+summarized_stream.save_context(MemoryWriter())
 
-# Step 4: Generate the final response using a language model
-response_stream = knowledge_stream.save_context(MemoryWriter())
+pipeline.submit(config={"is_long_running": True, "duration": 1, "frequency": 30})
 
-# Submit the pipeline to the SAGE runtime
-pipeline.submit(is_long_running = True, duration = 1, frequency = 30)
 

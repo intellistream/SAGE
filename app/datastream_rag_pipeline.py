@@ -18,7 +18,7 @@ sage.memory.create_table(
 
 # Define dynamic contextual memory (e.g., for adapting memory per request context)
 sage.memory.create_table(
-    memory_table_name="external_memory", # Predefine DCM. DCM API, ingest from external, external_memory_write_operator
+    memory_table_name="dynamic_contextual_memory", # Predefine DCM. DCM API, ingest from external, external_memory_write_operator
     memory_table_backend="vector_db.candy",
     embedding_model=sage.model.apply_embedding_model("default")
 )
@@ -100,6 +100,8 @@ prompt_stream = query_and_chunks_stream.construct_prompt(SimplePromptConstructor
 # Step 4: Generate the final response using a language model
 response_stream = prompt_stream.generate_response(LlamaGenerator())
 
+response_stream.sink(SinkFunction())
+
 # Submit the pipeline to the SAGE runtime
-pipeline.submit(is_long_running = True, duration = 1, frequency = 10)
+pipeline.submit(config={"is_long_running": True, "duration": 1, "frequency": 30})
 
