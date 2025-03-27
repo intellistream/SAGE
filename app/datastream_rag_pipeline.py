@@ -4,22 +4,22 @@ from typing import Tuple, List
 
 # ---- Initialize Memory ----
 # Define short-term memory (e.g., for current session context)
-short_term_memory = sage.memory.create(
-    memory_name="short_term_memory",
-    memory_backend="kv_store.rocksdb"
+sage.memory.create_table(
+    memory_table_name="short_term_memory",
+    memory_table_backend="kv_store.rocksdb"
 )
 
 # Define long-term memory (e.g., for persistent knowledge base)
-long_term_memory = sage.memory.create(
-    memory_name="long_term_memory",
-    memory_backend="vector_db.candy",
+sage.memory.create_table(
+    memory_table_name="long_term_memory",
+    memory_table_backend="vector_db.candy",
     embedding_model=sage.model.apply_embedding_model("default")
 )
 
 # Define dynamic contextual memory (e.g., for adapting memory per request context)
-dynamic_contextual_memory = sage.memory.create(
-    memory_name="dynamic_contextual_memory",
-    memory_backend="vector_db.candy",
+sage.memory.create_table(
+    memory_table_name="external_memory", # Predefine DCM. DCM API, ingest from external, external_memory_write_operator
+    memory_table_backend="vector_db.candy",
     embedding_model=sage.model.apply_embedding_model("default")
 )
 
@@ -40,19 +40,22 @@ class TextSource(sage.operator.SourceFunction):
 class SimpleRetriever(sage.operator.RetrieverFunction):
     def __init__(self):
         super().__init__()
-        # Initialize the embedding model for vectorization
+        # Initialize the embedding_model model for vectorization
         self.embedding_model = sage.model.apply_embedding_model("default")
         # Connect to multiple memory collections (STM, LTM, DCM)
-        self.memory_collections = sage.memory.connect(
-            "short_term_memory", "long_term_memory", "dynamic_contextual_memory"
-        )
+        # self.memory_collections = sage.memory.connect(
+        #     "short_term_memory", "long_term_memory", "dynamic_contextual_memory"
+        # )
+        self.stm = sage.memory.connect("short_term_memory")
+        self.ltm = sage.memory.connect("long_term_memory")
+        self.dcm = sage.memory.connect("dynamic_contextual_memory")
         # Define the retrieval function (e.g., weighted aggregation, similarity ranking)
         self.retrieval_func = sage.memory.retrieve_func
 
     # Returns both the original query and the retrieved memory chunks
     def execute(self, input_query: str, context=None) -> Tuple[str, List[str]]:
         embedding = self.embedding_model.embed(input_query)
-        chunks = self.memory_collections.retrieve(embedding, self.retrieval_func)
+        chunks = self.stm.retrieve(embedding, self.retrieval_func)
         return input_query, chunks
 
 
@@ -98,5 +101,5 @@ prompt_stream = query_and_chunks_stream.construct_prompt(SimplePromptConstructor
 response_stream = prompt_stream.generate_response(LlamaGenerator())
 
 # Submit the pipeline to the SAGE runtime
-pipeline.submit()
+pipeline.submit(is_long_running = True, duration = 1, frequency = 10)
 

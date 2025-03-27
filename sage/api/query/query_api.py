@@ -20,7 +20,7 @@ class SimpleRetriever(sage.operator.RetrieverFunction):
 
         # create session STM if not exists
         try:
-            sage.memory.create(memory_name=stm_name, memory_backend="kv_store.rocksdb")
+            sage.memory.create_table(memory_table_name=stm_name, memory_table_backend="kv_store.rocksdb")
         except Exception:
             pass
 
@@ -62,7 +62,7 @@ class ContextWriter(sage.operator.WriterFunction):
 
         # Create if not exists
         try:
-            sage.memory.create(memory_name=stm_name, memory_backend="kv_store.rocksdb")
+            sage.memory.create_table(memory_table_name=stm_name, memory_table_backend="kv_store.rocksdb")
         except Exception:
             pass
 
@@ -81,8 +81,9 @@ def run_query(query: str, session_id: Optional[str] = None) -> str:
     pipeline = sage.pipeline.Pipeline("query_pipeline")
 
     source = StaticSource(query)
-    query_stream = pipeline.add_source(source)
+    query_stream = pipeline.add_source(source) # pipeline : source -> ?
 
+    # 提交给server的就是一个logical dag. Query Rewriter
     retriever = SimpleRetriever(session_id=session_id)
     prompt = SimplePromptConstructor()
     generator = LlamaGenerator()

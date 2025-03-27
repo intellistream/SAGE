@@ -1,4 +1,4 @@
-# sage.bak/core/embedding/multimodal_preprocessor.py
+# sage.bak/core/embedding_model/multimodal_preprocessor.py
 from transformers import AutoTokenizer, AutoModel, AutoFeatureExtractor
 import torch
 import numpy as np
@@ -9,7 +9,7 @@ class TextPreprocessor:
     def __init__(self, model_name='sentence-transformers/all-MiniLM-L6-v2'):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
-        self.fixed_dimension = 128  # Fixed dimension for the embedding vectors
+        self.fixed_dimension = 128  # Fixed dimension for the embedding_model vectors
 
     def generate_embedding(self, text: str):
         inputs = self.tokenizer(text, return_tensors='pt')

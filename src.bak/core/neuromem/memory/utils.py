@@ -43,10 +43,10 @@ def preload_dynamic_contextual_memory(memory, file_path):
             for line in file:
                 line = line.strip()
                 if line:  # Ensure the line is not empty
-                    # Process the text into an embedding
+                    # Process the text into an embedding_model
                     embedding = process_text_to_embedding(line)
 
-                    # Store embedding in memory
+                    # Store embedding_model in memory
                     memory.store(embedding, line)
                     logging.info(f"Preloaded text: {line}")
 
