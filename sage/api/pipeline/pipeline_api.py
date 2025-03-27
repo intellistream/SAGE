@@ -18,11 +18,20 @@ class Pipeline:
         self.data_streams.append(stream)
         return stream
 
-    def submit(self):
+    def submit(self, config=None):
         """
         Submit the pipeline to the SAGE engine.
         The engine is responsible for compiling and executing the DAG.
+
+        Args:
+            config (dict, optional): Configuration options for runtime execution.
+                Example:
+                {
+                    "is_long_running": True,
+                    "duration": 1,
+                    "frequency": 30
+                }
         """
-        engine = Engine.get_instance() # client side
-        engine.submit_pipeline(self) # compile dag -> register engine
-        print(f"[Pipeline] Pipeline '{self.name}' submitted to engine.
+        engine = Engine.get_instance()
+        engine.submit_pipeline(self, config=config or {})
+        print(f"[Pipeline] Pipeline '{self.name}' submitted to engine with config: {config or {}}")

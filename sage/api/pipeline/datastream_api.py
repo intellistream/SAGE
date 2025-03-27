@@ -28,6 +28,15 @@ class DataStream:
     def generate_response(self, generator_op):
         return self._transform("generate_response", lambda: generator_op)
 
+    def save_context(self, writer_op):
+        return self._transform("save_context", lambda: writer_op)
+
+    def chunk(self, chunk_op):
+        return self._transform("chunk", lambda: chunk_op)
+
+    def summarize(self, summarize_op):
+        return self._transform("summarize", lambda: summarize_op)
+
     def get_operator(self):
         return self.operator
 
