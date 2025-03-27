@@ -4,8 +4,7 @@ from . import memory
 from . import model
 from . import operator
 from . import pipeline
-from . import prompt
 from . import query
 
 # 供顶层 sage/__init__.py 使用
-__all__ = ["memory", "model", "operator", "pipeline", "prompt", "query"]
+__all__ = ["memory", "model", "operator", "pipeline", "query"]

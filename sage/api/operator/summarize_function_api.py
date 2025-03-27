@@ -1,4 +1,4 @@
-class WriterFunction:
+class SummarizeFunction:
     def __init__(self):
         self.upstream = None
         self.downstream = None

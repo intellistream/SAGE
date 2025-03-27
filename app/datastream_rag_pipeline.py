@@ -101,5 +101,5 @@ prompt_stream = query_and_chunks_stream.construct_prompt(SimplePromptConstructor
 response_stream = prompt_stream.generate_response(LlamaGenerator())
 
 # Submit the pipeline to the SAGE runtime
-pipeline.submit(is_long_running = True, duration = 1, frequency = 10)
+pipeline.submit(config={"is_long_running": True, "duration": 1, "frequency": 30})
 

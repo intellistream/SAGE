@@ -94,6 +94,6 @@ def run_query(query: str, session_id: Optional[str] = None) -> str:
     response_stream = prompt_stream.generate_response(generator)
     response_stream.save_context(writer)
 
-    pipeline.submit()
+    pipeline.submit(config={"is_long_running": False, "duration": 0, "frequency": 0})
 
     return f"Pipeline submitted for session: {session_id or 'default'}"
