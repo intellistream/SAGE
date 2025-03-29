@@ -1,4 +1,4 @@
-from sage.core.engine.runtime import Engine
+# from sage.core.engine.runtime import Engine
 from sage.api.pipeline.datastream_api import DataStream
 
 class Pipeline:
@@ -32,6 +32,6 @@ class Pipeline:
                     "frequency": 30
                 }
         """
-        engine = Engine.get_instance() # client side
-        engine.submit_pipeline(self, config=config or {}) # compile dag -> register engine
+        # engine = Engine.get_instance() # client side
+        # engine.submit_pipeline(self, config=config or {}) # compile dag -> register engine
         print(f"[Pipeline] Pipeline '{self.name}' submitted to engine with config: {config or {}}")

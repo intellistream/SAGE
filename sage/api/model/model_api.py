@@ -16,9 +16,9 @@ class EmbeddingModelClient:
         return [ord(c) / 255.0 for c in text[:128]]
 
 
-def apply_generator_model(name: str) -> GeneratorModel:
+def apply_generator_model(name: str) -> GeneratorModelClient:
     return GeneratorModelClient(name)
 
 
-def apply_embedding_model(name: str = "default") -> EmbeddingModel:
+def apply_embedding_model(name: str = "default") -> EmbeddingModelClient:
     return EmbeddingModelClient(name)
