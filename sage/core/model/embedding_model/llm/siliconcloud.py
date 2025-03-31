@@ -109,10 +109,10 @@ async def siliconcloud_embedding(
     float_array = struct.unpack("<" + "f" * n, decode_bytes)
     return list(float_array)
 
-async def main():
-    from dotenv import load_dotenv
-
-    load_dotenv()
-
-    print(await siliconcloud_embedding("123",api_key=os.environ.get('SILICONCLOUD_API_KEY')))
-asyncio.run(main())
+# async def main():
+#     from dotenv import load_dotenv
+#
+#     load_dotenv()
+#
+#     print(await siliconcloud_embedding("123",api_key=os.environ.get('SILICONCLOUD_API_KEY')))
+# asyncio.run(main())
