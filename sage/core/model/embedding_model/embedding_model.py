@@ -29,19 +29,19 @@ class EmbeddingModel:
         self.dim = None
         if method == "default":
             method = "hf"
-            kwargs["model_name"] = "sentence-transformers/all-MiniLM-L6-v2"
-        self.set_dim(kwargs["model_name" ] if method == "hf" else  kwargs["model"] )
+            kwargs["model"] = "sentence-transformers/all-MiniLM-L6-v2"
+        self.set_dim(kwargs["model"] )
         self.method = method
 
         # self.kwargs = {}
         self.kwargs = kwargs
         if method == "hf":
-            if "model_name" not in kwargs:
-                raise ValueError("hf method need model_name")
-            model_name = kwargs["model_name"]
+            if "model" not in kwargs:
+                raise ValueError("hf method need model")
+            model_name = kwargs["model"]
             self.kwargs["tokenizer"] = AutoTokenizer.from_pretrained(model_name)
             self.kwargs["embed_model"] = AutoModel.from_pretrained(model_name, trust_remote_code=True)
-            self.kwargs.pop("model_name")
+            self.kwargs.pop("model")
         self.embed_fn = self._get_embed_function(method)
 
     def set_dim(self,model_name):
@@ -106,35 +106,13 @@ class EmbeddingModel:
     def embed(self, texts:str)->list[float]:
         return asyncio.run(self._embed(texts))
 
-
-def _test():
-    # huggingface example
-    embedding_model = EmbeddingModel("hf", model_name="sentence-transformers/all-MiniLM-L6-v2")
-
-    print(embedding_model.embed("123"))
-
-    # mistralai example "mistral-embed"
-    # embedding_model2 = EmbeddingModel("openai", model="mistral-embed", base_url="https://api.mistral.ai/v1",
-    #                                   api_key=os.environ.get("MISTRAL_API_KEY"))
-    # print(await embedding_model2.embed(["123"]))
-    #
-    # # cohere example
-    # # print(os.environ.get("COHERE_API_KEY"))
-    # # embedding_model3 = EmbeddingModel("cohere", model="embed-multilingual-v3.0",
-    # #                                   api_key=os.environ.get("COHERE_API_KEY"))
-    # # print(await embedding_model3.embed(["123"]))
-    #
-    # # jina example
-    # embedding_model4 = EmbeddingModel("jina", api_key=os.environ.get('JINA_API_KEY'))
-    # print(await embedding_model4.embed(["123"]))
-    #
-    # # siliconcloud example
-    # api_key = os.environ.get("SILICONCLOUD_API_KEY")
-    # # print(api_key)
-    # embedding_model5 = EmbeddingModel("openai", model="BAAI/bge-m3", base_url="https://api.siliconflow.cn/v1",
-    #                                   api_key=api_key)
-    # print(await embedding_model5.embed(["123"]))
-
-
-if __name__ == "__main__":
-    _test()
+def main():
+    embedding_model = EmbeddingModel(method="hf",model = "sentence-transformers/all-MiniLM-L6-v2")
+    for i in range(10):
+        start = time.time()
+        v = embedding_model.embed(f"{i} times ")
+        print(v)
+        end = time.time()
+        print(f"embedding time :{end-start}")
+if __name__ =="__main__":
+    main()

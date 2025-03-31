@@ -45,15 +45,16 @@ async def jina_embed(
         "input": text,
     }
     data_list = await fetch_data(url, headers, data)
+    print(data_list)
     return data_list[0]['embedding']
 
-async def main():
-    from dotenv import load_dotenv
-
-    load_dotenv()
-
-    print(await jina_embed("123",api_key=os.environ.get('JINA_API_KEY')))
-asyncio.run(main())
+# async def main():
+#     from dotenv import load_dotenv
+#
+#     load_dotenv()
+#
+#     print(await jina_embed("123",api_key=os.environ.get('JINA_API_KEY')))
+# asyncio.run(main())
 
 
 

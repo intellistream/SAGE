@@ -46,83 +46,6 @@ def initialize_hf_model(model_name):
 
 
 
-# async def hf_model_if_cache(
-#         model,
-#         prompt,
-#         system_prompt=None,
-#         history_messages=[],
-#         **kwargs,
-# ) -> str:
-#     model_name = model
-#     hf_model, hf_tokenizer = initialize_hf_model(model_name)
-#     messages = []
-#     if system_prompt:
-#         messages.append({"role": "system", "content": system_prompt})
-#     messages.extend(history_messages)
-#     messages.append({"role": "user", "content": prompt})
-#     kwargs.pop("hashing_kv", None)
-#     input_prompt = ""
-#     try:
-#         input_prompt = hf_tokenizer.apply_chat_template(
-#             messages, tokenize=False, add_generation_prompt=True
-#         )
-#     except Exception:
-#         try:
-#             ori_message = copy.deepcopy(messages)
-#             if messages[0]["role"] == "system":
-#                 messages[1]["content"] = (
-#                         "<system>"
-#                         + messages[0]["content"]
-#                         + "</system>\n"
-#                         + messages[1]["content"]
-#                 )
-#                 messages = messages[1:]
-#                 input_prompt = hf_tokenizer.apply_chat_template(
-#                     messages, tokenize=False, add_generation_prompt=True
-#                 )
-#         except Exception:
-#             len_message = len(ori_message)
-#             for msgid in range(len_message):
-#                 input_prompt = (
-#                         input_prompt
-#                         + "<"
-#                         + ori_message[msgid]["role"]
-#                         + ">"
-#                         + ori_message[msgid]["content"]
-#                         + "</"
-#                         + ori_message[msgid]["role"]
-#                         + ">\n"
-#                 )
-#
-#     input_ids = hf_tokenizer(
-#         input_prompt, return_tensors="pt", padding=True, truncation=True
-#     ).to("cuda")
-#     inputs = {k: v.to(hf_model.device) for k, v in input_ids.items()}
-#     output = hf_model.generate(
-#         **input_ids, max_new_tokens=512, num_return_sequences=1, early_stopping=True
-#     )
-#     response_text = hf_tokenizer.decode(
-#         output[0][len(inputs["input_ids"][0]):], skip_special_tokens=True
-#     )
-#
-#     return response_text
-#
-#
-# async def hf_model_complete(
-#         prompt, system_prompt=None, history_messages=[], keyword_extraction=False, **kwargs
-# ) -> str:
-#     keyword_extraction = kwargs.pop("keyword_extraction", None)
-#     model_name = kwargs["hashing_kv"].global_config["llm_model_name"]
-#     result = await hf_model_if_cache(
-#         model_name,
-#         prompt,
-#         system_prompt=system_prompt,
-#         history_messages=history_messages,
-#         **kwargs,
-#     )
-#     if keyword_extraction:  # TODO: use JSON API
-#         return locate_json_string_body_from_string(result)
-#     return result
 
 
 async def hf_embed(text: str, tokenizer, embed_model) -> list[float]:
@@ -141,10 +64,10 @@ async def hf_embed(text: str, tokenizer, embed_model) -> list[float]:
     else:
         return embeddings.detach().cpu()[0].tolist()
 
-async def main():
-    model_name = 'sentence-transformers/all-MiniLM-L6-v2'
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    embed_model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
-    print(await hf_embed("123", tokenizer, embed_model))
-
-asyncio.run(main())
+# async def main():
+#     model_name = 'sentence-transformers/all-MiniLM-L6-v2'
+#     tokenizer = AutoTokenizer.from_pretrained(model_name)
+#     embed_model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
+#     print(await hf_embed("123", tokenizer, embed_model))
+#
+# asyncio.run(main())
