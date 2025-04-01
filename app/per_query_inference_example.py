@@ -4,12 +4,12 @@ import sage
 
 def main():
     # Session unaware query
-    query = "What is the Lisa?"
-    response = sage.query.run_query(query)
+    cur_query = "What is the Lisa?"
+    response = sage.query.run_query(cur_query)
     print("Response:", response)
 
     # # Session aware query
-    response = sage.query.run_query("Hello, who are you?", session_id="user123")
+    # response = sage.query.run_query("Hello, who are you?", session_id="user123")
 
 if __name__ == "__main__":
     main()

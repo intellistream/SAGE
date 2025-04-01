@@ -1,4 +1,3 @@
-from sage.core.model.embedding_model import EmbeddingModel
 class GeneratorModelClient:
     def __init__(self, model_name: str):
         self.model_name = model_name
@@ -8,20 +7,18 @@ class GeneratorModelClient:
         return f"[Generated from {self.model_name}]: {prompt}"
 
 
-class EmbeddingModelClient(EmbeddingModel):
-    def __init__(self, method, **kwargs):
-        # self.model_name = model_name
-        self.method = method
-        super().__init__(method, **kwargs)
+class EmbeddingModelClient:
+    def __init__(self, model_name: str = "default"):
+        self.model_name = model_name
 
     def embed(self, text: str) -> list[float]:
         # TODO: Replace with actual embedding_model logic
-        return super().embed(text)
+        return [ord(c) / 255.0 for c in text[:128]]
 
 
-def apply_generator_model(name: str) -> GeneratorModelClient:
+def apply_generator_model(name: str) -> GeneratorModel:
     return GeneratorModelClient(name)
 
 
-def apply_embedding_model(name: str = "default") -> EmbeddingModelClient:
+def apply_embedding_model(name: str = "default") -> EmbeddingModel:
     return EmbeddingModelClient(name)
