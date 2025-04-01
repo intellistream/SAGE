@@ -19,9 +19,9 @@ class EmbeddingModelClient(EmbeddingModel):
         return super().embed(text)
 
 
-def apply_generator_model(name: str) -> GeneratorModel:
+def apply_generator_model(name: str) -> GeneratorModelClient:
     return GeneratorModelClient(name)
 
 
-def apply_embedding_model(name: str = "default", **kwargs) -> EmbeddingModel:
-    return EmbeddingModelClient(name, **kwargs)
+def apply_embedding_model(name: str = "default") -> EmbeddingModelClient:
+    return EmbeddingModelClient(name)
