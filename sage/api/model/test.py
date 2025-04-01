@@ -19,7 +19,7 @@ class MyTestCase(unittest.TestCase):
 
 
     def test_hf(self):
-        model = apply_embedding_model("hf", model_name="sentence-transformers/all-MiniLM-L6-v2")
+        model = apply_embedding_model("hf", model="sentence-transformers/all-MiniLM-L6-v2")
         e = model.embed("This is huggingface.")
         self.assertIsInstance(e, list)
         self.assertTrue(all(isinstance(x, float) for x in e))

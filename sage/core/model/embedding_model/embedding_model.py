@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from SAGE.sage.core.model.embedding_model.llm import hf, ollama, jina, zhipu, nvidia_openai, bedrock, _cohere, openai, \
+from sage.core.model.embedding_model.embedding_methods import hf, ollama, jina, zhipu, nvidia_openai, bedrock, _cohere, openai, \
     siliconcloud, lollms  # , instructor
 from transformers import AutoModel, AutoTokenizer
 
