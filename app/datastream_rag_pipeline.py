@@ -64,7 +64,7 @@ class SimplePromptConstructor(sage.operator.PromptFunction):
     def __init__(self):
         super().__init__()
         # Initialize a prompt construction logic (template-based, few-shot, etc.)
-        self.prompt_constructor = sage.prompt.create_prompt_constructor("default")
+        self.prompt_constructor = self.set_prompt_constructor("default")
 
     # Constructs the prompt and returns (query, prompt) tuple
     def execute(self, inputs: Tuple[str, List[str]], context=None) -> Tuple[str, str]:
@@ -100,7 +100,7 @@ prompt_stream = query_and_chunks_stream.construct_prompt(SimplePromptConstructor
 # Step 4: Generate the final response using a language model
 response_stream = prompt_stream.generate_response(LlamaGenerator())
 
-response_stream.sink(SinkFunction())
+# response_stream.sink(SinkFunction())
 
 # Submit the pipeline to the SAGE runtime
 pipeline.submit(config={"is_long_running": True, "duration": 1, "frequency": 30})
