@@ -4,6 +4,12 @@ DEFAULT_MEMORY = {
     "dynamic_contextual_memory": "sage.core.neuromem.default_memory.dynamic_contextual_memory"
 }
 
+DEFAULT_MEMORY_BACKEND_TYPE = {
+    "short_term_memory": "kv_backend",
+    "long_term_memory": "vdb_backend",
+    "dynamic_contextual_memory": "vdb_backend"
+}
+
 MEMORY_BACKEND_MAPPING = {
     ("vector_db.candy", "long_term_memory"): {
         "config_key": "LTM_Physical_Memory",
@@ -28,9 +34,14 @@ import inspect
 import os
 import json
 
-def get_default_memory_class(default_memory_name: str, memory_table_backend: str | None = None):
-    """Dynamically instantiation of default memory classes, automatically filtering out invalid parameters"""
+def is_default_memory_class(memory_name: str) -> bool:
+    return memory_name in DEFAULT_MEMORY
 
+def get_default_memory_backend_type(memory_name: str) -> str:
+    return DEFAULT_MEMORY_BACKEND_TYPE[memory_name]
+
+def get_default_memory_instance(default_memory_name: str, memory_table_backend: str | None = None):
+    """Dynamically instantiation of default memory classes, automatically filtering out invalid parameters"""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     config_path = os.path.join(script_dir, "default_memory_config.json")
     with open(config_path, 'r') as f:

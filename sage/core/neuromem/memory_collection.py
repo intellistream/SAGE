@@ -1,22 +1,19 @@
-from sage.core.neuromem.default_memory import (
-    get_default_memory_class,
-)
+from sage.core.neuromem.memory_backend import MemoryBackend
 
 class MemoryCollection:
     """
     A unified memory collection wrapper.
     """
-
     def __init__(self, name, embedding_model, backend: str | None = None):
         self.name = name
-        self.memory = get_default_memory_class(name, backend)
+        self.memory, self.backend_type = MemoryBackend.create_table(name, backend)
         self.embedding_model = embedding_model
 
     def retrieve(self, raw_data: str | None = None, retrieve_func = None):
         """
         Retrieve data and support custom retrieval function 'retrievefunc'`
         """
-        if self.name == "short_term_memory":
+        if self.backend_type == "kv_backend":
             return self.memory.retrieve()
         else:
             embedding = self.embedding_model.encode(raw_data)
@@ -29,7 +26,7 @@ class MemoryCollection:
         """
         Store data and support custom storage function 'write _func'
         """
-        if self.name == "short_term_memory":
+        if self.backend_type == "kv_backend":
             return self.memory.store(raw_data)
         else:
             embedding = self.embedding_model.encode(raw_data)
