@@ -8,22 +8,20 @@ class GeneratorModelClient:
         return f"[Generated from {self.model_name}]: {prompt}"
 
 
-class EmbeddingModelClient:
-    def __init__(self, name: str = "default",**kwargs):
-        self.name = name
-        self.embedding_model = EmbeddingModel(method=name,**kwargs)
 
-    def embed(self, text: str) -> list[float]:
-        # TODO: Replace with actual embedding_model logic
-        return self.embedding_model.embed(text)
-
-    def get_dim(self)->int:
-        return self.embedding_model.get_dim()
 
 
 def apply_generator_model(name: str) -> GeneratorModelClient:
     return GeneratorModelClient(name)
 
 
-def apply_embedding_model(name: str = "default",**kwargs) -> EmbeddingModelClient:
-    return EmbeddingModelClient(name,**kwargs)
+def apply_embedding_model(name: str = "default",**kwargs) -> EmbeddingModel:
+    """
+    usage  参见sage/api/model/test.py
+    while name(method) = "hf", please set the param:model;
+    while name(method) = "openai",if you need call other APIs which are compatible with openai,set the params:base_url,api_key,model;
+    while name(method) = "jina/siliconcloud/cohere",please set the params:api_key,model;
+    Example:test.py
+    """
+    return EmbeddingModel(method=name,**kwargs)
+
