@@ -34,21 +34,21 @@ def connect(*memory_names: str):
     Returns:
         A composite object allowing unified memory access (e.g., for retrieval).
     """
-    # memory_list = [NeuronMemManager.get(name) for name in memory_names]
-    #
-    # class CompositeMemory:
-    #     def retrieve(self, embedding, retrieval_func):
-    #         results = []
-    #         for mem in memory_list:
-    #             results.extend(mem.retrieve(embedding, retrieval_func))
-    #         return results
-    #
-    #     def write(self, data, write_func):
-    #         for mem in memory_list:
-    #             mem.write(data, write_func)
+    memory_list = [NeuronMemManager.get(name) for name in memory_names]
+    
+    class CompositeMemory:
+        def retrieve(self, embedding, retrieval_func):
+            results = []
+            for mem in memory_list:
+                results.extend(mem.retrieve(embedding, retrieval_func))
+            return results
+    
+        def write(self, data, write_func):
+            for mem in memory_list:
+                mem.write(data, write_func)
 
-    # return CompositeMemory()
-    return None
+    return CompositeMemory()
+    # return None
 
 
 def retrieve_func():

@@ -7,38 +7,38 @@ class PromptFunction(BaseOperator):
         # Placeholder: should be set to a prompt builder instance
         self.prompt_constructor = None
 
-    def set_prompt_constructor(self, prompt_constructor):
-        self.prompt_constructor = create_prompt_constructor(prompt_constructor)
+    # def set_prompt_constructor(self, prompt_constructor):
+    #     self.prompt_constructor = create_prompt_constructor(prompt_constructor)
 
-    def execute(self, inputs: Tuple[str, List[str]], context: Any = None) -> Tuple[str, str]:
+    def execute(self, inputs: Tuple[str, List[str]]):
         if self.prompt_constructor is None:
             raise ValueError("No prompt constructor assigned to PromptFunction")
         query, chunks = inputs
-        prompt = self.prompt_constructor.construct(query, chunks)
-        return query, prompt
-
-
-# TODO: move this constructor to core
-class PromptConstructorImpl:
-    """
-    Default prompt constructor implementation.
-    Combines query and chunks with a simple template.
-    """
-    def construct(self, query: str, chunks: list[str]) -> str:
+        # prompt = self.prompt_constructor.construct(query, chunks)
         return query + "\n\n" + "\n".join(chunks)
 
 
-def create_prompt_constructor(name: str = "default") -> PromptConstructorImpl:
-    """
-    Factory method to create a prompt constructor instance.
+# # TODO: move this constructor to core
+# class PromptConstructorImpl:
+#     """
+#     Default prompt constructor implementation.
+#     Combines query and chunks with a simple template.
+#     """
+#     def construct(self, query: str, chunks: list[str]) -> str:
+#         return query + "\n\n" + "\n".join(chunks)
 
-    Args:
-        name: name of the prompt strategy (default only supported now)
 
-    Returns:
-        An instance of a prompt constructor.
-    """
-    if name == "default":
-        return PromptConstructorImpl()
-    else:
-        raise ValueError(f"Unknown prompt constructor: {name}")
+# def create_prompt_constructor(name: str = "default") -> PromptConstructorImpl:
+#     """
+#     Factory method to create a prompt constructor instance.
+
+#     Args:
+#         name: name of the prompt strategy (default only supported now)
+
+#     Returns:
+#         An instance of a prompt constructor.
+#     """
+#     if name == "default":
+#         return PromptConstructorImpl()
+#     else:
+#         raise ValueError(f"Unknown prompt constructor: {name}")

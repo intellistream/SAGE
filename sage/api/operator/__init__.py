@@ -5,6 +5,7 @@ from .generator_function_api import GeneratorFunction
 from .writer_function_api import WriterFunction
 from .chunk_function_api import ChunkFunction
 from .summarize_function_api import SummarizeFunction
+from .reranker_function_api import RerankerFuction
 
 __all__ = [
     "SourceFunction",
@@ -14,4 +15,5 @@ __all__ = [
     "WriterFunction",
     "ChunkFunction",
     "SummarizeFunction"
+    "RerankerFuction"
 ]
