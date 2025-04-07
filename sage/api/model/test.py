@@ -1,6 +1,5 @@
 
 import os
-<<<<<<< HEAD
 from urllib import response
 
 from httpx import stream
@@ -30,14 +29,7 @@ class GeneratorTestCase(unittest.TestCase):
 
 
 class EmbeddingTestCase(unittest.TestCase):
-=======
-from .model_api import apply_embedding_model
-import unittest
 
-
-
-class MyTestCase(unittest.TestCase):
->>>>>>> e6e4cea2e48e3af88fa91d682e0ec6703bb3febe
     # def test_something(self):
     #     self.assertEqual(True, False)  # add assertion here
 
@@ -83,10 +75,7 @@ class MyTestCase(unittest.TestCase):
         self.assertIsInstance(model.get_dim(), int)
 
 
-<<<<<<< HEAD
 
-=======
->>>>>>> e6e4cea2e48e3af88fa91d682e0ec6703bb3febe
 if __name__ == '__main__':
     unittest.main()
 
