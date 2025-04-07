@@ -1,7 +1,7 @@
 # File: sage/api/memory/memory_api.py
 
 # from sage.core.neuronmem.collection import MemoryCollection
-# from sage.core.neuronmem.manager import NeuronMemManager
+from sage.core.neuronmem.memory_manager import NeuronMemManager
 
 
 def create_table(memory_table_name: str, memory_table_backend: str, embedding_model=None):
@@ -24,7 +24,7 @@ def create_table(memory_table_name: str, memory_table_backend: str, embedding_mo
     # return memory
     return None
 
-def connect(*memory_names: str):
+def connect(memory_manager,*memory_names: str):
     """
     Connect to one or more registered memory collections by name.
 
@@ -37,15 +37,16 @@ def connect(*memory_names: str):
     memory_list = [NeuronMemManager.get(name) for name in memory_names]
     
     class CompositeMemory:
-        def retrieve(self, embedding, retrieval_func):
+        def retrieve(self, embedding) -> str:
             results = []
-            for mem in memory_list:
-                results.extend(mem.retrieve(embedding, retrieval_func))
+            # for mem in memory_list:
+            #     results.extend(mem.retrieve(embedding))
+
             return results
     
-        def write(self, data, write_func):
+        def store(self, data):
             for mem in memory_list:
-                mem.write(data, write_func)
+                mem.write(data)
 
     return CompositeMemory()
     # return None
@@ -55,4 +56,7 @@ def retrieve_func():
     return None
 
 def write_func():
+    return None
+
+def get_default_manager():
     return None
