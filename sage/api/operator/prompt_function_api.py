@@ -1,21 +1,18 @@
 from sage.api.operator.base_operator_api import BaseOperator
 from typing import Any, Tuple, List
-
+from abc import abstractmethod
 class PromptFunction(BaseOperator):
     def __init__(self):
         super().__init__()
         # Placeholder: should be set to a prompt builder instance
-        self.prompt_constructor = None
+        # self.prompt_constructor = None
 
     # def set_prompt_constructor(self, prompt_constructor):
     #     self.prompt_constructor = create_prompt_constructor(prompt_constructor)
 
-    def execute(self, inputs: Tuple[str, List[str]]):
-        if self.prompt_constructor is None:
-            raise ValueError("No prompt constructor assigned to PromptFunction")
-        query, chunks = inputs
-        # prompt = self.prompt_constructor.construct(query, chunks)
-        return query + "\n\n" + "\n".join(chunks)
+    @abstractmethod
+    def execute(self):
+        raise NotImplementedError("PromptFunction must implement execute().")
 
 
 # # TODO: move this constructor to core
