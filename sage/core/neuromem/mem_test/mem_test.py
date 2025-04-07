@@ -1,5 +1,4 @@
-from sage.core.neuromem.memory_manager import NeuronMemManager
-from sage.api.memory.memory_api import create_table, connect, retrieve_func, write_func
+from sage.api.memory.memory_api import create_table, connect, retrieve_func, write_func, init_default_manager, get_default_manager
 import logging
 
 def configure_logging(level=logging.INFO, log_file=None):
@@ -17,7 +16,8 @@ if __name__ == "__main__":
 
     configure_logging(level=logging.INFO)
 
-    manager = NeuronMemManager()
+    manager_test = init_default_manager()
+    manager = get_default_manager()
 
     stm = create_table("short_term_memory", manager)
     ltm = create_table("long_term_memory", manager)
