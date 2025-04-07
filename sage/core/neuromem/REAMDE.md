@@ -6,7 +6,9 @@ A flexible memory management system with STM, LTM and DCM capabilities.
 - test/测试(SAGE目录下)：
 
 ```
-python -m sage.core.neuromem.mem_test.mem_test
+ export HF_ENDPOINT=https://hf-mirror.com
+ export PYTHONPATH=/home/zrc/develop_item/sage/SAGE:$PYTHONPATH
+ pytest sage/core/neuromem/mem_test/mem_unit_test.py
 ```
 
 ## Core Features / 核心功能
