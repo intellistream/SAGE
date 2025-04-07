@@ -60,13 +60,7 @@ class EmbeddingModel:
             "embed-multilingual-v2.0": 768,
             "jina-embeddings-v3":1024,
             "BAAI/bge-m3":1024,
-<<<<<<< HEAD
-            "sentence-transformers/all-MiniLM-L6-v2":384,
-            "BAAI/bge-reranker-v2-m3":512
-=======
             "sentence-transformers/all-MiniLM-L6-v2":384
-
->>>>>>> e6e4cea2e48e3af88fa91d682e0ec6703bb3febe
         }
         if model_name in dimension_mapping:
             self.dim = dimension_mapping[model_name]

@@ -64,7 +64,6 @@ async def hf_embed(text: str, tokenizer, embed_model) -> list[float]:
     else:
         return embeddings.detach().cpu()[0].tolist()
 
-<<<<<<< HEAD
 
 # async def hf_rerank_score(text: str, tokenizer, embed_model) -> list[float]:
 #     device = next(embed_model.parameters()).device
@@ -83,12 +82,4 @@ async def hf_embed(text: str, tokenizer, embed_model) -> list[float]:
     # else:
     #     return embeddings.detach().cpu()[0].tolist()
     
-=======
->>>>>>> e6e4cea2e48e3af88fa91d682e0ec6703bb3febe
-# async def main():
-#     model_name = 'sentence-transformers/all-MiniLM-L6-v2'
-#     tokenizer = AutoTokenizer.from_pretrained(model_name)
-#     embed_model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
-#     print(await hf_embed("123", tokenizer, embed_model))
-#
-# asyncio.run(main())
+
