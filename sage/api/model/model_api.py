@@ -1,36 +1,26 @@
 from token import OP
 # from openai import OpenAI
 # from llvm.test2 import VllmGenerator
-from sage.core.model.generator_model.generator_model import OpenAIClient,VLLMGenerator
-class GeneratorModelClient:
-    def __init__(self, method: str, model_name: str, **kwargs):
-        if method=="openai":
-            self.model=OpenAIClient(model_name,**kwargs)
-        elif method=="vllm":
-            self.model=VLLMGenerator(model_name,**kwargs)
-        else:
-            raise ValueError("this method isn't supported")
+from sage.core.model.embedding_model.embedding_model import EmbeddingModel
+from sage.core.model.generator_model.generator_model import GeneratorModel
 
 
-    def generate(self, prompt: str, **kwargs):
-
-        response=self.model.generate(prompt, **kwargs)
-
-        return response
-
-
-class EmbeddingModelClient:
-    def __init__(self, model_name: str = "default"):
-        self.model_name = model_name
-
-    def embed(self, text: str) -> list[float]:
-        # TODO: Replace with actual embedding_model logic
-        return [ord(c) / 255.0 for c in text[:128]]
+def apply_generator_model(method: str,**kwargs) -> GeneratorModel:
+    """
+    usage  参见sage/api/model/test.py
+    while name(method) = "hf", please set the param:model;
+    while name(method) = "openai",if you need call other APIs which are compatible with openai,set the params:base_url,api_key,model;
+    Example:test.py
+    """
+    return GeneratorModel(method = method,**kwargs)
 
 
-def apply_generator_model(method: str,name: str,**kwargs) -> GeneratorModelClient:
-    return GeneratorModelClient(method,name,**kwargs)
-
-
-def apply_embedding_model(name: str = "default") -> EmbeddingModelClient:
-    return EmbeddingModelClient(name)
+def apply_embedding_model(name: str = "default",**kwargs) -> EmbeddingModel:
+    """
+    usage  参见sage/api/model/test.py
+    while name(method) = "hf", please set the param:model;
+    while name(method) = "openai",if you need call other APIs which are compatible with openai,set the params:base_url,api_key,model;
+    while name(method) = "jina/siliconcloud/cohere",please set the params:api_key,model;
+    Example:test.py
+    """
+    return EmbeddingModel(method=name,**kwargs)

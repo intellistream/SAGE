@@ -1,6 +1,6 @@
-from .generator_model import OpenAIClient,VLLMGenerator
+from .generator_model import OpenAIClient,HFGenerator
 
 __all__ =[ 
     "OpenAIClient",
-    "VLLMGenerator"
+    "HFGenerator"
 ]
