@@ -140,24 +140,6 @@ def connect(manager: NeuronMemManager, *memory_names: str):
         A composite object allowing unified memory access (e.g., for retrieval).
         一个复合对象，允许统一的记忆访问(例如用于检索)
     """
-<<<<<<< HEAD
-    memory_list = [NeuronMemManager.get(name) for name in memory_names]
-    
-    class CompositeMemory:
-        def retrieve(self, embedding) -> str:
-            results = []
-            # for mem in memory_list:
-            #     results.extend(mem.retrieve(embedding))
-
-            return results
-    
-        def store(self, data):
-            for mem in memory_list:
-                mem.write(data)
-
-    return CompositeMemory()
-    # return None
-=======
     memory_list = [manager.get(name) for name in memory_names]
 
     class CompositeMemory:
@@ -185,7 +167,6 @@ def connect(manager: NeuronMemManager, *memory_names: str):
             for mem in memory_list:
                 results.extend(mem.retrieve(raw_data, retrieve_func)) # type: ignore 
             return list(dict.fromkeys(results))
->>>>>>> upstream/refactor
 
         def store(self, raw_data: str, write_func=None):
             """
