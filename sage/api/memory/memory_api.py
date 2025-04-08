@@ -122,12 +122,8 @@ def create_table(
     manager.register(memory_table_name, memory)
     return memory
 
-<<<<<<< HEAD
-def connect(memory_manager,*memory_names: str):
-=======
 
 def connect(manager: NeuronMemManager, *memory_names: str):
->>>>>>> upstream/refactor
     """
     Connect to one or more registered memory collections by name.
     按名称连接到一个或多个已注册的记忆集合
