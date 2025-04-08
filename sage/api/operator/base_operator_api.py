@@ -22,3 +22,11 @@ class BaseOperator:
         Override this method with actual operator logic in subclasses.
         """
         raise NotImplementedError(f"{self._name}.execute() is not implemented")
+    
+
+from typing import TypeVar,Generic
+T = TypeVar('T')
+
+class Data(Generic[T]):
+    def __init__(self, data: T):
+        self.data = data 
