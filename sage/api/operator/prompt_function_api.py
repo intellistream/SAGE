@@ -2,6 +2,9 @@ from sage.api.operator.base_operator_api import BaseOperator
 from typing import Any, Tuple, List
 from abc import abstractmethod
 class PromptFunction(BaseOperator):
+    """
+    Operator for construct prompt
+    """
     def __init__(self):
         super().__init__()
         # Placeholder: should be set to a prompt builder instance
