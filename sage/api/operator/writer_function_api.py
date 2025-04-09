@@ -3,6 +3,7 @@ from abc import abstractmethod
 
 class WriterFunction(BaseOperator):
     """
+    Operator for write memory
     """
     def __init__(self):
         super().__init__()

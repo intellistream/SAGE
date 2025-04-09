@@ -11,5 +11,5 @@ class SimpleWriter(WriterFunction):
         query,answer=data.data
         self.stm.store(query+answer)
 
-        return Data([query,answer])
+        return Data((query,answer))
     
