@@ -6,6 +6,8 @@ import time
 import logging
 
 # 用于测试的operator
+"""用于测试的operator,其中spout负责生成数据源，末节点generator负责将收到的数据处理后写进该dag对应的一个文件里面"""
+
 class Spout :
     def __init__(self,config={}):
         self.logger=logging.getLogger(self.__class__.__name__)
@@ -50,6 +52,7 @@ class Generator:
 
 def create_test_streaming_dag(dag_manager: DAGManager) :
     #用于测试的dag
+    """创建一个用于测试的流式dag，默认形态为spout->retriever->prompt->generator"""
     dag=DAG(dag_manager.next_id,strategy="streaming")
     dag_manager.next_id+=1
 
@@ -81,9 +84,42 @@ def create_test_streaming_dag(dag_manager: DAGManager) :
     dag.add_edge(prompt_node, generator_node)
     dag_manager.dags[dag.id] = dag
     return dag.id
+def create_test_oneshot_dag(dag_manager: DAGManager) :
+    """创建一个用于测试的非流式dag，默认形态为spout->retriever->prompt->generator"""
+    dag=DAG(dag_manager.next_id,strategy="one_shot")
+    dag_manager.next_id+=1
 
-if __name__ == '__main__':
+    spout_node=OneShotDAGNode(
+        name='Spout',
+        operator=Spout(config={"id": dag.id}),
+        config={},
+        is_spout=True
+    )
+    retriever_node =OneShotDAGNode(
+        name="Retriever",
+        operator=Retriever(config={"id": dag.id}),
+        config={}
+    )
+    prompt_node = OneShotDAGNode(
+        name="PromptGenerator",
+        operator=PromptOperator(config={"id": dag.id})
+    )
+    generator_node = OneShotDAGNode(
+        name="Generator",
+        operator=Generator(config={"id": dag.id,"file_name": f"test_output_{dag.id}"})
+    )
+    dag.add_node(spout_node)
+    dag.add_node(retriever_node)
+    dag.add_node(prompt_node)
+    dag.add_node(generator_node)
+    dag.add_edge(spout_node, retriever_node)
+    dag.add_edge(retriever_node, prompt_node)
+    dag.add_edge(prompt_node, generator_node)
+    dag_manager.dags[dag.id] = dag
+    return dag.id
 
+def streaming_dag_test():
+#测试多线程流式rag
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",)
     dag_manager = DAGManager()
     dag_ids=[]
@@ -105,7 +141,35 @@ if __name__ == '__main__':
     print(f"num if running dags is {len(executor_manager.dag_manager.running_dags)}")
     print(f"num if created dags is {len(executor_manager.dag_manager.dags)}")
 
+def oneshot_dag_test():
+    #测试多线程非流式rag
+    """测试多线程非流时rag,模拟多轮对话模式"""
+    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", )
+    dag_manager = DAGManager()
+    dag_ids = []
+    for i in range(10):  # 测试的dag个数为10
+        dag_id = create_test_oneshot_dag(dag_manager)
+        dag_manager.submit_dag(dag_id)
+        dag_ids.append(dag_id)
+    executor_manager = ExecutorManager(dag_manager, max_slots=5)
+    executor_manager.submit_dag()
+    # dag 运行10s
+    time.sleep(5)
+    for i in dag_ids :
+        dag_manager.submit_dag(i)
+        executor_manager.submit_dag()
+    time.sleep(5)
 
+    print(f"num of tasks is {len(executor_manager.task_to_slot)}")
+    print(f"num of dags is {len(executor_manager.dag_to_tasks)}")
+    print(f"num if running dags is {len(executor_manager.dag_manager.running_dags)}")
+    print(f"num if created dags is {len(executor_manager.dag_manager.dags)}")
+
+
+
+if __name__ == '__main__':
+    streaming_dag_test()
+    oneshot_dag_test()
 
 
 

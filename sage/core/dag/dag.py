@@ -8,11 +8,13 @@ from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
 class DAG:
     """
     Directed Acyclic Graph (DAG) class to manage nodes and execution flow.
+    有向无环图（DAG）类，用于管理节点和执行流程。
     """
 
     def __init__(self,id,strategy=None):
         """
         Initialize an empty DAG.
+         初始化一个空的DAG。
         """
         self.nodes = []  # Changed from set to list
         self.edges = {}  # Dictionary to store edges as {parent: [children]}
@@ -24,6 +26,8 @@ class DAG:
         """
         Add a node to the DAG.
         :param node: DAGNode instance to add.
+        将节点添加到DAG中。
+        :param node: 要添加的DAGNode实例。
         """
         if node not in self.nodes:
             self.nodes.append(node)  # Maintain order of addition
@@ -35,6 +39,9 @@ class DAG:
         Add a directed edge from parent to child.
         :param parent: Parent DAGNode.
         :param child: Child DAGNode.
+         添加从父节点到子节点的有向边。
+        :param parent: 父节点DAGNode。
+        :param child: 子节点DAGNode。
         """
         if parent not in self.nodes or child not in self.nodes:
             raise ValueError("Both parent and child nodes must be part of the DAG.")
@@ -49,6 +56,8 @@ class DAG:
         """
         Perform topological sorting of the DAG nodes.
         :return: List of DAGNode instances in topological order.
+        对DAG节点进行拓扑排序。
+        :return: 拓扑顺序排列的DAGNode实例列表。
         """
         in_degree = {node: 0 for node in self.nodes}
         for parent in self.edges:
@@ -78,6 +87,10 @@ class DAG:
         :param name: The name of the node to retrieve.
         :return: The DAGNode instance with the given name.
         :raises ValueError: If no node with the given name exists in the DAG.
+        根据节点名称检索DAG中的节点。
+        :param name: 要检索的节点名称。
+        :return: 对应名称的DAGNode实例。
+        :raises ValueError: 如果DAG中不存在指定名称的节点。
         """
         for node in self.nodes:
             if node.name == name:
