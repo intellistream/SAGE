@@ -5,6 +5,18 @@ from sage.core.dag.dag_node import BaseDAGNode
 
 
 class Slot:
+    """
+        计算槽位资源管理器，负责管理线程池和任务生命周期
+
+        Attributes:
+            slot_id (int): 槽位唯一标识
+            thread_pool (ThreadPoolExecutor): 线程池对象
+            running_tasks (List[StreamingExecutor]): 正在运行的任务列表
+            current_load (int): 当前槽位负载（运行中的线程数）
+            task_to_future (Dict[StreamingExecutor, Future]): 任务到 Future 的映射
+            max_load (int): 最大允许负载（最大任务数）
+            logger (logging.Logger): 日志记录器
+        """
     def __init__(self, slot_id: int,max_threads=300):
         self.slot_id = slot_id
         self.thread_pool = ThreadPoolExecutor(
@@ -18,6 +30,17 @@ class Slot:
         self.logger=logging.getLogger(__name__)
 
     def submit_task(self, task) -> bool:
+        """
+               提交任务到线程池
+
+               Args:
+                   task: 需要执行的流式任务对象
+
+               Returns:
+                   bool: 是否成功提交
+                         - True: 任务已加入队列
+                         - False: 任务已存在或超出负载限制
+        """
         #提交一个task并进入线程队列等待分配线程
         self.clear_tasks()
         if task in self.running_tasks:
@@ -33,6 +56,7 @@ class Slot:
 
     def clear_tasks(self):
         #清除所有已经完成的任务
+        """清理已完成的任务，维护运行状态"""
         completed_tasks = [task for task, future in self.task_to_future.items() if future.done()]
         for task in completed_tasks:
             self.task_to_future.pop(task, None)
@@ -66,7 +90,7 @@ class Slot:
             raise RuntimeError(f"stop task failed: {e}")
 
     def shutdown(self):
-        # 先停止所有任务
+        # 停止所有任务
         for task in list(self.running_tasks):
             try:
                 self.stop(task)
@@ -79,5 +103,11 @@ class Slot:
         self.current_load = 0
 
     def get_load(self):
+        """
+                获取当前有效负载
+
+                Returns:
+                    int: 当前活跃线程数（清理后）
+                """
         self.clear_tasks()
         return self.current_load

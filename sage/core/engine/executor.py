@@ -13,11 +13,18 @@ class BaseExecutor():
 
 class StreamingExecutor(BaseExecutor):
     #用于执行流式的数据流
+    """
+           启动流式处理循环
+
+           Raises:
+               TypeError: 当节点类型不匹配时抛出
+               RuntimeError: 执行过程中出现错误时抛出
+    """
     def __init__(self,node:ContinuousDAGNode):
         super().__init__()
         self.long_running=True
         self.node=node
-        self.logger=logging.getLogger('streaming executor')
+        self.logger=logging.getLogger('streaming_executor')
     def execute(self):
         #循环的执行算子
         try:
@@ -39,6 +46,13 @@ class StreamingExecutor(BaseExecutor):
 
 class OneShotExecutor(BaseExecutor):
     #用于执行非流式的请求
+    """
+        一次性任务处理器，按拓扑顺序执行DAG流程
+
+        Attributes:
+            dag (DAG): 需要处理的DAG对象
+            stop_event (threading.Event): 任务停止信号量
+        """
     def __init__(self,dag:DAG):
         super().__init__()
         self.dag=dag

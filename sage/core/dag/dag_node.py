@@ -7,6 +7,7 @@ import time
 class BaseDAGNode:
     """
     Base class for DAG nodes, defining shared functionality for all node types.
+    DAG节点基类，定义所有节点类型的共享功能
     """
 
     def __init__(self, name, operator, config=None, is_spout=False):
@@ -16,6 +17,11 @@ class BaseDAGNode:
         :param operator: An operator implementing the execution logic.
         :param config: Optional dictionary of configuration parameters for the operator.
         :param is_spout: Indicates if the node is the spout (starting point).
+        初始化基础DAG节点
+        :param name: 节点唯一名称
+        :param operator: 实现执行逻辑的操作器
+        :param config: 操作器的可选配置参数字典
+        :param is_spout: 标识是否为数据源节点（起始点）
         """
         self.name = name
         self.operator = operator
@@ -32,6 +38,8 @@ class BaseDAGNode:
         """
         Add an upstream node. This node fetches input from the upstream node's output queue.
         :param node: A BaseDAGNode instance.
+        添加上游节点，本节点将从上游节点的输出队列获取输入
+        :param node: BaseDAGNode实例
         """
         if node not in self.upstream_nodes:
             self.upstream_nodes.append(node)
@@ -41,6 +49,9 @@ class BaseDAGNode:
         """
         Add a downstream node. The downstream node uses this node's output queue as its input source.
         :param node: A BaseDAGNode instance.
+        添加下游节点，下游节点将使用本节点的输出队列作为输入源
+        :param node: BaseDAGNode实例
+
         """
         if node not in self.downstream_nodes:
             self.downstream_nodes.append(node)
@@ -51,6 +62,8 @@ class BaseDAGNode:
         """
         Fetch input from upstream nodes' output queues.
         :return: Aggregated input data from upstream nodes or None if no data is available.
+        从上游节点的输出队列获取输入
+        :return: 来自上游节点的聚合输入数据，无数据时返回None
         """
         # 多个上游结点的代码
         # aggregated_input = []
@@ -69,6 +82,7 @@ class BaseDAGNode:
     def execute(self):
         """
         This method must be implemented by subclasses to define specific execution behavior.
+        子类必须实现此方法以定义具体执行逻辑
         """
         raise NotImplementedError("Subclasses must implement the `execute` method.")
 
@@ -77,11 +91,13 @@ class BaseDAGNode:
 class OneShotDAGNode(BaseDAGNode):
     """
     One-shot execution variant of DAGNode.
+    DAG节点的一次性执行变体
     """
 
     def execute(self):
         """
         Execute the operator logic once.
+        单次执行操作器逻辑
         """
         self.logger.debug(f"Node '{self.name}' starting one-shot execution.")
         try:
@@ -107,6 +123,7 @@ class ContinuousDAGNode(BaseDAGNode):
     """
     Continuous execution variant of DAGNode, designed to have its worker loop
     controlled by an external thread.
+    DAG节点的持续执行变体，设计为由外部线程控制其工作循环
     """
 
     def __init__(self, name, operator, config=None, is_spout=False):
@@ -116,6 +133,7 @@ class ContinuousDAGNode(BaseDAGNode):
     def run_loop(self):
         """
         Main worker loop to be executed by an external thread.
+        由外部线程执行的主工作循环
         """
         self.stop_event.clear()  # 重置停止信号
         self.logger.info(f"Node '{self.name}' worker loop started.")
@@ -143,6 +161,7 @@ class ContinuousDAGNode(BaseDAGNode):
     def stop(self):
         """
         Signal the worker loop to stop.
+        发送停止工作循环的信号
         """
         self.stop_event.set()
         self.logger.info(f"Node '{self.name}' received stop signal.")
