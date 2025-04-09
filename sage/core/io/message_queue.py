@@ -116,25 +116,31 @@ class MessageQueue:
         self.timestamps.append(now)
         self._trim_old(now, 60.0)
 
+    def get(self, block=True, timeout=0.1):
+        """
+        从队列中取数据；如果队列为空，会根据 block 和 timeout 参数决定是否阻塞
+        """
+        try:
+            # 从队列中取出项目
+            item = self.queue.get(block=block, timeout=timeout)
 
-    def get(self):
-        """从队列中取数据；如果队列为空，会阻塞"""
 
-        item = self.queue.get()
+            # 更新内存追踪
+            with self.buffer_condition:
+                item_id = id(item)
+                if item_id in self.memory_tracker:
+                    # 减少当前内存使用量
+                    self.current_buffer_usage -= self.memory_tracker[item_id]
+                    # 从内存追踪器中移除该项目
+                    del self.memory_tracker[item_id]
+                    # 通知等待中的生产者有可用空间
+                    self.buffer_condition.notify_all()
 
-
-
-        # 更新内存追踪
-        with self.buffer_condition:
-            item_id = id(item)
-            if item_id in self.memory_tracker:
-                self.current_buffer_usage -= self.memory_tracker[item_id]
-                del self.memory_tracker[item_id]
-                # 通知等待中的生产者
-                self.buffer_condition.notify_all()
-
-        return item
-
+            return item
+        except queue.Empty:
+            # 如果队列为空且超时，抛出异常
+            # raise queue.Empty("Queue is empty and timeout occurred")
+            return None
     def metrics(self):
         """
         返回 JSON 风格的实时状态信息：
