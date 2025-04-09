@@ -119,7 +119,10 @@ class MessageQueue:
 
     def get(self):
         """从队列中取数据；如果队列为空，会阻塞"""
+
         item = self.queue.get()
+
+
 
         # 更新内存追踪
         with self.buffer_condition:
