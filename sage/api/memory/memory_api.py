@@ -211,3 +211,6 @@ def retrieve_func():
 
 def write_func():
     return None
+
+# def get_default_manager():
+#     return None

@@ -1,14 +1,13 @@
 from sage.api.operator.base_operator_api import BaseOperator
+from typing import Any
 from abc import abstractmethod
-
-class WriterFunction(BaseOperator):
+class SinkFunction(BaseOperator):
     """
-    Operator for write memory
+    Operator for output results
     """
     def __init__(self):
         super().__init__()
-        pass
-    
+
     @abstractmethod
     def execute(self):
-        raise NotImplementedError("WriterFunction must implement execute().")
+        raise NotImplementedError("SinkFunction must implement execute() method")

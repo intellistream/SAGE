@@ -30,3 +30,14 @@ auto_env_setup.log
 /.idea/
 /deps/CANDY/installation/install_pycandy/candy.egg-info/
 /deps/CANDY/installation/install_pycandy/build/
+
+__pycache__/
+*.py[cod]
+
+
+/data/raw_docs/raw
+/data/raw_docs/raw_dcm
+/data/raw_docs/raw_ltm
+/experiment/memorag/output.txt
+/experiment/memorag/output_prompt.txt
+/installation/env_setup/install_dep.log
