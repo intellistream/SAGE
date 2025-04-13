@@ -64,10 +64,22 @@ async def hf_embed(text: str, tokenizer, embed_model) -> list[float]:
     else:
         return embeddings.detach().cpu()[0].tolist()
 
-# async def main():
-#     model_name = 'sentence-transformers/all-MiniLM-L6-v2'
-#     tokenizer = AutoTokenizer.from_pretrained(model_name)
-#     embed_model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
-#     print(await hf_embed("123", tokenizer, embed_model))
-#
-# asyncio.run(main())
+
+# async def hf_rerank_score(text: str, tokenizer, embed_model) -> list[float]:
+#     device = next(embed_model.parameters()).device
+#     inputs = tokenizer(
+#         text, return_tensors="pt", padding=True, truncation=True, max_length=512
+#     ).to(device)
+#     with torch.no_grad():
+#         scores = embed_model(
+#             **inputs
+#         ).logits.view(-1).float()
+
+#     return scores
+    #     embeddings = outputs.last_hidden_state.mean(dim=1)
+    # if embeddings.dtype == torch.bfloat16:
+    #     return embeddings.detach().to(torch.float32).cpu()[0].tolist()
+    # else:
+    #     return embeddings.detach().cpu()[0].tolist()
+    
+
