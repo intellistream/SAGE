@@ -1,18 +1,18 @@
+from token import OP
+# from openai import OpenAI
+# from llvm.test2 import VllmGenerator
 from sage.core.model.embedding_model.embedding_model import EmbeddingModel
-class GeneratorModelClient:
-    def __init__(self, model_name: str):
-        self.model_name = model_name
-
-    def generate(self, prompt: str) -> str:
-        # TODO: Replace with actual model inference logic
-        return f"[Generated from {self.model_name}]: {prompt}"
+from sage.core.model.generator_model.generator_model import GeneratorModel
 
 
-
-
-
-def apply_generator_model(name: str) -> GeneratorModelClient:
-    return GeneratorModelClient(name)
+def apply_generator_model(method: str,**kwargs) -> GeneratorModel:
+    """
+    usage  参见sage/api/model/test.py
+    while name(method) = "hf", please set the param:model;
+    while name(method) = "openai",if you need call other APIs which are compatible with openai,set the params:base_url,api_key,model;
+    Example:test.py
+    """
+    return GeneratorModel(method = method,**kwargs)
 
 
 def apply_embedding_model(name: str = "default",**kwargs) -> EmbeddingModel:
@@ -24,4 +24,3 @@ def apply_embedding_model(name: str = "default",**kwargs) -> EmbeddingModel:
     Example:test.py
     """
     return EmbeddingModel(method=name,**kwargs)
-
