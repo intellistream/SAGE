@@ -8,10 +8,10 @@ class DataStream:
         # Register the operator in the pipeline
         self.pipeline._register_operator(operator)
 
-    def _transform(self, name: str, next_operator_class):
-        op = next_operator_class()
+    def _transform(self, name: str, op):
+        # op = next_operator_class
         stream = DataStream(op, self.pipeline, name=name)
-
+        self.pipeline.data_streams.append(stream)
         # Wire dependencies
         stream.upstreams.append(self)
         self.operator.set_downstream(op)
@@ -20,16 +20,19 @@ class DataStream:
         return stream
 
     def retrieve(self, retriever_op):
-        return self._transform("retrieve", lambda: retriever_op)
+
+        return self._transform("retrieve",  retriever_op)
 
     def construct_prompt(self, prompt_op):
-        return self._transform("construct_prompt", lambda: prompt_op)
+        return self._transform("construct_prompt", prompt_op)
 
     def generate_response(self, generator_op):
-        return self._transform("generate_response", lambda: generator_op)
+        return self._transform("generate_response",  generator_op)
 
     def save_context(self, writer_op):
-        return self._transform("save_context", lambda: writer_op)
+        return self._transform("save_context",  writer_op)
+    def sink(self, sink_op):
+        return self._transform("sink",  sink_op)
 
     def chunk(self, chunk_op):
         return self._transform("chunk", lambda: chunk_op)

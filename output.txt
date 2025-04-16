@@ -1,0 +1,56 @@
+=== QA Output Log ===
+[Q] Question: Question: Answer this question use True or False .Did Alan Turing contribute to breaking the Enigma code during World War II?
+
+
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer this question use True or False .Did Alan Turing contribute to breaking the Enigma code during World War II?
+
+
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer this question use True or False .Did Alan Turing contribute to breaking the Enigma code during World War II?
+
+
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer this question use True or False .Did Alan Turing contribute to breaking the Enigma code during World War II?
+
+
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer this question use True or False .Did Alan Turing contribute to breaking the Enigma code during World War II?
+
+
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer this question use True or False .Did Alan Turing contribute to breaking the Enigma code during World War II?
+
+
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer this question use True or False .Did Alan Turing contribute to breaking the Enigma code during World War II?
+
+
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer this question use True or False .Did Alan Turing contribute to breaking the Enigma code during World War II?
+
+
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer this question use True or False .Did Alan Turing contribute to breaking the Enigma code during World War II?
+
+
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer this question use True or False .Did Alan Turing contribute to breaking the Enigma code during World War II?
+
+
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer this question use True or False .Did Alan Turing contribute to breaking the Enigma code during World War II?
+
+
+[A] Answer  : True
+----------------------------------------
