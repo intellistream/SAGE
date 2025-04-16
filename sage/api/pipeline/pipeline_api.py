@@ -35,3 +35,8 @@ class Pipeline:
         engine = Engine.get_instance() # client side
         engine.submit_pipeline(self, config=config or {}) # compile dag -> register engine
         print(f"[Pipeline] Pipeline '{self.name}' submitted to engine with config: {config or {}}")
+
+    def stop(self):
+        engine= Engine.get_instance() # client side
+        engine.stop_pipeline(self) # stop the pipeline
+        print(f"[Pipeline] Pipeline '{self.name}' stopped.")

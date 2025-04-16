@@ -2,7 +2,7 @@ from pydoc import doc
 
 from cv2 import sort
 
-from sage.api.operator import RerankerFuction
+from sage.api.operator import RerankerFunction
 from sage.api.operator import Data
 from typing import Any, List, Tuple
 
@@ -13,7 +13,7 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer,AutoM
 from abc import abstractmethod
 import logging
 
-class BGEReranker(RerankerFuction):
+class BGEReranker(RerankerFunction):
     """
     A reranker that uses the BAAI/bge-reranker-v2-m3 model to reorder a list of retrieved documents.
     The model assigns relevance scores to the documents and ranks them accordingly.
@@ -113,7 +113,7 @@ class BGEReranker(RerankerFuction):
 
 
 
-class LLMbased_Reranker(RerankerFuction):
+class LLMbased_Reranker(RerankerFunction):
     """
     A reranker that uses the BAAI/bge-reranker-v2-gemma model to determine if a retrieved document contains an answer to a given query.
     It scores the documents with 'Yes' or 'No' predictions based on whether the document answers the query.

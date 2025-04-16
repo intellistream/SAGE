@@ -34,13 +34,24 @@ class Engine:
         self.dag_manager=DAGManager()
         self.executor_manager = ExecutorManager(dag_manager=self.dag_manager)
         self.compiler= QueryCompiler()
+        self.pipeline_id = {}
 
     def submit_pipeline(self,pipeline,config=None):
-        optimized_dag, execution_type, node_mapping= self.compiler.compile(pipeline)
+        optimized_dag, execution_type,node_mapping = self.compiler.compile(pipeline=pipeline)
         optimized_dag.strategy=execution_type
-        dag_id=self.dag_manager.create_dag(logical_dag=optimized_dag,operator_mapping=node_mapping)
+        self.dag_manager.next_id+=1
+        self.pipeline_id[pipeline]=self.dag_manager.next_id
+        self.dag_manager.dags[self.dag_manager.next_id]=optimized_dag
+        optimized_dag.dag_id = self.dag_manager.next_id
+        dag_id = optimized_dag.dag_id
         self.dag_manager.submit_dag(dag_id)
         self.executor_manager.submit_dag()
+
+    def stop_pipeline(self,pipeline):
+        dag_id=self.pipeline_id[pipeline]
+        self.executor_manager.stop_dag(dag_id)
+
+
     def get_executor_manager(self):
         return self.executor_manager
 

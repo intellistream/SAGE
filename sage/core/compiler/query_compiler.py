@@ -1,18 +1,16 @@
-from app.datastream_rag_pipeline import SimpleRetriever
-from sage.api.operator.operator_impl import generator, retriever, promptor, refiner, reranker, sink, source, writer
-from sage.api.operator.operator_impl.generator import OpenAIGenerator, HFGenerator
-from sage.api.operator.operator_impl.promptor import QAPromptor
-from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
-from sage.api.operator.operator_impl.reranker import BGEReranker, LLMbased_Reranker
-from sage.api.operator.operator_impl.sink import TerminalSink
-from sage.api.operator.operator_impl.source import FileSource
-from sage.api.operator.operator_impl.writer import SimpleWriter
+# from app.datastream_rag_pipeline import SimpleRetriever
+# from sage.api.operator.operator_impl.generator import OpenAIGenerator, HFGenerator
+# from sage.api.operator.operator_impl.promptor import QAPromptor
+# from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
+# from sage.api.operator.operator_impl.reranker import BGEReranker, LLMbased_Reranker
+# from sage.api.operator.operator_impl.sink import TerminalSink
+# from sage.api.operator.operator_impl.source import FileSource
+# from sage.api.operator.operator_impl.writer import SimpleWriter
 from sage.core.compiler.optimizer import Optimizer
 from sage.core.compiler.query_parser import QueryParser
 from sage.core.dag.dag import DAG
-from sage.core.dag.dag_node import BaseDAGNode
+from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode
 from sage.core.compiler.logical_graph_constructor import LogicGraphConstructor
-from sage.api.operator.operator_impl import *
 class QueryCompiler:
     def __init__(self, memory_manager = None,generate_func = None ):
         """
@@ -23,18 +21,18 @@ class QueryCompiler:
         self.optimizer = Optimizer()
         self.parser = QueryParser(generate_func=generate_func)
 
-        self.operator_mapping = {
-            "OpenAIGenerator": OpenAIGenerator,
-            "HFGenerator":HFGenerator,
-            "SimpleRetriever": SimpleRetriever,
-            "QAPromptor": QAPromptor,
-            "AbstractiveRecompRefiner": AbstractiveRecompRefiner,
-            "BGEReranker": BGEReranker,
-            "LLMbased_Reranker":LLMbased_Reranker,
-            "TerminalSink": TerminalSink,
-            "FileSource": FileSource,
-            "SimpleWriter": SimpleWriter
-        }
+        # self.operator_mapping = {
+        #     "OpenAIGenerator": OpenAIGenerator,
+        #     "HFGenerator":HFGenerator,
+        #     "SimpleRetriever": SimpleRetriever,
+        #     "QAPromptor": QAPromptor,
+        #     "AbstractiveRecompRefiner": AbstractiveRecompRefiner,
+        #     "BGEReranker": BGEReranker,
+        #     "LLMbased_Reranker":LLMbased_Reranker,
+        #     "TerminalSink": TerminalSink,
+        #     "FileSource": FileSource,
+        #     "SimpleWriter": SimpleWriter
+        # }
 
     def _parse_query(self, natural_query):
         """
@@ -42,10 +40,10 @@ class QueryCompiler:
         :param natural_query: The query to process.
         :return: The detected intent (retrieval, summarization, generation, etc.).
         """
-        # parser = QueryParser(generate_func=generate)
-        context = ""
-        parsed_query = self.parser.parse_query(natural_query = natural_query,context=context)
-        return parsed_query
+        # # parser = QueryParser(generate_func=generate)
+        # context = ""
+        # parsed_query = self.parser.parse_query(natural_query = natural_query,context=context)
+        # return parsed_query
 
     # def add_spout(self, natural_query):
     #     """
@@ -112,13 +110,13 @@ class QueryCompiler:
         optimized_dag = self.optimizer.optimize(dag)
 
         node_mapping = {}
-        for node in optimized_dag.nodes:
-            if node.name is not None:
-                node_mapping[node.name] = {
-                    "config": config_mapping[node.name] if node.name in config_mapping[node.name] else None,
-                    "operator": self.operator_mapping.get(node.name),
-                    "kwargs": None
-                }
+        # for node in optimized_dag.nodes:
+        #     if node.name is not None:
+        #         node_mapping[node.name] = {
+        #             "config": config_mapping[node.name] if node.name in config_mapping[node.name] else None,
+        #             "operator": self.operator_mapping.get(node.name),
+        #             "kwargs": None
+        #         }
 
         return optimized_dag, execution_type,node_mapping
 
@@ -131,16 +129,23 @@ class QueryCompiler:
         dag = DAG(id="dag_1",strategy="streaming")
         nodes = []
         config_mapping = {}
-        for datastream in pipeline.datastreams:
+        for i,datastream in enumerate(pipeline.data_streams):
             # Add the datastream to the DAG
-            node = BaseDAGNode(
-                name=datastream.name,
-                operator=None,
-                is_spout=False
-            )
-            config_mapping[datastream.name] = {
-                "config": datastream.config,
-            }
+            if i == 0 :
+                node = ContinuousDAGNode(
+                    name=datastream.name,
+                    operator=datastream.operator,
+                    is_spout=True
+                )
+            else :
+                node = ContinuousDAGNode(
+                    name=datastream.name,
+                    operator=datastream.operator,
+                    is_spout=False
+                )
+            # config_mapping[datastream.name] = {
+            #     "config": datastream.config,
+            # }
             nodes.append(node)
             dag.add_node(node)
         # Add Edges
