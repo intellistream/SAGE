@@ -28,7 +28,8 @@ class LogicGraphConstructor:
         retriever_node = BaseDAGNode(
             name="Retriever",
             operator=None,
-            config={"k": 5}  # Retrieve top-5 results
+            config={"k": 5} , # Retrieve top-5 results
+            is_spout = True
         )
         reranker_node = BaseDAGNode(
             name="Reranker",
