@@ -1,5 +1,5 @@
 from sympy.multipledispatch.dispatcher import source
-
+import logging
 import sage
 from sage.api.operator.operator_impl.promptor import QAPromptor
 from sage.api.operator.operator_impl.generator import OpenAIGenerator
@@ -11,6 +11,8 @@ from sage.api.operator.operator_impl.writer import SimpleWriter
 from sage.api.operator.operator_impl.retriever import SimpleRetriever
 from typing import Tuple, List
 import yaml
+
+logging.basicConfig(level=logging.DEBUG)
 def load_config(path: str) -> dict:
     with open(path, 'r') as f:
         return yaml.safe_load(f)
