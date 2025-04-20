@@ -1,5 +1,7 @@
 import logging
 
+
+
 from sage.core.engine.executor import StreamingExecutor, OneShotExecutor
 from sage.core.engine.scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
 from sage.core.dag.dag import DAG
@@ -53,8 +55,9 @@ class ExecutorManager:
                 self.dag_to_tasks[dag_id]=[]
                 dag=self.dag_manager.get_dag(dag_id)
                 if dag.strategy=="streaming" :
+                    working_config=dag.working_config
                     for node in dag.nodes:
-                        task=self.create_streaming_task(node)
+                        task=self.create_streaming_task(node,working_config)
                         slot_id=self.schedule_task(task)
                         self.dag_to_tasks[dag_id].append(task)
                         self.task_to_slot[task]=slot_id
@@ -68,7 +71,7 @@ class ExecutorManager:
                     self.available_slots[slot_id].submit_task(task)
                     self.logger.debug(f"dag submitted task for slot {slot_id}")
 
-    def create_streaming_task(self,node) :
+    def create_streaming_task(self,node,working_config=None) :
         """
           创建流式处理任务
 
@@ -78,7 +81,7 @@ class ExecutorManager:
           Returns:
               StreamingExecutor: 流式执行器实例
           """
-        streaming_executor=StreamingExecutor(node)
+        streaming_executor=StreamingExecutor(node,working_config)
         return streaming_executor
 
     def create_oneshot_task(self,dag):

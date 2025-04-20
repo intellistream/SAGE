@@ -20,11 +20,12 @@ class StreamingExecutor(BaseExecutor):
                TypeError: 当节点类型不匹配时抛出
                RuntimeError: 执行过程中出现错误时抛出
     """
-    def __init__(self,node:ContinuousDAGNode):
+    def __init__(self,node:ContinuousDAGNode,working_config=None):
         super().__init__()
         self.long_running=True
         self.node=node
         self.logger=logging.getLogger('streaming_executor')
+        self.working_config=working_config or {}
     def execute(self):
         #循环的执行算子
         try:

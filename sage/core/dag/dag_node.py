@@ -2,7 +2,7 @@ from sage.core.io.message_queue import MessageQueue
 import logging
 import threading
 import time
-
+import ray
 
 class BaseDAGNode:
     """
@@ -28,7 +28,7 @@ class BaseDAGNode:
         self.config = config or {}
         self.is_spout = is_spout
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.output_queue = MessageQueue()
+        self.output_queue = MessageQueue.remote()
         self.upstream_nodes = []  # List of upstream DAGNodes
         self.downstream_nodes = []  # List of downstream DAGNodes
         self.is_executed = False
@@ -72,12 +72,14 @@ class BaseDAGNode:
         #         aggregated_input.append(upstream_node.output_queue.get())
 
         # 单个上游代码
-        aggregated_input = self.upstream_nodes[0].output_queue.get()
+        ref= self.upstream_nodes[0].output_queue.get.remote()
+        aggregated_input =ray.get(ref)
         return aggregated_input if aggregated_input else None
 
     def emit(self,output):
         if output is not None:
-            self.output_queue.put(output)
+            ref = self.output_queue.put.remote(output)
+            ray.get(ref)
 
     def execute(self):
         """
@@ -103,20 +105,23 @@ class OneShotDAGNode(BaseDAGNode):
         try:
             if self.is_spout:
                 self.logger.debug(f"Node '{self.name}' is a spout. Executing without fetching input.")
-                output=self.operator.execute()
+                ref=self.operator.execute.remote()
+                output=ray.get(ref)
                 self.emit(output)
             else:
                 input_data = self.fetch_input()
                 if input_data is None:
                     self.logger.warning(f"Node '{self.name}' has no input to process.")
                     return
-                output=self.operator.execute(input_data)
+                ref=self.operator.execute.remote(input_data)
+                output=ray.get(ref)
                 self.emit(output)
 
             self.is_executed = True
         except Exception as e:
             self.logger.error(f"Error in node '{self.name}': {str(e)}")
             raise RuntimeError(f"Execution failed in node '{self.name}': {str(e)}")
+
 
 
 class ContinuousDAGNode(BaseDAGNode):
@@ -129,6 +134,9 @@ class ContinuousDAGNode(BaseDAGNode):
     def __init__(self, name, operator, config=None, is_spout=False):
         super().__init__(name, operator, config, is_spout)
         self.stop_event = threading.Event()  # 停止信号
+        # 从配置中获取 duration，不存在或为 None 时默认为 None
+        self.duration = config.get("duration",None) if config else None  # 关键修改点
+        self._stop_timer = None  # 新增定时器对象
 
     def run_loop(self):
         """
@@ -138,17 +146,27 @@ class ContinuousDAGNode(BaseDAGNode):
         self.stop_event.clear()  # 重置停止信号
         self.logger.info(f"Node '{self.name}' worker loop started.")
 
+        # 仅在 duration 非 None 时启动定时器 (关键修改点)
+        if self.duration is not None:
+            # 检查 duration 是否为有效数值
+            if not isinstance(self.duration, (int, float)) or self.duration <= 0:
+                raise ValueError("duration 必须是正数")
+            self._stop_timer = threading.Timer(self.duration, self.stop)
+            self._stop_timer.start()
+
         while not self.stop_event.is_set():
             try:
                 # 1. Fetch input data
                 if self.is_spout:
-                    output=self.operator.execute()
+                    ref = self.operator.execute.remote()
+                    output=ray.get(ref)
                     self.emit(output)
-                else :
+                else:
                     input_data = self.fetch_input()
                     if input_data is None:
                         continue
-                    output=self.operator.execute(input_data)
+                    ref = self.operator.execute.remote(input_data)
+                    output=ray.get(ref)
                     self.emit(output)
             except Exception as e:
                 self.logger.error(
@@ -158,10 +176,18 @@ class ContinuousDAGNode(BaseDAGNode):
                 self.stop()  # 发生错误时自动停止
                 raise RuntimeError(f"Execution failed in node '{self.name}'")
 
+        # 循环结束后清理定时器 (新增)
+        if self._stop_timer and self._stop_timer.is_alive():
+            self._stop_timer.cancel()
+
     def stop(self):
         """
         Signal the worker loop to stop.
         发送停止工作循环的信号
         """
-        self.stop_event.set()
-        self.logger.info(f"Node '{self.name}' received stop signal.")
+        if not self.stop_event.is_set():
+            self.stop_event.set()
+            # 停止时同时取消定时器 (新增)
+            if self._stop_timer and self._stop_timer.is_alive():
+                self._stop_timer.cancel()
+            self.logger.info(f"Node '{self.name}' received stop signal.")
