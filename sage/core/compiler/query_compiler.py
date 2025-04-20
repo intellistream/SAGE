@@ -103,7 +103,7 @@ class QueryCompiler:
         execution_type = None
         if input_text is not None :
             dag, execution_type = self.compile_natural_query(input_text), "oneshot"
-        if pipeline is not None:
+        elif pipeline is not None:
             dag,config_mapping,execution_type  = self.compile_pipeline(pipeline)
         # Optimize the DAG
 

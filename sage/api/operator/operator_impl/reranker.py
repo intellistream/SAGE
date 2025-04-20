@@ -7,12 +7,14 @@ from sage.api.operator import Data
 from typing import Any, List, Tuple
 
 import torch
-
+import ray
 from typing import List, Tuple
 from transformers import AutoModelForSequenceClassification, AutoTokenizer,AutoModelForCausalLM
 from abc import abstractmethod
 import logging
 
+
+@ray.remote
 class BGEReranker(RerankerFunction):
     """
     A reranker that uses the BAAI/bge-reranker-v2-m3 model to reorder a list of retrieved documents.

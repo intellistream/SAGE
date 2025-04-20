@@ -4,10 +4,11 @@ from sage.core.dag.dag_node import OneShotDAGNode,ContinuousDAGNode
 from executor_manager import ExecutorManager
 import time
 import logging
-
+import ray
 # 用于测试的operator
 """用于测试的operator,其中spout负责生成数据源，末节点generator负责将收到的数据处理后写进该dag对应的一个文件里面"""
 
+@ray.remote
 class Spout :
     def __init__(self,config={}):
         self.logger=logging.getLogger(self.__class__.__name__)
@@ -17,7 +18,7 @@ class Spout :
         self.logger.debug(f"spout_{dagid} execute start")
         time.sleep(0.1)
         return input
-
+@ray.remote
 class Retriever:
     def __init__(self,config={}):
         self.logger=logging.getLogger(self.__class__.__name__)
@@ -28,6 +29,7 @@ class Retriever:
         time.sleep(0.1)
         return input+"retriever done"
 
+@ray.remote
 class PromptOperator:
     def __init__(self,config={}):
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -37,6 +39,8 @@ class PromptOperator:
         self.logger.debug(f"prompt_{dagid} execute start")
         time.sleep(0.1)
         return input+"prompt done"
+
+@ray.remote
 class Generator:
     def __init__(self,config={}):
         self.config=config
@@ -58,22 +62,22 @@ def create_test_streaming_dag(dag_manager: DAGManager) :
 
     spout_node=ContinuousDAGNode(
         name='Spout',
-        operator=Spout(config={"id": dag.id}),
+        operator=Spout.remote(config={"id": dag.id}),
         config={},
         is_spout=True
     )
     retriever_node =ContinuousDAGNode(
         name="Retriever",
-        operator=Retriever(config={"id": dag.id}),
+        operator=Retriever.remote(config={"id": dag.id}),
         config={}
     )
     prompt_node = ContinuousDAGNode(
         name="PromptGenerator",
-        operator=PromptOperator(config={"id": dag.id})
+        operator=PromptOperator.remote(config={"id": dag.id})
     )
     generator_node =ContinuousDAGNode(
         name="Generator",
-        operator=Generator(config={"id": dag.id,"file_name": f"test_output_{dag.id}"})
+        operator=Generator.remote(config={"id": dag.id,"file_name": f"test_output_{dag.id}"})
     )
     dag.add_node(spout_node)
     dag.add_node(retriever_node)
@@ -91,22 +95,22 @@ def create_test_oneshot_dag(dag_manager: DAGManager) :
 
     spout_node=OneShotDAGNode(
         name='Spout',
-        operator=Spout(config={"id": dag.id}),
+        operator=Spout.remote(config={"id": dag.id}),
         config={},
         is_spout=True
     )
     retriever_node =OneShotDAGNode(
         name="Retriever",
-        operator=Retriever(config={"id": dag.id}),
+        operator=Retriever.remote(config={"id": dag.id}),
         config={}
     )
     prompt_node = OneShotDAGNode(
         name="PromptGenerator",
-        operator=PromptOperator(config={"id": dag.id})
+        operator=PromptOperator.remote(config={"id": dag.id})
     )
     generator_node = OneShotDAGNode(
         name="Generator",
-        operator=Generator(config={"id": dag.id,"file_name": f"test_output_{dag.id}"})
+        operator=Generator.remote(config={"id": dag.id,"file_name": f"test_output_{dag.id}"})
     )
     dag.add_node(spout_node)
     dag.add_node(retriever_node)
@@ -120,17 +124,18 @@ def create_test_oneshot_dag(dag_manager: DAGManager) :
 
 def streaming_dag_test():
 #测试多线程流式rag
+    ray.init()
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",)
     dag_manager = DAGManager()
     dag_ids=[]
-    for i in range(10) :   #测试的dag个数为10
+    for i in range(1) :   #测试的dag个数为10
         dag_id=create_test_streaming_dag(dag_manager)
         dag_manager.submit_dag(dag_id)
         dag_ids.append(dag_id)
     executor_manager = ExecutorManager(dag_manager,max_slots=5)
     executor_manager.submit_dag()
     #dag 运行10s
-    time.sleep(5)
+    time.sleep(10)
     #依次停止dag
     for dag_id in dag_ids :
         time.sleep(1)
@@ -169,7 +174,7 @@ def oneshot_dag_test():
 
 if __name__ == '__main__':
     streaming_dag_test()
-    oneshot_dag_test()
+
 
 
 

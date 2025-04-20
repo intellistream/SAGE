@@ -38,12 +38,14 @@ class Engine:
 
     def submit_pipeline(self,pipeline,config=None):
         optimized_dag, execution_type,node_mapping = self.compiler.compile(pipeline=pipeline)
-        optimized_dag.strategy=execution_type
-        self.dag_manager.next_id+=1
-        self.pipeline_id[pipeline]=self.dag_manager.next_id
-        self.dag_manager.dags[self.dag_manager.next_id]=optimized_dag
-        optimized_dag.dag_id = self.dag_manager.next_id
-        dag_id = optimized_dag.dag_id
+        if config.get("is_long_running", False):
+            optimized_dag.strategy="streaming"
+        else :
+            optimized_dag.strategy="oneshot"
+        optimized_dag.working_config=config
+        dag_id=self.dag_manager.add_dag(optimized_dag)
+        optimized_dag.dag_id=dag_id
+        self.pipeline_id[pipeline]=dag_id
         self.dag_manager.submit_dag(dag_id)
         self.executor_manager.submit_dag()
 

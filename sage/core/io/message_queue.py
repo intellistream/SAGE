@@ -5,7 +5,9 @@ import threading
 import time
 from collections import deque
 import sys
+import ray
 
+@ray.remote
 class MessageQueue:
 
     def __init__(self, name="MessageQueue", max_buffer_size=100*1024*1024):

@@ -19,9 +19,9 @@ class DAG:
         self.nodes = []  # Changed from set to list
         self.edges = {}  # Dictionary to store edges as {parent: [children]}
         self.id=id
-        self.strategy="one_shot" if strategy is None else strategy
+        self.strategy="oneshot" if strategy is None else strategy
         self.logger = logging.getLogger(self.__class__.__name__)
-
+        self.working_config=None
     def add_node(self, node):
         """
         Add a node to the DAG.
@@ -96,3 +96,4 @@ class DAG:
             if node.name == name:
                 return node
         raise ValueError(f"Node with name '{name}' not found in the DAG.")
+

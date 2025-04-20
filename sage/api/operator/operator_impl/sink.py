@@ -1,6 +1,9 @@
 from sage.api.operator import SinkFunction
 from sage.api.operator import Data
 from typing import Tuple
+import ray
+
+@ray.remote
 class TerminalSink(SinkFunction):
 
     def __init__(self,config):
