@@ -10,18 +10,22 @@ import time
 from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
 from sage.api.operator.operator_impl.source import FileSource
 from sage.api.operator.operator_impl.sink import TerminalSink, FileSink
-from sage.api.operator.operator_impl.writer import SimpleWriter
+from sage.api.operator.operator_impl.writer import LongTimeWriter
 from sage.api.operator.operator_impl.retriever import SimpleRetriever
 from sage.api.operator.operator_impl.sink import TerminalSink
+from sage.api.operator import Data
 from typing import Tuple, List
 import yaml
+import ray
+
+@ray.remote
 class StaticSource(operator.SourceFunction):
     def __init__(self, input_query: str):
         super().__init__()
         self.query = input_query
 
-    def execute(self, context=None) -> str:
-        return self.query
+    def execute(self, context=None) -> Data[str]:
+        return Data(self.query)
 
 #
 # class SimpleRetriever(operator.RetrieverFunction):
@@ -87,22 +91,23 @@ class StaticSource(operator.SourceFunction):
 #         self.memory_collections.write(inputs, self.write_func)
 
 
-def run_query(query: str, config:None) -> str:
+def run_query(query: str, config=None) -> str:
     """
     High-level entry point for users to execute a query using a submitted pipeline.
     Supports optional session for STM-based memory.
     """
     query_pipeline = pipeline.Pipeline("query_pipeline")
 
-    source = StaticSource(query)
+    source = StaticSource.remote(query)
     query_stream = query_pipeline.add_source(source) # pipeline : source -> ?
-
-    query_and_chunks= query_stream.retrieve(SimpleRetriever(config))
+    query_and_chunks_stream = query_stream.retrieve(SimpleRetriever.remote(config))
     # Step 3: Construct a prompt by combining the query and the retrieved chunks
-    prompts = query_and_chunks.construct_prompt(QAPromptor(config))
+    prompts = query_and_chunks_stream.construct_prompt(QAPromptor.remote(config))
     # Step 4: Generate the final response using a language model
-    response = prompts.generate_response(OpenAIGenerator(config))
-    sink_stream = response.sink(TerminalSink(config))
+    response = prompts.generate_response(OpenAIGenerator.remote(config))
+    memory_write = response.write_mem(LongTimeWriter.remote(config))
+    sink_stream = memory_write.sink(TerminalSink.remote(config))
+
     query_pipeline.submit(config={"is_long_running": False, "duration": 0, "frequency": 0})
 
-    return f"Pipeline submitted for session: {session_id or 'default'}"
+    return f"Pipeline submitted for session: {'default'}"

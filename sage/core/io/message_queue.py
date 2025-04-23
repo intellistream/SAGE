@@ -5,12 +5,11 @@ import threading
 import time
 from collections import deque
 import sys
-import ray
 
-@ray.remote
+
 class MessageQueue:
 
-    def __init__(self, name="MessageQueue", max_buffer_size=100*1024*1024):
+    def __init__(self, name="MessageQueue", max_buffer_size=30000):
         self.max_buffer_size = max_buffer_size
         self.queue = queue.Queue(maxsize=0)
         self.total_task = 0

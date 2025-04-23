@@ -2,19 +2,19 @@
 
 from sage.core.neuromem.memory_manager import NeuronMemManager
 from sage.core.neuromem.memory_collection import MemoryCollection
-
+import ray
 # Global variable to store the default manager instance
 # 模块全局变量，存储默认管理器
 _default_manager = None
 
-def init_default_manager() -> NeuronMemManager:
+def init_default_manager() :
     """
     Initialize the global default manager
     初始化全局默认管理器
     """
     global _default_manager
     if _default_manager is None:
-        _default_manager = NeuronMemManager()
+        _default_manager = NeuronMemManager.remote()
     return _default_manager
 
 def get_default_manager() -> NeuronMemManager:
@@ -119,7 +119,8 @@ def create_table(
         新创建的MemoryCollection实例
     """
     memory = MemoryCollection(memory_table_name, embedding_model, memory_table_backend)
-    manager.register(memory_table_name, memory)
+    ref=manager.register.remote(memory_table_name, memory)
+    ray.get(ref)
     return memory
 
 

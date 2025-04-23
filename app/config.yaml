@@ -25,5 +25,8 @@ generator:
   api_key: "sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"
   seed: 42
 
+writer:
+
+
 sink:
 

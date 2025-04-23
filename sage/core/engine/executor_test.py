@@ -5,6 +5,7 @@ from executor_manager import ExecutorManager
 import time
 import logging
 import ray
+from ray import state
 # 用于测试的operator
 """用于测试的operator,其中spout负责生成数据源，末节点generator负责将收到的数据处理后写进该dag对应的一个文件里面"""
 
@@ -124,7 +125,7 @@ def create_test_oneshot_dag(dag_manager: DAGManager) :
 
 def streaming_dag_test():
 #测试多线程流式rag
-    ray.init()
+    ray.init(  dashboard_port=8265 )
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",)
     dag_manager = DAGManager()
     dag_ids=[]
@@ -135,7 +136,13 @@ def streaming_dag_test():
     executor_manager = ExecutorManager(dag_manager,max_slots=5)
     executor_manager.submit_dag()
     #dag 运行10s
-    time.sleep(10)
+    time.sleep(1000)
+
+
+    actors = state.actors()
+    for actor_id, actor_info in actors.items():
+        print(f"actor_id {actor_id}: {actor_info}")
+
     #依次停止dag
     for dag_id in dag_ids :
         time.sleep(1)
@@ -159,7 +166,14 @@ def oneshot_dag_test():
     executor_manager = ExecutorManager(dag_manager, max_slots=5)
     executor_manager.submit_dag()
     # dag 运行10s
-    time.sleep(5)
+    time.sleep(10)
+    # 查询 Actor 分配情况
+    actors = state.actors()
+    for actor_id, actor_info in actors.items():
+        print(f"Actor ID: {actor_id}")
+        print(f"类名: {actor_info['class_name']}")
+        print(f"节点 IP: {actor_info['address']['ip']}")
+        print(f"资源请求: {actor_info['required_resources']}")
     for i in dag_ids :
         dag_manager.submit_dag(i)
         executor_manager.submit_dag()

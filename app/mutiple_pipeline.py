@@ -11,11 +11,19 @@ from sage.api.operator.operator_impl.writer import SimpleWriter
 from sage.api.operator.operator_impl.retriever import SimpleRetriever
 from sage.api.operator.operator_impl.sink import TerminalSink
 from typing import Tuple, List
+import ray
 import yaml
+import os
+
+
+
 def load_config(path: str) -> dict:
     with open(path, 'r') as f:
         return yaml.safe_load(f)
 
+
+
+ray.init()
 config = load_config('./app/config.yaml')
 logging.basicConfig(level=logging.INFO)
 
@@ -38,8 +46,8 @@ response_stream = prompt_stream.generate_response(OpenAIGenerator(config))
 sink_stream = response_stream.sink(FileSink(config))
 
 # Submit the pipeline to the SAGE runtime
-pipeline.submit(config={"is_long_running": True, "duration": 1, "frequency": 30})
-time.sleep(5)
+pipeline.submit(config={"is_long_running": True})
+time.sleep(15)
 pipeline.stop()
 time.sleep(5)
 

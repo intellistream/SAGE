@@ -4,7 +4,7 @@ class DataStream:
         self.pipeline = pipeline
         self.name = name or f"DataStream_{id(self)}"
         self.upstreams = []
-
+        self.downstreams=[]
         # Register the operator in the pipeline
         self.pipeline._register_operator(operator)
 
@@ -14,13 +14,10 @@ class DataStream:
         self.pipeline.data_streams.append(stream)
         # Wire dependencies
         stream.upstreams.append(self)
-        self.operator.set_downstream(op)
-        op.set_upstream(self.operator)
-
+        self.downstreams.append(stream)
         return stream
 
     def retrieve(self, retriever_op):
-
         return self._transform("retrieve",  retriever_op)
 
     def construct_prompt(self, prompt_op):
@@ -35,14 +32,15 @@ class DataStream:
         return self._transform("sink",  sink_op)
 
     def chunk(self, chunk_op):
-        return self._transform("chunk", lambda: chunk_op)
+        return self._transform("chunk",  chunk_op)
 
     def summarize(self, summarize_op):
-        return self._transform("summarize", lambda: summarize_op)
+        return self._transform("summarize",summarize_op)
+    def write_mem(self,writer_op):
+        return self._transform("write_mem",writer_op)
 
     def get_operator(self):
         return self.operator
-
     def get_upstreams(self):
         return self.upstreams
 
