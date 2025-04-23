@@ -2,7 +2,7 @@ import logging
 from collections import deque
 from typing import List
 
-from sage.core.query_engine.dag.base_dag_node import BaseDAGNode
+from sage.core.dag.dag_node import BaseDAGNode
 
 
 class DAG:
@@ -69,6 +69,16 @@ class DAG:
 
         self.logger.info("Topological sort completed.")
         return sorted_nodes
+
+    def get_end_node(self) -> 'BaseDAGNode':
+
+        sorted_nodes = self.get_topological_order()
+        return sorted_nodes[-1]
+
+    def get_first_node(self) -> 'BaseDAGNode':
+
+        sorted_nodes = self.get_topological_order()
+        return sorted_nodes[0]
 
     def get_node_by_name(self, name: str) -> 'BaseDAGNode':
         """

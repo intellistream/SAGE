@@ -1,5 +1,7 @@
 import logging
+import ray
 
+@ray.remote
 class NeuronMemManager:
     """
     STM LTM DCM Manager
@@ -24,7 +26,105 @@ class NeuronMemManager:
 
     def get(self, memory_table_name):
         return self.memory_layers.get(memory_table_name)
-            
+
+    def retrieve(self,raw_data,*memory_names,retrieve_func=None):
+        memory_list = [self.get(name) for name in memory_names]
+        results = []
+        for mem in memory_list:
+            results.extend(mem.retrieve(raw_data, retrieve_func))  # type: ignore
+        return list(dict.fromkeys(results))
+
+    def store(self,raw_data,*memory_names,write_func=None):
+        memory_list = [self.get(name) for name in memory_names]
+        for mem in memory_list:
+            mem.store(raw_data, write_func)  # type: ignore
+
+
+
+    def connect(self,*memory_names: str):
+        """
+        Connect to one or more registered memory collections by name.
+        按名称连接到一个或多个已注册的记忆集合
+
+        Args:
+            *memory_names: one or more memory names previously registered.
+                          一个或多个先前注册的记忆名称
+
+        Returns:
+            A composite object allowing unified memory access (e.g., for retrieval).
+            一个复合对象，允许统一的记忆访问(例如用于检索)
+        """
+        memory_list = [self.get(name) for name in memory_names]
+
+
+        class CompositeMemory:
+            """
+            Composite memory class that combines multiple memory collections
+            组合多个记忆集合的复合记忆类
+            """
+
+            def retrieve(self, raw_data: str, retrieve_func=None):
+                """
+                Retrieve data from all connected memory collections
+                从所有连接的记忆集合中检索数据
+
+                Args:
+                    raw_data: Input data to retrieve matches for
+                              用于检索匹配项的输入数据
+                    retrieve_func: Optional custom retrieval function
+                                  可选的自定义检索函数
+
+                Returns:
+                    List of unique results from all memory collections
+                    来自所有记忆集合的唯一结果列表
+                """
+                results = []
+                for mem in memory_list:
+                    results.extend(mem.retrieve(raw_data, retrieve_func))  # type: ignore
+                return list(dict.fromkeys(results))
+
+            def store(self, raw_data: str, write_func=None):
+                """
+                Store data to all connected memory collections
+                将数据存储到所有连接的记忆集合中
+
+                Args:
+                    raw_data: Data to be stored
+                              要存储的数据
+                    write_func: Optional custom write function
+                                可选的自定义写入函数
+                """
+                for mem in memory_list:
+                    mem.store(raw_data, write_func)  # type: ignore
+
+            def flush_kv_to_vdb(self, kv, vdb):
+                """
+                Transfer data from KV to VDB.
+                将数据从KV传输到VDB
+
+                Args:
+                    kv: Key-Value store instance
+                        Key-Value存储实例
+                    vdb: Vector database instance
+                         向量数据库实例
+                """
+                # Retrieve all KV data
+                # 检索所有KV数据
+                kv_data = kv.memory.retrieve(k=len(kv.memory.storage))
+                if not kv_data:
+                    return
+
+                # Convert to embeddings and store in VDB
+                # 转换为嵌入向量并存储到VDB中
+                for item in kv_data:
+                    vdb.store(item)
+
+                # Clear KV storage after transfer
+                # 传输后清除KV存储
+                kv.clean()
+
+        return CompositeMemory()
+
     # def get_memory_layers(self):
     #     return self.memory_layers
 
