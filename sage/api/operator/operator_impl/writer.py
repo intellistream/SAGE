@@ -4,15 +4,21 @@ from typing import Tuple
 import ray
 
 @ray.remote
-class SimpleWriter(WriterFunction):
-    def __init__(self):
+class LongTimeWriter(WriterFunction):
+    def __init__(self,config):
         super().__init__()
-        self.memory_manager=get_default_manager()
-        self.stm=connect(self.memory_manager,"short_term_memory")
+        self.config = config["writer"]
+        self.memory_manager=config["memory_manager"]
 
     def execute(self, data:Data[Tuple[str,str]]) -> Data[Tuple[str,str]]:
-        query,answer=data.data
-        self.stm.store(query+answer)
+        try:
+            query,answer=data.data
+            ref=self.memory_manager.store.remote(query+answer,"long_term_memory")
+            ray.get(ref)
+
+        except Exception as e:
+            self.logger.error(f"{e} when WriterFuction")
+
 
         return Data((query,answer))
     

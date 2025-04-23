@@ -65,11 +65,12 @@ class ExecutorManager:
                         self.logger.debug(f"{node.name} submitted task for slot {slot_id}")
                 else :
                     task=self.create_oneshot_task(dag)
-                    slot_id=self.schedule_task(task)
-                    self.dag_to_tasks[dag_id].append(task)
-                    self.task_to_slot[task]=slot_id
-                    self.available_slots[slot_id].submit_task(task)
-                    self.logger.debug(f"dag submitted task for slot {slot_id}")
+                    # slot_id=self.schedule_task(task)
+                    # self.dag_to_tasks[dag_id].append(task)
+                    # self.task_to_slot[task]=slot_id
+                    # self.available_slots[slot_id].submit_task(task)
+                    # self.logger.debug(f"dag submitted task for slot {slot_id}")
+                    task.execute()
 
     def create_streaming_task(self,node,working_config=None) :
         """

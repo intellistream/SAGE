@@ -9,7 +9,7 @@
 from sage.core.compiler.optimizer import Optimizer
 from sage.core.compiler.query_parser import QueryParser
 from sage.core.dag.dag import DAG
-from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode
+from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
 from sage.core.compiler.logical_graph_constructor import LogicGraphConstructor
 class QueryCompiler:
     def __init__(self, memory_manager = None,generate_func = None ):
@@ -92,7 +92,7 @@ class QueryCompiler:
 
         return dag
 
-    def compile(self, input_text=None, pipeline=None):
+    def compile(self, input_text=None, pipeline=None,config=None):
         """
         Compile a query or natural language input into a DAG.
         :param input_text: User-provided query or question.
@@ -101,10 +101,13 @@ class QueryCompiler:
         dag = None
         config_mapping = {}
         execution_type = None
-        if input_text is not None :
-            dag, execution_type = self.compile_natural_query(input_text), "oneshot"
-        elif pipeline is not None:
-            dag,config_mapping,execution_type  = self.compile_pipeline(pipeline)
+        if config.get("is_long_running",None) is None :
+            dag,config_mapping, execution_type = self.compile_oneshot_pipeline(pipeline)
+        elif not config.get("is_long_running", None):
+            dag,config_mapping, execution_type = self.compile_oneshot_pipeline(pipeline)
+        elif config.get("is_long_running", None):
+            dag,config_mapping,execution_type  = self.compile_streaming_pipeline(pipeline)
+
         # Optimize the DAG
 
         optimized_dag = self.optimizer.optimize(dag)
@@ -120,7 +123,7 @@ class QueryCompiler:
 
         return optimized_dag, execution_type,node_mapping
 
-    def compile_pipeline(self,pipeline):
+    def compile_streaming_pipeline(self,pipeline):
         """
         Compile the pipeline.
         :return: dag.
@@ -154,6 +157,37 @@ class QueryCompiler:
 
         return dag, config_mapping,"streaming"
 
+    def compile_oneshot_pipeline(self, pipeline):
+        """
+        Compile the pipeline.
+        :return: dag.
+        """
+        # Implement the pipeline compilation logic here
+        dag = DAG(id="dag_1", strategy="oneshot")
+        nodes = []
+        config_mapping = {}
+        for i, datastream in enumerate(pipeline.data_streams):
+            # Add the datastream to the DAG
+            if i == 0:
+                node = OneShotDAGNode(
+                    name=datastream.name,
+                    operator=datastream.operator,
+                    is_spout=True
+                )
+            else:
+                node = OneShotDAGNode(
+                    name=datastream.name,
+                    operator=datastream.operator,
+                    is_spout=False
+                )
+
+            nodes.append(node)
+            dag.add_node(node)
+        # Add Edges
+        for i in range(len(nodes) - 1):
+            dag.add_edge(nodes[i], nodes[i + 1])
+
+        return dag, config_mapping, "oneshot"
     def add_oneshot_spout(self, natural_query):
         """
         Initialize a DAG with a Spout node.

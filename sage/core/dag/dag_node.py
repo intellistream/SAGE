@@ -28,7 +28,7 @@ class BaseDAGNode:
         self.config = config or {}
         self.is_spout = is_spout
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.output_queue = MessageQueue.remote()
+        self.output_queue = MessageQueue()
         self.upstream_nodes = []  # List of upstream DAGNodes
         self.downstream_nodes = []  # List of downstream DAGNodes
         self.is_executed = False
@@ -72,14 +72,12 @@ class BaseDAGNode:
         #         aggregated_input.append(upstream_node.output_queue.get())
 
         # 单个上游代码
-        ref= self.upstream_nodes[0].output_queue.get.remote()
-        aggregated_input =ray.get(ref)
+        aggregated_input=self.upstream_nodes[0].output_queue.get()
         return aggregated_input if aggregated_input else None
 
     def emit(self,output):
         if output is not None:
-            ref = self.output_queue.put.remote(output)
-            ray.get(ref)
+            self.output_queue.put(output)
 
     def execute(self):
         """
@@ -106,17 +104,15 @@ class OneShotDAGNode(BaseDAGNode):
             if self.is_spout:
                 self.logger.debug(f"Node '{self.name}' is a spout. Executing without fetching input.")
                 ref=self.operator.execute.remote()
-                output=ray.get(ref)
-                self.emit(output)
+                self.emit(ref)
             else:
-                input_data = self.fetch_input()
+                input_data_ref = self.fetch_input()
+                input_data = ray.get(input_data_ref)
                 if input_data is None:
                     self.logger.warning(f"Node '{self.name}' has no input to process.")
                     return
-                ref=self.operator.execute.remote(input_data)
-                output=ray.get(ref)
-                self.emit(output)
-
+                output_ref=self.operator.execute.remote(input_data)
+                self.emit(output_ref)
             self.is_executed = True
         except Exception as e:
             self.logger.error(f"Error in node '{self.name}': {str(e)}")
@@ -159,15 +155,14 @@ class ContinuousDAGNode(BaseDAGNode):
                 # 1. Fetch input data
                 if self.is_spout:
                     ref = self.operator.execute.remote()
-                    output=ray.get(ref)
-                    self.emit(output)
+                    self.emit(ref)
                 else:
-                    input_data = self.fetch_input()
-                    if input_data is None:
+                    input_ref = self.fetch_input()
+                    if input_ref is None :
                         continue
-                    ref = self.operator.execute.remote(input_data)
-                    output=ray.get(ref)
-                    self.emit(output)
+                    input_data= ray.get(input_ref)
+                    output_ref = self.operator.execute.remote(input_data)
+                    self.emit(output_ref)
             except Exception as e:
                 self.logger.error(
                     f"Critical error in node '{self.name}': {str(e)}",

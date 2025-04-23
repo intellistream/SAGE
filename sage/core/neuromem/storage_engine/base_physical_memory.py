@@ -8,7 +8,7 @@ import threading
 from typing import Dict, List, Optional, Any
 
 class BasePhysicalMemory(ABC):
-		
+
 		def __init__(self):
 			self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -53,7 +53,7 @@ class BaseKVPhysicalMemory(BasePhysicalMemory, ABC):
 # GraphStorage，图数据存储
 class BaseGraphPhysicalMemory(BasePhysicalMemory, ABC):
 		def __init__(self):
-			self.KVnum = 0	
+			self.KVnum = 0
 
 # DocStorage，文档数据存储
 class BaseDocPhysicalMemory(BasePhysicalMemory, ABC):
@@ -63,7 +63,7 @@ class BaseDocPhysicalMemory(BasePhysicalMemory, ABC):
 # RawData，原始数据管理
 # class TextStorageLayer:
 #     """A class to manage local storage of raw text data with metadata tracking."""
-    
+
 #     def __init__(self, storage_file_path: str):
 #         """
 #         Initialize the storage system.
@@ -71,18 +71,18 @@ class BaseDocPhysicalMemory(BasePhysicalMemory, ABC):
 #         self.storage_file = storage_file_path
 #         self.data_dir = os.path.splitext(storage_file_path)[0] + "_data"
 #         self.lock = threading.Lock()
-        
+
 #         # Initialize metadata
 #         self._data: Dict[int, str] = {}  # Maps raw_id to file_path
 #         self._next_id = 0
-        
+
 #         # Create directories and load existing data
 #         self._initialize_storage()
 
 #     def _initialize_storage(self) -> None:
 #         """Create necessary directories and load existing metadata."""
 #         os.makedirs(self.data_dir, exist_ok=True)
-        
+
 #         if os.path.exists(self.storage_file):
 #             try:
 #                 with open(self.storage_file, "r") as f:
@@ -115,11 +115,11 @@ class BaseDocPhysicalMemory(BasePhysicalMemory, ABC):
 #         try:
 #             with open(file_path, "w") as f:
 #                 f.write(text)
-            
+
 #             with self.lock:
 #                 self._data[raw_id] = file_path
 #                 self._save_metadata()
-            
+
 #             return raw_id
 #         except Exception as e:
 #             print(f"Error saving text as RawData: {e}")
@@ -179,7 +179,7 @@ class BaseDocPhysicalMemory(BasePhysicalMemory, ABC):
 #                             os.unlink(file_path)
 #                     except Exception as e:
 #                         print(f"Error deleting file {file_path}: {e}")
-                
+
 #                 # Reset metadata
 #                 self._data.clear()
 #                 self._next_id = 0
@@ -199,7 +199,7 @@ class BaseDocPhysicalMemory(BasePhysicalMemory, ABC):
 #                 print(f"  {raw_id}: {path}")
 class TextStorageLayer:
     """A class to manage local storage of raw text data with metadata tracking."""
-    
+
     def __init__(self, base_dir: str = "./data/raw_docs"):
         """
         Initialize the storage system with a unique directory.
@@ -208,12 +208,11 @@ class TextStorageLayer:
         self.storage_root = os.path.join(base_dir, self.unique_id)
         self.data_dir = os.path.join(self.storage_root, "data")
         self.storage_file = os.path.join(self.storage_root, "metadata.json")
-        self.lock = threading.Lock()
-        
+
         # Initialize metadata
         self._data: Dict[int, str] = {}  # Maps raw_id to file_path
         self._next_id = 0
-        
+
         # Create directories and load existing data
         self._initialize_storage()
 
@@ -224,7 +223,7 @@ class TextStorageLayer:
             os.makedirs(self.data_dir, exist_ok=True)
         except Exception as e:
             print(f"Error creating storage directories: {e}")
-        
+
         if os.path.exists(self.storage_file):
             try:
                 with open(self.storage_file, "r") as f:
@@ -247,24 +246,18 @@ class TextStorageLayer:
         """
         Add text as raw data to storage.
         """
-        with self.lock:
-            raw_id = self._next_id
-            self._next_id += 1
-
+        raw_id = self._next_id
+        self._next_id += 1
         file_name = f"raw_{raw_id}.txt"
         file_path = os.path.join(self.data_dir, file_name)
-
         try:
             # Ensure the data directory exists before writing
             os.makedirs(self.data_dir, exist_ok=True)
-            
             with open(file_path, "w") as f:
                 f.write(text)
-            
-            with self.lock:
-                self._data[raw_id] = file_path
-                self._save_metadata()
-            
+            # 删除 with self.lock 这一行
+            self._data[raw_id] = file_path
+            self._save_metadata()
             return raw_id
         except Exception as e:
             print(f"Error saving text as RawData: {e}")
@@ -274,8 +267,8 @@ class TextStorageLayer:
         """
         Get the file path for a given raw_id.
         """
-        with self.lock:
-            return self._data.get(raw_id)
+
+        return self._data.get(raw_id)
 
     def get_text(self, raw_id: int) -> Optional[str]:
         """
@@ -294,42 +287,41 @@ class TextStorageLayer:
         """
         Delete a raw data entry and its associated file.
         """
-        with self.lock:
-            file_path = self._data.get(raw_id)
-            if not file_path:
-                print(f"RawID {raw_id} not found.")
-                return False
 
-            try:
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-                del self._data[raw_id]
-                self._save_metadata()
-                return True
-            except Exception as e:
-                print(f"Error deleting file for RawID {raw_id}: {e}")
-                return False
+        file_path = self._data.get(raw_id)
+        if not file_path:
+            print(f"RawID {raw_id} not found.")
+            return False
+
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            del self._data[raw_id]
+            self._save_metadata()
+            return True
+        except Exception as e:
+            print(f"Error deleting file for RawID {raw_id}: {e}")
+            return False
 
     def delete_all_data(self) -> bool:
         """
         Delete all stored data and reset the storage.
-        """
-        with self.lock:
-            try:
-                if os.path.exists(self.storage_root):
-                    import shutil
-                    shutil.rmtree(self.storage_root)  # Delete the entire directory
-                return True
-            except Exception as e:
-                print(f"Error deleting all data: {e}")
-                return False
+    """
+        try:
+            if os.path.exists(self.storage_root):
+                import shutil
+                shutil.rmtree(self.storage_root)  # Delete the entire directory
+            return True
+        except Exception as e:
+            print(f"Error deleting all data: {e}")
+            return False
 
     def display_metadata(self) -> None:
         """Print the current metadata information."""
-        with self.lock:
-            print("Metadata:")
-            print(f"Unique ID: {self.unique_id}")
-            print(f"Next ID: {self._next_id}")
-            print("Stored items:")
-            for raw_id, path in self._data.items():
-                print(f"  {raw_id}: {path}")
+
+        print("Metadata:")
+        print(f"Unique ID: {self.unique_id}")
+        print(f"Next ID: {self._next_id}")
+        print("Stored items:")
+        for raw_id, path in self._data.items():
+            print(f"  {raw_id}: {path}")

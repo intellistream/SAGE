@@ -66,6 +66,7 @@ class OneShotExecutor(BaseExecutor):
                 if not self.stop_event.is_set():
                     assert isinstance(node, OneShotDAGNode), f"Expected OneShotDAGNode, got {type(node).__name__}"
                     node.execute()
+
     def stop(self):
         #停止执行
         self.stop_event.set()

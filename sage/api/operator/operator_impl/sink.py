@@ -17,6 +17,7 @@ class TerminalSink(SinkFunction):
 
         print(f"\033[92m[A] Answer :{answer}\033[0m")
 
+@ray.remote
 class FileSink(SinkFunction):
     def __init__(self, config):
         super().__init__()
