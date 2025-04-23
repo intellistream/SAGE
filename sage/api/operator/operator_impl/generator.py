@@ -3,6 +3,9 @@ from typing import Any,Tuple
 from sage.api.model import apply_generator_model
 from sage.api.operator import GeneratorFunction
 from sage.api.operator import Data
+import ray
+
+@ray.remote
 class OpenAIGenerator(GeneratorFunction):
     """
     OpenAIGenerator is a generator function that interfaces with a specified OpenAI model 
@@ -47,7 +50,7 @@ class OpenAIGenerator(GeneratorFunction):
         # Return the generated response along with the original user query as a tuple
         return Data((user_query, response))
 
-
+@ray.remote
 class HFGenerator(GeneratorFunction):
     """
     HFGenerator is a generator function that interfaces with a Hugging Face model 

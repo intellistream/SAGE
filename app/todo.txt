@@ -1,0 +1,7 @@
+1.compiler 部分生成dag的逻辑需要修改为根据stream的拓扑排序，同时还要实现对于算子的结构的优化
+2.算子实现router从而实现pipeline的多分支
+3.memory部分的接口统一化
+4.定时
+5.多pipeline
+6.多轮对话记忆力
+7.多场景
