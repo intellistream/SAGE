@@ -21,10 +21,10 @@ class QueryCompiler:
         """
         self.logical_graph_constructor = LogicGraphConstructor()
         self.optimizer = Optimizer()
-        print(f"{generate_func} in compiler")
+
         self.parser = QueryParser(generate_func=generate_func)
 
-
+        self.dag_dict = {}
 
         # self.operator_mapping = {
         #     "OpenAIGenerator": OpenAIGenerator,
@@ -106,10 +106,14 @@ class QueryCompiler:
         dag = None
         config_mapping = {}
         execution_type = None
+        query = None
+        if config.get("query"):
+            query = config.get("query")
         if config.get("is_long_running",None) is None :
-            dag,execution_type = self.compile_oneshot_pipeline(pipeline)
+
+            dag,execution_type = self.compile_oneshot_pipeline(pipeline,query)
         elif not config.get("is_long_running", None):
-            dag, execution_type = self.compile_oneshot_pipeline(pipeline)
+            dag, execution_type = self.compile_oneshot_pipeline(pipeline,query)
         elif config.get("is_long_running", None):
             dag,config_mapping,execution_type  = self.compile_streaming_pipeline(pipeline)
 
@@ -162,7 +166,7 @@ class QueryCompiler:
 
         return dag, config_mapping,"streaming"
 
-    def compile_oneshot_pipeline(self, pipeline):
+    def compile_oneshot_pipeline(self, pipeline,query):
         """
         Compile the pipeline.
         :return: dag.
@@ -176,9 +180,22 @@ class QueryCompiler:
             operator=source_stream.operator,
             is_spout=True
         )
-        input_ref = source_stream.operator.get_query.remote()
-        intent= self.parser.parse_query(natural_query=ray.get(input_ref))
-        print(intent)
+        if query is None:
+            print("query is None")
+            input_ref = source_stream.operator.get_query.remote()
+            query = ray.get(input_ref)
+
+        intent= self.parser.parse_query(natural_query=query)
+        # intent = "question_answering"
+        print(f"intent in compiler:{intent}")
+        print(pipeline)
+        if self.dag_dict.get(intent) is not None:
+            dag = self.dag_dict.get(intent)
+
+            return dag, "oneshot"
+        else:
+            pipeline.data_streams = pipeline.data_streams[:1]
+
         dag = DAG(id="dag_1", strategy="oneshot")
         dag = self.logical_graph_constructor.construct_logical_graph(intent,dag, spout_node)
 
@@ -213,23 +230,20 @@ class QueryCompiler:
         #     traversal_result.append(node)
         #     node = dag.edges.get(node)
         traversal_result = traverse_dag_from_node(spout_node)
-        print(traversal_result)
         lst_stream = source_stream
         for node in traversal_result[1:]:
             op_cls = operator_cls_mapping.get(node.name)
             try:
                 op = op_cls.remote(config_mapping)
-                print(op)
+
                 node.operator = op
                 stream = lst_stream.generalize(node.name, op)
                 lst_stream = stream
             except Exception as e:
                 print(node.name)
+                print(f"Error in operator instantiation: {e}")
 
 
-
-        for x in pipeline.data_streams:
-            print(f"name{x.name}")
 
 
 
@@ -255,7 +269,7 @@ class QueryCompiler:
         # # Add Edges
         # for i in range(len(nodes) - 1):
         #     dag.add_edge(nodes[i], nodes[i + 1])
-
+        self.dag_dict[intent] = dag
         return dag,  "oneshot"
 
     def add_oneshot_spout(self, natural_query):
