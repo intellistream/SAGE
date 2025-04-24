@@ -2,7 +2,7 @@ from sage.core.engine.executor_manager import ExecutorManager
 from sage.core.dag.dag_manager import DAGManager
 from sage.core.compiler.query_compiler import QueryCompiler
 import threading
-
+import ray
 
 class Engine:
     _instance = None
@@ -34,7 +34,6 @@ class Engine:
         # 初始化各管理器（确保单例）
         self.dag_manager=DAGManager()
         self.executor_manager = ExecutorManager(dag_manager=self.dag_manager)
-        print(f"{generate_func} in init" )
         self.compiler= QueryCompiler(generate_func=generate_func)
         self.pipeline_id = {}
 

@@ -20,7 +20,7 @@ import ray
 
 from ..model import apply_generator_model
 
-
+query_pipeline = None
 @ray.remote
 class StaticSource(operator.SourceFunction):
     def __init__(self, input_query: str):
@@ -32,6 +32,9 @@ class StaticSource(operator.SourceFunction):
 
     def get_query(self):
         return self.query
+
+    def set_query(self, query):
+        self.query = query
 #
 # class SimpleRetriever(operator.RetrieverFunction):
 #     def __init__(self, session_id: Optional[str] = None):
@@ -116,11 +119,25 @@ def run_query(query: str, config=None) -> str:
         "LongTimeWriter": LongTimeWriter,
         "RetriveSink": RetriveSink,
     }
-    query_pipeline = pipeline.Pipeline("query_pipeline")
-    query_pipeline.add_operator_config(config)
-    query_pipeline.add_operator_cls(operator_cls_mapping)
-    source = StaticSource.remote(query)
-    query_stream = query_pipeline.add_source(source) # pipeline : source -> ?
+
+    global query_pipeline
+
+    if query_pipeline is None:
+        query_pipeline = pipeline.Pipeline("query_pipeline")
+        print(f"query in run_query{query}")
+        query_pipeline.add_operator_config(config)
+        query_pipeline.add_operator_cls(operator_cls_mapping)
+        source = StaticSource.remote(query)
+        query_stream = query_pipeline.add_source(source)
+    else :
+        query_pipeline.data_streams[0].operator.set_query.remote(query)
+        # query_pipeline.add_operator_config(config)
+
+
+
+
+
+    # pipeline : source -> ?
     # query_and_chunks_stream = query_stream.retrieve(SimpleRetriever.remote(config))
     # # Step 3: Construct a prompt by combining the query and the retrieved chunks
     # prompts = query_and_chunks_stream.construct_prompt(QAPromptor.remote(config))
@@ -128,7 +145,10 @@ def run_query(query: str, config=None) -> str:
     # response = prompts.generate_response(OpenAIGenerator.remote(config))
     # memory_write = response.write_mem(LongTimeWriter.remote(config))
     # sink_stream = memory_write.sink(TerminalSink.remote(config))
+
     generate_model = apply_generator_model(method = "openai",base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",api_key="sk-b21a67cf99d14ead9d1c5bf8c2eb90ef",model_name="qwen-max",seed=42)
-    query_pipeline.submit(config={"is_long_running": False, "duration": 0, "frequency": 0},generate_func = generate_model.generate)
+    # generate_model = apply_generator_model(method = "openai",base_url="https://api.siliconflow.cn/v1",api_key="sk-tclnlwchkbzbjhkhwmygvbnvzhxmkamlkekmqqwwfglmmkdu",model_name="THUDM/glm-4-9b-chat",seed=42)
+    query_pipeline.submit(config={"is_long_running": False,"query":query},generate_func = generate_model.generate)
+
 
     return f"Pipeline submitted for session: {'default'}"

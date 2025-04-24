@@ -123,7 +123,14 @@ class SummarizationPromptor(PromptFunction):
         """
         super().__init__()
         self.config = config  # Store the configuration for later use
-        self.prompt_template = QA_prompt_template  # Load the QA prompt template
+        self.prompt_template = Template('''Instruction:
+You are an intelligent assistant. Summarize the content provided below in a concise and clear manner.
+Only provide the summary and do not include any additional information.
+{%- if external_corpus %}
+Content to summarize:
+{{ external_corpus }}
+{%- endif %}
+''')  # Load the QA prompt template
 
     def execute(self, data) -> Data[list]:
         """

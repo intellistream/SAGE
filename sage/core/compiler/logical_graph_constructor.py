@@ -18,6 +18,8 @@ class LogicGraphConstructor:
             return self.construct_logical_generation_graph(dag, spout_node)
         elif intent == "classification":
             return self.construct_logical_classification_graph(dag, spout_node)
+        else :
+            raise ValueError(f"Unknown intent: {intent}")
         return None
 
     def construct_logical_summarization_graph(self, dag, spout_node):
@@ -137,9 +139,10 @@ class LogicGraphConstructor:
         return dag
 
 
+    # TODO: implement the following functions
     def construct_logical_generation_graph(self, dag, spout_node):
-        pass
+        return self.construct_logical_qa_graph(dag,spout_node)
 
 
     def construct_logical_classification_graph(self, dag, spout_node):
-        pass
+        return self.construct_logical_qa_graph(dag,spout_node)
