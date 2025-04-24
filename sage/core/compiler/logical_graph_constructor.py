@@ -68,7 +68,7 @@ class LogicGraphConstructor:
         dag.add_edge(writer_node, sink_node)
         return dag
 
-    def construct_logical_summarization_graph(self, dag, spout_node):
+    def construct_logical_qa_graph(self, dag, spout_node):
         """
         Add nodes and edges for a summarization pipeline.
         :param dag: The DAG instance to modify.
