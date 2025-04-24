@@ -86,6 +86,9 @@ class BaseDAGNode:
         """
         raise NotImplementedError("Subclasses must implement the `execute` method.")
 
+    def get_name(self):
+        return self.name
+
 
 
 class OneShotDAGNode(BaseDAGNode):

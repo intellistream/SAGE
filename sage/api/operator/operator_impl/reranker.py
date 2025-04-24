@@ -114,7 +114,7 @@ class BGEReranker(RerankerFunction):
         return Data([query, reranked_docs_list])  # Return the reranked documents along with the original query
 
 
-
+@ray.remote
 class LLMbased_Reranker(RerankerFunction):
     """
     A reranker that uses the BAAI/bge-reranker-v2-gemma model to determine if a retrieved document contains an answer to a given query.
