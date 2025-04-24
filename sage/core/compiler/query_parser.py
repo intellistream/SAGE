@@ -156,7 +156,19 @@ Query: {natural_query}
 Intent:
 """
 
-        raw_response = self.generate(parse_prompt, temperature=0.0)
+        system_prompt = {
+            "role": "system",
+            "content": "you are a helpful assistant that classifies queries into intent types."
+        }
+
+        user_prompt = {
+            "role": "user",
+            "content": f"{parse_prompt}"
+        }
+
+        # Combine the system and user prompts into one list
+        prompt = [system_prompt, user_prompt]
+        raw_response = self.generate(prompt = prompt, temperature = 0.0)
         parsed_intent = "question-answering"  if "question-answering" in raw_response else \
                         "retrieval" if "retrieval" in raw_response else \
                         "summarization" if "summarization" in raw_response else \
