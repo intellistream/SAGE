@@ -3,7 +3,9 @@ from sage.api.operator import RetrieverFunction
 from sage.api.memory import connect,get_default_manager
 from typing import Tuple, List
 from sage.api.operator import Data
+import ray
 
+@ray.remote
 class SimpleRetriever(RetrieverFunction):
     """
     A simple retriever that retrieves memory chunks (short-term, long-term, or dynamic-contextual) based on the input query.
@@ -30,16 +32,8 @@ class SimpleRetriever(RetrieverFunction):
         """
         super().__init__()  # Call the parent class's constructor
         self.config = config["retriever"]  # Retrieve retriever-specific configuration
-        self.memory_manager = get_default_manager()  # Get the default memory manager
+        self.memory_manager = config.get("memory_manager")  # Get the default memory manager
         self.top_k = self.config["top_k"]  # Set the top_k parameter from config
-
-        # Conditionally initialize memory modules based on the configuration
-        if self.config["stm"]:
-            self.stm = connect(self.memory_manager, "short_term_memory")  # Connect to Short-Term Memory
-        if self.config["ltm"]:
-            self.ltm = connect(self.memory_manager, "long_term_memory")  # Connect to Long-Term Memory
-        if self.config["dcm"]:
-            self.dcm = connect(self.memory_manager, "dynamic_contextual_memory")  # Connect to Dynamic Contextual Memory
 
     def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
         """
@@ -52,6 +46,7 @@ class SimpleRetriever(RetrieverFunction):
         # try:
         # Retrieve memory chunks from each memory module if they are enabled in the configuration
         if self.config["stm"]:
+<<<<<<< HEAD
             pre_len=len(chunks)
             print(self.stm.retrieve(input_query))
             chunks.extend(self.stm.retrieve(input_query))  # Retrieve from Short-Term Memory (STM)
@@ -67,6 +62,16 @@ class SimpleRetriever(RetrieverFunction):
             self.logger.info(f"dynamic_contextual_memory retrieve {len(chunks)-pre_len} results")
         # except Exception as e:
         #     self.logger.error(f"{e} when RetrieverFuction")
+=======
+            ref = self.memory_manager.retrieve.remote(input_query,"short_term_memory")
+            chunks.extend(ray.get(ref))  # Retrieve from Short-Term Memory (STM)
+        if self.config["ltm"]:
+            ref = self.memory_manager.retrieve.remote(input_query,"long_term_memory")
+            chunks.extend(ray.get(ref))  # Retrieve from Short-Term Memory (LTM)
+        if self.config["dcm"]:
+            ref = self.memory_manager.retrieve.remote(input_query,"dynamic_contextual_memory")
+            chunks.extend(ray.get(ref))  # Retrieve from Short-Term Memory (DCM)
+>>>>>>> 0dc3395c4ba3171805ebb45c53b0f724de0fcbe0
 
         # Return the original query along with the list of retrieved memory chunks
         self.logger.info(f"{self._name} retrieve {len(chunks)} results")

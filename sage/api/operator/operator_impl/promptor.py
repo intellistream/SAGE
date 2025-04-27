@@ -2,6 +2,7 @@ from typing import Any, List, Tuple
 from jinja2 import Template
 from sage.api.operator import PromptFunction
 from sage.api.operator import Data
+import ray
 QA_prompt_template='''Instruction:
 You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.
 Only give me the answer and do not output any other words.
@@ -12,6 +13,9 @@ Relevant corpus for the current question:
 '''
 QA_prompt_template = Template(QA_prompt_template)
 
+
+
+@ray.remote
 class QAPromptor(PromptFunction):
     """
     QAPromptor is a prompt function that generates a QA-style prompt using 
@@ -31,9 +35,16 @@ class QAPromptor(PromptFunction):
         """
         super().__init__()
         self.config = config  # Store the configuration for later use
-        self.prompt_template = QA_prompt_template  # Load the QA prompt template
+        self.prompt_template = Template('''Instruction:
+        You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.
+        Only give me the answer and do not output any other words.
+        {%- if external_corpus %}
+        Relevant corpus for the current question:
+        {{ external_corpus }}
+        {%- endif %}
+        ''')  # Load the QA prompt template
 
-    def execute(self, data: Data[Tuple[str, List[str]]]) -> Data[list]:
+    def execute(self, data) -> Data[list]:
         """
         Generates a QA-style prompt for the input question and external corpus.
 
@@ -48,6 +59,7 @@ class QAPromptor(PromptFunction):
                  1. system_prompt: A system prompt based on the template with external corpus data.
                  2. user_prompt: A user prompt containing the question to be answered.
         """
+<<<<<<< HEAD
         try:
             # Unpack the input data into query and external_corpus
             query, external_corpus = data.data
@@ -71,6 +83,35 @@ class QAPromptor(PromptFunction):
                 "role": "user", 
                 "content": f"Question: {query}"
             }
+=======
+        # Unpack the input data into query and external_corpus
+        query, external_corpus = data.data
+
+        # Combine the external corpus list into a single string (in case it's split into multiple parts)
+        external_corpus = "".join(external_corpus)
+
+        # Prepare the base data for the system prompt, which includes the external corpus
+        base_system_prompt_data = {
+            "external_corpus": external_corpus
+        }
+
+
+        # query = data.data
+        # Create the system prompt using the template and the external corpus data
+        system_prompt = {
+            "role": "system",
+            "content": self.prompt_template.render(**base_system_prompt_data)
+        }
+        # system_prompt = {
+        #     "role": "system",
+        #     "content": ""
+        # }
+        # Create the user prompt using the query
+        user_prompt = {
+            "role": "user", 
+            "content": f"Question: {query}"
+        }
+>>>>>>> 0dc3395c4ba3171805ebb45c53b0f724de0fcbe0
 
             # Combine the system and user prompts into one list
             prompt = [system_prompt, user_prompt]

@@ -6,9 +6,10 @@ import time
 from collections import deque
 import sys
 
+
 class MessageQueue:
 
-    def __init__(self, name="MessageQueue", max_buffer_size=100*1024*1024):
+    def __init__(self, name="MessageQueue", max_buffer_size=30000):
         self.max_buffer_size = max_buffer_size
         self.queue = queue.Queue(maxsize=0)
         self.total_task = 0
@@ -123,6 +124,7 @@ class MessageQueue:
         try:
             # 从队列中取出项目
             item = self.queue.get(block=block, timeout=timeout)
+
 
             # 更新内存追踪
             with self.buffer_condition:
