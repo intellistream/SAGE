@@ -24,8 +24,15 @@ from sage.api.operator.operator_impl_test.source import FileSource
 from sage.api.operator.operator_impl_test.sink import TerminalSink
 from sage.api.operator.operator_impl_test.writer import LongTimeWriter,MemWriter
 from sage.api.operator.operator_impl_test.retriever import SimpleRetriever
-from sage.api.operator.operator_impl_test.chunk import CharacterSplitter,SentenceTransformerSplitter
+from sage.api.operator.operator_impl_test.chunk import CharacterSplitter,SentenceTransformersTokenTextSplitter
 from sage.api.operator.operator_impl_test.agent  import BaseAgent
+from sage.api.operator.operator_impl_test.evaluate import (
+    F1Evaluate,
+    BertRecallEvaluate,
+    RougeLEvaluate,
+    BRSEvaluate,
+)
+from sage.api.operator.operator_impl_test.sink import FileSink
 from sage.api.operator import Data
 import yaml
 from sage.api.memory.memory_api import (
@@ -131,8 +138,36 @@ def test_load_memory():
     # output=chunk1.execute(output)
     output=write.execute(output)
 
+def test_evaluate_functions():
+    # 模拟一条数据：reference 和 generated
+    reference = "The cat sits on the mat."
+    generated = "A cat is sitting on a mat."
 
+    data = Data((reference, generated))
+
+    config = {}  # 测试时config可以是空的
+
+    # 初始化所有评估器
+    f1_eval = F1Evaluate(config)
+    bert_recall_eval = BertRecallEvaluate(config)
+    rouge_l_eval = RougeLEvaluate(config)
+    brs_eval = BRSEvaluate(config)
+
+    # 分别执行
+    print("\n=== F1 Evaluate ===")
+    f1_eval.execute(data)
+
+    print("\n=== BERT Recall Evaluate ===")
+    bert_recall_eval.execute(data)
+
+    print("\n=== ROUGE-L Evaluate ===")
+    rouge_l_eval.execute(data)
+
+    print("\n=== BRS Evaluate ===")
+    brs_eval.execute(data)
+
+test_evaluate_functions()
 test_load_memory()
-# test_agent_with_search()
-# test_operator_short_memory()
-# test_QA_pipline()
+test_agent_with_search()
+test_operator_short_memory()
+test_QA_pipline()
