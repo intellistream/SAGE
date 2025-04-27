@@ -84,6 +84,7 @@ class LlamaGenerator(sage.operator.GeneratorFunction):
         return self.model.generate(combined_prompt)
 
 
+
 # ---- Initialize and Submit Pipeline ----
 # Create a new pipeline instance
 pipeline = sage.pipeline.Pipeline("example_pipeline")
@@ -94,7 +95,8 @@ query_stream = pipeline.add_source(TextSource())
 # Step 2: Use a retriever to fetch relevant chunks from vector memory
 query_and_chunks_stream = query_stream.retrieve(SimpleRetriever())
 
-# Step 3: Construct a prompt by combining the query and the retrieved chunks
+# Step 3: Construct a prompt by combining the query and the retrieved chu
+# nks
 prompt_stream = query_and_chunks_stream.construct_prompt(SimplePromptConstructor())
 
 # Step 4: Generate the final response using a language model

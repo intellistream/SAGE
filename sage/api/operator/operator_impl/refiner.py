@@ -64,7 +64,7 @@ class AbstractiveRecompRefiner(RefinerFuction):
 
         except Exception as e:
             # Log any errors that occur during the refining process
-            self.logger.error(f"Refining failed: {str(e)}")
+            self.logger.error(f"{str(e)} when RefinerFuction")
             raise RuntimeError(f"Refining error: {str(e)}")
         
         # Return the refined results as a Data object

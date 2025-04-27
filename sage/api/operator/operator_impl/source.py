@@ -35,11 +35,10 @@ class FileSource(SourceFunction):
                 query = f.read()  # Read the entire file content
                 return Data(query)  # Return the content wrapped in a Data object
         except FileNotFoundError:
-            # If the file is not found, print an error message
-            print(f"File not found: {self.data_path}")
+            self.logger.error(f"File not found: {self.data_path}")
         except Exception as e:
-            # Handle any other exceptions that occur during file reading
-            print(f"Read File error: {e}")
+            self.logger.error(f"Error reading file '{self.data_path}': {e}")
         
         # Return an empty string inside a Data object if an error occurs
         return Data("")
+

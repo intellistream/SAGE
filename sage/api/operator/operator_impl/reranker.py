@@ -252,7 +252,7 @@ class LLMbased_Reranker(RerankerFuction):
                 self.logger.debug(f"Top score: {reranked_docs[0]['relevance_score'] if reranked_docs else 'N/A'}")
 
         except Exception as e:
-            self.logger.error(f"Reranking failed: {str(e)}")
+            self.logger.error(f"{str(e)} when RerankerFuncton")
             raise RuntimeError(f"Reranker error: {str(e)}")
         
         emit_docs = emit_docs[0]  # Only return the first set of reranked documents

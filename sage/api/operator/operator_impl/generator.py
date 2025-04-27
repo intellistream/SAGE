@@ -47,7 +47,6 @@ class OpenAIGenerator(GeneratorFunction):
         # Return the generated response along with the original user query as a tuple
         return Data((user_query, response))
 
-
 class HFGenerator(GeneratorFunction):
     """
     HFGenerator is a generator function that interfaces with a Hugging Face model 
