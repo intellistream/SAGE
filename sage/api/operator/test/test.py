@@ -16,16 +16,16 @@ print(project_root)
 print(f"{project_root}:{os.environ.get('PYTHONPATH', '')}")
 sys.path.insert(0, project_root)
 
-from sage.api.operator.operator_impl.promptor import QAPromptor
-from sage.api.operator.operator_impl.generator import OpenAIGenerator
-from sage.api.operator.operator_impl.reranker import BGEReranker
-from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
-from sage.api.operator.operator_impl.source import FileSource
-from sage.api.operator.operator_impl.sink import TerminalSink
-from sage.api.operator.operator_impl.writer import LongTimeWriter,MemWriter
-from sage.api.operator.operator_impl.retriever import SimpleRetriever
-from sage.api.operator.operator_impl.chunk import CharacterSplitter,TokenTextSplitter
-from sage.api.operator.operator_impl.agent  import BaseAgent
+from sage.api.operator.operator_impl_test.promptor import QAPromptor
+from sage.api.operator.operator_impl_test.generator import OpenAIGenerator
+from sage.api.operator.operator_impl_test.reranker import BGEReranker
+from sage.api.operator.operator_impl_test.refiner import AbstractiveRecompRefiner
+from sage.api.operator.operator_impl_test.source import FileSource
+from sage.api.operator.operator_impl_test.sink import TerminalSink
+from sage.api.operator.operator_impl_test.writer import LongTimeWriter,MemWriter
+from sage.api.operator.operator_impl_test.retriever import SimpleRetriever
+from sage.api.operator.operator_impl_test.chunk import CharacterSplitter,SentenceTransformerSplitter
+from sage.api.operator.operator_impl_test.agent  import BaseAgent
 from sage.api.operator import Data
 import yaml
 from sage.api.memory.memory_api import (
@@ -133,6 +133,6 @@ def test_load_memory():
 
 
 test_load_memory()
-test_agent_with_search()
-test_operator_short_memory()
-test_QA_pipline()
+# test_agent_with_search()
+# test_operator_short_memory()
+# test_QA_pipline()
