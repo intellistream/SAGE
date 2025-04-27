@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from sage.api.operator.base_operator_api import BaseOperator
-class RerankerFuction(BaseOperator):
+class RerankerFunction(BaseOperator):
     """
     Operator for rerank the context after retrive
     """

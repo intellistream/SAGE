@@ -1,6 +1,9 @@
 from sage.api.operator import SourceFunction
 from sage.api.operator import Data
 from typing import Tuple
+import ray
+
+@ray.remote
 class FileSource(SourceFunction):
     """
     A source function that reads a file and returns its contents as a string.
