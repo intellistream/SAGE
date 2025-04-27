@@ -51,6 +51,7 @@ class OpenAIClient():
             stream= kwargs.get("stream", False)
             frequency_penalty= kwargs.get("frequency_penalty", 0) #The higher it is, the more it reduces repetitive wording and prevents looping responses.
             n=kwargs.get("n",1)
+            logprobs=kwargs.get("logprobs",False)
             # Generate output
             response = self.client.chat.completions.create(
                 model=self.model_name,
@@ -62,6 +63,7 @@ class OpenAIClient():
                 n=1,
                 seed=self.seed,
                 frequency_penalty=frequency_penalty,
+                logprobs=logprobs,
             )
             
             if stream:
@@ -77,13 +79,21 @@ class OpenAIClient():
                 # response = collected_response
                 return response
             else:
-                response=response.choices[0].message.content
+                # print(response)
+                response_content=response.choices[0].message.content
+                # logprobs = response.choices[0].logprobs.token_logprobs
+                if logprobs:
+                    logits_list = [logprob.logprob for logprob in response.choices[0].logprobs.content]
+
+                # print(logits_list)
 
             # print(response)
             # print("返回类型：", type(response))
             # print("内容：", response)
-
-            return response
+            if logprobs:
+                return response_content, logits_list
+            else:
+                return response_content
 
         except Exception as e:
             raise RuntimeError(f"Response generation failed: {str(e)}")
