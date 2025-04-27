@@ -5,7 +5,7 @@ from typing import Tuple
 import ray
 
 
-@ray.remote
+
 class LongTimeWriter(WriterFunction):
     def __init__(self,config):
         super().__init__()

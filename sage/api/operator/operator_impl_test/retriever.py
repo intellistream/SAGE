@@ -5,7 +5,7 @@ from typing import Tuple, List
 from sage.api.operator import Data
 import ray
 
-@ray.remote
+
 class SimpleRetriever(RetrieverFunction):
     """
     A simple retriever that retrieves memory chunks (short-term, long-term, or dynamic-contextual) based on the input query.

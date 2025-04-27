@@ -1,15 +1,31 @@
 import sage
-
+import logging
 # Assume the query module exposes execute() to handle a single query
+import ray
+import yaml
 
-def main():
-    # Session unaware query
-    cur_query = "What is the Lisa?"
-    response = sage.query.run_query(cur_query)
-    print("Response:", response)
 
-    # # Session aware query
-    # response = sage.query.run_query("Hello, who are you?", session_id="user123")
+ray.init(
+    logging_level=logging.CRITICAL,
+)
+logging.basicConfig(level=logging.DEBUG)
+def load_config(path: str) -> dict:
+    with open(path, 'r') as f:
+        return yaml.safe_load(f)
 
-if __name__ == "__main__":
-    main()
+config = load_config('./app/config.yaml')
+logging.basicConfig(level=logging.ERROR)
+
+manager = sage.memory.init_default_manager()
+config["memory_manager"]=manager
+memory = sage.memory.create_table("long_term_memory", manager=manager)
+
+while(True):
+    user_input = input("\n>>> ").strip()
+    if user_input.lower() == "exit":
+        logging.info("Exiting SAGE Interactive Console")
+        print("Goodbye!")
+        break
+    sage.query.run_query(user_input,config)
+
+
