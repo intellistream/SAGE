@@ -48,14 +48,26 @@ class SimpleRetriever(RetrieverFunction):
         """
         input_query = data.data  # Unpack the input query
         chunks = []  # Initialize an empty list to store retrieved memory chunks
-
+        print(input_query)
+        # try:
         # Retrieve memory chunks from each memory module if they are enabled in the configuration
         if self.config["stm"]:
+            pre_len=len(chunks)
+            print(self.stm.retrieve(input_query))
             chunks.extend(self.stm.retrieve(input_query))  # Retrieve from Short-Term Memory (STM)
+            self.logger.info(f"short_term_memory retrieve {len(chunks)-pre_len} results")
         if self.config["ltm"]:
+            pre_len=len(chunks)
+            # print(self.ltm.retrieve(input_query))
             chunks.extend(self.ltm.retrieve(input_query))  # Retrieve from Long-Term Memory (LTM)
+            self.logger.info(f"long_term_memory retrieve {len(chunks)-pre_len} results")
         if self.config["dcm"]:
+            pre_len=len(chunks)
             chunks.extend(self.dcm.retrieve(input_query))  # Retrieve from Dynamic Contextual Memory (DCM)
+            self.logger.info(f"dynamic_contextual_memory retrieve {len(chunks)-pre_len} results")
+        # except Exception as e:
+        #     self.logger.error(f"{e} when RetrieverFuction")
 
         # Return the original query along with the list of retrieved memory chunks
+        self.logger.info(f"{self._name} retrieve {len(chunks)} results")
         return Data((input_query, chunks))

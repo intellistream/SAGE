@@ -45,7 +45,7 @@ class OpenAIClient():
         :return: Generated response.
         """
         try:
-            max_tokens = kwargs.get("max_new_tokens", 100)
+            max_tokens = kwargs.get("max_new_tokens", 4096)
             temperature = kwargs.get("temperature", 1.0)  # Default temperature
             top_p = kwargs.get("top_p", None)  # Disable top-p sampling by default
             stream= kwargs.get("stream", False)
@@ -71,7 +71,7 @@ class OpenAIClient():
                 #         delta = chunk.choices[0].delta
                 #         if hasattr(delta, "content") and delta.content:
                 #             yield delta.content  # Yield content as it streams
-                # #         if chunk.choices[0].finish_reason:
+                #         if chunk.choices[0].finish_reason:
                 #             break  # End of stream
             
                 # response = collected_response
@@ -89,8 +89,14 @@ class OpenAIClient():
             raise RuntimeError(f"Response generation failed: {str(e)}")
         
 
-if __name__ == '__main__':
-    prompt=[{"role":"user","content":"who are you"}]
-    generator=OpenAIClient(model_name="qwen-max",base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",api_key="sk-b21a67cf99d14ead9d1c5bf8c2eb90ef",seed=42)
-    response=generator.generate((prompt))
-    print(response)
+# if __name__ == '__main__':
+    # prompt=[{"role":"user","content":"who are you"}]
+    # generator=OpenAIClient(model_name="qwen-max",base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",api_key="sk-b21a67cf99d14ead9d1c5bf8c2eb90ef",seed=42)
+    # response=generator.generate((prompt))
+    # print(response)
+    # prompt=[{"role":"user","content":"who are you"}]
+    # generator=OpenAIClient(model_name="qwen-max",base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",api_key="sk-b21a67cf99d14ead9d1c5bf8c2eb90ef",seed=42,stream=True)
+    # response=generator.generate((prompt))
+    # for text in response:
+    #     print(text)
+    # print(response)

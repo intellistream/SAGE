@@ -1,8 +1,10 @@
+import logging
 class BaseOperator:
     def __init__(self):
         self.upstream = None
         self.downstream = None
         self._name = self.__class__.__name__
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def set_upstream(self, op):
         self.upstream = op
