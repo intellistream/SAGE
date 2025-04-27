@@ -4,16 +4,12 @@ from sage.api.memory import connect,get_default_manager
 from typing import Tuple
 import ray
 
-
 @ray.remote
 class LongTimeWriter(WriterFunction):
     def __init__(self,config):
         super().__init__()
         self.config = config["writer"]
-        # self.memory_manager=get_default_manager()
-
         self.memory_manager=config["memory_manager"]
-        self.ltm=connect(self.memory_manager,"short_term_memory")
 
     def execute(self, data:Data[Tuple[str,str]]) -> Data[Tuple[str,str]]:
         try:
