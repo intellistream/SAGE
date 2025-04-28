@@ -1,3 +1,4 @@
+from calendar import c
 from sage.api.model import apply_generator_model
 from sage.api.operator import GeneratorFunction
 from sage.api.operator import Data
@@ -78,6 +79,7 @@ class BaseAgent:
             api_key=self.config["api_key"],
             seed=42 
         )
+        self.max_steps=self.config.get("max_steps", 5)
     def get_prompt(self, input, agent_scratchpad):
         return PREFIX + FORMAT_INSTRUCTIONS.format(tool_names=self.tool_names) + SUFFIX.format(
             input=input, agent_scratchpad=agent_scratchpad
@@ -97,10 +99,16 @@ class BaseAgent:
         except Exception as e:
             raise ValueError(f"Invalid JSON format: {str(e)}")
         
-    def execute(self, data: Data[str], **kwargs) -> Data[Tuple[str, str]]:
+    def execute(self, data: Data[str], **kwargs) -> Data[Tuple[bool,str, str]]:
         query = data.data
         agent_scratchpad = ""
+        count = 0
         while True:
+            count += 1
+            if count > self.max_steps:
+                # raise ValueError("Max steps exceeded.")
+                return Data((False,query,""))
+            
             prompt = self.get_prompt(query, agent_scratchpad)
             prompt=[{"role":"user","content":prompt}]
             output = self.model.generate(prompt)
@@ -110,15 +118,17 @@ class BaseAgent:
             if output.get("final_answer") is not "":
                 final_answer = output["final_answer"]
                 print(f"Final Answer: {final_answer}")
-                return Data((query,final_answer))
+                return Data((True,query,final_answer))
 
             action, action_input = output.get("action"), output.get("action_input")
 
             if action is None:
-                raise ValueError("Could not parse action.")
+                # raise ValueError("Could not parse action.")
+                return Data((False,query,""))
 
             if action not in self.tools:
-                raise ValueError(f"Unknown tool requested: {action}")
+                # raise ValueError(f"Unknown tool requested: {action}")
+                return Data((False,query,""))
 
             tool = self.tools[action]
             tool_reault = tool.run(action_input)
