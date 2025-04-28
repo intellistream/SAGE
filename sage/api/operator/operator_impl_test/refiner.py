@@ -5,7 +5,7 @@ from typing import Tuple,List
 import logging
 import ray
 
-@ray.remote
+
 class AbstractiveRecompRefiner(RefinerFunction):
     """
     AbstractiveRecompRefiner is an abstractive refiner using the RECOMP approach. 

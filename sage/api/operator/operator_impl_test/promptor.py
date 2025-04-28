@@ -15,7 +15,7 @@ QA_prompt_template = Template(QA_prompt_template)
 
 
 
-@ray.remote
+
 class QAPromptor(PromptFunction):
     """
     QAPromptor is a prompt function that generates a QA-style prompt using 
@@ -59,29 +59,24 @@ class QAPromptor(PromptFunction):
                  1. system_prompt: A system prompt based on the template with external corpus data.
                  2. user_prompt: A user prompt containing the question to be answered.
         """
-        try:    
+        try:
             # Unpack the input data into query and external_corpus
             query, external_corpus = data.data
-
+            
             # Combine the external corpus list into a single string (in case it's split into multiple parts)
             external_corpus = "".join(external_corpus)
-
+            
             # Prepare the base data for the system prompt, which includes the external corpus
             base_system_prompt_data = {
                 "external_corpus": external_corpus
             }
-
-
-            # query = data.data
+            
             # Create the system prompt using the template and the external corpus data
             system_prompt = {
-                "role": "system",
+                "role": "system", 
                 "content": self.prompt_template.render(**base_system_prompt_data)
             }
-            # system_prompt = {
-            #     "role": "system",
-            #     "content": ""
-            # }
+        
             # Create the user prompt using the query
             user_prompt = {
                 "role": "user", 
