@@ -2,7 +2,7 @@ from sage.core.engine.executor_manager import ExecutorManager
 from sage.core.dag.dag_manager import DAGManager
 from sage.core.compiler.query_compiler import QueryCompiler
 import threading
-
+import ray
 
 class Engine:
     _instance = None
@@ -13,18 +13,19 @@ class Engine:
         raise RuntimeError("请通过 get_instance() 方法获取实例")
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls,generate_func):
         # 双重检查锁确保线程安全
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
+
                     # 绕过 __new__ 的异常，直接创建实例
                     instance = super().__new__(cls)
-                    instance.__init__()
+                    instance.__init__(generate_func)
                     cls._instance = instance
         return cls._instance
 
-    def __init__(self):
+    def __init__(self,generate_func = None):
         # 确保只初始化一次
         if hasattr(self, "_initialized"):
             return
@@ -33,7 +34,7 @@ class Engine:
         # 初始化各管理器（确保单例）
         self.dag_manager=DAGManager()
         self.executor_manager = ExecutorManager(dag_manager=self.dag_manager)
-        self.compiler= QueryCompiler()
+        self.compiler= QueryCompiler(generate_func=generate_func)
         self.pipeline_id = {}
 
     def submit_pipeline(self,pipeline,config=None):

@@ -1,6 +1,6 @@
 from sage.api.operator import SinkFunction
 from sage.api.operator import Data
-from typing import Tuple
+from typing import Tuple, List
 import ray
 
 @ray.remote
@@ -16,6 +16,18 @@ class TerminalSink(SinkFunction):
         print(f"\033[96m[Q] Question :{question}\033[0m")  
 
         print(f"\033[92m[A] Answer :{answer}\033[0m")
+
+@ray.remote
+class RetriveSink(SinkFunction):
+    def __init__(self,config):
+        super().__init__()
+        self.config=config["sink"]
+    def execute(self, data:Data[Tuple[str, List[str]]]):
+        question,chunks=data.data
+
+        print(f"\033[96m[Q] Question :{question}\033[0m")
+
+        print(f"\033[92m[A] Chunks :{chunks}\033[0m")
 
 @ray.remote
 class FileSink(SinkFunction):
