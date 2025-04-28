@@ -39,6 +39,9 @@ class DataStream:
     def write_mem(self,writer_op):
         return self._transform("write_mem",writer_op)
 
+    def generalize(self, generalize_op,op_type):
+        return self._transform(op_type, generalize_op)
+
     def get_operator(self):
         return self.operator
     def get_upstreams(self):

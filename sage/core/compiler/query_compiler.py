@@ -6,6 +6,8 @@
 # from sage.api.operator.operator_impl.sink import TerminalSink
 # from sage.api.operator.operator_impl.source import FileSource
 # from sage.api.operator.operator_impl.writer import SimpleWriter
+import ray
+
 from sage.core.compiler.optimizer import Optimizer
 from sage.core.compiler.query_parser import QueryParser
 from sage.core.dag.dag import DAG
@@ -17,9 +19,12 @@ class QueryCompiler:
         Initialize the QueryCompiler with memory layers.
         :param memory_manager: Memory manager for managing memory layers.
         """
-        self.memory_manager = memory_manager
+        self.logical_graph_constructor = LogicGraphConstructor()
         self.optimizer = Optimizer()
+
         self.parser = QueryParser(generate_func=generate_func)
+
+        self.dag_dict = {}
 
         # self.operator_mapping = {
         #     "OpenAIGenerator": OpenAIGenerator,
@@ -101,10 +106,14 @@ class QueryCompiler:
         dag = None
         config_mapping = {}
         execution_type = None
+        query = None
+        if config.get("query"):
+            query = config.get("query")
         if config.get("is_long_running",None) is None :
-            dag,config_mapping, execution_type = self.compile_oneshot_pipeline(pipeline)
+
+            dag,execution_type = self.compile_oneshot_pipeline(pipeline,query)
         elif not config.get("is_long_running", None):
-            dag,config_mapping, execution_type = self.compile_oneshot_pipeline(pipeline)
+            dag, execution_type = self.compile_oneshot_pipeline(pipeline,query)
         elif config.get("is_long_running", None):
             dag,config_mapping,execution_type  = self.compile_streaming_pipeline(pipeline)
 
@@ -157,37 +166,112 @@ class QueryCompiler:
 
         return dag, config_mapping,"streaming"
 
-    def compile_oneshot_pipeline(self, pipeline):
+    def compile_oneshot_pipeline(self, pipeline,query):
         """
         Compile the pipeline.
         :return: dag.
         """
         # Implement the pipeline compilation logic here
+        if pipeline.data_streams is None:
+            raise ValueError("Pipeline data streams cannot be None.")
+        source_stream = pipeline.data_streams[0]
+        spout_node = OneShotDAGNode(
+            name=source_stream.name,
+            operator=source_stream.operator,
+            is_spout=True
+        )
+        if query is None:
+            print("query is None")
+            input_ref = source_stream.operator.get_query.remote()
+            query = ray.get(input_ref)
+
+        intent= self.parser.parse_query(natural_query=query)
+        # intent = "question_answering"
+        print(f"intent in compiler:{intent}")
+        print(pipeline)
+        if self.dag_dict.get(intent) is not None:
+            dag = self.dag_dict.get(intent)
+
+            return dag, "oneshot"
+        else:
+            pipeline.data_streams = pipeline.data_streams[:1]
+
         dag = DAG(id="dag_1", strategy="oneshot")
-        nodes = []
-        config_mapping = {}
-        for i, datastream in enumerate(pipeline.data_streams):
-            # Add the datastream to the DAG
-            if i == 0:
-                node = OneShotDAGNode(
-                    name=datastream.name,
-                    operator=datastream.operator,
-                    is_spout=True
-                )
-            else:
-                node = OneShotDAGNode(
-                    name=datastream.name,
-                    operator=datastream.operator,
-                    is_spout=False
-                )
+        dag = self.logical_graph_constructor.construct_logical_graph(intent,dag, spout_node)
 
-            nodes.append(node)
-            dag.add_node(node)
-        # Add Edges
-        for i in range(len(nodes) - 1):
-            dag.add_edge(nodes[i], nodes[i + 1])
+        operator_cls_mapping = pipeline.get_operator_cls()
+        config_mapping = pipeline.get_operator_config()
 
-        return dag, config_mapping, "oneshot"
+        # build the pipeline
+        # 遍历DAG,从spout结点开始，按边遍历结点
+        def traverse_dag_from_node(start_node):
+            """
+            从指定的起始节点遍历整个 DAG。
+            :param start_node: 起始节点 (BaseDAGNode 实例)。
+            :return: 遍历的节点列表。
+            """
+            visited = set()  # 用于记录已访问的节点
+            traversal_order = []  # 记录遍历顺序
+
+            def dfs(node):
+                if node in visited:
+                    return
+                visited.add(node)
+                traversal_order.append(node)
+                for downstream_node in node.downstream_nodes:
+                    dfs(downstream_node)
+
+            dfs(start_node)
+            return traversal_order
+
+        # traversal_result = []
+        # node = spout_node
+        # while node is not None:
+        #     traversal_result.append(node)
+        #     node = dag.edges.get(node)
+        traversal_result = traverse_dag_from_node(spout_node)
+        lst_stream = source_stream
+        for node in traversal_result[1:]:
+            op_cls = operator_cls_mapping.get(node.name)
+            try:
+                op = op_cls.remote(config_mapping)
+
+                node.operator = op
+                stream = lst_stream.generalize(node.name, op)
+                lst_stream = stream
+            except Exception as e:
+                print(node.name)
+                print(f"Error in operator instantiation: {e}")
+
+
+
+
+
+        # nodes = []
+        # config_mapping = {}
+        # for i, datastream in enumerate(pipeline.data_streams):
+        #     # Add the datastream to the DAG
+        #     if i == 0:
+        #         node = OneShotDAGNode(
+        #             name=datastream.name,
+        #             operator=datastream.operator,
+        #             is_spout=True
+        #         )
+        #     else:
+        #         node = OneShotDAGNode(
+        #             name=datastream.name,
+        #             operator=datastream.operator,
+        #             is_spout=False
+        #         )
+        #
+        #     nodes.append(node)
+        #     dag.add_node(node)
+        # # Add Edges
+        # for i in range(len(nodes) - 1):
+        #     dag.add_edge(nodes[i], nodes[i + 1])
+        self.dag_dict[intent] = dag
+        return dag,  "oneshot"
+
     def add_oneshot_spout(self, natural_query):
         """
         Initialize a DAG with a Spout node.

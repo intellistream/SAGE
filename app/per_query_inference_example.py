@@ -1,3 +1,5 @@
+import time
+
 import sage
 import logging
 # Assume the query module exposes execute() to handle a single query
@@ -26,6 +28,9 @@ while(True):
         logging.info("Exiting SAGE Interactive Console")
         print("Goodbye!")
         break
+    time1 = time.time()
     sage.query.run_query(user_input,config)
+    time2 = time.time()
+    logging.info(f"Query executed in {time2 - time1:.4f} seconds")
 
 

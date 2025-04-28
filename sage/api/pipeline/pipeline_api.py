@@ -6,6 +6,8 @@ class Pipeline:
         self.name = name
         self.operators = []
         self.data_streams = []
+        self.operator_config = {}
+        self.operator_cls_mapping = {}
 
     def _register_operator(self, operator):
         self.operators.append(operator)
@@ -18,7 +20,7 @@ class Pipeline:
         self.data_streams.append(stream)
         return stream
 
-    def submit(self, config=None):
+    def submit(self, config=None,generate_func = None):
         """
         Submit the pipeline to the SAGE engine.
         The engine is responsible for compiling and executing the DAG.
@@ -31,8 +33,10 @@ class Pipeline:
                     "duration": 1,
                     "frequency": 30
                 }
+                :param generate_func:
         """
-        engine = Engine.get_instance() # client side
+
+        engine = Engine.get_instance(generate_func) # client side
         engine.submit_pipeline(self, config=config or {}) # compile dag -> register engine
         print(f"[Pipeline] Pipeline '{self.name}' submitted to engine with config: {config or {}}")
 
@@ -40,3 +44,15 @@ class Pipeline:
         engine= Engine.get_instance() # client side
         engine.stop_pipeline(self) # stop the pipeline
         print(f"[Pipeline] Pipeline '{self.name}' stopped.")
+
+    def add_operator_config(self, config):
+        self.operator_config.update(config)
+
+    def add_operator_cls(self, operator_cls):
+        self.operator_cls_mapping.update(operator_cls)
+
+    def get_operator_cls(self):
+        return self.operator_cls_mapping
+
+    def get_operator_config(self):
+        return self.operator_config
