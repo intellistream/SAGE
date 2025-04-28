@@ -14,7 +14,7 @@ from abc import abstractmethod
 import logging
 
 
-@ray.remote
+
 class BGEReranker(RerankerFunction):
     """
     A reranker that uses the BAAI/bge-reranker-v2-m3 model to reorder a list of retrieved documents.

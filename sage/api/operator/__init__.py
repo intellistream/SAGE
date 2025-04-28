@@ -8,7 +8,10 @@ from .summarize_function_api import SummarizeFunction
 from .reranker_function_api import RerankerFunction
 from .refiner_funtion_api import RefinerFunction
 from .sink_function_api import SinkFunction
+from .evaluate_function_api import EvaluateFunction
+from .agent_function_api import AgentFunction
 from .base_operator_api import Data
+from .route_function_api import RouterFunction
 __all__ = [
     "SourceFunction",
     "RetrieverFunction",
@@ -20,5 +23,8 @@ __all__ = [
     "RerankerFunction",
     "RefinerFunction",
     "SinkFunction",
+    "EvaluateFunction",
+    "AgentFunction",
+    "RouterFunction",
     "Data"
 ]
