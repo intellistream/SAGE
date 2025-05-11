@@ -32,7 +32,9 @@ class SimpleRetriever(RetrieverFunction):
         """
         super().__init__()  # Call the parent class's constructor
         self.config = config["retriever"]  # Retrieve retriever-specific configuration
-        self.memory_manager = config.get("memory_manager")  # Get the default memory manager
+        self.ltm = config["ltm_collection"] 
+        self.stm = config["stm_collection"] 
+        self.dcm = config["dcm_collection"]
         self.top_k = self.config["top_k"]  # Set the top_k parameter from config
 
     def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
@@ -43,18 +45,18 @@ class SimpleRetriever(RetrieverFunction):
         input_query = data.data  # Unpack the input query
         chunks = []  # Initialize an empty list to store retrieved memory chunks
         print(input_query)
-        # try:
         # Retrieve memory chunks from each memory module if they are enabled in the configuration
         if self.config["stm"]:
-            ref = self.memory_manager.retrieve.remote(input_query,"short_term_memory")
-            chunks.extend(ray.get(ref))  # Retrieve from Short-Term Memory (STM)
+            results = self.stm.retrieve.remote()
+            chunks.extend(ray.get(results))# Retrieve from Short-Term Memory (STM)
         if self.config["ltm"]:
-            ref = self.memory_manager.retrieve.remote(input_query,"long_term_memory")
-            chunks.extend(ray.get(ref))  # Retrieve from Short-Term Memory (LTM)
+            results = self.ltm.retrieve.remote(input_query)
+            chunks.extend(ray.get(results))# Retrieve from Long-Term Memory (LTM)
+            import time
+            time.sleep(1)
         if self.config["dcm"]:
-            ref = self.memory_manager.retrieve.remote(input_query,"dynamic_contextual_memory")
-            chunks.extend(ray.get(ref))  # Retrieve from Short-Term Memory (DCM)
-
+            results = self.dcm.retrieve.remote()
+            chunks.extend(ray.get(results))# Retrieve from Short-Term Memory (DCM)
         # Return the original query along with the list of retrieved memory chunks
         self.logger.info(f"{self._name} retrieve {len(chunks)} results")
         return Data((input_query, chunks))
