@@ -1,6 +1,6 @@
 from sage.api.memory.memory_api import create_table, connect, retrieve_func, write_func, init_default_manager, get_default_manager
 import logging
-
+# python -m sage.core.neuromem.mem_test.mem_test
 def configure_logging(level=logging.INFO, log_file=None):
     handlers = [logging.StreamHandler()]
     if log_file:
@@ -11,6 +11,70 @@ def configure_logging(level=logging.INFO, log_file=None):
         format="%(asctime)s - %(levelname)s - %(message)s",
         handlers=handlers,
     )
+    
+# TODO delete test model
+from transformers import AutoTokenizer, AutoModel
+import torch
+from typing import Optional
+import logging
+
+class TextEmbedder:
+    def __init__(self, model_name: str = 'sentence-transformers/all-MiniLM-L6-v2', fixed_dim: int = 128):
+        """Initialize with a pre-trained model and fixed output dimension."""
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = AutoModel.from_pretrained(model_name)
+        self.fixed_dim = fixed_dim
+        
+    def encode(self, text: str, max_length: int = 512, stride: Optional[int] = None) -> torch.Tensor:
+        """
+        Generate fixed-dimension embedding for text.
+        Uses sliding window approach for long texts if stride is specified.
+        """
+        if not text.strip():
+            return torch.zeros(self.fixed_dim)
+            
+        if stride is None or len(text.split()) <= max_length:
+            return self._embed_single(text)
+        return self._embed_with_sliding_window(text, max_length, stride)
+    
+    def _embed_single(self, text: str) -> torch.Tensor:
+        """Embed short text directly."""
+        inputs = self.tokenizer(text, return_tensors='pt', truncation=True, max_length=512)
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+            embedding = outputs.last_hidden_state.mean(dim=1).squeeze()
+        return self._adjust_dimension(embedding)
+    
+    def _embed_with_sliding_window(self, text: str, max_length: int, stride: int) -> torch.Tensor:
+        """Embed long text using sliding window approach."""
+        inputs = self.tokenizer(
+            text,
+            truncation=True,
+            max_length=max_length,
+            stride=stride,
+            return_overflowing_tokens=True,
+            padding="max_length",
+            return_tensors="pt"
+        )
+        
+        embeddings = []
+        with torch.no_grad():
+            for window in inputs["input_ids"]: # type: ignore 
+                output = self.model(window.unsqueeze(0))
+                embeddings.append(output.last_hidden_state.mean(dim=1).squeeze())
+                
+        return self._adjust_dimension(torch.stack(embeddings).mean(dim=0))
+    
+    def _adjust_dimension(self, embedding: torch.Tensor) -> torch.Tensor:
+        """Ensure output has fixed dimension (truncate or pad)."""
+        if embedding.size(0) > self.fixed_dim:
+            return embedding[:self.fixed_dim]
+        elif embedding.size(0) < self.fixed_dim:
+            padding = torch.zeros(self.fixed_dim - embedding.size(0), device=embedding.device)
+            return torch.cat((embedding, padding))
+        return embedding
+
+default_model = TextEmbedder()
 
 if __name__ == "__main__":
 
@@ -19,9 +83,9 @@ if __name__ == "__main__":
     manager_test = init_default_manager()
     manager = get_default_manager()
 
-    stm = create_table("short_term_memory", manager)
-    ltm = create_table("long_term_memory", manager)
-    dcm = create_table("dynamic_contextual_memory", manager)
+    stm = manager.create_table("short_term_memory", default_model)
+    ltm = manager.create_table("long_term_memory", default_model)
+    dcm = manager.create_table("dynamic_contextual_memory", default_model)
 
     print("=" * 30)
 
@@ -59,7 +123,7 @@ if __name__ == "__main__":
     print("=" * 30)
 
     # CONNECT-TEST
-    composite = connect(manager, "short_term_memory", "long_term_memory")
+    composite = manager.connect("short_term_memory", "long_term_memory")
     composite.store("This is Composite data.")
     composite_retrieval_results = str(composite.retrieve("This is composite data"))
     print("composite retrieval test: " + composite_retrieval_results)
