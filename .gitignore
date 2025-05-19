@@ -34,7 +34,7 @@ auto_env_setup.log
 __pycache__/
 *.py[cod]
 
-
+*txt
 /data/raw_docs/raw
 /data/raw_docs/raw_dcm
 /data/raw_docs/raw_ltm
