@@ -1,14 +1,14 @@
 import logging
-from sage.core.neuromem.default_memory.base_memory import BaseMemory
+from sage.core.neuromem_before.default_memory.base_memory import BaseMemory
 
-from sage.core.neuromem.storage_engine import (
+from sage.core.neuromem_before.storage_engine import (
     verify_physical_memory_implementation,
     check_physical_memory_env_vars,
     get_physical_memory_class,
     get_filtered_config,
 )
 
-class DynamicContextualMemory(BaseMemory):
+class LongTermMemory(BaseMemory):
     """
     Long-term memory layer that stores entire sessions in a VectorDB for retrieval based on similarity.
     """
@@ -22,18 +22,18 @@ class DynamicContextualMemory(BaseMemory):
         :param search_algorithm: Search algorithm to use in VectorDB.
         """
         super().__init__()
-        self.logger.info(f"\033[92mDCM\033[0m is starting initialization with Physical Memory \033[92m{config.get('DCM_Physical_Memory')}\033[0m")
+        self.logger.info(f"\033[92mLTM\033[0m is starting initialization with Physical Memory \033[92m{config.get('DCM_Physical_Memory')}\033[0m")
 
-        self.physical_memory_name = config.get("DCM_Physical_Memory")
-        self.config = config.get(self.physical_memory_name + "_DCM")
+        self.physical_memory_name = config.get("LTM_Physical_Memory")
+        self.config = config.get(self.physical_memory_name + "_LTM")
         verify_physical_memory_implementation("VECTOR_MEMORY", self.physical_memory_name)
         check_physical_memory_env_vars(self.physical_memory_name)
 
         self.physical_memory = get_physical_memory_class(
             physical_memory_name = self.physical_memory_name,
-            **get_filtered_config(self.config, "dcm_")
+            **get_filtered_config(self.config, "ltm_")
         )
-        self.logger.info("\033[92mDCM\033[0m initialization ends")
+        self.logger.info("\033[92mLCM\033[0m initialization ends")
         
     def store(self, raw_data, embedding):
         return self.physical_memory.store(embedding, raw_data)
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     config_path = os.path.join(script_dir, "default_memory_config.json")
     with open(config_path, 'r') as f:
         config = json.load(f)
-    test = DynamicContextualMemory(config.get("neuromem"))
+    test = LongTermMemory(config.get("neuromem"))
     print(config.get("neuromem").get("DCM_Physical_Memory"))
     import torch
     id = torch.randn(128)
@@ -65,4 +65,4 @@ if __name__ == "__main__":
     test.store(id3, "ohayo")
     print(test.retrieve(id))
 
-    # python -m sage.core.neuromem.default_memory.dynamic_contextual_memory
+    # python -m sage.core.neuromem.default_memory.long_term_memory

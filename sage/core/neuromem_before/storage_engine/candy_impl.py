@@ -2,7 +2,7 @@ import torch
 import hashlib
 import numpy as np 
 from pycandy import VectorDB # type: ignore 
-from sage.core.neuromem.storage_engine.base_physical_memory import BaseVectorPhysicalMemory, TextStorageLayer
+from sage.core.neuromem_before.storage_engine.base_physical_memory import BaseVectorPhysicalMemory, TextStorageLayer
 
 '''
     only 128 dimension can be used.

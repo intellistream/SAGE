@@ -1,6 +1,6 @@
 # api/serve/collection_actor.py
 import ray
-from sage.core.neuromem.memory_collection import MemoryCollection
+from sage.core.neuromem_before.memory_collection import MemoryCollection
 
 @ray.remote
 class CollectionActor:

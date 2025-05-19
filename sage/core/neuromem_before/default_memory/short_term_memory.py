@@ -1,4 +1,4 @@
-from sage.core.neuromem.default_memory.base_memory import BaseMemory
+from sage.core.neuromem_before.default_memory.base_memory import BaseMemory
 
 class ShortTermMemory(BaseMemory):
     """

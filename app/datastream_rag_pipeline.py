@@ -51,7 +51,7 @@ logging.basicConfig(level=logging.DEBUG)
 # 创建新的数据流管道实例
 
 # 创建长时间存储（LTM）内存表
-from sage.core.neuromem.mem_test.memory_api_test_ray import default_model
+from sage.core.neuromem_before.mem_test.memory_api_test_ray import default_model
 
 
 

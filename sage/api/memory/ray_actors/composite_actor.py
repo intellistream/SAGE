@@ -1,6 +1,6 @@
 # api/ray_actors/composite_actor.py
 import ray
-from sage.core.neuromem.memory_composite import CompositeMemory
+from sage.core.neuromem_before.memory_composite import CompositeMemory
 
 @ray.remote
 class CompositeMemoryActor:

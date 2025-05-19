@@ -1,174 +1,152 @@
-# File sage/core/neuromem/memory_collection.py
+# file: sage/core/neuromem/memory_collection.py
+# python -m sage.core.neuromem.memory_collection
 
-from sage.core.neuromem.memory_backend import MemoryBackend
-from typing import Dict, Optional, List, Any, Callable
 import hashlib
+from typing import Dict, Optional, Callable, Any, List
+from sage.core.neuromem.storage_engine.text_storage import TextStorage
+from sage.core.neuromem.storage_engine.metadata_storage import MetadataStorage
 
-class MemoryCollection:
+
+class BaseMemoryCollection:
     """
-    A unified memory collection wrapper with simplified metadata support.
+    Base memory collection with support for raw text and metadata management.
+
+    支持原始文本和元数据管理的基础内存集合类。
     """
-    def __init__(
-        self, 
-        name, 
-        embedding_model, 
-        backend: str | None = None, 
-        enable_metadata: bool = False
-    ):
-        
+
+    def __init__(self, name: str):
         self.name = name
-        self.memory, self.backend_type = MemoryBackend.create_table(name, backend)
-        self.embedding_model = embedding_model
-        self.enable_metadata = enable_metadata
-        self.metadata_fields = set()  # Track registered fields
-        self._metadata_store = {}     # {item_id: {field: value}} 
+        self.text_storage = TextStorage()
+        self.metadata_storage = MetadataStorage()
 
-    def add_field(self, field_name: str):
-        """Register a metadata field"""
-        if not self.enable_metadata:
-            raise ValueError("Metadata is not enabled for this collection")
-        self.metadata_fields.add(field_name)
+    def _get_stable_id(self, raw_text: str) -> str:
+        """
+        Generate stable ID from raw text using SHA256.
 
+        使用 SHA256 生成稳定的文本 ID。
+        """
+        return hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
+
+    def _filter_ids(
+        self,
+        ids: List[str],
+        metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
+        **metadata_conditions
+    ) -> List[str]:
+        """
+        Filter given IDs based on metadata filter function or exact match conditions.
+
+        基于元数据过滤函数或条件筛选给定ID列表中的条目。
+        """
+        matched_ids = []
+
+        for item_id in ids:
+            metadata = self.metadata_storage.get(item_id)
+
+            if metadata_filter_func:
+                if metadata_filter_func(metadata):
+                    matched_ids.append(item_id)
+            else:
+                if all(metadata.get(k) == v for k, v in metadata_conditions.items()):
+                    matched_ids.append(item_id)
+
+        return matched_ids
+
+    def get_all_ids(self) -> List[str]:
+        """
+        Get all stored item IDs.
+
+        获取所有存储的条目ID。
+        """
+        return list(self.text_storage._store.keys())
+
+    def add_metadata_field(self, field_name: str):
+        """
+        Register a metadata field.
+
+        注册一个元数据字段。
+        """
+        self.metadata_storage.add_field(field_name)
+
+    def store(self, raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Store raw text with optional metadata.
+
+        存储原始文本与可选的元数据。
+        """
+        stable_id = self._get_stable_id(raw_text)
+        self.text_storage.store(stable_id, raw_text)
+
+        if metadata:
+            self.metadata_storage.store(stable_id, metadata)
+
+        return stable_id
+    
     def retrieve(
         self,
-        raw_data: str | None = None,
         metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
-        **metadata_kwargs
-    ):
+        **metadata_conditions
+    ) -> List[str]:
         """
-        Retrieve data with optional metadata filtering. 
-        Supports:
-            - metadata_filter_func (callable): for custom filter logic
-            - metadata_kwargs: additional metadata conditions
+        Retrieve raw texts optionally filtered by metadata.
+
+        根据元数据（条件或函数）检索原始文本。
         """
-        if self.backend_type == "kv_backend":
-            results = self.memory.retrieve()
-        else:
-            embedding = self.embedding_model.encode(raw_data)
-            results = self.memory.retrieve(embedding)
+        all_ids = self.get_all_ids()
+        matched_ids = self._filter_ids(all_ids, metadata_filter_func, **metadata_conditions)
+        return [self.text_storage.get(i) for i in matched_ids]
 
-        if (metadata_filter_func or metadata_kwargs) and not self.enable_metadata:
-            raise ValueError("Metadata filtering is not enabled")
-
-        # Merge metadata_kwargs into the filtering function logic
-        if metadata_filter_func is None:
-            metadata_filter_func = lambda meta: all(meta.get(k) == v for k, v in metadata_kwargs.items())
-
-        if metadata_filter_func:
-            filtered_results = []
-            for item in results:
-                text = item if isinstance(item, str) else getattr(item, 'text', None)
-                if not text:
-                    continue
-                stable_id = self._get_stable_id(text)
-                item_metadata = self._metadata_store.get(stable_id, {})
-
-                if not metadata_filter_func(item_metadata):
-                    continue
-                filtered_results.append(item)
-            results = filtered_results
-
-        return results
-
-    def store(
-        self, 
-        raw_data, 
-        metadata: Optional[Dict[str, Any]] = None
-    ):
-        """
-        Store data and support custom storage function 'write _func'
-        """
-        stable_id = self._get_stable_id(raw_data)
-        if self.backend_type == "kv_backend":
-            return self.memory.store(raw_data)
-        else:
-            embedding = self.embedding_model.encode(raw_data)
-            self.memory.store(raw_data, embedding)
-
-        # Store metadata locally if provided
-        if metadata:
-            if not self.enable_metadata:
-                raise ValueError("Metadata storage is not enabled")
-            self._validate_metadata_fields(metadata.keys())
-            self._metadata_store[stable_id] = metadata.copy()
-            
-        return stable_id
-
-    def _validate_metadata_fields(self, fields):
-        """Check if fields are registered"""
-        unregistered = set(fields) - self.metadata_fields
-        if unregistered:
-            raise ValueError(f"Unregistered metadata fields: {unregistered}")
-        
-        
-    def _get_stable_id(self, raw_text: str) -> str:
-        return hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
-    
     def clean(self):
-        """Clear both data and metadata"""
-        self.metadata_fields.clear()
-        self._metadata_store.clear()
-        return self.memory.clean()
+        """
+        Clear all stored text and metadata.
 
-# ---------- 测试 ----------
-if __name__=="__main__":
-    # python -m sage.core.neuromem.memory_collection
-    from sage.core.neuromem.mem_test.mem_test import default_model
-    collection = MemoryCollection("long_term_memory", default_model, enable_metadata=True)
-    collection.add_field("user_id")
-    collection.add_field("category")
-    collection.add_field("timestamp")
+        清空所有存储的文本和元数据。
+        """
+        self.text_storage.clear()
+        self.metadata_storage.clear()
 
-    # 存储数据
-    collection.store(
-        raw_data="hello world",
-        metadata={"user_id": 123, "category": "greeting", "timestamp": "2023-10-01"}
-    )
-    collection.store(
-        raw_data="hello world nihao",
-        metadata={"user_id": 456, "category": "info", "timestamp": "2025-10-01"}
-    )
-    collection.store(
-        raw_data="hello world qiezi1",
-        metadata={"user_id": 123, "category": "greeting", "timestamp": "2025-11-01"}
-    )
-    collection.store(
-        raw_data="good night moon",
-        metadata={"user_id": 789, "category": "farewell", "timestamp": "2024-01-01"}
-    )
 
-    # --- 测试 1 ---
-    print("\n All Metadata:")
-    print(collection._metadata_store)
 
-    # --- 测试 2 ---
-    print("\n Retrieve: default (raw only)")
-    expected = ['hello world', 'hello world nihao', 'hello world qiezi1', 'good night moon']  # 期望返回的结果
-    result = collection.retrieve("hello world nihao")
-    print("Expected:", expected)
-    print("Actual:", result)
 
-    # --- 测试 3 ---
-    print("\n Retrieve: dict filter + multiple keys")
-    expected = ['hello world', 'hello world qiezi1']  # 期望返回的结果
-    result = collection.retrieve(raw_data="hello world", user_id=123, category="greeting")
-    print("Expected:", expected)
-    print("Actual:", result)
+if __name__ == "__main__":
+    import time
+    from datetime import datetime, timedelta
+    col = BaseMemoryCollection("demo")
+    col.add_metadata_field("source")
+    col.add_metadata_field("lang")
+    col.add_metadata_field("timestamp")  # 添加时间戳字段
 
-    # --- 测试 4 ---
-    print("\n Retrieve: custom function filter")
-    def custom_filter(meta):
-        return meta.get("user_id") == 123 and meta.get("timestamp", "") >= "2024-01-01"
-    expected = ['hello world qiezi1']  # 期望返回的结果
-    result = collection.retrieve(raw_data="hello world", metadata_filter_func=custom_filter)
-    print("Expected:", expected)
-    print("Actual:", result)
+    # 添加带时间戳的数据
+    current_time = time.time()
+    col.store("hello world", {"source": "user", "lang": "en", "timestamp": current_time - 3600})  # 1小时前
+    col.store("你好，世界", {"source": "user", "lang": "zh", "timestamp": current_time - 1800})  # 30分钟前
+    col.store("bonjour le monde", {"source": "web", "lang": "fr", "timestamp": current_time})  # 现在
 
-    # --- 测试 5 ---
-    print("\n Retrieve: combined (func + keyword args)")
-    def custom_and(meta):
-        return int(meta.get("user_id", 0)) < 200
-    expected = ['hello world', 'hello world qiezi1']  # 期望返回的结果
-    result = collection.retrieve(raw_data="hello world", category="greeting", metadata_filter_func=custom_and)
-    print("Expected:", expected)
-    print("Actual:", result)
+    print("=== Filter by keyword ===")
+    res1 = col.retrieve(source="user")
+    for r in res1:
+        print(r)
+
+    print("\n=== Filter by custom function (language) ===")
+    res2 = col.retrieve(metadata_filter_func=lambda m: m.get("lang") in {"zh", "fr"})
+    for r in res2:
+        print(r)
+
+    print(f"\nCurrent time: {datetime.fromtimestamp(current_time)}")
+    
+    print("\n=== Filter by timestamp (last 45 minutes) ===")
+    time_threshold = current_time - 2700  # 45分钟前
+    matched_ids = col._filter_ids(col.get_all_ids(), metadata_filter_func=lambda m: m.get("timestamp", 0) > time_threshold)
+    for item_id in matched_ids:
+        text = col.text_storage.get(item_id)
+        metadata = col.metadata_storage.get(item_id)
+        print(f"{text} (timestamp: {datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')})")
+
+    print("\n=== Filter by timestamp range (30-60 minutes ago) ===")
+    start_time = current_time - 3600  # 1小时前
+    end_time = current_time - 1800    # 30分钟前
+    matched_ids = col._filter_ids(col.get_all_ids(), metadata_filter_func=lambda m: start_time <= m.get("timestamp", 0) <= end_time)
+    for item_id in matched_ids:
+        text = col.text_storage.get(item_id)
+        metadata = col.metadata_storage.get(item_id)
+        print(f"{text} (timestamp: {datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')})")

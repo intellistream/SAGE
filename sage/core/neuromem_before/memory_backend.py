@@ -1,10 +1,10 @@
-from sage.core.neuromem.default_memory import (
+from sage.core.neuromem_before.default_memory import (
     get_default_memory_instance,
     is_default_memory_class,
     get_default_memory_backend_type,
 )
 
-from sage.core.neuromem.storage_engine import (
+from sage.core.neuromem_before.storage_engine import (
     verify_physical_memory_implementation,
     check_physical_memory_env_vars,
     get_physical_memory_class,

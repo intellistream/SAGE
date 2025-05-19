@@ -5,7 +5,7 @@ import json
 import threading
 import numpy as np
 from typing import Dict, Optional, List, Union
-from sage.core.neuromem.storage_engine.base_physical_memory import BaseVectorPhysicalMemory, TextStorageLayer
+from sage.core.neuromem_before.storage_engine.base_physical_memory import BaseVectorPhysicalMemory, TextStorageLayer
 
 class FaissMemory(BaseVectorPhysicalMemory):
     """Enhanced Faiss implementation with offline/online data support."""
