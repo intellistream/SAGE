@@ -1,11 +1,27 @@
 # file: sage/core/neuromem/memory_collection.py
 # python -m sage.core.neuromem.memory_collection
 
+# TODO:
+# 1.通用设计
+#       -> 保存以及读取collection逻辑的实现
+# 2.VDB 相关
+#       -> 2.1 增：insert函数增强、删：delete函数及增强（collection层级删除以及index层级删除）、改
+#       -> 2.2 索引增强：获取索引信息、重建索引
+#       -> 2.3 功能测试
+# 3.KV 相关
+
+import os
 import hashlib
+import numpy as np
+from dotenv import load_dotenv
 from typing import Dict, Optional, Callable, Any, List
 from sage.core.neuromem.storage_engine.text_storage import TextStorage
 from sage.core.neuromem.storage_engine.metadata_storage import MetadataStorage
+from sage.core.neuromem.storage_engine.vector_storage import VectorStorage
 
+# 加载工程根目录下 sage/.env 配置
+# Load configuration from .env file under the sage directory
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
 
 class BaseMemoryCollection:
     """
@@ -27,7 +43,7 @@ class BaseMemoryCollection:
         """
         return hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
 
-    def _filter_ids(
+    def filter_ids(
         self,
         ids: List[str],
         metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
@@ -68,7 +84,7 @@ class BaseMemoryCollection:
         """
         self.metadata_storage.add_field(field_name)
 
-    def store(self, raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> str:
+    def insert(self, raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> str:
         """
         Store raw text with optional metadata.
 
@@ -93,7 +109,7 @@ class BaseMemoryCollection:
         根据元数据（条件或函数）检索原始文本。
         """
         all_ids = self.get_all_ids()
-        matched_ids = self._filter_ids(all_ids, metadata_filter_func, **metadata_conditions)
+        matched_ids = self.filter_ids(all_ids, metadata_filter_func, **metadata_conditions)
         return [self.text_storage.get(i) for i in matched_ids]
 
     def clean(self):
@@ -105,48 +121,239 @@ class BaseMemoryCollection:
         self.text_storage.clear()
         self.metadata_storage.clear()
 
+class VDBMemoryCollection(BaseMemoryCollection):
+    """
+    Memory collection with vector database support.
 
+    支持向量数据库功能的内存集合类。
+    """
+    def __init__(self, name: str, embedding_model: Any, dim: int):
+        if not hasattr(embedding_model, "encode"):
+            raise TypeError("embedding_model must have an 'encode' method")
+        
+        super().__init__(name)
+        self.embedding_model = embedding_model
+        self.dim = dim
+        self.vector_storage = VectorStorage()
+        self.backend_type = os.getenv("VDB_BACKEND", "FAISS")
+        self.indexes = {}  # 存储多个FaissBackend实例，key为index名称
 
+    def insert(self, raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Store raw text with optional metadata and its vector embedding.
 
-if __name__ == "__main__":
-    import time
-    from datetime import datetime, timedelta
-    col = BaseMemoryCollection("demo")
-    col.add_metadata_field("source")
-    col.add_metadata_field("lang")
-    col.add_metadata_field("timestamp")  # 添加时间戳字段
+        存储原始文本、可选的元数据及其向量嵌入。
+        """
+        # Generate stable ID and store text/metadata as in parent class
+        stable_id = self._get_stable_id(raw_text)
+        self.text_storage.store(stable_id, raw_text)
+        
+        if metadata:
+            self.metadata_storage.store(stable_id, metadata)
+        
+        # Generate and store vector embedding
+        embedding = self.embedding_model.encode(raw_text)
+        self.vector_storage.store(stable_id, embedding)
+        
+        return stable_id
 
-    # 添加带时间戳的数据
-    current_time = time.time()
-    col.store("hello world", {"source": "user", "lang": "en", "timestamp": current_time - 3600})  # 1小时前
-    col.store("你好，世界", {"source": "user", "lang": "zh", "timestamp": current_time - 1800})  # 30分钟前
-    col.store("bonjour le monde", {"source": "web", "lang": "fr", "timestamp": current_time})  # 现在
+    def create_index(    
+        self,
+        index_name: str,
+        ids: Optional[List[str]] = None,
+        metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
+        **metadata_conditions
+        ):
+        """
+        Create a new index with specified hash IDs and their vectors.
 
-    print("=== Filter by keyword ===")
-    res1 = col.retrieve(source="user")
-    for r in res1:
-        print(r)
+        使用指定ID及其向量创建索引。
+        """
+        if self.backend_type == "FAISS":
+            from sage.core.neuromem.search_engine.vdb_backend.faiss_backend import FaissBackend
 
-    print("\n=== Filter by custom function (language) ===")
-    res2 = col.retrieve(metadata_filter_func=lambda m: m.get("lang") in {"zh", "fr"})
-    for r in res2:
-        print(r)
+            # 如果未指定 ID 列表，则通过 metadata 筛选获取
+            if ids is None:
+                all_ids = self.get_all_ids()
+                ids = self.filter_ids(all_ids, metadata_filter_func, **metadata_conditions)
 
-    print(f"\nCurrent time: {datetime.fromtimestamp(current_time)}")
+            # 提取对应向量
+            vectors = [self.vector_storage.get(i) for i in ids]
+            
+            # Create FAISS index with vectors and IDs
+            index = FaissBackend(index_name, self.dim, vectors, ids)
+            self.indexes[index_name] = index
+
+    def retrieve(
+        self,
+        raw_text: str,
+        topk: int = 3,
+        index_name: Optional[str] = None,
+        metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
+        **metadata_conditions
+    ) -> List[str]:
+        if index_name is None or index_name not in self.indexes:
+            raise ValueError(f"Index '{index_name}' does not exist.")
+
+        if self.backend_type == "FAISS":
+            query_embedding = self.embedding_model.encode(raw_text)
+
+            # 如果是 torch.Tensor，需要转换为 numpy 数组（FAISS 不接受 torch tensor）
+            if hasattr(query_embedding, "detach") and hasattr(query_embedding, "cpu"):
+                query_embedding = query_embedding.detach().cpu().numpy()
+
+            sub_index = self.indexes[index_name]
+
+            top_k_ids = sub_index.search(query_embedding, topk=topk)
+            if top_k_ids and isinstance(top_k_ids[0], (list, np.ndarray)):
+                top_k_ids = top_k_ids[0]
+            top_k_ids = [str(i) for i in top_k_ids]
+
+            filtered_ids = self.filter_ids(top_k_ids, metadata_filter_func, **metadata_conditions)
+            return [self.text_storage.get(i) for i in filtered_ids]
+
+        raise NotImplementedError(f"Backend '{self.backend_type}' not supported yet.")
     
-    print("\n=== Filter by timestamp (last 45 minutes) ===")
-    time_threshold = current_time - 2700  # 45分钟前
-    matched_ids = col._filter_ids(col.get_all_ids(), metadata_filter_func=lambda m: m.get("timestamp", 0) > time_threshold)
-    for item_id in matched_ids:
-        text = col.text_storage.get(item_id)
-        metadata = col.metadata_storage.get(item_id)
-        print(f"{text} (timestamp: {datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')})")
+if __name__ == "__main__":
 
-    print("\n=== Filter by timestamp range (30-60 minutes ago) ===")
-    start_time = current_time - 3600  # 1小时前
-    end_time = current_time - 1800    # 30分钟前
-    matched_ids = col._filter_ids(col.get_all_ids(), metadata_filter_func=lambda m: start_time <= m.get("timestamp", 0) <= end_time)
-    for item_id in matched_ids:
-        text = col.text_storage.get(item_id)
-        metadata = col.metadata_storage.get(item_id)
-        print(f"{text} (timestamp: {datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')})")
+    def basetest():
+        import time
+        from datetime import datetime, timedelta
+        col = BaseMemoryCollection("demo")
+        col.add_metadata_field("source")
+        col.add_metadata_field("lang")
+        col.add_metadata_field("timestamp")  # 添加时间戳字段
+
+        # 添加带时间戳的数据
+        current_time = time.time()
+        col.insert("hello world", {"source": "user", "lang": "en", "timestamp": current_time - 3600})  # 1小时前
+        col.insert("你好，世界", {"source": "user", "lang": "zh", "timestamp": current_time - 1800})  # 30分钟前
+        col.insert("bonjour le monde", {"source": "web", "lang": "fr", "timestamp": current_time})  # 现在
+
+        print("=== Filter by keyword ===")
+        res1 = col.retrieve(source="user")
+        for r in res1:
+            print(r)
+
+        print("\n=== Filter by custom function (language) ===")
+        res2 = col.retrieve(metadata_filter_func=lambda m: m.get("lang") in {"zh", "fr"})
+        for r in res2:
+            print(r)
+
+        print(f"\nCurrent time: {datetime.fromtimestamp(current_time)}")
+        
+        print("\n=== Filter by timestamp (last 45 minutes) ===")
+        time_threshold = current_time - 2700  # 45分钟前
+        matched_ids = col.filter_ids(col.get_all_ids(), metadata_filter_func=lambda m: m.get("timestamp", 0) > time_threshold)
+        for item_id in matched_ids:
+            text = col.text_storage.get(item_id)
+            metadata = col.metadata_storage.get(item_id)
+            print(f"{text} (timestamp: {datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')})")
+
+        print("\n=== Filter by timestamp range (30-60 minutes ago) ===")
+        start_time = current_time - 3600  # 1小时前
+        end_time = current_time - 1800    # 30分钟前
+        matched_ids = col.filter_ids(col.get_all_ids(), metadata_filter_func=lambda m: start_time <= m.get("timestamp", 0) <= end_time)
+        for item_id in matched_ids:
+            text = col.text_storage.get(item_id)
+            metadata = col.metadata_storage.get(item_id)
+            print(f"{text} (timestamp: {datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')})")
+            
+    def vdbtest():
+        import time
+        from datetime import datetime
+        from sage.core.neuromem_before.mem_test.memory_api_test_ray import default_model
+
+        # Initialize VDBMemoryCollection
+        col = VDBMemoryCollection("vdb_demo", default_model, 128)
+        col.add_metadata_field("source")
+        col.add_metadata_field("lang")
+        col.add_metadata_field("timestamp")
+
+        # Insert test data
+        current_time = time.time()
+        texts = [
+            ("hello world", {"source": "user", "lang": "en", "timestamp": current_time - 3600}),
+            ("你好，世界", {"source": "user", "lang": "zh", "timestamp": current_time - 1800}),
+            ("bonjour le monde", {"source": "web", "lang": "fr", "timestamp": current_time}),
+        ]
+        inserted_ids = [col.insert(text, metadata) for text, metadata in texts]
+
+        # Test 1: Create index by language
+        print("=== 测试1：按语言创建索引 (English and French only) ===")
+        col.create_index(
+            index_name="en_fr_index",
+            metadata_filter_func=lambda m: m.get("lang") in {"en", "fr"}
+        )
+        results = col.retrieve(
+            "test query", topk=10, index_name="en_fr_index",
+            metadata_filter_func=lambda m: m.get("lang") in {"en", "fr"}
+        )
+        expected_texts = ["hello world", "bonjour le monde"]
+        print("Expected Texts:", expected_texts)
+        print("Actual Texts:", results)
+        print("Test 1 Pass:", set(results) == set(expected_texts))
+
+        # Test 2: Create index by timestamp
+        print("\n=== 测试2：按时间范围创建索引 (Last 45 minutes) ===")
+        time_threshold = current_time - 2700
+        col.create_index(
+            index_name="recent_index",
+            metadata_filter_func=lambda m: m.get("timestamp", 0) > time_threshold
+        )
+        results = col.retrieve(
+            "test query", topk=10, index_name="recent_index",
+            metadata_filter_func=lambda m: m.get("timestamp", 0) > time_threshold
+        )
+        expected_texts = ["你好，世界", "bonjour le monde"]
+        print("Expected Texts:", expected_texts)
+        print("Actual Texts:", results)
+        print("Test 2 Pass:", set(results) == set(expected_texts))
+
+        # Test 3: Vector search using en_fr_index
+        print("\n=== 测试3：向量搜索 (Vector Search using retrieve) ===")
+        query_text = "hello"
+        results = col.retrieve(query_text, topk=2, index_name="en_fr_index")
+        expected_top_text = ["hello world"]
+        for text in results:
+            item_id = col._get_stable_id(text)
+            metadata = col.metadata_storage.get(item_id)
+            timestamp = datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+            print(f"{text} (lang: {metadata['lang']}, timestamp: {timestamp})")
+        print("Expected Top Text:", expected_top_text)
+        print("Actual Texts:", results)
+        print("Test 3 Pass:", results[0] in expected_top_text if results else False)
+
+        # Test 4: Combined metadata + vector search (user only)
+        print("\n=== 测试4：元数据过滤与向量搜索结合 (User source + Vector Search) ===")
+        results = col.retrieve(
+            query_text, topk=1, index_name="en_fr_index",
+            metadata_filter_func=lambda m: m.get("source") == "user"
+        )
+        expected_top_text = ["hello world"]
+        for text in results:
+            item_id = col._get_stable_id(text)
+            metadata = col.metadata_storage.get(item_id)
+            timestamp = datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+            print(f"{text} (lang: {metadata['lang']}, timestamp: {timestamp})")
+        print("Expected Top Text:", expected_top_text)
+        print("Actual Texts:", results)
+        print("Test 4 Pass:", results[0] in expected_top_text if results else False)
+
+        # Test 5: Recent + Vector Search
+        print("\n=== 测试5：时间范围过滤与向量搜索 (Last 45 minutes + Vector Search) ===")
+        results = col.retrieve(
+            query_text, topk=2, index_name="recent_index",
+            metadata_filter_func=lambda m: m.get("timestamp", 0) > time_threshold
+        )
+        expected_top_text = ["你好，世界", "bonjour le monde"]
+        for text in results:
+            item_id = col._get_stable_id(text)
+            metadata = col.metadata_storage.get(item_id)
+            timestamp = datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+            print(f"{text} (lang: {metadata['lang']}, timestamp: {timestamp})")
+        print("Expected Top Text:", expected_top_text)
+        print("Actual Texts:", results)
+        print("Test 5 Pass:", results[0] in expected_top_text if results else False)
+
+    vdbtest()
