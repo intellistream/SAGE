@@ -122,10 +122,12 @@ class BaseMemoryCollection:
         self.metadata_storage.clear()
         
 
+# TODO:
+# 1.增删改查
+
 class VDBMemoryCollection(BaseMemoryCollection):
     """
     Memory collection with vector database support.
-
     支持向量数据库功能的内存集合类。
     """
     def __init__(self, name: str, embedding_model: Any, dim: int):
@@ -138,39 +140,72 @@ class VDBMemoryCollection(BaseMemoryCollection):
         self.vector_storage = VectorStorage()
         self.default_topk = int(os.getenv("VDB_TOPK", 3))
         self.backend_type = os.getenv("VDB_BACKEND", "FAISS")
-        self.indexes = {}  # 存储多个FaissBackend实例，key为index名称
+        self.indexes = {}  # index_name -> dict: { index, description, filter_func, conditions }
 
-    def create_index(    
+    def create_index(
         self,
         index_name: str,
-        ids: Optional[List[str]] = None,
         metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
+        description: str = "",
         **metadata_conditions
-        ):
+    ):
         """
-        Create a new index with specified hash IDs and their vectors.
-
-        使用指定ID及其向量创建索引。
+        使用元数据筛选条件创建新的向量索引。
         """
         if self.backend_type == "FAISS":
             from sage.core.neuromem.search_engine.vdb_backend.faiss_backend import FaissBackend
 
-            # 如果未指定 ID 列表，则通过 metadata 筛选获取
-            if ids is None:
-                all_ids = self.get_all_ids()
-                ids = self.filter_ids(all_ids, metadata_filter_func, **metadata_conditions)
+            all_ids = self.get_all_ids()
+            filtered_ids = self.filter_ids(all_ids, metadata_filter_func, **metadata_conditions)
 
-            # 提取对应向量
-            vectors = [self.vector_storage.get(i) for i in ids]
-            
-            # Create FAISS index with vectors and IDs
-            index = FaissBackend(index_name, self.dim, vectors, ids)
-            self.indexes[index_name] = index
+            vectors = [self.vector_storage.get(i) for i in filtered_ids]
+            index = FaissBackend(index_name, self.dim, vectors, filtered_ids)
 
+            self.indexes[index_name] = {
+                "index": index,
+                "description": description,
+                "metadata_filter_func": metadata_filter_func,
+                "metadata_conditions": metadata_conditions,
+            }
+
+    def delete_index(self, index_name: str):
+        """
+        删除指定名称的索引。
+        """
+        if index_name in self.indexes:
+            del self.indexes[index_name]
+        else:
+            raise ValueError(f"Index '{index_name}' does not exist.")
+
+    def rebuild_index(self, index_name: str):
+        """
+        使用原始创建条件重建指定索引。
+        """
+        if index_name not in self.indexes:
+            raise ValueError(f"Index '{index_name}' does not exist.")
+        
+        info = self.indexes[index_name]
+        self.delete_index(index_name)  # 删除旧索引以避免冲突
+        self.create_index(
+            index_name=index_name,
+            metadata_filter_func=info["metadata_filter_func"],
+            description=info["description"],
+            **info["metadata_conditions"]
+        )
+
+    def list_index(self) -> List[Dict[str, str]]:
+        """
+        列出当前所有索引及其描述信息。
+        返回结构：[{"name": ..., "description": ...}, ...]
+        """
+        return [
+            {"name": name, "description": info["description"]}
+            for name, info in self.indexes.items()
+        ]
+    
     def insert(self, raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> str:
         """
         Store raw text with optional metadata and its vector embedding.
-
         存储原始文本、可选的元数据及其向量嵌入。
         """
         # Generate stable ID and store text/metadata as in parent class
@@ -207,7 +242,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
         if hasattr(query_embedding, "detach") and hasattr(query_embedding, "cpu"):
             query_embedding = query_embedding.detach().cpu().numpy()
 
-        sub_index = self.indexes[index_name]
+        sub_index = self.indexes[index_name]["index"]
 
         # Unwrap nested search results if needed (e.g., convert [[1,2,3]] to [1,2,3]) and ensure string IDs
         # 解包嵌套搜索结果（如转换 [[1,2,3]] 为 [1,2,3]）并确保ID为字符串格式
@@ -360,5 +395,57 @@ if __name__ == "__main__":
         print("Expected Top Text:", expected_top_text)
         print("Actual Texts:", results)
         print("Test 5 Pass:", results[0] in expected_top_text if results else False)
+        
+        # Test 6: Delete index and ensure it's gone
+        print("\n=== 测试6：删除索引 (Delete Index Test) ===")
+        col.delete_index("en_fr_index")
+        try:
+            col.retrieve("hello", index_name="en_fr_index")
+            print("Test 6 Fail: Retrieval should have raised an error.")
+        except ValueError as e:
+            print("Caught expected error:", str(e))
+            print("Test 6 Pass: Index deletion effective.")
+
+        print("\n=== 测试7：重建索引 (Rebuild Index Test) ===")
+
+        # 先打印重建前索引中向量数量（假设FaissBackend有ntotal属性）
+        index_obj = col.indexes["recent_index"]["index"]
+        old_size = getattr(index_obj, "ntotal", None)
+        print(f"Index size before rebuild: {old_size}")
+
+        # 重建索引
+        col.rebuild_index("recent_index")
+
+        index_obj = col.indexes["recent_index"]["index"]
+        new_size = getattr(index_obj, "ntotal", None)
+        print(f"Index size after rebuild: {new_size}")
+
+        print("Test 7 Pass:", new_size is not None and new_size > 0)
+
+        # 测试重建后是否能正常检索
+        results = col.retrieve("hello", index_name="recent_index")
+        print("Results after rebuild:", results)
+
+
+        print("\n=== 测试8：列出索引信息 (List Index Info) ===")
+
+        # 创建一个示例索引，带描述
+        def lang_filter(meta):
+            return meta.get("lang") in ("en", "fr")
+
+        col.create_index(
+            "lang_index",
+            metadata_filter_func=lang_filter,
+            description="English and French only"
+        )
+
+        # 列出所有索引及其描述
+        index_info = col.list_index()
+        for info in index_info:
+            print(f"Index Name: {info['name']}, Description: {info['description']}")
+
+        expected_names = {"recent_index", "lang_index"}
+        actual_names = {info["name"] for info in index_info}
+        print("Test 8 Pass:", expected_names.issubset(actual_names))
 
     vdbtest()
