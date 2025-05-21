@@ -166,7 +166,6 @@ class FaissBackend:
         else:
             self.tombstones.add(string_id)
     
-    
     def update(self, string_id: str, new_vector: np.ndarray):
         """
         更新指定 ID 的向量：保持原有映射关系，仅替换向量内容
@@ -203,7 +202,6 @@ class FaissBackend:
             vector = np.expand_dims(new_vector.astype("float32"), axis=0)
             int_id_np = np.array([new_int_id], dtype=np.int64)
             self.index.add_with_ids(vector, int_id_np)  # type: ignore
-
     
     def _build_index(self, vectors: List[np.ndarray], ids: List[str]):
         """
