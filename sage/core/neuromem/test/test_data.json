@@ -1,0 +1,82 @@
+[
+  {
+    "text": "I'm trying to understand how vector databases work with semantic search.",
+    "metadata": {
+      "source": "user",
+      "lang": "en",
+      "timestamp": 1704124800
+    }
+  },
+  {
+    "text": "向量数据库适用于高维相似度检索，常用于图像、文本等非结构化数据。",
+    "metadata": {
+      "source": "doc",
+      "lang": "zh",
+      "timestamp": 1709539200
+    }
+  },
+  {
+    "text": "Le RAG combine les modèles de langage avec des bases de données vectorielles pour améliorer la génération de texte.",
+    "metadata": {
+      "source": "web",
+      "lang": "fr",
+      "timestamp": 1712358000
+    }
+  },
+  {
+    "text": "Can you recommend a good paper on retrieval-augmented generation?",
+    "metadata": {
+      "source": "chat",
+      "lang": "en",
+      "timestamp": 1714528800
+    }
+  },
+  {
+    "text": "2024年大模型技术在生成式搜索上的应用得到了快速发展。",
+    "metadata": {
+      "source": "news",
+      "lang": "zh",
+      "timestamp": 1715913600
+    }
+  },
+  {
+    "text": "Voici un résumé des architectures hybrides pour le traitement du langage naturel.",
+    "metadata": {
+      "source": "doc",
+      "lang": "fr",
+      "timestamp": 1707465600
+    }
+  },
+  {
+    "text": "Using embeddings, we can turn text into vectors and compare them for similarity.",
+    "metadata": {
+      "source": "user",
+      "lang": "en",
+      "timestamp": 1710100800
+    }
+  },
+  {
+    "text": "你好，请帮我用中文解释一下什么是“语义嵌入”。",
+    "metadata": {
+      "source": "chat",
+      "lang": "zh",
+      "timestamp": 1713033600
+    }
+  },
+  {
+    "text": "Retrieval latency can significantly affect the user experience in a QA system.",
+    "metadata": {
+      "source": "web",
+      "lang": "en",
+      "timestamp": 1716748800
+    }
+  },
+  {
+    "text": "多轮对话的上下文管理是构建智能助手的核心技术之一。",
+    "metadata": {
+      "source": "doc",
+      "lang": "zh",
+      "timestamp": 1706016000
+    }
+  }
+]

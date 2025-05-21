@@ -136,27 +136,9 @@ class VDBMemoryCollection(BaseMemoryCollection):
         self.embedding_model = embedding_model
         self.dim = dim
         self.vector_storage = VectorStorage()
+        self.default_topk = int(os.getenv("VDB_TOPK", 3))
         self.backend_type = os.getenv("VDB_BACKEND", "FAISS")
         self.indexes = {}  # 存储多个FaissBackend实例，key为index名称
-
-    def insert(self, raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> str:
-        """
-        Store raw text with optional metadata and its vector embedding.
-
-        存储原始文本、可选的元数据及其向量嵌入。
-        """
-        # Generate stable ID and store text/metadata as in parent class
-        stable_id = self._get_stable_id(raw_text)
-        self.text_storage.store(stable_id, raw_text)
-        
-        if metadata:
-            self.metadata_storage.store(stable_id, metadata)
-        
-        # Generate and store vector embedding
-        embedding = self.embedding_model.encode(raw_text)
-        self.vector_storage.store(stable_id, embedding)
-        
-        return stable_id
 
     def create_index(    
         self,
@@ -185,10 +167,29 @@ class VDBMemoryCollection(BaseMemoryCollection):
             index = FaissBackend(index_name, self.dim, vectors, ids)
             self.indexes[index_name] = index
 
+    def insert(self, raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Store raw text with optional metadata and its vector embedding.
+
+        存储原始文本、可选的元数据及其向量嵌入。
+        """
+        # Generate stable ID and store text/metadata as in parent class
+        stable_id = self._get_stable_id(raw_text)
+        self.text_storage.store(stable_id, raw_text)
+        
+        if metadata:
+            self.metadata_storage.store(stable_id, metadata)
+        
+        # Generate and store vector embedding
+        embedding = self.embedding_model.encode(raw_text)
+        self.vector_storage.store(stable_id, embedding)
+        
+        return stable_id
+
     def retrieve(
         self,
         raw_text: str,
-        topk: int = 3,
+        topk: Optional[int] = None,
         index_name: Optional[str] = None,
         metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
         **metadata_conditions
@@ -196,24 +197,27 @@ class VDBMemoryCollection(BaseMemoryCollection):
         if index_name is None or index_name not in self.indexes:
             raise ValueError(f"Index '{index_name}' does not exist.")
 
-        if self.backend_type == "FAISS":
-            query_embedding = self.embedding_model.encode(raw_text)
+        # 使用 default_topk 如果 topk 未指定
+        if topk is None:
+            topk = self.default_topk
 
-            # 如果是 torch.Tensor，需要转换为 numpy 数组（FAISS 不接受 torch tensor）
-            if hasattr(query_embedding, "detach") and hasattr(query_embedding, "cpu"):
-                query_embedding = query_embedding.detach().cpu().numpy()
+        query_embedding = self.embedding_model.encode(raw_text)
 
-            sub_index = self.indexes[index_name]
+        # 如果是 torch.Tensor，需要转换为 numpy 数组（FAISS 不接受 torch tensor）
+        if hasattr(query_embedding, "detach") and hasattr(query_embedding, "cpu"):
+            query_embedding = query_embedding.detach().cpu().numpy()
 
-            top_k_ids = sub_index.search(query_embedding, topk=topk)
-            if top_k_ids and isinstance(top_k_ids[0], (list, np.ndarray)):
-                top_k_ids = top_k_ids[0]
-            top_k_ids = [str(i) for i in top_k_ids]
+        sub_index = self.indexes[index_name]
 
-            filtered_ids = self.filter_ids(top_k_ids, metadata_filter_func, **metadata_conditions)
-            return [self.text_storage.get(i) for i in filtered_ids]
+        # Unwrap nested search results if needed (e.g., convert [[1,2,3]] to [1,2,3]) and ensure string IDs
+        # 解包嵌套搜索结果（如转换 [[1,2,3]] 为 [1,2,3]）并确保ID为字符串格式
+        top_k_ids = sub_index.search(query_embedding, topk=topk)
+        if top_k_ids and isinstance(top_k_ids[0], (list, np.ndarray)):
+            top_k_ids = top_k_ids[0]
+        top_k_ids = [str(i) for i in top_k_ids]
 
-        raise NotImplementedError(f"Backend '{self.backend_type}' not supported yet.")
+        filtered_ids = self.filter_ids(top_k_ids, metadata_filter_func, **metadata_conditions)
+        return [self.text_storage.get(i) for i in filtered_ids]
     
 if __name__ == "__main__":
 
