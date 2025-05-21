@@ -120,6 +120,7 @@ class BaseMemoryCollection:
         """
         self.text_storage.clear()
         self.metadata_storage.clear()
+        
 
 class VDBMemoryCollection(BaseMemoryCollection):
     """
