@@ -14,6 +14,12 @@ class TextStorage:
         # 存储结构：{external_id: raw_text}
         self._store: Dict[str, str] = {}
 
+    def has(self, hash_id: str) -> bool:
+        return hash_id in self._store
+
+    def delete(self, hash_id: str):
+        self._store.pop(hash_id, None)
+        
     def store(self, item_id: str, text: str):
         """
         Store text under a given item_id.

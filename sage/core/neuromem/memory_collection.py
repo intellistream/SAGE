@@ -122,8 +122,6 @@ class BaseMemoryCollection:
         self.metadata_storage.clear()
         
 
-# TODO:
-# 1.增删改查
 
 class VDBMemoryCollection(BaseMemoryCollection):
     """
@@ -203,23 +201,61 @@ class VDBMemoryCollection(BaseMemoryCollection):
             for name, info in self.indexes.items()
         ]
     
-    def insert(self, raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> str:
-        """
-        Store raw text with optional metadata and its vector embedding.
-        存储原始文本、可选的元数据及其向量嵌入。
-        """
-        # Generate stable ID and store text/metadata as in parent class
+    def insert(
+        self,
+        raw_text: str,
+        metadata: Optional[Dict[str, Any]] = None,
+        *index_names: str
+    ) -> str:
         stable_id = self._get_stable_id(raw_text)
         self.text_storage.store(stable_id, raw_text)
-        
+
         if metadata:
             self.metadata_storage.store(stable_id, metadata)
-        
-        # Generate and store vector embedding
+
         embedding = self.embedding_model.encode(raw_text)
+        
+        if hasattr(embedding, "detach") and hasattr(embedding, "cpu"):
+            embedding = embedding.detach().cpu().numpy().astype("float32")
+            
         self.vector_storage.store(stable_id, embedding)
         
+        for index_name in index_names:
+            if index_name not in self.indexes:
+                raise ValueError(f"Index '{index_name}' does not exist.")
+            index = self.indexes[index_name]["index"]
+            index.insert(embedding, stable_id)  # 不用加 []
+
         return stable_id
+
+    def update(
+        self,
+        former_text: str,
+        new_text: str,
+        new_metadata: Optional[Dict[str, Any]] = None,
+        *index_names: str
+    ) -> str:
+        old_id = self._get_stable_id(former_text)
+        if not self.text_storage.has(old_id):
+            raise ValueError("Original text not found.")
+
+        self.text_storage.delete(old_id)
+        self.metadata_storage.delete(old_id)
+        self.vector_storage.delete(old_id)
+
+        for index in self.indexes.values():
+            index["index"].delete(old_id)
+
+        return self.insert(new_text, new_metadata, *index_names)
+
+    def delete(self, raw_text: str):
+        stable_id = self._get_stable_id(raw_text)
+        self.text_storage.delete(stable_id)
+        self.metadata_storage.delete(stable_id)
+        self.vector_storage.delete(stable_id)
+
+        for index in self.indexes.values():
+            index["index"].delete(stable_id)
 
     def retrieve(
         self,
@@ -232,26 +268,34 @@ class VDBMemoryCollection(BaseMemoryCollection):
         if index_name is None or index_name not in self.indexes:
             raise ValueError(f"Index '{index_name}' does not exist.")
 
-        # 使用 default_topk 如果 topk 未指定
         if topk is None:
             topk = self.default_topk
 
         query_embedding = self.embedding_model.encode(raw_text)
 
-        # 如果是 torch.Tensor，需要转换为 numpy 数组（FAISS 不接受 torch tensor）
         if hasattr(query_embedding, "detach") and hasattr(query_embedding, "cpu"):
             query_embedding = query_embedding.detach().cpu().numpy()
 
         sub_index = self.indexes[index_name]["index"]
+        top_k_ids, _ = sub_index.search(query_embedding, topk=topk)
 
-        # Unwrap nested search results if needed (e.g., convert [[1,2,3]] to [1,2,3]) and ensure string IDs
-        # 解包嵌套搜索结果（如转换 [[1,2,3]] 为 [1,2,3]）并确保ID为字符串格式
-        top_k_ids = sub_index.search(query_embedding, topk=topk)
         if top_k_ids and isinstance(top_k_ids[0], (list, np.ndarray)):
             top_k_ids = top_k_ids[0]
         top_k_ids = [str(i) for i in top_k_ids]
 
         filtered_ids = self.filter_ids(top_k_ids, metadata_filter_func, **metadata_conditions)
+
+        # 检查是否返回数量不足，自动重建索引并重试
+        if len(filtered_ids) < topk:
+            self.rebuild_index(index_name)
+            sub_index = self.indexes[index_name]["index"]
+            top_k_ids, _ = sub_index.search(query_embedding, topk=topk * 2)
+            if top_k_ids and isinstance(top_k_ids[0], (list, np.ndarray)):
+                top_k_ids = top_k_ids[0]
+            top_k_ids = [str(i) for i in top_k_ids]
+            filtered_ids = self.filter_ids(top_k_ids, metadata_filter_func, **metadata_conditions)
+            filtered_ids = filtered_ids[:topk]
+
         return [self.text_storage.get(i) for i in filtered_ids]
     
 if __name__ == "__main__":
@@ -447,5 +491,63 @@ if __name__ == "__main__":
         expected_names = {"recent_index", "lang_index"}
         actual_names = {info["name"] for info in index_info}
         print("Test 8 Pass:", expected_names.issubset(actual_names))
+
+        print("\n=== 测试9：插入文本时直接加入索引 ===")
+
+        col.create_index(
+            index_name="user_index",
+            metadata_filter_func=lambda m: m.get("source") == "user"
+        )
+
+        # 插入数据并指定立即加入索引
+        col.insert("hi there", {"source": "user", "lang": "en"}, "user_index")
+
+        results = col.retrieve("hi", index_name="user_index")
+        print("Expected: ['hi there']")
+        print("Actual:", results)
+        print("Test 9 Pass:", "hi there" in results)
+
+        print("\n=== 测试10：更新文本，删除旧的并加入新索引 ===")
+
+        # 更新“hello world”为新文本，并加进 recent_index
+        col.update("hello world", "hello new world", {"source": "user", "lang": "en", "timestamp": current_time}, "recent_index")
+
+        # 检查旧的是否被删除，新内容是否存在
+        results = col.retrieve("hello", index_name="recent_index")
+        print("Expected: ['hello new world']")
+        print("Actual:", results)
+        print("Test 10 Pass:", "hello new world" in results and "hello world" not in results)
+
+        print("\n=== 测试11：删除文本后检索失败 ===")
+
+        # 删除刚插入的“hi there”
+        col.delete("hi there")
+
+        # 重新检索看看还在不在
+        results = col.retrieve("hi", index_name="user_index")
+        print("Expected: []")
+        print("Actual:", results)
+        print("Test 11 Pass:", "hi there" not in results)
+
+        print("\n=== 测试12：向量检索不足触发索引重建 ===")
+
+        # 假设我们手动删除 recent_index 中某条向量
+        some_id = col._get_stable_id("bonjour le monde")
+        col.indexes["recent_index"]["index"].delete(some_id)
+
+        # 再次查询，索引应重建
+        results = col.retrieve("bonjour", topk=2, index_name="recent_index")
+        print("Results:", results)
+        print("Test 12 Pass:", "bonjour le monde" in results)
+
+        print("\n=== 测试13：插入时指定不存在的索引名 ===")
+
+        try:
+            col.insert("invalid index test", {"source": "user"}, "non_existing_index")
+            print("Test 13 Fail: Expected error for non-existent index.")
+        except ValueError as e:
+            print("Caught expected error:", str(e))
+            print("Test 13 Pass: Error raised as expected.")
+
 
     vdbtest()

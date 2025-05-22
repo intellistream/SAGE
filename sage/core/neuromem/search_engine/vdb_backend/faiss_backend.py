@@ -146,6 +146,30 @@ class FaissBackend:
         """
         return faiss.METRIC_L2 if metric_str == "L2" else faiss.METRIC_INNER_PRODUCT
     
+    def _build_index(self, vectors: List[np.ndarray], ids: List[str]):
+        """
+        构建初始索引并绑定 string ID → int ID 映射关系
+        Build initial index and bind string ID to int ID mapping
+        """
+        np_vectors = np.vstack(vectors).astype("float32")
+        int_ids = []
+
+        for string_id in ids:
+            if string_id in self.rev_map:
+                int_id = self.rev_map[string_id]
+            else:
+                int_id = self.next_id
+                self.next_id += 1
+                self.rev_map[string_id] = int_id
+                self.id_map[int_id] = string_id
+            int_ids.append(int_id)
+
+        int_ids_np = np.array(int_ids, dtype=np.int64)
+        if not isinstance(self.index, faiss.IndexIDMap):
+            print("Wrapping index with IndexIDMap")
+            self.index = faiss.IndexIDMap(self.index)  # 仅当未包装时才包装
+        self.index.add_with_ids(np_vectors, int_ids_np)  # type: ignore
+        
     def delete(self, string_id: str):
         """
         删除指定ID（物理删除或墓碑标记）
@@ -202,30 +226,6 @@ class FaissBackend:
             vector = np.expand_dims(new_vector.astype("float32"), axis=0)
             int_id_np = np.array([new_int_id], dtype=np.int64)
             self.index.add_with_ids(vector, int_id_np)  # type: ignore
-    
-    def _build_index(self, vectors: List[np.ndarray], ids: List[str]):
-        """
-        构建初始索引并绑定 string ID → int ID 映射关系
-        Build initial index and bind string ID to int ID mapping
-        """
-        np_vectors = np.vstack(vectors).astype("float32")
-        int_ids = []
-
-        for string_id in ids:
-            if string_id in self.rev_map:
-                int_id = self.rev_map[string_id]
-            else:
-                int_id = self.next_id
-                self.next_id += 1
-                self.rev_map[string_id] = int_id
-                self.id_map[int_id] = string_id
-            int_ids.append(int_id)
-
-        int_ids_np = np.array(int_ids, dtype=np.int64)
-        if not isinstance(self.index, faiss.IndexIDMap):
-            print("Wrapping index with IndexIDMap")
-            self.index = faiss.IndexIDMap(self.index)  # 仅当未包装时才包装
-        self.index.add_with_ids(np_vectors, int_ids_np)  # type: ignore
 
     def search(self, query_vector: np.ndarray, topk: int = 10):
         """

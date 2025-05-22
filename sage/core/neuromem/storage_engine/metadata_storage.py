@@ -50,6 +50,12 @@ class MetadataStorage:
         """
         return self._store.get(item_id, {})
 
+    def has(self, item_id: str) -> bool:
+        return item_id in self._store
+
+    def delete(self, item_id: str):
+        self._store.pop(item_id, None)
+
     def clear(self):
         """
         Clear all stored metadata and registered fields.

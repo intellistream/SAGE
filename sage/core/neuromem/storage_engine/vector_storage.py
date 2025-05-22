@@ -15,6 +15,12 @@ class VectorStorage:
         # Storage structure: {hash_id: vector}
         self._store: Dict[str, Any] = {}
 
+    def has(self, item_id: str) -> bool:
+        return item_id in self._store
+    
+    def delete(self, item_id: str):
+        self._store.pop(item_id, None)
+        
     def store(self, hash_id: str, vector: Any):
         """
         Store vector under a given hash_id.
