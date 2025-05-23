@@ -121,7 +121,11 @@ class BaseMemoryCollection:
         self.text_storage.clear()
         self.metadata_storage.clear()
         
+class KVMemoryCollection(BaseMemoryCollection):
+    pass
 
+class GraphMemoryCollection(BaseMemoryCollection):
+    pass
 
 class VDBMemoryCollection(BaseMemoryCollection):
     """

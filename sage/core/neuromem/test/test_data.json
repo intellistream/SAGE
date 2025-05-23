@@ -1,82 +1,302 @@
 [
   {
-    "text": "I'm trying to understand how vector databases work with semantic search.",
+    "text": "How do large language models handle context in long conversations?",
     "metadata": {
       "source": "user",
       "lang": "en",
-      "timestamp": 1704124800
+      "timestamp": 1704124800,
+      "topic": "tech",
+      "type": "user_question"
     }
   },
   {
-    "text": "向量数据库适用于高维相似度检索，常用于图像、文本等非结构化数据。",
+    "text": "AI模型如何在多轮对话中保持上下文一致性？",
     "metadata": {
       "source": "doc",
       "lang": "zh",
-      "timestamp": 1709539200
+      "timestamp": 1709539200,
+      "topic": "tech",
+      "type": "document_excerpt"
     }
   },
   {
-    "text": "Le RAG combine les modèles de langage avec des bases de données vectorielles pour améliorer la génération de texte.",
+    "text": "El impacto de la inteligencia artificial en la educación moderna.",
     "metadata": {
-      "source": "web",
-      "lang": "fr",
-      "timestamp": 1712358000
+      "source": "article",
+      "lang": "es",
+      "timestamp": 1711929600,
+      "topic": "education",
+      "type": "news_article"
     }
   },
   {
-    "text": "Can you recommend a good paper on retrieval-augmented generation?",
+    "text": "New AI regulations proposed in the EU to ensure ethical use.",
     "metadata": {
-      "source": "chat",
+      "source": "news",
       "lang": "en",
-      "timestamp": 1714528800
+      "timestamp": 1714521600,
+      "topic": "tech",
+      "type": "news_event"
     }
   },
   {
-    "text": "2024年大模型技术在生成式搜索上的应用得到了快速发展。",
+    "text": "2024年奥运会足球比赛日程公布，巴黎备受期待。",
     "metadata": {
       "source": "news",
       "lang": "zh",
-      "timestamp": 1715913600
+      "timestamp": 1717113600,
+      "topic": "sports",
+      "type": "news_event"
     }
   },
   {
-    "text": "Voici un résumé des architectures hybrides pour le traitement du langage naturel.",
+    "text": "¿Cómo puedo mejorar mis habilidades en programación?",
+    "metadata": {
+      "source": "user",
+      "lang": "es",
+      "timestamp": 1706803200,
+      "topic": "education",
+      "type": "user_question"
+    }
+  },
+  {
+    "text": "The new sci-fi movie 'Galactic Horizon' is breaking box office records.",
+    "metadata": {
+      "source": "news",
+      "lang": "en",
+      "timestamp": 1719792000,
+      "topic": "entertainment",
+      "type": "news_event"
+    }
+  },
+  {
+    "text": "社交媒体如何影响年轻人的心理健康？",
     "metadata": {
       "source": "doc",
-      "lang": "fr",
-      "timestamp": 1707465600
+      "lang": "zh",
+      "timestamp": 1704211200,
+      "topic": "tech",
+      "type": "document_excerpt"
     }
   },
   {
-    "text": "Using embeddings, we can turn text into vectors and compare them for similarity.",
+    "text": "Latest trends in wearable technology for fitness tracking.",
+    "metadata": {
+      "source": "article",
+      "lang": "en",
+      "timestamp": 1712034000,
+      "topic": "tech",
+      "type": "news_article"
+    }
+  },
+  {
+    "text": "¡El equipo nacional ganó la copa mundial de baloncesto!",
+    "metadata": {
+      "source": "social_media",
+      "lang": "es",
+      "timestamp": 1717200000,
+      "topic": "sports",
+      "type": "social_post"
+    }
+  },
+  {
+    "text": "在线教育平台如何提升学生参与度？",
+    "metadata": {
+      "source": "article",
+      "lang": "zh",
+      "timestamp": 1704297600,
+      "topic": "education",
+      "type": "news_article"
+    }
+  },
+  {
+    "text": "What are the best strategies for marathon training?",
     "metadata": {
       "source": "user",
       "lang": "en",
-      "timestamp": 1710100800
+      "timestamp": 1714618800,
+      "topic": "sports",
+      "type": "user_question"
     }
   },
   {
-    "text": "你好，请帮我用中文解释一下什么是“语义嵌入”。",
+    "text": "La nueva serie de streaming ha captado millones de espectadores.",
     "metadata": {
-      "source": "chat",
-      "lang": "zh",
-      "timestamp": 1713033600
+      "source": "news",
+      "lang": "es",
+      "timestamp": 1719878400,
+      "topic": "entertainment",
+      "type": "news_event"
     }
   },
   {
-    "text": "Retrieval latency can significantly affect the user experience in a QA system.",
-    "metadata": {
-      "source": "web",
-      "lang": "en",
-      "timestamp": 1716748800
-    }
-  },
-  {
-    "text": "多轮对话的上下文管理是构建智能助手的核心技术之一。",
+    "text": "量子计算的最新进展令人振奋。",
     "metadata": {
       "source": "doc",
       "lang": "zh",
-      "timestamp": 1706016000
+      "timestamp": 1712120400,
+      "topic": "tech",
+      "type": "document_excerpt"
+    }
+  },
+  {
+    "text": "How does blockchain ensure data security?",
+    "metadata": {
+      "source": "user",
+      "lang": "en",
+      "timestamp": 1704384000,
+      "topic": "tech",
+      "type": "user_question"
+    }
+  },
+  {
+    "text": "Global summit addresses climate change policies.",
+    "metadata": {
+      "source": "news",
+      "lang": "en",
+      "timestamp": 1717293600,
+      "topic": "news",
+      "type": "news_event"
+    }
+  },
+  {
+    "text": "体育赛事直播技术如何提升观众体验？",
+    "metadata": {
+      "source": "article",
+      "lang": "zh",
+      "timestamp": 1712206800,
+      "topic": "sports",
+      "type": "news_article"
+    }
+  },
+  {
+    "text": "¿Qué impacto tiene el cambio climático en los eventos deportivos?",
+    "metadata": {
+      "source": "article",
+      "lang": "es",
+      "timestamp": 1717380000,
+      "topic": "sports",
+      "type": "news_article"
+    }
+  },
+  {
+    "text": "The rise of virtual reality in education systems.",
+    "metadata": {
+      "source": "doc",
+      "lang": "en",
+      "timestamp": 1714705200,
+      "topic": "education",
+      "type": "document_excerpt"
+    }
+  },
+  {
+    "text": "新电影的视觉效果令人叹为观止！",
+    "metadata": {
+      "source": "social_media",
+      "lang": "zh",
+      "timestamp": 1719964800,
+      "topic": "entertainment",
+      "type": "social_post"
+    }
+  },
+  {
+    "text": "¿Cómo funciona la inteligencia artificial generativa?",
+    "metadata": {
+      "source": "user",
+      "lang": "es",
+      "timestamp": 1704470400,
+      "topic": "tech",
+      "type": "user_question"
+    }
+  },
+  {
+    "text": "Breakthrough in renewable energy storage solutions.",
+    "metadata": {
+      "source": "news",
+      "lang": "en",
+      "timestamp": 1717466400,
+      "topic": "tech",
+      "type": "news_event"
+    }
+  },
+  {
+    "text": "混合学习模式在高校中的应用效果如何？",
+    "metadata": {
+      "source": "doc",
+      "lang": "zh",
+      "timestamp": 1712293200,
+      "topic": "education",
+      "type": "document_excerpt"
+    }
+  },
+  {
+    "text": "New policies to support remote learning in schools.",
+    "metadata": {
+      "source": "news",
+      "lang": "en",
+      "timestamp": 1714791600,
+      "topic": "education",
+      "type": "news_event"
+    }
+  },
+  {
+    "text": "¡Increíble actuación en el festival de música internacional!",
+    "metadata": {
+      "source": "social_media",
+      "lang": "es",
+      "timestamp": 1720051200,
+      "topic": "entertainment",
+      "type": "social_post"
+    }
+  },
+  {
+    "text": "全球科技巨头发布新型AI芯片。",
+    "metadata": {
+      "source": "news",
+      "lang": "zh",
+      "timestamp": 1717552800,
+      "topic": "tech",
+      "type": "news_event"
+    }
+  },
+  {
+    "text": "What are the benefits of meditation for athletes?",
+    "metadata": {
+      "source": "user",
+      "lang": "en",
+      "timestamp": 1714878000,
+      "topic": "sports",
+      "type": "user_question"
+    }
+  },
+  {
+    "text": "La educación en línea está transformando el acceso al aprendizaje.",
+    "metadata": {
+      "source": "article",
+      "lang": "es",
+      "timestamp": 1712379600,
+      "topic": "education",
+      "type": "news_article"
+    }
+  },
+  {
+    "text": "New streaming platform gains popularity among gamers.",
+    "metadata": {
+      "source": "news",
+      "lang": "en",
+      "timestamp": 1720137600,
+      "topic": "entertainment",
+      "type": "news_event"
+    }
+  },
+  {
+    "text": "如何利用数据分析优化运动训练？",
+    "metadata": {
+      "source": "doc",
+      "lang": "zh",
+      "timestamp": 1717639200,
+      "topic": "sports",
+      "type": "document_excerpt"
     }
   }
 ]
