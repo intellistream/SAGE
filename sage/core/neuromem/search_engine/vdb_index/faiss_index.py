@@ -1,5 +1,5 @@
-# file sage/core/neuromem/search_engine/vdb_backend/faiss_backend.py
-# python sage/core/neuromem/search_engine/vdb_backend/faiss_backend.py
+# file sage/core/neuromem/search_engine/vdb_index/faiss_index.py
+# python -m sage.core.neuromem.search_engine.vdb_index.faiss_index
 
 # TODO: 
 # 1.保存机制的实现===>保存 类及属性，索引、映射表（hash256 Faiss64 vector）
@@ -9,12 +9,13 @@ import faiss
 import numpy as np
 from dotenv import load_dotenv
 from typing import Optional, List, Dict
+from sage.core.neuromem.search_engine.vdb_index.base_vdb_index import BaseKVIndex
 
 # 加载工程根目录下 sage/.env 配置
 # Load configuration from .env file under the sage directory
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../../../.env'))
 
-class FaissBackend:
+class FaissBackend(BaseKVIndex):
     def __init__(
         self, 
         name: str, 

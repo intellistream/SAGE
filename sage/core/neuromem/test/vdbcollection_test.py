@@ -4,7 +4,7 @@
 import time
 from datetime import datetime
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
-from sage.core.neuromem.memory_collection import VDBMemoryCollection
+from sage.core.neuromem.memory_collection.base_collection import VDBMemoryCollection
 
 
 # Initialize VDBMemoryCollection

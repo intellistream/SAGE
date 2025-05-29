@@ -8,6 +8,14 @@ default_model = MockTextEmbedder(fixed_dim=128)
 
 manager = MemoryManager()
 
+col1 = manager.create_collection(
+    name="vdb_test_2",
+    backend_type="VDB",
+    embedding_model=default_model,
+    dim=128,
+    description="test vdb collection 2"
+)
+
 # 创建一个 VDB 类型的 collection
 col = manager.create_collection(
     name="vdb_test",

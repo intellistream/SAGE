@@ -4,7 +4,7 @@
 # TODO:
 
 from typing import Any, Dict, List, Optional, Union
-from sage.core.neuromem.memory_collection import (
+from sage.core.neuromem.memory_collection.base_collection import (
     BaseMemoryCollection,
     VDBMemoryCollection,
     KVMemoryCollection,
@@ -74,8 +74,9 @@ class MemoryManager:
     
     def connect_collection(self, name: str) -> BaseMemoryCollection:
         """
-        连接已存在的 collection。
-        Connect to an existing collection.
+        连接已存在的 collection（未实现）。
+        Connect to an existing collection(not implemented).
+        1. 加载已经被创建的 collection(在内存里了)  2. 加载离弦的 collection(disk) ==> 数据结构(manager创建时，会到某个路径去读取文件，collection_name信息)
         """
         if name not in self.collections:
             raise KeyError(f"Collection '{name}' not found. (disk loading not implemented)")

@@ -1,14 +1,5 @@
-# file: sage/core/neuromem/memory_collection.py
-# python -m sage.core.neuromem.memory_collection
-
-# TODO:
-# 1.通用设计
-#       -> 保存以及读取collection逻辑的实现
-# 2.VDB 相关
-#       -> 2.1 增：insert函数增强、删：delete函数及增强（collection层级删除以及index层级删除）、改
-#       -> 2.2 索引增强：获取索引信息、重建索引
-#       -> 2.3 功能测试
-# 3.KV 相关
+# file: sage/core/neuromem/memory_collection/base_collection.py
+# python -m sage.core.neuromem.memory_collection.base_collection
 
 import os
 import hashlib
@@ -21,12 +12,11 @@ from sage.core.neuromem.storage_engine.vector_storage import VectorStorage
 
 # 加载工程根目录下 sage/.env 配置
 # Load configuration from .env file under the sage directory
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../.env'))
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../../.env'))
 
 class BaseMemoryCollection:
     """
     Base memory collection with support for raw text and metadata management.
-
     支持原始文本和元数据管理的基础内存集合类。
     """
 
@@ -38,7 +28,6 @@ class BaseMemoryCollection:
     def _get_stable_id(self, raw_text: str) -> str:
         """
         Generate stable ID from raw text using SHA256.
-
         使用 SHA256 生成稳定的文本 ID。
         """
         return hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
@@ -51,7 +40,6 @@ class BaseMemoryCollection:
     ) -> List[str]:
         """
         Filter given IDs based on metadata filter function or exact match conditions.
-
         基于元数据过滤函数或条件筛选给定ID列表中的条目。
         """
         matched_ids = []
@@ -71,7 +59,6 @@ class BaseMemoryCollection:
     def get_all_ids(self) -> List[str]:
         """
         Get all stored item IDs.
-
         获取所有存储的条目ID。
         """
         return list(self.text_storage._store.keys())
@@ -79,7 +66,6 @@ class BaseMemoryCollection:
     def add_metadata_field(self, field_name: str):
         """
         Register a metadata field.
-
         注册一个元数据字段。
         """
         self.metadata_storage.add_field(field_name)
@@ -87,7 +73,6 @@ class BaseMemoryCollection:
     def insert(self, raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> str:
         """
         Store raw text with optional metadata.
-
         存储原始文本与可选的元数据。
         """
         stable_id = self._get_stable_id(raw_text)
@@ -105,17 +90,15 @@ class BaseMemoryCollection:
     ) -> List[str]:
         """
         Retrieve raw texts optionally filtered by metadata.
-
         根据元数据（条件或函数）检索原始文本。
         """
         all_ids = self.get_all_ids()
         matched_ids = self.filter_ids(all_ids, metadata_filter_func, **metadata_conditions)
         return [self.text_storage.get(i) for i in matched_ids]
 
-    def clean(self):
+    def clear(self):
         """
         Clear all stored text and metadata.
-
         清空所有存储的文本和元数据。
         """
         self.text_storage.clear()
@@ -155,7 +138,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
         使用元数据筛选条件创建新的向量索引。
         """
         if self.backend_type == "FAISS":
-            from sage.core.neuromem.search_engine.vdb_backend.faiss_backend import FaissBackend
+            from sage.core.neuromem.search_engine.vdb_index.faiss_index import FaissBackend
 
             all_ids = self.get_all_ids()
             filtered_ids = self.filter_ids(all_ids, metadata_filter_func, **metadata_conditions)
