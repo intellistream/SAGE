@@ -1,0 +1,7 @@
+{
+    "id":5,
+    "name":"AbstractiveRecompRefiner",
+    "description":"Recomposes the reference with the abstractive summary.",
+    "code":"",
+    "isCustom":false
+}
