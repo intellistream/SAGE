@@ -35,7 +35,7 @@ class GeneratorModel:
         # 使用工厂方法创建模型
         self.model = GeneratorFactory.create_generator(method, model_name, **kwargs)
 
-    def generate(self, prompt: str, **kwargs):
+    def generate(self, prompt, **kwargs):
         # 调用生成模型的生成方法
         return self.model.generate(prompt, **kwargs)
 

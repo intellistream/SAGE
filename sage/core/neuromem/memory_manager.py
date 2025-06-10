@@ -46,10 +46,10 @@ class MemoryManager:
             collection = VDBMemoryCollection(name, embedding_model, dim)
 
         elif backend_type == "KV":
-            collection = KVMemoryCollection(name)  # 假设该类已提供
+            collection = KVMemoryCollection(name)  
 
         elif backend_type == "GRAPH":
-            collection = GraphMemoryCollection(name)  # 假设该类已提供
+            collection = GraphMemoryCollection(name)  
 
         else:
             raise ValueError(f"Unsupported backend_type: {backend_type}")

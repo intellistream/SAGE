@@ -85,17 +85,22 @@ class BaseMemoryCollection:
     
     def retrieve(
         self,
+        with_metadata: bool = False,
         metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
         **metadata_conditions
-    ) -> List[str]:
+    ):
         """
         Retrieve raw texts optionally filtered by metadata.
         根据元数据（条件或函数）检索原始文本。
         """
         all_ids = self.get_all_ids()
         matched_ids = self.filter_ids(all_ids, metadata_filter_func, **metadata_conditions)
-        return [self.text_storage.get(i) for i in matched_ids]
-
+        # return [self.text_storage.get(i) for i in matched_ids]
+        if with_metadata:
+            return [{"text": self.text_storage.get(i), "metadata": self.metadata_storage.get(i)} for i in matched_ids]
+        else:
+            return [self.text_storage.get(i) for i in matched_ids]
+        
     def clear(self):
         """
         Clear all stored text and metadata.
@@ -249,9 +254,10 @@ class VDBMemoryCollection(BaseMemoryCollection):
         raw_text: str,
         topk: Optional[int] = None,
         index_name: Optional[str] = None,
+        with_metadata: bool = False,
         metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
         **metadata_conditions
-    ) -> List[str]:
+    ) :
         if index_name is None or index_name not in self.indexes:
             raise ValueError(f"Index '{index_name}' does not exist.")
 
@@ -262,7 +268,9 @@ class VDBMemoryCollection(BaseMemoryCollection):
 
         if hasattr(query_embedding, "detach") and hasattr(query_embedding, "cpu"):
             query_embedding = query_embedding.detach().cpu().numpy()
-
+        elif isinstance(query_embedding, list):
+            # 处理 Python 列表
+            query_embedding = np.array(query_embedding, dtype=np.float32)
         sub_index = self.indexes[index_name]["index"]
         top_k_ids, _ = sub_index.search(query_embedding, topk=topk)
 
@@ -283,7 +291,11 @@ class VDBMemoryCollection(BaseMemoryCollection):
             filtered_ids = self.filter_ids(top_k_ids, metadata_filter_func, **metadata_conditions)
             filtered_ids = filtered_ids[:topk]
 
-        return [self.text_storage.get(i) for i in filtered_ids]
+        if with_metadata:
+            return [{"text": self.text_storage.get(i), "metadata": self.metadata_storage.get(i)}for i in filtered_ids]
+        else:
+            return [self.text_storage.get(i) for i in filtered_ids]
+
     
 if __name__ == "__main__":
 
