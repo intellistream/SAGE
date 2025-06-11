@@ -1,0 +1,7 @@
+{
+  "id": 11,
+  "name": "asds",
+  "code": "\nclass CustomFunction(BaseOperator):\n    def __init__(self):\n        super().__init__()\n\n    def execute(self):\n        raise NotImplementedError(\"RerankerFunction must implement execute().\")\n        \nclass CustomOperator(CustomFunction):\n    def __init__(self, config):\n    \n        super().__init__()\n        self.config = config[\"custom_operator\"]\n        self.info = self.config[\"info\"]\n\n    def execute(self, data: Data[Tuple[str, str]]) ->  Data[Tuple[str, str]]:\n    \n        #print(\"CustomOperator execute method called\")\n        #print(f\"config_test: {self.info}\")\n        return data\n",
+  "isCustom": true,
+  "description": "sad"
+}
