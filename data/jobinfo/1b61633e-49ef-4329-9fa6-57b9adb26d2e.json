@@ -1,0 +1,94 @@
+{
+    "jobId": "1b61633e-49ef-4329-9fa6-57b9adb26d2e",
+    "name": "ingest",
+    "nthreads": "8",
+    "cpu": "2",
+    "ram": "4GB",
+    "startTime": "2025-06-09 12:54:12",
+    "duration": "0s",
+    "isRunning": false,
+    "nevents": 0,
+    "minProcessTime": 0.0,
+    "maxProcessTime": 0.0,
+    "meanProcessTime": 0.0,
+    "latency": 0.0,
+    "throughput": 0.0,
+    "ncore": 2,
+    "operators": [
+        {
+            "id": "3",
+            "name": "SimpleRetriever",
+            "isSource": true,
+            "isSink": false,
+            "numOfInstances": 1,
+            "throughput": 0.0,
+            "latency": 0.0,
+            "explorationStrategy": "default",
+            "schedulingGranularity": "default",
+            "abortHandling": "default",
+            "downstream": [
+                2,
+                10
+            ]
+        },
+        {
+            "id": "2",
+            "name": "HFGenerator",
+            "isSource": false,
+            "isSink": false,
+            "numOfInstances": 1,
+            "throughput": 0.0,
+            "latency": 0.0,
+            "explorationStrategy": "default",
+            "schedulingGranularity": "default",
+            "abortHandling": "default",
+            "downstream": [
+                2
+            ]
+        },
+        {
+            "id": "10",
+            "name": "SimpleWriter",
+            "isSource": false,
+            "isSink": false,
+            "numOfInstances": 1,
+            "throughput": 0.0,
+            "latency": 0.0,
+            "explorationStrategy": "default",
+            "schedulingGranularity": "default",
+            "abortHandling": "default",
+            "downstream": [
+                2
+            ]
+        },
+        {
+            "id": "2",
+            "name": "HFGenerator",
+            "isSource": false,
+            "isSink": true,
+            "numOfInstances": 1,
+            "throughput": 0.0,
+            "latency": 0.0,
+            "explorationStrategy": "default",
+            "schedulingGranularity": "default",
+            "abortHandling": "default",
+            "downstream": []
+        }
+    ],
+    "totalTimeBreakdown": {
+        "totalTime": 0.0,
+        "serializeTime": 0.0,
+        "persistTime": 0.0,
+        "streamProcessTime": 0.0,
+        "overheadTime": 0.0
+    },
+    "schedulerTimeBreakdown": {
+        "exploreTime": 0.0,
+        "usefulTime": 0.0,
+        "abortTime": 0.0,
+        "constructTime": 0.0,
+        "trackingTime": 0.0
+    },
+    "periodicalThroughput": [],
+    "periodicalLatency": []
+}
