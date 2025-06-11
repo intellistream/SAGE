@@ -12,7 +12,7 @@ import {
   NzGraphZoomDirective,
 } from "ng-zorro-antd/graph";
 import {Batch} from "../../model/Batch";
-import {FormControl, FormGroup, NonNullableFormBuilder, Validators} from "@angular/forms";
+import {FormControl, FormGroup, NonNullableFormBuilder, Validators, FormArray, ValidatorFn} from "@angular/forms";
 import {NzMessageService} from "ng-zorro-antd/message";
 
 @Component({
@@ -90,6 +90,14 @@ export class JobInformationComponent implements OnInit {
   runtimeDuration = 0;
   listenIntervalId: number;     // interval id for listening to the performance data
 
+  // 动态配置表单
+  configForm: FormGroup;
+  configStructure: any = {}; // 存储配置结构
+  configSections: any[] = []; // 存储配置分组
+
+  iframeRefreshIntervalId: any;
+  @ViewChild('actorsIframe') actorsIframe: ElementRef;
+
   constructor(private route: ActivatedRoute,
               private jobInformationService: JobInformationService,
               private fb: NonNullableFormBuilder,
@@ -102,22 +110,17 @@ export class JobInformationComponent implements OnInit {
       batch: ['', [Validators.required]],
       operator: ['', [Validators.required]]
     });
+
+    // 初始化为空的配置表单
+    this.configForm = this.fb.group({});
   }
 
-  // 在类属性部分添加
-  iframeRefreshIntervalId: any;
-  @ViewChild('actorsIframe') actorsIframe: ElementRef;
-  
-  // 在ngOnInit方法中添加定时刷新逻辑
   ngOnInit(): void {
     this.route.params.subscribe(params => {
       const jobId = params['id'];
       this.jobInformationService.getJob(jobId).subscribe(res => {
         this.job = res;
         this.jobStarted = this.job.isRunning;
-        // add spout to operator graph
-        // this.operatorGraphData.nodes.push({id: "spout", label: "Spout", instance: 1});
-        // add operators to operator graph
         for (let i = 0; i < this.job.operators.length; i++) {
           this.operatorLatestBatchNum["sl"] = 1;  // initialize the latest batch number
           this.operatorAccumulativeLatency["sl"] = 0;  // initialize the accumulative latency
@@ -127,28 +130,17 @@ export class JobInformationComponent implements OnInit {
             this.operatorGraphData.edges.push({v: this.job.operators[i - 1].id, w: this.job.operators[i].id});
           }
         }
-        // add sink to operator graph
-        // this.operatorGraphData.nodes.push({id: "sink", label: "Sink", instance: 1});
-        // this.operatorGraphData.edges.push({v: this.job.operators[this.job.operators.length - 1].id, w: "sink"});
-        // this.operatorGraphData.edges.push({v: "spout", w: this.job.operators[0].id});
         this.drawOperatorGraph();
         this.getHistoricalData();
 
         if (this.jobStarted) {
-          // start runtime-querying performance data
           this.startListening();
         }
         this.loadConfig();
       });
     });
-
-   
-
   }
 
-  /**
-   * Get historical data of the job
-   */
   getHistoricalData() {
     this.jobInformationService.getAllBatches(this.job.jobId, 'sl').subscribe(res => {
       res.sort((a, b) => {
@@ -172,9 +164,6 @@ export class JobInformationComponent implements OnInit {
     });
   }
 
-  /**
-   * Update the throughput and latency data
-   */
   updateOnShowingThroughputAndLatency() {
     if (this.realTimePerformanceBoxChecked) {
       if (this.operatorLatestBatchNum['sl'] - this.throughputLatencyGraphSize + 1 > 0) {
@@ -193,9 +182,6 @@ export class JobInformationComponent implements OnInit {
     this.onShowingThroughputAndLatency = this.onShowingThroughputAndLatency.slice();
   }
 
-  /**
-   * Start listening to the performance data
-   */
   startListening() {
     this.listenIntervalId = setInterval(() => {
       this.update();
@@ -203,29 +189,8 @@ export class JobInformationComponent implements OnInit {
     }, 1000);
   }
 
-  /**
-   * Update the runtime data
-   */
-  update() {
-  //   this.jobInformationService.getBatchById(this.job.jobId, 'sl', this.operatorLatestBatchNum['sl'].toString()).subscribe(res => {
-  //     if (res) {
-  //       res = this.transformTime(res);
-  //       this.batchOptions.push({
-  //         value: this.operatorLatestBatchNum['sl'].toString(),
-  //         label: this.operatorLatestBatchNum['sl'].toString()
-  //       });
-  //       this.updatePerformanceGraph(res);
-  //       this.operatorLatestBatchNum['sl']++;  // update the latest batch number
-  //       this.operatorAccumulativeLatency['sl'] = res.accumulativeLatency;  // update the accumulative latency
-  //       this.operatorAccumulativeThroughput['sl'] = res.accumulativeThroughput;  // update the accumulative throughput
-  //     }
-  //   });
-  }
+  update() {}
 
-  /**
-   * Transform the time unit
-   * @param batch
-   */
   transformTime(batch: Batch): Batch {
     batch.throughput = parseFloat(batch.throughput.toFixed(1)); // tuples/s
     batch.avgLatency = parseFloat((batch.avgLatency / 10**6).toFixed(1)); // ms
@@ -236,9 +201,6 @@ export class JobInformationComponent implements OnInit {
     return batch;
   }
 
-  /**
-   * Update the performance graph
-   */
   updatePerformanceGraph(batch: Batch) {
     this.throughputAndLatency[0].series.push({
       name: this.operatorLatestBatchNum['sl'].toString() + " batch",
@@ -251,9 +213,6 @@ export class JobInformationComponent implements OnInit {
     this.updateOnShowingThroughputAndLatency();
   }
 
-  /**
-   * Submit the batch form
-   */
   submitBatchStatisticForm(): void {
     if (this.batchForm.valid) {
       this.jobInformationService.getBatchById(this.job.jobId, "sl", this.batchForm.controls.batch.value).subscribe(res => {
@@ -314,10 +273,6 @@ export class JobInformationComponent implements OnInit {
     }
   }
 
-  /**
-   * Update the pie chart
-   * @param batch
-   */
   updatePieChart(batch: Batch) {
     this.timePieData = [{
       name: 'construct time (ns)',
@@ -339,23 +294,14 @@ export class JobInformationComponent implements OnInit {
     this.timePieData = this.timePieData.slice();
   }
 
-  /**
-   * Draw the operator graph
-   */
   drawOperatorGraph() {
     this.nzOperatorGraphData = new NzGraphData(this.operatorGraphData);
   }
 
-  /**
-   * Callback when the operator graph is initialized
-   */
   onOperatorGraphInitialized(_ele: NzGraphComponent): void {
     this.zoomController?.fitCenter();
   }
 
-  /**
-   * Draw the tpg graph
-   */
   drawTpgGraph() {
     this.tpgSvg = d3.select(this.tpgContainer.nativeElement)
       .append('svg')
@@ -363,7 +309,6 @@ export class JobInformationComponent implements OnInit {
       .attr('height', '100%')
       .attr("viewBox", [0, 0, 640, 480]);
 
-    // @ts-ignore
     this.tpgSvgSimulation = d3.forceSimulation(this.tpgNodes)
       .force('charge', d3.forceManyBody().strength(-15))
       .force('link', d3.forceLink(this.tpgLinks).id((d: any) => d.operationID))
@@ -379,13 +324,12 @@ export class JobInformationComponent implements OnInit {
         } else if (d.type == "LD") {
           return "#7DA3E4"
         } else {
-          // TODO: fix the issue of PD and LD overlap
           if (Math.random()>0.3) {
             return "#A93B5E"
           } else {
             return "#7DA3E4"
-
-          }        }
+          }
+        }
       })
       .style('stroke-dasharray', (d: any) => {
         if (d.type === 'PD') {
@@ -414,7 +358,6 @@ export class JobInformationComponent implements OnInit {
       this.tpgSvgSimulation.stop();
       }, 4000);
 
-    // add tooltip
     const tooltip = d3.select(this.tpgContainer.nativeElement)
         .append('div')
         .attr('class', 'tooltip')
@@ -449,12 +392,9 @@ export class JobInformationComponent implements OnInit {
       .attr('y2', (d: any) => d.target.y);
   }
 
-  /**
-   * Callback when user starts the job
-   */
   onStart() {
     this.jobStarted = true;
-    this.startListening();  // start runtime-querying performance data
+    this.startListening();
     this.jobInformationService.startJob(this.job.jobId).subscribe(success => {
       if (success) {
         console.log("start job successfully");
@@ -462,37 +402,25 @@ export class JobInformationComponent implements OnInit {
     });
   }
 
-  /**
-   * Callback when user stops the job
-   */
   onStop() {
     if (this.realTimePerformanceBoxChecked) {
       this.onCheckBoxChanged(false);
     }
-    clearInterval(this.listenIntervalId);  // stop runtime-querying performance data
+    clearInterval(this.listenIntervalId);
     this.jobInformationService.stopJob(this.job.jobId).subscribe(success => {
       if (success) {
-        // stop runtime-querying performance data
       }
     });
     this.jobStarted = false;
   }
 
-  /**
-   * Callback when the tpg graph is zoomed
-   * @param transform
-   */
   tpgZoomed({transform}) {
     const { k, x, y } = transform;
     this.tpgSvg.selectAll('.node').attr('transform', transform);
     this.tpgSvg.selectAll('.link').attr('transform', transform);
-    // this.tpgSvg.selectAll('.tooltip').attr('transform', transform);
     this.tpgSvg.select('.tooltip').attr('transform', `scale(${1 / k})`);
   }
 
-  /**
-   * Callback when the tpg modal is expanded
-   */
   onExpandTpgModal() {
     const tpgLoading = this.message.loading(`Loading TPG: ${this.tpgForm.value.operator} batch ${this.tpgForm.value.batch} in progress..`, { nzDuration: 0 }).messageId;
     setTimeout(() => {
@@ -504,88 +432,258 @@ export class JobInformationComponent implements OnInit {
     }, 1000);
   }
 
-  /**
-   * Callback when the tpg modal is closed
-   */
   onClearTpgModal() {
     this.isTpgModalVisible = false;
   }
 
-  /**
-   * Callback when the performance graph x-axis size & start batch is changed
-   * @param event
-   */
   onPerformanceGraphConfigChange(event: any) {
     this.updateOnShowingThroughputAndLatency();
   }
 
-  /**
-   * Callback when the real-time performance box is checked
-   * @param newValue
-   */
   onCheckBoxChanged(newValue: boolean) {
     this.realTimePerformanceBoxChecked = newValue;
     this.startBatchOptionDisabled = newValue;
   }
 
-
-  // 加载配置文件
-loadConfig() {
-  // 这里应该是从后端获取配置文件内容的API调用
-  // 示例：
-  const id = this.job.jobId;
-  this.jobInformationService.getConfigFile(id).subscribe(
-    (res) => {
-      this.configContent = res.data;
-      this.validateConfig();
-      console.log(this.configContent)
-    },
-    (error) => {
-      this.configError = '无法加载配置文件: ' + error.message;
-    }
-  );
-}
-
-// 验证配置文件格式
-validateConfig() {
-  try {
-    // 根据配置文件格式进行验证
-    // 如果是YAML格式：
-    jsyaml.load(this.configContent);
-    // 如果是JSON格式：
-    // JSON.parse(this.configContent);
-    this.configError = null;
-  } catch (e) {
-    this.configError = e instanceof Error ? e.message : '未知错误';
+  loadConfig() {
+    const id = this.job.jobId;
+    this.jobInformationService.getConfigFile(id).subscribe(
+      (res) => {
+        this.configContent = res.data;
+        this.parseConfigToForm(this.configContent);
+        this.validateConfig();
+        console.log(this.configContent)
+      },
+      (error) => {
+        this.configError = '无法加载配置文件: ' + error.message;
+      }
+    );
   }
-}
 
-// 重置配置
-resetConfig() {
-  this.loadConfig();
-  this.configSuccess = false;
-}
-
-// 提交配置
-submitConfig() {
-  if (this.configError) {
-    return;
-  }
-  
-  this.isSubmitting = true;
-  this.configSuccess = false;
-  
-  // 这里应该是向后端提交配置文件内容的API调用
-  // 示例：
-  this.jobInformationService.updateConfigFile("1",this.configContent).subscribe(
-    () => {
-      this.configSuccess = true;
-      this.isSubmitting = false;
-    },
-    (error) => {
-      this.configError = '更新配置失败: ' + error.message;
-      this.isSubmitting = false;
+  parseConfigToForm(configContent: string) {
+    try {
+      const config = jsyaml.load(configContent) as any;
+      this.configStructure = config;
+      this.configSections = [];
+      
+      // 重新构建表单
+      const formControls: any = {};
+      
+      // 遍历配置对象，为每个顶级键创建配置分组
+      Object.keys(config).forEach(sectionKey => {
+        const sectionValue = config[sectionKey];
+        const sectionFields: any[] = [];
+        
+        if (sectionValue && typeof sectionValue === 'object' && !Array.isArray(sectionValue)) {
+          // 处理对象类型的配置节
+          const sectionFormGroup: any = {};
+          
+          Object.keys(sectionValue).forEach(fieldKey => {
+            const fieldValue = sectionValue[fieldKey];
+            const fieldConfig = this.createFieldConfig(fieldKey, fieldValue);
+            
+            sectionFields.push(fieldConfig);
+            sectionFormGroup[fieldKey] = this.createFormControl(fieldValue, fieldConfig.type);
+          });
+          
+          formControls[sectionKey] = this.fb.group(sectionFormGroup);
+        } else {
+          // 处理简单类型的配置项
+          const fieldConfig = this.createFieldConfig(sectionKey, sectionValue);
+          sectionFields.push(fieldConfig);
+          formControls[sectionKey] = this.createFormControl(sectionValue, fieldConfig.type);
+        }
+        
+        this.configSections.push({
+          key: sectionKey,
+          label: this.formatLabel(sectionKey),
+          fields: sectionFields,
+          isObject: sectionValue && typeof sectionValue === 'object' && !Array.isArray(sectionValue)
+        });
+      });
+      
+      // 重新创建表单
+      this.configForm = this.fb.group(formControls);
+      
+    } catch (e) {
+      console.error('解析配置文件失败:', e);
+      this.message.error('配置文件格式错误，无法解析');
     }
-  );
-}
+  }
+
+  createFieldConfig(key: string, value: any) {
+    const fieldType = this.detectFieldType(value);
+    return {
+      key: key,
+      label: this.formatLabel(key),
+      type: fieldType,
+      value: value,
+      required: this.isRequiredField(key),
+      placeholder: this.generatePlaceholder(key, fieldType),
+      options: this.getFieldOptions(key, fieldType)
+    };
+  }
+
+  detectFieldType(value: any): string {
+    if (typeof value === 'boolean') {
+      return 'boolean';
+    } else if (typeof value === 'number') {
+      return 'number';
+    } else if (typeof value === 'string') {
+      if (value.includes('\n')) {
+        return 'textarea';
+      } else if (value.toLowerCase().includes('password') || value.toLowerCase().includes('key')) {
+        return 'password';
+      } else if (this.isUrl(value)) {
+        return 'url';
+      } else if (this.isFilePath(value)) {
+        return 'file';
+      } else {
+        return 'text';
+      }
+    } else if (Array.isArray(value)) {
+      return 'array';
+    } else if (value === null || value === undefined || value === '') {
+      return 'text';
+    } else {
+      return 'text';
+    }
+  }
+
+  createFormControl(value: any, type: string) {
+    const validators: ValidatorFn[] = [];
+    
+    if (this.isRequiredField(type)) {
+      validators.push(Validators.required);
+    }
+    
+    if (type === 'number') {
+      return this.fb.control(value || 0, validators);
+    } else if (type === 'boolean') {
+      return this.fb.control(value || false, validators);
+    } else {
+      return this.fb.control(value || '', validators);
+    }
+  }
+
+  formatLabel(key: string): string {
+    return key.replace(/_/g, ' ')
+              .replace(/([A-Z])/g, ' $1')
+              .replace(/^./, str => str.toUpperCase())
+              .trim();
+  }
+
+  isRequiredField(key: string): boolean {
+    const requiredFields = ['api_key', 'model_name', 'data_path'];
+    return requiredFields.some(field => key.toLowerCase().includes(field.toLowerCase()));
+  }
+
+  generatePlaceholder(key: string, type: string): string {
+    if (key.toLowerCase().includes('path')) {
+      return '请输入文件路径';
+    } else if (key.toLowerCase().includes('url')) {
+      return '请输入URL地址';
+    } else if (key.toLowerCase().includes('key')) {
+      return '请输入API密钥';
+    } else if (key.toLowerCase().includes('model')) {
+      return '请输入模型名称';
+    } else if (type === 'number') {
+      return '请输入数字';
+    } else {
+      return `请输入${this.formatLabel(key)}`;
+    }
+  }
+
+  getFieldOptions(key: string, type: string): any[] {
+    if (key.toLowerCase().includes('method')) {
+      return [
+        { label: 'OpenAI', value: 'openai' },
+        { label: 'Azure', value: 'azure' },
+        { label: 'Local', value: 'local' }
+      ];
+    } else if (key.toLowerCase() === 'stm' || key.toLowerCase() === 'ltm' || key.toLowerCase() === 'dcm') {
+      return [
+        { label: '启用', value: true },
+        { label: '禁用', value: false }
+      ];
+    }
+    return [];
+  }
+
+  isUrl(str: string): boolean {
+    try {
+      new URL(str);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  isFilePath(str: string): boolean {
+    return str.includes('/') || str.includes('\\') || str.includes('.');
+  }
+
+  formToConfigContent(): string {
+    const formValue = this.configForm.value;
+    
+    const config: any = {};
+    
+    this.configSections.forEach(section => {
+      if (section.isObject) {
+        config[section.key] = formValue[section.key] || {};
+      } else {
+        config[section.key] = formValue[section.key];
+      }
+    });
+    
+    return jsyaml.dump(config, { indent: 2 });
+  }
+
+  getFormControl(sectionKey: string, fieldKey?: string): any {
+    if (fieldKey) {
+      return this.configForm.get([sectionKey, fieldKey]);
+    } else {
+      return this.configForm.get(sectionKey);
+    }
+  }
+
+  validateConfig() {
+    try {
+      jsyaml.load(this.configContent);
+      this.configError = null;
+    } catch (e) {
+      this.configError = e instanceof Error ? e.message : '未知错误';
+    }
+  }
+
+  resetConfig() {
+    this.loadConfig();
+    this.configSuccess = false;
+  }
+
+  submitConfig() {
+    if (this.configForm.valid) {
+      this.configContent = this.formToConfigContent();
+    }
+    
+    if (this.configError) {
+      return;
+    }
+    
+    this.isSubmitting = true;
+    this.configSuccess = false;
+    
+    this.jobInformationService.updateConfigFile("1", this.configContent).subscribe(
+      () => {
+        this.configSuccess = true;
+        this.isSubmitting = false;
+        this.message.success('配置更新成功');
+      },
+      (error) => {
+        this.configError = '更新配置失败: ' + error.message;
+        this.isSubmitting = false;
+        this.message.error('配置更新失败');
+      }
+    );
+  }
 }
