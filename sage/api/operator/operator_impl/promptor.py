@@ -24,7 +24,6 @@ QA_prompt_template = Template(QA_prompt_template)
 summarization_prompt_template = Template(summarization_prompt_template)
 
 
-@ray.remote
 class QAPromptor(PromptFunction):
     """
     QAPromptor is a prompt function that generates a QA-style prompt using 

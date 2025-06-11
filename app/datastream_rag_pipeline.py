@@ -66,22 +66,22 @@ async def init_memory_and_pipeline():
     config["dcm_collection"] = None
     config["stm_collection"] = None
     # 创建一个新的管道实例
-    pipeline = Pipeline("example_pipeline")
+    pipeline = Pipeline(name="example_pipeline", use_ray=True)
 
     # 步骤 1: 定义数据源（例如，来自用户的查询）
-    query_stream = pipeline.add_source(FileSource.remote(config))  # 从文件源读取数据
+    query_stream = pipeline.add_source(source_class=FileSource, config=config)  # 从文件源读取数据
 
     # 步骤 2: 使用 SimpleRetriever 从向量内存中检索相关数据块
-    query_and_chunks_stream = query_stream.retrieve(SimpleRetriever.remote(config))
+    query_and_chunks_stream = query_stream.retrieve(SimpleRetriever,config)
 
     # 步骤 3: 使用 QAPromptor 构建查询提示
-    prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor.remote(config))
+    prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
 
     # 步骤 4: 使用 OpenAIGenerator 生成最终的响应
-    response_stream = prompt_stream.generate_response(OpenAIGenerator.remote(config))
+    response_stream = prompt_stream.generate_response(OpenAIGenerator, config)
 
     # 步骤 5: 输出到终端或文件
-    sink_stream = response_stream.sink(FileSink.remote(config))
+    sink_stream = response_stream.sink(FileSink, config)
 
     # 提交管道到 SAGE 运行时
     pipeline.submit(config={"is_long_running": True})

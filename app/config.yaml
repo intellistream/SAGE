@@ -1,3 +1,11 @@
+pipeline:
+  name: "sage-api-operator-test"
+  description: "Test pipeline for Sage API Operator"
+  version: "1.0.0"
+  type: "ray"
+
+
+
 source:
   data_path: "./sage/api/operator/test/question.txt"
 

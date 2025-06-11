@@ -5,7 +5,6 @@ from sage.api.operator import GeneratorFunction
 from sage.api.operator import Data
 import ray
 
-@ray.remote
 class OpenAIGenerator(GeneratorFunction):
     """
     OpenAIGenerator is a generator function that interfaces with a specified OpenAI model 

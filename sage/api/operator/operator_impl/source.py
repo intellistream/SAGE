@@ -1,9 +1,7 @@
 from sage.api.operator import SourceFunction
 from sage.api.operator import Data
 from typing import Tuple
-import ray
 
-@ray.remote
 class FileSource(SourceFunction):
     """
     A source function that reads a file and returns its contents as a string.
@@ -16,7 +14,7 @@ class FileSource(SourceFunction):
         data_path: The path to the file to be read.
     """
 
-    def __init__(self, config):
+    def __init__(self, config:dict):
         """
         Initializes the FileSource with the provided configuration and sets the data path for the file.
 

@@ -1,3 +1,8 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, Union, Any
+# 只在类型检查时导入，运行时不导入
+if TYPE_CHECKING:
+    from sage.api.pipeline.pipeline_api import Pipeline
 class DataStream:
     def __init__(self, operator, pipeline, name=None):
         self.operator = operator
@@ -8,38 +13,39 @@ class DataStream:
         # Register the operator in the pipeline
         self.pipeline._register_operator(operator)
 
-    def _transform(self, name: str, op):
+    def _transform(self, name: str, op, config) -> DataStream:
+        new_instance = self.pipeline.operator_factory.create(op, config)
         # op = next_operator_class
-        stream = DataStream(op, self.pipeline, name=name)
-        self.pipeline.data_streams.append(stream)
+        new_stream = DataStream(new_instance, self.pipeline, name=name)
+        self.pipeline.data_streams.append(new_stream)
         # Wire dependencies
-        stream.upstreams.append(self)
-        self.downstreams.append(stream)
-        return stream
+        new_stream.upstreams.append(self)
+        self.downstreams.append(new_stream)
+        return new_stream
 
-    def retrieve(self, retriever_op):
-        return self._transform("retrieve",  retriever_op)
+    def retrieve(self, retriever_op, config)-> DataStream:
+        return self._transform("retrieve",  retriever_op, config)
 
-    def construct_prompt(self, prompt_op):
-        return self._transform("construct_prompt", prompt_op)
+    def construct_prompt(self, prompt_op, config)-> DataStream:
+        return self._transform("construct_prompt", prompt_op, config)
 
-    def generate_response(self, generator_op):
-        return self._transform("generate_response",  generator_op)
+    def generate_response(self, generator_op, config)-> DataStream:
+        return self._transform("generate_response",  generator_op, config)
 
-    def save_context(self, writer_op):
-        return self._transform("save_context",  writer_op)
-    def sink(self, sink_op):
-        return self._transform("sink",  sink_op)
+    def save_context(self, writer_op, config)-> DataStream:
+        return self._transform("save_context",  writer_op, config)
+    def sink(self, sink_op, config)-> DataStream:
+        return self._transform("sink",  sink_op, config)
 
-    def chunk(self, chunk_op):
-        return self._transform("chunk",  chunk_op)
+    def chunk(self, chunk_op, config)-> DataStream:
+        return self._transform("chunk",  chunk_op, config)
 
-    def summarize(self, summarize_op):
-        return self._transform("summarize",summarize_op)
-    def write_mem(self,writer_op):
-        return self._transform("write_mem",writer_op)
+    def summarize(self, summarize_op, config)-> DataStream:
+        return self._transform("summarize",summarize_op, config)
+    def write_mem(self,writer_op, config)-> DataStream:
+        return self._transform("write_mem",writer_op, config)
 
-    def generalize(self, generalize_op,op_type):
+    def generalize(self, generalize_op,op_type)-> DataStream:
         return self._transform(op_type, generalize_op)
 
     def get_operator(self):

@@ -156,7 +156,7 @@ class ContinuousDAGNode(BaseDAGNode):
         while not self.stop_event.is_set():
             try:
                 # 1. Fetch input data
-                if self.is_spout:
+                if self.is_spout:	# 数据源节点
                     ref = self.operator.execute.remote()
                     self.emit(ref)
                 else:

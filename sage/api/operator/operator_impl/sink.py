@@ -29,7 +29,7 @@ class RetriveSink(SinkFunction):
 
         print(f"\033[92m[A] Chunks :{chunks}\033[0m")
 
-@ray.remote
+
 class FileSink(SinkFunction):
     def __init__(self, config):
         super().__init__()
