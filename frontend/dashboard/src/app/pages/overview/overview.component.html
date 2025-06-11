@@ -53,10 +53,82 @@
         </thead>
         <tbody>
           <tr *ngFor="let application of currentPageJob">
-            <td><a [routerLink]="['/job', application.jobId]"><b>{{application.name}}</b></a></td>
+            <td>
+              <nz-collapse>
+                <nz-collapse-panel 
+                  [nzHeader]="application.name" 
+                  [nzActive]="false"
+                  (nzActiveChange)="onPanelChange(application.jobId, $event)">
+                  <div class="job-header">
+                    <span class="job-info"><b>Working Threads:</b> {{application.nthreads}}</span>
+                    <span class="job-info"><b>Create Time:</b> {{application.startTime}}</span>
+                    <span class="job-info"><b>Duration:</b> {{application.duration}} s</span>
+                    <span class="job-info">
+                      <b>Status:</b> 
+                      <nz-tag [nzColor]="application.isRunning?'#2db7f5':'#cd201f'">
+                        {{application.isRunning?"running":"stopped"}}
+                      </nz-tag>
+                    </span>
+                    <a [routerLink]="['/job', application.jobId]" class="detail-link">
+                      <button nz-button nzType="link">View Details</button>
+                    </a>
+                  </div>
+                  <!-- <div class="topology-container">
+                    <nz-graph
+                    nz-graph-zoom
+                    [nzGraphData]="getOperatorGraphData(application)"
+                    [nzAutoSize]="true"
+                    [nzRankDirection]="'LR'"
+                    (nzGraphInitialized)="onOperatorGraphInitialized($event)">
+                    <ng-container *nzGraphNode="let node">
+                      <foreignObject x="0" y="0" width="140px" height="80px">
+                        <div class="operator-node" nz-popover
+                             [nzPopoverContent]="'instance: ' + node.instance"
+                             [nzPopoverTitle]="node.label"
+                             nzPopoverPlacement="right">
+                          <span>{{ node.label }}</span>
+                        </div>
+                      </foreignObject>
+                    </ng-container>
+                  </nz-graph>
+                  </div> -->
+                  <div class="topology-container">
+                    <ng-container [ngSwitch]="application?.name">
+                      <!-- QA 图 -->
+                      <img *ngSwitchCase="'qa'" src="assets/qa.png" alt="QA Topology" class="responsive-image" />
+                      
+                      <!-- Ingest 图 -->
+                      <img *ngSwitchCase="'ingest'" src="assets/ingest.png" alt="Ingest Topology" class="responsive-image" />
+                      
+                      <!-- Multi-agent 图 -->
+                      <img *ngSwitchCase="'multi-agent'" src="assets/multi_agent.png" alt="Multi-agent Topology" class="responsive-image" />
+                      
+                      <!-- 默认渲染 nz-graph -->
+                      <nz-graph *ngSwitchDefault
+                        nz-graph-zoom
+                        [nzGraphData]="getOperatorGraphData(application)"
+                        [nzAutoSize]="true"
+                        [nzRankDirection]="'LR'"
+                        (nzGraphInitialized)="onOperatorGraphInitialized($event)">
+                        
+                        <ng-container *nzGraphNode="let node">
+                          <foreignObject x="0" y="0" width="140px" height="80px">
+                            <div class="operator-node" nz-popover
+                                 [nzPopoverContent]="'instance: ' + node.instance"
+                                 [nzPopoverTitle]="node.label"
+                                 nzPopoverPlacement="right">
+                              <span>{{ node.label }}</span>
+                            </div>
+                          </foreignObject>
+                        </ng-container>
+                      </nz-graph>
+                    </ng-container>
+                  </div>
+                  
+                </nz-collapse-panel>
+              </nz-collapse>
+            </td>
             <td>{{application.nthreads}}</td>
-<!--            <td>{{application.cpu}}</td>-->
-<!--            <td>{{application.ram}}</td>-->
             <td>{{application.startTime}}</td>
             <td>{{application.duration}} s</td>
             <td><nz-tag [nzColor]="application.isRunning?'#2db7f5':'#cd201f'">{{application.isRunning?"running":"stopped"}}</nz-tag></td>
