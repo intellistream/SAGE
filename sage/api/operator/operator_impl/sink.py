@@ -3,7 +3,7 @@ from sage.api.operator import Data
 from typing import Tuple, List
 import ray
 
-@ray.remote
+
 class TerminalSink(SinkFunction):
 
     def __init__(self,config):
@@ -17,7 +17,6 @@ class TerminalSink(SinkFunction):
 
         print(f"\033[92m[A] Answer :{answer}\033[0m")
 
-@ray.remote
 class RetriveSink(SinkFunction):
     def __init__(self,config):
         super().__init__()
