@@ -1,14 +1,29 @@
+import asyncio
+import inspect
+from typing import Type, TYPE_CHECKING, Union, Any
 from sage.core.io.message_queue import MessageQueue
 import logging
 import threading
 import time
 import ray
+from sage.runtime.operator_wrapper import OperatorWrapper
 
 class BaseDAGNode:
     """
     Base class for DAG nodes, defining shared functionality for all node types.
     DAG节点基类，定义所有节点类型的共享功能
     """
+    name: str  # Unique name of the node
+    operator: OperatorWrapper  # Operator implementing the execution logic
+    config: dict  # Configuration parameters for the operator
+    is_spout: bool  # Indicates if the node is a spout (starting point)
+    output_queue: MessageQueue  # Output queue for the node's results
+    upstream_nodes: list  # List of upstream DAGNodes
+    downstream_nodes: list  # List of downstream DAGNodes
+    is_executed: bool  # Indicates if the node has been executed
+    is_longrunning: bool  # Indicates if the node is a long-running process
+
+
 
     def __init__(self, name, operator, config=None, is_spout=False):
         """
@@ -57,7 +72,7 @@ class BaseDAGNode:
             self.downstream_nodes.append(node)
             node.add_upstream_node(self)
             # self.logger.info(f"Node '{self.name}' connected to downstream node '{node.name}'.")
-
+    # 这里fetch_input返回的是class coroutine
     def fetch_input(self):
         """
         Fetch input from upstream nodes' output queues.
@@ -73,6 +88,17 @@ class BaseDAGNode:
 
         # 单个上游代码
         aggregated_input=self.upstream_nodes[0].output_queue.get()
+
+        # 调试信息
+        # if aggregated_input is not None:
+        #     self.logger.debug(f"[{self.name}] fetch_input() 返回类型: {type(aggregated_input)}")
+        #     if hasattr(aggregated_input, '_id'):
+        #         self.logger.debug(f"[{self.name}] 检测到Ray ObjectRef")
+        #     elif inspect.iscoroutine(aggregated_input):
+        #         self.logger.debug(f"[{self.name}] 检测到协程对象！")
+        #     else:
+        #         self.logger.debug(f"[{self.name}] 检测到普通数据对象")
+
         return aggregated_input if aggregated_input else None
 
     def emit(self,output):
@@ -102,11 +128,11 @@ class OneShotDAGNode(BaseDAGNode):
         Execute the operator logic once.
         单次执行操作器逻辑
         """
-        self.logger.debug(f"Node '{self.name}' starting one-shot execution.")
+        # self.logger.debug(f"Node '{self.name}' starting one-shot execution.")
         try:
             if self.is_spout:
-                self.logger.debug(f"Node '{self.name}' is a spout. Executing without fetching input.")
-                ref=self.operator.execute.remote()
+                # self.logger.debug(f"Node '{self.name}' is a spout. Executing without fetching input.")
+                ref=self.operator.execute()
                 self.emit(ref)
             else:
                 input_data_ref = self.fetch_input()
@@ -114,7 +140,7 @@ class OneShotDAGNode(BaseDAGNode):
                 if input_data is None:
                     self.logger.warning(f"Node '{self.name}' has no input to process.")
                     return
-                output_ref=self.operator.execute.remote(input_data)
+                output_ref=self.operator.execute(input_data)
                 self.emit(output_ref)
             self.is_executed = True
         except Exception as e:
@@ -138,43 +164,48 @@ class ContinuousDAGNode(BaseDAGNode):
         self._stop_timer = None  # 新增定时器对象
 
     def run_loop(self):
-        """
-        Main worker loop to be executed by an external thread.
-        由外部线程执行的主工作循环
-        """
-        self.stop_event.clear()  # 重置停止信号
-        self.logger.info(f"Node '{self.name}' worker loop started.")
+        """主工作循环 - 现在非常简洁"""
+        self.stop_event.clear()
+        # self.logger.info(f"Node '{self.name}' worker loop started.")
 
-        # 仅在 duration 非 None 时启动定时器 (关键修改点)
+        # 定时器设置
         if self.duration is not None:
-            # 检查 duration 是否为有效数值
             if not isinstance(self.duration, (int, float)) or self.duration <= 0:
-                raise ValueError("duration 必须是正数")
+                raise ValueError("duration must be a positive number")
             self._stop_timer = threading.Timer(self.duration, self.stop)
             self._stop_timer.start()
 
         while not self.stop_event.is_set():
             try:
-                # 1. Fetch input data
-                if self.is_spout:	# 数据源节点
-                    ref = self.operator.execute.remote()
-                    self.emit(ref)
+                if self.is_spout:
+                    # 数据源节点 - 直接调用，OperatorWrapper处理所有复杂性
+                    # self.logger.debug(f"Node '{self.name}' executing as spout")
+                    result = self.operator.execute()
+                    # self.logger.debug(f"Node '{self.name}' spout result type: {type(result)}")
+                    self.emit(result)
                 else:
-                    input_ref = self.fetch_input()
-                    if input_ref is None :
+                    # 处理节点
+                    input_data = self.fetch_input()
+                    if input_data is None:
+                        time.sleep(0.1)
                         continue
-                    input_data= ray.get(input_ref)
-                    output_ref = self.operator.execute.remote(input_data)
-                    self.emit(output_ref)
+                    
+                    # 解析输入（如果是Ray ObjectRef）
+                    if hasattr(input_data, '_id') or 'ObjectRef' in str(type(input_data)):
+                        input_data = ray.get(input_data)
+                    
+                    # 执行算子 - OperatorWrapper保证返回同步结果
+                    # self.logger.debug(f"Node '{self.name}' executing with input type: {type(input_data)}")
+                    result = self.operator.execute(input_data)
+                    # self.logger.debug(f"Node '{self.name}' result type: {type(result)}")
+                    self.emit(result)
+                    
             except Exception as e:
-                self.logger.error(
-                    f"Critical error in node '{self.name}': {str(e)}",
-                    exc_info=True
-                )
-                self.stop()  # 发生错误时自动停止
+                self.logger.error(f"Critical error in node '{self.name}': {str(e)}", exc_info=True)
+                self.stop()
                 raise RuntimeError(f"Execution failed in node '{self.name}'")
 
-        # 循环结束后清理定时器 (新增)
+        # 清理定时器
         if self._stop_timer and self._stop_timer.is_alive():
             self._stop_timer.cancel()
 

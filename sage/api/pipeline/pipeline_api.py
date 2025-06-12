@@ -1,13 +1,10 @@
 from typing import Type, TYPE_CHECKING, Union, Any
 from sage.core.engine.runtime import Engine
 from sage.api.pipeline.datastream_api import DataStream
-from sage.runtime.operator_factory import OperatorFactory
 from sage.api.operator import SourceFunction
-if TYPE_CHECKING:
-    from sage.api.operator.base_operator_api import BaseOperator
-    from sage.runtime.operator_factory import OperatorFactory
+from sage.api.operator.base_operator_api import BaseOperator
 
-
+from sage.runtime.operator_factory import OperatorFactory
     
 class Pipeline:
     name:str
@@ -42,9 +39,9 @@ class Pipeline:
             DataStream: 数据流对象
         """
         # 使用工厂创建算子实例
-        source_instance = self.operator_factory.create(source_class, config)
+        operator_wrapper = self.operator_factory.create(source_class, config)
 
-        stream = DataStream(operator=source_instance, pipeline=self, name="source")
+        stream = DataStream(operator=operator_wrapper, pipeline=self, name="source")
         self.data_streams.append(stream)
         return stream
 

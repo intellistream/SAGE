@@ -12,16 +12,17 @@ if TYPE_CHECKING:
     from sage.api.operator import SinkFunction
     from sage.api.operator import ChunkFunction
     from sage.api.operator import SummarizeFunction
+    from sage.runtime.operator_wrapper import OperatorWrapper
 
 
     
 class DataStream:
-    operator: BaseOperator
-    pipeline: Pipeline
     name:str
+    operator: OperatorWrapper
+    pipeline: Pipeline
     upstreams: list[DataStream]
     downstreams: list[DataStream]
-    def __init__(self, operator: BaseOperator, pipeline:Pipeline, name:str=None):
+    def __init__(self, operator: OperatorWrapper, pipeline:Pipeline, name:str=None):
         self.operator = operator
         self.pipeline = pipeline
         self.name = name or f"DataStream_{id(self)}"

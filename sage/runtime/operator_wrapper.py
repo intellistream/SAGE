@@ -25,23 +25,14 @@ class OperatorWrapper:
     # 完美代理所有属性访问
     def __getattr__(self, name: str):
         """透明代理属性访问"""
-        # 先检查缓存
         if name in self._attribute_cache:
             return self._attribute_cache[name]
         
         original_attr = getattr(self._operator, name)
         
-        # 如果是方法，则包装成统一调用
+        # 如果是方法，则包装成统一的同步调用
         if callable(original_attr):
-            if self._execution_mode == "ray_actor":
-                # Ray Actor方法需要特殊处理
-                wrapped_method = self._create_ray_actor_method(name, original_attr)
-            elif self._execution_mode == "ray_function":
-                wrapped_method = self._create_ray_function_method(name, original_attr)
-            else:
-                # 本地方法，检查是否需要异步包装
-                wrapped_method = self._create_local_method(name, original_attr)
-            
+            wrapped_method = self._create_unified_method(name, original_attr)
             self._attribute_cache[name] = wrapped_method
             return wrapped_method
         else:
@@ -70,47 +61,80 @@ class OperatorWrapper:
         """代理str()"""
         return str(self._operator)
     
-    def _create_ray_actor_method(self, method_name: str, original_method):
-        """创建Ray Actor方法包装"""
-        async def async_wrapper(*args, **kwargs):
-            future = original_method.remote(*args, **kwargs)
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None, ray.get, future)
+    def _create_unified_method(self, method_name: str, original_method):
+        """创建统一的方法包装 - 对外始终提供同步接口"""
         
-        def sync_wrapper(*args, **kwargs):
-            future = original_method.remote(*args, **kwargs)
-            return ray.get(future)
-        
-        # 根据原方法是否异步来决定返回哪个包装器
-        # 由于Ray Actor方法调用总是返回Future，我们提供两个版本
-        async_wrapper.sync = sync_wrapper
-        sync_wrapper.async_version = async_wrapper
-        
-        # 默认返回异步版本
-        return async_wrapper
-    
-    def _create_ray_function_method(self, method_name: str, original_method):
-        """创建Ray Function方法包装"""
-        async def wrapper(*args, **kwargs):
-            future = original_method.remote(*args, **kwargs)
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None, ray.get, future)
-        
-        return wrapper
-    
-    def _create_local_method(self, method_name: str, original_method):
-        """创建本地方法包装"""
-        if asyncio.iscoroutinefunction(original_method):
-            # 已经是异步方法，直接返回
-            return original_method
+        if self._execution_mode == "ray_actor":
+            # Ray Actor: 同步调用，内部处理Ray异步
+            def sync_ray_actor_wrapper(*args, **kwargs):
+                try:
+                    future = original_method.remote(*args, **kwargs)
+                    result = ray.get(future)
+                    return result
+                except Exception as e:
+                    raise RuntimeError(f"Ray Actor method '{method_name}' failed: {e}")
+            
+            return sync_ray_actor_wrapper
+            
+        elif self._execution_mode == "ray_function":
+            # Ray Function: 同步调用
+            def sync_ray_function_wrapper(*args, **kwargs):
+                try:
+                    future = original_method.remote(*args, **kwargs)
+                    result = ray.get(future)
+                    return result
+                except Exception as e:
+                    raise RuntimeError(f"Ray function '{method_name}' failed: {e}")
+            
+            return sync_ray_function_wrapper
+            
         else:
-            # 同步方法，创建异步包装
-            async def async_wrapper(*args, **kwargs):
-                return original_method(*args, **kwargs)
+            # 本地方法: 处理异步方法，统一返回同步结果
+            if asyncio.iscoroutinefunction(original_method):
+                def sync_local_async_wrapper(*args, **kwargs):
+                    try:
+                        # 检查是否已在事件循环中
+                        try:
+                            loop = asyncio.get_running_loop()
+                            # 如果在事件循环中，需要在新线程中运行
+                            import concurrent.futures
+                            with concurrent.futures.ThreadPoolExecutor() as executor:
+                                future = executor.submit(asyncio.run, original_method(*args, **kwargs))
+                                return future.result()
+                        except RuntimeError:
+                            # 不在事件循环中，直接使用asyncio.run
+                            return asyncio.run(original_method(*args, **kwargs))
+                    except Exception as e:
+                        raise RuntimeError(f"Local async method '{method_name}' failed: {e}")
+                
+                return sync_local_async_wrapper
+            else:
+                # 本地同步方法，直接返回
+                return original_method
+    
+    # 可选：提供异步接口给需要的场景
+    def get_async_method(self, method_name: str):
+        """获取异步版本的方法（可选功能）"""
+        original_method = getattr(self._operator, method_name)
+        
+        if self._execution_mode == "ray_actor":
+            async def async_ray_actor_wrapper(*args, **kwargs):
+                future = original_method.remote(*args, **kwargs)
+                loop = asyncio.get_event_loop()
+                return await loop.run_in_executor(None, ray.get, future)
+            return async_ray_actor_wrapper
             
-            # 同时保留同步版本
-            async_wrapper.sync = original_method
-            original_method.async_version = async_wrapper
+        elif self._execution_mode == "ray_function":
+            async def async_ray_function_wrapper(*args, **kwargs):
+                future = original_method.remote(*args, **kwargs)
+                loop = asyncio.get_event_loop()
+                return await loop.run_in_executor(None, ray.get, future)
+            return async_ray_function_wrapper
             
-            # 默认返回异步版本
-            return 
+        else:
+            if asyncio.iscoroutinefunction(original_method):
+                return original_method
+            else:
+                async def async_local_wrapper(*args, **kwargs):
+                    return original_method(*args, **kwargs)
+                return async_local_wrapper
