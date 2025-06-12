@@ -1,11 +1,3 @@
-# from app.datastream_rag_pipeline import SimpleRetriever
-# from sage.api.operator.operator_impl.generator import OpenAIGenerator, HFGenerator
-# from sage.api.operator.operator_impl.promptor import QAPromptor
-# from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
-# from sage.api.operator.operator_impl.reranker import BGEReranker, LLMbased_Reranker
-# from sage.api.operator.operator_impl.sink import TerminalSink
-# from sage.api.operator.operator_impl.source import FileSource
-# from sage.api.operator.operator_impl.writer import SimpleWriter
 import ray
 
 from sage.core.compiler.optimizer import Optimizer
@@ -14,7 +6,7 @@ from sage.core.dag.dag import DAG
 from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
 from sage.core.compiler.logical_graph_constructor import LogicGraphConstructor
 class QueryCompiler:
-    def __init__(self, memory_manager = None,generate_func = None ):
+    def __init__(self,generate_func = None ):
         """
         Initialize the QueryCompiler with memory layers.
         :param memory_manager: Memory manager for managing memory layers.
@@ -26,44 +18,8 @@ class QueryCompiler:
 
         self.dag_dict = {}
 
-        # self.operator_mapping = {
-        #     "OpenAIGenerator": OpenAIGenerator,
-        #     "HFGenerator":HFGenerator,
-        #     "SimpleRetriever": SimpleRetriever,
-        #     "QAPromptor": QAPromptor,
-        #     "AbstractiveRecompRefiner": AbstractiveRecompRefiner,
-        #     "BGEReranker": BGEReranker,
-        #     "LLMbased_Reranker":LLMbased_Reranker,
-        #     "TerminalSink": TerminalSink,
-        #     "FileSource": FileSource,
-        #     "SimpleWriter": SimpleWriter
-        # }
+        
 
-    def _parse_query(self, natural_query):
-        """
-        Parse the query to extract relevant information.
-        :param natural_query: The query to process.
-        :return: The detected intent (retrieval, summarization, generation, etc.).
-        """
-        # # parser = QueryParser(generate_func=generate)
-        # context = ""
-        # parsed_query = self.parser.parse_query(natural_query = natural_query,context=context)
-        # return parsed_query
-
-    # def add_spout(self, natural_query):
-    #     """
-    #     Initialize a DAG with a Spout node.
-    #     :param natural_query: The natural language query string.
-    #     :return: Initialized DAG with a Spout node.
-    #     """
-    #     dag = DAG(id="dag_1",strategy="Oneshot")
-    #     spout_node = BaseDAGNode(
-    #         name="Spout",
-    #         operator=None,
-    #         is_spout=True
-    #     )
-    #     dag.add_node(spout_node)
-    #     return dag
 
 
     def compile_natural_query(self, natural_query):
@@ -110,7 +66,6 @@ class QueryCompiler:
         if config.get("query"):
             query = config.get("query")
         if config.get("is_long_running",None) is None :
-
             dag,execution_type = self.compile_oneshot_pipeline(pipeline,query)
         elif not config.get("is_long_running", None):
             dag, execution_type = self.compile_oneshot_pipeline(pipeline,query)
@@ -119,22 +74,20 @@ class QueryCompiler:
 
         # Optimize the DAG
 
+        # TODO: Add the optimization logic
         optimized_dag = self.optimizer.optimize(dag)
 
         node_mapping = {}
-        # for node in optimized_dag.nodes:
-        #     if node.name is not None:
-        #         node_mapping[node.name] = {
-        #             "config": config_mapping[node.name] if node.name in config_mapping[node.name] else None,
-        #             "operator": self.operator_mapping.get(node.name),
-        #             "kwargs": None
-        #         }
+
 
         return optimized_dag, execution_type,node_mapping
 
     def compile_streaming_pipeline(self,pipeline):
         """
         Compile the pipeline.
+        :param pipeline: The pipeline object containing data streams.
+        :type pipeline: Pipeline
+        :raises ValueError: If pipeline data streams are None.
         :return: dag.
         """
         # Implement the pipeline compilation logic here
@@ -155,9 +108,7 @@ class QueryCompiler:
                     operator=datastream.operator,
                     is_spout=False
                 )
-            # config_mapping[datastream.name] = {
-            #     "config": datastream.config,
-            # }
+      
             nodes.append(node)
             dag.add_node(node)
         # Add Edges
@@ -169,6 +120,14 @@ class QueryCompiler:
     def compile_oneshot_pipeline(self, pipeline,query):
         """
         Compile the pipeline.
+        :param pipeline: The pipeline object containing data streams.
+        :type pipeline: Pipeline
+        :param query: The natural language query string.
+        :type query: str
+        :raises ValueError: If pipeline data streams are None.
+        :raises ValueError: If query is None.
+        :raises ValueError: If the intent is not recognized.
+        :raises ValueError: If the pipeline is not properly configured.
         :return: dag.
         """
         # Implement the pipeline compilation logic here
@@ -186,9 +145,7 @@ class QueryCompiler:
             query = ray.get(input_ref)
 
         intent= self.parser.parse_query(natural_query=query)
-        # intent = "question_answering"
-        print(f"intent in compiler:{intent}")
-        print(pipeline)
+
         if self.dag_dict.get(intent) is not None:
             dag = self.dag_dict.get(intent)
 
@@ -202,7 +159,7 @@ class QueryCompiler:
         operator_cls_mapping = pipeline.get_operator_cls()
         config_mapping = pipeline.get_operator_config()
 
-        # build the pipeline
+
         # 遍历DAG,从spout结点开始，按边遍历结点
         def traverse_dag_from_node(start_node):
             """
@@ -224,11 +181,7 @@ class QueryCompiler:
             dfs(start_node)
             return traversal_order
 
-        # traversal_result = []
-        # node = spout_node
-        # while node is not None:
-        #     traversal_result.append(node)
-        #     node = dag.edges.get(node)
+        # 从 spout_node 开始遍历 DAG,并依据DAG的遍历结果构建pipeline
         traversal_result = traverse_dag_from_node(spout_node)
         lst_stream = source_stream
         for node in traversal_result[1:]:
@@ -243,32 +196,6 @@ class QueryCompiler:
                 print(node.name)
                 print(f"Error in operator instantiation: {e}")
 
-
-
-
-
-        # nodes = []
-        # config_mapping = {}
-        # for i, datastream in enumerate(pipeline.data_streams):
-        #     # Add the datastream to the DAG
-        #     if i == 0:
-        #         node = OneShotDAGNode(
-        #             name=datastream.name,
-        #             operator=datastream.operator,
-        #             is_spout=True
-        #         )
-        #     else:
-        #         node = OneShotDAGNode(
-        #             name=datastream.name,
-        #             operator=datastream.operator,
-        #             is_spout=False
-        #         )
-        #
-        #     nodes.append(node)
-        #     dag.add_node(node)
-        # # Add Edges
-        # for i in range(len(nodes) - 1):
-        #     dag.add_edge(nodes[i], nodes[i + 1])
         self.dag_dict[intent] = dag
         return dag,  "oneshot"
 
