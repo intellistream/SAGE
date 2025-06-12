@@ -148,6 +148,8 @@ class QueryCompiler:
                     name=datastream.name,
                     operator=datastream.operator,
                     is_spout=True
+                    # 对于流式处理，spout节点需要持续接收数据
+                    # 默认第一个节点为数据源
                 )
             else :
                 node = ContinuousDAGNode(

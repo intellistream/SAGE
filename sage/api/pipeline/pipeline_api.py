@@ -1,10 +1,21 @@
-from typing import Type
+from typing import Type, TYPE_CHECKING, Union, Any
 from sage.core.engine.runtime import Engine
 from sage.api.pipeline.datastream_api import DataStream
 from sage.runtime.operator_factory import OperatorFactory
 from sage.api.operator import SourceFunction
+if TYPE_CHECKING:
+    from sage.api.operator.base_operator_api import BaseOperator
+    from sage.runtime.operator_factory import OperatorFactory
 
+
+    
 class Pipeline:
+    name:str
+    operators: list[BaseOperator]
+    data_streams: list[DataStream]
+    operator_config: dict
+    operator_cls_mapping: dict
+    operator_factory: OperatorFactory
     def __init__(self, name: str, use_ray: bool = True):
         self.name = name
         self.operators = []
@@ -53,7 +64,8 @@ class Pipeline:
                 :param generate_func:
         """
 
-        engine = Engine.get_instance(generate_func) # client side
+        engine = Engine.get_instance(generate_func)
+        # 建立pipeline与引擎的关联
         engine.submit_pipeline(self, config=config or {}) # compile dag -> register engine
         print(f"[Pipeline] Pipeline '{self.name}' submitted to engine with config: {config or {}}")
 

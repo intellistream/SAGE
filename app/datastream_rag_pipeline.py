@@ -4,7 +4,7 @@
 # 导入 Sage 中的 Pipeline 和相关组件
 import logging
 import time
-from typing import Tuple, List
+from typing import Tuple, List, Type, TYPE_CHECKING, Union, Any
 import yaml
 import ray
 import asyncio
@@ -21,7 +21,8 @@ from sage.api.operator.operator_impl.writer import LongTimeWriter
 from sage.api.operator.operator_impl.retriever import SimpleRetriever
 from sage.api.operator.operator_impl.sink import TerminalSink
 from sympy.multipledispatch.dispatcher import source
-
+if TYPE_CHECKING:
+    from sage.api.pipeline.datastream_api import DataStream
 # 初始化 Ray 并设置日志级别
 ray.init(
     logging_level=logging.CRITICAL,  # 设置 Ray 日志为 CRITICAL 级别，只显示关键日志
@@ -69,19 +70,19 @@ async def init_memory_and_pipeline():
     pipeline = Pipeline(name="example_pipeline", use_ray=True)
 
     # 步骤 1: 定义数据源（例如，来自用户的查询）
-    query_stream = pipeline.add_source(source_class=FileSource, config=config)  # 从文件源读取数据
+    query_stream:DataStream = pipeline.add_source(source_class=FileSource, config=config)  # 从文件源读取数据
 
     # 步骤 2: 使用 SimpleRetriever 从向量内存中检索相关数据块
-    query_and_chunks_stream = query_stream.retrieve(SimpleRetriever,config)
+    query_and_chunks_stream:DataStream = query_stream.retrieve(SimpleRetriever,config)
 
     # 步骤 3: 使用 QAPromptor 构建查询提示
-    prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
+    prompt_stream:DataStream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
 
     # 步骤 4: 使用 OpenAIGenerator 生成最终的响应
-    response_stream = prompt_stream.generate_response(OpenAIGenerator, config)
+    response_stream:DataStream = prompt_stream.generate_response(OpenAIGenerator, config)
 
     # 步骤 5: 输出到终端或文件
-    sink_stream = response_stream.sink(FileSink, config)
+    sink_stream:DataStream = response_stream.sink(FileSink, config)
 
     # 提交管道到 SAGE 运行时
     pipeline.submit(config={"is_long_running": True})

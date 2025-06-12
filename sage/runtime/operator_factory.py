@@ -2,6 +2,7 @@
 from typing import TypeVar, Any, Type
 import ray
 import logging
+from sage.runtime.operator_wrapper import OperatorWrapper
 T = TypeVar("T")
 
 class OperatorFactory:
@@ -29,10 +30,14 @@ class OperatorFactory:
             算子实例（本地对象或Ray Actor Handle）
         """
         if self.use_ray:
-            return self._create_ray_operator(operator_class, config)
+            raw_operator = self._create_ray_operator(operator_class, config)
         else:
-            return self._create_local_operator(operator_class, config)
-    
+            raw_operator = self._create_local_operator(operator_class, config)
+        
+        wrapped_operator = OperatorWrapper(raw_operator)
+        return wrapped_operator
+
+
     def _create_ray_operator(self, operator_class, config):
         """创建Ray远程算子"""
         class_name = operator_class.__name__
