@@ -1,7 +1,7 @@
 from sage.api.operator import SinkFunction
 from sage.api.operator import Data
 from typing import Tuple
-import ray
+
 
 
 class TerminalSink(SinkFunction):

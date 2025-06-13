@@ -2,7 +2,6 @@ from typing import Any, List, Tuple
 from jinja2 import Template
 from sage.api.operator import PromptFunction
 from sage.api.operator import Data
-import ray
 QA_prompt_template='''Instruction:
 You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.
 Only give me the answer and do not output any other words.

@@ -1,4 +1,4 @@
-import ray
+
 from sage.core.compiler.optimizer import Optimizer
 from sage.core.compiler.query_parser import QueryParser
 from sage.core.dag.dag import DAG

@@ -2,7 +2,7 @@ from sage.core.engine.executor_manager import ExecutorManager
 from sage.core.dag.dag_manager import DAGManager
 from sage.core.compiler.query_compiler import QueryCompiler
 import threading
-import ray
+
 
 class Engine:
     _instance = None

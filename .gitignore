@@ -47,4 +47,4 @@ output.txt
 /.vscode/
 /arxiv_pdfs
 /arxiv_structured_json
-
+run.sh
