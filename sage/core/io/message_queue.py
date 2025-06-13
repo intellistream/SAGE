@@ -11,7 +11,7 @@ class MessageQueue:
 
     def __init__(self, name="MessageQueue", max_buffer_size=30000):
         self.max_buffer_size = max_buffer_size
-        self.queue = queue.Queue(maxsize=0)
+        self.queue = queue.Queue(maxsize=10000)
         self.total_task = 0
         self.max_buffer_size = max_buffer_size  # 总内存限制（字节）
         self.current_buffer_usage = 0# 当前使用的内存（字节）
@@ -124,8 +124,6 @@ class MessageQueue:
         try:
             # 从队列中取出项目
             item = self.queue.get(block=block, timeout=timeout)
-
-
             # 更新内存追踪
             with self.buffer_condition:
                 item_id = id(item)
@@ -139,8 +137,6 @@ class MessageQueue:
 
             return item
         except queue.Empty:
-            # 如果队列为空且超时，抛出异常
-            # raise queue.Empty("Queue is empty and timeout occurred")
             return None
     def metrics(self):
         """

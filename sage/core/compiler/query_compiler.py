@@ -1,22 +1,24 @@
 import ray
-
 from sage.core.compiler.optimizer import Optimizer
 from sage.core.compiler.query_parser import QueryParser
 from sage.core.dag.dag import DAG
-from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
+from sage.core.dag.dag_node import BaseDAGNode, ContinuousDAGNode, OneShotDAGNode
 from sage.core.compiler.logical_graph_constructor import LogicGraphConstructor
+
+
 class QueryCompiler:
+
     def __init__(self,generate_func = None ):
         """
         Initialize the QueryCompiler with memory layers.
         :param memory_manager: Memory manager for managing memory layers.
+        :param generate_func: Function for query generation
         """
         self.logical_graph_constructor = LogicGraphConstructor()
         self.optimizer = Optimizer()
-
         self.parser = QueryParser(generate_func=generate_func)
-
         self.dag_dict = {}
+
 
         
 
@@ -65,6 +67,7 @@ class QueryCompiler:
         dag = None
         config_mapping = {} # Mapping of operator names to their configurations. Not used in this version.
         execution_type = None
+
         query = None
         if config.get("query"):
             query = config.get("query")
@@ -85,8 +88,9 @@ class QueryCompiler:
 
         return optimized_dag, execution_type,node_mapping
 
-    def compile_streaming_pipeline(self,pipeline):
+    def compile_streaming_pipeline(self, pipeline):
         """
+
         Compile the pipeline.
         :param pipeline: The pipeline object containing data streams.
         :type pipeline: Pipeline
@@ -98,31 +102,34 @@ class QueryCompiler:
         dag = DAG(id="dag_1",strategy="streaming")
         nodes = []
         config_mapping = {}
-        for i,datastream in enumerate(pipeline.data_streams):
-            # Add the datastream to the DAG
-            if i == 0 :
+
+        for i, datastream in enumerate(pipeline.data_streams):
+            if i == 0:
                 node = ContinuousDAGNode(
                     name=datastream.name,
                     operator=datastream.operator,
                     is_spout=True
                 )
-            else :
+            else:
                 node = ContinuousDAGNode(
                     name=datastream.name,
                     operator=datastream.operator,
                     is_spout=False
                 )
+
       
             nodes.append(node)
             dag.add_node(node)
+
         # Add Edges
         for i in range(len(nodes) - 1):
             dag.add_edge(nodes[i], nodes[i + 1])
 
-        return dag, config_mapping,"streaming"
+        return dag, config_mapping, "streaming"
 
-    def compile_oneshot_pipeline(self, pipeline,query):
+    def compile_oneshot_pipeline(self, pipeline, query):
         """
+
         Compile the pipeline.
         :param pipeline: The pipeline object containing data streams.
         :type pipeline: Pipeline
@@ -134,34 +141,36 @@ class QueryCompiler:
         :raises ValueError: If the pipeline is not properly configured.
         :return: dag.
         """
-        # Implement the pipeline compilation logic here
         if pipeline.data_streams is None:
             raise ValueError("Pipeline data streams cannot be None.")
+
         source_stream = pipeline.data_streams[0]
         spout_node = OneShotDAGNode(
             name=source_stream.name,
             operator=source_stream.operator,
             is_spout=True
         )
+
         if query is None:
             print("query is None")
             input_ref = source_stream.operator.get_query.remote()
             query = ray.get(input_ref)
 
+
         intent= self.parser.parse_query(natural_query=query)
 
         if self.dag_dict.get(intent) is not None:
             dag = self.dag_dict.get(intent)
-
             return dag, "oneshot"
         else:
             pipeline.data_streams = pipeline.data_streams[:1]
 
         dag = DAG(id="dag_1", strategy="oneshot")
-        dag = self.logical_graph_constructor.construct_logical_graph(intent,dag, spout_node)
+        dag = self.logical_graph_constructor.construct_logical_graph(intent, dag, spout_node)
 
         operator_cls_mapping = pipeline.get_operator_cls()
         config_mapping = pipeline.get_operator_config()
+
 
 
         # 遍历DAG,从spout结点开始，按边遍历结点
@@ -192,7 +201,6 @@ class QueryCompiler:
             op_cls = operator_cls_mapping.get(node.name)
             try:
                 op = op_cls.remote(config_mapping)
-
                 node.operator = op
                 stream = lst_stream.generalize(node.name, op)
                 lst_stream = stream
@@ -201,7 +209,7 @@ class QueryCompiler:
                 print(f"Error in operator instantiation: {e}")
 
         self.dag_dict[intent] = dag
-        return dag,  "oneshot"
+        return dag, "oneshot"
 
     def add_oneshot_spout(self, natural_query):
         """
@@ -209,7 +217,7 @@ class QueryCompiler:
         :param natural_query: The natural language query string.
         :return: Initialized DAG with a Spout node.
         """
-        dag = DAG(id="dag_1",strategy="Oneshot")
+        dag = DAG(id="dag_1", strategy="Oneshot")
         spout_node = BaseDAGNode(
             name="Spout",
             operator=None,
@@ -217,4 +225,3 @@ class QueryCompiler:
         )
         dag.add_node(spout_node)
         return dag
-
