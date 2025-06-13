@@ -40,7 +40,7 @@ class SimpleRetriever(RetrieverFunction):
     
     def _create_memory_adapter(self):
         """创建内存适配器，处理不同类型的memory collection"""
-        from sage.runtime.memory_adapter import MemoryAdapter
+        from sage.core.runtime.memory_adapter import MemoryAdapter
         return MemoryAdapter()
 
     async def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:

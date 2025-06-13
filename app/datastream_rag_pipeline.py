@@ -67,7 +67,7 @@ async def init_memory_and_pipeline():
     config["dcm_collection"] = None
     config["stm_collection"] = None
     # 创建一个新的管道实例
-    pipeline = Pipeline(name="example_pipeline", use_ray=True)
+    pipeline = Pipeline(name="example_pipeline", use_ray=False)
 
     # 步骤 1: 定义数据源（例如，来自用户的查询）
     query_stream:DataStream = pipeline.add_source(source_class=FileSource, config=config)  # 从文件源读取数据

@@ -6,7 +6,7 @@ import logging
 import threading
 import time
 import ray
-from sage.runtime.operator_wrapper import OperatorWrapper
+from sage.core.runtime.operator_wrapper import OperatorWrapper
 
 class BaseDAGNode:
     """

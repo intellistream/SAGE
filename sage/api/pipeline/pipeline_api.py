@@ -4,7 +4,7 @@ from sage.api.pipeline.datastream_api import DataStream
 from sage.api.operator import SourceFunction
 from sage.api.operator.base_operator_api import BaseOperator
 
-from sage.runtime.operator_factory import OperatorFactory
+from sage.core.runtime.operator_factory import OperatorFactory
     
 class Pipeline:
     name:str

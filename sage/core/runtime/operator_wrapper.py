@@ -34,6 +34,8 @@ class OperatorWrapper:
         if callable(original_attr):
             wrapped_method = self._create_unified_method(name, original_attr)
             self._attribute_cache[name] = wrapped_method
+            print(f"OperatorWrapper creating wrapper method: {name}")
+
             return wrapped_method
         else:
             # 普通属性直接返回
