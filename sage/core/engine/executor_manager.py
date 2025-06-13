@@ -2,7 +2,7 @@ import logging
 
 
 
-from sage.core.engine.executor import StreamingExecutor, OneShotExecutor
+from sage.core.engine.executor import StreamingExecutor, OneShotExecutor, BaseExecutor
 from sage.core.engine.scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
 from sage.core.dag.dag import DAG
 from sage.core.dag.dag_manager import DAGManager
@@ -57,11 +57,11 @@ class ExecutorManager:
                 if dag.strategy=="streaming" :
                     working_config=dag.working_config
                     for node in dag.nodes:
-                        task=self.create_streaming_task(node,working_config)
-                        slot_id=self.schedule_task(task)
-                        self.dag_to_tasks[dag_id].append(task)
-                        self.task_to_slot[task]=slot_id
-                        self.available_slots[slot_id].submit_task(task)
+                        streaming_task=self.create_streaming_task(node,working_config)
+                        slot_id=self.schedule_task(streaming_task)
+                        self.dag_to_tasks[dag_id].append(streaming_task)
+                        self.task_to_slot[streaming_task]=slot_id
+                        self.available_slots[slot_id].submit_task(streaming_task)
                         self.logger.debug(f"{node.name} submitted task for slot {slot_id}")
                 else :
                     task=self.create_oneshot_task(dag)
@@ -72,7 +72,7 @@ class ExecutorManager:
                     # self.logger.debug(f"dag submitted task for slot {slot_id}")
                     task.execute()
 
-    def create_streaming_task(self,node,working_config=None) :
+    def create_streaming_task(self,node: ContinuousDAGNode,working_config=None) -> StreamingExecutor:
         """
           创建流式处理任务
 
@@ -85,7 +85,7 @@ class ExecutorManager:
         streaming_executor=StreamingExecutor(node,working_config)
         return streaming_executor
 
-    def create_oneshot_task(self,dag):
+    def create_oneshot_task(self,dag)-> OneShotExecutor:
         """
            创建一次性处理任务
 
@@ -98,7 +98,7 @@ class ExecutorManager:
         oneshot_executor=OneShotExecutor(dag)
         return oneshot_executor
 
-    def schedule_task(self, task) -> int :
+    def schedule_task(self, task: BaseExecutor) -> int :
             """
                调度任务到指定槽位
 
