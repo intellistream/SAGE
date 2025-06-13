@@ -1,37 +1,131 @@
-import logging
-from sage.core.neuromem.memory_composite import CompositeMemory
-from sage.core.neuromem.memory_collection import MemoryCollection
+# file sage/core/neuromem/memory_manager.py
+# python -m sage.core.neuromem.memory_manager
 
-class NeuronMemManager:
+# TODO:
+
+from typing import Any, Dict, List, Optional, Union
+from sage.core.neuromem.memory_collection.base_collection import (
+    BaseMemoryCollection,
+    VDBMemoryCollection,
+    KVMemoryCollection,
+    GraphMemoryCollection,
+)
+
+class MemoryManager:
     """
-    STM LTM DCM Manager
+    内存管理器，管理不同类型的 MemoryCollection 实例。
+    Memory manager for handling multiple types of memory collections.
     """
+    def __init__(self):
+        # 名称到 collection 实例的映射
+        # Mapping from name to collection instance
+        self.collections: Dict[str, BaseMemoryCollection] = {}
 
-    def __init__(self, memory_layers = None):
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.memory_layers = memory_layers or {}
-
-    def register(self, memory_table_name, memory_collection):
+        # collection 元信息表：名称 -> 描述、backend_type
+        # Metadata registry for collections: name -> description, backend_type
+        self.collection_metadata: Dict[str, Dict[str, str]] = {}    
+    
+    def create_collection(
+        self,
+        name: str,
+        backend_type: str,
+        description: str = "",
+        embedding_model: Optional[Any] = None,
+        dim: Optional[int] = None
+    ):
         """
-        Register a MemoryCollection instance.
+        创建一个新的 collection。
+        Create a new collection.
         """
-        if memory_table_name in self.memory_layers:
-            self.logger.warning(f"Memory table {memory_table_name} already exists, overwriting.")
+        if name in self.collections:
+            raise ValueError(f"Collection with name '{name}' already exists.")
 
-        self.memory_layers[memory_table_name] = memory_collection
-        return memory_collection
+        if backend_type == "VDB":
+            if embedding_model is None or dim is None:
+                raise ValueError("VDB requires 'embedding_model' and 'dim'")
+            collection = VDBMemoryCollection(name, embedding_model, dim)
 
-    def list_collections(self):
-        return list(self.memory_layers.values())
+        elif backend_type == "KV":
+            collection = KVMemoryCollection(name)  
 
-    def get(self, memory_table_name):
-        return self.memory_layers.get(memory_table_name)
+        elif backend_type == "GRAPH":
+            collection = GraphMemoryCollection(name)  
 
-    def create_table(self, name, embedding_model, backend=None):
-        mem = MemoryCollection(name, embedding_model, backend)
-        self.register(name, mem)
-        return mem
+        else:
+            raise ValueError(f"Unsupported backend_type: {backend_type}")
 
-    def connect(self, *names) -> CompositeMemory:
-        mem_list = [self.get(name) for name in names if self.get(name)]
-        return CompositeMemory(mem_list)
+        self.collections[name] = collection
+        self.collection_metadata[name] = {
+            "description": description,
+            "backend_type": backend_type
+        }
+        return collection
+
+    def delete_collection(self, name: str):
+        """
+        删除一个 collection。
+        Delete a collection.
+        """
+        if name in self.collections:
+            del self.collections[name]
+            del self.collection_metadata[name]
+        else:
+            raise KeyError(f"Collection '{name}' not found.")
+    
+    def connect_collection(self, name: str) -> BaseMemoryCollection:
+        """
+        连接已存在的 collection（未实现）。
+        Connect to an existing collection(not implemented).
+        1. 加载已经被创建的 collection(在内存里了)  2. 加载离弦的 collection(disk) ==> 数据结构(manager创建时，会到某个路径去读取文件，collection_name信息)
+        """
+        if name not in self.collections:
+            raise KeyError(f"Collection '{name}' not found. (disk loading not implemented)")
+        return self.collections[name]
+
+    def merge_collections(self, *names: str):
+        """
+        合并多个 collection（未实现）。
+        Merge multiple collections (not implemented).
+        """
+        pass
+
+    def store_collection(self, name: str):
+        """
+        存储 collection 到磁盘（未实现）。
+        Store a collection to disk (not implemented).
+        """
+        pass
+
+    def list_collection(self, name: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        """
+        列出一个或所有 collection 的基本信息。
+        List basic info of one or all collections.
+        """
+        if name:
+            if name not in self.collection_metadata:
+                raise KeyError(f"Collection '{name}' not found.")
+            return {"name": name, **self.collection_metadata[name]}
+        else:
+            return [
+                {"name": n, **meta}
+                for n, meta in self.collection_metadata.items()
+            ]
+
+    def rename(self, former_name: str, new_name: str, new_description: Optional[str] = None):
+        """
+        重命名 collection 并更新描述（可选）。
+        Rename a collection and update description (optional).
+        """
+        if former_name not in self.collections:
+            raise KeyError(f"Collection '{former_name}' not found.")
+        if new_name in self.collections:
+            raise ValueError(f"Collection '{new_name}' already exists.")
+
+        collection = self.collections.pop(former_name)
+        collection.name = new_name
+        self.collections[new_name] = collection
+
+        metadata = self.collection_metadata.pop(former_name)
+        metadata["description"] = new_description or metadata.get("description", "")
+        self.collection_metadata[new_name] = metadata
+
