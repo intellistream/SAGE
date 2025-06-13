@@ -1,15 +1,16 @@
-
-from typing import Any,Tuple
+from typing import Any, Tuple
 from sage.api.model import apply_generator_model
 from sage.api.operator import GeneratorFunction
 from sage.api.operator import Data
 import ray
+
 
 class OpenAIGenerator(GeneratorFunction):
     """
     OpenAIGenerator is a generator function that interfaces with a specified OpenAI model 
     to generate responses based on input data.
     """
+
     def __init__(self, config):
         """
         Initializes the OpenAIGenerator instance with configuration parameters.
@@ -19,7 +20,7 @@ class OpenAIGenerator(GeneratorFunction):
         """
         super().__init__()
         self.config = config["generator"]
-        
+
         # Apply the generator model with the provided configuration
         self.model = apply_generator_model(
             method=self.config["method"],
@@ -28,43 +29,47 @@ class OpenAIGenerator(GeneratorFunction):
             api_key=self.config["api_key"],
             seed=42  # Hardcoded seed for reproducibility
         )
+        self.num = 1
 
     def execute(self, data: Data[list], **kwargs) -> Data[Tuple[str, str]]:
         """
         Executes the response generation using the configured model based on the input data.
 
-        :param data: Data object containing a list of input data. 
+        :param data: Data object containing a list of input data.
                      The second item in the list is expected to be a dictionary with a "content" key that contains the user's query.
         :param kwargs: Additional parameters for the model generation (e.g., temperature, max_tokens, etc.).
 
-        :return: A Data object containing a tuple (user_query, response), where user_query is the original input query, 
+        :return: A Data object containing a tuple (user_query, response), where user_query is the original input query,
                 and response is the generated response from the model.
         """
         # Extract the user query from the input data
         user_query = data.data[1]["content"]
-        
+
         # Generate the response from the model using the provided data and additional arguments
         response = self.model.generate(data.data, **kwargs)
-
+        print(f'query {self.num}  {user_query}')
+        print(f"answer {self.num}  {response}")
+        self.num += 1
         # Return the generated response along with the original user query as a tuple
         return Data((user_query, response))
 
 
 class HFGenerator(GeneratorFunction):
     """
-    HFGenerator is a generator function that interfaces with a Hugging Face model 
+    HFGenerator is a generator function that interfaces with a Hugging Face model
     to generate responses based on input data.
     """
+
     def __init__(self, config):
         """
         Initializes the HFGenerator instance with configuration parameters.
 
-        :param config: Dictionary containing configuration for the generator, including 
+        :param config: Dictionary containing configuration for the generator, including
                        the method and model name.
         """
         super().__init__()
         self.config = config["generator"]
-        
+
         # Apply the generator model with the provided configuration
         self.model = apply_generator_model(
             method=self.config["method"],

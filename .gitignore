@@ -42,5 +42,9 @@ __pycache__/
 /experiment/memorag/output_prompt.txt
 /installation/env_setup/install_dep.log
 
+
 output.txt
 /.vscode/
+/arxiv_pdfs
+/arxiv_structured_json
+

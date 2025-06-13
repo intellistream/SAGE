@@ -50,7 +50,7 @@ class SimpleRetriever(RetrieverFunction):
         """
         input_query = data.data  # Unpack the input query
         chunks = []  # Initialize an empty list to store retrieved memory chunks
-        print(input_query)
+        # print(input_query)
         # Retrieve memory chunks from each memory module if they are enabled in the configuration
         if self.config["stm"]:
             stm_results = await self.memory_adapter.retrieve(self.stm)
