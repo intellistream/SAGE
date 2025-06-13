@@ -12,6 +12,8 @@ class Engine:
         # 禁止直接实例化
         raise RuntimeError("请通过 get_instance() 方法获取实例")
 
+    # 用来获取类的唯一实例
+    # 同一个进程中只存在唯一的实例
     @classmethod
     def get_instance(cls,generate_func):
         # 双重检查锁确保线程安全
