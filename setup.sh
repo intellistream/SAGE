@@ -225,6 +225,26 @@ function minimal_setup() {
     pause
 }
 
+function setup_with_ray() {
+    echo "Setting up SAGE with Ray..."
+    minimal_setup
+    echo "Installing Ray..."
+    conda activate sage
+    pip install ray[default]
+    echo "Ray setup completed successfully."
+    pause
+}
+
+function setup_with_docker() {
+    echo "Setup with Docker..."
+    check_docker_installed
+    start_docker_container
+    setup_conda_environment
+    configure_huggingface_auth
+    echo "Setup with Docker completed successfully."
+    pause
+}
+
 function full_setup() {
     echo "Starting full setup..."
     check_docker_installed 
@@ -248,22 +268,26 @@ function main_menu() {
         print_header
         echo "Select an option to proceed:"
         echo "1.Minimal Setup ( Set Up Conda Environment)"
-        echo "2.Full Setup (Start Docker Container, Install Dependencies, Set Up Conda Environment)"
-        echo "3.Enter Docker Instance "
-        echo "4.run example scripts"
-        echo "5.IDE Setup Guide (Set Up Conda Environment)"
-        echo "6.troubleshooting"
+        echo "2.Setup with Ray (Minimal Setup, Install Ray)"
+        echo "3.Setup with Docker(Start Docker Container, Set Up Conda Environment)"
+        echo "4.Full Setup (Start Docker Container, Install Dependencies including CANDY, Set Up Conda Environment)"
+        echo "5.Enter Docker Instance "
+        echo "6.run example scripts"
+        echo "7.IDE Setup Guide (Set Up Conda Environment)"
+        echo "8.troubleshooting"
         echo "0.Exit"
         pause
          echo "===================================================="
         read -p "Enter your choice [0-6]: " choice
         case $choice in
             1) minimal_setup ;;
-            2) full_setup ;;
-            3) enter_docker_instance ;;
-            4) run_example_scripts ;;
-            5) display_ide_setup ;;
-            6) troubleshooting ;;
+            2) setup_with_ray ;;
+            3) setup_with_docker ;;
+            4) full_setup ;;
+            5) enter_docker_instance ;;
+            6) run_example_scripts ;;
+            7) display_ide_setup ;;
+            8) troubleshooting ;;
             0)
                 echo "Exiting setup script. Goodbye!"
                 exit 0 ;;
