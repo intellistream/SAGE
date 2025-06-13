@@ -238,9 +238,10 @@ function full_setup() {
 
 function run_example_scripts() {
     echo "Running example using following command:"
-    echo "python app/datastream_rag_pipeline.py"\
+    echo "python app/datastream_rag_pipeline.py"
     pause
 }
+
 function main_menu() {
     while true; do
         clear
