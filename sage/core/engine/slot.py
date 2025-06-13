@@ -1,6 +1,6 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from sage.core.engine.executor import StreamingExecutor
+from sage.core.engine.executor import StreamingTaskExecutor
 from sage.core.dag.dag_node import BaseDAGNode
 
 
@@ -11,9 +11,9 @@ class Slot:
         Attributes:
             slot_id (int): 槽位唯一标识
             thread_pool (ThreadPoolExecutor): 线程池对象
-            running_tasks (List[StreamingExecutor]): 正在运行的任务列表
+            running_tasks (List[StreamingTaskExecutor]): 正在运行的任务列表
             current_load (int): 当前槽位负载（运行中的线程数）
-            task_to_future (Dict[StreamingExecutor, Future]): 任务到 Future 的映射
+            task_to_future (Dict[StreamingTaskExecutor, Future]): 任务到 Future 的映射
             max_load (int): 最大允许负载（最大任务数）
             logger (logging.Logger): 日志记录器
         """
@@ -68,7 +68,7 @@ class Slot:
     def adjust_capacity(self, new_max: int):
         self.max_load = new_max
 
-    def stop(self,task:StreamingExecutor):
+    def stop(self,task:StreamingTaskExecutor):
         #停止一个task的执行
         try :
             if task not in self.running_tasks:
