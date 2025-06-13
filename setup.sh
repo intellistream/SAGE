@@ -106,6 +106,34 @@ function configure_huggingface_auth() {
     pause
 }
 
+function configure_huggingface_auth_without_docker() {
+    echo "===================================================="
+    echo "         Configuring Hugging Face Authentication"
+    echo "===================================================="
+    echo "Hugging Face authentication is required to run the SAGE system."
+    echo "Please enter your Hugging Face token to log in."
+    echo "You can find or generate your token here: https://huggingface.co/settings/tokens"
+    echo "If you want to use Hugging Face mirror, refer to https://hf-mirror.com/"
+
+    read -sp "Enter your Hugging Face token: " HF_TOKEN
+    echo ""
+
+    # 执行登录命令（本地）
+    huggingface-cli login --token "$HF_TOKEN"
+
+    # 验证登录状态
+    if huggingface-cli whoami &>/dev/null; then
+        echo "✅ Hugging Face authentication successful!"
+        HUGGINGFACE_LOGGED_IN=1
+    else
+        echo "❌ Hugging Face authentication failed. Please check your token and try again."
+        HUGGINGFACE_LOGGED_IN=0
+    fi
+
+    pause
+}
+
+
 function run_debug_main() {
     check_huggingface_auth
     if [ "$HUGGINGFACE_LOGGED_IN" -eq 0 ]; then
@@ -151,33 +179,129 @@ function display_ide_setup() {
     pause
 }
 
+
+create_sage_env_without_docker() {
+    # 检查是否已安装 conda
+    if ! command -v conda &> /dev/null; then
+        echo "❌ Conda 未安装，请先安装 Miniconda 或 Anaconda"
+        return 1
+    fi
+
+    # 创建 Python 3.11 环境
+    echo "🚀 正在创建名为 'sage' 的 Conda 环境（Python 3.11）..."
+    conda create -y -n sage python=3.11
+
+    # 激活环境
+    echo "✅ 环境创建成功。要激活它，请运行："
+    echo "   conda activate sage"
+}
+
+
+
+function install_necessary_dependencies() {
+    echo "Installing necessary dependencies..."
+    # Add commands to install dependencies here
+    # Example: sudo apt-get install -y package_name
+    apt update
+    apt install -y swig cmake build-essential
+    echo "Dependencies installed successfully."
+}
+
+
+function minimal_setup() {
+    echo "Install necessary dependencies..."
+    install_necessary_dependencies 
+    echo "Setting up Conda environment without Docker..."
+    create_sage_env_without_docker 
+    echo "activate the Conda environment with:"
+    echo "conda activate sage"
+    install_sage
+    echo "Hugging Face authentication is required to run the SAGE system."
+    configure_huggingface_auth_without_docker 
+    echo "Minimal setup completed successfully."
+    pause
+}
+
+function setup_with_ray() {
+    echo "Setting up SAGE with Ray..."
+    minimal_setup
+    echo "Installing Ray..."
+    conda activate sage
+    pip install ray[default]
+    echo "Ray setup completed successfully."
+    pause
+}
+
+function setup_with_docker() {
+    echo "Setup with Docker..."
+    check_docker_installed
+    start_docker_container
+    setup_conda_environment
+    configure_huggingface_auth
+    echo "Setup with Docker completed successfully."
+    install_sage
+    pause
+}
+
+function full_setup() {
+    echo "Starting full setup..."
+    check_docker_installed 
+    start_docker_container
+    install_dependencies
+    setup_conda_environment
+    configure_huggingface_auth
+    echo "Full setup completed successfully."
+    install_sage
+    pause
+}
+
+function run_example_scripts() {
+    echo "Running example using following command:"
+    echo "python app/datastream_rag_pipeline.py"
+    pause
+}
+
+function install_sage() {
+    echo "Running pip install . to test the package installation..."
+    source "$(conda info --base)/etc/profile.d/conda.sh"
+    conda activate sage
+    pip install .
+    if [ $? -eq 0 ]; then
+        echo "Package installed successfully."
+    else
+        echo "Package installation failed."
+    fi
+    pause
+}
+
 function main_menu() {
     while true; do
         clear
         print_header
         echo "Select an option to proceed:"
-        echo "1. Check Docker Installation"
-        echo "2. Start Docker Container"
-        echo "3. Install Dependencies (GitHub Credentials Required)"
-        echo "4. Set Up Conda Environment"
-        echo "5. Configure Hugging Face Authentication"
-        echo "6. Run debug_main.py"
-        echo "7. Enter Docker Instance"
-        echo "8. IDE Setup Guide"
-        echo "9. Troubleshooting Guide"
-        echo "0. Exit"
-        echo "===================================================="
-        read -p "Enter your choice [0-9]: " choice
+        echo "1.Minimal Setup ( Set Up Conda Environment)"
+        echo "2.Setup with Ray (Minimal Setup, Install Ray)"
+        echo "3.Setup with Docker(Start Docker Container, Set Up Conda Environment)"
+        echo "4.Full Setup (Start Docker Container, Install Dependencies including CANDY, Set Up Conda Environment)"
+        echo "5.Enter Docker Instance "
+        echo "6.run example scripts"
+        echo "7.IDE Setup Guide (Set Up Conda Environment)"
+        echo "8.troubleshooting"
+        echo "9.Install  CANDY in Docker Instance (Optional)"
+        echo "0.Exit"
+        pause
+         echo "===================================================="
+        read -p "Enter your choice [0-6]: " choice
         case $choice in
-            1) check_docker_installed ;;
-            2) start_docker_container ;;
-            3) install_dependencies ;;
-            4) setup_conda_environment ;;
-            5) configure_huggingface_auth ;;
-            6) run_debug_main ;;
-            7) enter_docker_instance ;;
-            8) display_ide_setup ;;
-            9) troubleshooting ;;
+            1) minimal_setup ;;
+            2) setup_with_ray ;;
+            3) setup_with_docker ;;
+            4) full_setup ;;
+            5) enter_docker_instance ;;
+            6) run_example_scripts ;;
+            7) display_ide_setup ;;
+            8) troubleshooting ;;
+            9) 
             0)
                 echo "Exiting setup script. Goodbye!"
                 exit 0 ;;
