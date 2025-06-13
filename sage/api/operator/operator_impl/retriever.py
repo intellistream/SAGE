@@ -1,6 +1,6 @@
 from torch import chunk
 from sage.api.operator import RetrieverFunction
-from sage.api.memory import connect,get_default_manager
+from sage.api.memory import connect, get_default_manager
 from typing import Tuple, List
 from sage.api.operator import Data
 
