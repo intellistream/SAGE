@@ -1,6 +1,6 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from sage.core.engine.executor import StreamingTaskExecutor
+from sage.core.engine.executor import StreamingTaskExecutor,  BaseTaskExecutor
 from sage.core.dag.dag_node import BaseDAGNode
 
 
@@ -29,7 +29,7 @@ class Slot:
         self.max_load = max_threads
         self.logger=logging.getLogger(__name__)
 
-    def submit_task(self, task) -> bool:
+    def submit_task(self, task: BaseTaskExecutor) -> bool:
         """
                提交任务到线程池
 

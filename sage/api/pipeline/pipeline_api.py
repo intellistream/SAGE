@@ -13,15 +13,16 @@ class Pipeline:
     operator_config: dict
     operator_cls_mapping: dict
     operator_factory: OperatorFactory
+    use_ray: bool
     def __init__(self, name: str, use_ray: bool = True):
         self.name = name
         self.operators = []
         self.data_streams = []
         self.operator_config = {}
         self.operator_cls_mapping = {}
-        
+        self.use_ray = use_ray
         # 创建全局算子工厂
-        self.operator_factory = OperatorFactory(use_ray=use_ray)
+        self.operator_factory = OperatorFactory(self.use_ray)
 
 
     def _register_operator(self, operator):
