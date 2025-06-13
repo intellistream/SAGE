@@ -3,9 +3,7 @@ from sage.api.operator import RetrieverFunction
 from sage.api.memory import connect,get_default_manager
 from typing import Tuple, List
 from sage.api.operator import Data
-import ray
 
-@ray.remote
 class SimpleRetriever(RetrieverFunction):
     """
     A simple retriever that retrieves memory chunks (short-term, long-term, or dynamic-contextual) based on the input query.
@@ -24,7 +22,7 @@ class SimpleRetriever(RetrieverFunction):
         dcm: Dynamic Contextual Memory module (if enabled).
     """
 
-    def __init__(self, config):
+    def __init__(self, config:dict):
         """
         Initializes the SimpleRetriever with configuration settings and memory modules.
 
@@ -37,7 +35,15 @@ class SimpleRetriever(RetrieverFunction):
         self.dcm = config["dcm_collection"]
         self.top_k = self.config["top_k"]  # Set the top_k parameter from config
 
-    def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
+        # 新增：检测memory collection的类型
+        self.memory_adapter = self._create_memory_adapter()
+    
+    def _create_memory_adapter(self):
+        """创建内存适配器，处理不同类型的memory collection"""
+        from sage.runtime.memory_adapter import MemoryAdapter
+        return MemoryAdapter()
+
+    async def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
         """
         :param data: A Data object containing a single string (the input query).
         :return: A Data object containing a tuple of (input_query, List of retrieved memory chunks).
@@ -47,16 +53,25 @@ class SimpleRetriever(RetrieverFunction):
         # print(input_query)
         # Retrieve memory chunks from each memory module if they are enabled in the configuration
         if self.config["stm"]:
-            results = self.stm.retrieve.remote()
-            chunks.extend(ray.get(results))# Retrieve from Short-Term Memory (STM)
+            stm_results = await self.memory_adapter.retrieve(self.stm)
+            chunks.extend(stm_results)
+            # results = self.stm.retrieve.remote()
+            # chunks.extend(ray.get(results))# Retrieve from Short-Term Memory (STM)
         if self.config["ltm"]:
-            results = self.ltm.retrieve.remote(input_query)
-            chunks.extend(ray.get(results))# Retrieve from Long-Term Memory (LTM)
-            import time
-            time.sleep(1)
+            ltm_results = await self.memory_adapter.retrieve(self.ltm, input_query)
+            chunks.extend(ltm_results)
+            # 保留原有的延迟逻辑
+            import asyncio
+            await asyncio.sleep(1)
+            # results = self.ltm.retrieve.remote(input_query)
+            # chunks.extend(ray.get(results))# Retrieve from Long-Term Memory (LTM)
+            # import time
+            # time.sleep(1)
         if self.config["dcm"]:
-            results = self.dcm.retrieve.remote()
-            chunks.extend(ray.get(results))# Retrieve from Short-Term Memory (DCM)
+            dcm_results = await self.memory_adapter.retrieve(self.dcm)
+            chunks.extend(dcm_results)
+            # results = self.dcm.retrieve.remote()
+            # chunks.extend(ray.get(results))# Retrieve from Short-Term Memory (DCM)
         # Return the original query along with the list of retrieved memory chunks
         self.logger.info(f"{self._name} retrieve {len(chunks)} results")
         return Data((input_query, chunks))

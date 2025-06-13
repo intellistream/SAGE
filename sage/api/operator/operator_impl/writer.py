@@ -2,9 +2,9 @@ from ast import List
 from sage.api.operator import WriterFunction,Data
 from sage.api.memory import connect,get_default_manager
 from typing import Tuple
-import ray
 
-@ray.remote
+
+
 class LongTimeWriter(WriterFunction):
     def __init__(self,config):
         super().__init__()
@@ -14,8 +14,7 @@ class LongTimeWriter(WriterFunction):
     def execute(self, data:Data[Tuple[str,str]]) -> Data[Tuple[str,str]]:
         try:
             query,answer=data.data
-            ref=self.memory_manager.store.remote(query+answer,"long_term_memory")
-            ray.get(ref)
+            ref=self.memory_manager.store(query+answer,"long_term_memory")
         except Exception as e:
             self.logger.error(f"{e} when WriterFuction")
 
