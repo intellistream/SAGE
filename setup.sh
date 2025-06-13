@@ -215,6 +215,7 @@ function minimal_setup() {
     create_sage_env_without_docker 
     echo "activate the Conda environment with:"
     echo "conda activate sage"
+    conda init
     conda activate sage
     echo "install sage package"
     pip install .
