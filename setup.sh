@@ -242,6 +242,9 @@ function setup_with_docker() {
     setup_conda_environment
     configure_huggingface_auth
     echo "Setup with Docker completed successfully."
+    conda activate sage
+    echo "install sage package"
+    pip install .
     pause
 }
 
@@ -253,6 +256,9 @@ function full_setup() {
     setup_conda_environment
     configure_huggingface_auth
     echo "Full setup completed successfully."
+    conda activate sage
+    echo "install sage package"
+    pip install .
     pause
 }
 
@@ -275,6 +281,7 @@ function main_menu() {
         echo "6.run example scripts"
         echo "7.IDE Setup Guide (Set Up Conda Environment)"
         echo "8.troubleshooting"
+        echo "9.Install  CANDY in Docker Instance (Optional)"
         echo "0.Exit"
         pause
          echo "===================================================="
@@ -288,6 +295,7 @@ function main_menu() {
             6) run_example_scripts ;;
             7) display_ide_setup ;;
             8) troubleshooting ;;
+            9) 
             0)
                 echo "Exiting setup script. Goodbye!"
                 exit 0 ;;
