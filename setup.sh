@@ -215,10 +215,7 @@ function minimal_setup() {
     create_sage_env_without_docker 
     echo "activate the Conda environment with:"
     echo "conda activate sage"
-    source "$(conda info --base)/etc/profile.d/conda.sh"
-    conda activate sage
-    echo "install sage package"
-    pip install .
+    install_sage
     echo "Hugging Face authentication is required to run the SAGE system."
     configure_huggingface_auth_without_docker 
     echo "Minimal setup completed successfully."
@@ -242,9 +239,7 @@ function setup_with_docker() {
     setup_conda_environment
     configure_huggingface_auth
     echo "Setup with Docker completed successfully."
-    conda activate sage
-    echo "install sage package"
-    pip install .
+    install_sage
     pause
 }
 
@@ -256,15 +251,26 @@ function full_setup() {
     setup_conda_environment
     configure_huggingface_auth
     echo "Full setup completed successfully."
-    conda activate sage
-    echo "install sage package"
-    pip install .
+    install_sage
     pause
 }
 
 function run_example_scripts() {
     echo "Running example using following command:"
     echo "python app/datastream_rag_pipeline.py"
+    pause
+}
+
+function install_sage() {
+    echo "Running pip install . to test the package installation..."
+    source "$(conda info --base)/etc/profile.d/conda.sh"
+    conda activate sage
+    pip install .
+    if [ $? -eq 0 ]; then
+        echo "Package installed successfully."
+    else
+        echo "Package installation failed."
+    fi
     pause
 }
 
