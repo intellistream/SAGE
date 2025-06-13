@@ -28,7 +28,7 @@ class ExecutorManager:
         self.task_handles = {}  # dag_id -> [task_handles]
         self.logger=logging.getLogger(__name__)
         self.local_backend = LocalExecutionBackend(max_slots, scheduling_strategy)
-        self.ray_backend = RayExecutionBackend()
+        # self.ray_backend = RayExecutionBackend()
 
         # self.available_slots = [Slot(slot_id=i) for i in range(max_slots)]
         # self.max_slots = max_slots
@@ -103,6 +103,8 @@ class ExecutorManager:
         
         if backend_type == 'ray':
             self.logger.info(f"Using Ray backend for DAG {dag.dag_id}")
+            if self.ray_backend is None:
+                self.ray_backend = RayExecutionBackend()
             return self.ray_backend
         else:
             self.logger.info(f"Using local backend for DAG {dag.dag_id}")
