@@ -2,7 +2,7 @@ from sage.api.operator import SourceFunction
 from sage.api.operator import Data
 from typing import Tuple
 from typing import Tuple, List
-import ray
+
 
 class FileSource(SourceFunction):
     """

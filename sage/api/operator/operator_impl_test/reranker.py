@@ -7,7 +7,7 @@ from sage.api.operator import Data
 from typing import Any, List, Tuple
 
 import torch
-import ray
+
 from typing import List, Tuple
 from transformers import AutoModelForSequenceClassification, AutoTokenizer,AutoModelForCausalLM
 from abc import abstractmethod

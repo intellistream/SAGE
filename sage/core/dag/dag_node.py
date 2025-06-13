@@ -5,7 +5,7 @@ import threading
 import time
 from typing import Any, Type, TYPE_CHECKING, Union
 
-import ray
+
 from sage.core.io.message_queue import MessageQueue
 from sage.runtime.operator_wrapper import OperatorWrapper
 

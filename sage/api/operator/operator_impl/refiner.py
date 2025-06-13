@@ -3,7 +3,6 @@ from sage.api.operator import Data
 from sage.api.model import apply_generator_model
 from typing import Tuple,List
 import logging
-import ray
 
 
 class AbstractiveRecompRefiner(RefinerFunction):

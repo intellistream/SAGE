@@ -7,7 +7,6 @@ from h11 import Response
 from sage.api.model import apply_generator_model
 from sage.api.operator import GeneratorFunction
 from sage.api.operator import Data
-import ray
 import re
 import json
 from collections import Counter
