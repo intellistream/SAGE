@@ -239,7 +239,7 @@ function run_example_scripts() {
     echo "Running example using following command:"
     echo "python app/datastream_rag_pipeline.py"
 }
-function main() {
+function main_menu() {
     while true; do
         clear
         print_header
