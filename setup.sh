@@ -210,16 +210,16 @@ function install_necessary_dependencies() {
 
 function minimal_setup() {
     echo "Install necessary dependencies..."
-    install_necessary_dependencies ;;
+    install_necessary_dependencies 
     echo "Setting up Conda environment without Docker..."
-    create_sage_env_without_docker ;;
+    create_sage_env_without_docker 
     echo "activate the Conda environment with:"
     echo "conda activate sage"
     conda activate sage
     echo "install sage package"
     pip install .
     echo "Hugging Face authentication is required to run the SAGE system."
-    configure_huggingface_auth_without_docker ;;
+    configure_huggingface_auth_without_docker 
     echo "Minimal setup completed successfully."
     pause
 }
