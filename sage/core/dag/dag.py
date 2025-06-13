@@ -6,6 +6,10 @@ from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
 
 
 class DAG:
+    node_mapping: dict
+    execution_type: str
+    config_mapping: dict
+    platform: str
     """
     Directed Acyclic Graph (DAG) class to manage nodes and execution flow.
     有向无环图（DAG）类，用于管理节点和执行流程。
@@ -14,7 +18,6 @@ class DAG:
     def __init__(self,id,strategy=None):
         """
         Initialize an empty DAG.
-         初始化一个空的DAG。
         """
         self.nodes = []  # Changed from set to list
         self.edges = {}  # Dictionary to store edges as {parent: [children]}
@@ -40,6 +43,7 @@ class DAG:
         :param parent: Parent DAGNode.
         :param child: Child DAGNode.
          添加从父节点到子节点的有向边。
+         初始化一个空的DAG。
         :param parent: 父节点DAGNode。
         :param child: 子节点DAGNode。
         """

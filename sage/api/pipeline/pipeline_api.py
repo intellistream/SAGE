@@ -1,9 +1,9 @@
 from typing import Type, TYPE_CHECKING, Union, Any
-from sage.core.engine.runtime import Engine
+from sage.core.engine.engine import Engine
 from sage.api.pipeline.datastream_api import DataStream
 from sage.api.operator import SourceFunction
 from sage.api.operator.base_operator_api import BaseOperator
-
+from sage.core.compiler.query_compiler import QueryCompiler
 from sage.runtime.operator_factory import OperatorFactory
     
 class Pipeline:
@@ -14,6 +14,7 @@ class Pipeline:
     operator_cls_mapping: dict
     operator_factory: OperatorFactory
     use_ray: bool
+    # compiler: QueryCompiler
     def __init__(self, name: str, use_ray: bool = True):
         self.name = name
         self.operators = []
@@ -47,6 +48,7 @@ class Pipeline:
         return stream
 
     def submit(self, config=None,generate_func = None):
+        # 其中的generate_func最后会传到core.compiler.query_parser中作为generate_func
         """
         Submit the pipeline to the SAGE engine.
         The engine is responsible for compiling and executing the DAG.
@@ -61,7 +63,7 @@ class Pipeline:
                 }
                 :param generate_func:
         """
-
+    
         engine = Engine.get_instance(generate_func)
         # 建立pipeline与引擎的关联
         engine.submit_pipeline(self, config=config or {}) # compile dag -> register engine

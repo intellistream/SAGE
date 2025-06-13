@@ -6,6 +6,10 @@ import ray
 
 class Engine:
     _instance = None
+    dag_manager: DAGManager
+    executor_manager: ExecutorManager
+    compiler: QueryCompiler
+    pipeline_to_dag: dict
     _lock = threading.Lock()
 
     def __new__(cls):
@@ -37,19 +41,18 @@ class Engine:
         self.dag_manager=DAGManager()
         self.executor_manager = ExecutorManager(dag_manager=self.dag_manager)
         self.compiler= QueryCompiler(generate_func=generate_func)
-        self.pipeline_id = {}
+        self.pipeline_to_dag = {}
 
     def submit_pipeline(self,pipeline,config=None):
-        optimized_dag, execution_type,node_mapping = self.compiler.compile(pipeline=pipeline,config=config)
-        optimized_dag.working_config=config
+        optimized_dag = self.compiler.compile(pipeline,config)
+        # execution_type和node_mapping被封装进dag里边当成员变量了
         dag_id=self.dag_manager.add_dag(optimized_dag)
-        optimized_dag.dag_id=dag_id
-        self.pipeline_id[pipeline]=dag_id
+        self.pipeline_to_dag[pipeline]=dag_id
         self.dag_manager.submit_dag(dag_id)
-        self.executor_manager.submit_dag()
+        self.executor_manager.run_dags()
 
     def stop_pipeline(self,pipeline):
-        dag_id=self.pipeline_id[pipeline]
+        dag_id=self.pipeline_to_dag[pipeline]
         self.executor_manager.stop_dag(dag_id)
 
 

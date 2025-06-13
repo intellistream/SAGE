@@ -131,10 +131,10 @@ def streaming_dag_test():
     dag_ids=[]
     for i in range(1) :   #测试的dag个数为10
         dag_id=create_test_streaming_dag(dag_manager)
-        dag_manager.submit_dag(dag_id)
+        dag_manager.run_dag(dag_id)
         dag_ids.append(dag_id)
     executor_manager = ExecutorManager(dag_manager,max_slots=5)
-    executor_manager.submit_dag()
+    executor_manager.run_dag()
     #dag 运行10s
     time.sleep(1000)
 
@@ -161,10 +161,10 @@ def oneshot_dag_test():
     dag_ids = []
     for i in range(10):  # 测试的dag个数为10
         dag_id = create_test_oneshot_dag(dag_manager)
-        dag_manager.submit_dag(dag_id)
+        dag_manager.run_dag(dag_id)
         dag_ids.append(dag_id)
     executor_manager = ExecutorManager(dag_manager, max_slots=5)
-    executor_manager.submit_dag()
+    executor_manager.run_dag()
     # dag 运行10s
     time.sleep(10)
     # 查询 Actor 分配情况
@@ -175,8 +175,8 @@ def oneshot_dag_test():
         print(f"节点 IP: {actor_info['address']['ip']}")
         print(f"资源请求: {actor_info['required_resources']}")
     for i in dag_ids :
-        dag_manager.submit_dag(i)
-        executor_manager.submit_dag()
+        dag_manager.run_dag(i)
+        executor_manager.run_dag()
     time.sleep(5)
 
     print(f"num of tasks is {len(executor_manager.task_to_slot)}")

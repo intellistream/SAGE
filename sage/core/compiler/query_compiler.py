@@ -66,27 +66,29 @@ class QueryCompiler:
         """
         dag = None
         config_mapping = {} # Mapping of operator names to their configurations. Not used in this version.
-        execution_type = None
 
         query = None
         if config.get("query"):
             query = config.get("query")
         if config.get("is_long_running",None) is None :
-            dag,execution_type = self.compile_oneshot_pipeline(pipeline,query)
+            dag = self.compile_oneshot_pipeline(pipeline,query)
         elif not config.get("is_long_running", None):
-            dag, execution_type = self.compile_oneshot_pipeline(pipeline,query)
+            dag = self.compile_oneshot_pipeline(pipeline,query)
         elif config.get("is_long_running", None):
-            dag,config_mapping,execution_type  = self.compile_streaming_pipeline(pipeline)
+            dag  = self.compile_streaming_pipeline(pipeline)
 
         # Optimize the DAG
 
         # TODO: Add the optimization logic
         optimized_dag = self.optimizer.optimize(dag)
 
-        node_mapping = {} # Mapping of node names to their configurations. Not used in this version.
-
-
-        return optimized_dag, execution_type,node_mapping
+        optimized_dag.node_mapping = {} # Mapping of node names to their configurations. Not used in this version.
+        optimized_dag.working_config = config
+        if(pipeline.use_ray == False):
+            optimized_dag.platform = "local"
+        else:
+            optimized_dag.platform = "ray"
+        return optimized_dag
 
     def compile_streaming_pipeline(self, pipeline):
         """
@@ -124,8 +126,9 @@ class QueryCompiler:
         # Add Edges
         for i in range(len(nodes) - 1):
             dag.add_edge(nodes[i], nodes[i + 1])
-
-        return dag, config_mapping, "streaming"
+        dag.execution_type = "streaming"
+        dag.config_mapping = config_mapping
+        return dag
 
     def compile_oneshot_pipeline(self, pipeline, query):
         """
@@ -209,7 +212,8 @@ class QueryCompiler:
                 print(f"Error in operator instantiation: {e}")
 
         self.dag_dict[intent] = dag
-        return dag, "oneshot"
+        dag.execution_type = "oneshot"
+        return dag
 
     def add_oneshot_spout(self, natural_query):
         """
