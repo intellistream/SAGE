@@ -3,7 +3,7 @@ from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
 from sage.core.dag.dag import DAG
 import threading
 
-class BaseExecutor():
+class BaseTaskExecutor():
     def __init__(self):
         pass
 
@@ -11,7 +11,7 @@ class BaseExecutor():
         raise NotImplementedError()
 
 
-class StreamingExecutor(BaseExecutor):
+class StreamingTaskExecutor(BaseTaskExecutor):
     #用于执行流式的数据流
     """
            启动流式处理循环
@@ -45,7 +45,7 @@ class StreamingExecutor(BaseExecutor):
             self.logger.error(e)
             raise RuntimeError(e)
 
-class OneShotExecutor(BaseExecutor):
+class OneshotTaskExecutor(BaseTaskExecutor):
     #用于执行非流式的请求
     """
         一次性任务处理器，按拓扑顺序执行DAG流程

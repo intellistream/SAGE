@@ -2,7 +2,7 @@ import logging
 
 
 
-from sage.core.engine.executor import StreamingExecutor, OneShotExecutor, BaseExecutor
+from sage.core.engine.executor import StreamingTaskExecutor, OneshotTaskExecutor, BaseTaskExecutor
 from sage.core.engine.scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
 from sage.core.dag.dag import DAG
 from sage.core.dag.dag_manager import DAGManager
@@ -72,7 +72,7 @@ class ExecutorManager:
                     # self.logger.debug(f"dag submitted task for slot {slot_id}")
                     task.execute()
 
-    def create_streaming_task(self,node: ContinuousDAGNode,working_config=None) -> StreamingExecutor:
+    def create_streaming_task(self,node: ContinuousDAGNode,working_config=None) -> StreamingTaskExecutor:
         """
           创建流式处理任务
 
@@ -80,12 +80,12 @@ class ExecutorManager:
               node: DAG节点对象
 
           Returns:
-              StreamingExecutor: 流式执行器实例
+              StreamingTaskExecutor: 流式执行器实例
           """
-        streaming_executor=StreamingExecutor(node,working_config)
+        streaming_executor=StreamingTaskExecutor(node,working_config)
         return streaming_executor
 
-    def create_oneshot_task(self,dag)-> OneShotExecutor:
+    def create_oneshot_task(self,dag)-> OneshotTaskExecutor:
         """
            创建一次性处理任务
 
@@ -93,12 +93,12 @@ class ExecutorManager:
                dag: 需要处理的DAG对象
 
            Returns:
-               OneShotExecutor: 一次性执行器实例
+               OneshotTaskExecutor: 一次性执行器实例
            """
-        oneshot_executor=OneShotExecutor(dag)
+        oneshot_executor=OneshotTaskExecutor(dag)
         return oneshot_executor
 
-    def schedule_task(self, task: BaseExecutor) -> int :
+    def schedule_task(self, task: BaseTaskExecutor) -> int :
             """
                调度任务到指定槽位
 
