@@ -53,14 +53,17 @@ class QueryCompiler:
 
         return dag
 
-    def compile(self, input_text=None, pipeline=None,config=None):
+    def compile(self,  pipeline=None,config=None):
         """
         Compile a query or natural language input into a DAG.
-        :param input_text: User-provided query or question.
+        :param pipeline: The pipeline object containing data streams.
+        :type pipeline: Pipeline
+        :param config: Configuration for the pipeline, including query and execution type.
+        :type config: dict
         :return: Optimized DAG and execution type.
         """
         dag = None
-        config_mapping = {}
+        config_mapping = {} # Mapping of operator names to their configurations. Not used in this version.
         execution_type = None
         query = None
         if config.get("query"):
@@ -77,7 +80,7 @@ class QueryCompiler:
         # TODO: Add the optimization logic
         optimized_dag = self.optimizer.optimize(dag)
 
-        node_mapping = {}
+        node_mapping = {} # Mapping of node names to their configurations. Not used in this version.
 
 
         return optimized_dag, execution_type,node_mapping
@@ -91,6 +94,7 @@ class QueryCompiler:
         :return: dag.
         """
         # Implement the pipeline compilation logic here
+        
         dag = DAG(id="dag_1",strategy="streaming")
         nodes = []
         config_mapping = {}
