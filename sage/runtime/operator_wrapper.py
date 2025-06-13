@@ -2,9 +2,30 @@
 import ray
 import asyncio
 from typing import Any, Dict, Optional, Type
-
+from sage.api.operator.base_operator_api import BaseOperator
 class OperatorWrapper:
-    """透明的算子包装器，外部代码无感知"""
+    """
+    透明的算子包装器，提供统一的同步接口
+    
+    该包装器自动处理本地对象、Ray Actor和Ray Function的差异，
+    对外提供一致的同步调用接口。
+    
+    支持的执行模式：
+    - local: 本地对象直接调用
+    - ray_actor: Ray Actor远程调用，自动处理ray.get()
+    - ray_function: Ray Function远程调用，自动处理ray.get()
+    
+    示例:
+        # 本地模式
+        local_op = FileSource(config)
+        wrapper = OperatorWrapper(local_op)
+        result = wrapper.read()  # 直接调用
+        
+        # Ray Actor模式
+        ray_actor = ray.remote(FileSource).remote(config)
+        wrapper = OperatorWrapper(ray_actor)
+        result = wrapper.read()  # 自动处理ray.get()
+    """
     
     def __init__(self, operator: Any):
         # 使用 __dict__ 直接设置，避免触发 __setattr__
