@@ -68,10 +68,11 @@ class DAGManager:
         self.logger.info(f"Created DAG {dag_id} with {len(new_dag.nodes)} nodes")
         return dag_id
 
-    def add_dag(self,dag:DAG):
+    def add_dag(self,dag:DAG)->int:
         dag_id = self.next_id
         self.next_id += 1
         self.dags[dag_id] = dag
+        dag.dag_id = dag_id
         return dag_id
 
     def submit_dag(self, dag_id: int) -> None:

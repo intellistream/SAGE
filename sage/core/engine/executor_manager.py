@@ -8,6 +8,7 @@ from sage.core.dag.dag import DAG
 from sage.core.dag.dag_manager import DAGManager
 from sage.core.engine.slot import Slot
 from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
+from sage.core.engine.execution_backend import ExecutionBackend, LocalExecutionBackend, RayExecutionBackend
 import time
 
 class ExecutorManager:
@@ -22,123 +23,167 @@ class ExecutorManager:
         scheduling_strategy (SchedulingStrategy): 任务调度策略实现
     """
     def __init__(self,dag_manager:DAGManager, max_slots=4,scheduling_strategy=None):
-        self.available_slots = [Slot(slot_id=i) for i in range(max_slots)]
-        self.max_slots = max_slots
         self.dag_manager = dag_manager
-        self.task_to_slot ={}
         self.dag_to_tasks={}
+        self.task_handles = {}  # dag_id -> [task_handles]
         self.logger=logging.getLogger(__name__)
-        if scheduling_strategy is None:
-            self.scheduling_strategy = ResourceAwareStrategy()
-        elif scheduling_strategy.lower() =="prioritystrategy":
-            self.scheduling_strategy = PriorityStrategy({})
-        else :
-            self.scheduling_strategy = ResourceAwareStrategy()
+        self.local_backend = LocalExecutionBackend(max_slots, scheduling_strategy)
+        self.ray_backend = RayExecutionBackend()
+
+        # self.available_slots = [Slot(slot_id=i) for i in range(max_slots)]
+        # self.max_slots = max_slots
+        # self.task_to_slot ={}
+        # if scheduling_strategy is None:
+        #     self.scheduling_strategy = ResourceAwareStrategy()
+        # elif scheduling_strategy.lower() =="prioritystrategy":
+        #     self.scheduling_strategy = PriorityStrategy({})
+        # else :
+        #     self.scheduling_strategy = ResourceAwareStrategy()
 
 
-    def submit_dag(self):
+    def run_dags(self):
+        # """
+        # 提交DAG并调度其节点
+
+        # 流程：
+        # 1. 从DAG管理器获取正在运行的DAG列表
+        # 2. 清空管理器的运行中DAG记录（避免重复提交）
+        # 3. 对每个DAG创建对应任务：
+        #    - 流式DAG：为每个节点创建独立任务
+        #    - 一次性DAG：为整个DAG创建单个任务
+        # 4. 将任务分配到可用槽位执行
+        # """
         """
-        提交DAG并调度其节点
-
-        流程：
-        1. 从DAG管理器获取正在运行的DAG列表
-        2. 清空管理器的运行中DAG记录（避免重复提交）
-        3. 对每个DAG创建对应任务：
-           - 流式DAG：为每个节点创建独立任务
-           - 一次性DAG：为整个DAG创建单个任务
-        4. 将任务分配到可用槽位执行
+        执行所有待运行的DAG
+        根据DAG配置选择不同的执行后端
         """
         running_dags=self.dag_manager.get_running_dags()
         self.dag_manager.clear_running_dags()
         for dag_id in running_dags:
-            # if self.dag_to_tasks.get(dag_id) is None :
-                self.dag_to_tasks[dag_id]=[]
-                dag=self.dag_manager.get_dag(dag_id)
-                if dag.strategy=="streaming" :
-                    working_config=dag.working_config
-                    for node in dag.nodes:
-                        streaming_task=self.create_streaming_task(node,working_config)
-                        slot_id=self.schedule_task(streaming_task)
-                        self.dag_to_tasks[dag_id].append(streaming_task)
-                        self.task_to_slot[streaming_task]=slot_id
-                        self.available_slots[slot_id].submit_task(streaming_task)
-                        self.logger.debug(f"{node.name} submitted task for slot {slot_id}")
-                else :
-                    task=self.create_oneshot_task(dag)
-                    # slot_id=self.schedule_task(task)
-                    # self.dag_to_tasks[dag_id].append(task)
-                    # self.task_to_slot[task]=slot_id
-                    # self.available_slots[slot_id].submit_task(task)
-                    # self.logger.debug(f"dag submitted task for slot {slot_id}")
-                    task.execute()
+            self.task_handles[dag_id] = []
+            dag = self.dag_manager.get_dag(dag_id)
+            
+            # 根据DAG配置选择执行后端
+            execution_backend = self._get_execution_backend(dag)
+            
+            if dag.strategy == "streaming":
+                self._execute_streaming_dag(dag_id, dag, execution_backend)
+            else:
+                self._execute_oneshot_dag(dag_id, dag, execution_backend)
+        
+        # for dag_id in running_dags:
+        #     self.task_handles[dag_id] = []
+        #     dag = self.dag_manager.get_dag(dag_id)
+                
+        #     if self.dag_to_tasks.get(dag_id) is None :
+        #         self.dag_to_tasks[dag_id]=[]
+        #         dag=self.dag_manager.get_dag(dag_id)
+        #         if dag.strategy=="streaming" :
+        #             working_config=dag.working_config
+        #             for node in dag.nodes:
+        #                 streaming_task=self.create_streaming_task(node,working_config)
+        #                 slot_id=self.schedule_task(streaming_task)
+        #                 self.dag_to_tasks[dag_id].append(streaming_task)
+        #                 self.task_to_slot[streaming_task]=slot_id
+        #                 self.available_slots[slot_id].submit_task(streaming_task)
+        #                 self.logger.debug(f"{node.name} submitted task for slot {slot_id}")
+        #         else :
+        #             task=self.create_oneshot_task(dag)
+        #             # slot_id=self.schedule_task(task)
+        #             # self.dag_to_tasks[dag_id].append(task)
+        #             # self.task_to_slot[task]=slot_id
+        #             # self.available_slots[slot_id].submit_task(task)
+        #             # self.logger.debug(f"dag submitted task for slot {slot_id}")
+        #             task.execute()
 
-    def create_streaming_task(self,node: ContinuousDAGNode,working_config=None) -> StreamingTaskExecutor:
-        """
-          创建流式处理任务
-
-          Args:
-              node: DAG节点对象
-
-          Returns:
-              StreamingTaskExecutor: 流式执行器实例
-          """
-        streaming_executor=StreamingTaskExecutor(node,working_config)
-        return streaming_executor
-
-    def create_oneshot_task(self,dag)-> OneshotTaskExecutor:
-        """
-           创建一次性处理任务
-
-           Args:
-               dag: 需要处理的DAG对象
-
-           Returns:
-               OneshotTaskExecutor: 一次性执行器实例
-           """
-        oneshot_executor=OneshotTaskExecutor(dag)
-        return oneshot_executor
-
-    def schedule_task(self, task: BaseTaskExecutor) -> int :
-            """
-               调度任务到指定槽位
-
-               Args:
-                   task: 需要调度的任务对象
-
-               Returns:
-                   int: 分配的槽位ID
-
-               Raises:
-                   RuntimeError: 当无可用槽位时抛出
-               """
-            selected_slot_id = self.scheduling_strategy.select_slot(
-                task, self.available_slots
-            )
-            self.logger.info(f"chosen slot id {selected_slot_id}")
-            if selected_slot_id > 0 :
-                self.available_slots[selected_slot_id].submit_task(task)
-                self.task_to_slot[task] = selected_slot_id
-            return selected_slot_id
-
-    def stop_dag(self,dag_id):
-        """
-            停止指定DAG的所有任务
-
-            Args:
-                dag_id: 要停止的DAG标识符
-
-            流程：
-                1. 获取DAG关联的所有任务
-                2. 停止每个任务并释放槽位资源
-                3. 清理任务记录
-        """
-        tasks=self.dag_to_tasks[dag_id]
-        for task in tasks:
-            slot_id=self.task_to_slot[task]
-            slot=self.available_slots[slot_id]
-            slot.stop(task)
-            self.task_to_slot.pop(task)
-        self.dag_to_tasks.pop(dag_id)
+    def _get_execution_backend(self, dag: DAG) -> ExecutionBackend:
+        """根据DAG配置选择执行后端"""
+        # 检查DAG配置中的执行后端设置
+        backend_type = dag.working_config.get('execution_backend', 'local')
+        
+        if backend_type == 'ray':
+            self.logger.info(f"Using Ray backend for DAG {dag.dag_id}")
+            return self.ray_backend
+        else:
+            self.logger.info(f"Using local backend for DAG {dag.dag_id}")
+            return self.local_backend
+    
+    def _execute_streaming_dag(self, dag_id: int, dag: DAG, backend: ExecutionBackend):
+        """使用指定后端执行流式DAG"""
+        for node in dag.nodes:
+            task = StreamingTaskExecutor(node, dag.working_config)
+            task_handle = backend.submit_task(task)
+            self.task_handles[dag_id].append(task_handle)
+            self.logger.debug(f"{node.name} submitted to {backend.__class__.__name__}")
+    
+    def _execute_oneshot_dag(self, dag_id: int, dag: DAG, backend: ExecutionBackend):
+        """使用指定后端执行一次性DAG"""
+        task = OneshotTaskExecutor(dag)
+        
+        if isinstance(backend, RayExecutionBackend):
+            # Ray执行
+            task_handle = backend.submit_task(task)
+            self.task_handles[dag_id].append(task_handle)
+        else:
+            # 本地执行，直接调用execute
+            task.execute()
+    
+    def stop_dag(self, dag_id: int):
+        """停止指定DAG的所有任务"""
+        if dag_id not in self.task_handles:
+            return
+        
+        dag = self.dag_manager.get_dag(dag_id)
+        backend = self._get_execution_backend(dag)
+        
+        # 停止所有任务
+        for task_handle in self.task_handles[dag_id]:
+            backend.stop_task(task_handle)
+        
+        # 清理记录
+        del self.task_handles[dag_id]
         self.dag_manager.remove_from_running(dag_id)
+    
+    def get_dag_status(self, dag_id: int):
+        """获取DAG执行状态"""
+        if dag_id not in self.task_handles:
+            return {"status": "not_found"}
+        
+        dag = self.dag_manager.get_dag(dag_id)
+        backend = self._get_execution_backend(dag)
+        
+        task_statuses = []
+        for task_handle in self.task_handles[dag_id]:
+            status = backend.get_status(task_handle)
+            task_statuses.append(status)
+        
+        return {
+            "dag_id": dag_id,
+            "backend": backend.__class__.__name__,
+            "task_count": len(task_statuses),
+            "tasks": task_statuses
+        }
+
+    # def schedule_task(self, task: BaseTaskExecutor) -> int :
+    #         """
+    #            调度任务到指定槽位
+
+    #            Args:
+    #                task: 需要调度的任务对象
+
+    #            Returns:
+    #                int: 分配的槽位ID
+
+    #            Raises:
+    #                RuntimeError: 当无可用槽位时抛出
+    #            """
+    #         selected_slot_id = self.scheduling_strategy.select_slot(
+    #             task, self.available_slots
+    #         )
+    #         self.logger.info(f"chosen slot id {selected_slot_id}")
+    #         if selected_slot_id > 0 :
+    #             self.available_slots[selected_slot_id].submit_task(task)
+    #             self.task_to_slot[task] = selected_slot_id
+    #         return selected_slot_id
 
 
