@@ -46,6 +46,7 @@ class Slot:
         if task in self.running_tasks:
             return False
         if self.current_load < self.max_load:
+            # task被真正执行的地方
             future=self.thread_pool.submit(task.execute)
             self.task_to_future[task]=future
             self.running_tasks.append(task)
