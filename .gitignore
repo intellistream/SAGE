@@ -14,7 +14,7 @@ CMakeUserPresets.json
 /deps/CANDY/installation/build/
 /.idea/deployment.xml
 /.idea/misc.xml
-
+/build
 /installation/candy.egg-info/
 /installation/build/
 /installation/candy/
