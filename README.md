@@ -1,187 +1,66 @@
-# SAGE
+# <div align="center">🧠 SAGE: A Dataflow-Native Framework for LLM Reasoning<div>
 
-## 1. Installation
 
-Please refer to `installation\README.md` for project installation.
+SAGE is a dataflow-native reasoning framework built from the ground up to support modular, controllable, and transparent workflows over Large Language Models (LLMs). It addresses common problems in existing LLM-augmented systems (like RAG and Agents), such as hard-coded orchestration logic, opaque execution paths, and limited runtime control. SAGE introduces a dataflow-centric abstraction, modeling reasoning workflows as directed acyclic graphs (DAGs) composed of typed operators.
+## ✨ Features
 
-If you are using Windows, please install `Docker Desktop` first, and install a wsl2 distro via `wsl --install` to enable GPU access inside docker instance.
+- 🧩 **Declarative & Modular Composition**: Build complex reasoning pipelines from typed, reusable operators. The dataflow graph cleanly separates what to compute from how to compute it.
 
-> WSL 2 is required because:
-    Docker Desktop uses the WSL 2 backend to enable GPU support on Windows.
-    GPU passthrough and NVIDIA Container Toolkit are designed to work with WSL 2.
+- 🔀 **Unified Data and Control Flow**: Express conditional branching, tool routing, and fallback logic declaratively within the graph structure, eliminating brittle, imperative control code.
 
-## 2. Running SAGE Interactively inside the docker instance
+- 💾 **Native Stateful Operators**: Memory is a first-class citizen. Model session, task, and long-term memory as stateful nodes directly within the graph for persistent, context-aware computation.
 
-### 2.1 Hugging Face Authentication
+- ⚡ **Asynchronous & Resilient Runtime**: The engine executes DAGs asynchronously in a non-blocking, data-driven manner. It features stream-aware queues, event-driven scheduling, and built-in backpressure to handle complex workloads gracefully.
 
-Before running the SAGE system, ensure you log in to Hugging Face:
+- 📊 **Built-in Observability & Introspection**: An interactive dashboard provides runtime instrumentation out-of-the-box. Visually inspect execution graphs, monitor operator-level metrics, and debug pipeline behavior in real-time.
+
+## 🔧 Installation
+
+To accommodate different user environments and preferences, we provide **comprehensive setup scripts** that support multiple installation modes. Simply run the top-level `./setup.sh` script and choose from the following four installation options:
+
 ```bash
-huggingface-cli login --token <your_huggingface_token>
+./setup.sh
 ```
 
-### 2.2 Interactive CLI
+You will be prompted to select one of the following modes:
 
-You can interact with the SAGE system using the interactive CLI:
-```bash
-python api/interactive_cli.py
-```
+1. **Minimal Setup**  
+   Set up only the Conda environment.
 
-### 2.3 If you use Pycharm or other IDE to run SAGE
+2. **Setup with Ray**  
+   Includes the minimal setup and additionally installs [Ray](https://www.ray.io/), a distributed computing framework.
 
-Please remember to update the python interpreter to use conda, sage environment configured automatically by our installation scripts.
+3. **Setup with Docker**  
+   Launches a pre-configured Docker container and sets up the Conda environment inside it.
 
-If you face any other issues, please log them in our issues board.
+4. **Full Setup**  
+   Launches the Docker container, installs all required dependencies (including **CANDY**, our in-house vector database), and sets up the Conda environment.
 
-## Known Issues
+---
 
-> docker run --rm --gpus all intellistream/sage:devel-ubuntu22.04 nvidia-smi
-docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error running hook #0: error running hook: exit status 1, stdout: , stderr: Auto-detected mode as 'legacy'
-nvidia-container-cli: requirement error: unsatisfied condition: cuda>=12.5, please update your driver to a newer version, or use an earlier cuda container: unknown.
+Alternatively, you can install the project manually:
 
-> update your NVIDIA driver on your host machine to a version compatible with CUDA 12.5 (≥ 545.23).
+1. Create a new Conda environment with Python ≥ 3.11:
 
-```
-1. Use Case: Handling a Natural Language Query
-Flow:
-User enters a natural question into the CLI.
-The question is compiled into a DAG using operators like Retriever and Generator.
-The DAG is executed to fetch data from memory layers and generate a response using LLM (vLLM).
+   ```bash
+   conda create -n sage python=3.11
+   conda activate sage
+   ```
 
-interactive_cli.py:interactive_console()
-    -> query_compiler.py:QueryCompiler.compile_natural_query()
-        -> dag.py:DAG.__init__()
-        -> dag_node.py:DAGNode.__init__()  # Creates nodes for Retriever and Generator
-    -> query_executor.py:QueryExecutor.execute()
-        -> dag_executor.py:DAGExecutor.execute()
-            -> retriever.py:Retriever.execute()
-                -> short_term_memory.py:ShortTermMemory.retrieve()
-                    -> CANDY API:VectorDB.search()
-            -> generator.py:Generator.execute()
-                -> vLLM API:LLMEngine.generate()
-```
+2. Install the package from the root directory:
 
-```
-2. Use Case: Executing a One-Shot CQL Query
-Flow:
-User submits a EXECUTE query via CLI.
-The query is parsed and compiled into a DAG.
-The DAG is executed, which may modify memory layers or retrieve information.
+   ```bash
+   pip install .
+   ```
 
-interactive_cli.py:interactive_console()
-    -> query_compiler.py:QueryCompiler.compile_cql()
-        -> dag.py:DAG.__init__()
-        -> dag_node.py:DAGNode.__init__()  # Constructs nodes based on query type
-    -> query_optimizer.py:QueryOptimizer.optimize()
-        -> dag.py:DAG.reorder_nodes()
-    -> query_executor.py:QueryExecutor.execute()
-        -> dag_executor.py:DAGExecutor.execute()
-            -> retriever.py:Retriever.execute()  # If query involves retrieval
-                -> long_term_memory.py:LongTermMemory.retrieve()
-                    -> CANDY API:VectorDB.search()
-            -> updater.py:Updater.execute()  # If query involves updates
-                -> long_term_memory.py:LongTermMemory.update()
-                    -> CANDY API:VectorDB.update()
-```
+This method is recommended for advanced users who prefer manual dependency management or wish to integrate the project into existing workflows.
 
-```
-3. Use Case: Registering a Continuous Query
-Flow:
-User submits a REGISTER query via CLI.
-The query is parsed and registered for continuous execution.
-The QueryExecutor launches a thread to execute the query at intervals or upon events.
 
-interactive_cli.py:interactive_console()
-    -> query_compiler.py:QueryCompiler.compile_cql()
-        -> dag.py:DAG.__init__()
-        -> dag_node.py:DAGNode.__init__()  # Constructs DAG for continuous query
-    -> query_executor.py:QueryExecutor.register_continuous_query()
-        -> threading.Thread(target=query_executor.py:QueryExecutor._execute_continuously)
-            -> dag_executor.py:DAGExecutor.execute()
-                -> retriever.py:Retriever.execute()
-                    -> network_agent.py:NetworkAgent.fetch_data()  # Fetches new data from internet
-                -> hallucination_detection.py:HallucinationDetection.execute()
-                -> prompter.py:Prompter.execute()
-                -> generator.py:Generator.execute()
-```
-```
-4. Use Case: Updating the Memory Layers
-Flow:
-A query triggers an update to the memory layers.
-The query is compiled into a DAG with an Updater operator.
-The Updater modifies the short-term or long-term memory layer using CANDY.
+- **Install from source**
 
-interactive_cli.py:interactive_console()
-    -> query_compiler.py:QueryCompiler.compile_cql()
-        -> dag.py:DAG.__init__()
-        -> dag_node.py:DAGNode.__init__()  # Constructs a DAG with Updater node
-    -> query_executor.py:QueryExecutor.execute()
-        -> dag_executor.py:DAGExecutor.execute()
-            -> updater.py:Updater.execute()
-                -> long_term_memory.py:LongTermMemory.update()
-                    -> CANDY API:VectorDB.update()
 
-```
+## 🚀 Quick Start
 
-```
-5. Use Case: Handling a Complex Workflow with Multiple Operators
+## 🧩 Components
 
-A complex natural query or CQL triggers a multi-step DAG.
-Operators like Retriever, Generator, Docwriter, and ModelEditor interact sequentially.
-The system executes the workflow using the DAG.
-
-interactive_cli.py:interactive_console()
-    -> query_compiler.py:QueryCompiler.compile_natural_query() or compile_cql()
-        -> dag.py:DAG.__init__()
-        -> dag_node.py:DAGNode.__init__()  # Constructs a complex DAG
-    -> query_optimizer.py:QueryOptimizer.optimize()
-        -> dag.py:DAG.reorder_nodes()
-    -> query_executor.py:QueryExecutor.execute()
-        -> dag_executor.py:DAGExecutor.execute()
-            -> retriever.py:Retriever.execute()
-                -> long_term_memory.py:LongTermMemory.retrieve()
-                    -> CANDY API:VectorDB.search()
-            -> generator.py:Generator.execute()
-                -> vLLM API:LLMEngine.generate()
-            -> model_editor.py:ModelEditor.execute()
-                -> vLLM API:LLMEngine.modify_model()
-            -> docwriter.py:Docwriter.execute()
-                -> helpers.py:Helpers.format_output()
-
-```
-
-```
-6. Use Case: The user asks a natural language query, requesting low-hallucination output.
-
-interactive_cli.py:interactive_console()
-    -> query_compiler.py:QueryCompiler.compile_natural_query(hallucination_required=True)
-        -> dag.py:DAG.__init__()
-        -> dag_node.py:DAGNode.__init__()  # Constructs nodes with HD and retrieval dependencies
-    -> query_executor.py:QueryExecutor.execute()
-        -> dag_executor.py:DAGExecutor.execute()
-            -> retriever.py:Retriever.execute()  # Short-term memory
-                -> short_term_memory.py:ShortTermMemory.retrieve()
-            -> hallucination_detection.py:HallucinationDetection.execute()
-                -> triggers retries if hallucination_detected=True:
-                    -> retriever.py:Retriever.execute()  # Long-term memory
-                        -> long_term_memory.py:LongTermMemory.retrieve()
-                    -> retriever.py:Retriever.execute()  # Internet
-                        -> network_agent.py:NetworkAgent.fetch_data()
-            -> generator.py:Generator.execute()  # Re-generates refined response
-            -> hallucination_detection.py:HallucinationDetection.execute()
-                -> Repeat until resolved or retries exhausted
-```
-
-```
-7. Use Case: 
-The user requests continous learning of retriever (registered to the system); 
-
-the user asks natural language queries.
-
-Alternatively: 
-
-(The user requests fine-tune of retriever +) the user asks natural language queries 
-                    -> the user asks natural language queries; repeat x 1000;                    
-                    + Operator's Memory (no need a VDB);
-                    + Embedder needs to pass information (query embedding & document embedding) to Retriever.
-
-```
+## 🎨 SAGE-UI

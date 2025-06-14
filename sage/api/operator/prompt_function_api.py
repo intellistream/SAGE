@@ -1,7 +1,7 @@
 from sage.api.operator.base_operator_api import StateLessFuction, Data, T
 from abc import abstractmethod
 
-class PromptFunction(StateLessFuction()):
+class PromptFunction(StateLessFuction):
     """
     Operator for generating prompts based on input data.
     """

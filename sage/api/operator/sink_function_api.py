@@ -1,7 +1,7 @@
 from regex import D
 from sage.api.operator.base_operator_api import StateLessFuction, Data,T
 from abc import abstractmethod
-class SinkFunction(StateLessFuction()):
+class SinkFunction(StateLessFuction):
     """
     Operator for output results
     """
