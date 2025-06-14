@@ -4,6 +4,7 @@
 # 导入 Sage 中的 Pipeline 和相关组件
 import logging
 import time
+
 from typing import Tuple, List, Type, TYPE_CHECKING, Union, Any
 import yaml
 import ray
@@ -11,6 +12,7 @@ import asyncio
 # from ray import serve
 from sage.api.pipeline import Pipeline
 # from sage.api.memory.memory_service import MemoryManagerService
+
 from sage.api.operator.operator_impl.promptor import QAPromptor
 from sage.api.operator.operator_impl.generator import OpenAIGenerator
 from sage.api.operator.operator_impl.reranker import BGEReranker
@@ -21,6 +23,8 @@ from sage.api.operator.operator_impl.writer import LongTimeWriter
 from sage.api.operator.operator_impl.retriever import SimpleRetriever
 from sage.api.operator.operator_impl.sink import TerminalSink
 from sympy.multipledispatch.dispatcher import source
+
+
 if TYPE_CHECKING:
     from sage.api.pipeline.datastream_api import DataStream
 
@@ -41,6 +45,7 @@ if TYPE_CHECKING:
 # # 获取 MemoryManagerService 的句柄，供后续使用
 # manager_handle = serve.get_deployment_handle(deployment_name="MemoryManagerService", app_name="MemoryApp")
 
+
 # 加载配置文件
 def load_config(path: str) -> dict:
     with open(path, 'r') as f:
@@ -48,6 +53,7 @@ def load_config(path: str) -> dict:
 
 config = load_config('./app/config.yaml')  # 加载配置文件
 logging.basicConfig(level=logging.DEBUG)
+
 
 
 
@@ -142,4 +148,5 @@ for i in result:
 
 # # 调用异步函数初始化内存和管道
 # asyncio.run(init_memory_and_pipeline())
+
 
