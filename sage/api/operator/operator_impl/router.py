@@ -7,7 +7,7 @@ def condition(value:bool)->bool:
     else:   
         return False
     
-class BoolRouter(RouterFunction()):
+class BoolRouter(RouterFunction):
     """
     RouterFunction that routes based on a boolean value.
     Used for control two different branches in the pipeline.
@@ -18,12 +18,12 @@ class BoolRouter(RouterFunction()):
 
         self.condition=condition
 
-    def execute(self, data:Data[Tuple[bool,str,str]]) -> bool:
+    def execute(self, data:Data[Tuple[bool,str,str]]) -> Data[bool]:
         try:
             value,_,_=data.data
             if self.condition(value):
-                return True
+                return Data(True)
             else:
-                return False
+                return Data(False)
         except Exception as e:
             self.logger.error(f"{e} when WriterFuction")

@@ -1,10 +1,10 @@
 from torch import chunk
-from sage.api.operator import RetrieverFunction
+from sage.api.operator import StateRetrieverFunction
 from sage.api.memory import connect, get_default_manager
 from typing import Tuple, List
 from sage.api.operator import Data
 
-class SimpleRetriever(RetrieverFunction):
+class SimpleRetriever(StateRetrieverFunction):
     """
     A simple retriever that retrieves memory chunks (short-term, long-term, or dynamic-contextual) based on the input query.
 

@@ -1,7 +1,7 @@
 from sage.api.operator.base_operator_api import StateLessFuction,Data,T
 from abc import abstractmethod
 
-class RouterFunction(StateLessFuction()):
+class RouterFunction(StateLessFuction):
     """
     Operator for routing data to different processing paths based on conditions.
     """

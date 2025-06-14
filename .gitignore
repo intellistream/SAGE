@@ -14,14 +14,14 @@ CMakeUserPresets.json
 /deps/CANDY/installation/build/
 /.idea/deployment.xml
 /.idea/misc.xml
-/build
+/build/
 /installation/candy.egg-info/
 /installation/build/
 /installation/candy/
 /installation/dist/
 /installation/dist/
 /installation/candy/
-
+/sage.egg-info/
 /deps/CANDY/.github/
 
 
@@ -47,4 +47,4 @@ output.txt
 /.vscode/
 /arxiv_pdfs
 /arxiv_structured_json
-
+/sage/.env
