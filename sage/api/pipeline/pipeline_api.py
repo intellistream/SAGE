@@ -2,13 +2,13 @@ from typing import Type, TYPE_CHECKING, Union, Any
 from sage.core.engine.runtime import Engine
 from sage.api.pipeline.datastream_api import DataStream
 from sage.api.operator import SourceFunction
-from sage.api.operator.base_operator_api import BaseOperator
+from sage.api.operator.base_operator_api import BaseFuction
 
 from sage.runtime.operator_factory import OperatorFactory
     
 class Pipeline:
     name:str
-    operators: list[BaseOperator]
+    operators: list[BaseFuction]
     data_streams: list[DataStream]
     operator_config: dict
     operator_cls_mapping: dict

@@ -10,7 +10,7 @@ import ray
 import asyncio
 from ray import serve
 from sage.api.pipeline import Pipeline
-from sage.api.memory.memory_service import MemoryManagerService
+# from sage.api.memory.memory_service import MemoryManagerService
 from sage.api.operator.operator_impl.promptor import QAPromptor
 from sage.api.operator.operator_impl.generator import OpenAIGenerator
 from sage.api.operator.operator_impl.reranker import BGEReranker
@@ -18,7 +18,7 @@ from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
 from sage.api.operator.operator_impl.source import FileSource
 from sage.api.operator.operator_impl.sink import TerminalSink, FileSink
 from sage.api.operator.operator_impl.writer import LongTimeWriter
-from sage.api.operator.operator_impl.retriever import SimpleRetriever
+# from sage.api.operator.operator_impl.retriever import SimpleRetriever
 from sage.api.operator.operator_impl.sink import TerminalSink
 from sympy.multipledispatch.dispatcher import source
 if TYPE_CHECKING:
