@@ -52,7 +52,6 @@ If you have enough information to answer, set 'action' to "", and fill in 'final
 """
 
 SUFFIX = """Begin!
-
 Question: {input}
 Thought:{agent_scratchpad}
 """
@@ -80,10 +79,12 @@ class BaseAgent:
             seed=42 
         )
         self.max_steps=self.config.get("max_steps", 5)
+
     def get_prompt(self, input, agent_scratchpad):
         return PREFIX + FORMAT_INSTRUCTIONS.format(tool_names=self.tool_names) + SUFFIX.format(
             input=input, agent_scratchpad=agent_scratchpad
         )
+    
     def parse_json_output(self, output):
         """
         Try to load the entire output as JSON.

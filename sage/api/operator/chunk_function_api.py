@@ -1,9 +1,16 @@
-from sage.api.operator.base_operator_api import BaseOperator
+from sage.api.operator.base_operator_api import StateLessFuction, Data, T
+from abc import abstractmethod
 
-
-class ChunkFunction(BaseOperator):
+class ChunkFunction(StateLessFuction):
+    """
+    Operator for chunking data into smaller pieces.
+    """
     def __init__(self):
         super().__init__()
 
-    def execute(self, inputs, context=None):
-        raise NotImplementedError("ChunkFunction must implement execute().")
+    @abstractmethod
+    def execute(self,data: Data[T]) -> Data[T]:
+        """
+        Subclasses must override this method to implement chunking logic.
+        """
+        raise NotImplementedError(f"{self.get_name()}.execute() is not implemented")

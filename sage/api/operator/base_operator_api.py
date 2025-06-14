@@ -1,5 +1,10 @@
 import logging
-class BaseOperator:
+from typing import TypeVar,Generic
+T = TypeVar('T')
+class Data(Generic[T]):
+    def __init__(self, data: T):
+        self.data = data 
+class BaseFuction:
     def __init__(self):
         self.upstream = None
         self.downstream = None
@@ -25,10 +30,33 @@ class BaseOperator:
         """
         raise NotImplementedError(f"{self._name}.execute() is not implemented")
     
+class StateLessFuction(BaseFuction):
+    def __init__(self):
+        super().__init__()
+    
+    def execute(self, data: Data[T]) -> Data[T]:
+        raise NotImplementedError(f"{self.get_name()}.execute() is not implemented")
 
-from typing import TypeVar,Generic
-T = TypeVar('T')
+class StatefulFuction(BaseFuction):
+    def __init__(self):
+        super().__init__()
+        self._state = {}
 
-class Data(Generic[T]):
-    def __init__(self, data: T):
-        self.data = data 
+    def execute(self, data: Data[T]) -> Data[T]:
+        raise NotImplementedError(f"{self.get_name()}.execute() is not implemented")
+
+    def get_state(self):
+        return self._state
+
+class SharedStateFuction(BaseFuction):
+    shared_state = {}  # class-level shared state
+
+    def __init__(self):
+        super().__init__()
+
+    def execute(self, data: Data[T]) -> Data[T]:
+        raise NotImplementedError(f"{self.get_name()}.execute() is not implemented")
+
+    @classmethod
+    def get_shared_state(cls):
+        return cls.shared_state

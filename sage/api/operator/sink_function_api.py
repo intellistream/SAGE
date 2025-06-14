@@ -1,7 +1,7 @@
-from sage.api.operator.base_operator_api import BaseOperator
-from typing import Any
+from regex import D
+from sage.api.operator.base_operator_api import StateLessFuction, Data,T
 from abc import abstractmethod
-class SinkFunction(BaseOperator):
+class SinkFunction(StateLessFuction):
     """
     Operator for output results
     """
@@ -9,5 +9,8 @@ class SinkFunction(BaseOperator):
         super().__init__()
 
     @abstractmethod
-    def execute(self):
-        raise NotImplementedError("SinkFunction must implement execute() method")
+    def execute(self,data: Data[T]) -> Data[T]:
+        """
+        Subclasses must override this method to implement the sink logic.
+        """
+        raise NotImplementedError(f"{self.get_name()}.execute() is not implemented")

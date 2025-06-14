@@ -1,11 +1,11 @@
 from ast import List
-from sage.api.operator import WriterFunction,Data
+from sage.api.operator import StateWriterFunction,Data
 from sage.api.memory import connect,get_default_manager
 from typing import Tuple
 
 
 
-class LongTimeWriter(WriterFunction):
+class LongTimeWriter(StateWriterFunction):
     def __init__(self,config):
         super().__init__()
         self.config = config["writer"]
@@ -21,7 +21,7 @@ class LongTimeWriter(WriterFunction):
 
         return Data((query,answer))
 
-class MemWriter(WriterFunction):
+class MemWriter(StateWriterFunction):
     def __init__(self,config):
         super().__init__()
         self.config = config["writer"]

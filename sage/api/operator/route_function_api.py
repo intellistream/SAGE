@@ -1,17 +1,16 @@
-from sage.api.operator.base_operator_api import BaseOperator,Data
-from typing import Any, Tuple, List
+from sage.api.operator.base_operator_api import StateLessFuction,Data,T
 from abc import abstractmethod
 
-class RouterFunction(BaseOperator):
+class RouterFunction(StateLessFuction):
     """
-    Operator for retrieve from memory
+    Operator for routing data to different processing paths based on conditions.
     """
     def __init__(self,):
         super().__init__()
-        pass
 
-
-    # Returns both the original query and the retrieved memory chunks
     @abstractmethod
     def execute(self):
-        raise NotImplementedError("RouterFunction must implement execute().")
+        """
+        Subclasses must override this method to implement the routing logic.
+        """
+        raise NotImplementedError(f"{self.get_name()}.execute() is not implemented")

@@ -116,7 +116,7 @@ def run_query(query: str, config=None) -> str:
         "LLMbased_Reranker": LLMbased_Reranker,
         "TerminalSink": TerminalSink,
         "FileSource": FileSource,
-        "LongTimeWriter": LongTimeWriter,
+        # "LongTimeWriter": LongTimeWriter,
         "RetriveSink": RetriveSink,
     }
 
