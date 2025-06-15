@@ -77,7 +77,10 @@ class BaseOperator:
         """
         try:
             # Default behavior: call execute with received data and emit to channel 0
-            result = self.execute(data)
+            if(data is None):
+                result = self.execute()
+            else:
+                result = self.execute(data)
             if result is not None:
                 self.emit(0, result)
         except Exception as e:

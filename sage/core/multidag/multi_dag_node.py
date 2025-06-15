@@ -106,13 +106,13 @@ class MultiplexerDagNode:
         # Try all channels starting from current position
         for _ in range(num_channels):
             channel_id = self._current_channel_index
-            channel = self.upstream_channels[channel_id]
+            channel:MessageQueue = self.upstream_channels[channel_id]
             
             # Move to next channel for next call (round-robin)
             self._current_channel_index = (self._current_channel_index + 1) % num_channels
             
             # Check if current channel has data
-            if not channel.empty():
+            if not channel.is_empty():
                 data = channel.get()
                 return (channel_id, data)
         
