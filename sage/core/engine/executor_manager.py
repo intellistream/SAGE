@@ -28,7 +28,7 @@ class ExecutorManager:
         self.task_handles = {}  # dag_id -> [task_handles]
         self.logger=logging.getLogger(__name__)
         self.local_backend = LocalExecutionBackend(max_slots, scheduling_strategy)
-        # self.ray_backend = RayExecutionBackend()
+        self.ray_backend:RayExecutionBackend = None
 
         # self.available_slots = [Slot(slot_id=i) for i in range(max_slots)]
         # self.max_slots = max_slots
@@ -99,9 +99,9 @@ class ExecutorManager:
     def _get_execution_backend(self, dag: DAG) -> ExecutionBackend:
         """根据DAG配置选择执行后端"""
         # 检查DAG配置中的执行后端设置
-        backend_type = dag.working_config.get('execution_backend', 'local')
+        backend_type = dag.platform
         
-        if backend_type == 'ray':
+        if backend_type == "ray":
             self.logger.info(f"Using Ray backend for DAG {dag.dag_id}")
             if self.ray_backend is None:
                 self.ray_backend = RayExecutionBackend()

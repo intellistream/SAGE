@@ -1,5 +1,6 @@
 import logging
 from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
+from sage.core.multidag import MultiplexerDagNode
 from sage.core.dag.dag import DAG
 import threading
 
@@ -20,16 +21,17 @@ class StreamingTaskExecutor(BaseTaskExecutor):
                TypeError: 当节点类型不匹配时抛出
                RuntimeError: 执行过程中出现错误时抛出
     """
-    def __init__(self,node:ContinuousDAGNode,working_config=None):
+    def __init__(self,node,working_config=None):
         super().__init__()
         self.long_running=True
         self.node=node
-        self.logger=logging.getLogger('streaming_executor')
+        # self.logger=logging.getLogger('streaming_executor')
         self.working_config=working_config or {}
     def execute(self):
+        self.logger=logging.getLogger('streaming_executor')
         #循环的执行算子
         try:
-            if  isinstance(self.node,ContinuousDAGNode):
+            if  isinstance(self.node,ContinuousDAGNode) or isinstance(self.node,MultiplexerDagNode):
                 self.node.run_loop()
             else :
                 raise TypeError(f"node{self.node.name} is not a ContinuousDAGNode")

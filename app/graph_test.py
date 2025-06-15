@@ -21,6 +21,7 @@ from sage.api.operator.operator_impl.writer import LongTimeWriter
 from sage.api.operator.operator_impl.retriever import SimpleRetriever
 from sage.api.operator.operator_impl.sink import TerminalSink
 from sympy.multipledispatch.dispatcher import source
+from sage.api.graph import SageGraph
 if TYPE_CHECKING:
     from sage.api.pipeline.datastream_api import DataStream
 
@@ -29,32 +30,42 @@ def load_config(path: str) -> dict:
     with open(path, 'r') as f:
         return yaml.safe_load(f)
 
-config = load_config('./app/config.yaml')  # 加载配置文件
+config = load_config('./app/graph_config.yaml')  # 加载配置文件
 logging.basicConfig(level=logging.INFO)
 
-def init_memory_and_pipeline():
-
-    # 创建一个新的管道实例
-    pipeline = Pipeline(name="example_pipeline", use_ray=True)
-
-    # 步骤 1: 定义数据源（例如，来自用户的查询）
-    query_stream:DataStream = pipeline.add_source(source_class=FileSource, config=config)  # 从文件源读取数据
-
-    # 步骤 3: 使用 QAPromptor 构建查询提示
-    prompt_stream:DataStream = query_stream.construct_prompt(QAPromptor, config)
-
-    # 步骤 4: 使用 OpenAIGenerator 生成最终的响应
-    response_stream:DataStream = prompt_stream.generate_response(OpenAIGenerator, config)
-
-    # 步骤 5: 输出到终端或文件
-    sink_stream:DataStream = response_stream.sink(FileSink, config)
-
-    # 提交管道到 SAGE 运行时
-    pipeline.submit(config={"is_long_running": True})
+def init_graph():
+    graph = SageGraph(name = "example_graph", config=config["graph"])
+    graph.add_node("filesource",
+                    input_streams=None, 
+                    output_streams="query_stream", 
+                    operator_class=FileSource,
+                    # operator_config=config["source"])
+                    operator_config=config)
+    graph.add_node("promptor",
+                    input_streams="query_stream", 
+                    output_streams="prompt_stream", 
+                    operator_class=QAPromptor,
+                    operator_config=config)
+                    #operator_config=config["promptor"])
+    graph.add_node("generator",
+                    input_streams="prompt_stream", 
+                    output_streams="response_stream", 
+                    operator_class=OpenAIGenerator,
+                    operator_config=config)
+                    #operator_config=config["generator"])
+    
+    graph.add_node("sink",
+                    input_streams="response_stream", 
+                    output_streams=None, 
+                    operator_class=FileSink,
+                    operator_config=config)
+                    #operator_config=config["sink"])
+    
+    graph.submit()
 
     # 等待管道运行一段时间
     time.sleep(100)
 
 # 调用异步函数初始化内存和管道
 if __name__ == '__main__':
-    init_memory_and_pipeline()
+    init_graph()
