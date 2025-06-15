@@ -117,6 +117,11 @@ class BaseDAGNode:
         return self.name
 
 
+
+
+
+
+
 class OneShotDAGNode(BaseDAGNode):
     """
     One-shot execution variant of DAGNode.
@@ -231,3 +236,5 @@ class ContinuousDAGNode(BaseDAGNode):
                 self._stop_timer.cancel()
 
             self.logger.info(f"Node '{self.name}' received stop signal.")
+
+

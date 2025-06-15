@@ -51,6 +51,13 @@ class Engine:
         self.dag_manager.submit_dag(dag_id)
         self.executor_manager.run_dags()
 
+    def submit_graph(self, graph):
+        dag = self.compiler.compile_graph(graph)
+        dag_id=self.dag_manager.add_dag(dag)
+        self.dag_manager.submit_dag(dag_id)
+        self.executor_manager.run_dags()
+    
+
     def stop_pipeline(self,pipeline):
         dag_id=self.pipeline_to_dag[pipeline]
         self.executor_manager.stop_dag(dag_id)

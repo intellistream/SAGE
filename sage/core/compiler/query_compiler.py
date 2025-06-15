@@ -1,11 +1,15 @@
-
+from typing import Dict, Type, Any, TYPE_CHECKING
 from sage.core.compiler.optimizer import Optimizer
 from sage.core.compiler.query_parser import QueryParser
 from sage.core.dag.dag import DAG
 from sage.core.dag.dag_node import BaseDAGNode, ContinuousDAGNode, OneShotDAGNode
 from sage.core.compiler.logical_graph_constructor import LogicGraphConstructor
 
-
+from sage.runtime.operator_factory import OperatorFactory
+from sage.core.multidag import MultiplexerDagNode
+from sage.core.io.message_queue import MessageQueue
+if TYPE_CHECKING:
+    from sage.api.graph import SageGraph
 class QueryCompiler:
 
     def __init__(self,generate_func = None ):
@@ -19,10 +23,49 @@ class QueryCompiler:
         self.parser = QueryParser(generate_func=generate_func)
         self.dag_dict = {}
 
-
+    def compile_graph(self, graph:'SageGraph'):
+        dag = DAG(id="dag_1",strategy="streaming")
+        dag.platform = graph.config["platform"]
+        operator_factory = OperatorFactory(graph.config["platform"] == "ray")
         
+        # Step 1: Create MessageQueue instances for all edges
+        edge_to_queue:Dict[str,MessageQueue] = {}
+        for edge_name, edge in graph.edges.items():
+            edge_to_queue[edge_name] = MessageQueue()
 
 
+        # Step 2: Create all DAG nodes first
+        dag_nodes:Dict[str, MultiplexerDagNode] = {}
+        for node_name, graph_node in graph.nodes.items():
+            # Create operator instance
+            operator = operator_factory.create(graph_node.operator, graph_node.config)
+            
+            # Create DAG node
+            dag_node = MultiplexerDagNode(
+                graph_node.name,
+                operator,
+                config=graph_node.config,
+                is_spout=(graph_node.type == "source")
+            )
+            dag_nodes[node_name] = dag_node
+            dag.add_node(dag_node)
+
+        # Step 3: Connect nodes through message queues
+        for node_name, graph_node in graph.nodes.items():
+            current_dag_node = dag_nodes[node_name]
+            
+            # Add downstream channels for output edges
+            for output_edge in graph_node.output_channels:
+                # Add downstream channel and connect to message queue
+                output_queue = edge_to_queue[output_edge.name]
+                current_dag_node.add_downstream_channel(output_queue)
+            
+            # Add upstream channels for input edges  
+            for input_edge in graph_node.input_channels:
+                input_queue = edge_to_queue[input_edge.name]
+                current_dag_node.upstream_channels.append(input_queue)
+        
+        return dag
 
     def compile_natural_query(self, natural_query):
         """
@@ -54,6 +97,9 @@ class QueryCompiler:
             raise ValueError(f"Unsupported query type: {intent}")
 
         return dag
+
+        
+
 
     def compile(self,  pipeline=None,config=None):
         """
