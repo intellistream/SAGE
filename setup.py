@@ -1,3 +1,4 @@
+# conda create -n test python=3.11
 from setuptools import setup, find_packages
 
 def parse_requirements(filename):
@@ -11,6 +12,6 @@ setup(
     author_email="intellistream@outlook.com",
     packages=find_packages(),
     url = "https://github.com/intellistream/SAGE",
-    install_requires=[],
+    install_requires=parse_requirements("requirements.txt"),
     python_requires=">=3.11",
 )

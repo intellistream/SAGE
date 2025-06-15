@@ -1,15 +1,15 @@
 from abc import abstractmethod
-from sage.api.operator.base_operator_api import BaseOperator
-class RerankerFunction(BaseOperator):
+from sage.api.operator.base_operator_api import StateLessFuction,Data,T
+class RerankerFunction(StateLessFuction):
     """
     Operator for rerank the context after retrive
     """
     def __init__(self):
-        """
-        :param model_name: 模型名称/路径
-        """
         super().__init__()
 
     @abstractmethod
-    def execute(self):
-        raise NotImplementedError("RerankerFunction must implement execute().")
+    def execute(self,data: Data[T]) -> Data[T]:
+        """
+        Subclasses must override this method to implement the reranker logic.
+        """
+        raise NotImplementedError(f"{self.get_name()}.execute() is not implemented")

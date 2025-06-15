@@ -1,15 +1,15 @@
 from abc import abstractmethod
-from sage.api.operator.base_operator_api import BaseOperator
-class RefinerFunction(BaseOperator):
+from sage.api.operator.base_operator_api import StateLessFuction, Data, T
+class RefinerFunction(StateLessFuction):
     """
     Operator for compress the prompt to speed up inference
     """
     def __init__(self):
-        """
-        :param model_name: 模型名称/路径
-        """
         super().__init__()
 
     @abstractmethod
-    def execute(self):
-        raise NotImplementedError("RefinerFunction must implement execute().")
+    def execute(self,data: Data[T]) -> Data[T]:
+        """
+        Subclasses must override this method to implement the refiner logic.
+        """
+        raise NotImplementedError(f"{self.get_name()}.execute() is not implemented")
