@@ -1,10 +1,10 @@
 from typing import Tuple, List
 import time  # 替换 asyncio 为 time 用于同步延迟
-from sage.api.operator import Data, RetrieverFunction
+from sage.api.operator import Data, StateRetrieverFunction
 
 
 # 更新后的 SimpleRetriever
-class SimpleRetriever(RetrieverFunction):
+class SimpleRetriever(StateRetrieverFunction):
     def __init__(self, config: dict):
         super().__init__()
         self.config = config["retriever"]
