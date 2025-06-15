@@ -1,5 +1,5 @@
 # file sage/core/neuromem/storage_engine/vector_storage.py
-# python sage/core/neuromem/storage_engine/vector_storage.py
+# python -m sage/core/neuromem/storage_engine/vector_storage
 
 from typing import Any, Dict
 
@@ -21,21 +21,21 @@ class VectorStorage:
     def delete(self, item_id: str):
         self._store.pop(item_id, None)
         
-    def store(self, hash_id: str, vector: Any):
+    def store(self, item_id: str, vector: Any):
         """
         Store vector under a given hash_id.
 
         使用给定的hash_id存储向量。
         """
-        self._store[hash_id] = vector
+        self._store[item_id] = vector
 
-    def get(self, hash_id: str) -> Any:
+    def get(self, item_id: str) -> Any:
         """
         Retrieve vector using hash_id.
 
         使用hash_id获取向量。
         """
-        return self._store.get(hash_id)
+        return self._store.get(item_id)
 
     def clear(self):
         """
