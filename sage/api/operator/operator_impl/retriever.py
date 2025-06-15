@@ -1,77 +1,100 @@
-from torch import chunk
-from sage.api.operator import RetrieverFunction
-from sage.api.memory import connect, get_default_manager
 from typing import Tuple, List
-from sage.api.operator import Data
+import time  # 替换 asyncio 为 time 用于同步延迟
+from sage.api.operator import Data, RetrieverFunction
 
+
+# 更新后的 SimpleRetriever
 class SimpleRetriever(RetrieverFunction):
-    """
-    A simple retriever that retrieves memory chunks (short-term, long-term, or dynamic-contextual) based on the input query.
+    def __init__(self, config: dict):
+        super().__init__()
+        self.config = config["retriever"]
 
-    The retriever checks different memory modules (STM, LTM, DCM) and fetches relevant memory chunks from them.
+        # 初始化各类型集合
+        if self.config.get("stm", False):
+            self.stm = self.config.get("stm_collection")
+            self.stm_config = self.config.get("stm_config", {})
+        else:
+            self.stm = None
 
-    Input: A Data object containing a query string.
-    Output: A Data object containing a tuple of (input_query, List of retrieved memory chunks).
+        if self.config.get("ltm", False):
+            self.ltm = self.config.get("ltm_collection")
+            self.ltm_config = self.config.get("ltm_config", {})
+        else:
+            self.ltm = None
 
-    Attributes:
-        config: Configuration dictionary containing retriever settings (top_k, memory modules).
-        memory_manager: A memory manager instance used for accessing various memory modules.
-        top_k: The number of top memory chunks to retrieve (defined in config).
-        stm: Short-Term Memory module (if enabled).
-        ltm: Long-Term Memory module (if enabled).
-        dcm: Dynamic Contextual Memory module (if enabled).
-    """
+        if self.config.get("dcm", False):
+            self.dcm = self.config.get("dcm_collection")
+            self.dcm_config = self.config.get("dcm_config", {})
+        else:
+            self.dcm = None
 
-    def __init__(self, config:dict):
-        """
-        Initializes the SimpleRetriever with configuration settings and memory modules.
+        self.top_k = self.config.get("top_k", 5)
 
-        :param config: Dictionary containing retriever settings, including top_k and memory module options (STM, LTM, DCM).
-        """
-        super().__init__()  # Call the parent class's constructor
-        self.config = config["retriever"]  # Retrieve retriever-specific configuration
-        self.ltm = config["ltm_collection"] 
-        self.stm = config["stm_collection"] 
-        self.dcm = config["dcm_collection"]
-        self.top_k = self.config["top_k"]  # Set the top_k parameter from config
-
-        # 新增：检测memory collection的类型
+        # 创建内存适配器并设置日志
         self.memory_adapter = self._create_memory_adapter()
-    
+        self.memory_adapter.logger = self.logger
+
     def _create_memory_adapter(self):
-        """创建内存适配器，处理不同类型的memory collection"""
         from sage.runtime.memory_adapter import MemoryAdapter
         return MemoryAdapter()
 
-    async def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
-        """
-        :param data: A Data object containing a single string (the input query).
-        :return: A Data object containing a tuple of (input_query, List of retrieved memory chunks).
-        """
-        input_query = data.data  # Unpack the input query
-        chunks = []  # Initialize an empty list to store retrieved memory chunks
-        # print(input_query)
-        # Retrieve memory chunks from each memory module if they are enabled in the configuration
-        if self.config["stm"]:
-            stm_results = await self.memory_adapter.retrieve(self.stm)
-            chunks.extend(stm_results)
-            # results = self.stm.retrieve.remote()
-            # chunks.extend(ray.get(results))# Retrieve from Short-Term Memory (STM)
-        if self.config["ltm"]:
-            ltm_results = await self.memory_adapter.retrieve(self.ltm, input_query)
-            chunks.extend(ltm_results)
-            # 保留原有的延迟逻辑
-            import asyncio
-            await asyncio.sleep(1)
-            # results = self.ltm.retrieve.remote(input_query)
-            # chunks.extend(ray.get(results))# Retrieve from Long-Term Memory (LTM)
-            # import time
-            # time.sleep(1)
-        if self.config["dcm"]:
-            dcm_results = await self.memory_adapter.retrieve(self.dcm)
-            chunks.extend(dcm_results)
-            # results = self.dcm.retrieve.remote()
-            # chunks.extend(ray.get(results))# Retrieve from Short-Term Memory (DCM)
-        # Return the original query along with the list of retrieved memory chunks
-        self.logger.info(f"{self._name} retrieve {len(chunks)} results")
+    def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
+        input_query = data.data
+        chunks = []
+        self.logger.debug(f"Starting retrieval for query: {input_query}")
+
+        # STM 检索
+        if self.config.get("stm", False) and self.stm:
+            self.logger.debug("Retrieving from STM")
+            try:
+                # 使用STM配置调用检索
+                stm_results = self.memory_adapter.retrieve(
+                    self.stm,
+                    collection_config=self.stm_config
+                )
+                chunks.extend(stm_results)
+                self.logger.debug(f"Retrieved {len(stm_results)} from STM")
+            except Exception as e:
+                self.logger.error(f"STM retrieval failed: {str(e)}")
+
+        # LTM 检索
+        if self.config.get("ltm", False) and self.ltm:
+            self.logger.debug("Retrieving from LTM")
+            try:
+                # 添加LTM特定配置参数
+                if "index_name" not in self.ltm_config:
+                    self.ltm_config["index_name"] = "default"
+                if "topk" not in self.ltm_config:
+                    self.ltm_config["topk"] = self.top_k
+
+                # 使用LTM配置和输入查询调用检索
+                ltm_results = self.memory_adapter.retrieve(
+                    self.ltm,
+                    query=input_query,
+                    collection_config=self.ltm_config
+                )
+                chunks.extend(ltm_results)
+                self.logger.debug(f"Retrieved {len(ltm_results)} from LTM")
+
+                # 保留原有的延迟逻辑
+                time.sleep(1)
+                self.logger.debug("Completed LTM delay")
+            except Exception as e:
+                self.logger.error(f"LTM retrieval failed: {str(e)}")
+
+        # DCM 检索
+        if self.config.get("dcm", False) and self.dcm:
+            self.logger.debug("Retrieving from DCM")
+            try:
+                # 使用DCM配置调用检索
+                dcm_results = self.memory_adapter.retrieve(
+                    self.dcm,
+                    collection_config=self.dcm_config
+                )
+                chunks.extend(dcm_results)
+                self.logger.debug(f"Retrieved {len(dcm_results)} from DCM")
+            except Exception as e:
+                self.logger.error(f"DCM retrieval failed: {str(e)}")
+
+        self.logger.info(f"{self._name} retrieve {len(chunks)} results for query: '{input_query[:20]}...'")
         return Data((input_query, chunks))
