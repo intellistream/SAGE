@@ -118,3 +118,135 @@ class SageGraph:
         engine:Engine = Engine.get_instance(generate_func=None)
         engine.submit_graph(self)
         print(f" Graph '{self.name}' submitted to engine.")
+    def get_upstream_nodes(self, node_name: str) -> List[str]:
+        """
+        Get list of upstream node names for a given node.
+        
+        Args:
+            node_name: Name of the node to find upstream nodes for
+            
+        Returns:
+            List of upstream node names
+        """
+        if node_name not in self.nodes:
+            raise ValueError(f"Node '{node_name}' not found in graph")
+        
+        graph_node = self.nodes[node_name]
+        upstream_nodes = []
+        
+        for input_edge in graph_node.input_channels:
+            if input_edge.upstream_node:
+                upstream_nodes.append(input_edge.upstream_node.name)
+        
+        return upstream_nodes
+    
+    def get_downstream_nodes(self, node_name: str) -> List[str]:
+        """
+        Get list of downstream node names for a given node.
+        
+        Args:
+            node_name: Name of the node to find downstream nodes for
+            
+        Returns:
+            List of downstream node names
+        """
+        if node_name not in self.nodes:
+            raise ValueError(f"Node '{node_name}' not found in graph")
+        
+        graph_node = self.nodes[node_name]
+        downstream_nodes = []
+        
+        for output_edge in graph_node.output_channels:
+            if output_edge.downstream_node:
+                downstream_nodes.append(output_edge.downstream_node.name)
+        
+        return downstream_nodes
+    
+    def get_node_connections(self, node_name: str) -> Dict[str, List[str]]:
+        """
+        Get both upstream and downstream connections for a node.
+        
+        Args:
+            node_name: Name of the node
+            
+        Returns:
+            Dictionary with 'upstream' and 'downstream' keys containing node name lists
+        """
+        return {
+            'upstream': self.get_upstream_nodes(node_name),
+            'downstream': self.get_downstream_nodes(node_name)
+        }
+    
+    def get_source_nodes(self) -> List[str]:
+        """
+        Get all source nodes (nodes with no upstream connections).
+        
+        Returns:
+            List of source node names
+        """
+        source_nodes = []
+        for node_name, node in self.nodes.items():
+            if node.type == "source" or not node.input_channels:
+                source_nodes.append(node_name)
+        return source_nodes
+    
+    def get_sink_nodes(self) -> List[str]:
+        """
+        Get all sink nodes (nodes with no downstream connections).
+        
+        Returns:
+            List of sink node names
+        """
+        sink_nodes = []
+        for node_name, node in self.nodes.items():
+            if node.type == "sink" or not node.output_channels:
+                sink_nodes.append(node_name)
+        return sink_nodes
+    
+    def validate_graph(self) -> bool:
+        """
+        Validate the graph structure.
+        
+        Returns:
+            True if graph is valid, False otherwise
+        """
+        # Check if graph has at least one source node
+        if not self.get_source_nodes():
+            print("Graph validation failed: No source nodes found")
+            return False
+        
+        # Check if all edges are properly connected
+        for edge_name, edge in self.edges.items():
+            if edge.upstream_node is None:
+                print(f"Graph validation failed: Edge '{edge_name}' has no upstream node")
+                return False
+            
+            if edge.downstream_node is None:
+                print(f"Graph validation failed: Edge '{edge_name}' has no downstream node")
+                return False
+        
+        # Check for orphaned nodes (nodes with no connections)
+        for node_name, node in self.nodes.items():
+            if not node.input_channels and not node.output_channels:
+                print(f"Graph validation failed: Node '{node_name}' is orphaned (no connections)")
+                return False
+        
+        return True
+    
+    def get_graph_info(self) -> Dict[str, Any]:
+        """
+        Get comprehensive information about the graph.
+        
+        Returns:
+            Dictionary containing graph statistics and structure info
+        """
+        return {
+            'name': self.name,
+            'config': self.config,
+            'node_count': len(self.nodes),
+            'edge_count': len(self.edges),
+            'source_nodes': self.get_source_nodes(),
+            'sink_nodes': self.get_sink_nodes(),
+            'nodes': list(self.nodes.keys()),
+            'edges': list(self.edges.keys())
+        }

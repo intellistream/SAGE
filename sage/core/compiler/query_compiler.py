@@ -8,8 +8,10 @@ from sage.core.compiler.logical_graph_constructor import LogicGraphConstructor
 from sage.runtime.operator_factory import OperatorFactory
 from sage.core.multidag import MultiplexerDagNode
 from sage.core.io.message_queue import MessageQueue
+from sage.core.dag.ray_dag import RayDAG
+from sage.core.engine.raydag_task import RayDAGTask
 if TYPE_CHECKING:
-    from sage.api.graph import SageGraph
+    from sage.api.graph import SageGraph, GraphEdge
 class QueryCompiler:
 
     def __init__(self,generate_func = None ):
@@ -24,6 +26,66 @@ class QueryCompiler:
         self.dag_dict = {}
 
     def compile_graph(self, graph:'SageGraph'):
+        platform = graph.config.get("platform", "local")
+        
+        if platform == "ray":
+            return self._compile_graph_for_ray(graph)
+        else:
+            return self._compile_graph_for_local(graph)
+        
+
+    def _compile_graph_for_ray(self, graph:'SageGraph') -> RayDAGTask:
+        """Ray-specific compilation logic returning RayDAGTask."""
+        ray_dag = RayDAG(id=f"ray_dag_{graph.name}", strategy="streaming")
+        operator_factory = OperatorFactory(True)  # Ray-enabled factory
+        
+        # Step 1: Create all Ray Actor DAG nodes
+        for node_name, graph_node in graph.nodes.items():
+            # Extract operator class and configuration instead of creating instance
+            operator_class = graph_node.operator
+            operator_config = graph_node.config or {}
+            
+            from sage.core.dag.ray_multi_node import RayMultiplexerDagNode
+            # Create Ray Actor with operator class, not instance
+            ray_actor = RayMultiplexerDagNode.remote(
+                name=graph_node.name,
+                operator_class=operator_class,
+                operator_config=operator_config,
+                is_spout=(graph_node.type == "source")
+            )
+            
+            # Add to RayDAG - use graph's get_upstream_nodes method
+            upstream_nodes = graph.get_upstream_nodes(node_name)
+            ray_dag.add_ray_actor(
+                name=node_name,
+                actor=ray_actor,
+                is_spout=(graph_node.type == "source"),
+                upstream_nodes=upstream_nodes
+            )
+        
+        # Step 2: Connect Ray actors with proper channel mapping
+        for edge_name, edge in graph.edges.items():
+            
+            # Get channel information from edge
+            upstream_output_channel = edge.upstream_channel
+            downstream_input_channel = edge.downstream_channnel
+            
+            # Connect actors with correct channel mapping
+            ray_dag.connect_actors(
+                upstream_name=edge.upstream_node.name,
+                upstream_output_channel=upstream_output_channel,
+                downstream_name=edge.downstream_node.name,
+                downstream_input_channel=downstream_input_channel
+            )
+        
+        # Create and return RayDAGTask
+        execution_config = {
+            'graph_config': graph.config,
+            'platform': 'ray'
+        }
+        return RayDAGTask(ray_dag, execution_config)
+
+    def _compile_graph_for_local(self, graph:'SageGraph'):
         dag = DAG(id="dag_1",strategy="streaming")
         dag.platform = graph.config["platform"]
         operator_factory = OperatorFactory(graph.config["platform"] == "ray")
