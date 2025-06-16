@@ -1,6 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 import ray
+from typing import Dict, List, Optional, Any
 from sage.core.engine.executor import StreamingTaskExecutor, OneshotTaskExecutor, BaseTaskExecutor
 from sage.core.engine.scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
 from sage.core.dag.dag import DAG
@@ -90,52 +91,3 @@ class RayTaskActor:
         # 实现停止逻辑
         pass
 
-class RayExecutionBackend(ExecutionBackend):
-    """Ray分布式执行后端"""
-    
-    def __init__(self):
-        # 确保Ray已初始化
-        if not ray.is_initialized():
-            ray.init()
-        
-        self.running_actors = {}  # handle -> actor映射
-        self.running_futures = {}  # handle -> future映射
-        self.next_handle_id = 0
-    
-    def submit_task(self, task: BaseTaskExecutor) -> str:
-        """提交任务到Ray集群"""
-        # 创建Ray Actor并执行任务
-        actor = RayTaskActor.remote()
-        future = actor.execute_task.remote(task)
-        
-        handle = f"ray_task_{self.next_handle_id}"
-        self.next_handle_id += 1
-        
-        self.running_actors[handle] = actor
-        self.running_futures[handle] = future
-        
-        return handle
-    
-    def stop_task(self, task_handle: str):
-        """停止Ray任务"""
-        if task_handle in self.running_actors:
-            actor = self.running_actors[task_handle]
-            # 停止actor
-            ray.kill(actor)
-            
-            # 清理映射关系
-            self.running_actors.pop(task_handle, None)
-            self.running_futures.pop(task_handle, None)
-    
-    def get_status(self, task_handle: str):
-        """获取Ray任务状态"""
-        if task_handle not in self.running_futures:
-            return {"status": "not_found"}
-            
-        future = self.running_futures[task_handle]
-        ready, _ = ray.wait([future], timeout=0)
-        
-        if ready:
-            return {"status": "completed", "backend": "ray"}
-        else:
-            return {"status": "running", "backend": "ray"}

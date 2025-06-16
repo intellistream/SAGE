@@ -74,4 +74,3 @@ class OneshotTaskExecutor(BaseTaskExecutor):
         self.stop_event.set()
 
 
-        

@@ -10,7 +10,8 @@ class OperatorFactory:
     """简化的算子工厂，全局控制本地或远程创建"""
     
     def __init__(self, use_ray: bool = True):
-        self.use_ray = use_ray
+        # self.use_ray = use_ray
+        self.use_ray = False
         self.logger = logging.getLogger(__name__)
         self._ray_remote_classes = {}  # 缓存Ray远程类
         

@@ -8,7 +8,8 @@ from sage.core.dag.dag import DAG
 from sage.core.dag.dag_manager import DAGManager
 from sage.core.engine.slot import Slot
 from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
-from sage.core.engine.execution_backend import ExecutionBackend, LocalExecutionBackend, RayExecutionBackend
+from sage.core.engine.execution_backend import ExecutionBackend, LocalExecutionBackend
+from sage.core.engine.ray_execution_backend import RayDAGExecutionBackend
 import time
 
 class ExecutorManager:

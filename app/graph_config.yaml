@@ -1,7 +1,7 @@
 graph:
   name: "sage-api-graph-test"
   description: "Test graph for Sage API Operator"
-  platform: "local" # "ray" or "local"
+  platform: "ray" # "ray" or "local"
 source:
   data_path: "./sage/api/operator/test/question.txt"
 
