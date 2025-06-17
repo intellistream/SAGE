@@ -5,7 +5,7 @@ from sage.core.dag.dag import DAG
 from sage.core.dag.dag_node import BaseDAGNode, ContinuousDAGNode, OneShotDAGNode
 from sage.core.compiler.logical_graph_constructor import LogicGraphConstructor
 
-from sage.runtime.operator_factory import OperatorFactory
+# from sage.runtime.operator_factory import OperatorFactory
 from sage.core.multidag import MultiplexerDagNode
 from sage.core.io.message_queue import MessageQueue
 from sage.core.dag.ray_dag import RayDAG
@@ -37,7 +37,7 @@ class QueryCompiler:
     def _compile_graph_for_ray(self, graph:'SageGraph') -> RayDAGTask:
         """Ray-specific compilation logic returning RayDAGTask."""
         ray_dag = RayDAG(id=f"ray_dag_{graph.name}", strategy="streaming")
-        operator_factory = OperatorFactory(True)  # Ray-enabled factory
+        # operator_factory = OperatorFactory(True)  # Ray-enabled factory
         
         # Step 1: Create all Ray Actor DAG nodes
         for node_name, graph_node in graph.nodes.items():

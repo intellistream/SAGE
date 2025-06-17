@@ -4,7 +4,7 @@ from sage.api.pipeline.datastream_api import DataStream
 from sage.api.operator import SourceFunction
 from sage.api.operator.base_operator_api import BaseOperator
 from sage.core.compiler.query_compiler import QueryCompiler
-from sage.runtime.operator_factory import OperatorFactory
+# from sage.runtime.operator_factory import OperatorFactory
 from sage.api.graph.sage_graph import SageGraph
 
 
@@ -14,7 +14,7 @@ class Pipeline:
     data_streams: list[DataStream]
     operator_config: dict
     operator_cls_mapping: dict
-    operator_factory: OperatorFactory
+    # operator_factory: OperatorFactory
     use_ray: bool
     # compiler: QueryCompiler
     def __init__(self, name: str, use_ray: bool = True):
@@ -25,7 +25,7 @@ class Pipeline:
         self.operator_cls_mapping = {}
         self.use_ray = use_ray
         # 创建全局算子工厂
-        self.operator_factory = OperatorFactory(self.use_ray)
+        # self.operator_factory = OperatorFactory(self.use_ray)
 
 
     def _register_operator(self, operator):
@@ -102,7 +102,7 @@ class Pipeline:
     def set_runtime_config(self, runtime_config: dict):
         """动态设置运行时配置"""
         self.runtime_config = runtime_config
-        self.operator_factory = OperatorFactory(runtime_config)
+        # self.operator_factory = OperatorFactory(runtime_config)
 
     def to_graph(self) -> SageGraph:
         """

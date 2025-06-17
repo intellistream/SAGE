@@ -2,7 +2,8 @@ import ray
 import asyncio
 import logging
 from typing import Any, List, Optional, Dict, Tuple, TYPE_CHECKING, Type
-from sage.runtime.operator_wrapper import OperatorWrapper
+# from sage.archive.operator_wrapper import OperatorWrapper
+from sage.api.operator.base_operator_api import BaseOperator
 from sage.api.operator.base_operator_api import EmitContext
 if TYPE_CHECKING:
     from ray.actor import ActorHandle  # 只在类型检查期间生效
@@ -34,8 +35,8 @@ class RayMultiplexerDagNode:
         self.is_spout = is_spout
         
         # Create operator instance locally within the Ray actor
-        self.operator = self._create_operator_instance()
-        
+        # self.operator = self._create_operator_instance()
+        self.operator = operator_class(operator_config)
         # Store downstream connections: output_channel -> [(downstream_actor, downstream_input_channel)]
         self.downstream_connections: Dict[int, List[Tuple[ray.ActorHandle, int]]] = {}
         
@@ -53,16 +54,16 @@ class RayMultiplexerDagNode:
             except Exception as e:
                 pass
     
-    def _create_operator_instance(self) -> OperatorWrapper:
+    def _create_operator_instance(self) -> BaseOperator:
         """
         Create operator instance locally within the Ray actor.
         
         Returns:
-            OperatorWrapper instance
+            BaseOperator instance
         """
         try:
             # Import operator factory locally
-            from sage.runtime.operator_factory import OperatorFactory
+            from sage.archive.operator_factory import OperatorFactory
             
             # Create factory for local (non-Ray) operators within the Ray actor
             factory = OperatorFactory(use_ray=False)

@@ -7,22 +7,3 @@
 
 Meiosis results in four daughter cells that are genetically diverse, not identical, as crossing over and random assortment of chromosomes contribute to genetic variation.
 ----------------------------------------
-[Q] Question: Question: Answer with True or False: Mitochondria are responsible for protein synthesis.
-[A] Answer  : False
-
-Mitochondria play a key role in cellular energy production, but they are not primarily responsible for protein synthesis. That function is mainly carried out by ribosomes, particularly those found in the rough endoplasmic reticulum and in the cytoplasm. Mitochondria do contain some ribosomes and can synthesize some of their own proteins, but this is a specialized subset and not the general process of protein synthesis within the cell.
-----------------------------------------
-[Q] Question: Question: Answer with True or False: Plants perform both photosynthesis and cellular respiration.
-[A] Answer  : True
-----------------------------------------
-[Q] Question: Question: Answer with True or False: DNA replication occurs during the G1 phase of the cell cycle.
-[A] Answer  : False
-
-DNA replication primarily occurs during the S (synthesis) phase of the cell cycle, not the G1 (first gap) phase. During the G1 phase, the cell grows and performs normal functions, and prepares to enter the S phase where DNA replication takes place.
-----------------------------------------
-[Q] Question: Question: Answer with True or False: Alleles are different forms of the same gene.
-[A] Answer  : True
-----------------------------------------
-[Q] Question: Question: Answer with True or False: Osmosis requires ATP energy.
-[A] Answer  : False. Osmosis is a passive process that does not require ATP energy. It involves the movement of water molecules across a semipermeable membrane from an area of lower solute concentration to an area of higher solute concentration.
-----------------------------------------

@@ -2,7 +2,7 @@
 from typing import TypeVar, Any, Type
 import ray
 import logging
-from sage.runtime.operator_wrapper import OperatorWrapper
+from sage.archive.operator_wrapper import OperatorWrapper
 
 T = TypeVar("T")
 
