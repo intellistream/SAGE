@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from sage.api.operator import SinkFunction
     from sage.api.operator import ChunkFunction
     from sage.api.operator import SummarizeFunction
-    from sage.runtime.operator_wrapper import OperatorWrapper
+    from sage.archive.operator_wrapper import OperatorWrapper
 
 
     

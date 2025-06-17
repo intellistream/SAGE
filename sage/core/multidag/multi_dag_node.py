@@ -6,7 +6,8 @@ import time
 from typing import Any, Type, TYPE_CHECKING, Union, List, Optional, Tuple
 
 
-from sage.runtime.operator_wrapper import OperatorWrapper
+#from sage.archive.operator_wrapper import OperatorWrapper
+from sage.api.operator.base_operator_api import BaseOperator
 from sage.core.io.message_queue import MessageQueue
 from sage.api.operator.base_operator_api import EmitContext
 
@@ -20,7 +21,7 @@ class MultiplexerDagNode:
 
     def __init__(self, 
                  name: str, 
-                 operator: OperatorWrapper,
+                 operator: BaseOperator,
                  config: dict = None, 
                  is_spout: bool = False) -> None:
         """
