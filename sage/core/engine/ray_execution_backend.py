@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Any
-from sage.core.engine.raydag_task import RayDAGTask
+# from sage.archive.raydag_task import RayDAGTask
 from sage.core.dag.ray_dag import RayDAG
 import logging, ray, time
 from sage.core.engine.execution_backend import ExecutionBackend
@@ -27,19 +27,15 @@ class RayDAGExecutionBackend(ExecutionBackend):
         self.monitoring_interval = monitoring_interval
         self.logger = logging.getLogger(self.__class__.__name__)
     
-    def submit_task(self, task) -> str:
+    def submit_task(self, ray_dag:RayDAG) -> str:
         """
         提交 Ray DAG 执行任务
         
         Args:
-            task: 应该是 RayDAG 实例或包含 RayDAG 的任务包装器
+            ray_dag: 应该是 RayDAG 实例或包含 RayDAG 的任务包装器
         """
-        if isinstance(task, RayDAG):
-            ray_dag = task
-        elif hasattr(task, 'ray_dag') and isinstance(task.ray_dag, RayDAG):
-            ray_dag = task.ray_dag
-        else:
-            raise TypeError("Task must be RayDAG instance or contain ray_dag attribute")
+        if not isinstance(ray_dag, RayDAG):
+            raise TypeError("Task must be RayDAG instance")
         
         if not ray_dag.is_valid():
             raise ValueError("Invalid RayDAG: missing spouts or broken dependencies")

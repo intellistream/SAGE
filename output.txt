@@ -5,5 +5,13 @@
 [Q] Question: Question: Answer with True or False: Meiosis produces four genetically identical daughter cells.
 [A] Answer  : False
 
-Meiosis results in four daughter cells that are genetically diverse, not identical, as crossing over and random assortment of chromosomes contribute to genetic variation.
+Meiosis results in four daughter cells that are genetically diverse, not identical, as genetic recombination occurs during the process.
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Mitochondria are responsible for protein synthesis.
+[A] Answer  : False
+
+Mitochondria play a key role in cellular energy production, but they are not primarily responsible for protein synthesis. That function is mainly carried out by ribosomes, particularly those found in the rough endoplasmic reticulum and in the cytoplasm. Mitochondria do contain some ribosomes and can synthesize some of their own proteins, but this is a specialized subset and not the general process of protein synthesis within the cell.
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Plants perform both photosynthesis and cellular respiration.
+[A] Answer  : True
 ----------------------------------------

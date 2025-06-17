@@ -4,12 +4,9 @@ from sage.core.compiler.query_parser import QueryParser
 from sage.core.dag.dag import DAG
 from sage.core.dag.dag_node import BaseDAGNode, ContinuousDAGNode, OneShotDAGNode
 from sage.core.compiler.logical_graph_constructor import LogicGraphConstructor
-
-# from sage.runtime.operator_factory import OperatorFactory
 from sage.core.multidag import MultiplexerDagNode
 from sage.core.io.message_queue import MessageQueue
 from sage.core.dag.ray_dag import RayDAG
-from sage.core.engine.raydag_task import RayDAGTask
 if TYPE_CHECKING:
     from sage.api.graph import SageGraph, GraphEdge
 class QueryCompiler:
@@ -34,8 +31,8 @@ class QueryCompiler:
             return self._compile_graph_for_local(graph)
         
 
-    def _compile_graph_for_ray(self, graph:'SageGraph') -> RayDAGTask:
-        """Ray-specific compilation logic returning RayDAGTask."""
+    def _compile_graph_for_ray(self, graph:'SageGraph') -> RayDAG:
+        """Ray-specific compilation logic returning RayDAG."""
         ray_dag = RayDAG(id=f"ray_dag_{graph.name}", strategy="streaming")
         # operator_factory = OperatorFactory(True)  # Ray-enabled factory
         
@@ -77,13 +74,7 @@ class QueryCompiler:
                 downstream_name=edge.downstream_node.name,
                 downstream_input_channel=downstream_input_channel
             )
-        
-        # Create and return RayDAGTask
-        execution_config = {
-            'graph_config': graph.config,
-            'platform': 'ray'
-        }
-        return RayDAGTask(ray_dag, execution_config)
+        return ray_dag
 
     def _compile_graph_for_local(self, graph:'SageGraph'):
         dag = DAG(id="dag_1",strategy="streaming")
