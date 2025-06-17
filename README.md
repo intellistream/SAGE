@@ -56,7 +56,6 @@ Alternatively, you can install the project manually:
 This method is recommended for advanced users who prefer manual dependency management or wish to integrate the project into existing workflows.
 
 
-- **Install from source**
 
 
 ## 🚀 Quick Start
