@@ -5,10 +5,8 @@ from typing import Any, List, Optional, Dict, Tuple, TYPE_CHECKING, Type
 # from sage.archive.operator_wrapper import OperatorWrapper
 from sage.api.operator.base_operator_api import BaseOperator
 from sage.api.operator.base_operator_api import EmitContext
-if TYPE_CHECKING:
-    from ray.actor import ActorHandle  # 只在类型检查期间生效
-else:
-    ActorHandle = Any
+from ray.actor import ActorHandle  # 只在类型检查期间生效
+
 @ray.remote
 class RayMultiplexerDagNode:
     """
@@ -17,7 +15,7 @@ class RayMultiplexerDagNode:
     
     def __init__(self, 
                  name: str, 
-                 operator_class: Type,
+                 operator_class: Type[BaseOperator],
                  operator_config: Dict = None,
                  is_spout: bool = False) -> None:
         """
@@ -35,10 +33,9 @@ class RayMultiplexerDagNode:
         self.is_spout = is_spout
         
         # Create operator instance locally within the Ray actor
-        # self.operator = self._create_operator_instance()
         self.operator = operator_class(operator_config)
         # Store downstream connections: output_channel -> [(downstream_actor, downstream_input_channel)]
-        self.downstream_connections: Dict[int, List[Tuple[ray.ActorHandle, int]]] = {}
+        self.downstream_connections: Dict[int, List[Tuple[ActorHandle, int]]] = {}
         
         # Running state
         self._running = False
@@ -53,30 +50,6 @@ class RayMultiplexerDagNode:
                 self.operator.set_emit_context(self.emit_context)
             except Exception as e:
                 pass
-    
-    def _create_operator_instance(self) -> BaseOperator:
-        """
-        Create operator instance locally within the Ray actor.
-        
-        Returns:
-            BaseOperator instance
-        """
-        try:
-            # Import operator factory locally
-            from sage.archive.operator_factory import OperatorFactory
-            
-            # Create factory for local (non-Ray) operators within the Ray actor
-            factory = OperatorFactory(use_ray=False)
-            
-            # Create operator instance
-            operator = factory.create(self.operator_class, self.operator_config)
-            
-            return operator
-            
-        except Exception as e:
-            # Since we can't use logger, use print for debugging
-            print(f"Error creating operator in Ray actor {self.name}: {e}")
-            raise
 
 
     def add_downstream_connection(self, output_channel: int, downstream_actor:ActorHandle, 
