@@ -88,7 +88,7 @@ class QueryCompiler:
     def _compile_graph_for_local(self, graph:'SageGraph'):
         dag = DAG(id="dag_1",strategy="streaming")
         dag.platform = graph.config["platform"]
-        operator_factory = OperatorFactory(graph.config["platform"] == "ray")
+        # operator_factory = OperatorFactory(graph.config["platform"] == "ray")
         
         # Step 1: Create MessageQueue instances for all edges
         edge_to_queue:Dict[str,MessageQueue] = {}
@@ -100,12 +100,12 @@ class QueryCompiler:
         dag_nodes:Dict[str, MultiplexerDagNode] = {}
         for node_name, graph_node in graph.nodes.items():
             # Create operator instance
-            operator = operator_factory.create(graph_node.operator, graph_node.config)
-            
+            # operator = operator_factory.create(graph_node.operator, graph_node.config)
+            operator_instance = graph_node.operator(graph_node.config)
             # Create DAG node
             dag_node = MultiplexerDagNode(
                 graph_node.name,
-                operator,
+                operator_instance,
                 config=graph_node.config,
                 is_spout=(graph_node.type == "source")
             )

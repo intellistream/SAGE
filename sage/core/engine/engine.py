@@ -1,8 +1,12 @@
 from sage.core.engine.executor_manager import ExecutorManager
 from sage.core.dag.dag_manager import DAGManager
 from sage.core.compiler.query_compiler import QueryCompiler
-import threading
+from sage.core.engine.ray_execution_backend import RayDAGExecutionBackend
+from sage.core.engine.execution_backend import LocalExecutionBackend
 
+import threading
+import typing
+import logging
 
 class Engine:
     _instance = None
@@ -11,7 +15,9 @@ class Engine:
     compiler: QueryCompiler
     pipeline_to_dag: dict
     _lock = threading.Lock()
-
+    _ray_backend: RayDAGExecutionBackend = None
+    _local_backend: LocalExecutionBackend = None
+    logger: logging.Logger
     def __new__(cls):
         # 禁止直接实例化
         raise RuntimeError("请通过 get_instance() 方法获取实例")
@@ -41,9 +47,11 @@ class Engine:
         self.dag_manager=DAGManager()
         self.executor_manager = ExecutorManager(dag_manager=self.dag_manager)
         self.compiler= QueryCompiler(generate_func=generate_func)
+        self.logger = logging.getLogger(__name__)
+
         self.pipeline_to_dag = {}
 
-    def submit_pipeline(self,pipeline,config=None):
+    def submit_pipeline(self,pipeline,config=None): # deprecated
         optimized_dag = self.compiler.compile(pipeline,config)
         # execution_type和node_mapping被封装进dag里边当成员变量了
         dag_id=self.dag_manager.add_dag(optimized_dag)
@@ -51,27 +59,27 @@ class Engine:
         self.dag_manager.submit_dag(dag_id)
         self.executor_manager.run_dags()
 
-    def submit_graph(self, graph):
-        ray_dag_task = self.compiler.compile_graph(graph)
-        from sage.core.engine.ray_execution_backend import RayDAGExecutionBackend
-        ray_backend = RayDAGExecutionBackend(monitoring_interval=2.0)
-        dag_handle = ray_backend.submit_task(ray_dag_task)
-        # Monitor execution status
-        import time
-        for i in range(10):
-            status = ray_backend.get_status(dag_handle)
-            print(f"Status: {status}")
-            time.sleep(5)
+    # def submit_graph(self, graph):
+    #     ray_dag_task = self.compiler.compile_graph(graph)
+    #     from sage.core.engine.ray_execution_backend import RayDAGExecutionBackend
+    #     ray_backend = RayDAGExecutionBackend(monitoring_interval=2.0)
+    #     dag_handle = ray_backend.submit_task(ray_dag_task)
+    #     # Monitor execution status
+    #     import time
+    #     for i in range(10):
+    #         status = ray_backend.get_status(dag_handle)
+    #         print(f"Status: {status}")
+    #         time.sleep(5)
         
-        # For oneshot DAGs, wait for completion
-        if ray_dag_task.ray_dag.strategy == "oneshot":
-            success = ray_backend.wait_for_completion(dag_handle, timeout=300)
-            print(f"Execution completed: {success}")
-        else:
-            # For streaming DAGs, stop after some time
-            time.sleep(60)
-            ray_backend.stop_task(dag_handle)
-            print("Streaming DAG stopped")
+    #     # For oneshot DAGs, wait for completion
+    #     if ray_dag_task.ray_dag.strategy == "oneshot":
+    #         success = ray_backend.wait_for_completion(dag_handle, timeout=300)
+    #         print(f"Execution completed: {success}")
+    #     else:
+    #         # For streaming DAGs, stop after some time
+    #         time.sleep(60)
+    #         ray_backend.stop_task(dag_handle)
+    #         print("Streaming DAG stopped")
 
     def stop_pipeline(self,pipeline):
         dag_id=self.pipeline_to_dag[pipeline]
@@ -84,3 +92,123 @@ class Engine:
 
     def get_dag_manager(self):
         return self.dag_manager
+    
+
+
+    def submit_graph(self, graph) -> str:
+        """
+        根据图配置提交到合适的后端执行
+        
+        Args:
+            graph: SageGraph 实例
+            
+        Returns:
+            str: 任务句柄
+        """
+        try:
+            print(f"[Engine] Received graph '{graph.name}' with {len(graph.nodes)} nodes")
+            
+            # 验证图的有效性
+            if not graph.validate_graph():
+                raise ValueError(f"Invalid graph: {graph.name}")
+            
+            # 获取平台配置
+            platform = graph.config.get("platform", "local").lower()
+            print(f"[Engine] Graph platform: {platform}")
+            
+            # 编译图
+            if platform == "ray":
+                task_handle = self._submit_to_ray_backend(graph)
+            elif platform == "local":
+                task_handle = self._submit_to_local_backend(graph)
+            else:
+                raise ValueError(f"Unsupported platform: {platform}")
+            
+            print(f"[Engine] Graph '{graph.name}' submitted with handle: {task_handle}")
+            return task_handle
+            
+        except Exception as e:
+            print(f"[Engine] Failed to submit graph '{graph.name}': {e}")
+            raise
+
+
+    def _submit_to_ray_backend(self, graph) -> str:
+        """
+        提交到 Ray 后端执行
+        
+        Args:
+            graph: SageGraph 实例
+            
+        Returns:
+            str: 任务句柄
+        """
+        # 编译为 Ray DAG Task
+        ray_dag_task = self.compiler.compile_graph(graph)
+        
+        # 初始化 Ray 后端（如果还没有）
+        if self._ray_backend is None:
+            self._ray_backend = RayDAGExecutionBackend(monitoring_interval=2.0)
+            print("[Engine] Initialized Ray DAG execution backend")
+        
+        # 提交任务
+        task_handle = self._ray_backend.submit_task(ray_dag_task)
+        
+        # 存储任务信息
+        # self.running_tasks[task_handle] = {
+        #     'type': 'ray_dag',
+        #     'platform': 'ray',
+        #     'graph': graph,
+        #     'task': ray_dag_task,
+        #     'backend': self._ray_backend
+        # }
+        
+        print(f"[Engine] Graph '{graph.name}' submitted to Ray backend with handle: {task_handle}")
+        return task_handle
+
+    def _submit_to_local_backend(self, graph) -> str:
+        """
+        提交到本地后端执行
+        
+        Args:
+            graph: SageGraph 实例
+            
+        Returns:
+            str: 任务句柄
+        """
+        # 编译为本地 DAG
+        local_dag = self.compiler.compile_graph(graph)
+        
+        # 初始化本地后端（如果还没有）
+        if self._local_backend is None:
+            self._local_backend = LocalExecutionBackend(max_slots=4)
+            print("[Engine] Initialized local execution backend")
+        
+        # 将 DAG 包装为任务
+        # local_dag_task = self._create_local_dag_task(local_dag)
+
+
+        # optimized_dag = self.compiler.compile(pipeline,config)
+        # execution_type和node_mapping被封装进dag里边当成员变量了
+        self.local_backend = LocalExecutionBackend(max_slots = 4, scheduling_strategy = None)
+
+        for node in local_dag.nodes:
+            from sage.core.engine.executor import StreamingTaskExecutor, OneshotTaskExecutor, BaseTaskExecutor
+            task = StreamingTaskExecutor(node, local_dag.working_config)
+            task_handle = self.local_backend.submit_task(task)
+            #self.task_handles[dag_id].append(task_handle)
+            self.logger.debug(f"{node.name} submitted to {self.local_backend.__class__.__name__}")
+        # 提交任务
+        # task_handle = self._local_backend.submit_task(local_dag_task)
+        
+        # # 存储任务信息
+        # self.running_tasks[task_handle] = {
+        #     'type': 'local_dag',
+        #     'platform': 'local',
+        #     'graph': graph,
+        #     'dag': local_dag,
+        #     'task': local_dag_task,
+        #     'backend': self._local_backend
+        # }
+        
+        print(f"[Engine] Graph '{graph.name}' submitted to local backend with handle: {task_handle}")
+        return task_handle

@@ -48,9 +48,10 @@ def init_memory_and_pipeline():
 
     # 步骤 5: 输出到终端或文件
     sink_stream:DataStream = response_stream.sink(FileSink, config)
-
+    # print(pipeline.get_graph_preview())
+    
     # 提交管道到 SAGE 运行时
-    pipeline.submit(config={"is_long_running": True})
+    pipeline.new_submit(config={"is_long_running": True})
 
     # 等待管道运行一段时间
     time.sleep(100)

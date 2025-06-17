@@ -26,18 +26,3 @@ DNA replication primarily occurs during the S (synthesis) phase of the cell cycl
 [Q] Question: Question: Answer with True or False: Osmosis requires ATP energy.
 [A] Answer  : False. Osmosis is a passive process that does not require ATP energy. It involves the movement of water molecules across a semipermeable membrane from an area of lower solute concentration to an area of higher solute concentration.
 ----------------------------------------
-[Q] Question: Question: Answer with True or False: Humans have 46 chromosomes in their gametes.
-[A] Answer  : False
-
-Humans typically have 46 chromosomes (23 pairs) in their somatic (body) cells. In gametes (egg and sperm cells), which are reproductive cells, the number of chromosomes is halved to 23, so that when fertilization occurs, the resulting zygote has the full complement of 46 chromosomes.
-----------------------------------------
-[Q] Question: Question: Answer with True or False: Crossing over occurs during metaphase I of meiosis.
-[A] Answer  : False
-
-Crossing over, which is the exchange of genetic material between homologous chromosomes, typically occurs during prophase I of meiosis, specifically in a phase known as pachytene, which is part of prophase I. It does not occur during metaphase I.
-----------------------------------------
-[Q] Question: Question: Answer with True or False: Enzymes increase activation energy of reactions.
-[A] Answer  : False
-
-Enzymes lower the activation energy of reactions, thereby increasing the rate at which reactions occur.
-----------------------------------------
