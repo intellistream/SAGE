@@ -287,7 +287,7 @@ function main_menu() {
         echo "6.run example scripts"
         echo "7.IDE Setup Guide (Set Up Conda Environment)"
         echo "8.troubleshooting"
-        echo "9.Install  CANDY in Docker Instance (Optional)"
+        echo "9.Install CANDY in Docker Instance (Optional)"
         echo "0.Exit"
         pause
          echo "===================================================="
