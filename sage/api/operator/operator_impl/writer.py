@@ -1,39 +1,75 @@
-from ast import List
-from sage.api.operator import StateWriterFunction,Data
-from sage.api.memory import connect,get_default_manager
-from typing import Tuple
+from typing import Union, List, Tuple, Optional, Dict
+from sage.api.operator import SharedStateWriterFunction, Data
+from sage.runtime.memory_adapter import MemoryAdapter
 
 
-
-class LongTimeWriter(StateWriterFunction):
-    def __init__(self,config):
+class MemoryWriter(SharedStateWriterFunction):
+    def __init__(self, config: dict):
         super().__init__()
         self.config = config["writer"]
-        self.memory_manager=config["memory_manager"]
+        # 初始化各类型集合
+        self.collections = {}
 
-    def execute(self, data:Data[Tuple[str,str]]) -> Data[Tuple[str,str]]:
-        try:
-            query,answer=data.data
-            ref=self.memory_manager.store(query+answer,"long_term_memory")
-        except Exception as e:
-            self.logger.error(f"{e} when WriterFuction")
+        # 配置STM
+        if self.config.get("stm", False):
+            stm_config = self.config.get("stm_config", {})
+            self.collections["stm"] = {
+                "collection": self.config.get("stm_collection"),
+                "config": stm_config
+            }
 
+        # 配置LTM
+        if self.config.get("ltm", False):
+            ltm_config = self.config.get("ltm_config", {})
+            self.collections["ltm"] = {
+                "collection": self.config.get("ltm_collection"),
+                "config": ltm_config
+            }
 
-        return Data((query,answer))
+        # 配置DCM
+        if self.config.get("dcm", False):
+            dcm_config = self.config.get("dcm_config", {})
+            self.collections["dcm"] = {
+                "collection": self.config.get("dcm_collection"),
+                "config": dcm_config
+            }
 
-class MemWriter(StateWriterFunction):
-    def __init__(self,config):
-        super().__init__()
-        self.config = config["writer"]
-        self.memory_manager=get_default_manager()
-        self.ltm=connect(self.memory_manager,"long_term_memory")
+        # 创建内存适配器
+        self.memory_adapter = MemoryAdapter()
+        # 适配器日志关联算子日志
+        self.memory_adapter.logger = self.logger
 
-    def execute(self, data:Data[list[str]])-> Data[list[str]]:
-        try:
-            chunks=data.data
-            for chunk in chunks:
-                self.ltm.store(chunk)
-        except Exception as e:
-            self.logger.error(f"{e} when WriterFuction")
+    def execute(self, data: Data[Union[str, List[str], Tuple[str, str]]]) -> Data:
+        input_data = data.data
 
-        return Data(chunks)
+        # 统一数据类型处理
+        processed_data = []
+        if isinstance(input_data, list):
+            processed_data = input_data
+        elif isinstance(input_data, tuple) and len(input_data) == 2:
+            processed_data = [f"{input_data[0]}{input_data[1]}"]  # 拼接元组
+        elif isinstance(input_data, str):
+            processed_data = [input_data]
+        else:
+            self.logger.error(f"Unsupported data type: {type(input_data)}")
+            return data
+
+        # 写入所有启用的集合
+        for mem_type, settings in self.collections.items():
+            collection = settings["collection"]
+            config = settings["config"]
+            if not collection:
+                self.logger.warning(f"{mem_type.upper()} collection not initialized")
+                continue
+
+            try:
+                self.memory_adapter.store(
+                    collection=collection,
+                    documents=processed_data,
+                    collection_config=config
+                )
+                self.logger.debug(f"Stored {len(processed_data)} chunks to {mem_type.upper()}")
+            except Exception as e:
+                self.logger.error(f"Failed to store to {mem_type.upper()}: {str(e)}")
+
+        return data  # 返回原始数据

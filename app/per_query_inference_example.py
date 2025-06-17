@@ -1,15 +1,11 @@
 import time
-
 import sage
 import logging
-# Assume the query module exposes execute() to handle a single query
-import ray
 import yaml
+from sage.core.neuromem.memory_manager import MemoryManager
+from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
 
 
-ray.init(
-    logging_level=logging.CRITICAL,
-)
 logging.basicConfig(level=logging.DEBUG)
 def load_config(path: str) -> dict:
     with open(path, 'r') as f:

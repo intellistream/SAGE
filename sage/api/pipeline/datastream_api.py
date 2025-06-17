@@ -66,8 +66,8 @@ class DataStream:
     def write_mem(self,writer_operator_class:Type[WriterFunction], config)-> DataStream:
         return self._transform("write_mem",writer_operator_class, config)
 
-    def generalize(self, generalize_operator_class,op_type)-> DataStream:
-        return self._transform(op_type, generalize_operator_class)
+    def generalize(self, op_type,generalize_operator_class,config)-> DataStream:
+        return self._transform(op_type, generalize_operator_class,config)
 
     def get_operator(self):
         return self.operator

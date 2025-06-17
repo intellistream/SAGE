@@ -1,4 +1,4 @@
-from sage.core.dag.dag import DAG
+
 from sage.core.dag.dag_node import BaseDAGNode, OneShotDAGNode
 
 
@@ -92,11 +92,7 @@ class LogicGraphConstructor:
             operator=None,
             is_spout=False
         )
-        writer_node = OneShotDAGNode(
-            name="LongTimeWriter",
-            operator=None,
-            is_spout=False
-        )
+
         sink_node = OneShotDAGNode(
             name="TerminalSink",
             operator=None,
@@ -107,15 +103,13 @@ class LogicGraphConstructor:
         dag.add_node(retriever_node)
         dag.add_node(prompt_node)
         dag.add_node(generator_node)
-        dag.add_node(writer_node)
         dag.add_node(sink_node)
 
         # Define edges
         dag.add_edge(spout_node, retriever_node)
         dag.add_edge(retriever_node, prompt_node)
         dag.add_edge(prompt_node, generator_node)
-        dag.add_edge(generator_node, writer_node)
-        dag.add_edge(writer_node, sink_node)
+        dag.add_edge(generator_node, sink_node)
         return dag
 
     def construct_logical_retrieval_graph(self, dag, spout_node):

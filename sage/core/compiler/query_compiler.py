@@ -1,3 +1,5 @@
+import logging
+
 import ray
 from sage.core.compiler.optimizer import Optimizer
 from sage.core.compiler.query_parser import QueryParser
@@ -18,11 +20,6 @@ class QueryCompiler:
         self.optimizer = Optimizer()
         self.parser = QueryParser(generate_func=generate_func)
         self.dag_dict = {}
-
-
-        
-
-
 
     def compile_natural_query(self, natural_query):
         """
@@ -55,7 +52,7 @@ class QueryCompiler:
 
         return dag
 
-    def compile(self,  pipeline=None,config=None):
+    def compile(self, pipeline=None,config=None):
         """
         Compile a query or natural language input into a DAG.
         :param pipeline: The pipeline object containing data streams.
@@ -78,14 +75,9 @@ class QueryCompiler:
         elif config.get("is_long_running", None):
             dag,config_mapping,execution_type  = self.compile_streaming_pipeline(pipeline)
 
-        # Optimize the DAG
-
         # TODO: Add the optimization logic
         optimized_dag = self.optimizer.optimize(dag)
-
         node_mapping = {} # Mapping of node names to their configurations. Not used in this version.
-
-
         return optimized_dag, execution_type,node_mapping
 
     def compile_streaming_pipeline(self, pipeline):
@@ -153,9 +145,7 @@ class QueryCompiler:
 
         if query is None:
             print("query is None")
-            input_ref = source_stream.operator.get_query.remote()
-            query = ray.get(input_ref)
-
+            query = source_stream.operator.get_query()
 
         intent= self.parser.parse_query(natural_query=query)
 
@@ -164,14 +154,10 @@ class QueryCompiler:
             return dag, "oneshot"
         else:
             pipeline.data_streams = pipeline.data_streams[:1]
-
         dag = DAG(id="dag_1", strategy="oneshot")
         dag = self.logical_graph_constructor.construct_logical_graph(intent, dag, spout_node)
-
         operator_cls_mapping = pipeline.get_operator_cls()
         config_mapping = pipeline.get_operator_config()
-
-
 
         # 遍历DAG,从spout结点开始，按边遍历结点
         def traverse_dag_from_node(start_node):
@@ -200,14 +186,11 @@ class QueryCompiler:
         for node in traversal_result[1:]:
             op_cls = operator_cls_mapping.get(node.name)
             try:
-                op = op_cls.remote(config_mapping)
-                node.operator = op
-                stream = lst_stream.generalize(node.name, op)
+                stream = lst_stream.generalize(node.name, op_cls,pipeline.operator_config)
+                node.operator = stream.operator
                 lst_stream = stream
             except Exception as e:
-                print(node.name)
-                print(f"Error in operator instantiation: {e}")
-
+                print(str(e))
         self.dag_dict[intent] = dag
         return dag, "oneshot"
 
