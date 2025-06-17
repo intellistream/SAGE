@@ -6,6 +6,7 @@ from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
 
 
 class DAG:
+    name: str
     node_mapping: dict
     execution_type: str
     config_mapping: dict
@@ -19,6 +20,7 @@ class DAG:
         """
         Initialize an empty DAG.
         """
+        self.name = None
         self.nodes = []  # Changed from set to list
         self.edges = {}  # Dictionary to store edges as {parent: [children]}
         self.id=id

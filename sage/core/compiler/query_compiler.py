@@ -33,7 +33,8 @@ class QueryCompiler:
 
     def _compile_graph_for_ray(self, graph:'SageGraph') -> RayDAG:
         """Ray-specific compilation logic returning RayDAG."""
-        ray_dag = RayDAG(id=f"ray_dag_{graph.name}", strategy="streaming")
+        ray_dag = RayDAG(name=f"ray_dag_{graph.name}", strategy="streaming")
+        ray_dag.platform = "ray"
         # operator_factory = OperatorFactory(True)  # Ray-enabled factory
         
         # Step 1: Create all Ray Actor DAG nodes
@@ -78,7 +79,7 @@ class QueryCompiler:
 
     def _compile_graph_for_local(self, graph:'SageGraph'):
         dag = DAG(id="dag_1",strategy="streaming")
-        dag.platform = graph.config["platform"]
+        dag.platform = "local"
         # operator_factory = OperatorFactory(graph.config["platform"] == "ray")
         
         # Step 1: Create MessageQueue instances for all edges

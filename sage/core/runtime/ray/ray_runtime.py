@@ -19,7 +19,7 @@ class RayRuntime(BaseRuntime):
         # 确保Ray已初始化
         if not ray.is_initialized():
             ray.init()
-        
+        self.name = "RayRuntime"
         self.running_dags: Dict[str, RayDAG] = {}  # handle -> RayDAG映射
         self.dag_spout_futures: Dict[str, List[ray.ObjectRef]] = {}  # handle -> spout futures
         self.dag_metadata: Dict[str, Dict[str, Any]] = {}  # handle -> metadata
@@ -43,7 +43,7 @@ class RayRuntime(BaseRuntime):
         handle = f"ray_dag_{self.next_handle_id}"
         self.next_handle_id += 1
         
-        self.logger.info(f"Submitting Ray DAG {ray_dag.id} with handle {handle}")
+        self.logger.info(f"Submitting Ray DAG {ray_dag.name} with handle {handle}")
         
         try:
             # 启动 DAG 执行
@@ -68,7 +68,7 @@ class RayRuntime(BaseRuntime):
             return handle
             
         except Exception as e:
-            self.logger.error(f"Failed to start Ray DAG {ray_dag.id}: {e}", exc_info=True)
+            self.logger.error(f"Failed to start Ray DAG {ray_dag.name}: {e}", exc_info=True)
             raise
     
     def _start_streaming_dag(self, ray_dag: RayDAG) -> List[ray.ObjectRef]:
@@ -83,9 +83,9 @@ class RayRuntime(BaseRuntime):
             try:
                 future = spout_actor.start_spout.remote()
                 spout_futures.append(future)
-                self.logger.debug(f"Started streaming spout actor in DAG {ray_dag.id}")
+                self.logger.debug(f"Started streaming spout actor in DAG {ray_dag.name}")
             except Exception as e:
-                self.logger.error(f"Failed to start spout actor in DAG {ray_dag.id}: {e}")
+                self.logger.error(f"Failed to start spout actor in DAG {ray_dag.name}: {e}")
                 raise
         
         return spout_futures
@@ -102,9 +102,9 @@ class RayRuntime(BaseRuntime):
             try:
                 future = spout_actor.start_spout.remote()
                 spout_futures.append(future)
-                self.logger.debug(f"Started oneshot spout actor in DAG {ray_dag.id}")
+                self.logger.debug(f"Started oneshot spout actor in DAG {ray_dag.name}")
             except Exception as e:
-                self.logger.error(f"Failed to start spout actor in DAG {ray_dag.id}: {e}")
+                self.logger.error(f"Failed to start spout actor in DAG {ray_dag.name}: {e}")
                 raise
         
         return spout_futures
@@ -193,7 +193,7 @@ class RayRuntime(BaseRuntime):
         status_info = {
             "status": metadata.get('status', 'unknown'),
             "backend": "ray_dag",
-            "dag_id": ray_dag.id,
+            "dag_id": ray_dag.name,
             "strategy": metadata.get('strategy', 'unknown'),
             "actor_count": metadata.get('actor_count', 0),
             "spout_count": len(spout_futures),
@@ -276,7 +276,7 @@ class RayRuntime(BaseRuntime):
         ray_dag = self.running_dags[task_handle]
         return {
             'handle': task_handle,
-            'dag_id': ray_dag.id,
+            'dag_id': ray_dag.name,
             'strategy': ray_dag.strategy,
             'actor_count': ray_dag.get_actor_count(),
             'connections': ray_dag.get_connections(),
