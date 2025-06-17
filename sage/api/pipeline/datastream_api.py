@@ -18,23 +18,23 @@ if TYPE_CHECKING:
     
 class DataStream:
     name:str
-    operator: OperatorWrapper
+    operator: Type[BaseOperator]
     pipeline: Pipeline
     upstreams: list[DataStream]
     downstreams: list[DataStream]
-    def __init__(self, operator: OperatorWrapper, pipeline:Pipeline, name:str=None):
-        self.operator = operator
+    def __init__(self, op_class: Type[BaseOperator], pipeline:Pipeline, name:str=None, config:dict=None):
+        self.operator = op_class
         self.pipeline = pipeline
         self.name = name or f"DataStream_{id(self)}"
         self.upstreams = []
         self.downstreams=[]
         # Register the operator in the pipeline
-        self.pipeline._register_operator(operator)
-
+        self.pipeline._register_operator(op_class)
+        self.config = config or {}
     def _transform(self, name: str, operator_class:Type[BaseOperator], config) -> DataStream:
-        operator_instance = self.pipeline.operator_factory.create(operator_class, config)
+        # operator_instance = self.pipeline.operator_factory.create(operator_class, config)
         # op = next_operator_class
-        new_stream = DataStream(operator_instance, self.pipeline, name=name)
+        new_stream = DataStream(operator_class, self.pipeline, name=name, config = config)
         self.pipeline.data_streams.append(new_stream)
         # Wire dependencies
         new_stream.upstreams.append(self)
