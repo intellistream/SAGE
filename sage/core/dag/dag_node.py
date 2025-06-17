@@ -198,8 +198,6 @@ class ContinuousDAGNode(BaseDAGNode):
                 if self.is_spout:
                     result = self.operator.execute()
                     self.emit(result)
-                    if self.output_queue.qsize():
-                        print(f"{self.name} queue size is{self.output_queue.qsize()} ")
                 else:
                     input_data = self.fetch_input()
                     if input_data is None:
@@ -207,8 +205,6 @@ class ContinuousDAGNode(BaseDAGNode):
                         continue
                     result = self.operator.execute(input_data)
                     self.emit(result)
-                    if self.output_queue.qsize():
-                        print(f"{self.name} queue size is{self.output_queue.qsize()} ")
             except Exception as e:
                 self.logger.error(
                     f"Critical error in node '{self.name}': {str(e)}",

@@ -20,7 +20,6 @@ class Engine:
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
-
                     # 绕过 __new__ 的异常，直接创建实例
                     instance = super().__new__(cls)
                     instance.__init__(generate_func)
@@ -51,7 +50,6 @@ class Engine:
     def stop_pipeline(self,pipeline):
         dag_id=self.pipeline_id[pipeline]
         self.executor_manager.stop_dag(dag_id)
-
 
     def get_executor_manager(self):
         return self.executor_manager

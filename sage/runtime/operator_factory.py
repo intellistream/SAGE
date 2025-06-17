@@ -40,6 +40,7 @@ class OperatorFactory:
 
     def _create_ray_operator(self, operator_class, config):
         """创建Ray远程算子"""
+        print("create ray operator")
         class_name = operator_class.__name__
         
         # 从缓存获取或创建Ray远程类

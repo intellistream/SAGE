@@ -88,6 +88,7 @@ class QAPromptor(PromptFunction):
                     "content": self.prompt_template.render(**base_system_prompt_data)
                 }
             else:
+                
                 # Fallback to general instructions when no corpus is provided
                 system_prompt = {
                     "role": "system",
@@ -100,12 +101,11 @@ class QAPromptor(PromptFunction):
                 "content": f"Question: {query}"
             }
             self.logger.info(f"query:{query}")
-            # Combine into prompt list
             prompt = [system_prompt, user_prompt]
 
         except Exception as e:
             # Log detailed error information
-            self.logger.error(f"Error in PromptFunction: {e}\nInput data: {data.data}\n{traceback.format_exc()}")
+            self.logger.error(f"Error in PromptFunction: {e}\nInput data: {data.data}\n")
 
             # Create a minimal fallback prompt in case of errors
             prompt = [

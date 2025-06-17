@@ -1,7 +1,6 @@
-1.compiler 部分生成dag的逻辑需要修改为根据stream的拓扑排序，同时还要实现对于算子的结构的优化
-2.算子实现router从而实现pipeline的多分支
-3.memory部分的接口统一化
-4.定时
-5.多pipeline
-6.多轮对话记忆力
-7.多场景
+1. memwrite 算子中引入memory adapter
+2.写pipeline测试，实现多轮对话机制，实现multiple_pipeline,
+3.pipeline stop pipeline 定时优雅关闭
+4.
+5. 和jingyuan分支合并并调试
+6.调试,搓测试集
