@@ -28,7 +28,6 @@ class SimpleRetriever(StateRetrieverFunction):
         else:
             self.dcm = None
 
-        self.top_k = self.config.get("top_k", 5)
 
         # 创建内存适配器并设置日志
         self.memory_adapter = self._create_memory_adapter()
@@ -61,11 +60,6 @@ class SimpleRetriever(StateRetrieverFunction):
         if self.config.get("ltm", False) and self.ltm:
             self.logger.debug("Retrieving from LTM")
             try:
-                # 添加LTM特定配置参数
-                if "index_name" not in self.ltm_config:
-                    self.ltm_config["index_name"] = "default"
-                if "topk" not in self.ltm_config:
-                    self.ltm_config["topk"] = self.top_k
 
                 # 使用LTM配置和输入查询调用检索
                 ltm_results = self.memory_adapter.retrieve(
@@ -97,4 +91,5 @@ class SimpleRetriever(StateRetrieverFunction):
                 self.logger.error(f"DCM retrieval failed: {str(e)}")
 
         self.logger.info(f"{self._name} retrieve {len(chunks)} results for query: '{input_query[:20]}...'")
+
         return Data((input_query, chunks))
