@@ -32,5 +32,3 @@ while(True):
     sage.query.run_query(user_input,config)
     time2 = time.time()
     logging.info(f"Query executed in {time2 - time1:.4f} seconds")
-
-

@@ -23,7 +23,7 @@ def load_config(path: str) -> dict:
         return yaml.safe_load(f)
 config_arxiv=load_config("./sage/api/operator/test/config_arxiv.yaml")
 print(config_arxiv)
-from sage.api.operator.operator_impl_test.arxiv import ArxivPDFDownloader,ArxivPDFParser
+from sage.api.operator.operator_impl.arxiv import ArxivPDFDownloader,ArxivPDFParser
 
 def test_arxiv():
     downloader = ArxivPDFDownloader(config_arxiv)
