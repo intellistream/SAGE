@@ -1,5 +1,5 @@
 from typing import Type, TYPE_CHECKING, Union, Any
-from sage.core.engine.engine import Engine
+from sage.core.engine import Engine
 from sage.api.pipeline.datastream_api import DataStream
 from sage.api.operator import SourceFunction
 from sage.api.operator.base_operator_api import BaseOperator

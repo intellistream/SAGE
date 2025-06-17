@@ -1,4 +1,4 @@
-from sage.core.engine.slot import Slot
+from sage.core.runtime.local.local_slot import Slot
 import time
 import threading
 import logging

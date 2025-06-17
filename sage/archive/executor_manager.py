@@ -2,14 +2,13 @@ import logging
 
 
 
-from sage.core.engine.executor import StreamingTaskExecutor, OneshotTaskExecutor, BaseTaskExecutor
-from sage.core.engine.scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
+from sage.core.runtime.local.local_task import StreamingTask, OneshotTask, BaseTask
+from sage.core.runtime.local.local_scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
 from sage.core.dag.dag import DAG
 from sage.core.dag.dag_manager import DAGManager
-from sage.core.engine.slot import Slot
+from sage.core.runtime.local.local_slot import Slot
 from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
-from sage.core.engine.execution_backend import ExecutionBackend, LocalExecutionBackend
-from sage.core.engine.ray_execution_backend import RayDAGExecutionBackend
+from sage.core.runtime import BaseRuntime, LocalRuntime,  RayRuntime
 import time
 
 class ExecutorManager:
@@ -28,7 +27,7 @@ class ExecutorManager:
         self.dag_to_tasks={}
         self.task_handles = {}  # dag_id -> [task_handles]
         self.logger=logging.getLogger(__name__)
-        self.local_backend = LocalExecutionBackend(max_slots, scheduling_strategy)
+        self.local_backend = LocalRuntime(max_slots, scheduling_strategy)
         # self.ray_backend:RayExecutionBackend = None
 
         # self.available_slots = [Slot(slot_id=i) for i in range(max_slots)]
@@ -65,39 +64,14 @@ class ExecutorManager:
             dag = self.dag_manager.get_dag(dag_id)
             
             # 根据DAG配置选择执行后端
-            execution_backend = self._get_execution_backend(dag)
+            execution_backend = self._get_runtime(dag)
             
             if dag.strategy == "streaming":
                 self._execute_streaming_dag(dag_id, dag, execution_backend)
             else:
                 self._execute_oneshot_dag(dag_id, dag, execution_backend)
-        
-        # for dag_id in running_dags:
-        #     self.task_handles[dag_id] = []
-        #     dag = self.dag_manager.get_dag(dag_id)
-                
-        #     if self.dag_to_tasks.get(dag_id) is None :
-        #         self.dag_to_tasks[dag_id]=[]
-        #         dag=self.dag_manager.get_dag(dag_id)
-        #         if dag.strategy=="streaming" :
-        #             working_config=dag.working_config
-        #             for node in dag.nodes:
-        #                 streaming_task=self.create_streaming_task(node,working_config)
-        #                 slot_id=self.schedule_task(streaming_task)
-        #                 self.dag_to_tasks[dag_id].append(streaming_task)
-        #                 self.task_to_slot[streaming_task]=slot_id
-        #                 self.available_slots[slot_id].submit_task(streaming_task)
-        #                 self.logger.debug(f"{node.name} submitted task for slot {slot_id}")
-        #         else :
-        #             task=self.create_oneshot_task(dag)
-        #             # slot_id=self.schedule_task(task)
-        #             # self.dag_to_tasks[dag_id].append(task)
-        #             # self.task_to_slot[task]=slot_id
-        #             # self.available_slots[slot_id].submit_task(task)
-        #             # self.logger.debug(f"dag submitted task for slot {slot_id}")
-        #             task.execute()
 
-    def _get_execution_backend(self, dag: DAG) -> ExecutionBackend:
+    def _get_runtime(self, dag: DAG) -> BaseRuntime:
         """根据DAG配置选择执行后端"""
         # 检查DAG配置中的执行后端设置
         backend_type = dag.platform
@@ -105,27 +79,27 @@ class ExecutorManager:
         if backend_type == "ray":
             self.logger.info(f"Using Ray backend for DAG {dag.dag_id}")
             if self.ray_backend is None:
-                self.ray_backend = RayExecutionBackend()
+                self.ray_backend = RayRuntime()
             return self.ray_backend
         else:
             self.logger.info(f"Using local backend for DAG {dag.dag_id}")
             return self.local_backend
     
-    def _execute_streaming_dag(self, dag_id: int, dag: DAG, backend: ExecutionBackend):
+    def _execute_streaming_dag(self, dag_id: int, dag: DAG, backend: BaseRuntime):
         """使用指定后端执行流式DAG"""
         for node in dag.nodes:
-            task = StreamingTaskExecutor(node, dag.working_config)
+            task = StreamingTask(node, dag.working_config)
             task_handle = backend.submit_task(task)
             self.task_handles[dag_id].append(task_handle)
             self.logger.debug(f"{node.name} submitted to {backend.__class__.__name__}")
     
-    def _execute_oneshot_dag(self, dag_id: int, dag: DAG, backend: ExecutionBackend):
+    def _execute_oneshot_dag(self, dag_id: int, dag: DAG, runtime: BaseRuntime):
         """使用指定后端执行一次性DAG"""
-        task = OneshotTaskExecutor(dag)
+        task = OneshotTask(dag)
         
-        if isinstance(backend, RayExecutionBackend):
+        if isinstance(runtime, RayRuntime):
             # Ray执行
-            task_handle = backend.submit_task(task)
+            task_handle = runtime.submit_task(task)
             self.task_handles[dag_id].append(task_handle)
         else:
             # 本地执行，直接调用execute
@@ -137,7 +111,7 @@ class ExecutorManager:
             return
         
         dag = self.dag_manager.get_dag(dag_id)
-        backend = self._get_execution_backend(dag)
+        backend = self._get_runtime(dag)
         
         # 停止所有任务
         for task_handle in self.task_handles[dag_id]:
@@ -153,7 +127,7 @@ class ExecutorManager:
             return {"status": "not_found"}
         
         dag = self.dag_manager.get_dag(dag_id)
-        backend = self._get_execution_backend(dag)
+        backend = self._get_runtime(dag)
         
         task_statuses = []
         for task_handle in self.task_handles[dag_id]:
@@ -167,7 +141,7 @@ class ExecutorManager:
             "tasks": task_statuses
         }
 
-    # def schedule_task(self, task: BaseTaskExecutor) -> int :
+    # def schedule_task(self, task: BaseTask) -> int :
     #         """
     #            调度任务到指定槽位
 

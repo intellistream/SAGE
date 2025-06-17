@@ -4,7 +4,7 @@ from sage.core.multidag import MultiplexerDagNode
 from sage.core.dag.dag import DAG
 import threading
 
-class BaseTaskExecutor():
+class BaseTask():
     def __init__(self):
         pass
 
@@ -12,7 +12,7 @@ class BaseTaskExecutor():
         raise NotImplementedError()
 
 
-class StreamingTaskExecutor(BaseTaskExecutor):
+class StreamingTask(BaseTask):
     #用于执行流式的数据流
     """
            启动流式处理循环
@@ -47,7 +47,7 @@ class StreamingTaskExecutor(BaseTaskExecutor):
             self.logger.error(e)
             raise RuntimeError(e)
 
-class OneshotTaskExecutor(BaseTaskExecutor):
+class OneshotTask(BaseTask):
     #用于执行非流式的请求
     """
         一次性任务处理器，按拓扑顺序执行DAG流程

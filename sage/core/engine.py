@@ -1,12 +1,11 @@
 # from sage.core.engine.executor_manager import ExecutorManager
 from sage.core.dag.dag_manager import DAGManager
 from sage.core.compiler.query_compiler import QueryCompiler
-from sage.core.engine.ray_execution_backend import RayDAGExecutionBackend
-from sage.core.engine.execution_backend import LocalExecutionBackend
+from sage.core.runtime.ray.ray_runtime import RayRuntime
+from sage.core.runtime.local.local_runtime import LocalRuntime
+from sage.core.runtime.local.local_task import StreamingTask, OneshotTask, BaseTask
+import threading, typing, logging
 
-import threading
-import typing
-import logging
 
 class Engine:
     _instance = None
@@ -15,8 +14,8 @@ class Engine:
     compiler: QueryCompiler
     pipeline_to_dag: dict
     _lock = threading.Lock()
-    _ray_backend: RayDAGExecutionBackend = None
-    _local_backend: LocalExecutionBackend = None
+    _ray_backend: RayRuntime = None
+    _local_backend: LocalRuntime = None
     logger: logging.Logger
     def __new__(cls):
         # 禁止直接实例化
@@ -108,7 +107,7 @@ class Engine:
         
         # 初始化 Ray 后端（如果还没有）
         if self._ray_backend is None:
-            self._ray_backend = RayDAGExecutionBackend(monitoring_interval=2.0)
+            self._ray_backend = RayRuntime(monitoring_interval=2.0)
             print("[Engine] Initialized Ray DAG execution backend")
         
         # 提交任务
@@ -141,7 +140,7 @@ class Engine:
         
         # 初始化本地后端（如果还没有）
         if self._local_backend is None:
-            self._local_backend = LocalExecutionBackend(max_slots=4)
+            self._local_backend = LocalRuntime(max_slots=4)
             print("[Engine] Initialized local execution backend")
         
         # 将 DAG 包装为任务
@@ -150,11 +149,11 @@ class Engine:
 
         # optimized_dag = self.compiler.compile(pipeline,config)
         # execution_type和node_mapping被封装进dag里边当成员变量了
-        self.local_backend = LocalExecutionBackend(max_slots = 4, scheduling_strategy = None)
+        self.local_backend = LocalRuntime(max_slots = 4, scheduling_strategy = None)
 
         for node in local_dag.nodes:
-            from sage.core.engine.executor import StreamingTaskExecutor, OneshotTaskExecutor, BaseTaskExecutor
-            task = StreamingTaskExecutor(node, local_dag.working_config)
+
+            task = StreamingTask(node, local_dag.working_config)
             task_handle = self.local_backend.submit_task(task)
             #self.task_handles[dag_id].append(task_handle)
             self.logger.debug(f"{node.name} submitted to {self.local_backend.__class__.__name__}")
