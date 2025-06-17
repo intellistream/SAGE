@@ -2,11 +2,11 @@ from typing import Dict, List, Optional, Any
 # from sage.archive.raydag_task import RayDAGTask
 from sage.core.dag.ray_dag import RayDAG
 import logging, ray, time
-from sage.core.engine.execution_backend import ExecutionBackend
+from sage.core.runtime.base_runtime import BaseRuntime
 
 
 
-class RayDAGExecutionBackend(ExecutionBackend):
+class RayRuntime(BaseRuntime):
     """Ray DAG 专用执行后端"""
     
     def __init__(self, monitoring_interval: float = 1.0):

@@ -1,7 +1,7 @@
 from typing import List,Optional,Dict
 import logging
 from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
-from sage.core.engine.slot import Slot
+from sage.core.runtime.local.local_slot import Slot
 class SchedulingStrategy:
     def select_slot(self, node: BaseDAGNode, slots: List[Slot]) -> Optional[Slot]:
         raise NotImplementedError

@@ -1,33 +1,9 @@
-import logging
-from abc import ABC, abstractmethod
-import ray
-from typing import Dict, List, Optional, Any
-from sage.core.engine.executor import StreamingTaskExecutor, OneshotTaskExecutor, BaseTaskExecutor
-from sage.core.engine.scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
-from sage.core.dag.dag import DAG
-from sage.core.dag.dag_manager import DAGManager
-from sage.core.engine.slot import Slot
-from sage.core.dag.dag_node import BaseDAGNode, ContinuousDAGNode, OneShotDAGNode
+from sage.core.runtime import BaseRuntime
+from sage.core.runtime.local.local_scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
+from sage.core.runtime.local.local_task import StreamingTask, OneshotTask, BaseTask
+from sage.core.runtime.local.local_slot import Slot
 
-class ExecutionBackend(ABC):
-    """执行后端抽象接口"""
-    
-    @abstractmethod
-    def submit_task(self, task: BaseTaskExecutor) -> str:
-        """提交任务执行，返回任务句柄"""
-        pass
-    
-    @abstractmethod
-    def stop_task(self, task_handle: str):
-        """停止指定任务"""
-        pass
-    
-    @abstractmethod
-    def get_status(self, task_handle: str):
-        """获取任务状态"""
-        pass
-
-class LocalExecutionBackend(ExecutionBackend):
+class LocalRuntime(BaseRuntime):
     """本地线程池执行后端"""
     
     def __init__(self, max_slots=4, scheduling_strategy=None):
@@ -42,7 +18,7 @@ class LocalExecutionBackend(ExecutionBackend):
         else:
             self.scheduling_strategy = scheduling_strategy
     
-    def submit_task(self, task: BaseTaskExecutor) -> str:
+    def submit_task(self, task: BaseTask) -> str:
         """提交任务到本地线程池"""
         slot_id = self.scheduling_strategy.select_slot(task, self.available_slots)
         success = self.available_slots[slot_id].submit_task(task)
@@ -77,17 +53,3 @@ class LocalExecutionBackend(ExecutionBackend):
         if task_handle not in self.handle_to_task:
             return {"status": "not_found"}
         return {"status": "running", "backend": "local"}
-
-@ray.remote
-class RayTaskActor:
-    """Ray任务执行Actor"""
-    
-    def execute_task(self, task: BaseTaskExecutor):
-        """在Ray Actor中执行任务"""
-        return task.execute()
-    
-    def stop_task(self):
-        """停止任务执行"""
-        # 实现停止逻辑
-        pass
-
