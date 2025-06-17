@@ -29,7 +29,7 @@ class ExecutorManager:
         self.task_handles = {}  # dag_id -> [task_handles]
         self.logger=logging.getLogger(__name__)
         self.local_backend = LocalExecutionBackend(max_slots, scheduling_strategy)
-        self.ray_backend:RayExecutionBackend = None
+        # self.ray_backend:RayExecutionBackend = None
 
         # self.available_slots = [Slot(slot_id=i) for i in range(max_slots)]
         # self.max_slots = max_slots
