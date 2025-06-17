@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Any
 # from sage.archive.raydag_task import RayDAGTask
-from sage.core.dag.ray_dag import RayDAG
+from sage.core.dag.ray.ray_dag import RayDAG
 import logging, ray, time
 from sage.core.runtime.base_runtime import BaseRuntime
 

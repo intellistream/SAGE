@@ -1,5 +1,5 @@
 from typing import Optional, Dict, Any
-from sage.core.dag.ray_dag import RayDAG
+from sage.core.dag.ray.ray_dag import RayDAG
 
 class RayDAGTask:
     """

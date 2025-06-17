@@ -3,8 +3,8 @@ from typing import Dict, List, Set
 
 from sympy.strategies.core import switch
 
-from sage.core.dag.dag import DAG  # 假设已存在DAG类
-from sage.core.dag.dag_node import BaseDAGNode, ContinuousDAGNode, OneShotDAGNode
+from sage.core.dag.local.dag import DAG  # 假设已存在DAG类
+from sage.core.dag.local.dag_node import BaseDAGNode, ContinuousDAGNode, OneShotDAGNode
 
 
 class DAGManager:
@@ -22,51 +22,51 @@ class DAGManager:
         self.next_id = 0  # 自增ID生成器
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def create_dag(self, logical_dag: DAG, operator_mapping: Dict) -> int:
-        """
-        通过逻辑DAG创建实例化DAG
-        :param logical_dag: 不含operator的逻辑DAG
-        :param operator_mapping: 算子映射 {node_name: {"config":config,"operator_class": class,"init_kwargs": kwargs}}
-        :return: 新DAG的ID
-        """
-        # 生成唯一ID
-        dag_id = self.next_id
-        self.next_id += 1
+    # def create_dag(self, logical_dag: DAG, operator_mapping: Dict) -> int:
+    #     """
+    #     通过逻辑DAG创建实例化DAG
+    #     :param logical_dag: 不含operator的逻辑DAG
+    #     :param operator_mapping: 算子映射 {node_name: {"config":config,"operator_class": class,"init_kwargs": kwargs}}
+    #     :return: 新DAG的ID
+    #     """
+    #     # 生成唯一ID
+    #     dag_id = self.next_id
+    #     self.next_id += 1
 
-        new_dag = DAG(id=dag_id,strategy=logical_dag.strategy)
-        node_mapping = {}  # 原节点到新节点的映射
+    #     new_dag = DAG(id=dag_id,strategy=logical_dag.strategy)
+    #     node_mapping = {}  # 原节点到新节点的映射
 
-        # 实例化节点
-        for orig_node in logical_dag.nodes:
-            # 从映射表获取算子配置
-            node_info = operator_mapping.get(orig_node.name, {})
+    #     # 实例化节点
+    #     for orig_node in logical_dag.nodes:
+    #         # 从映射表获取算子配置
+    #         node_info = operator_mapping.get(orig_node.name, {})
 
-            # 创建具体类型节点
-            if logical_dag.strategy == "streaming" :
-                new_node = ContinuousDAGNode(
-                    name=orig_node.name,
-                    operator=node_info["operator"](node_info.get("kwargs", {})),
-                    config=node_info.get("config", {}),
-                    is_spout=orig_node.is_spout
-                )
-            else:  # 默认为OneShot
-                new_node = OneShotDAGNode(
-                    name=orig_node.name,
-                    operator=node_info["operator"](node_info.get("kwargs", {})),
-                    config=node_info.get("config", {}),
-                    is_spout=orig_node.is_spout
-                )
+    #         # 创建具体类型节点
+    #         if logical_dag.strategy == "streaming" :
+    #             new_node = ContinuousDAGNode(
+    #                 name=orig_node.name,
+    #                 operator=node_info["operator"](node_info.get("kwargs", {})),
+    #                 config=node_info.get("config", {}),
+    #                 is_spout=orig_node.is_spout
+    #             )
+    #         else:  # 默认为OneShot
+    #             new_node = OneShotDAGNode(
+    #                 name=orig_node.name,
+    #                 operator=node_info["operator"](node_info.get("kwargs", {})),
+    #                 config=node_info.get("config", {}),
+    #                 is_spout=orig_node.is_spout
+    #             )
 
-            new_dag.add_node(new_node)
-            node_mapping[orig_node] = new_node
-        # 重建边关系
-        for parent, children in logical_dag.edges.items():
-            for child in children:
-                new_dag.add_edge(node_mapping[parent], node_mapping[child])
+    #         new_dag.add_node(new_node)
+    #         node_mapping[orig_node] = new_node
+    #     # 重建边关系
+    #     for parent, children in logical_dag.edges.items():
+    #         for child in children:
+    #             new_dag.add_edge(node_mapping[parent], node_mapping[child])
 
-        self.dags[dag_id] = new_dag
-        self.logger.info(f"Created DAG {dag_id} with {len(new_dag.nodes)} nodes")
-        return dag_id
+    #     self.dags[dag_id] = new_dag
+    #     self.logger.info(f"Created DAG {dag_id} with {len(new_dag.nodes)} nodes")
+    #     return dag_id
 
     def add_dag(self,dag:DAG)->int:
         dag_id = self.next_id

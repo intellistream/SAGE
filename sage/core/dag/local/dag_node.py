@@ -154,88 +154,88 @@ class OneShotDAGNode(BaseDAGNode):
             raise RuntimeError(f"Execution failed in node '{self.name}': {str(e)}")
 
 
-class ContinuousDAGNode(BaseDAGNode):
-    """
-    Continuous execution variant of DAGNode.
+# class ContinuousDAGNode(BaseDAGNode):
+#     """
+#     Continuous execution variant of DAGNode.
 
-    Designed for nodes that need to run continuously until signaled to stop.
+#     Designed for nodes that need to run continuously until signaled to stop.
 
-    Attributes:
-        stop_event (threading.Event): Event to signal thread to stop
-        duration (int/float): Duration for which the node should run before stopping
-        _stop_timer (threading.Timer): Timer for scheduled stop
-    """
+#     Attributes:
+#         stop_event (threading.Event): Event to signal thread to stop
+#         duration (int/float): Duration for which the node should run before stopping
+#         _stop_timer (threading.Timer): Timer for scheduled stop
+#     """
 
-    def __init__(self, name: str, operator: BaseOperator,
-                 config: dict = None, is_spout: bool = False) -> None:
-        """
-        Initialize the continuous DAG node.
+#     def __init__(self, name: str, operator: BaseOperator,
+#                  config: dict = None, is_spout: bool = False) -> None:
+#         """
+#         Initialize the continuous DAG node.
 
-        Args:
-            name: Unique name of the node
-            operator: An operator implementing the execution logic
-            config: Optional dictionary of configuration parameters for the operator
-            is_spout: Indicates if the node is the spout (starting point)
-        """
-        super().__init__(name, operator, config, is_spout)
-        self.stop_event = threading.Event()
+#         Args:
+#             name: Unique name of the node
+#             operator: An operator implementing the execution logic
+#             config: Optional dictionary of configuration parameters for the operator
+#             is_spout: Indicates if the node is the spout (starting point)
+#         """
+#         super().__init__(name, operator, config, is_spout)
+#         self.stop_event = threading.Event()
 
-        # Extract duration from config, default to None
-        self.duration = config.get("duration", None) if config else None
-        self._stop_timer = None
+#         # Extract duration from config, default to None
+#         self.duration = config.get("duration", None) if config else None
+#         self._stop_timer = None
 
-    def run_loop(self) -> None:
-        """
-        Main worker loop that executes continuously until stop is signaled.
+#     def run_loop(self) -> None:
+#         """
+#         Main worker loop that executes continuously until stop is signaled.
 
-        If a duration is specified, a timer is set to stop the loop automatically.
-        """
-        self.stop_event.clear()
-        # Set up stop timer if duration is specified
-        if self.duration is not None:
-            if not isinstance(self.duration, (int, float)) or self.duration <= 0:
-                raise ValueError("duration must be a positive number")
-            self._stop_timer = threading.Timer(self.duration, self.stop)
-            self._stop_timer.start()
+#         If a duration is specified, a timer is set to stop the loop automatically.
+#         """
+#         self.stop_event.clear()
+#         # Set up stop timer if duration is specified
+#         if self.duration is not None:
+#             if not isinstance(self.duration, (int, float)) or self.duration <= 0:
+#                 raise ValueError("duration must be a positive number")
+#             self._stop_timer = threading.Timer(self.duration, self.stop)
+#             self._stop_timer.start()
 
-        # Main execution loop
-        while not self.stop_event.is_set():
-            try:
-                if self.is_spout:
-                    result = self.operator.execute()
-                    self.emit(result)
-                    if self.output_queue.qsize():
-                        print(f"{self.name} queue size is{self.output_queue.qsize()} ")
-                else:
-                    input_data = self.fetch_input()
-                    if input_data is None:
-                        time.sleep(1)  # Short sleep when no data to process
-                        continue
-                    result = self.operator.execute(input_data)
-                    self.emit(result)
-                    if self.output_queue.qsize():
-                        print(f"{self.name} queue size is{self.output_queue.qsize()} ")
-            except Exception as e:
-                self.logger.error(
-                    f"Critical error in node '{self.name}': {str(e)}",
-                    exc_info=True
-                )
-                self.stop()
-                raise RuntimeError(f"Execution failed in node '{self.name}'")
+#         # Main execution loop
+#         while not self.stop_event.is_set():
+#             try:
+#                 if self.is_spout:
+#                     result = self.operator.execute()
+#                     self.emit(result)
+#                     if self.output_queue.qsize():
+#                         print(f"{self.name} queue size is{self.output_queue.qsize()} ")
+#                 else:
+#                     input_data = self.fetch_input()
+#                     if input_data is None:
+#                         time.sleep(1)  # Short sleep when no data to process
+#                         continue
+#                     result = self.operator.execute(input_data)
+#                     self.emit(result)
+#                     if self.output_queue.qsize():
+#                         print(f"{self.name} queue size is{self.output_queue.qsize()} ")
+#             except Exception as e:
+#                 self.logger.error(
+#                     f"Critical error in node '{self.name}': {str(e)}",
+#                     exc_info=True
+#                 )
+#                 self.stop()
+#                 raise RuntimeError(f"Execution failed in node '{self.name}'")
 
-        # Clean up stop timer
-        if self._stop_timer and self._stop_timer.is_alive():
-            self._stop_timer.cancel()
+#         # Clean up stop timer
+#         if self._stop_timer and self._stop_timer.is_alive():
+#             self._stop_timer.cancel()
 
-    def stop(self) -> None:
-        """Signal the worker loop to stop."""
-        if not self.stop_event.is_set():
-            self.stop_event.set()
+#     def stop(self) -> None:
+#         """Signal the worker loop to stop."""
+#         if not self.stop_event.is_set():
+#             self.stop_event.set()
 
-            # Cancel stop timer if active
-            if self._stop_timer and self._stop_timer.is_alive():
-                self._stop_timer.cancel()
+#             # Cancel stop timer if active
+#             if self._stop_timer and self._stop_timer.is_alive():
+#                 self._stop_timer.cancel()
 
-            self.logger.info(f"Node '{self.name}' received stop signal.")
+#             self.logger.info(f"Node '{self.name}' received stop signal.")
 
 

@@ -1,12 +1,12 @@
 from typing import Dict, Type, Any, TYPE_CHECKING
 from sage.core.compiler.optimizer import Optimizer
 from sage.core.compiler.query_parser import QueryParser
-from sage.core.dag.dag import DAG
-from sage.core.dag.dag_node import BaseDAGNode, ContinuousDAGNode, OneShotDAGNode
+from sage.core.dag.local.dag import DAG
+from sage.core.dag.local.dag_node import BaseDAGNode, OneShotDAGNode
 from sage.core.compiler.logical_graph_constructor import LogicGraphConstructor
-from sage.core.multidag import MultiplexerDagNode
+from sage.core.dag.local.multi_dag_node import MultiplexerDagNode
 from sage.core.io.message_queue import MessageQueue
-from sage.core.dag.ray_dag import RayDAG
+from sage.core.dag.ray.ray_dag import RayDAG
 if TYPE_CHECKING:
     from sage.api.graph import SageGraph, GraphEdge
 class QueryCompiler:
@@ -43,7 +43,7 @@ class QueryCompiler:
             operator_class = graph_node.operator
             operator_config = graph_node.config or {}
             
-            from sage.core.dag.ray_multi_node import RayMultiplexerDagNode
+            from sage.core.dag.ray.ray_multi_node import RayMultiplexerDagNode
             # Create Ray Actor with operator class, not instance
             ray_actor = RayMultiplexerDagNode.remote(
                 name=graph_node.name,
@@ -190,47 +190,7 @@ class QueryCompiler:
             optimized_dag.platform = "ray"
         return optimized_dag
 
-    def compile_streaming_pipeline(self, pipeline):
-        """
-
-        Compile the pipeline.
-        :param pipeline: The pipeline object containing data streams.
-        :type pipeline: Pipeline
-        :raises ValueError: If pipeline data streams are None.
-        :return: dag.
-        """
-        # Implement the pipeline compilation logic here
-        
-        dag = DAG(id="dag_1",strategy="streaming")
-        nodes = []
-        config_mapping = {}
-
-        for i, datastream in enumerate(pipeline.data_streams):
-            if i == 0:
-                node = ContinuousDAGNode(
-                    name=datastream.name,
-                    operator=datastream.operator,
-                    is_spout=True
-                )
-            else:
-                node = ContinuousDAGNode(
-                    name=datastream.name,
-                    operator=datastream.operator,
-                    is_spout=False
-                )
-
-      
-            nodes.append(node)
-            dag.add_node(node)
-
-        # Add Edges
-        for i in range(len(nodes) - 1):
-            dag.add_edge(nodes[i], nodes[i + 1])
-        dag.execution_type = "streaming"
-        dag.config_mapping = config_mapping
-        return dag
-
-    def compile_oneshot_pipeline(self, pipeline, query):
+    def compile_oneshot_pipeline(self, pipeline, query): # deprecated
         """
 
         Compile the pipeline.

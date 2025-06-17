@@ -1,5 +1,5 @@
-from sage.core.dag.dag import DAG
-from sage.core.dag.dag_node import BaseDAGNode, OneShotDAGNode
+from sage.core.dag.local.dag import DAG
+from sage.core.dag.local.dag_node import BaseDAGNode, OneShotDAGNode
 
 
 class LogicGraphConstructor:

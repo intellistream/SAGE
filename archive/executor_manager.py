@@ -4,10 +4,10 @@ import logging
 
 from sage.core.runtime.local.local_task import StreamingTask, OneshotTask, BaseTask
 from sage.core.runtime.local.local_scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
-from sage.core.dag.dag import DAG
-from sage.core.dag.dag_manager import DAGManager
+from sage.core.dag.local.dag import DAG
+from archive.dag_manager import DAGManager
 from sage.core.runtime.local.local_slot import Slot
-from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
+from sage.core.dag.local.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
 from sage.core.runtime import BaseRuntime, LocalRuntime,  RayRuntime
 import time
 

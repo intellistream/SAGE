@@ -1,7 +1,7 @@
 import logging
-from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
-from sage.core.multidag import MultiplexerDagNode
-from sage.core.dag.dag import DAG
+from sage.core.dag.local.dag_node import BaseDAGNode,OneShotDAGNode
+from sage.core.dag.local.multi_dag_node import MultiplexerDagNode
+from sage.core.dag.local.dag import DAG
 import threading
 
 class BaseTask():
@@ -31,10 +31,10 @@ class StreamingTask(BaseTask):
         self.logger=logging.getLogger('streaming_executor')
         #循环的执行算子
         try:
-            if  isinstance(self.node,ContinuousDAGNode) or isinstance(self.node,MultiplexerDagNode):
+            if  isinstance(self.node,MultiplexerDagNode):
                 self.node.run_loop()
             else :
-                raise TypeError(f"node{self.node.name} is not a ContinuousDAGNode")
+                raise TypeError(f"node{self.node.name} is not a MultiplexerDagNode")
         except Exception as e:
             self.logger.error(e)
             raise TypeError(e)

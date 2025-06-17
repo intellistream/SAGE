@@ -1,9 +1,9 @@
 import unittest
 from sage.core.compiler.logical_graph_constructor import LogicGraphConstructor
-from sage.core.dag.dag import DAG
+from sage.core.dag.local.dag import DAG
 from sage.core.compiler.query_compiler import QueryCompiler
 from sage.core.compiler.query_parser import QueryParser
-from sage.core.dag.dag_node import BaseDAGNode
+from sage.core.dag.local.dag_node import BaseDAGNode
 
 
 class MyTestCase(unittest.TestCase):
