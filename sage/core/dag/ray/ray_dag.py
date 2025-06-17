@@ -1,11 +1,7 @@
 import ray
 import logging
 from typing import Dict, List, Optional, Any, Tuple, TYPE_CHECKING
-from sage.core.dag.dag import DAG
-if TYPE_CHECKING:
-    from ray.actor import ActorHandle  # 只在类型检查期间生效
-else:
-    ActorHandle = Any
+from ray.actor import ActorHandle
 
 class RayDAG:
     """
@@ -18,7 +14,7 @@ class RayDAG:
         self.platform = "ray"
         
         # Ray actor storage
-        self.ray_actors: Dict[str, ray.ActorHandle] = {}
+        self.ray_actors: Dict[str, ActorHandle] = {}
         self.actor_metadata: Dict[str, Dict[str, Any]] = {}
         
         # Connection mappings for proper channel routing

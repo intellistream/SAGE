@@ -1,21 +1,20 @@
-# from sage.core.engine.executor_manager import ExecutorManager
-from sage.core.dag.dag_manager import DAGManager
 from sage.core.compiler.query_compiler import QueryCompiler
 from sage.core.runtime.runtime_manager import RuntimeManager
 import threading, typing, logging
 
 class Engine:
     _instance = None
+    _lock = threading.Lock()
     def __init__(self,generate_func = None):
         # 确保只初始化一次
         if hasattr(self, "_initialized"):
             return
         self._initialized = True
-        self.dag_manager = DAGManager()
+        # self.dag_manager = DAGManager() # deprecated
         self.runtime_manager = RuntimeManager()
         self.compiler= QueryCompiler(generate_func=generate_func)
-        self._lock = threading.Lock()
         self.logger = logging.getLogger("Engine")
+
     def __new__(cls):
         # 禁止直接实例化
         raise RuntimeError("请通过 get_instance() 方法获取实例")

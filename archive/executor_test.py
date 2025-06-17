@@ -1,6 +1,6 @@
-from sage.core.dag.dag_manager import DAGManager
-from sage.core.dag.dag import DAG
-from sage.core.dag.dag_node import OneShotDAGNode,ContinuousDAGNode
+from archive.dag_manager import DAGManager
+from sage.core.dag.local.dag import DAG
+from sage.core.dag.local.dag_node import OneShotDAGNode,ContinuousDAGNode
 from sage.archive.executor_manager import ExecutorManager
 import time
 import logging

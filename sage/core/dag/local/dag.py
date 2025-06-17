@@ -2,7 +2,7 @@ import logging
 from collections import deque
 from typing import List
 
-from sage.core.dag.dag_node import BaseDAGNode,ContinuousDAGNode,OneShotDAGNode
+from sage.core.dag.local.dag_node import BaseDAGNode,OneShotDAGNode
 
 
 class DAG:
