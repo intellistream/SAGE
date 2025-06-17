@@ -301,10 +301,9 @@ function main_menu() {
             6) run_example_scripts ;;
             7) display_ide_setup ;;
             8) troubleshooting ;;
-            9) 
-            0)
-                echo "Exiting setup script. Goodbye!"
-                exit 0 ;;
+            9) install_dependencies ;;
+            0) echo "Exiting setup script. Goodbye!"
+               exit 0 ;;
             *) echo "Invalid choice. Please try again."; pause ;;
         esac
     done
