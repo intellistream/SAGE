@@ -12,8 +12,8 @@ class RayDAG:
     Ray-specific DAG implementation using Ray actors for distributed execution.
     """
     
-    def __init__(self, id: str, strategy: str = "streaming"):
-        self.id = id
+    def __init__(self, name: str, strategy: str = "streaming"):
+        self.name = name
         self.strategy = strategy
         self.platform = "ray"
         
@@ -26,7 +26,7 @@ class RayDAG:
         
         # Execution state
         self._running = False
-        self.logger = logging.getLogger(f"RayDAG.{self.id}")
+        self.logger = logging.getLogger(f"RayDAG.{self.name}")
         
         # Store actor dependencies for proper execution order
         self.actor_dependencies: Dict[str, List[str]] = {}  # node_name -> [upstream_node_names]
@@ -143,5 +143,5 @@ class RayDAG:
     
     def __str__(self):
         """String representation of the DAG."""
-        return (f"RayDAG(id={self.id}, actors={len(self.ray_actors)}, "
+        return (f"RayDAG(name={self.name}, actors={len(self.ray_actors)}, "
                 f"connections={len(self.connections)}, spouts={len(self.spout_actors)})")
