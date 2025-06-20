@@ -20,7 +20,7 @@ class MemoryManager:
     def __init__(self):
         # 统一使用 collections 名称存储包装后的集合
         self.collections: Dict[str, CollectionWrapper] = {}
-        self.collection_metadata: Dict[str, Dict[str, any]] = {}
+        self.collection_metadata: Dict[str, Dict[str, Any]] = {}
 
     def create_collection(
             self,
