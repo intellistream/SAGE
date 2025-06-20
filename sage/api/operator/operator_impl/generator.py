@@ -2,8 +2,6 @@ from typing import Any, Tuple
 from sage.api.model import apply_generator_model
 from sage.api.operator import GeneratorFunction
 from sage.api.operator import Data
-import ray
-
 
 class OpenAIGenerator(GeneratorFunction):
     """
