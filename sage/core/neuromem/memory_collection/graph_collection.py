@@ -8,3 +8,4 @@ class GraphMemoryCollection(BaseMemoryCollection):
     @classmethod
     def load(cls,  a, b):
         pass
+
