@@ -115,21 +115,17 @@ class BM25sIndex(BaseKVIndex):
         return [self.ids[i] for i in topk_idx]
 
 
-    def store(self, root_path: str) -> Dict[str, Any]:
+    def store(self, dir_path: str) -> Dict[str, Any]:
         """
         将索引信息存储到指定目录，包含bm25模型、分词器、ids和texts。
         Store the index info into the specified directory, including bm25 model, tokenizer, ids, and texts.
         """
-        dir_path = os.path.join(root_path, "KV_Collection", "bm25s", self.name)
         os.makedirs(dir_path, exist_ok=True)
-        
-        # Save with string-type keys for vocab_dict.
         self.bm25.vocab_dict = {str(k): v for k, v in self.bm25.vocab_dict.items()} # type: ignore
 
         self.bm25.save(dir_path, corpus=None)# type: ignore
         self.tokenizer.save_vocab(dir_path) # type: ignore
         self.tokenizer.save_stopwords(dir_path) # type: ignore
-        # Save ids and texts (order must be consistent).
         with open(os.path.join(dir_path, "ids.txt"), "w", encoding="utf-8") as f:
             for i in self.ids:
                 f.write(i + "\n")
@@ -157,21 +153,19 @@ class BM25sIndex(BaseKVIndex):
         self.bm25.index(self.tokens)
 
     @classmethod
-    def load(cls, name: str, root_path: str) -> "BM25sIndex":
+    def load(cls, name: str, dir_path: str) -> "BM25sIndex":
         """
         通过名称和根路径加载一个BM25sIndex实例。
         Load a BM25sIndex instance by name and root path.
         """
-        dir_path = os.path.join(root_path, "KV_Collection", "bm25s", name)
         return cls(name=name, load_path=dir_path)
 
     @staticmethod
-    def clear(root_path: str, name: str):
+    def clear(dir_path: str):
         """
         删除指定名称下的所有索引数据。
         Remove all index data under the specified name.
         """
-        dir_path = os.path.join(root_path, "KV_Collection", "bm25s", name)
         try:
             shutil.rmtree(dir_path)
             print(f"Cleared: {dir_path}")
@@ -190,6 +184,7 @@ if __name__ == "__main__":
         "Python is a great programming language."
     ]
     root_path = "./tmp_bm25_test"  # 用临时目录避免误删业务数据
+    index_dir = root_path
     index_name = "demo"
 
     # 1. 初始化索引
@@ -220,14 +215,14 @@ if __name__ == "__main__":
 
     # 5. 保存索引
     print("\n== 保存索引到磁盘 ==")
-    store_info = index.store(root_path)
+    store_info = index.store(index_dir)
     print("索引保存路径:", store_info["index_path"])
 
     # 6. 等待用户输入 'yes' 后加载索引并检索
     print("\n== 测试持久化（请手动输入 yes 继续）==")
     user_input = input("输入 'yes' 以继续测试 load 并检索：")
     if user_input.strip().lower() == "yes":
-        index_loaded = BM25sIndex.load(name=index_name, root_path=root_path)
+        index_loaded = BM25sIndex.load(name=index_name, dir_path=index_dir)
         print("持久化load后检索 'fox':", index_loaded.search("fox"))
         print("持久化load后检索 'python':", index_loaded.search("python"))
         print("持久化load后检索 'hello':", index_loaded.search("hello"))
@@ -235,7 +230,7 @@ if __name__ == "__main__":
     else:
         print("用户未输入 'yes'，测试提前结束。")
 
-    # 可选：自动清理测试目录
+    # 7. 清理测试目录
     print("\n== 清理测试目录 ==")
-    BM25sIndex.clear(root_path, index_name)
+    BM25sIndex.clear(index_dir)
 
