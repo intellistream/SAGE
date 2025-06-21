@@ -1,65 +1,75 @@
-# file: sage/core/neuromem/storage_engine/kv_backend/base_kv_backend.py
+# file sage/core/neuromem/search_engine/kv_index/base_kv_index.py
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import List, Any, Dict
 
-class BaseKVBackend(ABC):
-    """
-    Abstract base class for key-value backends.
-    抽象基类，用于定义 KV 存储后端接口规范。
-    """
-    @abstractmethod
-    def get_all_keys(self) -> list[str]:
-        pass
-
-    @abstractmethod
-    def has(self, key: str) -> bool:
+class BaseKVIndex(ABC):
+    def __init__(
+        self,
+        name: str,
+        texts: List[str],
+        ids: List[str]
+    ):
         """
-        Check whether the key exists.
-        检查指定键是否存在。
+        初始化索引基类。
+        Initialize the base class for KV Index.
         """
-        pass
+        self.name = name
 
     @abstractmethod
-    def get(self, key: str) -> Any:
+    def insert(self, text: str, id: str) -> None:
         """
-        Retrieve value by key.
-        根据键获取对应的值。
+        插入一条新数据。
+        Insert a new entry.
         """
         pass
 
     @abstractmethod
-    def set(self, key: str, value: Any):
+    def delete(self, id: str) -> None:
         """
-        Set a key-value pair.
-        存储键值对。
-        """
-        pass
-
-    @abstractmethod
-    def delete(self, key: str):
-        """
-        Delete a key-value pair.
-        删除指定键及其对应的值。
+        删除指定id的数据。
+        Delete an entry by id.
         """
         pass
 
     @abstractmethod
-    def clear(self):
+    def search(self, query: str, topk: int = 10) -> List[str]:
         """
-        Clear the entire store.
-        清空所有键值对。
+        检索相关数据，返回最相关的id列表。
+        Search for relevant entries and return the most relevant ids.
         """
-        pass
-    
-    @abstractmethod
-    def load_data_to_memory(self, path: str):
-        pass
-    
-    @abstractmethod
-    def store_data_to_disk(self, path: str):
         pass
 
     @abstractmethod
-    def clear_disk_data(self, path: str):
+    def update(self, id: str, new_text: str) -> None:
+        """
+        更新指定id的数据内容。
+        Update the entry corresponding to the given id.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def load(cls, name: str, root_path: str) -> "BaseKVIndex":
+        """
+        加载索引实例。
+        Load the index instance.
+        """
+        pass
+
+    @abstractmethod
+    def store(self, root_path: str) -> Dict[str, Any]:
+        """
+        存储索引数据到指定目录。
+        Store the index data to the specified directory.
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def clear(root_path: str, name: str) -> None:
+        """
+        删除指定名称下的所有索引数据。
+        Remove all index data under the specified name.
+        """
         pass
