@@ -1,10 +1,10 @@
 # file sage/core/neuromem/search_engine/vdb_index/base_vdb_index.py
 
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any
 import numpy as np
 
-class BaseKVIndex(ABC):
+class BaseVDBIndex(ABC):
     def __init__(self, name: str, dim: int):
         """
         基础索引类初始化
@@ -38,3 +38,21 @@ class BaseKVIndex(ABC):
     def search(self, query_vector: np.ndarray, topk: int = 10) -> Tuple[List[str], List[float]]:
         """向量检索，返回 (string_id, 距离) 列表"""
         pass
+    
+    @classmethod
+    @abstractmethod
+    def load(cls, name: str, root_path: str) -> "BaseVDBIndex":
+        """
+        加载索引实例。
+        Load the index instance.
+        """
+        pass
+
+    @abstractmethod
+    def store(self, root_path: str) -> Dict[str, Any]:
+        """
+        存储索引数据到指定目录。
+        Store the index data to the specified directory.
+        """
+        pass
+
