@@ -1,9 +1,9 @@
-# python -m sage.core.neuromem.test.test
+# python -m sage.core.neuromem.operator_test.operator_test
 
 import bm25s
 docs = [
     "The quick brown fox jumps over the lazy dog.",
-    "Hello world! This is a test document.",
+    "Hello world! This is a operator_test document.",
     "Python is a great programming language."
 ]
 tokenizer = bm25s.tokenization.Tokenizer(stopwords='en')

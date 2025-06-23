@@ -14,7 +14,7 @@ class Spout :
     def __init__(self,config={}):
         self.logger=logging.getLogger(self.__class__.__name__)
         self.config=config
-    def execute(self,input="streaming query test"):
+    def execute(self,input="streaming query operator_test"):
         dagid=self.config['id']
         self.logger.debug(f"spout_{dagid} execute start")
         time.sleep(0.1)

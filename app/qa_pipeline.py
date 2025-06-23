@@ -1,6 +1,5 @@
 import logging
 import time
-import yaml
 from sage.api.pipeline import Pipeline
 from sage.api.operator.operator_impl.promptor import QAPromptor
 from sage.api.operator.operator_impl.generator import OpenAIGenerator
@@ -9,7 +8,8 @@ from sage.api.operator.operator_impl.source import FileSource
 from sage.api.operator.operator_impl.sink import FileSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
-
+from sage.utils.config_loader import load_config
+from sage.utils.logging_utils import configure_logging
 
 def memory_init():
     """初始化内存管理器并创建测试集合"""
@@ -21,7 +21,7 @@ def memory_init():
         backend_type="VDB",
         embedding_model=default_model,
         dim=128,
-        description="test vdb collection",
+        description="operator_test vdb collection",
         as_ray_actor=False
     )
     col.add_metadata_field("owner")
@@ -36,6 +36,7 @@ def memory_init():
     col.create_index(index_name="vdb_index")
     config["retriever"]["ltm_collection"] = col
 
+
 def pipeline_run():
     """创建并运行数据处理管道"""
     pipeline = Pipeline(name="example_pipeline", use_ray=False)
@@ -49,10 +50,11 @@ def pipeline_run():
     pipeline.submit(config={"is_long_running": True})
     time.sleep(100)  # 等待管道运行
 
+
 if __name__ == '__main__':
+    configure_logging(level=logging.INFO)
     # 加载配置并初始化日志
-    config = load_config('./app/config.yaml')
-    logging.basicConfig(level=logging.INFO)
+    config = load_config('config.yaml')
     # 初始化内存并运行管道
     memory_init()
     pipeline_run()
