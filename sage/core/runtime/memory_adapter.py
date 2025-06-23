@@ -28,6 +28,7 @@ class MemoryAdapter:
         """
         处理本地对象的检索逻辑
         """
+        self.logger.debug(f"Retrieving from local object: {type(obj).__name__}")
         # 检测集合类型
         coll_type = self._detect_collection_type(obj)
 
@@ -112,9 +113,8 @@ class MemoryAdapter:
             if not self._is_ray_actor(actor):
                 return []
 
-            # 获取集合类型（通过远程调用）
-            coll_type_future = actor._detect_collection_type.remote()
-            coll_type = ray.get(coll_type_future)
+        
+            coll_type = "vdb"
 
             # 处理配置参数
             if collection_config is None:
@@ -135,8 +135,10 @@ class MemoryAdapter:
 
                 # 获取默认索引名（如果需要）
                 if index_name is None:
-                    index_names_future = actor.get_index_names.remote()
-                    index_names = ray.get(index_names_future)
+                    indexes_future = actor.list_index.remote()
+                    indexes = ray.get(indexes_future)
+                    index_names = [index["name"] for index in indexes]  # 过滤掉空字符串
+                    self.logger.debug(f"Available index names: {index_names}")                   
                     if index_names:
                         index_name = index_names[0]
                         self.logger.info(f"Using default index: {index_name}")
@@ -193,7 +195,14 @@ class MemoryAdapter:
             return []
 
     def _is_ray_actor(self, obj) -> bool:
-            return hasattr(obj, '_actor_id') and hasattr(obj, '_remote')
+        """检测执行模式"""
+        if isinstance(obj, ray.actor.ActorHandle):
+            return 1
+        elif hasattr(obj, 'remote'):
+            return 1
+        else:
+            return 0
+        # return hasattr(obj, '_actor_id') and hasattr(obj, '_remote')
 
 
     def _detect_collection_type(self, collection) -> str:

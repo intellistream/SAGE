@@ -1,11 +1,11 @@
 from typing import Type, TYPE_CHECKING, Union, Any
 from sage.core.engine import Engine
 import pip
-from sage.core.engine.runtime import Engine
+from sage.core.engine import Engine
 from sage.api.pipeline.datastream_api import DataStream
 from sage.api.operator import SourceFunction
 from sage.api.operator.base_operator_api import BaseFuction
-
+from sage.api.graph.sage_graph import SageGraph
 
 class Pipeline:
     name:str
@@ -48,28 +48,28 @@ class Pipeline:
         self.data_streams.append(stream)
         return stream
 
-    def submit(self, config=None,generate_func = None):
-        # 其中的generate_func最后会传到core.compiler.query_parser中作为generate_func
-        """
-        Submit the pipeline to the SAGE engine.
-        The engine is responsible for compiling and executing the DAG.
+    # def submit(self, config=None,generate_func = None):
+    #     # 其中的generate_func最后会传到core.compiler.query_parser中作为generate_func
+    #     """
+    #     Submit the pipeline to the SAGE engine.
+    #     The engine is responsible for compiling and executing the DAG.
 
-        Args:
-            config (dict, optional): Configuration options for runtime execution.
-                Example:
-                {
-                    "is_long_running": True,
-                    "duration": 1,
-                    "frequency": 30
-                }
-                :param generate_func:
-        """
+    #     Args:
+    #         config (dict, optional): Configuration options for runtime execution.
+    #             Example:
+    #             {
+    #                 "is_long_running": True,
+    #                 "duration": 1,
+    #                 "frequency": 30
+    #             }
+    #             :param generate_func:
+    #     """
     
-        engine = Engine.get_instance(generate_func)
-        print(generate_func)
-        # 建立pipeline与引擎的关联
-        engine.submit_pipeline(self, config=config or {}) # compile dag -> register engine
-        print(f"[Pipeline] Pipeline '{self.name}' submitted to engine with config: {config or {}}")
+    #     engine = Engine.get_instance(generate_func)
+    #     print(generate_func)
+    #     # 建立pipeline与引擎的关联
+    #     engine.submit_pipeline(self, config=config or {}) # compile dag -> register engine
+    #     print(f"[Pipeline] Pipeline '{self.name}' submitted to engine with config: {config or {}}")
 
 
 
@@ -191,7 +191,7 @@ class Pipeline:
         print(f"Successfully converted pipeline '{self.name}' to graph with {len(graph.nodes)} nodes and {len(graph.edges)} edges")
         return graph
 
-    def new_submit(self, config=None, generate_func=None):
+    def submit(self, config=None, generate_func=None):
         """
         Submit the pipeline to the SAGE engine by converting to graph first.
         

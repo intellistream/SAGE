@@ -26,7 +26,7 @@ def memory_init():
         embedding_model=default_model,
         dim=128,
         description="test vdb collection",
-        as_ray_actor=False
+        as_ray_actor=True
     )
     col.add_metadata_field("owner")
     col.add_metadata_field("show_type")
@@ -38,19 +38,21 @@ def memory_init():
     for text, metadata in texts:
         col.insert(text, metadata)
     col.create_index(index_name="vdb_index")
-    config["retriever"]["ltm_collection"] = col
+    print(col.list_index())
+    config["retriever"]["ltm_collection"] = col._collection
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = Pipeline(name="example_pipeline", use_ray=False)
+    pipeline = Pipeline(name="example_pipeline", use_ray=True)
     # 构建数据处理流程
     query_stream = pipeline.add_source(FileSource, config)
     query_and_chunks_stream = query_stream.retrieve(SimpleRetriever, config)
     prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
+    # prompt_stream = query_stream.construct_prompt(QAPromptor, config)
     response_stream = prompt_stream.generate_response(OpenAIGenerator, config)
     response_stream.sink(FileSink, config)
     # 提交管道并运行
-    pipeline.submit(config={"is_long_running": True})
+    pipeline.submit(config={"is_long_ running": True})
     time.sleep(100)  # 等待管道运行
 
 if __name__ == '__main__':

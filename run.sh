@@ -14,6 +14,6 @@ sleep 2
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # 添加脚本所在目录到 PYTHONPATH
 export PYTHONPATH="$SCRIPT_DIR:$PYTHONPATH"
-python ./app/graph_test.py
+python ./app/qa_pipeline.py
 # python ./app/local_pipeline.py
 # python ./app/pipeline_test.py

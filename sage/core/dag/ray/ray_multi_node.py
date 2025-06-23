@@ -6,7 +6,7 @@ from typing import Any, List, Optional, Dict, Tuple, TYPE_CHECKING, Type
 from sage.api.operator.base_operator_api import BaseFuction
 from sage.api.operator.base_operator_api import EmitContext
 from ray.actor import ActorHandle  # 只在类型检查期间生效
-
+import time
 @ray.remote
 class RayMultiplexerDagNode:
     """
@@ -18,24 +18,10 @@ class RayMultiplexerDagNode:
                  operator_class: Type[BaseFuction],
                  operator_config: Dict = None,
                  is_spout: bool = False) -> None:
-        """
-        Initialize Ray multiplexer DAG node.
-        
-        Args:
-            name: Node name
-            operator_class: Operator class (not instance)
-            operator_config: Configuration for operator instantiation
-            is_spout: Whether this is a spout node
-        """
         self.name = name
         self.operator_class = operator_class
         self.operator_config = operator_config or {}
         self.is_spout = is_spout
-        
-        # Create operator instance locally within the Ray actor
-        self.operator = operator_class(operator_config)
-        # Store downstream connections: output_channel -> [(downstream_actor, downstream_input_channel)]
-        self.downstream_connections: Dict[int, List[Tuple[ActorHandle, int]]] = {}
         self.logger = logging.getLogger(f"RayMultiplexerDagNode.{self.name}")
         self.logger.setLevel(logging.DEBUG)
         handler = logging.StreamHandler()
@@ -47,8 +33,27 @@ class RayMultiplexerDagNode:
         if not self.logger.hasHandlers():
             self.logger.addHandler(handler)
         # 取消继承 root logger 的 stdout handler
-        self.logger.propagate = False
+        # self.logger.propagate = False
+        self.logger.debug(f'_'*100)   ###########################
+        """
+        Initialize Ray multiplexer DAG node.
+        
+        Args:
+            name: Node name
+            operator_class: Operator class (not instance)
+            operator_config: Configuration for operator instantiation
+            is_spout: Whether this is a spout node
+        """
 
+        
+        # Create operator instance locally within the Ray actor
+      
+
+        # Store downstream connections: output_channel -> [(downstream_actor, downstream_input_channel)]
+        self.downstream_connections: Dict[int, List[Tuple[ActorHandle, int]]] = {}
+
+
+        self.operator = operator_class(operator_config)
         
         # Running state
         self._running = False
@@ -156,7 +161,7 @@ class RayMultiplexerDagNode:
             while self._running and not self._stop_requested:
                 # For spout, we typically call with channel 0 and None data
                 self.operator.receive(0, None)
-                
+                time.sleep(1)
         except Exception as e:
             self.logger.error(f"Error in spout node {self.name}: {e}", exc_info=True)
             raise

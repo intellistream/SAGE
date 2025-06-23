@@ -2,7 +2,7 @@ import ray
 import asyncio
 import concurrent.futures
 from typing import Any
-
+import logging
 
 class CollectionWrapper:
     """透明的集合包装器，自动适配本地执行、Ray Actor、Ray Function等多种模式"""
@@ -13,7 +13,23 @@ class CollectionWrapper:
         object.__setattr__(self, '_execution_mode', self._detect_execution_mode())
         object.__setattr__(self, '_method_cache', {})
         object.__setattr__(self, '_attribute_cache', {})
+        
+        # 使用 object.__setattr__ 初始化 logger 相关属性
+        logger = logging.getLogger(f"CollectionWrapper.")
+        logger.setLevel(logging.DEBUG)
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('[%(levelname)s] %(message)s')
+        handler.setFormatter(formatter)
 
+        if not logger.hasHandlers():
+            logger.addHandler(handler)
+        # 取消继承 root logger 的 stdout handler
+        # logger.propagate = False
+        
+        object.__setattr__(self, 'logger', logger)
+        self.logger.debug(f'_'*100)   ###########################
+        
     def _detect_execution_mode(self) -> str:
         """检测执行模式"""
         try:
@@ -37,7 +53,8 @@ class CollectionWrapper:
         # 缓存查找
         if name in self._attribute_cache:
             return self._attribute_cache[name]
-
+        #self.logger.debug(f"Accessing attribute '{name}'")
+        
         # 获取原始属性
         try:
             original_attr = getattr(self._collection, name)

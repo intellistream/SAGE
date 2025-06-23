@@ -81,9 +81,9 @@ class RayRuntime(BaseRuntime):
         spout_futures = []
         for spout_actor in spout_actors:
             try:
+                self.logger.debug(f"Started streaming spout actor in DAG {ray_dag.name}")
                 future = spout_actor.start_spout.remote()
                 spout_futures.append(future)
-                self.logger.debug(f"Started streaming spout actor in DAG {ray_dag.name}")
             except Exception as e:
                 self.logger.error(f"Failed to start spout actor in DAG {ray_dag.name}: {e}")
                 raise

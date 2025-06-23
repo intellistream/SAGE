@@ -1,6 +1,6 @@
 from typing import Union, List, Tuple, Optional, Dict
 from sage.api.operator import SharedStateWriterFunction, Data
-from sage.runtime.memory_adapter import MemoryAdapter
+from sage.core.runtime.memory_adapter import MemoryAdapter
 
 
 class MemoryWriter(SharedStateWriterFunction):
