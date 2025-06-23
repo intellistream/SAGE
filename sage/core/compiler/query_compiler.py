@@ -68,10 +68,14 @@ class QueryCompiler:
         query = None
         if config.get("query"):
             query = config.get("query")
+        
+        # if is_long_running is None, we assume it is a oneshot pipeline
         if config.get("is_long_running",None) is None :
             dag,execution_type = self.compile_oneshot_pipeline(pipeline,query)
+        # if is_long_running is False, we assume it is a oneshot pipeline
         elif not config.get("is_long_running", None):
             dag, execution_type = self.compile_oneshot_pipeline(pipeline,query)
+        # if is_long_running is True, we assume it is a streaming pipeline
         elif config.get("is_long_running", None):
             dag,config_mapping,execution_type  = self.compile_streaming_pipeline(pipeline)
 
@@ -118,7 +122,37 @@ class QueryCompiler:
             dag.add_edge(nodes[i], nodes[i + 1])
 
         return dag, config_mapping, "streaming"
+    
+    def compile_one_shot_defined_pipeline(self, pipeline):
+        # Implement the pipeline compilation logic here
+        
+        dag = DAG(id="dag_1")
+        nodes = []
 
+        for i, datastream in enumerate(pipeline.data_streams):
+            if i == 0:
+                node = OneShotDAGNode(
+                    name=datastream.name,
+                    operator=datastream.operator,
+                    is_spout=True
+                )
+            else:
+                node = OneShotDAGNode(
+                    name=datastream.name,
+                    operator=datastream.operator,
+                    is_spout=False
+                )
+
+      
+            nodes.append(node)
+            dag.add_node(node)
+
+        # Add Edges
+        for i in range(len(nodes) - 1):
+            dag.add_edge(nodes[i], nodes[i + 1])
+
+        return dag, "oneshot"
+    
     def compile_oneshot_pipeline(self, pipeline, query):
         """
 
@@ -142,22 +176,24 @@ class QueryCompiler:
             operator=source_stream.operator,
             is_spout=True
         )
-
         if query is None:
-            print("query is None")
-            query = source_stream.operator.get_query()
-
-        intent= self.parser.parse_query(natural_query=query)
-
-        if self.dag_dict.get(intent) is not None:
-            dag = self.dag_dict.get(intent)
-            return dag, "oneshot"
+            # print("query is None")
+            # query = source_stream.operator.get_query()
+            return self.compile_one_shot_defined_pipeline(pipeline)
         else:
-            pipeline.data_streams = pipeline.data_streams[:1]
-        dag = DAG(id="dag_1", strategy="oneshot")
-        dag = self.logical_graph_constructor.construct_logical_graph(intent, dag, spout_node)
-        operator_cls_mapping = pipeline.get_operator_cls()
-        config_mapping = pipeline.get_operator_config()
+            intent= self.parser.parse_query(natural_query=query)
+
+            print(f"[QueryCompiler] intent: {intent}")
+
+            if self.dag_dict.get(intent) is not None:
+                dag = self.dag_dict.get(intent)
+                return dag, "oneshot"
+            else:
+                pipeline.data_streams = pipeline.data_streams[:1]
+            dag = DAG(id="dag_1", strategy="oneshot")
+            dag = self.logical_graph_constructor.construct_logical_graph(intent, dag, spout_node)
+            operator_cls_mapping = pipeline.get_operator_cls()
+            config_mapping = pipeline.get_operator_config()
 
         # 遍历DAG,从spout结点开始，按边遍历结点
         def traverse_dag_from_node(start_node):

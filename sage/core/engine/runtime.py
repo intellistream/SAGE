@@ -38,7 +38,7 @@ class Engine:
         self.compiler= QueryCompiler(generate_func=generate_func)
         self.pipeline_id = {}
 
-    def submit_pipeline(self,pipeline,config=None):
+    def submit_pipeline(self,pipeline = None,config=None):
         optimized_dag, execution_type,node_mapping = self.compiler.compile(pipeline=pipeline,config=config)
         optimized_dag.working_config=config
         dag_id=self.dag_manager.add_dag(optimized_dag)

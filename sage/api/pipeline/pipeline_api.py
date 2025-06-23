@@ -1,4 +1,5 @@
 from typing import Type, TYPE_CHECKING, Union, Any
+import pip
 from sage.core.engine.runtime import Engine
 from sage.api.pipeline.datastream_api import DataStream
 from sage.api.operator import SourceFunction
@@ -44,7 +45,7 @@ class Pipeline:
         self.data_streams.append(stream)
         return stream
 
-    def submit(self, config=None,generate_func = None):
+    def submit(self, config=None, generate_func = None):
         """
         Submit the pipeline to the SAGE engine.
         The engine is responsible for compiling and executing the DAG.
@@ -59,8 +60,9 @@ class Pipeline:
                 }
                 :param generate_func:
         """
-
+        # print(generate_func)
         engine = Engine.get_instance(generate_func)
+        print(generate_func)
         # 建立pipeline与引擎的关联
         engine.submit_pipeline(self, config=config or {}) # compile dag -> register engine
         print(f"[Pipeline] Pipeline '{self.name}' submitted to engine with config: {config or {}}")

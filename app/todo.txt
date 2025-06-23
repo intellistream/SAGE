@@ -1,3 +1,4 @@
+6.23 修复了longrunning = flase 后，进入到compile_one_shot_pipeline后的bug
 1. memwrite 算子中引入memory adapter
 2.写pipeline测试，实现多轮对话机制，实现multiple_pipeline,
 3.pipeline stop pipeline 定时优雅关闭
