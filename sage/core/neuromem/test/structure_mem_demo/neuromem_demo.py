@@ -1,5 +1,5 @@
-# file sage/core/neuromem/test/neuromem_demo.py
-# python -m sage.core.neuromem.test.structure_mem_demo.neuromem_demo
+# file sage/core/neuromem/operator_test/neuromem_demo.py
+# python -m sage.core.neuromem.operator_test.structure_mem_demo.neuromem_demo
 
 from sage.api.model import apply_generator_model, apply_embedding_model
 

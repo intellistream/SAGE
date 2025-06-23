@@ -1,5 +1,5 @@
 source:
-  data_path: "./sage/api/operator/test/question_news.txt"
+  data_path: "./sage/api/operator/operator_test/question_news.txt"
 
 agent:
   method: "openai"

@@ -1,14 +1,8 @@
-pipeline:
-  name: "sage-api-operator-test"
-  description: "Test pipeline for Sage API Operator"
-  version: "1.0.0"
-  type: "ray"
-
 source:
-  data_path: "./sage/api/operator/test/question.txt"
+  data_path: "./sage/api/operator/operator_test/question.txt"
 
 retriever:
-  stm: False
+  stm: True
   ltm: True
   dcm: False
   top_k: 3
@@ -19,17 +13,19 @@ reranker:
 
 refiner:
   method: "openai"
-  model_name: "qwen-turbo-0919"
+  model_name: "qwen-max"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
   api_key: "sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"
   seed: 42
 
 generator:
   method: "openai"
-  model_name: "qwen-turbo-0919"
+  model_name: "qwen-max"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
   api_key: "sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"
   seed: 42
 
 sink:
-  file_path: "output.txt"
+
+writer:
+

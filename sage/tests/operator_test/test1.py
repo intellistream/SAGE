@@ -1,14 +1,10 @@
 # from csv import writer
-from json import load
-from typing import List, Tuple
+from typing import List
 import os
 import sys
 
 from sage.api.operator import Data
-from numpy import source
-import test
 
-import logging
 # 添加项目根路径到 PYTHONPATH 和 sys.path
 project_root = os.getcwd()
 print(project_root)
@@ -21,7 +17,7 @@ import yaml
 def load_config(path: str) -> dict:
     with open(path, 'r') as f:
         return yaml.safe_load(f)
-config_arxiv=load_config("./sage/api/operator/test/config_arxiv.yaml")
+config_arxiv=load_config("./sage/api/operator/operator_test/config_arxiv.yaml")
 print(config_arxiv)
 from sage.api.operator.operator_impl.arxiv import ArxivPDFDownloader,ArxivPDFParser
 

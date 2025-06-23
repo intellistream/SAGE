@@ -1,13 +1,7 @@
 # from csv import writer
-from json import load
-from typing import List, Tuple
 import os
 import sys
 
-from numpy import source
-import test
-
-import logging
 # 添加项目根路径到 PYTHONPATH 和 sys.path
 project_root = os.getcwd()
 print(project_root)
@@ -16,15 +10,9 @@ print(project_root)
 print(f"{project_root}:{os.environ.get('PYTHONPATH', '')}")
 sys.path.insert(0, project_root)
 
-from sage.api.operator.operator_impl.promptor import QAPromptor
-from sage.api.operator.operator_impl.generator import OpenAIGenerator
-from sage.api.operator.operator_impl.reranker import BGEReranker
-from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
 from sage.api.operator.operator_impl.source import FileSource
-from sage.api.operator.operator_impl.sink import TerminalSink
 # from sage.api.operator.operator_impl.writer import LongTimeWriter,MemWriter
 # from sage.api.operator.operator_impl.retriever import SimpleRetriever
-from sage.api.operator.operator_impl.chunk import CharacterSplitter,SentenceTransformersTokenTextSplitter
 from sage.api.operator.operator_impl.agent  import BaseAgent
 from sage.api.operator.operator_impl.evaluate import (
     F1Evaluate,
@@ -35,14 +23,7 @@ from sage.api.operator.operator_impl.evaluate import (
 from sage.api.operator.operator_impl_test.sink import FileSink
 from sage.api.operator import Data
 import yaml
-from sage.api.memory.memory_api import (
-    create_table,
-    connect,
-    init_default_manager,
-    get_default_manager,
-)
 
-import pytest
 
 # def init_memory():
 #     manager=init_default_manager()
@@ -67,10 +48,10 @@ def load_config(path: str) -> dict:
     with open(path, 'r') as f:
         return yaml.safe_load(f)
 
-config_QA=load_config("./sage/api/operator/test/config_qa.yaml")
-config_multi_turn=load_config("./sage/api/operator/test/config_multi_turn.yaml")
-config_long_mem_write=load_config("./sage/api/operator/test/config_long_mem_write.yaml")
-config_agent_search=load_config("./sage/api/operator/test/config_agent_search.yaml")
+config_QA=load_config("./sage/api/operator/operator_test/config_qa.yaml")
+config_multi_turn=load_config("./sage/api/operator/operator_test/config_multi_turn.yaml")
+config_long_mem_write=load_config("./sage/api/operator/operator_test/config_long_mem_write.yaml")
+config_agent_search=load_config("./sage/api/operator/operator_test/config_agent_search.yaml")
 # def test_QA_pipline():
 #     init_memory()
 #     source=FileSource(config_QA)

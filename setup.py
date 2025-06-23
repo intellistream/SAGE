@@ -1,4 +1,4 @@
-# conda create -n test python=3.11
+# conda create -n operator_test python=3.11
 from setuptools import setup, find_packages
 
 def parse_requirements(filename):
