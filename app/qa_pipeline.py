@@ -10,10 +10,6 @@ from sage.api.operator.operator_impl.sink import FileSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
 
-def load_config(path: str) -> dict:
-    """加载YAML配置文件"""
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
 
 def memory_init():
     """初始化内存管理器并创建测试集合"""
