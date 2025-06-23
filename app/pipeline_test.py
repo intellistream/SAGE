@@ -43,8 +43,11 @@ def init_memory_and_pipeline():
     # 步骤 3: 使用 QAPromptor 构建查询提示
     prompt_stream:DataStream = query_stream.construct_prompt(QAPromptor, config)
 
+    routestreram = prompt_stream.route(router,config)
+
     # 步骤 4: 使用 OpenAIGenerator 生成最终的响应
     response_stream:DataStream = prompt_stream.generate_response(OpenAIGenerator, config)
+    summarize_stream:DataStream = prompt_stream.summarize(AbstractiveRecompRefiner, config)
 
     # 步骤 5: 输出到终端或文件
     sink_stream:DataStream = response_stream.sink(FileSink, config)
