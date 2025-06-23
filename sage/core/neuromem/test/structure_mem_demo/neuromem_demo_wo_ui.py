@@ -47,7 +47,7 @@ file_configs = [
     ("sport.json", "text"),
     ("health.json", "text")
 ]
-base_path = "/home/zrc/develop_item/SAGE/sage/core/neuromem/test/structure_mem_demo"
+base_path = "/home/zrc/develop_item/SAGE/sage/core/neuromem/operator_test/structure_mem_demo"
 
 for fname, text_field in file_configs:
     with open(os.path.join(base_path, fname), 'r', encoding='utf-8') as f:

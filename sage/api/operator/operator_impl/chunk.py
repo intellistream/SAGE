@@ -154,6 +154,6 @@ class SentenceTransformersTokenTextSplitter(ChunkFunction):
 # }
 
 # split=SentenceTransformersTokenTextSplitter(config)
-# print(split.execute(Data("This is a test sentence to be split into smaller chunks.This is a test sentence to be split into smaller chunks.This is a test sentence to be split into smaller chunks.This is a test sentence to be split into smaller chunks.")).data)
+# print(split.execute(Data("This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.")).data)
 
 
