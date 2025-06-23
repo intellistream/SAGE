@@ -8,6 +8,9 @@ class BaseKVBackend(ABC):
     Abstract base class for key-value backends.
     抽象基类，用于定义 KV 存储后端接口规范。
     """
+    @abstractmethod
+    def get_all_keys(self) -> list[str]:
+        pass
 
     @abstractmethod
     def has(self, key: str) -> bool:
@@ -48,4 +51,15 @@ class BaseKVBackend(ABC):
         清空所有键值对。
         """
         pass
+    
+    @abstractmethod
+    def load_data_to_memory(self, path: str):
+        pass
+    
+    @abstractmethod
+    def store_data_to_disk(self, path: str):
+        pass
 
+    @abstractmethod
+    def clear_disk_data(self, path: str):
+        pass

@@ -1,40 +1,75 @@
-# file: sage/core/neuromem/search_engine/kv_index/base_kv_index.py
+# file sage/core/neuromem/search_engine/kv_index/base_kv_index.py
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List
+from typing import List, Any, Dict
 
 class BaseKVIndex(ABC):
-    def __init__(self, name: str, data: Dict[str, Any]):
+    def __init__(
+        self,
+        name: str,
+        texts: List[str],
+        ids: List[str]
+    ):
         """
-        创建静态KV索引
-        :param name: 索引名称
-        :param data: {id: 文本或结构化内容} 的字典
+        初始化索引基类。
+        Initialize the base class for KV Index.
         """
         self.name = name
-        self._build(data)
 
     @abstractmethod
-    def _build(self, data: Dict[str, Any]):
-        """构建索引的内部方法，由 __init__ 自动调用"""
+    def insert(self, text: str, id: str) -> None:
+        """
+        插入一条新数据。
+        Insert a new entry.
+        """
         pass
 
     @abstractmethod
-    def insert(self, key: str, value: Any) -> None:
-        """插入单条记录到索引"""
-        pass
-
-    @abstractmethod
-    def delete(self, key: str) -> None:
-        """从索引中删除记录"""
+    def delete(self, id: str) -> None:
+        """
+        删除指定id的数据。
+        Delete an entry by id.
+        """
         pass
 
     @abstractmethod
     def search(self, query: str, topk: int = 10) -> List[str]:
-        """执行基于查询的检索，返回匹配的 id 列表"""
+        """
+        检索相关数据，返回最相关的id列表。
+        Search for relevant entries and return the most relevant ids.
+        """
         pass
 
     @abstractmethod
-    def update(self, key: str, new_value: Any) -> None:
-        """更新索引中已存在记录"""
+    def update(self, id: str, new_text: str) -> None:
+        """
+        更新指定id的数据内容。
+        Update the entry corresponding to the given id.
+        """
         pass
 
+    @classmethod
+    @abstractmethod
+    def load(cls, name: str, root_path: str) -> "BaseKVIndex":
+        """
+        加载索引实例。
+        Load the index instance.
+        """
+        pass
+
+    @abstractmethod
+    def store(self, root_path: str) -> Dict[str, Any]:
+        """
+        存储索引数据到指定目录。
+        Store the index data to the specified directory.
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def clear(root_path: str, name: str) -> None:
+        """
+        删除指定名称下的所有索引数据。
+        Remove all index data under the specified name.
+        """
+        pass
