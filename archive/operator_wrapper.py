@@ -133,29 +133,3 @@ class OperatorWrapper:
                 # 本地同步方法，直接返回
                 return original_method
     
-    # 可选：提供异步接口给需要的场景
-    def get_async_method(self, method_name: str):
-        """获取异步版本的方法（可选功能）"""
-        original_method = getattr(self._operator, method_name)
-        
-        if self._execution_mode == "ray_actor":
-            async def async_ray_actor_wrapper(*args, **kwargs):
-                future = original_method.remote(*args, **kwargs)
-                loop = asyncio.get_event_loop()
-                return await loop.run_in_executor(None, ray.get, future)
-            return async_ray_actor_wrapper
-            
-        elif self._execution_mode == "ray_function":
-            async def async_ray_function_wrapper(*args, **kwargs):
-                future = original_method.remote(*args, **kwargs)
-                loop = asyncio.get_event_loop()
-                return await loop.run_in_executor(None, ray.get, future)
-            return async_ray_function_wrapper
-            
-        else:
-            if asyncio.iscoroutinefunction(original_method):
-                return original_method
-            else:
-                async def async_local_wrapper(*args, **kwargs):
-                    return original_method(*args, **kwargs)
-                return async_local_wrapper

@@ -1,16 +1,15 @@
 from typing import Type, TYPE_CHECKING, Union, Any
 from sage.core.engine import Engine
+import pip
+from sage.core.engine.runtime import Engine
 from sage.api.pipeline.datastream_api import DataStream
 from sage.api.operator import SourceFunction
-from sage.api.operator.base_operator_api import BaseOperator
-from sage.core.compiler.query_compiler import QueryCompiler
-# from sage.runtime.operator_factory import OperatorFactory
-from sage.api.graph.sage_graph import SageGraph
+from sage.api.operator.base_operator_api import BaseFuction
 
 
 class Pipeline:
     name:str
-    operators: list[Type[BaseOperator]]
+    operators: list[BaseFuction]
     data_streams: list[DataStream]
     operator_config: dict
     operator_cls_mapping: dict
@@ -67,6 +66,7 @@ class Pipeline:
         """
     
         engine = Engine.get_instance(generate_func)
+        print(generate_func)
         # 建立pipeline与引擎的关联
         engine.submit_pipeline(self, config=config or {}) # compile dag -> register engine
         print(f"[Pipeline] Pipeline '{self.name}' submitted to engine with config: {config or {}}")

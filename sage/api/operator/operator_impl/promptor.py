@@ -44,14 +44,7 @@ class QAPromptor(PromptFunction):
         """
         super().__init__()
         self.config = config  # Store the configuration for later use
-        self.prompt_template = Template('''Instruction:
-        You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.
-        Only give me the answer and do not output any other words.
-        {%- if external_corpus %}
-        Relevant corpus for the current question:
-        {{ external_corpus }}
-        {%- endif %}
-        ''')  # Load the QA prompt template
+        self.prompt_template = QA_prompt_template  # Load the QA prompt template
         self.logger = logging.getLogger(__name__)
     def execute(self, data) -> Data[list]:
         """
@@ -95,6 +88,7 @@ class QAPromptor(PromptFunction):
                     "content": self.prompt_template.render(**base_system_prompt_data)
                 }
             else:
+                
                 # Fallback to general instructions when no corpus is provided
                 system_prompt = {
                     "role": "system",
@@ -107,12 +101,11 @@ class QAPromptor(PromptFunction):
                 "content": f"Question: {query}"
             }
             self.logger.info(f"query:{query}")
-            # Combine into prompt list
             prompt = [system_prompt, user_prompt]
 
         except Exception as e:
             # Log detailed error information
-            self.logger.error(f"Error in PromptFunction: {e}\nInput data: {data.data}\n{traceback.format_exc()}")
+            self.logger.error(f"Error in PromptFunction: {e}\nInput data: {data.data}\n")
 
             # Create a minimal fallback prompt in case of errors
             prompt = [
@@ -144,14 +137,7 @@ class SummarizationPromptor(PromptFunction):
         """
         super().__init__()
         self.config = config  # Store the configuration for later use
-        self.prompt_template = Template('''Instruction:
-You are an intelligent assistant. Summarize the content provided below in a concise and clear manner.
-Only provide the summary and do not include any additional information.
-{%- if external_corpus %}
-Content to summarize:
-{{ external_corpus }}
-{%- endif %}
-''')  # Load the QA prompt template
+        self.prompt_template = summarization_prompt_template  # Load the summarization prompt template
 
     def execute(self, data) -> Data[list]:
         """

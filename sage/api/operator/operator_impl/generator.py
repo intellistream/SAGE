@@ -46,8 +46,8 @@ class OpenAIGenerator(GeneratorFunction):
 
         # Generate the response from the model using the provided data and additional arguments
         response = self.model.generate(data.data, **kwargs)
-        print(f'query {self.num}  {user_query}')
-        print(f"answer {self.num}  {response}")
+        # print(f'query {self.num}  {user_query}')
+        # print(f"answer {self.num}  {response}")
         self.num += 1
         # Return the generated response along with the original user query as a tuple
         return Data((user_query, response))

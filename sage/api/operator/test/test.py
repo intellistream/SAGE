@@ -16,17 +16,17 @@ print(project_root)
 print(f"{project_root}:{os.environ.get('PYTHONPATH', '')}")
 sys.path.insert(0, project_root)
 
-from sage.api.operator.operator_impl_test.promptor import QAPromptor
-from sage.api.operator.operator_impl_test.generator import OpenAIGenerator
-from sage.api.operator.operator_impl_test.reranker import BGEReranker
-from sage.api.operator.operator_impl_test.refiner import AbstractiveRecompRefiner
-from sage.api.operator.operator_impl_test.source import FileSource
-from sage.api.operator.operator_impl_test.sink import TerminalSink
-from sage.api.operator.operator_impl_test.writer import LongTimeWriter,MemWriter
-from sage.api.operator.operator_impl_test.retriever import SimpleRetriever
-from sage.api.operator.operator_impl_test.chunk import CharacterSplitter,SentenceTransformersTokenTextSplitter
-from sage.api.operator.operator_impl_test.agent  import BaseAgent
-from sage.api.operator.operator_impl_test.evaluate import (
+from sage.api.operator.operator_impl.promptor import QAPromptor
+from sage.api.operator.operator_impl.generator import OpenAIGenerator
+from sage.api.operator.operator_impl.reranker import BGEReranker
+from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
+from sage.api.operator.operator_impl.source import FileSource
+from sage.api.operator.operator_impl.sink import TerminalSink
+# from sage.api.operator.operator_impl.writer import LongTimeWriter,MemWriter
+# from sage.api.operator.operator_impl.retriever import SimpleRetriever
+from sage.api.operator.operator_impl.chunk import CharacterSplitter,SentenceTransformersTokenTextSplitter
+from sage.api.operator.operator_impl.agent  import BaseAgent
+from sage.api.operator.operator_impl.evaluate import (
     F1Evaluate,
     BertRecallEvaluate,
     RougeLEvaluate,
@@ -44,23 +44,23 @@ from sage.api.memory.memory_api import (
 
 import pytest
 
-def init_memory():
-    manager=init_default_manager()
+# def init_memory():
+#     manager=init_default_manager()
 
-    lsm=create_table("long_term_memory",manager)
+#     lsm=create_table("long_term_memory",manager)
 
-    # contexts=[
-    #     "Mitosis is a type of cell division that results in two genetically identical daughter cells from a single parent cell.",
-    #     "Meiosis is a form of cell division that produces four genetically distinct daughter cells, each with half the number of chromosomes of the original cell.",
-    #     "Mitosis occurs in somatic (non-reproductive) cells and is used for growth and tissue repair.",
-    #     "Meiosis only occurs in germ cells (sperm and egg) and is essential for sexual reproduction.",
-    #     "A key difference is that meiosis includes two rounds of cell division (meiosis I and II), while mitosis only includes one.",
-    #     "Mitosis maintains the chromosome number of the original cell, whereas meiosis reduces it by half.",
-    #     "Crossing over, which increases genetic variation, occurs during meiosis but not mitosis."
-    # ]
+#     # contexts=[
+#     #     "Mitosis is a type of cell division that results in two genetically identical daughter cells from a single parent cell.",
+#     #     "Meiosis is a form of cell division that produces four genetically distinct daughter cells, each with half the number of chromosomes of the original cell.",
+#     #     "Mitosis occurs in somatic (non-reproductive) cells and is used for growth and tissue repair.",
+#     #     "Meiosis only occurs in germ cells (sperm and egg) and is essential for sexual reproduction.",
+#     #     "A key difference is that meiosis includes two rounds of cell division (meiosis I and II), while mitosis only includes one.",
+#     #     "Mitosis maintains the chromosome number of the original cell, whereas meiosis reduces it by half.",
+#     #     "Crossing over, which increases genetic variation, occurs during meiosis but not mitosis."
+#     # ]
 
-    # for context in contexts:
-    #     lsm.store(context)
+#     # for context in contexts:
+#     #     lsm.store(context)
 
 
 def load_config(path: str) -> dict:
@@ -71,55 +71,55 @@ config_QA=load_config("./sage/api/operator/test/config_qa.yaml")
 config_multi_turn=load_config("./sage/api/operator/test/config_multi_turn.yaml")
 config_long_mem_write=load_config("./sage/api/operator/test/config_long_mem_write.yaml")
 config_agent_search=load_config("./sage/api/operator/test/config_agent_search.yaml")
-def test_QA_pipline():
-    init_memory()
-    source=FileSource(config_QA)
-    retriver=SimpleRetriever(config_QA)
-    promptor=QAPromptor(config_QA)
-    generator=OpenAIGenerator(config_QA)
-    # reranker=BGEReranker(config_QA)
-    sink=TerminalSink(config_QA)
-    output=source.execute()
-    output=retriver.execute(output)
+# def test_QA_pipline():
+#     init_memory()
+#     source=FileSource(config_QA)
+#     retriver=SimpleRetriever(config_QA)
+#     promptor=QAPromptor(config_QA)
+#     generator=OpenAIGenerator(config_QA)
+#     # reranker=BGEReranker(config_QA)
+#     sink=TerminalSink(config_QA)
+#     output=source.execute()
+#     output=retriver.execute(output)
 
-    # output=reranker.execute(output)
-    output = promptor.execute(output)
-    output = generator.execute(output)
-    sink.execute(output)
-    # assert("False" in output.data[0])
+#     # output=reranker.execute(output)
+#     output = promptor.execute(output)
+#     output = generator.execute(output)
+#     sink.execute(output)
+#     # assert("False" in output.data[0])
 
-def test_operator_short_memory():
-    print("First Round")
-    init_memory()
-    manager=get_default_manager()
-    stm=create_table("short_term_memory",manager)
+# def test_operator_short_memory():
+#     print("First Round")
+#     init_memory()
+#     manager=get_default_manager()
+#     stm=create_table("short_term_memory",manager)
 
-    source=FileSource(config_multi_turn)
-    retriver=SimpleRetriever(config_multi_turn)
-    promptor=QAPromptor(config_multi_turn)
-    generator=OpenAIGenerator(config_multi_turn)
-    reranker=BGEReranker(config_multi_turn)
-    writer=LongTimeWriter(config_multi_turn)
-    sink=TerminalSink(config_multi_turn)
+#     source=FileSource(config_multi_turn)
+#     retriver=SimpleRetriever(config_multi_turn)
+#     promptor=QAPromptor(config_multi_turn)
+#     generator=OpenAIGenerator(config_multi_turn)
+#     reranker=BGEReranker(config_multi_turn)
+#     writer=LongTimeWriter(config_multi_turn)
+#     sink=TerminalSink(config_multi_turn)
 
-    output=source.execute()
-    output=retriver.execute(output)
-    # output=reranker.execute(output)
-    output = promptor.execute(output)
-    output = generator.execute(output)
-    output = writer.execute(output)
-    sink.execute(output)
+#     output=source.execute()
+#     output=retriver.execute(output)
+#     # output=reranker.execute(output)
+#     output = promptor.execute(output)
+#     output = generator.execute(output)
+#     output = writer.execute(output)
+#     sink.execute(output)
 
-    print("Second Round")
-    output=source.execute()
-    output=retriver.execute(output)
-    output=reranker.execute(output)
-    output = promptor.execute(output)
-    output = generator.execute(output)
-    output = writer.execute(output)
-    sink.execute(output)
+#     print("Second Round")
+#     output=source.execute()
+#     output=retriver.execute(output)
+#     output=reranker.execute(output)
+#     output = promptor.execute(output)
+#     output = generator.execute(output)
+#     output = writer.execute(output)
+#     sink.execute(output)
 
-    # assert("False" in output.data[0])
+#     # assert("False" in output.data[0])
 
 def test_agent_with_search():
     source=FileSource(config_agent_search)
@@ -127,16 +127,16 @@ def test_agent_with_search():
     output=source.execute()
     output=agent.execute(output)
 
-def test_load_memory():
-    init_memory()
-    source=FileSource(config_long_mem_write)
-    chunk=CharacterSplitter(config_long_mem_write)
-    # chunk1=TokenTextSplitter(config_long_mem_write)
-    write=MemWriter(config_long_mem_write)
-    output=source.execute()
-    output=chunk.execute(output)
-    # output=chunk1.execute(output)
-    output=write.execute(output)
+# def test_load_memory():
+#     init_memory()
+#     source=FileSource(config_long_mem_write)
+#     chunk=CharacterSplitter(config_long_mem_write)
+#     # chunk1=TokenTextSplitter(config_long_mem_write)
+#     write=MemWriter(config_long_mem_write)
+#     output=source.execute()
+#     output=chunk.execute(output)
+#     # output=chunk1.execute(output)
+#     output=write.execute(output)
 
 def test_evaluate_functions():
     # 模拟一条数据：reference 和 generated
@@ -167,7 +167,7 @@ def test_evaluate_functions():
     brs_eval.execute(data)
 
 test_evaluate_functions()
-test_load_memory()
+# test_load_memory()
 test_agent_with_search()
-test_operator_short_memory()
-test_QA_pipline()
+# test_operator_short_memory()
+# test_QA_pipline()

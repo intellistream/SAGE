@@ -1,7 +1,8 @@
-from sage.api.operator.base_operator_api import BaseOperator
+from sre_parse import State
+from sage.api.operator.base_operator_api import StatefulFuction
 from typing import Any
 
-class AgentFunction(BaseOperator):
+class AgentFunction(StatefulFuction):
     """
     Operator for get Agent response
     """
