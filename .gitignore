@@ -47,3 +47,5 @@ output.txt
 /arxiv_structured_json
 run.sh
 /sage/.env
+/mem_output.txt
+/qa_output.txt
