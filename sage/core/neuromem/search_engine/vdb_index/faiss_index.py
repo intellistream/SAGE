@@ -1,126 +1,143 @@
 # file sage/core/neuromem/search_engine/vdb_index/faiss_index.py
 # python -m sage.core.neuromem.search_engine.vdb_index.faiss_index
 
-# TODO: 
-# 1.保存机制的实现===>保存 类及属性，索引、映射表（hash256 Faiss64 vector）
-
 import os
+import json
 import faiss
+import pickle
 import numpy as np
-from dotenv import load_dotenv
-from typing import Optional, List, Dict
-from sage.core.neuromem.search_engine.vdb_index.base_vdb_index import BaseKVIndex
+from typing import Optional, List, Dict, Any
+from sage.core.neuromem.search_engine.vdb_index.base_vdb_index import BaseVDBIndex
 
-# 加载工程根目录下 sage/.env 配置
-# Load configuration from .env file under the sage directory
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../../../.env'))
-
-class FaissBackend(BaseKVIndex):
+class FaissIndex(BaseVDBIndex):
     def __init__(
         self, 
         name: str, 
         dim: int, 
         vectors: Optional[List[np.ndarray]] = None, 
-        ids: Optional[List[str]] = None
+        ids: Optional[List[str]] = None,
+        config: Optional[dict] = None,
+        load_path: Optional[str] = None,
         ):
         """
-        初始化 FaissBackend 实例，设置索引名称、维度，并可选性地加载初始向量和ID
-        Initialize the FaissBackend instance with name, dimension, and optionally preload vectors and ids.
+        初始化 FaissIndex 实例，设置索引名称、维度，并可选性地加载初始向量和ID
+        Initialize the FaissIndex instance with name, dimension, and optionally preload vectors and ids.
         """
         self.index_name = name
         self.dim = dim
-        self.index, self._deletion_supported = self._init_index()
-        self.id_map: Dict[int, str] = {}      # int64 → str mapping
-        self.rev_map: Dict[str, int] = {}     # str → int64 mapping
-        self.next_id: int = 1                 # Auto-increment int64 ID
-        self.tombstones: set[str] = set()     # Tombstone set for deleted IDs
+        self.config = config or {}
+        self.id_map: Dict[int, str] = {}
+        self.rev_map: Dict[str, int] = {}
+        self.next_id: int = 1
+        self.tombstones: set[str] = set()
+        self._deletion_supported = True
+        self.index = None
         
-        if vectors is not None and ids is not None:
-            self._build_index(vectors, ids)
+        if load_path is not None:
+            self._load(load_path)
+        else:
+            self.index, self._deletion_supported = self._init_index()
+            if vectors is not None and ids is not None:
+                self._build_index(vectors, ids)
+
            
     def _init_index(self):
-        """
-        根据环境变量初始化FAISS索引
-        Initialize FAISS index based on environment variables
-        """
-        index_type = os.getenv("FAISS_INDEX_TYPE", "IndexFlatL2")
-        
-        # 基础索引类型 / Basic index types
+        config = self.config  # 保持全程都叫config
+        index_type = config.get("index_type", "IndexFlatL2")
+
+        # 基础索引
         if index_type == "IndexFlatL2":
             return faiss.IndexFlatL2(self.dim), True
 
         elif index_type == "IndexFlatIP":
             return faiss.IndexFlatIP(self.dim), True
 
-        # 图索引类型 / Graph index types
+        # HNSW
         elif index_type == "IndexHNSWFlat":
-            hnsw_m = int(os.getenv("HNSW_M", "32"))
-            ef_construction = int(os.getenv("HNSW_EF_CONSTRUCTION", "200"))
+            hnsw_m = int(config.get("HNSW_M", 32))
+            ef_construction = int(config.get("HNSW_EF_CONSTRUCTION", 200))
             index = faiss.IndexHNSWFlat(self.dim, hnsw_m)
             index.hnsw.efConstruction = ef_construction
-            if os.getenv("HNSW_EF_SEARCH"):
-                index.hnsw.efSearch = int(os.getenv("HNSW_EF_SEARCH")) # type: ignore
-            return index, False  
+            if "HNSW_EF_SEARCH" in config:
+                index.hnsw.efSearch = int(config["HNSW_EF_SEARCH"])
+            return index, False
 
-        # 倒排文件索引 / Inverted file indexes
+        # IVF Flat
         elif index_type == "IndexIVFFlat":
-            nlist = int(os.getenv("IVF_NLIST", "100"))
-            nprobe = int(os.getenv("IVF_NPROBE", "10"))
+            nlist = int(config.get("IVF_NLIST", 100))
+            nprobe = int(config.get("IVF_NPROBE", 10))
+            metric = self._get_metric(config.get("IVF_METRIC", "L2"))
             quantizer = faiss.IndexFlatL2(self.dim)
-            metric = self._get_metric(os.getenv("IVF_METRIC", "L2"))
             index = faiss.IndexIVFFlat(quantizer, self.dim, nlist, metric)
             index.nprobe = nprobe
             return index, True
 
+        # IVF PQ
         elif index_type == "IndexIVFPQ":
-            nlist = int(os.getenv("IVF_NLIST", "100"))
-            nprobe = int(os.getenv("IVF_NPROBE", "10"))
-            m = int(os.getenv("PQ_M", "8"))
-            nbits = int(os.getenv("PQ_NBITS", "8"))
+            nlist = int(config.get("IVF_NLIST", 100))
+            nprobe = int(config.get("IVF_NPROBE", 10))
+            m = int(config.get("PQ_M", 8))
+            nbits = int(config.get("PQ_NBITS", 8))
+            metric = self._get_metric(config.get("IVF_METRIC", "L2"))
             quantizer = faiss.IndexFlatL2(self.dim)
-            metric = self._get_metric(os.getenv("IVF_METRIC", "L2"))
             index = faiss.IndexIVFPQ(quantizer, self.dim, nlist, m, nbits, metric)
             index.nprobe = nprobe
             return index, True
 
+        # IVF ScalarQuantizer
         elif index_type == "IndexIVFScalarQuantizer":
-            nlist = int(os.getenv("IVF_NLIST", "100"))
-            nprobe = int(os.getenv("IVF_NPROBE", "10"))
-            qtype_str = os.getenv("SQ_TYPE", "QT_8bit")
+            nlist = int(config.get("IVF_NLIST", 100))
+            nprobe = int(config.get("IVF_NPROBE", 10))
+            qtype_str = config.get("SQ_TYPE", "QT_8bit")
             qtype = getattr(faiss.ScalarQuantizer, qtype_str)
-            metric = self._get_metric(os.getenv("IVF_METRIC", "L2"))
+            metric = self._get_metric(config.get("IVF_METRIC", "L2"))
             quantizer = faiss.IndexFlatL2(self.dim)
             index = faiss.IndexIVFScalarQuantizer(quantizer, self.dim, nlist, qtype, metric)
             index.nprobe = nprobe
             return index, True
 
-        # 其他索引类型 / Other index types
+        # LSH
         elif index_type == "IndexLSH":
-            nbits = int(os.getenv("LSH_NBITS", "512"))
-            rotate_data = os.getenv("LSH_ROTATE_DATA", "True").lower() == "true"
-            train_thresholds = os.getenv("LSH_TRAIN_THRESHOLDS", "False").lower() == "true"
+            nbits = int(config.get("LSH_NBITS", 512))
+            rotate_data = bool(config.get("LSH_ROTATE_DATA", True))
+            train_thresholds = bool(config.get("LSH_TRAIN_THRESHOLDS", False))
             index = faiss.IndexLSH(self.dim, nbits, rotate_data, train_thresholds)
-            return index, False  
+            return index, False
 
+        # PQ
         elif index_type == "IndexPQ":
-            m = int(os.getenv("PQ_M", "8"))
-            nbits = int(os.getenv("PQ_NBITS", "8"))
-            metric = self._get_metric(os.getenv("PQ_METRIC", "L2"))
+            m = int(config.get("PQ_M", 8))
+            nbits = int(config.get("PQ_NBITS", 8))
+            metric = self._get_metric(config.get("PQ_METRIC", "L2"))
             return faiss.IndexPQ(self.dim, m, nbits, metric), False
 
+        # ScalarQuantizer
         elif index_type == "IndexScalarQuantizer":
-            qtype_str = os.getenv("SQ_TYPE", "QT_8bit")
+            qtype_str = config.get("SQ_TYPE", "QT_8bit")
             qtype = getattr(faiss.ScalarQuantizer, qtype_str)
-            metric = self._get_metric(os.getenv("SQ_METRIC", "L2"))
+            metric = self._get_metric(config.get("SQ_METRIC", "L2"))
             return faiss.IndexScalarQuantizer(self.dim, qtype, metric), True
 
+        # RefineFlat
         elif index_type == "IndexRefineFlat":
-            base_index, base_deletion_supported = self._init_base_index()
-            k_factor = float(os.getenv("REFINE_K_FACTOR", "1.0"))
+            base_type = config.get("FAISS_BASE_INDEX_TYPE", "IndexFlatL2")
+            # 临时切换 index_type, 递归用 config 初始化
+            orig_type = config.get("index_type", None)
+            config["index_type"] = base_type
+            base_index, base_deletion_supported = self._init_index()
+            if orig_type is not None:
+                config["index_type"] = orig_type
+            k_factor = float(config.get("REFINE_K_FACTOR", 1.0))
             return faiss.IndexRefineFlat(base_index, k_factor), True
 
+        # IndexIDMap
         elif index_type == "IndexIDMap":
-            base_index, base_deletion_supported = self._init_base_index()
+            base_type = config.get("FAISS_BASE_INDEX_TYPE", "IndexFlatL2")
+            orig_type = config.get("index_type", None)
+            config["index_type"] = base_type
+            base_index, base_deletion_supported = self._init_index()
+            if orig_type is not None:
+                config["index_type"] = orig_type
             return faiss.IndexIDMap(base_index), base_deletion_supported
 
         else:
@@ -290,67 +307,154 @@ class FaissBackend(BaseKVIndex):
         int_ids_np = np.array(int_ids, dtype=np.int64)
         self.index.add_with_ids(np_vectors, int_ids_np)  # type: ignore
 
+    def store(self, dir_path: str) -> Dict[str, Any]:
+            """
+            将FAISS索引、参数和映射全部保存到指定目录。
+            """
+            os.makedirs(dir_path, exist_ok=True)
+            # 1. 保存faiss主索引
+            faiss.write_index(self.index, os.path.join(dir_path, "faiss.index"))
+            # 2. 保存id映射
+            with open(os.path.join(dir_path, "id_map.pkl"), "wb") as f:
+                pickle.dump(self.id_map, f)
+            with open(os.path.join(dir_path, "rev_map.pkl"), "wb") as f:
+                pickle.dump(self.rev_map, f)
+            with open(os.path.join(dir_path, "tombstones.pkl"), "wb") as f:
+                pickle.dump(self.tombstones, f)
+            # 3. 保存参数（如dim、下一个ID、自定义config等）
+            meta = {
+                "index_name": self.index_name,
+                "dim": self.dim,
+                "next_id": self.next_id,
+                "deletion_supported": self._deletion_supported,
+                "config": getattr(self, "config", {}),  # 若有config则保存
+            }
+            with open(os.path.join(dir_path, "meta.json"), "w", encoding="utf-8") as f:
+                json.dump(meta, f, ensure_ascii=False, indent=2)
+            return {"index_path": dir_path}
 
+    def _load(self, dir_path: str):
+        """
+        从目录恢复索引、映射与参数。仅供类方法load调用。
+        """
+        self.index = faiss.read_index(os.path.join(dir_path, "faiss.index"))
+        with open(os.path.join(dir_path, "id_map.pkl"), "rb") as f:
+            self.id_map = pickle.load(f)
+        with open(os.path.join(dir_path, "rev_map.pkl"), "rb") as f:
+            self.rev_map = pickle.load(f)
+        with open(os.path.join(dir_path, "tombstones.pkl"), "rb") as f:
+            self.tombstones = pickle.load(f)
+        with open(os.path.join(dir_path, "meta.json"), "r", encoding="utf-8") as f:
+            meta = json.load(f)
+        self.index_name = meta["index_name"]
+        self.dim = meta["dim"]
+        self.next_id = meta["next_id"]
+        self._deletion_supported = meta.get("deletion_supported", True)
+        self.config = meta.get("config", {})
+
+    @classmethod
+    def load(cls, name: str, load_path: str) -> "FaissIndex":
+        """
+        推荐方式，等价于 BM25sIndex.load
+        """
+        return cls(name=name, dim=0, load_path=load_path)  # dim会被_load覆盖
 
 if __name__ == "__main__":
+    import os
+    import shutil
     import numpy as np
 
-    # 初始化参数
+    def colored(text, color):
+        # color: "green", "red", "yellow"
+        colors = {"green": "\033[92m", "red": "\033[91m", "yellow": "\033[93m", "reset": "\033[0m"}
+        return colors.get(color, "") + text + colors["reset"]
+
+    def print_test_case(desc, expected_ids, expected_dists, actual_ids, actual_dists, digits=4):
+        ids_pass = list(expected_ids) == list(actual_ids)
+        dists_pass = all(abs(e-a) < 10**-digits for e,a in zip(expected_dists, actual_dists))
+        status = "通过" if ids_pass and dists_pass else "不通过"
+        color = "green" if status == "通过" else "red"
+        print(f"【{desc}】")
+        print(f"预期IDs：{expected_ids}")
+        print(f"实际IDs：{actual_ids}")
+        print(f"预期距离：{expected_dists}")
+        print(f"实际距离：{[round(x, digits) for x in actual_dists]}")
+        print(f"测试情况：{colored(status, color)}\n")
+
+    # ==== 基础数据 ====
     dim = 4
     index_name = "test_index"
-    vectors = [np.array([1.0, 0.0, 0.0, 0.0]),
-               np.array([0.0, 1.0, 0.0, 0.0]),
-               np.array([0.0, 0.0, 1.0, 0.0])]
-    ids = ["id1", "id2", "id3"]
-    faiss_backend = FaissBackend(name=index_name, dim=dim, vectors=vectors, ids=ids)
+    root_dir = "./faiss_index_test"
+    if os.path.exists(root_dir):
+        shutil.rmtree(root_dir)
+    os.makedirs(root_dir, exist_ok=True)
 
-    def run_test(test_name, operation, query_vector, expected_ids, expected_distances, top_k=10, round_digits=None):
-        print(f"\n{test_name}")
-        operation()
-        
-        string_ids, distances = faiss_backend.search(query_vector, top_k)
-        if round_digits is not None:
-            distances = [round(d, round_digits) for d in distances]
-        
-        print("预期结果:")
-        print(f"  IDs: {expected_ids}")
-        print(f"  Distances: {expected_distances}")
-        print("实际结果:")
-        print(f"  IDs: {string_ids}")
-        print(f"  Distances: {distances}")
-
-    # 测试用例
-    tests = [
-        ("测试 1: 插入单个向量",
-         lambda: faiss_backend.insert(np.array([0.0, 0.0, 0.0, 1.0]), "id4"),
-         np.array([1.0, 0.0, 0.0, 0.0]),
-         ['id1', 'id2', 'id3', 'id4'],
-         [0.0, 2.0, 2.0, 2.0]),
-        
-        ("测试 2: 更新向量",
-         lambda: faiss_backend.update("id1", np.array([0.5, 0.5, 0.0, 0.0])),
-         np.array([0.5, 0.5, 0.0, 0.0]),
-         ['id1', 'id2', 'id3', 'id4'],
-         [0.0, 0.5, 1.5, 1.5]),
-        
-        ("测试 3: 删除向量",
-         lambda: faiss_backend.delete("id2"),
-         np.array([0.0, 1.0, 0.0, 0.0]),
-         ['id1', 'id3', 'id4'],
-         [0.5, 2.0, 2.0]),
-        
-        ("测试 4: 批量插入",
-         lambda: faiss_backend.batch_insert(
-             [np.array([0.1, 0.1, 0.1, 0.1]),
-              np.array([0.2, 0.2, 0.2, 0.2])],
-             ["id5", "id6"]),
-         np.array([0.1, 0.1, 0.1, 0.1]),
-         ['id5', 'id6', 'id1', 'id3', 'id4'],
-         [0.0, 0.04, 0.34, 0.84, 0.84],
-         10, 2)
+    vectors = [
+        np.array([1.0, 0.0, 0.0, 0.0]),
+        np.array([0.0, 1.0, 0.0, 0.0]),
+        np.array([0.0, 0.0, 1.0, 0.0])
     ]
+    ids = ["id1", "id2", "id3"]
 
-    for test in tests:
-        run_test(*test)
+    index = FaissIndex(name=index_name, dim=dim, vectors=vectors, ids=ids)
+    # 1. 检索
+    q1 = np.array([1.0, 0.0, 0.0, 0.0])
+    r_ids, r_dists = index.search(q1, 3)
+    print_test_case("基础检索", ["id1", "id2", "id3"], [0.0, 2.0, 2.0], r_ids, r_dists)
+
+    # 2. 插入新向量
+    index.insert(np.array([0.0, 0.0, 0.0, 1.0]), "id4")
+    q2 = np.array([0.0, 0.0, 0.0, 1.0])
+    r_ids, r_dists = index.search(q2, 4)
+    print_test_case("插入后检索", ["id4", "id1", "id2", "id3"], [0.0, 2.0, 2.0, 2.0], r_ids, r_dists)
+
+    # 3. 更新向量
+    index.update("id1", np.array([0.5, 0.5, 0.0, 0.0]))
+    q3 = np.array([0.5, 0.5, 0.0, 0.0])
+    r_ids, r_dists = index.search(q3, 4)
+    print_test_case("更新后检索", ['id1', 'id2', 'id3', 'id4'], [0.0, 0.5, 1.5, 1.5], r_ids, r_dists)
+
+    # 4. 删除向量
+    index.delete("id2")
+    q4 = np.array([1.0, 0.0, 0.0, 0.0])
+    r_ids, r_dists = index.search(q4, 4)
+    print_test_case("删除后检索", ['id1', 'id3', 'id4'], [0.5, 2.0, 2.0], r_ids, r_dists)
+
+    # 5. 批量插入
+    index.batch_insert([
+        np.array([0.1, 0.1, 0.1, 0.1]),
+        np.array([0.2, 0.2, 0.2, 0.2])
+    ], ["id5", "id6"])
+    q5 = np.array([0.1, 0.1, 0.1, 0.1])
+    r_ids, r_dists = index.search(q5, 6)
+    print_test_case("批量插入后检索", ['id5', 'id6', 'id1', 'id3', 'id4'], [0.0, 0.04, 0.34, 0.84, 0.84], r_ids[:5], r_dists[:5], 2)
+
+    # ==== 持久化保存 ====
+    print(colored("\n--- 保存索引到磁盘 ---", "yellow"))
+    index.store(root_dir)
+    print(colored(f"数据已保存到目录: {root_dir}", "yellow"))
+
+    # ==== 内存对象清空 ====
+    del index
+    print(colored("内存对象已清除。", "yellow"))
+
+    # ==== 读取并检索 ====
+    user_input = input(colored("输入 yes 加载刚才保存的数据: ", "yellow"))
+    if user_input.strip().lower() == "yes":
+        index2 = FaissIndex.load(index_name, root_dir)
+        print(colored("数据已从磁盘恢复！", "green"))
+
+        r_ids, r_dists = index2.search(np.array([0.1, 0.1, 0.1, 0.1]), 5)
+        print_test_case("恢复后检索", ["id5", "id6", "id1", "id3", "id4"], [0.0, 0.04, 0.34, 0.84, 0.84], r_ids, r_dists, 2)
+    else:
+        print(colored("跳过加载测试。", "yellow"))
+
+    # ==== 清除磁盘数据 ====
+    user_input = input(colored("输入 yes 删除磁盘所有数据: ", "yellow"))
+    if user_input.strip().lower() == "yes":
+        shutil.rmtree(root_dir)
+        print(colored("所有数据已删除！", "green"))
+    else:
+        print(colored("未执行删除。", "yellow"))
 
 
