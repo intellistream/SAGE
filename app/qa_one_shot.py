@@ -6,7 +6,7 @@ from sage.api.operator.operator_impl.promptor import QAPromptor
 from sage.api.operator.operator_impl.generator import OpenAIGenerator
 from sage.api.operator.operator_impl.retriever import SimpleRetriever
 from sage.api.operator.operator_impl.source import FileSource
-from sage.api.operator.operator_impl.sink import FileSink
+from sage.api.operator.operator_impl.sink import FileSink, TerminalSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
 
@@ -48,15 +48,15 @@ def pipeline_run():
     query_and_chunks_stream = query_stream.retrieve(SimpleRetriever, config)
     prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
     response_stream = prompt_stream.generate_response(OpenAIGenerator, config)
-    response_stream.sink(FileSink, config)
+    response_stream.sink(TerminalSink, config)
     # 提交管道并运行
-    pipeline.submit(config={"is_long_running": True})
-    time.sleep(100)  # 等待管道运行
+    pipeline.submit(config={"is_long_running": False})
+    # time.sleep(100)  # 等待管道运行
 
 if __name__ == '__main__':
     # 加载配置并初始化日志
     config = load_config('./app/config.yaml')
-    logging.basicConfig(level=logging.INFO)
+    # logging.basicConfig(level=logging.INFO)
     # 初始化内存并运行管道
     memory_init()
     pipeline_run()
