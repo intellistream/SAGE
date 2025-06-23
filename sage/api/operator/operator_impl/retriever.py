@@ -1,7 +1,7 @@
 from typing import Tuple, List
 import time  # 替换 asyncio 为 time 用于同步延迟
 from sage.api.operator import Data, StateRetrieverFunction
-
+import logging
 
 # 更新后的 SimpleRetriever
 class SimpleRetriever(StateRetrieverFunction):
@@ -30,15 +30,32 @@ class SimpleRetriever(StateRetrieverFunction):
 
 
         # 创建内存适配器并设置日志
+        self.logger = logging.getLogger(f"SimpleRetriever")
+        self.logger.setLevel(logging.DEBUG)
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('[%(levelname)s] %(message)s')
+        handler.setFormatter(formatter)
+
+
+        if not self.logger.hasHandlers():
+            self.logger.addHandler(handler)
+        self.logger.debug(f"__init__" + '_'*100)   ###########################
+
+        
         self.memory_adapter = self._create_memory_adapter()
         self.memory_adapter.logger = self.logger
 
+        # 取消继承 root logger 的 stdout handler
+        # self.logger.propagate = False
     def _create_memory_adapter(self):
         """创建内存适配器，处理不同类型的memory collection"""
         from sage.core.runtime.memory_adapter import MemoryAdapter
         return MemoryAdapter()
 
     def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
+        self.logger.debug(f"execute" + '_'*100)   ###########################
+
         input_query = data.data
         chunks = []
         self.logger.debug(f"Starting retrieval for query: {input_query}")

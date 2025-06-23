@@ -51,7 +51,6 @@ class QueryCompiler:
                 operator_config=operator_config,
                 is_spout=(graph_node.type == "source")
             )
-            
             # Add to RayDAG - use graph's get_upstream_nodes method
             upstream_nodes = graph.get_upstream_nodes(node_name)
             ray_dag.add_ray_actor(

@@ -8,7 +8,7 @@ from typing import Any, Type, TYPE_CHECKING, Union
 
 from sage.core.io.message_queue import MessageQueue
 # from sage.archive.operator_wrapper import OperatorWrapper
-from sage.api.operator.base_operator_api import BaseOperator
+# from sage.api.operator.base_operator_api import BaseFunction
 
 
 class BaseDAGNode:
@@ -17,7 +17,7 @@ class BaseDAGNode:
 
     Attributes:
         name (str): Unique name of the node
-        operator (BaseOperator): Operator implementing the execution logic
+        operator (BaseFunction): Operator implementing the execution logic
         config (dict): Configuration parameters for the operator
         is_spout (bool): Indicates if the node is a spout (starting point)
         output_queue (MessageQueue): Output queue for the node's results
@@ -27,7 +27,7 @@ class BaseDAGNode:
         is_longrunning (bool): Indicates if the node is a long-running process
     """
 
-    def __init__(self, name: str, operator: BaseOperator,
+    def __init__(self, name: str, operator,
                  config: dict = None, is_spout: bool = False) -> None:
         """
         Initialize the base DAG node.
@@ -166,7 +166,7 @@ class OneShotDAGNode(BaseDAGNode):
 #         _stop_timer (threading.Timer): Timer for scheduled stop
 #     """
 
-#     def __init__(self, name: str, operator: BaseOperator,
+#     def __init__(self, name: str, operator: BaseFunction,
 #                  config: dict = None, is_spout: bool = False) -> None:
 #         """
 #         Initialize the continuous DAG node.
