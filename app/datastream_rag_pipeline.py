@@ -1,7 +1,16 @@
 # python -m app.datastream_rag_pipeline
 
 
-# 导入 Sage 中的 Pipeline 和相关组件
+#XXX: NLP
+#XXX: SQL
+#SAGE: DataFlow Model, Fluent API
+#LangGraph: Explicitly expressed a Graph
+
+
+
+
+
+## 导入 Sage 中的 Pipeline 和相关组件
 import logging
 import time
 from typing import Tuple, List, Type, TYPE_CHECKING, Union, Any
@@ -125,8 +134,14 @@ for i in result:
 #     # 步骤 2: 使用 SimpleRetriever 从向量内存中检索相关数据块
 #     query_and_chunks_stream:DataStream = query_stream.retrieve(SimpleRetriever, config)
 
+#     query_and_chunks_stream2:DataStream = query_stream.retrieve(ComplexRetriever, config)
+
 #     # 步骤 3: 使用 QAPromptor 构建查询提示
 #     prompt_stream:DataStream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
+#     # 步骤 3: 使用 QAPromptor 构建查询提示
+#     prompt_stream2:DataStream = query_and_chunks_stream2.construct_prompt(QAPromptor, config)
+
+    joined_prompt_stream=prompt_stream.merge(prompt_stream2)
 
 #     # 步骤 4: 使用 OpenAIGenerator 生成最终的响应
 #     response_stream:DataStream = prompt_stream.generate_response(OpenAIGenerator, config)

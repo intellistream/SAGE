@@ -18,7 +18,7 @@ class RayRuntime(BaseRuntime):
         """
         # 确保Ray已初始化
         if not ray.is_initialized():
-            ray.init()
+            ray.init(temp_dir="./ray_tmp")
         self.name = "RayRuntime"
         self.running_dags: Dict[str, RayDAG] = {}  # handle -> RayDAG映射
         self.dag_spout_futures: Dict[str, List[ray.ObjectRef]] = {}  # handle -> spout futures
