@@ -1,5 +1,7 @@
+from typing import Type, TYPE_CHECKING, Union, Any, TYPE_CHECKING
 from sage.core.compiler.query_compiler import QueryCompiler
 from sage.core.runtime.runtime_manager import RuntimeManager
+
 import threading, typing, logging
 
 class Engine:
@@ -14,6 +16,9 @@ class Engine:
         self.runtime_manager = RuntimeManager()
         self.compiler= QueryCompiler(generate_func=generate_func)
         self.logger = logging.getLogger("Engine")
+        from sage.core.graph import SageGraph
+        self.graphs:dict[str, SageGraph] = {}  # 存储 pipeline 名称到 SageGraph 的映射
+        self.dags:dict = {} # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
 
     def __new__(cls):
         # 禁止直接实例化
@@ -35,29 +40,21 @@ class Engine:
         return cls._instance
 
 
-    
-
-    def submit_graph(self, graph):
-        """
-        根据图配置提交到合适的后端执行
-        
-        Args:
-            graph: SageGraph 实例
-            
-        Returns:
-            str: 任务句柄
-        """
+    def submit_pipeline(self, pipeline, config=None, generate_func=None):
+        from sage.core.graph import SageGraph
+        graph = SageGraph(pipeline, config)
+        self.graphs[graph.name] = graph  # 存储图到字典中
+        # 合并配置
+        if config:
+            graph.config.update(config)
         try:
             self.logger.info(f"Received graph '{graph.name}' with {len(graph.nodes)} nodes")
-            
-            # 验证图的有效性
-            if not graph.validate_graph():
-                raise ValueError(f"Invalid graph: {graph.name}")
             # 编译图
-            compiled_task = self.compiler.compile_graph(graph)
+            dag = self.compiler.compile_graph(graph)
+            self.dags[dag.name] = dag  # 存储 DAG 到字典中
             self.logger.info(f"Graph '{graph.name}' submitted to runtime manager.")
             # 通过运行时管理器获取对应平台的运行时并提交任务
-            task_handle = self.runtime_manager.submit(compiled_task) 
+            task_handle = self.runtime_manager.submit(dag) 
         except Exception as e:
             self.logger.info(f"Failed to submit graph '{graph.name}': {e}")
             raise

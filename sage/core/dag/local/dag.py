@@ -16,11 +16,11 @@ class DAG:
     有向无环图（DAG）类，用于管理节点和执行流程。
     """
 
-    def __init__(self,id,strategy=None):
+    def __init__(self,name:str,strategy=None):
         """
         Initialize an empty DAG.
         """
-        self.name = None
+        self.name = name
         self.nodes = []  # Changed from set to list
         self.edges = {}  # Dictionary to store edges as {parent: [children]}
         self.id=id

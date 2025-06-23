@@ -1,8 +1,9 @@
+from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, AnyStr, Dict, List
+from sage.api.pipeline.pipeline_api import Pipeline
+from sage.api.pipeline.datastream_api import DataStream
 from sage.api.operator import BaseFuction
-from sage.core.engine import Engine
-if TYPE_CHECKING:
-    from sage.api.graph import GraphNode, GraphEdge, SageGraph
+
 
 
 
@@ -32,17 +33,95 @@ class GraphEdge:
         self.downstream_channnel: int = None
 
 class SageGraph:
-    def __init__(self, name: str, config: dict = None):
+    def __init__(self, pipeline:Pipeline, config: dict = None):
         """
         Initialize the NodeGraph with a name and optional configuration.
         Args:
             name (str): The name of the node graph.
             config (dict, optional): Configuration parameters for the node graph.
         """
-        self.name:str = name
-        self.config:Dict = config or {}
+        self.name:str = pipeline.name
+        self.config:Dict = {
+            "platform": "ray" if pipeline.use_ray else "local",
+        }
         self.nodes:Dict[str, GraphNode] = {}
         self.edges:Dict[str, GraphEdge] = {}
+        # 构建数据流之间的连接映射
+        stream_to_node_name = {}
+        stream_connections = {}
+
+
+        # 第一步：为每个 DataStream 生成唯一的节点名和边名
+        for i, stream in enumerate(pipeline.data_streams):
+            node_name = f"{stream.name}_{i}" if stream.name else f"node_{i}"
+            stream_to_node_name[stream] = node_name
+            
+            # 构建连接映射：记录每个流的上下游边名
+            input_edges = []
+            output_edges = []
+            
+            # 处理输入边（来自上游流）
+            for j, upstream in enumerate(stream.upstreams):
+                edge_name = f"edge_{stream_to_node_name.get(upstream, f'upstream_{j}')}_{node_name}"
+                input_edges.append(edge_name)
+            
+            # 处理输出边（到下游流）
+            for j, downstream in enumerate(stream.downstreams):
+                downstream_node_name = f"{downstream.name}_{pipeline.data_streams.index(downstream)}" if downstream.name else f"node_{pipeline.data_streams.index(downstream)}"
+                edge_name = f"edge_{node_name}_{downstream_node_name}"
+                output_edges.append(edge_name)
+            
+            stream_connections[stream] = {
+                'node_name': node_name,
+                'input_edges': input_edges,
+                'output_edges': output_edges
+            }
+
+
+        # 第二步：按拓扑顺序添加节点到图中
+        added_nodes = set()
+        
+        def add_node_recursively(stream: DataStream):
+            """递归添加节点，确保上游节点先添加"""
+            connection_info = stream_connections[stream]
+            node_name = connection_info['node_name']
+            
+            # 如果节点已添加，跳过
+            if node_name in added_nodes:
+                return
+            
+            # 先添加所有上游节点
+            for upstream in stream.upstreams:
+                add_node_recursively(upstream)
+            
+            # 添加当前节点
+            try:
+                self.add_node(
+                    node_name=node_name,
+                    input_streams=connection_info['input_edges'],
+                    output_streams=connection_info['output_edges'],
+                    operator_class=stream.operator,
+                    operator_config=stream.config
+                )
+                added_nodes.add(node_name)
+                print(f"Added node: {node_name}")
+                
+            except Exception as e:
+                print(f"Error adding node {node_name}: {e}")
+                raise
+        
+        # 从所有数据流开始添加（以处理可能的多个独立子图）
+        for stream in pipeline.data_streams:
+            add_node_recursively(stream)
+        # 第三步：验证图的有效性
+        if not self.validate_graph():
+            raise ValueError("Generated graph is invalid")
+        
+        print(f"Successfully converted pipeline '{pipeline.name}' to graph with {len(self.nodes)} nodes and {len(self.edges)} edges")
+
+
+
+
 
     def add_node(self, 
                  node_name: str,
@@ -114,10 +193,10 @@ class SageGraph:
         self.nodes[node.name] = node
         return node
     
-    def submit(self):
-        engine:Engine = Engine.get_instance(generate_func=None)
-        engine.submit_graph(self)
-        print(f" Graph '{self.name}' submitted to engine.")
+    # def submit(self):
+    #     engine:Engine = Engine.get_instance(generate_func=None)
+    #     engine.submit_graph(self)
+    #     print(f" Graph '{self.name}' submitted to engine.")
     def get_upstream_nodes(self, node_name: str) -> List[str]:
         """
         Get list of upstream node names for a given node.
