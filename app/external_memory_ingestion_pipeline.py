@@ -44,7 +44,7 @@ def pipeline_run():
     chunk_stream = source_stream.chunk(CharacterSplitter,config)
     memwrite_stream= chunk_stream.write_mem(MemoryWriter,config)
     sink_stream= memwrite_stream.sink(MemWriteSink,config)
-    pipeline.submit(config={"is_long_running": True})
+    pipeline.submit(config={"is_long_running": False})
     time.sleep(100)  # 等待管道运行
 
 if __name__ == '__main__':
