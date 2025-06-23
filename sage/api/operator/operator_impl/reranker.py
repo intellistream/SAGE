@@ -6,7 +6,7 @@ from sage.api.operator import RerankerFunction
 from sage.api.operator import Data
 from typing import Any, List, Tuple
 
-import torchgit
+# import torchgit
 from typing import List, Tuple
 from transformers import AutoModelForSequenceClassification, AutoTokenizer,AutoModelForCausalLM
 from abc import abstractmethod
@@ -61,7 +61,6 @@ class BGEReranker(RerankerFunction):
             self.logger.error(f"Failed to load model {model_name}: {str(e)}")
             raise RuntimeError(f"Model loading failed: {str(e)}")
         
-    @torch.inference_mode()
     def execute(self, data: Data[Tuple[str, List[str]]]):
         """
         Executes the reranking process:
@@ -208,7 +207,7 @@ class LLMbased_Reranker(RerankerFunction):
             return_tensors='pt',
         )
 
-    @torch.inference_mode()
+    # @torch.inference_mode()
     def execute(self, data: Data[Tuple[str, List[str]]]) -> Data[Tuple[str, List[str]]]:
         """
         Executes the reranking process:
