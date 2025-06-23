@@ -6,7 +6,7 @@ from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
 
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 def load_config(path: str) -> dict:
     with open(path, 'r') as f:
         return yaml.safe_load(f)
