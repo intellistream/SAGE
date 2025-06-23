@@ -36,6 +36,19 @@ class RayMultiplexerDagNode:
         self.operator = operator_class(operator_config)
         # Store downstream connections: output_channel -> [(downstream_actor, downstream_input_channel)]
         self.downstream_connections: Dict[int, List[Tuple[ActorHandle, int]]] = {}
+        self.logger = logging.getLogger(f"RayMultiplexerDagNode.{self.name}")
+        self.logger.setLevel(logging.DEBUG)
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('[%(levelname)s] %(message)s')
+        handler.setFormatter(formatter)
+
+
+        if not self.logger.hasHandlers():
+            self.logger.addHandler(handler)
+        # 取消继承 root logger 的 stdout handler
+        self.logger.propagate = False
+
         
         # Running state
         self._running = False
@@ -67,10 +80,10 @@ class RayMultiplexerDagNode:
         
         self.downstream_connections[output_channel].append((downstream_actor, downstream_input_channel))
         
-        # self.logger.debug(
-        #     f"Added downstream connection: {self.name}[out:{output_channel}] -> "
-        #     f"downstream_node[in:{downstream_input_channel}]"
-        # )
+        self.logger.debug(
+            f"Added downstream connection: {self.name}[out:{output_channel}] -> "
+            f"downstream_node[in:{downstream_input_channel}]"
+        )
     
     def receive(self, input_channel: int, data: Any):
         """
@@ -86,10 +99,11 @@ class RayMultiplexerDagNode:
                 return
                 
             # Call operator's receive method with correct input channel
+            self.logger.debug(f"Received data in node {self.name}, channel {input_channel}")
             self.operator.receive(input_channel, data)
             
         except Exception as e:
-            # self.logger.error(f"Error processing data in node {self.name}: {e}", exc_info=True)
+            self.logger.error(f"Error processing data in node {self.name}: {e}", exc_info=True)
             raise
     
     def emit(self, output_channel: int, data: Any):
@@ -108,20 +122,19 @@ class RayMultiplexerDagNode:
                     # Asynchronously call downstream actor's receive method
                     downstream_actor.receive.remote(downstream_input_channel, data)
                     
-                    # self.logger.debug(
-                    #     f"Emitted data from {self.name}[out:{output_channel}] to "
-                    #     f"downstream[in:{downstream_input_channel}]"
-                    # )
+                    self.logger.debug(
+                        f"Emitted data from {self.name}[out:{output_channel}] to "
+                        f"downstream[in:{downstream_input_channel}]"
+                    )
                 except Exception as e:
-                    pass
-                    # self.logger.error(
-                    #     f"Failed to emit data from {self.name}[out:{output_channel}]: {e}"
-                    # )
+                    self.logger.error(
+                        f"Failed to emit data from {self.name}[out:{output_channel}]: {e}"
+                    )
         else:
             pass
-            # self.logger.warning(
-            #     f"No downstream connections for output channel {output_channel} in node {self.name}"
-            # )
+            self.logger.warning(
+                f"No downstream connections for output channel {output_channel} in node {self.name}"
+            )
     
     def get_downstream_connections(self) -> Dict[int, List[Tuple[ActorHandle, int]]]:
         """Get all downstream connections for debugging."""
@@ -133,7 +146,7 @@ class RayMultiplexerDagNode:
         For spout nodes, continuously call operator.receive with dummy data.
         """
         if not self.is_spout:
-            # self.logger.warning(f"start_spout called on non-spout node {self.name}")
+            self.logger.warning(f"start_spout called on non-spout node {self.name}")
             return
             
         self._running = True
@@ -145,7 +158,7 @@ class RayMultiplexerDagNode:
                 self.operator.receive(0, None)
                 
         except Exception as e:
-            # self.logger.error(f"Error in spout node {self.name}: {e}", exc_info=True)
+            self.logger.error(f"Error in spout node {self.name}: {e}", exc_info=True)
             raise
         finally:
             self._running = False
