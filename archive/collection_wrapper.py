@@ -6,7 +6,6 @@ from typing import Any
 
 class CollectionWrapper:
     """透明的集合包装器，自动适配本地执行、Ray Actor、Ray Function等多种模式"""
-
     def __init__(self, collection: Any):
         # 使用 __dict__ 直接设置，避免触发 __setattr__
         object.__setattr__(self, '_collection', collection)
