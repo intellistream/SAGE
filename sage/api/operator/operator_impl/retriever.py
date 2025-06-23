@@ -40,7 +40,6 @@ class SimpleRetriever(StateRetrieverFunction):
 
         if not self.logger.hasHandlers():
             self.logger.addHandler(handler)
-        self.logger.debug(f"__init__" + '_'*100)   ###########################
 
         
         self.memory_adapter = self._create_memory_adapter()
@@ -54,7 +53,6 @@ class SimpleRetriever(StateRetrieverFunction):
         return MemoryAdapter()
 
     def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
-        self.logger.debug(f"execute" + '_'*100)   ###########################
 
         input_query = data.data
         chunks = []

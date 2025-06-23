@@ -28,7 +28,6 @@ class CollectionWrapper:
         # logger.propagate = False
         
         object.__setattr__(self, 'logger', logger)
-        self.logger.debug(f'_'*100)   ###########################
         
     def _detect_execution_mode(self) -> str:
         """检测执行模式"""

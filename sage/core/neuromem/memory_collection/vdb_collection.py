@@ -66,7 +66,6 @@ class VDBMemoryCollection(BaseMemoryCollection):
         handler.setFormatter(formatter)
         if not self.logger.hasHandlers():
             self.logger.addHandler(handler)
-        # self.logger.debug(f"VDBMemoryCollection"*100)   ###########################
 
 
 
@@ -111,7 +110,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
 
     @classmethod
     def load(cls, name, embedding_model, load_path=None):
-        cls.logger.debug(f"VDBMemoryCollection: load called")   ###########################
+        cls.logger.debug(f"VDBMemoryCollection: load called")
 
         if load_path is None:
             load_path = os.path.join(get_default_data_dir(), "vdb_collection", name)
@@ -234,8 +233,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
         metadata: Optional[Dict[str, Any]] = None,
         *index_names
     ) -> str:
-        self.logger.debug(f"VDBMemoryCollection: insert called")   ###########################
-        self.logger.debug(index_names) 
+        self.logger.debug(f"VDBMemoryCollection: insert called")
         stable_id = self._get_stable_id(raw_text)
         self.text_storage.store(stable_id, raw_text)
 
@@ -248,15 +246,12 @@ class VDBMemoryCollection(BaseMemoryCollection):
             embedding = embedding.detach().cpu().numpy().astype("float32")
             
         self.vector_storage.store(stable_id, embedding)
-        self.logger.debug("ooooqqqqqqqqqqqq")   ###########################
         
         for index_name in index_names:
             if index_name not in self.indexes:
                 raise ValueError(f"Index '{index_name}' does not exist.")
             index = self.indexes[index_name]["index"]
             index.insert(embedding, stable_id)  # 不用加 []
-            self.logger.debug("oooo"+index_name)   ###########################
-        self.logger.debug("bbbbbbbbbbbbbb")   ###########################
 
 
         return stable_id

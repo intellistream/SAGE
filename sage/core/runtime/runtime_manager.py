@@ -1,9 +1,10 @@
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Union
 from sage.core.runtime.base_runtime import BaseRuntime
 from sage.core.runtime.ray.ray_runtime import RayRuntime
 from sage.core.runtime.local.local_runtime import LocalRuntime
 from sage.core.dag.local.dag import DAG
+from sage.core.dag.ray.ray_dag import RayDAG
 
 class RuntimeManager:
     """
@@ -97,7 +98,7 @@ class RuntimeManager:
             self.shutdown_platform(platform)
         self.logger.info("All runtimes shutdown")
 
-    def submit(self, dag:DAG):
+    def submit(self, dag:Union[DAG, RayDAG]):
         """
         提交图到合适的运行时执行
         

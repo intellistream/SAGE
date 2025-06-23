@@ -1,4 +1,4 @@
-from typing import Dict, Type, Any, TYPE_CHECKING
+from typing import Dict, Type, Any, TYPE_CHECKING, Union
 from sage.core.compiler.optimizer import Optimizer
 from sage.core.compiler.query_parser import QueryParser
 from sage.core.dag.local.dag import DAG
@@ -8,7 +8,7 @@ from sage.core.dag.local.multi_dag_node import MultiplexerDagNode
 from sage.core.io.message_queue import MessageQueue
 from sage.core.dag.ray.ray_dag import RayDAG
 if TYPE_CHECKING:
-    from sage.api.graph import SageGraph, GraphEdge
+    from sage.core.graph import SageGraph, GraphEdge
 class QueryCompiler:
 
     def __init__(self,generate_func = None ):
@@ -22,7 +22,7 @@ class QueryCompiler:
         self.parser = QueryParser(generate_func=generate_func)
         self.dag_dict = {}
 
-    def compile_graph(self, graph:'SageGraph'):
+    def compile_graph(self, graph:'SageGraph') -> Union[DAG, RayDAG]:
         platform = graph.config.get("platform", "local")
         
         if platform == "ray":
@@ -33,7 +33,7 @@ class QueryCompiler:
 
     def _compile_graph_for_ray(self, graph:'SageGraph') -> RayDAG:
         """Ray-specific compilation logic returning RayDAG."""
-        ray_dag = RayDAG(name=f"ray_dag_{graph.name}", strategy="streaming")
+        ray_dag = RayDAG(name=f"{graph.name}", strategy="streaming")
         ray_dag.platform = "ray"
         # operator_factory = OperatorFactory(True)  # Ray-enabled factory
         
@@ -82,8 +82,8 @@ class QueryCompiler:
             )
         return ray_dag
 
-    def _compile_graph_for_local(self, graph:'SageGraph'):
-        dag = DAG(id="dag_1",strategy="streaming")
+    def _compile_graph_for_local(self, graph:'SageGraph')->DAG:
+        dag = DAG(name=graph.name, strategy="streaming")
         dag.platform = "local"
         # operator_factory = OperatorFactory(graph.config["platform"] == "ray")
         

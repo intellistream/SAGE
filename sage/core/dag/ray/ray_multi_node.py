@@ -34,7 +34,6 @@ class RayMultiplexerDagNode:
             self.logger.addHandler(handler)
         # 取消继承 root logger 的 stdout handler
         # self.logger.propagate = False
-        self.logger.debug(f'_'*100)   ###########################
         """
         Initialize Ray multiplexer DAG node.
         
