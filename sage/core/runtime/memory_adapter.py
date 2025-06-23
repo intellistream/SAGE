@@ -147,10 +147,11 @@ class MemoryAdapter:
                         return []
 
                 # 获取默认topk（如果需要）
+                # if topk is None:
+                #     default_topk_future = actor.get_default_topk.remote()
+                #     topk = ray.get(default_topk_future) or 3
                 if topk is None:
-                    default_topk_future = actor.get_default_topk.remote()
-                    topk = ray.get(default_topk_future) or 3
-
+                    topk = getattr(actor, "default_topk", 3)
                 # 调用VDB检索
                 return ray.get(actor.retrieve.remote(
                     raw_text=query,
