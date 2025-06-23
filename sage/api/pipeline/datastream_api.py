@@ -4,7 +4,7 @@ from typing import Type, TYPE_CHECKING, Union, Any
 # 只在类型检查时导入，运行时不导入
 if TYPE_CHECKING:
     from sage.api.pipeline.pipeline_api import Pipeline
-    from sage.api.operator.base_operator_api import BaseOperator
+    from sage.api.operator.base_operator_api import BaseFuction
     from sage.api.operator import RetrieverFunction
     from sage.api.operator import PromptFunction
     from sage.api.operator import GeneratorFunction
@@ -18,11 +18,11 @@ if TYPE_CHECKING:
     
 class DataStream:
     name:str
-    operator: Type[BaseOperator]
+    operator: Type[BaseFuction]
     pipeline: Pipeline
     upstreams: list[DataStream]
     downstreams: list[DataStream]
-    def __init__(self, op_class: Type[BaseOperator], pipeline:Pipeline, name:str=None, config:dict=None):
+    def __init__(self, op_class: Type[BaseFuction], pipeline:Pipeline, name:str=None, config:dict=None):
         self.operator = op_class
         self.pipeline = pipeline
         self.name = name or f"DataStream_{id(self)}"
@@ -31,7 +31,7 @@ class DataStream:
         # Register the operator in the pipeline
         self.pipeline._register_operator(op_class)
         self.config = config or {}
-    def _transform(self, name: str, operator_class:Type[BaseOperator], config) -> DataStream:
+    def _transform(self, name: str, operator_class:Type[BaseFuction], config) -> DataStream:
         # operator_instance = self.pipeline.operator_factory.create(operator_class, config)
         # op = next_operator_class
         new_stream = DataStream(operator_class, self.pipeline, name=name, config = config)

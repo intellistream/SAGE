@@ -1,5 +1,5 @@
 from typing import Type, TYPE_CHECKING, Union, Any, Tuple, Callable
-class BaseOperator:
+class BaseFuction:
     """
     Base class for all operators in the Sage Graph API.
     This class provides a common interface and basic functionality for all operators.
