@@ -180,7 +180,7 @@ if __name__ == "__main__":
     ids = ["a", "b", "c"]
     texts = [
         "The quick brown fox jumps over the lazy dog.",
-        "Hello world! This is a test document.",
+        "Hello world! This is a operator_test document.",
         "Python is a great programming language."
     ]
     root_path = "./tmp_bm25_test"  # 用临时目录避免误删业务数据
@@ -204,7 +204,7 @@ if __name__ == "__main__":
     print("\n== 删除文档 ==")
     index.delete("b")
     print("删除 'b' 后检索 'hello':", index.search("hello"))
-    print("删除 'b' 后检索 'test':", index.search("test"))
+    print("删除 'b' 后检索 'operator_test':", index.search("operator_test"))
     print("删除 'b' 后检索 'python':", index.search("python"))
 
     # 4. 更新文档后检索

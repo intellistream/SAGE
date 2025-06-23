@@ -1,5 +1,5 @@
 source:
-  data_path: "./sage/api/operator/test/question.txt"
+  data_path: "./sage/api/operator/operator_test/question.txt"
 
 retriever:
   stm: False
