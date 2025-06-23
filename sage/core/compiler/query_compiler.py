@@ -44,7 +44,13 @@ class QueryCompiler:
             operator_config = graph_node.config or {}
             
             from sage.core.dag.ray.ray_multi_node import RayMultiplexerDagNode
+            from sage.core.runtime.collection_wrapper import CollectionWrapper
+            
             # Create Ray Actor with operator class, not instance
+            #print("ltm_collection 类型：", type(operator_config["retriever"]["ltm_collection"]))
+            
+            # wrapper:CollectionWrapper = operator_config["retriever"]["ltm_collection"]
+            # operator_config["retriever"]["ltm_collection"] = wrapper._collection
             ray_actor = RayMultiplexerDagNode.remote(
                 name=graph_node.name,
                 operator_class=operator_class,
