@@ -1,5 +1,5 @@
 from typing import Type, TYPE_CHECKING, Union, Any, AnyStr, Dict, List
-from sage.api.operator import BaseOperator
+from sage.api.operator import BaseFuction
 from sage.core.engine import Engine
 if TYPE_CHECKING:
     from sage.api.graph import GraphNode, GraphEdge, SageGraph
@@ -8,13 +8,13 @@ if TYPE_CHECKING:
 
 
 class GraphNode:
-    def __init__(self,name:str, operator_class: Type[BaseOperator], type:str, operator_config: Dict = None):
+    def __init__(self,name:str, operator_class: Type[BaseFuction], type:str, operator_config: Dict = None):
         self.name: str = name
         self.type: str = type # "normal "or "source" or "sink"
         self.config: Dict = operator_config
         self.input_channels: list[GraphEdge] = []
         self.output_channels: list[GraphEdge] = []
-        self.operator: Type[BaseOperator] = operator_class
+        self.operator: Type[BaseFuction] = operator_class
         pass
 
 class GraphEdge:
@@ -48,14 +48,14 @@ class SageGraph:
                  node_name: str,
                  input_streams: Union[str, List[str]], 
                  output_streams: Union[str, List[str]], 
-                 operator_class: Type[BaseOperator],
+                 operator_class: Type[BaseFuction],
                  operator_config: Dict = None) -> GraphNode:
         """
         Add a node to the graph.
         Args:
             input_streams (Union[str, List[str]]): Input streams for the node.
             output_streams (Union[str, List[str]]): Output streams for the node.
-            operator (Type[BaseOperator]): The operator class to be used by the node.
+            operator (Type[BaseFuction]): The operator class to be used by the node.
         Returns:
             GraphNode: The created graph node.
         """

@@ -3,7 +3,7 @@ import asyncio
 import logging
 from typing import Any, List, Optional, Dict, Tuple, TYPE_CHECKING, Type
 # from sage.archive.operator_wrapper import OperatorWrapper
-from sage.api.operator.base_operator_api import BaseOperator
+from sage.api.operator.base_operator_api import BaseFuction
 from sage.api.operator.base_operator_api import EmitContext
 from ray.actor import ActorHandle  # 只在类型检查期间生效
 
@@ -15,7 +15,7 @@ class RayMultiplexerDagNode:
     
     def __init__(self, 
                  name: str, 
-                 operator_class: Type[BaseOperator],
+                 operator_class: Type[BaseFuction],
                  operator_config: Dict = None,
                  is_spout: bool = False) -> None:
         """
