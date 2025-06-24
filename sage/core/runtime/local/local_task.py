@@ -1,4 +1,5 @@
 import logging
+from re import M
 from sage.core.dag.local.dag_node import BaseDAGNode,OneShotDAGNode
 from sage.core.dag.local.multi_dag_node import MultiplexerDagNode
 from sage.core.dag.local.dag import DAG
@@ -62,12 +63,25 @@ class OneshotTask(BaseTask):
         self.long_running=False
         self.logger=logging.getLogger('oneshot executor')
         self.stop_event=threading.Event()
+        
     def execute(self):
         #遍历按序执行每一个算子
             for node in self.dag.get_topological_order():
-                if not self.stop_event.is_set():
-                    assert isinstance(node, OneShotDAGNode), f"Expected OneShotDAGNode, got {type(node).__name__}"
-                    node.execute()
+                node._ensure_initialized()
+                print(f"Executing node: {node.name}")
+                # assert isinstance(node, OneShotDAGNode), f"Expected OneShotDAGNode, got {type(node).__name__}"
+                if node.is_spout:
+                    # For spout nodes, call operator.receive with dummy channel and data
+                    node.operator.receive(0, None)
+                else:
+                    # For non-spout nodes, fetch input and process
+                    input_result = node.fetch_input()
+                    
+                    # Unpack the tuple: (channel_id, data)
+                    channel_id, data = input_result
+                    
+                    # Call operator's receive method with the channel_id and data
+                    node.operator.receive(channel_id, data)
 
     def stop(self):
         #停止执行

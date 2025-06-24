@@ -43,6 +43,7 @@ class FileSource(SourceFunction):
                 line = f.readline()
                 self.file_pos = f.tell()  # Update the new position
                 if line:
+                    self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Read query: {line.strip()}\033[0m ")
                     return Data(line.strip())  # Return non-empty lines
                 else:
                     # Reset position if end of file is reached (optional)
