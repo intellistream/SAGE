@@ -51,3 +51,4 @@ mem_output.txt
 qa_output.txt
 run.sh
 ray_logs
+/output/
