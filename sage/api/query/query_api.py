@@ -11,7 +11,7 @@ from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
 from sage.api.operator.operator_impl.source import FileSource
 from sage.api.operator.operator_impl.sink import TerminalSink, FileSink, RetriveSink
 # from sage.api.operator.operator_impl.writer import LongTimeWriter
-from sage.api.operator.operator_impl.retriever import SimpleRetriever
+from sage.api.operator.operator_impl.retriever import DenseRetriever
 from sage.api.operator.operator_impl.sink import TerminalSink
 from sage.api.operator import Data
 from typing import Tuple, List
@@ -45,7 +45,7 @@ def run_query(query: str, config=None) -> str:
         "StaticSource": StaticSource,
         "OpenAIGenerator": OpenAIGenerator,
         "HFGenerator": HFGenerator,
-        "SimpleRetriever": SimpleRetriever,
+        "SimpleRetriever": DenseRetriever,
         "QAPromptor": QAPromptor,
         "SummarizationPromptor": SummarizationPromptor,
         "AbstractiveRecompRefiner": AbstractiveRecompRefiner,

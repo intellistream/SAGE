@@ -1,17 +1,15 @@
 pipeline:
-  name: "sage-api-operator-operator_test"
+  name: "sage-api-operator-test"
   description: "Test pipeline for Sage API Operator"
   version: "1.0.0"
   type: "ray"
 
-
-
 source:
-  data_path: "sample/one_question.txt"
-  # data_path: "sample/question.txt"
+  data_path: "q.txt"
 
 retriever:
-  ltm: True
+  kv_collection:
+    bm25s: True
   top_k: 3
 
 reranker:
@@ -32,8 +30,5 @@ generator:
   api_key: "sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"
   seed: 42
 
-writer:
-
-
 sink:
-
+  file_path: "output.txt"
