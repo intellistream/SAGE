@@ -117,12 +117,14 @@ export class OverviewComponent implements OnInit, OnDestroy {
             });
             
             // 添加边（连接相邻操作符）
-            if (i > 0) {
-              operatorGraphData.edges.push({
-                v: job.operators[i - 1].id,
-                w: job.operators[i].id
-              });
-            }
+              if(i>0) {
+                let downstream = job.operators[i-1].downstream;
+                for (let j = 0 ; j < downstream.length ; ++ j){
+                  let v = String(job.operators[i-1].id);
+                  let w = String(downstream[j]);
+                  operatorGraphData.edges.push({v: v, w:w });
+                }
+              }
           }
         } else {
           // 如果没有操作符，创建默认节点
@@ -147,7 +149,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
     if (!job || !job.jobId) {
       return this.createDefaultGraphData('No Job Data');
     }
-
+    
     // 从预处理的数据中获取
     const cachedData = this.nzOperatorGraphDataMap.get(job.jobId);
     if (cachedData) {
@@ -156,6 +158,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
 
     // 如果缓存中没有，重新生成
     try {
+      alert("111111");
       const graphDataDef: NzGraphDataDef = { nodes: [], edges: [] };
       
       if (job.operators && Array.isArray(job.operators) && job.operators.length > 0) {
@@ -163,21 +166,23 @@ export class OverviewComponent implements OnInit, OnDestroy {
         job.operators.forEach((operator, index) => {
           if (operator) {
             graphDataDef.nodes.push({
-              id: operator.id || `operator-${index}`,
-              label: operator.name || `Operator ${index + 1}`,
-              instance: operator.numOfInstances || 1
+              id: operator.id ,
+              label: operator.name ,
+              instance: operator.numOfInstances 
             });
           }
         });
         
         // 添加边
-        for (let i = 1; i < job.operators.length; i++) {
-          if (job.operators[i - 1] && job.operators[i]) {
-            graphDataDef.edges.push({
-              v: job.operators[i - 1].id || `operator-${i - 1}`,
-              w: job.operators[i].id || `operator-${i}`
-            });
+        for (let i = 0; i < job.operators.length-1; i++) {
+          let downstream = job.operators[i].downstream;
+          for (let j = 0 ; j < downstream.length ; ++ j){
+            let v = String(job.operators[i].id);
+            let w = String(downstream[j]);
+            console.log(v,w);
+            graphDataDef.edges.push({v: v, w:w });
           }
+
         }
       } else {
         graphDataDef.nodes.push({
@@ -219,6 +224,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
         console.log(`Panel for job ${jobId} is now open`);
         // 确保图表数据已准备好
         const job = this.currentPageJob.find(j => j.jobId === jobId);
+
         if (job && !this.nzOperatorGraphDataMap.has(jobId)) {
           // 如果没有缓存的图表数据，创建它
           this.getOperatorGraphData(job);

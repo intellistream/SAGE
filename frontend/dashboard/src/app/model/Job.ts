@@ -23,4 +23,5 @@ export interface Job {
   schedulerTimeBreakdown: OverallTimeBreakdown;
   periodicalThroughput: number[];
   periodicalLatency: number[];
+
 }
