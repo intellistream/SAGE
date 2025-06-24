@@ -31,7 +31,12 @@ class EmitContext:
             channel: The downstream channel index
             data: Data to emit
         """
-        if channel < len(self.downstream_channels):
+        if(channel == -1):
+            # Broadcast to all downstream channels
+            for downstream_channel in self.downstream_channels:
+                downstream_channel.put(data)
+            return
+        elif(0 <= channel and channel < len(self.downstream_channels)) :
             self.downstream_channels[channel].put(data)
         else:
             # Note: We can't use logger here to keep the context simple and serializable
@@ -82,10 +87,12 @@ class BaseFuction:
             else:
                 result = self.execute(data)
             if result is not None:
-                self.emit(0, result)
+                self.emit(-1, result)
+                # Note: Using -1 to indicate broadcasting to each output channel
         except Exception as e:
             self.logger.error(f"Error in {self._name}.receive(): {e}")
             raise
+
     def emit(self, channel: int, data: Any):
         """
         Emit data to downstream node through specified channel.

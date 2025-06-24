@@ -47,33 +47,8 @@ class Pipeline:
         self.data_streams.append(stream)
         return stream
 
-    # def submit(self, config=None,generate_func = None):
-    #     # 其中的generate_func最后会传到core.compiler.query_parser中作为generate_func
-    #     """
-    #     Submit the pipeline to the SAGE engine.
-    #     The engine is responsible for compiling and executing the DAG.
-
-    #     Args:
-    #         config (dict, optional): Configuration options for runtime execution.
-    #             Example:
-    #             {
-    #                 "is_long_running": True,
-    #                 "duration": 1,
-    #                 "frequency": 30
-    #             }
-    #             :param generate_func:
-    #     """
-    
-    #     engine = Engine.get_instance(generate_func)
-    #     print(generate_func)
-    #     # 建立pipeline与引擎的关联
-    #     engine.submit_pipeline(self, config=config or {}) # compile dag -> register engine
-    #     print(f"[Pipeline] Pipeline '{self.name}' submitted to engine with config: {config or {}}")
-
-
-
-
     def stop(self):
+        from sage.core.engine import Engine
         engine= Engine.get_instance() # client side
         engine.stop_pipeline(self) # stop the pipeline
         print(f"[Pipeline] Pipeline '{self.name}' stopped.")
@@ -102,93 +77,6 @@ class Pipeline:
         """动态设置运行时配置"""
         self.runtime_config = runtime_config
         # self.operator_factory = OperatorFactory(runtime_config)
-
-    # def to_graph(self) -> SageGraph:
-    #     """
-    #     将 Pipeline 转换为等价的 SageGraph
-        
-    #     Returns:
-    #         SageGraph: 转换后的图结构
-    #     """
-    #     # 创建 SageGraph 实例
-    #     graph_config = {
-    #         "platform": "ray" if self.use_ray else "local",
-    #         "pipeline_name": self.name
-    #     }
-    #     graph = SageGraph(name=f"{self.name}_graph", config=graph_config)
-        
-    #     # 构建数据流之间的连接映射
-    #     stream_to_node_name = {}
-    #     stream_connections = {}
-        
-    #     # 第一步：为每个 DataStream 生成唯一的节点名和边名
-    #     for i, stream in enumerate(self.data_streams):
-    #         node_name = f"{stream.name}_{i}" if stream.name else f"node_{i}"
-    #         stream_to_node_name[stream] = node_name
-            
-    #         # 构建连接映射：记录每个流的上下游边名
-    #         input_edges = []
-    #         output_edges = []
-            
-    #         # 处理输入边（来自上游流）
-    #         for j, upstream in enumerate(stream.upstreams):
-    #             edge_name = f"edge_{stream_to_node_name.get(upstream, f'upstream_{j}')}_{node_name}"
-    #             input_edges.append(edge_name)
-            
-    #         # 处理输出边（到下游流）
-    #         for j, downstream in enumerate(stream.downstreams):
-    #             downstream_node_name = f"{downstream.name}_{self.data_streams.index(downstream)}" if downstream.name else f"node_{self.data_streams.index(downstream)}"
-    #             edge_name = f"edge_{node_name}_{downstream_node_name}"
-    #             output_edges.append(edge_name)
-            
-    #         stream_connections[stream] = {
-    #             'node_name': node_name,
-    #             'input_edges': input_edges,
-    #             'output_edges': output_edges
-    #         }
-        
-    #     # 第二步：按拓扑顺序添加节点到图中
-    #     added_nodes = set()
-        
-    #     def add_node_recursively(stream: DataStream):
-    #         """递归添加节点，确保上游节点先添加"""
-    #         connection_info = stream_connections[stream]
-    #         node_name = connection_info['node_name']
-            
-    #         # 如果节点已添加，跳过
-    #         if node_name in added_nodes:
-    #             return
-            
-    #         # 先添加所有上游节点
-    #         for upstream in stream.upstreams:
-    #             add_node_recursively(upstream)
-            
-    #         # 添加当前节点
-    #         try:
-    #             graph.add_node(
-    #                 node_name=node_name,
-    #                 input_streams=connection_info['input_edges'],
-    #                 output_streams=connection_info['output_edges'],
-    #                 operator_class=stream.operator,
-    #                 operator_config=stream.config
-    #             )
-    #             added_nodes.add(node_name)
-    #             print(f"Added node: {node_name}")
-                
-    #         except Exception as e:
-    #             print(f"Error adding node {node_name}: {e}")
-    #             raise
-        
-    #     # 从所有数据流开始添加（以处理可能的多个独立子图）
-    #     for stream in self.data_streams:
-    #         add_node_recursively(stream)
-        
-    #     # 第三步：验证图的有效性
-    #     if not graph.validate_graph():
-    #         raise ValueError("Generated graph is invalid")
-        
-    #     print(f"Successfully converted pipeline '{self.name}' to graph with {len(graph.nodes)} nodes and {len(graph.edges)} edges")
-    #     return graph
 
     def submit(self, config=None, generate_func=None):
         from sage.core.engine import Engine

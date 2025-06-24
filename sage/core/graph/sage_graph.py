@@ -80,7 +80,6 @@ class SageGraph:
 
         # 第二步：按拓扑顺序添加节点到图中
         added_nodes = set()
-        
         def add_node_recursively(stream: DataStream):
             """递归添加节点，确保上游节点先添加"""
             connection_info = stream_connections[stream]
