@@ -44,7 +44,6 @@ def pipeline_run():
     query_stream = pipeline.add_source(FileSource, config)
     query_and_chunks_stream = query_stream.retrieve(SimpleRetriever, config)
     prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
-    # prompt_stream = query_stream.construct_prompt(QAPromptor, config)
     response_stream = prompt_stream.generate_response(OpenAIGenerator, config)
     response_stream.sink(FileSink, config)
     # 提交管道并运行
