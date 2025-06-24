@@ -3,5 +3,6 @@
     "name":"AbstractiveRecompRefiner",
     "description":"Recomposes the reference with the abstractive summary.",
     "code":"",
+    "transformation":"",
     "isCustom":false
 }

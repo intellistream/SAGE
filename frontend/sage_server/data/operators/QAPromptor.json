@@ -3,6 +3,7 @@
     "name":"QAPromptor",
     "description":"A prompt generator for QA tasks",
     "code":"",
+    "transformation":"construct_prompt",
     "isCustom":false
 }
 

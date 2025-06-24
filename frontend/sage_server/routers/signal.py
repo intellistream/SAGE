@@ -9,6 +9,7 @@ from typing import Optional, Union, List, Dict, Any
 from urllib.parse import urlparse
 import aiohttp
 # from aiocache import cached
+from regex import F
 import requests
 import yaml
 from fastapi import (
@@ -22,7 +23,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, validator, Field
+from pydantic import BaseModel, ConfigDict, FilePath, validator, Field
 from starlette.background import BackgroundTask
 
 
@@ -34,9 +35,51 @@ router = APIRouter()
 #
 #     return True
 import asyncio
-from app.start_a_pipeline import  init_memory_and_pipeline
+from start_a_pipeline import  init_memory_and_pipeline
 # 用于存储正在运行的任务，键为job_id，值为任务对象
 running_tasks = {}
+running_pipelines = {}
+
+import json
+import os
+import tempfile
+import shutil
+
+def update_json_field(file_path: str, field: str, value):
+    """
+    安全地更新 JSON 顶层字段，支持任意类型的值。
+    
+    - 支持覆盖原字段值
+    - 会创建临时文件，避免写入中途失败导致文件损坏
+    """
+    # 确保文件存在
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"文件不存在: {file_path}")
+
+    # 读取 JSON 内容
+    with open(file_path, "r", encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"JSON 格式错误: {e}")
+    
+    # 更新字段
+    data[field] = value
+    # 写入到临时文件，再替换原文件（原子操作）
+    dir_name = os.path.dirname(file_path)
+    with tempfile.NamedTemporaryFile("w", delete=False, dir=dir_name, encoding="utf-8") as tmpfile:
+        json.dump(data, tmpfile, indent=4, ensure_ascii=False)
+        tmpfile.flush()
+        os.fsync(tmpfile.fileno())
+        temp_path = tmpfile.name
+
+
+    shutil.move(temp_path, file_path)
+
+    
+
+
+    
 
 
 @router.post("/stop/{jobId}")
@@ -53,21 +96,26 @@ async def stop_job(jobId: str):
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail=f"作业 {jobId} 不存在")
 
-        # 读取作业信息
-        with open(file_path, "r", encoding="utf-8") as f:
-            job_info = json.load(f)
+        # # 读取作业信息
+        # with open(file_path, "r", encoding="utf-8") as f:
+        #     job_info = json.load(f)
 
-        # 更新运行状态
-        job_info["isRunning"] = False
+        # # 更新运行状态
+        # job_info["isRunning"] = False
 
-        # 保存更新后的作业信息
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(job_info, f, indent=4, ensure_ascii=False)
+        # # 保存更新后的作业信息
+        # with open(file_path, "w", encoding="utf-8") as f:
+        #     json.dump(job_info, f, indent=4, ensure_ascii=False)
+        update_json_field(file_path, "isRunning", False)
 
         # 取消正在运行的任务
         if jobId in running_tasks and not running_tasks[jobId].done():
             running_tasks[jobId].cancel()
             logging.info(f"已取消作业 {jobId} 的运行任务")
+        if jobId in running_pipelines :
+            running_pipelines[jobId].stop()
+            del running_pipelines[jobId]
+            logging.info(f"已取消作业 {jobId} 的管道任务")
 
         logging.info(f"已停止作业 {jobId}")
         return {"status": "success", "message": f"作业 {jobId} 已停止"}
@@ -94,15 +142,18 @@ async def start_job(jobId: str, request: Request):
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail=f"作业 {jobId} 不存在")
 
-        # 读取作业信息
-        with open(file_path, "r", encoding="utf-8") as f:
-            job_info = json.load(f)
+        # # 读取作业信息
+        # with open(file_path, "r", encoding="utf-8") as f:
+        #     job_info = json.load(f)
 
-        # 更新运行状态
-        job_info["isRunning"] = True
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(job_info, f, indent=4, ensure_ascii=False)
+        # # 更新运行状态
+        # job_info["isRunning"] = True
+        
 
+        # with open(file_path, "w", encoding="utf-8") as f:
+        #     json.dump(job_info, f, indent=4, ensure_ascii=False)
+
+        update_json_field(file_path, "isRunning", True)
         # 创建后台任务运行流处理管道
         task = asyncio.create_task(run_pipeline_task(jobId,request))
         running_tasks[jobId] = task
@@ -122,16 +173,16 @@ async def run_pipeline_task(job_id: str,request: Request):
         # 运行管道处理
 
         current_app =  request.app
-        if not hasattr(current_app.state, "manager_handle"):
-            logging.error("应用状态中不存在manager_handle")
+        if not hasattr(current_app.state, "retriver_collection"):
+            logging.error("应用状态中不存在retriver_collection")
             return
-        manager_handle = current_app.state.manager_handle
+        retriver_collection = current_app.state.retriver_collection
         config_path = os.path.join("data", "config", f"{job_id}.yaml")
         if not os.path.exists(config_path):
             config_path = os.path.join("data", "config", "default.yaml")
         with open(config_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
-
+        config["retriever"]["ltm_collection"] = retriver_collection
         # 获取作业信息
         job_data_dir = os.path.join("data", "jobinfo")
         file_path = os.path.join(job_data_dir, f"{job_id}.json")
@@ -144,9 +195,9 @@ async def run_pipeline_task(job_id: str,request: Request):
             job_info = json.load(f)
 
         operators_config = build_operators_config_from_job(job_info)
-        await  init_memory_and_pipeline(job_id, manager_handle, config,operators_config)
+        pipeline = await  init_memory_and_pipeline(job_id, config,operators_config)
         logging.info(f"作业 {job_id} 已开始处理")
-
+        running_pipelines[job_id] = pipeline
 
 
         # await asyncio.to_thread(init_memory_and_pipeline,job_id)
@@ -155,27 +206,26 @@ async def run_pipeline_task(job_id: str,request: Request):
 
 
         # 任务完成后更新作业状态
-        job_data_dir = os.path.join("data", "jobinfo")
-        file_path = os.path.join(job_data_dir, f"{job_id}.json")
+    #     job_data_dir = os.path.join("data", "jobinfo")
+    #     file_path = os.path.join(job_data_dir, f"{job_id}.json")
 
-        if os.path.exists(file_path):
-            try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    job_info = json.load(f)
-                if not isinstance(job_info, dict):
-                    raise ValueError(f"{file_path} 内容不是合法 JSON 对象")
-                job_info["isRunning"] = False
+    #     if os.path.exists(file_path):
+    #         try:
+    #             with open(file_path, "r", encoding="utf-8") as f:
+    #                 job_info = json.load(f)
+    #             if not isinstance(job_info, dict):
+    #                 raise ValueError(f"{file_path} 内容不是合法 JSON 对象")
+    #             job_info["isRunning"] = False
 
-                with open(file_path, "w", encoding="utf-8") as f:
-                    json.dump(job_info, f, indent=4, ensure_ascii=False)
-            except Exception as e:
-                logging.error(f"更新作业状态时出错: {str(e)}")
+    #             with open(file_path, "w", encoding="utf-8") as f:
+    #                 json.dump(job_info, f, indent=4, ensure_ascii=False)
+    #         except Exception as e:
+    #             logging.error(f"更新作业状态时出错: {str(e)}")
     except Exception as e:
         logging.error(f"处理作业 {job_id} 时出错: {str(e)}")
     finally:
         # 从运行任务字典中移除
-        if job_id in running_tasks:
-            del running_tasks[job_id]
+        logging.info(f"作业 {job_id} 处理任务")
 
 
 def build_operators_config_from_job(job_info):
@@ -268,7 +318,8 @@ def build_operators_config_from_job(job_info):
     default_method_names = {
         "SimpleRetriever": "retrieve",
         "QAPromptor": "construct_prompt",
-        "OpenAIGenerator": "generate_response"
+        "OpenAIGenerator": "generate_response",
+        "TerminalSink": "sink",
     }
 
     print(operator_type_map)

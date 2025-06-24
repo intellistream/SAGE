@@ -1,7 +1,7 @@
 import asyncio
 import os
 import sys
-
+from concurrent.futures import ThreadPoolExecutor
 # 添加项目根目录到Python路径
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../..")))
 
@@ -26,6 +26,7 @@ class EmbeddingModel:
         初始化 embedding table
         :param method: 指定使用的 embedding 方法名称，例如 "openai" 或 "cohere" 或“hf"等
         """
+        self._executor = ThreadPoolExecutor() 
         self.dim = None
         if method == "default":
             method = "hf"
@@ -102,8 +103,21 @@ class EmbeddingModel:
         """
         return await self.embed_fn(text, **self.kwargs)
 
-    def embed(self, texts:str)->list[float]:
-        return asyncio.run(self._embed(texts))
+    # def embed(self, texts:str)->list[float]:
+    #     return asyncio.run(self._embed(texts))
+    
+    def embed(self, text: str) -> list[float]:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # 没有事件循环，直接运行
+            return asyncio.run(self._embed(text))
+        else:
+            # 已有事件循环 -> 在新线程中启动 asyncio.run
+            def run_in_thread():
+                return asyncio.run(self._embed(text))
+            return self._executor.submit(run_in_thread).result()
+    
 
 def main():
     embedding_model = EmbeddingModel(method="hf",model = "sentence-transformers/all-MiniLM-L6-v2")

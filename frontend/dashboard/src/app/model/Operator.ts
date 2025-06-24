@@ -11,4 +11,5 @@ export interface Operator {
   numOfLD: number;
   numOfPD: number;
   lastBatch: number;
+  downstream: number[];
 }

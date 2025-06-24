@@ -36,6 +36,7 @@ class Operator(BaseModel):
     explorationStrategy: str
     schedulingGranularity: str
     abortHandling: str
+    downstream: List[int]
   
 
 # 定义时间分解模型
