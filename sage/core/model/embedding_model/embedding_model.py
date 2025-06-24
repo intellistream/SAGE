@@ -1,7 +1,7 @@
 import asyncio
 import os
 import sys
-from concurrent.futures import ThreadPoolExecutor
+
 # 添加项目根目录到Python路径
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../..")))
 
@@ -26,7 +26,7 @@ class EmbeddingModel:
         初始化 embedding table
         :param method: 指定使用的 embedding 方法名称，例如 "openai" 或 "cohere" 或“hf"等
         """
-        self._executor = ThreadPoolExecutor() 
+ 
         self.dim = None
         if method == "default":
             method = "hf"
@@ -74,17 +74,17 @@ class EmbeddingModel:
     def _get_embed_function(self, method: str):
         """根据方法名返回对应的 embedding 函数"""
         mapping = {
-            "openai": openai.openai_embed,
-            "zhipu": zhipu.zhipu_embedding,
-            "bedrock": bedrock.bedrock_embed,
-            "hf": hf.hf_embed,
-            "jina": jina.jina_embed,
+            "openai": openai.openai_embed_sync,
+            "zhipu": zhipu.zhipu_embedding_sync,
+            "bedrock": bedrock.bedrock_embed_sync,
+            "hf": hf.hf_embed_sync,
+            "jina": jina.jina_embed_sync,
             # "llama_index_impl": llama_index_impl.llama_index_embed,
-            "lollms": lollms.lollms_embed,
-            "nvidia_openai": nvidia_openai.nvidia_openai_embed,
-            "ollama": ollama.ollama_embed,
-            "siliconcloud": siliconcloud.siliconcloud_embedding,
-            "cohere": _cohere.cohere_embed,
+            "lollms": lollms.lollms_embed_sync,
+            "nvidia_openai": nvidia_openai.nvidia_openai_embed_sync,
+            "ollama": ollama.ollama_embed_sync,
+            "siliconcloud": siliconcloud.siliconcloud_embedding_sync,
+            "cohere": _cohere.cohere_embed_sync,
             # "instructor": instructor.instructor_embed
         }
         if method not in mapping:
@@ -94,29 +94,25 @@ class EmbeddingModel:
 
         return embed_fn
 
-    async def _embed(self, text: str) -> list[float]:
+    def _embed(self, text: str) -> list[float]:
         """
         异步执行 embedding 操作
         :param text: 要 embedding 的文本
         :param kwargs: embedding 方法可能需要的额外参数
         :return: embedding 后的结果
         """
-        return await self.embed_fn(text, **self.kwargs)
+        return self.embed_fn(text, **self.kwargs)
 
-    # def embed(self, texts:str)->list[float]:
-    #     return asyncio.run(self._embed(texts))
-    
     def embed(self, text: str) -> list[float]:
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            # 没有事件循环，直接运行
-            return asyncio.run(self._embed(text))
-        else:
-            # 已有事件循环 -> 在新线程中启动 asyncio.run
-            def run_in_thread():
-                return asyncio.run(self._embed(text))
-            return self._executor.submit(run_in_thread).result()
+        
+        return self._embed(text)
+    
+    def encode(self, text: str) -> list[float]:
+        
+        return self._embed(text)
+
+    
+
     
 
 def main():
