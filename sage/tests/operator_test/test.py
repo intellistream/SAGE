@@ -10,7 +10,7 @@ print(project_root)
 print(f"{project_root}:{os.environ.get('PYTHONPATH', '')}")
 sys.path.insert(0, project_root)
 
-from sage.api.operator.operator_impl.source import FileSource
+from sage.api.operator.operator_impl.source import FileSourceFunction
 # from sage.api.operator.operator_impl.writer import LongTimeWriter,MemWriter
 # from sage.api.operator.operator_impl.retriever import SimpleRetriever
 from sage.api.operator.operator_impl.agent  import BaseAgent
@@ -103,7 +103,7 @@ config_agent_search=load_config("./sage/api/operator/operator_test/config_agent_
 #     # assert("False" in output.data[0])
 
 def test_agent_with_search():
-    source=FileSource(config_agent_search)
+    source=FileSourceFunction(config_agent_search)
     agent=BaseAgent(config_agent_search)
     output=source.execute()
     output=agent.execute(output)

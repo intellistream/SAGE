@@ -5,7 +5,7 @@ from typing import Tuple
 from sage.utils.data_loader import resolve_data_path
 
 
-class FileSource(SourceFunction):
+class FileSourceFunction(SourceFunction):
     """
     A source function that reads a file line by line and returns each line as a string.
 
