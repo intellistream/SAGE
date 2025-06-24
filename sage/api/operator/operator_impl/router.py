@@ -18,7 +18,7 @@ class BoolRouter(RouterFunction):
 
         self.condition=condition
 
-    def execute(self, data:Data[Tuple[bool,str,str]]) -> Data[bool]:
+    def execute(self, data:Data) -> Data[bool]:
         try:
             value,_,_=data.data
             if self.condition(value):

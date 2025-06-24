@@ -9,11 +9,8 @@ from sage.api.operator.operator_impl.source import FileSource
 from sage.api.operator.operator_impl.sink import FileSink, TerminalSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
-
-def load_config(path: str) -> dict:
-    """加载YAML配置文件"""
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
+from sage.utils.config_loader import load_config
+from sage.utils.logging_utils import configure_logging
 
 def memory_init():
     """初始化内存管理器并创建测试集合"""
@@ -49,14 +46,15 @@ def pipeline_run():
     prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
     response_stream = prompt_stream.generate_response(OpenAIGenerator, config)
     response_stream.sink(TerminalSink, config)
+    response_stream.sink(TerminalSink, config)
     # 提交管道并运行
     pipeline.submit(config={"is_long_running": False})
     # time.sleep(100)  # 等待管道运行
 
 if __name__ == '__main__':
+    configure_logging(level=logging.INFO)
     # 加载配置并初始化日志
-    config = load_config('./app/config.yaml')
-    # logging.basicConfig(level=logging.INFO)
+    config = load_config('config.yaml')
     # 初始化内存并运行管道
     memory_init()
     pipeline_run()

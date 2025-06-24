@@ -1,5 +1,5 @@
-# file sage/core/neuromem/test/vdbcollection_test.py
-# python -m sage.core.neuromem.test.vdbcollection_test
+# file sage/core/neuromem/operator_test/vdbcollection_test.py
+# python -m sage.core.neuromem.operator_test.vdbcollection_test
 
 import time
 from datetime import datetime
@@ -18,7 +18,7 @@ col.add_metadata_field("topic")
 col.add_metadata_field("type")
 
 
-# Insert test data
+# Insert operator_test data
 current_time = time.time()
 texts = [
         ("hello world", {"source": "user", "lang": "en", "timestamp": current_time - 3600}),
@@ -34,7 +34,7 @@ col.create_index(
         metadata_filter_func=lambda m: m.get("lang") in {"en", "fr"}
 )
 results = col.retrieve(
-        "test query", topk=10, index_name="en_fr_index",
+        "operator_test query", topk=10, index_name="en_fr_index",
         metadata_filter_func=lambda m: m.get("lang") in {"en", "fr"}
 )
 expected_texts = ["hello world", "bonjour le monde"]
@@ -50,7 +50,7 @@ col.create_index(
         metadata_filter_func=lambda m: m.get("timestamp", 0) > time_threshold
 )
 results = col.retrieve(
-        "test query", topk=10, index_name="recent_index",
+        "operator_test query", topk=10, index_name="recent_index",
         metadata_filter_func=lambda m: m.get("timestamp", 0) > time_threshold
 )
 expected_texts = ["你好，世界", "bonjour le monde"]
@@ -207,7 +207,7 @@ print("Test 12 Pass:", "bonjour le monde" in results)
 print("\n=== 测试13：插入时指定不存在的索引名 ===")
 
 try:
-        col.insert("invalid index test", {"source": "user"}, "non_existing_index")
+        col.insert("invalid index operator_test", {"source": "user"}, "non_existing_index")
         print("Test 13 Fail: Expected error for non-existent index.")
 except ValueError as e:
         print("Caught expected error:", str(e))

@@ -1,30 +1,23 @@
-import asyncio
 import json
 import logging
 import os
-import random
-import re
-import time
-from typing import Optional, Union, List, Dict, Any
-from urllib.parse import urlparse
-import aiohttp
 # from aiocache import cached
+
 from regex import F
 import requests
+
 import yaml
 from fastapi import (
-    Depends,
-    FastAPI,
-    File,
     HTTPException,
     Request,
-    UploadFile,
     APIRouter,
 )
+
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, FilePath, validator, Field
 from starlette.background import BackgroundTask
+
 
 
 router = APIRouter()
@@ -35,7 +28,10 @@ router = APIRouter()
 #
 #     return True
 import asyncio
+
 from start_a_pipeline import  init_memory_and_pipeline
+
+
 # 用于存储正在运行的任务，键为job_id，值为任务对象
 running_tasks = {}
 running_pipelines = {}

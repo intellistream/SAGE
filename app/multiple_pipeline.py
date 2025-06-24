@@ -24,7 +24,7 @@ def memory_init():
         backend_type="VDB",
         embedding_model=default_model,
         dim=128,
-        description="test vdb collection",
+        description="operator_test vdb collection",
         as_ray_actor=False,
     )
     col.add_metadata_field("owner")

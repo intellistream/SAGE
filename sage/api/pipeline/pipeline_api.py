@@ -1,28 +1,29 @@
-from typing import Type, TYPE_CHECKING, Union, Any
+from __future__ import annotations
+from typing import Type, TYPE_CHECKING, Union, Any, TYPE_CHECKING
 import pip
-from sage.core.engine.runtime import Engine
 from sage.api.pipeline.datastream_api import DataStream
 from sage.api.operator import SourceFunction
 from sage.api.operator.base_operator_api import BaseFuction
+# from sage.core.graph.sage_graph import SageGraph
 
-from sage.runtime.operator_factory import OperatorFactory
-    
 class Pipeline:
     name:str
     operators: list[BaseFuction]
     data_streams: list[DataStream]
     operator_config: dict
     operator_cls_mapping: dict
-    operator_factory: OperatorFactory
+    # operator_factory: OperatorFactory
+    use_ray: bool
+    # compiler: QueryCompiler
     def __init__(self, name: str, use_ray: bool = True):
         self.name = name
         self.operators = []
         self.data_streams = []
         self.operator_config = {}
         self.operator_cls_mapping = {}
-        
+        self.use_ray = use_ray
         # 创建全局算子工厂
-        self.operator_factory = OperatorFactory(use_ray=use_ray)
+        # self.operator_factory = OperatorFactory(self.use_ray)
 
 
     def _register_operator(self, operator):
@@ -40,34 +41,14 @@ class Pipeline:
             DataStream: 数据流对象
         """
         # 使用工厂创建算子实例
-        operator_wrapper = self.operator_factory.create(source_class, config)
-        stream = DataStream(operator=operator_wrapper, pipeline=self, name="source")
+        # operator_wrapper = self.operator_factory.create(source_class, config)
+
+        stream = DataStream(source_class,  pipeline=self, name="source", config = config)
         self.data_streams.append(stream)
         return stream
 
-    def submit(self, config=None, generate_func = None):
-        """
-        Submit the pipeline to the SAGE engine.
-        The engine is responsible for compiling and executing the DAG.
-
-        Args:
-            config (dict, optional): Configuration options for runtime execution.
-                Example:
-                {
-                    "is_long_running": True,
-                    "duration": 1,
-                    "frequency": 30
-                }
-                :param generate_func:
-        """
-        # print(generate_func)
-        engine = Engine.get_instance(generate_func)
-        print(generate_func)
-        # 建立pipeline与引擎的关联
-        engine.submit_pipeline(self, config=config or {}) # compile dag -> register engine
-        print(f"[Pipeline] Pipeline '{self.name}' submitted to engine with config: {config or {}}")
-
     def stop(self):
+        from sage.core.engine import Engine
         engine= Engine.get_instance() # client side
         engine.stop_pipeline(self) # stop the pipeline
         print(f"[Pipeline] Pipeline '{self.name}' stopped.")
@@ -95,4 +76,23 @@ class Pipeline:
     def set_runtime_config(self, runtime_config: dict):
         """动态设置运行时配置"""
         self.runtime_config = runtime_config
-        self.operator_factory = OperatorFactory(runtime_config)
+        # self.operator_factory = OperatorFactory(runtime_config)
+
+    def submit(self, config=None, generate_func=None):
+        from sage.core.engine import Engine
+        engine = Engine.get_instance(generate_func)
+        print(f"[Pipeline] Pipeline '{self.name}'submitted to engine.")
+        engine.submit_pipeline(self, config, generate_func)
+
+    def get_graph_preview(self) -> dict:
+        """
+        获取 pipeline 转换为 graph 后的预览信息，不实际提交
+        
+        Returns:
+            dict: 图的结构信息
+        """
+        try:
+            graph = self.to_graph()
+            return graph.get_graph_info()
+        except Exception as e:
+            return {"error": str(e)}

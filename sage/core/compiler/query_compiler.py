@@ -1,13 +1,14 @@
-import logging
-
-import ray
+from typing import Dict, Type, Any, TYPE_CHECKING, Union
 from sage.core.compiler.optimizer import Optimizer
 from sage.core.compiler.query_parser import QueryParser
-from sage.core.dag.dag import DAG
-from sage.core.dag.dag_node import BaseDAGNode, ContinuousDAGNode, OneShotDAGNode
+from sage.core.dag.local.dag import DAG
+from sage.core.dag.local.dag_node import BaseDAGNode, OneShotDAGNode
 from sage.core.compiler.logical_graph_constructor import LogicGraphConstructor
-
-
+from sage.core.dag.local.multi_dag_node import MultiplexerDagNode
+from sage.core.io.message_queue import MessageQueue
+from sage.core.dag.ray.ray_dag import RayDAG
+if TYPE_CHECKING:
+    from sage.core.graph import SageGraph, GraphEdge
 class QueryCompiler:
 
     def __init__(self,generate_func = None ):
@@ -20,6 +21,110 @@ class QueryCompiler:
         self.optimizer = Optimizer()
         self.parser = QueryParser(generate_func=generate_func)
         self.dag_dict = {}
+
+    def compile_graph(self, graph:'SageGraph') -> Union[DAG, RayDAG]:
+        platform = graph.config.get("platform", "local")
+        
+        if platform == "ray":
+            return self._compile_graph_for_ray(graph)
+        else:
+            return self._compile_graph_for_local(graph)
+        
+
+    def _compile_graph_for_ray(self, graph:'SageGraph') -> RayDAG:
+        """Ray-specific compilation logic returning RayDAG."""
+        ray_dag = RayDAG(name=f"{graph.name}", strategy="streaming")
+        ray_dag.platform = "ray"
+        # operator_factory = OperatorFactory(True)  # Ray-enabled factory
+        
+        # Step 1: Create all Ray Actor DAG nodes
+        for node_name, graph_node in graph.nodes.items():
+            # Extract operator class and configuration instead of creating instance
+            operator_class = graph_node.operator
+            operator_config = graph_node.config or {}
+            
+            from sage.core.dag.ray.ray_multi_node import RayMultiplexerDagNode
+            from sage.core.runtime.collection_wrapper import CollectionWrapper
+            
+            # Create Ray Actor with operator class, not instance
+            #print("ltm_collection 类型：", type(operator_config["retriever"]["ltm_collection"]))
+            
+            # wrapper:CollectionWrapper = operator_config["retriever"]["ltm_collection"]
+            # operator_config["retriever"]["ltm_collection"] = wrapper._collection
+            ray_actor = RayMultiplexerDagNode.remote(
+                name=graph_node.name,
+                operator_class=operator_class,
+                operator_config=operator_config,
+                is_spout=(graph_node.type == "source")
+            )
+            # Add to RayDAG - use graph's get_upstream_nodes method
+            upstream_nodes = graph.get_upstream_nodes(node_name)
+            ray_dag.add_ray_actor(
+                name=node_name,
+                actor=ray_actor,
+                is_spout=(graph_node.type == "source"),
+                upstream_nodes=upstream_nodes
+            )
+        
+        # Step 2: Connect Ray actors with proper channel mapping
+        for edge_name, edge in graph.edges.items():
+            
+            # Get channel information from edge
+            upstream_output_channel = edge.upstream_channel
+            downstream_input_channel = edge.downstream_channnel
+            
+            # Connect actors with correct channel mapping
+            ray_dag.connect_actors(
+                upstream_name=edge.upstream_node.name,
+                upstream_output_channel=upstream_output_channel,
+                downstream_name=edge.downstream_node.name,
+                downstream_input_channel=downstream_input_channel
+            )
+        return ray_dag
+
+    def _compile_graph_for_local(self, graph:'SageGraph')->DAG:
+        dag = DAG(name=graph.name, strategy="streaming")
+        dag.platform = "local"
+        # operator_factory = OperatorFactory(graph.config["platform"] == "ray")
+        
+        # Step 1: Create MessageQueue instances for all edges
+        edge_to_queue:Dict[str,MessageQueue] = {}
+        for edge_name, edge in graph.edges.items():
+            edge_to_queue[edge_name] = MessageQueue()
+
+
+        # Step 2: Create all DAG nodes first
+        dag_nodes:Dict[str, MultiplexerDagNode] = {}
+        for node_name, graph_node in graph.nodes.items():
+            # Create operator instance
+            # operator = operator_factory.create(graph_node.operator, graph_node.config)
+            operator_instance = graph_node.operator(graph_node.config)
+            # Create DAG node
+            dag_node = MultiplexerDagNode(
+                graph_node.name,
+                operator_instance,
+                config=graph_node.config,
+                is_spout=(graph_node.type == "source")
+            )
+            dag_nodes[node_name] = dag_node
+            dag.add_node(dag_node)
+
+        # Step 3: Connect nodes through message queues
+        for node_name, graph_node in graph.nodes.items():
+            current_dag_node = dag_nodes[node_name]
+            
+            # Add downstream channels for output edges
+            for output_edge in graph_node.output_channels:
+                # Add downstream channel and connect to message queue
+                output_queue = edge_to_queue[output_edge.name]
+                current_dag_node.add_downstream_channel(output_queue)
+            
+            # Add upstream channels for input edges  
+            for input_edge in graph_node.input_channels:
+                input_queue = edge_to_queue[input_edge.name]
+                current_dag_node.upstream_channels.append(input_queue)
+        
+        return dag
 
     def compile_natural_query(self, natural_query):
         """
@@ -52,6 +157,12 @@ class QueryCompiler:
 
         return dag
 
+        
+
+
+        
+
+ 
     def compile(self, pipeline=None,config=None):
         """
         Compile a query or natural language input into a DAG.
@@ -63,7 +174,6 @@ class QueryCompiler:
         """
         dag = None
         config_mapping = {} # Mapping of operator names to their configurations. Not used in this version.
-        execution_type = None
 
         query = None
         if config.get("query"):
@@ -71,89 +181,25 @@ class QueryCompiler:
         
         # if is_long_running is None, we assume it is a oneshot pipeline
         if config.get("is_long_running",None) is None :
-            dag,execution_type = self.compile_oneshot_pipeline(pipeline,query)
-        # if is_long_running is False, we assume it is a oneshot pipeline
+            dag = self.compile_oneshot_pipeline(pipeline,query) # execution type在里边
         elif not config.get("is_long_running", None):
-            dag, execution_type = self.compile_oneshot_pipeline(pipeline,query)
-        # if is_long_running is True, we assume it is a streaming pipeline
+            dag = self.compile_oneshot_pipeline(pipeline,query)
         elif config.get("is_long_running", None):
             dag,config_mapping,execution_type  = self.compile_streaming_pipeline(pipeline)
 
+        # Optimize the DAG
+
         # TODO: Add the optimization logic
         optimized_dag = self.optimizer.optimize(dag)
-        node_mapping = {} # Mapping of node names to their configurations. Not used in this version.
-        return optimized_dag, execution_type,node_mapping
+        optimized_dag.node_mapping = {} # Mapping of node names to their configurations. Not used in this version.
+        optimized_dag.working_config = config
+        if(pipeline.use_ray == False):
+            optimized_dag.platform = "local"
+        else:
+            optimized_dag.platform = "ray"
+        return optimized_dag
 
-    def compile_streaming_pipeline(self, pipeline):
-        """
-
-        Compile the pipeline.
-        :param pipeline: The pipeline object containing data streams.
-        :type pipeline: Pipeline
-        :raises ValueError: If pipeline data streams are None.
-        :return: dag.
-        """
-        # Implement the pipeline compilation logic here
-        
-        dag = DAG(id="dag_1",strategy="streaming")
-        nodes = []
-        config_mapping = {}
-
-        for i, datastream in enumerate(pipeline.data_streams):
-            if i == 0:
-                node = ContinuousDAGNode(
-                    name=datastream.name,
-                    operator=datastream.operator,
-                    is_spout=True
-                )
-            else:
-                node = ContinuousDAGNode(
-                    name=datastream.name,
-                    operator=datastream.operator,
-                    is_spout=False
-                )
-
-      
-            nodes.append(node)
-            dag.add_node(node)
-
-        # Add Edges
-        for i in range(len(nodes) - 1):
-            dag.add_edge(nodes[i], nodes[i + 1])
-
-        return dag, config_mapping, "streaming"
-    
-    def compile_one_shot_defined_pipeline(self, pipeline):
-        # Implement the pipeline compilation logic here
-        
-        dag = DAG(id="dag_1")
-        nodes = []
-
-        for i, datastream in enumerate(pipeline.data_streams):
-            if i == 0:
-                node = OneShotDAGNode(
-                    name=datastream.name,
-                    operator=datastream.operator,
-                    is_spout=True
-                )
-            else:
-                node = OneShotDAGNode(
-                    name=datastream.name,
-                    operator=datastream.operator,
-                    is_spout=False
-                )
-
-      
-            nodes.append(node)
-            dag.add_node(node)
-
-        # Add Edges
-        for i in range(len(nodes) - 1):
-            dag.add_edge(nodes[i], nodes[i + 1])
-
-        return dag, "oneshot"
-    
-    def compile_oneshot_pipeline(self, pipeline, query):
+    def compile_oneshot_pipeline(self, pipeline, query): # deprecated
         """
 
         Compile the pipeline.
@@ -228,7 +274,8 @@ class QueryCompiler:
             except Exception as e:
                 print(str(e))
         self.dag_dict[intent] = dag
-        return dag, "oneshot"
+        dag.execution_type = "oneshot"
+        return dag
 
     def add_oneshot_spout(self, natural_query):
         """
