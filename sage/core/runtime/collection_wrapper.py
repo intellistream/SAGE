@@ -48,12 +48,28 @@ class CollectionWrapper:
 
     # 属性访问代理
     def __getattr__(self, name: str):
+        if '_attribute_cache' not in self.__dict__:
+            self.__dict__['_attribute_cache'] = {}
+        
+        attribute_cache = self.__dict__['_attribute_cache']
+    
         """透明代理属性访问"""
         # 缓存查找
         if name in self._attribute_cache:
             return self._attribute_cache[name]
         #self.logger.debug(f"Accessing attribute '{name}'")
         
+          # 防止循环引用 - 检查是否访问内部属性
+        if name.startswith('_'):
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        
+        # 防止访问 _collection 时的循环引用
+        if '_collection' not in self.__dict__:
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        
+        collection = self.__dict__['_collection']
+    
+
         # 获取原始属性
         try:
             original_attr = getattr(self._collection, name)

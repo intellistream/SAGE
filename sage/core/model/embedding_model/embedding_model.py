@@ -106,6 +106,10 @@ class EmbeddingModel:
     def embed(self, text: str) -> list[float]:
         
         return self._embed(text)
+    
+    def encode(self, text: str) -> list[float]:
+        
+        return self._embed(text)
 
     
 
