@@ -3,5 +3,6 @@
     "name":"SimpleRetriever",
     "code":"",
     "description":"Retrieves the most relevant documents from the index",
+    "transformation":"retrieve",
     "isCustom":false
 }

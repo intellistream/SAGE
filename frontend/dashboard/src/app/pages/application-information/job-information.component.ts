@@ -14,6 +14,7 @@ import {
 import {Batch} from "../../model/Batch";
 import {FormControl, FormGroup, NonNullableFormBuilder, Validators, FormArray, ValidatorFn} from "@angular/forms";
 import {NzMessageService} from "ng-zorro-antd/message";
+import { v4 } from 'uuid';
 
 @Component({
   selector: 'app-application-information',
@@ -126,10 +127,39 @@ export class JobInformationComponent implements OnInit {
           this.operatorAccumulativeLatency["sl"] = 0;  // initialize the accumulative latency
           this.operatorAccumulativeThroughput["sl"] = 0;  // initialize the accumulative throughput
           this.operatorGraphData.nodes.push({id: this.job.operators[i].id, label: this.job.operators[i].name, instance: this.job.operators[i].numOfInstances});
-          if (i > 0) {
-            this.operatorGraphData.edges.push({v: this.job.operators[i - 1].id, w: this.job.operators[i].id});
+          // if (i > 0) {
+          //   this.operatorGraphData.edges.push({v: this.job.operators[i - 1].id, w: this.job.operators[i].id});
+          // }
+     
+          if(i>0) {
+            let downstream = this.job.operators[i-1].downstream;
+            for (let j = 0 ; j < downstream.length ; ++ j){
+              let v = String(this.job.operators[i-1].id);
+              let w = String(downstream[j]);
+              this.operatorGraphData.edges.push({v: v, w:w });
+            }
           }
         }
+        // for (let i = 0; i < this.job.operators.length; i++) {
+        //   const op = this.job.operators[i];
+        //   console.log(op.downstream)
+        //   this.operatorLatestBatchNum["sl"] = 1;
+        //   this.operatorAccumulativeLatency["sl"] = 0;
+        //   this.operatorAccumulativeThroughput["sl"] = 0;
+
+        //   this.operatorGraphData.nodes.push({
+        //     id: op.id,
+        //     label: op.name,
+        //     instance: op.numOfInstances
+        //   });
+
+        //   // 建图：根据下游信息建立有向边
+        //   if (op.downstream && op.downstream.length > 0) {
+        //     for (let j = 0; j < op.downstream.length; ++j) {
+        //       this.operatorGraphData.edges.push({ v: op.id, w: op.downstream[j] });
+        //     }
+        //   }
+        // }
         this.drawOperatorGraph();
         this.getHistoricalData();
 
