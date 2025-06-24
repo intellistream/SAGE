@@ -1,8 +1,8 @@
-# # file sage.core/neuromem/test/manager_test.py
-# # python -m sage.core.neuromem.test.manager_test
+# # file sage.core/neuromem/operator_test/manager_test.py
+# # python -m sage.core.neuromem.operator_test.manager_test
 # import os
 # from sage.core.neuromem.memory_manager import MemoryManager
-# from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
+# from sage.core.neuromem.operator_test.embeddingmodel import MockTextEmbedder
 
 # default_model = MockTextEmbedder(fixed_dim=128)
 
@@ -13,7 +13,7 @@
 #     backend_type="VDB",
 #     embedding_model=default_model,
 #     dim=128,
-#     description="test vdb collection 2"
+#     description="operator_test vdb collection 2"
 # )
 
 # # 创建一个 VDB 类型的 collection
@@ -22,7 +22,7 @@
 #     backend_type="VDB",
 #     embedding_model=default_model,
 #     dim=128,
-#     description="test vdb collection"
+#     description="operator_test vdb collection"
 # )
 # print("创建完成：", manager.list_collection("vdb_test"))
 

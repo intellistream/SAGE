@@ -83,7 +83,7 @@ export class OperatorEditorComponent implements OnInit {
     this.operatorForm.reset();
     this.operatorForm.patchValue({
       implementation: `
-class CustomFunction(BaseOperator):
+class CustomFunction(BaseFuction):
     def __init__(self):
         super().__init__()
 

@@ -1,6 +1,5 @@
 import logging
 import time
-import yaml
 from sage.api.pipeline import Pipeline
 from sage.api.operator.operator_impl.promptor import QAPromptor
 from sage.api.operator.operator_impl.generator import OpenAIGenerator
@@ -9,11 +8,8 @@ from sage.api.operator.operator_impl.source import FileSource
 from sage.api.operator.operator_impl.sink import FileSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
-
-def load_config(path: str) -> dict:
-    """加载YAML配置文件"""
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
+from sage.utils.config_loader import load_config
+from sage.utils.logging_utils import configure_logging
 
 def memory_init():
     """初始化内存管理器并创建测试集合"""
@@ -26,7 +22,7 @@ def memory_init():
         embedding_model=default_model,
         dim=128,
         description="test vdb collection",
-        as_ray_actor=False
+        as_ray_actor=True
     )
     col.add_metadata_field("owner")
     col.add_metadata_field("show_type")
@@ -38,11 +34,12 @@ def memory_init():
     for text, metadata in texts:
         col.insert(text, metadata)
     col.create_index(index_name="vdb_index")
-    config["retriever"]["ltm_collection"] = col
+    config["retriever"]["ltm_collection"] = col._collection
+
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = Pipeline(name="example_pipeline", use_ray=False)
+    pipeline = Pipeline(name="example_pipeline", use_ray=True)
     # 构建数据处理流程
     query_stream = pipeline.add_source(FileSource, config)
     query_and_chunks_stream = query_stream.retrieve(SimpleRetriever, config)
@@ -50,13 +47,14 @@ def pipeline_run():
     response_stream = prompt_stream.generate_response(OpenAIGenerator, config)
     response_stream.sink(FileSink, config)
     # 提交管道并运行
-    pipeline.submit(config={"is_long_running": True})
+    pipeline.submit(config={"is_long_ running": True})
     time.sleep(100)  # 等待管道运行
 
+
 if __name__ == '__main__':
+    configure_logging(level=logging.INFO)
     # 加载配置并初始化日志
-    config = load_config('./app/config.yaml')
-    logging.basicConfig(level=logging.INFO)
+    config = load_config('config.yaml')
     # 初始化内存并运行管道
     memory_init()
     pipeline_run()

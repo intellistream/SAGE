@@ -11,6 +11,8 @@ import numpy as np
 from typing import Union, Optional, Dict, Any, List, Callable
 from sage.core.neuromem.storage_engine.vector_storage import VectorStorage
 from sage.core.neuromem.memory_collection.base_collection import BaseMemoryCollection, get_default_data_dir
+import logging
+
 
 def get_func_source(func):
     if func is None:
@@ -56,7 +58,20 @@ class VDBMemoryCollection(BaseMemoryCollection):
             self.default_topk = 5
             self.default_index_type = "FAISS"
         
+        self.logger = logging.getLogger(f"VDBMemoryCollection.")
+        self.logger.setLevel(logging.DEBUG)
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('[%(levelname)s] %(message)s')
+        handler.setFormatter(formatter)
+        if not self.logger.hasHandlers():
+            self.logger.addHandler(handler)
+
+
+
     def store(self, store_path: Optional[str] = None):
+        self.logger.debug(f"VDBMemoryCollection: store called")   ###########################
+
         if store_path is None:
             store_path = get_default_data_dir()
         collection_dir = os.path.join(store_path, "vdb_collection", self.name)
@@ -95,6 +110,8 @@ class VDBMemoryCollection(BaseMemoryCollection):
 
     @classmethod
     def load(cls, name, embedding_model, load_path=None):
+        cls.logger.debug(f"VDBMemoryCollection: load called")
+
         if load_path is None:
             load_path = os.path.join(get_default_data_dir(), "vdb_collection", name)
         config_path = os.path.join(load_path, "config.json")
@@ -175,6 +192,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
                 "metadata_filter_func": metadata_filter_func,
                 "metadata_conditions": metadata_conditions,
             }
+              ###########################
 
     def delete_index(self, index_name: str):
         """
@@ -213,8 +231,9 @@ class VDBMemoryCollection(BaseMemoryCollection):
         self,
         raw_text: str,
         metadata: Optional[Dict[str, Any]] = None,
-        *index_names: str
+        *index_names
     ) -> str:
+        self.logger.debug(f"VDBMemoryCollection: insert called")
         stable_id = self._get_stable_id(raw_text)
         self.text_storage.store(stable_id, raw_text)
 
@@ -233,6 +252,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
                 raise ValueError(f"Index '{index_name}' does not exist.")
             index = self.indexes[index_name]["index"]
             index.insert(embedding, stable_id)  # 不用加 []
+
 
         return stable_id
 
@@ -274,6 +294,8 @@ class VDBMemoryCollection(BaseMemoryCollection):
         metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
         **metadata_conditions
     ) :
+        self.logger.debug(f"VDBMemoryCollection: retrieve called")   ###########################
+        
         if index_name is None or index_name not in self.indexes:
             raise ValueError(f"Index '{index_name}' does not exist.")
 

@@ -1,0 +1,31 @@
+source:
+  data_path: "./sage/api/operator/operator_test/question.txt"
+
+retriever:
+  stm: True
+  ltm: True
+  dcm: False
+  top_k: 3
+
+reranker:
+  model_name: "BAAI/bge-reranker-v2-m3"
+  top_k: 3
+
+refiner:
+  method: "openai"
+  model_name: "qwen-max"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  api_key: "sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"
+  seed: 42
+
+generator:
+  method: "openai"
+  model_name: "qwen-max"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  api_key: "sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"
+  seed: 42
+
+sink:
+
+writer:
+

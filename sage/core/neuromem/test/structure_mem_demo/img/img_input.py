@@ -1,5 +1,5 @@
-# file sage/core/neuromem/test/structure_mem_demo/img/img_input.py
-# python -m sage.core.neuromem.test.structure_mem_demo.img.img_input
+# file sage/core/neuromem/operator_test/structure_mem_demo/img/img_input.py
+# python -m sage.core.neuromem.operator_test.structure_mem_demo.img.img_input
 
 from sage.api.model import apply_generator_model, apply_embedding_model
 

@@ -4,7 +4,7 @@
 import os
 import json
 from typing import Any, Dict, List, Optional, Union
-from sage.runtime.collection_wrapper import CollectionWrapper
+from sage.core.runtime.collection_wrapper import CollectionWrapper
 from sage.core.neuromem.memory_collection.base_collection import BaseMemoryCollection
 from sage.core.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
 from sage.core.neuromem.memory_collection.kv_collection import KVMemoryCollection

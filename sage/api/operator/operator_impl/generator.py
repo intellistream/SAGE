@@ -3,6 +3,7 @@ from sage.api.model import apply_generator_model
 from sage.api.operator import GeneratorFunction
 from sage.api.operator import Data
 
+
 class OpenAIGenerator(GeneratorFunction):
     """
     OpenAIGenerator is a generator function that interfaces with a specified OpenAI model 

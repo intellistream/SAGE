@@ -198,9 +198,9 @@ def main():
     embedding = LangChainEmbedder(simple_embedder)
 
     file_configs = [
-        ("/home/zrc/develop_item/SAGE/sage/core/neuromem/test/structure_mem_demo/food.json", "caption"),
-        ("/home/zrc/develop_item/SAGE/sage/core/neuromem/test/structure_mem_demo/sport.json", "text"),
-        ("/home/zrc/develop_item/SAGE/sage/core/neuromem/test/structure_mem_demo/health.json", "text"),
+        ("/home/zrc/develop_item/SAGE/sage/core/neuromem/operator_test/structure_mem_demo/food.json", "caption"),
+        ("/home/zrc/develop_item/SAGE/sage/core/neuromem/operator_test/structure_mem_demo/sport.json", "text"),
+        ("/home/zrc/develop_item/SAGE/sage/core/neuromem/operator_test/structure_mem_demo/health.json", "text"),
     ]
 
     docs_to_add = []
