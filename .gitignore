@@ -45,9 +45,9 @@ output.txt
 /.vscode/
 /arxiv_pdfs
 /arxiv_structured_json
-/run.sh
-/sage/.env
-/mem_output.txt
-/qa_output.txt
 run.sh
-/ray_logs
+/sage/.env
+mem_output.txt
+qa_output.txt
+run.sh
+ray_logs
