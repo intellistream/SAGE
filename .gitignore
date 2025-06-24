@@ -48,3 +48,4 @@ output.txt
 /arxiv_pdfs
 /arxiv_structured_json
 /sage/.env
+/output/
