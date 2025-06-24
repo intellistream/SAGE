@@ -61,10 +61,48 @@ async def openai_embed(
     return response.data[0].embedding
 
 
-# async def main():
-#     from dotenv import load_dotenv
-#
-#     load_dotenv()
-#
-#     print(await openai_embed("123",base_url="https://api.siliconflow.cn/v1",model="BAAI/bge-m3",api_key=os.environ.get('SILICONCLOUD_API_KEY')))
-# asyncio.run(main())
+import os
+from openai import OpenAI  # 同步版 client
+from openai.types import CreateEmbeddingResponse
+
+def openai_embed_sync(
+    text: str,
+    model: str = "text-embedding-3-small",
+    base_url: str = None,
+    api_key: str = None,
+) -> list[float]:
+    """
+    同步生成 OpenAI embedding。
+
+    Args:
+        text: 输入文本
+        model: OpenAI embedding 模型名
+        base_url: 可选自定义 API endpoint
+        api_key: OpenAI API 密钥
+
+    Returns:
+        list[float]: embedding 向量
+    """
+    if not api_key:
+        api_key = os.environ["OPENAI_API_KEY"]
+
+    default_headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_8) SAGE/0.0",
+        "Content-Type": "application/json",
+    }
+
+    openai_sync_client = (
+        OpenAI(default_headers=default_headers, api_key=api_key)
+        if base_url is None
+        else OpenAI(
+            base_url=base_url, default_headers=default_headers, api_key=api_key
+        )
+    )
+
+    response: CreateEmbeddingResponse = openai_sync_client.embeddings.create(
+        model=model,
+        input=text,
+        encoding_format="float"
+    )
+
+    return response.data[0].embedding

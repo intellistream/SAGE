@@ -47,3 +47,40 @@ async def lollms_embed(
         ) as response:
             result = await response.json()
             return result["vector"]
+
+import requests
+
+def lollms_embed_sync(
+    text: str,
+    embed_model=None,
+    base_url="http://localhost:9600",
+    **kwargs,
+) -> list[float]:
+    """
+    同步版本：使用 lollms 本地服务生成 embedding。
+
+    Args:
+        text: 输入文本
+        embed_model: 模型名（未直接使用）
+        base_url: lollms 服务地址
+        **kwargs: 可选参数，例如 api_key
+
+    Returns:
+        list[float]: 生成的向量
+    """
+    api_key = kwargs.pop("api_key", None)
+    headers = {
+        "Content-Type": "application/json",
+    }
+    if api_key:
+        headers["Authorization"] = api_key
+
+    request_data = {"text": text}
+
+    try:
+        response = requests.post(f"{base_url}/lollms_embed", json=request_data, headers=headers)
+        response.raise_for_status()
+        result = response.json()
+        return result["vector"]
+    except Exception as e:
+        raise RuntimeError(f"lollms embedding request failed: {str(e)}")
