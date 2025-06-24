@@ -51,6 +51,7 @@ class MultiplexerDagNode:
         self.emit_context = EmitContext(self.name)
         # Don't inject emit context in __init__ to avoid serialization issues
         self._emit_context_injected = False
+        
     def _ensure_initialized(self):
         """
         Ensure that all runtime objects are initialized.

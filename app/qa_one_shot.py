@@ -49,6 +49,7 @@ def pipeline_run():
     prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
     response_stream = prompt_stream.generate_response(OpenAIGenerator, config)
     response_stream.sink(TerminalSink, config)
+    response_stream.sink(TerminalSink, config)
     # 提交管道并运行
     pipeline.submit(config={"is_long_running": False})
     # time.sleep(100)  # 等待管道运行
