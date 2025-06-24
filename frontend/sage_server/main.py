@@ -1,4 +1,4 @@
-# python -m  frontend.sage_server.main --host 127.0.0.1 --port 8080 --log-level debug
+# cd frontend/sage_server && python main.py --host 127.0.0.1 --port 8080 --log-level debug
 
 
 """
