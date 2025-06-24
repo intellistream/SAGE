@@ -20,18 +20,18 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import argparse
-# from routers.job_info import router as jobInfo_router
-# from routers.batch_info import router as batchInfo_router
-# from routers.signal import router as signal_router
-# from routers.operators import router as operator_router
-# from routers.pipeline import router as pipeline_router
-# from routers.upload import router as upload_router
-from frontend.sage_server.routers.job_info import router as jobInfo_router
-from frontend.sage_server.routers.batch_info import router as batchInfo_router
-from frontend.sage_server.routers.signal import router as signal_router
-from frontend.sage_server.routers.operators import router as operator_router
-from frontend.sage_server.routers.pipeline import router as pipeline_router
-from frontend.sage_server.routers.upload import router as upload_router
+from routers.job_info import router as jobInfo_router
+from routers.batch_info import router as batchInfo_router
+from routers.signal import router as signal_router
+from routers.operators import router as operator_router
+from routers.pipeline import router as pipeline_router
+from routers.upload import router as upload_router
+# from frontend.sage_server.routers.job_info import router as jobInfo_router
+# from frontend.sage_server.routers.batch_info import router as batchInfo_router
+# from frontend.sage_server.routers.signal import router as signal_router
+# from frontend.sage_server.routers.operators import router as operator_router
+# from frontend.sage_server.routers.pipeline import router as pipeline_router
+# from frontend.sage_server.routers.upload import router as upload_router
 
 
 # 加载环境变量
@@ -44,6 +44,36 @@ config.read("config.ini")
 
 def get_app():
     return globals().get("app", None)
+
+from sage.api.model.model_api import apply_embedding_model
+from sage.core.neuromem.memory_manager import MemoryManager
+def memory_init():
+    """初始化内存管理器并创建测试集合"""
+    # default_model = MockTextEmbedder(fixed_dim=128)
+    manager = MemoryManager()
+    embedding_model = apply_embedding_model("hf", model="sentence-transformers/all-MiniLM-L6-v2")
+    col = manager.create_collection(
+        name="vdb_test",
+        backend_type="VDB",
+        embedding_model=embedding_model,
+        dim=embedding_model.get_dim(),
+        description="test vdb collection",
+        as_ray_actor=False
+    )
+    col.add_metadata_field("owner")
+    col.add_metadata_field("show_type")
+    texts = [
+        ("hello world", {"owner": "ruicheng", "show_type": "text"}),
+        ("你好，世界", {"owner": "Jun", "show_type": "text"}),
+        ("こんにちは、世界", {"owner": "Lei", "show_type": "img"}),
+    ]
+    for text, metadata in texts:
+        print(f"Inserting text: {text} with metadata: {metadata}")
+        col.insert(text, metadata)
+        print(f"Inserted text: {text} with metadata: {metadata}")
+    col.create_index(index_name="vdb_index")
+    return col
+
 class CustomPathFilter(logging.Filter):
     """过滤器用于过滤掉频繁的路径访问日志"""
 
@@ -144,6 +174,9 @@ def create_app(args):
     # 检查是否通过环境变量或参数提供了 API 密钥
     api_key = os.getenv("APP_API_KEY") or args.key
 
+
+
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         """应用程序生命周期管理器，用于启动和关闭事件"""
@@ -151,32 +184,10 @@ def create_app(args):
         app.state.background_tasks = set()
 
         try:
-            import ray
-            from ray import serve
-            import yaml
-            from sage.api.memory.memory_service import MemoryManagerService
-            from sage.core.neuromem.mem_test.memory_api_test_ray import default_model
-
-            ray.init(
-                logging_level=logging.CRITICAL,
-                include_dashboard=True,
-                dashboard_port=8265,
-                dashboard_host="0.0.0.0"
-            )
-
-            # 关闭并启动 Ray 服务
-            serve.shutdown()
-            serve.start(detached=True)
-
-            # 创建 MemoryManagerService 并启动应用
-            app_service = MemoryManagerService.bind()
-            serve.run(app_service, name="MemoryApp")
+            
 
             # 获取 MemoryManagerService 的句柄
-            app.state.manager_handle = serve.get_deployment_handle(
-                deployment_name="MemoryManagerService",
-                app_name="MemoryApp"
-            )
+            app.state.retriver_collection =memory_init()
 
 
             # 初始化数据库连接或其他资源
