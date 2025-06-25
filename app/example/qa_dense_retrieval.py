@@ -5,7 +5,7 @@ from sage.api.operator.operator_impl.promptor import QAPromptor
 from sage.api.operator.operator_impl.generator import OpenAIGenerator
 from sage.api.operator.operator_impl.retriever import DenseRetriever
 from sage.api.operator.operator_impl.source import FileSource
-from sage.api.operator.operator_impl.sink import FileSink,TerminalSink
+from sage.api.operator.operator_impl.sink import TerminalSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
@@ -40,13 +40,13 @@ def pipeline_run():
     """创建并运行数据处理管道"""
     pipeline = Pipeline(name="example_pipeline", use_ray=False)
     # 构建数据处理流程
-    query_stream = pipeline.add_source(FileSource, config)
-    query_and_chunks_stream = query_stream.retrieve(DenseRetriever, config)
-    prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
-    # prompt_stream = query_stream.construct_prompt(QAPromptor, config)
-    response_stream = prompt_stream.generate_response(OpenAIGenerator, config)
-    response_stream.sink(TerminalSink, config)
-    # 提交管道并运行
+    query_stream = (pipeline
+        .add_source(FileSource, config)
+        .retrieve(DenseRetriever, config)
+        .construct_prompt(QAPromptor, config)
+        .generate_response(OpenAIGenerator, config)
+        .sink(TerminalSink, config)
+    )
     pipeline.submit(config={"is_long_running":False})
     # time.sleep(100)  # 等待管道运行
 
