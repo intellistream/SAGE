@@ -18,19 +18,21 @@ class RayMultiplexerDagNode:
                  name: str, 
                  operator_class: Type[BaseFuction],
                  operator_config: Dict = None,
-                 is_spout: bool = False) -> None:
+                 is_spout: bool = False,
+                 session_folder: str = None) -> None:
         self.name = name
         self.operator_class = operator_class
         self.operator_config = operator_config or {}
         self.is_spout = is_spout
-        
-        # 使用自定义Logger
+
         self.logger = CustomLogger(
             object_name=f"RayNode_{self.name}",
-            log_level=logging.DEBUG,
-            console_output=True,
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=False,
             file_output=True
         )
+
         # 取消继承 root logger 的 stdout handler
         # self.logger.propagate = False
         """
@@ -50,7 +52,7 @@ class RayMultiplexerDagNode:
         # Store downstream connections: output_channel -> [(downstream_actor, downstream_input_channel)]
         self.downstream_connections: List[Tuple[ActorHandle, int]] = []
 
-
+        operator_config["session_folder"] = session_folder
         self.operator = operator_class(operator_config)
         
         # Running state

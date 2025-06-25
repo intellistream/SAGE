@@ -4,6 +4,7 @@ from sage.core.dag.local.dag_node import BaseDAGNode,OneShotDAGNode
 from sage.core.dag.local.multi_dag_node import MultiplexerDagNode
 from sage.core.dag.local.dag import DAG
 import threading
+from sage.utils.custom_logger import CustomLogger
 
 class BaseTask():
     def __init__(self):
@@ -22,14 +23,22 @@ class StreamingTask(BaseTask):
                TypeError: 当节点类型不匹配时抛出
                RuntimeError: 执行过程中出现错误时抛出
     """
-    def __init__(self,node,working_config=None):
+    def __init__(self,node,working_config=None, session_folder: str = None):
         super().__init__()
         self.long_running=True
         self.node=node
+        self.name = node.name
         # self.logger=logging.getLogger('streaming_executor')
         self.working_config=working_config or {}
+        self.logger = CustomLogger(
+            object_name=f"StreamingTask_{self.name}",
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
+
     def execute(self):
-        self.logger=logging.getLogger('streaming_executor')
         #循环的执行算子
         try:
             if  isinstance(self.node,MultiplexerDagNode):
@@ -57,11 +66,17 @@ class OneshotTask(BaseTask):
             dag (DAG): 需要处理的DAG对象
             stop_event (threading.Event): 任务停止信号量
         """
-    def __init__(self,dag:DAG):
+    def __init__(self,dag:DAG, session_folder=None):
         super().__init__()
         self.dag=dag
         self.long_running=False
-        self.logger=logging.getLogger('oneshot executor')
+        self.logger = CustomLogger(
+            object_name=f"OneshotTask_{self.dag.name}",
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
         self.stop_event=threading.Event()
         
     def execute(self):

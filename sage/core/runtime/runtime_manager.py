@@ -5,15 +5,23 @@ from sage.core.runtime.ray.ray_runtime import RayRuntime
 from sage.core.runtime.local.local_runtime import LocalRuntime
 from sage.core.dag.local.dag import DAG
 from sage.core.dag.ray.ray_dag import RayDAG
+from sage.utils.custom_logger import CustomLogger
 
 class RuntimeManager:
     """
     运行时管理器，负责管理不同平台的运行时实例
     """
     
-    def __init__(self):
+    def __init__(self, session_folder: str = None):
         self.backends: Dict[str, Any] = {}
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.session_folder = session_folder
+        self.logger = CustomLogger(
+            object_name=f"RuntimeManager",
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
     
     def get(self, platform: str, **kwargs) -> BaseRuntime:
         """
@@ -45,7 +53,7 @@ class RuntimeManager:
         """
         if platform == "ray":
             monitoring_interval = kwargs.get('monitoring_interval', 2.0)
-            return RayRuntime(monitoring_interval=monitoring_interval)
+            return RayRuntime(monitoring_interval=monitoring_interval, session_folder=self.session_folder)
         
         elif platform == "local":
             max_slots = kwargs.get('max_slots', 4)

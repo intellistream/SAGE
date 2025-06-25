@@ -3,7 +3,7 @@ from typing import Type, TYPE_CHECKING, Union, Any, AnyStr, Dict, List
 from sage.api.pipeline.pipeline_api import Pipeline
 from sage.api.pipeline.datastream_api import DataStream
 from sage.api.operator import BaseFuction
-
+from sage.utils.custom_logger import CustomLogger
 
 
 
@@ -33,7 +33,7 @@ class GraphEdge:
         self.downstream_channnel: int = None
 
 class SageGraph:
-    def __init__(self, pipeline:Pipeline, config: dict = None):
+    def __init__(self, pipeline:Pipeline, config: dict = None, session_folder: str = None):
         """
         Initialize the NodeGraph with a name and optional configuration.
         Args:
@@ -49,7 +49,13 @@ class SageGraph:
         # 构建数据流之间的连接映射
         stream_to_node_name = {}
         stream_connections = {}
-
+        self.logger = CustomLogger(
+            object_name=f"SageGraph_{self.name}",
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
 
         # 第一步：为每个 DataStream 生成唯一的节点名和边名
         for i, stream in enumerate(pipeline.data_streams):
@@ -103,10 +109,10 @@ class SageGraph:
                     operator_config=stream.config
                 )
                 added_nodes.add(node_name)
-                print(f"Added node: {node_name}")
+                self.logger.debug(f"Added node: {node_name}")
                 
             except Exception as e:
-                print(f"Error adding node {node_name}: {e}")
+                self.logger.debug(f"Error adding node {node_name}: {e}")
                 raise
         
         # 从所有数据流开始添加（以处理可能的多个独立子图）
@@ -116,7 +122,7 @@ class SageGraph:
         if not self.validate_graph():
             raise ValueError("Generated graph is invalid")
         
-        print(f"Successfully converted pipeline '{pipeline.name}' to graph with {len(self.nodes)} nodes and {len(self.edges)} edges")
+        self.logger.debug(f"Successfully converted pipeline '{pipeline.name}' to graph with {len(self.nodes)} nodes and {len(self.edges)} edges")
 
 
 
@@ -195,7 +201,7 @@ class SageGraph:
     # def submit(self):
     #     engine:Engine = Engine.get_instance(generate_func=None)
     #     engine.submit_graph(self)
-    #     print(f" Graph '{self.name}' submitted to engine.")
+    #     self.logger.debug(f" Graph '{self.name}' submitted to engine.")
     def get_upstream_nodes(self, node_name: str) -> List[str]:
         """
         Get list of upstream node names for a given node.
@@ -290,23 +296,23 @@ class SageGraph:
         """
         # Check if graph has at least one source node
         if not self.get_source_nodes():
-            print("Graph validation failed: No source nodes found")
+            self.logger.debug("Graph validation failed: No source nodes found")
             return False
         
         # Check if all edges are properly connected
         for edge_name, edge in self.edges.items():
             if edge.upstream_node is None:
-                print(f"Graph validation failed: Edge '{edge_name}' has no upstream node")
+                self.logger.debug(f"Graph validation failed: Edge '{edge_name}' has no upstream node")
                 return False
             
             if edge.downstream_node is None:
-                print(f"Graph validation failed: Edge '{edge_name}' has no downstream node")
+                self.logger.debug(f"Graph validation failed: Edge '{edge_name}' has no downstream node")
                 return False
         
         # Check for orphaned nodes (nodes with no connections)
         for node_name, node in self.nodes.items():
             if not node.input_channels and not node.output_channels:
-                print(f"Graph validation failed: Node '{node_name}' is orphaned (no connections)")
+                self.logger.debug(f"Graph validation failed: Node '{node_name}' is orphaned (no connections)")
                 return False
         
         return True
