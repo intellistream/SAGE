@@ -49,6 +49,8 @@ class OpenAIGenerator(GeneratorFunction):
         # print(f'query {self.num}  {user_query}')
         # print(f"answer {self.num}  {response}")
         self.num += 1
+
+        self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Response: {response }\033[0m ")
         # Return the generated response along with the original user query as a tuple
         return Data((user_query, response))
 
@@ -75,7 +77,7 @@ class HFGenerator(GeneratorFunction):
             model_name=self.config["model_name"]
         )
 
-    def execute(self, data: Data[list], **kwargs) -> Data[str]:
+    def execute(self, data: Data[list], **kwargs) -> Data[Tuple[str, str]]:
         """
         Executes the response generation using the configured Hugging Face model based on the input data.
 
@@ -86,7 +88,10 @@ class HFGenerator(GeneratorFunction):
         :return: A Data object containing the generated response as a string.
         """
         # Generate the response from the Hugging Face model using the provided data and additional arguments
-        response = self.model.generate(data.data, **kwargs)
+        user_query = data.data
+        response = self.model.generate(user_query, **kwargs)
 
         # Return the generated response as a Data object
-        return Data(response)
+        self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
+
+        return Data((user_query, response))
