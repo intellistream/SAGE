@@ -30,13 +30,13 @@ You will be prompted to select one of the following modes:
 1. **Minimal Setup**  
    Set up only the Conda environment.
 
-2. **Setup with Ray**  
-   Includes the minimal setup and additionally installs [Ray](https://www.ray.io/), a distributed computing framework.
+<!-- 2. **Setup with Ray**  
+   Includes the minimal setup and additionally installs [Ray](https://www.ray.io/), a distributed computing framework. -->
 
-3. **Setup with Docker**  
+2. **Setup with Docker**  
    Launches a pre-configured Docker container and sets up the Conda environment inside it.
 
-4. **Full Setup**  
+3. **Full Setup**  
    Launches the Docker container, installs all required dependencies (including **CANDY**, our in-house vector database), and sets up the Conda environment.
 
 ---

@@ -280,28 +280,28 @@ function main_menu() {
         print_header
         echo "Select an option to proceed:"
         echo "1.Minimal Setup ( Set Up Conda Environment)"
-        echo "2.Setup with Ray (Minimal Setup, Install Ray)"
-        echo "3.Setup with Docker(Start Docker Container, Set Up Conda Environment)"
-        echo "4.Full Setup (Start Docker Container, Install Dependencies including CANDY, Set Up Conda Environment)"
-        echo "5.Enter Docker Instance "
-        echo "6.run example scripts"
-        echo "7.IDE Setup Guide (Set Up Conda Environment)"
-        echo "8.troubleshooting"
-        echo "9.Install CANDY in Docker Instance (Optional)"
+        # echo "2.Setup with Ray (Minimal Setup, Install Ray)"
+        echo "2.Setup with Docker(Start Docker Container, Set Up Conda Environment)"
+        echo "3.Full Setup (Start Docker Container, Install Dependencies including CANDY, Set Up Conda Environment)"
+        echo "4.Enter Docker Instance "
+        echo "5.run example scripts"
+        echo "6.IDE Setup Guide (Set Up Conda Environment)"
+        echo "7.troubleshooting"
+        echo "8.Install CANDY in Docker Instance (Optional)"
         echo "0.Exit"
         pause
          echo "===================================================="
         read -p "Enter your choice [0-6]: " choice
         case $choice in
             1) minimal_setup ;;
-            2) setup_with_ray ;;
-            3) setup_with_docker ;;
-            4) full_setup ;;
-            5) enter_docker_instance ;;
-            6) run_example_scripts ;;
-            7) display_ide_setup ;;
-            8) troubleshooting ;;
-            9) install_dependencies ;;
+            # 2) setup_with_ray ;;
+            2) setup_with_docker ;;
+            3) full_setup ;;
+            4) enter_docker_instance ;;
+            5) run_example_scripts ;;
+            6) display_ide_setup ;;
+            7) troubleshooting ;;
+            8) install_dependencies ;;
             0) echo "Exiting setup script. Goodbye!"
                exit 0 ;;
             *) echo "Invalid choice. Please try again."; pause ;;
