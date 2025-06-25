@@ -67,7 +67,7 @@ class DataStream:
 
     def generalize(self, op_type,generalize_operator_class,config)-> DataStream:
         return self._transform(op_type, generalize_operator_class,config)
-
+    
     def get_operator(self):
         return self.operator
     def get_upstreams(self):

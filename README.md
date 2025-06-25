@@ -62,8 +62,77 @@ This method is recommended for advanced users who prefer manual dependency manag
 
 
 ## 🚀 Quick Start
+### 🧠 Load and Save Memory
+
+### 🔧 Build Pipeline Using Fluent API
+Sage uses a fluent-style API to declaratively define data flows. Here’s how to build a RAG pipeline step by step:
+```python
+pipeline = Pipeline(name="example_pipeline", use_ray=False)
+query_stream = (pipeline
+   .add_source(FileSource, config)
+   .retrieve(DenseRetriever, config)
+   .construct_prompt(QAPromptor, config)
+   .generate_response(OpenAIGenerator, config)
+   .sink(TerminalSink, config)
+   )
+   # Submit the pipeline job
+   pipeline.submit(config{"is_long_running":False})
+```
+
+#### 📘 About config
+
+Each operator in the pipeline requires a configuration dictionary config that provides runtime parameters. You can find example config.yaml under [config](./config).
+
+#### 📘 About Ray
+To enable distributed execution using Ray, simply set use_ray=True when building the pipeline:
+```python
+pipeline = Pipeline(name="example_pipeline", use_ray=True)
+```
+#### 📘 About Long Running
+If your pipeline is meant to run as a long-lived service, use:
+```python
+   pipeline.submit(config{"is_long_running":True})
+```
+
+See more examples under [app](./app)
 
 ## 🧩 Components
+### Operator
+### Memory
+### Engine
 
-## 🎨 SAGE-UI
-![](./asset/UI.png)
+## 🎨 SAGE-Dashboard
+<p>With the <strong>SAGE-Dashboard</strong>, you can quickly orchestrate a large model application and run it with one click. Our meticulously designed visual interface will help you efficiently build, monitor, and manage complex workflows!</p>
+
+
+
+### ✨: Features
+- **DAG Visualization**
+  - In the dashboard, the running DAG (Directed Acyclic Graph) is rendered in real-time, making your application workflow clear at a glance.</li>
+  - Intuitively displays data flows and component dependencies, simplifying the process of understanding complex applications.</li>
+- **Live Monitoring**
+  - During execution, you can observe the resource usage of various components, including operators and memory, in real-time through the built-in dashboard.</li>
+  - Operators are annotated with latency heatmaps, queue occupancy, and runtime statistics. Developers can observe the execution flow in real time, trace performance bottlenecks, and monitor memory behavior.</li>
+- **Drag-and-Drop DAG Construction**
+  - Quickly assemble a complete DAG workflow by simply arranging and connecting nodes on the canvas, with no need to write complex configuration files.</li>
+  - Intuitively define your workflow by dragging and dropping from a rich library of built-in component nodes.</li>
+
+<details>
+<summary>Show more</summary>
+
+ <!-- ![](./asset/UI.png) -->
+ <img src="./asset/UI.png" alt="sage-dashboard" width="505"/>
+</details>
+
+#### Experience our meticulously designed Sage -Dashboard both user-friendly and powerful::
+```bash
+cd frontend/sage_server
+python main.py --host 127.0.0.1 --port 8080 --log-level debug
+
+cd ../dashboard
+npm i 
+npm start
+```
+
+## 🔖 License
+SAGE is licensed under the [MIT License](./LICENSE).
