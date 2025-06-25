@@ -9,6 +9,7 @@ from sage.api.operator.operator_impl.sink import MemWriteSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
 def load_config(path: str) -> dict:
+    
     """加载YAML配置文件"""
     with open(path, 'r') as f:
         return yaml.safe_load(f)
@@ -37,7 +38,7 @@ def memory_init():
     col.create_index(index_name="vdb_index")
     config["writer"]["ltm_collection"] = col
 
-def pipeline_run():
+def pipeline_run(): 
     pipeline = Pipeline(name="example_pipeline", use_ray=False)
     # 构建数据处理流程
     source_stream = pipeline.add_source(FileSource, config)
