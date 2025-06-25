@@ -9,6 +9,7 @@ from sage.core.io.message_queue import MessageQueue
 from sage.core.dag.ray.ray_dag import RayDAG
 if TYPE_CHECKING:
     from sage.core.graph import SageGraph, GraphEdge
+import logging 
 class QueryCompiler:
 
     def __init__(self,generate_func = None ):
@@ -21,9 +22,11 @@ class QueryCompiler:
         self.optimizer = Optimizer()
         self.parser = QueryParser(generate_func=generate_func)
         self.dag_dict = {}
+        self.logger = logging.getLogger("QueryCompiler")
 
     def compile_graph(self, graph:'SageGraph') -> Union[DAG, RayDAG]:
         platform = graph.config.get("platform", "local")
+        self.logger.info(f"Compiling graph '{graph.name}' ")
 
         if platform == "ray":
             return self._compile_graph_for_ray(graph)
@@ -33,7 +36,13 @@ class QueryCompiler:
 
     def _compile_graph_for_ray(self, graph:'SageGraph') -> RayDAG:
         """Ray-specific compilation logic returning RayDAG."""
-        ray_dag = RayDAG(name=f"{graph.name}", strategy="streaming")
+        if(graph.config.get("is_long_running", False) is False):
+            strategy = "oneshot"
+        else:
+            strategy = "streaming"
+        self.logger.info(f"Compiling graph '{graph.name}' for Ray with strategy '{strategy}'")
+        
+        ray_dag = RayDAG(name=f"{graph.name}", strategy=strategy)
         ray_dag.platform = "ray"
         # operator_factory = OperatorFactory(True)  # Ray-enabled factory
         
@@ -72,6 +81,8 @@ class QueryCompiler:
             # Get channel information from edge
             upstream_output_channel = edge.upstream_channel
             downstream_input_channel = edge.downstream_channnel
+            self.logger.info(f"Connecting actors '{edge.upstream_node.name}' "
+                             f"to {edge.downstream_node.name}")
             
             # Connect actors with correct channel mapping
             ray_dag.connect_actors(
