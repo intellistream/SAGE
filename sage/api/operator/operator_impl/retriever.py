@@ -2,6 +2,8 @@ from typing import Tuple, List
 import time  # 替换 asyncio 为 time 用于同步延迟
 from sage.api.operator import Data, StateRetrieverFunction
 import logging
+from sage.utils.custom_logger import CustomLogger
+
 
 # 更新后的 SimpleRetriever
 class DenseRetriever(StateRetrieverFunction):
@@ -16,16 +18,23 @@ class DenseRetriever(StateRetrieverFunction):
         else:
             self.ltm = None
 
-        # 创建内存适配器并设置日志
-        # self.logger = logging.getLogger(f"SimpleRetriever")
-        # self.logger.setLevel(logging.DEBUG)
-        # handler = logging.StreamHandler()
-        # handler.setLevel(logging.DEBUG)
-        # formatter = logging.Formatter('[%(levelname)s] %(message)s')
-        # handler.setFormatter(formatter)
 
-        # if not self.logger.hasHandlers():
-        #     self.logger.addHandler(handler)
+        # if self.config.get("dcm", False):
+        #     self.dcm = self.config.get("dcm_collection")
+        #     self.dcm_config = self.config.get("dcm_config", {})
+        # else:
+        #     self.dcm = None
+
+
+        self.logger = CustomLogger(
+            object_name=f"DenseRetriever",
+            session_folder=config["session_folder"] or None,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
+
+        
 
         self.memory_adapter = self._create_memory_adapter()
         self.memory_adapter.logger = self.logger
