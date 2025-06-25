@@ -8,6 +8,7 @@ class GeneratorFunction(StateLessFuction):
         super().__init__()
         # Default model can be set or passed by subclass
         self.model = None
+        
     @abstractmethod
     def execute(self, data:Data[T]) -> Data[T]:
         """

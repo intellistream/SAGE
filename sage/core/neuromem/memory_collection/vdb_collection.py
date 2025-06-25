@@ -58,16 +58,16 @@ class VDBMemoryCollection(BaseMemoryCollection):
             self.default_topk = 5
             self.default_index_type = "FAISS"
         
-        self.logger = logging.getLogger(f"VDBMemoryCollection.")
-        self.logger.setLevel(logging.DEBUG)
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('[%(levelname)s] %(message)s')
-        handler.setFormatter(formatter)
-        if not self.logger.hasHandlers():
-            self.logger.addHandler(handler)
+        # self.logger = logging.getLogger(f"VDBMemoryCollection.")
+        # self.logger.setLevel(logging.DEBUG)
+        # handler = logging.StreamHandler()
+        # handler.setLevel(logging.DEBUG)
+        # formatter = logging.Formatter('[%(levelname)s] %(message)s')
+        # handler.setFormatter(formatter)
+        # if not self.logger.hasHandlers():
+        #     self.logger.addHandler(handler)
 
-
+        self.logger = logging.getLogger(__name__)
 
     def store(self, store_path: Optional[str] = None):
         self.logger.debug(f"VDBMemoryCollection: store called")   ###########################
@@ -294,7 +294,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
         metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
         **metadata_conditions
     ) :
-        self.logger.debug(f"VDBMemoryCollection: retrieve called")   ###########################
+        self.logger.debug(f"VDBMemoryCollection: retrieve called")   
         
         if index_name is None or index_name not in self.indexes:
             raise ValueError(f"Index '{index_name}' does not exist.")
