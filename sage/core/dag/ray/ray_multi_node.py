@@ -49,7 +49,7 @@ class RayMultiplexerDagNode:
       
 
         # Store downstream connections: output_channel -> [(downstream_actor, downstream_input_channel)]
-        self.downstream_connections: Dict[int, List[Tuple[ActorHandle, int]]] = {}
+        self.downstream_connections: List[Tuple[ActorHandle, int]] = []
 
 
         self.operator = operator_class(operator_config)
@@ -79,10 +79,14 @@ class RayMultiplexerDagNode:
             downstream_actor: Downstream Ray actor handle
             downstream_input_channel: Downstream node's input channel number
         """
-        if output_channel not in self.downstream_connections:
-            self.downstream_connections[output_channel] = []
+        if output_channel >= len(self.downstream_connections):
+            self.downstream_connections.extend([None] * (output_channel + 1 - len(self.downstream_connections)))
+        if self.downstream_connections[output_channel] is not None:
+            raise ValueError(
+                f"Output channel {output_channel} already has a downstream connection in node {self.name}"
+            )
         
-        self.downstream_connections[output_channel].append((downstream_actor, downstream_input_channel))
+        self.downstream_connections[output_channel] = (downstream_actor, downstream_input_channel)
         
         self.logger.debug(
             f"Added downstream connection: {self.name}[out:{output_channel}] -> "
@@ -116,12 +120,29 @@ class RayMultiplexerDagNode:
         Called by the operator through emit context.
         
         Args:
-            output_channel: This node's output channel number
+            output_channel: This node's output channel number (-1 for all channels)
             data: Data to emit
         """
-        if output_channel in self.downstream_connections:
-            # Send data to all downstream actors connected to this output channel
-            for downstream_actor, downstream_input_channel in self.downstream_connections[output_channel]:
+        if output_channel == -1:
+            # Special case for broadcasting to all channels
+            for downstream_actor, downstream_input_channel in self.downstream_connections:
+                if downstream_actor is not None:  # Skip None entries
+                    try:
+                        # Asynchronously call downstream actor's receive method
+                        downstream_actor.receive.remote(downstream_input_channel, data)
+                        
+                        self.logger.debug(
+                            f"Emitted data from {self.name}[out:all] to "
+                            f"downstream[in:{downstream_input_channel}]"
+                        )
+                    except Exception as e:
+                        self.logger.error(
+                            f"Failed to emit data from {self.name}[out:all]: {e}"
+                        )
+        elif 0 <= output_channel < len(self.downstream_connections):
+            connection = self.downstream_connections[output_channel]
+            if connection is not None:
+                downstream_actor, downstream_input_channel = connection
                 try:
                     # Asynchronously call downstream actor's receive method
                     downstream_actor.receive.remote(downstream_input_channel, data)
@@ -134,13 +155,16 @@ class RayMultiplexerDagNode:
                     self.logger.error(
                         f"Failed to emit data from {self.name}[out:{output_channel}]: {e}"
                     )
+            else:
+                self.logger.warning(
+                    f"No downstream connection for output channel {output_channel} in node {self.name}"
+                )
         else:
-            pass
             self.logger.warning(
-                f"No downstream connections for output channel {output_channel} in node {self.name}"
+                f"Invalid output channel {output_channel} in node {self.name}"
             )
     
-    def get_downstream_connections(self) -> Dict[int, List[Tuple[ActorHandle, int]]]:
+    def get_downstream_connections(self) -> List[Tuple[ActorHandle, int]]:
         """Get all downstream connections for debugging."""
         return self.downstream_connections.copy()
     

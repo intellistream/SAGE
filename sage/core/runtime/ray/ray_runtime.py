@@ -46,6 +46,8 @@ class RayRuntime(BaseRuntime):
         self.logger.info(f"Submitting Ray DAG {ray_dag.name} with handle {handle}")
         
         try:
+            self.logger.info(f"ray_dag.strategy is {ray_dag.strategy}")
+
             # 启动 DAG 执行
             if ray_dag.strategy == "streaming":
                 spout_futures = self._start_streaming_dag(ray_dag)
@@ -93,6 +95,7 @@ class RayRuntime(BaseRuntime):
     def _start_oneshot_dag(self, ray_dag: RayDAG) -> List[ray.ObjectRef]:
         """启动一次性 DAG"""
         spout_actors = ray_dag.get_spout_actors()
+        self.logger.info(f"Started oneshot task in DAG {ray_dag.name}")
         
         if not spout_actors:
             raise RuntimeError("No spout actors found in oneshot DAG")
@@ -102,7 +105,7 @@ class RayRuntime(BaseRuntime):
             try:
                 future = spout_actor.start_spout.remote()
                 spout_futures.append(future)
-                self.logger.debug(f"Started oneshot spout actor in DAG {ray_dag.name}")
+                self.logger.info(f"Started oneshot spout actor in DAG {ray_dag.name}")
             except Exception as e:
                 self.logger.error(f"Failed to start spout actor in DAG {ray_dag.name}: {e}")
                 raise
