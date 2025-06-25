@@ -46,6 +46,7 @@ class QAPromptor(PromptFunction):
         self.config = config  # Store the configuration for later use
         self.prompt_template = QA_prompt_template  # Load the QA prompt template
         self.logger = logging.getLogger(__name__)
+
     def execute(self, data) -> Data[list]:
         """
         Generates a QA-style prompt for the input question and optional external corpus.
@@ -100,7 +101,8 @@ class QAPromptor(PromptFunction):
                 "role": "user",
                 "content": f"Question: {query}"
             }
-            self.logger.info(f"query:{query}")
+            # self.logger.info(f"query:{query}")
+            self.logger.info(f"\033[32m[ {self.__class__.__name__}]: prompt: {user_prompt}\033[0m ")
             prompt = [system_prompt, user_prompt]
 
         except Exception as e:

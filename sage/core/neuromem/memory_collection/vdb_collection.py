@@ -60,6 +60,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
             self.default_topk = 5
             self.default_index_type = "FAISS"
         
+
         self.logger = CustomLogger(
             object_name=f"VDBMemoryCollection",
             session_folder=session_folder,
@@ -295,7 +296,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
         metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
         **metadata_conditions
     ) :
-        self.logger.debug(f"VDBMemoryCollection: retrieve called")   ###########################
+        self.logger.debug(f"VDBMemoryCollection: retrieve called")   
         
         if index_name is None or index_name not in self.indexes:
             raise ValueError(f"Index '{index_name}' does not exist.")

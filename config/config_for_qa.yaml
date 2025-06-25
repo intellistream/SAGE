@@ -8,10 +8,8 @@ source:
   data_path: "./sage/api/operator/operator_test/question.txt"
 
 retriever:
-  stm: False
-  ltm: True
-  dcm: False
-  top_k: 3
+  ltm:
+    topk: 1
 
 reranker:
   model_name: "BAAI/bge-reranker-v2-m3"

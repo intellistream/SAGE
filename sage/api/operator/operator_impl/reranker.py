@@ -6,7 +6,7 @@ from sage.api.operator import RerankerFunction
 from sage.api.operator import Data
 from typing import Any, List, Tuple
 
-# import torchgit
+import torch
 from typing import List, Tuple
 from transformers import AutoModelForSequenceClassification, AutoTokenizer,AutoModelForCausalLM
 from abc import abstractmethod
@@ -102,7 +102,7 @@ class BGEReranker(RerankerFunction):
             # Sort the documents by relevance score in descending order
             reranked_docs = sorted(scored_docs, key=lambda x: x["relevance_score"], reverse=True)[:top_k]
             reranked_docs_list = [doc["retrieved_docs"] for doc in reranked_docs]
-
+            self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list }\033[0m ")
             self.logger.debug(f"Top score: {reranked_docs[0]['relevance_score'] if reranked_docs else 'N/A'}")
 
         except Exception as e:
@@ -246,7 +246,7 @@ class LLMbased_Reranker(RerankerFunction):
                 reranked_docs = sorted(scored_docs, key=lambda x: x["relevance_score"], reverse=True)[:top_k]
                 reranked_docs_list = [doc["retrieved_docs"] for doc in reranked_docs]
                 emit_docs.append(reranked_docs_list)
-
+                self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list }\033[0m ")
                 self.logger.debug(f"Top score: {reranked_docs[0]['relevance_score'] if reranked_docs else 'N/A'}")
 
         except Exception as e:

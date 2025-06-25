@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from sage.api.operator import WriterFunction
     from sage.api.operator import SinkFunction
     from sage.api.operator import ChunkFunction
-    from sage.api.operator import SummarizeFunction
+
 
 
     
@@ -30,6 +30,7 @@ class DataStream:
         # Register the operator in the pipeline
         self.pipeline._register_operator(op_class)
         self.config = config or {}
+
     def _transform(self, name: str, operator_class:Type[BaseFuction], config) -> DataStream:
         # operator_instance = self.pipeline.operator_factory.create(operator_class, config)
         # op = next_operator_class
@@ -58,16 +59,15 @@ class DataStream:
     def chunk(self, chunk_operator_class:Type[ChunkFunction], config)-> DataStream:
         return self._transform("chunk",  chunk_operator_class, config)
 
-    def summarize(self, summarize_operator_class:Type[SummarizeFunction], config)-> DataStream:
-        return self._transform("summarize",summarize_operator_class, config)
+    def rerank(self, rerank_operator_class:Type[BaseFuction], config)-> DataStream:
+        return self._transform("rerank", rerank_operator_class, config)
     
-
     def write_mem(self,writer_operator_class:Type[WriterFunction], config)-> DataStream:
         return self._transform("write_mem",writer_operator_class, config)
 
     def generalize(self, op_type,generalize_operator_class,config)-> DataStream:
         return self._transform(op_type, generalize_operator_class,config)
-
+    
     def get_operator(self):
         return self.operator
     def get_upstreams(self):
