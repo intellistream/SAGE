@@ -2,6 +2,7 @@ from sage.core.runtime import BaseRuntime
 from sage.core.runtime.local.local_scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
 from sage.core.runtime.local.local_task import StreamingTask, OneshotTask, BaseTask
 from sage.core.runtime.local.local_slot import Slot
+from sage.core.dag.local.dag import DAG
 import logging
 
 class LocalRuntime(BaseRuntime):
@@ -21,7 +22,7 @@ class LocalRuntime(BaseRuntime):
         else:
             self.scheduling_strategy = scheduling_strategy
     
-    def submit_task(self, local_dag):
+    def submit_task(self, local_dag:DAG):
         """
         提交到本地后端执行
         
@@ -32,14 +33,28 @@ class LocalRuntime(BaseRuntime):
             str: 任务句柄
         """
 
-        for node in local_dag.nodes:
-
-            task = StreamingTask(node, local_dag.working_config)
-            task_handle = self.submit_node(task)
-            #self.task_handles[dag_id].append(task_handle)
-            self.logger.debug(f"DAGNode {node.name} submitted to {self.name} with handle: {task_handle}")
-    
+        if not isinstance(local_dag, DAG):
+            raise TypeError("local_dag must be an instance of DAG")
         
+        self.logger.info(f"Submitting DAG '{local_dag.name}' to {self.name}")
+
+        print(local_dag.strategy)
+        try:
+            if local_dag.strategy == "oneshot":
+                task = OneshotTask(local_dag)
+                task.execute()
+                # self.logger.debug(f"OneshotTask submitted to {self.name} with handle: {task_handle}")
+            elif local_dag.strategy == "streaming":
+                for node in local_dag.nodes:
+                    task = StreamingTask(node, local_dag.working_config)
+                    task_handle = self.submit_node(task)
+                    #self.task_handles[dag_id].append(task_handle)
+                    self.logger.debug(f"DAGNode {node.name} submitted to {self.name} with handle: {task_handle}")
+            else:
+                raise ValueError(f"Unsupported strategy: {local_dag.strategy}")
+        except Exception as e:
+            self.logger.error(f"Failed to submit DAG '{local_dag.name}' to {self.name}: {e}")
+            raise RuntimeError(f"Failed to submit DAG '{local_dag.name}' to {self.name}: {e}")
 
 
     def submit_node(self, task: BaseTask) -> str:

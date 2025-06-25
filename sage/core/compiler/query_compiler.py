@@ -24,7 +24,7 @@ class QueryCompiler:
 
     def compile_graph(self, graph:'SageGraph') -> Union[DAG, RayDAG]:
         platform = graph.config.get("platform", "local")
-        
+
         if platform == "ray":
             return self._compile_graph_for_ray(graph)
         else:
@@ -83,7 +83,9 @@ class QueryCompiler:
         return ray_dag
 
     def _compile_graph_for_local(self, graph:'SageGraph')->DAG:
-        dag = DAG(name=graph.name, strategy="streaming")
+        strategy = "streaming" if graph.config.get("is_long_running", False) else "oneshot"
+        
+        dag = DAG(name=graph.name, strategy=strategy)
         dag.platform = "local"
         # operator_factory = OperatorFactory(graph.config["platform"] == "ray")
         
@@ -157,12 +159,7 @@ class QueryCompiler:
 
         return dag
 
-        
 
-
-        
-
- 
     def compile(self, pipeline=None,config=None):
         """
         Compile a query or natural language input into a DAG.
