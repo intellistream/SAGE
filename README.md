@@ -96,6 +96,11 @@ If your pipeline is meant to run as a long-lived service, use:
 
 See more examples under [app](./app)
 
+## 🧩 Components
+### Operator
+### Memory
+### Engine
+
 ## 🎨 SAGE-Dashboard
 <p>With the <strong>SAGE-Dashboard</strong>, you can quickly orchestrate a large model application and run it with one click. Our meticulously designed visual interface will help you efficiently build, monitor, and manage complex workflows!</p>
 
