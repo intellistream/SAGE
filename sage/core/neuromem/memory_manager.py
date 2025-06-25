@@ -9,6 +9,7 @@ from sage.core.neuromem.memory_collection.base_collection import BaseMemoryColle
 from sage.core.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
 from sage.core.neuromem.memory_collection.kv_collection import KVMemoryCollection
 from sage.core.neuromem.memory_collection.graph_collection import GraphMemoryCollection
+from sage.utils.custom_logger import CustomLogger
 
 class MemoryManager:
     """
@@ -16,7 +17,15 @@ class MemoryManager:
     所有集合自动封装为CollectionWrapper，使调用透明化
     """
 
-    def __init__(self, data_dir: Optional[str] = None):
+    def __init__(self, data_dir: Optional[str] = None, session_folder: str = None):
+        self.session_folder = session_folder
+        self.logger = CustomLogger(
+            object_name=f"SageEngine",
+            session_folder=self.session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
         # 统一使用 collections 名称存储包装后的集合
         if data_dir is None:
             # SAGE目录下 data/neuromem
@@ -50,7 +59,7 @@ class MemoryManager:
         if backend_type == "VDB":
             if embedding_model is None or dim is None:
                 raise ValueError("VDB requires 'embedding_model' and 'dim'")
-            collection = VDBMemoryCollection(name, embedding_model, dim)
+            collection = VDBMemoryCollection(name, embedding_model, dim, session_folder=self.session_folder)
         elif backend_type == "KV":
             collection = KVMemoryCollection(name)
         elif backend_type == "GRAPH":
@@ -74,7 +83,7 @@ class MemoryManager:
                 wrapped_collection = CollectionWrapper(ray_actor)
             except ImportError:
                 # Ray不可用，回退到本地
-                print("Ray not available, falling back to local collection")
+                self.logger.info("Ray not available, falling back to local collection")
                 as_ray_actor = False
                 wrapped_collection = CollectionWrapper(collection)
         else:
@@ -156,7 +165,7 @@ class MemoryManager:
         # 存所有元信息
         with open(self.manager_path, "w", encoding="utf-8") as f:
             json.dump(self.collection_metadata, f, ensure_ascii=False, indent=2)
-        print(f"Manager info saved to {self.manager_path}")
+        self.logger.info(f"Manager info saved to {self.manager_path}")
         
     def _load_manager(self):
         """

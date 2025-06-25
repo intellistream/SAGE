@@ -1,0 +1,235 @@
+import logging
+import os
+from datetime import datetime
+from pathlib import Path
+from typing import Union, Optional
+import threading
+import inspect
+
+class CustomFormatter(logging.Formatter):
+    """
+    自定义格式化器，合并IDE格式和两行格式：
+    第一行：时间 | 级别 | 对象名 | 文件路径:行号
+    第二行：	→ 日志消息
+    第三行： 留空
+    """
+
+    def format(self, record):
+        # 第一行：时间 | 级别 | 对象名 | 文件路径:行号
+        timestamp = self.formatTime(record, '%Y-%m-%d %H:%M:%S')
+        level = record.levelname
+        name = record.name
+        pathname = record.pathname
+        lineno = record.lineno
+        
+        # 第二行：→ 消息内容
+        message = record.getMessage()
+        
+        # 如果有异常信息，添加到消息后面
+        if record.exc_info:
+            if not record.exc_text:
+                record.exc_text = self.formatException(record.exc_info)
+        if record.exc_text:
+            message = message + '\n' + record.exc_text
+        if record.stack_info:
+            message = message + '\n' + self.formatStack(record.stack_info)
+        
+        # 组合格式：既美观又支持IDE点击
+        formatted_message = f"{timestamp} | {level:<5} | {name} | {pathname}:{lineno}\n\t→ {message}\n"
+        
+        return formatted_message
+
+class CustomLogger:
+    """
+    简化的自定义Logger类
+    每个Logger产生两份输出文件：
+    1. 对象专用文件：{object_name}.log
+    2. 全局时间顺序文件：all_logs.log
+    支持自动使用默认session_folder
+    """
+    # 类级别的默认session管理
+    _default_session_folder: Optional[str] = None
+    _lock = threading.Lock()
+    # 日志级别映射
+    _LEVEL_MAPPING = {
+        'DEBUG': logging.DEBUG,
+        'INFO': logging.INFO,
+        'WARNING': logging.WARNING,
+        'WARN': logging.WARNING,  # 别名
+        'ERROR': logging.ERROR,
+        'CRITICAL': logging.CRITICAL,
+        'FATAL': logging.CRITICAL,  # 别名
+    }
+    
+    def __init__(self, 
+                 object_name: str,
+                 session_folder: str = None,
+                 log_level: Union[str, int] = "DEBUG",
+                 console_output: bool = True,
+                 file_output: bool = True):
+        """
+        初始化自定义Logger
+        
+        Args:
+            object_name: 对象名称，用作logger名称和文件名
+            session_folder: session文件夹路径
+            log_level: 日志级别
+            console_output: 是否输出到控制台
+            file_output: 是否输出到文件
+        """
+        self.object_name = object_name
+        # 处理session_folder：空字符串检查和默认值处理
+        if not session_folder:  # None 或空字符串
+            if self._default_session_folder is None:
+                # 如果没有默认session，创建一个新的
+                with self._lock:
+                    if self._default_session_folder is None:
+                        self._default_session_folder = self.create_session_folder()
+            self.session_folder = self._default_session_folder
+        else:
+            self.session_folder = session_folder
+            # 如果这是第一次设置session_folder，将其设为默认值
+            if self._default_session_folder is None:
+                self.set_default_session_folder(session_folder)
+        self.logger = logging.getLogger(f"{object_name}")
+        
+        # 避免重复初始化同一个logger
+        if self.logger.handlers:
+            return
+            
+        # 处理日志级别
+        if isinstance(log_level, str):
+            log_level = log_level.upper()
+            if log_level not in self._LEVEL_MAPPING:
+                raise ValueError(f"Invalid log level: {log_level}. "
+                               f"Valid levels are: {list(self._LEVEL_MAPPING.keys())}")
+            numeric_level = self._LEVEL_MAPPING[log_level]
+        elif isinstance(log_level, int):
+            numeric_level = log_level
+        else:
+            raise TypeError(f"log_level must be str or int, got {type(log_level)}")
+            
+        self.logger.setLevel(numeric_level)
+        
+        # 创建统一的自定义格式化器
+        formatter = CustomFormatter()
+        
+        # 控制台输出
+        if console_output:
+            console_handler = logging.StreamHandler()
+            console_handler.setLevel(numeric_level)
+            console_handler.setFormatter(formatter)
+            self.logger.addHandler(console_handler)
+        
+        # 文件输出
+        if file_output:
+            # 确保session文件夹存在
+            Path(self.session_folder).mkdir(parents=True, exist_ok=True)
+            
+            # 1. 对象专用日志文件
+            object_log_file_path = os.path.join(self.session_folder, f"{object_name}.log")
+            object_file_handler = logging.FileHandler(object_log_file_path, encoding='utf-8')
+            object_file_handler.setLevel(numeric_level)
+            object_file_handler.setFormatter(formatter)
+            self.logger.addHandler(object_file_handler)
+            
+            # 2. 全局时间顺序日志文件
+            global_log_file_path = os.path.join(self.session_folder, "all_logs.log")
+            global_file_handler = logging.FileHandler(global_log_file_path, encoding='utf-8')
+            global_file_handler.setLevel(numeric_level)
+            global_file_handler.setFormatter(formatter)
+            self.logger.addHandler(global_file_handler)
+        
+        # 不传播到父logger
+        self.logger.propagate = False
+    
+    def _log_with_caller_info(self, level: int, message: str, exc_info: bool = False):
+        """
+        使用调用者信息记录日志，而不是CustomLogger的信息
+        """
+        # 获取调用栈，跳过当前方法和调用的debug/info/等方法
+        frame = inspect.currentframe()
+        try:
+            # 跳过 _log_with_caller_info -> debug/info/warning/error -> 实际调用位置
+            caller_frame = frame.f_back.f_back
+            if caller_frame:
+                pathname = caller_frame.f_code.co_filename
+                lineno = caller_frame.f_lineno
+                
+                # 创建一个临时的LogRecord，手动设置调用者信息
+                record = self.logger.makeRecord(
+                    name=self.logger.name,
+                    level=level,
+                    fn=pathname,
+                    lno=lineno,
+                    msg=message,
+                    args=(),
+                    exc_info=exc_info if exc_info else None
+                )
+                
+                # 直接调用handlers处理记录
+                self.logger.handle(record)
+            else:
+                # 回退到普通logging
+                self.logger.log(level, message, exc_info=exc_info)
+        finally:
+            del frame
+    
+    def debug(self, message: str):
+        """Debug级别日志"""
+        self._log_with_caller_info(logging.DEBUG, message)
+    
+    def info(self, message: str):
+        """Info级别日志"""
+        self._log_with_caller_info(logging.INFO, message)
+    
+    def warning(self, message: str):
+        """Warning级别日志"""
+        self._log_with_caller_info(logging.WARNING, message)
+    
+    def error(self, message: str, exc_info: bool = False):
+        """Error级别日志"""
+        self._log_with_caller_info(logging.ERROR, message, exc_info)
+    
+    def critical(self, message: str):
+        """Critical级别日志"""
+        self._log_with_caller_info(logging.CRITICAL, message)
+    
+    def get_log_file_path(self) -> str:
+        """获取当前对象的日志文件路径"""
+        return os.path.join(self.session_folder, f"{self.object_name}.log")
+    
+    def get_global_log_file_path(self) -> str:
+        """获取全局日志文件路径"""
+        return os.path.join(self.session_folder, "all_logs.log")
+    
+    @staticmethod
+    def create_session_folder(base_path: str = "logs") -> str:
+        """创建session文件夹的工具方法"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        session_folder = os.path.join(base_path, timestamp)
+        Path(session_folder).mkdir(parents=True, exist_ok=True)
+        return session_folder
+    
+    @classmethod
+    def get_available_levels(cls) -> list:
+        """获取所有可用的日志级别"""
+        return list(cls._LEVEL_MAPPING.keys())
+    
+    @classmethod
+    def set_default_session_folder(cls, session_folder: str):
+        """设置默认的session文件夹"""
+        with cls._lock:
+            cls._default_session_folder = session_folder
+            Path(session_folder).mkdir(parents=True, exist_ok=True)
+    
+    @classmethod
+    def get_default_session_folder(cls) -> Optional[str]:
+        """获取默认的session文件夹"""
+        return cls._default_session_folder
+    
+    @classmethod
+    def reset_default_session(cls):
+        """重置默认session（用于测试或重新开始）"""
+        with cls._lock:
+            cls._default_session_folder = None

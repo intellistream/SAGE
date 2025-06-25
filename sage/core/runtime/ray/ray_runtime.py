@@ -3,13 +3,14 @@ from typing import Dict, List, Optional, Any
 from sage.core.dag.ray.ray_dag import RayDAG
 import logging, ray, time
 from sage.core.runtime.base_runtime import BaseRuntime
+from sage.utils.custom_logger import CustomLogger
 
 
 
 class RayRuntime(BaseRuntime):
     """Ray DAG 专用执行后端"""
     
-    def __init__(self, monitoring_interval: float = 1.0):
+    def __init__(self, monitoring_interval: float = 1.0, session_folder: str = None):
         """
         Initialize Ray DAG execution backend.
         
@@ -25,7 +26,13 @@ class RayRuntime(BaseRuntime):
         self.dag_metadata: Dict[str, Dict[str, Any]] = {}  # handle -> metadata
         self.next_handle_id = 0
         self.monitoring_interval = monitoring_interval
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = CustomLogger(
+            object_name=f"RayRuntime",
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
     
     def submit_task(self, ray_dag:RayDAG) -> str:
         """

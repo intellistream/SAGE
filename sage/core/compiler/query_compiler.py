@@ -9,20 +9,28 @@ from sage.core.io.message_queue import MessageQueue
 from sage.core.dag.ray.ray_dag import RayDAG
 if TYPE_CHECKING:
     from sage.core.graph import SageGraph, GraphEdge
-import logging 
+from sage.utils.custom_logger import CustomLogger
+
 class QueryCompiler:
 
-    def __init__(self,generate_func = None ):
+    def __init__(self,generate_func = None, session_folder: str = None):
         """
         Initialize the QueryCompiler with memory layers.
         :param memory_manager: Memory manager for managing memory layers.
         :param generate_func: Function for query generation
         """
+        self.session_folder = session_folder
         self.logical_graph_constructor = LogicGraphConstructor()
         self.optimizer = Optimizer()
         self.parser = QueryParser(generate_func=generate_func)
         self.dag_dict = {}
-        self.logger = logging.getLogger("QueryCompiler")
+        self.logger = CustomLogger(
+            object_name=f"QueryCompiler",
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
 
     def compile_graph(self, graph:'SageGraph') -> Union[DAG, RayDAG]:
         platform = graph.config.get("platform", "local")
@@ -42,7 +50,7 @@ class QueryCompiler:
             strategy = "streaming"
         self.logger.info(f"Compiling graph '{graph.name}' for Ray with strategy '{strategy}'")
         
-        ray_dag = RayDAG(name=f"{graph.name}", strategy=strategy)
+        ray_dag = RayDAG(name=f"{graph.name}", strategy=strategy, session_folder = self.session_folder)
         ray_dag.platform = "ray"
         # operator_factory = OperatorFactory(True)  # Ray-enabled factory
         
@@ -64,7 +72,8 @@ class QueryCompiler:
                 name=graph_node.name,
                 operator_class=operator_class,
                 operator_config=operator_config,
-                is_spout=(graph_node.type == "source")
+                is_spout=(graph_node.type == "source"), 
+                session_folder = self.session_folder
             )
             # Add to RayDAG - use graph's get_upstream_nodes method
             upstream_nodes = graph.get_upstream_nodes(node_name)
@@ -96,14 +105,14 @@ class QueryCompiler:
     def _compile_graph_for_local(self, graph:'SageGraph')->DAG:
         strategy = "streaming" if graph.config.get("is_long_running", False) else "oneshot"
         
-        dag = DAG(name=graph.name, strategy=strategy)
+        dag = DAG(name=graph.name, strategy=strategy, session_folder=self.session_folder)
         dag.platform = "local"
         # operator_factory = OperatorFactory(graph.config["platform"] == "ray")
         
         # Step 1: Create MessageQueue instances for all edges
         edge_to_queue:Dict[str,MessageQueue] = {}
         for edge_name, edge in graph.edges.items():
-            edge_to_queue[edge_name] = MessageQueue()
+            edge_to_queue[edge_name] = MessageQueue(name = edge_name, session_folder=self.session_folder)
 
 
         # Step 2: Create all DAG nodes first
@@ -111,13 +120,15 @@ class QueryCompiler:
         for node_name, graph_node in graph.nodes.items():
             # Create operator instance
             # operator = operator_factory.create(graph_node.operator, graph_node.config)
+            graph_node.config["session_folder"] = self.session_folder
             operator_instance = graph_node.operator(graph_node.config)
             # Create DAG node
             dag_node = MultiplexerDagNode(
                 graph_node.name,
                 operator_instance,
                 config=graph_node.config,
-                is_spout=(graph_node.type == "source")
+                is_spout=(graph_node.type == "source"), 
+                session_folder=self.session_folder
             )
             dag_nodes[node_name] = dag_node
             dag.add_node(dag_node)
