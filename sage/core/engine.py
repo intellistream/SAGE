@@ -1,24 +1,39 @@
 from typing import Type, TYPE_CHECKING, Union, Any, TYPE_CHECKING
 from sage.core.compiler.query_compiler import QueryCompiler
 from sage.core.runtime.runtime_manager import RuntimeManager
-
+from sage.utils.custom_logger import CustomLogger
 import threading, typing, logging
 
 class Engine:
     _instance = None
     _lock = threading.Lock()
-    def __init__(self,generate_func = None):
+    def __init__(self,generate_func = None, session_folder: str = None):
+        if session_folder is None:
+            # 如果没有提供 session_folder，则创建一个新的会话文件夹
+            # 这将确保每次运行时都有独立的日志和数据存储
+            session_folder = CustomLogger.create_session_folder()
+        # 如果提供了 session_folder，则使用它
+        self.session_folder = session_folder
+
         # 确保只初始化一次
         if hasattr(self, "_initialized"):
             return
         self._initialized = True
         # self.dag_manager = DAGManager() # deprecated
-        self.runtime_manager = RuntimeManager()
-        self.compiler= QueryCompiler(generate_func=generate_func)
-        self.logger = logging.getLogger("Engine")
+        self.runtime_manager = RuntimeManager(self.session_folder)
+        self.compiler= QueryCompiler(generate_func=generate_func, session_folder=self.session_folder)
         from sage.core.graph import SageGraph
         self.graphs:dict[str, SageGraph] = {}  # 存储 pipeline 名称到 SageGraph 的映射
         self.dags:dict = {} # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
+
+        self.logger = CustomLogger(
+            object_name=f"SageEngine",
+            session_folder=self.session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
+
 
     def __new__(cls):
         # 禁止直接实例化
@@ -42,10 +57,7 @@ class Engine:
 
     def submit_pipeline(self, pipeline, config=None, generate_func=None):
         from sage.core.graph import SageGraph
-        graph = SageGraph(pipeline, config)
-        print(pipeline.use_ray)
-        print(config)
-        print (graph.config)
+        graph = SageGraph(pipeline, config, session_folder=self.session_folder)
         self.graphs[graph.name] = graph  # 存储图到字典中
         # 合并配置
         if config:

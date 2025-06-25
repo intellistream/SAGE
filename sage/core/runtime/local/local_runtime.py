@@ -3,19 +3,27 @@ from sage.core.runtime.local.local_scheduling_strategy import SchedulingStrategy
 from sage.core.runtime.local.local_task import StreamingTask, OneshotTask, BaseTask
 from sage.core.runtime.local.local_slot import Slot
 from sage.core.dag.local.dag import DAG
+from sage.utils.custom_logger import CustomLogger
 import logging
 
 class LocalRuntime(BaseRuntime):
     """本地线程池执行后端"""
     
-    def __init__(self, max_slots=4, scheduling_strategy=None):
+    def __init__(self, max_slots=4, scheduling_strategy=None, session_folder:str = None):
+        self.session_folder = session_folder
         self.name = "LocalRuntime"
         self.available_slots = [Slot(slot_id=i) for i in range(max_slots)]
         self.task_to_slot = {}
         self.task_to_handle = {}  # task -> handle映射
         self.handle_to_task = {}  # handle -> task映射
         self.next_handle_id = 0
-        self.logger = logging.getLogger("LocalRuntime")
+        self.logger = CustomLogger(
+            object_name=f"LocalRuntime",
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
         
         if scheduling_strategy is None:
             self.scheduling_strategy = ResourceAwareStrategy()
@@ -41,12 +49,12 @@ class LocalRuntime(BaseRuntime):
         print(local_dag.strategy)
         try:
             if local_dag.strategy == "oneshot":
-                task = OneshotTask(local_dag)
+                task = OneshotTask(local_dag, session_folder=self.session_folder)
                 task.execute()
                 # self.logger.debug(f"OneshotTask submitted to {self.name} with handle: {task_handle}")
             elif local_dag.strategy == "streaming":
                 for node in local_dag.nodes:
-                    task = StreamingTask(node, local_dag.working_config)
+                    task = StreamingTask(node, local_dag.working_config, session_folder=self.session_folder)
                     task_handle = self.submit_node(task)
                     #self.task_handles[dag_id].append(task_handle)
                     self.logger.debug(f"DAGNode {node.name} submitted to {self.name} with handle: {task_handle}")
