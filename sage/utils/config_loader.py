@@ -22,7 +22,6 @@ def load_config(path: str | Path | None = None) -> dict:
     else:
         # 回退到当前工作目录
         root = Path.cwd()
-    print(f"Project root: {root}"  )
     candidates = []
 
     # 1. explicit path
