@@ -7,20 +7,19 @@ from sage.api.operator.operator_impl.retriever import DenseRetriever
 from sage.api.operator.operator_impl.source import FileSource
 from sage.api.operator.operator_impl.sink import FileSink,TerminalSink
 from sage.core.neuromem.memory_manager import MemoryManager
-from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
+from sage.api.model.model_api import apply_embedding_model
 
 def memory_init():
     """初始化内存管理器并创建测试集合"""
-    default_model = MockTextEmbedder(fixed_dim=128)
     manager = MemoryManager()
-
+    embedding_model = apply_embedding_model("hf", model="sentence-transformers/all-MiniLM-L6-v2")
     col = manager.create_collection(
         name="vdb_test",
         backend_type="VDB",
-        embedding_model=default_model,
-        dim=128,
+        embedding_model=embedding_model,
+        dim=embedding_model.get_dim(),
         description="test vdb collection",
         as_ray_actor=False
     )
