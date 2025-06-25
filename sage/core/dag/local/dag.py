@@ -58,7 +58,7 @@ class DAG:
             parent.add_downstream_node(child)
             # self.logger.info(f"Edge added from {parent.name} to {child.name}.")
 
-    def get_topological_order(self) -> List['BaseDAGNode']:
+    def get_topological_order(self):
         """
         Perform topological sorting of the DAG nodes.
         :return: List of DAGNode instances in topological order.

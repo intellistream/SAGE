@@ -3,9 +3,9 @@ import time
 from sage.api.pipeline import Pipeline
 from sage.api.operator.operator_impl.promptor import QAPromptor
 from sage.api.operator.operator_impl.generator import OpenAIGenerator
-from sage.api.operator.operator_impl.retriever import SimpleRetriever
+from sage.api.operator.operator_impl.retriever import DenseRetriever
 from sage.api.operator.operator_impl.source import FileSource
-from sage.api.operator.operator_impl.sink import FileSink
+from sage.api.operator.operator_impl.sink import FileSink,TerminalSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
 from sage.utils.config_loader import load_config
@@ -22,7 +22,7 @@ def memory_init():
         embedding_model=default_model,
         dim=128,
         description="test vdb collection",
-        as_ray_actor=True
+        as_ray_actor=False
     )
     col.add_metadata_field("owner")
     col.add_metadata_field("show_type")
@@ -39,16 +39,17 @@ def memory_init():
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = Pipeline(name="example_pipeline", use_ray=True)
+    pipeline = Pipeline(name="example_pipeline", use_ray=False)
     # 构建数据处理流程
     query_stream = pipeline.add_source(FileSource, config)
-    query_and_chunks_stream = query_stream.retrieve(SimpleRetriever, config)
+    query_and_chunks_stream = query_stream.retrieve(DenseRetriever, config)
     prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
+    # prompt_stream = query_stream.construct_prompt(QAPromptor, config)
     response_stream = prompt_stream.generate_response(OpenAIGenerator, config)
-    response_stream.sink(FileSink, config)
+    response_stream.sink(TerminalSink, config)
     # 提交管道并运行
-    pipeline.submit(config={"is_long_ running": True})
-    time.sleep(100)  # 等待管道运行
+    pipeline.submit(config={"is_long_running":False})
+    # time.sleep(100)  # 等待管道运行
 
 
 if __name__ == '__main__':
