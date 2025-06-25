@@ -8,7 +8,7 @@ from sage.api.operator.operator_impl.generator import OpenAIGenerator, HFGenerat
 from sage.api.operator.operator_impl.reranker import BGEReranker, LLMbased_Reranker
 import time
 from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
-from sage.api.operator.operator_impl.source import FileSource
+from sage.api.operator.operator_impl.source import FileSourceFunction
 from sage.api.operator.operator_impl.sink import TerminalSink, FileSink, RetriveSink
 # from sage.api.operator.operator_impl.writer import LongTimeWriter
 from sage.api.operator.operator_impl.retriever import SimpleRetriever
@@ -52,7 +52,7 @@ def run_query(query: str, config=None) -> str:
         "BGEReranker": BGEReranker,
         "LLMbased_Reranker": LLMbased_Reranker,
         "TerminalSink": TerminalSink,
-        "FileSource": FileSource,
+        "FileSource": FileSourceFunction,
         # "LongTimeWriter": LongTimeWriter,
         "RetriveSink": RetriveSink,
     }

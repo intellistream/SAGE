@@ -4,7 +4,7 @@ import yaml
 from sage.api.pipeline import Pipeline
 from sage.api.operator.operator_impl.chunk import CharacterSplitter
 from sage.api.operator.operator_impl.writer import MemoryWriter
-from sage.api.operator.operator_impl.source import FileSource
+from sage.api.operator.operator_impl.source import FileSourceFunction
 from sage.api.operator.operator_impl.sink import MemWriteSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
@@ -40,7 +40,7 @@ def memory_init():
 def pipeline_run():
     pipeline = Pipeline(name="example_pipeline", use_ray=False)
     # 构建数据处理流程
-    source_stream = pipeline.add_source(FileSource, config)
+    source_stream = pipeline.add_source(FileSourceFunction, config)
     chunk_stream = source_stream.chunk(CharacterSplitter,config)
     memwrite_stream= chunk_stream.write_mem(MemoryWriter,config)
     sink_stream= memwrite_stream.sink(MemWriteSink,config)

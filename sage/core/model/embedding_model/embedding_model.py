@@ -1,6 +1,11 @@
+#sage/core/model/embedding_model/embedding_model.py
+
 import asyncio
 import os
 import sys
+import torch
+import hashlib
+from typing import Optional
 
 # 添加项目根目录到Python路径
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../..")))
@@ -111,9 +116,44 @@ class EmbeddingModel:
         
         return self._embed(text)
 
-    
+class MockTextEmbedder(EmbeddingModel):
+    """
+    Mock 嵌入模型，输出固定维度的确定性随机向量。
+    继承自 EmbeddingModel，method 固定为 'mock'。
+    """
+    def __init__(
+        self,
+        model_name: str = 'mock-model',
+        fixed_dim: int = 128
+    ):
+        # 不调用 EmbeddingModel.__init__ 以避免向上依赖 API
+        self.method = 'mock'
+        self.fixed_dim = fixed_dim
+        # 根据模型名设置固定随机种子
+        self.seed = int(hashlib.sha256(model_name.encode()).hexdigest()[:8], 16)
 
-    
+    def embed(self, text: str, max_length: int = 512, stride: Optional[int] = None) -> torch.Tensor:
+        """
+        生成固定维度的伪嵌入（相同文本输出一致）。
+        """
+        if not text.strip():
+            return torch.zeros(self.fixed_dim)
+
+        text_seed = self.seed + int(hashlib.sha256(text.encode()).hexdigest()[:8], 16)
+        torch.manual_seed(text_seed)
+
+        if stride is None or len(text.split()) <= max_length:
+            return self._embed_single()
+        return self._embed_with_sliding_window()
+
+    def _embed_single(self) -> torch.Tensor:
+        # 直接生成与固定维度一致的随机张量
+        return torch.randn(self.fixed_dim)
+
+    def _embed_with_sliding_window(self) -> torch.Tensor:
+        # 模拟长文本滑动窗口平均
+        parts = [torch.randn(self.fixed_dim) for _ in range(3)]
+        return torch.stack(parts).mean(dim=0)
 
 def main():
     embedding_model = EmbeddingModel(method="hf",model = "sentence-transformers/all-MiniLM-L6-v2")

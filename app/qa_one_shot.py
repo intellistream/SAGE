@@ -5,7 +5,7 @@ from sage.api.pipeline import Pipeline
 from sage.api.operator.operator_impl.promptor import QAPromptor
 from sage.api.operator.operator_impl.generator import OpenAIGenerator
 from sage.api.operator.operator_impl.retriever import SimpleRetriever
-from sage.api.operator.operator_impl.source import FileSource
+from sage.api.operator.operator_impl.source import FileSourceFunction
 from sage.api.operator.operator_impl.sink import FileSink, TerminalSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
@@ -41,7 +41,7 @@ def pipeline_run():
     """创建并运行数据处理管道"""
     pipeline = Pipeline(name="example_pipeline", use_ray=False)
     # 构建数据处理流程
-    query_stream = pipeline.add_source(FileSource, config)
+    query_stream = pipeline.add_source(FileSourceFunction, config)
     query_and_chunks_stream = query_stream.retrieve(SimpleRetriever, config)
     prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
     response_stream = prompt_stream.generate_response(OpenAIGenerator, config)

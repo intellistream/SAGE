@@ -15,7 +15,7 @@ from sage.api.operator.operator_impl.promptor import QAPromptor
 from sage.api.operator.operator_impl.generator import OpenAIGenerator
 from sage.api.operator.operator_impl.reranker import BGEReranker
 from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
-from sage.api.operator.operator_impl.source import FileSource
+from sage.api.operator.operator_impl.source import FileSourceFunction
 from sage.api.operator.operator_impl.sink import TerminalSink, FileSink
 from sage.api.operator.operator_impl.writer import LongTimeWriter
 from sage.api.operator.operator_impl.retriever import SimpleRetriever
@@ -38,7 +38,7 @@ def init_memory_and_pipeline():
     pipeline = Pipeline(name="example_pipeline", use_ray=False)
 
     # 步骤 1: 定义数据源（例如，来自用户的查询）
-    query_stream:DataStream = pipeline.add_source(source_class=FileSource, config=config)  # 从文件源读取数据
+    query_stream:DataStream = pipeline.add_source(source_class=FileSourceFunction, config=config)  # 从文件源读取数据
 
     # 步骤 3: 使用 QAPromptor 构建查询提示
     prompt_stream:DataStream = query_stream.construct_prompt(QAPromptor, config)

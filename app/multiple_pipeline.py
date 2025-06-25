@@ -6,7 +6,7 @@ from sage.api.operator.operator_impl.promptor import QAPromptor
 from sage.api.operator.operator_impl.generator import OpenAIGenerator
 from sage.api.operator.operator_impl.chunk import CharacterSplitter
 from sage.api.operator.operator_impl.writer import MemoryWriter
-from sage.api.operator.operator_impl.source import FileSource
+from sage.api.operator.operator_impl.source import FileSourceFunction
 from sage.api.operator.operator_impl.sink import MemWriteSink,FileSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
@@ -42,7 +42,7 @@ def memory_init():
 def ingest_pipeline_run():
     pipeline = Pipeline(name="ingest_pipeline", use_ray=False)
     # 构建数据处理流程
-    source_stream = pipeline.add_source(FileSource, config_for_ingest)
+    source_stream = pipeline.add_source(FileSourceFunction, config_for_ingest)
     chunk_stream = source_stream.chunk(CharacterSplitter,config_for_ingest)
     memwrite_stream= chunk_stream.write_mem(MemoryWriter,config_for_ingest)
     sink_stream= memwrite_stream.sink(MemWriteSink,config_for_ingest)
@@ -52,7 +52,7 @@ def qa_pipeline_run():
     """创建并运行数据处理管道"""
     pipeline = Pipeline(name="qa_pipeline", use_ray=False)
     # 构建数据处理流程
-    query_stream = pipeline.add_source(FileSource, config_for_qa)
+    query_stream = pipeline.add_source(FileSourceFunction, config_for_qa)
     query_and_chunks_stream = query_stream.retrieve(SimpleRetriever, config_for_qa)
     prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config_for_qa)
     response_stream = prompt_stream.generate_response(OpenAIGenerator, config_for_qa)
