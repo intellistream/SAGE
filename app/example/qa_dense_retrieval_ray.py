@@ -39,7 +39,7 @@ def memory_init():
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = Pipeline(name="example_pipeline", use_ray=False)
+    pipeline = Pipeline(name="example_pipeline", use_ray=True)
     # 构建数据处理流程
     query_stream = pipeline.add_source(FileSource, config)
     query_and_chunks_stream = query_stream.retrieve(DenseRetriever, config)
