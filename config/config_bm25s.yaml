@@ -10,7 +10,9 @@ source:
 retriever:
   kv_collection:
     bm25s: True
-  top_k: 3
+    topk: 3
+  ltm:
+    topk: 3
 
 reranker:
   model_name: "BAAI/bge-reranker-v2-m3"
