@@ -21,7 +21,7 @@ class DataStream:
     pipeline: Pipeline
     upstreams: list[DataStream]
     downstreams: list[DataStream]
-    def __init__(self, op_class: Type[BaseFuction], pipeline:Pipeline, name:str=None, config:dict=None):
+    def __init__(self, op_class: Type[BaseFuction], pipeline:Pipeline, name:str=None, config:dict=None, node_type:str="normal"):
         self.operator = op_class
         self.pipeline = pipeline
         self.name = name or f"DataStream_{id(self)}"
@@ -30,11 +30,12 @@ class DataStream:
         # Register the operator in the pipeline
         self.pipeline._register_operator(op_class)
         self.config = config or {}
+        self.node_type = node_type  # "source", "sink", "normal" or other types
 
     def _transform(self, name: str, operator_class:Type[BaseFuction], config) -> DataStream:
         # operator_instance = self.pipeline.operator_factory.create(operator_class, config)
         # op = next_operator_class
-        new_stream = DataStream(operator_class, self.pipeline, name=name, config = config)
+        new_stream = DataStream(operator_class, self.pipeline, name=name, config = config, node_type="normal")
         self.pipeline.data_streams.append(new_stream)
         # Wire dependencies
         new_stream.upstreams.append(self)
@@ -54,8 +55,13 @@ class DataStream:
         return self._transform("save_context",  writer_operator_class, config)
     
     def sink(self, sink_operator_class:Type[SinkFunction], config)-> DataStream:
-        return self._transform("sink",  sink_operator_class, config)
-
+        new_stream = DataStream(sink_operator_class, self.pipeline, name="sink", config = config, node_type="sink")
+        self.pipeline.data_streams.append(new_stream)
+        # Wire dependencies
+        new_stream.upstreams.append(self)
+        self.downstreams.append(new_stream)
+        return new_stream
+    
     def chunk(self, chunk_operator_class:Type[ChunkFunction], config)-> DataStream:
         return self._transform("chunk",  chunk_operator_class, config)
 
