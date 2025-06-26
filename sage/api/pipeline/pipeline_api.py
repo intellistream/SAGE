@@ -42,8 +42,7 @@ class Pipeline:
         """
         # 使用工厂创建算子实例
         # operator_wrapper = self.operator_factory.create(source_class, config)
-
-        stream = DataStream(source_class,  pipeline=self, name="source", config = config)
+        stream = DataStream(source_class,  pipeline=self, name="source", config = config, node_type="source")
         self.data_streams.append(stream)
         return stream
 
