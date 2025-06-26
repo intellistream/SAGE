@@ -17,8 +17,8 @@ from sage.api.operator.operator_impl.reranker import BGEReranker
 from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
 from sage.api.operator.operator_impl.source import FileSource
 from sage.api.operator.operator_impl.sink import TerminalSink, FileSink
-from sage.api.operator.operator_impl.writer import LongTimeWriter
-from sage.api.operator.operator_impl.retriever import SimpleRetriever
+# from sage.api.operator.operator_impl.writer import LongTimeWriter
+# from sage.api.operator.operator_impl.retriever import SimpleRetriever
 from sage.api.operator.operator_impl.sink import TerminalSink
 from sympy.multipledispatch.dispatcher import source
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ def load_config(path: str) -> dict:
     with open(path, 'r') as f:
         return yaml.safe_load(f)
 
-config = load_config('./app/config.yaml')  # 加载配置文件
+config = load_config('./config/config.yaml')  # 加载配置文件
 logging.basicConfig(level=logging.INFO)
 
 def init_memory_and_pipeline():
@@ -43,18 +43,18 @@ def init_memory_and_pipeline():
     # 步骤 3: 使用 QAPromptor 构建查询提示
     prompt_stream:DataStream = query_stream.construct_prompt(QAPromptor, config)
 
-    routestreram = prompt_stream.route(router,config)
+    # routestreram = prompt_stream.route(router,config)
 
     # 步骤 4: 使用 OpenAIGenerator 生成最终的响应
     response_stream:DataStream = prompt_stream.generate_response(OpenAIGenerator, config)
-    summarize_stream:DataStream = prompt_stream.summarize(AbstractiveRecompRefiner, config)
+    summarize_stream:DataStream = prompt_stream._transform("refiner", AbstractiveRecompRefiner, config)
 
     # 步骤 5: 输出到终端或文件
     sink_stream:DataStream = response_stream.sink(FileSink, config)
     # print(pipeline.get_graph_preview())
     
     # 提交管道到 SAGE 运行时
-    pipeline.new_submit(config={"is_long_running": True})
+    pipeline.submit(config={"is_long_running": True})
 
     # 等待管道运行一段时间
     time.sleep(100)
