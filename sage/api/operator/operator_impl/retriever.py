@@ -9,7 +9,7 @@ from sage.utils.custom_logger import CustomLogger
 class DenseRetriever(StateRetrieverFunction):
     def __init__(self, config: dict):
         super().__init__()
-        self.config = config["retriever"]
+        self.config = config
 
         
         if self.config.get("ltm", False):

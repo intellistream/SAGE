@@ -2,7 +2,7 @@ from sage.core.runtime import BaseRuntime
 from sage.core.runtime.local.local_scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
 from sage.core.runtime.local.local_task import StreamingTask, OneshotTask, BaseTask
 from sage.core.runtime.local.local_slot import Slot
-from sage.core.dag.local.multi_dag_node import MultiplexerDagNode
+from sage.core.dag.local.local_dag_node import LocalDAGNode
 from sage.utils.custom_logger import CustomLogger
 import threading
 import socket
@@ -24,11 +24,13 @@ class LocalRuntime(BaseRuntime):
         self._initialized = True
         self.name = "LocalRuntime"
         self.available_slots = [Slot(slot_id=i) for i in range(max_slots)]
+        self.tcp_host = tcp_host  # 添加这行
+        self.tcp_port = tcp_port  # 添加这行
         # 节点管理
-        self.running_nodes: Dict[str, MultiplexerDagNode] = {}  # 正在运行的节点表
-        self.node_to_slot: Dict[MultiplexerDagNode, int] = {}  # 节点到slot的映射
-        self.node_to_handle: Dict[MultiplexerDagNode, str] = {}  # 节点到handle的映射
-        self.handle_to_node: Dict[str, MultiplexerDagNode] = {}  # handle到节点的映射
+        self.running_nodes: Dict[str, LocalDAGNode] = {}  # 正在运行的节点表
+        self.node_to_slot: Dict[LocalDAGNode, int] = {}  # 节点到slot的映射
+        self.node_to_handle: Dict[LocalDAGNode, str] = {}  # 节点到handle的映射
+        self.handle_to_node: Dict[str, LocalDAGNode] = {}  # handle到节点的映射
         self.next_handle_id = 0
 
 
@@ -193,7 +195,7 @@ class LocalRuntime(BaseRuntime):
         except Exception as e:
             self.logger.error(f"Error processing TCP message: {e}", exc_info=True)
     
-    def submit_node(self, node: MultiplexerDagNode) -> str:
+    def submit_node(self, node: LocalDAGNode) -> str:
         """
         提交单个MultiplexerDagNode到本地运行时
         
@@ -203,8 +205,8 @@ class LocalRuntime(BaseRuntime):
         Returns:
             str: 任务句柄
         """
-        if not isinstance(node, MultiplexerDagNode):
-            raise TypeError("Expected MultiplexerDagNode instance")
+        if not isinstance(node, LocalDAGNode):
+            raise TypeError("Expected LocalDAGNode instance")
         
         self.logger.info(f"Submitting node '{node.name}' to {self.name}")
         
@@ -236,7 +238,7 @@ class LocalRuntime(BaseRuntime):
             self.logger.error(f"Failed to submit node '{node.name}': {e}")
             raise
     
-    def submit_nodes(self, nodes: List[MultiplexerDagNode]) -> List[str]:
+    def submit_nodes(self, nodes: List[LocalDAGNode]) -> List[str]:
         """
         批量提交多个节点
         
@@ -337,7 +339,7 @@ class LocalRuntime(BaseRuntime):
         """获取所有运行中的节点名称"""
         return list(self.running_nodes.keys())
     
-    def get_node_by_name(self, node_name: str) -> Optional[MultiplexerDagNode]:
+    def get_node_by_name(self, node_name: str) -> Optional[LocalDAGNode]:
         """根据名称获取节点"""
         return self.running_nodes.get(node_name)
     

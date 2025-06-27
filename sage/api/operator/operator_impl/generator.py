@@ -18,7 +18,7 @@ class OpenAIGenerator(GeneratorFunction):
                        the method, model name, base URL, API key, etc.
         """
         super().__init__()
-        self.config = config["generator"]
+        self.config = config
 
         # Apply the generator model with the provided configuration
         self.model = apply_generator_model(

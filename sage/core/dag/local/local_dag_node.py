@@ -13,12 +13,12 @@ from sage.core.graph import SageGraph, GraphEdge, GraphNode
 from sage.core.io.message_queue import MessageQueue
 from sage.core.io.emit_context import LocalEmitContext, NodeType
 from sage.utils.custom_logger import CustomLogger
-from sage.core.dag.local.multi_dag_node import MultiplexerDagNode
+# from sage.core.dag.local.multi_dag_node import LocalDAGNode
 import ray
 from ray.actor import ActorHandle
 
 
-class MultiplexerDagNode:
+class LocalDAGNode:
     """
     Multiplexer DAG Node.
 
@@ -120,7 +120,7 @@ class MultiplexerDagNode:
         else:
             self.logger.warning(f"Channel index {channel} out of range for node {self.name}")
 
-    def add_downstream_node(self, output_edge: GraphEdge, downstream_operator: Union['MultiplexerDagNode', ActorHandle]):
+    def add_downstream_node(self, output_edge: GraphEdge, downstream_operator: Union['LocalDAGNode', ActorHandle]):
         """
         添加下游节点到emit context
         
@@ -141,7 +141,7 @@ class MultiplexerDagNode:
                 self.logger.debug(f"Added Ray actor downstream: {self.name}[{output_edge.upstream_channel}] -> "
                                 f"{output_edge.downstream_node.name}[{output_edge.downstream_channel}]")
             
-            elif isinstance(downstream_operator, MultiplexerDagNode):
+            elif isinstance(downstream_operator, LocalDAGNode):
                 # 本地节点
                 self.emit_context.add_downstream_target(
                     output_channel=output_edge.upstream_channel,

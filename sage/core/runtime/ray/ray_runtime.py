@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Any, Union
 from sage.core.dag.ray.ray_dag import RayDAG
-from sage.core.dag.ray.ray_multi_node import RayMultiplexerDagNode
+from sage.core.dag.ray.ray_dag_node import RayDAGNode
 import logging, ray, time, threading 
 from sage.core.runtime.base_runtime import BaseRuntime
 from sage.utils.custom_logger import CustomLogger
@@ -127,7 +127,7 @@ class RayRuntime(BaseRuntime):
             self.logger.error(f"Failed to create Ray node '{node_name}': {e}")
             raise
     
-    def submit_node_instance(self, node_instance: ActorHandle, node_name: str) -> str:
+    def submit_actor_instance(self, node_instance: ActorHandle, node_name: str) -> str:
         """
         提交已创建的Ray节点实例
         
@@ -157,7 +157,7 @@ class RayRuntime(BaseRuntime):
         self.logger.info(f"Ray node instance '{node_name}' submitted with handle: {handle}")
         return handle
     
-    def submit_nodes(self, nodes: List[ActorHandle], node_names: List[str]) -> List[str]:
+    def submit_actors(self, nodes: List[ActorHandle], node_names: List[str]) -> List[str]:
         """
         批量提交Ray节点实例
         
@@ -172,10 +172,11 @@ class RayRuntime(BaseRuntime):
             raise ValueError("nodes and node_names must have the same length")
         
         handles = []
-        for node_instance, node_name in zip(nodes, node_names):
+        for actor_instance, node_name in zip(nodes, node_names):
             try:
-                handle = self.submit_node_instance(node_instance, node_name)
+                handle = self.submit_actor_instance(actor_instance, node_name)
                 handles.append(handle)
+                self.start_node(handle)  # 自动启动节点
             except Exception as e:
                 self.logger.error(f"Failed to submit node '{node_name}': {e}")
                 # 停止已经提交的节点
