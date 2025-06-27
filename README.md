@@ -85,7 +85,6 @@ col = mgr.create_collection(
 )
 ````
 
----
 
 #### (2). Insert Text Entries with Metadata
 
@@ -96,7 +95,6 @@ col.insert("Beta", {"tag": "B"})
 col.insert("Gamma", {"tag": "A"})
 ```
 
----
 
 #### (3). Create Indexes (e.g., Filtered by Metadata)
 
@@ -105,16 +103,12 @@ col.create_index("global_index")
 col.create_index("tag_A_index", metadata_filter_func=lambda m: m.get("tag") == "A")
 ```
 
----
-
 #### (4). Retrieve Similar Vectors
 
 ```python
 res1 = col.retrieve("Alpha", topk=1, index_name="global_index")
 res2 = col.retrieve("Alpha", topk=5, index_name="tag_A_index")
 ```
-
----
 
 #### (5). Persist Collection to Local Disk
 
@@ -123,8 +117,6 @@ mgr.store_collection()
 print("Saved to:", mgr.data_dir)
 ```
 
----
-
 #### (6). Reload Persisted Collection (Requires Embedding Model)
 
 ```python
@@ -132,8 +124,6 @@ mgr2 = MemoryManager()
 embedder2 = MockTextEmbedder(fixed_dim=16)
 col2 = mgr2.connect_collection("test_vdb", embedding_model=embedder2)
 ```
-
----
 
 #### (7). Delete All Persisted Data (Optional)
 
