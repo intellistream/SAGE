@@ -1,7 +1,0 @@
-{
-  "index_name": "tag_A_index",
-  "dim": 16,
-  "next_id": 4,
-  "deletion_supported": true,
-  "config": {}
-}
