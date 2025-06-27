@@ -4,7 +4,7 @@ import logging
 import time
 from typing import Any, List, Optional, Dict, Tuple, TYPE_CHECKING, Type, Union
 from ray.actor import ActorHandle
-from sage.api.operator.base_operator_api import BaseFuction
+from sage.api.operator.base_operator_api import BaseFunction
 from sage.core.graph import GraphEdge, GraphNode
 from sage.core.io.emit_context import NodeType
 from sage.core.io.ray_emit_context import RayEmitContext
@@ -21,7 +21,7 @@ class RayDAGNode:
     
     def __init__(self, 
                  name: str, 
-                 function_class: Type[BaseFuction],
+                 function_class: Type[BaseFunction],
                  operator_config: Dict = None,
                  is_spout: bool = False,
                  session_folder: str = None) -> None:

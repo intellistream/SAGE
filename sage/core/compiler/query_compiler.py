@@ -1,5 +1,8 @@
+# deprecated
+
+
 from typing import Dict, Type, Any, TYPE_CHECKING, Union
-from sage.core.compiler.optimizer import Optimizer
+# from sage.core.compiler.optimizer import Optimizer
 from sage.core.compiler.query_parser import QueryParser
 from sage.core.dag.local.dag import DAG
 from sage.core.dag.local.dag_node import BaseDAGNode, OneShotDAGNode
@@ -21,7 +24,7 @@ class QueryCompiler:
         """
         self.session_folder = CustomLogger.get_session_folder()
         self.logical_graph_constructor = LogicGraphConstructor()
-        self.optimizer = Optimizer()
+        # self.optimizer = Optimizer()
         self.parser = QueryParser(generate_func=None)
         self.dag_dict = {}
         self.logger = CustomLogger(
@@ -31,7 +34,7 @@ class QueryCompiler:
             file_output=True
         )
 
-    def compile_graph(self, graph:'SageGraph') -> Union[DAG, RayDAG]:
+    def compile_graph(self, graph:'SageGraph') -> Union[DAG, RayDAG]: # deprecated
         platform = graph.config.get("platform", "local")
         self.logger.info(f"Compiling graph '{graph.name}' ")
 
@@ -41,7 +44,7 @@ class QueryCompiler:
             return self._compile_graph_for_local(graph)
         
 
-    def _compile_graph_for_ray(self, graph:'SageGraph') -> RayDAG:
+    def _compile_graph_for_ray(self, graph:'SageGraph') -> RayDAG: # deprecated
         """Ray-specific compilation logic returning RayDAG."""
         if(graph.config.get("is_long_running", False) is False):
             strategy = "oneshot"
@@ -101,7 +104,7 @@ class QueryCompiler:
             )
         return ray_dag
 
-    def _compile_graph_for_local(self, graph:'SageGraph')->DAG:
+    def _compile_graph_for_local(self, graph:'SageGraph')->DAG: # deprecated
         strategy = "streaming" if graph.config.get("is_long_running", False) else "oneshot"
         
         dag = DAG(name=graph.name, strategy=strategy, session_folder=self.session_folder)
