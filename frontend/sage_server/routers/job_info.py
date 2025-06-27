@@ -1,4 +1,5 @@
 import asyncio
+from calendar import c
 import json
 import logging
 import os
@@ -178,9 +179,10 @@ async def update_config(pipeline_id: str, config_data: dict):
     # 确保配置目录存在
     if not os.path.exists(config_dir):
         os.makedirs(config_dir, exist_ok=True)
-    
+    print(config_data)
     # 获取配置内容
     config_content = config_data.get("config", "")
+    print(f"Received config for pipeline {pipeline_id}: {config_content}")
     if not config_content:
         raise HTTPException(status_code=400, detail="配置内容不能为空")
     
@@ -188,8 +190,8 @@ async def update_config(pipeline_id: str, config_data: dict):
     try:
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(config_content)
-        logging.info(f"已更新ID {pipeline_id} 的配置文件")
-        return {"message": "配置更新成功", "id": pipeline_id}
+            logging.info(f"已更新ID {pipeline_id} 的配置文件 {file_path}")
+       
     except Exception as e:
         logging.error(f"保存配置文件时出错: {str(e)}")
         raise HTTPException(status_code=500, detail=f"保存配置文件失败: {str(e)}")
