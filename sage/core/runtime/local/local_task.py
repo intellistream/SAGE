@@ -1,8 +1,6 @@
 import logging
 from re import M
-from sage.core.dag.local.dag_node import BaseDAGNode,OneShotDAGNode
-from sage.core.dag.local.local_dag_node import LocalDAGNode
-from sage.core.dag.local.dag import DAG
+from sage.core.runtime.local.local_dag_node import LocalDAGNode
 import threading
 from sage.utils.custom_logger import CustomLogger
 
@@ -56,49 +54,49 @@ class StreamingTask(BaseTask):
             self.logger.error(e)
             raise RuntimeError(e)
 
-class OneshotTask(BaseTask):
-    #用于执行非流式的请求
-    """
-        一次性任务处理器，按拓扑顺序执行DAG流程
+# class OneshotTask(BaseTask):
+#     #用于执行非流式的请求
+#     """
+#         一次性任务处理器，按拓扑顺序执行DAG流程
 
-        Attributes:
-            dag (DAG): 需要处理的DAG对象
-            stop_event (threading.Event): 任务停止信号量
-        """
-    def __init__(self,dag:DAG, session_folder=None):
-        super().__init__()
-        self.dag=dag
-        self.long_running=False
-        self.logger = CustomLogger(
-            object_name=f"OneshotTask_{self.dag.name}",
-            session_folder=session_folder,
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
-        )
-        self.stop_event=threading.Event()
+#         Attributes:
+#             dag (DAG): 需要处理的DAG对象
+#             stop_event (threading.Event): 任务停止信号量
+#         """
+#     def __init__(self,dag:DAG, session_folder=None):
+#         super().__init__()
+#         self.dag=dag
+#         self.long_running=False
+#         self.logger = CustomLogger(
+#             object_name=f"OneshotTask_{self.dag.name}",
+#             session_folder=session_folder,
+#             log_level="DEBUG",
+#             console_output=False,
+#             file_output=True
+#         )
+#         self.stop_event=threading.Event()
         
-    def execute(self):
-        #遍历按序执行每一个算子
-            for node in self.dag.get_topological_order():
-                node._ensure_initialized()
-                print(f"Executing node: {node.name}")
-                # assert isinstance(node, OneShotDAGNode), f"Expected OneShotDAGNode, got {type(node).__name__}"
-                if node.is_spout:
-                    # For spout nodes, call operator.receive with dummy channel and data
-                    node.operator.receive(0, None)
-                else:
-                    # For non-spout nodes, fetch input and process
-                    input_result = node.fetch_input()
+#     def execute(self):
+#         #遍历按序执行每一个算子
+#             for node in self.dag.get_topological_order():
+#                 node._ensure_initialized()
+#                 print(f"Executing node: {node.name}")
+#                 # assert isinstance(node, OneShotDAGNode), f"Expected OneShotDAGNode, got {type(node).__name__}"
+#                 if node.is_spout:
+#                     # For spout nodes, call operator.receive with dummy channel and data
+#                     node.operator.receive(0, None)
+#                 else:
+#                     # For non-spout nodes, fetch input and process
+#                     input_result = node.fetch_input()
                     
-                    # Unpack the tuple: (channel_id, data)
-                    channel_id, data = input_result
+#                     # Unpack the tuple: (channel_id, data)
+#                     channel_id, data = input_result
                     
-                    # Call operator's receive method with the channel_id and data
-                    node.operator.receive(channel_id, data)
+#                     # Call operator's receive method with the channel_id and data
+#                     node.operator.receive(channel_id, data)
 
-    def stop(self):
-        #停止执行
-        self.stop_event.set()
+#     def stop(self):
+#         #停止执行
+#         self.stop_event.set()
 
 

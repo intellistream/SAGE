@@ -49,7 +49,7 @@ class QAPromptor(PromptFunction):
         self.logger = CustomLogger(
             object_name=f"QAPromptor_{__name__}",
             log_level="DEBUG",
-            console_output=True,
+            console_output=False,
             file_output=True
         )
 

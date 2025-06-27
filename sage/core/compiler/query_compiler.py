@@ -7,7 +7,7 @@ from sage.core.compiler.query_parser import QueryParser
 from sage.core.dag.local.dag import DAG
 from sage.core.dag.local.dag_node import BaseDAGNode, OneShotDAGNode
 from sage.core.compiler.logical_graph_constructor import LogicGraphConstructor
-from sage.core.dag.local.local_dag_node import LocalDAGNode
+from sage.core.runtime.local.local_dag_node import LocalDAGNode
 from sage.core.io.message_queue import MessageQueue
 from sage.core.dag.ray.ray_dag import RayDAG
 if TYPE_CHECKING:
@@ -62,7 +62,7 @@ class QueryCompiler:
             function_class = graph_node.operator
             operator_config = graph_node.config or {}
             
-            from sage.core.dag.ray.ray_dag_node import RayDAGNode
+            from sage.core.runtime.ray.ray_dag_node import RayDAGNode
             from sage.core.runtime.collection_wrapper import CollectionWrapper
             
             # Create Ray Actor with operator class, not instance

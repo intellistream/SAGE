@@ -4,8 +4,8 @@ from typing import Dict, List, Optional, Any, Tuple, TYPE_CHECKING, Union
 from ray.actor import ActorHandle
 from sage.utils.custom_logger import CustomLogger
 from sage.core.graph import SageGraph, GraphEdge, GraphNode
-from sage.core.dag.ray.ray_dag_node import RayDAGNode
-from sage.core.dag.local.local_dag_node import LocalDAGNode
+from sage.core.runtime.ray.ray_dag_node import RayDAGNode
+from sage.core.runtime.local.local_dag_node import LocalDAGNode
 
 
 class MixedDAG:
@@ -17,6 +17,7 @@ class MixedDAG:
         self.connections: List[Tuple[str, int, str, int]] = []  # (upstream_node, out_channel, downstream_node, in_channel)
         self.session_folder = CustomLogger.get_session_folder()
         self.ray_handles: List[Any] = []  # 存储Ray Actor句柄
+        self.local_handles: List[Any] = []  # 存储本地节点句柄
         self.logger = CustomLogger(
             object_name=f"MixedDAG_{self.name}",
             log_level="DEBUG",

@@ -18,7 +18,12 @@ class LocalEmitContext(BaseEmitContext):
     
     def __init__(self, node_name: str, session_folder: str = None):
         super().__init__(node_name, session_folder)
-    
+        self.logger = CustomLogger(
+            object_name=f"LocalEmitContext_{node_name}",
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
     def _send_to_local(self, target: DownstreamTarget, data: Any) -> None:
         """
         向本地节点的输入缓冲区写入数据包
