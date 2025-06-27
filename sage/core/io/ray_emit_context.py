@@ -31,7 +31,7 @@ class RayEmitContext(BaseEmitContext):
         self.logger = CustomLogger(
             object_name=f"RayEmitContext_{node_name}",
             log_level="DEBUG",
-            console_output=True,
+            console_output=False,
             file_output=True
         )
     def _get_tcp_connection(self) -> socket.socket:
