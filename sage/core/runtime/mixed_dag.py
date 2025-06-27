@@ -4,8 +4,8 @@ from typing import Dict, List, Optional, Any, Tuple, TYPE_CHECKING, Union
 from ray.actor import ActorHandle
 from sage.utils.custom_logger import CustomLogger
 from sage.core.graph import SageGraph, GraphEdge, GraphNode
-from sage.core.dag.ray.ray_dag_node import RayDAGNode
-from sage.core.dag.local.local_dag_node import LocalDAGNode
+from sage.core.runtime.ray.ray_dag_node import RayDAGNode
+from sage.core.runtime.local.local_dag_node import LocalDAGNode
 
 
 class MixedDAG:

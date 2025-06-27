@@ -2,7 +2,7 @@ from typing import Type, TYPE_CHECKING, Union, Any, TYPE_CHECKING
 from sage.core.compiler.query_compiler import QueryCompiler
 from sage.core.runtime.runtime_manager import RuntimeManager
 from sage.utils.custom_logger import CustomLogger
-from sage.core.dag.mixed_dag import MixedDAG
+from sage.core.runtime.mixed_dag import MixedDAG
 import threading, typing, logging
 
 class Engine:
