@@ -1,46 +1,13 @@
 
 import logging
 from typing import TypeVar,Generic, Callable, Any, List
-from sage.core.io.message_queue import MessageQueue
+
 from typing import TypeVar,Generic
 T = TypeVar('T')
 class Data(Generic[T]):
     def __init__(self, data: T):
         self.data = data 
 
-
-class EmitContext:
-    """
-    Emit context that encapsulates emission logic and channels.
-    This avoids closures that reference the parent DAG node.
-    """
-    
-    def __init__(self, node_name: str):
-        self.node_name = node_name
-        self.downstream_channels: List[MessageQueue] = []
-    
-    def add_downstream_channel(self, message_queue: MessageQueue):
-        """Add a downstream channel."""
-        self.downstream_channels.append(message_queue)
-    
-    def emit(self, channel: int, data: Any) -> None:
-        """
-        Emit data to specified downstream channel.
-        
-        Args:
-            channel: The downstream channel index
-            data: Data to emit
-        """
-        if(channel == -1):
-            # Broadcast to all downstream channels
-            for downstream_channel in self.downstream_channels:
-                downstream_channel.put(data)
-            return
-        elif(0 <= channel and channel < len(self.downstream_channels)) :
-            self.downstream_channels[channel].put(data)
-        else:
-            # Note: We can't use logger here to keep the context simple and serializable
-            print(f"Warning: Channel index {channel} out of range for node {self.node_name}")
 
 
 

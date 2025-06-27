@@ -224,7 +224,10 @@ class CustomLogger:
             Path(session_folder).mkdir(parents=True, exist_ok=True)
     
     @classmethod
-    def get_default_session_folder(cls) -> Optional[str]:
+    def get_session_folder(cls) -> Optional[str]:
+        if cls._default_session_folder is None:
+            # 如果没有设置默认session文件夹，创建一个新的
+            cls._default_session_folder = cls.create_session_folder()
         """获取默认的session文件夹"""
         return cls._default_session_folder
     
