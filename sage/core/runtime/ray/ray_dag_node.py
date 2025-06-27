@@ -9,7 +9,7 @@ from sage.core.graph import GraphEdge, GraphNode
 from sage.core.io.emit_context import NodeType
 from sage.core.io.ray_emit_context import RayEmitContext
 from sage.utils.custom_logger import CustomLogger
-from sage.core.dag.local.local_dag_node import LocalDAGNode
+from sage.core.runtime.local.local_dag_node import LocalDAGNode
 @ray.remote
 class RayDAGNode:
     """

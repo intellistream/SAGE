@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Any, Union
 from sage.core.dag.ray.ray_dag import RayDAG
-from sage.core.dag.ray.ray_dag_node import RayDAGNode
+from sage.core.runtime.ray.ray_dag_node import RayDAGNode
 import logging, ray, time, threading 
 from sage.core.runtime.base_runtime import BaseRuntime
 from sage.utils.custom_logger import CustomLogger
