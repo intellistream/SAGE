@@ -65,7 +65,7 @@ def run_query(query: str, config=None) -> str:
         query_pipeline.add_operator_config(config)
         query_pipeline.add_operator_cls(operator_cls_mapping)
         query_stream = query_pipeline.add_source(StaticSource,config)
-        query_stream.operator.set_query(query)
+        query_stream.function.set_query(query)
     else :
         query_pipeline.data_streams[0].operator.set_query(query)
 

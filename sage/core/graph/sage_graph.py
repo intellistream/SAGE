@@ -2,20 +2,20 @@ from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, AnyStr, Dict, List, Set
 from sage.api.pipeline.pipeline_api import Pipeline
 from sage.api.pipeline.datastream_api import DataStream
-from sage.api.operator import BaseFuction
+from sage.api.operator import BaseFunction
 from sage.utils.custom_logger import CustomLogger
 
 
 
 
 class GraphNode:
-    def __init__(self,name:str, operator_class: Type[BaseFuction], type:str, operator_config: Dict = None):
+    def __init__(self,name:str, function: Union[Type[BaseFunction], BaseFunction], type:str, operator_config: Dict = None):
         self.name: str = name
         self.type: str = type # "normal "or "source" or "sink"
         self.config: Dict = operator_config
         self.input_channels: list[GraphEdge] = []
         self.output_channels: list[GraphEdge] = []
-        self.operator: Type[BaseFuction] = operator_class
+        self.operator: Union[Type[BaseFunction], BaseFunction] = function
         pass
 
 class GraphEdge:
@@ -30,10 +30,10 @@ class GraphEdge:
         self.upstream_node:GraphNode = upstream_node
         self.upstream_channel: int = upstream_channel
         self.downstream_node:GraphNode = None
-        self.downstream_channnel: int = None
+        self.downstream_channel: int = None
 
 class SageGraph:
-    def __init__(self, pipeline:Pipeline, config: dict = None, session_folder: str = None):
+    def __init__(self, pipeline:Pipeline, config: dict = None):
         """
         Initialize the NodeGraph with a name and optional configuration.
         Args:
@@ -50,7 +50,6 @@ class SageGraph:
 
         self.logger = CustomLogger(
             object_name=f"SageGraph_{self.name}",
-            session_folder=session_folder,
             log_level="DEBUG",
             console_output=True,
             file_output=True
@@ -118,7 +117,7 @@ class SageGraph:
                     node_name=node_name,
                     input_streams=connection_info['input_edges'],
                     output_streams=connection_info['output_edges'],
-                    operator_class=stream.operator,
+                    function=stream.function,
                     operator_config=stream.config, 
                     node_type=stream.node_type
                 )
@@ -272,7 +271,7 @@ class SageGraph:
                  node_name: str,
                  input_streams: Union[str, List[str]], 
                  output_streams: Union[str, List[str]], 
-                 operator_class: Type[BaseFuction],
+                 function: Union[BaseFunction, Type[BaseFunction] ],
                  operator_config: Dict = None, 
                  node_type: str = "normal") -> GraphNode:
         """
@@ -280,7 +279,7 @@ class SageGraph:
         Args:
             input_streams (Union[str, List[str]]): Input streams for the node.
             output_streams (Union[str, List[str]]): Output streams for the node.
-            operator (Type[BaseFuction]): The operator class to be used by the node.
+            operator (Type[BaseFunction]): The operator class to be used by the node.
         Returns:
             GraphNode: The created graph node.
         """
@@ -296,7 +295,7 @@ class SageGraph:
             output_streams = []
 
         # 创建节点
-        node = GraphNode(node_name, operator_class, node_type, operator_config)
+        node = GraphNode(node_name, function, node_type, operator_config)
         # 检查节点名是否已存在
         if node.name in self.nodes:
             raise ValueError(f"Node with name '{node.name}' already exists")
@@ -313,7 +312,7 @@ class SageGraph:
             
             # 连接边到当前节点
             edge.downstream_node = node
-            edge.downstream_channnel = i
+            edge.downstream_channel = i
             node.input_channels.append(edge)
 
         # 处理输出边（创建新的空边）

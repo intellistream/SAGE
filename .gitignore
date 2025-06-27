@@ -23,7 +23,6 @@ CMakeUserPresets.json
 /installation/candy/
 /sage.egg-info/
 /deps/CANDY/.github/
-/archive
 
 id_llm
 auto_env_setup.log
@@ -45,12 +44,11 @@ output.txt
 /.vscode/
 /arxiv_pdfs
 /arxiv_structured_json
-run.sh
 /sage/.env
 mem_output.txt
 qa_output.txt
-run.sh
 ray_logs
 /output/
 /logs
 /logs/**
+

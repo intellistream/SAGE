@@ -37,13 +37,14 @@ def memory_init():
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = Pipeline(name="example_pipeline", use_ray=True)
+    pipeline = Pipeline(name="example_pipeline")
+    # 在config里指定各个节点跑在ray上边
     # 构建数据处理流程
-    query_stream = pipeline.add_source(FileSource, config)
-    query_and_chunks_stream = query_stream.retrieve(DenseRetriever, config)
-    prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
-    response_stream = prompt_stream.generate_response(OpenAIGenerator, config)
-    response_stream.sink(TerminalSink, config)
+    query_stream = pipeline.add_source(FileSource, config["source"])
+    query_and_chunks_stream = query_stream.retrieve(DenseRetriever, config["retriever"])
+    prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config["promptor"])
+    response_stream = prompt_stream.generate_response(OpenAIGenerator, config["generator"])
+    response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
     pipeline.submit(config={"is_long_running":True})
     time.sleep(100)  # 等待管道运行
@@ -52,7 +53,7 @@ def pipeline_run():
 if __name__ == '__main__':
     configure_logging(level=logging.INFO)
     # 加载配置并初始化日志
-    config = load_config('config.yaml')
+    config = load_config('config_ray.yaml')
     # 初始化内存并运行管道
     memory_init()
     pipeline_run()
