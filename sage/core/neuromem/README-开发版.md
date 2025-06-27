@@ -41,3 +41,6 @@ print(f"DB_URL: {db_url}")
 ```  
 
 这样，开发者只需复制 `.env.example` 并填写自己的配置即可。 🚀
+
+
+
