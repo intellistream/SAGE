@@ -1,4 +1,5 @@
 import logging
+import threading
 from typing import Dict, Any, Union
 from sage.core.runtime.base_runtime import BaseRuntime
 from sage.core.runtime.ray.ray_runtime import RayRuntime
@@ -12,9 +13,17 @@ class RuntimeManager:
     运行时管理器，负责管理不同平台的运行时实例
     """
     
+    _instance = None
+    _lock = threading.Lock()
+    
     def __init__(self, session_folder: str = None):
+        # 确保只初始化一次
+        if hasattr(self, "_initialized"):
+            return
+        self._initialized = True
+        
         self.backends: Dict[str, Any] = {}
-        self.session_folder = session_folder
+        self.session_folder = CustomLogger.get_session_folder()
         self.logger = CustomLogger(
             object_name=f"RuntimeManager",
             session_folder=session_folder,
@@ -22,6 +31,30 @@ class RuntimeManager:
             console_output=False,
             file_output=True
         )
+    
+    def __new__(cls):
+        # 禁止直接实例化
+        raise RuntimeError("请通过 get_instance() 方法获取实例")
+    
+    @classmethod
+    def get_instance(cls):
+        """获取RuntimeManager的唯一实例"""
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    # 绕过 __new__ 的异常，直接创建实例
+                    instance = super().__new__(cls)
+                    instance.__init__()
+                    cls._instance = instance
+        return cls._instance
+    
+    @classmethod
+    def reset_instance(cls):
+        """重置实例（主要用于测试）"""
+        with cls._lock:
+            if cls._instance:
+                cls._instance.shutdown_all()
+                cls._instance = None
     
     def get(self, platform: str, **kwargs) -> BaseRuntime:
         """
@@ -53,12 +86,19 @@ class RuntimeManager:
         """
         if platform == "ray":
             monitoring_interval = kwargs.get('monitoring_interval', 2.0)
-            return RayRuntime(monitoring_interval=monitoring_interval, session_folder=self.session_folder)
+            return RayRuntime.get_instance(monitoring_interval=monitoring_interval)
         
         elif platform == "local":
             max_slots = kwargs.get('max_slots', 4)
             scheduling_strategy = kwargs.get('scheduling_strategy', None)
-            return LocalRuntime(max_slots=max_slots, scheduling_strategy=scheduling_strategy)
+            tcp_host = kwargs.get('tcp_host', "localhost")
+            tcp_port = kwargs.get('tcp_port', 9999)
+            return LocalRuntime.get_instance(
+                max_slots=max_slots, 
+                scheduling_strategy=scheduling_strategy,
+                tcp_host=tcp_host,
+                tcp_port=tcp_port
+            )
         
         else:
             raise ValueError(f"Unknown platform: {platform}")

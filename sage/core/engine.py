@@ -20,7 +20,7 @@ class Engine:
             return
         self._initialized = True
         # self.dag_manager = DAGManager() # deprecated
-        self.runtime_manager = RuntimeManager(self.session_folder)
+        self.runtime_manager = RuntimeManager.get_instance()
         self.compiler= QueryCompiler(generate_func=generate_func, session_folder=self.session_folder)
         from sage.core.graph import SageGraph
         self.graphs:dict[str, SageGraph] = {}  # 存储 pipeline 名称到 SageGraph 的映射

@@ -57,7 +57,7 @@ class QueryCompiler:
         # Step 1: Create all Ray Actor DAG nodes
         for node_name, graph_node in graph.nodes.items():
             # Extract operator class and configuration instead of creating instance
-            operator_class = graph_node.operator
+            function_class = graph_node.operator
             operator_config = graph_node.config or {}
             
             from sage.core.dag.ray.ray_multi_node import RayMultiplexerDagNode
@@ -70,7 +70,7 @@ class QueryCompiler:
             # operator_config["retriever"]["ltm_collection"] = wrapper._collection
             ray_actor = RayMultiplexerDagNode.remote(
                 name=graph_node.name,
-                operator_class=operator_class,
+                function_class=function_class,
                 operator_config=operator_config,
                 is_spout=(graph_node.type == "source"), 
                 session_folder = self.session_folder
@@ -89,7 +89,7 @@ class QueryCompiler:
             
             # Get channel information from edge
             upstream_output_channel = edge.upstream_channel
-            downstream_input_channel = edge.downstream_channnel
+            downstream_input_channel = edge.downstream_channel
             self.logger.info(f"Connecting actors '{edge.upstream_node.name}' "
                              f"to {edge.downstream_node.name}")
             

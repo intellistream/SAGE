@@ -9,13 +9,13 @@ from sage.utils.custom_logger import CustomLogger
 
 
 class GraphNode:
-    def __init__(self,name:str, operator_class: Type[BaseFuction], type:str, operator_config: Dict = None):
+    def __init__(self,name:str, function_class: Type[BaseFuction], type:str, operator_config: Dict = None):
         self.name: str = name
         self.type: str = type # "normal "or "source" or "sink"
         self.config: Dict = operator_config
         self.input_channels: list[GraphEdge] = []
         self.output_channels: list[GraphEdge] = []
-        self.operator: Type[BaseFuction] = operator_class
+        self.operator: Type[BaseFuction] = function_class
         pass
 
 class GraphEdge:
@@ -30,7 +30,7 @@ class GraphEdge:
         self.upstream_node:GraphNode = upstream_node
         self.upstream_channel: int = upstream_channel
         self.downstream_node:GraphNode = None
-        self.downstream_channnel: int = None
+        self.downstream_channel: int = None
 
 class SageGraph:
     def __init__(self, pipeline:Pipeline, config: dict = None, session_folder: str = None):
@@ -118,7 +118,7 @@ class SageGraph:
                     node_name=node_name,
                     input_streams=connection_info['input_edges'],
                     output_streams=connection_info['output_edges'],
-                    operator_class=stream.operator,
+                    function_class=stream.operator,
                     operator_config=stream.config, 
                     node_type=stream.node_type
                 )
@@ -272,7 +272,7 @@ class SageGraph:
                  node_name: str,
                  input_streams: Union[str, List[str]], 
                  output_streams: Union[str, List[str]], 
-                 operator_class: Type[BaseFuction],
+                 function_class: Type[BaseFuction],
                  operator_config: Dict = None, 
                  node_type: str = "normal") -> GraphNode:
         """
@@ -296,7 +296,7 @@ class SageGraph:
             output_streams = []
 
         # 创建节点
-        node = GraphNode(node_name, operator_class, node_type, operator_config)
+        node = GraphNode(node_name, function_class, node_type, operator_config)
         # 检查节点名是否已存在
         if node.name in self.nodes:
             raise ValueError(f"Node with name '{node.name}' already exists")
@@ -313,7 +313,7 @@ class SageGraph:
             
             # 连接边到当前节点
             edge.downstream_node = node
-            edge.downstream_channnel = i
+            edge.downstream_channel = i
             node.input_channels.append(edge)
 
         # 处理输出边（创建新的空边）

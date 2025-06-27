@@ -4,7 +4,6 @@ from typing import Dict, List, Optional, Any, Tuple, TYPE_CHECKING, Union
 from ray.actor import ActorHandle
 from sage.utils.custom_logger import CustomLogger
 from sage.core.graph import SageGraph, GraphEdge, GraphNode
-from sage.core.dag.local.dag_node import BaseDAGNode,OneShotDAGNode
 from sage.core.dag.ray.ray_multi_node import RayMultiplexerDagNode
 from sage.core.dag.local.multi_dag_node import MultiplexerDagNode
 
@@ -12,11 +11,11 @@ from sage.core.dag.local.multi_dag_node import MultiplexerDagNode
 class MixedDAG:
     def __init__(self, graph: SageGraph):
         self.name:str = graph.name
-        # self.graph:SageGraph = graph
-        self.nodes: Dict[str, Union[ActorHandle, BaseDAGNode]] = {}
+        self.graph:SageGraph = graph
+        self.operators: Dict[str, Union[ActorHandle, MultiplexerDagNode]] = {}
         self.nodes_metadata: Dict[str, Dict[str, Any]] = {}  # node_name -> platform
         self.connections: List[Tuple[str, int, str, int]] = []  # (upstream_node, out_channel, downstream_node, in_channel)
-        self.session_folder = CustomLogger.get_default_session_folder()
+        self.session_folder = CustomLogger.get_session_folder()
         self.logger = CustomLogger(
             object_name=f"MixedDAG_{self.name}",
             log_level="DEBUG",
@@ -27,67 +26,128 @@ class MixedDAG:
         self.spout_nodes: List[str] = []
         self._compile_graph()
     
-    # TODO: 做一个新的，维护自身输入缓冲区的local_dag_node
-    def _compile_graph(self, graph:SageGraph):
-        for node_name, graph_node in graph.nodes.items():
-            node = self.create_node_instance(graph_node)
-            # Add to RayDAG - use graph's get_upstream_nodes method
-            upstream_nodes = graph.get_upstream_nodes(node_name)
-            # TODO: 修改加入节点的方法
+    def _compile_graph(self):
+        """编译图结构，创建节点并建立连接"""
+        self.logger.info(f"Compiling mixed DAG for graph: {self.name}")
+        
+        # 第一步：创建所有节点实例
+        for node_name, graph_node in self.graph.nodes.items():
+            node_instance = self.create_node_instance(graph_node)
+            upstream_nodes = self.graph.get_upstream_nodes(node_name)
+            
             self.add_node(
                 name=node_name,
-                executor=node,
+                executor=node_instance,
                 is_spout=(graph_node.type == "source"),
                 upstream_nodes=upstream_nodes
             )
-    
-    def create_node_instance(self, graph_node:GraphNode) -> Union[
-        RayMultiplexerDagNode, MultiplexerDagNode]:
-        if graph_node.config["platform"] == "ray":
+        
+        # 第二步：建立节点间的连接
+        for node_name, graph_node in self.graph.nodes.items():
+            self._setup_node_connections(node_name, graph_node)
+        
+        self.logger.info(f"Mixed DAG compilation completed: {len(self.operators)} nodes, "f"{len(self.spout_nodes)} spout nodes")
+
+
+    def _setup_node_connections(self, node_name: str, graph_node: GraphNode):
+        """
+        为节点设置下游连接
+        
+        Args:
+            node_name: 节点名称
+            graph_node: 图节点对象
+        """
+        node_platform = self.nodes_metadata[node_name]["platform"]
+        current_operator = self.operators[node_name]
+        
+        # 为每个输出边添加下游连接
+        for output_edge in graph_node.output_channels:
+            downstream_node_name = output_edge.downstream_node.name
+            downstream_operator = self.operators[downstream_node_name]
+            
+            try:
+                if node_platform == "ray":
+                    # Ray节点调用远程方法
+                    current_operator.add_downstream_node.remote(
+                        output_edge,
+                        downstream_operator
+                    )
+                    self.logger.debug(f"Setup Ray connection: {node_name} -> {downstream_node_name}")
+                else:
+                    # 本地节点直接调用
+                    current_operator.add_downstream_node(
+                        output_edge,
+                        downstream_operator
+                    )
+                    self.logger.debug(f"Setup local connection: {node_name} -> {downstream_node_name}")
+                    
+                # 记录连接信息
+                self.connections.append((
+                    node_name, 
+                    output_edge.upstream_channel,
+                    downstream_node_name, 
+                    output_edge.downstream_channel
+                ))
+                
+            except Exception as e:
+                self.logger.error(f"Error setting up connection {node_name} -> {downstream_node_name}: {e}")
+                raise        
+
+    def create_node_instance(self, graph_node: GraphNode) -> Union[RayMultiplexerDagNode, MultiplexerDagNode]:
+        """
+        根据图节点创建对应的执行实例
+        
+        Args:
+            graph_node: 图节点对象
+            
+        Returns:
+            节点实例（Ray Actor或本地节点）
+        """
+        platform = graph_node.config.get("platform", "local")
+        
+        if platform == "ray":
+            # 创建Ray Actor
             node = RayMultiplexerDagNode.remote(
                 name=graph_node.name,
-                operator_class=graph_node.operator,
+                function_class=graph_node.operator,
                 operator_config=graph_node.config,
                 is_spout=(graph_node.type == "source"), 
-                session_folder = self.session_folder
+                session_folder=self.session_folder
             )
+            self.logger.debug(f"Created Ray actor node: {graph_node.name}")
             return node
-        else: # Local node
+        else:
+            # 创建本地节点
             operator_instance = graph_node.operator(graph_node.config)
             node = MultiplexerDagNode(
-                graph_node.name,
-                operator_instance,
+                name=graph_node.name,
+                operator=operator_instance,
                 config=graph_node.config,
                 is_spout=(graph_node.type == "source"), 
                 session_folder=self.session_folder
             )
+            self.logger.debug(f"Created local node: {graph_node.name}")
             return node
 
-    def add_node(self, name: str, executor:Any, is_spout: bool = False, 
-                     upstream_nodes: List[str] = None):
+    def add_node(self, name: str, executor: Any, is_spout: bool = False, 
+                 upstream_nodes: List[str] = None):
         """
-        Add a Ray actor to the DAG.
+        添加节点到DAG
         
         Args:
-            name: Actor name/identifier
-            actor: Ray actor handle
-            is_spout: Whether this actor is a spout (source) node
-            upstream_nodes: List of upstream node names this actor depends on
+            name: 节点名称
+            executor: 节点执行器（本地节点或Ray Actor）
+            is_spout: 是否为spout节点
+            upstream_nodes: 上游节点名称列表
         """
-        def get_platform(self) -> str:
-            """检测执行模式"""
-            if isinstance(self._operator, ray.actor.ActorHandle):
-                return "ray"
-            elif hasattr(self._operator, 'remote'):
-                return "ray_function"
-            else:
-                return "local"
+        # 检测平台类型
+        platform = self._detect_platform(executor)
         
-        self.nodes[name] = executor
+        self.operators[name] = executor
         self.nodes_metadata[name] = {
             'is_spout': is_spout,
             'upstream_nodes': upstream_nodes or [], 
-            "platform": get_platform(executor)
+            "platform": platform
         }
         
         if is_spout:
@@ -96,5 +156,74 @@ class MixedDAG:
         if upstream_nodes:
             self.node_dependencies[name] = upstream_nodes
         
-        self.logger.debug(f"Added node '{name}' of platform {get_platform(executor)}.")
+        self.logger.debug(f"Added node '{name}' of platform '{platform}'")
 
+
+    def _detect_platform(self, executor: Any) -> str:
+        """
+        检测执行器的平台类型
+        
+        Args:
+            executor: 执行器对象
+            
+        Returns:
+            平台类型字符串
+        """
+        if isinstance(executor, ActorHandle):
+            return "ray"
+        elif hasattr(executor, 'remote'):
+            return "ray_function" 
+        elif isinstance(executor, MultiplexerDagNode):
+            return "local"
+        else:
+            return "unknown"
+
+
+    def start_all_nodes(self):
+        """启动所有本地节点（Ray Actor会自动启动）"""
+        self.logger.info("Starting all DAG nodes...")
+        
+        local_node_count = 0
+        ray_node_count = 0
+        
+        for node_name, node_meta in self.nodes_metadata.items():
+            if node_meta["platform"] == "local":
+                node = self.operators[node_name]
+                node.start()
+                local_node_count += 1
+                self.logger.debug(f"Started local node: {node_name}")
+            else:
+                ray_node_count += 1
+        
+        self.logger.info(f"Started {local_node_count} local nodes, {ray_node_count} Ray actors")
+
+    def stop_all_nodes(self):
+        """停止所有节点"""
+        self.logger.info("Stopping all DAG nodes...")
+        
+        for node_name, node_meta in self.nodes_metadata.items():
+            try:
+                if node_meta["platform"] == "local":
+                    node = self.operators[node_name]
+                    node.stop()
+                    self.logger.debug(f"Stopped local node: {node_name}")
+                # Ray actors会在进程结束时自动清理
+            except Exception as e:
+                self.logger.error(f"Error stopping node {node_name}: {e}")
+
+    def get_dag_info(self) -> Dict[str, Any]:
+        """获取DAG信息"""
+        local_nodes = [name for name, meta in self.nodes_metadata.items() 
+                      if meta["platform"] == "local"]
+        ray_nodes = [name for name, meta in self.nodes_metadata.items() 
+                    if meta["platform"] == "ray"]
+        
+        return {
+            "name": self.name,
+            "total_nodes": len(self.operators),
+            "local_nodes": local_nodes,
+            "ray_nodes": ray_nodes,
+            "spout_nodes": self.spout_nodes,
+            "connections": self.connections,
+            "node_dependencies": self.node_dependencies
+        }
