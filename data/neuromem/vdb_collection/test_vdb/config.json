@@ -1,0 +1,20 @@
+{
+  "name": "test_vdb",
+  "dim": 16,
+  "default_topk": 5,
+  "default_index_type": "FAISS",
+  "indexes": {
+    "global_index": {
+      "index_type": "FaissIndex",
+      "description": null,
+      "metadata_filter_func": null,
+      "metadata_conditions": {}
+    },
+    "tag_A_index": {
+      "index_type": "FaissIndex",
+      "description": null,
+      "metadata_filter_func": null,
+      "metadata_conditions": {}
+    }
+  }
+}

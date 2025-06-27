@@ -1,0 +1,7 @@
+{
+  "test_vdb": {
+    "description": "测试VDB集合",
+    "backend_type": "VDB",
+    "is_ray_actor": false
+  }
+}
