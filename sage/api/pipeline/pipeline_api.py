@@ -79,13 +79,13 @@ class Pipeline:
         self.runtime_config = runtime_config
         # self.operator_factory = OperatorFactory(runtime_config)
 
-    def submit(self, config=None, generate_func=None):
-        from sage.core.engine import Engine
-        engine = Engine.get_instance(generate_func)
-        print(f"[Pipeline] Pipeline '{self.name}'submitted to engine.")
-        engine.submit_pipeline(self, config, generate_func)
+    # def submit(self, config=None, generate_func=None):
+    #     from sage.core.engine import Engine
+    #     engine = Engine.get_instance(generate_func)
+    #     print(f"[Pipeline] Pipeline '{self.name}'submitted to engine.")
+    #     engine.submit_pipeline(self, config, generate_func)
 
-    def submit_mixed(self, config=None):
+    def submit(self, config=None):
         from sage.core.engine import Engine
         engine = Engine.get_instance()
         print(f"[Pipeline] Pipeline '{self.name}'submitted to engine.")
