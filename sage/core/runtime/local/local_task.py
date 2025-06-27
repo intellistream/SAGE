@@ -1,7 +1,7 @@
 import logging
 from re import M
 from sage.core.dag.local.dag_node import BaseDAGNode,OneShotDAGNode
-from sage.core.dag.local.multi_dag_node import MultiplexerDagNode
+from sage.core.dag.local.local_dag_node import LocalDAGNode
 from sage.core.dag.local.dag import DAG
 import threading
 from sage.utils.custom_logger import CustomLogger
@@ -23,7 +23,7 @@ class StreamingTask(BaseTask):
                TypeError: 当节点类型不匹配时抛出
                RuntimeError: 执行过程中出现错误时抛出
     """
-    def __init__(self,node,working_config=None, session_folder: str = None):
+    def __init__(self,node,working_config=None):
         super().__init__()
         self.long_running=True
         self.node=node
@@ -32,7 +32,6 @@ class StreamingTask(BaseTask):
         self.working_config=working_config or {}
         self.logger = CustomLogger(
             object_name=f"StreamingTask_{self.name}",
-            session_folder=session_folder,
             log_level="DEBUG",
             console_output=False,
             file_output=True
@@ -41,10 +40,10 @@ class StreamingTask(BaseTask):
     def execute(self):
         #循环的执行算子
         try:
-            if  isinstance(self.node,MultiplexerDagNode):
+            if  isinstance(self.node,LocalDAGNode):
                 self.node.run_loop()
             else :
-                raise TypeError(f"node{self.node.name} is not a MultiplexerDagNode")
+                raise TypeError(f"node{self.node.name} is not a LocalDAGNode")
         except Exception as e:
             self.logger.error(e)
             raise TypeError(e)

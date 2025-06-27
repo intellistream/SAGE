@@ -32,10 +32,10 @@ class DataStream:
         self.config = config or {}
         self.node_type = node_type  # "source", "sink", "normal" or other types
 
-    def _transform(self, name: str, operator_class:Type[BaseFuction], config) -> DataStream:
-        # operator_instance = self.pipeline.operator_factory.create(operator_class, config)
+    def _transform(self, name: str, function_class:Type[BaseFuction], config) -> DataStream:
+        # operator_instance = self.pipeline.operator_factory.create(function_class, config)
         # op = next_operator_class
-        new_stream = DataStream(operator_class, self.pipeline, name=name, config = config, node_type="normal")
+        new_stream = DataStream(function_class, self.pipeline, name=name, config = config, node_type="normal")
         self.pipeline.data_streams.append(new_stream)
         # Wire dependencies
         new_stream.upstreams.append(self)

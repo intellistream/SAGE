@@ -1,3 +1,4 @@
+from __future__ import annotations
 import asyncio
 import inspect
 import logging
@@ -8,11 +9,17 @@ from typing import Any, Type, TYPE_CHECKING, Union, List, Optional, Tuple
 
 #from sage.archive.operator_wrapper import OperatorWrapper
 from sage.api.operator.base_operator_api import BaseFuction
+from sage.core.graph import SageGraph, GraphEdge, GraphNode
 from sage.core.io.message_queue import MessageQueue
-from sage.api.operator.base_operator_api import EmitContext
+from sage.core.io.emit_context import  NodeType
+from sage.core.io.local_emit_context import LocalEmitContext
 from sage.utils.custom_logger import CustomLogger
+# from sage.core.dag.local.multi_dag_node import LocalDAGNode
+import ray
+from ray.actor import ActorHandle
 
-class MultiplexerDagNode:
+
+class LocalDAGNode:
     """
     Multiplexer DAG Node.
 
@@ -39,22 +46,21 @@ class MultiplexerDagNode:
         self.operator = operator
         self.config = config
         self.is_spout = is_spout
-        # self.logger = logging.getLogger(self.__class__.__name__)
-        # self.logger = None
-        self.upstream_channels: List[MessageQueue] = []
-        self.downstream_channels: List[MessageQueue] = []
-        # self.stop_event = threading.Event()
-        # self.stop_event = None
-        # self.operator.set_emit_func(self._create_emit_func())
-        # Round-robin scheduling for upstream channels
+        
+        self.input_buffer = MessageQueue()  # Local input buffer for this node
+
+
+
         self._current_channel_index = 0
         self._initialized = False
         # Create emit context
-        self.emit_context = EmitContext(self.name)
-        # Don't inject emit context in __init__ to avoid serialization issues
+        # Create emit context for mixed environment
+        self.emit_context = LocalEmitContext(self.name, session_folder=session_folder)
         self._emit_context_injected = False
+
+
         self.logger = CustomLogger(
-            object_name=f"MultiplexerDagNode_{self.name}",
+            object_name=f"LocalDAGNode_{self.name}",
             session_folder=session_folder,
             log_level="DEBUG",
             console_output=False,
@@ -88,35 +94,16 @@ class MultiplexerDagNode:
         
         self._initialized = True
     
-
-
-    def fetch_input(self) -> Optional[Tuple[int, Any]]:
+    def put(self, data_packet: Tuple[int, Any]):
         """
-        Fetch input from upstream channels using round-robin scheduling.
-        Returns a tuple of (channel_id, data) from the next available upstream channel.
+        向输入缓冲区放入数据包
         
-        Returns:
-            Tuple of (channel_id, data) or None if no data is available from any channel
+        Args:
+            data_packet: (input_channel, data) 元组
         """
-        if not self.upstream_channels:
-            return None
-        
-        num_channels = len(self.upstream_channels)
-        # Try all channels starting from current position
-        for _ in range(num_channels):
-            channel_id = self._current_channel_index
-            channel:MessageQueue = self.upstream_channels[channel_id]
-            
-            # Move to next channel for next call (round-robin)
-            self._current_channel_index = (self._current_channel_index + 1) % num_channels
-            
-            # Check if current channel has data
-            if not channel.is_empty():
-                data = channel.get()
-                return (channel_id, data)
-        
-        # No data available from any channel
-        return None
+        self.input_buffer.put(data_packet, timeout=1.0)
+        self.logger.debug(f"Put data packet into buffer: channel={data_packet[0]}")
+
     
 
 
@@ -134,10 +121,44 @@ class MultiplexerDagNode:
         else:
             self.logger.warning(f"Channel index {channel} out of range for node {self.name}")
 
-    def add_downstream_channel(self, message_queue: MessageQueue):
-        """Add downstream channel to both node and emit context."""
-        self.downstream_channels.append(message_queue)
-        self.emit_context.add_downstream_channel(message_queue)
+    def add_downstream_node(self, output_edge: GraphEdge, downstream_operator: Union['LocalDAGNode', ActorHandle]):
+        """
+        添加下游节点到emit context
+        
+        Args:
+            output_edge: 输出边
+            downstream_operator: 下游操作符（本地节点或Ray Actor）
+        """
+        try:
+            if isinstance(downstream_operator, ActorHandle):
+                # Ray Actor
+                self.emit_context.add_downstream_target(
+                    output_channel=output_edge.upstream_channel,
+                    node_type=NodeType.RAY_ACTOR,
+                    target_object=downstream_operator,
+                    target_input_channel=output_edge.downstream_channel,
+                    node_name=f"RayActor_{output_edge.downstream_node.name}"
+                )
+                self.logger.debug(f"Added Ray actor downstream: {self.name}[{output_edge.upstream_channel}] -> "
+                                f"{output_edge.downstream_node.name}[{output_edge.downstream_channel}]")
+            
+            elif isinstance(downstream_operator, LocalDAGNode):
+                # 本地节点
+                self.emit_context.add_downstream_target(
+                    output_channel=output_edge.upstream_channel,
+                    node_type=NodeType.LOCAL,
+                    target_object=downstream_operator,
+                    target_input_channel=output_edge.downstream_channel,
+                    node_name=downstream_operator.name
+                )
+                self.logger.debug(f"Added local node downstream: {self.name}[{output_edge.upstream_channel}] -> "
+                                f"{downstream_operator.name}[{output_edge.downstream_channel}]")
+            else:
+                raise TypeError(f"Unsupported downstream operator type: {type(downstream_operator)}")
+                
+        except Exception as e:
+            self.logger.error(f"Error adding downstream node: {e}", exc_info=True)
+            raise
     
 
     def _inject_emit_context_if_needed(self):
@@ -168,18 +189,18 @@ class MultiplexerDagNode:
                 if self.is_spout:
                     # For spout nodes, call operator.receive with dummy channel and data
                     self.operator.receive(0, None)
+                    time.sleep(1)  # Sleep to avoid busy loop
                 else:
                     # For non-spout nodes, fetch input and process
-                    input_result = self.fetch_input()
-                    if input_result is None:
+                    # input_result = self.fetch_input()
+                    data_packet = self.input_buffer.get(timeout=0.5)
+                    if(data_packet is None):
                         time.sleep(0.1)  # Short sleep when no data to process
                         continue
-                    
-                    # Unpack the tuple: (channel_id, data)
-                    channel_id, data = input_result
-                    
+                    (input_channel, data) = data_packet
+                    self.logger.debug(f"Processing data from buffer: channel={input_channel}")
                     # Call operator's receive method with the channel_id and data
-                    self.operator.receive(channel_id, data)
+                    self.operator.receive(input_channel, data)
                     
             except Exception as e:
                 self.logger.error(
@@ -214,19 +235,5 @@ class MultiplexerDagNode:
         self.__dict__.update(state)
         # Mark as not initialized so runtime objects will be created when needed
         self._initialized = False
-
-
-    # def add_upstream_channel(self, upstream_dagnode:MultiplexerDagNode,channel_index:int):
-    #     """
-    #     Add an upstream channel to this multiplexer node.
-    #     目前只能顺序添加，不能随机添加。
-    #     Args:
-    #         upstream_dagnode: The upstream MultiplexerDagNode instance
-    #         channel_index: The index of the channel in the upstream node
-    #     """
-    #     if channel_index < len(upstream_dagnode.downstream_channels):
-    #         self.upstream_channels.append(upstream_dagnode.downstream_channels[channel_index])
-    #     else:
-    #         self.logger.error(f"Channel index {channel_index} out of range for upstream node {upstream_dagnode.name}.")
 
 
