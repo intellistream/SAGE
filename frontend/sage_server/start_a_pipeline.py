@@ -13,6 +13,7 @@ from sage.api.pipeline import Pipeline
 from sage.api.memory.memory_service import MemoryManagerService
 from sage.api.operator.operator_impl.promptor import QAPromptor
 from sage.api.operator.operator_impl.generator import OpenAIGenerator
+from sage.api.operator.operator_impl.generator import HFGenerator
 from sage.api.operator.operator_impl.reranker import BGEReranker
 from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
 from sage.api.operator.operator_impl.source import FileSource
@@ -47,7 +48,7 @@ async def init_memory_and_pipeline(job_id=None,  config=None, operators=None):
 
     # 创建一个新的管道实例
     pipeline_name = f"pipeline_{job_id}" if job_id else "dynamic_pipeline"
-    pipeline = Pipeline(pipeline_name)
+    pipeline = Pipeline(pipeline_name,use_ray=True)
 
     # 如果没有提供operators配置，使用默认配置
     if not operators:

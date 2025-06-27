@@ -3,7 +3,9 @@
 from pathlib import Path
 
 def resolve_data_path(path: str | Path) -> Path:
-    root = Path(__file__).resolve().parents[2]
+    import os
+    root = Path(os.getcwd()).resolve().parents[1]
+
     p = Path(path)
     return p if p.is_absolute() else root / "data" / p
 

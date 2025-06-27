@@ -315,6 +315,7 @@ def build_operators_config_from_job(job_info):
         "SimpleRetriever": "retrieve",
         "QAPromptor": "construct_prompt",
         "OpenAIGenerator": "generate_response",
+        "HFGenerator": "generate_response",
         "TerminalSink": "sink",
     }
 
