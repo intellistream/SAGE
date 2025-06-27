@@ -33,7 +33,7 @@ class DAG:
             file_output=True
         )
         self.working_config=None
-    def add_node(self, node):
+    def add_node(self, node:BaseDAGNode):
         """
         Add a node to the DAG.
         :param node: DAGNode instance to add.

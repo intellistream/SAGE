@@ -27,10 +27,9 @@ class FileSource(SourceFunction):
         :param config: Configuration dictionary containing source settings, including `data_path`.
         """
         super().__init__()
-        self.config = config["source"]
+        self.config = config
         # self.data_path = self.config["data_path"]
-        raw = self.config["data_path"]  # e.g. "sample/question.txt"
-        self.data_path = resolve_data_path(raw)  # → project_root/data/sample/question.txt
+        self.data_path = resolve_data_path(config["data_path"])  # → project_root/data/sample/question.txt
         self.file_pos = 0  # Track the file read position
 
     def execute(self) -> Data[str]:

@@ -50,6 +50,8 @@ class CustomLogger:
     # 类级别的默认session管理
     _default_session_folder: Optional[str] = None
     _lock = threading.Lock()
+    # 全局console debug开关
+    _global_console_debug_enabled: bool = True
     # 日志级别映射
     _LEVEL_MAPPING = {
         'DEBUG': logging.DEBUG,
@@ -115,7 +117,7 @@ class CustomLogger:
         formatter = CustomFormatter()
         
         # 控制台输出
-        if console_output:
+        if console_output and self._global_console_debug_enabled:
             console_handler = logging.StreamHandler()
             console_handler.setLevel(numeric_level)
             console_handler.setFormatter(formatter)
@@ -224,7 +226,10 @@ class CustomLogger:
             Path(session_folder).mkdir(parents=True, exist_ok=True)
     
     @classmethod
-    def get_default_session_folder(cls) -> Optional[str]:
+    def get_session_folder(cls) -> Optional[str]:
+        if cls._default_session_folder is None:
+            # 如果没有设置默认session文件夹，创建一个新的
+            cls._default_session_folder = cls.create_session_folder()
         """获取默认的session文件夹"""
         return cls._default_session_folder
     
@@ -233,3 +238,22 @@ class CustomLogger:
         """重置默认session（用于测试或重新开始）"""
         with cls._lock:
             cls._default_session_folder = None
+
+
+    @classmethod
+    def disable_global_console_debug(cls):
+        """全局禁用所有console debug输出"""
+        with cls._lock:
+            cls._global_console_debug_enabled = False
+    
+    @classmethod
+    def enable_global_console_debug(cls):
+        """全局启用所有console debug输出"""
+        with cls._lock:
+            cls._global_console_debug_enabled = True
+
+
+    @classmethod
+    def is_global_console_debug_enabled(cls) -> bool:
+        """检查全局console debug是否启用"""
+        return cls._global_console_debug_enabled

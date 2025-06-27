@@ -1,10 +1,13 @@
+# deprecated
+
+
 from typing import Dict, Type, Any, TYPE_CHECKING, Union
-from sage.core.compiler.optimizer import Optimizer
+# from sage.core.compiler.optimizer import Optimizer
 from sage.core.compiler.query_parser import QueryParser
 from sage.core.dag.local.dag import DAG
 from sage.core.dag.local.dag_node import BaseDAGNode, OneShotDAGNode
 from sage.core.compiler.logical_graph_constructor import LogicGraphConstructor
-from sage.core.dag.local.multi_dag_node import MultiplexerDagNode
+from sage.core.runtime.local.local_dag_node import LocalDAGNode
 from sage.core.io.message_queue import MessageQueue
 from sage.core.dag.ray.ray_dag import RayDAG
 if TYPE_CHECKING:
@@ -13,26 +16,25 @@ from sage.utils.custom_logger import CustomLogger
 
 class QueryCompiler:
 
-    def __init__(self,generate_func = None, session_folder: str = None):
+    def __init__(self):
         """
         Initialize the QueryCompiler with memory layers.
         :param memory_manager: Memory manager for managing memory layers.
         :param generate_func: Function for query generation
         """
-        self.session_folder = session_folder
+        self.session_folder = CustomLogger.get_session_folder()
         self.logical_graph_constructor = LogicGraphConstructor()
-        self.optimizer = Optimizer()
-        self.parser = QueryParser(generate_func=generate_func)
+        # self.optimizer = Optimizer()
+        self.parser = QueryParser(generate_func=None)
         self.dag_dict = {}
         self.logger = CustomLogger(
             object_name=f"QueryCompiler",
-            session_folder=session_folder,
             log_level="DEBUG",
             console_output=False,
             file_output=True
         )
 
-    def compile_graph(self, graph:'SageGraph') -> Union[DAG, RayDAG]:
+    def compile_graph(self, graph:'SageGraph') -> Union[DAG, RayDAG]: # deprecated
         platform = graph.config.get("platform", "local")
         self.logger.info(f"Compiling graph '{graph.name}' ")
 
@@ -42,7 +44,7 @@ class QueryCompiler:
             return self._compile_graph_for_local(graph)
         
 
-    def _compile_graph_for_ray(self, graph:'SageGraph') -> RayDAG:
+    def _compile_graph_for_ray(self, graph:'SageGraph') -> RayDAG: # deprecated
         """Ray-specific compilation logic returning RayDAG."""
         if(graph.config.get("is_long_running", False) is False):
             strategy = "oneshot"
@@ -57,10 +59,10 @@ class QueryCompiler:
         # Step 1: Create all Ray Actor DAG nodes
         for node_name, graph_node in graph.nodes.items():
             # Extract operator class and configuration instead of creating instance
-            operator_class = graph_node.operator
+            function_class = graph_node.operator
             operator_config = graph_node.config or {}
             
-            from sage.core.dag.ray.ray_multi_node import RayMultiplexerDagNode
+            from sage.core.runtime.ray.ray_dag_node import RayDAGNode
             from sage.core.runtime.collection_wrapper import CollectionWrapper
             
             # Create Ray Actor with operator class, not instance
@@ -68,9 +70,9 @@ class QueryCompiler:
             
             # wrapper:CollectionWrapper = operator_config["retriever"]["ltm_collection"]
             # operator_config["retriever"]["ltm_collection"] = wrapper._collection
-            ray_actor = RayMultiplexerDagNode.remote(
+            ray_actor = RayDAGNode.remote(
                 name=graph_node.name,
-                operator_class=operator_class,
+                function_class=function_class,
                 operator_config=operator_config,
                 is_spout=(graph_node.type == "source"), 
                 session_folder = self.session_folder
@@ -89,7 +91,7 @@ class QueryCompiler:
             
             # Get channel information from edge
             upstream_output_channel = edge.upstream_channel
-            downstream_input_channel = edge.downstream_channnel
+            downstream_input_channel = edge.downstream_channel
             self.logger.info(f"Connecting actors '{edge.upstream_node.name}' "
                              f"to {edge.downstream_node.name}")
             
@@ -102,7 +104,7 @@ class QueryCompiler:
             )
         return ray_dag
 
-    def _compile_graph_for_local(self, graph:'SageGraph')->DAG:
+    def _compile_graph_for_local(self, graph:'SageGraph')->DAG: # deprecated
         strategy = "streaming" if graph.config.get("is_long_running", False) else "oneshot"
         
         dag = DAG(name=graph.name, strategy=strategy, session_folder=self.session_folder)
@@ -116,14 +118,14 @@ class QueryCompiler:
 
 
         # Step 2: Create all DAG nodes first
-        dag_nodes:Dict[str, MultiplexerDagNode] = {}
+        dag_nodes:Dict[str, LocalDAGNode] = {}
         for node_name, graph_node in graph.nodes.items():
             # Create operator instance
             # operator = operator_factory.create(graph_node.operator, graph_node.config)
             graph_node.config["session_folder"] = self.session_folder
             operator_instance = graph_node.operator(graph_node.config)
             # Create DAG node
-            dag_node = MultiplexerDagNode(
+            dag_node = LocalDAGNode(
                 graph_node.name,
                 operator_instance,
                 config=graph_node.config,
