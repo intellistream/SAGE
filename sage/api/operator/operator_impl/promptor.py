@@ -3,6 +3,7 @@ from jinja2 import Template
 from sage.api.operator import PromptFunction
 from sage.api.operator import Data
 import logging
+from sage.utils.custom_logger import CustomLogger
 
 QA_prompt_template='''Instruction:
 You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.
@@ -45,7 +46,12 @@ class QAPromptor(PromptFunction):
         super().__init__()
         self.config = config  # Store the configuration for later use
         self.prompt_template = QA_prompt_template  # Load the QA prompt template
-        self.logger = logging.getLogger(__name__)
+        self.logger = CustomLogger(
+            object_name=f"QAPromptor_{__name__}",
+            log_level="DEBUG",
+            console_output=True,
+            file_output=True
+        )
 
     def execute(self, data) -> Data[list]:
         """

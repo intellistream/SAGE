@@ -2,6 +2,7 @@ from typing import Any, Tuple
 from sage.api.model import apply_generator_model
 from sage.api.operator import GeneratorFunction
 from sage.api.operator import Data
+from sage.utils.custom_logger import CustomLogger
 
 
 class OpenAIGenerator(GeneratorFunction):
@@ -27,6 +28,12 @@ class OpenAIGenerator(GeneratorFunction):
             base_url=self.config["base_url"],
             api_key=self.config["api_key"],
             seed=42  # Hardcoded seed for reproducibility
+        )
+        self.logger = CustomLogger(
+            object_name=f"OpenAIGenerator_{__name__}",
+            log_level="DEBUG",
+            console_output=True,
+            file_output=True
         )
         self.num = 1
 
@@ -69,7 +76,7 @@ class HFGenerator(GeneratorFunction):
                        the method and model name.
         """
         super().__init__()
-        self.config = config["generator"]
+        self.config = config
 
         # Apply the generator model with the provided configuration
         self.model = apply_generator_model(

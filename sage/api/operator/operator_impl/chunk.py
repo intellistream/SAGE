@@ -20,7 +20,7 @@ class CharacterSplitter(ChunkFunction):
 
     def __init__(self, config):
         super().__init__()
-        self.config = config.get("chunk",{})
+        self.config = config
         self.chunk_size = self.config.get("chunk_size", 512)
         self.overlap = self.config.get("overlap", 128)
 

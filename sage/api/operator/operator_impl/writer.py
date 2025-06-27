@@ -6,7 +6,7 @@ from sage.core.runtime.memory_adapter import MemoryAdapter
 class MemoryWriter(SharedStateWriterFunction):
     def __init__(self, config: dict):
         super().__init__()
-        self.config = config["writer"]
+        self.config = config
         # 初始化各类型集合
         self.collections = {}
 

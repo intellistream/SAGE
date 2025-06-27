@@ -3,12 +3,12 @@ from typing import Type, TYPE_CHECKING, Union, Any, TYPE_CHECKING
 import pip
 from sage.api.pipeline.datastream_api import DataStream
 from sage.api.operator import SourceFunction
-from sage.api.operator.base_operator_api import BaseFuction
+from sage.api.operator.base_operator_api import BaseFunction
 # from sage.core.graph.sage_graph import SageGraph
 
 class Pipeline:
     name:str
-    operators: list[BaseFuction]
+    operators: list[Union[BaseFunction, Type[BaseFunction] ]]
     data_streams: list[DataStream]
     operator_config: dict
     operator_cls_mapping: dict
@@ -29,7 +29,7 @@ class Pipeline:
     def _register_operator(self, operator):
         self.operators.append(operator)
 
-    def add_source(self,source_class: Type[SourceFunction], config:dict) -> DataStream:
+    def add_source(self,source: Union[Type[SourceFunction], SourceFunction], config:dict = {}) -> DataStream:
         """
         添加数据源，自动根据运行时配置创建合适的实例
         
@@ -40,9 +40,11 @@ class Pipeline:
         Returns:
             DataStream: 数据流对象
         """
+        if(isinstance(source, SourceFunction)):
+            config.update(source.config)  # 如果是实例，继承其配置
         # 使用工厂创建算子实例
         # operator_wrapper = self.operator_factory.create(source_class, config)
-        stream = DataStream(source_class,  pipeline=self, name="source", config = config, node_type="source")
+        stream = DataStream(source, self, "source", config, "source")
         self.data_streams.append(stream)
         return stream
 
@@ -77,13 +79,13 @@ class Pipeline:
         self.runtime_config = runtime_config
         # self.operator_factory = OperatorFactory(runtime_config)
 
-    def submit(self, config=None, generate_func=None):
-        from sage.core.engine import Engine
-        engine = Engine.get_instance(generate_func)
-        print(f"[Pipeline] Pipeline '{self.name}'submitted to engine.")
-        engine.submit_pipeline(self, config, generate_func)
+    # def submit(self, config=None, generate_func=None):
+    #     from sage.core.engine import Engine
+    #     engine = Engine.get_instance(generate_func)
+    #     print(f"[Pipeline] Pipeline '{self.name}'submitted to engine.")
+    #     engine.submit_pipeline(self, config, generate_func)
 
-    def submit_mixed(self, config=None):
+    def submit(self, config=None):
         from sage.core.engine import Engine
         engine = Engine.get_instance()
         print(f"[Pipeline] Pipeline '{self.name}'submitted to engine.")

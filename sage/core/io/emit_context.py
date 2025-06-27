@@ -39,7 +39,8 @@ class BaseEmitContext(ABC):
         self.logger = CustomLogger(
             object_name=f"EmitContext_{node_name}",
             session_folder=session_folder,
-            log_level="DEBUG"
+            log_level="DEBUG",
+            console_output=False,
         )
     
     def add_downstream_target(self, 

@@ -28,7 +28,12 @@ class RayEmitContext(BaseEmitContext):
         self.local_tcp_port = local_tcp_port
         self._tcp_socket = None
         self._socket_lock = threading.Lock()
-    
+        self.logger = CustomLogger(
+            object_name=f"RayEmitContext_{node_name}",
+            log_level="DEBUG",
+            console_output=True,
+            file_output=True
+        )
     def _get_tcp_connection(self) -> socket.socket:
         """获取到本地的TCP连接（懒加载）"""
         if self._tcp_socket is None:

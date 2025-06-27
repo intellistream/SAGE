@@ -8,11 +8,9 @@ from sage.api.operator.operator_impl.source import FileSource
 from sage.api.operator.operator_impl.sink import MemWriteSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
-def load_config(path: str) -> dict:
-    
-    """加载YAML配置文件"""
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
+from sage.utils.config_loader import load_config
+from sage.utils.logging_utils import configure_logging
+
 
 def memory_init():
     """初始化内存管理器并创建测试集合"""
@@ -39,18 +37,18 @@ def memory_init():
     config["writer"]["ltm_collection"] = col
 
 def pipeline_run(): 
-    pipeline = Pipeline(name="example_pipeline", use_ray=False)
+    pipeline = Pipeline(name="example_pipeline")
     # 构建数据处理流程
-    source_stream = pipeline.add_source(FileSource, config)
-    chunk_stream = source_stream.chunk(CharacterSplitter,config)
+    source_stream = pipeline.add_source(FileSource, config["source"])
+    chunk_stream = source_stream.chunk(CharacterSplitter,config["chunk"])
     memwrite_stream= chunk_stream.write_mem(MemoryWriter,config)
-    sink_stream= memwrite_stream.sink(MemWriteSink,config)
+    sink_stream= memwrite_stream.sink(MemWriteSink,config["writer"])
     pipeline.submit(config={"is_long_running": True})
     time.sleep(100)  # 等待管道运行
 
 if __name__ == '__main__':
     # 加载配置并初始化日志
-    config = load_config('./app/config_for_ingest.yaml')
+    config = load_config('config_for_ingest.yaml')
     logging.basicConfig(level=logging.INFO)
     # 初始化内存并运行管道
     memory_init()
