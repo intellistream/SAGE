@@ -8,6 +8,7 @@ import pickle
 import numpy as np
 from typing import Optional, List, Dict, Any
 from sage.core.neuromem.search_engine.vdb_index.base_vdb_index import BaseVDBIndex
+from sage.utils.custom_logger import CustomLogger
 
 class FaissIndex(BaseVDBIndex):
     def __init__(
@@ -32,7 +33,12 @@ class FaissIndex(BaseVDBIndex):
         self.tombstones: set[str] = set()
         self._deletion_supported = True
         self.index = None
-        
+        self.logger = CustomLogger(
+            object_name=f"FaissIndex",
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
         if load_path is not None:
             self._load(load_path)
         else:
@@ -184,7 +190,7 @@ class FaissIndex(BaseVDBIndex):
 
         int_ids_np = np.array(int_ids, dtype=np.int64)
         if not isinstance(self.index, faiss.IndexIDMap):
-            print("Wrapping index with IndexIDMap")
+            self.logger.info("Wrapping index with IndexIDMap")
             self.index = faiss.IndexIDMap(self.index)  # 仅当未包装时才包装
         self.index.add_with_ids(np_vectors, int_ids_np)  # type: ignore
         

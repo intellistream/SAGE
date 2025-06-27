@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import Type, TYPE_CHECKING, Union, Any, AnyStr, Dict, List
+from typing import Type, TYPE_CHECKING, Union, Any, AnyStr, Dict, List, Set
 from sage.api.pipeline.pipeline_api import Pipeline
 from sage.api.pipeline.datastream_api import DataStream
 from sage.api.operator import BaseFuction
-
+from sage.utils.custom_logger import CustomLogger
 
 
 
@@ -33,7 +33,7 @@ class GraphEdge:
         self.downstream_channnel: int = None
 
 class SageGraph:
-    def __init__(self, pipeline:Pipeline, config: dict = None):
+    def __init__(self, pipeline:Pipeline, config: dict = None, session_folder: str = None):
         """
         Initialize the NodeGraph with a name and optional configuration.
         Args:
@@ -47,10 +47,29 @@ class SageGraph:
         self.nodes:Dict[str, GraphNode] = {}
         self.edges:Dict[str, GraphEdge] = {}
         # 构建数据流之间的连接映射
+
+        self.logger = CustomLogger(
+            object_name=f"SageGraph_{self.name}",
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=True,
+            file_output=True
+        )
+        # 构建基础图结构
+        self._build_graph_from_pipeline(pipeline)
+        
+        # 执行局部编译优化
+        self._optimize_graph()
+        
+        # 验证优化后的图
+        if not self.validate_graph():
+            raise ValueError("Generated graph is invalid after optimization")
+        
+        self.logger.info(f"Successfully converted and optimized pipeline '{pipeline.name}' to graph with {len(self.nodes)} nodes and {len(self.edges)} edges")
+
+    def _build_graph_from_pipeline(self, pipeline: Pipeline):
         stream_to_node_name = {}
         stream_connections = {}
-
-
         # 第一步：为每个 DataStream 生成唯一的节点名和边名
         for i, stream in enumerate(pipeline.data_streams):
             node_name = f"{stream.name}_{i}" if stream.name else f"node_{i}"
@@ -100,34 +119,162 @@ class SageGraph:
                     input_streams=connection_info['input_edges'],
                     output_streams=connection_info['output_edges'],
                     operator_class=stream.operator,
-                    operator_config=stream.config
+                    operator_config=stream.config, 
+                    node_type=stream.node_type
                 )
                 added_nodes.add(node_name)
-                print(f"Added node: {node_name}")
+                self.logger.debug(f"Added node: {node_name}")
                 
             except Exception as e:
-                print(f"Error adding node {node_name}: {e}")
+                self.logger.debug(f"Error adding node {node_name}: {e}")
                 raise
         
         # 从所有数据流开始添加（以处理可能的多个独立子图）
         for stream in pipeline.data_streams:
             add_node_recursively(stream)
-        # 第三步：验证图的有效性
-        if not self.validate_graph():
-            raise ValueError("Generated graph is invalid")
+    
+    def _optimize_graph(self):
+        """执行局部编译优化"""
+        self.logger.info("Starting graph optimization...")
         
-        print(f"Successfully converted pipeline '{pipeline.name}' to graph with {len(self.nodes)} nodes and {len(self.edges)} edges")
+        # 记录优化前的状态
+        initial_nodes = len(self.nodes)
+        initial_edges = len(self.edges)
+        
+        # 1. 死代码消除：删除无效的非sink节点（没有有效输出路径的节点）
+        self._eliminate_dead_code()
+        
+        # 2. 删除孤立节点（没有任何连接的节点）
+        self._remove_orphaned_nodes()
+        
+        # 3. 简化冗余路径（可选，未来扩展）
+        # self._simplify_redundant_paths()
+        
+        # 记录优化结果
+        final_nodes = len(self.nodes)
+        final_edges = len(self.edges)
+        
+        if initial_nodes != final_nodes or initial_edges != final_edges:
+            self.logger.info(f"Graph optimization completed: "
+                           f"nodes {initial_nodes} -> {final_nodes} "
+                           f"(removed {initial_nodes - final_nodes}), "
+                           f"edges {initial_edges} -> {final_edges} "
+                           f"(removed {initial_edges - final_edges})")
+        else:
+            self.logger.debug("Graph optimization completed: no changes needed")
 
+    def _eliminate_dead_code(self):
+        """
+        消除死代码：递归删除无法到达任何有效输出的节点
+        类似编译器优化中的死变量消除
+        """
+        # 1. 标记所有有效的节点（能够到达sink节点或有外部输出的节点）
+        valid_nodes = self._mark_reachable_nodes()
+        
+        # 2. 识别无效节点
+        invalid_nodes = set(self.nodes.keys()) - valid_nodes
+        
+        if invalid_nodes:
+            self.logger.info(f"Dead code elimination: removing {len(invalid_nodes)} unreachable nodes: {list(invalid_nodes)}")
+            
+            # 3. 递归删除无效节点
+            for node_name in invalid_nodes:
+                self._remove_node_and_edges(node_name)
 
+    def _mark_reachable_nodes(self) -> Set[str]:
+        """
+        标记所有可达的有效节点
+        从sink节点开始反向遍历，标记所有能到达有效输出的节点
+        """
+        valid_nodes = set()
+        
+        # 1. 获取所有sink节点作为初始有效节点
+        sink_nodes = self.get_sink_nodes()
+        if not sink_nodes:
+            self.logger.warning("No sink nodes found, treating all leaf nodes as valid")
+            # 如果没有明确的sink节点，将所有叶子节点视为有效
+            sink_nodes = [name for name, node in self.nodes.items() 
+                         if not node.output_channels]
+        
+        # 2. 从sink节点开始反向DFS标记
+        def mark_upstream_recursive(node_name: str):
+            if node_name in valid_nodes:
+                return
+            
+            valid_nodes.add(node_name)
+            self.logger.debug(f"Marked node '{node_name}' as reachable")
+            
+            # 递归标记所有上游节点
+            for upstream_name in self.get_upstream_nodes(node_name):
+                mark_upstream_recursive(upstream_name)
+        
+        # 标记所有从sink可达的节点
+        for sink_name in sink_nodes:
+            mark_upstream_recursive(sink_name)
+        
+        return valid_nodes
 
+    def _remove_orphaned_nodes(self):
+        """删除孤立节点（没有任何连接的节点）"""
+        orphaned_nodes = []
+        
+        for node_name, node in self.nodes.items():
+            if not node.input_channels and not node.output_channels:
+                orphaned_nodes.append(node_name)
+        
+        if orphaned_nodes:
+            self.logger.info(f"Removing {len(orphaned_nodes)} orphaned nodes: {orphaned_nodes}")
+            for node_name in orphaned_nodes:
+                self._remove_node_and_edges(node_name)
 
+    def _remove_node_and_edges(self, node_name: str):
+        """
+        安全地删除节点及其相关的边
+        """
+        if node_name not in self.nodes:
+            return
+        
+        node = self.nodes[node_name]
+        
+        # 删除与该节点相关的所有边
+        edges_to_remove = []
+        
+        # 收集输入边
+        for input_edge in node.input_channels:
+            edges_to_remove.append(input_edge.name)
+            # 断开上游节点的连接
+            if input_edge.upstream_node:
+                input_edge.upstream_node.output_channels = [
+                    e for e in input_edge.upstream_node.output_channels 
+                    if e.name != input_edge.name
+                ]
+        
+        # 收集输出边
+        for output_edge in node.output_channels:
+            edges_to_remove.append(output_edge.name)
+            # 断开下游节点的连接
+            if output_edge.downstream_node:
+                output_edge.downstream_node.input_channels = [
+                    e for e in output_edge.downstream_node.input_channels 
+                    if e.name != output_edge.name
+                ]
+        
+        # 删除边
+        for edge_name in edges_to_remove:
+            if edge_name in self.edges:
+                del self.edges[edge_name]
+        
+        # 删除节点
+        del self.nodes[node_name]
+        self.logger.debug(f"Removed node '{node_name}' and {len(edges_to_remove)} associated edges")
 
     def add_node(self, 
                  node_name: str,
                  input_streams: Union[str, List[str]], 
                  output_streams: Union[str, List[str]], 
                  operator_class: Type[BaseFuction],
-                 operator_config: Dict = None) -> GraphNode:
+                 operator_config: Dict = None, 
+                 node_type: str = "normal") -> GraphNode:
         """
         Add a node to the graph.
         Args:
@@ -147,16 +294,7 @@ class SageGraph:
             output_streams = [output_streams] if output_streams else []
         elif output_streams is None:
             output_streams = []
-        
-        # 根据输入输出流推断节点类型
-        if not input_streams and output_streams:
-            node_type = "source"
-        elif input_streams and not output_streams:
-            node_type = "sink"
-        elif input_streams and output_streams:
-            node_type = "normal"
-        else:
-            raise ValueError("Node must have at least input streams or output streams")
+
         # 创建节点
         node = GraphNode(node_name, operator_class, node_type, operator_config)
         # 检查节点名是否已存在
@@ -195,7 +333,7 @@ class SageGraph:
     # def submit(self):
     #     engine:Engine = Engine.get_instance(generate_func=None)
     #     engine.submit_graph(self)
-    #     print(f" Graph '{self.name}' submitted to engine.")
+    #     self.logger.debug(f" Graph '{self.name}' submitted to engine.")
     def get_upstream_nodes(self, node_name: str) -> List[str]:
         """
         Get list of upstream node names for a given node.
@@ -277,7 +415,8 @@ class SageGraph:
         """
         sink_nodes = []
         for node_name, node in self.nodes.items():
-            if node.type == "sink" or not node.output_channels:
+            self.logger.debug(f"Checking node '{node_name}' of type '{node.type}'")
+            if node.type == "sink": # or not node.output_channels:
                 sink_nodes.append(node_name)
         return sink_nodes
     
@@ -290,23 +429,23 @@ class SageGraph:
         """
         # Check if graph has at least one source node
         if not self.get_source_nodes():
-            print("Graph validation failed: No source nodes found")
+            self.logger.debug("Graph validation failed: No source nodes found")
             return False
         
         # Check if all edges are properly connected
         for edge_name, edge in self.edges.items():
             if edge.upstream_node is None:
-                print(f"Graph validation failed: Edge '{edge_name}' has no upstream node")
+                self.logger.debug(f"Graph validation failed: Edge '{edge_name}' has no upstream node")
                 return False
             
             if edge.downstream_node is None:
-                print(f"Graph validation failed: Edge '{edge_name}' has no downstream node")
+                self.logger.debug(f"Graph validation failed: Edge '{edge_name}' has no downstream node")
                 return False
         
         # Check for orphaned nodes (nodes with no connections)
         for node_name, node in self.nodes.items():
             if not node.input_channels and not node.output_channels:
-                print(f"Graph validation failed: Node '{node_name}' is orphaned (no connections)")
+                self.logger.debug(f"Graph validation failed: Node '{node_name}' is orphaned (no connections)")
                 return False
         
         return True

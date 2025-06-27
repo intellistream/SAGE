@@ -52,3 +52,5 @@ qa_output.txt
 run.sh
 ray_logs
 /output/
+/logs
+/logs/**
