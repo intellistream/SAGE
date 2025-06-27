@@ -10,6 +10,7 @@ from sage.core.neuromem.memory_manager import MemoryManager
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
 from sage.api.model.model_api import apply_embedding_model
+from sage.utils.custom_logger import CustomLogger
 def memory_init():
     """初始化内存管理器并创建测试集合"""
     manager = MemoryManager()
@@ -50,13 +51,22 @@ def pipeline_run():
     response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
     pipeline.submit_mixed(config={"is_long_running":True})
-    manual_source.push("What is the capital of France?")
-    manual_source.push("What is the capital of Japan?")
-    manual_source.push("What is the capital of China?")
-    time.sleep(100)  # 等待管道运行
+    time.sleep(10) # 等待管道启动
+    while(True):
+        user_input = input("\n>>> ").strip()
+        if user_input.lower() == "exit":
+            logging.info("Exiting SAGE Interactive Console")
+            print("Goodbye!")
+            break
+        manual_source.push(user_input)
+    # manual_source.push("What is the capital of France?")
+    # manual_source.push("What is the capital of China?")
+    # manual_source.push("What is the capital of Japan?")
+
 
 
 if __name__ == '__main__':
+    CustomLogger.disable_global_console_debug()  # 禁用全局控制台调试输出
     configure_logging(level=logging.INFO)
     # 加载配置并初始化日志
     config = load_config('./config_instance.yaml')
