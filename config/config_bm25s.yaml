@@ -5,7 +5,7 @@ pipeline:
   type: "ray"
 
 source:
-  data_path: "q.txt"
+  data_path: "./data/q.txt"
 
 retriever:
   kv_collection:
