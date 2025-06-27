@@ -28,7 +28,7 @@ class DenseRetriever(StateRetrieverFunction):
 
         self.logger = CustomLogger(
             object_name=f"DenseRetriever",
-            session_folder=config["session_folder"] or None,
+            session_folder=config.get("session_folder",None),
             log_level="DEBUG",
             console_output=False,
             file_output=True
@@ -80,7 +80,7 @@ class DenseRetriever(StateRetrieverFunction):
 class BM25sRetriever(StateRetrieverFunction):
     def __init__(self, config: dict):
         super().__init__()
-        self.config = config["retriever"]
+        self.config = config
         self.bm25s_collection = self.config.get("bm25s_collection")
         self.bm25s_config = self.config.get("bm25s_config", {})
 

@@ -24,7 +24,7 @@ class RayRuntime(BaseRuntime):
         """
         # 确保Ray已初始化
         if not ray.is_initialized():
-            ray.init(temp_dir="./ray_tmp")
+            ray.init()
             
         self.name = "RayRuntime"
         self.session_folder = CustomLogger.get_session_folder()

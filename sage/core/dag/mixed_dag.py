@@ -16,6 +16,7 @@ class MixedDAG:
         self.nodes_metadata: Dict[str, Dict[str, Any]] = {}  # node_name -> platform
         self.connections: List[Tuple[str, int, str, int]] = []  # (upstream_node, out_channel, downstream_node, in_channel)
         self.session_folder = CustomLogger.get_session_folder()
+        self.ray_handles: List[Any] = []  # 存储Ray Actor句柄
         self.logger = CustomLogger(
             object_name=f"MixedDAG_{self.name}",
             log_level="DEBUG",
@@ -311,5 +312,5 @@ class MixedDAG:
         except Exception as e:
             self.logger.error(f"Failed to start MixedDAG '{self.name}': {e}", exc_info=True)
             # 清理已经提交的节点
-            self._cleanup_partial_submission(local_runtime, ray_runtime)
+            # self._cleanup_partial_submission(local_runtime, ray_runtime)
             raise

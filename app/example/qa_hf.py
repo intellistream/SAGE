@@ -36,14 +36,14 @@ def memory_init():
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = Pipeline(name="example_pipeline", use_ray=False)
+    pipeline = Pipeline(name="example_pipeline")
     # 构建数据处理流程
-    query_stream = pipeline.add_source(FileSource, config)
-    query_and_chunks_stream = query_stream.retrieve(DenseRetriever, config)
-    prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config)
+    query_stream = pipeline.add_source(FileSource, config["source"])
+    query_and_chunks_stream = query_stream.retrieve(DenseRetriever, config["retriever"])
+    prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config["promptor"])
     # prompt_stream = query_stream.construct_prompt(QAPromptor, config)
-    response_stream = prompt_stream.generate_response(HFGenerator, config)
-    response_stream.sink(TerminalSink, config)
+    response_stream = prompt_stream.generate_response(HFGenerator, config["generator"])
+    response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
     pipeline.submit(config={"is_long_running":False})
     # time.sleep(100)  # 等待管道运行
