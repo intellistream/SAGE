@@ -51,7 +51,7 @@ class Engine:
 
     def submit_pipeline(self, pipeline, config=None, generate_func=None):
         from sage.core.graph import SageGraph
-        graph = SageGraph(pipeline, config, session_folder=self.session_folder)
+        graph = SageGraph(pipeline, config)
         self.graphs[graph.name] = graph  # 存储图到字典中
         # 合并配置
         if config:

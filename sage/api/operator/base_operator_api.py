@@ -12,7 +12,7 @@ class Data(Generic[T]):
 
 
 
-class BaseFuction:
+class BaseFunction:
     def __init__(self):
         self.upstream = None
         self.downstream = None
@@ -76,7 +76,7 @@ class BaseFuction:
 
 
 
-    def set_emit_context(self, emit_context: 'EmitContext'):
+    def set_emit_context(self, emit_context):
         """
         Set the emit context that will be used when emit() is invoked.
         This is typically called by the DAG node during initialization.
@@ -86,14 +86,14 @@ class BaseFuction:
         """
         self._emit_context = emit_context
     
-class StateLessFuction(BaseFuction):
+class StateLessFuction(BaseFunction):
     def __init__(self):
         super().__init__()
     
     def execute(self, data: Data[T]) -> Data[T]:
         raise NotImplementedError(f"{self.get_name()}.execute() is not implemented")
 
-class StatefulFuction(BaseFuction):
+class StatefulFuction(BaseFunction):
     def __init__(self):
         super().__init__()
         self._state = {}
@@ -104,7 +104,7 @@ class StatefulFuction(BaseFuction):
     def get_state(self):
         return self._state
 
-class SharedStateFuction(BaseFuction):
+class SharedStateFuction(BaseFunction):
     shared_state = {}  # class-level shared state
 
     def __init__(self):
@@ -154,7 +154,7 @@ class SharedStateFuction(BaseFuction):
 
 
 
-    def set_emit_context(self, emit_context: 'EmitContext'):
+    def set_emit_context(self, emit_context):
         """
         Set the emit context that will be used when emit() is invoked.
         This is typically called by the DAG node during initialization.

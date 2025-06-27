@@ -11,9 +11,9 @@ from .evaluate_function_api import EvaluateFunction
 from .agent_function_api import AgentFunction
 from .base_operator_api import Data
 from .route_function_api import RouterFunction
-from .base_operator_api import BaseFuction
+from .base_operator_api import BaseFunction
 __all__ = [
-    "BaseFuction",
+    "BaseFunction",
     "SourceFunction",
     "StateRetrieverFunction",
     "SharedStateRetrieverFunction",

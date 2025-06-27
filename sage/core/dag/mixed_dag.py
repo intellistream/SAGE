@@ -71,6 +71,8 @@ class MixedDAG:
                     # Ray节点调用远程方法
                     if(isinstance(downstream_operator, LocalDAGNode)):
                         downstream_handle = downstream_operator.name
+                    else:
+                        downstream_handle = downstream_operator
                     current_operator.add_downstream_node.remote(
                         output_edge.upstream_channel,
                         output_edge.downstream_channel,
@@ -110,6 +112,9 @@ class MixedDAG:
         platform = graph_node.config.get("platform", "local")
         
         if platform == "ray":
+            if(isinstance(graph_node.operator, type) == False):
+                # ray不支持预先实例化的算子
+                raise Exception("GraphNode operator must be a class for Ray platform")
             # 创建Ray Actor
             node = RayDAGNode.remote(
                 name=graph_node.name,
@@ -121,8 +126,11 @@ class MixedDAG:
             self.logger.debug(f"Created Ray actor node: {graph_node.name}")
             return node
         else:
+            if (isinstance(graph_node.operator, type) == True):
+                operator_instance = graph_node.operator(graph_node.config)
+            else:
+                operator_instance = graph_node.operator
             # 创建本地节点
-            operator_instance = graph_node.operator(graph_node.config)
             node = LocalDAGNode(
                 name=graph_node.name,
                 operator=operator_instance,

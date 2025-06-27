@@ -8,7 +8,7 @@ RAG常见算子包括Retriver、Prompt、Generator等
 ```
 
 ## Core Features / 核心功能
-class SourceFunction(BaseFuction):
+class SourceFunction(BaseFunction):
     """
     Operator for read data
     """
