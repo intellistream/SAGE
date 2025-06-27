@@ -33,7 +33,7 @@ class GraphEdge:
         self.downstream_channel: int = None
 
 class SageGraph:
-    def __init__(self, pipeline:Pipeline, config: dict = None, session_folder: str = None):
+    def __init__(self, pipeline:Pipeline, config: dict = None):
         """
         Initialize the NodeGraph with a name and optional configuration.
         Args:
@@ -50,7 +50,6 @@ class SageGraph:
 
         self.logger = CustomLogger(
             object_name=f"SageGraph_{self.name}",
-            session_folder=session_folder,
             log_level="DEBUG",
             console_output=True,
             file_output=True

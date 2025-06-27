@@ -7,7 +7,7 @@ class TerminalSink(SinkFunction):
 
     def __init__(self,config):
         super().__init__()
-        self.config=config["sink"]
+        self.config=config
 
     def execute(self, data:Data[Tuple[str,str]]):
         question,answer=data.data

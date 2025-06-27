@@ -8,11 +8,12 @@ from sage.api.operator.base_operator_api import BaseFuction
 from sage.core.graph import GraphEdge, GraphNode
 from sage.core.io.emit_context import RayEmitContext, NodeType
 from sage.utils.custom_logger import CustomLogger
+from sage.core.dag.local.local_dag_node import LocalDAGNode
 
 @ray.remote
-class RayMultiplexerDagNode:
+class RayDAGNode:
     """
-    Ray Actor version of MultiplexerDagNode for distributed execution.
+    Ray Actor version of LocalDAGNode for distributed execution.
     
     Unlike local nodes, Ray actors don't need input buffers as Ray platform
     maintains the request queue for actors automatically.
@@ -93,7 +94,7 @@ class RayMultiplexerDagNode:
         
         self._initialized = True
 
-    def add_downstream_node(self, output_edge: GraphEdge, downstream_operator: Union[ActorHandle, 'MultiplexerDagNode']):
+    def add_downstream_node(self,output_channel:int, target_input_channel:int,   downstream_handle: Union[ActorHandle, str]):
         """
         添加下游节点到emit context
         
@@ -102,29 +103,28 @@ class RayMultiplexerDagNode:
             downstream_operator: 下游操作符（Ray Actor或本地节点）
         """
         try:
-            if isinstance(downstream_operator, ActorHandle):
+            if isinstance(downstream_handle, ActorHandle):
                 # 下游是Ray Actor
                 self.emit_context.add_downstream_target(
-                    output_channel=output_edge.upstream_channel,
+                    output_channel=output_channel,
                     node_type=NodeType.RAY_ACTOR,
-                    target_object=downstream_operator,
-                    target_input_channel=output_edge.downstream_channnel,
-                    node_name=f"RayActor_{output_edge.downstream_node.name}"
+                    target_object=downstream_handle,
+                    target_input_channel=target_input_channel,
+                    node_name=f"RayActor_output_channel_{output_channel}"
                 )
-                self.logger.debug(f"Added Ray actor downstream: {self.name}[{output_edge.upstream_channel}] -> "
-                                f"{output_edge.downstream_node.name}[{output_edge.downstream_channnel}]")
+                self.logger.debug(f"Added Ray actor downstream: {self.name}[{output_channel}]")
             
             else:
                 # 下游是本地节点（通过TCP通信）
                 self.emit_context.add_downstream_target(
-                    output_channel=output_edge.upstream_channel,
+                    output_channel=output_channel,
                     node_type=NodeType.LOCAL,
                     target_object=None,  # TCP通信不需要直接引用
-                    target_input_channel=output_edge.downstream_channnel,
-                    node_name=output_edge.downstream_node.name
+                    target_input_channel=target_input_channel,
+                    node_name=downstream_handle
                 )
-                self.logger.debug(f"Added local node downstream: {self.name}[{output_edge.upstream_channel}] -> "
-                                f"{output_edge.downstream_node.name}[{output_edge.downstream_channnel}] (via TCP)")
+                self.logger.debug(f"Added local node downstream: {self.name}[{output_channel}] -> "
+                                f"{downstream_handle}[{target_input_channel}] (via TCP)")
                 
         except Exception as e:
             self.logger.error(f"Error adding downstream node: {e}", exc_info=True)

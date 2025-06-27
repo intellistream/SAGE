@@ -13,15 +13,15 @@ class Pipeline:
     operator_config: dict
     operator_cls_mapping: dict
     # operator_factory: OperatorFactory
-    use_ray: bool
+    # use_ray: bool
     # compiler: QueryCompiler
-    def __init__(self, name: str, use_ray: bool = True):
+    def __init__(self, name: str):
         self.name = name
         self.operators = []
         self.data_streams = []
         self.operator_config = {}
         self.operator_cls_mapping = {}
-        self.use_ray = use_ray
+        self.use_ray = False  # 是否使用 Ray 运行时，默认为 False
         # 创建全局算子工厂
         # self.operator_factory = OperatorFactory(self.use_ray)
 
@@ -82,6 +82,12 @@ class Pipeline:
         engine = Engine.get_instance(generate_func)
         print(f"[Pipeline] Pipeline '{self.name}'submitted to engine.")
         engine.submit_pipeline(self, config, generate_func)
+
+    def submit_mixed(self, config=None):
+        from sage.core.engine import Engine
+        engine = Engine.get_instance()
+        print(f"[Pipeline] Pipeline '{self.name}'submitted to engine.")
+        engine.submit_mixed_pipeline(self, config)
 
     def get_graph_preview(self) -> dict:
         """
