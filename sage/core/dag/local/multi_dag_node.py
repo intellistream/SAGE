@@ -10,6 +10,7 @@ from typing import Any, Type, TYPE_CHECKING, Union, List, Optional, Tuple
 from sage.api.operator.base_operator_api import BaseFuction
 from sage.core.io.message_queue import MessageQueue
 from sage.api.operator.base_operator_api import EmitContext
+from sage.utils.custom_logger import CustomLogger
 
 class MultiplexerDagNode:
     """
@@ -23,7 +24,8 @@ class MultiplexerDagNode:
                  name: str, 
                  operator: BaseFuction,
                  config: dict = None, 
-                 is_spout: bool = False) -> None:
+                 is_spout: bool = False, 
+                 session_folder: str = None) -> None:
         """
         Initialize the multiplexer DAG node.
 # 
@@ -51,7 +53,18 @@ class MultiplexerDagNode:
         self.emit_context = EmitContext(self.name)
         # Don't inject emit context in __init__ to avoid serialization issues
         self._emit_context_injected = False
-        
+        self.logger = CustomLogger(
+            object_name=f"MultiplexerDagNode_{self.name}",
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
+
+
+
+
+
     def _ensure_initialized(self):
         """
         Ensure that all runtime objects are initialized.
@@ -60,36 +73,20 @@ class MultiplexerDagNode:
         if self._initialized:
             return
             
-        # Initialize logger
-        self._logger = logging.getLogger(f"{self.__class__.__name__}.{self.name}")
         
         # Initialize stop event
-        self._stop_event = threading.Event()
+        self.stop_event = threading.Event()
         
         # Inject emit context
         if hasattr(self.operator, 'set_emit_context') and not self._emit_context_injected:
             try:
                 self.operator.set_emit_context(self.emit_context)
                 self._emit_context_injected = True
-                self._logger.debug(f"Injected emit context for operator in node {self.name}")
+                self.logger.debug(f"Injected emit context for operator in node {self.name}")
             except Exception as e:
-                self._logger.warning(f"Failed to inject emit context in node {self.name}: {e}")
+                self.logger.warning(f"Failed to inject emit context in node {self.name}: {e}")
         
         self._initialized = True
-
-    @property
-    def logger(self):
-        """Get logger, initializing if necessary."""
-        if not hasattr(self, '_logger') or self._logger is None:
-            self._ensure_initialized()
-        return self._logger
-
-    @property
-    def stop_event(self):
-        """Get stop event, initializing if necessary."""
-        if not hasattr(self, '_stop_event') or self._stop_event is None:
-            self._ensure_initialized()
-        return self._stop_event
     
 
 
@@ -194,10 +191,10 @@ class MultiplexerDagNode:
 
     def stop(self) -> None:
         """Signal the worker loop to stop."""
-        if hasattr(self, '_stop_event') and self._stop_event and not self._stop_event.is_set():
-            self._stop_event.set()
-            if hasattr(self, '_logger') and self._logger:
-                self._logger.info(f"Node '{self.name}' received stop signal.")
+        if hasattr(self, 'stop_event') and self.stop_event and not self.stop_event.is_set():
+            self.stop_event.set()
+            if hasattr(self, 'logger') and self.logger:
+                self.logger.info(f"Node '{self.name}' received stop signal.")
 
 
     def __getstate__(self):
@@ -206,8 +203,8 @@ class MultiplexerDagNode:
         """
         state = self.__dict__.copy()
         # Remove non-serializable objects
-        state.pop('_logger', None)
-        state.pop('_stop_event', None)
+        state.pop('logger', None)
+        state.pop('stop_event', None)
         return state
 
     def __setstate__(self, state):

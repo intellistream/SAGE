@@ -5,6 +5,7 @@ from typing import Any, List, Optional, Dict, Tuple, TYPE_CHECKING, Type
 # from sage.archive.operator_wrapper import OperatorWrapper
 from sage.api.operator.base_operator_api import BaseFuction
 from sage.api.operator.base_operator_api import EmitContext
+from sage.utils.custom_logger import CustomLogger
 from ray.actor import ActorHandle  # 只在类型检查期间生效
 import time
 @ray.remote
@@ -17,21 +18,21 @@ class RayMultiplexerDagNode:
                  name: str, 
                  operator_class: Type[BaseFuction],
                  operator_config: Dict = None,
-                 is_spout: bool = False) -> None:
+                 is_spout: bool = False,
+                 session_folder: str = None) -> None:
         self.name = name
         self.operator_class = operator_class
         self.operator_config = operator_config or {}
         self.is_spout = is_spout
-        self.logger = logging.getLogger(f"RayMultiplexerDagNode.{self.name}")
-        self.logger.setLevel(logging.DEBUG)
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('[%(levelname)s] %(message)s')
-        handler.setFormatter(formatter)
 
+        self.logger = CustomLogger(
+            object_name=f"RayNode_{self.name}",
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
 
-        if not self.logger.hasHandlers():
-            self.logger.addHandler(handler)
         # 取消继承 root logger 的 stdout handler
         # self.logger.propagate = False
         """
@@ -51,7 +52,7 @@ class RayMultiplexerDagNode:
         # Store downstream connections: output_channel -> [(downstream_actor, downstream_input_channel)]
         self.downstream_connections: List[Tuple[ActorHandle, int]] = []
 
-
+        operator_config["session_folder"] = session_folder
         self.operator = operator_class(operator_config)
         
         # Running state

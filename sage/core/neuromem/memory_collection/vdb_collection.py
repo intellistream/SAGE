@@ -12,6 +12,7 @@ from typing import Union, Optional, Dict, Any, List, Callable
 from sage.core.neuromem.storage_engine.vector_storage import VectorStorage
 from sage.core.neuromem.memory_collection.base_collection import BaseMemoryCollection, get_default_data_dir
 import logging
+from sage.utils.custom_logger import CustomLogger
 
 
 def get_func_source(func):
@@ -39,6 +40,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
         dim: int,
         config_path: Optional[str] = None,
         load_path: Optional[str] = None,
+        session_folder:str = None
     ):
         if not hasattr(embedding_model, "encode"):
             raise TypeError("embedding_model must have an 'encode' method")
@@ -58,16 +60,16 @@ class VDBMemoryCollection(BaseMemoryCollection):
             self.default_topk = 5
             self.default_index_type = "FAISS"
         
-        # self.logger = logging.getLogger(f"VDBMemoryCollection.")
-        # self.logger.setLevel(logging.DEBUG)
-        # handler = logging.StreamHandler()
-        # handler.setLevel(logging.DEBUG)
-        # formatter = logging.Formatter('[%(levelname)s] %(message)s')
-        # handler.setFormatter(formatter)
-        # if not self.logger.hasHandlers():
-        #     self.logger.addHandler(handler)
 
-        self.logger = logging.getLogger(__name__)
+        self.logger = CustomLogger(
+            object_name=f"VDBMemoryCollection",
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
+
+
 
     def store(self, store_path: Optional[str] = None):
         self.logger.debug(f"VDBMemoryCollection: store called")   ###########################

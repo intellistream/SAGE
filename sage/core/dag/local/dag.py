@@ -1,7 +1,7 @@
 import logging
 from collections import deque
 from typing import List
-
+from sage.utils.custom_logger import CustomLogger
 from sage.core.dag.local.dag_node import BaseDAGNode,OneShotDAGNode
 
 
@@ -16,7 +16,7 @@ class DAG:
     有向无环图（DAG）类，用于管理节点和执行流程。
     """
 
-    def __init__(self,name:str,strategy=None):
+    def __init__(self,name:str,strategy=None,session_folder: str = None ):
         """
         Initialize an empty DAG.
         """
@@ -25,7 +25,13 @@ class DAG:
         self.edges = {}  # Dictionary to store edges as {parent: [children]}
         self.id=id
         self.strategy="oneshot" if strategy is None else strategy
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = CustomLogger(
+            object_name=f"DAG_{self.name}",
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
         self.working_config=None
     def add_node(self, node):
         """
