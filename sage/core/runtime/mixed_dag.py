@@ -17,6 +17,7 @@ class MixedDAG:
         self.connections: List[Tuple[str, int, str, int]] = []  # (upstream_node, out_channel, downstream_node, in_channel)
         self.session_folder = CustomLogger.get_session_folder()
         self.ray_handles: List[Any] = []  # 存储Ray Actor句柄
+        self.local_handles: List[Any] = []  # 存储本地节点句柄
         self.logger = CustomLogger(
             object_name=f"MixedDAG_{self.name}",
             log_level="DEBUG",
