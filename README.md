@@ -62,9 +62,92 @@ This method is recommended for advanced users who prefer manual dependency manag
 
 
 ## 🚀 Quick Start
-### 🧠 Load and Save Memory
+
+Here's the English version of your **Memory Toolkit** section, preserving the structure and explanation style:
+
+### 🧠 Memory Toolkit
+
+Memory provides a lightweight in-memory vector database (VDB) supporting text embeddings, vector indexing, multi-index management, metadata filtering, persistence to disk, and recovery.
+
+---
+
+#### (1). Initialize Vector DB and Embedding Model
+
+```python
+mgr = MemoryManager()
+embedder = MockTextEmbedder(fixed_dim=16)
+col = mgr.create_collection(
+    name="test_vdb",
+    backend_type="VDB",
+    description="test VDB",
+    embedding_model=embedder,
+    dim=16
+)
+````
+
+---
+
+#### (2). Insert Text Entries with Metadata
+
+```python
+col.add_metadata_field("tag")
+col.insert("Alpha", {"tag": "A"})
+col.insert("Beta", {"tag": "B"})
+col.insert("Gamma", {"tag": "A"})
+```
+
+---
+
+#### (3). Create Indexes (e.g., Filtered by Metadata)
+
+```python
+col.create_index("global_index")
+col.create_index("tag_A_index", metadata_filter_func=lambda m: m.get("tag") == "A")
+```
+
+---
+
+#### (4). Retrieve Similar Vectors
+
+```python
+res1 = col.retrieve("Alpha", topk=1, index_name="global_index")
+res2 = col.retrieve("Alpha", topk=5, index_name="tag_A_index")
+```
+
+---
+
+#### (5). Persist Collection to Local Disk
+
+```python
+mgr.store_collection()
+print("Saved to:", mgr.data_dir)
+```
+
+---
+
+#### (6). Reload Persisted Collection (Requires Embedding Model)
+
+```python
+mgr2 = MemoryManager()
+embedder2 = MockTextEmbedder(fixed_dim=16)
+col2 = mgr2.connect_collection("test_vdb", embedding_model=embedder2)
+```
+
+---
+
+#### (7). Delete All Persisted Data (Optional)
+
+```python
+VDBMemoryCollection.clear("test_vdb", mgr.data_dir)
+manager_json = os.path.join(mgr.data_dir, "manager.json")
+if os.path.exists(manager_json):
+    os.remove(manager_json)
+```
 
 ### 🔧 Build Pipeline Using Fluent API
+
+---
+
 Sage uses a fluent-style API to declaratively define data flows. Here’s how to build a RAG pipeline step by step:
 ```python
 pipeline = Pipeline(name="example_pipeline", use_ray=False)
@@ -98,7 +181,20 @@ See more examples under [app](./app)
 
 ## 🧩 Components
 ### Operator
+| Operator Type | Example | Functionality |
+|---|---|---|
+| SourceOperator | `from_input()`, `from_rss()` | Ingest external input from users or web data sources. |
+| RetrievalOperator | `retriver.retrieve(q)` | Query vector memory or hybrid stores for context retrieval. |
+| RerankOperator | `reranker.rerank(query, docs)` | Rerank retrieved contexts based on relevance scores using a reranker model. |
+| RefineOperator | `Refiner.refine(prompt)` | Compress the prompt to shorten input length and speed up model inference. |
+| PromptOperator | `construct(query, docs)` | Construct prompts based on the query and retrieved contexts for model generation. |
+| GenerationOperator | `model.generate(x)` | Perform language model inference with the given prompt. |
+| SinkOperator | `output.write(result)`, `save_to_file(output)` | Output results to external sinks such as terminal, files, or APIs. |
+| AgentOperator | `agent.step()`, `agent.plan()` | Build multi-step decision-making agents that dynamically select and execute tools such as search or API calls. |
+| EvaluateOperator | `evaluate(predict, answer)` | Evaluate results using F1 score, ROUGE-L, BLEU, etc. |
+| RoutingOperator | `route(condition, branches)` | Declaratively express conditional control flow and fallback strategies. |
 ### Memory
+![](./asset/Memory_framework.png)
 ### Engine
 
 ## 🎨 SAGE-Dashboard
