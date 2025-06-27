@@ -6,10 +6,10 @@ from typing import Any, List, Optional, Dict, Tuple, TYPE_CHECKING, Type, Union
 from ray.actor import ActorHandle
 from sage.api.operator.base_operator_api import BaseFuction
 from sage.core.graph import GraphEdge, GraphNode
-from sage.core.io.emit_context import RayEmitContext, NodeType
+from sage.core.io.emit_context import NodeType
+from sage.core.io.ray_emit_context import RayEmitContext
 from sage.utils.custom_logger import CustomLogger
 from sage.core.dag.local.local_dag_node import LocalDAGNode
-
 @ray.remote
 class RayDAGNode:
     """
@@ -256,14 +256,14 @@ class RayDAGNode:
                 "node_name": self.name,
                 "is_running": self.is_running(),
                 "initialized": self._initialized,
-                "timestamp": ray.util.get_current_time_ns()
+                "timestamp": time.time_ns()
             }
         except Exception as e:
             return {
                 "status": "unhealthy",
                 "node_name": self.name,
                 "error": str(e),
-                "timestamp": ray.util.get_current_time_ns()
+                "timestamp": time.time_ns()
             }
 
     def __getstate__(self):

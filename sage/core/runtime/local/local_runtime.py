@@ -212,7 +212,7 @@ class LocalRuntime(BaseRuntime):
         
         try:
             # 创建StreamingTask包装节点
-            task = StreamingTask(node, {}, session_folder=self.session_folder)
+            task = StreamingTask(node, {})
             
             # 选择slot并提交
             slot_id = self.scheduling_strategy.select_slot(task, self.available_slots)

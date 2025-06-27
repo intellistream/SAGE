@@ -24,6 +24,7 @@ class MixedDAG:
         )
         self.node_dependencies: Dict[str, List[str]] = {}  # node_name -> [upstream_node_names]
         self.spout_nodes: List[str] = []
+        self.is_running: bool = False
         self._compile_graph()
     
     def _compile_graph(self):
