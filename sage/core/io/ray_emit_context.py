@@ -9,7 +9,7 @@ import pickle
 import threading
 from sage.utils.custom_logger import CustomLogger
 from sage.core.io.emit_context import BaseEmitContext, DownstreamTarget, NodeType
-
+import time
 
 
 
@@ -59,7 +59,7 @@ class RayEmitContext(BaseEmitContext):
                 "target_node": target.node_name,
                 "target_channel": target.target_input_channel,
                 "data": data,
-                "timestamp": ray.util.get_current_time_ns()
+                "timestamp": time.time_ns()
             }
             
             # 序列化消息

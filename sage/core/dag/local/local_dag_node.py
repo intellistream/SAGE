@@ -11,7 +11,8 @@ from typing import Any, Type, TYPE_CHECKING, Union, List, Optional, Tuple
 from sage.api.operator.base_operator_api import BaseFuction
 from sage.core.graph import SageGraph, GraphEdge, GraphNode
 from sage.core.io.message_queue import MessageQueue
-from sage.core.io.emit_context import LocalEmitContext, NodeType
+from sage.core.io.emit_context import  NodeType
+from sage.core.io.local_emit_context import LocalEmitContext
 from sage.utils.custom_logger import CustomLogger
 # from sage.core.dag.local.multi_dag_node import LocalDAGNode
 import ray
@@ -59,7 +60,7 @@ class LocalDAGNode:
 
 
         self.logger = CustomLogger(
-            object_name=f"MultiplexerDagNode_{self.name}",
+            object_name=f"LocalDAGNode_{self.name}",
             session_folder=session_folder,
             log_level="DEBUG",
             console_output=False,
@@ -188,6 +189,7 @@ class LocalDAGNode:
                 if self.is_spout:
                     # For spout nodes, call operator.receive with dummy channel and data
                     self.operator.receive(0, None)
+                    time.sleep(1)  # Sleep to avoid busy loop
                 else:
                     # For non-spout nodes, fetch input and process
                     # input_result = self.fetch_input()

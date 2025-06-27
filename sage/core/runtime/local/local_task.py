@@ -23,7 +23,7 @@ class StreamingTask(BaseTask):
                TypeError: 当节点类型不匹配时抛出
                RuntimeError: 执行过程中出现错误时抛出
     """
-    def __init__(self,node,working_config=None, session_folder: str = None):
+    def __init__(self,node,working_config=None):
         super().__init__()
         self.long_running=True
         self.node=node
@@ -32,7 +32,6 @@ class StreamingTask(BaseTask):
         self.working_config=working_config or {}
         self.logger = CustomLogger(
             object_name=f"StreamingTask_{self.name}",
-            session_folder=session_folder,
             log_level="DEBUG",
             console_output=False,
             file_output=True
