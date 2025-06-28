@@ -1,21 +1,21 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, AnyStr, Dict, List, Set
-from sage.api.pipeline.pipeline_api import Pipeline
-from sage.api.pipeline.datastream_api import DataStream
-from sage.api.operator import BaseFunction
+from sage.api.pipeline.pipeline import Pipeline
+from sage.api.datastream import DataStream
+from sage.api.operator import BaseOperator
 from sage.utils.custom_logger import CustomLogger
 
 
 
 
 class GraphNode:
-    def __init__(self,name:str, function: Union[Type[BaseFunction], BaseFunction], type:str, operator_config: Dict = None):
+    def __init__(self,name:str, function: Union[Type[BaseOperator], BaseOperator], type:str, operator_config: Dict = None):
         self.name: str = name
         self.type: str = type # "normal "or "source" or "sink"
         self.config: Dict = operator_config
         self.input_channels: list[GraphEdge] = []
         self.output_channels: list[GraphEdge] = []
-        self.operator: Union[Type[BaseFunction], BaseFunction] = function
+        self.operator: Union[Type[BaseOperator], BaseOperator] = function
         pass
 
 class GraphEdge:
@@ -271,7 +271,7 @@ class SageGraph:
                  node_name: str,
                  input_streams: Union[str, List[str]], 
                  output_streams: Union[str, List[str]], 
-                 function: Union[BaseFunction, Type[BaseFunction] ],
+                 function: Union[BaseOperator, Type[BaseOperator] ],
                  operator_config: Dict = None, 
                  node_type: str = "normal") -> GraphNode:
         """
@@ -279,7 +279,7 @@ class SageGraph:
         Args:
             input_streams (Union[str, List[str]]): Input streams for the node.
             output_streams (Union[str, List[str]]): Output streams for the node.
-            operator (Type[BaseFunction]): The operator class to be used by the node.
+            operator (Type[BaseOperator]): The operator class to be used by the node.
         Returns:
             GraphNode: The created graph node.
         """

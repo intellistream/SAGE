@@ -83,12 +83,12 @@ export class OperatorEditorComponent implements OnInit {
     this.operatorForm.reset();
     this.operatorForm.patchValue({
       implementation: `
-class CustomFunction(BaseFunction):
+class CustomFunction(BaseOperator):
     def __init__(self):
         super().__init__()
 
     def execute(self):
-        raise NotImplementedError("RerankerFunction must implement execute().")
+        raise NotImplementedError("BaseFunction must implement execute().")
         
 class CustomOperator(CustomFunction):
     def __init__(self, config):

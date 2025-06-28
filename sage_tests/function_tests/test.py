@@ -10,11 +10,11 @@ print(project_root)
 print(f"{project_root}:{os.environ.get('PYTHONPATH', '')}")
 sys.path.insert(0, project_root)
 
-from sage.api.operator.function.source import FileSource
-# from sage.api.operator.operator_impl.writer import LongTimeWriter,MemWriter
-# from sage.api.operator.operator_impl.retriever import SimpleRetriever
-from sage.api.operator.function.agent  import BaseAgent
-from sage.api.operator.function.evaluate import (
+from sage.core.function.source import FileSourceFunction
+# from sage.api.operator.function.writer import LongTimeWriter,MemWriter
+# from sage.api.operator.function.retriever import SimpleRetriever
+from sage_lib.functions.rag import BaseAgent
+from sage_lib.functions.rag import (
     F1Evaluate,
     BertRecallEvaluate,
     RougeLEvaluate,
@@ -48,10 +48,10 @@ def load_config(path: str) -> dict:
     with open(path, 'r') as f:
         return yaml.safe_load(f)
 
-config_QA=load_config("./sage/api/operator/operator_test/config_qa.yaml")
-config_multi_turn=load_config("./sage/api/operator/operator_test/config_multi_turn.yaml")
-config_long_mem_write=load_config("./sage/api/operator/operator_test/config_long_mem_write.yaml")
-config_agent_search=load_config("./sage/api/operator/operator_test/config_agent_search.yaml")
+config_QA=load_config("./sage/api/operator/function_tests/config_qa.yaml")
+config_multi_turn=load_config("./sage/api/operator/function_tests/config_multi_turn.yaml")
+config_long_mem_write=load_config("./sage/api/operator/function_tests/config_long_mem_write.yaml")
+config_agent_search=load_config("./sage/api/operator/function_tests/config_agent_search.yaml")
 # def test_QA_pipline():
 #     init_memory()
 #     source=FileSource(config_QA)
@@ -103,7 +103,7 @@ config_agent_search=load_config("./sage/api/operator/operator_test/config_agent_
 #     # assert("False" in output.data[0])
 
 def test_agent_with_search():
-    source=FileSource(config_agent_search)
+    source=FileSourceFunction(config_agent_search)
     agent=BaseAgent(config_agent_search)
     output=source.execute()
     output=agent.execute(output)

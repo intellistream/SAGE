@@ -11,18 +11,18 @@ import asyncio
 from ray import serve
 from sage.api.pipeline import Pipeline
 from sage.api.memory.memory_service import MemoryManagerService
-from sage.api.operator.operator_impl.promptor import QAPromptor
-from sage.api.operator.operator_impl.generator import OpenAIGenerator
-from sage.api.operator.operator_impl.reranker import BGEReranker
-from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
-from sage.api.operator.operator_impl.source import FileSource
-from sage.api.operator.operator_impl.sink import TerminalSink, FileSink
+from sage.api.operator.function.promptor import QAPromptor
+from sage.api.operator.function.generator import OpenAIGenerator
+from sage.api.operator.function.reranker import BGEReranker
+from sage.api.operator.function.refiner import AbstractiveRecompRefiner
+from sage.api.operator.function.source import FileSource
+from sage.api.operator.function.sink import TerminalSink, FileSink
 # from sage.api.operator.operator_impl.writer import LongTimeWriter
 # from sage.api.operator.operator_impl.retriever import SimpleRetriever
-from sage.api.operator.operator_impl.sink import TerminalSink
+from sage.api.operator.function.sink import TerminalSink
 from sympy.multipledispatch.dispatcher import source
 if TYPE_CHECKING:
-    from sage.api.pipeline.datastream_api import DataStream
+    from sage.api.datastream import DataStream
 
 # 加载配置文件
 def load_config(path: str) -> dict:
