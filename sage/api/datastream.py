@@ -9,20 +9,17 @@ from sage.api.base_function import BaseFunction
 
     
 class DataStream:
-    name:str
-    function: Union[BaseOperator, Type[BaseOperator] ]
-    pipeline: Pipeline
-    upstreams: list[DataStream]
-    downstreams: list[DataStream]
+
     def __init__(self, 
                  function: Union[BaseOperator, Type[BaseOperator] ],
                  pipeline:Pipeline,
-                name:str=None, config:dict=None, node_type:str="normal"):
-        self.function = function
-        self.pipeline = pipeline
-        self.name = name or f"DataStream_{id(self)}"
-        self.upstreams = []
-        self.downstreams=[]
+                 config:dict=None, node_type:str="normal"):
+
+                 
+        self.function:Union[BaseOperator, Type[BaseOperator] ] = function
+        self.pipeline:Pipeline = pipeline
+        self.upstreams:list[DataStream] = []
+        self.downstreams: list[DataStream] =[]
         # Register the operator in the pipeline
         self.pipeline._register_operator(function)
         self.config = config or {}
@@ -51,7 +48,7 @@ class DataStream:
         return self._transform("save_context",  writer_function, config)
     
     def sink(self, sink_function, config)-> DataStream:
-        new_stream = DataStream(sink_function, self.pipeline, name="sink", config = config, node_type="sink")
+        new_stream = DataStream(sink_function, self.pipeline, config = config, node_type="sink")
         self.pipeline.data_streams.append(new_stream)
         # Wire dependencies
         new_stream.upstreams.append(self)
