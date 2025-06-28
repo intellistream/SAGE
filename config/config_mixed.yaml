@@ -30,7 +30,7 @@ refiner:
   seed: 42
 
 generator:
-  platform: "local"
+  platform: "ray"
   method: "openai"
   model_name: "qwen-turbo-0919"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"

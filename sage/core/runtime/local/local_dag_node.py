@@ -8,7 +8,7 @@ from typing import Any, Type, TYPE_CHECKING, Union, List, Optional, Tuple
 
 
 #from sage.archive.operator_wrapper import OperatorWrapper
-from sage.api.operator.base_operator_api import BaseFunction
+from sage.api.base_operator import BaseOperator
 from sage.core.graph import SageGraph, GraphEdge, GraphNode
 from sage.core.io.message_queue import MessageQueue
 from sage.core.io.emit_context import  NodeType
@@ -29,7 +29,7 @@ class LocalDAGNode:
 
     def __init__(self, 
                  name: str, 
-                 operator: BaseFunction,
+                 operator: BaseOperator,
                  config: dict = None, 
                  is_spout: bool = False, 
                  session_folder: str = None) -> None:

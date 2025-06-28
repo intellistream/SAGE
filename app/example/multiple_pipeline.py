@@ -1,13 +1,13 @@
 import logging
 import yaml
 from sage.api.pipeline import Pipeline
-from sage.api.operator.operator_impl.retriever import SimpleRetriever
-from sage.api.operator.operator_impl.promptor import QAPromptor
-from sage.api.operator.operator_impl.generator import OpenAIGenerator
-from sage.api.operator.operator_impl.chunk import CharacterSplitter
-from sage.api.operator.operator_impl.writer import MemoryWriter
-from sage.api.operator.operator_impl.source import FileSource
-from sage.api.operator.operator_impl.sink import MemWriteSink,FileSink
+from sage.api.operator.function.retriever import SimpleRetriever
+from sage.api.operator.function.promptor import QAPromptor
+from sage.api.operator.function.generator import OpenAIGenerator
+from sage.api.operator.function.chunk import CharacterSplitter
+from sage.api.operator.function.writer import MemoryWriter
+from sage.api.operator.function.source import FileSource
+from sage.api.operator.function.sink import MemWriteSink,FileSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
 def load_config(path: str) -> dict:

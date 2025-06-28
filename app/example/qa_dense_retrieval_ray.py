@@ -1,11 +1,11 @@
 import logging
 import time
 from sage.api.pipeline import Pipeline
-from sage.api.operator.operator_impl.promptor import QAPromptor
-from sage.api.operator.operator_impl.generator import OpenAIGenerator
-from sage.api.operator.operator_impl.retriever import DenseRetriever
-from sage.api.operator.operator_impl.source import FileSource
-from sage.api.operator.operator_impl.sink import FileSink,TerminalSink
+from sage.api.operator.function.promptor import QAPromptor
+from sage.api.operator.function.generator import OpenAIGenerator
+from sage.api.operator.function.retriever import DenseRetriever
+from sage.api.operator.function.source import FileSource
+from sage.api.operator.function.sink import FileSink,TerminalSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging

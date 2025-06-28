@@ -1,11 +1,11 @@
 import logging
 import time
 from sage.api.pipeline import Pipeline
-from sage.api.operator.operator_impl.promptor import QAPromptor
-from sage.api.operator.operator_impl.generator import OpenAIGenerator
-from sage.api.operator.operator_impl.retriever import DenseRetriever
-from sage.api.operator.operator_impl.manual_source import ManualSource
-from sage.api.operator.operator_impl.sink import FileSink,TerminalSink
+from sage.api.operator.function.promptor import QAPromptor
+from sage.api.operator.function.generator import OpenAIGenerator
+from sage.api.operator.function.retriever import DenseRetriever
+from sage.api.operator.function.manual_source import ManualSource
+from sage.api.operator.function.sink import FileSink,TerminalSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
@@ -50,7 +50,7 @@ def pipeline_run():
     response_stream = prompt_stream.generate_response(OpenAIGenerator, config["generator"])
     response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
-    pipeline.submit_mixed(config={"is_long_running":True})
+    pipeline.submit(config={"is_long_running":True})
     time.sleep(10) # 等待管道启动
     while(True):
         user_input = input("\n>>> ").strip()
