@@ -38,17 +38,17 @@ def memory_init():
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = StreamingExecutionEnvironment(name="example_pipeline")
+    env = StreamingExecutionEnvironment(name="example_pipeline")
     # 构建数据处理流程
-    query_stream = (pipeline
-        .add_source(FileSource, config["source"])
+    query_stream = (env
+        .from_source(FileSource, config["source"])
         .map(DenseRetriever, config["retriever"])
         .map(QAPromptor, config["promptor"])
         .map(OpenAIGenerator, config["generator"])
         .sink(TerminalSink, config["sink"])
     )
-    pipeline.submit(config={"is_long_running":False})
-    # time.sleep(100)  # 等待管道运行
+    env.execute()
+    time.sleep(100)  # 等待管道运行
 
 
 if __name__ == '__main__':

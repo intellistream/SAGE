@@ -1,5 +1,5 @@
-from sage.api.operator import BaseFunction
-from sage.api.operator import Data
+from sage.api.base_operator import Data
+from sage.api.base_function import BaseFunction
 from typing import Tuple, List, Union
 
 

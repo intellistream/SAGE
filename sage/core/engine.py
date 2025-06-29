@@ -1,5 +1,5 @@
 from typing import Type, TYPE_CHECKING, Union, Any, TYPE_CHECKING
-from sage.core.compiler.query_compiler import QueryCompiler
+# from sage.core.compiler.query_compiler import QueryCompiler
 from sage.core.runtime.runtime_manager import RuntimeManager
 from sage.utils.custom_logger import CustomLogger
 from sage.core.runtime.mixed_dag import MixedDAG
@@ -17,7 +17,7 @@ class Engine:
         self._initialized = True
         # self.dag_manager = DAGManager() # deprecated
         self.runtime_manager = RuntimeManager.get_instance()
-        self.compiler= QueryCompiler()
+        # self.compiler= QueryCompiler()
         from sage.core.graph import SageGraph
         self.graphs:dict[str, SageGraph] = {}  # 存储 pipeline 名称到 SageGraph 的映射
         self.dags:dict = {} # 存储name到dag的映射，其中dag的类型为DAG或RayDAG

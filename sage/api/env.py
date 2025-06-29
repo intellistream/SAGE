@@ -9,13 +9,14 @@ from sage.api.transformation import TransformationType, BaseTransformation
 # from sage.core.graph.sage_graph import SageGraph
 
 class StreamingExecutionEnvironment:
-    def __init__(self, config: dict = {}):
+    def __init__(self,name:str = "default_environment", config: dict = {}):
+        self.name = name
         self.config = config
         self._pipeline: List[BaseTransformation] = []   # Transformation DAG
 
-    def from_source(self, function: Union[BaseFunction, Type[BaseFunction]], **kwargs: Any) -> DataStream:
+    def from_source(self, function: Union[BaseFunction, Type[BaseFunction]],*args,  **kwargs: Any) -> DataStream:
         """用户 API：声明一个数据源并返回 DataStream 起点。"""
-        transformation = BaseTransformation(TransformationType.SOURCE, function, **kwargs)
+        transformation = BaseTransformation(TransformationType.SOURCE, function,*args,  **kwargs)
         self._pipeline.append(transformation)
         return DataStream(self, transformation)
 

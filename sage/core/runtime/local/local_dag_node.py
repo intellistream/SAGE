@@ -13,6 +13,7 @@ from sage.core.graph import SageGraph, GraphEdge, GraphNode
 from sage.core.io.message_queue import MessageQueue
 from sage.core.io.emit_context import  NodeType
 from sage.core.io.local_emit_context import LocalEmitContext
+from sage.api.transformation import BaseTransformation, TransformationType
 from sage.utils.custom_logger import CustomLogger
 import ray
 from ray.actor import ActorHandle
@@ -27,11 +28,8 @@ class LocalDAGNode:
     """
 
     def __init__(self, 
-                 name: str, 
-                 operator: BaseOperator,
-                 config: dict = None, 
-                 is_spout: bool = False, 
-                 session_folder: str = None) -> None:
+                 name:str,
+                 transformation:BaseTransformation) -> None:
         """
         Initialize the multiplexer DAG node.
 # 
@@ -42,9 +40,9 @@ class LocalDAGNode:
             is_spout: Indicates if the node is the spout (starting point)
         """
         self.name = name
-        self.operator = operator
-        self.config = config
-        self.is_spout = is_spout
+        self.transformation = transformation
+        self.operator = transformation.build_instance()  # Build operator instance from transformation
+        self.is_spout = transformation.transformation_type == TransformationType.SOURCE  # Check if this is a spout node 正确
         
         self.input_buffer = MessageQueue()  # Local input buffer for this node
 
@@ -54,18 +52,18 @@ class LocalDAGNode:
         self._initialized = False
         # Create emit context
         # Create emit context for mixed environment
-        self.emit_context = LocalEmitContext(self.name, session_folder=session_folder)
+        self.emit_context = LocalEmitContext(self.name)
         self._emit_context_injected = False
 
 
         self.logger = CustomLogger(
             object_name=f"LocalDAGNode_{self.name}",
-            session_folder=session_folder,
             log_level="DEBUG",
             console_output=False,
             file_output=True
         )
-
+        # self.logger.info(f"transformation_type: {transformation.transformation_type}")
+        self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout})")
 
 
 
@@ -103,22 +101,6 @@ class LocalDAGNode:
         self.input_buffer.put(data_packet, timeout=1.0)
         self.logger.debug(f"Put data packet into buffer: channel={data_packet[0]}")
 
-    
-
-
-
-    def emit(self, channel: int, data: Any) -> None:
-        """
-        Emit data to specified downstream channel.
-        
-        Args:
-            channel: The downstream channel index
-            data: Data to emit
-        """
-        if channel < len(self.downstream_channels):
-            self.downstream_channels[channel].put(data)
-        else:
-            self.logger.warning(f"Channel index {channel} out of range for node {self.name}")
 
     def add_downstream_node(self, output_edge: GraphEdge, downstream_operator: Union['LocalDAGNode', ActorHandle]):
         """

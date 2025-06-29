@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, List, Type, Union, TYPE_CHECKING, Enum
+from typing import Any, List, Type, Union, TYPE_CHECKING
+from enum import Enum
 from sage.api.base_function import BaseFunction
 from sage.api.base_operator import BaseOperator
 
@@ -28,7 +29,10 @@ class BaseTransformation(ABC):
         self,
         transformation_type: TransformationType,
         function: Union[BaseFunction, Type[BaseFunction] ],
-        **kwargs: Any
+        *args,
+        parallelism: int = 1,
+        platform:str = "local",
+        **kwargs
     ):
         """
         Args:
@@ -40,17 +44,18 @@ class BaseTransformation(ABC):
         self.transformation_type = transformation_type
         self.upstream: List["BaseTransformation"] = []
         self.downstream: List["BaseTransformation"] = []
-
+        self.parallelism = parallelism
+        self.platform = platform
+        self.args = args
+        self.kwargs = kwargs
         if isinstance(function, BaseFunction):
             self.is_instance = True
             self.function = function
             self.function_class = type(function)
-            self.kwargs = {}
         elif isinstance(function, type):
             self.is_instance = False
             self.op_instance = None
             self.op_class = function
-            self.kwargs = kwargs
         else:
             raise ValueError(
                 f"Unsupported function type: {type(function)}"
@@ -72,11 +77,11 @@ class BaseTransformation(ABC):
     #     """返回生成 Operator 的工厂。"""
 
     # ---------------- 工具函数 ----------------
-    def build_instance(self) -> Union["BaseFunction", "BaseOperator"]:
+    def build_instance(self) -> BaseOperator:
         """如果尚未实例化，则根据 op_class 和 kwargs 实例化。"""
         if self.is_instance:
             return self.op_instance
-        return self.op_class(**self.kwargs)
+        return BaseOperator(self.op_class, *self.args, **self.kwargs)
 
     def __repr__(self) -> str:
         cls_name = self.op_class.__name__

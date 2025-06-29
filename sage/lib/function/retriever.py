@@ -1,6 +1,7 @@
 from typing import Tuple, List
 import time  # 替换 asyncio 为 time 用于同步延迟
-from sage.api.operator import Data, BaseFunction
+from sage.api.base_operator import Data
+from sage.api.base_function import BaseFunction
 import logging
 from sage.utils.custom_logger import CustomLogger
 
@@ -59,7 +60,7 @@ class DenseRetriever(BaseFunction):
             try:
 
                 # 使用LTM配置和输入查询调用检索
-                ltm_results = self.memory_adapter.map(
+                ltm_results = self.memory_adapter.retrieve(
                     self.ltm,
                     query=input_query,
                     collection_config=self.ltm_config
