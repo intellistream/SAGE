@@ -84,13 +84,13 @@ def write_func():
 #         组合多个记忆集合的复合记忆类
 #         """
         
-#         def retrieve(self, raw_data: str, retrieve_func=None):
+#         def map(self, raw_data: str, retrieve_func=None):
 #             """
-#             Retrieve data from all connected memory collections
+#             map data from all connected memory collections
 #             从所有连接的记忆集合中检索数据
             
 #             Args:
-#                 raw_data: Input data to retrieve matches for
+#                 raw_data: Input data to map matches for
 #                           用于检索匹配项的输入数据
 #                 retrieve_func: Optional custom retrieval function
 #                               可选的自定义检索函数
@@ -101,7 +101,7 @@ def write_func():
 #             """
 #             results = []
 #             for mem in memory_list:
-#                 results.extend(mem.retrieve(raw_data, retrieve_func)) # type: ignore 
+#                 results.extend(mem.map(raw_data, retrieve_func)) # type: ignore 
 #             return list(dict.fromkeys(results))
 
 #         def store(self, raw_data: str, write_func=None):
@@ -129,9 +129,9 @@ def write_func():
 #                 vdb: Vector database instance
 #                      向量数据库实例
 #             """
-#             # Retrieve all KV data
+#             # map all KV data
 #             # 检索所有KV数据
-#             kv_data = kv.memory.retrieve(k=len(kv.memory.storage))
+#             kv_data = kv.memory.map(k=len(kv.memory.storage))
 #             if not kv_data:
 #                 return
 

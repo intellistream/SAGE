@@ -14,7 +14,6 @@ from sage.core.io.message_queue import MessageQueue
 from sage.core.io.emit_context import  NodeType
 from sage.core.io.local_emit_context import LocalEmitContext
 from sage.utils.custom_logger import CustomLogger
-# from sage.core.dag.local.multi_dag_node import LocalDAGNode
 import ray
 from ray.actor import ActorHandle
 

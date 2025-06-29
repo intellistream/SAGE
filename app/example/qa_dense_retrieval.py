@@ -1,11 +1,11 @@
 import logging
 import time
-from sage.api.pipeline import Pipeline
-from sage.api.operator.function.promptor import QAPromptor
-from sage.api.operator.function.generator import OpenAIGenerator
-from sage.api.operator.function.retriever import DenseRetriever
-from sage.api.operator.function.source import FileSource
-from sage.api.operator.function.sink import TerminalSink
+from sage.api.env import StreamingExecutionEnvironment
+from sage.lib.function.promptor import QAPromptor
+from sage.lib.function.generator import OpenAIGenerator
+from sage.lib.function.retriever import DenseRetriever
+from sage.lib.function.source import FileSource
+from sage.lib.function.sink import TerminalSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
@@ -38,13 +38,13 @@ def memory_init():
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = Pipeline(name="example_pipeline")
+    pipeline = StreamingExecutionEnvironment(name="example_pipeline")
     # 构建数据处理流程
     query_stream = (pipeline
         .add_source(FileSource, config["source"])
-        .retrieve(DenseRetriever, config["retriever"])
-        .construct_prompt(QAPromptor, config["promptor"])
-        .generate_response(OpenAIGenerator, config["generator"])
+        .map(DenseRetriever, config["retriever"])
+        .map(QAPromptor, config["promptor"])
+        .map(OpenAIGenerator, config["generator"])
         .sink(TerminalSink, config["sink"])
     )
     pipeline.submit(config={"is_long_running":False})

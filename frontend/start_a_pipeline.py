@@ -1,7 +1,7 @@
 # python -m app.datastream_rag_pipeline
 
 
-# 导入 Sage 中的 Pipeline 和相关组件
+# 导入 Sage 中的 StreamingExecutionEnvironment 和相关组件
 import logging
 import time
 from typing import Tuple, List
@@ -9,23 +9,23 @@ import yaml
 import ray
 import asyncio
 from ray import serve
-from sage.api.pipeline import Pipeline
+from sage.api.env import StreamingExecutionEnvironment
 from sage.api.memory.memory_service import MemoryManagerService
-from sage.api.operator.function.promptor import QAPromptor
-from sage.api.operator.function.generator import OpenAIGenerator
-from sage.api.operator.function.reranker import BGEReranker
-from sage.api.operator.function.refiner import AbstractiveRecompRefiner
-from sage.api.operator.function.source import FileSource
-from sage.api.operator.function.sink import TerminalSink, FileSink
-from sage.api.operator.function.writer import LongTimeWriter
-from sage.api.operator.function.retriever import SimpleRetriever
-from sage.api.operator.function.sink import TerminalSink
+from sage.lib.function.promptor import QAPromptor
+from sage.lib.function.generator import OpenAIGenerator
+from sage.lib.function.reranker import BGEReranker
+from sage.lib.function.refiner import AbstractiveRecompRefiner
+from sage.lib.function.source import FileSource
+from sage.lib.function.sink import TerminalSink, FileSink
+from sage.lib.function.writer import LongTimeWriter
+from sage.lib.function.retriever import SimpleRetriever
+from sage.lib.function.sink import TerminalSink
 from sympy.multipledispatch.dispatcher import source
 
 # 初始化 Ray 并设置日志级别
 
 
-# ---- Initialize and Submit Pipeline ----
+# ---- Initialize and Submit StreamingExecutionEnvironment ----
 # 创建新的数据流管道实例
 
 # 创建长时间存储（LTM）内存表
@@ -71,7 +71,7 @@ async def init_memory_and_pipeline(job_id=None, manager_handle=None, config=None
 
     # 创建一个新的管道实例
     pipeline_name = f"pipeline_{job_id}" if job_id else "dynamic_pipeline"
-    pipeline = Pipeline(pipeline_name)
+    pipeline = StreamingExecutionEnvironment(pipeline_name)
 
     # 如果没有提供operators配置，使用默认配置
     if not operators:
