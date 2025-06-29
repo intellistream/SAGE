@@ -13,7 +13,6 @@ class MixedDAG:
         self.name:str = graph.name
         self.graph:SageGraph = graph
         self.operators: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
-        self.nodes_metadata: Dict[str, Dict[str, Any]] = {}  # node_name -> platform
         self.connections: List[Tuple[str, int, str, int]] = []  # (upstream_node, out_channel, downstream_node, in_channel)
         self.session_folder = CustomLogger.get_session_folder()
         self.ray_handles: List[Any] = []  # 存储Ray Actor句柄
@@ -36,14 +35,9 @@ class MixedDAG:
         # 第一步：创建所有节点实例
         for node_name, graph_node in self.graph.nodes.items():
             node_instance = self.create_node_instance(graph_node)
-            upstream_nodes = self.graph.get_upstream_nodes(node_name)
-            
-            self.add_node(
-                name=node_name,
-                executor=node_instance,
-                is_spout=(graph_node.type == "source"),
-                upstream_nodes=upstream_nodes
-            )
+            # upstream_nodes = self.graph.get_upstream_nodes(node_name)
+            self.operators[node_name] = node_instance
+            self.logger.debug(f"Added node '{node_name}' of type '{node_instance.__class__.__name__}'")
         
         # 第二步：建立节点间的连接
         for node_name, graph_node in self.graph.nodes.items():
@@ -60,48 +54,51 @@ class MixedDAG:
             node_name: 节点名称
             graph_node: 图节点对象
         """
-        node_platform = self.nodes_metadata[node_name]["platform"]
         current_operator = self.operators[node_name]
         
         # 为每个输出边添加下游连接
-        for output_edge in graph_node.output_channels:
-            downstream_node_name = output_edge.downstream_node.name
-            downstream_operator = self.operators[downstream_node_name]
-            
-            try:
-                if node_platform == "ray":
-                    # Ray节点调用远程方法
-                    if(isinstance(downstream_operator, LocalDAGNode)):
-                        downstream_handle = downstream_operator.name
-                    else:
-                        downstream_handle = downstream_operator
-                    current_operator.add_downstream_node.remote(
-                        output_edge.upstream_channel,
-                        output_edge.downstream_channel,
-                        downstream_handle
-                    )
-                    self.logger.debug(f"Setup Ray connection: {node_name} -> {downstream_node_name}")
-                else:
-                    # 本地节点直接调用
-                    current_operator.add_downstream_node(
-                        output_edge,
-                        downstream_operator
-                    )
-                    self.logger.debug(f"Setup local connection: {node_name} -> {downstream_node_name}")
-                    
-                # 记录连接信息
-                self.connections.append((
-                    node_name, 
-                    output_edge.upstream_channel,
-                    downstream_node_name, 
-                    output_edge.downstream_channel
-                ))
+        for channel_index, output_edges in enumerate(graph_node.output_channels):
+            for parallel_index, output_edge in enumerate(output_edges):
+                downstream_node_name = output_edge.downstream_node.name
+                downstream_operator = self.operators[downstream_node_name]
                 
-            except Exception as e:
-                self.logger.error(f"Error setting up connection {node_name} -> {downstream_node_name}: {e}")
-                raise        
+                try:
+                    if isinstance(current_operator, ActorHandle):
+                        # Ray节点调用远程方法
+                        if(isinstance(downstream_operator, LocalDAGNode)):
+                            downstream_handle = downstream_operator.name
+                            # 利用本地节点名称，通过TCP连接发回数据
+                        else:
+                            downstream_handle = downstream_operator
+                            # ActorHandle
+                        
+                        current_operator.add_downstream_node.remote(
+                            output_edge.upstream_channel,
+                            output_edge.downstream_channel,
+                            downstream_handle
+                        )
+                        self.logger.debug(f"Setup Ray connection: {node_name} -> {downstream_node_name}")
+                    else:
+                        # 本地节点直接调用
+                        current_operator.add_downstream_node(
+                            output_edge,
+                            downstream_operator
+                        )
+                        self.logger.debug(f"Setup local connection: {node_name} -> {downstream_node_name}")
+                        
+                    # 记录连接信息
+                    self.connections.append((
+                        node_name, 
+                        output_edge.upstream_channel,
+                        downstream_node_name, 
+                        output_edge.downstream_channel
+                    ))
+                    
+                except Exception as e:
+                    self.logger.error(f"Error setting up connection {node_name} -> {downstream_node_name}: {e}")
+                    raise        
 
-    def create_node_instance(self, graph_node: GraphNode) -> Union[RayDAGNode, LocalDAGNode]:
+    def create_node_instance(self, graph_node: GraphNode) -> Union[ActorHandle, LocalDAGNode]:
         """
         根据图节点创建对应的执行实例
         
@@ -111,66 +108,26 @@ class MixedDAG:
         Returns:
             节点实例（Ray Actor或本地节点）
         """
-        platform = graph_node.config.get("platform", "local")
+        transformation = graph_node.transformation
+        platform = transformation.platform
         
         if platform == "ray":
-            if(isinstance(graph_node.operator, type) == False):
-                # ray不支持预先实例化的算子
-                raise Exception("GraphNode operator must be a class for Ray platform")
-            # 创建Ray Actor
             node = RayDAGNode.remote(
                 name=graph_node.name,
-                function_class=graph_node.operator,
-                operator_config=graph_node.config,
-                is_spout=(graph_node.type == "source"), 
+                transformation=transformation,
                 session_folder=self.session_folder
             )
             self.logger.debug(f"Created Ray actor node: {graph_node.name}")
             return node
         else:
-            if (isinstance(graph_node.operator, type) == True):
-                operator_instance = graph_node.operator(graph_node.config)
-            else:
-                operator_instance = graph_node.operator
             # 创建本地节点
             node = LocalDAGNode(
                 name=graph_node.name,
-                operator=operator_instance,
-                config=graph_node.config,
-                is_spout=(graph_node.type == "source"), 
-                session_folder=self.session_folder
+                transformation=transformation,
             )
             self.logger.debug(f"Created local node: {graph_node.name}")
             return node
 
-    def add_node(self, name: str, executor: Any, is_spout: bool = False, 
-                 upstream_nodes: List[str] = None):
-        """
-        添加节点到DAG
-        
-        Args:
-            name: 节点名称
-            executor: 节点执行器（本地节点或Ray Actor）
-            is_spout: 是否为spout节点
-            upstream_nodes: 上游节点名称列表
-        """
-        # 检测平台类型
-        platform = self._detect_platform(executor)
-        
-        self.operators[name] = executor
-        self.nodes_metadata[name] = {
-            'is_spout': is_spout,
-            'upstream_nodes': upstream_nodes or [], 
-            "platform": platform
-        }
-        
-        if is_spout:
-            self.spout_nodes.append(name)
-        
-        if upstream_nodes:
-            self.node_dependencies[name] = upstream_nodes
-        
-        self.logger.debug(f"Added node '{name}' of platform '{platform}'")
 
 
     def _detect_platform(self, executor: Any) -> str:
@@ -200,8 +157,8 @@ class MixedDAG:
         local_node_count = 0
         ray_node_count = 0
         
-        for node_name, node_meta in self.nodes_metadata.items():
-            if node_meta["platform"] == "local":
+        for node_name, node_handle in self.operators.items():
+            if isinstance(node_handle, LocalDAGNode):
                 node = self.operators[node_name]
                 node.start()
                 local_node_count += 1
@@ -215,32 +172,16 @@ class MixedDAG:
         """停止所有节点"""
         self.logger.info("Stopping all DAG nodes...")
         
-        for node_name, node_meta in self.nodes_metadata.items():
+        for node_name, node_meta in self.operators.items():
             try:
-                if node_meta["platform"] == "local":
+                if isinstance(node_meta, ActorHandle) == False:
+                    # local
                     node = self.operators[node_name]
                     node.stop()
                     self.logger.debug(f"Stopped local node: {node_name}")
                 # Ray actors会在进程结束时自动清理
             except Exception as e:
                 self.logger.error(f"Error stopping node {node_name}: {e}")
-
-    def get_dag_info(self) -> Dict[str, Any]:
-        """获取DAG信息"""
-        local_nodes = [name for name, meta in self.nodes_metadata.items() 
-                      if meta["platform"] == "local"]
-        ray_nodes = [name for name, meta in self.nodes_metadata.items() 
-                    if meta["platform"] == "ray"]
-        
-        return {
-            "name": self.name,
-            "total_nodes": len(self.operators),
-            "local_nodes": local_nodes,
-            "ray_nodes": ray_nodes,
-            "spout_nodes": self.spout_nodes,
-            "connections": self.connections,
-            "node_dependencies": self.node_dependencies
-        }
     
     def run(self) -> Dict[str, List[str]]:
         """
@@ -268,11 +209,11 @@ class MixedDAG:
             ray_actors = []
             ray_node_names = []
             
-            for node_name, node_meta in self.nodes_metadata.items():
-                if node_meta["platform"] == "local":
+            for node_name, node_handle in self.operators.items():
+                if isinstance(node_handle, LocalDAGNode):
                     local_node = self.operators[node_name]
                     local_nodes.append(local_node)
-                elif node_meta["platform"] == "ray":
+                elif isinstance(node_handle, ActorHandle):
                     ray_actor = self.operators[node_name]
                     ray_actors.append(ray_actor)
                     ray_node_names.append(node_name)

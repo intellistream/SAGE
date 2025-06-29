@@ -88,7 +88,7 @@ class CustomFunction(BaseFunction):
         super().__init__()
 
     def execute(self):
-        raise NotImplementedError("RerankerFunction must implement execute().")
+        raise NotImplementedError("BaseFunction must implement execute().")
         
 class CustomOperator(CustomFunction):
     def __init__(self, config):
