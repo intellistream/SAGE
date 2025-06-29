@@ -59,7 +59,7 @@ class DenseRetriever(BaseFunction):
             try:
 
                 # 使用LTM配置和输入查询调用检索
-                ltm_results = self.memory_adapter.retrieve(
+                ltm_results = self.memory_adapter.map(
                     self.ltm,
                     query=input_query,
                     collection_config=self.ltm_config
@@ -102,7 +102,7 @@ class BM25sRetriever(BaseFunction):
 
         try:
             # 使用BM25s配置和输入查询调用检索
-            bm25s_results = self.memory_adapter.retrieve(
+            bm25s_results = self.memory_adapter.map(
                 self.bm25s_collection,
                 query=input_query,
                 collection_config=self.bm25s_config

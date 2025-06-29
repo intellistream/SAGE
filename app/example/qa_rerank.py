@@ -1,13 +1,13 @@
 import logging
 import time
-from sage.api.pipeline import Pipeline
-from sage.api.operator.function.promptor import QAPromptor
-from sage.api.operator.function.generator import OpenAIGenerator
-from sage.api.operator.function.retriever import DenseRetriever
-from sage.api.operator.function.source import FileSource
-from sage.api.operator.function.sink import FileSink,TerminalSink
+from sage.api.env import StreamingExecutionEnvironment
+from sage.lib.function.promptor import QAPromptor
+from sage.lib.function.generator import OpenAIGenerator
+from sage.lib.function.retriever import DenseRetriever
+from sage.lib.function.source import FileSource
+from sage.lib.function.sink import FileSink,TerminalSink
 from sage.core.neuromem.memory_manager import MemoryManager
-from sage.api.operator.function.reranker import BGEReranker
+from sage.lib.function.reranker import BGEReranker
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
 from sage.api.model.model_api import apply_embedding_model
@@ -38,12 +38,12 @@ def memory_init():
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = Pipeline(name="example_pipeline")
+    pipeline = StreamingExecutionEnvironment(name="example_pipeline")
     # 构建数据处理流程
     query_stream = pipeline.add_source(FileSource, config["source"])
-    query_and_chunks_stream = query_stream.retrieve(DenseRetriever, config["retriever"])
-    prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config["promptor"])
-    response_stream = prompt_stream.generate_response(OpenAIGenerator, config["generator"])
+    query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])
+    prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
+    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
     response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
     pipeline.submit(config={"is_long_running":False})

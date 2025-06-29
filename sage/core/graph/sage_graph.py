@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, AnyStr, Dict, List, Set
-from sage.api.pipeline.pipeline import Pipeline
+from sage.api.pipeline.pipeline import StreamingExecutionEnvironment
 from sage.api.datastream import DataStream
 from sage.api.operator import BaseOperator
 from sage.utils.custom_logger import CustomLogger
@@ -33,7 +33,7 @@ class GraphEdge:
         self.downstream_channel: int = None
 
 class SageGraph:
-    def __init__(self, pipeline:Pipeline, config: dict = None):
+    def __init__(self, pipeline:StreamingExecutionEnvironment, config: dict = None):
         """
         Initialize the NodeGraph with a name and optional configuration.
         Args:
@@ -66,7 +66,7 @@ class SageGraph:
         
         self.logger.info(f"Successfully converted and optimized pipeline '{pipeline.name}' to graph with {len(self.nodes)} nodes and {len(self.edges)} edges")
 
-    def _build_graph_from_pipeline(self, pipeline: Pipeline):
+    def _build_graph_from_pipeline(self, pipeline: StreamingExecutionEnvironment):
         stream_to_node_name = {}
         stream_connections = {}
         # 第一步：为每个 DataStream 生成唯一的节点名和边名

@@ -512,7 +512,7 @@ export class PipelineComponent implements AfterViewInit, OnDestroy {
     alert("拓扑图数据已准备好发送到后端，请查看控制台输出");
   }
 
-  // --- Load Pipeline Data (Optional) ---
+  // --- Load StreamingExecutionEnvironment Data (Optional) ---
   // loadPipeline() {
   //    // TODO: Fetch data from backend using HttpClient
   //    // Example:

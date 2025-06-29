@@ -1,5 +1,5 @@
 from sage.core.runtime import BaseRuntime
-from sage.core.runtime.local.local_scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
+from archive.local_scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
 from sage.core.runtime.local.local_task import StreamingTask,BaseTask
 from sage.core.runtime.local.local_slot import Slot
 from sage.core.runtime.local.local_dag_node import LocalDAGNode

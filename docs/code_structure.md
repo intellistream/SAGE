@@ -14,7 +14,7 @@
 ```text
 SAGE-Project/
 ├── sage/                     # 核心库包（接口 + 运行时 + 基础算子）
-│   ├── api/                  # 对外 API 抽象（Function / Operator / Pipeline 等）
+│   ├── api/                  # 对外 API 抽象（Function / Operator / StreamingExecutionEnvironment 等）
 │   │   ├── execution/
 │   │   ├── function/
 │   │   ├── operator/
@@ -77,7 +77,7 @@ SAGE-Project/
 | 层级                          | 主要职责       | 说明                                                                                      |
 | --------------------------- | ---------- | --------------------------------------------------------------------------------------- |
 | **sage.api**                | 抽象接口层      | 暴露稳定 API；无任何执行逻辑。                                                                       |
-| **sage.core**               | 运行时 & 基础算子 | 包含编译器、DAG、调度器以及 **Source / Sink / Map** 三类最小必备算子。确保 `pip install sage` 后即可跑简单 Pipeline。 |
+| **sage.core**               | 运行时 & 基础算子 | 包含编译器、DAG、调度器以及 **Source / Sink / Map** 三类最小必备算子。确保 `pip install sage` 后即可跑简单 StreamingExecutionEnvironment。 |
 | **sage\_lib**               | 扩展组件       | 内置但可剥离的高级 Function / Operator；与业务耦合度较高，按需安装/引用。                                         |
 | **app**                     | 用户项目区      | 托管用户自定义逻辑与管道脚本；与框架仓库分离，易于升级框架。                                                          |
 | **tests & docs & examples** | 工程最佳实践     | 按工业惯例组织测试、文档与示例，保证可维护性。                                                                 |

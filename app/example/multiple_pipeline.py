@@ -1,13 +1,13 @@
 import logging
 import yaml
-from sage.api.pipeline import Pipeline
-from sage.api.operator.function.retriever import SimpleRetriever
-from sage.api.operator.function.promptor import QAPromptor
-from sage.api.operator.function.generator import OpenAIGenerator
-from sage.api.operator.function.chunk import CharacterSplitter
-from sage.api.operator.function.writer import MemoryWriter
-from sage.api.operator.function.source import FileSource
-from sage.api.operator.function.sink import MemWriteSink,FileSink
+from sage.api.env import StreamingExecutionEnvironment
+from sage.lib.function.retriever import SimpleRetriever
+from sage.lib.function.promptor import QAPromptor
+from sage.lib.function.generator import OpenAIGenerator
+from sage.lib.function.map import CharacterSplitter
+from sage.lib.function.writer import MemoryWriter
+from sage.lib.function.source import FileSource
+from sage.lib.function.sink import MemWriteSink,FileSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
 def load_config(path: str) -> dict:
@@ -40,22 +40,22 @@ def memory_init():
     config_for_ingest["writer"]["ltm_collection"] = col
     config_for_qa["retriever"]["ltm_collection"] = col
 def ingest_pipeline_run():
-    pipeline = Pipeline(name="ingest_pipeline", use_ray=False)
+    pipeline = StreamingExecutionEnvironment(name="ingest_pipeline", use_ray=False)
     # 构建数据处理流程
     source_stream = pipeline.add_source(FileSource, config_for_ingest)
-    chunk_stream = source_stream.chunk(CharacterSplitter,config_for_ingest)
-    memwrite_stream= chunk_stream.write_mem(MemoryWriter,config_for_ingest)
+    chunk_stream = source_stream.map(CharacterSplitter,config_for_ingest)
+    memwrite_stream= chunk_stream.map(MemoryWriter,config_for_ingest)
     sink_stream= memwrite_stream.sink(MemWriteSink,config_for_ingest)
     pipeline.submit(config={"is_long_running": True})
 
 def qa_pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = Pipeline(name="qa_pipeline", use_ray=False)
+    pipeline = StreamingExecutionEnvironment(name="qa_pipeline", use_ray=False)
     # 构建数据处理流程
     query_stream = pipeline.add_source(FileSource, config_for_qa)
-    query_and_chunks_stream = query_stream.retrieve(SimpleRetriever, config_for_qa)
-    prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config_for_qa)
-    response_stream = prompt_stream.generate_response(OpenAIGenerator, config_for_qa)
+    query_and_chunks_stream = query_stream.map(SimpleRetriever, config_for_qa)
+    prompt_stream = query_and_chunks_stream.map(QAPromptor, config_for_qa)
+    response_stream = prompt_stream.map(OpenAIGenerator, config_for_qa)
     response_stream.sink(FileSink, config_for_qa)
     # 提交管道并运行
     pipeline.submit(config={"is_long_running": True})
