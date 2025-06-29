@@ -100,7 +100,7 @@ class BaseAgent:
         except Exception as e:
             raise ValueError(f"Invalid JSON format: {str(e)}")
         
-    def execute(self, data: Data[str], **kwargs) -> Data[Tuple[bool,str, str]]:
+    def execute(self, data: Data[str],*args, **kwargs) -> Data[Tuple[bool,str, str]]:
         query = data.data
         agent_scratchpad = ""
         count = 0

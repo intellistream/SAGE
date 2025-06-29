@@ -1,7 +1,7 @@
 from typing import Any, Tuple
 from sage.api.model import apply_generator_model
 from sage.api.base_function import BaseFunction
-from sage.api.operator import Data
+from sage.api.base_operator import Data
 from sage.utils.custom_logger import CustomLogger
 
 

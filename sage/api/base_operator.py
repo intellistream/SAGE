@@ -13,32 +13,18 @@ class Data(Generic[T]):
 
 
 class BaseOperator:
-    def __init__(self, function:BaseFunction = None):
-        self.upstream = None
-        self.downstream = None
+    def __init__(self, function:BaseFunction = None,*args, **kwargs):
         self._name = self.__class__.__name__
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.function = function
+        self.function = function(*args,**kwargs)
 
-
-    def set_upstream(self, op):
-        self.upstream = op
-        if op:
-            op.downstream = self
-
-    def set_downstream(self, op):
-        self.downstream = op
-        if op:
-            op.upstream = self
-
-    def get_name(self):
-        return self._name
 
     def execute(self, *args, **kwargs):
         """
         Override this method with actual operator logic in subclasses.
         """
         raise NotImplementedError(f"{self._name}.execute() is not implemented")
+
     def receive(self, channel: int, data: Data):
         """
         Receive data from upstream node through specified channel.
@@ -52,9 +38,9 @@ class BaseOperator:
         try:
             # Default behavior: call execute with received data and emit to channel 0
             if(data is None):
-                result = self.execute()
+                result = self.function.execute()
             else:
-                result = self.execute(data)
+                result = self.function.execute(data)
             if result is not None:
                 self.emit(-1, result)
                 # Note: Using -1 to indicate broadcasting to each output channel

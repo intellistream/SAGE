@@ -10,6 +10,7 @@ from sage.core.io.emit_context import NodeType
 from sage.core.io.ray_emit_context import RayEmitContext
 from sage.utils.custom_logger import CustomLogger
 from sage.core.runtime.local.local_dag_node import LocalDAGNode
+from sage.api.transformation import BaseTransformation, TransformationType
 @ray.remote
 class RayDAGNode:
     """
@@ -21,9 +22,7 @@ class RayDAGNode:
     
     def __init__(self, 
                  name: str, 
-                 function_class: Type[BaseOperator],
-                 operator_config: Dict = None,
-                 is_spout: bool = False,
+                 transformation: BaseTransformation,
                  session_folder: str = None) -> None:
         """
         Initialize Ray multiplexer DAG node.
@@ -35,10 +34,13 @@ class RayDAGNode:
             is_spout: Whether this is a spout node
             session_folder: Session folder for logging
         """
+        if(transformation.is_instance):
+            # ray不支持预先实例化的算子
+            raise Exception("GraphNode operator must be a class for Ray platform")
+
         self.name = name
-        self.function_class = function_class
-        self.operator_config = operator_config or {}
-        self.is_spout = is_spout
+        self.transformation = transformation
+        self.session_folder = session_folder
         self._initialized = False
         
         # Running state management
@@ -58,7 +60,7 @@ class RayDAGNode:
         self.emit_context = RayEmitContext(
             self.name, 
             ray_node_actor=self,
-            session_folder=session_folder
+            logger = self.logger,
         )
         self._emit_context_injected = False
         
@@ -73,11 +75,11 @@ class RayDAGNode:
             return
         
         # Create operator instance locally within the Ray actor
-        operator_config = self.operator_config.copy()
-        operator_config["session_folder"] = CustomLogger.get_session_folder()
+        operator_config = self.transformation.kwargs.copy()
+        operator_config["session_folder"] = self.session_folder
         
         try:
-            self.operator = self.function_class(operator_config)
+            self.operator = BaseOperator(self.transformation.op_class,self.transformation.args,  operator_config)
             self.logger.debug(f"Created operator instance for {self.name}")
         except Exception as e:
             self.logger.error(f"Failed to create operator instance: {e}", exc_info=True)

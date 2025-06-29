@@ -21,19 +21,20 @@ class RayEmitContext(BaseEmitContext):
     
     def __init__(self, node_name: str, ray_node_actor=None,
                  local_tcp_host: str = "localhost", 
-                 local_tcp_port: int = 9999, session_folder: str = None):
-        super().__init__(node_name, session_folder)
+                 local_tcp_port: int = 9999, logger: CustomLogger = None):
+        super().__init__(node_name)
         self.ray_node_actor = ray_node_actor
         self.local_tcp_host = local_tcp_host
         self.local_tcp_port = local_tcp_port
         self._tcp_socket = None
         self._socket_lock = threading.Lock()
-        self.logger = CustomLogger(
-            object_name=f"RayEmitContext_{node_name}",
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
-        )
+        self.logger = logger or CustomLogger(
+                object_name=f"RayEmitContext_{node_name}",
+                log_level="DEBUG",
+                console_output=False,
+                file_output=True
+            )
+
     def _get_tcp_connection(self) -> socket.socket:
         """获取到本地的TCP连接（懒加载）"""
         if self._tcp_socket is None:
