@@ -16,8 +16,9 @@ class LocalEmitContext(BaseEmitContext):
     支持向本地节点的输入缓冲区写入数据，向Ray Actor发送远程调用
     """
     
-    def __init__(self, node_name: str, session_folder: str = None):
-        super().__init__(node_name, session_folder)
+
+    def __init__(self, node_name: str):
+        super().__init__(node_name)
         self.logger = CustomLogger(
             object_name=f"LocalEmitContext_{node_name}",
             log_level="DEBUG",

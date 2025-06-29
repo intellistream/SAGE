@@ -4,8 +4,6 @@ from typing import Dict, Any, Union
 from sage.core.runtime.base_runtime import BaseRuntime
 from sage.core.runtime.ray.ray_runtime import RayRuntime
 from sage.core.runtime.local.local_runtime import LocalRuntime
-from sage.core.dag.local.dag import DAG
-from sage.core.dag.ray.ray_dag import RayDAG
 from sage.utils.custom_logger import CustomLogger
 
 class RuntimeManager:
@@ -56,7 +54,7 @@ class RuntimeManager:
                 cls._instance.shutdown_all()
                 cls._instance = None
     
-    def get(self, platform: str, **kwargs) -> BaseRuntime:
+    def get(self, platform: str,*args, **kwargs) -> BaseRuntime:
         """
         获取指定平台的运行时实例，支持延迟初始化
         
@@ -68,12 +66,12 @@ class RuntimeManager:
             运行时实例
         """
         if platform not in self.backends:
-            self.backends[platform] = self._create_runtime(platform, **kwargs)
+            self.backends[platform] = self._create_runtime(platform,*args, **kwargs)
             self.logger.info(f"Initialized {platform} runtime")
         
         return self.backends[platform]
     
-    def _create_runtime(self, platform: str, **kwargs):
+    def _create_runtime(self, platform: str,*args, **kwargs):
         """
         创建运行时实例
         
@@ -146,7 +144,7 @@ class RuntimeManager:
             self.shutdown_platform(platform)
         self.logger.info("All runtimes shutdown")
 
-    def submit(self, dag:Union[DAG, RayDAG]):
+    def submit(self, dag):
         """
         提交图到合适的运行时执行
         
