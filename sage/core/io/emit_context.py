@@ -31,17 +31,13 @@ class BaseEmitContext(ABC):
     支持混合环境中本地和Ray Actor之间的通信
     """
     
-    def __init__(self, node_name: str, session_folder: str = None):
+
+    def __init__(self, node_name: str):
         self.node_name = node_name
-        self.downstream_channels: Dict[int, DownstreamTarget] = {}
+        self.downstream_channels: Dict[int, List[DownstreamTarget]] = {}
+        self.downstream_round_robin: dict[int, int] = {}
         # Dict[自身出口号, DownstreamTarget]
-        
-        self.logger = CustomLogger(
-            object_name=f"EmitContext_{node_name}",
-            session_folder=session_folder,
-            log_level="DEBUG",
-            console_output=False,
-        )
+
     
     def add_downstream_target(self, 
                             output_channel: int,
@@ -60,7 +56,12 @@ class BaseEmitContext(ABC):
             node_name: 下游节点名称
         """
         target = DownstreamTarget(node_type, target_object, target_input_channel, node_name)
-        self.downstream_channels[output_channel] = target
+
+        if output_channel not in self.downstream_channels:
+            self.downstream_channels[output_channel] = []
+            self.downstream_round_robin[output_channel] = 0
+        self.downstream_channels[output_channel].append(target)
+
         
         self.logger.debug(f"Added downstream target: {self.node_name}[out:{output_channel}] -> "
                          f"{node_name}[in:{target_input_channel}] (type: {node_type.value})")
@@ -75,14 +76,34 @@ class BaseEmitContext(ABC):
         """
         if channel == -1:
             # 广播到所有下游通道
-            for output_channel, target in self.downstream_channels.items():
-                self._route_and_send(target, data)
+
+            for output_channel, target_lists in self.downstream_channels.items():
+                self._send_to_channel(output_channel, data)
         elif channel in self.downstream_channels:
             target = self.downstream_channels[channel]
-            self._route_and_send(target, data)
+            self._send_to_channel(channel, data)
         else:
             self.logger.warning(f"Channel index {channel} out of range for node {self.node_name}")
     
+    def _send_to_channel(self, channel: int, data: Any) -> None:
+        """
+        向指定通道发送数据
+        
+        Args:
+            channel: 下游通道索引
+            data: 要发送的数据
+        """
+        if channel in self.downstream_channels:
+            targets = self.downstream_channels[channel]
+            self._route_and_send(targets[self.downstream_round_robin[channel] % len(targets)], data)
+            self.downstream_round_robin[channel] += 1
+        else:
+            self.logger.warning(f"Channel index {channel} not found in node {self.node_name}")
+
+
+
+
+
     def _route_and_send(self, target: DownstreamTarget, data: Any) -> None:
         """
         根据目标类型路由并发送数据

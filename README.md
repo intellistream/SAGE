@@ -140,12 +140,12 @@ if os.path.exists(manager_json):
 
 Sage uses a fluent-style API to declaratively define data flows. Here’s how to build a RAG pipeline step by step:
 ```python
-pipeline = Pipeline(name="example_pipeline", use_ray=False)
+pipeline = StreamingExecutionEnvironment(name="example_pipeline", use_ray=False)
 query_stream = (pipeline
    .add_source(FileSource, config)
-   .retrieve(DenseRetriever, config)
-   .construct_prompt(QAPromptor, config)
-   .generate_response(OpenAIGenerator, config)
+   .map(DenseRetriever, config)
+   .map(QAPromptor, config)
+   .map(OpenAIGenerator, config)
    .sink(TerminalSink, config)
    )
    # Submit the pipeline job
@@ -159,7 +159,7 @@ Each operator in the pipeline requires a configuration dictionary config that pr
 #### 📘 About Ray
 To enable distributed execution using Ray, simply set use_ray=True when building the pipeline:
 ```python
-pipeline = Pipeline(name="example_pipeline", use_ray=True)
+pipeline = StreamingExecutionEnvironment(name="example_pipeline", use_ray=True)
 ```
 #### 📘 About Long Running
 If your pipeline is meant to run as a long-lived service, use:

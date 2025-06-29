@@ -1,9 +1,8 @@
 from typing import List,Optional,Dict
 import logging
-from sage.core.dag.local.dag_node import BaseDAGNode,OneShotDAGNode
 from sage.core.runtime.local.local_slot import Slot
 class SchedulingStrategy:
-    def select_slot(self, node: BaseDAGNode, slots: List[Slot]) -> Optional[Slot]:
+    def select_slot(self, node, slots: List[Slot]) -> Optional[Slot]:
         raise NotImplementedError
 
 class ResourceAwareStrategy(SchedulingStrategy):
@@ -13,7 +12,7 @@ class ResourceAwareStrategy(SchedulingStrategy):
     def __init__(self):
         self.logger = logging.getLogger(type(self).__name__)
 
-    def select_slot(self, node: BaseDAGNode, slots: List[Slot]) -> int :
+    def select_slot(self, node, slots: List[Slot]) -> int :
         return next((
             s for s in sorted(slots, key=lambda x: x.current_load)
             if s.current_load < s.max_load
@@ -24,7 +23,7 @@ class PriorityStrategy(SchedulingStrategy):
     def __init__(self, priority_map: Dict[str, int]) :
         self.priority_map = priority_map  # 节点类型到优先级的映射
         self.logger = logging.getLogger(type(self).__name__)
-    def select_slot(self, node: BaseDAGNode, slots: List[Slot]) -> int :
+    def select_slot(self, node, slots: List[Slot]) -> int :
         prioritized = sorted(
             slots,
             key=lambda s: (

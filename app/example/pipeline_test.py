@@ -1,7 +1,7 @@
 # python -m app.datastream_rag_pipeline
 
 
-# 导入 Sage 中的 Pipeline 和相关组件
+# 导入 Sage 中的 StreamingExecutionEnvironment 和相关组件
 import logging
 import time
 from typing import Tuple, List, Type, TYPE_CHECKING, Union, Any
@@ -9,20 +9,20 @@ import yaml
 import ray
 import asyncio
 from ray import serve
-from sage.api.pipeline import Pipeline
+from sage.api.env import StreamingExecutionEnvironment
 from sage.api.memory.memory_service import MemoryManagerService
-from sage.api.operator.operator_impl.promptor import QAPromptor
-from sage.api.operator.operator_impl.generator import OpenAIGenerator
-from sage.api.operator.operator_impl.reranker import BGEReranker
-from sage.api.operator.operator_impl.refiner import AbstractiveRecompRefiner
-from sage.api.operator.operator_impl.source import FileSource
-from sage.api.operator.operator_impl.sink import TerminalSink, FileSink
+from sage.lib.function.promptor import QAPromptor
+from sage.lib.function.generator import OpenAIGenerator
+from sage.lib.function.reranker import BGEReranker
+from sage.lib.function.refiner import AbstractiveRecompRefiner
+from sage.lib.function.source import FileSource
+from sage.lib.function.sink import TerminalSink, FileSink
 # from sage.api.operator.operator_impl.writer import LongTimeWriter
 # from sage.api.operator.operator_impl.retriever import SimpleRetriever
-from sage.api.operator.operator_impl.sink import TerminalSink
+from sage.lib.function.sink import TerminalSink
 from sympy.multipledispatch.dispatcher import source
 if TYPE_CHECKING:
-    from sage.api.pipeline.datastream_api import DataStream
+    from sage.api.datastream import DataStream
 
 # 加载配置文件
 def load_config(path: str) -> dict:
@@ -35,19 +35,19 @@ logging.basicConfig(level=logging.INFO)
 def init_memory_and_pipeline():
 
     # 创建一个新的管道实例
-    pipeline = Pipeline(name="example_pipeline", use_ray=False)
+    pipeline = StreamingExecutionEnvironment(name="example_pipeline", use_ray=False)
 
     # 步骤 1: 定义数据源（例如，来自用户的查询）
     query_stream:DataStream = pipeline.add_source(source_class=FileSource, config=config)  # 从文件源读取数据
 
     # 步骤 3: 使用 QAPromptor 构建查询提示
-    prompt_stream:DataStream = query_stream.construct_prompt(QAPromptor, config)
+    prompt_stream:DataStream = query_stream.map(QAPromptor, config)
 
     # routestreram = prompt_stream.route(router,config)
 
     # 步骤 4: 使用 OpenAIGenerator 生成最终的响应
-    response_stream:DataStream = prompt_stream.generate_response(OpenAIGenerator, config)
-    summarize_stream:DataStream = prompt_stream._transform("refiner", AbstractiveRecompRefiner, config)
+    response_stream:DataStream = prompt_stream.map(OpenAIGenerator, config)
+    summarize_stream:DataStream = prompt_stream._transformation("refiner", AbstractiveRecompRefiner, config)
 
     # 步骤 5: 输出到终端或文件
     sink_stream:DataStream = response_stream.sink(FileSink, config)

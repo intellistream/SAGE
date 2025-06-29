@@ -2,12 +2,12 @@ import logging
 import time
 from unittest import result
 import yaml
-from sage.api.pipeline import Pipeline
-from sage.api.operator.operator_impl.promptor import QAPromptor
-from sage.api.operator.operator_impl.generator import OpenAIGenerator
-from sage.api.operator.operator_impl.retriever import BM25sRetriever
-from sage.api.operator.operator_impl.source import FileSource
-from sage.api.operator.operator_impl.sink import FileSink, TerminalSink
+from sage.api.env import StreamingExecutionEnvironment
+from sage.lib.function.promptor import QAPromptor
+from sage.lib.function.generator import OpenAIGenerator
+from sage.lib.function.retriever import BM25sRetriever
+from sage.lib.function.source import FileSource
+from sage.lib.function.sink import FileSink, TerminalSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
 from sage.utils.config_loader import load_config
@@ -35,18 +35,18 @@ def memory_init():
         col.insert(text)
     col.create_index(index_name="bm25s_index")
     config["retriever"]["bm25s_collection"] = col
-    # result=col.retrieve("Python",index_name="bm25s_index")
+    # result=col.map("Python",index_name="bm25s_index")
     # print("检索结果:", result)
 
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = Pipeline(name="example_pipeline")
+    pipeline = StreamingExecutionEnvironment(name="example_pipeline")
     # 构建数据处理流程
     query_stream = pipeline.add_source(FileSource, config["source"])
-    query_and_chunks_stream = query_stream.retrieve(BM25sRetriever, config["retriever"])
-    prompt_stream = query_and_chunks_stream.construct_prompt(QAPromptor, config["promptor"])
-    response_stream = prompt_stream.generate_response(OpenAIGenerator, config["generator"])
+    query_and_chunks_stream = query_stream.map(BM25sRetriever, config["retriever"])
+    prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
+    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
     response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
     pipeline.submit(config={"is_long_running": False})
