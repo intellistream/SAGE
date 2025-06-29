@@ -1,11 +1,11 @@
 import logging
 import time
 import yaml
-from sage.api.pipeline import Pipeline
-from sage.api.operator.operator_impl.chunk import CharacterSplitter
-from sage.api.operator.operator_impl.writer import MemoryWriter
-from sage.api.operator.operator_impl.source import FileSource
-from sage.api.operator.operator_impl.sink import MemWriteSink
+from sage.api.env import StreamingExecutionEnvironment
+from sage.lib.function.map import CharacterSplitter
+from sage.lib.function.writer import MemoryWriter
+from sage.lib.function.source import FileSource
+from sage.lib.function.sink import MemWriteSink
 from sage.core.neuromem.memory_manager import MemoryManager
 from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
 from sage.utils.config_loader import load_config
@@ -37,12 +37,12 @@ def memory_init():
     config["writer"]["ltm_collection"] = col
 
 def pipeline_run(): 
-    pipeline = Pipeline(name="example_pipeline")
+    pipeline = StreamingExecutionEnvironment(name="example_pipeline")
     # 构建数据处理流程
     source_stream = pipeline.add_source(FileSource, config["source"])
-    chunk_stream = source_stream.chunk(CharacterSplitter,config["chunk"])
-    memwrite_stream= chunk_stream.write_mem(MemoryWriter,config)
-    sink_stream= memwrite_stream.sink(MemWriteSink,config["writer"])
+    chunk_stream = source_stream.map(CharacterSplitter, config["map"])
+    memwrite_stream= chunk_stream.map(MemoryWriter,config["writer"])
+    sink_stream= memwrite_stream.sink(MemWriteSink,config["sink"])
     pipeline.submit(config={"is_long_running": True})
     time.sleep(100)  # 等待管道运行
 

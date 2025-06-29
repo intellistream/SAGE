@@ -3,8 +3,8 @@ sage/
 ├── api/                  # 开放给用户开发应用的高层 API
 │   ├── memory/           # Memory API（memory.create / connect / collection.write 等）
 │   ├── model/            # 模型调用（embedding_model, model.apply 等）
-│   ├── operator/         # 开发者定义的 Operator 接口（SourceFunction 等）
-│   ├── pipeline/         # 构建 Logical Graph（Pipeline, submit）
+│   ├── operator/         # 开发者定义的 Operator 接口（BaseFunction 等）
+│   ├── pipeline/         # 构建 Logical Graph（StreamingExecutionEnvironment, submit）
 │   └── __init__.py       # 提供 import sage.* 的统一入口
 │
 ├── core/                 # 系统底层核心执行逻辑

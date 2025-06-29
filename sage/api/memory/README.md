@@ -36,7 +36,7 @@ Connects to one or more registered memory collections
 连接到一个或多个已注册的记忆集合
 
 **CompositeMemory Operations**:  
-- `retrieve(raw_data: str, retrieve_func=None)`: Retrieves data from all connected memories  
+- `map(raw_data: str, retrieve_func=None)`: Retrieves data from all connected memories  
   从所有连接的记忆中检索数据
 - `store(raw_data: str, write_func=None)`: Stores data to all connected memories  
   存储数据到所有连接的记忆
@@ -54,9 +54,9 @@ memory = create_table("my_memory", manager)
 # Connect to multiple memories
 composite = connect(manager, "memory1", "memory2")
 
-# Store and retrieve data
+# Store and map data
 composite.store("sample data")
-results = composite.retrieve("query")
+results = composite.map("query")
 ```
 
 ## 示例用法
@@ -72,4 +72,4 @@ composite = connect(manager, "memory1", "memory2")
 
 # 存储和检索数据
 composite.store("示例数据")
-results = composite.retrieve("查询")
+results = composite.map("查询")

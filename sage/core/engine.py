@@ -1,8 +1,9 @@
 from typing import Type, TYPE_CHECKING, Union, Any, TYPE_CHECKING
-from sage.core.compiler.query_compiler import QueryCompiler
+# from sage.core.compiler.query_compiler import QueryCompiler
 from sage.core.runtime.runtime_manager import RuntimeManager
 from sage.utils.custom_logger import CustomLogger
 from sage.core.runtime.mixed_dag import MixedDAG
+from sage.api.env import StreamingExecutionEnvironment
 import threading, typing, logging
 
 class Engine:
@@ -16,7 +17,7 @@ class Engine:
         self._initialized = True
         # self.dag_manager = DAGManager() # deprecated
         self.runtime_manager = RuntimeManager.get_instance()
-        self.compiler= QueryCompiler()
+        # self.compiler= QueryCompiler()
         from sage.core.graph import SageGraph
         self.graphs:dict[str, SageGraph] = {}  # 存储 pipeline 名称到 SageGraph 的映射
         self.dags:dict = {} # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
@@ -47,33 +48,11 @@ class Engine:
                     instance.__init__()
                     cls._instance = instance
         return cls._instance
-
-
-    def submit_pipeline(self, pipeline, config=None, generate_func=None):
-        from sage.core.graph import SageGraph
-        graph = SageGraph(pipeline, config)
-        self.graphs[graph.name] = graph  # 存储图到字典中
-        # 合并配置
-        if config:
-            graph.config.update(config)
-        try:
-            self.logger.info(f"Received graph '{graph.name}' with {len(graph.nodes)} nodes")
-            # 编译图
-            dag = self.compiler.compile_graph(graph)
-            self.dags[dag.name] = dag  # 存储 DAG 到字典中
-            self.logger.info(f"Graph '{graph.name}' submitted to runtime manager.")
-            # 通过运行时管理器获取对应平台的运行时并提交任务
-            task_handle = self.runtime_manager.submit(dag) 
-        except Exception as e:
-            self.logger.info(f"Failed to submit graph '{graph.name}': {e}")
-            raise
     
-    def submit_mixed_pipeline(self, pipeline, config=None):
+    def submit_env(self, env:StreamingExecutionEnvironment):
         from sage.core.graph import SageGraph
-        graph = SageGraph(pipeline, config)
+        graph = SageGraph(env)
         self.graphs[graph.name] = graph
-        if config:
-            graph.config.update(config)
         try:
             self.logger.info(f"Received mixed graph '{graph.name}' with {len(graph.nodes)} nodes")
             # 编译图
