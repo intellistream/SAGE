@@ -1,7 +1,8 @@
 from typing import TYPE_CHECKING
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from sage.core.runtime.local.local_task import StreamingTask,  BaseTask
+from sage.core.runtime.local.local_dag_node import LocalDAGNode
+# from sage.core.runtime.local.local_task import StreamingTask,  BaseTask
 
 class Slot:
     """
@@ -28,7 +29,7 @@ class Slot:
         self.max_load = max_threads
         self.logger=logging.getLogger(__name__)
 
-    def submit_task(self, task: BaseTask) -> bool:
+    def submit_task(self, task: LocalDAGNode) -> bool:
         """
                提交任务到线程池
 
@@ -46,7 +47,7 @@ class Slot:
             return False
         if self.current_load < self.max_load:
             # task被真正执行的地方
-            future=self.thread_pool.submit(task.execute)
+            future=self.thread_pool.submit(task.run_loop)
             self.task_to_future[task]=future
             self.running_tasks.append(task)
             self.current_load += 1
@@ -67,7 +68,7 @@ class Slot:
     def adjust_capacity(self, new_max: int):
         self.max_load = new_max
 
-    def stop(self,task:StreamingTask):
+    def stop(self,task):
         #停止一个task的执行
         try :
             if task not in self.running_tasks:

@@ -1,6 +1,6 @@
 from sage.core.runtime import BaseRuntime
 from sage.core.runtime.local.local_scheduling_strategy import SchedulingStrategy, ResourceAwareStrategy, PriorityStrategy
-from sage.core.runtime.local.local_task import StreamingTask,BaseTask
+# from sage.core.runtime.local.local_task import StreamingTask,BaseTask
 from sage.core.runtime.local.local_slot import Slot
 from sage.core.runtime.local.local_dag_node import LocalDAGNode
 from sage.utils.custom_logger import CustomLogger
@@ -212,11 +212,11 @@ class LocalRuntime(BaseRuntime):
         
         try:
             # 创建StreamingTask包装节点
-            task = StreamingTask(node, {})
+            # task = StreamingTask(node, {})
             
             # 选择slot并提交
-            slot_id = self.scheduling_strategy.select_slot(task, self.available_slots)
-            success = self.available_slots[slot_id].submit_task(task)
+            slot_id = self.scheduling_strategy.select_slot(node, self.available_slots)
+            success = self.available_slots[slot_id].submit_task(node)
             
             if success:
                 # 生成handle
