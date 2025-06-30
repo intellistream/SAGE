@@ -1,6 +1,6 @@
 
 import logging
-from typing import TypeVar,Generic, Callable, Any, List
+from typing import TypeVar,Generic, Callable, Any, List, Union
 from sage.api.base_function import BaseFunction
 
 T = TypeVar('T')
@@ -13,10 +13,13 @@ class Data(Generic[T]):
 
 
 class BaseOperator:
-    def __init__(self, function:BaseFunction = None,*args, **kwargs):
+    def __init__(self, function:Union[BaseFunction,type[BaseFunction]] = None,*args, **kwargs):
         self._name = self.__class__.__name__
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.function = function(*args,**kwargs)
+        if(isinstance(function, BaseFunction)):
+            self.function = function
+        elif(isinstance(function, type) and issubclass(function, BaseFunction)):
+            self.function = function(*args,**kwargs)
 
 
     def execute(self, *args, **kwargs):
