@@ -17,8 +17,8 @@ from sage.lib.function.reranker import BGEReranker
 from sage.lib.function.refiner import AbstractiveRecompRefiner
 from sage.lib.function.source import FileSource
 from sage.lib.function.sink import TerminalSink, FileSink
-# from sage.api.operator.operator_impl.writer import LongTimeWriter
-# from sage.api.operator.operator_impl.retriever import SimpleRetriever
+# from sage.core.operator.operator_impl.writer import LongTimeWriter
+# from sage.core.operator.operator_impl.retriever import SimpleRetriever
 from sage.lib.function.sink import TerminalSink
 from sympy.multipledispatch.dispatcher import source
 if TYPE_CHECKING:

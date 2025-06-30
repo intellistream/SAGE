@@ -1,7 +1,7 @@
 from calendar import c
 from sage.api.model import apply_generator_model
 from sage.api.base_function import BaseFunction
-from sage.api.operator import Data
+from sage.core.operator import Data
 from typing import Any,Tuple
 import requests
 import json

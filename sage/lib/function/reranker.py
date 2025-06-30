@@ -2,8 +2,8 @@ from pydoc import doc
 
 from cv2 import sort
 
-from sage.api.operator import BaseFunction
-from sage.api.operator import Data
+from sage.core.operator import BaseFunction
+from sage.core.operator import Data
 from typing import Any, List, Tuple
 
 import torch

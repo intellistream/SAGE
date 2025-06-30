@@ -19,21 +19,13 @@ class RayEmitContext(BaseEmitContext):
     支持向Ray Actor发送远程调用，向本地节点发送TCP包
     """
     
-    def __init__(self, node_name: str, ray_node_actor=None,
+    def __init__(self, 
                  local_tcp_host: str = "localhost", 
                  local_tcp_port: int = 9999, logger: CustomLogger = None):
-        super().__init__(node_name)
-        self.ray_node_actor = ray_node_actor
         self.local_tcp_host = local_tcp_host
         self.local_tcp_port = local_tcp_port
         self._tcp_socket = None
         self._socket_lock = threading.Lock()
-        self.logger = logger or CustomLogger(
-                object_name=f"RayEmitContext_{node_name}",
-                log_level="DEBUG",
-                console_output=False,
-                file_output=True
-            )
 
     def _get_tcp_connection(self) -> socket.socket:
         """获取到本地的TCP连接（懒加载）"""

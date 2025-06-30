@@ -11,8 +11,8 @@ print(f"{project_root}:{os.environ.get('PYTHONPATH', '')}")
 sys.path.insert(0, project_root)
 
 from sage.lib.function.source import FileSource
-# from sage.api.operator.operator_impl.writer import LongTimeWriter,MemWriter
-# from sage.api.operator.operator_impl.retriever import SimpleRetriever
+# from sage.core.operator.operator_impl.writer import LongTimeWriter,MemWriter
+# from sage.core.operator.operator_impl.retriever import SimpleRetriever
 from sage.lib.function.agent  import BaseAgent
 from sage.lib.function.evaluate import (
     F1Evaluate,
@@ -20,8 +20,8 @@ from sage.lib.function.evaluate import (
     RougeLEvaluate,
     BRSEvaluate,
 )
-from sage.api.operator.operator_impl_test.sink import FileSink
-from sage.api.operator import Data
+from sage.core.operator.operator_impl_test.sink import FileSink
+from sage.core.operator import Data
 import yaml
 
 

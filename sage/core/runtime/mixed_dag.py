@@ -81,7 +81,8 @@ class MixedDAG:
                     else:
                         # 本地节点直接调用
                         current_operator.add_downstream_node(
-                            output_edge,
+                            output_edge.upstream_channel,
+                            output_edge.downstream_channel,
                             downstream_operator
                         )
                         self.logger.debug(f"Setup local connection: {node_name} -> {downstream_node_name}")

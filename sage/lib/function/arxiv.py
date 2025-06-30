@@ -1,6 +1,6 @@
 from typing import Any, List, Literal, Optional, Union
-from sage.api.operator.arxiv_function_api import BaseFunction
-from sage.api.operator import Data
+from sage.core.operator.arxiv_function_api import BaseFunction
+from sage.core.operator import Data
 from typing import Any, List, Optional
 from urllib.parse import quote
 import feedparser
