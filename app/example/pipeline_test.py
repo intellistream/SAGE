@@ -38,7 +38,7 @@ def init_memory_and_pipeline():
     pipeline = StreamingExecutionEnvironment(name="example_pipeline", use_ray=False)
 
     # 步骤 1: 定义数据源（例如，来自用户的查询）
-    query_stream:DataStream = pipeline.add_source(source_class=FileSource, config=config)  # 从文件源读取数据
+    query_stream:DataStream = pipeline.from_source(source_class=FileSource, config=config)  # 从文件源读取数据
 
     # 步骤 3: 使用 QAPromptor 构建查询提示
     prompt_stream:DataStream = query_stream.map(QAPromptor, config)

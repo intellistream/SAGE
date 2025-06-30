@@ -42,7 +42,7 @@ def memory_init():
 def ingest_pipeline_run():
     pipeline = StreamingExecutionEnvironment(name="ingest_pipeline", use_ray=False)
     # 构建数据处理流程
-    source_stream = pipeline.add_source(FileSource, config_for_ingest)
+    source_stream = pipeline.from_source(FileSource, config_for_ingest)
     chunk_stream = source_stream.map(CharacterSplitter,config_for_ingest)
     memwrite_stream= chunk_stream.map(MemoryWriter,config_for_ingest)
     sink_stream= memwrite_stream.sink(MemWriteSink,config_for_ingest)
@@ -52,7 +52,7 @@ def qa_pipeline_run():
     """创建并运行数据处理管道"""
     pipeline = StreamingExecutionEnvironment(name="qa_pipeline", use_ray=False)
     # 构建数据处理流程
-    query_stream = pipeline.add_source(FileSource, config_for_qa)
+    query_stream = pipeline.from_source(FileSource, config_for_qa)
     query_and_chunks_stream = query_stream.map(SimpleRetriever, config_for_qa)
     prompt_stream = query_and_chunks_stream.map(QAPromptor, config_for_qa)
     response_stream = prompt_stream.map(OpenAIGenerator, config_for_qa)
