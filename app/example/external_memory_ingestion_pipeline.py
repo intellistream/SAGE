@@ -7,7 +7,7 @@ from sage.lib.function.writer import MemoryWriter
 from sage.lib.function.source import FileSource
 from sage.lib.function.sink import MemWriteSink
 from sage.core.neuromem.memory_manager import MemoryManager
-from sage.tests.neuromem_test.embeddingmodel import MockTextEmbedder
+from sage.core.neuromem.embeddingmodel import MockTextEmbedder
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
 

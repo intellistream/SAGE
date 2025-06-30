@@ -7,7 +7,7 @@ if __name__ == "__main__":
     import time
     from datetime import datetime
     from sage.core.neuromem.memory_collection.base_collection import get_default_data_dir
-    from sage.tests.neuromem_test.embeddingmodel import MockTextEmbedder
+    from sage.core.neuromem.embeddingmodel import MockTextEmbedder
     from sage.core.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
 
     def colored(text, color):

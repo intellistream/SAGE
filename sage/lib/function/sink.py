@@ -19,7 +19,7 @@ class TerminalSink(BaseFunction):
 class RetriveSink(BaseFunction):
     def __init__(self,config):
         super().__init__()
-        self.config=config["sink"]
+        self.config=config
     def execute(self, data:Data[Tuple[str, List[str]]]):
         question,chunks=data.data
 
@@ -31,7 +31,7 @@ class RetriveSink(BaseFunction):
 class FileSink(BaseFunction):
     def __init__(self, config):
         super().__init__()
-        self.config = config["sink"]
+        self.config = config
         self.file_path =  config.get("file_path","qa_output.txt")
 
         # 创建或清空文件
@@ -50,7 +50,7 @@ class FileSink(BaseFunction):
 class MemWriteSink(BaseFunction):
     def __init__(self, config):
         super().__init__()
-        self.config = config.get("sink",{})
+        self.config = config
         # 从配置获取文件路径，默认为 'mem_output.txt'
         self.file_path = self.config.get("file_path", "mem_output.txt")
         self.counter = 0  # 全局字符串计数器

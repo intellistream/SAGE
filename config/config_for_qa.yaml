@@ -5,7 +5,7 @@ pipeline:
   type: "ray"
 
 source:
-  data_path: "./sage/api/operator/operator_test/question.txt"
+  data_path: "./data/sample/question.txt"
 
 retriever:
   ltm:
@@ -28,6 +28,9 @@ generator:
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
   api_key: "sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"
   seed: 42
+
+promptor:
+
 
 sink:
   file_path: "output.txt"
