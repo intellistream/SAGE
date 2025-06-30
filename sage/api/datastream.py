@@ -3,8 +3,8 @@ from typing import Type, TYPE_CHECKING, Union, Any
 
 # from sage.api.env import StreamingExecutionEnvironment
 from sage.core.operator.base_operator import BaseOperator
-from sage.api.base_function import BaseFunction
 from sage.core.operator.transformation import TransformationType, Transformation
+from sage.api.base_function import BaseFunction
     
 class DataStream:
 

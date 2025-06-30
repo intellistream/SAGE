@@ -8,6 +8,7 @@ from enum import Enum
 from sage.api.base_function import BaseFunction
 from sage.core.operator.base_operator import BaseOperator
 from sage.core.operator.map_operator import MapOperator
+from sage.utils.custom_logger import CustomLogger
 
 # if TYPE_CHECKING:
 #     from sage.core.operator_factory.operator.base_operator_factory import BaseOperatorFactory
@@ -29,8 +30,8 @@ class Transformation:
         # TODO: 添加其他transformation类型的映射
         # TransformationType.FILTER: FilterOperator,
         # TransformationType.FLATMAP: FlatMapOperator,
-        # TransformationType.SINK: SinkOperator,
-        # TransformationType.SOURCE: SourceOperator,
+        TransformationType.SINK: MapOperator,
+        TransformationType.SOURCE: MapOperator,
     }
     def __init__(
         self,
@@ -41,6 +42,7 @@ class Transformation:
         platform:str = "local",
         **kwargs
     ):
+        self.transformation_type = transformation_type
         """
         Args:
             op_or_class: 可以是 function/operator 的实例，
@@ -48,13 +50,6 @@ class Transformation:
             **kwargs: 若op_or_class是类，则用于构造实例；
                       若是实例，则忽略。
         """
-        self.operator_class = self.TO_OPERATOR.get(transformation_type, None)
-        self.upstream: List["Transformation"] = []
-        self.downstream: List["Transformation"] = []
-        self.parallelism = parallelism
-        self.platform = platform
-        self.args = args
-        self.kwargs = kwargs
         if isinstance(function, BaseFunction):
             self.is_instance = True
             self.function = function
@@ -67,6 +62,25 @@ class Transformation:
             raise ValueError(
                 f"Unsupported function type: {type(function)}"
             )
+        
+        self.logger = CustomLogger(
+            object_name=f"Transformation_{self.function_class.__name__}",
+            log_level="DEBUG",
+            console_output=True,
+            file_output=True
+        )
+        self.logger.debug(f"Creating Transformation of type {transformation_type} with function {self.function_class.__name__}")
+
+
+        self.operator_class = self.TO_OPERATOR.get(transformation_type, None)
+        self.upstream: List["Transformation"] = []
+        self.downstream: List["Transformation"] = []
+        self.parallelism = parallelism
+        self.platform = platform
+        self.args = args
+        self.kwargs = kwargs
+
+
         
     # 双向连接
     def add_upstream(self, parent: "Transformation") -> None:
@@ -86,7 +100,7 @@ class Transformation:
     # ---------------- 工具函数 ----------------
     def build_instance(self, **kwargs) -> BaseOperator:
         """如果尚未实例化，则根据 op_class 和 kwargs 实例化。"""
-        if self.isinstance is False:
+        if self.is_instance is False:
             self.function = self.function_class(*self.args, **kwargs)
         return self.operator_class(self.function, **kwargs)
 

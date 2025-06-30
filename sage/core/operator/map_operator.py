@@ -12,13 +12,11 @@ class MapOperator(BaseOperator):
                 *args, **kwargs):
         super().__init__()
         session_folder = kwargs.pop("session_folder", None)
-
-        self._name = self.__class__.__name__
         self.function = function
 
         # 创建 Custom Logger
         self.logger = CustomLogger(
-            object_name = f"Operator_{self._name}",
+            object_name = f"Operator_{self.function.__class__.__name__}",
             session_folder = session_folder,
             log_level="DEBUG",
             console_output=False,
