@@ -8,12 +8,12 @@ from typing import Any, Type, TYPE_CHECKING, Union, List, Optional, Tuple
 
 
 #from sage.archive.operator_wrapper import OperatorWrapper
-from sage.api.base_operator import BaseOperator
+from sage.core.operator.base_operator import BaseOperator
 from sage.core.graph import SageGraph, GraphEdge, GraphNode
 from sage.core.io.message_queue import MessageQueue
 from sage.core.io.emit_context import  NodeType
 from sage.core.io.local_emit_context import LocalEmitContext
-from sage.api.transformation import BaseTransformation, TransformationType
+from sage.core.operator.transformation import Transformation, TransformationType
 from sage.utils.custom_logger import CustomLogger
 import ray
 from ray.actor import ActorHandle
@@ -29,7 +29,7 @@ class LocalDAGNode:
 
     def __init__(self, 
                  name:str,
-                 transformation:BaseTransformation) -> None:
+                 transformation:Transformation) -> None:
         """
         Initialize the multiplexer DAG node.
 # 
@@ -41,19 +41,19 @@ class LocalDAGNode:
         """
         self.name = name
         self.transformation = transformation
-        self.operator = transformation.build_instance()  # Build operator instance from transformation
+        self.operator = transformation.build_instance()
+        self.operator.insert_emit_context(LocalEmitContext())
+
+
         self.is_spout = transformation.transformation_type == TransformationType.SOURCE  # Check if this is a spout node 正确
         
         self.input_buffer = MessageQueue()  # Local input buffer for this node
 
-
+        # Initialize stop event
+        self.stop_event = threading.Event()
 
         self._current_channel_index = 0
         self._initialized = False
-        # Create emit context
-        # Create emit context for mixed environment
-        self.emit_context = LocalEmitContext(self.name)
-        self._emit_context_injected = False
 
 
         self.logger = CustomLogger(
@@ -65,31 +65,6 @@ class LocalDAGNode:
         # self.logger.info(f"transformation_type: {transformation.transformation_type}")
         self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout})")
 
-
-
-
-    def _ensure_initialized(self):
-        """
-        Ensure that all runtime objects are initialized.
-        Called when the node actually starts running.
-        """
-        if self._initialized:
-            return
-            
-        
-        # Initialize stop event
-        self.stop_event = threading.Event()
-        
-        # Inject emit context
-        if hasattr(self.operator, 'set_emit_context') and not self._emit_context_injected:
-            try:
-                self.operator.set_emit_context(self.emit_context)
-                self._emit_context_injected = True
-                self.logger.debug(f"Injected emit context for operator in node {self.name}")
-            except Exception as e:
-                self.logger.warning(f"Failed to inject emit context in node {self.name}: {e}")
-        
-        self._initialized = True
     
     def put(self, data_packet: Tuple[int, Any]):
         """
@@ -101,66 +76,26 @@ class LocalDAGNode:
         self.input_buffer.put(data_packet, timeout=1.0)
         self.logger.debug(f"Put data packet into buffer: channel={data_packet[0]}")
 
-    def add_downstream_node(self, output_edge: GraphEdge, downstream_operator: Union['LocalDAGNode', ActorHandle]):
-        """
-        添加下游节点到emit context
-        
-        Args:
-            output_edge: 输出边
-            downstream_operator: 下游操作符（本地节点或Ray Actor）
-        """
+    def add_downstream_node(self,output_channel:int, target_input_channel:int,   downstream_handle: Union[ActorHandle, str]):
         try:
-            if isinstance(downstream_operator, ActorHandle):
-                # Ray Actor
-                self.emit_context.add_downstream_target(
-                    output_channel=output_edge.upstream_channel,
-                    node_type=NodeType.RAY_ACTOR,
-                    target_object=downstream_operator,
-                    target_input_channel=output_edge.downstream_channel,
-                    node_name=f"RayActor_{output_edge.downstream_node.name}"
-                )
-                self.logger.debug(f"Added Ray actor downstream: {self.name}[{output_edge.upstream_channel}] -> "
-                                f"{output_edge.downstream_node.name}[{output_edge.downstream_channel}]")
-            
-            elif isinstance(downstream_operator, LocalDAGNode):
-                # 本地节点
-                self.emit_context.add_downstream_target(
-                    output_channel=output_edge.upstream_channel,
-                    node_type=NodeType.LOCAL,
-                    target_object=downstream_operator,
-                    target_input_channel=output_edge.downstream_channel,
-                    node_name=downstream_operator.name
-                )
-                self.logger.debug(f"Added local node downstream: {self.name}[{output_edge.upstream_channel}] -> "
-                                f"{downstream_operator.name}[{output_edge.downstream_channel}]")
-            else:
-                raise TypeError(f"Unsupported downstream operator type: {type(downstream_operator)}")
+            # 下游是Ray Actor
+            self.operator.add_downstream_target(
+                output_channel=output_channel,
+                target_object=downstream_handle,
+                target_input_channel=target_input_channel
+            )
+            self.logger.debug(f"Added downstream target: {downstream_handle}[{output_channel}]")
                 
         except Exception as e:
             self.logger.error(f"Error adding downstream node: {e}", exc_info=True)
             raise
     
-
-    def _inject_emit_context_if_needed(self):
-        """
-        Inject emit context if not already done and if supported by operator.
-        This is called at runtime to avoid serialization issues.
-        """
-        if not self._emit_context_injected and hasattr(self.operator, 'set_emit_context'):
-            try:
-                self.operator.set_emit_context(self.emit_context)
-                self._emit_context_injected = True
-                self.logger.debug(f"Injected emit context for operator in node {self.name}")
-            except Exception as e:
-                self.logger.warning(f"Failed to inject emit context in node {self.name}: {e}")
-
     def run_loop(self) -> None:
         """
         Main worker loop that executes continuously until stop is signaled.
         """
 
         # Ensure all runtime objects are initialized
-        self._ensure_initialized()
         self.stop_event.clear()
 
         # Main execution loop

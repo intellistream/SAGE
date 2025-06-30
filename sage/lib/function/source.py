@@ -1,4 +1,4 @@
-from sage.api.base_operator import Data
+from sage.core.operator.base_operator import Data
 from sage.api.base_function import BaseFunction
 from typing import Tuple
 

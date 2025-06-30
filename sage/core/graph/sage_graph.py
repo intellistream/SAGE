@@ -1,16 +1,16 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, AnyStr, Dict, List, Set
 from sage.api.env import StreamingExecutionEnvironment
-from sage.api.transformation import BaseTransformation,TransformationType
+from sage.core.operator.transformation import Transformation,TransformationType
 from sage.utils.custom_logger import CustomLogger
 
 
 
 
 class GraphNode:
-    def __init__(self, name: str, transformation: BaseTransformation, parallel_index: int):
+    def __init__(self, name: str, transformation: Transformation, parallel_index: int):
         self.name: str = name
-        self.transformation: BaseTransformation = transformation
+        self.transformation: Transformation = transformation
         self.parallel_index: int = parallel_index  # 在该transformation中的并行索引
         
         # 输入输出channels：每个channel是一个边的列表

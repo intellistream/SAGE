@@ -4,13 +4,13 @@ import logging
 import time
 from typing import Any, List, Optional, Dict, Tuple, TYPE_CHECKING, Type, Union
 from ray.actor import ActorHandle
-from sage.api.base_operator import BaseOperator
+from sage.core.operator.base_operator import BaseOperator
 from sage.core.graph import GraphEdge, GraphNode
 from sage.core.io.emit_context import NodeType
 from sage.core.io.ray_emit_context import RayEmitContext
 from sage.utils.custom_logger import CustomLogger
 from sage.core.runtime.local.local_dag_node import LocalDAGNode
-from sage.api.transformation import BaseTransformation, TransformationType
+from sage.core.operator.transformation import Transformation, TransformationType
 @ray.remote
 class RayDAGNode:
     """
@@ -22,7 +22,7 @@ class RayDAGNode:
     
     def __init__(self, 
                  name: str, 
-                 transformation: BaseTransformation,
+                 transformation: Transformation,
                  session_folder: str = None) -> None:
         """
         Initialize Ray multiplexer DAG node.
@@ -39,10 +39,21 @@ class RayDAGNode:
             raise Exception("GraphNode operator must be a class for Ray platform")
 
         self.name = name
-        self.transformation = transformation
-        self.session_folder = session_folder
-        self._initialized = False
-        
+
+        try:
+            self.operator = transformation.build_instance(session_folder=session_folder)
+            self.logger.debug(f"Created operator instance for {self.name}")
+        except Exception as e:
+            self.logger.error(f"Failed to create operator instance: {e}", exc_info=True)
+            raise
+                # Create emit context for mixed environment
+        try:
+            self.operator.insert_emit_context(RayEmitContext())
+            self.logger.debug(f"Injected emit context for operator in node {self.name}")
+        except Exception as e:
+            self.logger.warning(f"Failed to inject emit context in node {self.name}: {e}")
+
+
         # Running state management
         self._running = False
         self._stop_requested = False
@@ -56,77 +67,23 @@ class RayDAGNode:
             file_output=True
         )
         
-        # Create emit context for mixed environment
-        self.emit_context = RayEmitContext(
-            self.name, 
-            ray_node_actor=self,
-            logger = self.logger,
-        )
-        self._emit_context_injected = False
+
         
         self.logger.info(f"Created Ray actor node: {self.name}")
 
-    def _ensure_initialized(self):
-        """
-        Ensure that all runtime objects are initialized.
-        Called when the node actually starts running.
-        """
-        if self._initialized:
-            return
+
         
-        # Create operator instance locally within the Ray actor
-        operator_config = self.transformation.kwargs.copy()
-        operator_config["session_folder"] = self.session_folder
-        
-        try:
-            self.operator = BaseOperator(self.transformation.op_class,self.transformation.args,  operator_config)
-            self.logger.debug(f"Created operator instance for {self.name}")
-        except Exception as e:
-            self.logger.error(f"Failed to create operator instance: {e}", exc_info=True)
-            raise
-        
-        # Inject emit context if operator supports it
-        if hasattr(self.operator, 'set_emit_context') and not self._emit_context_injected:
-            try:
-                self.operator.set_emit_context(self.emit_context)
-                self._emit_context_injected = True
-                self.logger.debug(f"Injected emit context for operator in node {self.name}")
-            except Exception as e:
-                self.logger.warning(f"Failed to inject emit context in node {self.name}: {e}")
-        
-        self._initialized = True
+
 
     def add_downstream_node(self,output_channel:int, target_input_channel:int,   downstream_handle: Union[ActorHandle, str]):
-        """
-        添加下游节点到emit context
-        
-        Args:
-            output_edge: 输出边
-            downstream_operator: 下游操作符（Ray Actor或本地节点）
-        """
         try:
-            if isinstance(downstream_handle, ActorHandle):
-                # 下游是Ray Actor
-                self.emit_context.add_downstream_target(
-                    output_channel=output_channel,
-                    node_type=NodeType.RAY_ACTOR,
-                    target_object=downstream_handle,
-                    target_input_channel=target_input_channel,
-                    node_name=f"RayActor_output_channel_{output_channel}"
-                )
-                self.logger.debug(f"Added Ray actor downstream: {self.name}[{output_channel}]")
-            
-            else:
-                # 下游是本地节点（通过TCP通信）
-                self.emit_context.add_downstream_target(
-                    output_channel=output_channel,
-                    node_type=NodeType.LOCAL,
-                    target_object=None,  # TCP通信不需要直接引用
-                    target_input_channel=target_input_channel,
-                    node_name=downstream_handle
-                )
-                self.logger.debug(f"Added local node downstream: {self.name}[{output_channel}] -> "
-                                f"{downstream_handle}[{target_input_channel}] (via TCP)")
+            # 下游是Ray Actor
+            self.operator.add_downstream_target(
+                output_channel=output_channel,
+                target_object=downstream_handle,
+                target_input_channel=target_input_channel
+            )
+            self.logger.debug(f"Added downstream target: {downstream_handle}[{output_channel}]")
                 
         except Exception as e:
             self.logger.error(f"Error adding downstream node: {e}", exc_info=True)
@@ -144,8 +101,6 @@ class RayDAGNode:
             data: Data received from upstream
         """
         try:
-            # Ensure initialization on first call
-            self._ensure_initialized()
             
             if self._stop_requested:
                 self.logger.debug(f"Ignoring data on stopped node {self.name}")
@@ -160,23 +115,6 @@ class RayDAGNode:
             self.logger.error(f"Error processing data in node {self.name}: {e}", exc_info=True)
             raise
 
-    # 理论上来说，emit方法不会被调用，因为算子会直接调用emit_context.emit
-    # 但为了兼容性和未来可能的需求，这里保留emit方法
-    def emit(self, output_channel: int, data: Any):
-        """
-        Emit data to downstream nodes through the specified output channel.
-        Called by the operator through emit context.
-        
-        Args:
-            output_channel: This node's output channel number (-1 for all channels)
-            data: Data to emit
-        """
-        try:
-            self.emit_context.emit(output_channel, data)
-        except Exception as e:
-            self.logger.error(f"Error emitting data from {self.name}[out:{output_channel}]: {e}", exc_info=True)
-            raise
-
     def start_spout(self):
         """
         Start the spout node execution.
@@ -186,9 +124,6 @@ class RayDAGNode:
         if not self.is_spout:
             self.logger.warning(f"start_spout called on non-spout node {self.name}")
             return
-        
-        # Ensure initialization
-        self._ensure_initialized()
             
         self._running = True
         self._stop_requested = False
@@ -213,7 +148,6 @@ class RayDAGNode:
         Start the node. For spout nodes, this starts the generation loop.
         For non-spout nodes, this just marks the node as ready to receive data.
         """
-        self._ensure_initialized()
         
         if self.is_spout:
             # Start spout execution asynchronously

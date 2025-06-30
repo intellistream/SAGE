@@ -20,8 +20,8 @@ from sage_lib.functions.rag import (
     RougeLEvaluate,
     BRSEvaluate,
 )
-from sage.api.operator.operator_impl_test.sink import FileSink
-from sage.api.operator import Data
+from sage.core.operator.operator_impl_test.sink import FileSink
+from sage.core.operator import Data
 import yaml
 
 
