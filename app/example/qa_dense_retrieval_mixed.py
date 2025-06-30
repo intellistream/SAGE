@@ -52,7 +52,7 @@ def pipeline_run():
 if __name__ == '__main__':
     configure_logging(level=logging.INFO)
     # 加载配置并初始化日志
-    config = load_config('./config_mixed.yaml')
+    config = load_config('config_mixed.yaml')
     # 初始化内存并运行管道
     memory_init()
     pipeline_run()

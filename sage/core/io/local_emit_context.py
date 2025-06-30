@@ -38,12 +38,12 @@ class LocalEmitContext(BaseEmitContext):
                 # 或者有put方法
                 target.target_object.put(data_packet)
             else:
-                raise AttributeError(f"Local node {target.node_name} has no input_buffer or put method")
+                raise AttributeError(f"Local node {target.target_object} has no input_buffer or put method")
                 
-            self.logger.debug(f"Written data packet to local node {target.node_name}[in:{target.target_input_channel}] input buffer")
+            self.logger.debug(f"Written data packet to local node {target.target_object}[in:{target.target_input_channel}] input buffer")
             
         except Exception as e:
-            self.logger.error(f"Error writing data to local node {target.node_name} input buffer: {e}")
+            self.logger.error(f"Error writing data to local node {target.target_object} input buffer: {e}")
             raise
     
     def _send_to_ray_actor(self, target: DownstreamTarget, data: Any) -> None:
@@ -58,10 +58,10 @@ class LocalEmitContext(BaseEmitContext):
             if isinstance(target.target_object, ActorHandle):
                 # 直接调用Ray Actor的remote方法
                 target.target_object.receive.remote(target.target_input_channel, data)
-                self.logger.debug(f"Sent remote call to Ray actor {target.node_name}[in:{target.target_input_channel}]")
+                self.logger.debug(f"Sent remote call to Ray actor {target.target_object}[in:{target.target_input_channel}]")
             else:
                 raise TypeError(f"Expected ActorHandle for Ray actor, got {type(target.target_object)}")
                 
         except Exception as e:
-            self.logger.error(f"Error sending remote call to Ray actor {target.node_name}: {e}")
+            self.logger.error(f"Error sending remote call to Ray actor {target.target_object}: {e}")
             raise

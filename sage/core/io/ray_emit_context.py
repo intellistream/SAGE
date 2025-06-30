@@ -54,7 +54,7 @@ class RayEmitContext(BaseEmitContext):
             message = {
                 "type": "ray_to_local",
                 "source_actor": self.node_name,
-                "target_node": target.node_name,
+                "target_node": target.target_object,
                 "target_channel": target.target_input_channel,
                 "data": data,
                 "timestamp": time.time_ns()
@@ -69,10 +69,10 @@ class RayEmitContext(BaseEmitContext):
             tcp_conn.sendall(message_size.to_bytes(4, byteorder='big'))
             tcp_conn.sendall(serialized_data)
             
-            self.logger.debug(f"Sent TCP packet to local node {target.node_name}[in:{target.target_input_channel}]")
+            self.logger.debug(f"Sent TCP packet to local node {target.target_object}[in:{target.target_input_channel}]")
             
         except Exception as e:
-            self.logger.error(f"Error sending TCP packet to local node {target.node_name}: {e}")
+            self.logger.error(f"Error sending TCP packet to local node {target.target_object}: {e}")
             # 重置连接以便下次重试
             with self._socket_lock:
                 if self._tcp_socket:
@@ -92,12 +92,12 @@ class RayEmitContext(BaseEmitContext):
             if isinstance(target.target_object, ActorHandle):
                 # 直接调用Ray Actor的remote方法
                 target.target_object.receive.remote(target.target_input_channel, data)
-                self.logger.debug(f"Sent remote call to Ray actor {target.node_name}[in:{target.target_input_channel}]")
+                self.logger.debug(f"Sent remote call to Ray actor {target.target_object}[in:{target.target_input_channel}]")
             else:
                 raise TypeError(f"Expected ActorHandle for Ray actor, got {type(target.target_object)}")
                 
         except Exception as e:
-            self.logger.error(f"Error sending remote call to Ray actor {target.node_name}: {e}")
+            self.logger.error(f"Error sending remote call to Ray actor {target.target_object}: {e}")
             raise
     
     def close(self):

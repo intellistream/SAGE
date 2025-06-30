@@ -76,7 +76,7 @@ class SageGraph:
                 node_names.append(node_name)
             
             transformation_to_nodes[transformation] = node_names
-            self.logger.debug(f"Generated {len(node_names)} parallel nodes for {transformation.transformation_type}: {node_names}")
+            self.logger.debug(f"Generated {len(node_names)} parallel nodes for {transformation.operator_class.__name__}: {node_names}")
         
         # 第二步：计算逻辑边数量（用于日志）
         self.logger.debug("Step 2: Counting logical edges")
@@ -157,8 +157,8 @@ class SageGraph:
                         self.edges[edge_name] = edge
                 
                 self.logger.debug(f"Connected {len(upstream_nodes)}×{len(downstream_nodes)} physical edges "
-                                f"between {upstream_transformation.transformation_type.value} -> "
-                                f"{transformation.transformation_type.value}")
+                                f"between {upstream_transformation.operator_class.__name__} -> "
+                                f"{transformation.operator_class.__name__}")
         
         self.logger.info(f"Graph construction completed: {len(self.nodes)} nodes, {len(self.edges)} edges")
 

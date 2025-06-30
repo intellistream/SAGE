@@ -110,7 +110,7 @@ class BaseOperator(ABC):
 
 
 
-    def add_downstream_target(self, 
+    def add_downstream_target(self,
                             output_channel: int,
                             target_object: Any, 
                             target_input_channel: int) -> None:
@@ -125,10 +125,23 @@ class BaseOperator(ABC):
             node_name: 下游节点名称
         """
         from ray.actor import ActorHandle
+        from sage.core.runtime.local.local_dag_node import LocalDAGNode
+        # Debug log
+        self.logger.debug(
+            f"Adding downstream: output_channel={output_channel}, "
+            f"target_object={target_object}, target_input_channel={target_input_channel}"
+        )
+
         if(isinstance(target_object, ActorHandle)):
             node_type = NodeType.RAY_ACTOR
-        elif isinstance(target_object, str):
+            self.logger.debug("Detected Ray ActorHandle as target")
+        elif isinstance(target_object, str) or isinstance(target_object, LocalDAGNode):
             node_type = NodeType.LOCAL
+            self.logger.debug("Detected Local DagNode as target")
+        else:
+            node_type = NodeType.LOCAL
+            self.logger.warning(f"Unknown target type: {type(target_object)}. "
+                            "Defaulting to LOCAL node type.")
 
 
         target = DownstreamTarget(node_type, target_object, target_input_channel)
