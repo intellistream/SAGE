@@ -1,5 +1,5 @@
-from sage.api.operator import BaseFunction
-from sage.api.operator import Data
+from sage.api.base_function import BaseFunction
+from sage.api.base_operator import Data
 from typing import Tuple, Any
 
 from sage.utils.data_loader import resolve_data_path

@@ -54,8 +54,8 @@ class BaseTransformation(ABC):
             self.function_class = type(function)
         elif isinstance(function, type):
             self.is_instance = False
-            self.op_instance = None
-            self.op_class = function
+            self.function = None
+            self.function_class = function
         else:
             raise ValueError(
                 f"Unsupported function type: {type(function)}"
@@ -80,8 +80,8 @@ class BaseTransformation(ABC):
     def build_instance(self) -> BaseOperator:
         """如果尚未实例化，则根据 op_class 和 kwargs 实例化。"""
         if self.is_instance:
-            return self.op_instance
-        return BaseOperator(self.op_class, *self.args, **self.kwargs)
+            return BaseOperator(self.function, *self.args, **self.kwargs)
+        return BaseOperator(self.function_class, *self.args, **self.kwargs)
 
     def __repr__(self) -> str:
         cls_name = self.op_class.__name__
