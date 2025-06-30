@@ -39,7 +39,7 @@ def pipeline_run():
     """创建并运行数据处理管道"""
     pipeline = StreamingExecutionEnvironment(name="example_pipeline")
     # 构建数据处理流程
-    query_stream = pipeline.add_source(FileSource, config["source"])
+    query_stream = pipeline.from_source(FileSource, config["source"])
     query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])
     prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
     response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
