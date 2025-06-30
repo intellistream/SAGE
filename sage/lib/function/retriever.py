@@ -103,7 +103,7 @@ class BM25sRetriever(BaseFunction):
 
         try:
             # 使用BM25s配置和输入查询调用检索
-            bm25s_results = self.memory_adapter.map(
+            bm25s_results = self.memory_adapter.retrieve(
                 self.bm25s_collection,
                 query=input_query,
                 collection_config=self.bm25s_config
