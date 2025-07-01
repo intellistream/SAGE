@@ -7,7 +7,7 @@ from sage.lib.function.writer import MemoryWriter
 from sage.lib.function.source import FileSource
 from sage.lib.function.sink import MemWriteSink
 from sage.core.neuromem.memory_manager import MemoryManager
-from sage.core.neuromem.embeddingmodel import MockTextEmbedder
+from sage.core.model.embedding_model.embedding_model import MockTextEmbedder
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
 
@@ -40,10 +40,10 @@ def pipeline_run():
     pipeline = StreamingExecutionEnvironment(name="example_pipeline")
     # 构建数据处理流程
     source_stream = pipeline.from_source(FileSource, config["source"])
-    chunk_stream = source_stream.map(CharacterSplitter, config["map"])
+    chunk_stream = source_stream.map(CharacterSplitter, config["chunk"])
     memwrite_stream= chunk_stream.map(MemoryWriter,config["writer"])
     sink_stream= memwrite_stream.sink(MemWriteSink,config["sink"])
-    pipeline.submit(config={"is_long_running": True})
+    pipeline.execute()
     time.sleep(100)  # 等待管道运行
 
 if __name__ == '__main__':

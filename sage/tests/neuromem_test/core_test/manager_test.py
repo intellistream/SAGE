@@ -3,7 +3,7 @@
 
 def vdbtest():
     from sage.core.neuromem.memory_manager import MemoryManager
-    from sage.core.neuromem.embeddingmodel import MockTextEmbedder
+    from sage.core.model.embedding_model.embedding_model import MockTextEmbedder
     import os
     import time
 
