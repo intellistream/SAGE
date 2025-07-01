@@ -106,3 +106,4 @@ def test_kv_collection():
 
     # 清理数据
     KVMemoryCollection.clear(col_name)
+
