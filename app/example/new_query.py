@@ -47,13 +47,13 @@ def pipeline_run():
     pipeline = StreamingExecutionEnvironment(name="example_pipeline")
     # 构建数据处理流程
     manual_source = ManualSource(config["source"])
-    query_stream = pipeline.add_source(manual_source)
+    query_stream = pipeline.from_source(manual_source)
     query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])
     prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
     response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
     response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
-    pipeline.submit(config={"is_long_running":True})
+    pipeline.execute()
     time.sleep(10) # 等待管道启动
     while(True):
         user_input = input("\n>>> ").strip()

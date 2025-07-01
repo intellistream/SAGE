@@ -142,7 +142,7 @@ Sage uses a fluent-style API to declaratively define data flows. Here’s how to
 ```python
 pipeline = StreamingExecutionEnvironment(name="example_pipeline", use_ray=False)
 query_stream = (pipeline
-   .add_source(FileSource, config)
+   .from_source(FileSource, config)
    .map(DenseRetriever, config)
    .map(QAPromptor, config)
    .map(OpenAIGenerator, config)

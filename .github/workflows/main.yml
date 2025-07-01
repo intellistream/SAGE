@@ -161,5 +161,4 @@ jobs:
       - name: Run Tests
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)
-          cd sage
-          conda run -n sage pytest -v tests/
+          conda run -n sage pytest -v sage/tests/

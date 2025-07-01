@@ -2,12 +2,12 @@ import logging
 import time
 import yaml
 from sage.api.env import StreamingExecutionEnvironment
-from sage.lib.function.map import CharacterSplitter
+from sage.lib.function.chunk import CharacterSplitter
 from sage.lib.function.writer import MemoryWriter
 from sage.lib.function.source import FileSource
 from sage.lib.function.sink import MemWriteSink
 from sage.core.neuromem.memory_manager import MemoryManager
-from sage.core.neuromem.test.embeddingmodel import MockTextEmbedder
+from sage.core.neuromem.embeddingmodel import MockTextEmbedder
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
 
@@ -39,7 +39,7 @@ def memory_init():
 def pipeline_run(): 
     pipeline = StreamingExecutionEnvironment(name="example_pipeline")
     # 构建数据处理流程
-    source_stream = pipeline.add_source(FileSource, config["source"])
+    source_stream = pipeline.from_source(FileSource, config["source"])
     chunk_stream = source_stream.map(CharacterSplitter, config["map"])
     memwrite_stream= chunk_stream.map(MemoryWriter,config["writer"])
     sink_stream= memwrite_stream.sink(MemWriteSink,config["sink"])

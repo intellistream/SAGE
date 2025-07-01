@@ -39,20 +39,20 @@ def pipeline_run():
     """创建并运行数据处理管道"""
     pipeline = StreamingExecutionEnvironment(name="example_pipeline")
     # 构建数据处理流程
-    query_stream = pipeline.add_source(FileSource, config["source"])
+    query_stream = pipeline.from_source(FileSource, config["source"])
     query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])
     prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
     response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
     response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
-    pipeline.submit(config={"is_long_running":True})
+    pipeline.execute()
     time.sleep(100)  # 等待管道运行
 
 
 if __name__ == '__main__':
     configure_logging(level=logging.INFO)
     # 加载配置并初始化日志
-    config = load_config('./config_mixed.yaml')
+    config = load_config('config_mixed.yaml')
     # 初始化内存并运行管道
     memory_init()
     pipeline_run()

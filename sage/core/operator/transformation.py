@@ -6,11 +6,12 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Type, Union, TYPE_CHECKING
 from enum import Enum
 from sage.api.base_function import BaseFunction
-from sage.api.base_operator import BaseOperator
-
+from sage.core.operator.base_operator import BaseOperator
+from sage.core.operator.map_operator import MapOperator
+from sage.utils.custom_logger import CustomLogger
 
 # if TYPE_CHECKING:
-#     from sage.core.operator_factory.base_operator_factory import BaseOperatorFactory
+#     from sage.core.operator_factory.operator.base_operator_factory import BaseOperatorFactory
 #     from sage.core.operator import BaseOperator
 #     from sage.core.function import BaseFunction
 
@@ -23,8 +24,15 @@ class TransformationType(Enum):
 
 
 
-class BaseTransformation(ABC):
-
+class Transformation:
+    TO_OPERATOR = {
+        TransformationType.MAP: MapOperator,
+        # TODO: 添加其他transformation类型的映射
+        # TransformationType.FILTER: FilterOperator,
+        # TransformationType.FLATMAP: FlatMapOperator,
+        TransformationType.SINK: MapOperator,
+        TransformationType.SOURCE: MapOperator,
+    }
     def __init__(
         self,
         transformation_type: TransformationType,
@@ -34,6 +42,7 @@ class BaseTransformation(ABC):
         platform:str = "local",
         **kwargs
     ):
+        self.transformation_type = transformation_type
         """
         Args:
             op_or_class: 可以是 function/operator 的实例，
@@ -41,33 +50,45 @@ class BaseTransformation(ABC):
             **kwargs: 若op_or_class是类，则用于构造实例；
                       若是实例，则忽略。
         """
-        self.transformation_type = transformation_type
-        self.upstream: List["BaseTransformation"] = []
-        self.downstream: List["BaseTransformation"] = []
-        self.parallelism = parallelism
-        self.platform = platform
-        self.args = args
-        self.kwargs = kwargs
         if isinstance(function, BaseFunction):
             self.is_instance = True
             self.function = function
             self.function_class = type(function)
         elif isinstance(function, type):
             self.is_instance = False
-            self.op_instance = None
-            self.op_class = function
+            self.function = None
+            self.function_class = function
         else:
             raise ValueError(
                 f"Unsupported function type: {type(function)}"
             )
         
+        self.logger = CustomLogger(
+            object_name=f"Transformation_{self.function_class.__name__}",
+            log_level="DEBUG",
+            console_output=True,
+            file_output=True
+        )
+        self.logger.debug(f"Creating Transformation of type {transformation_type} with function {self.function_class.__name__}")
+
+
+        self.operator_class = self.TO_OPERATOR.get(transformation_type, None)
+        self.upstream: List["Transformation"] = []
+        self.downstream: List["Transformation"] = []
+        self.parallelism = parallelism
+        self.platform = platform
+        self.args = args
+        self.kwargs = kwargs
+
+
+        
     # 双向连接
-    def add_upstream(self, parent: "BaseTransformation") -> None:
+    def add_upstream(self, parent: "Transformation") -> None:
         self.upstream.append(parent)
         parent.downstream.append(self)
 
     # 这个方法不要使用，避免重复连接
-    # def add_downstream(self, child: "BaseTransformation") -> None:
+    # def add_downstream(self, child: "Transformation") -> None:
     #     self.downstream.append(child)
     #     child.upstream.append(self)
 
@@ -77,11 +98,11 @@ class BaseTransformation(ABC):
     #     """返回生成 Operator 的工厂。"""
 
     # ---------------- 工具函数 ----------------
-    def build_instance(self) -> BaseOperator:
+    def build_instance(self, **kwargs) -> BaseOperator:
         """如果尚未实例化，则根据 op_class 和 kwargs 实例化。"""
-        if self.is_instance:
-            return self.op_instance
-        return BaseOperator(self.op_class, *self.args, **self.kwargs)
+        if self.is_instance is False:
+            self.function = self.function_class(*self.args, **kwargs)
+        return self.operator_class(self.function, **kwargs)
 
     def __repr__(self) -> str:
         cls_name = self.op_class.__name__

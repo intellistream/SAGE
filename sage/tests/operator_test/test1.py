@@ -3,7 +3,7 @@ from typing import List
 import os
 import sys
 
-from sage.api.operator import Data
+from sage.core.operator import Data
 
 # 添加项目根路径到 PYTHONPATH 和 sys.path
 project_root = os.getcwd()

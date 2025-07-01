@@ -1,6 +1,6 @@
 from typing import Tuple, List
 import time  # 替换 asyncio 为 time 用于同步延迟
-from sage.api.base_operator import Data
+from sage.core.operator.base_operator import Data
 from sage.api.base_function import BaseFunction
 import logging
 from sage.utils.custom_logger import CustomLogger
@@ -103,7 +103,7 @@ class BM25sRetriever(BaseFunction):
 
         try:
             # 使用BM25s配置和输入查询调用检索
-            bm25s_results = self.memory_adapter.map(
+            bm25s_results = self.memory_adapter.retrieve(
                 self.bm25s_collection,
                 query=input_query,
                 collection_config=self.bm25s_config

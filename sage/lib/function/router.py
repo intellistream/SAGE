@@ -1,5 +1,5 @@
 from typeguard import value
-from sage.api.operator import BaseFunction,Data
+from sage.core.operator import BaseFunction,Data
 from typing import Tuple, List
 def condition(value:bool)->bool:
     if value:

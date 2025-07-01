@@ -65,7 +65,7 @@ async def init_memory_and_pipeline(job_id=None,  config=None, operators=None):
     # 1. 创建source
     source_type = operators["source"]["type"]
     source_class = globals()[source_type]
-    current_stream = pipeline.add_source(source_class,config)
+    current_stream = pipeline.from_source(source_class,config)
 
     # 2. 创建中间处理步骤
     for step in operators["steps"]:
