@@ -5,22 +5,16 @@
 if __name__ == "__main__":
     import os
     import time
-    from datetime import datetime
     from sage.core.neuromem.memory_collection.base_collection import get_default_data_dir
     from sage.core.neuromem.embeddingmodel import MockTextEmbedder
     from sage.core.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
 
-    def colored(text, color):
-        colors = {"green": "\033[92m", "red": "\033[91m", "yellow": "\033[93m", "reset": "\033[0m"}
-        return colors.get(color, "") + text + colors["reset"]
-
     def print_test_case(desc, expected, actual):
         status = "通过" if expected == actual or (isinstance(expected, set) and set(expected) == set(actual)) else "不通过"
-        color = "green" if status == "通过" else "red"
         print(f"【{desc}】")
         print(f"预期结果：{expected}")
         print(f"实际结果：{actual}")
-        print(f"测试情况：{colored(status, color)}\n")
+        print(f"测试情况：{status}\n")
 
     def almost_equal_dict(d1, d2, float_tol=1e-3):
         # 只对所有值都是float的dict做容忍，否则严格等价
@@ -37,7 +31,7 @@ if __name__ == "__main__":
         return True
 
     def vdb_persist_test():
-        print(colored("\n=== 构建并插入数据 ===", "yellow"))
+        print("\n=== 构建并插入数据 ===")
         default_model = MockTextEmbedder(fixed_dim=16)
         col = VDBMemoryCollection("vdb_demo", default_model, 16)
         col.add_metadata_field("source")
@@ -57,7 +51,7 @@ if __name__ == "__main__":
         col.create_index("global_index")
         col.create_index("en_index", metadata_filter_func=lambda m: m.get("lang") == "en", description="English only")
         col.create_index("user_index", metadata_filter_func=lambda m: m.get("source") == "user")
-        print(colored("索引已创建。", "yellow"))
+        print("索引已创建。")
 
         # 检索校验
         res = col.retrieve("hello", topk=3, index_name="global_index")
@@ -70,51 +64,43 @@ if __name__ == "__main__":
         print_test_case("user_index检索你好", {"你好，世界"}, set(res) & {"你好，世界"})
 
         # --- 持久化保存 ---
-        print(colored("\n--- 持久化测试开始 ---", "yellow"))
+        print("\n--- 持久化测试开始 ---")
         store_path = get_default_data_dir()
         col_name = "vdb_demo"
         col.store(store_path)
-        print(colored("数据已保存到磁盘！", "yellow"))
+        print("数据已保存到磁盘！")
         print("目录为：", os.path.join(store_path, "vdb_collection", col_name))
         print("目录下文件有：", os.listdir(os.path.join(store_path, "vdb_collection", col_name)))
 
         # 清除内存对象
         del col
-        print(colored("内存对象已清除。", "yellow"))
+        print("内存对象已清除。")
 
         # 恢复对象并回归测试
-        user_input = input(colored("输入 yes 加载刚才保存的数据: ", "yellow"))
-        if user_input.strip().lower() == "yes":
-            default_model2 = MockTextEmbedder(fixed_dim=16)
-            col2 = VDBMemoryCollection.load(col_name, embedding_model=default_model2)
-            print(colored("数据已从磁盘恢复！", "green"))
+        default_model2 = MockTextEmbedder(fixed_dim=16)
+        col2 = VDBMemoryCollection.load(col_name, embedding_model=default_model2)
+        print("数据已从磁盘恢复！")
 
-            # 再检索
-            res = col2.retrieve("hello", index_name="global_index")
-            print_test_case("恢复后检索hello", {"hello world"}, set(res) & {"hello world"})
+        # 再检索
+        res = col2.retrieve("hello", index_name="global_index")
+        print_test_case("恢复后检索hello", {"hello world"}, set(res) & {"hello world"})
 
-            res = col2.retrieve("你好", index_name="user_index")
-            print_test_case("恢复后user_index检索你好", {"你好，世界"}, set(res) & {"你好，世界"})
+        res = col2.retrieve("你好", index_name="user_index")
+        print_test_case("恢复后user_index检索你好", {"你好，世界"}, set(res) & {"你好，世界"})
 
-            # 校验metadata一致性
-            meta = col2.metadata_storage.get(col2._get_stable_id("hello world"))
-            print_test_case("恢复后元数据", True,
-                            almost_equal_dict(meta, {"source": "user", "lang": "en", "timestamp": current_time - 3600}))
+        # 校验metadata一致性
+        meta = col2.metadata_storage.get(col2._get_stable_id("hello world"))
+        print_test_case("恢复后元数据",
+                        True,
+                        almost_equal_dict(meta, {"source": "user", "lang": "en", "timestamp": current_time - 3600}))
 
-            # 校验索引条件
-            idx_meta = col2.indexes["en_index"]
-            print_test_case("en_index恢复description", "English only", idx_meta.get("description", ""))
-
-        else:
-            print(colored("跳过加载测试。", "yellow"))
-
+        # 校验索引条件
+        idx_meta = col2.indexes["en_index"]
+        print_test_case("en_index恢复description", "English only", idx_meta.get("description", ""))
 
         # 删除磁盘数据
-        user_input = input(colored("输入 yes 删除磁盘所有数据: ", "yellow"))
-        if user_input.strip().lower() == "yes":
-            VDBMemoryCollection.clear(col_name)
-            print(colored("所有数据已删除！", "green"))
-        else:
-            print(colored("未执行删除。", "yellow"))
+        VDBMemoryCollection.clear(col_name)
+        print("所有数据已删除！")
 
     vdb_persist_test()
+
