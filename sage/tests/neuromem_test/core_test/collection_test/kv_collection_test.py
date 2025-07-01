@@ -2,21 +2,16 @@
 # python -m sage.tests.neuromem_test.core_test.collection_test.kv_collection_test
 
 if __name__ == "__main__":
-    import inspect
     import os
     from sage.core.neuromem.memory_collection.kv_collection import KVMemoryCollection
-    from sage.core.neuromem.memory_collection.base_collection import  get_default_data_dir
-    def colored(text, color):
-        colors = {"green": "\033[92m", "red": "\033[91m", "yellow": "\033[93m", "reset": "\033[0m"}
-        return colors.get(color, "") + text + colors["reset"]
+    from sage.core.neuromem.memory_collection.base_collection import get_default_data_dir
 
     def print_test_case(desc, expected, actual):
         status = "通过" if expected == actual or (isinstance(expected, set) and set(expected) == set(actual)) else "不通过"
-        color = "green" if status == "通过" else "red"
         print(f"【{desc}】")
         print(f"预期结果：{expected}")
         print(f"实际结果：{actual}")
-        print(f"测试情况：{colored(status, color)}\n")
+        print(f"测试情况：{status}\n")
 
     # ==== 基础数据构建 ====
     col = KVMemoryCollection(name="demo")
@@ -104,34 +99,27 @@ if __name__ == "__main__":
     store_path = get_default_data_dir()
     col_name = "demo"
     col.store(store_path)
-    print(colored("数据已保存到磁盘！", "yellow"))
+    print("数据已保存到磁盘！")
     print("目录为：", os.path.join(store_path, "kv_collection", col_name))
 
     del col
-    print(colored("内存对象已清除。", "yellow"))
+    print("内存对象已清除。")
 
-    user_input = input(colored("输入 yes 加载刚才保存的数据: ", "yellow"))
-    if user_input.strip().lower() == "yes":
-        col2 = KVMemoryCollection.load(col_name)
-        print(colored("数据已从磁盘恢复！", "green"))
+    # 直接恢复
+    col2 = KVMemoryCollection.load(col_name)
+    print("数据已从磁盘恢复！")
 
-        res = col2.retrieve("Jacky", index_name="global_index")
-        print_test_case("持久化后检索", ['Jacky is not Jack.', 'Hello Jacky.', 'Hello Alice.', 'Jack and Tom say hi.', 'Alice in Wonderland.'], res)
-        meta = col2.metadata_storage.get(col2._get_stable_id("Hello Jacky."))
-        print_test_case("持久化后元数据", {"field1": "2", "field2": "9", "field3": "8"}, meta)
+    res = col2.retrieve("Jacky", index_name="global_index")
+    print_test_case("持久化后检索", ['Jacky is not Jack.', 'Hello Jacky.', 'Hello Alice.', 'Jack and Tom say hi.', 'Alice in Wonderland.'], res)
+    meta = col2.metadata_storage.get(col2._get_stable_id("Hello Jacky."))
+    print_test_case("持久化后元数据", {"field1": "2", "field2": "9", "field3": "8"}, meta)
 
-        idx_meta = col2.indexes["f1_1_index"]
-        print_test_case("f1_1_index恢复metadata_conditions", {"field1": "1"}, idx_meta.get("metadata_conditions", {}))
-        print_test_case("f1_1_index恢复filter_func存在", True, idx_meta.get("metadata_filter_func") is not None)
-        resx2 = col2.retrieve("Jack", index_name="f1_1_index")
-        print_test_case("持久化后f1_1_index检索", {"Jack and Tom say hi."}, set(resx2) & {"Jack and Tom say hi."})
+    idx_meta = col2.indexes["f1_1_index"]
+    print_test_case("f1_1_index恢复metadata_conditions", {"field1": "1"}, idx_meta.get("metadata_conditions", {}))
+    print_test_case("f1_1_index恢复filter_func存在", True, idx_meta.get("metadata_filter_func") is not None)
+    resx2 = col2.retrieve("Jack", index_name="f1_1_index")
+    print_test_case("持久化后f1_1_index检索", {"Jack and Tom say hi."}, set(resx2) & {"Jack and Tom say hi."})
 
-    else:
-        print(colored("跳过加载测试。", "yellow"))
-
-    user_input = input(colored("输入 yes 删除磁盘所有数据: ", "yellow"))
-    if user_input.strip().lower() == "yes":
-        KVMemoryCollection.clear(col_name)
-        print(colored("所有数据已删除！", "green"))
-    else:
-        print(colored("未执行删除。", "yellow"))
+    # 清理数据
+    KVMemoryCollection.clear(col_name)
+    print("所有数据已删除！")
