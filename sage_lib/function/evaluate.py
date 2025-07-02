@@ -1,4 +1,3 @@
-from sage.core.operator import BaseFunction, Data
 from collections import Counter
 import numpy as np
 import torch
@@ -6,7 +5,8 @@ from transformers import AutoTokenizer, AutoModel
 from sklearn.metrics.pairwise import cosine_similarity
 from rouge import Rouge
 
-
+from sage.api.base_function import BaseFunction
+from sage.api.tuple import Data
 
 
 class F1Evaluate(BaseFunction):

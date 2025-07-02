@@ -11,7 +11,7 @@ from abc import abstractmethod
 import logging
 
 from sage.api.base_function import BaseFunction
-from sage.core.operator.base_operator import Data
+from sage.api.tuple import Data
 
 
 class BGEReranker(BaseFunction):

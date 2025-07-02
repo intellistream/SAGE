@@ -1,7 +1,7 @@
 from typing import Any, List, Tuple
 from jinja2 import Template
 from sage.api.base_function import BaseFunction
-from sage.core.operator.base_operator import Data
+from sage.api.tuple import Data
 import logging
 from sage.utils.custom_logger import CustomLogger
 

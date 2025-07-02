@@ -1,6 +1,6 @@
 from typing import Union, List, Tuple, Optional, Dict
 from sage.api.base_function import BaseFunction
-from sage.core.operator.base_operator import Data
+from sage.api.tuple import Data
 from sage.core.runtime.memory_adapter import MemoryAdapter
 
 

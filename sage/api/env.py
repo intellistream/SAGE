@@ -11,7 +11,7 @@ from sage.core.operator.transformation import TransformationType, Transformation
 class Environment:
 
     @classmethod
-    def createLocalEnvironment(cls, name:str = "local_environment", config: dict | None = None) -> Environment:
+    def local_env(cls, name:str = "local_environment", config: dict | None = None) -> Environment:
         config = config or {}
         config["platform"] = "local"
         instance = object.__new__(cls)
@@ -21,7 +21,7 @@ class Environment:
         return instance
 
     @classmethod
-    def createRemoteEnvironment(cls, name:str = "remote_environment", config: dict | None = None) -> Environment:
+    def remote_env(cls, name:str = "remote_environment", config: dict | None = None) -> Environment:
         config = config or {}
         config["platform"] = "ray"
         instance = object.__new__(cls)
@@ -31,7 +31,7 @@ class Environment:
         return instance
     
     @classmethod
-    def createTestEnvironment(cls, name:str = "remote_environment", config: dict | None = None) -> Environment:
+    def dev_env(cls, name:str = "remote_environment", config: dict | None = None) -> Environment:
         config = config or {}
         config["platform"] = "hybrid"
         instance = object.__new__(cls)
@@ -67,17 +67,3 @@ class Environment:
     def pipeline(self) -> List[Transformation]:  # noqa: D401
         """返回 Transformation 列表（Compiler 会使用）。"""
         return self._pipeline
-    
-
-
-"""
-可变默认对象是会共享的
-def foo(config: dict = {}):
-    config["a"] = config.get("a", 0) + 1
-    print(config)
-
-foo()  # {'a': 1}
-foo()  # {'a': 2}  → 看到了吗！它在共享
-foo()  # {'a': 3}
-
-"""
