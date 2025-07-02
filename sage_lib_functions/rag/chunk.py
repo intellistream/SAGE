@@ -7,7 +7,7 @@ from transformers import AutoTokenizer
 
 class CharacterSplitter(BaseFunction):
     """
-    A source function that reads a file and splits its contents into overlapping chunks.
+    A source rag that reads a file and splits its contents into overlapping chunks.
 
     Input: None (reads directly from a file at the configured path).
     Output: A Data object containing a list of text chunks.
@@ -58,7 +58,7 @@ class CharacterSplitter(BaseFunction):
 
 class SentenceTransformersTokenTextSplitter(BaseFunction):
     """
-    A source function that splits text into tokens using SentenceTransformer's tokenizer.
+    A source rag that splits text into tokens using SentenceTransformer's tokenizer.
 
     Input: A Data object containing the text to be split.
     Output: A Data object containing a list of token-based text chunks.

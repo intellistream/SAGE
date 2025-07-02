@@ -7,7 +7,7 @@ from sage.utils.data_loader import resolve_data_path
 
 class FileSource(BaseFunction):
     """
-    A source function that reads a file line by line and returns each line as a string.
+    A source rag that reads a file line by line and returns each line as a string.
 
     Input: None (reads directly from a file located at the specified `data_path`).
     Output: A Data object containing the next line of the file content.

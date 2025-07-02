@@ -92,7 +92,7 @@ def write_func():
 #             Args:
 #                 raw_data: Input data to map matches for
 #                           用于检索匹配项的输入数据
-#                 retrieve_func: Optional custom retrieval function
+#                 retrieve_func: Optional custom retrieval rag
 #                               可选的自定义检索函数
                               
 #             Returns:
@@ -112,7 +112,7 @@ def write_func():
 #             Args:
 #                 raw_data: Data to be stored
 #                           要存储的数据
-#                 write_func: Optional custom write function
+#                 write_func: Optional custom write rag
 #                             可选的自定义写入函数
 #             """
 #             for mem in memory_list:

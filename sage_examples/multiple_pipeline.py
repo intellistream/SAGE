@@ -5,8 +5,8 @@ from sage_lib import QAPromptor
 from sage_lib.function.generator import OpenAIGenerator
 from sage_lib.function.chunk import CharacterSplitter
 from sage_lib.function.writer import MemoryWriter
-from sage_lib.function.source import FileSource
-from sage_lib.function.sink import MemWriteSink,FileSink
+from sage_lib.io.source import FileSource
+from sage_lib.io.sink import MemWriteSink,FileSink
 from neuromem.memory_manager import MemoryManager
 from neuromem.embeddingmodel import MockTextEmbedder
 

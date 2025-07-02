@@ -7,7 +7,7 @@ from sage.utils.custom_logger import CustomLogger
 
 class OpenAIGenerator(BaseFunction):
     """
-    OpenAIGenerator is a generator function that interfaces with a specified OpenAI model 
+    OpenAIGenerator is a generator rag that interfaces with a specified OpenAI model
     to generate responses based on input data.
     """
 
@@ -71,7 +71,7 @@ class OpenAIGenerator(BaseFunction):
 
 class HFGenerator(BaseFunction):
     """
-    HFGenerator is a generator function that interfaces with a Hugging Face model
+    HFGenerator is a generator rag that interfaces with a Hugging Face model
     to generate responses based on input data.
     """
 

@@ -11,8 +11,8 @@ print(f"{project_root}:{os.environ.get('PYTHONPATH', '')}")
 sys.path.insert(0, project_root)
 
 from sage.core.function.source import FileSourceFunction
-# from sage.sage_lib.function.writer import LongTimeWriter,MemWriter
-# from sage.sage_lib.function.retriever import SimpleRetriever
+# from sage.sage_lib_functions.rag.writer import LongTimeWriter,MemWriter
+# from sage.sage_lib_functions.rag.retriever import SimpleRetriever
 from sage_lib.functions.rag import BaseAgent
 from sage_lib.functions.rag import (
     F1Evaluate,

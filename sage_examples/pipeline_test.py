@@ -9,8 +9,8 @@ from sage.api.env import Environment
 from sage_lib import QAPromptor
 from sage_lib.function.generator import OpenAIGenerator
 from sage_lib import AbstractiveRecompRefiner
-from sage_lib.function.source import FileSource
-from sage_lib.function.sink import FileSink
+from sage_lib.io.source import FileSource
+from sage_lib.io.sink import FileSink
 # from sage.core.operator.operator_impl.writer import LongTimeWriter
 # from sage.core.operator.operator_impl.retriever import SimpleRetriever
 

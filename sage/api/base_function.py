@@ -16,7 +16,7 @@ class BaseFunction(ABC):
         """
         Abstract method to be implemented by subclasses.
 
-        Each function must define its own execute logic that processes input data
+        Each rag must define its own execute logic that processes input data
         and returns the output.
 
         :param args: Positional input data.

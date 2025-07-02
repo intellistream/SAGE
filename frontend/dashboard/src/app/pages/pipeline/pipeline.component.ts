@@ -558,7 +558,7 @@ export class PipelineComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  // Add this function to your PipelineComponent class
+  // Add this rag to your PipelineComponent class
   // 添加trackBy函数提高渲染性能
   trackByNodeId(index: number, node: Node): string {
     return node.id;
