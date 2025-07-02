@@ -1,6 +1,6 @@
 import logging
 import time
-from sage.api.env import StreamingExecutionEnvironment
+from sage.api.env import Environment
 from sage.lib.function.promptor import QAPromptor
 from sage.lib.function.generator import OpenAIGenerator
 from sage.lib.function.retriever import DenseRetriever
@@ -38,7 +38,7 @@ def memory_init():
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    env = StreamingExecutionEnvironment(name="example_pipeline")
+    env = Environment(name="example_pipeline")
     # 构建数据处理流程
     query_stream = (env
         .from_source(FileSource, config["source"])

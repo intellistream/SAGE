@@ -1,7 +1,7 @@
 from sage.core.operator.base_operator import Data
 from sage.api.base_function import BaseFunction
 from typing import Tuple
-
+from sage.utils.custom_logger import CustomLogger
 from sage.utils.data_loader import resolve_data_path
 
 
@@ -18,13 +18,19 @@ class FileSource(BaseFunction):
         file_pos: Tracks the current position in the file for sequential reading.
     """
 
-    def __init__(self, config:dict):
+    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
         """
         Initializes the FileSource with the provided configuration and sets the data path for the file.
 
         :param config: Configuration dictionary containing source settings, including `data_path`.
         """
-        super().__init__()
+        self.logger = CustomLogger(
+            object_name=f"FileSource_Function",
+            log_level="DEBUG",
+            session_folder=session_folder,
+            console_output=False,
+            file_output=True
+        )
         self.config = config
         # self.data_path = self.config["data_path"]
         self.data_path = resolve_data_path(config["data_path"])  # → project_root/data/sample/question.txt

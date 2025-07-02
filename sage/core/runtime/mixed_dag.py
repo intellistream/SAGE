@@ -20,7 +20,7 @@ class MixedDAG:
         self.logger = CustomLogger(
             object_name=f"MixedDAG_{self.name}",
             log_level="DEBUG",
-            console_output=True,
+            console_output=False,
             file_output=True
         )
         self.node_dependencies: Dict[str, List[str]] = {}  # node_name -> [upstream_node_names]
@@ -110,7 +110,7 @@ class MixedDAG:
             节点实例（Ray Actor或本地节点）
         """
         transformation = graph_node.transformation
-        platform = transformation.platform
+        platform = graph_node.env.config.get("platform", "local")  # 默认使用本地平台
         
         if platform == "ray":
             node = RayDAGNode.remote(

@@ -11,14 +11,21 @@ class OpenAIGenerator(BaseFunction):
     to generate responses based on input data.
     """
 
-    def __init__(self, config):
+    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
+
         """
         Initializes the OpenAIGenerator instance with configuration parameters.
 
         :param config: Dictionary containing configuration for the generator, including 
                        the method, model name, base URL, API key, etc.
         """
-        super().__init__()
+        self.logger = CustomLogger(
+            object_name=f"OpenAIGenerator_Function",
+            log_level="DEBUG",
+            session_folder=session_folder,
+            console_output=False,
+            file_output=True
+        )
         self.config = config
 
         # Apply the generator model with the provided configuration
@@ -32,7 +39,7 @@ class OpenAIGenerator(BaseFunction):
         self.logger = CustomLogger(
             object_name=f"OpenAIGenerator_{__name__}",
             log_level="DEBUG",
-            console_output=True,
+            console_output=False,
             file_output=True
         )
         self.num = 1

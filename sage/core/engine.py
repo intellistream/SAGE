@@ -3,7 +3,7 @@ from typing import Type, TYPE_CHECKING, Union, Any, TYPE_CHECKING
 from sage.core.runtime.runtime_manager import RuntimeManager
 from sage.utils.custom_logger import CustomLogger
 from sage.core.runtime.mixed_dag import MixedDAG
-from sage.api.env import StreamingExecutionEnvironment
+from sage.api.env import Environment
 import threading, typing, logging
 
 class Engine:
@@ -49,7 +49,7 @@ class Engine:
                     cls._instance = instance
         return cls._instance
     
-    def submit_env(self, env:StreamingExecutionEnvironment):
+    def submit_env(self, env:Environment):
         from sage.core.graph import SageGraph
         graph = SageGraph(env)
         self.graphs[graph.name] = graph

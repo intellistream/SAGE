@@ -8,8 +8,17 @@ from sage.utils.custom_logger import CustomLogger
 
 # 更新后的 SimpleRetriever
 class DenseRetriever(BaseFunction):
-    def __init__(self, config: dict):
-        super().__init__()
+    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
+
+        self.logger = CustomLogger(
+            object_name=f"DenseRetriever_Function",
+            log_level="DEBUG",
+            session_folder=session_folder,
+            console_output=False,
+            file_output=True
+        )
+
+
         self.config = config
 
         

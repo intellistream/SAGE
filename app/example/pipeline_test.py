@@ -1,7 +1,7 @@
 # python -m app.datastream_rag_pipeline
 
 
-# 导入 Sage 中的 StreamingExecutionEnvironment 和相关组件
+# 导入 Sage 中的 Environment 和相关组件
 import logging
 import time
 from typing import Tuple, List, Type, TYPE_CHECKING, Union, Any
@@ -9,7 +9,7 @@ import yaml
 import ray
 import asyncio
 from ray import serve
-from sage.api.env import StreamingExecutionEnvironment
+from sage.api.env import Environment
 from sage.api.memory.memory_service import MemoryManagerService
 from sage.lib.function.promptor import QAPromptor
 from sage.lib.function.generator import OpenAIGenerator
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 def init_memory_and_pipeline():
     # 创建一个新的管道实例
-    pipeline = StreamingExecutionEnvironment(name="example_pipeline",
+    pipeline = Environment(name="example_pipeline",
                                              config={"is_long_running": True, "use_ray": False})
 
     # 步骤 1: 定义数据源（例如，来自用户的查询）

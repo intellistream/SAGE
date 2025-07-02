@@ -1,6 +1,6 @@
 import logging
 import yaml
-from sage.api.env import StreamingExecutionEnvironment
+from sage.api.env import Environment
 from sage.lib.function.retriever import DenseRetriever
 from sage.lib.function.promptor import QAPromptor
 from sage.lib.function.generator import OpenAIGenerator
@@ -40,7 +40,7 @@ def memory_init():
     config_for_ingest["writer"]["ltm_collection"] = col
     config_for_qa["retriever"]["ltm_collection"] = col
 def ingest_pipeline_run():
-    pipeline = StreamingExecutionEnvironment(name="ingest_pipeline")
+    pipeline = Environment(name="ingest_pipeline")
     # 构建数据处理流程
     source_stream = pipeline.from_source(FileSource, config_for_ingest["source"])
     chunk_stream = source_stream.map(CharacterSplitter,config_for_ingest["chunk"])
@@ -50,7 +50,7 @@ def ingest_pipeline_run():
 
 def qa_pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = StreamingExecutionEnvironment(name="qa_pipeline")
+    pipeline = Environment(name="qa_pipeline")
     # 构建数据处理流程
     query_stream = pipeline.from_source(FileSource, config_for_qa["source"])
     query_and_chunks_stream = query_stream.map(DenseRetriever, config_for_qa["retriever"])

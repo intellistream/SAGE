@@ -1,12 +1,19 @@
 from sage.core.operator.base_operator import Data
 from sage.api.base_function import BaseFunction
+from sage.utils.custom_logger import CustomLogger
 from typing import Tuple, List, Union
 
 
 class TerminalSink(BaseFunction):
 
-    def __init__(self,config):
-        super().__init__()
+    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
+        self.logger = CustomLogger(
+            object_name=f"DenseRetriever_Function",
+            log_level="DEBUG",
+            session_folder=session_folder,
+            console_output=False,
+            file_output=True
+        )
         self.config=config
 
     def execute(self, data:Data[Tuple[str,str]]):
@@ -17,8 +24,14 @@ class TerminalSink(BaseFunction):
         print(f"\033[92m[A] Answer :{answer}\033[0m")
 
 class RetriveSink(BaseFunction):
-    def __init__(self,config):
-        super().__init__()
+    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
+        self.logger = CustomLogger(
+            object_name=f"DenseRetriever_Function",
+            log_level="DEBUG",
+            session_folder=session_folder,
+            console_output=False,
+            file_output=True
+        )
         self.config=config
     def execute(self, data:Data[Tuple[str, List[str]]]):
         question,chunks=data.data
@@ -29,8 +42,15 @@ class RetriveSink(BaseFunction):
 
 
 class FileSink(BaseFunction):
-    def __init__(self, config):
-        super().__init__()
+    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
+
+        self.logger = CustomLogger(
+            object_name=f"FileSink_Function",
+            log_level="DEBUG",
+            session_folder=session_folder,
+            console_output=False,
+            file_output=True
+        )
         self.config = config
         self.file_path =  config.get("file_path","qa_output.txt")
 

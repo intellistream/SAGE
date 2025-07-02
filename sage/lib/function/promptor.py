@@ -37,13 +37,20 @@ class QAPromptor(BaseFunction):
         prompt_template: A template used for generating the system prompt, typically includes context or instructions.
     """
     
-    def __init__(self, config):
+    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
+
         """
         Initializes the QAPromptor instance with configuration and prompt template.
 
         :param config: Dictionary containing configuration for the prompt function.
         """
-        super().__init__()
+        self.logger = CustomLogger(
+            object_name=f"QAPromptor_Function",
+            log_level="DEBUG",
+            session_folder=session_folder,
+            console_output=False,
+            file_output=True
+        )
         self.config = config  # Store the configuration for later use
         self.prompt_template = QA_prompt_template  # Load the QA prompt template
         self.logger = CustomLogger(

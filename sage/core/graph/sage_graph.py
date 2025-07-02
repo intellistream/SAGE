@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, AnyStr, Dict, List, Set
-from sage.api.env import StreamingExecutionEnvironment
+from sage.api.env import Environment
 from sage.core.operator.transformation import Transformation,TransformationType
 from sage.utils.custom_logger import CustomLogger
 
@@ -8,9 +8,10 @@ from sage.utils.custom_logger import CustomLogger
 
 
 class GraphNode:
-    def __init__(self, name: str, transformation: Transformation, parallel_index: int):
+    def __init__(self, name: str,env:Environment, transformation: Transformation, parallel_index: int):
         self.name: str = name
         self.transformation: Transformation = transformation
+        self.env: Environment = env  # 所属的环境
         self.parallel_index: int = parallel_index  # 在该transformation中的并行索引
         
         # 输入输出channels：每个channel是一个边的列表
@@ -34,7 +35,7 @@ class GraphEdge:
         self.downstream_channel: int = downstream_channel
 
 class SageGraph:
-    def __init__(self, env:StreamingExecutionEnvironment):
+    def __init__(self, env:Environment):
         self.env = env
         self.name = env.name
         self.nodes:Dict[str, GraphNode] = {}
@@ -44,7 +45,7 @@ class SageGraph:
         self.logger = CustomLogger(
             object_name=f"SageGraph_{env.name}",
             log_level="DEBUG",
-            console_output=True,
+            console_output=False,
             file_output=True
         )
         # 构建基础图结构
@@ -52,7 +53,7 @@ class SageGraph:
         
         self.logger.info(f"Successfully converted and optimized pipeline '{env.name}' to graph with {len(self.nodes)} nodes and {len(self.edges)} edges")
 
-    def _build_graph_from_pipeline(self, env: StreamingExecutionEnvironment):
+    def _build_graph_from_pipeline(self, env: Environment):
         """
         根据transformation pipeline构建图，支持并行度和多对多连接
         分为三步：1) 生成并行节点 2) 生成物理边 3) 创建图结构
@@ -100,7 +101,7 @@ class SageGraph:
             # 为该transformation创建所有并行节点
             for i, node_name in enumerate(node_names):
                 try:
-                    node = GraphNode(node_name, transformation, i)
+                    node = GraphNode(node_name, env,  transformation, i)
                     
                     # 初始化输入输出channels
                     # 输入channels数量 = upstream transformations数量
