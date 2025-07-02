@@ -1,10 +1,13 @@
 
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict
-from sage_runtime.io import DownstreamTarget, NodeType
-from sage_runtime.io import BaseEmitContext
+from sage.api.collector import Collector
+# from sage_runtime.io.emit_context import BaseEmitContext, DownstreamTarget, NodeType
+# from sage_runtime.runtime_context import RuntimeContext
+
+
+from sage.api.base_function import BaseFunction
 from sage.api.tuple import Data
-from sage_runtime.local.local_dag_node import LocalDAGNode
 
 # TODO: 将Memory的API使用在这里。
 # Operator 决定事件的逻辑路由（如广播、分区、keyBy等），
@@ -15,11 +18,14 @@ class BaseOperator(ABC):
     def __init__(self, *args, **kwargs):
         self._name = self.__class__.__name__
         # 维护下游节点和路由逻辑
+        from sage_runtime.io.emit_context import DownstreamTarget
         self.downstream_channels: Dict[int, List[DownstreamTarget]] = {}
         self.downstream_round_robin: Dict[int, int] = {}
-        self.runtime_context #需要在compiler里面实例化。
-
-    def insert_emit_context(self, emit_context: BaseEmitContext):
+        self.collector = Collector(self)  # 用于收集数据
+        self.runtime_context = None
+        self.function:BaseFunction = None
+    
+    def insert_emit_context(self, emit_context):
         """
         Inject the emit context into the operator.
         This is typically called by the DAG node to set up the context.
@@ -31,6 +37,9 @@ class BaseOperator(ABC):
         self._emit_context.logger = self.logger  # Use operator's logger for emit context
         self.logger.debug(f"Emit context injected for operator {self._name}")
 
+    def insert_runtime_context(self, runtime_context  = None):
+        self.runtime_context = runtime_context
+        self.function.insert_runtime_context(runtime_context)
 
     @abstractmethod
     def receive(self, channel: int, data: Data):
@@ -118,13 +127,15 @@ class BaseOperator(ABC):
             target_input_channel: 下游节点的输入通道号
             node_name: 下游节点名称
         """
-        from ray.actor import ActorHandle
 
         # Debug log
         self.logger.debug(
             f"Adding downstream: output_channel={output_channel}, "
             f"target_object={target_object}, target_input_channel={target_input_channel}"
         )
+        from sage_runtime.local.local_dag_node import LocalDAGNode
+        from ray.actor import ActorHandle
+        from sage_runtime.io.emit_context import NodeType, DownstreamTarget
 
         if(isinstance(target_object, ActorHandle)):
             node_type = NodeType.RAY_ACTOR

@@ -56,7 +56,7 @@ class Engine:
         try:
             self.logger.info(f"Received mixed graph '{graph.name}' with {len(graph.nodes)} nodes")
             # 编译图
-            mixed_dag = MixedDAG(graph,env.config)
+            mixed_dag = MixedDAG(graph)
             self.dags[mixed_dag.name] = mixed_dag  # 存储 DAG 到字典中
             mixed_dag.run()
             self.logger.info(f"Mixed graph '{graph.name}' submitted to runtime manager.")

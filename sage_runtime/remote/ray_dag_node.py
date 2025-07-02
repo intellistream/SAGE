@@ -4,8 +4,13 @@ from typing import Any, Dict, Union
 from ray.actor import ActorHandle
 
 from sage_runtime.io.ray_emit_context import RayEmitContext
-from sage_utils.custom_logger import CustomLogger
 from sage.core.operator.transformation import Transformation, TransformationType
+from sage.core.operator.base_operator import BaseOperator
+from sage_runtime.runtime_context import RuntimeContext
+
+from sage_utils.custom_logger import CustomLogger
+
+
 @ray.remote
 class RayDAGNode:
     """
@@ -15,10 +20,7 @@ class RayDAGNode:
     maintains the request queue for actors automatically.
     """
     
-    def __init__(self, 
-                 name: str, 
-                 transformation: Transformation,
-                 session_folder: str = None) -> None:
+    def __init__(self, name: str, transformation: Transformation,session_folder: str = None, memory_collection:ActorHandle = None) -> None:
         """
         Initialize Ray multiplexer DAG node.
         
@@ -37,8 +39,12 @@ class RayDAGNode:
             console_output=False,
             file_output=True
         )
+        if(not isinstance(memory_collection, ActorHandle)):
+            raise Exception("Memory collection must be a Ray Actor handle")
+        self.memory_collection = memory_collection  # Optional memory collection for this node
 
-        if(transformation.is_instance):
+
+        if(transformation.is_instance ):
             # ray不支持预先实例化的算子
             raise Exception("GraphNode operator must be a class for Ray platform")
 
@@ -53,6 +59,7 @@ class RayDAGNode:
                 # Create emit context for mixed environment
         try:
             self.operator.insert_emit_context(RayEmitContext())
+            self.operator.insert_runtime_context(RuntimeContext(self.memory_collection, self.logger))
             self.logger.debug(f"Injected emit context for operator in node {self.name}")
         except Exception as e:
             self.logger.warning(f"Failed to inject emit context in node {self.name}: {e}")

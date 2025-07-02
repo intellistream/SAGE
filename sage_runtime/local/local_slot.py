@@ -1,7 +1,7 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
-from sage_runtime.local.local_dag_node import LocalDAGNode
+# from sage_runtime.local.local_dag_node import LocalDAGNode
 
 class Slot:
     """
@@ -28,7 +28,7 @@ class Slot:
         self.max_load = max_threads
         self.logger=logging.getLogger(__name__)
 
-    def submit_task(self, task: LocalDAGNode) -> bool:
+    def submit_task(self, task) -> bool:
         """
                提交任务到线程池
 

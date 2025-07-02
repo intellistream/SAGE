@@ -7,7 +7,8 @@ from sage_runtime.io.local_emit_context import LocalEmitContext
 from sage_runtime.io.local_message_queue import LocalMessageQueue
 from sage_utils.custom_logger import CustomLogger
 from ray.actor import ActorHandle
-
+from sage_memory.memory_collection.base_collection import BaseMemoryCollection
+from sage_runtime.runtime_context import RuntimeContext
 
 class LocalDAGNode:
     """
@@ -19,7 +20,9 @@ class LocalDAGNode:
 
     def __init__(self, 
                  name:str,
-                 transformation:Transformation) -> None:
+                 transformation:Transformation, 
+                 memory_collection:Union[BaseMemoryCollection, ActorHandle] = None
+                 ) -> None:
         """
         Initialize the multiplexer DAG node.
 # 
@@ -29,10 +32,21 @@ class LocalDAGNode:
             config: Optional dictionary of configuration parameters for the operator
             is_spout: Indicates if the node is the spout (starting point)
         """
+        self.logger = CustomLogger(
+            object_name=f"LocalDAGNode_{name}",
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
         self.name = name
         self.transformation = transformation
+        self.memory_collection = memory_collection  # Optional memory collection for this node
         self.operator = transformation.build_instance()
         self.operator.insert_emit_context(LocalEmitContext())
+        self.operator.insert_runtime_context(RuntimeContext(self.memory_collection, self.logger))
+
+
+
         self.is_spout = transformation.transformation_type == TransformationType.SOURCE  # Check if this is a spout node 正确
         self.input_buffer = LocalMessageQueue()  # Local input buffer for this node
 
@@ -42,12 +56,7 @@ class LocalDAGNode:
         self._initialized = False
 
 
-        self.logger = CustomLogger(
-            object_name=f"LocalDAGNode_{self.name}",
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
-        )
+
         # self.logger.info(f"transformation_type: {transformation.transformation_type}")
         self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout})")
 

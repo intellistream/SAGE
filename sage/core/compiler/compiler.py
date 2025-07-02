@@ -1,14 +1,14 @@
 from __future__ import annotations
 from typing import Dict, List
-from sage.api.env import Environment
+from sage.api.env import BaseEnvironment
 from sage.core.operator.transformation import Transformation
 from sage_utils.custom_logger import CustomLogger
 
 class GraphNode:
-    def __init__(self, name: str,env:Environment, transformation: Transformation, parallel_index: int):
+    def __init__(self, name: str,env:BaseEnvironment, transformation: Transformation, parallel_index: int):
         self.name: str = name
         self.transformation: Transformation = transformation
-        self.env: Environment = env  # 所属的环境
+        self.env: BaseEnvironment = env  # 所属的环境
         self.parallel_index: int = parallel_index  # 在该transformation中的并行索引
         
         # 输入输出channels：每个channel是一个边的列表
@@ -32,7 +32,7 @@ class GraphEdge:
         self.downstream_channel: int = downstream_channel
 
 class Compiler:
-    def __init__(self, env:Environment):
+    def __init__(self, env:BaseEnvironment):
         self.env = env
         self.name = env.name
         self.nodes:Dict[str, GraphNode] = {}
@@ -40,7 +40,7 @@ class Compiler:
         # 构建数据流之间的连接映射
 
         self.logger = CustomLogger(
-            object_name=f"SageGraph_{env.name}",
+            object_name=f"Compiler_{env.name}",
             log_level="DEBUG",
             console_output=False,
             file_output=True
@@ -50,10 +50,10 @@ class Compiler:
         
         self.logger.info(f"Successfully converted and optimized pipeline '{env.name}' to compiler with {len(self.nodes)} nodes and {len(self.edges)} edges")
 
-    def _build_graph_from_pipeline(self, env: Environment):
+    def _build_graph_from_pipeline(self, env: BaseEnvironment):
         """
-        根据transformation pipeline构建图，支持并行度和多对多连接
-        分为三步：1) 生成并行节点 2) 生成物理边 3) 创建图结构
+        根据transformation pipeline构建图, 支持并行度和多对多连接
+        分为三步: 1) 生成并行节点 2) 生成物理边 3) 创建图结构
         """
         transformation_to_nodes = {}  # transformation -> list of node names
         
@@ -62,15 +62,8 @@ class Compiler:
         for transformation in env.pipeline:
             node_names = []
             for i in range(transformation.parallelism):
-                # 生成节点名，包含并行度索引
-                if hasattr(transformation, 'function_class'):
-                    base_name = transformation.function_class.__name__
-                elif hasattr(transformation, 'op_class'):
-                    base_name = transformation.op_class.__name__
-                else:
-                    base_name = "transformation"
-                
-                node_name = f"{base_name}_{id(transformation)}_{i}"
+
+                node_name = f"{transformation.function_class.__name__}_{i}"
                 node_names.append(node_name)
             
             transformation_to_nodes[transformation] = node_names

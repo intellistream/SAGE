@@ -3,7 +3,7 @@ import time  # 替换 asyncio 为 time 用于同步延迟
 from sage.api.tuple import Data
 from sage.api.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
-
+from sage_runtime.runtime_context import RuntimeContext
 
 # 更新后的 SimpleRetriever
 class DenseRetriever(BaseFunction):
@@ -22,7 +22,6 @@ class DenseRetriever(BaseFunction):
 
         
         if self.config.get("ltm", False):
-            self.ltm = self.config.get("ltm_collection")
             self.ltm_config = self.config.get("ltm", {})
         else:
             self.ltm = None
@@ -43,17 +42,7 @@ class DenseRetriever(BaseFunction):
             file_output=True
         )
 
-        
-
-        self.memory_adapter = self._create_memory_adapter()
-        self.memory_adapter.logger = self.logger
-
-        # 取消继承 root logger 的 stdout handler
-        # self.logger.propagate = False
-    def _create_memory_adapter(self):
-        """创建内存适配器，处理不同类型的memory collection"""
-        from sage.core.runtime.memory_adapter import MemoryAdapter
-        return MemoryAdapter()
+    
 
     def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
 
@@ -63,13 +52,12 @@ class DenseRetriever(BaseFunction):
 
 
         # LTM 检索
-        if self.config.get("ltm", False) and self.ltm:
+        if self.config.get("ltm", False):
             self.logger.debug("Retrieving from LTM")
             try:
 
                 # 使用LTM配置和输入查询调用检索
-                ltm_results = self.memory_adapter.retrieve(
-                    self.ltm,
+                ltm_results = self.runtime_context.retrieve(
                     query=input_query,
                     collection_config=self.ltm_config
                 )
@@ -86,20 +74,13 @@ class DenseRetriever(BaseFunction):
 
         return Data((input_query, chunks))
     
-class BM25sRetriever(BaseFunction):
+class BM25sRetriever(BaseFunction): # 目前runtime context还只支持ltm
     def __init__(self, config: dict):
         super().__init__()
         self.config = config
         self.bm25s_collection = self.config.get("bm25s_collection")
         self.bm25s_config = self.config.get("bm25s_config", {})
 
-        # 创建内存适配器并设置日志
-        self.memory_adapter = self._create_memory_adapter()
-        self.memory_adapter.logger = self.logger
-
-    def _create_memory_adapter(self):
-        from sage.core.runtime.memory_adapter import MemoryAdapter
-        return MemoryAdapter()
 
     def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
         input_query = data.data
@@ -111,8 +92,8 @@ class BM25sRetriever(BaseFunction):
 
         try:
             # 使用BM25s配置和输入查询调用检索
-            bm25s_results = self.memory_adapter.retrieve(
-                self.bm25s_collection,
+            bm25s_results = self.runtime_context.retrieve(
+                # self.bm25s_collection,
                 query=input_query,
                 collection_config=self.bm25s_config
             )

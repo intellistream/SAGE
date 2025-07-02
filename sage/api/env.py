@@ -11,21 +11,14 @@ from sage_memory.memory_manager import MemoryManager
 
 class BaseEnvironment:
 
-    def __init__(
-        self,
-        job_name: str,
-        config: dict | None,
-        *,
-        platform: str,
-        use_ray: bool,
-    ):
-        self.job_name = job_name
+    def __init__(self,name: str,config: dict | None,* ,platform: str,):
+        self.name = name
         self.config: dict = dict(config or {})
         self.config["platform"] = platform
-        self.use_ray = use_ray
         # 用于收集所有 Transformation，供 Compiler 构建 DAG
         self._pipeline: List[Transformation] = []
         self.runtime_context=dict  # 需要在compiler里面实例化。
+        self.memory_collection = None  # 用于存储内存集合
 
     def from_source(self, function: Union[BaseFunction, Type[BaseFunction]],*args,  **kwargs: Any) -> DataStream:
         """用户 API：声明一个数据源并返回 DataStream 起点。"""
@@ -72,7 +65,8 @@ class BaseEnvironment:
         for text, metadata in texts:
             col.insert(text, metadata)
         col.create_index(index_name="vdb_index")
-        self.runtime_context.update("col",col)
+        self.memory_collection = col # Union[BaseMemoryCollection, ActorHandle]
+        # self.runtime_context.update("col",col)
 
     # TODO: 写一个判断Env 是否已经完全初始化并开始执行的函数
     def initlized(self):
@@ -83,8 +77,8 @@ class LocalEnvironment(BaseEnvironment):
     本地执行环境（不使用 Ray），用于开发调试或小规模测试。
     """
 
-    def __init__(self, job_name: str = "local_environment", config: dict | None = None):
-        super().__init__(job_name, config, platform="local", use_ray=False)
+    def __init__(self, name: str = "local_environment", config: dict | None = None):
+        super().__init__(name, config, platform="local")
 
 
 class RemoteEnvironment(BaseEnvironment):
@@ -92,8 +86,8 @@ class RemoteEnvironment(BaseEnvironment):
     分布式执行环境（Ray），用于生产或大规模部署。
     """
 
-    def __init__(self, job_name: str = "remote_environment", config: dict | None = None):
-        super().__init__(job_name, config, platform="remote", use_ray=True)
+    def __init__(self, name: str = "remote_environment", config: dict | None = None):
+        super().__init__(name, config, platform="remote")
 
 
 class DevEnvironment(BaseEnvironment):
@@ -102,8 +96,8 @@ class DevEnvironment(BaseEnvironment):
     config 中可包含 'use_ray': bool 来切换运行时。
     """
 
-    def __init__(self, job_name: str = "dev_environment", config: dict | None = None):
+    def __init__(self, name: str = "dev_environment", config: dict | None = None):
         cfg = dict(config or {})
         # 默认不启用 Ray，除非显式指定
         use_ray_flag = cfg.get("use_ray", False)
-        super().__init__(job_name, cfg, platform="hybrid", use_ray=use_ray_flag)
+        super().__init__(name, cfg, platform="hybrid")
