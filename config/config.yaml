@@ -3,8 +3,6 @@ pipeline:
   description: "Test pipeline for Sage API Operator"
   version: "1.0.0"
 
-
-
 source:
   # data_path: "sample/one_question.txt"
   data_path: "sample/question.txt"

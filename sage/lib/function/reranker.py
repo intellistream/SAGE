@@ -2,8 +2,6 @@ from pydoc import doc
 
 from cv2 import sort
 
-from sage.core.operator import BaseFunction
-from sage.core.operator import Data
 from typing import Any, List, Tuple
 
 import torch
@@ -11,6 +9,9 @@ from typing import List, Tuple
 from transformers import AutoModelForSequenceClassification, AutoTokenizer,AutoModelForCausalLM
 from abc import abstractmethod
 import logging
+
+from sage.api.base_function import BaseFunction
+from sage.core.operator.base_operator import Data
 
 
 class BGEReranker(BaseFunction):

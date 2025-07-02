@@ -1,23 +1,22 @@
 # file sage/tests/neuromem_test/core_test/manager_test.py
 # python -m sage.tests.neuromem_test.core_test.manager_test
 
-def vdbtest():
+def vdbtest(do_reload=True, do_delete=True):
     from sage.core.neuromem.memory_manager import MemoryManager
     from sage.core.model.embedding_model.embedding_model import MockTextEmbedder
     import os
-    import time
 
     def colored(text, color):
         colors = {"green": "\033[92m", "red": "\033[91m", "yellow": "\033[93m", "reset": "\033[0m"}
         return colors.get(color, "") + text + colors["reset"]
+        # return text  # 自动化测试不需要彩色输出
 
     def print_test_case(desc, expected, actual):
         status = "通过" if expected == actual or (isinstance(expected, set) and set(expected) == set(actual)) else "不通过"
-        color = "green" if status == "通过" else "red"
         print(f"【{desc}】")
         print(f"预期结果：{expected}")
         print(f"实际结果：{actual}")
-        print(f"测试情况：{colored(status, color)}\n")
+        print(f"测试情况：{status}\n")
 
     # 1. 创建 MemoryManager 和 VDBCollection
     mgr = MemoryManager()
@@ -38,45 +37,45 @@ def vdbtest():
     res1 = col.retrieve("Alpha", topk=1, index_name="global_index")
     print_test_case("检索Alpha", ["Alpha"], res1)
 
-    # 用 embedding 方式检索，VDB 只支持向量检索
     res2 = set(col.retrieve("Alpha", topk=5, index_name="tag_A_index"))  # Alpha 的向量检索，tag为A
     print_test_case("tag_A_index 检索", {'Gamma', 'Alpha', 'Beta'}, res2)
 
     # 5. 持久化
     mgr.store_collection()
-    print(colored("数据已保存到磁盘！", "yellow"))
+    print("数据已保存到磁盘！")
     data_dir = mgr.data_dir
     print("目录为：", os.path.join(data_dir, "vdb_collection", "test_vdb"))
 
     # 6. 清空对象
     del mgr, col
-    print(colored("内存对象已清除。", "yellow"))
+    print("内存对象已清除。")
 
-    # 7. 读取持久化数据，**通过 connect_collection 注入 embedding_model**
-    user_input = input(colored("输入 yes 加载刚才保存的数据: ", "yellow"))
-    if user_input.strip().lower() == "yes":
-        mgr2 = MemoryManager()  # 会自动加载manager.json和collection metadata
+    # 7. 读取持久化数据，自动测试时直接执行
+    if do_reload:
+        from sage.core.neuromem.memory_manager import MemoryManager
         embedder2 = MockTextEmbedder(fixed_dim=16)
+        mgr2 = MemoryManager()
         col2 = mgr2.connect_collection("test_vdb", embedding_model=embedder2)
-        # 检查是否正常恢复
         res3 = set(col2.retrieve("Alpha", topk=5, index_name="tag_A_index"))
         print_test_case("恢复后tag_A_index 检索", {'Gamma', 'Alpha', 'Beta'}, res3)
     else:
-        print(colored("跳过加载测试。", "yellow"))
+        print("跳过加载测试。")
 
     # 8. 删除所有数据
-    user_input = input(colored("输入 yes 删除磁盘所有数据: ", "yellow"))
-    if user_input.strip().lower() == "yes":
+    if do_delete:
         from sage.core.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
         VDBMemoryCollection.clear("test_vdb", data_dir)
         manager_json = os.path.join(data_dir, "manager.json")
         if os.path.exists(manager_json):
             os.remove(manager_json)
-        print(colored("所有数据已删除！", "green"))
+        print("所有数据已删除！")
     else:
-        print(colored("未执行删除。", "yellow"))
+        print("未执行删除。")
 
-vdbtest()
+# 作为测试脚本被自动调用
+if __name__ == "__main__":
+    vdbtest()
+
 
 # def kvtest():
 #     from sage.core.neuromem.memory_manager import MemoryManager
