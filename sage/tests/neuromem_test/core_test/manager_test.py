@@ -2,8 +2,8 @@
 # python -m sage.tests.neuromem_test.core_test.manager_test
 
 def vdbtest(do_reload=True, do_delete=True):
-    from sage.core.neuromem.memory_manager import MemoryManager
-    from sage.core.neuromem.embeddingmodel import MockTextEmbedder
+    from neuromem.memory_manager import MemoryManager
+    from neuromem.embeddingmodel import MockTextEmbedder
     import os
 
     def colored(text, color):
@@ -52,7 +52,7 @@ def vdbtest(do_reload=True, do_delete=True):
 
     # 7. 读取持久化数据，自动测试时直接执行
     if do_reload:
-        from sage.core.neuromem.memory_manager import MemoryManager
+        from neuromem.memory_manager import MemoryManager
         embedder2 = MockTextEmbedder(fixed_dim=16)
         mgr2 = MemoryManager()
         col2 = mgr2.connect_collection("test_vdb", embedding_model=embedder2)
@@ -63,7 +63,7 @@ def vdbtest(do_reload=True, do_delete=True):
 
     # 8. 删除所有数据
     if do_delete:
-        from sage.core.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
+        from neuromem.memory_collection.vdb_collection import VDBMemoryCollection
         VDBMemoryCollection.clear("test_vdb", data_dir)
         manager_json = os.path.join(data_dir, "manager.json")
         if os.path.exists(manager_json):
@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
 
 # def kvtest():
-#     from sage.core.neuromem.memory_manager import MemoryManager
+#     from sage.core.sage_memory.memory_manager import MemoryManager
 #     import os
 
 #     def colored(text, color):
@@ -138,7 +138,7 @@ if __name__ == "__main__":
 #     # 8. 删除所有数据
 #     user_input = input(colored("输入 yes 删除磁盘所有数据: ", "yellow"))
 #     if user_input.strip().lower() == "yes":
-#         from sage.core.neuromem.memory_collection.kv_collection import KVMemoryCollection
+#         from sage.core.sage_memory.memory_collection.kv_collection import KVMemoryCollection
 #         KVMemoryCollection.clear("test_kv", data_dir)
 #         manager_json = os.path.join(data_dir, "manager.json")
 #         if os.path.exists(manager_json):

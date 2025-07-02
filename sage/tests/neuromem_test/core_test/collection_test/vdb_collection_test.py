@@ -5,9 +5,9 @@
 if __name__ == "__main__":
     import os
     import time
-    from sage.core.neuromem.memory_collection.base_collection import get_default_data_dir
-    from sage.core.neuromem.embeddingmodel import MockTextEmbedder
-    from sage.core.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
+    from neuromem.memory_collection.base_collection import get_default_data_dir
+    from neuromem.embeddingmodel import MockTextEmbedder
+    from neuromem.memory_collection.vdb_collection import VDBMemoryCollection
 
     def print_test_case(desc, expected, actual):
         status = "通过" if expected == actual or (isinstance(expected, set) and set(expected) == set(actual)) else "不通过"

@@ -1,8 +1,8 @@
 # File: sage/api/memory/memory_api.py
 
-from sage.core.neuromem.memory_manager import MemoryManager
-# from sage.core.neuromem.memory_collection import MemoryCollection
-# from sage.core.neuromem.memory_composite import CompositeMemory
+from neuromem.memory_manager import MemoryManager
+# from sage.core.sage_memory.memory_collection import MemoryCollection
+# from sage.core.sage_memory.memory_composite import CompositeMemory
 
 _default_manager: MemoryManager | None = None
 

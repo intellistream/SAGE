@@ -7,7 +7,6 @@ FastAPI 应用模板
 """
 
 from fastapi import FastAPI, Depends, HTTPException, status
-import asyncio
 import os
 import logging
 import logging.config
@@ -18,7 +17,7 @@ import configparser
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 import argparse
 from routers.job_info import router as jobInfo_router
 from routers.batch_info import router as batchInfo_router
@@ -46,7 +45,7 @@ def get_app():
     return globals().get("app", None)
 
 from sage.api.model.model_api import apply_embedding_model
-from sage.core.neuromem.memory_manager import MemoryManager
+from neuromem.memory_manager import MemoryManager
 def memory_init():
     """初始化内存管理器并创建测试集合"""
     # default_model = MockTextEmbedder(fixed_dim=128)
