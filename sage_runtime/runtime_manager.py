@@ -1,6 +1,8 @@
 import threading
 from typing import Dict, Any
-from sage_runtime import BaseRuntime, RayRuntime, LocalRuntime
+from sage_runtime.base_runtime import BaseRuntime
+from sage_runtime.local.local_runtime import  LocalRuntime
+from sage_runtime.remote.ray_runtime import RayRuntime
 from sage_utils.custom_logger import CustomLogger
 
 class RuntimeManager:

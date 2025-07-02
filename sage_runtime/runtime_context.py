@@ -1,28 +1,30 @@
 import ray
+from ray.actor import ActorHandle
 from typing import List,Dict,Optional
-
 from sage_memory.memory_collection.base_collection import BaseMemoryCollection
 from sage_memory.memory_collection.vdb_collection import VDBMemoryCollection
+from sage_utils.custom_logger import CustomLogger
 
-
-class MemoryAdapter:
-    def __init__(self):
-        pass
-
-    def retrieve(self, memory_collection, query: str = None, collection_config: Optional[Dict] = None) -> List[str]:
+class RuntimeContext:
+    def __init__(self, memory_collection:BaseMemoryCollection, collection_config: Optional[Dict] = None , logger:CustomLogger = None):
+        # Create logger first
+        self.logger = logger
+        self.memory_collection = memory_collection
+    
+    def retrieve(self,  query: str = None, collection_config: Optional[Dict] = None) -> List[str]:
         """
         智能选择检索方式：Ray Actor远程调用或本地对象调用
         """
-        if memory_collection is None:
+        if self.memory_collection is None:
             return []
 
         # 优先处理Ray Actor
-        if self._is_ray_actor(memory_collection):
-            return self._retrieve_from_ray_actor(memory_collection, query, collection_config)
+        if self._is_ray_actor(self.memory_collection):
+            return self._retrieve_from_ray_actor(self.memory_collection, query, collection_config)
 
         # 处理本地对象
-        return self._retrieve_from_local_object(memory_collection, query, collection_config)
-
+        return self._retrieve_from_local_object(self.memory_collection, query, collection_config)
+    
     def _retrieve_from_local_object(self, obj, query: str = None, collection_config: Optional[Dict] = None) -> List[
         str]:
         """
@@ -104,6 +106,19 @@ class MemoryAdapter:
         except Exception as e:
             self.logger.error(f"Retrieve failed for {coll_type} collection: {str(e)}")
             return []
+
+
+    def _is_ray_actor(self, obj) -> bool:
+        """检测执行模式"""
+        if isinstance(obj, ActorHandle):
+            return 1
+        elif hasattr(obj, 'remote'):
+            return 1
+        else:
+            return 0
+        # return hasattr(obj, '_actor_id') and hasattr(obj, '_remote')
+
+
 
     def _retrieve_from_ray_actor(self, actor, query: str = None, collection_config: Optional[Dict] = None) -> List[str]:
         """
@@ -194,17 +209,7 @@ class MemoryAdapter:
         except Exception as e:
             self.logger.error(f"Retrieve failed for Ray Actor ({coll_type} collection): {str(e)}")
             return []
-
-    def _is_ray_actor(self, obj) -> bool:
-        """检测执行模式"""
-        if isinstance(obj, ray.actor.ActorHandle):
-            return 1
-        elif hasattr(obj, 'remote'):
-            return 1
-        else:
-            return 0
-        # return hasattr(obj, '_actor_id') and hasattr(obj, '_remote')
-
+        
 
     def _detect_collection_type(self, collection) -> str:
         """自动检测内存集合的类型"""
@@ -220,10 +225,9 @@ class MemoryAdapter:
             return "base"
         else:
             return "unknown"
-
+        
     def store(
             self,
-            collection,
             documents: List[str],
             collection_config: Optional[Dict] = None
     ) -> List[str]:
@@ -231,15 +235,15 @@ class MemoryAdapter:
         根据集合类型智能调用对应的存储方法
         """
         stored_ids = []
-        if collection is None:
+        if self.memory_collection is None:
             return stored_ids
 
         # 处理Ray Actor类型的集合
-        if self._is_ray_actor(collection):
-            return self._store_to_ray_actor(collection, documents, collection_config)
+        if self._is_ray_actor(self.memory_collection):
+            return self._store_to_ray_actor(self.memory_collection, documents, collection_config)
 
         # 检测集合类型
-        coll_type = self._detect_collection_type(collection)
+        coll_type = self._detect_collection_type(self.memory_collection)
 
         # 获取配置参数
         if collection_config is None:
@@ -253,11 +257,11 @@ class MemoryAdapter:
             if coll_type == "vdb":
                 # 如果没有提供索引名，尝试获取默认索引
                 if not index_names:
-                    if hasattr(collection, "default_index_name"):
-                        index_names = [collection.default_index_name]
+                    if hasattr(self.memory_collection, "default_index_name"):
+                        index_names = [self.memory_collection.default_index_name]
                         self.logger.debug(f"Using default index: {index_names[0]}")
-                    elif hasattr(collection, "indexes") and collection.indexes:
-                        index_names = [list(collection.indexes.keys())[0]]
+                    elif hasattr(self.memory_collection, "indexes") and self.memory_collection.indexes:
+                        index_names = [list(self.memory_collection.indexes.keys())[0]]
                         self.logger.info(f"Using first available index: {index_names[0]}")
                     else:
                         self.logger.warning("No index available for VDB storage")
@@ -269,7 +273,7 @@ class MemoryAdapter:
                     else:
                         doc_meta = metadata
 
-                    doc_id = collection.insert(
+                    doc_id = self.memory_collection.insert(
                         raw_text=doc,
                         metadata=doc_meta,
                         *index_names
@@ -286,13 +290,13 @@ class MemoryAdapter:
 
                     # 尝试带元数据的插入
                     try:
-                        doc_id = collection.insert(
+                        doc_id = self.memory_collection.insert(
                             raw_text=doc,
                             metadata=doc_meta
                         )
                     except TypeError:
                         # 回退到不带元数据的插入
-                        doc_id = collection.insert(raw_text=doc)
+                        doc_id = self.memory_collection.insert(raw_text=doc)
                     stored_ids.append(doc_id)
 
         except Exception as e:

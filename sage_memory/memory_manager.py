@@ -2,18 +2,18 @@ import os
 import json
 from typing import Any, Dict, List, Optional, Union
 
-from sage_runtime.collection_wrapper import CollectionWrapper
 from sage_utils.custom_logger import CustomLogger
 from sage_memory.memory_collection.base_collection import get_default_data_dir
+from sage_memory.memory_collection.base_collection import BaseMemoryCollection
 from sage_memory.memory_collection.graph_collection import GraphMemoryCollection
 from sage_memory.memory_collection.kv_collection import KVMemoryCollection
 from sage_memory.memory_collection.vdb_collection import VDBMemoryCollection
+from ray.actor import ActorHandle
 
 
 class MemoryManager:
     """
     内存管理器，管理不同类型的 MemoryCollection 实例
-    所有集合自动封装为CollectionWrapper，使调用透明化
     """
 
     def __init__(self, data_dir: Optional[str] = None, session_folder: str = None):
@@ -31,7 +31,7 @@ class MemoryManager:
             self.data_dir = get_default_data_dir()
         else:
             self.data_dir = data_dir
-        self.collections: Dict[str, CollectionWrapper] = {}
+        self.collections: Dict[str, Union[BaseMemoryCollection, ActorHandle]] = {}
         self.collection_metadata: Dict[str, Dict[str, Any]] = {}
         self.manager_path = os.path.join(self.data_dir, "manager.json")
         if os.path.exists(self.manager_path):
@@ -45,59 +45,59 @@ class MemoryManager:
             embedding_model: Optional[Any] = None,
             dim: Optional[int] = None,
             as_ray_actor: bool = False
-    ) -> CollectionWrapper:
+    ) -> Union[BaseMemoryCollection, ActorHandle]:
         """
         创建新的集合（可选择作为Ray Actor封装）
-        始终返回CollectionWrapper对象
+        直接返回collection或者ray actor句柄
         """
         if name in self.collections:
             raise ValueError(f"Collection with name '{name}' already exists.")
 
-        # 创建基础集合
-        if backend_type == "VDB":
-            if embedding_model is None or dim is None:
-                raise ValueError("VDB requires 'embedding_model' and 'dim'")
-            collection = VDBMemoryCollection(name, embedding_model, dim, session_folder=self.session_folder)
-        elif backend_type == "KV":
-            collection = KVMemoryCollection(name)
-        elif backend_type == "GRAPH":
-            collection = GraphMemoryCollection(name)
-        else:
-            raise ValueError(f"Unsupported backend_type: {backend_type}")
+
 
         if as_ray_actor:
+            import ray
+            # 创建基础集合
+            if backend_type == "VDB":
+                if embedding_model is None or dim is None:
+                    raise ValueError("VDB requires 'embedding_model' and 'dim'")
+                actor_cls = ray.remote(VDBMemoryCollection)
+            elif backend_type == "KV":
+                actor_cls = ray.remote(KVMemoryCollection)
+            elif backend_type == "GRAPH":
+                actor_cls = ray.remote(GraphMemoryCollection)
+            else:
+                raise ValueError(f"Unsupported backend_type: {backend_type}")
             # 尝试导入Ray
-            try:
-                import ray
-                # 创建Ray Actor
-                actor_cls = ray.remote(type(collection))
-                # 根据类型处理不同构造参数
-                if backend_type == "VDB":
-                    ray_actor = actor_cls.remote(name, embedding_model, dim)
-                else:
-                    ray_actor = actor_cls.remote(name)
-
-                # 封装Ray Actor
-                wrapped_collection = CollectionWrapper(ray_actor)
-            except ImportError:
-                # Ray不可用，回退到本地
-                self.logger.info("Ray not available, falling back to local collection")
-                as_ray_actor = False
-                wrapped_collection = CollectionWrapper(collection)
+            # 创建Ray Actor
+            # 根据类型处理不同构造参数
+            if backend_type == "VDB":
+                collection = actor_cls.remote(name, embedding_model, dim)
+            else:
+                collection = actor_cls.remote(name)
         else:
-            # 封装本地集合
-            wrapped_collection = CollectionWrapper(collection)
+            # 创建基础集合
+            if backend_type == "VDB":
+                if embedding_model is None or dim is None:
+                    raise ValueError("VDB requires 'embedding_model' and 'dim'")
+                collection = VDBMemoryCollection(name, embedding_model, dim, session_folder=self.session_folder)
+            elif backend_type == "KV":
+                collection = KVMemoryCollection(name)
+            elif backend_type == "GRAPH":
+                collection = GraphMemoryCollection(name)
+            else:
+                raise ValueError(f"Unsupported backend_type: {backend_type}")
 
         # 存储到 collections
-        self.collections[name] = wrapped_collection
+        self.collections[name] = collection
         self.collection_metadata[name] = {
             "description": description,
             "backend_type": backend_type,
             "is_ray_actor": as_ray_actor
         }
-        return wrapped_collection
+        return collection
 
-    def get_collection(self, name: str) -> CollectionWrapper:
+    def get_collection(self, name: str) -> Union[BaseMemoryCollection, ActorHandle]:
         """获取已封装的集合"""
         if name in self.collections:
             return self.collections[name]
@@ -114,7 +114,7 @@ class MemoryManager:
         else:
             raise KeyError(f"Collection '{name}' not found.")
         
-    def connect_collection(self, name: str, embedding_model=None) -> CollectionWrapper:
+    def connect_collection(self, name: str, embedding_model=None) -> Union[BaseMemoryCollection, ActorHandle]:
         """
         支持外部提供 embedding_model，用于 VDB 类型 collection 的恢复。
         """
@@ -137,7 +137,7 @@ class MemoryManager:
             collection = GraphMemoryCollection.load(name, graph_path)
         else:
             raise ValueError(f"Unknown backend_type: {backend_type}")
-        self.collections[name] = CollectionWrapper(collection)
+        self.collections[name] = collection
         return self.collections[name]
 
 
@@ -183,7 +183,7 @@ class MemoryManager:
             # VDB 不自动加载
             else:
                 continue
-            self.collections[name] = CollectionWrapper(collection)
+            self.collections[name] = collection
 
             
     def list_collection(self, name: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
