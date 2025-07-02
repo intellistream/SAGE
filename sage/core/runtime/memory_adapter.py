@@ -1,7 +1,7 @@
 import ray
 from typing import List,Dict,Optional
-from neuromem.memory_collection.base_collection import BaseMemoryCollection
-from neuromem.memory_collection.vdb_collection import VDBMemoryCollection
+from sage_memory.memory_collection.base_collection import BaseMemoryCollection
+from sage_memory.memory_collection.vdb_collection import VDBMemoryCollection
 
 
 class MemoryAdapter:

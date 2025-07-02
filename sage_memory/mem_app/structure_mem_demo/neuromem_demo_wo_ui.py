@@ -7,7 +7,7 @@ import os, sys, json, time, asyncio
 from datetime import datetime
 from dotenv import load_dotenv
 from sage.api.model import apply_generator_model, apply_embedding_model
-from neuromem.memory_manager import MemoryManager
+from sage_memory.memory_manager import MemoryManager
 
 load_dotenv()
 

@@ -8,7 +8,7 @@ from sage_lib.function.generator import OpenAIGenerator
 from sage_lib.function.retriever import DenseRetriever
 from sage_lib.function.manual_source import ManualSource
 from sage_lib.io.sink import TerminalSink
-from neuromem.memory_manager import MemoryManager
+from sage_memory.memory_manager import MemoryManager
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
 from sage.api.model.model_api import apply_embedding_model

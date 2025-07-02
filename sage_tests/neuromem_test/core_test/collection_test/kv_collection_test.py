@@ -2,8 +2,8 @@
 # python -m sage.sage_tests.neuromem_test.core_test.collection_test.kv_collection_test
 
 import pytest
-from neuromem.memory_collection.kv_collection import KVMemoryCollection
-from neuromem.memory_collection.base_collection import get_default_data_dir
+from sage_memory.memory_collection.kv_collection import KVMemoryCollection
+from sage_memory.memory_collection.base_collection import get_default_data_dir
 
 def test_kv_collection():
     # ==== 基础数据构建 ====
