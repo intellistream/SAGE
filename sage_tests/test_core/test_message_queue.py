@@ -4,7 +4,7 @@ import random
 import time
 import queue
 import sys
-from .message_queue import MessageQueue
+from sage.core.io.local_message_queue import LocalMessageQueue
 
 
 class TestMessageQueue(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestMessageQueue(unittest.TestCase):
     def setUp(self):
         """每个测试前的初始化"""
         # 创建一个内存限制较小的队列 (5MB)，便于测试内存限制功能
-        self.mq = MessageQueue(max_buffer_size=5 * 1024 * 1024)  # 5MB
+        self.mq = LocalMessageQueue(max_buffer_size=5 * 1024 * 1024)  # 5MB
         self.stop_event = threading.Event()
         self.test_results = {
             "put_counts": [],  # 每个生产者的put成功次数
@@ -131,7 +131,7 @@ class TestMessageQueue(unittest.TestCase):
     def test_memory_limit_blocking(self):
         """测试内存限制和阻塞行为"""
         # 使用较小的内存限制进行测试
-        small_queue = MessageQueue(max_buffer_size=1 * 1024 * 1024)  # 1MB
+        small_queue = LocalMessageQueue(max_buffer_size=1 * 1024 * 1024)  # 1MB
 
         # 生成一个接近但小于内存限制的数据项
         data1 = "X" * (900 * 1024)  # 900KB

@@ -1,15 +1,15 @@
 from typing import Dict, List, Any, Tuple, Union
 from ray.actor import ActorHandle
 from sage_utils.custom_logger import CustomLogger
-from sage.core.graph import SageGraph, GraphNode
+from sage.core.compiler import Compiler, GraphNode
 from sage.core.runtime.ray.ray_dag_node import RayDAGNode
 from sage.core.runtime.local.local_dag_node import LocalDAGNode
 
 
 class MixedDAG:
-    def __init__(self, graph: SageGraph):
+    def __init__(self, graph: Compiler):
         self.name:str = graph.name
-        self.graph:SageGraph = graph
+        self.graph:Compiler = graph
         self.operators: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
         self.connections: List[Tuple[str, int, str, int]] = []  # (upstream_node, out_channel, downstream_node, in_channel)
         self.session_folder = CustomLogger.get_session_folder()
@@ -33,7 +33,7 @@ class MixedDAG:
         # 第一步：创建所有节点实例
         for node_name, graph_node in self.graph.nodes.items():
             node_instance = self.create_node_instance(graph_node)
-            # upstream_nodes = self.graph.get_upstream_nodes(node_name)
+            # upstream_nodes = self.compiler.get_upstream_nodes(node_name)
             self.operators[node_name] = node_instance
             self.logger.debug(f"Added node '{node_name}' of type '{node_instance.__class__.__name__}'")
         

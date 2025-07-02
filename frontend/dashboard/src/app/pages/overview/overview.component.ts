@@ -2,7 +2,7 @@ import {Component, OnInit, OnDestroy} from '@angular/core';
 import {OverviewService} from "./overview.service";
 import {FormBuilder, FormGroup} from "@angular/forms";
 import {Job} from "../../model/Job";
-import { NzGraphData, NzGraphDataDef, NzGraphComponent } from 'ng-zorro-antd/graph';
+import { NzGraphData, NzGraphDataDef, NzGraphComponent } from 'ng-zorro-antd/compiler';
 
 @Component({
   selector: 'sage_examples-home',
@@ -197,7 +197,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
       return graphData;
 
     } catch (error) {
-      console.error('Error creating graph data for job:', job.name, error);
+      console.error('Error creating compiler data for job:', job.name, error);
       return this.createDefaultGraphData(job.name || 'Error Job');
     }
   }
@@ -239,7 +239,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
    * 操作符图表初始化回调
    */
   onOperatorGraphInitialized(graphComponent: NzGraphComponent): void {
-    console.log('Operator graph initialized:', graphComponent);
+    console.log('Operator compiler initialized:', graphComponent);
   }
 
   // 添加清理缓存的方法

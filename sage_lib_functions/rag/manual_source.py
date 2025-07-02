@@ -2,7 +2,7 @@ from sage.api.base_function import BaseFunction
 from sage.api.tuple import Data
 from typing import Any
 
-from sage.core.io.message_queue import MessageQueue
+from sage.core.io.local_message_queue import LocalMessageQueue
 
 class ManualSource(BaseFunction):
     """
@@ -25,7 +25,7 @@ class ManualSource(BaseFunction):
         """
         super().__init__()
         self.config = config
-        self.input_buffer = MessageQueue()
+        self.input_buffer = LocalMessageQueue()
 
 
     def push(self, data: Any):

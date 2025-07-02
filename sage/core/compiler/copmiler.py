@@ -4,9 +4,6 @@ from sage.api.env import Environment
 from sage.core.operator.transformation import Transformation
 from sage_utils.custom_logger import CustomLogger
 
-
-
-
 class GraphNode:
     def __init__(self, name: str,env:Environment, transformation: Transformation, parallel_index: int):
         self.name: str = name
@@ -23,7 +20,7 @@ class GraphNode:
 class GraphEdge:
     def __init__(self,name:str,  upstream_node: GraphNode, upstream_channel: int, downstream_node:GraphNode = None, downstream_channel: int = None):
         """
-        Initialize a graph edge with a source and target node.
+        Initialize a compiler edge with a source and target node.
         Args:
             source (str): The name of the source node.
             target (str): The name of the target node.
@@ -34,7 +31,7 @@ class GraphEdge:
         self.downstream_node:GraphNode = downstream_node
         self.downstream_channel: int = downstream_channel
 
-class SageGraph:
+class Compiler:
     def __init__(self, env:Environment):
         self.env = env
         self.name = env.name
@@ -51,7 +48,7 @@ class SageGraph:
         # 构建基础图结构
         self._build_graph_from_pipeline(env)
         
-        self.logger.info(f"Successfully converted and optimized pipeline '{env.name}' to graph with {len(self.nodes)} nodes and {len(self.edges)} edges")
+        self.logger.info(f"Successfully converted and optimized pipeline '{env.name}' to compiler with {len(self.nodes)} nodes and {len(self.edges)} edges")
 
     def _build_graph_from_pipeline(self, env: Environment):
         """
@@ -93,7 +90,7 @@ class SageGraph:
         self.logger.debug(f"Total logical edges: {logical_edge_count}, total physical edges: {physical_edge_count}")
         
         # 第三步：创建图结构
-        self.logger.debug("Step 3: Creating graph structure")
+        self.logger.debug("Step 3: Creating compiler structure")
         
         # 3.1 创建所有节点
         for transformation in env.pipeline:

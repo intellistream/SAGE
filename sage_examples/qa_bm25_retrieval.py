@@ -1,11 +1,11 @@
 import logging
 from sage.api.env import Environment
-from sage_lib import QAPromptor
-from sage_lib.function.generator import OpenAIGenerator
-from sage_lib.function.retriever import BM25sRetriever
-from sage_lib.io.source import FileSource
-from sage_lib.io.sink import TerminalSink
-from neuromem.memory_manager import MemoryManager
+from sage_lib_functions.io.sink import TerminalSink
+from sage_lib_functions.io.source import FileSource
+from sage_lib_functions.rag.generator import OpenAIGenerator
+from sage_lib_functions.rag.promptor import QAPromptor
+from sage_lib_functions.rag.retriever import BM25sRetriever
+from sage_memory.memory_manager import MemoryManager
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging
 
