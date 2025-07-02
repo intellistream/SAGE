@@ -1,6 +1,4 @@
 from typing import Any, List, Literal, Optional, Union
-from sage.core.operator.arxiv_function_api import BaseFunction
-from sage.core.operator import Data
 from typing import Any, List, Optional
 from urllib.parse import quote
 import feedparser
@@ -13,6 +11,10 @@ from PIL import Image
 from collections import Counter
 import json
 import re
+
+from sage.api.base_function import BaseFunction
+from sage.api.tuple import Data
+
 
 class Paper:
     def __init__(self, path, title='', url='', abs='', authors=[]):

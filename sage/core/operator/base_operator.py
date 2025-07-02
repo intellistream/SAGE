@@ -6,10 +6,7 @@ from sage.core.io.emit_context import DownstreamTarget, NodeType
 from sage.core.io.emit_context import BaseEmitContext
 from sage.utils.custom_logger import CustomLogger
 
-T = TypeVar('T')
-class Data(Generic[T]):
-    def __init__(self, data: T):
-        self.data = data 
+
 
 # Operator 决定事件的逻辑路由（如广播、分区、keyBy等），
 # EmitContext 仅负责将数据发送到指定的下游通道或节点。

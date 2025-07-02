@@ -1,9 +1,12 @@
 import asyncio
 import queue
 import threading
+import time
 from typing import Any, Optional
-from sage.core.operator import BaseFunction
-from sage.core.operator import Data
+
+from sage.api.base_function import BaseFunction
+from sage.api.tuple import Data
+
 
 class TriggerableSource(BaseFunction):
     """

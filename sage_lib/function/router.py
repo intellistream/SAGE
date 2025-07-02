@@ -1,6 +1,11 @@
 from typeguard import value
-from sage.core.operator import BaseFunction,Data
+
 from typing import Tuple, List
+
+from sage.api.base_function import BaseFunction
+from sage.api.tuple import Data
+
+
 def condition(value:bool)->bool:
     if value:
         return True

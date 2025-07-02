@@ -1,11 +1,14 @@
 from calendar import c
 from sage.api.model import apply_generator_model
 from sage.api.base_function import BaseFunction
-from sage.core.operator import Data
+
 from typing import Any,Tuple
 import requests
 import json
 import re
+
+from sage.api.tuple import Data
+
 
 class Tool:
     def __init__(self, name, func, description):
