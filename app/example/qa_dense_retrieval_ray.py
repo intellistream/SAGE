@@ -37,7 +37,7 @@ def memory_init():
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = StreamingExecutionEnvironment(name="example_pipeline")
+    pipeline = StreamingExecutionEnvironment(name="example_pipeline",config={"is_long_running": True, "use_ray": True})
     # 在config里指定各个节点跑在ray上边
     # 构建数据处理流程
     query_stream = pipeline.from_source(FileSource, config["source"])

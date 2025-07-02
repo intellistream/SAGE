@@ -17,9 +17,6 @@ class Data(Generic[T]):
 class BaseOperator(ABC):
     def __init__(self, *args, **kwargs):
         self._name = self.__class__.__name__
-
-
-
         # 维护下游节点和路由逻辑
         self.downstream_channels: Dict[int, List[DownstreamTarget]] = {}
         self.downstream_round_robin: Dict[int, int] = {}
