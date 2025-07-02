@@ -1,2 +1,2 @@
-from .copmiler import Compiler, GraphNode, GraphEdge
+from .compiler import Compiler, GraphNode, GraphEdge
 __all__ = ["Compiler", "GraphNode"]

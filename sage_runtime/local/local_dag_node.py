@@ -88,7 +88,7 @@ class LocalDAGNode:
         Main worker loop that executes continuously until stop is signaled.
         """
 
-        # Ensure all runtime objects are initialized
+        # Ensure all sage_runtime objects are initialized
         self.stop_event.clear()
 
         # Main execution loop
@@ -141,7 +141,7 @@ class LocalDAGNode:
         Custom deserialization to restore state.
         """
         self.__dict__.update(state)
-        # Mark as not initialized so runtime objects will be created when needed
+        # Mark as not initialized so sage_runtime objects will be created when needed
         self._initialized = False
 
 

@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from sage.core.runtime.local.local_dag_node import LocalDAGNode
-# from sage.core.runtime.local.local_task import StreamingTask,  BaseTask
+# from sage.core.sage_runtime.local.local_task import StreamingTask,  BaseTask
 
 class Slot:
     """

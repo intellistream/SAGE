@@ -1,7 +1,4 @@
-from token import OP
-# from openai import OpenAI
-# from llvm.test2 import VllmGenerator
-from sage.core.model.embedding_model.embedding_model import EmbeddingModel
+from sage_memory.embedding_model import EmbeddingModel
 from sage.core.model.generator_model.generator_model import GeneratorModel
 
 

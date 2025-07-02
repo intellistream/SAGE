@@ -1,10 +1,10 @@
 import logging
 import time
 from sage.api.env import Environment
-from sage_lib_functions.io.sink import MemWriteSink
-from sage_lib_functions.io.source import FileSource
-from sage_lib_functions.rag.chunk import CharacterSplitter
-from sage_lib_functions.rag.writer import MemoryWriter
+from sage_common_funs.io.sink import MemWriteSink
+from sage_common_funs.io.source import FileSource
+from sage_common_funs.rag.chunk import CharacterSplitter
+from sage_common_funs.rag.writer import MemoryWriter
 from sage_utils.config_loader import load_config
 
 

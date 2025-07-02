@@ -7,6 +7,7 @@ class MemoryWriter(BaseFunction):
 
     def __init__(self, config: dict):
         super().__init__()
+        self.state = None
         self.config = config
         # 初始化各类型集合
         self.collections = {}
@@ -35,6 +36,8 @@ class MemoryWriter(BaseFunction):
                 "config": dcm_config
             }
 
+        state = getRuntimeContext().getState(xxx)
+
 
     def execute(self, data: Data[Union[str, List[str], Tuple[str, str]]]) -> Data:
         input_data = data.data
@@ -60,7 +63,7 @@ class MemoryWriter(BaseFunction):
                 continue
 
             try:
-                self.getRuntimeContext().getState("Memory").store(
+                self.state.store(
                     collection=collection,
                     documents=processed_data,
                     collection_config=config
