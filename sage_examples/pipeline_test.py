@@ -14,8 +14,8 @@ from sage_lib.io.sink import FileSink
 # from sage.core.operator.operator_impl.writer import LongTimeWriter
 # from sage.core.operator.operator_impl.retriever import SimpleRetriever
 
-from sage.utils.config_loader import load_config
-from sage.utils.logging_utils import configure_logging
+from sage_utils.config_loader import load_config
+from sage_utils.logging_utils import configure_logging
 
 if TYPE_CHECKING:
     from sage.api.datastream import DataStream

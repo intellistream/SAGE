@@ -5,9 +5,9 @@ from sage_lib.function.generator import OpenAIGenerator
 from sage_lib.function.retriever import BM25sRetriever
 from sage_lib.io.source import FileSource
 from sage_lib.io.sink import TerminalSink
-from sage_memory.memory_manager import MemoryManager
-from sage.utils.config_loader import load_config
-from sage.utils.logging_utils import configure_logging
+from neuromem.memory_manager import MemoryManager
+from sage_utils.config_loader import load_config
+from sage_utils.logging_utils import configure_logging
 
 def memory_init():
     """初始化内存管理器并创建测试集合"""

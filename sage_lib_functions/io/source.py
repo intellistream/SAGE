@@ -1,8 +1,7 @@
 from sage.api.tuple import Data
 from sage.api.base_function import BaseFunction
-from typing import Tuple
-from sage.utils.custom_logger import CustomLogger
-from sage.utils.data_loader import resolve_data_path
+from sage_utils.custom_logger import CustomLogger
+from sage_utils.data_loader import resolve_data_path
 
 
 class FileSource(BaseFunction):
