@@ -5,7 +5,7 @@ from sage.api.base_function import BaseFunction
 from sage.core.io.emit_context import DownstreamTarget, NodeType
 from sage.core.io.emit_context import BaseEmitContext
 from sage.utils.custom_logger import CustomLogger
-
+from sage.api.tuple import Data
 
 
 # Operator 决定事件的逻辑路由（如广播、分区、keyBy等），
