@@ -7,7 +7,7 @@ import sys
 from sage_utils.custom_logger import CustomLogger
 
 
-class MessageQueue:
+class LocalMessageQueue:
 
     def __init__(self, name="MessageQueue", max_buffer_size=30000, session_folder: str = None):
         self.name = name

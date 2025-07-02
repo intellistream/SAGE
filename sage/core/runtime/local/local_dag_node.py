@@ -5,7 +5,7 @@ from typing import Any, Union, Tuple
 
 
 #from sage.archive.operator_wrapper import OperatorWrapper
-from sage.core.io.message_queue import MessageQueue
+from sage.core.io.local_message_queue import LocalMessageQueue
 from sage.core.io.local_emit_context import LocalEmitContext
 from sage.core.operator.transformation import Transformation, TransformationType
 from sage_utils.custom_logger import CustomLogger
@@ -40,7 +40,7 @@ class LocalDAGNode:
 
         self.is_spout = transformation.transformation_type == TransformationType.SOURCE  # Check if this is a spout node 正确
         
-        self.input_buffer = MessageQueue()  # Local input buffer for this node
+        self.input_buffer = LocalMessageQueue()  # Local input buffer for this node
 
         # Initialize stop event
         self.stop_event = threading.Event()

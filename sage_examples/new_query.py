@@ -3,12 +3,12 @@ import time
 
 
 from sage.api.env import Environment
-from sage_lib import QAPromptor
-from sage_lib.function.generator import OpenAIGenerator
-from sage_lib.function.retriever import DenseRetriever
-from sage_lib.function.manual_source import ManualSource
-from sage_lib.io.sink import TerminalSink
-from neuromem.memory_manager import MemoryManager
+from sage_lib_functions.io.sink import TerminalSink
+from sage_lib_functions.rag.generator import OpenAIGenerator
+from sage_lib_functions.rag.manual_source import ManualSource
+from sage_lib_functions.rag.promptor import QAPromptor
+from sage_lib_functions.rag.retriever import DenseRetriever
+from sage_memory.memory_manager import MemoryManager
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging
 from sage.api.model.model_api import apply_embedding_model
@@ -37,10 +37,6 @@ def memory_init():
     col.create_index(index_name="vdb_index")
     config["retriever"]["ltm_collection"] = col._collection
 
-
-
-
-
 def pipeline_run():
     """创建并运行数据处理管道"""
 
@@ -65,8 +61,6 @@ def pipeline_run():
     # manual_source.push("What is the capital of France?")
     # manual_source.push("What is the capital of China?")
     # manual_source.push("What is the capital of Japan?")
-
-
 
 if __name__ == '__main__':
     CustomLogger.disable_global_console_debug()  # 禁用全局控制台调试输出

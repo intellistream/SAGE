@@ -61,8 +61,8 @@
                 <span nz-icon nzType="apartment" nzTheme="outline"  style="margin-right: 2px;"></span> Operator Topology
               </div>
             </ng-template>
-            <nz-graph
-              nz-graph-zoom
+            <nz-compiler
+              nz-compiler-zoom
               [nzGraphData]="nzOperatorGraphData"
               [nzAutoSize]="true"
               [nzRankDirection]="'LR'"
@@ -77,7 +77,7 @@
                   </div>
                 </foreignObject>
               </ng-container>
-            </nz-graph>
+            </nz-compiler>
           </nz-collapse-panel> -->
           <nz-collapse-panel [nzHeader]="topologyPanelHeader">
             <ng-template #topologyPanelHeader>
@@ -85,14 +85,14 @@
                 <span nz-icon nzType="apartment" nzTheme="outline" style="margin-right: 2px;"></span> Operator Topology
               </div>
             </ng-template>
-          
+
             <!-- 滚动容器开始 -->
             <div class="topology-scroll-container">
               <ng-container [ngSwitch]="job?.name">
                 <img *ngSwitchCase="'qa'" src="assets/qa.png" alt="QA Topology" class="responsive-image" />
                 <img *ngSwitchCase="'ingest'" src="assets/ingest.png" alt="Ingest Topology" class="responsive-image" />
                 <img *ngSwitchCase="'multi-agent'" src="assets/multi_agent.png" alt="Multi-agent Topology" class="responsive-image" />
-          
+
                 <nz-graph *ngSwitchDefault
                   nz-graph-zoom
                   [nzGraphData]="nzOperatorGraphData"
@@ -114,8 +114,8 @@
             </div>
             <!-- 滚动容器结束 -->
           </nz-collapse-panel>
-          
-          
+
+
         </nz-collapse>
       </nz-col>
     </nz-row>
@@ -124,7 +124,7 @@
         <div class="iframe-wrapper">
           <iframe #actorsIframe src="http://127.0.0.1:8265/#/actors" class="full-iframe"></iframe>
         </div>
-          
+
       </nz-col>
       <nz-col nzSpan="10" class="container containerb">
         <div class="config-editor-container">
@@ -133,144 +133,144 @@
           </h3>
           <nz-alert *ngIf="configError" nzType="error" nzMessage="配置格式错误" [nzDescription]="configError" nzShowIcon></nz-alert>
           <nz-alert *ngIf="configSuccess" nzType="success" nzMessage="配置已更新" nzShowIcon></nz-alert>
-          
+
           <nz-tabset>
             <nz-tab nzTitle="表单模式">
               <form nz-form [formGroup]="configForm" nzLayout="vertical" class="config-form">
                 <nz-collapse nzGhost>
-                  <nz-collapse-panel 
-                    *ngFor="let section of configSections" 
-                    [nzHeader]="section.label" 
+                  <nz-collapse-panel
+                    *ngFor="let section of configSections"
+                    [nzHeader]="section.label"
                     [nzActive]="true">
-                    
+
                     <!-- 对象类型的配置节 -->
                     <div *ngIf="section.isObject" [formGroupName]="section.key">
                       <nz-form-item *ngFor="let field of section.fields">
                         <nz-form-label [nzRequired]="field.required">{{field.label}}</nz-form-label>
                         <nz-form-control [nzErrorTip]="'请输入有效的' + field.label">
-                          
+
                           <!-- 布尔类型 -->
                           <label *ngIf="field.type === 'boolean'" nz-checkbox [formControlName]="field.key">
                             {{field.label}}
                           </label>
-                          
+
                           <!-- 数字类型 -->
-                          <nz-input-number 
-                            *ngIf="field.type === 'number'" 
-                            [formControlName]="field.key" 
+                          <nz-input-number
+                            *ngIf="field.type === 'number'"
+                            [formControlName]="field.key"
                             [nzPlaceHolder]="field.placeholder">
                           </nz-input-number>
-                          
+
                           <!-- 多行文本 -->
-                          <textarea 
-                            *ngIf="field.type === 'textarea'" 
-                            nz-input 
-                            [formControlName]="field.key" 
+                          <textarea
+                            *ngIf="field.type === 'textarea'"
+                            nz-input
+                            [formControlName]="field.key"
                             [placeholder]="field.placeholder"
                             [nzAutosize]="{ minRows: 3, maxRows: 6 }">
                           </textarea>
-                          
+
                           <!-- 密码类型 -->
                           <nz-input-group *ngIf="field.type === 'password'">
-                            <input 
-                              nz-input 
-                              type="password" 
-                              [formControlName]="field.key" 
+                            <input
+                              nz-input
+                              type="password"
+                              [formControlName]="field.key"
                               [placeholder]="field.placeholder" />
                           </nz-input-group>
-                          
+
                           <!-- 选择框 -->
-                          <nz-select 
-                            *ngIf="field.options && field.options.length > 0" 
-                            [formControlName]="field.key" 
+                          <nz-select
+                            *ngIf="field.options && field.options.length > 0"
+                            [formControlName]="field.key"
                             [nzPlaceHolder]="field.placeholder">
-                            <nz-option 
-                              *ngFor="let option of field.options" 
-                              [nzValue]="option.value" 
+                            <nz-option
+                              *ngFor="let option of field.options"
+                              [nzValue]="option.value"
                               [nzLabel]="option.label">
                             </nz-option>
                           </nz-select>
-                          
+
                           <!-- 普通文本输入 -->
-                          <input 
-                            *ngIf="field.type === 'text' || field.type === 'url' || field.type === 'file'" 
-                            nz-input 
-                            [formControlName]="field.key" 
+                          <input
+                            *ngIf="field.type === 'text' || field.type === 'url' || field.type === 'file'"
+                            nz-input
+                            [formControlName]="field.key"
                             [placeholder]="field.placeholder" />
-                            
+
                         </nz-form-control>
                       </nz-form-item>
                     </div>
-                    
+
                     <!-- 简单类型的配置项 -->
                     <div *ngIf="!section.isObject">
                       <nz-form-item *ngFor="let field of section.fields">
                         <nz-form-label [nzRequired]="field.required">{{field.label}}</nz-form-label>
                         <nz-form-control [nzErrorTip]="'请输入有效的' + field.label">
-                          
+
                           <!-- 布尔类型 -->
                           <label *ngIf="field.type === 'boolean'" nz-checkbox [formControlName]="section.key">
                             {{field.label}}
                           </label>
-                          
+
                           <!-- 数字类型 -->
-                          <nz-input-number 
-                            *ngIf="field.type === 'number'" 
-                            [formControlName]="section.key" 
+                          <nz-input-number
+                            *ngIf="field.type === 'number'"
+                            [formControlName]="section.key"
                             [nzPlaceHolder]="field.placeholder">
                           </nz-input-number>
-                          
+
                           <!-- 多行文本 -->
-                          <textarea 
-                            *ngIf="field.type === 'textarea'" 
-                            nz-input 
-                            [formControlName]="section.key" 
+                          <textarea
+                            *ngIf="field.type === 'textarea'"
+                            nz-input
+                            [formControlName]="section.key"
                             [placeholder]="field.placeholder"
                             [nzAutosize]="{ minRows: 3, maxRows: 6 }">
                           </textarea>
-                          
+
                           <!-- 密码类型 -->
                           <nz-input-group *ngIf="field.type === 'password'">
-                            <input 
-                              nz-input 
-                              type="password" 
-                              [formControlName]="section.key" 
+                            <input
+                              nz-input
+                              type="password"
+                              [formControlName]="section.key"
                               [placeholder]="field.placeholder" />
                           </nz-input-group>
-                          
+
                           <!-- 选择框 -->
-                          <nz-select 
-                            *ngIf="field.options && field.options.length > 0" 
-                            [formControlName]="section.key" 
+                          <nz-select
+                            *ngIf="field.options && field.options.length > 0"
+                            [formControlName]="section.key"
                             [nzPlaceHolder]="field.placeholder">
-                            <nz-option 
-                              *ngFor="let option of field.options" 
-                              [nzValue]="option.value" 
+                            <nz-option
+                              *ngFor="let option of field.options"
+                              [nzValue]="option.value"
                               [nzLabel]="option.label">
                             </nz-option>
                           </nz-select>
-                          
+
                           <!-- 普通文本输入 -->
-                          <input 
-                            *ngIf="field.type === 'text' || field.type === 'url' || field.type === 'file'" 
-                            nz-input 
-                            [formControlName]="section.key" 
+                          <input
+                            *ngIf="field.type === 'text' || field.type === 'url' || field.type === 'file'"
+                            nz-input
+                            [formControlName]="section.key"
                             [placeholder]="field.placeholder" />
-                            
+
                         </nz-form-control>
                       </nz-form-item>
                     </div>
-                    
+
                   </nz-collapse-panel>
                 </nz-collapse>
               </form>
             </nz-tab>
-            
+
             <nz-tab nzTitle="原始模式">
               <div class="editor-wrapper">
-                <textarea 
-                  nz-input 
-                  [(ngModel)]="configContent" 
+                <textarea
+                  nz-input
+                  [(ngModel)]="configContent"
                   [nzAutosize]="{ minRows: 15, maxRows: 25 }"
                   placeholder="加载配置文件中..."
                   class="config-textarea"

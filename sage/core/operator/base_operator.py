@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Dict
 from sage.core.io.emit_context import DownstreamTarget, NodeType
 from sage.core.io.emit_context import BaseEmitContext
-from sage.utils.custom_logger import CustomLogger
 from sage.api.tuple import Data
 
 
@@ -16,7 +15,7 @@ class BaseOperator(ABC):
         # 维护下游节点和路由逻辑
         self.downstream_channels: Dict[int, List[DownstreamTarget]] = {}
         self.downstream_round_robin: Dict[int, int] = {}
-
+        self.runtime_context; #需要在compiler里面实例化。
 
     def insert_emit_context(self, emit_context: BaseEmitContext):
         """

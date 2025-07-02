@@ -18,8 +18,8 @@ class Engine:
         # self.dag_manager = DAGManager() # deprecated
         self.runtime_manager = RuntimeManager.get_instance()
         # self.compiler= QueryCompiler()
-        from sage.core.graph import SageGraph
-        self.graphs:dict[str, SageGraph] = {}  # 存储 pipeline 名称到 SageGraph 的映射
+        from sage.core.compiler import Compiler
+        self.graphs:dict[str, Compiler] = {}  # 存储 pipeline 名称到 SageGraph 的映射
         self.dags:dict = {} # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
 
         self.logger = CustomLogger(
@@ -50,8 +50,8 @@ class Engine:
         return cls._instance
     
     def submit_env(self, env:Environment):
-        from sage.core.graph import SageGraph
-        graph = SageGraph(env)
+        from sage.core.compiler import Compiler
+        graph = Compiler(env)
         self.graphs[graph.name] = graph
         try:
             self.logger.info(f"Received mixed graph '{graph.name}' with {len(graph.nodes)} nodes")

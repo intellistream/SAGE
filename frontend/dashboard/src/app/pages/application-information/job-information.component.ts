@@ -10,7 +10,7 @@ import {
   NzGraphData,
   NzGraphDataDef,
   NzGraphZoomDirective,
-} from "ng-zorro-antd/graph";
+} from "ng-zorro-antd/compiler";
 import {Batch} from "../../model/Batch";
 import {FormControl, FormGroup, NonNullableFormBuilder, Validators, FormArray, ValidatorFn} from "@angular/forms";
 import {NzMessageService} from "ng-zorro-antd/message";
@@ -30,11 +30,11 @@ export class JobInformationComponent implements OnInit {
   tpgBatch: Batch | null = null; // TPG batch entity
 
   tpgSvg: any;            // tpg svg
-  tpgSvgSimulation: any;  // tpg graph drawing force simulation
+  tpgSvgSimulation: any;  // tpg compiler drawing force simulation
   isTpgModalVisible = false;
 
-  operatorGraphData: NzGraphDataDef = {nodes: [], edges: []} // operator graph data {v: '1', w: '2'}, {id: '101', label: 'Spout'}
-  nzOperatorGraphData: any; // operator graph data for nz-graph
+  operatorGraphData: NzGraphDataDef = {nodes: [], edges: []} // operator compiler data {v: '1', w: '2'}, {id: '101', label: 'Spout'}
+  nzOperatorGraphData: any; // operator compiler data for nz-compiler
 
   // Batch data
   batchOptions: any[] = [];

@@ -1,15 +1,14 @@
 import logging
 from sage.api.env import Environment
-from sage_lib.function.retriever import DenseRetriever
-from sage_lib import QAPromptor
-from sage_lib.function.generator import OpenAIGenerator
-from sage_lib.function.chunk import CharacterSplitter
-from sage_lib.function.writer import MemoryWriter
-from sage_lib.io.source import FileSource
-from sage_lib.io.sink import MemWriteSink,FileSink
+from sage_lib_functions.io.sink import MemWriteSink, FileSink
+from sage_lib_functions.io.source import FileSource
+from sage_lib_functions.rag.chunk import CharacterSplitter
+from sage_lib_functions.rag.generator import OpenAIGenerator
+from sage_lib_functions.rag.promptor import QAPromptor
+from sage_lib_functions.rag.retriever import DenseRetriever
+from sage_lib_functions.rag.writer import MemoryWriter
 from sage_memory.memory_manager import MemoryManager
 from sage_memory.embeddingmodel import MockTextEmbedder
-
 from sage_utils.config_loader import load_config
 
 

@@ -41,7 +41,7 @@ import {NzCascaderModule} from "ng-zorro-antd/cascader";
 import {CodeEditorComponent} from "./pages/code-editor/code-editor.component";
 import {CodemirrorModule} from "@ctrl/ngx-codemirror";
 import {NzCollapseModule} from "ng-zorro-antd/collapse";
-import { NzGraphModule } from 'ng-zorro-antd/graph';
+import { NzGraphModule } from 'ng-zorro-antd/compiler';
 import {NzPopoverModule} from "ng-zorro-antd/popover";
 import {NzMessageModule} from "ng-zorro-antd/message";
 import { NzCodeEditorModule } from 'ng-zorro-antd/code-editor';

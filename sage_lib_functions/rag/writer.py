@@ -1,10 +1,10 @@
 from typing import Union, List, Tuple, Optional, Dict
 from sage.api.base_function import BaseFunction
 from sage.api.tuple import Data
-from sage.core.runtime.memory_adapter import MemoryAdapter
 
 
 class MemoryWriter(BaseFunction):
+
     def __init__(self, config: dict):
         super().__init__()
         self.config = config
@@ -35,10 +35,6 @@ class MemoryWriter(BaseFunction):
                 "config": dcm_config
             }
 
-        # 创建内存适配器
-        self.memory_adapter = MemoryAdapter()
-        # 适配器日志关联算子日志
-        self.memory_adapter.logger = self.logger
 
     def execute(self, data: Data[Union[str, List[str], Tuple[str, str]]]) -> Data:
         input_data = data.data
@@ -64,7 +60,7 @@ class MemoryWriter(BaseFunction):
                 continue
 
             try:
-                self.memory_adapter.store(
+                self.getRuntimeContext().getState("Memory").store(
                     collection=collection,
                     documents=processed_data,
                     collection_config=config

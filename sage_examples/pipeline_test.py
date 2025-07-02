@@ -6,13 +6,11 @@ import logging
 import time
 from typing import TYPE_CHECKING
 from sage.api.env import Environment
-from sage_lib import QAPromptor
-from sage_lib.function.generator import OpenAIGenerator
-from sage_lib import AbstractiveRecompRefiner
-from sage_lib.io.source import FileSource
-from sage_lib.io.sink import FileSink
-# from sage.core.operator.operator_impl.writer import LongTimeWriter
-# from sage.core.operator.operator_impl.retriever import SimpleRetriever
+from sage_lib_functions.io.sink import FileSink
+from sage_lib_functions.io.source import FileSource
+from sage_lib_functions.rag.generator import OpenAIGenerator
+from sage_lib_functions.rag.promptor import QAPromptor
+from sage_lib_functions.rag.refiner import AbstractiveRecompRefiner
 
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging
@@ -22,8 +20,7 @@ if TYPE_CHECKING:
 
 def init_memory_and_pipeline():
     # 创建一个新的管道实例
-    pipeline = Environment(name="example_pipeline",
-                                             config={"is_long_running": True, "use_ray": False})
+    pipeline = Environment(name="example_pipeline")
 
     # 步骤 1: 定义数据源（例如，来自用户的查询）
     query_stream: DataStream = pipeline.from_source(FileSource, source_class=FileSource, config=config)  # 从文件源读取数据
