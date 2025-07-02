@@ -44,7 +44,7 @@ class BaseMemoryCollection:
         **metadata_conditions
     ) -> List[str]:
         """
-        Filter given IDs based on metadata filter function or exact match conditions.
+        Filter given IDs based on metadata filter rag or exact match conditions.
         基于元数据过滤函数或条件筛选给定ID列表中的条目。
         """
         matched_ids = []
@@ -151,7 +151,7 @@ if __name__ == "__main__":
         for r in res1:
             print(r)
 
-        print("\n=== Filter by custom function (language) ===")
+        print("\n=== Filter by custom rag (language) ===")
         res2 = col.retrieve(metadata_filter_func=lambda m: m.get("lang") in {"zh", "fr"})
         for r in res2:
             print(r)

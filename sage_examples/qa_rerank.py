@@ -6,8 +6,8 @@ from sage.utils.logging_utils import configure_logging
 from sage_lib.function.generator import OpenAIGenerator
 from sage_lib.function.promptor import QAPromptor
 from sage_lib.function.retriever import DenseRetriever
-from sage_lib.function.source import FileSource
-from sage_lib.function.sink import TerminalSink
+from sage_lib.io.source import FileSource
+from sage_lib.io.sink import TerminalSink
 from sage_memory.memory_manager import MemoryManager
 
 

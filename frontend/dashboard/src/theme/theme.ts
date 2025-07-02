@@ -3,7 +3,7 @@ export interface Theme {
   properties: any;
 }
 
-// theme changing function
+// theme changing rag
 // not in use
 export const light: Theme = {
   name: "light",

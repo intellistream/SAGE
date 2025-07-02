@@ -28,12 +28,12 @@ summarization_prompt_template = Template(summarization_prompt_template)
 
 class QAPromptor(BaseFunction):
     """
-    QAPromptor is a prompt function that generates a QA-style prompt using 
+    QAPromptor is a prompt rag that generates a QA-style prompt using
     an external corpus and a user query. This class is designed to prepare 
     the necessary prompt structure for a question-answering model.
 
     Attributes:
-        config: Configuration data for initializing the prompt function (e.g., model details, etc.).
+        config: Configuration data for initializing the prompt rag (e.g., model details, etc.).
         prompt_template: A template used for generating the system prompt, typically includes context or instructions.
     """
     
@@ -42,7 +42,7 @@ class QAPromptor(BaseFunction):
         """
         Initializes the QAPromptor instance with configuration and prompt template.
 
-        :param config: Dictionary containing configuration for the prompt function.
+        :param config: Dictionary containing configuration for the prompt rag.
         """
         self.logger = CustomLogger(
             object_name=f"QAPromptor_Function",
@@ -135,12 +135,12 @@ class QAPromptor(BaseFunction):
 
 class SummarizationPromptor(BaseFunction):
     """
-    QAPromptor is a prompt function that generates a QA-style prompt using
+    QAPromptor is a prompt rag that generates a QA-style prompt using
     an external corpus and a user query. This class is designed to prepare
     the necessary prompt structure for a question-answering model.
 
     Attributes:
-        config: Configuration data for initializing the prompt function (e.g., model details, etc.).
+        config: Configuration data for initializing the prompt rag (e.g., model details, etc.).
         prompt_template: A template used for generating the system prompt, typically includes context or instructions.
     """
 
@@ -148,7 +148,7 @@ class SummarizationPromptor(BaseFunction):
         """
         Initializes the QAPromptor instance with configuration and prompt template.
 
-        :param config: Dictionary containing configuration for the prompt function.
+        :param config: Dictionary containing configuration for the prompt rag.
         """
         super().__init__()
         self.config = config  # Store the configuration for later use

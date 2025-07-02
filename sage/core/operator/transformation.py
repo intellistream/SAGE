@@ -13,7 +13,7 @@ from sage.utils.custom_logger import CustomLogger
 # if TYPE_CHECKING:
 #     from sage.core.operator_factory.operator.base_operator_factory import BaseOperatorFactory
 #     from sage.core.operator import BaseOperator
-#     from sage.core.function import BaseFunction
+#     from sage.core.rag import BaseFunction
 
 class TransformationType(Enum):
     MAP = "map"
@@ -45,8 +45,8 @@ class Transformation:
         self.transformation_type = transformation_type
         """
         Args:
-            op_or_class: 可以是 function/operator 的实例，
-                         或 function/operator 的类。
+            op_or_class: 可以是 rag/operator 的实例，
+                         或 rag/operator 的类。
             **kwargs: 若op_or_class是类，则用于构造实例；
                       若是实例，则忽略。
         """
@@ -60,7 +60,7 @@ class Transformation:
             self.function_class = function
         else:
             raise ValueError(
-                f"Unsupported function type: {type(function)}"
+                f"Unsupported rag type: {type(function)}"
             )
         
         self.logger = CustomLogger(
@@ -69,7 +69,7 @@ class Transformation:
             console_output=False,
             file_output=True
         )
-        self.logger.debug(f"Creating Transformation of type {transformation_type} with function {self.function_class.__name__}")
+        self.logger.debug(f"Creating Transformation of type {transformation_type} with rag {self.function_class.__name__}")
 
 
         self.operator_class = self.TO_OPERATOR.get(transformation_type, None)
