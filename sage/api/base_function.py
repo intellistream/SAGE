@@ -9,15 +9,7 @@ class BaseFunction(ABC):
     """
 
     def __init__(self):
-        """
-        Initializes the logger for the function instance.
-        """
-        self.logger = CustomLogger(
-            object_name=self.__class__.__name__,
-            log_level="DEBUG",
-            console_output=True,
-            file_output=False  # 可根据需求选择是否输出到文件
-        )
+        pass
 
     @abstractmethod
     def execute(self, *args, **kwargs):

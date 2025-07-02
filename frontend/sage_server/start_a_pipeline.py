@@ -1,7 +1,7 @@
 # python -m app.datastream_rag_pipeline
 
 
-# 导入 Sage 中的 StreamingExecutionEnvironment 和相关组件
+# 导入 Sage 中的 Environment 和相关组件
 import logging
 import time
 from typing import Tuple, List
@@ -9,7 +9,7 @@ import yaml
 import ray
 import asyncio
 from ray import serve
-from sage.api.env import StreamingExecutionEnvironment
+from sage.api.env import Environment
 from sage.api.memory.memory_service import MemoryManagerService
 from sage.lib.function.promptor import QAPromptor
 from sage.lib.function.generator import OpenAIGenerator
@@ -47,7 +47,7 @@ async def init_memory_and_pipeline(job_id=None,  config=None, operators=None):
 
     # 创建一个新的管道实例
     pipeline_name = f"pipeline_{job_id}" if job_id else "dynamic_pipeline"
-    pipeline = StreamingExecutionEnvironment(pipeline_name)
+    pipeline = Environment(pipeline_name)
 
     # 如果没有提供operators配置，使用默认配置
     if not operators:

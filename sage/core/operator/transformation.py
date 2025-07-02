@@ -66,7 +66,7 @@ class Transformation:
         self.logger = CustomLogger(
             object_name=f"Transformation_{self.function_class.__name__}",
             log_level="DEBUG",
-            console_output=True,
+            console_output=False,
             file_output=True
         )
         self.logger.debug(f"Creating Transformation of type {transformation_type} with function {self.function_class.__name__}")
@@ -101,9 +101,11 @@ class Transformation:
     def build_instance(self, **kwargs) -> BaseOperator:
         """如果尚未实例化，则根据 op_class 和 kwargs 实例化。"""
         if self.is_instance is False:
+            # *self.args是用户传递的Function构造函数参数
+            # **kwargs是engine传递的构造函数参数
             self.function = self.function_class(*self.args, **kwargs)
         return self.operator_class(self.function, **kwargs)
 
     def __repr__(self) -> str:
-        cls_name = self.op_class.__name__
+        cls_name = self.function_class.__name__
         return f"<Transformation {cls_name} at {hex(id(self))}>"

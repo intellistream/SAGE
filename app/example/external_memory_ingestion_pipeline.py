@@ -1,7 +1,7 @@
 import logging
 import time
 import yaml
-from sage.api.env import StreamingExecutionEnvironment
+from sage.api.env import Environment
 from sage.lib.function.chunk import CharacterSplitter
 from sage.lib.function.writer import MemoryWriter
 from sage.lib.function.source import FileSource
@@ -37,7 +37,7 @@ def memory_init():
     config["writer"]["ltm_collection"] = col
 
 def pipeline_run(): 
-    pipeline = StreamingExecutionEnvironment(name="example_pipeline")
+    pipeline = Environment(name="example_pipeline")
     # 构建数据处理流程
     source_stream = pipeline.from_source(FileSource, config["source"])
     chunk_stream = source_stream.map(CharacterSplitter, config["map"])

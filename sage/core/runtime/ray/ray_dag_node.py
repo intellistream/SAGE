@@ -34,12 +34,21 @@ class RayDAGNode:
             is_spout: Whether this is a spout node
             session_folder: Session folder for logging
         """
+        # Create logger first
+        self.logger = CustomLogger(
+            object_name=f"RayNode_{name}",
+            session_folder=session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
+
         if(transformation.is_instance):
             # ray不支持预先实例化的算子
             raise Exception("GraphNode operator must be a class for Ray platform")
 
         self.name = name
-
+        self.transformation = transformation
         try:
             self.operator = transformation.build_instance(session_folder=session_folder)
             self.logger.debug(f"Created operator instance for {self.name}")
@@ -58,14 +67,7 @@ class RayDAGNode:
         self._running = False
         self._stop_requested = False
         
-        # Create logger first
-        self.logger = CustomLogger(
-            object_name=f"RayNode_{self.name}",
-            session_folder=session_folder,
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
-        )
+
         
 
         
@@ -114,48 +116,32 @@ class RayDAGNode:
         except Exception as e:
             self.logger.error(f"Error processing data in node {self.name}: {e}", exc_info=True)
             raise
-
-    def start_spout(self):
-        """
-        Start the spout node execution.
-        For spout nodes, continuously call operator.receive with dummy data.
-        This runs in a loop until stop is requested.
-        """
-        if not self.is_spout:
-            self.logger.warning(f"start_spout called on non-spout node {self.name}")
-            return
-            
-        self._running = True
-        self._stop_requested = False
         
-        self.logger.info(f"Starting spout execution for node {self.name}")
-        
-        try:
-            while self._running and not self._stop_requested:
-                # For spout nodes, call operator.receive with dummy channel and data
-                self.operator.receive(0, None)
-                time.sleep(0.1)  # Small delay to prevent overwhelming
-                
-        except Exception as e:
-            self.logger.error(f"Error in spout node {self.name}: {e}", exc_info=True)
-            raise
-        finally:
-            self._running = False
-            self.logger.info(f"Spout execution stopped for node {self.name}")
-
     def start(self):
         """
         Start the node. For spout nodes, this starts the generation loop.
         For non-spout nodes, this just marks the node as ready to receive data.
         """
+        self._running = True
+        self._stop_requested = False
         
-        if self.is_spout:
+        if self.transformation.transformation_type == TransformationType.SOURCE:
             # Start spout execution asynchronously
-            self.start_spout()
+            try:
+                while self._running and not self._stop_requested:
+                    # For spout nodes, call operator.receive with dummy channel and data
+                    self.operator.receive(0, None)
+                    time.sleep(0.1)  # Small delay to prevent overwhelming
+                    
+            except Exception as e:
+                self.logger.error(f"Error in spout node {self.name}: {e}", exc_info=True)
+                raise
+            finally:
+                self._running = False
+                self.logger.info(f"Spout execution stopped for node {self.name}")
         else:
             # For non-spout nodes, just mark as running
-            self._running = True
-            self._stop_requested = False
+
             self.logger.info(f"Ray node {self.name} started and ready to receive data")
 
     def stop(self):

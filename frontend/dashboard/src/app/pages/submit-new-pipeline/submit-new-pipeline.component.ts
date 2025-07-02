@@ -8,6 +8,6 @@ import { Component } from '@angular/core';
   styleUrls: ['./submit-new-pipeline.component.scss']
 })
 export class SubmitNewPipelineComponent {
-  // 这个组件本身可以不需要太多逻辑，主要作为 Palette 和 StreamingExecutionEnvironment Canvas 的容器
+  // 这个组件本身可以不需要太多逻辑，主要作为 Palette 和 Environment Canvas 的容器
   constructor() { }
 }
