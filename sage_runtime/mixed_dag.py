@@ -1,9 +1,12 @@
 from typing import Dict, List, Any, Tuple, Union
 from ray.actor import ActorHandle
+
+from sage_runtime import LocalRuntime, RayRuntime
+from sage_runtime.local.local_dag_node import LocalDAGNode
+from sage_runtime.ray.ray_dag_node import RayDAGNode
 from sage_utils.custom_logger import CustomLogger
 from sage.core.compiler import Compiler, GraphNode
-from sage.core.runtime.ray.ray_dag_node import RayDAGNode
-from sage.core.runtime.local.local_dag_node import LocalDAGNode
+
 
 
 class MixedDAG:
@@ -197,8 +200,7 @@ class MixedDAG:
         
         try:
             # 获取运行时实例
-            from sage.core.runtime.local.local_runtime import LocalRuntime
-            from sage.core.runtime.ray.ray_runtime import RayRuntime
+
             
             local_runtime = LocalRuntime.get_instance()
             ray_runtime = RayRuntime.get_instance()

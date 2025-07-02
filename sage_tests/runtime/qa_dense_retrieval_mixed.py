@@ -1,11 +1,11 @@
 import logging
 import time
 from sage.api.env import Environment
-from sage_lib import QAPromptor
-from sage_lib.function.generator import OpenAIGenerator
-from sage_lib.function.retriever import DenseRetriever
-from sage_lib.io.source import FileSource
-from sage_lib.io.sink import TerminalSink
+from sage_common_funs import QAPromptor
+from sage_common_funs.function.generator import OpenAIGenerator
+from sage_common_funs.function.retriever import DenseRetriever
+from sage_common_funs.io.source import FileSource
+from sage_common_funs.io.sink import TerminalSink
 from neuromem.memory_manager import MemoryManager
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging

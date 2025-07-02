@@ -1,6 +1,6 @@
 from sage.core.runtime import BaseRuntime
 from sage.core.runtime.local.local_scheduling_strategy import ResourceAwareStrategy
-# from sage.core.runtime.local.local_task import StreamingTask,BaseTask
+# from sage.core.sage_runtime.local.local_task import StreamingTask,BaseTask
 from sage.core.runtime.local.local_slot import Slot
 from sage.core.runtime.local.local_dag_node import LocalDAGNode
 from sage_utils.custom_logger import CustomLogger

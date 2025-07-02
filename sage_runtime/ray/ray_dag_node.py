@@ -197,5 +197,5 @@ class RayDAGNode:
         Custom deserialization to restore state.
         """
         self.__dict__.update(state)
-        # Mark as not initialized so runtime objects will be created when needed
+        # Mark as not initialized so sage_runtime objects will be created when needed
         self._initialized = False

@@ -6,11 +6,11 @@ import logging
 import time
 from typing import TYPE_CHECKING
 from sage.api.env import Environment
-from sage_lib_functions.io.sink import FileSink
-from sage_lib_functions.io.source import FileSource
-from sage_lib_functions.rag.generator import OpenAIGenerator
-from sage_lib_functions.rag.promptor import QAPromptor
-from sage_lib_functions.rag.refiner import AbstractiveRecompRefiner
+from sage_common_funs.io.sink import FileSink
+from sage_common_funs.io.source import FileSource
+from sage_common_funs.rag.generator import OpenAIGenerator
+from sage_common_funs.rag.promptor import QAPromptor
+from sage_common_funs.rag.refiner import AbstractiveRecompRefiner
 
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging

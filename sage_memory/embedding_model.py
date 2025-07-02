@@ -1,4 +1,3 @@
-import asyncio
 import os
 import sys
 
@@ -6,15 +5,13 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../..")))
 
 import time
-from dataclasses import dataclass
 
-import numpy as np
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from sage.core.model.embedding_model.embedding_methods import hf, ollama, jina, zhipu, nvidia_openai, bedrock, _cohere, openai, \
-    siliconcloud, lollms  # , instructor
+from sage_memory.embedding_methods import hf, ollama, jina, siliconcloud, lollms  # , instructor
+from sage_memory.embedding_methods import openai, bedrock, nvidia_openai, zhipu, _cohere
 from transformers import AutoModel, AutoTokenizer
 
 

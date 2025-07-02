@@ -4,8 +4,9 @@ from typing import Any, List, Dict
 from sage.core.io.emit_context import DownstreamTarget, NodeType
 from sage.core.io.emit_context import BaseEmitContext
 from sage.api.tuple import Data
+from sage_runtime.local.local_dag_node import LocalDAGNode
 
-
+# TODO: 将Memory的API使用在这里。
 # Operator 决定事件的逻辑路由（如广播、分区、keyBy等），
 # EmitContext 仅负责将数据发送到指定的下游通道或节点。
 # 路由策略是 Operator 的语义特征，EmitContext 专注于消息投递的物理实现。
@@ -15,7 +16,7 @@ class BaseOperator(ABC):
         # 维护下游节点和路由逻辑
         self.downstream_channels: Dict[int, List[DownstreamTarget]] = {}
         self.downstream_round_robin: Dict[int, int] = {}
-        self.runtime_context; #需要在compiler里面实例化。
+        self.runtime_context #需要在compiler里面实例化。
 
     def insert_emit_context(self, emit_context: BaseEmitContext):
         """
@@ -117,7 +118,7 @@ class BaseOperator(ABC):
             node_name: 下游节点名称
         """
         from ray.actor import ActorHandle
-        from sage.core.runtime.local.local_dag_node import LocalDAGNode
+
         # Debug log
         self.logger.debug(
             f"Adding downstream: output_channel={output_channel}, "

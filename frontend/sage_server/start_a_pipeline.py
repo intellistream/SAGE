@@ -4,7 +4,7 @@
 # 导入 Sage 中的 Environment 和相关组件
 import logging
 from sage.api.env import Environment
-from sage_lib.function.retriever import SimpleRetriever
+from sage_common_funs.function.retriever import SimpleRetriever
 
 
 async def init_memory_and_pipeline(job_id=None,  config=None, operators=None):
