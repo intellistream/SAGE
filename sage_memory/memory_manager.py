@@ -5,10 +5,12 @@ import os
 import json
 from typing import Any, Dict, List, Optional, Union
 from sage.core.runtime.collection_wrapper import CollectionWrapper
-from neuromem.memory_collection.vdb_collection import VDBMemoryCollection
-from neuromem.memory_collection.kv_collection import KVMemoryCollection
-from neuromem.memory_collection.graph_collection import GraphMemoryCollection
 from sage.utils.custom_logger import CustomLogger
+from sage_memory.memory_collection.base_collection import get_default_data_dir
+from sage_memory.memory_collection.graph_collection import GraphMemoryCollection
+from sage_memory.memory_collection.kv_collection import KVMemoryCollection
+from sage_memory.memory_collection.vdb_collection import VDBMemoryCollection
+
 
 class MemoryManager:
     """
@@ -28,7 +30,6 @@ class MemoryManager:
         # 统一使用 collections 名称存储包装后的集合
         if data_dir is None:
             # SAGE目录下 data/sage_memory
-            from neuromem.memory_collection.base_collection import get_default_data_dir
             self.data_dir = get_default_data_dir()
         else:
             self.data_dir = data_dir

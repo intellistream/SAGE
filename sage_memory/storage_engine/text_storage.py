@@ -2,8 +2,10 @@
 # python -m sage.core.sage_memory.storage_engine.text_storage
 
 from typing import Optional, List
-from neuromem.storage_engine.kv_backend.dict_kv_backend import DictKVBackend
-from neuromem.storage_engine.kv_backend.base_kv_backend import BaseKVBackend
+
+from sage_memory.storage_engine.kv_backend.base_kv_backend import BaseKVBackend
+from sage_memory.storage_engine.kv_backend.dict_kv_backend import DictKVBackend
+
 
 class TextStorage:
     """

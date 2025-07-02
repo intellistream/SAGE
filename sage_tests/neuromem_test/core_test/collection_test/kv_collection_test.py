@@ -1,5 +1,5 @@
-# file sage/tests/neuromem_test/core_test/collection_test/kv_collection_test.py
-# python -m sage.tests.neuromem_test.core_test.collection_test.kv_collection_test
+# file sage/sage_tests/neuromem_test/core_test/collection_test/kv_collection_test.py
+# python -m sage.sage_tests.neuromem_test.core_test.collection_test.kv_collection_test
 
 import pytest
 from neuromem.memory_collection.kv_collection import KVMemoryCollection

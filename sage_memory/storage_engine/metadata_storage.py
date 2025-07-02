@@ -2,8 +2,10 @@
 # python -m sage.core.sage_memory.storage_engine.metadata_storage
 
 from typing import Dict, Any, Optional, List
-from neuromem.storage_engine.kv_backend.base_kv_backend import BaseKVBackend
-from neuromem.storage_engine.kv_backend.dict_kv_backend import DictKVBackend
+
+from sage_memory.storage_engine.kv_backend.base_kv_backend import BaseKVBackend
+from sage_memory.storage_engine.kv_backend.dict_kv_backend import DictKVBackend
+
 
 class MetadataStorage:
     """

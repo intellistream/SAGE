@@ -1,5 +1,5 @@
-# file sage/tests/neuromem_test/core_test/manager_test.py
-# python -m sage.tests.neuromem_test.core_test.manager_test
+# file sage/sage_tests/neuromem_test/core_test/manager_test.py
+# python -m sage.sage_tests.neuromem_test.core_test.manager_test
 
 def vdbtest(do_reload=True, do_delete=True):
     from neuromem.memory_manager import MemoryManager

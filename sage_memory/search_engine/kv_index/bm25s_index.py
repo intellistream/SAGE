@@ -6,7 +6,9 @@ import bm25s
 import shutil
 import Stemmer
 from typing import List, Optional, Dict, Any
-from neuromem.search_engine.kv_index.base_kv_index import BaseKVIndex
+
+from sage_memory.search_engine.kv_index.base_kv_index import BaseKVIndex
+
 
 class BM25sIndex(BaseKVIndex):
     def __init__(

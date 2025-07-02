@@ -8,9 +8,10 @@ import shutil
 import inspect
 import numpy as np
 from typing import Optional, Dict, Any, List, Callable
-from neuromem.storage_engine.vector_storage import VectorStorage
-from neuromem.memory_collection.base_collection import BaseMemoryCollection, get_default_data_dir
 from sage.utils.custom_logger import CustomLogger
+from sage_memory.memory_collection.base_collection import get_default_data_dir, BaseMemoryCollection
+from sage_memory.search_engine.vdb_index.faiss_index import FaissIndex
+from sage_memory.storage_engine.vector_storage import VectorStorage
 
 
 def get_func_source(func):
@@ -131,7 +132,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
             idx_type = idx_info["index_type"]
             idx_path = os.path.join(indexes_dir, index_name)
             if idx_type == "FaissIndex":
-                from neuromem.search_engine.vdb_index.faiss_index import FaissIndex
+
                 idx = FaissIndex.load(index_name, idx_path)
             else:
                 raise NotImplementedError(f"Unknown index_type {idx_type}")
@@ -177,7 +178,6 @@ class VDBMemoryCollection(BaseMemoryCollection):
             backend_type = self.default_index_type
             
         if backend_type == "FAISS":
-            from neuromem.search_engine.vdb_index.faiss_index import FaissIndex
 
             all_ids = self.get_all_ids()
             filtered_ids = self.filter_ids(all_ids, metadata_filter_func, **metadata_conditions)
