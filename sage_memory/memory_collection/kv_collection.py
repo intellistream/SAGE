@@ -7,8 +7,12 @@ import yaml
 import shutil
 import inspect
 import warnings
-from neuromem.memory_collection.base_collection import BaseMemoryCollection, get_default_data_dir
+
 from typing import Optional, Dict, Any, List, Callable
+
+from sage_memory.memory_collection.base_collection import BaseMemoryCollection, get_default_data_dir
+from sage_memory.search_engine.kv_index.bm25s_index import BM25sIndex
+
 
 # 通过config文件指定默认索引，neuromem默认索引，用户指定索引
 
@@ -122,7 +126,6 @@ class KVMemoryCollection(BaseMemoryCollection):
             idx_type = idx_info["index_type"]
             idx_path = os.path.join(load_path, idx_type, index_name)
             if idx_type == "bm25s":
-                from neuromem.search_engine.kv_index.bm25s_index import BM25sIndex
                 idx = BM25sIndex.load(index_name, idx_path)
             else:
                 raise NotImplementedError(f"Index type {idx_type} not supported")
@@ -240,7 +243,6 @@ class KVMemoryCollection(BaseMemoryCollection):
         texts = [self.text_storage.get(i) for i in filtered_ids]
             
         if index_type == "bm25s":
-            from neuromem.search_engine.kv_index.bm25s_index import BM25sIndex
             index = BM25sIndex(index_name, texts=texts, ids=filtered_ids)
             
         self.indexes[index_name] = {

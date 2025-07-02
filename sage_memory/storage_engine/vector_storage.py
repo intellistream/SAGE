@@ -4,8 +4,10 @@
 import json
 import numpy as np
 from typing import Any, Optional, List
-from neuromem.storage_engine.kv_backend.base_kv_backend import BaseKVBackend
-from neuromem.storage_engine.kv_backend.dict_kv_backend import DictKVBackend
+
+from sage_memory.storage_engine.kv_backend.base_kv_backend import BaseKVBackend
+from sage_memory.storage_engine.kv_backend.dict_kv_backend import DictKVBackend
+
 
 class VectorStorage:
     """

@@ -1,5 +1,5 @@
-# file sage/tests/neuromem_test/core_test/collection_test/vdb_collection_test.py
-# python -m sage.tests.neuromem_test.core_test.collection_test.vdb_collection_test
+# file sage/sage_tests/neuromem_test/core_test/collection_test/vdb_collection_test.py
+# python -m sage.sage_tests.neuromem_test.core_test.collection_test.vdb_collection_test
 
 
 if __name__ == "__main__":

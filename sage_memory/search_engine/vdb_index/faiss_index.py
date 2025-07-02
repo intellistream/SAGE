@@ -6,8 +6,9 @@ import faiss
 import pickle
 import numpy as np
 from typing import Optional, List, Dict, Any
-from neuromem.search_engine.vdb_index.base_vdb_index import BaseVDBIndex
 from sage.utils.custom_logger import CustomLogger
+from sage_memory.search_engine.vdb_index.base_vdb_index import BaseVDBIndex
+
 
 class FaissIndex(BaseVDBIndex):
     def __init__(
