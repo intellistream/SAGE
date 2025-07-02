@@ -1,7 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 
 @Component({
-  selector: 'app-root',
+  selector: 'sage_examples-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.less']
 })

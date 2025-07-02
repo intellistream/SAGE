@@ -1,4 +1,4 @@
-// src/app/pipeline/operator-palette/operator-palette.service.ts
+// src/sage_examples/pipeline/operator-palette/operator-palette.service.ts
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';

@@ -167,7 +167,7 @@ If your pipeline is meant to run as a long-lived service, use:
    pipeline.submit(config{"is_long_running":True})
 ```
 
-See more examples under [app](./app)
+See more examples under [app](sage_examples)
 
 ## 🧩 Components
 ### Operator

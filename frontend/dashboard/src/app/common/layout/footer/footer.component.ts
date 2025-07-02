@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'app-footer',
+  selector: 'sage_examples-footer',
   templateUrl: './footer.component.html',
   styleUrls: ['./footer.component.css']
 })

@@ -5,7 +5,7 @@ import {Job} from "../../model/Job";
 import { NzGraphData, NzGraphDataDef, NzGraphComponent } from 'ng-zorro-antd/graph';
 
 @Component({
-  selector: 'app-home',
+  selector: 'sage_examples-home',
   templateUrl: './overview.component.html',
   styleUrls: ['./overview.component.less']
 })
@@ -18,10 +18,10 @@ export class OverviewComponent implements OnInit, OnDestroy {
   pageSize = 10;            // Number of jobs per page
   currentPageJob: Job[] = [];
   private graphDataCache: Map<string, NzGraphData> = new Map();
-  
+
   operatorGraphDataMap: Map<string, NzGraphDataDef> = new Map();
   nzOperatorGraphDataMap: Map<string, NzGraphData> = new Map();
-  
+
   // 添加默认的图表数据属性
   nzOperatorGraphData: NzGraphData = new NzGraphData({ nodes: [], edges: [] });
 
@@ -106,7 +106,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
     this.jobs.forEach(job => {
       if (job && job.jobId) {
         const operatorGraphData: NzGraphDataDef = { nodes: [], edges: [] };
-        
+
         if (job.operators && job.operators.length > 0) {
           // 添加操作符节点
           for (let i = 0; i < job.operators.length; i++) {
@@ -115,7 +115,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
               label: job.operators[i].name,
               instance: job.operators[i].numOfInstances
             });
-            
+
             // 添加边（连接相邻操作符）
               if(i>0) {
                 let downstream = job.operators[i-1].downstream;
@@ -134,7 +134,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
             instance: 1
           });
         }
-        
+
         // 存储图表数据
         this.operatorGraphDataMap.set(job.jobId, operatorGraphData);
         this.nzOperatorGraphDataMap.set(job.jobId, new NzGraphData(operatorGraphData));
@@ -149,7 +149,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
     if (!job || !job.jobId) {
       return this.createDefaultGraphData('No Job Data');
     }
-    
+
     // 从预处理的数据中获取
     const cachedData = this.nzOperatorGraphDataMap.get(job.jobId);
     if (cachedData) {
@@ -160,7 +160,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
     try {
       alert("111111");
       const graphDataDef: NzGraphDataDef = { nodes: [], edges: [] };
-      
+
       if (job.operators && Array.isArray(job.operators) && job.operators.length > 0) {
         // 添加操作符节点
         job.operators.forEach((operator, index) => {
@@ -168,11 +168,11 @@ export class OverviewComponent implements OnInit, OnDestroy {
             graphDataDef.nodes.push({
               id: operator.id ,
               label: operator.name ,
-              instance: operator.numOfInstances 
+              instance: operator.numOfInstances
             });
           }
         });
-        
+
         // 添加边
         for (let i = 0; i < job.operators.length-1; i++) {
           let downstream = job.operators[i].downstream;
@@ -191,11 +191,11 @@ export class OverviewComponent implements OnInit, OnDestroy {
           instance: 1
         });
       }
-      
+
       const graphData = new NzGraphData(graphDataDef);
       this.nzOperatorGraphDataMap.set(job.jobId, graphData);
       return graphData;
-      
+
     } catch (error) {
       console.error('Error creating graph data for job:', job.name, error);
       return this.createDefaultGraphData(job.name || 'Error Job');
@@ -214,7 +214,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
     };
     return new NzGraphData(graphDataDef);
   }
-  
+
   /**
    * 优化面板变化处理
    */

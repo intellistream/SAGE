@@ -1,9 +1,9 @@
-// src/app/submit-new-pipeline/submit-new-pipeline.component.ts
+// src/sage_examples/submit-new-pipeline/submit-new-pipeline.component.ts
 
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'app-submit-new-pipeline',
+  selector: 'sage_examples-submit-new-pipeline',
   templateUrl: './submit-new-pipeline.component.html',
   styleUrls: ['./submit-new-pipeline.component.scss']
 })
