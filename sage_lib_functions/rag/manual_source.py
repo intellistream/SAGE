@@ -1,8 +1,7 @@
 from sage.api.base_function import BaseFunction
 from sage.api.tuple import Data
-from typing import Tuple, Any
+from typing import Any
 
-from sage.utils.data_loader import resolve_data_path
 from sage.core.io.message_queue import MessageQueue
 
 class ManualSource(BaseFunction):

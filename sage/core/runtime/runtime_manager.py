@@ -1,10 +1,9 @@
-import logging
 import threading
-from typing import Dict, Any, Union
+from typing import Dict, Any
 from sage.core.runtime.base_runtime import BaseRuntime
 from sage.core.runtime.ray.ray_runtime import RayRuntime
 from sage.core.runtime.local.local_runtime import LocalRuntime
-from sage.utils.custom_logger import CustomLogger
+from sage_utils.custom_logger import CustomLogger
 
 class RuntimeManager:
     """

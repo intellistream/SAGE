@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from sage.utils.custom_logger import CustomLogger
 
 
 class BaseFunction(ABC):

@@ -1,8 +1,8 @@
 import logging
 from sage.api.env import Environment
 from sage.api.model.model_api import apply_embedding_model
-from sage.utils.config_loader import load_config
-from sage.utils.logging_utils import configure_logging
+from sage_utils.config_loader import load_config
+from sage_utils.logging_utils import configure_logging
 from sage_lib.function.generator import OpenAIGenerator
 from sage_lib.function.promptor import QAPromptor
 from sage_lib.function.retriever import DenseRetriever

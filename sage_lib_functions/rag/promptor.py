@@ -1,9 +1,7 @@
-from typing import Any, List, Tuple
 from jinja2 import Template
 from sage.api.base_function import BaseFunction
 from sage.api.tuple import Data
-import logging
-from sage.utils.custom_logger import CustomLogger
+from sage_utils.custom_logger import CustomLogger
 
 QA_prompt_template='''Instruction:
 You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.

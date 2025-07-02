@@ -10,7 +10,7 @@ from sage_lib.io.sink import MemWriteSink,FileSink
 from sage_memory.memory_manager import MemoryManager
 from sage_memory.embeddingmodel import MockTextEmbedder
 
-from sage.utils.config_loader import load_config
+from sage_utils.config_loader import load_config
 
 
 def memory_init():
