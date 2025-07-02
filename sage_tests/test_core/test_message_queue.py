@@ -3,8 +3,7 @@ import threading
 import random
 import time
 import queue
-import sys
-from sage.core.io.local_message_queue import LocalMessageQueue
+from sage_runtime.io import LocalMessageQueue
 
 
 class TestMessageQueue(unittest.TestCase):

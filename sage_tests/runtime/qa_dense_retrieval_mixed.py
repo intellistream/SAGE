@@ -9,7 +9,9 @@ from sage_common_funs.io.sink import TerminalSink
 from neuromem.memory_manager import MemoryManager
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging
-from sage.api.model.model_api import apply_embedding_model
+from sage_memory.embedding_methods.embedding_api import apply_embedding_model
+
+
 def memory_init():
     """初始化内存管理器并创建测试集合"""
     manager = MemoryManager()

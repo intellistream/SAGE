@@ -23,6 +23,7 @@ class MapOperator(BaseOperator):
         )
 
 
+
     # def execute(self, *args, **kwargs):
     #     """
     #     Override this method with actual operator logic in subclasses.

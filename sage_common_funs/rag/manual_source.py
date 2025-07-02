@@ -2,8 +2,7 @@ from sage.api.base_function import BaseFunction
 from sage.api.tuple import Data
 from typing import Any
 
-from sage.core.io.local_message_queue import LocalMessageQueue
-
+from sage_runtime.io.local_message_queue import LocalMessageQueue
 class ManualSource(BaseFunction):
     """
     A source rag that reads a file line by line and returns each line as a string.

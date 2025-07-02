@@ -1,5 +1,5 @@
 from calendar import c
-from sage.api.model import apply_generator_model
+from sage_common_funs.utils.generator_model import apply_generator_model
 from sage.api.base_function import BaseFunction
 
 from typing import Any,Tuple

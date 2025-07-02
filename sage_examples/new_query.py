@@ -1,31 +1,28 @@
 import logging
-import time
 
-from sage.api.env import Environment
+from sage.api.env import LocalEnvironment
 from sage_common_funs.io.sink import TerminalSink
 from sage_common_funs.rag.generator import OpenAIGenerator
-from sage_common_funs.rag.manual_source import ManualSource
 from sage_common_funs.rag.promptor import QAPromptor
 from sage_common_funs.rag.retriever import DenseRetriever
 from sage_utils.config_loader import load_config
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.logging_utils import configure_logging
 
+
 def pipeline_run():
     """创建并运行数据处理管道"""
-
-    env = Environment(name="example_pipeline")
+    env = LocalEnvironment()
     env.set_memory()
     # 构建数据处理流程
-    manual_source = ManualSource(config["source"])
-    query_stream = env.from_source(manual_source)
-    query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])
+    manual_source = env.create_source()
+    query_and_chunks_stream = manual_source.map(DenseRetriever, config["retriever"])
     prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
     response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
     response_stream.sink(TerminalSink, config["sink"])
+
     # 提交管道并运行
-    env.execute()
-    time.sleep(10) # 等待管道启动
+    env.execute(name="example_pipeline")
     while(True):
         user_input = input("\n>>> ").strip()
         if user_input.lower() == "exit":

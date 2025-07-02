@@ -1,8 +1,7 @@
-from sage.core.runtime import BaseRuntime
-from sage.core.runtime.local.local_scheduling_strategy import ResourceAwareStrategy
-# from sage.core.sage_runtime.local.local_task import StreamingTask,BaseTask
-from sage.core.runtime.local.local_slot import Slot
-from sage.core.runtime.local.local_dag_node import LocalDAGNode
+from sage_runtime import BaseRuntime
+from sage_runtime.local import Slot
+from sage_runtime.local.local_dag_node import LocalDAGNode
+from sage_runtime.local.local_scheduling_strategy import ResourceAwareStrategy
 from sage_utils.custom_logger import CustomLogger
 import threading
 import socket
@@ -31,9 +30,6 @@ class LocalRuntime(BaseRuntime):
         self.node_to_handle: Dict[LocalDAGNode, str] = {}  # 节点到handle的映射
         self.handle_to_node: Dict[str, LocalDAGNode] = {}  # handle到节点的映射
         self.next_handle_id = 0
-
-
-
         self.logger = CustomLogger(
             object_name=f"LocalRuntime",
             log_level="DEBUG",

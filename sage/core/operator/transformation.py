@@ -9,19 +9,12 @@ from sage.core.operator.base_operator import BaseOperator
 from sage.core.operator.map_operator import MapOperator
 from sage_utils.custom_logger import CustomLogger
 
-# if TYPE_CHECKING:
-#     from sage.core.operator_factory.operator.base_operator_factory import BaseOperatorFactory
-#     from sage.core.operator import BaseOperator
-#     from sage.core.rag import BaseFunction
-
 class TransformationType(Enum):
     MAP = "map"
     FILTER = "filter"
     FLATMAP = "flatmap"
     SINK = "sink"
     SOURCE = "source"
-
-
 
 class Transformation:
     TO_OPERATOR = {

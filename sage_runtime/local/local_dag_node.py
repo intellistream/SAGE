@@ -2,12 +2,9 @@ from __future__ import annotations
 import threading
 import time
 from typing import Any, Union, Tuple
-
-
-#from sage.archive.operator_wrapper import OperatorWrapper
-from sage.core.io.local_message_queue import LocalMessageQueue
-from sage.core.io.local_emit_context import LocalEmitContext
 from sage.core.operator.transformation import Transformation, TransformationType
+from sage_runtime.io.local_emit_context import LocalEmitContext
+from sage_runtime.io.local_message_queue import LocalMessageQueue
 from sage_utils.custom_logger import CustomLogger
 from ray.actor import ActorHandle
 
@@ -36,15 +33,11 @@ class LocalDAGNode:
         self.transformation = transformation
         self.operator = transformation.build_instance()
         self.operator.insert_emit_context(LocalEmitContext())
-
-
         self.is_spout = transformation.transformation_type == TransformationType.SOURCE  # Check if this is a spout node 正确
-        
         self.input_buffer = LocalMessageQueue()  # Local input buffer for this node
 
         # Initialize stop event
         self.stop_event = threading.Event()
-
         self._current_channel_index = 0
         self._initialized = False
 

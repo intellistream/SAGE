@@ -1,8 +1,8 @@
 # from sage.core.compiler.query_compiler import QueryCompiler
-from sage.core.runtime.runtime_manager import RuntimeManager
+from sage.api.env import BaseEnvironment
+from sage_runtime.mixed_dag import MixedDAG
+from sage_runtime.runtime_manager import RuntimeManager
 from sage_utils.custom_logger import CustomLogger
-from sage.core.runtime.mixed_dag import MixedDAG
-from sage.api.env import Environment
 import threading
 
 
@@ -49,14 +49,14 @@ class Engine:
                     cls._instance = instance
         return cls._instance
     
-    def submit_env(self, env:Environment):
+    def submit_env(self, env:BaseEnvironment):
         from sage.core.compiler import Compiler
         graph = Compiler(env)
         self.graphs[graph.name] = graph
         try:
             self.logger.info(f"Received mixed graph '{graph.name}' with {len(graph.nodes)} nodes")
             # 编译图
-            mixed_dag = MixedDAG(graph)
+            mixed_dag = MixedDAG(graph,env.config)
             self.dags[mixed_dag.name] = mixed_dag  # 存储 DAG 到字典中
             mixed_dag.run()
             self.logger.info(f"Mixed graph '{graph.name}' submitted to runtime manager.")

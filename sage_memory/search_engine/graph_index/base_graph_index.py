@@ -1,5 +1,3 @@
-# file: sage/core/sage_memory/search_engine/graph_index/base_graph_index.py
-
 from abc import ABC, abstractmethod
 from typing import Any, List
 

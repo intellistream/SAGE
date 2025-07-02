@@ -1,7 +1,8 @@
 # file sage/core/sage_memory/operator_test/structure_mem_demo/img/img_input.py
 # python -m sage.core.sage_memory.operator_test.structure_mem_demo.img.img_input
 
-from sage.api.model import apply_generator_model, apply_embedding_model
+from sage_memory.embedding_methods.embedding_api import apply_embedding_model
+from sage_common_funs.utils.generator_model import apply_generator_model
 
 food = [{"user_id": "u001", "timestamp": "2025-05-16T08:00:00", "caption": "早餐是一个煎蛋三明治和无糖豆浆，快速搞定。", "metadata": {"meal_type": "breakfast", "calorie": 342}},
 {"user_id": "u001", "timestamp": "2025-05-16T12:30:00", "caption": "今天中午简单做了青菜炒蛋配米饭。", "metadata": {"meal_type": "lunch", "calorie": 755}},

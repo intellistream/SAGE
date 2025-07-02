@@ -1,8 +1,8 @@
 
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict
-from sage.core.io.emit_context import DownstreamTarget, NodeType
-from sage.core.io.emit_context import BaseEmitContext
+from sage_runtime.io import DownstreamTarget, NodeType
+from sage_runtime.io import BaseEmitContext
 from sage.api.tuple import Data
 from sage_runtime.local.local_dag_node import LocalDAGNode
 
@@ -10,6 +10,7 @@ from sage_runtime.local.local_dag_node import LocalDAGNode
 # Operator 决定事件的逻辑路由（如广播、分区、keyBy等），
 # EmitContext 仅负责将数据发送到指定的下游通道或节点。
 # 路由策略是 Operator 的语义特征，EmitContext 专注于消息投递的物理实现。
+
 class BaseOperator(ABC):
     def __init__(self, *args, **kwargs):
         self._name = self.__class__.__name__

@@ -1,10 +1,8 @@
-# file sage/core/sage_memory/memory_manager.py
-# python -m sage.core.sage_memory.memory_manager
-
 import os
 import json
 from typing import Any, Dict, List, Optional, Union
-from sage.core.runtime.collection_wrapper import CollectionWrapper
+
+from sage_runtime.collection_wrapper import CollectionWrapper
 from sage_utils.custom_logger import CustomLogger
 from sage_memory.memory_collection.base_collection import get_default_data_dir
 from sage_memory.memory_collection.graph_collection import GraphMemoryCollection

@@ -106,7 +106,7 @@ def test_agent_with_search():
     source=FileSource(config_agent_search)
     agent=BaseAgent(config_agent_search)
     output=source.execute()
-    output=agent.execute(output)
+    output= agent.execute()
 
 # def test_load_memory():
 #     init_memory()
@@ -136,16 +136,16 @@ def test_evaluate_functions():
 
     # 分别执行
     print("\n=== F1 Evaluate ===")
-    f1_eval.execute(data)
+    f1_eval.execute()
 
     print("\n=== BERT Recall Evaluate ===")
-    bert_recall_eval.execute(data)
+    bert_recall_eval.execute()
 
     print("\n=== ROUGE-L Evaluate ===")
-    rouge_l_eval.execute(data)
+    rouge_l_eval.execute()
 
     print("\n=== BRS Evaluate ===")
-    brs_eval.execute(data)
+    brs_eval.execute()
 
 test_evaluate_functions()
 # test_load_memory()

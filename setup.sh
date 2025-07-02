@@ -227,7 +227,7 @@ function setup_with_ray() {
     minimal_setup
     echo "Installing Ray..."
     conda activate sage
-    pip install ray[default]
+    pip install remote[default]
     echo "Ray setup completed successfully."
     pause
 }

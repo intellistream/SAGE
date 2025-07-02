@@ -1,6 +1,8 @@
 from typing import List,Optional,Dict
 import logging
-from sage.core.runtime.local.local_slot import Slot
+from sage_runtime.local import Slot
+
+
 class SchedulingStrategy:
     def select_slot(self, node, slots: List[Slot]) -> Optional[Slot]:
         raise NotImplementedError
