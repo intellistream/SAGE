@@ -5,7 +5,7 @@ from sage_lib.function.generator import HFGenerator
 from sage_lib.function.retriever import DenseRetriever
 from sage_lib.function.source import FileSource
 from sage_lib.function.sink import TerminalSink
-from sage.core.neuromem.memory_manager import MemoryManager
+from neuromem.memory_manager import MemoryManager
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
 from sage.api.model.model_api import apply_embedding_model

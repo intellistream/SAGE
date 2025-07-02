@@ -5,7 +5,7 @@ from sage_lib.function.generator import OpenAIGenerator
 from sage_lib.function.retriever import BM25sRetriever
 from sage_lib.function.source import FileSource
 from sage_lib.function.sink import TerminalSink
-from sage.core.neuromem.memory_manager import MemoryManager
+from neuromem.memory_manager import MemoryManager
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
 

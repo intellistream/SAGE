@@ -1,14 +1,16 @@
 import logging
 from sage.api.env import Environment
-from sage_lib import QAPromptor
+from sage.api.model.model_api import apply_embedding_model
+from sage.utils.config_loader import load_config
+from sage.utils.logging_utils import configure_logging
 from sage_lib.function.generator import OpenAIGenerator
+from sage_lib.function.promptor import QAPromptor
 from sage_lib.function.retriever import DenseRetriever
 from sage_lib.function.source import FileSource
 from sage_lib.function.sink import TerminalSink
-from sage.core.neuromem.memory_manager import MemoryManager
-from sage.utils.config_loader import load_config
-from sage.utils.logging_utils import configure_logging
-from sage.api.model.model_api import apply_embedding_model
+from sage_memory.memory_manager import MemoryManager
+
+
 def memory_init():
     """初始化内存管理器并创建测试集合"""
     manager = MemoryManager()
