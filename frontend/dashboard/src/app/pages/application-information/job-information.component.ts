@@ -17,7 +17,7 @@ import {NzMessageService} from "ng-zorro-antd/message";
 import { v4 } from 'uuid';
 
 @Component({
-  selector: 'app-application-information',
+  selector: 'sage_examples-application-information',
   templateUrl: './job-information.component.html',
   styleUrls: ['./job-information.component.less']
 })
@@ -130,7 +130,7 @@ export class JobInformationComponent implements OnInit {
           // if (i > 0) {
           //   this.operatorGraphData.edges.push({v: this.job.operators[i - 1].id, w: this.job.operators[i].id});
           // }
-     
+
           if(i>0) {
             let downstream = this.job.operators[i-1].downstream;
             for (let j = 0 ; j < downstream.length ; ++ j){
@@ -495,27 +495,27 @@ export class JobInformationComponent implements OnInit {
       const config = jsyaml.load(configContent) as any;
       this.configStructure = config;
       this.configSections = [];
-      
+
       // 重新构建表单
       const formControls: any = {};
-      
+
       // 遍历配置对象，为每个顶级键创建配置分组
       Object.keys(config).forEach(sectionKey => {
         const sectionValue = config[sectionKey];
         const sectionFields: any[] = [];
-        
+
         if (sectionValue && typeof sectionValue === 'object' && !Array.isArray(sectionValue)) {
           // 处理对象类型的配置节
           const sectionFormGroup: any = {};
-          
+
           Object.keys(sectionValue).forEach(fieldKey => {
             const fieldValue = sectionValue[fieldKey];
             const fieldConfig = this.createFieldConfig(fieldKey, fieldValue);
-            
+
             sectionFields.push(fieldConfig);
             sectionFormGroup[fieldKey] = this.createFormControl(fieldValue, fieldConfig.type);
           });
-          
+
           formControls[sectionKey] = this.fb.group(sectionFormGroup);
         } else {
           // 处理简单类型的配置项
@@ -523,7 +523,7 @@ export class JobInformationComponent implements OnInit {
           sectionFields.push(fieldConfig);
           formControls[sectionKey] = this.createFormControl(sectionValue, fieldConfig.type);
         }
-        
+
         this.configSections.push({
           key: sectionKey,
           label: this.formatLabel(sectionKey),
@@ -531,10 +531,10 @@ export class JobInformationComponent implements OnInit {
           isObject: sectionValue && typeof sectionValue === 'object' && !Array.isArray(sectionValue)
         });
       });
-      
+
       // 重新创建表单
       this.configForm = this.fb.group(formControls);
-      
+
     } catch (e) {
       console.error('解析配置文件失败:', e);
       this.message.error('配置文件格式错误，无法解析');
@@ -582,11 +582,11 @@ export class JobInformationComponent implements OnInit {
 
   createFormControl(value: any, type: string) {
     const validators: ValidatorFn[] = [];
-    
+
     if (this.isRequiredField(type)) {
       validators.push(Validators.required);
     }
-    
+
     if (type === 'number') {
       return this.fb.control(value || 0, validators);
     } else if (type === 'boolean') {
@@ -655,9 +655,9 @@ export class JobInformationComponent implements OnInit {
 
   formToConfigContent(): string {
     const formValue = this.configForm.value;
-    
+
     const config: any = {};
-    
+
     this.configSections.forEach(section => {
       if (section.isObject) {
         config[section.key] = formValue[section.key] || {};
@@ -665,7 +665,7 @@ export class JobInformationComponent implements OnInit {
         config[section.key] = formValue[section.key];
       }
     });
-    
+
     return jsyaml.dump(config, { indent: 2 });
   }
 
@@ -695,14 +695,14 @@ export class JobInformationComponent implements OnInit {
     if (this.configForm.valid) {
       this.configContent = this.formToConfigContent();
     }
-    
+
     if (this.configError) {
       return;
     }
-    
+
     this.isSubmitting = true;
     this.configSuccess = false;
-    
+
     this.jobInformationService.updateConfigFile("1", this.configContent).subscribe(
       () => {
         this.configSuccess = true;

@@ -42,7 +42,7 @@ config = configparser.ConfigParser()
 config.read("config.ini")
 
 def get_app():
-    return globals().get("app", None)
+    return globals().get("sage_examples", None)
 
 from sage.api.model.model_api import apply_embedding_model
 from neuromem.memory_manager import MemoryManager
@@ -219,7 +219,7 @@ def create_app(args):
     )
 
 
-    # app.include_router(ollama_router, tags=["ollama"])
+    # sage_examples.include_router(ollama_router, tags=["ollama"])
     app.include_router(jobInfo_router, tags=["jobInfo"],prefix="/jobInfo")
     app.include_router(batchInfo_router, tags=["batchInfo"],prefix="/batchInfo")
     app.include_router(signal_router, tags=["signal"],prefix="/api/signal")
@@ -253,7 +253,7 @@ def create_app(args):
 
 
 
-    # @app.get("/health", dependencies=[Depends(optional_api_key)])
+    # @sage_examples.get("/health", dependencies=[Depends(optional_api_key)])
     # async def get_status():
     #     """获取当前系统状态"""
     #     return {
@@ -290,7 +290,7 @@ def configure_logging():
 
     # 从环境变量获取日志目录路径
     log_dir = os.getenv("LOG_DIR", os.getcwd())
-    log_file_path = os.path.abspath(os.path.join(log_dir, "app.log"))
+    log_file_path = os.path.abspath(os.path.join(log_dir, "sage_examples.log"))
 
     print(f"\n日志文件: {log_file_path}\n")
     os.makedirs(os.path.dirname(log_dir), exist_ok=True)
@@ -384,10 +384,10 @@ def main():
 
     # 直接创建应用程序实例，而不是使用工厂函数
     app = create_app(args)
-    globals()["app"] = app  # 将应用程序实例存储在全局变量中
+    globals()["sage_examples"] = app  # 将应用程序实例存储在全局变量中
     # 以单进程模式启动 Uvicorn
     uvicorn_config = {
-        "app": app,  # 直接传递应用程序实例，而不是字符串路径
+        "sage_examples": app,  # 直接传递应用程序实例，而不是字符串路径
         "host": args.host,
         "port": args.port,
         "log_config": None,  # 禁用默认配置

@@ -2,7 +2,7 @@ import {AfterViewInit, Component, ElementRef, Input, OnInit} from '@angular/core
 import {Job} from "../../model/Job";
 
 @Component({
-  selector: 'app-finished-statistics-board',
+  selector: 'sage_examples-finished-statistics-board',
   templateUrl: './finished-statistics-board.component.html',
   styleUrls: ['./finished-statistics-board.component.less']
 })

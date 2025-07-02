@@ -3,7 +3,7 @@ import {NzUploadFile} from "ng-zorro-antd/upload";
 import {SubmitNewJobService} from "./submit-new-job.service";
 
 @Component({
-  selector: 'app-submit-new-job',
+  selector: 'sage_examples-submit-new-job',
   templateUrl: './submit-new-job.component.html',
   styleUrls: ['./submit-new-job.component.less']
 })

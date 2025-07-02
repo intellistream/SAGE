@@ -1,7 +1,7 @@
 import {AfterViewInit, Component, ElementRef, Input, ViewChild} from '@angular/core';
 import {Job} from "../../model/Job";
 @Component({
-  selector: 'app-scroll-wrapper',
+  selector: 'sage_examples-scroll-wrapper',
   templateUrl: './scroll-wrapper.component.html',
   styleUrls: ['./scroll-wrapper.component.less']
 })

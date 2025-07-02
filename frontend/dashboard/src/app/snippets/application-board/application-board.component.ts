@@ -3,7 +3,7 @@ import {Operator} from "../../model/Operator";
 import {Job} from "../../model/Job";
 
 @Component({
-  selector: 'app-application-board',
+  selector: 'sage_examples-application-board',
   templateUrl: './application-board.component.html',
   styleUrls: ['./application-board.component.less']
 })

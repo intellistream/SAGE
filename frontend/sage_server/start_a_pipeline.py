@@ -1,4 +1,4 @@
-# python -m app.datastream_rag_pipeline
+# python -m sage_examples.datastream_rag_pipeline
 
 
 # 导入 Sage 中的 Environment 和相关组件

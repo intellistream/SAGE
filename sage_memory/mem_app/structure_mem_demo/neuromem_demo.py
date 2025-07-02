@@ -34,7 +34,7 @@ def generate_streaming_response(query):
         yield displayed
 
 custom_css = """
-#app-frame {
+#sage_examples-frame {
     width: 360px;
     height: 740px;
     margin: auto;
@@ -155,7 +155,7 @@ custom_css = """
 
 
 with gr.Blocks(css=custom_css) as demo:
-    with gr.Column(elem_id="app-frame"):
+    with gr.Column(elem_id="sage_examples-frame"):
         gr.HTML("<div class='status-bar'><span>10:34</span><span>📶100% 🔋</span></div>")
         gr.HTML("<div class='title-bar'>智能助手</div>")
 

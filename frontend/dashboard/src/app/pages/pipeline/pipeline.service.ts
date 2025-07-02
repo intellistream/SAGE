@@ -1,4 +1,4 @@
-// src/app/pipeline/pipeline.service.ts
+// src/sage_examples/pipeline/pipeline.service.ts
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
@@ -55,7 +55,7 @@ export class PipelineService {
       const currentNodes = this._nodes.getValue();
       // 找到要更新的节点
       const nodeIndex = currentNodes.findIndex(node => node.id === nodeId);
-      
+
       if (nodeIndex >= 0) {
         // 创建新的节点数组，避免直接修改原数组
         const updatedNodes = [...currentNodes];
@@ -90,7 +90,7 @@ export class PipelineService {
   updateNodeAsSource(nodeId: string, isSource: boolean) {
     const nodes = this._nodes.getValue();
     const nodeIndex = nodes.findIndex(n => n.id === nodeId);
-    
+
     if (nodeIndex >= 0) {
       const updatedNodes = [...nodes];
       updatedNodes[nodeIndex] = {
@@ -104,7 +104,7 @@ export class PipelineService {
   updateNodeAsSink(nodeId: string, isSink: boolean) {
     const nodes = this._nodes.getValue();
     const nodeIndex = nodes.findIndex(n => n.id === nodeId);
-    
+
     if (nodeIndex >= 0) {
       const updatedNodes = [...nodes];
       updatedNodes[nodeIndex] = {
@@ -205,7 +205,7 @@ export class PipelineService {
 convertToTopology(sourceNodeId: string, sinkNodeId: string, name?: string, description?: string): TopologyData {
   const nodes = this._nodes.getValue();
   const edges = this._edges.getValue();
-  
+
   // 转换节点数据
   const topologyNodes: TopologyNode[] = nodes.map(node => ({
     id: node.id,
@@ -216,7 +216,7 @@ convertToTopology(sourceNodeId: string, sinkNodeId: string, name?: string, descr
     isSink: node.id === sinkNodeId,
     config: {} // 可以添加节点配置
   }));
-  
+
   // 转换边数据
   const topologyEdges: TopologyEdge[] = edges.map(edge => ({
     id: edge.id,
@@ -224,7 +224,7 @@ convertToTopology(sourceNodeId: string, sinkNodeId: string, name?: string, descr
     target: edge.target,
     config: {} // 可以添加边配置
   }));
-  
+
   // 构建拓扑图数据
   return {
     id: uuidv4(), // 生成唯一ID
