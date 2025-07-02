@@ -1,6 +1,8 @@
 from typing import Dict, List, Optional, Any
 import ray, time, threading
-from sage.core.runtime.base_runtime import BaseRuntime
+from build.lib.sage.core.dag.ray.ray_dag import RayDAG
+
+from sage_runtime import BaseRuntime
 from sage_utils.custom_logger import CustomLogger
 from ray.actor import ActorHandle
 
@@ -447,7 +449,7 @@ class RayRuntime(BaseRuntime):
     #         self.logger.error(f"Failed to start Ray DAG {ray_dag.name}: {e}", exc_info=True)
     #         raise
     
-    # def _start_dag(self, ray_dag: RayDAG) -> List[ray.ObjectRef]:
+    # def _start_dag(self, ray_dag: RayDAG) -> List[remote.ObjectRef]:
     #     """启动DAG中的所有spout actors"""
     #     spout_actors = ray_dag.get_spout_actors()
         
@@ -506,7 +508,7 @@ class RayRuntime(BaseRuntime):
     #     # 等待所有actors停止
     #     if stop_futures:
     #         try:
-    #             ray.get(stop_futures, timeout=30)  # 30秒超时
+    #             remote.get(stop_futures, timeout=30)  # 30秒超时
     #             self.logger.debug("All actors stopped successfully")
     #         except Exception as e:
     #             self.logger.error(f"Some actors failed to stop gracefully: {e}")
@@ -519,7 +521,7 @@ class RayRuntime(BaseRuntime):
     #         # 杀死所有actors
     #         for name, actor in ray_dag.get_all_actors().items():
     #             try:
-    #                 ray.kill(actor)
+    #                 remote.kill(actor)
     #                 self.logger.debug(f"Killed actor: {name}")
     #             except Exception as e:
     #                 self.logger.warning(f"Failed to kill actor {name}: {e}")
@@ -541,7 +543,7 @@ class RayRuntime(BaseRuntime):
     #     # 检查spout actors状态
     #     completed_spouts = 0
     #     if spout_futures:
-    #         ready, not_ready = ray.wait(spout_futures, timeout=0.1)
+    #         ready, not_ready = remote.wait(spout_futures, timeout=0.1)
     #         completed_spouts = len(ready)
         
     #     # 检查actor健康状态
@@ -575,9 +577,9 @@ class RayRuntime(BaseRuntime):
     #     for name, actor in ray_dag.get_all_actors().items():
     #         try:
     #             # 非阻塞健康检查
-    #             ready, not_ready = ray.wait([actor.is_running.remote()], timeout=0.1)
+    #             ready, not_ready = remote.wait([actor.is_running.remote()], timeout=0.1)
     #             if ready:
-    #                 is_running = ray.get(ready[0])
+    #                 is_running = remote.get(ready[0])
     #                 actor_health[name] = "running" if is_running else "stopped"
     #             else:
     #                 actor_health[name] = "busy"  # Actor正在处理其他请求

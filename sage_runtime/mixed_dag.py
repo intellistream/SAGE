@@ -10,7 +10,7 @@ from sage.core.compiler import Compiler, GraphNode
 
 
 class MixedDAG:
-    def __init__(self, graph: Compiler):
+    def __init__(self, graph: Compiler, config):
         self.name:str = graph.name
         self.graph:Compiler = graph
         self.operators: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
@@ -27,15 +27,15 @@ class MixedDAG:
         self.node_dependencies: Dict[str, List[str]] = {}  # node_name -> [upstream_node_names]
         self.spout_nodes: List[str] = []
         self.is_running: bool = False
-        self._compile_graph()
+        self._compile_graph(config)
     
-    def _compile_graph(self):
+    def _compile_graph(self, config):
         """编译图结构，创建节点并建立连接"""
         self.logger.info(f"Compiling mixed DAG for graph: {self.name}")
         
         # 第一步：创建所有节点实例
         for node_name, graph_node in self.graph.nodes.items():
-            node_instance = self.create_node_instance(graph_node)
+            node_instance = self.create_node_instance(graph_node,config)
             # upstream_nodes = self.compiler.get_upstream_nodes(node_name)
             self.operators[node_name] = node_instance
             self.logger.debug(f"Added node '{node_name}' of type '{node_instance.__class__.__name__}'")
@@ -100,7 +100,7 @@ class MixedDAG:
                     self.logger.error(f"Error setting up connection {node_name} -> {downstream_node_name}: {e}")
                     raise        
 
-    def create_node_instance(self, graph_node: GraphNode) -> Union[ActorHandle, LocalDAGNode]:
+    def create_node_instance(self, graph_node: GraphNode, config) -> Union[ActorHandle, LocalDAGNode]:
         """
         根据图节点创建对应的执行实例
         
@@ -112,12 +112,13 @@ class MixedDAG:
         """
         transformation = graph_node.transformation
         platform = graph_node.env.config.get("platform", "local")  # 默认使用本地平台
-        
-        if platform == "ray":
+        col=graph_node.env.config.get("writer").get("ltm_collection")
+        if platform == "remote":
             node = RayDAGNode.remote(
                 name=graph_node.name,
                 transformation=transformation,
-                session_folder=self.session_folder
+                session_folder=self.session_folder,
+                col=col
             )
             self.logger.debug(f"Created Ray actor node: {graph_node.name}")
             return node
@@ -126,6 +127,7 @@ class MixedDAG:
             node = LocalDAGNode(
                 name=graph_node.name,
                 transformation=transformation,
+                col=col
             )
             self.logger.debug(f"Created local node: {graph_node.name}")
             return node
@@ -143,7 +145,7 @@ class MixedDAG:
             平台类型字符串
         """
         if isinstance(executor, ActorHandle):
-            return "ray"
+            return "remote"
         elif hasattr(executor, 'remote'):
             return "ray_function" 
         elif isinstance(executor, LocalDAGNode):

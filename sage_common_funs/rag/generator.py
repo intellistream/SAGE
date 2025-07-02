@@ -1,5 +1,5 @@
 from typing import Tuple
-from sage.api.model import apply_generator_model
+from sage_common_funs.utils.generator_model import apply_generator_model
 from sage.api.base_function import BaseFunction
 from sage.api.tuple import Data
 from sage_utils.custom_logger import CustomLogger

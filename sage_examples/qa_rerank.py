@@ -1,5 +1,6 @@
 import logging
-from sage.api.env import Environment
+
+from sage.api.env import LocalEnvironment
 from sage_common_funs.rag.generator import OpenAIGenerator
 from sage_common_funs.rag.promptor import QAPromptor
 from sage_common_funs.rag.retriever import DenseRetriever
@@ -10,8 +11,9 @@ from sage_common_funs.io.sink import TerminalSink
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    env = Environment(name="example_pipeline")
+    env = LocalEnvironment()
     env.set_memory()
+    env.setFaultTolerance()
     # 构建数据处理流程
     query_stream = env.from_source(FileSource, config["source"])
     query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])

@@ -28,12 +28,12 @@ def test_arxiv():
     query = Data(query)
     # Step 1: Download PDFs
     print("Downloading PDFs...")
-    pdfs = downloader.execute(query)
+    pdfs = downloader.execute()
     assert isinstance(pdfs.data, List) and len(pdfs.data) > 0, "No PDFs downloaded."
 
     # Step 2: Parse PDFs
     print("Parsing PDFs...")
-    parsed_data = parser.execute(pdfs)
+    parsed_data = parser.execute()
     assert isinstance(parsed_data.data, List) and len(parsed_data.data) > 0, "No data parsed from PDFs."
 
     print("Test completed successfully.")

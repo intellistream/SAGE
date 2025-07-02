@@ -1,6 +1,6 @@
 from typing import Any
 from ray.actor import ActorHandle
-from sage.core.io.emit_context import BaseEmitContext, DownstreamTarget
+from sage_runtime.io.emit_context import BaseEmitContext, DownstreamTarget
 
 
 class LocalEmitContext(BaseEmitContext):

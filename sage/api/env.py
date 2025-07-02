@@ -1,60 +1,31 @@
 from __future__ import annotations
-from typing import Type, TYPE_CHECKING, Union, Any, TYPE_CHECKING, List
-import pip
-from sage.api.datastream import DataStream
+
+import time
+from typing import Type, Union, Any, List
 from sage.api.base_function import BaseFunction
-from sage.core.operator.base_operator import BaseOperator
+from sage.api.datastream import DataStream
 from sage.core.operator.transformation import TransformationType, Transformation
-from sage_examples.external_memory_ingestion_pipeline import config
 from sage_memory.embeddingmodel import MockTextEmbedder
 from sage_memory.memory_manager import MemoryManager
 
 
-# from sage.core.compiler.sage_graph import SageGraph
+class BaseEnvironment:
 
-class Environment:
-
-    @classmethod
-    def local_env(cls, name:str = "local_environment", config: dict | None = None) -> Environment:
-        config = config or {}
-        config["platform"] = "local"
-        instance = object.__new__(cls)
-        instance.name = name
-        instance.config = config
-        instance._pipeline = [] # List[Transformation]
-        return instance
-
-    @classmethod
-    def remote_env(cls, name:str = "remote_environment", config: dict | None = None) -> Environment:
-        config = config or {}
-        config["platform"] = "ray"
-        instance = object.__new__(cls)
-        instance.name = name
-        instance.config = config
-        instance._pipeline = [] # List[Transformation]
-        return instance
-    
-    @classmethod
-    def dev_env(cls, name:str = "remote_environment", config: dict | None = None) -> Environment:
-        config = config or {}
-        config["platform"] = "hybrid"
-        instance = object.__new__(cls)
-        instance.name = name
-        instance.config = config
-        instance._pipeline = [] # List[Transformation]
-        return instance
-
-    def __init__(self,name:str = "default_environment", config: dict = {}):
-        raise RuntimeError(
-            "🚫 Direct instantiation of StreamingExecutionEnvironment is not allowed.\n"
-            "✅ Please use one of the following:\n"
-            " - StreamingExecutionEnvironment.createLocalEnvironment()\n"
-            " - StreamingExecutionEnvironment.createRemoteEnvironment()\n"
-            " - StreamingExecutionEnvironment.createTestEnvironment()\n"
-        )
-        # self.name = name
-        # self.config = config
-        # self._pipeline: List[Transformation] = []   # Transformation DAG
+    def __init__(
+        self,
+        job_name: str,
+        config: dict | None,
+        *,
+        platform: str,
+        use_ray: bool,
+    ):
+        self.job_name = job_name
+        self.config: dict = dict(config or {})
+        self.config["platform"] = platform
+        self.use_ray = use_ray
+        # 用于收集所有 Transformation，供 Compiler 构建 DAG
+        self._pipeline: List[Transformation] = []
+        self.runtime_context=dict  # 需要在compiler里面实例化。
 
     def from_source(self, function: Union[BaseFunction, Type[BaseFunction]],*args,  **kwargs: Any) -> DataStream:
         """用户 API：声明一个数据源并返回 DataStream 起点。"""
@@ -62,10 +33,17 @@ class Environment:
         self._pipeline.append(transformation)
         return DataStream(self, transformation)
 
-    def execute(self):
+    # TODO: add a new type of source with handler returned.
+    def create_source(self):
+        pass
+
+    def execute(self, name="example_pipeline"):
         from sage.core.engine import Engine
         engine = Engine.get_instance()
         engine.submit_env(self)
+        # time.sleep(10) # 等待管道启动
+        while (self.initlized() is False):
+            time.sleep(1)
 
     @property
     def pipeline(self) -> List[Transformation]:  # noqa: D401
@@ -94,4 +72,38 @@ class Environment:
         for text, metadata in texts:
             col.insert(text, metadata)
         col.create_index(index_name="vdb_index")
-        config["writer"]["ltm_collection"] = col
+        self.runtime_context.update("col",col)
+
+    # TODO: 写一个判断Env 是否已经完全初始化并开始执行的函数
+    def initlized(self):
+        pass
+
+class LocalEnvironment(BaseEnvironment):
+    """
+    本地执行环境（不使用 Ray），用于开发调试或小规模测试。
+    """
+
+    def __init__(self, job_name: str = "local_environment", config: dict | None = None):
+        super().__init__(job_name, config, platform="local", use_ray=False)
+
+
+class RemoteEnvironment(BaseEnvironment):
+    """
+    分布式执行环境（Ray），用于生产或大规模部署。
+    """
+
+    def __init__(self, job_name: str = "remote_environment", config: dict | None = None):
+        super().__init__(job_name, config, platform="remote", use_ray=True)
+
+
+class DevEnvironment(BaseEnvironment):
+    """
+    混合执行环境，可根据配置动态选择本地或 Ray。
+    config 中可包含 'use_ray': bool 来切换运行时。
+    """
+
+    def __init__(self, job_name: str = "dev_environment", config: dict | None = None):
+        cfg = dict(config or {})
+        # 默认不启用 Ray，除非显式指定
+        use_ray_flag = cfg.get("use_ray", False)
+        super().__init__(job_name, cfg, platform="hybrid", use_ray=use_ray_flag)

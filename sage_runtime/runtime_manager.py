@@ -1,8 +1,6 @@
 import threading
 from typing import Dict, Any
-from sage.core.runtime.base_runtime import BaseRuntime
-from sage.core.runtime.ray.ray_runtime import RayRuntime
-from sage.core.runtime.local.local_runtime import LocalRuntime
+from sage_runtime import BaseRuntime, RayRuntime, LocalRuntime
 from sage_utils.custom_logger import CustomLogger
 
 class RuntimeManager:
@@ -58,7 +56,7 @@ class RuntimeManager:
         获取指定平台的运行时实例，支持延迟初始化
         
         Args:
-            platform: 平台名称 ("ray", "local")
+            platform: 平台名称 ("remote", "local")
             **kwargs: 运行时初始化参数
             
         Returns:
@@ -81,7 +79,7 @@ class RuntimeManager:
         Returns:
             运行时实例
         """
-        if platform == "ray":
+        if platform == "remote":
             monitoring_interval = kwargs.get('monitoring_interval', 2.0)
             return RayRuntime.get_instance(monitoring_interval=monitoring_interval)
         

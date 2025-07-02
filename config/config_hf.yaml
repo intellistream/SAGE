@@ -2,7 +2,7 @@ pipeline:
   name: "sage-api-operator-operator_test"
   description: "Test pipeline for Sage API Operator"
   version: "1.0.0"
-  type: "ray"
+  type: "remote"
 
 
 
