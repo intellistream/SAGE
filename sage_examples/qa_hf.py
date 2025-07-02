@@ -5,9 +5,9 @@ from sage_lib.function.generator import HFGenerator
 from sage_lib.function.retriever import DenseRetriever
 from sage_lib.io.source import FileSource
 from sage_lib.io.sink import TerminalSink
-from sage_memory.memory_manager import MemoryManager
-from sage.utils.config_loader import load_config
-from sage.utils.logging_utils import configure_logging
+from neuromem.memory_manager import MemoryManager
+from sage_utils.config_loader import load_config
+from sage_utils.logging_utils import configure_logging
 from sage.api.model.model_api import apply_embedding_model
 def memory_init():
     """初始化内存管理器并创建测试集合"""
