@@ -3,8 +3,8 @@
 
 import time
 from datetime import datetime
-from neuromem import MockTextEmbedder
-from neuromem.memory_collection.base_collection import VDBMemoryCollection
+from sage_memory import MockTextEmbedder
+from sage_memory.memory_collection.base_collection import VDBMemoryCollection
 
 
 # Initialize VDBMemoryCollection

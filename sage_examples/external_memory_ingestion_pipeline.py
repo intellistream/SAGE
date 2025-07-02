@@ -5,8 +5,8 @@ from sage_lib.function.chunk import CharacterSplitter
 from sage_lib.function.writer import MemoryWriter
 from sage_lib.io.source import FileSource
 from sage_lib.io.sink import MemWriteSink
-from neuromem.memory_manager import MemoryManager
-from neuromem.embeddingmodel import MockTextEmbedder
+from sage_memory.memory_manager import MemoryManager
+from sage_memory.embeddingmodel import MockTextEmbedder
 from sage.utils.config_loader import load_config
 
 
