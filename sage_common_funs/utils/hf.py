@@ -16,9 +16,9 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 class HFGenerator:
-    def __init__(self, model_name="llama", device=None):
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        self.model_name = model_name
+    def __init__(self, model_name="llama", device=None, base_url = None, api_key=None, seed = None):
+        self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
+        self.model_name=model_name
         self.model, self.tokenizer = self._initialize_model()
 
     def _initialize_model(self):
