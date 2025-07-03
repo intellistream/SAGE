@@ -68,5 +68,18 @@ class MemoryFunction(BaseFunction):
 class StatefulFunction(BaseFunction):
     def __init__(self):
         self.runtime_context = None  # 需要在compiler里面实例化。
+        self.state = None
+        pass
+
+
+class MemoryFunction(BaseFunction):
+    def __init__(self):
+        self.runtime_context = None  # 需要在compiler里面实例化。
+        self.memory= self.runtime_context.memory
+        pass
+
+class StatefulFunction(BaseFunction):
+    def __init__(self):
+        self.runtime_context = None  # 需要在compiler里面实例化。
         self.state
         pass

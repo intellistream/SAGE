@@ -1,7 +1,7 @@
 from typing import Tuple, List
 import time  # 替换 asyncio 为 time 用于同步延迟
 from sage.api.tuple import Data
-from sage.api.base_function import BaseFunction
+from sage.api.base_function import BaseFunction, MemoryFunction, StatefulFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.runtime_context import RuntimeContext
 

@@ -19,7 +19,7 @@ dependencies:
   - cuda-nvrtc=12.1.105=0
   - cuda-nvtx=12.1.105=0
   - cuda-opencl=12.4.127=h6a678d5_0
-  - cuda-sage_runtime=12.1.0=0
+  - cuda-runtime=12.1.0=0
   - cuda-version=12.4=hbda6634_3
   - faiss-gpu=1.9.0=py3.11_ha2e4562_0_cuda12.1.1
   - ffmpeg=4.3=hf484d3e_0
@@ -178,7 +178,7 @@ dependencies:
       - nvidia-cublas-cu12==12.1.3.1
       - nvidia-cuda-cupti-cu12==12.1.105
       - nvidia-cuda-nvrtc-cu12==12.1.105
-      - nvidia-cuda-sage_runtime-cu12==12.1.105
+      - nvidia-cuda-runtime-cu12==12.1.105
       - nvidia-cudnn-cu12==9.1.0.70
       - nvidia-cufft-cu12==11.0.2.54
       - nvidia-curand-cu12==10.3.2.106
@@ -217,7 +217,7 @@ dependencies:
       - pyzmq==26.2.0
       - quantulum3==0.9.2
       - rank-bm25==0.2.2
-      - remote[default]==2.37.0
+      - ray[default]==2.37.0
       - referencing==0.35.1
       - regex==2024.9.11
       - requests-cache==0.9.8

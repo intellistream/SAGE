@@ -1,9 +1,7 @@
 
 import os
-from urllib import response
 
-from httpx import stream
-from sage_memory.embedding_methods.embedding_api import apply_embedding_model
+from sage_utils.embedding_methods.embedding_api import apply_embedding_model
 from sage_common_funs.utils.generator_model import apply_generator_model
 import unittest
 

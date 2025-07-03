@@ -6,7 +6,7 @@
 import os, sys, json, time, asyncio
 from datetime import datetime
 from dotenv import load_dotenv
-from sage_memory.embedding_methods.embedding_api import apply_embedding_model
+from sage_utils.embedding_methods.embedding_api import apply_embedding_model
 from sage_common_funs.utils.generator_model import apply_generator_model
 from sage_memory.memory_manager import MemoryManager
 

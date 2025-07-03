@@ -1,15 +1,16 @@
 import logging
 import time
-from sage.api.env import Environment
-from sage_common_funs import QAPromptor
-from sage_common_funs.function.generator import OpenAIGenerator
-from sage_common_funs.function.retriever import DenseRetriever
-from sage_common_funs.io.source import FileSource
+
+from sage.api.env import LocalEnvironment
 from sage_common_funs.io.sink import TerminalSink
-from neuromem.memory_manager import MemoryManager
+from sage_common_funs.io.source import FileSource
+from sage_common_funs.rag.generator import OpenAIGenerator
+from sage_common_funs.rag.promptor import QAPromptor
+from sage_common_funs.rag.retriever import DenseRetriever
+from sage_memory.memory_manager import MemoryManager
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging
-from sage_memory.embedding_methods.embedding_api import apply_embedding_model
+from sage_utils.embedding_methods.embedding_api import apply_embedding_model
 
 
 def memory_init():
@@ -39,7 +40,7 @@ def memory_init():
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = Environment(name="example_pipeline")
+    pipeline = LocalEnvironment(config={"is_long_running": True})
     # 构建数据处理流程
     query_stream = pipeline.from_source(FileSource, config["source"])
     query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])
@@ -47,7 +48,7 @@ def pipeline_run():
     response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
     response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
-    pipeline.submit_mixed(config={"is_long_running":True})
+    pipeline.execute()
     time.sleep(100)  # 等待管道运行
 
 

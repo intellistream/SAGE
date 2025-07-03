@@ -84,7 +84,12 @@ class HFGenerator(BaseFunction):
         """
         super().__init__()
         self.config = config
-
+        self.logger = CustomLogger(
+            object_name=f"HFGenerator_{__name__}",
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
         # Apply the generator model with the provided configuration
         self.model = apply_generator_model(
             method=self.config["method"],

@@ -1,4 +1,4 @@
-from sage_memory.embeddingmodel import MockTextEmbedder
+from sage_utils.embedding_methods.mockembedder import MockTextEmbedder
 from sage_memory.memory_manager import MemoryManager
 
 def create_memory(config):
@@ -11,7 +11,8 @@ def create_memory(config):
         embedding_model=default_model,
         dim=128,
         description="operator_test vdb collection",
-        as_ray_actor=(config.get("platform", False) == "remote")
+        # as_ray_actor=(config.get("platform", False) == "remote")
+        as_ray_actor=False
     )
     col.add_metadata_field("owner")
     col.add_metadata_field("show_type")
