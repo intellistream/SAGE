@@ -45,7 +45,7 @@ def get_app():
     return globals().get("sage_examples", None)
 
 
-from sage_memory.embedding_methods.embedding_api import apply_embedding_model
+from sage_utils.embedding_methods.embedding_api import apply_embedding_model
 from sage_memory.memory_manager import MemoryManager
 def memory_init():
     """初始化内存管理器并创建测试集合"""

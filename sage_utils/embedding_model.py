@@ -10,8 +10,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from sage_memory.embedding_methods import hf, ollama, jina, siliconcloud, lollms  # , instructor
-from sage_memory.embedding_methods import openai, bedrock, nvidia_openai, zhipu, _cohere
+from sage_utils.embedding_methods import hf, ollama, siliconcloud, openai, bedrock, zhipu  # , instructor
+from sage_utils.embedding_methods import _cohere, nvidia_openai, lollms, jina
 from transformers import AutoModel, AutoTokenizer
 
 
@@ -101,16 +101,10 @@ class EmbeddingModel:
         return self.embed_fn(text, **self.kwargs)
 
     def embed(self, text: str) -> list[float]:
-        
         return self._embed(text)
     
     def encode(self, text: str) -> list[float]:
-        
         return self._embed(text)
-
-    
-
-    
 
 def main():
     embedding_model = EmbeddingModel(method="hf",model = "sentence-transformers/all-MiniLM-L6-v2")

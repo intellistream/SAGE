@@ -1,7 +1,6 @@
 # file sage/core/sage_memory/operator_test/neuromem_demo.py
 # python -m sage.core.sage_memory.operator_test.structure_mem_demo.neuromem_demo
 
-from sage_memory.embedding_methods.embedding_api import apply_embedding_model
 from sage_common_funs.utils.generator_model import apply_generator_model
 
 api_key = "sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"

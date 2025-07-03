@@ -6,7 +6,7 @@ if __name__ == "__main__":
     import os
     import time
     from sage_memory.memory_collection.base_collection import get_default_data_dir
-    from sage_memory.embeddingmodel import MockTextEmbedder
+    from sage_utils.embedding_methods.mockembedder import MockTextEmbedder
     from sage_memory.memory_collection.vdb_collection import VDBMemoryCollection
 
     def print_test_case(desc, expected, actual):

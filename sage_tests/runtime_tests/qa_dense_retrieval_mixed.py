@@ -10,7 +10,7 @@ from sage_common_funs.rag.retriever import DenseRetriever
 from sage_memory.memory_manager import MemoryManager
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging
-from sage_memory.embedding_methods.embedding_api import apply_embedding_model
+from sage_utils.embedding_methods.embedding_api import apply_embedding_model
 
 
 def memory_init():
