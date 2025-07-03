@@ -9,7 +9,7 @@ class Collector:
 
     def __init__(self, operator):
         self.operator = operator
-
+        self.logger=None
     def collect(self, data, channel:int = -1):
         """
         Collect data and store it in the memory collection.
