@@ -24,7 +24,7 @@ QA_prompt_template = Template(QA_prompt_template)
 summarization_prompt_template = Template(summarization_prompt_template)
 
 
-class QAPromptor(StatefulFunction):
+class QAPromptor(BaseFunction):
     """
     QAPromptor is a prompt rag that generates a QA-style prompt using
     an external corpus and a user query. This class is designed to prepare 
