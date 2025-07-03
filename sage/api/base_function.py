@@ -34,8 +34,8 @@ class BaseFunction(ABC):
         self.collector.logger = self.logger
     def insert_runtime_context(self, runtime_context):
         """
-        Insert a runtime context into the function for accessing runtime data. 
-        :param runtime_context: The runtime context instance to be inserted.
+        Insert a runtime_tests context into the function for accessing runtime_tests data.
+        :param runtime_context: The runtime_tests context instance to be inserted.
         """
         self.runtime_context = runtime_context
 

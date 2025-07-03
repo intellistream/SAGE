@@ -49,8 +49,6 @@ class DenseRetriever(BaseFunction):
         input_query = data.data
         chunks = []
         self.logger.debug(f"Starting retrieval for query: {input_query}")
-
-
         # LTM 检索
         if self.config.get("ltm", False):
             self.logger.debug("Retrieving from LTM")
@@ -62,7 +60,6 @@ class DenseRetriever(BaseFunction):
                     collection_config=self.ltm_config
                 )
                 self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Retrieval Results: {ltm_results}\033[0m ")
-
                 chunks.extend(ltm_results)
                 self.logger.debug(f"Retrieved {len(ltm_results)} from LTM")
 
