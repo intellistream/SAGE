@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import time
 from typing import Type, Union, Any, List
+
+import sage_memory.api
 from sage.api.base_function import BaseFunction
 from sage.api.datastream import DataStream
 from sage.core.operator.transformation import TransformationType, Transformation
@@ -11,18 +13,18 @@ from sage_memory.memory_manager import MemoryManager
 
 class BaseEnvironment:
 
-    def __init__(self,name: str,config: dict | None,* ,platform: str,):
+    def __init__(self, name: str, config: dict | None, *, platform: str, ):
         self.name = name
         self.config: dict = dict(config or {})
         self.config["platform"] = platform
         # 用于收集所有 Transformation，供 Compiler 构建 DAG
         self._pipeline: List[Transformation] = []
-        self.runtime_context=dict  # 需要在compiler里面实例化。
+        self.runtime_context = dict  # 需要在compiler里面实例化。
         self.memory_collection = None  # 用于存储内存集合
 
-    def from_source(self, function: Union[BaseFunction, Type[BaseFunction]],*args,  **kwargs: Any) -> DataStream:
+    def from_source(self, function: Union[BaseFunction, Type[BaseFunction]], *args, **kwargs: Any) -> DataStream:
         """用户 API：声明一个数据源并返回 DataStream 起点。"""
-        transformation = Transformation(TransformationType.SOURCE, function,*args,  **kwargs)
+        transformation = Transformation(TransformationType.SOURCE, function, *args, **kwargs)
         self._pipeline.append(transformation)
         return DataStream(self, transformation)
 
@@ -43,35 +45,13 @@ class BaseEnvironment:
         """返回 Transformation 列表（Compiler 会使用）。"""
         return self._pipeline
 
-    #TODO: Move arguments here
     def set_memory(self, config):
-        """初始化内存管理器并创建测试集合"""
-        default_model = MockTextEmbedder(fixed_dim=128)
-        manager = MemoryManager()
-        col = manager.create_collection(
-            name="vdb_test",
-            backend_type="VDB",
-            embedding_model=default_model,
-            dim=128,
-            description = "operator_test vdb collection",
-            as_ray_actor = (self.config.get("platform", False) == "remote")
-        )
-        col.add_metadata_field("owner")
-        col.add_metadata_field("show_type")
-        texts = [
-            ("hello world", {"owner": "ruicheng", "show_type": "text"}),
-            ("你好，世界", {"owner": "Jun", "show_type": "text"}),
-            ("こんにちは、世界", {"owner": "Lei", "show_type": "img"}),
-        ]
-        for text, metadata in texts:
-            col.insert(text, metadata)
-        col.create_index(index_name="vdb_index")
-        self.memory_collection = col # Union[BaseMemoryCollection, ActorHandle]
-        # self.runtime_context.update("col",col)
+        self.memory_collection = sage_memory.api.create_memory(config)
 
     # TODO: 写一个判断Env 是否已经完全初始化并开始执行的函数
     def initlized(self):
         pass
+
 
 class LocalEnvironment(BaseEnvironment):
     """
