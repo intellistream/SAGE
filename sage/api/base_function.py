@@ -21,6 +21,7 @@ class BaseFunction(ABC):
 
     def __init__(self):
         self.runtime_context = None  # 需要在compiler里面实例化。
+        self.logger=None
         pass
 
     def insert_collector(self, collector):
