@@ -1,12 +1,13 @@
 import logging
 import time
-from sage.api.env import Environment
-from sage_common_funs import QAPromptor
-from sage_common_funs.function.generator import OpenAIGenerator
-from sage_common_funs.function.retriever import DenseRetriever
-from sage_common_funs.function import ManualSource
+
+from sage.api.env import LocalEnvironment
 from sage_common_funs.io.sink import TerminalSink
-from neuromem.memory_manager import MemoryManager
+from sage_common_funs.rag.generator import OpenAIGenerator
+from sage_common_funs.rag.manual_source import ManualSource
+from sage_common_funs.rag.promptor import QAPromptor
+from sage_common_funs.rag.retriever import DenseRetriever
+from sage_memory.memory_manager import MemoryManager
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging
 from sage_memory.embedding_methods.embedding_api import apply_embedding_model
@@ -42,7 +43,7 @@ def memory_init():
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    pipeline = Environment(name="example_pipeline")
+    pipeline = LocalEnvironment()
     # 构建数据处理流程
     manual_source = ManualSource(config["source"])
     query_stream = pipeline.from_source(manual_source)

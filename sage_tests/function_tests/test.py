@@ -2,6 +2,11 @@
 import os
 import sys
 
+from sage.core.operator.base_operator import Data
+from sage_common_funs.agent.agent import BaseAgent
+from sage_common_funs.io.source import FileSource
+from sage_common_funs.rag.evaluate import F1Evaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate
+
 # 添加项目根路径到 PYTHONPATH 和 sys.path
 project_root = os.getcwd()
 print(project_root)
@@ -9,19 +14,6 @@ print(project_root)
 # os.environ["PYTHONPATH"] = f"{project_root}:{os.environ.get('PYTHONPATH', '')}"
 print(f"{project_root}:{os.environ.get('PYTHONPATH', '')}")
 sys.path.insert(0, project_root)
-
-from sage.core.function.source import FileSourceFunction
-# from sage.sage_common_funs.rag.writer import LongTimeWriter,MemWriter
-# from sage.sage_common_funs.rag.retriever import SimpleRetriever
-from sage_common_funs.functions.rag import BaseAgent
-from sage_common_funs.functions.rag import (
-    F1Evaluate,
-    BertRecallEvaluate,
-    RougeLEvaluate,
-    BRSEvaluate,
-)
-from sage.core.operator.operator_impl_test.sink import FileSink
-from sage.core.operator import Data
 import yaml
 
 
@@ -103,7 +95,7 @@ config_agent_search=load_config("./sage/api/operator/function_tests/config_agent
 #     # assert("False" in output.data[0])
 
 def test_agent_with_search():
-    source=FileSourceFunction(config_agent_search)
+    source=FileSource(config_agent_search)
     agent=BaseAgent(config_agent_search)
     output= source.execute()
     output= agent.execute()
