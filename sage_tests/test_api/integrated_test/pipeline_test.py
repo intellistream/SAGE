@@ -24,19 +24,19 @@ def init_memory_and_pipeline():
     pipeline = LocalEnvironment()
 
     # 步骤 1: 定义数据源（例如，来自用户的查询）
-    query_stream: DataStream = pipeline.from_source(FileSource, source_class=FileSource, config=config)  # 从文件源读取数据
+    query_stream: DataStream = pipeline.from_source(FileSource,config["source"])  # 从文件源读取数据
 
     # 步骤 3: 使用 QAPromptor 构建查询提示
-    prompt_stream: DataStream = query_stream.map(QAPromptor, config)
+    prompt_stream: DataStream = query_stream.map(QAPromptor, config["promptor"])  # 使用 QAPromptor 处理查询
 
     # routestreram = prompt_stream.route(router,config)
 
     # 步骤 4: 使用 OpenAIGenerator 生成最终的响应
-    response_stream: DataStream = prompt_stream.map(OpenAIGenerator, config)
-    summarize_stream: DataStream = prompt_stream.map(AbstractiveRecompRefiner, config)
+    response_stream: DataStream = prompt_stream.map(OpenAIGenerator, config["generator"])
+    summarize_stream: DataStream = prompt_stream.map(AbstractiveRecompRefiner, config["refiner"])
 
     # 步骤 5: 输出到终端或文件
-    sink_stream: DataStream = response_stream.sink(FileSink, config)
+    sink_stream: DataStream = response_stream.sink(FileSink, config["sink"])
     # print(pipeline.get_graph_preview())
 
     # 提交管道到 SAGE 运行时

@@ -37,4 +37,4 @@ writer:
 promptor:
 
 sink:
-
+  file_path: "output.txt"

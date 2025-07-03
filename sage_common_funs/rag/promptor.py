@@ -51,12 +51,6 @@ class QAPromptor(StatefulFunction):
         )
         self.config = config  # Store the configuration for later use
         self.prompt_template = QA_prompt_template  # Load the QA prompt template
-        self.logger = CustomLogger(
-            object_name=f"QAPromptor_{__name__}",
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
-        )
 
     def execute(self, data) -> Data[list]:
         """
