@@ -12,37 +12,51 @@ import torch
 # }
 
 
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
 class HFGenerator:
     def __init__(self, model_name="llama", device=None, base_url = None, api_key=None, seed = None):
         self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
         self.model_name=model_name
         self.model, self.tokenizer = self._initialize_model()
 
-
     def _initialize_model(self):
         tokenizer = AutoTokenizer.from_pretrained(
-            self.model_name, device_map="auto", trust_remote_code=True
+            self.model_name, trust_remote_code=True
         )
         model = AutoModelForCausalLM.from_pretrained(
-            self.model_name, device_map="auto", trust_remote_code=True
+            self.model_name,
+            trust_remote_code=True,
+            device_map="auto" if self.device == "cuda" else None
         )
+
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
+
+        # Ensure model on the right device if not using device_map
+        if self.device != "cuda":
+            model = model.to(self.device)
+
         return model, tokenizer
 
     def generate(self, prompt, **kwargs):
+        # Construct prompt text
         input_prompt = ""
-        if isinstance(prompt,list):
+        if isinstance(prompt, list):
             for message in prompt:
                 input_prompt += f"<{message['role']}>{message['content']}</{message['role']}>\n"
-        
+        elif isinstance(prompt, str):
+            input_prompt = prompt
+
+        # Tokenize input
         input_ids = self.tokenizer(
             input_prompt, return_tensors="pt", padding=True, truncation=True
-        ).to("cuda")
+        ).to(self.device)
 
-        inputs = {k: v.to(self.model.device) for k, v in input_ids.items()}
+        # Generate output
         output = self.model.generate(
-            **inputs,
+            **input_ids,
             max_new_tokens=kwargs.get("max_new_tokens", 512),
             num_return_sequences=kwargs.get("num_return_sequences", 1),
             temperature=kwargs.get("temperature", 1.0),
@@ -51,10 +65,12 @@ class HFGenerator:
             repetition_penalty=kwargs.get("repetition_penalty", 1.0),
             do_sample=kwargs.get("do_sample", True)
         )
+
+        # Decode output
         response_text = self.tokenizer.decode(
-            output[0][len(inputs["input_ids"][0]) :], skip_special_tokens=True
+            output[0][input_ids["input_ids"].shape[1]:], skip_special_tokens=True
         )
-        
+
         return response_text
 
 
