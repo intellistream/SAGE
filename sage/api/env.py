@@ -43,7 +43,8 @@ class BaseEnvironment:
         """返回 Transformation 列表（Compiler 会使用）。"""
         return self._pipeline
 
-    def set_memory(self):
+    #TODO: Move arguments here
+    def set_memory(self, config):
         """初始化内存管理器并创建测试集合"""
         default_model = MockTextEmbedder(fixed_dim=128)
         manager = MemoryManager()
