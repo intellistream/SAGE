@@ -153,3 +153,91 @@ class Compiler:
         
         self.logger.info(f"Graph construction completed: {len(self.nodes)} nodes, {len(self.edges)} edges")
 
+    def debug_print_graph(self):
+        """
+        调试方法：打印图中所有节点的详细信息，包括节点名字、对应的transformation.function以及下游连接信息
+        """
+        lines = []
+        lines.append("\n")
+        lines.append("=" * 80)
+        lines.append(f"Graph Debug Information for '{self.name}'")
+        lines.append("=" * 80)
+        
+        if not self.nodes:
+            lines.append("No nodes in the graph")
+            self.logger.debug("\n".join(lines))
+            return
+        
+        # 按transformation类型分组显示节点
+        transformation_groups = {}
+        for node in self.nodes.values():
+            transformation_name = node.transformation.function_class.__name__
+            if transformation_name not in transformation_groups:
+                transformation_groups[transformation_name] = []
+            transformation_groups[transformation_name].append(node)
+        
+        for transformation_name, nodes in transformation_groups.items():
+            lines.append(f"\n📊 Transformation: {transformation_name}")
+            lines.append(f"   Type: {nodes[0].transformation.transformation_type.value}")
+            lines.append(f"   Parallelism: {len(nodes)}")
+            
+            # 显示function信息
+            sample_transformation = nodes[0].transformation
+            if sample_transformation.is_instance:
+                function_info = f"Instance of {sample_transformation.function_class.__name__}"
+            else:
+                function_info = f"Class {sample_transformation.function_class.__name__} (not instantiated)"
+            lines.append(f"   Function: {function_info}")
+            
+            # 显示每个并行节点的详细信息
+            for node in nodes:
+                lines.append(f"\n   🔗 Node: {node.name} (parallel_index: {node.parallel_index})")
+                
+                # 显示输入连接信息
+                if node.input_channels:
+                    lines.append(f"      📥 Input Channels ({len(node.input_channels)} channels):")
+                    for channel_idx, channel in enumerate(node.input_channels):
+                        if channel:
+                            upstream_nodes = [edge.upstream_node.name for edge in channel]
+                            lines.append(f"         Channel {channel_idx}: {len(channel)} edges from {upstream_nodes}")
+                        else:
+                            lines.append(f"         Channel {channel_idx}: No incoming edges")
+                else:
+                    lines.append(f"      📥 Input: No input channels (source node)")
+                
+                # 显示输出连接信息
+                if node.output_channels:
+                    lines.append(f"      📤 Output Channels ({len(node.output_channels)} channels):")
+                    for channel_idx, channel in enumerate(node.output_channels):
+                        if channel:
+                            downstream_nodes = [edge.downstream_node.name for edge in channel]
+                            lines.append(f"         Channel {channel_idx}: {len(channel)} edges to {downstream_nodes}")
+                        else:
+                            lines.append(f"         Channel {channel_idx}: No outgoing edges")
+                else:
+                    lines.append(f"      📤 Output: No output channels (sink node)")
+        
+        # 显示图的统计信息
+        lines.append(f"\n📈 Graph Statistics:")
+        lines.append(f"   Total Nodes: {len(self.nodes)}")
+        lines.append(f"   Total Edges: {len(self.edges)}")
+        lines.append(f"   Transformations: {len(transformation_groups)}")
+        
+        # 显示连接拓扑
+        lines.append(f"\n🔄 Connection Topology:")
+        for transformation_name, nodes in transformation_groups.items():
+            sample_node = nodes[0]
+            downstream_transformations = set()
+            for channel in sample_node.output_channels:
+                for edge in channel:
+                    downstream_transformations.add(edge.downstream_node.transformation.function_class.__name__)
+            
+            if downstream_transformations:
+                lines.append(f"   {transformation_name} -> {list(downstream_transformations)}")
+            else:
+                lines.append(f"   {transformation_name} -> [SINK]")
+        
+        lines.append("=" * 80)
+        
+        # 一次性输出所有调试信息
+        self.logger.debug("\n".join(lines))

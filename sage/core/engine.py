@@ -52,6 +52,7 @@ class Engine:
     def submit_env(self, env:BaseEnvironment):
         from sage.core.compiler import Compiler
         graph = Compiler(env)
+        graph.debug_print_graph()
         self.graphs[graph.name] = graph
         try:
             self.logger.info(f"Received mixed graph '{graph.name}' with {len(graph.nodes)} nodes")
