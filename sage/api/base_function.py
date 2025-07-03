@@ -1,6 +1,18 @@
 from abc import ABC, abstractmethod
 from sage.api.collector import Collector
 
+class MemoryFunction(BaseFunction):
+    def __init__(self):
+        self.runtime_context = None  # 需要在compiler里面实例化。
+        self.memory= self.runtime_context.memory
+        pass
+
+class StatefulFunction(BaseFunction):
+    def __init__(self):
+        self.runtime_context = None  # 需要在compiler里面实例化。
+        self.state
+        pass
+
 class BaseFunction(ABC):
     """
     BaseFunction is the abstract base class for all operator functions in SAGE.
