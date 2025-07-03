@@ -52,8 +52,8 @@ class BaseEnvironment:
             backend_type="VDB",
             embedding_model=default_model,
             dim=128,
-            description="operator_test vdb collection",
-            as_ray_actor=False,
+            description = "operator_test vdb collection",
+            as_ray_actor = (self.config.get("platform", False) == "remote")
         )
         col.add_metadata_field("owner")
         col.add_metadata_field("show_type")
