@@ -1,4 +1,4 @@
-from sage_memory.embeddingmodel import MockTextEmbedder
+from sage_utils.embedding_methods.mockembedder import MockTextEmbedder
 from sage_memory.memory_manager import MemoryManager
 
 def create_memory(config):

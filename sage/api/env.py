@@ -7,8 +7,6 @@ import sage_memory.api
 from sage.api.base_function import BaseFunction
 from sage.api.datastream import DataStream
 from sage.core.operator.transformation import TransformationType, Transformation
-from sage_memory.embeddingmodel import MockTextEmbedder
-from sage_memory.memory_manager import MemoryManager
 
 
 class BaseEnvironment:

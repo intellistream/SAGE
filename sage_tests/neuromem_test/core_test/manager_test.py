@@ -3,7 +3,7 @@
 
 def vdbtest(do_reload=True, do_delete=True):
     from sage_memory.memory_manager import MemoryManager
-    from sage_memory.embeddingmodel import MockTextEmbedder
+    from sage_utils.embedding_methods.mockembedder import MockTextEmbedder
     import os
 
     def colored(text, color):
