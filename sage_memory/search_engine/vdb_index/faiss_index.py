@@ -8,7 +8,7 @@ import numpy as np
 from typing import Optional, List, Dict, Any
 from sage_utils.custom_logger import CustomLogger
 from sage_memory.search_engine.vdb_index.base_vdb_index import BaseVDBIndex
-
+import os
 
 class FaissIndex(BaseVDBIndex):
     def __init__(
