@@ -94,7 +94,7 @@ def jina_embed_sync(
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         data = response.json()
-        return data[0]["embedding"]
+        return data["data"][0]["embedding"]
     except Exception as e:
         raise RuntimeError(f"Jina API call failed: {str(e)}")
 
