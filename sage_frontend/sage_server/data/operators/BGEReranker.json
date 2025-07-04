@@ -1,0 +1,8 @@
+{
+    "id":6,
+    "name":"BGEReranker",
+    "description":"BGE reranker",
+    "transformation":"",
+    "code":"",
+    "isCustom":false
+}

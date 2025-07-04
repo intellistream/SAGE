@@ -1,6 +1,6 @@
 from jinja2 import Template
-from sage.api.base_function import BaseFunction, StatefulFunction, MemoryFunction
-from sage.api.tuple import Data
+from sage_core.api.base_function import BaseFunction, StatefulFunction, MemoryFunction
+from sage_core.api.tuple import Data
 from sage_utils.custom_logger import CustomLogger
 
 QA_prompt_template='''Instruction:

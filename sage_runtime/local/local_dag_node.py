@@ -2,7 +2,7 @@ from __future__ import annotations
 import threading
 import time
 from typing import Any, Union, Tuple
-from sage.core.operator.transformation import Transformation, TransformationType
+from sage_core.core.operator.transformation import Transformation, TransformationType
 from sage_runtime.io.local_emit_context import LocalEmitContext
 from sage_runtime.io.local_message_queue import LocalMessageQueue
 from sage_utils.custom_logger import CustomLogger

@@ -1,6 +1,6 @@
 from typing import Union, List, Tuple, Optional, Dict
-from sage.api.base_function import BaseFunction
-from sage.api.tuple import Data
+from sage_core.api.base_function import BaseFunction
+from sage_core.api.tuple import Data
 
 
 class MemoryWriter(BaseFunction):
