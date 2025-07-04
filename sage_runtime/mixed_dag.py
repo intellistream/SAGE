@@ -29,7 +29,9 @@ class MixedDAG:
         self.node_dependencies: Dict[str, List[str]] = {}  # node_name -> [upstream_node_names]
         self.spout_nodes: List[str] = []
         self.is_running: bool = False
+
         self._compile_graph()
+        self.debug_print_operators()
     
     def _compile_graph(self):
         """编译图结构，创建节点并建立连接"""
@@ -261,3 +263,129 @@ class MixedDAG:
             # 清理已经提交的节点
             # self._cleanup_partial_submission(local_runtime, ray_runtime)
             raise
+
+    def debug_print_operators(self):
+        """
+        调试方法：打印MixedDAG中所有operators的详细信息，包括名字、类型、平台等
+        """
+        lines = []
+        lines.append("\n")
+        lines.append("=" * 80)
+        lines.append(f"MixedDAG Operators Debug Information for '{self.name}'")
+        lines.append("=" * 80)
+        
+        if not self.operators:
+            lines.append("No operators in the MixedDAG")
+            self.logger.debug("\n".join(lines))
+            return
+        
+        # 统计信息
+        local_count = 0
+        ray_count = 0
+        unknown_count = 0
+        
+        # 按平台类型分组
+        local_operators = []
+        ray_operators = []
+        unknown_operators = []
+        
+        for node_name, operator in self.operators.items():
+            platform_type = self._detect_platform(operator)
+            
+            if platform_type == "local":
+                local_operators.append((node_name, operator))
+                local_count += 1
+            elif platform_type == "remote":
+                ray_operators.append((node_name, operator))
+                ray_count += 1
+            else:
+                unknown_operators.append((node_name, operator))
+                unknown_count += 1
+        
+        # 显示统计信息
+        lines.append(f"\n📊 Operators Statistics:")
+        lines.append(f"   Total Operators: {len(self.operators)}")
+        lines.append(f"   Local Nodes: {local_count}")
+        lines.append(f"   Ray Actors: {ray_count}")
+        if unknown_count > 0:
+            lines.append(f"   Unknown Type: {unknown_count}")
+        lines.append(f"   Total Connections: {len(self.connections)}")
+        lines.append(f"   Running Status: {self.is_running}")
+        
+        # 显示本地节点
+        if local_operators:
+            lines.append(f"\n🏠 Local Operators ({local_count}):")
+            for node_name, operator in local_operators:
+                lines.append(f"   📍 Node: {node_name}")
+                lines.append(f"      Type: LocalDAGNode")
+                lines.append(f"      Class: {operator.__class__.__name__}")
+                lines.append(f"      Platform: local")
+                
+                # 显示transformation信息
+                if hasattr(operator, 'transformation'):
+                    transformation = operator.transformation
+                    lines.append(f"      Transformation: {transformation.transformation_type.value}")
+                    lines.append(f"      Function: {transformation.function_class.__name__}")
+                    lines.append(f"      Parallelism: {transformation.parallelism}")
+                
+                # 显示运行状态
+                if hasattr(operator, 'is_running'):
+                    lines.append(f"      Status: {'Running' if operator.is_running else 'Stopped'}")
+                
+                lines.append("")
+        
+        # 显示Ray节点
+        if ray_operators:
+            lines.append(f"\n☁️ Ray Operators ({ray_count}):")
+            for node_name, operator in ray_operators:
+                lines.append(f"   📍 Node: {node_name}")
+                lines.append(f"      Type: ActorHandle")
+                lines.append(f"      Class: {operator.__class__.__name__}")
+                lines.append(f"      Platform: remote")
+                lines.append(f"      Actor ID: {str(operator)}")
+                
+                # 从graph中获取transformation信息
+                if node_name in self.graph.nodes:
+                    graph_node = self.graph.nodes[node_name]
+                    transformation = graph_node.transformation
+                    lines.append(f"      Transformation: {transformation.transformation_type.value}")
+                    lines.append(f"      Function: {transformation.function_class.__name__}")
+                    lines.append(f"      Parallelism: {transformation.parallelism}")
+                
+                lines.append("")
+        
+        # 显示未知类型节点
+        if unknown_operators:
+            lines.append(f"\n❓ Unknown Type Operators ({unknown_count}):")
+            for node_name, operator in unknown_operators:
+                lines.append(f"   📍 Node: {node_name}")
+                lines.append(f"      Type: {type(operator).__name__}")
+                lines.append(f"      Class: {operator.__class__.__name__}")
+                lines.append(f"      Platform: unknown")
+                lines.append("")
+        
+        # 显示连接信息
+        lines.append(f"\n🔗 Connections ({len(self.connections)}):")
+        if self.connections:
+            for upstream_node, out_channel, downstream_node, in_channel in self.connections:
+                upstream_type = self._detect_platform(self.operators[upstream_node])
+                downstream_type = self._detect_platform(self.operators[downstream_node])
+                lines.append(f"   {upstream_node}({upstream_type})[{out_channel}] -> {downstream_node}({downstream_type})[{in_channel}]")
+        else:
+            lines.append("   No connections established")
+        
+        # 显示句柄信息
+        lines.append(f"\n🔧 Runtime Handles:")
+        lines.append(f"   Local Handles: {len(self.local_handles)} - {self.local_handles}")
+        lines.append(f"   Ray Handles: {len(self.ray_handles)} - {self.ray_handles}")
+        
+        # 显示会话信息
+        lines.append(f"\n📁 Session Information:")
+        lines.append(f"   Session Folder: {self.session_folder}")
+        lines.append(f"   Environment: {self.env.name}")
+        lines.append(f"   Environment Config: {self.env.config}")
+        
+        lines.append("=" * 80)
+        
+        # 一次性输出所有调试信息
+        self.logger.debug("\n".join(lines))
