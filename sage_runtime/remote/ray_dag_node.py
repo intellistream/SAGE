@@ -104,13 +104,22 @@ class RayDAGNode:
             self.logger.debug(f"Received data in node {self.name}, channel {input_channel}")
             
             # Call operator's receive method with correct input channel
-            self.operator.receive(input_channel, data)
+            self.operator.process_data(input_channel, data)
             
         except Exception as e:
             self.logger.error(f"Error processing data in node {self.name}: {e}", exc_info=True)
             raise
-        
-    def start(self):
+    
+    def run_once(self) -> None:
+        if self.transformation.type != TransformationType.SOURCE:
+            self.logger.warning(f"Node '{self.name}' is not a spout node, cannot run once.")
+            return
+        self.logger.info(f"Spout node '{self.name}' is running once.")
+        self.operator.process_data(0, None)
+
+
+
+    def run_loop(self):
         """
         Start the node. For spout nodes, this starts the generation loop.
         For non-spout nodes, this just marks the node as ready to receive data.
@@ -118,12 +127,12 @@ class RayDAGNode:
         self._running = True
         self._stop_requested = False
         
-        if self.transformation.transformation_type == TransformationType.SOURCE:
+        if self.transformation.type == TransformationType.SOURCE:
             # Start spout execution asynchronously
             try:
                 while self._running and not self._stop_requested:
                     # For spout nodes, call operator.receive with dummy channel and data
-                    self.operator.receive(0, None)
+                    self.operator.process_data(0, None)
                     time.sleep(0.1)  # Small delay to prevent overwhelming
                     
             except Exception as e:

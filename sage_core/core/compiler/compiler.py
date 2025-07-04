@@ -178,7 +178,7 @@ class Compiler:
         
         for transformation_name, nodes in transformation_groups.items():
             lines.append(f"\n📊 Transformation: {transformation_name}")
-            lines.append(f"   Type: {nodes[0].transformation.transformation_type.value}")
+            lines.append(f"   Type: {nodes[0].transformation.type.value}")
             lines.append(f"   Parallelism: {len(nodes)}")
             
             # 显示function信息

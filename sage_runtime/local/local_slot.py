@@ -28,7 +28,7 @@ class Slot:
         self.max_load = max_threads
         self.logger=logging.getLogger(__name__)
 
-    def submit_task(self, task) -> bool:
+    def submit_streaming_task(self, task) -> bool:
         """
                提交任务到线程池
 

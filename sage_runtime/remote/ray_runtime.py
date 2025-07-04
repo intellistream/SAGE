@@ -21,6 +21,12 @@ class RayRuntime(BaseRuntime):
             monitoring_interval: Interval in seconds for monitoring status
             session_folder: Session folder for logging
         """
+        self.logger = CustomLogger(
+            object_name=f"RayRuntime",
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
         # 确保Ray已初始化
         if not ray.is_initialized():
             ray.init()
@@ -29,7 +35,7 @@ class RayRuntime(BaseRuntime):
         self.session_folder = CustomLogger.get_session_folder()
         
         # Ray DAG 管理（保留向后兼容）
-        self.running_dags: Dict[str, RayDAG] = {}  # handle -> RayDAG映射
+        self.running_dags: Dict[str, Any] = {}  # handle -> RayDAG映射
         self.dag_spout_futures: Dict[str, List[ray.ObjectRef]] = {}  # handle -> spout futures
         self.dag_metadata: Dict[str, Dict[str, Any]] = {}  # handle -> metadata
         
@@ -43,12 +49,7 @@ class RayRuntime(BaseRuntime):
         self.next_handle_id = 0
         self.monitoring_interval = monitoring_interval
         
-        self.logger = CustomLogger(
-            object_name=f"RayRuntime",
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
-        )
+
     def __new__(cls, monitoring_interval: float = 1.0):
         # 禁止直接实例化
         raise RuntimeError("请通过 get_instance() 方法获取实例")

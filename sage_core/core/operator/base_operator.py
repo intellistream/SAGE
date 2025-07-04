@@ -1,9 +1,10 @@
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Optional
 from sage_core.api.collector import Collector
 # from sage_runtime.io.emit_context import BaseEmitContext, DownstreamTarget, NodeType
 # from sage_runtime.runtime_context import RuntimeContext
+from sage_utils.custom_logger import CustomLogger
 
 
 from sage_core.api.base_function import BaseFunction
@@ -15,16 +16,31 @@ from sage_core.api.tuple import Data
 # 路由策略是 Operator 的语义特征，EmitContext 专注于消息投递的物理实现。
 
 class BaseOperator(ABC):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, function: BaseFunction, session_folder: Optional[str] = None):
+        self.collector = Collector(self)  # 用于收集数据
+        self.session_folder = session_folder or None
+        self.logger = CustomLogger(
+            object_name = f"Operator_{function.__class__.__name__}",
+            session_folder = self.session_folder,
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
+        self.function = function
+        self.function.insert_collector(self.collector)
+
         self._name = self.__class__.__name__
         # 维护下游节点和路由逻辑
         from sage_runtime.io.emit_context import DownstreamTarget
         self.downstream_channels: Dict[int, List[DownstreamTarget]] = {}
         self.downstream_round_robin: Dict[int, int] = {}
-        self.collector = Collector(self)  # 用于收集数据
+
+
+
         self.runtime_context = None
-        self.function:BaseFunction = None
+
     
+
     def insert_emit_context(self, emit_context):
         """
         Inject the emit context into the operator.
@@ -41,17 +57,28 @@ class BaseOperator(ABC):
         self.runtime_context = runtime_context
         self.function.insert_runtime_context(runtime_context)
 
-    @abstractmethod
-    def receive(self, channel: int, data: Data):
+    def process_data(self, channel: int, data: Data):
         """
         Receive data from upstream node through specified channel.
-        Must be implemented by subclasses.
+        Default implementation calls execute() and emits result to channel 0.
+        Can be overridden by subclasses for custom receive logic.
         
         Args:
             channel: The input channel number
             data: The data received from upstream
         """
-        pass
+        try:
+            # Default behavior: call execute with received data and emit to channel 0
+            if(data is None):
+                result = self.function.execute()
+            else:
+                result = self.function.execute(data)
+            if result is not None:
+                self.emit(-1, result)
+                # Note: Using -1 to indicate broadcasting to each output channel
+        except Exception as e:
+            self.logger.error(f"Error in {self._name}.receive(): {e}")
+            raise
 
 
     def emit(self, channel: int, data: Any, target_index: int = None):

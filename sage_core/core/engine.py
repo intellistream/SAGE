@@ -20,7 +20,7 @@ class Engine:
         # self.compiler= QueryCompiler()
         from sage_core.core.compiler import Compiler
         self.graphs:dict[str, Compiler] = {}  # 存储 pipeline 名称到 SageGraph 的映射
-        self.dags:dict = {} # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
+        self.env_to_dag:dict = {} # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
 
         self.logger = CustomLogger(
             object_name=f"SageEngine",
@@ -58,9 +58,28 @@ class Engine:
             self.logger.info(f"Received mixed graph '{graph.name}' with {len(graph.nodes)} nodes")
             # 编译图
             mixed_dag = MixedDAG(graph)
-            self.dags[mixed_dag.name] = mixed_dag  # 存储 DAG 到字典中
-            mixed_dag.run()
+            self.env_to_dag[env.name] = mixed_dag  # 存储 DAG 到字典中
+            mixed_dag.submit()
             self.logger.info(f"Mixed graph '{graph.name}' submitted to runtime manager.")
         except Exception as e:
             self.logger.info(f"Failed to submit graph '{graph.name}': {e}")
             raise
+    
+    def run_once(self, env:BaseEnvironment, node:str = None):
+        """
+        执行一次环境的 DAG
+        """
+        self.logger.info(f"Executing DAG for environment '{env.name}'")
+        dag = self.env_to_dag.get(env.name)
+        self.logger.debug(f"Found DAG for environment '{env.name}': {dag}")
+        dag.execute_once()
+        self.logger.info(f"DAG for environment '{env.name}' have completed execution.")
+
+    def run_streaming(self, env:BaseEnvironment, node:str = None):
+        """
+        执行一次环境的 DAG
+        """
+        self.logger.info(f"Executing streaming DAG for environment '{env.name}'")
+        dag = self.env_to_dag.get(env.name)
+        dag.execute_streaming()
+        self.logger.info(f"Streaming DAG for environment '{env.name}' have started.")
