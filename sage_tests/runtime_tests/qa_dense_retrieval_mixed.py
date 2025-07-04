@@ -49,7 +49,7 @@ def pipeline_run():
     response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
     pipeline.execute()
-    time.sleep(100)  # 等待管道运行
+    # time.sleep(100)  # 等待管道运行
 
 
 if __name__ == '__main__':
