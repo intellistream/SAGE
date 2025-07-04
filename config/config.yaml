@@ -41,4 +41,3 @@ promptor:
 
 sink:
   platform: "local"
-
