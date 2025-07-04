@@ -9,15 +9,6 @@ from sage_runtime.runtime_context import RuntimeContext
 class DenseRetriever(BaseFunction):
     def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
 
-        self.logger = CustomLogger(
-            object_name=f"DenseRetriever_Function",
-            log_level="DEBUG",
-            session_folder=session_folder,
-            console_output=False,
-            file_output=True
-        )
-
-
         self.config = config
 
         
@@ -78,6 +69,13 @@ class BM25sRetriever(MemoryFunction,StatefulFunction): # 目前runtime context�
         self.bm25s_collection = self.config.get("bm25s_collection")
         self.bm25s_config = self.config.get("bm25s_config", {})
 
+        self.logger = CustomLogger(
+            object_name=f"BM25sRetriever_Function",
+            log_level="DEBUG",
+            session_folder=config.get("session_folder",None),
+            console_output=False,
+            file_output=True
+        )
 
     def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
         input_query = data.data
