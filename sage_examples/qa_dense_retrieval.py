@@ -1,6 +1,5 @@
-import logging
-import time
-
+from dotenv import load_dotenv
+import os
 from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.io.sink import TerminalSink
@@ -23,15 +22,20 @@ def pipeline_run():
         .sink(TerminalSink, config["sink"])
     )
     env.submit()
-    env.run_once()  # 启动管道
-    env.run_once()  # 启动管道
-    env.run_once()  # 启动管道
+    env.run_streaming()  # 启动管道
 
     time.sleep(100)  # 等待管道运行
 
 
 if __name__ == '__main__':
-    configure_logging(level=logging.INFO)
-    # 加载配置并初始化日志
-    config = load_config('config.yaml')
+
+
+    # 加载配置
+    config = load_config("config.yaml")
+    load_dotenv(override=False)
+
+    api_key = os.environ.get("ALIBABA_API_KEY")
+    if api_key:
+        config.setdefault("generator", {})["api_key"] = api_key
+
     pipeline_run()
