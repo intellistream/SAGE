@@ -101,11 +101,11 @@ class OpenAIClient():
 
 # if __name__ == '__main__':
     # prompt=[{"role":"user","content":"who are you"}]
-    # generator=OpenAIClient(model_name="qwen-max",base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",api_key="sk-b21a67cf99d14ead9d1c5bf8c2eb90ef",seed=42)
+    # generator=OpenAIClient(model_name="qwen-max",base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",api_key="",seed=42)
     # response=generator.generate((prompt))
     # print(response)
     # prompt=[{"role":"user","content":"who are you"}]
-    # generator=OpenAIClient(model_name="qwen-max",base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",api_key="sk-b21a67cf99d14ead9d1c5bf8c2eb90ef",seed=42,stream=True)
+    # generator=OpenAIClient(model_name="qwen-max",base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",api_key="",seed=42,stream=True)
     # response=generator.generate((prompt))
     # for text in response:
     #     print(text)

@@ -5,5 +5,5 @@ agent:
   method: "openai"
   model_name: "qwen-max"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  api_key: "sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"
+  api_key: ""
   seed: 42

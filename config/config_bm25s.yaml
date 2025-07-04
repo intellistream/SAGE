@@ -24,14 +24,14 @@ refiner:
   method: "openai"
   model_name: "qwen-turbo-0919"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  api_key: "sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"
+  api_key: ""
   seed: 42
 
 generator:
   method: "openai"
   model_name: "qwen-turbo-0919"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  api_key: "sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"
+  api_key: ""
   seed: 42
 
 sink:

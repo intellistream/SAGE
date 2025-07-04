@@ -9,7 +9,6 @@ import unittest
 
 
 
-
 class EmbeddingTestCase(unittest.TestCase):
 
     # def test_something(self):
