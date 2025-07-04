@@ -62,9 +62,6 @@ This method is recommended for advanced users who prefer manual dependency manag
 
 
 ## 🚀 Quick Start
-
-Here's the English version of your **Memory Toolkit** section, preserving the structure and explanation style:
-
 ### 🧠 Memory Toolkit
 
 Memory provides a lightweight in-memory vector database (VDB) supporting text embeddings, vector indexing, multi-index management, metadata filtering, persistence to disk, and recovery.
