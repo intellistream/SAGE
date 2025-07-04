@@ -1,7 +1,7 @@
 from typing import Tuple
 from sage_common_funs.utils.generator_model import apply_generator_model
-from sage.api.base_function import BaseFunction
-from sage.api.tuple import Data
+from sage_core.api.base_function import BaseFunction
+from sage_core.api.tuple import Data
 from sage_utils.custom_logger import CustomLogger
 
 

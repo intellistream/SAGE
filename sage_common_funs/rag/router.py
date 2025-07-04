@@ -2,8 +2,8 @@ from typeguard import value
 
 from typing import Tuple, List
 
-from sage.api.base_function import BaseFunction
-from sage.api.tuple import Data
+from sage_core.api.base_function import BaseFunction
+from sage_core.api.tuple import Data
 
 
 def condition(value:bool)->bool:

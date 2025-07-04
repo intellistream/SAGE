@@ -1,5 +1,5 @@
-from sage.api.base_function import BaseFunction
-from sage.api.tuple import Data
+from sage_core.api.base_function import BaseFunction
+from sage_core.api.tuple import Data
 from typing import Any
 
 from sage_runtime.io.local_message_queue import LocalMessageQueue

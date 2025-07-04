@@ -1,0 +1,8 @@
+{
+    "id":9,
+    "name":"FileSource",
+    "description":"Read queries from a file",
+    "code":"",
+    "transformation":"",
+    "isCustom":false
+}

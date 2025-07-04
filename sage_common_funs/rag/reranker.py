@@ -3,8 +3,8 @@ from typing import List, Tuple
 from transformers import AutoModelForSequenceClassification, AutoTokenizer,AutoModelForCausalLM
 import logging
 
-from sage.api.base_function import BaseFunction
-from sage.api.tuple import Data
+from sage_core.api.base_function import BaseFunction
+from sage_core.api.tuple import Data
 
 
 class BGEReranker(BaseFunction):
@@ -76,13 +76,19 @@ class BGEReranker(BaseFunction):
             pairs = [(query, doc) for doc in doc_set]
 
             # Tokenize the pairs and move inputs to the appropriate device
-            inputs = self.tokenizer(
-                        pairs,
-                        padding=True,
-                        truncation=True,
-                        max_length=512,
-                        return_tensors="pt"
-                    ).to(self.device)
+            raw_inputs = self.tokenizer(
+                            pairs,
+                            padding=True,
+                            truncation=True,
+                            max_length=512,
+                            return_tensors="pt"
+                        )
+            inputs = {
+                k: v.to(self.device) if isinstance(v, torch.Tensor) else v
+                for k, v in raw_inputs.items()
+            }
+
+
             
             # Perform inference and calculate scores
             scores = self.model(**inputs).logits.view(-1).float()
@@ -227,7 +233,9 @@ class LLMbased_Reranker(BaseFunction):
                 
                 # Tokenize the pairs and move inputs to the appropriate device
                 with torch.no_grad():
-                    inputs = self.get_inputs(pairs, self.tokenizer).to(self.device)
+                    raw_inputs = self.get_inputs(pairs, self.tokenizer)
+                    inputs = {k: v.to(self.device) for k, v in raw_inputs.items()}
+
                     scores = self.model(**inputs, return_dict=True).logits[:, -1, self.yes_loc].view(-1).float()
 
                 # Create a list of scored documents

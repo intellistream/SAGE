@@ -212,7 +212,7 @@ See more examples under [app](sage_examples)
 
 #### Experience our meticulously designed Sage -Dashboard both user-friendly and powerful::
 ```bash
-cd frontend/sage_server
+cd sage_frontend/sage_server
 python main.py --host 127.0.0.1 --port 8080 --log-level debug
 
 cd ../dashboard
