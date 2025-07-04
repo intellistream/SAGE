@@ -3,7 +3,7 @@
 
 from sage_common_funs.utils.generator_model import apply_generator_model
 
-api_key = "sk-b21a67cf99d14ead9d1c5bf8c2eb90ef"
+api_key = ""
 model=apply_generator_model("openai", model_name="qwen-max-2025-01-25", base_url="https://dashscope.aliyuncs.com/compatible-mode/v1", api_key=api_key, seed=42)
 # response=model.generate(prompt)
 # print(response)
