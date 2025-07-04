@@ -119,7 +119,7 @@ class RayDAGNode:
 
 
 
-    def run_loop(self):
+    def run_loop(self): # deprecated
         """
         Start the node. For spout nodes, this starts the generation loop.
         For non-spout nodes, this just marks the node as ready to receive data.
