@@ -1,5 +1,4 @@
 import logging
-
 from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.io.sink import TerminalSink
@@ -12,7 +11,7 @@ from sage_utils.logging_utils import configure_logging
 def pipeline_run():
     """创建并运行数据处理管道"""
     env = LocalEnvironment()
-    env.set_memory()
+    env.set_memory(config=None)
     # 构建数据处理流程
     query_stream = env.from_source(FileSource, config["source"])
     query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])
@@ -29,4 +28,5 @@ if __name__ == '__main__':
     configure_logging(level=logging.INFO)
     # 加载配置并初始化日志
     config = load_config('config_hf.yaml')
+
     pipeline_run()

@@ -164,4 +164,5 @@ jobs:
           export SILICONCLOUD_API_KEY=${{ secrets.SILICONCLOUD_API_KEY }}
           export OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           export JINA_API_KEY=${{ secrets.JINA_API_KEY }}
+          export ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
           conda run -n sage pytest -v sage_tests
