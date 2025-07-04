@@ -1,0 +1,258 @@
+.container {
+  margin: 10px 0 16px 0;
+  background-color: #FCFCFD;
+  padding: 14px 20px;
+  border-radius: 0;
+  border: 2px;
+}
+
+#job-description {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+#main-container {
+  margin: 0 0;
+  padding: 10px 20px 30px;
+}
+
+#operator-list-view {
+  //height: 100%;
+  overflow-y: auto;
+}
+
+#job-description-view {
+  flex: 1;
+}
+
+#tpg-container {
+  width: 100%;
+  height: 97%;
+}
+
+.job-info-row {
+  align-items: stretch;
+  height: auto;
+  display: flex;
+  position: relative;
+}
+
+.selector_container {
+  margin-top: 20px;
+  //margin-bottom: 20px;
+}
+
+.link {
+  stroke: #999;
+  stroke-width: 1.5px;
+}
+
+.node {
+  fill: #1f77b4;
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+.operator-node {
+  //border: 4px solid #8cc8ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid #2C8FFE;
+  cursor: pointer;
+  font-size: 12px;
+  height: 100%;
+  line-height: 1.2;
+  border-radius: 0;
+  text-align: center;
+  word-break: break-all;
+  transition: 0.3s;
+}
+
+.operator-node:hover {
+  background-color: #f0f0f0;
+  transition: 0.3s;
+}
+
+#modal-container {
+  width: 100%;
+  height: 500px;
+}
+
+.hover-popup {
+  display: none;
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  pointer-events: none;
+}
+
+.legend-item-color {
+  display: flex;
+  align-items: center;
+}
+
+.legend-item-text {
+  margin-left: 10px;
+}
+
+#legend-container {
+  margin-bottom: 10px;
+}
+// .job-info-row {
+//   display: flex;
+//   flex-direction: column;
+// }
+
+// 保留这个样式
+nz-col.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+
+}
+nz-col.containerb {
+
+  min-height: 600px;
+}
+// 修改iframe样式，使用flex布局
+.full-iframe {
+  flex: 1; // 占用所有剩余空间
+  width: 100%;
+  border: none;
+  margin-top: 1px; 
+
+}
+
+// 删除或注释掉这个冲突的样式
+// .full-iframe {
+//   width: 100%;
+//   height: 90%;
+//   border: none;
+//   position: absolute;
+//   left: 0;
+//   right: 0;
+//   bottom: 0;
+// }
+.container {
+  position: relative;
+  // min-height: 500px; /* 设置一个最小高度 */
+}
+
+.full-iframe {
+  width: 100%;
+  height: 95%;
+  // min-height: 500px; /* 与容器相同的最小高度 */
+  border: none;
+  position: absolute;
+  // top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+.config-editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+}
+
+.config-title {
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 500;
+  color: #1890ff;
+  display: flex;
+  align-items: center;
+}
+
+.config-title span {
+  margin-right: 8px;
+}
+
+.editor-wrapper {
+  flex: 1;
+  margin-bottom: 16px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.config-textarea {
+  width: 100%;
+  font-family: 'Courier New', Courier, monospace;
+  resize: none;
+  padding: 12px;
+  line-height: 1.5;
+  border: none;
+}
+
+.config-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+nz-alert {
+  margin-bottom: 16px;
+}
+
+.config-form {
+  .env-var-item {
+    margin-bottom: 8px;
+  }
+  
+  nz-form-item {
+    margin-bottom: 16px;
+  }
+}
+
+.config-editor-container {
+  height: 100%;
+  
+  .config-title {
+    margin-bottom: 16px;
+    color: #1890ff;
+  }
+  
+  .config-actions {
+    margin-top: 16px;
+    text-align: right;
+    
+    button {
+      margin-left: 8px;
+    }
+  }
+}
+
+.responsive-image {
+  display: block;
+  max-width: 500px;   /* 你可以改为 500px、400px 等 */
+  width: 100%;
+  height: auto;
+  margin: 0 auto;     /* 居中 */
+  object-fit: contain;
+}
+.topology-scroll-container {
+  max-height: 400px;       // 你可以按需要改为 500px、600px 等
+  overflow-y: auto;
+  padding: 10px;
+  background-color: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+.iframe-wrapper {
+  height: 600px;       /* 固定高度 */
+  overflow: hidden;
+  position: relative;
+}
+.full-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  margin: 0;
+  padding: 0;
+}

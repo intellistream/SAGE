@@ -1,0 +1,123 @@
+<div class="operator-editor-container">
+  <!-- Operator列表区域 -->
+  <nz-card class="operator-list-card">
+    <div nz-card-header>
+      <div class="header-content">
+        <h3>Operator List</h3>
+        <button nz-button nzType="primary" (click)="showAddOperatorModal()">
+          <span nz-icon nzType="plus"></span>Add Operator
+        </button>
+      </div>
+    </div>
+    <div nz-card-content>
+      <!-- 搜索框 -->
+      <div class="search-box">
+        <nz-input-group [nzSuffix]="suffixIconSearch">
+          <input type="text" nz-input placeholder="Search operators..." [(ngModel)]="searchText" />
+        </nz-input-group>
+        <ng-template #suffixIconSearch>
+          <span nz-icon nzType="search"></span>
+        </ng-template>
+      </div>
+
+      <!-- Operator列表 -->
+      <nz-list [nzDataSource]="operators" [nzRenderItem]="operatorItem" [nzItemLayout]="'horizontal'">
+        <ng-template #operatorItem let-operator>
+          <nz-list-item>
+            <nz-list-item-meta
+              [nzTitle]="operator.name"
+              [nzDescription]="operator.description"
+              [nzAvatar]="operator.icon || 'assets/images/default-operator-icon.png'">
+            </nz-list-item-meta>
+            <ul nz-list-item-actions>
+              <nz-list-item-action>
+                <a (click)="editOperator(operator)" *ngIf="operator.isCustom" title="编辑">
+                  <span nz-icon nzType="edit" nzTheme="outline"></span>
+                </a>
+                <span *ngIf="!operator.isCustom" class="disabled-action" title="系统Operator不可编辑">
+                  <span nz-icon nzType="edit" nzTheme="outline" style="color: #d9d9d9;"></span>
+                </span>
+              </nz-list-item-action>
+              <nz-list-item-action>
+                <a (click)="deleteOperator(operator)" *ngIf="operator.isCustom" title="删除">
+                  <span nz-icon nzType="delete" nzTheme="outline"></span>
+                </a>
+                <span *ngIf="!operator.isCustom" class="disabled-action" title="系统Operator不可删除">
+                  <span nz-icon nzType="delete" nzTheme="outline" style="color: #d9d9d9;"></span>
+                </span>
+              </nz-list-item-action>
+            </ul>
+          </nz-list-item>
+        </ng-template>
+      </nz-list>
+
+      <!-- 分页器 -->
+      <div class="pagination">
+        <nz-pagination
+          [nzTotal]="totalOperators"
+          [(nzPageIndex)]="currentPage"
+          [(nzPageSize)]="pageSize"
+          (nzPageIndexChange)="loadOperators()">
+        </nz-pagination>
+      </div>
+    </div>
+  </nz-card>
+
+  <!-- 新增/编辑Operator弹窗 -->
+  <nz-modal
+    [(nzVisible)]="isOperatorModalVisible"
+    [nzTitle]="modalTitle"
+    (nzOnCancel)="handleModalCancel()"
+    (nzOnOk)="handleModalOk()"
+    [nzWidth]="900">
+    <ng-container *nzModalContent>
+      <form nz-form [formGroup]="operatorForm">
+        <!-- 基本信息 -->
+        <nz-form-item>
+          <nz-form-label [nzSpan]="6">Operator Name</nz-form-label>
+          <nz-form-control [nzSpan]="18">
+            <input nz-input formControlName="name" placeholder="Enter operator name" />
+          </nz-form-control>
+        </nz-form-item>
+        
+        <nz-form-item>
+          <nz-form-label [nzSpan]="6">Description</nz-form-label>
+          <nz-form-control [nzSpan]="18">
+            <textarea nz-input formControlName="description" placeholder="Enter operator description" rows="3"></textarea>
+          </nz-form-control>
+        </nz-form-item>
+
+        <!-- 代码编辑器 -->
+        <nz-form-item>
+          <nz-form-label [nzSpan]="6">Implementation</nz-form-label>
+          <nz-form-control [nzSpan]="18">
+            <nz-card class="code-editor-card">
+              <div class="code-format-hint">
+                <!-- 代码格式提示 -->
+                <nz-alert
+                  nzType="info"
+                  nzMessage="Code Format Requirements"
+                  [nzDescription]="formatDescription"
+                  nzShowIcon>
+                </nz-alert>
+                <ng-template #formatDescription>
+                  <ul>
+                    <li>Must include proper class definition</li>
+                    <li>Implement required interfaces</li>
+                    <li>Include necessary imports</li>
+                  </ul>
+                </ng-template>
+              </div>
+              <!-- 替换 ngx-monaco-editor 为 nz-code-editor -->
+              <nz-code-editor
+                formControlName="implementation"
+                [nzEditorOption]="editorOptions"
+                style="height: 400px;">
+              </nz-code-editor>
+            </nz-card>
+          </nz-form-control>
+        </nz-form-item>
+      </form>
+    </ng-container>
+  </nz-modal>
+</div>
