@@ -6,7 +6,7 @@ import logging
 import time
 from typing import TYPE_CHECKING
 
-from sage.api.env import LocalEnvironment
+from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.sink import FileSink
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.rag.generator import OpenAIGenerator
@@ -17,7 +17,7 @@ from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging
 
 if TYPE_CHECKING:
-    from sage.api.datastream import DataStream
+    from sage_core.api.datastream import DataStream
 
 def init_memory_and_pipeline():
     # 创建一个新的管道实例

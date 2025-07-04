@@ -2,9 +2,9 @@ from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any
 
 # from sage.api.env import Environment
-from sage.core.operator.base_operator import BaseOperator
-from sage.core.operator.transformation import TransformationType, Transformation
-from sage.api.base_function import BaseFunction
+from sage_core.core.operator.base_operator import BaseOperator
+from sage_core.core.operator.transformation import TransformationType, Transformation
+from sage_core.api.base_function import BaseFunction
     
 class DataStream:
 

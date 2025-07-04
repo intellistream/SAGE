@@ -4,8 +4,8 @@ import threading
 import time
 from typing import Any, Optional
 
-from sage.api.base_function import BaseFunction
-from sage.api.tuple import Data
+from sage_core.api.base_function import BaseFunction
+from sage_core.api.tuple import Data
 
 
 class TriggerableSource(BaseFunction):

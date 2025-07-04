@@ -1,6 +1,6 @@
 from typing import Any, List, Literal, Optional, Union
-from sage.api.base_function import BaseFunction
-from sage.api.tuple import Data
+from sage_core.api.base_function import BaseFunction
+from sage_core.api.tuple import Data
 from typing import Any, List, Optional
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer

@@ -1,13 +1,13 @@
 
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict
-from sage.api.collector import Collector
+from sage_core.api.collector import Collector
 # from sage_runtime.io.emit_context import BaseEmitContext, DownstreamTarget, NodeType
 # from sage_runtime.runtime_context import RuntimeContext
 
 
-from sage.api.base_function import BaseFunction
-from sage.api.tuple import Data
+from sage_core.api.base_function import BaseFunction
+from sage_core.api.tuple import Data
 
 # TODO: 将Memory的API使用在这里。
 # Operator 决定事件的逻辑路由（如广播、分区、keyBy等），

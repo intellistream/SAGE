@@ -1,6 +1,6 @@
 from .base_operator import BaseOperator, Data
 from typing import Union
-from sage.api.base_function import BaseFunction
+from sage_core.api.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 
 

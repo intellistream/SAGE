@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from sage.api.collector import Collector
+from sage_core.api.collector import Collector
 
 
 
