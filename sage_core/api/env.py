@@ -7,18 +7,25 @@ import sage_memory.api
 from sage_core.api.base_function import BaseFunction
 from sage_core.api.datastream import DataStream
 from sage_core.core.operator.transformation import TransformationType, Transformation
-
+from sage_utils.custom_logger import CustomLogger
 
 class BaseEnvironment:
 
     def __init__(self, name: str, config: dict | None, *, platform: str, ):
         self.name = name
+        self.logger = CustomLogger(
+            object_name=f"Environment_{name}",
+            log_level="DEBUG",
+            console_output=False,
+            file_output=True
+        )
         self.config: dict = dict(config or {})
         self.config["platform"] = platform
         # 用于收集所有 Transformation，供 Compiler 构建 DAG
         self._pipeline: List[Transformation] = []
         self.runtime_context = dict  # 需要在compiler里面实例化。
         self.memory_collection = None  # 用于存储内存集合
+        self.is_running = False
 
     def from_source(self, function: Union[BaseFunction, Type[BaseFunction]], *args, **kwargs: Any) -> DataStream:
         """用户 API：声明一个数据源并返回 DataStream 起点。"""
@@ -42,6 +49,8 @@ class BaseEnvironment:
         """
         运行一次管道，适用于测试或调试。
         """
+        if(self.is_running):
+            raise RuntimeError("Pipeline is already running. Please stop it before running again.")
         from sage_core.core.engine import Engine
         engine = Engine.get_instance()
         engine.run_once(self)
@@ -55,6 +64,15 @@ class BaseEnvironment:
         engine = Engine.get_instance()
         engine.run_streaming(self)
         # time.sleep(10) # 等待管道启动
+
+    def stop(self):
+        """
+        停止管道运行。
+        """
+        from sage_core.core.engine import Engine
+        engine = Engine.get_instance()
+        engine.stop(self)
+
 
     @property
     def pipeline(self) -> List[Transformation]:  # noqa: D401
