@@ -125,7 +125,6 @@ class MixedDAG:
                 memory_collection
             )
             self.logger.debug(f"Created Ray actor node: {graph_node.name}")
-            return node
         else:
             # 创建本地节点
             node = LocalDAGNode(
@@ -134,8 +133,14 @@ class MixedDAG:
                 memory_collection
             )
             self.logger.debug(f"Created local node: {graph_node.name}")
-            return node
-
+        
+        from sage_core.core.operator.transformation import TransformationType
+        if(transformation.type == TransformationType.SOURCE):
+            self.spout_nodes.append(graph_node.name)
+            self.logger.debug(f"Node '{graph_node.name}' is a spout node")
+        
+        
+        return node
 
 
     def _detect_platform(self, executor: Any) -> str:
@@ -191,7 +196,79 @@ class MixedDAG:
             except Exception as e:
                 self.logger.error(f"Error stopping node {node_name}: {e}")
     
-    def run(self) -> Dict[str, List[str]]:
+    def submit(self):
+        self.logger.info(f"Submitting MixedDAG '{self.name}'")
+        try:
+            for node_name, node_handle in self.operators.items():
+                if( node_name in self.spout_nodes):
+                    self.logger.debug(f"Node '{node_name}' is a spout node, skipping submission")
+                    continue
+                if isinstance(node_handle, LocalDAGNode):
+                    local_runtime = LocalRuntime.get_instance()
+                    local_runtime.submit_node(node_handle)
+                    self.logger.debug(f"Submitted local node: {node_name}")
+                elif isinstance(node_handle, ActorHandle):
+                    ray_runtime = RayRuntime.get_instance()
+                    ray_runtime.submit_actor_instance(node_handle, node_name)
+                    self.logger.debug(f"Submitted Ray actor: {node_name}")
+        except Exception as e:
+            self.logger.error(f"Failed to submit MixedDAG '{self.name}': {e}", exc_info=True)
+            # 清理已经提交的节点
+            # self._cleanup_partial_submission(local_runtime, ray_runtime)
+            raise
+
+    def execute_once(self, spout_node_name:str = None):
+        self.logger.info(f"executing once")
+        if(spout_node_name is None):
+            for node_name in self.spout_nodes:
+                node_handle = self.operators[node_name]
+                if isinstance(node_handle, LocalDAGNode):
+                    self.logger.debug(f"Running spout node: {node_name}")
+
+                    node_handle.run_once()
+                elif isinstance(node_handle, ActorHandle):
+                    self.logger.debug(f"Running remote spout node: {node_name}")
+
+                    # Ray Actor执行一次
+                    node_handle.run_once.remote()
+        else:
+            if spout_node_name in self.spout_nodes:
+                node_handle = self.operators[spout_node_name]
+                if isinstance(node_handle, LocalDAGNode):
+                    self.logger.debug(f"Running spout node: {node_name}")
+
+                    node_handle.run_once()
+                elif isinstance(node_handle, ActorHandle):
+                    self.logger.debug(f"Running remote spout node: {node_name}")
+
+                    # Ray Actor执行一次
+                    node_handle.run_once.remote()
+            else:
+                self.logger.warning(f"Spout node '{spout_node_name}' not found in MixedDAG '{self.name}'")
+
+    def execute_streaming(self, spout_node_name:str = None):
+        self.logger.info(f"executing streaming")
+        if(spout_node_name is None):
+            for node_name in self.spout_nodes:
+                node_handle = self.operators[node_name]
+                if isinstance(node_handle, LocalDAGNode):
+                    node_handle.run_loop()
+                elif isinstance(node_handle, ActorHandle):
+                    # Ray Actor执行一次
+                    node_handle.run_loop.remote()
+        else:
+            if spout_node_name in self.spout_nodes:
+                node_handle = self.operators[spout_node_name]
+                if isinstance(node_handle, LocalDAGNode):
+                    node_handle.run_loop()
+                elif isinstance(node_handle, ActorHandle):
+                    # Ray Actor执行一次
+                    node_handle.run_loop.remote()
+            else:
+                self.logger.warning(f"Spout node '{spout_node_name}' not found in MixedDAG '{self.name}'")
+
+
+    def run(self) -> Dict[str, List[str]]: # deprecated
         """
         启动MixedDAG执行，将所有节点注册到对应的运行时
         
@@ -208,8 +285,6 @@ class MixedDAG:
             # 获取运行时实例
 
             
-            local_runtime = LocalRuntime.get_instance()
-            ray_runtime = RayRuntime.get_instance()
             
             # 分离本地节点和Ray节点
             local_nodes = []
@@ -228,6 +303,7 @@ class MixedDAG:
             # 提交本地节点到LocalRuntime
             if local_nodes:
                 self.logger.info(f"Submitting {len(local_nodes)} local nodes to LocalRuntime")
+                local_runtime = LocalRuntime.get_instance()
                 self.local_handles = local_runtime.submit_nodes(local_nodes)
                 
                 # 注册本地节点到TCP服务器（用于接收Ray Actor的数据）
@@ -240,6 +316,7 @@ class MixedDAG:
             
             # 提交Ray节点到RayRuntime
             if ray_actors:
+                ray_runtime = RayRuntime.get_instance()
                 self.logger.info(f"Submitting {len(ray_actors)} Ray actors to RayRuntime")
                 self.ray_handles = ray_runtime.submit_actors(ray_actors, ray_node_names)
                 self.logger.info(f"Successfully submitted Ray actors with handles: {self.ray_handles}")
@@ -324,7 +401,7 @@ class MixedDAG:
                 # 显示transformation信息
                 if hasattr(operator, 'transformation'):
                     transformation = operator.transformation
-                    lines.append(f"      Transformation: {transformation.transformation_type.value}")
+                    lines.append(f"      Transformation: {transformation.type.value}")
                     lines.append(f"      Function: {transformation.function_class.__name__}")
                     lines.append(f"      Parallelism: {transformation.parallelism}")
                 
@@ -348,7 +425,7 @@ class MixedDAG:
                 if node_name in self.graph.nodes:
                     graph_node = self.graph.nodes[node_name]
                     transformation = graph_node.transformation
-                    lines.append(f"      Transformation: {transformation.transformation_type.value}")
+                    lines.append(f"      Transformation: {transformation.type.value}")
                     lines.append(f"      Function: {transformation.function_class.__name__}")
                     lines.append(f"      Parallelism: {transformation.parallelism}")
                 

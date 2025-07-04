@@ -48,7 +48,7 @@ def pipeline_run():
     response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
     response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
-    pipeline.execute()
+    pipeline.submit()
     time.sleep(100)  # 等待管道运行
 
 

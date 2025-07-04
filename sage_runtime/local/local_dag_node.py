@@ -47,17 +47,15 @@ class LocalDAGNode:
 
 
 
-        self.is_spout = transformation.transformation_type == TransformationType.SOURCE  # Check if this is a spout node 正确
+        self.is_spout = (transformation.type == TransformationType.SOURCE)  # Check if this is a spout node 正确
         self.input_buffer = LocalMessageQueue()  # Local input buffer for this node
 
         # Initialize stop event
         self.stop_event = threading.Event()
-        self._current_channel_index = 0
-        self._initialized = False
 
 
 
-        # self.logger.info(f"transformation_type: {transformation.transformation_type}")
+        # self.logger.info(f"type: {transformation.type}")
         self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout})")
 
     
@@ -85,6 +83,18 @@ class LocalDAGNode:
             self.logger.error(f"Error adding downstream node: {e}", exc_info=True)
             raise
     
+    def run_once(self) -> None:
+        """
+        Execute the node once, processing any available input data.
+        This is typically used for spout nodes to emit initial data.
+        """
+        if self.is_spout is False:
+            self.logger.warning(f"Node '{self.name}' is not a spout node, cannot run once.")
+            return
+        
+        self.logger.info(f"Spout node '{self.name}' is running once.")
+        self.operator.process_data(0, None)
+
     def run_loop(self) -> None:
         """
         Main worker loop that executes continuously until stop is signaled.
@@ -98,7 +108,7 @@ class LocalDAGNode:
             try:
                 if self.is_spout:
                     # For spout nodes, call operator.receive with dummy channel and data
-                    self.operator.receive(0, None)
+                    self.operator.process_data(0, None)
                     time.sleep(1)  # Sleep to avoid busy loop
                 else:
                     # For non-spout nodes, fetch input and process
@@ -110,7 +120,7 @@ class LocalDAGNode:
                     (input_channel, data) = data_packet
                     self.logger.debug(f"Processing data from buffer: channel={input_channel}")
                     # Call operator's receive method with the channel_id and data
-                    self.operator.receive(input_channel, data)
+                    self.operator.process_data(input_channel, data)
                     
             except Exception as e:
                 self.logger.error(

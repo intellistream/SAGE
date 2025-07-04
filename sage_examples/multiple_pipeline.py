@@ -18,7 +18,8 @@ def ingest_pipeline_run():
     chunk_stream = source_stream.map(CharacterSplitter,config_for_ingest["chunk"])
     memwrite_stream= chunk_stream.map(MemoryWriter,config_for_ingest["writer"])
     sink_stream= memwrite_stream.sink(MemWriteSink,config_for_ingest["sink"])
-    env.execute()
+    env.submit()
+    env.run_streaming()  # 启动管道
 
 def qa_pipeline_run():
     """创建并运行数据处理管道"""
@@ -31,7 +32,8 @@ def qa_pipeline_run():
     response_stream = prompt_stream.map(OpenAIGenerator, config_for_qa["generator"])
     response_stream.sink(FileSink, config_for_qa["sink"])
     # 提交管道并运行
-    env.execute()
+    env.submit()
+    env.run_streaming()  # 启动管道
 
 if __name__ == '__main__':
     # 加载配置并初始化日志

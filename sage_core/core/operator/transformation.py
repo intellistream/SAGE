@@ -27,14 +27,14 @@ class Transformation:
     }
     def __init__(
         self,
-        transformation_type: TransformationType,
+        type: TransformationType,
         function: Union[BaseFunction, Type[BaseFunction] ],
         *args,
         parallelism: int = 1,
         platform:str = "local",
         **kwargs
     ):
-        self.transformation_type = transformation_type
+        self.type = type
         """
         Args:
             op_or_class: 可以是 rag/operator 的实例，
@@ -46,7 +46,7 @@ class Transformation:
             self.is_instance = True
             self.function = function
             self.function_class = type(function)
-        elif isinstance(function, type):
+        elif isinstance(function, Type):
             self.is_instance = False
             self.function = None
             self.function_class = function
@@ -61,10 +61,10 @@ class Transformation:
             console_output=False,
             file_output=True
         )
-        self.logger.debug(f"Creating Transformation of type {transformation_type} with rag {self.function_class.__name__}")
+        self.logger.debug(f"Creating Transformation of type {type} with rag {self.function_class.__name__}")
 
 
-        self.operator_class = self.TO_OPERATOR.get(transformation_type, None)
+        self.operator_class = self.TO_OPERATOR.get(type, None)
         self.upstream: List["Transformation"] = []
         self.downstream: List["Transformation"] = []
         self.parallelism = parallelism
@@ -96,6 +96,7 @@ class Transformation:
             # *self.args是用户传递的Function构造函数参数
             # **kwargs是engine传递的构造函数参数
             self.function = self.function_class(*self.args, **kwargs)
+            self.logger.debug(f"Created function instance: {self.function_class.__name__} with args {self.args} and kwargs {kwargs}")
         return self.operator_class(self.function, **kwargs)
 
     def __repr__(self) -> str:

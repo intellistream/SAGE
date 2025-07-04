@@ -40,7 +40,7 @@ def init_memory_and_pipeline():
     # print(pipeline.get_graph_preview())
 
     # 提交管道到 SAGE 运行时
-    pipeline.execute(name="example_pipeline")
+    pipeline.submit(name="example_pipeline")
 
     # 等待管道运行一段时间
     time.sleep(100)

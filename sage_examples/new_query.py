@@ -22,7 +22,9 @@ def pipeline_run():
     response_stream.sink(TerminalSink, config["sink"])
 
     # 提交管道并运行
-    env.execute(name="example_pipeline")
+    env.submit(name="example_pipeline")
+    env.run_streaming()  # 启动管道
+
     while(True):
         user_input = input("\n>>> ").strip()
         if user_input.lower() == "exit":

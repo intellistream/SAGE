@@ -30,13 +30,31 @@ class BaseEnvironment:
     def create_source(self):
         pass
 
-    def execute(self, name="example_pipeline"):
+    def submit(self, name="example_pipeline"):
         from sage_core.core.engine import Engine
         engine = Engine.get_instance()
         engine.submit_env(self)
         # time.sleep(10) # 等待管道启动
         while (self.initlized() is False):
             time.sleep(1)
+
+    def run_once(self, node:str = None):
+        """
+        运行一次管道，适用于测试或调试。
+        """
+        from sage_core.core.engine import Engine
+        engine = Engine.get_instance()
+        engine.run_once(self)
+        # time.sleep(10) # 等待管道启动
+
+    def run_streaming(self, node: str = None):
+        """
+        运行管道，适用于生产环境。
+        """
+        from sage_core.core.engine import Engine
+        engine = Engine.get_instance()
+        engine.run_streaming(self)
+        # time.sleep(10) # 等待管道启动
 
     @property
     def pipeline(self) -> List[Transformation]:  # noqa: D401

@@ -22,7 +22,11 @@ def pipeline_run():
         .map(OpenAIGenerator, config["generator"])
         .sink(TerminalSink, config["sink"])
     )
-    env.execute()
+    env.submit()
+    env.run_once()  # 启动管道
+    env.run_once()  # 启动管道
+    env.run_once()  # 启动管道
+
     time.sleep(100)  # 等待管道运行
 
 

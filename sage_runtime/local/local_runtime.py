@@ -211,7 +211,7 @@ class LocalRuntime(BaseRuntime):
             
             # 选择slot并提交
             slot_id = self.scheduling_strategy.select_slot(node, self.available_slots)
-            success = self.available_slots[slot_id].submit_task(node)
+            success = self.available_slots[slot_id].submit_streaming_task(node)
             
             if success:
                 # 生成handle
