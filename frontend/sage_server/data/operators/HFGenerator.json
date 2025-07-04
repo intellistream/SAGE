@@ -1,8 +1,0 @@
-{
-    "id":2,
-    "name":"HFGenerator",
-    "description":"HuggingFace Generator",
-    "code":"",
-    "transformation":"generate_response",
-    "isCustom":false
-}
