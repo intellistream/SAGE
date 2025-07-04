@@ -1,7 +1,7 @@
 # file sage/sage_tests/neuromem_test/core_test/manager_test.py
 # python -m sage.sage_tests.neuromem_test.core_test.manager_test
 
-def vdbtest(do_reload=True, do_delete=True):
+def test_vdb(do_reload=True, do_delete=True):
     from sage_memory.memory_manager import MemoryManager
     from sage_utils.embedding_methods.mockembedder import MockTextEmbedder
     import os
@@ -74,7 +74,7 @@ def vdbtest(do_reload=True, do_delete=True):
 
 # 作为测试脚本被自动调用
 if __name__ == "__main__":
-    vdbtest()
+    test_vdb()
 
 
 # def kvtest():
