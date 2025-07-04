@@ -3,7 +3,7 @@ from typing import List
 import os
 import sys
 
-from sage.api.tuple import Data
+from sage_core.api.tuple import Data
 from sage_common_funs.rag.arxiv import ArxivPDFDownloader, ArxivPDFParser
 
 # 添加项目根路径到 PYTHONPATH 和 sys.path

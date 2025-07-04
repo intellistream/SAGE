@@ -4,8 +4,8 @@ from typing import Any, Dict, Union
 from ray.actor import ActorHandle
 
 from sage_runtime.io.ray_emit_context import RayEmitContext
-from sage.core.operator.transformation import Transformation, TransformationType
-from sage.core.operator.base_operator import BaseOperator
+from sage_core.core.operator.transformation import Transformation, TransformationType
+from sage_core.core.operator.base_operator import BaseOperator
 from sage_runtime.runtime_context import RuntimeContext
 
 from sage_utils.custom_logger import CustomLogger

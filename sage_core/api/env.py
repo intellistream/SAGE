@@ -4,9 +4,9 @@ import time
 from typing import Type, Union, Any, List
 
 import sage_memory.api
-from sage.api.base_function import BaseFunction
-from sage.api.datastream import DataStream
-from sage.core.operator.transformation import TransformationType, Transformation
+from sage_core.api.base_function import BaseFunction
+from sage_core.api.datastream import DataStream
+from sage_core.core.operator.transformation import TransformationType, Transformation
 
 
 class BaseEnvironment:
@@ -31,7 +31,7 @@ class BaseEnvironment:
         pass
 
     def execute(self, name="example_pipeline"):
-        from sage.core.engine import Engine
+        from sage_core.core.engine import Engine
         engine = Engine.get_instance()
         engine.submit_env(self)
         # time.sleep(10) # 等待管道启动

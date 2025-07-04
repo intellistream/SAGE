@@ -1,5 +1,5 @@
 # from sage.core.compiler.query_compiler import QueryCompiler
-from sage.api.env import BaseEnvironment
+from sage_core.api.env import BaseEnvironment
 from sage_runtime.mixed_dag import MixedDAG
 from sage_runtime.runtime_manager import RuntimeManager
 from sage_utils.custom_logger import CustomLogger
@@ -18,7 +18,7 @@ class Engine:
         # self.dag_manager = DAGManager() # deprecated
         self.runtime_manager = RuntimeManager.get_instance()
         # self.compiler= QueryCompiler()
-        from sage.core.compiler import Compiler
+        from sage_core.core.compiler import Compiler
         self.graphs:dict[str, Compiler] = {}  # 存储 pipeline 名称到 SageGraph 的映射
         self.dags:dict = {} # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
 
@@ -50,7 +50,7 @@ class Engine:
         return cls._instance
     
     def submit_env(self, env:BaseEnvironment):
-        from sage.core.compiler import Compiler
+        from sage_core.core.compiler import Compiler
         graph = Compiler(env)
         graph.debug_print_graph()
         self.graphs[graph.name] = graph

@@ -2,7 +2,7 @@
 import os
 import sys
 
-from sage.core.operator.base_operator import Data
+from sage_core.core.operator.base_operator import Data
 from sage_common_funs.agent.agent import BaseAgent
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.rag.evaluate import F1Evaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate

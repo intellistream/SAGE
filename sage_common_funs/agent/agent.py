@@ -1,13 +1,13 @@
 from calendar import c
 from sage_common_funs.utils.generator_model import apply_generator_model
-from sage.api.base_function import BaseFunction
+from sage_core.api.base_function import BaseFunction
 
 from typing import Any,Tuple
 import requests
 import json
 import re
 
-from sage.api.tuple import Data
+from sage_core.api.tuple import Data
 
 
 class Tool:

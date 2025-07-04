@@ -4,9 +4,9 @@
 from __future__ import annotations
 from typing import List, Type, Union
 from enum import Enum
-from sage.api.base_function import BaseFunction
-from sage.core.operator.base_operator import BaseOperator
-from sage.core.operator.map_operator import MapOperator
+from sage_core.api.base_function import BaseFunction
+from sage_core.core.operator.base_operator import BaseOperator
+from sage_core.core.operator.map_operator import MapOperator
 from sage_utils.custom_logger import CustomLogger
 
 class TransformationType(Enum):

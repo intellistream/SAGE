@@ -1,7 +1,7 @@
 
 import pytest
 from sage_common_funs.rag.promptor import QAPromptor
-from sage.api.tuple import Data
+from sage_core.api.tuple import Data
 import sys
 print(sys.path)
 @pytest.fixture
@@ -26,7 +26,7 @@ def test_qapromptor_without_corpus(config):
     assert "You are a helpful AI assistant" in result.data[0]["content"]
     assert result.data[1]["content"] == "Question: What is AI?"
 
-from sage.api.tuple import Data
+from sage_core.api.tuple import Data
 from sage_common_funs.rag.generator import OpenAIGenerator, HFGenerator
 
 @pytest.fixture
