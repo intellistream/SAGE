@@ -62,7 +62,7 @@ class BaseEnvironment:
         return self._pipeline
 
     def set_memory(self, config):
-        self.memory_collection = sage_memory.api.create_memory(config)
+        self.memory_collection = sage_memory.api.create_memory(config, remote = (self.config.get("platform", "local") == "remote"))
 
     # TODO: 写一个判断Env 是否已经完全初始化并开始执行的函数
     def initlized(self):
