@@ -34,7 +34,6 @@ class LocalDAGNode:
         """
         self.logger = CustomLogger(
             object_name=f"LocalDAGNode_{name}",
-            log_level="DEBUG",
             console_output=False,
             file_output=True
         )

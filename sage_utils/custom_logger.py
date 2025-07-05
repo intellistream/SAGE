@@ -35,7 +35,7 @@ class CustomFormatter(logging.Formatter):
             message = message + '\n' + self.formatStack(record.stack_info)
         
         # 组合格式：既美观又支持IDE点击
-        formatted_message = f"{timestamp} | {level:<5} | {name} | {pathname}:{lineno}\n\t→ {message}\n"
+        formatted_message = f"{timestamp} | {level:<5} | {name} |\n\t {pathname}:{lineno}\n\t→ {message}\n"
         
         return formatted_message
 
@@ -66,18 +66,22 @@ class CustomLogger:
     def __init__(self, 
                  object_name: str,
                  session_folder: str = None,
-                 log_level: Union[str, int] = "DEBUG",
-                 console_output: bool = True,
-                 file_output: bool = True):
+                 console_output: Union[bool, str, int] = True,
+                 file_output: Union[bool, str, int] = True):
         """
         初始化自定义Logger
         
         Args:
             object_name: 对象名称，用作logger名称和文件名
             session_folder: session文件夹路径
-            log_level: 日志级别
-            console_output: 是否输出到控制台
-            file_output: 是否输出到文件
+            console_output: 控制台输出设置
+                          - False: 不输出到控制台
+                          - True: 输出所有级别到控制台 (相当于 DEBUG)
+                          - str/int: 指定日志级别，只输出 >= 该级别的日志
+            file_output: 文件输出设置
+                        - False: 不输出到文件
+                        - True: 输出所有级别到文件 (相当于 DEBUG)
+                        - str/int: 指定日志级别，只输出 >= 该级别的日志
         """
         self.object_name = object_name
         # 处理session_folder：空字符串检查和默认值处理
@@ -99,51 +103,67 @@ class CustomLogger:
         if self.logger.handlers:
             return
             
-        # 处理日志级别
-        if isinstance(log_level, str):
-            log_level = log_level.upper()
-            if log_level not in self._LEVEL_MAPPING:
-                raise ValueError(f"Invalid log level: {log_level}. "
-                               f"Valid levels are: {list(self._LEVEL_MAPPING.keys())}")
-            numeric_level = self._LEVEL_MAPPING[log_level]
-        elif isinstance(log_level, int):
-            numeric_level = log_level
-        else:
-            raise TypeError(f"log_level must be str or int, got {type(log_level)}")
-            
-        self.logger.setLevel(numeric_level)
+        # Logger本身设置为最低级别，让handler控制过滤
+        self.logger.setLevel(logging.DEBUG)
         
         # 创建统一的自定义格式化器
         formatter = CustomFormatter()
         
-        # 控制台输出
-        if console_output and self._global_console_debug_enabled:
+        # 处理控制台输出
+        console_level = self._parse_output_level(console_output)
+        if console_level is not None and self._global_console_debug_enabled:
             console_handler = logging.StreamHandler()
-            console_handler.setLevel(numeric_level)
+            console_handler.setLevel(console_level)
             console_handler.setFormatter(formatter)
             self.logger.addHandler(console_handler)
         
-        # 文件输出
-        if file_output:
+        # 处理文件输出
+        file_level = self._parse_output_level(file_output)
+        if file_level is not None:
             # 确保session文件夹存在
             Path(self.session_folder).mkdir(parents=True, exist_ok=True)
             
             # 1. 对象专用日志文件
             object_log_file_path = os.path.join(self.session_folder, f"{object_name}.log")
             object_file_handler = logging.FileHandler(object_log_file_path, encoding='utf-8')
-            object_file_handler.setLevel(numeric_level)
+            object_file_handler.setLevel(file_level)
             object_file_handler.setFormatter(formatter)
             self.logger.addHandler(object_file_handler)
             
             # 2. 全局时间顺序日志文件
             global_log_file_path = os.path.join(self.session_folder, "all_logs.log")
             global_file_handler = logging.FileHandler(global_log_file_path, encoding='utf-8')
-            global_file_handler.setLevel(numeric_level)
+            global_file_handler.setLevel(file_level)
             global_file_handler.setFormatter(formatter)
             self.logger.addHandler(global_file_handler)
         
         # 不传播到父logger
         self.logger.propagate = False
+    
+    def _parse_output_level(self, output_setting: Union[bool, str, int]) -> Optional[int]:
+        """
+        解析输出级别设置
+        
+        Args:
+            output_setting: 输出设置 (False/True/str/int)
+            
+        Returns:
+            日志级别数值，如果为False则返回None
+        """
+        if output_setting is False:
+            return None
+        elif output_setting is True:
+            return logging.DEBUG  # True表示输出所有级别
+        elif isinstance(output_setting, str):
+            level_str = output_setting.upper()
+            if level_str not in self._LEVEL_MAPPING:
+                raise ValueError(f"Invalid log level: {output_setting}. "
+                               f"Valid levels are: {list(self._LEVEL_MAPPING.keys())}")
+            return self._LEVEL_MAPPING[level_str]
+        elif isinstance(output_setting, int):
+            return output_setting
+        else:
+            raise TypeError(f"Output setting must be bool, str or int, got {type(output_setting)}")
     
     def _log_with_caller_info(self, level: int, message: str, exc_info: bool = False):
         """
@@ -239,7 +259,6 @@ class CustomLogger:
         with cls._lock:
             cls._default_session_folder = None
 
-
     @classmethod
     def disable_global_console_debug(cls):
         """全局禁用所有console debug输出"""
@@ -251,7 +270,6 @@ class CustomLogger:
         """全局启用所有console debug输出"""
         with cls._lock:
             cls._global_console_debug_enabled = True
-
 
     @classmethod
     def is_global_console_debug_enabled(cls) -> bool:

@@ -23,7 +23,6 @@ class RayRuntime(BaseRuntime):
         """
         self.logger = CustomLogger(
             object_name=f"RayRuntime",
-            log_level="DEBUG",
             console_output=False,
             file_output=True
         )

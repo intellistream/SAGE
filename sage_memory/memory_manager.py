@@ -21,7 +21,6 @@ class MemoryManager:
         self.logger = CustomLogger(
             object_name=f"SageEngine",
             session_folder=self.session_folder,
-            log_level="DEBUG",
             console_output=False,
             file_output=True
         )

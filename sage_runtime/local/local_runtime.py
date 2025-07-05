@@ -32,7 +32,6 @@ class LocalRuntime(BaseRuntime):
         self.next_handle_id = 0
         self.logger = CustomLogger(
             object_name=f"LocalRuntime",
-            log_level="DEBUG",
             console_output=False,
             file_output=True
         )

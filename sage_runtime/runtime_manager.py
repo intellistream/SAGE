@@ -24,7 +24,6 @@ class RuntimeManager:
         self.logger = CustomLogger(
             object_name=f"RuntimeManager",
             session_folder=session_folder,
-            log_level="DEBUG",
             console_output=False,
             file_output=True
         )

@@ -2,34 +2,48 @@ from __future__ import annotations
 
 import time
 from typing import Type, Union, Any, List
-
+from enum import Enum
 import sage_memory.api
 from sage_core.api.base_function import BaseFunction
 from sage_core.api.datastream import DataStream
 from sage_core.core.operator.transformation import TransformationType, Transformation
 from sage_utils.custom_logger import CustomLogger
+from sage_core.api.enum import PlatformType
 
 class BaseEnvironment:
 
-    def __init__(self, name: str, config: dict | None, *, platform: str, ):
+    def __init__(self, name: str, config: dict | None, *, platform: PlatformType = PlatformType.LOCAL):
         self.name = name
         self.logger = CustomLogger(
             object_name=f"Environment_{name}",
-            log_level="DEBUG",
             console_output=False,
             file_output=True
         )
         self.config: dict = dict(config or {})
-        self.config["platform"] = platform
+        self.platform:PlatformType = platform
         # 用于收集所有 Transformation，供 Compiler 构建 DAG
         self._pipeline: List[Transformation] = []
         self.runtime_context = dict  # 需要在compiler里面实例化。
         self.memory_collection = None  # 用于存储内存集合
         self.is_running = False
 
-    def from_source(self, function: Union[BaseFunction, Type[BaseFunction]], *args, **kwargs: Any) -> DataStream:
+    def from_source(
+        self, 
+        function: Union[BaseFunction, Type[BaseFunction]], 
+        *args, 
+        platform:PlatformType = PlatformType.LOCAL,
+        **kwargs: Any) -> DataStream:
+        
         """用户 API：声明一个数据源并返回 DataStream 起点。"""
-        transformation = Transformation(TransformationType.SOURCE, function, *args, **kwargs)
+        transformation = Transformation(
+            self, 
+            TransformationType.SOURCE, 
+            function, 
+            *args,
+            platform = platform,  
+            **kwargs
+            )
+        
         self._pipeline.append(transformation)
         return DataStream(self, transformation)
 
@@ -93,7 +107,7 @@ class LocalEnvironment(BaseEnvironment):
     """
 
     def __init__(self, name: str = "local_environment", config: dict | None = None):
-        super().__init__(name, config, platform="local")
+        super().__init__(name, config, platform=PlatformType.LOCAL)
 
 
 class RemoteEnvironment(BaseEnvironment):
@@ -102,7 +116,7 @@ class RemoteEnvironment(BaseEnvironment):
     """
 
     def __init__(self, name: str = "remote_environment", config: dict | None = None):
-        super().__init__(name, config, platform="remote")
+        super().__init__(name, config, platform=PlatformType.REMOTE)
 
 
 class DevEnvironment(BaseEnvironment):
@@ -113,6 +127,4 @@ class DevEnvironment(BaseEnvironment):
 
     def __init__(self, name: str = "dev_environment", config: dict | None = None):
         cfg = dict(config or {})
-        # 默认不启用 Ray，除非显式指定
-        use_ray_flag = cfg.get("use_ray", False)
-        super().__init__(name, cfg, platform="hybrid")
+        super().__init__(name, cfg, platform=PlatformType.HYBRID)

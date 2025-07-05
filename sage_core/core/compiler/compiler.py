@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Dict, List
-from sage_core.api.env import BaseEnvironment
+from sage_core.api.environment import BaseEnvironment
 from sage_core.core.operator.transformation import Transformation
 from sage_utils.custom_logger import CustomLogger
 
@@ -47,7 +47,6 @@ class Compiler:
 
         self.logger = CustomLogger(
             object_name=f"Compiler_{env.name}",
-            log_level="DEBUG",
             console_output=False,
             file_output=True
         )

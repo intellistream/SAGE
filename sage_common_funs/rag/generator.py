@@ -21,8 +21,7 @@ class OpenAIGenerator(BaseFunction):
         """
         # self.logger = CustomLogger(
         #     object_name=f"OpenAIGenerator_Function",
-        #     log_level="DEBUG",
-        #     session_folder=session_folder,
+        #     #     session_folder=session_folder,
         #     console_output=False,
         #     file_output=True
         # )
@@ -38,7 +37,6 @@ class OpenAIGenerator(BaseFunction):
         )
         self.logger = CustomLogger(
             object_name=f"OpenAIGenerator_{__name__}",
-            log_level="DEBUG",
             console_output=False,
             file_output=True
         )
@@ -86,7 +84,6 @@ class HFGenerator(BaseFunction):
         self.config = config
         self.logger = CustomLogger(
             object_name=f"HFGenerator_{__name__}",
-            log_level="DEBUG",
             console_output=False,
             file_output=True
         )
