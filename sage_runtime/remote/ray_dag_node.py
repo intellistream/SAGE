@@ -57,6 +57,8 @@ class RayDAGNode:
             self.logger.error(f"Failed to create operator instance: {e}", exc_info=True)
             raise
                 # Create emit context for mixed environment
+
+
         try:
             self.operator.insert_emit_context(RayEmitContext())
             self.operator.insert_runtime_context(RuntimeContext(self.memory_collection, self.logger))
@@ -70,13 +72,14 @@ class RayDAGNode:
         self._stop_requested = False
         self.logger.info(f"Created Ray actor node: {self.name}")
 
-    def add_downstream_node(self,output_channel:int, target_input_channel:int,   downstream_handle: Union[ActorHandle, str]):
+    def add_downstream_node(self,output_channel:int, broadcast_index:int, target_input_channel:int,   downstream_handle: Union[ActorHandle, str]):
         try:
             # 下游是Ray Actor
             self.operator.add_downstream_target(
-                output_channel=output_channel,
-                target_object=downstream_handle,
-                target_input_channel=target_input_channel
+                output_channel,
+                broadcast_index,
+                downstream_handle,
+                target_input_channel
             )
             self.logger.debug(f"Added downstream target: {downstream_handle}[{output_channel}]")
                 
@@ -119,7 +122,7 @@ class RayDAGNode:
 
 
 
-    def run_loop(self):
+    def run_loop(self): # deprecated
         """
         Start the node. For spout nodes, this starts the generation loop.
         For non-spout nodes, this just marks the node as ready to receive data.

@@ -5,7 +5,7 @@ from sage_core.api.collector import Collector
 # from sage_runtime.io.emit_context import BaseEmitContext, DownstreamTarget, NodeType
 # from sage_runtime.runtime_context import RuntimeContext
 from sage_utils.custom_logger import CustomLogger
-
+import inspect
 
 from sage_core.api.base_function import BaseFunction
 from sage_core.api.tuple import Data
@@ -31,9 +31,10 @@ class BaseOperator(ABC):
 
         self._name = self.__class__.__name__
         # 维护下游节点和路由逻辑
+        # downstream_channel->broadcasting_groups->targets
         from sage_runtime.io.emit_context import DownstreamTarget
-        self.downstream_channels: Dict[int, List[DownstreamTarget]] = {}
-        self.downstream_round_robin: Dict[int, int] = {}
+        self.downstream_channels: Dict[int,Dict[int, List[DownstreamTarget]] ] = {}
+        self.downstream_round_robin: Dict[int, Dict[int, int]] = {}
 
 
 
@@ -59,29 +60,66 @@ class BaseOperator(ABC):
 
     def process_data(self, channel: int, data: Data):
         """
-        Receive data from upstream node through specified channel.
-        Default implementation calls execute() and emits result to channel 0.
-        Can be overridden by subclasses for custom receive logic.
-        
-        Args:
-            channel: The input channel number
-            data: The data received from upstream
+        Smart dispatch for multi-input operator.
         """
         try:
-            # Default behavior: call execute with received data and emit to channel 0
-            if(data is None):
-                result = self.function.execute()
+            sig = inspect.signature(self.function.execute)
+            params = sig.parameters
+            arg_names = list(params.keys())
+
+            # Build arguments based on signature
+            args = []
+            if 'data' in arg_names and 'channel' in arg_names:
+                # Preserve order
+                for name in arg_names:
+                    if name == 'data':
+                        args.append(data)
+                    elif name == 'channel':
+                        args.append(channel)
+                    else:
+                        raise ValueError(f"Unsupported argument {name} in execute()")
+            elif 'data' in arg_names:
+                args.append(data)
+            elif 'channel' in arg_names:
+                args.append(channel)
             else:
-                result = self.function.execute(data)
+                args = []  # No parameters
+
+            result = self.function.execute(*args)
+
             if result is not None:
                 self.emit(-1, result)
-                # Note: Using -1 to indicate broadcasting to each output channel
+
         except Exception as e:
             self.logger.error(f"Error in {self._name}.receive(): {e}")
             raise
 
 
-    def emit(self, channel: int, data: Any, target_index: int = None):
+    # def process_data(self, channel: int, data: Data):
+    #     """
+    #     Receive data from upstream node through specified channel.
+    #     Default implementation calls execute() and emits result to channel 0.
+    #     Can be overridden by subclasses for custom receive logic.
+        
+    #     Args:
+    #         channel: The input channel number
+    #         data: The data received from upstream
+    #     """
+    #     try:
+    #         # Default behavior: call execute with received data and emit to channel 0
+    #         if(data is None):
+    #             result = self.function.execute()
+    #         else:
+    #             result = self.function.execute(data)
+    #         if result is not None:
+    #             self.emit(-1, result)
+    #             # Note: Using -1 to indicate broadcasting to each output channel
+    #     except Exception as e:
+    #         self.logger.error(f"Error in {self._name}.receive(): {e}")
+    #         raise
+
+
+    def emit(self, channel: int, data: Any):
         """
         Emit data to downstream node through specified channel and target.
         
@@ -101,47 +139,35 @@ class BaseOperator(ABC):
         elif channel >= 0 and channel in self.downstream_channels:
             # 向指定通道发送
             channels_to_send = [channel]
-        elif channel >= 0:
-            # 正数但超出范围
-            self.logger.warning(f"Channel index {channel} out of range for operator {self._name}")
-            return
         else:
-            # 负数但不是-1
+            # 正数但超出范围
             self.logger.warning(f"Invalid channel index {channel} for operator {self._name}. Use -1 for broadcast or non-negative integers for specific channels.")
             return
         
         # 向每个通道发送数据
         for ch in channels_to_send:
-            targets = self.downstream_channels[ch]
-            if not targets:
+            target_groups = self.downstream_channels[ch]
+            if not target_groups:
                 self.logger.warning(f"No targets found for channel {ch} in operator {self._name}")
                 continue
             
-            # y轴目标选择
-            if target_index is None:
+            for broadcast_index, parallel_targets in target_groups.items():
+
                 # round-robin选择
-                target = targets[self.downstream_round_robin[ch] % len(targets)]
-                self.downstream_round_robin[ch] += 1
-            elif 0 <= target_index < len(targets):
-                # 指定目标
-                target = targets[target_index]
-            else:
-                # y轴索引越界
-                self.logger.warning(f"Target index {target_index} out of range for channel {ch} "
-                                f"in operator {self._name}. Channel has {len(targets)} targets.")
-                continue
-            
-            # 发送数据
-            try:
-                self._emit_context.route_and_send(target, data)
-            except Exception as e:
-                self.logger.error(f"Failed to send data to target {target.node_name} "
-                                f"on channel {ch}[{target_index}]: {e}", exc_info=True)
+                target = parallel_targets[self.downstream_round_robin[ch][broadcast_index] % len(parallel_targets)]
+                self.downstream_round_robin[ch][broadcast_index] += 1
+                # 发送数据
+                try:
+                    self._emit_context.route_and_send(target, data)
+                except Exception as e:
+                    self.logger.error(f"Failed to send data to target {target.node_name} "
+                                    f"on channel {ch} group[{broadcast_index}]: {e}", exc_info=True)
 
 
 
     def add_downstream_target(self,
                             output_channel: int,
+                            broadcast_index,
                             target_object: Any, 
                             target_input_channel: int) -> None:
         """
@@ -157,7 +183,7 @@ class BaseOperator(ABC):
 
         # Debug log
         self.logger.debug(
-            f"Adding downstream: output_channel={output_channel}, "
+            f"Adding downstream: output_channel={output_channel}, broadcast_index={broadcast_index}, "
             f"target_object={target_object}, target_input_channel={target_input_channel}"
         )
         from sage_runtime.local.local_dag_node import LocalDAGNode
@@ -169,7 +195,7 @@ class BaseOperator(ABC):
             self.logger.debug("Detected Ray ActorHandle as target")
         elif isinstance(target_object, str) or isinstance(target_object, LocalDAGNode):
             node_type = NodeType.LOCAL
-            self.logger.debug("Detected Local DagNode as target")
+            self.logger.debug(f"Detected Local DagNode as target, name is {target_object.name}")
         else:
             node_type = NodeType.LOCAL
             self.logger.warning(f"Unknown target type: {type(target_object)}. "
@@ -179,8 +205,11 @@ class BaseOperator(ABC):
         target = DownstreamTarget(node_type, target_object, target_input_channel)
 
         if output_channel not in self.downstream_channels:
-            self.downstream_channels[output_channel] = []
-            self.downstream_round_robin[output_channel] = 0
-        self.downstream_channels[output_channel].append(target)
+            self.downstream_channels[output_channel] = {}
+            self.downstream_round_robin[output_channel] = {}
+        if broadcast_index not in self.downstream_channels[output_channel]:
+            self.downstream_channels[output_channel][broadcast_index] = []
+            self.downstream_round_robin[output_channel][broadcast_index] = 0
+        self.downstream_channels[output_channel][broadcast_index].append(target)
 
         self.logger.debug(f"Added downstream target: [out:{output_channel}] -> " f"{target_object}[in:{target_input_channel}] (type: {node_type.value})")
