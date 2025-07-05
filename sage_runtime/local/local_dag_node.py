@@ -56,7 +56,7 @@ class LocalDAGNode:
 
 
         # self.logger.info(f"type: {transformation.type}")
-        self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout})")
+        self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout}), config:{(transformation.kwargs).get('config', None)}")
 
     
     def put(self, data_packet: Tuple[int, Any]):
@@ -69,15 +69,16 @@ class LocalDAGNode:
         self.input_buffer.put(data_packet, timeout=1.0)
         self.logger.debug(f"Put data packet into buffer: channel={data_packet[0]}")
 
-    def add_downstream_node(self,output_channel:int, target_input_channel:int,   downstream_handle: Union[ActorHandle, str]):
+    def add_downstream_node(self,output_channel:int, broadcast_index:int,target_input_channel:int,   downstream_handle: Union[ActorHandle, LocalDAGNode]):
         try:
             # 下游是Ray Actor
             self.operator.add_downstream_target(
-                output_channel=output_channel,
-                target_object=downstream_handle,
-                target_input_channel=target_input_channel
+                output_channel,
+                broadcast_index,
+                downstream_handle,
+                target_input_channel
             )
-            self.logger.debug(f"Added downstream target: {downstream_handle}[{output_channel}]")
+            self.logger.debug(f"Added downstream target: {downstream_handle}in[{output_channel}]")
                 
         except Exception as e:
             self.logger.error(f"Error adding downstream node: {e}", exc_info=True)

@@ -43,16 +43,15 @@ class RetriveSink(BaseFunction):
 
 class FileSink(BaseFunction):
     def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
-
+        self.file_path =  config.get("file_path","qa_output.txt")
         self.logger = CustomLogger(
-            object_name=f"FileSink_Function",
+            object_name=f"FileSink_Function_{self.file_path}",
             log_level="DEBUG",
             session_folder=session_folder,
             console_output=False,
             file_output=True
         )
         self.config = config
-        self.file_path =  config.get("file_path","qa_output.txt")
 
         # 创建或清空文件
         with open(self.file_path, "w", encoding="utf-8") as f:
