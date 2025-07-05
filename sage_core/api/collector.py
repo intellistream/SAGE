@@ -14,4 +14,4 @@ class Collector:
         """
         Collect data and store it in the memory collection.
         """
-        self.operator.emit(data, channel)
+        self.operator.emit(channel, data)
