@@ -22,7 +22,6 @@ class BaseOperator(ABC):
         self.logger = CustomLogger(
             object_name = f"Operator_{function.__class__.__name__}",
             session_folder = self.session_folder,
-            log_level="DEBUG",
             console_output=False,
             file_output=True
         )

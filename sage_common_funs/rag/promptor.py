@@ -44,7 +44,6 @@ class QAPromptor(BaseFunction):
         """
         self.logger = CustomLogger(
             object_name=f"QAPromptor_Function",
-            log_level="DEBUG",
             session_folder=session_folder,
             console_output=False,
             file_output=True

@@ -25,7 +25,6 @@ class FileSource(BaseFunction):
         """
         self.logger = CustomLogger(
             object_name=f"FileSource_Function",
-            log_level="DEBUG",
             session_folder=session_folder,
             console_output=False,
             file_output=True

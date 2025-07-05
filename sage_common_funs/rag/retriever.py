@@ -28,7 +28,6 @@ class DenseRetriever(BaseFunction):
         self.logger = CustomLogger(
             object_name=f"DenseRetriever",
             session_folder=config.get("session_folder",None),
-            log_level="DEBUG",
             console_output=False,
             file_output=True
         )
@@ -71,7 +70,6 @@ class BM25sRetriever(MemoryFunction,StatefulFunction): # 目前runtime context�
 
         self.logger = CustomLogger(
             object_name=f"BM25sRetriever_Function",
-            log_level="DEBUG",
             session_folder=config.get("session_folder",None),
             console_output=False,
             file_output=True

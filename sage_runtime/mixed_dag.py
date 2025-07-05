@@ -22,7 +22,6 @@ class MixedDAG:
         self.local_handles: List[Any] = []  # 存储本地节点句柄
         self.logger = CustomLogger(
             object_name=f"MixedDAG_{self.name}",
-            log_level="DEBUG",
             console_output=False,
             file_output=True
         )
