@@ -22,7 +22,7 @@ class LocalEmitContext(BaseEmitContext):
         """
         try:
             # 向下游本地节点的输入缓冲区写入 (输入channel, 数据) 包
-            data_packet = (target.target_input_channel, data)
+            data_packet = (target.input_tag, data)
             
             # 假设本地节点有input_buffer属性用于接收数据
             if hasattr(target.target_object, 'input_buffer'):
@@ -33,7 +33,7 @@ class LocalEmitContext(BaseEmitContext):
             else:
                 raise AttributeError(f"Local node {target.target_object} has no input_buffer or put method")
                 
-            self.logger.debug(f"Written data packet to local node {target.target_object}[in:{target.target_input_channel}] input buffer")
+            self.logger.debug(f"Written data packet to local node {target.target_object}[in:{target.input_tag}] input buffer")
             
         except Exception as e:
             self.logger.error(f"Error writing data to local node {target.target_object} input buffer: {e}")
@@ -50,8 +50,8 @@ class LocalEmitContext(BaseEmitContext):
         try:
             if isinstance(target.target_object, ActorHandle):
                 # 直接调用Ray Actor的remote方法
-                target.target_object.receive.remote(target.target_input_channel, data)
-                self.logger.debug(f"Sent remote call to Ray actor {target.target_object}[in:{target.target_input_channel}]")
+                target.target_object.receive.remote(target.input_tag, data)
+                self.logger.debug(f"Sent remote call to Ray actor {target.target_object}[in:{target.input_tag}]")
             else:
                 raise TypeError(f"Expected ActorHandle for Ray actor, got {type(target.target_object)}")
                 

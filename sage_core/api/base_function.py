@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Type, List, Tuple, Any
 from sage_core.api.collector import Collector
 
 
@@ -13,6 +14,33 @@ class BaseFunction(ABC):
         self.runtime_context = None  # 需要在compiler里面实例化。
         self.logger=None
         pass
+
+    @classmethod # 多路输出的function可以override这个方法
+    def declare_outputs(cls) -> List[Tuple[str, Type]]:
+        return [("default", Any)]
+
+    @classmethod
+    def declare_inputs(cls) -> List[Tuple[str, Type]]:
+        """
+        Declare the inputs for the function.
+
+        :return: A list of tuples where each tuple contains the input name and its type.
+        """
+        return [("default", Any)]
+
+    @classmethod
+    def get_output_num(cls) -> int:
+        return len(cls.declare_outputs())
+
+    @classmethod
+    def get_input_num(cls) -> int:
+        """
+        Get the number of inputs for the function.
+
+        :return: The number of inputs.
+        """
+        return len(cls.declare_inputs())
+
 
     def insert_collector(self, collector):
         """

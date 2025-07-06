@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List
+from typing import Dict, List, Set
 from sage_core.api.env import BaseEnvironment
 from sage_core.core.operator.transformation import Transformation
 from sage_utils.custom_logger import CustomLogger
@@ -12,19 +12,23 @@ class GraphNode:
         self.parallel_index: int = parallel_index  # 在该transformation中的并行索引
         
         # 输入输出channels：每个channel是一个边的列表
-        self.input_channels: List[List[GraphEdge]] = []
+
+        self.input_channels:Dict[str, List[GraphEdge]] = {}
         # 表示自己第i个input channel接受的所有上游并行节点的输入
-        self.output_channels: List[List[List[GraphEdge]]] = []
+
+        self.output_channels:Dict[str, List[List[GraphEdge]]] = {}
         # 表示自己第i个output channel输出的所有“广播目标”，其中每一个目标可以是并行的一组下游节点
 
-        for _ in range(len(transformation.upstreams)):
-            self.input_channels.append([])
-        for _ in range(len(transformation.downstreams)):
-            self.output_channels.append([])
+        for input_tag, (upstream_trans, upstream_tag) in transformation.upstreams.items():
+            self.input_channels[input_tag] = []
+
+        for output_tag, output_set in transformation.downstreams.items():
+            # 初始化每个输出标签对应的输出通道
+            self.output_channels[output_tag] = []
 
 
 class GraphEdge:
-    def __init__(self,name:str,  upstream_node: GraphNode, upstream_channel: int, downstream_node:GraphNode = None, downstream_channel: int = None):
+    def __init__(self,name:str,  output_node: GraphNode, output_tag: str, input_node:GraphNode = None, input_tag: str = None):
         """
         Initialize a compiler edge with a source and target node.
         Args:
@@ -32,10 +36,10 @@ class GraphEdge:
             target (str): The name of the target node.
         """
         self.name: str = name
-        self.upstream_node:GraphNode = upstream_node
-        self.upstream_channel: int = upstream_channel
-        self.downstream_node:GraphNode = downstream_node
-        self.downstream_channel: int = downstream_channel
+        self.upstream_node:GraphNode = output_node
+        self.upstream_tag: str = output_tag
+        self.downstream_node:GraphNode = input_node
+        self.downstream_tag: str = input_tag
 
 class Compiler:
     def __init__(self, env:BaseEnvironment):
@@ -61,7 +65,7 @@ class Compiler:
         根据transformation pipeline构建图, 支持并行度和多对多连接
         分为三步: 1) 生成并行节点 2) 生成物理边 3) 创建图结构
         """
-        trans_to_parallel_node_names = {}  # transformation -> list of node names
+        trans_to_parallel_node_names:Dict[Transformation, List[str]] = {}  # transformation -> list of node names
         
         # 第一步：为每个transformation生成并行节点名字表，同时创建节点
         self.logger.debug("Step 1: Generating parallel nodes for each transformation")
@@ -81,37 +85,24 @@ class Compiler:
             trans_to_parallel_node_names[transformation] = node_names
             self.logger.debug(f"Generated {len(node_names)} parallel nodes for {transformation.operator_class.__name__}: {node_names}")
         
-        # 第二步：计算逻辑边数量（用于日志）
-        self.logger.debug("Step 2: Counting logical edges")
-        logical_edge_count = 0
-        physical_edge_count = 0
-        for transformation in env.pipeline:
-            for upstream_transformation,upstream_channel in transformation.upstreams:
-                logical_edge_count += 1
-                upstream_parallelism = len(trans_to_parallel_node_names[upstream_transformation])
-                downstream_parallelism = len(trans_to_parallel_node_names[transformation])
-                physical_edge_count += upstream_parallelism * downstream_parallelism
-        
-        self.logger.debug(f"Total logical edges: {logical_edge_count}, total physical edges: {physical_edge_count}")
-        
         # 第三步：为每条逻辑边创建物理边并连接节点
-        self.logger.debug("Step 3: Creating compiler structure")
+        self.logger.debug("Step 2: Creating compiler structure")
 
         for transformation in env.pipeline:
             downstream_nodes = trans_to_parallel_node_names[transformation]
             
-            for downstream_input_channel, (upstream_trans, upstream_output_channel) in enumerate(transformation.upstreams):
-                upstream_nodes = trans_to_parallel_node_names[upstream_trans]
+            for input_tag, (output_trans, output_tag) in transformation.upstreams.items():
+                upstream_nodes = trans_to_parallel_node_names[output_trans]
                 
                 # 找到downstream_transformation在upstream_transformation.downstream中的位置
                 # downstream_idx = upstream_trans.downstream.index(transformation)
                 # 创建m*n条物理边
                 for i, upstream_node_name in enumerate(upstream_nodes):
                     upstream_node = self.nodes[upstream_node_name]
-                    output_group_edges = []
+                    output_group_edges:List[GraphEdge] = []
                     for j, downstream_node_name in enumerate(downstream_nodes):
                         # 创建边名
-                        edge_name = f"({upstream_node_name}, {upstream_output_channel})->({downstream_node_name},{downstream_input_channel})"
+                        edge_name = f"({upstream_node_name}, {output_tag})->({downstream_node_name},{input_tag})"
                         
                         # 获取节点对象
                         downstream_node = self.nodes[downstream_node_name]
@@ -119,25 +110,25 @@ class Compiler:
                         # 创建边对象并连接
                         edge = GraphEdge(
                             name=edge_name,
-                            upstream_node=upstream_node,
-                            upstream_channel=upstream_output_channel,
-                            downstream_node=downstream_node,
-                            downstream_channel=downstream_input_channel
+                            output_node=upstream_node,
+                            output_tag=output_tag,
+                            input_node=downstream_node,
+                            input_tag=input_tag
                         )
                         self.logger.debug(f"Creating edge: {edge_name} ")
                         # 将边添加到节点的channels中
                         #upstream_node.output_channels[upstream_output_channel].append(edge)
                         output_group_edges.append(edge)
-                        downstream_node.input_channels[downstream_input_channel].append(edge)
+                        downstream_node.input_channels[input_tag].append(edge)
                         
                         # 将边添加到图中
                         self.edges[edge_name] = edge
-                    upstream_node.output_channels[upstream_output_channel].append(output_group_edges)
+                    upstream_node.output_channels[output_tag].append(output_group_edges)
 
 
 
                 self.logger.debug(f"Connected {len(upstream_nodes)}×{len(downstream_nodes)} physical edges "
-                                f"between {upstream_trans.operator_class.__name__} -> "
+                                f"between {output_trans.operator_class.__name__} -> "
                                 f"{transformation.operator_class.__name__}")
         
         self.logger.info(f"Graph construction completed: {len(self.nodes)} nodes, {len(self.edges)} edges")
@@ -145,7 +136,7 @@ class Compiler:
     def debug_print_graph(self):
         """
         调试方法：打印图中所有节点的详细信息，包括节点名字、对应的transformation.function以及上下游连接信息
-        支持新的channel结构：input_channel包含来自上游并行节点的边，output_channel包含多组广播目标
+        支持新的tag结构：input_channels和output_channels都使用string tag作为key
         """
         lines = []
         lines.append("\n")
@@ -161,7 +152,7 @@ class Compiler:
         # 按transformation类型分组显示节点
         transformation_groups = {}
         for node in self.nodes.values():
-            transformation_name = node.transformation.operator_class.__name__
+            transformation_name = node.transformation.function_class.__name__
             if transformation_name not in transformation_groups:
                 transformation_groups[transformation_name] = []
             transformation_groups[transformation_name].append(node)
@@ -174,9 +165,9 @@ class Compiler:
             # 显示function信息
             sample_transformation = nodes[0].transformation
             if sample_transformation.is_instance:
-                function_info = f"Instance of {sample_transformation.operator_class.__name__}"
+                function_info = f"Instance of {sample_transformation.function_class.__name__}"
             else:
-                function_info = f"Class {sample_transformation.operator_class.__name__} (not instantiated)"
+                function_info = f"Class {sample_transformation.function_class.__name__} (not instantiated)"
             lines.append(f"   Function: {function_info}")
             
             # 显示每个并行节点的详细信息
@@ -186,36 +177,36 @@ class Compiler:
                 # 显示输入连接信息
                 if node.input_channels:
                     lines.append(f"      📥 Input Channels ({len(node.input_channels)} channels):")
-                    for channel_idx, channel_edges in enumerate(node.input_channels):
+                    for input_tag, channel_edges in node.input_channels.items():
                         if channel_edges:
                             # 统计来自不同上游节点的边
                             upstream_info = {}
                             for edge in channel_edges:
-                                upstream_trans = edge.upstream_node.transformation.operator_class.__name__
+                                upstream_trans = edge.upstream_node.transformation.function_class.__name__
                                 if upstream_trans not in upstream_info:
                                     upstream_info[upstream_trans] = []
                                 upstream_info[upstream_trans].append(edge.upstream_node.name)
                             
-                            lines.append(f"         Channel {channel_idx}: {len(channel_edges)} edges")
+                            lines.append(f"         Tag '{input_tag}': {len(channel_edges)} edges")
                             for upstream_trans, upstream_nodes in upstream_info.items():
                                 lines.append(f"           from {upstream_trans}: {upstream_nodes}")
                         else:
-                            lines.append(f"         Channel {channel_idx}: No incoming edges")
+                            lines.append(f"         Tag '{input_tag}': No incoming edges")
                 else:
                     lines.append(f"      📥 Input: No input channels (source node)")
                 
                 # 显示输出连接信息
                 if node.output_channels:
                     lines.append(f"      📤 Output Channels ({len(node.output_channels)} channels):")
-                    for channel_idx, broadcast_groups in enumerate(node.output_channels):
+                    for output_tag, broadcast_groups in node.output_channels.items():
                         if broadcast_groups:
-                            lines.append(f"         Channel {channel_idx}: {len(broadcast_groups)} broadcast groups")
+                            lines.append(f"         Tag '{output_tag}': {len(broadcast_groups)} broadcast groups")
                             for group_idx, group_edges in enumerate(broadcast_groups):
                                 if group_edges:
                                     # 统计发送到不同下游节点的边
                                     downstream_info = {}
                                     for edge in group_edges:
-                                        downstream_trans = edge.downstream_node.transformation.operator_class.__name__
+                                        downstream_trans = edge.downstream_node.transformation.function_class.__name__
                                         if downstream_trans not in downstream_info:
                                             downstream_info[downstream_trans] = []
                                         downstream_info[downstream_trans].append(edge.downstream_node.name)
@@ -224,7 +215,7 @@ class Compiler:
                                     for downstream_trans, downstream_nodes in downstream_info.items():
                                         lines.append(f"             to {downstream_trans}: {downstream_nodes}")
                         else:
-                            lines.append(f"         Channel {channel_idx}: No outgoing edges")
+                            lines.append(f"         Tag '{output_tag}': No outgoing edges")
                 else:
                     lines.append(f"      📤 Output: No output channels (sink node)")
         
@@ -240,10 +231,10 @@ class Compiler:
         for transformation_name, nodes in transformation_groups.items():
             downstream_transformations = set()
             for node in nodes:
-                for channel in node.output_channels:
-                    for group in channel:
+                for output_tag, broadcast_groups in node.output_channels.items():
+                    for group in broadcast_groups:
                         for edge in group:
-                            downstream_transformations.add(edge.downstream_node.transformation.operator_class.__name__)
+                            downstream_transformations.add(edge.downstream_node.transformation.function_class.__name__)
             transformation_connections[transformation_name] = list(downstream_transformations)
         
         for transformation_name, downstream_list in transformation_connections.items():
@@ -257,10 +248,10 @@ class Compiler:
         for transformation_name, nodes in transformation_groups.items():
             sample_node = nodes[0]
             if sample_node.output_channels:
-                for channel_idx, broadcast_groups in enumerate(sample_node.output_channels):
+                for output_tag, broadcast_groups in sample_node.output_channels.items():
                     if broadcast_groups:
                         distribution_type = "Round-robin/Key-by" if len(broadcast_groups) > 1 else "Broadcast"
-                        lines.append(f"   {transformation_name} Channel {channel_idx}: {distribution_type} ({len(broadcast_groups)} groups)")
+                        lines.append(f"   {transformation_name} Tag '{output_tag}': {distribution_type} ({len(broadcast_groups)} groups)")
         
         lines.append("=" * 80)
         
