@@ -10,8 +10,8 @@ class Collector:
     def __init__(self, operator):
         self.operator = operator
         self.logger=None
-    def collect(self, data, channel:int = -1):
+    def collect(self,tag:str,  data):
         """
         Collect data and store it in the memory collection.
         """
-        self.operator.emit(channel, data)
+        self.operator.emit(tag, data)
