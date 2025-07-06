@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import List, Type, Union, Tuple
 from enum import Enum
 from sage_core.api.base_function import BaseFunction
+# from sage_core.api.environment import BaseEnvironment
 from sage_core.core.operator.base_operator import BaseOperator
 from sage_core.core.operator.map_operator import MapOperator
 from sage_utils.custom_logger import CustomLogger
@@ -27,6 +28,7 @@ class Transformation:
     }
     def __init__(
         self,
+        env, # :BaseEnvironment,
         type: TransformationType,
         function: Union[BaseFunction, Type[BaseFunction] ],
         *args,
