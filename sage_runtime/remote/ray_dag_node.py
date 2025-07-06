@@ -72,12 +72,13 @@ class RayDAGNode:
         self._stop_requested = False
         self.logger.info(f"Created Ray actor node: {self.name}")
 
-    def add_downstream_node(self,output_channel:int, broadcast_index:int, target_input_channel:int,   downstream_handle: Union[ActorHandle, str]):
+    def add_downstream_node(self,output_channel:int, broadcast_index:int,parallel_index:int, target_input_channel:int,   downstream_handle: Union[ActorHandle, str]):
         try:
             # 下游是Ray Actor
             self.operator.add_downstream_target(
                 output_channel,
                 broadcast_index,
+                parallel_index,
                 downstream_handle,
                 target_input_channel
             )
@@ -87,7 +88,7 @@ class RayDAGNode:
             self.logger.error(f"Error adding downstream node: {e}", exc_info=True)
             raise
 
-    def receive(self, input_channel: int, data: Any):
+    def receive(self, input_tag: str, data: Any):
         """
         Receive data from upstream node and process it.
         This method is called directly by upstream nodes (Ray actors or local nodes via TCP).
@@ -104,10 +105,10 @@ class RayDAGNode:
                 self.logger.debug(f"Ignoring data on stopped node {self.name}")
                 return
                 
-            self.logger.debug(f"Received data in node {self.name}, channel {input_channel}")
+            self.logger.debug(f"Received data in node {self.name}, channel {input_tag}")
             
             # Call operator's receive method with correct input channel
-            self.operator.process_data(input_channel, data)
+            self.operator.process_data(input_tag, data)
             
         except Exception as e:
             self.logger.error(f"Error processing data in node {self.name}: {e}", exc_info=True)
@@ -118,7 +119,7 @@ class RayDAGNode:
             self.logger.warning(f"Node '{self.name}' is not a spout node, cannot run once.")
             return
         self.logger.info(f"Spout node '{self.name}' is running once.")
-        self.operator.process_data(0, None)
+        self.operator.process_data(None, None)
 
 
 
@@ -135,7 +136,7 @@ class RayDAGNode:
             try:
                 while self._running and not self._stop_requested:
                     # For spout nodes, call operator.receive with dummy channel and data
-                    self.operator.process_data(0, None)
+                    self.operator.process_data(None, None)
                     time.sleep(0.1)  # Small delay to prevent overwhelming
                     
             except Exception as e:

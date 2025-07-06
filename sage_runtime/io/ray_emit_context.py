@@ -51,7 +51,7 @@ class RayEmitContext(BaseEmitContext):
                 "type": "ray_to_local",
                 "source_actor": self.node_name,
                 "target_node": target.target_object,
-                "target_channel": target.target_input_channel,
+                "input_tag": target.input_tag,
                 "data": data,
                 "timestamp": time.time_ns()
             }
@@ -65,7 +65,7 @@ class RayEmitContext(BaseEmitContext):
             tcp_conn.sendall(message_size.to_bytes(4, byteorder='big'))
             tcp_conn.sendall(serialized_data)
             
-            self.logger.debug(f"Sent TCP packet to local node {target.target_object}[in:{target.target_input_channel}]")
+            self.logger.debug(f"Sent TCP packet to local node {target.target_object}[in:{target.input_tag}]")
             
         except Exception as e:
             self.logger.error(f"Error sending TCP packet to local node {target.target_object}: {e}")
@@ -87,8 +87,8 @@ class RayEmitContext(BaseEmitContext):
         try:
             if isinstance(target.target_object, ActorHandle):
                 # 直接调用Ray Actor的remote方法
-                target.target_object.receive.remote(target.target_input_channel, data)
-                self.logger.debug(f"Sent remote call to Ray actor {target.target_object}[in:{target.target_input_channel}]")
+                target.target_object.receive.remote(target.input_tag, data)
+                self.logger.debug(f"Sent remote call to Ray actor {target.target_object}[in:{target.input_tag}]")
             else:
                 raise TypeError(f"Expected ActorHandle for Ray actor, got {type(target.target_object)}")
                 
