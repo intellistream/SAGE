@@ -28,7 +28,7 @@ class Transformation:
     }
     def __init__(
         self,
-        env, # :BaseEnvironment,
+        # env, # :BaseEnvironment,
         type: TransformationType,
         function: Union[BaseFunction, Type[BaseFunction] ],
         *args,
