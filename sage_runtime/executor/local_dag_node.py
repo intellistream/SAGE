@@ -42,7 +42,7 @@ class LocalDAGNode:
         self.transformation = transformation
         self.memory_collection = memory_collection  # Optional memory collection for this node
         self.operator = transformation.build_instance(name = name)
-        self.operator.insert_emit_context(LocalEmitContext())
+        self.operator.insert_emit_context(LocalEmitContext(name = name))
         self.operator.insert_runtime_context(RuntimeContext(self.memory_collection, logger=self.logger))
 
 
