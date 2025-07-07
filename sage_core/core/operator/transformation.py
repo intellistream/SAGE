@@ -2,10 +2,10 @@
 """Transformation —— 声明即连接，性感即正义。"""
 
 from __future__ import annotations
-from typing import List, Type, Union, Tuple
+from typing import List, Type, Union, Tuple, Dict, Set
 from enum import Enum
 from sage_core.api.base_function import BaseFunction
-from sage_core.api.environment import BaseEnvironment
+# from sage_core.api.environment import BaseEnvironment
 from sage_core.core.operator.base_operator import BaseOperator
 from sage_core.core.operator.map_operator import MapOperator
 from sage_utils.custom_logger import CustomLogger
@@ -29,7 +29,7 @@ class Transformation:
     }
     def __init__(
         self,
-        env:BaseEnvironment,
+        # env, # :BaseEnvironment,
         type: TransformationType,
         function: Union[BaseFunction, Type[BaseFunction] ],
         *args,
@@ -73,12 +73,17 @@ class Transformation:
 
 
         self.operator_class = self.TO_OPERATOR.get(type, None)
-        self.upstreams:List[Tuple[Transformation, int]] = []
-        # (upstream_transformation, upstream_output_channel)
 
-        self.downstreams:List[List[Tuple[Transformation, int]]] = []
-        # {(downstream_transformation, downstream_input_channel)}
-        # 维护自己每一个输出channel会供给的多个下游并行算子组（组与组广播，组内发一个）
+        self.upstreams:Dict[str, Tuple[Transformation, str]] = {}
+        # {"input_tag": (upstream_transformation, upstream_output_channel) }
+
+
+        self.downstreams:Dict[str, Set[Tuple[Transformation, str]]] = {}
+        for output_tag, output_type in self.function_class.declare_outputs():
+            # 初始化每个输出标签对应的下游变换列表
+            self.downstreams[output_tag] = set()
+        # ("output_tag", { (downstream_transformation, "downstream_input_tag") } )
+
 
         self.parallelism = parallelism  
         # 生成的平行节点名字：f"{transformation.function_class.__name__}_{i}"
@@ -88,12 +93,9 @@ class Transformation:
 
         
     # 双向连接
-    def add_upstream(self, upstream_trans: "Transformation", upstream_channel:int = 0) -> None:
-        self.upstreams.append((upstream_trans, upstream_channel))
-        while(len(upstream_trans.downstreams) <= upstream_channel):
-            # 确保上游的downstreams列表有足够的长度
-            upstream_trans.downstreams.append([])
-        upstream_trans.downstreams[upstream_channel].append((self, len(self.upstreams) - 1))
+    def add_upstream(self,input_tag:str,  upstream_trans: "Transformation", upstream_tag:str) -> None:
+        self.upstreams[input_tag] = (upstream_trans, upstream_tag)
+        upstream_trans.downstreams[upstream_tag].add((self, input_tag))
 
     # 这个方法不要使用，避免重复连接
     # def add_downstream(self, child: "Transformation") -> None:

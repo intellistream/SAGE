@@ -42,7 +42,7 @@ class LocalDAGNode:
         self.memory_collection = memory_collection  # Optional memory collection for this node
         self.operator = transformation.build_instance()
         self.operator.insert_emit_context(LocalEmitContext())
-        self.operator.insert_runtime_context(RuntimeContext(self.memory_collection, self.logger))
+        self.operator.insert_runtime_context(RuntimeContext(self.memory_collection, logger=self.logger))
 
 
 
@@ -68,16 +68,19 @@ class LocalDAGNode:
         self.input_buffer.put(data_packet, timeout=1.0)
         self.logger.debug(f"Put data packet into buffer: channel={data_packet[0]}")
 
-    def add_downstream_node(self,output_channel:int, broadcast_index:int,target_input_channel:int,   downstream_handle: Union[ActorHandle, LocalDAGNode]):
+    def add_downstream_node(self,output_tag:str, broadcast_index:int,parallel_index:int, downstream_input_tag:str,   downstream_handle: Union[ActorHandle, LocalDAGNode]):
+        # broadcast_index:属于某个广播组
+        # parallel_index:广播组内部的编号
         try:
             # 下游是Ray Actor
             self.operator.add_downstream_target(
-                output_channel,
+                output_tag,
                 broadcast_index,
+                parallel_index,
                 downstream_handle,
-                target_input_channel
+                downstream_input_tag
             )
-            self.logger.debug(f"Added downstream target: {downstream_handle}in[{output_channel}]")
+            self.logger.debug(f"Added downstream target: {downstream_handle}in[{output_tag}]")
                 
         except Exception as e:
             self.logger.error(f"Error adding downstream node: {e}", exc_info=True)
@@ -93,7 +96,7 @@ class LocalDAGNode:
             return
         
         self.logger.info(f"Spout node '{self.name}' is running once.")
-        self.operator.process_data(0, None)
+        self.operator.process_data(None, None)
 
     def run_loop(self) -> None:
         """
@@ -108,7 +111,7 @@ class LocalDAGNode:
             try:
                 if self.is_spout:
                     # For spout nodes, call operator.receive with dummy channel and data
-                    self.operator.process_data(0, None)
+                    self.operator.process_data(None, None)
                     time.sleep(1)  # Sleep to avoid busy loop
                 else:
                     # For non-spout nodes, fetch input and process
@@ -117,10 +120,10 @@ class LocalDAGNode:
                     if(data_packet is None):
                         time.sleep(0.1)  # Short sleep when no data to process
                         continue
-                    (input_channel, data) = data_packet
-                    self.logger.debug(f"Processing data from buffer: channel={input_channel}")
+                    (input_tag, data) = data_packet
+                    self.logger.debug(f"Processing data from buffer: tag={input_tag}")
                     # Call operator's receive method with the channel_id and data
-                    self.operator.process_data(input_channel, data)
+                    self.operator.process_data(input_tag, data)
                     
             except Exception as e:
                 self.logger.error(

@@ -64,7 +64,8 @@ class BaseEnvironment:
         运行一次管道，适用于测试或调试。
         """
         if(self.is_running):
-            raise RuntimeError("Pipeline is already running. Please stop it before running again.")
+            self.logger.warning("Pipeline is already running. ")
+            return
         from sage_core.core.engine import Engine
         engine = Engine.get_instance()
         engine.run_once(self)
@@ -96,6 +97,10 @@ class BaseEnvironment:
     def set_memory(self, config):
         self.memory_collection = sage_memory.api.create_memory(config, remote = (self.config.get("platform", "local") == "remote"))
 
+    def set_memory_collection(self, collection):
+
+        self.memory_collection = collection 
+        
     # TODO: 写一个判断Env 是否已经完全初始化并开始执行的函数
     def initlized(self):
         pass

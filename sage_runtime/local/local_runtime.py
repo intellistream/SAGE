@@ -167,7 +167,7 @@ class LocalRuntime(BaseRuntime):
             if message_type == "ray_to_local":
                 # Ray Actor发送给本地节点的数据
                 target_node_name = message["target_node"]
-                target_channel = message["target_channel"]
+                input_tag = message["input_tag"]
                 data = message["data"]
                 source_actor = message.get("source_actor", "unknown")
                 
@@ -176,11 +176,11 @@ class LocalRuntime(BaseRuntime):
                     target_node = self.running_nodes[target_node_name]
                     
                     # 将数据放入目标节点的输入缓冲区
-                    data_packet = (target_channel, data)
+                    data_packet = (input_tag, data)
                     target_node.put(data_packet)
                     
                     self.logger.debug(f"Delivered TCP message: {source_actor} -> "
-                                    f"{target_node_name}[in:{target_channel}]")
+                                    f"{target_node_name}[in:{input_tag}]")
                 else:
                     self.logger.warning(f"Target node '{target_node_name}' not found for TCP message from {client_address}")
             else:

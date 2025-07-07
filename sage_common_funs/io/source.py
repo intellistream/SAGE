@@ -2,9 +2,22 @@ from sage_core.api.tuple import Data
 from sage_core.api.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.data_loader import resolve_data_path
+from typing import List
 
 
-class FileSource(BaseFunction):
+
+class SourceFunction(BaseFunction):
+    @classmethod
+    def declare_inputs(cls) -> List:
+        """
+        Declare the inputs for the function.
+
+        :return: A list of tuples where each tuple contains the input name and its type.
+        """
+        return []
+
+
+class FileSource(SourceFunction):
     """
     A source rag that reads a file line by line and returns each line as a string.
 

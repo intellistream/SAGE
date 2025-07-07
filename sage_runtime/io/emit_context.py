@@ -12,10 +12,10 @@ class DownstreamTarget:
     def __init__(self, 
                  node_type: NodeType, 
                  target_object: Any, 
-                 target_input_channel: int):
+                 target_input_tag: str):
         self.node_type = node_type
         self.target_object = target_object
-        self.target_input_channel = target_input_channel
+        self.input_tag = target_input_tag
 
 
 
