@@ -37,23 +37,23 @@ class DenseRetriever(BaseFunction):
 
     def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
 
-        input_query = data.data
+        input_query = data.data[0] if isinstance(data.data, tuple) and len(data.data) > 0 else data.data
         chunks = []
         self.logger.debug(f"Starting retrieval for query: {input_query}")
         # LTM 检索
         if self.config.get("ltm", False):
             self.logger.debug("Retrieving from LTM")
             try:
-
                 # 使用LTM配置和输入查询调用检索
                 ltm_results = self.runtime_context.retrieve(
                     query=input_query,
                     collection_config=self.ltm_config
                 )
+                print("ltm_results:",ltm_results)
                 self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Retrieval Results: {ltm_results}\033[0m ")
                 chunks.extend(ltm_results)
                 self.logger.debug(f"Retrieved {len(ltm_results)} from LTM")
-
+                print(f"\033[32m[ {self.__class__.__name__}]: Retrieval Results: {ltm_results}\033[0m ")
                 # 保留原有的延迟逻辑
                 time.sleep(1)
                 self.logger.debug("Completed LTM delay")

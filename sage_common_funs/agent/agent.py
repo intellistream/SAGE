@@ -1,13 +1,13 @@
 from calendar import c
 from sage_common_funs.utils.generator_model import apply_generator_model
 from sage_core.api.base_function import BaseFunction
-
+from jinja2 import Template
+from sage_core.api.tuple import Data
+from sage_utils.custom_logger import CustomLogger
 from typing import Any,Tuple
 import requests
 import json
 import re
-
-from sage_core.api.tuple import Data
 
 
 class Tool:
@@ -20,10 +20,11 @@ class Tool:
         return self.func(*args, **kwargs)
     
 class BochaSearch:
-    def __init__(self, url="https://api.bochaai.com/v1/web-search"):
-        self.url = url
+    def __init__(self,api_key):
+        self.url = "https://api.bochaai.com/v1/web-search"
+        self.api_key = api_key
         self.headers = {
-            'Authorization': 'sk-3e0704d84d954379b5c38d089ddd2b96',
+            'Authorization': api_key,
             'Content-Type': 'application/json'
         }
 
@@ -37,7 +38,7 @@ class BochaSearch:
         response = requests.request("POST", self.url, headers=self.headers, data=payload)
         return response.json()
 
-PREFIX = """Answer the following questions as best you can. You have access to the following tools:"""
+PREFIX = """Answer the following questions as best you can. You have access to the following tools:{tool_names}"""
 FORMAT_INSTRUCTIONS = """Always respond in the following JSON format:
 
 ```json
@@ -60,11 +61,17 @@ Thought:{agent_scratchpad}
 """
 
 
-class BaseAgent:
+class BaseAgent(BaseFunction):
     def __init__(self, config):
-        self.config = config["agent"]
-        print(self.config)
-        search = BochaSearch()
+        self.config = config
+        search = BochaSearch(api_key=self.config["search_api_key"])
+        self.logger = CustomLogger(
+            object_name=f"BaseAgent_{self.config['model_name']}",
+            log_level="DEBUG",
+            session_folder=self.config.get("session_folder", None),
+            console_output=False,
+            file_output=True
+        )
         self.tools = [
             Tool(
                 name = "Search",
@@ -72,8 +79,10 @@ class BaseAgent:
                 description="useful for when you need to search to answer questions about current events"
             )
         ]
-        self.tool_names = ", ".join([tool.name for tool in self.tools])
         self.tools = {tool.name: tool for tool in self.tools}
+        self.tool_names = ", ".join(self.tools.keys())  # 修复点
+        self.format_instructions = FORMAT_INSTRUCTIONS.format(tool_names=self.tool_names)
+        self.prefix= PREFIX.format(tool_names=self.tool_names)
         self.model = apply_generator_model(
             method=self.config["method"],
             model_name=self.config["model_name"],
@@ -84,7 +93,7 @@ class BaseAgent:
         self.max_steps=self.config.get("max_steps", 5)
 
     def get_prompt(self, input, agent_scratchpad):
-        return PREFIX + FORMAT_INSTRUCTIONS.format(tool_names=self.tool_names) + SUFFIX.format(
+        return self.prefix + self.format_instructions + SUFFIX.format(
             input=input, agent_scratchpad=agent_scratchpad
         )
     
@@ -103,7 +112,7 @@ class BaseAgent:
         except Exception as e:
             raise ValueError(f"Invalid JSON format: {str(e)}")
         
-    def execute(self, data: Data[str],*args, **kwargs) -> Data[Tuple[bool,str, str]]:
+    def execute(self, data: Data[str],*args, **kwargs) -> Data[Tuple[str, str]]:
         query = data.data
         agent_scratchpad = ""
         count = 0
@@ -111,9 +120,10 @@ class BaseAgent:
             count += 1
             if count > self.max_steps:
                 # raise ValueError("Max steps exceeded.")
-                return Data((False,query,""))
+                return Data((query,""))
             
             prompt = self.get_prompt(query, agent_scratchpad)
+            print(f"Prompt: {prompt}")
             prompt=[{"role":"user","content":prompt}]
             output = self.model.generate(prompt)
             print(output)
@@ -122,21 +132,21 @@ class BaseAgent:
             if output.get("final_answer") is not "":
                 final_answer = output["final_answer"]
                 print(f"Final Answer: {final_answer}")
-                return Data((True,query,final_answer))
+                return Data((query,final_answer))
 
             action, action_input = output.get("action"), output.get("action_input")
 
             if action is None:
                 # raise ValueError("Could not parse action.")
-                return Data((False,query,""))
+                return Data((query,""))
 
             if action not in self.tools:
                 # raise ValueError(f"Unknown tool requested: {action}")
-                return Data((False,query,""))
+                return Data((query,""))
 
             tool = self.tools[action]
             tool_reault = tool.run(action_input)
-            tool_reault["data"]["webPages"]["value"]
+            print(f"Tool {action} result: {tool_reault}")
             snippets =[item["snippet"] for item in tool_reault["data"]["webPages"]["value"]]
             observation = "\n".join(snippets)
             print(f"Observation: {observation}")
