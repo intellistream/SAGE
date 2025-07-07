@@ -15,7 +15,7 @@ class BaseEnvironment:
     def __init__(self, name: str, config: dict | None, *, platform: PlatformType = PlatformType.LOCAL):
         self.name = name
         self.logger = CustomLogger(
-            object_name=f"Environment_{name}",
+            filename=f"Environment_{name}",
             console_output=False,
             file_output=True
         )

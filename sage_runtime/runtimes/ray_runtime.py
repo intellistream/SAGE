@@ -22,7 +22,7 @@ class RayRuntime(BaseRuntime):
             session_folder: Session folder for logging
         """
         self.logger = CustomLogger(
-            object_name=f"RayRuntime",
+            filename=f"RayRuntime",
             console_output=False,
             file_output=True
         )

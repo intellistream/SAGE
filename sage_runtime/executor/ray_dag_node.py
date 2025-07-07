@@ -33,10 +33,11 @@ class RayDAGNode:
         """
         # Create logger first
         self.logger = CustomLogger(
-            object_name=f"RayNode_{name}",
+            filename=f"{name}",
             session_folder=session_folder,
             console_output=False,
-            file_output=True
+            file_output=True,
+            name = f"{name}_RayNode"
         )
         if(not isinstance(memory_collection, ActorHandle)):
             raise Exception("Memory collection must be a Ray Actor handle")
@@ -50,7 +51,7 @@ class RayDAGNode:
         self.name = name
         self.transformation = transformation
         try:
-            self.operator = transformation.build_instance(session_folder=session_folder)
+            self.operator = transformation.build_instance(session_folder=session_folder, name = name)
             self.logger.debug(f"Created operator instance for {self.name}")
         except Exception as e:
             self.logger.error(f"Failed to create operator instance: {e}", exc_info=True)

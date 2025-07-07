@@ -17,7 +17,8 @@ from sage_core.api.tuple import Data
 
 
 class Paper:
-    def __init__(self, path, title='', url='', abs='', authors=[]):
+    def __init__(self, path, title='', url='', abs='', authors=[],**kwargs):
+        super().__init__(**kwargs)
         # 初始化函数，根据pdf路径初始化Paper对象                
         self.url = url  # 文章链接
         self.path = path  # pdf路径

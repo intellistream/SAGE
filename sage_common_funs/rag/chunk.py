@@ -18,8 +18,8 @@ class CharacterSplitter(BaseFunction):
         - overlap: Number of overlapping tokens (default: 128).
     """
 
-    def __init__(self, config):
-        super().__init__()
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
         self.config = config
         self.chunk_size = self.config.get("chunk_size", 512)
         self.overlap = self.config.get("overlap", 128)

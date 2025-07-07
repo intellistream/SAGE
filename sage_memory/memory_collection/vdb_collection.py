@@ -61,7 +61,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
         
 
         self.logger = CustomLogger(
-            object_name=f"VDBMemoryCollection",
+            filename=f"VDBMemoryCollection",
             session_folder=session_folder,
             console_output=False,
             file_output=True

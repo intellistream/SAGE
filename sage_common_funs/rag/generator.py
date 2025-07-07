@@ -11,7 +11,8 @@ class OpenAIGenerator(BaseFunction):
     to generate responses based on input data.
     """
 
-    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
 
         """
         Initializes the OpenAIGenerator instance with configuration parameters.
@@ -34,11 +35,6 @@ class OpenAIGenerator(BaseFunction):
             base_url=self.config["base_url"],
             api_key=self.config["api_key"],
             seed=42  # Hardcoded seed for reproducibility
-        )
-        self.logger = CustomLogger(
-            object_name=f"OpenAIGenerator_{__name__}",
-            console_output=True,
-            file_output=True
         )
         self.num = 1
 
@@ -86,7 +82,7 @@ class HFGenerator(BaseFunction):
         super().__init__()
         self.config = config
         self.logger = CustomLogger(
-            object_name=f"HFGenerator_{__name__}",
+            filename=f"HFGenerator_{__name__}",
             console_output=False,
             file_output=True
         )

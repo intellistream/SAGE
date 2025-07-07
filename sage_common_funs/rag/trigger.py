@@ -13,14 +13,14 @@ class TriggerableSource(BaseFunction):
     可触发的数据源，支持外部输入触发处理
     """
     
-    def __init__(self, config: dict):
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
         """
         初始化可触发数据源
         
         Args:
             config: 配置字典
         """
-        super().__init__()
         self.config = config.get("source", {})
         
         # 输入队列，用于接收外部触发的数据
@@ -116,9 +116,8 @@ class RESTApiSource(TriggerableSource):
     """
     专门用于REST API请求的数据源
     """
-    
-    def __init__(self, config: dict):
-        super().__init__(config)
+    def __init__(self, config: dict, **kwargs):
+        super().__init__(config, **kwargs)
         
         # API特定配置
         self.request_timeout = self.config.get("request_timeout", 30.0)

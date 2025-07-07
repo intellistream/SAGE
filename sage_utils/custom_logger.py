@@ -66,15 +66,16 @@ class CustomLogger:
     }
 
     def __init__(self,
-                 object_name: str,
+                 filename: str,
                  session_folder: str = None,
                  console_output: Union[bool, str, int] = False,
-                 file_output: Union[bool, str, int] = True):
+                 file_output: Union[bool, str, int] = True,
+                 name:str = None):
         """
         初始化自定义Logger
         
         Args:
-            object_name: 对象名称，用作logger名称和文件名
+            filename: 对象名称，用作logger名称和文件名
             session_folder: session文件夹路径
             console_output: 控制台输出设置
                           - False: 不输出到控制台
@@ -85,7 +86,8 @@ class CustomLogger:
                         - True: 输出所有级别到文件 (相当于 DEBUG)
                         - str/int: 指定日志级别，只输出 >= 该级别的日志
         """
-        self.object_name = object_name
+        self.name = name or filename
+        self.filename = filename
         # 处理session_folder：空字符串检查和默认值处理
         if not session_folder:  # None 或空字符串
             if self._default_session_folder is None:
@@ -100,7 +102,7 @@ class CustomLogger:
             if self._default_session_folder is None:
                 self.set_default_session_folder(session_folder)
         
-        self.logger = logging.getLogger(f"{object_name}")
+        self.logger = logging.getLogger(f"{self.name}")
 
         # 避免重复初始化同一个logger
         if self.logger.handlers:
@@ -132,7 +134,7 @@ class CustomLogger:
             Path(self.session_folder).mkdir(parents=True, exist_ok=True)
 
             # 1. 对象专用日志文件
-            object_log_file_path = os.path.join(self.session_folder, f"{object_name}.log")
+            object_log_file_path = os.path.join(self.session_folder, f"{filename}.log")
 
             # 在打开文件前，先确保目录存在
             log_dir = os.path.dirname(object_log_file_path)
@@ -248,7 +250,7 @@ class CustomLogger:
 
     def get_log_file_path(self) -> str:
         """获取当前对象的日志文件路径"""
-        return os.path.join(self.session_folder, f"{self.object_name}.log")
+        return os.path.join(self.session_folder, f"{self.filename}.log")
 
     def get_global_log_file_path(self) -> str:
         """获取全局日志文件路径"""

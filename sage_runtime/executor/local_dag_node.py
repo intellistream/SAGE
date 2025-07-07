@@ -33,21 +33,22 @@ class LocalDAGNode:
             is_spout: Indicates if the node is the spout (starting point)
         """
         self.logger = CustomLogger(
-            object_name=f"LocalDAGNode_{name}",
+            filename=f"Node_{name}",
             console_output=False,
-            file_output=True
+            file_output=True,
+            name = f"{name}_LocalDAGNode"
         )
         self.name = name
         self.transformation = transformation
         self.memory_collection = memory_collection  # Optional memory collection for this node
-        self.operator = transformation.build_instance()
+        self.operator = transformation.build_instance(name = name)
         self.operator.insert_emit_context(LocalEmitContext())
         self.operator.insert_runtime_context(RuntimeContext(self.memory_collection, logger=self.logger))
 
 
 
         self.is_spout = (transformation.type == TransformationType.SOURCE)  # Check if this is a spout node 正确
-        self.input_buffer = LocalMessageQueue()  # Local input buffer for this node
+        self.input_buffer = LocalMessageQueue(name = name)  # Local input buffer for this node
 
         # Initialize stop event
         self.stop_event = threading.Event()

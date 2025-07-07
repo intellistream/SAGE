@@ -68,7 +68,7 @@ class Transformation:
         # 这个basename会沿用到生成的dagnode， operator和functions上
 
         self.logger = CustomLogger(
-            object_name=get_name(f"Transformation_{self.basename}"),
+            filename=get_name(f"Transformation_{self.basename}"),
             console_output=False,
             file_output=True
         )
