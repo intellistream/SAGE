@@ -21,8 +21,9 @@ class LocalMessageQueue:
         # self.task_per_minute = 0
         self.logger = CustomLogger(
             filename=f"Node_{name}",
-            console_output=False,
-            file_output=True,
+            console_output="WARNING",
+            file_output="WARNING",
+            global_output = "WARNING",
             name = f"{name}_LocalMessageQueue"
         )
         self.timestamps = deque()

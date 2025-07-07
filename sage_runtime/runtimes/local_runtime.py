@@ -32,8 +32,9 @@ class LocalRuntime(BaseRuntime):
         self.next_handle_id = 0
         self.logger = CustomLogger(
             filename=f"LocalRuntime",
-            console_output=False,
-            file_output=True
+            console_output="WARNING",
+            file_output="WARNING",
+            global_output = "WARNING",
         )
         
         if scheduling_strategy is None:

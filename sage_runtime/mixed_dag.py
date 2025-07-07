@@ -22,8 +22,9 @@ class MixedDAG:
         self.local_handles: List[Any] = []  # 存储本地节点句柄
         self.logger = CustomLogger(
             filename=f"MixedDAG_{self.name}",
-            console_output=False,
-            file_output=True
+            console_output="WARNING",
+            file_output="WARNING",
+            global_output = "WARNING",
         )
         self.node_dependencies: Dict[str, List[str]] = {}  # node_name -> [upstream_node_names]
         self.spout_nodes: List[str] = []

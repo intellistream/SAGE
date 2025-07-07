@@ -24,8 +24,9 @@ class RuntimeManager:
         self.logger = CustomLogger(
             filename=f"RuntimeManager",
             session_folder=session_folder,
-            console_output=False,
-            file_output=True
+            console_output="WARNING",
+            file_output="WARNING",
+            global_output = "WARNING",
         )
     
     def __new__(cls):
