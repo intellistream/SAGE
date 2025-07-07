@@ -30,7 +30,7 @@ class BGEReranker(BaseFunction):
 
         :param config: Dictionary containing configuration options, including model name and device settings.
         """
-        self.config = config
+        self.config = config["reranker"]
         self.device = "cuda" if torch.cuda.is_available() else "cpu"  # Set device to GPU if available, otherwise CPU
         
         # Load tokenizer and model using the provided model name
