@@ -13,30 +13,20 @@ from sage_core.api.base_function import BaseFunction
 
 
 class DataStream:
-    # 表示多个transformation生成的流结果
-    def __init__(self, env, transformations: Union[
-        Transformation, 
-        Tuple[Transformation, str], 
-        List[Union[Transformation, Tuple[Transformation, str]]]
-    ]):
+    """表示单个transformation生成的流结果"""
+    def __init__(self, env, transformation: Transformation, output_tag: str = None):
         self._environment = env
-        # self.transformations: List[Tuple[Transformation, str]] = []
-        if isinstance(transformations, list):
-            # Handle list of transformations or tuples
-            self.transformations: List[Tuple[Transformation, str]] = []
-            for item in transformations:
-                if isinstance(item, tuple):
-                    # Item is (transformation, output_tag)
-                    self.transformations.append(item)
-                else:
-                    # Item is just transformation, use default channel 0
-                    self.transformations.append((item, item.function_class.declare_outputs()[0][0]))
-        elif isinstance(transformations, tuple):
-            # Single tuple (transformation, channel)
-            self.transformations: List[Tuple[Transformation, str]] = [transformations]
+        self.transformation = transformation
+        
+        if output_tag is None:
+            # 使用默认输出标签（第一个）
+            self.output_tag = transformation.function_class.declare_outputs()[0][0]
         else:
-            # Single transformation, use default channel 0
-            self.transformations: List[Tuple[Transformation, str]] = [(transformations, transformations.function_class.declare_outputs()[0][0])]
+            # 验证输出标签是否有效
+            declared_tags = [tag for tag, _ in transformation.function_class.declare_outputs()]
+            if output_tag not in declared_tags:
+                raise ValueError(f"Output tag '{output_tag}' is not declared in function {transformation.function_class.__name__}")
+            self.output_tag = output_tag
 
 
     # ---------------------------------------------------------------------
@@ -47,15 +37,13 @@ class DataStream:
         # 然后和self.transformations中的每一个transformation输出标签进行匹配
         # 输入可以少于function desired inputs数量，但是不能多
         declared_inputs = tr.function_class.declare_inputs()  # ["in1", "in2", ...]
-        if len(self.transformations) > len(declared_inputs):
-            raise ValueError(
-                f"Too many upstream connections: "
-                f"{len(self.transformations)} provided vs {len(declared_inputs)} expected in {tr.function_class.__name__}"
-            )
+        if len(declared_inputs) == 0:
+            raise ValueError(f"Function {tr.function_class.__name__} declares no inputs but is being connected")
 
-        for (upstream, output_tag), (input_tag, input_type) in zip(self.transformations, declared_inputs):
-            tr.add_upstream(input_tag=input_tag, upstream_trans=upstream, upstream_tag=output_tag)
-
+        # 连接到第一个输入
+        input_tag = declared_inputs[0][0]
+        tr.add_upstream(input_tag=input_tag, upstream_trans=self.transformation, upstream_tag=self.output_tag)
+        
         self._environment._pipeline.append(tr)
         return DataStream(self._environment, tr)
 
@@ -68,21 +56,56 @@ class DataStream:
         return self._apply(tr)
 
     def side_output(self, output_tag:str):
-        if(len(self.transformations) > 1):
-            raise ValueError("side_output can only be used on a single transformation DataStream.")
-        declared_tags = [tag for tag, _ in self.transformations[0][0].function_class.declare_outputs()]
-        if(output_tag not in declared_tags):
-            raise ValueError(f"Output tag '{output_tag}' is not declared in the function {self.transformations[0][0].function_class.__name__}.")
-        return DataStream(self._environment, (self.transformations[0][0], output_tag))
+        """获取该transformation的指定输出标签的数据流"""
+        declared_tags = [tag for tag, _ in self.transformation.function_class.declare_outputs()]
+        if output_tag not in declared_tags:
+            raise ValueError(f"Output tag '{output_tag}' is not declared in function {self.transformation.function_class.__name__}")
+        
+        return DataStream(self._environment, self.transformation, output_tag)
 
-    def connect(self, other: "DataStream") -> "DataStream":
-        # Create new DataStream with combined transformations instead of modifying self
-        combined_transformations = self.transformations + other.transformations
-        new_datastream = DataStream.__new__(DataStream)
-        new_datastream._environment = self._environment
-        new_datastream.transformations = combined_transformations
-        return new_datastream
-    
-    def _append(self, upstream_trans:Transformation, upstream_channel:int = 0)->DataStream:
-        self.transformations.append((upstream_trans, upstream_channel))
-        return self
+    def connect(self, other: "DataStream") -> "ConnectedStreams":
+        """连接两个数据流，返回ConnectedStreams"""
+        return ConnectedStreams(self._environment, [
+            (self.transformation, self.output_tag),
+            (other.transformation, other.output_tag)
+        ])
+
+class ConnectedStreams:
+    """表示多个transformation连接后的流结果"""
+    def __init__(self, env, transformations: List[Tuple[Transformation, str]]):
+        self._environment = env
+        self.transformations = transformations
+
+    def _apply(self, tr: Transformation) -> "DataStream":
+        """将新 Transformation 接入管线"""
+        declared_inputs = tr.function_class.declare_inputs()
+        
+        if len(self.transformations) > len(declared_inputs):
+            raise ValueError(
+                f"Too many upstream connections: "
+                f"{len(self.transformations)} provided vs {len(declared_inputs)} expected in {tr.function_class.__name__}"
+            )
+
+        # 按顺序连接每个上游transformation到对应的输入
+        for (upstream_trans, output_tag), (input_tag, input_type) in zip(self.transformations, declared_inputs):
+            tr.add_upstream(input_tag=input_tag, upstream_trans=upstream_trans, upstream_tag=output_tag)
+
+        self._environment._pipeline.append(tr)
+        return DataStream(self._environment, tr)
+
+    def map(self, function: Union[BaseFunction, Type[BaseFunction]], *args, **kwargs) -> "DataStream":
+        tr = Transformation(TransformationType.MAP, function, *args, **kwargs)
+        return self._apply(tr)
+
+    def sink(self, function: Union[BaseFunction, Type[BaseFunction]], *args, **kwargs) -> "DataStream":
+        tr = Transformation(TransformationType.SINK, function, *args, **kwargs)
+        return self._apply(tr)
+
+    def connect(self, other: Union["DataStream", "ConnectedStreams"]) -> "ConnectedStreams":
+        """连接更多数据流"""
+        if isinstance(other, DataStream):
+            new_transformations = self.transformations + [(other.transformation, other.output_tag)]
+        else:  # ConnectedStreams
+            new_transformations = self.transformations + other.transformations
+        
+        return ConnectedStreams(self._environment, new_transformations)
