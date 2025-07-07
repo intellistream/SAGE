@@ -42,7 +42,7 @@ class BaseEnvironment:
         engine = Engine.get_instance()
         engine.submit_env(self)
         # time.sleep(10) # 等待管道启动
-        while (self.initlized() is False):
+        while (self.initialized() is False):
             time.sleep(1)
 
     def run_once(self, node:str = None):
@@ -88,7 +88,7 @@ class BaseEnvironment:
         self.memory_collection = collection 
         
     # TODO: 写一个判断Env 是否已经完全初始化并开始执行的函数
-    def initlized(self):
+    def initialized(self):
         pass
 
 
