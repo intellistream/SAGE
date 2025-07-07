@@ -20,7 +20,7 @@ class Engine:
         # self.compiler= QueryCompiler()
         from sage_core.core.compiler import Compiler
         self.graphs:dict[str, Compiler] = {}  # 存储 pipeline 名称到 SageGraph 的映射
-        self.env_to_dag:dict = {} # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
+        self.env_to_dag:dict[str, MixedDAG] = {} # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
 
         self.logger = CustomLogger(
             filename=f"SageEngine",
