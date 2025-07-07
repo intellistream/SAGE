@@ -46,77 +46,67 @@ class QAPromptor(BaseFunction):
         self.config = config  # Store the configuration for later use
         self.prompt_template = QA_prompt_template  # Load the QA prompt template
 
+    # sage_lib/functions/rag/qapromptor.py
     def execute(self, data) -> Data[list]:
         """
-        Generates a QA-style prompt for the input question and optional external corpus.
+        生成 ChatGPT 风格的 prompt（system+user 两条消息）。
 
-        This method handles two input formats:
-        1. (query, external_corpus) - A tuple with query string and corpus list
-        2. query - A single query string (no external corpus)
-
-        :param data: A Data object containing either:
-                     - A tuple (query, external_corpus)
-                     - A single query string
-        :return: A Data object containing a list with two prompts:
-                 1. system_prompt: Context and instructions (with corpus if provided)
-                 2. user_prompt: The user's question
+        支持两种输入：
+        1. Data((query, external_corpus_list_or_str))
+        2. Data(query_str)
         """
         try:
-            # Determine input format and extract data
-            if isinstance(data.data, tuple) and len(data.data) == 2:
-                # Format 1: Tuple with query and external_corpus
-                query, external_corpus = data.data
-                # Combine corpus items if it's a list
+            # -------- 解析输入 --------
+            raw = data.data
+            if isinstance(raw, tuple) and len(raw) == 2:
+                query, external_corpus = raw
                 if isinstance(external_corpus, list):
-                    external_corpus = "".join(external_corpus)
+                    external_corpus = "\n".join(external_corpus)
             else:
-                # Format 2: Single query without external corpus
-                query = data.data
-                external_corpus = ""  # Default to empty corpus
-
-            # Handle case where external_corpus might be None
-            if not external_corpus:
+                query = raw
                 external_corpus = ""
 
-            # Prepare the base data for the system prompt
-            base_system_prompt_data = {"external_corpus": external_corpus}
+            external_corpus = external_corpus or ""
 
-            # If we have non-empty corpus, create a context-based system prompt
+            # -------- system prompt --------
             if external_corpus:
                 system_prompt = {
                     "role": "system",
-                    "content": self.prompt_template.render(**base_system_prompt_data)
+                    "content": self.prompt_template.render(external_corpus=external_corpus),
                 }
             else:
-                
-                # Fallback to general instructions when no corpus is provided
                 system_prompt = {
                     "role": "system",
-                    "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+                    "content": (
+                        "You are a helpful AI assistant. "
+                        "Answer the user's questions accurately."
+                    ),
                 }
 
-            # Create the user prompt with the query
+            # -------- user prompt --------
             user_prompt = {
                 "role": "user",
-                "content": f"Question: {query}"
+                "content": f"Question: {query}",
             }
-            # self.logger.info(f"query:{query}")
-            self.logger.info(f"\033[32m[ {self.__class__.__name__}]: prompt: {user_prompt}\033[0m ")
+
             prompt = [system_prompt, user_prompt]
+            return Data([query,prompt])
 
         except Exception as e:
-            # Log detailed error information
-            self.logger.error(f"Error in BaseFunction: {e}\nInput data: {data.data}\n")
-
-            # Create a minimal fallback prompt in case of errors
-            prompt = [
-                {"role": "system", "content": "System encountered an error"},
-                {"role": "user",
-                 "content": f"Question: Error occurred. Please try again. (Original query: {getattr(data, 'data', '')}"}
+            self.logger.error(
+                "QAPromptor error: %s | input=%s", e, getattr(data, "data", "")
+            )
+            fallback = [
+                {"role": "system", "content": "System encountered an error."},
+                {
+                    "role": "user",
+                    "content": (
+                        "Question: Error occurred. Please try again."
+                        f" (Original: {getattr(data, 'data', '')})"
+                    ),
+                },
             ]
-
-        return Data([query,prompt])
-
+            return Data(fallback)
 
 
 class SummarizationPromptor(BaseFunction):

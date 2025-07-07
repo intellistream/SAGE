@@ -86,13 +86,9 @@ class RuntimeManager:
             return RayRuntime.get_instance(monitoring_interval=monitoring_interval)
         
         elif platform == "local":
-            max_slots = kwargs.get('max_slots', 4)
-            scheduling_strategy = kwargs.get('scheduling_strategy', None)
             tcp_host = kwargs.get('tcp_host', "localhost")
             tcp_port = kwargs.get('tcp_port', 9999)
             return LocalRuntime.get_instance(
-                max_slots=max_slots, 
-                scheduling_strategy=scheduling_strategy,
                 tcp_host=tcp_host,
                 tcp_port=tcp_port
             )

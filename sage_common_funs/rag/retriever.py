@@ -54,7 +54,7 @@ class DenseRetriever(BaseFunction):
 
         return Data((input_query, chunks))
     
-class BM25sRetriever(MemoryFunction,StatefulFunction): # 目前runtime context还只支持ltm
+class BM25sRetriever(BaseFunction): # 目前runtime context还只支持ltm
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
         self.config = config
@@ -72,7 +72,7 @@ class BM25sRetriever(MemoryFunction,StatefulFunction): # 目前runtime context�
 
         try:
             # 使用BM25s配置和输入查询调用检索
-            bm25s_results = self.memory.retrieve(
+            bm25s_results = self.runtime_context.retrieve(
                 # self.bm25s_collection,
                 query=input_query,
                 collection_config=self.bm25s_config
