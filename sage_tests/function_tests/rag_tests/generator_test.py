@@ -18,10 +18,11 @@ def config_openai():
 
 def test_openai_generator(config_openai):
     gen = OpenAIGenerator(config_openai)
-    input_data = Data([
+    query = "What is the capital of France?"
+    input_data = Data([query, [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "What is the capital of France?"}
-    ])
+    ]])
     result = gen.execute(input_data)
 
     assert isinstance(result, Data)
