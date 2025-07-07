@@ -1,7 +1,6 @@
 from sage_runtime.base_runtime import BaseRuntime
-from sage_runtime.executor.local_slot import Slot
 from sage_runtime.executor.local_dag_node import LocalDAGNode
-from sage_runtime.executor.local_scheduling_strategy import ResourceAwareStrategy
+from sage_runtime.runtimes.local_tcp_server import LocalTcpServer
 from sage_utils.custom_logger import CustomLogger
 import threading
 import socket
@@ -15,7 +14,7 @@ class LocalRuntime(BaseRuntime):
     _lock = threading.Lock()
 
 
-    def __init__(self, max_slots=4, scheduling_strategy=None,  tcp_host: str = "localhost", tcp_port: int = 9999):
+    def __init__(self, tcp_host: str = "localhost", tcp_port: int = 9999):
         # 确保只初始化一次
         if hasattr(self, "_initialized"):
             return
@@ -37,12 +36,13 @@ class LocalRuntime(BaseRuntime):
             global_output = "WARNING",
         )
         
-        if scheduling_strategy is None:
-            self.scheduling_strategy = ResourceAwareStrategy()
-        else:
-            self.scheduling_strategy = scheduling_strategy
-            # 启动TCP服务器
-        self._start_tcp_server()
+        # 初始化TCP服务器
+        self.tcp_server = LocalTcpServer(
+            host=tcp_host,
+            port=tcp_port,
+            message_handler=self._handle_tcp_message
+        )
+        self.tcp_server.start()
 
     def __new__(cls, max_slots=4, scheduling_strategy=None, session_folder: str = None,  
                 tcp_host: str = "localhost", tcp_port: int = 9999):
@@ -70,91 +70,7 @@ class LocalRuntime(BaseRuntime):
                 cls._instance.shutdown()
                 cls._instance = None
 
-
-
-
-    def _start_tcp_server(self):
-        """启动TCP服务器用于接收Ray Actor的数据"""
-        try:
-            self.tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.tcp_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.tcp_server_socket.bind((self.tcp_host, self.tcp_port))
-            self.tcp_server_socket.listen(10)
-            
-            self.tcp_running = True
-            self.tcp_server_thread = threading.Thread(
-                target=self._tcp_server_loop,
-                name="TCPServerThread"
-            )
-            self.tcp_server_thread.daemon = True
-            self.tcp_server_thread.start()
-            
-            self.logger.info(f"TCP server started on {self.tcp_host}:{self.tcp_port}")
-            
-        except Exception as e:
-            self.logger.error(f"Failed to start TCP server: {e}")
-            raise
-    def _tcp_server_loop(self):
-        """TCP服务器主循环"""
-        self.logger.debug("TCP server loop started")
-        
-        while self.tcp_running:
-            try:
-                client_socket, address = self.tcp_server_socket.accept()
-                self.logger.debug(f"New TCP client connected from {address}")
-                
-                # 在新线程中处理客户端
-                client_thread = threading.Thread(
-                    target=self._handle_tcp_client,
-                    args=(client_socket, address),
-                    name=f"TCPClient-{address}"
-                )
-                client_thread.daemon = True
-                client_thread.start()
-                
-            except Exception as e:
-                if self.tcp_running:
-                    self.logger.error(f"Error accepting TCP connection: {e}")
-        
-        self.logger.debug("TCP server loop stopped")
-
-    def _handle_tcp_client(self, client_socket: socket.socket, address):
-        """处理TCP客户端连接和消息"""
-        try:
-            while self.tcp_running:
-                # 读取消息长度
-                size_data = client_socket.recv(4)
-                if not size_data:
-                    break
-                
-                message_size = int.from_bytes(size_data, byteorder='big')
-                
-                # 读取消息内容
-                message_data = b''
-                while len(message_data) < message_size:
-                    chunk = client_socket.recv(message_size - len(message_data))
-                    if not chunk:
-                        break
-                    message_data += chunk
-                
-                if len(message_data) != message_size:
-                    self.logger.warning(f"Incomplete message received from {address}")
-                    continue
-                
-                # 反序列化并处理消息
-                try:
-                    message = pickle.loads(message_data)
-                    self._process_tcp_message(message, address)
-                except Exception as e:
-                    self.logger.error(f"Error processing message from {address}: {e}")
-                
-        except Exception as e:
-            self.logger.error(f"Error handling TCP client {address}: {e}")
-        finally:
-            client_socket.close()
-            self.logger.debug(f"TCP client {address} disconnected")
-    
-    def _process_tcp_message(self, message: Dict[str, Any], client_address):
+    def _handle_tcp_message(self, message: Dict[str, Any], client_address: tuple):
         """
         处理来自Ray Actor的TCP消息
         
@@ -185,10 +101,10 @@ class LocalRuntime(BaseRuntime):
                 else:
                     self.logger.warning(f"Target node '{target_node_name}' not found for TCP message from {client_address}")
             else:
-                self.logger.warning(f"Unknown TCP message type: {message_type}")
+                self.logger.warning(f"Unknown TCP message type: {message_type} from {client_address}")
                 
         except Exception as e:
-            self.logger.error(f"Error processing TCP message: {e}", exc_info=True)
+            self.logger.error(f"Error processing TCP message from {client_address}: {e}", exc_info=True)
     
     def submit_node(self, node: LocalDAGNode) -> str:
         """
