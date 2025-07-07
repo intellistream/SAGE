@@ -37,76 +37,68 @@ class OpenAIClient():
         )
         self.seed=kwargs["seed"]
 
-    def generate(self, prompt , **kwargs):
+    def generate(self, messages, **kwargs):
         """
-        Generate a response using the model.
-        :param input_data: Preformatted QA-template input string.
-        :param kwargs: Additional parameters for generation.
-        :return: Generated response.
+        Chat-completion 封装
+        --------------------
+        * messages 允许传 list[dict] / dict / Data ⇒ 最终转为 list[dict]
+        * 支持 stream / n / logprobs 等 OpenAI 参数
+        * 失败统一抛 RuntimeError 供上层捕获
         """
         try:
-            max_tokens = kwargs.get("max_new_tokens", 4096)
-            temperature = kwargs.get("temperature", 1.0)  # Default temperature
-            top_p = kwargs.get("top_p", None)  # Disable top-p sampling by default
-            stream= kwargs.get("stream", False)
-            frequency_penalty= kwargs.get("frequency_penalty", 0) #The higher it is, the more it reduces repetitive wording and prevents looping responses.
-            n=kwargs.get("n",1)
-            logprobs=kwargs.get("logprobs",False)
-            # Generate output
+            # -------- 参数清理 --------
+            # OpenAI 接口使用 max_tokens，保持与 up-stream 命名一致
+            max_tokens = kwargs.get("max_tokens", kwargs.get("max_new_tokens", 4096))
+            temperature = kwargs.get("temperature", 1.0)
+            top_p = kwargs.get("top_p", None)
+            stream = bool(kwargs.get("stream", False))
+            frequency_penalty = kwargs.get("frequency_penalty", 0)
+            n = int(kwargs.get("n", 1))
+            want_logprobs = bool(kwargs.get("logprobs", False))
+
+            # -------- 兼容 messages 形态 --------
+            # Data 对象 => Data.data
+            if hasattr(messages, "data"):  # 兼容你的 Data() 包装
+                messages = messages.data
+            # dict => 包成单元素 list
+            if isinstance(messages, dict):
+                messages = [messages]
+            if not isinstance(messages, list):
+                raise ValueError("`messages` must be list[dict] or Data")
+
+            # -------- 调用 OpenAI --------
             response = self.client.chat.completions.create(
                 model=self.model_name,
-                messages=prompt,
-                top_p=top_p,
+                messages=messages,
                 temperature=temperature,
-                stream=False,
+                top_p=top_p,
                 max_tokens=max_tokens,
-                n=1,
+                n=n,
                 seed=self.seed,
+                stream=stream,
                 frequency_penalty=frequency_penalty,
-                logprobs=logprobs,
+                logprobs=want_logprobs,
             )
-            
+
+            # -------- 流式返回 --------
             if stream:
-                # print(11111)
-                # for chunk in response:
-                #     if hasattr(chunk, "choices") and len(chunk.choices) > 0:
-                #         delta = chunk.choices[0].delta
-                #         if hasattr(delta, "content") and delta.content:
-                #             yield delta.content  # Yield content as it streams
-                #         if chunk.choices[0].finish_reason:
-                #             break  # End of stream
-            
-                # response = collected_response
+                # 直接把 StreamingResponse 生成器交给上层迭代
                 return response
-            else:
-                # print(response)
-                response_content=response.choices[0].message.content
-                # logprobs = response.choices[0].logprobs.token_logprobs
-                if logprobs:
-                    logits_list = [logprob.logprob for logprob in response.choices[0].logprobs.content]
 
-                # print(logits_list)
+            # -------- 非流式：解析 choice(s) --------
+            def _extract(choice):
+                txt = choice.message.content
+                if want_logprobs:
+                    logits = [lp.logprob for lp in choice.logprobs.content]
+                    return txt, logits
+                return txt
 
-            # print(response)
-            # print("返回类型：", type(response))
-            # print("内容：", response)
-            if logprobs:
-                return response_content, logits_list
+            if n == 1:
+                return _extract(response.choices[0])
             else:
-                return response_content
+                return [_extract(c) for c in response.choices]
 
         except Exception as e:
-            raise RuntimeError(f"Response generation failed: {str(e)}")
-        
+            # 统一封装异常
+            raise RuntimeError(f"Response generation failed: {e}") from e
 
-# if __name__ == '__main__':
-    # prompt=[{"role":"user","content":"who are you"}]
-    # generator=OpenAIClient(model_name="qwen-max",base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",api_key="",seed=42)
-    # response=generator.generate((prompt))
-    # print(response)
-    # prompt=[{"role":"user","content":"who are you"}]
-    # generator=OpenAIClient(model_name="qwen-max",base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",api_key="",seed=42,stream=True)
-    # response=generator.generate((prompt))
-    # for text in response:
-    #     print(text)
-    # print(response)

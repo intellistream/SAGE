@@ -8,8 +8,6 @@ from sage_runtime.remote.ray_dag_node import RayDAGNode
 from sage_utils.custom_logger import CustomLogger
 from sage_core.core.compiler import Compiler, GraphNode
 
-
-
 class MixedDAG:
     def __init__(self, graph: Compiler):
         self.name:str = graph.name
@@ -49,7 +47,6 @@ class MixedDAG:
             self._setup_node_connections(node_name, graph_node)
         
         self.logger.info(f"Mixed DAG compilation completed: {len(self.name_to_dag_node)} nodes, "f"{len(self.spout_nodes)} spout nodes")
-
 
     def _setup_node_connections(self, node_name: str, graph_node: GraphNode):
         """
@@ -141,10 +138,8 @@ class MixedDAG:
         if(transformation.type == TransformationType.SOURCE):
             self.spout_nodes.append(graph_node.name)
             self.logger.debug(f"Node '{graph_node.name}' is a spout node")
-        
-        
-        return node
 
+        return node
 
     def _detect_platform(self, executor: Any) -> str:
         """
@@ -164,7 +159,6 @@ class MixedDAG:
             return "local"
         else:
             return "unknown"
-
 
     def start_all_nodes(self):
         """启动所有本地节点（Ray Actor会自动启动）"""
@@ -270,7 +264,6 @@ class MixedDAG:
             else:
                 self.logger.warning(f"Spout node '{spout_node_name}' not found in MixedDAG '{self.name}'")
 
-
     def run(self) -> Dict[str, List[str]]: # deprecated
         """
         启动MixedDAG执行，将所有节点注册到对应的运行时
@@ -286,9 +279,6 @@ class MixedDAG:
         
         try:
             # 获取运行时实例
-
-            
-            
             # 分离本地节点和Ray节点
             local_nodes = []
             ray_actors = []
