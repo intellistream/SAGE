@@ -11,6 +11,12 @@ from sage_core.core.compiler import Compiler, GraphNode
 class MixedDAG:
     def __init__(self, graph: Compiler):
         self.name:str = graph.name
+        self.logger = CustomLogger(
+            filename=f"MixedDAG_{self.name}",
+            console_output="DEBUG",
+            file_output="DEBUG",
+            global_output = "DEBUG",
+        )
         self.graph:Compiler = graph
         self.env = graph.env
         self.name_to_DAGnode: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
@@ -18,12 +24,7 @@ class MixedDAG:
         self.session_folder = CustomLogger.get_session_folder()
         self.ray_handles: List[Any] = []  # 存储Ray Actor句柄
         self.local_handles: List[Any] = []  # 存储本地节点句柄
-        self.logger = CustomLogger(
-            filename=f"MixedDAG_{self.name}",
-            console_output="WARNING",
-            file_output="WARNING",
-            global_output = "WARNING",
-        )
+
         self.node_dependencies: Dict[str, List[str]] = {}  # node_name -> [upstream_node_names]
         self.spout_nodes: List[str] = []
         self.is_running: bool = False
@@ -178,7 +179,19 @@ class MixedDAG:
         
         self.logger.info(f"Started {local_node_count} local nodes, {ray_node_count} Ray actors")
 
-    def stop_all_nodes(self):
+    def stop(self):
+        if(not self.is_running):
+            self.logger.warning(f"MixedDAG '{self.name}' is not running, nothing to stop")
+            return
+        for node_name in self.spout_nodes:
+            node_handle = self.name_to_DAGnode[node_name]
+            if isinstance(node_handle, LocalDAGNode):
+                node_handle.stop()
+            elif isinstance(node_handle, ActorHandle):
+                # Ray Actor执行一次
+                node_handle.stop.remote()
+
+    def close(self):
         """停止所有节点"""
         self.logger.info("Stopping all DAG nodes...")
         
@@ -245,22 +258,27 @@ class MixedDAG:
 
     def execute_streaming(self, spout_node_name:str = None):
         self.logger.info(f"executing streaming")
+        self.is_running = True
         if(spout_node_name is None):
             for node_name in self.spout_nodes:
                 node_handle = self.name_to_DAGnode[node_name]
                 if isinstance(node_handle, LocalDAGNode):
-                    node_handle.run_loop()
+                    local_runtime = LocalRuntime.get_instance()
+                    local_runtime.submit_node(node_handle)
                 elif isinstance(node_handle, ActorHandle):
                     # Ray Actor执行一次
-                    node_handle.run_loop.remote()
+                    ray_runtime = RayRuntime.get_instance()
+                    ray_runtime.start_node(node_handle)
         else:
             if spout_node_name in self.spout_nodes:
                 node_handle = self.name_to_DAGnode[spout_node_name]
                 if isinstance(node_handle, LocalDAGNode):
-                    node_handle.run_loop()
+                    local_runtime = LocalRuntime.get_instance()
+                    local_runtime.submit_node(node_handle)
                 elif isinstance(node_handle, ActorHandle):
                     # Ray Actor执行一次
-                    node_handle.run_loop.remote()
+                    ray_runtime = RayRuntime.get_instance()
+                    ray_runtime.start_node(node_handle)
             else:
                 self.logger.warning(f"Spout node '{spout_node_name}' not found in MixedDAG '{self.name}'")
 
