@@ -59,18 +59,13 @@ def test_dense_retriever_execute_no_ltm(dense_retriever_config):
 
 from unittest.mock import MagicMock
 
-from unittest.mock import MagicMock
-
 def test_bm25s_retriever_execute(bm25s_retriever_config, caplog):
     retriever = BM25sRetriever(bm25s_retriever_config)
 
-    # 注入 runtime_context 和 memory mock
+    # 注入 runtime_context mock（不需要 memory 了）
     mock_runtime_context = MagicMock()
-    mock_memory = MagicMock()
-    mock_runtime_context.memory = mock_memory
+    mock_runtime_context.retrieve.return_value = ["doc1", "doc2"]
     retriever.runtime_context = mock_runtime_context
-
-    mock_memory.retrieve.return_value = ["doc1", "doc2"]
 
     data = Data("some query")
 
@@ -80,6 +75,7 @@ def test_bm25s_retriever_execute(bm25s_retriever_config, caplog):
     query, chunks = result.data
     assert query == "some query"
     assert chunks == ["doc1", "doc2"]
+
 
 def test_bm25s_retriever_execute_no_collection(bm25s_retriever_config):
     bm25s_retriever_config["bm25s_collection"] = None
