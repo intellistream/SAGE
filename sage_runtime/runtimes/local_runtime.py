@@ -2,9 +2,8 @@ from sage_runtime.base_runtime import BaseRuntime
 from sage_runtime.executor.local_dag_node import LocalDAGNode
 from sage_runtime.runtimes.local_tcp_server import LocalTcpServer
 from sage_utils.custom_logger import CustomLogger
-import threading
-import socket
-import pickle
+from concurrent.futures import ThreadPoolExecutor
+import os, threading
 from typing import Dict, Optional, Any, List
 
 class LocalRuntime(BaseRuntime):
@@ -18,23 +17,27 @@ class LocalRuntime(BaseRuntime):
         # 确保只初始化一次
         if hasattr(self, "_initialized"):
             return
-        self._initialized = True
-        self.name = "LocalRuntime"
-        self.available_slots = [Slot(slot_id=i) for i in range(max_slots)]
-        self.tcp_host = tcp_host  # 添加这行
-        self.tcp_port = tcp_port  # 添加这行
-        # 节点管理
-        self.running_nodes: Dict[str, LocalDAGNode] = {}  # 正在运行的节点表
-        self.node_to_slot: Dict[LocalDAGNode, int] = {}  # 节点到slot的映射
-        self.node_to_handle: Dict[LocalDAGNode, str] = {}  # 节点到handle的映射
-        self.handle_to_node: Dict[str, LocalDAGNode] = {}  # handle到节点的映射
-        self.next_handle_id = 0
         self.logger = CustomLogger(
             filename=f"LocalRuntime",
             console_output="WARNING",
             file_output="WARNING",
             global_output = "WARNING",
         )
+        self._initialized = True
+        self.name = "LocalRuntime"
+        self.logger.debug(f"cpu count is {os.cpu_count()}")
+        self.thread_pool = ThreadPoolExecutor(
+            max_workers=os.cpu_count() * 3,
+            thread_name_prefix=None,
+            initializer=None,
+            initargs=None
+        )
+        # 节点管理
+        self.running_nodes: Dict[str, LocalDAGNode] = {}  # 正在运行的节点表
+        self.node_to_handle: Dict[LocalDAGNode, str] = {}  # 节点到handle的映射
+        self.handle_to_node: Dict[str, LocalDAGNode] = {}  # handle到节点的映射
+        self.next_handle_id = 0
+
         
         # 初始化TCP服务器
         self.tcp_server = LocalTcpServer(
@@ -44,21 +47,19 @@ class LocalRuntime(BaseRuntime):
         )
         self.tcp_server.start()
 
-    def __new__(cls, max_slots=4, scheduling_strategy=None, session_folder: str = None,  
-                tcp_host: str = "localhost", tcp_port: int = 9999):
+    def __new__(cls, *args, **kwargs):
         # 禁止直接实例化
         raise RuntimeError("请通过 get_instance() 方法获取实例")
     
     @classmethod
-    def get_instance(cls, max_slots=4, scheduling_strategy=None, 
-                     tcp_host: str = "localhost", tcp_port: int = 9999):
+    def get_instance(cls, tcp_host: str = "localhost", tcp_port: int = 9999):
         """获取LocalRuntime的唯一实例"""
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
                     # 绕过 __new__ 的异常，直接创建实例
                     instance = super().__new__(cls)
-                    instance.__init__(max_slots, scheduling_strategy, tcp_host, tcp_port)
+                    instance.__init__(tcp_host, tcp_port)
                     cls._instance = instance
         return cls._instance
     
@@ -124,26 +125,11 @@ class LocalRuntime(BaseRuntime):
         try:
             # 创建StreamingTask包装节点
             # task = StreamingTask(node, {})
-            
+            future=self.thread_pool.submit(node.run_loop)
+            #self.task_to_future[node]=future
             # 选择slot并提交
-            slot_id = self.scheduling_strategy.select_slot(node, self.available_slots)
-            success = self.available_slots[slot_id].submit_streaming_task(node)
-            
-            if success:
-                # 生成handle
-                handle = f"local_node_{self.next_handle_id}"
-                self.next_handle_id += 1
-                
-                # 更新映射关系
-                self.running_nodes[node.name] = node
-                self.node_to_slot[node] = slot_id
-                self.node_to_handle[node] = handle
-                self.handle_to_node[handle] = node
-                
-                self.logger.info(f"Node '{node.name}' submitted successfully with handle: {handle}")
-                return handle
-            else:
-                raise RuntimeError(f"Failed to submit node '{node.name}' to slot {slot_id}")
+            # slot_id = self.scheduling_strategy.select_slot(node, self.available_slots)
+            # success = self.available_slots[slot_id].submit_streaming_task(node)
                 
         except Exception as e:
             self.logger.error(f"Failed to submit node '{node.name}': {e}")
@@ -188,7 +174,6 @@ class LocalRuntime(BaseRuntime):
         
         try:
             node = self.handle_to_node[node_handle]
-            slot_id = self.node_to_slot[node]
             
             # 停止节点
             node.stop()
@@ -202,7 +187,6 @@ class LocalRuntime(BaseRuntime):
             
             # 清理映射关系
             self.running_nodes.pop(node.name, None)
-            self.node_to_slot.pop(node, None)
             self.node_to_handle.pop(node, None)
             self.handle_to_node.pop(node_handle, None)
             
@@ -235,13 +219,11 @@ class LocalRuntime(BaseRuntime):
             return {"status": "not_found"}
         
         node = self.handle_to_node[node_handle]
-        slot_id = self.node_to_slot[node]
         
         return {
             "status": "running",
             "node_name": node.name,
             "is_spout": node.is_spout,
-            "slot_id": slot_id,
             "backend": "local",
             "handle": node_handle
         }
@@ -256,14 +238,13 @@ class LocalRuntime(BaseRuntime):
     
     def get_runtime_info(self) -> Dict[str, Any]:
         """获取运行时信息"""
+        tcp_info = self.tcp_server.get_server_info()
         return {
             "name": self.name,
-            "tcp_server": f"{self.tcp_host}:{self.tcp_port}",
+            "tcp_server": tcp_info["address"],
+            "tcp_running": tcp_info["running"],
             "running_nodes_count": len(self.running_nodes),
             "running_nodes": list(self.running_nodes.keys()),
-            "available_slots": len(self.available_slots),
-            "used_slots": len(self.node_to_slot),
-            "tcp_running": self.tcp_running
         }
     
     def shutdown(self):
@@ -274,13 +255,8 @@ class LocalRuntime(BaseRuntime):
         self.stop_all_nodes()
         
         # 关闭TCP服务器
-        self.tcp_running = False
-        if self.tcp_server_socket:
-            self.tcp_server_socket.close()
-        
-        # 等待TCP服务器线程结束
-        if self.tcp_server_thread and self.tcp_server_thread.is_alive():
-            self.tcp_server_thread.join(timeout=2.0)
+        if self.tcp_server:
+            self.tcp_server.stop()
         
         self.logger.info("LocalRuntime shutdown completed")
     

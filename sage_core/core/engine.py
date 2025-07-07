@@ -21,11 +21,13 @@ class Engine:
         from sage_core.core.compiler import Compiler
         self.graphs:dict[str, Compiler] = {}  # 存储 pipeline 名称到 SageGraph 的映射
         self.env_to_dag:dict[str, MixedDAG] = {} # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
-
+        # print("Engine initialized")
         self.logger = CustomLogger(
             filename=f"SageEngine",
-            console_output=False,
-            file_output=True
+            console_output="DEBUG",
+            file_output=True,
+            global_output = "WARNING",
+            name = "SageEngine"
         )
 
 
@@ -82,3 +84,27 @@ class Engine:
         dag = self.env_to_dag.get(env.name)
         dag.execute_streaming()
         self.logger.info(f"Streaming DAG for environment '{env.name}' have started.")
+
+    def stop(self, env:BaseEnvironment):
+        """
+        停止指定环境的 DAG
+        """
+        self.logger.info(f"Stopping DAG for environment '{env.name}'")
+        dag = self.env_to_dag.get(env.name)
+        if dag:
+            dag.stop()
+            self.logger.info(f"DAG for environment '{env.name}' has been stopped.")
+        else:
+            self.logger.warning(f"No DAG found for environment '{env.name}'")
+
+    def close(self, env:BaseEnvironment):
+        """
+        停止指定环境的 DAG
+        """
+        self.logger.info(f"Stopping DAG for environment '{env.name}'")
+        dag = self.env_to_dag.get(env.name)
+        if dag:
+            dag.close()
+            self.logger.info(f"DAG for environment '{env.name}' has been stopped.")
+        else:
+            self.logger.warning(f"No DAG found for environment '{env.name}'")

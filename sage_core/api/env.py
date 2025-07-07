@@ -16,8 +16,9 @@ class BaseEnvironment:
         self.name = name
         self.logger = CustomLogger(
             filename=f"Environment_{name}",
-            console_output=False,
-            file_output=True
+            console_output="WARNING",
+            file_output=True,
+            global_output = "DEBUG",
         )
         self.config: dict = dict(config or {})
         self.platform:PlatformType = platform
@@ -84,10 +85,18 @@ class BaseEnvironment:
         """
         停止管道运行。
         """
+        self.logger.info("Stopping pipeline...")
         from sage_core.core.engine import Engine
         engine = Engine.get_instance()
         engine.stop(self)
 
+    def close(self):
+        """
+        关闭管道运行。
+        """
+        from sage_core.core.engine import Engine
+        engine = Engine.get_instance()
+        engine.close(self)
 
     @property
     def pipeline(self) -> List[Transformation]:  # noqa: D401
@@ -104,6 +113,7 @@ class BaseEnvironment:
     # TODO: 写一个判断Env 是否已经完全初始化并开始执行的函数
     def initialized(self):
         pass
+
     def debug_print_pipeline(self):
         """
         调试方法：打印环境及其包含的所有Transformation的详细信息
