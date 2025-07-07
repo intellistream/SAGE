@@ -22,7 +22,7 @@ from sage_common_funs.rag.generator import OpenAIGenerator
 from sage_common_funs.rag.retriever import DenseRetriever
 from sage_common_funs.rag.promptor import QAPromptor
 from sage_common_funs.agent.agent import BaseAgent
-
+from typing import Tuple, List, Union, Type, Any
 
 # === Prompt 模板 ===
 ROUTE_PROMPT_TEMPLATE = '''Instruction:
@@ -72,13 +72,16 @@ class RouteSplitter(BaseFunction):
             console_output=False,
             file_output=True
         )
-
+    @classmethod 
+    def declare_outputs(cls):
+        return [("vector", Any), ("web", Any)]
+    
     def execute(self, data: Data[Tuple[str, str]]):
         print(f"RouteSplitter received data: {data.data}")
         if "vectorstore" in data.data[1]:
-            self.collector.collect(data, 0)
+            self.collector.collect("vector", data)
         else:
-            self.collector.collect(data, 1)
+            self.collector.collect("web", data)
 
 
 # === 向量库构建 ===
@@ -137,7 +140,7 @@ query_stream = (
 
 # 向量流分支
 vector_stream = (
-    query_stream.side_output(0)
+    query_stream.side_output("vector")
                 .map(DenseRetriever, config["retriever"])
                 .map(QAPromptor, config["promptor"])
                 .map(OpenAIGenerator, config["generator"])
@@ -146,7 +149,7 @@ vector_stream = (
 
 # Web 搜索流分支
 web_stream = (
-    query_stream.side_output(1)
+    query_stream.side_output("web")
                 .map(BaseAgent, config["agent"])
                 .map(TerminalSink, config)
 )
