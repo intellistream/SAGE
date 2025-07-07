@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, List, Tuple
-
+from sage_core.api.enum import PlatformType
 # from sage.api.env import Environment
 from sage_core.core.operator.base_operator import BaseOperator
 from sage_core.core.operator.transformation import TransformationType, Transformation
@@ -46,13 +46,49 @@ class DataStream:
         
         self._environment._pipeline.append(tr)
         return DataStream(self._environment, tr)
-
-    def map(self, function: Union[BaseFunction, Type[BaseFunction] ],*args, **kwargs) -> "DataStream":
-        tr = Transformation(TransformationType.MAP, function,*args, **kwargs)
+    
+    # ---------------------------------------------------------------------
+    # 表示对于当前 DataStream 的变换操作，生成变换算子的第一个输出 Datastream
+    # ---------------------------------------------------------------------
+    def map(
+        self, 
+        function: Union[BaseFunction, Type[BaseFunction] ],
+        *args, 
+        platform: PlatformType = PlatformType.LOCAL,
+        name: str = None,
+        **kwargs
+    ) -> "DataStream":
+        
+        tr = Transformation(
+            TransformationType.MAP, 
+            function,
+            *args,
+            platform = platform,
+            name = name,
+            **kwargs)
         return self._apply(tr)
 
-    def sink(self, function: Union[BaseFunction, Type[BaseFunction] ],*args, **kwargs) -> "DataStream":
-        tr = Transformation(TransformationType.SINK, function,*args, **kwargs)
+
+    # ---------------------------------------------------------------------
+    # 表示对于当前 DataStream 进行输出
+    # ---------------------------------------------------------------------
+    def sink(
+        self, 
+        function: Union[BaseFunction, Type[BaseFunction]],
+        *args, 
+        platform:  PlatformType    = PlatformType.LOCAL,
+        name:      str             = None,
+        **kwargs
+    ) -> "DataStream":
+        
+        tr = Transformation(
+            TransformationType.SINK, 
+            function,
+            *args,
+            platform = platform,
+            name = name, 
+            **kwargs
+            )
         return self._apply(tr)
 
     def side_output(self, output_tag:str):

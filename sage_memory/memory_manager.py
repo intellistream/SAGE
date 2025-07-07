@@ -19,9 +19,8 @@ class MemoryManager:
     def __init__(self, data_dir: Optional[str] = None, session_folder: str = None):
         self.session_folder = session_folder
         self.logger = CustomLogger(
-            object_name=f"SageEngine",
+            filename=f"SageEngine",
             session_folder=self.session_folder,
-            log_level="DEBUG",
             console_output=False,
             file_output=True
         )

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any
 from sage_core.api.collector import Collector
+from sage_utils.custom_logger import CustomLogger
 
 
 
@@ -10,9 +11,17 @@ class BaseFunction(ABC):
     It defines the core interface and initializes a logger.
     """
 
-    def __init__(self):
+    def __init__(self, session_folder:str = None, name:str = None, **kwargs):
         self.runtime_context = None  # 需要在compiler里面实例化。
-        self.logger=None
+        name = name or self.__class__.__name__
+        self.logger = CustomLogger(
+            filename=f"Node_{name}",
+            session_folder=session_folder,
+            console_output=False,
+            file_output=True,
+            global_output = True,
+            name = f"{name}_Function"
+        )
         pass
 
     @classmethod # 多路输出的function可以override这个方法

@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional, Set
 from sage_core.api.collector import Collector
-# from sage_runtime.io.emit_context import BaseEmitContext, DownstreamTarget, NodeType
+# from sage_runtime.io.base_emit_context import BaseEmitContext, DownstreamTarget, NodeType
 # from sage_runtime.runtime_context import RuntimeContext
 from sage_utils.custom_logger import CustomLogger
 import inspect
@@ -16,15 +16,15 @@ from sage_core.api.tuple import Data
 # 路由策略是 Operator 的语义特征，EmitContext 专注于消息投递的物理实现。
 
 class BaseOperator(ABC):
-    def __init__(self, function: BaseFunction, session_folder: Optional[str] = None):
+    def __init__(self, function: BaseFunction, session_folder: Optional[str] = None, name: Optional[str] = None):
         self.collector = Collector(self)  # 用于收集数据
-        self.session_folder = session_folder or None
         self.logger = CustomLogger(
-            object_name = f"Operator_{function.__class__.__name__}",
-            session_folder = self.session_folder,
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
+            filename=f"Node_{name}",
+            session_folder = session_folder or None,
+            console_output="WARNING",
+            file_output="WARNING",
+            global_output = "WARNING",
+            name = f"{name}_{self.__class__.__name__}"
         )
         self.function = function
         self.function.insert_collector(self.collector)
@@ -32,7 +32,7 @@ class BaseOperator(ABC):
         self._name = self.__class__.__name__
         # 维护下游节点和路由逻辑
         # downstream_channel->broadcasting_groups->targets
-        from sage_runtime.io.emit_context import DownstreamTarget
+        from sage_runtime.io.base_emit_context import DownstreamTarget
         self.downstream_channels:Dict[str, Dict[int, Dict[int, DownstreamTarget]]] = {}
         # self.downstream_channels: Dict[int,Dict[int, List[DownstreamTarget]] ] = {}
         self.downstream_round_robin: Dict[str, Dict[int, int]] = {}
@@ -54,7 +54,6 @@ class BaseOperator(ABC):
             emit_context: The emit context to be injected
         """
         self._emit_context = emit_context
-        self._emit_context.logger = self.logger  # Use operator's logger for emit context
         self.logger.debug(f"Emit context injected for operator {self._name}")
 
     def insert_runtime_context(self, runtime_context  = None):
@@ -69,7 +68,7 @@ class BaseOperator(ABC):
             if(len(self.function.__class__.declare_inputs()) == 0):
                 # No inputs declared, call execute without arguments
                 result = self.function.execute()
-            elif(len(self.function.__class__.declare_inputs()) is 1):
+            elif(len(self.function.__class__.declare_inputs()) == 1):
                 result = self.function.execute(data)
             else:
                 result = self.function.execute(tag, data)
@@ -156,9 +155,9 @@ class BaseOperator(ABC):
             f"Adding downstream: output_tag={output_tag}, broadcast_index={broadcast_index}, parallel_index={parallel_index}, "
             f"target_object={target_object}, target_input_tag={target_input_tag}"
         )
-        from sage_runtime.local.local_dag_node import LocalDAGNode
+        from sage_runtime.executor.local_dag_node import LocalDAGNode
         from ray.actor import ActorHandle
-        from sage_runtime.io.emit_context import NodeType, DownstreamTarget
+        from sage_runtime.io.base_emit_context import NodeType, DownstreamTarget
 
         if(isinstance(target_object, ActorHandle)):
             node_type = NodeType.RAY_ACTOR

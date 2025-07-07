@@ -5,11 +5,12 @@ from __future__ import annotations
 from typing import List, Type, Union, Tuple, Dict, Set
 from enum import Enum
 from sage_core.api.base_function import BaseFunction
-# from sage_core.api.environment import BaseEnvironment
+# from sage_core.api.env import BaseEnvironment
 from sage_core.core.operator.base_operator import BaseOperator
 from sage_core.core.operator.map_operator import MapOperator
 from sage_utils.custom_logger import CustomLogger
-
+from sage_core.api.enum import PlatformType
+from sage_utils.name_server import get_name
 class TransformationType(Enum):
     MAP = "map"
     FILTER = "filter"
@@ -32,18 +33,19 @@ class Transformation:
         type: TransformationType,
         function: Union[BaseFunction, Type[BaseFunction] ],
         *args,
+        name:str = None,
         parallelism: int = 1,
-        platform:str = "local",
+        platform:PlatformType = PlatformType.LOCAL,
         **kwargs
     ):
+        #self.env = env
         self.type = type
-        """
-        Args:
-            op_or_class: 可以是 rag/operator 的实例，
-                         或 rag/operator 的类。
-            **kwargs: 若op_or_class是类，则用于构造实例；
-                      若是实例，则忽略。
-        """
+
+        # if(env.platform is PlatformType.HYBRID):
+        #     self.platform = platform
+        # else:
+        #     self.platform = env.platform
+        
         if isinstance(function, BaseFunction):
             self.is_instance = True
             self.function = function
@@ -56,10 +58,17 @@ class Transformation:
             raise ValueError(
                 f"Unsupported rag type: {type(function)}"
             )
-        
+
+
+        if name is None:
+            self.basename = get_name(self.function_class.__name__)
+        else:
+            self.basename = get_name(name)
+        # self.basename = get_name(name) or get_name(self.function_class.__name__)
+        # 这个basename会沿用到生成的dagnode， operator和functions上
+
         self.logger = CustomLogger(
-            object_name=f"Transformation_{self.function_class.__name__}",
-            log_level="DEBUG",
+            filename=get_name(f"Transformation_{self.basename}"),
             console_output=False,
             file_output=True
         )
@@ -81,8 +90,7 @@ class Transformation:
 
         self.parallelism = parallelism  
         # 生成的平行节点名字：f"{transformation.function_class.__name__}_{i}"
-        self.platform = platform
-        self.args = args
+        self.function_args = args
         self.kwargs = kwargs
 
 
@@ -108,8 +116,8 @@ class Transformation:
         if self.is_instance is False:
             # *self.args是用户传递的Function构造函数参数
             # **kwargs是engine传递的构造函数参数
-            self.function = self.function_class(*self.args, **kwargs)
-            self.logger.debug(f"Created function instance: {self.function_class.__name__} with args {self.args} and kwargs {kwargs}")
+            self.function = self.function_class(*self.function_args, **kwargs)
+            self.logger.debug(f"Created function instance: {self.function_class.__name__} with args {self.function_args} and kwargs {kwargs}")
         return self.operator_class(self.function, **kwargs)
 
     def __repr__(self) -> str:

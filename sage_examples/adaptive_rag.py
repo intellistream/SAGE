@@ -42,14 +42,12 @@ class RoutePromptFunction(BaseFunction):
     构造路由 prompt，用于判断使用向量库还是 Web 搜索。
     """
     def __init__(self, config: dict = None, *args, **kwargs):
+        super.__init__(**kwargs)
         self.config = config
         self.prompt = ROUTE_PROMPT_TEMPLATE
-        self.logger = CustomLogger(
-            object_name=f"RoutePromptFunction_{__name__}",
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
-        )
+        self.logger.set_console_level("DEBUG")
+        self.logger.set_file_level("DEBUG")
+        self.logger.set_global_level("DEBUG")
 
     def execute(self, data: Data) -> Data[list]:
         query = data.data
@@ -65,13 +63,12 @@ class RouteSplitter(BaseFunction):
     根据 OpenAI 输出结果判断是走 vectorstore 还是 web search 路径。
     """
     def __init__(self, config: dict = None, *args, **kwargs):
+        super.__init__(**kwargs)
         self.config = config
-        self.logger = CustomLogger(
-            object_name=f"RouteSplitterFunction_{__name__}",
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
-        )
+        self.logger.set_console_level("DEBUG")
+        self.logger.set_file_level("DEBUG")
+        self.logger.set_global_level("DEBUG")
+        
     @classmethod 
     def declare_outputs(cls):
         return [("vector", Any), ("web", Any)]

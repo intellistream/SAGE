@@ -5,8 +5,8 @@ from sage_core.api.tuple import Data
 
 class MemoryWriter(BaseFunction):
 
-    def __init__(self, config: dict):
-        super().__init__()
+    def __init__(self, config: dict, **kwargs):
+        super().__init__(config, **kwargs)
         self.state = None
         self.config = config
         # 初始化各类型集合
@@ -35,8 +35,8 @@ class MemoryWriter(BaseFunction):
                 "collection": self.config.get("dcm_collection"),
                 "config": dcm_config
             }
-
-        state = getRuntimeContext().getState(xxx)
+        # TODO: 在runtime_context中增加状态管理
+        # state = getRuntimeContext().getState(xxx)
 
 
     def execute(self, data: Data[Union[str, List[str], Tuple[str, str]]]) -> Data:

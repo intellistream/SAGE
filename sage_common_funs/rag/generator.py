@@ -11,7 +11,8 @@ class OpenAIGenerator(BaseFunction):
     to generate responses based on input data.
     """
 
-    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
 
         """
         Initializes the OpenAIGenerator instance with configuration parameters.
@@ -19,13 +20,6 @@ class OpenAIGenerator(BaseFunction):
         :param config: Dictionary containing configuration for the generator, including 
                        the method, model name, base URL, API key, etc.
         """
-        # self.logger = CustomLogger(
-        #     object_name=f"OpenAIGenerator_Function",
-        #     log_level="DEBUG",
-        #     session_folder=session_folder,
-        #     console_output=False,
-        #     file_output=True
-        # )
         self.config = config
 
         # Apply the generator model with the provided configuration
@@ -35,12 +29,6 @@ class OpenAIGenerator(BaseFunction):
             base_url=self.config["base_url"],
             api_key=self.config["api_key"],
             seed=42  # Hardcoded seed for reproducibility
-        )
-        self.logger = CustomLogger(
-            object_name=f"OpenAIGenerator_{__name__}",
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
         )
         self.num = 1
 
@@ -59,7 +47,8 @@ class OpenAIGenerator(BaseFunction):
         user_query = data.data[0] if len(data.data) > 1  else None
  
         prompt = data.data[1] if len(data.data) > 1 else data.data
-        print(prompt)
+        self.logger.debug(prompt)
+        # 可以在上边的generator.logger中配置logger.console_output = True
         # Generate the response from the model using the provided data and additional arguments
         response = self.model.generate(prompt, **kwargs)
         # print(f'query {self.num}  {user_query}')
@@ -77,21 +66,15 @@ class HFGenerator(BaseFunction):
     to generate responses based on input data.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
         """
         Initializes the HFGenerator instance with configuration parameters.
 
         :param config: Dictionary containing configuration for the generator, including
                        the method and model name.
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self.config = config
-        self.logger = CustomLogger(
-            object_name=f"HFGenerator_{__name__}",
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
-        )
         # Apply the generator model with the provided configuration
         self.model = apply_generator_model(
             method=self.config["method"],

@@ -30,19 +30,13 @@ class FileSource(SourceFunction):
         file_pos: Tracks the current position in the file for sequential reading.
     """
 
-    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
+    def __init__(self, config: dict = None,  **kwargs):
+        super().__init__(**kwargs)
         """
         Initializes the FileSource with the provided configuration and sets the data path for the file.
 
         :param config: Configuration dictionary containing source settings, including `data_path`.
         """
-        self.logger = CustomLogger(
-            object_name=f"FileSource_Function",
-            log_level="DEBUG",
-            session_folder=session_folder,
-            console_output=False,
-            file_output=True
-        )
         self.config = config
         # self.data_path = self.config["data_path"]
         self.data_path = resolve_data_path(config["data_path"])  # → project_root/data/sample/question.txt
