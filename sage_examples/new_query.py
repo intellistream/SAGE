@@ -1,6 +1,6 @@
 import logging
 
-from sage_core.api.environment import LocalEnvironment
+from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.sink import TerminalSink
 from sage_common_funs.rag.generator import OpenAIGenerator
 from sage_common_funs.rag.promptor import QAPromptor

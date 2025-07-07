@@ -99,25 +99,22 @@ class CustomLogger:
             # 如果这是第一次设置session_folder，将其设为默认值
             if self._default_session_folder is None:
                 self.set_default_session_folder(session_folder)
+        
         self.logger = logging.getLogger(f"{object_name}")
 
         # 避免重复初始化同一个logger
         if self.logger.handlers:
             return
 
-        # 处理日志级别
-        if isinstance(log_level, str):
-            log_level = log_level.upper()
-            if log_level not in self._LEVEL_MAPPING:
-                raise ValueError(f"Invalid log level: {log_level}. "
-                                 f"Valid levels are: {list(self._LEVEL_MAPPING.keys())}")
-            numeric_level = self._LEVEL_MAPPING[log_level]
-        elif isinstance(log_level, int):
-            numeric_level = log_level
-        else:
-            raise TypeError(f"log_level must be str or int, got {type(log_level)}")
-
-        self.logger.setLevel(numeric_level)
+        # 提取控制台和文件输出的日志级别
+        console_level = self._extract_log_level(console_output, default_level=logging.DEBUG)
+        file_level = self._extract_log_level(file_output, default_level=logging.DEBUG)
+        
+        # 设置logger的最低级别（取两者中的最低级别）
+        min_level = min(console_level, file_level) if console_output and file_output else (
+            console_level if console_output else file_level if file_output else logging.INFO
+        )
+        self.logger.setLevel(min_level)
 
         # 创建统一的自定义格式化器
         formatter = CustomFormatter()
@@ -159,6 +156,43 @@ class CustomLogger:
 
         # 不传播到父logger
         self.logger.propagate = False
+
+    def _extract_log_level(self, output_setting: Union[bool, str, int], default_level: int = logging.DEBUG) -> int:
+        """
+        从输出设置中提取日志级别
+        
+        Args:
+            output_setting: 输出设置
+                          - False: 返回最高级别（不会实际使用，因为不会创建handler）
+                          - True: 返回默认级别
+                          - str: 日志级别名称，转换为对应的数值
+                          - int: 直接返回该数值
+            default_level: 当 output_setting 为 True 时使用的默认级别
+            
+        Returns:
+            int: 对应的日志级别数值
+            
+        Raises:
+            ValueError: 当字符串级别名称无效时
+            TypeError: 当类型不支持时
+        """
+        if output_setting is False:
+            # 返回最高级别，实际上不会使用因为不会创建handler
+            return logging.CRITICAL + 1
+        elif output_setting is True:
+            return default_level
+        elif isinstance(output_setting, str):
+            level_str = output_setting.upper()
+            if level_str not in self._LEVEL_MAPPING:
+                raise ValueError(f"Invalid log level: {output_setting}. "
+                               f"Valid levels are: {list(self._LEVEL_MAPPING.keys())}")
+            return self._LEVEL_MAPPING[level_str]
+        elif isinstance(output_setting, int):
+            return output_setting
+        else:
+            raise TypeError(f"output_setting must be bool, str or int, got {type(output_setting)}")
+
+    # ...existing code...
 
     def _log_with_caller_info(self, level: int, message: str, exc_info: bool = False):
         """
