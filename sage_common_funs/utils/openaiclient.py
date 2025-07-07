@@ -45,6 +45,15 @@ class OpenAIClient():
         :return: Generated response.
         """
         try:
+                # 确保 prompt 是消息数组格式
+            if isinstance(prompt, dict):
+                # 如果是单个消息，包装成数组
+                messages = [prompt]
+            elif isinstance(prompt, list):
+                # 如果已经是数组，直接使用
+                messages = prompt
+            else:
+                raise ValueError(f"Invalid prompt format: {type(prompt)}")
             max_tokens = kwargs.get("max_new_tokens", 4096)
             temperature = kwargs.get("temperature", 1.0)  # Default temperature
             top_p = kwargs.get("top_p", None)  # Disable top-p sampling by default
