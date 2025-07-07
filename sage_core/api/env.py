@@ -83,6 +83,10 @@ class BaseEnvironment:
     def set_memory(self, config):
         self.memory_collection = sage_memory.api.create_memory(config, remote = (self.config.get("platform", "local") == "remote"))
 
+    def set_memory_collection(self, collection):
+
+        self.memory_collection = collection 
+        
     # TODO: 写一个判断Env 是否已经完全初始化并开始执行的函数
     def initlized(self):
         pass
