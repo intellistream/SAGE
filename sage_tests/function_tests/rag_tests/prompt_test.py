@@ -9,16 +9,16 @@ def test_qapromptor_with_corpus(config):
     promptor = QAPromptor(config)
     input_data = Data(("What is AI?", ["AI is the field of study focused on making machines intelligent."]))
     result = promptor.execute(input_data)
-
-    assert result.data[0]["role"] == "system"
-    assert "Relevant corpus" in result.data[0]["content"]
-    assert "AI is the field" in result.data[0]["content"]
-    assert result.data[1]["content"] == "Question: What is AI?"
+    query,prompt = result.data
+    assert prompt[0]["role"] == "system"
+    assert "Relevant corpus" in prompt[0]["content"]
+    assert "AI is the field" in prompt[0]["content"]
+    assert prompt[1]["content"] == "Question: What is AI?"
 
 def test_qapromptor_without_corpus(config):
     promptor = QAPromptor(config)
     input_data = Data("What is AI?")
     result = promptor.execute(input_data)
-
-    assert "You are a helpful AI assistant" in result.data[0]["content"]
-    assert result.data[1]["content"] == "Question: What is AI?"
+    query,prompt = result.data
+    assert "You are a helpful AI assistant" in prompt[0]["content"]
+    assert prompt[1]["content"] == "Question: What is AI?"
