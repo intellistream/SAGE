@@ -68,7 +68,7 @@ class BaseOperator(ABC):
             if(len(self.function.__class__.declare_inputs()) == 0):
                 # No inputs declared, call execute without arguments
                 result = self.function.execute()
-            elif(len(self.function.__class__.declare_inputs()) is 1):
+            elif(len(self.function.__class__.declare_inputs()) == 1):
                 result = self.function.execute(data)
             else:
                 result = self.function.execute(tag, data)

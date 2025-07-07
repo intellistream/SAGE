@@ -60,7 +60,6 @@ class DataStream:
     ) -> "DataStream":
         
         tr = Transformation(
-            self._environment, 
             TransformationType.MAP, 
             function,
             *args,
@@ -83,7 +82,6 @@ class DataStream:
     ) -> "DataStream":
         
         tr = Transformation(
-            self._environment, 
             TransformationType.SINK, 
             function,
             *args,

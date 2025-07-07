@@ -36,7 +36,6 @@ class BaseEnvironment:
         
         """用户 API：声明一个数据源并返回 DataStream 起点。"""
         transformation = Transformation(
-            self, 
             TransformationType.SOURCE, 
             function, 
             *args,

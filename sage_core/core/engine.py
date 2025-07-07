@@ -1,5 +1,5 @@
 # from sage.core.compiler.query_compiler import QueryCompiler
-from sage_core.api.environment import BaseEnvironment
+from sage_core.api.env import BaseEnvironment
 from sage_runtime.mixed_dag import MixedDAG
 from sage_runtime.runtime_manager import RuntimeManager
 from sage_utils.custom_logger import CustomLogger

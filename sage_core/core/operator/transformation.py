@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import List, Type, Union, Tuple, Dict, Set
 from enum import Enum
 from sage_core.api.base_function import BaseFunction
-# from sage_core.api.environment import BaseEnvironment
+# from sage_core.api.env import BaseEnvironment
 from sage_core.core.operator.base_operator import BaseOperator
 from sage_core.core.operator.map_operator import MapOperator
 from sage_utils.custom_logger import CustomLogger
@@ -38,13 +38,13 @@ class Transformation:
         platform:PlatformType = PlatformType.LOCAL,
         **kwargs
     ):
-        self.env = env
+        #self.env = env
         self.type = type
 
-        if(env.platform is PlatformType.HYBRID):
-            self.platform = platform
-        else:
-            self.platform = env.platform
+        # if(env.platform is PlatformType.HYBRID):
+        #     self.platform = platform
+        # else:
+        #     self.platform = env.platform
         
         if isinstance(function, BaseFunction):
             self.is_instance = True
@@ -60,8 +60,11 @@ class Transformation:
             )
 
 
-            
-        self.basename = get_name(name) or get_name(self.function_class.__name__)
+        if name is None:
+            self.basename = get_name(self.function_class.__name__)
+        else:
+            self.basename = get_name(name)
+        # self.basename = get_name(name) or get_name(self.function_class.__name__)
         # 这个basename会沿用到生成的dagnode， operator和functions上
 
         self.logger = CustomLogger(
