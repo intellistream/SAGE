@@ -16,7 +16,7 @@ class MixedDAG:
         self.graph:Compiler = graph
         self.env = graph.env
         self.name_to_dag_node: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
-        self.connections: List[Tuple[str, int, str, int]] = []  # (upstream_node, out_channel, downstream_node, in_channel)
+        self.connections: List[Tuple[str, str, str, str]] = []  # (upstream_node, out_tag, downstream_node, input_tag)
         self.session_folder = CustomLogger.get_session_folder()
         self.ray_handles: List[Any] = []  # 存储Ray Actor句柄
         self.local_handles: List[Any] = []  # 存储本地节点句柄
@@ -60,7 +60,7 @@ class MixedDAG:
         """
         current_dag_node = self.name_to_dag_node[node_name]
         
-        for output_channel, broadcasting_groups in enumerate(graph_node.output_channels):
+        for output_tag, broadcasting_groups in graph_node.output_channels.items():
             for broadcast_index, parallel_edges in enumerate(broadcasting_groups):
                 for parallel_index, parallel_edge in enumerate(parallel_edges):
                     downstream_node_name = parallel_edge.downstream_node.name
@@ -76,28 +76,30 @@ class MixedDAG:
                                 # ActorHandle
                             
                             current_dag_node.add_downstream_node.remote(
-                                output_channel,
+                                output_tag,
                                 broadcast_index,
-                                parallel_edge.downstream_channel,
+                                parallel_index,
+                                parallel_edge.downstream_tag,
                                 downstream_handle
                             )
-                            self.logger.debug(f"Setup Ray connection: {node_name}[{output_channel}] -> {downstream_node_name}")
+                            self.logger.debug(f"Setup Ray connection: {node_name}[{output_tag}] -> {downstream_node_name}[{parallel_edge.downstream_tag}]")
                         else:
                             # 本地节点直接调用
                             current_dag_node.add_downstream_node(
-                                output_channel,
+                                output_tag,
                                 broadcast_index,
-                                parallel_edge.downstream_channel,
+                                parallel_index,
+                                parallel_edge.downstream_tag,
                                 downstream_operator
                             )
-                            self.logger.debug(f"Setup local connection: {node_name}[{output_channel}] -> {downstream_node_name}")
+                            self.logger.debug(f"Setup local connection: {node_name}[{output_tag}] -> {downstream_node_name}[{parallel_edge.downstream_tag}]")
                             
                         # 记录连接信息
                         self.connections.append((
                             node_name, 
-                            parallel_edge.upstream_channel,
+                            parallel_edge.upstream_tag,
                             downstream_node_name, 
-                            parallel_edge.downstream_channel
+                            parallel_edge.downstream_tag
                         ))
                         
                     except Exception as e:

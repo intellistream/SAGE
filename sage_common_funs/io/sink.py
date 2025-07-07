@@ -1,11 +1,13 @@
 from sage_core.api.tuple import Data
 from sage_core.api.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Type
+
+
 
 
 class TerminalSink(BaseFunction):
-
+    
     def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
         self.logger = CustomLogger(
             object_name=f"DenseRetriever_Function",
@@ -23,6 +25,7 @@ class TerminalSink(BaseFunction):
         print(f"\033[92m[A] Answer :{answer}\033[0m")
 
 class RetriveSink(BaseFunction):
+
     def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
         self.logger = CustomLogger(
             object_name=f"DenseRetriever_Function",

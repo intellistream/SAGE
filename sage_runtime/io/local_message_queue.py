@@ -16,7 +16,7 @@ class LocalMessageQueue:
         self.queue = queue.Queue(maxsize=10000)
         self.total_task = 0
         self.max_buffer_size = max_buffer_size  # 总内存限制（字节）
-        self.current_buffer_usage = 0# 当前使用的内存（字节）
+        self.current_buffer_usage = 0 # 当前使用的内存（字节）
         self.memory_tracker = {}  # 跟踪每个项目的内存大小 {id(item): size}
         # self.task_per_minute = 0
         self.logger = CustomLogger(

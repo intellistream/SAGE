@@ -182,7 +182,27 @@ See more examples under [app](sage_examples)
 | RoutingOperator | `route(condition, branches)` | Declaratively express conditional control flow and fallback strategies. |
 ### Memory
 ![](./asset/Memory_framework.png)
-### Engine
+
+## Engine（执行引擎）
+
+Sage Engine is the core execution component that orchestrates the compilation and execution of data flow pipelines. It uses a layered architecture to transform logical pipelines into physical execution graphs and efficiently execute them across different runtime environments, supporting both local multi-thread accleration or execution on distributed platrofms.
+
+### How It Works
+
+The Engine operates in four main phases:
+
+1. **Pipeline Collection**: Gathers user-defined logical pipelines built through DataStream API and validates pipeline integrity
+2. **Compilation & Optimization**: Uses Compiler to transform logical pipelines into optimized physical execution graphs with parallelism expansion
+3. **Runtime Scheduling**: Selects appropriate Runtime (local/distributed) and converts execution graphs into concrete DAG nodes
+4. **Execution Monitoring**: Monitors pipeline execution status, collects performance metrics, and handles fault recovery
+
+### Key Features
+
+- **Declarative Programming**: Users describe "what to do", Engine handles "how to do it"
+- **Auto-Parallelization**: Automatically determines parallel execution strategies based on data dependencies
+- **Platform Agnostic**: Same logical pipeline runs on both local and distributed environments
+- **Performance Optimization**: Combines compile-time optimization with runtime tuning
+- **Fault Tolerance**: Comprehensive error handling and recovery mechanisms (Under development)
 
 ## 🎨 SAGE-Dashboard
 <p>With the <strong>SAGE-Dashboard</strong>, you can quickly orchestrate a large model application and run it with one click. Our meticulously designed visual interface will help you efficiently build, monitor, and manage complex workflows!</p>

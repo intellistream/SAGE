@@ -23,8 +23,8 @@ def pipeline_run():
     )
     env.submit()
     env.run_once()
-    env.run_once()
-    env.run_once()
+    # env.run_once()
+    # env.run_once()
 
 
 

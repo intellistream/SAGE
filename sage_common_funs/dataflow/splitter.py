@@ -1,7 +1,7 @@
 from sage_core.api.tuple import Data
 from sage_core.api.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Type, Any
 
 
 class Splitter(BaseFunction):
@@ -18,11 +18,14 @@ class Splitter(BaseFunction):
             file_output=True
         )
         # self.config = config
-
+    @classmethod # 多路输出的function可以override这个方法
+    def declare_outputs(cls) -> List[Tuple[str, Type]]:
+        return [("true", Any), ("false", Any)]
+    
     def execute(self, data: Data[Tuple[str, str]]):
         if(data.data[1].find("False") != -1):
             self.logger.debug(f"Data contains 'False': {data.data[1]}")
-            self.collector.collect(data, 1)
+            self.collector.collect("false", data)
         else:
             self.logger.debug(f"Data does not contain 'False': {data.data[1]}")
-            self.collector.collect(data, 0)
+            self.collector.collect("true", data)
