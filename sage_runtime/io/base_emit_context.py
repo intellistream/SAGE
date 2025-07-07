@@ -35,8 +35,9 @@ class BaseEmitContext(ABC):
         self.logger = CustomLogger(
             filename=f"Node_{name}",
             session_folder=session_folder,
-            console_output=False,
-            file_output=True,
+            console_output="WARNING",
+            file_output="WARNING",
+            global_output = "WARNING",
             name = f"{name}_{self.__class__.__name__}"
         )
     

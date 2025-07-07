@@ -23,8 +23,9 @@ class RayRuntime(BaseRuntime):
         """
         self.logger = CustomLogger(
             filename=f"RayRuntime",
-            console_output=False,
-            file_output=True
+            console_output="WARNING",
+            file_output="WARNING",
+            global_output = "WARNING",
         )
         # 确保Ray已初始化
         if not ray.is_initialized():

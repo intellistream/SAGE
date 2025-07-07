@@ -20,12 +20,6 @@ class OpenAIGenerator(BaseFunction):
         :param config: Dictionary containing configuration for the generator, including 
                        the method, model name, base URL, API key, etc.
         """
-        # self.logger = CustomLogger(
-        #     object_name=f"OpenAIGenerator_Function",
-        #     #     session_folder=session_folder,
-        #     console_output=False,
-        #     file_output=True
-        # )
         self.config = config
 
         # Apply the generator model with the provided configuration
@@ -72,20 +66,15 @@ class HFGenerator(BaseFunction):
     to generate responses based on input data.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
         """
         Initializes the HFGenerator instance with configuration parameters.
 
         :param config: Dictionary containing configuration for the generator, including
                        the method and model name.
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self.config = config
-        self.logger = CustomLogger(
-            filename=f"HFGenerator_{__name__}",
-            console_output=False,
-            file_output=True
-        )
         # Apply the generator model with the provided configuration
         self.model = apply_generator_model(
             method=self.config["method"],

@@ -19,6 +19,7 @@ class BaseFunction(ABC):
             session_folder=session_folder,
             console_output=False,
             file_output=True,
+            global_output = True,
             name = f"{name}_Function"
         )
         pass

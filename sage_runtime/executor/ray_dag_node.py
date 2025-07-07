@@ -35,8 +35,9 @@ class RayDAGNode:
         self.logger = CustomLogger(
             filename=f"{name}",
             session_folder=session_folder,
-            console_output=False,
-            file_output=True,
+            console_output="WARNING",
+            file_output="WARNING",
+            global_output = "WARNING",
             name = f"{name}_RayNode"
         )
         if(not isinstance(memory_collection, ActorHandle)):
