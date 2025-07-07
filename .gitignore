@@ -52,3 +52,5 @@ ray_logs
 /logs
 /logs/**
 
+output_false.txt
+output_true.txt
