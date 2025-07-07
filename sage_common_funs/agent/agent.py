@@ -66,7 +66,7 @@ class BaseAgent(BaseFunction):
         super().__init__(**kwargs)
         self.config = config
         search = BochaSearch(api_key=self.config["search_api_key"])
-        self.logger.set
+
         self.tools = [
             Tool(
                 name = "Search",

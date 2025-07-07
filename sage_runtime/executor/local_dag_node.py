@@ -35,8 +35,8 @@ class LocalDAGNode:
         self.logger = CustomLogger(
             filename=f"Node_{name}",
             console_output="WARNING",
-            file_output="WARNING",
-            global_output = "WARNING",
+            file_output="DEBUG",
+            global_output = "DEBUG",
             name = f"{name}_LocalDAGNode"
         )
         self.name = name
