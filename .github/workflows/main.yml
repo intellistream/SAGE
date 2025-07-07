@@ -5,9 +5,11 @@ on:
   push:
     branches:
       - main
+      - '**'             # 可选，表示所有分支
   pull_request:
     branches:
       - main
+      - '**'             # 可选，表示所有分支
 
 jobs:
   test:
