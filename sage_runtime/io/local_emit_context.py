@@ -8,10 +8,10 @@ class LocalEmitContext(BaseEmitContext):
     本地DAG节点使用的Emit Context
     支持向本地节点的输入缓冲区写入数据，向Ray Actor发送远程调用
     """
-    
-
-    def __init__(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         pass
+
     def _send_to_local(self, target: DownstreamTarget, data: Any) -> None:
         """
         向本地节点的输入缓冲区写入数据包

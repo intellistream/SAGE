@@ -17,7 +17,8 @@ class RayEmitContext(BaseEmitContext):
     
     def __init__(self, 
                  local_tcp_host: str = "localhost", 
-                 local_tcp_port: int = 9999, logger: CustomLogger = None):
+                 local_tcp_port: int = 9999, **kwargs):
+        super().__init__(**kwargs)
         self.local_tcp_host = local_tcp_host
         self.local_tcp_port = local_tcp_port
         self._tcp_socket = None
@@ -49,7 +50,7 @@ class RayEmitContext(BaseEmitContext):
             # 构造TCP消息包
             message = {
                 "type": "ray_to_local",
-                "source_actor": self.node_name,
+                "source_actor": self.name,
                 "target_node": target.target_object,
                 "input_tag": target.input_tag,
                 "data": data,

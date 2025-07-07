@@ -60,7 +60,7 @@ class RayDAGNode:
 
 
         try:
-            self.operator.insert_emit_context(RayEmitContext())
+            self.operator.insert_emit_context(RayEmitContext(session_folder=session_folder, name = name))
             self.operator.insert_runtime_context(RuntimeContext(self.memory_collection, self.logger))
             self.logger.debug(f"Injected emit context for operator in node {self.name}")
         except Exception as e:

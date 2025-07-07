@@ -53,7 +53,6 @@ class BaseOperator(ABC):
             emit_context: The emit context to be injected
         """
         self._emit_context = emit_context
-        self._emit_context.logger = self.logger  # Use operator's logger for emit context
         self.logger.debug(f"Emit context injected for operator {self._name}")
 
     def insert_runtime_context(self, runtime_context  = None):
