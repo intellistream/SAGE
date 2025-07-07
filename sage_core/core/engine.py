@@ -52,13 +52,14 @@ class Engine:
     
     def submit_env(self, env:BaseEnvironment):
         from sage_core.core.compiler import Compiler
+        # env, graph和dag用的都是同一个名字
         graph = Compiler(env)
         graph.debug_print_graph()
-        self.graphs[graph.name] = graph
+        self.graphs[env.name] = graph
         try:
             self.logger.info(f"Received mixed graph '{graph.name}' with {len(graph.nodes)} nodes")
             # 编译图
-            mixed_dag = MixedDAG(graph)
+            mixed_dag = MixedDAG(graph, env)
             self.env_to_dag[env.name] = mixed_dag  # 存储 DAG 到字典中
             mixed_dag.submit()
             self.logger.info(f"Mixed graph '{graph.name}' submitted to runtime manager.")
@@ -102,9 +103,15 @@ class Engine:
         停止指定环境的 DAG
         """
         self.logger.info(f"Stopping DAG for environment '{env.name}'")
-        dag = self.env_to_dag.get(env.name)
+        graph = self.graphs.pop(env.name, None)
+        if graph:
+            graph.destroy()
+            self.logger.info(f"Graph for environment '{env.name}' has been destroyed.")
+        
+        dag = self.env_to_dag.pop(env.name, None)
         if dag:
-            dag.close()
+            dag.destroy()
             self.logger.info(f"DAG for environment '{env.name}' has been stopped.")
         else:
             self.logger.warning(f"No DAG found for environment '{env.name}'")
+        env.destroy()
