@@ -16,14 +16,14 @@ from sage_core.api.tuple import Data
 # 路由策略是 Operator 的语义特征，EmitContext 专注于消息投递的物理实现。
 
 class BaseOperator(ABC):
-    def __init__(self, function: BaseFunction, session_folder: Optional[str] = None):
+    def __init__(self, function: BaseFunction, session_folder: Optional[str] = None, name: Optional[str] = None):
         self.collector = Collector(self)  # 用于收集数据
-        self.session_folder = session_folder or None
         self.logger = CustomLogger(
-            object_name = f"Operator_{function.__class__.__name__}",
-            session_folder = self.session_folder,
+            filename=f"Node_{name}",
+            session_folder = session_folder or None,
             console_output=False,
-            file_output=True
+            file_output=True,
+            name = f"{name}_{self.__class__.__name__}"
         )
         self.function = function
         self.function.insert_collector(self.collector)

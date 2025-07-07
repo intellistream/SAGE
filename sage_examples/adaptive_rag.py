@@ -45,7 +45,7 @@ class RoutePromptFunction(BaseFunction):
         self.config = config
         self.prompt = ROUTE_PROMPT_TEMPLATE
         self.logger = CustomLogger(
-            object_name=f"RoutePromptFunction_{__name__}",
+            filename=f"RoutePromptFunction_{__name__}",
             log_level="DEBUG",
             console_output=False,
             file_output=True
@@ -67,7 +67,7 @@ class RouteSplitter(BaseFunction):
     def __init__(self, config: dict = None, *args, **kwargs):
         self.config = config
         self.logger = CustomLogger(
-            object_name=f"RouteSplitterFunction_{__name__}",
+            filename=f"RouteSplitterFunction_{__name__}",
             log_level="DEBUG",
             console_output=False,
             file_output=True

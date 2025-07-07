@@ -34,7 +34,7 @@ class BaseEmitContext(ABC):
     def __init__(self, node_name: str):
         self.node_name = node_name
         self.logger = CustomLogger(
-            object_name=f"EmitContext_{node_name}",
+            filename=f"EmitContext_{node_name}",
             log_level="DEBUG",
             console_output=False,
             file_output=True

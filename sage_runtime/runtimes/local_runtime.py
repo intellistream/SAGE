@@ -31,7 +31,7 @@ class LocalRuntime(BaseRuntime):
         self.handle_to_node: Dict[str, LocalDAGNode] = {}  # handle到节点的映射
         self.next_handle_id = 0
         self.logger = CustomLogger(
-            object_name=f"LocalRuntime",
+            filename=f"LocalRuntime",
             console_output=False,
             file_output=True
         )

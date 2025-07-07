@@ -7,7 +7,8 @@ from sage_runtime.runtime_context import RuntimeContext
 
 # 更新后的 SimpleRetriever
 class DenseRetriever(BaseFunction):
-    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
 
         self.config = config
 
@@ -23,14 +24,6 @@ class DenseRetriever(BaseFunction):
         #     self.dcm_config = self.config.get("dcm_config", {})
         # else:
         #     self.dcm = None
-
-
-        self.logger = CustomLogger(
-            object_name=f"DenseRetriever",
-            session_folder=config.get("session_folder",None),
-            console_output=False,
-            file_output=True
-        )
 
     
 
@@ -62,18 +55,12 @@ class DenseRetriever(BaseFunction):
         return Data((input_query, chunks))
     
 class BM25sRetriever(MemoryFunction,StatefulFunction): # 目前runtime context还只支持ltm
-    def __init__(self, config: dict):
-        super().__init__()
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
         self.config = config
         self.bm25s_collection = self.config.get("bm25s_collection")
         self.bm25s_config = self.config.get("bm25s_config", {})
 
-        self.logger = CustomLogger(
-            object_name=f"BM25sRetriever_Function",
-            session_folder=config.get("session_folder",None),
-            console_output=False,
-            file_output=True
-        )
 
     def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
         input_query = data.data

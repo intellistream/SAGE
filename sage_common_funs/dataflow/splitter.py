@@ -10,14 +10,9 @@ class Splitter(BaseFunction):
     This is useful for splitting data into multiple streams.
     """
 
-    def __init__(self, config: dict = None, *, session_folder: str = None, **kwargs):
-        self.logger = CustomLogger(
-            object_name=f"Splitter_Function",
-            session_folder=session_folder,
-            console_output=False,
-            file_output=True
-        )
-        # self.config = config
+    def __init__(self, config: dict = None,  **kwargs):
+        super().__init__(**kwargs)
+
     @classmethod # 多路输出的function可以override这个方法
     def declare_outputs(cls) -> List[Tuple[str, Type]]:
         return [("true", Any), ("false", Any)]

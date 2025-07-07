@@ -16,7 +16,8 @@ class ManualSource(BaseFunction):
         file_pos: Tracks the current position in the file for sequential reading.
     """
 
-    def __init__(self, config:dict):
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
         """
         Initializes the FileSource with the provided configuration and sets the data path for the file.
 

@@ -10,8 +10,8 @@ from sage_core.api.tuple import Data
 
 
 class F1Evaluate(BaseFunction):
-    def __init__(self, config):
-        super().__init__()
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
     
     def _get_tokens(self, text):
         return text.lower().split()
@@ -42,8 +42,8 @@ class F1Evaluate(BaseFunction):
 
 
 class BertRecallEvaluate(BaseFunction):
-    def __init__(self, config):
-        super().__init__()
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
         self.model = AutoModel.from_pretrained("bert-base-uncased")
         self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
         
@@ -68,9 +68,9 @@ class BertRecallEvaluate(BaseFunction):
 
 
 class RougeLEvaluate(BaseFunction):
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
         self.rouge = Rouge()
-        super().__init__()
 
     def rouge_l(self, reference, generated):
         if not generated.strip():
@@ -86,8 +86,8 @@ class RougeLEvaluate(BaseFunction):
 
 
 class BRSEvaluate(BaseFunction):
-    def __init__(self, config):
-        super().__init__()
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
         self.bert_recall_evaluate = BertRecallEvaluate(config)
         self.rouge_l_evaluate = RougeLEvaluate(config)
 

@@ -22,7 +22,7 @@ class RuntimeManager:
         self.backends: Dict[str, Any] = {}
         self.session_folder = CustomLogger.get_session_folder()
         self.logger = CustomLogger(
-            object_name=f"RuntimeManager",
+            filename=f"RuntimeManager",
             session_folder=session_folder,
             console_output=False,
             file_output=True
