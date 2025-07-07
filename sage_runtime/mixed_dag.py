@@ -1,10 +1,10 @@
 from typing import Dict, List, Any, Tuple, Union
 from ray.actor import ActorHandle
 
-from sage_runtime.local.local_runtime import LocalRuntime
-from sage_runtime.remote.ray_runtime import RayRuntime
-from sage_runtime.local.local_dag_node import LocalDAGNode
-from sage_runtime.remote.ray_dag_node import RayDAGNode
+from sage_runtime.runtimes.local_runtime import LocalRuntime
+from sage_runtime.runtimes.ray_runtime import RayRuntime
+from sage_runtime.executor.local_dag_node import LocalDAGNode
+from sage_runtime.executor.ray_dag_node import RayDAGNode
 from sage_utils.custom_logger import CustomLogger
 from sage_core.core.compiler import Compiler, GraphNode
 
