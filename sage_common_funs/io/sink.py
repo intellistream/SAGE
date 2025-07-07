@@ -2,7 +2,7 @@ from sage_core.api.tuple import Data
 from sage_core.api.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 from typing import Tuple, List, Union, Type
-
+import os
 
 
 
@@ -44,7 +44,7 @@ class RetriveSink(BaseFunction):
 
 class FileSink(BaseFunction):
     def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
-        self.file_path =  config.get("file_path","qa_output.txt")
+        self.file_path = os.path.join("output", config.get("file_path", "qa_output.txt"))
         self.logger = CustomLogger(
             object_name=f"FileSink_Function_{self.file_path}",
             session_folder=session_folder,

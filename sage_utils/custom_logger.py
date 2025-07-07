@@ -36,7 +36,7 @@ class CustomFormatter(logging.Formatter):
             message = message + '\n' + self.formatStack(record.stack_info)
 
         # 组合格式：既美观又支持IDE点击
-        formatted_message = f"{timestamp} | {level:<5} | {name} | {pathname}:{lineno}\n\t→ {message}\n"
+        formatted_message = f"{timestamp} | {level:<5} | {name} | {pathname}:{lineno} →\n\t {message}\n"
 
         return formatted_message
 
@@ -68,7 +68,7 @@ class CustomLogger:
     def __init__(self,
                  object_name: str,
                  session_folder: str = None,
-                 console_output: Union[bool, str, int] = True,
+                 console_output: Union[bool, str, int] = False,
                  file_output: Union[bool, str, int] = True):
         """
         初始化自定义Logger
