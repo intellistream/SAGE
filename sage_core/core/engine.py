@@ -23,8 +23,7 @@ class Engine:
         self.env_to_dag:dict = {} # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
 
         self.logger = CustomLogger(
-            object_name=f"SageEngine",
-            log_level="DEBUG",
+            filename=f"SageEngine",
             console_output=False,
             file_output=True
         )

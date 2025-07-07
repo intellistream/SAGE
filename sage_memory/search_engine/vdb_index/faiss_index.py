@@ -34,8 +34,7 @@ class FaissIndex(BaseVDBIndex):
         self._deletion_supported = True
         self.index = None
         self.logger = CustomLogger(
-            object_name=f"FaissIndex",
-            log_level="DEBUG",
+            filename=f"FaissIndex",
             console_output=False,
             file_output=True
         )

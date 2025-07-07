@@ -31,15 +31,15 @@ class BaseEmitContext(ABC):
     """
     
 
-    def __init__(self, node_name: str):
-        self.node_name = node_name
+    def __init__(self, session_folder:str = None, name:str = None, **kwargs):
         self.logger = CustomLogger(
-            object_name=f"EmitContext_{node_name}",
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
+            filename=f"Node_{name}",
+            session_folder=session_folder,
+            console_output="WARNING",
+            file_output="WARNING",
+            global_output = "WARNING",
+            name = f"{name}_{self.__class__.__name__}"
         )
-
     
     def route_and_send(self, target: DownstreamTarget, data: Any) -> None:
         """

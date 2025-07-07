@@ -33,11 +33,12 @@ class RayDAGNode:
         """
         # Create logger first
         self.logger = CustomLogger(
-            object_name=f"RayNode_{name}",
+            filename=f"{name}",
             session_folder=session_folder,
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
+            console_output="WARNING",
+            file_output="WARNING",
+            global_output = "WARNING",
+            name = f"{name}_RayNode"
         )
         if(not isinstance(memory_collection, ActorHandle)):
             raise Exception("Memory collection must be a Ray Actor handle")
@@ -51,7 +52,7 @@ class RayDAGNode:
         self.name = name
         self.transformation = transformation
         try:
-            self.operator = transformation.build_instance(session_folder=session_folder)
+            self.operator = transformation.build_instance(session_folder=session_folder, name = name)
             self.logger.debug(f"Created operator instance for {self.name}")
         except Exception as e:
             self.logger.error(f"Failed to create operator instance: {e}", exc_info=True)
@@ -60,7 +61,7 @@ class RayDAGNode:
 
 
         try:
-            self.operator.insert_emit_context(RayEmitContext())
+            self.operator.insert_emit_context(RayEmitContext(session_folder=session_folder, name = name))
             self.operator.insert_runtime_context(RuntimeContext(self.memory_collection, self.logger))
             self.logger.debug(f"Injected emit context for operator in node {self.name}")
         except Exception as e:

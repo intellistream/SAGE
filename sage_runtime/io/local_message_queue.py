@@ -20,11 +20,11 @@ class LocalMessageQueue:
         self.memory_tracker = {}  # 跟踪每个项目的内存大小 {id(item): size}
         # self.task_per_minute = 0
         self.logger = CustomLogger(
-            object_name=f"MessageQueue_{self.name}",
-            session_folder=session_folder,
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
+            filename=f"Node_{name}",
+            console_output="WARNING",
+            file_output="WARNING",
+            global_output = "WARNING",
+            name = f"{name}_LocalMessageQueue"
         )
         self.timestamps = deque()
         self.lock = threading.Lock()

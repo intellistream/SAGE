@@ -7,7 +7,8 @@ from sage_runtime.runtime_context import RuntimeContext
 
 # 更新后的 SimpleRetriever
 class DenseRetriever(BaseFunction):
-    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
 
         self.config = config
 
@@ -23,15 +24,6 @@ class DenseRetriever(BaseFunction):
         #     self.dcm_config = self.config.get("dcm_config", {})
         # else:
         #     self.dcm = None
-
-
-        self.logger = CustomLogger(
-            object_name=f"DenseRetriever",
-            session_folder=config.get("session_folder",None),
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
-        )
 
     
 
@@ -49,11 +41,11 @@ class DenseRetriever(BaseFunction):
                     query=input_query,
                     collection_config=self.ltm_config
                 )
-                print("ltm_results:",ltm_results)
+                # print("ltm_results:",ltm_results) 
                 self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Retrieval Results: {ltm_results}\033[0m ")
                 chunks.extend(ltm_results)
                 self.logger.debug(f"Retrieved {len(ltm_results)} from LTM")
-                print(f"\033[32m[ {self.__class__.__name__}]: Retrieval Results: {ltm_results}\033[0m ")
+                # print(f"\033[32m[ {self.__class__.__name__}]: Retrieval Results: {ltm_results}\033[0m ")
                 # 保留原有的延迟逻辑
                 time.sleep(1)
                 self.logger.debug("Completed LTM delay")
@@ -63,19 +55,12 @@ class DenseRetriever(BaseFunction):
         return Data((input_query, chunks))
     
 class BM25sRetriever(MemoryFunction,StatefulFunction): # 目前runtime context还只支持ltm
-    def __init__(self, config: dict):
-        super().__init__()
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
         self.config = config
         self.bm25s_collection = self.config.get("bm25s_collection")
         self.bm25s_config = self.config.get("bm25s_config", {})
 
-        self.logger = CustomLogger(
-            object_name=f"BM25sRetriever_Function",
-            log_level="DEBUG",
-            session_folder=config.get("session_folder",None),
-            console_output=False,
-            file_output=True
-        )
 
     def execute(self, data: Data[str]) -> Data[Tuple[str, List[str]]]:
         input_query = data.data

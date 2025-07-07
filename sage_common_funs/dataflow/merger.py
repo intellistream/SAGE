@@ -10,14 +10,8 @@ class Merger(BaseFunction):
     This is useful for splitting data into multiple streams.
     """
 
-    def __init__(self, config: dict = None, *, session_folder: str = None, **kwargs):
-        self.logger = CustomLogger(
-            object_name=f"Merger_Function",
-            log_level="DEBUG",
-            session_folder=session_folder,
-            console_output=False,
-            file_output=True
-        )
+    def __init__(self, config: dict = None, **kwargs):
+        super().__init__(**kwargs)
         # self.config = config
 
     @classmethod

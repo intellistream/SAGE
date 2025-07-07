@@ -1,6 +1,6 @@
 from typing import List,Optional,Dict
 import logging
-from sage_runtime.local.local_slot import Slot
+from sage_runtime.executor.local_slot import Slot
 
 
 class SchedulingStrategy:

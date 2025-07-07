@@ -22,10 +22,10 @@ class RayRuntime(BaseRuntime):
             session_folder: Session folder for logging
         """
         self.logger = CustomLogger(
-            object_name=f"RayRuntime",
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
+            filename=f"RayRuntime",
+            console_output="WARNING",
+            file_output="WARNING",
+            global_output = "WARNING",
         )
         # 确保Ray已初始化
         if not ray.is_initialized():

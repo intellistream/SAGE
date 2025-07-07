@@ -4,7 +4,7 @@ import time
 from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.sink import TerminalSink
 from sage_common_funs.rag.generator import OpenAIGenerator
-from sage_common_funs.rag.manual_source import ManualSource
+from sage_common_funs.io.manual_source import ManualSource
 from sage_common_funs.rag.promptor import QAPromptor
 from sage_common_funs.rag.retriever import DenseRetriever
 from sage_memory.memory_manager import MemoryManager

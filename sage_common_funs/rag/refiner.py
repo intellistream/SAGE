@@ -17,16 +17,15 @@ class AbstractiveRecompRefiner(BaseFunction):
         model: A model instance used for generating summaries based on the provided input.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
         """
         Initializes the AbstractiveRecompRefiner instance with configuration and model.
 
         :param config: Dictionary containing configuration for the refiner, including model details 
                        (method, model_name, base_url, api_key, etc.).
         """
-        super().__init__()
-        self.logger = logging.getLogger(self.__class__.__name__)  # Initialize logger for this class
-        self.config = config["refiner"]  # Store the refiner configuration
+        self.config = config  # Store the refiner configuration
         # Apply the generator model based on provided configuration
         self.model = apply_generator_model(
             method=self.config["method"],

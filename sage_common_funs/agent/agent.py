@@ -62,16 +62,11 @@ Thought:{agent_scratchpad}
 
 
 class BaseAgent(BaseFunction):
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
         self.config = config
         search = BochaSearch(api_key=self.config["search_api_key"])
-        self.logger = CustomLogger(
-            object_name=f"BaseAgent_{self.config['model_name']}",
-            log_level="DEBUG",
-            session_folder=self.config.get("session_folder", None),
-            console_output=False,
-            file_output=True
-        )
+
         self.tools = [
             Tool(
                 name = "Search",

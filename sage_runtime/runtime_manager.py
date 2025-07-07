@@ -1,8 +1,8 @@
 import threading
 from typing import Dict, Any
 from sage_runtime.base_runtime import BaseRuntime
-from sage_runtime.local.local_runtime import  LocalRuntime
-from sage_runtime.remote.ray_runtime import RayRuntime
+from sage_runtime.runtimes.local_runtime import  LocalRuntime
+from sage_runtime.runtimes.ray_runtime import RayRuntime
 from sage_utils.custom_logger import CustomLogger
 
 class RuntimeManager:
@@ -22,11 +22,11 @@ class RuntimeManager:
         self.backends: Dict[str, Any] = {}
         self.session_folder = CustomLogger.get_session_folder()
         self.logger = CustomLogger(
-            object_name=f"RuntimeManager",
+            filename=f"RuntimeManager",
             session_folder=session_folder,
-            log_level="DEBUG",
-            console_output=False,
-            file_output=True
+            console_output="WARNING",
+            file_output="WARNING",
+            global_output = "WARNING",
         )
     
     def __new__(cls):

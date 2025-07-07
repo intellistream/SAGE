@@ -23,15 +23,14 @@ class BGEReranker(BaseFunction):
         model: The pre-trained reranking model.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
         """
         Initializes the BGEReranker with configuration settings and loads the model.
 
         :param config: Dictionary containing configuration options, including model name and device settings.
         """
-        super().__init__()
-        self.logger = logging.getLogger(self.__class__.__name__)  # Initialize logger
-        self.config = config["reranker"]
+        self.config = config
         self.device = "cuda" if torch.cuda.is_available() else "cpu"  # Set device to GPU if available, otherwise CPU
         
         # Load tokenizer and model using the provided model name

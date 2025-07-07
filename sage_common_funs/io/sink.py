@@ -2,20 +2,14 @@ from sage_core.api.tuple import Data
 from sage_core.api.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 from typing import Tuple, List, Union, Type
-
+import os
 
 
 
 class TerminalSink(BaseFunction):
     
-    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
-        self.logger = CustomLogger(
-            object_name=f"DenseRetriever_Function",
-            log_level="DEBUG",
-            session_folder=session_folder,
-            console_output=False,
-            file_output=True
-        )
+    def __init__(self, config: dict = None,  **kwargs):
+        super().__init__(**kwargs)
         self.config=config
 
     def execute(self, data:Data[Tuple[str,str]]):
@@ -27,14 +21,8 @@ class TerminalSink(BaseFunction):
 
 class RetriveSink(BaseFunction):
 
-    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
-        self.logger = CustomLogger(
-            object_name=f"DenseRetriever_Function",
-            log_level="DEBUG",
-            session_folder=session_folder,
-            console_output=False,
-            file_output=True
-        )
+    def __init__(self, config: dict = None,  **kwargs):
+        super().__init__(**kwargs)
         self.config=config
     def execute(self, data:Data[Tuple[str, List[str]]]):
         question,chunks=data.data
@@ -45,15 +33,10 @@ class RetriveSink(BaseFunction):
 
 
 class FileSink(BaseFunction):
-    def __init__(self, config:dict,*,session_folder:str = None, **kwargs):
-        self.file_path =  config.get("file_path","qa_output.txt")
-        self.logger = CustomLogger(
-            object_name=f"FileSink_Function_{self.file_path}",
-            log_level="DEBUG",
-            session_folder=session_folder,
-            console_output=False,
-            file_output=True
-        )
+    def __init__(self, config: dict = None,  **kwargs):
+        super().__init__(**kwargs)
+        os.makedirs("output", exist_ok=True)
+        self.file_path = os.path.join("output", config.get("file_path", "qa_output.txt"))
         self.config = config
 
         # 创建或清空文件
@@ -70,8 +53,8 @@ class FileSink(BaseFunction):
 
 
 class MemWriteSink(BaseFunction):
-    def __init__(self, config):
-        super().__init__()
+    def __init__(self, config: dict = None,  **kwargs):
+        super().__init__(**kwargs)
         self.config = config
         # 从配置获取文件路径，默认为 'mem_output.txt'
         self.file_path = self.config.get("file_path", "mem_output.txt")

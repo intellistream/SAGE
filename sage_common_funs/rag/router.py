@@ -17,8 +17,8 @@ class BoolRouter(BaseFunction):
     BaseFunction that routes based on a boolean value.
     Used for control two different branches in the pipeline.
     """
-    def __init__(self,config):
-        super().__init__()
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
         self.config = config["router"]
 
         self.condition=condition

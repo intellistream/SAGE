@@ -1,7 +1,7 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
-# from sage_runtime.local.local_dag_node import LocalDAGNode
+# from sage_runtime.executor.local_dag_node import LocalDAGNode
 
 class Slot:
     """
