@@ -1,6 +1,6 @@
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Dict, Optional
+from typing import Any, List, Dict, Optional, Set
 from sage_core.api.collector import Collector
 # from sage_runtime.io.emit_context import BaseEmitContext, DownstreamTarget, NodeType
 # from sage_runtime.runtime_context import RuntimeContext
@@ -33,9 +33,12 @@ class BaseOperator(ABC):
         # 维护下游节点和路由逻辑
         # downstream_channel->broadcasting_groups->targets
         from sage_runtime.io.emit_context import DownstreamTarget
-        self.downstream_channels: Dict[int,Dict[int, List[DownstreamTarget]] ] = {}
-        self.downstream_round_robin: Dict[int, Dict[int, int]] = {}
-
+        self.downstream_channels:Dict[str, Dict[int, Dict[int, DownstreamTarget]]] = {}
+        # self.downstream_channels: Dict[int,Dict[int, List[DownstreamTarget]] ] = {}
+        self.downstream_round_robin: Dict[str, Dict[int, int]] = {}
+        for index, (output_tag, output_type) in enumerate(self.function.declare_outputs()):
+            self.downstream_channels[output_tag] = {}
+            self.downstream_round_robin[output_tag] = {}
 
 
         self.runtime_context = None
@@ -58,37 +61,20 @@ class BaseOperator(ABC):
         self.runtime_context = runtime_context
         self.function.insert_runtime_context(runtime_context)
 
-    def process_data(self, channel: int, data: Data):
+    def process_data(self, tag: str, data: Data):
         """
         Smart dispatch for multi-input operator.
         """
         try:
-            sig = inspect.signature(self.function.execute)
-            params = sig.parameters
-            arg_names = list(params.keys())
-
-            # Build arguments based on signature
-            args = []
-            if 'data' in arg_names and 'channel' in arg_names:
-                # Preserve order
-                for name in arg_names:
-                    if name == 'data':
-                        args.append(data)
-                    elif name == 'channel':
-                        args.append(channel)
-                    else:
-                        raise ValueError(f"Unsupported argument {name} in execute()")
-            elif 'data' in arg_names:
-                args.append(data)
-            elif 'channel' in arg_names:
-                args.append(channel)
+            if(len(self.function.__class__.declare_inputs()) == 0):
+                # No inputs declared, call execute without arguments
+                result = self.function.execute()
+            elif(len(self.function.__class__.declare_inputs()) is 1):
+                result = self.function.execute(data)
             else:
-                args = []  # No parameters
-
-            result = self.function.execute(*args)
-
+                result = self.function.execute(tag, data)
             if result is not None:
-                self.emit(-1, result)
+                self.emit(None, result)
 
         except Exception as e:
             self.logger.error(f"Error in {self._name}.receive(): {e}")
@@ -119,7 +105,7 @@ class BaseOperator(ABC):
     #         raise
 
 
-    def emit(self, channel: int, data: Any):
+    def emit(self, tag: str, data: Any):
         """
         Emit data to downstream node through specified channel and target.
         
@@ -133,29 +119,22 @@ class BaseOperator(ABC):
                             "This should be injected by the DAG node.")
         
         # 确定要发送的通道列表
-        if channel == -1:
+        if tag is None:
             # x轴广播到所有下游通道
-            channels_to_send = list(self.downstream_channels.keys())
-        elif channel >= 0 and channel in self.downstream_channels:
-            # 向指定通道发送
-            channels_to_send = [channel]
+            target_groups = self.downstream_channels.items()
         else:
-            # 正数但超出范围
-            self.logger.warning(f"Invalid channel index {channel} for operator {self._name}. Use -1 for broadcast or non-negative integers for specific channels.")
-            return
-        
+            if tag not in self.downstream_channels:
+                self.logger.warning(f"Invalid output tag '{tag}' for operator {self._name}.")
+                return
+            target_groups = [(tag, self.downstream_channels[tag])]
+
         # 向每个通道发送数据
-        for ch in channels_to_send:
-            target_groups = self.downstream_channels[ch]
-            if not target_groups:
-                self.logger.warning(f"No targets found for channel {ch} in operator {self._name}")
-                continue
-            
-            for broadcast_index, parallel_targets in target_groups.items():
+        for tag, broadcast_groups in target_groups:
+            for broadcast_index, parallel_targets in broadcast_groups.items():
 
                 # round-robin选择
-                target = parallel_targets[self.downstream_round_robin[ch][broadcast_index] % len(parallel_targets)]
-                self.downstream_round_robin[ch][broadcast_index] += 1
+                target = parallel_targets[self.downstream_round_robin[tag][broadcast_index] % len(parallel_targets)]
+                self.downstream_round_robin[tag][broadcast_index] += 1
                 # 发送数据
                 try:
                     self._emit_context.route_and_send(target, data)
@@ -166,25 +145,16 @@ class BaseOperator(ABC):
 
 
     def add_downstream_target(self,
-                            output_channel: int,
+                            output_tag: str,
                             broadcast_index,
+                            parallel_index: int,
                             target_object: Any, 
-                            target_input_channel: int) -> None:
-        """
-        添加下游目标节点
-        
-        Args:
-            output_channel: 自身的输出通道号
-            node_type: 下游节点类型
-            target_object: 下游节点对象
-            target_input_channel: 下游节点的输入通道号
-            node_name: 下游节点名称
-        """
+                            target_input_tag: str) -> None:
 
         # Debug log
         self.logger.debug(
-            f"Adding downstream: output_channel={output_channel}, broadcast_index={broadcast_index}, "
-            f"target_object={target_object}, target_input_channel={target_input_channel}"
+            f"Adding downstream: output_tag={output_tag}, broadcast_index={broadcast_index}, parallel_index={parallel_index}, "
+            f"target_object={target_object}, target_input_tag={target_input_tag}"
         )
         from sage_runtime.local.local_dag_node import LocalDAGNode
         from ray.actor import ActorHandle
@@ -202,14 +172,14 @@ class BaseOperator(ABC):
                             "Defaulting to LOCAL node type.")
 
 
-        target = DownstreamTarget(node_type, target_object, target_input_channel)
+        target = DownstreamTarget(node_type, target_object, target_input_tag)
 
-        if output_channel not in self.downstream_channels:
-            self.downstream_channels[output_channel] = {}
-            self.downstream_round_robin[output_channel] = {}
-        if broadcast_index not in self.downstream_channels[output_channel]:
-            self.downstream_channels[output_channel][broadcast_index] = []
-            self.downstream_round_robin[output_channel][broadcast_index] = 0
-        self.downstream_channels[output_channel][broadcast_index].append(target)
+        if output_tag not in self.downstream_channels:
+            raise ValueError(f"Output tag {output_tag} not found in operator {self._name}. "
+                            "Ensure the output tag is declared in the function.")
+        if broadcast_index not in self.downstream_channels[output_tag]:
+            self.downstream_channels[output_tag][broadcast_index] = {}
+            self.downstream_round_robin[output_tag][broadcast_index] = 0
+        self.downstream_channels[output_tag][broadcast_index][parallel_index] = target
 
-        self.logger.debug(f"Added downstream target: [out:{output_channel}] -> " f"{target_object}[in:{target_input_channel}] (type: {node_type.value})")
+        self.logger.debug(f"Added downstream target: [out:{output_tag}] -> " f"{target_object}[in:{target_input_tag}] (type: {node_type.value})")

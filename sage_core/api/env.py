@@ -50,7 +50,8 @@ class BaseEnvironment:
         运行一次管道，适用于测试或调试。
         """
         if(self.is_running):
-            raise RuntimeError("Pipeline is already running. Please stop it before running again.")
+            self.logger.warning("Pipeline is already running. ")
+            return
         from sage_core.core.engine import Engine
         engine = Engine.get_instance()
         engine.run_once(self)
