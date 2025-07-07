@@ -155,7 +155,7 @@ class BaseOperator(ABC):
             f"Adding downstream: output_tag={output_tag}, broadcast_index={broadcast_index}, parallel_index={parallel_index}, "
             f"target_object={target_object}, target_input_tag={target_input_tag}"
         )
-        from sage_runtime.local.local_dag_node import LocalDAGNode
+        from sage_runtime.executor.local_dag_node import LocalDAGNode
         from ray.actor import ActorHandle
         from sage_runtime.io.base_emit_context import NodeType, DownstreamTarget
 
