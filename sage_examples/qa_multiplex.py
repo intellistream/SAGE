@@ -32,9 +32,9 @@ def pipeline_run():
     merged_stream = connected_streams.map(Merger)
     merged_stream.sink(TerminalSink, config["sink_terminal"])  # 输出到终端
     env.submit()
-    env.run_streaming()  # 启动管道
-
-    time.sleep(100)  # 等待管道运行
+    # env.run_streaming()  # 启动管道
+    env.run_once()
+    time.sleep(3)  # 等待管道运行
 
 
 if __name__ == '__main__':

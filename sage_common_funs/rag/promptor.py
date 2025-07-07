@@ -121,7 +121,7 @@ class QAPromptor(BaseFunction):
                  "content": f"Question: Error occurred. Please try again. (Original query: {getattr(data, 'data', '')}"}
             ]
 
-        return Data(prompt)
+        return Data([query,prompt])
 
 
 
