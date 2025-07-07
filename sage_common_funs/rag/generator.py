@@ -56,10 +56,12 @@ class OpenAIGenerator(BaseFunction):
                 and response is the generated response from the model.
         """
         # Extract the user query from the input data
-        user_query = data.data[1]["content"]
-
+        user_query = data.data[0] if len(data.data) > 1  else None
+ 
+        prompt = data.data[1] if len(data.data) > 1 else data.data
+        print(prompt)
         # Generate the response from the model using the provided data and additional arguments
-        response = self.model.generate(data.data, **kwargs)
+        response = self.model.generate(prompt, **kwargs)
         # print(f'query {self.num}  {user_query}')
         # print(f"answer {self.num}  {response}")
         self.num += 1
