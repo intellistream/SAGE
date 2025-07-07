@@ -35,6 +35,7 @@ class BaseEmitContext(ABC):
         self.node_name = node_name
         self.logger = CustomLogger(
             object_name=f"EmitContext_{node_name}",
+            log_level="DEBUG",
             console_output=False,
             file_output=True
         )

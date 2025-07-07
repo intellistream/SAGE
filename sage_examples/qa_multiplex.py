@@ -23,8 +23,9 @@ def pipeline_run():
         .map(OpenAIGenerator, config["generator"])
     )
     true_stream = response_stream.map(Splitter)
-    false_stream = true_stream.side_output("false")  # 获取第二个输出流
     true_stream.sink(FileSink, config["sink_true"])
+
+    false_stream = true_stream.side_output("false")  # 获取第二个输出流
     false_stream.sink(FileSink, config["sink_false"])
 
     connected_streams = true_stream.connect(false_stream)  # 连接两个流

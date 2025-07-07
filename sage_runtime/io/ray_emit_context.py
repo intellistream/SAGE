@@ -4,7 +4,7 @@ import socket
 import pickle
 import threading
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.io.emit_context import BaseEmitContext, DownstreamTarget
+from sage_runtime.io.base_emit_context import BaseEmitContext, DownstreamTarget
 import time
 
 
