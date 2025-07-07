@@ -37,7 +37,7 @@ class OpenAIGenerator(BaseFunction):
         )
         self.logger = CustomLogger(
             object_name=f"OpenAIGenerator_{__name__}",
-            console_output=False,
+            console_output=True,
             file_output=True
         )
         self.num = 1
@@ -57,7 +57,8 @@ class OpenAIGenerator(BaseFunction):
         user_query = data.data[0] if len(data.data) > 1  else None
  
         prompt = data.data[1] if len(data.data) > 1 else data.data
-        print(prompt)
+        self.logger.debug(prompt)
+        # 可以在上边的generator.logger中配置logger.console_output = True
         # Generate the response from the model using the provided data and additional arguments
         response = self.model.generate(prompt, **kwargs)
         # print(f'query {self.num}  {user_query}')
