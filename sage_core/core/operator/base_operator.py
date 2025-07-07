@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional, Set
 from sage_core.api.collector import Collector
-# from sage_runtime.io.emit_context import BaseEmitContext, DownstreamTarget, NodeType
+# from sage_runtime.io.base_emit_context import BaseEmitContext, DownstreamTarget, NodeType
 # from sage_runtime.runtime_context import RuntimeContext
 from sage_utils.custom_logger import CustomLogger
 import inspect
@@ -31,7 +31,7 @@ class BaseOperator(ABC):
         self._name = self.__class__.__name__
         # 维护下游节点和路由逻辑
         # downstream_channel->broadcasting_groups->targets
-        from sage_runtime.io.emit_context import DownstreamTarget
+        from sage_runtime.io.base_emit_context import DownstreamTarget
         self.downstream_channels:Dict[str, Dict[int, Dict[int, DownstreamTarget]]] = {}
         # self.downstream_channels: Dict[int,Dict[int, List[DownstreamTarget]] ] = {}
         self.downstream_round_robin: Dict[str, Dict[int, int]] = {}
@@ -157,7 +157,7 @@ class BaseOperator(ABC):
         )
         from sage_runtime.local.local_dag_node import LocalDAGNode
         from ray.actor import ActorHandle
-        from sage_runtime.io.emit_context import NodeType, DownstreamTarget
+        from sage_runtime.io.base_emit_context import NodeType, DownstreamTarget
 
         if(isinstance(target_object, ActorHandle)):
             node_type = NodeType.RAY_ACTOR
