@@ -90,12 +90,7 @@ class QAPromptor(BaseFunction):
             }
 
             prompt = [system_prompt, user_prompt]
-            self.logger.info(
-                "\033[32m[%s] prompt generated for query: %s\033[0m",
-                self.__class__.__name__,
-                query,
-            )
-            return Data(prompt)
+            return Data([query,prompt])
 
         except Exception as e:
             self.logger.error(
