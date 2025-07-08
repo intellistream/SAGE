@@ -2,10 +2,8 @@ from typing import Any
 from abc import ABC, abstractmethod
 from enum import Enum
 from sage_utils.custom_logger import CustomLogger
+from sage_runtime.io.connection import NodeType
 
-class NodeType(Enum):
-    LOCAL = "local"
-    RAY_ACTOR = "ray_actor"
 
 class DownstreamTarget:
     """下游目标节点的封装"""
