@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from sage_core.api.env import BaseEnvironment 
 
 
-class MixedDAG(Destroyable):
+class MixedDAG():
     def __init__(self, graph: Compiler, env:'BaseEnvironment'):
         self.name:str = graph.name
         self.logger = CustomLogger(
@@ -192,6 +192,7 @@ class MixedDAG(Destroyable):
             elif isinstance(node_handle, ActorHandle):
                 # Ray Actor执行一次
                 node_handle.stop.remote()
+        self.logger.info(f"Stopped all spout nodes in MixedDAG '{self.name}'")
 
     def close(self):
         """停止所有节点"""

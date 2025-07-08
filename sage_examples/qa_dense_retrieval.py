@@ -8,7 +8,7 @@ from sage_common_funs.rag.promptor import QAPromptor
 from sage_common_funs.rag.retriever import DenseRetriever
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging
-import gc
+import gc, threading
 
 def run_gc_report(verbose: bool = True):
     print("📦 [GC] 开始垃圾回收扫描...")
@@ -37,7 +37,7 @@ def run_gc_report(verbose: bool = True):
             typename = type(o).__name__
             counter[typename] = counter.get(typename, 0) + 1
         
-        top_types = sorted(counter.items(), key=lambda x: -x[1])[:10]
+        top_types = sorted(counter.items(), key=lambda x: -x[1])[:1000]
         for typename, count in top_types:
             print(f"   {typename:<25}: {count}")
     
@@ -63,7 +63,8 @@ def pipeline_run():
     env.run_streaming()  # 启动管道
     time.sleep(5)  # 等待管道运行
     env.close()
-    run_gc_report()  # 强制垃圾回收，清理内存
+    
+    # run_gc_report()  # 强制垃圾回收，清理内存
 
 if __name__ == '__main__':
 
@@ -77,5 +78,12 @@ if __name__ == '__main__':
         config.setdefault("generator", {})["api_key"] = api_key
 
     pipeline_run()
+
+    print("[DEBUG] 活跃线程列表：")
+    for t in threading.enumerate():
+        print(f" - {t.name} (daemon={t.daemon})")
+
+    time.sleep(2)  # 等2秒看是否自动退出
+    print("[DEBUG] 程序还没退出，说明有挂住的线程")
 
 
