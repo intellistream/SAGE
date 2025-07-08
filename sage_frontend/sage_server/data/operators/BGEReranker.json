@@ -2,7 +2,7 @@
     "id":6,
     "name":"BGEReranker",
     "description":"BGE reranker",
-    "transformation":"",
+    "transformation":"map",
     "code":"",
     "isCustom":false
 }

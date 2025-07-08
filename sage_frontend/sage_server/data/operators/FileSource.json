@@ -3,6 +3,6 @@
     "name":"FileSource",
     "description":"Read queries from a file",
     "code":"",
-    "transformation":"",
+    "transformation":"source",
     "isCustom":false
 }
