@@ -15,7 +15,7 @@ interface Operator {
 }
 
 @Component({
-  selector: 'sage_examples-operator-editor',
+  selector: 'app-operator-editor',
   templateUrl: './operator-editor.component.html',
   styleUrls: ['./operator-editor.component.less']
 })
@@ -83,22 +83,22 @@ export class OperatorEditorComponent implements OnInit {
     this.operatorForm.reset();
     this.operatorForm.patchValue({
       implementation: `
-class CustomFunction(BaseFunction):
+class CustomFunction(BaseOperator):
     def __init__(self):
         super().__init__()
 
     def execute(self):
-        raise NotImplementedError("BaseFunction must implement execute().")
-
+        raise NotImplementedError("RerankerFunction must implement execute().")
+        
 class CustomOperator(CustomFunction):
     def __init__(self, config):
-
+    
         super().__init__()
         self.config = config["custom_operator"]
         self.info = self.config["info"]
 
     def execute(self, data: Data[Tuple[str, str]]) ->  Data[Tuple[str, str]]:
-
+    
         #print("CustomOperator execute method called")
         #print(f"config_test: {self.info}")
         return data
@@ -140,7 +140,7 @@ class CustomOperator(CustomFunction):
   handleModalOk(): void {
     if (this.operatorForm.valid) {
       const formData = this.operatorForm.value;
-
+      
       if (this.currentOperator) {
         const new_operator :OperatorInfo = {
           id:this.currentOperator.id,
@@ -161,7 +161,7 @@ class CustomOperator(CustomFunction):
             console.error('Failed to update operator', error);
           }
         });
-
+        
       } else {
         // 创建新Operator
         const newOperator = {
