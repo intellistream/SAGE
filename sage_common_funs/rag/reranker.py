@@ -30,7 +30,7 @@ class BGEReranker(BaseFunction):
 
         :param config: Dictionary containing configuration options, including model name and device settings.
         """
-        self.config = config["reranker"]
+        self.config = config
         self.device = "cuda" if torch.cuda.is_available() else "cpu"  # Set device to GPU if available, otherwise CPU
         
         # Load tokenizer and model using the provided model name
@@ -69,7 +69,7 @@ class BGEReranker(BaseFunction):
         """
         try:
             query, doc_set = data.data  # Unpack the input data
-            top_k = self.config["top_k"]  # Get the top-k parameter for reranking
+            top_k = self.config["topk"]  # Get the top-k parameter for reranking
 
             # Generate query-document pairs for scoring
             pairs = [(query, doc) for doc in doc_set]
@@ -135,7 +135,7 @@ class LLMbased_Reranker(BaseFunction):
         :param model_name: Name of the pre-trained model to load (default is "BAAI/bge-reranker-v2-gemma").
         """
         super().__init__()
-        self.config = config["reranker"]
+        self.config = config
         self.logger = logging.getLogger(self.__class__.__name__)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"  # Set device to GPU if available, otherwise CPU
 
@@ -223,7 +223,7 @@ class LLMbased_Reranker(BaseFunction):
         try:
             query, doc_set = data.data  # Unpack the input data
             doc_set = [doc_set]  # Wrap doc_set in a list for processing
-            top_k = self.config["top_k"]  # Get the top-k parameter for reranking
+            top_k = self.config["topk"]  # Get the top-k parameter for reranking
             emit_docs = []  # Initialize the list to store reranked documents
 
             for retrieved_docs in doc_set:
