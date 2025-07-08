@@ -21,7 +21,7 @@ class OpenAIGenerator(BaseFunction):
                        the method, model name, base URL, API key, etc.
         """
         self.config = config
-
+        assert self.config["api_key"], "OpenAI API key is missing!"
         # Apply the generator model with the provided configuration
         self.model = apply_generator_model(
             method=self.config["method"],

@@ -1,0 +1,41 @@
+# .github/workflows/todo-to-issue-pr.yml
+name: TODO-to-Issue (PR)
+
+# 仅在 Pull Request 打开、同步或重新打开时触发
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  todo_to_issue:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 检出 PR 分支代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 扫描 TODO/FIXME 并自动创建或链接 Issue
+      - name: TODO to Issue
+        uses: alstr/todo-to-issue-action@v5
+        with:
+          INSERT_ISSUE_URLS: "true"
+          # 👇 指定 base↔head commit 范围，强制使用 List-PR-Files API
+          commits: ${{ github.event.pull_request.base.sha }}...${{ github.sha }}
+
+      # 3. 配置 Git 用户（用于自动提交改动）
+      - name: Set Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      # 4. 如果 Action 插入了 Issue 链接，则提交并推送到当前 PR 分支
+      - name: Commit and Push Changes
+        run: |
+          git add -A
+          if [[ $(git status --porcelain) ]]; then
+            git commit -m "chore: add TODO issue links via todo-to-issue-action"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          else
+            echo "No TODO links to commit"
+          fi
