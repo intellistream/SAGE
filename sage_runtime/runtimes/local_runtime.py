@@ -38,14 +38,6 @@ class LocalRuntime(BaseRuntime):
         self.handle_to_node: Dict[str, LocalDAGNode] = {}  # handle到节点的映射
         self.next_handle_id = 0
 
-        
-        # 初始化TCP服务器
-        self.tcp_server = LocalTcpServer(
-            host=tcp_host,
-            port=tcp_port,
-            message_handler=self._handle_tcp_message
-        )
-        self.tcp_server.start()
 
     def __new__(cls, *args, **kwargs):
         # 禁止直接实例化
@@ -71,41 +63,7 @@ class LocalRuntime(BaseRuntime):
                 cls._instance.shutdown()
                 cls._instance = None
 
-    def _handle_tcp_message(self, message: Dict[str, Any], client_address: tuple):
-        """
-        处理来自Ray Actor的TCP消息
-        
-        Args:
-            message: 包含消息内容的字典
-            client_address: 客户端地址
-        """
-        try:
-            message_type = message.get("type")
-            
-            if message_type == "ray_to_local":
-                # Ray Actor发送给本地节点的数据
-                target_node_name = message["target_node"]
-                input_tag = message["input_tag"]
-                data = message["data"]
-                source_actor = message.get("source_actor", "unknown")
-                
-                # 查找目标节点
-                if target_node_name in self.running_nodes:
-                    target_node = self.running_nodes[target_node_name]
-                    
-                    # 将数据放入目标节点的输入缓冲区
-                    data_packet = (input_tag, data)
-                    target_node.put(data_packet)
-                    
-                    self.logger.debug(f"Delivered TCP message: {source_actor} -> "
-                                    f"{target_node_name}[in:{input_tag}]")
-                else:
-                    self.logger.warning(f"Target node '{target_node_name}' not found for TCP message from {client_address}")
-            else:
-                self.logger.warning(f"Unknown TCP message type: {message_type} from {client_address}")
-                
-        except Exception as e:
-            self.logger.error(f"Error processing TCP message from {client_address}: {e}", exc_info=True)
+
     
     def submit_node(self, node: LocalDAGNode) -> str:
         """

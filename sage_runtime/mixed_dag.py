@@ -7,6 +7,7 @@ from sage_runtime.executor.local_dag_node import LocalDAGNode
 from sage_runtime.executor.ray_dag_node import RayDAGNode
 from sage_utils.custom_logger import CustomLogger
 from sage_core.core.compiler import Compiler, GraphNode
+from sage_runtime.runtimes.local_tcp_server import LocalTcpServer
 
 if TYPE_CHECKING:
     from sage_core.api.env import BaseEnvironment 
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
 
 class MixedDAG():
     def __init__(self, graph: Compiler, env:'BaseEnvironment'):
+        self.graph = graph
         self.name:str = graph.name
         self.logger = CustomLogger(
             filename=f"MixedDAG_{self.name}",
@@ -29,10 +31,38 @@ class MixedDAG():
 
         self.is_running: bool = False
 
+        # 为这个 DAG 分配独立的 TCP 端口
+        self.tcp_port = self._allocate_tcp_port()
+        self.tcp_server = LocalTcpServer(
+            host="localhost",
+            port=self.tcp_port,
+            message_handler=self._handle_tcp_message
+        )
+
+
         self._compile_graph(graph, env)
         self.debug_print_operators()
-
-
+        # 启动 TCP 服务器
+        self.tcp_server.start()
+        self.logger.info(f"MixedDAG '{self.name}' TCP server started on port {self.tcp_port}")
+    
+    def _allocate_tcp_port(self) -> int:
+        """为 DAG 分配可用的 TCP 端口"""
+        import socket
+        
+        # 尝试从预设范围分配端口
+        for port in range(19000, 20000):  # DAG 专用端口范围
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.bind(("localhost", port))
+                    return port
+            except OSError:
+                continue
+        
+        # 如果预设范围都被占用，使用系统分配
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("localhost", 0))
+            return s.getsockname()[1]
     
     def _compile_graph(self, graph: Compiler, env:'BaseEnvironment'):
         """编译图结构，创建节点并建立连接"""
@@ -50,6 +80,44 @@ class MixedDAG():
             self._setup_node_connections(node_name, graph_node)
         
         self.logger.info(f"Mixed DAG compilation completed: {len(self.nodes)} nodes, "f"{len(self.spout_nodes)} spout nodes")
+
+    def _handle_tcp_message(self, message: Dict[str, Any], client_address: tuple):
+        """
+        处理来自 Ray Actor 的 TCP 消息
+        由于是 DAG 专用端口，所有消息都属于当前 DAG
+        """
+        try:
+            message_type = message.get("type")
+            
+            if message_type == "ray_to_local":
+                # Ray Actor 发送给本地节点的数据
+                target_node_name = message["target_node"]
+                input_tag = message["input_tag"]
+                data = message["data"]
+                source_actor = message.get("source_actor", "unknown")
+                
+                # 查找目标节点（在当前 DAG 中）
+                if target_node_name in self.nodes:
+                    target_node = self.nodes[target_node_name]
+                    
+                    # 确保是本地节点
+                    if isinstance(target_node, LocalDAGNode):
+                        # 将数据放入目标节点的输入缓冲区
+                        data_packet = (input_tag, data)
+                        target_node.put(data_packet)
+                        
+                        self.logger.debug(f"[DAG {self.name}] Delivered TCP message: {source_actor} -> "
+                                        f"{target_node_name}[in:{input_tag}]")
+                    else:
+                        self.logger.warning(f"Target node '{target_node_name}' is not a local node")
+                else:
+                    self.logger.warning(f"Target node '{target_node_name}' not found in DAG '{self.name}'")
+            else:
+                self.logger.warning(f"Unknown TCP message type: {message_type} from {client_address}")
+                
+        except Exception as e:
+            self.logger.error(f"Error processing TCP message from {client_address}: {e}", exc_info=True)
+
 
     def _setup_node_connections(self, node_name: str, graph_node: GraphNode):
         """
@@ -70,7 +138,12 @@ class MixedDAG():
                         if isinstance(current_dag_node, ActorHandle):
                             # Ray节点调用远程方法
                             if(isinstance(downstream_operator, LocalDAGNode)):
-                                downstream_handle = downstream_operator.name
+                                downstream_handle = {
+                                    "type": "local_tcp",
+                                    "node_name": downstream_node_name,
+                                    "tcp_host": "localhost",
+                                    "tcp_port": self.tcp_port  # 使用当前 DAG 的端口
+                                }
                                 # 利用本地节点名称，通过TCP连接发回数据
                             else:
                                 downstream_handle = downstream_operator
