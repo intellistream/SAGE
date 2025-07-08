@@ -1,16 +1,13 @@
 name: Test SAGE with Pytest and Conda
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-      - '**'             # 可选，表示所有分支
-  pull_request:
-    branches:
-      - main
-      - '**'             # 可选，表示所有分支
-
+    push:
+      branches:
+        - main
+    pull_request:
+      branches:
+        - main
+    workflow_dispatch:  # ✅ 允许手动触发，并可以指定任意分支
 jobs:
   test:
     name: Test SAGE
