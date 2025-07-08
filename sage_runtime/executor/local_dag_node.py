@@ -39,7 +39,7 @@ class LocalDAGNode(BaseDagNode):
         self.input_buffer = LocalMessageQueue(name = name)  # Local input buffer for this node
 
         # self.logger.info(f"type: {transformation.type}")
-        self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout}), config:{(transformation.kwargs).get('config', None)}")
+        self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout})")
 
     
     def put(self, data_packet: Tuple[int, Any]):

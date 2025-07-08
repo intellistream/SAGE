@@ -25,7 +25,7 @@ class RuntimeManager:
             filename=f"RuntimeManager",
             session_folder=session_folder,
             console_output="WARNING",
-            file_output="WARNING",
+            file_output="DEBUG",
             global_output = "WARNING",
         )
     
@@ -86,12 +86,7 @@ class RuntimeManager:
             return RayRuntime.get_instance(monitoring_interval=monitoring_interval)
         
         elif platform == "local":
-            tcp_host = kwargs.get('tcp_host', "localhost")
-            tcp_port = kwargs.get('tcp_port', 9999)
-            return LocalRuntime.get_instance(
-                tcp_host=tcp_host,
-                tcp_port=tcp_port
-            )
+            return LocalRuntime.get_instance()
         
         else:
             raise ValueError(f"Unknown platform: {platform}")
@@ -116,28 +111,6 @@ class RuntimeManager:
             是否已初始化
         """
         return platform in self.backends
-    
-    def shutdown_platform(self, platform: str):
-        """
-        关闭指定平台的运行时
-        
-        Args:
-            platform: 平台名称
-        """
-        if platform in self.backends:
-            runtime = self.backends[platform]
-            if hasattr(runtime, 'shutdown'):
-                runtime.shutdown()
-            del self.backends[platform]
-            self.logger.info(f"Shutdown {platform} runtime")
-    
-    def shutdown_all(self):
-        """
-        关闭所有运行时
-        """
-        for platform in list(self.backends.keys()):
-            self.shutdown_platform(platform)
-        self.logger.info("All runtimes shutdown")
 
     def submit(self, dag):
         """

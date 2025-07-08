@@ -37,7 +37,7 @@ def run_gc_report(verbose: bool = True):
             typename = type(o).__name__
             counter[typename] = counter.get(typename, 0) + 1
         
-        top_types = sorted(counter.items(), key=lambda x: -x[1])[:1000]
+        top_types = sorted(counter.items(), key=lambda x: -x[1])[:10]
         for typename, count in top_types:
             print(f"   {typename:<25}: {count}")
     
@@ -46,23 +46,22 @@ def run_gc_report(verbose: bool = True):
 def pipeline_run():
     """创建并运行数据处理管道"""
     env = LocalEnvironment()
-    env.set_memory(config = None)
+    env.set_memory(config=None)
     # 构建数据处理流程
     query_stream = (env
-        .from_source(FileSource, config["source"])
-        .map(DenseRetriever, config["retriever"])
-        .map(QAPromptor, config["promptor"])
-        .map(OpenAIGenerator, config["generator"])
-        .sink(TerminalSink, config["sink"])
-    )
-    env.submit()
-    env.run_streaming()  # 启动管道
-    time.sleep(5)  # 等待管道运行
-    env.stop()
-    time.sleep(5)  # 等待管道运行
-    env.run_streaming()  # 启动管道
-    time.sleep(5)  # 等待管道运行
-    env.close()
+                    .from_source(FileSource, config["source"])
+                    .map(DenseRetriever, config["retriever"])
+                    .map(QAPromptor, config["promptor"])
+                    .map(OpenAIGenerator, config["generator"])
+                    .sink(TerminalSink, config["sink"])
+                    )
+    try:
+        env.submit()
+        env.run_streaming()  # 启动管道
+        time.sleep(5)  # 等待管道运行
+        env.stop()
+    finally:
+        env.close()
     
     # run_gc_report()  # 强制垃圾回收，清理内存
 
@@ -78,7 +77,7 @@ if __name__ == '__main__':
         config.setdefault("generator", {})["api_key"] = api_key
 
     pipeline_run()
-
+    run_gc_report()
     print("[DEBUG] 活跃线程列表：")
     for t in threading.enumerate():
         print(f" - {t.name} (daemon={t.daemon})")

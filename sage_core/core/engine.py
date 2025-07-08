@@ -1,8 +1,9 @@
-# from sage.core.compiler.query_compiler import QueryCompiler
 from sage_core.api.env import BaseEnvironment
 from sage_runtime.mixed_dag import MixedDAG
 from sage_runtime.runtime_manager import RuntimeManager
 from sage_utils.custom_logger import CustomLogger
+from sage_runtime.runtimes.local_runtime import LocalRuntime
+# from sage_runtime.runtimes.ray_runtime import RayRuntime
 import threading
 
 
@@ -20,7 +21,7 @@ class Engine:
         self.runtime_manager = RuntimeManager.get_instance()
         # self.compiler= QueryCompiler()
         from sage_core.core.compiler import Compiler
-        self.DAGs: dict[str, Compiler] = {}  # 存储 pipeline 名称到 SageGraph 的映射
+        self.graphs: dict[str, Compiler] = {}  # 存储 pipeline 名称到 SageGraph 的映射
         self.env_to_dag: dict[str, MixedDAG] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
         # print("Engine initialized")
         self.logger = CustomLogger(
@@ -54,7 +55,7 @@ class Engine:
         # env, graph和dag用的都是同一个名字
         graph = Compiler(env)
         graph.debug_print_graph()
-        self.DAGs[graph.name] = graph
+        self.graphs[graph.name] = graph
         try:
             self.logger.info(f"Received mixed graph '{graph.name}' with {len(graph.nodes)} nodes")
             # 编译图
@@ -109,8 +110,8 @@ class Engine:
         
         dag = self.env_to_dag.pop(env.name, None)
         if dag:
-            dag.stop()
-            self.logger.info(f"DAG for environment '{env.name}' has been stopped.")
+            dag.close()
+            self.logger.info(f"DAG for environment '{env.name}' has been closed.")
         else:
             self.logger.warning(f"No DAG found for environment '{env.name}'")
         # 如果没有剩余环境，执行完整 shutdown
@@ -127,12 +128,14 @@ class Engine:
         """
         self.logger.info("Shutting down Engine and releasing resources")
         try:
-            self.runtime_manager.shutdown_all()
+            local_runtime = LocalRuntime.get_instance()
+            local_runtime.shutdown()
         except Exception:
-            self.logger.exception("Error shutting down RuntimeManager")
+            self.logger.exception("Error shutting down RuntimeManager:{e}")
+            raise
 
         self.env_to_dag.clear()
-        self.DAGs.clear()
+        self.graphs.clear()
 
         Engine._instance = None
         self.logger.info("Engine shutdown complete")

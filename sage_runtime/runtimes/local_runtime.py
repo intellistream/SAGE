@@ -13,24 +13,24 @@ class LocalRuntime:
     _instance = None
     _lock = threading.Lock()
 
-    def __init__(self, tcp_host: str = "localhost", tcp_port: int = 9999):
+    def __init__(self):
         if hasattr(self, "_initialized"):
             return
 
-        self.tcp_host = tcp_host
-        self.tcp_port = self._find_available_port(tcp_host, tcp_port)  # 自动检测可用端口
+        # self.tcp_host = tcp_host
+        # self.tcp_port = self._find_available_port(tcp_host, tcp_port)  # 自动检测可用端口
 
         self.logger = CustomLogger(
             filename="LocalRuntime",
             console_output="WARNING",
-            file_output="WARNING",
+            file_output="DEBUG",
             global_output="WARNING",
         )
 
         self._initialized = True
         self.name = "LocalRuntime"
         self.logger.debug(f"CPU count is {os.cpu_count()}")
-        self.logger.info(f"Using TCP port: {self.tcp_port}")
+        # self.logger.info(f"Using TCP port: {self.tcp_port}")
 
         self.thread_pool = ThreadPoolExecutor(
             max_workers=os.cpu_count() * 3,
@@ -50,14 +50,14 @@ class LocalRuntime:
         raise RuntimeError("请通过 get_instance() 方法获取实例")
             
     @classmethod
-    def get_instance(cls, tcp_host: str = "localhost", tcp_port: int = 9999):
+    def get_instance(cls):
         """获取LocalRuntime的唯一实例"""
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
                     # 绕过 __new__ 的异常，直接创建实例
                     instance = super().__new__(cls)
-                    instance.__init__(tcp_host, tcp_port)
+                    instance.__init__()
                     cls._instance = instance
         return cls._instance
     @classmethod
@@ -122,41 +122,6 @@ class LocalRuntime:
         
         self.logger.info(f"Successfully submitted {len(handles)} nodes")
         return handles
-
-
-    def stop_node(self, node_handle: str):
-        """
-        停止指定的节点
-        
-        Args:
-            node_handle: 节点句柄
-        """
-        if node_handle not in self.handle_to_node:
-            self.logger.warning(f"Node handle '{node_handle}' not found")
-            return
-        
-        try:
-            node = self.handle_to_node[node_handle]
-            
-            # 停止节点
-            node.stop()
-            
-            # 从slot中移除任务
-            # 这里需要找到对应的task
-            for task in self.available_slots[slot_id].running_tasks:
-                if hasattr(task, 'node') and task.node == node:
-                    self.available_slots[slot_id].stop_pipeline(task)
-                    break
-            
-            # 清理映射关系
-            self.running_nodes.pop(node.name, None)
-            self.node_to_handle.pop(node, None)
-            self.handle_to_node.pop(node_handle, None)
-            
-            self.logger.info(f"Node '{node.name}' stopped successfully")
-            
-        except Exception as e:
-            self.logger.error(f"Error stopping node with handle '{node_handle}': {e}")
     
     def stop_all_nodes(self):
         """停止所有运行中的节点"""
@@ -216,10 +181,11 @@ class LocalRuntime:
         
         # 停止所有节点
         self.stop_all_nodes()
+        self.thread_pool.shutdown(wait=False, cancel_futures=True)
         
-        # 关闭TCP服务器
-        if self.tcp_server:
-            self.tcp_server.stop()
+        # # 关闭TCP服务器
+        # if self.tcp_server:
+        #     self.tcp_server.stop()
         
         self.logger.info("LocalRuntime shutdown completed")
     
