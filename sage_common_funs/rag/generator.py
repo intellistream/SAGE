@@ -1,3 +1,4 @@
+import os
 from typing import Tuple
 from sage_common_funs.utils.generator_model import apply_generator_model
 from sage_core.api.base_function import BaseFunction
@@ -21,13 +22,12 @@ class OpenAIGenerator(BaseFunction):
                        the method, model name, base URL, API key, etc.
         """
         self.config = config
-        assert self.config["api_key"], "OpenAI API key is missing!"
         # Apply the generator model with the provided configuration
         self.model = apply_generator_model(
             method=self.config["method"],
             model_name=self.config["model_name"],
             base_url=self.config["base_url"],
-            api_key=self.config["api_key"],
+            api_key=os.getenv("ALIBABA_API_KEY"),
             seed=42  # Hardcoded seed for reproducibility
         )
         self.num = 1

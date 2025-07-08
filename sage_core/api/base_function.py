@@ -1,5 +1,9 @@
+import os
 from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any
+
+from dotenv import load_dotenv
+
 from sage_core.api.collector import Collector
 from sage_utils.custom_logger import CustomLogger
 
@@ -12,6 +16,7 @@ class BaseFunction(ABC):
     """
 
     def __init__(self, session_folder:str = None, name:str = None, **kwargs):
+        self.api_key = None
         self.runtime_context = None  # 需要在compiler里面实例化。
         name = name or self.__class__.__name__
         self.logger = CustomLogger(
@@ -22,6 +27,16 @@ class BaseFunction(ABC):
             global_output = True,
             name = f"{name}_Function"
         )
+        self.get_key()
+
+    def get_key(self):
+        # finds and loads .env into os.environ
+        load_dotenv()
+        # TODO: add an iteration to find the suitable key for the url that the user configured.
+        if not os.getenv("ALIBABA_API_KEY"):
+            raise RuntimeError("Missing ALIBABA_API_KEY in environment or .env file")
+        else:
+            self.api_key = os.getenv("ALIBABA_API_KEY")
         pass
 
     @classmethod # 多路输出的function可以override这个方法
