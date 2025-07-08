@@ -246,24 +246,24 @@ class MixedDAG():
                 if isinstance(node_handle, LocalDAGNode):
                     self.logger.debug(f"Running spout node: {node_name}")
 
-                    node_handle.run_once()
+                    node_handle.process()
                 elif isinstance(node_handle, ActorHandle):
                     self.logger.debug(f"Running remote spout node: {node_name}")
 
                     # Ray Actor执行一次
-                    node_handle.run_once.remote()
+                    node_handle.process.remote()
         else:
             if spout_node_name in self.spout_nodes:
                 node_handle = self.nodes[spout_node_name]
                 if isinstance(node_handle, LocalDAGNode):
                     self.logger.debug(f"Running spout node: {node_name}")
 
-                    node_handle.run_once()
+                    node_handle.process()
                 elif isinstance(node_handle, ActorHandle):
                     self.logger.debug(f"Running remote spout node: {node_name}")
 
                     # Ray Actor执行一次
-                    node_handle.run_once.remote()
+                    node_handle.process.remote()
             else:
                 self.logger.warning(f"Spout node '{spout_node_name}' not found in MixedDAG '{self.name}'")
 
