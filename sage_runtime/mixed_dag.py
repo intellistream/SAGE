@@ -38,7 +38,7 @@ class MixedDAG():
             # port=self.tcp_port,
             message_handler=self._handle_tcp_message
         )
-        self.tcp_server.start()
+        # self.tcp_server.start()
 
         self._compile_graph(graph, env)
         self.debug_print_operators()
@@ -195,6 +195,7 @@ class MixedDAG():
             node_handle = self.nodes[node_name]
             if isinstance(node_handle, LocalDAGNode):
                 node_handle.stop()
+                self.logger.debug(f"Stopped local spout node: {node_name}")
             elif isinstance(node_handle, ActorHandle):
                 # Ray Actor执行一次
                 node_handle.stop.remote()
