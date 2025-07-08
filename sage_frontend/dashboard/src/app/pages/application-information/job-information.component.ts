@@ -10,14 +10,14 @@ import {
   NzGraphData,
   NzGraphDataDef,
   NzGraphZoomDirective,
-} from "ng-zorro-antd/compiler";
+} from "ng-zorro-antd/graph";
 import {Batch} from "../../model/Batch";
 import {FormControl, FormGroup, NonNullableFormBuilder, Validators, FormArray, ValidatorFn} from "@angular/forms";
 import {NzMessageService} from "ng-zorro-antd/message";
 import { v4 } from 'uuid';
 
 @Component({
-  selector: 'sage_examples-application-information',
+  selector: 'app-application-information',
   templateUrl: './job-information.component.html',
   styleUrls: ['./job-information.component.less']
 })
@@ -28,13 +28,13 @@ export class JobInformationComponent implements OnInit {
   job: Job; // job entity
   statisticBatch: Batch; // statistic batch entity
   tpgBatch: Batch | null = null; // TPG batch entity
-
+  use_ray: boolean = false;
   tpgSvg: any;            // tpg svg
-  tpgSvgSimulation: any;  // tpg compiler drawing force simulation
+  tpgSvgSimulation: any;  // tpg graph drawing force simulation
   isTpgModalVisible = false;
 
-  operatorGraphData: NzGraphDataDef = {nodes: [], edges: []} // operator compiler data {v: '1', w: '2'}, {id: '101', label: 'Spout'}
-  nzOperatorGraphData: any; // operator compiler data for nz-compiler
+  operatorGraphData: NzGraphDataDef = {nodes: [], edges: []} // operator graph data {v: '1', w: '2'}, {id: '101', label: 'Spout'}
+  nzOperatorGraphData: any; // operator graph data for nz-graph
 
   // Batch data
   batchOptions: any[] = [];
@@ -77,6 +77,7 @@ export class JobInformationComponent implements OnInit {
   configError: string | null = null;
   configSuccess: boolean = false;
   isSubmitting: boolean = false;
+  activeConfigTab: number = 0; // 0: 表单模式, 1: 原始模式
 
   batchForm: FormGroup<{
     batch: FormControl<string>;
@@ -117,10 +118,13 @@ export class JobInformationComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    
     this.route.params.subscribe(params => {
       const jobId = params['id'];
       this.jobInformationService.getJob(jobId).subscribe(res => {
         this.job = res;
+        let duration = this.job.duration;
+        this.runtimeDuration = parseInt(duration, 10)
         this.jobStarted = this.job.isRunning;
         for (let i = 0; i < this.job.operators.length; i++) {
           this.operatorLatestBatchNum["sl"] = 1;  // initialize the latest batch number
@@ -130,7 +134,7 @@ export class JobInformationComponent implements OnInit {
           // if (i > 0) {
           //   this.operatorGraphData.edges.push({v: this.job.operators[i - 1].id, w: this.job.operators[i].id});
           // }
-
+     
           if(i>0) {
             let downstream = this.job.operators[i-1].downstream;
             for (let j = 0 ; j < downstream.length ; ++ j){
@@ -425,9 +429,11 @@ export class JobInformationComponent implements OnInit {
   onStart() {
     this.jobStarted = true;
     this.startListening();
-    this.jobInformationService.startJob(this.job.jobId).subscribe(success => {
-      if (success) {
-        console.log("start job successfully");
+    this.jobInformationService.startJob(this.job.jobId).subscribe(data=> {
+      if (data.status == "success") {
+        this.use_ray = data.use_ray
+        this.runtimeDuration = data.duration || 0;
+        console.log(data);
       }
     });
   }
@@ -437,7 +443,7 @@ export class JobInformationComponent implements OnInit {
       this.onCheckBoxChanged(false);
     }
     clearInterval(this.listenIntervalId);
-    this.jobInformationService.stopJob(this.job.jobId).subscribe(success => {
+    this.jobInformationService.stopJob(this.job.jobId,String(this.runtimeDuration)+'s').subscribe(success => {
       if (success) {
       }
     });
@@ -495,27 +501,27 @@ export class JobInformationComponent implements OnInit {
       const config = jsyaml.load(configContent) as any;
       this.configStructure = config;
       this.configSections = [];
-
+      
       // 重新构建表单
       const formControls: any = {};
-
+      
       // 遍历配置对象，为每个顶级键创建配置分组
       Object.keys(config).forEach(sectionKey => {
         const sectionValue = config[sectionKey];
         const sectionFields: any[] = [];
-
+        
         if (sectionValue && typeof sectionValue === 'object' && !Array.isArray(sectionValue)) {
           // 处理对象类型的配置节
           const sectionFormGroup: any = {};
-
+          
           Object.keys(sectionValue).forEach(fieldKey => {
             const fieldValue = sectionValue[fieldKey];
             const fieldConfig = this.createFieldConfig(fieldKey, fieldValue);
-
+            
             sectionFields.push(fieldConfig);
             sectionFormGroup[fieldKey] = this.createFormControl(fieldValue, fieldConfig.type);
           });
-
+          
           formControls[sectionKey] = this.fb.group(sectionFormGroup);
         } else {
           // 处理简单类型的配置项
@@ -523,7 +529,7 @@ export class JobInformationComponent implements OnInit {
           sectionFields.push(fieldConfig);
           formControls[sectionKey] = this.createFormControl(sectionValue, fieldConfig.type);
         }
-
+        
         this.configSections.push({
           key: sectionKey,
           label: this.formatLabel(sectionKey),
@@ -531,10 +537,10 @@ export class JobInformationComponent implements OnInit {
           isObject: sectionValue && typeof sectionValue === 'object' && !Array.isArray(sectionValue)
         });
       });
-
+      
       // 重新创建表单
       this.configForm = this.fb.group(formControls);
-
+      
     } catch (e) {
       console.error('解析配置文件失败:', e);
       this.message.error('配置文件格式错误，无法解析');
@@ -582,11 +588,11 @@ export class JobInformationComponent implements OnInit {
 
   createFormControl(value: any, type: string) {
     const validators: ValidatorFn[] = [];
-
+    
     if (this.isRequiredField(type)) {
       validators.push(Validators.required);
     }
-
+    
     if (type === 'number') {
       return this.fb.control(value || 0, validators);
     } else if (type === 'boolean') {
@@ -628,7 +634,7 @@ export class JobInformationComponent implements OnInit {
     if (key.toLowerCase().includes('method')) {
       return [
         { label: 'OpenAI', value: 'openai' },
-        { label: 'Azure', value: 'azure' },
+        { label: 'huggingface', value: 'hf' },
         { label: 'Local', value: 'local' }
       ];
     } else if (key.toLowerCase() === 'stm' || key.toLowerCase() === 'ltm' || key.toLowerCase() === 'dcm') {
@@ -655,9 +661,9 @@ export class JobInformationComponent implements OnInit {
 
   formToConfigContent(): string {
     const formValue = this.configForm.value;
-
+    
     const config: any = {};
-
+    
     this.configSections.forEach(section => {
       if (section.isObject) {
         config[section.key] = formValue[section.key] || {};
@@ -665,7 +671,7 @@ export class JobInformationComponent implements OnInit {
         config[section.key] = formValue[section.key];
       }
     });
-
+    
     return jsyaml.dump(config, { indent: 2 });
   }
 
@@ -691,23 +697,45 @@ export class JobInformationComponent implements OnInit {
     this.configSuccess = false;
   }
 
-  submitConfig() {
-    if (this.configForm.valid) {
+  onConfigTabChange(index: number) {
+    // 当从表单模式切换到原始模式时，同步表单数据到configContent
+    if (this.activeConfigTab === 0 && index === 1 && this.configForm.valid) {
       this.configContent = this.formToConfigContent();
     }
+    // 当从原始模式切换到表单模式时，解析configContent到表单
+    else if (this.activeConfigTab === 1 && index === 0 && !this.configError) {
+      this.parseConfigToForm(this.configContent);
+    }
+    this.activeConfigTab = index;
+  }
 
+  submitConfig() {
+    // 根据当前活动的标签页决定使用哪种数据源
+    if (this.activeConfigTab === 0) {
+      // 表单模式：检查表单有效性并同步数据
+      if (this.configForm.valid) {
+        this.configContent = this.formToConfigContent();
+      } else {
+        this.message.error('表单数据无效，请检查输入');
+        return;
+      }
+    }
+    // 原始模式：直接使用当前的configContent
+    
     if (this.configError) {
       return;
     }
-
+    
     this.isSubmitting = true;
     this.configSuccess = false;
-
-    this.jobInformationService.updateConfigFile("1", this.configContent).subscribe(
+    
+    this.jobInformationService.updateConfigFile(String(this.job.jobId), this.configContent).subscribe(
       () => {
         this.configSuccess = true;
         this.isSubmitting = false;
         this.message.success('配置更新成功');
+        // 重新解析配置到表单，保持表单和原始模式同步
+        this.parseConfigToForm(this.configContent);
       },
       (error) => {
         this.configError = '更新配置失败: ' + error.message;

@@ -29,7 +29,7 @@ router = APIRouter()
 #     return True
 import asyncio
 
-from start_a_pipeline import  init_memory_and_pipeline
+from sage_frontend.sage_server.start_a_pipeline import  init_memory_and_pipeline
 
 
 # 用于存储正在运行的任务，键为job_id，值为任务对象
@@ -41,12 +41,47 @@ import os
 import tempfile
 import shutil
 
-def update_json_field(file_path: str, field: str, value):
-    """
-    安全地更新 JSON 顶层字段，支持任意类型的值。
+# def update_json_field(file_path: str, field: str, value):
+#     """
+#     安全地更新 JSON 顶层字段，支持任意类型的值。
+#
+#     - 支持覆盖原字段值
+#     - 会创建临时文件，避免写入中途失败导致文件损坏
+#     """
+#     # 确保文件存在
+#     if not os.path.exists(file_path):
+#         raise FileNotFoundError(f"文件不存在: {file_path}")
+#
+#     # 读取 JSON 内容
+#     with open(file_path, "r", encoding="utf-8") as f:
+#         try:
+#             data = json.load(f)
+#         except json.JSONDecodeError as e:
+#             raise ValueError(f"JSON 格式错误: {e}")
+#
+#     # 更新字段
+#     data[field] = value
+#     # 写入到临时文件，再替换原文件（原子操作）
+#     dir_name = os.path.dirname(file_path)
+#     with tempfile.NamedTemporaryFile("w", delete=False, dir=dir_name, encoding="utf-8") as tmpfile:
+#         json.dump(data, tmpfile, indent=4, ensure_ascii=False)
+#         tmpfile.flush()
+#         os.fsync(tmpfile.fileno())
+#         temp_path = tmpfile.name
+#
+#
+#     shutil.move(temp_path, file_path)
+
     
-    - 支持覆盖原字段值
-    - 会创建临时文件，避免写入中途失败导致文件损坏
+
+def update_json_field(file_path: str, *args):
+    """
+    安全地更新 JSON 顶层字段，支持同时更新多个字段。
+
+    参数:
+        file_path: JSON 文件路径
+        *args: 可变参数，按键值对的顺序传递字段和值
+               格式: "字段名1", 值1, "字段名2", 值2, ...
     """
     # 确保文件存在
     if not os.path.exists(file_path):
@@ -58,9 +93,15 @@ def update_json_field(file_path: str, field: str, value):
             data = json.load(f)
         except json.JSONDecodeError as e:
             raise ValueError(f"JSON 格式错误: {e}")
-    
+
     # 更新字段
-    data[field] = value
+    if len(args) % 2 != 0:
+        raise ValueError("参数必须成对出现：字段名和值")
+    for i in range(0, len(args), 2):
+        field = args[i]
+        value = args[i + 1]
+        data[field] = value
+
     # 写入到临时文件，再替换原文件（原子操作）
     dir_name = os.path.dirname(file_path)
     with tempfile.NamedTemporaryFile("w", delete=False, dir=dir_name, encoding="utf-8") as tmpfile:
@@ -69,17 +110,13 @@ def update_json_field(file_path: str, field: str, value):
         os.fsync(tmpfile.fileno())
         temp_path = tmpfile.name
 
-
     shutil.move(temp_path, file_path)
 
     
 
 
-    
-
-
-@router.post("/stop/{jobId}")
-async def stop_job(jobId: str):
+@router.post("/stop/{jobId}/{duration}")
+async def stop_job(jobId: str,duration:str ):
     """
     停止指定ID的流处理作业
     """
@@ -92,18 +129,9 @@ async def stop_job(jobId: str):
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail=f"作业 {jobId} 不存在")
 
-        # # 读取作业信息
-        # with open(file_path, "r", encoding="utf-8") as f:
-        #     job_info = json.load(f)
 
-        # # 更新运行状态
-        # job_info["isRunning"] = False
-
-        # # 保存更新后的作业信息
-        # with open(file_path, "w", encoding="utf-8") as f:
-        #     json.dump(job_info, f, indent=4, ensure_ascii=False)
         update_json_field(file_path, "isRunning", False)
-
+        update_json_field(file_path, "duration", duration)
         # 取消正在运行的任务
         if jobId in running_tasks and not running_tasks[jobId].done():
             running_tasks[jobId].cancel()
@@ -138,29 +166,35 @@ async def start_job(jobId: str, request: Request):
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail=f"作业 {jobId} 不存在")
 
-        # # 读取作业信息
-        # with open(file_path, "r", encoding="utf-8") as f:
-        #     job_info = json.load(f)
 
-        # # 更新运行状态
-        # job_info["isRunning"] = True
-        
-
-        # with open(file_path, "w", encoding="utf-8") as f:
-        #     json.dump(job_info, f, indent=4, ensure_ascii=False)
 
         update_json_field(file_path, "isRunning", True)
+        #读取duration
+        with open(file_path, "r", encoding="utf-8") as f:
+            job_info = json.load(f)
+        duration_s = job_info.get("duration", "0")  # 默认值为0，如果没有设置
+        #config 是否包含 “remote” 值
+        with open(os.path.join("data", "config", f"{jobId}.yaml"), "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f)
+        use_ray = False
+        for key, value in config.items():
+            if isinstance(value, dict) and any("remote" in str(v).lower() for v in value.values()):
+                use_ray = True
+                print(f"remote found in config for job {jobId}, using Ray")
+                break
+        duration = eval(duration_s[:-1])
+        print(f"start duration : {duration}")
         # 创建后台任务运行流处理管道
-        task = asyncio.create_task(run_pipeline_task(jobId,request))
+        task = asyncio.create_task(run_pipeline_task(jobId,request,use_ray=use_ray))
         running_tasks[jobId] = task
 
-        return {"status": "success", "message": f"作业 {jobId} 已开始处理"}
+        return {"status": "success", "message": f"作业 {jobId} 已开始处理","duration":duration,"use_ray":use_ray}
     except Exception as e:
         logging.error(f"启动作业 {jobId} 时出错: {str(e)}")
         raise HTTPException(status_code=500, detail=f"启动作业失败: {str(e)}")
 
 
-async def run_pipeline_task(job_id: str,request: Request):
+async def run_pipeline_task(job_id: str,request: Request,use_ray:bool = False):
     """
     在后台运行管道处理任务
     """
@@ -169,16 +203,14 @@ async def run_pipeline_task(job_id: str,request: Request):
         # 运行管道处理
 
         current_app =  request.app
-        if not hasattr(current_app.state, "retriver_collection"):
-            logging.error("应用状态中不存在retriver_collection")
-            return
-        retriver_collection = current_app.state.retriver_collection
+
+
         config_path = os.path.join("data", "config", f"{job_id}.yaml")
         if not os.path.exists(config_path):
             config_path = os.path.join("data", "config", "default.yaml")
         with open(config_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
-        config["retriever"]["ltm_collection"] = retriver_collection
+
         # 获取作业信息
         job_data_dir = os.path.join("data", "jobinfo")
         file_path = os.path.join(job_data_dir, f"{job_id}.json")
@@ -191,36 +223,17 @@ async def run_pipeline_task(job_id: str,request: Request):
             job_info = json.load(f)
 
         operators_config = build_operators_config_from_job(job_info)
-        pipeline = await  init_memory_and_pipeline(job_id, config,operators_config)
+        if config['generator']['api_key'] is None or config['generator']['api_key'] == "":
+            config['generator']['api_key'] = os.getenv("ALIBABA_API_KEY", None)
+        print(f"use ray ... : {use_ray}")
+        pipeline =init_memory_and_pipeline(job_id, config,operators_config,use_ray=use_ray)
         logging.info(f"作业 {job_id} 已开始处理")
         running_pipelines[job_id] = pipeline
 
-
-        # await asyncio.to_thread(init_memory_and_pipeline,job_id)
-        # await init_memory_and_pipeline(job_id)
-        # logging.info(f"作业 {job_id} 已完成处理")
-
-
-        # 任务完成后更新作业状态
-    #     job_data_dir = os.path.join("data", "jobinfo")
-    #     file_path = os.path.join(job_data_dir, f"{job_id}.json")
-
-    #     if os.path.exists(file_path):
-    #         try:
-    #             with open(file_path, "r", encoding="utf-8") as f:
-    #                 job_info = json.load(f)
-    #             if not isinstance(job_info, dict):
-    #                 raise ValueError(f"{file_path} 内容不是合法 JSON 对象")
-    #             job_info["isRunning"] = False
-
-    #             with open(file_path, "w", encoding="utf-8") as f:
-    #                 json.dump(job_info, f, indent=4, ensure_ascii=False)
-    #         except Exception as e:
-    #             logging.error(f"更新作业状态时出错: {str(e)}")
     except Exception as e:
         logging.error(f"处理作业 {job_id} 时出错: {str(e)}")
     finally:
-        # 从运行任务字典中移除
+
         logging.info(f"作业 {job_id} 处理任务")
 
 
@@ -237,7 +250,7 @@ def build_operators_config_from_job(job_info):
     # 从operators目录加载所有操作符信息
     operators_dir = os.path.join("data", "operators")
     operator_type_map = {}
-
+    transformation_map = {}
     # 加载所有操作符
     if os.path.exists(operators_dir):
         for filename in os.listdir(operators_dir):
@@ -248,13 +261,16 @@ def build_operators_config_from_job(job_info):
                         # 将ID映射到类型名称
                         if "id" in op_data and "name" in op_data:
                             operator_type_map[str(op_data["id"])] = op_data["name"]
+                        # 如果有transformation字段，也加入映射
+                        if "transformation" in op_data:
+                            transformation_map[str(op_data["id"])] = op_data["transformation"]
                 except Exception as e:
                     logging.warning(f"读取操作符配置文件 {filename} 时出错: {str(e)}")
 
     # 获取所有操作符节点
     all_operators = job_info.get("operators", [])
 
-    # 确保所有ID都是字符串类型
+    # 确保所有ID都是字符串类型 && 确保transformation字段是字符串类型
     for op in all_operators:
         op["id"] = str(op["id"]) if not isinstance(op["id"], str) else op["id"]
 
@@ -311,27 +327,25 @@ def build_operators_config_from_job(job_info):
 
     # 将排序好的中间节点添加到steps中
     # 默认方法名映射
-    default_method_names = {
-        "SimpleRetriever": "retrieve",
-        "QAPromptor": "construct_prompt",
-        "OpenAIGenerator": "generate_response",
-        "HFGenerator": "generate_response",
-        "TerminalSink": "sink",
-    }
-
-    print(operator_type_map)
-
     for op in sorted_ops:
         op_type = operator_type_map.get(op["id"], "SimpleRetriever")
-        # 根据操作符类型选择默认方法名，如果没有则使用操作符名称的小写
-        method_name = default_method_names.get(op_type, op["name"].lower().replace(" ", "_"))
 
+        # 从操作符配置文件中获取 transformation 字段
+        transformation = transformation_map.get(op["id"], None)
+
+        # 如果 transformation 存在，则使用它作为方法名，否则使用操作符名称的小写
+        method_name = transformation if transformation else op["name"].lower().replace(" ", "_")
+        print(op)
+        print(method_name)
         step_config = {
             "name": method_name,
             "type": op_type,
             "params": {}
         }
         operators_config["steps"].append(step_config)
+
+
+
 
     logging.info(f"构建的operators配置: {operators_config}")
     return operators_config

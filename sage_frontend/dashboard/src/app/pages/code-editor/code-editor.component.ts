@@ -6,7 +6,7 @@ import {CodeEditorService} from "./code-editor.service";
 import {NzMessageService} from "ng-zorro-antd/message";
 
 @Component({
-  selector: 'sage_examples-code-editor',
+  selector: 'app-code-editor',
   templateUrl: './code-editor.component.html',
   styleUrls: ['./code-editor.component.less']
 })

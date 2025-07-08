@@ -3,7 +3,7 @@ import {Router} from "@angular/router";
 import {Job} from "../../model/Job";
 
 @Component({
-  selector: 'sage_examples-application-card',
+  selector: 'app-application-card',
   templateUrl: './application-card.component.html',
   styleUrls: ['./application-card.component.less']
 })

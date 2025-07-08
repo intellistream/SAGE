@@ -262,7 +262,7 @@ export class Websocket {
    */
   calcRunTime() {
     this.runTimeSubscription = interval(this.runTimePeriod).subscribe(period => {
-      console.log("Connection sage_runtime:", `${period} minutes`);
+      console.log("Connection runtime:", `${period} minutes`);
     });
   }
 
