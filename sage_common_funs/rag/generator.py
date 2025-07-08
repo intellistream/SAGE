@@ -92,8 +92,11 @@ class HFGenerator(BaseFunction):
         :return: A Data object containing the generated response as a string.
         """
         # Generate the response from the Hugging Face model using the provided data and additional arguments
-        user_query = data.data
-        response = self.model.generate(user_query, **kwargs)
+        user_query = data.data[0] if len(data.data) > 1  else None
+ 
+        prompt = data.data[1] if len(data.data) > 1 else data.data
+        
+        response = self.model.generate(prompt, **kwargs)
 
         # Return the generated response as a Data object
         self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")

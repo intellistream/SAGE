@@ -13,7 +13,7 @@ from sage_utils.logging_utils import configure_logging
 def pipeline_run():
     """创建并运行数据处理管道"""
     env = LocalEnvironment()
-    env.set_memory()
+    env.set_memory(config=None)  # 初始化内存配置
     # 构建数据处理流程
     manual_source = env.create_source()
     query_and_chunks_stream = manual_source.map(DenseRetriever, config["retriever"])
@@ -32,9 +32,6 @@ def pipeline_run():
             print("Goodbye!")
             break
         manual_source.push(user_input)
-    # manual_source.push("What is the capital of France?")
-    # manual_source.push("What is the capital of China?")
-    # manual_source.push("What is the capital of Japan?")
 
 if __name__ == '__main__':
     CustomLogger.disable_global_console_debug()  # 禁用全局控制台调试输出

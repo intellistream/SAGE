@@ -1,56 +1,78 @@
+import os
+import threading
+import logging
+from typing import Dict, Optional, Any, List
+from concurrent.futures import ThreadPoolExecutor
 from sage_runtime.base_runtime import BaseRuntime
 from sage_runtime.executor.local_dag_node import LocalDAGNode
 from sage_runtime.runtimes.local_tcp_server import LocalTcpServer
 from sage_utils.custom_logger import CustomLogger
-from concurrent.futures import ThreadPoolExecutor
-import os, threading
-from typing import Dict, Optional, Any, List
-
-class LocalRuntime(BaseRuntime):
-    """本地线程池执行后端"""
-    
+import time
+import socket
+class LocalRuntime:
     _instance = None
     _lock = threading.Lock()
 
-
     def __init__(self, tcp_host: str = "localhost", tcp_port: int = 9999):
-        # 确保只初始化一次
         if hasattr(self, "_initialized"):
             return
+
+        self.tcp_host = tcp_host
+        self.tcp_port = self._find_available_port(tcp_host, tcp_port)  # 自动检测可用端口
+
         self.logger = CustomLogger(
-            filename=f"LocalRuntime",
+            filename="LocalRuntime",
             console_output="WARNING",
             file_output="WARNING",
-            global_output = "WARNING",
+            global_output="WARNING",
         )
+
         self._initialized = True
         self.name = "LocalRuntime"
-        self.logger.debug(f"cpu count is {os.cpu_count()}")
+        self.logger.debug(f"CPU count is {os.cpu_count()}")
+        self.logger.info(f"Using TCP port: {self.tcp_port}")
+
         self.thread_pool = ThreadPoolExecutor(
             max_workers=os.cpu_count() * 3,
-            thread_name_prefix=None,
-            initializer=None,
-            initargs=None
         )
-        # 节点管理
-        self.running_nodes: Dict[str, LocalDAGNode] = {}  # 正在运行的节点表
-        self.node_to_handle: Dict[LocalDAGNode, str] = {}  # 节点到handle的映射
-        self.handle_to_node: Dict[str, LocalDAGNode] = {}  # handle到节点的映射
-        self.next_handle_id = 0
 
-        
-        # 初始化TCP服务器
-        self.tcp_server = LocalTcpServer(
-            host=tcp_host,
-            port=tcp_port,
-            message_handler=self._handle_tcp_message
-        )
-        self.tcp_server.start()
+        # # 初始化TCP服务器并启动
+        # self.tcp_server = LocalTcpServer(
+        #     host=self.tcp_host,
+        #     port=self.tcp_port,
+        #     message_handler=self._handle_tcp_message
+        # )
+        # try:
+        #     self.tcp_server.start()
+        # except OSError as e:
+        #     self.logger.error(f"Failed to start TCP server on port {self.tcp_port}: {e}")
+        #     raise
+
+    def _find_available_port(self, host: str, starting_port: int) -> int:
+        """检测并返回一个未被占用的端口"""
+        port = starting_port
+        retries = 5 
+        while retries > 0:
+            if not self._is_port_in_use(host, port):
+                return port
+            port += 1 
+            retries -= 1
+            time.sleep(1)
+
+        self.logger.error(f"Could not find available port after {5 - retries} retries")
+        raise OSError(f"Could not find available port after 5 retries starting from {starting_port}")
+
+    @staticmethod
+    def _is_port_in_use(host: str, port: int) -> bool:
+        """检测端口是否已被占用"""
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.5)  # 设置超时，防止一直挂起
+            return s.connect_ex((host, port)) == 0  # 返回0表示端口被占用
 
     def __new__(cls, *args, **kwargs):
         # 禁止直接实例化
         raise RuntimeError("请通过 get_instance() 方法获取实例")
-    
+            
     @classmethod
     def get_instance(cls, tcp_host: str = "localhost", tcp_port: int = 9999):
         """获取LocalRuntime的唯一实例"""
@@ -62,7 +84,6 @@ class LocalRuntime(BaseRuntime):
                     instance.__init__(tcp_host, tcp_port)
                     cls._instance = instance
         return cls._instance
-    
     @classmethod
     def reset_instance(cls):
         """重置实例（主要用于测试）"""
