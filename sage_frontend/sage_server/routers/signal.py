@@ -137,7 +137,7 @@ async def stop_job(jobId: str,duration:str ):
             running_tasks[jobId].cancel()
             logging.info(f"已取消作业 {jobId} 的运行任务")
         if jobId in running_pipelines :
-            running_pipelines[jobId].stop()
+            running_pipelines[jobId].stop_pipeline()
             del running_pipelines[jobId]
             logging.info(f"已取消作业 {jobId} 的管道任务")
 

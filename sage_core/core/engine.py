@@ -9,6 +9,7 @@ import threading
 class Engine:
     _instance = None
     _lock = threading.Lock()
+
     def __init__(self):
 
         # 确保只初始化一次
@@ -19,17 +20,16 @@ class Engine:
         self.runtime_manager = RuntimeManager.get_instance()
         # self.compiler= QueryCompiler()
         from sage_core.core.compiler import Compiler
-        self.graphs:dict[str, Compiler] = {}  # 存储 pipeline 名称到 SageGraph 的映射
-        self.env_to_dag:dict[str, MixedDAG] = {} # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
+        self.DAGs: dict[str, Compiler] = {}  # 存储 pipeline 名称到 SageGraph 的映射
+        self.env_to_dag: dict[str, MixedDAG] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
         # print("Engine initialized")
         self.logger = CustomLogger(
             filename=f"SageEngine",
             console_output="DEBUG",
             file_output=True,
-            global_output = "WARNING",
-            name = "SageEngine"
+            global_output="WARNING",
+            name="SageEngine"
         )
-
 
     def __new__(cls):
         # 禁止直接实例化
@@ -43,18 +43,17 @@ class Engine:
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
-
                     # 绕过 __new__ 的异常，直接创建实例
                     instance = super().__new__(cls)
                     instance.__init__()
                     cls._instance = instance
         return cls._instance
-    
-    def submit_env(self, env:BaseEnvironment):
+
+    def submit_env(self, env: BaseEnvironment):
         from sage_core.core.compiler import Compiler
         graph = Compiler(env)
         graph.debug_print_graph()
-        self.graphs[graph.name] = graph
+        self.DAGs[graph.name] = graph
         try:
             self.logger.info(f"Received mixed graph '{graph.name}' with {len(graph.nodes)} nodes")
             # 编译图
@@ -65,8 +64,8 @@ class Engine:
         except Exception as e:
             self.logger.info(f"Failed to submit graph '{graph.name}': {e}")
             raise
-    
-    def run_once(self, env:BaseEnvironment, node:str = None):
+
+    def run_once(self, env: BaseEnvironment, node: str = None):
         """
         执行一次环境的 DAG
         """
@@ -76,7 +75,7 @@ class Engine:
         dag.execute_once()
         self.logger.info(f"DAG for environment '{env.name}' have completed execution.")
 
-    def run_streaming(self, env:BaseEnvironment, node:str = None):
+    def run_streaming(self, env: BaseEnvironment, node: str = None):
         """
         执行一次环境的 DAG
         """
@@ -85,7 +84,7 @@ class Engine:
         dag.execute_streaming()
         self.logger.info(f"Streaming DAG for environment '{env.name}' have started.")
 
-    def stop(self, env:BaseEnvironment):
+    def stop_pipeline(self, env: BaseEnvironment):
         """
         停止指定环境的 DAG
         """
@@ -97,7 +96,7 @@ class Engine:
         else:
             self.logger.warning(f"No DAG found for environment '{env.name}'")
 
-    def close(self, env:BaseEnvironment):
+    def close_pipeline(self, env: BaseEnvironment):
         """
         停止指定环境的 DAG
         """
@@ -108,3 +107,26 @@ class Engine:
             self.logger.info(f"DAG for environment '{env.name}' has been stopped.")
         else:
             self.logger.warning(f"No DAG found for environment '{env.name}'")
+        # 如果没有剩余环境，执行完整 shutdown
+        if not self.env_to_dag:
+            self.shutdown()
+
+    def shutdown(self):
+        """
+        完整释放 Engine 持有的所有资源：
+        - 停掉 RuntimeManager（线程、Ray actor 等）
+        - 停掉可能的 TCP/HTTP server
+        - 清空 DAG 映射与缓存
+        - 重置 Engine 单例
+        """
+        self.logger.info("Shutting down Engine and releasing resources")
+        try:
+            self.runtime_manager.shutdown_all()
+        except Exception:
+            self.logger.exception("Error shutting down RuntimeManager")
+
+        self.env_to_dag.clear()
+        self.DAGs.clear()
+
+        Engine._instance = None
+        self.logger.info("Engine shutdown complete")
