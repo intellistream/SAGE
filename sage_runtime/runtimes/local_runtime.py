@@ -203,7 +203,7 @@ class LocalRuntime:
             # 这里需要找到对应的task
             for task in self.available_slots[slot_id].running_tasks:
                 if hasattr(task, 'node') and task.node == node:
-                    self.available_slots[slot_id].stop(task)
+                    self.available_slots[slot_id].stop_pipeline(task)
                     break
             
             # 清理映射关系

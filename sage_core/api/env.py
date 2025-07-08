@@ -88,7 +88,8 @@ class BaseEnvironment:
         self.logger.info("Stopping pipeline...")
         from sage_core.core.engine import Engine
         engine = Engine.get_instance()
-        engine.stop(self)
+        engine.stop_pipeline(self)
+        self.close()
 
     def close(self):
         """
@@ -96,7 +97,12 @@ class BaseEnvironment:
         """
         from sage_core.core.engine import Engine
         engine = Engine.get_instance()
-        engine.close(self)
+        # 1) 停止本环境对应的 DAG 执行
+        engine.stop_pipeline(self)
+        # 2) 关闭该环境在 Engine 中的引用，并在无剩余环境时彻底 shutdown Engine
+        engine.close_pipeline(self)
+        # 3) 清理自身引用，以打破循环链
+        self._pipeline.clear()
 
     @property
     def pipeline(self) -> List[Transformation]:  # noqa: D401

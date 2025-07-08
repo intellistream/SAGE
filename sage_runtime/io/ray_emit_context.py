@@ -73,7 +73,7 @@ class RayEmitContext(BaseEmitContext):
             # 重置连接以便下次重试
             with self._socket_lock:
                 if self._tcp_socket:
-                    self._tcp_socket.close()
+                    self._tcp_socket.close_pipeline()
                     self._tcp_socket = None
             raise
     
@@ -101,6 +101,6 @@ class RayEmitContext(BaseEmitContext):
         """关闭TCP连接"""
         with self._socket_lock:
             if self._tcp_socket:
-                self._tcp_socket.close()
+                self._tcp_socket.close_pipeline()
                 self._tcp_socket = None
                 self.logger.info("Closed TCP connection to local server")

@@ -490,3 +490,6 @@ class CustomLogger:
     def is_global_console_debug_enabled(cls) -> bool:
         """检查全局console debug是否启用"""
         return cls._global_console_debug_enabled
+
+    def exception(self, param):
+        self.error(param)
