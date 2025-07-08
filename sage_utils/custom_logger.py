@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Union, Optional
@@ -390,7 +391,8 @@ class CustomLogger:
             if caller_frame:
                 pathname = caller_frame.f_code.co_filename
                 lineno = caller_frame.f_lineno
-
+                # 如果 exc_info=True，就取当前异常信息元组；否则为 None
+                err = sys.exc_info() if exc_info else None
                 # 创建一个临时的LogRecord，手动设置调用者信息
                 record = self.logger.makeRecord(
                     name=self.logger.name,
@@ -399,7 +401,7 @@ class CustomLogger:
                     lno=lineno,
                     msg=message,
                     args=(),
-                    exc_info=exc_info if exc_info else None
+                    exc_info=err
                 )
 
                 # 直接调用handlers处理记录
