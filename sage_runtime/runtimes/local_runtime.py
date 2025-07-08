@@ -1,6 +1,6 @@
 from sage_runtime.base_runtime import BaseRuntime
 from sage_runtime.executor.local_dag_node import LocalDAGNode
-from sage_runtime.runtimes.local_tcp_server import LocalTcpServer
+from sage_runtime.io.local_tcp_server import LocalTcpServer
 from sage_utils.custom_logger import CustomLogger
 from concurrent.futures import ThreadPoolExecutor
 import os, threading

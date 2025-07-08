@@ -5,12 +5,14 @@ from typing import Any, Union, Tuple
 from sage_core.core.operator.transformation import Transformation, TransformationType
 from sage_runtime.io.local_emit_context import LocalEmitContext
 from sage_runtime.io.local_message_queue import LocalMessageQueue
+from sage_runtime.runtime_context import RuntimeContext
+from sage_runtime.executor.base_dag_node import BaseDagNode
+
 from sage_utils.custom_logger import CustomLogger
 from ray.actor import ActorHandle
 from sage_memory.memory_collection.base_collection import BaseMemoryCollection
-from sage_runtime.runtime_context import RuntimeContext
 
-class LocalDAGNode:
+class LocalDAGNode(BaseDagNode):
     """
     Multiplexer DAG Node.
 

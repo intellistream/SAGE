@@ -4,15 +4,16 @@ from typing import Any, Dict, Union
 from ray.actor import ActorHandle
 
 from sage_runtime.io.ray_emit_context import RayEmitContext
+from sage_runtime.runtime_context import RuntimeContext
+from sage_runtime.executor.base_dag_node import BaseDagNode
+
 from sage_core.core.operator.transformation import Transformation, TransformationType
 from sage_core.core.operator.base_operator import BaseOperator
-from sage_runtime.runtime_context import RuntimeContext
-
 from sage_utils.custom_logger import CustomLogger
 
 
 @ray.remote
-class RayDAGNode:
+class RayDAGNode(BaseDagNode):
     """
     Ray Actor version of LocalDAGNode for distributed execution.
     
@@ -20,7 +21,8 @@ class RayDAGNode:
     maintains the request queue for actors automatically.
     """
     
-    def __init__(self, name: str, transformation: Transformation,session_folder: str = None, memory_collection:ActorHandle = None) -> None:
+    def __init__(self, name: str, transformation: Transformation,session_folder: str = None, memory_collection:Any = None) -> None:
+        super().__init__(name, transformation, session_folder)
         """
         Initialize Ray multiplexer DAG node.
         
@@ -31,15 +33,7 @@ class RayDAGNode:
             is_spout: Whether this is a spout node
             session_folder: Session folder for logging
         """
-        # Create logger first
-        self.logger = CustomLogger(
-            filename=f"{name}",
-            session_folder=session_folder,
-            console_output="WARNING",
-            file_output="WARNING",
-            global_output = "WARNING",
-            name = f"{name}_RayNode"
-        )
+
         if(not isinstance(memory_collection, ActorHandle)):
             raise Exception("Memory collection must be a Ray Actor handle")
         self.memory_collection = memory_collection  # Optional memory collection for this node
@@ -47,6 +41,7 @@ class RayDAGNode:
 
         if(transformation.is_instance ):
             # ray不支持预先实例化的算子
+            self.logger.warning
             raise Exception("GraphNode operator must be a class for Ray platform")
 
         self.name = name
