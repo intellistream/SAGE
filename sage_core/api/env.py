@@ -6,7 +6,7 @@ from enum import Enum
 import sage_memory.api
 from sage_core.api.base_function import BaseFunction
 from sage_core.api.datastream import DataStream
-from sage_core.core.operator.transformation import TransformationType, Transformation
+from sage_core.api.transformation import TransformationType, Transformation
 from sage_utils.custom_logger import CustomLogger
 from sage_core.api.enum import PlatformType
 
@@ -104,7 +104,7 @@ class BaseEnvironment:
         return self._pipeline
 
     def set_memory(self, config):
-        self.memory_collection = sage_memory.api.create_memory(config, remote = (self.config.get("platform", "local") == "remote"))
+        self.memory_collection = sage_memory.api.create_memory(config, remote = (self.platform == PlatformType.REMOTE))
 
     def set_memory_collection(self, collection):
 
