@@ -105,13 +105,13 @@ class Engine:
         self.logger.info(f"Stopping DAG for environment '{env.name}'")
         graph = self.graphs.pop(env.name, None)
         if graph:
-            graph.destroy()
+            # graph.destroy()
             self.logger.info(f"Graph for environment '{env.name}' has been destroyed.")
         
         dag = self.env_to_dag.pop(env.name, None)
         if dag:
-            dag.destroy()
+            dag.stop()
             self.logger.info(f"DAG for environment '{env.name}' has been stopped.")
         else:
             self.logger.warning(f"No DAG found for environment '{env.name}'")
-        env.destroy()
+        # env.destroy()
