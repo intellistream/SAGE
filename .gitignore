@@ -24,6 +24,12 @@ CMakeUserPresets.json
 /sage.egg-info/
 /deps/CANDY/.github/
 
+logs/
+output/
+.vscode/
+**/__pycache__/
+
+
 id_llm
 auto_env_setup.log
 /.idea/
