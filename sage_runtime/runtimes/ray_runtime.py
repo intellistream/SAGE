@@ -187,18 +187,7 @@ class RayRuntime(BaseRuntime):
         self.logger.info(f"Successfully submitted {len(handles)} Ray nodes")
         return handles
     
-    def start_node(self, node_handle: str):
-        """
-        启动Ray节点
-        
-        Args:
-            node_handle: 节点句柄
-        """
-        if node_handle not in self.handle_to_node:
-            raise ValueError(f"Node handle '{node_handle}' not found")
-        
-        node_name = self.handle_to_node[node_handle]
-        actor_handle = self.running_nodes[node_name]
+    def start_node(self, actor_handle: ActorHandle):
         
         try:
             # 检查是否为spout节点
@@ -206,12 +195,12 @@ class RayRuntime(BaseRuntime):
             
             if is_spout:
                 # Spout节点启动数据生成循环
-                future = actor_handle.start.remote()
+                future = actor_handle.run_loop.remote()
                 self.node_spout_futures[node_name] = future
                 self.logger.info(f"Started Ray spout node '{node_name}'")
             else:
                 # 非Spout节点启动就绪状态
-                future = actor_handle.start.remote()
+                future = actor_handle.run_loop.remote()
                 self.logger.info(f"Started Ray node '{node_name}' in ready state")
             
             # 更新状态

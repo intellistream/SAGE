@@ -1,16 +1,16 @@
 from __future__ import annotations
-import threading
 import time
-from typing import Any, Union, Tuple
-from sage_core.core.operator.transformation import Transformation, TransformationType
-from sage_runtime.io.local_emit_context import LocalEmitContext
+from typing import Any, Union, Tuple, TYPE_CHECKING
 from sage_runtime.io.local_message_queue import LocalMessageQueue
-from sage_utils.custom_logger import CustomLogger
+from sage_runtime.runtime_context import RuntimeContext
+from sage_runtime.executor.base_dag_node import BaseDagNode
 from ray.actor import ActorHandle
 from sage_memory.memory_collection.base_collection import BaseMemoryCollection
-from sage_runtime.runtime_context import RuntimeContext
+if TYPE_CHECKING:
+    from sage_core.api.transformation import Transformation, OperatorFactory
 
-class LocalDAGNode:
+
+class LocalDAGNode(BaseDagNode):
     """
     Multiplexer DAG Node.
 
@@ -20,9 +20,10 @@ class LocalDAGNode:
 
     def __init__(self, 
                  name:str,
-                 transformation:Transformation, 
+                 operator_factory:'OperatorFactory', 
                  memory_collection:Union[BaseMemoryCollection, ActorHandle] = None
                  ) -> None:
+        super().__init__(name, operator_factory)
         """
         Initialize the multiplexer DAG node.
 # 
@@ -32,29 +33,10 @@ class LocalDAGNode:
             config: Optional dictionary of configuration parameters for the operator
             is_spout: Indicates if the node is the spout (starting point)
         """
-        self.logger = CustomLogger(
-            filename=f"Node_{name}",
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output = "DEBUG",
-            name = f"{name}_LocalDAGNode"
-        )
-        self.name = name
-        self.transformation = transformation
         self.memory_collection = memory_collection  # Optional memory collection for this node
-        self.operator = transformation.build_instance(name = name)
-        self.operator.insert_emit_context(LocalEmitContext(name = name))
         self.operator.insert_runtime_context(RuntimeContext(self.memory_collection, logger=self.logger))
 
-
-
-        self.is_spout = (transformation.type == TransformationType.SOURCE)  # Check if this is a spout node 正确
         self.input_buffer = LocalMessageQueue(name = name)  # Local input buffer for this node
-
-        # Initialize stop event
-        self.stop_event = threading.Event()
-
-
 
         # self.logger.info(f"type: {transformation.type}")
         self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout}), config:{(transformation.kwargs).get('config', None)}")
@@ -69,36 +51,7 @@ class LocalDAGNode:
         """
         self.input_buffer.put(data_packet, timeout=1.0)
         self.logger.debug(f"Put data packet into buffer: channel={data_packet[0]}")
-
-    def add_downstream_node(self,output_tag:str, broadcast_index:int,parallel_index:int, downstream_input_tag:str,   downstream_handle: Union[ActorHandle, LocalDAGNode]):
-        # broadcast_index:属于某个广播组
-        # parallel_index:广播组内部的编号
-        try:
-            # 下游是Ray Actor
-            self.operator.add_downstream_target(
-                output_tag,
-                broadcast_index,
-                parallel_index,
-                downstream_handle,
-                downstream_input_tag
-            )
-            self.logger.debug(f"Added downstream target: {downstream_handle}in[{output_tag}]")
-                
-        except Exception as e:
-            self.logger.error(f"Error adding downstream node: {e}", exc_info=True)
-            raise
     
-    def run_once(self) -> None:
-        """
-        Execute the node once, processing any available input data.
-        This is typically used for spout nodes to emit initial data.
-        """
-        if self.is_spout is False:
-            self.logger.warning(f"Node '{self.name}' is not a spout node, cannot run once.")
-            return
-        
-        self.logger.info(f"Spout node '{self.name}' is running once.")
-        self.operator.process_data(None, None)
 
     def run_loop(self) -> None:
         """
@@ -107,7 +60,7 @@ class LocalDAGNode:
 
         # Ensure all sage_runtime objects are initialized
         self.stop_event.clear()
-
+        self._running = True
         # Main execution loop
         while not self.stop_event.is_set():
             try:
@@ -126,7 +79,6 @@ class LocalDAGNode:
                     self.logger.debug(f"Processing data from buffer: tag={input_tag}")
                     # Call operator's receive method with the channel_id and data
                     self.operator.process_data(input_tag, data)
-                    
             except Exception as e:
                 self.logger.error(
                     f"Critical error in node '{self.name}': {str(e)}",
@@ -134,31 +86,5 @@ class LocalDAGNode:
                 )
                 self.stop()
                 raise RuntimeError(f"Execution failed in node '{self.name}'")
-
-    def stop(self) -> None:
-        """Signal the worker loop to stop."""
-        if hasattr(self, 'stop_event') and self.stop_event and not self.stop_event.is_set():
-            self.stop_event.set()
-            if hasattr(self, 'logger') and self.logger:
-                self.logger.info(f"Node '{self.name}' received stop signal.")
-
-
-    def __getstate__(self):
-        """
-        Custom serialization to exclude non-serializable objects.
-        """
-        state = self.__dict__.copy()
-        # Remove non-serializable objects
-        state.pop('logger', None)
-        state.pop('stop_event', None)
-        return state
-
-    def __setstate__(self, state):
-        """
-        Custom deserialization to restore state.
-        """
-        self.__dict__.update(state)
-        # Mark as not initialized so sage_runtime objects will be created when needed
-        self._initialized = False
-
-
+            finally:
+                self._running = False

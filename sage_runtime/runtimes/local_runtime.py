@@ -5,7 +5,7 @@ from typing import Dict, Optional, Any, List
 from concurrent.futures import ThreadPoolExecutor
 from sage_runtime.base_runtime import BaseRuntime
 from sage_runtime.executor.local_dag_node import LocalDAGNode
-from sage_runtime.runtimes.local_tcp_server import LocalTcpServer
+from sage_runtime.io.local_tcp_server import LocalTcpServer
 from sage_utils.custom_logger import CustomLogger
 import time
 import socket
@@ -34,40 +34,16 @@ class LocalRuntime:
 
         self.thread_pool = ThreadPoolExecutor(
             max_workers=os.cpu_count() * 3,
+            thread_name_prefix=None,
+            initializer=None,
+            initargs=None
         )
+        # 节点管理
+        self.running_nodes: Dict[str, LocalDAGNode] = {}  # 正在运行的节点表
+        self.node_to_handle: Dict[LocalDAGNode, str] = {}  # 节点到handle的映射
+        self.handle_to_node: Dict[str, LocalDAGNode] = {}  # handle到节点的映射
+        self.next_handle_id = 0
 
-        # # 初始化TCP服务器并启动
-        # self.tcp_server = LocalTcpServer(
-        #     host=self.tcp_host,
-        #     port=self.tcp_port,
-        #     message_handler=self._handle_tcp_message
-        # )
-        # try:
-        #     self.tcp_server.start()
-        # except OSError as e:
-        #     self.logger.error(f"Failed to start TCP server on port {self.tcp_port}: {e}")
-        #     raise
-
-    def _find_available_port(self, host: str, starting_port: int) -> int:
-        """检测并返回一个未被占用的端口"""
-        port = starting_port
-        retries = 5 
-        while retries > 0:
-            if not self._is_port_in_use(host, port):
-                return port
-            port += 1 
-            retries -= 1
-            time.sleep(1)
-
-        self.logger.error(f"Could not find available port after {5 - retries} retries")
-        raise OSError(f"Could not find available port after 5 retries starting from {starting_port}")
-
-    @staticmethod
-    def _is_port_in_use(host: str, port: int) -> bool:
-        """检测端口是否已被占用"""
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(0.5)  # 设置超时，防止一直挂起
-            return s.connect_ex((host, port)) == 0  # 返回0表示端口被占用
 
     def __new__(cls, *args, **kwargs):
         # 禁止直接实例化
@@ -92,41 +68,7 @@ class LocalRuntime:
                 cls._instance.shutdown()
                 cls._instance = None
 
-    def _handle_tcp_message(self, message: Dict[str, Any], client_address: tuple):
-        """
-        处理来自Ray Actor的TCP消息
-        
-        Args:
-            message: 包含消息内容的字典
-            client_address: 客户端地址
-        """
-        try:
-            message_type = message.get("type")
-            
-            if message_type == "ray_to_local":
-                # Ray Actor发送给本地节点的数据
-                target_node_name = message["target_node"]
-                input_tag = message["input_tag"]
-                data = message["data"]
-                source_actor = message.get("source_actor", "unknown")
-                
-                # 查找目标节点
-                if target_node_name in self.running_nodes:
-                    target_node = self.running_nodes[target_node_name]
-                    
-                    # 将数据放入目标节点的输入缓冲区
-                    data_packet = (input_tag, data)
-                    target_node.put(data_packet)
-                    
-                    self.logger.debug(f"Delivered TCP message: {source_actor} -> "
-                                    f"{target_node_name}[in:{input_tag}]")
-                else:
-                    self.logger.warning(f"Target node '{target_node_name}' not found for TCP message from {client_address}")
-            else:
-                self.logger.warning(f"Unknown TCP message type: {message_type} from {client_address}")
-                
-        except Exception as e:
-            self.logger.error(f"Error processing TCP message from {client_address}: {e}", exc_info=True)
+
     
     def submit_node(self, node: LocalDAGNode) -> str:
         """

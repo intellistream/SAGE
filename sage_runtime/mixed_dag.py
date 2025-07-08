@@ -1,15 +1,22 @@
-from typing import Dict, List, Any, Tuple, Union
+from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
 from ray.actor import ActorHandle
 
 from sage_runtime.runtimes.local_runtime import LocalRuntime
-from sage_runtime.runtimes.ray_runtime import RayRuntime
+# from sage_runtime.runtimes.ray_runtime import RayRuntime
 from sage_runtime.executor.local_dag_node import LocalDAGNode
 from sage_runtime.executor.ray_dag_node import RayDAGNode
+from sage_runtime.io.local_tcp_server import LocalTcpServer
+from sage_runtime.io.connection import Connection
 from sage_utils.custom_logger import CustomLogger
 from sage_core.core.compiler import Compiler, GraphNode
 
-class MixedDAG:
-    def __init__(self, graph: Compiler):
+if TYPE_CHECKING:
+    from sage_core.api.env import BaseEnvironment 
+
+
+class MixedDAG():
+    def __init__(self, graph: Compiler, env:'BaseEnvironment'):
+        self.graph = graph
         self.name:str = graph.name
         self.logger = CustomLogger(
             filename=f"MixedDAG_{self.name}",
@@ -17,37 +24,50 @@ class MixedDAG:
             file_output="DEBUG",
             global_output = "DEBUG",
         )
-        self.graph:Compiler = graph
-        self.env = graph.env
-        self.name_to_DAGnode: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
-        self.connections: List[Tuple[str, str, str, str]] = []  # (upstream_node, out_tag, downstream_node, input_tag)
-        self.session_folder = CustomLogger.get_session_folder()
-        self.ray_handles: List[Any] = []  # 存储Ray Actor句柄
-        self.local_handles: List[Any] = []  # 存储本地节点句柄
-
-        self.node_dependencies: Dict[str, List[str]] = {}  # node_name -> [upstream_node_names]
+        self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
         self.spout_nodes: List[str] = []
+
+        self.connections: List[Connection] = []
+        self.session_folder = CustomLogger.get_session_folder()
+
         self.is_running: bool = False
 
-        self._compile_graph()
+        # 为这个 DAG 分配独立的 TCP 端口
+        self.tcp_server = LocalTcpServer(
+            # host="localhost",
+            # port=self.tcp_port,
+            message_handler=self._handle_tcp_message
+        )
+        self.tcp_server.start()
+
+        self._compile_graph(graph, env)
         self.debug_print_operators()
+        # 启动 TCP 服务器
+        self.logger.info(f"MixedDAG '{self.name}' construction complete")
     
-    def _compile_graph(self):
+
+        
+
+    
+    def _compile_graph(self, graph: Compiler, env:'BaseEnvironment'):
         """编译图结构，创建节点并建立连接"""
         self.logger.info(f"Compiling mixed DAG for graph: {self.name}")
         
         # 第一步：创建所有节点实例
-        for node_name, graph_node in self.graph.nodes.items():
-            node_instance = self.create_node_instance(graph_node)
+        for node_name, graph_node in graph.nodes.items():
+            node_instance = self.create_node_instance(graph_node, env)
             # upstream_nodes = self.compiler.get_upstream_nodes(node_name)
-            self.name_to_DAGnode[node_name] = node_instance
+            self.nodes[node_name] = node_instance
             self.logger.debug(f"Added node '{node_name}' of type '{node_instance.__class__.__name__}'")
         
         # 第二步：建立节点间的连接
-        for node_name, graph_node in self.graph.nodes.items():
+        for node_name, graph_node in graph.nodes.items():
             self._setup_node_connections(node_name, graph_node)
         
-        self.logger.info(f"Mixed DAG compilation completed: {len(self.name_to_DAGnode)} nodes, "f"{len(self.spout_nodes)} spout nodes")
+        self.logger.info(f"Mixed DAG compilation completed: {len(self.nodes)} nodes, "f"{len(self.spout_nodes)} spout nodes")
+
+
+
 
     def _setup_node_connections(self, node_name: str, graph_node: GraphNode):
         """
@@ -57,55 +77,42 @@ class MixedDAG:
             node_name: 节点名称
             graph_node: 图节点对象
         """
-        current_dag_node = self.name_to_DAGnode[node_name]
+        output_handle = self.nodes[node_name]
         
         for output_tag, broadcasting_groups in graph_node.output_channels.items():
             for broadcast_index, parallel_edges in enumerate(broadcasting_groups):
                 for parallel_index, parallel_edge in enumerate(parallel_edges):
-                    downstream_node_name = parallel_edge.downstream_node.name
-                    downstream_operator = self.name_to_DAGnode[downstream_node_name]
+                    target_name = parallel_edge.downstream_node.name
+                    target_handle = self.nodes[target_name]
+
+                    connection = Connection(
+                        own_node=output_handle,
+                        output_tag=output_tag,
+                        broadcast_index=broadcast_index,
+                        parallel_index=parallel_index,
+                        target_name=target_name,
+                        target_node=target_handle,
+                        target_input_tag=parallel_edge.downstream_tag,
+                        tcp_server=self.tcp_server
+                    )
                     try:
-                        if isinstance(current_dag_node, ActorHandle):
-                            # Ray节点调用远程方法
-                            if(isinstance(downstream_operator, LocalDAGNode)):
-                                downstream_handle = downstream_operator.name
-                                # 利用本地节点名称，通过TCP连接发回数据
-                            else:
-                                downstream_handle = downstream_operator
-                                # ActorHandle
+                        if isinstance(output_handle, ActorHandle):
                             
-                            current_dag_node.add_downstream_node.remote(
-                                output_tag,
-                                broadcast_index,
-                                parallel_index,
-                                parallel_edge.downstream_tag,
-                                downstream_handle
-                            )
-                            self.logger.debug(f"Setup Ray connection: {node_name}[{output_tag}] -> {downstream_node_name}[{parallel_edge.downstream_tag}]")
+                            output_handle.add_connection.remote(connection)
+                            self.logger.debug(f"Setup Ray connection: {node_name}[{output_tag}] -> {target_name}[{parallel_edge.downstream_tag}]")
                         else:
                             # 本地节点直接调用
-                            current_dag_node.add_downstream_node(
-                                output_tag,
-                                broadcast_index,
-                                parallel_index,
-                                parallel_edge.downstream_tag,
-                                downstream_operator
-                            )
-                            self.logger.debug(f"Setup local connection: {node_name}[{output_tag}] -> {downstream_node_name}[{parallel_edge.downstream_tag}]")
+                            output_handle.add_connection(connection)
+                            self.logger.debug(f"Setup local connection: {node_name}[{output_tag}] -> {target_name}[{parallel_edge.downstream_tag}]")
                             
                         # 记录连接信息
-                        self.connections.append((
-                            node_name, 
-                            parallel_edge.upstream_tag,
-                            downstream_node_name, 
-                            parallel_edge.downstream_tag
-                        ))
+                        self.connections.append(connection)
                         
                     except Exception as e:
-                        self.logger.error(f"Error setting up connection {node_name} -> {downstream_node_name}: {e}")
+                        self.logger.error(f"Error setting up connection {node_name} -> {target_name}: {e}")
                         raise        
 
-    def create_node_instance(self, graph_node: GraphNode) -> Union[ActorHandle, LocalDAGNode]:
+    def create_node_instance(self, graph_node: GraphNode, env:'BaseEnvironment') -> Union[ActorHandle, LocalDAGNode]:
         """
         根据图节点创建对应的执行实例
         
@@ -116,12 +123,13 @@ class MixedDAG:
             节点实例（Ray Actor或本地节点）
         """
         transformation = graph_node.transformation
-        platform = self.env.config.get("platform", "local")  # 默认使用本地平台
-        memory_collection = self.env.memory_collection
-        if platform == "remote":
+        memory_collection = env.memory_collection
+        from sage_core.api.enum import PlatformType
+
+        if env.platform == PlatformType.REMOTE:
             node = RayDAGNode.remote(
                 graph_node.name,
-                transformation,
+                transformation.operator_factory,
                 self.session_folder,
                 memory_collection
             )
@@ -130,12 +138,12 @@ class MixedDAG:
             # 创建本地节点
             node = LocalDAGNode(
                 graph_node.name,
-                transformation,
+                transformation.operator_factory,
                 memory_collection
             )
             self.logger.debug(f"Created local node: {graph_node.name}")
         
-        from sage_core.core.operator.transformation import TransformationType
+        from sage_core.api.transformation import TransformationType
         if(transformation.type == TransformationType.SOURCE):
             self.spout_nodes.append(graph_node.name)
             self.logger.debug(f"Node '{graph_node.name}' is a spout node")
@@ -168,9 +176,9 @@ class MixedDAG:
         local_node_count = 0
         ray_node_count = 0
         
-        for node_name, node_handle in self.name_to_DAGnode.items():
+        for node_name, node_handle in self.nodes.items():
             if isinstance(node_handle, LocalDAGNode):
-                node = self.name_to_DAGnode[node_name]
+                node = self.nodes[node_name]
                 node.start()
                 local_node_count += 1
                 self.logger.debug(f"Started local node: {node_name}")
@@ -184,22 +192,23 @@ class MixedDAG:
             self.logger.warning(f"MixedDAG '{self.name}' is not running, nothing to stop")
             return
         for node_name in self.spout_nodes:
-            node_handle = self.name_to_DAGnode[node_name]
+            node_handle = self.nodes[node_name]
             if isinstance(node_handle, LocalDAGNode):
                 node_handle.stop()
             elif isinstance(node_handle, ActorHandle):
                 # Ray Actor执行一次
                 node_handle.stop.remote()
+        self.logger.info(f"Stopped all spout nodes in MixedDAG '{self.name}'")
 
     def close(self):
         """停止所有节点"""
         self.logger.info("Stopping all DAG nodes...")
         
-        for node_name, node_meta in self.name_to_DAGnode.items():
+        for node_name, node_meta in self.nodes.items():
             try:
                 if isinstance(node_meta, ActorHandle) == False:
                     # local
-                    node = self.name_to_DAGnode[node_name]
+                    node = self.nodes[node_name]
                     node.stop()
                     self.logger.debug(f"Stopped local node: {node_name}")
                 # Ray actors会在进程结束时自动清理
@@ -209,7 +218,7 @@ class MixedDAG:
     def submit(self):
         self.logger.info(f"Submitting MixedDAG '{self.name}'")
         try:
-            for node_name, node_handle in self.name_to_DAGnode.items():
+            for node_name, node_handle in self.nodes.items():
                 if( node_name in self.spout_nodes):
                     self.logger.debug(f"Node '{node_name}' is a spout node, skipping submission")
                     continue
@@ -218,9 +227,10 @@ class MixedDAG:
                     local_runtime.submit_node(node_handle)
                     self.logger.debug(f"Submitted local node: {node_name}")
                 elif isinstance(node_handle, ActorHandle):
-                    ray_runtime = RayRuntime.get_instance()
-                    ray_runtime.submit_actor_instance(node_handle, node_name)
-                    self.logger.debug(f"Submitted Ray actor: {node_name}")
+                    pass
+                    # ray_runtime = RayRuntime.get_instance()
+                    # ray_runtime.submit_actor_instance(node_handle, node_name)
+                    # self.logger.debug(f"Submitted Ray actor: {node_name}")
         except Exception as e:
             self.logger.error(f"Failed to submit MixedDAG '{self.name}': {e}", exc_info=True)
             # 清理已经提交的节点
@@ -231,7 +241,7 @@ class MixedDAG:
         self.logger.info(f"executing once")
         if(spout_node_name is None):
             for node_name in self.spout_nodes:
-                node_handle = self.name_to_DAGnode[node_name]
+                node_handle = self.nodes[node_name]
                 if isinstance(node_handle, LocalDAGNode):
                     self.logger.debug(f"Running spout node: {node_name}")
 
@@ -243,7 +253,7 @@ class MixedDAG:
                     node_handle.run_once.remote()
         else:
             if spout_node_name in self.spout_nodes:
-                node_handle = self.name_to_DAGnode[spout_node_name]
+                node_handle = self.nodes[spout_node_name]
                 if isinstance(node_handle, LocalDAGNode):
                     self.logger.debug(f"Running spout node: {node_name}")
 
@@ -261,96 +271,32 @@ class MixedDAG:
         self.is_running = True
         if(spout_node_name is None):
             for node_name in self.spout_nodes:
-                node_handle = self.name_to_DAGnode[node_name]
+                node_handle = self.nodes[node_name]
                 if isinstance(node_handle, LocalDAGNode):
                     local_runtime = LocalRuntime.get_instance()
                     local_runtime.submit_node(node_handle)
+                    self.logger.debug(f"Running spout node: {node_name}")
                 elif isinstance(node_handle, ActorHandle):
+                    node_handle.run_loop.remote()
+                    self.logger.debug(f"Running remote spout node: {node_name}")
                     # Ray Actor执行一次
-                    ray_runtime = RayRuntime.get_instance()
-                    ray_runtime.start_node(node_handle)
+                    # ray_runtime = RayRuntime.get_instance()
+                    # ray_runtime.start_node(node_handle)
         else:
             if spout_node_name in self.spout_nodes:
-                node_handle = self.name_to_DAGnode[spout_node_name]
+                node_handle = self.nodes[spout_node_name]
                 if isinstance(node_handle, LocalDAGNode):
                     local_runtime = LocalRuntime.get_instance()
                     local_runtime.submit_node(node_handle)
+                    self.logger.debug(f"Running spout node: {node_name}")
                 elif isinstance(node_handle, ActorHandle):
+                    node_handle.run_loop.remote()
+                    self.logger.debug(f"Running remote spout node: {node_name}")
                     # Ray Actor执行一次
-                    ray_runtime = RayRuntime.get_instance()
-                    ray_runtime.start_node(node_handle)
+                    # ray_runtime = RayRuntime.get_instance()
+                    # ray_runtime.start_node(node_handle)
             else:
                 self.logger.warning(f"Spout node '{spout_node_name}' not found in MixedDAG '{self.name}'")
-
-    def run(self) -> Dict[str, List[str]]: # deprecated
-        """
-        启动MixedDAG执行，将所有节点注册到对应的运行时
-        
-        Returns:
-            Dict: 包含各平台节点句柄的字典
-        """
-        if self.is_running:
-            self.logger.warning(f"MixedDAG '{self.name}' is already running")
-            return {"local_handles": self.local_handles, "ray_handles": self.ray_handles}
-        
-        self.logger.info(f"Starting MixedDAG '{self.name}' execution...")
-        
-        try:
-            # 获取运行时实例
-            # 分离本地节点和Ray节点
-            local_nodes = []
-            ray_actors = []
-            ray_node_names = []
-            
-            for node_name, node_handle in self.name_to_DAGnode.items():
-                if isinstance(node_handle, LocalDAGNode):
-                    local_node = self.name_to_DAGnode[node_name]
-                    local_nodes.append(local_node)
-                elif isinstance(node_handle, ActorHandle):
-                    ray_actor = self.name_to_DAGnode[node_name]
-                    ray_actors.append(ray_actor)
-                    ray_node_names.append(node_name)
-            
-            # 提交本地节点到LocalRuntime
-            if local_nodes:
-                self.logger.info(f"Submitting {len(local_nodes)} local nodes to LocalRuntime")
-                local_runtime = LocalRuntime.get_instance()
-                self.local_handles = local_runtime.submit_nodes(local_nodes)
-                
-                # 注册本地节点到TCP服务器（用于接收Ray Actor的数据）
-                for local_node in local_nodes:
-                    # 这里需要确保local_runtime知道节点名称映射
-                    # 实际上submit_nodes已经在running_nodes中注册了
-                    pass
-                
-                self.logger.info(f"Successfully submitted local nodes with handles: {self.local_handles}")
-            
-            # 提交Ray节点到RayRuntime
-            if ray_actors:
-                ray_runtime = RayRuntime.get_instance()
-                self.logger.info(f"Submitting {len(ray_actors)} Ray actors to RayRuntime")
-                self.ray_handles = ray_runtime.submit_actors(ray_actors, ray_node_names)
-                self.logger.info(f"Successfully submitted Ray actors with handles: {self.ray_handles}")
-            
-            # 启动所有节点
-            # 在submit时所有节点就都启动了
-            # self._start_all_nodes(local_runtime, ray_runtime)
-            
-            self.is_running = True
-            self.logger.info(f"MixedDAG '{self.name}' started successfully with "
-                           f"{len(self.local_handles)} local nodes and {len(self.ray_handles)} Ray actors")
-            
-            return {
-                "local_handles": self.local_handles,
-                "ray_handles": self.ray_handles,
-                "total_nodes": len(self.local_handles) + len(self.ray_handles)
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Failed to start MixedDAG '{self.name}': {e}", exc_info=True)
-            # 清理已经提交的节点
-            # self._cleanup_partial_submission(local_runtime, ray_runtime)
-            raise
 
     def debug_print_operators(self):
         """
@@ -362,7 +308,7 @@ class MixedDAG:
         lines.append(f"MixedDAG Operators Debug Information for '{self.name}'")
         lines.append("=" * 80)
         
-        if not self.name_to_DAGnode:
+        if not self.nodes:
             lines.append("No operators in the MixedDAG")
             self.logger.debug("\n".join(lines))
             return
@@ -377,7 +323,7 @@ class MixedDAG:
         ray_operators = []
         unknown_operators = []
         
-        for node_name, operator in self.name_to_DAGnode.items():
+        for node_name, operator in self.nodes.items():
             platform_type = self._detect_platform(operator)
             
             if platform_type == "local":
@@ -392,7 +338,7 @@ class MixedDAG:
         
         # 显示统计信息
         lines.append(f"\n📊 Operators Statistics:")
-        lines.append(f"   Total Operators: {len(self.name_to_DAGnode)}")
+        lines.append(f"   Total Operators: {len(self.nodes)}")
         lines.append(f"   Local Nodes: {local_count}")
         lines.append(f"   Ray Actors: {ray_count}")
         if unknown_count > 0:
@@ -452,28 +398,167 @@ class MixedDAG:
                 lines.append(f"      Platform: unknown")
                 lines.append("")
         
-        # 显示连接信息
-        lines.append(f"\n🔗 Connections ({len(self.connections)}):")
+        # 显示连接信息 - 重写这部分以使用新的Connection对象
+        lines.append(f"\n🔗 Connections Summary ({len(self.connections)}):")
         if self.connections:
-            for upstream_node, out_channel, downstream_node, in_channel in self.connections:
-                upstream_type = self._detect_platform(self.name_to_DAGnode[upstream_node])
-                downstream_type = self._detect_platform(self.name_to_DAGnode[downstream_node])
-                lines.append(f"   {upstream_node}({upstream_type})[{out_channel}] -> {downstream_node}({downstream_type})[{in_channel}]")
+            # 按连接类型分组统计
+            connection_stats = {}
+            cross_platform_connections = []
+            tcp_connections = []
+            
+            for connection in self.connections:
+                conn_type = connection.connection_type.value
+                if conn_type not in connection_stats:
+                    connection_stats[conn_type] = 0
+                connection_stats[conn_type] += 1
+                
+                # 收集跨平台连接
+                if connection.is_cross_platform():
+                    cross_platform_connections.append(connection)
+                
+                # 收集TCP连接
+                if connection.requires_tcp():
+                    tcp_connections.append(connection)
+            
+            # 显示连接类型统计
+            lines.append(f"   📈 Connection Type Statistics:")
+            for conn_type, count in connection_stats.items():
+                lines.append(f"      {conn_type}: {count}")
+            
+            lines.append(f"   🌉 Cross-platform connections: {len(cross_platform_connections)}")
+            lines.append(f"   🌐 TCP connections: {len(tcp_connections)}")
+            
+            # 显示详细连接信息
+            lines.append(f"\n🔗 Detailed Connections:")
+            for i, connection in enumerate(self.connections, 1):
+                # 基本连接信息
+                source_platform = connection.own_type.value
+                target_platform = connection.target_type.value
+                
+                lines.append(f"   #{i:02d}: {connection.get_summary()}")
+                lines.append(f"        📤 Source: {source_platform}")
+                lines.append(f"        📥 Target: {target_platform}")
+                
+                # 如果是跨平台连接，显示特殊标记
+                if connection.is_cross_platform():
+                    lines.append(f"        🌉 Cross-platform connection")
+                
+                # 如果需要TCP，显示TCP配置
+                if connection.requires_tcp():
+                    tcp_config = connection.target_config
+                    lines.append(f"        🌐 TCP: {tcp_config.get('tcp_host')}:{tcp_config.get('tcp_port')}")
+                
+                # 显示广播和并行信息
+                if connection.broadcast_index > 0 or connection.parallel_index > 0:
+                    lines.append(f"        📊 Routing: broadcast[{connection.broadcast_index}], parallel[{connection.parallel_index}]")
+                
+                lines.append("")
+            
+            # 显示连接拓扑图（简化版）
+            lines.append(f"\n🗺️  Connection Topology:")
+            # 按源节点分组显示连接
+            connections_by_source = {}
+            for connection in self.connections:
+                source_name = None
+                # 从节点字典中找到源节点名称
+                for node_name, node_handle in self.nodes.items():
+                    if (isinstance(node_handle, ActorHandle) and connection.own_type.value == "ray_actor") or \
+                    (isinstance(node_handle, LocalDAGNode) and connection.own_type.value == "local"):
+                        # 这里需要更精确的匹配逻辑，暂时使用启发式方法
+                        if connection.target_name != node_name:  # 排除自环
+                            source_name = node_name
+                            break
+                
+                # 如果无法确定源节点，使用连接信息推断
+                if source_name is None:
+                    # 从connections列表中找到包含target_name作为下游的连接
+                    for other_conn in self.connections:
+                        if other_conn.target_name == connection.target_name:
+                            continue
+                    # 简化处理：直接使用第一个非目标节点
+                    for node_name in self.nodes.keys():
+                        if node_name != connection.target_name:
+                            source_name = node_name
+                            break
+                
+                if source_name not in connections_by_source:
+                    connections_by_source[source_name] = []
+                connections_by_source[source_name].append(connection)
+            
+            for source_name, source_connections in connections_by_source.items():
+                source_platform = self._detect_platform(self.nodes[source_name])
+                lines.append(f"   📍 {source_name} ({source_platform}):")
+                
+                for connection in source_connections:
+                    target_platform = connection.target_type.value
+                    connection_symbol = self._get_connection_symbol(connection.connection_type.value)
+                    lines.append(f"      {connection_symbol} {connection.target_name} ({target_platform}) "
+                            f"[{connection.output_tag}→{connection.target_input_tag}]")
+            
         else:
             lines.append("   No connections established")
-        
-        # 显示句柄信息
-        lines.append(f"\n🔧 Runtime Handles:")
-        lines.append(f"   Local Handles: {len(self.local_handles)} - {self.local_handles}")
-        lines.append(f"   Ray Handles: {len(self.ray_handles)} - {self.ray_handles}")
         
         # 显示会话信息
         lines.append(f"\n📁 Session Information:")
         lines.append(f"   Session Folder: {self.session_folder}")
-        lines.append(f"   Environment: {self.env.name}")
-        lines.append(f"   Environment Config: {self.env.config}")
+        lines.append(f"   TCP Server: {self.tcp_server.host}:{self.tcp_server.port}")
         
         lines.append("=" * 80)
         
         # 一次性输出所有调试信息
         self.logger.debug("\n".join(lines))
+
+    def _get_connection_symbol(self, connection_type: str) -> str:
+        """
+        根据连接类型返回对应的符号
+        
+        Args:
+            connection_type: 连接类型字符串
+            
+        Returns:
+            str: 连接符号
+        """
+        symbols = {
+            "local_to_local": "🔗",      # 本地到本地
+            "local_to_ray": "📤",        # 本地到远程
+            "ray_to_local": "📥",        # 远程到本地
+            "ray_to_ray": "☁️"           # 远程到远程
+        }
+        return symbols.get(connection_type, "❓")
+
+    def _handle_tcp_message(self, message: Dict[str, Any], client_address: tuple):
+        """
+        处理来自 Ray Actor 的 TCP 消息
+        由于是 DAG 专用端口，所有消息都属于当前 DAG
+        """
+        try:
+            message_type = message.get("type")
+            
+            if message_type == "ray_to_local":
+                # Ray Actor 发送给本地节点的数据
+                target_node_name = message["target_node"]
+                input_tag = message["input_tag"]
+                data = message["data"]
+                source_actor = message.get("source_actor", "unknown")
+                
+                # 查找目标节点（在当前 DAG 中）
+                if target_node_name in self.nodes:
+                    target_node = self.nodes[target_node_name]
+                    
+                    # 确保是本地节点
+                    if isinstance(target_node, LocalDAGNode):
+                        # 将数据放入目标节点的输入缓冲区
+                        data_packet = (input_tag, data)
+                        target_node.put(data_packet)
+                        
+                        self.logger.debug(f"[DAG {self.name}] Delivered TCP message: {source_actor} -> "
+                                        f"{target_node_name}[in:{input_tag}]")
+                    else:
+                        self.logger.warning(f"Target node '{target_node_name}' is not a local node")
+                else:
+                    self.logger.warning(f"Target node '{target_node_name}' not found in DAG '{self.name}'")
+            else:
+                self.logger.warning(f"Unknown TCP message type: {message_type} from {client_address}")
+                
+        except Exception as e:
+            self.logger.error(f"Error processing TCP message from {client_address}: {e}", exc_info=True)
