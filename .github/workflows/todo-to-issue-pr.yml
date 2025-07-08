@@ -16,9 +16,11 @@ jobs:
         uses: alstr/todo-to-issue-action@v5
         with:
           INSERT_ISSUE_URLS: "true"
-          # No commits:–– the action will use github.event.pull_request.diff_url
-          # If you really want to override:
-          # DIFF_URL: ${{ github.event.pull_request.diff_url }}
+          commits: >
+            ["${{ github.event.pull_request.base.sha }}...
+              ${{ github.event.pull_request.head.sha }}"]
+          # （可选）覆盖 DIFF_URL，保证不再被 406 卡住
+          DIFF_URL: ""
 
       - name: Set Git User
         run: |
