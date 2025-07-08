@@ -60,14 +60,14 @@ class LocalTcpServer:
         for port in range(19000, 20000):  # DAG 专用端口范围
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.bind(("localhost", port))
+                    s.bind((self.host, port))
                     return port
             except OSError:
                 continue
         # 如果预设范围都被占用，使用系统分配
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             self.logger.warning("All predefined ports are occupied, using system-assigned port")
-            s.bind(("localhost", 0))
+            s.bind((self.host, 0))
             return s.getsockname()[1]
         
 

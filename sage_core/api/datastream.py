@@ -1,9 +1,7 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, List, Tuple
 from sage_core.api.enum import PlatformType
-# from sage.api.env import Environment
-from sage_core.core.operator.base_operator import BaseOperator
-from sage_core.core.operator.transformation import TransformationType, Transformation
+from sage_core.api.transformation import TransformationType, Transformation
 from sage_core.api.base_function import BaseFunction
 
 # datastream应该描述多个算子的流结果
