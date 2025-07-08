@@ -41,38 +41,13 @@ load_dotenv(".env", override=True)
 config = configparser.ConfigParser()
 config.read("config.ini")
 
-def get_app():
-    return globals().get("sage_examples", None)
+# def get_app():
+#     return globals().get("sage_examples", None)
 
 
 from sage_utils.embedding_methods.embedding_api import apply_embedding_model
 from sage_memory.memory_manager import MemoryManager
-def memory_init():
-    """初始化内存管理器并创建测试集合"""
-    # default_model = MockTextEmbedder(fixed_dim=128)
-    manager = MemoryManager()
-    embedding_model = apply_embedding_model("hf", model="sentence-transformers/all-MiniLM-L6-v2")
-    col = manager.create_collection(
-        name="vdb_test",
-        backend_type="VDB",
-        embedding_model=embedding_model,
-        dim=embedding_model.get_dim(),
-        description="test vdb collection",
-        as_ray_actor=False
-    )
-    col.add_metadata_field("owner")
-    col.add_metadata_field("show_type")
-    texts = [
-        ("hello world", {"owner": "ruicheng", "show_type": "text"}),
-        ("你好，世界", {"owner": "Jun", "show_type": "text"}),
-        ("こんにちは、世界", {"owner": "Lei", "show_type": "img"}),
-    ]
-    for text, metadata in texts:
-        print(f"Inserting text: {text} with metadata: {metadata}")
-        col.insert(text, metadata)
-        print(f"Inserted text: {text} with metadata: {metadata}")
-    col.create_index(index_name="vdb_index")
-    return col
+
 
 class CustomPathFilter(logging.Filter):
     """过滤器用于过滤掉频繁的路径访问日志"""
@@ -187,7 +162,7 @@ def create_app(args):
             
 
             # 获取 MemoryManagerService 的句柄
-            app.state.retriver_collection =memory_init()
+            # app.state.retriver_collection =memory_init()
 
 
             # 初始化数据库连接或其他资源
@@ -388,7 +363,7 @@ def main():
     globals()["sage_examples"] = app  # 将应用程序实例存储在全局变量中
     # 以单进程模式启动 Uvicorn
     uvicorn_config = {
-        "sage_examples": app,  # 直接传递应用程序实例，而不是字符串路径
+        "app": app,  # 直接传递应用程序实例，而不是字符串路径
         "host": args.host,
         "port": args.port,
         "log_config": None,  # 禁用默认配置

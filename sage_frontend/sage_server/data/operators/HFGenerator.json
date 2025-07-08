@@ -3,6 +3,6 @@
     "name":"HFGenerator",
     "description":"HuggingFace Generator",
     "code":"",
-    "transformation":"generate_response",
+    "transformation":"map",
     "isCustom":false
 }

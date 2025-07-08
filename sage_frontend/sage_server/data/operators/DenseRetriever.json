@@ -1,8 +1,8 @@
 {
     "id":3,
-    "name":"SimpleRetriever",
+    "name":"DenseRetriever",
     "code":"",
     "description":"Retrieves the most relevant documents from the index",
-    "transformation":"retrieve",
+    "transformation":"map",
     "isCustom":false
 }

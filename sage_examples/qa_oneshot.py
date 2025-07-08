@@ -28,7 +28,9 @@ def pipeline_run():
 
 
 
-    time.sleep(100)  # 等待管道运行
+    time.sleep(20)  # 等待管道运行
+    env.stop()
+
 
 
 if __name__ == '__main__':
