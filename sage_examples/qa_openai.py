@@ -1,8 +1,9 @@
 import os
+from threading import local
 import time
 from dotenv import load_dotenv
 
-from sage_core.api.env import RemoteEnvironment
+from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.io.sink import TerminalSink
 from sage_common_funs.rag.generator import OpenAIGenerator
@@ -18,7 +19,7 @@ def pipeline_run(config: dict) -> None:
     Args:
         config (dict): 包含各模块配置的配置字典。
     """
-    env = RemoteEnvironment()
+    env = LocalEnvironment()
     env.set_memory(config=None)
 
     # 构建数据处理流程
@@ -31,10 +32,9 @@ def pipeline_run(config: dict) -> None:
     )
 
     env.submit()
-    env.run_once()
-
-
-    time.sleep(100)  # 等待管道运行
+    env.run_streaming()
+    time.sleep(5)  # 等待管道运行
+    env.close()
 
 
 if __name__ == '__main__':

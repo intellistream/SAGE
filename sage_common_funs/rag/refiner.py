@@ -31,7 +31,7 @@ class AbstractiveRecompRefiner(BaseFunction):
             method=self.config["method"],
             model_name=self.config["model_name"],
             base_url=self.config["base_url"],
-            api_key=self.config["api_key"],
+            api_key=self.api_key,
             seed=42  # Set a seed for reproducibility of results
         )
 
