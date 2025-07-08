@@ -2,24 +2,19 @@ pipeline:
   name: "sage-api-operator-operator_test"
   description: "Test pipeline for Sage API Operator"
   version: "1.0.0"
-  type: "remote"
 
 source:
-  data_path: "sample/one_question.txt"
+  data_path: "data/sample/question.txt"
 
 retriever:
+  platform: "local"
   ltm:
-    topk: 1
-
-reranker:
-  model_name: "BAAI/bge-reranker-v2-m3"
-  topk: 1
+    topk: 3
 
 generator:
   method: "hf"
   model_name: "meta-llama/Llama-2-13b-chat-hf"
   seed: 42
-
 
 promptor:
   platform: "local"

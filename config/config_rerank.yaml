@@ -24,3 +24,8 @@ promptor:
 
 sink:
   platform: "local"
+
+reranker:
+  platform: "local"
+  model_name: "BAAI/bge-reranker-v2-m3"
+  top_k: 3

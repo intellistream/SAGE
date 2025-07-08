@@ -1,37 +1,51 @@
 import logging
-from dotenv import load_dotenv
+import time
 import os
+from dotenv import load_dotenv
+
+# 导入 Sage 相关模块
 from sage_core.api.env import LocalEnvironment
 from sage_common_funs.rag.generator import OpenAIGenerator
 from sage_common_funs.rag.promptor import QAPromptor
 from sage_common_funs.rag.retriever import DenseRetriever
-from sage_utils.config_loader import load_config
-from sage_utils.logging_utils import configure_logging
+from sage_common_funs.rag.reranker import BGEReranker
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.io.sink import TerminalSink
+from sage_utils.config_loader import load_config
+
 
 def pipeline_run():
-    """创建并运行数据处理管道"""
+    """创建并运行数据处理管道
+
+    该函数会初始化环境，加载配置，设置数据处理流程，并启动管道。
+    """
+    # 初始化环境
     env = LocalEnvironment()
     env.set_memory(config=None)  # 初始化内存配置
+
     # 构建数据处理流程
-    query_stream = env.from_source(FileSource, config["source"])
-    query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])
-    prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
-    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
-    response_stream.sink(TerminalSink, config["sink"])
+    query_stream = (env.from_source(FileSource, config["source"])
+                    .map(DenseRetriever, config["retriever"])
+                    .map(BGEReranker, config["reranker"])  
+                    .map(QAPromptor, config["promptor"])
+                    .map(OpenAIGenerator, config["generator"])
+                    .sink(TerminalSink, config["sink"])
+                    )
+
     # 提交管道并运行
     env.submit()
-    env.run_once()  # 启动管道
-
-    # time.sleep(100)  # 等待管道运行
+    env.run_once()
+    
+    # 等待一段时间确保任务完成
+    time.sleep(5)
+    
+    # 关闭环境
+    env.close()
 
 
 if __name__ == '__main__':
-    configure_logging(level=logging.INFO)
-    # 加载配置并初始化日志
-    config = load_config('config.yaml')
-    api_key = os.environ.get("ALIBABA_API_KEY")
-    if api_key:
-        config.setdefault("generator", {})["api_key"] = api_key
+    # 加载配置文件
+    config = load_config('config_rerank.yaml')
+    
+    # 运行管道
     pipeline_run()
