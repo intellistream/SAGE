@@ -13,7 +13,7 @@ from sage_utils.logging_utils import configure_logging
 def pipeline_run():
     """创建并运行数据处理管道"""
     env = LocalEnvironment()
-    env.set_memory()
+    env.set_memory(config=None)
     # 构建数据处理流程
     query_stream = env.from_source(FileSource, config["source"])
     query_and_chunks_stream = query_stream.map(BM25sRetriever, config["retriever"])

@@ -21,7 +21,7 @@ def config_bge():
     return {
         "reranker": {
             "model_name": "BAAI/bge-reranker-v2-m3",
-            "top_k": 3
+            "topk": 3
         }
     }
 
@@ -30,7 +30,7 @@ def config_llm():
     return {
         "reranker": {
             "model_name": "BAAI/bge-reranker-v2-gemma",
-            "top_k": 3
+            "topk": 3
         }
     }
 
@@ -63,13 +63,13 @@ def test_bge_reranker(mock_model_cls, mock_tokenizer_cls, config_bge, test_input
     mock_model.side_effect = mock_model_logits
     mock_model_cls.return_value = mock_model
 
-    reranker = BGEReranker(config_bge)
+    reranker = BGEReranker(config_bge["reranker"])
     result = reranker.execute(test_input)
 
     assert isinstance(result, Data)
     assert result.data[0] == test_input.data[0]
     assert isinstance(result.data[1], list)
-    assert len(result.data[1]) <= config_bge["reranker"]["top_k"]
+    assert len(result.data[1]) <= config_bge["reranker"]["topk"]
 
 @patch("sage_common_funs.rag.reranker.AutoTokenizer.from_pretrained")
 @patch("sage_common_funs.rag.reranker.AutoModelForCausalLM.from_pretrained")
@@ -100,7 +100,7 @@ def test_llm_reranker(mock_model_cls, mock_tokenizer_cls, config_llm, test_input
 
     # patch inference to return fake scores
     with patch("torch.no_grad"):
-        reranker = LLMbased_Reranker(config_llm)
+        reranker = LLMbased_Reranker(config_llm["reranker"])
         reranker.model = MagicMock()
         reranker.model(**kwargs_for_model).logits = torch.rand(5, 128, 500)
         reranker.yes_loc = 42
@@ -115,4 +115,4 @@ def test_llm_reranker(mock_model_cls, mock_tokenizer_cls, config_llm, test_input
         assert isinstance(result, Data)
         assert result.data[0] == test_input.data[0]
         assert isinstance(result.data[1], list)
-        assert len(result.data[1]) <= config_llm["reranker"]["top_k"]
+        assert len(result.data[1]) <= config_llm["reranker"]["topk"]

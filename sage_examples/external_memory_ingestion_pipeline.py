@@ -10,11 +10,11 @@ from sage_utils.config_loader import load_config
 
 def pipeline_run():
     env = LocalEnvironment(name="example_pipeline")
-    env.set_memory()
+    env.set_memory(config=None)  # 初始化内存配置
 
     # 构建数据处理流程
     source_stream = env.from_source(FileSource, config["source"])
-    chunk_stream = source_stream.map(CharacterSplitter, config["map"])
+    chunk_stream = source_stream.map(CharacterSplitter, config["chunk"])
     memwrite_stream= chunk_stream.map(MemoryWriter,config["writer"])
     sink_stream= memwrite_stream.sink(MemWriteSink,config["sink"])
     env.submit()

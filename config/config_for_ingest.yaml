@@ -5,15 +5,15 @@ pipeline:
 
 source:
   data_path: "./data/sample/question.txt"
-
+  
 chunk:
   chunk_size: 512
   overlap: 128
 
 writer:
-  stm: False
-  ltm: True
-  dcm: False
+  platform: "local"
+  stm: True
+  ltm: False
 
 sink:
   file_path: mem_output.txt
