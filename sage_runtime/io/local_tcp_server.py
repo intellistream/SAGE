@@ -11,8 +11,8 @@ class LocalTcpServer:
     """
     
     def __init__(self, 
-                 host: str = "localhost", 
-                 port: int = 9999,
+                 host: str = None, 
+                 port: int = None,
                  message_handler: Optional[Callable[[Dict[str, Any], tuple], None]] = None):
         """
         初始化TCP服务器
@@ -22,8 +22,8 @@ class LocalTcpServer:
             port: 监听端口
             message_handler: 消息处理回调函数，接收 (message, client_address) 参数
         """
-        self.host = host
-        self.port = port
+        self.host = host or self._get_host_ip()  # 确定自己的ip地址
+        self.port = port or self._allocate_tcp_port()  # 分配一个可用的端口
         self.message_handler = message_handler
         self.server_socket: Optional[socket.socket] = None
         self.server_thread: Optional[threading.Thread] = None
@@ -35,7 +35,42 @@ class LocalTcpServer:
             file_output="DEBUG",
             global_output="WARNING"
         )
+        self.logger.info(f"Initializing LocalTcpServer on {self.host}:{self.port}")
+
+
+    def _get_host_ip(self):
+        """自动获取本机可用于外部连接的 IP 地址"""
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            # 连接到任意公网地址（不必可达，只为取出绑定IP）
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+        except Exception:
+            self.logger.warning("Failed to get external IP, using localhost")
+            ip = "127.0.0.1"
+        finally:
+            s.close()
+        return ip
     
+    def _allocate_tcp_port(self) -> int:
+        """为 DAG 分配可用的 TCP 端口"""
+        import socket
+        
+        # 尝试从预设范围分配端口
+        for port in range(19000, 20000):  # DAG 专用端口范围
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.bind((self.host, port))
+                    return port
+            except OSError:
+                continue
+        # 如果预设范围都被占用，使用系统分配
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            self.logger.warning("All predefined ports are occupied, using system-assigned port")
+            s.bind((self.host, 0))
+            return s.getsockname()[1]
+        
+
     def set_message_handler(self, handler: Callable[[Dict[str, Any], tuple], None]):
         """设置消息处理器"""
         self.message_handler = handler

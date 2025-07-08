@@ -5,6 +5,7 @@ from sage_core.api.tuple import Data
 def config():
     return {}
 
+# sage_tests/function_tests/rag_tests/prompt_test.py
 def test_qapromptor_with_corpus(config):
     promptor = QAPromptor(config)
     input_data = Data(("What is AI?", ["AI is the field of study focused on making machines intelligent."]))
