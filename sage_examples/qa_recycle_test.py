@@ -57,6 +57,10 @@ def pipeline_run():
                     )
     try:
         env.submit()
+        env.run_once()
+        env.run_once()
+        env.run_once()
+        time.sleep(5)
         env.run_streaming()  # 启动管道
         time.sleep(5)  # 等待管道运行
         env.stop()
