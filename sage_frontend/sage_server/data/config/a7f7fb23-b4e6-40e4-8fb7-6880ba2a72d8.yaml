@@ -28,6 +28,6 @@ generator:
   seed: 42
 writer: ''
 promptor:
-  platform: local
+  platform: remote
 sink:
   platform: local

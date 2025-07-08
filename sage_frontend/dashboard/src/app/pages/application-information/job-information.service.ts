@@ -18,12 +18,12 @@ export class JobInformationService {
     return this.http.get<Job>(`http://localhost:8080/jobInfo/get/${jobId}`);
   }
 
-  public startJob(jobId: string): Observable<boolean> {
+  public startJob(jobId: string): Observable<any> {
     return this.http.post<boolean>(`http://localhost:8080/api/signal/start/${jobId}`, null);
   }
 
-  public stopJob(jobId: string): Observable<boolean> {
-    return this.http.post<boolean>(`http://localhost:8080/api/signal/stop/${jobId}`, null);
+  public stopJob(jobId: string,duration:string): Observable<boolean> {
+    return this.http.post<boolean>(`http://localhost:8080/api/signal/stop/${jobId}/${duration}`, null);
   }
 
   public getBatchById(jobId: string, operatorId: string, batchId: string): Observable<Batch> {

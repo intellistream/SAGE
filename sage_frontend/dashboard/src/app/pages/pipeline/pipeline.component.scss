@@ -1,4 +1,4 @@
-// src/sage_examples/pipeline/pipeline.component.scss
+// src/app/pipeline/pipeline.component.scss
 
 .pipeline-canvas-container {
   width: 100%;
@@ -27,14 +27,14 @@
 .node {
   cursor: move;
   transition: transform 0.1s ease-out;
-
+  
   &.selected {
     .node-body {
       stroke: #2196F3;
       stroke-width: 3px;
     }
   }
-
+  
   &.edge-source {
     .node-body {
       stroke: #FF9800;
@@ -42,24 +42,24 @@
     }
     cursor: default; // 改变光标，表示正在连线
   }
-
+  
   .node-highlight {
     fill: rgba(33, 150, 243, 0.3);
     opacity: 0;
     transition: opacity 0.2s;
-
+    
     &.visible {
       opacity: 1;
     }
   }
-
+  
   .node-body {
     fill: #fff;
     stroke: #333;
     stroke-width: 2px;
     transition: stroke 0.2s, fill 0.2s;
   }
-
+  
   .node-type {
     font-size: 10px;
     text-anchor: middle;
@@ -67,7 +67,7 @@
     // 添加文本溢出处理
     text-overflow: ellipsis;
   }
-
+  
   .node-name {
     font-size: 12px;
     text-anchor: middle;
@@ -76,27 +76,27 @@
     // 确保文本不会溢出
     text-overflow: ellipsis;
   }
-
+  
   &:hover .node-body {
     fill: #f5f5f5;
   }
-
+  
   &.source-node .node-body {
     stroke: #4CAF50;
     stroke-width: 3px;
   }
-
+  
   &.sink-node .node-body {
     stroke: #FF5722;
     stroke-width: 3px;
   }
-
+  
   .source-marker {
     fill: #4CAF50;
     stroke: white;
     stroke-width: 1px;
   }
-
+  
   .sink-marker {
     fill: #FF5722;
     stroke: white;
@@ -107,17 +107,17 @@
 /* 边缘样式 */
 .edge {
   pointer-events: auto; // 允许边缘交互
-
+  
   path {
     transition: stroke 0.2s;
     cursor: pointer; // 显示可点击
-
+    
     &:hover {
       stroke: #FF5722; // 悬停时高亮显示
       stroke-width: 3px;
     }
   }
-
+  
   .edge-label {
     font-size: 10px;
     fill: #666;
@@ -229,7 +229,7 @@
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 
-
+  
   .canvas-area {
     position: absolute; /* Allows SVG to fill the container */
     top: 0;
@@ -240,11 +240,11 @@
     // background-image: linear-gradient(to right, #eee 1px, transparent 1px), linear-gradient(to bottom, #eee 1px, transparent 1px);
     // background-size: 20px 20px;
   }
-
+  
   svg {
     display: block; /* Remove extra space below SVG */
   }
-
+  
   // Style for edges
   svg .edges line {
     cursor: pointer;
@@ -252,12 +252,12 @@
       stroke: #007bff; // Highlight on hover
     }
   }
-
+  
   // Style for nodes group
   svg .nodes {
     // You can add common styles for node groups here
   }
-
+  
   // Style for individual nodes (the <g> elements)
   svg .nodes > g {
     cursor: grab; // Indicate draggable
@@ -268,7 +268,7 @@
         stroke-width: 3 !important;
     }
   }
-
+  
   // Style for the ghost element while dragging a node on the canvas
   svg .cdk-drag-preview {
     box-sizing: border-box;
@@ -279,19 +279,19 @@
     opacity: 0.8;
     // You might need to adjust padding/margin depending on how the preview is generated
   }
-
+  
   // Style for the placeholder element where the item was dragged from (on canvas)
   svg .cdk-drag-placeholder {
      opacity: 0; // Hide the original node's placeholder
   }
-
+  
   // Style for the element being dragged on canvas
   svg .cdk-drag-dragging {
     // The actual element being dragged might be hidden by cdk-drag-preview, or styled here
     // opacity: 0.5;
   }
-
-
+  
+  
   .control-panel {
     padding: 10px;
     background-color: #eee;
@@ -302,7 +302,7 @@
       cursor: pointer;
     }
   }
-
+  
   /* Optional: Styles for node ports */
   // .port {
   //   cursor: crosshair;
@@ -357,20 +357,20 @@
   box-shadow: 0 2px 10px rgba(0,0,0,0.2);
   z-index: 1000;
   min-width: 150px;
-
+  
   .menu-item {
     padding: 8px 16px;
     cursor: pointer;
     transition: background-color 0.2s;
-
+    
     &:hover {
       background-color: #f5f5f5;
     }
-
+    
     &:not(:last-child) {
       border-bottom: 1px solid #eee;
     }
-
+    
     &.delete-item {
       color: #f44336; /* 删除选项使用红色 */
     }
@@ -386,16 +386,16 @@
   box-shadow: 0 2px 10px rgba(0,0,0,0.2);
   z-index: 1000;
   min-width: 150px;
-
+  
   .menu-item {
     padding: 8px 16px;
     cursor: pointer;
     transition: background-color 0.2s;
-
+    
     &:hover {
       background-color: #f5f5f5;
     }
-
+    
     &.delete-item {
       color: #f44336; /* 删除选项使用红色 */
     }
@@ -405,7 +405,7 @@
 /* 使边可点击 */
 .edge path {
   cursor: pointer;
-
+  
   &:hover {
     stroke: #007bff;
     stroke-width: 3px;
@@ -415,7 +415,7 @@
 /* 自定义悬浮提示样式 */
 .node {
   position: relative;
-
+  
   &:hover::after {
     content: attr(data-tooltip);
     position: absolute;
@@ -436,58 +436,58 @@
 
 .node {
   cursor: move;
-
+  
   .node-highlight {
     fill: transparent;
     stroke: #4285f4;
     stroke-width: 2px;
     opacity: 0;
     transition: opacity 0.2s;
-
+    
     &.visible {
       opacity: 1;
     }
   }
-
+  
   .node-body {
     fill: #f5f5f5;
     stroke: #ddd;
     stroke-width: 1px;
   }
-
+  
   .node-type {
     font-size: 12px; // 增大字体大小
     text-anchor: middle;
     fill: #666;
   }
-
+  
   .node-name {
     font-size: 14px; // 增大字体大小
     text-anchor: middle;
     fill: #333;
     font-weight: bold;
   }
-
+  
   &:hover .node-body {
     fill: #f5f5f5;
   }
-
+  
   &.source-node .node-body {
     stroke: #4CAF50;
     stroke-width: 3px;
   }
-
+  
   &.sink-node .node-body {
     stroke: #FF5722;
     stroke-width: 3px;
   }
-
+  
   .source-marker {
     fill: #4CAF50;
     stroke: white;
     stroke-width: 1px;
   }
-
+  
   .sink-marker {
     fill: #FF5722;
     stroke: white;
@@ -503,13 +503,13 @@
     fill: none;
     cursor: pointer;
     transition: stroke 0.2s, stroke-width 0.2s;
-
+    
     &:hover {
       stroke: #007bff;
       stroke-width: 3;
     }
   }
-
+  
   .edge-label {
     font-size: 12px;
     fill: #666;
