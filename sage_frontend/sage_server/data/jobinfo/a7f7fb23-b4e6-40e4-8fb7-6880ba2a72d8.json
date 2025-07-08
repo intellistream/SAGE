@@ -1,0 +1,108 @@
+{
+    "jobId": "a7f7fb23-b4e6-40e4-8fb7-6880ba2a72d8",
+    "name": "test",
+    "nthreads": "5",
+    "cpu": "2",
+    "ram": "4GB",
+    "startTime": "2025-07-07 02:57:42",
+    "duration": "113s",
+    "isRunning": false,
+    "nevents": 0,
+    "minProcessTime": 0.0,
+    "maxProcessTime": 0.0,
+    "meanProcessTime": 0.0,
+    "latency": 0.0,
+    "throughput": 0.0,
+    "ncore": 2,
+    "operators": [
+        {
+            "id": "9",
+            "name": "FileSource",
+            "isSource": true,
+            "isSink": false,
+            "numOfInstances": 1,
+            "throughput": 0.0,
+            "latency": 0.0,
+            "explorationStrategy": "default",
+            "schedulingGranularity": "default",
+            "abortHandling": "default",
+            "downstream": [
+                3
+            ]
+        },
+        {
+            "id": "3",
+            "name": "DenseRetriever",
+            "isSource": false,
+            "isSink": false,
+            "numOfInstances": 1,
+            "throughput": 0.0,
+            "latency": 0.0,
+            "explorationStrategy": "default",
+            "schedulingGranularity": "default",
+            "abortHandling": "default",
+            "downstream": [
+                4
+            ]
+        },
+        {
+            "id": "4",
+            "name": "QAPromptor",
+            "isSource": false,
+            "isSink": false,
+            "numOfInstances": 1,
+            "throughput": 0.0,
+            "latency": 0.0,
+            "explorationStrategy": "default",
+            "schedulingGranularity": "default",
+            "abortHandling": "default",
+            "downstream": [
+                1
+            ]
+        },
+        {
+            "id": "1",
+            "name": "OpenAIGenerator",
+            "isSource": false,
+            "isSink": false,
+            "numOfInstances": 1,
+            "throughput": 0.0,
+            "latency": 0.0,
+            "explorationStrategy": "default",
+            "schedulingGranularity": "default",
+            "abortHandling": "default",
+            "downstream": [
+                8
+            ]
+        },
+        {
+            "id": "8",
+            "name": "TerminalSink",
+            "isSource": false,
+            "isSink": true,
+            "numOfInstances": 1,
+            "throughput": 0.0,
+            "latency": 0.0,
+            "explorationStrategy": "default",
+            "schedulingGranularity": "default",
+            "abortHandling": "default",
+            "downstream": []
+        }
+    ],
+    "totalTimeBreakdown": {
+        "totalTime": 0.0,
+        "serializeTime": 0.0,
+        "persistTime": 0.0,
+        "streamProcessTime": 0.0,
+        "overheadTime": 0.0
+    },
+    "schedulerTimeBreakdown": {
+        "exploreTime": 0.0,
+        "usefulTime": 0.0,
+        "abortTime": 0.0,
+        "constructTime": 0.0,
+        "trackingTime": 0.0
+    },
+    "periodicalThroughput": [],
+    "periodicalLatency": []
+}

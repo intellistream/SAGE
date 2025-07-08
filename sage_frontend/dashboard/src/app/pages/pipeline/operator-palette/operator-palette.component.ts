@@ -1,4 +1,4 @@
-// src/sage_examples/pipeline/operator-palette/operator-palette.component.ts
+// src/app/pipeline/operator-palette/operator-palette.component.ts
 
 import { Component, OnInit } from '@angular/core';
 import { Node } from '../models/pipeline-data.model'; // Use the Node interface
@@ -6,7 +6,7 @@ import { OperatorInfo } from '../../../model/OperatorInfo';
 import { OperatorPaletteService } from './operator-palette.service';
 
 @Component({
-  selector: 'sage_examples-operator-palette',
+  selector: 'app-operator-palette',
   templateUrl: './operator-palette.component.html',
   styleUrls: ['./operator-palette.component.scss']
 })
@@ -22,12 +22,12 @@ export class OperatorPaletteComponent implements OnInit {
   ];
 
   constructor(private operatorPaletteService: OperatorPaletteService) { }
-
+  
   ngOnInit(): void {
     // 在组件初始化时获取操作符信息
     this.getOperatorInfo();
   }
-
+  
   getOperatorInfo(): void {
     this.operatorPaletteService.getOperators().subscribe({
       next: (response) => {
@@ -54,7 +54,7 @@ export class OperatorPaletteComponent implements OnInit {
       }
     });
   }
-
+  
   // 添加一个辅助方法来截断长文本
   truncateName(name: string, maxLength: number): string {
     if (name.length <= maxLength) {

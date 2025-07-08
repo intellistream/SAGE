@@ -2,7 +2,7 @@ import {AfterViewInit, Component, ElementRef, EventEmitter, Input, Output, ViewC
 import {Operator} from "../../model/Operator";
 
 @Component({
-  selector: 'sage_examples-info-scroll-wrapper',
+  selector: 'app-info-scroll-wrapper',
   templateUrl: './info-scroll-wrapper.component.html',
   styleUrls: ['./info-scroll-wrapper.component.less']
 })

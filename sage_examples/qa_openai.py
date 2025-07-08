@@ -32,8 +32,12 @@ def pipeline_run(config: dict) -> None:
 
     env.submit()
     env.run_once()
-    time.sleep(5)
-    env.close()
+    # env.run_once()
+    # env.run_once()
+
+
+
+    time.sleep(100)  # 等待管道运行
 
 
 if __name__ == '__main__':

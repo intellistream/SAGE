@@ -30,7 +30,8 @@ class OpenAIClient():
         """
         self.model_name=model_name
         self.base_url = kwargs["base_url"]
-        self.api_key = kwargs["api_key"] 
+        self.api_key = kwargs["api_key"]
+        
         self.client = OpenAI(
             base_url= self.base_url, 
             api_key=self.api_key,

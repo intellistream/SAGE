@@ -3,6 +3,6 @@
     "name":"LLMbased_Reranker",
     "description":"Rerank the results using LLM based reranker",
     "code":"",
-    "transformation":"",
+    "transformation":"map",
     "isCustom":false
 }
