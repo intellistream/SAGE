@@ -49,3 +49,4 @@ ray_logs
 /output
 /logs
 /logs/**
+.env
