@@ -16,15 +16,11 @@ def pipeline_run():
     query_stream = env.from_source(FileSource, config["source"])
     query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])
     prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
-    # prompt_stream = query_stream.map(QAPromptor, config)
     response_stream = prompt_stream.map(HFGenerator, config["generator"])
     response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
     env.submit()
-    env.run_streaming()  # 启动管道
-
-    # time.sleep(100)  # 等待管道运行
-
+    env.run_once()
 
 if __name__ == '__main__':
     configure_logging(level=logging.INFO)
