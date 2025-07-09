@@ -95,8 +95,6 @@ function configure_huggingface_auth() {
   echo "===================================================="
   echo "         Configuring Hugging Face Authentication"
   echo "===================================================="
-
-  export HF_ENDPOINT=https://hf-mirror.com
   # 1) 本地或 CI 下 Host 端登录
   if [[ -n "${CI:-}" ]]; then
     # CI 模式：必须通过环境变量传入 HF_TOKEN
