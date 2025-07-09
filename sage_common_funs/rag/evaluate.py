@@ -107,32 +107,32 @@ class BRSEvaluate(BaseFunction):
 
 
 
-def test_evaluate_functions():
-    # 模拟一条数据：reference 和 generated
-    reference = "The cat sits on the mat."
-    generated = "A cat is sitting on a mat."
+# def test_evaluate_functions():
+#     # 模拟一条数据：reference 和 generated
+#     reference = "The cat sits on the mat."
+#     generated = "A cat is sitting on a mat."
 
-    data = Data((reference, generated))
+#     data = Data((reference, generated))
 
-    config = {}  # 测试时config可以是空的
+#     config = {}  # 测试时config可以是空的
 
-    # 初始化所有评估器
-    f1_eval = F1Evaluate(config)
-    bert_recall_eval = BertRecallEvaluate(config)
-    rouge_l_eval = RougeLEvaluate(config)
-    brs_eval = BRSEvaluate(config)
+#     # 初始化所有评估器
+#     f1_eval = F1Evaluate(config)
+#     bert_recall_eval = BertRecallEvaluate(config)
+#     rouge_l_eval = RougeLEvaluate(config)
+#     brs_eval = BRSEvaluate(config)
 
-    # 分别执行
-    print("\n=== F1 Evaluate ===")
-    f1_eval.execute(data)
+#     # 分别执行
+#     print("\n=== F1 Evaluate ===")
+#     f1_eval.execute(data)
 
-    print("\n=== BERT Recall Evaluate ===")
-    bert_recall_eval.execute(data)
+#     print("\n=== BERT Recall Evaluate ===")
+#     bert_recall_eval.execute(data)
 
-    print("\n=== ROUGE-L Evaluate ===")
-    rouge_l_eval.execute(data)
+#     print("\n=== ROUGE-L Evaluate ===")
+#     rouge_l_eval.execute(data)
 
-    print("\n=== BRS Evaluate ===")
-    brs_eval.execute(data)
+#     print("\n=== BRS Evaluate ===")
+#     brs_eval.execute(data)
 
-test_evaluate_functions()
+# test_evaluate_functions()
