@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from sage_core.core.operator.base_operator import BaseOperator
     from sage_runtime.operator.factory import OperatorFactory
     from sage_runtime.operator.operator_wrapper import OperatorWrapper
+    from sage_core.core.compiler import Compiler, GraphNode
 
 class RayDAGNode(BaseDAGNode):
     """
@@ -18,17 +19,10 @@ class RayDAGNode(BaseDAGNode):
     maintains the request queue for actors automatically.
     """
     
-    def __init__(self, name: str, operator_factory: 'OperatorFactory' ,memory_collection:ActorHandle = None) -> None:
-        if(not isinstance(memory_collection, ActorHandle)):
-            raise Exception("Memory collection must be a Ray Actor handle")
-        super().__init__(name)
-        self.operator:'OperatorWrapper' = operator_factory.build_instance(name = name, remote = True)
-        self.is_spout = operator_factory.is_spout  # Check if this is a spout node
-        self.memory_collection = memory_collection  # Optional memory collection for this node
-        self.operator.insert_runtime_context(RuntimeContext(self.memory_collection))
-
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["remote"] = True
+        super().__init__(*args, **kwargs)
         # Running state management
-        self._stop_requested = False
         self.logger.info(f"Created Ray actor node: {self.name}")
 
     
@@ -71,7 +65,6 @@ class RayDAGNode(BaseDAGNode):
             "name": self.name,
             "is_spout": self.is_spout,
             "is_running": self.is_running(),
-            "stop_requested": self._stop_requested,
             "initialized": self._initialized,
             "operator_class": self.function_class.__name__ if self.function_class else None,
             "downstream_targets": len(self.emit_context.downstream_channels) if hasattr(self, 'emit_context') else 0
