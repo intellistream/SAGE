@@ -67,6 +67,7 @@ jobs:
           JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
           ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
         run: |
+          echo senleilaikan: $ALIBABA_API_KEY
           source "$(conda info --base)/etc/profile.d/conda.sh"
           conda activate sage
           export PYTHONPATH="${PYTHONPATH}:$(pwd)"
