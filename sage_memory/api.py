@@ -1,6 +1,6 @@
 from sage_utils.embedding_methods.mockembedder import MockTextEmbedder
 from sage_memory.memory_manager import MemoryManager
-
+from sage_utils.custom_logger import CustomLogger
 def create_memory(config, remote:bool = False):
     """初始化内存管理器并创建测试集合"""
     default_model = MockTextEmbedder(fixed_dim=128)
@@ -12,7 +12,8 @@ def create_memory(config, remote:bool = False):
         dim=128,
         description="operator_test vdb collection",
         # as_ray_actor=(config.get("platform", False) == "remote")
-        as_ray_actor=remote
+        as_ray_actor=remote, 
+        session_folder = CustomLogger.get_session_folder() if remote else None
     )
     if(remote is False):
         col.add_metadata_field("owner")

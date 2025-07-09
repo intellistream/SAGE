@@ -50,7 +50,7 @@ class FileSink(BaseFunction):
             f.write("[Q] Question: " + question + "\n")
             f.write("[A] Answer  : " + answer + "\n")
             f.write("-" * 40 + "\n")
-
+        self.logger.debug(f"Data written to file: {self.file_path}")
 
 class MemWriteSink(BaseFunction):
     def __init__(self, config: dict = None,  **kwargs):

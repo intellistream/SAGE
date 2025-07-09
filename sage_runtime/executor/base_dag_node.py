@@ -12,7 +12,7 @@ class BaseDagNode(ABC):
     def __init__(self, name, operator_factory:'OperatorFactory', session_folder=None):
         # Create logger first
         self.logger = CustomLogger(
-            filename=f"{name}",
+            filename=f"Node_{name}",
             session_folder=session_folder,
             console_output="WARNING",
             file_output="DEBUG",

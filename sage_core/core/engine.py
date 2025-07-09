@@ -26,7 +26,7 @@ class Engine:
         # print("Engine initialized")
         self.logger = CustomLogger(
             filename=f"SageEngine",
-            console_output="DEBUG",
+            console_output="WARNING",
             file_output=True,
             global_output="WARNING",
             name="SageEngine"

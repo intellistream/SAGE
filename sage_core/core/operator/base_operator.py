@@ -69,14 +69,18 @@ class BaseOperator(ABC):
         """
         Smart dispatch for multi-input operator.
         """
+        self.logger.debug(f"Received data in operator {self._name}, channel {tag}, data: {data}")
         try:
             if(len(self.function.__class__.declare_inputs()) == 0):
+                self.logger.debug(f"No inputs declared for operator {self._name}. Executing without data.")
                 # No inputs declared, call execute without arguments
                 result = self.function.execute()
             elif(len(self.function.__class__.declare_inputs()) == 1):
+                self.logger.debug(f"Single input declared for operator {self._name}. Executing with data.")
                 result = self.function.execute(data)
             else:
                 result = self.function.execute(tag, data)
+                self.logger.debug(f"Operator {self._name} processed data with result: {result}")
             if result is not None:
                 self.emit(None, result)
 
