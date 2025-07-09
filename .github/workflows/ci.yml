@@ -69,4 +69,5 @@ jobs:
           source "$(conda info --base)/etc/profile.d/conda.sh"
           conda activate sage
           export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+          export PYTHONWARNINGS="ignore:DeprecationWarning"
           pytest -v --maxfail=1 --disable-warnings
