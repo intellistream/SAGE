@@ -107,7 +107,7 @@ async def stop_job(jobId: str,duration:str ):
             running_tasks[jobId].cancel()
             logging.info(f"已取消作业 {jobId} 的运行任务")
         if jobId in running_pipelines :
-            running_pipelines[jobId].stop_pipeline()
+            running_pipelines[jobId].stop()
             del running_pipelines[jobId]
             logging.info(f"已取消作业 {jobId} 的管道任务")
 
@@ -116,6 +116,19 @@ async def stop_job(jobId: str,duration:str ):
     except Exception as e:
         logging.error(f"停止作业 {jobId} 时出错: {str(e)}")
         raise HTTPException(status_code=500, detail=f"停止作业失败: {str(e)}")
+@router.get("/status/{jobId}")
+async def get_job_status(jobId:str):
+    with open(os.path.join("data", "config", f"{jobId}.yaml"), "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    use_ray = False
+    for key, value in config.items():
+        if isinstance(value, dict) and any("remote" in str(v).lower() for v in value.values()):
+            use_ray = True
+            print(f"remote found in config for job {jobId}, using Ray")
+            break
+
+    return {"status": "success", "message": f"作业 {jobId} 正在运行","use_ray":use_ray}
+
 
 
 @router.post("/start/{jobId}")

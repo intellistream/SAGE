@@ -59,3 +59,4 @@ sage_frontend/sage_server/logs/**
 sage_examples/logs
 sage_examples/logs/**
 /.env
+dist/
