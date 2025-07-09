@@ -5,6 +5,7 @@ from sage_runtime.runtimes.local_runtime import LocalRuntime
 # from sage_runtime.runtimes.ray_runtime import RayRuntime
 from sage_runtime.executor.local_dag_node import LocalDAGNode
 from sage_runtime.executor.ray_dag_node import RayDAGNode
+from sage_runtime.executor.base_dag_node import BaseDAGNode
 from sage_runtime.io.local_tcp_server import LocalTcpServer
 from sage_runtime.io.connection import Connection
 from sage_utils.custom_logger import CustomLogger
@@ -24,7 +25,9 @@ class MixedDAG():
             file_output="DEBUG",
             global_output = "DEBUG",
         )
-        self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
+        # self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
+        self.nodes: Dict[str, BaseDAGNode] = {}
+
         self.spout_nodes: List[str] = []
 
         self.connections: List[Connection] = []
@@ -112,7 +115,7 @@ class MixedDAG():
                         self.logger.error(f"Error setting up connection {node_name} -> {target_name}: {e}")
                         raise        
 
-    def create_node_instance(self, graph_node: GraphNode, env:'BaseEnvironment') -> Union[ActorHandle, LocalDAGNode]:
+    def create_node_instance(self, graph_node: GraphNode, env:'BaseEnvironment') -> BaseDAGNode:
         """
         根据图节点创建对应的执行实例
         
@@ -127,13 +130,12 @@ class MixedDAG():
         from sage_core.api.enum import PlatformType
 
         if env.platform == PlatformType.REMOTE:
-            node = RayDAGNode.remote(
+            node = RayDAGNode(
                 graph_node.name,
                 transformation.operator_factory,
-                self.session_folder,
                 memory_collection
             )
-            self.logger.debug(f"Created Ray actor node: {graph_node.name}")
+            self.logger.debug(f"Created remote node: {graph_node.name}")
         else:
             # 创建本地节点
             node = LocalDAGNode(
@@ -150,68 +152,25 @@ class MixedDAG():
 
         return node
 
-    def _detect_platform(self, executor: Any) -> str:
-        """
-        检测执行器的平台类型
-        
-        Args:
-            executor: 执行器对象
-            
-        Returns:
-            平台类型字符串
-        """
-        if isinstance(executor, ActorHandle):
-            return "remote"
-        elif hasattr(executor, 'remote'):
-            return "ray_function" 
-        elif isinstance(executor, LocalDAGNode):
-            return "local"
-        else:
-            return "unknown"
-
-    def start_all_nodes(self):
-        """启动所有本地节点（Ray Actor会自动启动）"""
-        self.logger.info("Starting all DAG nodes...")
-        
-        local_node_count = 0
-        ray_node_count = 0
-        
-        for node_name, node_handle in self.nodes.items():
-            if isinstance(node_handle, LocalDAGNode):
-                node = self.nodes[node_name]
-                node.start()
-                local_node_count += 1
-                self.logger.debug(f"Started local node: {node_name}")
-            else:
-                ray_node_count += 1
-        
-        self.logger.info(f"Started {local_node_count} local nodes, {ray_node_count} Ray actors")
-
     def stop(self):
         if(not self.is_running):
             self.logger.warning(f"MixedDAG '{self.name}' is not running, nothing to stop")
             return
+        
         for node_name in self.spout_nodes:
-            node_handle = self.nodes[node_name]
-            if isinstance(node_handle, LocalDAGNode):
-                node_handle.stop()
-                self.logger.debug(f"Stopped local spout node: {node_name}")
-            elif isinstance(node_handle, ActorHandle):
-                # Ray Actor执行一次
-                node_handle.stop.remote()
+            node = self.nodes[node_name]
+            node.stop()
+            self.logger.debug(f"Stopped spout node: {node_name}")
         self.logger.info(f"Stopped all spout nodes in MixedDAG '{self.name}'")
 
     def close(self):
         """停止所有节点"""
         self.logger.info("Stopping all DAG nodes...")
         
-        for node_name, node_meta in self.nodes.items():
+        for node_name, node in self.nodes.items():
             try:
-                if isinstance(node_meta, ActorHandle) == False:
-                    # local
-                    node = self.nodes[node_name]
-                    node.stop()
-                    self.logger.debug(f"Stopped local node: {node_name}")
+                node.stop()
+                self.logger.debug(f"Stopped node: {node_name}")
                 # Ray actors会在进程结束时自动清理
             except Exception as e:
                 self.logger.error(f"Error stopping node {node_name}: {e}")
@@ -219,53 +178,24 @@ class MixedDAG():
     def submit(self):
         self.logger.info(f"Submitting MixedDAG '{self.name}'")
         try:
-            for node_name, node_handle in self.nodes.items():
-                if( node_name in self.spout_nodes):
-                    self.logger.debug(f"Node '{node_name}' is a spout node, skipping submission")
-                    continue
-                if isinstance(node_handle, LocalDAGNode):
-                    local_runtime = LocalRuntime.get_instance()
-                    local_runtime.submit_node(node_handle)
-                    self.logger.debug(f"Submitted local node: {node_name}")
-                elif isinstance(node_handle, ActorHandle):
-                    pass
-                    # ray_runtime = RayRuntime.get_instance()
-                    # ray_runtime.submit_actor_instance(node_handle, node_name)
-                    # self.logger.debug(f"Submitted Ray actor: {node_name}")
+            for node_name, node in self.nodes.items():
+                local_runtime = LocalRuntime.get_instance()
+                local_runtime.submit_node(node)
         except Exception as e:
             self.logger.error(f"Failed to submit MixedDAG '{self.name}': {e}", exc_info=True)
-            # 清理已经提交的节点
-            # self._cleanup_partial_submission(local_runtime, ray_runtime)
-            raise
 
     def execute_once(self, spout_node_name:str = None):
         self.logger.info(f"executing once")
         if(spout_node_name is None):
             for node_name in self.spout_nodes:
-                node_handle = self.nodes[node_name]
-                if isinstance(node_handle, LocalDAGNode):
-                    self.logger.debug(f"Running spout node: {node_name}")
-
-                    node_handle.process()
-                elif isinstance(node_handle, ActorHandle):
-                    self.logger.debug(f"Running remote spout node: {node_name}")
-
-                    # Ray Actor执行一次
-                    node_handle.process.remote()
+                node = self.nodes[node_name]
+                node.process()
+        elif spout_node_name in self.spout_nodes:
+            node = self.nodes[spout_node_name]
+            self.logger.debug(f"Running spout node: {node_name}")
+            node.process()
         else:
-            if spout_node_name in self.spout_nodes:
-                node_handle = self.nodes[spout_node_name]
-                if isinstance(node_handle, LocalDAGNode):
-                    self.logger.debug(f"Running spout node: {node_name}")
-
-                    node_handle.process()
-                elif isinstance(node_handle, ActorHandle):
-                    self.logger.debug(f"Running remote spout node: {node_name}")
-
-                    # Ray Actor执行一次
-                    node_handle.process.remote()
-            else:
-                self.logger.warning(f"Spout node '{spout_node_name}' not found in MixedDAG '{self.name}'")
+            self.logger.warning(f"Spout node '{spout_node_name}' not found in MixedDAG '{self.name}'")
 
     def execute_streaming(self, spout_node_name:str = None):
         self.logger.info(f"executing streaming")
@@ -273,31 +203,16 @@ class MixedDAG():
         if(spout_node_name is None):
             for node_name in self.spout_nodes:
                 node_handle = self.nodes[node_name]
-                if isinstance(node_handle, LocalDAGNode):
-                    local_runtime = LocalRuntime.get_instance()
-                    local_runtime.submit_node(node_handle)
-                    self.logger.debug(f"Running spout node: {node_name}")
-                elif isinstance(node_handle, ActorHandle):
-                    node_handle.run_loop.remote()
-                    self.logger.debug(f"Running remote spout node: {node_name}")
-                    # Ray Actor执行一次
-                    # ray_runtime = RayRuntime.get_instance()
-                    # ray_runtime.start_node(node_handle)
+                local_runtime = LocalRuntime.get_instance()
+                local_runtime.submit_node(node_handle)
+                self.logger.debug(f"Running spout node: {node_name}")
+        elif spout_node_name in self.spout_nodes:
+            node_handle = self.nodes[spout_node_name]
+            local_runtime = LocalRuntime.get_instance()
+            local_runtime.submit_node(node_handle)
+            self.logger.debug(f"Running spout node: {node_name}")
         else:
-            if spout_node_name in self.spout_nodes:
-                node_handle = self.nodes[spout_node_name]
-                if isinstance(node_handle, LocalDAGNode):
-                    local_runtime = LocalRuntime.get_instance()
-                    local_runtime.submit_node(node_handle)
-                    self.logger.debug(f"Running spout node: {node_name}")
-                elif isinstance(node_handle, ActorHandle):
-                    node_handle.run_loop.remote()
-                    self.logger.debug(f"Running remote spout node: {node_name}")
-                    # Ray Actor执行一次
-                    # ray_runtime = RayRuntime.get_instance()
-                    # ray_runtime.start_node(node_handle)
-            else:
-                self.logger.warning(f"Spout node '{spout_node_name}' not found in MixedDAG '{self.name}'")
+            self.logger.warning(f"Spout node '{spout_node_name}' not found in MixedDAG '{self.name}'")
 
     def debug_print_operators(self):
         """
@@ -563,3 +478,23 @@ class MixedDAG():
                 
         except Exception as e:
             self.logger.error(f"Error processing TCP message from {client_address}: {e}", exc_info=True)
+
+
+    def _detect_platform(self, executor: Any) -> str:
+        """
+        检测执行器的平台类型
+        
+        Args:
+            executor: 执行器对象
+            
+        Returns:
+            平台类型字符串
+        """
+        if isinstance(executor, ActorHandle):
+            return "remote"
+        elif hasattr(executor, 'remote'):
+            return "ray_function" 
+        elif isinstance(executor, LocalDAGNode):
+            return "local"
+        else:
+            return "unknown"

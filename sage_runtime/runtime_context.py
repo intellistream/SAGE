@@ -8,7 +8,7 @@ from sage_utils.custom_logger import CustomLogger
 class RuntimeContext:
     def __init__(self, memory_collection:BaseMemoryCollection, collection_config: Optional[Dict] = None , logger:CustomLogger = None):
         # Create logger first
-        self.logger = logger
+        self.logger:CustomLogger
         self.memory_collection = memory_collection
     
     def retrieve(self,  query: str = None, collection_config: Optional[Dict] = None) -> List[str]:
@@ -158,7 +158,7 @@ class RuntimeContext:
                         index_name = index_names[0]
                         self.logger.info(f"Using default index: {index_name}")
                     else:
-                        self.logger.error("No index available in VDB collection")
+                        self.logger.warning("No index available in VDB collection")
                         return []
 
                 # 获取默认topk（如果需要）
