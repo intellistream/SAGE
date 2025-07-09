@@ -1,5 +1,8 @@
 #!/bin/bash
 
+MARKER_DIR="$HOME/.sage_setup"
+mkdir -p "$MARKER_DIR"
+
 # Interactive Bash Script for SAGE Project Setup
 # Dynamically detects the Docker container name and reuses it across functions.
 
@@ -18,7 +21,10 @@ function print_header() {
 }
 
 function pause() {
+  # 仅当 stdin 是 tty 且 CI 环境变量未设置时才真正 pause
+  if [[ -t 0 && -z "$CI" ]]; then
     read -p "Press [Enter] to continue..."
+  fi
 }
 
 function detect_container() {
@@ -93,7 +99,34 @@ function configure_huggingface_auth() {
     echo "Please enter your Hugging Face token to log in."
     echo "You can find or generate your token here: https://huggingface.co/settings/tokens"
     echo "If you want to use huggingface mirror, refer to https://hf-mirror.com/"
-    read -sp "Enter your Hugging Face token: " HF_TOKEN
+
+    # CI 模式：直接用环境变量登录
+    if [[ -n "$CI" ]]; then
+      if [[ -z "$HF_TOKEN" ]]; then
+        echo "❌ CI detected but HF_TOKEN is not set. Please set the HF_TOKEN secret."
+        exit 1
+      fi
+      echo "🔑 Logging in to Hugging Face using HF_TOKEN from env…"
+      huggingface-cli login --token "$HF_TOKEN"
+    else
+      # 本地交互模式
+      echo "Hugging Face authentication is required to run the SAGE system."
+      echo "Please enter your Hugging Face token to log in."
+      echo "You can find or generate your token here: https://huggingface.co/settings/tokens"
+      echo "If you want to use Hugging Face mirror, refer to https://hf-mirror.com/"
+
+      read -sp "Enter your Hugging Face token: " HF_TOKEN
+      echo ""
+      huggingface-cli login --token "$HF_TOKEN"
+    fi
+
+    # 验证登录状态
+    if huggingface-cli whoami &>/dev/null; then
+      echo "✅ Hugging Face authentication successful!"
+    else
+      echo "❌ Hugging Face authentication failed."
+      [[ -n "$CI" ]] && exit 1
+    fi
     echo ""
     docker exec -it "$DOCKER_CONTAINER_NAME" bash -c "huggingface-cli login --token $HF_TOKEN"
     if docker exec -it "$DOCKER_CONTAINER_NAME" huggingface-cli whoami &>/dev/null; then
@@ -187,24 +220,42 @@ create_sage_env_without_docker() {
         return 1
     fi
 
-    # 创建 Python 3.11 环境
-    echo "🚀 正在创建名为 'sage' 的 Conda 环境（Python 3.11）..."
-    conda create -y -n sage python=3.11
+    # 幂等：如果 env 已存在，则跳过
+    if conda env list | grep -q '^sage[[:space:]]'; then
+        echo "  ➜ Conda env 'sage' already exists, skipping creation."
+    else
+        echo "🚀 正在创建名为 'sage' 的 Conda 环境（Python 3.11）..."
+        conda create -y -n sage python=3.11
+    fi
 
     # 激活环境
     echo "✅ 环境创建成功。要激活它，请运行："
     echo "   conda activate sage"
 }
 
-
-
 function install_necessary_dependencies() {
     echo "Installing necessary dependencies..."
-    # Add commands to install dependencies here
-    # Example: sudo apt-get install -y package_name
-    apt update
-    apt install -y swig cmake build-essential
+    # 如果不是 root，则加 sudo
+    if [[ "$(id -u)" -ne 0 ]]; then
+        SUDO='sudo'
+    else
+        SUDO=''
+    fi
+
+    # 幂等：只装一次
+    DEPS_DONE="$MARKER_DIR/deps_installed"
+    if [[ -f "$DEPS_DONE" ]]; then
+        echo "  ➜ Dependencies already installed, skipping."
+        return
+    fi
+
+    # 更新源并安装
+    $SUDO apt-get update -y
+    $SUDO apt-get install -y --no-install-recommends \
+        swig cmake build-essential
+    $SUDO rm -rf /var/lib/apt/lists/*
     echo "Dependencies installed successfully."
+    touch "$DEPS_DONE"
 }
 
 
@@ -279,9 +330,8 @@ function main_menu() {
         clear
         print_header
         echo "Select an option to proceed:"
-        echo "1.Minimal Setup ( Set Up Conda Environment)"
-        # echo "2.Setup with Ray (Minimal Setup, Install Ray)"
-        echo "2.Setup with Docker(Start Docker Container, Set Up Conda Environment)"
+        echo "1.Minimal Setup (Set Up Conda Environment without Docker)"
+        echo "2.Setup with Docker (Start Docker Container, Set Up Conda Environment)"
         echo "3.Full Setup (Start Docker Container, Install Dependencies including CANDY, Set Up Conda Environment)"
         echo "4.Enter Docker Instance "
         echo "5.run example scripts"
@@ -309,5 +359,8 @@ function main_menu() {
     done
 }
 
-# Start the Interactive Menu
-main_menu
+# 只有在交互式终端下才调用 main_menu
+# 在 CI（非交互）环境 stdin 通常不是 tty，或者 CI=true
+if [[ -t 0 && -z "$CI" ]]; then
+  main_menu
+fi
