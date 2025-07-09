@@ -12,7 +12,9 @@ jobs:
     services:
       docker:
         image: docker:dind
-        privileged: true
+        # pass in --privileged via `options:` rather than using `privileged:`
+        options: >-
+          --privileged
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
 
@@ -26,9 +28,7 @@ jobs:
         uses: alstr/todo-to-issue-action@v5
         with:
           INSERT_ISSUE_URLS: "true"
-          # ⚠️ Must be uppercase to match action.yml
           COMMITS: '["${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"]'
-          # Force List-PR-Files API (avoid 406 on large diffs)
           DIFF_URL: ""
 
       - name: Set Git User
