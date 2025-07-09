@@ -22,17 +22,6 @@ class RayDAGNode(BaseDAGNode):
         if(not isinstance(memory_collection, ActorHandle)):
             raise Exception("Memory collection must be a Ray Actor handle")
         super().__init__(name)
-
-        """
-        Initialize Ray multiplexer DAG node.
-        
-        Args:
-            name: Node name
-            function_class: Operator class (not instance)
-            operator_config: Configuration for operator instantiation
-            is_spout: Whether this is a spout node
-            session_folder: Session folder for logging
-        """
         self.operator:'OperatorWrapper' = operator_factory.build_instance(name = name, remote = True)
         self.is_spout = operator_factory.is_spout  # Check if this is a spout node
         self.memory_collection = memory_collection  # Optional memory collection for this node
@@ -46,7 +35,7 @@ class RayDAGNode(BaseDAGNode):
 
 
 
-    def run_loop(self): # deprecated
+    def run_loop(self):
         """
         Start the node. For spout nodes, this starts the generation loop.
         For non-spout nodes, this just marks the node as ready to receive data.
@@ -72,7 +61,9 @@ class RayDAGNode(BaseDAGNode):
             self.logger.info(f"Ray node {self.name} started and ready to receive data")
 
 
-
+    ########################################################
+    #                inactive methods                      #
+    ########################################################
 
     def get_node_info(self) -> Dict[str, Any]:
         """Get comprehensive node information for debugging."""

@@ -1,10 +1,11 @@
-from sage_core.api.env import BaseEnvironment
-from sage_runtime.mixed_dag import MixedDAG
-from sage_runtime.runtime_manager import RuntimeManager
+from typing import TYPE_CHECKING
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.runtimes.local_runtime import LocalRuntime
-# from sage_runtime.runtimes.ray_runtime import RayRuntime
+from sage_runtime.mixed_dag import MixedDAG
 import threading
+if TYPE_CHECKING:
+    from sage_core.core.compiler import Compiler
+    from sage_core.api.env import BaseEnvironment
 
 
 class Engine:
@@ -17,12 +18,8 @@ class Engine:
         if hasattr(self, "_initialized"):
             return
         self._initialized = True
-        # self.dag_manager = DAGManager() # deprecated
-        self.runtime_manager = RuntimeManager.get_instance()
-        # self.compiler= QueryCompiler()
-        from sage_core.core.compiler import Compiler
-        self.graphs: dict[str, Compiler] = {}  # 存储 pipeline 名称到 SageGraph 的映射
-        self.env_to_dag: dict[str, MixedDAG] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
+        self.graphs: dict[str, 'Compiler'] = {}  # 存储 pipeline 名称到 SageGraph 的映射
+        self.env_to_dag: dict[str, 'MixedDAG'] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
         # print("Engine initialized")
         self.logger = CustomLogger(
             filename=f"SageEngine",
@@ -50,7 +47,7 @@ class Engine:
                     cls._instance = instance
         return cls._instance
 
-    def submit_env(self, env: BaseEnvironment):
+    def submit_env(self, env: 'BaseEnvironment'):
         from sage_core.core.compiler import Compiler
         # env, graph和dag用的都是同一个名字
         graph = Compiler(env)
@@ -67,7 +64,7 @@ class Engine:
             self.logger.info(f"Failed to submit graph '{graph.name}': {e}")
             raise
 
-    def run_once(self, env: BaseEnvironment, node: str = None):
+    def run_once(self, env: 'BaseEnvironment', node: str = None):
         """
         执行一次环境的 DAG
         """
@@ -77,7 +74,7 @@ class Engine:
         dag.execute_once()
         self.logger.info(f"DAG for environment '{env.name}' have completed execution.")
 
-    def run_streaming(self, env: BaseEnvironment, node: str = None):
+    def run_streaming(self, env: 'BaseEnvironment', node: str = None):
         """
         执行一次环境的 DAG
         """
@@ -86,7 +83,7 @@ class Engine:
         dag.execute_streaming()
         self.logger.info(f"Streaming DAG for environment '{env.name}' have started.")
 
-    def stop_pipeline(self, env: BaseEnvironment):
+    def stop_pipeline(self, env: 'BaseEnvironment'):
         """
         停止指定环境的 DAG
         """
@@ -98,7 +95,7 @@ class Engine:
         else:
             self.logger.warning(f"No DAG found for environment '{env.name}'")
 
-    def close_pipeline(self, env: BaseEnvironment):
+    def close_pipeline(self, env: 'BaseEnvironment'):
         """
         停止指定环境的 DAG
         """
