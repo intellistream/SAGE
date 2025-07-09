@@ -11,7 +11,7 @@ on:
 jobs:
   test:
     name: Test SAGE
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       max-parallel: 5
 
