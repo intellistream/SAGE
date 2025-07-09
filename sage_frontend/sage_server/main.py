@@ -229,20 +229,6 @@ def create_app(args):
 
 
 
-    # @sage_examples.get("/health", dependencies=[Depends(optional_api_key)])
-    # async def get_status():
-    #     """获取当前系统状态"""
-    #     return {
-    #         "status": "healthy",
-    #         "working_directory": str(args.working_dir),
-    #         "configuration": {
-    #             "host": args.host,
-    #             "port": args.port,
-    #             "log_level": args.log_level,
-    #             "verbose": args.verbose,
-    #         }
-    #     }
-
     # 挂载静态文件
     static_dir = Path(__file__).parent / "static"
     static_dir.mkdir(exist_ok=True)
@@ -266,7 +252,7 @@ def configure_logging():
 
     # 从环境变量获取日志目录路径
     log_dir = os.getenv("LOG_DIR", os.getcwd())
-    log_file_path = os.path.abspath(os.path.join(log_dir, "sage_examples.log"))
+    log_file_path = os.path.abspath(os.path.join(log_dir, "app.log"))
 
     print(f"\n日志文件: {log_file_path}\n")
     os.makedirs(os.path.dirname(log_dir), exist_ok=True)
@@ -275,59 +261,7 @@ def configure_logging():
     log_max_bytes = int(os.getenv("LOG_MAX_BYTES", 10485760))  # 默认 10MB
     log_backup_count = int(os.getenv("LOG_BACKUP_COUNT", 5))  # 默认 5 个备份
 
-    # logging.config.dictConfig(
-    #     {
-    #         "version": 1,
-    #         "disable_existing_loggers": False,
-    #         "formatters": {
-    #             "default": {
-    #                 "format": "%(levelname)s: %(message)s",
-    #             },
-    #             "detailed": {
-    #                 "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    #             },
-    #         },
-    #         "handlers": {
-    #             "console": {
-    #                 "formatter": "default",
-    #                 "class": "logging.StreamHandler",
-    #                 "stream": "ext://sys.stderr",
-    #             },
-    #             "file": {
-    #                 "formatter": "detailed",
-    #                 "class": "logging.handlers.RotatingFileHandler",
-    #                 "filename": log_file_path,
-    #                 "maxBytes": log_max_bytes,
-    #                 "backupCount": log_backup_count,
-    #                 "encoding": "utf-8",
-    #             },
-    #         },
-    #         "loggers": {
-    #             # 配置所有 uvicorn 相关的日志记录器
-    #             "uvicorn": {
-    #                 "handlers": ["console", "file"],
-    #                 "level": "INFO",
-    #                 "propagate": False,
-    #             },
-    #             "uvicorn.access": {
-    #                 "handlers": ["console", "file"],
-    #                 "level": "INFO",
-    #                 "propagate": False,
-    #                 "filters": ["path_filter"],
-    #             },
-    #             "uvicorn.error": {
-    #                 "handlers": ["console", "file"],
-    #                 "level": "INFO",
-    #                 "propagate": False,
-    #             },
-    #         },
-    #         "filters": {
-    #             "path_filter": {
-    #                 "()": "template_app.CustomPathFilter",
-    #             },
-    #         },
-    #     }
-    # )
+
 
 
 def get_application(args=None):
@@ -360,7 +294,7 @@ def main():
 
     # 直接创建应用程序实例，而不是使用工厂函数
     app = create_app(args)
-    globals()["sage_examples"] = app  # 将应用程序实例存储在全局变量中
+    globals()["app"] = app  # 将应用程序实例存储在全局变量中
     # 以单进程模式启动 Uvicorn
     uvicorn_config = {
         "app": app,  # 直接传递应用程序实例，而不是字符串路径
