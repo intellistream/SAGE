@@ -45,7 +45,7 @@ def run_gc_report(verbose: bool = True):
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    env = LocalEnvironment()
+    env = RemoteEnvironment()
     env.set_memory(config=None)
     # 构建数据处理流程
     query_stream = (env
