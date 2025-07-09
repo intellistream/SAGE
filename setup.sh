@@ -91,80 +91,56 @@ function check_huggingface_auth() {
         HUGGINGFACE_LOGGED_IN=0
     fi
 }
-
 function configure_huggingface_auth() {
-    detect_container || return
-    echo "===================================================="
-    echo "         Configuring Hugging Face Authentication"
-    echo "===================================================="
-    echo "Hugging Face authentication is required to run the SAGE system."
-    echo "Please enter your Hugging Face token to log in."
-    echo "You can find or generate your token here: https://huggingface.co/settings/tokens"
-    echo "If you want to use huggingface mirror, refer to https://hf-mirror.com/"
+  echo "===================================================="
+  echo "         Configuring Hugging Face Authentication"
+  echo "===================================================="
 
-    # CI 模式：直接用环境变量登录
-    if [[ -n "$CI" ]]; then
-      if [[ -z "$HF_TOKEN" ]]; then
-        echo "❌ CI detected but HF_TOKEN is not set. Please set the HF_TOKEN secret."
-        exit 1
-      fi
-      echo "🔑 Logging in to Hugging Face using HF_TOKEN from env…"
-      huggingface-cli login --token "$HF_TOKEN"
-    else
-      # 本地交互模式
-      echo "Hugging Face authentication is required to run the SAGE system."
-      echo "Please enter your Hugging Face token to log in."
-      echo "You can find or generate your token here: https://huggingface.co/settings/tokens"
-      echo "If you want to use Hugging Face mirror, refer to https://hf-mirror.com/"
-
-      read -sp "Enter your Hugging Face token: " HF_TOKEN
-      echo ""
-      huggingface-cli login --token "$HF_TOKEN"
+  # 1) 本地或 CI 下 Host 端登录
+  if [[ -n "${CI:-}" ]]; then
+    # CI 模式：必须通过环境变量传入 HF_TOKEN
+    if [[ -z "${HF_TOKEN:-}" ]]; then
+      echo "❌ CI detected but HF_TOKEN is not set. Please set the HF_TOKEN secret."
+      exit 1
     fi
-
-    # 验证登录状态
-    if huggingface-cli whoami &>/dev/null; then
-      echo "✅ Hugging Face authentication successful!"
-    else
-      echo "❌ Hugging Face authentication failed."
-      [[ -n "$CI" ]] && exit 1
-    fi
+    echo "🔑 Logging in on Host via HF_TOKEN from environment…"
+    huggingface-cli login --token "${HF_TOKEN}"
+  else
+    # 交互模式：提示用户输入
+    echo "Please enter your Hugging Face token (https://huggingface.co/settings/tokens):"
+    read -sp "Token: " HF_TOKEN
     echo ""
-    docker exec -it "$DOCKER_CONTAINER_NAME" bash -c "huggingface-cli login --token $HF_TOKEN"
-    if docker exec -it "$DOCKER_CONTAINER_NAME" huggingface-cli whoami &>/dev/null; then
-        echo "Hugging Face authentication successful!"
-        HUGGINGFACE_LOGGED_IN=1
-    else
-        echo "Hugging Face authentication failed. Please check your token and try again."
-        HUGGINGFACE_LOGGED_IN=0
-    fi
-    pause
-}
+    huggingface-cli login --token "${HF_TOKEN}"
+  fi
 
-function configure_huggingface_auth_without_docker() {
-    echo "===================================================="
-    echo "         Configuring Hugging Face Authentication"
-    echo "===================================================="
-    echo "Hugging Face authentication is required to run the SAGE system."
-    echo "Please enter your Hugging Face token to log in."
-    echo "You can find or generate your token here: https://huggingface.co/settings/tokens"
-    echo "If you want to use Hugging Face mirror, refer to https://hf-mirror.com/"
+  # 2) 验证 Host 端登录
+  if huggingface-cli whoami &>/dev/null; then
+    echo "✅ Host Hugging Face authentication successful!"
+  else
+    echo "❌ Host Hugging Face authentication failed."
+    [[ -n "${CI:-}" ]] && exit 1
+  fi
 
-    if [[ -n "${CI:-}" ]]; then
-      # CI: must have HF_TOKEN in env
-      [[ -z "${HF_TOKEN:-}" ]] && { echo "❌ HF_TOKEN not set"; exit 1; }
+  # 3) 如果用户在 Docker 容器里也想做同样的登录
+  if [[ -n "${DOCKER_CONTAINER_NAME:-}" ]]; then
+    echo "🐳 Also logging into container '$DOCKER_CONTAINER_NAME'…"
+    docker exec -i "${DOCKER_CONTAINER_NAME}" \
       huggingface-cli login --token "${HF_TOKEN}"
-    else
-      # interactive fallback
-      read -sp "Enter your Hugging Face token: " HF_TOKEN; echo
-      huggingface-cli login --token "${HF_TOKEN}"
-    fi
-    huggingface-cli whoami > /dev/null \
-      && echo "✅ HF auth ok" \
-      || { echo "❌ HF auth failed"; [[ -n "${CI:-}" ]] && exit 1; }
-    pause
-}
 
+    if docker exec -i "${DOCKER_CONTAINER_NAME}" \
+          huggingface-cli whoami &>/dev/null; then
+      echo "✅ Container Hugging Face authentication successful!"
+      HUGGINGFACE_LOGGED_IN=1
+    else
+      echo "❌ Container Hugging Face authentication failed."
+      HUGGINGFACE_LOGGED_IN=0
+      [[ -n "${CI:-}" ]] && exit 1
+    fi
+  fi
+
+  # 4) 交互时候 pause，否则直接返回
+  pause
+}
 
 function run_debug_main() {
     check_huggingface_auth
@@ -267,7 +243,7 @@ function minimal_setup() {
     echo "conda activate sage"
     install_sage
     echo "Hugging Face authentication is required to run the SAGE system."
-    configure_huggingface_auth_without_docker 
+    configure_huggingface_auth
     echo "Minimal setup completed successfully."
     pause
 }
