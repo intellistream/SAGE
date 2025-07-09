@@ -8,21 +8,26 @@ on:
 jobs:
   todo_to_issue:
     runs-on: self-hosted
-
+    # ───────────────────────────────────────────────────
+    # 1) 启动 Docker-in-Docker 服务
     services:
       docker:
-        image: docker:dind
-        # pass in --privileged via `options:` rather than using `privileged:`
+        image: docker:dind:24.0.2
         options: >-
-          --privileged
-        volumes:
-          - /var/run/docker.sock:/var/run/docker.sock
+          --privileged   # 需要特权模式
+        ports:
+          - 2375:2375    # 暴露 DinD 容器的 Docker daemon 端口
+    # ───────────────────────────────────────────────────
+    # 2) 告诉 docker CLI 去连上面那个服务
+    env:
+      DOCKER_HOST: tcp://localhost:2375
+      DOCKER_TLS_CERTDIR: ""   # 关闭默认 TLS 设置
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 获取完整的 Git 历史
+          fetch-depth: 0
 
       - name: TODO to Issue
         uses: alstr/todo-to-issue-action@v5
@@ -42,7 +47,7 @@ jobs:
         run: |
           git add -A
           if [[ $(git status --porcelain) ]]; then
-            git commit -m "chore: add TODO issue links via todo-to-issue-action"
+            git commit -m "chore: add TODO issue links"
             git push origin HEAD:${{ github.event.pull_request.head.ref }}
           else
             echo "No TODO links to commit"
