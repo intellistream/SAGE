@@ -3,6 +3,8 @@
 MARKER_DIR="$HOME/.sage_setup"
 mkdir -p "$MARKER_DIR"
 
+echo "[$(date '+%H:%M:%S')] setup.sh sees CI='$CI'"
+
 # Interactive Bash Script for SAGE Project Setup
 # Dynamically detects the Docker container name and reuses it across functions.
 
