@@ -21,7 +21,10 @@ function print_header() {
 }
 
 function pause() {
+  # 仅当 stdin 是 tty 且 CI 环境变量未设置时才真正 pause
+  if [[ -t 0 && -z "$CI" ]]; then
     read -p "Press [Enter] to continue..."
+  fi
 }
 
 function detect_container() {
