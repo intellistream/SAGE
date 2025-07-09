@@ -41,4 +41,7 @@ export class JobInformationService {
   updateConfigFile(pipelineId: string, config: string): Observable<any> {
     return this.http.put(`http://localhost:8080/jobInfo/config/update/${pipelineId}`, { config });
   }
+  getJobStatus(jobId: string): Observable<any> {
+    return this.http.get<string>(`http://localhost:8080/api/signal/status/${jobId}`);
+  }
 }
