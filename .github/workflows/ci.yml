@@ -70,4 +70,4 @@ jobs:
           conda activate sage
           export PYTHONPATH="${PYTHONPATH}:$(pwd)"
           export PYTHONWARNINGS="ignore:DeprecationWarning"
-          pytest -v --maxfail=1 --disable-warnings
+          pytest -v sage_tests/
