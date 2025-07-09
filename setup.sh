@@ -150,21 +150,18 @@ function configure_huggingface_auth_without_docker() {
     echo "You can find or generate your token here: https://huggingface.co/settings/tokens"
     echo "If you want to use Hugging Face mirror, refer to https://hf-mirror.com/"
 
-    read -sp "Enter your Hugging Face token: " HF_TOKEN
-    echo ""
-
-    # 执行登录命令（本地）
-    huggingface-cli login --token "$HF_TOKEN"
-
-    # 验证登录状态
-    if huggingface-cli whoami &>/dev/null; then
-        echo "✅ Hugging Face authentication successful!"
-        HUGGINGFACE_LOGGED_IN=1
+    if [[ -n "${CI:-}" ]]; then
+      # CI: must have HF_TOKEN in env
+      [[ -z "${HF_TOKEN:-}" ]] && { echo "❌ HF_TOKEN not set"; exit 1; }
+      huggingface-cli login --token "${HF_TOKEN}"
     else
-        echo "❌ Hugging Face authentication failed. Please check your token and try again."
-        HUGGINGFACE_LOGGED_IN=0
+      # interactive fallback
+      read -sp "Enter your Hugging Face token: " HF_TOKEN; echo
+      huggingface-cli login --token "${HF_TOKEN}"
     fi
-
+    huggingface-cli whoami > /dev/null \
+      && echo "✅ HF auth ok" \
+      || { echo "❌ HF auth failed"; [[ -n "${CI:-}" ]] && exit 1; }
     pause
 }
 
