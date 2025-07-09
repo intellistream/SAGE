@@ -8,13 +8,8 @@ from sage_utils.custom_logger import CustomLogger
 class RuntimeContext:
     def __init__(self,name:str, memory_collection:BaseMemoryCollection, collection_config: Optional[Dict] = None , session_folder:str = None, parallel_index: int = 0, parallelism: int = 1):
         # Create logger first
-        self.logger = CustomLogger(
-            filename=f"Node_{name}",
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output = "WARNING",
-            name = f"{name}_{self.__class__.__name__}"
-        )
+        self.name = name
+        self.session_folder = session_folder or None
         self.logger:CustomLogger
         self.memory_collection = memory_collection
         self.parallel_index = parallel_index  # 并行索引

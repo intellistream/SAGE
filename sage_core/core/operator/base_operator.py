@@ -80,7 +80,14 @@ class BaseOperator(ABC):
 
     def insert_runtime_context(self, runtime_context  = None):
         self.runtime_context = runtime_context
-        self.runtime_context.logger = self.logger
+        self.runtime_context.logger =CustomLogger(
+            filename=f"Node_{self.runtime_context.name}",
+            console_output="WARNING",
+            file_output="DEBUG",
+            global_output = "WARNING",
+            session_folder=self.runtime_context.session_folder,
+            name = f"{self.runtime_context.name}_RuntimeContext"
+        )
         self.function.insert_runtime_context(runtime_context)
 
     def process_data(self, tag: str, data: 'Data'):
