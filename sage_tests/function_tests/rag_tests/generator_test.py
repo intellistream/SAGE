@@ -3,6 +3,7 @@ from sage_core.api.tuple import Data
 from sage_common_funs.rag.generator import OpenAIGenerator,OpenAIGeneratorWithHistory
 from dotenv import load_dotenv
 import os
+import time
 load_dotenv(override=False)
 api_key = os.environ.get("ALIBABA_API_KEY")
 @pytest.fixture
@@ -41,7 +42,7 @@ def test_openai_generator_history_state(config_openai):
         {"role": "user", "content": query1}
     ]])
     gen.execute(input_data1)
-
+    time.sleep(5)
     # 第二次用户提问
     query2 = "Which river flows through it?"
     input_data2 = Data([query2, [
