@@ -131,22 +131,44 @@ if os.path.exists(manager_json):
     os.remove(manager_json)
 ```
 
-### 🔧 Build Pipeline Using Fluent API
+### 🔧 Step-by-Step: Build a Local RAG Pipeline
+SAGE uses a **fluent-style API** to declaratively define RAG pipelines. Here's how to get started:
 
 ---
 
-Sage uses a fluent-style API to declaratively define data flows. Here’s how to build a RAG pipeline step by step:
+
 ```python
-pipeline = Environment(name="example_pipeline", use_ray=False)
+from sage_core.api.env import LocalEnvironment
+from sage_common_funs.io.source import FileSource
+from sage_common_funs.rag.retriever import DenseRetriever
+from sage_common_funs.rag.promptor import QAPromptor
+from sage_common_funs.rag.generator import OpenAIGenerator
+from sage_common_funs.io.sink import TerminalSink
+from sage_utils.config_loader import load_config
+
+config = load_config("config.yaml")
+
+# Build pipeline using Fluent API
+env = LocalEnvironment()
+env.set_memory(config=None)
+
 query_stream = (pipeline
-   .from_source(FileSource, config)
-   .map(DenseRetriever, config)
-   .map(QAPromptor, config)
-   .map(OpenAIGenerator, config)
-   .sink(TerminalSink, config)
-   )
-   # Submit the pipeline job
-   pipeline.submit(config{"is_long_running":False})
+   .from_source(FileSource, config["source"])
+   .map(DenseRetriever, config["retriever"])
+   .map(QAPromptor, config["promptor"])
+   .map(OpenAIGenerator, config["generator"])
+   .sink(TerminalSink, config["sink"])
+)
+
+# Submit and run the pipeline
+try:
+   env.submit()
+   env.run_once() 
+   time.sleep(5) 
+   env.stop()
+finally:
+   env.close()
+
 ```
 
 #### 📘 About config
@@ -154,32 +176,44 @@ query_stream = (pipeline
 Each operator in the pipeline requires a configuration dictionary config that provides runtime parameters. You can find example config.yaml under [config](./config).
 
 #### 📘 About Ray
-To enable distributed execution using Ray, simply set use_ray=True when building the pipeline:
+To enable distributed execution using Ray, you can use RemoteEnvironment.
 ```python
-pipeline = Environment(name="example_pipeline", use_ray=True)
+env = RemoteEnvironment()
 ```
 #### 📘 About Long Running
 If your pipeline is meant to run as a long-lived service, use:
 ```python
-   pipeline.submit(config{"is_long_running":True})
+env.run_streaming() 
 ```
 
-See more examples under [app](sage_examples)
+See more examples under [sage_examples](sage_examples)
 
 ## 🧩 Components
 ### Operator
-| Operator Type | Example | Functionality |
-|---|---|---|
-| SourceOperator | `from_input()`, `from_rss()` | Ingest external input from users or web data sources. |
-| RetrievalOperator | `retriver.retrieve(q)` | Query vector memory or hybrid stores for context retrieval. |
-| RerankOperator | `reranker.rerank(query, docs)` | Rerank retrieved contexts based on relevance scores using a reranker model. |
-| RefineOperator | `Refiner.refine(prompt)` | Compress the prompt to shorten input length and speed up model inference. |
-| PromptOperator | `construct(query, docs)` | Construct prompts based on the query and retrieved contexts for model generation. |
-| GenerationOperator | `model.generate(x)` | Perform language model inference with the given prompt. |
-| SinkOperator | `output.write(result)`, `save_to_file(output)` | Output results to external sinks such as terminal, files, or APIs. |
-| AgentOperator | `agent.step()`, `agent.plan()` | Build multi-step decision-making agents that dynamically select and execute tools such as search or API calls. |
-| EvaluateOperator | `evaluate(predict, answer)` | Evaluate results using F1 score, ROUGE-L, BLEU, etc. |
-| RoutingOperator | `route(condition, branches)` | Declaratively express conditional control flow and fallback strategies. |
+SAGE follows a Flink-style pipeline architecture where each `Operator` acts as a modular and composable processing unit. Operators can be chained together using a fluent API to form a streaming data pipeline. Internally, each `Operator` wraps a stateless or stateful `Function` that defines its core logic.
+
+#### 🔧 Supported Operators
+| Operator Method | Description                                                                                                    |
+| --------------- | -------------------------------------------------------------------------------------------------------------- |
+| `from_source()` | Adds a `SourceFunction` to read input data from external systems.                                              |
+| `map()`         | Applies a stateless `Function` to each element of the stream, one-to-one transformation.                       |
+| `flatmap()`    | Similar to `map()`, but allows one input to emit zero or more outputs (many-to-many).                          |
+| `sink()`        | Defines the terminal output of the stream, consuming the final data (e.g., write to terminal, file, database). |
+
+#### 🔧 Supported Fuction
+| Fuction Type        | Description                                                                                                        |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `SourceOperator`     | Entry point of the pipeline. Ingests input data from external sources such as files, APIs, or user queries.        |
+| `RetrievalOperator`  | Performs dense or hybrid retrieval from a vector database or document store based on the input query.              |
+| `RerankOperator`     | Reorders retrieved documents using a reranker model (e.g., cross-encoder) to improve relevance.                    |
+| `RefineOperator`     | Compresses or filters retrieved context to reduce input length for faster and more accurate model inference.       |
+| `PromptOperator`     | Builds model-ready prompts by formatting the query and context into a specific template or structure.              |
+| `GenerationOperator` | Generates answers using a large language model (e.g., OpenAI, LLaMA, vLLM) based on the constructed prompt.        |
+| `SinkOperator`       | Terminal point of the pipeline. Outputs final results to various sinks like terminal, files, databases, or APIs.   |
+| `AgentOperator`      | Enables multi-step decision-making agents that call tools or external APIs based on reasoning strategies.          |
+| `EvaluateOperator`   | Calculates metrics like F1, ROUGE, BLEU for model output evaluation. Often used in test/evaluation pipelines.      |
+| `RoutingOperator`    | Implements conditional branching or fallback logic within the pipeline (e.g., skip generation if retrieval fails). |
+
 ### Memory
 ![](./asset/Memory_framework.png)
 
