@@ -110,7 +110,7 @@ class BaseEnvironment:
         return self._pipeline
 
     def set_memory(self, config):
-        self.memory_collection = sage_memory.api.create_memory(config, remote = (self.platform == PlatformType.REMOTE))
+        self.memory_collection = sage_memory.api.get_memory(config, remote = (self.platform == PlatformType.REMOTE))
 
     def set_memory_collection(self, collection):
 

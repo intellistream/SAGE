@@ -1,10 +1,10 @@
 import pytest
 
-from sage_memory.api import create_memory  # 如果单独存，可以直接import
+from sage_memory.api import get_memory  # 如果单独存，可以直接import
 
 def test_create_memory_basic():
     config = {}
-    col = create_memory(config)
+    col = get_memory(config)
 
     assert col.name == "vdb_test"
     assert col.dim == 128
