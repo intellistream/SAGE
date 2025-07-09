@@ -46,14 +46,6 @@ jobs:
           activate-environment: sage
           auto-activate-base: false
 
-      # Use Deploy Key to Clone CANDY Repository
-      - name: Configure SSH for Deploy Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.CANDY_DEPLOY_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-
       # Install Base Dependencies
       - name: Install Base Dependencies
         run: |
