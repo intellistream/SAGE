@@ -7,7 +7,5 @@ from sage_utils.custom_logger import CustomLogger
 
 
 class MapOperator(BaseOperator):
-    def __init__(self,
-                function:Union[BaseFunction,type[BaseFunction]],
-                **kwargs):
-        super().__init__(function, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)

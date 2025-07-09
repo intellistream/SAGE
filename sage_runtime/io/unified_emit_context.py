@@ -92,7 +92,7 @@ class UnifiedEmitContext:
                 raise TypeError(f"Expected ActorHandle, got {type(actor_handle)}")
             
             # 调用Ray Actor的process_data方法
-            actor_handle.process.remote(input_tag, data)
+            actor_handle.process_data.remote(input_tag, data)
             
             self.logger.debug(f"Sent local->ray: {connection.target_name}[{input_tag}]")
             
@@ -145,7 +145,7 @@ class UnifiedEmitContext:
                 raise TypeError(f"Expected ActorHandle, got {type(actor_handle)}")
             
             # 调用目标Ray Actor的process_data方法
-            actor_handle.process.remote(input_tag, data)
+            actor_handle.process_data.remote(input_tag, data)
             
             self.logger.debug(f"Sent ray->ray: {connection.target_name}[{input_tag}]")
             

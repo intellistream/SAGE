@@ -26,4 +26,15 @@ def create_memory(config, remote:bool = False):
         for text, metadata in texts:
             col.insert(text, metadata)
         col.create_index(index_name="vdb_index")
+    else:
+        col.add_metadata_field.remote("owner")
+        col.add_metadata_field.remote("show_type")
+        texts = [
+            ("hello world", {"owner": "ruicheng", "show_type": "text"}),
+            ("你好，世界", {"owner": "Jun", "show_type": "text"}),
+            ("こんにちは、世界", {"owner": "Lei", "show_type": "img"}),
+        ]
+        for text, metadata in texts:
+            col.insert.remote(text, metadata)
+        col.create_index.remote(index_name="vdb_index")
     return col

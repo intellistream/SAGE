@@ -16,7 +16,7 @@ class BaseEnvironment:
         self.name = name
         self.logger = CustomLogger(
             filename=f"Environment_{name}",
-            console_output="DEBUG",
+            console_output="WARNING",
             file_output=True,
             global_output = "DEBUG",
         )
