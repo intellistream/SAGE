@@ -279,9 +279,8 @@ function main_menu() {
         clear
         print_header
         echo "Select an option to proceed:"
-        echo "1.Minimal Setup ( Set Up Conda Environment)"
-        # echo "2.Setup with Ray (Minimal Setup, Install Ray)"
-        echo "2.Setup with Docker(Start Docker Container, Set Up Conda Environment)"
+        echo "1.Minimal Setup (Set Up Conda Environment without Docker)"
+        echo "2.Setup with Docker (Start Docker Container, Set Up Conda Environment)"
         echo "3.Full Setup (Start Docker Container, Install Dependencies including CANDY, Set Up Conda Environment)"
         echo "4.Enter Docker Instance "
         echo "5.run example scripts"
@@ -309,5 +308,8 @@ function main_menu() {
     done
 }
 
-# Start the Interactive Menu
-main_menu
+# 只有在交互式终端下才调用 main_menu
+# 在 CI（非交互）环境 stdin 通常不是 tty，或者 CI=true
+if [[ -t 0 && -z "$CI" ]]; then
+  main_menu
+fi
