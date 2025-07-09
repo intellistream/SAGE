@@ -2,6 +2,7 @@ from typing import Union, TYPE_CHECKING
 from dataclasses import dataclass
 from enum import Enum
 from sage_runtime.executor.local_dag_node import LocalDAGNode
+from sage_runtime.executor.ray_dag_node import RayDAGNode
 from ray.actor import ActorHandle
 from sage_runtime.io.local_tcp_server import LocalTcpServer
 class NodeType(Enum):
@@ -58,7 +59,7 @@ class Connection:
         """
         if isinstance(node, LocalDAGNode):
             return NodeType.LOCAL
-        elif isinstance(node, ActorHandle):
+        elif isinstance(node, RayDAGNode):
             return NodeType.RAY_ACTOR
         else:
             raise NotImplementedError(f"未知节点类型: {type(node)}")
@@ -105,7 +106,7 @@ class Connection:
             # 本地到Ray Actor的连接
             return {
                 "type": "actor_handle",
-                "actorhandle": target_node,
+                "actorhandle": target_node.operator.get_wrapped_operator(),
                 "node_name": self.target_name
             }
 
@@ -122,7 +123,7 @@ class Connection:
             # Ray Actor到Ray Actor的连接
             return {
                 "type": "actor_handle",
-                "actorhandle": target_node,
+                "actorhandle": target_node.operator.get_wrapped_operator(),
                 "node_name": self.target_name
             }
 
