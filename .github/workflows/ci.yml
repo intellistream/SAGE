@@ -17,7 +17,11 @@ jobs:
     env:
       CI: true          # <<< here
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
-
+      SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+      ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
+      HF_ENDPOINT: https://hf-mirror.com
     steps:
 
       - name: Checkout code
@@ -59,13 +63,14 @@ jobs:
           mamba install -y pytest pytest-cov
           mamba clean --all -y
 
+      # 可选：在这里再做一把“环境探针”，确认变量都还在
+      - name: Debug environment variables
+        shell: bash
+        run: |
+          env | grep -E 'CI|HF_TOKEN|SILICONCLOUD_API_KEY|OPENAI_API_KEY|JINA_API_KEY|ALIBABA_API_KEY'
+
       - name: Run Pytest
         shell: bash
-        env:
-          SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
-          ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
         run: |
           echo senleilaikan: $ALIBABA_API_KEY
           source "$(conda info --base)/etc/profile.d/conda.sh"
