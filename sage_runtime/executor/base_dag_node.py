@@ -15,7 +15,7 @@ class BaseDagNode(ABC):
             filename=f"{name}",
             session_folder=session_folder,
             console_output="WARNING",
-            file_output="WARNING",
+            file_output="DEBUG",
             global_output = "WARNING",
             name = f"{name}_{self.__class__.__name__}"
         )

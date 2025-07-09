@@ -13,6 +13,7 @@ from sage_core.api.enum import PlatformType
 class BaseEnvironment:
 
     def __init__(self, name: str, config: dict | None, *, platform: PlatformType = PlatformType.LOCAL):
+        CustomLogger.get_session_folder()
         self.name = name
         self.logger = CustomLogger(
             filename=f"Environment_{name}",

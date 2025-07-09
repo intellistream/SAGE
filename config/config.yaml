@@ -24,3 +24,4 @@ promptor:
 
 sink:
   platform: "local"
+  file_path: "output.txt"
