@@ -16,25 +16,9 @@ if TYPE_CHECKING:
 
 
 class LocalDAGNode(BaseDAGNode):
-    """
-    Multiplexer DAG Node.
-
-    This node can handle multiple upstream nodes and emit results to multiple downstream nodes.
-    It is designed for scenarios where data from multiple sources needs to be processed together.
-    """
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        """
-        Initialize the multiplexer DAG node.
-# 
-        Args:
-            name: Unique name of the node
-            operator: An operator implementing the execution logic
-            config: Optional dictionary of configuration parameters for the operator
-            is_spout: Indicates if the node is the spout (starting point)
-        """
-
 
         self.input_buffer = LocalMessageQueue(name = self.name)  # Local input buffer for this node
 
