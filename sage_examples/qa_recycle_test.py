@@ -45,7 +45,7 @@ def run_gc_report(verbose: bool = True):
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    env = LocalEnvironment()
+    env = RemoteEnvironment()
     env.set_memory(config=None)
     # 构建数据处理流程
     query_stream = (env
@@ -53,7 +53,7 @@ def pipeline_run():
                     .map(DenseRetriever, config["retriever"])
                     .map(QAPromptor, config["promptor"])
                     .map(OpenAIGenerator, config["generator"])
-                    .sink(FileSink, config["sink"])
+                    .sink(TerminalSink, config["sink"])
                     )
     try:
         env.submit()
@@ -64,6 +64,7 @@ def pipeline_run():
         env.run_streaming()  # 启动管道
         time.sleep(5)  # 等待管道运行
         env.stop()
+        time.sleep(60)
     finally:
         env.close()
     

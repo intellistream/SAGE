@@ -185,23 +185,29 @@ class OperatorFactory:
         Returns:
             BaseOperator: 创建的operator实例
         """
+        name = name or self.basename
         # 创建logger用于调试
         logger = CustomLogger(
-            filename=f"OperatorFactory_{self.basename}",
+            filename=f"OperatorFactory_{name}",
             session_folder=session_folder,
             console_output="WARNING",
             file_output="DEBUG",
             global_output="WARNING",
-            name=f"OperatorFactory_{self.basename}"
+            name=f"OperatorFactory_{name}"
         )
         
         try:
             # 合并所有kwargs
-            merged_function_kwargs = {**self.function_kwargs, **additional_kwargs}
+            merged_function_kwargs = {
+                **self.function_kwargs,
+                'session_folder': session_folder,
+                'name': name,
+                **additional_kwargs
+            }
             merged_operator_kwargs = {
                 **self.operator_kwargs,
                 'session_folder': session_folder,
-                'name': name or self.basename,
+                'name': name,
                 **additional_kwargs
             }
             
