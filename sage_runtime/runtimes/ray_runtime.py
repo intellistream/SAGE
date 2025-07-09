@@ -24,7 +24,7 @@ class RayRuntime(BaseRuntime):
         self.logger = CustomLogger(
             filename=f"RayRuntime",
             console_output="WARNING",
-            file_output="WARNING",
+            file_output="DEBUG",
             global_output = "WARNING",
         )
         # 确保Ray已初始化

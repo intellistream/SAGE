@@ -20,7 +20,7 @@ class MixedDAG():
         self.name:str = graph.name
         self.logger = CustomLogger(
             filename=f"MixedDAG_{self.name}",
-            console_output="DEBUG",
+            console_output="WARNING",
             file_output="DEBUG",
             global_output = "DEBUG",
         )

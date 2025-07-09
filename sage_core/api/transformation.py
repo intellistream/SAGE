@@ -190,7 +190,7 @@ class OperatorFactory:
             filename=f"OperatorFactory_{self.basename}",
             session_folder=session_folder,
             console_output="WARNING",
-            file_output="WARNING",
+            file_output="DEBUG",
             global_output="WARNING",
             name=f"OperatorFactory_{self.basename}"
         )

@@ -26,7 +26,7 @@ class BaseOperator(ABC):
             filename=f"Node_{name}",
             session_folder = session_folder or None,
             console_output="WARNING",
-            file_output="WARNING",
+            file_output="DEBUG",
             global_output = "WARNING",
             name = f"{name}_{self.__class__.__name__}"
         )
@@ -159,7 +159,7 @@ class BaseOperator(ABC):
         
         # 打印连接的调试信息（可选）
         # if self.logger.isEnabledFor(10):  # DEBUG level
-        connection.print_debug_info()
+        # print(connection.debug_info())
         
         self.logger.debug(
             f"Added downstream connection: [out:{output_tag}] -> "

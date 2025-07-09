@@ -19,7 +19,7 @@ class UnifiedEmitContext:
             filename=f"Node_{name}",
             session_folder=session_folder,
             console_output="WARNING",
-            file_output="WARNING",
+            file_output="DEBUG",
             global_output="WARNING",
             name=f"{name}_UnifiedEmitContext"
         )
