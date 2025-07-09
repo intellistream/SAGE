@@ -17,10 +17,6 @@ jobs:
     env:
       CI: true          # <<< here
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
-      ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
 
     steps:
 
@@ -65,9 +61,14 @@ jobs:
 
       - name: Run Pytest
         shell: bash
+        env:
+          SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+          ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
         run: |
           source "$(conda info --base)/etc/profile.d/conda.sh"
           conda activate sage
           export PYTHONPATH="${PYTHONPATH}:$(pwd)"
           export PYTHONWARNINGS="ignore:DeprecationWarning"
-          pytest -v sage_tests/
+          pytest -v sage_tests
