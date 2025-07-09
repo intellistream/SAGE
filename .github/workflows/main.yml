@@ -46,10 +46,14 @@ jobs:
       - name: Remove Existing CUDA Repositories
         run: sudo rm -f /etc/apt/sources.list.d/cuda* /etc/apt/sources.list.d/nvidia-*
 
+      - name: Prepare PPA helper
+        run: |
+          apt-get update
+          apt-get install -y software-properties-common
+
       # Remove Python 3.10 and Install Python 3.11
       - name: Set up Python 3.11 as Default System Python
-        run: |
-          sudo add-apt-repository -y ppa:deadsnakes/ppa
+        run: |          
           sudo add-apt-repository -y ppa:deadsnakes/ppa
           sudo apt-get update
           sudo apt-get purge -y python3.10 python3.10-dev python3.10-minimal
