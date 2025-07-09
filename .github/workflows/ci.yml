@@ -15,6 +15,7 @@ jobs:
     timeout-minutes: 60
 
     env:
+      CI: true          # <<< here
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -37,8 +38,8 @@ jobs:
       - name: Reuse setup.sh to provision environment
         shell: bash
         run: |
-          set -euxo pipefail
-
+          set -euxo pipefail          
+          
           # 1) turn off any interactive 'pause' in setup.sh
           pause() { :; }
 
