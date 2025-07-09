@@ -8,32 +8,20 @@ on:
 jobs:
   todo_to_issue:
     runs-on: self-hosted
-    # ───────────────────────────────────────────────────
-    # 1) 启动 Docker-in-Docker 服务
-    services:
-      docker:
-        image: docker:dind:24.0.2
-        options: >-
-          --privileged   # 需要特权模式
-        ports:
-          - 2375:2375    # 暴露 DinD 容器的 Docker daemon 端口
-    # ───────────────────────────────────────────────────
-    # 2) 告诉 docker CLI 去连上面那个服务
-    env:
-      DOCKER_HOST: tcp://localhost:2375
-      DOCKER_TLS_CERTDIR: ""   # 关闭默认 TLS 设置
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # 获取完整的git历史
 
       - name: TODO to Issue
         uses: alstr/todo-to-issue-action@v5
         with:
           INSERT_ISSUE_URLS: "true"
-          COMMITS: '["${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"]'
+          # 修复：使用正确的JSON格式，去掉换行符
+          commits: '["${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"]'
+          # 或者更简单的方式，直接使用字符串：
+          # commits: '"${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"'
           DIFF_URL: ""
 
       - name: Set Git User
@@ -42,13 +30,13 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Commit and Push Changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git add -A
           if [[ $(git status --porcelain) ]]; then
-            git commit -m "chore: add TODO issue links"
+            git commit -m "chore: add TODO issue links via todo-to-issue-action"
             git push origin HEAD:${{ github.event.pull_request.head.ref }}
           else
             echo "No TODO links to commit"
           fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
