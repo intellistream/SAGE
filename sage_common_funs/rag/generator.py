@@ -1,10 +1,9 @@
 import os
-from typing import Tuple
+from typing import Tuple,List
 from sage_common_funs.utils.generator_model import apply_generator_model
-from sage_core.api.base_function import BaseFunction
+from sage_core.api.base_function import BaseFunction,StatefulFunction
 from sage_core.api.tuple import Data
 from sage_utils.custom_logger import CustomLogger
-
 
 class OpenAIGenerator(BaseFunction):
     """
@@ -27,7 +26,7 @@ class OpenAIGenerator(BaseFunction):
             method=self.config["method"],
             model_name=self.config["model_name"],
             base_url=self.config["base_url"],
-            api_key=os.getenv("ALIBABA_API_KEY"),
+            api_key=self.api_key,
             seed=42  # Hardcoded seed for reproducibility
         )
         self.num = 1
@@ -59,6 +58,55 @@ class OpenAIGenerator(BaseFunction):
         # Return the generated response along with the original user query as a tuple
         return Data((user_query, response))
 
+class OpenAIGeneratorWithHistory(StatefulFunction):
+    """
+    OpenAIGenerator with global dialogue memory.
+    Maintains a rolling history of past user and assistant turns (stateful).
+    """
+
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config
+
+        self.model = apply_generator_model(
+            method=self.config["method"],
+            model_name=self.config["model_name"],
+            base_url=self.config["base_url"],
+            api_key=os.getenv("ALIBABA_API_KEY"),
+            seed=42
+        )
+
+        # 全局历史状态，按对话轮次记录字符串
+        self.dialogue_history: List[str] = []
+        self.history_turns = config.get("max_history_turns", 5)
+        self.num = 1
+
+    def execute(self, data: Data[List], **kwargs) -> Data[Tuple[str, str]]:
+        """
+        Expects input data: [user_query, prompt_dict]
+        Where prompt_dict includes {"content": ...}
+        """
+        user_query = data.data[0] if len(data.data) > 1 else None
+        prompt_info = data.data[1] if len(data.data) > 1 else data.data
+
+        new_turns = [entry for entry in prompt_info if entry["role"] in ("user", "system")]
+
+        history_to_use = self.dialogue_history[-2 * self.history_turns:]
+        full_prompt = history_to_use + new_turns
+
+        self.logger.debug(f"[Prompt with history]:\n{full_prompt}")
+
+        response = self.model.generate(full_prompt, **kwargs)
+
+        for entry in new_turns:
+            if entry["role"] == "user":
+                self.dialogue_history.append(entry)
+        self.dialogue_history.append({"role": "assistant", "content": response})
+        self.dialogue_history = self.dialogue_history[-2 * self.history_turns:]  # 保留最近 N 轮
+
+        self.logger.info(f"\033[32m[{self.__class__.__name__}] Response: {response}\033[0m")
+
+        return Data((user_query, response))
 
 class HFGenerator(BaseFunction):
     """

@@ -118,24 +118,25 @@ class MemoryFunction(BaseFunction):
         pass
 
 class StatefulFunction(BaseFunction):
-    def __init__(self):
+    def __init__(self,**kwargs):
+        super().__init__(**kwargs)
         self.runtime_context = None  # 需要在compiler里面实例化。
         self.state = None
         pass
 
 
-class MemoryFunction(BaseFunction):
-    def __init__(self):
-        self.runtime_context = None  # 需要在compiler里面实例化。
+# class MemoryFunction(BaseFunction):
+#     def __init__(self):
+#         self.runtime_context = None  # 需要在compiler里面实例化。
 
-    @property
-    def memory(self):
-        if self.runtime_context is None:
-            raise RuntimeError("runtime_context is not set")
-        return self.runtime_context.memory
+#     @property
+#     def memory(self):
+#         if self.runtime_context is None:
+#             raise RuntimeError("runtime_context is not set")
+#         return self.runtime_context.memory
 
-class StatefulFunction(BaseFunction):
-    def __init__(self):
-        self.runtime_context = None  # 需要在compiler里面实例化。
-        self.state
-        pass
+# class StatefulFunction(BaseFunction):
+#     def __init__(self):
+#         self.runtime_context = None  # 需要在compiler里面实例化。
+#         self.state
+#         pass
