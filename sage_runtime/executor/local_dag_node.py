@@ -3,14 +3,17 @@ import time
 from typing import Any, Union, Tuple, TYPE_CHECKING
 from sage_runtime.io.local_message_queue import LocalMessageQueue
 from sage_runtime.runtime_context import RuntimeContext
-from sage_runtime.executor.base_dag_node import BaseDagNode
+from sage_runtime.executor.base_dag_node import BaseDAGNode
 from ray.actor import ActorHandle
 from sage_memory.memory_collection.base_collection import BaseMemoryCollection
 if TYPE_CHECKING:
     from sage_core.api.transformation import Transformation, OperatorFactory
+    from sage_core.core.operator.base_operator import BaseOperator
+    from sage_runtime.wrapper.operator_wrapper import OperatorWrapper
 
 
-class LocalDAGNode(BaseDagNode):
+
+class LocalDAGNode(BaseDAGNode):
     """
     Multiplexer DAG Node.
 
@@ -23,7 +26,7 @@ class LocalDAGNode(BaseDagNode):
                  operator_factory:'OperatorFactory', 
                  memory_collection:Union[BaseMemoryCollection, ActorHandle] = None
                  ) -> None:
-        super().__init__(name, operator_factory)
+        super().__init__(name)
         """
         Initialize the multiplexer DAG node.
 # 
@@ -33,6 +36,8 @@ class LocalDAGNode(BaseDagNode):
             config: Optional dictionary of configuration parameters for the operator
             is_spout: Indicates if the node is the spout (starting point)
         """
+        self.operator:'OperatorWrapper' = operator_factory.build_instance(name = name)
+        self.is_spout = operator_factory.is_spout  # Check if this is a spout node
         self.memory_collection = memory_collection  # Optional memory collection for this node
         self.operator.insert_runtime_context(RuntimeContext(self.memory_collection, logger=self.logger))
 

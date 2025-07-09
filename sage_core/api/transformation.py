@@ -1,14 +1,15 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import annotations
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
 from enum import Enum
+import ray
+from ray.actor import ActorHandle
 from sage_core.api.base_function import BaseFunction
 # from sage_core.api.env import BaseEnvironment
 from sage_core.core.operator.map_operator import MapOperator
 from sage_utils.custom_logger import CustomLogger
 from sage_core.api.enum import PlatformType
 from sage_utils.name_server import get_name
+from sage_runtime.wrapper.operator_wrapper import OperatorWrapper
 if TYPE_CHECKING:
     from sage_core.core.operator.base_operator import BaseOperator
 
@@ -173,7 +174,8 @@ class OperatorFactory:
     def build_instance(self, 
                        session_folder: Optional[str] = None, 
                        name: Optional[str] = None,
-                       **additional_kwargs) -> BaseOperator:
+                       remote: bool = False,
+                       **additional_kwargs) -> OperatorWrapper:
         """
         创建operator实例
         
@@ -200,28 +202,48 @@ class OperatorFactory:
             # 合并所有kwargs
             merged_function_kwargs = {
                 **self.function_kwargs,
-                'session_folder': session_folder,
+                'session_folder': session_folder or CustomLogger.get_session_folder(),
                 'name': name,
                 **additional_kwargs
             }
             merged_operator_kwargs = {
                 **self.operator_kwargs,
-                'session_folder': session_folder,
+                'session_folder': session_folder or CustomLogger.get_session_folder(),
                 'name': name,
                 **additional_kwargs
             }
             
-            # 创建function实例
-            function_instance = self.function_class(*self.function_args, **merged_function_kwargs)
-            logger.debug(f"Created function instance: {self.function_class.__name__} "
-                        f"with args {self.function_args} and kwargs {merged_function_kwargs}")
+            if remote:
+                # 创建Ray Actor版本的Operator
+                # 将function类和参数传递给operator，让operator自己创建function实例
+                Operator_class = ray.remote(self.operator_class)
+                operator_instance = Operator_class.remote(
+                    function_class=self.function_class,
+                    function_args=self.function_args,
+                    function_kwargs=merged_function_kwargs,
+                    **merged_operator_kwargs
+                )
+                logger.debug(f"Created Ray Actor operator instance: {self.operator_class.__name__}")
+            else:
+                # 创建本地Operator实例
+                # 同样传递function类和参数
+                operator_instance = self.operator_class(
+                    function_class=self.function_class,
+                    function_args=self.function_args,
+                    function_kwargs=merged_function_kwargs,
+                    **merged_operator_kwargs
+                )
+                logger.debug(f"Created local operator instance: {self.operator_class.__name__}")
             
-            # 创建operator实例
-            operator_instance = self.operator_class(function_instance, **merged_operator_kwargs)
-            logger.debug(f"Created operator instance: {self.operator_class.__name__} "
-                        f"with function {self.function_class.__name__}")
+            # 用OperatorWrapper包装
+            wrapped_operator = OperatorWrapper(operator_instance, name)
+            logger.debug(f"Wrapped operator with OperatorWrapper")
             
-            return operator_instance
+            return wrapped_operator
+            
+        except Exception as e:
+            logger.error(f"Failed to create operator: {e}", exc_info=True)
+            raise
             
         except Exception as e:
             logger.error(f"Failed to create operator: {e}", exc_info=True)

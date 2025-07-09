@@ -80,8 +80,6 @@ class LocalRuntime:
         Returns:
             str: 任务句柄
         """
-        if not isinstance(node, LocalDAGNode):
-            raise TypeError("Expected LocalDAGNode instance")
         
         self.logger.info(f"Submitting node '{node.name}' to {self.name}")
         

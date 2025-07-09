@@ -1,16 +1,16 @@
 import ray
 import time
-from typing import Any, Dict, Union
+from typing import Any, Dict, Union, TYPE_CHECKING
 from ray.actor import ActorHandle
 from sage_runtime.runtime_context import RuntimeContext
-from sage_runtime.executor.base_dag_node import BaseDagNode
-from sage_core.api.transformation import Transformation, OperatorFactory
-
+from sage_runtime.executor.base_dag_node import BaseDAGNode
 from sage_utils.custom_logger import CustomLogger
+if TYPE_CHECKING:   
+    from sage_core.core.operator.base_operator import BaseOperator
+    from sage_core.api.transformation import OperatorFactory
+    from sage_runtime.wrapper.operator_wrapper import OperatorWrapper
 
-
-@ray.remote
-class RayDAGNode(BaseDagNode):
+class RayDAGNode(BaseDAGNode):
     """
     Ray Actor version of LocalDAGNode for distributed execution.
     
@@ -18,10 +18,11 @@ class RayDAGNode(BaseDagNode):
     maintains the request queue for actors automatically.
     """
     
-    def __init__(self, name: str, operator_factory: OperatorFactory,session_folder: str = None, memory_collection:ActorHandle = None) -> None:
+    def __init__(self, name: str, operator_factory: 'OperatorFactory' ,memory_collection:ActorHandle = None) -> None:
         if(not isinstance(memory_collection, ActorHandle)):
             raise Exception("Memory collection must be a Ray Actor handle")
-        super().__init__(name, operator_factory, session_folder)
+        super().__init__(name)
+
         """
         Initialize Ray multiplexer DAG node.
         
@@ -32,8 +33,10 @@ class RayDAGNode(BaseDagNode):
             is_spout: Whether this is a spout node
             session_folder: Session folder for logging
         """
+        self.operator:'OperatorWrapper' = operator_factory.build_instance(name = name, remote = True)
+        self.is_spout = operator_factory.is_spout  # Check if this is a spout node
         self.memory_collection = memory_collection  # Optional memory collection for this node
-        self.operator.insert_runtime_context(RuntimeContext(self.memory_collection, self.logger))
+        self.operator.insert_runtime_context(RuntimeContext(self.memory_collection))
 
         # Running state management
         self._stop_requested = False
@@ -61,9 +64,8 @@ class RayDAGNode(BaseDagNode):
                 except Exception as e:
                     self.logger.error(f"Error in spout node {self.name}: {e}", exc_info=True)
                     raise
-                finally:
-                    self._running = False
-                    self.logger.info(f"Spout execution stopped for node {self.name}")
+            self._running = False
+            self.logger.info(f"Spout execution stopped for node {self.name}")
         else:
             # For non-spout nodes, just mark as running
 

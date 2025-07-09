@@ -8,12 +8,11 @@ if TYPE_CHECKING:
     from sage_core.core.operator.base_operator import BaseOperator
     from sage_core.api.transformation import Transformation, OperatorFactory
 
-class BaseDagNode(ABC):
-    def __init__(self, name, operator_factory:'OperatorFactory', session_folder=None):
+class BaseDAGNode(ABC):
+    def __init__(self, name):
         # Create logger first
         self.logger = CustomLogger(
             filename=f"Node_{name}",
-            session_folder=session_folder,
             console_output="WARNING",
             file_output="DEBUG",
             global_output = "WARNING",
@@ -23,9 +22,8 @@ class BaseDagNode(ABC):
         self._running = False
         # Initialize stop event
         self.stop_event = threading.Event()
+        self.operator:BaseOperator
 
-        self.is_spout = operator_factory.is_spout  # Check if this is a spout node 正确
-        self.operator:'BaseOperator' = operator_factory.build_instance(session_folder=session_folder, name = name)
         pass
     
     @abstractmethod
@@ -43,6 +41,9 @@ class BaseDagNode(ABC):
         """
         self.operator.add_connection(connection)
         self.logger.debug(f"Connection added to node '{self.name}': {connection}")
+
+    def submit(self):
+        pass
 
 
     def process(self, input_tag: str = None, data:Any = None) -> None:

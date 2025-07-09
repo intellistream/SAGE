@@ -33,10 +33,8 @@ class OutputQueueCache:
 
 
 class SourceOperator(BaseOperator):
-    def __init__(self,
-                function:Union[BaseFunction,type[BaseFunction]],
-                **kwargs):
-        super().__init__(function, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.output_cache:OutputQueueCache = OutputQueueCache(self.logger)
 
     def process_control(self, message:Message):

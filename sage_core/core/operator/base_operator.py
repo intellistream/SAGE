@@ -1,6 +1,6 @@
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Dict, Optional, Set, TYPE_CHECKING
+from typing import Any, List, Dict, Optional, Set, TYPE_CHECKING, Type, Tuple
 from sage_core.api.collector import Collector
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.io.unified_emit_context import UnifiedEmitContext
@@ -20,17 +20,34 @@ if TYPE_CHECKING:
 # 路由策略是 Operator 的语义特征，EmitContext 专注于消息投递的物理实现。
 
 class BaseOperator(ABC):
-    def __init__(self, function: 'BaseFunction', session_folder: Optional[str] = None, name: Optional[str] = None):
-        self.collector = Collector(self)  # 用于收集数据
+    def __init__(self, 
+                 function_class: Type['BaseFunction'] = None,
+                 function_args: Tuple = None,
+                 function_kwargs: Dict[str, Any] = None,
+                 session_folder: str = None, 
+                 name: str = None, 
+                 **kwargs):
+        
         self.logger = CustomLogger(
             filename=f"Node_{name}",
             session_folder = session_folder or None,
             console_output="WARNING",
             file_output="DEBUG",
-            global_output = "WARNING",
+            global_output = "DEBUG",
             name = f"{name}_{self.__class__.__name__}"
         )
-        self.function = function
+        self.collector = Collector(self)  # 用于收集数据
+
+        try:
+            # 新方式：传递function类和参数，在这里创建实例
+            function_args = function_args or ()
+            function_kwargs = function_kwargs or {}
+            self.function = function_class(*function_args, **function_kwargs)
+            self.logger.debug(f"Created function instance: {function_class.__name__} "
+                            f"with args {function_args} and kwargs {function_kwargs}")
+        except Exception as e:
+            self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
+            raise
         self._emit_context = UnifiedEmitContext(name = name, session_folder=session_folder)
 
         self.function.insert_collector(self.collector)
@@ -63,6 +80,7 @@ class BaseOperator(ABC):
 
     def insert_runtime_context(self, runtime_context  = None):
         self.runtime_context = runtime_context
+        self.runtime_context.logger = self.logger
         self.function.insert_runtime_context(runtime_context)
 
     def process_data(self, tag: str, data: 'Data'):
