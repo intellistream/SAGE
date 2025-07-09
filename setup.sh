@@ -196,14 +196,20 @@ create_sage_env_without_docker() {
     echo "   conda activate sage"
 }
 
-
-
 function install_necessary_dependencies() {
     echo "Installing necessary dependencies..."
-    # Add commands to install dependencies here
-    # Example: sudo apt-get install -y package_name
-    apt update
-    apt install -y swig cmake build-essential
+    # 如果不是 root，则加 sudo
+    if [[ "$(id -u)" -ne 0 ]]; then
+        SUDO='sudo'
+    else
+        SUDO=''
+    fi
+
+    # 更新源并安装
+    $SUDO apt-get update -y
+    $SUDO apt-get install -y --no-install-recommends \
+        swig cmake build-essential
+    $SUDO rm -rf /var/lib/apt/lists/*
     echo "Dependencies installed successfully."
 }
 
