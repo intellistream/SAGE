@@ -3,7 +3,7 @@ import time  # 替换 asyncio 为 time 用于同步延迟
 from sage_core.api.tuple import Data
 from sage_core.api.base_function import BaseFunction, MemoryFunction, StatefulFunction
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.runtime_context import RuntimeContext
+from sage_runtime.operator.runtime_context import RuntimeContext
 
 # 更新后的 SimpleRetriever
 class DenseRetriever(BaseFunction):

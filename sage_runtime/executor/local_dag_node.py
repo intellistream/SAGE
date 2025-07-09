@@ -2,14 +2,15 @@ from __future__ import annotations
 import time
 from typing import Any, Union, Tuple, TYPE_CHECKING
 from sage_runtime.io.local_message_queue import LocalMessageQueue
-from sage_runtime.runtime_context import RuntimeContext
+from sage_runtime.operator.runtime_context import RuntimeContext
 from sage_runtime.executor.base_dag_node import BaseDAGNode
 from ray.actor import ActorHandle
 from sage_memory.memory_collection.base_collection import BaseMemoryCollection
 if TYPE_CHECKING:
-    from sage_core.api.transformation import Transformation, OperatorFactory
+    from sage_core.api.transformation import Transformation
+    from sage_runtime.operator.factory import OperatorFactory
     from sage_core.core.operator.base_operator import BaseOperator
-    from sage_runtime.wrapper.operator_wrapper import OperatorWrapper
+    from sage_runtime.operator.operator_wrapper import OperatorWrapper
 
 
 
