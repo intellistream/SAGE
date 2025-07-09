@@ -234,7 +234,7 @@ class OperatorFactory:
                     **merged_operator_kwargs
                 )
                 logger.debug(f"Created local operator instance: {self.operator_class.__name__}")
-            
+
             # 用OperatorWrapper包装
             wrapped_operator = OperatorWrapper(operator_instance, name)
             logger.debug(f"Wrapped operator with OperatorWrapper")

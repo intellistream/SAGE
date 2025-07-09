@@ -3,7 +3,6 @@ from sage_core.api.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 from collections import deque
 from typing import Union, Dict, Deque, Tuple
-from sage_runtime.message import Message, Packet
 from sage_core.api.tuple import Data
 
 class OutputQueueCache:
@@ -37,20 +36,22 @@ class SourceOperator(BaseOperator):
         super().__init__(*args, **kwargs)
         self.output_cache:OutputQueueCache = OutputQueueCache(self.logger)
 
-    def process_control(self, message:Message):
-        """
-        Process control messages like WATERMARK, CHECKPOINT, EOS, ACK.
-        This method can be overridden by subclasses for custom control logic.
+
+    # TODO: 在operator中加入响应控制信号的方法
+    # def process_control(self, message:Message):
+    #     """
+    #     Process control messages like WATERMARK, CHECKPOINT, EOS, ACK.
+    #     This method can be overridden by subclasses for custom control logic.
         
-        Args:
-            message: The control message to process
-        """
-        self.logger.debug(f"Processing control message: {message.type}")
-        if(message.type == "ACK"):
-            # Handle ACK messages by acknowledging the sequence number
-            if isinstance(message.payload, int):
-                self.output_cache.ack(message.payload)
-                self.logger.debug(f"Acknowledged sequence: {message.payload}")
-            else:
-                self.logger.warning("ACK message payload is not an integer sequence number.")
+    #     Args:
+    #         message: The control message to process
+    #     """
+    #     self.logger.debug(f"Processing control message: {message.type}")
+    #     if(message.type == "ACK"):
+    #         # Handle ACK messages by acknowledging the sequence number
+    #         if isinstance(message.payload, int):
+    #             self.output_cache.ack(message.payload)
+    #             self.logger.debug(f"Acknowledged sequence: {message.payload}")
+    #         else:
+    #             self.logger.warning("ACK message payload is not an integer sequence number.")
 

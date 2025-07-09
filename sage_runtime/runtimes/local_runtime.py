@@ -3,7 +3,6 @@ import threading
 import logging
 from typing import Dict, Optional, Any, List
 from concurrent.futures import ThreadPoolExecutor
-from sage_runtime.base_runtime import BaseRuntime
 from sage_runtime.executor.local_dag_node import LocalDAGNode
 from sage_runtime.io.local_tcp_server import LocalTcpServer
 from sage_utils.custom_logger import CustomLogger
@@ -17,9 +16,6 @@ class LocalRuntime:
         if hasattr(self, "_initialized"):
             return
 
-        # self.tcp_host = tcp_host
-        # self.tcp_port = self._find_available_port(tcp_host, tcp_port)  # 自动检测可用端口
-
         self.logger = CustomLogger(
             filename="LocalRuntime",
             console_output="WARNING",
@@ -30,8 +26,6 @@ class LocalRuntime:
         self._initialized = True
         self.name = "LocalRuntime"
         self.logger.debug(f"CPU count is {os.cpu_count()}")
-        # self.logger.info(f"Using TCP port: {self.tcp_port}")
-
         self.thread_pool = ThreadPoolExecutor(
             max_workers=os.cpu_count() * 3,
             thread_name_prefix=None,
@@ -39,15 +33,10 @@ class LocalRuntime:
             initargs=None
         )
         # 节点管理
-        self.running_nodes: Dict[str, LocalDAGNode] = {}  # 正在运行的节点表
-        self.node_to_handle: Dict[LocalDAGNode, str] = {}  # 节点到handle的映射
-        self.handle_to_node: Dict[str, LocalDAGNode] = {}  # handle到节点的映射
-        self.next_handle_id = 0
+        # self.running_nodes: Dict[str, LocalDAGNode] = {}  # 正在运行的节点表
+        # self.handle_to_node: Dict[str, LocalDAGNode] = {}  # handle到节点的映射
 
 
-    def __new__(cls, *args, **kwargs):
-        # 禁止直接实例化
-        raise RuntimeError("请通过 get_instance() 方法获取实例")
             
     @classmethod
     def get_instance(cls):
@@ -60,6 +49,40 @@ class LocalRuntime:
                     instance.__init__()
                     cls._instance = instance
         return cls._instance
+
+
+
+    
+    def submit_node(self, node: LocalDAGNode) -> str:
+
+        self.logger.info(f"Submitting node '{node.name}' to {self.name}")
+        try:
+            future=self.thread_pool.submit(node.run_loop)
+        except Exception as e:
+            self.logger.error(f"Failed to submit node '{node.name}': {e}", exc_info=True)
+
+    
+    def shutdown(self):
+        """关闭运行时和所有资源"""
+        self.logger.info("Shutting down LocalRuntime...")
+        
+        # 停止所有节点
+        self.thread_pool.shutdown(wait=True, cancel_futures=True)
+        
+        # # 关闭TCP服务器
+        # if self.tcp_server:
+        #     self.tcp_server.stop()
+        
+        self.logger.info("LocalRuntime shutdown completed")
+    
+
+
+
+    
+    ########################################################
+    #                inactive methods                      #
+    ########################################################
+
     @classmethod
     def reset_instance(cls):
         """重置实例（主要用于测试）"""
@@ -68,124 +91,13 @@ class LocalRuntime:
                 cls._instance.shutdown()
                 cls._instance = None
 
+    ########################################################
+    #                auxiliary methods                     #
+    ########################################################
 
-    
-    def submit_node(self, node: LocalDAGNode) -> str:
-        """
-        提交单个MultiplexerDagNode到本地运行时
-        
-        Args:
-            node: MultiplexerDagNode实例
-            
-        Returns:
-            str: 任务句柄
-        """
-        
-        self.logger.info(f"Submitting node '{node.name}' to {self.name}")
-        
-        try:
-            # 创建StreamingTask包装节点
-            # task = StreamingTask(node, {})
-            future=self.thread_pool.submit(node.run_loop)
-            #self.task_to_future[node]=future
-            # 选择slot并提交
-            # slot_id = self.scheduling_strategy.select_slot(node, self.available_slots)
-            # success = self.available_slots[slot_id].submit_streaming_task(node)
-                
-        except Exception as e:
-            self.logger.error(f"Failed to submit node '{node.name}': {e}")
-            raise
-    
-    def submit_nodes(self, nodes: List[LocalDAGNode]) -> List[str]:
-        """
-        批量提交多个节点
-        
-        Args:
-            nodes: MultiplexerDagNode列表
-            
-        Returns:
-            List[str]: 任务句柄列表
-        """
-        handles = []
-        for node in nodes:
-            try:
-                handle = self.submit_node(node)
-                handles.append(handle)
-            except Exception as e:
-                self.logger.error(f"Failed to submit node '{node.name}': {e}")
-                # 停止已经提交的节点
-                for h in handles:
-                    self.stop_node(h)
-                raise
-        
-        self.logger.info(f"Successfully submitted {len(handles)} nodes")
-        return handles
-    
-    def stop_all_nodes(self):
-        """停止所有运行中的节点"""
-        self.logger.info("Stopping all nodes...")
-        
-        handles_to_stop = list(self.handle_to_node.keys())
-        for handle in handles_to_stop:
-            self.stop_node(handle)
-        
-        self.logger.info(f"Stopped {len(handles_to_stop)} nodes")
-    
-    def get_node_status(self, node_handle: str) -> Dict[str, Any]:
-        """
-        获取节点状态
-        
-        Args:
-            node_handle: 节点句柄
-            
-        Returns:
-            Dict: 节点状态信息
-        """
-        if node_handle not in self.handle_to_node:
-            return {"status": "not_found"}
-        
-        node = self.handle_to_node[node_handle]
-        
-        return {
-            "status": "running",
-            "node_name": node.name,
-            "is_spout": node.is_spout,
-            "backend": "local",
-            "handle": node_handle
-        }
-    
-    def get_running_nodes(self) -> List[str]:
-        """获取所有运行中的节点名称"""
-        return list(self.running_nodes.keys())
-    
-    def get_node_by_name(self, node_name: str) -> Optional[LocalDAGNode]:
-        """根据名称获取节点"""
-        return self.running_nodes.get(node_name)
-    
-    def get_runtime_info(self) -> Dict[str, Any]:
-        """获取运行时信息"""
-        tcp_info = self.tcp_server.get_server_info()
-        return {
-            "name": self.name,
-            "tcp_server": tcp_info["address"],
-            "tcp_running": tcp_info["running"],
-            "running_nodes_count": len(self.running_nodes),
-            "running_nodes": list(self.running_nodes.keys()),
-        }
-    
-    def shutdown(self):
-        """关闭运行时和所有资源"""
-        self.logger.info("Shutting down LocalRuntime...")
-        
-        # 停止所有节点
-        self.stop_all_nodes()
-        self.thread_pool.shutdown(wait=False, cancel_futures=True)
-        
-        # # 关闭TCP服务器
-        # if self.tcp_server:
-        #     self.tcp_server.stop()
-        
-        self.logger.info("LocalRuntime shutdown completed")
+    def __new__(cls, *args, **kwargs):
+        # 禁止直接实例化
+        raise RuntimeError("请通过 get_instance() 方法获取实例")
     
     def __del__(self):
         """析构函数，确保资源清理"""
