@@ -41,36 +41,6 @@ import os
 import tempfile
 import shutil
 
-# def update_json_field(file_path: str, field: str, value):
-#     """
-#     安全地更新 JSON 顶层字段，支持任意类型的值。
-#
-#     - 支持覆盖原字段值
-#     - 会创建临时文件，避免写入中途失败导致文件损坏
-#     """
-#     # 确保文件存在
-#     if not os.path.exists(file_path):
-#         raise FileNotFoundError(f"文件不存在: {file_path}")
-#
-#     # 读取 JSON 内容
-#     with open(file_path, "r", encoding="utf-8") as f:
-#         try:
-#             data = json.load(f)
-#         except json.JSONDecodeError as e:
-#             raise ValueError(f"JSON 格式错误: {e}")
-#
-#     # 更新字段
-#     data[field] = value
-#     # 写入到临时文件，再替换原文件（原子操作）
-#     dir_name = os.path.dirname(file_path)
-#     with tempfile.NamedTemporaryFile("w", delete=False, dir=dir_name, encoding="utf-8") as tmpfile:
-#         json.dump(data, tmpfile, indent=4, ensure_ascii=False)
-#         tmpfile.flush()
-#         os.fsync(tmpfile.fileno())
-#         temp_path = tmpfile.name
-#
-#
-#     shutil.move(temp_path, file_path)
 
     
 
