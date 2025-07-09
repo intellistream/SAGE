@@ -1,5 +1,8 @@
 #!/bin/bash
 
+MARKER_DIR="$HOME/.sage_setup"
+mkdir -p "$MARKER_DIR"
+
 # Interactive Bash Script for SAGE Project Setup
 # Dynamically detects the Docker container name and reuses it across functions.
 
@@ -187,9 +190,13 @@ create_sage_env_without_docker() {
         return 1
     fi
 
-    # 创建 Python 3.11 环境
-    echo "🚀 正在创建名为 'sage' 的 Conda 环境（Python 3.11）..."
-    conda create -y -n sage python=3.11
+    # 幂等：如果 env 已存在，则跳过
+    if conda env list | grep -q '^sage[[:space:]]'; then
+        echo "  ➜ Conda env 'sage' already exists, skipping creation."
+    else
+        echo "🚀 正在创建名为 'sage' 的 Conda 环境（Python 3.11）..."
+        conda create -y -n sage python=3.11
+    fi
 
     # 激活环境
     echo "✅ 环境创建成功。要激活它，请运行："
@@ -205,12 +212,20 @@ function install_necessary_dependencies() {
         SUDO=''
     fi
 
+    # 幂等：只装一次
+    DEPS_DONE="$MARKER_DIR/deps_installed"
+    if [[ -f "$DEPS_DONE" ]]; then
+        echo "  ➜ Dependencies already installed, skipping."
+        return
+    fi
+
     # 更新源并安装
     $SUDO apt-get update -y
     $SUDO apt-get install -y --no-install-recommends \
         swig cmake build-essential
     $SUDO rm -rf /var/lib/apt/lists/*
     echo "Dependencies installed successfully."
+    touch "$DEPS_DONE"
 }
 
 
