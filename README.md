@@ -30,6 +30,12 @@ You will be prompted to select one of the following modes:
 1. **Minimal Setup**  
    Set up only the Conda environment.
 
+   To start with Minimal Setup, you need:
+
+   - Conda (Miniconda or Anaconda)
+   - Python ≥ 3.11
+   - Hugging Face CLI
+
 <!-- 2. **Setup with Ray**  
    Includes the minimal setup and additionally installs [Ray](https://www.ray.io/), a distributed computing framework. -->
 
@@ -80,12 +86,12 @@ col = mgr.create_collection(
     embedding_model=embedder,
     dim=16
 )
-````
+​````
 
 
 #### (2). Insert Text Entries with Metadata
 
-```python
+​```python
 col.add_metadata_field("tag")
 col.insert("Alpha", {"tag": "A"})
 col.insert("Beta", {"tag": "B"})
