@@ -10,7 +10,7 @@ class GraphNode:
         self.transformation: Transformation = transformation
         self.env: BaseEnvironment = env  # 所属的环境
         self.parallel_index: int = parallel_index  # 在该transformation中的并行索引
-        
+        self.parallelism: int = transformation.parallelism
         # 输入输出channels：每个channel是一个边的列表
 
         self.input_channels:Dict[str, List[GraphEdge]] = {}

@@ -131,7 +131,7 @@ class MixedDAG():
 
         if env.platform == PlatformType.REMOTE:
             node = RayDAGNode(
-                graph_node.name,
+                graph_node,
                 transformation.operator_factory,
                 memory_collection
             )
@@ -139,7 +139,7 @@ class MixedDAG():
         else:
             # 创建本地节点
             node = LocalDAGNode(
-                graph_node.name,
+                graph_node,
                 transformation.operator_factory,
                 memory_collection
             )

@@ -1,24 +1,46 @@
 from abc import ABC, abstractmethod
 import threading
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, Union
 from sage_utils.custom_logger import CustomLogger
-
+from sage_runtime.operator.runtime_context import RuntimeContext
 if TYPE_CHECKING:
     from sage_runtime.io.connection import Connection
     from sage_core.core.operator.base_operator import BaseOperator
     from sage_core.api.transformation import Transformation, OperatorFactory
+    from sage_core.core.compiler import Compiler, GraphNode
+    from ray.actor import ActorHandle
 
 class BaseDAGNode(ABC):
-    def __init__(self, name):
+    def __init__(
+        self, 
+        graph_node: 'GraphNode',
+        operator_factory: 'OperatorFactory', 
+        memory_collection:Union[ActorHandle, Any] = None, 
+        remote:bool = False
+    ) -> None:
+        self.name = graph_node.name
         # Create logger first
         self.logger = CustomLogger(
-            filename=f"Node_{name}",
+            filename=f"Node_{self.name}",
             console_output="WARNING",
             file_output="DEBUG",
             global_output = "WARNING",
-            name = f"{name}_{self.__class__.__name__}"
+            name = f"{self.name}_{self.__class__.__name__}"
         )
-        self.name = name
+        self.operator = operator_factory.build_instance(name = self.name, remote = remote)
+        self.is_spout = operator_factory.is_spout  # Check if this is a spout node
+        if(remote and (not isinstance(memory_collection, ActorHandle))):
+            raise Exception("Memory collection must be a Ray Actor handle for remote dag node")
+        self.memory_collection = memory_collection  # Optional memory collection for this node
+        self.operator.insert_runtime_context(
+            RuntimeContext(
+                self.name, 
+                self.memory_collection, 
+                parallel_index = graph_node.parallel_index, 
+                parallelism=graph_node.parallelism, 
+                session_folder=CustomLogger.get_session_folder()
+                )
+            )
         self._running = False
         # Initialize stop event
         self.stop_event = threading.Event()
