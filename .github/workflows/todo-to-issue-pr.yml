@@ -1,0 +1,42 @@
+name: TODO-to-Issue (PR)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  todo_to_issue:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整的git历史
+
+      - name: TODO to Issue
+        uses: alstr/todo-to-issue-action@v5
+        with:
+          INSERT_ISSUE_URLS: "true"
+          # 修复：使用正确的JSON格式，去掉换行符
+          commits: '["${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"]'
+          # 或者更简单的方式，直接使用字符串：
+          # commits: '"${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"'
+          DIFF_URL: ""
+
+      - name: Set Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and Push Changes
+        run: |
+          git add -A
+          if [[ $(git status --porcelain) ]]; then
+            git commit -m "chore: add TODO issue links via todo-to-issue-action"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          else
+            echo "No TODO links to commit"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

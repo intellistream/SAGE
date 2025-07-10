@@ -56,7 +56,7 @@ The environment `SAGE` is now ready to use. You can configure it in PyCharm or a
    ```bash
    conda activate SAGE
    cd /workspace/
-   pytest -v tests/
+   pytest -v sage_tests/
    ```
 
 > NOTE: Step 1 will allow you to enter the docker bash by default. Otherwise, **Access the Running Container**:

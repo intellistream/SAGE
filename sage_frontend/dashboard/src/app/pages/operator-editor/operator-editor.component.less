@@ -1,0 +1,51 @@
+.operator-editor-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 16px;
+    
+    .operator-list-card {
+      margin-bottom: 16px;
+      
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        
+        h3 {
+          margin-bottom: 0;
+        }
+      }
+      
+      .search-box {
+        margin-bottom: 16px;
+      }
+      
+      .pagination {
+        margin-top: 16px;
+        text-align: right;
+      }
+    }
+    
+    .code-editor-card {
+      border: none;
+      background-color: #f5f5f5;
+      
+      .code-format-hint {
+        margin-bottom: 16px;
+      }
+    }
+    
+    nz-list-item {
+      cursor: pointer;
+      transition: background-color 0.3s;
+      
+      &:hover {
+        background-color: #f0f2f5;
+      }
+    }
+  }
+  
+  .disabled-action {
+    cursor: not-allowed;
+  }
