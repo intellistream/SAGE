@@ -2,7 +2,7 @@ from calendar import c
 from sage_common_funs.utils.generator_model import apply_generator_model
 from sage_core.api.base_function import BaseFunction
 from jinja2 import Template
-from sage_core.api.tuple import Data
+
 from sage_utils.custom_logger import CustomLogger
 from typing import Any,Tuple
 import requests
@@ -113,8 +113,8 @@ class BaseAgent(BaseFunction):
         # 兜底报错
         raise ValueError("Invalid JSON format: No valid JSON found (either plain or wrapped in Markdown)")
         
-    def execute(self, data: Data[AI_Template]) -> Data[AI_Template]:
-        input_template:AI_Template = data.data
+    def execute(self, data: AI_Template) -> AI_Template:
+        input_template:AI_Template = data
         query = input_template.raw_question
         agent_scratchpad = ""
         count = 0
@@ -123,7 +123,7 @@ class BaseAgent(BaseFunction):
             self.logger.debug(f"Step {count}: Processing query: {query}")
             if count > self.max_steps:
                 # raise ValueError("Max steps exceeded.")
-                return Data((query,""))
+                return (query,"")
             
             prompt = self.get_prompt(query, agent_scratchpad)
             self.logger.debug(f"Prompt: {prompt}")
@@ -136,7 +136,7 @@ class BaseAgent(BaseFunction):
                 final_answer = output["final_answer"]
                 self.logger.debug(f"Final Answer: {final_answer}")
                 input_template.response = final_answer
-                return Data(input_template)
+                return input_template
 
             action, action_input = output.get("action"), output.get("action_input")
 

@@ -2,11 +2,12 @@ from typing import Any, Optional
 from typing import Any, List, Dict, Optional, Set, TYPE_CHECKING, Type, Tuple
 from sage_core.core.operator.base_operator import BaseOperator
 from sage_core.api.function_api.filter_function import FilterFunction
+from sage_runtime.io.packet import Packet
 
 if TYPE_CHECKING:
     from sage_core.api.base_function import BaseFunction
     from sage_runtime.io.connection import Connection
-    from sage_core.api.tuple import Data
+    
 
 class FilterOperator(BaseOperator):
     """
@@ -37,9 +38,9 @@ class FilterOperator(BaseOperator):
         self._passed_count = 0
         self._filtered_count = 0
         
-        self.logger.debug(f"FilterOperator '{self._name}' initialized")
+        self.logger.debug(f"FilterOperator '{self.name}' initialized")
 
-    def process_data(self, tag: str, data: 'Data'):
+    def receive_packet(self, packet:Packet):
         """
         处理输入数据，根据过滤条件决定是否发送到下游
         
@@ -47,38 +48,27 @@ class FilterOperator(BaseOperator):
             tag: 输入标签
             data: 输入数据
         """
-        self.logger.debug(f"FilterOperator '{self._name}' processing data on tag '{tag}': {data}")
+        self.logger.debug(f"FilterOperator '{self.name}' received packet': {packet}")
         
         try:
             # 更新输入计数
             self._total_input_count += 1
-            
-            # 调用过滤函数
-            if len(self.function.__class__.declare_inputs()) == 0:
-                # 无输入参数
-                should_pass = self.function.execute()
-            elif len(self.function.__class__.declare_inputs()) == 1:
-                # 单输入参数
-                should_pass = self.function.execute(data)
-            else:
-                # 多输入参数
-                should_pass = self.function.execute(tag, data)
+            should_pass = self.function.execute(packet.payload)
             
             # 处理过滤结果
             if should_pass:
                 self._passed_count += 1
-                self.emit(data)
-                self.logger.debug(f"FilterOperator '{self._name}' passed data: {data}")
+                self.emit(packet)
+                self.logger.debug(f"FilterOperator '{self.name}' passed packet: {packet}")
             else:
                 self._filtered_count += 1
-                self.logger.debug(f"FilterOperator '{self._name}' filtered out data: {data}")
+                self.logger.debug(f"FilterOperator '{self.name}' filtered out data: {packet}")
             
         except Exception as e:
-            self.logger.error(f"Error in FilterOperator '{self._name}'.process_data(): {e}", exc_info=True)
+            self.logger.error(f"Error in FilterOperator '{self.name}'.receive_packet(): {e}", exc_info=True)
             # 发生错误时，可以选择丢弃数据或者让数据通过
             # 这里选择丢弃数据，并增加过滤计数
             self._filtered_count += 1
-            raise
 
     def get_filter_statistics(self) -> dict:
         """
@@ -105,7 +95,7 @@ class FilterOperator(BaseOperator):
         self._total_input_count = 0
         self._passed_count = 0
         self._filtered_count = 0
-        self.logger.debug(f"FilterOperator '{self._name}' statistics reset")
+        self.logger.debug(f"FilterOperator '{self.name}' statistics reset")
 
     def debug_print_filter_info(self):
         """
@@ -114,7 +104,7 @@ class FilterOperator(BaseOperator):
         stats = self.get_filter_statistics()
         
         print(f"\n{'='*60}")
-        print(f"🔍 FilterOperator '{self._name}' Statistics")
+        print(f"🔍 FilterOperator '{self.name}' Statistics")
         print(f"{'='*60}")
         print(f"Total Input: {stats['total_input']}")
         print(f"Passed: {stats['passed']} ({stats['pass_rate_percent']}%)")

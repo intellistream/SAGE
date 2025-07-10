@@ -26,7 +26,7 @@ class LocalDAGNode(BaseDAGNode):
         self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout})")
 
     
-    def put(self, data_packet: Tuple[int, Any]):
+    def put(self, data_packet: Any):
         """
         向输入缓冲区放入数据包
         
@@ -34,7 +34,7 @@ class LocalDAGNode(BaseDAGNode):
             data_packet: (input_channel, data) 元组
         """
         self.input_buffer.put(data_packet, timeout=1.0)
-        self.logger.debug(f"Put data packet into buffer: channel={data_packet[0]}")
+        self.logger.debug(f"Put data packet into buffer")
     
 
     def run_loop(self) -> None:
@@ -50,7 +50,7 @@ class LocalDAGNode(BaseDAGNode):
             try:
                 if self.is_spout:
                     # For spout nodes, call operator.receive with dummy channel and data
-                    self.operator.process_data(None, None)
+                    self.operator.receive_packet(None)
                     time.sleep(self.delay)  # Sleep to avoid busy loop
                 else:
                     # For non-spout nodes, fetch input and process
@@ -59,10 +59,8 @@ class LocalDAGNode(BaseDAGNode):
                     if(data_packet is None):
                         time.sleep(0.1)  # Short sleep when no data to process
                         continue
-                    (input_tag, data) = data_packet
-                    self.logger.debug(f"Processing data from buffer: tag={input_tag}")
                     # Call operator's receive method with the channel_id and data
-                    self.operator.process_data(input_tag, data)
+                    self.operator.receive_packet(data_packet)
             except Exception as e:
                 self.logger.error(
                     f"Critical error in node '{self.name}': {str(e)}",

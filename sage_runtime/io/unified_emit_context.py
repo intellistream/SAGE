@@ -6,6 +6,8 @@ import threading
 import time
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.io.connection import Connection, ConnectionType
+if TYPE_CHECKING:
+    from sage_runtime.io.packet import Packet
 
 
 class UnifiedEmitContext:
@@ -32,7 +34,7 @@ class UnifiedEmitContext:
         self._tcp_connections: dict = {}  # host:port -> socket
         self._socket_lock = threading.Lock()
 
-    def send_via_connection(self, connection: 'Connection', data: Any) -> None:
+    def send_via_connection(self, connection: 'Connection', packet: 'Packet') -> None:
         """
         根据Connection对象的配置发送数据
         
@@ -44,16 +46,16 @@ class UnifiedEmitContext:
             connection_type = connection.connection_type
             
             if connection_type == ConnectionType.LOCAL_TO_LOCAL:
-                self._send_local_to_local(connection, data)
+                self._send_local_to_local(connection, packet)
                 
             elif connection_type == ConnectionType.LOCAL_TO_RAY:
-                self._send_local_to_ray(connection, data)
+                self._send_local_to_ray(connection, packet)
                 
             elif connection_type == ConnectionType.RAY_TO_LOCAL:
-                self._send_ray_to_local(connection, data)
+                self._send_ray_to_local(connection, packet)
                 
             elif connection_type == ConnectionType.RAY_TO_RAY:
-                self._send_ray_to_ray(connection, data)
+                self._send_ray_to_ray(connection, packet)
                 
             else:
                 raise ValueError(f"Unknown connection type: {connection_type}")
@@ -62,62 +64,55 @@ class UnifiedEmitContext:
             self.logger.error(f"Failed to send data via connection {connection.get_summary()}: {e}", exc_info=True)
             raise
 
-    def _send_local_to_local(self, connection: 'Connection', data: Any) -> None:
+    def _send_local_to_local(self, connection: 'Connection', packet: 'Packet') -> None:
         """本地到本地：直接调用put方法"""
         try:
             target_node = connection.target_config["dagnode"]
-            input_tag = connection.target_input_tag
-            
-            # 构建数据包
-            data_packet = (input_tag, data)
             
             # 发送到目标节点的输入缓冲区
             if hasattr(target_node, 'put'):
-                target_node.put(data_packet)
+                target_node.put(packet)
             elif hasattr(target_node, 'input_buffer'):
-                target_node.input_buffer.put(data_packet)
+                target_node.input_buffer.put(packet)
             else:
                 raise AttributeError(f"Local node {connection.target_name} has no put method or input_buffer")
                 
-            self.logger.debug(f"Sent local->local: {connection.target_name}[{input_tag}]")
+            self.logger.debug(f"Sent local->local: {connection.target_name}")
             
         except Exception as e:
             self.logger.error(f"Error in local->local send: {e}")
             raise
 
-    def _send_local_to_ray(self, connection: 'Connection', data: Any) -> None:
+    def _send_local_to_ray(self, connection: 'Connection', packet: 'Packet') -> None:
         """本地到Ray Actor：远程调用"""
         try:
             actor_handle = connection.target_config["actorhandle"]
-            input_tag = connection.target_input_tag
             
             if not isinstance(actor_handle, ActorHandle):
                 raise TypeError(f"Expected ActorHandle, got {type(actor_handle)}")
             
             # 调用Ray Actor的process_data方法
-            actor_handle.process_data.remote(input_tag, data)
+            actor_handle.receive_packet.remote(packet)
             
-            self.logger.debug(f"Sent local->ray: {connection.target_name}[{input_tag}]")
+            self.logger.debug(f"Sent local->ray: {connection.target_name}")
             
         except Exception as e:
             self.logger.error(f"Error in local->ray send: {e}")
             raise
 
-    def _send_ray_to_local(self, connection: 'Connection', data: Any) -> None:
+    def _send_ray_to_local(self, connection: 'Connection', packet: 'Packet') -> None:
         """Ray Actor到本地：TCP连接"""
         try:
             tcp_host = connection.target_config["tcp_host"]
             tcp_port = connection.target_config["tcp_port"]
             target_node_name = connection.target_config["node_name"]
-            input_tag = connection.target_input_tag
             
             # 构造TCP消息包
             message = {
                 "type": "ray_to_local",
                 "source_actor": self.name,
                 "target_node": target_node_name,
-                "input_tag": input_tag,
-                "data": data,
+                "data": packet,
                 "timestamp": time.time_ns()
             }
             
@@ -129,7 +124,7 @@ class UnifiedEmitContext:
             tcp_connection.sendall(message_size.to_bytes(4, byteorder='big'))
             tcp_connection.sendall(serialized_data)
             
-            self.logger.debug(f"Sent ray->local via TCP: {target_node_name}[{input_tag}]")
+            self.logger.debug(f"Sent ray->local via TCP: {target_node_name}")
             
         except Exception as e:
             self.logger.error(f"Error in ray->local TCP send: {e}")
@@ -138,19 +133,18 @@ class UnifiedEmitContext:
                                      connection.target_config["tcp_port"])
             raise
 
-    def _send_ray_to_ray(self, connection: 'Connection', data: Any) -> None:
+    def _send_ray_to_ray(self, connection: 'Connection', packet: 'Packet') -> None:
         """Ray Actor到Ray Actor：远程调用"""
         try:
             actor_handle = connection.target_config["actorhandle"]
-            input_tag = connection.target_input_tag
             
             if not isinstance(actor_handle, ActorHandle):
                 raise TypeError(f"Expected ActorHandle, got {type(actor_handle)}")
             
             # 调用目标Ray Actor的process_data方法
-            actor_handle.process_data.remote(input_tag, data)
+            actor_handle.receive_packet.remote(packet)
             
-            self.logger.debug(f"Sent ray->ray: {connection.target_name}[{input_tag}]")
+            self.logger.debug(f"Sent ray->ray: {connection.target_name}")
             
         except Exception as e:
             self.logger.error(f"Error in ray->ray send: {e}")

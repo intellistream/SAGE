@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 
 from dotenv import load_dotenv
-from sage_core.api.tuple import Data
+
 from sage_core.api.collector import Collector
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
@@ -19,6 +19,7 @@ class BaseFunction(ABC):
     """
 
     def __init__(self, session_folder:str = None, name:str = None, env_name:str = None,  **kwargs):
+        # TODO: api_key应该是由env来提供和解析的吧？
         self.api_key = None
         self.runtime_context:RuntimeContext  # 需要在compiler里面实例化。
         name = name or self.__class__.__name__
@@ -44,32 +45,10 @@ class BaseFunction(ABC):
             self.api_key = os.getenv("ALIBABA_API_KEY")
         pass
 
-    @classmethod # 多路输出的function可以override这个方法
-    def declare_outputs(cls) -> List[Tuple[str, Type]]:
-        return [("default", Any)]
 
-    @classmethod
-    def declare_inputs(cls) -> List[Tuple[str, Type]]:
-        """
-        Declare the inputs for the function.
 
-        :return: A list of tuples where each tuple contains the input name and its type.
-        """
-        return [("default", Any)]
 
-    @classmethod
-    def get_output_num(cls) -> int:
-        return len(cls.declare_outputs())
-
-    @classmethod
-    def get_input_num(cls) -> int:
-        """
-        Get the number of inputs for the function.
-
-        :return: The number of inputs.
-        """
-        return len(cls.declare_inputs())
-
+    # TODO: 创建一个function factory，并把对应的逻辑封装进去
     def insert_runtime_context(self, runtime_context):
         """
         Insert a runtime_tests context into the function for accessing runtime_tests data.
@@ -93,7 +72,7 @@ class BaseFunction(ABC):
 
 
     @abstractmethod
-    def execute(self, *args, **kwargs):
+    def execute(self, data:any):
         """
         Abstract method to be implemented by subclasses.
 
@@ -105,34 +84,6 @@ class BaseFunction(ABC):
         :return: Output data.
         """
         pass
-
-    def _extract_data(self, data: Union[Any, Data]) -> Any:
-        """
-        Extract raw data from Data wrapper or return the data as-is.
-        
-        Args:
-            data: Either raw data or Data wrapper
-            
-        Returns:
-            Any: The extracted raw data
-        """
-        if isinstance(data, Data):
-            return data.data
-        return data
-
-    def _wrap_data(self, data: Any) -> Data:
-        """
-        Wrap raw data into Data wrapper.
-        
-        Args:
-            data: Raw data to wrap
-            
-        Returns:
-            Data: Wrapped data
-        """
-        if isinstance(data, Data):
-            return data
-        return Data(data)
 
 
 
@@ -169,3 +120,28 @@ class StatefulFunction(BaseFunction):
 #         pass
 
 
+
+
+"""
+🧾 SAGE 函数通信协议（简洁版 P-NIP-S）
+所有 Function.execute() 方法必须接收 一个且仅一个参数。
+
+上游函数返回的结果，完整作为单一对象传递给下游。
+
+不支持自动 unpack、参数猜测、magic 参数绑定。
+
+支持返回：
+
+单值类型（str, dict, MyObject）
+
+结构类型（tuple, dataclass, TypedDict）
+
+建图阶段将根据函数签名与上游类型进行匹配校验（静态分析）。
+
+不匹配时将发出 warning 或在 strict mode 下拒绝绑定。
+
+operator 层不会对 data 进行二次解包或 magic 转换。
+
+
+
+"""

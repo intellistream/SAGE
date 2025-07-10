@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 
-from sage_core.api.tuple import Data
+
 from sage_common_funs.rag.retriever import DenseRetriever, BM25sRetriever  # 替换为你代码实际模块路径
 
 @pytest.fixture
@@ -27,13 +27,12 @@ def test_dense_retriever_execute(dense_retriever_config):
     mock_runtime_context.retrieve.return_value = ["doc1", "doc2"]
 
     input_query = "test query"
-    data = Data(input_query)
+    data = input_query
 
     result = retriever.execute(data)
 
     # 断言返回的数据格式
-    assert isinstance(result, Data)
-    query, chunks = result.data
+    query, chunks = result
     assert query == input_query
     assert chunks == ["doc1", "doc2"]
 
@@ -49,11 +48,11 @@ def test_dense_retriever_execute_no_ltm(dense_retriever_config):
 
     # runtime_context不mock
     input_query = "query without ltm"
-    data = Data(input_query)
+    data = input_query
 
     result = retriever.execute(data)
 
-    query, chunks = result.data
+    query, chunks = result
     assert query == input_query
     assert chunks == []  # 无ltm时返回空chunks
 
@@ -67,12 +66,12 @@ def test_bm25s_retriever_execute(bm25s_retriever_config, caplog):
     mock_runtime_context.retrieve.return_value = ["doc1", "doc2"]
     retriever.runtime_context = mock_runtime_context
 
-    data = Data("some query")
+    data = "some query"
 
     with caplog.at_level("INFO"):
         result = retriever.execute(data)
 
-    query, chunks = result.data
+    query, chunks = result
     assert query == "some query"
     assert chunks == ["doc1", "doc2"]
 
@@ -87,7 +86,7 @@ def test_bm25s_retriever_execute_no_collection(bm25s_retriever_config):
     mock_runtime_context.memory = mock_memory
     retriever.runtime_context = mock_runtime_context
 
-    data = Data("some query")
+    data = "some query"
 
     import pytest
     with pytest.raises(ValueError, match="BM25s collection is not configured"):

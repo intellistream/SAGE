@@ -1,5 +1,5 @@
 import pytest
-from sage_core.api.tuple import Data
+
 from sage_common_funs.io.sink import (
     TerminalSink, RetriveSink, FileSink, MemWriteSink
 )
@@ -7,11 +7,11 @@ import os
 
 @pytest.fixture
 def sample_qa_data():
-    return Data(("What is AI?", "Artificial Intelligence"))
+    return ("What is AI?", "Artificial Intelligence")
 
 @pytest.fixture
 def sample_chunks_data():
-    return Data(("Explain AI", ["AI is ...", "It involves ..."]))
+    return ("Explain AI", ["AI is ...", "It involves ..."])
 
 @pytest.fixture
 def temp_file_path(tmp_path):
@@ -45,11 +45,11 @@ def test_mem_write_sink_various_inputs(tmp_path):
     sink = MemWriteSink(config={"file_path": str(file_path)})
 
     # Test with a string
-    sink.execute(Data("single string"))
+    sink.execute("single string")
     # Test with list of strings
-    sink.execute(Data(["list", "of", "strings"]))
+    sink.execute(["list", "of", "strings"])
     # Test with tuple of strings
-    sink.execute(Data(("tuple", "of", "strings")))
+    sink.execute(("tuple", "of", "strings"))
 
     with open(file_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -64,7 +64,7 @@ def test_mem_write_sink_handles_non_string(tmp_path):
     sink = MemWriteSink(config={"file_path": str(file_path)})
 
     # Provide a non-string, non-list, non-tuple input
-    sink.execute(Data(12345))
+    sink.execute(12345)
     with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
     assert "12345" in content
