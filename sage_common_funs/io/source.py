@@ -49,17 +49,20 @@ class FileSource(SourceFunction):
         :return: A Data object containing the next line of the file content.
         """
         try:
-            with open(self.data_path, 'r', encoding='utf-8') as f:
-                f.seek(self.file_pos)  # Move to the last read position
-                line = f.readline()
-                self.file_pos = f.tell()  # Update the new position
-                if line:
-                    self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Read query: {line.strip()}\033[0m ")
-                    return Data(line.strip())  # Return non-empty lines
-                else:
-                    # Reset position if end of file is reached (optional)
-                    # self.file_pos = 0
-                    return Data("")  # Return empty Data at EOF
+            while True:
+                with open(self.data_path, 'r', encoding='utf-8') as f:
+                    f.seek(self.file_pos)  # Move to the last read position
+                    line = f.readline()
+                    self.file_pos = f.tell()  # Update the new position
+                    if line:
+                        self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Read query: {line.strip()}\033[0m ")
+                        return Data(line.strip())  # Return non-empty lines
+                    else:
+                        self.logger.info(f"\033[33m[ {self.__class__.__name__}]: Reached end of file, resetting position.\033[0m ")
+                        # Reset position if end of file is reached (optional)
+                        self.file_pos = 0
+                        continue
+                    # return Data("")  # Return empty Data at EOF
         except FileNotFoundError:
             self.logger.error(f"File not found: {self.data_path}")
         except Exception as e:

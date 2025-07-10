@@ -49,7 +49,7 @@ class BaseOperator(ABC):
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
             raise
         self._emit_context = UnifiedEmitContext(name = name, session_folder=session_folder, env_name = env_name) 
-
+    
 
  
         self._name = self.__class__.__name__

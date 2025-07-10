@@ -51,7 +51,7 @@ class LocalDAGNode(BaseDAGNode):
                 if self.is_spout:
                     # For spout nodes, call operator.receive with dummy channel and data
                     self.operator.process_data(None, None)
-                    time.sleep(1)  # Sleep to avoid busy loop
+                    time.sleep(self.delay)  # Sleep to avoid busy loop
                 else:
                     # For non-spout nodes, fetch input and process
                     # input_result = self.fetch_input()

@@ -8,6 +8,7 @@ from typing import Any,Tuple
 import requests
 import json
 import re, time
+from sage_common_funs.utils.template import AI_Template
 
 
 class Tool:
@@ -112,8 +113,9 @@ class BaseAgent(BaseFunction):
         # 兜底报错
         raise ValueError("Invalid JSON format: No valid JSON found (either plain or wrapped in Markdown)")
         
-    def execute(self, data: Data[str],*args, **kwargs) -> Data[Tuple[str, str]]:
-        query = data.data
+    def execute(self, data: Data[AI_Template]) -> Data[AI_Template]:
+        input_template:AI_Template = data.data
+        query = input_template.raw_question
         agent_scratchpad = ""
         count = 0
         while True:
@@ -132,19 +134,17 @@ class BaseAgent(BaseFunction):
             # self.logger.debug(output)
             if output.get("final_answer") is not "":
                 final_answer = output["final_answer"]
-                
                 self.logger.debug(f"Final Answer: {final_answer}")
-                return Data((query,final_answer))
+                input_template.response = final_answer
+                return Data(input_template)
 
             action, action_input = output.get("action"), output.get("action_input")
 
             if action is None:
-                # raise ValueError("Could not parse action.")
-                return Data((query,""))
+                raise ValueError("Could not parse action.")
 
             if action not in self.tools:
-                # raise ValueError(f"Unknown tool requested: {action}")
-                return Data((query,""))
+                raise ValueError(f"Unknown tool requested: {action}")
 
             tool = self.tools[action]
             tool_result = tool.run(action_input)
@@ -153,7 +153,7 @@ class BaseAgent(BaseFunction):
             observation = "\n".join(snippets)
             self.logger.debug(f"Observation: {observation}")
             agent_scratchpad += str(output) + f"\nObservation: {observation}\nThought: "
-            time.sleep(5)
+            time.sleep(0.2)
 
 # import yaml
 # def load_config(path: str) -> dict:

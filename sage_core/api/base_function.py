@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 
 from dotenv import load_dotenv
-
+from sage_core.api.tuple import Data
 from sage_core.api.collector import Collector
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
@@ -26,8 +26,8 @@ class BaseFunction(ABC):
             filename=f"Fuction_{name}",
             env_name=env_name,
             session_folder=session_folder,
-            console_output=True,
-            file_output=False,
+            console_output=False,
+            file_output=True,
             global_output = True,
             name = f"{name}_Function"
         )

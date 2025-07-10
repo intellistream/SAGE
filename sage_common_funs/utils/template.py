@@ -9,10 +9,9 @@ class AI_Template:
     timestamp: int = field(default_factory=lambda: int(time.time() * 1000))
     # Generator content
     raw_question: str = None
-    response: str = None
     retriver_chunks: List[str] = field(default_factory=list)
     prompts: List[Dict[str, str]] = field(default_factory=list)
-
+    response: str = None
     uuid: str = field(default_factory=lambda: str(uuid4()))
 
 
@@ -29,6 +28,6 @@ class AI_Template:
             f"❓ Raw Question: {self.raw_question}\n"
             f"📚 Retriever Chunks ({len(self.retriver_chunks)}):\n    {retriver_preview}\n"
             f"🧾 Prompt Messages:\n    {prompt_pairs}\n"
-            f"🎯 Flattened Prompt:\n    {self.prompt[:120]}{'...' if len(self.prompt) > 120 else ''}\n"
-            f"💬 Answer:\n    {self.answer[:120]}{'...' if len(self.answer) > 120 else ''}"
+            f"🎯 Flattened Prompts:\n    {self.prompts[:120]}{'...' if len(self.prompts) > 120 else ''}\n"
+            f"💬 Answer:\n    {self.response[:120]}{'...' if len(self.response) > 120 else ''}"
         )

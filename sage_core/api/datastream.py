@@ -89,6 +89,7 @@ class DataStream:
             DataStream: 过滤后的数据流
         """
         tr = Transformation(
+            self._environment,
             TransformationType.FILTER, 
             function,
             *args,
@@ -119,6 +120,7 @@ class DataStream:
             DataStream: 扁平化映射后的数据流
         """
         tr = Transformation(
+            self._environment,
             TransformationType.FLATMAP, 
             function,
             *args,
