@@ -23,7 +23,8 @@ class OperatorFactory:
                  function_kwargs: Dict[str, Any] = None,
                  operator_kwargs: Dict[str, Any] = None,
                  
-                 basename: str = None):
+                 basename: str = None,
+                 env_name:str = None):
         """
         初始化OperatorFactory
         
@@ -42,7 +43,7 @@ class OperatorFactory:
         self.function_args = function_args or ()
         self.function_kwargs = function_kwargs or {}
         self.operator_kwargs = operator_kwargs or {}
-        
+        self.env_name = env_name
         # 生成基础名称
         if basename is None:
             self.basename = get_name(self.function_class.__name__)
@@ -73,7 +74,8 @@ class OperatorFactory:
             console_output="WARNING",
             file_output="DEBUG",
             global_output="WARNING",
-            name=f"OperatorFactory_{name}"
+            name=f"OperatorFactory_{name}",
+            env_name = self.env_name
         )
         
         try:
@@ -82,12 +84,14 @@ class OperatorFactory:
                 **self.function_kwargs,
                 'session_folder': session_folder or CustomLogger.get_session_folder(),
                 'name': name,
+                'env_name': self.env_name,  # 添加env_name到function_kwargs
                 **additional_kwargs
             }
             merged_operator_kwargs = {
                 **self.operator_kwargs,
                 'session_folder': session_folder or CustomLogger.get_session_folder(),
                 'name': name,
+                'env_name': self.env_name,  # 添加env_name到operator_kwargs
                 **additional_kwargs
             }
             
@@ -114,7 +118,7 @@ class OperatorFactory:
                 logger.debug(f"Created local operator instance: {self.operator_class.__name__}")
 
             # 用OperatorWrapper包装
-            wrapped_operator = OperatorWrapper(operator_instance, name)
+            wrapped_operator = OperatorWrapper(operator_instance, name, self.env_name)
             logger.debug(f"Wrapped operator with OperatorWrapper")
             
             return wrapped_operator

@@ -44,7 +44,8 @@ class MemoryManager:
             embedding_model: Optional[Any] = None,
             dim: Optional[int] = None,
             as_ray_actor: bool = False, 
-            session_folder: Optional[str] = None
+            session_folder: Optional[str] = None,
+            env_name: Optional[str] = None
     ) -> Union[BaseMemoryCollection, ActorHandle]:
         """
         创建新的集合（可选择作为Ray Actor封装）
@@ -72,7 +73,7 @@ class MemoryManager:
             # 创建Ray Actor
             # 根据类型处理不同构造参数
             if backend_type == "VDB":
-                collection = actor_cls.remote(name, embedding_model, dim, session_folder=self.session_folder)
+                collection = actor_cls.remote(name, embedding_model, dim, session_folder=self.session_folder, env_name=env_name)
             else:
                 collection = actor_cls.remote(name)
         else:
