@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Union, Optional
 import threading
 import inspect
-
+from .name_server import get_name
 
 class CustomFormatter(logging.Formatter):
     """
@@ -92,6 +92,7 @@ class CustomLogger:
     def __init__(self,
                  filename: str,
                  session_folder: str = None,
+                 env_name: Optional[str] = None,
                  console_output: Union[bool, str, int] = False,
                  file_output: Union[bool, str, int] = True,
                  global_output: Union[bool, str, int] = True,
@@ -118,7 +119,7 @@ class CustomLogger:
         """
         self.object_name = filename if name is None else name
         self.filename = filename
-        
+        self.env_name = env_name or None
         # 处理session_folder：空字符串检查和默认值处理
         if not session_folder:  # None 或空字符串
             if self._default_session_folder is None:
@@ -132,7 +133,9 @@ class CustomLogger:
             # 如果这是第一次设置session_folder，将其设为默认值
             if self._default_session_folder is None:
                 self.set_default_session_folder(session_folder)
-        
+        if self.env_name:
+            self.session_folder = os.path.join(self.session_folder, self.env_name)
+
         self.logger = logging.getLogger(f"{self.object_name}")
 
         # 避免重复初始化同一个logger
@@ -464,11 +467,17 @@ class CustomLogger:
 
     @staticmethod
     def create_session_folder(base_path: str = "logs") -> str:
-        """创建session文件夹的工具方法"""
+        """
+        创建session文件夹的工具方法, 始终在项目根目录下创建.
+        项目根目录被定义为本文件所在目录的上两级目录.
+        """
+        # 将项目根目录定义为当前文件的上两级目录
+        project_root = Path(__file__).resolve().parent.parent
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        session_folder = os.path.join(base_path, timestamp)
-        Path(session_folder).mkdir(parents=True, exist_ok=True)
-        return session_folder
+        # 将 base_path (默认为 "logs") 置于项目根目录下
+        session_folder = project_root / base_path / timestamp
+        session_folder.mkdir(parents=True, exist_ok=True)
+        return str(session_folder)
 
     @classmethod
     def get_available_levels(cls) -> list:

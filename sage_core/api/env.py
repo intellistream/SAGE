@@ -9,17 +9,20 @@ from sage_core.api.datastream import DataStream
 from sage_core.api.transformation import TransformationType, Transformation
 from sage_utils.custom_logger import CustomLogger
 from sage_core.api.enum import PlatformType
-
+from sage_utils.name_server import get_name
 class BaseEnvironment:
 
     def __init__(self, name: str, config: dict | None, *, platform: PlatformType = PlatformType.LOCAL):
-        self.name = name
+        self.name = get_name(name)
         self.logger = CustomLogger(
             filename=f"Environment_{name}",
+            env_name = name,
             console_output="WARNING",
             file_output=True,
             global_output = "DEBUG",
         )
+        
+
         self.config: dict = dict(config or {})
         self.platform:PlatformType = platform
         # 用于收集所有 Transformation，供 Compiler 构建 DAG
@@ -37,6 +40,7 @@ class BaseEnvironment:
         
         """用户 API：声明一个数据源并返回 DataStream 起点。"""
         transformation = Transformation(
+            self, 
             TransformationType.SOURCE, 
             function, 
             *args,
@@ -110,7 +114,7 @@ class BaseEnvironment:
         return self._pipeline
 
     def set_memory(self, config):
-        self.memory_collection = sage_memory.api.get_memory(config, remote = (self.platform == PlatformType.REMOTE))
+        self.memory_collection = sage_memory.api.get_memory(self, config, remote = (self.platform == PlatformType.REMOTE))
 
     def set_memory_collection(self, collection):
 

@@ -17,17 +17,21 @@ class BaseDAGNode(ABC):
         graph_node: 'GraphNode',
         operator_factory: 'OperatorFactory', 
         memory_collection:Union[ActorHandle, Any] = None, 
-        remote:bool = False
+        remote:bool = False,
+        env_name:str = None,
     ) -> None:
         self.name = graph_node.name
         # Create logger first
         self.logger = CustomLogger(
             filename=f"Node_{self.name}",
+            env_name=env_name,
             console_output="WARNING",
             file_output="DEBUG",
             global_output = "WARNING",
             name = f"{self.name}_{self.__class__.__name__}"
         )
+        
+
         self.operator = operator_factory.build_instance(name = self.name, remote = remote)
         self.is_spout = operator_factory.is_spout  # Check if this is a spout node
         if(remote and (not isinstance(memory_collection, ActorHandle))):
@@ -39,8 +43,9 @@ class BaseDAGNode(ABC):
                 self.memory_collection, 
                 parallel_index = graph_node.parallel_index, 
                 parallelism=graph_node.parallelism, 
-                session_folder=CustomLogger.get_session_folder()
-                )
+                session_folder=CustomLogger.get_session_folder(),
+                ),
+            env_name = env_name
             )
         self._running = False
         # Initialize stop event

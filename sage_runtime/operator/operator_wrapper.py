@@ -9,7 +9,7 @@ from sage_utils.custom_logger import CustomLogger
 class OperatorWrapper:
     """透明的 Operator 包装器，自动适配本地 Operator 和 Ray Actor Operator"""
 
-    def __init__(self, operator: Union[Any, ActorHandle], name:str):
+    def __init__(self, operator: Union[Any, ActorHandle], name:str, env_name:str = None):
         # 使用 __dict__ 直接设置，避免触发 __setattr__
         object.__setattr__(self, '_operator', operator)
         object.__setattr__(self, '_execution_mode', self._detect_execution_mode())
@@ -19,11 +19,14 @@ class OperatorWrapper:
         # 初始化 logger
         logger = CustomLogger(
             filename=f"Node_{name}",
+            env_name=env_name,
             console_output="WARNING",
             file_output="DEBUG",
             global_output="DEBUG",
             name=f"{name}_OperatorWrapper"
         )
+        
+
         
         object.__setattr__(self, 'logger', logger)
         self.logger.debug(f"Created OperatorWrapper for {type(operator).__name__} in {self._execution_mode} mode")

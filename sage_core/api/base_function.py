@@ -10,24 +10,28 @@ if TYPE_CHECKING:
     from sage_runtime.operator.runtime_context import RuntimeContext
 
 
+
+# 构造来源于sage_runtime/operator/factory.py
 class BaseFunction(ABC):
     """
     BaseFunction is the abstract base class for all operator functions in SAGE.
     It defines the core interface and initializes a logger.
     """
 
-    def __init__(self, session_folder:str = None, name:str = None, **kwargs):
+    def __init__(self, session_folder:str = None, name:str = None, env_name:str = None,  **kwargs):
         self.api_key = None
         self.runtime_context:RuntimeContext  # 需要在compiler里面实例化。
         name = name or self.__class__.__name__
         self.logger = CustomLogger(
             filename=f"Fuction_{name}",
+            env_name=env_name,
             session_folder=session_folder,
             console_output=True,
             file_output=False,
             global_output = True,
             name = f"{name}_Function"
         )
+        
         self.get_key()
 
     def get_key(self):

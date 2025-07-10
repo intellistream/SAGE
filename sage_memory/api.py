@@ -1,7 +1,9 @@
+from typing import TYPE_CHECKING
 from sage_utils.embedding_model import apply_embedding_model
 from sage_memory.memory_manager import MemoryManager
 from sage_utils.custom_logger import CustomLogger
-
+if TYPE_CHECKING:
+    from sage_core.api.env import BaseEnvironment
 # TODO: 
 # 1.在API层维护一个全局的MemoryManager实例
 #   在用户调用get_memory时，首先会执行manager的检测函数get_manager，该函数检测manager是否存在，
@@ -20,7 +22,7 @@ def get_manager():
         _manager = MemoryManager()
     return _manager
 
-def get_memory(config, remote:bool = False):
+def get_memory(env:'BaseEnvironment', config, remote:bool = False):
     
     # config 示例，可注释
     config = {
@@ -44,7 +46,8 @@ def get_memory(config, remote:bool = False):
             dim=config["dim"],
             description=config["description"],
             as_ray_actor=remote, 
-            session_folder = CustomLogger.get_session_folder() if remote else None
+            session_folder = CustomLogger.get_session_folder() if remote else None,
+            env_name = env.name
         )
     
     else:    
