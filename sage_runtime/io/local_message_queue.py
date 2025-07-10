@@ -9,11 +9,10 @@ from sage_utils.custom_logger import CustomLogger
 
 class LocalMessageQueue:
 
-    def __init__(self, name="MessageQueue", max_buffer_size=30000, session_folder: str = None):
+    def __init__(self, name="MessageQueue", max_buffer_size=50000, session_folder: str = None):
         self.name = name
         self.session_folder = session_folder
-        self.max_buffer_size = max_buffer_size
-        self.queue = queue.Queue(maxsize=10000)
+        self.queue = queue.Queue(maxsize=50000)
         self.total_task = 0
         self.max_buffer_size = max_buffer_size  # 总内存限制（字节）
         self.current_buffer_usage = 0 # 当前使用的内存（字节）
