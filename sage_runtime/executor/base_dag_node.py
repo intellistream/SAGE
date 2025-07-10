@@ -15,11 +15,13 @@ class BaseDAGNode(ABC):
     def __init__(
         self, 
         graph_node: 'GraphNode',
-        operator_factory: 'OperatorFactory', 
+        transformation: 'Transformation', 
         memory_collection:Union[ActorHandle, Any] = None, 
         remote:bool = False,
         env_name:str = None,
     ) -> None:
+        operator_factory: 'OperatorFactory' = transformation.operator_factory
+        self.delay = transformation.delay
         self.name = graph_node.name
         # Create logger first
         self.logger = CustomLogger(

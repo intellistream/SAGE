@@ -18,11 +18,13 @@ from sage_core.api.function_api.flatmap_function import FlatMapFunction
 from sage_core.api.tuple import Data
 
 from sage_common_funs.io.source import FileSource
-from sage_common_funs.io.sink import TerminalSink
-from sage_common_funs.rag.generator import OpenAIGenerator
-from sage_common_funs.rag.retriever import DenseRetriever
-from sage_common_funs.rag.promptor import QAPromptor
-from sage_common_funs.agent.agent import BaseAgent
+from sage_common_funs.io.chatsink import ChatTerminalSink
+from sage_common_funs.map.generator import OpenAIGenerator
+from sage_common_funs.map.retriever import DenseRetriever
+from sage_common_funs.map.promptor import QAPromptor
+from sage_common_funs.map.templater import Templater
+from sage_common_funs.map.agent import BaseAgent
+from sage_common_funs.utils.template import AI_Template
 
 # === Prompt 模板 ===
 ROUTE_PROMPT_TEMPLATE = '''Instruction:
@@ -30,8 +32,7 @@ You are an expert at routing a user question to a vectorstore or web search.
 Use the vectorstore for questions on travel to Hubei Province in China. 
 You do not need to be stringent with the keywords in the question related to these topics. 
 Otherwise, use web-search. Give a binary choice 'web_search' or 'vectorstore' based on the question. 
-Return a JSON with a single key 'datasource' and no preamble or explanation. 
-Question to route: {question}
+Return a raw word of web_search or vectorstore with no preamble or explanation. 
 '''
 
 # === 数据处理Function类 ===
@@ -39,41 +40,48 @@ Question to route: {question}
 class RoutePromptFunction(BaseFunction):
     """创建路由提示的Function"""
     
-    def execute(self, data: Data) -> Data:
-        query = self._extract_data(data)
-        messages = [{"role": "system", "content": ROUTE_PROMPT_TEMPLATE.format(question=query)}]
-        return Data([query, messages])
+    def execute(self, data: Data[AI_Template]) -> Data[AI_Template]:
+        input_template = data.data
+        raw_question = input_template.raw_question
+        system_prompt = {"role": "system", "content": ROUTE_PROMPT_TEMPLATE.format(question=input_template.raw_question)}
+        user_prompt = {
+            "role": "user",
+            "content": f"Question: {raw_question}",
+        }
+        input_template.prompts.append(system_prompt)
+        input_template.prompts.append(user_prompt)
+        return Data(input_template)
 
 
 class RouteDecisionFunction(BaseFunction):
     """解析路由决策的Function"""
     
     def execute(self, data: Data) -> Data:
-        query, response = self._extract_data(data)
+        input_template:AI_Template = data.data
+        query = input_template.raw_question
+        response = input_template.response
         self.logger.debug(f"Received routing response: {response} for query: {query}")
         try:
-            response_json = json.loads(response)
-            datasource = response_json.get("datasource", "web_search")
             
-            if "vectorstore" in datasource:
+            if response == "vectorstore":
                 route_decision = "vector"
             else:
                 route_decision = "web"
                 
             self.logger.info(f"Query: '{query}' -> Route: {route_decision}")
-            return Data((query, route_decision))
-        except (json.JSONDecodeError, KeyError):
-            self.logger.warning(f"Failed to parse routing response: {response}, defaulting to web")
-            return Data((query, "web"))
+            return Data((input_template, route_decision))
+        except Exception as e:
+            self.logger.warning(f"Failed to parse routing response: {response}, error:{e}, defaulting to web")
+            return Data((input_template, "web"))
 
 
 class ExtractQueryFunction(BaseFunction):
     """提取查询字符串的Function"""
     
     def execute(self, data: Data) -> Data:
-        query, route_decision = self._extract_data(data)
-        self.logger.debug(f"Extracted query: {query} with route decision: {route_decision}")
-        return Data(query)
+        input_template, route_decision = self._extract_data(data)
+        self.logger.debug(f"Extracted query: {input_template.raw_question} with route decision: {route_decision}")
+        return Data(input_template)
 
 
 # === 过滤器Function类 ===
@@ -82,7 +90,7 @@ class VectorRouteFilterFunction(FilterFunction):
     """过滤向量路由的Filter"""
     
     def execute(self, data: Data) -> bool:
-        query, route_decision = self._extract_data(data)
+        input_template, route_decision = self._extract_data(data)
         return route_decision == "vector"
 
 
@@ -90,7 +98,7 @@ class WebRouteFilterFunction(FilterFunction):
     """过滤Web路由的Filter"""
     
     def execute(self, data: Data) -> bool:
-        query, route_decision = self._extract_data(data)
+        input_template, route_decision = self._extract_data(data)
         return route_decision == "web"
 
 
@@ -102,7 +110,7 @@ class QueryLengthFilterFunction(FilterFunction):
         self.min_length = min_length
     
     def execute(self, data: Data) -> bool:
-        query = self._extract_data(data)
+        query = data.data.raw_question
         return len(query.strip()) >= self.min_length
 
 
@@ -164,7 +172,8 @@ def main():
 
     # 第一阶段：查询预处理和路由决策
     route_stream = (
-        env.from_source(FileSource, config["source"])
+        env.from_source(FileSource, config["source"], delay = 10)
+            .map(Templater)
            # .filter(QueryLengthFilterFunction, min_length=3)  # 过滤短查询
            .map(RoutePromptFunction)  # 创建路由提示
            .map(OpenAIGenerator, config["generator"])  # LLM路由判断
@@ -179,7 +188,7 @@ def main():
         .map(DenseRetriever, config["retriever"])  # 检索相关文档
         .map(QAPromptor, config["promptor"])  # 构建QA prompt
         .map(OpenAIGenerator, config["generator"])  # 生成答案
-        .sink(TerminalSink, config["sink"])  # 输出结果
+        .sink(ChatTerminalSink, config["sink"])  # 输出结果
     )
 
     # 第三阶段：Web搜索分支
@@ -188,7 +197,7 @@ def main():
         .filter(WebRouteFilterFunction)  # 过滤Web路由
         .map(ExtractQueryFunction)  # 提取查询
         .map(BaseAgent, config["agent"])  # 使用Agent进行Web搜索
-        .sink(TerminalSink, config["sink"])  # 输出结果
+        .sink(ChatTerminalSink, config["sink"])  # 输出结果
     )
 
     # 可选：演示flatmap的使用

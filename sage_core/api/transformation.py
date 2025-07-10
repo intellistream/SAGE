@@ -40,10 +40,12 @@ class Transformation:
         name:str = None,
         parallelism: int = 1,
         platform:PlatformType = PlatformType.LOCAL,
+        delay: Optional[float] = 0.1,
         **kwargs
     ):
         #self.env = env
         self.type = type
+        self.delay = delay
         if isinstance(function, Type):
             self.is_instance = False
             self.function = None
@@ -80,7 +82,7 @@ class Transformation:
             function_kwargs=kwargs,  # 将kwargs传递给function
             is_spout = (self.type == TransformationType.SOURCE),
             basename=self.basename,
-            env_name = env.name
+            env_name = env.name,
         )
 
 

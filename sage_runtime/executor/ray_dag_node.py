@@ -42,7 +42,7 @@ class RayDAGNode(BaseDAGNode):
                 try:
                     # For spout nodes, call operator.receive with dummy channel and data
                     self.operator.process_data(None, None)
-                    time.sleep(1)  # Small delay to prevent overwhelming
+                    time.sleep(self.delay)  # Small delay to prevent overwhelming
                         
                 except Exception as e:
                     self.logger.error(f"Error in spout node {self.name}: {e}", exc_info=True)
