@@ -15,9 +15,9 @@ class TerminalSink(BaseFunction):
     def execute(self, data:Data[Tuple[str,str]]):
         question,answer=data.data
 
-        print(f"\033[96m[Q] Question :{question}\033[0m")  
+        print(f"[{self.__class__.__name__}]: \033[96m[Q] Question :{question}\033[0m")  
 
-        print(f"\033[92m[A] Answer :{answer}\033[0m")
+        print(f"[{self.__class__.__name__}]: \033[92m[A] Answer :{answer}\033[0m")
 
 class RetriveSink(BaseFunction):
 
