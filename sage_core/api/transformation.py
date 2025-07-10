@@ -26,6 +26,7 @@ class Transformation:
     TO_OPERATOR = {
         TransformationType.MAP: MapOperator,
         # TODO: 添加其他transformation类型的映射
+        # Issue URL: https://github.com/intellistream/SAGE/issues/135
         TransformationType.FILTER: FilterOperator,
         TransformationType.FLATMAP: FlatMapOperator,
         TransformationType.SINK: MapOperator,
