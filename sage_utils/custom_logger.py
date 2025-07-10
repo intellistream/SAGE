@@ -15,8 +15,29 @@ class CustomFormatter(logging.Formatter):
     第二行：	→ 日志消息
     第三行： 留空
     """
+    COLOR_RESET = "\033[0m"
+    COLOR_DEBUG = "\033[36m"  # 青色
+    COLOR_INFO = "\033[32m"   # 绿色
+    COLOR_WARNING = "\033[33m" # 黄色
+    COLOR_ERROR = "\033[31m"  # 红色
+    COLOR_CRITICAL = "\033[35m" # 紫色
+
 
     def format(self, record):
+
+        if record.levelno == logging.DEBUG:
+            color = self.COLOR_DEBUG
+        elif record.levelno == logging.INFO:
+            color = self.COLOR_INFO
+        elif record.levelno == logging.WARNING:
+            color = self.COLOR_WARNING
+        elif record.levelno == logging.ERROR:
+            color = self.COLOR_ERROR
+        elif record.levelno == logging.CRITICAL:
+            color = self.COLOR_CRITICAL
+        else:
+            color = self.COLOR_RESET
+
         # 第一行：时间 | 级别 | 对象名 | 文件路径:行号
         timestamp = self.formatTime(record, '%Y-%m-%d %H:%M:%S')
         level = record.levelname
@@ -37,9 +58,10 @@ class CustomFormatter(logging.Formatter):
             message = message + '\n' + self.formatStack(record.stack_info)
 
         # 组合格式：既美观又支持IDE点击
-        formatted_message = f"{timestamp} | {level:<5} | {name} | {pathname}:{lineno} →\n\t {message}\n"
+        formatted_message = f"{timestamp} | {level:<5} | {name} | {pathname}:{lineno} →\n\t {color}{message}{self.COLOR_RESET}\n"
 
         return formatted_message
+
 
 
 class CustomLogger:
