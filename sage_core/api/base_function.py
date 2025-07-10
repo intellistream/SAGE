@@ -21,10 +21,10 @@ class BaseFunction(ABC):
         self.runtime_context:RuntimeContext  # 需要在compiler里面实例化。
         name = name or self.__class__.__name__
         self.logger = CustomLogger(
-            filename=f"Node_{name}",
+            filename=f"Fuction_{name}",
             session_folder=session_folder,
-            console_output=False,
-            file_output=True,
+            console_output=True,
+            file_output=False,
             global_output = True,
             name = f"{name}_Function"
         )
