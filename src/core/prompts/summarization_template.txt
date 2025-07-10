@@ -1,8 +1,0 @@
-Instruction:
-You are a summarization assistant. Your task is to provide a concise summary of the given context.
-
-Context:
-{context}
-
-Task:
-Summarize the context in no more than {summary_length} words.
