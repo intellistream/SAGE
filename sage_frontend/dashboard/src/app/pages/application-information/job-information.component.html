@@ -1,0 +1,313 @@
+<div id="main-container">
+  <nz-content>
+    <div nz-row>
+      <nz-col nzSpan="24">
+        <nz-breadcrumb>
+          <nz-breadcrumb-item>
+            <a [routerLink]="['../../']">Overview</a>
+          </nz-breadcrumb-item>
+          <nz-breadcrumb-item *ngIf="this.jobStarted">
+            <a [routerLink]="['../../applications/processing-applications']">Processing Applications</a>
+          </nz-breadcrumb-item>
+          <nz-breadcrumb-item *ngIf="!this.jobStarted">
+            <a [routerLink]="['../../applications/finished-applications']">Finished Applications</a>
+          </nz-breadcrumb-item>
+          <nz-breadcrumb-item>{{job?.name}}</nz-breadcrumb-item>
+        </nz-breadcrumb>
+      </nz-col>
+    </div>
+    <nz-row nzJustify="space-between" nzAlign="top" class="job-info-row">
+      <nz-col nzSpan="24" class="container" id="job-description-view">
+        <nz-descriptions id="job-description" nzBordered>
+          <nz-descriptions-item nzTitle="Working Threads" nzSpan="2">{{job?.nthreads}}</nz-descriptions-item>
+          <nz-descriptions-item nzTitle="Status" nzSpan="1"><nz-tag [nzColor]="this.jobStarted?'#2db7f5':'#cd201f'">{{this.jobStarted?"running":"stopped"}}</nz-tag></nz-descriptions-item>
+<!--          <nz-descriptions-item nzTitle="CPU Utilization" nzSpan="2">{{"20%"}}</nz-descriptions-item>-->
+<!--          <nz-descriptions-item nzTitle="RAM Utilization" nzSpan="1">{{"60%"}}</nz-descriptions-item>-->
+          <nz-descriptions-item nzTitle="Number of Operators" nzSpan="2">{{job?.operators?.length}}</nz-descriptions-item>
+<!--          <nz-descriptions-item nzTitle="Duration" nzSpan="1">{{job?.duration}}</nz-descriptions-item>-->
+          <nz-descriptions-item nzTitle="Duration" nzSpan="1">{{runtimeDuration}} seconds</nz-descriptions-item>
+          <nz-descriptions-item nzTitle="Create Time" nzSpan="2">{{job?.startTime}}</nz-descriptions-item>
+          <nz-descriptions-item nzTitle="Operation" nzSpan="1">
+            <button nz-button nzType="primary" [disabled]="this.jobStarted" style="margin-right: 20px" (click)="onStart()"><span nz-icon nzType="poweroff" nzTheme="outline"></span>Start</button>
+            <button nz-button nzType="primary" [disabled]="!this.jobStarted" style="margin-right: 20px" (click)="onStop()"><span nz-icon nzType="stop" nzTheme="outline"></span>Stop</button>
+          </nz-descriptions-item>
+        </nz-descriptions>
+      </nz-col>
+      <!--    Information Showcase    -->
+    </nz-row>
+    <nz-row>
+      <nz-col nzSpan="24" class="container" id="operator-list-view">
+        <nz-collapse>
+          <nz-collapse-panel [nzHeader]="operatorPanelHeader">
+            <ng-template #operatorPanelHeader>
+              <div>
+                <span nz-icon nzType="area-chart" nzTheme="outline" style="margin-right: 2px;"></span> Operator Statistics
+              </div>
+            </ng-template>
+            <nz-list nzItemLayout="horizontal">
+              <nz-list-item *ngFor="let operator of job?.operators">
+                <nz-list-item-meta>
+                  <nz-list-item-meta-title>{{operator?.name}}</nz-list-item-meta-title>
+                  <nz-list-item-meta-description>Number of instance: {{operator?.numOfInstances}}</nz-list-item-meta-description>
+                </nz-list-item-meta>
+                <nz-tag [nzColor]="'green'">throughput: {{operatorAccumulativeThroughput['sl']}} tuples/s</nz-tag>
+                <nz-tag [nzColor]="'blue'">latency: {{operatorAccumulativeLatency['sl']}} ms</nz-tag>
+              </nz-list-item>
+            </nz-list>
+          </nz-collapse-panel>
+          <!-- <nz-collapse-panel [nzHeader]="topologyPanelHeader">
+            <ng-template #topologyPanelHeader>
+              <div>
+                <span nz-icon nzType="apartment" nzTheme="outline"  style="margin-right: 2px;"></span> Operator Topology
+              </div>
+            </ng-template>
+            <nz-graph
+              nz-graph-zoom
+              [nzGraphData]="nzOperatorGraphData"
+              [nzAutoSize]="true"
+              [nzRankDirection]="'LR'"
+              (nzGraphInitialized)="onOperatorGraphInitialized($event)">
+              <ng-container *nzGraphNode="let node">
+                <foreignObject x="0" y="0" width="140px" height="80px">
+                  <div class="operator-node" nz-popover
+                       [nzPopoverContent]="'instance: ' + node.instance"
+                       [nzPopoverTitle]="node.label"
+                       nzPopoverPlacement="right">
+                    <span>{{ node.label }}</span>
+                  </div>
+                </foreignObject>
+              </ng-container>
+            </nz-graph>
+          </nz-collapse-panel> -->
+          <nz-collapse-panel [nzHeader]="topologyPanelHeader">
+            <ng-template #topologyPanelHeader>
+              <div>
+                <span nz-icon nzType="apartment" nzTheme="outline" style="margin-right: 2px;"></span> Operator Topology
+              </div>
+            </ng-template>
+          
+            <!-- 滚动容器开始 -->
+            <div class="topology-scroll-container">
+              <ng-container [ngSwitch]="job?.name">
+                <img *ngSwitchCase="'qa'" src="assets/qa.png" alt="QA Topology" class="responsive-image" />
+                <img *ngSwitchCase="'ingest'" src="assets/ingest.png" alt="Ingest Topology" class="responsive-image" />
+                <img *ngSwitchCase="'multi-agent'" src="assets/multi_agent.png" alt="Multi-agent Topology" class="responsive-image" />
+          
+                <nz-graph *ngSwitchDefault
+                  nz-graph-zoom
+                  [nzGraphData]="nzOperatorGraphData"
+                  [nzAutoSize]="true"
+                  [nzRankDirection]="'LR'"
+                  (nzGraphInitialized)="onOperatorGraphInitialized($event)">
+                  <ng-container *nzGraphNode="let node">
+                    <foreignObject x="0" y="0" width="140px" height="80px">
+                      <div class="operator-node" nz-popover
+                           [nzPopoverContent]="'instance: ' + node.instance"
+                           [nzPopoverTitle]="node.label"
+                           nzPopoverPlacement="right">
+                        <span>{{ node.label }}</span>
+                      </div>
+                    </foreignObject>
+                  </ng-container>
+                </nz-graph>
+              </ng-container>
+            </div>
+            <!-- 滚动容器结束 -->
+          </nz-collapse-panel>
+          
+          
+        </nz-collapse>
+      </nz-col>
+    </nz-row>
+    <nz-row nzJustify="space-between" nzAlign="top" class="job-info-row">
+      <nz-col nzSpan="13" class="container  containerb">
+        <!-- <div class="iframe-wrapper">
+          <iframe #actorsIframe src="http://127.0.0.1:8265/#/actors" class="full-iframe"></iframe>
+        </div> -->
+          <!-- dashboard-view.component.html -->
+       <!-- operator-panel.component.html -->
+      <div class="operator-panel-main">
+        <ng-container *ngIf="use_ray; else logoPanel">
+          <iframe
+            src="http://127.0.0.1:8265/#/actors"
+            class="operator-panel-iframe"
+            title="Ray Dashboard"
+          ></iframe>
+        </ng-container>
+        <ng-template #logoPanel>
+          <div class="operator-panel-logo-block">
+            <img src="assets/sage_debug.png" class="operator-panel-logo-img" alt="SAGE debug" />
+            <div class="operator-panel-logo-title">SAGE System</div>
+            <div class="operator-panel-logo-desc">Ray 后端未启用</div>
+          </div>
+        </ng-template>
+      </div>
+
+
+      </nz-col>
+      <nz-col nzSpan="10" class="container containerb">
+        <div class="config-editor-container">
+          <h3 class="config-title">
+            <span nz-icon nzType="file-text" nzTheme="outline"></span> 配置文件
+          </h3>
+          <nz-alert *ngIf="configError" nzType="error" nzMessage="配置格式错误" [nzDescription]="configError" nzShowIcon></nz-alert>
+          <nz-alert *ngIf="configSuccess" nzType="success" nzMessage="配置已更新" nzShowIcon></nz-alert>
+          
+          <nz-tabset (nzSelectedIndexChange)="onConfigTabChange($event)">
+            <nz-tab nzTitle="表单模式">
+              <form nz-form [formGroup]="configForm" nzLayout="vertical" class="config-form">
+                <nz-collapse nzGhost>
+                  <nz-collapse-panel 
+                    *ngFor="let section of configSections" 
+                    [nzHeader]="section.label" 
+                    [nzActive]="true">
+                    
+                    <!-- 对象类型的配置节 -->
+                    <div *ngIf="section.isObject" [formGroupName]="section.key">
+                      <nz-form-item *ngFor="let field of section.fields">
+                        <nz-form-label [nzRequired]="field.required">{{field.label}}</nz-form-label>
+                        <nz-form-control [nzErrorTip]="'请输入有效的' + field.label">
+                          
+                          <!-- 布尔类型 -->
+                          <label *ngIf="field.type === 'boolean'" nz-checkbox [formControlName]="field.key">
+                            {{field.label}}
+                          </label>
+                          
+                          <!-- 数字类型 -->
+                          <nz-input-number 
+                            *ngIf="field.type === 'number'" 
+                            [formControlName]="field.key" 
+                            [nzPlaceHolder]="field.placeholder">
+                          </nz-input-number>
+                          
+                          <!-- 多行文本 -->
+                          <textarea 
+                            *ngIf="field.type === 'textarea'" 
+                            nz-input 
+                            [formControlName]="field.key" 
+                            [placeholder]="field.placeholder"
+                            [nzAutosize]="{ minRows: 3, maxRows: 6 }">
+                          </textarea>
+                          
+                          <!-- 密码类型 -->
+                          <nz-input-group *ngIf="field.type === 'password'">
+                            <input 
+                              nz-input 
+                              type="password" 
+                              [formControlName]="field.key" 
+                              [placeholder]="field.placeholder" />
+                          </nz-input-group>
+                          
+                          <!-- 选择框 -->
+                          <nz-select 
+                            *ngIf="field.options && field.options.length > 0" 
+                            [formControlName]="field.key" 
+                            [nzPlaceHolder]="field.placeholder">
+                            <nz-option 
+                              *ngFor="let option of field.options" 
+                              [nzValue]="option.value" 
+                              [nzLabel]="option.label">
+                            </nz-option>
+                          </nz-select>
+                          
+                          <!-- 普通文本输入 -->
+                          <input 
+                            *ngIf="field.type === 'text' || field.type === 'url' || field.type === 'file'" 
+                            nz-input 
+                            [formControlName]="field.key" 
+                            [placeholder]="field.placeholder" />
+                            
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+                    
+                    <!-- 简单类型的配置项 -->
+                    <div *ngIf="!section.isObject">
+                      <nz-form-item *ngFor="let field of section.fields">
+                        <nz-form-label [nzRequired]="field.required">{{field.label}}</nz-form-label>
+                        <nz-form-control [nzErrorTip]="'请输入有效的' + field.label">
+                          
+                          <!-- 布尔类型 -->
+                          <label *ngIf="field.type === 'boolean'" nz-checkbox [formControlName]="section.key">
+                            {{field.label}}
+                          </label>
+                          
+                          <!-- 数字类型 -->
+                          <nz-input-number 
+                            *ngIf="field.type === 'number'" 
+                            [formControlName]="section.key" 
+                            [nzPlaceHolder]="field.placeholder">
+                          </nz-input-number>
+                          
+                          <!-- 多行文本 -->
+                          <textarea 
+                            *ngIf="field.type === 'textarea'" 
+                            nz-input 
+                            [formControlName]="section.key" 
+                            [placeholder]="field.placeholder"
+                            [nzAutosize]="{ minRows: 3, maxRows: 6 }">
+                          </textarea>
+                          
+                          <!-- 密码类型 -->
+                          <nz-input-group *ngIf="field.type === 'password'">
+                            <input 
+                              nz-input 
+                              type="password" 
+                              [formControlName]="section.key" 
+                              [placeholder]="field.placeholder" />
+                          </nz-input-group>
+                          
+                          <!-- 选择框 -->
+                          <nz-select 
+                            *ngIf="field.options && field.options.length > 0" 
+                            [formControlName]="section.key" 
+                            [nzPlaceHolder]="field.placeholder">
+                            <nz-option 
+                              *ngFor="let option of field.options" 
+                              [nzValue]="option.value" 
+                              [nzLabel]="option.label">
+                            </nz-option>
+                          </nz-select>
+                          
+                          <!-- 普通文本输入 -->
+                          <input 
+                            *ngIf="field.type === 'text' || field.type === 'url' || field.type === 'file'" 
+                            nz-input 
+                            [formControlName]="section.key" 
+                            [placeholder]="field.placeholder" />
+                            
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+                    
+                  </nz-collapse-panel>
+                </nz-collapse>
+              </form>
+            </nz-tab>
+            
+            <nz-tab nzTitle="原始模式">
+              <div class="editor-wrapper">
+                <textarea 
+                  nz-input 
+                  [(ngModel)]="configContent" 
+                  [nzAutosize]="{ minRows: 15, maxRows: 25 }"
+                  placeholder="加载配置文件中..."
+                  class="config-textarea"
+                  (ngModelChange)="validateConfig()"></textarea>
+              </div>
+            </nz-tab>
+          </nz-tabset>
+
+          <div class="config-actions">
+            <button nz-button nzType="default" (click)="resetConfig()">
+              <span nz-icon nzType="reload" nzTheme="outline"></span> 重置
+            </button>
+            <button nz-button nzType="primary" (click)="submitConfig()" [disabled]="!!configError || isSubmitting">
+              <span nz-icon [nzType]="isSubmitting ? 'loading' : 'save'" nzTheme="outline"></span> 提交配置
+            </button>
+          </div>
+        </div>
+      </nz-col>
+    </nz-row>
+  </nz-content>
+</div>
