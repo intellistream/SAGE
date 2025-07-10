@@ -1,13 +1,13 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Type, List, Tuple, Any, Union
+from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 
 from dotenv import load_dotenv
 
 from sage_core.api.collector import Collector
 from sage_utils.custom_logger import CustomLogger
-from sage_core.api.tuple import Data
-
+if TYPE_CHECKING:
+    from sage_runtime.operator.runtime_context import RuntimeContext
 
 
 class BaseFunction(ABC):
@@ -18,7 +18,7 @@ class BaseFunction(ABC):
 
     def __init__(self, session_folder:str = None, name:str = None, **kwargs):
         self.api_key = None
-        self.runtime_context = None  # 需要在compiler里面实例化。
+        self.runtime_context:RuntimeContext  # 需要在compiler里面实例化。
         name = name or self.__class__.__name__
         self.logger = CustomLogger(
             filename=f"Node_{name}",
