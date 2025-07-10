@@ -66,6 +66,67 @@ class DataStream:
             **kwargs)
         return self._apply(tr)
 
+    def filter(
+        self, 
+        function: Union[BaseFunction, Type[BaseFunction]],
+        *args, 
+        platform: PlatformType = PlatformType.LOCAL,
+        name: str = None,
+        **kwargs
+    ) -> "DataStream":
+        """
+        对数据流进行过滤操作
+        
+        Args:
+            function: 过滤函数，应该是FilterFunction的子类
+            *args: 传递给function的位置参数
+            platform: 运行平台类型
+            name: 操作名称
+            **kwargs: 传递给function的关键字参数
+            
+        Returns:
+            DataStream: 过滤后的数据流
+        """
+        tr = Transformation(
+            TransformationType.FILTER, 
+            function,
+            *args,
+            platform = platform,
+            name = name,
+            **kwargs)
+        return self._apply(tr)
+
+    def flatmap(
+        self, 
+        function: Union[BaseFunction, Type[BaseFunction]],
+        *args, 
+        platform: PlatformType = PlatformType.LOCAL,
+        name: str = None,
+        **kwargs
+    ) -> "DataStream":
+        """
+        对数据流进行扁平化映射操作
+        
+        Args:
+            function: 扁平化映射函数，应该是FlatMapFunction的子类
+            *args: 传递给function的位置参数
+            platform: 运行平台类型
+            name: 操作名称
+            **kwargs: 传递给function的关键字参数
+            
+        Returns:
+            DataStream: 扁平化映射后的数据流
+        """
+        tr = Transformation(
+            TransformationType.FLATMAP, 
+            function,
+            *args,
+            platform = platform,
+            name = name,
+            **kwargs)
+        return self._apply(tr)
+
+
 
     # ---------------------------------------------------------------------
     # 表示对于当前 DataStream 进行输出
@@ -103,6 +164,9 @@ class DataStream:
             (self.transformation, self.output_tag),
             (other.transformation, other.output_tag)
         ])
+
+
+# 目前没支持filter 和 flatmap，因为connected streams整体还需要重做
 
 class ConnectedStreams:
     """表示多个transformation连接后的流结果"""

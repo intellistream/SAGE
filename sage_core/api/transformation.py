@@ -3,6 +3,8 @@ from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Opti
 from enum import Enum
 # from sage_core.api.env import BaseEnvironment
 from sage_core.core.operator.map_operator import MapOperator
+from sage_core.core.operator.flatmap_operator import FlatMapOperator
+from sage_core.core.operator.filter_operator import FilterOperator
 from sage_utils.custom_logger import CustomLogger
 from sage_core.api.enum import PlatformType
 from sage_utils.name_server import get_name
@@ -24,8 +26,8 @@ class Transformation:
     TO_OPERATOR = {
         TransformationType.MAP: MapOperator,
         # TODO: 添加其他transformation类型的映射
-        # TransformationType.FILTER: FilterOperator,
-        # TransformationType.FLATMAP: FlatMapOperator,
+        TransformationType.FILTER: FilterOperator,
+        TransformationType.FLATMAP: FlatMapOperator,
         TransformationType.SINK: MapOperator,
         TransformationType.SOURCE: MapOperator,
     }

@@ -1,19 +1,17 @@
 # === 基础模块导入 ===
-import os, time
-from typing import Tuple
+import os
+import json
+from typing import Tuple, Any
 
 # === 第三方工具包 ===
 from dotenv import load_dotenv
 
 # === Sage 工具包导入 ===
 from sage_utils.config_loader import load_config
-from sage_utils.logging_utils import configure_logging
-from sage_utils.custom_logger import CustomLogger
 from sage_utils.embedding_methods.embedding_api import apply_embedding_model
 from sage_memory.memory_manager import MemoryManager
 
 from sage_core.api.env import LocalEnvironment
-from sage_core.api.base_function import BaseFunction
 from sage_core.api.tuple import Data
 
 from sage_common_funs.io.source import FileSource
@@ -22,7 +20,6 @@ from sage_common_funs.rag.generator import OpenAIGenerator
 from sage_common_funs.rag.retriever import DenseRetriever
 from sage_common_funs.rag.promptor import QAPromptor
 from sage_common_funs.agent.agent import BaseAgent
-from typing import Tuple, List, Union, Type, Any
 
 # === Prompt 模板 ===
 ROUTE_PROMPT_TEMPLATE = '''Instruction:
@@ -34,44 +31,34 @@ Return a JSON with a single key 'datasource' and no preamble or explanation.
 Question to route: {question}
 '''
 
-# === Operator 类定义 ===
+# === 辅助Lambda函数 ===
 
-class RoutePromptFunction(BaseFunction):
-    """
-    构造路由 prompt，用于判断使用向量库还是 Web 搜索。
-    """
-    def __init__(self, config: dict = None, *args, **kwargs):
-        super().__init__(**kwargs)
-        self.config = config
-        self.prompt = ROUTE_PROMPT_TEMPLATE
+def create_route_prompt(query):
+    """创建路由提示"""
+    return Data([query, [{"role": "system", "content": ROUTE_PROMPT_TEMPLATE.format(question=query)}]])
 
-    def execute(self, data: Data) -> Data[list]:
-        query = data.data
-        system_prompt = {
-            "role": "system",
-            "content": self.prompt.format(question=query)
-        }
-        return Data([query, [system_prompt]])
+def parse_route_decision(data):
+    """解析路由决策"""
+    query, response = data.data
+    try:
+        response_json = json.loads(response)
+        datasource = response_json.get("datasource", "web_search")
+        route = "vector" if "vectorstore" in datasource else "web"
+        return Data((query, route))
+    except (json.JSONDecodeError, KeyError):
+        return Data((query, "web"))
 
-class RouteSplitter(BaseFunction):
-    """
-    根据 OpenAI 输出结果判断是走 vectorstore 还是 web search 路径。
-    """
-    def __init__(self, config: dict = None, *args, **kwargs):
-        super().__init__(**kwargs)
-        self.config = config
-        
-    @classmethod 
-    def declare_outputs(cls):
-        return [("vector", Any), ("web", Any)]
-    
-    def execute(self, data: Data[Tuple[str, str]]):
-        print(f"RouteSplitter received data: {data.data}")
-        if "vectorstore" in data.data[1]:
-            self.out.collect(data, "vector")
-        else:
-            self.out.collect(data, "web")
+def extract_query(data):
+    """提取查询"""
+    return data.data[0]
 
+def is_vector_route(data):
+    """判断是否为向量路由"""
+    return data.data[1] == "vector"
+
+def is_web_route(data):
+    """判断是否为Web路由"""
+    return data.data[1] == "web"
 
 # === 向量库构建 ===
 
@@ -83,7 +70,7 @@ col = manager.create_collection(
     backend_type="VDB",
     embedding_model=embedder,
     dim=embedder.get_dim(),
-    description="operator_test vdb collection",
+    description="adaptive_rag vdb collection",
     as_ray_actor=False
 )
 
@@ -96,7 +83,6 @@ for text in texts:
 
 col.create_index(index_name="vdb_index")
 
-
 # === 环境与配置 ===
 
 env = LocalEnvironment()
@@ -105,7 +91,7 @@ env.set_memory_collection(col)
 config = load_config("config_adaptive.yaml")
 load_dotenv(override=False)
 
-# 设置 API Key（如果存在）
+# 设置 API Key
 alibaba_api_key = os.environ.get("ALIBABA_API_KEY")
 bocha_api_key = os.environ.get("BOCHA_API_KEY")
 
@@ -116,37 +102,38 @@ if alibaba_api_key:
     config.setdefault("generator", {})["api_key"] = alibaba_api_key
     config.setdefault("agent", {})["api_key"] = alibaba_api_key
 
+# === 构建流水线（完全使用Lambda函数） ===
 
-# === 构建主流程与分支 ===
-
-# 主 Query 路由流程
-query_stream = (
+# 主路由流
+route_stream = (
     env.from_source(FileSource, config["source"])
-       .map(RoutePromptFunction, config["route_promptor"])
-       .map(OpenAIGenerator, config["generator"])
-       .map(RouteSplitter, config["route_splitter"])
+       .map(create_route_prompt)  # 创建路由提示
+       .map(OpenAIGenerator, config["generator"])  # LLM路由判断
+       .map(parse_route_decision)  # 解析路由决策
 )
 
-# 向量流分支
+# 向量检索分支
 vector_stream = (
-    query_stream.side_output("vector")
-                .map(DenseRetriever, config["retriever"])
-                .map(QAPromptor, config["promptor"])
-                .map(OpenAIGenerator, config["generator"])
-                .sink(TerminalSink, config["sink"])
+    route_stream
+    .filter(is_vector_route)  # 过滤向量路由
+    .map(extract_query)  # 提取查询
+    .map(DenseRetriever, config["retriever"])  # 检索
+    .map(QAPromptor, config["promptor"])  # 构建QA提示
+    .map(OpenAIGenerator, config["generator"])  # 生成答案
+    .sink(TerminalSink, config["sink"])  # 输出
 )
 
-# Web 搜索流分支
+# Web搜索分支
 web_stream = (
-    query_stream.side_output("web")
-                .map(BaseAgent, config["agent"])
-                .map(TerminalSink, config)
+    route_stream
+    .filter(is_web_route)  # 过滤Web路由
+    .map(extract_query)  # 提取查询
+    .map(BaseAgent, config["agent"])  # Web搜索
+    .sink(TerminalSink, config["sink"])  # 输出
 )
-
 
 # === 提交与执行 ===
 
 env.submit()
-env.run_streaming()
-time.sleep(60)
+env.run_once()
 env.close()

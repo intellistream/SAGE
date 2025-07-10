@@ -108,7 +108,7 @@ class BaseOperator(ABC):
                 self.emit(result)
 
         except Exception as e:
-            self.logger.error(f"Error in {self._name}.process_data(): {e}")
+            self.logger.error(f"Error in {self._name}.process_data(): {e}", exc_info=True)
 
 
     def emit(self, data: Any, tag: Optional[str] = None):

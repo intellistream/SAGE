@@ -7,7 +7,7 @@ from sage_utils.custom_logger import CustomLogger
 from typing import Any,Tuple
 import requests
 import json
-import re
+import re, time
 
 
 class Tool:
@@ -64,6 +64,7 @@ Thought:{agent_scratchpad}
 class BaseAgent(BaseFunction):
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
+        self.logger.set_console_level("DEBUG")
         self.config = config
         search = BochaSearch(api_key=self.config["search_api_key"])
 
@@ -113,20 +114,21 @@ class BaseAgent(BaseFunction):
         count = 0
         while True:
             count += 1
+            self.logger.debug(f"Step {count}: Processing query: {query}")
             if count > self.max_steps:
                 # raise ValueError("Max steps exceeded.")
                 return Data((query,""))
             
             prompt = self.get_prompt(query, agent_scratchpad)
-            print(f"Prompt: {prompt}")
+            self.logger.debug(f"Prompt: {prompt}")
             prompt=[{"role":"user","content":prompt}]
             output = self.model.generate(prompt)
-            print(output)
+            self.logger.debug(output)
             output=self.parse_json_output(output)
-            # print(output)
+            # self.logger.debug(output)
             if output.get("final_answer") is not "":
                 final_answer = output["final_answer"]
-                print(f"Final Answer: {final_answer}")
+                self.logger.debug(f"Final Answer: {final_answer}")
                 return Data((query,final_answer))
 
             action, action_input = output.get("action"), output.get("action_input")
@@ -140,12 +142,13 @@ class BaseAgent(BaseFunction):
                 return Data((query,""))
 
             tool = self.tools[action]
-            tool_reault = tool.run(action_input)
-            print(f"Tool {action} result: {tool_reault}")
-            snippets =[item["snippet"] for item in tool_reault["data"]["webPages"]["value"]]
+            tool_result = tool.run(action_input)
+            self.logger.debug(f"Tool {action} result: {tool_result}")
+            snippets =[item["snippet"] for item in tool_result["data"]["webPages"]["value"]]
             observation = "\n".join(snippets)
-            print(f"Observation: {observation}")
+            self.logger.debug(f"Observation: {observation}")
             agent_scratchpad += str(output) + f"\nObservation: {observation}\nThought: "
+            time.sleep(5)
 
 # import yaml
 # def load_config(path: str) -> dict:
