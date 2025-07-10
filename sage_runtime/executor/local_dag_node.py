@@ -20,7 +20,7 @@ class LocalDAGNode(BaseDAGNode):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        self.input_buffer = LocalMessageQueue(name = self.name)  # Local input buffer for this node
+        self.input_buffer = LocalMessageQueue(name = self.name, env_name=kwargs.get("env_name", None))  # Local input buffer for this node
 
         # self.logger.info(f"type: {transformation.type}")
         self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout})")

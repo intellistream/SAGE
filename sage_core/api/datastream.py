@@ -58,6 +58,7 @@ class DataStream:
     ) -> "DataStream":
         
         tr = Transformation(
+            self._environment,
             TransformationType.MAP, 
             function,
             *args,
@@ -141,6 +142,7 @@ class DataStream:
     ) -> "DataStream":
         
         tr = Transformation(
+            self._environment,
             TransformationType.SINK, 
             function,
             *args,
@@ -192,11 +194,11 @@ class ConnectedStreams:
         return DataStream(self._environment, tr)
 
     def map(self, function: Union[BaseFunction, Type[BaseFunction]], *args, **kwargs) -> "DataStream":
-        tr = Transformation(TransformationType.MAP, function, *args, **kwargs)
+        tr = Transformation(self._environment,TransformationType.MAP, function, *args, **kwargs)
         return self._apply(tr)
 
     def sink(self, function: Union[BaseFunction, Type[BaseFunction]], *args, **kwargs) -> "DataStream":
-        tr = Transformation(TransformationType.SINK, function, *args, **kwargs)
+        tr = Transformation(self._environment, TransformationType.SINK, function, *args, **kwargs)
         return self._apply(tr)
 
     def connect(self, other: Union["DataStream", "ConnectedStreams"]) -> "ConnectedStreams":

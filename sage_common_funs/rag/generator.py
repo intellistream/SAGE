@@ -46,15 +46,13 @@ class OpenAIGenerator(BaseFunction):
         user_query = data.data[0] if len(data.data) > 1  else None
  
         prompt = data.data[1] if len(data.data) > 1 else data.data
-        self.logger.debug(prompt)
-        # 可以在上边的generator.logger中配置logger.console_output = True
-        # Generate the response from the model using the provided data and additional arguments
+
         response = self.model.generate(prompt, **kwargs)
-        # print(f'query {self.num}  {user_query}')
-        # print(f"answer {self.num}  {response}")
+
         self.num += 1
 
-        self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Response: {response }\033[0m ")
+        self.logger.info(f"[ {self.__class__.__name__}]: Response: {response}")
+
         # Return the generated response along with the original user query as a tuple
         return Data((user_query, response))
 

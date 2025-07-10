@@ -35,6 +35,7 @@ class LocalTcpServer:
             file_output="DEBUG",
             global_output="WARNING"
         )
+    
         self.logger.info(f"Initializing LocalTcpServer on {self.host}:{self.port}")
 
 
