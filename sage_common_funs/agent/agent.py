@@ -1,0 +1,157 @@
+from calendar import c
+from sage_common_funs.utils.generator_model import apply_generator_model
+from sage_core.api.base_function import BaseFunction
+from jinja2 import Template
+from sage_core.api.tuple import Data
+from sage_utils.custom_logger import CustomLogger
+from typing import Any,Tuple
+import requests
+import json
+import re
+
+
+class Tool:
+    def __init__(self, name, func, description):
+        self.name = name
+        self.func = func
+        self.description = description
+
+    def run(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+    
+class BochaSearch:
+    def __init__(self,api_key):
+        self.url = "https://api.bochaai.com/v1/web-search"
+        self.api_key = api_key
+        self.headers = {
+            'Authorization': api_key,
+            'Content-Type': 'application/json'
+        }
+
+    def run(self, query):
+        payload = json.dumps({
+            "query": query,
+            "summary": True,
+            "count": 10,
+            "page": 1
+        })
+        response = requests.request("POST", self.url, headers=self.headers, data=payload)
+        return response.json()
+
+PREFIX = """Answer the following questions as best you can. You have access to the following tools:{tool_names}"""
+FORMAT_INSTRUCTIONS = """Always respond in the following JSON format:
+
+```json
+{{
+  "thought": "your thought process",
+  "action": "the action to take, should be one of [{tool_names}]",
+  "action_input": "the input to the action",
+  "observation": "Result from tool after execution",
+  "final_answer": "Final answer to the original question"
+}}
+```
+Notes:
+If you are taking an action, set 'final_answer' to "" and 'observation' to "".
+If you have enough information to answer, set 'action' to "", and fill in 'final_answer' directly. 
+"""
+
+SUFFIX = """Begin!
+Question: {input}
+Thought:{agent_scratchpad}
+"""
+
+
+class BaseAgent(BaseFunction):
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config
+        search = BochaSearch(api_key=self.config["search_api_key"])
+
+        self.tools = [
+            Tool(
+                name = "Search",
+                func=search.run,
+                description="useful for when you need to search to answer questions about current events"
+            )
+        ]
+        self.tools = {tool.name: tool for tool in self.tools}
+        self.tool_names = ", ".join(self.tools.keys())  # 修复点
+        self.format_instructions = FORMAT_INSTRUCTIONS.format(tool_names=self.tool_names)
+        self.prefix= PREFIX.format(tool_names=self.tool_names)
+        self.model = apply_generator_model(
+            method=self.config["method"],
+            model_name=self.config["model_name"],
+            base_url=self.config["base_url"],
+            api_key=self.config["api_key"],
+            seed=42 
+        )
+        self.max_steps=self.config.get("max_steps", 5)
+
+    def get_prompt(self, input, agent_scratchpad):
+        return self.prefix + self.format_instructions + SUFFIX.format(
+            input=input, agent_scratchpad=agent_scratchpad
+        )
+    
+    def parse_json_output(self, output):
+        """
+        Try to load the entire output as JSON.
+        """
+        try:
+            json_match = re.search(r"```json(.*?)```", output, re.DOTALL)
+            if not json_match:
+                raise ValueError("No JSON code block found.")
+
+            json_str = json_match.group(1).strip()
+            data = json.loads(json_str)
+            return data
+        except Exception as e:
+            raise ValueError(f"Invalid JSON format: {str(e)}")
+        
+    def execute(self, data: Data[str],*args, **kwargs) -> Data[Tuple[str, str]]:
+        query = data.data
+        agent_scratchpad = ""
+        count = 0
+        while True:
+            count += 1
+            if count > self.max_steps:
+                # raise ValueError("Max steps exceeded.")
+                return Data((query,""))
+            
+            prompt = self.get_prompt(query, agent_scratchpad)
+            print(f"Prompt: {prompt}")
+            prompt=[{"role":"user","content":prompt}]
+            output = self.model.generate(prompt)
+            print(output)
+            output=self.parse_json_output(output)
+            # print(output)
+            if output.get("final_answer") is not "":
+                final_answer = output["final_answer"]
+                print(f"Final Answer: {final_answer}")
+                return Data((query,final_answer))
+
+            action, action_input = output.get("action"), output.get("action_input")
+
+            if action is None:
+                # raise ValueError("Could not parse action.")
+                return Data((query,""))
+
+            if action not in self.tools:
+                # raise ValueError(f"Unknown tool requested: {action}")
+                return Data((query,""))
+
+            tool = self.tools[action]
+            tool_reault = tool.run(action_input)
+            print(f"Tool {action} result: {tool_reault}")
+            snippets =[item["snippet"] for item in tool_reault["data"]["webPages"]["value"]]
+            observation = "\n".join(snippets)
+            print(f"Observation: {observation}")
+            agent_scratchpad += str(output) + f"\nObservation: {observation}\nThought: "
+
+# import yaml
+# def load_config(path: str) -> dict:
+#     with open(path, 'r') as f:
+#         return yaml.safe_load(f)
+
+# config=load_config("/home/zsl/workspace/sage/api/operator/operator_impl/config.yaml")
+# agent=BaseAgent(config)
+# agent.run("你是谁")
