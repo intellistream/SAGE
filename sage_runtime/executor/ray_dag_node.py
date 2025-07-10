@@ -41,7 +41,7 @@ class RayDAGNode(BaseDAGNode):
                 # Start spout execution asynchronously
                 try:
                     # For spout nodes, call operator.receive with dummy channel and data
-                    self.operator.process_data(None, None)
+                    self.operator.receive_packet(None, None)
                     time.sleep(self.delay)  # Small delay to prevent overwhelming
                         
                 except Exception as e:

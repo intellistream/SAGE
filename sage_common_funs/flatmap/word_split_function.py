@@ -1,7 +1,7 @@
 from typing import Any, Callable, Union, Iterable, Optional
 
 from sage_core.api.function_api.flatmap_function import FlatMapFunction
-from sage_core.api.tuple import Data
+
 
 
 
@@ -16,7 +16,7 @@ class WordSplitFunction(FlatMapFunction):
         self.delimiter = delimiter
         self.logger.debug(f"WordSplitFunction initialized with delimiter: '{delimiter}'")
 
-    def execute(self, data: Union[Any, Data]) -> Optional[Iterable[Any]]:
+    def execute(self, raw_data) -> Optional[Iterable[Any]]:
         """
         将文本数据分割成单词
         
@@ -27,12 +27,9 @@ class WordSplitFunction(FlatMapFunction):
             Optional[Iterable[Any]]: 分割后的单词列表
         """
         try:
-            # 提取原始数据
-            raw_data = self._extract_data(data)
-            
             # 获取文本内容
             if hasattr(raw_data, 'data'):
-                text = raw_data.data
+                text = raw_data
             elif isinstance(raw_data, str):
                 text = raw_data
             else:
@@ -46,5 +43,5 @@ class WordSplitFunction(FlatMapFunction):
             self.logger.debug(f"Split '{text}' into {len(words)} words")
             return words
         except Exception as e:
-            self.logger.error(f"Error splitting text for data {data}: {e}", exc_info=True)
+            self.logger.error(f"Error splitting text for data {raw_data}: {e}", exc_info=True)
             return None

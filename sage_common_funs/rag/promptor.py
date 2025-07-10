@@ -1,6 +1,6 @@
 from jinja2 import Template
 from sage_core.api.base_function import BaseFunction, StatefulFunction, MemoryFunction
-from sage_core.api.tuple import Data
+
 from sage_utils.custom_logger import CustomLogger
 
 QA_prompt_template='''Instruction:
@@ -47,17 +47,17 @@ class QAPromptor(BaseFunction):
         self.prompt_template = QA_prompt_template  # Load the QA prompt template
 
     # sage_lib/functions/rag/qapromptor.py
-    def execute(self, data) -> Data[list]:
+    def execute(self, data) -> list:
         """
         生成 ChatGPT 风格的 prompt（system+user 两条消息）。
 
         支持两种输入：
-        1. Data((query, external_corpus_list_or_str))
-        2. Data(query_str)
+        1. (query, external_corpus_list_or_str))
+        2. query_str)
         """
         try:
             # -------- 解析输入 --------
-            raw = data.data
+            raw = data
             if isinstance(raw, tuple) and len(raw) == 2:
                 query, external_corpus = raw
                 if isinstance(external_corpus, list):
@@ -90,7 +90,7 @@ class QAPromptor(BaseFunction):
             }
 
             prompt = [system_prompt, user_prompt]
-            return Data([query,prompt])
+            return [query,prompt]
 
         except Exception as e:
             self.logger.error(
@@ -106,7 +106,7 @@ class QAPromptor(BaseFunction):
                     ),
                 },
             ]
-            return Data(fallback)
+            return fallback
 
 
 class SummarizationPromptor(BaseFunction):
@@ -130,7 +130,7 @@ class SummarizationPromptor(BaseFunction):
         self.config = config  # Store the configuration for later use
         self.prompt_template = summarization_prompt_template  # Load the summarization prompt template
 
-    def execute(self, data) -> Data[list]:
+    def execute(self, data) -> list:
         """
         Generates a QA-style prompt for the input question and external corpus.
 
@@ -146,7 +146,7 @@ class SummarizationPromptor(BaseFunction):
                  2. user_prompt: A user prompt containing the question to be answered.
         """
         # Unpack the input data into query and external_corpus
-        query, external_corpus = data.data
+        query, external_corpus = data
 
         # Combine the external corpus list into a single string (in case it's split into multiple parts)
         external_corpus = "".join(external_corpus)
@@ -156,7 +156,7 @@ class SummarizationPromptor(BaseFunction):
             "external_corpus": external_corpus
         }
 
-        # query = data.data
+        # query = data
         # Create the system prompt using the template and the external corpus data
         system_prompt = {
             "role": "system",
@@ -176,4 +176,4 @@ class SummarizationPromptor(BaseFunction):
         prompt = [system_prompt, user_prompt]
 
         # Return the prompt list wrapped in a Data object
-        return Data(prompt)
+        return prompt

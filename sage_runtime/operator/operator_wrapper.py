@@ -101,7 +101,7 @@ class OperatorWrapper:
         """代理dir()调用"""
         if self._execution_mode == "ray_actor":
             # Ray Actor 的 dir() 可能不完整，返回常见的 operator 方法
-            return ['process_data', 'start_spout_loop', 'stop_actor', 'get_actor_status']
+            return ['receive_packet', 'start_spout_loop', 'stop_actor', 'get_actor_status']
         else:
             return dir(self._operator)
 
@@ -195,7 +195,7 @@ class OperatorWrapper:
         return self._operator
 
     # # 为常见的 operator 方法提供类型提示和文档
-    # def process_data(self, channel: str, data: Any) -> Any:
+    # def receive_packet(self, channel: str, data: Any) -> Any:
     #     """
     #     处理数据的统一接口
         
