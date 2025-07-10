@@ -25,7 +25,7 @@ class Merger(BaseFunction):
     
 
 
-    def execute(self, tag:str,  data: Data[Tuple[str, str]]):
+    def execute(self,  data: Data[Tuple[str, str]] ,  tag:str):
         self.logger.debug(f"Received data for tag '{tag}': {data.data}")
-        self.collector.collect(None, data)
+        self.out.collect(data, None)
             
