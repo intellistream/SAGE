@@ -1,7 +1,6 @@
 
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional, Set, TYPE_CHECKING, Type, Tuple
-from sage_core.api.collector import Collector
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.io.unified_emit_context import UnifiedEmitContext
 
@@ -36,7 +35,6 @@ class BaseOperator(ABC):
             global_output = "DEBUG",
             name = f"{name}_{self.__class__.__name__}"
         )
-        self.collector = Collector(self)  # 用于收集数据
 
         try:
             # 新方式：传递function类和参数，在这里创建实例
@@ -50,7 +48,7 @@ class BaseOperator(ABC):
             raise
         self._emit_context = UnifiedEmitContext(name = name, session_folder=session_folder)
 
-        self.function.insert_collector(self.collector)
+
 
         self._name = self.__class__.__name__
         # 维护下游节点和路由逻辑
@@ -104,16 +102,16 @@ class BaseOperator(ABC):
                 self.logger.debug(f"Single input declared for operator {self._name}. Executing with data.")
                 result = self.function.execute(data)
             else:
-                result = self.function.execute(tag, data)
+                result = self.function.execute( data, tag)
                 self.logger.debug(f"Operator {self._name} processed data with result: {result}")
             if result is not None:
-                self.emit(None, result)
+                self.emit(result)
 
         except Exception as e:
             self.logger.error(f"Error in {self._name}.process_data(): {e}")
 
 
-    def emit(self, tag: str, data: Any):
+    def emit(self, data: Any, tag: Optional[str] = None):
         """
         Emit data to downstream node through specified channel and target.
         现在直接将Connection对象传递给EmitContext处理

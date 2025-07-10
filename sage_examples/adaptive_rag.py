@@ -68,9 +68,9 @@ class RouteSplitter(BaseFunction):
     def execute(self, data: Data[Tuple[str, str]]):
         print(f"RouteSplitter received data: {data.data}")
         if "vectorstore" in data.data[1]:
-            self.collector.collect("vector", data)
+            self.out.collect(data, "vector")
         else:
-            self.collector.collect("web", data)
+            self.out.collect(data, "web")
 
 
 # === 向量库构建 ===

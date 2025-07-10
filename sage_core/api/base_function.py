@@ -1,11 +1,12 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Type, List, Tuple, Any
+from typing import Type, List, Tuple, Any, Union
 
 from dotenv import load_dotenv
 
 from sage_core.api.collector import Collector
 from sage_utils.custom_logger import CustomLogger
+from sage_core.api.tuple import Data
 
 
 
@@ -65,15 +66,6 @@ class BaseFunction(ABC):
         """
         return len(cls.declare_inputs())
 
-
-    def insert_collector(self, collector):
-        """
-        Insert a collector into the function for data collection.
-
-        :param collector: The collector instance to be inserted.
-        """
-        self.collector:Collector = collector
-        self.collector.logger = self.logger
     def insert_runtime_context(self, runtime_context):
         """
         Insert a runtime_tests context into the function for accessing runtime_tests data.
@@ -110,6 +102,37 @@ class BaseFunction(ABC):
         """
         pass
 
+    def _extract_data(self, data: Union[Any, Data]) -> Any:
+        """
+        Extract raw data from Data wrapper or return the data as-is.
+        
+        Args:
+            data: Either raw data or Data wrapper
+            
+        Returns:
+            Any: The extracted raw data
+        """
+        if isinstance(data, Data):
+            return data.data
+        return data
+
+    def _wrap_data(self, data: Any) -> Data:
+        """
+        Wrap raw data into Data wrapper.
+        
+        Args:
+            data: Raw data to wrap
+            
+        Returns:
+            Data: Wrapped data
+        """
+        if isinstance(data, Data):
+            return data
+        return Data(data)
+
+
+
+
 
 class MemoryFunction(BaseFunction):
     def __init__(self):
@@ -140,3 +163,5 @@ class StatefulFunction(BaseFunction):
 #         self.runtime_context = None  # 需要在compiler里面实例化。
 #         self.state
 #         pass
+
+

@@ -20,7 +20,7 @@ class Splitter(BaseFunction):
     def execute(self, data: Data[Tuple[str, str]]):
         if(data.data[1].find("False") != -1):
             self.logger.debug(f"Data contains 'False': {data.data[1]}")
-            self.collector.collect("false", data)
+            self.out.collect(data, "false")
         else:
             self.logger.debug(f"Data does not contain 'False': {data.data[1]}")
-            self.collector.collect("true", data)
+            self.out.collect(data, "true")
