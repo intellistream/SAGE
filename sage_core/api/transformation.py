@@ -10,7 +10,7 @@ from sage_runtime.operator.factory import OperatorFactory
 if TYPE_CHECKING:
     from sage_core.core.operator.base_operator import BaseOperator
     from sage_core.api.base_function import BaseFunction
-
+    from sage_core.api.env import BaseEnvironment
 
 
 class TransformationType(Enum):
@@ -31,7 +31,7 @@ class Transformation:
     }
     def __init__(
         self,
-        # env, # :BaseEnvironment,
+        env:'BaseEnvironment',
         type: TransformationType,
         function: Type['BaseFunction'],
         *args,
@@ -61,9 +61,12 @@ class Transformation:
 
         self.logger = CustomLogger(
             filename=get_name(f"Transformation_{self.basename}"),
+            env_name = env.name,
             console_output=False,
             file_output=True
         )
+        
+
         self.logger.debug(f"Creating Transformation of type {type} with rag {self.function_class.__name__}")
         # 创建OperatorFactory来处理operator的创建
         self.operator_class = self.TO_OPERATOR.get(type, None)
@@ -74,7 +77,8 @@ class Transformation:
             function_args=args,
             function_kwargs=kwargs,  # 将kwargs传递给function
             is_spout = (self.type == TransformationType.SOURCE),
-            basename=self.basename
+            basename=self.basename,
+            env_name = env.name
         )
 
 

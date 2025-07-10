@@ -39,7 +39,8 @@ class VDBMemoryCollection(BaseMemoryCollection):
         dim: int,
         config_path: Optional[str] = None,
         load_path: Optional[str] = None,
-        session_folder: Optional[str] = None
+        session_folder: Optional[str] = None,
+        env_name: Optional[str] = None
     ):
         if not hasattr(embedding_model, "encode"):
             raise TypeError("embedding_model must have an 'encode' method")
@@ -62,6 +63,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
 
         self.logger = CustomLogger(
             filename=f"VDBMemoryCollection",
+            env_name=env_name,
             session_folder=session_folder,
             console_output=False,
             file_output=True

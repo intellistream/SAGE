@@ -14,15 +14,18 @@ class UnifiedEmitContext:
     根据Connection对象中的配置自动选择合适的发送方式
     """
     
-    def __init__(self, session_folder: str = None, name: str = None, **kwargs):
+    def __init__(self, session_folder: str = None, name: str = None,env_name = None, **kwargs):
         self.logger = CustomLogger(
             filename=f"Node_{name}",
+            env_name=env_name,
             session_folder=session_folder,
             console_output="WARNING",
             file_output="DEBUG",
             global_output="WARNING",
             name=f"{name}_UnifiedEmitContext"
         )
+        
+
         self.name = name
         
         # TCP连接管理（用于Ray到Local的连接）

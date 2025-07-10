@@ -9,7 +9,7 @@ from sage_utils.custom_logger import CustomLogger
 
 class LocalMessageQueue:
 
-    def __init__(self, name="MessageQueue", max_buffer_size=30000, session_folder: str = None):
+    def __init__(self, name="MessageQueue", max_buffer_size=30000, session_folder: str = None, env_name: str = None):
         self.name = name
         self.session_folder = session_folder
         self.max_buffer_size = max_buffer_size
@@ -21,11 +21,14 @@ class LocalMessageQueue:
         # self.task_per_minute = 0
         self.logger = CustomLogger(
             filename=f"Node_{name}",
+            env_name=env_name,
             console_output="WARNING",
             file_output="DEBUG",
             global_output = "WARNING",
             name = f"{name}_LocalMessageQueue"
         )
+        
+
         self.timestamps = deque()
         self.lock = threading.Lock()
         self.buffer_condition = threading.Condition(self.lock)  # 用于内存空间通知

@@ -26,16 +26,20 @@ class BaseOperator(ABC):
                  function_kwargs: Dict[str, Any] = None,
                  session_folder: str = None, 
                  name: str = None, 
+                 env_name:str = None, 
                  **kwargs):
         
         self.logger = CustomLogger(
             filename=f"Node_{name}",
+            env_name=env_name,
             session_folder = session_folder or None,
             console_output="WARNING",
             file_output="DEBUG",
             global_output = "DEBUG",
             name = f"{name}_{self.__class__.__name__}"
         )
+        
+
         self.collector = Collector(self)  # 用于收集数据
 
         try:
@@ -48,7 +52,7 @@ class BaseOperator(ABC):
         except Exception as e:
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
             raise
-        self._emit_context = UnifiedEmitContext(name = name, session_folder=session_folder)
+        self._emit_context = UnifiedEmitContext(name = name, session_folder=session_folder, env_name = env_name)
 
         self.function.insert_collector(self.collector)
 
@@ -78,7 +82,7 @@ class BaseOperator(ABC):
         self._emit_context = emit_context
         self.logger.debug(f"Emit context injected for operator {self._name}")
 
-    def insert_runtime_context(self, runtime_context  = None):
+    def insert_runtime_context(self, runtime_context  = None, env_name:str = None):
         self.runtime_context = runtime_context
         self.runtime_context.logger =CustomLogger(
             filename=f"Node_{self.runtime_context.name}",
@@ -86,8 +90,11 @@ class BaseOperator(ABC):
             file_output="DEBUG",
             global_output = "WARNING",
             session_folder=self.runtime_context.session_folder,
-            name = f"{self.runtime_context.name}_RuntimeContext"
+            name = f"{self.runtime_context.name}_RuntimeContext",
+            env_name = env_name
         )
+        
+
         self.function.insert_runtime_context(runtime_context)
 
     def process_data(self, tag: str, data: 'Data'):

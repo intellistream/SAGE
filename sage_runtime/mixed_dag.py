@@ -21,6 +21,7 @@ class MixedDAG():
         self.name:str = graph.name
         self.logger = CustomLogger(
             filename=f"MixedDAG_{self.name}",
+            env_name= env.name,
             console_output="WARNING",
             file_output="DEBUG",
             global_output = "DEBUG",
@@ -133,7 +134,8 @@ class MixedDAG():
             node = RayDAGNode(
                 graph_node,
                 transformation.operator_factory,
-                memory_collection
+                memory_collection,
+                env_name = env.name,
             )
             self.logger.debug(f"Created remote node: {graph_node.name}")
         else:
@@ -141,7 +143,8 @@ class MixedDAG():
             node = LocalDAGNode(
                 graph_node,
                 transformation.operator_factory,
-                memory_collection
+                memory_collection,
+                env_name = env.name,
             )
             self.logger.debug(f"Created local node: {graph_node.name}")
         
