@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-import threading
+import threading, copy
 from typing import Any, TYPE_CHECKING, Union
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.runtime_context import RuntimeContext
@@ -16,38 +16,42 @@ class BaseDAGNode(ABC):
         self, 
         name:str, 
         operator_factory: 'OperatorFactory',
-        parallel_index: int = 0,
-        parallelism: int = 1,
-        delay: float = 0.1,
-        memory_collection:Union[ActorHandle, Any] = None, 
-        remote:bool = False,
-        env_name:str = None,
-        is_spout:bool = False
     ) -> None:
+        self.runtime_context: RuntimeContext
+        self.operator:BaseOperator
+        self.delay: Union[int, float] = 1
+        self.is_spout: bool = False
+
+
         self.operator_factory: 'OperatorFactory' = operator_factory
-        self.delay = delay
         self.name = name
-        self.is_spout = is_spout  # Check if this is a spout node
-
-        # Create logger first
-        self.logger = CustomLogger(
-            filename=f"Node_{self.name}",
-            env_name=env_name,
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output = "WARNING",
-            name = f"{self.name}_{self.__class__.__name__}"
-        )
-        
-
-        self.operator:BaseOperator = operator_factory.create_operator(name = self.name)
-        self.memory_collection = memory_collection  # Optional memory collection for this node
         self._running = False
-        # Initialize stop event
         self.stop_event = threading.Event()
 
         pass
-    
+
+    def runtime_init(self, runtime_context: RuntimeContext) -> None:
+        """
+        Initialize the runtime context and other parameters.
+        """
+        try:
+            self.runtime_context = runtime_context
+
+            self.operator = self.operator_factory.create_operator(name=self.name)
+            self.operator.runtime_init(copy.deepcopy(runtime_context))
+            # Create logger first
+            self.logger = CustomLogger(
+                filename=f"Node_{runtime_context.name}",
+                env_name=runtime_context.env_name,
+                console_output="WARNING",
+                file_output="DEBUG",
+                global_output = "WARNING",
+                name = f"{runtime_context.name}_{self.__class__.__name__}"
+            )
+            self.logger.info(f"Node {self.name} initialized with type {self.__class__.__name__}")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
+
     @abstractmethod
     def run_loop(self) -> None:
         """

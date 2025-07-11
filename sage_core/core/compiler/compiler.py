@@ -1,26 +1,31 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 from typing import Dict, List, Set
 from sage_core.api.env import BaseEnvironment
 from sage_core.api.transformation import Transformation
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.name_server import get_name
+if TYPE_CHECKING:
+    from sage_core.core.operator.base_operator import BaseOperator
+    from sage_runtime.dagnode.base_dag_node import BaseDAGNode
+    from sage_core.api.base_function import BaseFunction
+    from sage_runtime.function.factory import FunctionFactory
+    from sage_runtime.operator.factory import OperatorFactory
 class GraphNode:
     def __init__(self, name: str, transformation: Transformation, parallel_index: int):
         self.name: str = name
         self.transformation: Transformation = transformation
         self.parallel_index: int = parallel_index  # 在该transformation中的并行索引
         self.parallelism: int = transformation.parallelism
+        self.is_spout: bool = transformation.type.value == "source"
         # 输入输出channels：每个channel是一个边的列表
 
         self.input_channels:List[GraphEdge] = []
         self.output_channels:List[List[GraphEdge]] = []
-    def create_dag_node(self, memory_collection, remote: bool = False):
-        """使用工厂创建 DAG 节点实例"""
-        return self.transformation.dag_node_factory.create_node(
-            graph_node=self,
-            memory_collection=memory_collection,
-            remote=remote
-        )
+
+    def create_dag_node(self) -> 'BaseDAGNode':
+        node = self.transformation.dag_node_factory.create_node(self.name)
+        return node
 
 class GraphEdge:
     def __init__(self,name:str,  output_node: GraphNode,  input_node:GraphNode = None):

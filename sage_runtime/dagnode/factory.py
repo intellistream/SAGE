@@ -33,43 +33,14 @@ class DAGNodeFactory:
     def create_node(
         self,
         name: str,
-        memory_collection: Union[Any, 'ActorHandle'],
-        parallel_index: int = 0,
-        parallelism: int = 1,
     ) -> 'BaseDAGNode':
-        """
-        创建 DAG 节点实例
-        
-        Args:
-            graph_node: 图节点，包含动态参数（名称、并行度、并行索引）
-            memory_collection: 内存集合（来自环境）
-            remote: 是否为远程节点（来自环境平台类型）
-        
-        Returns:
-            创建的 DAG 节点实例
-        """
         if self.remote:
-            return RayDAGNode(
-                name = name,
-                operator_factory=self.operator_factory,
-                memory_collection=memory_collection,
-                delay=self.delay,
-                env_name=self.env_name, 
-                parallel_index=parallel_index,
-                parallelism=parallelism,
-                is_spout=self.is_spout
-            )
+            node = RayDAGNode(name,  self.operator_factory)
         else:
-            return LocalDAGNode(
-                name = name,
-                operator_factory=self.operator_factory,
-                memory_collection=memory_collection,
-                delay=self.delay,
-                env_name=self.env_name, 
-                parallel_index=parallel_index,
-                parallelism=parallelism,
-                is_spout=self.is_spout
-            )
+            node = LocalDAGNode(name, self.operator_factory)
+        node.delay = self.delay
+        node.is_spout = self.is_spout
+        return
     
     def __repr__(self) -> str:
         return f"<DAGNodeFactory {self.basename}>"

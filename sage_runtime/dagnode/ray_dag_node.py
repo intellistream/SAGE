@@ -20,14 +20,7 @@ class RayDAGNode(BaseDAGNode):
     """
     
     def __init__(self, *args, **kwargs) -> None:
-        kwargs["remote"] = True
         super().__init__(*args, **kwargs)
-        # Running state management
-        self.logger.info(f"Created Ray actor node: {self.name}")
-
-    
-
-
 
     def run_loop(self):
         """

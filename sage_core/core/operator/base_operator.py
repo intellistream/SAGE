@@ -22,34 +22,36 @@ if TYPE_CHECKING:
 class BaseOperator(ABC):
     def __init__(self, 
                  function_factory: 'FunctionFactory',
-                 session_folder: str = None, 
-                 name: str = None, 
-                 env_name:str = None, 
                  **kwargs):
         
-        self.logger = CustomLogger(
-            filename=f"Node_{name}",
-            env_name=env_name,
-            session_folder = session_folder or None,
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output = "DEBUG",
-            name = f"{name}_{self.__class__.__name__}"
-        )
-        self.name = name
+        self.name:str
+        self.function:'BaseFunction'
+        self._emit_context: 'UnifiedEmitContext'
 
-        try:
-            self.function = function_factory.create_function(name = name)
-            self.logger.debug(f"Created function instance with {function_factory}")
-        except Exception as e:
-            self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
-
-        self._emit_context = UnifiedEmitContext(name = name, session_folder=session_folder, env_name = env_name) 
-    
-
- 
+        self.function_factory = function_factory
         self.downstream_groups:Dict[int, Dict[int, 'Connection']] = {}
         self.downstream_group_roundrobin: Dict[int, int] = {}
+
+    def runtime_init(self, ctx: 'RuntimeContext') -> None:
+        try:
+            self.name = ctx.name
+            self.logger = CustomLogger(
+                filename=f"Node_{ctx.name}",
+                env_name=ctx.env_name,
+                console_output="WARNING",
+                file_output="DEBUG",
+                global_output = "WARNING",
+                name = f"{ctx.name}_{self.__class__.__name__}",
+                session_folder=ctx.session_folder
+            )
+            self.function = self.function_factory.create_function(self.name)
+
+            self._emit_context = UnifiedEmitContext(name = ctx.name, session_folder=ctx.session_folder, env_name = ctx.env_name) 
+            self.logger.debug(f"Created function instance with {self.function_factory}")
+
+            self.function.runtime_init(ctx)
+        except Exception as e:
+            self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
 
 
     def receive_packet(self, packet: 'Packet' = None):

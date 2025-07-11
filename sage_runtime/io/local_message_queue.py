@@ -86,7 +86,7 @@ class LocalMessageQueue:
         """
         # 估算项目大小
         item_size = self._estimate_size(item)
-
+        self.logger.debug(f"Putting item of size {item_size} bytes into queue '{self.name}', current usage: {self.current_buffer_usage} bytes")
         if block:
             end_time = None if timeout is None else time.time() + timeout
 
