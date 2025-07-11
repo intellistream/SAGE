@@ -10,9 +10,9 @@ from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from sage_core.api.transformation import Transformation
     from sage_runtime.operator.factory import OperatorFactory
-    from sage_core.core.operator.base_operator import BaseOperator
+    from sage_core.operator.base_operator import BaseOperator
     from sage_runtime.operator.operator_wrapper import OperatorWrapper
-    from sage_core.core.compiler import Compiler, GraphNode
+    from sage_runtime.compiler import Compiler, GraphNode
     from sage_runtime.runtime_context import RuntimeContext
 
 

@@ -55,18 +55,6 @@ class BaseFunction(ABC):
             self.api_key = os.getenv("ALIBABA_API_KEY")
         pass
 
-
-
-
-    # TODO: 创建一个function factory，并把对应的逻辑封装进去
-    # Issue URL: https://github.com/intellistream/SAGE/issues/144
-    def insert_runtime_context(self, runtime_context):
-        """
-        Insert a runtime_tests context into the function for accessing runtime_tests data.
-        :param runtime_context: The runtime_tests context instance to be inserted.
-        """
-        self.runtime_context = runtime_context
-
     # @abstractmethod
     # def close(self, *args, **kwargs):
     #     """

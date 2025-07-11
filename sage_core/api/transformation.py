@@ -2,9 +2,9 @@ from __future__ import annotations
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
 from enum import Enum
 # from sage_core.api.env import BaseEnvironment
-from sage_core.core.operator.map_operator import MapOperator
-from sage_core.core.operator.flatmap_operator import FlatMapOperator
-from sage_core.core.operator.filter_operator import FilterOperator
+from sage_core.operator.map_operator import MapOperator
+from sage_core.operator.flatmap_operator import FlatMapOperator
+from sage_core.operator.filter_operator import FilterOperator
 from sage_utils.custom_logger import CustomLogger
 from sage_core.api.enum import PlatformType
 from sage_utils.name_server import get_name
@@ -13,7 +13,7 @@ from sage_runtime.function.factory import FunctionFactory
 from sage_runtime.dagnode.factory import DAGNodeFactory
 from ray.actor import ActorHandle
 if TYPE_CHECKING:
-    from sage_core.core.operator.base_operator import BaseOperator
+    from sage_core.operator.base_operator import BaseOperator
     from sage_core.api.base_function import BaseFunction
     from sage_core.api.env import BaseEnvironment
 
@@ -61,8 +61,6 @@ class Transformation:
             console_output=False,
             file_output=True
         )
-
-
         if self.remote and not isinstance(env.memory_collection, ActorHandle):
             raise Exception("Memory collection must be a Ray Actor handle for remote transformation")
         # 创建可序列化的函数工厂

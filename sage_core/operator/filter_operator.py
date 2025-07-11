@@ -1,6 +1,6 @@
 from typing import Any, Optional
 from typing import Any, List, Dict, Optional, Set, TYPE_CHECKING, Type, Tuple
-from sage_core.core.operator.base_operator import BaseOperator
+from sage_core.operator.base_operator import BaseOperator
 from sage_core.api.function_api.filter_function import FilterFunction
 from sage_runtime.io.packet import Packet
 
