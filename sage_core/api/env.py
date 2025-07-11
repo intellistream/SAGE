@@ -85,7 +85,7 @@ class BaseEnvironment:
         from sage_core.engine import Engine
         engine = Engine.get_instance()
         engine.stop_pipeline(self)
-        self.close()
+        # self.close()
 
     def close(self):
         """
