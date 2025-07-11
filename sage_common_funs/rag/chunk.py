@@ -1,11 +1,11 @@
 from typing import Any, List, Literal, Optional, Union
-from sage_core.function.base_function import BaseFunction
+from sage_core.function.map_function import MapFunction
 
 from typing import Any, List, Optional
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer
 
-class CharacterSplitter(BaseFunction):
+class CharacterSplitter(MapFunction):
     """
     A source rag that reads a file and splits its contents into overlapping chunks.
 
@@ -55,7 +55,7 @@ class CharacterSplitter(BaseFunction):
             self.logger.error(f"CharacterSplitter error: {e}", exc_info=True)
 
 
-class SentenceTransformersTokenTextSplitter(BaseFunction):
+class SentenceTransformersTokenTextSplitter(MapFunction):
     """
     A source rag that splits text into tokens using SentenceTransformer's tokenizer.
 

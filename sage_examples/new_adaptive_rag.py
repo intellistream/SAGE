@@ -37,7 +37,7 @@ Return a raw word of web_search or vectorstore with no preamble or explanation.
 
 # === 数据处理Function类 ===
 
-class RoutePromptFunction(BaseFunction):
+class RoutePromptFunction(MapFunction):
     """创建路由提示的Function"""
     
     def execute(self, data: AI_Template) -> AI_Template:
@@ -53,7 +53,7 @@ class RoutePromptFunction(BaseFunction):
         return input_template
 
 
-class RouteDecisionFunction(BaseFunction):
+class RouteDecisionFunction(MapFunction):
     """解析路由决策的Function"""
     
     def execute(self, data):
@@ -75,7 +75,7 @@ class RouteDecisionFunction(BaseFunction):
             return (input_template, "web")
 
 
-class ExtractQueryFunction(BaseFunction):
+class ExtractQueryFunction(MapFunction):
     """提取查询字符串的Function"""
     
     def execute(self, data) :

@@ -1,7 +1,8 @@
 from .base_operator import BaseOperator
+from sage_core.function.map_function import MapFunction
 
 from typing import Union
-from sage_core.function.base_function import BaseFunction
+from sage_core.function.map_function import MapFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.io.packet import Packet
 
@@ -9,6 +10,11 @@ from sage_runtime.io.packet import Packet
 class MapOperator(BaseOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # 验证函数类型
+        if not isinstance(self.function, MapFunction):
+            raise TypeError(f"{self.__class__.__name__} requires MapFunction, got {type(self.function)}")
+        
+
 
     def receive_packet(self, packet: 'Packet' = None):
         """
