@@ -1,11 +1,11 @@
 from typing import Any, Optional
 from typing import Any, List, Dict, Optional, Set, TYPE_CHECKING, Type, Tuple
 from sage_core.operator.base_operator import BaseOperator
-from sage_core.api.function_api.filter_function import FilterFunction
+from sage_core.function.filter_function import FilterFunction
 from sage_runtime.io.packet import Packet
 
 if TYPE_CHECKING:
-    from sage_core.api.base_function import BaseFunction
+    from sage_core.function.base_function import BaseFunction
     from sage_runtime.io.connection import Connection
     
 
@@ -29,9 +29,9 @@ class FilterOperator(BaseOperator):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
-        # 验证function类型
-        if not isinstance(self.function, FilterFunction):
-            raise ValueError(f"FilterOperator requires a FilterFunction, got {type(self.function)}")
+        # # 验证函数类型
+        # if not isinstance(self.function, FilterFunction):
+        #     raise TypeError(f"{self.__class__.__name__} requires FilterFunction, got {type(self.function)}")
         
         # 统计信息
         self._total_input_count = 0

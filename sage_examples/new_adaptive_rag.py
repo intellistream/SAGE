@@ -12,7 +12,7 @@ from sage_utils.embedding_methods.embedding_api import apply_embedding_model
 from sage_memory.memory_manager import MemoryManager
 
 from sage_core.api.env import LocalEnvironment
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 from sage_core.api.function_api.filter_function import FilterFunction
 from sage_core.api.function_api.flatmap_function import FlatMapFunction
 
@@ -37,7 +37,7 @@ Return a raw word of web_search or vectorstore with no preamble or explanation.
 
 # === 数据处理Function类 ===
 
-class RoutePromptFunction(BaseFunction):
+class RoutePromptFunction(MapFunction):
     """创建路由提示的Function"""
     
     def execute(self, data: AI_Template) -> AI_Template:
@@ -53,7 +53,7 @@ class RoutePromptFunction(BaseFunction):
         return input_template
 
 
-class RouteDecisionFunction(BaseFunction):
+class RouteDecisionFunction(MapFunction):
     """解析路由决策的Function"""
     
     def execute(self, data):
@@ -75,7 +75,7 @@ class RouteDecisionFunction(BaseFunction):
             return (input_template, "web")
 
 
-class ExtractQueryFunction(BaseFunction):
+class ExtractQueryFunction(MapFunction):
     """提取查询字符串的Function"""
     
     def execute(self, data) :

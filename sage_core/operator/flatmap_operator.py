@@ -1,7 +1,7 @@
 from typing import Any, Iterable, Optional
 from sage_core.operator.base_operator import BaseOperator
-from sage_core.api.function_api.flatmap_function import FlatMapFunction
-from sage_core.api.collector import Collector
+from sage_core.function.flatmap_function import FlatMapFunction
+from sage_core.function.flatmap_collector import Collector
 
 
 
@@ -27,19 +27,21 @@ class FlatMapOperator(BaseOperator):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # 创建并注入collector（仅当function是FlatMapFunction时）
-        if isinstance(self.function, FlatMapFunction):
-            self.collector = Collector(
-                operator=self,
-                session_folder=kwargs.get('session_folder'),
-                name=kwargs.get('name', 'FlatMapOperator')
-            )
-            self.function.insert_collector(self.collector)
-            self.logger.debug(f"FlatMapOperator '{self.name}' initialized with collector")
-        else:
-            self.collector = None
-            self.logger.warning(f"FlatMapOperator '{self.name}' initialized without FlatMapFunction")
-        self.logger.debug(f"FlatMapOperator '{self.name}' initialized")
+
+
+        # # 验证函数类型
+        # if not isinstance(self.function, FlatMapFunction):
+        #     raise TypeError(f"{self.__class__.__name__} requires FlatMapFunction, got {type(self.function)}")
+        
+
+
+        self.collector = Collector(
+            operator=self,
+            session_folder=kwargs.get('session_folder'),
+            name=kwargs.get('name', 'FlatMapOperator')
+        )
+        self.function.insert_collector(self.collector)
+        self.logger.debug(f"FlatMapOperator '{self.name}' initialized with collector")
 
     def receive_packet(self, data):
         """

@@ -1,11 +1,11 @@
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.map_function import MapFunction
 
 from sage_common_funs.utils.generator_model import apply_generator_model
 from typing import Tuple,List
 import logging
 
 
-class AbstractiveRecompRefiner(BaseFunction):
+class AbstractiveRecompRefiner(MapFunction):
     """
     AbstractiveRecompRefiner is an abstractive refiner using the RECOMP approach. 
     This class is responsible for refining retrieved documents by generating concise summaries
