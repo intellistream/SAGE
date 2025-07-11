@@ -353,7 +353,7 @@ def get_nodes_file(jobId:str):
     nodes_file_list=  []
     for operator in job_info.get("operators", []):
         name = operator.get("name", "")
-        nodes_file_list.append(f"Fuction_{name}")
+        nodes_file_list.append(f"Function_{name}")
     return nodes_file_list
 
 
