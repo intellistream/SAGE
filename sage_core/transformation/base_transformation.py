@@ -2,19 +2,12 @@ from __future__ import annotations
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
 from enum import Enum
 from abc import ABC, abstractmethod
-# from sage_core.api.env import BaseEnvironment
-from sage_core.operator.map_operator import MapOperator
-from sage_core.operator.flatmap_operator import FlatMapOperator
-from sage_core.operator.filter_operator import FilterOperator
-from sage_core.operator.source_operator import SourceOperator
-from sage_core.operator.sink_operator import SinkOperator
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.name_server import get_name
 from sage_runtime.operator.factory import OperatorFactory
 from sage_runtime.function.factory import FunctionFactory
 from sage_runtime.dagnode.factory import DAGNodeFactory
 from ray.actor import ActorHandle
-from sage_core.transformation.source_transformation import SourceTransformation
 if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
     from sage_core.function.base_function import BaseFunction
@@ -56,13 +49,9 @@ class BaseTransformation:
 
         self.logger.debug(f"Creating BaseTransformation of type {type} with rag {self.function_class.__name__}")
 
-        # 创建OperatorFactory来处理operator的创建
-        self.operator_class = self.TO_OPERATOR.get(type, None)
-
         self.operator_factory = OperatorFactory(
             operator_class=self.operator_class,
             function_factory=self.function_factory,  # 传递函数工厂而不是具体参数
-            is_spout = self.is_spout,
             basename=self.basename,
             env_name = env.name,
             remote = self.remote
@@ -88,13 +77,7 @@ class BaseTransformation:
     
     @property
     def is_spout(self) -> bool:
-        return 0  # 固定的内部事件监听循环延迟
-    
-    @property
-    @abstractmethod
-    def operator_class(self) -> Type['BaseOperator']:
-        """获取对应的操作符类"""
-        pass
+        return False
 
     # 双向连接
     def add_upstream(self,upstream_trans: 'BaseTransformation') -> None:

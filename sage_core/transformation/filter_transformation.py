@@ -20,14 +20,5 @@ class FilterTransformation(BaseTransformation):
         *args,
         **kwargs
     ):
+        self.operator_class = FilterOperator
         super().__init__(env, function, *args, **kwargs)
-
-    @property
-    def delay(self) -> float:
-        return 0.1  # 固定的内部事件监听循环延迟
-
-    def get_operator_class(self) -> Type['BaseOperator']:
-        return FilterOperator
-
-    def is_spout(self) -> bool:
-        return False

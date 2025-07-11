@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 class BaseOperator(ABC):
     def __init__(self, 
-                 function_factory: 'FunctionFactory',
+                 function_factory: 'FunctionFactory',*args,
                  **kwargs):
         
         self.name:str

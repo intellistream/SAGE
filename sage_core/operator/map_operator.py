@@ -10,9 +10,9 @@ from sage_runtime.io.packet import Packet
 class MapOperator(BaseOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # 验证函数类型
-        if not isinstance(self.function, MapFunction):
-            raise TypeError(f"{self.__class__.__name__} requires MapFunction, got {type(self.function)}")
+        # # 验证函数类型
+        # if not isinstance(self.function, MapFunction):
+        #     raise TypeError(f"{self.__class__.__name__} requires MapFunction, got {type(self.function)}")
         
 
 

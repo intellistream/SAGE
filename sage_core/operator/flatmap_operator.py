@@ -27,9 +27,14 @@ class FlatMapOperator(BaseOperator):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # 验证函数类型
-        if not isinstance(self.function, FlatMapFunction):
-            raise TypeError(f"{self.__class__.__name__} requires FlatMapFunction, got {type(self.function)}")
+
+
+        # # 验证函数类型
+        # if not isinstance(self.function, FlatMapFunction):
+        #     raise TypeError(f"{self.__class__.__name__} requires FlatMapFunction, got {type(self.function)}")
+        
+
+
         self.collector = Collector(
             operator=self,
             session_folder=kwargs.get('session_folder'),

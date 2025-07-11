@@ -19,7 +19,7 @@ class GraphNode:
         self.transformation: BaseTransformation = transformation
         self.parallel_index: int = parallel_index  # 在该transformation中的并行索引
         self.parallelism: int = transformation.parallelism
-        self.is_spout: bool = transformation.type.value == "source"
+        self.is_spout: bool = transformation.is_spout
         # 输入输出channels：每个channel是一个边的列表
 
         self.input_channels:List[GraphEdge] = []

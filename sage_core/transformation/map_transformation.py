@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
 from sage_core.transformation.base_transformation import BaseTransformation
+from sage_core.operator.map_operator import MapOperator
 if TYPE_CHECKING:
-    from sage_core.operator.map_operator import MapOperator
     from sage_core.function.base_function import BaseFunction
     from sage_core.api.env import BaseEnvironment
 
@@ -16,9 +16,5 @@ class MapTransformation(BaseTransformation):
         *args,
         **kwargs
     ):
+        self.operator_class = MapOperator
         super().__init__(env, function, *args, **kwargs)
-
-    @property
-    def operator_class(self):
-        """获取对应的操作符类"""
-        return MapOperator

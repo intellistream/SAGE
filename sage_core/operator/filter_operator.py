@@ -29,9 +29,9 @@ class FilterOperator(BaseOperator):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
-        # 验证函数类型
-        if not isinstance(self.function, FilterFunction):
-            raise TypeError(f"{self.__class__.__name__} requires FilterFunction, got {type(self.function)}")
+        # # 验证函数类型
+        # if not isinstance(self.function, FilterFunction):
+        #     raise TypeError(f"{self.__class__.__name__} requires FilterFunction, got {type(self.function)}")
         
         # 统计信息
         self._total_input_count = 0

@@ -8,9 +8,9 @@ from sage_runtime.io.packet import Packet
 class SourceOperator(BaseOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # 验证函数类型
-        if not isinstance(self.function, SourceFunction):
-            raise TypeError(f"SourceOperator requires SourceFunction, got {type(self.function)}")
+        # # 验证函数类型
+        # if not isinstance(self.function, SourceFunction):
+        #     raise TypeError(f"SourceOperator requires SourceFunction, got {type(self.function)}")
         
     def receive_packet(self, *args, **kwargs):
         self.logger.debug(f"Triggering source operator {self.name}")
