@@ -42,7 +42,7 @@ class OpenAIClient():
         """
         Chat-completion 封装
         --------------------
-        * messages 允许传 list[dict] / dict / Data ⇒ 最终转为 list[dict]
+        * messages 允许传 list[dict] / dict ⇒ 最终转为 list[dict]
         * 支持 stream / n / logprobs 等 OpenAI 参数
         * 失败统一抛 RuntimeError 供上层捕获
         """
@@ -58,14 +58,11 @@ class OpenAIClient():
             want_logprobs = bool(kwargs.get("logprobs", False))
 
             # -------- 兼容 messages 形态 --------
-            # Data 对象 => Data.data
-            if hasattr(messages, "data"):  # 兼容你的 Data() 包装
-                messages = messages.data
             # dict => 包成单元素 list
             if isinstance(messages, dict):
                 messages = [messages]
             if not isinstance(messages, list):
-                raise ValueError("`messages` must be list[dict] or Data")
+                raise ValueError("`messages` must be list[dict]")
 
             # -------- 调用 OpenAI --------
             response = self.client.chat.completions.create(

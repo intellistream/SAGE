@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Any, List, Tuple, Type, Callable, Optional, Union
 from sage_core.api.base_function import BaseFunction
-from sage_core.api.tuple import Data
+
 
 class FilterFunction(BaseFunction):
     """
@@ -32,7 +32,7 @@ class FilterFunction(BaseFunction):
         self.logger.debug(f"FilterFunction '{self.__class__.__name__}' initialized")
 
     @abstractmethod
-    def execute(self, data: Union[Any, Data]) -> bool:
+    def execute(self, data: Any) -> bool:
         """
         抽象方法，由子类实现具体的过滤逻辑。
         

@@ -66,9 +66,9 @@ Sage Runtime 负责将编译后的执行图在不同平台上实际运行，提�
 
 ### 1. 本地运行时 (Local Runtime)
 ```python
-from sage_runtime.local import LocalRuntime
+from sage_runtime.local import LocalThreadPool
 
-runtime = LocalRuntime(parallelism=4)
+runtime = LocalThreadPool(parallelism=4)
 runtime.execute(compiled_graph)
 ```
 

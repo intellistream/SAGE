@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from sage_core.api.tuple import Data
+
 from sage_common_funs.rag.reranker import BGEReranker, LLMbased_Reranker
 import torch
 
@@ -14,7 +14,7 @@ def test_input():
         "France is a country in Western Europe.",
         "Madrid is the capital of Spain."
     ]
-    return Data((query, docs))
+    return (query, docs)
 
 @pytest.fixture
 def config_bge():
@@ -66,10 +66,9 @@ def test_bge_reranker(mock_model_cls, mock_tokenizer_cls, config_bge, test_input
     reranker = BGEReranker(config_bge["reranker"])
     result = reranker.execute(test_input)
 
-    assert isinstance(result, Data)
-    assert result.data[0] == test_input.data[0]
-    assert isinstance(result.data[1], list)
-    assert len(result.data[1]) <= config_bge["reranker"]["topk"]
+    assert result[0] == test_input[0]
+    assert isinstance(result[1], list)
+    assert len(result[1]) <= config_bge["reranker"]["topk"]
 
 @patch("sage_common_funs.rag.reranker.AutoTokenizer.from_pretrained")
 @patch("sage_common_funs.rag.reranker.AutoModelForCausalLM.from_pretrained")
@@ -112,7 +111,6 @@ def test_llm_reranker(mock_model_cls, mock_tokenizer_cls, config_llm, test_input
 
 
         result = reranker.execute(test_input)
-        assert isinstance(result, Data)
-        assert result.data[0] == test_input.data[0]
-        assert isinstance(result.data[1], list)
-        assert len(result.data[1]) <= config_llm["reranker"]["topk"]
+        assert result[0] == test_input[0]
+        assert isinstance(result[1], list)
+        assert len(result[1]) <= config_llm["reranker"]["topk"]

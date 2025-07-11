@@ -3,12 +3,12 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional, Set, TYPE_CHECKING, Type, Tuple
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.io.unified_emit_context import UnifiedEmitContext
-
+from sage_runtime.io.packet import Packet
 
 if TYPE_CHECKING:
     from sage_core.api.base_function import BaseFunction
     from sage_runtime.io.connection import Connection
-    from sage_core.api.tuple import Data
+    from sage_runtime.operator.runtime_context import RuntimeContext
 
 
 
@@ -37,8 +37,10 @@ class BaseOperator(ABC):
             global_output = "DEBUG",
             name = f"{name}_{self.__class__.__name__}"
         )
+        self.name = name
 
         try:
+            # TODO: 做一个函数工厂来处理函数的创建
             # 新方式：传递function类和参数，在这里创建实例
             function_args = function_args or ()
             function_kwargs = function_kwargs or {}
@@ -47,20 +49,13 @@ class BaseOperator(ABC):
                             f"with args {function_args} and kwargs {function_kwargs}")
         except Exception as e:
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
-            raise
+
         self._emit_context = UnifiedEmitContext(name = name, session_folder=session_folder, env_name = env_name) 
     
 
  
-        self._name = self.__class__.__name__
-        # 维护下游节点和路由逻辑
-        # downstream_channel->broadcasting_groups->targets
-        self.downstream_channels:Dict[str, Dict[int, Dict[int, 'Connection']]] = {}
-        # self.downstream_channels: Dict[int,Dict[int, List[DownstreamTarget]] ] = {}
-        self.downstream_round_robin: Dict[str, Dict[int, int]] = {}
-        for index, (output_tag, output_type) in enumerate(self.function.declare_outputs()):
-            self.downstream_channels[output_tag] = {}
-            self.downstream_round_robin[output_tag] = {}
+        self.downstream_groups:Dict[int, Dict[int, 'Connection']] = {}
+        self.downstream_group_roundrobin: Dict[int, int] = {}
 
 
         self.runtime_context = None
@@ -76,10 +71,10 @@ class BaseOperator(ABC):
             emit_context: The emit context to be injected
         """
         self._emit_context = emit_context
-        self.logger.debug(f"Emit context injected for operator {self._name}")
+        self.logger.debug(f"Emit context injected for operator {self.name}")
 
     def insert_runtime_context(self, runtime_context  = None, env_name:str = None):
-        self.runtime_context = runtime_context
+        self.runtime_context:'RuntimeContext' = runtime_context
         self.runtime_context.logger =CustomLogger(
             filename=f"Node_{self.runtime_context.name}",
             console_output="WARNING",
@@ -93,30 +88,25 @@ class BaseOperator(ABC):
 
         self.function.insert_runtime_context(runtime_context)
 
-    def process_data(self, tag: str, data: 'Data'):
+    def receive_packet(self, packet: 'Packet' = None):
         """
         Smart dispatch for multi-input operator.
         """
-        self.logger.debug(f"Received data in operator {self._name}, channel {tag}, data: {data}")
+        self.logger.debug(f"Received packet in operator {self.name}")
         try:
-            if(len(self.function.__class__.declare_inputs()) == 0):
-                self.logger.debug(f"No inputs declared for operator {self._name}. Executing without data.")
-                # No inputs declared, call execute without arguments
+            if packet is None or packet.payload is None:
                 result = self.function.execute()
-            elif(len(self.function.__class__.declare_inputs()) == 1):
-                self.logger.debug(f"Single input declared for operator {self._name}. Executing with data.")
-                result = self.function.execute(data)
+                self.logger.debug(f"Operator {self.name} received empty packet, executed with result: {result}")
             else:
-                result = self.function.execute( data, tag)
-                self.logger.debug(f"Operator {self._name} processed data with result: {result}")
+                result = self.function.execute(packet.payload)
+                self.logger.debug(f"Operator {self.name} processed payload with result: {result}")
             if result is not None:
-                self.emit(result)
-
+                self.emit(Packet(result))
         except Exception as e:
-            self.logger.error(f"Error in {self._name}.process_data(): {e}", exc_info=True)
+            self.logger.error(f"Error in {self.name}.receive_packet(): {e}", exc_info=True)
 
 
-    def emit(self, data: Any, tag: Optional[str] = None):
+    def emit(self, result: Any):
         """
         Emit data to downstream node through specified channel and target.
         现在直接将Connection对象传递给EmitContext处理
@@ -126,34 +116,21 @@ class BaseOperator(ABC):
             data: The data to emit
         """
         if self._emit_context is None:
-            raise RuntimeError(f"Emit context not set for operator {self._name}. "
+            raise RuntimeError(f"Emit context not set for operator {self.name}. "
                             "This should be injected by the DAG node.")
-        
-        # 确定要发送的通道列表
-        if tag is None:
-            # x轴广播到所有下游通道
-            target_groups = self.downstream_channels.items()
-        else:
-            if tag not in self.downstream_channels:
-                self.logger.warning(f"Invalid output tag '{tag}' for operator {self._name}.")
-                return
-            target_groups = [(tag, self.downstream_channels[tag])]
-
-        # 向每个通道发送数据
-        for output_tag, broadcast_groups in target_groups:
-            for broadcast_index, parallel_targets in broadcast_groups.items():
-                # round-robin选择
-                current_round_robin = self.downstream_round_robin[output_tag][broadcast_index]
-                connection = parallel_targets[current_round_robin % len(parallel_targets)]
-                self.downstream_round_robin[output_tag][broadcast_index] += 1
+    
+        for broadcast_index, parallel_targets in self.downstream_groups.items():
+            # round-robin选择
+            current_round_robin = self.downstream_group_roundrobin[broadcast_index]
+            connection = parallel_targets[current_round_robin % len(parallel_targets)]
+            self.downstream_group_roundrobin[broadcast_index] += 1
+            
+            # 直接将Connection对象传递给EmitContext
+            try:
+                self._emit_context.send_via_connection(connection, result)
                 
-                # 直接将Connection对象传递给EmitContext
-                try:
-                    self._emit_context.send_via_connection(connection, data)
-                    
-                except Exception as e:
-                    self.logger.error(f"Failed to send data to target {connection.target_name} "
-                                    f"on tag {output_tag} group[{broadcast_index}]: {e}", exc_info=True)
+            except Exception as e:
+                self.logger.error(f"Failed to send data to target {connection.target_name} , group[{broadcast_index}]: {e}", exc_info=True)
 
     def add_connection(self, connection: 'Connection') -> None:
         """
@@ -162,39 +139,31 @@ class BaseOperator(ABC):
         Args:
             connection: Connection对象，包含所有连接信息
         """
-        # 从Connection对象中提取索引信息
-        output_tag = connection.output_tag
         broadcast_index = connection.broadcast_index
         parallel_index = connection.parallel_index
         
         # Debug log
         self.logger.debug(
-            f"Adding downstream connection: output_tag={output_tag}, "
             f"broadcast_index={broadcast_index}, parallel_index={parallel_index}, "
-            f"target={connection.target_name}, target_input_tag={connection.target_input_tag}, "
+            f"target={connection.target_name}"
             f"connection_type={connection.connection_type.value}"
         )
-
-        # 验证输出标签是否存在
-        if output_tag not in self.downstream_channels:
-            raise ValueError(f"Output tag '{output_tag}' not found in operator {self._name}. "
-                            "Ensure the output tag is declared in the function.")
         
         # 初始化广播组（如果不存在）
-        if broadcast_index not in self.downstream_channels[output_tag]:
-            self.downstream_channels[output_tag][broadcast_index] = {}
-            self.downstream_round_robin[output_tag][broadcast_index] = 0
+        if broadcast_index not in self.downstream_groups:
+            self.downstream_groups[broadcast_index] = {}
+            self.downstream_group_roundrobin[broadcast_index] = 0
         
         # 保存完整的Connection对象
-        self.downstream_channels[output_tag][broadcast_index][parallel_index] = connection
+        self.downstream_groups[broadcast_index][parallel_index] = connection
         
         # 打印连接的调试信息（可选）
         # if self.logger.isEnabledFor(10):  # DEBUG level
         # print(connection.debug_info())
         
         self.logger.debug(
-            f"Added downstream connection: [out:{output_tag}] -> "
-            f"{connection.target_name}[in:{connection.target_input_tag}] "
+            f"Added downstream connection: -> "
+            f"{connection.target_name} "
             f"(type: {connection.connection_type.value})"
         )
 
@@ -210,73 +179,14 @@ class BaseOperator(ABC):
         """
         connections = []
         
-        if output_tag is not None:
-            # 返回特定输出标签的连接
-            if output_tag in self.downstream_channels:
-                for broadcast_groups in self.downstream_channels[output_tag].values():
-                    for connection in broadcast_groups.values():
-                        connections.append(connection)
-        else:
-            # 返回所有连接
-            for tag_connections in self.downstream_channels.values():
-                for broadcast_groups in tag_connections.values():
-                    for connection in broadcast_groups.values():
-                        connections.append(connection)
+        for broadcast_groups in self.downstream_groups.values():
+            for connection in broadcast_groups.values():
+                connections.append(connection)
         
         return connections
-
-    def debug_print_connections(self):
+    
+    def get_wrapped_operator(self):
         """
-        打印所有连接的调试信息
+            这个方法是用来让ide满意的，用来代表OperatorWrapper提供的这个方法
         """
-        print(f"\n{'='*80}")
-        print(f"🔗 Operator '{self._name}' Downstream Connections")
-        print(f"{'='*80}")
-        
-        total_connections = 0
-        for output_tag, broadcast_groups in self.downstream_channels.items():
-            print(f"\n📤 Output Tag: '{output_tag}'")
-            
-            for broadcast_index, parallel_targets in broadcast_groups.items():
-                print(f"  📊 Broadcast Group {broadcast_index}:")
-                
-                for parallel_index, connection in parallel_targets.items():
-                    print(f"    🔢 Parallel #{parallel_index}: {connection.get_summary()}")
-                    total_connections += 1
-        
-        print(f"\n📈 Total Connections: {total_connections}")
-        print(f"{'='*80}\n")
-
-    def get_connection_summary(self) -> Dict[str, Any]:
-        """
-        获取连接的统计摘要
-        
-        Returns:
-            Dict: 包含连接统计信息的字典
-        """
-        summary = {
-            "operator_name": self._name,
-            "output_tags": list(self.downstream_channels.keys()),
-            "total_connections": 0,
-            "connections_by_type": {},
-            "connections_by_tag": {}
-        }
-        
-        for output_tag, broadcast_groups in self.downstream_channels.items():
-            tag_count = 0
-            for broadcast_groups_dict in broadcast_groups.values():
-                for connection in broadcast_groups_dict.values():
-                    # 统计总数
-                    summary["total_connections"] += 1
-                    tag_count += 1
-                    
-                    # 按类型统计
-                    conn_type = connection.connection_type.value
-                    if conn_type not in summary["connections_by_type"]:
-                        summary["connections_by_type"][conn_type] = 0
-                    summary["connections_by_type"][conn_type] += 1
-            
-            # 按标签统计
-            summary["connections_by_tag"][output_tag] = tag_count
-        
-        return summary
+        pass

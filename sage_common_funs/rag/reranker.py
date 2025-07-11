@@ -4,7 +4,7 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer,AutoM
 import logging
 
 from sage_core.api.base_function import BaseFunction
-from sage_core.api.tuple import Data
+
 
 
 class BGEReranker(BaseFunction):
@@ -54,7 +54,7 @@ class BGEReranker(BaseFunction):
             self.logger.error(f"Failed to load model {model_name}: {str(e)}")
             raise RuntimeError(f"Model loading failed: {str(e)}")
         
-    def execute(self, data: Data[Tuple[str, List[str]]]):
+    def execute(self, data: Tuple[str, List[str]]):
         """
         Executes the reranking process:
         1. Unpacks the input data (query and list of documents).
@@ -68,7 +68,7 @@ class BGEReranker(BaseFunction):
         :return: A Data object containing a tuple (query, reranked_documents_with_scores).
         """
         try:
-            query, doc_set = data.data  # Unpack the input data
+            query, doc_set = data  # Unpack the input data
             top_k = self.config["topk"]  # Get the top-k parameter for reranking
 
             # Generate query-document pairs for scoring
@@ -107,7 +107,7 @@ class BGEReranker(BaseFunction):
         except Exception as e:
             raise RuntimeError(f"BGEReranker error: {str(e)}")
         
-        return Data([query, reranked_docs_list])  # Return the reranked documents along with the original query
+        return [query, reranked_docs_list]  # Return the reranked documents along with the original query
 
 
 class LLMbased_Reranker(BaseFunction):
@@ -207,7 +207,7 @@ class LLMbased_Reranker(BaseFunction):
         )
 
     # @torch.inference_mode()
-    def execute(self, data: Data[Tuple[str, List[str]]]) -> Data[Tuple[str, List[str]]]:
+    def execute(self, data: Tuple[str, List[str]]) -> Tuple[str, List[str]]:
         """
         Executes the reranking process:
         1. Unpacks the input data (query and list of documents).
@@ -221,7 +221,7 @@ class LLMbased_Reranker(BaseFunction):
         :return: A Data object containing a tuple (query, reranked_documents_with_scores).
         """
         try:
-            query, doc_set = data.data  # Unpack the input data
+            query, doc_set = data  # Unpack the input data
             doc_set = [doc_set]  # Wrap doc_set in a list for processing
             top_k = self.config["topk"]  # Get the top-k parameter for reranking
             emit_docs = []  # Initialize the list to store reranked documents
@@ -255,7 +255,7 @@ class LLMbased_Reranker(BaseFunction):
             raise RuntimeError(f"Reranker error: {str(e)}")
         
         emit_docs = emit_docs[0]  # Only return the first set of reranked documents
-        return Data((query, emit_docs))  # Return the reranked documents along with the original query
+        return (query, emit_docs)  # Return the reranked documents along with the original query
 
 
 if __name__ == '__main__':
@@ -289,11 +289,11 @@ if __name__ == '__main__':
     ]
 
     # 执行重排
-    input_data = Data((query, docs))
+    input_data = (query, docs)
     output = reranker.execute(input_data)
 
     # 输出结果
-    result_query, result_docs = output.data
+    result_query, result_docs = output
     print("Query:", result_query)
     print("Top-k Re-ranked Documents:")
     for i, doc in enumerate(result_docs, 1):

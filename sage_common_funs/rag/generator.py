@@ -2,7 +2,7 @@ import os
 from typing import Tuple,List
 from sage_common_funs.utils.generator_model import apply_generator_model
 from sage_core.api.base_function import BaseFunction,StatefulFunction
-from sage_core.api.tuple import Data
+
 from sage_utils.custom_logger import CustomLogger
 
 class OpenAIGenerator(BaseFunction):
@@ -31,7 +31,10 @@ class OpenAIGenerator(BaseFunction):
         )
         self.num = 1
 
-    def execute(self, data: Data[list], **kwargs) -> Data[Tuple[str, str]]:
+
+
+    # 其中原有的**kwargs应该由函数内部或者data内部提供
+    def execute(self, data: list) -> Tuple[str, str]:
         """
         Executes the response generation using the configured model based on the input data.
 
@@ -43,18 +46,18 @@ class OpenAIGenerator(BaseFunction):
                 and response is the generated response from the model.
         """
         # Extract the user query from the input data
-        user_query = data.data[0] if len(data.data) > 1  else None
+        user_query = data[0] if len(data) > 1  else None
  
-        prompt = data.data[1] if len(data.data) > 1 else data.data
+        prompt = data[1] if len(data) > 1 else data
 
-        response = self.model.generate(prompt, **kwargs)
+        response = self.model.generate(prompt)
 
         self.num += 1
 
         self.logger.info(f"[ {self.__class__.__name__}]: Response: {response}")
 
         # Return the generated response along with the original user query as a tuple
-        return Data((user_query, response))
+        return (user_query, response)
 
 class OpenAIGeneratorWithHistory(StatefulFunction):
     """
@@ -79,13 +82,13 @@ class OpenAIGeneratorWithHistory(StatefulFunction):
         self.history_turns = config.get("max_history_turns", 5)
         self.num = 1
 
-    def execute(self, data: Data[List], **kwargs) -> Data[Tuple[str, str]]:
+    def execute(self, data: List, **kwargs) -> Tuple[str, str]:
         """
         Expects input data: [user_query, prompt_dict]
         Where prompt_dict includes {"content": ...}
         """
-        user_query = data.data[0] if len(data.data) > 1 else None
-        prompt_info = data.data[1] if len(data.data) > 1 else data.data
+        user_query = data[0] if len(data) > 1 else None
+        prompt_info = data[1] if len(data) > 1 else data
 
         new_turns = [entry for entry in prompt_info if entry["role"] in ("user", "system")]
 
@@ -104,7 +107,7 @@ class OpenAIGeneratorWithHistory(StatefulFunction):
 
         self.logger.info(f"\033[32m[{self.__class__.__name__}] Response: {response}\033[0m")
 
-        return Data((user_query, response))
+        return (user_query, response)
 
 class HFGenerator(BaseFunction):
     """
@@ -127,7 +130,7 @@ class HFGenerator(BaseFunction):
             model_name=self.config["model_name"]
         )
 
-    def execute(self, data: Data[list], **kwargs) -> Data[Tuple[str, str]]:
+    def execute(self, data: list, **kwargs) -> Tuple[str, str]:
         """
         Executes the response generation using the configured Hugging Face model based on the input data.
 
@@ -138,13 +141,13 @@ class HFGenerator(BaseFunction):
         :return: A Data object containing the generated response as a string.
         """
         # Generate the response from the Hugging Face model using the provided data and additional arguments
-        user_query = data.data[0] if len(data.data) > 1  else None
+        user_query = data[0] if len(data) > 1  else None
  
-        prompt = data.data[1] if len(data.data) > 1 else data.data
+        prompt = data[1] if len(data) > 1 else data
         
         response = self.model.generate(prompt, **kwargs)
 
         # Return the generated response as a Data object
         self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
 
-        return Data((user_query, response))
+        return (user_query, response)

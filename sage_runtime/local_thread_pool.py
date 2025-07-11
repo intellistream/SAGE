@@ -8,7 +8,7 @@ from sage_runtime.io.local_tcp_server import LocalTcpServer
 from sage_utils.custom_logger import CustomLogger
 import time
 import socket
-class LocalRuntime:
+class LocalThreadPool:
     _instance = None
     _lock = threading.Lock()
 
@@ -17,14 +17,14 @@ class LocalRuntime:
             return
 
         self.logger = CustomLogger(
-            filename="LocalRuntime",
+            filename="LocalThreadPool",
             console_output="WARNING",
             file_output="DEBUG",
             global_output="WARNING",
         )
 
         self._initialized = True
-        self.name = "LocalRuntime"
+        self.name = "LocalThreadPool"
         self.logger.debug(f"CPU count is {os.cpu_count()}")
         self.thread_pool = ThreadPoolExecutor(
             max_workers=os.cpu_count() * 3,
@@ -64,7 +64,7 @@ class LocalRuntime:
     
     def shutdown(self):
         """关闭运行时和所有资源"""
-        self.logger.info("Shutting down LocalRuntime...")
+        self.logger.info("Shutting down LocalThreadPool...")
         
         # 停止所有节点
         self.thread_pool.shutdown(wait=True, cancel_futures=True)
@@ -73,7 +73,7 @@ class LocalRuntime:
         # if self.tcp_server:
         #     self.tcp_server.stop()
         
-        self.logger.info("LocalRuntime shutdown completed")
+        self.logger.info("LocalThreadPool shutdown completed")
     
 
 
