@@ -1,0 +1,24 @@
+pipeline:
+  name: "sage-api-operator-operator_test"
+  description: "Test pipeline for Sage API Operator"
+  version: "1.0.0"
+
+source:
+  data_path: "data/sample/question.txt"
+
+retriever:
+  platform: "local"
+  ltm:
+    topk: 3
+
+generator:
+  method: "hf"
+  model_name: "meta-llama/Llama-2-13b-chat-hf"
+  seed: 42
+
+promptor:
+  platform: "local"
+
+sink:
+  platform: "local"
+
