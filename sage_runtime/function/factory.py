@@ -2,8 +2,7 @@ from typing import Type, Any, Tuple
 from sage_core.api.base_function import BaseFunction
 
 class FunctionFactory:
-    """可序列化的函数工厂类，用于延迟创建函数实例"""
-    
+    # 由transformation初始化
     def __init__(
         self,
         function_class: Type[BaseFunction],

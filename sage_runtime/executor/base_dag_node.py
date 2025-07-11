@@ -34,7 +34,7 @@ class BaseDAGNode(ABC):
         )
         
 
-        self.operator:BaseOperator = operator_factory.build_instance(name = self.name, remote = remote)
+        self.operator:BaseOperator = operator_factory.create_operator(name = self.name, remote = remote)
         self.is_spout = operator_factory.is_spout  # Check if this is a spout node
         if(remote and (not isinstance(memory_collection, ActorHandle))):
             raise Exception("Memory collection must be a Ray Actor handle for remote dag node")
