@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from .env import BaseEnvironment
 
 # TODO: 重做
+# Issue URL: https://github.com/intellistream/SAGE/issues/146
 class ConnectedStreams:
     """表示多个transformation连接后的流结果"""
     def __init__(self, env:'BaseEnvironment', transformations: List[Tuple[Transformation, str]]):

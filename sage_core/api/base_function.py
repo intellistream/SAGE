@@ -20,6 +20,7 @@ class BaseFunction(ABC):
 
     def __init__(self, session_folder:str = None, name:str = None, env_name:str = None,  **kwargs):
         # TODO: api_key应该是由env来提供和解析的吧？
+        # Issue URL: https://github.com/intellistream/SAGE/issues/145
         self.api_key = None
         self.runtime_context:RuntimeContext  # 需要在compiler里面实例化。
         name = name or self.__class__.__name__
@@ -49,6 +50,7 @@ class BaseFunction(ABC):
 
 
     # TODO: 创建一个function factory，并把对应的逻辑封装进去
+    # Issue URL: https://github.com/intellistream/SAGE/issues/144
     def insert_runtime_context(self, runtime_context):
         """
         Insert a runtime_tests context into the function for accessing runtime_tests data.
