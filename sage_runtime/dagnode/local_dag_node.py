@@ -72,6 +72,7 @@ class LocalDAGNode(BaseDAGNode):
         while not self.stop_event.is_set():
             try:
                 if self.is_spout:
+                    self.logger.debug(f"Running spout node '{self.name}'")
                     # For spout nodes, call operator.receive with dummy channel and data
                     self.operator.receive_packet(None)
                     time.sleep(self.delay)  # Sleep to avoid busy loop

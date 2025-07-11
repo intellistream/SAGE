@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, List, Tuple, TypeVar, Generic, get_args, get_origin
-from sage_core.transformation.base_transformation import BaseTransformationType, BaseTransformation
+from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.function.base_function import BaseFunction
 if TYPE_CHECKING:
     from .datastream import DataStream

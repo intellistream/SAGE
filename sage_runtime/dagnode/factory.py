@@ -23,7 +23,7 @@ class DAGNodeFactory:
         self.delay = transformation.delay
         self.remote:bool = transformation.remote
         self.memory_collection:Union[Any, ActorHandle] = transformation.env.memory_collection
-        self.is_spout = transformation.type.value == "source"
+        self.is_spout = transformation.is_spout
 
         # 这些参数在创建节点时注入
         # self.parallel_index: int  # 来自图编译

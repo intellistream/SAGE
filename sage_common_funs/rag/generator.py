@@ -1,8 +1,8 @@
 import os
 from typing import Tuple,List
 from sage_common_funs.utils.generator_model import apply_generator_model
-from sage_core.function.map_function import MapFunction,StatefulFunction
-
+from sage_core.function.map_function import MapFunction 
+from sage_core.function.base_function import StatefulFunction
 from sage_utils.custom_logger import CustomLogger
 
 class OpenAIGenerator(MapFunction):

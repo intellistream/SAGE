@@ -15,11 +15,9 @@ class OperatorFactory:
     def __init__(self, 
                  operator_class: Type['BaseOperator'],
                  function_factory: 'FunctionFactory',
-                 is_spout:bool = False, 
                  basename: str = None,
                  env_name:str = None,
                  remote:bool = False):
-        self.is_spout = is_spout
         self.operator_class = operator_class
         self.function_factory = function_factory
         self.env_name = env_name

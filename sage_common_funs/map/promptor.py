@@ -1,6 +1,6 @@
 from jinja2 import Template
-from sage_core.function.map_function import MapFunction, StatefulFunction, MemoryFunction
-
+from sage_core.function.map_function import MapFunction
+from sage_core.function.base_function import StatefulFunction, MemoryFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_common_funs.utils.template import AI_Template
 

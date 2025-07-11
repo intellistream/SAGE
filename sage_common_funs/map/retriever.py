@@ -1,7 +1,7 @@
 from typing import Tuple, List
 import time  # 替换 asyncio 为 time 用于同步延迟
-
-from sage_core.function.map_function import MapFunction, MemoryFunction, StatefulFunction
+from sage_core.function.base_function import MemoryFunction, StatefulFunction
+from sage_core.function.map_function import MapFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.runtime_context import RuntimeContext
 from sage_common_funs.utils.template import AI_Template
