@@ -127,7 +127,7 @@ class MixedDAG():
     def close(self):
         """停止所有节点"""
         self.logger.info("Stopping all DAG nodes...")
-        
+        self.tcp_server.stop()
         for node_name, node in self.nodes.items():
             try:
                 node.stop()
