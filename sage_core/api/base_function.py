@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 from sage_core.api.collector import Collector
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
-    from sage_runtime.operator.runtime_context import RuntimeContext
-
+    from sage_runtime.runtime_context import RuntimeContext
+    from ray.actor import ActorHandle
 
 
 # 构造来源于sage_runtime/operator/factory.py
@@ -18,12 +18,27 @@ class BaseFunction(ABC):
     It defines the core interface and initializes a logger.
     """
 
-    def __init__(self, session_folder:str = None, name:str = None, env_name:str = None,  **kwargs):
+    def __init__(
+        self, 
+        name:str = None, 
+        memory_collection: Union['ActorHandle', Any] = None,
+        session_folder:str = None, 
+        env_name:str = None,  
+        parallel_index: int = 0,
+        parallelism: int = 1, 
+        **kwargs):
+        self.name = name or self.__class__.__name__
         # TODO: api_key应该是由env来提供和解析的吧？
         # Issue URL: https://github.com/intellistream/SAGE/issues/145
         self.api_key = None
-        self.runtime_context:RuntimeContext  # 需要在compiler里面实例化。
-        name = name or self.__class__.__name__
+        self.runtime_context:RuntimeContext  = RuntimeContext(
+            self.name, 
+            memory_collection, 
+            parallel_index=parallel_index, 
+            parallelism=parallelism, 
+            session_folder=session_folder,
+            env_name=env_name
+        ),
         self.logger = CustomLogger(
             filename=f"Fuction_{name}",
             env_name=env_name,

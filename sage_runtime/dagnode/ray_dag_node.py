@@ -2,8 +2,8 @@ import ray
 import time
 from typing import Any, Dict, Union, TYPE_CHECKING
 from ray.actor import ActorHandle
-from sage_runtime.operator.runtime_context import RuntimeContext
-from sage_runtime.executor.base_dag_node import BaseDAGNode
+from sage_runtime.runtime_context import RuntimeContext
+from sage_runtime.dagnode.base_dag_node import BaseDAGNode
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:   
     from sage_core.core.operator.base_operator import BaseOperator

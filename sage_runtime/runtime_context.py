@@ -6,7 +6,8 @@ from sage_memory.memory_collection.vdb_collection import VDBMemoryCollection
 from sage_utils.custom_logger import CustomLogger
 
 class RuntimeContext:
-    def __init__(self,name:str, memory_collection:BaseMemoryCollection, collection_config: Optional[Dict] = None , session_folder:str = None, parallel_index: int = 0, parallelism: int = 1):
+    def __init__(self,name:str, memory_collection:BaseMemoryCollection, collection_config: Optional[Dict] = None , session_folder:str = None, parallel_index: int = 0, parallelism: int = 1, env_name:str = None):
+
         # Create logger first
         self.name = name
         self.session_folder = session_folder or None
@@ -14,7 +15,18 @@ class RuntimeContext:
         self.memory_collection = memory_collection
         self.parallel_index = parallel_index  # 并行索引
         self.parallelism = parallelism  # 并行度
-    
+
+
+        self.logger =CustomLogger(
+            filename=f"Node_{self.name}",
+            console_output="WARNING",
+            file_output="DEBUG",
+            global_output = "WARNING",
+            session_folder=self.session_folder,
+            name = f"{self.name}_RuntimeContext",
+            env_name = env_name
+        )
+
     def retrieve(self,  query: str = None, collection_config: Optional[Dict] = None) -> List[str]:
         """
         智能选择检索方式：Ray Actor远程调用或本地对象调用

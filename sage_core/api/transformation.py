@@ -10,6 +10,8 @@ from sage_core.api.enum import PlatformType
 from sage_utils.name_server import get_name
 from sage_runtime.operator.factory import OperatorFactory
 from sage_runtime.function.factory import FunctionFactory
+from sage_runtime.dagnode.factory import DAGNodeFactory
+from ray.actor import ActorHandle
 if TYPE_CHECKING:
     from sage_core.core.operator.base_operator import BaseOperator
     from sage_core.api.base_function import BaseFunction
@@ -45,6 +47,7 @@ class Transformation:
         delay: Optional[float] = 0.1,
         **kwargs
     ):
+        self.remote = (platform == PlatformType.REMOTE) or False
         self.env = env
         self.type = type
         self.delay = delay
@@ -60,16 +63,18 @@ class Transformation:
         )
 
 
-
+        if self.remote and not isinstance(env.memory_collection, ActorHandle):
+            raise Exception("Memory collection must be a Ray Actor handle for remote transformation")
         # 创建可序列化的函数工厂
         self.function_factory = FunctionFactory(
             function_class=self.function_class,
             function_args=args,
-            function_kwargs=kwargs
+            function_kwargs=kwargs,
+            memory_collection= self.env.memory_collection
         )
 
         self.logger.debug(f"Creating Transformation of type {type} with rag {self.function_class.__name__}")
-        
+
         # 创建OperatorFactory来处理operator的创建
         self.operator_class = self.TO_OPERATOR.get(type, None)
 
@@ -79,7 +84,11 @@ class Transformation:
             is_spout = (self.type == TransformationType.SOURCE),
             basename=self.basename,
             env_name = env.name,
+            remote = self.remote
         )
+        # 创建 DAG 节点工厂（包含所有静态参数）
+        self.dag_node_factory = DAGNodeFactory(self)
+
 
 
         self.upstream:Transformation = None
