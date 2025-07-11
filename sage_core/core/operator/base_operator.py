@@ -8,7 +8,8 @@ from sage_runtime.io.packet import Packet
 if TYPE_CHECKING:
     from sage_core.api.base_function import BaseFunction
     from sage_runtime.io.connection import Connection
-    from sage_runtime.operator.runtime_context import RuntimeContext
+    from sage_runtime.runtime_context import RuntimeContext
+    from sage_runtime.function.factory import FunctionFactory
 
 
 
@@ -20,74 +21,38 @@ if TYPE_CHECKING:
 
 class BaseOperator(ABC):
     def __init__(self, 
-                 function_class: Type['BaseFunction'] = None,
-                 function_args: Tuple = None,
-                 function_kwargs: Dict[str, Any] = None,
-                 session_folder: str = None, 
-                 name: str = None, 
-                 env_name:str = None, 
+                 function_factory: 'FunctionFactory',
                  **kwargs):
         
-        self.logger = CustomLogger(
-            filename=f"Node_{name}",
-            env_name=env_name,
-            session_folder = session_folder or None,
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output = "DEBUG",
-            name = f"{name}_{self.__class__.__name__}"
-        )
-        self.name = name
+        self.name:str
+        self.function:'BaseFunction'
+        self._emit_context: 'UnifiedEmitContext'
 
-        try:
-            # TODO: 做一个函数工厂来处理函数的创建
-            # Issue URL: https://github.com/intellistream/SAGE/issues/148
-            # 新方式：传递function类和参数，在这里创建实例
-            function_args = function_args or ()
-            function_kwargs = function_kwargs or {}
-            self.function = function_class(*function_args, **function_kwargs)
-            self.logger.debug(f"Created function instance: {function_class.__name__} "
-                            f"with args {function_args} and kwargs {function_kwargs}")
-        except Exception as e:
-            self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
-
-        self._emit_context = UnifiedEmitContext(name = name, session_folder=session_folder, env_name = env_name) 
-    
-
- 
+        self.function_factory = function_factory
         self.downstream_groups:Dict[int, Dict[int, 'Connection']] = {}
         self.downstream_group_roundrobin: Dict[int, int] = {}
 
+    def runtime_init(self, ctx: 'RuntimeContext') -> None:
+        try:
+            self.name = ctx.name
+            self.logger = CustomLogger(
+                filename=f"Node_{ctx.name}",
+                env_name=ctx.env_name,
+                console_output="WARNING",
+                file_output="DEBUG",
+                global_output = "WARNING",
+                name = f"{ctx.name}_{self.__class__.__name__}",
+                session_folder=ctx.session_folder
+            )
+            self.function = self.function_factory.create_function(self.name)
 
-        self.runtime_context = None
+            self._emit_context = UnifiedEmitContext(name = ctx.name, session_folder=ctx.session_folder, env_name = ctx.env_name) 
+            self.logger.debug(f"Created function instance with {self.function_factory}")
 
-    
+            self.function.runtime_init(ctx)
+        except Exception as e:
+            self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
 
-    def insert_emit_context(self, emit_context):
-        """
-        Inject the emit context into the operator.
-        This is typically called by the DAG node to set up the context.
-        
-        Args:
-            emit_context: The emit context to be injected
-        """
-        self._emit_context = emit_context
-        self.logger.debug(f"Emit context injected for operator {self.name}")
-
-    def insert_runtime_context(self, runtime_context  = None, env_name:str = None):
-        self.runtime_context:'RuntimeContext' = runtime_context
-        self.runtime_context.logger =CustomLogger(
-            filename=f"Node_{self.runtime_context.name}",
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output = "WARNING",
-            session_folder=self.runtime_context.session_folder,
-            name = f"{self.runtime_context.name}_RuntimeContext",
-            env_name = env_name
-        )
-        
-
-        self.function.insert_runtime_context(runtime_context)
 
     def receive_packet(self, packet: 'Packet' = None):
         """

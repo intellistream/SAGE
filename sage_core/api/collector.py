@@ -11,7 +11,7 @@ class Collector:
     def __init__(self, operator=None, session_folder: str = None, name: str = None):
         self.operator = operator
         self.logger = CustomLogger(
-            filename=f"Collector_{name}",
+            filename=f"Node_{name}",
             session_folder=session_folder,
             console_output=False,
             file_output=True,

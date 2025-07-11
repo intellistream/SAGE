@@ -61,8 +61,7 @@ class UnifiedEmitContext:
                 raise ValueError(f"Unknown connection type: {connection_type}")
                 
         except Exception as e:
-            self.logger.error(f"Failed to send data via connection {connection.get_summary()}: {e}", exc_info=True)
-            raise
+            self.logger.error(f"Failed to send data via connection {connection}: {e}", exc_info=True)
 
     def _send_local_to_local(self, connection: 'Connection', packet: 'Packet') -> None:
         """本地到本地：直接调用put方法"""

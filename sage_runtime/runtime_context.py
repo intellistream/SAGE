@@ -1,20 +1,36 @@
+from typing import TYPE_CHECKING
 import ray
 from ray.actor import ActorHandle
-from typing import List,Dict,Optional
+from typing import List,Dict,Optional, Any
 from sage_memory.memory_collection.base_collection import BaseMemoryCollection
 from sage_memory.memory_collection.vdb_collection import VDBMemoryCollection
 from sage_utils.custom_logger import CustomLogger
+if TYPE_CHECKING:
+    from sage_core.core.compiler import Compiler, GraphNode
+    from sage_core.api.env import BaseEnvironment 
+# dagnode, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:
-    def __init__(self,name:str, memory_collection:BaseMemoryCollection, collection_config: Optional[Dict] = None , session_folder:str = None, parallel_index: int = 0, parallelism: int = 1):
-        # Create logger first
-        self.name = name
-        self.session_folder = session_folder or None
-        self.logger:CustomLogger
-        self.memory_collection = memory_collection
-        self.parallel_index = parallel_index  # 并行索引
-        self.parallelism = parallelism  # 并行度
-    
+    def __init__(self, graph_node: 'GraphNode', env: 'BaseEnvironment'):
+        self.name:str = graph_node.name
+        self.env_name:str = env.name
+        self.session_folder:str = CustomLogger.get_session_folder()
+        self.memory_collection:Any = env.memory_collection
+        self.parallel_index:int = graph_node.parallel_index
+        self.parallelism:int = graph_node.parallelism
+        self.logger:CustomLogger = None
+
+    def create_logger(self): # 在operator里边创建
+        self.logger =CustomLogger(
+            filename=f"Node_{self.name}",
+            console_output="WARNING",
+            file_output="DEBUG",
+            global_output = "WARNING",
+            session_folder=self.session_folder,
+            name = f"{self.name}_RuntimeContext",
+            env_name = self.env_name
+        )
+
     def retrieve(self,  query: str = None, collection_config: Optional[Dict] = None) -> List[str]:
         """
         智能选择检索方式：Ray Actor远程调用或本地对象调用

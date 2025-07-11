@@ -2,10 +2,10 @@ from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
 from ray.actor import ActorHandle
 
 from sage_runtime.local_thread_pool import LocalThreadPool
-# from sage_runtime.runtimes.ray_runtime import RayRuntime
-from sage_runtime.executor.local_dag_node import LocalDAGNode
-from sage_runtime.executor.ray_dag_node import RayDAGNode
-from sage_runtime.executor.base_dag_node import BaseDAGNode
+from sage_runtime.runtime_context import RuntimeContext
+from sage_runtime.dagnode.local_dag_node import LocalDAGNode
+from sage_runtime.dagnode.ray_dag_node import RayDAGNode
+from sage_runtime.dagnode.base_dag_node import BaseDAGNode
 from sage_runtime.io.local_tcp_server import LocalTcpServer
 from sage_runtime.io.connection import Connection
 from sage_utils.custom_logger import CustomLogger
@@ -29,10 +29,9 @@ class MixedDAG():
         # self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
         self.nodes: Dict[str, BaseDAGNode] = {}
 
-        self.spout_nodes: List[str] = []
+        self.spout_nodes: Dict[str, BaseDAGNode] = {}
 
         self.connections: List[Connection] = []
-        self.session_folder = CustomLogger.get_session_folder()
 
         self.is_running: bool = False
 
@@ -58,9 +57,13 @@ class MixedDAG():
         
         # 第一步：创建所有节点实例
         for node_name, graph_node in graph.nodes.items():
-            node_instance = self.create_node_instance(graph_node, env)
-            # upstream_nodes = self.compiler.get_upstream_nodes(node_name)
+            node_instance = graph_node.create_dag_node()
+            runtime_context = RuntimeContext(graph_node, env)
+            node_instance.runtime_init(runtime_context)
             self.nodes[node_name] = node_instance
+            if graph_node.is_spout:
+                self.spout_nodes[node_name] = node_instance
+
             self.logger.debug(f"Added node '{node_name}' of type '{node_instance.__class__.__name__}'")
         
         # 第二步：建立节点间的连接
@@ -109,56 +112,15 @@ class MixedDAG():
                     self.connections.append(connection)
                     
                 except Exception as e:
-                    self.logger.error(f"Error setting up connection {node_name} -> {target_name}: {e}")
-                    raise        
-
-    def create_node_instance(self, graph_node: GraphNode, env:'BaseEnvironment') -> BaseDAGNode:
-        """
-        根据图节点创建对应的执行实例
-        
-        Args:
-            graph_node: 图节点对象
-            
-        Returns:
-            节点实例（Ray Actor或本地节点）
-        """
-        transformation = graph_node.transformation
-        memory_collection = env.memory_collection
-        from sage_core.api.enum import PlatformType
-
-        if env.platform == PlatformType.REMOTE:
-            node = RayDAGNode(
-                graph_node,
-                transformation,
-                memory_collection,
-                env_name = env.name,
-            )
-            self.logger.debug(f"Created remote node: {graph_node.name}")
-        else:
-            # 创建本地节点
-            node = LocalDAGNode(
-                graph_node,
-                transformation,
-                memory_collection,
-                env_name = env.name,
-            )
-            self.logger.debug(f"Created local node: {graph_node.name}")
-        
-        from sage_core.api.transformation import TransformationType
-        if(transformation.type == TransformationType.SOURCE):
-            self.spout_nodes.append(graph_node.name)
-            self.logger.debug(f"Node '{graph_node.name}' is a spout node")
-
-        return node
+                    self.logger.error(f"Error setting up connection {node_name} -> {target_name}: {e}", exc_info=True)
 
     def stop(self):
         if(not self.is_running):
             self.logger.warning(f"MixedDAG '{self.name}' is not running, nothing to stop")
             return
         
-        for node_name in self.spout_nodes:
-            node = self.nodes[node_name]
-            node.stop()
+        for node_name, node_instance in self.spout_nodes.items():
+            node_instance.stop()
             self.logger.debug(f"Stopped spout node: {node_name}")
         self.logger.info(f"Stopped all spout nodes in MixedDAG '{self.name}'")
 
@@ -186,11 +148,10 @@ class MixedDAG():
     def execute_once(self, spout_node_name:str = None):
         self.logger.info(f"executing once")
         if(spout_node_name is None):
-            for node_name in self.spout_nodes:
-                node = self.nodes[node_name]
-                node.trigger()
-        elif spout_node_name in self.spout_nodes:
-            node = self.nodes[spout_node_name]
+            for node_name, node_instance in self.spout_nodes:
+                node_instance.trigger()
+        elif self.spout_nodes.get(spout_node_name, None) is not None:
+            node = self.spout_nodes[spout_node_name]
             self.logger.debug(f"Running spout node: {node_name}")
             node.trigger()
         else:
@@ -200,12 +161,11 @@ class MixedDAG():
         self.logger.info(f"executing streaming")
         self.is_running = True
         if(spout_node_name is None):
-            for node_name in self.spout_nodes:
-                node_handle = self.nodes[node_name]
+            for node_name, node_instance in self.spout_nodes.items():
                 local_runtime = LocalThreadPool.get_instance()
-                local_runtime.submit_node(node_handle)
+                local_runtime.submit_node(node_instance)
                 self.logger.debug(f"Running spout node: {node_name}")
-        elif spout_node_name in self.spout_nodes:
+        elif self.spout_nodes.get(spout_node_name, None) is not None:
             node_handle = self.nodes[spout_node_name]
             local_runtime = LocalThreadPool.get_instance()
             local_runtime.submit_node(node_handle)
