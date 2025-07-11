@@ -1,7 +1,7 @@
 from typing import Any, Callable, Optional, Union
 
 from sage_core.api.function_api.filter_function import FilterFunction
-from sage_core.api.tuple import Data
+
 
 
 class RangeFilterFunction(FilterFunction):

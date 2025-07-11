@@ -5,7 +5,7 @@ import time
 from typing import Any, Optional
 
 from sage_core.api.base_function import BaseFunction
-from sage_core.api.tuple import Data
+
 
 
 class TriggerableSource(BaseFunction):
@@ -39,7 +39,7 @@ class TriggerableSource(BaseFunction):
         
         self.logger.info(f"TriggerableSource initialized with config: {self.config}")
     
-    def execute(self) -> Optional[Data[Any]]:
+    def execute(self) -> Optional[Any]:
         """
         执行方法，从输入队列获取数据
         
@@ -54,7 +54,7 @@ class TriggerableSource(BaseFunction):
                     if data is None:  # 停止信号
                         return None
                     self.logger.debug(f"Got triggered data: {data}")
-                    return Data(data)
+                    return data
                 except queue.Empty:
                     # 超时，返回None，让调用者决定是否继续轮询
                     return None
@@ -64,7 +64,7 @@ class TriggerableSource(BaseFunction):
                 if data is None:  # 停止信号
                     return None
                 self.logger.debug(f"Got triggered data: {data}")
-                return Data(data)
+                return data
                 
         except Exception as e:
             self.logger.error(f"Error in TriggerableSource.execute(): {e}")

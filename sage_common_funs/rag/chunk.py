@@ -1,6 +1,6 @@
 from typing import Any, List, Literal, Optional, Union
 from sage_core.api.base_function import BaseFunction
-from sage_core.api.tuple import Data
+
 from typing import Any, List, Optional
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer
@@ -41,19 +41,18 @@ class CharacterSplitter(BaseFunction):
             start += self.chunk_size - self.overlap  # move forward with overlap
         return chunks
 
-    def execute(self,data:Data[str]) -> Data[List[str]]:
+    def execute(self,data:str) -> List[str]:
         """
         Reads and splits the file into overlapping text chunks.
 
         :return: A Data object containing a list of text chunks.
         """
-        content=data.data
+        content=data
         try:
             chunks = self._split_text(content)
-            return Data(chunks)
+            return chunks
         except Exception as e:
-            self.logger.error(f"CharacterSplitter error: {e}")
-        return Data([])  # Return empty list if error occurs
+            self.logger.error(f"CharacterSplitter error: {e}", exc_info=True)
 
 
 class SentenceTransformersTokenTextSplitter(BaseFunction):
@@ -129,21 +128,20 @@ class SentenceTransformersTokenTextSplitter(BaseFunction):
 
         return splits
 
-    def execute(self, data: Data[str]) -> Data[List[str]]:
+    def execute(self, data: str) -> List[str]:
         """
         Splits the input text data into smaller token-based chunks.
 
         :param data: The input Data object containing the text to be split.
         :return: A Data object containing a list of token-based text chunks.
         """
-        content = data.data
+        content = data
         # print(f"Content: {content}")
         try:
             chunks = self.split_text_on_tokens(content)
-            return Data(chunks)
+            return chunks
         except Exception as e:
-            self.logger.error(f"SentenceTransformersTokenTextSplitter error: {e}")
-            return Data([])  # Return empty list if error occurs
+            self.logger.error(f"SentenceTransformersTokenTextSplitter error: {e}", exc_info=True)
 
 # config={
 #     "chunk": {
@@ -154,6 +152,6 @@ class SentenceTransformersTokenTextSplitter(BaseFunction):
 # }
 
 # split=SentenceTransformersTokenTextSplitter(config)
-# print(split.execute(Data("This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.")).data)
+# print(split.execute(Data("This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.")))
 
 

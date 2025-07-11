@@ -2,7 +2,7 @@ import os
 from typing import Tuple,List
 from sage_common_funs.utils.generator_model import apply_generator_model
 from sage_core.api.base_function import BaseFunction,StatefulFunction
-from sage_core.api.tuple import Data
+
 from sage_utils.custom_logger import CustomLogger
 from sage_common_funs.utils.template import AI_Template
 
@@ -32,7 +32,7 @@ class OpenAIGenerator(BaseFunction):
         )
         self.num = 1
 
-    def execute(self, data: Data[AI_Template]) -> Data[AI_Template]:
+    def execute(self, data: AI_Template) -> AI_Template:
         """
         Executes the response generation using the configured model based on the input data.
 
@@ -44,7 +44,7 @@ class OpenAIGenerator(BaseFunction):
                 and response is the generated response from the model.
         """
         # Extract the user query from the input data
-        input_template = data.data
+        input_template = data
  
         prompts = input_template.prompts
         # self.logger.debug(prompts)
@@ -55,4 +55,4 @@ class OpenAIGenerator(BaseFunction):
         input_template.response = response
         self.logger.info(f"Response: {response }")
         # Return the generated response along with the original user query as a tuple
-        return Data(input_template)
+        return input_template

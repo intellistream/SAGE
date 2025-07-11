@@ -1,6 +1,7 @@
 from typing import Union, TYPE_CHECKING
 from dataclasses import dataclass
 from enum import Enum
+from sage_runtime.executor.base_dag_node import BaseDAGNode
 from sage_runtime.executor.local_dag_node import LocalDAGNode
 from sage_runtime.executor.ray_dag_node import RayDAGNode
 from ray.actor import ActorHandle
@@ -22,19 +23,15 @@ class Connection:
     """
     def __init__(self,
                  own_node: Union[ActorHandle, LocalDAGNode],
-                 output_tag: str,
                  broadcast_index: int,
                  parallel_index: int,
                  target_name: str,
                  target_node: Union[ActorHandle, LocalDAGNode],
-                 target_input_tag: str,
                  tcp_server: LocalTcpServer):
 
-        self.output_tag: str = output_tag
         self.broadcast_index: int = broadcast_index
         self.parallel_index: int = parallel_index
         self.target_name: str = target_name
-        self.target_input_tag: str = target_input_tag
 
         # 统一的节点类型检测
         self.own_type: NodeType = self._detect_node_type(own_node)
@@ -82,7 +79,7 @@ class Connection:
         else:
             raise NotImplementedError(f"未知连接类型: {self.own_type} → {self.target_type}")
 
-    def _build_target_config(self, target_node: Union[ActorHandle, LocalDAGNode], 
+    def _build_target_config(self, target_node: BaseDAGNode, 
                            tcp_server: LocalTcpServer) -> dict:
         """
         根据连接类型构建目标配置字典
@@ -129,104 +126,3 @@ class Connection:
 
         else:
             raise NotImplementedError(f"未知连接类型: {self.connection_type}")
-
-    def debug_info(self) -> str:
-        """
-        返回连接的详细调试信息
-        
-        Returns:
-            str: 格式化的调试信息字符串
-        """
-        info_lines = []
-        info_lines.append("=" * 60)
-        info_lines.append("🔗 Connection Debug Information")
-        info_lines.append("=" * 60)
-        
-        # 基本连接信息
-        info_lines.append(f"📡 Connection Type: {self.connection_type.value}")
-        info_lines.append(f"🏷️  Output Tag: '{self.output_tag}'")
-        info_lines.append(f"📊 Broadcast Index: {self.broadcast_index}")
-        info_lines.append(f"🔢 Parallel Index: {self.parallel_index}")
-        
-        # 源节点信息
-        info_lines.append("")
-        info_lines.append("📤 Source Node:")
-        info_lines.append(f"   Type: {self.own_type.value}")
-        info_lines.append(f"   Output Tag: '{self.output_tag}'")
-        
-        # 目标节点信息
-        info_lines.append("")
-        info_lines.append("📥 Target Node:")
-        info_lines.append(f"   Name: '{self.target_name}'")
-        info_lines.append(f"   Type: {self.target_type.value}")
-        info_lines.append(f"   Input Tag: '{self.target_input_tag}'")
-        
-        # 目标配置信息
-        info_lines.append("")
-        info_lines.append("⚙️  Target Configuration:")
-        for key, value in self.target_config.items():
-            if key == "dagnode":
-                info_lines.append(f"   {key}: <LocalDAGNode: {getattr(value, 'name', 'unknown')}>")
-            elif key == "actorhandle":
-                info_lines.append(f"   {key}: <ActorHandle: {self.target_name}>")
-            else:
-                info_lines.append(f"   {key}: {value}")
-        
-        # 连接路径可视化
-        info_lines.append("")
-        info_lines.append("🛤️  Connection Path:")
-        path = f"   [{self.own_type.value}][{self.output_tag}] "
-        path += f"--({self.connection_type.value})--> "
-        path += f"[{self.target_type.value}:{self.target_name}][{self.target_input_tag}]"
-        info_lines.append(path)
-        
-        info_lines.append("=" * 60)
-        
-        return "\n".join(info_lines)
-
-    def print_debug_info(self):
-        """
-        打印连接的调试信息到控制台
-        """
-        print(self.debug_info())
-
-    def get_summary(self) -> str:
-        """
-        获取连接的简短摘要信息
-        
-        Returns:
-            str: 连接摘要字符串
-        """
-        return (f"{self.connection_type.value}: "
-                f"[{self.output_tag}] -> {self.target_name}[{self.target_input_tag}] "
-                f"(broadcast:{self.broadcast_index}, parallel:{self.parallel_index})")
-
-    def is_cross_platform(self) -> bool:
-        """
-        检查这是否是跨平台连接（本地到Ray或Ray到本地）
-        
-        Returns:
-            bool: 如果是跨平台连接返回True
-        """
-        return (self.connection_type == ConnectionType.LOCAL_TO_RAY or 
-                self.connection_type == ConnectionType.RAY_TO_LOCAL)
-
-    def requires_tcp(self) -> bool:
-        """
-        检查连接是否需要TCP通信
-        
-        Returns:
-            bool: 如果需要TCP通信返回True
-        """
-        return self.connection_type == ConnectionType.RAY_TO_LOCAL
-
-    def __str__(self) -> str:
-        """字符串表示"""
-        return self.get_summary()
-
-    def __repr__(self) -> str:
-        """详细字符串表示"""
-        return (f"Connection(type={self.connection_type.value}, "
-                f"output='{self.output_tag}', target='{self.target_name}', "
-                f"input='{self.target_input_tag}', "
-                f"broadcast={self.broadcast_index}, parallel={self.parallel_index})")

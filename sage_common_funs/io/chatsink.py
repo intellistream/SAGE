@@ -1,4 +1,4 @@
-from sage_core.api.tuple import Data
+
 from sage_core.api.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 from typing import Tuple, List, Union, Type
@@ -12,8 +12,8 @@ class ChatTerminalSink(BaseFunction):
     def __init__(self, *args,  **kwargs):
         super().__init__(**kwargs)
 
-    def execute(self, data:Data[AI_Template]):
-        input_template=data.data
+    def execute(self, data:AI_Template):
+        input_template=data
 
         print(f"\033[96m[Q] Question :{input_template.raw_question}\033[0m")  
 
@@ -31,8 +31,8 @@ class ChatFileSink(BaseFunction):
         with open(self.file_path, "w", encoding="utf-8") as f:
             f.write("=== QA Output Log ===\n")
 
-    def execute(self, data: Data[AI_Template]):
-        input_template=data.data
+    def execute(self, data: AI_Template):
+        input_template=data
 
         with open(self.file_path, "a", encoding="utf-8") as f:
             f.write("[Q] Question: " + input_template.raw_question + "\n")

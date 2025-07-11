@@ -15,7 +15,7 @@ from sage_core.api.env import LocalEnvironment
 from sage_core.api.base_function import BaseFunction
 from sage_core.api.function_api.filter_function import FilterFunction
 from sage_core.api.function_api.flatmap_function import FlatMapFunction
-from sage_core.api.tuple import Data
+
 
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.io.chatsink import ChatTerminalSink
@@ -40,8 +40,8 @@ Return a raw word of web_search or vectorstore with no preamble or explanation.
 class RoutePromptFunction(BaseFunction):
     """创建路由提示的Function"""
     
-    def execute(self, data: Data[AI_Template]) -> Data[AI_Template]:
-        input_template = data.data
+    def execute(self, data: AI_Template) -> AI_Template:
+        input_template = data
         raw_question = input_template.raw_question
         system_prompt = {"role": "system", "content": ROUTE_PROMPT_TEMPLATE.format(question=input_template.raw_question)}
         user_prompt = {
@@ -50,14 +50,14 @@ class RoutePromptFunction(BaseFunction):
         }
         input_template.prompts.append(system_prompt)
         input_template.prompts.append(user_prompt)
-        return Data(input_template)
+        return input_template
 
 
 class RouteDecisionFunction(BaseFunction):
     """解析路由决策的Function"""
     
-    def execute(self, data: Data) -> Data:
-        input_template:AI_Template = data.data
+    def execute(self, data):
+        input_template:AI_Template = data
         query = input_template.raw_question
         response = input_template.response
         self.logger.debug(f"Received routing response: {response} for query: {query}")
@@ -69,19 +69,19 @@ class RouteDecisionFunction(BaseFunction):
                 route_decision = "web"
                 
             self.logger.info(f"Query: '{query}' -> Route: {route_decision}")
-            return Data((input_template, route_decision))
+            return (input_template, route_decision)
         except Exception as e:
             self.logger.warning(f"Failed to parse routing response: {response}, error:{e}, defaulting to web")
-            return Data((input_template, "web"))
+            return (input_template, "web")
 
 
 class ExtractQueryFunction(BaseFunction):
     """提取查询字符串的Function"""
     
-    def execute(self, data: Data) -> Data:
-        input_template, route_decision = self._extract_data(data)
+    def execute(self, data) :
+        input_template, route_decision = data
         self.logger.debug(f"Extracted query: {input_template.raw_question} with route decision: {route_decision}")
-        return Data(input_template)
+        return input_template
 
 
 # === 过滤器Function类 ===
@@ -89,16 +89,16 @@ class ExtractQueryFunction(BaseFunction):
 class VectorRouteFilterFunction(FilterFunction):
     """过滤向量路由的Filter"""
     
-    def execute(self, data: Data) -> bool:
-        input_template, route_decision = self._extract_data(data)
+    def execute(self, data) -> bool:
+        input_template, route_decision = data
         return route_decision == "vector"
 
 
 class WebRouteFilterFunction(FilterFunction):
     """过滤Web路由的Filter"""
     
-    def execute(self, data: Data) -> bool:
-        input_template, route_decision = self._extract_data(data)
+    def execute(self, data) -> bool:
+        input_template, route_decision = data
         return route_decision == "web"
 
 
@@ -109,8 +109,8 @@ class QueryLengthFilterFunction(FilterFunction):
         super().__init__(**kwargs)
         self.min_length = min_length
     
-    def execute(self, data: Data) -> bool:
-        query = data.data.raw_question
+    def execute(self, data) -> bool:
+        query = data.raw_question
         return len(query.strip()) >= self.min_length
 
 
@@ -119,11 +119,11 @@ class QueryLengthFilterFunction(FilterFunction):
 class QueryTokenizerFunction(FlatMapFunction):
     """查询分词的FlatMap函数"""
     
-    def execute(self, data: Data) -> list:
-        query = self._extract_data(data)
+    def execute(self, data) -> list:
+        query = data
         # 简单分词示例
         tokens = query.split()
-        return [Data(token) for token in tokens if len(token) > 2]
+        return [token for token in tokens if len(token) > 2]
 
 
 def main():

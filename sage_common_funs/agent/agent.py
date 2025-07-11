@@ -2,7 +2,7 @@ from calendar import c
 from sage_common_funs.utils.generator_model import apply_generator_model
 from sage_core.api.base_function import BaseFunction
 from jinja2 import Template
-from sage_core.api.tuple import Data
+
 from sage_utils.custom_logger import CustomLogger
 from typing import Any,Tuple
 import requests
@@ -112,8 +112,8 @@ class BaseAgent(BaseFunction):
         # 兜底报错
         raise ValueError("Invalid JSON format: No valid JSON found (either plain or wrapped in Markdown)")
         
-    def execute(self, data: Data[str],*args, **kwargs) -> Data[Tuple[str, str]]:
-        query = data.data
+    def execute(self, data: str) -> Tuple[str, str]:
+        query = data
         agent_scratchpad = ""
         count = 0
         while True:
@@ -121,7 +121,7 @@ class BaseAgent(BaseFunction):
             self.logger.debug(f"Step {count}: Processing query: {query}")
             if count > self.max_steps:
                 # raise ValueError("Max steps exceeded.")
-                return Data((query,""))
+                return (query,"")
             
             prompt = self.get_prompt(query, agent_scratchpad)
             self.logger.debug(f"Prompt: {prompt}")
@@ -134,17 +134,17 @@ class BaseAgent(BaseFunction):
                 final_answer = output["final_answer"]
                 
                 self.logger.debug(f"Final Answer: {final_answer}")
-                return Data((query,final_answer))
+                return (query,final_answer)
 
             action, action_input = output.get("action"), output.get("action_input")
 
             if action is None:
                 # raise ValueError("Could not parse action.")
-                return Data((query,""))
+                return (query,"")
 
             if action not in self.tools:
                 # raise ValueError(f"Unknown tool requested: {action}")
-                return Data((query,""))
+                return (query,"")
 
             tool = self.tools[action]
             tool_result = tool.run(action_input)

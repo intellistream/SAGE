@@ -34,7 +34,7 @@ class BaseDAGNode(ABC):
         )
         
 
-        self.operator = operator_factory.build_instance(name = self.name, remote = remote)
+        self.operator:BaseOperator = operator_factory.build_instance(name = self.name, remote = remote)
         self.is_spout = operator_factory.is_spout  # Check if this is a spout node
         if(remote and (not isinstance(memory_collection, ActorHandle))):
             raise Exception("Memory collection must be a Ray Actor handle for remote dag node")
@@ -52,7 +52,6 @@ class BaseDAGNode(ABC):
         self._running = False
         # Initialize stop event
         self.stop_event = threading.Event()
-        self.operator:BaseOperator
 
         pass
     
@@ -76,14 +75,14 @@ class BaseDAGNode(ABC):
         pass
 
 
-    def process(self, input_tag: str = None, data:Any = None) -> None:
+    def trigger(self, input_tag: str = None, data:Any = None) -> None:
         """
         Execute the node once, processing any available input data.
         This is typically used for spout nodes to emit initial data.
         """
         try:
             self.logger.debug(f"Received data in node {self.name}, channel {input_tag}")
-            self.operator.process_data(input_tag, data)
+            self.operator.receive_packet( data)
         except Exception as e:
             self.logger.error(f"Error processing data in node {self.name}: {e}", exc_info=True)
             raise

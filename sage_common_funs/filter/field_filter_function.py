@@ -1,7 +1,7 @@
 from typing import Any, Callable, Union
 
 from sage_core.api.function_api.filter_function import FilterFunction
-from sage_core.api.tuple import Data
+
 
 
 
@@ -16,7 +16,7 @@ class FieldFilterFunction(FilterFunction):
         self.condition = condition
         self.logger.debug(f"FieldFilterFunction initialized with field_name: {field_name}")
 
-    def execute(self, data: Union[Any, Data]) -> bool:
+    def execute(self, data) -> bool:
         """
         检查指定字段的值是否满足条件
         
@@ -28,14 +28,13 @@ class FieldFilterFunction(FilterFunction):
         """
         try:
             # 提取原始数据
-            raw_data = self._extract_data(data)
             
-            if hasattr(raw_data, self.field_name):
-                field_value = getattr(raw_data, self.field_name)
-            elif hasattr(raw_data, '__getitem__'):
-                field_value = raw_data[self.field_name]
+            if hasattr(data, self.field_name):
+                field_value = getattr(data, self.field_name)
+            elif hasattr(data, '__getitem__'):
+                field_value = data[self.field_name]
             else:
-                self.logger.warning(f"Cannot extract field '{self.field_name}' from data: {raw_data}")
+                self.logger.warning(f"Cannot extract field '{self.field_name}' from data: {data}")
                 return False
             
             result = self.condition(field_value)
