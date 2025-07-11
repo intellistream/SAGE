@@ -1,11 +1,11 @@
-from sage_core.function.base_function import BaseFunction
+from sage_core.function.map_function import MapFunction
 
 from typing import Dict, Any
 import requests
 import json
 import logging
 
-class BochaWebSearch(BaseFunction):
+class BochaWebSearch(MapFunction):
 
     def __init__(self, config: Dict[str, Any], **kwargs):
         super().__init__(**kwargs)

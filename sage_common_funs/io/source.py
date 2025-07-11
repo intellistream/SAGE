@@ -1,20 +1,9 @@
 
-from sage_core.function.base_function import BaseFunction
+from sage_core.function.source_function import SourceFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.data_loader import resolve_data_path
 from typing import List
-
-
-
-class SourceFunction(BaseFunction):
-    @classmethod
-    def declare_inputs(cls) -> List:
-        """
-        Declare the inputs for the function.
-
-        :return: A list of tuples where each tuple contains the input name and its type.
-        """
-        return []
+from sage_core.function.source_function import SourceFunction
 
 
 class FileSource(SourceFunction):
