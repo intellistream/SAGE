@@ -62,7 +62,7 @@ class BaseEnvironment:
 
     def submit(self, name="example_pipeline"):
         # self.debug_print_pipeline()
-        from sage_core.core.engine import Engine
+        from sage_core.engine import Engine
         engine = Engine.get_instance()
         engine.submit_env(self)
         # time.sleep(10) # 等待管道启动
@@ -76,7 +76,7 @@ class BaseEnvironment:
         if(self.is_running):
             self.logger.warning("Pipeline is already running. ")
             return
-        from sage_core.core.engine import Engine
+        from sage_core.engine import Engine
         engine = Engine.get_instance()
         engine.run_once(self)
         # time.sleep(10) # 等待管道启动
@@ -85,7 +85,7 @@ class BaseEnvironment:
         """
         运行管道，适用于生产环境。
         """
-        from sage_core.core.engine import Engine
+        from sage_core.engine import Engine
         engine = Engine.get_instance()
         engine.run_streaming(self)
         # time.sleep(10) # 等待管道启动
@@ -95,7 +95,7 @@ class BaseEnvironment:
         停止管道运行。
         """
         self.logger.info("Stopping pipeline...")
-        from sage_core.core.engine import Engine
+        from sage_core.engine import Engine
         engine = Engine.get_instance()
         engine.stop_pipeline(self)
         self.close()
@@ -104,7 +104,7 @@ class BaseEnvironment:
         """
         关闭管道运行。
         """
-        from sage_core.core.engine import Engine
+        from sage_core.engine import Engine
         engine = Engine.get_instance()
         # 1) 停止本环境对应的 DAG 执行
         engine.stop_pipeline(self)
