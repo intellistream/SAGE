@@ -42,6 +42,10 @@ def get_memory(env:'BaseEnvironment', config, remote:bool = False):
     manager = get_manager()
     # 2.判断所需memory类型
     if config.get("backend_type") == "VDB":
+        collection = manager.get_collection(collection_name)
+        if collection:
+            # 如果已存在该collection，则直接返回
+            return collection
         # 3.创建VDB类型的collection
         col = manager.create_collection(
             name=config["collection_name"],
