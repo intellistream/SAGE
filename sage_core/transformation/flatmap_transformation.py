@@ -1,9 +1,8 @@
 from __future__ import annotations
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
 from sage_core.transformation.base_transformation import BaseTransformation
+from sage_core.operator.flatmap_operator import FlatMapOperator
 if TYPE_CHECKING:
-    from sage_core.operator.base_operator import BaseOperator
-    from sage_core.operator.flatmap_operator import FlatMapOperator
     from sage_core.function.base_function import BaseFunction
     from sage_core.api.env import BaseEnvironment
 

@@ -10,6 +10,10 @@ from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.transformation.source_transformation import SourceTransformation
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.name_server import get_name
+from sage_core.function.lambda_function import wrap_lambda
+
+
+
 class BaseEnvironment:
 
     def __init__(self, name: str, config: dict | None, *, platform: str = "local"):
@@ -31,13 +35,12 @@ class BaseEnvironment:
         self.memory_collection = None  # 用于存储内存集合
         self.is_running = False
 
-    def _append(self, transformation: BaseTransformation):
-        """将 BaseTransformation 添加到管道中（Compiler 会使用）。"""
-        self.pipeline.append(transformation)
-        return DataStream(self, transformation)
 
-    def from_source(self, function: Type[BaseFunction], *args, **kwargs) -> DataStream:
 
+    def from_source(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> DataStream:
+        if callable(function) and not isinstance(function, type):
+            # 这是一个 lambda 函数或普通函数
+            function = wrap_lambda(function, 'flatmap')
         transformation = SourceTransformation(self, function, *args,**kwargs)
         
         self._pipeline.append(transformation)
@@ -100,10 +103,7 @@ class BaseEnvironment:
         # 3) 清理自身引用，以打破循环链
         self._pipeline.clear()
 
-    @property
-    def pipeline(self) -> List[BaseTransformation]:  # noqa: D401
-        """返回 BaseTransformation 列表（Compiler 会使用）。"""
-        return self._pipeline
+
 
     def set_memory(self, config):
         self.memory_collection = sage_memory.api.get_memory(self, config, remote = (self.platform != "local"))
@@ -115,6 +115,21 @@ class BaseEnvironment:
     # TODO: 写一个判断Env 是否已经完全初始化并开始执行的函数
     def initialized(self):
         pass
+
+    ########################################################
+    #                auxiliary methods                     #
+    ########################################################
+
+    def _append(self, transformation: BaseTransformation):
+        """将 BaseTransformation 添加到管道中（Compiler 会使用）。"""
+        self.pipeline.append(transformation)
+        return DataStream(self, transformation)
+    
+    @property
+    def pipeline(self) -> List[BaseTransformation]:  # noqa: D401
+        """返回 BaseTransformation 列表（Compiler 会使用）。"""
+        return self._pipeline
+
 
 class LocalEnvironment(BaseEnvironment):
     """
