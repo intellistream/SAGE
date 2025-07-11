@@ -58,6 +58,9 @@ class Transformation:
             console_output=False,
             file_output=True
         )
+
+
+
         # 创建可序列化的函数工厂
         self.function_factory = FunctionFactory(
             function_class=self.function_class,
@@ -66,6 +69,7 @@ class Transformation:
         )
 
         self.logger.debug(f"Creating Transformation of type {type} with rag {self.function_class.__name__}")
+        
         # 创建OperatorFactory来处理operator的创建
         self.operator_class = self.TO_OPERATOR.get(type, None)
 
@@ -96,7 +100,7 @@ class Transformation:
         upstream_trans.downstreams.append(self)
 
     # ---------------- 工具函数 ----------------
-    def build_instance(self, **kwargs) -> 'BaseOperator':
+    def create_operator(self, **kwargs) -> 'BaseOperator':
         """如果尚未实例化，则根据 op_class 和 kwargs 实例化。"""
         function = self.function_class(*self.function_args, **kwargs)
         self.logger.debug(f"Created function instance: {self.function_class.__name__} with args {self.function_args} and kwargs {kwargs}")

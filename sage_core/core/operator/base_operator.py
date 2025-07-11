@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from sage_core.api.base_function import BaseFunction
     from sage_runtime.io.connection import Connection
     from sage_runtime.operator.runtime_context import RuntimeContext
+    from sage_runtime.function.factory import FunctionFactory
 
 
 
@@ -20,9 +21,7 @@ if TYPE_CHECKING:
 
 class BaseOperator(ABC):
     def __init__(self, 
-                 function_class: Type['BaseFunction'] = None,
-                 function_args: Tuple = None,
-                 function_kwargs: Dict[str, Any] = None,
+                 function_factory: 'FunctionFactory',
                  session_folder: str = None, 
                  name: str = None, 
                  env_name:str = None, 
@@ -40,14 +39,8 @@ class BaseOperator(ABC):
         self.name = name
 
         try:
-            # TODO: 做一个函数工厂来处理函数的创建
-            # Issue URL: https://github.com/intellistream/SAGE/issues/148
-            # 新方式：传递function类和参数，在这里创建实例
-            function_args = function_args or ()
-            function_kwargs = function_kwargs or {}
-            self.function = function_class(*function_args, **function_kwargs)
-            self.logger.debug(f"Created function instance: {function_class.__name__} "
-                            f"with args {function_args} and kwargs {function_kwargs}")
+            self.function = function_factory.create_function(name = name, env_name = env_name, session_folder = session_folder)
+            self.logger.debug(f"Created function instance with {function_factory}")
         except Exception as e:
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
 
