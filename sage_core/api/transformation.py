@@ -9,6 +9,9 @@ from sage_utils.custom_logger import CustomLogger
 from sage_core.api.enum import PlatformType
 from sage_utils.name_server import get_name
 from sage_runtime.operator.factory import OperatorFactory
+from sage_runtime.function.factory import FunctionFactory
+from sage_runtime.dagnode.factory import DAGNodeFactory
+from ray.actor import ActorHandle
 if TYPE_CHECKING:
     from sage_core.core.operator.base_operator import BaseOperator
     from sage_core.api.base_function import BaseFunction
@@ -41,38 +44,50 @@ class Transformation:
         name:str = None,
         parallelism: int = 1,
         platform:PlatformType = PlatformType.LOCAL,
-        delay: Optional[float] = 0.1,
+        delay: Optional[float] = 1,
         **kwargs
     ):
-        self.function_class:Type['BaseFunction'] = function
+        self.remote = (env.platform == PlatformType.REMOTE) or False
+        self.env = env
+        self.type = type
+        self.delay = delay
+        self.function_class = function
         self.basename = get_name(name) if name else get_name(self.function_class.__name__)
+            
+
         self.logger = CustomLogger(
-            filename=get_name(f"Transformation_{self.basename}"),
+            filename=f"Transformation_{self.basename}",
             env_name = env.name,
             console_output=False,
             file_output=True
         )
-        self.env = env
-        self.type = type
-        self.delay:float = delay
 
 
-
-        
+        if self.remote and not isinstance(env.memory_collection, ActorHandle):
+            raise Exception("Memory collection must be a Ray Actor handle for remote transformation")
+        # 创建可序列化的函数工厂
+        self.function_factory = FunctionFactory(
+            function_class=self.function_class,
+            function_args=args,
+            function_kwargs=kwargs
+        )
 
         self.logger.debug(f"Creating Transformation of type {type} with rag {self.function_class.__name__}")
+
         # 创建OperatorFactory来处理operator的创建
         self.operator_class = self.TO_OPERATOR.get(type, None)
 
         self.operator_factory = OperatorFactory(
             operator_class=self.operator_class,
-            function_class=self.function_class,
-            function_args=args,
-            function_kwargs=kwargs,  # 将kwargs传递给function
+            function_factory=self.function_factory,  # 传递函数工厂而不是具体参数
             is_spout = (self.type == TransformationType.SOURCE),
             basename=self.basename,
             env_name = env.name,
+            remote = self.remote
         )
+        # 创建 DAG 节点工厂（包含所有静态参数）
+        self.dag_node_factory = DAGNodeFactory(self)
+
 
 
         self.upstream:Transformation = None
@@ -93,7 +108,7 @@ class Transformation:
         upstream_trans.downstreams.append(self)
 
     # ---------------- 工具函数 ----------------
-    def build_instance(self, **kwargs) -> 'BaseOperator':
+    def create_operator(self, **kwargs) -> 'BaseOperator':
         """如果尚未实例化，则根据 op_class 和 kwargs 实例化。"""
         function = self.function_class(*self.function_args, **kwargs)
         self.logger.debug(f"Created function instance: {self.function_class.__name__} with args {self.function_args} and kwargs {kwargs}")

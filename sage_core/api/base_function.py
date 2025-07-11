@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 from sage_core.api.collector import Collector
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
-    from sage_runtime.operator.runtime_context import RuntimeContext
-
+    from sage_runtime.runtime_context import RuntimeContext
+    from ray.actor import ActorHandle
 
 
 # 构造来源于sage_runtime/operator/factory.py
@@ -18,23 +18,32 @@ class BaseFunction(ABC):
     It defines the core interface and initializes a logger.
     """
 
-    def __init__(self, session_folder:str = None, name:str = None, env_name:str = None,  **kwargs):
+    def __init__(self, **kwargs):
+
         # TODO: api_key应该是由env来提供和解析的吧？
         # Issue URL: https://github.com/intellistream/SAGE/issues/145
         self.api_key = None
-        self.runtime_context:RuntimeContext  # 需要在compiler里面实例化。
-        name = name or self.__class__.__name__
-        self.logger = CustomLogger(
-            filename=f"Fuction_{name}",
-            env_name=env_name,
-            session_folder=session_folder,
-            console_output=False,
-            file_output=True,
-            global_output = True,
-            name = f"{name}_Function"
-        )
-        
         self.get_key()
+
+    def runtime_init(self, ctx: 'RuntimeContext') -> None:
+        """
+        Initialize the function with the runtime context.
+        This method should be called after the function is created.
+        """
+        self.runtime_context = ctx
+        self.name = ctx.name
+        self.logger = CustomLogger(
+            filename=f"Function_{ctx.name}",
+            env_name=ctx.env_name,
+            console_output="WARNING",
+            file_output="DEBUG",
+            global_output = "WARNING",
+            name = f"{ctx.name}_{self.__class__.__name__}",
+            session_folder=ctx.session_folder
+        )
+        self.runtime_context.create_logger()
+        self.logger.info(f"Function {self.name} initialized with runtime context {ctx}")
+
 
     def get_key(self):
         # finds and loads .env into os.environ

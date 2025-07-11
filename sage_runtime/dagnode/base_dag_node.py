@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-import threading
+import threading, copy
 from typing import Any, TYPE_CHECKING, Union
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.operator.runtime_context import RuntimeContext
+from sage_runtime.runtime_context import RuntimeContext
 from ray.actor import ActorHandle
 
 if TYPE_CHECKING:
@@ -14,47 +14,44 @@ if TYPE_CHECKING:
 class BaseDAGNode(ABC):
     def __init__(
         self, 
-        graph_node: 'GraphNode',
-        transformation: 'Transformation', 
-        memory_collection:Union[ActorHandle, Any] = None, 
-        remote:bool = False,
-        env_name:str = None,
+        name:str, 
+        operator_factory: 'OperatorFactory',
     ) -> None:
-        operator_factory: 'OperatorFactory' = transformation.operator_factory
-        self.delay = transformation.delay
-        self.name = graph_node.name
-        # Create logger first
-        self.logger = CustomLogger(
-            filename=f"Node_{self.name}",
-            env_name=env_name,
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output = "WARNING",
-            name = f"{self.name}_{self.__class__.__name__}"
-        )
-        
+        self.runtime_context: RuntimeContext
+        self.operator:BaseOperator
+        self.delay: Union[int, float] = 1
+        self.is_spout: bool = False
 
-        self.operator:BaseOperator = operator_factory.build_instance(name = self.name, remote = remote)
-        self.is_spout = operator_factory.is_spout  # Check if this is a spout node
-        if(remote and (not isinstance(memory_collection, ActorHandle))):
-            raise Exception("Memory collection must be a Ray Actor handle for remote dag node")
-        self.memory_collection = memory_collection  # Optional memory collection for this node
-        self.operator.insert_runtime_context(
-            RuntimeContext(
-                self.name, 
-                self.memory_collection, 
-                parallel_index = graph_node.parallel_index, 
-                parallelism=graph_node.parallelism, 
-                session_folder=CustomLogger.get_session_folder(),
-                ),
-            env_name = env_name
-            )
+
+        self.operator_factory: 'OperatorFactory' = operator_factory
+        self.name = name
         self._running = False
-        # Initialize stop event
         self.stop_event = threading.Event()
 
         pass
-    
+
+    def runtime_init(self, runtime_context: RuntimeContext) -> None:
+        """
+        Initialize the runtime context and other parameters.
+        """
+        try:
+            self.runtime_context = runtime_context
+
+            self.operator = self.operator_factory.create_operator(name=self.name)
+            self.operator.runtime_init(copy.deepcopy(runtime_context))
+            # Create logger first
+            self.logger = CustomLogger(
+                filename=f"Node_{runtime_context.name}",
+                env_name=runtime_context.env_name,
+                console_output="WARNING",
+                file_output="DEBUG",
+                global_output = "WARNING",
+                name = f"{runtime_context.name}_{self.__class__.__name__}"
+            )
+            self.logger.info(f"Node {self.name} initialized with type {self.__class__.__name__}")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
+
     @abstractmethod
     def run_loop(self) -> None:
         """
