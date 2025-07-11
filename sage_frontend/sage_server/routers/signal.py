@@ -353,7 +353,7 @@ def get_nodes_file(jobId:str):
     nodes_file_list=  []
     for operator in job_info.get("operators", []):
         name = operator.get("name", "")
-        nodes_file_list.append(f"Fuction_{name}_0.log")
+        nodes_file_list.append(f"Fuction_{name}")
     return nodes_file_list
 
 
@@ -415,8 +415,20 @@ async def fetch_sink_from_terminal(
     """
     # 获取最新节点文件名列表，并定位到最新 sink 文件
     nodes_list = get_nodes_file(job_id)
-    base_dir = _get_job_file(job_id)
-    sink_file = base_dir / nodes_list[-1]
+    # base_dir = _get_job_file(job_id)
+    base_dir = get_latest_logs_dir() / f"env_{job_id}"
+    sink_prefix  = nodes_list[-1]
+
+    candidates = list(base_dir.glob(f"{sink_prefix}*"))
+    if not candidates:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No files starting with {sink_prefix} in {base_dir}"
+        )
+  
+    sink_file = max(candidates, key=lambda p: p.stat().st_mtime)
+
+
     sink_file = sink_file.resolve()  # 处理相对路径
     print(f"Fetching sink file for job {job_id}: {sink_file.resolve()}")
     # if not sink_file.exists():

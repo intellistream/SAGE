@@ -15,7 +15,7 @@ retriever:
 generator:
   platform: "local"
   method: "openai"
-  model_name: "qwen-turbo-0919"
+  model_name: "qwen-turbo"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
   seed: 42
 
