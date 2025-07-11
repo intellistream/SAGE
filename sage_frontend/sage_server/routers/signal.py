@@ -415,8 +415,24 @@ async def fetch_sink_from_terminal(
     """
     # 获取最新节点文件名列表，并定位到最新 sink 文件
     nodes_list = get_nodes_file(job_id)
-    # base_dir = _get_job_file(job_id)
-    base_dir = get_latest_logs_dir() / f"env_{job_id}"
+    # 取出根 logs 目录
+    root = get_latest_logs_dir()
+
+    # 筛选出所有以 env_{job_id} 开头的子目录
+    _candidates = [
+        p for p in root.iterdir()
+        if p.is_dir() and p.name.startswith(f"env_{job_id}")
+    ]
+
+    if not _candidates:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No env directories starting with env_{job_id} under {root}"
+        )
+
+    # 取最新修改时间的那个
+    base_dir = max(_candidates, key=lambda p: p.stat().st_mtime)
+    # base_dir = get_latest_logs_dir() / f"env_{job_id}"
     sink_prefix  = nodes_list[-1]
 
     candidates = list(base_dir.glob(f"{sink_prefix}*"))
