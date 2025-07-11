@@ -24,9 +24,8 @@ def pipeline_run():
     # 提交管道并运行
     env.submit()
     env.run_streaming()  # 启动管道
-
-    time.sleep(10)  # 等待管道运行
-    env.stop()
+    time.sleep(5)
+    env.stop()  # 停止管道
     time.sleep(1000)
 
 if __name__ == '__main__':

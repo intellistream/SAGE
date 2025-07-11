@@ -53,7 +53,7 @@ def init_memory_and_pipeline(job_id=None,  config=None, operators=None,use_ray=F
         env = RemoteEnvironment(env_name)
     else:
         env = LocalEnvironment(env_name)
-    env.set_memory(config={"collection_name":f"vdb_test"})
+    env.set_memory(config={"collection_name":f"{env_name}_memory"})
     # 如果没有提供operators配置，使用默认配置
     if not operators:
         operators = {
