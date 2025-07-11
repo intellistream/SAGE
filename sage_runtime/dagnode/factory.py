@@ -40,7 +40,7 @@ class DAGNodeFactory:
             node = LocalDAGNode(name, self.operator_factory)
         node.delay = self.delay
         node.is_spout = self.is_spout
-        return
+        return node
     
     def __repr__(self) -> str:
         return f"<DAGNodeFactory {self.basename}>"
