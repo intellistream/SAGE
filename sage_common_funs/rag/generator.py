@@ -1,11 +1,11 @@
 import os
 from typing import Tuple,List
 from sage_common_funs.utils.generator_model import apply_generator_model
-from sage_core.api.base_function import BaseFunction,StatefulFunction
-
+from sage_core.function.map_function import MapFunction 
+from sage_core.function.base_function import StatefulFunction
 from sage_utils.custom_logger import CustomLogger
 
-class OpenAIGenerator(BaseFunction):
+class OpenAIGenerator(MapFunction):
     """
     OpenAIGenerator is a generator rag that interfaces with a specified OpenAI model
     to generate responses based on input data.
@@ -109,7 +109,7 @@ class OpenAIGeneratorWithHistory(StatefulFunction):
 
         return (user_query, response)
 
-class HFGenerator(BaseFunction):
+class HFGenerator(MapFunction):
     """
     HFGenerator is a generator rag that interfaces with a Hugging Face model
     to generate responses based on input data.

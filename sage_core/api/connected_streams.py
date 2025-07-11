@@ -1,8 +1,7 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, List, Tuple, TypeVar, Generic, get_args, get_origin
-from sage_core.api.enum import PlatformType
-from sage_core.api.transformation import TransformationType, Transformation
-from sage_core.api.base_function import BaseFunction
+from sage_core.transformation.base_transformation import BaseTransformation
+from sage_core.function.base_function import BaseFunction
 if TYPE_CHECKING:
     from .datastream import DataStream
     from .env import BaseEnvironment
@@ -11,12 +10,12 @@ if TYPE_CHECKING:
 # Issue URL: https://github.com/intellistream/SAGE/issues/146
 class ConnectedStreams:
     """表示多个transformation连接后的流结果"""
-    def __init__(self, env:'BaseEnvironment', transformations: List[Tuple[Transformation, str]]):
+    def __init__(self, env:'BaseEnvironment', transformations: List[Tuple[BaseTransformation, str]]):
         self._environment = env
         self.transformations = transformations
 
-    def _apply(self, tr: Transformation) -> 'DataStream':
-        """将新 Transformation 接入管线"""
+    def _apply(self, tr: BaseTransformation) -> 'DataStream':
+        """将新 BaseTransformation 接入管线"""
         declared_inputs = tr.function_class.declare_inputs()
         
         if len(self.transformations) > len(declared_inputs):
@@ -29,14 +28,14 @@ class ConnectedStreams:
         for (upstream_trans, output_tag), (input_tag, input_type) in zip(self.transformations, declared_inputs):
             tr.add_upstream(input_tag=input_tag, upstream_trans=upstream_trans, upstream_tag=output_tag)
 
-        return self._environment.append(tr)
+        return self._environment._append(tr)
 
     def map(self, function: Union[BaseFunction, Type[BaseFunction]], *args, **kwargs) -> 'DataStream':
-        tr = Transformation(self._environment,TransformationType.MAP, function, *args, **kwargs)
+        tr = BaseTransformation(self._environment,BaseTransformationType.MAP, function, *args, **kwargs)
         return self._apply(tr)
 
     def sink(self, function: Union[BaseFunction, Type[BaseFunction]], *args, **kwargs) -> 'DataStream':
-        tr = Transformation(self._environment, TransformationType.SINK, function, *args, **kwargs)
+        tr = BaseTransformation(self._environment, BaseTransformationType.SINK, function, *args, **kwargs)
         return self._apply(tr)
 
     def connect(self, other: Union['DataStream', 'ConnectedStreams']) -> 'ConnectedStreams':

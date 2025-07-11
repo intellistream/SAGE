@@ -5,11 +5,11 @@ from transformers import AutoTokenizer, AutoModel
 from sklearn.metrics.pairwise import cosine_similarity
 from rouge import Rouge
 
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.map_function import MapFunction
 
 
 
-class F1Evaluate(BaseFunction):
+class F1Evaluate(MapFunction):
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
     
@@ -41,7 +41,7 @@ class F1Evaluate(BaseFunction):
         print(f"\033[93m[F1 Score] : {score:.4f}\033[0m")
 
 
-class BertRecallEvaluate(BaseFunction):
+class BertRecallEvaluate(MapFunction):
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
         self.model = AutoModel.from_pretrained("bert-base-uncased")
@@ -67,7 +67,7 @@ class BertRecallEvaluate(BaseFunction):
         print(f"\033[95m[BERT Recall] : {score:.4f}\033[0m")
 
 
-class RougeLEvaluate(BaseFunction):
+class RougeLEvaluate(MapFunction):
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
         self.rouge = Rouge()
@@ -85,7 +85,7 @@ class RougeLEvaluate(BaseFunction):
         print(f"\033[94m[ROUGE-L] : {score:.4f}\033[0m")
 
 
-class BRSEvaluate(BaseFunction):
+class BRSEvaluate(MapFunction):
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
         self.bert_recall_evaluate = BertRecallEvaluate(config)

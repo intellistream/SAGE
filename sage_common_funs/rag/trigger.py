@@ -4,11 +4,11 @@ import threading
 import time
 from typing import Any, Optional
 
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.map_function import MapFunction
 
 
 
-class TriggerableSource(BaseFunction):
+class TriggerableSource(MapFunction):
     """
     可触发的数据源，支持外部输入触发处理
     """

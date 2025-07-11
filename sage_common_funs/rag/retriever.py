@@ -1,12 +1,13 @@
 from typing import Tuple, List
 import time  # 替换 asyncio 为 time 用于同步延迟
 
-from sage_core.api.base_function import BaseFunction, MemoryFunction, StatefulFunction
+from sage_core.function.map_function import MapFunction
+from sage_core.function.base_function import MemoryFunction, StatefulFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.runtime_context import RuntimeContext
 
 # 更新后的 SimpleRetriever
-class DenseRetriever(BaseFunction):
+class DenseRetriever(MapFunction):
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
 
@@ -42,7 +43,7 @@ class DenseRetriever(BaseFunction):
 
         return (input_query, chunks)
     
-class BM25sRetriever(BaseFunction): # 目前runtime context还只支持ltm
+class BM25sRetriever(MapFunction): # 目前runtime context还只支持ltm
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
         self.config = config

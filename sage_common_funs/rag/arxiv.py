@@ -12,7 +12,7 @@ from collections import Counter
 import json
 import re
 
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.map_function import MapFunction
 
 
 
@@ -191,7 +191,7 @@ class Paper:
         self.section_names = subheadings
         self.section_texts = section_dict
 
-class ArxivPDFDownloader(BaseFunction):
+class ArxivPDFDownloader(MapFunction):
     def __init__(self, config):
         super().__init__()
         config = config["ArxivPDFDownloader"]
@@ -236,7 +236,7 @@ class ArxivPDFDownloader(BaseFunction):
         return pdf_paths
 
 
-class ArxivPDFParser(BaseFunction):
+class ArxivPDFParser(MapFunction):
     def __init__(self, config):
         super().__init__()
         config = config["ArxivPDFParser"]

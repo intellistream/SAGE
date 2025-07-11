@@ -1,5 +1,5 @@
 
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.sink_function import SinkFunction
 from sage_utils.custom_logger import CustomLogger
 from typing import Tuple, List, Union, Type
 from sage_common_funs.utils.template import AI_Template
@@ -7,7 +7,7 @@ import os
 
 
 
-class ChatTerminalSink(BaseFunction):
+class ChatTerminalSink(SinkFunction):
     
     def __init__(self, *args,  **kwargs):
         super().__init__(**kwargs)
@@ -20,7 +20,7 @@ class ChatTerminalSink(BaseFunction):
         print(f"\033[92m[A] Answer :{input_template.response}\033[0m")
 
 
-class ChatFileSink(BaseFunction):
+class ChatFileSink(SinkFunction):
     def __init__(self, config: dict = None,*args,  **kwargs):
         super().__init__(**kwargs)
         os.makedirs("output", exist_ok=True)

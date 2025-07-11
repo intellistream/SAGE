@@ -4,7 +4,7 @@ from sage_runtime.dagnode.ray_dag_node import RayDAGNode
 from sage_runtime.dagnode.local_dag_node import LocalDAGNode
 
 if TYPE_CHECKING:
-    from sage_core.api.transformation import Transformation
+    from sage_core.transformation.base_transformation import BaseTransformation
     from sage_core.api.env import BaseEnvironment
     from sage_runtime.dagnode.base_dag_node import BaseDAGNode
     from ray.actor import ActorHandle
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 class DAGNodeFactory:
     def __init__(
         self,
-        transformation: 'Transformation',
+        transformation: 'BaseTransformation',
         # parallel_index: int, # 这个在create instance时传入
     ):
         self.basename = transformation.basename
@@ -23,7 +23,7 @@ class DAGNodeFactory:
         self.delay = transformation.delay
         self.remote:bool = transformation.remote
         self.memory_collection:Union[Any, ActorHandle] = transformation.env.memory_collection
-        self.is_spout = transformation.type.value == "source"
+        self.is_spout = transformation.is_spout
 
         # 这些参数在创建节点时注入
         # self.parallel_index: int  # 来自图编译

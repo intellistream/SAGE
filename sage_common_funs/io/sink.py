@@ -1,12 +1,12 @@
 
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.sink_function import SinkFunction
 from sage_utils.custom_logger import CustomLogger
 from typing import Tuple, List, Union, Type
 import os
 
 
 
-class TerminalSink(BaseFunction):
+class TerminalSink(SinkFunction):
     
     def __init__(self, config: dict = None,  **kwargs):
         super().__init__(**kwargs)
@@ -21,7 +21,7 @@ class TerminalSink(BaseFunction):
 
         print(f"[{self.__class__.__name__}]: \033[92m[A] Answer :{answer}\033[0m")
 
-class RetriveSink(BaseFunction):
+class RetriveSink(SinkFunction):
 
     def __init__(self, config: dict = None,  **kwargs):
         super().__init__(**kwargs)
@@ -34,7 +34,7 @@ class RetriveSink(BaseFunction):
         print(f"\033[92m[A] Chunks :{chunks}\033[0m")
 
 
-class FileSink(BaseFunction):
+class FileSink(SinkFunction):
     def __init__(self, config: dict = None,  **kwargs):
         super().__init__(**kwargs)
         os.makedirs("output", exist_ok=True)
@@ -54,7 +54,7 @@ class FileSink(BaseFunction):
             f.write("-" * 40 + "\n")
         self.logger.debug(f"Data written to file: {self.file_path}")
 
-class MemWriteSink(BaseFunction):
+class MemWriteSink(SinkFunction):
     def __init__(self, config: dict = None,  **kwargs):
         super().__init__(**kwargs)
         self.config = config

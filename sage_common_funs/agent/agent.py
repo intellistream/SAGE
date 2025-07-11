@@ -1,6 +1,6 @@
 from calendar import c
 from sage_common_funs.utils.generator_model import apply_generator_model
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.map_function import MapFunction
 from jinja2 import Template
 
 from sage_utils.custom_logger import CustomLogger
@@ -61,7 +61,7 @@ Thought:{agent_scratchpad}
 """
 
 
-class BaseAgent(BaseFunction):
+class BaseAgent(MapFunction):
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
         self.logger.set_console_level("DEBUG")

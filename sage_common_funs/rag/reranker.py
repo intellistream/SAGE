@@ -3,11 +3,11 @@ from typing import List, Tuple
 from transformers import AutoModelForSequenceClassification, AutoTokenizer,AutoModelForCausalLM
 import logging
 
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.map_function import MapFunction
 
 
 
-class BGEReranker(BaseFunction):
+class BGEReranker(MapFunction):
     """
     A reranker that uses the BAAI/bge-reranker-v2-m3 model to reorder a list of retrieved documents.
     The model assigns relevance scores to the documents and ranks them accordingly.
@@ -110,7 +110,7 @@ class BGEReranker(BaseFunction):
         return [query, reranked_docs_list]  # Return the reranked documents along with the original query
 
 
-class LLMbased_Reranker(BaseFunction):
+class LLMbased_Reranker(MapFunction):
     """
     A reranker that uses the BAAI/bge-reranker-v2-gemma model to determine if a retrieved document contains an answer to a given query.
     It scores the documents with 'Yes' or 'No' predictions based on whether the document answers the query.

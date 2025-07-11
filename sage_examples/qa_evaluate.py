@@ -1,14 +1,14 @@
 import time
 from sage_core.api.env import LocalEnvironment
 
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 from sage_common_funs.rag.generator import OpenAIGenerator
 from sage_common_funs.rag.promptor import QAPromptor
 from sage_common_funs.rag.evaluate import F1Evaluate
 from sage_utils.config_loader import load_config
 import json
 
-class CustomFileSource(BaseFunction):
+class CustomFileSource(MapFunction):
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
         self.path = config["data_path"]
@@ -31,7 +31,7 @@ class CustomPromptor(QAPromptor):
         return (reference, prompt)
 
 # 生成器输出 (reference, prediction)
-class ResultFormatter(BaseFunction):
+class ResultFormatter(MapFunction):
     def execute(self, data: tuple[str, str]) -> tuple[str, str]:
         reference, generated = data
         return (reference, generated)

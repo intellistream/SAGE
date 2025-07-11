@@ -1,5 +1,7 @@
 from jinja2 import Template
-from sage_core.api.base_function import BaseFunction, StatefulFunction, MemoryFunction
+from sage_core.function.base_function import StatefulFunction, MemoryFunction
+
+from sage_core.function.map_function import MapFunction
 
 from sage_utils.custom_logger import CustomLogger
 
@@ -24,7 +26,7 @@ QA_prompt_template = Template(QA_prompt_template)
 summarization_prompt_template = Template(summarization_prompt_template)
 
 
-class QAPromptor(BaseFunction):
+class QAPromptor(MapFunction):
     """
     QAPromptor is a prompt rag that generates a QA-style prompt using
     an external corpus and a user query. This class is designed to prepare 
@@ -109,7 +111,7 @@ class QAPromptor(BaseFunction):
             return fallback
 
 
-class SummarizationPromptor(BaseFunction):
+class SummarizationPromptor(MapFunction):
     """
     QAPromptor is a prompt rag that generates a QA-style prompt using
     an external corpus and a user query. This class is designed to prepare

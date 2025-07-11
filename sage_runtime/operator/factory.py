@@ -4,7 +4,7 @@ from sage_utils.custom_logger import CustomLogger
 from sage_runtime.operator.operator_wrapper import OperatorWrapper
 if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
-    from sage_core.api.base_function import BaseFunction
+    from sage_core.function.base_function import BaseFunction
     from ray.actor import ActorHandle
     from sage_runtime.function.factory import FunctionFactory
 
@@ -15,11 +15,9 @@ class OperatorFactory:
     def __init__(self, 
                  operator_class: Type['BaseOperator'],
                  function_factory: 'FunctionFactory',
-                 is_spout:bool = False, 
                  basename: str = None,
                  env_name:str = None,
                  remote:bool = False):
-        self.is_spout = is_spout
         self.operator_class = operator_class
         self.function_factory = function_factory
         self.env_name = env_name

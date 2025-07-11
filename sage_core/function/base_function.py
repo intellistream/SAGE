@@ -4,11 +4,9 @@ from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 
 from dotenv import load_dotenv
 
-from sage_core.api.collector import Collector
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from sage_runtime.runtime_context import RuntimeContext
-    from ray.actor import ActorHandle
 
 
 # 构造来源于sage_runtime/operator/factory.py

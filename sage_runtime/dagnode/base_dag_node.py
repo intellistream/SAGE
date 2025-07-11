@@ -8,7 +8,7 @@ from ray.actor import ActorHandle
 if TYPE_CHECKING:
     from sage_runtime.io.connection import Connection
     from sage_core.operator.base_operator import BaseOperator
-    from sage_core.api.transformation import Transformation, OperatorFactory
+    from sage_core.transformation.base_transformation import BaseTransformation, OperatorFactory
     from sage_runtime.compiler import Compiler, GraphNode
 
 class BaseDAGNode(ABC):
