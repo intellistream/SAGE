@@ -1,7 +1,7 @@
 from typing import Any, Callable, Union
 
 from sage_core.api.function_api.filter_function import FilterFunction
-from sage_core.api.tuple import Data
+
 
 class LambdaFilterFunction(FilterFunction):
     """
@@ -13,7 +13,7 @@ class LambdaFilterFunction(FilterFunction):
         self.predicate = predicate
         self.logger.debug(f"LambdaFilterFunction initialized with predicate: {predicate}")
 
-    def execute(self, data: Union[Any, Data]) -> bool:
+    def execute(self, data) -> bool:
         """
         使用Lambda表达式判断数据是否通过过滤条件
         
@@ -25,9 +25,8 @@ class LambdaFilterFunction(FilterFunction):
         """
         try:
             # 提取原始数据
-            raw_data = self._extract_data(data)
-            result = self.predicate(raw_data)
-            self.logger.debug(f"Filter result: {result} for data: {raw_data}")
+            result = self.predicate(data)
+            self.logger.debug(f"Filter result: {result} for data: {data}")
             return self._process_output(result)
         except Exception as e:
             self.logger.error(f"Error in predicate for data {data}: {e}", exc_info=True)

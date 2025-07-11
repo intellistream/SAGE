@@ -1,6 +1,6 @@
 import time
 from sage_core.api.env import LocalEnvironment
-from sage_core.api.tuple import Data
+
 from sage_core.api.base_function import BaseFunction
 from sage_common_funs.rag.generator import OpenAIGenerator
 from sage_common_funs.rag.promptor import QAPromptor
@@ -22,19 +22,19 @@ class CustomFileSource(BaseFunction):
                 item = json.loads(line)
                 question = item.get("question", "")
                 reference = item.get("reference", "")
-                return Data((question, reference))
+                return (question, reference)
 
 class CustomPromptor(QAPromptor):
-    def execute(self, data: Data[tuple[str, str]]) -> Data[tuple[str, list]]:
-        question, reference = data.data
+    def execute(self, data: tuple[str, str]) -> tuple[str, list]:
+        question, reference = data
         prompt = [{"role":"user","content": f"Question: {question}\nAnswer:"}]
-        return Data((reference, prompt))
+        return (reference, prompt)
 
 # 生成器输出 (reference, prediction)
 class ResultFormatter(BaseFunction):
-    def execute(self, data: Data[tuple[str, str]]) -> Data[tuple[str, str]]:
-        reference, generated = data.data
-        return Data((reference, generated))
+    def execute(self, data: tuple[str, str]) -> tuple[str, str]:
+        reference, generated = data
+        return (reference, generated)
 
 def pipeline_run(config):
     env = LocalEnvironment()

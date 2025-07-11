@@ -1,4 +1,4 @@
-from sage_core.api.tuple import Data
+
 from sage_core.api.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 from typing import List
@@ -12,10 +12,10 @@ class Templater(BaseFunction):
         super().__init__(**kwargs)
         self.sequence = 0
 
-    def execute(self, data:Data[str]) -> Data[AI_Template]:
+    def execute(self, data:str) -> AI_Template:
         template = AI_Template(
             sequence=self.sequence,
-            raw_question=data.data,
+            raw_question=data,
         )
         self.sequence += 1
-        return Data(template)
+        return template

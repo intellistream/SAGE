@@ -1,4 +1,4 @@
-from sage_core.api.tuple import Data
+
 from sage_core.api.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.data_loader import resolve_data_path
@@ -42,7 +42,7 @@ class FileSource(SourceFunction):
         self.data_path = resolve_data_path(config["data_path"])  # → project_root/data/sample/question.txt
         self.file_pos = 0  # Track the file read position
 
-    def execute(self) -> Data[str]:
+    def execute(self) -> str:
         """
         Reads the next line from the file and returns it as a string.
 
@@ -56,15 +56,13 @@ class FileSource(SourceFunction):
                     self.file_pos = f.tell()  # Update the new position
                     if line:
                         self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Read query: {line.strip()}\033[0m ")
-                        return Data(line.strip())  # Return non-empty lines
+                        return line.strip()  # Return non-empty lines
                     else:
                         self.logger.info(f"\033[33m[ {self.__class__.__name__}]: Reached end of file, resetting position.\033[0m ")
                         # Reset position if end of file is reached (optional)
                         self.file_pos = 0
                         continue
-                    # return Data("")  # Return empty Data at EOF
         except FileNotFoundError:
             self.logger.error(f"File not found: {self.data_path}")
         except Exception as e:
             self.logger.error(f"Error reading file '{self.data_path}': {e}")
-        return Data("")

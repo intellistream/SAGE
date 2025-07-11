@@ -1,5 +1,5 @@
 import pytest
-from sage_core.api.tuple import Data
+
 from sage_common_funs.rag.generator import OpenAIGenerator,OpenAIGeneratorWithHistory
 from dotenv import load_dotenv
 import os
@@ -20,16 +20,14 @@ def config_openai():
 def test_openai_generator(config_openai):
     gen = OpenAIGenerator(config_openai)
     query = "What is the capital of France?"
-    input_data = Data([query, [
+    input_data = [query, [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "What is the capital of France?"}
-    ]])
+    ]]
     result = gen.execute(input_data)
+    assert result[0] == "What is the capital of France?"
 
-    assert isinstance(result, Data)
-    assert result.data[0] == "What is the capital of France?"
-
-    assert "Paris" in result.data[1]
+    assert "Paris" in result[1]
 
 
 
@@ -38,16 +36,16 @@ def test_openai_generator_history_state(config_openai):
 
     # 第一次用户提问
     query1 = "What is the capital of France?"
-    input_data1 = Data([query1, [
+    input_data1 = [query1, [
         {"role": "user", "content": query1}
-    ]])
+    ]]
     gen.execute(input_data1)
     time.sleep(5)
     # 第二次用户提问
     query2 = "Which river flows through it?"
-    input_data2 = Data([query2, [
+    input_data2 = [query2, [
         {"role": "user", "content": query2}
-    ]])
+    ]]
     gen.execute(input_data2)
 
     # 检查状态中的历史是否更新正确
