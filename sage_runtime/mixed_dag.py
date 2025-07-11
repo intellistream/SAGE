@@ -41,7 +41,7 @@ class MixedDAG():
             # port=self.tcp_port,
             message_handler=self._handle_tcp_message
         )
-        # self.tcp_server.start()
+        self.tcp_server.start()
 
         self._compile_graph(graph, env)
         # 启动 TCP 服务器

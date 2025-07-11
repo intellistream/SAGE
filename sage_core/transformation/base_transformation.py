@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
 from enum import Enum
+from abc import ABC, abstractmethod
 # from sage_core.api.env import BaseEnvironment
 from sage_core.operator.map_operator import MapOperator
 from sage_core.operator.flatmap_operator import FlatMapOperator
@@ -14,52 +15,33 @@ from sage_runtime.operator.factory import OperatorFactory
 from sage_runtime.function.factory import FunctionFactory
 from sage_runtime.dagnode.factory import DAGNodeFactory
 from ray.actor import ActorHandle
+from sage_core.transformation.source_transformation import SourceTransformation
 if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
     from sage_core.api.base_function import BaseFunction
     from sage_core.api.env import BaseEnvironment
 
 
-class TransformationType(Enum):
-    MAP = "map"
-    FILTER = "filter"
-    FLATMAP = "flatmap"
-    SINK = "sink"
-    SOURCE = "source"
-
-# TODO: 提供更多的transformation继承类，改善构造函数
-# Issue URL: https://github.com/intellistream/SAGE/issues/147
-
-class Transformation:
-    TO_OPERATOR = {
-        TransformationType.MAP: MapOperator,
-        TransformationType.FILTER: FilterOperator,
-        TransformationType.FLATMAP: FlatMapOperator,
-        TransformationType.SINK: SinkOperator,
-        TransformationType.SOURCE: SourceOperator,
-    }
+class BaseTransformation:
     def __init__(
         self,
         env:'BaseEnvironment',
-        type: TransformationType,
         function: Type['BaseFunction'],
         *args,
         name:str = None,
         parallelism: int = 1,
-        platform:PlatformType = PlatformType.LOCAL,
-        delay: Optional[float] = 1,
         **kwargs
     ):
-        self.remote = (env.platform == PlatformType.REMOTE) or False
+        self.operator_class:Type[BaseOperator]  # 由子类设置
+
+        self.remote = (env.platform == PlatformType.REMOTE)
         self.env = env
-        self.type = type
-        self.delay = delay
         self.function_class = function
         self.basename = get_name(name) if name else get_name(self.function_class.__name__)
             
 
         self.logger = CustomLogger(
-            filename=f"Transformation_{self.basename}",
+            filename=f"BaseTransformation_{self.basename}",
             env_name = env.name,
             console_output=False,
             file_output=True
@@ -73,7 +55,7 @@ class Transformation:
             function_kwargs=kwargs
         )
 
-        self.logger.debug(f"Creating Transformation of type {type} with rag {self.function_class.__name__}")
+        self.logger.debug(f"Creating BaseTransformation of type {type} with rag {self.function_class.__name__}")
 
         # 创建OperatorFactory来处理operator的创建
         self.operator_class = self.TO_OPERATOR.get(type, None)
@@ -81,7 +63,7 @@ class Transformation:
         self.operator_factory = OperatorFactory(
             operator_class=self.operator_class,
             function_factory=self.function_factory,  # 传递函数工厂而不是具体参数
-            is_spout = (self.type == TransformationType.SOURCE),
+            is_spout = self.is_spout,
             basename=self.basename,
             env_name = env.name,
             remote = self.remote
@@ -91,8 +73,8 @@ class Transformation:
 
 
 
-        self.upstream:Transformation = None
-        self.downstreams:List[Tuple[Transformation, str]] = []
+        self.upstream:BaseTransformation = None
+        self.downstreams:List[Tuple[BaseTransformation, str]] = []
         
 
 
@@ -100,11 +82,23 @@ class Transformation:
         # 生成的平行节点名字：f"{transformation.function_class.__name__}_{i}"
         self.function_args = args
         self.kwargs = kwargs
+    
+    @property
+    def delay(self) -> float:
+        return 0.1  # 固定的内部事件监听循环延迟
+    
+    @property
+    def is_spout(self) -> bool:
+        return 0  # 固定的内部事件监听循环延迟
+    
+    @property
+    @abstractmethod
+    def operator_class(self) -> Type['BaseOperator']:
+        """获取对应的操作符类"""
+        pass
 
-
-        
     # 双向连接
-    def add_upstream(self,upstream_trans: 'Transformation') -> None:
+    def add_upstream(self,upstream_trans: 'BaseTransformation') -> None:
         self.upstream = upstream_trans
         upstream_trans.downstreams.append(self)
 
@@ -118,6 +112,6 @@ class Transformation:
 
     def __repr__(self) -> str:
         cls_name = self.function_class.__name__
-        return f"<Transformation {cls_name} at {hex(id(self))}>"
+        return f"<{self.__class__.__name__} {cls_name} at {hex(id(self))}>"
 
 
