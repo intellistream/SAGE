@@ -25,8 +25,11 @@ def get_manager():
 def get_memory(env:'BaseEnvironment', config, remote:bool = False):
     
     # config 示例，可注释
+    collection_name = "vdb_test"
+    if config is not None :
+        collection_name = config.get("collection_name", "vdb_test")
     config = {
-        "collection_name": "vdb_test",
+        "collection_name": collection_name ,
         "backend_type": "VDB",
         "embedding_model_name": "mockembedder",
         "dim": 128,

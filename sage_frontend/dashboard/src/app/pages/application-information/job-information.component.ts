@@ -1,5 +1,7 @@
-import {Component, ElementRef, OnInit, ViewChild} from '@angular/core';
-
+import {Component, ElementRef, OnInit, ViewChild, OnDestroy} from '@angular/core';
+import { HttpClient, HttpParams} from '@angular/common/http';
+import { timer, Subscription } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import {JobInformationService} from "./job-information.service";
 import {Job} from "../../model/Job";
 import {ActivatedRoute} from "@angular/router";
@@ -16,15 +18,26 @@ import {FormControl, FormGroup, NonNullableFormBuilder, Validators, FormArray, V
 import {NzMessageService} from "ng-zorro-antd/message";
 import { v4 } from 'uuid';
 
+interface QAItem {
+  question: string;
+  answer: string;
+}
+interface OffsetResponse { offset: number; lines: string[]; }
 @Component({
   selector: 'app-application-information',
   templateUrl: './job-information.component.html',
   styleUrls: ['./job-information.component.less']
 })
-export class JobInformationComponent implements OnInit {
+export class JobInformationComponent implements OnInit, OnDestroy {
   @ViewChild('tpgContainer') private tpgContainer!: ElementRef; // tpg container
   @ViewChild(NzGraphZoomDirective, {static: true}) zoomController!: NzGraphZoomDirective;
 
+  qas: QAItem[] = [];
+  jobId: string = '';
+  private lastOffset = 0;
+  private pollSub!: Subscription;
+  logs: string[] = [];
+  private logSub: Subscription;
   job: Job; // job entity
   statisticBatch: Batch; // statistic batch entity
   tpgBatch: Batch | null = null; // TPG batch entity
@@ -103,7 +116,9 @@ export class JobInformationComponent implements OnInit {
   constructor(private route: ActivatedRoute,
               private jobInformationService: JobInformationService,
               private fb: NonNullableFormBuilder,
+              private http: HttpClient,
               private message: NzMessageService) {
+
     this.batchForm = this.fb.group({
       batch: ['', [Validators.required]],
       operator: ['', [Validators.required]]
@@ -117,10 +132,66 @@ export class JobInformationComponent implements OnInit {
     this.configForm = this.fb.group({});
   }
 
+   ngOnDestroy() {
+    if (this.logSub) this.pollSub.unsubscribe();
+  }
+
+private startQAPolling() {
+    // 这里再加一层 guard 防万一
+    if (!this.jobId) {
+      console.warn('跳过轮询：jobId 为空');
+      return;
+    }
+    console.log('▶ startQAPolling, jobId=', this.jobId);
+
+    this.pollSub = timer(0, 1000)
+      .pipe(
+        switchMap(() => {
+          const params = new HttpParams().set('offset', this.lastOffset.toString());
+          const url = `http://localhost:8080/api/signal/sink/${this.jobId}`;
+          console.log(`  → GET ${url}?offset=${this.lastOffset}`);
+          return this.http.get<OffsetResponse>(url, { params });
+        })
+      )
+      .subscribe(
+        resp => {
+          console.log('  ← resp', resp);
+          this.lastOffset = resp.offset;
+          let pendingQ: string | null = null;
+          for (const l of resp.lines) {
+            if (l.startsWith('[Q]')) {
+              pendingQ = l.replace(/^\[Q\]\s*/, '');
+            } else if (l.startsWith('[A]') && pendingQ) {
+              this.qas.push({
+                question: pendingQ,
+                answer: l.replace(/^\[A\]\s*/, '')
+              });
+              pendingQ = null;
+            }
+          }
+        },
+        err => console.error('轮询出错', err)
+      );
+  }
+
+
+
+  private autoScroll(): void {
+    const el = document.querySelector('.console-container');
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }
+
+
+
   ngOnInit(): void {
+
 
     this.route.params.subscribe(params => {
       const jobId = params['id'];
+      this.jobId = jobId;
+
       this.jobInformationService.getJobStatus( jobId).subscribe(status => {
         this.use_ray = status.use_ray;
       });
@@ -147,26 +218,7 @@ export class JobInformationComponent implements OnInit {
             }
           }
         }
-        // for (let i = 0; i < this.job.operators.length; i++) {
-        //   const op = this.job.operators[i];
-        //   console.log(op.downstream)
-        //   this.operatorLatestBatchNum["sl"] = 1;
-        //   this.operatorAccumulativeLatency["sl"] = 0;
-        //   this.operatorAccumulativeThroughput["sl"] = 0;
 
-        //   this.operatorGraphData.nodes.push({
-        //     id: op.id,
-        //     label: op.name,
-        //     instance: op.numOfInstances
-        //   });
-
-        //   // 建图：根据下游信息建立有向边
-        //   if (op.downstream && op.downstream.length > 0) {
-        //     for (let j = 0; j < op.downstream.length; ++j) {
-        //       this.operatorGraphData.edges.push({ v: op.id, w: op.downstream[j] });
-        //     }
-        //   }
-        // }
         this.drawOperatorGraph();
         this.getHistoricalData();
 
@@ -176,6 +228,7 @@ export class JobInformationComponent implements OnInit {
         this.loadConfig();
       });
     });
+ this.startQAPolling();
   }
 
   getHistoricalData() {

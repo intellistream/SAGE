@@ -15,7 +15,9 @@ class TerminalSink(BaseFunction):
     def execute(self, data:Data[Tuple[str,str]]):
         question,answer=data.data
 
-        print(f"[{self.__class__.__name__}]: \033[96m[Q] Question :{question}\033[0m")  
+        self.logger.info(f"Executing {self.__class__.__name__} [Q] Question :{question}")
+        self.logger.info(f"Executing {self.__class__.__name__} [A] Answer :{answer}")
+        print(f"[{self.__class__.__name__}]: \033[96m[Q] Question :{question}\033[0m")
 
         print(f"[{self.__class__.__name__}]: \033[92m[A] Answer :{answer}\033[0m")
 
