@@ -26,6 +26,20 @@ def pipeline_run():
     env.run_streaming()  # 启动管道
     time.sleep(5)
     env.stop()  # 停止管道
+    time.sleep(2)
+    env2 = RemoteEnvironment(name="example_pipeline2")
+    env2.set_memory(config={"collection_name": "example_collection2"})
+    # 构建数据处理流程
+    query_stream2 = env2.from_source(FileSource, config["source"])
+    query_and_chunks_stream2 = query_stream2.map(DenseRetriever, config["retriever"])
+    prompt_stream2 = query_and_chunks_stream2.map(QAPromptor, config["promptor"])
+    response_stream2 = prompt_stream2.map(OpenAIGenerator, config["generator"])
+    response_stream2.sink(TerminalSink, config["sink"])
+    # 提交管道并运行
+    env2.submit()
+    env2.run_streaming()  # 启动管道
+    time.sleep(50)
+    env.stop()  # 停止管道
     time.sleep(1000)
 
 if __name__ == '__main__':

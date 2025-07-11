@@ -102,7 +102,10 @@ class MemoryManager:
         """获取已封装的集合"""
         if name in self.collections:
             return self.collections[name]
-        raise KeyError(f"Collection {name} not found")
+        else:
+            return None
+        # 没有应该抛出一次警告而非错误
+        # raise KeyError(f"Collection {name} not found")
 
     def delete_collection(self, name: str):
         """
