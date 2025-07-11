@@ -18,7 +18,7 @@ class SourceOperator(BaseOperator):
             result = self.function.execute()
             self.logger.debug(f"Source operator {self.name} executed with result: {result}")
             if result is not None:
-                self.emit(Packet(result))
+                self.emit(result)
         except Exception as e:
             self.logger.error(f"Error in {self.name}.receive_packet(): {e}", exc_info=True)
 

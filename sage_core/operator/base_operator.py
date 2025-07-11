@@ -47,6 +47,7 @@ class BaseOperator(ABC):
                 name = f"{ctx.name}_{self.__class__.__name__}",
                 session_folder=ctx.session_folder
             )
+            self.runtime_context = ctx
             self.function = self.function_factory.create_function(self.name)
 
             self._emit_context = UnifiedEmitContext(name = ctx.name, session_folder=ctx.session_folder, env_name = ctx.env_name) 
@@ -67,6 +68,8 @@ class BaseOperator(ABC):
 
 
     def emit(self, result: Any):
+        if isinstance(result, Packet) is False:
+            result = Packet(result)
         """
         Emit data to downstream node through specified channel and target.
         现在直接将Connection对象传递给EmitContext处理

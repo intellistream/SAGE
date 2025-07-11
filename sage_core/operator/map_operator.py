@@ -29,6 +29,6 @@ class MapOperator(BaseOperator):
                 result = self.function.execute(packet.payload)
                 self.logger.debug(f"Operator {self.name} processed payload with result: {result}")
             if result is not None:
-                self.emit(Packet(result))
+                self.emit(result)
         except Exception as e:
             self.logger.error(f"Error in {self.name}.receive_packet(): {e}", exc_info=True)

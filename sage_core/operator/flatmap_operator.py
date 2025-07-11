@@ -2,6 +2,7 @@ from typing import Any, Iterable, Optional
 from sage_core.operator.base_operator import BaseOperator
 from sage_core.function.flatmap_function import FlatMapFunction
 from sage_core.function.flatmap_collector import Collector
+from sage_runtime.io.packet import Packet
 
 
 
@@ -25,8 +26,9 @@ class FlatMapOperator(BaseOperator):
             return data.value.split()
     """
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        self.out:Collector
+        super().__init__(*args, **kwargs)
 
 
         # # 验证函数类型
@@ -35,41 +37,46 @@ class FlatMapOperator(BaseOperator):
         
 
 
-        self.collector = Collector(
-            operator=self,
-            session_folder=kwargs.get('session_folder'),
-            name=kwargs.get('name', 'FlatMapOperator')
-        )
-        self.function.insert_collector(self.collector)
-        self.logger.debug(f"FlatMapOperator '{self.name}' initialized with collector")
 
-    def receive_packet(self, data):
+
+    def runtime_init(self, ctx):
+        super().runtime_init(ctx)
+        self.out = Collector(
+            operator=self,
+            session_folder=ctx.session_folder,
+            name=self.name
+        )
+        self.function.insert_collector(self.out)
+
+
+
+    def receive_packet(self, data:Packet):
         """
         处理输入数据，支持两种模式：
         1. Function内部调用out.collect()
         2. Function返回可迭代对象
         """
-        self.logger.debug(f"FlatMapOperator '{self.name}' processing data on tag '{tag}': {data}")
+        self.logger.debug(f"FlatMapOperator '{self.name}' processing data : {data}")
         
         try:
             # 清空收集器中的数据（如果有的话）
             self.out.clear()
             
-            result = self.function.execute(data)
+            result = self.function.execute(data.payload)
             
             # 处理function的返回值
             if result is not None:
                 self._emit_iterable(result)
             
             # 处理通过collector收集的数据
-            if self.collector:
-                collected_data = self.collector.get_collected_data()
+            if self.out:
+                collected_data = self.out.get_collected_data()
                 if collected_data:
-                    self.logger.debug(f"FlatMapOperator '{self.name}' collected {len(collected_data)} items via collector")
-                    for item_data, item_tag in collected_data:
-                        self.emit(item_data, item_tag)
+                    self.logger.debug(f"FlatMapOperator '{self.name}' collected {len(collected_data)} items via out")
+                    for item_data in collected_data:
+                        self.emit(item_data)
                     # 清空collector
-                    self.collector.clear()
+                    self.out.clear()
             
             self.logger.debug(f"FlatMapOperator '{self.name}' finished processing")
             
@@ -77,7 +84,7 @@ class FlatMapOperator(BaseOperator):
             self.logger.error(f"Error in FlatMapOperator '{self.name}'.receive_packet(): {e}", exc_info=True)
             raise
 
-    def _emit_iterable(self, result: Any, tag: Optional[str] = None):
+    def _emit_iterable(self, result: Any):
         """
         将可迭代对象展开并发送给下游
         
@@ -90,12 +97,12 @@ class FlatMapOperator(BaseOperator):
             if hasattr(result, '__iter__') and not isinstance(result, (str, bytes)):
                 count = 0
                 for item in result:
-                    self.emit(item, tag)
+                    self.emit(item)
                     count += 1
                 self.logger.debug(f"FlatMapOperator '{self.name}' emitted {count} items from iterable")
             else:
                 # 如果不是可迭代对象，直接发送
-                self.emit(result, tag)
+                self.emit(result)
                 self.logger.debug(f"FlatMapOperator '{self.name}' emitted single item: {result}")
                 
         except Exception as e:
@@ -109,16 +116,16 @@ class FlatMapOperator(BaseOperator):
         Returns:
             dict: 统计信息，如果没有collector则返回空字典
         """
-        if self.collector:
-            return self.collector.get_statistics()
+        if self.out:
+            return self.out.get_statistics()
         return {}
 
     def debug_print_collector_info(self):
         """
         打印collector的调试信息
         """
-        if self.collector:
+        if self.out:
             print(f"\n🔍 FlatMapOperator '{self.name}' Collector Info:")
-            self.collector.debug_print_collected_data()
+            self.out.debug_print_collected_data()
         else:
-            print(f"\n🔍 FlatMapOperator '{self.name}' has no collector")
+            print(f"\n🔍 FlatMapOperator '{self.name}' has no out")

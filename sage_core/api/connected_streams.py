@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, List, Tuple, TypeVar, Generic, get_args, get_origin
 from sage_core.transformation.base_transformation import BaseTransformation
+from sage_core.transformation.map_transformation import MapTransformation
+from sage_core.transformation.sink_transformation import SinkTransformation
 from sage_core.function.base_function import BaseFunction
 if TYPE_CHECKING:
     from .datastream import DataStream
@@ -31,12 +33,27 @@ class ConnectedStreams:
         return self._environment._append(tr)
 
     def map(self, function: Union[BaseFunction, Type[BaseFunction]], *args, **kwargs) -> 'DataStream':
-        tr = BaseTransformation(self._environment,BaseTransformationType.MAP, function, *args, **kwargs)
+        tr = MapTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
 
     def sink(self, function: Union[BaseFunction, Type[BaseFunction]], *args, **kwargs) -> 'DataStream':
-        tr = BaseTransformation(self._environment, BaseTransformationType.SINK, function, *args, **kwargs)
+        tr = SinkTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
+
+    def print(self, prefix: str = "", separator: str = " | ", colored: bool = True) -> 'DataStream':
+        """
+        便捷的打印方法 - 将连接的数据流输出到控制台
+        
+        Args:
+            prefix: 输出前缀，默认为空
+            separator: 前缀与内容之间的分隔符，默认为 " | " 
+            colored: 是否启用彩色输出，默认为True
+            
+        Returns:
+            DataStream: 返回新的数据流用于链式调用
+        """
+        from sage_common_funs.io.sink import PrintSink
+        return self.sink(PrintSink, prefix=prefix, separator=separator, colored=colored)
 
     def connect(self, other: Union['DataStream', 'ConnectedStreams']) -> 'ConnectedStreams':
         """连接更多数据流"""

@@ -8,6 +8,7 @@ from sage_core.transformation.sink_transformation import SinkTransformation
 from sage_core.transformation.source_transformation import SourceTransformation
 
 from sage_core.function.base_function import BaseFunction
+from sage_core.function.lambda_function import wrap_lambda, detect_lambda_type
 from .connected_streams import ConnectedStreams
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
@@ -36,21 +37,56 @@ class DataStream(Generic[T]):
     # ---------------------------------------------------------------------
     # 表示对于当前 DataStream 的变换操作，生成变换算子的第一个输出 Datastream
     # ---------------------------------------------------------------------
-    def map(self, function: Type[BaseFunction], *args, **kwargs) -> "DataStream":
+    def map(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> "DataStream":
+        if callable(function) and not isinstance(function, type):
+            # 这是一个 lambda 函数或普通函数
+            function = wrap_lambda(function, 'map')
         tr = MapTransformation(self._environment,function,*args,**kwargs)
         return self._apply(tr)
 
-    def filter(self, function: Type[BaseFunction],*args, **kwargs) -> "DataStream":
+    def filter(self, function: Union[Type[BaseFunction], callable],*args, **kwargs) -> "DataStream":
+        if callable(function) and not isinstance(function, type):
+            # 这是一个 lambda 函数或普通函数
+            function = wrap_lambda(function, 'filter')
         tr = FilterTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
 
-    def flatmap(self, function: Type[BaseFunction],*args, **kwargs) -> "DataStream":
+    def flatmap(self, function: Union[Type[BaseFunction], callable],*args, **kwargs) -> "DataStream":
+        if callable(function) and not isinstance(function, type):
+            # 这是一个 lambda 函数或普通函数
+            function = wrap_lambda(function, 'flatmap')
         tr = FlatMapTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
     
-    def sink(self, function: Union[BaseFunction, Type[BaseFunction]],*args, **kwargs) -> "DataStream":
+    def sink(self, function: Union[BaseFunction, Union[Type[BaseFunction], callable]],*args, **kwargs) -> "DataStream":
+        if callable(function) and not isinstance(function, type):
+            function = wrap_lambda(function, 'sink')
         tr = SinkTransformation(self._environment,function,*args,**kwargs)
         return self._apply(tr)
+
+    def print(self, prefix: str = "", separator: str = " | ", colored: bool = True) -> "DataStream":
+        """
+        便捷的打印方法 - 将数据流输出到控制台
+        
+        这是 sink(PrintSink, ...) 的简化版本，提供快速调试和查看数据流内容的能力
+        
+        Args:
+            prefix: 输出前缀，默认为空
+            separator: 前缀与内容之间的分隔符，默认为 " | " 
+            colored: 是否启用彩色输出，默认为True
+            
+        Returns:
+            DataStream: 返回新的数据流用于链式调用
+            
+        Example:
+            ```python
+            stream.map(some_function).print("Debug").sink(FileSink, config)
+            stream.print("结果: ")  # 带前缀打印
+            stream.print()  # 简单打印
+            ```
+        """
+        from sage_common_funs.io.sink import PrintSink
+        return self.sink(PrintSink, prefix=prefix, separator=separator, colored=colored)
 
 
 
