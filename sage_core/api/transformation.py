@@ -23,6 +23,7 @@ class TransformationType(Enum):
     SOURCE = "source"
 
 # TODO: 提供更多的transformation继承类，改善构造函数
+# Issue URL: https://github.com/intellistream/SAGE/issues/147
 class Transformation:
     TO_OPERATOR = {
         TransformationType.MAP: MapOperator,

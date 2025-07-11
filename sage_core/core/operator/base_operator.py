@@ -41,6 +41,7 @@ class BaseOperator(ABC):
 
         try:
             # TODO: 做一个函数工厂来处理函数的创建
+            # Issue URL: https://github.com/intellistream/SAGE/issues/148
             # 新方式：传递function类和参数，在这里创建实例
             function_args = function_args or ()
             function_kwargs = function_kwargs or {}
