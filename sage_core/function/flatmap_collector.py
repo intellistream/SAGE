@@ -20,12 +20,12 @@ class Collector:
         ) if name else None
         
         # 数据收集缓存
-        self._collected_data: List[Tuple[Any, Optional[str]]] = []
+        self._collected_data: List[Any] = []
         self._batch_mode = True  # 默认启用批处理模式
         
         self.logger.debug(f"Collector initialized with batch_mode={self._batch_mode}") if self.logger else None
 
-    def collect(self, data: Any, tag: Optional[str] = None):
+    def collect(self, data: Any):
         """
         Collect data. Behavior depends on batch_mode setting.
         
@@ -35,20 +35,20 @@ class Collector:
         """
         if self._batch_mode:
             # 批处理模式：先收集，后输出
-            self._collected_data.append((data, tag))
+            self._collected_data.append(data)
             if self.logger:
-                self.logger.debug(f"Data collected in batch mode: {data} (tag: {tag})")
+                self.logger.debug(f"Data collected in batch mode: {data} data")
         else:
             # 即时模式：立即输出
             if self.operator:
-                self.operator.emit(data, tag)
+                self.operator.emit(data)
                 if self.logger:
-                    self.logger.debug(f"Data emitted immediately: {data} (tag: {tag})")
+                    self.logger.debug(f"Data emitted immediately: {data} data")
             else:
                 # 没有operator，只能收集
-                self._collected_data.append((data, tag))
+                self._collected_data.append(data)
                 if self.logger:
-                    self.logger.warning(f"No operator set, data collected: {data} (tag: {tag})")
+                    self.logger.warning(f"No operator set, data collected: {data} data")
 
     def collect_multiple(self, data_list: List[Any], tag: Optional[str] = None):
         """
@@ -59,17 +59,17 @@ class Collector:
             tag: Optional output tag for all items
         """
         for data in data_list:
-            self.collect(data, tag)
+            self.collect(data)
         
         if self.logger:
             self.logger.debug(f"Collected {len(data_list)} items via collect_multiple")
 
-    def get_collected_data(self) -> List[Tuple[Any, Optional[str]]]:
+    def get_collected_data(self) -> List[Any]:
         """
         Get all collected data.
         
         Returns:
-            List[Tuple[Any, Optional[str]]]: List of (data, tag) tuples
+            List[Any]: List of data tuples
         """
         return self._collected_data.copy()
 
@@ -104,7 +104,7 @@ class Collector:
         count = 0
         for data, tag in self._collected_data:
             try:
-                self.operator.emit(data, tag)
+                self.operator.emitdata
                 count += 1
             except Exception as e:
                 if self.logger:
@@ -165,23 +165,3 @@ class Collector:
             "has_operator": self.operator is not None,
             "tag_distribution": tag_counts
         }
-
-    def debug_print_collected_data(self):
-        """
-        Print debug information about collected data.
-        """
-        print(f"\n{'='*60}")
-        print(f"📊 Collector Debug Information")
-        print(f"{'='*60}")
-        print(f"Batch Mode: {self._batch_mode}")
-        print(f"Has Operator: {self.operator is not None}")
-        print(f"Total Collected: {len(self._collected_data)}")
-        
-        if self._collected_data:
-            print(f"\n📋 Collected Data:")
-            for i, (data, tag) in enumerate(self._collected_data):
-                print(f"  {i+1}. Data: {data}, Tag: {tag}")
-        else:
-            print("\n📋 No data collected")
-        
-        print(f"{'='*60}\n")

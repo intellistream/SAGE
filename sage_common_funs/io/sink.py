@@ -1,7 +1,6 @@
-
 from sage_core.function.sink_function import SinkFunction
 from sage_utils.custom_logger import CustomLogger
-from typing import Tuple, List, Union, Type
+from typing import Tuple, List, Union, Type, Any
 import os
 
 
@@ -90,3 +89,78 @@ class MemWriteSink(SinkFunction):
         else:
             # 其他类型转换为字符串
             return [str(input_data)]
+
+class PrintSink(SinkFunction):
+    """
+    简洁的打印汇聚函数 - 提供便捷的datastream.print()支持
+    
+    支持多种数据格式的智能打印，自动检测数据类型并格式化输出
+    """
+    
+    def __init__(self, prefix: str = "", separator: str = " | ", colored: bool = True, **kwargs):
+        super().__init__(**kwargs)
+        self.prefix = prefix
+        self.separator = separator
+        self.colored = colored
+        
+    def execute(self, data: Any) -> None:
+        """
+        智能打印数据，支持多种数据格式
+        
+        Args:
+            data: 任意类型的输入数据
+        """
+        formatted_output = self._format_data(data)
+        
+        if self.prefix:
+            output = f"{self.prefix}{self.separator}{formatted_output}"
+        else:
+            output = formatted_output
+            
+        print(output)
+        
+        # 记录日志
+        self.logger.info(f"PrintSink output: {formatted_output}")
+    
+    def _format_data(self, data: Any) -> str:
+        """格式化数据为可读字符串"""
+        
+        # 处理问答对 (question, answer)
+        if isinstance(data, tuple) and len(data) == 2:
+            if all(isinstance(item, str) for item in data):
+                question, answer = data
+                if self.colored:
+                    return f"\033[96m[Q] {question}\033[0m\n\033[92m[A] {answer}\033[0m"
+                else:
+                    return f"[Q] {question}\n[A] {answer}"
+        
+        # 处理检索结果 (question, chunks)
+        if isinstance(data, tuple) and len(data) == 2:
+            question, chunks = data
+            if isinstance(question, str) and isinstance(chunks, list):
+                if self.colored:
+                    chunks_str = "\n".join([f"  - {chunk}" for chunk in chunks])
+                    return f"\033[96m[Q] {question}\033[0m\n\033[93m[Chunks]\033[0m\n{chunks_str}"
+                else:
+                    chunks_str = "\n".join([f"  - {chunk}" for chunk in chunks])
+                    return f"[Q] {question}\n[Chunks]\n{chunks_str}"
+        
+        # 处理字符串列表
+        if isinstance(data, list):
+            if all(isinstance(item, str) for item in data):
+                return "\n".join([f"  - {item}" for item in data])
+            else:
+                return "\n".join([f"  - {str(item)}" for item in data])
+        
+        # 处理字典
+        if isinstance(data, dict):
+            items = []
+            for key, value in data.items():
+                if self.colored:
+                    items.append(f"\033[94m{key}\033[0m: {value}")
+                else:
+                    items.append(f"{key}: {value}")
+            return "\n".join(items)
+        
+        # 处理其他类型，直接转换为字符串
+        return str(data)

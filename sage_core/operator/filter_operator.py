@@ -26,8 +26,8 @@ class FilterOperator(BaseOperator):
             return data.user_id in ['user1', 'user2']
     """
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         
         # # 验证函数类型
         # if not isinstance(self.function, FilterFunction):
@@ -38,7 +38,6 @@ class FilterOperator(BaseOperator):
         self._passed_count = 0
         self._filtered_count = 0
         
-        self.logger.debug(f"FilterOperator '{self.name}' initialized")
 
     def receive_packet(self, packet:Packet):
         """
