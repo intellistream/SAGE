@@ -161,10 +161,7 @@ class Compiler:
             
             # 显示function信息
             sample_transformation = nodes[0].transformation
-            if sample_transformation.is_instance:
-                function_info = f"Instance of {sample_transformation.function_class.__name__}"
-            else:
-                function_info = f"Class {sample_transformation.function_class.__name__} (not instantiated)"
+            function_info = f"Class {sample_transformation.function_class.__name__} (not instantiated)"
             lines.append(f"   Function: {function_info}")
             
             # 显示每个并行节点的详细信息

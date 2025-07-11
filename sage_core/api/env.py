@@ -180,12 +180,7 @@ class BaseEnvironment:
                 lines.append(f"         Function: {transformation.function_class.__name__}")
                 lines.append(f"         Parallelism: {transformation.parallelism}")
                 lines.append(f"         Platform: {transformation.platform.value if hasattr(transformation, 'platform') else 'N/A'}")
-                
-                # 显示是否已实例化
-                if transformation.is_instance:
-                    lines.append(f"         Instance: ✓ (pre-instantiated)")
-                else:
-                    lines.append(f"         Instance: ✗ (will instantiate at runtime)")
+            
                 
                 # 显示函数参数
                 if transformation.function_args:
