@@ -17,17 +17,17 @@ class OperatorFactory:
                  function_factory: 'FunctionFactory',
                  is_spout:bool = False, 
                  basename: str = None,
-                 env_name:str = None):
+                 env_name:str = None,
+                 remote:bool = False):
         self.is_spout = is_spout
         self.operator_class = operator_class
         self.function_factory = function_factory
         self.env_name = env_name
         self.basename = get_name(basename) or get_name(self.function_factory.function_class.__name__)
+        self.remote = remote
 
     def create_operator(self, 
-                       session_folder: Optional[str] = None, 
                        name: Optional[str] = None,
-                       remote: bool = False,
                        **additional_kwargs) -> 'OperatorWrapper':
         """
         创建operator实例
@@ -41,6 +41,7 @@ class OperatorFactory:
             BaseOperator: 创建的operator实例
         """
         name = name or self.basename
+        session_folder = CustomLogger.get_session_folder()
         # 创建logger用于调试
         logger = CustomLogger(
             filename=f"OperatorFactory_{name}",
@@ -54,13 +55,13 @@ class OperatorFactory:
         
         try:
             merged_operator_kwargs = {
-                'session_folder': session_folder or CustomLogger.get_session_folder(),
+                'session_folder': session_folder,
                 'name': name,
                 'env_name': self.env_name,  # 添加env_name到operator_kwargs
                 **additional_kwargs
             }
             
-            if remote:
+            if self.remote:
                 Operator_class = ray.remote(self.operator_class)
                 operator_instance = Operator_class.remote(
                     self.function_factory,

@@ -5,18 +5,22 @@ from sage_core.api.transformation import Transformation
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.name_server import get_name
 class GraphNode:
-    def __init__(self, name: str,env:BaseEnvironment, transformation: Transformation, parallel_index: int):
+    def __init__(self, name: str, transformation: Transformation, parallel_index: int):
         self.name: str = name
         self.transformation: Transformation = transformation
-        self.env: BaseEnvironment = env  # 所属的环境
         self.parallel_index: int = parallel_index  # 在该transformation中的并行索引
         self.parallelism: int = transformation.parallelism
         # 输入输出channels：每个channel是一个边的列表
 
         self.input_channels:List[GraphEdge] = []
-
         self.output_channels:List[List[GraphEdge]] = []
-
+    def create_dag_node(self, memory_collection, remote: bool = False):
+        """使用工厂创建 DAG 节点实例"""
+        return self.transformation.dag_node_factory.create_node(
+            graph_node=self,
+            memory_collection=memory_collection,
+            remote=remote
+        )
 
 class GraphEdge:
     def __init__(self,name:str,  output_node: GraphNode,  input_node:GraphNode = None):
@@ -63,7 +67,7 @@ class Compiler:
                 try:
                     node_name = get_name(f"{transformation.basename}_{i}")
                     node_names.append(node_name)
-                    self.nodes[node_name] = GraphNode(node_name, env,  transformation, i)
+                    self.nodes[node_name] = GraphNode(node_name,   transformation, i)
                     self.logger.debug(f"Created node: {node_name} (parallel index: {i})")
                 except Exception as e:
                     self.logger.error(f"Error creating node {node_name}: {e}")

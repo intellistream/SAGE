@@ -8,7 +8,7 @@ from sage_runtime.io.packet import Packet
 if TYPE_CHECKING:
     from sage_core.api.base_function import BaseFunction
     from sage_runtime.io.connection import Connection
-    from sage_runtime.operator.runtime_context import RuntimeContext
+    from sage_runtime.runtime_context import RuntimeContext
     from sage_runtime.function.factory import FunctionFactory
 
 
@@ -39,7 +39,7 @@ class BaseOperator(ABC):
         self.name = name
 
         try:
-            self.function = function_factory.create_function(name = name, env_name = env_name, session_folder = session_folder)
+            self.function = function_factory.create_function(name = name)
             self.logger.debug(f"Created function instance with {function_factory}")
         except Exception as e:
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
@@ -51,36 +51,6 @@ class BaseOperator(ABC):
         self.downstream_groups:Dict[int, Dict[int, 'Connection']] = {}
         self.downstream_group_roundrobin: Dict[int, int] = {}
 
-
-        self.runtime_context = None
-
-    
-
-    def insert_emit_context(self, emit_context):
-        """
-        Inject the emit context into the operator.
-        This is typically called by the DAG node to set up the context.
-        
-        Args:
-            emit_context: The emit context to be injected
-        """
-        self._emit_context = emit_context
-        self.logger.debug(f"Emit context injected for operator {self.name}")
-
-    def insert_runtime_context(self, runtime_context  = None, env_name:str = None):
-        self.runtime_context:'RuntimeContext' = runtime_context
-        self.runtime_context.logger =CustomLogger(
-            filename=f"Node_{self.runtime_context.name}",
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output = "WARNING",
-            session_folder=self.runtime_context.session_folder,
-            name = f"{self.runtime_context.name}_RuntimeContext",
-            env_name = env_name
-        )
-        
-
-        self.function.insert_runtime_context(runtime_context)
 
     def receive_packet(self, packet: 'Packet' = None):
         """

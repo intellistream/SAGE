@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import threading
 from typing import Any, TYPE_CHECKING, Union
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.operator.runtime_context import RuntimeContext
+from sage_runtime.runtime_context import RuntimeContext
 from ray.actor import ActorHandle
 
 if TYPE_CHECKING:
@@ -14,15 +14,21 @@ if TYPE_CHECKING:
 class BaseDAGNode(ABC):
     def __init__(
         self, 
-        graph_node: 'GraphNode',
-        transformation: 'Transformation', 
+        name:str, 
+        operator_factory: 'OperatorFactory',
+        parallel_index: int = 0,
+        parallelism: int = 1,
+        delay: float = 0.1,
         memory_collection:Union[ActorHandle, Any] = None, 
         remote:bool = False,
         env_name:str = None,
+        is_spout:bool = False
     ) -> None:
-        operator_factory: 'OperatorFactory' = transformation.operator_factory
-        self.delay = transformation.delay
-        self.name = graph_node.name
+        self.operator_factory: 'OperatorFactory' = operator_factory
+        self.delay = delay
+        self.name = name
+        self.is_spout = is_spout  # Check if this is a spout node
+
         # Create logger first
         self.logger = CustomLogger(
             filename=f"Node_{self.name}",
@@ -34,21 +40,8 @@ class BaseDAGNode(ABC):
         )
         
 
-        self.operator:BaseOperator = operator_factory.create_operator(name = self.name, remote = remote)
-        self.is_spout = operator_factory.is_spout  # Check if this is a spout node
-        if(remote and (not isinstance(memory_collection, ActorHandle))):
-            raise Exception("Memory collection must be a Ray Actor handle for remote dag node")
+        self.operator:BaseOperator = operator_factory.create_operator(name = self.name)
         self.memory_collection = memory_collection  # Optional memory collection for this node
-        self.operator.insert_runtime_context(
-            RuntimeContext(
-                self.name, 
-                self.memory_collection, 
-                parallel_index = graph_node.parallel_index, 
-                parallelism=graph_node.parallelism, 
-                session_folder=CustomLogger.get_session_folder(),
-                ),
-            env_name = env_name
-            )
         self._running = False
         # Initialize stop event
         self.stop_event = threading.Event()

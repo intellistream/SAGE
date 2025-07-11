@@ -2,7 +2,7 @@ from __future__ import annotations
 import time
 from typing import Any, Union, Tuple, TYPE_CHECKING
 from sage_runtime.io.local_message_queue import LocalMessageQueue
-from sage_runtime.executor.base_dag_node import BaseDAGNode
+from sage_runtime.dagnode.base_dag_node import BaseDAGNode
 from ray.actor import ActorHandle
 from sage_memory.memory_collection.base_collection import BaseMemoryCollection
 from sage_utils.custom_logger import CustomLogger

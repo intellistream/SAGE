@@ -3,9 +3,9 @@ from ray.actor import ActorHandle
 
 from sage_runtime.local_thread_pool import LocalThreadPool
 # from sage_runtime.runtimes.ray_runtime import RayRuntime
-from sage_runtime.executor.local_dag_node import LocalDAGNode
-from sage_runtime.executor.ray_dag_node import RayDAGNode
-from sage_runtime.executor.base_dag_node import BaseDAGNode
+from sage_runtime.dagnode.local_dag_node import LocalDAGNode
+from sage_runtime.dagnode.ray_dag_node import RayDAGNode
+from sage_runtime.dagnode.base_dag_node import BaseDAGNode
 from sage_runtime.io.local_tcp_server import LocalTcpServer
 from sage_runtime.io.connection import Connection
 from sage_utils.custom_logger import CustomLogger
@@ -58,7 +58,7 @@ class MixedDAG():
         
         # 第一步：创建所有节点实例
         for node_name, graph_node in graph.nodes.items():
-            node_instance = self.create_node_instance(graph_node, env)
+            node_instance = graph_node.create_dag_node()
             # upstream_nodes = self.compiler.get_upstream_nodes(node_name)
             self.nodes[node_name] = node_instance
             self.logger.debug(f"Added node '{node_name}' of type '{node_instance.__class__.__name__}'")
