@@ -9,6 +9,7 @@ from sage_utils.custom_logger import CustomLogger
 from sage_core.api.enum import PlatformType
 from sage_utils.name_server import get_name
 from sage_runtime.operator.factory import OperatorFactory
+from sage_runtime.function.factory import FunctionFactory
 if TYPE_CHECKING:
     from sage_core.core.operator.base_operator import BaseOperator
     from sage_core.api.base_function import BaseFunction
@@ -44,33 +45,27 @@ class Transformation:
         delay: Optional[float] = 0.1,
         **kwargs
     ):
-        #self.env = env
+        self.env = env
         self.type = type
         self.delay = delay
-        if isinstance(function, Type):
-            self.is_instance = False
-            self.function = None
-            self.function_class = function
-        else:
-            raise ValueError(
-                f"Unsupported rag type: {type(function)}"
-            )
-
-
-        if name is None:
-            self.basename = get_name(self.function_class.__name__)
-        else:
-            self.basename = get_name(name)
+        self.function_class = function
+        self.basename = get_name(name) if name else get_name(self.function_class.__name__)
+            
         # self.basename = get_name(name) or get_name(self.function_class.__name__)
         # 这个basename会沿用到生成的dagnode， operator和functions上
 
         self.logger = CustomLogger(
-            filename=get_name(f"Transformation_{self.basename}"),
+            filename=f"Transformation_{self.basename}",
             env_name = env.name,
             console_output=False,
             file_output=True
         )
-        
+        # 创建可序列化的函数工厂
+        self.function_factory = FunctionFactory(
+            function_class=self.function_class,
+            function_args=args,
+            function_kwargs=kwargs
+        )
 
         self.logger.debug(f"Creating Transformation of type {type} with rag {self.function_class.__name__}")
         # 创建OperatorFactory来处理operator的创建
@@ -78,9 +73,7 @@ class Transformation:
 
         self.operator_factory = OperatorFactory(
             operator_class=self.operator_class,
-            function_class=self.function_class,
-            function_args=args,
-            function_kwargs=kwargs,  # 将kwargs传递给function
+            function_factory=self.function_factory,  # 传递函数工厂而不是具体参数
             is_spout = (self.type == TransformationType.SOURCE),
             basename=self.basename,
             env_name = env.name,
