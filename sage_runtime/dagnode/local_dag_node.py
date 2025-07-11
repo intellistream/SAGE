@@ -8,7 +8,7 @@ from sage_memory.memory_collection.base_collection import BaseMemoryCollection
 from sage_utils.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
-    from sage_core.api.transformation import Transformation
+    from sage_core.transformation.base_transformation import BaseTransformation
     from sage_runtime.operator.factory import OperatorFactory
     from sage_core.operator.base_operator import BaseOperator
     from sage_runtime.operator.operator_wrapper import OperatorWrapper

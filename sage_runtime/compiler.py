@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from typing import Dict, List, Set
 from sage_core.api.env import BaseEnvironment
-from sage_core.api.transformation import Transformation
+from sage_core.transformation.base_transformation import BaseTransformation
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.name_server import get_name
 if TYPE_CHECKING:
@@ -14,9 +14,9 @@ if TYPE_CHECKING:
 
 
 class GraphNode:
-    def __init__(self, name: str, transformation: Transformation, parallel_index: int):
+    def __init__(self, name: str, transformation: BaseTransformation, parallel_index: int):
         self.name: str = name
-        self.transformation: Transformation = transformation
+        self.transformation: BaseTransformation = transformation
         self.parallel_index: int = parallel_index  # 在该transformation中的并行索引
         self.parallelism: int = transformation.parallelism
         self.is_spout: bool = transformation.type.value == "source"
@@ -64,7 +64,7 @@ class Compiler:
         根据transformation pipeline构建图, 支持并行度和多对多连接
         分为三步: 1) 生成并行节点 2) 生成物理边 3) 创建图结构
         """
-        transformation_to_node:Dict[Transformation, List[str]] = {}  # transformation -> list of node names
+        transformation_to_node:Dict[BaseTransformation, List[str]] = {}  # transformation -> list of node names
         
         # 第一步：为每个transformation生成并行节点名字表，同时创建节点
         self.logger.debug("Step 1: Generating parallel nodes for each transformation")

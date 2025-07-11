@@ -6,13 +6,13 @@ from enum import Enum
 import sage_memory.api
 from sage_core.api.base_function import BaseFunction
 from sage_core.api.datastream import DataStream
-from sage_core.api.transformation import TransformationType, Transformation
+from sage_core.transformation.base_transformation import BaseTransformation
+from sage_core.transformation.source_transformation import SourceTransformation
 from sage_utils.custom_logger import CustomLogger
-from sage_core.api.enum import PlatformType
 from sage_utils.name_server import get_name
 class BaseEnvironment:
 
-    def __init__(self, name: str, config: dict | None, *, platform: PlatformType = PlatformType.LOCAL):
+    def __init__(self, name: str, config: dict | None, *, platform: str = "local"):
         self.name = get_name(name)
         self.logger = CustomLogger(
             filename=f"Environment_{name}",
@@ -24,34 +24,21 @@ class BaseEnvironment:
         
 
         self.config: dict = dict(config or {})
-        self.platform:PlatformType = platform
-        # 用于收集所有 Transformation，供 Compiler 构建 DAG
-        self._pipeline: List[Transformation] = []
+        self.platform:str = platform
+        # 用于收集所有 BaseTransformation，供 Compiler 构建 DAG
+        self._pipeline: List[BaseTransformation] = []
         self.runtime_context = dict  # 需要在compiler里面实例化。
         self.memory_collection = None  # 用于存储内存集合
         self.is_running = False
 
-    def append(self, transformation: Transformation):
-        """将 Transformation 添加到管道中（Compiler 会使用）。"""
+    def _append(self, transformation: BaseTransformation):
+        """将 BaseTransformation 添加到管道中（Compiler 会使用）。"""
         self.pipeline.append(transformation)
         return DataStream(self, transformation)
 
-    def from_source(
-        self, 
-        function: Union[BaseFunction, Type[BaseFunction]], 
-        *args, 
-        platform:PlatformType = PlatformType.LOCAL,
-        **kwargs: Any) -> DataStream:
-        
-        """用户 API：声明一个数据源并返回 DataStream 起点。"""
-        transformation = Transformation(
-            self, 
-            TransformationType.SOURCE, 
-            function, 
-            *args,
-            platform = platform,  
-            **kwargs
-            )
+    def from_source(self, function: Type[BaseFunction], *args, **kwargs) -> DataStream:
+
+        transformation = SourceTransformation(self, function, *args,**kwargs)
         
         self._pipeline.append(transformation)
         return DataStream(self, transformation)
@@ -114,8 +101,8 @@ class BaseEnvironment:
         self._pipeline.clear()
 
     @property
-    def pipeline(self) -> List[Transformation]:  # noqa: D401
-        """返回 Transformation 列表（Compiler 会使用）。"""
+    def pipeline(self) -> List[BaseTransformation]:  # noqa: D401
+        """返回 BaseTransformation 列表（Compiler 会使用）。"""
         return self._pipeline
 
     def set_memory(self, config):

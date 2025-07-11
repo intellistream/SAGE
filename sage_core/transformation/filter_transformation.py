@@ -1,0 +1,33 @@
+from __future__ import annotations
+from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
+from sage_core.transformation.base_transformation import BaseTransformation
+if TYPE_CHECKING:
+    from sage_core.operator.base_operator import BaseOperator
+    from sage_core.operator.filter_operator import FilterOperator
+    from sage_core.api.base_function import BaseFunction
+    from sage_core.api.env import BaseEnvironment
+
+
+
+
+class FilterTransformation(BaseTransformation):
+    """过滤变换 - 数据过滤"""
+    
+    def __init__(
+        self,
+        env: 'BaseEnvironment',
+        function: Type['BaseFunction'],
+        *args,
+        **kwargs
+    ):
+        super().__init__(env, function, *args, **kwargs)
+
+    @property
+    def delay(self) -> float:
+        return 0.1  # 固定的内部事件监听循环延迟
+
+    def get_operator_class(self) -> Type['BaseOperator']:
+        return FilterOperator
+
+    def is_spout(self) -> bool:
+        return False
