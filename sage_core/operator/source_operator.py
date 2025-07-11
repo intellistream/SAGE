@@ -3,39 +3,21 @@ from sage_core.api.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 from collections import deque
 from typing import Union, Dict, Deque, Tuple, Any
-
-
-class OutputQueueCache:
-    def __init__(self, logger: CustomLogger):
-        self.queue: Deque[Tuple[int, Any]] = deque()  # 存 (seq, data)
-        self.seq: int = 0
-        self.acked: int = -1
-
-    def add(self, data):
-        self.logger.debug(f"OutputQueueCache:  added data with seq {self.seq}")
-        self.queue.append((self.seq, data))
-        self.seq += 1
-
-    def ack(self, ack_seq: int):
-        """
-        Remove items from the front of the queue where seq <= ack_seq
-        """
-        while self.queue and self.queue[0][0] <= ack_seq:
-            self.queue.popleft()
-        self.logger.debug(f"OutputQueueCache: acknowledged seq {ack_seq} ")
-        self.acked = max(self.acked, ack_seq)
-        self.logger.debug(f"OutputQueueCache: current acked seq is {self.acked}")
-
-    def get_unacked(self) -> list[Tuple[int, Any]]:
-        return list(self.queue)
-
-
+from sage_runtime.io.packet import Packet
 
 class SourceOperator(BaseOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.output_cache:OutputQueueCache = OutputQueueCache(self.logger)
 
+    def receive_packet(self, *args, **kwargs):
+        self.logger.debug(f"Triggering source operator {self.name}")
+        try:
+            result = self.function.execute()
+            self.logger.debug(f"Source operator {self.name} executed with result: {result}")
+            if result is not None:
+                self.emit(Packet(result))
+        except Exception as e:
+            self.logger.error(f"Error in {self.name}.receive_packet(): {e}", exc_info=True)
 
     # TODO: 在operator中加入响应控制信号的方法
     # def process_control(self, message:Message):

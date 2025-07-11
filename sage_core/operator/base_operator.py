@@ -57,22 +57,13 @@ class BaseOperator(ABC):
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
 
 
+    @abstractmethod
     def receive_packet(self, packet: 'Packet' = None):
         """
         Smart dispatch for multi-input operator.
+        This method should be implemented by subclasses to handle incoming packets.
         """
-        self.logger.debug(f"Received packet in operator {self.name}")
-        try:
-            if packet is None or packet.payload is None:
-                result = self.function.execute()
-                self.logger.debug(f"Operator {self.name} received empty packet, executed with result: {result}")
-            else:
-                result = self.function.execute(packet.payload)
-                self.logger.debug(f"Operator {self.name} processed payload with result: {result}")
-            if result is not None:
-                self.emit(Packet(result))
-        except Exception as e:
-            self.logger.error(f"Error in {self.name}.receive_packet(): {e}", exc_info=True)
+        pass
 
 
     def emit(self, result: Any):
