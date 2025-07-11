@@ -7,14 +7,15 @@ from typing import Tuple, Any
 from dotenv import load_dotenv
 
 # === Sage 工具包导入 ===
+from sage_core.function.base_function import BaseFunction
+from sage_core.function.filter_function import FilterFunction
+from sage_core.function.flatmap_function import FlatMapFunction
+from sage_core.operator.map_operator import MapFunction
 from sage_utils.config_loader import load_config
 from sage_utils.embedding_methods.embedding_api import apply_embedding_model
 from sage_memory.memory_manager import MemoryManager
 
 from sage_core.api.env import LocalEnvironment
-from sage_core.function.base_function import BaseFunction
-from sage_core.api.function_api.filter_function import FilterFunction
-from sage_core.api.function_api.flatmap_function import FlatMapFunction
 
 
 from sage_common_funs.io.source import FileSource
