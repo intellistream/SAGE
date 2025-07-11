@@ -1,6 +1,11 @@
 import json
 import logging
 import os
+from functools import lru_cache
+from pathlib import Path
+from typing import List
+import re
+
 # from aiocache import cached
 
 from regex import F
@@ -10,15 +15,14 @@ import yaml
 from fastapi import (
     HTTPException,
     Request,
-    APIRouter,
+    APIRouter, Body, Query,
 )
 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, FilePath, validator, Field
 from starlette.background import BackgroundTask
-
-
+from starlette.responses import PlainTextResponse
 
 router = APIRouter()
 
@@ -332,3 +336,112 @@ def build_operators_config_from_job(job_info):
 
     logging.info(f"构建的operators配置: {operators_config}")
     return operators_config
+
+
+# 存放文件的根目录（可按需修改）
+DATA_DIR = Path("./sink_data")
+DATA_DIR.mkdir(exist_ok=True)
+LOGS_ROOT = Path("./logs")
+_MAX_LINES = 10000
+ANSI_CSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+@lru_cache()
+def get_nodes_file(jobId:str):
+    jobInfoPath = Path("data/jobinfo") / f"{jobId}.json"
+    with open(jobInfoPath, "r", encoding="utf-8") as f:
+        job_info = json.load(f)
+
+    nodes_file_list=  []
+    for operator in job_info.get("operators", []):
+        name = operator.get("name", "")
+        nodes_file_list.append(f"Fuction_{name}_0.log")
+    return nodes_file_list
+
+
+def get_latest_logs_dir() -> Path:
+    """
+    扫描 ./logs 下的所有子文件夹，返回最新创建的那个。
+    如果 logs 目录不存在或没有子文件夹，会抛出异常。
+    """
+    if not LOGS_ROOT.exists():
+        raise HTTPException(status_code=500, detail="Logs root directory not found")
+    # 只保留一级目录
+    subdirs = [p for p in LOGS_ROOT.iterdir() if p.is_dir()]
+    if not subdirs:
+        raise HTTPException(status_code=404, detail="No subdirectories under logs/")
+    # 按文件系统的 ctime（创建时间）选最大值
+    latest = max(subdirs, key=lambda p: p.stat().st_ctime)
+    return latest
+
+class OffsetResponse(BaseModel):
+    offset: int
+    lines: List[str]
+
+def _get_job_file(job_id: str) -> Path:
+    """
+    返回位于最新 logs 目录下的 job 文件路径
+    """
+    base = get_latest_logs_dir()
+    # 确保目录存在（一般不用，但以防最新目录被意外删掉）
+    base.mkdir(parents=True, exist_ok=True)
+    return base / f"env_{job_id}"
+
+@router.post("/{job_id}")
+async def sink_console(
+    job_id: str,
+    payload: str = Body(..., media_type="text/plain")
+):
+    """
+    接收作业进程推送的控制台输出（纯文本），
+    只保留以 [Q] 或 [A] 开头的行，追加到对应文件。
+    """
+    fpath = _get_job_file(job_id)
+    fpath.parent.mkdir(parents=True, exist_ok=True)
+    with fpath.open("a", encoding="utf-8") as f:
+        for raw in payload.splitlines():
+            if raw.startswith("[Q]") or raw.startswith("[A]"):
+                f.write(raw + "\n")
+    return {"status": "ok"}
+
+@router.get("/sink/{job_id}", response_model=OffsetResponse)
+async def fetch_sink_from_terminal(
+    job_id: str,
+    offset: int = Query(0, description="上次已读取到的行数")
+):
+    """
+    前端轮询时调用：
+      - offset=0 时返回全量历史
+      - offset>0 时只返回新增行
+    本版从最新的 sink 文件中提取 “[Q] Question : …” 和 “[A] Answer : …” 对。
+    """
+    # 获取最新节点文件名列表，并定位到最新 sink 文件
+    nodes_list = get_nodes_file(job_id)
+    base_dir = _get_job_file(job_id)
+    sink_file = base_dir / nodes_list[-1]
+    sink_file = sink_file.resolve()  # 处理相对路径
+    print(f"Fetching sink file for job {job_id}: {sink_file.resolve()}")
+    # if not sink_file.exists():
+    #     # 如果还没生成过 sink 文件，则返回空结果
+    #     return OffsetResponse(offset=0, lines=[])
+
+    # 读取并拆行
+    raw_lines = sink_file.read_text(encoding="utf-8").splitlines()
+
+    all_lines: List[str] = []
+    for raw in raw_lines:
+        # 去掉颜色控制码，再判断内容
+        clean = ANSI_CSI_RE.sub("", raw).strip()
+        if "Executing TerminalSink [Q] Question :" in clean:
+            # 提取冒号后面的问句
+            q_text = clean.split("Executing TerminalSink [Q] Question :", 1)[1].strip()
+            all_lines.append(f"[Q] {q_text}")
+        elif "Executing TerminalSink [A] Answer :" in clean:
+            # 提取冒号后面的答案
+            a_text = clean.split("Executing TerminalSink [A] Answer :", 1)[1].strip()
+            all_lines.append(f"[A] {a_text}")
+
+    # 根据 offset 做增量切片
+    new_lines = all_lines[offset:]
+
+    print(f"Total lines in sink file: {len(raw_lines)}")
+    print(f"Fetching {len(new_lines)} new lines for job {job_id} from offset {offset}")
+    return OffsetResponse(offset=len(all_lines), lines=new_lines)

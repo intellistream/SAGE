@@ -472,7 +472,7 @@ class CustomLogger:
         项目根目录被定义为本文件所在目录的上两级目录.
         """
         # 将项目根目录定义为当前文件的上两级目录
-        project_root = Path(__file__).resolve().parent.parent
+        project_root = Path(os.getcwd())  # 获取当前工作目录
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         # 将 base_path (默认为 "logs") 置于项目根目录下
         session_folder = project_root / base_path / timestamp
