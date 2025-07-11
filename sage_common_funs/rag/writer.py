@@ -1,6 +1,6 @@
 from typing import Union, List, Tuple, Optional, Dict
 from sage_core.api.base_function import BaseFunction
-from sage_core.api.tuple import Data
+
 
 
 class MemoryWriter(BaseFunction):
@@ -39,8 +39,8 @@ class MemoryWriter(BaseFunction):
         # state = getRuntimeContext().getState(xxx)
 
 
-    def execute(self, data: Data[Union[str, List[str], Tuple[str, str]]]) -> Data:
-        input_data = data.data
+    def execute(self, data: Union[str, List[str], Tuple[str, str]]):
+        input_data = data
 
         # 统一数据类型处理
         processed_data = []

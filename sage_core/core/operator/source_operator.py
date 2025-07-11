@@ -2,16 +2,16 @@ from sage_core.core.operator.base_operator import BaseOperator
 from sage_core.api.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 from collections import deque
-from typing import Union, Dict, Deque, Tuple
-from sage_core.api.tuple import Data
+from typing import Union, Dict, Deque, Tuple, Any
+
 
 class OutputQueueCache:
     def __init__(self, logger: CustomLogger):
-        self.queue: Deque[Tuple[int, Data]] = deque()  # 存 (seq, data)
+        self.queue: Deque[Tuple[int, Any]] = deque()  # 存 (seq, data)
         self.seq: int = 0
         self.acked: int = -1
 
-    def add(self, data: Data):
+    def add(self, data):
         self.logger.debug(f"OutputQueueCache:  added data with seq {self.seq}")
         self.queue.append((self.seq, data))
         self.seq += 1
@@ -26,7 +26,7 @@ class OutputQueueCache:
         self.acked = max(self.acked, ack_seq)
         self.logger.debug(f"OutputQueueCache: current acked seq is {self.acked}")
 
-    def get_unacked(self) -> list[Tuple[int, Data]]:
+    def get_unacked(self) -> list[Tuple[int, Any]]:
         return list(self.queue)
 
 

@@ -13,7 +13,7 @@ import json
 import re
 
 from sage_core.api.base_function import BaseFunction
-from sage_core.api.tuple import Data
+
 
 
 class Paper:
@@ -199,8 +199,8 @@ class ArxivPDFDownloader(BaseFunction):
         self.save_dir = config.get("save_dir", "arxiv_pdfs")
         os.makedirs(self.save_dir, exist_ok=True)
 
-    def execute(self, data: Data[str]) -> Data[List[str]]:
-        self.query = data.data
+    def execute(self, data: str) -> List[str]:
+        self.query = data
         base_url = 'http://export.arxiv.org/api/query?'
         encoded_query = quote(self.query)
         query = f'search_query={encoded_query}&start=0&max_results={self.max_results}&sortBy=submittedDate&sortOrder=descending'
@@ -233,7 +233,7 @@ class ArxivPDFDownloader(BaseFunction):
 
             time.sleep(1)  # 防止请求过快
 
-        return Data(pdf_paths)
+        return pdf_paths
 
 
 class ArxivPDFParser(BaseFunction):
@@ -244,9 +244,9 @@ class ArxivPDFParser(BaseFunction):
         self.output_dir = config.get("output_dir", "arxiv_structured_json")
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def execute(self, data: Data[str]) -> Data[List[str]]:
+    def execute(self, data: str) -> List[str]:
 
-        pdf_paths = data.data
+        pdf_paths = data
         output_paths = []
 
         for pdf_path in pdf_paths:
@@ -273,4 +273,4 @@ class ArxivPDFParser(BaseFunction):
                 self.logger.info(f"JSON already exists: {json_path}")
                 output_paths.append(json_path)
 
-        return Data(output_paths)
+        return output_paths

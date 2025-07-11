@@ -1,5 +1,5 @@
 from sage_core.api.base_function import BaseFunction
-from sage_core.api.tuple import Data
+
 from sage_common_funs.utils.generator_model import apply_generator_model
 from typing import Tuple,List
 import logging
@@ -35,7 +35,7 @@ class AbstractiveRecompRefiner(BaseFunction):
             seed=42  # Set a seed for reproducibility of results
         )
 
-    def execute(self, data: Data[Tuple[str, List[str]]]) -> Data[Tuple[str, List[str]]]:
+    def execute(self, data: Tuple[str, List[str]]) -> Tuple[str, List[str]]:
         """
         Executes the refining process by generating concise summaries for retrieved documents.
 
@@ -49,7 +49,7 @@ class AbstractiveRecompRefiner(BaseFunction):
         """
         try:
             # Unpack the input data into the query and document set
-            query, doc_set = data.data
+            query, doc_set = data
             emit_docs = []  # List to hold the summaries of the documents
             
             # Process each retrieved document
@@ -69,7 +69,7 @@ class AbstractiveRecompRefiner(BaseFunction):
             raise RuntimeError(f"Refining error: {str(e)}")
         
         # Return the refined results as a Data object
-        return Data((query, emit_docs[0]))
+        return (query, emit_docs[0])
 
     def _format_input(self, question, retrieval_result):
         """

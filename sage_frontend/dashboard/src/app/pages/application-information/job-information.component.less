@@ -122,7 +122,7 @@ nz-col.containerb {
   flex: 1; // 占用所有剩余空间
   width: 100%;
   border: none;
-  margin-top: 1px; 
+  margin-top: 1px;
 
 }
 
@@ -203,7 +203,7 @@ nz-alert {
   .env-var-item {
     margin-bottom: 8px;
   }
-  
+
   nz-form-item {
     margin-bottom: 16px;
   }
@@ -211,16 +211,16 @@ nz-alert {
 
 .config-editor-container {
   height: 100%;
-  
+
   .config-title {
     margin-bottom: 16px;
     color: #1890ff;
   }
-  
+
   .config-actions {
     margin-top: 16px;
     text-align: right;
-    
+
     button {
       margin-left: 8px;
     }
@@ -323,4 +323,54 @@ nz-alert {
   font-weight: 400;
   text-align: center;
   margin-top: 10px;
+}
+
+/* 新增：Console card 的外观和滚动 */
+.console-card {
+  margin-top: 16px;
+  height: 200px;              /* 高度可按需调整 */
+  .ant-card-body {
+    padding: 0;               /* 去掉默认 padding，给 console-container 自行掌控 */
+  }
+}
+
+.console-container {
+  height: 100%;
+  background: #1e1e1e;        /* 类似 VSCode 的暗色背景 */
+  color: #c5c5c5;             /* 字体颜色 */
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.4em;
+  padding: 8px;
+  overflow-y: auto;           /* 超出内容滚动 */
+}
+
+.console-line {
+  white-space: pre-wrap;      /* 保留换行和空格 */
+}
+/* 固定卡片总高度，并用 flex 布局 */
+.console-card {
+  height: 300px;               /* 整个卡片固定 300px 高，可按需调整 */
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+}
+
+/* 卡片 body 占满剩余空间，也用 flex */
+.console-card .ant-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0;                  /* 让 console-container 自己撑满 */
+}
+
+/* 真正滚动的区域 */
+.console-container {
+  flex: 1;                     /* 占满父容器剩余空间 */
+  overflow-y: auto;            /* 上下滚动 */
+  padding: 8px;
+  background: #1e1e1e;
+  color: #c5c5c5;
+  font-family: monospace;
+  font-size: 12px;
 }

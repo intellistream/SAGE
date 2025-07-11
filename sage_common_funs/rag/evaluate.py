@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from rouge import Rouge
 
 from sage_core.api.base_function import BaseFunction
-from sage_core.api.tuple import Data
+
 
 
 class F1Evaluate(BaseFunction):
@@ -34,8 +34,8 @@ class F1Evaluate(BaseFunction):
         f1 = (2 * precision * recall) / (precision + recall)
         return f1
 
-    def execute(self, data: Data[tuple[str, str]]):
-        reference, prediction = data.data
+    def execute(self, data: tuple[str, str]):
+        reference, prediction = data
         score = self._f1_score(prediction, reference)
 
         print(f"\033[93m[F1 Score] : {score:.4f}\033[0m")
@@ -60,8 +60,8 @@ class BertRecallEvaluate(BaseFunction):
         similarity = cosine_similarity(outputs_ref.numpy(), outputs_gen.numpy())
         return similarity[0][0]
 
-    def execute(self, data: Data[tuple[str, str]]):
-        reference, generated = data.data
+    def execute(self, data: tuple[str, str]):
+        reference, generated = data
         score = self.bert_recall(reference, generated)
 
         print(f"\033[95m[BERT Recall] : {score:.4f}\033[0m")
@@ -78,8 +78,8 @@ class RougeLEvaluate(BaseFunction):
         scores = self.rouge.get_scores(generated, reference)
         return scores[0]['rouge-l']['f']
 
-    def execute(self, data: Data[tuple[str, str]]):
-        reference, generated = data.data
+    def execute(self, data: tuple[str, str]):
+        reference, generated = data
         score = self.rouge_l(reference, generated)
 
         print(f"\033[94m[ROUGE-L] : {score:.4f}\033[0m")
@@ -99,8 +99,8 @@ class BRSEvaluate(BaseFunction):
             return 0
         return (2 * bert_rec * rouge_l_score) / (bert_rec + rouge_l_score)
 
-    def execute(self, data: Data[tuple[str, str]]):
-        reference, generated = data.data
+    def execute(self, data: tuple[str, str]):
+        reference, generated = data
         score = self.BRS(reference, generated)
 
         print(f"\033[92m[BRS Score] : {score:.4f}\033[0m")

@@ -1,6 +1,6 @@
 from typing import Tuple, List
 import time  # 替换 asyncio 为 time 用于同步延迟
-from sage_core.api.tuple import Data
+
 from sage_core.api.base_function import BaseFunction, MemoryFunction, StatefulFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.operator.runtime_context import RuntimeContext
@@ -28,8 +28,8 @@ class DenseRetriever(BaseFunction):
 
     
 
-    def execute(self, data: Data[AI_Template]) -> Data[AI_Template]:
-        input_template = data.data
+    def execute(self, data: AI_Template) -> AI_Template:
+        input_template = data
         raw_question:str = input_template.raw_question
         self.logger.debug(f"Starting retrieval for raw_question: {raw_question}")
         # LTM 检索
@@ -50,7 +50,7 @@ class DenseRetriever(BaseFunction):
             except Exception as e:
                 self.logger.error(f"LTM retrieval failed: {str(e)}", exc_info=True)
 
-        return Data(input_template)
+        return input_template
     
 class BM25sRetriever(BaseFunction): # 目前runtime context还只支持ltm
     def __init__(self, config, **kwargs):
@@ -60,8 +60,8 @@ class BM25sRetriever(BaseFunction): # 目前runtime context还只支持ltm
         self.bm25s_config = self.config.get("bm25s_config", {})
 
 
-    def execute(self, data: Data[AI_Template]) -> Data[AI_Template]:
-        input_template = data.data
+    def execute(self, data: AI_Template) -> AI_Template:
+        input_template = data
         raw_question: str = input_template.raw_question
         chunks = []
         self.logger.debug(f"Starting BM25s retrieval for query: {raw_question}")
@@ -82,4 +82,4 @@ class BM25sRetriever(BaseFunction): # 目前runtime context还只支持ltm
         except Exception as e:
             self.logger.error(f"BM25s retrieval failed: {str(e)}")
 
-        return Data(input_template)
+        return input_template

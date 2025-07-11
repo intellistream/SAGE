@@ -1,7 +1,7 @@
 from typing import Any, Callable, Union, Iterable, Optional
 
 from sage_core.api.function_api.flatmap_function import FlatMapFunction
-from sage_core.api.tuple import Data
+
 
 
 
@@ -15,7 +15,7 @@ class LambdaFlatMapFunction(FlatMapFunction):
         self.flat_map_func = flat_map_func
         self.logger.debug(f"LambdaFlatMapFunction initialized")
 
-    def execute(self, data: Union[Any, Data]) -> Optional[Iterable[Any]]:
+    def execute(self, raw_data) -> Optional[Iterable[Any]]:
         """
         使用Lambda表达式进行FlatMap操作
         
@@ -27,10 +27,9 @@ class LambdaFlatMapFunction(FlatMapFunction):
         """
         try:
             # 提取原始数据
-            raw_data = self._extract_data(data)
             result = self.flat_map_func(raw_data)
             self.logger.debug(f"FlatMap result: {result} for data: {raw_data}")
             return result
         except Exception as e:
-            self.logger.error(f"Error in flat_map_func for data {data}: {e}", exc_info=True)
+            self.logger.error(f"Error in flat_map_func for data {raw_data}: {e}", exc_info=True)
             return None

@@ -1,6 +1,6 @@
 from jinja2 import Template
 from sage_core.api.base_function import BaseFunction, StatefulFunction, MemoryFunction
-from sage_core.api.tuple import Data
+
 from sage_utils.custom_logger import CustomLogger
 from sage_common_funs.utils.template import AI_Template
 
@@ -48,15 +48,15 @@ class QAPromptor(BaseFunction):
         self.prompt_template = QA_prompt_template  # Load the QA prompt template
 
     # sage_lib/functions/rag/qapromptor.py
-    def execute(self, data: Data[AI_Template]) -> Data[AI_Template]:
+    def execute(self, data: AI_Template) -> AI_Template:
         """
         生成 ChatGPT 风格的 prompt（system+user 两条消息）。
 
         支持两种输入：
-        1. Data((query, external_corpus_list_or_str))
-        2. Data(query_str)
+        1. (query, external_corpus_list_or_str)
+        2. query_str)
         """
-        input_template = data.data
+        input_template = data
         try:
             # -------- 解析输入 --------
             raw_question = input_template.raw_question
@@ -84,8 +84,8 @@ class QAPromptor(BaseFunction):
             input_template.prompts.append(system_prompt)
             input_template.prompts.append(user_prompt)
             # prompt = [system_prompt, user_prompt]
-            return Data(input_template)
+            return input_template
 
         except Exception as e:
             self.logger.error(f"QAPromptor failed: {str(e)}", exc_info=True)
-            return Data(input_template)
+            return input_template

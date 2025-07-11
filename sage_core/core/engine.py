@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.runtimes.local_runtime import LocalRuntime
+from sage_runtime.local_thread_pool import LocalThreadPool
 from sage_runtime.mixed_dag import MixedDAG
 import threading
 if TYPE_CHECKING:
@@ -51,7 +51,7 @@ class Engine:
         from sage_core.core.compiler import Compiler
         # env, graph和dag用的都是同一个名字
         graph = Compiler(env)
-        graph.debug_print_graph()
+        # graph.debug_print_graph()
         self.graphs[graph.name] = graph
         try:
             self.logger.info(f"Received mixed graph '{graph.name}' with {len(graph.nodes)} nodes")
@@ -125,7 +125,7 @@ class Engine:
         """
         self.logger.info("Shutting down Engine and releasing resources")
         try:
-            local_runtime = LocalRuntime.get_instance()
+            local_runtime = LocalThreadPool.get_instance()
             local_runtime.shutdown()
         except Exception:
             self.logger.exception("Error shutting down RuntimeManager:{e}")
