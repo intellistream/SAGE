@@ -30,7 +30,7 @@ class BaseFunction(ABC):
         """
         self.runtime_context = ctx
         self.name = ctx.name
-        self.logger = CustomLogger(
+        self._logger = CustomLogger(
             filename=f"Function_{ctx.name}",
             env_name=ctx.env_name,
             console_output="WARNING",
@@ -41,7 +41,13 @@ class BaseFunction(ABC):
         )
         self.runtime_context.create_logger()
         self.logger.info(f"Function {self.name} initialized with runtime context {ctx}")
-
+        
+    @property
+    def logger(self):
+        if not hasattr(self, "_logger"):
+            import logging
+            self._logger = logging.getLogger(f"{self.__class__.__name__}")
+        return self._logger
 
     def get_key(self):
         # finds and loads .env into os.environ
