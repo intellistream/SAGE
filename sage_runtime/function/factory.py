@@ -1,5 +1,5 @@
 from typing import Type, Any, Tuple,TYPE_CHECKING, Union
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from ray.actor import ActorHandle

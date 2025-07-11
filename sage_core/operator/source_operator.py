@@ -1,5 +1,5 @@
 from sage_core.operator.base_operator import BaseOperator
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 from collections import deque
 from typing import Union, Dict, Deque, Tuple, Any

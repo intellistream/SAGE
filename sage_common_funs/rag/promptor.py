@@ -1,5 +1,5 @@
 from jinja2 import Template
-from sage_core.api.base_function import BaseFunction, StatefulFunction, MemoryFunction
+from sage_core.function.base_function import BaseFunction, StatefulFunction, MemoryFunction
 
 from sage_utils.custom_logger import CustomLogger
 

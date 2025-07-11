@@ -9,7 +9,6 @@ from sage_core.operator.filter_operator import FilterOperator
 from sage_core.operator.source_operator import SourceOperator
 from sage_core.operator.sink_operator import SinkOperator
 from sage_utils.custom_logger import CustomLogger
-from sage_core.api.enum import PlatformType
 from sage_utils.name_server import get_name
 from sage_runtime.operator.factory import OperatorFactory
 from sage_runtime.function.factory import FunctionFactory
@@ -18,7 +17,7 @@ from ray.actor import ActorHandle
 from sage_core.transformation.source_transformation import SourceTransformation
 if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
-    from sage_core.api.base_function import BaseFunction
+    from sage_core.function.base_function import BaseFunction
     from sage_core.api.env import BaseEnvironment
 
 
@@ -34,7 +33,7 @@ class BaseTransformation:
     ):
         self.operator_class:Type[BaseOperator]  # 由子类设置
 
-        self.remote = (env.platform == PlatformType.REMOTE)
+        self.remote = (env.platform == "remote")
         self.env = env
         self.function_class = function
         self.basename = get_name(name) if name else get_name(self.function_class.__name__)

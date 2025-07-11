@@ -5,7 +5,7 @@ from transformers import AutoTokenizer, AutoModel
 from sklearn.metrics.pairwise import cosine_similarity
 from rouge import Rouge
 
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 
 
 

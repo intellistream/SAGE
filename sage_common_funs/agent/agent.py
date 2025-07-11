@@ -1,6 +1,6 @@
 from calendar import c
 from sage_common_funs.utils.generator_model import apply_generator_model
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 from jinja2 import Template
 
 from sage_utils.custom_logger import CustomLogger

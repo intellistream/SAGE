@@ -5,7 +5,7 @@ from sage_core.api.function_api.filter_function import FilterFunction
 from sage_runtime.io.packet import Packet
 
 if TYPE_CHECKING:
-    from sage_core.api.base_function import BaseFunction
+    from sage_core.function.base_function import BaseFunction
     from sage_runtime.io.connection import Connection
     
 

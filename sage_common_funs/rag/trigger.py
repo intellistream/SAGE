@@ -4,7 +4,7 @@ import threading
 import time
 from typing import Any, Optional
 
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 
 
 

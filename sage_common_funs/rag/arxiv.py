@@ -12,7 +12,7 @@ from collections import Counter
 import json
 import re
 
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 
 
 
