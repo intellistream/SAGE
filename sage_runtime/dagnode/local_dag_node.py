@@ -1,17 +1,19 @@
 from __future__ import annotations
-import time
+import time, copy
 from typing import Any, Union, Tuple, TYPE_CHECKING
 from sage_runtime.io.local_message_queue import LocalMessageQueue
 from sage_runtime.dagnode.base_dag_node import BaseDAGNode
 from ray.actor import ActorHandle
 from sage_memory.memory_collection.base_collection import BaseMemoryCollection
 from sage_utils.custom_logger import CustomLogger
+
 if TYPE_CHECKING:
     from sage_core.api.transformation import Transformation
     from sage_runtime.operator.factory import OperatorFactory
     from sage_core.core.operator.base_operator import BaseOperator
     from sage_runtime.operator.operator_wrapper import OperatorWrapper
     from sage_core.core.compiler import Compiler, GraphNode
+    from sage_runtime.runtime_context import RuntimeContext
 
 
 
@@ -20,11 +22,32 @@ class LocalDAGNode(BaseDAGNode):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        self.input_buffer = LocalMessageQueue(name = self.name, env_name=kwargs.get("env_name", None))  # Local input buffer for this node
 
-        # self.logger.info(f"type: {transformation.type}")
-        self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout})")
+    
+    def runtime_init(self, runtime_context: 'RuntimeContext') -> None:
+        """
+        Initialize the runtime context and other parameters.
+        """
+        try:
+            self.runtime_context = runtime_context
+            self.logger = CustomLogger(
+                filename=f"Node_{runtime_context.name}",
+                env_name=runtime_context.env_name,
+                console_output="WARNING",
+                file_output="DEBUG",
+                global_output = "WARNING",
+                name = f"{runtime_context.name}_{self.__class__.__name__}"
+            )
+            self.operator = self.operator_factory.create_operator(name=self.name)
+            self.operator.runtime_init(runtime_context)
+            # Create logger first
 
+            self.input_buffer = LocalMessageQueue(name = self.name, env_name=runtime_context.env_name)  # Local input buffer for this node
+
+            # self.logger.info(f"type: {transformation.type}")
+            self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout})")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
     
     def put(self, data_packet: Any):
         """

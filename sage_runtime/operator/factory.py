@@ -40,12 +40,9 @@ class OperatorFactory:
         Returns:
             BaseOperator: 创建的operator实例
         """
-        name = name or self.basename
-        session_folder = CustomLogger.get_session_folder()
         # 创建logger用于调试
         logger = CustomLogger(
             filename=f"OperatorFactory_{name}",
-            session_folder=session_folder,
             console_output="WARNING",
             file_output="DEBUG",
             global_output="WARNING",
@@ -54,25 +51,18 @@ class OperatorFactory:
         )
         
         try:
-            merged_operator_kwargs = {
-                'session_folder': session_folder,
-                'name': name,
-                'env_name': self.env_name,  # 添加env_name到operator_kwargs
-                **additional_kwargs
-            }
-            
             if self.remote:
                 Operator_class = ray.remote(self.operator_class)
                 operator_instance = Operator_class.remote(
                     self.function_factory,
-                    **merged_operator_kwargs
+                    **additional_kwargs
                 )
                 logger.debug(f"Building Ray Actor operator instance: {self.operator_class.__name__}")
             else:
                 Operator_class = self.operator_class
                 operator_instance = Operator_class(
                     self.function_factory,
-                    **merged_operator_kwargs
+                    **additional_kwargs
                 )
                 logger.debug(f"Building local operator instance: {self.operator_class.__name__}")
 

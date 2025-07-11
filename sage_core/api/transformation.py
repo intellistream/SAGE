@@ -44,10 +44,10 @@ class Transformation:
         name:str = None,
         parallelism: int = 1,
         platform:PlatformType = PlatformType.LOCAL,
-        delay: Optional[float] = 0.1,
+        delay: Optional[float] = 1,
         **kwargs
     ):
-        self.remote = (platform == PlatformType.REMOTE) or False
+        self.remote = (env.platform == PlatformType.REMOTE) or False
         self.env = env
         self.type = type
         self.delay = delay
@@ -69,8 +69,7 @@ class Transformation:
         self.function_factory = FunctionFactory(
             function_class=self.function_class,
             function_args=args,
-            function_kwargs=kwargs,
-            memory_collection= self.env.memory_collection
+            function_kwargs=kwargs
         )
 
         self.logger.debug(f"Creating Transformation of type {type} with rag {self.function_class.__name__}")

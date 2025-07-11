@@ -18,38 +18,32 @@ class BaseFunction(ABC):
     It defines the core interface and initializes a logger.
     """
 
-    def __init__(
-        self, 
-        name:str = None, 
-        memory_collection: Union['ActorHandle', Any] = None,
-        session_folder:str = None, 
-        env_name:str = None,  
-        parallel_index: int = 0,
-        parallelism: int = 1, 
-        **kwargs):
-        self.name = name or self.__class__.__name__
+    def __init__(self, **kwargs):
+
         # TODO: api_key应该是由env来提供和解析的吧？
         # Issue URL: https://github.com/intellistream/SAGE/issues/145
         self.api_key = None
-        self.runtime_context:RuntimeContext  = RuntimeContext(
-            self.name, 
-            memory_collection, 
-            parallel_index=parallel_index, 
-            parallelism=parallelism, 
-            session_folder=session_folder,
-            env_name=env_name
-        ),
-        self.logger = CustomLogger(
-            filename=f"Fuction_{name}",
-            env_name=env_name,
-            session_folder=session_folder,
-            console_output=False,
-            file_output=True,
-            global_output = True,
-            name = f"{name}_Function"
-        )
-        
         self.get_key()
+
+    def runtime_init(self, ctx: 'RuntimeContext') -> None:
+        """
+        Initialize the function with the runtime context.
+        This method should be called after the function is created.
+        """
+        self.runtime_context = ctx
+        self.name = ctx.name
+        self.logger = CustomLogger(
+            filename=f"Function_{ctx.name}",
+            env_name=ctx.env_name,
+            console_output="WARNING",
+            file_output="DEBUG",
+            global_output = "WARNING",
+            name = f"{ctx.name}_{self.__class__.__name__}",
+            session_folder=ctx.session_folder
+        )
+        self.runtime_context.create_logger()
+        self.logger.info(f"Function {self.name} initialized with runtime context {ctx}")
+
 
     def get_key(self):
         # finds and loads .env into os.environ
