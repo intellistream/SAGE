@@ -1,6 +1,9 @@
 # file sage/sage_tests/neuromem_test/core_test/manager_test.py
 # python -m sage.sage_tests.neuromem_test.core_test.manager_test
 
+from time import sleep
+
+
 def test_vdb(do_reload=True, do_delete=True):
     from sage_memory.memory_manager import MemoryManager
     from sage_utils.embedding_methods.mockembedder import MockTextEmbedder
@@ -61,6 +64,7 @@ def test_vdb(do_reload=True, do_delete=True):
     else:
         print("跳过加载测试。")
 
+    sleep(10)  # 等待一会儿，确保所有操作完成
     # 8. 删除所有数据
     if do_delete:
         from sage_memory.memory_collection.vdb_collection import VDBMemoryCollection

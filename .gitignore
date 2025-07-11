@@ -39,9 +39,7 @@ auto_env_setup.log
 __pycache__/
 *.py[cod]
 
-/data/raw_docs/raw
-/data/raw_docs/raw_dcm
-/data/raw_docs/raw_ltm
+/data/neuromem_datasets/locomo/locomo10.json
 /experiment/memorag/output.txt
 /experiment/memorag/output_prompt.txt
 /installation/env_setup/install_dep.log
