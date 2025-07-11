@@ -15,6 +15,9 @@ if TYPE_CHECKING:
 
 
 # TODO: 将Memory的API使用在这里。
+
+
+
 # Operator 决定事件的逻辑路由（如广播、分区、keyBy等），
 # EmitContext 仅负责将数据发送到指定的下游通道或节点。
 # 路由策略是 Operator 的语义特征，EmitContext 专注于消息投递的物理实现。

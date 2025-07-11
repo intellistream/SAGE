@@ -44,9 +44,6 @@ class DenseRetriever(BaseFunction):
                 self.logger.info(f"Retrieval Results: {ltm_results}")
                 input_template.retriver_chunks.extend(ltm_results)
                 self.logger.debug(f"Retrieved {len(ltm_results)} from LTM")
-                # TODO: 为什么这里需要有延迟？
-                # Issue URL: https://github.com/intellistream/SAGE/issues/132
-                # time.sleep(1)
             except Exception as e:
                 self.logger.error(f"LTM retrieval failed: {str(e)}", exc_info=True)
 

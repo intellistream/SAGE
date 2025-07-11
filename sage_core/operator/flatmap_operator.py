@@ -1,5 +1,5 @@
 from typing import Any, Iterable, Optional
-from sage_core.core.operator.base_operator import BaseOperator
+from sage_core.operator.base_operator import BaseOperator
 from sage_core.api.function_api.flatmap_function import FlatMapFunction
 from sage_core.api.collector import Collector
 
