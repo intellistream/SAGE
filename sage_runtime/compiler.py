@@ -11,6 +11,8 @@ if TYPE_CHECKING:
     from sage_core.api.base_function import BaseFunction
     from sage_runtime.function.factory import FunctionFactory
     from sage_runtime.operator.factory import OperatorFactory
+
+
 class GraphNode:
     def __init__(self, name: str, transformation: Transformation, parallel_index: int):
         self.name: str = name

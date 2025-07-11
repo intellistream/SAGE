@@ -5,6 +5,8 @@ from enum import Enum
 from sage_core.operator.map_operator import MapOperator
 from sage_core.operator.flatmap_operator import FlatMapOperator
 from sage_core.operator.filter_operator import FilterOperator
+from sage_core.operator.source_operator import SourceOperator
+from sage_core.operator.sink_operator import SinkOperator
 from sage_utils.custom_logger import CustomLogger
 from sage_core.api.enum import PlatformType
 from sage_utils.name_server import get_name
@@ -27,13 +29,14 @@ class TransformationType(Enum):
 
 # TODO: 提供更多的transformation继承类，改善构造函数
 # Issue URL: https://github.com/intellistream/SAGE/issues/147
+
 class Transformation:
     TO_OPERATOR = {
         TransformationType.MAP: MapOperator,
         TransformationType.FILTER: FilterOperator,
         TransformationType.FLATMAP: FlatMapOperator,
-        TransformationType.SINK: MapOperator,
-        TransformationType.SOURCE: MapOperator,
+        TransformationType.SINK: SinkOperator,
+        TransformationType.SOURCE: SourceOperator,
     }
     def __init__(
         self,
