@@ -4,7 +4,7 @@ import time
 from typing import Type, Union, Any, List
 from enum import Enum
 import sage_memory.api
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 from sage_core.api.datastream import DataStream
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.transformation.source_transformation import SourceTransformation
@@ -106,7 +106,7 @@ class BaseEnvironment:
         return self._pipeline
 
     def set_memory(self, config):
-        self.memory_collection = sage_memory.api.get_memory(self, config, remote = (self.platform == PlatformType.REMOTE))
+        self.memory_collection = sage_memory.api.get_memory(self, config, remote = (self.platform != "local"))
 
     def set_memory_collection(self, collection):
 
@@ -122,7 +122,7 @@ class LocalEnvironment(BaseEnvironment):
     """
 
     def __init__(self, name: str = "local_environment", config: dict | None = None):
-        super().__init__(name, config, platform=PlatformType.LOCAL)
+        super().__init__(name, config, platform="local")
 
 
 class RemoteEnvironment(BaseEnvironment):
@@ -131,7 +131,7 @@ class RemoteEnvironment(BaseEnvironment):
     """
 
     def __init__(self, name: str = "remote_environment", config: dict | None = None):
-        super().__init__(name, config, platform=PlatformType.REMOTE)
+        super().__init__(name, config, platform="remote")
 
 
 class DevEnvironment(BaseEnvironment):
@@ -142,4 +142,4 @@ class DevEnvironment(BaseEnvironment):
 
     def __init__(self, name: str = "dev_environment", config: dict | None = None):
         cfg = dict(config or {})
-        super().__init__(name, cfg, platform=PlatformType.HYBRID)
+        super().__init__(name, cfg, platform="hybrid")

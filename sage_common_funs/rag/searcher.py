@@ -1,4 +1,4 @@
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 
 from typing import Dict, Any
 import requests

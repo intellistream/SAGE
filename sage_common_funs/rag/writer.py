@@ -1,5 +1,5 @@
 from typing import Union, List, Tuple, Optional, Dict
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 
 
 

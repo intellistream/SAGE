@@ -12,7 +12,7 @@ from sage_utils.embedding_methods.embedding_api import apply_embedding_model
 from sage_memory.memory_manager import MemoryManager
 
 from sage_core.api.env import LocalEnvironment
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 from sage_core.api.function_api.filter_function import FilterFunction
 from sage_core.api.function_api.flatmap_function import FlatMapFunction
 

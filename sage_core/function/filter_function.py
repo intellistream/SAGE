@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Any, List, Tuple, Type, Callable, Optional, Union
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 
 
 class FilterFunction(BaseFunction):

@@ -6,7 +6,7 @@ from sage_runtime.io.unified_emit_context import UnifiedEmitContext
 from sage_runtime.io.packet import Packet
 
 if TYPE_CHECKING:
-    from sage_core.api.base_function import BaseFunction
+    from sage_core.function.base_function import BaseFunction
     from sage_runtime.io.connection import Connection
     from sage_runtime.runtime_context import RuntimeContext
     from sage_runtime.function.factory import FunctionFactory

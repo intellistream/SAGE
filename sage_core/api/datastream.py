@@ -1,13 +1,12 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, List, Tuple, TypeVar, Generic, get_args, get_origin
-from sage_core.api.enum import PlatformType
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.transformation.filter_transformation import FilterTransformation
 from sage_core.transformation.flatmap_transformation import FlatMapTransformation
 from sage_core.transformation.map_transformation import MapTransformation
 from sage_core.transformation.sink_transformation import SinkTransformation
 from sage_core.transformation.source_transformation import SourceTransformation
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 from .connected_streams import ConnectedStreams
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:

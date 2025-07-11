@@ -1,5 +1,5 @@
 
-from sage_core.api.base_function import BaseFunction
+from sage_core.function.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.data_loader import resolve_data_path
 from typing import List
