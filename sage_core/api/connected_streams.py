@@ -63,6 +63,69 @@ class ConnectedStreams:
         
         return ConnectedStreams(self._environment, new_transformations)
     
+    def comap(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> 'DataStream':
+        """
+        Apply a CoMap function that processes each connected stream separately
+        
+        CoMap (Co-processing Map) enables parallel processing of multiple input streams
+        where each stream is processed independently using dedicated mapN methods.
+        Unlike regular map operations that merge all inputs, comap maintains stream
+        boundaries and routes each input to its corresponding mapN method.
+        
+        Args:
+            function: CoMap function class that implements map0, map1, ..., mapN methods.
+                     Must inherit from BaseCoMapFunction and have is_comap=True.
+            *args: Additional arguments passed to the CoMap function constructor
+            **kwargs: Additional keyword arguments passed to the CoMap function constructor
+            
+        Returns:
+            DataStream: Result stream from coordinated processing of all input streams
+            
+        Raises:
+            NotImplementedError: Lambda functions are not supported for comap operations
+            ValueError: If function is not a valid CoMap function
+            
+        Example:
+            ```python
+            class ProcessorCoMap(BaseCoMapFunction):
+                def map0(self, data):
+                    return f"Stream 0: {data}"
+                
+                def map1(self, data):
+                    return f"Stream 1: {data * 2}"
+            
+            result = (stream1
+                .connect(stream2)
+                .comap(ProcessorCoMap)
+                .print("CoMap Result"))
+            ```
+        """
+        if callable(function) and not isinstance(function, type):
+            # Lambda functions need special wrapper - not implemented yet
+            raise NotImplementedError(
+                "Lambda functions are not supported for comap operations. "
+                "Please use a class that inherits from BaseCoMapFunction."
+            )
+        
+        # Import CoMapTransformation (delayed import to avoid circular dependencies)
+        from sage_core.transformation.comap_transformation import CoMapTransformation
+        
+        # Validate input stream count before creating transformation
+        input_stream_count = len(self.transformations)
+        if input_stream_count < 2:
+            raise ValueError(
+                f"CoMap operations require at least 2 input streams, "
+                f"but only {input_stream_count} streams provided."
+            )
+        
+        # Create CoMapTransformation
+        tr = CoMapTransformation(self._environment, function, *args, **kwargs)
+        
+        # Validate that the function supports the number of input streams
+        tr.validate_input_streams(input_stream_count)
+        
+        return self._apply(tr)
+
     # ---------------------------------------------------------------------
     # internel methods
     # ---------------------------------------------------------------------
