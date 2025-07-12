@@ -41,28 +41,28 @@ def main():
     even_stream = (main_stream
         .filter(lambda x: x % 2 == 0)
         .map(lambda x: ("EVEN", x))
-        .print("🔵 Even Stream")
+        # .print("🔵 Even Stream")
     )
     
     # 分支2：奇数流  
     odd_stream = (main_stream
         .filter(lambda x: x % 2 == 1)
         .map(lambda x: ("ODD", x))
-        .print("🔴 Odd Stream")
+        # .print("🔴 Odd Stream")
     )
     
     # 分支3：倍数流（3的倍数）
     multiple_stream = (main_stream
         .filter(lambda x: x % 3 == 0)
         .map(lambda x: ("MULTIPLE_3", x))
-        .print("🟡 Multiple-3 Stream")
+        # .print("🟡 Multiple-3 Stream")
     )
     
     # 分支4：大数流（大于5）
     large_stream = (main_stream
         .filter(lambda x: x > 5)
         .map(lambda x: ("LARGE", x))
-        .print("🟢 Large Stream")
+        # .print("🟢 Large Stream")
     )
     
     # 使用 ConnectedStreams 将所有分支连接起来
