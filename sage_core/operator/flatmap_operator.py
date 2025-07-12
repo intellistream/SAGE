@@ -50,7 +50,7 @@ class FlatMapOperator(BaseOperator):
 
 
 
-    def receive_packet(self, data:Packet):
+    def process(self, data:Any, input_index: int = 0):
         """
         处理输入数据，支持两种模式：
         1. Function内部调用out.collect()
@@ -62,7 +62,7 @@ class FlatMapOperator(BaseOperator):
             # 清空收集器中的数据（如果有的话）
             self.out.clear()
             
-            result = self.function.execute(data.payload)
+            result = self.function.execute(data)
             
             # 处理function的返回值
             if result is not None:
@@ -81,8 +81,7 @@ class FlatMapOperator(BaseOperator):
             self.logger.debug(f"FlatMapOperator '{self.name}' finished processing")
             
         except Exception as e:
-            self.logger.error(f"Error in FlatMapOperator '{self.name}'.receive_packet(): {e}", exc_info=True)
-            raise
+            self.logger.error(f"Error in FlatMapOperator '{self.name}'.process(): {e}", exc_info=True)
 
     def _emit_iterable(self, result: Any):
         """

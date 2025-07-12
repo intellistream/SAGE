@@ -22,7 +22,7 @@ class GraphNode:
         self.is_spout: bool = transformation.is_spout
         # 输入输出channels：每个channel是一个边的列表
 
-        self.input_channels:List[GraphEdge] = []
+        self.input_channels:dict[int, List[GraphEdge]] = {}
         self.output_channels:List[List[GraphEdge]] = []
 
     def create_dag_node(self) -> 'BaseDAGNode':
@@ -30,7 +30,7 @@ class GraphNode:
         return node
 
 class GraphEdge:
-    def __init__(self,name:str,  output_node: GraphNode,  input_node:GraphNode = None):
+    def __init__(self,name:str,  output_node: GraphNode,  input_node:GraphNode = None, input_index:int = 0):
         """
         Initialize a compiler edge with a source and target node.
         Args:
@@ -40,6 +40,7 @@ class GraphEdge:
         self.name: str = name
         self.upstream_node:GraphNode = output_node
         self.downstream_node:GraphNode = input_node
+        self.input_index:int = input_index
 
 class Compiler:
     def __init__(self, env:BaseEnvironment):
@@ -87,44 +88,46 @@ class Compiler:
 
         for transformation in env.pipeline:
             downstream_nodes = transformation_to_node[transformation.basename]
-            if transformation.upstream is None:
-                self.logger.debug(f"Skipping transformation {transformation.basename} as it has no upstream")
-                continue
-            upstream_nodes = transformation_to_node[transformation.upstream.basename]
-            
-            # 找到downstream_transformation在upstream_transformation.downstream中的位置
-            # downstream_idx = upstream_trans.downstream.index(transformation)
-            # 创建m*n条物理边
-            for i, upstream_node_name in enumerate(upstream_nodes):
-                upstream_node = self.nodes[upstream_node_name]
-                output_group_edges:List[GraphEdge] = []
-                for j, downstream_node_name in enumerate(downstream_nodes):
-                    # 创建边名
-                    edge_name = f"({upstream_node_name})->({downstream_node_name})"
-                    
-                    # 获取节点对象
-                    downstream_node = self.nodes[downstream_node_name]
-                    
-                    # 创建边对象并连接
-                    edge = GraphEdge(
-                        name=edge_name,
-                        output_node=upstream_node,
-                        input_node=downstream_node,
-                    )
-                    self.logger.debug(f"Creating edge: {edge_name} ")
-                    # 将边添加到节点的channels中
-                    #upstream_node.output_channels[upstream_output_channel].append(edge)
-                    output_group_edges.append(edge)
-                    downstream_node.input_channels.append(edge)
-                    
-                    # 将边添加到图中
-                    self.edges[edge_name] = edge
-                upstream_node.output_channels.append(output_group_edges)
+            for upstream_trans in transformation.upstreams:
+                downstream_input_index = upstream_trans.downstreams[transformation.basename]
+                upstream_nodes = transformation_to_node[upstream_trans.basename]
+                
+                # 找到downstream_transformation在upstream_transformation.downstream中的位置
+                # downstream_idx = upstream_trans.downstream.index(transformation)
+                # 创建m*n条物理边
+                for i, upstream_node_name in enumerate(upstream_nodes):
+                    upstream_node = self.nodes[upstream_node_name]
+                    output_group_edges:List[GraphEdge] = []
+                    for j, downstream_node_name in enumerate(downstream_nodes):
+                        # 创建边名
+                        edge_name = f"({upstream_node_name})->({downstream_node_name})[{downstream_input_index}]"
+                        
+                        # 获取节点对象
+                        downstream_node = self.nodes[downstream_node_name]
+                        if downstream_node.input_channels.get(downstream_input_index) is None:
+                            downstream_node.input_channels[downstream_input_index] = []
+                        
+                        # 创建边对象并连接
+                        edge = GraphEdge(
+                            name=edge_name,
+                            output_node=upstream_node,
+                            input_node=downstream_node,
+                            input_index = downstream_input_index
+                        )
+                        self.logger.debug(f"Creating edge: {edge_name} ")
+                        # 将边添加到节点的channels中
+                        #upstream_node.output_channels[upstream_output_channel].append(edge)
+                        output_group_edges.append(edge)
+                        downstream_node.input_channels[downstream_input_index].append(edge)
+                        
+                        # 将边添加到图中
+                        self.edges[edge_name] = edge
+                    upstream_node.output_channels.append(output_group_edges)
 
 
 
-                self.logger.debug(f"Connected {len(upstream_nodes)}×{len(downstream_nodes)} physical edges "
-                                f"between {transformation.upstream.operator_class.__name__} -> "
-                                f"{transformation.operator_class.__name__}")
+                    self.logger.debug(f"Connected {len(upstream_nodes)}×{len(downstream_nodes)} physical edges "
+                                    f"between {upstream_trans.operator_class.__name__} -> "
+                                    f"{transformation.operator_class.__name__}")
         
         self.logger.info(f"Graph construction completed: {len(self.nodes)} nodes, {len(self.edges)} edges")
