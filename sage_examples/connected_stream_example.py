@@ -86,7 +86,7 @@ def main():
         # 运行流处理
         env.submit()
         env.run_streaming()
-        time.sleep(20)  # 运行20秒
+        time.sleep(5)  # 运行5秒
         
     except KeyboardInterrupt:
         print("\n\n🛑 Stopping Simple Connected Streams Example...")
