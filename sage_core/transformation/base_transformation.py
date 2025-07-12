@@ -61,9 +61,12 @@ class BaseTransformation:
 
 
 
-        self.upstream:BaseTransformation = None
-        self.downstreams:List[Tuple[BaseTransformation, str]] = []
-        
+        # 简化的多输入连接
+        # upstreams: List[BaseTransformation] - 上游transformation列表
+        self.upstreams: List[BaseTransformation] = []
+        # downstreams: List[Tuple[BaseTransformation, int]] - (downstream_transformation, input_index)
+        # self.downstreams: List[Tuple['BaseTransformation', int]] = []
+        self.downstreams: dict[str, int] = {}  # 用于快速查找下游输入索引
 
 
         self.parallelism = parallelism  
@@ -79,17 +82,34 @@ class BaseTransformation:
     def is_spout(self) -> bool:
         return False
 
-    # 双向连接
-    def add_upstream(self,upstream_trans: 'BaseTransformation') -> None:
-        self.upstream = upstream_trans
-        upstream_trans.downstreams.append(self)
+    # 增强的连接方法
+    def add_upstream(self, upstream_trans: 'BaseTransformation', input_index: int = 0) -> None:
+        """
+        添加上游连接
+        
+        Args:
+            upstream_trans: 上游transformation
+            input_index: 当前transformation的输入索引
+            output_index: 上游transformation的输出索引
+        """
+        # 添加到当前transformation的upstreams
+        self.upstreams.append(upstream_trans)
+        # 添加到上游transformation的downstreams
+        upstream_trans.downstreams[self.basename] =  input_index
+        
+        self.logger.debug(f"Connected {upstream_trans.basename} -> {self.basename}[in:{input_index}]")
+
+    @property
+    def is_merge_operation(self) -> bool:
+        """
+        判断是否为合并操作
+        对于大多数transformation，多个上游输入会被合并到input_index=0
+        只有特殊的comap等操作会分别处理多个输入到不同的input_index
+        """
+        return not hasattr(self.function_class, 'is_comap') or not self.function_class.is_comap
+
 
     # ---------------- 工具函数 ----------------
-    def create_operator(self, **kwargs) -> 'BaseOperator':
-        """如果尚未实例化，则根据 op_class 和 kwargs 实例化。"""
-        function = self.function_class(*self.function_args, **kwargs)
-        self.logger.debug(f"Created function instance: {self.function_class.__name__} with args {self.function_args} and kwargs {kwargs}")
-        return self.operator_class(function, **kwargs)
 
 
     def __repr__(self) -> str:

@@ -88,6 +88,7 @@ class MixedDAG():
         for broadcast_index, parallel_edges in enumerate(graph_node.output_channels):
             for parallel_index, parallel_edge in enumerate(parallel_edges):
                 target_name = parallel_edge.downstream_node.name
+                target_input_index = parallel_edge.input_index
                 target_handle = self.nodes[target_name]
 
                 connection = Connection(
@@ -96,6 +97,7 @@ class MixedDAG():
                     parallel_index=parallel_index,
                     target_name=target_name,
                     target_node=target_handle,
+                    target_input_index = target_input_index,
                     tcp_server=self.tcp_server
                 )
                 try:
