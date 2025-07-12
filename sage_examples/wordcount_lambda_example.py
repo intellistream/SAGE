@@ -22,10 +22,7 @@ class SentenceSource(SourceFunction):
         sentence = self.sentences[self.counter % len(self.sentences)]
         self.counter += 1
         return sentence
-    
-    @staticmethod
-    def declare_outputs():
-        return [("default", str)]
+
 
 def main():
     # 创建环境

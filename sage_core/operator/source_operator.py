@@ -12,7 +12,7 @@ class SourceOperator(BaseOperator):
         # if not isinstance(self.function, SourceFunction):
         #     raise TypeError(f"SourceOperator requires SourceFunction, got {type(self.function)}")
         
-    def receive_packet(self, *args, **kwargs):
+    def process(self):
         self.logger.debug(f"Triggering source operator {self.name}")
         try:
             result = self.function.execute()

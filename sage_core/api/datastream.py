@@ -35,7 +35,7 @@ class DataStream(Generic[T]):
         self.logger.debug(f"DataStream created with transformation: {transformation.function_class.__name__}, type_param: {self._type_param}")
 
     # ---------------------------------------------------------------------
-    # 表示对于当前 DataStream 的变换操作，生成变换算子的第一个输出 Datastream
+    # general datastream api
     # ---------------------------------------------------------------------
     def map(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> "DataStream":
         if callable(function) and not isinstance(function, type):
@@ -64,6 +64,32 @@ class DataStream(Generic[T]):
         tr = SinkTransformation(self._environment,function,*args,**kwargs)
         return self._apply(tr)
 
+
+
+
+    def connect(self, other: Union["DataStream", "ConnectedStreams"]) -> 'ConnectedStreams':
+        """连接两个数据流，返回ConnectedStreams
+        
+        Args:
+            other: 另一个DataStream或ConnectedStreams实例
+            
+        Returns:
+            ConnectedStreams: 新的连接流，按顺序包含所有transformation
+        """
+        if isinstance(other, DataStream):
+            # DataStream + DataStream -> ConnectedStreams
+            return ConnectedStreams(self._environment, [
+                self.transformation,
+                other.transformation
+            ])
+        else:  # ConnectedStreams
+            # DataStream + ConnectedStreams -> ConnectedStreams
+            new_transformations = [self.transformation] + other.transformations
+            return ConnectedStreams(self._environment, new_transformations)
+    
+    # ---------------------------------------------------------------------
+    # quick helper api
+    # ---------------------------------------------------------------------
     def print(self, prefix: str = "", separator: str = " | ", colored: bool = True) -> "DataStream":
         """
         便捷的打印方法 - 将数据流输出到控制台
@@ -91,22 +117,12 @@ class DataStream(Generic[T]):
 
 
 
-
-    # 重做connected streams
-    def connect(self, other: "DataStream") -> 'ConnectedStreams':
-        """连接两个数据流，返回ConnectedStreams"""
-        return ConnectedStreams(self._environment, [
-            self.transformation,
-            other.transformation
-        ])
-    
     # ---------------------------------------------------------------------
-    # 内部帮助：把新 BaseTransformation 接入管线
+    # internel methods
     # ---------------------------------------------------------------------
     def _apply(self, tr: BaseTransformation) -> "DataStream":
-
-        # 连接到第一个输入
-        tr.add_upstream(self.transformation)
+        # 连接到输入索引0（单输入情况）
+        tr.add_upstream(self.transformation, input_index=0)
         
         self._environment._pipeline.append(tr)
         return DataStream(self._environment, tr)
