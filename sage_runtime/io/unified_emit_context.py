@@ -6,9 +6,10 @@ import threading
 import time
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.io.connection import Connection, ConnectionType
-if TYPE_CHECKING:
-    from sage_runtime.io.packet import Packet
+from sage_runtime.io.packet import Packet
 
+if TYPE_CHECKING:
+    pass
 
 class UnifiedEmitContext:
     """
@@ -34,7 +35,7 @@ class UnifiedEmitContext:
         self._tcp_connections: dict = {}  # host:port -> socket
         self._socket_lock = threading.Lock()
 
-    def send_via_connection(self, connection: 'Connection', packet: 'Packet') -> None:
+    def send_via_connection(self, connection: 'Connection', raw_data: Any) -> None:
         """
         根据Connection对象的配置发送数据
         
@@ -42,9 +43,9 @@ class UnifiedEmitContext:
             connection: Connection对象，包含完整的连接信息
             data: 要发送的数据
         """
+        packet = Packet(raw_data, connection.target_input_index)
         try:
             connection_type = connection.connection_type
-            
             if connection_type == ConnectionType.LOCAL_TO_LOCAL:
                 self._send_local_to_local(connection, packet)
                 

@@ -57,19 +57,42 @@ class BaseOperator(ABC):
         except Exception as e:
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
 
-
-    @abstractmethod
     def receive_packet(self, packet: 'Packet' = None):
         """
         Smart dispatch for multi-input operator.
         This method should be implemented by subclasses to handle incoming packets.
         """
+        self.logger.debug(f"Received packet in operator {self.name}, index: {packet.input_index if packet else 'N/A'}")
+        try:
+            if packet is None or packet.payload is None:
+                result = self.process()
+                self.logger.debug(f"Operator {self.name} received empty packet, executed with result: {result}")
+            else:
+                result = self.process(packet.payload, packet.input_index)
+                self.logger.debug(f"Operator {self.name} processed payload with result: {result}")
+            if result is not None:
+                self.emit(result)
+        except Exception as e:
+            self.logger.error(f"Error in {self.name}.receive_packet(): {e}", exc_info=True)
+
+
+    @abstractmethod
+    def process(self, raw_data:Any = None, input_index:int = 0) -> Any:
+        """
+        Process the raw data and return the result.
+        This method should be implemented by subclasses to define the processing logic.
+        
+        Args:
+            raw_data: The data to process, can be any type.
+            input_index: The index of the input channel, default is 0.
+        
+        Returns:
+            The processed result, can be any type.
+        """
         pass
 
+    def emit(self, raw_data: Any):
 
-    def emit(self, result: Any):
-        if isinstance(result, Packet) is False:
-            result = Packet(result)
         """
         Emit data to downstream node through specified channel and target.
         现在直接将Connection对象传递给EmitContext处理
@@ -78,6 +101,7 @@ class BaseOperator(ABC):
             tag: The output tag, None for broadcast to all channels
             data: The data to emit
         """
+        
         if self._emit_context is None:
             raise RuntimeError(f"Emit context not set for operator {self.name}. "
                             "This should be injected by the DAG node.")
@@ -90,7 +114,7 @@ class BaseOperator(ABC):
             
             # 直接将Connection对象传递给EmitContext
             try:
-                self._emit_context.send_via_connection(connection, result)
+                self._emit_context.send_via_connection(connection, raw_data)
                 
             except Exception as e:
                 self.logger.error(f"Failed to send data to target {connection.target_name} , group[{broadcast_index}]: {e}", exc_info=True)

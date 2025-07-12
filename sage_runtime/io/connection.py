@@ -27,12 +27,13 @@ class Connection:
                  parallel_index: int,
                  target_name: str,
                  target_node: Union[ActorHandle, LocalDAGNode],
+                 target_input_index: int,
                  tcp_server: LocalTcpServer):
 
         self.broadcast_index: int = broadcast_index
         self.parallel_index: int = parallel_index
         self.target_name: str = target_name
-
+        self.target_input_index: int = target_input_index
         # 统一的节点类型检测
         self.own_type: NodeType = self._detect_node_type(own_node)
         self.target_type: NodeType = self._detect_node_type(target_node)

@@ -39,7 +39,7 @@ class FilterOperator(BaseOperator):
         self._filtered_count = 0
         
 
-    def receive_packet(self, packet:Packet):
+    def process(self, data:Any, input_index: int = 0):
         """
         处理输入数据，根据过滤条件决定是否发送到下游
         
@@ -47,21 +47,21 @@ class FilterOperator(BaseOperator):
             tag: 输入标签
             data: 输入数据
         """
-        self.logger.debug(f"FilterOperator '{self.name}' received packet': {packet}")
+        self.logger.debug(f"FilterOperator '{self.name}' received data': {data}")
         
         try:
             # 更新输入计数
             self._total_input_count += 1
-            should_pass = self.function.execute(packet.payload)
+            should_pass = self.function.execute(data)
             
             # 处理过滤结果
             if should_pass:
                 self._passed_count += 1
-                self.emit(packet)
-                self.logger.debug(f"FilterOperator '{self.name}' passed packet: {packet}")
+                self.emit(data)
+                self.logger.debug(f"FilterOperator '{self.name}' passed data: {data}")
             else:
                 self._filtered_count += 1
-                self.logger.debug(f"FilterOperator '{self.name}' filtered out data: {packet}")
+                self.logger.debug(f"FilterOperator '{self.name}' filtered out data: {data}")
             
         except Exception as e:
             self.logger.error(f"Error in FilterOperator '{self.name}'.receive_packet(): {e}", exc_info=True)
