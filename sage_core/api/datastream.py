@@ -87,6 +87,50 @@ class DataStream(Generic[T]):
             new_transformations = [self.transformation] + other.transformations
             return ConnectedStreams(self._environment, new_transformations)
     
+    def fill_future(self, future_stream: "DataStream") -> None:
+        """
+        将当前数据流填充到预先声明的future stream中，创建反馈边。
+        
+        Args:
+            future_stream: 需要被填充的future stream (通过env.from_future创建)
+            
+        Raises:
+            ValueError: 如果目标stream不是future stream
+            RuntimeError: 如果future stream已经被填充过
+            
+        Example:
+            # 1. 声明future stream
+            future_stream = env.from_future("feedback_loop")
+            
+            # 2. 构建pipeline，使用future stream
+            result = source.connect(future_stream).comap(CombineFunction)
+            
+            # 3. 填充future stream，创建反馈边
+            processed_result = result.filter(SomeFilter)
+            processed_result.fill_future(future_stream)
+        """
+        from sage_core.transformation.future_transformation import FutureTransformation
+        
+        # 验证目标是future stream
+        if not isinstance(future_stream.transformation, FutureTransformation):
+            raise ValueError("Target stream must be a future stream created by env.from_future()")
+        
+        future_trans = future_stream.transformation
+        
+        # 检查是否已经被填充
+        if future_trans.filled:
+            raise RuntimeError(f"Future stream '{future_trans.future_name}' has already been filled")
+        
+        # 使用FutureTransformation的填充方法
+        future_trans.fill_with_transformation(self.transformation)
+        
+        # 从环境的pipeline中移除future transformation的引用
+        # 注意：不能完全删除，因为可能有其他地方引用它，但标记为已填充
+        self.logger.debug(f"Filled future stream '{future_trans.future_name}' with transformation '{self.transformation.basename}'")
+        
+        # 记录反馈边的创建
+        self.logger.info(f"Created feedback edge: {self.transformation.basename} -> {future_trans.future_name}")
+
     # ---------------------------------------------------------------------
     # quick helper api
     # ---------------------------------------------------------------------

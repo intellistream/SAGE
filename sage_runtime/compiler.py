@@ -70,6 +70,20 @@ class Compiler:
         # 第一步：为每个transformation生成并行节点名字表，同时创建节点
         self.logger.debug("Step 1: Generating parallel nodes for each transformation")
         for transformation in env.pipeline:
+            # 安全检查：如果发现未填充的future transformation，报错
+            if hasattr(transformation, 'is_future') and transformation.is_future:
+                if not transformation.filled:
+                    raise RuntimeError(
+                        f"Found unfilled future transformation '{transformation.future_name}' in pipeline. "
+                        f"All future streams must be filled with fill_future() before compilation."
+                    )
+                else:
+                    # 这种情况不应该发生，因为已填充的future transformation应该被从pipeline中移除
+                    raise RuntimeError(
+                        f"Found filled future transformation '{transformation.future_name}' in pipeline. "
+                        f"This is unexpected - filled future transformations should be removed from pipeline."
+                    )
+            
             node_names = []
             for i in range(transformation.parallelism):
                 try:
