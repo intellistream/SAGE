@@ -121,30 +121,3 @@ class StatefulFunction(BaseFunction):
 #         self.runtime_context = None  # 需要在compiler里面实例化。
 #         self.state
 #         pass
-
-
-
-
-"""
-🧾 SAGE 函数通信协议（简洁版 P-NIP-S）
-所有 Function.execute() 方法必须接收 一个且仅一个参数。
-
-上游函数返回的结果，完整作为单一对象传递给下游。
-
-不支持自动 unpack、参数猜测、magic 参数绑定。
-
-支持返回：
-
-单值类型（str, dict, MyObject）
-
-结构类型（tuple, dataclass, TypedDict）
-
-建图阶段将根据函数签名与上游类型进行匹配校验（静态分析）。
-
-不匹配时将发出 warning 或在 strict mode 下拒绝绑定。
-
-operator 层不会对 data 进行二次解包或 magic 转换。
-
-
-
-"""
