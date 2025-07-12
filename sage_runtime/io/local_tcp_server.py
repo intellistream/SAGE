@@ -85,6 +85,7 @@ class LocalTcpServer:
         try:
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.server_socket.settimeout(5)  # 设置超时，避免阻塞
             self.server_socket.bind((self.host, self.port))
             self.server_socket.listen(10)
             
@@ -115,8 +116,11 @@ class LocalTcpServer:
             self.server_socket.close()
         
         if self.server_thread and self.server_thread.is_alive():
-            self.server_thread.join(timeout=2.0)
-            if self.server_thread.is_alive():
+            for _ in range(5):  # 最多等5秒
+                self.server_thread.join(timeout=1.0)
+                if not self.server_thread.is_alive():
+                    break
+            else:
                 self.logger.warning("TCP server thread did not stop gracefully")
         
         self.logger.info("TCP server stopped")
@@ -141,7 +145,9 @@ class LocalTcpServer:
                 )
                 client_thread.daemon = True
                 client_thread.start()
-                
+            except socket.timeout:
+                # 超时不处理，继续循环
+                continue
             except OSError as e:
                 # Socket被关闭时会抛出OSError
                 if self.running:
