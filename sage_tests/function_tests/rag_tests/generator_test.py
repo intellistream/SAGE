@@ -80,5 +80,5 @@ def test_openai_generator_history_state(config_openai, ctx):
     gen2 = OpenAIGeneratorWithHistory(config_openai)
     gen2.runtime_init(ctx)
     history2 = gen2.dialogue_history
-
+    
     assert history2 == history
