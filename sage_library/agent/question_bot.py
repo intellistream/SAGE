@@ -1,10 +1,10 @@
 import random
-import time
+import time, os
 from typing import List, Dict, Any
 from jinja2 import Template
 from sage_core.function.map_function import MapFunction
 from sage_utils.custom_logger import CustomLogger
-from sage_common_funs.utils.generator_model import apply_generator_model
+from sage_library.utils.openaiclient import OpenAIClient
 from sage_library.context.model_context import ModelContext
 
 # 问题生成的prompt模板
@@ -89,13 +89,14 @@ class QuestionBot(MapFunction):
         }
         
         # 初始化LLM模型
-        self.model = apply_generator_model(
-            method=config["method"],
-            model_name=config["model_name"],
-            base_url=config["base_url"],
-            api_key=config["api_key"],
-            seed=None  # 不固定seed以增加随机性
+        self.model = OpenAIClient(
+            method=config.get("method","openai"),
+            model_name=config.get("model_name","qwen-turbo"),
+            base_url=config.get("base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
+            api_key=config.get("api_key", os.environ.get("ALIBABA_API_KEY", "")),
+            seed=config.get("seed", None)  # 不固定seed以增加随机性
         )
+
         
         # 初始化prompt模板
         self.prompt_template = Template(QUESTION_GENERATION_PROMPT)

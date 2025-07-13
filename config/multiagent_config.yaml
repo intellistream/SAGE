@@ -3,7 +3,6 @@ question_bot:
   model_name: "qwen-turbo"
   api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  seed: 42
 
 question_bot_sink:
   stage_directory: "question_bot"
@@ -15,17 +14,20 @@ chief_bot:
     model_name: "qwen-turbo"
     api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    seed: 42
 
 chief_bot_sink:
   stage_directory: "chief_bot"
+
+
+searcher_filter:
+  tools: ["web_search"]
+
 
 searcher_bot:
   method: "openai"
   model_name: "qwen-turbo"
   api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  seed: 42
 
 searcher_bot_sink:
   stage_directory: "chief_bot"
@@ -35,7 +37,6 @@ searcher_bot_sink:
 searcher_tool:
   url: "https://api.bochaai.com/v1/web-search"
   api_key: "sk-455d6a2c79464dd2959197477a908e53"
-  seed: 42
 
 
 searcher_tool_sink:
@@ -47,7 +48,6 @@ answer_bot:
   model_name: "qwen-turbo"
   api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  seed: 42
 
 answer_bot_sink:
   stage_directory: "answer_bot"
@@ -58,7 +58,11 @@ critic_bot:
   model_name: "qwen-turbo"
   api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  seed: 42
 
 critic_bot_sink:
   stage_directory: "critic_bot"
+
+
+direct_response_filter:
+  tools: ["direct_response"]
+
