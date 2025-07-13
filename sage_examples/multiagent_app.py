@@ -3,8 +3,8 @@ import os, time
 from sage_core.api.env import LocalEnvironment, RemoteEnvironment
 from sage_utils.config_loader import load_config
 from sage_library.agent.question_bot import QuestionBot
+from sage_library.agent.chief_bot import ChiefBot
 from sage_library.utils.template_sink import TemplateFileSink
-
 
 def pipeline_run():
     """创建并运行数据处理管道"""
@@ -14,7 +14,8 @@ def pipeline_run():
     query_stream = (
         env.from_source(QuestionBot, config["question_bot"])
            .sink(TemplateFileSink, config["question_bot_sink"])
-           .print("Result")
+           .map(ChiefBot, config["chief_bot"])
+           .sink(TemplateFileSink, config["chief_bot_sink"])
     )
 
     try:
