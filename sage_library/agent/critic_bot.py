@@ -6,8 +6,9 @@ from jinja2 import Template
 from sage_core.function.map_function import MapFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_common_funs.utils.generator_model import apply_generator_model
-from sage_library.utils.template import AI_Template, QualityLabel, CriticEvaluation
-
+from sage_library.context.model_context import ModelContext
+from sage_library.context.quality_label import QualityLabel
+from sage_library.context.critic_evaluation import CriticEvaluation
 
 
 
@@ -100,8 +101,8 @@ Evaluate the AI response against the original question and provide a detailed as
 class CriticBot(MapFunction):
     """
     Critic Bot - 评估AI响应质量并决定下一步处理
-    输入: AI_Template (包含完整的处理结果)
-    输出: Tuple[AI_Template, CriticEvaluation] - 带评估标签的template
+    输入: ModelContext (包含完整的处理结果)
+    输出: Tuple[ModelContext, CriticEvaluation] - 带评估标签的template
     """
     
     def __init__(self, config: dict, quality_threshold: float = 7.0, 
@@ -146,12 +147,12 @@ class CriticBot(MapFunction):
         
         self.logger.info(f"CriticBot initialized with threshold: {quality_threshold}, strict_mode: {strict_mode}")
 
-    def _build_evaluation_prompt(self, template: AI_Template) -> list:
+    def _build_evaluation_prompt(self, template: ModelContext) -> list:
         """
         构建评估prompt
         
         Args:
-            template: 要评估的AI_Template
+            template: 要评估的ModelContext
             
         Returns:
             list: 构建好的prompts
@@ -273,18 +274,18 @@ class CriticBot(MapFunction):
         
         return evaluation
 
-    def _validate_template(self, template: AI_Template) -> bool:
+    def _validate_template(self, template: ModelContext) -> bool:
         """
-        验证AI_Template是否可以被评估
+        验证ModelContext是否可以被评估
         
         Args:
-            template: AI_Template对象
+            template: ModelContext对象
             
         Returns:
             bool: 是否可以评估
         """
         if not template.raw_question or not template.raw_question.strip():
-            self.logger.warning("AI_Template missing raw_question")
+            self.logger.warning("ModelContext missing raw_question")
             return False
         
         # 检查是否有任何形式的处理结果
@@ -292,17 +293,17 @@ class CriticBot(MapFunction):
         has_chunks = bool(template.retriver_chunks)
         
         if not has_response and not has_chunks:
-            self.logger.warning("AI_Template has no content to evaluate")
+            self.logger.warning("ModelContext has no content to evaluate")
             return False
         
         return True
 
-    def _add_evaluation_metadata(self, template: AI_Template, evaluation: CriticEvaluation) -> None:
+    def _add_evaluation_metadata(self, template: ModelContext, evaluation: CriticEvaluation) -> None:
         """
         将评估元数据添加到template中
         
         Args:
-            template: AI_Template对象
+            template: ModelContext对象
             evaluation: 评估结果
         """
         template.evaluation = evaluation
@@ -330,7 +331,7 @@ class CriticBot(MapFunction):
             template.prompts = []
         template.prompts.append(eval_prompt)
 
-    def _log_evaluation_summary(self, template: AI_Template, evaluation: CriticEvaluation):
+    def _log_evaluation_summary(self, template: ModelContext, evaluation: CriticEvaluation):
         """记录评估摘要"""
         self.logger.info(f"Critic evaluation #{self.evaluation_count}: "
                         f"Label={evaluation.label.value}, "
@@ -343,15 +344,15 @@ class CriticBot(MapFunction):
             for issue in evaluation.specific_issues[:3]:  # 只记录前3个问题
                 self.logger.debug(f"  - {issue}")
 
-    def execute(self, template: AI_Template) -> AI_Template:
+    def execute(self, template: ModelContext) -> ModelContext:
         """
         执行质量评估
         
         Args:
-            template: 包含完整处理结果的AI_Template
+            template: 包含完整处理结果的ModelContext
             
         Returns:
-            Tuple[AI_Template, CriticEvaluation]: 带评估标签的template和评估结果
+            Tuple[ModelContext, CriticEvaluation]: 带评估标签的template和评估结果
         """
         try:
             self.logger.debug(f"CriticBot evaluating template UUID: {template.uuid}")
@@ -430,7 +431,7 @@ class EnhancedCriticBot(CriticBot):
         
         self.logger.info(f"EnhancedCriticBot initialized with iterative feedback: {enable_iterative_feedback}")
 
-    def _analyze_improvement_over_iterations(self, template: AI_Template) -> Dict[str, Any]:
+    def _analyze_improvement_over_iterations(self, template: ModelContext) -> Dict[str, Any]:
         """分析多轮迭代中的质量改善"""
         template_id = template.uuid
         
@@ -446,7 +447,7 @@ class EnhancedCriticBot(CriticBot):
             "improvement_trend": "unknown"  # 可以基于历史评分计算趋势
         }
 
-    def execute(self, template: AI_Template) -> Tuple[AI_Template, CriticEvaluation]:
+    def execute(self, template: ModelContext) -> Tuple[ModelContext, CriticEvaluation]:
         """增强版评估执行"""
         
         # 分析迭代历史

@@ -3,7 +3,7 @@ from typing import List, Dict, Union, Tuple, Any
 from jinja2 import Template
 from sage_core.function.map_function import MapFunction
 from sage_utils.custom_logger import CustomLogger
-from sage_library.utils.template import AI_Template
+from sage_library.context.model_context import ModelContext
 from sage_common_funs.utils.generator_model import apply_generator_model
 
 # 搜索查询优化的prompt模板
@@ -62,9 +62,9 @@ Analyze the original question and existing retrieved content, then determine wha
 
 class SearcherBot(MapFunction):
     """
-    中游搜索Bot - 分析AI_Template并设计优化的搜索查询
-    输入: AI_Template (包含raw_question和retriver_chunks)
-    输出: AI_Template - 增强的template，包含tool_config中的search_queries
+    中游搜索Bot - 分析ModelContext并设计优化的搜索查询
+    输入: ModelContext (包含raw_question和retriver_chunks)
+    输出: ModelContext - 增强的template，包含tool_config中的search_queries
     """
     
     def __init__(self, config: dict, **kwargs):
@@ -89,12 +89,12 @@ class SearcherBot(MapFunction):
         
         self.logger.info(f"SearcherBot initialized with max_queries: {self.max_queries}")
 
-    def _analyze_information_completeness(self, template: AI_Template) -> Dict[str, any]:
+    def _analyze_information_completeness(self, template: ModelContext) -> Dict[str, any]:
         """
         分析信息完整性，判断是否需要额外搜索
         
         Args:
-            template: AI_Template对象
+            template: ModelContext对象
             
         Returns:
             Dict: 分析结果
@@ -110,12 +110,12 @@ class SearcherBot(MapFunction):
         
         return analysis
 
-    def _build_optimization_prompt(self, template: AI_Template) -> List[Dict[str, str]]:
+    def _build_optimization_prompt(self, template: ModelContext) -> List[Dict[str, str]]:
         """
         构建查询优化的prompt
         
         Args:
-            template: AI_Template对象
+            template: ModelContext对象
             
         Returns:
             List[Dict[str, str]]: 构建好的prompts
@@ -199,23 +199,23 @@ class SearcherBot(MapFunction):
         
         return search_queries
 
-    def _validate_template(self, template: AI_Template) -> bool:
+    def _validate_template(self, template: ModelContext) -> bool:
         """
-        验证AI_Template是否有效
+        验证ModelContext是否有效
         
         Args:
-            template: AI_Template对象
+            template: ModelContext对象
             
         Returns:
             bool: 是否有效
         """
         if not template.raw_question or not template.raw_question.strip():
-            self.logger.warning("AI_Template missing or empty raw_question")
+            self.logger.warning("ModelContext missing or empty raw_question")
             return False
         
         return True
 
-    def _log_search_analysis(self, template: AI_Template, queries: List[str]) -> None:
+    def _log_search_analysis(self, template: ModelContext, queries: List[str]) -> None:
         """
         记录搜索分析信息
         """
@@ -231,9 +231,9 @@ class SearcherBot(MapFunction):
         for i, query in enumerate(queries, 1):
             self.logger.debug(f"New search query {i}: {query}")
 
-    def _update_template_with_search_results(self, template: AI_Template, 
+    def _update_template_with_search_results(self, template: ModelContext, 
                                            search_queries: List[str], 
-                                           optimization_result: Dict[str, Any]) -> AI_Template:
+                                           optimization_result: Dict[str, Any]) -> ModelContext:
         """
         更新template，添加搜索相关的信息到tool_config
         
@@ -243,7 +243,7 @@ class SearcherBot(MapFunction):
             optimization_result: LLM的完整优化结果
             
         Returns:
-            AI_Template: 更新后的template
+            ModelContext: 更新后的template
         """
         # 获取现有的搜索查询
         existing_queries = template.get_search_queries()
@@ -272,15 +272,15 @@ class SearcherBot(MapFunction):
         
         return template
 
-    def execute(self, template: AI_Template) -> AI_Template:
+    def execute(self, template: ModelContext) -> ModelContext:
         """
         执行搜索查询优化
         
         Args:
-            template: AI_Template对象，包含原始问题和已检索内容
+            template: ModelContext对象，包含原始问题和已检索内容
             
         Returns:
-            AI_Template: 增强的template，包含搜索查询配置
+            ModelContext: 增强的template，包含搜索查询配置
         """
         try:
             self.logger.debug(f"SearcherBot processing template UUID: {template.uuid}")
@@ -343,7 +343,7 @@ class EnhancedSearchBot(SearcherBot):
         
         self.logger.info(f"EnhancedSearchBot initialized with fallback: {fallback_to_original}")
 
-    def _should_skip_search(self, template: AI_Template) -> bool:
+    def _should_skip_search(self, template: ModelContext) -> bool:
         """
         判断是否应该跳过搜索（信息已足够）
         """
@@ -360,7 +360,7 @@ class EnhancedSearchBot(SearcherBot):
         # 这里可以设置更复杂的判断逻辑
         return (total_content_length > 2000 and len(template.retriver_chunks) >= 3) or run_count >= 3
 
-    def execute(self, template: AI_Template) -> AI_Template:
+    def execute(self, template: ModelContext) -> ModelContext:
         """
         增强版的搜索查询优化执行
         """
