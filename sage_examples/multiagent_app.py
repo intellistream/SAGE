@@ -13,7 +13,7 @@ def pipeline_run():
 
     query_stream = (
         env.from_source(QuestionBot, config["question_bot"])
-           .sink(TemplateFileSink)
+           .sink(TemplateFileSink, config["question_bot_sink"])
            .print("Result")
     )
 
