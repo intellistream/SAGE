@@ -26,7 +26,7 @@ class OpenAIGenerator(MapFunction):
             method=self.config["method"],
             model_name=self.config["model_name"],
             base_url=self.config["base_url"],
-            api_key=self.api_key,
+            api_key=self.config["api_key"] or os.getenv("ALIBABA_API_KEY"),
             seed=42  # Hardcoded seed for reproducibility
         )
         self.num = 1
