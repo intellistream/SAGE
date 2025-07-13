@@ -41,6 +41,8 @@ class AI_Template:
     uuid: str = field(default_factory=lambda: str(uuid4()))
     tool_name: str = None
     evaluation: CriticEvaluation = None
+    # Tool configuration - 存储工具相关的配置和中间结果
+    tool_config: Dict[str, Any] = field(default_factory=dict)
 
     def __str__(self) -> str:
         """
@@ -79,6 +81,12 @@ class AI_Template:
         if self.raw_question:
             output_lines.append(f"❓ Original Question:")
             output_lines.append(f"   {self.raw_question}")
+            output_lines.append("")
+        
+        # 工具配置信息
+        if self.tool_config:
+            output_lines.append(f"🔧 Tool Configuration:")
+            self._format_tool_config(output_lines)
             output_lines.append("")
         
         # 检索到的信息片段
@@ -147,6 +155,8 @@ class AI_Template:
             status_indicators.append(f"📊 {len(self.retriver_chunks)} chunks")
         if self.evaluation:
             status_indicators.append(f"🔍 Evaluated ({self.evaluation.label.value})")
+        if self.tool_config:
+            status_indicators.append(f"🔧 Tool Config")
         
         if status_indicators:
             output_lines.append(f"📋 Status: {' | '.join(status_indicators)}")
@@ -155,6 +165,56 @@ class AI_Template:
         output_lines.append("=" * 80)
         
         return '\n'.join(output_lines)
+
+    def _format_tool_config(self, output_lines: List[str]) -> None:
+        """格式化工具配置信息的显示"""
+        for key, value in self.tool_config.items():
+            if key == "search_queries":
+                # 特殊处理搜索查询
+                if isinstance(value, list) and value:
+                    output_lines.append(f"   • Search Queries ({len(value)}):")
+                    for i, query in enumerate(value[:5], 1):  # 最多显示5个
+                        preview = query[:80] + "..." if len(query) > 80 else query
+                        output_lines.append(f"     [{i}] {preview}")
+                    if len(value) > 5:
+                        output_lines.append(f"     ... and {len(value) - 5} more queries")
+                else:
+                    output_lines.append(f"   • Search Queries: {value}")
+            
+            elif key == "search_analysis":
+                # 特殊处理搜索分析
+                if isinstance(value, dict):
+                    output_lines.append(f"   • Search Analysis:")
+                    if "analysis" in value:
+                        analysis_text = value["analysis"][:100] + "..." if len(str(value["analysis"])) > 100 else value["analysis"]
+                        output_lines.append(f"     - Analysis: {analysis_text}")
+                    if "reasoning" in value:
+                        reasoning_text = value["reasoning"][:100] + "..." if len(str(value["reasoning"])) > 100 else value["reasoning"]
+                        output_lines.append(f"     - Reasoning: {reasoning_text}")
+                else:
+                    output_lines.append(f"   • Search Analysis: {value}")
+            
+            elif key == "optimization_metadata":
+                # 特殊处理优化元数据
+                if isinstance(value, dict):
+                    output_lines.append(f"   • Optimization Metadata:")
+                    for meta_key, meta_value in value.items():
+                        if isinstance(meta_value, (str, int, float, bool)):
+                            output_lines.append(f"     - {meta_key}: {meta_value}")
+                        else:
+                            output_lines.append(f"     - {meta_key}: {type(meta_value).__name__}")
+                else:
+                    output_lines.append(f"   • Optimization Metadata: {value}")
+            
+            else:
+                # 通用处理其他配置项
+                if isinstance(value, (list, dict)):
+                    output_lines.append(f"   • {key.replace('_', ' ').title()}: {type(value).__name__}({len(value)} items)")
+                else:
+                    value_str = str(value)
+                    if len(value_str) > 50:
+                        value_str = value_str[:50] + "..."
+                    output_lines.append(f"   • {key.replace('_', ' ').title()}: {value_str}")
 
     def _get_tool_emoji(self, tool_name: str) -> str:
         """根据工具名称返回对应的emoji"""
@@ -204,6 +264,7 @@ class AI_Template:
         result['response'] = self.response
         result['uuid'] = self.uuid
         result['tool_name'] = self.tool_name
+        result['tool_config'] = self._deep_copy_tool_config(self.tool_config) if self.tool_config else {}
         
         # 处理evaluation字段
         if self.evaluation:
@@ -221,6 +282,11 @@ class AI_Template:
             result['evaluation'] = None
         
         return result
+
+    def _deep_copy_tool_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """深拷贝tool_config，确保嵌套结构正确复制"""
+        import copy
+        return copy.deepcopy(config)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'AI_Template':
@@ -259,7 +325,8 @@ class AI_Template:
             response=data.get('response'),
             uuid=data.get('uuid', str(uuid4())),
             tool_name=data.get('tool_name'),
-            evaluation=evaluation
+            evaluation=evaluation,
+            tool_config=data.get('tool_config', {})
         )
 
     def to_json(self) -> str:
@@ -329,6 +396,112 @@ class AI_Template:
                                      QualityLabel.COMPLETE_GOOD]
         )
 
+    # Tool Configuration相关方法
+    def set_tool_config(self, key: str, value: Any) -> None:
+        """
+        设置工具配置项
+        
+        Args:
+            key: 配置键
+            value: 配置值
+        """
+        if self.tool_config is None:
+            self.tool_config = {}
+        self.tool_config[key] = value
+
+    def get_tool_config(self, key: str, default: Any = None) -> Any:
+        """
+        获取工具配置项
+        
+        Args:
+            key: 配置键
+            default: 默认值
+            
+        Returns:
+            配置值或默认值
+        """
+        if not self.tool_config:
+            return default
+        return self.tool_config.get(key, default)
+
+    def update_tool_config(self, config_dict: Dict[str, Any]) -> None:
+        """
+        批量更新工具配置
+        
+        Args:
+            config_dict: 配置字典
+        """
+        if self.tool_config is None:
+            self.tool_config = {}
+        self.tool_config.update(config_dict)
+
+    def remove_tool_config(self, key: str) -> Any:
+        """
+        移除工具配置项
+        
+        Args:
+            key: 配置键
+            
+        Returns:
+            被移除的值，如果不存在则返回None
+        """
+        if not self.tool_config:
+            return None
+        return self.tool_config.pop(key, None)
+
+    def has_tool_config(self, key: str) -> bool:
+        """
+        检查是否存在指定的工具配置项
+        
+        Args:
+            key: 配置键
+            
+        Returns:
+            是否存在
+        """
+        return bool(self.tool_config and key in self.tool_config)
+
+    # SearcherBot专用方法
+    def set_search_queries(self, queries: List[str], analysis: Dict[str, Any] = None) -> None:
+        """
+        设置搜索查询和分析结果（SearcherBot专用）
+        
+        Args:
+            queries: 搜索查询列表
+            analysis: 搜索分析结果
+        """
+        self.set_tool_config("search_queries", queries)
+        if analysis:
+            self.set_tool_config("search_analysis", analysis)
+
+    def get_search_queries(self) -> List[str]:
+        """
+        获取搜索查询列表
+        
+        Returns:
+            搜索查询列表
+        """
+        return self.get_tool_config("search_queries", [])
+
+    def get_search_analysis(self) -> Dict[str, Any]:
+        """
+        获取搜索分析结果
+        
+        Returns:
+            搜索分析字典
+        """
+        return self.get_tool_config("search_analysis", {})
+
+    def has_search_queries(self) -> bool:
+        """
+        检查是否有搜索查询
+        
+        Returns:
+            是否有搜索查询
+        """
+        queries = self.get_search_queries()
+        return bool(queries and len(queries) > 0)
+
     def has_complete_response(self) -> bool:
         """
         检查是否有完整的响应
@@ -357,5 +530,9 @@ class AI_Template:
             "ready_for_output": self.is_ready_for_output(),
             "chunks_count": len(self.retriver_chunks),
             "prompts_count": len(self.prompts),
+            "has_tool_config": bool(self.tool_config),
+            "tool_config_keys": list(self.tool_config.keys()) if self.tool_config else [],
+            "has_search_queries": self.has_search_queries(),
+            "search_queries_count": len(self.get_search_queries()),
             "timestamp": self.timestamp
         }
