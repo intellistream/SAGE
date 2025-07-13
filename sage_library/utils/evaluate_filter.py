@@ -1,7 +1,7 @@
 import json
 from typing import List, Union, Set
 from sage_core.function.filter_function import FilterFunction
-from sage_library.utils.template import AI_Template, QualityLabel
+from archive.template import AI_Template, QualityLabel
 
 
 class EvaluateFilter(FilterFunction):
