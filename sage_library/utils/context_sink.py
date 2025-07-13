@@ -23,7 +23,7 @@ class ContextFileSink(SinkFunction):
         项目根目录被定义为当前工作目录
         """
         project_root = Path(os.getcwd())  # 获取当前工作目录
-        template_data_dir = project_root / "data" / "template_data"
+        template_data_dir = project_root / "data" / "model_context"
         template_data_dir.mkdir(parents=True, exist_ok=True)
         return str(template_data_dir)
     
