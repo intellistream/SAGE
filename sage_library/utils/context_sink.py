@@ -7,12 +7,12 @@ from datetime import datetime
 from sage_core.function.sink_function import SinkFunction
 from sage_core.function.source_function import SourceFunction
 from sage_utils.custom_logger import CustomLogger
-from sage_library.utils.template import AI_Template
+from sage_library.context.model_context import ModelContext
 
 
-class TemplateFileSink(SinkFunction):
+class ContextFileSink(SinkFunction):
     """
-    AI_Template文件持久化Sink
+    ModelContext文件持久化Sink
     支持多种保存格式和组织策略
     """
     
@@ -159,13 +159,13 @@ class TemplateFileSink(SinkFunction):
         with open(self.index_file, 'w', encoding='utf-8') as f:
             json.dump(index_data, f, ensure_ascii=False, indent=2)
 
-    def _get_file_path(self, template: AI_Template) -> Path:
+    def _get_file_path(self, template: ModelContext) -> Path:
         """
         根据组织策略确定文件路径
         目录结构: base_directory/stage_directory/organization_structure/filename
         
         Args:
-            template: AI_Template实例
+            template: ModelContext实例
             
         Returns:
             Path: 文件路径
@@ -199,7 +199,7 @@ class TemplateFileSink(SinkFunction):
         
         return org_dir / filename
 
-    def _update_index(self, template: AI_Template, file_path: Path):
+    def _update_index(self, template: ModelContext, file_path: Path):
         """更新索引文件"""
         if not self.config["create_index"]:
             return
@@ -241,12 +241,12 @@ class TemplateFileSink(SinkFunction):
             except Exception as e:
                 self.logger.error(f"Failed to update index: {e}")
 
-    def execute(self, template: AI_Template) -> None:
+    def execute(self, template: ModelContext) -> None:
         """
-        保存AI_Template到文件
+        保存ModelContext到文件
         
         Args:
-            template: 要保存的AI_Template
+            template: 要保存的ModelContext
         """
         try:
             # 确定文件路径

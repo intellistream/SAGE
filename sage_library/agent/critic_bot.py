@@ -102,7 +102,7 @@ class CriticBot(MapFunction):
     """
     Critic Bot - 评估AI响应质量并决定下一步处理
     输入: ModelContext (包含完整的处理结果)
-    输出: Tuple[ModelContext, CriticEvaluation] - 带评估标签的template
+    输出: ModelContext - 带评估标签
     """
     
     def __init__(self, config: dict, quality_threshold: float = 7.0, 
@@ -369,7 +369,12 @@ class CriticBot(MapFunction):
                     should_return_to_chief=True,
                     ready_for_output=False
                 )
-                return template, error_evaluation
+                # 6. 添加评估元数据到template
+                self._add_evaluation_metadata(template, error_evaluation)
+                
+                # 7. 记录评估摘要
+                self._log_evaluation_summary(template, error_evaluation)
+                return template
             
             # 2. 构建评估prompt
             evaluation_prompts = self._build_evaluation_prompt(template)
@@ -394,7 +399,7 @@ class CriticBot(MapFunction):
             # 7. 记录评估摘要
             self._log_evaluation_summary(template, evaluation)
             
-            return template, evaluation
+            return template
             
         except Exception as e:
             self.logger.error(f"CriticBot evaluation failed: {e}")

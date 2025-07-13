@@ -45,7 +45,7 @@ CONTEXT_INTEGRATED_PROMPT = '''You are an intelligent AI assistant with comprehe
 
 Now, please answer the user's question using all available context and information.'''
 
-class ContextAnswerBot(MapFunction):
+class AnswerBot(MapFunction):
     """
     集成上下文的AnswerBot - 使用ModelContext中的所有信息源来生成完整回答
     包括raw_question、retriever_chunks、previous_response等所有上下文
@@ -70,7 +70,7 @@ class ContextAnswerBot(MapFunction):
         
         self.response_count = 0
         
-        self.logger.info("ContextAnswerBot initialized - ready to process comprehensive context")
+        self.logger.info("AnswerBot initialized - ready to process comprehensive context")
 
     def _build_comprehensive_prompts(self, template: ModelContext) -> List[Dict[str, str]]:
         """
@@ -83,8 +83,20 @@ class ContextAnswerBot(MapFunction):
             List[Dict[str, str]]: 构建好的prompts列表
         """
         # 收集所有可用的上下文信息
+        # 优先使用search_session的内容，fallback到retriver_chunks
+        retriever_content = []
+        if template.search_session and template.search_session.query_results:
+            # 使用新的分层搜索结构
+            for query_result in template.search_session.query_results:
+                for result in query_result.results:
+                    formatted_result = f"[{result.title}]\n{result.content}\nSource: {result.source}"
+                    retriever_content.append(formatted_result)
+        elif template.retriver_chunks:
+            # fallback到旧的retriver_chunks
+            retriever_content = template.retriver_chunks
+        
         context_data = {
-            'retriever_chunks': template.retriver_chunks or [],
+            'retriever_chunks': retriever_content,
             'previous_response': template.response or None
         }
         
@@ -155,7 +167,7 @@ class ContextAnswerBot(MapFunction):
             ModelContext: 更新了response的ModelContext对象
         """
         try:
-            self.logger.debug(f"ContextAnswerBot processing template UUID: {template.uuid}")
+            self.logger.debug(f"AnswerBot processing template UUID: {template.uuid}")
             
             # 1. 验证输入
             if not self._validate_template(template):
@@ -185,14 +197,14 @@ class ContextAnswerBot(MapFunction):
             return template
             
         except Exception as e:
-            self.logger.error(f"ContextAnswerBot execution failed: {e}")
+            self.logger.error(f"AnswerBot execution failed: {e}")
             
             # 设置错误响应
             template.response = f"Error occurred during comprehensive answer generation: {str(e)}"
             
             return template
 
-class EnhancedContextAnswerBot(ContextAnswerBot):
+class EnhancedContextAnswerBot(AnswerBot):
     """
     增强版本的ContextAnswerBot，支持更多定制化选项
     """
@@ -253,17 +265,27 @@ Please ensure your response is clear, accurate, and helpful.
     def _build_enhanced_prompts(self, template: ModelContext) -> List[Dict[str, str]]:
         """构建增强版的prompts"""
         
+        # 优先使用search_session的内容，fallback到retriver_chunks
+        retriever_content = []
+        if template.search_session and template.search_session.query_results:
+            # 使用新的分层搜索结构
+            for query_result in template.search_session.query_results:
+                for result in query_result.results:
+                    formatted_result = f"[{result.title}]\n{result.content}\nSource: {result.source}"
+                    retriever_content.append(formatted_result)
+        elif template.retriver_chunks:
+            # fallback到旧的retriver_chunks
+            retriever_content = template.retriver_chunks
+        
         # 计算信息源数量
-        source_count = 0
-        if template.retriver_chunks:
-            source_count += len(template.retriver_chunks)
+        source_count = len(retriever_content)
         if template.response:
             source_count += 1
         
         # 准备模板数据
         template_data = {
             'raw_question': template.raw_question,
-            'retriever_chunks': template.retriver_chunks or [],
+            'retriever_chunks': retriever_content,
             'previous_response': template.response,
             'timestamp': template.timestamp,
             'uuid': template.uuid,
