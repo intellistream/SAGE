@@ -1,0 +1,121 @@
+=== QA Output Log ===
+[Q] Question: Question: Answer this question use True or False. Does mitosis produce four genetically distinct daughter cells with half the number of chromosomes of the original cell?
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Meiosis produces four genetically identical daughter cells.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Mitochondria are responsible for protein synthesis.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Plants perform both photosynthesis and cellular respiration.
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer with True or False: DNA replication occurs during the G1 phase of the cell cycle.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Alleles are different forms of the same gene.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Osmosis requires ATP energy.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Humans have 46 chromosomes in their gametes.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Crossing over occurs during metaphase I of meiosis.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Enzymes increase activation energy of reactions.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: ATP synthase is found in the mitochondrial matrix.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer this question use True or False. Does mitosis produce four genetically distinct daughter cells with half the number of chromosomes of the original cell?
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Meiosis produces four genetically identical daughter cells.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Mitochondria are responsible for protein synthesis.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Plants perform both photosynthesis and cellular respiration.
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer with True or False: DNA replication occurs during the G1 phase of the cell cycle.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Alleles are different forms of the same gene.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Osmosis requires ATP energy.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Humans have 46 chromosomes in their gametes.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Crossing over occurs during metaphase I of meiosis.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Enzymes increase activation energy of reactions.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: ATP synthase is found in the mitochondrial matrix.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer this question use True or False. Does mitosis produce four genetically distinct daughter cells with half the number of chromosomes of the original cell?
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Meiosis produces four genetically identical daughter cells.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Mitochondria are responsible for protein synthesis.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Plants perform both photosynthesis and cellular respiration.
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer with True or False: DNA replication occurs during the G1 phase of the cell cycle.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Alleles are different forms of the same gene.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Osmosis requires ATP energy.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Humans have 46 chromosomes in their gametes.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Crossing over occurs during metaphase I of meiosis.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Enzymes increase activation energy of reactions.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: ATP synthase is found in the mitochondrial matrix.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer this question use True or False. Does mitosis produce four genetically distinct daughter cells with half the number of chromosomes of the original cell?
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Meiosis produces four genetically identical daughter cells.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Mitochondria are responsible for protein synthesis.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Plants perform both photosynthesis and cellular respiration.
+[A] Answer  : True
+----------------------------------------
+[Q] Question: Question: Answer with True or False: DNA replication occurs during the G1 phase of the cell cycle.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Alleles are different forms of the same gene.
+[A] Answer  : False
+----------------------------------------
+[Q] Question: Question: Answer with True or False: Osmosis requires ATP energy.
+[A] Answer  : False
+----------------------------------------
