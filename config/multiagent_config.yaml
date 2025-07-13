@@ -4,3 +4,18 @@ question_bot:
   api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
   seed: 42
+
+question_bot_sink:
+  stage_directory: "question_bot"
+
+
+chief_bot:
+  llm:
+    method: "openai"
+    model_name: "qwen-turbo"
+    api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    seed: 42
+
+chief_bot_sink:
+  stage_directory: "chief_bot"

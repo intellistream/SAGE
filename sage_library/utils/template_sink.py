@@ -47,7 +47,7 @@ class TemplateFileSink(SinkFunction):
             "backup_index": True  # 是否备份索引文件
         }
     
-    def __init__(self, config: Dict[str, Any] = None, **kwargs):
+    def __init__(self, config: Dict[str, Any], **kwargs):
         """
         初始化TemplateFileSink
         
@@ -65,9 +65,13 @@ class TemplateFileSink(SinkFunction):
             **kwargs: 其他参数（向后兼容）
         """
         super().__init__(**kwargs)
-        
+
         # 合并配置
         self.config = self.get_default_config()
+        if isinstance(config, dict):
+            self.config.update(config)
+        else:
+            raise TypeError("Expected a dict for config, got {}".format(type(config)))
         if config:
             self.config.update(config)
         

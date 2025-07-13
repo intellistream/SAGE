@@ -2,9 +2,31 @@ import json
 import os
 from dataclasses import dataclass, field, asdict
 from typing import Any, List, Dict, Tuple, Optional
+from enum import Enum
 from uuid import uuid4
 import time
 from pathlib import Path
+
+
+class QualityLabel(Enum):
+    """质量评估标签"""
+    COMPLETE_EXCELLENT = "complete_excellent"      # 完美解决，可直接输出
+    COMPLETE_GOOD = "complete_good"                # 良好解决，可直接输出
+    PARTIAL_NEEDS_IMPROVEMENT = "partial_needs_improvement"  # 部分解决，需要改进
+    INCOMPLETE_MISSING_INFO = "incomplete_missing_info"      # 信息不足，需要更多资源
+    FAILED_POOR_QUALITY = "failed_poor_quality"              # 质量差，需要重新处理
+    ERROR_INVALID = "error_invalid"                          # 错误或无效响应
+
+@dataclass
+class CriticEvaluation:
+    """Critic评估结果"""
+    label: QualityLabel
+    confidence: float  # 0.0-1.0
+    reasoning: str
+    specific_issues: List[str] = field(default_factory=list)
+    suggestions: List[str] = field(default_factory=list)
+    should_return_to_chief: bool = False
+    ready_for_output: bool = False
 
 @dataclass
 class AI_Template:
@@ -17,6 +39,8 @@ class AI_Template:
     prompts: List[Dict[str, str]] = field(default_factory=list)
     response: str = None
     uuid: str = field(default_factory=lambda: str(uuid4()))
+    tool_name: str = None
+    evaluation: CriticEvaluation = None
 
     def __str__(self) -> str:
         """
@@ -29,8 +53,26 @@ class AI_Template:
         # 构建输出字符串
         output_lines = []
         output_lines.append("=" * 80)
-        output_lines.append(f"🤖 AI Processing Result [ID: {self.uuid[:8]}]")
+        
+        # 标题行包含tool_name和评估信息
+        title_parts = [f"🤖 AI Processing Result [ID: {self.uuid[:8]}]"]
+        if self.tool_name:
+            tool_emoji = self._get_tool_emoji(self.tool_name)
+            title_parts.append(f"{tool_emoji} Tool: {self.tool_name}")
+        
+        output_lines.append(" | ".join(title_parts))
         output_lines.append(f"📅 Time: {timestamp_str} | Sequence: {self.sequence}")
+        
+        # 评估状态行
+        if self.evaluation:
+            quality_emoji = self._get_quality_emoji(self.evaluation.label)
+            status_parts = [
+                f"{quality_emoji} Quality: {self.evaluation.label.value}",
+                f"Confidence: {self.evaluation.confidence:.2f}",
+                f"Output Ready: {'✅' if self.evaluation.ready_for_output else '❌'}"
+            ]
+            output_lines.append("📊 " + " | ".join(status_parts))
+        
         output_lines.append("=" * 80)
         
         # 原始问题
@@ -51,6 +93,23 @@ class AI_Template:
                 output_lines.append(f"   ... and {len(self.retriver_chunks) - 3} more sources")
             output_lines.append("")
         
+        # 处理步骤信息（基于prompts）
+        if self.prompts:
+            system_prompts = [p for p in self.prompts if p.get('role') == 'system']
+            user_prompts = [p for p in self.prompts if p.get('role') == 'user']
+            
+            if system_prompts or user_prompts:
+                output_lines.append(f"⚙️  Processing Steps:")
+                if system_prompts:
+                    output_lines.append(f"   • System instructions: {len(system_prompts)} phases")
+                if user_prompts:
+                    # 显示最后一个用户prompt（通常是具体任务）
+                    last_user_prompt = user_prompts[-1].get('content', '')
+                    if last_user_prompt and last_user_prompt != self.raw_question:
+                        preview = last_user_prompt[:100] + "..." if len(last_user_prompt) > 100 else last_user_prompt
+                        output_lines.append(f"   • Specific task: {preview}")
+                output_lines.append("")
+        
         # AI响应
         if self.response:
             output_lines.append(f"🎯 AI Response:")
@@ -60,29 +119,148 @@ class AI_Template:
                 output_lines.append(f"   {line}")
             output_lines.append("")
         
-        # 处理步骤摘要
-        if self.prompts:
-            system_prompts = [p for p in self.prompts if p.get('role') == 'system']
-            if system_prompts:
-                output_lines.append(f"⚙️  Processing Steps: {len(system_prompts)} phases completed")
-                output_lines.append("")
+        # 评估详情
+        if self.evaluation:
+            output_lines.append(f"🔍 Evaluation Details:")
+            output_lines.append(f"   • Reasoning: {self.evaluation.reasoning}")
+            
+            if self.evaluation.specific_issues:
+                output_lines.append(f"   • Issues: {', '.join(self.evaluation.specific_issues)}")
+            
+            if self.evaluation.suggestions:
+                output_lines.append(f"   • Suggestions: {', '.join(self.evaluation.suggestions)}")
+            
+            if self.evaluation.should_return_to_chief:
+                output_lines.append(f"   • ⚠️  Should return to Chief for reprocessing")
+            
+            output_lines.append("")
+        
+        # 处理状态指示
+        status_indicators = []
+        if self.tool_name:
+            status_indicators.append(f"Tool: {self.tool_name}")
+        if self.response:
+            status_indicators.append("✅ Response Generated")
+        else:
+            status_indicators.append("⏳ Processing")
+        if self.retriver_chunks:
+            status_indicators.append(f"📊 {len(self.retriver_chunks)} chunks")
+        if self.evaluation:
+            status_indicators.append(f"🔍 Evaluated ({self.evaluation.label.value})")
+        
+        if status_indicators:
+            output_lines.append(f"📋 Status: {' | '.join(status_indicators)}")
+            output_lines.append("")
         
         output_lines.append("=" * 80)
         
         return '\n'.join(output_lines)
 
+    def _get_tool_emoji(self, tool_name: str) -> str:
+        """根据工具名称返回对应的emoji"""
+        tool_emojis = {
+            "web_search": "🔍",
+            "knowledge_retrieval": "📖",
+            "calculator": "🧮",
+            "code_executor": "💻",
+            "data_analyzer": "📊",
+            "translation": "🌐",
+            "summarizer": "📝",
+            "fact_checker": "✅",
+            "image_analyzer": "🖼️",
+            "weather_service": "🌤️",
+            "stock_market": "📈",
+            "news_aggregator": "📰",
+            "direct_response": "💭",
+            "error_handler": "⚠️"
+        }
+        return tool_emojis.get(tool_name, "🔧")
+
+    def _get_quality_emoji(self, quality_label: QualityLabel) -> str:
+        """根据质量标签返回对应的emoji"""
+        quality_emojis = {
+            QualityLabel.COMPLETE_EXCELLENT: "🌟",
+            QualityLabel.COMPLETE_GOOD: "✅",
+            QualityLabel.PARTIAL_NEEDS_IMPROVEMENT: "⚡",
+            QualityLabel.INCOMPLETE_MISSING_INFO: "❓",
+            QualityLabel.FAILED_POOR_QUALITY: "❌",
+            QualityLabel.ERROR_INVALID: "⚠️"
+        }
+        return quality_emojis.get(quality_label, "❔")
+
     def to_dict(self) -> Dict[str, Any]:
         """
         转换为字典格式，用于序列化
+        支持嵌套的dataclass结构
         """
-        return asdict(self)
+        result = {}
+        
+        # 基础字段
+        result['sequence'] = self.sequence
+        result['timestamp'] = self.timestamp
+        result['raw_question'] = self.raw_question
+        result['retriver_chunks'] = self.retriver_chunks.copy() if self.retriver_chunks else []
+        result['prompts'] = self.prompts.copy() if self.prompts else []
+        result['response'] = self.response
+        result['uuid'] = self.uuid
+        result['tool_name'] = self.tool_name
+        
+        # 处理evaluation字段
+        if self.evaluation:
+            eval_dict = {
+                'label': self.evaluation.label.value,  # 转换枚举为字符串
+                'confidence': self.evaluation.confidence,
+                'reasoning': self.evaluation.reasoning,
+                'specific_issues': self.evaluation.specific_issues.copy(),
+                'suggestions': self.evaluation.suggestions.copy(),
+                'should_return_to_chief': self.evaluation.should_return_to_chief,
+                'ready_for_output': self.evaluation.ready_for_output
+            }
+            result['evaluation'] = eval_dict
+        else:
+            result['evaluation'] = None
+        
+        return result
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'AI_Template':
         """
         从字典创建AI_Template实例
+        支持嵌套的dataclass结构恢复
         """
-        return cls(**data)
+        # 复制数据以避免修改原始数据
+        data = data.copy()
+        
+        # 处理evaluation字段
+        evaluation = None
+        if data.get('evaluation'):
+            eval_data = data['evaluation']
+            
+            # 恢复QualityLabel枚举
+            label = QualityLabel(eval_data['label'])
+            
+            evaluation = CriticEvaluation(
+                label=label,
+                confidence=eval_data.get('confidence', 0.0),
+                reasoning=eval_data.get('reasoning', ''),
+                specific_issues=eval_data.get('specific_issues', []),
+                suggestions=eval_data.get('suggestions', []),
+                should_return_to_chief=eval_data.get('should_return_to_chief', False),
+                ready_for_output=eval_data.get('ready_for_output', False)
+            )
+        
+        # 创建AI_Template实例
+        return cls(
+            sequence=data.get('sequence', 0),
+            timestamp=data.get('timestamp', int(time.time() * 1000)),
+            raw_question=data.get('raw_question'),
+            retriver_chunks=data.get('retriver_chunks', []),
+            prompts=data.get('prompts', []),
+            response=data.get('response'),
+            uuid=data.get('uuid', str(uuid4())),
+            tool_name=data.get('tool_name'),
+            evaluation=evaluation
+        )
 
     def to_json(self) -> str:
         """
@@ -95,21 +273,89 @@ class AI_Template:
         """
         从JSON字符串创建AI_Template实例
         """
-        data = json.loads(json_str)
-        return cls.from_dict(data)
+        try:
+            data = json.loads(json_str)
+            return cls.from_dict(data)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON format: {e}")
+        except Exception as e:
+            raise ValueError(f"Failed to create AI_Template from JSON: {e}")
 
     def save_to_file(self, file_path: str) -> None:
         """
         保存到文件
         """
-        Path(file_path).parent.mkdir(parents=True, exist_ok=True)
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(self.to_json())
+        try:
+            Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(self.to_json())
+        except Exception as e:
+            raise IOError(f"Failed to save AI_Template to {file_path}: {e}")
 
     @classmethod
     def load_from_file(cls, file_path: str) -> 'AI_Template':
         """
         从文件加载
         """
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return cls.from_json(f.read())
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return cls.from_json(f.read())
+        except FileNotFoundError:
+            raise FileNotFoundError(f"AI_Template file not found: {file_path}")
+        except Exception as e:
+            raise IOError(f"Failed to load AI_Template from {file_path}: {e}")
+
+    def clone(self) -> 'AI_Template':
+        """
+        创建当前模板的深拷贝
+        """
+        return self.from_dict(self.to_dict())
+
+    def update_evaluation(self, label: QualityLabel, confidence: float, 
+                         reasoning: str, issues: List[str] = None, 
+                         suggestions: List[str] = None) -> None:
+        """
+        更新或创建评估信息
+        """
+        self.evaluation = CriticEvaluation(
+            label=label,
+            confidence=confidence,
+            reasoning=reasoning,
+            specific_issues=issues or [],
+            suggestions=suggestions or [],
+            should_return_to_chief=label in [QualityLabel.FAILED_POOR_QUALITY, 
+                                           QualityLabel.INCOMPLETE_MISSING_INFO],
+            ready_for_output=label in [QualityLabel.COMPLETE_EXCELLENT, 
+                                     QualityLabel.COMPLETE_GOOD]
+        )
+
+    def has_complete_response(self) -> bool:
+        """
+        检查是否有完整的响应
+        """
+        return bool(self.response and self.response.strip())
+
+    def is_ready_for_output(self) -> bool:
+        """
+        检查是否准备好输出
+        """
+        return (self.evaluation and 
+                self.evaluation.ready_for_output and 
+                self.has_complete_response())
+
+    def get_processing_summary(self) -> Dict[str, Any]:
+        """
+        获取处理摘要信息
+        """
+        return {
+            "uuid": self.uuid,
+            "tool_name": self.tool_name,
+            "has_response": self.has_complete_response(),
+            "has_evaluation": self.evaluation is not None,
+            "evaluation_label": self.evaluation.label.value if self.evaluation else None,
+            "confidence": self.evaluation.confidence if self.evaluation else None,
+            "ready_for_output": self.is_ready_for_output(),
+            "chunks_count": len(self.retriver_chunks),
+            "prompts_count": len(self.prompts),
+            "timestamp": self.timestamp
+        }

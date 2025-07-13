@@ -1,33 +1,16 @@
 import json
 import re
 from typing import Dict, Any, Tuple
-from enum import Enum
 from dataclasses import dataclass
 from jinja2 import Template
 from sage_core.function.map_function import MapFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_common_funs.utils.generator_model import apply_generator_model
-from sage_library.utils.template import AI_Template
+from sage_library.utils.template import AI_Template, QualityLabel, CriticEvaluation
 
-class QualityLabel(Enum):
-    """质量评估标签"""
-    COMPLETE_EXCELLENT = "complete_excellent"      # 完美解决，可直接输出
-    COMPLETE_GOOD = "complete_good"                # 良好解决，可直接输出
-    PARTIAL_NEEDS_IMPROVEMENT = "partial_needs_improvement"  # 部分解决，需要改进
-    INCOMPLETE_MISSING_INFO = "incomplete_missing_info"      # 信息不足，需要更多资源
-    FAILED_POOR_QUALITY = "failed_poor_quality"              # 质量差，需要重新处理
-    ERROR_INVALID = "error_invalid"                          # 错误或无效响应
 
-@dataclass
-class CriticEvaluation:
-    """Critic评估结果"""
-    label: QualityLabel
-    confidence: float  # 0.0-1.0
-    reasoning: str
-    specific_issues: list
-    suggestions: list
-    should_return_to_chief: bool
-    ready_for_output: bool
+
+
 
 # Critic评估的prompt模板
 CRITIC_EVALUATION_PROMPT = '''You are a Critic Bot responsible for evaluating the quality and completeness of AI responses. Your task is to assess whether the AI system has adequately addressed the user's original question.
@@ -322,6 +305,7 @@ class CriticBot(MapFunction):
             template: AI_Template对象
             evaluation: 评估结果
         """
+        template.evaluation = evaluation
         # 创建评估元数据
         eval_metadata = {
             "critic_evaluation": {
@@ -359,7 +343,7 @@ class CriticBot(MapFunction):
             for issue in evaluation.specific_issues[:3]:  # 只记录前3个问题
                 self.logger.debug(f"  - {issue}")
 
-    def execute(self, template: AI_Template) -> Tuple[AI_Template, CriticEvaluation]:
+    def execute(self, template: AI_Template) -> AI_Template:
         """
         执行质量评估
         
@@ -425,7 +409,7 @@ class CriticBot(MapFunction):
                 ready_for_output=False
             )
             
-            return template, error_evaluation
+            return template
 
 class EnhancedCriticBot(CriticBot):
     """
