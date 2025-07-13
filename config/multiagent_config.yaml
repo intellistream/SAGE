@@ -40,3 +40,25 @@ searcher_tool:
 
 searcher_tool_sink:
   stage_directory: "searcher_tool"
+
+
+answer_bot:
+  method: "openai"
+  model_name: "qwen-turbo"
+  api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  seed: 42
+
+answer_bot_sink:
+  stage_directory: "answer_bot"
+
+
+critic_bot:
+  method: "openai"
+  model_name: "qwen-turbo"
+  api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  seed: 42
+
+critic_bot_sink:
+  stage_directory: "critic_bot"

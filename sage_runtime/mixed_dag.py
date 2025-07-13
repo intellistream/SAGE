@@ -150,7 +150,7 @@ class MixedDAG():
     def execute_once(self, spout_node_name:str = None):
         self.logger.info(f"executing once")
         if(spout_node_name is None):
-            for node_name, node_instance in self.spout_nodes:
+            for node_name, node_instance in self.spout_nodes.items():
                 node_instance.trigger()
         elif self.spout_nodes.get(spout_node_name, None) is not None:
             node = self.spout_nodes[spout_node_name]

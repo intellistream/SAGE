@@ -5,11 +5,11 @@ from pathlib import Path
 from datetime import datetime
 from sage_core.function.source_function import SourceFunction
 from sage_utils.custom_logger import CustomLogger
-from sage_library.utils.template import AI_Template
+from sage_library.context.model_context import ModelContext
 
-class TemplateFileSource(SourceFunction):
+class ContextFileSource(SourceFunction):
     """
-    从文件加载AI_Template的数据源
+    从文件加载ModelContext的数据源
     每次execute读取一个模板文件并返回
     """
     
@@ -63,8 +63,8 @@ class TemplateFileSource(SourceFunction):
         # 初始化文件列表
         self._initialize_file_list()
         
-        self.logger.info(f"TemplateFileSource initialized: {base_directory}, mode: {load_mode}")
-        self.logger.info(f"Found {len(self.template_files)} template files")
+        # self.logger.info(f"ContextFileSource initialized: {base_directory}, mode: {load_mode}")
+        # self.logger.info(f"Found {len(self.template_files)} template files")
 
     def _initialize_file_list(self):
         """初始化文件列表"""
@@ -129,10 +129,10 @@ class TemplateFileSource(SourceFunction):
         
         return template_files
 
-    def _load_template_from_file(self, file_path: Path) -> Optional[AI_Template]:
+    def _load_template_from_file(self, file_path: Path) -> Optional[ModelContext]:
         """从文件加载单个模板"""
         try:
-            template = AI_Template.load_from_file(str(file_path))
+            template = ModelContext.load_from_file(str(file_path))
             
             # 应用过滤条件
             if not self._filter_template(template):
@@ -143,7 +143,7 @@ class TemplateFileSource(SourceFunction):
             self.logger.error(f"Failed to load template from {file_path}: {e}")
             return None
 
-    def _filter_template(self, template: AI_Template) -> bool:
+    def _filter_template(self, template: ModelContext) -> bool:
         """根据条件过滤单个模板"""
         # 时间范围过滤
         if self.time_range:
@@ -184,12 +184,12 @@ class TemplateFileSource(SourceFunction):
         
         return file_path
 
-    def execute(self) -> Optional[AI_Template]:
+    def execute(self) -> Optional[ModelContext]:
         """
-        读取下一个AI_Template
+        读取下一个ModelContext
         
         Returns:
-            Optional[AI_Template]: 加载的模板，如果没有更多文件则返回None
+            Optional[ModelContext]: 加载的模板，如果没有更多文件则返回None
         """
         # 最多尝试读取10个文件（避免无限循环）
         max_attempts = 10
@@ -214,7 +214,7 @@ class TemplateFileSource(SourceFunction):
                 
                 # 每加载10个模板记录一次统计
                 if self.loaded_count % 10 == 0:
-                    self.logger.info(f"TemplateFileSource: {self.loaded_count} templates loaded")
+                    self.logger.info(f"ContextFileSource: {self.loaded_count} templates loaded")
                 
                 return template
             
@@ -229,13 +229,13 @@ class TemplateFileSource(SourceFunction):
         """重置数据源到初始状态"""
         self.current_file_index = 0
         self.loaded_count = 0
-        self.logger.info("TemplateFileSource reset to initial state")
+        self.logger.info("ContextFileSource reset to initial state")
 
     def skip_to_index(self, index: int):
         """跳转到指定的文件索引"""
         if 0 <= index < len(self.template_files):
             self.current_file_index = index
-            self.logger.info(f"TemplateFileSource skipped to index {index}")
+            self.logger.info(f"ContextFileSource skipped to index {index}")
         else:
             self.logger.warning(f"Invalid index {index}, valid range: 0-{len(self.template_files)-1}")
 
@@ -279,7 +279,7 @@ class TemplateIndexManager:
     
     def __init__(self, base_directory: str = None):
         if base_directory is None:
-            base_directory = TemplateFileSource.get_default_template_directory()
+            base_directory = ContextFileSource.get_default_template_directory()
         
         self.base_directory = Path(base_directory)
         self.index_file = self.base_directory / "template_index.json"
