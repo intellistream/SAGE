@@ -58,5 +58,5 @@ sage_examples/logs
 sage_examples/logs/**
 /.env
 dist/
-
+drafts/
 data/template_data
