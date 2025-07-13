@@ -62,8 +62,8 @@ class DataStream(Generic[T]):
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, 'sink')
         tr = SinkTransformation(self._environment,function,*args,**kwargs)
-        return self._apply(tr)
-
+        self._apply(tr)
+        return self  # sink不返回新的DataStream，因为它是终端操作
 
 
 

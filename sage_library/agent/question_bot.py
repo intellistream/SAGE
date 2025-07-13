@@ -5,7 +5,7 @@ from jinja2 import Template
 from sage_core.function.map_function import MapFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_common_funs.utils.generator_model import apply_generator_model
-from sage_common_funs.utils.template import AI_Template
+from sage_library.utils.template import AI_Template
 
 # 问题生成的prompt模板
 QUESTION_GENERATION_PROMPT = '''You are a Question Generator that creates diverse, realistic user questions for testing AI systems. Your task is to generate {{ num_questions }} random questions that represent real-world user scenarios.

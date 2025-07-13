@@ -3,7 +3,7 @@ from typing import List, Dict, Union, Tuple
 from jinja2 import Template
 from sage_core.function.map_function import MapFunction
 from sage_utils.custom_logger import CustomLogger
-from sage_common_funs.utils.template import AI_Template
+from sage_library.utils.template import AI_Template
 from sage_common_funs.utils.generator_model import apply_generator_model
 
 # 搜索查询优化的prompt模板
