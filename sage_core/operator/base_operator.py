@@ -72,6 +72,10 @@ class BaseOperator(ABC):
                 self.logger.debug(f"Operator {self.name} processed payload with result: {result}")
             if result is not None:
                 self.emit(result)
+            from sage_core.function.base_function import StatefulFunction
+            if isinstance(self.function, StatefulFunction):
+                # 调用 save_state
+                self.function.save_state()
         except Exception as e:
             self.logger.error(f"Error in {self.name}.receive_packet(): {e}", exc_info=True)
 
