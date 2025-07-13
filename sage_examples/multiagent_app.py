@@ -7,6 +7,8 @@ from sage_library.agent.chief_bot import ChiefBot
 from sage_library.utils.template_sink import TemplateFileSink
 from sage_library.agent.searcher_bot import SearcherBot
 from sage_library.tools.searcher_tool import BochaSearchTool
+
+
 def pipeline_run():
     """创建并运行数据处理管道"""
     env = LocalEnvironment()

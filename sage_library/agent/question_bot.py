@@ -5,7 +5,7 @@ from jinja2 import Template
 from sage_core.function.map_function import MapFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_common_funs.utils.generator_model import apply_generator_model
-from sage_library.utils.template import AI_Template
+from sage_library.context.model_context import ModelContext
 
 # 问题生成的prompt模板
 QUESTION_GENERATION_PROMPT = '''You are a Question Generator that creates diverse, realistic user questions for testing AI systems. Your task is to generate {{ num_questions }} random questions that represent real-world user scenarios.
@@ -63,7 +63,7 @@ class QuestionBot(MapFunction):
     """
     问题生成Bot - 生成多样化的用户问题场景
     输入: 任意数据（通常是触发信号）
-    输出: AI_Template (包含生成的随机问题)
+    输出: ModelContext (包含生成的随机问题)
     """
     
     def __init__(self, config: dict, questions_per_batch: int = 5, 
@@ -267,17 +267,17 @@ class QuestionBot(MapFunction):
         
         return enhanced_questions
 
-    def _create_ai_template_from_question(self, question: str) -> AI_Template:
+    def _create_ModelContext_from_question(self, question: str) -> ModelContext:
         """
-        从问题创建AI_Template
+        从问题创建ModelContext
         
         Args:
             question: 生成的问题
             
         Returns:
-            AI_Template: 包含问题的模板
+            ModelContext: 包含问题的模板
         """
-        template = AI_Template(
+        template = ModelContext(
             sequence=self.generation_count,
             raw_question=question
         )
@@ -317,7 +317,7 @@ class QuestionBot(MapFunction):
         # 随机选择一个问题
         return random.choice(valid_questions)
 
-    def execute(self, trigger_data: Any = None) -> AI_Template:
+    def execute(self, trigger_data: Any = None) -> ModelContext:
         """
         执行问题生成
         
@@ -325,7 +325,7 @@ class QuestionBot(MapFunction):
             trigger_data: 触发数据（通常被忽略）
             
         Returns:
-            AI_Template: 包含生成问题的模板
+            ModelContext: 包含生成问题的模板
         """
         try:
             self.logger.debug(f"QuestionBot generating question #{self.generation_count + 1}")
@@ -351,8 +351,8 @@ class QuestionBot(MapFunction):
             # 6. 选择最终问题
             final_question = self._validate_and_select_question(enhanced_questions)
             
-            # 7. 创建AI_Template
-            result_template = self._create_ai_template_from_question(final_question)
+            # 7. 创建ModelContext
+            result_template = self._create_ModelContext_from_question(final_question)
             
             self.logger.info(f"Generated question #{self.generation_count}: '{final_question[:50]}...'")
             
@@ -363,7 +363,7 @@ class QuestionBot(MapFunction):
             
             # 错误处理：生成一个简单的备用问题
             fallback_question = self._add_manual_variations()
-            error_template = self._create_ai_template_from_question(fallback_question)
+            error_template = self._create_ModelContext_from_question(fallback_question)
             
             # 在prompts中记录错误信息
             error_prompt = {
@@ -420,13 +420,13 @@ class EnhancedQuestionBot(QuestionBot):
         
         return random.choice(templates)
 
-    def execute(self, trigger_data: Any = None) -> AI_Template:
+    def execute(self, trigger_data: Any = None) -> ModelContext:
         """增强版执行逻辑"""
         
         # 30%的机会使用领域特定生成
         if self.domain_focus and random.random() < 0.3:
             domain_question = self._generate_domain_specific_question()
-            return self._create_ai_template_from_question(domain_question)
+            return self._create_ModelContext_from_question(domain_question)
         
         # 否则使用标准生成
         return super().execute(trigger_data)

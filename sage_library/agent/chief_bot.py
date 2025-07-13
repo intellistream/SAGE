@@ -1,15 +1,15 @@
 from typing import List, Tuple, Dict, Any
 import json
 import re
-from ..utils.template import AI_Template
+from ..context.model_context import ModelContext
 from sage_core.function.flatmap_function import FlatMapFunction
 from sage_library.utils.openaiclient import OpenAIClient
 
 class ChiefBot(FlatMapFunction):
     """
     ChiefBot Agent - 作为入口代理，分析查询并决定使用哪些下游工具
-    输入: AI_Template (只包含raw_question)
-    输出: List[AI_Template] - 每个template包含增强信息和正确的tool_name
+    输入: ModelContext (只包含raw_question)
+    输出: List[ModelContext] - 每个template包含增强信息和正确的tool_name
     """
     
     @staticmethod
@@ -291,14 +291,14 @@ User Query: {{query}}"""
         filtered_tools.sort(key=lambda x: x.get("priority", 0), reverse=True)
         return filtered_tools[:max_tools]
     
-    def _create_enhanced_template(self, original_template: AI_Template, 
+    def _create_enhanced_template(self, original_template: ModelContext, 
                                 tool_info: Dict[str, Any], 
-                                analysis: str) -> AI_Template:
+                                analysis: str) -> ModelContext:
         """为特定工具创建增强的template"""
         tool_name = tool_info.get("tool_name")
         
         # 创建新的template - 修复这里的问题
-        enhanced_template = AI_Template(
+        enhanced_template = ModelContext(
             sequence=original_template.sequence,
             timestamp=original_template.timestamp,
             uuid=original_template.uuid,
@@ -329,7 +329,7 @@ Execute your task and provide a clear, focused result."""
             self.tool_usage_stats[tool_name] = 0
         self.tool_usage_stats[tool_name] += 1
     
-    def execute(self, template: AI_Template) -> List[AI_Template]:
+    def execute(self, template: ModelContext) -> List[ModelContext]:
         """执行Chief Agent逻辑"""
         try:
             self.query_count += 1
@@ -391,7 +391,7 @@ Execute your task and provide a clear, focused result."""
             if not result_templates and self.tool_selection_config.get("fallback_to_direct_response", True):
                 self.logger.info("No tools selected, creating direct response template")
                 
-                direct_template = AI_Template(
+                direct_template = ModelContext(
                     sequence=template.sequence,
                     timestamp=template.timestamp,
                     uuid=template.uuid,
@@ -417,7 +417,7 @@ Execute your task and provide a clear, focused result."""
             self.logger.error(f"ChiefBot execution failed: {e}", exc_info=True)
             
             # 返回错误处理的template
-            error_template = AI_Template(
+            error_template = ModelContext(
                 sequence=template.sequence,
                 timestamp=template.timestamp,
                 uuid=template.uuid,

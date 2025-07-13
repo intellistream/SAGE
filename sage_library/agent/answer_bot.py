@@ -6,7 +6,7 @@ from sage_core.function.map_function import MapFunction
 from sage_utils.custom_logger import CustomLogger
 
 from ..utils.openaiclient import OpenAIClient
-from ..utils.template import AI_Template
+from ..context.model_context import ModelContext
 
 # 集成上下文的prompt模板
 CONTEXT_INTEGRATED_PROMPT = '''You are an intelligent AI assistant with comprehensive access to multiple information sources. Your task is to provide a complete, accurate, and well-reasoned answer to the user's question using all available context and information.
@@ -47,7 +47,7 @@ Now, please answer the user's question using all available context and informati
 
 class ContextAnswerBot(MapFunction):
     """
-    集成上下文的AnswerBot - 使用AI_Template中的所有信息源来生成完整回答
+    集成上下文的AnswerBot - 使用ModelContext中的所有信息源来生成完整回答
     包括raw_question、retriever_chunks、previous_response等所有上下文
     """
 
@@ -72,12 +72,12 @@ class ContextAnswerBot(MapFunction):
         
         self.logger.info("ContextAnswerBot initialized - ready to process comprehensive context")
 
-    def _build_comprehensive_prompts(self, template: AI_Template) -> List[Dict[str, str]]:
+    def _build_comprehensive_prompts(self, template: ModelContext) -> List[Dict[str, str]]:
         """
-        基于AI_Template的所有上下文构建comprehensive prompts
+        基于ModelContext的所有上下文构建comprehensive prompts
         
         Args:
-            template: AI_Template对象，包含所有上下文信息
+            template: ModelContext对象，包含所有上下文信息
             
         Returns:
             List[Dict[str, str]]: 构建好的prompts列表
@@ -116,23 +116,23 @@ class ContextAnswerBot(MapFunction):
         
         return prompts
 
-    def _validate_template(self, template: AI_Template) -> bool:
+    def _validate_template(self, template: ModelContext) -> bool:
         """
-        验证AI_Template是否包含必要的信息
+        验证ModelContext是否包含必要的信息
         
         Args:
-            template: AI_Template对象
+            template: ModelContext对象
             
         Returns:
             bool: 是否有效
         """
         if not template.raw_question or not template.raw_question.strip():
-            self.logger.warning("AI_Template missing raw_question")
+            self.logger.warning("ModelContext missing raw_question")
             return False
         
         return True
 
-    def _log_context_summary(self, template: AI_Template) -> None:
+    def _log_context_summary(self, template: ModelContext) -> None:
         """
         记录上下文信息摘要，用于调试
         """
@@ -144,15 +144,15 @@ class ContextAnswerBot(MapFunction):
                          f"Retriever_chunks={chunks_count}, "
                          f"Previous_response={has_previous}")
 
-    def execute(self, template: AI_Template) -> AI_Template:
+    def execute(self, template: ModelContext) -> ModelContext:
         """
         执行完整的上下文集成回答生成
         
         Args:
-            template: AI_Template对象，包含所有上下文信息
+            template: ModelContext对象，包含所有上下文信息
             
         Returns:
-            AI_Template: 更新了response的AI_Template对象
+            ModelContext: 更新了response的ModelContext对象
         """
         try:
             self.logger.debug(f"ContextAnswerBot processing template UUID: {template.uuid}")
@@ -250,7 +250,7 @@ Provide a comprehensive, well-structured answer that:
 Please ensure your response is clear, accurate, and helpful.
         ''')
 
-    def _build_enhanced_prompts(self, template: AI_Template) -> List[Dict[str, str]]:
+    def _build_enhanced_prompts(self, template: ModelContext) -> List[Dict[str, str]]:
         """构建增强版的prompts"""
         
         # 计算信息源数量
@@ -280,7 +280,7 @@ Please ensure your response is clear, accurate, and helpful.
             {"role": "user", "content": f"Please provide your comprehensive analysis and answer."}
         ]
 
-    def execute(self, template: AI_Template) -> AI_Template:
+    def execute(self, template: ModelContext) -> ModelContext:
         """执行增强版的上下文集成回答"""
         try:
             if not self._validate_template(template):
