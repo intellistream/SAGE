@@ -10,5 +10,6 @@ class AI_Template:
     # Generator content
     raw_question: str = None
     retriver_chunks: List[str] = field(default_factory=list)
+    prompts: List[Dict[str, str]] = field(default_factory=list)
     response: str = None
     uuid: str = field(default_factory=lambda: str(uuid4()))
