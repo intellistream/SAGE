@@ -19,3 +19,24 @@ chief_bot:
 
 chief_bot_sink:
   stage_directory: "chief_bot"
+
+searcher_bot:
+  method: "openai"
+  model_name: "qwen-turbo"
+  api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  seed: 42
+
+searcher_bot_sink:
+  stage_directory: "chief_bot"
+
+
+
+searcher_tool:
+  url: "https://api.bochaai.com/v1/web-search"
+  api_key: "sk-455d6a2c79464dd2959197477a908e53"
+  seed: 42
+
+
+searcher_tool_sink:
+  stage_directory: "searcher_tool"

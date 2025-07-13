@@ -1,5 +1,5 @@
-import os
-from typing import List, Dict, Union, Tuple
+import os, time
+from typing import List, Dict, Union, Tuple, Any
 from jinja2 import Template
 from sage_core.function.map_function import MapFunction
 from sage_utils.custom_logger import CustomLogger
@@ -23,13 +23,20 @@ SEARCH_QUERY_OPTIMIZATION_PROMPT = '''You are a search query optimization specia
 ## No Previous Retrieved Information Available
 {%- endif %}
 
+{%- if existing_search_queries and existing_search_queries|length > 0 %}
+## Previous Search Queries:
+{% for query in existing_search_queries %}
+- {{ query }}
+{% endfor %}
+{%- endif %}
+
 ## Your Task:
 Analyze the original question and existing retrieved content, then determine what additional information is needed. Design 1-3 optimized search queries that will help gather the missing information.
 
 ## Instructions:
 1. **Gap Analysis**: Identify what information is missing or incomplete
 2. **Query Design**: Create specific, targeted search queries
-3. **Avoid Redundancy**: Don't search for information already well-covered
+3. **Avoid Redundancy**: Don't search for information already well-covered or previously searched
 4. **Be Strategic**: Focus on the most important missing pieces
 
 ## Response Format (JSON):
@@ -50,20 +57,21 @@ Analyze the original question and existing retrieved content, then determine wha
 - Prioritize queries that directly address the user's question
 - Make queries specific and targeted
 - Limit to maximum 3 queries to avoid information overload
+- Avoid duplicating previous search queries
 '''
 
-class SearchBot(MapFunction):
+class SearcherBot(MapFunction):
     """
     中游搜索Bot - 分析AI_Template并设计优化的搜索查询
     输入: AI_Template (包含raw_question和retriver_chunks)
-    输出: Tuple[AI_Template, List[str]] - 原始template和搜索查询列表
+    输出: AI_Template - 增强的template，包含tool_config中的search_queries
     """
     
-    def __init__(self, config: dict, max_queries: int = 3, **kwargs):
+    def __init__(self, config: dict, **kwargs):
         super().__init__(**kwargs)
         
         self.config = config
-        self.max_queries = max_queries
+        self.max_queries = config.get("max_queries", 3)
         
         # 初始化LLM模型用于查询优化
         self.model = apply_generator_model(
@@ -79,7 +87,7 @@ class SearchBot(MapFunction):
         
         self.query_count = 0
         
-        self.logger.info(f"SearchBot initialized with max_queries: {max_queries}")
+        self.logger.info(f"SearcherBot initialized with max_queries: {self.max_queries}")
 
     def _analyze_information_completeness(self, template: AI_Template) -> Dict[str, any]:
         """
@@ -95,6 +103,8 @@ class SearchBot(MapFunction):
             "has_question": bool(template.raw_question and template.raw_question.strip()),
             "has_retrieved_content": bool(template.retriver_chunks),
             "content_count": len(template.retriver_chunks) if template.retriver_chunks else 0,
+            "has_existing_queries": template.has_search_queries(),
+            "existing_queries_count": len(template.get_search_queries()),
             "needs_search": True  # 默认需要搜索，由LLM决定
         }
         
@@ -113,7 +123,8 @@ class SearchBot(MapFunction):
         # 准备模板数据
         template_data = {
             'raw_question': template.raw_question or "No question provided",
-            'retriver_chunks': template.retriver_chunks or []
+            'retriver_chunks': template.retriver_chunks or [],
+            'existing_search_queries': template.get_search_queries()
         }
         
         # 渲染system prompt
@@ -209,16 +220,59 @@ class SearchBot(MapFunction):
         记录搜索分析信息
         """
         existing_chunks = len(template.retriver_chunks) if template.retriver_chunks else 0
+        existing_queries = len(template.get_search_queries())
         
         self.logger.debug(f"Search analysis: "
                          f"Question='{template.raw_question[:50]}...', "
                          f"Existing_chunks={existing_chunks}, "
-                         f"Generated_queries={len(queries)}")
+                         f"Previous_queries={existing_queries}, "
+                         f"New_queries={len(queries)}")
         
         for i, query in enumerate(queries, 1):
-            self.logger.debug(f"Search query {i}: {query}")
+            self.logger.debug(f"New search query {i}: {query}")
 
-    def execute(self, template: AI_Template) -> Tuple[AI_Template, List[str]]:
+    def _update_template_with_search_results(self, template: AI_Template, 
+                                           search_queries: List[str], 
+                                           optimization_result: Dict[str, Any]) -> AI_Template:
+        """
+        更新template，添加搜索相关的信息到tool_config
+        
+        Args:
+            template: 原始template
+            search_queries: 生成的搜索查询
+            optimization_result: LLM的完整优化结果
+            
+        Returns:
+            AI_Template: 更新后的template
+        """
+        # 获取现有的搜索查询
+        existing_queries = template.get_search_queries()
+        
+        # 合并新的搜索查询（避免重复）
+        all_queries = existing_queries.copy()
+        for query in search_queries:
+            if query not in all_queries:
+                all_queries.append(query)
+        
+        # 设置搜索查询和分析结果
+        template.set_search_queries(all_queries, optimization_result)
+        
+        # 添加优化元数据
+        optimization_metadata = {
+            "searcher_bot_run_count": template.get_tool_config("optimization_metadata", {}).get("searcher_bot_run_count", 0) + 1,
+            "new_queries_generated": len(search_queries),
+            "total_queries": len(all_queries),
+            "generation_timestamp": int(time.time() * 1000),
+            "max_queries_limit": self.max_queries
+        }
+        
+        template.set_tool_config("optimization_metadata", optimization_metadata)
+        
+        self.logger.debug(f"Updated template with {len(search_queries)} new queries, total: {len(all_queries)}")
+        
+        return template
+
+    def execute(self, template: AI_Template) -> AI_Template:
         """
         执行搜索查询优化
         
@@ -226,15 +280,15 @@ class SearchBot(MapFunction):
             template: AI_Template对象，包含原始问题和已检索内容
             
         Returns:
-            Tuple[AI_Template, List[str]]: 原始template和优化的搜索查询列表
+            AI_Template: 增强的template，包含搜索查询配置
         """
         try:
-            self.logger.debug(f"SearchBot processing template UUID: {template.uuid}")
+            self.logger.debug(f"SearcherBot processing template UUID: {template.uuid}")
             
             # 1. 验证输入
             if not self._validate_template(template):
-                self.logger.warning("Invalid template, returning empty search queries")
-                return template, []
+                self.logger.warning("Invalid template, returning original template")
+                return template
             
             # 2. 分析信息完整性
             analysis = self._analyze_information_completeness(template)
@@ -256,20 +310,25 @@ class SearchBot(MapFunction):
             # 6. 提取搜索查询
             search_queries = self._extract_search_queries(optimization_result)
             
-            # 7. 记录分析结果
-            self._log_search_analysis(template, search_queries)
+            # 7. 更新template
+            enhanced_template = self._update_template_with_search_results(
+                template, search_queries, optimization_result
+            )
             
-            self.logger.info(f"SearchBot generated {len(search_queries)} optimized queries (#{self.query_count})")
+            # 8. 记录分析结果
+            self._log_search_analysis(enhanced_template, search_queries)
             
-            return template, search_queries
+            self.logger.info(f"SearcherBot generated {len(search_queries)} optimized queries (#{self.query_count})")
+            
+            return enhanced_template
             
         except Exception as e:
-            self.logger.error(f"SearchBot execution failed: {e}")
+            self.logger.error(f"SearcherBot execution failed: {e}")
             
-            # 出错时返回原始template和空查询列表
-            return template, []
+            # 出错时返回原始template
+            return template
 
-class EnhancedSearchBot(SearchBot):
+class EnhancedSearchBot(SearcherBot):
     """
     增强版搜索Bot - 支持更多定制化功能
     """
@@ -294,34 +353,38 @@ class EnhancedSearchBot(SearchBot):
         # 如果已有足够的内容，可能不需要额外搜索
         total_content_length = sum(len(chunk) for chunk in template.retriver_chunks)
         
+        # 检查是否已经进行过多次搜索优化
+        metadata = template.get_tool_config("optimization_metadata", {})
+        run_count = metadata.get("searcher_bot_run_count", 0)
+        
         # 这里可以设置更复杂的判断逻辑
-        return total_content_length > 2000 and len(template.retriver_chunks) >= 3
+        return (total_content_length > 2000 and len(template.retriver_chunks) >= 3) or run_count >= 3
 
-    def execute(self, template: AI_Template) -> Tuple[AI_Template, List[str]]:
+    def execute(self, template: AI_Template) -> AI_Template:
         """
         增强版的搜索查询优化执行
         """
         try:
             # 检查是否应该跳过搜索
             if self._should_skip_search(template):
-                self.logger.info("Sufficient information available, skipping search optimization")
-                return template, []
+                self.logger.info("Sufficient information available or max runs reached, skipping search optimization")
+                return template
             
             # 执行标准搜索优化
-            result_template, search_queries = super().execute(template)
+            enhanced_template = super().execute(template)
             
             # 如果没有生成查询且设置了fallback，使用原始问题作为查询
-            if not search_queries and self.fallback_to_original:
+            if not enhanced_template.has_search_queries() and self.fallback_to_original:
                 self.logger.info("No optimized queries generated, falling back to original question")
-                search_queries = [template.raw_question]
+                enhanced_template.set_search_queries([template.raw_question])
             
-            return result_template, search_queries
+            return enhanced_template
             
         except Exception as e:
             self.logger.error(f"EnhancedSearchBot failed: {e}")
             
-            # 错误处理：如果设置了fallback，至少返回原始问题
+            # 错误处理：如果设置了fallback，至少返回包含原始问题的template
             if self.fallback_to_original:
-                return template, [template.raw_question]
-            else:
-                return template, []
+                template.set_search_queries([template.raw_question])
+            
+            return template

@@ -2,7 +2,7 @@ import os
 import json
 import requests
 from typing import Tuple, List, Any, Dict
-from .tools.template import AI_Template
+from ..utils.template import AI_Template
 from sage_core.function.map_function import MapFunction
 from sage_core.function.flatmap_function import FlatMapFunction
 from sage_utils.custom_logger import CustomLogger
@@ -14,12 +14,12 @@ class BochaSearchTool(MapFunction):
     输出: AI_Template (将搜索结果整合到retriver_chunks中)
     """
 
-    def __init__(self, api_key: str = None, max_results_per_query: int = 3, **kwargs):
+    def __init__(self, config: dict, **kwargs):
         super().__init__(**kwargs)
         
-        self.url = "https://api.bochaai.com/v1/web-search"
-        self.api_key = api_key or "sk-455d6a2c79464dd2959197477a908e53"
-        self.max_results_per_query = max_results_per_query
+        self.url = config.get("url", "https://api.bochasearch.com/search")
+        self.api_key = config.get("api_key", os.getenv("BOCHA_API_KEY"))
+        self.max_results_per_query = config.get("max_results_per_query", 3)
         
         self.headers = {
             'Authorization': self.api_key,
@@ -28,7 +28,7 @@ class BochaSearchTool(MapFunction):
         
         self.search_count = 0
         
-        self.logger.info(f"BochaSearchTool initialized with max_results_per_query: {max_results_per_query}")
+        self.logger.info(f"BochaSearchTool initialized with max_results_per_query: {self.max_results_per_query}")
 
     def _execute_single_search(self, query: str) -> Dict[str, Any]:
         """
@@ -117,7 +117,7 @@ Source: {url}"""
                         f"New_chunks={total_new_chunks}, "
                         f"Template_UUID={template.uuid}")
 
-    def execute(self, data: Tuple[AI_Template, List[str]]) -> AI_Template:
+    def execute(self, template: AI_Template) -> AI_Template:
         """
         执行搜索并将结果集成到AI_Template中
         
@@ -128,8 +128,7 @@ Source: {url}"""
             AI_Template: 更新了retriver_chunks的模板
         """
         try:
-            template, search_queries = data
-            
+            search_queries = template.get_search_queries()
             self.logger.debug(f"BochaSearchTool processing {len(search_queries)} queries for template {template.uuid}")
             
             # 如果没有搜索查询，直接返回原模板
