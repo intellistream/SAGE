@@ -31,7 +31,7 @@ class TestSageServerAPI(unittest.TestCase):
 
     def test_signal_api(self):
         """测试 /start/{jobId} 接口"""
-        job_id = "a7f7fb23-b4e6-40e4-8fb7-6880ba2a72d8"
+        job_id = "c0755891-5744-49a1-9ca7-372cb32c5eee"
         try:
             #  确保服务器已启动
             time1 = time.time()
