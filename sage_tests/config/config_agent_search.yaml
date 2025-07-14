@@ -1,0 +1,9 @@
+source:
+  data_path: "./sage/api/operator/operator_test/question_news.txt"
+
+agent:
+  method: "openai"
+  model_name: "qwen-max"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  api_key: ""
+  seed: 42

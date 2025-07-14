@@ -1,5 +1,10 @@
 #!/bin/bash
 
+MARKER_DIR="$HOME/.sage_setup"
+mkdir -p "$MARKER_DIR"
+
+echo "[$(date '+%H:%M:%S')] setup.sh sees CI='$CI'"
+
 # Interactive Bash Script for SAGE Project Setup
 # Dynamically detects the Docker container name and reuses it across functions.
 
@@ -18,7 +23,10 @@ function print_header() {
 }
 
 function pause() {
+  # 仅当 stdin 是 tty 且 CI 环境变量未设置时才真正 pause
+  if [[ -t 0 && -z "$CI" ]]; then
     read -p "Press [Enter] to continue..."
+  fi
 }
 
 function detect_container() {
@@ -83,27 +91,56 @@ function check_huggingface_auth() {
         HUGGINGFACE_LOGGED_IN=0
     fi
 }
-
 function configure_huggingface_auth() {
-    detect_container || return
-    echo "===================================================="
-    echo "         Configuring Hugging Face Authentication"
-    echo "===================================================="
-    echo "Hugging Face authentication is required to run the SAGE system."
-    echo "Please enter your Hugging Face token to log in."
-    echo "You can find or generate your token here: https://huggingface.co/settings/tokens"
-    echo "If you want to use huggingface mirror, refer to https://hf-mirror.com/"
-    read -sp "Enter your Hugging Face token: " HF_TOKEN
-    echo ""
-    docker exec -it "$DOCKER_CONTAINER_NAME" bash -c "huggingface-cli login --token $HF_TOKEN"
-    if docker exec -it "$DOCKER_CONTAINER_NAME" huggingface-cli whoami &>/dev/null; then
-        echo "Hugging Face authentication successful!"
-        HUGGINGFACE_LOGGED_IN=1
-    else
-        echo "Hugging Face authentication failed. Please check your token and try again."
-        HUGGINGFACE_LOGGED_IN=0
+  echo "===================================================="
+  echo "         Configuring Hugging Face Authentication"
+  echo "===================================================="
+
+  export HF_ENDPOINT=https://hf-mirror.com
+  # 1) 本地或 CI 下 Host 端登录
+  if [[ -n "${CI:-}" ]]; then
+    # CI 模式：必须通过环境变量传入 HF_TOKEN
+    if [[ -z "${HF_TOKEN:-}" ]]; then
+      echo "❌ CI detected but HF_TOKEN is not set. Please set the HF_TOKEN secret."
+      exit 1
     fi
-    pause
+    echo "🔑 Logging in on Host via HF_TOKEN from environment…"
+    huggingface-cli login --token "${HF_TOKEN}"
+  else
+    # 交互模式：提示用户输入
+    echo "Please enter your Hugging Face token (https://huggingface.co/settings/tokens):"
+    read -sp "Token: " HF_TOKEN
+    echo ""
+    huggingface-cli login --token "${HF_TOKEN}"
+  fi
+
+  # 2) 验证 Host 端登录
+  if huggingface-cli whoami &>/dev/null; then
+    echo "✅ Host Hugging Face authentication successful!"
+  else
+    echo "❌ Host Hugging Face authentication failed."
+    [[ -n "${CI:-}" ]] && exit 1
+  fi
+
+  # 3) 如果用户在 Docker 容器里也想做同样的登录
+  if [[ -n "${DOCKER_CONTAINER_NAME:-}" ]]; then
+    echo "🐳 Also logging into container '$DOCKER_CONTAINER_NAME'…"
+    docker exec -i "${DOCKER_CONTAINER_NAME}" \
+      huggingface-cli login --token "${HF_TOKEN}"
+
+    if docker exec -i "${DOCKER_CONTAINER_NAME}" \
+          huggingface-cli whoami &>/dev/null; then
+      echo "✅ Container Hugging Face authentication successful!"
+      HUGGINGFACE_LOGGED_IN=1
+    else
+      echo "❌ Container Hugging Face authentication failed."
+      HUGGINGFACE_LOGGED_IN=0
+      [[ -n "${CI:-}" ]] && exit 1
+    fi
+  fi
+
+  # 4) 交互时候 pause，否则直接返回
+  pause
 }
 
 function run_debug_main() {
@@ -151,40 +188,155 @@ function display_ide_setup() {
     pause
 }
 
+
+create_sage_env_without_docker() {
+    # 检查是否已安装 conda
+    if ! command -v conda &> /dev/null; then
+        echo "❌ Conda 未安装，请先安装 Miniconda 或 Anaconda"
+        return 1
+    fi
+
+    # 幂等：如果 env 已存在，则跳过
+    if conda env list | grep -q '^sage[[:space:]]'; then
+        echo "  ➜ Conda env 'sage' already exists, skipping creation."
+    else
+        echo "🚀 正在创建名为 'sage' 的 Conda 环境（Python 3.11）..."
+        conda create -y -n sage python=3.11
+    fi
+
+    # 激活环境
+    echo "✅ 环境创建成功。要激活它，请运行："
+    echo "   conda activate sage"
+}
+
+function install_necessary_dependencies() {
+    echo "Installing necessary dependencies..."
+    # 如果不是 root，则加 sudo
+    if [[ "$(id -u)" -ne 0 ]]; then
+        SUDO='sudo'
+    else
+        SUDO=''
+    fi
+
+    # 幂等：只装一次
+    DEPS_DONE="$MARKER_DIR/deps_installed"
+    if [[ -f "$DEPS_DONE" ]]; then
+        echo "  ➜ Dependencies already installed, skipping."
+        return
+    fi
+
+    # 更新源并安装
+    $SUDO apt-get update -y
+    $SUDO apt-get install -y --no-install-recommends \
+        swig cmake build-essential
+    $SUDO rm -rf /var/lib/apt/lists/*
+    echo "Dependencies installed successfully."
+    touch "$DEPS_DONE"
+}
+
+
+function minimal_setup() {
+    echo "Install necessary dependencies..."
+    install_necessary_dependencies 
+    echo "Setting up Conda environment without Docker..."
+    create_sage_env_without_docker 
+    echo "activate the Conda environment with:"
+    echo "conda activate sage"
+    install_sage
+    echo "Hugging Face authentication is required to run the SAGE system."
+    configure_huggingface_auth
+    echo "Minimal setup completed successfully."
+    pause
+}
+
+function setup_with_ray() {
+    echo "Setting up SAGE with Ray..."
+    minimal_setup
+    echo "Installing Ray..."
+    conda activate sage
+    pip install remote[default]
+    echo "Ray setup completed successfully."
+    pause
+}
+
+function setup_with_docker() {
+    echo "Setup with Docker..."
+    check_docker_installed
+    start_docker_container
+    setup_conda_environment
+    configure_huggingface_auth
+    echo "Setup with Docker completed successfully."
+    install_sage
+    pause
+}
+
+function full_setup() {
+    echo "Starting full setup..."
+    check_docker_installed 
+    start_docker_container
+    install_dependencies
+    setup_conda_environment
+    configure_huggingface_auth
+    echo "Full setup completed successfully."
+    install_sage
+    pause
+}
+
+function run_example_scripts() {
+    echo "Running example using following command:"
+    echo "python app/datastream_rag_pipeline.py"
+    pause
+}
+
+function install_sage() {
+    echo "Running pip install . to test the package installation..."
+    source "$(conda info --base)/etc/profile.d/conda.sh"
+    conda activate sage
+    pip install .
+    if [ $? -eq 0 ]; then
+        echo "Package installed successfully."
+    else
+        echo "Package installation failed."
+    fi
+    pause
+}
+
 function main_menu() {
     while true; do
         clear
         print_header
         echo "Select an option to proceed:"
-        echo "1. Check Docker Installation"
-        echo "2. Start Docker Container"
-        echo "3. Install Dependencies (GitHub Credentials Required)"
-        echo "4. Set Up Conda Environment"
-        echo "5. Configure Hugging Face Authentication"
-        echo "6. Run debug_main.py"
-        echo "7. Enter Docker Instance"
-        echo "8. IDE Setup Guide"
-        echo "9. Troubleshooting Guide"
-        echo "0. Exit"
-        echo "===================================================="
-        read -p "Enter your choice [0-9]: " choice
+        echo "1.Minimal Setup (Set Up Conda Environment without Docker)"
+        echo "2.Setup with Docker (Start Docker Container, Set Up Conda Environment)"
+        echo "3.Full Setup (Start Docker Container, Install Dependencies including CANDY, Set Up Conda Environment)"
+        echo "4.Enter Docker Instance "
+        echo "5.run example scripts"
+        echo "6.IDE Setup Guide (Set Up Conda Environment)"
+        echo "7.troubleshooting"
+        echo "8.Install CANDY in Docker Instance (Optional)"
+        echo "0.Exit"
+        pause
+         echo "===================================================="
+        read -p "Enter your choice [0-6]: " choice
         case $choice in
-            1) check_docker_installed ;;
-            2) start_docker_container ;;
-            3) install_dependencies ;;
-            4) setup_conda_environment ;;
-            5) configure_huggingface_auth ;;
-            6) run_debug_main ;;
-            7) enter_docker_instance ;;
-            8) display_ide_setup ;;
-            9) troubleshooting ;;
-            0)
-                echo "Exiting setup script. Goodbye!"
-                exit 0 ;;
+            1) minimal_setup ;;
+            # 2) setup_with_ray ;;
+            2) setup_with_docker ;;
+            3) full_setup ;;
+            4) enter_docker_instance ;;
+            5) run_example_scripts ;;
+            6) display_ide_setup ;;
+            7) troubleshooting ;;
+            8) install_dependencies ;;
+            0) echo "Exiting setup script. Goodbye!"
+               exit 0 ;;
             *) echo "Invalid choice. Please try again."; pause ;;
         esac
     done
 }
 
-# Start the Interactive Menu
-main_menu
+# 只有在交互式终端下才调用 main_menu
+# 在 CI（非交互）环境 stdin 通常不是 tty，或者 CI=true
+if [[ -t 0 && -z "$CI" ]]; then
+  main_menu
+fi
