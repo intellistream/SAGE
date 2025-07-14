@@ -41,3 +41,4 @@ uvicorn==0.34.3
 zhipuai==2.1.5.20250526
 ray[default]==2.37.0
 python-multipart
+huggingface_hub

@@ -41,6 +41,28 @@ You will be prompted to select one of the following modes:
 
 2. **Setup with Docker**  
    Launches a pre-configured Docker container and sets up the Conda environment inside it.
+    
+   **Prerequisites**:
+   - If you are located in mainland China, you need to configure Docker to use a mirror registry to ensure smooth image pulling. Follow the steps below:
+     - Open or create the Docker daemon configuration file: `/etc/docker/daemon.json`.
+     - Add the following content to configure a mirror registry:
+       ```json
+       {
+         "registry-mirrors": ["https://docker.xuanyuan.me", ... ]
+       }
+       ```
+     - Restart Docker to apply the changes:
+       ```bash
+       systemctl daemon-reload
+       systemctl restart docker
+       ```
+     - Verify the configuration:
+       ```bash
+       docker info
+       ```
+       Ensure the `Registry Mirrors` section lists the configured mirror.
+
+   - Ensure Docker is installed and running on your system.
 
 3. **Full Setup**  
    Launches the Docker container, installs all required dependencies (including **CANDY**, our in-house vector database), and sets up the Conda environment.
