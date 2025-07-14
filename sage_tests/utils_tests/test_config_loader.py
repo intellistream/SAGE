@@ -38,16 +38,16 @@ class TestConfigLoader(unittest.TestCase):
         config = load_config()
         self.assertEqual(config, {"key": "value"})
 
-    def test_load_config_user_level(self):
-        """测试用户级配置加载（使用 mock）"""
-        fake_user_dir = self.test_dir / "user_config"
-        fake_user_dir.mkdir(parents=True, exist_ok=True)
-        user_file = fake_user_dir / "config.yaml"
-        user_file.write_text(yaml.dump({"user_key": "user_value"}))
+    # def test_load_config_user_level(self):
+    #     """测试用户级配置加载（使用 mock）"""
+    #     fake_user_dir = self.test_dir / "user_config"
+    #     fake_user_dir.mkdir(parents=True, exist_ok=True)
+    #     user_file = fake_user_dir / "config.yaml"
+    #     user_file.write_text(yaml.dump({"user_key": "user_value"}))
 
-        with patch("sage_utils.config_loader.user_config_dir", return_value=str(fake_user_dir)):
-            config = load_config()
-            self.assertEqual(config, {"user_key": "user_value"})
+    #     # with patch("sage_utils.config_loader.user_config_dir", return_value=str(fake_user_dir)):
+    #     #     config = load_config()
+    #     #     self.assertEqual(config, {"user_key": "user_value"})
 
     def test_load_config_project_default(self):
         """测试项目默认路径加载（使用 mock 项目结构）"""

@@ -55,9 +55,9 @@ class BaseEnvironment:
         from sage_core.engine import Engine
         engine = Engine.get_instance()
         engine.submit_env(self)
-        # time.sleep(10) # 等待管道启动
-        while (self.initialized() is False):
-            time.sleep(1)
+        # # time.sleep(10) # 等待管道启动
+        # while (self.initialized() is False):
+        #     time.sleep(1)
 
     def run_once(self, node:str = None):
         """

@@ -142,16 +142,21 @@ class MixedDAG():
         self.logger.info(f"Submitting MixedDAG '{self.name}'")
         try:
             for node_name, node in self.nodes.items():
-                local_runtime = LocalThreadPool.get_instance()
-                local_runtime.submit_node(node)
+                if node.is_spout is False:
+                    local_runtime = LocalThreadPool.get_instance()
+                    local_runtime.submit_node(node)
         except Exception as e:
             self.logger.error(f"Failed to submit MixedDAG '{self.name}': {e}", exc_info=True)
 
     def execute_once(self, spout_node_name:str = None):
         self.logger.info(f"executing once")
         if(spout_node_name is None):
-            for node_name, node_instance in self.spout_nodes:
-                node_instance.trigger()
+            for node_name, node_instance in self.nodes.items():
+                # print(f"triggering spout node: {node_name}, is_spout:{node_instance.is_spout}")
+                if(node_instance.is_spout):
+                    node_instance.trigger()
+                    self.logger.debug(f"triggering spout node: {node_name}")
+
         elif self.spout_nodes.get(spout_node_name, None) is not None:
             node = self.spout_nodes[spout_node_name]
             self.logger.debug(f"Running spout node: {node_name}")
