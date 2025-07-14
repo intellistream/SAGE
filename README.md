@@ -63,6 +63,28 @@ You will be prompted to select one of the following modes:
        Ensure the `Registry Mirrors` section lists the configured mirror.
 
    - Ensure Docker is installed and running on your system.
+   - **Install NVIDIA GPU Support** (Optional, for GPU acceleration):
+     To make `nvidia-smi` visible within Docker containers, follow these steps:
+     1. Add the NVIDIA GPG key and repository:
+        ```bash
+        curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+        distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+        curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+        ```
+     2. Update the apt index and install `nvidia-docker2`:
+        ```bash
+        sudo apt update
+        sudo apt install -y nvidia-docker2
+        ```
+     3. Restart the Docker service:
+        ```bash
+        sudo systemctl restart docker
+        ```
+     4. Verify GPU support:
+        ```bash
+        docker run --rm --gpus all nvidia/cuda:11.8.0-base nvidia-smi
+        ```
+        Ensure the output displays GPU information.
 
 3. **Full Setup**  
    Launches the Docker container, installs all required dependencies (including **CANDY**, our in-house vector database), and sets up the Conda environment.
@@ -176,10 +198,11 @@ from sage_utils.config_loader import load_config
 
 config = load_config("config.yaml")
 
+# Build pipeline using Fluent API
 env = LocalEnvironment()
 env.set_memory(config=None)
 
-query_stream = (env
+query_stream = (pipeline
    .from_source(FileSource, config["source"])
    .map(DenseRetriever, config["retriever"])
    .map(QAPromptor, config["promptor"])
@@ -187,6 +210,7 @@ query_stream = (env
    .sink(TerminalSink, config["sink"])
 )
 
+# Submit and run the pipeline
 try:
    env.submit()
    env.run_once() 
