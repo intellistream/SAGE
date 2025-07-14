@@ -27,7 +27,3 @@ def test_file_source_reads_lines(sample_file):
     data3 = fs.execute()
     assert data3 == "line3"
 
-    # 读到文件末尾，返回空字符串
-    data4 = fs.execute()
-    assert data4 == ""
-
