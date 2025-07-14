@@ -1,0 +1,9 @@
+{
+    "id":4,
+    "name":"QAPromptor",
+    "description":"A prompt generator for QA tasks",
+    "code":"",
+    "transformation":"map",
+    "isCustom":false
+}
+

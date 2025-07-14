@@ -1,0 +1,8 @@
+{
+    "id":8,
+    "name":"TerminalSink",
+    "description":"Writes the received message to the console",
+    "code":"",
+    "transformation":"sink",
+    "isCustom":false
+}
