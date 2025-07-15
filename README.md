@@ -63,7 +63,7 @@ You will be prompted to select one of the following modes:
        Ensure the `Registry Mirrors` section lists the configured mirror.
 
    - Ensure Docker is installed and running on your system.
-   - **Install NVIDIA GPU Support** (Optional, for GPU acceleration):
+   - **Install NVIDIA GPU Support** :
      To make `nvidia-smi` visible within Docker containers, follow these steps:
      - Add the NVIDIA GPG key and repository:
         ```bash
