@@ -154,11 +154,10 @@ from sage_utils.config_loader import load_config
 
 config = load_config("config.yaml")
 
-# Build pipeline using Fluent API
 env = LocalEnvironment()
 env.set_memory(config=None)
 
-query_stream = (pipeline
+query_stream = (env
    .from_source(FileSource, config["source"])
    .map(DenseRetriever, config["retriever"])
    .map(QAPromptor, config["promptor"])
@@ -166,7 +165,6 @@ query_stream = (pipeline
    .sink(TerminalSink, config["sink"])
 )
 
-# Submit and run the pipeline
 try:
    env.submit()
    env.run_once() 
