@@ -264,9 +264,9 @@ function setup_with_docker() {
     check_docker_installed
     start_docker_container
     setup_conda_environment
+    install_sage
     configure_huggingface_auth
     echo "Setup with Docker completed successfully."
-    install_sage
     pause
 }
 
@@ -276,9 +276,9 @@ function full_setup() {
     start_docker_container
     install_dependencies
     setup_conda_environment
+    install_sage
     configure_huggingface_auth
     echo "Full setup completed successfully."
-    install_sage
     pause
 }
 

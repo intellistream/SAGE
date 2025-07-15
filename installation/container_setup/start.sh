@@ -3,8 +3,8 @@
 DOCKER_COMPOSE_FILE="$(dirname "$0")/docker-compose.yml"
 
 # Build and run the Docker container
-docker-compose -f "$DOCKER_COMPOSE_FILE" down --remove-orphans
-docker-compose -f "$DOCKER_COMPOSE_FILE" up -d
+docker compose -f "$DOCKER_COMPOSE_FILE" down --remove-orphans
+docker compose -f "$DOCKER_COMPOSE_FILE" up -d
 
 # Display SSH connection information
 echo "Docker container is running. You can connect via SSH with:"
