@@ -24,8 +24,24 @@ def get_memory(config = None, remote:bool = False, env_name: Optional[str] = Non
             # 如果已存在该collection，则直接返回
             return collection
         
-            # 如果不存在则创建相应类型的collection
         
+        # 这里给个config的示例
+        # VDB类型的collection配置示例
+        # config = {
+        #   'collection_name': 'memprompt_collection',
+        #   'backend_type': 'VDB',
+        #   'embedding_model_name': 'default',
+        #   'dim': 384,
+        #   'description': 'A collection for locomo experiment'
+        # }
+        # KV类型的collection配置示例
+        # config = {
+        #   'collection_name': 'kvtest_collection',
+        #   'backend_type': 'KV',
+        #   'description': 'A collection for key-value storage'
+        # }
+        
+        # 如果不存在则创建相应类型的collection
         if config.get("backend_type") == "VDB":
             col = manager.create_collection(
                     name=config["collection_name"],
@@ -34,14 +50,26 @@ def get_memory(config = None, remote:bool = False, env_name: Optional[str] = Non
                     dim=config["dim"],
                     description=config["description"],
                     as_ray_actor=remote, 
-                    session_folder = CustomLogger.get_session_folder() if remote else None,
-                    env_name = env_name
+                    session_folder=CustomLogger.get_session_folder() if remote else None,
+                    env_name=env_name
                 )
-            return col
-    
-        else:
-            pass
 
+        elif config.get("backend_type") == "KV":
+            col = manager.create_collection(
+                    name=config["collection_name"],
+                    backend_type="KV",
+                    description=config["description"],
+                    as_ray_actor=remote, 
+                    session_folder=CustomLogger.get_session_folder() if remote else None,
+                    env_name=env_name
+            )
+            
+        else:
+            raise ValueError(f"Unsupported backend type: {config.get('backend_type')}")
+        
+        return col
+    
+    # 使用默认collection配置
     else:
         # config 示例，可注释
         collection_name = "vdb_test"
