@@ -65,22 +65,22 @@ You will be prompted to select one of the following modes:
    - Ensure Docker is installed and running on your system.
    - **Install NVIDIA GPU Support** (Optional, for GPU acceleration):
      To make `nvidia-smi` visible within Docker containers, follow these steps:
-     1. Add the NVIDIA GPG key and repository:
+     - Add the NVIDIA GPG key and repository:
         ```bash
         curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
         distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
         curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
         ```
-     2. Update the apt index and install `nvidia-docker2`:
+     - Update the apt index and install `nvidia-docker2`:
         ```bash
         sudo apt update
         sudo apt install -y nvidia-docker2
         ```
-     3. Restart the Docker service:
+     - Restart the Docker service:
         ```bash
         sudo systemctl restart docker
         ```
-     4. Verify GPU support:
+     - Verify GPU support:
         ```bash
         docker run --rm --gpus all nvidia/cuda:11.8.0-base nvidia-smi
         ```
