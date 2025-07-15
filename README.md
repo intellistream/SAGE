@@ -41,6 +41,50 @@ You will be prompted to select one of the following modes:
 
 2. **Setup with Docker**  
    Launches a pre-configured Docker container and sets up the Conda environment inside it.
+    
+   **Prerequisites**:
+   - If you are located in mainland China, you need to configure Docker to use a mirror registry to ensure smooth image pulling. Follow the steps below:
+     - Open or create the Docker daemon configuration file: `/etc/docker/daemon.json`.
+     - Add the following content to configure a mirror registry:
+       ```json
+       {
+         "registry-mirrors": ["https://docker.xuanyuan.me", ... ]
+       }
+       ```
+     - Restart Docker to apply the changes:
+       ```bash
+       systemctl daemon-reload
+       systemctl restart docker
+       ```
+     - Verify the configuration:
+       ```bash
+       docker info
+       ```
+       Ensure the `Registry Mirrors` section lists the configured mirror.
+
+   - Ensure Docker is installed and running on your system.
+   - **Install NVIDIA GPU Support** :
+     To make `nvidia-smi` visible within Docker containers, follow these steps:
+     - Add the NVIDIA GPG key and repository:
+        ```bash
+        curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+        distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+        curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+        ```
+     - Update the apt index and install `nvidia-docker2`:
+        ```bash
+        sudo apt update
+        sudo apt install -y nvidia-docker2
+        ```
+     - Restart the Docker service:
+        ```bash
+        sudo systemctl restart docker
+        ```
+     - Verify GPU support:
+        ```bash
+        docker run --rm --gpus all nvidia/cuda:11.8.0-base nvidia-smi
+        ```
+        Ensure the output displays GPU information.
 
 3. **Full Setup**  
    Launches the Docker container, installs all required dependencies (including **CANDY**, our in-house vector database), and sets up the Conda environment.
@@ -154,10 +198,11 @@ from sage_utils.config_loader import load_config
 
 config = load_config("config.yaml")
 
+# Build pipeline using Fluent API
 env = LocalEnvironment()
 env.set_memory(config=None)
 
-query_stream = (env
+query_stream = (pipeline
    .from_source(FileSource, config["source"])
    .map(DenseRetriever, config["retriever"])
    .map(QAPromptor, config["promptor"])
@@ -165,6 +210,7 @@ query_stream = (env
    .sink(TerminalSink, config["sink"])
 )
 
+# Submit and run the pipeline
 try:
    env.submit()
    env.run_once() 
