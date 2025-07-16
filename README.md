@@ -186,13 +186,12 @@ SAGE uses a **fluent-style API** to declaratively define RAG pipelines. Here's h
 
 ---
 
-
 ```python
 from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.source import FileSource
-from sage_common_funs.rag.retriever import DenseRetriever
-from sage_common_funs.rag.promptor import QAPromptor
-from sage_common_funs.rag.generator import OpenAIGenerator
+from sage_libs.rag import DenseRetriever
+from sage_libs.rag import QAPromptor
+from sage_libs.rag import OpenAIGenerator
 from sage_common_funs.io.sink import TerminalSink
 from sage_utils.config_loader import load_config
 
@@ -203,21 +202,21 @@ env = LocalEnvironment()
 env.set_memory(config=None)
 
 query_stream = (pipeline
-   .from_source(FileSource, config["source"])
-   .map(DenseRetriever, config["retriever"])
-   .map(QAPromptor, config["promptor"])
-   .map(OpenAIGenerator, config["generator"])
-   .sink(TerminalSink, config["sink"])
-)
+                .from_source(FileSource, config["source"])
+                .map(DenseRetriever, config["retriever"])
+                .map(QAPromptor, config["promptor"])
+                .map(OpenAIGenerator, config["generator"])
+                .sink(TerminalSink, config["sink"])
+                )
 
 # Submit and run the pipeline
 try:
-   env.submit()
-   env.run_once() 
-   time.sleep(5) 
-   env.stop()
+    env.submit()
+    env.run_once()
+    time.sleep(5)
+    env.stop()
 finally:
-   env.close()
+    env.close()
 
 ```
 
