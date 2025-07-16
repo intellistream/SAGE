@@ -32,7 +32,6 @@ class BaseDAGNode(ABC):
             self.runtime_context = runtime_context
 
             self.operator = self.operator_factory.create_operator(name=self.name, runtime_context = runtime_context)
-            # self.operator.runtime_init(runtime_context)
             # Create logger first
             self.logger = CustomLogger(
                 filename=f"Node_{runtime_context.name}",

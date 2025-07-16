@@ -27,26 +27,19 @@ class FlatMapOperator(BaseOperator):
     """
     
     def __init__(self, *args, **kwargs):
-        self.out:Collector
         super().__init__(*args, **kwargs)
-
-
+        self.out:Collector = Collector(
+            operator=self,
+            session_folder=self.runtime_context.session_folder,
+            name=self.name
+        )
+        self.function.insert_collector(self.out)
         # # 验证函数类型
         # if not isinstance(self.function, FlatMapFunction):
         #     raise TypeError(f"{self.__class__.__name__} requires FlatMapFunction, got {type(self.function)}")
         
 
 
-
-
-    def runtime_init(self, ctx):
-        super().runtime_init(ctx)
-        self.out = Collector(
-            operator=self,
-            session_folder=ctx.session_folder,
-            name=self.name
-        )
-        self.function.insert_collector(self.out)
 
 
 
