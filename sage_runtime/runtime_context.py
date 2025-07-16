@@ -18,7 +18,7 @@ class RuntimeContext:
         self.memory_collection:Any = env.memory_collection
         self.parallel_index:int = graph_node.parallel_index
         self.parallelism:int = graph_node.parallelism
-        self._logger:CustomLogger
+        self._logger:CustomLogger = None
 
     def retrieve(self,  query: str = None, collection_config: Optional[Dict] = None) -> List[str]:
         """
