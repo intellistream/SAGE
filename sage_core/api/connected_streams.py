@@ -1,10 +1,11 @@
 from __future__ import annotations
-from typing import Type, TYPE_CHECKING, Union, Any, List, TypeVar, Generic, get_args, get_origin
+from typing import Type, TYPE_CHECKING, Union, Any, List, TypeVar, Generic, get_args, get_origin, Callable
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.transformation.map_transformation import MapTransformation
 from sage_core.transformation.sink_transformation import SinkTransformation
 from sage_core.function.base_function import BaseFunction
 from sage_core.function.lambda_function import wrap_lambda
+from sage_core.function.comap_function import BaseCoMapFunction
 if TYPE_CHECKING:
     from .datastream import DataStream
     from .env import BaseEnvironment
@@ -73,10 +74,14 @@ class ConnectedStreams:
         boundaries and routes each input to its corresponding mapN method.
         
         Args:
-            function: CoMap function class that implements map0, map1, ..., mapN methods.
-                    Must inherit from BaseCoMapFunction and have is_comap=True.
-            *args: Additional arguments passed to the CoMap function constructor
-            **kwargs: Additional keyword arguments passed to the CoMap function constructor
+            function: One of the following:
+                - CoMap function class that implements map0, map1, ..., mapN methods (class-based)
+                - List of callables [func0, func1, ..., funcN] (lambda list)
+                - Single callable for multiple function arguments (lambda args)
+            *args: When function is a class, additional constructor arguments.
+                   When function is callable(s), treated as additional functions.
+            **kwargs: When function is a class, additional constructor arguments.
+                     When function is callable(s), ignored with warning.
             
         Returns:
             DataStream: Result stream from coordinated processing of all input streams
@@ -86,7 +91,8 @@ class ConnectedStreams:
             TypeError: If function is not a valid CoMap function
             ValueError: If function doesn't support the required number of input streams
             
-        Example:
+        Examples:
+            Class-based approach:
             ```python
             class ProcessorCoMap(BaseCoMapFunction):
                 def map0(self, data):
@@ -180,6 +186,7 @@ class ConnectedStreams:
         tr.validate_input_streams(input_stream_count)
         
         return self._apply(tr)
+    
     def keyby(self, 
              key_selector: Union[Type[BaseFunction], List[Type[BaseFunction]]], 
              strategy: str = "hash") -> 'ConnectedStreams':
@@ -245,7 +252,222 @@ class ConnectedStreams:
         return ConnectedStreams(self._environment, keyed_transformations)
 
     # ---------------------------------------------------------------------
-    # internel methods
+    # CoMap function parsing methods
+    # ---------------------------------------------------------------------
+    def _parse_comap_functions(self, function: Union[Type[BaseFunction], callable, List[callable]], 
+                              input_stream_count: int, *args, **kwargs) -> tuple:
+        """
+        Parse different input formats for CoMap functions and return standardized format
+        
+        Args:
+            function: The function input (class, callable, or list of callables)
+            input_stream_count: Number of input streams requiring processing
+            *args: Additional arguments
+            **kwargs: Additional keyword arguments
+            
+        Returns:
+            tuple: (comap_function_class, final_args, final_kwargs)
+        """
+        # Case 1: Class-based CoMap function (existing approach)
+        if isinstance(function, type) and issubclass(function, BaseCoMapFunction):
+            return function, args, kwargs
+        
+        # Case 2: List of functions
+        if isinstance(function, list):
+            if args or kwargs:
+                self._warn_ignored_params("args/kwargs", args, kwargs)
+            return self._create_dynamic_comap_class(function, input_stream_count), (), {}
+        
+        # Case 3: Multiple function arguments (callables passed as separate args)
+        if callable(function):
+            # Collect all callable arguments
+            all_functions = [function] + [arg for arg in args if callable(arg)]
+            non_callable_args = [arg for arg in args if not callable(arg)]
+            
+            if non_callable_args or kwargs:
+                self._warn_ignored_params("non-callable args/kwargs", non_callable_args, kwargs)
+            
+            return self._create_dynamic_comap_class(all_functions, input_stream_count), (), {}
+        
+        # Case 4: Invalid input
+        raise ValueError(
+            f"Invalid function input for comap: {type(function)}. "
+            f"Expected: CoMap class, callable, or list of callables."
+        )
+    
+    def _create_dynamic_comap_class(self, function_list: List[callable], input_stream_count: int) -> Type[BaseCoMapFunction]:
+        """
+        Dynamically create a CoMap class from a list of functions
+        
+        Args:
+            function_list: List of callable functions
+            input_stream_count: Expected number of input streams
+            
+        Returns:
+            Type[BaseCoMapFunction]: Dynamically generated CoMap class
+        """
+        # Validate function count matches input stream count
+        if len(function_list) != input_stream_count:
+            raise ValueError(
+                f"Number of functions ({len(function_list)}) must match "
+                f"number of input streams ({input_stream_count}). "
+                f"Please provide exactly {input_stream_count} functions."
+            )
+        
+        # Validate all items are callable
+        for i, func in enumerate(function_list):
+            if not callable(func):
+                raise ValueError(f"Item at index {i} is not callable: {type(func).__name__}")
+        
+        # Create the dynamic class with all required methods defined inline
+        # We need to create a class dynamically with the required mapN methods
+        
+        # Create method definitions for dynamic class
+        class_methods = {
+            '__init__': lambda self: BaseCoMapFunction.__init__(self),
+            'is_comap': property(lambda self: True),
+            'execute': lambda self, data: self._raise_execute_error(),
+            '_raise_execute_error': lambda self: self._do_raise_execute_error(),
+            '_do_raise_execute_error': lambda self: (_ for _ in ()).throw(
+                NotImplementedError("CoMap functions use mapN methods, not execute()")
+            )
+        }
+        
+        # Add all required mapN methods
+        for i, func in enumerate(function_list):
+            method_name = f"map{i}"
+            # Create method that captures the function in closure
+            class_methods[method_name] = (lambda f: lambda self, data: f(data))(func)
+        
+        # Create the dynamic class
+        DynamicCoMapFunction = type(
+            'DynamicCoMapFunction',
+            (BaseCoMapFunction,),
+            class_methods
+        )
+        
+        return DynamicCoMapFunction
+    
+    def _warn_ignored_params(self, param_type: str, *params) -> None:
+        """
+        Warn user about ignored parameters in lambda/callable CoMap usage
+        
+        Args:
+            param_type: Description of ignored parameter type
+            *params: The ignored parameters
+        """
+        if any(params):
+            print(f"⚠️  Warning: {param_type} ignored in lambda/callable CoMap usage: {params}")
+
+    # ---------------------------------------------------------------------    # CoMap function parsing methods
+    # ---------------------------------------------------------------------
+    def _parse_comap_functions(self, function: Union[Type[BaseFunction], callable, List[callable]], 
+                              input_stream_count: int, *args, **kwargs) -> tuple:
+        """
+        Parse different input formats for CoMap functions and return standardized format
+        
+        Args:
+            function: The function input (class, callable, or list of callables)
+            input_stream_count: Number of input streams requiring processing
+            *args: Additional arguments
+            **kwargs: Additional keyword arguments
+            
+        Returns:
+            tuple: (comap_function_class, final_args, final_kwargs)
+        """
+        # Case 1: Class-based CoMap function (existing approach)
+        if isinstance(function, type) and issubclass(function, BaseCoMapFunction):
+            return function, args, kwargs
+        
+        # Case 2: List of functions
+        if isinstance(function, list):
+            if args or kwargs:
+                self._warn_ignored_params("args/kwargs", args, kwargs)
+            return self._create_dynamic_comap_class(function, input_stream_count), (), {}
+        
+        # Case 3: Multiple function arguments (callables passed as separate args)
+        if callable(function):
+            # Collect all callable arguments
+            all_functions = [function] + [arg for arg in args if callable(arg)]
+            non_callable_args = [arg for arg in args if not callable(arg)]
+            
+            if non_callable_args or kwargs:
+                self._warn_ignored_params("non-callable args/kwargs", non_callable_args, kwargs)
+            
+            return self._create_dynamic_comap_class(all_functions, input_stream_count), (), {}
+        
+        # Case 4: Invalid input
+        raise ValueError(
+            f"Invalid function input for comap: {type(function)}. "
+            f"Expected: CoMap class, callable, or list of callables."
+        )
+    
+    def _create_dynamic_comap_class(self, function_list: List[callable], input_stream_count: int) -> Type[BaseCoMapFunction]:
+        """
+        Dynamically create a CoMap class from a list of functions
+        
+        Args:
+            function_list: List of callable functions
+            input_stream_count: Expected number of input streams
+            
+        Returns:
+            Type[BaseCoMapFunction]: Dynamically generated CoMap class
+        """
+        # Validate function count matches input stream count
+        if len(function_list) != input_stream_count:
+            raise ValueError(
+                f"Number of functions ({len(function_list)}) must match "
+                f"number of input streams ({input_stream_count}). "
+                f"Please provide exactly {input_stream_count} functions."
+            )
+        
+        # Validate all items are callable
+        for i, func in enumerate(function_list):
+            if not callable(func):
+                raise ValueError(f"Item at index {i} is not callable: {type(func).__name__}")
+        
+        # Create the dynamic class with all required methods defined inline
+        # We need to create a class dynamically with the required mapN methods
+        
+        # Create method definitions for dynamic class
+        class_methods = {
+            '__init__': lambda self: BaseCoMapFunction.__init__(self),
+            'is_comap': property(lambda self: True),
+            'execute': lambda self, data: self._raise_execute_error(),
+            '_raise_execute_error': lambda self: self._do_raise_execute_error(),
+            '_do_raise_execute_error': lambda self: (_ for _ in ()).throw(
+                NotImplementedError("CoMap functions use mapN methods, not execute()")
+            )
+        }
+        
+        # Add all required mapN methods
+        for i, func in enumerate(function_list):
+            method_name = f"map{i}"
+            # Create method that captures the function in closure
+            class_methods[method_name] = (lambda f: lambda self, data: f(data))(func)
+        
+        # Create the dynamic class
+        DynamicCoMapFunction = type(
+            'DynamicCoMapFunction',
+            (BaseCoMapFunction,),
+            class_methods
+        )
+        
+        return DynamicCoMapFunction
+    
+    def _warn_ignored_params(self, param_type: str, *params) -> None:
+        """
+        Warn user about ignored parameters in lambda/callable CoMap usage
+        
+        Args:
+            param_type: Description of ignored parameter type
+            *params: The ignored parameters
+        """
+        if any(params):
+            print(f"⚠️  Warning: {param_type} ignored in lambda/callable CoMap usage: {params}")
+
+    # ---------------------------------------------------------------------
+    # internal methods
     # ---------------------------------------------------------------------
     def _apply(self, tr: BaseTransformation) -> 'DataStream':
         """将新 BaseTransformation 接入管线"""

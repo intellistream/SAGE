@@ -39,7 +39,7 @@ class BochaSearch:
         response = requests.request("POST", self.url, headers=self.headers, data=payload)
         return response.json()
 
-PREFIX = """Answer the following questions as best you can. You have access to the following tools:{tool_names}"""
+PREFIX = """You are a helpful assistant. Please avoid any sensitive, violent, or explicit content. Answer the following questions as best you can. You have access to the following tools:{tool_names}"""
 FORMAT_INSTRUCTIONS = """Always respond in the following JSON format:
 
 ```json
@@ -122,8 +122,7 @@ class BaseAgent(MapFunction):
             count += 1
             self.logger.debug(f"Step {count}: Processing query: {query}")
             if count > self.max_steps:
-                # raise ValueError("Max steps exceeded.")
-                return (query,"")
+                raise ValueError("Max steps exceeded.")
             
             prompt = self.get_prompt(query, agent_scratchpad)
             self.logger.debug(f"Prompt: {prompt}")

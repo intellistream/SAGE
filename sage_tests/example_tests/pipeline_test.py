@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.sink import FileSink
 from sage_common_funs.io.source import FileSource
-from sage_libs.rag import OpenAIGenerator
-from sage_libs.rag import QAPromptor
+from sage_libs.rag.generator import OpenAIGenerator
+from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.refiner import AbstractiveRecompRefiner
 
 from sage_utils.config_loader import load_config
