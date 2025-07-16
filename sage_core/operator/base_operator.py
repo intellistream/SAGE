@@ -64,7 +64,7 @@ class BaseOperator(ABC):
         """
         if self._emit_context is None:
             raise RuntimeError(f"Emit context not set for operator {self.name}")
-        
+        self.logger.debug(f"Emitting packet: {packet}")
         # 根据packet的分区信息选择路由策略
         if packet.is_keyed():
             self._emit_keyed_packet(packet)

@@ -180,7 +180,7 @@ class ConnectedStreams:
         from sage_core.transformation.comap_transformation import CoMapTransformation
         
         # Create CoMapTransformation
-        tr = CoMapTransformation(self._environment, comap_function, *final_args, **final_kwargs)
+        tr = CoMapTransformation(self._environment, function, *args, **kwargs)
         
         # Additional validation at transformation level
         tr.validate_input_streams(input_stream_count)
