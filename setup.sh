@@ -191,10 +191,6 @@ function configure_huggingface_auth() {
 
   # 4) 交互时候 pause，否则直接返回
   pause
-  fi
-
-  # 4) 交互时候 pause，否则直接返回
-  pause
 }
 
 function run_debug_main() {
