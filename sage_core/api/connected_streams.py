@@ -126,6 +126,70 @@ class ConnectedStreams:
         
         return self._apply(tr)
 
+    def keyby(self, 
+             key_selector: Union[Type[BaseFunction], List[Type[BaseFunction]]], 
+             strategy: str = "hash") -> 'ConnectedStreams':
+        """
+        Apply keyby partitioning to connected streams using composition approach
+        
+        Args:
+            key_selector: 
+                - Single BaseFunction: Apply same key extraction to all streams
+                - List[BaseFunction]: Apply different key extraction per stream (Flink-style)
+            strategy: Partitioning strategy ("hash", "broadcast", "round_robin")
+            
+        Returns:
+            ConnectedStreams: New ConnectedStreams with all streams keyed
+            
+        Example:
+            ```python
+            # Same key selector for all streams
+            keyed_streams = stream1.connect(stream2).keyby(UserIdExtractor)
+            
+            # Different key selector per stream (Flink-style)
+            keyed_streams = stream1.connect(stream2).keyby([UserIdExtractor, SessionIdExtractor])
+            
+            # Continue with further operations
+            result = keyed_streams.comap(JoinFunction).sink(OutputSink)
+            ```
+        """
+        if callable(key_selector) and not isinstance(key_selector, type):
+            raise NotImplementedError(
+                "Lambda functions are not supported for keyby operations. "
+                "Please use KeyByFunction classes."
+            )
+        
+        from .datastream import DataStream
+        
+        input_stream_count = len(self.transformations)
+        
+        if isinstance(key_selector, list):
+            # Flink-style: different key selector per stream
+            if len(key_selector) != input_stream_count:
+                raise ValueError(
+                    f"Key selector count ({len(key_selector)}) must match stream count ({input_stream_count})"
+                )
+            
+            # 为每个流分别应用keyby
+            keyed_transformations = []
+            for transformation, selector in zip(self.transformations, key_selector):
+                # 创建单独的DataStream并应用keyby
+                individual_stream = DataStream(self._environment, transformation)
+                keyed_stream = individual_stream.keyby(selector, strategy=strategy)
+                keyed_transformations.append(keyed_stream.transformation)
+            
+        else:
+            # 统一的key selector：为所有流应用相同的keyby
+            keyed_transformations = []
+            for transformation in self.transformations:
+                # 创建单独的DataStream并应用keyby
+                individual_stream = DataStream(self._environment, transformation)
+                keyed_stream = individual_stream.keyby(key_selector, strategy=strategy)
+                keyed_transformations.append(keyed_stream.transformation)
+        
+        # 返回新的ConnectedStreams，包含所有keyed transformations
+        return ConnectedStreams(self._environment, keyed_transformations)
+
     # ---------------------------------------------------------------------
     # internel methods
     # ---------------------------------------------------------------------
