@@ -20,7 +20,7 @@ class KeyByOperator(BaseOperator):
         self.logger.info(f"KeyByOperator '{self.name}' initialized with strategy: {partition_strategy}")
 
 
-    def receive_packet(self, packet: 'Packet' = None):
+    def process_packet(self, packet: 'Packet' = None):
         """重写packet处理，添加分区信息"""
         try:
             if packet is None or packet.payload is None:

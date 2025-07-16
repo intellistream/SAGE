@@ -13,7 +13,7 @@ class SinkOperator(BaseOperator):
         # if not isinstance(self.function, SinkFunction):
         #     raise TypeError(f"SinkOperator requires SinkFunction, got {type(self.function)}")
         
-    def receive_packet(self, packet: 'Packet' = None):
+    def process_packet(self, packet: 'Packet' = None):
         try:
             if packet is None or packet.payload is None:
                 self.logger.warning(f"Operator {self.name} received empty data")
