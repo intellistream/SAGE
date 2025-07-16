@@ -14,7 +14,7 @@ class MapOperator(BaseOperator):
         # if not isinstance(self.function, MapFunction):
         #     raise TypeError(f"{self.__class__.__name__} requires MapFunction, got {type(self.function)}")
         
-    def receive_packet(self, packet: 'Packet' = None):
+    def process_packet(self, packet: 'Packet' = None):
         try:
             if packet is None or packet.payload is None:
                 self.logger.warning(f"Operator {self.name} received empty data")

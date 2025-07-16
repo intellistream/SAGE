@@ -37,7 +37,7 @@ class FlatMapOperator(BaseOperator):
         self.function.insert_collector(self.out)
         self.logger.info(f"FlatMapOperator '{self.name}' initialized with collector")
 
-    def receive_packet(self, packet: 'Packet' = None):
+    def process_packet(self, packet: 'Packet' = None):
         """
         重写packet处理，支持FlatMap的多输出特性
         """
@@ -77,7 +77,7 @@ class FlatMapOperator(BaseOperator):
             self.logger.debug(f"FlatMapOperator '{self.name}' finished processing packet")
             
         except Exception as e:
-            self.logger.error(f"Error in FlatMapOperator '{self.name}'.receive_packet(): {e}", exc_info=True)
+            self.logger.error(f"Error in FlatMapOperator '{self.name}'.process_packet(): {e}", exc_info=True)
 
     def _emit_iterable_with_partition_info(self, result: Any, source_packet: 'Packet'):
         """

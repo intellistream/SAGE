@@ -10,7 +10,7 @@ class SourceOperator(BaseOperator):
         super().__init__(*args, **kwargs)
 
         
-    def receive_packet(self, packet: 'Packet' = None):
+    def process_packet(self, packet: 'Packet' = None):
         try:
             if packet is not None or packet.payload is not None:
                 self.logger.warning(f"Operator {self.name} received empty data")

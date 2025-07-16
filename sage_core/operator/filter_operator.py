@@ -29,7 +29,7 @@ class FilterOperator(BaseOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def receive_packet(self, packet: 'Packet' = None):
+    def process_packet(self, packet: 'Packet' = None):
         """Filter需要特殊处理：可能不产生输出"""
         try:
             if packet is None or packet.payload is None:

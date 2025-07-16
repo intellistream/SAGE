@@ -44,12 +44,16 @@ class BaseOperator(ABC):
         except Exception as e:
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
 
-    @abstractmethod
     def receive_packet(self, packet: 'Packet' = None):
-        return
+        self.process_packet(packet)
         from sage_core.function.base_function import StatefulFunction
         if isinstance(self.function, StatefulFunction):
             self.function.save_state()
+
+    @abstractmethod
+    def process_packet(self, packet: 'Packet' = None):
+        return
+
 
     def emit_packet(self, packet: 'Packet'):
         """
