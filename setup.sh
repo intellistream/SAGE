@@ -249,6 +249,18 @@ function minimal_setup() {
     pause
 }
 
+function minimal_setup_without_HF(){
+    echo "Install necessary dependencies..."
+    install_necessary_dependencies 
+    echo "Setting up Conda environment without Docker..."
+    create_sage_env_without_docker 
+    echo "activate the Conda environment with:"
+    echo "conda activate sage"
+    install_sage
+    pause
+}
+
+
 function setup_with_ray() {
     echo "Setting up SAGE with Ray..."
     minimal_setup
