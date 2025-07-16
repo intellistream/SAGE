@@ -42,57 +42,24 @@ class CoMapOperator(BaseOperator):
         
         self.logger.debug(f"Validated CoMap function {type(self.function).__name__}")
     
-    def process(self, raw_data: Any = None, input_index: int = 0) -> Any:
-        """
-        处理数据，根据input_index路由到相应的mapN方法
-        
-        Args:
-            raw_data: 输入数据
-            input_index: 输入流索引，决定调用哪个mapN方法
-            
-        Returns:
-            处理后的结果
-            
-        Raises:
-            NotImplementedError: 如果对应的mapN方法未实现
-        """
-        if not self._validated:
-            raise RuntimeError("CoMapOperator not properly initialized.")
-        
-        if raw_data is None:
-            self.logger.warning(f"CoMapOperator {self.name} received empty data for input_index {input_index}")
-            return None
-        
+    def receive_packet(self, packet: 'Packet' = None):
+        """CoMap处理多输入，保持分区信息"""
         try:
-            # 根据input_index构造方法名
-            method_name = f"map{input_index}"
+            if packet is None or packet.payload is None:
+                return
             
-            # 检查方法是否存在
-            if not hasattr(self.function, method_name):
-                raise NotImplementedError(
-                    f"Method {method_name} not implemented for CoMap function "
-                    f"{self.function.__class__.__name__}. Available input streams: 0-{self._get_max_supported_index()}"
-                )
+            # 根据输入索引调用对应的mapN方法
+            input_index = packet.input_index
+            map_method = getattr(self.function, f'map{input_index}')
+            result = map_method(packet.payload)
             
-            # 获取并调用对应的mapN方法
-            method = getattr(self.function, method_name)
-            result = method(raw_data)
-            
-            self.logger.debug(
-                f"CoMapOperator {self.name} processed data via {method_name} with result: {result}"
-            )
-            
-            return result
-            
-        except NotImplementedError:
-            # 重新抛出NotImplementedError，不包装
-            raise
+            if result is not None:
+                # 继承原packet的分区信息
+                result_packet = packet.inherit_partition_info(result)
+                self.emit_packet(result_packet)
+                
         except Exception as e:
-            self.logger.error(
-                f"Error in {self.name}.process() calling {method_name}: {e}", 
-                exc_info=True
-            )
-            raise
+            self.logger.error(f"Error in CoMapOperator {self.name}: {e}", exc_info=True)
     
     def _get_max_supported_index(self) -> int:
         """
