@@ -1,0 +1,4 @@
+
+FAILED sage_tests/utils_tests/test_embedding.py::EmbeddingTestCase::test_jina - RuntimeError: Jina API call failed: 401 Client Error: Unauthorized for url: https:...
+FAILED sage_tests/utils_tests/test_embedding.py::EmbeddingTestCase::test_openai_api - openai.APIConnectionError: Connection error.
+================ 10 failed, 62 passed, 2 warnings in 251.46s (0:04:11) ===============
