@@ -83,7 +83,7 @@ class MemoryFunction(BaseFunction):
 
 class StatefulFunction(BaseFunction):
     """
-    有状态算子基类：自动在 runtime_init 恢复状态，
+    有状态算子基类：自动在 init 恢复状态，
     并可通过 save_state() 持久化。
     """
     # 子类可覆盖：只保存 include 中字段
@@ -93,14 +93,9 @@ class StatefulFunction(BaseFunction):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-    def runtime_init(self, ctx: 'RuntimeContext') -> None:
-        super().runtime_init(ctx)
-        # 注入上下文
-        self.runtime_context = ctx
         # 恢复上次 checkpoint
-        chkpt_dir = os.path.join(ctx.session_folder, ".sage_checkpoints")
-        chkpt_path = os.path.join(chkpt_dir, f"{ctx.name}.chkpt")
+        chkpt_dir = os.path.join(self.runtime_context.session_folder, ".sage_checkpoints")
+        chkpt_path = os.path.join(chkpt_dir, f"{self.runtime_context.name}.chkpt")
         load_function_state(self, chkpt_path)
 
     def save_state(self):

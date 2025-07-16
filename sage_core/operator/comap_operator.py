@@ -15,13 +15,9 @@ class CoMapOperator(BaseOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # 验证函数类型（在运行时初始化后进行）
-        self._validated = False
-    
-    def runtime_init(self, ctx) -> None:
-        """运行时初始化，验证函数类型"""
-        super().runtime_init(ctx)
         self._validate_function()
         self._validated = True
+
     
     def _validate_function(self) -> None:
         """
@@ -61,7 +57,7 @@ class CoMapOperator(BaseOperator):
             NotImplementedError: 如果对应的mapN方法未实现
         """
         if not self._validated:
-            raise RuntimeError("CoMapOperator not properly initialized. Call runtime_init() first.")
+            raise RuntimeError("CoMapOperator not properly initialized.")
         
         if raw_data is None:
             self.logger.warning(f"CoMapOperator {self.name} received empty data for input_index {input_index}")
