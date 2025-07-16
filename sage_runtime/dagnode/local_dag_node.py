@@ -21,33 +21,8 @@ class LocalDAGNode(BaseDAGNode):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-
-
-    
-    def runtime_init(self, runtime_context: 'RuntimeContext') -> None:
-        """
-        Initialize the runtime context and other parameters.
-        """
-        try:
-            self.runtime_context = runtime_context
-            self.logger = CustomLogger(
-                filename=f"Node_{runtime_context.name}",
-                env_name=runtime_context.env_name,
-                console_output="WARNING",
-                file_output="DEBUG",
-                global_output = "WARNING",
-                name = f"{runtime_context.name}_{self.__class__.__name__}"
-            )
-            self.operator = self.operator_factory.create_operator(name=self.name)
-            self.operator.runtime_init(runtime_context)
-            # Create logger first
-
-            self.input_buffer = LocalMessageQueue(name = self.name, env_name=runtime_context.env_name)  # Local input buffer for this node
-
-            # self.logger.info(f"type: {transformation.type}")
-            self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout})")
-        except Exception as e:
-            self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
+        self.input_buffer = LocalMessageQueue(name = self.name, env_name=self.runtime_context.env_name)  # Local input buffer for this node
+        self.logger.info(f"Initialized LocalDAGNode: {self.name} (spout: {self.is_spout})")
     
     def put(self, data_packet: Any):
         """
