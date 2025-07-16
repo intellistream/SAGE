@@ -20,8 +20,6 @@ class RuntimeContext:
         self.parallelism:int = graph_node.parallelism
         self._logger:CustomLogger = None
 
-
-
     def retrieve(self,  query: str = None, collection_config: Optional[Dict] = None) -> List[str]:
         """
         智能选择检索方式：Ray Actor远程调用或本地对象调用

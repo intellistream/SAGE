@@ -21,6 +21,29 @@ SAGE is a dataflow-native reasoning framework built from the ground up to suppor
 
 To accommodate different user environments and preferences, we provide **comprehensive setup scripts** that support multiple installation modes. Simply run the top-level `./setup.sh` script and choose from the following four installation options:
 
+# <div align="center">🧠 SAGE: A Dataflow-Native Framework for LLM Reasoning<div>
+
+
+SAGE is a dataflow-native reasoning framework built from the ground up to support modular, controllable, and transparent workflows over Large Language Models (LLMs). It addresses common problems in existing LLM-augmented systems (like RAG and Agents), such as hard-coded orchestration logic, opaque execution paths, and limited runtime control. SAGE introduces a dataflow-centric abstraction, modeling reasoning workflows as directed acyclic graphs (DAGs) composed of typed operators.
+
+![](./asset/framework.png)
+
+## ✨ Features
+
+- 🧩 **Declarative & Modular Composition**: Build complex reasoning pipelines from typed, reusable operators. The dataflow graph cleanly separates what to compute from how to compute it.
+
+- 🔀 **Unified Data and Control Flow**: Express conditional branching, tool routing, and fallback logic declaratively within the graph structure, eliminating brittle, imperative control code.
+
+- 💾 **Native Stateful Operators**: Memory is a first-class citizen. Model session, task, and long-term memory as stateful nodes directly within the graph for persistent, context-aware computation.
+
+- ⚡ **Asynchronous & Resilient Runtime**: The engine executes DAGs asynchronously in a non-blocking, data-driven manner. It features stream-aware queues, event-driven scheduling, and built-in backpressure to handle complex workloads gracefully.
+
+- 📊 **Built-in Observability & Introspection**: An interactive dashboard provides runtime instrumentation out-of-the-box. Visually inspect execution graphs, monitor operator-level metrics, and debug pipeline behavior in real-time.
+
+## 🔧 Installation
+
+To accommodate different user environments and preferences, we provide **comprehensive setup scripts** that support multiple installation modes. Simply run the top-level `./setup.sh` script and choose from the following four installation options:
+
 ```bash
 ./setup.sh
 ```
@@ -189,9 +212,9 @@ SAGE uses a **fluent-style API** to declaratively define RAG pipelines. Here's h
 ```python
 from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.source import FileSource
-from sage_libs.rag import DenseRetriever
-from sage_libs.rag import QAPromptor
-from sage_libs.rag import OpenAIGenerator
+from sage_libs.rag.retriever import DenseRetriever
+from sage_libs.rag.promptor import QAPromptor
+from sage_libs.rag.generator import OpenAIGenerator
 from sage_common_funs.io.sink import TerminalSink
 from sage_utils.config_loader import load_config
 

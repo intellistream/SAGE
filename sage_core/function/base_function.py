@@ -93,6 +93,7 @@ class StatefulFunction(BaseFunction):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # 注入上下文
         # 恢复上次 checkpoint
         chkpt_dir = os.path.join(self.runtime_context.session_folder, ".sage_checkpoints")
         chkpt_path = os.path.join(chkpt_dir, f"{self.runtime_context.name}.chkpt")
@@ -106,7 +107,6 @@ class StatefulFunction(BaseFunction):
         os.makedirs(base, exist_ok=True)
         path = os.path.join(base, f"{self.runtime_context.name}.chkpt")
         save_function_state(self, path)
-
 
 # class MemoryFunction(BaseFunction):
 #     def __init__(self):
