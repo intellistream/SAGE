@@ -18,7 +18,7 @@ class RuntimeContext:
         self.memory_collection:Any = env.memory_collection
         self.parallel_index:int = graph_node.parallel_index
         self.parallelism:int = graph_node.parallelism
-        self.logger:CustomLogger = None
+        self.logger:CustomLogger
 
     def create_logger(self): # 在operator里边创建
         self.logger =CustomLogger(
