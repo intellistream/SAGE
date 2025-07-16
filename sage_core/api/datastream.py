@@ -61,15 +61,9 @@ class DataStream(Generic[T]):
         tr = SinkTransformation(self._environment,function,*args,**kwargs)
         return self._apply(tr)
 
-<<<<<<< Updated upstream
-    def keyby(self, function: Union[Type[BaseFunction], callable], 
-            strategy: str = "hash") -> "DataStream":
-=======
-<<<<<<< Updated upstream
-=======
+
     def keyby(self, function: Union[Type[BaseFunction], callable], 
             strategy: str = "hash",*args, **kwargs) -> "DataStream":
->>>>>>> Stashed changes
         """
         Apply keyby transformation that partitions data based on extracted keys
         
@@ -96,15 +90,9 @@ class DataStream(Generic[T]):
             self._environment, 
             function, 
             strategy=strategy
-<<<<<<< Updated upstream
-        )
-        return self._apply(tr)
-=======
             ,*args, **kwargs
         )
         return self._apply(tr)
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 
 
 
