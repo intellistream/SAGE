@@ -15,6 +15,7 @@ CMakeUserPresets.json
 /.idea/deployment.xml
 /.idea/misc.xml
 /build/
+/build/
 /installation/candy.egg-info/
 /installation/build/
 /installation/candy/
@@ -22,12 +23,15 @@ CMakeUserPresets.json
 /installation/dist/
 /installation/candy/
 /sage.egg-info/
+/sage.egg-info/
 /deps/CANDY/.github/
+
 
 logs/
 output/
 .vscode/
 **/__pycache__/
+
 
 
 id_llm

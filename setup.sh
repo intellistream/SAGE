@@ -5,6 +5,11 @@ mkdir -p "$MARKER_DIR"
 
 echo "[$(date '+%H:%M:%S')] setup.sh sees CI='$CI'"
 
+MARKER_DIR="$HOME/.sage_setup"
+mkdir -p "$MARKER_DIR"
+
+echo "[$(date '+%H:%M:%S')] setup.sh sees CI='$CI'"
+
 # Interactive Bash Script for SAGE Project Setup
 # Dynamically detects the Docker container name and reuses it across functions.
 
@@ -25,7 +30,10 @@ function print_header() {
 function pause() {
   # 仅当 stdin 是 tty 且 CI 环境变量未设置时才真正 pause
   if [[ -t 0 && -z "$CI" ]]; then
+  # 仅当 stdin 是 tty 且 CI 环境变量未设置时才真正 pause
+  if [[ -t 0 && -z "$CI" ]]; then
     read -p "Press [Enter] to continue..."
+  fi
   fi
 }
 
@@ -110,7 +118,46 @@ function configure_huggingface_auth() {
     # 交互模式：提示用户输入
     echo "Please enter your Hugging Face token (https://huggingface.co/settings/tokens):"
     read -sp "Token: " HF_TOKEN
+  echo "===================================================="
+  echo "         Configuring Hugging Face Authentication"
+  echo "===================================================="
+
+  export HF_ENDPOINT=https://hf-mirror.com
+  # 1) 本地或 CI 下 Host 端登录
+  if [[ -n "${CI:-}" ]]; then
+    # CI 模式：必须通过环境变量传入 HF_TOKEN
+    if [[ -z "${HF_TOKEN:-}" ]]; then
+      echo "❌ CI detected but HF_TOKEN is not set. Please set the HF_TOKEN secret."
+      exit 1
+    fi
+    echo "🔑 Logging in on Host via HF_TOKEN from environment…"
+    huggingface-cli login --token "${HF_TOKEN}"
+  else
+    # 交互模式：提示用户输入
+    echo "Please enter your Hugging Face token (https://huggingface.co/settings/tokens):"
+    read -sp "Token: " HF_TOKEN
     echo ""
+    huggingface-cli login --token "${HF_TOKEN}"
+  fi
+
+  # 2) 验证 Host 端登录
+  if huggingface-cli whoami &>/dev/null; then
+    echo "✅ Host Hugging Face authentication successful!"
+  else
+    echo "❌ Host Hugging Face authentication failed."
+    [[ -n "${CI:-}" ]] && exit 1
+  fi
+
+  # 3) 如果用户在 Docker 容器里也想做同样的登录
+  if [[ -n "${DOCKER_CONTAINER_NAME:-}" ]]; then
+    echo "🐳 Also logging into container '$DOCKER_CONTAINER_NAME'…"
+    docker exec -i "${DOCKER_CONTAINER_NAME}" \
+      huggingface-cli login --token "${HF_TOKEN}"
+
+    if docker exec -i "${DOCKER_CONTAINER_NAME}" \
+          huggingface-cli whoami &>/dev/null; then
+      echo "✅ Container Hugging Face authentication successful!"
+      HUGGINGFACE_LOGGED_IN=1
     huggingface-cli login --token "${HF_TOKEN}"
   fi
 
@@ -136,7 +183,14 @@ function configure_huggingface_auth() {
       echo "❌ Container Hugging Face authentication failed."
       HUGGINGFACE_LOGGED_IN=0
       [[ -n "${CI:-}" ]] && exit 1
+      echo "❌ Container Hugging Face authentication failed."
+      HUGGINGFACE_LOGGED_IN=0
+      [[ -n "${CI:-}" ]] && exit 1
     fi
+  fi
+
+  # 4) 交互时候 pause，否则直接返回
+  pause
   fi
 
   # 4) 交互时候 pause，否则直接返回
@@ -330,7 +384,30 @@ function main_menu() {
         pause
          echo "===================================================="
         read -p "Enter your choice [0-6]: " choice
+        echo "1.Minimal Setup (Set Up Conda Environment without Docker)"
+        echo "2.Setup with Docker (Start Docker Container, Set Up Conda Environment)"
+        echo "3.Full Setup (Start Docker Container, Install Dependencies including CANDY, Set Up Conda Environment)"
+        echo "4.Enter Docker Instance "
+        echo "5.run example scripts"
+        echo "6.IDE Setup Guide (Set Up Conda Environment)"
+        echo "7.troubleshooting"
+        echo "8.Install CANDY in Docker Instance (Optional)"
+        echo "0.Exit"
+        pause
+         echo "===================================================="
+        read -p "Enter your choice [0-6]: " choice
         case $choice in
+            1) minimal_setup ;;
+            # 2) setup_with_ray ;;
+            2) setup_with_docker ;;
+            3) full_setup ;;
+            4) enter_docker_instance ;;
+            5) run_example_scripts ;;
+            6) display_ide_setup ;;
+            7) troubleshooting ;;
+            8) install_dependencies ;;
+            0) echo "Exiting setup script. Goodbye!"
+               exit 0 ;;
             1) minimal_setup ;;
             # 2) setup_with_ray ;;
             2) setup_with_docker ;;
@@ -347,6 +424,11 @@ function main_menu() {
     done
 }
 
+# 只有在交互式终端下才调用 main_menu
+# 在 CI（非交互）环境 stdin 通常不是 tty，或者 CI=true
+if [[ -t 0 && -z "$CI" ]]; then
+  main_menu
+fi
 # 只有在交互式终端下才调用 main_menu
 # 在 CI（非交互）环境 stdin 通常不是 tty，或者 CI=true
 if [[ -t 0 && -z "$CI" ]]; then

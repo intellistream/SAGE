@@ -10,7 +10,6 @@ from contextlib import redirect_stdout
 from dotenv import load_dotenv
 import os
 
-
 class TestSageServerAPI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
