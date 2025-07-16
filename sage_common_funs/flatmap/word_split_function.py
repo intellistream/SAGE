@@ -1,6 +1,6 @@
 from typing import Any, Callable, Union, Iterable, Optional
 
-from sage_core.api.function_api.flatmap_function import FlatMapFunction
+from sage_core.function.flatmap_function import FlatMapFunction
 
 
 
