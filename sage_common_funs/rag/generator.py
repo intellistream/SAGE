@@ -83,9 +83,10 @@ class OpenAIGeneratorWithHistory(StatefulFunction):
         self.history_turns = config.get("max_history_turns", 5)
         self.num = 1
 
-        # —— 恢复：如果前次有保存，则在初始化后恢复状态 —— 
-        # runtime_init 之前 runtime_context 可能尚未注入，延后到第一次 execute 中
-        self._restored = False
+        base = os.path.join(self.runtime_context.session_folder, ".sage_checkpoints")
+        os.makedirs(base, exist_ok=True)
+        path = os.path.join(base, f"{self.runtime_context.name}.chkpt")
+        load_function_state(self, path)
 
     def execute(self, data: List, **kwargs) -> Tuple[str, str]:
         """
@@ -93,13 +94,7 @@ class OpenAIGeneratorWithHistory(StatefulFunction):
         Where prompt_dict includes {"content": ...}
         """
         # 延迟恢复：在首次执行前根据 runtime_context 恢复状态
-        if not self._restored:
-            # 从 runtime_context 中获取 session_folder 与 name
-            base = os.path.join(self.runtime_context.session_folder, ".sage_checkpoints")
-            os.makedirs(base, exist_ok=True)
-            path = os.path.join(base, f"{self.runtime_context.name}.chkpt")
-            load_function_state(self, path)
-            self._restored = True
+
 
         user_query = data[0] if len(data) > 1 else None
         prompt_info = data[1] if len(data) > 1 else data

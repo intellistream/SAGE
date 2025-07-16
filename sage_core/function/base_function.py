@@ -93,8 +93,6 @@ class StatefulFunction(BaseFunction):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # runtime_context 会在 runtime_init 中注入
-        self.runtime_context = None
 
     def runtime_init(self, ctx: 'RuntimeContext') -> None:
         super().runtime_init(ctx)
