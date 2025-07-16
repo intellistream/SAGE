@@ -3,9 +3,11 @@ from typing import Type, TYPE_CHECKING, Union, Any, List, TypeVar, Generic, get_
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.transformation.map_transformation import MapTransformation
 from sage_core.transformation.sink_transformation import SinkTransformation
+from sage_core.transformation.join_transformation import JoinTransformation
 from sage_core.function.base_function import BaseFunction
 from sage_core.function.lambda_function import wrap_lambda
 from sage_core.function.comap_function import BaseCoMapFunction
+from sage_core.function.join_function import BaseJoinFunction
 if TYPE_CHECKING:
     from .datastream import DataStream
     from .env import BaseEnvironment
@@ -186,7 +188,56 @@ class ConnectedStreams:
         tr.validate_input_streams(input_stream_count)
         
         return self._apply(tr)
-    
+
+    # 在 connected_streams.py 中添加简化的join方法
+    def join(self, function: Union[Type[BaseJoinFunction], callable], *args, **kwargs) -> 'DataStream':
+        """
+        Join two keyed streams using a join function.
+        
+        Args:
+            function: Join function class implementing BaseJoinFunction
+            *args, **kwargs: Arguments passed to join function constructor
+            
+        Returns:
+            DataStream: Stream of join results
+            
+        Example:
+            ```python
+            class UserOrderJoin(BaseJoinFunction):
+                def execute(self, payload, key, tag):
+                    # tag 0: user data, tag 1: order data
+                    # 实现join逻辑并返回结果列表
+                    return [joined_result] if match else []
+            
+            result = (user_stream
+                .keyby(lambda x: x["user_id"])
+                .connect(order_stream.keyby(lambda x: x["user_id"]))
+                .join(UserOrderJoin)
+                .print("Join Results"))
+            ```
+        """
+        # 验证输入
+        if len(self.transformations) != 2:
+            raise ValueError(f"Join requires exactly 2 input streams, got {len(self.transformations)}")
+        
+        
+        # 类型检查
+        if not isinstance(function, type) or not issubclass(function, BaseJoinFunction):
+            raise TypeError(f"Join function must inherit from BaseJoinFunction")
+        
+        # TODO: 验证流都是keyed的
+        # self._validate_keyed_streams()
+        
+        # 创建transformation
+        join_tr = JoinTransformation(self._environment, function, *args, **kwargs)
+        return self._apply(join_tr)
+
+
+
+
+
+
+
     def keyby(self, 
              key_selector: Union[Type[BaseFunction], List[Type[BaseFunction]]], 
              strategy: str = "hash") -> 'ConnectedStreams':
@@ -472,16 +523,10 @@ class ConnectedStreams:
     def _apply(self, tr: BaseTransformation) -> 'DataStream':
         """将新 BaseTransformation 接入管线"""
         from .datastream import DataStream
-        
-        # 检查是否为comap操作（分别处理多个输入）
-        if hasattr(tr.function_class, 'is_comap') and tr.function_class.is_comap:
-            # comap操作：分别连接每个上游transformation到不同的输入索引
-            for input_index, upstream_trans in enumerate(self.transformations):
-                tr.add_upstream(upstream_trans, input_index=input_index)
-        else:
-            # 常规操作：所有上游transformation合并到输入索引0
-            for upstream_trans in self.transformations:
-                tr.add_upstream(upstream_trans, input_index=0)
+
+        # 由于常规的transformation不关心input_index,所以说我们可以直接把所有对于connected_stream的上游索引都编号。
+        for input_index, upstream_trans in enumerate(self.transformations):
+            tr.add_upstream(upstream_trans, input_index=input_index)
 
         self._environment._pipeline.append(tr)
         return DataStream(self._environment, tr)
