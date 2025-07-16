@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 class BaseOperator(ABC):
     def __init__(self, 
-                 function_factory: 'FunctionFactory',*args,
+                 function_factory: 'FunctionFactory', ctx: 'RuntimeContext', *args,
                  **kwargs):
         
         self.name:str
@@ -35,7 +35,6 @@ class BaseOperator(ABC):
         self.downstream_groups:Dict[int, Dict[int, 'Connection']] = {}
         self.downstream_group_roundrobin: Dict[int, int] = {}
 
-    def runtime_init(self, ctx: 'RuntimeContext') -> None:
         try:
             self.name = ctx.name
             self.logger = CustomLogger(
@@ -48,12 +47,12 @@ class BaseOperator(ABC):
                 session_folder=ctx.session_folder
             )
             self.runtime_context = ctx
-            self.function = self.function_factory.create_function(self.name)
+            self.function = self.function_factory.create_function(self.name, ctx)
 
             self._emit_context = UnifiedEmitContext(name = ctx.name, session_folder=ctx.session_folder, env_name = ctx.env_name) 
             self.logger.debug(f"Created function instance with {self.function_factory}")
 
-            self.function.runtime_init(ctx)
+            # self.function.runtime_init(ctx)
         except Exception as e:
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
 

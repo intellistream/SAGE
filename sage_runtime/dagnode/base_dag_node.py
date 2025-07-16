@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 import threading, copy
 from typing import Any, TYPE_CHECKING, Union
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.runtime_context import RuntimeContext
 from ray.actor import ActorHandle
 
 if TYPE_CHECKING:
@@ -10,14 +9,16 @@ if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
     from sage_core.transformation.base_transformation import BaseTransformation, OperatorFactory
     from sage_runtime.compiler import Compiler, GraphNode
+    from sage_runtime.runtime_context import RuntimeContext
 
 class BaseDAGNode(ABC):
     def __init__(
         self, 
         name:str, 
         operator_factory: 'OperatorFactory',
+        runtime_context: 'RuntimeContext'
     ) -> None:
-        self.runtime_context: RuntimeContext
+        self.runtime_context: 'RuntimeContext'
         self.operator:BaseOperator
         self.delay: Union[int, float] = 1
         self.is_spout: bool = False
@@ -27,18 +28,11 @@ class BaseDAGNode(ABC):
         self.name = name
         self._running = False
         self.stop_event = threading.Event()
-
-        pass
-
-    def runtime_init(self, runtime_context: RuntimeContext) -> None:
-        """
-        Initialize the runtime context and other parameters.
-        """
         try:
             self.runtime_context = runtime_context
 
-            self.operator = self.operator_factory.create_operator(name=self.name)
-            self.operator.runtime_init(copy.deepcopy(runtime_context))
+            self.operator = self.operator_factory.create_operator(name=self.name, runtime_context = runtime_context)
+            # self.operator.runtime_init(runtime_context)
             # Create logger first
             self.logger = CustomLogger(
                 filename=f"Node_{runtime_context.name}",

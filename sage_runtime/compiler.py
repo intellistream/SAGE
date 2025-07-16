@@ -5,6 +5,7 @@ from sage_core.api.env import BaseEnvironment
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.name_server import get_name
+from sage_runtime.runtime_context import RuntimeContext
 if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
     from sage_runtime.dagnode.base_dag_node import BaseDAGNode
@@ -24,10 +25,7 @@ class GraphNode:
 
         self.input_channels:dict[int, List[GraphEdge]] = {}
         self.output_channels:List[List[GraphEdge]] = []
-
-    def create_dag_node(self) -> 'BaseDAGNode':
-        node = self.transformation.dag_node_factory.create_node(self.name)
-        return node
+        self.runtime_context: RuntimeContext = RuntimeContext(self, transformation.env)
 
 class GraphEdge:
     def __init__(self,name:str,  output_node: GraphNode,  input_node:GraphNode = None, input_index:int = 0):

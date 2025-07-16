@@ -57,9 +57,10 @@ class MixedDAG():
         
         # 第一步：创建所有节点实例
         for node_name, graph_node in graph.nodes.items():
-            node_instance = graph_node.create_dag_node()
-            runtime_context = RuntimeContext(graph_node, env)
-            node_instance.runtime_init(runtime_context)
+            # node_instance = graph_node.create_dag_node()
+            node_instance = graph_node.transformation.dag_node_factory.create_node(graph_node.name, graph_node.runtime_context)
+            # runtime_context = RuntimeContext(graph_node, env)
+            # node_instance.runtime_init(runtime_context)
             self.nodes[node_name] = node_instance
             if graph_node.is_spout:
                 self.spout_nodes[node_name] = node_instance

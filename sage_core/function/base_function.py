@@ -18,26 +18,21 @@ class BaseFunction(ABC):
     It defines the core interface and initializes a logger.
     """
 
-    def __init__(self, **kwargs):
-        pass
-    def runtime_init(self, ctx: 'RuntimeContext') -> None:
-        """
-        Initialize the function with the runtime context.
-        This method should be called after the function is created.
-        """
+    def __init__(self, ctx:'RuntimeContext' = None, **kwargs):
         self.runtime_context = ctx
-        self.name = ctx.name
+        self.name = ctx.name if ctx else self.__class__.__name__
+        self.env_name = ctx.env_name if ctx else None
         self._logger = CustomLogger(
-            filename=f"Function_{ctx.name}",
-            env_name=ctx.env_name,
+            filename=f"Function_{self.name}",
+            env_name= self.env_name,
             console_output="WARNING",
             file_output="DEBUG",
             global_output = "WARNING",
-            name = f"{ctx.name}_{self.__class__.__name__}",
-            session_folder=ctx.session_folder
+            name = f"{self.name}_{self.__class__.__name__}",
+            session_folder=ctx.session_folder if ctx else None
         )
-        self.runtime_context.create_logger()
-        self.logger.info(f"Function {self.name} initialized with runtime context {ctx}")
+        # self.runtime_context.create_logger()
+        self.logger.info(f"Function {self.name} initialized")
         
     @property
     def logger(self):
