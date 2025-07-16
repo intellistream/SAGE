@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from sage_core.function.base_function import BaseFunction
     from ray.actor import ActorHandle
     from sage_runtime.function.factory import FunctionFactory
-
+    from sage_runtime.runtime_context import RuntimeContext
 import ray
 
 class OperatorFactory:
@@ -25,7 +25,8 @@ class OperatorFactory:
         self.remote = remote
 
     def create_operator(self, 
-                       name: Optional[str] = None,
+                       name: str,
+                       runtime_context: 'RuntimeContext',
                        **additional_kwargs) -> 'OperatorWrapper':
         """
         创建operator实例
@@ -53,6 +54,7 @@ class OperatorFactory:
                 Operator_class = ray.remote(self.operator_class)
                 operator_instance = Operator_class.remote(
                     self.function_factory,
+                    runtime_context,
                     **additional_kwargs
                 )
                 logger.debug(f"Building Ray Actor operator instance: {self.operator_class.__name__}")
@@ -60,6 +62,7 @@ class OperatorFactory:
                 Operator_class = self.operator_class
                 operator_instance = Operator_class(
                     self.function_factory,
+                    runtime_context,
                     **additional_kwargs
                 )
                 logger.debug(f"Building local operator instance: {self.operator_class.__name__}")

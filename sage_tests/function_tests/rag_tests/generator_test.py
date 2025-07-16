@@ -27,10 +27,6 @@ def ctx(tmp_path):
             self.env_name = "test"
             self.session_folder = folder
 
-        def create_logger(self):
-            # 用于兼容 BaseFunction 中对 create_logger 的调用
-            pass
-
     folder = tmp_path / "session"
     folder.mkdir()
     return Ctx(name="gen1", folder=str(folder))
@@ -50,8 +46,7 @@ def test_openai_generator(config_openai):
 
 
 def test_openai_generator_history_state(config_openai, ctx):
-    gen = OpenAIGeneratorWithHistory(config_openai)
-    gen.runtime_init(ctx)
+    gen = OpenAIGeneratorWithHistory(config_openai, ctx = ctx)
 
     # 第一次用户提问
     query1 = "What is the capital of France?"
@@ -77,8 +72,7 @@ def test_openai_generator_history_state(config_openai, ctx):
 
     gen.save_state()
 
-    gen2 = OpenAIGeneratorWithHistory(config_openai)
-    gen2.runtime_init(ctx)
+    gen2 = OpenAIGeneratorWithHistory(config_openai, ctx = ctx)
     history2 = gen2.dialogue_history
     
     assert history2 == history

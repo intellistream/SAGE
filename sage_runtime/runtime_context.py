@@ -18,18 +18,9 @@ class RuntimeContext:
         self.memory_collection:Any = env.memory_collection
         self.parallel_index:int = graph_node.parallel_index
         self.parallelism:int = graph_node.parallelism
-        self.logger:CustomLogger = None
+        self._logger:CustomLogger = None
 
-    def create_logger(self): # 在operator里边创建
-        self.logger =CustomLogger(
-            filename=f"Node_{self.name}",
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output = "WARNING",
-            session_folder=self.session_folder,
-            name = f"{self.name}_RuntimeContext",
-            env_name = self.env_name
-        )
+
 
     def retrieve(self,  query: str = None, collection_config: Optional[Dict] = None) -> List[str]:
         """
@@ -370,3 +361,19 @@ class RuntimeContext:
         except Exception as e:
             self.logger.error(f"Error storing to Ray actor: {e}")
             return []
+
+
+    @property
+    def logger(self) -> CustomLogger:
+        """懒加载logger"""
+        if self._logger is None:
+            self._logger = CustomLogger(
+                filename=f"Node_{self.name}",
+                console_output="WARNING",
+                file_output="DEBUG",
+                global_output="WARNING",
+                session_folder=self.session_folder,
+                name=f"{self.name}_RuntimeContext",
+                env_name=self.env_name
+            )
+        return self._logger

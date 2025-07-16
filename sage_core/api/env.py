@@ -106,7 +106,7 @@ class BaseEnvironment:
 
 
     def set_memory(self, config):
-        self.memory_collection = sage_memory.api.get_memory(self, config, remote = (self.platform != "local"))
+        self.memory_collection = sage_memory.api.get_memory(config=config, remote=(self.platform != "local"), env_name=self.name)
 
     def set_memory_collection(self, collection):
 
