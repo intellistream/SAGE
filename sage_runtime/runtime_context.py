@@ -18,18 +18,7 @@ class RuntimeContext:
         self.memory_collection:Any = env.memory_collection
         self.parallel_index:int = graph_node.parallel_index
         self.parallelism:int = graph_node.parallelism
-        self.logger:CustomLogger
-
-    def create_logger(self): # 在operator里边创建
-        self.logger =CustomLogger(
-            filename=f"Node_{self.name}",
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output = "WARNING",
-            session_folder=self.session_folder,
-            name = f"{self.name}_RuntimeContext",
-            env_name = self.env_name
-        )
+        self._logger:CustomLogger
 
     def retrieve(self,  query: str = None, collection_config: Optional[Dict] = None) -> List[str]:
         """
