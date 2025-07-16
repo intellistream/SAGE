@@ -68,7 +68,7 @@ class LocalThreadPool:
         
         # 停止所有节点
         self.thread_pool.shutdown(wait=True, cancel_futures=True)
-        
+        self.__class__._instance = None  # 清除实例引用
         # # 关闭TCP服务器
         # if self.tcp_server:
         #     self.tcp_server.stop()
