@@ -14,7 +14,7 @@ class KeyByOperator(BaseOperator):
     - round_robin: 忽略键，轮询分发
     """
     
-    def __init__(self, partition_strategy: str = "hash", *args, **kwargs):
+    def __init__(self,  *args, partition_strategy: str = "hash", **kwargs):
         super().__init__(*args, **kwargs)
         self.partition_strategy = partition_strategy
         self.logger.info(f"KeyByOperator '{self.name}' initialized with strategy: {partition_strategy}")
