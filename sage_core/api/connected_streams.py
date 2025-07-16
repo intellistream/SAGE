@@ -74,7 +74,7 @@ class ConnectedStreams:
         
         Args:
             function: CoMap function class that implements map0, map1, ..., mapN methods.
-                     Must inherit from BaseCoMapFunction and have is_comap=True.
+                    Must inherit from BaseCoMapFunction and have is_comap=True.
             *args: Additional arguments passed to the CoMap function constructor
             **kwargs: Additional keyword arguments passed to the CoMap function constructor
             
@@ -83,7 +83,8 @@ class ConnectedStreams:
             
         Raises:
             NotImplementedError: Lambda functions are not supported for comap operations
-            ValueError: If function is not a valid CoMap function
+            TypeError: If function is not a valid CoMap function
+            ValueError: If function doesn't support the required number of input streams
             
         Example:
             ```python
@@ -107,9 +108,6 @@ class ConnectedStreams:
                 "Please use a class that inherits from BaseCoMapFunction."
             )
         
-        # Import CoMapTransformation (delayed import to avoid circular dependencies)
-        from sage_core.transformation.comap_transformation import CoMapTransformation
-        
         # Validate input stream count before creating transformation
         input_stream_count = len(self.transformations)
         if input_stream_count < 2:
@@ -118,14 +116,70 @@ class ConnectedStreams:
                 f"but only {input_stream_count} streams provided."
             )
         
+        # Import BaseCoMapFunction for type checking
+        from sage_core.function.comap_function import BaseCoMapFunction
+        
+        # Type validation: Check if function is a proper CoMap function
+        if not isinstance(function, type):
+            raise TypeError(
+                f"CoMap function must be a class, got {type(function).__name__}. "
+                f"Please provide a class that inherits from BaseCoMapFunction."
+            )
+        
+        if not issubclass(function, BaseCoMapFunction):
+            raise TypeError(
+                f"Function {function.__name__} must inherit from BaseCoMapFunction. "
+                f"CoMap operations require CoMap function with mapN methods."
+            )
+        
+        # Check if function has is_comap property (should be True for CoMap functions)
+        try:
+            # Create a temporary instance to check is_comap property
+            temp_instance = function()
+            if not hasattr(temp_instance, 'is_comap') or not temp_instance.is_comap:
+                raise TypeError(
+                    f"Function {function.__name__} must have is_comap=True property. "
+                    f"Ensure your function properly inherits from BaseCoMapFunction."
+                )
+        except Exception as e:
+            raise TypeError(
+                f"Failed to validate CoMap function {function.__name__}: {e}. "
+                f"Ensure the function can be instantiated and has is_comap=True."
+            )
+        
+        # Validate that function supports the required number of input streams
+        required_methods = [f'map{i}' for i in range(input_stream_count)]
+        missing_methods = []
+        
+        for method_name in required_methods:
+            if not hasattr(function, method_name):
+                missing_methods.append(method_name)
+        
+        if missing_methods:
+            raise TypeError(
+                f"CoMap function {function.__name__} is missing required methods: {missing_methods}. "
+                f"For {input_stream_count} input streams, the function must implement: {required_methods}."
+            )
+        
+        # Additional validation: Check if mapN methods are callable
+        for method_name in required_methods:
+            method = getattr(function, method_name)
+            if not callable(method):
+                raise TypeError(
+                    f"CoMap function {function.__name__}.{method_name} must be callable. "
+                    f"Found {type(method).__name__} instead."
+                )
+        
+        # Import CoMapTransformation (delayed import to avoid circular dependencies)
+        from sage_core.transformation.comap_transformation import CoMapTransformation
+        
         # Create CoMapTransformation
         tr = CoMapTransformation(self._environment, function, *args, **kwargs)
         
-        # Validate that the function supports the number of input streams
+        # Additional validation at transformation level
         tr.validate_input_streams(input_stream_count)
         
         return self._apply(tr)
-
     def keyby(self, 
              key_selector: Union[Type[BaseFunction], List[Type[BaseFunction]]], 
              strategy: str = "hash") -> 'ConnectedStreams':
