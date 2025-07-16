@@ -74,7 +74,7 @@ class ConnectedStreams:
         
         Args:
             function: CoMap function class that implements map0, map1, ..., mapN methods.
-                     Must inherit from BaseCoMapFunction and have is_comap=True.
+                    Must inherit from BaseCoMapFunction and have is_comap=True.
             *args: Additional arguments passed to the CoMap function constructor
             **kwargs: Additional keyword arguments passed to the CoMap function constructor
             
@@ -83,7 +83,8 @@ class ConnectedStreams:
             
         Raises:
             NotImplementedError: Lambda functions are not supported for comap operations
-            ValueError: If function is not a valid CoMap function
+            TypeError: If function is not a valid CoMap function
+            ValueError: If function doesn't support the required number of input streams
             
         Example:
             ```python
@@ -107,9 +108,6 @@ class ConnectedStreams:
                 "Please use a class that inherits from BaseCoMapFunction."
             )
         
-        # Import CoMapTransformation (delayed import to avoid circular dependencies)
-        from sage_core.transformation.comap_transformation import CoMapTransformation
-        
         # Validate input stream count before creating transformation
         input_stream_count = len(self.transformations)
         if input_stream_count < 2:
@@ -118,13 +116,133 @@ class ConnectedStreams:
                 f"but only {input_stream_count} streams provided."
             )
         
+        # Import BaseCoMapFunction for type checking
+        from sage_core.function.comap_function import BaseCoMapFunction
+        
+        # Type validation: Check if function is a proper CoMap function
+        if not isinstance(function, type):
+            raise TypeError(
+                f"CoMap function must be a class, got {type(function).__name__}. "
+                f"Please provide a class that inherits from BaseCoMapFunction."
+            )
+        
+        if not issubclass(function, BaseCoMapFunction):
+            raise TypeError(
+                f"Function {function.__name__} must inherit from BaseCoMapFunction. "
+                f"CoMap operations require CoMap function with mapN methods."
+            )
+        
+        # Check if function has is_comap property (should be True for CoMap functions)
+        try:
+            # Create a temporary instance to check is_comap property
+            temp_instance = function()
+            if not hasattr(temp_instance, 'is_comap') or not temp_instance.is_comap:
+                raise TypeError(
+                    f"Function {function.__name__} must have is_comap=True property. "
+                    f"Ensure your function properly inherits from BaseCoMapFunction."
+                )
+        except Exception as e:
+            raise TypeError(
+                f"Failed to validate CoMap function {function.__name__}: {e}. "
+                f"Ensure the function can be instantiated and has is_comap=True."
+            )
+        
+        # Validate that function supports the required number of input streams
+        required_methods = [f'map{i}' for i in range(input_stream_count)]
+        missing_methods = []
+        
+        for method_name in required_methods:
+            if not hasattr(function, method_name):
+                missing_methods.append(method_name)
+        
+        if missing_methods:
+            raise TypeError(
+                f"CoMap function {function.__name__} is missing required methods: {missing_methods}. "
+                f"For {input_stream_count} input streams, the function must implement: {required_methods}."
+            )
+        
+        # Additional validation: Check if mapN methods are callable
+        for method_name in required_methods:
+            method = getattr(function, method_name)
+            if not callable(method):
+                raise TypeError(
+                    f"CoMap function {function.__name__}.{method_name} must be callable. "
+                    f"Found {type(method).__name__} instead."
+                )
+        
+        # Import CoMapTransformation (delayed import to avoid circular dependencies)
+        from sage_core.transformation.comap_transformation import CoMapTransformation
+        
         # Create CoMapTransformation
         tr = CoMapTransformation(self._environment, function, *args, **kwargs)
         
-        # Validate that the function supports the number of input streams
+        # Additional validation at transformation level
         tr.validate_input_streams(input_stream_count)
         
         return self._apply(tr)
+    def keyby(self, 
+             key_selector: Union[Type[BaseFunction], List[Type[BaseFunction]]], 
+             strategy: str = "hash") -> 'ConnectedStreams':
+        """
+        Apply keyby partitioning to connected streams using composition approach
+        
+        Args:
+            key_selector: 
+                - Single BaseFunction: Apply same key extraction to all streams
+                - List[BaseFunction]: Apply different key extraction per stream (Flink-style)
+            strategy: Partitioning strategy ("hash", "broadcast", "round_robin")
+            
+        Returns:
+            ConnectedStreams: New ConnectedStreams with all streams keyed
+            
+        Example:
+            ```python
+            # Same key selector for all streams
+            keyed_streams = stream1.connect(stream2).keyby(UserIdExtractor)
+            
+            # Different key selector per stream (Flink-style)
+            keyed_streams = stream1.connect(stream2).keyby([UserIdExtractor, SessionIdExtractor])
+            
+            # Continue with further operations
+            result = keyed_streams.comap(JoinFunction).sink(OutputSink)
+            ```
+        """
+        if callable(key_selector) and not isinstance(key_selector, type):
+            raise NotImplementedError(
+                "Lambda functions are not supported for keyby operations. "
+                "Please use KeyByFunction classes."
+            )
+        
+        from .datastream import DataStream
+        
+        input_stream_count = len(self.transformations)
+        
+        if isinstance(key_selector, list):
+            # Flink-style: different key selector per stream
+            if len(key_selector) != input_stream_count:
+                raise ValueError(
+                    f"Key selector count ({len(key_selector)}) must match stream count ({input_stream_count})"
+                )
+            
+            # 为每个流分别应用keyby
+            keyed_transformations = []
+            for transformation, selector in zip(self.transformations, key_selector):
+                # 创建单独的DataStream并应用keyby
+                individual_stream = DataStream(self._environment, transformation)
+                keyed_stream = individual_stream.keyby(selector, strategy=strategy)
+                keyed_transformations.append(keyed_stream.transformation)
+            
+        else:
+            # 统一的key selector：为所有流应用相同的keyby
+            keyed_transformations = []
+            for transformation in self.transformations:
+                # 创建单独的DataStream并应用keyby
+                individual_stream = DataStream(self._environment, transformation)
+                keyed_stream = individual_stream.keyby(key_selector, strategy=strategy)
+                keyed_transformations.append(keyed_stream.transformation)
+        
+        # 返回新的ConnectedStreams，包含所有keyed transformations
+        return ConnectedStreams(self._environment, keyed_transformations)
 
     # ---------------------------------------------------------------------
     # internel methods

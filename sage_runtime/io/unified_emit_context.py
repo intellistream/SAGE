@@ -35,34 +35,28 @@ class UnifiedEmitContext:
         self._tcp_connections: dict = {}  # host:port -> socket
         self._socket_lock = threading.Lock()
 
-    def send_via_connection(self, connection: 'Connection', raw_data: Any) -> None:
+    def send_packet_direct(self, connection: 'Connection', packet: 'Packet') -> None:
         """
-        根据Connection对象的配置发送数据
+        直接发送已封装的packet，不再重新封装
         
         Args:
-            connection: Connection对象，包含完整的连接信息
-            data: 要发送的数据
+            connection: Connection对象
+            packet: 已封装好的Packet对象
         """
-        packet = Packet(raw_data, connection.target_input_index)
         try:
             connection_type = connection.connection_type
             if connection_type == ConnectionType.LOCAL_TO_LOCAL:
                 self._send_local_to_local(connection, packet)
-                
             elif connection_type == ConnectionType.LOCAL_TO_RAY:
                 self._send_local_to_ray(connection, packet)
-                
             elif connection_type == ConnectionType.RAY_TO_LOCAL:
                 self._send_ray_to_local(connection, packet)
-                
             elif connection_type == ConnectionType.RAY_TO_RAY:
                 self._send_ray_to_ray(connection, packet)
-                
             else:
                 raise ValueError(f"Unknown connection type: {connection_type}")
-                
         except Exception as e:
-            self.logger.error(f"Failed to send data via connection {connection}: {e}", exc_info=True)
+            self.logger.error(f"Failed to send packet via connection {connection}: {e}", exc_info=True)
 
     def _send_local_to_local(self, connection: 'Connection', packet: 'Packet') -> None:
         """本地到本地：直接调用put方法"""

@@ -1,10 +1,11 @@
-from typing import Callable, Any, List, Tuple, Type, Optional
+from typing import Callable, Any, List, Tuple, Type, Optional, Hashable
 from sage_core.function.base_function import BaseFunction
 from sage_core.function.map_function import MapFunction
 from sage_core.function.filter_function import FilterFunction
 from sage_core.function.flatmap_function import FlatMapFunction
 from sage_core.function.sink_function import SinkFunction
 from sage_core.function.source_function import SourceFunction
+from sage_core.function.keyby_function import KeyByFunction
 import inspect
 
 class LambdaMapFunction(MapFunction):
@@ -59,7 +60,40 @@ class LambdaSourceFunction(BaseFunction):
     
     def execute(self) -> Any:
         return self.lambda_func()
+
+class LambdaKeyByFunction(KeyByFunction):
+    """
+    Wrapper for lambda-based key extraction.
     
+    Example:
+        # For lambda x: x.user_id
+        extractor = LambdaKeyByFunction(lambda x: x.user_id)
+    """
+    
+    def __init__(self, lambda_func, **kwargs):
+        super().__init__(**kwargs)
+        self.lambda_func = lambda_func
+        self.logger.debug(f"LambdaKeyByFunction initialized with lambda")
+
+    def execute(self, data: Any) -> Hashable:
+        """
+        Execute lambda function on data.
+        
+        Args:
+            data: Input data
+            
+        Returns:
+            Hashable: Result of lambda function
+        """
+        try:
+            return self.lambda_func(data)
+        except Exception as e:
+            self.logger.error(f"Lambda key extraction failed: {e}")
+            raise
+
+
+
+
 
 def detect_lambda_type(func: Callable) -> str:
     """
@@ -98,6 +132,9 @@ def detect_lambda_type(func: Callable) -> str:
         # 如果无法检测，默认为 map
         return 'map'
     
+
+
+
 
 
 def wrap_lambda(func: Callable, func_type: str = None) -> Type[BaseFunction]:
@@ -144,5 +181,11 @@ def wrap_lambda(func: Callable, func_type: str = None) -> Type[BaseFunction]:
                 super().__init__(func, **kwargs)
         return WrappedSourceFunction
     
+    elif func_type == 'keyby':
+        class WrappedKeyByFunction(LambdaKeyByFunction):
+            def __init__(self, **kwargs):
+                super().__init__(func, **kwargs)
+        return WrappedKeyByFunction
+
     else:
         raise ValueError(f"Unsupported function type: {func_type}")
