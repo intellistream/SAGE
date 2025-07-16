@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import threading, copy
 from typing import Any, TYPE_CHECKING, Union
 from sage_utils.custom_logger import CustomLogger
+from sage_runtime.runtime_context import RuntimeContext
 from ray.actor import ActorHandle
 
 if TYPE_CHECKING:
@@ -9,7 +10,6 @@ if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
     from sage_core.transformation.base_transformation import BaseTransformation, OperatorFactory
     from sage_runtime.compiler import Compiler, GraphNode
-    from sage_runtime.runtime_context import RuntimeContext
 
 class BaseDAGNode(ABC):
     def __init__(

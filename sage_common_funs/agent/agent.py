@@ -8,7 +8,6 @@ from typing import Any,Tuple
 import requests
 import json
 import re, time
-from sage_common_funs.utils.template import AI_Template
 
 
 class Tool:
@@ -39,7 +38,7 @@ class BochaSearch:
         response = requests.request("POST", self.url, headers=self.headers, data=payload)
         return response.json()
 
-PREFIX = """You are a helpful assistant. Please avoid any sensitive, violent, or explicit content. Answer the following questions as best you can. You have access to the following tools:{tool_names}"""
+PREFIX = """Answer the following questions as best you can. You have access to the following tools:{tool_names}"""
 FORMAT_INSTRUCTIONS = """Always respond in the following JSON format:
 
 ```json
@@ -113,16 +112,16 @@ class BaseAgent(MapFunction):
         # 兜底报错
         raise ValueError("Invalid JSON format: No valid JSON found (either plain or wrapped in Markdown)")
         
-    def execute(self, data: AI_Template) -> AI_Template:
-        input_template:AI_Template = data
-        query = input_template.raw_question
+    def execute(self, data: str) -> Tuple[str, str]:
+        query = data
         agent_scratchpad = ""
         count = 0
         while True:
             count += 1
             self.logger.debug(f"Step {count}: Processing query: {query}")
             if count > self.max_steps:
-                raise ValueError("Max steps exceeded.")
+                # raise ValueError("Max steps exceeded.")
+                return (query,"")
             
             prompt = self.get_prompt(query, agent_scratchpad)
             self.logger.debug(f"Prompt: {prompt}")
@@ -133,17 +132,19 @@ class BaseAgent(MapFunction):
             # self.logger.debug(output)
             if output.get("final_answer") is not "":
                 final_answer = output["final_answer"]
+                
                 self.logger.debug(f"Final Answer: {final_answer}")
-                input_template.response = final_answer
-                return input_template
+                return (query,final_answer)
 
             action, action_input = output.get("action"), output.get("action_input")
 
             if action is None:
-                raise ValueError("Could not parse action.")
+                # raise ValueError("Could not parse action.")
+                return (query,"")
 
             if action not in self.tools:
-                raise ValueError(f"Unknown tool requested: {action}")
+                # raise ValueError(f"Unknown tool requested: {action}")
+                return (query,"")
 
             tool = self.tools[action]
             tool_result = tool.run(action_input)
@@ -152,7 +153,7 @@ class BaseAgent(MapFunction):
             observation = "\n".join(snippets)
             self.logger.debug(f"Observation: {observation}")
             agent_scratchpad += str(output) + f"\nObservation: {observation}\nThought: "
-            time.sleep(0.2)
+            time.sleep(5)
 
 # import yaml
 # def load_config(path: str) -> dict:

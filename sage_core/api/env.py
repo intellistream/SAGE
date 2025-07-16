@@ -8,6 +8,7 @@ from sage_core.function.base_function import BaseFunction
 from sage_core.api.datastream import DataStream
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.transformation.source_transformation import SourceTransformation
+from sage_core.transformation.future_transformation import FutureTransformation
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.name_server import get_name
 from sage_core.function.lambda_function import wrap_lambda
@@ -31,6 +32,7 @@ class BaseEnvironment:
         self.platform:str = platform
         # 用于收集所有 BaseTransformation，供 Compiler 构建 DAG
         self._pipeline: List[BaseTransformation] = []
+        self._filled_futures: dict = {}  # 记录已填充的future stream信息：name -> {future_transformation, actual_transformation, filled_at}
         self.runtime_context = dict  # 需要在compiler里面实例化。
         self.memory_collection = None  # 用于存储内存集合
         self.is_running = False
@@ -46,6 +48,27 @@ class BaseEnvironment:
         self._pipeline.append(transformation)
         return DataStream(self, transformation)
 
+    def from_future(self, name: str) -> DataStream:
+        """
+        创建一个future stream占位符，用于建立反馈边。
+        
+        Args:
+            name: future stream的名称，用于标识和调试
+            
+        Returns:
+            DataStream: 包含FutureTransformation的数据流
+            
+        Example:
+            future_stream = env.from_future("feedback_loop")
+            # 使用future_stream参与pipeline构建
+            result = source.connect(future_stream).comap(CombineFunction)
+            # 最后填充future
+            result.fill_future(future_stream)
+        """
+        transformation = FutureTransformation(self, name)
+        self._pipeline.append(transformation)
+        return DataStream(self, transformation)
+
     # TODO: add a new type of source with handler returned.
     def create_source(self):
         pass
@@ -55,9 +78,9 @@ class BaseEnvironment:
         from sage_core.engine import Engine
         engine = Engine.get_instance()
         engine.submit_env(self)
-        # # time.sleep(10) # 等待管道启动
-        # while (self.initialized() is False):
-        #     time.sleep(1)
+        # time.sleep(10) # 等待管道启动
+        while (self.initialized() is False):
+            time.sleep(1)
 
     def run_once(self, node:str = None):
         """
@@ -115,6 +138,56 @@ class BaseEnvironment:
     # TODO: 写一个判断Env 是否已经完全初始化并开始执行的函数
     def initialized(self):
         pass
+
+    def get_filled_futures(self) -> dict:
+        """
+        获取所有已填充的future stream信息
+        
+        Returns:
+            dict: 已填充的future stream信息，格式为:
+                {
+                    'future_name': {
+                        'future_transformation': FutureTransformation,
+                        'actual_transformation': BaseTransformation,
+                        'filled_at': timestamp
+                    }
+                }
+        """
+        return self._filled_futures.copy()
+    
+    def has_unfilled_futures(self) -> bool:
+        """
+        检查pipeline中是否还有未填充的future streams
+        
+        Returns:
+            bool: 如果存在未填充的future streams返回True，否则返回False
+        """
+        from sage_core.transformation.future_transformation import FutureTransformation
+        for transformation in self._pipeline:
+            if isinstance(transformation, FutureTransformation) and not transformation.filled:
+                return True
+        return False
+    
+    def validate_pipeline_for_compilation(self) -> None:
+        """
+        验证pipeline是否可以进行编译
+        检查是否存在未填充的future streams
+        
+        Raises:
+            RuntimeError: 如果存在未填充的future streams
+        """
+        from sage_core.transformation.future_transformation import FutureTransformation
+        unfilled_futures = []
+        
+        for transformation in self._pipeline:
+            if isinstance(transformation, FutureTransformation) and not transformation.filled:
+                unfilled_futures.append(transformation.future_name)
+        
+        if unfilled_futures:
+            raise RuntimeError(
+                f"Cannot compile pipeline with unfilled future streams: {unfilled_futures}. "
+                f"Please fill all future streams using fill_future() before compilation."
+            )
 
     ########################################################
     #                auxiliary methods                     #
