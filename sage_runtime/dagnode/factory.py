@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from sage_runtime.dagnode.base_dag_node import BaseDAGNode
     from ray.actor import ActorHandle
     from sage_runtime.compiler import GraphNode
-
+    from sage_runtime.runtime_context import RuntimeContext
     
 class DAGNodeFactory:
     def __init__(
@@ -33,11 +33,12 @@ class DAGNodeFactory:
     def create_node(
         self,
         name: str,
+        runtime_context: 'RuntimeContext' = None,
     ) -> 'BaseDAGNode':
         if self.remote:
-            node = RayDAGNode(name,  self.operator_factory)
+            node = RayDAGNode(name,  self.operator_factory, runtime_context)
         else:
-            node = LocalDAGNode(name, self.operator_factory)
+            node = LocalDAGNode(name, self.operator_factory, runtime_context)
         node.delay = self.delay
         node.is_spout = self.is_spout
         # print(f"{name} is spout: {node.is_spout}")
