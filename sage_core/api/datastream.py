@@ -6,7 +6,7 @@ from sage_core.transformation.flatmap_transformation import FlatMapTransformatio
 from sage_core.transformation.map_transformation import MapTransformation
 from sage_core.transformation.sink_transformation import SinkTransformation
 from sage_core.transformation.source_transformation import SourceTransformation
-
+from sage_core.transformation.keyby_transformation import KeyByTransformation
 from sage_core.function.base_function import BaseFunction
 from sage_core.function.lambda_function import wrap_lambda, detect_lambda_type
 from .connected_streams import ConnectedStreams
@@ -39,31 +39,60 @@ class DataStream(Generic[T]):
     # ---------------------------------------------------------------------
     def map(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> "DataStream":
         if callable(function) and not isinstance(function, type):
-            # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, 'map')
         tr = MapTransformation(self._environment,function,*args,**kwargs)
         return self._apply(tr)
 
     def filter(self, function: Union[Type[BaseFunction], callable],*args, **kwargs) -> "DataStream":
         if callable(function) and not isinstance(function, type):
-            # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, 'filter')
         tr = FilterTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
 
     def flatmap(self, function: Union[Type[BaseFunction], callable],*args, **kwargs) -> "DataStream":
         if callable(function) and not isinstance(function, type):
-            # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, 'flatmap')
         tr = FlatMapTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
     
-    def sink(self, function: Union[BaseFunction, Union[Type[BaseFunction], callable]],*args, **kwargs) -> "DataStream":
+    def sink(self, function: Union[Type[BaseFunction], callable],*args, **kwargs) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, 'sink')
         tr = SinkTransformation(self._environment,function,*args,**kwargs)
         self._apply(tr)
         return self  # sink不返回新的DataStream，因为它是终端操作
+
+    def keyby(self, function: Union[Type[BaseFunction], callable], 
+            strategy: str = "hash",*args, **kwargs) -> "DataStream":
+        """
+        Apply keyby transformation that partitions data based on extracted keys
+        
+        Args:
+            function: BaseFunction class that extracts partition key
+            strategy: Partitioning strategy ("hash", "round_robin", "broadcast")
+            
+        Returns:
+            DataStream: New stream with keyby transformation applied
+            
+        Example:
+            ```python
+            class UserIdExtractor(BaseFunction):
+                def execute(self, data):
+                    return data.user_id
+                    
+            stream.keyby(UserIdExtractor).map(UserProcessor)
+            ```
+        """
+        if callable(function) and not isinstance(function, type):
+            function = wrap_lambda(function, 'keyby')
+            
+        tr = KeyByTransformation(
+            self._environment, 
+            function, 
+            strategy=strategy
+            ,*args, **kwargs
+        )
+        return self._apply(tr)
 
 
 

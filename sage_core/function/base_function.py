@@ -83,7 +83,7 @@ class MemoryFunction(BaseFunction):
 
 class StatefulFunction(BaseFunction):
     """
-    有状态算子基类：自动在 runtime_init 恢复状态，
+    有状态算子基类：自动在 init 恢复状态，
     并可通过 save_state() 持久化。
     """
     # 子类可覆盖：只保存 include 中字段
