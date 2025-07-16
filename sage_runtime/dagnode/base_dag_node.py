@@ -15,8 +15,8 @@ class BaseDAGNode(ABC):
     def __init__(
         self, 
         name:str, 
-        operator_factory: 'OperatorFactory',
-        runtime_context: 'RuntimeContext'
+        runtime_context: 'RuntimeContext',
+        operator_factory: 'OperatorFactory'
     ) -> None:
         self.runtime_context: 'RuntimeContext'
         self.operator:BaseOperator
