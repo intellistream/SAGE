@@ -1,7 +1,7 @@
 import json
 from typing import List, Union, Set
 from sage_core.function.filter_function import FilterFunction
-from archive.template import AI_Template, QualityLabel
+from ..context.model_context import ModelContext, QualityLabel
 
 
 class EvaluateFilter(FilterFunction):
@@ -65,7 +65,7 @@ class EvaluateFilter(FilterFunction):
         
         return None
     
-    def execute(self, template: AI_Template) -> bool:
+    def execute(self, template: ModelContext) -> bool:
         """执行评估过滤逻辑"""
         evaluation = template.evaluation
         
