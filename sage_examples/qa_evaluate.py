@@ -1,10 +1,9 @@
 import time
 from sage_core.api.env import LocalEnvironment
 
-from sage_core.function.base_function import BaseFunction
-from sage_common_funs.rag.generator import OpenAIGenerator
-from sage_common_funs.rag.promptor import QAPromptor
-from sage_common_funs.rag.evaluate import F1Evaluate
+from sage_libs.rag import OpenAIGenerator
+from sage_libs.rag import QAPromptor
+from sage_libs.rag.evaluate import F1Evaluate
 from sage_utils.config_loader import load_config
 import json
 

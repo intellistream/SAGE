@@ -1,7 +1,6 @@
 import pytest
 
-import numpy as np
-from sage_common_funs.rag.evaluate import (
+from sage_libs.rag.evaluate import (
     F1Evaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate
 )
 
