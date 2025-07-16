@@ -99,30 +99,15 @@ function check_huggingface_auth() {
         HUGGINGFACE_LOGGED_IN=0
     fi
 }
+
+
 function configure_huggingface_auth() {
   echo "===================================================="
   echo "         Configuring Hugging Face Authentication"
   echo "===================================================="
 
   export HF_ENDPOINT=https://hf-mirror.com
-  # 1) 本地或 CI 下 Host 端登录
-  if [[ -n "${CI:-}" ]]; then
-    # CI 模式：必须通过环境变量传入 HF_TOKEN
-    if [[ -z "${HF_TOKEN:-}" ]]; then
-      echo "❌ CI detected but HF_TOKEN is not set. Please set the HF_TOKEN secret."
-      exit 1
-    fi
-    echo "🔑 Logging in on Host via HF_TOKEN from environment…"
-    huggingface-cli login --token "${HF_TOKEN}"
-  else
-    # 交互模式：提示用户输入
-    echo "Please enter your Hugging Face token (https://huggingface.co/settings/tokens):"
-    read -sp "Token: " HF_TOKEN
-  echo "===================================================="
-  echo "         Configuring Hugging Face Authentication"
-  echo "===================================================="
-
-  export HF_ENDPOINT=https://hf-mirror.com
+  
   # 1) 本地或 CI 下 Host 端登录
   if [[ -n "${CI:-}" ]]; then
     # CI 模式：必须通过环境变量传入 HF_TOKEN
@@ -158,31 +143,7 @@ function configure_huggingface_auth() {
           huggingface-cli whoami &>/dev/null; then
       echo "✅ Container Hugging Face authentication successful!"
       HUGGINGFACE_LOGGED_IN=1
-    huggingface-cli login --token "${HF_TOKEN}"
-  fi
-
-  # 2) 验证 Host 端登录
-  if huggingface-cli whoami &>/dev/null; then
-    echo "✅ Host Hugging Face authentication successful!"
-  else
-    echo "❌ Host Hugging Face authentication failed."
-    [[ -n "${CI:-}" ]] && exit 1
-  fi
-
-  # 3) 如果用户在 Docker 容器里也想做同样的登录
-  if [[ -n "${DOCKER_CONTAINER_NAME:-}" ]]; then
-    echo "🐳 Also logging into container '$DOCKER_CONTAINER_NAME'…"
-    docker exec -i "${DOCKER_CONTAINER_NAME}" \
-      huggingface-cli login --token "${HF_TOKEN}"
-
-    if docker exec -i "${DOCKER_CONTAINER_NAME}" \
-          huggingface-cli whoami &>/dev/null; then
-      echo "✅ Container Hugging Face authentication successful!"
-      HUGGINGFACE_LOGGED_IN=1
     else
-      echo "❌ Container Hugging Face authentication failed."
-      HUGGINGFACE_LOGGED_IN=0
-      [[ -n "${CI:-}" ]] && exit 1
       echo "❌ Container Hugging Face authentication failed."
       HUGGINGFACE_LOGGED_IN=0
       [[ -n "${CI:-}" ]] && exit 1
@@ -192,6 +153,8 @@ function configure_huggingface_auth() {
   # 4) 交互时候 pause，否则直接返回
   pause
 }
+
+
 
 function run_debug_main() {
     check_huggingface_auth
