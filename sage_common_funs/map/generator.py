@@ -1,7 +1,8 @@
 import os
 from typing import Tuple,List
 from sage_common_funs.utils.generator_model import apply_generator_model
-from sage_core.function.map_function import MapFunction,StatefulFunction
+from sage_core.function.map_function import MapFunction
+from sage_core.function.base_function import StatefulFunction
 
 from sage_utils.custom_logger import CustomLogger
 from sage_common_funs.utils.template import AI_Template
@@ -27,7 +28,7 @@ class OpenAIGenerator(MapFunction):
             method=self.config["method"],
             model_name=self.config["model_name"],
             base_url=self.config["base_url"],
-            api_key=self.api_key,
+            api_key=self.config.get("api_key", None) or os.getenv("ALIBABA_API_KEY"),
             seed=42  # Hardcoded seed for reproducibility
         )
         self.num = 1
