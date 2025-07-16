@@ -29,58 +29,33 @@ class BaseTransformation:
         self.remote = (env.platform == "remote")
         self.env = env
         self.function_class = function
+        self.function_args = args
+        self.function_kwargs = kwargs
+
         self.basename = get_name(name) if name else get_name(self.function_class.__name__)
             
 
         self.logger = CustomLogger(
-            filename=f"BaseTransformation_{self.basename}",
+            filename=f"{self.basename}_{self.__class__.__name__}",
             env_name = env.name,
             console_output=False,
             file_output=True
         )
         if self.remote and not isinstance(env.memory_collection, ActorHandle):
             raise Exception("Memory collection must be a Ray Actor handle for remote transformation")
-        # 创建可序列化的函数工厂
-        self.function_factory = FunctionFactory(
-            function_class=self.function_class,
-            function_args=args,
-            function_kwargs=kwargs
-        )
 
         self.logger.debug(f"Creating BaseTransformation of type {type} with rag {self.function_class.__name__}")
 
-        self.operator_factory = OperatorFactory(
-            operator_class=self.operator_class,
-            function_factory=self.function_factory,  # 传递函数工厂而不是具体参数
-            basename=self.basename,
-            env_name = env.name,
-            remote = self.remote
-        )
-        # 创建 DAG 节点工厂（包含所有静态参数）
-        self.dag_node_factory = DAGNodeFactory(self)
-
-
-
-        # 简化的多输入连接
-        # upstreams: List[BaseTransformation] - 上游transformation列表
         self.upstreams: List[BaseTransformation] = []
-        # downstreams: List[Tuple[BaseTransformation, int]] - (downstream_transformation, input_index)
-        # self.downstreams: List[Tuple['BaseTransformation', int]] = []
-        self.downstreams: dict[str, int] = {}  # 用于快速查找下游输入索引
-
-
+        self.downstreams: dict[str, int] = {} 
         self.parallelism = parallelism  
+
+        
+        # 懒加载工厂
+        self._dag_node_factory: DAGNodeFactory = None
+        self._operator_factory: OperatorFactory = None
+        self._function_factory: FunctionFactory = None
         # 生成的平行节点名字：f"{transformation.function_class.__name__}_{i}"
-        self.function_args = args
-        self.kwargs = kwargs
-    
-    @property
-    def delay(self) -> float:
-        return 0.1  # 固定的内部事件监听循环延迟
-    
-    @property
-    def is_spout(self) -> bool:
-        return False
 
     # 增强的连接方法
     def add_upstream(self, upstream_trans: 'BaseTransformation', input_index: int = 0) -> None:
@@ -98,6 +73,50 @@ class BaseTransformation:
         upstream_trans.downstreams[self.basename] =  input_index
         
         self.logger.debug(f"Connected {upstream_trans.basename} -> {self.basename}[in:{input_index}]")
+
+
+    ########################################################
+    #                     properties                       #
+    ########################################################
+
+    @property
+    def function_factory(self) -> FunctionFactory:
+        """懒加载创建函数工厂"""
+        if self._function_factory is None:
+            self._function_factory = FunctionFactory(
+                function_class=self.function_class,
+                function_args=self.function_args,
+                function_kwargs=self.function_kwargs
+            )
+        return self._function_factory
+
+    @property
+    def operator_factory(self) -> OperatorFactory:
+        """懒加载创建操作符工厂"""
+        if self._operator_factory is None:
+            self._operator_factory = OperatorFactory(
+                operator_class=self.operator_class,
+                function_factory=self.function_factory,
+                basename=self.basename,
+                env_name=self.env.name,
+                remote=self.remote
+            )   
+        return self._operator_factory
+
+    @property
+    def dag_node_factory(self) -> DAGNodeFactory:
+        """懒加载创建DAG节点工厂"""
+        if self._dag_node_factory is None:
+            self._dag_node_factory = DAGNodeFactory(self)
+        return self._dag_node_factory
+
+    @property
+    def delay(self) -> float:
+        return 0.1  # 固定的内部事件监听循环延迟
+    
+    @property
+    def is_spout(self) -> bool:
+        return False
 
     @property
     def is_merge_operation(self) -> bool:
