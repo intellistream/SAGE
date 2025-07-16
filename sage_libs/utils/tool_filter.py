@@ -1,7 +1,7 @@
 import json
 from typing import List, Union, Set
 from sage_core.function.filter_function import FilterFunction
-from archive.template import AI_Template, QualityLabel
+from sage_libs.context.model_context import ModelContext, QualityLabel
 
 class ToolFilter(FilterFunction):
     """
@@ -53,7 +53,7 @@ class ToolFilter(FilterFunction):
         
         return set()
     
-    def execute(self, template: AI_Template) -> bool:
+    def execute(self, template: ModelContext) -> bool:
         """执行工具过滤逻辑"""
         tool_name = template.tool_name
         

@@ -2,13 +2,13 @@ from dotenv import load_dotenv
 import os, time
 from sage_core.api.env import LocalEnvironment, RemoteEnvironment
 from sage_utils.config_loader import load_config
-from sage_libs.agent.question_bot import QuestionBot
-from sage_libs.agent.chief_bot import ChiefBot
+from sage_libs.agents.question_bot import QuestionBot
+from sage_libs.agents.chief_bot import ChiefBot
 from sage_libs.utils.context_sink import ContextFileSink
-from sage_libs.agent.searcher_bot import SearcherBot
+from sage_libs.agents.searcher_bot import SearcherBot
 from sage_libs.tools.searcher_tool import BochaSearchTool
-from sage_libs.agent.answer_bot import AnswerBot
-from sage_libs.agent.critic_bot import CriticBot
+from sage_libs.agents.answer_bot import AnswerBot
+from sage_libs.agents.critic_bot import CriticBot
 from sage_libs.utils.tool_filter import ToolFilter
 
 
