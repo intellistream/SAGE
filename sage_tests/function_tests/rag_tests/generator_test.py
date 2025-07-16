@@ -51,7 +51,6 @@ def test_openai_generator(config_openai):
 
 def test_openai_generator_history_state(config_openai, ctx):
     gen = OpenAIGeneratorWithHistory(config_openai)
-    gen.runtime_init(ctx)
 
     # 第一次用户提问
     query1 = "What is the capital of France?"
@@ -78,7 +77,6 @@ def test_openai_generator_history_state(config_openai, ctx):
     gen.save_state()
 
     gen2 = OpenAIGeneratorWithHistory(config_openai)
-    gen2.runtime_init(ctx)
     history2 = gen2.dialogue_history
     
     assert history2 == history
