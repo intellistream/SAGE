@@ -117,7 +117,8 @@ class BaseOperator(ABC):
             
             # 直接将Connection对象传递给EmitContext
             try:
-                self._emit_context.send_via_connection(connection, raw_data)
+                packet = Packet(raw_data, connection.target_input_index)
+                self._emit_context.send_packet_direct(connection, packet)
                 
             except Exception as e:
                 self.logger.error(f"Failed to send data to target {connection.target_name} , group[{broadcast_index}]: {e}", exc_info=True)
@@ -180,3 +181,18 @@ class BaseOperator(ABC):
             这个方法是用来让ide满意的，用来代表OperatorWrapper提供的这个方法
         """
         pass
+
+    def _send_to_connection(self, connection:'Connection', data):
+        """
+        发送数据到指定连接的辅助方法
+        
+        Args:
+            connection: 目标连接
+            data: 要发送的数据（已解包的原始数据）
+        """
+        try:
+            packet = Packet(data, connection.target_input_index)
+            self._emit_context.send_packet_direct(connection, packet)
+            self.logger.debug(f"Sent data to {connection.target_name}")
+        except Exception as e:
+            self.logger.error(f"Failed to send data to {connection.target_name}: {e}", exc_info=True)
