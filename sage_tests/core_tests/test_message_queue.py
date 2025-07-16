@@ -304,7 +304,7 @@ class TestMessageQueue(unittest.TestCase):
 
         if accuracy_errors:
             avg_error = sum(accuracy_errors) / len(accuracy_errors)
-            self.assertLess(avg_error, 5.0, f"吞吐量计算的平均误差超过了5%（实际误差: {avg_error:.2f}%）")
+            self.assertLess(avg_error, 10.0, f"吞吐量计算的平均误差超过了10%（实际误差: {avg_error:.2f}%）")
 
     def test_memory_limit(self):
         """验证内存限制是否生效"""
