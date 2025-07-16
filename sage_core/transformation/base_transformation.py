@@ -49,6 +49,12 @@ class BaseTransformation:
         self.upstreams: List[BaseTransformation] = []
         self.downstreams: dict[str, int] = {} 
         self.parallelism = parallelism  
+
+        
+        # 懒加载工厂
+        self._dag_node_factory: DAGNodeFactory = None
+        self._operator_factory: OperatorFactory = None
+        self._function_factory: FunctionFactory = None
         # 生成的平行节点名字：f"{transformation.function_class.__name__}_{i}"
 
     # 增强的连接方法

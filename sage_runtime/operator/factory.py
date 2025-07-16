@@ -76,9 +76,9 @@ class OperatorFactory:
             return wrapped_operator
             
         except Exception as e:
-            logger.error(f"Failed to create operator: {e}", exc_info=True)
+            logger.error(f"Failed to create operator: {e}")
             raise
             
         except Exception as e:
-            logger.error(f"Failed to create operator: {e}", exc_info=True)
+            logger.error(f"Failed to create operator: {e}")
             raise
