@@ -3,8 +3,8 @@ import time
 from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.sink import MemWriteSink
 from sage_common_funs.io.source import FileSource
-from sage_common_funs.rag.chunk import CharacterSplitter
-from sage_common_funs.rag.writer import MemoryWriter
+from sage_libs.rag import CharacterSplitter
+from sage_libs.rag import MemoryWriter
 from sage_utils.config_loader import load_config
 
 

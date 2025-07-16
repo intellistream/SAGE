@@ -1,13 +1,11 @@
-import os
-from threading import local
 import time
 from dotenv import load_dotenv
 
 from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.io.sink import TerminalSink
-from sage_common_funs.rag.generator import OpenAIGeneratorWithHistory
-from sage_common_funs.rag.promptor import QAPromptor
+from sage_libs.rag import OpenAIGeneratorWithHistory
+from sage_libs.rag import QAPromptor
 from sage_utils.config_loader import load_config
 
 
