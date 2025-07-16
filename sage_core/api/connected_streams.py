@@ -226,6 +226,7 @@ class ConnectedStreams:
             raise TypeError(f"Join function must inherit from BaseJoinFunction")
         
         # TODO: 验证流都是keyed的
+        # Issue URL: https://github.com/intellistream/SAGE/issues/225
         # self._validate_keyed_streams()
         
         # 创建transformation
