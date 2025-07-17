@@ -65,4 +65,5 @@ dist/
 data/model_context
 drafts/
 run.sh
-
+third_party/
+tmp_ray/
