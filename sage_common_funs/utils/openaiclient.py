@@ -50,7 +50,7 @@ class OpenAIClient():
         try:
             # -------- 参数清理 --------
             # OpenAI 接口使用 max_tokens，保持与 up-stream 命名一致
-            max_tokens = kwargs.get("max_tokens", kwargs.get("max_new_tokens", 4096))
+            max_tokens = kwargs.get("max_tokens", kwargs.get("max_tokens", 3000))
             temperature = kwargs.get("temperature", 1.0)
             top_p = kwargs.get("top_p", None)
             stream = bool(kwargs.get("stream", False))
@@ -72,11 +72,11 @@ class OpenAIClient():
                 temperature=temperature,
                 top_p=top_p,
                 max_tokens=max_tokens,
-                n=n,
-                seed=seed,  # 使用当前时间戳作为默认种子
-                stream=stream,
-                frequency_penalty=frequency_penalty,
-                logprobs=want_logprobs,
+                # n=n,
+                # seed=self.seed,
+                # stream=stream,
+                # frequency_penalty=frequency_penalty,
+                # logprobs=want_logprobs,
             )
 
             # -------- 流式返回 --------
