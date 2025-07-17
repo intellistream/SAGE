@@ -40,5 +40,6 @@ typeguard==4.3.0
 uvicorn==0.34.3
 zhipuai==2.1.5.20250526
 ray[default]==2.37.0
+kafka-python==2.2.15
 python-multipart
 huggingface_hub
