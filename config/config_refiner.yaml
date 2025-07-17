@@ -18,6 +18,7 @@ generator:
   model_name: "qwen-turbo-0919"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
   seed: 42
+  api_key: ""
 
 promptor:
   platform: "local"
@@ -26,7 +27,11 @@ sink:
   platform: "local"
 
 refiner:
-  method: "openai"
-  model_name: "qwen-turbo-0919"
-  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  seed: 42
+  base_model_path: "Qwen/Qwen2.5-3B-Instruct"
+  query_analysis_module_lora_path: "jinjiajie/Query-Analysis-Qwen2.5-3B-Instruct"
+  doc_structuring_module_lora_path: "jinjiajie/Doc-Structuring-Qwen2.5-3B-Instruct"
+  global_selection_module_lora_path: "jinjiajie/Global-Selection-Qwen2.5-3B-Instruct"
+  score_model_name: "bge-reranker-v2-m3"
+  score_model_path: "BAAI/bge-reranker-v2-m3"
+  max_model_len: 25000
+  budget: 2048
