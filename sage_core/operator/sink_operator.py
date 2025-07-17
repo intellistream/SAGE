@@ -13,10 +13,12 @@ class SinkOperator(BaseOperator):
         # if not isinstance(self.function, SinkFunction):
         #     raise TypeError(f"SinkOperator requires SinkFunction, got {type(self.function)}")
         
-    def process(self, data: Any, input_index: int = 0):
-        self.logger.debug(f"Sink operator {self.name} received data")
+    def process_packet(self, packet: 'Packet' = None):
         try:
-            result = self.function.execute(data)
-            self.logger.debug(f"Sink operator {self.name} executed with result: {result}")
+            if packet is None or packet.payload is None:
+                self.logger.warning(f"Operator {self.name} received empty data")
+            else:
+                result = self.function.execute(packet.payload)
+                self.logger.debug(f"Operator {self.name} processed data with result: {result}")
         except Exception as e:
-            self.logger.error(f"Error in {self.name}.receive_packet(): {e}", exc_info=True)
+            self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)

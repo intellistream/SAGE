@@ -3,6 +3,7 @@ from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 from sage_core.function.base_function import BaseFunction
 
 from sage_utils.custom_logger import CustomLogger
+from sage_runtime.io.packet import Packet
 if TYPE_CHECKING:
     from sage_runtime.runtime_context import RuntimeContext
 

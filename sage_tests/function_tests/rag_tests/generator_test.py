@@ -1,6 +1,6 @@
 import pytest
 
-from sage_common_funs.rag.generator import OpenAIGenerator,OpenAIGeneratorWithHistory
+from sage_libs.rag.generator import OpenAIGenerator,OpenAIGeneratorWithHistory
 from dotenv import load_dotenv
 import os
 import time

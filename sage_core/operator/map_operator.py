@@ -14,19 +14,15 @@ class MapOperator(BaseOperator):
         # if not isinstance(self.function, MapFunction):
         #     raise TypeError(f"{self.__class__.__name__} requires MapFunction, got {type(self.function)}")
         
-
-
-    def process(self, data: Any, input_index: int = 0):
-        """
-        Smart dispatch for multi-input operator.
-        """
+    def process_packet(self, packet: 'Packet' = None):
         try:
-            if data is None:
+            if packet is None or packet.payload is None:
                 self.logger.warning(f"Operator {self.name} received empty data")
             else:
-                result = self.function.execute(data)
+                result = self.function.execute(packet.payload)
                 self.logger.debug(f"Operator {self.name} processed data with result: {result}")
-            if result is not None:
-                self.emit(result)
+                result_packet = packet.inherit_partition_info(result) if (result is not None) else None
+                if result_packet is not None:
+                    self.emit_packet(result_packet)
         except Exception as e:
-            self.logger.error(f"Error in {self.name}.receive_packet(): {e}", exc_info=True)
+            self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)

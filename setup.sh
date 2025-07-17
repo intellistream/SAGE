@@ -5,6 +5,11 @@ mkdir -p "$MARKER_DIR"
 
 echo "[$(date '+%H:%M:%S')] setup.sh sees CI='$CI'"
 
+MARKER_DIR="$HOME/.sage_setup"
+mkdir -p "$MARKER_DIR"
+
+echo "[$(date '+%H:%M:%S')] setup.sh sees CI='$CI'"
+
 # Interactive Bash Script for SAGE Project Setup
 # Dynamically detects the Docker container name and reuses it across functions.
 
@@ -25,7 +30,10 @@ function print_header() {
 function pause() {
   # 仅当 stdin 是 tty 且 CI 环境变量未设置时才真正 pause
   if [[ -t 0 && -z "$CI" ]]; then
+  # 仅当 stdin 是 tty 且 CI 环境变量未设置时才真正 pause
+  if [[ -t 0 && -z "$CI" ]]; then
     read -p "Press [Enter] to continue..."
+  fi
   fi
 }
 
@@ -91,12 +99,15 @@ function check_huggingface_auth() {
         HUGGINGFACE_LOGGED_IN=0
     fi
 }
+
+
 function configure_huggingface_auth() {
   echo "===================================================="
   echo "         Configuring Hugging Face Authentication"
   echo "===================================================="
 
   export HF_ENDPOINT=https://hf-mirror.com
+  
   # 1) 本地或 CI 下 Host 端登录
   if [[ -n "${CI:-}" ]]; then
     # CI 模式：必须通过环境变量传入 HF_TOKEN
@@ -142,6 +153,8 @@ function configure_huggingface_auth() {
   # 4) 交互时候 pause，否则直接返回
   pause
 }
+
+
 
 function run_debug_main() {
     check_huggingface_auth
@@ -276,9 +289,9 @@ function setup_with_docker() {
     check_docker_installed
     start_docker_container
     setup_conda_environment
+    install_sage
     configure_huggingface_auth
     echo "Setup with Docker completed successfully."
-    install_sage
     pause
 }
 
@@ -288,9 +301,9 @@ function full_setup() {
     start_docker_container
     install_dependencies
     setup_conda_environment
+    install_sage
     configure_huggingface_auth
     echo "Full setup completed successfully."
-    install_sage
     pause
 }
 
@@ -326,6 +339,7 @@ function main_menu() {
         echo "6.IDE Setup Guide (Set Up Conda Environment)"
         echo "7.troubleshooting"
         echo "8.Install CANDY in Docker Instance (Optional)"
+        echo "9. Install Kafka (Optional for streaming features)"
         echo "0.Exit"
         pause
          echo "===================================================="
@@ -340,6 +354,12 @@ function main_menu() {
             6) display_ide_setup ;;
             7) troubleshooting ;;
             8) install_dependencies ;;
+            9) 
+               echo "Installing Kafka (Optional for streaming features)..."
+               # 调用安装脚本
+               bash installation/kafka_setup/install_kafka.sh
+               echo "Kafka installation completed."
+               pause ;;
             0) echo "Exiting setup script. Goodbye!"
                exit 0 ;;
             *) echo "Invalid choice. Please try again."; pause ;;
@@ -347,6 +367,11 @@ function main_menu() {
     done
 }
 
+# 只有在交互式终端下才调用 main_menu
+# 在 CI（非交互）环境 stdin 通常不是 tty，或者 CI=true
+if [[ -t 0 && -z "$CI" ]]; then
+  main_menu
+fi
 # 只有在交互式终端下才调用 main_menu
 # 在 CI（非交互）环境 stdin 通常不是 tty，或者 CI=true
 if [[ -t 0 && -z "$CI" ]]; then

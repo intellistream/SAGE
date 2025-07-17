@@ -14,15 +14,13 @@ class RuntimeContext:
     def __init__(self, graph_node: 'GraphNode', env: 'BaseEnvironment'):
         self.name:str = graph_node.name
         self.env_name:str = env.name
-        self.session_folder:str = CustomLogger.get_session_folder()
+        self.session_folder:Optional[str] = CustomLogger.get_session_folder()
         self.memory_collection:Any = env.memory_collection
         self.parallel_index:int = graph_node.parallel_index
         self.parallelism:int = graph_node.parallelism
-        self._logger:CustomLogger = None
+        self._logger:Optional[CustomLogger] = None
 
-
-
-    def retrieve(self,  query: str = None, collection_config: Optional[Dict] = None) -> List[str]:
+    def retrieve(self,  query: Optional[str] = None, collection_config: Optional[Dict] = None) -> List[str]:
         """
         智能选择检索方式：Ray Actor远程调用或本地对象调用
         """
