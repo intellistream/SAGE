@@ -66,3 +66,4 @@ data/model_context
 drafts/
 run.sh
 
+tmp_ray/
