@@ -142,7 +142,7 @@ class KafkaSourceFunction(SourceFunction):
 
 
 
-    def execute(self, _):
+    def execute(self, _:Any = None):
         """
         SAGE Function接口：获取Kafka消息
         首次调用时触发延迟初始化
