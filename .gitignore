@@ -62,5 +62,7 @@ sage_examples/logs
 sage_examples/logs/**
 /.env
 dist/
-data/template_data
+data/model_context
 drafts/
+run.sh
+
