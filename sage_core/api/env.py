@@ -37,6 +37,78 @@ class BaseEnvironment:
         self.memory_collection = None  # 用于存储内存集合
         self.is_running = False
 
+    def from_kafka_source(self, 
+                         bootstrap_servers: str,
+                         topic: str,
+                         group_id: str,
+                         auto_offset_reset: str = 'latest',
+                         value_deserializer: str = 'json',
+                         buffer_size: int = 10000,
+                         max_poll_records: int = 500,
+                         **kafka_config) -> DataStream:
+        """
+        创建Kafka数据源，采用Flink兼容的架构设计
+        
+        Args:
+            bootstrap_servers: Kafka集群地址 (例: "localhost:9092")
+            topic: Kafka主题名称
+            group_id: 消费者组ID，用于offset管理
+            auto_offset_reset: offset重置策略 ('latest'/'earliest'/'none')
+            value_deserializer: 反序列化方式 ('json'/'string'/'bytes'或自定义函数)
+            buffer_size: 本地缓冲区大小，防止数据丢失
+            max_poll_records: 每次poll的最大记录数，控制批处理大小
+            **kafka_config: 其他Kafka Consumer配置参数
+            
+        Returns:
+            DataStream: 可用于构建处理pipeline的数据流
+            
+        Example:
+            # 基本使用
+            kafka_stream = env.from_kafka_source(
+                bootstrap_servers="localhost:9092",
+                topic="user_events", 
+                group_id="sage_consumer"
+            )
+            
+            # 高级配置
+            kafka_stream = env.from_kafka_source(
+                bootstrap_servers="kafka1:9092,kafka2:9092",
+                topic="events",
+                group_id="sage_app",
+                auto_offset_reset="earliest",
+                buffer_size=20000,
+                max_poll_records=1000,
+                session_timeout_ms=30000,
+                security_protocol="SSL"
+            )
+            
+            # 构建处理pipeline
+            result = (kafka_stream
+                     .map(ProcessEventFunction)
+                     .filter(FilterFunction)
+                     .sink(OutputSinkFunction))
+        """
+        from sage_core.function.kafka_source import KafkaSourceFunction
+        
+        # 创建Kafka Source Function
+        transformation = SourceTransformation(
+            self,
+            KafkaSourceFunction,
+            bootstrap_servers=bootstrap_servers,
+            topic=topic,
+            group_id=group_id,
+            auto_offset_reset=auto_offset_reset,
+            value_deserializer=value_deserializer,
+            buffer_size=buffer_size,
+            max_poll_records=max_poll_records,
+            **kafka_config
+        )
+        
+        self._pipeline.append(transformation)
+        self.logger.info(f"Kafka source created for topic: {topic}, group: {group_id}")
+        
+        return DataStream(self, transformation)
+
 
 
     def from_source(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> DataStream:
@@ -128,7 +200,7 @@ class BaseEnvironment:
 
 
 
-    def set_memory(self, config):
+    def set_memory(self, config = None):
         self.memory_collection = sage_memory.api.get_memory(config=config, remote=(self.platform != "local"), env_name=self.name)
 
     def set_memory_collection(self, collection):
