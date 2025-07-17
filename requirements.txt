@@ -45,3 +45,4 @@ huggingface_hub>=0.22.2
 vllm
 tqdm
 json_repair
+flashrag-dev
