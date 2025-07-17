@@ -7,27 +7,28 @@ import time
 
 import test
 load_dotenv(override=False)
-# api_key = os.environ.get("VLLM_API_KEY")
-api_key = os.environ.get("ALIBABA_API_KEY")
+api_key = os.environ.get("VLLM_API_KEY")
+# api_key = os.environ.get("ALIBABA_API_KEY")
 print(api_key)
+# @pytest.fixture
+# def config_openai():
+#     return {
+#         "method": "openai",
+#         "model_name": "qwen-turbo-0919",
+#         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+#         "api_key": api_key,
+#         "seed": 42,
+#     }
 @pytest.fixture
 def config_openai():
     return {
         "method": "openai",
-        "model_name": "qwen-turbo-0919",
-        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "model_name": "meta-llama/Llama-2-13b-chat-hf",
+        "base_url": "http://localhost:8000/v1",
         "api_key": api_key,
         "seed": 42,
+        "max_tokens":3000
     }
-
-# def config_openai():
-#     return {
-#         "method": "openai",
-#         "model_name": "meta-llama/Llama-2-13b-chat-hf",
-#         "base_url": "http://localhost:8000/v1",
-#         "api_key": api_key,
-#         "seed": 42,
-#     }
 @pytest.fixture
 def ctx(tmp_path):
     """
