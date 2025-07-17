@@ -3,13 +3,11 @@ import time
 
 class Packet:
     def __init__(self, payload: Any, input_index: int = 0, 
-                 partition_key: Any = None, partition_strategy: str = None,
-                 source_stream_index: Optional[int] = None):
+                 partition_key: Any = None, partition_strategy: str = None):
         self.payload = payload
         self.input_index = input_index
         self.partition_key = partition_key
         self.partition_strategy = partition_strategy
-        self.source_stream_index = source_stream_index
         self.timestamp = time.time_ns()
     
     def is_keyed(self) -> bool:
@@ -23,7 +21,6 @@ class Packet:
             input_index=self.input_index,
             partition_key=self.partition_key,
             partition_strategy=self.partition_strategy,
-            source_stream_index=self.source_stream_index
         )
     
     def update_key(self, new_key: Any, new_strategy: str = None) -> 'Packet':
@@ -33,5 +30,4 @@ class Packet:
             input_index=self.input_index,
             partition_key=new_key,
             partition_strategy=new_strategy or self.partition_strategy,
-            source_stream_index=self.source_stream_index
         )
