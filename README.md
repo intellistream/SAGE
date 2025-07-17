@@ -21,6 +21,29 @@ SAGE is a dataflow-native reasoning framework built from the ground up to suppor
 
 To accommodate different user environments and preferences, we provide **comprehensive setup scripts** that support multiple installation modes. Simply run the top-level `./setup.sh` script and choose from the following four installation options:
 
+# <div align="center">🧠 SAGE: A Dataflow-Native Framework for LLM Reasoning<div>
+
+
+SAGE is a dataflow-native reasoning framework built from the ground up to support modular, controllable, and transparent workflows over Large Language Models (LLMs). It addresses common problems in existing LLM-augmented systems (like RAG and Agents), such as hard-coded orchestration logic, opaque execution paths, and limited runtime control. SAGE introduces a dataflow-centric abstraction, modeling reasoning workflows as directed acyclic graphs (DAGs) composed of typed operators.
+
+![](./asset/framework.png)
+
+## ✨ Features
+
+- 🧩 **Declarative & Modular Composition**: Build complex reasoning pipelines from typed, reusable operators. The dataflow graph cleanly separates what to compute from how to compute it.
+
+- 🔀 **Unified Data and Control Flow**: Express conditional branching, tool routing, and fallback logic declaratively within the graph structure, eliminating brittle, imperative control code.
+
+- 💾 **Native Stateful Operators**: Memory is a first-class citizen. Model session, task, and long-term memory as stateful nodes directly within the graph for persistent, context-aware computation.
+
+- ⚡ **Asynchronous & Resilient Runtime**: The engine executes DAGs asynchronously in a non-blocking, data-driven manner. It features stream-aware queues, event-driven scheduling, and built-in backpressure to handle complex workloads gracefully.
+
+- 📊 **Built-in Observability & Introspection**: An interactive dashboard provides runtime instrumentation out-of-the-box. Visually inspect execution graphs, monitor operator-level metrics, and debug pipeline behavior in real-time.
+
+## 🔧 Installation
+
+To accommodate different user environments and preferences, we provide **comprehensive setup scripts** that support multiple installation modes. Simply run the top-level `./setup.sh` script and choose from the following four installation options:
+
 ```bash
 ./setup.sh
 ```
@@ -41,6 +64,50 @@ You will be prompted to select one of the following modes:
 
 2. **Setup with Docker**  
    Launches a pre-configured Docker container and sets up the Conda environment inside it.
+    
+   **Prerequisites**:
+   - If you are located in mainland China, you need to configure Docker to use a mirror registry to ensure smooth image pulling. Follow the steps below:
+     - Open or create the Docker daemon configuration file: `/etc/docker/daemon.json`.
+     - Add the following content to configure a mirror registry:
+       ```json
+       {
+         "registry-mirrors": ["https://docker.xuanyuan.me", ... ]
+       }
+       ```
+     - Restart Docker to apply the changes:
+       ```bash
+       systemctl daemon-reload
+       systemctl restart docker
+       ```
+     - Verify the configuration:
+       ```bash
+       docker info
+       ```
+       Ensure the `Registry Mirrors` section lists the configured mirror.
+
+   - Ensure Docker is installed and running on your system.
+   - **Install NVIDIA GPU Support** :
+     To make `nvidia-smi` visible within Docker containers, follow these steps:
+     - Add the NVIDIA GPG key and repository:
+        ```bash
+        curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+        distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+        curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+        ```
+     - Update the apt index and install `nvidia-docker2`:
+        ```bash
+        sudo apt update
+        sudo apt install -y nvidia-docker2
+        ```
+     - Restart the Docker service:
+        ```bash
+        sudo systemctl restart docker
+        ```
+     - Verify GPU support:
+        ```bash
+        docker run --rm --gpus all nvidia/cuda:11.8.0-base nvidia-smi
+        ```
+        Ensure the output displays GPU information.
 
 3. **Full Setup**  
    Launches the Docker container, installs all required dependencies (including **CANDY**, our in-house vector database), and sets up the Conda environment.
@@ -142,36 +209,37 @@ SAGE uses a **fluent-style API** to declaratively define RAG pipelines. Here's h
 
 ---
 
-
 ```python
 from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.source import FileSource
-from sage_common_funs.rag.retriever import DenseRetriever
-from sage_common_funs.rag.promptor import QAPromptor
-from sage_common_funs.rag.generator import OpenAIGenerator
+from sage_libs.rag.retriever import DenseRetriever
+from sage_libs.rag.promptor import QAPromptor
+from sage_libs.rag.generator import OpenAIGenerator
 from sage_common_funs.io.sink import TerminalSink
 from sage_utils.config_loader import load_config
 
 config = load_config("config.yaml")
 
+# Build pipeline using Fluent API
 env = LocalEnvironment()
 env.set_memory(config=None)
 
-query_stream = (env
-   .from_source(FileSource, config["source"])
-   .map(DenseRetriever, config["retriever"])
-   .map(QAPromptor, config["promptor"])
-   .map(OpenAIGenerator, config["generator"])
-   .sink(TerminalSink, config["sink"])
-)
+query_stream = (pipeline
+                .from_source(FileSource, config["source"])
+                .map(DenseRetriever, config["retriever"])
+                .map(QAPromptor, config["promptor"])
+                .map(OpenAIGenerator, config["generator"])
+                .sink(TerminalSink, config["sink"])
+                )
 
+# Submit and run the pipeline
 try:
-   env.submit()
-   env.run_once() 
-   time.sleep(5) 
-   env.stop()
+    env.submit()
+    env.run_once()
+    time.sleep(5)
+    env.stop()
 finally:
-   env.close()
+    env.close()
 
 ```
 

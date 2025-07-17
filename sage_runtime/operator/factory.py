@@ -17,8 +17,10 @@ class OperatorFactory:
                  function_factory: 'FunctionFactory',
                  basename: str = None,
                  env_name:str = None,
-                 remote:bool = False):
+                 remote:bool = False,
+                 **operator_kwargs):
         self.operator_class = operator_class
+        self.operator_kwargs = operator_kwargs  # 保存额外的operator参数
         self.function_factory = function_factory
         self.env_name = env_name
         self.basename = get_name(basename) or get_name(self.function_factory.function_class.__name__)
@@ -26,8 +28,7 @@ class OperatorFactory:
 
     def create_operator(self, 
                        name: str,
-                       runtime_context: 'RuntimeContext',
-                       **additional_kwargs) -> 'OperatorWrapper':
+                       runtime_context: 'RuntimeContext') -> 'OperatorWrapper':
         """
         创建operator实例
         
@@ -55,7 +56,7 @@ class OperatorFactory:
                 operator_instance = Operator_class.remote(
                     self.function_factory,
                     runtime_context,
-                    **additional_kwargs
+                    **self.operator_kwargs
                 )
                 logger.debug(f"Building Ray Actor operator instance: {self.operator_class.__name__}")
             else:
@@ -63,7 +64,7 @@ class OperatorFactory:
                 operator_instance = Operator_class(
                     self.function_factory,
                     runtime_context,
-                    **additional_kwargs
+                    **self.operator_kwargs
                 )
                 logger.debug(f"Building local operator instance: {self.operator_class.__name__}")
 
@@ -75,9 +76,9 @@ class OperatorFactory:
             return wrapped_operator
             
         except Exception as e:
-            logger.error(f"Failed to create operator: {e}", exc_info=True)
+            logger.error(f"Failed to create operator: {e}")
             raise
             
         except Exception as e:
-            logger.error(f"Failed to create operator: {e}", exc_info=True)
+            logger.error(f"Failed to create operator: {e}")
             raise
