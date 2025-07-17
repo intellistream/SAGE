@@ -339,18 +339,7 @@ function main_menu() {
         echo "6.IDE Setup Guide (Set Up Conda Environment)"
         echo "7.troubleshooting"
         echo "8.Install CANDY in Docker Instance (Optional)"
-        echo "0.Exit"
-        pause
-         echo "===================================================="
-        read -p "Enter your choice [0-6]: " choice
-        echo "1.Minimal Setup (Set Up Conda Environment without Docker)"
-        echo "2.Setup with Docker (Start Docker Container, Set Up Conda Environment)"
-        echo "3.Full Setup (Start Docker Container, Install Dependencies including CANDY, Set Up Conda Environment)"
-        echo "4.Enter Docker Instance "
-        echo "5.run example scripts"
-        echo "6.IDE Setup Guide (Set Up Conda Environment)"
-        echo "7.troubleshooting"
-        echo "8.Install CANDY in Docker Instance (Optional)"
+        echo "9. Install Kafka (Optional for streaming features)"
         echo "0.Exit"
         pause
          echo "===================================================="
@@ -365,17 +354,12 @@ function main_menu() {
             6) display_ide_setup ;;
             7) troubleshooting ;;
             8) install_dependencies ;;
-            0) echo "Exiting setup script. Goodbye!"
-               exit 0 ;;
-            1) minimal_setup ;;
-            # 2) setup_with_ray ;;
-            2) setup_with_docker ;;
-            3) full_setup ;;
-            4) enter_docker_instance ;;
-            5) run_example_scripts ;;
-            6) display_ide_setup ;;
-            7) troubleshooting ;;
-            8) install_dependencies ;;
+            9) 
+               echo "Installing Kafka (Optional for streaming features)..."
+               # 调用安装脚本
+               bash installation/kafka_setup/install_kafka.sh
+               echo "Kafka installation completed."
+               pause ;;
             0) echo "Exiting setup script. Goodbye!"
                exit 0 ;;
             *) echo "Invalid choice. Please try again."; pause ;;

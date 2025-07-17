@@ -15,12 +15,13 @@ jobs:
     timeout-minutes: 60
 
     env:
-      CI: true          # <<< here
+      CI: true          
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
       ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
+      VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
       HF_ENDPOINT: https://hf-mirror.com
     steps:
 
