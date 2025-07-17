@@ -26,7 +26,7 @@ CMakeUserPresets.json
 /sage.egg-info/
 /deps/CANDY/.github/
 
-
+draft/
 logs/
 output/
 .vscode/
@@ -62,5 +62,8 @@ sage_examples/logs
 sage_examples/logs/**
 /.env
 dist/
-data/template_data
+data/model_context
 drafts/
+run.sh
+third_party/
+tmp_ray/

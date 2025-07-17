@@ -115,7 +115,6 @@ class BaseOperator(ABC):
                 input_index=connection.target_input_index,
                 partition_key=packet.partition_key,
                 partition_strategy=packet.partition_strategy,
-                source_stream_index=packet.source_stream_index
             )
             
             self._emit_context.send_packet_direct(connection, routed_packet)
