@@ -80,7 +80,7 @@ def config():
     configure_logging(level=logging.INFO)
     load_dotenv(override=False)
     cfg = load_config("config_mixed.yaml")
-    api_key = os.environ.get("ALIBABA_API_KEY")
+    api_key = os.environ.get("VLLM_API_KEY")
     if api_key:
         cfg.setdefault("generator", {})["api_key"] = api_key
     return cfg
