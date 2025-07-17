@@ -74,7 +74,7 @@ class OpenAIGeneratorWithHistory(StatefulFunction):
             method=self.config["method"],
             model_name=self.config["model_name"],
             base_url=self.config["base_url"],
-            api_key=os.getenv("ALIBABA_API_KEY"),
+            api_key=self.config["api_key"] or os.getenv("ALIBABA_API_KEY"),
             seed=42
         )
 
