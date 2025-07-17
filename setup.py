@@ -25,4 +25,7 @@ setup(
     url = "https://github.com/intellistream/SAGE",
     install_requires=parse_requirements("requirements.txt"),
     python_requires=">=3.11",
+    extras_require={
+    "kafka": ["kafka-python>=2.2.0"],
+    }
 )
