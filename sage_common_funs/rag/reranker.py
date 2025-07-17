@@ -136,6 +136,7 @@ class LLMbased_Reranker(MapFunction):
         """
         super().__init__()
         self.config = config
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"  # Set device to GPU if available, otherwise CPU
 
         # Load tokenizer and model using the provided model name
@@ -257,43 +258,43 @@ class LLMbased_Reranker(MapFunction):
         return (query, emit_docs)  # Return the reranked documents along with the original query
 
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 
-#    # 设置配置
-#     config1 = {
-#         "reranker": {
-#             "model_name":"BAAI/bge-reranker-v2-m3",
-#             "top_k": 3
-#         }
-#     }
+   # 设置配置
+    config1 = {
+        "reranker": {
+            "model_name":"BAAI/bge-reranker-v2-m3",
+            "top_k": 3
+        }
+    }
 
-#     config2 = {
-#         "reranker": {
-#             "model_name":"BAAI/bge-reranker-v2-gemma",
-#             "top_k": 3
-#         }
-#     }
+    config2 = {
+        "reranker": {
+            "model_name":"BAAI/bge-reranker-v2-gemma",
+            "top_k": 3
+        }
+    }
 
-#     # 创建实例
-#     # reranker = BGEReranker(config)
-#     reranker = LLMbased_Reranker(config2)
-#     # 测试数据
-#     query = "What is the capital of France?"
-#     docs = [
-#         "Paris is the capital of France.",
-#         "Berlin is a city in Germany.",
-#         "The Eiffel Tower is located in Paris.",
-#         "France is a country in Western Europe.",
-#         "Madrid is the capital of Spain."
-#     ]
+    # 创建实例
+    # reranker = BGEReranker(config)
+    reranker = LLMbased_Reranker(config2)
+    # 测试数据
+    query = "What is the capital of France?"
+    docs = [
+        "Paris is the capital of France.",
+        "Berlin is a city in Germany.",
+        "The Eiffel Tower is located in Paris.",
+        "France is a country in Western Europe.",
+        "Madrid is the capital of Spain."
+    ]
 
-#     # 执行重排
-#     input_data = (query, docs)
-#     output = reranker.execute(input_data)
+    # 执行重排
+    input_data = (query, docs)
+    output = reranker.execute(input_data)
 
-#     # 输出结果
-#     result_query, result_docs = output
-#     print("Query:", result_query)
-#     print("Top-k Re-ranked Documents:")
-#     for i, doc in enumerate(result_docs, 1):
-#         print(f"{i}. {doc}")
+    # 输出结果
+    result_query, result_docs = output
+    print("Query:", result_query)
+    print("Top-k Re-ranked Documents:")
+    for i, doc in enumerate(result_docs, 1):
+        print(f"{i}. {doc}")

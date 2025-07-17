@@ -12,4 +12,10 @@ services:
     tty: true
     ports:
       - "2222:22"  # Expose SSH port for remote connection
-    runtime: nvidia # Use the NVIDIA sage_runtime
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

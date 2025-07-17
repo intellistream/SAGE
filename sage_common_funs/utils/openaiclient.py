@@ -1,4 +1,7 @@
 from openai import OpenAI
+import time
+
+
 class OpenAIClient():
     """
     Operator for generating natural language responses 
@@ -17,10 +20,10 @@ class OpenAIClient():
         model_name="meta-llama/Llama-2-13b-chat-hf"
         base_url="http://localhost:8000/v1"   
         api_key="empty"
-    
+
     """
 
-    def __init__(self,model_name="qwen-max",**kwargs):
+    def __init__(self, model_name="qwen-max", **kwargs):
         """
         Initialize the generator with a specified model and base_url.
         :param model_name: The Hugging Face model to use for generation.
@@ -28,15 +31,15 @@ class OpenAIClient():
         :param api_key: Api key to validate.
         :param seed: Seed for reproducibility.
         """
-        self.model_name=model_name
+        self.model_name = model_name
         self.base_url = kwargs["base_url"]
         self.api_key = kwargs["api_key"]
-        
+
         self.client = OpenAI(
-            base_url= self.base_url, 
+            base_url=self.base_url,
             api_key=self.api_key,
         )
-        self.seed=kwargs["seed"]
+        self.seed = kwargs.get("seed" or None)
 
     def generate(self, messages, **kwargs):
         """
@@ -49,14 +52,14 @@ class OpenAIClient():
         try:
             # -------- 参数清理 --------
             # OpenAI 接口使用 max_tokens，保持与 up-stream 命名一致
-            max_tokens = kwargs.get("max_tokens", kwargs.get("max_new_tokens", 3000))
+            max_tokens = kwargs.get("max_tokens", kwargs.get("max_new_tokens", 4096))
             temperature = kwargs.get("temperature", 1.0)
             top_p = kwargs.get("top_p", None)
             stream = bool(kwargs.get("stream", False))
             frequency_penalty = kwargs.get("frequency_penalty", 0)
             n = int(kwargs.get("n", 1))
             want_logprobs = bool(kwargs.get("logprobs", False))
-
+            seed = self.seed or (kwargs.get("seed", int(time.time() * 1000)))
             # -------- 兼容 messages 形态 --------
             # dict => 包成单元素 list
             if isinstance(messages, dict):
@@ -71,11 +74,11 @@ class OpenAIClient():
                 temperature=temperature,
                 top_p=top_p,
                 max_tokens=max_tokens,
-                # n=n,
-                # seed=self.seed,
-                # stream=stream,
-                # frequency_penalty=frequency_penalty,
-                # logprobs=want_logprobs,
+                n=n,
+                seed=seed,  # 使用当前时间戳作为默认种子
+                stream=stream,
+                frequency_penalty=frequency_penalty,
+                logprobs=want_logprobs,
             )
 
             # -------- 流式返回 --------
@@ -99,4 +102,3 @@ class OpenAIClient():
         except Exception as e:
             # 统一封装异常
             raise RuntimeError(f"Response generation failed: {e}") from e
-

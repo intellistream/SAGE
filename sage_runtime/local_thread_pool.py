@@ -54,7 +54,6 @@ class LocalThreadPool:
 
     
     def submit_node(self, node: LocalDAGNode) -> str:
-
         self.logger.info(f"Submitting node '{node.name}' to {self.name}")
         try:
             future=self.thread_pool.submit(node.run_loop)
