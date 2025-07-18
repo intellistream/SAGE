@@ -46,3 +46,4 @@ vllm
 tqdm
 json_repair
 flashrag-dev
+kafka-python>=2.2.0

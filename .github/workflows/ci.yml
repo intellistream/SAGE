@@ -38,8 +38,8 @@
 #       - name: Reuse setup.sh to provision environment
 #         shell: bash
 #         run: |
-#           set -euxo pipefail
-
+#           set -euxo pipefail          
+          
 #           # 1) turn off any interactive 'pause' in setup.sh
 #           pause() { :; }
 

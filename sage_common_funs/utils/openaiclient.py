@@ -51,7 +51,7 @@ class OpenAIClient():
         try:
             # -------- 参数清理 --------
             # OpenAI 接口使用 max_tokens，保持与 up-stream 命名一致
-            max_tokens = kwargs.get("max_tokens", kwargs.get("max_new_tokens", 3000))
+            max_tokens = kwargs.get("max_tokens", kwargs.get("max_tokens", 3000))
             temperature = kwargs.get("temperature", 1.0)
             top_p = kwargs.get("top_p", None)
             stream = bool(kwargs.get("stream", False))
