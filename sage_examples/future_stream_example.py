@@ -146,13 +146,8 @@ def main():
     
     print("✅ Pipeline validation:")
     print(f"   - Pipeline transformations: {len(env._pipeline)}")
-    print(f"   - Filled future streams: {list(env.get_filled_futures().keys())}")
-    print(f"   - Has unfilled futures: {env.has_unfilled_futures()}")
     
     try:
-        # 验证pipeline可编译性
-        env.validate_pipeline_for_compilation()
-        print("✅ Pipeline validation passed - ready to run!\n")
         
         print("🎬 Starting feedback loop execution...")
         print("📈 Watch the counter increment in a feedback loop:\n")

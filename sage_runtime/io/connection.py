@@ -28,7 +28,8 @@ class Connection:
                  target_name: str,
                  target_node: Union[ActorHandle, LocalDAGNode],
                  target_input_index: int,
-                 tcp_server: LocalTcpServer):
+                 target_host: str = "127.0.0.1",
+                 target_port: int = 19000):
 
         self.broadcast_index: int = broadcast_index
         self.parallel_index: int = parallel_index
@@ -40,7 +41,7 @@ class Connection:
         
         # 根据连接类型构建配置
         self.connection_type: ConnectionType = self._get_connection_type()
-        self.target_config: dict = self._build_target_config(target_node, tcp_server)
+        self.target_config: dict = self._build_target_config(target_node, target_host, target_port)
 
     def _detect_node_type(self, node: Union[ActorHandle, LocalDAGNode]) -> NodeType:
         """
@@ -81,7 +82,7 @@ class Connection:
             raise NotImplementedError(f"未知连接类型: {self.own_type} → {self.target_type}")
 
     def _build_target_config(self, target_node: BaseDAGNode, 
-                           tcp_server: LocalTcpServer) -> dict:
+                           target_host: str, target_port:str) -> dict:
         """
         根据连接类型构建目标配置字典
         
@@ -113,8 +114,8 @@ class Connection:
             return {
                 "type": "local_tcp",
                 "node_name": self.target_name,
-                "tcp_host": tcp_server.host,
-                "tcp_port": tcp_server.port
+                "tcp_host": target_host,
+                "tcp_port": target_port
             }
 
         elif self.connection_type == ConnectionType.RAY_TO_RAY:

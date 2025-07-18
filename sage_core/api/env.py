@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import Type, Union, Any, List
+from typing import Type, Union, Any, List, Optional
 from enum import Enum
 import sage_memory.api
 from sage_core.function.base_function import BaseFunction
@@ -12,7 +12,7 @@ from sage_core.transformation.future_transformation import FutureTransformation
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.name_server import get_name
 from sage_core.function.lambda_function import wrap_lambda
-
+from sage_core.client import EngineClient
 
 
 class BaseEnvironment:
@@ -30,18 +30,21 @@ class BaseEnvironment:
         self.memory_collection = None  # 用于存储内存集合
         self.is_running = False
 
-    @property
-    def logger(self):
-        if not hasattr(self, "_logger"):
-            self._logger = CustomLogger(
-            filename=f"Environment_{self.name}",
-            env_name = self.name,
-            console_output="WARNING",
-            file_output=True,
-            global_output = "DEBUG",
-        )
-        return self._logger
+                # Engine 客户端相关
+        self._engine_client: EngineClient = None
+        self.env_uuid: Optional[str] = None
 
+        # TODO: 删除手动启动Engine的代码
+        from sage_jobmanager.engine import Engine
+        Engine.get_instance()
+
+
+    ########################################################
+    #                  user interface                      #
+    ########################################################
+
+    def set_memory(self, config = None):
+        self.memory_collection = sage_memory.api.get_memory(config=config, remote=(self.platform != "local"), env_name=self.name)
 
     def from_kafka_source(self, 
                          bootstrap_servers: str,
@@ -115,8 +118,6 @@ class BaseEnvironment:
         
         return DataStream(self, transformation)
 
-
-
     def from_source(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> DataStream:
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
@@ -147,125 +148,155 @@ class BaseEnvironment:
         self._pipeline.append(transformation)
         return DataStream(self, transformation)
 
-    # TODO: add a new type of source with handler returned.
-    def create_source(self):
-        pass
+    ########################################################
+    #                engine interface                      #
+    ########################################################
 
     def submit(self, name="example_pipeline"):
-        # self.debug_print_pipeline()
-        from sage_jobmanager.engine import Engine
-        engine = Engine.get_instance()
-        engine.submit_env(self)
-        # time.sleep(10) # 等待管道启动
-        while (self.initialized() is False):
-            time.sleep(1)
+        """提交环境到 Engine"""
+        
+        # 序列化环境
+        from sage_utils.dill_serializer import serialize_object
+        serialized_env = serialize_object(self)
+        
+        # 发送提交请求
+        response = self.client.send_message(
+            message_type="env_submit",
+            env_name=self.name,
+            payload={"serialized_env": serialized_env}
+        )
+        
+        if response["status"] == "success":
+            self.env_uuid = response["env_uuid"]
+            self.logger.info(f"Environment submitted with UUID: {self.env_uuid}")
+        else:
+            raise RuntimeError(f"Failed to submit environment: {response['message']}")
 
-    def run_once(self, node:str = None):
-        """
-        运行一次管道，适用于测试或调试。
-        """
-        if(self.is_running):
-            self.logger.warning("Pipeline is already running. ")
+    def run_once(self, node: str = None):
+        """运行一次管道，适用于测试或调试"""
+        if self.is_running:
+            self.logger.warning("Pipeline is already running.")
             return
-        from sage_jobmanager.engine import Engine
-        engine = Engine.get_instance()
-        engine.run_once(self)
-        # time.sleep(10) # 等待管道启动
+            
+        if not self.env_uuid:
+            raise RuntimeError("Environment not submitted yet. Call submit() first.")
+        
+        response = self.client.send_message(
+            message_type="env_run_once",
+            env_name=self.name,
+            env_uuid=self.env_uuid,
+            payload={"node": node}
+        )
+        
+        if response["status"] != "success":
+            raise RuntimeError(f"Failed to run once: {response['message']}")
+        
+        self.logger.info("Pipeline executed once successfully")
 
     def run_streaming(self, node: str = None):
-        """
-        运行管道，适用于生产环境。
-        """
-        from sage_jobmanager.engine import Engine
-        engine = Engine.get_instance()
-        engine.run_streaming(self)
-        # time.sleep(10) # 等待管道启动
+        """运行管道，适用于生产环境"""
+        if not self.env_uuid:
+            raise RuntimeError("Environment not submitted yet. Call submit() first.")
+        
+        response = self.client.send_message(
+            message_type="env_run_streaming",
+            env_name=self.name,
+            env_uuid=self.env_uuid,
+            payload={"node": node}
+        )
+        
+        if response["status"] != "success":
+            raise RuntimeError(f"Failed to run streaming: {response['message']}")
+        
+        self.is_running = True
+        self.logger.info("Pipeline streaming started successfully")
 
     def stop(self):
-        """
-        停止管道运行。
-        """
+        """停止管道运行"""
+        if not self.env_uuid:
+            self.logger.warning("Environment not submitted, nothing to stop")
+            return
+        
         self.logger.info("Stopping pipeline...")
-        from sage_jobmanager.engine import Engine
-        engine = Engine.get_instance()
-        engine.stop_pipeline(self)
-        # self.close()
+        
+        try:
+            response = self.client.send_message(
+                message_type="env_stop",
+                env_name=self.name,
+                env_uuid=self.env_uuid,
+                payload={}
+            )
+            
+            if response["status"] == "success":
+                self.is_running = False
+                self.logger.info("Pipeline stopped successfully")
+            else:
+                self.logger.warning(f"Failed to stop pipeline: {response['message']}")
+        except Exception as e:
+            self.logger.error(f"Error stopping pipeline: {e}")
 
     def close(self):
-        """
-        关闭管道运行。
-        """
-        from sage_jobmanager.engine import Engine
-        engine = Engine.get_instance()
-        # 1) 停止本环境对应的 DAG 执行
-        engine.stop_pipeline(self)
-        # 2) 关闭该环境在 Engine 中的引用，并在无剩余环境时彻底 shutdown Engine
-        engine.close_pipeline(self)
-        # 3) 清理自身引用，以打破循环链
-        self._pipeline.clear()
-
-
-
-    def set_memory(self, config = None):
-        self.memory_collection = sage_memory.api.get_memory(config=config, remote=(self.platform != "local"), env_name=self.name)
-
-    def set_memory_collection(self, collection):
-
-        self.memory_collection = collection 
+        """关闭管道运行"""
+        if not self.env_uuid:
+            self.logger.warning("Environment not submitted, nothing to close")
+            return
         
-    # TODO: 写一个判断Env 是否已经完全初始化并开始执行的函数
-    def initialized(self):
-        pass
-
-    def get_filled_futures(self) -> dict:
-        """
-        获取所有已填充的future stream信息
+        self.logger.info("Closing environment...")
         
-        Returns:
-            dict: 已填充的future stream信息，格式为:
-                {
-                    'future_name': {
-                        'future_transformation': FutureTransformation,
-                        'actual_transformation': BaseTransformation,
-                        'filled_at': timestamp
-                    }
-                }
-        """
-        return self._filled_futures.copy()
-    
-    def has_unfilled_futures(self) -> bool:
-        """
-        检查pipeline中是否还有未填充的future streams
-        
-        Returns:
-            bool: 如果存在未填充的future streams返回True，否则返回False
-        """
-        from sage_core.transformation.future_transformation import FutureTransformation
-        for transformation in self._pipeline:
-            if isinstance(transformation, FutureTransformation) and not transformation.filled:
-                return True
-        return False
-    
-    def validate_pipeline_for_compilation(self) -> None:
-        """
-        验证pipeline是否可以进行编译
-        检查是否存在未填充的future streams
-        
-        Raises:
-            RuntimeError: 如果存在未填充的future streams
-        """
-        from sage_core.transformation.future_transformation import FutureTransformation
-        unfilled_futures = []
-        
-        for transformation in self._pipeline:
-            if isinstance(transformation, FutureTransformation) and not transformation.filled:
-                unfilled_futures.append(transformation.future_name)
-        
-        if unfilled_futures:
-            raise RuntimeError(
-                f"Cannot compile pipeline with unfilled future streams: {unfilled_futures}. "
-                f"Please fill all future streams using fill_future() before compilation."
+        try:
+            response = self.client.send_message(
+                message_type="env_close",
+                env_name=self.name,
+                env_uuid=self.env_uuid,
+                payload={}
             )
+            
+            if response["status"] == "success":
+                self.logger.info("Environment closed successfully")
+            else:
+                self.logger.warning(f"Failed to close environment: {response['message']}")
+                
+        except Exception as e:
+            self.logger.error(f"Error closing environment: {e}")
+        finally:
+            # 清理本地资源
+            self.is_running = False
+            self.env_uuid = None
+            
+            # 断开客户端连接
+            self.client.disconnect()
+            self._client = None
+            
+            # 清理管道
+            self._pipeline.clear()
+
+    ########################################################
+    #                properties                            #
+    ########################################################
+
+    @property
+    def logger(self):
+        if not hasattr(self, "_logger"):
+            self._logger = CustomLogger(
+            filename=f"Environment_{self.name}",
+            env_name = self.name,
+            console_output="WARNING", 
+            file_output=True,
+            global_output = "DEBUG",
+        )
+        return self._logger
+
+    @property
+    def client(self)-> EngineClient:
+        if self._engine_client is None:
+            # 从配置中获取 Engine 地址，或使用默认值
+            engine_host = self.config.get("engine_host", "127.0.0.1")
+            engine_port = self.config.get("engine_port", 19000)
+            
+            self._engine_client = EngineClient(host=engine_host, port=engine_port)
+            
+        return self._engine_client
+
 
     ########################################################
     #                auxiliary methods                     #
@@ -298,14 +329,3 @@ class RemoteEnvironment(BaseEnvironment):
 
     def __init__(self, name: str = "remote_environment", config: dict | None = None):
         super().__init__(name, config, platform="remote")
-
-
-class DevEnvironment(BaseEnvironment):
-    """
-    混合执行环境，可根据配置动态选择本地或 Ray。
-    config 中可包含 'use_ray': bool 来切换运行时。
-    """
-
-    def __init__(self, name: str = "dev_environment", config: dict | None = None):
-        cfg = dict(config or {})
-        super().__init__(name, cfg, platform="hybrid")

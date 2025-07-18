@@ -8,27 +8,38 @@ from sage_utils.custom_logger import CustomLogger
 class LocalTcpServer:
     """
     本地TCP服务器，用于接收Ray Actor发送的数据
+    支持基于消息类型的多个处理器
     """
     
     def __init__(self, 
                  host: str = None, 
                  port: int = None,
-                 message_handler: Optional[Callable[[Dict[str, Any], tuple], None]] = None):
+                 default_handler: Optional[Callable[[Dict[str, Any], tuple], None]] = None):
         """
         初始化TCP服务器
         
         Args:
             host: 监听地址
             port: 监听端口
-            message_handler: 消息处理回调函数，接收 (message, client_address) 参数
+            default_handler: 默认消息处理回调函数，用于处理未知类型的消息
         """
-        self.host = host or self._get_host_ip()  # 确定自己的ip地址
-        self.port = port or self._allocate_tcp_port()  # 分配一个可用的端口
-        self.message_handler = message_handler
+        self.host = host or self._get_host_ip()
+        self.port = port or self._allocate_tcp_port()
         self.server_socket: Optional[socket.socket] = None
         self.server_thread: Optional[threading.Thread] = None
         self.running = False
         
+        # 消息处理器字典：消息类型 -> 处理函数
+        self.message_handlers: Dict[str, Callable[[Dict[str, Any], tuple], None]] = {}
+        self.default_handler = default_handler
+        
+        # 添加锁保护处理器字典
+        self._handlers_lock = threading.RLock()
+        
+        # 客户端连接管理
+        self.client_connections: Dict[str, socket.socket] = {}  # client_id -> socket
+        self.client_lock = threading.Lock()
+
         self.logger = CustomLogger(
             filename="LocalTcpServer",
             console_output="WARNING",
@@ -38,12 +49,10 @@ class LocalTcpServer:
     
         self.logger.info(f"Initializing LocalTcpServer on {self.host}:{self.port}")
 
-
     def _get_host_ip(self):
         """自动获取本机可用于外部连接的 IP 地址"""
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
-            # 连接到任意公网地址（不必可达，只为取出绑定IP）
             s.connect(("8.8.8.8", 80))
             ip = s.getsockname()[0]
         except Exception:
@@ -55,27 +64,23 @@ class LocalTcpServer:
     
     def _allocate_tcp_port(self) -> int:
         """为 DAG 分配可用的 TCP 端口"""
-        import socket
-        
         # 尝试从预设范围分配端口
-        for port in range(19000, 20000):  # DAG 专用端口范围
+        for port in range(19000, 20000):
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.bind((self.host, port))
                     return port
             except OSError:
                 continue
+        
         # 如果预设范围都被占用，使用系统分配
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             self.logger.warning("All predefined ports are occupied, using system-assigned port")
             s.bind((self.host, 0))
             return s.getsockname()[1]
-        
 
-    def set_message_handler(self, handler: Callable[[Dict[str, Any], tuple], None]):
-        """设置消息处理器"""
-        self.message_handler = handler
-    
+
+
     def start(self):
         """启动TCP服务器"""
         if self.running:
@@ -85,7 +90,7 @@ class LocalTcpServer:
         try:
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.server_socket.settimeout(5)  # 设置超时，避免阻塞
+            self.server_socket.settimeout(5)
             self.server_socket.bind((self.host, self.port))
             self.server_socket.listen(10)
             
@@ -116,7 +121,7 @@ class LocalTcpServer:
             self.server_socket.close()
         
         if self.server_thread and self.server_thread.is_alive():
-            for _ in range(5):  # 最多等5秒
+            for _ in range(5):
                 self.server_thread.join(timeout=1.0)
                 if not self.server_thread.is_alive():
                     break
@@ -146,10 +151,8 @@ class LocalTcpServer:
                 client_thread.daemon = True
                 client_thread.start()
             except socket.timeout:
-                # 超时不处理，继续循环
                 continue
             except OSError as e:
-                # Socket被关闭时会抛出OSError
                 if self.running:
                     self.logger.error(f"Error accepting TCP connection: {e}")
                 break
@@ -160,7 +163,7 @@ class LocalTcpServer:
         self.logger.debug("TCP server loop stopped")
     
     def _handle_client(self, client_socket: socket.socket, address: tuple):
-        """处理TCP客户端连接和消息"""
+        """处理客户端连接和消息"""
         try:
             while self.running:
                 # 读取消息长度
@@ -181,9 +184,24 @@ class LocalTcpServer:
                 # 反序列化并处理消息
                 try:
                     message = pickle.loads(message_data)
-                    self._process_message(message, address)
+                    response = self._process_message(message, address)
+                    
+                    # 发送响应
+                    if response:
+                        self._send_response(client_socket, response)
+                        
                 except Exception as e:
                     self.logger.error(f"Error processing message from {address}: {e}")
+                    # 发送错误响应
+                    error_response = {
+                        "type": "error_response",
+                        "request_id": message.get("request_id") if 'message' in locals() else None,
+                        "timestamp": int(time.time()),
+                        "status": "error",
+                        "message": f"Internal server error: {str(e)}",
+                        "payload": {"error_code": "ERR_INTERNAL_ERROR"}
+                    }
+                    self._send_response(client_socket, error_response)
                 
         except Exception as e:
             self.logger.error(f"Error handling TCP client {address}: {e}")
@@ -198,7 +216,7 @@ class LocalTcpServer:
         """接收完整的消息数据"""
         message_data = b''
         while len(message_data) < message_size:
-            chunk_size = min(message_size - len(message_data), 8192)  # 8KB chunks
+            chunk_size = min(message_size - len(message_data), 8192)
             chunk = client_socket.recv(chunk_size)
             if not chunk:
                 self.logger.warning("Connection closed while receiving message")
@@ -207,24 +225,131 @@ class LocalTcpServer:
         
         return message_data
     
-    def _process_message(self, message: Dict[str, Any], client_address: tuple):
-        """处理接收到的消息"""
+    def _process_message(self, message: Dict[str, Any], client_address: tuple) -> Optional[Dict[str, Any]]:
+        """
+        处理接收到的消息，根据消息类型分发给对应的处理器
+        
+        Args:
+            message: 接收到的消息字典
+            client_address: 客户端地址
+            
+        Returns:
+            响应字典，如果处理器返回 None 则不发送响应
+        """
         try:
-            if self.message_handler:
-                self.message_handler(message, client_address)
-            else:
-                self.logger.warning(f"No message handler set, ignoring message from {client_address}")
+            # 尝试获取消息类型
+            message_type = self._extract_message_type(message)
+            if message_type is None:
+                # 无法提取消息类型，使用默认处理器
+                self.logger.warning(f"Could not extract message type from message, using default handler")
+                return self._use_default_handler(message, client_address, None)
+
+            self.logger.debug(f"Processing message type '{message_type}' from {client_address}")
+            
+            # 查找对应的处理器
+            with self._handlers_lock:
+                handler = self.message_handlers.get(message_type, None)
+            
+            if handler is None:
+                # 没有找到对应的处理器，使用默认处理器
+                self.logger.warning(f"No handler found for message type '{message_type}', using default handler")
+                return self._use_default_handler(message, client_address, message_type)
+            
+
+            try:
+                response = handler(message, client_address)
+                self.logger.debug(f"Message type '{message_type}' processed successfully")
+                return response
+            except Exception as e:
+                self.logger.error(f"Error in handler for message type '{message_type}': {e}", exc_info=True)
+                return self._create_error_response(message, "ERR_HANDLER_FAILED", str(e))
+
                 
         except Exception as e:
-            self.logger.error(f"Error in message handler: {e}", exc_info=True)
+            self.logger.error(f"Error in message processing: {e}", exc_info=True)
+            return self._create_error_response(message, "ERR_PROCESSING_FAILED", str(e))
     
+    def _extract_message_type(self, message: Dict[str, Any]) -> Optional[str]:
+        """从消息中提取消息类型"""
+        if not isinstance(message, dict):
+            self.logger.warning(f"Message is not a dictionary: {type(message)}")
+            return None
+        
+        # 尝试多种可能的类型字段名
+        type_fields = ['type', 'message_type', 'msg_type', 'event_type', 'command']
+        
+        for field in type_fields:
+            if field in message:
+                msg_type = message[field]
+                if isinstance(msg_type, str) and msg_type.strip():
+                    return msg_type.strip()
+        
+        self.logger.debug(f"No valid type field found in message keys: {list(message.keys())}")
+        return None
+    
+    def _use_default_handler(self, message: Dict[str, Any], client_address: tuple, message_type: Optional[str]) -> Optional[Dict[str, Any]]:
+        """使用默认处理器处理消息"""
+        if self.default_handler:
+            try:
+                response = self.default_handler(message, client_address)
+                self.logger.debug("Message processed by default handler")
+                return response
+            except Exception as e:
+                self.logger.error(f"Error in default handler: {e}", exc_info=True)
+                return self._create_error_response(message, "ERR_DEFAULT_HANDLER_FAILED", str(e))
+        else:
+            self.logger.warning(f"No default handler set, ignoring message from {client_address}")
+            if message_type:
+                self.logger.info(f"Consider registering a handler for message type '{message_type}'")
+            return self._create_error_response(message, "ERR_NO_HANDLER", "No handler available for this message type")
+    
+    def _create_error_response(self, original_message: Dict[str, Any], error_code: str, error_message: str) -> Dict[str, Any]:
+        """创建错误响应"""
+        import time
+        return {
+            "type": f"{original_message.get('type', 'unknown')}_response",
+            "request_id": original_message.get("request_id"),
+            "env_name": original_message.get("env_name"),
+            "env_uuid": original_message.get("env_uuid"),
+            "timestamp": int(time.time()),
+            "status": "error",
+            "message": error_message,
+            "payload": {
+                "error_code": error_code,
+                "details": {}
+            }
+        }
+
+    def _send_response(self, client_socket: socket.socket, response: Dict[str, Any]):
+        """发送响应到客户端"""
+        try:
+            # 序列化响应
+            serialized = pickle.dumps(response)
+            message_size = len(serialized)
+            
+            # 发送消息长度
+            client_socket.send(message_size.to_bytes(4, byteorder='big'))
+            
+            # 发送消息内容
+            client_socket.send(serialized)
+            
+            self.logger.debug(f"Sent response: {response.get('type')}")
+            
+        except Exception as e:
+            self.logger.error(f"Error sending response: {e}")
+
     def get_server_info(self) -> Dict[str, Any]:
         """获取服务器信息"""
+        with self._handlers_lock:
+            registered_types = list(self.message_handlers.keys())
+        
         return {
             "host": self.host,
             "port": self.port,
             "running": self.running,
-            "address": f"{self.host}:{self.port}"
+            "address": f"{self.host}:{self.port}",
+            "registered_message_types": registered_types,
+            "has_default_handler": self.default_handler is not None
         }
     
     def __del__(self):
@@ -233,3 +358,63 @@ class LocalTcpServer:
             self.stop()
         except:
             pass
+
+    ########################################################
+    #                handler  registration                 #
+    ########################################################
+
+    # 修改 register_handler 方法的类型注解，使其返回 Dict[str, Any]
+    def register_handler(self, message_type: str, handler: Callable[[Dict[str, Any], tuple], Dict[str, Any]]):
+        with self._handlers_lock:
+            self.message_handlers[message_type] = handler
+            self.logger.info(f"Registered handler for message type: {message_type}")
+
+    def set_default_handler(self, handler: Callable[[Dict[str, Any], tuple], Dict[str, Any]]):
+        self.default_handler = handler
+        self.logger.info("Default message handler set")
+
+    def unregister_handler(self, message_type: str):
+        with self._handlers_lock:
+            if message_type in self.message_handlers:
+                del self.message_handlers[message_type]
+                self.logger.info(f"Unregistered handler for message type: {message_type}")
+            else:
+                self.logger.warning(f"No handler found for message type: {message_type}")
+
+    def get_registered_types(self) -> list[str]:
+        with self._handlers_lock:
+            return list(self.message_handlers.keys())
+
+
+
+# 使用示例
+if __name__ == "__main__":
+    def handle_status_message(message: Dict[str, Any], client_address: tuple):
+        print(f"Status message from {client_address}: {message}")
+    
+    def handle_data_message(message: Dict[str, Any], client_address: tuple):
+        print(f"Data message from {client_address}: {message}")
+    
+    def handle_unknown_message(message: Dict[str, Any], client_address: tuple):
+        print(f"Unknown message from {client_address}: {message}")
+    
+    # 创建服务器
+    server = LocalTcpServer(default_handler=handle_unknown_message)
+    
+    # 注册不同类型的处理器
+    server.register_handler("status", handle_status_message)
+    server.register_handler("data", handle_data_message)
+    
+    # 启动服务器
+    server.start()
+    
+    print(f"Server info: {server.get_server_info()}")
+    
+    try:
+        # 保持服务器运行
+        import time
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Stopping server...")
+        server.stop()

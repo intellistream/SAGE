@@ -70,12 +70,12 @@ def _should_skip(v):
     # 检查黑名单 - 修改为更精确的检查
     for i, blacklisted_type in enumerate(_BLACKLIST):
         if isinstance(v, blacklisted_type):
-            print(f"Skipping blacklisted instance {i}: {type(v)}, {v}")
+            # print(f"Skipping blacklisted instance {i}: {type(v)}, {v}")
             return True
     
     # 检查是否是模块（通常不应该序列化）
     if inspect.ismodule(v):
-        print(f"Skipping module: {v}")
+        # print(f"Skipping module: {v}")
         return True
     
     return False
@@ -92,14 +92,14 @@ def _preprocess_for_dill(obj, _seen=None):
     Returns:
         预处理后的对象，可以安全地交给dill序列化
     """
-    print(f"_preprocess_for_dill called for object: {obj}")
+    # print(f"_preprocess_for_dill called for object: {obj}")
     if _seen is None:
         _seen = set()
     
     # 防止循环引用
     obj_id = id(obj)
     if obj_id in _seen:
-        print(f"Skipping already seen object: {obj}")
+        # print(f"Skipping already seen object: {obj}")
         return _SKIP_VALUE
     
     # 基本类型直接返回
@@ -108,12 +108,12 @@ def _preprocess_for_dill(obj, _seen=None):
     
     # 类对象可以直接被dill序列化，不需要预处理
     if inspect.isclass(obj):
-        print(f"Processing class object: {obj}")
+        # print(f"Processing class object: {obj}")
         return obj
     
     # 函数对象也可以直接被dill序列化
     if inspect.isfunction(obj) or inspect.ismethod(obj):
-        print(f"Processing function object: {obj}")
+        # print(f"Processing function object: {obj}")
         return obj
 
     # 检查是否应该跳过
@@ -167,8 +167,8 @@ def _preprocess_for_dill(obj, _seen=None):
     
     # 处理复杂对象
     if hasattr(obj, '__dict__'):
-        print(f"Processing complex object: {obj}")
-        print(f"dict is {obj.__dict__}")
+        # print(f"Processing complex object: {obj}")
+        # print(f"dict is {obj.__dict__}")
         _seen.add(obj_id)
         try:
             # 创建一个新的对象实例
@@ -187,16 +187,16 @@ def _preprocess_for_dill(obj, _seen=None):
             # 一般不用include字段，只用exclude字段就行了
             
             attrs = _gather_attrs(obj)
-            print(f"attrs is {attrs}")
+            # print(f"attrs is {attrs}")
 
             filtered_attrs = _filter_attrs(attrs, custom_include, custom_exclude)
-            print(f"filtered_attrs is {filtered_attrs}")
+            # print(f"filtered_attrs is {filtered_attrs}")
             
             # 递归清理属性
             for attr_name, attr_value in filtered_attrs.items():
-                print(f"Processing attribute: {attr_name} = {attr_value}")
+                # print(f"Processing attribute: {attr_name} = {attr_value}")
                 if not _should_skip(attr_value):
-                    print(f"Cleaning attribute: {attr_name}")
+                    # print(f"Cleaning attribute: {attr_name}")
                     cleaned_value = _preprocess_for_dill(attr_value, _seen)
                     if cleaned_value is not _SKIP_VALUE:
                         try:
@@ -215,7 +215,7 @@ def _preprocess_for_dill(obj, _seen=None):
 
 def _postprocess_from_dill(obj, _seen=None):
     """递归后处理从dill反序列化的对象，清理哨兵值。"""
-    print(f"_postprocess_from_dill called for object: {obj}")
+    # print(f"_postprocess_from_dill called for object: {obj}")
     if _seen is None:
         _seen = set()
     
@@ -238,14 +238,14 @@ def _postprocess_from_dill(obj, _seen=None):
         try:
             cleaned = {}
             for k, v in obj.items():
-                print(f"Processing dict item: {k} = {v}")
+                # print(f"Processing dict item: {k} = {v}")
                 # 修复：只过滤掉哨兵值，保留所有合法值（包括None、False、0等）
                 if k is not _SKIP_VALUE and v is not _SKIP_VALUE:
                     cleaned_k = _postprocess_from_dill(k, _seen)
                     cleaned_v = _postprocess_from_dill(v, _seen)
                     # 保留所有值，包括None、False、0、空字典等
                     cleaned[cleaned_k] = cleaned_v
-                    print(f"Cleaned dict item: {cleaned_k} = {cleaned_v}")
+                    # print(f"Cleaned dict item: {cleaned_k} = {cleaned_v}")
             return cleaned
         finally:
             _seen.remove(obj_id)

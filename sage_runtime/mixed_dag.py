@@ -35,14 +35,6 @@ class MixedDAG():
 
         self.is_running: bool = False
 
-        # 为这个 DAG 分配独立的 TCP 端口
-        self.tcp_server = LocalTcpServer(
-            # host="localhost",
-            # port=self.tcp_port,
-            message_handler=self._handle_tcp_message
-        )
-        self.tcp_server.start()
-
         self._compile_graph(graph, env)
         # 启动 TCP 服务器
         self.logger.info(f"MixedDAG '{self.name}' construction complete")
@@ -97,7 +89,6 @@ class MixedDAG():
                     target_name=target_name,
                     target_node=target_handle,
                     target_input_index = target_input_index,
-                    tcp_server=self.tcp_server
                 )
                 try:
                     if isinstance(output_handle, ActorHandle):
@@ -128,7 +119,6 @@ class MixedDAG():
     def close(self):
         """停止所有节点"""
         self.logger.info("Stopping all DAG nodes...")
-        self.tcp_server.stop()
         for node_name, node in self.nodes.items():
             try:
                 node.stop()
