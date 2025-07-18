@@ -27,6 +27,8 @@ class BaseTransformation:
         self.operator_class:Type[BaseOperator]  # 由子类设置
 
         self.remote = (env.platform == "remote")
+        self.env_name = env.name
+        self.memory_collection: Union[Any, ActorHandle] = env.memory_collection
         self.env = env
         self.function_class = function
         self.function_args = args
@@ -98,7 +100,7 @@ class BaseTransformation:
                 operator_class=self.operator_class,
                 function_factory=self.function_factory,
                 basename=self.basename,
-                env_name=self.env.name,
+                env_name=self.env_name,
                 remote=self.remote
             )   
         return self._operator_factory

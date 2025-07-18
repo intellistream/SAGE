@@ -6,7 +6,7 @@ from sage_runtime.runtime_context import RuntimeContext
 from sage_runtime.dagnode.local_dag_node import LocalDAGNode
 from sage_runtime.dagnode.ray_dag_node import RayDAGNode
 from sage_runtime.dagnode.base_dag_node import BaseDAGNode
-from sage_runtime.io.local_tcp_server import LocalTcpServer
+from sage_utils.local_tcp_server import LocalTcpServer
 from sage_runtime.io.connection import Connection
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.compiler import Compiler, GraphNode

@@ -5,7 +5,7 @@ from sage_runtime.dagnode.base_dag_node import BaseDAGNode
 from sage_runtime.dagnode.local_dag_node import LocalDAGNode
 from sage_runtime.dagnode.ray_dag_node import RayDAGNode
 from ray.actor import ActorHandle
-from sage_runtime.io.local_tcp_server import LocalTcpServer
+from sage_utils.local_tcp_server import LocalTcpServer
 class NodeType(Enum):
     LOCAL = "local"
     RAY_ACTOR = "ray_actor"

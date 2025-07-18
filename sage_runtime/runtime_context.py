@@ -11,11 +11,11 @@ if TYPE_CHECKING:
 # dagnode, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:
-    def __init__(self, graph_node: 'GraphNode', env: 'BaseEnvironment'):
+    def __init__(self, graph_node: 'GraphNode', env_name: str, memory_collection: Any):
         self.name:str = graph_node.name
-        self.env_name:str = env.name
+        self.env_name:str = env_name
         self.session_folder:Optional[str] = CustomLogger.get_session_folder()
-        self.memory_collection:Any = env.memory_collection
+        self.memory_collection:Any = memory_collection
         self.parallel_index:int = graph_node.parallel_index
         self.parallelism:int = graph_node.parallelism
         self._logger:Optional[CustomLogger] = None

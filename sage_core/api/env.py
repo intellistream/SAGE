@@ -19,13 +19,6 @@ class BaseEnvironment:
 
     def __init__(self, name: str, config: dict | None, *, platform: str = "local"):
         self.name = get_name(name)
-        self.logger = CustomLogger(
-            filename=f"Environment_{name}",
-            env_name = name,
-            console_output="WARNING",
-            file_output=True,
-            global_output = "DEBUG",
-        )
         
 
         self.config: dict = dict(config or {})
@@ -36,6 +29,19 @@ class BaseEnvironment:
         self.runtime_context = dict  # 需要在compiler里面实例化。
         self.memory_collection = None  # 用于存储内存集合
         self.is_running = False
+
+    @property
+    def logger(self):
+        if not hasattr(self, "_logger"):
+            self._logger = CustomLogger(
+            filename=f"Environment_{self.name}",
+            env_name = self.name,
+            console_output="WARNING",
+            file_output=True,
+            global_output = "DEBUG",
+        )
+        return self._logger
+
 
     def from_kafka_source(self, 
                          bootstrap_servers: str,
@@ -147,7 +153,7 @@ class BaseEnvironment:
 
     def submit(self, name="example_pipeline"):
         # self.debug_print_pipeline()
-        from sage_core.engine import Engine
+        from sage_jobmanager.engine import Engine
         engine = Engine.get_instance()
         engine.submit_env(self)
         # time.sleep(10) # 等待管道启动
@@ -161,7 +167,7 @@ class BaseEnvironment:
         if(self.is_running):
             self.logger.warning("Pipeline is already running. ")
             return
-        from sage_core.engine import Engine
+        from sage_jobmanager.engine import Engine
         engine = Engine.get_instance()
         engine.run_once(self)
         # time.sleep(10) # 等待管道启动
@@ -170,7 +176,7 @@ class BaseEnvironment:
         """
         运行管道，适用于生产环境。
         """
-        from sage_core.engine import Engine
+        from sage_jobmanager.engine import Engine
         engine = Engine.get_instance()
         engine.run_streaming(self)
         # time.sleep(10) # 等待管道启动
@@ -180,7 +186,7 @@ class BaseEnvironment:
         停止管道运行。
         """
         self.logger.info("Stopping pipeline...")
-        from sage_core.engine import Engine
+        from sage_jobmanager.engine import Engine
         engine = Engine.get_instance()
         engine.stop_pipeline(self)
         # self.close()
@@ -189,7 +195,7 @@ class BaseEnvironment:
         """
         关闭管道运行。
         """
-        from sage_core.engine import Engine
+        from sage_jobmanager.engine import Engine
         engine = Engine.get_instance()
         # 1) 停止本环境对应的 DAG 执行
         engine.stop_pipeline(self)

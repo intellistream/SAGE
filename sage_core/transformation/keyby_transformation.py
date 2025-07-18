@@ -30,7 +30,7 @@ class KeyByTransformation(BaseTransformation):
             operator_class=self.operator_class,
             function_factory=self.function_factory,
             basename=self.basename,
-            env_name=self.env.name,
+            env_name=self.env_name,
             remote=self.remote,
             partition_strategy=self.partition_strategy  # KeyBy特有参数
         )

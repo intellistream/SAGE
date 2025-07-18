@@ -25,7 +25,7 @@ class GraphNode:
 
         self.input_channels:dict[int, List[GraphEdge]] = {}
         self.output_channels:List[List[GraphEdge]] = []
-        self.runtime_context: RuntimeContext = RuntimeContext(self, transformation.env)
+        self.runtime_context: RuntimeContext = RuntimeContext(self, transformation.env_name, transformation.memory_collection)
 
 class GraphEdge:
     def __init__(self,name:str,  output_node: GraphNode,  input_node:GraphNode = None, input_index:int = 0):
@@ -76,11 +76,7 @@ class Compiler:
                         f"All future streams must be filled with fill_future() before compilation."
                     )
                 else:
-                    # 这种情况不应该发生，因为已填充的future transformation应该被从pipeline中移除
-                    raise RuntimeError(
-                        f"Found filled future transformation '{transformation.future_name}' in pipeline. "
-                        f"This is unexpected - filled future transformations should be removed from pipeline."
-                    )
+                    continue  # 已填充的future transformation不需要处理
             
             node_names = []
             for i in range(transformation.parallelism):
