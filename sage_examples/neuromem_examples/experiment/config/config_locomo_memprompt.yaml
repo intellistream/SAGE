@@ -5,8 +5,8 @@ pipeline:
   type: "remote"
 
 memory:
-  memprompt_collection:
-    collection_name: "memprompt_collection"
+  memprompt_collection_session1:
+    collection_name: "memprompt_collection_session1"
     backend_type: "VDB"
     embedding_model_name: "default"
     dim: 384

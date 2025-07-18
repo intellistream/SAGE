@@ -62,7 +62,8 @@ sage_examples/logs
 sage_examples/logs/**
 /.env
 dist/
-data/model_context
+data/template_data
+data/neuromem_data
 drafts/
 run.sh
 third_party/
