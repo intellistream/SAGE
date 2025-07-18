@@ -1,17 +1,15 @@
-import os
 import time
 from dotenv import load_dotenv
 
 from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.io.sink import TerminalSink, FileSink
-from sage_common_funs.rag.generator import OpenAIGenerator
-from sage_common_funs.rag.promptor import QAPromptor
-from sage_common_funs.rag.retriever import DenseRetriever
+from sage_libs.rag.generator import OpenAIGenerator
+from sage_libs.rag.promptor import QAPromptor
+from sage_libs.rag.retriever import DenseRetriever
 from sage_common_funs.dataflow.splitter import Splitter
 from sage_common_funs.dataflow.merger import Merger
 from sage_utils.config_loader import load_config
-from sage_utils.logging_utils import configure_logging
 
 
 def pipeline_run(config):

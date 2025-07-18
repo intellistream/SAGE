@@ -36,9 +36,9 @@ class DAGNodeFactory:
         runtime_context: 'RuntimeContext' = None,
     ) -> 'BaseDAGNode':
         if self.remote:
-            node = RayDAGNode(name,  self.operator_factory, runtime_context)
+            node = RayDAGNode(name, runtime_context,  self.operator_factory)
         else:
-            node = LocalDAGNode(name, self.operator_factory, runtime_context)
+            node = LocalDAGNode(name, runtime_context, self.operator_factory)
         node.delay = self.delay
         node.is_spout = self.is_spout
         # print(f"{name} is spout: {node.is_spout}")

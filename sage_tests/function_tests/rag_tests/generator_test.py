@@ -1,6 +1,6 @@
 import pytest
 
-from sage_common_funs.rag.generator import OpenAIGenerator,OpenAIGeneratorWithHistory
+from sage_libs.rag.generator import OpenAIGenerator,OpenAIGeneratorWithHistory
 from dotenv import load_dotenv
 import os
 import time
@@ -8,8 +8,9 @@ import time
 import test
 load_dotenv(override=False)
 api_key = os.environ.get("VLLM_API_KEY")
-# print(api_key)
-@pytest.fixture
+# api_key = os.environ.get("ALIBABA_API_KEY")
+print(api_key)
+# @pytest.fixture
 # def config_openai():
 #     return {
 #         "method": "openai",
@@ -18,7 +19,7 @@ api_key = os.environ.get("VLLM_API_KEY")
 #         "api_key": api_key,
 #         "seed": 42,
 #     }
-
+@pytest.fixture
 def config_openai():
     return {
         "method": "openai",
@@ -26,6 +27,7 @@ def config_openai():
         "base_url": "http://localhost:8000/v1",
         "api_key": api_key,
         "seed": 42,
+        "max_tokens":3000
     }
 @pytest.fixture
 def ctx(tmp_path):

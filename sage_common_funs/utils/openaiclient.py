@@ -1,4 +1,5 @@
 from openai import OpenAI
+import time
 class OpenAIClient():
     """
     Operator for generating natural language responses 
@@ -36,7 +37,7 @@ class OpenAIClient():
             base_url= self.base_url, 
             api_key=self.api_key,
         )
-        self.seed=kwargs["seed"]
+        self.seed=kwargs.get("seed" or None)
 
     def generate(self, messages, **kwargs):
         """
@@ -49,14 +50,14 @@ class OpenAIClient():
         try:
             # -------- 参数清理 --------
             # OpenAI 接口使用 max_tokens，保持与 up-stream 命名一致
-            max_tokens = kwargs.get("max_tokens", kwargs.get("max_new_tokens", 3000))
+            max_tokens = kwargs.get("max_tokens", kwargs.get("max_tokens", 3000))
             temperature = kwargs.get("temperature", 1.0)
             top_p = kwargs.get("top_p", None)
             stream = bool(kwargs.get("stream", False))
             frequency_penalty = kwargs.get("frequency_penalty", 0)
             n = int(kwargs.get("n", 1))
             want_logprobs = bool(kwargs.get("logprobs", False))
-
+            seed = self.seed or (kwargs.get("seed", int(time.time() * 1000)))
             # -------- 兼容 messages 形态 --------
             # dict => 包成单元素 list
             if isinstance(messages, dict):

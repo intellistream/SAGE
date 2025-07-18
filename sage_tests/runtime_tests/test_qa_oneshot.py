@@ -61,19 +61,16 @@
 #     unittest.main()
 
 import logging
-import time
-import io
 import pytest
-from contextlib import redirect_stdout
 from dotenv import load_dotenv
 import os
 
 from sage_core.api.env import LocalEnvironment
 from sage_common_funs.io.sink import TerminalSink
 from sage_common_funs.io.source import FileSource
-from sage_common_funs.rag.generator import OpenAIGenerator
-from sage_common_funs.rag.promptor import QAPromptor
-from sage_common_funs.rag.retriever import DenseRetriever
+from sage_libs.rag.generator import OpenAIGenerator
+from sage_libs.rag.promptor import QAPromptor
+from sage_libs.rag.retriever import DenseRetriever
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging
 

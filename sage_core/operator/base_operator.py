@@ -11,17 +11,6 @@ if TYPE_CHECKING:
     from sage_runtime.runtime_context import RuntimeContext
     from sage_runtime.function.factory import FunctionFactory
 
-
-
-
-# TODO: 将Memory的API使用在这里。
-
-
-
-# Operator 决定事件的逻辑路由（如广播、分区、keyBy等），
-# EmitContext 仅负责将数据发送到指定的下游通道或节点。
-# 路由策略是 Operator 的语义特征，EmitContext 专注于消息投递的物理实现。
-
 class BaseOperator(ABC):
     def __init__(self, 
                  function_factory: 'FunctionFactory', ctx: 'RuntimeContext', *args,
@@ -52,75 +41,89 @@ class BaseOperator(ABC):
             self._emit_context = UnifiedEmitContext(name = ctx.name, session_folder=ctx.session_folder, env_name = ctx.env_name) 
             self.logger.debug(f"Created function instance with {self.function_factory}")
 
-            # self.function.runtime_init(ctx)
         except Exception as e:
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
 
     def receive_packet(self, packet: 'Packet' = None):
-        """
-        Smart dispatch for multi-input operator.
-        This method should be implemented by subclasses to handle incoming packets.
-        """
-        self.logger.debug(f"Received packet in operator {self.name}, index: {packet.input_index if packet else 'N/A'}")
-        try:
-            if packet is None or packet.payload is None:
-                result = self.process()
-                self.logger.debug(f"Operator {self.name} received empty packet, executed with result: {result}")
-            else:
-                result = self.process(packet.payload, packet.input_index)
-                self.logger.debug(f"Operator {self.name} processed payload with result: {result}")
-            if result is not None:
-                self.emit(result)
-            from sage_core.function.base_function import StatefulFunction
-            if isinstance(self.function, StatefulFunction):
-                # 调用 save_state
-                self.function.save_state()
-        except Exception as e:
-            self.logger.error(f"Error in {self.name}.receive_packet(): {e}", exc_info=True)
-
+        self.process_packet(packet)
+        from sage_core.function.base_function import StatefulFunction
+        if isinstance(self.function, StatefulFunction):
+            self.function.save_state()
 
     @abstractmethod
-    def process(self, raw_data:Any = None, input_index:int = 0) -> Any:
+    def process_packet(self, packet: 'Packet' = None):
+        return
+
+
+    def emit_packet(self, packet: 'Packet'):
         """
-        Process the raw data and return the result.
-        This method should be implemented by subclasses to define the processing logic.
+        新增：直接发送packet，根据其分区信息选择路由策略
         
         Args:
-            raw_data: The data to process, can be any type.
-            input_index: The index of the input channel, default is 0.
-        
-        Returns:
-            The processed result, can be any type.
+            packet: 要发送的packet，可能包含分区信息
         """
-        pass
-
-    def emit(self, raw_data: Any):
-
-        """
-        Emit data to downstream node through specified channel and target.
-        现在直接将Connection对象传递给EmitContext处理
-        
-        Args:
-            tag: The output tag, None for broadcast to all channels
-            data: The data to emit
-        """
-        
         if self._emit_context is None:
-            raise RuntimeError(f"Emit context not set for operator {self.name}. "
-                            "This should be injected by the DAG node.")
-    
+            raise RuntimeError(f"Emit context not set for operator {self.name}")
+        self.logger.debug(f"Emitting packet: {packet}")
+        # 根据packet的分区信息选择路由策略
+        if packet.is_keyed():
+            self._emit_keyed_packet(packet)
+        else:
+            self._emit_round_robin_packet(packet)
+
+    def _emit_keyed_packet(self, packet: 'Packet'):
+        """使用分区信息进行路由"""
+        strategy = packet.partition_strategy
+        partition_key = packet.partition_key
+        
         for broadcast_index, parallel_targets in self.downstream_groups.items():
-            # round-robin选择
+            if strategy == "hash":
+                target_index = hash(partition_key) % len(parallel_targets)
+                connection = parallel_targets[target_index]
+                self._send_packet_to_connection(connection, packet)
+                
+            elif strategy == "broadcast":
+                # 广播到所有实例
+                for connection in parallel_targets.values():
+                    self._send_packet_to_connection(connection, packet)
+                    
+            elif strategy == "round_robin":
+                # 忽略键，使用轮询
+                current_round_robin = self.downstream_group_roundrobin[broadcast_index]
+                connection = parallel_targets[current_round_robin % len(parallel_targets)]
+                self.downstream_group_roundrobin[broadcast_index] += 1
+                self._send_packet_to_connection(connection, packet)
+                
+            else:
+                self.logger.warning(f"Unknown partition strategy: {strategy}, using round-robin")
+                self._emit_round_robin_packet(packet)
+
+    def _emit_round_robin_packet(self, packet: 'Packet'):
+        """使用round-robin策略路由"""
+        for broadcast_index, parallel_targets in self.downstream_groups.items():
             current_round_robin = self.downstream_group_roundrobin[broadcast_index]
             connection = parallel_targets[current_round_robin % len(parallel_targets)]
             self.downstream_group_roundrobin[broadcast_index] += 1
+            self._send_packet_to_connection(connection, packet)
+
+    def _send_packet_to_connection(self, connection: 'Connection', packet: 'Packet'):
+        """发送packet到指定连接"""
+        try:
+            # 更新packet的目标输入索引
+            routed_packet = Packet(
+                payload=packet.payload,
+                input_index=connection.target_input_index,
+                partition_key=packet.partition_key,
+                partition_strategy=packet.partition_strategy,
+            )
             
-            # 直接将Connection对象传递给EmitContext
-            try:
-                self._emit_context.send_via_connection(connection, raw_data)
-                
-            except Exception as e:
-                self.logger.error(f"Failed to send data to target {connection.target_name} , group[{broadcast_index}]: {e}", exc_info=True)
+            self._emit_context.send_packet_direct(connection, routed_packet)
+            self.logger.debug(f"Sent {'keyed' if packet.is_keyed() else 'unkeyed'} packet to {connection.target_name}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to send packet to {connection.target_name}: {e}", exc_info=True)
+
+
 
     def add_connection(self, connection: 'Connection') -> None:
         """
@@ -180,3 +183,18 @@ class BaseOperator(ABC):
             这个方法是用来让ide满意的，用来代表OperatorWrapper提供的这个方法
         """
         pass
+
+    def _send_to_connection(self, connection:'Connection', data):
+        """
+        发送数据到指定连接的辅助方法
+        
+        Args:
+            connection: 目标连接
+            data: 要发送的数据（已解包的原始数据）
+        """
+        try:
+            packet = Packet(data, connection.target_input_index)
+            self._emit_context.send_packet_direct(connection, packet)
+            self.logger.debug(f"Sent data to {connection.target_name}")
+        except Exception as e:
+            self.logger.error(f"Failed to send data to {connection.target_name}: {e}", exc_info=True)
