@@ -43,3 +43,6 @@ ray[default]==2.37.0
 python-multipart>=0.0.6
 huggingface_hub>=0.22.2
 kafka-python>=2.2.0
+rank_bm25
+tqdm
+json_repair
