@@ -4,21 +4,17 @@
 import os
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
-from data.neuromem_datasets.locomo_dataloader import LocomoDataLoader
-
-from sage_memory.api import get_memory
-
+from tqdm import tqdm
+from sage_memory.api import get_memory, get_manager
 from sage_utils.config_loader import load_config
+from data.neuromem_datasets.locomo_dataloader import LocomoDataLoader
 
 # ==== 记忆实体创建 memprompt(VDB) ====
 config = load_config("config_locomo_memprompt.yaml").get("memory")
-memprompt_collection = get_memory(config=config.get("memprompt_collection"))
-
-print(config.get("memprompt_collection"))
+memprompt_collection = get_memory(config=config.get("memprompt_collection_session1"))
 
 # ==== 记忆实体填充 memprompt(VDB) ====
 memprompt_collection.add_metadata_field("raw_qa")
-
 
 loader = LocomoDataLoader()
 sid = loader.get_sample_id()[0]
@@ -32,16 +28,34 @@ for session in loader.iter_session(sid):
         qa_list.append({'q': q, 'a': a})
     all_session_qa.append(qa_list)  
     
+for session_qa in tqdm(all_session_qa, desc="Session Progress"):
+    for qa in tqdm(session_qa, desc="QA Progress", leave=False):
+        memprompt_collection.insert(
+            qa["q"],
+            metadata={"raw_qa": qa}
+        )
 
-for i in range(3):
-    memprompt_collection.insert(
-        all_session_qa[0][i].get("q"),
-        metadata={"raw_qa": all_session_qa[0][i]}
-    )
+memprompt_collection.create_index(index_name="global_index")
+
+manager = get_manager()
+manager.store_collection()
+
+
+# print(memprompt_collection.retrieve("LGBTQ", index_name="global_index", topk=3, with_metadata=True))
+
+
+# print(memprompt_collection.retrieve("LGBTQ", index_name="vdb_index", topk=1))
+         
+# # print(all_session_qa)
+# for i in range(len(all_session_qa[0])):
+#     memprompt_collection.insert(
+#         all_session_qa[0][i].get("q"),
+#         metadata={"raw_qa": all_session_qa[0][i]}
+#     )
     
-memprompt_collection.create_index(index_name="vdb_index")
+# memprompt_collection.create_index(index_name="vdb_index")
 
-print(memprompt_collection.retrieve("LGBTQ", index_name="vdb_index", topk=1))
+# print(memprompt_collection.retrieve("LGBTQ", index_name="vdb_index", topk=1))
 
 
 

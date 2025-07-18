@@ -34,6 +34,7 @@ def get_memory(config = None, remote:bool = False, env_name: Optional[str] = Non
         #   'dim': 384,
         #   'description': 'A collection for locomo experiment'
         # }
+        # 
         # KV类型的collection配置示例
         # config = {
         #   'collection_name': 'kvtest_collection',

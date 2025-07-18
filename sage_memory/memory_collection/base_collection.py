@@ -1,4 +1,4 @@
-# file: sage/core/sage_memory/memory_collection/base_collection.py
+# file: sage_memory/memory_collection/base_collection.py
 # python -m sage.core.sage_memory.memory_collection.base_collection
 
 import os
@@ -116,19 +116,32 @@ class BaseMemoryCollection:
         self.metadata_storage.clear()
         
 
+# def get_default_data_dir():
+#     # 找到 sage 的父目录，并拼 data/sage_memory
+#     this_file = os.path.abspath(__file__)
+#     parts = this_file.split(os.sep)
+#     try:
+#         sage_idx = parts.index('sage')
+#     except ValueError:
+#         sage_idx = len(parts) - 1
+#     project_root = os.sep.join(parts[:sage_idx+1])
+#     data_dir = os.path.join(os.path.dirname(project_root), "data", "sage_memory")
+#     os.makedirs(data_dir, exist_ok=True)
+#     return data_dir
 def get_default_data_dir():
-    # 找到 sage 的父目录，并拼 data/sage_memory
     this_file = os.path.abspath(__file__)
-    parts = this_file.split(os.sep)
-    try:
-        sage_idx = parts.index('sage')
-    except ValueError:
-        sage_idx = len(parts) - 1
-    project_root = os.sep.join(parts[:sage_idx+1])
-    data_dir = os.path.join(os.path.dirname(project_root), "data", "sage_memory")
-    os.makedirs(data_dir, exist_ok=True)
-    return data_dir
-
+    cur_dir = os.path.dirname(this_file)
+    # 一直向上，直到找到 sage_memory 目录
+    while True:
+        if os.path.basename(cur_dir) == "sage_memory":
+            project_root = os.path.dirname(cur_dir)
+            data_dir = os.path.join(project_root, "data", "neuromem_data")
+            os.makedirs(data_dir, exist_ok=True)
+            return data_dir
+        parent = os.path.dirname(cur_dir)
+        if parent == cur_dir:
+            raise FileNotFoundError("Could not find 'sage_memory' directory in parent folders.")
+        cur_dir = parent
     
 if __name__ == "__main__":
 

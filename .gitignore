@@ -59,4 +59,5 @@ sage_examples/logs/**
 /.env
 dist/
 data/template_data
+data/neuromem_data
 drafts/
