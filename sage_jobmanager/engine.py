@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from sage_core.api.env import BaseEnvironment
 
 
-class Engine:
+class JobManager: #Job Manager
     _instance = None
     _lock = threading.Lock()
 
@@ -31,11 +31,11 @@ class Engine:
 
         # print("Engine initialized")
         self.logger = CustomLogger(
-            filename=f"SageEngine",
+            filename=f"Jobmanager",
             console_output="WARNING",
             file_output=True,
             global_output="WARNING",
-            name="SageEngine"
+            name="Jobmanager"
         )
                 # 创建 TCP 服务器
         self.tcp_server = LocalTcpServer(
@@ -121,7 +121,7 @@ class Engine:
                 self.env_to_dag[env_name] = mixed_dag
             
             # 提交 DAG
-            mixed_dag.submit()
+            mixed_dag.submit() # 提交到本地线程池 or Ray 集群
             
             self.logger.info(f"Environment '{env_name}' submitted with UUID {env_uuid}")
             
@@ -389,7 +389,7 @@ class Engine:
         self.env_to_dag.clear()
         self.graphs.clear()
 
-        Engine._instance = None
+        JobManager._instance = None
         self.logger.info("Engine shutdown complete")
 
     ########################################################

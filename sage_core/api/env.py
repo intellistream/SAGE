@@ -35,8 +35,8 @@ class BaseEnvironment:
         self.env_uuid: Optional[str] = None
 
         # TODO: 删除手动启动Engine的代码
-        from sage_jobmanager.engine import Engine
-        Engine.get_instance()
+        from sage_jobmanager.engine import JobManager
+        JobManager.get_instance()
 
 
     ########################################################
