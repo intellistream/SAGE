@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from sage_runtime.operator.factory import OperatorFactory
     from sage_core.operator.base_operator import BaseOperator
     from sage_runtime.operator.operator_wrapper import OperatorWrapper
-    from sage_runtime.compiler import Compiler, GraphNode
+    from sage_jobmanager.compiler import Compiler, GraphNode
     from sage_runtime.runtime_context import RuntimeContext
 
 

@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from sage_core.api.env import BaseEnvironment
     from sage_runtime.dagnode.base_dag_node import BaseDAGNode
     from ray.actor import ActorHandle
-    from sage_runtime.compiler import GraphNode
+    from sage_jobmanager.compiler import GraphNode
     from sage_runtime.runtime_context import RuntimeContext
     
 class DAGNodeFactory:

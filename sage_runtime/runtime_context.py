@@ -6,7 +6,7 @@ from sage_memory.memory_collection.base_collection import BaseMemoryCollection
 from sage_memory.memory_collection.vdb_collection import VDBMemoryCollection
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
-    from sage_runtime.compiler import Compiler, GraphNode
+    from sage_jobmanager.compiler import Compiler, GraphNode
     from sage_core.api.env import BaseEnvironment 
 # dagnode, operator和function "形式上共享"的运行上下文
 

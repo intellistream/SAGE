@@ -9,7 +9,7 @@ from sage_runtime.dagnode.base_dag_node import BaseDAGNode
 from sage_utils.local_tcp_server import LocalTcpServer
 from sage_runtime.io.connection import Connection
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.compiler import Compiler, GraphNode
+from sage_jobmanager.compiler import Compiler, GraphNode
 
 if TYPE_CHECKING:
     from sage_core.api.env import BaseEnvironment 

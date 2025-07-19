@@ -2,12 +2,12 @@ from typing import TYPE_CHECKING, Dict, Any, Optional
 import time, uuid
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.local_thread_pool import LocalThreadPool
-from sage_runtime.mixed_dag import MixedDAG
+from sage_jobmanager.mixed_dag import MixedDAG
 from sage_utils.local_tcp_server import LocalTcpServer
 import threading
 from sage_utils.dill_serializer import serialize_object, deserialize_object
 if TYPE_CHECKING:
-    from sage_runtime.compiler import Compiler
+    from sage_jobmanager.compiler import Compiler
     from sage_core.api.env import BaseEnvironment
 
 
@@ -102,7 +102,7 @@ class Engine:
             env_uuid = str(uuid.uuid4())
             
             # 编译环境
-            from sage_runtime.compiler import Compiler
+            from sage_jobmanager.compiler import Compiler
             graph = Compiler(env)
             mixed_dag = MixedDAG(graph, env)
             
