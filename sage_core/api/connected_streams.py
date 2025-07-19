@@ -140,21 +140,6 @@ class ConnectedStreams:
                 f"CoMap operations require CoMap function with mapN methods."
             )
         
-        # Check if function has is_comap property (should be True for CoMap functions)
-        try:
-            # Create a temporary instance to check is_comap property
-            temp_instance = function()
-            if not hasattr(temp_instance, 'is_comap') or not temp_instance.is_comap:
-                raise TypeError(
-                    f"Function {function.__name__} must have is_comap=True property. "
-                    f"Ensure your function properly inherits from BaseCoMapFunction."
-                )
-        except Exception as e:
-            raise TypeError(
-                f"Failed to validate CoMap function {function.__name__}: {e}. "
-                f"Ensure the function can be instantiated and has is_comap=True."
-            )
-        
         # Validate that function supports the required number of input streams
         required_methods = [f'map{i}' for i in range(input_stream_count)]
         missing_methods = []

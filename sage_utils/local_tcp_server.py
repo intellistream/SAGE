@@ -63,12 +63,14 @@ class LocalTcpServer:
         return ip
     
     def _allocate_tcp_port(self) -> int:
+        print( "Allocating TCP port..." )
         """为 DAG 分配可用的 TCP 端口"""
         # 尝试从预设范围分配端口
         for port in range(19000, 20000):
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.bind((self.host, port))
+                    print("Allocated port:", port)
                     return port
             except OSError:
                 continue

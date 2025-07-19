@@ -224,6 +224,7 @@ class EngineClient:
                 response_info = self.pending_responses[request_id]
                 response_info["response"] = response
                 response_info["event"].set()
+                print("Handled response for request:", response)
                 self.logger.debug(f"Handled response for request: {request_id}")
             else:
                 self.logger.warning(f"Received unexpected response for request: {request_id}")
