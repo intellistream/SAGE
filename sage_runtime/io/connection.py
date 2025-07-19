@@ -105,7 +105,7 @@ class Connection:
             # 本地到Ray Actor的连接
             return {
                 "type": "actor_handle",
-                "actorhandle": target_node.operator.get_wrapped_operator(),
+                "actorhandle": target_node.operator.get_wrapped_object(),
                 "node_name": self.target_name
             }
 
@@ -122,7 +122,7 @@ class Connection:
             # Ray Actor到Ray Actor的连接
             return {
                 "type": "actor_handle",
-                "actorhandle": target_node.operator.get_wrapped_operator(),
+                "actorhandle": target_node.operator.get_wrapped_object(),
                 "node_name": self.target_name
             }
 

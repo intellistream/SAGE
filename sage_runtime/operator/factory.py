@@ -1,7 +1,7 @@
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
 from sage_utils.name_server import get_name
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.operator.operator_wrapper import OperatorWrapper
+from sage_runtime.operator.operator_wrapper import UniversalWrapper
 if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
     from sage_core.function.base_function import BaseFunction
@@ -28,7 +28,7 @@ class OperatorFactory:
 
     def create_operator(self, 
                        name: str,
-                       runtime_context: 'RuntimeContext') -> 'OperatorWrapper':
+                       runtime_context: 'RuntimeContext') -> 'UniversalWrapper':
         """
         创建operator实例
         
@@ -70,8 +70,8 @@ class OperatorFactory:
 
 
             # 用OperatorWrapper包装
-            wrapped_operator = OperatorWrapper(operator_instance, name, self.env_name)
-            logger.debug(f"Wrapped operator with OperatorWrapper")
+            wrapped_operator = UniversalWrapper(operator_instance, name, self.env_name)
+            logger.debug(f"Wrapped operator with UniversalWrapper")
             
             return wrapped_operator
             

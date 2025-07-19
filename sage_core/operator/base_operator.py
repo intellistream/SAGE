@@ -178,7 +178,7 @@ class BaseOperator(ABC):
         
         return connections
     
-    def get_wrapped_operator(self):
+    def get_wrapped_object(self):
         """
             这个方法是用来让ide满意的，用来代表OperatorWrapper提供的这个方法
         """

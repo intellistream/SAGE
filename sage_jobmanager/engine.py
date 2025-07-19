@@ -10,17 +10,11 @@ if TYPE_CHECKING:
     from sage_jobmanager.compiler import Compiler
     from sage_core.api.env import BaseEnvironment
 
-
+import ray
 class JobManager: #Job Manager
-    _instance = None
-    _lock = threading.Lock()
 
     def __init__(self, host: str = "127.0.0.1", port: int = 19000):
-
-        # 确保只初始化一次
-        if hasattr(self, "_initialized"):
-            return
-        self._initialized = True
+        ray.init(address="auto", ignore_reinit_error=True)
         self.graphs: dict[str, 'Compiler'] = {}  # 存储 pipeline 名称到 SageGraph 的映射
         self.env_to_dag: dict[str, 'TaskDistributor'] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
 
