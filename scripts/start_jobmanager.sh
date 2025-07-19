@@ -32,3 +32,21 @@ fi
 # python3 scripts/jobmanager_daemon.py stop      # 停止服务
 # python3 scripts/jobmanager_daemon.py restart   # 重启服务
 # python3 scripts/jobmanager_daemon.py start     # 启动服务
+
+# systemd service:
+
+# [Unit]
+# Description=SAGE JobManager Service
+# After=network.target
+
+# [Service]
+# Type=simple
+# User=tjy
+# WorkingDirectory=/home/tjy/SAGE
+# ExecStart=/usr/bin/python3 /home/tjy/SAGE/scripts/jobmanager_daemon.py start
+# ExecStop=/usr/bin/python3 /home/tjy/SAGE/scripts/jobmanager_daemon.py stop
+# Restart=always
+# RestartSec=10
+
+# [Install]
+# WantedBy=multi-user.target
