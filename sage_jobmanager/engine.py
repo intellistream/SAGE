@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Dict, Any, Optional
 import time, uuid
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.local_thread_pool import LocalThreadPool
-from sage_jobmanager.mixed_dag import MixedDAG
+from sage_jobmanager.task_distributor import TaskDistributor
 from sage_utils.local_tcp_server import LocalTcpServer
 import threading
 from sage_utils.dill_serializer import serialize_object, deserialize_object
@@ -22,7 +22,7 @@ class JobManager: #Job Manager
             return
         self._initialized = True
         self.graphs: dict[str, 'Compiler'] = {}  # 存储 pipeline 名称到 SageGraph 的映射
-        self.env_to_dag: dict[str, 'MixedDAG'] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
+        self.env_to_dag: dict[str, 'TaskDistributor'] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
 
         # 新增：UUID 到环境信息的映射
         self.environments: Dict[str, Dict[str, Any]] = {}  # uuid -> environment_info
@@ -90,7 +90,7 @@ class JobManager: #Job Manager
             # 编译环境
             from sage_jobmanager.compiler import Compiler
             graph = Compiler(env)
-            mixed_dag = MixedDAG(graph, env)
+            mixed_dag = TaskDistributor(graph, env)
             
             # 存储环境信息
             with self._env_lock:

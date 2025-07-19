@@ -15,12 +15,12 @@ if TYPE_CHECKING:
     from sage_core.api.env import BaseEnvironment 
 
 
-class MixedDAG():
+class TaskDistributor():
     def __init__(self, graph: Compiler, env:'BaseEnvironment'):
         self.graph = graph
         self.name:str = graph.name
         self.logger = CustomLogger(
-            filename=f"MixedDAG_{self.name}",
+            filename=f"TaskDistributor_{self.name}",
             env_name= env.name,
             console_output="WARNING",
             file_output="DEBUG",
@@ -37,7 +37,7 @@ class MixedDAG():
 
         self._compile_graph(graph, env)
        
-        self.logger.info(f"MixedDAG '{self.name}' construction complete")
+        self.logger.info(f"TaskDistributor '{self.name}' construction complete")
     
 
         
@@ -108,13 +108,13 @@ class MixedDAG():
 
     def stop(self):
         if(not self.is_running):
-            self.logger.warning(f"MixedDAG '{self.name}' is not running, nothing to stop")
+            self.logger.warning(f"TaskDistributor '{self.name}' is not running, nothing to stop")
             return
         
         for node_name, node_instance in self.spout_nodes.items():
             node_instance.stop()
             self.logger.debug(f"Stopped spout node: {node_name}")
-        self.logger.info(f"Stopped all spout nodes in MixedDAG '{self.name}'")
+        self.logger.info(f"Stopped all spout nodes in TaskDistributor '{self.name}'")
 
     def close(self):
         """停止所有节点"""
@@ -128,14 +128,14 @@ class MixedDAG():
                 self.logger.error(f"Error stopping node {node_name}: {e}")
     
     def submit(self):
-        self.logger.info(f"Submitting MixedDAG '{self.name}'")
+        self.logger.info(f"Submitting TaskDistributor '{self.name}'")
         try:
             for node_name, node in self.nodes.items():
                 if node.is_spout is False:
                     local_runtime = LocalThreadPool.get_instance()
                     local_runtime.submit_node(node)
         except Exception as e:
-            self.logger.error(f"Failed to submit MixedDAG '{self.name}': {e}", exc_info=True)
+            self.logger.error(f"Failed to submit TaskDistributor '{self.name}': {e}", exc_info=True)
 
     def execute_once(self, spout_node_name:str = None):
         self.logger.info(f"executing once")
@@ -151,7 +151,7 @@ class MixedDAG():
             self.logger.debug(f"Running spout node: {node_name}")
             node.trigger()
         else:
-            self.logger.warning(f"Spout node '{spout_node_name}' not found in MixedDAG '{self.name}'")
+            self.logger.warning(f"Spout node '{spout_node_name}' not found in TaskDistributor '{self.name}'")
 
     def execute_streaming(self, spout_node_name:str = None):
         self.logger.info(f"executing streaming")
@@ -167,7 +167,7 @@ class MixedDAG():
             local_runtime.submit_node(node_handle)
             self.logger.debug(f"Running spout node: {node_name}")
         else:
-            self.logger.warning(f"Spout node '{spout_node_name}' not found in MixedDAG '{self.name}'")
+            self.logger.warning(f"Spout node '{spout_node_name}' not found in TaskDistributor '{self.name}'")
 
 
     def _handle_tcp_message(self, message: Dict[str, Any], client_address: tuple):
