@@ -30,3 +30,4 @@ class LocalEnvironment(BaseEnvironment):
             else:
                 self.jobmanager = JobManager.instance
         self.port = self.jobmanager.tcp_server.port
+        self.client.port = self.port

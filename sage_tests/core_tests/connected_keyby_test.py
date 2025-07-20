@@ -2,7 +2,7 @@ import pytest
 import time
 import threading
 from typing import List, Dict, Any
-from sage_core.environment.base_environment import LocalEnvironment
+from sage_core.environment.local_environment import LocalEnvironment
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.keyby_function import KeyByFunction
 from sage_core.function.base_function import BaseFunction

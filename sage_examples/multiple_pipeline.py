@@ -1,6 +1,6 @@
 import logging
 
-from sage_core.environment.base_environment import LocalEnvironment
+from sage_core.environment.local_environment import LocalEnvironment
 from sage_common_funs.io.sink import MemWriteSink, FileSink
 from sage_common_funs.io.source import FileSource
 from sage_libs.rag import CharacterSplitter

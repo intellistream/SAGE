@@ -1,4 +1,4 @@
-from sage_core.environment.base_environment import LocalEnvironment
+from sage_core.environment.local_environment import LocalEnvironment
 from sage_core.function.source_function import SourceFunction
 from collections import Counter
 import time
