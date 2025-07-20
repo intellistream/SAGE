@@ -1,7 +1,7 @@
 import logging
 import time
 
-from sage_core.environment.local_environment import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.io.sink import TerminalSink
 from sage_libs.rag import HFGenerator
@@ -18,7 +18,7 @@ def pipeline_run(config: dict) -> None:
     Args:
         config (dict): 包含各个组件配置的字典。
     """
-    env = LocalEnvironment()
+    env = LocalStreamEnvironment()
     env.set_memory(config=None)
 
     # 构建数据处理流程

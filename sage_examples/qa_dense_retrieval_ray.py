@@ -2,9 +2,9 @@ import logging
 import time
 from dotenv import load_dotenv
 import os
-from sage_core.environment.remote_environment import RemoteEnvironment
+from sage_core.api.remote_environment import RemoteStreamEnvironment
 from sage_common_funs.io.source import FileSource
-from sage_common_funs.io.sink import TerminalSink, FileSink
+from sage_common_funs.io.sink import FileSink
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
@@ -13,7 +13,7 @@ from sage_utils.logging_utils import configure_logging
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    env = RemoteEnvironment(name="example_pipeline")
+    env = RemoteStreamEnvironment(name="example_pipeline")
     env.set_memory(config = {"collection_name": "example_collection"})
     # 构建数据处理流程
     query_stream = env.from_source(FileSource, config["source"])
@@ -27,7 +27,7 @@ def pipeline_run():
     time.sleep(5)
     env.stop()  # 停止管道
     time.sleep(2)
-    env2 = RemoteEnvironment(name="example_pipeline2")
+    env2 = RemoteStreamEnvironment(name="example_pipeline2")
     env2.set_memory(config={"collection_name": "example_collection2"})
     # 构建数据处理流程
     query_stream2 = env2.from_source(FileSource, config["source"])

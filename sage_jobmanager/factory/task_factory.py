@@ -28,7 +28,7 @@ class TaskFactory:
         # self.parallelism: int     # 来自图编译
         # self.node_name: str       # 来自图编译
 
-    def create_node(
+    def create_task(
         self,
         name: str,
         runtime_context: 'RuntimeContext' = None,

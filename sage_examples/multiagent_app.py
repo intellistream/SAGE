@@ -1,6 +1,5 @@
-from dotenv import load_dotenv
-import os, time
-from sage_core.environment.local_environment import LocalEnvironment, RemoteEnvironment
+import time
+from sage_core.api.local_environment import LocalStreamEnvironment, RemoteEnvironment
 from sage_utils.config_loader import load_config
 from sage_libs.agents.question_bot import QuestionBot
 from sage_libs.agents.chief_bot import ChiefBot
@@ -15,7 +14,7 @@ from sage_libs.utils.tool_filter import ToolFilter
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    env = LocalEnvironment()
+    env = LocalStreamEnvironment()
     env.set_memory(config=None)
 
     chief_stream = (

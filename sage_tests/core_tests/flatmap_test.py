@@ -1,12 +1,10 @@
-import pytest
 import time
 import threading
 from typing import List, Dict, Any
-from sage_core.environment.local_environment import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.filter_function import FilterFunction
 from sage_core.function.sink_function import SinkFunction
-from sage_core.function.base_function import BaseFunction
 
 
 class NumberDataSource(SourceFunction):
@@ -189,7 +187,7 @@ class TestFilterFunctionality:
         """测试基本的正数过滤"""
         print("\n🚀 Testing Basic Positive Number Filter")
         
-        env = LocalEnvironment("positive_filter_test")
+        env = LocalStreamEnvironment("positive_filter_test")
         
         result_stream = (
             env.from_source(NumberDataSource, delay=0.2)
@@ -213,7 +211,7 @@ class TestFilterFunctionality:
         """测试链式过滤器"""
         print("\n🚀 Testing Chained Filters")
         
-        env = LocalEnvironment("chained_filter_test")
+        env = LocalStreamEnvironment("chained_filter_test")
         
         result_stream = (
             env.from_source(NumberDataSource, delay=0.2)
@@ -238,7 +236,7 @@ class TestFilterFunctionality:
         """测试用户数据过滤"""
         print("\n🚀 Testing User Data Filters")
         
-        env = LocalEnvironment("user_filter_test")
+        env = LocalStreamEnvironment("user_filter_test")
         
         result_stream = (
             env.from_source(UserDataSource, delay=0.3)
@@ -263,7 +261,7 @@ class TestFilterFunctionality:
         """测试Lambda函数过滤"""
         print("\n🚀 Testing Lambda Function Filter")
         
-        env = LocalEnvironment("lambda_filter_test")
+        env = LocalStreamEnvironment("lambda_filter_test")
         
         result_stream = (
             env.from_source(NumberDataSource, delay=0.2)
@@ -287,7 +285,7 @@ class TestFilterFunctionality:
         """测试极端情况的过滤器"""
         print("\n🚀 Testing Extreme Filter Cases")
         
-        env = LocalEnvironment("extreme_filter_test")
+        env = LocalStreamEnvironment("extreme_filter_test")
         
         # 测试1：所有数据都通过
         always_true_stream = (
@@ -309,7 +307,7 @@ class TestFilterFunctionality:
         FilterDebugSink.clear_data()
         
         # 测试2：所有数据都被过滤
-        env2 = LocalEnvironment("always_false_filter_test")
+        env2 = LocalStreamEnvironment("always_false_filter_test")
         
         always_false_stream = (
             env2.from_source(NumberDataSource, delay=0.2)
@@ -334,7 +332,7 @@ class TestFilterFunctionality:
         """测试Filter与Map的集成"""
         print("\n🚀 Testing Filter + Map Integration")
         
-        env = LocalEnvironment("filter_map_integration_test")
+        env = LocalStreamEnvironment("filter_map_integration_test")
         
         result_stream = (
             env.from_source(UserDataSource, delay=0.3)
@@ -364,7 +362,7 @@ class TestFilterFunctionality:
         """测试Filter的错误处理"""
         print("\n🚀 Testing Filter Error Handling")
         
-        env = LocalEnvironment("filter_error_test")
+        env = LocalStreamEnvironment("filter_error_test")
         
         # 注意：这个测试可能会产生错误日志，这是预期的
         result_stream = (

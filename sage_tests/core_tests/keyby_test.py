@@ -1,11 +1,9 @@
-import pytest
 import time
 import threading
 from typing import List, Dict, Any
-from sage_core.environment.local_environment import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.keyby_function import KeyByFunction
-from sage_core.function.base_function import BaseFunction
 from sage_core.function.sink_function import SinkFunction
 
 
@@ -101,7 +99,7 @@ class TestKeyByFunctionality:
         print("\n🚀 Testing KeyBy Hash Partitioning")
         
         # 创建环境
-        env = LocalEnvironment("keyby_test")
+        env = LocalStreamEnvironment("keyby_test")
         
         # 构建数据流：source -> keyby -> parallel sink
         result_stream = (
@@ -134,7 +132,7 @@ class TestKeyByFunctionality:
         """测试广播策略"""
         print("\n🚀 Testing KeyBy Broadcast Strategy")
         
-        env = LocalEnvironment("keyby_broadcast_test")
+        env = LocalStreamEnvironment("keyby_broadcast_test")
         
         result_stream = (
             env.from_source(TestDataSource, delay=0.3)
@@ -243,7 +241,7 @@ class TestAdvancedKeyBy:
         """测试复杂的key提取逻辑"""
         print("\n🚀 Testing Advanced Key Extraction")
         
-        env = LocalEnvironment("advanced_keyby_test")
+        env = LocalStreamEnvironment("advanced_keyby_test")
         
         result_stream = (
             env.from_source(TestDataSource, delay=0.4)

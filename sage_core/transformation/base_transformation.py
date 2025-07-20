@@ -106,7 +106,7 @@ class BaseTransformation:
         return self._operator_factory
 
     @property
-    def dag_node_factory(self) -> TaskFactory:
+    def task_factory(self) -> TaskFactory:
         """懒加载创建DAG节点工厂"""
         if self._dag_node_factory is None:
             self._dag_node_factory = TaskFactory(self)

@@ -1,5 +1,5 @@
 import time
-from sage_core.environment.local_environment import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_core.function.map_function import MapFunction
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
@@ -36,7 +36,7 @@ class ResultFormatter(MapFunction):
         return (reference, generated)
 
 def pipeline_run(config):
-    env = LocalEnvironment()
+    env = LocalStreamEnvironment()
     env.set_memory(config=None)
 
     (env

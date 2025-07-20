@@ -1,4 +1,4 @@
-from sage_core.environment.local_environment import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_core.function.sink_function import SinkFunction
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.comap_function import BaseCoMapFunction
@@ -93,7 +93,7 @@ class CounterSink(SinkFunction):
 
 def main():
     # 创建环境
-    env = LocalEnvironment("future_stream_example")
+    env = LocalStreamEnvironment("future_stream_example")
     
     print("🚀 Starting Future Stream Example")
     print("🔄 Demonstrating feedback edges with a counting loop")
