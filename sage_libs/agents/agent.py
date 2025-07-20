@@ -1,10 +1,7 @@
-from calendar import c
-from sage_common_funs.utils.generator_model import apply_generator_model
+from sage_utils.clients.generator_model import apply_generator_model
 from sage_core.function.map_function import MapFunction
-from jinja2 import Template
 
-from sage_utils.custom_logger import CustomLogger
-from typing import Any,Tuple
+from typing import Tuple
 import requests
 import json
 import re, time
