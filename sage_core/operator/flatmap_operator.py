@@ -30,9 +30,8 @@ class FlatMapOperator(BaseOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.out: Collector = Collector(
-            operator=self,
-            session_folder=self.runtime_context.session_folder,
-            name=self.name
+            self.ctx,
+            self.router
         )
         self.function.insert_collector(self.out)
         self.logger.info(f"FlatMapOperator '{self.name}' initialized with collector")
@@ -56,7 +55,7 @@ class FlatMapOperator(BaseOperator):
             
             # 处理function的返回值（如果有）
             if result is not None:
-                self._emit_iterable_with_partition_info(result, packet)
+                self._flatmap_send(result, packet)
             
             # 处理通过collector收集的数据
             collected_data = self.out.get_collected_data()
@@ -79,7 +78,7 @@ class FlatMapOperator(BaseOperator):
         except Exception as e:
             self.logger.error(f"Error in FlatMapOperator '{self.name}'.process_packet(): {e}", exc_info=True)
 
-    def _emit_iterable_with_partition_info(self, result: Any, source_packet: 'Packet'):
+    def _flatmap_send(self, result: Any, source_packet: 'Packet'):
         """
         将可迭代对象展开并发送给下游，保持分区信息
         
@@ -106,55 +105,3 @@ class FlatMapOperator(BaseOperator):
         except Exception as e:
             self.logger.error(f"Error in FlatMapOperator '{self.name}'._emit_iterable_with_partition_info(): {e}", exc_info=True)
             raise
-
-    def get_collector_statistics(self) -> dict:
-        """
-        获取collector的统计信息
-        
-        Returns:
-            dict: 统计信息，如果没有collector则返回空字典
-        """
-        if self.out:
-            return self.out.get_statistics()
-        return {}
-
-    def debug_print_collector_info(self):
-        """
-        打印collector的调试信息
-        """
-        if self.out:
-            print(f"\n🔍 FlatMapOperator '{self.name}' Collector Info:")
-            self.out.debug_print_collected_data()
-        else:
-            print(f"\n🔍 FlatMapOperator '{self.name}' has no collector")
-
-    def emit_data_with_key(self, data: Any, partition_key: Any = None, partition_strategy: str = None):
-        """
-        便利方法：直接发送带有分区信息的数据
-        
-        Args:
-            data: 要发送的数据
-            partition_key: 分区键
-            partition_strategy: 分区策略
-        """
-        packet = Packet(
-            payload=data,
-            partition_key=partition_key,
-            partition_strategy=partition_strategy
-        )
-        self.router.send(packet)
-
-    def emit_collected_data_with_source_partition(self, source_packet: 'Packet'):
-        """
-        便利方法：发送collector中的所有数据，继承源packet的分区信息
-        
-        Args:
-            source_packet: 源packet，用于继承分区信息
-        """
-        collected_data = self.out.get_collected_data()
-        if collected_data:
-            for item_data in collected_data:
-                result_packet = source_packet.inherit_partition_info(item_data)
-                self.router.send(result_packet)
-            self.out.clear()
-            self.logger.debug(f"Emitted {len(collected_data)} collected items with inherited partition info")

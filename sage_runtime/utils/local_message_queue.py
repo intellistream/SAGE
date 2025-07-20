@@ -4,30 +4,19 @@ import threading
 import time
 from collections import deque
 import sys
-from sage_utils.custom_logger import CustomLogger
+from sage_jobmanager.factory.runtime_context import RuntimeContext
 
 
 class LocalMessageQueue:
 
-    def __init__(self, name="MessageQueue", max_buffer_size=30000, session_folder: str = None, env_name: str = None):
-        self.name = name
-        self.session_folder = session_folder
+    def __init__(self, ctx:RuntimeContext, max_buffer_size=30000):
         self.queue = queue.Queue(maxsize=50000)
         self.total_task = 0
         self.max_buffer_size = max_buffer_size  # 总内存限制（字节）
         self.current_buffer_usage = 0 # 当前使用的内存（字节）
         self.memory_tracker = {}  # 跟踪每个项目的内存大小 {id(item): size}
         # self.task_per_minute = 0
-        self.logger = CustomLogger(
-            filename=f"Node_{name}",
-            env_name=env_name,
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output = "WARNING",
-            name = f"{name}_LocalMessageQueue"
-        )
-        
-
+        self.logger = ctx.logger
         self.timestamps = deque()
         self.lock = threading.Lock()
         self.buffer_condition = threading.Condition(self.lock)  # 用于内存空间通知

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
+import os
+from pathlib import Path
 from typing import List, Optional
 import sage_memory.api
 from sage_core.api.datastream import DataStream
@@ -18,7 +21,7 @@ class BaseEnvironment:
         self.__state_exclude__ = ["_engine_client", "client", "jobmanager"]
 
         self.name = get_name(name)
-        
+        self.uuid: Optional[str] # 由jobmanager生成
 
         self.config: dict = dict(config or {})
         self.platform:str = platform
@@ -211,13 +214,7 @@ class BaseEnvironment:
     @property
     def logger(self):
         if not hasattr(self, "_logger"):
-            self._logger = CustomLogger(
-            filename=f"Environment_{self.name}",
-            env_name = self.name,
-            console_output="WARNING", 
-            file_output=True,
-            global_output = "DEBUG",
-        )
+            self._logger = CustomLogger()
         return self._logger
 
     @property
@@ -273,7 +270,18 @@ class BaseEnvironment:
         else:
             raise RuntimeError(f"Failed to submit environment: {response['message']}")
 
+    def setup_logging_system(self, log_base_dir: str): 
+        # this method is called by jobmanager when receiving the job, not the user
+        self.session_timestamp = datetime.now()
+        self.session_id = self.session_timestamp.strftime("%Y%m%d_%H%M%S")
+        # self.log_base_dir = log_base_dir
+        self.env_base_dir = os.path.join(log_base_dir, f"env_{self.name}_{self.session_id}")
+        Path(self.env_base_dir).mkdir(parents=True, exist_ok=True)
 
-
-
-
+        self._logger = CustomLogger([
+                ("console", "INFO"),  # 控制台显示重要信息
+                (os.path.join(self.env_base_dir, "Environment.log"), "DEBUG"),  # 详细日志
+                (os.path.join(self.env_base_dir, "Error.log"), "ERROR")  # 错误日志
+            ],
+            name = f"Environment_{self.name}",
+        )

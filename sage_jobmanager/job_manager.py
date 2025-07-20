@@ -1,5 +1,10 @@
+from datetime import datetime
+import os
+from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Any, Optional
 import time, uuid
+from uuid import UUID
+from sage_core.environment.base_environment import BaseEnvironment
 from sage_utils.custom_logger import CustomLogger
 from sage_jobmanager.utils.local_tcp_server import LocalTcpServer
 import threading
@@ -15,30 +20,22 @@ class JobManager: #Job Manager
     instance = None
     instance_lock = threading.RLock()
     def __init__(self, host: str = "127.0.0.1", port: int = 19000):
-        ray.init(address="auto", ignore_reinit_error=True)
+
+        JobManager.instance = self
         self.graphs: dict[str, 'ExecutionGraph'] = {}  # 存储 pipeline 名称到 SageGraph 的映射
         self.env_to_dispatcher: dict[str, 'Dispatcher'] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
 
         # 新增：UUID 到环境信息的映射
         self.environments: Dict[str, Dict[str, Any]] = {}  # uuid -> environment_info
         self._env_lock = threading.RLock()
-
-
-        # print("Engine initialized")
-        self.logger = CustomLogger(
-            filename=f"Jobmanager",
-            console_output="WARNING",
-            file_output=True,
-            global_output="WARNING",
-            name="Jobmanager"
-        )
                 # 创建 TCP 服务器
         self.tcp_server = LocalTcpServer(
             host=host, 
             port=port,
             default_handler=self._handle_unknown_message
         )
-        JobManager.instance = self
+        self.tcp_server.logger = self.logger
+
         # 注册消息处理器
         self._register_message_handlers()
         
@@ -46,6 +43,44 @@ class JobManager: #Job Manager
         self.tcp_server.start()
         server_info = self.tcp_server.get_server_info()
         self.logger.info(f"Engine TCP server started at {server_info['address']}")
+        self.setup_logging_system()
+
+    def setup_logging_system(self):
+        """设置分层日志系统"""
+        # 1. 生成时间戳标识
+        self.session_timestamp = datetime.now()
+        self.session_id = self.session_timestamp.strftime("%Y%m%d_%H%M%S")
+        
+        # 2. 确定日志基础目录
+        # 方案：/tmp/sage/logs 作为实际存储位置
+        self.log_base_dir = f"/tmp/sage/logs/jobmanager_{self.session_id}"
+        Path(self.log_base_dir).mkdir(parents=True, exist_ok=True)
+        
+        # 3. 创建项目目录的软链接（方便查看）
+        project_root = Path(__file__).parent.parent  # SAGE项目根目录
+        project_logs_dir = project_root / "logs"
+        project_logs_dir.mkdir(exist_ok=True)
+        
+        current_link = project_logs_dir / f"jobmanager_{self.session_id}"
+        # 删除旧的软链接
+        if current_link.is_symlink():
+            current_link.unlink()
+        
+        # 创建新的软链接
+        try:
+            current_link.symlink_to(self.log_base_dir)
+            self.logger_link_created = True
+        except Exception as e:
+            print(f"Warning: Could not create symlink: {e}")
+            self.logger_link_created = False
+        
+        # 4. 创建JobManager主日志
+        self.logger = CustomLogger([
+            ("console", "INFO"),  # 控制台显示重要信息
+            (os.path.join(self.log_base_dir, "jobmanager.log"), "DEBUG"),      # 详细日志
+            (os.path.join(self.log_base_dir, "error.log"), "ERROR") # 错误日志
+        ], name="JobManager")
+
 
     ########################################################
     #                internal  methods                     #
@@ -61,8 +96,29 @@ class JobManager: #Job Manager
         self.tcp_server.register_handler("env_close", self._handle_env_close)
         self.tcp_server.register_handler("env_status", self._handle_env_status)
 
-
-
+    def submit_environment(self, env: 'BaseEnvironment') -> str:
+        # 生成 UUID
+        env.uuid = str(uuid.uuid4())
+        # 编译环境
+        from sage_jobmanager.execution_graph import ExecutionGraph
+        graph = ExecutionGraph(env)
+        dispatcher = Dispatcher(graph, env)
+        
+        # 存储环境信息
+        with self._env_lock:
+            self.environments[env.uuid] = {
+                "env": env,
+                "graph": graph, 
+                "dispatcher": dispatcher,
+                "status": "submitted",
+                "created_at": time.time()
+            }
+        
+        # 提交 DAG
+        dispatcher.submit() # 提交到本地线程池 or Ray 集群
+        
+        self.logger.info(f"Environment '{uuid}' submitted with UUID {env.uuid}")
+        return env.uuid
 
     def _handle_env_submit(self, message: Dict[str, Any], client_address: tuple) -> Dict[str, Any]:
         """处理环境提交消息，返回响应字典"""
@@ -78,89 +134,24 @@ class JobManager: #Job Manager
             
             # 反序列化环境
             env = deserialize_object(serialized_env)
-            
-            # 生成 UUID
-            env_uuid = str(uuid.uuid4())
-            
-            # 编译环境
-            from sage_jobmanager.execution_graph import ExecutionGraph
-            graph = ExecutionGraph(env)
-            dispatcher = Dispatcher(graph, env)
-            
-            # 存储环境信息
-            with self._env_lock:
-                self.environments[env_uuid] = {
-                    "env": env,
-                    "graph": graph, 
-                    "dispatcher": dispatcher,
-                    "status": "submitted",
-                    "created_at": time.time()
-                }
-                
-                # 保持向后兼容
-                self.graphs[env_name] = graph
-                self.env_to_dispatcher[env_name] = dispatcher
-            
-            # 提交 DAG
-            dispatcher.submit() # 提交到本地线程池 or Ray 集群
-            
-            self.logger.info(f"Environment '{env_name}' submitted with UUID {env_uuid}")
-            
+            uuid = self.submit_environment(env)
             # 返回成功响应
             return {
                 "type": "env_submit_response",
                 "request_id": request_id,
                 "env_name": env_name,
-                "env_uuid": env_uuid,
+                "env_uuid": uuid,
                 "timestamp": int(time.time()),
                 "status": "success",
                 "message": "Environment submitted and compiled successfully",
                 "payload": {
-                    "nodes_count": len(graph.nodes)
+                    "nodes_count": len(self.environments[uuid]["graph"].nodes)
                 }
             }
             
         except Exception as e:
             self.logger.error(f"Error handling env_submit: {e}", exc_info=True)
             return self._create_error_response(message, "ERR_SUBMIT_FAILED", str(e))
-
-    # def _handle_env_run_streaming(self, message: Dict[str, Any], client_address: tuple) -> Dict[str, Any]:
-    #     """处理流式运行消息"""
-    #     try:
-    #         env_uuid = message.get("env_uuid")
-    #         env_name = message.get("env_name")
-    #         request_id = message.get("request_id")
-            
-    #         env_info = self._get_environment_by_uuid(env_uuid)
-    #         if not env_info:
-    #             return self._create_error_response(message, "ERR_ENV_NOT_FOUND", 
-    #                                             f"Environment with UUID {env_uuid} not found")
-            
-    #         # 流式执行
-    #         dispatcher:Dispatcher = env_info["dispatcher"]
-    #         dispatcher.execute_streaming()
-            
-    #         # 更新状态
-    #         with self._env_lock:
-    #             env_info["status"] = "streaming"
-    #             env_info["streaming_started"] = time.time()
-            
-    #         self.logger.info(f"Environment {env_uuid} started streaming")
-            
-    #         return {
-    #             "type": "env_run_streaming_response",
-    #             "request_id": request_id,
-    #             "env_name": env_name,
-    #             "env_uuid": env_uuid,
-    #             "timestamp": int(time.time()),
-    #             "status": "success",
-    #             "message": "Environment streaming started successfully",
-    #             "payload": {}
-    #         }
-            
-    #     except Exception as e:
-    #         self.logger.error(f"Error handling env_run_streaming: {e}", exc_info=True)
-    #         return self._create_error_response(message, "ERR_STREAMING_FAILED", str(e))
 
     def _handle_env_stop(self, message: Dict[str, Any], client_address: tuple) -> Dict[str, Any]:
         """处理停止消息"""
@@ -219,12 +210,6 @@ class JobManager: #Job Manager
             # 清理资源
             with self._env_lock:
                 del self.environments[env_uuid]
-                
-                # 保持向后兼容
-                if env_name in self.graphs:
-                    del self.graphs[env_name]
-                if env_name in self.env_to_dispatcher:
-                    del self.env_to_dispatcher[env_name]
             
             self.logger.info(f"Environment {env_uuid} closed")
             
@@ -324,12 +309,6 @@ class JobManager: #Job Manager
         - 重置 Engine 单例
         """
         self.logger.info("Shutting down Engine and releasing resources")
-        try:
-            local_runtime = LocalThreadPool.get_instance()
-            local_runtime.shutdown()
-        except Exception:
-            self.logger.exception("Error shutting down RuntimeManager:{e}")
-            raise
 
         self.env_to_dispatcher.clear()
         self.graphs.clear()

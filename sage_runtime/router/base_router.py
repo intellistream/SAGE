@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, TYPE_CHECKING
 from sage_runtime.router.packet import Packet
-from sage_utils.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
     from sage_runtime.router.connection import Connection
@@ -24,12 +23,7 @@ class BaseRouter(ABC):
         self.downstream_group_roundrobin: Dict[int, int] = {}
         
         # Logger
-        self.logger = CustomLogger(
-            filename=f"Router_{self.name}",
-            env_name=ctx.env_name,
-            name=f"{self.name}_Router"
-        )
-        
+        self.logger = ctx.logger
         self.logger.debug(f"Initialized {self.__class__.__name__} for {self.name}")
     
     def add_connection(self, connection: 'Connection') -> None:

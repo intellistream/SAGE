@@ -1,6 +1,6 @@
 import os
 from typing import Tuple,List
-from sage_utils.clients.generator_model import apply_generator_model
+from sage_common_funs.utils.generator_model import apply_generator_model
 from sage_core.function.map_function import MapFunction 
 from sage_core.function.base_function import StatefulFunction
 from sage_utils.state_persistence import load_function_state, save_function_state
@@ -82,9 +82,9 @@ class OpenAIGeneratorWithHistory(StatefulFunction):
         self.history_turns = config.get("max_history_turns", 5)
         self.num = 1
 
-        base = os.path.join(self.runtime_context.session_folder, ".sage_checkpoints")
+        base = os.path.join(self.ctx.session_folder, ".sage_checkpoints")
         os.makedirs(base, exist_ok=True)
-        path = os.path.join(base, f"{self.runtime_context.name}.chkpt")
+        path = os.path.join(base, f"{self.ctx.name}.chkpt")
         load_function_state(self, path)
 
     def execute(self, data: List, **kwargs) -> Tuple[str, str]:
@@ -115,10 +115,10 @@ class OpenAIGeneratorWithHistory(StatefulFunction):
 
         self.logger.info(f"\033[32m[{self.__class__.__name__}] Response: {response}\033[0m")
 
-        # TODO: —— 自动持久化：每次 execute 后保存状态 —— 这个overhead太大了，应该改成周期性的。
-        base = os.path.join(self.runtime_context.session_folder, ".sage_checkpoints")
+        # —— 自动持久化：每次 execute 后保存状态 —— 
+        base = os.path.join(self.ctx.session_folder, ".sage_checkpoints")
         os.makedirs(base, exist_ok=True)
-        path = os.path.join(base, f"{self.runtime_context.name}.chkpt")
+        path = os.path.join(base, f"{self.ctx.name}.chkpt")
         save_function_state(self, path)
         return (user_query, response)
     
@@ -126,9 +126,9 @@ class OpenAIGeneratorWithHistory(StatefulFunction):
         """
         手动触发：持久化当前 dialogue_history，用于测试调用。
         """
-        base = os.path.join(self.runtime_context.session_folder, ".sage_checkpoints")
+        base = os.path.join(self.ctx.session_folder, ".sage_checkpoints")
         os.makedirs(base, exist_ok=True)
-        path = os.path.join(base, f"{self.runtime_context.name}.chkpt")
+        path = os.path.join(base, f"{self.ctx.name}.chkpt")
         save_function_state(self, path)
 
 class HFGenerator(MapFunction):

@@ -94,8 +94,8 @@ class CoMapDebugSink(SinkFunction):
     def execute(self, data: Any):
         if self.runtime_context:
             self.parallel_index = self.runtime_context.parallel_index
-        self.logger.info("!!!!!!")
-        self.received_count += 1
+        self.logctx!")
+        self.received_count += 1ctx
         
         result_type = data.get('type', 'unknown')
         source_stream = data.get('source_stream', -1)

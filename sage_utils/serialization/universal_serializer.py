@@ -5,7 +5,6 @@ import threading
 import importlib
 from typing import Any, Dict, List, Set, Type, Optional, Union
 from collections.abc import Mapping, Sequence, Set as AbstractSet
-from sage_utils.custom_logger import CustomLogger
 
 
 class SerializationError(Exception):

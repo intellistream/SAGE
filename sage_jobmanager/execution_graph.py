@@ -1,5 +1,6 @@
 
 from __future__ import annotations
+import os
 from typing import TYPE_CHECKING
 from typing import Dict, List
 from sage_core.environment.base_environment import BaseEnvironment
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class GraphNode:
-    def __init__(self, name: str, transformation: BaseTransformation, parallel_index: int):
+    def __init__(self, name: str, transformation: BaseTransformation, parallel_index: int, env_base_dir:str):
         self.name: str = name
         self.transformation: BaseTransformation = transformation
         self.parallel_index: int = parallel_index  # 在该transformation中的并行索引
@@ -22,7 +23,7 @@ class GraphNode:
 
         self.input_channels:dict[int, List[GraphEdge]] = {}
         self.output_channels:List[List[GraphEdge]] = []
-        self.runtime_context: RuntimeContext = RuntimeContext(self, transformation)
+        self.runtime_context: RuntimeContext = RuntimeContext(self, transformation, env_base_dir)
 
 class GraphEdge:
     def __init__(self,name:str,  output_node: GraphNode,  input_node:GraphNode = None, input_index:int = 0):
@@ -40,20 +41,28 @@ class GraphEdge:
 class ExecutionGraph:
     def __init__(self, env:BaseEnvironment):
         self.env = env
-        self.name = env.name
         self.nodes:Dict[str, GraphNode] = {}
         self.edges:Dict[str, GraphEdge] = {}
         # 构建数据流之间的连接映射
 
-        self.logger = CustomLogger(
-            filename=f"Compiler_{env.name}",
-            console_output=False,
-            file_output=True
-        )
+        # self.log_base_dir = env.log_base_dir
+        # self.env_base_dir = env.env_base_dir
+        self.setup_logging_system()
         # 构建基础图结构
         self._build_graph_from_pipeline(env)
         
         self.logger.info(f"Successfully converted and optimized pipeline '{env.name}' to compiler with {len(self.nodes)} nodes and {len(self.edges)} edges")
+
+    def setup_logging_system(self):
+        self.logger = CustomLogger([
+                ("console", "INFO"),  # 控制台显示重要信息
+                (os.path.join(self.env.env_base_dir, "ExecutionGraph.log"), "DEBUG"),  # 详细日志
+                (os.path.join(self.env.env_base_dir, "Error.log"), "ERROR")  # 错误日志
+            ],
+            name = f"ExecutionGraph_{self.env.name}",
+        )
+
+
 
     def _build_graph_from_pipeline(self, env: BaseEnvironment):
         """

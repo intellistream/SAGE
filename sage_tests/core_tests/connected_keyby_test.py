@@ -92,8 +92,8 @@ class ConnectedDebugSink(SinkFunction):
     
     def execute(self, data: Any):
         if self.runtime_context:
-            self.parallel_index = self.runtime_context.parallel_index
-        
+            selfctx = self.runtime_context.parallel_index
+        ctx
         with self._lock:
             if self.parallel_index not in self._received_data:
                 self._received_data[self.parallel_index] = []

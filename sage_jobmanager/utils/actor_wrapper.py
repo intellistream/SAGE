@@ -4,32 +4,15 @@ import concurrent.futures
 from typing import Any, Union
 import logging
 from ray.actor import ActorHandle
-from sage_utils.custom_logger import CustomLogger
 
 class ActorWrapper:
     """万能包装器，可以将任意对象包装成本地对象或Ray Actor"""
     
     def __init__(self, 
-                 obj: Union[Any, ActorHandle], 
-                 name: str = "ActorWrapper",
-                 env_name: str = None):
+                 obj: Union[Any, ActorHandle]):
         # 使用 __dict__ 直接设置，避免触发 __setattr__
         object.__setattr__(self, '_obj', obj)
         object.__setattr__(self, '_execution_mode', self._detect_execution_mode())
-        object.__setattr__(self, '_name', name)
-        
-        # 初始化 logger
-        logger = CustomLogger(
-            filename=f"{name}_Wrapper",
-            env_name=env_name,
-            console_output="WARNING",
-            file_output="DEBUG", 
-            global_output="DEBUG",
-            name=f"{name}_UniversalWrapper"
-        )
-        object.__setattr__(self, 'logger', logger)
-        
-        self.logger.debug(f"Created ActorWrapper for {type(obj).__name__} in {self._execution_mode} mode")
     
     def _detect_execution_mode(self) -> str:
         """检测执行模式"""
@@ -56,10 +39,8 @@ class ActorWrapper:
             if self._execution_mode == "ray_actor":
                 # Ray Actor方法：返回同步调用包装器
                 def ray_method_wrapper(*args, **kwargs):
-                    self.logger.debug(f"Calling Ray Actor method '{name}' with args={args}, kwargs={kwargs}")
                     future = original_attr.remote(*args, **kwargs)
                     result = ray.get(future)
-                    self.logger.debug(f"Ray Actor method '{name}' completed")
                     return result
                 return ray_method_wrapper
             else:

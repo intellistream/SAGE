@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 import threading, copy, time
 from typing import Any, TYPE_CHECKING, Union, Optional
-from sage_utils.custom_logger import CustomLogger
 from sage_jobmanager.factory.runtime_context import RuntimeContext
 from sage_runtime.router.packet import Packet
 
 if TYPE_CHECKING:
+    from sage_runtime.router.base_router import BaseRouter
     from sage_runtime.router.connection import Connection
     from sage_core.operator.base_operator import BaseOperator
     from sage_jobmanager.factory.operator_factory import OperatorFactory
@@ -14,7 +14,7 @@ class BaseTask(ABC):
     def __init__(self,runtime_context: 'RuntimeContext',operator_factory: 'OperatorFactory') -> None:
         self.ctx = runtime_context
         # === 继承类设置 ===
-        self.router:Any
+        self.router:BaseRouter
         self.input_buffer: Any
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
@@ -117,7 +117,7 @@ class BaseTask(ABC):
         return self.ctx.delay
     
     @property
-    def logger(self) -> CustomLogger:
+    def logger(self):
         """获取当前任务的日志记录器"""
         return self.ctx.logger
 

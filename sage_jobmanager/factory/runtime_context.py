@@ -1,3 +1,4 @@
+import os
 from typing import TYPE_CHECKING
 import ray
 from ray.actor import ActorHandle
@@ -12,10 +13,9 @@ if TYPE_CHECKING:
 # task, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:
-    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation'):
+    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation', env_base_dir: str):
         self.name:str = graph_node.name
-        self.env_name:str = transformation.env_name
-        self.session_folder:Optional[str] = CustomLogger.get_session_folder()
+        self.env_base_dir:str = env_base_dir
         self.memory_collection:Any = transformation.memory_collection
         self.parallel_index:int = graph_node.parallel_index
         self.parallelism:int = graph_node.parallelism
@@ -368,13 +368,11 @@ class RuntimeContext:
     def logger(self) -> CustomLogger:
         """懒加载logger"""
         if self._logger is None:
-            self._logger = CustomLogger(
-                filename=f"Node_{self.name}",
-                console_output="WARNING",
-                file_output="DEBUG",
-                global_output="WARNING",
-                session_folder=self.session_folder,
-                name=f"{self.name}_RuntimeContext",
-                env_name=self.env_name
-            )
+            self._logger = CustomLogger([
+                ("console", "INFO"),  # 控制台显示重要信息
+                (os.path.join(self.env_base_dir, f"{self.name}.log"), "DEBUG"),  # 详细日志
+                (os.path.join(self.env_base_dir, "Error.log"), "ERROR")  # 错误日志
+            ],
+            name = f"ExecutionGraph_{self.env.name}",
+        )
         return self._logger

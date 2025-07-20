@@ -2,7 +2,6 @@ import socket
 import threading
 import pickle
 from typing import Dict, Any, Callable, Optional
-from sage_utils.custom_logger import CustomLogger
 import os
 
 class LocalTcpServer:
@@ -41,15 +40,6 @@ class LocalTcpServer:
         # 客户端连接管理
         self.client_connections: Dict[str, socket.socket] = {}  # client_id -> socket
         self.client_lock = threading.Lock()
-
-        self.logger = CustomLogger(
-            filename="LocalTcpServer",
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output="WARNING"
-        )
-    
-        self.logger.info(f"Initializing LocalTcpServer on {self.host}:{self.port}")
 
     def _get_host_ip(self):
         """自动获取本机可用于外部连接的 IP 地址"""

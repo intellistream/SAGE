@@ -1,3 +1,4 @@
+import os
 from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
 from sage_runtime.task.base_task import BaseTask
 from sage_runtime.router.connection import Connection
@@ -12,13 +13,13 @@ class Dispatcher():
     def __init__(self, graph: ExecutionGraph, env:'BaseEnvironment'):
         self.graph = graph
         self.env = env
-        self.name:str = graph.name
-        self.logger = CustomLogger(
-            filename=f"MixedDAG_{self.name}",
-            env_name= env.name,
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output = "DEBUG",
+        self.name:str = env.name
+        self.logger = CustomLogger([
+                ("console", "INFO"),  # 控制台显示重要信息
+                (os.path.join(env.env_base_dir, "Dispatcher.log"), "DEBUG"),  # 详细日志
+                (os.path.join(env.env_base_dir, "Error.log"), "ERROR")  # 错误日志
+            ],
+            name = f"Environment_{self.name}",
         )
         # self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
         self.tasks: Dict[str, BaseTask] = {}

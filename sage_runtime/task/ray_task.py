@@ -4,7 +4,6 @@ import threading
 from typing import Any, Union, Tuple, TYPE_CHECKING, Dict, Optional
 from ray.util.queue import Queue as RayQueue
 from sage_runtime.task.base_task import BaseTask
-from sage_utils.custom_logger import CustomLogger
 from sage_runtime.router.packet import Packet
 from sage_runtime.router.ray_router import RayRouter
 if TYPE_CHECKING:

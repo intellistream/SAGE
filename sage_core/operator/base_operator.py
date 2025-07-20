@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from sage_runtime.router.connection import Connection
     from sage_jobmanager.factory.runtime_context import RuntimeContext
     from sage_jobmanager.factory.function_factory import FunctionFactory
+    from sage_runtime.router.base_router import BaseRouter
 
 class BaseOperator(ABC):
     def __init__(self, 
@@ -17,7 +18,7 @@ class BaseOperator(ABC):
         
         self.ctx: 'RuntimeContext' = ctx
         self.function:'BaseFunction'
-        self.router:Any     # 由task传下来的
+        self.router:'BaseRouter'     # 由task传下来的
         try:
             self.function = function_factory.create_function(self.name, ctx)
             self.logger.debug(f"Created function instance with {function_factory}")

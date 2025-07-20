@@ -9,7 +9,6 @@ from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
 from sage_utils.config_loader import load_config
-from sage_utils.custom_logger import CustomLogger
 from sage_utils.logging_utils import configure_logging
 
 
@@ -136,22 +135,11 @@ def pipeline_run():
 
     # 提交管道并运行
     env.submit(name="kafka_rag_pipeline")
-    
-    # 在后台线程启动流处理
-    def run_pipeline():
-        try:
-            # env.run_streaming()
-        except Exception as e:
-            logging.error(f"Pipeline error: {e}")
-    
-    pipeline_thread = threading.Thread(target=run_pipeline, daemon=True)
-    pipeline_thread.start()
+
     
     # 等待pipeline启动
     time.sleep(2)
     logging.info("Kafka RAG pipeline started successfully")
-    
-    return pipeline_thread
 
 
 def interactive_mode():
@@ -223,7 +211,6 @@ def main():
 
 if __name__ == '__main__':
     # 配置日志
-    CustomLogger.disable_global_console_debug()
     configure_logging(level=logging.INFO)
     
     # 加载配置

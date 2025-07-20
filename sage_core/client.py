@@ -22,12 +22,7 @@ class EngineClient:
         self.listener_thread: Optional[threading.Thread] = None
         self.running = False
         
-        self.logger = CustomLogger(
-            filename="EngineClient",
-            console_output="WARNING", 
-            file_output="DEBUG",
-            global_output="WARNING"
-        )
+        self.logger = CustomLogger()
         
 
     

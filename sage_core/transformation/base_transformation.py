@@ -35,12 +35,7 @@ class BaseTransformation:
         self.basename = get_name(name) if name else get_name(self.function_class.__name__)
             
 
-        self.logger = CustomLogger(
-            filename=f"{self.basename}_{self.__class__.__name__}",
-            env_name = env.name,
-            console_output=False,
-            file_output=True
-        )
+        self.logger = CustomLogger()
         if self.remote and (env.memory_collection is not None) and (not isinstance(env.memory_collection, ActorHandle)):
             raise Exception(f"Memory collection must be a Ray Actor handle for remote transformation, but got {type(env.memory_collection)}")
 
