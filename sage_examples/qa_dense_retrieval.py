@@ -23,12 +23,6 @@ def pipeline_run():
                     .sink(TerminalSink, config["sink"]) # TM (JVM) --> 会打印在某一台机器的console里
                     )
 
-
-
-
-
-
-
     # Streaming Environment.
     env.set_memory(config=None)
     # env = LocalStreamEnvironment() #DEBUG and Streaming
