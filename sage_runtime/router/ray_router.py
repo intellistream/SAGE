@@ -2,12 +2,12 @@
 
 from typing import TYPE_CHECKING
 from ray.util.queue import Queue as RayQueue
-from sage_runtime.base_router import BaseRouter
-from sage_runtime.io.packet import Packet
+from sage_runtime.router.base_router import BaseRouter
+from sage_runtime.router.packet import Packet
 
 if TYPE_CHECKING:
-    from sage_runtime.io.connection import Connection
-    from sage_runtime.runtime_context import RuntimeContext
+    from sage_runtime.router.connection import Connection
+    from sage_jobmanager.runtime_context import RuntimeContext
 
 class RayRouter(BaseRouter):
     """

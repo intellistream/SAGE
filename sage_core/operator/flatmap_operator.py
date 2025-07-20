@@ -2,7 +2,7 @@ from typing import Any, Iterable, Optional
 from sage_core.operator.base_operator import BaseOperator
 from sage_core.function.flatmap_function import FlatMapFunction
 from sage_core.function.flatmap_collector import Collector
-from sage_runtime.io.packet import Packet
+from sage_runtime.router.packet import Packet
 
 
 class FlatMapOperator(BaseOperator):

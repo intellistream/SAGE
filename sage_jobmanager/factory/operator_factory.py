@@ -6,8 +6,8 @@ if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
     from sage_core.function.base_function import BaseFunction
     from ray.actor import ActorHandle
-    from sage_runtime.function.factory import FunctionFactory
-    from sage_runtime.runtime_context import RuntimeContext
+    from sage_jobmanager.factory.function_factory import FunctionFactory
+    from sage_jobmanager.runtime_context import RuntimeContext
 import ray
 
 class OperatorFactory:

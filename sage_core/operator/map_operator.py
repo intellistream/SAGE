@@ -4,7 +4,7 @@ from sage_core.function.map_function import MapFunction
 from typing import Union, Any
 from sage_core.function.map_function import MapFunction
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.io.packet import Packet
+from sage_runtime.router.packet import Packet
 
 
 class MapOperator(BaseOperator):

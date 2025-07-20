@@ -3,9 +3,9 @@ from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 from sage_core.function.base_function import BaseFunction
 
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.io.packet import Packet
+from sage_runtime.router.packet import Packet
 if TYPE_CHECKING:
-    from sage_runtime.runtime_context import RuntimeContext
+    from sage_jobmanager.runtime_context import RuntimeContext
 
 
 class MapFunction(BaseFunction):

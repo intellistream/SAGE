@@ -1,6 +1,6 @@
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.operator.keyby_operator import KeyByOperator
-from sage_runtime.operator.factory import OperatorFactory
+from sage_jobmanager.factory.operator_factory import OperatorFactory
 
 class KeyByTransformation(BaseTransformation):
     """

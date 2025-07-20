@@ -2,13 +2,13 @@ from abc import ABC, abstractmethod
 import threading, copy, time
 from typing import Any, TYPE_CHECKING, Union, Optional
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.runtime_context import RuntimeContext
-from sage_runtime.io.packet import Packet
+from sage_jobmanager.runtime_context import RuntimeContext
+from sage_runtime.router.packet import Packet
 
 if TYPE_CHECKING:
-    from sage_runtime.io.connection import Connection
+    from sage_runtime.router.connection import Connection
     from sage_core.operator.base_operator import BaseOperator
-    from sage_runtime.operator.factory import OperatorFactory
+    from sage_jobmanager.factory.operator_factory import OperatorFactory
 
 class BaseTask(ABC):
     def __init__(self,runtime_context: 'RuntimeContext',operator_factory: 'OperatorFactory') -> None:

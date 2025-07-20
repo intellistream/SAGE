@@ -3,7 +3,7 @@ from sage_core.function.source_function import SourceFunction
 from sage_utils.custom_logger import CustomLogger
 from collections import deque
 from typing import Union, Dict, Deque, Tuple, Any
-from sage_runtime.io.packet import Packet
+from sage_runtime.router.packet import Packet
 
 class SourceOperator(BaseOperator):
     def __init__(self, *args, **kwargs):

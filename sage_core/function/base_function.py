@@ -6,9 +6,9 @@ from dotenv import load_dotenv
 
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
-    from sage_runtime.runtime_context import RuntimeContext
+    from sage_jobmanager.runtime_context import RuntimeContext
 
-from sage_runtime.state_persistence import load_function_state, save_function_state
+from sage_utils.state_persistence import load_function_state, save_function_state
 
 
 # 构造来源于sage_runtime/operator/factory.py

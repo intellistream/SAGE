@@ -4,7 +4,7 @@ from sage_utils.data_loader import resolve_data_path
 from typing import List, Callable, Dict, Any, TYPE_CHECKING
 import threading, json, queue
 if TYPE_CHECKING:
-    from sage_runtime.runtime_context import RuntimeContext
+    from sage_jobmanager.runtime_context import RuntimeContext
 
 
 class KafkaSourceFunction(SourceFunction):
