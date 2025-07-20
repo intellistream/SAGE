@@ -26,19 +26,19 @@ class Dispatcher():
         if env.platform is "remote" and not ray.is_initialized():
             ray.init(address="auto", ignore_reinit_error=True)
 
-        
+    # Dispatcher will submit the job to LocalEngine or Ray Server.    
     def submit(self):
         """编译图结构，创建节点并建立连接"""
-        self.logger.info(f"Compiling mixed DAG for graph: {self.name}")
+        self.logger.info(f"Compiling Job for graph: {self.name}")
         
         # 第一步：创建所有节点实例
         for node_name, graph_node in self.graph.nodes.items():
-            # node_instance = graph_node.create_dag_node()
-            node_instance = graph_node.transformation.dag_node_factory.create_node(graph_node.name, graph_node.runtime_context)
+            # task = graph_node.create_dag_node()
+            task = graph_node.transformation.task_factory.create_task(graph_node.name, graph_node.runtime_context)
 
-            self.tasks[node_name] = node_instance
+            self.tasks[node_name] = task
 
-            self.logger.debug(f"Added node '{node_name}' of type '{node_instance.__class__.__name__}'")
+            self.logger.debug(f"Added node '{node_name}' of type '{task.__class__.__name__}'")
         
         # 第二步：建立节点间的连接
         for node_name, graph_node in self.graph.nodes.items():
@@ -51,9 +51,7 @@ class Dispatcher():
                 self.logger.debug(f"Started node: {node_name}")
             except Exception as e:
                 self.logger.error(f"Failed to start node {node_name}: {e}", exc_info=True)
-        self.logger.info(f"Mixed DAG submission completed: {len(self.tasks)} nodes")
-
-
+        self.logger.info(f"Job submission completed: {len(self.tasks)} nodes")
 
 
     def _setup_node_connections(self, node_name: str, graph_node: GraphNode):

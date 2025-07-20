@@ -1,8 +1,6 @@
-import pytest
 import time
-import threading
-from typing import List, Dict, Any
-from sage_core.environment.local_environment import LocalEnvironment
+from typing import Any
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.comap_function import BaseCoMapFunction
 from sage_core.function.sink_function import SinkFunction
@@ -364,7 +362,7 @@ class TestCoMapFunctionality:
         """测试基本的两路CoMap处理"""
         print("\n🚀 Testing Basic Two-Stream CoMap")
         
-        env = LocalEnvironment("basic_comap_test")
+        env = LocalStreamEnvironment("basic_comap_test")
         
         order_stream = env.from_source(OrderDataSource, delay=0.3)
         payment_stream = env.from_source(PaymentDataSource, delay=0.4)

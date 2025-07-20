@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Union, Optional
 import threading
 import inspect
-from .name_server import get_name
+
 
 class CustomFormatter(logging.Formatter):
     """

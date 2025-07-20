@@ -8,10 +8,10 @@ import os
 from io import StringIO
 from unittest.mock import patch
 
+from sage_libs.io.sink import PrintSink
+
 # 添加项目根目录到路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from sage_common_funs.io.sink import PrintSink
 
 
 class TestPrintSink(unittest.TestCase):

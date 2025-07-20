@@ -1,22 +1,5 @@
-from .openaiclient import OpenAIClient
-from .hf import HFGenerator
-
-# class GeneratorModel:
-#     def __init__(self, method: str, model_name: str, **kwargs):
-#         if method=="openai":
-#             self.model=OpenAIClient(model_name,**kwargs)
-#         elif method=="hf":
-#             self.model=HFGenerator(model_name,**kwargs)
-#         else:
-#             raise ValueError("this method isn't supported")
-        
-#     def generate(self, prompt: str, **kwargs) :
-
-#         response=self.model.generate(prompt, **kwargs)
-
-#         return response
-
-
+from sage_utils.clients.hf import HFGenerator
+from sage_utils.clients.openaiclient import OpenAIClient
 class GeneratorFactory:
     @staticmethod
     def create_generator(method: str, model_name: str, **kwargs):

@@ -1,9 +1,7 @@
 from __future__ import annotations
-from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
-from enum import Enum
-from abc import ABC, abstractmethod
+from typing import List, Type, Union, TYPE_CHECKING, Any
 from sage_utils.custom_logger import CustomLogger
-from sage_utils.name_server import get_name
+from sage_jobmanager.utils.name_server import get_name
 from sage_jobmanager.factory.operator_factory import OperatorFactory
 from sage_jobmanager.factory.function_factory import FunctionFactory
 from sage_jobmanager.factory.task_factory import TaskFactory
@@ -106,7 +104,7 @@ class BaseTransformation:
         return self._operator_factory
 
     @property
-    def dag_node_factory(self) -> TaskFactory:
+    def task_factory(self) -> TaskFactory:
         """懒加载创建DAG节点工厂"""
         if self._dag_node_factory is None:
             self._dag_node_factory = TaskFactory(self)

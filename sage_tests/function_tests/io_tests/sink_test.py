@@ -1,9 +1,9 @@
 import pytest
 
-from sage_common_funs.io.sink import (
-    TerminalSink, RetriveSink, FileSink, MemWriteSink
-)
 import os
+
+from sage_libs.io.sink import TerminalSink, RetriveSink, FileSink, MemWriteSink
+
 
 @pytest.fixture
 def sample_qa_data():

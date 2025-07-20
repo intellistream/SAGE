@@ -1,7 +1,7 @@
 
 import logging
 
-from sage_core.environment.local_environment import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_common_funs.io.sink import TerminalSink
 from sage_common_funs.io.source import FileSource
 from sage_libs.rag.generator import OpenAIGenerator
@@ -13,7 +13,7 @@ from sage_utils.logging_utils import configure_logging
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    env = LocalEnvironment()
+    env = LocalStreamEnvironment()
     env.set_memory(config=None)
     # 构建数据处理流程
     query_stream = env.from_source(FileSource, config["source"])

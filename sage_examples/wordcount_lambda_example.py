@@ -1,8 +1,8 @@
-from sage_core.environment.local_environment import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_core.function.source_function import SourceFunction
 from collections import Counter
 import time
-import random
+
 
 # 简单的句子源，重复输出同一句话
 class SentenceSource(SourceFunction):
@@ -26,7 +26,7 @@ class SentenceSource(SourceFunction):
 
 def main():
     # 创建环境
-    env = LocalEnvironment("wordcount_example")
+    env = LocalStreamEnvironment("wordcount_example")
     
     # 全局词汇计数器
     word_counts = Counter()

@@ -1,11 +1,11 @@
 
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from typing import Dict, List, Set
+from typing import Dict, List
 from sage_core.environment.base_environment import BaseEnvironment
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_utils.custom_logger import CustomLogger
-from sage_utils.name_server import get_name
+from sage_jobmanager.utils.name_server import get_name
 from sage_jobmanager.factory.runtime_context import RuntimeContext
 if TYPE_CHECKING:
     pass

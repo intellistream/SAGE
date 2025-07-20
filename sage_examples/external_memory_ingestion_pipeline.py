@@ -1,6 +1,6 @@
 import logging
 import time
-from sage_core.environment.local_environment import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_common_funs.io.sink import MemWriteSink
 from sage_common_funs.io.source import FileSource
 from sage_libs.rag import CharacterSplitter
@@ -9,7 +9,7 @@ from sage_utils.config_loader import load_config
 
 
 def pipeline_run():
-    env = LocalEnvironment(name="example_pipeline")
+    env = LocalStreamEnvironment(name="example_pipeline")
     env.set_memory(config=None)  # 初始化内存配置
 
     # 构建数据处理流程

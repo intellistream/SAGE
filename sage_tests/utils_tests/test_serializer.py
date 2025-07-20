@@ -4,15 +4,15 @@ from dotenv import load_dotenv
 import os
 import tempfile
 
-from sage_core.environment.local_environment import LocalEnvironment
-from sage_common_funs.io.sink import TerminalSink
-from sage_common_funs.io.source import FileSource
+from sage_core.api.local_environment import LocalStreamEnvironment
+from sage_libs.io.sink import TerminalSink
+from sage_libs.io.source import FileSource
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging
-from sage_utils.dill_serializer import (
+from sage_utils.serialization.dill_serializer import (
     serialize_object, deserialize_object, pack_object, unpack_object,
     save_object_state, load_object_state
 )
@@ -31,7 +31,7 @@ def config():
 
 @pytest.fixture(scope="function")
 def env():
-    env = LocalEnvironment()
+    env = LocalStreamEnvironment()
     env.set_memory(config=None)
     # return env
     yield env
@@ -213,7 +213,7 @@ def test_env_file_persistence(env, config):
         assert os.path.getsize(tmp_path) > 0
         
         # 创建新环境并加载状态
-        new_env = LocalEnvironment("new_env")
+        new_env = LocalStreamEnvironment("new_env")
         new_env.set_memory(config=None)
         
         logging.info(f"Loading environment state from {tmp_path}")
@@ -241,7 +241,7 @@ def test_env_file_persistence(env, config):
             os.unlink(tmp_path)
 
 # 创建一个自定义的环境类，带有序列化配置
-class CustomTestEnvironment(LocalEnvironment):
+class CustomTestEnvironment(LocalStreamEnvironment):
     # __state_include__ = ['name', 'config', 'platform', '_pipeline', 'important_data']
     
     def __init__(self, name: str = "custom_test_env", config: dict = None):

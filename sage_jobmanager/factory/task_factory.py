@@ -1,9 +1,8 @@
-from typing import Type, Any, Dict, TYPE_CHECKING, Union
+from typing import Any, TYPE_CHECKING, Union
 from sage_runtime.task.ray_task import RayTask
 from sage_runtime.task.local_task import LocalTask
 from sage_runtime.task.base_task import BaseTask
-import ray
-from sage_utils.actor_wrapper import ActorWrapper
+from sage_jobmanager.utils.actor_wrapper import ActorWrapper
 if TYPE_CHECKING:
     from sage_core.transformation.base_transformation import BaseTransformation
     from ray.actor import ActorHandle
@@ -28,7 +27,7 @@ class TaskFactory:
         # self.parallelism: int     # 来自图编译
         # self.node_name: str       # 来自图编译
 
-    def create_node(
+    def create_task(
         self,
         name: str,
         runtime_context: 'RuntimeContext' = None,

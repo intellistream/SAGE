@@ -1,17 +1,13 @@
 from __future__ import annotations
 
-import time
-from typing import Type, Union, Any, List, Optional
-from enum import Enum
+from typing import List, Optional
 import sage_memory.api
-from sage_core.function.base_function import BaseFunction
 from sage_core.api.datastream import DataStream
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.transformation.source_transformation import SourceTransformation
 from sage_core.transformation.future_transformation import FutureTransformation
 from sage_utils.custom_logger import CustomLogger
-from sage_utils.name_server import get_name
-from sage_core.function.lambda_function import wrap_lambda
+from sage_jobmanager.utils.name_server import get_name
 from sage_core.client import EngineClient
 
 
@@ -43,6 +39,8 @@ class BaseEnvironment:
 
     def set_memory(self, config = None):
         self.memory_collection = sage_memory.api.get_memory(config=config, remote=(self.platform != "local"), env_name=self.name)
+
+
 
     def from_kafka_source(self, 
                          bootstrap_servers: str,
@@ -116,14 +114,7 @@ class BaseEnvironment:
         
         return DataStream(self, transformation)
 
-    def from_source(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> DataStream:
-        if callable(function) and not isinstance(function, type):
-            # 这是一个 lambda 函数或普通函数
-            function = wrap_lambda(function, 'flatmap')
-        transformation = SourceTransformation(self, function, *args,**kwargs)
-        
-        self._pipeline.append(transformation)
-        return DataStream(self, transformation)
+
 
     def from_future(self, name: str) -> DataStream:
         """
@@ -150,64 +141,9 @@ class BaseEnvironment:
     #                engine interface                      #
     ########################################################
 
+    # 这个应该是abstract function
     def submit(self, name="example_pipeline"):
-        """提交环境到 Engine"""
-        
-        # 序列化环境
-        from sage_utils.dill_serializer import serialize_object
-        serialized_env = serialize_object(self)
-        
-        # 发送提交请求
-        response = self.client.send_message(
-            message_type="env_submit",
-            env_name=self.name,
-            payload={"serialized_env": serialized_env}
-        )
-        
-        if response["status"] == "success":
-            self.env_uuid = response["env_uuid"]
-            self.logger.info(f"Environment submitted with UUID: {self.env_uuid}")
-        else:
-            raise RuntimeError(f"Failed to submit environment: {response['message']}")
-
-    # def run_once(self, node: str = None):
-    #     """运行一次管道，适用于测试或调试"""
-    #     if self.is_running:
-    #         self.logger.warning("Pipeline is already running.")
-    #         return
-            
-    #     if not self.env_uuid:
-    #         raise RuntimeError("Environment not submitted yet. Call submit() first.")
-        
-    #     response = self.client.send_message(
-    #         message_type="env_run_once",
-    #         env_name=self.name,
-    #         env_uuid=self.env_uuid,
-    #         payload={"node": node}
-    #     )
-        
-    #     if response["status"] != "success":
-    #         raise RuntimeError(f"Failed to run once: {response['message']}")
-        
-    #     self.logger.info("Pipeline executed once successfully")
-
-    # def run_streaming(self, node: str = None):
-    #     """运行管道，适用于生产环境"""
-    #     if not self.env_uuid:
-    #         raise RuntimeError("Environment not submitted yet. Call submit() first.")
-        
-    #     response = self.client.send_message(
-    #         message_type="env_run_streaming",
-    #         env_name=self.name,
-    #         env_uuid=self.env_uuid,
-    #         payload={"node": node}
-    #     )
-        
-    #     if response["status"] != "success":
-    #         raise RuntimeError(f"Failed to run streaming: {response['message']}")
-        
-    #     self.is_running = True
-    #     self.logger.info("Pipeline streaming started successfully")
+        raise RuntimeError(f"You need to implement the submit function.")
 
     def stop(self):
         """停止管道运行"""
@@ -309,6 +245,33 @@ class BaseEnvironment:
     def pipeline(self) -> List[BaseTransformation]:  # noqa: D401
         """返回 BaseTransformation 列表（Compiler 会使用）。"""
         return self._pipeline
+
+    def _create_local_jobmanager(self):
+        from sage_jobmanager.job_manager import JobManager
+        with JobManager.instance_lock:
+            if JobManager.instance is None:
+                self.jobmanager = JobManager(host="127.0.0.1", port=None)
+                # 不使用全局的19000端口，使用一个自己的临时端口
+            else:
+                self.jobmanager = JobManager.instance
+        self.port = self.jobmanager.tcp_server.port
+        self.client.port = self.port
+
+    def _submit_job(self):
+        # 序列化环境
+        from sage_utils.serialization.dill_serializer import serialize_object
+        serialized_env = serialize_object(self)
+        # 发送提交请求
+        response = self.client.send_message(
+            message_type="env_submit",
+            env_name=self.name,
+            payload={"serialized_env": serialized_env}
+        )
+        if response["status"] == "success":
+            self.env_uuid = response["env_uuid"]
+            self.logger.info(f"Environment submitted with UUID: {self.env_uuid}")
+        else:
+            raise RuntimeError(f"Failed to submit environment: {response['message']}")
 
 
 

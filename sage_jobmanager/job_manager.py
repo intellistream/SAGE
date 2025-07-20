@@ -1,17 +1,15 @@
 from typing import TYPE_CHECKING, Dict, Any, Optional
 import time, uuid
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.dispatcher import Dispatcher
-from sage_utils.local_tcp_server import LocalTcpServer
+from sage_jobmanager.utils.local_tcp_server import LocalTcpServer
 import threading
-from sage_utils.dill_serializer import serialize_object, deserialize_object
+from sage_utils.serialization.dill_serializer import deserialize_object
 if TYPE_CHECKING:
     from sage_jobmanager.execution_graph import ExecutionGraph
-    from sage_core.environment.base_environment import BaseEnvironment
     from sage_runtime.dispatcher import Dispatcher
 
 
-
+# TODO: JobManager 应该要负责整个job的生命周期（即不光是提交，还应该包括‘停止’）
 import ray
 class JobManager: #Job Manager
     instance = None
@@ -313,7 +311,10 @@ class JobManager: #Job Manager
             server_info["environments_count"] = len(self.environments)
             server_info["environment_uuids"] = list(self.environments.keys())
         return server_info
+
+    # TODO: 需要关心一下batch任务的终止信号 --
     
+
     def shutdown(self):
         """
         完整释放 Engine 持有的所有资源：

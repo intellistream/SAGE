@@ -1,6 +1,6 @@
 import logging
 
-from sage_core.environment.local_environment import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_common_funs.io.sink import MemWriteSink, FileSink
 from sage_common_funs.io.source import FileSource
 from sage_libs.rag import CharacterSplitter
@@ -12,7 +12,7 @@ from sage_libs.rag import MemoryWriter
 from sage_utils.config_loader import load_config
 
 def ingest_pipeline_run():
-    env = LocalEnvironment()
+    env = LocalStreamEnvironment()
     # 构建数据处理流程
     source_stream = env.from_source(FileSource, config_for_ingest["source"])
     chunk_stream = source_stream.map(CharacterSplitter,config_for_ingest["chunk"])
@@ -23,7 +23,7 @@ def ingest_pipeline_run():
 
 def qa_pipeline_run():
     """创建并运行数据处理管道"""
-    env = LocalEnvironment()
+    env = LocalStreamEnvironment()
     env.set_memory()
     # 构建数据处理流程
     query_stream = env.from_source(FileSource, config_for_qa["source"])
