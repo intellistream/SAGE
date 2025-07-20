@@ -6,9 +6,6 @@ import os
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
 from tqdm import tqdm
-from sage_memory.api import get_memory, get_manager
-from sage_utils.config_loader import load_config
-from sage_utils.embedding_model import apply_embedding_model
 from data.neuromem_datasets.locomo_dataloader import LocomoDataLoader
 
 # manager = get_manager()

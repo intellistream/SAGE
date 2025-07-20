@@ -1,9 +1,7 @@
 import pytest
 
-from sage_common_funs.io.source import (
-    FileSource
-)
-import os
+from sage_libs.io.source import FileSource
+
 
 @pytest.fixture
 def sample_file(tmp_path):

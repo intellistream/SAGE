@@ -115,7 +115,7 @@ class OpenAIGeneratorWithHistory(StatefulFunction):
 
         self.logger.info(f"\033[32m[{self.__class__.__name__}] Response: {response}\033[0m")
 
-        # —— 自动持久化：每次 execute 后保存状态 —— 
+        # TODO: —— 自动持久化：每次 execute 后保存状态 —— 这个overhead太大了，应该改成周期性的。
         base = os.path.join(self.runtime_context.session_folder, ".sage_checkpoints")
         os.makedirs(base, exist_ok=True)
         path = os.path.join(base, f"{self.runtime_context.name}.chkpt")

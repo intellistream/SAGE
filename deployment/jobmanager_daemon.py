@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+
+# TODO: 添加一个SAGE的集群配置和启动
+# TODO: 通过Ray提供的接口，实现把actor和机器进行1对1绑定的功能。
+
 """
 JobManager守护进程脚本
 检查19000端口是否有服务，如果没有则启动JobManager作为后台服务

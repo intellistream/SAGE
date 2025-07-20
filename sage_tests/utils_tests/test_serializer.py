@@ -5,14 +5,14 @@ import os
 import tempfile
 
 from sage_core.api.local_environment import LocalStreamEnvironment
-from sage_common_funs.io.sink import TerminalSink
-from sage_common_funs.io.source import FileSource
+from sage_libs.io.sink import TerminalSink
+from sage_libs.io.source import FileSource
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging
-from sage_utils.dill_serializer import (
+from sage_utils.serialization.dill_serializer import (
     serialize_object, deserialize_object, pack_object, unpack_object,
     save_object_state, load_object_state
 )
