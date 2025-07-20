@@ -7,14 +7,15 @@ import threading
 from sage_utils.dill_serializer import serialize_object, deserialize_object
 if TYPE_CHECKING:
     from sage_jobmanager.compiler import Compiler
-    from sage_core.api.base_environment import BaseEnvironment
+    from sage_core.environment.base_environment import BaseEnvironment
     from sage_runtime.dispatcher import Dispatcher
 
 
 
 import ray
 class JobManager: #Job Manager
-
+    instance = None
+    instance_lock = threading.RLock()
     def __init__(self, host: str = "127.0.0.1", port: int = 19000):
         ray.init(address="auto", ignore_reinit_error=True)
         self.graphs: dict[str, 'Compiler'] = {}  # 存储 pipeline 名称到 SageGraph 的映射
@@ -39,7 +40,7 @@ class JobManager: #Job Manager
             port=port,
             default_handler=self._handle_unknown_message
         )
-
+        JobManager.instance = self
         # 注册消息处理器
         self._register_message_handlers()
         

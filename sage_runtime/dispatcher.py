@@ -9,9 +9,9 @@ from sage_runtime.task.base_task import BaseTask
 from sage_runtime.router.connection import Connection
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.compiler import Compiler, GraphNode
-
+import ray
 if TYPE_CHECKING:
-    from sage_core.api.base_environment import BaseEnvironment 
+    from sage_core.environment.base_environment import BaseEnvironment 
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
 class Dispatcher():
@@ -28,11 +28,10 @@ class Dispatcher():
         # self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
         self.tasks: Dict[str, BaseTask] = {}
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
-    
+        if env.platform is "remote" and not ray.is_initialized():
+            ray.init(address="auto", ignore_reinit_error=True)
 
         
-
-    
     def submit(self, graph: Compiler, env:'BaseEnvironment'):
         """编译图结构，创建节点并建立连接"""
         self.logger.info(f"Compiling mixed DAG for graph: {self.name}")

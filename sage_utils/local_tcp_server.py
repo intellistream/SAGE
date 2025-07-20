@@ -66,7 +66,7 @@ class LocalTcpServer:
         print( "Allocating TCP port..." )
         """为 DAG 分配可用的 TCP 端口"""
         # 尝试从预设范围分配端口
-        for port in range(19000, 20000):
+        for port in range(19200, 20000):
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.bind((self.host, port))

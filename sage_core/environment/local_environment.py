@@ -13,7 +13,7 @@ from sage_utils.custom_logger import CustomLogger
 from sage_utils.name_server import get_name
 from sage_core.function.lambda_function import wrap_lambda
 from sage_core.client import EngineClient
-from sage_core.api.base_environment import BaseEnvironment
+from sage_core.environment.base_environment import BaseEnvironment
 
 class LocalEnvironment(BaseEnvironment):
     """
@@ -22,3 +22,11 @@ class LocalEnvironment(BaseEnvironment):
 
     def __init__(self, name: str = "local_environment", config: dict | None = None):
         super().__init__(name, config, platform="local")
+        from sage_jobmanager.job_manager import JobManager
+        with JobManager.instance_lock:
+            if JobManager.instance is None:
+                self.jobmanager = JobManager(host="127.0.0.1", port = None)
+                # 不使用全局的19000端口，使用一个自己的临时端口
+            else:
+                self.jobmanager = JobManager.instance
+        self.port = self.jobmanager.tcp_server.port

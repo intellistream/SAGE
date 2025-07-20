@@ -11,7 +11,7 @@ from ray.actor import ActorHandle
 if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
     from sage_core.function.base_function import BaseFunction
-    from sage_core.api.base_environment import BaseEnvironment
+    from sage_core.environment.base_environment import BaseEnvironment
 
 
 class BaseTransformation:

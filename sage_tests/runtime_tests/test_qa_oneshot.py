@@ -3,7 +3,7 @@ import pytest
 from dotenv import load_dotenv
 import os
 
-from sage_core.api.base_environment import LocalEnvironment
+from sage_core.environment.base_environment import LocalEnvironment
 from sage_common_funs.io.sink import TerminalSink
 from sage_common_funs.io.source import FileSource
 from sage_libs.rag.generator import OpenAIGenerator

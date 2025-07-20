@@ -3,7 +3,7 @@ import json
 import time
 import threading
 from unittest.mock import Mock, patch, MagicMock
-from sage_core.api.base_environment import LocalEnvironment, RemoteEnvironment
+from sage_core.environment.base_environment import LocalEnvironment, RemoteEnvironment
 from sage_core.function.kafka_source import KafkaSourceFunction
 from sage_core.function.base_function import BaseFunction
 

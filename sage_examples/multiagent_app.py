@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 import os, time
-from sage_core.api.base_environment import LocalEnvironment, RemoteEnvironment
+from sage_core.environment.base_environment import LocalEnvironment, RemoteEnvironment
 from sage_utils.config_loader import load_config
 from sage_libs.agents.question_bot import QuestionBot
 from sage_libs.agents.chief_bot import ChiefBot
