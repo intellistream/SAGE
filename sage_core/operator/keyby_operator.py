@@ -35,13 +35,13 @@ class KeyByOperator(BaseOperator):
             self.logger.debug(f"KeyByOperator '{self.name}' added key '{extracted_key}' to packet")
             
             # 直接发送带有分区信息的packet
-            self.emit_packet(keyed_packet)
+            self.router.send(keyed_packet)
             
         except Exception as e:
             self.logger.error(f"Error in KeyByOperator {self.name}: {e}", exc_info=True)
             # 回退：发送原始packet
             if packet:
-                self.emit_packet(packet)
+                self.router.send(packet)
 
 
     def process(self, raw_data: Any, input_index: int = 0) -> Any:

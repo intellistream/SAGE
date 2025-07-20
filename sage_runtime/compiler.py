@@ -45,6 +45,7 @@ class Compiler:
         self.env = env
         self.name = env.name
         self.nodes:Dict[str, GraphNode] = {}
+        self.instances:Dict[str, BaseDAGNode] = {}
         self.edges:Dict[str, GraphEdge] = {}
         # 构建数据流之间的连接映射
 
@@ -69,18 +70,13 @@ class Compiler:
         self.logger.debug("Step 1: Generating parallel nodes for each transformation")
         for transformation in env.pipeline:
             # 安全检查：如果发现未填充的future transformation，报错
-            if hasattr(transformation, 'is_future') and transformation.is_future:
+            from sage_core.transformation.future_transformation import FutureTransformation
+            if isinstance(transformation, FutureTransformation):
                 if not transformation.filled:
                     raise RuntimeError(
-                        f"Found unfilled future transformation '{transformation.future_name}' in pipeline. "
-                        f"All future streams must be filled with fill_future() before compilation."
+                        f"Unfilled future transformation '{transformation.future_name}' in pipeline. "
                     )
-                else:
-                    # 这种情况不应该发生，因为已填充的future transformation应该被从pipeline中移除
-                    raise RuntimeError(
-                        f"Found filled future transformation '{transformation.future_name}' in pipeline. "
-                        f"This is unexpected - filled future transformations should be removed from pipeline."
-                    )
+                continue
             
             node_names = []
             for i in range(transformation.parallelism):

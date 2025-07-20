@@ -51,29 +51,29 @@ class OperatorFactory:
         )
         
         try:
-            if self.remote:
-                Operator_class = ray.remote(self.operator_class)
-                operator_instance = Operator_class.remote(
-                    self.function_factory,
-                    runtime_context,
-                    **self.operator_kwargs
-                )
-                logger.debug(f"Building Ray Actor operator instance: {self.operator_class.__name__}")
-            else:
-                Operator_class = self.operator_class
-                operator_instance = Operator_class(
-                    self.function_factory,
-                    runtime_context,
-                    **self.operator_kwargs
-                )
-                logger.debug(f"Building local operator instance: {self.operator_class.__name__}")
+            # if self.remote:
+            #     Operator_class = ray.remote(self.operator_class)
+            #     operator_instance = Operator_class.remote(
+            #         self.function_factory,
+            #         runtime_context,
+            #         **self.operator_kwargs
+            #     )
+            #     logger.debug(f"Building Ray Actor operator instance: {self.operator_class.__name__}")
+            # else:
+            Operator_class = self.operator_class
+            operator_instance = Operator_class(
+                self.function_factory,
+                runtime_context,
+                **self.operator_kwargs
+            )
+            logger.debug(f"Building local operator instance: {self.operator_class.__name__}")
 
 
             # 用OperatorWrapper包装
-            wrapped_operator = OperatorWrapper(operator_instance, name, self.env_name)
-            logger.debug(f"Wrapped operator with OperatorWrapper")
+            # wrapped_operator = OperatorWrapper(operator_instance, name, self.env_name)
+            # logger.debug(f"Wrapped operator with OperatorWrapper")
             
-            return wrapped_operator
+            return operator_instance
             
         except Exception as e:
             logger.error(f"Failed to create operator: {e}")

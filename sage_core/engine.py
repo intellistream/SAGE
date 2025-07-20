@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.local_thread_pool import LocalThreadPool
-from sage_runtime.mixed_dag import MixedDAG
+from sage_runtime.dispatcher import Dispatcher
 import threading
 if TYPE_CHECKING:
     from sage_runtime.compiler import Compiler
@@ -19,7 +19,7 @@ class Engine:
             return
         self._initialized = True
         self.graphs: dict[str, 'Compiler'] = {}  # 存储 pipeline 名称到 SageGraph 的映射
-        self.env_to_dag: dict[str, 'MixedDAG'] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
+        self.env_to_dag: dict[str, 'Dispatcher'] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
         # print("Engine initialized")
         self.logger = CustomLogger(
             filename=f"SageEngine",
@@ -56,7 +56,7 @@ class Engine:
         try:
             self.logger.info(f"Received mixed graph '{graph.name}' with {len(graph.nodes)} nodes")
             # 编译图
-            mixed_dag = MixedDAG(graph, env)
+            mixed_dag = Dispatcher(graph, env)
             self.env_to_dag[env.name] = mixed_dag  # 存储 DAG 到字典中
             mixed_dag.submit()
             self.logger.info(f"Mixed graph '{graph.name}' submitted to runtime manager.")

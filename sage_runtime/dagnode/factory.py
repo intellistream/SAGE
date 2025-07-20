@@ -2,7 +2,8 @@ from typing import Type, Any, Dict, TYPE_CHECKING, Union
 from sage_runtime.function.factory import FunctionFactory
 from sage_runtime.dagnode.ray_dag_node import RayDAGNode
 from sage_runtime.dagnode.local_dag_node import LocalDAGNode
-
+import ray
+from sage_runtime.actor_wrapper import ActorWrapper
 if TYPE_CHECKING:
     from sage_core.transformation.base_transformation import BaseTransformation
     from sage_core.api.env import BaseEnvironment
@@ -36,7 +37,9 @@ class DAGNodeFactory:
         runtime_context: 'RuntimeContext' = None,
     ) -> 'BaseDAGNode':
         if self.remote:
-            node = RayDAGNode(name, runtime_context,  self.operator_factory)
+            Node_Class = ray.remote(RayDAGNode)
+            node = Node_Class(name, runtime_context,  self.operator_factory)
+            node = ActorWrapper(node, name, self.env_name)
         else:
             node = LocalDAGNode(name, runtime_context, self.operator_factory)
         node.delay = self.delay

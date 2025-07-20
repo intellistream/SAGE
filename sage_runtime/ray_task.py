@@ -1,0 +1,39 @@
+import ray
+import time
+import threading
+from typing import Any, Union, Tuple, TYPE_CHECKING, Dict, Optional
+from ray.util.queue import Queue as RayQueue
+from sage_runtime.base_task import BaseTask
+from sage_utils.custom_logger import CustomLogger
+from sage_runtime.io.packet import Packet
+from sage_runtime.ray_router import RayRouter
+if TYPE_CHECKING:
+    from sage_runtime.operator.factory import OperatorFactory
+    from sage_runtime.runtime_context import RuntimeContext
+    from sage_runtime.io.connection import Connection
+    from sage_runtime.io.unified_emit_context import UnifiedEmitContext
+
+
+
+@ray.remote
+class RayTask(BaseTask):
+    """
+    基于Ray Actor的任务节点，使用Ray Queue作为输入输出缓冲区
+    内部运行独立的工作线程，避免阻塞Ray Actor的事件循环
+    """
+    
+    def __init__(self,
+                 runtime_context: 'RuntimeContext', 
+                 operator_factory: 'OperatorFactory') -> None:
+        
+        # 调用父类初始化
+        super().__init__(runtime_context, operator_factory)
+
+        # === Ray Queue 缓冲区 ===
+        self.input_buffer = RayQueue(maxsize=1000)
+        # === 路由器 ===
+        self.router = RayRouter(runtime_context)
+        self.operator.router = self.router
+
+        self.logger.info(f"Initialized RayTask: {self.ctx.name}")
+
