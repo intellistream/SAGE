@@ -6,7 +6,7 @@ from sage_utils.custom_logger import CustomLogger
 from sage_utils.name_server import get_name
 from sage_jobmanager.factory.operator_factory import OperatorFactory
 from sage_jobmanager.factory.function_factory import FunctionFactory
-from sage_runtime.dagnode.factory import TaskFactory
+from sage_jobmanager.factory.task_factory import TaskFactory
 from ray.actor import ActorHandle
 if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator

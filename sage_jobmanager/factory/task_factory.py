@@ -1,11 +1,11 @@
 from typing import Type, Any, Dict, TYPE_CHECKING, Union
 from sage_runtime.task.ray_task import RayTask
-from sage_runtime.dagnode.local_dag_node import LocalDAGNode
+from sage_runtime.task.local_task import LocalTask
+from sage_runtime.task.base_task import BaseTask
 import ray
 from sage_utils.actor_wrapper import ActorWrapper
 if TYPE_CHECKING:
     from sage_core.transformation.base_transformation import BaseTransformation
-    from sage_runtime.dagnode.base_dag_node import BaseDAGNode
     from ray.actor import ActorHandle
     from sage_jobmanager.factory.runtime_context import RuntimeContext
     
@@ -32,12 +32,12 @@ class TaskFactory:
         self,
         name: str,
         runtime_context: 'RuntimeContext' = None,
-    ) -> 'BaseDAGNode':
+    ) -> 'BaseTask':
         if self.remote:
             node = RayTask.remote(name, runtime_context,  self.operator_factory)
             node = ActorWrapper(node, name, self.env_name)
         else:
-            node = LocalDAGNode(name, runtime_context, self.operator_factory)
+            node = LocalTask(name, runtime_context, self.operator_factory)
         return node
     
     def __repr__(self) -> str:
