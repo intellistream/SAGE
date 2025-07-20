@@ -65,7 +65,7 @@ class FlatMapOperator(BaseOperator):
                 for item_data in collected_data:
                     # 为每个收集的item创建新packet，继承分区信息
                     result_packet = packet.inherit_partition_info(item_data)
-                    self.emit_packet(result_packet)
+                    self.router.send(result_packet)
                 # 清空collector
                 self.out.clear()
             
@@ -94,13 +94,13 @@ class FlatMapOperator(BaseOperator):
                 for item in result:
                     # 为每个item创建新packet，继承分区信息
                     result_packet = source_packet.inherit_partition_info(item)
-                    self.emit_packet(result_packet)
+                    self.router.send(result_packet)
                     count += 1
                 self.logger.debug(f"FlatMapOperator '{self.name}' emitted {count} items from iterable")
             else:
                 # 如果不是可迭代对象，直接发送
                 result_packet = source_packet.inherit_partition_info(result)
-                self.emit_packet(result_packet)
+                self.router.send(result_packet)
                 self.logger.debug(f"FlatMapOperator '{self.name}' emitted single item: {result}")
                 
         except Exception as e:
@@ -142,7 +142,7 @@ class FlatMapOperator(BaseOperator):
             partition_key=partition_key,
             partition_strategy=partition_strategy
         )
-        self.emit_packet(packet)
+        self.router.send(packet)
 
     def emit_collected_data_with_source_partition(self, source_packet: 'Packet'):
         """
@@ -155,6 +155,6 @@ class FlatMapOperator(BaseOperator):
         if collected_data:
             for item_data in collected_data:
                 result_packet = source_packet.inherit_partition_info(item_data)
-                self.emit_packet(result_packet)
+                self.router.send(result_packet)
             self.out.clear()
             self.logger.debug(f"Emitted {len(collected_data)} collected items with inherited partition info")

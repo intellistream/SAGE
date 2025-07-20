@@ -1,17 +1,15 @@
 from typing import Type, Any, Dict, TYPE_CHECKING, Union
-from sage_runtime.function.factory import FunctionFactory
-from sage_runtime.dagnode.ray_dag_node import RayDAGNode
+from sage_runtime.ray_task import RayTask
 from sage_runtime.dagnode.local_dag_node import LocalDAGNode
-
+import ray
+from sage_runtime.actor_wrapper import ActorWrapper
 if TYPE_CHECKING:
     from sage_core.transformation.base_transformation import BaseTransformation
-    from sage_core.api.env import BaseEnvironment
     from sage_runtime.dagnode.base_dag_node import BaseDAGNode
     from ray.actor import ActorHandle
-    from sage_jobmanager.compiler import GraphNode
     from sage_runtime.runtime_context import RuntimeContext
     
-class DAGNodeFactory:
+class TaskFactory:
     def __init__(
         self,
         transformation: 'BaseTransformation',
@@ -36,13 +34,11 @@ class DAGNodeFactory:
         runtime_context: 'RuntimeContext' = None,
     ) -> 'BaseDAGNode':
         if self.remote:
-            node = RayDAGNode(name, runtime_context,  self.operator_factory)
+            node = RayTask.remote(name, runtime_context,  self.operator_factory)
+            node = ActorWrapper(node, name, self.env_name)
         else:
             node = LocalDAGNode(name, runtime_context, self.operator_factory)
-        node.delay = self.delay
-        node.is_spout = self.is_spout
-        # print(f"{name} is spout: {node.is_spout}")
         return node
     
     def __repr__(self) -> str:
-        return f"<DAGNodeFactory {self.basename}>"
+        return f"<TaskFactory {self.basename}>"

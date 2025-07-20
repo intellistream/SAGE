@@ -40,7 +40,7 @@ class FilterOperator(BaseOperator):
             
             if should_pass:
                 # 通过过滤，继承分区信息
-                self.emit_packet(packet)
+                self.router.send(packet)
             # 不通过过滤：不发送任何packet
             
         except Exception as e:

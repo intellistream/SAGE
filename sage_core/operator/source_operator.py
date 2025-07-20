@@ -16,6 +16,6 @@ class SourceOperator(BaseOperator):
             result = self.function.execute()
             self.logger.debug(f"Operator {self.name} processed data with result: {result}")
             if result is not None:
-                self.emit_packet(Packet(result))
+                self.router.send(Packet(result))
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)

@@ -123,7 +123,7 @@ class JoinOperator(BaseOperator):
                 partition_strategy=original_packet.partition_strategy or "hash",
             )
             
-            self.emit_packet(result_packet)
+            self.router.send(result_packet)
             
             self.logger.debug(
                 f"JoinOperator '{self.name}' emitted result for key '{join_key}': "

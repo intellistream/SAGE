@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING, Dict, Any, Optional
 import time, uuid
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.local_thread_pool import LocalThreadPool
 from sage_jobmanager.task_distributor import TaskDistributor
 from sage_utils.local_tcp_server import LocalTcpServer
 import threading
@@ -9,6 +8,9 @@ from sage_utils.dill_serializer import serialize_object, deserialize_object
 if TYPE_CHECKING:
     from sage_jobmanager.compiler import Compiler
     from sage_core.api.env import BaseEnvironment
+    from sage_runtime.dispatcher import Dispatcher
+
+
 
 import ray
 class JobManager: #Job Manager
@@ -16,7 +18,7 @@ class JobManager: #Job Manager
     def __init__(self, host: str = "127.0.0.1", port: int = 19000):
         ray.init(address="auto", ignore_reinit_error=True)
         self.graphs: dict[str, 'Compiler'] = {}  # 存储 pipeline 名称到 SageGraph 的映射
-        self.env_to_dag: dict[str, 'TaskDistributor'] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
+        self.env_to_dispatcher: dict[str, 'Dispatcher'] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
 
         # 新增：UUID 到环境信息的映射
         self.environments: Dict[str, Dict[str, Any]] = {}  # uuid -> environment_info
@@ -84,24 +86,24 @@ class JobManager: #Job Manager
             # 编译环境
             from sage_jobmanager.compiler import Compiler
             graph = Compiler(env)
-            mixed_dag = TaskDistributor(graph, env)
+            dispatcher = Dispatcher(graph, env)
             
             # 存储环境信息
             with self._env_lock:
                 self.environments[env_uuid] = {
                     "env": env,
                     "graph": graph, 
-                    "dag": mixed_dag,
+                    "dispatcher": dispatcher,
                     "status": "submitted",
                     "created_at": time.time()
                 }
                 
                 # 保持向后兼容
                 self.graphs[env_name] = graph
-                self.env_to_dag[env_name] = mixed_dag
+                self.env_to_dispatcher[env_name] = dispatcher
             
             # 提交 DAG
-            mixed_dag.submit() # 提交到本地线程池 or Ray 集群
+            dispatcher.submit() # 提交到本地线程池 or Ray 集群
             
             self.logger.info(f"Environment '{env_name}' submitted with UUID {env_uuid}")
             
@@ -261,8 +263,8 @@ class JobManager: #Job Manager
                 # 保持向后兼容
                 if env_name in self.graphs:
                     del self.graphs[env_name]
-                if env_name in self.env_to_dag:
-                    del self.env_to_dag[env_name]
+                if env_name in self.env_to_dispatcher:
+                    del self.env_to_dispatcher[env_name]
             
             self.logger.info(f"Environment {env_uuid} closed")
             
@@ -366,7 +368,7 @@ class JobManager: #Job Manager
             self.logger.exception("Error shutting down RuntimeManager:{e}")
             raise
 
-        self.env_to_dag.clear()
+        self.env_to_dispatcher.clear()
         self.graphs.clear()
 
         JobManager._instance = None

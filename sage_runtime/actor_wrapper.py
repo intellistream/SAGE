@@ -6,12 +6,12 @@ import logging
 from ray.actor import ActorHandle
 from sage_utils.custom_logger import CustomLogger
 
-class UniversalWrapper:
+class ActorWrapper:
     """万能包装器，可以将任意对象包装成本地对象或Ray Actor"""
     
     def __init__(self, 
                  obj: Union[Any, ActorHandle], 
-                 name: str = "UniversalWrapper",
+                 name: str = "ActorWrapper",
                  env_name: str = None):
         # 使用 __dict__ 直接设置，避免触发 __setattr__
         object.__setattr__(self, '_obj', obj)
@@ -29,7 +29,7 @@ class UniversalWrapper:
         )
         object.__setattr__(self, 'logger', logger)
         
-        self.logger.debug(f"Created UniversalWrapper for {type(obj).__name__} in {self._execution_mode} mode")
+        self.logger.debug(f"Created ActorWrapper for {type(obj).__name__} in {self._execution_mode} mode")
     
     def _detect_execution_mode(self) -> str:
         """检测执行模式"""
@@ -77,7 +77,7 @@ class UniversalWrapper:
             setattr(self._obj, name, value)
     
     def __repr__(self):
-        return f"UniversalWrapper[{self._execution_mode}]({repr(self._obj)})"
+        return f"ActorWrapper[{self._execution_mode}]({repr(self._obj)})"
     
     def get_wrapped_object(self):
         """获取被包装的原始对象"""
