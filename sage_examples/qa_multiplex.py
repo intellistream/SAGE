@@ -1,7 +1,7 @@
 import time
 from dotenv import load_dotenv
 
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.base_environment import LocalEnvironment
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.io.sink import TerminalSink, FileSink
 from sage_libs.rag.generator import OpenAIGenerator

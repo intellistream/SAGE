@@ -4,8 +4,8 @@
 # 导入 Sage 中的 Environment 和相关组件
 import logging
 import re
-from sage_core.api.env import LocalEnvironment
-from sage_core.api.env import RemoteEnvironment
+from sage_core.api.base_environment import LocalEnvironment
+from sage_core.api.base_environment import RemoteEnvironment
 
 def init_memory_and_pipeline(job_id=None,  config=None, operators=None,use_ray=False):
     """

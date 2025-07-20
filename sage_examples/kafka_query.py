@@ -4,7 +4,7 @@ import threading
 import time
 from kafka import KafkaProducer
 
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.base_environment import LocalEnvironment
 from sage_common_funs.io.sink import TerminalSink
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor

@@ -1,4 +1,4 @@
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.base_environment import LocalEnvironment
 from sage_core.function.sink_function import SinkFunction
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.comap_function import BaseCoMapFunction

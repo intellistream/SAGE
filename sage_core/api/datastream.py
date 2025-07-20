@@ -12,7 +12,7 @@ from sage_core.function.lambda_function import wrap_lambda, detect_lambda_type
 from .connected_streams import ConnectedStreams
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
-    from .env import BaseEnvironment
+    from .base_environment import BaseEnvironment
     from .datastream import DataStream
 
 T = TypeVar("T")

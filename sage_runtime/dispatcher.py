@@ -11,7 +11,7 @@ from sage_utils.custom_logger import CustomLogger
 from sage_runtime.compiler import Compiler, GraphNode
 
 if TYPE_CHECKING:
-    from sage_core.api.env import BaseEnvironment 
+    from sage_core.api.base_environment import BaseEnvironment 
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
 class Dispatcher():

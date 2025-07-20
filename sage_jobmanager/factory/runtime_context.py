@@ -7,7 +7,7 @@ from sage_memory.memory_collection.vdb_collection import VDBMemoryCollection
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from sage_jobmanager.compiler import Compiler, GraphNode
-    from sage_core.api.env import BaseEnvironment 
+    from sage_core.api.base_environment import BaseEnvironment 
 # task, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:

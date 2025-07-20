@@ -30,10 +30,9 @@ class BaseEnvironment:
         self.memory_collection = None  # 用于存储内存集合
         self.is_running = False
 
-                # Engine 客户端相关
+        # Engine 客户端相关
         self._engine_client: EngineClient = None
         self.env_uuid: Optional[str] = None
-
 
     ########################################################
     #                  user interface                      #
@@ -309,13 +308,7 @@ class BaseEnvironment:
         return self._pipeline
 
 
-class LocalEnvironment(BaseEnvironment):
-    """
-    本地执行环境（不使用 Ray），用于开发调试或小规模测试。
-    """
 
-    def __init__(self, name: str = "local_environment", config: dict | None = None):
-        super().__init__(name, config, platform="local")
 
 
 class RemoteEnvironment(BaseEnvironment):

@@ -10,7 +10,7 @@ from sage_core.function.comap_function import BaseCoMapFunction
 from sage_core.function.join_function import BaseJoinFunction
 if TYPE_CHECKING:
     from .datastream import DataStream
-    from .env import BaseEnvironment
+    from .base_environment import BaseEnvironment
 
 class ConnectedStreams:
     """表示多个transformation连接后的流结果"""

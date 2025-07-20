@@ -7,7 +7,7 @@ import threading
 from sage_utils.dill_serializer import serialize_object, deserialize_object
 if TYPE_CHECKING:
     from sage_jobmanager.compiler import Compiler
-    from sage_core.api.env import BaseEnvironment
+    from sage_core.api.base_environment import BaseEnvironment
     from sage_runtime.dispatcher import Dispatcher
 
 

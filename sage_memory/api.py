@@ -3,7 +3,7 @@ from sage_utils.embedding_model import apply_embedding_model
 from sage_memory.memory_manager import MemoryManager
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
-    from sage_core.api.env import BaseEnvironment
+    from sage_core.api.base_environment import BaseEnvironment
 
 
 _manager = None
