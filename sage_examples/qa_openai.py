@@ -2,8 +2,8 @@ import time
 from dotenv import load_dotenv
 
 from sage_core.api.local_environment import LocalStreamEnvironment
-from sage_common_funs.io.source import FileSource
-from sage_common_funs.io.sink import TerminalSink
+from sage_libs.io.sink import TerminalSink
+from sage_libs.io.source import FileSource
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
@@ -30,8 +30,9 @@ def pipeline_run(config: dict) -> None:
     )
 
     env.submit()
-    env.run_once()
-    time.sleep(5)  # 等待管道运行
+
+    time.sleep(5)  # 等待管道运行5秒
+
     env.close()
 
 

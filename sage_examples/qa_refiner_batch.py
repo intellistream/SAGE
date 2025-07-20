@@ -2,12 +2,12 @@ import time
 
 # 导入 Sage 相关模块
 from sage_core.api.local_environment import LocalBatchEnvironment
+from sage_libs.io.sink import TerminalSink
+from sage_libs.io.source import FileSource
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
 from sage_libs.rag.refiner import AbstractiveRecompRefiner
-from sage_common_funs.io.source import FileSource
-from sage_common_funs.io.sink import TerminalSink
 from sage_utils.config_loader import load_config
 
 
@@ -21,7 +21,7 @@ def pipeline_run():
     env.set_memory(config=None)  # 初始化内存配置
 
     # 构建数据处理流程
-    query_stream = (env.from_source(FileSource, config["source"])
+    query_stream = (env.from_collection(FileSource, config["source"])
                     .map(DenseRetriever, config["retriever"])
                     .map(AbstractiveRecompRefiner, config["refiner"])  
                     .map(QAPromptor, config["promptor"])
@@ -31,10 +31,6 @@ def pipeline_run():
 
     # 提交管道并运行
     env.submit()
-    # env.run_streaming()
-    time.sleep(5)
-    env.close()
-
 
 if __name__ == '__main__':
     # 加载配置文件
