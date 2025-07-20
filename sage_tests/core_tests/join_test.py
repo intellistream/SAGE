@@ -572,7 +572,7 @@ class TestJoinFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(6)
         finally:
             env.close()
@@ -629,7 +629,7 @@ class TestJoinFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(6)
         finally:
             env.close()
@@ -672,7 +672,7 @@ class TestJoinFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(5)
         finally:
             env.close()
@@ -736,7 +736,7 @@ class TestJoinFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(7)
         finally:
             env.close()
@@ -780,7 +780,7 @@ class TestJoinFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(4)
         finally:
             env.close()

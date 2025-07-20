@@ -220,6 +220,7 @@ def _prepare(v, _seen=None):
 
 
 def _serialize_complex_object(obj, _seen=None):
+    # print("serializing complex object:", obj)
     """递归序列化复杂对象的内部结构"""
     if _seen is None:
         _seen = set()
@@ -230,7 +231,7 @@ def _serialize_complex_object(obj, _seen=None):
     # 检查对象是否有自定义的序列化配置
     custom_include = getattr(obj, "__state_include__", [])
     custom_exclude = getattr(obj, "__state_exclude__", [])
-    
+    # print("custom_exclude:", custom_exclude)
     # 收集所有属性
     attrs = _gather_attrs(obj)
     

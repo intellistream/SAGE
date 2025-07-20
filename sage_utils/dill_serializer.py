@@ -184,13 +184,17 @@ def _preprocess_for_dill(obj, _seen=None):
             # 获取和过滤属性
             custom_include = getattr(obj, "__state_include__", [])
             custom_exclude = getattr(obj, "__state_exclude__", [])
+            if len(custom_exclude) is not 0:
+                print(f"custom_exclude is {custom_exclude}")
             # 一般不用include字段，只用exclude字段就行了
             
             attrs = _gather_attrs(obj)
-            # print(f"attrs is {attrs}")
+            if len(custom_exclude) is not 0:
+                print(f"attrs is {attrs}")
 
             filtered_attrs = _filter_attrs(attrs, custom_include, custom_exclude)
-            # print(f"filtered_attrs is {filtered_attrs}")
+            if len(custom_exclude) is not 0:
+                print(f"filtered_attrs is {filtered_attrs}")
             
             # 递归清理属性
             for attr_name, attr_value in filtered_attrs.items():

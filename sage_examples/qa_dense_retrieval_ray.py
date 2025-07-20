@@ -23,7 +23,7 @@ def pipeline_run():
     response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
     env.submit()
-    env.run_streaming()  # 启动管道
+    # env.run_streaming()  # 启动管道
     time.sleep(5)
     env.stop()  # 停止管道
     time.sleep(2)

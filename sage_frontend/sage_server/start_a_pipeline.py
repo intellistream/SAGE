@@ -90,7 +90,7 @@ def init_memory_and_pipeline(job_id=None,  config=None, operators=None,use_ray=F
     # 提交管道到 SAGE 运行时
     try:
         env.submit(name = f"env_{job_id}" if job_id else "dynamic_pipeline")
-        env.run_streaming()
+        # env.run_streaming()
     except Exception as e:
         logging.error(f"Failed to submit pipeline: {e}")
         raise  Exception(f"Pipeline submission failed: {e}")

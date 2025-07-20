@@ -202,7 +202,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(3)
         finally:
             env.close()
@@ -227,7 +227,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(3)
         finally:
             env.close()
@@ -252,7 +252,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(4)
         finally:
             env.close()
@@ -276,7 +276,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(3)
         finally:
             env.close()
@@ -300,7 +300,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(2)
         finally:
             env.close()
@@ -353,7 +353,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(4)
         finally:
             env.close()
@@ -378,7 +378,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(3)
         finally:
             env.close()

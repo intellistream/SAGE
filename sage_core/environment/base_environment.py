@@ -18,12 +18,15 @@ from sage_core.client import EngineClient
 class BaseEnvironment:
 
     def __init__(self, name: str, config: dict | None, *, platform: str = "local"):
+
+        self.__state_exclude__ = ["_engine_client", "client", "jobmanager"]
+
         self.name = get_name(name)
         
 
         self.config: dict = dict(config or {})
         self.platform:str = platform
-        # 用于收集所有 BaseTransformation，供 Compiler 构建 DAG
+        # 用于收集所有 BaseTransformation，供 ExecutionGraph 构建 DAG
         self._pipeline: List[BaseTransformation] = []
         self._filled_futures: dict = {}  # 记录已填充的future stream信息：name -> {future_transformation, actual_transformation, filled_at}
         self.runtime_context = dict  # 需要在compiler里面实例化。
@@ -167,44 +170,44 @@ class BaseEnvironment:
         else:
             raise RuntimeError(f"Failed to submit environment: {response['message']}")
 
-    def run_once(self, node: str = None):
-        """运行一次管道，适用于测试或调试"""
-        if self.is_running:
-            self.logger.warning("Pipeline is already running.")
-            return
+    # def run_once(self, node: str = None):
+    #     """运行一次管道，适用于测试或调试"""
+    #     if self.is_running:
+    #         self.logger.warning("Pipeline is already running.")
+    #         return
             
-        if not self.env_uuid:
-            raise RuntimeError("Environment not submitted yet. Call submit() first.")
+    #     if not self.env_uuid:
+    #         raise RuntimeError("Environment not submitted yet. Call submit() first.")
         
-        response = self.client.send_message(
-            message_type="env_run_once",
-            env_name=self.name,
-            env_uuid=self.env_uuid,
-            payload={"node": node}
-        )
+    #     response = self.client.send_message(
+    #         message_type="env_run_once",
+    #         env_name=self.name,
+    #         env_uuid=self.env_uuid,
+    #         payload={"node": node}
+    #     )
         
-        if response["status"] != "success":
-            raise RuntimeError(f"Failed to run once: {response['message']}")
+    #     if response["status"] != "success":
+    #         raise RuntimeError(f"Failed to run once: {response['message']}")
         
-        self.logger.info("Pipeline executed once successfully")
+    #     self.logger.info("Pipeline executed once successfully")
 
-    def run_streaming(self, node: str = None):
-        """运行管道，适用于生产环境"""
-        if not self.env_uuid:
-            raise RuntimeError("Environment not submitted yet. Call submit() first.")
+    # def run_streaming(self, node: str = None):
+    #     """运行管道，适用于生产环境"""
+    #     if not self.env_uuid:
+    #         raise RuntimeError("Environment not submitted yet. Call submit() first.")
         
-        response = self.client.send_message(
-            message_type="env_run_streaming",
-            env_name=self.name,
-            env_uuid=self.env_uuid,
-            payload={"node": node}
-        )
+    #     response = self.client.send_message(
+    #         message_type="env_run_streaming",
+    #         env_name=self.name,
+    #         env_uuid=self.env_uuid,
+    #         payload={"node": node}
+    #     )
         
-        if response["status"] != "success":
-            raise RuntimeError(f"Failed to run streaming: {response['message']}")
+    #     if response["status"] != "success":
+    #         raise RuntimeError(f"Failed to run streaming: {response['message']}")
         
-        self.is_running = True
-        self.logger.info("Pipeline streaming started successfully")
+    #     self.is_running = True
+    #     self.logger.info("Pipeline streaming started successfully")
 
     def stop(self):
         """停止管道运行"""

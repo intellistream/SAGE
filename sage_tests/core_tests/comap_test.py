@@ -382,7 +382,7 @@ class TestCoMapFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(10)
         finally:
             env.close()

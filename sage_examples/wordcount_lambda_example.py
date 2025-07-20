@@ -72,7 +72,7 @@ def main():
     try:
         # 运行流处理
         env.submit()
-        env.run_streaming()
+        # env.run_streaming()
         time.sleep(60)  # 运行60秒以观察输出
     except KeyboardInterrupt:
         print("\n\n🛑 Stopping WordCount Example...")

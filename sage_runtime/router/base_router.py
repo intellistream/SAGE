@@ -44,8 +44,7 @@ class BaseRouter(ABC):
         
         # Debug log
         self.logger.debug(
-            f"Adding connection: broadcast_index={broadcast_index}, parallel_index={parallel_index}, "
-            f"target={connection.target_name}, connection_type={connection.connection_type.value}"
+            f"Adding connection: broadcast_index={broadcast_index}, parallel_index={parallel_index}, target={connection.target_name}"
         )
         
         # 初始化广播组（如果不存在）

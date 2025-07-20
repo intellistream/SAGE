@@ -48,7 +48,7 @@ def pipeline_run():
     env.close()
     # try:
     #     env.submit()
-    #     env.run_streaming() # 开销有点大，最好只润一次做测试
+    #     # env.run_streaming() # 开销有点大，最好只润一次做测试
     #     print("🌱 管道已启动，按 Ctrl+C 中断")
     #     while True:
     #         time.sleep(1)  # 持续运行直到被打断

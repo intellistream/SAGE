@@ -20,7 +20,7 @@ class BaseOperator(ABC):
         self.router:Any     # 由task传下来的
         try:
             self.function = function_factory.create_function(self.name, ctx)
-            self.logger.debug(f"Created function instance with {self.function_factory}")
+            self.logger.debug(f"Created function instance with {function_factory}")
 
         except Exception as e:
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)

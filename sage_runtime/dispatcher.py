@@ -2,15 +2,16 @@ from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
 from sage_runtime.task.base_task import BaseTask
 from sage_runtime.router.connection import Connection
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.compiler import Compiler, GraphNode
+from sage_jobmanager.execution_graph import ExecutionGraph, GraphNode
 import ray
 if TYPE_CHECKING:
     from sage_core.environment.base_environment import BaseEnvironment 
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
 class Dispatcher():
-    def __init__(self, graph: Compiler, env:'BaseEnvironment'):
+    def __init__(self, graph: ExecutionGraph, env:'BaseEnvironment'):
         self.graph = graph
+        self.env = env
         self.name:str = graph.name
         self.logger = CustomLogger(
             filename=f"MixedDAG_{self.name}",
@@ -26,12 +27,12 @@ class Dispatcher():
             ray.init(address="auto", ignore_reinit_error=True)
 
         
-    def submit(self, graph: Compiler, env:'BaseEnvironment'):
+    def submit(self):
         """编译图结构，创建节点并建立连接"""
         self.logger.info(f"Compiling mixed DAG for graph: {self.name}")
         
         # 第一步：创建所有节点实例
-        for node_name, graph_node in graph.nodes.items():
+        for node_name, graph_node in self.graph.nodes.items():
             # node_instance = graph_node.create_dag_node()
             node_instance = graph_node.transformation.dag_node_factory.create_node(graph_node.name, graph_node.runtime_context)
 
@@ -40,9 +41,16 @@ class Dispatcher():
             self.logger.debug(f"Added node '{node_name}' of type '{node_instance.__class__.__name__}'")
         
         # 第二步：建立节点间的连接
-        for node_name, graph_node in graph.nodes.items():
+        for node_name, graph_node in self.graph.nodes.items():
             self._setup_node_connections(node_name, graph_node)
         
+        # 第三步：提交所有节点开始运行
+        for node_name, task in self.tasks.items():
+            try:
+                task.start_running()
+                self.logger.debug(f"Started node: {node_name}")
+            except Exception as e:
+                self.logger.error(f"Failed to start node {node_name}: {e}", exc_info=True)
         self.logger.info(f"Mixed DAG submission completed: {len(self.tasks)} nodes")
 
 

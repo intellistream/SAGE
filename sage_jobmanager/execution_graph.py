@@ -36,7 +36,7 @@ class GraphEdge:
         self.downstream_node:GraphNode = input_node
         self.input_index:int = input_index
 
-class Compiler:
+class ExecutionGraph:
     def __init__(self, env:BaseEnvironment):
         self.env = env
         self.name = env.name

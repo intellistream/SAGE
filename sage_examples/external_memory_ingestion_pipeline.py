@@ -18,7 +18,7 @@ def pipeline_run():
     memwrite_stream= chunk_stream.map(MemoryWriter,config["writer"])
     sink_stream= memwrite_stream.sink(MemWriteSink,config["sink"])
     env.submit()
-    env.run_streaming()  # 启动管道
+    # env.run_streaming()  # 启动管道
     time.sleep(100)  # 等待管道运行
 
 if __name__ == '__main__':

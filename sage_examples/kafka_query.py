@@ -141,7 +141,7 @@ def pipeline_run():
     # 在后台线程启动流处理
     def run_pipeline():
         try:
-            env.run_streaming()
+            # env.run_streaming()
         except Exception as e:
             logging.error(f"Pipeline error: {e}")
     

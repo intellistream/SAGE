@@ -34,10 +34,10 @@ class TaskFactory:
         runtime_context: 'RuntimeContext' = None,
     ) -> 'BaseTask':
         if self.remote:
-            node = RayTask.remote(name, runtime_context,  self.operator_factory)
+            node = RayTask.remote(runtime_context,  self.operator_factory)
             node = ActorWrapper(node, name, self.env_name)
         else:
-            node = LocalTask(name, runtime_context, self.operator_factory)
+            node = LocalTask(runtime_context, self.operator_factory)
         return node
     
     def __repr__(self) -> str:

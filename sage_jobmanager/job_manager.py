@@ -6,7 +6,7 @@ from sage_utils.local_tcp_server import LocalTcpServer
 import threading
 from sage_utils.dill_serializer import serialize_object, deserialize_object
 if TYPE_CHECKING:
-    from sage_jobmanager.compiler import Compiler
+    from sage_jobmanager.execution_graph import ExecutionGraph
     from sage_core.environment.base_environment import BaseEnvironment
     from sage_runtime.dispatcher import Dispatcher
 
@@ -18,7 +18,7 @@ class JobManager: #Job Manager
     instance_lock = threading.RLock()
     def __init__(self, host: str = "127.0.0.1", port: int = 19000):
         ray.init(address="auto", ignore_reinit_error=True)
-        self.graphs: dict[str, 'Compiler'] = {}  # 存储 pipeline 名称到 SageGraph 的映射
+        self.graphs: dict[str, 'ExecutionGraph'] = {}  # 存储 pipeline 名称到 SageGraph 的映射
         self.env_to_dispatcher: dict[str, 'Dispatcher'] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
 
         # 新增：UUID 到环境信息的映射
@@ -57,8 +57,8 @@ class JobManager: #Job Manager
     def _register_message_handlers(self):
         """注册所有消息处理器"""
         self.tcp_server.register_handler("env_submit", self._handle_env_submit)
-        self.tcp_server.register_handler("env_run_once", self._handle_env_run_once)
-        self.tcp_server.register_handler("env_run_streaming", self._handle_env_run_streaming)
+        # self.tcp_server.register_handler("env_run_once", self._handle_env_run_once)
+        # self.tcp_server.register_handler("env_run_streaming", self._handle_env_run_streaming)
         self.tcp_server.register_handler("env_stop", self._handle_env_stop)
         self.tcp_server.register_handler("env_close", self._handle_env_close)
         self.tcp_server.register_handler("env_status", self._handle_env_status)
@@ -85,8 +85,8 @@ class JobManager: #Job Manager
             env_uuid = str(uuid.uuid4())
             
             # 编译环境
-            from sage_jobmanager.compiler import Compiler
-            graph = Compiler(env)
+            from sage_jobmanager.execution_graph import ExecutionGraph
+            graph = ExecutionGraph(env)
             dispatcher = Dispatcher(graph, env)
             
             # 存储环境信息
@@ -126,82 +126,43 @@ class JobManager: #Job Manager
             self.logger.error(f"Error handling env_submit: {e}", exc_info=True)
             return self._create_error_response(message, "ERR_SUBMIT_FAILED", str(e))
 
-    def _handle_env_run_once(self, message: Dict[str, Any], client_address: tuple) -> Dict[str, Any]:
-        """处理运行一次消息"""
-        try:
-            env_uuid = message.get("env_uuid")
-            env_name = message.get("env_name")
-            request_id = message.get("request_id")
+    # def _handle_env_run_streaming(self, message: Dict[str, Any], client_address: tuple) -> Dict[str, Any]:
+    #     """处理流式运行消息"""
+    #     try:
+    #         env_uuid = message.get("env_uuid")
+    #         env_name = message.get("env_name")
+    #         request_id = message.get("request_id")
             
-            env_info = self._get_environment_by_uuid(env_uuid)
-            if not env_info:
-                return self._create_error_response(message, "ERR_ENV_NOT_FOUND", 
-                                                f"Environment with UUID {env_uuid} not found")
+    #         env_info = self._get_environment_by_uuid(env_uuid)
+    #         if not env_info:
+    #             return self._create_error_response(message, "ERR_ENV_NOT_FOUND", 
+    #                                             f"Environment with UUID {env_uuid} not found")
             
-            # 执行一次
-            dag = env_info["dag"]
-            dag.execute_once()
+    #         # 流式执行
+    #         dispatcher:Dispatcher = env_info["dispatcher"]
+    #         dispatcher.execute_streaming()
             
-            # 更新状态
-            with self._env_lock:
-                env_info["status"] = "executed_once"
-                env_info["last_run"] = time.time()
+    #         # 更新状态
+    #         with self._env_lock:
+    #             env_info["status"] = "streaming"
+    #             env_info["streaming_started"] = time.time()
             
-            self.logger.info(f"Environment {env_uuid} executed once")
+    #         self.logger.info(f"Environment {env_uuid} started streaming")
             
-            # 返回成功响应
-            return {
-                "type": "env_run_once_response",
-                "request_id": request_id,
-                "env_name": env_name,
-                "env_uuid": env_uuid,
-                "timestamp": int(time.time()),
-                "status": "success",
-                "message": "Environment executed once successfully",
-                "payload": {}
-            }
+    #         return {
+    #             "type": "env_run_streaming_response",
+    #             "request_id": request_id,
+    #             "env_name": env_name,
+    #             "env_uuid": env_uuid,
+    #             "timestamp": int(time.time()),
+    #             "status": "success",
+    #             "message": "Environment streaming started successfully",
+    #             "payload": {}
+    #         }
             
-        except Exception as e:
-            self.logger.error(f"Error handling env_run_once: {e}", exc_info=True)
-            return self._create_error_response(message, "ERR_RUN_FAILED", str(e))
-
-    def _handle_env_run_streaming(self, message: Dict[str, Any], client_address: tuple) -> Dict[str, Any]:
-        """处理流式运行消息"""
-        try:
-            env_uuid = message.get("env_uuid")
-            env_name = message.get("env_name")
-            request_id = message.get("request_id")
-            
-            env_info = self._get_environment_by_uuid(env_uuid)
-            if not env_info:
-                return self._create_error_response(message, "ERR_ENV_NOT_FOUND", 
-                                                f"Environment with UUID {env_uuid} not found")
-            
-            # 流式执行
-            dag = env_info["dag"]
-            dag.execute_streaming()
-            
-            # 更新状态
-            with self._env_lock:
-                env_info["status"] = "streaming"
-                env_info["streaming_started"] = time.time()
-            
-            self.logger.info(f"Environment {env_uuid} started streaming")
-            
-            return {
-                "type": "env_run_streaming_response",
-                "request_id": request_id,
-                "env_name": env_name,
-                "env_uuid": env_uuid,
-                "timestamp": int(time.time()),
-                "status": "success",
-                "message": "Environment streaming started successfully",
-                "payload": {}
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error handling env_run_streaming: {e}", exc_info=True)
-            return self._create_error_response(message, "ERR_STREAMING_FAILED", str(e))
+    #     except Exception as e:
+    #         self.logger.error(f"Error handling env_run_streaming: {e}", exc_info=True)
+    #         return self._create_error_response(message, "ERR_STREAMING_FAILED", str(e))
 
     def _handle_env_stop(self, message: Dict[str, Any], client_address: tuple) -> Dict[str, Any]:
         """处理停止消息"""
@@ -216,7 +177,7 @@ class JobManager: #Job Manager
                                                 f"Environment with UUID {env_uuid} not found")
             
             # 停止 DAG
-            dag = env_info["dag"]
+            dag = env_info["dispatcher"]
             dag.stop()
             
             # 更新状态
@@ -254,7 +215,7 @@ class JobManager: #Job Manager
                                                 f"Environment with UUID {env_uuid} not found")
             
             # 关闭 DAG
-            dag = env_info["dag"]
+            dag = env_info["dispatcher"]
             dag.close()
             
             # 清理资源

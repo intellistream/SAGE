@@ -116,7 +116,7 @@ class TestKeyByFunctionality:
         try:
             # 提交并运行
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             
             # 运行一段时间让数据流过
             time.sleep(3)
@@ -147,7 +147,7 @@ class TestKeyByFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(2)
         finally:
             env.close()
@@ -256,7 +256,7 @@ class TestAdvancedKeyBy:
         
         try:
             env.submit()
-            env.run_streaming()
+            # env.run_streaming()
             time.sleep(3)
         finally:
             env.close()

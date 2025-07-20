@@ -47,7 +47,7 @@ def pipeline_run(config):
 
         # Submit and run the pipeline
         env.submit()
-        env.run_streaming()
+        # env.run_streaming()
 
         # Optional: Wait for 10 seconds before ending the pipeline (if necessary)
         time.sleep(10)

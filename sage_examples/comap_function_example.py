@@ -159,7 +159,7 @@ def main():
     try:
         # 运行流处理
         env.submit()
-        env.run_streaming()
+        # env.run_streaming()
         time.sleep(15)  # 运行15秒以观察不同频率的数据
         
     except KeyboardInterrupt:
