@@ -193,6 +193,11 @@ class EngineClient:
                 response = pickle.loads(message_data)
                 self._handle_response(response)
                 
+            except socket.timeout:
+                # 超时异常，继续监听
+                if self.running:
+                    self.logger.debug("Socket timeout, continuing to listen...")
+                continue
             except Exception as e:
                 if self.running:
                     self.logger.error(f"Error in response listener: {e}")

@@ -7,18 +7,21 @@ from sage_memory.memory_collection.vdb_collection import VDBMemoryCollection
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from sage_jobmanager.execution_graph import ExecutionGraph, GraphNode
+    from sage_core.transformation.base_transformation import BaseTransformation
     from sage_core.environment.base_environment import BaseEnvironment 
 # task, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:
-    def __init__(self, graph_node: 'GraphNode', env_name: str, memory_collection: Any):
+    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation'):
         self.name:str = graph_node.name
-        self.env_name:str = env_name
+        self.env_name:str = transformation.env_name
         self.session_folder:Optional[str] = CustomLogger.get_session_folder()
-        self.memory_collection:Any = memory_collection
+        self.memory_collection:Any = transformation.memory_collection
         self.parallel_index:int = graph_node.parallel_index
         self.parallelism:int = graph_node.parallelism
         self._logger:Optional[CustomLogger] = None
+        self.is_spout = transformation.is_spout
+        self.delay = 0.01
 
     def retrieve(self,  query: Optional[str] = None, collection_config: Optional[Dict] = None) -> List[str]:
         """

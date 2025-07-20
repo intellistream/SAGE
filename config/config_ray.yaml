@@ -43,4 +43,4 @@ promptor:
 
 sink:
   platform: "remote"
-
+  file_path: "/home/tjy/SAGE/output/response.txt"

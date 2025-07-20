@@ -70,8 +70,8 @@ class BaseTask(ABC):
 
     def stop(self) -> None:
         """Signal the worker loop to stop."""
-        if not self.stop_event.is_set():
-            self.stop_event.set()
+        if not self._stop_event.is_set():
+            self._stop_event.set()
             self.logger.info(f"Node '{self.name}' received stop signal.")
 
     def get_input_buffer(self):
@@ -103,7 +103,6 @@ class BaseTask(ABC):
                     self.operator.process_packet(data_packet)
             except Exception as e:
                 self.logger.error(f"Critical error in node '{self.name}': {str(e)}")
-                raise RuntimeError(f"Execution failed in node '{self.name}'")
             finally:
                 self._running = False
 

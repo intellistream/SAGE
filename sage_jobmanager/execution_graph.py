@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from typing import Dict, List, Set
@@ -21,7 +22,7 @@ class GraphNode:
 
         self.input_channels:dict[int, List[GraphEdge]] = {}
         self.output_channels:List[List[GraphEdge]] = []
-        self.runtime_context: RuntimeContext = RuntimeContext(self, transformation.env_name, transformation.memory_collection)
+        self.runtime_context: RuntimeContext = RuntimeContext(self, transformation)
 
 class GraphEdge:
     def __init__(self,name:str,  output_node: GraphNode,  input_node:GraphNode = None, input_index:int = 0):

@@ -3,7 +3,7 @@ import threading
 import pickle
 from typing import Dict, Any, Callable, Optional
 from sage_utils.custom_logger import CustomLogger
-
+import os
 
 class LocalTcpServer:
     """
@@ -23,6 +23,8 @@ class LocalTcpServer:
             port: 监听端口
             default_handler: 默认消息处理回调函数，用于处理未知类型的消息
         """
+        # ... 现有初始化 ...
+        self.server_cwd = os.getcwd()
         self.host = host or self._get_host_ip()
         self.port = port or self._allocate_tcp_port()
         self.server_socket: Optional[socket.socket] = None
@@ -326,6 +328,8 @@ class LocalTcpServer:
         """发送响应到客户端"""
         try:
             # 序列化响应
+            if isinstance(response, dict):
+                response["cwd"] = self.server_cwd  # 添加服务器当前工作目录
             serialized = pickle.dumps(response)
             message_size = len(serialized)
             

@@ -288,7 +288,7 @@ SAGE_ROOT = Path("{SAGE_ROOT}")
 sys.path.insert(0, str(SAGE_ROOT))
 
 # 导入并启动JobManager
-from sage_jobmanager.engine import JobManager
+from sage_jobmanager.job_manager import JobManager
 
 def main():
     try:

@@ -34,11 +34,22 @@ class RetriveSink(SinkFunction):
 
 
 class FileSink(SinkFunction):
-    def __init__(self, config: dict = None,  **kwargs):
+    def __init__(self, config: dict = None, **kwargs):
         super().__init__(**kwargs)
-        os.makedirs("output", exist_ok=True)
-        self.file_path = os.path.join("output", config.get("file_path", "qa_output.txt"))
+        
+        file_path = config.get("file_path", "qa_output.txt") if config else "qa_output.txt"
         self.config = config
+        
+        # 判断路径类型并处理
+        if os.path.isabs(file_path):
+            # 绝对路径：直接使用
+            self.file_path = file_path
+            # 确保目录存在
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        else:
+            # 相对路径：添加output前缀
+            os.makedirs("output", exist_ok=True)
+            self.file_path = os.path.join("output", file_path)
 
         # 创建或清空文件
         with open(self.file_path, "w", encoding="utf-8") as f:

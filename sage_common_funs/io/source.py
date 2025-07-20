@@ -46,9 +46,8 @@ class FileSource(SourceFunction):
                         self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Read query: {line.strip()}\033[0m ")
                         return line.strip()  # Return non-empty lines
                     else:
-                        self.logger.info(f"\033[33m[ {self.__class__.__name__}]: Reached end of file, resetting position.\033[0m ")
+                        self.logger.info(f"\033[33m[ {self.__class__.__name__}]: Reached end of file, maintaining position.\033[0m ")
                         # Reset position if end of file is reached (optional)
-                        self.file_pos = 0
                         continue
         except FileNotFoundError:
             self.logger.error(f"File not found: {self.data_path}")

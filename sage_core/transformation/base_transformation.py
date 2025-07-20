@@ -43,8 +43,8 @@ class BaseTransformation:
             console_output=False,
             file_output=True
         )
-        if self.remote and not isinstance(env.memory_collection, ActorHandle):
-            raise Exception("Memory collection must be a Ray Actor handle for remote transformation")
+        if self.remote and (env.memory_collection is not None) and (not isinstance(env.memory_collection, ActorHandle)):
+            raise Exception(f"Memory collection must be a Ray Actor handle for remote transformation, but got {type(env.memory_collection)}")
 
         self.logger.debug(f"Creating BaseTransformation of type {type} with rag {self.function_class.__name__}")
 
