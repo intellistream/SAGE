@@ -74,7 +74,12 @@ class BaseTask(ABC):
             self.stop_event.set()
             self.logger.info(f"Node '{self.name}' received stop signal.")
 
-
+    def get_input_buffer(self):
+        """
+        获取输入缓冲区
+        :return: 输入缓冲区对象
+        """
+        return self.input_buffer
 
     def _worker_loop(self) -> None:
         """
@@ -92,6 +97,9 @@ class BaseTask(ABC):
                     # For non-spout nodes, fetch input and process
                     # input_result = self.fetch_input()
                     data_packet = self.input_buffer.get(timeout=0.5)
+                    if data_packet is None:
+                        time.sleep(0.01)
+                        continue
                     self.operator.process_packet(data_packet)
             except Exception as e:
                 self.logger.error(f"Critical error in node '{self.name}': {str(e)}")
@@ -99,7 +107,10 @@ class BaseTask(ABC):
             finally:
                 self._running = False
 
-
+    @property
+    def is_spout(self) -> bool:
+        """检查是否为 spout 节点"""
+        return self.ctx.is_spout
 
     @property
     def delay(self) -> float:

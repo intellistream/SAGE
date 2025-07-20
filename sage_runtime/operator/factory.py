@@ -1,7 +1,7 @@
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
 from sage_utils.name_server import get_name
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.operator.operator_wrapper import OperatorWrapper
+from draft.operator_wrapper import OperatorWrapper
 if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
     from sage_core.function.base_function import BaseFunction

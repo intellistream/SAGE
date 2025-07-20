@@ -174,3 +174,29 @@ class LocalMessageQueue:
             }
 
 
+    def put_nowait(self, item):
+        """
+        非阻塞方式将项目放入队列（等价于 put(item, block=False)）
+        如果队列已满或内存不足，会立即抛出 queue.Full 异常
+        
+        Args:
+            item: 要放入的数据项
+            
+        Raises:
+            queue.Full: 当队列已满或内存限制超出时
+        """
+        return self.put(item, block=False)
+
+    def put_no_wait(self, item):
+        """
+        put_nowait的别名，为了与Ray Queue接口保持一致
+        
+        Args:
+            item: 要放入的数据项
+            
+        Raises:
+            queue.Full: 当队列已满或内存限制超出时
+        """
+        return self.put_nowait(item)
+
+    # ... 现有的 _do_put, get, metrics 方法保持不变 ...

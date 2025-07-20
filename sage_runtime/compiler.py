@@ -45,7 +45,6 @@ class Compiler:
         self.env = env
         self.name = env.name
         self.nodes:Dict[str, GraphNode] = {}
-        self.instances:Dict[str, BaseDAGNode] = {}
         self.edges:Dict[str, GraphEdge] = {}
         # 构建数据流之间的连接映射
 

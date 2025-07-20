@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.local_thread_pool import LocalThreadPool
+from draft.local_thread_pool import LocalThreadPool
 from sage_runtime.dispatcher import Dispatcher
 import threading
 if TYPE_CHECKING:

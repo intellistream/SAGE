@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from sage_runtime.operator.factory import OperatorFactory
     from sage_runtime.runtime_context import RuntimeContext
     from sage_runtime.io.connection import Connection
-    from sage_runtime.io.unified_emit_context import UnifiedEmitContext
+    from draft.unified_emit_context import UnifiedEmitContext
 
 
 
@@ -30,6 +30,7 @@ class RayTask(BaseTask):
         super().__init__(runtime_context, operator_factory)
 
         # === Ray Queue 缓冲区 ===
+        # 创建Ray Queue（这是一个Ray对象，自动支持跨进程）
         self.input_buffer = RayQueue(maxsize=1000)
         # === 路由器 ===
         self.router = RayRouter(runtime_context)
