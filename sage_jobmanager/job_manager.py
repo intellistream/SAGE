@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Dict, Any, Optional
 import time, uuid
 from sage_utils.custom_logger import CustomLogger
-from sage_jobmanager.task_distributor import TaskDistributor
+from sage_runtime.dispatcher import Dispatcher
 from sage_utils.local_tcp_server import LocalTcpServer
 import threading
 from sage_utils.dill_serializer import serialize_object, deserialize_object

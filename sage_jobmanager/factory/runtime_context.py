@@ -8,7 +8,7 @@ from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from sage_jobmanager.compiler import Compiler, GraphNode
     from sage_core.api.env import BaseEnvironment 
-# dagnode, operator和function "形式上共享"的运行上下文
+# task, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:
     def __init__(self, graph_node: 'GraphNode', env_name: str, memory_collection: Any):

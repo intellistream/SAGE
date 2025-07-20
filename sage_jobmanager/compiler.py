@@ -5,7 +5,7 @@ from sage_core.api.env import BaseEnvironment
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.name_server import get_name
-from sage_jobmanager.runtime_context import RuntimeContext
+from sage_jobmanager.factory.runtime_context import RuntimeContext
 if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
     from sage_runtime.dagnode.base_dag_node import BaseDAGNode

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import threading, copy, time
 from typing import Any, TYPE_CHECKING, Union, Optional
 from sage_utils.custom_logger import CustomLogger
-from sage_jobmanager.runtime_context import RuntimeContext
+from sage_jobmanager.factory.runtime_context import RuntimeContext
 from sage_runtime.router.packet import Packet
 
 if TYPE_CHECKING:

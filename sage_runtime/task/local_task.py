@@ -9,7 +9,7 @@ from sage_runtime.router.packet import Packet
 
 if TYPE_CHECKING:
     from sage_jobmanager.factory.operator_factory import OperatorFactory
-    from sage_jobmanager.runtime_context import RuntimeContext
+    from sage_jobmanager.factory.runtime_context import RuntimeContext
     from sage_runtime.router.connection import Connection
 
 

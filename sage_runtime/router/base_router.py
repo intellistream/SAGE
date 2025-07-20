@@ -7,7 +7,7 @@ from sage_utils.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
     from sage_runtime.router.connection import Connection
-    from sage_jobmanager.runtime_context import RuntimeContext
+    from sage_jobmanager.factory.runtime_context import RuntimeContext
 
 class BaseRouter(ABC):
     """

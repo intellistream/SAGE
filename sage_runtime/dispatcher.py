@@ -2,7 +2,7 @@ from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
 from ray.actor import ActorHandle
 
 from draft.local_thread_pool import LocalThreadPool
-from sage_jobmanager.runtime_context import RuntimeContext
+from sage_jobmanager.factory.runtime_context import RuntimeContext
 from sage_runtime.dagnode.local_dag_node import LocalDAGNode
 from sage_runtime.dagnode.base_dag_node import BaseDAGNode
 from sage_runtime.task.base_task import BaseTask

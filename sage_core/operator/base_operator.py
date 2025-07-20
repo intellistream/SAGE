@@ -7,7 +7,7 @@ from sage_runtime.router.packet import Packet
 if TYPE_CHECKING:
     from sage_core.function.base_function import BaseFunction
     from sage_runtime.router.connection import Connection
-    from sage_jobmanager.runtime_context import RuntimeContext
+    from sage_jobmanager.factory.runtime_context import RuntimeContext
     from sage_jobmanager.factory.function_factory import FunctionFactory
 
 class BaseOperator(ABC):

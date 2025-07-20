@@ -3,7 +3,7 @@ from sage_core.function.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from ray.actor import ActorHandle
-    from sage_jobmanager.runtime_context import RuntimeContext
+    from sage_jobmanager.factory.runtime_context import RuntimeContext
     
 class FunctionFactory:
     # 由transformation初始化

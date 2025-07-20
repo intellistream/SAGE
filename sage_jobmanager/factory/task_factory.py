@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from sage_core.transformation.base_transformation import BaseTransformation
     from sage_runtime.dagnode.base_dag_node import BaseDAGNode
     from ray.actor import ActorHandle
-    from sage_jobmanager.runtime_context import RuntimeContext
+    from sage_jobmanager.factory.runtime_context import RuntimeContext
     
 class TaskFactory:
     def __init__(
