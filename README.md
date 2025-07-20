@@ -255,7 +255,7 @@ env = RemoteEnvironment()
 #### 📘 About Long Running
 If your pipeline is meant to run as a long-lived service, use:
 ```python
-env.run_streaming() 
+# env.run_streaming() # deprecated
 ```
 
 See more examples under [sage_examples](sage_examples)
@@ -298,7 +298,7 @@ Sage Engine is the core execution component that orchestrates the compilation an
 The Engine operates in four main phases:
 
 1. **Pipeline Collection**: Gathers user-defined logical pipelines built through DataStream API and validates pipeline integrity
-2. **Compilation & Optimization**: Uses Compiler to transform logical pipelines into optimized physical execution graphs with parallelism expansion
+2. **Compilation & Optimization**: Uses ExecutionGraph to transform logical pipelines into optimized physical execution graphs with parallelism expansion
 3. **Runtime Scheduling**: Selects appropriate Runtime (local/distributed) and converts execution graphs into concrete DAG nodes
 4. **Execution Monitoring**: Monitors pipeline execution status, collects performance metrics, and handles fault recovery
 
