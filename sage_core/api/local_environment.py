@@ -13,7 +13,7 @@ class LocalStreamEnvironment(StreamEnvironment):
         super().__init__(name, config, platform="local")
         self._create_local_jobmanager()
 
-    def submit(self, name="example_pipeline"):
+    def submit(self):
         """提交环境到 Engine"""
 
 class LocalBatchEnvironment(BatchEnvironment):
@@ -25,6 +25,6 @@ class LocalBatchEnvironment(BatchEnvironment):
         super().__init__(name, config, platform="local")
         self._create_local_jobmanager()
 
-    def submit(self, name="example_pipeline"):
+    def submit(self):
         """提交Job到 Engine"""
         # Move back the old code Engine-Execute ....

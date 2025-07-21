@@ -134,7 +134,7 @@ def pipeline_run():
     response_stream.sink(TerminalSink, config["sink"])
 
     # 提交管道并运行
-    env.submit(name="kafka_rag_pipeline")
+    env.submit()
 
     
     # 等待pipeline启动
