@@ -4,7 +4,7 @@ pipeline:
   version: "1.0.0"
 
 source:
-  data_path: "data/sample/question.txt"
+  data_path: "data/sample/evaluate.json"
   platform: "local"
 
 retriever:
@@ -13,11 +13,11 @@ retriever:
     topk: 3
 
 generator:
-  api_key: ""
+  api_key: "token-abc123"
   platform: "local"
   method: "openai"
-  model_name: "qwen-turbo-0919"
-  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  model_name: "meta-llama/Llama-2-13b-chat-hf"
+  base_url: "http://localhost:8000/v1"
   seed: 42
 
 promptor:
@@ -35,3 +35,6 @@ refiner:
   score_model_path: "BAAI/bge-reranker-v2-m3"
   max_model_len: 25000
   budget: 2048
+
+evaluate:
+  platform: "local"
