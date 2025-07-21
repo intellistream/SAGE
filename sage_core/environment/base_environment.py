@@ -161,18 +161,13 @@ class BaseEnvironment:
         self.logger.info("Stopping pipeline...")
         
         try:
-            response = self.client.send_message(
-                message_type="env_stop",
-                env_name=self.name,
-                env_uuid=self.env_uuid,
-                payload={}
-            )
+            response = self.jobmanager.stop_job(self.env_uuid)
             
-            if response["status"] == "success":
+            if response.get("status") == "success":
                 self.is_running = False
                 self.logger.info("Pipeline stopped successfully")
             else:
-                self.logger.warning(f"Failed to stop pipeline: {response['message']}")
+                self.logger.warning(f"Failed to stop pipeline: {response.get('message')}")
         except Exception as e:
             self.logger.error(f"Error stopping pipeline: {e}")
 
@@ -185,17 +180,12 @@ class BaseEnvironment:
         self.logger.info("Closing environment...")
         
         try:
-            response = self.client.send_message(
-                message_type="env_close",
-                env_name=self.name,
-                env_uuid=self.env_uuid,
-                payload={}
-            )
+            response = self.jobmanager.stop_job(self.env_uuid)
             
-            if response["status"] == "success":
+            if response.get("status") == "success":
                 self.logger.info("Environment closed successfully")
             else:
-                self.logger.warning(f"Failed to close environment: {response['message']}")
+                self.logger.warning(f"Failed to close environment: {response.get('message')}")
                 
         except Exception as e:
             self.logger.error(f"Error closing environment: {e}")
@@ -203,10 +193,6 @@ class BaseEnvironment:
             # 清理本地资源
             self.is_running = False
             self.env_uuid = None
-            
-            # 断开客户端连接
-            self.client.disconnect()
-            self._client = None
             
             # 清理管道
             self._pipeline.clear()
