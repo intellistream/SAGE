@@ -6,12 +6,11 @@ import time, uuid
 from uuid import UUID
 from sage_jobmanager.job_info import JobInfo
 from sage_utils.custom_logger import CustomLogger
-from sage_utils.local_tcp_server import LocalTcpServer
+from sage_runtime.dispatcher import Dispatcher
 import threading
 from sage_utils.serialization.dill_serializer import deserialize_object
 if TYPE_CHECKING:
     from sage_jobmanager.execution_graph import ExecutionGraph
-    from sage_runtime.dispatcher import Dispatcher
     from sage_core.environment.base_environment import BaseEnvironment
 
 import ray

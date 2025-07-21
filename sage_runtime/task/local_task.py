@@ -28,7 +28,7 @@ class LocalTask(BaseTask):
         self.input_buffer = LocalMessageQueue(
             name=f"{self.ctx.name}_input",
             max_buffer_size=30000,
-            session_folder=runtime_context.session_folder,
+            env_base_dir=runtime_context.env_base_dir,
             env_name=runtime_context.env_name
         )
     

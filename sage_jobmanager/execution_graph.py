@@ -23,7 +23,7 @@ class GraphNode:
 
         self.input_channels:dict[int, List[GraphEdge]] = {}
         self.output_channels:List[List[GraphEdge]] = []
-        self.runtime_context: RuntimeContext = RuntimeContext(self, transformation, env_base_dir)
+        self.runtime_context: RuntimeContext = RuntimeContext(self, transformation, transformation.env)
 
 class GraphEdge:
     def __init__(self,name:str,  output_node: GraphNode,  input_node:GraphNode = None, input_index:int = 0):
@@ -88,7 +88,7 @@ class ExecutionGraph:
                 try:
                     node_name = get_name(f"{transformation.basename}_{i}")
                     node_names.append(node_name)
-                    self.nodes[node_name] = GraphNode(node_name,   transformation, i)
+                    self.nodes[node_name] = GraphNode(node_name,   transformation, i, self.env.env_base_dir)
                     self.logger.debug(f"Created node: {node_name} (parallel index: {i})")
                 except Exception as e:
                     self.logger.error(f"Error creating node {node_name}: {e}")

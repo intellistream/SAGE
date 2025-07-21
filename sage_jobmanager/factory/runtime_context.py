@@ -13,9 +13,11 @@ if TYPE_CHECKING:
 # task, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:
-    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation', env_base_dir: str):
+    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation', env: 'BaseEnvironment'):
         self.name:str = graph_node.name
-        self.env_base_dir:str = env_base_dir
+        self.env = env
+        self.env_name = env.name
+        self.env_base_dir:str = env.env_base_dir
         self.memory_collection:Any = transformation.memory_collection
         self.parallel_index:int = graph_node.parallel_index
         self.parallelism:int = graph_node.parallelism

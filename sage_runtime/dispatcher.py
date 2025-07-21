@@ -3,14 +3,14 @@ from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
 from sage_runtime.task.base_task import BaseTask
 from sage_runtime.router.connection import Connection
 from sage_utils.custom_logger import CustomLogger
-from sage_jobmanager.execution_graph import ExecutionGraph, GraphNode
 import ray
 if TYPE_CHECKING:
     from sage_core.environment.base_environment import BaseEnvironment 
+    from sage_jobmanager.execution_graph import ExecutionGraph, GraphNode
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
 class Dispatcher():
-    def __init__(self, graph: ExecutionGraph, env:'BaseEnvironment'):
+    def __init__(self, graph: 'ExecutionGraph', env:'BaseEnvironment'):
         self.graph = graph
         self.env = env
         self.name:str = env.name
@@ -55,7 +55,7 @@ class Dispatcher():
         self.logger.info(f"Job submission completed: {len(self.tasks)} nodes")
 
 
-    def _setup_node_connections(self, node_name: str, graph_node: GraphNode):
+    def _setup_node_connections(self, node_name: str, graph_node: 'GraphNode'):
         """
         为节点设置下游连接
         
