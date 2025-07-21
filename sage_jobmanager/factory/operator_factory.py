@@ -4,7 +4,7 @@ from sage_jobmanager.utils.name_server import get_name
 if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
     from sage_jobmanager.factory.function_factory import FunctionFactory
-    from sage_jobmanager.factory.runtime_context import RuntimeContext
+    from sage_runtime.runtime_context import RuntimeContext
 
 
 class OperatorFactory:

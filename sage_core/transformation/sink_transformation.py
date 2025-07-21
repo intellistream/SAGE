@@ -23,5 +23,7 @@ class SinkTransformation(BaseTransformation):
         super().__init__(env, function, *args, **kwargs)
 
 
-
+    @property
+    def is_sink(self) -> bool:
+        return True
 

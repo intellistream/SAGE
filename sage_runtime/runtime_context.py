@@ -25,6 +25,7 @@ class RuntimeContext:
         self._logger:Optional[CustomLogger] = None
         self.is_spout = transformation.is_spout
         self.delay = 0.01
+        self.stop_signal_num = graph_node.stop_signal_num
 
     def retrieve(self,  query: Optional[str] = None, collection_config: Optional[Dict] = None) -> List[str]:
         """

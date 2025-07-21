@@ -5,7 +5,7 @@ from sage_runtime.router.local_router import LocalRouter
 
 if TYPE_CHECKING:
     from sage_jobmanager.factory.operator_factory import OperatorFactory
-    from sage_jobmanager.factory.runtime_context import RuntimeContext
+    from sage_runtime.runtime_context import RuntimeContext
 
 
 class LocalTask(BaseTask):

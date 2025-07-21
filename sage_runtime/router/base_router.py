@@ -2,11 +2,12 @@
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, TYPE_CHECKING
+from sage_core.function.source_function import StopSignal
 from sage_runtime.router.packet import Packet
 
 if TYPE_CHECKING:
     from sage_runtime.router.connection import Connection
-    from sage_jobmanager.factory.runtime_context import RuntimeContext
+    from sage_runtime.runtime_context import RuntimeContext
 
 class BaseRouter(ABC):
     """
@@ -111,6 +112,23 @@ class BaseRouter(ABC):
             }
         return info
     
+    def send_stop_signal(self, stop_signal: 'StopSignal') -> None:
+        """
+        发送停止信号给所有下游连接
+        
+        Args:
+            stop_signal: 停止信号对象
+        """
+        self.logger.info(f"Sending stop signal: {stop_signal}")
+        
+        for broadcast_index, parallel_targets in self.downstream_groups.items():
+            for connection in parallel_targets.values():
+                try:
+                    connection.target_buffer.put_nowait(stop_signal)
+                    self.logger.debug(f"Sent stop signal to {connection.target_name}")
+                except Exception as e:
+                    self.logger.error(f"Failed to send stop signal to {connection.target_name}: {e}")
+
     def send(self, packet: 'Packet') -> bool:
         """
         发送数据包，根据其分区信息选择路由策略

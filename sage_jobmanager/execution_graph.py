@@ -2,12 +2,12 @@
 from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
-from typing import Dict, List
+from typing import Dict, List, Set
 from sage_core.environment.base_environment import BaseEnvironment
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_utils.custom_logger import CustomLogger
 from sage_jobmanager.utils.name_server import get_name
-from sage_jobmanager.factory.runtime_context import RuntimeContext
+from sage_runtime.runtime_context import RuntimeContext
 if TYPE_CHECKING:
     pass
 
@@ -19,11 +19,13 @@ class GraphNode:
         self.parallel_index: int = parallel_index  # 在该transformation中的并行索引
         self.parallelism: int = transformation.parallelism
         self.is_spout: bool = transformation.is_spout
-        # 输入输出channels：每个channel是一个边的列表
-
+        self.is_sink: bool = transformation.is_sink
         self.input_channels:dict[int, List[GraphEdge]] = {}
         self.output_channels:List[List[GraphEdge]] = []
-        self.runtime_context: RuntimeContext = RuntimeContext(self, transformation, env)
+
+        self.stop_signal_num: int = 0  # 预期的源节点数量
+        self.runtime_context: RuntimeContext = None
+
 
 class GraphEdge:
     def __init__(self,name:str,  output_node: GraphNode,  input_node:GraphNode = None, input_index:int = 0):
@@ -50,8 +52,21 @@ class ExecutionGraph:
         self.setup_logging_system()
         # 构建基础图结构
         self._build_graph_from_pipeline(env)
-        
+        self._calculate_source_dependencies()
+        self.generate_runtime_contexts()
         self.logger.info(f"Successfully converted and optimized pipeline '{env.name}' to compiler with {len(self.nodes)} nodes and {len(self.edges)} edges")
+
+    def generate_runtime_contexts(self):
+        """
+        为每个节点生成运行时上下文
+        """
+        self.logger.debug("Generating runtime contexts for all nodes")
+        for node_name, node in self.nodes.items():
+            try:
+                node.runtime_context = RuntimeContext(node, node.transformation, self.env)
+                self.logger.debug(f"Generated runtime context for node: {node_name}")
+            except Exception as e:
+                self.logger.error(f"Failed to generate runtime context for node {node_name}: {e}", exc_info=True)
 
     def setup_logging_system(self):
         self.logger = CustomLogger([
@@ -144,3 +159,36 @@ class ExecutionGraph:
                                     f"{transformation.operator_class.__name__}")
         
         self.logger.info(f"Graph construction completed: {len(self.nodes)} nodes, {len(self.edges)} edges")
+
+
+    def _calculate_source_dependencies(self):
+        """计算每个节点的源依赖关系"""
+        self.logger.debug("Calculating source dependencies for all nodes")
+        
+        # 使用广度优先搜索计算每个节点依赖的源节点
+        for node_name, node in self.nodes.items():
+            if node.is_sink:
+                # 非源节点通过BFS收集所有上游源依赖
+                visited = set()
+                queue = [node_name]
+                source_deps = set()
+
+                while queue:
+                    current_name = queue.pop(0)
+                    if current_name in visited:
+                        continue
+                    visited.add(current_name)
+                    
+                    current_node = self.nodes[current_name]
+                    
+                    if current_node.is_spout:
+                        source_deps.add(current_node.transformation.basename)
+                        node.stop_signal_num += 1
+                    else:
+                        # 添加所有上游节点到队列
+                        for input_channel in current_node.input_channels.values():
+                            for edge in input_channel:
+                                if edge.upstream_node.name not in visited:
+                                    queue.append(edge.upstream_node.name)
+            
+            self.logger.debug(f"Node {node_name} expects {node.stop_signal_num} source instances")

@@ -36,6 +36,7 @@ class JobManager: #Job Manager
             self.deleted_jobs: Dict[str, Dict[str, Any]] = {}
             self.setup_logging_system()
 
+
     def submit_job(self, env: 'BaseEnvironment') -> str:
 
 
@@ -309,3 +310,7 @@ class JobManager: #Job Manager
             (os.path.join(self.log_base_dir, "jobmanager.log"), "DEBUG"),      # 详细日志
             (os.path.join(self.log_base_dir, "error.log"), "ERROR") # 错误日志
         ], name="JobManager")
+
+    @property
+    def handle(self) -> 'JobManager':
+        return self

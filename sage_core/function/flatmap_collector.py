@@ -1,5 +1,5 @@
 from typing import Optional, List, Any, Dict, Tuple
-from sage_jobmanager.factory.runtime_context import RuntimeContext
+from sage_runtime.runtime_context import RuntimeContext
 from sage_runtime.router.base_router import BaseRouter
 class Collector:
     """

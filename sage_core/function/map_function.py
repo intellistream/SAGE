@@ -5,7 +5,7 @@ from sage_core.function.base_function import BaseFunction
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.router.packet import Packet
 if TYPE_CHECKING:
-    from sage_jobmanager.factory.runtime_context import RuntimeContext
+    from sage_runtime.runtime_context import RuntimeContext
 
 
 class MapFunction(BaseFunction):

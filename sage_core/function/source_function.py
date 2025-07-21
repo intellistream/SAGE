@@ -4,8 +4,17 @@ from sage_core.function.base_function import BaseFunction
 
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
-    from sage_jobmanager.factory.runtime_context import RuntimeContext
+    from sage_runtime.runtime_context import RuntimeContext
 
+class StopSignal:
+    """
+    停止信号类，用于标识任务停止
+    """
+    def __init__(self, name: str):
+        self.name = name
+
+    def __repr__(self) -> str:
+        return f"<StopSignal {self.name}>"
 
 class SourceFunction(BaseFunction):
     """
@@ -14,7 +23,7 @@ class SourceFunction(BaseFunction):
     源函数不接收输入数据，只产生输出数据
     通常用于读取文件、数据库、API等外部数据源
     """
-    
+
     @abstractmethod
     def execute(self) -> Any:
         """

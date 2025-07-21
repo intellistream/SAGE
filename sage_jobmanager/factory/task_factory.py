@@ -6,7 +6,7 @@ from sage_utils.actor_wrapper import ActorWrapper
 if TYPE_CHECKING:
     from sage_core.transformation.base_transformation import BaseTransformation
     from ray.actor import ActorHandle
-    from sage_jobmanager.factory.runtime_context import RuntimeContext
+    from sage_runtime.runtime_context import RuntimeContext
     
 class TaskFactory:
     def __init__(

@@ -1,13 +1,14 @@
 
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional, Set, TYPE_CHECKING, Type, Tuple
+from sage_core.function.source_function import StopSignal
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.router.packet import Packet
 
 if TYPE_CHECKING:
     from sage_core.function.base_function import BaseFunction
     from sage_runtime.router.connection import Connection
-    from sage_jobmanager.factory.runtime_context import RuntimeContext
+    from sage_runtime.runtime_context import RuntimeContext
     from sage_jobmanager.factory.function_factory import FunctionFactory
     from sage_runtime.router.base_router import BaseRouter
 
@@ -16,6 +17,7 @@ class BaseOperator(ABC):
                  function_factory: 'FunctionFactory', ctx: 'RuntimeContext', *args,
                  **kwargs):
         
+        self.received_stop_signals: Set[str] = set()
         self.ctx: 'RuntimeContext' = ctx
         self.function:'BaseFunction'
         self.router:'BaseRouter'     # 由task传下来的
@@ -31,6 +33,33 @@ class BaseOperator(ABC):
         from sage_core.function.base_function import StatefulFunction
         if isinstance(self.function, StatefulFunction):
             self.function.save_state()
+
+    def receive_packet(self, packet: 'Packet'):
+        """
+        接收数据包并处理
+        """
+        if packet is None:
+            self.logger.warning(f"Received None packet in {self.name}")
+            return
+        if isinstance(packet, StopSignal):
+            self.handle_stop_signal(packet)
+            return
+        self.logger.debug(f"Operator {self.name} received packet: {packet}")
+        # 处理数据包
+        self.process_packet(packet)
+
+    def handle_stop_signal(self, stop_signal: StopSignal):
+        """
+        处理停止信号
+        """
+        if stop_signal.name in self.received_stop_signals:
+            self.logger.debug(f"Already received stop signal from {stop_signal.name}")
+            return
+        
+        self.received_stop_signals.add(stop_signal.name)
+        self.logger.info(f"Handling stop signal from {stop_signal.name}")
+        # 发送停止信号到路由器
+        self.router.send_stop_signal(stop_signal)
 
     @abstractmethod
     def process_packet(self, packet: 'Packet' = None):

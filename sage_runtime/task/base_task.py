@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import threading, copy, time
 from typing import Any, TYPE_CHECKING, Union, Optional
-from sage_jobmanager.factory.runtime_context import RuntimeContext
+from sage_runtime.runtime_context import RuntimeContext
 from sage_runtime.router.packet import Packet
 
 if TYPE_CHECKING:
@@ -90,7 +90,7 @@ class BaseTask(ABC):
             try:
                 if self.is_spout:
                     self.logger.debug(f"Running spout node '{self.name}'")
-                    self.operator.process_packet(None)
+                    self.operator.receive_packet(None)
                     # TODO: 做一个下游缓冲区反压机制，因为引入一个手动延迟实在是太呆了
                     time.sleep(self.delay)
                 else:
@@ -100,7 +100,7 @@ class BaseTask(ABC):
                     if data_packet is None:
                         time.sleep(0.01)
                         continue
-                    self.operator.process_packet(data_packet)
+                    self.operator.receive_packet(data_packet)
             except Exception as e:
                 self.logger.error(f"Critical error in node '{self.name}': {str(e)}")
             finally:

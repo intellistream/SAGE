@@ -6,7 +6,7 @@ from sage_runtime.router.packet import Packet
 
 if TYPE_CHECKING:
     from sage_runtime.router.connection import Connection
-    from sage_jobmanager.factory.runtime_context import RuntimeContext
+    from sage_runtime.runtime_context import RuntimeContext
 
 class LocalRouter(BaseRouter):
     """

@@ -114,6 +114,10 @@ class BaseTransformation:
         return False
 
     @property
+    def is_sink(self) -> bool:
+        return False
+
+    @property
     def is_merge_operation(self) -> bool:
         """
         判断是否为合并操作

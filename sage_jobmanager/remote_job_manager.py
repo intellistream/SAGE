@@ -2,7 +2,7 @@ import ray
 import time
 from typing import Dict, Any, List, TYPE_CHECKING
 from sage_jobmanager.job_manager import JobManager
-
+from ray.actor import ActorHandle
 if TYPE_CHECKING:
     from sage_core.environment.base_environment import BaseEnvironment
 
@@ -24,7 +24,9 @@ class RemoteJobManager(JobManager):
         
         self.logger.info(f"RemoteJobManager Actor initialized: {self.actor_id}")
         self.logger.info(f"Running on Ray node: {self.node_id}")
+        self._actor_handle: ActorHandle = None
     
+
     # === 继承的核心方法自动支持Ray远程调用 ===
     # submit_job, pause_job, get_job_status, list_jobs 等方法
     # 无需重写，直接继承父类实现即可
@@ -151,3 +153,23 @@ class RemoteJobManager(JobManager):
     
     def __repr__(self) -> str:
         return f"RemoteJobManager(actor_id={self.actor_id[:8]}..., session={self.session_id}, jobs={len(self.jobs)})"
+
+    @property
+    def handle(self) -> 'ActorHandle':
+        if self._actor_handle is None:
+            try:
+                # 方法1: 通过Actor名称获取（如果有的话）
+                try:
+                    self._actor_handle = ray.get_actor("sage_global_jobmanager", namespace="sage_system")
+                    self.logger.debug("Got actor handle by name")
+                except ValueError:
+                    # 方法2: 通过全局注册表获取（需要事先注册）
+                    # 方法3: 返回一个代理对象
+                    self._actor_handle = self._create_self_proxy()
+                    self.logger.debug("Created self proxy actor handle")
+                    
+            except Exception as e:
+                self.logger.error(f"Failed to get actor handle: {e}")
+                raise RuntimeError(f"Cannot obtain actor handle: {e}")
+        
+        return self._actor_handle

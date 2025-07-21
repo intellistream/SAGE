@@ -2,7 +2,7 @@ import os
 from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 if TYPE_CHECKING:
-    from sage_jobmanager.factory.runtime_context import RuntimeContext
+    from sage_runtime.runtime_context import RuntimeContext
 
 from sage_utils.state_persistence import load_function_state, save_function_state
 
