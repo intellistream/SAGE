@@ -19,7 +19,9 @@ SAGE is a dataflow-native reasoning framework built from the ground up to suppor
 
 ## 文档信息
 
-请refer到 [https://github.com/intellistream/SAGE-Pub](https://github.com/intellistream/SAGE-Pub)
+阅读文档请refer到 [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
+
+维护文档请refer到 [https://github.com/intellistream/SAGE-Pub](https://github.com/intellistream/SAGE-Pub)
 
 ## 🔧 Installation
 
