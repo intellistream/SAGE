@@ -12,6 +12,7 @@ from sage_core.transformation.future_transformation import FutureTransformation
 from sage_utils.custom_logger import CustomLogger
 from sage_jobmanager.utils.name_server import get_name
 from sage_core.client import EngineClient
+from sage_utils.actor_wrapper import ActorWrapper
 
 
 class BaseEnvironment:
@@ -32,6 +33,9 @@ class BaseEnvironment:
         self.memory_collection = None  # 用于存储内存集合
         self.is_running = False
 
+        # JobManager 相关
+        self._jobmanager: Optional[ActorWrapper] = None
+        
         # Engine 客户端相关
         self._engine_client: EngineClient = None
         self.env_uuid: Optional[str] = None
@@ -243,32 +247,47 @@ class BaseEnvironment:
         """返回 BaseTransformation 列表（Compiler 会使用）。"""
         return self._pipeline
 
+    @property
+    def jobmanager(self) -> ActorWrapper:
+        """获取JobManager句柄，通过ActorWrapper封装以提供透明调用"""
+        if self._jobmanager is None:
+            self._jobmanager = self._get_jobmanager_handle()
+        return self._jobmanager
+
+    def _get_jobmanager_handle(self) -> ActorWrapper:
+        """
+        获取JobManager句柄的抽象方法
+        子类需要实现这个方法来获取相应的jobmanager句柄
+        """
+        raise NotImplementedError("Subclasses must implement _get_jobmanager_handle method")
+
     def _create_local_jobmanager(self):
         from sage_jobmanager.job_manager import JobManager
         with JobManager.instance_lock:
             if JobManager.instance is None:
-                self.jobmanager = JobManager(host="127.0.0.1", port=None)
+                jobmanager_instance = JobManager(host="127.0.0.1", port=None)
                 # 不使用全局的19000端口，使用一个自己的临时端口
             else:
-                self.jobmanager = JobManager.instance
-        self.port = self.jobmanager.tcp_server.port
+                jobmanager_instance = JobManager.instance
+        
+        # 用ActorWrapper包装本地JobManager实例
+        self._jobmanager = ActorWrapper(jobmanager_instance)
+        self.port = jobmanager_instance.tcp_server.port
         self.client.port = self.port
 
     def _submit_job(self):
         # 序列化环境
         from sage_utils.serialization.dill_serializer import serialize_object
         serialized_env = serialize_object(self)
-        # 发送提交请求
-        response = self.client.send_message(
-            message_type="env_submit",
-            env_name=self.name,
-            payload={"serialized_env": serialized_env}
-        )
-        if response["status"] == "success":
-            self.env_uuid = response["env_uuid"]
+        
+        # 通过jobmanager属性提交job
+        env_uuid = self.jobmanager.submit_job(self)
+        
+        if env_uuid:
+            self.env_uuid = env_uuid
             self.logger.info(f"Environment submitted with UUID: {self.env_uuid}")
         else:
-            raise RuntimeError(f"Failed to submit environment: {response['message']}")
+            raise RuntimeError("Failed to submit environment: no UUID returned")
 
     def setup_logging_system(self, log_base_dir: str): 
         # this method is called by jobmanager when receiving the job, not the user
