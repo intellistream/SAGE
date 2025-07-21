@@ -1,5 +1,5 @@
-import ray
-import socket
+
+import socket, ray
 import threading
 import time
 import json
@@ -8,9 +8,12 @@ import signal
 import sys
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any
-from sage_jobmanager.ray_job_manager import RayJobManager
+from typing import Optional, Dict, Any, TYPE_CHECKING
 from sage_utils.custom_logger import CustomLogger
+from sage_jobmanager.remote_job_manager import RemoteJobManager
+from ray.actor import ActorHandle
+    
+
 
 
 class RayJobManagerDaemon:
@@ -39,7 +42,7 @@ class RayJobManagerDaemon:
         self.namespace = namespace
         
         # Actor句柄
-        self._actor_handle: Optional[ray.actor.ActorHandle] = None
+        self._actor_handle: Optional[ActorHandle] = None
         
         # Socket服务
         self._server_socket: Optional[socket.socket] = None
@@ -54,7 +57,9 @@ class RayJobManagerDaemon:
         
     def _setup_logging(self):
         """设置日志"""
-        log_dir = Path("/tmp/sage/logs/daemon")
+        # 获取项目根目录：当前文件在deployment目录下，需要回到项目根目录
+        project_root = Path(__file__).parent.parent
+        log_dir = project_root / "logs" / "daemon"
         log_dir.mkdir(parents=True, exist_ok=True)
         
         timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -79,9 +84,9 @@ class RayJobManagerDaemon:
         try:
             self.logger.info("Starting Ray JobManager Daemon...")
             
-            # 1. 确保Ray已初始化
+            # 1. 确保进程内Ray客户端已初始化
             if not ray.is_initialized():
-                ray.init(address="auto", ignore_reinit_error=True)
+                ray.init(address="auto", _temp_dir="/var/lib/ray_shared")
                 self.logger.info("Ray initialized")
             
             # 2. 启动JobManager Actor
@@ -115,7 +120,7 @@ class RayJobManagerDaemon:
             # 创建新的detached Actor
             self.logger.info(f"Creating detached JobManager Actor: {self.actor_name}")
             
-            self._actor_handle = RayJobManager.options(
+            self._actor_handle = RemoteJobManager.options(
                 name=self.actor_name,
                 namespace=self.namespace,
                 lifetime="detached",  # 关键：使用detached生命周期
@@ -124,9 +129,16 @@ class RayJobManagerDaemon:
                 resources={"jobmanager": 1.0}  # 资源标记防止回收
             ).remote()
             
-            # 验证Actor创建成功
-            actor_info = ray.get(self._actor_handle.get_actor_info.remote(), timeout=10)
-            self.logger.info(f"JobManager Actor created: {actor_info['actor_id']}")
+            # 验证Actor创建成功 - 使用Ray内置的ready检查
+            self.logger.info("Waiting for Actor to be ready...")
+            ray.get(self._actor_handle.get_actor_info.remote(), timeout=30)
+            
+            # 获取Actor基本信息
+            try:
+                actor_id = self._actor_handle._actor_id.hex()
+                self.logger.info(f"JobManager Actor created successfully: {actor_id}")
+            except Exception as e:
+                self.logger.info("JobManager Actor created (could not get ID)")
             
         except Exception as e:
             self.logger.error(f"Failed to start JobManager Actor: {e}")
@@ -316,7 +328,25 @@ class RayJobManagerDaemon:
             }
         
         try:
-            actor_info = ray.get(self._actor_handle.get_actor_info.remote(), timeout=5)
+            # 构建基本的Actor信息
+            actor_info = {
+                "actor_name": self.actor_name,
+                "namespace": self.namespace,
+            }
+            
+            # 尝试获取Actor ID
+            try:
+                actor_info["actor_id"] = self._actor_handle._actor_id.hex()
+            except:
+                actor_info["actor_id"] = "unknown"
+            
+            # 检查Actor是否ready
+            try:
+                ray.get(self._actor_handle.__ray_ready__.remote(), timeout=3)
+                actor_info["status"] = "ready"
+            except:
+                actor_info["status"] = "not_ready"
+            
             return {
                 "status": "success",
                 "actor_info": actor_info,
@@ -348,9 +378,10 @@ class RayJobManagerDaemon:
             }
         
         try:
-            actor_health = ray.get(self._actor_handle.health_check.remote(), timeout=5)
+            # 使用Ray内置的健康检查
+            ray.get(self._actor_handle.__ray_ready__.remote(), timeout=5)
             daemon_status["actor_available"] = True
-            daemon_status["actor_health"] = actor_health
+            daemon_status["actor_ready"] = True
             
             return {
                 "status": "success",

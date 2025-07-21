@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 @ray.remote
-class RayJobManager(JobManager):
+class RemoteJobManager(JobManager):
     """
     基于Ray Actor的JobManager，继承本地JobManager的所有功能
     通过Ray装饰器自动支持远程调用
@@ -22,7 +22,7 @@ class RayJobManager(JobManager):
         self.actor_id = ray.get_runtime_context().get_actor_id()
         self.node_id = ray.get_runtime_context().get_node_id()
         
-        self.logger.info(f"RayJobManager Actor initialized: {self.actor_id}")
+        self.logger.info(f"RemoteJobManager Actor initialized: {self.actor_id}")
         self.logger.info(f"Running on Ray node: {self.node_id}")
     
     # === 继承的核心方法自动支持Ray远程调用 ===
@@ -53,7 +53,7 @@ class RayJobManager(JobManager):
             "node_id": self.node_id,
             "session_id": self.session_id,
             "log_base_dir": self.log_base_dir,
-            "actor_type": "RayJobManager"
+            "actor_type": "RemoteJobManager"
         }
     
     def _get_memory_info(self) -> Dict[str, Any]:
@@ -80,7 +80,7 @@ class RayJobManager(JobManager):
         优雅关闭Actor
         停止所有Job并清理资源
         """
-        self.logger.info("RayJobManager Actor shutting down...")
+        self.logger.info("RemoteJobManager Actor shutting down...")
         
         shutdown_report = {
             "jobs_stopped": 0,
@@ -108,7 +108,7 @@ class RayJobManager(JobManager):
         shutdown_report["status"] = "shutdown_complete"
         shutdown_report["timestamp"] = time.time()
         
-        self.logger.info(f"RayJobManager Actor shutdown complete: {shutdown_report}")
+        self.logger.info(f"RemoteJobManager Actor shutdown complete: {shutdown_report}")
         return shutdown_report
     
     # === 增强的状态监控方法 ===
@@ -121,7 +121,7 @@ class RayJobManager(JobManager):
         base_info.update({
             "actor_id": self.actor_id,
             "node_id": self.node_id,
-            "actor_type": "RayJobManager",
+            "actor_type": "RemoteJobManager",
             "memory_info": self._get_memory_info(),
             "uptime_seconds": time.time() - self.session_timestamp.timestamp()
         })
@@ -150,4 +150,4 @@ class RayJobManager(JobManager):
             }
     
     def __repr__(self) -> str:
-        return f"RayJobManager(actor_id={self.actor_id[:8]}..., session={self.session_id}, jobs={len(self.jobs)})"
+        return f"RemoteJobManager(actor_id={self.actor_id[:8]}..., session={self.session_id}, jobs={len(self.jobs)})"

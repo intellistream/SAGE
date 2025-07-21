@@ -20,6 +20,7 @@ class BaseEnvironment(ABC):
 
     __state_exclude__ = ["_engine_client", "client", "jobmanager"]
     # 会被继承，但是不会被自动合并
+
     def __init__(self, name: str, config: dict | None, *, platform: str = "local"):
 
         self.name = get_name(name)
@@ -38,7 +39,7 @@ class BaseEnvironment(ABC):
         self._jobmanager: Optional[ActorWrapper] = None
         
         # Engine 客户端相关
-        self._engine_client: EngineClient = None
+        self._engine_client: Optional[JobManagerClient] = None
         self.env_uuid: Optional[str] = None
 
     ########################################################

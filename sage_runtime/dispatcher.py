@@ -25,7 +25,7 @@ class Dispatcher():
         self.tasks: Dict[str, BaseTask] = {}
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
         if env.platform is "remote" and not ray.is_initialized():
-            ray.init(address="auto", ignore_reinit_error=True)
+            ray.init(address="auto", _temp_dir="/var/lib/ray_shared")
 
     # Dispatcher will submit the job to LocalEngine or Ray Server.    
     def submit(self):

@@ -260,7 +260,7 @@ def test_ray_remote_call_simulation():
     
     # 初始化Ray
     if not ray.is_initialized():
-        ray.init(local_mode=True, ignore_reinit_error=True)
+        ray.init(address="auto", _temp_dir="/var/lib/ray_shared")
     
     @ray.remote
     class TestActor:

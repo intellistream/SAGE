@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Any, List, Optional
 import time, uuid
 from uuid import UUID
-from sage_core.environment.base_environment import BaseEnvironment
 from sage_jobmanager.job_info import JobInfo
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.local_tcp_server import LocalTcpServer
@@ -13,6 +12,7 @@ from sage_utils.serialization.dill_serializer import deserialize_object
 if TYPE_CHECKING:
     from sage_jobmanager.execution_graph import ExecutionGraph
     from sage_runtime.dispatcher import Dispatcher
+    from sage_core.environment.base_environment import BaseEnvironment
 
 import ray
 class JobManager: #Job Manager
@@ -44,7 +44,8 @@ class JobManager: #Job Manager
         
         # 2. 确定日志基础目录
         # 方案：/tmp/sage/logs 作为实际存储位置
-        self.log_base_dir = f"/tmp/sage/logs/jobmanager_{self.session_id}"
+        project_root = Path(__file__).parent.parent
+        self.log_base_dir = project_root / "logs" / f"jobmanager_{self.session_id}"
         Path(self.log_base_dir).mkdir(parents=True, exist_ok=True)
         
         # 3. 创建项目目录的软链接（方便查看）

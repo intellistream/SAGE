@@ -5,7 +5,7 @@ import pickle
 from ray.actor import ActorHandle
 from pathlib import Path
 from typing import Optional, Dict, Any
-from sage_jobmanager.ray_job_manager import RayJobManager
+from sage_jobmanager.remote_job_manager import RemoteJobManager
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.actor_wrapper import ActorWrapper
 
@@ -44,7 +44,7 @@ class JobManagerClient:
         except Exception as e:
             return {"status": "error", "message": f"Connection error: {e}"}
     
-    def get_actor_handle(self) -> 'RayJobManager':
+    def get_actor_handle(self) -> 'RemoteJobManager':
         """获取JobManager Actor句柄"""
         import uuid
         request = {
