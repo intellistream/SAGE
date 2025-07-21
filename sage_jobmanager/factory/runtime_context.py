@@ -375,6 +375,6 @@ class RuntimeContext:
                 (os.path.join(self.env_base_dir, f"{self.name}.log"), "DEBUG"),  # 详细日志
                 (os.path.join(self.env_base_dir, "Error.log"), "ERROR")  # 错误日志
             ],
-            name = f"ExecutionGraph_{self.env.name}",
+            name = f"self.name",
         )
         return self._logger

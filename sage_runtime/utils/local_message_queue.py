@@ -9,10 +9,11 @@ from sage_jobmanager.factory.runtime_context import RuntimeContext
 
 class LocalMessageQueue:
 
-    def __init__(self, ctx:RuntimeContext, max_buffer_size=30000):
+    def __init__(self, ctx:RuntimeContext):
         self.queue = queue.Queue(maxsize=50000)
+        self.name = ctx.name
         self.total_task = 0
-        self.max_buffer_size = max_buffer_size  # 总内存限制（字节）
+        self.max_buffer_size = 30000  # 总内存限制（字节）
         self.current_buffer_usage = 0 # 当前使用的内存（字节）
         self.memory_tracker = {}  # 跟踪每个项目的内存大小 {id(item): size}
         # self.task_per_minute = 0

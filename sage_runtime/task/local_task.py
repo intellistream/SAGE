@@ -25,12 +25,7 @@ class LocalTask(BaseTask):
 
         # === Local Message Queue 缓冲区 ===
         # 创建本地消息队列作为输入缓冲区
-        self.input_buffer = LocalMessageQueue(
-            name=f"{self.ctx.name}_input",
-            max_buffer_size=30000,
-            env_base_dir=runtime_context.env_base_dir,
-            env_name=runtime_context.env_name
-        )
+        self.input_buffer = LocalMessageQueue(runtime_context)
     
         
         # === 本地路由器 ===

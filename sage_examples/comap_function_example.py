@@ -102,8 +102,6 @@ class TypeSpecificProcessor(BaseCoMapFunction):
 
 # 汇总输出函数
 class SensorSink(SinkFunction):
-    def __init__(self, **kwargs):
-        self.name = kwargs.get('name', 'SensorSink')
         
     def execute(self, data):
         if isinstance(data, dict) and 'alert' in data:
