@@ -30,8 +30,10 @@ class LocalStreamEnvironment(StreamEnvironment):
         
         return wrapped_jobmanager
 
-    def submit(self):
+    def submit(self, name="example_pipeline"):
         """提交环境到 Engine"""
+        self._submit_to_local_cluster()
+
 
 
 class LocalBatchEnvironment(BatchEnvironment):
@@ -59,6 +61,6 @@ class LocalBatchEnvironment(BatchEnvironment):
         
         return wrapped_jobmanager
 
-    def submit(self):
+    def submit(self, name="example_pipeline"):
         """提交Job到 Engine"""
-        # Move back the old code Engine-Execute ....
+        self._submit_to_local_cluster()

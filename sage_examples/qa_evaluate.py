@@ -47,7 +47,6 @@ def pipeline_run(config):
      )
     try:
         env.submit()
-        # env.run_streaming()
         time.sleep(5)
         env.stop()
     finally:
