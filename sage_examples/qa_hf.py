@@ -33,7 +33,7 @@ def pipeline_run(config: dict) -> None:
 
     # 提交管道并运行一次
     env.submit()
-    # env.run_streaming()
+    
     time.sleep(5)  # 等待管道运行
     env.close()
 

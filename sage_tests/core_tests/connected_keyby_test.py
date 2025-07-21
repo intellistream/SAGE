@@ -197,7 +197,7 @@ class TestConnectedStreamsKeyBy:
         
         try:
             env.submit()
-            # env.run_streaming()
+            
             time.sleep(3)
         finally:
             env.close()
@@ -227,7 +227,7 @@ class TestConnectedStreamsKeyBy:
         
         try:
             env.submit()
-            # env.run_streaming()
+            
             time.sleep(3)
         finally:
             env.close()
@@ -257,7 +257,7 @@ class TestConnectedStreamsKeyBy:
         
         try:
             env.submit()
-            # env.run_streaming()
+            
             time.sleep(4)  # 给更多时间让join操作完成
         finally:
             env.close()

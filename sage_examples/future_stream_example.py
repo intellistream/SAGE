@@ -154,7 +154,7 @@ def main():
         
         # 运行流处理
         env.submit()
-        # env.run_streaming()
+        
         time.sleep(15)  # 运行15秒，足够计数到10
         
     except KeyboardInterrupt:

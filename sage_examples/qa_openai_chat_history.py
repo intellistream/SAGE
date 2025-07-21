@@ -29,7 +29,7 @@ def pipeline_run(config: dict) -> None:
     )
 
     env.submit()
-    # env.run_streaming()
+    
     time.sleep(5)  # 等待管道运行
     env.close()
 

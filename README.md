@@ -255,7 +255,7 @@ env = RemoteEnvironment()
 #### 📘 About Long Running
 If your pipeline is meant to run as a long-lived service, use:
 ```python
-# env.run_streaming() # deprecated
+ # deprecated
 ```
 
 See more examples under [sage_examples](sage_examples)

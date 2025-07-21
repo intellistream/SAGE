@@ -85,7 +85,7 @@ def main():
     try:
         # 运行流处理
         env.submit()
-        # env.run_streaming()
+        
         time.sleep(5)  # 运行5秒
         
     except KeyboardInterrupt:

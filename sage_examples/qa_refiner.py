@@ -31,7 +31,7 @@ def pipeline_run():
 
     # 提交管道并运行
     env.submit()
-    # env.run_streaming()
+    
     time.sleep(5)
     env.close()
 
