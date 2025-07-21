@@ -3,10 +3,10 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Union, Optional
+from typing import List, Union, Optional, Tuple
 import threading
 import inspect
-
+from .custom_formatter import CustomFormatter  # 假设有一个自定义格式化器
 
 
 
@@ -36,7 +36,7 @@ class CustomLogger:
     }
 
     def __init__(self,
-                 outputs: List[Tuple[str, Union[str, int]]],
+                 outputs: List[Tuple[str, Union[str, int]]] = [("console", "INFO")],
                  name: str = None,
                  log_base_folder: str = None):
         """
