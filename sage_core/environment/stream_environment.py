@@ -15,5 +15,5 @@ class StreamEnvironment(BaseEnvironment):
             function = wrap_lambda(function, 'flatmap')
         transformation = SourceTransformation(self, function, *args, **kwargs)
 
-        self._pipeline.append(transformation)
+        self.pipeline.append(transformation)
         return DataStream(self, transformation)

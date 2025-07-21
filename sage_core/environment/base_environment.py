@@ -1,9 +1,9 @@
 from __future__ import annotations
-
+from abc import ABC, abstractmethod
 from datetime import datetime
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 import sage_memory.api
 from sage_core.api.datastream import DataStream
 from sage_core.transformation.base_transformation import BaseTransformation
@@ -11,15 +11,16 @@ from sage_core.transformation.source_transformation import SourceTransformation
 from sage_core.transformation.future_transformation import FutureTransformation
 from sage_utils.custom_logger import CustomLogger
 from sage_jobmanager.utils.name_server import get_name
-from sage_core.client import EngineClient
+from sage_core.jobmanager_client import JobManagerClient
 from sage_utils.actor_wrapper import ActorWrapper
+if TYPE_CHECKING:
+    from sage_jobmanager.job_manager import JobManager
 
+class BaseEnvironment(ABC):
 
-class BaseEnvironment:
-
+    __state_exclude__ = ["_engine_client", "client", "jobmanager"]
+    # 会被继承，但是不会被自动合并
     def __init__(self, name: str, config: dict | None, *, platform: str = "local"):
-
-        self.__state_exclude__ = ["_engine_client", "client", "jobmanager"]
 
         self.name = get_name(name)
         self.uuid: Optional[str] # 由jobmanager生成
@@ -27,7 +28,7 @@ class BaseEnvironment:
         self.config: dict = dict(config or {})
         self.platform:str = platform
         # 用于收集所有 BaseTransformation，供 ExecutionGraph 构建 DAG
-        self._pipeline: List[BaseTransformation] = []
+        self.pipeline: List[BaseTransformation] = []
         self._filled_futures: dict = {}  # 记录已填充的future stream信息：name -> {future_transformation, actual_transformation, filled_at}
         self.runtime_context = dict  # 需要在compiler里面实例化。
         self.memory_collection = None  # 用于存储内存集合
@@ -116,7 +117,7 @@ class BaseEnvironment:
             **kafka_config
         )
         
-        self._pipeline.append(transformation)
+        self.pipeline.append(transformation)
         self.logger.info(f"Kafka source created for topic: {topic}, group: {group_id}")
         
         return DataStream(self, transformation)
@@ -141,16 +142,27 @@ class BaseEnvironment:
             result.fill_future(future_stream)
         """
         transformation = FutureTransformation(self, name)
-        self._pipeline.append(transformation)
+        self.pipeline.append(transformation)
         return DataStream(self, transformation)
 
     ########################################################
-    #                engine interface                      #
+    #                jobmanager interface                  #
     ########################################################
-
-    # 这个应该是abstract function
-    def submit(self, name="example_pipeline"):
-        raise RuntimeError(f"You need to implement the submit function.")
+    @abstractmethod
+    def submit(self):
+        pass
+        # 序列化环境
+        from sage_utils.serialization.dill_serializer import serialize_object
+        serialized_env = serialize_object(self)
+        
+        # 通过jobmanager属性提交job
+        env_uuid = self.jobmanager.submit_job(serialized_env)
+        
+        if env_uuid:
+            self.env_uuid = env_uuid
+            self.logger.info(f"Environment submitted with UUID: {self.env_uuid}")
+        else:
+            raise RuntimeError("Failed to submit environment: no UUID returned")
 
     def stop(self):
         """停止管道运行"""
@@ -195,7 +207,7 @@ class BaseEnvironment:
             self.env_uuid = None
             
             # 清理管道
-            self._pipeline.clear()
+            self.pipeline.clear()
 
     ########################################################
     #                properties                            #
@@ -208,15 +220,25 @@ class BaseEnvironment:
         return self._logger
 
     @property
-    def client(self)-> EngineClient:
+    def client(self)-> JobManagerClient:
         if self._engine_client is None:
             # 从配置中获取 Engine 地址，或使用默认值
-            engine_host = self.config.get("engine_host", "127.0.0.1")
-            engine_port = self.config.get("engine_port", 19000)
+            daemon_host = self.config.get("engine_host", "127.0.0.1")
+            daemon_port = self.config.get("engine_port", 19000)
             
-            self._engine_client = EngineClient(host=engine_host, port=engine_port)
+            self._engine_client = JobManagerClient(host=daemon_host, port=daemon_port)
             
         return self._engine_client
+
+    @abstractmethod
+    @property
+    def jobmanager(self) -> 'JobManager':
+        return
+        # """获取JobManager句柄，通过ActorWrapper封装以提供透明调用"""
+        # if self._jobmanager is None:
+        #     self._jobmanager = self.client.get_actor_handle()
+        # return self._jobmanager
+
 
 
     ########################################################
@@ -227,53 +249,6 @@ class BaseEnvironment:
         """将 BaseTransformation 添加到管道中（Compiler 会使用）。"""
         self.pipeline.append(transformation)
         return DataStream(self, transformation)
-    
-    @property
-    def pipeline(self) -> List[BaseTransformation]:  # noqa: D401
-        """返回 BaseTransformation 列表（Compiler 会使用）。"""
-        return self._pipeline
-
-    @property
-    def jobmanager(self) -> ActorWrapper:
-        """获取JobManager句柄，通过ActorWrapper封装以提供透明调用"""
-        if self._jobmanager is None:
-            self._jobmanager = self._get_jobmanager_handle()
-        return self._jobmanager
-
-    def _get_jobmanager_handle(self) -> ActorWrapper:
-        """
-        获取JobManager句柄的抽象方法
-        子类需要实现这个方法来获取相应的jobmanager句柄
-        """
-        raise NotImplementedError("Subclasses must implement _get_jobmanager_handle method")
-
-    def _create_local_jobmanager(self):
-        from sage_jobmanager.job_manager import JobManager
-        with JobManager.instance_lock:
-            if JobManager.instance is None:
-                jobmanager_instance = JobManager(host="127.0.0.1", port=None)
-                # 不使用全局的19000端口，使用一个自己的临时端口
-            else:
-                jobmanager_instance = JobManager.instance
-        
-        # 用ActorWrapper包装本地JobManager实例
-        self._jobmanager = ActorWrapper(jobmanager_instance)
-        self.port = jobmanager_instance.tcp_server.port
-        self.client.port = self.port
-
-    def _submit_job(self):
-        # 序列化环境
-        from sage_utils.serialization.dill_serializer import serialize_object
-        serialized_env = serialize_object(self)
-        
-        # 通过jobmanager属性提交job
-        env_uuid = self.jobmanager.submit_job(self)
-        
-        if env_uuid:
-            self.env_uuid = env_uuid
-            self.logger.info(f"Environment submitted with UUID: {self.env_uuid}")
-        else:
-            raise RuntimeError("Failed to submit environment: no UUID returned")
 
     def setup_logging_system(self, log_base_dir: str): 
         # this method is called by jobmanager when receiving the job, not the user

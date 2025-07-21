@@ -145,7 +145,7 @@ def main():
     print()
     
     print("✅ Pipeline validation:")
-    print(f"   - Pipeline transformations: {len(env._pipeline)}")
+    print(f"   - Pipeline transformations: {len(env.pipeline)}")
     
     try:
         

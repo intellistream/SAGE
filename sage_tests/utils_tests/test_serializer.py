@@ -221,7 +221,7 @@ def test_env_file_persistence(env, config):
         
         assert load_success == True
         assert new_env.persistent_data == env.persistent_data
-        assert len(new_env._pipeline) == len(env._pipeline)
+        assert len(new_env.pipeline) == len(env._pipeline)
         
         # 测试加载状态后的运行
         new_env.submit()

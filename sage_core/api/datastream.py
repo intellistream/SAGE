@@ -191,7 +191,7 @@ class DataStream(Generic[T]):
         # 连接到输入索引0（单输入情况）
         tr.add_upstream(self.transformation, input_index=0)
         
-        self._environment._pipeline.append(tr)
+        self._environment.pipeline.append(tr)
         return DataStream(self._environment, tr)
     
     def _resolve_type_param(self):

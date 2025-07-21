@@ -107,40 +107,38 @@ class JobManager: #Job Manager
 
     def stop_job(self, env_uuid: str) -> Dict[str, Any]:
         """停止Job"""
-        with self._env_lock:
-            job_info = self.jobs.get(env_uuid, None)
+        job_info = self.jobs.get(env_uuid, None)
+        
+        if not job_info:
+            self.logger.error(f"Job with UUID {env_uuid} not found")
+            return {
+                "uuid": env_uuid,
+                "status": "not_found",
+                "message": f"Job with UUID {env_uuid} not found"
+            }
+        
+        try:
+            # 停止 dispatcher
+            job_info.dispatcher.stop()
+            job_info.update_status("stopped")
             
-            if not job_info:
-                self.logger.error(f"Job with UUID {env_uuid} not found")
-                return {
-                    "uuid": env_uuid,
-                    "status": "not_found",
-                    "message": f"Job with UUID {env_uuid} not found"
-                }
+            self.logger.info(f"Job {env_uuid} stopped successfully")
             
-            try:
-                # 停止 dispatcher
-                job_info.dispatcher.stop()
-                job_info.update_status("stopped")
-                
-                self.logger.info(f"Job {env_uuid} stopped successfully")
-                
-                return {
-                    "uuid": env_uuid,
-                    "status": "stopped",
-                    "message": "Job stopped successfully"
-                }
-                
-            except Exception as e:
-                job_info.update_status("failed", error=str(e))
-                self.logger.error(f"Failed to stop job {env_uuid}: {e}")
-                raise
+            return {
+                "uuid": env_uuid,
+                "status": "stopped",
+                "message": "Job stopped successfully"
+            }
+            
+        except Exception as e:
+            job_info.update_status("failed", error=str(e))
+            self.logger.error(f"Failed to stop job {env_uuid}: {e}")
 
     def get_job_status(self, env_uuid: str) -> Dict[str, Any]:
         job_info = self.jobs.get(env_uuid)
         
         if not job_info:
-            raise ValueError(f"Job with UUID {env_uuid} not found")
+            self.logger.warning(f"Job with UUID {env_uuid} not found")
         
         return job_info.get_status()
 

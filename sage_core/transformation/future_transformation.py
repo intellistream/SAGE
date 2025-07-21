@@ -113,7 +113,7 @@ class FutureTransformation(BaseTransformation):
         """
         在pipeline中查找指定名称的transformation
         """
-        for trans in self.env._pipeline:
+        for trans in self.env.pipeline:
             if trans.basename == name:
                 return trans
         return None

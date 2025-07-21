@@ -320,10 +320,10 @@ class TestKafkaSourceIntegration:
         
         # 验证DataStream创建
         assert kafka_stream is not None
-        assert len(env._pipeline) == 1
+        assert len(env.pipeline) == 1
         
         # 验证Transformation类型
-        transformation = env._pipeline[0]
+        transformation = env.pipeline[0]
         assert transformation.function_class == KafkaSourceFunction
         
         # 验证参数传递
@@ -412,15 +412,15 @@ class TestKafkaSourcePipeline:
         processed_stream = kafka_stream.map(ProcessTestEvent)
         
         # 验证pipeline构建
-        assert len(env._pipeline) == 2  # source + map
+        assert len(env.pipeline) == 2  # source + map
         
         # 验证source配置
-        source_transformation = env._pipeline[0]
+        source_transformation = env.pipeline[0]
         assert source_transformation.function_class == KafkaSourceFunction
         assert source_transformation.function_kwargs['topic'] == "test_topic"
         
         # 验证map配置
-        map_transformation = env._pipeline[1]
+        map_transformation = env.pipeline[1]
         assert map_transformation.function_class == ProcessTestEvent
     
     def test_kafka_source_with_custom_deserializer(self):
@@ -441,7 +441,7 @@ class TestKafkaSourcePipeline:
         )
         
         # 验证自定义反序列化器传递
-        transformation = env._pipeline[0]
+        transformation = env.pipeline[0]
         assert transformation.function_kwargs['value_deserializer'] == custom_deserializer
 
 
@@ -458,7 +458,7 @@ class TestKafkaSourceConfiguration:
             group_id="test_group"
         )
         
-        transformation = env._pipeline[0]
+        transformation = env.pipeline[0]
         
         # 验证默认值
         assert transformation.function_kwargs['auto_offset_reset'] == 'latest'
@@ -482,7 +482,7 @@ class TestKafkaSourceConfiguration:
             security_protocol="SSL"
         )
         
-        transformation = env._pipeline[0]
+        transformation = env.pipeline[0]
         
         # 验证自定义值
         assert transformation.function_kwargs['bootstrap_servers'] == "custom:9092"

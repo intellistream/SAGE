@@ -182,11 +182,11 @@ def _preprocess_for_dill(obj, _seen=None):
                 return obj
             
             # 获取和过滤属性
-            custom_include = getattr(obj, "__state_include__", [])
-            custom_exclude = getattr(obj, "__state_exclude__", [])
+            custom_include = getattr(obj.__class__, "__state_include__", [])
+            custom_exclude = getattr(obj.__class__, "__state_exclude__", [])
             # if len(custom_exclude) is not 0:
             #     print(f"custom_exclude is {custom_exclude}")
-            # 一般不用include字段，只用exclude字段就行了
+            # 一般不用include字段，只用exclude字段就行了    
             
             attrs = _gather_attrs(obj)
             # if len(custom_exclude) is not 0:
