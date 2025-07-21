@@ -3,7 +3,6 @@ import time  # 替换 asyncio 为 time 用于同步延迟
 
 from sage_core.function.map_function import MapFunction
 from sage_core.function.base_function import MemoryFunction, StatefulFunction
-from sage_utils.custom_logger import CustomLogger
 from sage_runtime.runtime_context import RuntimeContext
 
 # 更新后的 SimpleRetriever
@@ -30,7 +29,7 @@ class DenseRetriever(MapFunction):
             self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Retrieving from LTM \033[0m ")
             try:
                 # 使用LTM配置和输入查询调用检索
-                ltm_results = self.runtime_context.retrieve(
+                ltm_results = self.ctx.retrieve(
                     query=input_query,
                     collection_config=self.ltm_config
                 )
@@ -61,7 +60,7 @@ class BM25sRetriever(MapFunction): # 目前runtime context还只支持ltm
 
         try:
             # 使用BM25s配置和输入查询调用检索
-            bm25s_results = self.runtime_context.retrieve(
+            bm25s_results = self.ctx.retrieve(
                 # self.bm25s_collection,
                 query=input_query,
                 collection_config=self.bm25s_config

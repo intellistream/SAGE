@@ -63,7 +63,7 @@ if __name__ == '__main__':
 #     response_stream.sink(TerminalSink, config["sink"])
 #     # 提交管道并运行
 #     env.submit()
-#     env.run_streaming()  # 启动管道
+#       # 启动管道
 
 #     # time.sleep(100)  # 等待管道运行
 

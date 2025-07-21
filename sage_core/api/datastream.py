@@ -12,7 +12,7 @@ from sage_core.function.lambda_function import wrap_lambda, detect_lambda_type
 from .connected_streams import ConnectedStreams
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
-    from .env import BaseEnvironment
+    from sage_core.environment.base_environment import BaseEnvironment
     from .datastream import DataStream
 
 T = TypeVar("T")
@@ -20,14 +20,8 @@ T = TypeVar("T")
 
 class DataStream(Generic[T]):
     """表示单个transformation生成的流结果"""
-    def __init__(self, env:BaseEnvironment, transformation: BaseTransformation):
-        self.logger = CustomLogger(
-            filename=f"Datastream_{transformation.function_class.__name__}",
-            env_name = env.name,
-            console_output="WARNING",
-            file_output=True,
-            global_output = "DEBUG",
-        )
+    def __init__(self, env:'BaseEnvironment', transformation: 'BaseTransformation'):
+        self.logger = CustomLogger()
         self._environment = env
         self.transformation = transformation
         self._type_param = self._resolve_type_param()
@@ -197,7 +191,7 @@ class DataStream(Generic[T]):
         # 连接到输入索引0（单输入情况）
         tr.add_upstream(self.transformation, input_index=0)
         
-        self._environment._pipeline.append(tr)
+        self._environment.pipeline.append(tr)
         return DataStream(self._environment, tr)
     
     def _resolve_type_param(self):

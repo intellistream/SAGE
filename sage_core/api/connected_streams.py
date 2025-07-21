@@ -10,7 +10,7 @@ from sage_core.function.comap_function import BaseCoMapFunction
 from sage_core.function.join_function import BaseJoinFunction
 if TYPE_CHECKING:
     from .datastream import DataStream
-    from .env import BaseEnvironment
+    from sage_core.environment.base_environment import BaseEnvironment
 
 class ConnectedStreams:
     """表示多个transformation连接后的流结果"""
@@ -138,21 +138,6 @@ class ConnectedStreams:
             raise TypeError(
                 f"Function {function.__name__} must inherit from BaseCoMapFunction. "
                 f"CoMap operations require CoMap function with mapN methods."
-            )
-        
-        # Check if function has is_comap property (should be True for CoMap functions)
-        try:
-            # Create a temporary instance to check is_comap property
-            temp_instance = function()
-            if not hasattr(temp_instance, 'is_comap') or not temp_instance.is_comap:
-                raise TypeError(
-                    f"Function {function.__name__} must have is_comap=True property. "
-                    f"Ensure your function properly inherits from BaseCoMapFunction."
-                )
-        except Exception as e:
-            raise TypeError(
-                f"Failed to validate CoMap function {function.__name__}: {e}. "
-                f"Ensure the function can be instantiated and has is_comap=True."
             )
         
         # Validate that function supports the required number of input streams
@@ -529,5 +514,5 @@ class ConnectedStreams:
         for input_index, upstream_trans in enumerate(self.transformations):
             tr.add_upstream(upstream_trans, input_index=input_index)
 
-        self._environment._pipeline.append(tr)
+        self._environment.pipeline.append(tr)
         return DataStream(self._environment, tr)

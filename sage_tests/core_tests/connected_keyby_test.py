@@ -2,10 +2,9 @@ import pytest
 import time
 import threading
 from typing import List, Dict, Any
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.keyby_function import KeyByFunction
-from sage_core.function.base_function import BaseFunction
 from sage_core.function.comap_function import BaseCoMapFunction
 from sage_core.function.sink_function import SinkFunction
 
@@ -93,8 +92,8 @@ class ConnectedDebugSink(SinkFunction):
     
     def execute(self, data: Any):
         if self.runtime_context:
-            self.parallel_index = self.runtime_context.parallel_index
-        
+            selfctx = self.runtime_context.parallel_index
+        ctx
         with self._lock:
             if self.parallel_index not in self._received_data:
                 self._received_data[self.parallel_index] = []
@@ -178,7 +177,7 @@ class TestConnectedStreamsKeyBy:
         """测试统一的KeyBy - 两个流使用相同的key selector"""
         print("\n🚀 Testing Connected Streams Unified KeyBy")
         
-        env = LocalEnvironment("connected_unified_keyby_test")
+        env = LocalStreamEnvironment("connected_unified_keyby_test")
         
         # 创建两个数据源
         user_stream = env.from_source(UserDataSource, delay=0.3)
@@ -198,7 +197,7 @@ class TestConnectedStreamsKeyBy:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(3)
         finally:
             env.close()
@@ -209,7 +208,7 @@ class TestConnectedStreamsKeyBy:
         """测试Flink风格的per-stream KeyBy - 每个流使用不同的key selector"""
         print("\n🚀 Testing Connected Streams Per-Stream KeyBy (Flink-style)")
         
-        env = LocalEnvironment("connected_per_stream_keyby_test")
+        env = LocalStreamEnvironment("connected_per_stream_keyby_test")
         
         user_stream = env.from_source(UserDataSource, delay=0.3)
         event_stream = env.from_source(EventDataSource, delay=0.4)
@@ -228,7 +227,7 @@ class TestConnectedStreamsKeyBy:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(3)
         finally:
             env.close()
@@ -239,7 +238,7 @@ class TestConnectedStreamsKeyBy:
         """测试KeyBy后接CoMap操作"""
         print("\n🚀 Testing Connected Streams KeyBy + CoMap")
         
-        env = LocalEnvironment("connected_keyby_comap_test")
+        env = LocalStreamEnvironment("connected_keyby_comap_test")
         
         user_stream = env.from_source(UserDataSource, delay=0.3)
         event_stream = env.from_source(EventDataSource, delay=0.4)
@@ -258,7 +257,7 @@ class TestConnectedStreamsKeyBy:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(4)  # 给更多时间让join操作完成
         finally:
             env.close()
@@ -269,7 +268,7 @@ class TestConnectedStreamsKeyBy:
         """测试无效的KeyBy配置"""
         print("\n🚀 Testing Invalid KeyBy Configurations")
         
-        env = LocalEnvironment("invalid_keyby_test")
+        env = LocalStreamEnvironment("invalid_keyby_test")
         
         user_stream = env.from_source(UserDataSource, delay=0.5)
         event_stream = env.from_source(EventDataSource, delay=0.5)

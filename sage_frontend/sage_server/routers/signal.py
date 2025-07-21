@@ -90,7 +90,7 @@ def update_json_field(file_path: str, *args):
 
 
 @router.post("/stop/{jobId}/{duration}")
-async def stop_job(jobId: str,duration:str ):
+async def pause_job(jobId: str,duration:str ):
     """
     停止指定ID的流处理作业
     """

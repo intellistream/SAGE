@@ -21,7 +21,7 @@ def test_dense_retriever_execute(dense_retriever_config):
 
     # mock runtime_context
     mock_runtime_context = MagicMock()
-    retriever.runtime_context = mock_runtime_context
+    retriever.ctx = mock_runtime_context
     mock_runtime_context.retrieve.return_value = ["doc1", "doc2"]
 
     input_query = "test query"
@@ -62,7 +62,7 @@ def test_bm25s_retriever_execute(bm25s_retriever_config, caplog):
     # 注入 runtime_context mock（不需要 memory 了）
     mock_runtime_context = MagicMock()
     mock_runtime_context.retrieve.return_value = ["doc1", "doc2"]
-    retriever.runtime_context = mock_runtime_context
+    retriever.ctx = mock_runtime_context
 
     data = "some query"
 
@@ -82,7 +82,7 @@ def test_bm25s_retriever_execute_no_collection(bm25s_retriever_config):
     mock_runtime_context = MagicMock()
     mock_memory = MagicMock()
     mock_runtime_context.memory = mock_memory
-    retriever.runtime_context = mock_runtime_context
+    retriever.ctx = mock_runtime_context
 
     data = "some query"
 

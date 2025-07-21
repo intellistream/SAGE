@@ -14,7 +14,7 @@ from typing import List, Any
 # Add the project root to Python path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_core.function.source_function import SourceFunction
 
 
@@ -41,7 +41,7 @@ def main():
     print("=" * 60)
     
     # Create environment
-    env1 = LocalEnvironment()
+    env1 = LocalStreamEnvironment()
     
     # Example 1: Lambda List Approach
     print("\n📋 Example 1: Lambda List Approach")
@@ -75,7 +75,7 @@ def main():
     print("-" * 40)
     
     # Reset environment for new example
-    env2 = LocalEnvironment()
+    env2 = LocalStreamEnvironment()
     
     # Define named functions
     def format_temperature(data: float) -> str:
@@ -116,7 +116,7 @@ def main():
     print("-" * 40)
     
     # Reset environment for new example
-    env3 = LocalEnvironment()
+    env3 = LocalStreamEnvironment()
     
     # Define a complex processing function
     def process_numeric_data(data: float) -> str:
@@ -161,7 +161,7 @@ def main():
     print("-" * 40)
     
     # Reset environment for new example
-    env4 = LocalEnvironment()
+    env4 = LocalStreamEnvironment()
     
     # Create numeric data sources
     input1_source = env4.from_source(ListSource, [1, 2, 3, 4, 5])
@@ -196,7 +196,7 @@ def main():
     print("-" * 40)
     
     # Reset environment for new example
-    env5 = LocalEnvironment()
+    env5 = LocalStreamEnvironment()
     
     # Create data with potential issues
     mixed_data1 = env5.from_source(ListSource, [5, -3, 0, 12, -1])
