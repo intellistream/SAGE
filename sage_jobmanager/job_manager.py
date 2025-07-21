@@ -1,49 +1,40 @@
 from datetime import datetime
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Any, Optional
+from typing import TYPE_CHECKING, Dict, Any, List, Optional
 import time, uuid
 from uuid import UUID
 from sage_core.environment.base_environment import BaseEnvironment
+from sage_jobmanager.job_info import JobInfo
 from sage_utils.custom_logger import CustomLogger
-from sage_jobmanager.utils.local_tcp_server import LocalTcpServer
+from sage_utils.local_tcp_server import LocalTcpServer
 import threading
 from sage_utils.serialization.dill_serializer import deserialize_object
 if TYPE_CHECKING:
     from sage_jobmanager.execution_graph import ExecutionGraph
     from sage_runtime.dispatcher import Dispatcher
 
-
-# TODO: JobManager 应该要负责整个job的生命周期（即不光是提交，还应该包括‘停止’）
 import ray
 class JobManager: #Job Manager
     instance = None
     instance_lock = threading.RLock()
-    def __init__(self, host: str = "127.0.0.1", port: int = 19000):
+    def __new__(cls, *args, **kwargs):
+        if cls.instance is None:
+            with cls.instance_lock:
+                if cls.instance is None:
+                    cls.instance = super(JobManager, cls).__new__(cls)
+                    cls.instance._initialized = False
+        return cls.instance
 
-        JobManager.instance = self
-        self.graphs: dict[str, 'ExecutionGraph'] = {}  # 存储 pipeline 名称到 SageGraph 的映射
-        self.env_to_dispatcher: dict[str, 'Dispatcher'] = {}  # 存储name到dag的映射，其中dag的类型为DAG或RayDAG
-
-        # 新增：UUID 到环境信息的映射
-        self.environments: Dict[str, Dict[str, Any]] = {}  # uuid -> environment_info
-        self._env_lock = threading.RLock()
-                # 创建 TCP 服务器
-        self.tcp_server = LocalTcpServer(
-            host=host, 
-            port=port,
-            default_handler=self._handle_unknown_message
-        )
-        self.tcp_server.logger = self.logger
-
-        # 注册消息处理器
-        self._register_message_handlers()
-        
-        # 启动 TCP 服务器
-        self.tcp_server.start()
-        server_info = self.tcp_server.get_server_info()
-        self.logger.info(f"Engine TCP server started at {server_info['address']}")
-        self.setup_logging_system()
+    def __init__(self):
+        with JobManager.instance_lock:
+            if self._initialized:
+                return
+            self._initialized = True
+            JobManager.instance = self
+            # 新增：UUID 到环境信息的映射
+            self.jobs: Dict[str, JobInfo] = {}  # uuid -> jobinfo
+            self.setup_logging_system()
 
     def setup_logging_system(self):
         """设置分层日志系统"""
@@ -86,218 +77,83 @@ class JobManager: #Job Manager
     #                internal  methods                     #
     ########################################################
 
-
-    def _register_message_handlers(self):
-        """注册所有消息处理器"""
-        self.tcp_server.register_handler("env_submit", self._handle_env_submit)
-        # self.tcp_server.register_handler("env_run_once", self._handle_env_run_once)
-        # self.tcp_server.register_handler("env_run_streaming", self._handle_env_run_streaming)
-        self.tcp_server.register_handler("env_stop", self._handle_env_stop)
-        self.tcp_server.register_handler("env_close", self._handle_env_close)
-        self.tcp_server.register_handler("env_status", self._handle_env_status)
-
-    def submit_environment(self, env: 'BaseEnvironment') -> str:
+    def submit_job(self, env: 'BaseEnvironment') -> str:
         # 生成 UUID
         env.uuid = str(uuid.uuid4())
         # 编译环境
         from sage_jobmanager.execution_graph import ExecutionGraph
         graph = ExecutionGraph(env)
         dispatcher = Dispatcher(graph, env)
+
+            # 创建 JobInfo 对象
+        job_info = JobInfo(env, graph, dispatcher, env.uuid)
+
+        self.jobs[env.uuid] = job_info
         
-        # 存储环境信息
-        with self._env_lock:
-            self.environments[env.uuid] = {
-                "env": env,
-                "graph": graph, 
-                "dispatcher": dispatcher,
-                "status": "submitted",
-                "created_at": time.time()
-            }
-        
-        # 提交 DAG
-        dispatcher.submit() # 提交到本地线程池 or Ray 集群
-        
-        self.logger.info(f"Environment '{uuid}' submitted with UUID {env.uuid}")
+        try:
+            # 提交 DAG
+            dispatcher.submit()
+            job_info.update_status("running")
+            
+            self.logger.info(f"Environment '{env.name}' submitted with UUID {env.uuid}")
+            
+        except Exception as e:
+            job_info.update_status("failed", error=str(e))
+            self.logger.error(f"Failed to submit environment {env.uuid}: {e}")
+
         return env.uuid
 
-    def _handle_env_submit(self, message: Dict[str, Any], client_address: tuple) -> Dict[str, Any]:
-        """处理环境提交消息，返回响应字典"""
-        try:
-            env_name = message.get("env_name")
-            payload = message.get("payload", {})
-            serialized_env = payload.get("serialized_env")
-            request_id = message.get("request_id")
-            
-            if not env_name or not serialized_env:
-                return self._create_error_response(message, "ERR_MISSING_DATA", 
-                                                "Missing env_name or serialized_env")
-            
-            # 反序列化环境
-            env = deserialize_object(serialized_env)
-            uuid = self.submit_environment(env)
-            # 返回成功响应
-            return {
-                "type": "env_submit_response",
-                "request_id": request_id,
-                "env_name": env_name,
-                "env_uuid": uuid,
-                "timestamp": int(time.time()),
-                "status": "success",
-                "message": "Environment submitted and compiled successfully",
-                "payload": {
-                    "nodes_count": len(self.environments[uuid]["graph"].nodes)
-                }
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error handling env_submit: {e}", exc_info=True)
-            return self._create_error_response(message, "ERR_SUBMIT_FAILED", str(e))
-
-    def _handle_env_stop(self, message: Dict[str, Any], client_address: tuple) -> Dict[str, Any]:
-        """处理停止消息"""
-        try:
-            env_uuid = message.get("env_uuid")
-            env_name = message.get("env_name")
-            request_id = message.get("request_id")
-            
-            env_info = self._get_environment_by_uuid(env_uuid)
-            if not env_info:
-                return self._create_error_response(message, "ERR_ENV_NOT_FOUND", 
-                                                f"Environment with UUID {env_uuid} not found")
-            
-            # 停止 DAG
-            dag = env_info["dispatcher"]
-            dag.stop()
-            
-            # 更新状态
-            with self._env_lock:
-                env_info["status"] = "stopped"
-                env_info["stopped_at"] = time.time()
-            
-            self.logger.info(f"Environment {env_uuid} stopped")
-            
-            return {
-                "type": "env_stop_response",
-                "request_id": request_id,
-                "env_name": env_name,
-                "env_uuid": env_uuid,
-                "timestamp": int(time.time()),
-                "status": "success",
-                "message": "Environment stopped successfully",
-                "payload": {}
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error handling env_stop: {e}", exc_info=True)
-            return self._create_error_response(message, "ERR_STOP_FAILED", str(e))
-
-    def _handle_env_close(self, message: Dict[str, Any], client_address: tuple) -> Dict[str, Any]:
-        """处理关闭消息"""
-        try:
-            env_uuid = message.get("env_uuid")
-            env_name = message.get("env_name")
-            request_id = message.get("request_id")
-            
-            env_info = self._get_environment_by_uuid(env_uuid)
-            if not env_info:
-                return self._create_error_response(message, "ERR_ENV_NOT_FOUND", 
-                                                f"Environment with UUID {env_uuid} not found")
-            
-            # 关闭 DAG
-            dag = env_info["dispatcher"]
-            dag.close()
-            
-            # 清理资源
-            with self._env_lock:
-                del self.environments[env_uuid]
-            
-            self.logger.info(f"Environment {env_uuid} closed")
-            
-            return {
-                "type": "env_close_response",
-                "request_id": request_id,
-                "env_name": env_name,
-                "env_uuid": env_uuid,
-                "timestamp": int(time.time()),
-                "status": "success",
-                "message": "Environment closed successfully",
-                "payload": {}
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error handling env_close: {e}", exc_info=True)
-            return self._create_error_response(message, "ERR_CLOSE_FAILED", str(e))
-
-    def _handle_env_status(self, message: Dict[str, Any], client_address: tuple) -> Dict[str, Any]:
-        """处理状态查询消息"""
-        try:
-            env_uuid = message.get("env_uuid")
-            env_name = message.get("env_name")
-            request_id = message.get("request_id")
-            
-            env_info = self._get_environment_by_uuid(env_uuid)
-            if not env_info:
-                return self._create_error_response(message, "ERR_ENV_NOT_FOUND", 
-                                                f"Environment with UUID {env_uuid} not found")
-            
-            return {
-                "type": "env_status_response",
-                "request_id": request_id,
-                "env_name": env_name,
-                "env_uuid": env_uuid,
-                "timestamp": int(time.time()),
-                "status": "success",
-                "message": "Environment status retrieved successfully",
-                "payload": {
-                    "env_status": env_info["status"],
-                    "created_at": env_info["created_at"],
-                    "last_run": env_info.get("last_run"),
-                    "streaming_started": env_info.get("streaming_started"),
-                    "stopped_at": env_info.get("stopped_at")
-                }
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error handling env_status: {e}", exc_info=True)
-            return self._create_error_response(message, "ERR_STATUS_FAILED", str(e))
-
-    def _handle_unknown_message(self, message: Dict[str, Any], client_address: tuple) -> Dict[str, Any]:
-        """处理未知消息类型"""
-        message_type = message.get("type", "unknown")
-        self.logger.warning(f"Received unknown message type '{message_type}' from {client_address}")
-        return self._create_error_response(message, "ERR_UNKNOWN_MESSAGE_TYPE", 
-                                        f"Unknown message type: {message_type}")
-    
-    def _get_environment_by_uuid(self, env_uuid: str) -> Optional[Dict[str, Any]]:
-        """根据 UUID 获取环境信息"""
+    def stop_job(self, env_uuid: str) -> Dict[str, Any]:
+        """停止Job"""
         with self._env_lock:
-            return self.environments.get(env_uuid)
+            job_info = self.jobs.get(env_uuid, None)
+            
+            if not job_info:
+                self.logger.error(f"Job with UUID {env_uuid} not found")
+                return {
+                    "uuid": env_uuid,
+                    "status": "not_found",
+                    "message": f"Job with UUID {env_uuid} not found"
+                }
+            
+            try:
+                # 停止 dispatcher
+                job_info.dispatcher.stop()
+                job_info.update_status("stopped")
+                
+                self.logger.info(f"Job {env_uuid} stopped successfully")
+                
+                return {
+                    "uuid": env_uuid,
+                    "status": "stopped",
+                    "message": "Job stopped successfully"
+                }
+                
+            except Exception as e:
+                job_info.update_status("failed", error=str(e))
+                self.logger.error(f"Failed to stop job {env_uuid}: {e}")
+                raise
 
-    def _create_error_response(self, original_message: Dict[str, Any], error_code: str, error_message: str) -> Dict[str, Any]:
-        """创建错误响应"""
-        return {
-            "type": f"{original_message.get('type', 'unknown')}_response",
-            "request_id": original_message.get("request_id"),
-            "env_name": original_message.get("env_name"),
-            "env_uuid": original_message.get("env_uuid"),
-            "timestamp": int(time.time()),
-            "status": "error",
-            "message": error_message,
-            "payload": {
-                "error_code": error_code,
-                "details": {}
-            }
-        }
+    def get_job_status(self, env_uuid: str) -> Dict[str, Any]:
+        job_info = self.jobs.get(env_uuid)
+        
+        if not job_info:
+            raise ValueError(f"Job with UUID {env_uuid} not found")
+        
+        return job_info.get_status()
+
+    def list_jobs(self) -> List[Dict[str, Any]]:
+        return [job_info.get_summary() for job_info in self.jobs.values()]
 
     def get_server_info(self) -> Dict[str, Any]:
-        """获取服务器信息"""
-        server_info = self.tcp_server.get_server_info()
-        with self._env_lock:
-            server_info["environments_count"] = len(self.environments)
-            server_info["environment_uuids"] = list(self.environments.keys())
-        return server_info
-
-    # TODO: 需要关心一下batch任务的终止信号 --
+        job_summaries = [job_info.get_summary() for job_info in self.jobs.values()]
+            
+        return {
+            "session_id": self.session_id,
+            "log_base_dir": self.log_base_dir,
+            "environments_count": len(self.jobs),
+            "jobs": job_summaries
+        }
     
 
     def shutdown(self):
@@ -309,9 +165,6 @@ class JobManager: #Job Manager
         - 重置 Engine 单例
         """
         self.logger.info("Shutting down Engine and releasing resources")
-
-        self.env_to_dispatcher.clear()
-        self.graphs.clear()
 
         JobManager._instance = None
         self.logger.info("Engine shutdown complete")
