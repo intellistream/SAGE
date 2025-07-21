@@ -2,14 +2,15 @@
 from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Union
 from sage_core.environment.base_environment import BaseEnvironment
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_utils.custom_logger import CustomLogger
 from sage_jobmanager.utils.name_server import get_name
 from sage_runtime.runtime_context import RuntimeContext
 if TYPE_CHECKING:
-    pass
+    from sage_jobmanager.job_manager import JobManager
+    from ray.actor import ActorHandle
 
 
 class GraphNode:
@@ -41,7 +42,7 @@ class GraphEdge:
         self.input_index:int = input_index
 
 class ExecutionGraph:
-    def __init__(self, env:BaseEnvironment):
+    def __init__(self, env:BaseEnvironment, jobmanager_handle:Union['JobManager', 'ActorHandle']):
         self.env = env
         self.nodes:Dict[str, GraphNode] = {}
         self.edges:Dict[str, GraphEdge] = {}
@@ -53,17 +54,37 @@ class ExecutionGraph:
         # 构建基础图结构
         self._build_graph_from_pipeline(env)
         self._calculate_source_dependencies()
-        self.generate_runtime_contexts()
+        self.generate_runtime_contexts(jobmanager_handle)
+        self.total_stop_signals = self.calculate_total_stop_signals()
         self.logger.info(f"Successfully converted and optimized pipeline '{env.name}' to compiler with {len(self.nodes)} nodes and {len(self.edges)} edges")
 
-    def generate_runtime_contexts(self):
+
+    def calculate_total_stop_signals(self):
+        """计算所有源节点的停止信号总数"""
+        total_signals = 0
+        for node in self.nodes.values():
+            if node.is_sink:
+                total_signals += node.stop_signal_num
+        return total_signals
+
+    def setup_logging_system(self): 
+        self.logger = CustomLogger([
+                ("console", "INFO"),  # 控制台显示重要信息
+                (os.path.join(self.env.env_base_dir, "ExecutionGraph.log"), "DEBUG"),  # 详细日志
+                (os.path.join(self.env.env_base_dir, "Error.log"), "ERROR")  # 错误日志
+            ],
+            name = f"ExecutionGraph_{self.env.name}",
+        )
+
+
+    def generate_runtime_contexts(self, jobmanager_handle):
         """
         为每个节点生成运行时上下文
         """
         self.logger.debug("Generating runtime contexts for all nodes")
         for node_name, node in self.nodes.items():
             try:
-                node.runtime_context = RuntimeContext(node, node.transformation, self.env)
+                node.runtime_context = RuntimeContext(node, node.transformation, self.env, jobmanager_handle)
                 self.logger.debug(f"Generated runtime context for node: {node_name}")
             except Exception as e:
                 self.logger.error(f"Failed to generate runtime context for node {node_name}: {e}", exc_info=True)

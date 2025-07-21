@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional, Set, TYPE_CHECKING, Type, Tuple
 from sage_core.function.source_function import StopSignal
+from sage_runtime.task.base_task import BaseTask
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.router.packet import Packet
 
@@ -21,6 +22,7 @@ class BaseOperator(ABC):
         self.ctx: 'RuntimeContext' = ctx
         self.function:'BaseFunction'
         self.router:'BaseRouter'     # 由task传下来的
+        self.task: Optional['BaseTask'] = None
         try:
             self.function = function_factory.create_function(self.name, ctx)
             self.logger.debug(f"Created function instance with {function_factory}")
@@ -35,14 +37,14 @@ class BaseOperator(ABC):
             self.function.save_state()
 
     def receive_packet(self, packet: 'Packet'):
-        """
+        """l
         接收数据包并处理
         """
         if packet is None:
             self.logger.warning(f"Received None packet in {self.name}")
             return
         if isinstance(packet, StopSignal):
-            self.handle_stop_signal(packet)
+            self.handle_stop_signal(packet) 
             return
         self.logger.debug(f"Operator {self.name} received packet: {packet}")
         # 处理数据包

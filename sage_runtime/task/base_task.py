@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
+from queue import Empty
 import threading, copy, time
 from typing import Any, TYPE_CHECKING, Union, Optional
 from sage_runtime.runtime_context import RuntimeContext
 from sage_runtime.router.packet import Packet
-
+from ray.util.queue import Empty
 if TYPE_CHECKING:
     from sage_runtime.router.base_router import BaseRouter
     from sage_runtime.router.connection import Connection
@@ -26,6 +27,7 @@ class BaseTask(ABC):
         self._last_activity_time = time.time()
         try:
             self.operator:BaseOperator = operator_factory.create_operator(self.ctx)
+            self.operator.task = self
         except Exception as e:
             self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
 
@@ -94,9 +96,15 @@ class BaseTask(ABC):
                     # TODO: 做一个下游缓冲区反压机制，因为引入一个手动延迟实在是太呆了
                     time.sleep(self.delay)
                 else:
+                    
                     # For non-spout nodes, fetch input and process
                     # input_result = self.fetch_input()
-                    data_packet = self.input_buffer.get(timeout=0.5)
+                    try:
+                        data_packet = self.input_buffer.get(timeout=0.5)
+                    except Empty as e:
+                        time.sleep(0.01)
+                        continue
+                    self.logger.debug(f"Node '{self.name}' received data packet: {data_packet}, type: {type(data_packet)}")
                     if data_packet is None:
                         time.sleep(0.01)
                         continue

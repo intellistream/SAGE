@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 # 这个dispatcher可以直接打包传给ray sage daemon service
 class Dispatcher():
     def __init__(self, graph: 'ExecutionGraph', env:'BaseEnvironment'):
+        self.total_stop_signals = graph.total_stop_signals
+        self.received_stop_signals = 0
         self.graph = graph
         self.env = env
         self.name:str = env.name
@@ -30,6 +32,30 @@ class Dispatcher():
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
         if env.platform is "remote" and not ray.is_initialized():
             ray.init(address="auto", _temp_dir="/var/lib/ray_shared")
+        self.setup_logging_system()
+
+    def receive_stop_signal(self):
+        """
+        接收停止信号并处理
+        """
+        self.logger.info(f"Dispatcher received stop signal.")
+        self.received_stop_signals += 1
+        if self.received_stop_signals >= self.total_stop_signals:
+            self.logger.info(f"Received all {self.total_stop_signals} stop signals, stopping dispatcher for batch job.")
+            self.cleanup()
+            return True
+        else:
+            return False
+
+
+    def setup_logging_system(self): 
+        self.logger = CustomLogger([
+                ("console", "INFO"),  # 控制台显示重要信息
+                (os.path.join(self.env.env_base_dir, "Dispatcher.log"), "DEBUG"),  # 详细日志
+                (os.path.join(self.env.env_base_dir, "Error.log"), "ERROR")  # 错误日志
+            ],
+            name = f"Dispatcher_{self.name}",
+        )
 
     # Dispatcher will submit the job to LocalEngine or Ray Server.    
     def submit(self):
@@ -140,8 +166,6 @@ class Dispatcher():
             # 停止所有任务
             if self.is_running:
                 self.stop()
-            
-
             
             if self.remote:
                 # 清理 Ray Actors

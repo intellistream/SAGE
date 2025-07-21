@@ -2,30 +2,47 @@ import os
 from typing import TYPE_CHECKING
 import ray
 from ray.actor import ActorHandle
-from typing import List,Dict,Optional, Any
+from typing import List,Dict,Optional, Any, Union
 from sage_memory.memory_collection.base_collection import BaseMemoryCollection
 from sage_memory.memory_collection.vdb_collection import VDBMemoryCollection
 from sage_utils.custom_logger import CustomLogger
+from sage_utils.actor_wrapper import ActorWrapper
+
 if TYPE_CHECKING:
     from sage_jobmanager.execution_graph import ExecutionGraph, GraphNode
     from sage_core.transformation.base_transformation import BaseTransformation
     from sage_core.environment.base_environment import BaseEnvironment 
+    from sage_jobmanager.job_manager import JobManager
 # task, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:
     # 定义不需要序列化的属性
     __state_exclude__ = ["_logger", "env", "_env_logger_cache"]
-    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation', env: 'BaseEnvironment'):
+    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation', env: 'BaseEnvironment', jobmanager_handle: Optional[Union['JobManager', 'ActorHandle']] = None):
+        
         self.name:str = graph_node.name
+
         self.env_name = env.name
         self.env_base_dir:str = env.env_base_dir
+        self.env_uuid = env.uuid
+        self.jobmanager_handle: Optional[Union['JobManager', 'ActorHandle']] = jobmanager_handle
+
         self.memory_collection:Any = transformation.memory_collection
+
         self.parallel_index:int = graph_node.parallel_index
         self.parallelism:int = graph_node.parallelism
+
         self._logger:Optional[CustomLogger] = None
+
         self.is_spout = transformation.is_spout
+
         self.delay = 0.01
         self.stop_signal_num = graph_node.stop_signal_num
+
+    @property
+    def jobmanager(self) -> 'JobManager':
+        return ActorWrapper(self.jobmanager_handle)
+
 
     def retrieve(self,  query: Optional[str] = None, collection_config: Optional[Dict] = None) -> List[str]:
         """
@@ -377,6 +394,6 @@ class RuntimeContext:
                 (os.path.join(self.env_base_dir, f"{self.name}.log"), "DEBUG"),  # 详细日志
                 (os.path.join(self.env_base_dir, "Error.log"), "ERROR")  # 错误日志
             ],
-            name = f"self.name",
+            name = f"{self.name}",
         )
         return self._logger

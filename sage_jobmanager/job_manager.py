@@ -45,7 +45,7 @@ class JobManager: #Job Manager
         env.uuid = str(uuid.uuid4())
         # 编译环境
         from sage_jobmanager.execution_graph import ExecutionGraph
-        graph = ExecutionGraph(env) 
+        graph = ExecutionGraph(env, self.handle) 
 
 
 
@@ -197,6 +197,19 @@ class JobManager: #Job Manager
                 "status": "failed",
                 "message": f"Failed to delete job: {str(e)}"
             }
+
+    def receive_stop_signal(self, env_uuid: str):
+        """接收停止信号"""
+        job_info = self.jobs.get(env_uuid)
+        try:
+            # 停止 dispatcher
+            if (job_info.dispatcher.receive_stop_signal()) is True:
+                self.delete_job(env_uuid, force=True)
+                self.logger.info(f"Batch job: {env_uuid} completed ")
+            
+        except Exception as e:
+            job_info.update_status("failed", error=str(e))
+            self.logger.error(f"Failed to stop job {env_uuid}: {e}")
 
 
     def pause_job(self, env_uuid: str) -> Dict[str, Any]:

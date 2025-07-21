@@ -38,4 +38,5 @@ class SinkOperator(BaseOperator):
         self.logger.info(f"Handling stop signal from {stop_signal.name}")
 
         self.stop_signal_count += 1
-        if self.stop_signal_count >= self.ctx.
+        if self.stop_signal_count >= self.ctx.stop_signal_num:
+            self.ctx.jobmanager.receive_stop_signal(self.ctx.env_uuid)
