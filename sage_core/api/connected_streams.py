@@ -10,7 +10,7 @@ from sage_core.function.comap_function import BaseCoMapFunction
 from sage_core.function.join_function import BaseJoinFunction
 if TYPE_CHECKING:
     from .datastream import DataStream
-    from .base_environment import BaseEnvironment
+    from sage_core.environment.base_environment import BaseEnvironment
 
 class ConnectedStreams:
     """表示多个transformation连接后的流结果"""
@@ -514,5 +514,5 @@ class ConnectedStreams:
         for input_index, upstream_trans in enumerate(self.transformations):
             tr.add_upstream(upstream_trans, input_index=input_index)
 
-        self._environment._pipeline.append(tr)
+        self._environment.pipeline.append(tr)
         return DataStream(self._environment, tr)

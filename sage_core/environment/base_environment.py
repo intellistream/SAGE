@@ -3,7 +3,9 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 import os
 from pathlib import Path
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING, Type, Union
+from sage_core.function.base_function import BaseFunction
+from sage_core.function.lambda_function import wrap_lambda
 import sage_memory.api
 from sage_core.api.datastream import DataStream
 from sage_core.transformation.base_transformation import BaseTransformation
@@ -123,6 +125,26 @@ class BaseEnvironment(ABC):
         
         return DataStream(self, transformation)
 
+    def from_source(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> DataStream:
+        if callable(function) and not isinstance(function, type):
+            # 这是一个 lambda 函数或普通函数
+            function = wrap_lambda(function, 'flatmap')
+        transformation = SourceTransformation(self, function, *args, **kwargs)
+
+        self.pipeline.append(transformation)
+        return DataStream(self, transformation)
+
+
+
+    def from_collection(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> DataStream:
+        if callable(function) and not isinstance(function, type):
+            # 这是一个 lambda 函数或普通函数
+            function = wrap_lambda(function, 'flatmap')
+        transformation = SourceTransformation(self, function, *args,
+                                              **kwargs)  # TODO: add a new transformation 去告诉engine这个input source是有界的，当执行完毕之后，会发送一个endofinput信号来停止所有进程。
+
+        self.pipeline.append(transformation)
+        return DataStream(self, transformation)
 
 
     def from_future(self, name: str) -> DataStream:
@@ -231,8 +253,9 @@ class BaseEnvironment(ABC):
             
         return self._engine_client
 
-    @abstractmethod
+
     @property
+    @abstractmethod
     def jobmanager(self) -> 'JobManager':
         return
         # """获取JobManager句柄，通过ActorWrapper封装以提供透明调用"""
