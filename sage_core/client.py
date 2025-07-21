@@ -23,9 +23,7 @@ class EngineClient:
         self.running = False
         
         self.logger = CustomLogger()
-        
 
-    
     def connect(self) -> bool:
         """连接到 Engine"""
         try:

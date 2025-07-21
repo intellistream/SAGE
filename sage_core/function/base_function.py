@@ -56,10 +56,6 @@ class BaseFunction(ABC):
         """
         pass
 
-
-
-
-
 class MemoryFunction(BaseFunction):
     def __init__(self):
         self.runtime_context = None  # 需要在compiler里面实例化。
