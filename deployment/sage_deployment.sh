@@ -6,6 +6,7 @@
 # 2. 设置 Ray session 权限
 # 3. 检查并启动 JobManager Daemon
 # 4. 验证系统状态
+# 5. 设置命令行工具
 
 set -e  # 遇到错误立即退出
 
@@ -144,6 +145,61 @@ setup_ray_session_permissions() {
         fi
     else
         log_warning "Ray session directory not found at $ray_session_dir"
+    fi
+}
+
+# 设置命令行工具
+setup_cli_tools() {
+    log_info "Setting up SAGE command line tools..."
+    
+    local script_dir=$(dirname $(realpath $0))
+    local controller_script="$script_dir/jobmanager_controller.py"
+    local symlink_path="/usr/local/bin/sage-jm"
+    
+    # 检查 controller 脚本是否存在
+    if [ ! -f "$controller_script" ]; then
+        log_warning "JobManager controller script not found at $controller_script"
+        return 1
+    fi
+    
+    # 使脚本可执行
+    chmod +x "$controller_script" 2>/dev/null || {
+        log_warning "Failed to make controller script executable (permission denied)"
+        log_info "You may need to run: chmod +x $controller_script"
+    }
+    
+    # 检查是否已存在符号链接
+    if [ -L "$symlink_path" ]; then
+        local current_target=$(readlink "$symlink_path")
+        if [ "$current_target" = "$controller_script" ]; then
+            log_success "Command line tool 'sage-jm' is already set up"
+            return 0
+        else
+            log_info "Updating existing sage-jm symlink"
+            sudo rm -f "$symlink_path"
+        fi
+    elif [ -f "$symlink_path" ]; then
+        log_warning "File exists at $symlink_path (not a symlink)"
+        log_info "Please remove it manually to install sage-jm command"
+        return 1
+    fi
+    
+    # 创建符号链接
+    if sudo ln -s "$controller_script" "$symlink_path" 2>/dev/null; then
+        log_success "Command line tool 'sage-jm' installed successfully"
+        
+        # 验证安装
+        if command -v sage-jm >/dev/null 2>&1; then
+            log_success "sage-jm command is ready to use"
+        else
+            log_warning "sage-jm command not found in PATH"
+            log_info "You may need to restart your terminal or add /usr/local/bin to PATH"
+        fi
+    else
+        log_warning "Failed to create sage-jm symlink (sudo required)"
+        log_info "To manually install the command line tool, run:"
+        log_info "  sudo ln -s $controller_script /usr/local/bin/sage-jm"
+        return 1
     fi
 }
 
@@ -339,12 +395,72 @@ except:
         echo "  ✗ Not running or unhealthy"
     fi
     
+    # 命令行工具状态
+    echo -e "\n${BLUE}Command Line Tools:${NC}"
+    if command -v sage-jm >/dev/null 2>&1; then
+        echo "  ✓ sage-jm command available"
+    else
+        echo "  ✗ sage-jm command not available"
+    fi
+    
     # 访问信息
     echo -e "\n${BLUE}Access Information:${NC}"
     echo "  Ray Dashboard: http://localhost:$RAY_DASHBOARD_PORT"
     echo "  JobManager API: tcp://$DAEMON_HOST:$DAEMON_PORT"
     echo "  Logs: /tmp/sage/logs/"
     echo "  Daemon Log: /tmp/sage_daemon.log"
+}
+
+# 显示使用指南
+show_usage_guide() {
+    echo
+    log_info "=== SAGE System Ready ==="
+    echo
+    echo -e "${GREEN}🎉 SAGE system started successfully!${NC}"
+    echo
+    echo -e "${BLUE}Quick Start Guide:${NC}"
+    echo
+    
+    # 检查命令行工具是否可用
+    if command -v sage-jm >/dev/null 2>&1; then
+        echo -e "${GREEN}📋 Job Management Commands:${NC}"
+        echo "  sage-jm list                    # List all jobs"
+        echo "  sage-jm show <job_uuid>         # Show job details"
+        echo "  sage-jm stop <job_uuid>         # Stop a job"
+        echo "  sage-jm health                  # Check system health"
+        echo "  sage-jm monitor                 # Real-time monitoring"
+        echo "  sage-jm shell                   # Interactive shell"
+        echo
+        echo -e "${GREEN}🔍 Monitoring:${NC}"
+        echo "  sage-jm monitor --refresh 3     # Monitor with 3s refresh"
+        echo "  sage-jm watch <job_uuid>        # Watch specific job"
+        echo
+        echo -e "${GREEN}ℹ️  Getting Help:${NC}"
+        echo "  sage-jm --help                  # Show all commands"
+        echo "  sage-jm <command> --help        # Command-specific help"
+        echo
+    else
+        echo -e "${YELLOW}⚠️  Command line tool setup:${NC}"
+        echo "  The 'sage-jm' command is not available in your PATH."
+        echo "  To set it up manually, run:"
+        echo "    sudo ln -s $(dirname $(realpath $0))/jobmanager_controller.py /usr/local/bin/sage-jm"
+        echo
+    fi
+    
+    echo -e "${GREEN}🌐 Web Interfaces:${NC}"
+    echo "  Ray Dashboard: http://localhost:$RAY_DASHBOARD_PORT"
+    echo
+    echo -e "${GREEN}📁 Important Paths:${NC}"
+    echo "  Logs: {project folder}/logs/jobmanager_{timestamp}.log"
+    echo "  Daemon Log: {project folder}/logs/daemon"
+    echo "  Ray Temp: $RAY_TEMP_DIR"
+    echo
+    echo -e "${GREEN}🔄 System Management:${NC}"
+    echo "  ./sage_deployment.sh status      # Check system status"
+    echo "  ./sage_deployment.sh restart     # Restart system"
+    echo "  ./sage_deployment.sh stop        # Stop system"
+    echo
+    echo -e "${BLUE}Happy coding with SAGE! 🚀${NC}"
 }
 
 # 停止系统
@@ -371,6 +487,31 @@ stop_system() {
     fi
     
     log_success "SAGE system stopped"
+}
+
+# 安装命令行工具
+install_cli() {
+    log_info "Installing SAGE command line tools..."
+    
+    # 设置命令行工具
+    if setup_cli_tools; then
+        echo
+        log_success "✅ Command line tools installed successfully!"
+        echo
+        echo -e "${GREEN}You can now use:${NC}"
+        echo "  sage-jm --help          # Show help"
+        echo "  sage-jm list             # List jobs"
+        echo "  sage-jm health           # Check health"
+        echo "  sage-jm monitor          # Monitor jobs"
+        echo
+    else
+        echo
+        log_error "❌ Failed to install command line tools"
+        echo
+        echo -e "${YELLOW}Manual installation:${NC}"
+        echo "  chmod +x $(dirname $(realpath $0))/jobmanager_controller.py"
+        echo "  sudo ln -s $(dirname $(realpath $0))/jobmanager_controller.py /usr/local/bin/sage-jm"
+    fi
 }
 
 # 主函数
@@ -405,8 +546,12 @@ main() {
                 log_success "JobManager Daemon is already running"
             fi
             
-            # 3. 显示状态
+            # 3. 设置命令行工具
+            setup_cli_tools
+            
+            # 4. 显示状态和使用指南
             show_status
+            show_usage_guide
             ;;
             
         stop)
@@ -423,14 +568,19 @@ main() {
             show_status
             ;;
             
+        install-cli)
+            install_cli
+            ;;
+            
         *)
-            echo "Usage: $0 {start|stop|restart|status}"
+            echo "Usage: $0 {start|stop|restart|status|install-cli}"
             echo
             echo "Commands:"
-            echo "  start   - Start Ray cluster and JobManager Daemon"
-            echo "  stop    - Stop the entire SAGE system"
-            echo "  restart - Restart the system"
-            echo "  status  - Show system status"
+            echo "  start       - Start Ray cluster and JobManager Daemon"
+            echo "  stop        - Stop the entire SAGE system"
+            echo "  restart     - Restart the system"
+            echo "  status      - Show system status"
+            echo "  install-cli - Install command line tools only"
             echo
             echo "Environment Variables:"
             echo "  RAY_HEAD_PORT=$RAY_HEAD_PORT         (GCS server port)"
@@ -438,6 +588,12 @@ main() {
             echo "  RAY_DASHBOARD_PORT=$RAY_DASHBOARD_PORT"
             echo "  DAEMON_HOST=$DAEMON_HOST"
             echo "  DAEMON_PORT=$DAEMON_PORT"
+            echo
+            echo "After starting, use 'sage-jm' command to manage jobs:"
+            echo "  sage-jm list           # List all jobs"
+            echo "  sage-jm health         # Check system health"
+            echo "  sage-jm monitor        # Real-time monitoring"
+            echo "  sage-jm --help         # Show all commands"
             exit 1
             ;;
     esac

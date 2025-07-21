@@ -196,7 +196,7 @@ class BaseEnvironment(ABC):
         self.logger.info("Stopping pipeline...")
         
         try:
-            response = self.jobmanager.stop_job(self.env_uuid)
+            response = self.jobmanager.pause_job(self.env_uuid)
             
             if response.get("status") == "success":
                 self.is_running = False
@@ -215,7 +215,7 @@ class BaseEnvironment(ABC):
         self.logger.info("Closing environment...")
         
         try:
-            response = self.jobmanager.stop_job(self.env_uuid)
+            response = self.jobmanager.pause_job(self.env_uuid)
             
             if response.get("status") == "success":
                 self.logger.info("Environment closed successfully")

@@ -63,7 +63,7 @@ class RemoteEnvironment(BaseEnvironment):
         self.logger.info("Stopping remote pipeline...")
         
         try:
-            response = self.jobmanager.stop_job(self.env_uuid)
+            response = self.jobmanager.pause_job(self.env_uuid)
             
             if response.get("status") == "stopped":
                 self.is_running = False
@@ -83,7 +83,7 @@ class RemoteEnvironment(BaseEnvironment):
         self.logger.info("Closing remote environment...")
         
         try:
-            response = self.jobmanager.stop_job(self.env_uuid)
+            response = self.jobmanager.pause_job(self.env_uuid)
             
             if response.get("status") == "stopped":
                 self.logger.info("Remote environment closed successfully")

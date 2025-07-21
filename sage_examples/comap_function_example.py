@@ -176,7 +176,6 @@ def main():
         print("\n🔄 Comparison with regular map():")
         print("   - Regular map(): All inputs merged → single execute() method")
         print("   - CoMap: Each input stream → dedicated mapN() method")
-        env.close()
 
 if __name__ == "__main__":
     main()

@@ -26,7 +26,7 @@ class RemoteJobManager(JobManager):
         self.logger.info(f"Running on Ray node: {self.node_id}")
     
     # === 继承的核心方法自动支持Ray远程调用 ===
-    # submit_job, stop_job, get_job_status, list_jobs 等方法
+    # submit_job, pause_job, get_job_status, list_jobs 等方法
     # 无需重写，直接继承父类实现即可
     
     # === Ray Actor专用方法 ===
@@ -92,7 +92,7 @@ class RemoteJobManager(JobManager):
         for env_uuid, job_info in list(self.jobs.items()):
             try:
                 if job_info.status in ["running", "submitted"]:
-                    self.stop_job(env_uuid)
+                    self.pause_job(env_uuid)
                     shutdown_report["jobs_stopped"] += 1
             except Exception as e:
                 shutdown_report["jobs_failed_to_stop"] += 1

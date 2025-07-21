@@ -35,3 +35,32 @@ class RayTask(BaseTask):
 
         self.logger.info(f"Initialized RayTask: {self.ctx.name}")
 
+    def cleanup(self):
+        super().cleanup()
+        """清理任务资源 - 重写以支持 Ray 特定清理"""
+        self.logger.info(f"Cleaning up RayTask {self.name}")
+        
+        try:
+            # 停止任务
+            if self.is_running:
+                self.stop()
+            
+            # # 清理算子资源
+            # if hasattr(self.operator, 'cleanup'):
+            #     self.operator.cleanup()
+            # 这些内容应该会自己清理掉
+            # # 清理 Ray Router
+            # if hasattr(self.router, 'cleanup'):
+            #     self.router.cleanup()
+            
+            # 清理 Ray Queue
+            if hasattr(self.input_buffer, 'shutdown'):
+                try:
+                    self.input_buffer.shutdown()
+                except Exception as e:
+                    self.logger.warning(f"Error shutting down input buffer: {e}")
+            
+            self.logger.debug(f"RayTask {self.name} cleanup completed")
+            
+        except Exception as e:
+            self.logger.error(f"Error during cleanup of RayTask {self.name}: {e}")

@@ -125,3 +125,32 @@ class BaseTask(ABC):
     def name(self) -> str:
         """获取任务名称"""
         return self.ctx.name
+
+
+    def cleanup(self):
+        """清理任务资源"""
+        self.logger.info(f"Cleaning up task {self.name}")
+        
+        try:
+            # 停止任务
+            if self.is_running:
+                self.stop()
+            
+            # # 清理算子资源
+            # if hasattr(self.operator, 'cleanup'):
+            #     self.operator.cleanup()
+            # 这些内容应该会自己清理掉
+            # # 清理路由器
+            # if hasattr(self.router, 'cleanup'):
+            #     self.router.cleanup()
+            
+            # 清理输入缓冲区
+            if hasattr(self.input_buffer, 'cleanup'):
+                self.input_buffer.cleanup()
+            elif hasattr(self.input_buffer, 'close'):
+                self.input_buffer.close()
+            
+            self.logger.debug(f"Task {self.name} cleanup completed")
+            
+        except Exception as e:
+            self.logger.error(f"Error during cleanup of task {self.name}: {e}")

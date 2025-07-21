@@ -78,7 +78,7 @@ class PersistentJobManagerActor(JobManager):
             if hasattr(self, 'environments'):
                 for env_uuid in list(self.jobs.keys()):
                     try:
-                        self.stop_job(env_uuid)
+                        self.pause_job(env_uuid)
                     except Exception as e:
                         self.logger.error(f"Error stopping environment {env_uuid}: {e}")
             

@@ -13,9 +13,10 @@ if TYPE_CHECKING:
 # task, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:
+    # 定义不需要序列化的属性
+    __state_exclude__ = ["_logger", "env", "_env_logger_cache"]
     def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation', env: 'BaseEnvironment'):
         self.name:str = graph_node.name
-        self.env = env
         self.env_name = env.name
         self.env_base_dir:str = env.env_base_dir
         self.memory_collection:Any = transformation.memory_collection
