@@ -25,8 +25,10 @@ def pipeline_run():
     env.submit()
     # env.run_streaming()  # 启动管道
     time.sleep(5)
-    env.stop()  # 停止管道
-    time.sleep(2)
+
+
+
+
     env2 = RemoteStreamEnvironment(name="example_pipeline2")
     env2.set_memory(config={"collection_name": "example_collection2"})
     # 构建数据处理流程
@@ -37,9 +39,6 @@ def pipeline_run():
     response_stream2.sink(FileSink, config["sink"])
     # 提交管道并运行
     env2.submit()
-    # env2.run_streaming()  # 启动管道
-    time.sleep(50)
-    env.stop()  # 停止管道
     time.sleep(1000)
 
 if __name__ == '__main__':

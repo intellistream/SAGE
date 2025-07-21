@@ -4,7 +4,8 @@ import time
 from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.io.sink import TerminalSink
-from sage_libs.rag import HFGenerator
+
+from sage_libs.rag.generator import HFGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
 from sage_utils.config_loader import load_config
