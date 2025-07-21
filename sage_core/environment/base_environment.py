@@ -36,7 +36,7 @@ class BaseEnvironment(ABC):
         self.runtime_context = dict  # 需要在compiler里面实例化。
         self.memory_collection = None  # 用于存储内存集合
         self.is_running = False
-
+        self.env_base_dir: Optional[str] = None  # 环境基础目录，用于存储日志和其他文件
         # JobManager 相关
         self._jobmanager: Optional[ActorWrapper] = None
         

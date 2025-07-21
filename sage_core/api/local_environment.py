@@ -15,6 +15,16 @@ class LocalEnvironment(BaseEnvironment):
         # 本地环境不需要客户端
         self._engine_client = None
 
+    def submit(self):
+        # 序列化环境
+        env_uuid = self.jobmanager.submit_job(self)
+        
+        if env_uuid:
+            self.env_uuid = env_uuid
+            self.logger.info(f"Environment submitted with UUID: {self.env_uuid}")
+        else:
+            raise RuntimeError("Failed to submit environment: no UUID returned")
+
     @property
     def jobmanager(self) -> 'JobManager':
         """直接返回JobManager的单例实例"""

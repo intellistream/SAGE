@@ -51,7 +51,9 @@ class JobManagerClient:
             "action": "get_actor_handle",
             "request_id": str(uuid.uuid4())
         }
-        
+        if not ray.is_initialized():
+            ray.init(address="auto", _temp_dir="/var/lib/ray_shared")
+
         response = self._send_request(request)
         
         if response.get("status") != "success":

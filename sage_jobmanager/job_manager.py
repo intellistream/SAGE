@@ -47,26 +47,9 @@ class JobManager: #Job Manager
         project_root = Path(__file__).parent.parent
         self.log_base_dir = project_root / "logs" / f"jobmanager_{self.session_id}"
         Path(self.log_base_dir).mkdir(parents=True, exist_ok=True)
+
         
-        # 3. 创建项目目录的软链接（方便查看）
-        project_root = Path(__file__).parent.parent  # SAGE项目根目录
-        project_logs_dir = project_root / "logs"
-        project_logs_dir.mkdir(exist_ok=True)
-        
-        current_link = project_logs_dir / f"jobmanager_{self.session_id}"
-        # 删除旧的软链接
-        if current_link.is_symlink():
-            current_link.unlink()
-        
-        # 创建新的软链接
-        try:
-            current_link.symlink_to(self.log_base_dir)
-            self.logger_link_created = True
-        except Exception as e:
-            print(f"Warning: Could not create symlink: {e}")
-            self.logger_link_created = False
-        
-        # 4. 创建JobManager主日志
+        # 3. 创建JobManager主日志
         self.logger = CustomLogger([
             ("console", "INFO"),  # 控制台显示重要信息
             (os.path.join(self.log_base_dir, "jobmanager.log"), "DEBUG"),      # 详细日志
@@ -79,13 +62,20 @@ class JobManager: #Job Manager
     ########################################################
 
     def submit_job(self, env: 'BaseEnvironment') -> str:
+
+
+        env.setup_logging_system(self.log_base_dir)
         # 生成 UUID
         env.uuid = str(uuid.uuid4())
         # 编译环境
         from sage_jobmanager.execution_graph import ExecutionGraph
-        graph = ExecutionGraph(env) # TODO: 如果Job里面有申明'env.set_memory(config=None)'，则说明该job需要一个global memory manager.
-                                    # 则在构建executiongraph的时候要单独是实例化一个特殊的operator，即 memory manager，并使得所有调用了memory相关操作的
-                                    # 算子，双向连到该memory manager算子上。
+        graph = ExecutionGraph(env) 
+
+
+
+        # TODO: 如果Job里面有申明'env.set_memory(config=None)'，则说明该job需要一个global memory manager.
+        # 则在构建executiongraph的时候要单独是实例化一个特殊的operator，即 memory manager，并使得所有调用了memory相关操作的
+        # 算子，双向连到该memory manager算子上。
         dispatcher = Dispatcher(graph, env)
 
             # 创建 JobInfo 对象

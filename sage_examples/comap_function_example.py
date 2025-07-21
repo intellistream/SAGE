@@ -1,3 +1,4 @@
+from sage_core.api.local_environment import LocalEnvironment
 from sage_core.api.remote_environment import RemoteEnvironment
 from sage_core.function.sink_function import SinkFunction
 from sage_core.function.source_function import SourceFunction
@@ -114,7 +115,7 @@ class SensorSink(SinkFunction):
 
 def main():
     # 创建环境
-    env = RemoteEnvironment("comap_function_example")
+    env = LocalEnvironment("comap_function_example")
     
     print("🚀 Starting CoMap Function Example")
     print("🌡️  Demonstrating multi-sensor data processing with CoMap")
