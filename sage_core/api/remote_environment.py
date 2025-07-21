@@ -15,6 +15,9 @@ class RemoteStreamEnvironment(StreamEnvironment):
 
     def __init__(self, name: str = "remote_environment", config: dict | None = None):
         super().__init__(name, config, platform="remote")
+        if not ray.is_initialized():
+            ray.init(address="auto", _temp_dir="/var/lib/ray_shared")
+            # 确保Ray初始化时不启动Dashboard，避免端口冲突
 
     def _get_jobmanager_handle(self) -> ActorWrapper:
         """获取全局JobManager Actor句柄"""
