@@ -89,31 +89,31 @@ class ConnectedDebugSink(SinkFunction):
         super().__init__(**kwargs)
         self.parallel_index = None
         self.received_count = 0
-    
+
     def execute(self, data: Any):
         if self.runtime_context:
-            selfctx = self.runtime_context.parallel_index
-        ctx
+            self.parallel_index = self.runtime_context.parallel_index
+
         with self._lock:
             if self.parallel_index not in self._received_data:
                 self._received_data[self.parallel_index] = []
-            
+
             self._received_data[self.parallel_index].append(data)
-        
+
         self.received_count += 1
-        
+
         data_type = data.get('type', 'unknown')
         key_info = data.get('user_id', 'no_key')
-        
+
         self.logger.info(
             f"[Instance {self.parallel_index}] "
             f"Received {data_type} data #{self.received_count}: {data}"
         )
-        
+
         # 打印调试信息
         print(f"🔍 [Instance {self.parallel_index}] Type: {data_type}, "
               f"Key: {key_info}, Data: {data}")
-        
+
         return data
     
     @classmethod
