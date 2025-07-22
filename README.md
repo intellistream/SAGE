@@ -17,6 +17,12 @@ SAGE is a dataflow-native reasoning framework built from the ground up to suppor
 
 - 📊 **Built-in Observability & Introspection**: An interactive dashboard provides runtime instrumentation out-of-the-box. Visually inspect execution graphs, monitor operator-level metrics, and debug pipeline behavior in real-time.
 
+## 文档信息
+
+阅读文档请refer到 [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
+
+维护文档请refer到 [https://github.com/intellistream/SAGE-Pub](https://github.com/intellistream/SAGE-Pub)
+
 ## 🔧 Installation
 
 To accommodate different user environments and preferences, we provide **comprehensive setup scripts** that support multiple installation modes. Simply run the top-level `./setup.sh` script and choose from the following four installation options:
