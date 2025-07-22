@@ -1,6 +1,11 @@
 import time
 import threading
+import time
+import threading
+import tempfile
+import json
 from typing import List, Dict, Any
+from pathlib import Path
 from sage_core.api.local_environment import LocalEnvironment
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.flatmap_function import FlatMapFunction
@@ -479,23 +484,23 @@ class OrderEventJoin(BaseJoinFunction):
 class JoinResultSink(SinkFunction):
     """收集Join结果的Sink"""
     
-    _received_data: Dict[int, List[Any]] = {}
-    _lock = threading.Lock()
-    
-    def __init__(self, **kwargs):
+    def __init__(self, output_file=None, **kwargs):
         super().__init__(**kwargs)
         self.parallel_index = None
         self.received_count = 0
+        
+        # 如果没有指定输出文件，使用临时文件
+        if output_file is None:
+            self.output_file = Path(tempfile.gettempdir()) / "join_test_results.json"
+        else:
+            self.output_file = Path(output_file)
+            
+        if self.ctx:
+            self.logger.info(f"JoinResultSink initialized, output file: {self.output_file}")
 
     def execute(self, data: Any):
         if self.ctx:
             self.parallel_index = self.ctx.parallel_index
-
-        with self._lock:
-            if self.parallel_index not in self._received_data:
-                self._received_data[self.parallel_index] = []
-
-            self._received_data[self.parallel_index].append(data)
 
         self.received_count += 1
 
@@ -503,25 +508,94 @@ class JoinResultSink(SinkFunction):
         key_field = "user_id" if "user" in join_type else "order_id"
         key_value = data.get(key_field, "unknown")
 
-        self.logger.info(
-            f"[Instance {self.parallel_index}] "
-            f"Received join result #{self.received_count}: {join_type} for {key_field}={key_value}"
-        )
+        if self.ctx:
+            self.logger.info(
+                f"[Instance {self.parallel_index}] "
+                f"Received join result #{self.received_count}: {join_type} for {key_field}={key_value}"
+            )
 
         # 打印调试信息
         print(f"🔗 [Instance {self.parallel_index}] Join: {join_type} | {key_field}={key_value}")
+        
+        # 保存到文件
+        self._append_record({
+            "parallel_index": self.parallel_index,
+            "sequence": self.received_count,
+            "data": data,
+            "timestamp": time.time()
+        })
 
         return data
     
-    @classmethod
-    def get_received_data(cls) -> Dict[int, List[Any]]:
-        with cls._lock:
-            return dict(cls._received_data)
+    def _append_record(self, record):
+        """原子性地追加记录到文件"""
+        try:
+            # 以追加模式打开文件
+            with open(self.output_file, 'a') as f:
+                # 写入一行JSON
+                f.write(json.dumps(record) + '\n')
+                f.flush()
+        except Exception as e:
+            if self.ctx:
+                self.logger.error(f"Failed to write record: {e}")
     
     @classmethod
-    def clear_data(cls):
-        with cls._lock:
-            cls._received_data.clear()
+    def read_results(cls, output_file=None):
+        """读取测试结果"""
+        if output_file is None:
+            output_file = Path(tempfile.gettempdir()) / "join_test_results.json"
+        else:
+            output_file = Path(output_file)
+        
+        results = {}
+        
+        if not output_file.exists():
+            print(f"📂 No results file found: {output_file}")
+            return results
+        
+        try:
+            with open(output_file, 'r') as f:
+                for line_num, line in enumerate(f, 1):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    try:
+                        record = json.loads(line)
+                        parallel_index = record.get("parallel_index", 0)
+                        data = record.get("data")
+                        
+                        if parallel_index not in results:
+                            results[parallel_index] = []
+                        
+                        results[parallel_index].append(data)
+                        
+                    except json.JSONDecodeError as e:
+                        print(f"⚠️ Failed to parse line {line_num}: {e}")
+                        continue
+                        
+        except Exception as e:
+            print(f"❌ Failed to read results file: {e}")
+        
+        print(f"📂 Read {sum(len(data_list) for data_list in results.values())} records from {len(results)} parallel instances")
+        return results
+    
+    @classmethod
+    def clear_results(cls, output_file=None):
+        """清理结果"""
+        if output_file is None:
+            output_file = Path(tempfile.gettempdir()) / "join_test_results.json"
+        else:
+            output_file = Path(output_file)
+        
+        if output_file.exists():
+            output_file.unlink()
+            print(f"🗑️ Cleared results file: {output_file}")
+    
+    @classmethod
+    def get_received_data(cls, output_file=None):
+        """兼容性方法，调用read_results"""
+        return cls.read_results(output_file)
 
 
 # =====================================================================
@@ -532,7 +606,7 @@ class TestJoinFunctionality:
     """测试Join功能的完整测试套件"""
     
     def setup_method(self):
-        JoinResultSink.clear_data()
+        JoinResultSink.clear_results()
     
     def test_flatmap_filter_join_pipeline(self):
         """测试完整的FlatMap -> Filter -> Join管道"""
@@ -576,7 +650,225 @@ class TestJoinFunctionality:
         finally:
             env.close()
         
+        # 等待一下确保文件写入完成
+        time.sleep(1)
         self._verify_user_order_join_results()
+    
+    def test_multi_stage_join_pipeline(self):
+        """测试多阶段Join管道"""
+        print("\n🚀 Testing Multi-Stage Join Pipeline")
+        
+        env = LocalEnvironment("multi_stage_join_test")
+        
+        # 第一阶段：订单事件流处理
+        order_source = env.from_source(OrderEventSource, delay=0.2)
+        
+        # 分离为两个流：订单信息流和支付信息流
+        order_info_stream = (order_source
+            .flatmap(OrderEventFlatMap)
+            .filter(lambda x: x.get("type") == "order_info")
+            .keyby(UserIdKeyBy)
+        )
+        
+        payment_info_stream = (order_source
+            .flatmap(OrderEventFlatMap)
+            .filter(lambda x: x.get("type") == "payment_info")
+            .keyby(UserIdKeyBy)
+        )
+        
+        # 第二阶段：用户信息流处理
+        user_source = env.from_source(UserProfileSource, delay=0.3)
+        
+        # 只保留高级用户
+        premium_user_stream = (user_source
+            .flatmap(UserProfileFlatMap)
+            .filter(PremiumUserFilter)
+            .filter(lambda x: x.get("type") in ["user_info", "preference_info"])
+            .keyby(UserIdKeyBy)
+        )
+        
+        # 第三阶段：多重Join
+        # Join 1: 高级用户 + 支付信息
+        user_payment_join = (premium_user_stream
+            .connect(payment_info_stream)
+            .join(UserPaymentJoin, timeout_ms=3000)
+            .sink(JoinResultSink, parallelism=1)
+        )
+        
+        print("📊 Multi-Stage Pipeline:")
+        print("   OrderSource -> flatmap -> filter(order_info) -> keyby")
+        print("   OrderSource -> flatmap -> filter(payment_info) -> keyby")
+        print("   UserSource -> flatmap -> filter(premium) -> keyby")
+        print("   premium_user.connect(payment).join(UserPaymentJoin)")
+        print("🎯 Expected: Premium users with their payment information\n")
+        
+        try:
+            env.submit()
+            
+            time.sleep(6)
+        finally:
+            env.close()
+        
+        # 等待一下确保文件写入完成
+        time.sleep(1)
+        self._verify_user_payment_join_results()
+    
+    def test_windowed_join_pipeline(self):
+        """测试基于时间窗口的Join"""
+        print("\n🚀 Testing Windowed Join Pipeline")
+        
+        env = LocalEnvironment("windowed_join_test")
+        
+        order_source = env.from_source(OrderEventSource, delay=0.15)
+        
+        # 分离订单信息和事件信息，按订单ID分区
+        order_info_stream = (order_source
+            .flatmap(OrderEventFlatMap)
+            .filter(lambda x: x.get("type") == "order_info")
+            .keyby(OrderIdKeyBy)
+        )
+        
+        event_info_stream = (order_source
+            .flatmap(OrderEventFlatMap)
+            .filter(lambda x: x.get("type") == "event_info")
+            .keyby(OrderIdKeyBy)
+        )
+        
+        # 窗口Join：在时间窗口内关联订单和事件
+        windowed_join = (order_info_stream
+            .connect(event_info_stream)
+            .join(OrderEventJoin, window_ms=2000)
+            .sink(JoinResultSink, parallelism=1)
+        )
+        
+        print("📊 Windowed Join Pipeline:")
+        print("   OrderSource -> flatmap -> filter(order_info) -> keyby(order_id)")
+        print("   OrderSource -> flatmap -> filter(event_info) -> keyby(order_id)")
+        print("   order_info.connect(event_info).join(OrderEventJoin, window=2s)")
+        print("🎯 Expected: Orders matched with their events within time window\n")
+        
+        try:
+            env.submit()
+            
+            time.sleep(5)
+        finally:
+            env.close()
+        
+        # 等待一下确保文件写入完成
+        time.sleep(1)
+        self._verify_order_event_join_results()
+    
+    def test_complex_pipeline_with_multiple_joins(self):
+        """测试包含多个Join的复杂管道"""
+        print("\n🚀 Testing Complex Pipeline with Multiple Joins")
+        
+        env = LocalEnvironment("complex_multi_join_test")
+        
+        # 数据源
+        order_source = env.from_source(OrderEventSource, delay=0.2)
+        user_source = env.from_source(UserProfileSource, delay=0.3)
+        
+        # 复杂的数据分流和过滤
+        # 流1：用户基础信息
+        user_basic_stream = (user_source
+            .flatmap(UserProfileFlatMap)
+            .filter(lambda x: x.get("type") == "user_info")
+            .keyby(UserIdKeyBy)
+        )
+        
+        # 流2：订单支付信息
+        payment_stream = (order_source
+            .flatmap(OrderEventFlatMap)
+            .filter(lambda x: x.get("type") == "payment_info")
+            .keyby(UserIdKeyBy)
+        )
+        
+        # 流3：订单基础信息
+        order_basic_stream = (order_source
+            .flatmap(OrderEventFlatMap)
+            .filter(lambda x: x.get("type") == "order_info")
+            .keyby(UserIdKeyBy)
+        )
+        
+        # Join 1: 用户 + 支付信息
+        user_payment = (user_basic_stream
+            .connect(payment_stream)
+            .join(UserPaymentJoin, timeout_ms=2000)
+        )
+        
+        # Join 2: 用户 + 订单信息
+        user_order = (user_basic_stream
+            .connect(order_basic_stream)
+            .join(UserOrderJoin)
+        )
+        
+        # 收集所有Join结果
+        user_payment.sink(JoinResultSink, parallelism=1)
+        user_order.sink(JoinResultSink, parallelism=1)
+        
+        print("📊 Complex Multi-Join Pipeline:")
+        print("   UserSource -> flatmap -> filter(user_info) -> keyby")
+        print("   OrderSource -> flatmap -> filter(payment_info) -> keyby")
+        print("   OrderSource -> flatmap -> filter(order_info) -> keyby")
+        print("   user.connect(payment).join() + user.connect(order).join()")
+        print("🎯 Expected: Both user-payment and user-order joins\n")
+        
+        try:
+            env.submit()
+            
+            time.sleep(6)
+        finally:
+            env.close()
+        
+        # 等待一下确保文件写入完成
+        time.sleep(1)
+        self._verify_complex_multi_join_results()
+    
+    def test_join_with_empty_streams(self):
+        """测试空流的Join处理"""
+        print("\n🚀 Testing Join with Empty/Filtered Streams")
+        
+        env = LocalEnvironment("empty_stream_join_test")
+        
+        order_source = env.from_source(OrderEventSource, delay=0.2)
+        user_source = env.from_source(UserProfileSource, delay=0.3)
+        
+        # 创建一个会过滤掉所有数据的流
+        empty_user_stream = (user_source
+            .flatmap(UserProfileFlatMap)
+            .filter(lambda x: False)  # 过滤掉所有数据
+            .keyby(UserIdKeyBy)
+        )
+        
+        order_stream = (order_source
+            .flatmap(OrderEventFlatMap)
+            .filter(lambda x: x.get("type") == "order_info")
+            .keyby(UserIdKeyBy)
+        )
+        
+        # Join空流和正常流
+        empty_join = (empty_user_stream
+            .connect(order_stream)
+            .join(UserOrderJoin)
+            .sink(JoinResultSink, parallelism=1)
+        )
+        
+        print("📊 Empty Stream Join Pipeline:")
+        print("   UserSource -> flatmap -> filter(False) -> keyby")
+        print("   OrderSource -> flatmap -> filter(order_info) -> keyby")
+        print("   empty_user.connect(order).join()")
+        print("🎯 Expected: No join results due to empty user stream\n")
+        
+        try:
+            env.submit()
+            
+            time.sleep(4)
+        finally:
+            env.close()
+        
+        # 等待一下确保文件写入完成
+        time.sleep(1)
+        self._verify_empty_stream_join_results()
     
     def test_multi_stage_join_pipeline(self):
         """测试多阶段Join管道"""

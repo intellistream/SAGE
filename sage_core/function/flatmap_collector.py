@@ -7,7 +7,7 @@ class Collector:
     Supports both immediate emission and batched collection.
     """
 
-    def __init__(self, ctx:RuntimeContext, router:BaseRouter):
+    def __init__(self, ctx:RuntimeContext):
         # 数据收集缓存
         self.ctx = ctx
         self._collected_data: List[Any] = []
