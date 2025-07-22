@@ -19,7 +19,7 @@ class MapFunction(BaseFunction):
 
     def __init__(self, ctx: 'RuntimeContext' = None, **kwargs):
         self.ctx = ctx
-        super.__init__(self.ctx)
+        super().__init__(self.ctx)
 
     @abstractmethod
     def execute(self, data: Any) -> Any:
