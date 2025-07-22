@@ -3,7 +3,7 @@ import json
 import threading
 import time
 
-from sage_core.api.local_environment import LocalStreamEnvironment
+from sage_core.api.local_environment import LocalEnvironment
 from sage_common_funs.io.sink import TerminalSink
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
@@ -111,7 +111,7 @@ def extract_query_from_kafka(kafka_data):
 
 def pipeline_run():
     """创建并运行基于Kafka的数据处理管道"""
-    env = LocalStreamEnvironment()
+    env = LocalEnvironment()
     env.set_memory(config=None)  # 初始化内存配置
     
     # 创建Kafka数据源
