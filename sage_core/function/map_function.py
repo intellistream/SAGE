@@ -15,7 +15,14 @@ class MapFunction(BaseFunction):
     映射函数接收一个输入，产生一个输出
     用于数据转换、增强、格式化等操作
     """
-    
+
+    def __init__(self, ctx:'RuntimeContext' = None, **kwargs):
+        self.ctx = ctx
+        # self.runtime_context.create_logger()
+        super.__init__(super, self.ctx)
+        load_config
+
+
     @abstractmethod
     def execute(self, data: Any) -> Any:
         """

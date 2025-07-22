@@ -1,7 +1,7 @@
 import time
 import threading
 from typing import List, Dict, Any
-from sage_core.api.local_environment import LocalStreamEnvironment
+from sage_core.api.local_environment import LocalEnvironment
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.keyby_function import KeyByFunction
 from sage_core.function.sink_function import SinkFunction
@@ -49,29 +49,29 @@ class ParallelDebugSink(SinkFunction):
         super().__init__(**kwargs)
         self.parallel_index = None
         self.received_count = 0
-    
+
     def execute(self, data: Any):
         # 从runtime_context获取parallel_index
         if self.runtime_context:
             self.parallel_index = self.runtime_context.parallel_index
-        ctx
-        with self._lock:ctx
+
+        with self._lock:
             if self.parallel_index not in self._received_data:
                 self._received_data[self.parallel_index] = []
-            
+
             self._received_data[self.parallel_index].append(data)
-        
+
         self.received_count += 1
-        
+
         self.logger.info(
             f"[Parallel Instance {self.parallel_index}] "
             f"Received data #{self.received_count}: {data}"
         )
-        
+
         # 打印调试信息
         print(f"🔍 [Instance {self.parallel_index}] User: {data['user_id']}, "
               f"Content: {data['content']}")
-        
+
         return data
     
     @classmethod
@@ -99,7 +99,7 @@ class TestKeyByFunctionality:
         print("\n🚀 Testing KeyBy Hash Partitioning")
         
         # 创建环境
-        env = LocalStreamEnvironment("keyby_test")
+        env = LocalEnvironment("keyby_test")
         
         # 构建数据流：source -> keyby -> parallel sink
         result_stream = (
@@ -132,7 +132,7 @@ class TestKeyByFunctionality:
         """测试广播策略"""
         print("\n🚀 Testing KeyBy Broadcast Strategy")
         
-        env = LocalStreamEnvironment("keyby_broadcast_test")
+        env = LocalEnvironment("keyby_broadcast_test")
         
         result_stream = (
             env.from_source(TestDataSource, delay=0.3)
@@ -241,7 +241,7 @@ class TestAdvancedKeyBy:
         """测试复杂的key提取逻辑"""
         print("\n🚀 Testing Advanced Key Extraction")
         
-        env = LocalStreamEnvironment("advanced_keyby_test")
+        env = LocalEnvironment("advanced_keyby_test")
         
         result_stream = (
             env.from_source(TestDataSource, delay=0.4)
