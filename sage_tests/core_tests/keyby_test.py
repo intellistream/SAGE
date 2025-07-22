@@ -52,8 +52,8 @@ class ParallelDebugSink(SinkFunction):
 
     def execute(self, data: Any):
         # 从runtime_context获取parallel_index
-        if self.runtime_context:
-            self.parallel_index = self.runtime_context.parallel_index
+        if self.ctx:
+            self.parallel_index = self.ctx.parallel_index
 
         with self._lock:
             if self.parallel_index not in self._received_data:

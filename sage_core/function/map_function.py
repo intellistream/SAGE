@@ -19,7 +19,6 @@ class MapFunction(BaseFunction):
 
     def __init__(self, ctx: 'RuntimeContext' = None, **kwargs):
         self.ctx = ctx
-        # self.runtime_context.create_logger()
         super.__init__(self.ctx)
 
     @abstractmethod

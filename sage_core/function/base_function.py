@@ -16,7 +16,6 @@ class BaseFunction(ABC):
 
     def __init__(self, ctx:'RuntimeContext' = None, **kwargs):
         self.ctx = ctx
-        # self.runtime_context.create_logger()
         self.logger.info(f"Function {self.name} initialized")
         
     @property
@@ -58,8 +57,8 @@ class BaseFunction(ABC):
 
 class MemoryFunction(BaseFunction):
     def __init__(self):
-        self.runtime_context = None  # 需要在compiler里面实例化。
-        self.memory= self.runtime_context.memory
+        self.ctx = None  # 需要在compiler里面实例化。
+        self.memory= self.ctx.memory
         pass
 
 class StatefulFunction(BaseFunction):
@@ -70,7 +69,7 @@ class StatefulFunction(BaseFunction):
     # 子类可覆盖：只保存 include 中字段
     __state_include__ = []
     # 默认排除 logger、私有属性和 runtime_context
-    __state_exclude__ = ['logger', '_logger', 'runtime_context']
+    __state_exclude__ = ['logger', '_logger', 'ctx']
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

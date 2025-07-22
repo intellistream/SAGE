@@ -34,11 +34,10 @@ class TimeDenseRetriever(MapFunction):
         # 先让框架创建 retriever
         self.retriever = DenseRetriever(config)
         # 再把自己的 runtime_context 注入进去
-        self.retriever.runtime_context = self.runtime_context
+        self.retriever.ctx = self.ctx
 
     def execute(self, data: dict):
         start = time.time()
-        # 现在 retriever.runtime_context 已可用
         query, chunks = self.retriever.execute(data["query"])
         data["retrieval_time"] = time.time() - start
         data["retrieved_docs"] = [
@@ -53,7 +52,7 @@ class TimeLongRefiner(MapFunction):
     def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
         self.refiner = LongRefinerAdapter(config)
-        self.refiner.runtime_context = self.runtime_context
+        self.refiner.ctx = self.ctx
 
     def execute(self, data: dict):
         start = time.time()
@@ -68,7 +67,7 @@ class TimeQAPromptor(MapFunction):
     def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
         self.promptor = QAPromptor(config)
-        self.promptor.runtime_context = self.runtime_context
+        self.promptor.ctx = self.ctx
 
     def execute(self, data: dict):
         query, prompt = self.promptor.execute((data["query"], data["refined_docs"]))
@@ -80,7 +79,7 @@ class TimeQAPromptor(MapFunction):
 class TimeGenerator(MapFunction):
     def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
-        self.generator.runtime_context = self.runtime_context
+        self.generator.ctx = self.ctx
 
     def run(self, element):
         # 示例流程：调用底层 generator 生成结果

@@ -42,7 +42,7 @@ class MockTransformation:
         self._function_factory = None
         
         # 运行时状态
-        self.runtime_context = self._create_runtime_context()
+        self.ctx = self._create_runtime_context()
         
         # 定义序列化排除列表
         self.__state_exclude__ = [

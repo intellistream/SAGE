@@ -33,7 +33,7 @@ class BaseEnvironment(ABC):
         # 用于收集所有 BaseTransformation，供 ExecutionGraph 构建 DAG
         self.pipeline: List[BaseTransformation] = []
         self._filled_futures: dict = {}  # 记录已填充的future stream信息：name -> {future_transformation, actual_transformation, filled_at}
-        self.runtime_context = dict  # 需要在compiler里面实例化。
+        self.ctx = dict  # 需要在compiler里面实例化。
         self.memory_collection = None  # 用于存储内存集合
         self.is_running = False
         self.env_base_dir: Optional[str] = None  # 环境基础目录，用于存储日志和其他文件
