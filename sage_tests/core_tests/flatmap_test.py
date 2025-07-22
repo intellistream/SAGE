@@ -319,7 +319,6 @@ class TestFilterFunctionality:
         
         try:
             env2.submit()
-            env2.run_streaming()
             time.sleep(2)
         finally:
             env2.close()
