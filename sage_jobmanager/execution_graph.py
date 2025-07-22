@@ -25,7 +25,7 @@ class GraphNode:
         self.output_channels:List[List[GraphEdge]] = []
 
         self.stop_signal_num: int = 0  # 预期的源节点数量
-        self.runtime_context: RuntimeContext = None
+        self.ctx: RuntimeContext = None
 
 
 class GraphEdge:
@@ -84,7 +84,7 @@ class ExecutionGraph:
         self.logger.debug("Generating runtime contexts for all nodes")
         for node_name, node in self.nodes.items():
             try:
-                node.runtime_context = RuntimeContext(node, node.transformation, self.env, jobmanager_handle)
+                node.ctx = RuntimeContext(node, node.transformation, self.env, jobmanager_handle)
                 self.logger.debug(f"Generated runtime context for node: {node_name}")
             except Exception as e:
                 self.logger.error(f"Failed to generate runtime context for node {node_name}: {e}", exc_info=True)

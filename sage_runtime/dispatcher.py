@@ -65,7 +65,7 @@ class Dispatcher():
         # 第一步：创建所有节点实例
         for node_name, graph_node in self.graph.nodes.items():
             # task = graph_node.create_dag_node()
-            task = graph_node.transformation.task_factory.create_task(graph_node.name, graph_node.runtime_context)
+            task = graph_node.transformation.task_factory.create_task(graph_node.name, graph_node.ctx)
 
             self.tasks[node_name] = task
 
