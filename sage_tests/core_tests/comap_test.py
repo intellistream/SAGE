@@ -379,7 +379,6 @@ class TestCoMapFunctionality:
         
         try:
             env.submit()
-            env.run_once()
             
             time.sleep(3)
         finally:
@@ -412,7 +411,6 @@ class TestCoMapFunctionality:
         
         try:
             env.submit()
-            env.run_once()
             
             time.sleep(3)
         finally:
@@ -442,7 +440,6 @@ class TestCoMapFunctionality:
         
         try:
             env.submit()
-            env.run_once()
             
             time.sleep(4)
         finally:

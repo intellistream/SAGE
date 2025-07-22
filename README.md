@@ -241,11 +241,7 @@ query_stream = (pipeline
 # Submit and run the pipeline
 try:
     env.submit()
-    env.run_once()
     time.sleep(5)
-    env.stop()
-finally:
-    env.close()
 
 ```
 
