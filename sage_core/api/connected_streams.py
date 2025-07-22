@@ -377,13 +377,13 @@ class ConnectedStreams:
             class_methods[method_name] = (lambda f: lambda self, data: f(data))(func)
         
         # Create the dynamic class
-        DynamicCoMapFunction = type(
-            'DynamicCoMapFunction',
+        dynamic_comap_function = type(
+            'dynamic_comap_function',
             (BaseCoMapFunction,),
             class_methods
         )
         
-        return DynamicCoMapFunction
+        return dynamic_comap_function
     
     def _warn_ignored_params(self, param_type: str, *params) -> None:
         """

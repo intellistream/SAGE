@@ -4,13 +4,62 @@ import {Operator} from "../../model/Operator";
 @Component({
   selector: 'app-info-scroll-wrapper',
   templateUrl: './info-scroll-wrapper.component.html',
+  standalone: true,
   styleUrls: ['./info-scroll-wrapper.component.less']
 })
 export class InfoScrollWrapperComponent implements AfterViewInit {
   @ViewChild('OperatorsContainer') scrollContainer!: ElementRef<HTMLElement>;
   @ViewChild('leftButton') leftButton!: ElementRef<HTMLButtonElement>;
   @ViewChild('rightButton') rightButton!: ElementRef<HTMLButtonElement>;
-  @Input() operators: Operator[] = [
+  @Input() operators: ({
+    id: number;
+    name: string;
+    numOfInstances: number;
+    throughput: number;
+    latency: number;
+    explorationStrategy: string;
+    schedulingGranularity: string;
+    abortHandling: string;
+    numOfTD: number;
+    numOfLD: number;
+    numOfPD: number
+  } | {
+    id: number;
+    name: string;
+    numOfInstances: number;
+    throughput: number;
+    latency: number;
+    explorationStrategy: string;
+    schedulingGranularity: string;
+    abortHandling: string;
+    numOfTD: number;
+    numOfLD: number;
+    numOfPD: number
+  } | {
+    id: number;
+    name: string;
+    numOfInstances: number;
+    throughput: number;
+    latency: number;
+    explorationStrategy: string;
+    schedulingGranularity: string;
+    abortHandling: string;
+    numOfTD: number;
+    numOfLD: number;
+    numOfPD: number
+  } | {
+    id: number;
+    name: string;
+    numOfInstances: number;
+    throughput: number;
+    latency: number;
+    explorationStrategy: string;
+    schedulingGranularity: string;
+    abortHandling: string;
+    numOfTD: number;
+    numOfLD: number;
+    numOfPD: number
+  })[] = [
     {
       id: 1,
       name: "Spout",
@@ -64,7 +113,19 @@ export class InfoScrollWrapperComponent implements AfterViewInit {
       numOfPD: 120
     }
   ];
-  selectedOperator: Operator = this.operators[0];
+  selectedOperator: {
+    id: number;
+    name: string;
+    numOfInstances: number;
+    throughput: number;
+    latency: number;
+    explorationStrategy: string;
+    schedulingGranularity: string;
+    abortHandling: string;
+    numOfTD: number;
+    numOfLD: number;
+    numOfPD: number
+  } = this.operators[0];
 
   ngAfterViewInit() {
     this.checkScrolling();
