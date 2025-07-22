@@ -1,19 +1,14 @@
 import time, json
-from sage_core.api.env import LocalEnvironment
+
+from sage_core.api.local_environment import LocalEnvironment
+from sage_libs.rag.evaluate import F1Evaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate
 from sage_utils.config_loader import load_config
 from sage_core.function.map_function import MapFunction
 
 from sage_libs.rag.retriever import DenseRetriever
 from sage_plugins.longrefiner_fn.longrefiner_adapter import LongRefinerAdapter
 from sage_libs.rag.promptor import QAPromptor
-from sage_libs.rag.generator import get_generator_preset, OpenAIGenerator
-
-from sage_common_funs.io.sink import TerminalSink
-from sage_common_funs.rag.evaluate import (
-    F1Evaluate, RecallEvaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate,
-    AccuracyEvaluate, TokenCountEvaluate, LatencyEvaluate,
-    ContextRecallEvaluate, CompressionRateEvaluate
-)
+from sage_libs.rag.generator import OpenAIGenerator
 
 
 class CustomFileSource(MapFunction):
