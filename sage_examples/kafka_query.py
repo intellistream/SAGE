@@ -111,7 +111,7 @@ def extract_query_from_kafka(kafka_data):
 
 def pipeline_run():
     """创建并运行基于Kafka的数据处理管道"""
-    env = LocalEnvironment()
+    env = LocalEnvironment("kafka_query")
     env.set_memory(config=None)  # 初始化内存配置
     
     # 创建Kafka数据源
