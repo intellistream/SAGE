@@ -3,7 +3,7 @@ import pytest
 from dotenv import load_dotenv
 import os
 
-from sage_core.api.local_environment import LocalStreamEnvironment
+from sage_core.api.local_environment import LocalEnvironment
 from sage_libs.io.sink import TerminalSink
 from sage_libs.io.source import FileSource
 from sage_libs.rag.generator import OpenAIGenerator
@@ -26,7 +26,7 @@ def config():
 
 @pytest.fixture(scope="function")
 def env():
-    env = LocalStreamEnvironment()
+    env = LocalEnvironment()
     env.set_memory(config=None)
     yield env
     # teardown: 主动清理资源
