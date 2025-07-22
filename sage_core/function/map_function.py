@@ -4,6 +4,7 @@ from sage_core.function.base_function import BaseFunction
 
 from sage_utils.custom_logger import CustomLogger
 from sage_runtime.router.packet import Packet
+
 if TYPE_CHECKING:
     from sage_runtime.runtime_context import RuntimeContext
 
@@ -16,12 +17,10 @@ class MapFunction(BaseFunction):
     用于数据转换、增强、格式化等操作
     """
 
-    def __init__(self, ctx:'RuntimeContext' = None, **kwargs):
+    def __init__(self, ctx: 'RuntimeContext' = None, **kwargs):
         self.ctx = ctx
         # self.runtime_context.create_logger()
-        super.__init__(super, self.ctx)
-        load_config
-
+        super.__init__(self.ctx)
 
     @abstractmethod
     def execute(self, data: Any) -> Any:
