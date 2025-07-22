@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 import os
 from pathlib import Path
-from typing import List, Optional, TYPE_CHECKING, Type, Union
+from typing import List, Optional, TYPE_CHECKING, Type, Union, Any
 from sage_core.function.base_function import BaseFunction
 from sage_core.function.lambda_function import wrap_lambda
 import sage_memory.api
@@ -169,11 +169,11 @@ class BaseEnvironment(ABC):
                 progress_log_interval=10
             )
         """
-        from sage_core.function.batch_function import SimpleBatchFunction
+        from sage_core.function.simple_batch_function import SimpleBatchIteratorFunction
         
         transformation = BatchTransformation(
             self,
-            SimpleBatchFunction,
+            SimpleBatchIteratorFunction,
             data=data,
             **kwargs
         )
@@ -206,11 +206,11 @@ class BaseEnvironment(ABC):
                 progress_log_interval=1000
             )
         """
-        from sage_core.function.batch_function import FileBatchFunction
+        from sage_core.function.simple_batch_function import FileBatchIteratorFunction
         
         transformation = BatchTransformation(
             self,
-            FileBatchFunction,
+            FileBatchIteratorFunction,
             file_path=file_path,
             encoding=encoding,
             **kwargs
@@ -241,11 +241,11 @@ class BaseEnvironment(ABC):
             # 生成偶数序列
             batch_stream = env.from_batch_range(0, 100, step=2)
         """
-        from sage_core.function.batch_function import NumberRangeBatchFunction
+        from sage_core.function.simple_batch_function import RangeBatchIteratorFunction
         
         transformation = BatchTransformation(
             self,
-            NumberRangeBatchFunction,
+            RangeBatchIteratorFunction,
             start=start,
             end=end,
             step=step,
@@ -258,13 +258,13 @@ class BaseEnvironment(ABC):
         
         return DataStream(self, transformation)
 
-    def from_batch_generator(self, generator_func: callable, total_count: int, **kwargs) -> DataStream:
+    def from_batch_generator(self, generator_func: callable, total_count: int = None, **kwargs) -> DataStream:
         """
-        从生成器函数创建批处理数据源，用户需要提供总数量
+        从生成器函数创建批处理数据源
         
         Args:
             generator_func: 数据生成器函数，应该返回Iterator[Any]
-            total_count: 预期生成的总数量
+            total_count: 预期生成的总数量（可选）
             **kwargs: 其他配置参数，如progress_log_interval等
             
         Returns:
@@ -280,18 +280,56 @@ class BaseEnvironment(ABC):
             
             batch_stream = env.from_batch_generator(fibonacci_generator, 100)
         """
-        from sage_core.function.batch_function import CustomDataBatchFunction
+        from sage_core.function.simple_batch_function import GeneratorBatchIteratorFunction
         
         transformation = BatchTransformation(
             self,
-            CustomDataBatchFunction,
-            data_generator_func=generator_func,
+            GeneratorBatchIteratorFunction,
+            generator_func=generator_func,
             total_count=total_count,
             **kwargs
         )
         
         self.pipeline.append(transformation)
-        self.logger.info(f"Batch generator source created with {total_count} expected items")
+        total_info = f" with {total_count} expected items" if total_count else ""
+        self.logger.info(f"Batch generator source created{total_info}")
+        
+        return DataStream(self, transformation)
+
+    def from_batch_iterable(self, iterable: Any, total_count: int = None, **kwargs) -> DataStream:
+        """
+        从任何可迭代对象创建批处理数据源
+        
+        Args:
+            iterable: 任何实现了__iter__的对象
+            total_count: 总数量（可选，如果不提供会尝试自动获取）
+            **kwargs: 其他配置参数，如progress_log_interval等
+            
+        Returns:
+            DataStream: 包含BatchTransformation的数据流
+            
+        Example:
+            # 从集合创建
+            batch_stream = env.from_batch_iterable({1, 2, 3, 4, 5})
+            
+            # 从字符串创建（逐字符）
+            batch_stream = env.from_batch_iterable("hello")
+            
+            # 从任何可迭代对象创建
+            batch_stream = env.from_batch_iterable(my_custom_iterable)
+        """
+        from sage_core.function.simple_batch_function import IterableBatchIteratorFunction
+        
+        transformation = BatchTransformation(
+            self,
+            IterableBatchIteratorFunction,
+            iterable=iterable,
+            total_count=total_count,
+            **kwargs
+        )
+        
+        self.pipeline.append(transformation)
+        self.logger.info(f"Batch iterable source created from {type(iterable).__name__}")
         
         return DataStream(self, transformation)
 
@@ -300,7 +338,7 @@ class BaseEnvironment(ABC):
         从自定义批处理函数创建批处理数据源
         
         Args:
-            batch_function_class: 继承自BatchFunction的自定义函数类
+            batch_function_class: 自定义函数类，需要实现get_data_iterator方法
             *args: 传递给批处理函数的位置参数
             **kwargs: 传递给批处理函数的关键字参数，以及transformation的配置参数
             
@@ -308,12 +346,12 @@ class BaseEnvironment(ABC):
             DataStream: 包含BatchTransformation的数据流
             
         Example:
-            class MyBatchFunction(BatchFunction):
-                def get_total_count(self) -> int:
-                    return 50
-                
-                def get_data_source(self) -> Iterator[Any]:
+            class MyBatchFunction(BaseFunction):
+                def get_data_iterator(self):
                     return iter(range(50))
+                
+                def get_total_count(self):  # 可选
+                    return 50
             
             batch_stream = env.from_batch_custom(MyBatchFunction)
         """
