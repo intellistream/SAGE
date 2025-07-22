@@ -32,7 +32,7 @@ def init_memory_and_pipeline():
     # routestreram = prompt_stream.route(router,config)
 
     # 步骤 4: 使用 OpenAIGenerator 生成最终的响应
-    response_stream: DataStream = prompt_stream.map(OpenAIGenerator, config["generator"])
+    response_stream: DataStream = prompt_stream.map(OpenAIGenerator, config["generator"]["local"])
     summarize_stream: DataStream = prompt_stream.map(AbstractiveRecompRefiner, config["refiner"])
 
     # 步骤 5: 输出到终端或文件

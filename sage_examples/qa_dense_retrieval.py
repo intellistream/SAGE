@@ -1,5 +1,5 @@
-from sage_common_funs.io.source import FileSource
-from sage_common_funs.io.sink import TerminalSink
+from sage_libs.io.source import FileSource
+from sage_libs.io.sink import TerminalSink
 from sage_core.api.remote_environment import RemoteBatchEnvironment
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
@@ -18,7 +18,7 @@ def pipeline_run():
                     .process(FileSource, config["source"]) # 处理且处理一整个file 一次。
                     .map(DenseRetriever, config["retriever"])
                     .map(QAPromptor, config["promptor"])
-                    .map(OpenAIGenerator, config["generator"])
+                    .map(OpenAIGenerator, config["generator"]["local"])
                     .sink(TerminalSink, config["sink"]) # TM (JVM) --> 会打印在某一台机器的console里
                     )
 
@@ -32,7 +32,7 @@ def pipeline_run():
                     .from_source(FileSource, config["source"])
                     .map(DenseRetriever, config["retriever"])
                     .map(QAPromptor, config["promptor"])
-                    .map(OpenAIGenerator, config["generator"])
+                    .map(OpenAIGenerator, config["generator"]["local"])
                     .sink(TerminalSink, config["sink"]) # TM (JVM) --> 会打印在某一台机器的console里
                     )
     try:

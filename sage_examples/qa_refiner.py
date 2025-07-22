@@ -22,7 +22,7 @@ class CustomFileSource(MapFunction):
             for line in f:
                 item = json.loads(line)
                 return {
-                    "query":     item.get("question", ""),
+                    "query": item.get("question", ""),
                     "reference": item.get("reference", "")
                 }
         return None
@@ -58,9 +58,9 @@ class TimeLongRefiner(MapFunction):
     def execute(self, data: dict):
         start = time.time()
         query, refined = self.refiner.execute((data["query"], data["retrieved_docs"]))
-        data["refine_time"]   = time.time() - start
-        data["refined_docs"]  = refined
-        data["query"]         = query
+        data["refine_time"] = time.time() - start
+        data["refined_docs"] = refined
+        data["query"] = query
         return data
 
 
@@ -73,17 +73,13 @@ class TimeQAPromptor(MapFunction):
     def execute(self, data: dict):
         query, prompt = self.promptor.execute((data["query"], data["refined_docs"]))
         data["prompt"] = prompt
-        data["query"]  = query
+        data["query"] = query
         return data
 
 
 class TimeGenerator(MapFunction):
     def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
-        # ———— 一行切换本地, vllm or 远程模型 ————
-        self.generator = OpenAIGenerator(config, "local")
-        # 如果要使用远程模型，改成：
-        # self.generator = get_generator_preset("remote")
         self.generator.runtime_context = self.runtime_context
 
     def run(self, element):
@@ -95,9 +91,10 @@ class TimeGenerator(MapFunction):
         start = time.time()
         query, gen = self.generator.execute((data["query"], data["prompt"]))
         data["generation_time"] = time.time() - start
-        data["generated"]       = gen
-        data["query"]           = query
+        data["generated"] = gen
+        data["query"] = query
         return data
+
 
 def pipeline_run(config):
     env = LocalEnvironment()
@@ -105,27 +102,24 @@ def pipeline_run(config):
 
     (
         env
-        .from_source(CustomFileSource,     config["source"])
-        .map(TimeDenseRetriever,           config["retriever"])
-        .map(TimeLongRefiner,              config["refiner"])
-        .map(TimeQAPromptor,               config["promptor"])
-        .map(TimeGenerator,                config["generator"])
-        .map(F1Evaluate,                   config["evaluate"])
-        .map(RecallEvaluate,               config["evaluate"])
-        .map(BertRecallEvaluate,           config["evaluate"])
-        .map(RougeLEvaluate,               config["evaluate"])
-        .map(BRSEvaluate,                  config["evaluate"])
-        .map(AccuracyEvaluate,             config["evaluate"])
-        .map(TokenCountEvaluate,           config["evaluate"])
-        .map(LatencyEvaluate,              config["evaluate"])
-        .map(ContextRecallEvaluate,        config["evaluate"])
-        .map(CompressionRateEvaluate,      config["evaluate"])
-        #.map(ResultFormatter,              config["evaluate"])
-        #.sink(TerminalSink,                config["sink"])
+        .from_source(CustomFileSource, config["source"])
+        .map(TimeDenseRetriever, config["retriever"])
+        .map(TimeLongRefiner, config["refiner"])
+        .map(TimeQAPromptor, config["promptor"])
+        .map(TimeGenerator, config["generator"]["local"])  ## ———— 一行切换本地, vllm or 远程模型 ————
+        .map(F1Evaluate, config["evaluate"])
+        .map(RecallEvaluate, config["evaluate"])
+        .map(BertRecallEvaluate, config["evaluate"])
+        .map(RougeLEvaluate, config["evaluate"])
+        .map(BRSEvaluate, config["evaluate"])
+        .map(AccuracyEvaluate, config["evaluate"])
+        .map(TokenCountEvaluate, config["evaluate"])
+        .map(LatencyEvaluate, config["evaluate"])
+        .map(ContextRecallEvaluate, config["evaluate"])
+        .map(CompressionRateEvaluate, config["evaluate"])
     )
 
     env.submit()
-    env.run_once()
     time.sleep(100)
     env.close()
 

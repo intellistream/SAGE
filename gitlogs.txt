@@ -3659,22 +3659,22 @@ index 4bb9099..614e19a 100644
 -tabulate>=0.9.0
 -colorama>=0.4.6
 \ No newline at end of file
-diff --git a/sage_core/environment/__init__.py b/sage_common_funs/__init__.py
+diff --git a/sage_core/environment/__init__.py b/sage_libs/__init__.py
 similarity index 100%
 rename from sage_core/environment/__init__.py
-rename to sage_common_funs/__init__.py
-diff --git a/sage_jobmanager/utils/__init__.py b/sage_common_funs/agent/__init__.py
+rename to sage_libs/__init__.py
+diff --git a/sage_jobmanager/utils/__init__.py b/sage_libs/agent/__init__.py
 similarity index 100%
 rename from sage_jobmanager/utils/__init__.py
-rename to sage_common_funs/agent/__init__.py
-diff --git a/sage_common_funs/agent/agent.py b/sage_common_funs/agent/agent.py
+rename to sage_libs/agent/__init__.py
+diff --git a/sage_libs/agent/agent.py b/sage_libs/agent/agent.py
 new file mode 100644
 index 0000000..2e1c611
 --- /dev/null
-+++ b/sage_common_funs/agent/agent.py
++++ b/sage_libs/agent/agent.py
 @@ -0,0 +1,165 @@
 +from calendar import c
-+from sage_common_funs.utils.generator_model import apply_generator_model
++from sage_libs.utils.generator_model import apply_generator_model
 +from sage_core.function.map_function import MapFunction
 +from jinja2 import Template
 +
@@ -3839,17 +3839,17 @@ index 0000000..2e1c611
 +# agent=BaseAgent(config)
 +# agent.run("你是谁")
 \ No newline at end of file
-diff --git a/sage_libs/io/__init__.py b/sage_common_funs/io/__init__.py
+diff --git a/sage_libs/io/__init__.py b/sage_libs/io/__init__.py
 similarity index 100%
 rename from sage_libs/io/__init__.py
-rename to sage_common_funs/io/__init__.py
-diff --git a/sage_libs/io/sink.py b/sage_common_funs/io/sink.py
+rename to sage_libs/io/__init__.py
+diff --git a/sage_libs/io/sink.py b/sage_libs/io/sink.py
 similarity index 90%
 rename from sage_libs/io/sink.py
-rename to sage_common_funs/io/sink.py
+rename to sage_libs/io/sink.py
 index f7f9e24..cad3c4c 100644
 --- a/sage_libs/io/sink.py
-+++ b/sage_common_funs/io/sink.py
++++ b/sage_libs/io/sink.py
 @@ -1,4 +1,5 @@
  from sage_core.function.sink_function import SinkFunction
 +from sage_utils.custom_logger import CustomLogger
@@ -3882,13 +3882,13 @@ index f7f9e24..cad3c4c 100644
  
          # 创建或清空文件
          with open(self.file_path, "w", encoding="utf-8") as f:
-diff --git a/sage_libs/io/source.py b/sage_common_funs/io/source.py
+diff --git a/sage_libs/io/source.py b/sage_libs/io/source.py
 similarity index 90%
 rename from sage_libs/io/source.py
-rename to sage_common_funs/io/source.py
+rename to sage_libs/io/source.py
 index 9528ec9..5aef831 100644
 --- a/sage_libs/io/source.py
-+++ b/sage_common_funs/io/source.py
++++ b/sage_libs/io/source.py
 @@ -1,6 +1,8 @@
  
  from sage_core.function.source_function import SourceFunction
@@ -3910,15 +3910,15 @@ index 9528ec9..5aef831 100644
                          continue
          except FileNotFoundError:
              self.logger.error(f"File not found: {self.data_path}")
-diff --git a/sage_libs/io/utils/__init__.py b/sage_common_funs/rag/__init__.py
+diff --git a/sage_libs/io/utils/__init__.py b/sage_libs/rag/__init__.py
 similarity index 100%
 rename from sage_libs/io/utils/__init__.py
-rename to sage_common_funs/rag/__init__.py
-diff --git a/sage_common_funs/rag/arxiv.py b/sage_common_funs/rag/arxiv.py
+rename to sage_libs/rag/__init__.py
+diff --git a/sage_libs/rag/arxiv.py b/sage_libs/rag/arxiv.py
 new file mode 100644
 index 0000000..507586f
 --- /dev/null
-+++ b/sage_common_funs/rag/arxiv.py
++++ b/sage_libs/rag/arxiv.py
 @@ -0,0 +1,276 @@
 +from typing import Any, List, Literal, Optional, Union
 +from typing import Any, List, Optional
@@ -4197,11 +4197,11 @@ index 0000000..507586f
 +
 +        return output_paths
 \ No newline at end of file
-diff --git a/sage_common_funs/rag/chunk.py b/sage_common_funs/rag/chunk.py
+diff --git a/sage_libs/rag/chunk.py b/sage_libs/rag/chunk.py
 new file mode 100644
 index 0000000..76b2c4c
 --- /dev/null
-+++ b/sage_common_funs/rag/chunk.py
++++ b/sage_libs/rag/chunk.py
 @@ -0,0 +1,157 @@
 +from typing import Any, List, Literal, Optional, Union
 +from sage_core.function.map_function import MapFunction
@@ -4360,11 +4360,11 @@ index 0000000..76b2c4c
 +# print(split.execute(Data("This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.")))
 +
 +
-diff --git a/sage_common_funs/rag/evaluate.py b/sage_common_funs/rag/evaluate.py
+diff --git a/sage_libs/rag/evaluate.py b/sage_libs/rag/evaluate.py
 new file mode 100644
 index 0000000..9794479
 --- /dev/null
-+++ b/sage_common_funs/rag/evaluate.py
++++ b/sage_libs/rag/evaluate.py
 @@ -0,0 +1,138 @@
 +from collections import Counter
 +import numpy as np
@@ -4505,15 +4505,15 @@ index 0000000..9794479
 +
 +# test_evaluate_functions()
 \ No newline at end of file
-diff --git a/sage_common_funs/rag/generator.py b/sage_common_funs/rag/generator.py
+diff --git a/sage_libs/rag/generator.py b/sage_libs/rag/generator.py
 new file mode 100644
 index 0000000..b14dcce
 --- /dev/null
-+++ b/sage_common_funs/rag/generator.py
++++ b/sage_libs/rag/generator.py
 @@ -0,0 +1,153 @@
 +import os
 +from typing import Tuple,List
-+from sage_common_funs.utils.generator_model import apply_generator_model
++from sage_libs.utils.generator_model import apply_generator_model
 +from sage_core.function.map_function import MapFunction 
 +from sage_core.function.base_function import StatefulFunction
 +from sage_utils.custom_logger import CustomLogger
@@ -4664,11 +4664,11 @@ index 0000000..b14dcce
 +        self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
 +
 +        return (user_query, response)
-diff --git a/sage_common_funs/rag/promptor.py b/sage_common_funs/rag/promptor.py
+diff --git a/sage_libs/rag/promptor.py b/sage_libs/rag/promptor.py
 new file mode 100644
 index 0000000..b1f35c1
 --- /dev/null
-+++ b/sage_common_funs/rag/promptor.py
++++ b/sage_libs/rag/promptor.py
 @@ -0,0 +1,181 @@
 +from jinja2 import Template
 +from sage_core.function.base_function import StatefulFunction, MemoryFunction
@@ -4851,15 +4851,15 @@ index 0000000..b1f35c1
 +
 +        # Return the prompt list wrapped in a Data object
 +        return prompt
-diff --git a/sage_common_funs/rag/refiner.py b/sage_common_funs/rag/refiner.py
+diff --git a/sage_libs/rag/refiner.py b/sage_libs/rag/refiner.py
 new file mode 100644
 index 0000000..b8ad16c
 --- /dev/null
-+++ b/sage_common_funs/rag/refiner.py
++++ b/sage_libs/rag/refiner.py
 @@ -0,0 +1,117 @@
 +from sage_core.function.map_function import MapFunction
 +
-+from sage_common_funs.utils.generator_model import apply_generator_model
++from sage_libs.utils.generator_model import apply_generator_model
 +from typing import Tuple,List
 +import logging
 +
@@ -4974,11 +4974,11 @@ index 0000000..b8ad16c
 +
 +        Document:
 +        """
-diff --git a/sage_common_funs/rag/reranker.py b/sage_common_funs/rag/reranker.py
+diff --git a/sage_libs/rag/reranker.py b/sage_libs/rag/reranker.py
 new file mode 100644
 index 0000000..84d8204
 --- /dev/null
-+++ b/sage_common_funs/rag/reranker.py
++++ b/sage_libs/rag/reranker.py
 @@ -0,0 +1,300 @@
 +import torch
 +from typing import List, Tuple
@@ -5281,11 +5281,11 @@ index 0000000..84d8204
 +    for i, doc in enumerate(result_docs, 1):
 +        print(f"{i}. {doc}")
 \ No newline at end of file
-diff --git a/sage_common_funs/rag/retriever.py b/sage_common_funs/rag/retriever.py
+diff --git a/sage_libs/rag/retriever.py b/sage_libs/rag/retriever.py
 new file mode 100644
 index 0000000..b97f84d
 --- /dev/null
-+++ b/sage_common_funs/rag/retriever.py
++++ b/sage_libs/rag/retriever.py
 @@ -0,0 +1,76 @@
 +from typing import Tuple, List
 +import time  # 替换 asyncio 为 time 用于同步延迟
@@ -5364,11 +5364,11 @@ index 0000000..b97f84d
 +
 +        return (input_query, chunks)
 \ No newline at end of file
-diff --git a/sage_common_funs/rag/searcher.py b/sage_common_funs/rag/searcher.py
+diff --git a/sage_libs/rag/searcher.py b/sage_libs/rag/searcher.py
 new file mode 100644
 index 0000000..50d449c
 --- /dev/null
-+++ b/sage_common_funs/rag/searcher.py
++++ b/sage_libs/rag/searcher.py
 @@ -0,0 +1,40 @@
 +from sage_core.function.map_function import MapFunction
 +
@@ -5410,11 +5410,11 @@ index 0000000..50d449c
 +            return result
 +        except Exception as e:
 +            self.logger.error(f"BochaWebSearch error: {e}", exc_info=True)
-diff --git a/sage_common_funs/rag/trigger.py b/sage_common_funs/rag/trigger.py
+diff --git a/sage_libs/rag/trigger.py b/sage_libs/rag/trigger.py
 new file mode 100644
 index 0000000..55886ae
 --- /dev/null
-+++ b/sage_common_funs/rag/trigger.py
++++ b/sage_libs/rag/trigger.py
 @@ -0,0 +1,166 @@
 +import asyncio
 +import queue
@@ -5583,11 +5583,11 @@ index 0000000..55886ae
 +        """获取待处理请求列表"""
 +        return list(self._pending_requests.keys())
 \ No newline at end of file
-diff --git a/sage_common_funs/rag/writer.py b/sage_common_funs/rag/writer.py
+diff --git a/sage_libs/rag/writer.py b/sage_libs/rag/writer.py
 new file mode 100644
 index 0000000..40da4bd
 --- /dev/null
-+++ b/sage_common_funs/rag/writer.py
++++ b/sage_libs/rag/writer.py
 @@ -0,0 +1,76 @@
 +from typing import Union, List, Tuple, Optional, Dict
 +from sage_core.function.map_function import MapFunction
@@ -5666,11 +5666,11 @@ index 0000000..40da4bd
 +
 +        return data  # 返回原始数据
 \ No newline at end of file
-diff --git a/sage_common_funs/utils/__init__.py b/sage_common_funs/utils/__init__.py
+diff --git a/sage_libs/utils/__init__.py b/sage_libs/utils/__init__.py
 new file mode 100644
 index 0000000..f4caa39
 --- /dev/null
-+++ b/sage_common_funs/utils/__init__.py
++++ b/sage_libs/utils/__init__.py
 @@ -0,0 +1,6 @@
 +from .generator_model import OpenAIClient,HFGenerator
 +
@@ -5679,13 +5679,13 @@ index 0000000..f4caa39
 +    "HFGenerator"
 +]
 \ No newline at end of file
-diff --git a/sage_utils/clients/generator_model.py b/sage_common_funs/utils/generator_model.py
+diff --git a/sage_utils/clients/generator_model.py b/sage_libs/utils/generator_model.py
 similarity index 72%
 rename from sage_utils/clients/generator_model.py
-rename to sage_common_funs/utils/generator_model.py
+rename to sage_libs/utils/generator_model.py
 index df27dc3..acb0ec4 100644
 --- a/sage_utils/clients/generator_model.py
-+++ b/sage_common_funs/utils/generator_model.py
++++ b/sage_libs/utils/generator_model.py
 @@ -1,5 +1,22 @@
 -from sage_utils.clients.hf import HFGenerator
 -from sage_utils.clients.openaiclient import OpenAIClient
@@ -5711,14 +5711,14 @@ index df27dc3..acb0ec4 100644
  class GeneratorFactory:
      @staticmethod
      def create_generator(method: str, model_name: str, **kwargs):
-diff --git a/sage_utils/clients/hf.py b/sage_common_funs/utils/hf.py
+diff --git a/sage_utils/clients/hf.py b/sage_libs/utils/hf.py
 similarity index 100%
 rename from sage_utils/clients/hf.py
-rename to sage_common_funs/utils/hf.py
-diff --git a/sage_utils/clients/openaiclient.py b/sage_common_funs/utils/openaiclient.py
+rename to sage_libs/utils/hf.py
+diff --git a/sage_utils/clients/openaiclient.py b/sage_libs/utils/openaiclient.py
 similarity index 100%
 rename from sage_utils/clients/openaiclient.py
-rename to sage_common_funs/utils/openaiclient.py
+rename to sage_libs/utils/openaiclient.py
 diff --git a/sage_core/README.md b/sage_core/README.md
 index 8a72981..1e4515d 100644
 --- a/sage_core/README.md
@@ -8543,8 +8543,8 @@ index bfc37f9..11157aa 100644
  import time
 -from sage_core.api.local_environment import LocalStreamEnvironment
 +from sage_core.api.env import LocalEnvironment
- from sage_common_funs.io.sink import MemWriteSink
- from sage_common_funs.io.source import FileSource
+ from sage_libs.io.sink import MemWriteSink
+ from sage_libs.io.source import FileSource
 -
 -from sage_libs.rag.chunk import CharacterSplitter
 -from sage_libs.rag.writer import MemoryWriter
@@ -8623,7 +8623,7 @@ index ce0a343..4915348 100644
  
 -from sage_core.api.local_environment import LocalStreamEnvironment
 +from sage_core.api.env import LocalEnvironment
- from sage_common_funs.io.sink import TerminalSink
+ from sage_libs.io.sink import TerminalSink
  from sage_libs.rag.generator import OpenAIGenerator
  from sage_libs.rag.promptor import QAPromptor
  from sage_libs.rag.retriever import DenseRetriever
@@ -8736,8 +8736,8 @@ index e032771..5f0330a 100644
  
 -from sage_core.api.local_environment import LocalStreamEnvironment
 +from sage_core.api.env import LocalEnvironment
- from sage_common_funs.io.sink import MemWriteSink, FileSink
- from sage_common_funs.io.source import FileSource
+ from sage_libs.io.sink import MemWriteSink, FileSink
+ from sage_libs.io.source import FileSource
 -
 -from sage_libs.rag.chunk import CharacterSplitter
 +from sage_libs.rag import CharacterSplitter
@@ -9117,8 +9117,8 @@ index 7f80180..abff4bb 100644
  
 -from sage_core.api.local_environment import LocalStreamEnvironment
 +from sage_core.api.env import LocalEnvironment
- from sage_common_funs.io.sink import TerminalSink
- from sage_common_funs.io.source import FileSource
+ from sage_libs.io.sink import TerminalSink
+ from sage_libs.io.source import FileSource
  from sage_libs.rag.generator import OpenAIGenerator
 @@ -13,7 +13,7 @@ from sage_utils.logging_utils import configure_logging
  
@@ -9148,8 +9148,8 @@ index 7f80180..0000000
 -import logging
 -
 -from sage_core.api.local_environment import LocalStreamEnvironment
--from sage_common_funs.io.sink import TerminalSink
--from sage_common_funs.io.source import FileSource
+-from sage_libs.io.sink import TerminalSink
+-from sage_libs.io.source import FileSource
 -from sage_libs.rag.generator import OpenAIGenerator
 -from sage_libs.rag.promptor import QAPromptor
 -from sage_libs.rag.retriever import BM25sRetriever
@@ -9165,7 +9165,7 @@ index 7f80180..0000000
 -    query_stream = env.from_source(FileSource, config["source"])
 -    query_and_chunks_stream = query_stream.map(BM25sRetriever, config["retriever"])
 -    prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
--    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
+-    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"]["local"])
 -    response_stream.sink(TerminalSink, config["sink"])
 -    # 提交管道并运行
 -    env.submit()
@@ -9187,8 +9187,8 @@ index 25a0d37..316d73e 100644
 @@ -1,6 +1,7 @@
 +import time
 +from sage_core.api.env import LocalEnvironment
- from sage_common_funs.io.source import FileSource
- from sage_common_funs.io.sink import TerminalSink
+ from sage_libs.io.source import FileSource
+ from sage_libs.io.sink import TerminalSink
 -from sage_core.api.remote_environment import RemoteBatchEnvironment
  from sage_libs.rag.generator import OpenAIGenerator
  from sage_libs.rag.promptor import QAPromptor
@@ -9206,7 +9206,7 @@ index 25a0d37..316d73e 100644
 -                    .process(FileSource, config["source"]) # 处理且处理一整个file 一次。
 -                    .map(DenseRetriever, config["retriever"])
 -                    .map(QAPromptor, config["promptor"])
--                    .map(OpenAIGenerator, config["generator"])
+-                    .map(OpenAIGenerator, config["generator"]["local"])
 -                    .sink(TerminalSink, config["sink"]) # TM (JVM) --> 会打印在某一台机器的console里
 -                    )
 -
@@ -9221,7 +9221,7 @@ index 25a0d37..316d73e 100644
                      .from_source(FileSource, config["source"])
                      .map(DenseRetriever, config["retriever"])
                      .map(QAPromptor, config["promptor"])
-                     .map(OpenAIGenerator, config["generator"])
+                     .map(OpenAIGenerator, config["generator"]["local"])
 -                    .sink(TerminalSink, config["sink"]) # TM (JVM) --> 会打印在某一台机器的console里
 +                    .sink(TerminalSink, config["sink"])
                      )
@@ -9243,8 +9243,8 @@ index f91d5c3..756c5e6 100644
  import os
 -from sage_core.api.local_environment import LocalStreamEnvironment
 +from sage_core.api.env import LocalEnvironment
- from sage_common_funs.io.source import FileSource
- from sage_common_funs.io.sink import TerminalSink
+ from sage_libs.io.source import FileSource
+ from sage_libs.io.sink import TerminalSink
  from sage_libs.rag.generator import OpenAIGenerator
 @@ -13,7 +13,7 @@ from sage_utils.logging_utils import configure_logging
  
@@ -9274,9 +9274,9 @@ index 391a4a9..97c3e0f 100644
  import os
 -from sage_core.api.remote_environment import RemoteStreamEnvironment
 +from sage_core.api.env import RemoteEnvironment
- from sage_common_funs.io.source import FileSource
--from sage_common_funs.io.sink import FileSink
-+from sage_common_funs.io.sink import TerminalSink
+ from sage_libs.io.source import FileSource
+-from sage_libs.io.sink import FileSink
++from sage_libs.io.sink import TerminalSink
  from sage_libs.rag.generator import OpenAIGenerator
  from sage_libs.rag.promptor import QAPromptor
  from sage_libs.rag.retriever import DenseRetriever
@@ -9291,7 +9291,7 @@ index 391a4a9..97c3e0f 100644
      query_stream = env.from_source(FileSource, config["source"])
      query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])
      prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
-     response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
+     response_stream = prompt_stream.map(OpenAIGenerator, config["generator"]["local"])
 -    response_stream.sink(FileSink, config["sink"])
 +    response_stream.sink(TerminalSink, config["sink"])
      # 提交管道并运行
@@ -9312,7 +9312,7 @@ index 391a4a9..97c3e0f 100644
      query_stream2 = env2.from_source(FileSource, config["source"])
      query_and_chunks_stream2 = query_stream2.map(DenseRetriever, config["retriever"])
      prompt_stream2 = query_and_chunks_stream2.map(QAPromptor, config["promptor"])
-     response_stream2 = prompt_stream2.map(OpenAIGenerator, config["generator"])
+     response_stream2 = prompt_stream2.map(OpenAIGenerator, config["generator"]["local"])
 -    response_stream2.sink(FileSink, config["sink"])
 +    response_stream2.sink(TerminalSink, config["sink"])
      # 提交管道并运行
@@ -9361,8 +9361,8 @@ index 83f2cf6..baab21c 100644
  
 -from sage_core.api.local_environment import LocalStreamEnvironment
 +from sage_core.api.env import LocalEnvironment
- from sage_common_funs.io.source import FileSource
- from sage_common_funs.io.sink import TerminalSink
+ from sage_libs.io.source import FileSource
+ from sage_libs.io.sink import TerminalSink
 -
 -from sage_libs.rag.generator import HFGenerator
 +from sage_libs.rag import HFGenerator
@@ -9397,8 +9397,8 @@ index 88443e1..324e810 100644
  
 -from sage_core.api.local_environment import LocalStreamEnvironment
 +from sage_core.api.env import LocalEnvironment
- from sage_common_funs.io.source import FileSource
- from sage_common_funs.io.sink import TerminalSink, FileSink
+ from sage_libs.io.source import FileSource
+ from sage_libs.io.sink import TerminalSink, FileSink
  from sage_libs.rag.generator import OpenAIGenerator
 @@ -19,7 +19,7 @@ def pipeline_run(config):
          config (dict): The configuration parameters loaded from the config file.
@@ -9430,8 +9430,8 @@ index 1ce7de7..c47db74 100644
 -from sage_libs.io.sink import TerminalSink
 -from sage_libs.io.source import FileSource
 +from sage_core.api.env import LocalEnvironment
-+from sage_common_funs.io.source import FileSource
-+from sage_common_funs.io.sink import TerminalSink
++from sage_libs.io.source import FileSource
++from sage_libs.io.sink import TerminalSink
  from sage_libs.rag.generator import OpenAIGenerator
  from sage_libs.rag.promptor import QAPromptor
  from sage_libs.rag.retriever import DenseRetriever
@@ -9466,8 +9466,8 @@ index 3addcde..56697c7 100644
  
 -from sage_core.api.local_environment import LocalStreamEnvironment
 +from sage_core.api.env import LocalEnvironment
- from sage_common_funs.io.source import FileSource
- from sage_common_funs.io.sink import TerminalSink
+ from sage_libs.io.source import FileSource
+ from sage_libs.io.sink import TerminalSink
 -
 -from sage_libs.rag.generator import OpenAIGeneratorWithHistory
 +from sage_libs.rag import OpenAIGeneratorWithHistory
@@ -9504,8 +9504,8 @@ index ea01a6a..21f16db 100644
  import os, time
 -from sage_core.api.local_environment import LocalStreamEnvironment
 +from sage_core.api.env import LocalEnvironment
- from sage_common_funs.io.source import FileSource
- from sage_common_funs.io.sink import TerminalSink
+ from sage_libs.io.source import FileSource
+ from sage_libs.io.sink import TerminalSink
  from sage_libs.rag.generator import OpenAIGenerator
 @@ -44,7 +44,7 @@ def run_gc_report(verbose: bool = True):
  
@@ -9589,7 +9589,7 @@ index 6a7c0bc..0000000
 -                    .map(DenseRetriever, config["retriever"])
 -                    .map(AbstractiveRecompRefiner, config["refiner"])  
 -                    .map(QAPromptor, config["promptor"])
--                    .map(OpenAIGenerator, config["generator"])
+-                    .map(OpenAIGenerator, config["generator"]["local"])
 -                    .sink(TerminalSink, config["sink"])
 -                    )
 -
@@ -10924,7 +10924,7 @@ index 47258bc..2e1c611 100644
 @@ -1,7 +1,10 @@
 -from sage_utils.clients.generator_model import apply_generator_model
 +from calendar import c
-+from sage_common_funs.utils.generator_model import apply_generator_model
++from sage_libs.utils.generator_model import apply_generator_model
  from sage_core.function.map_function import MapFunction
 +from jinja2 import Template
  
@@ -10947,7 +10947,7 @@ index 67a2c96..9c7fd31 100644
  from sage_core.function.map_function import MapFunction
 -from sage_utils.clients.generator_model import apply_generator_model
 +from sage_utils.custom_logger import CustomLogger
-+from sage_common_funs.utils.generator_model import apply_generator_model
++from sage_libs.utils.generator_model import apply_generator_model
  from sage_libs.context.model_context import ModelContext
  from sage_libs.context.quality_label import QualityLabel
  from sage_libs.context.critic_evaluation import CriticEvaluation
@@ -10965,7 +10965,7 @@ index c932e7b..5d1f706 100644
 +from sage_utils.custom_logger import CustomLogger
  from sage_libs.context.model_context import ModelContext
 -from sage_utils.clients.generator_model import apply_generator_model
-+from sage_common_funs.utils.generator_model import apply_generator_model
++from sage_libs.utils.generator_model import apply_generator_model
  
  # 搜索查询优化的prompt模板
  SEARCH_QUERY_OPTIMIZATION_PROMPT = '''You are a search query optimization specialist. Your task is to analyze the user's original question and existing retrieved information, then design optimized search queries to fill information gaps.
@@ -10974,7 +10974,7 @@ index 41c4b73..691ed09 100644
 --- a/sage_libs/rag/generator.py
 +++ b/sage_libs/rag/generator.py
 @@ -3,7 +3,8 @@ from typing import Tuple,List
- from sage_common_funs.utils.generator_model import apply_generator_model
+ from sage_libs.utils.generator_model import apply_generator_model
  from sage_core.function.map_function import MapFunction 
  from sage_core.function.base_function import StatefulFunction
 -from sage_utils.state_persistence import load_function_state, save_function_state
@@ -11027,7 +11027,7 @@ index c757acc..b8ad16c 100644
  from sage_core.function.map_function import MapFunction
  
 -from sage_utils.clients.generator_model import apply_generator_model
-+from sage_common_funs.utils.generator_model import apply_generator_model
++from sage_libs.utils.generator_model import apply_generator_model
  from typing import Tuple,List
 +import logging
  
@@ -15178,8 +15178,8 @@ index 6f614ad..d18dbaa 100644
 -from sage_libs.io.sink import FileSink
 -from sage_libs.io.source import FileSource
 +from sage_core.api.env import LocalEnvironment
-+from sage_common_funs.io.sink import FileSink
-+from sage_common_funs.io.source import FileSource
++from sage_libs.io.sink import FileSink
++from sage_libs.io.source import FileSource
  from sage_libs.rag.generator import OpenAIGenerator
  from sage_libs.rag.promptor import QAPromptor
  from sage_libs.rag.refiner import AbstractiveRecompRefiner
@@ -15202,7 +15202,7 @@ index ad5c24e..5bde7e1 100644
 @@ -1,10 +1,10 @@
  import pytest
  
-+from sage_common_funs.io.sink import (
++from sage_libs.io.sink import (
 +    TerminalSink, RetriveSink, FileSink, MemWriteSink
 +)
  import os
@@ -15222,7 +15222,7 @@ index 9b2b23e..8ca547a 100644
  
 -from sage_libs.io.source import FileSource
 -
-+from sage_common_funs.io.source import (
++from sage_libs.io.source import (
 +    FileSource
 +)
 +import os
@@ -15289,11 +15289,11 @@ index 0aae8b5..a5823ed 100644
 +# from dotenv import load_dotenv
 +#
 +# from sage_core.api.env import LocalEnvironment
-+# from sage_common_funs.io.sink import TerminalSink
-+# from sage_common_funs.io.source import FileSource
-+# from sage_common_funs.rag.generator import OpenAIGenerator
-+# from sage_common_funs.rag.promptor import QAPromptor
-+# from sage_common_funs.rag.retriever import DenseRetriever
++# from sage_libs.io.sink import TerminalSink
++# from sage_libs.io.source import FileSource
++# from sage_libs.rag.generator import OpenAIGenerator
++# from sage_libs.rag.promptor import QAPromptor
++# from sage_libs.rag.retriever import DenseRetriever
 +# from sage_utils.config_loader import load_config
 +# from sage_utils.logging_utils import configure_logging
 +#
@@ -15316,7 +15316,7 @@ index 0aae8b5..a5823ed 100644
 +#             .from_source(FileSource, self.config["source"])
 +#             .map(DenseRetriever, self.config["retriever"])
 +#             .map(QAPromptor, self.config["promptor"])
-+#             .map(OpenAIGenerator, self.config["generator"])
++#             .map(OpenAIGenerator, self.config["generator"]["local"])
 +#             .sink(TerminalSink, self.config["sink"])
 +#         )
 +#
@@ -15349,8 +15349,8 @@ index 0aae8b5..a5823ed 100644
 -from sage_libs.io.sink import TerminalSink
 -from sage_libs.io.source import FileSource
 +from sage_core.api.env import LocalEnvironment
-+from sage_common_funs.io.sink import TerminalSink
-+from sage_common_funs.io.source import FileSource
++from sage_libs.io.sink import TerminalSink
++from sage_libs.io.source import FileSource
  from sage_libs.rag.generator import OpenAIGenerator
  from sage_libs.rag.promptor import QAPromptor
  from sage_libs.rag.retriever import DenseRetriever
@@ -15832,7 +15832,7 @@ index 58ad9a8..0000000
 -        .from_source(FileSource, config["source"])
 -        .map(DenseRetriever, config["retriever"])
 -        .map(QAPromptor, config["promptor"])
--        .map(OpenAIGenerator, config["generator"])
+-        .map(OpenAIGenerator, config["generator"]["local"])
 -        .sink(TerminalSink, config["sink"])
 -    )
 -    
@@ -18595,7 +18595,7 @@ index f2b49e3..098abe5 100644
  # 添加项目根目录到路径
  sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
  
-+from sage_common_funs.io.sink import PrintSink
++from sage_libs.io.sink import PrintSink
 +
  
  class TestPrintSink(unittest.TestCase):

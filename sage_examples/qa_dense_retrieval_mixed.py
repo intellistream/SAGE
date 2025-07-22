@@ -3,8 +3,8 @@ import time
 from dotenv import load_dotenv
 import os
 from sage_core.api.local_environment import LocalStreamEnvironment
-from sage_common_funs.io.source import FileSource
-from sage_common_funs.io.sink import TerminalSink
+from sage_libs.io.source import FileSource
+from sage_libs.io.sink import TerminalSink
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
@@ -19,7 +19,7 @@ def pipeline_run():
     query_stream = env.from_source(FileSource, config["source"])
     query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])
     prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
-    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
+    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"]["local"])
     response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
     env.submit()
