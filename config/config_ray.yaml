@@ -43,4 +43,3 @@ promptor:
 
 sink:
   platform: "remote"
-

@@ -1,8 +1,7 @@
-import pytest
 import time
 import threading
 from typing import List, Dict, Any
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.flatmap_function import FlatMapFunction
 from sage_core.function.filter_function import FilterFunction
@@ -490,8 +489,8 @@ class JoinResultSink(SinkFunction):
     
     def execute(self, data: Any):
         if self.runtime_context:
-            self.parallel_index = self.runtime_context.parallel_index
-        
+            selfctx = self.runtime_context.parallel_index
+        ctx
         with self._lock:
             if self.parallel_index not in self._received_data:
                 self._received_data[self.parallel_index] = []
@@ -539,7 +538,7 @@ class TestJoinFunctionality:
         """测试完整的FlatMap -> Filter -> Join管道"""
         print("\n🚀 Testing Complete FlatMap -> Filter -> Join Pipeline")
         
-        env = LocalEnvironment("flatmap_filter_join_test")
+        env = LocalStreamEnvironment("flatmap_filter_join_test")
         
         # 1. 创建源数据流
         order_source = env.from_source(OrderEventSource, delay=0.2)
@@ -572,7 +571,7 @@ class TestJoinFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(6)
         finally:
             env.close()
@@ -583,7 +582,7 @@ class TestJoinFunctionality:
         """测试多阶段Join管道"""
         print("\n🚀 Testing Multi-Stage Join Pipeline")
         
-        env = LocalEnvironment("multi_stage_join_test")
+        env = LocalStreamEnvironment("multi_stage_join_test")
         
         # 第一阶段：订单事件流处理
         order_source = env.from_source(OrderEventSource, delay=0.2)
@@ -629,7 +628,7 @@ class TestJoinFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(6)
         finally:
             env.close()
@@ -640,7 +639,7 @@ class TestJoinFunctionality:
         """测试基于时间窗口的Join"""
         print("\n🚀 Testing Windowed Join Pipeline")
         
-        env = LocalEnvironment("windowed_join_test")
+        env = LocalStreamEnvironment("windowed_join_test")
         
         order_source = env.from_source(OrderEventSource, delay=0.15)
         
@@ -672,7 +671,7 @@ class TestJoinFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(5)
         finally:
             env.close()
@@ -683,7 +682,7 @@ class TestJoinFunctionality:
         """测试包含多个Join的复杂管道"""
         print("\n🚀 Testing Complex Pipeline with Multiple Joins")
         
-        env = LocalEnvironment("complex_multi_join_test")
+        env = LocalStreamEnvironment("complex_multi_join_test")
         
         # 数据源
         order_source = env.from_source(OrderEventSource, delay=0.2)
@@ -736,7 +735,7 @@ class TestJoinFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(7)
         finally:
             env.close()
@@ -747,7 +746,7 @@ class TestJoinFunctionality:
         """测试空流的Join处理"""
         print("\n🚀 Testing Join with Empty/Filtered Streams")
         
-        env = LocalEnvironment("empty_stream_join_test")
+        env = LocalStreamEnvironment("empty_stream_join_test")
         
         order_source = env.from_source(OrderEventSource, delay=0.2)
         user_source = env.from_source(UserProfileSource, delay=0.3)
@@ -780,7 +779,7 @@ class TestJoinFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(4)
         finally:
             env.close()

@@ -1,7 +1,7 @@
 import time
 from dotenv import load_dotenv
 
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.io.sink import TerminalSink, FileSink
 from sage_libs.rag.generator import OpenAIGenerator
@@ -19,7 +19,7 @@ def pipeline_run(config):
         config (dict): The configuration parameters loaded from the config file.
     """
     try:
-        env = LocalEnvironment()
+        env = LocalStreamEnvironment()
         env.set_memory(config=None)  # Set environment memory if required.
 
         # Constructing the data processing pipeline
@@ -47,7 +47,7 @@ def pipeline_run(config):
 
         # Submit and run the pipeline
         env.submit()
-        env.run_streaming()
+        
 
         # Optional: Wait for 10 seconds before ending the pipeline (if necessary)
         time.sleep(10)

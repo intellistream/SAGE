@@ -2,11 +2,11 @@ from typing import Any, Optional
 from typing import Any, List, Dict, Optional, Set, TYPE_CHECKING, Type, Tuple
 from sage_core.operator.base_operator import BaseOperator
 from sage_core.function.filter_function import FilterFunction
-from sage_runtime.io.packet import Packet
+from sage_runtime.router.packet import Packet
 
 if TYPE_CHECKING:
     from sage_core.function.base_function import BaseFunction
-    from sage_runtime.io.connection import Connection
+    from sage_runtime.router.connection import Connection
     
 
 class FilterOperator(BaseOperator):
@@ -40,7 +40,7 @@ class FilterOperator(BaseOperator):
             
             if should_pass:
                 # 通过过滤，继承分区信息
-                self.emit_packet(packet)
+                self.router.send(packet)
             # 不通过过滤：不发送任何packet
             
         except Exception as e:

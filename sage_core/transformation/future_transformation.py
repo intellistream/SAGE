@@ -4,7 +4,7 @@ from .base_transformation import BaseTransformation
 from sage_core.operator.future_operator import FutureOperator
 
 if TYPE_CHECKING:
-    from sage_core.api.env import BaseEnvironment
+    from sage_core.environment.base_environment import BaseEnvironment
 
 
 class FutureTransformation(BaseTransformation):
@@ -53,31 +53,31 @@ class FutureTransformation(BaseTransformation):
         
         # 标记为已填充，但保留在pipeline中以便compiler能够处理
         # compiler会检查filled状态来决定如何处理这个transformation
-        self._mark_as_filled_in_pipeline()
+        # self._mark_as_filled_in_pipeline()
         
         self.logger.debug(f"Filled FutureTransformation '{self.future_name}' with {actual_transformation.basename}")
     
-    def _mark_as_filled_in_pipeline(self) -> None:
-        """
-        将已填充的future transformation从pipeline中移除，并保存到filled_futures中
-        这样compiler就看不到future transformations，只看到实际的反馈边连接
-        """
-        # 将该future transformation从pipeline中移除
-        if self in self.env._pipeline:
-            self.env._pipeline.remove(self)
-            self.logger.debug(f"Removed FutureTransformation '{self.future_name}' from pipeline")
+    # def _mark_as_filled_in_pipeline(self) -> None:
+    #     """
+    #     将已填充的future transformation从pipeline中移除，并保存到filled_futures中
+    #     这样compiler就看不到future transformations，只看到实际的反馈边连接
+    #     """
+    #     # 将该future transformation从pipeline中移除
+    #     if self in self.env._pipeline:
+    #         self.env._pipeline.remove(self)
+    #         self.logger.debug(f"Removed FutureTransformation '{self.future_name}' from pipeline")
         
-        # 保存填充信息到环境中，供调试和管理使用
-        if not hasattr(self.env, '_filled_futures'):
-            self.env._filled_futures = {}
+    #     # 保存填充信息到环境中，供调试和管理使用
+    #     if not hasattr(self.env, '_filled_futures'):
+    #         self.env._filled_futures = {}
         
-        self.env._filled_futures[self.future_name] = {
-            'future_transformation': self,
-            'actual_transformation': self.actual_transformation,
-            'filled_at': self._get_current_timestamp()
-        }
+    #     self.env._filled_futures[self.future_name] = {
+    #         'future_transformation': self,
+    #         'actual_transformation': self.actual_transformation,
+    #         'filled_at': self._get_current_timestamp()
+    #     }
         
-        self.logger.info(f"Future transformation '{self.future_name}' filled and removed from pipeline")
+    #     self.logger.info(f"Future transformation '{self.future_name}' filled and removed from pipeline")
     
     def _get_current_timestamp(self) -> str:
         """获取当前时间戳"""
@@ -113,7 +113,7 @@ class FutureTransformation(BaseTransformation):
         """
         在pipeline中查找指定名称的transformation
         """
-        for trans in self.env._pipeline:
+        for trans in self.env.pipeline:
             if trans.basename == name:
                 return trans
         return None

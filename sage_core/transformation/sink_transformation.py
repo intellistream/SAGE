@@ -4,7 +4,7 @@ from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.operator.sink_operator import SinkOperator
 if TYPE_CHECKING:
     from sage_core.function.sink_function import SinkFunction
-    from sage_core.api.env import BaseEnvironment
+    from sage_core.environment.base_environment import BaseEnvironment
 
 
 class SinkTransformation(BaseTransformation):
@@ -23,5 +23,7 @@ class SinkTransformation(BaseTransformation):
         super().__init__(env, function, *args, **kwargs)
 
 
-
+    @property
+    def is_sink(self) -> bool:
+        return True
 

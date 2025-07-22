@@ -1,15 +1,16 @@
 import logging
 import time
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_common_funs.io.sink import MemWriteSink
 from sage_common_funs.io.source import FileSource
-from sage_libs.rag import CharacterSplitter
-from sage_libs.rag import MemoryWriter
+
+from sage_libs.rag.chunk import CharacterSplitter
+from sage_libs.rag.writer import MemoryWriter
 from sage_utils.config_loader import load_config
 
 
 def pipeline_run():
-    env = LocalEnvironment(name="example_pipeline")
+    env = LocalStreamEnvironment(name="example_pipeline")
     env.set_memory(config=None)  # 初始化内存配置
 
     # 构建数据处理流程
@@ -18,7 +19,7 @@ def pipeline_run():
     memwrite_stream= chunk_stream.map(MemoryWriter,config["writer"])
     sink_stream= memwrite_stream.sink(MemWriteSink,config["sink"])
     env.submit()
-    env.run_streaming()  # 启动管道
+      # 启动管道
     time.sleep(100)  # 等待管道运行
 
 if __name__ == '__main__':

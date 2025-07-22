@@ -1,11 +1,9 @@
 import json
 import re
 from typing import Dict, Any, Tuple
-from dataclasses import dataclass
 from jinja2 import Template
 from sage_core.function.map_function import MapFunction
-from sage_utils.custom_logger import CustomLogger
-from sage_common_funs.utils.generator_model import apply_generator_model
+from sage_utils.clients.generator_model import apply_generator_model
 from sage_libs.context.model_context import ModelContext
 from sage_libs.context.quality_label import QualityLabel
 from sage_libs.context.critic_evaluation import CriticEvaluation

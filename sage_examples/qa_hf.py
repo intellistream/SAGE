@@ -1,10 +1,11 @@
 import logging
 import time
 
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.io.sink import TerminalSink
-from sage_libs.rag import HFGenerator
+
+from sage_libs.rag.generator import HFGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
 from sage_utils.config_loader import load_config
@@ -18,7 +19,7 @@ def pipeline_run(config: dict) -> None:
     Args:
         config (dict): 包含各个组件配置的字典。
     """
-    env = LocalEnvironment()
+    env = LocalStreamEnvironment()
     env.set_memory(config=None)
 
     # 构建数据处理流程
@@ -32,7 +33,7 @@ def pipeline_run(config: dict) -> None:
 
     # 提交管道并运行一次
     env.submit()
-    env.run_streaming()
+    
     time.sleep(5)  # 等待管道运行
     env.close()
 

@@ -1,4 +1,4 @@
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_core.function.sink_function import SinkFunction
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.comap_function import BaseCoMapFunction
@@ -93,7 +93,7 @@ class CounterSink(SinkFunction):
 
 def main():
     # 创建环境
-    env = LocalEnvironment("future_stream_example")
+    env = LocalStreamEnvironment("future_stream_example")
     
     print("🚀 Starting Future Stream Example")
     print("🔄 Demonstrating feedback edges with a counting loop")
@@ -145,21 +145,16 @@ def main():
     print()
     
     print("✅ Pipeline validation:")
-    print(f"   - Pipeline transformations: {len(env._pipeline)}")
-    print(f"   - Filled future streams: {list(env.get_filled_futures().keys())}")
-    print(f"   - Has unfilled futures: {env.has_unfilled_futures()}")
+    print(f"   - Pipeline transformations: {len(env.pipeline)}")
     
     try:
-        # 验证pipeline可编译性
-        env.validate_pipeline_for_compilation()
-        print("✅ Pipeline validation passed - ready to run!\n")
         
         print("🎬 Starting feedback loop execution...")
         print("📈 Watch the counter increment in a feedback loop:\n")
         
         # 运行流处理
         env.submit()
-        env.run_streaming()
+        
         time.sleep(15)  # 运行15秒，足够计数到10
         
     except KeyboardInterrupt:

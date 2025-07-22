@@ -3,7 +3,7 @@ from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Opti
 from sage_core.transformation.base_transformation import BaseTransformation
 if TYPE_CHECKING:
     from sage_core.function.comap_function import BaseCoMapFunction
-    from sage_core.api.env import BaseEnvironment
+    from sage_core.environment.base_environment import BaseEnvironment
 
 
 class CoMapTransformation(BaseTransformation):

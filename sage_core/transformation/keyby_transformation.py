@@ -1,6 +1,6 @@
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.operator.keyby_operator import KeyByOperator
-from sage_runtime.operator.factory import OperatorFactory
+from sage_jobmanager.factory.operator_factory import OperatorFactory
 
 class KeyByTransformation(BaseTransformation):
     """
@@ -30,7 +30,7 @@ class KeyByTransformation(BaseTransformation):
             operator_class=self.operator_class,
             function_factory=self.function_factory,
             basename=self.basename,
-            env_name=self.env.name,
+            env_name=self.env_name,
             remote=self.remote,
             partition_strategy=self.partition_strategy  # KeyBy特有参数
         )

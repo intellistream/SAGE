@@ -18,18 +18,8 @@ if not pm.is_installed("tenacity"):
     pm.install("tenacity")
 
 from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModel
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-)
-
-import torch
-import numpy as np
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
 
 @lru_cache(maxsize=1)
 def initialize_hf_model(model_name):
@@ -43,26 +33,6 @@ def initialize_hf_model(model_name):
         hf_tokenizer.pad_token = hf_tokenizer.eos_token
 
     return hf_model, hf_tokenizer
-
-
-
-
-
-# async def hf_embed(text: str, tokenizer, embed_model) -> list[float]:
-#     device = next(embed_model.parameters()).device
-#     encoded_texts = tokenizer(
-#         text, return_tensors="pt", padding=True, truncation=True
-#     ).to(device)
-#     with torch.no_grad():
-#         outputs = embed_model(
-#             input_ids=encoded_texts["input_ids"],
-#             attention_mask=encoded_texts["attention_mask"],
-#         )
-#         embeddings = outputs.last_hidden_state.mean(dim=1)
-#     if embeddings.dtype == torch.bfloat16:
-#         return embeddings.detach().to(torch.float32).cpu()[0].tolist()
-#     else:
-#         return embeddings.detach().cpu()[0].tolist()
 
 
 import torch
