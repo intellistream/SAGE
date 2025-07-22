@@ -310,7 +310,7 @@ class TestKafkaSourceIntegration:
     
     def test_environment_kafka_source_creation(self):
         """测试Environment创建Kafka源"""
-        env = LocalEnvironment()
+        env = LocalEnvironment("TestKafkaSourceIntegration")
         
         kafka_stream = env.from_kafka_source(
             bootstrap_servers="localhost:9092",
@@ -344,7 +344,7 @@ class TestKafkaSourceIntegration:
     
     def test_remote_environment_kafka_source(self):
         """测试远程环境中的Kafka源"""
-        env = RemoteEnvironment()
+        env = RemoteEnvironment("test_remote_environment_kafka_source")
         env.set_memory()
         kafka_stream = env.from_kafka_source(
             bootstrap_servers="kafka-cluster:9092",
@@ -398,7 +398,7 @@ class TestKafkaSourcePipeline:
         mock_kafka_consumer.return_value = mock_consumer_instance
         
         # 创建测试pipeline
-        env = LocalEnvironment()
+        env = LocalEnvironment("TestKafkaSourcePipeline")
         
         kafka_stream = env.from_kafka_source(
             bootstrap_servers="localhost:9092",
@@ -433,7 +433,7 @@ class TestKafkaSourcePipeline:
             json_data['custom_prefix'] = 'CUSTOM_'
             return json_data
         
-        env = LocalEnvironment()
+        env = LocalEnvironment("test_kafka_source_with_custom_deserializer")
         
         kafka_stream = env.from_kafka_source(
             bootstrap_servers="localhost:9092",
@@ -452,7 +452,7 @@ class TestKafkaSourceConfiguration:
     
     def test_default_configuration(self):
         """测试默认配置"""
-        env = LocalEnvironment()
+        env = LocalEnvironment("test_default_configuration")
         
         kafka_stream = env.from_kafka_source(
             bootstrap_servers="localhost:9092",
@@ -470,7 +470,7 @@ class TestKafkaSourceConfiguration:
     
     def test_custom_configuration(self):
         """测试自定义配置"""
-        env = LocalEnvironment()
+        env = LocalEnvironment("test_custom_configuration")
         
         kafka_stream = env.from_kafka_source(
             bootstrap_servers="custom:9092",
