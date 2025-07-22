@@ -1,6 +1,7 @@
 import time
 from typing import Any
-from sage_core.api.local_environment import LocalStreamEnvironment
+
+from sage_core.api.local_environment import LocalEnvironment
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.comap_function import BaseCoMapFunction
 from sage_core.function.sink_function import SinkFunction
@@ -91,35 +92,31 @@ class CoMapDebugSink(SinkFunction):
         else:
             self.output_file = Path(output_file)
         self.logger.info(f"CoMapDebugSink initialized, output file: {self.output_file}")
+
     def execute(self, data: Any):
         if self.runtime_context:
             self.parallel_index = self.runtime_context.parallel_index
-        self.logctx!")
-        self.received_count += 1ctx
-        
+
+        with self._lock:
+            if self.parallel_index not in self._received_data:
+                self._received_data[self.parallel_index] = []
+
+            self._received_data[self.parallel_index].append(data)
+
+        self.received_count += 1
+
         result_type = data.get('type', 'unknown')
         source_stream = data.get('source_stream', -1)
-        
-        # 准备要写入文件的记录
-        record = {
-            'timestamp': time.time(),
-            'parallel_index': self.parallel_index,
-            'received_count': self.received_count,
-            'data': data
-        }
-        
-        # 原子性地追加到文件
-        self._append_record(record)
-        
+
         self.logger.info(
             f"[Instance {self.parallel_index}] "
             f"Received {result_type} from stream {source_stream}: {data}"
         )
-        
+
         # 打印调试信息
         print(f"🔍 [Instance {self.parallel_index}] Type: {result_type}, "
               f"Stream: {source_stream}, Data: {data}")
-        
+
         return data
     
     def _append_record(self, record):
@@ -362,7 +359,7 @@ class TestCoMapFunctionality:
         """测试基本的两路CoMap处理"""
         print("\n🚀 Testing Basic Two-Stream CoMap")
         
-        env = LocalStreamEnvironment("basic_comap_test")
+        env = LocalEnvironment("basic_comap_test")
         
         order_stream = env.from_source(OrderDataSource, delay=0.3)
         payment_stream = env.from_source(PaymentDataSource, delay=0.4)

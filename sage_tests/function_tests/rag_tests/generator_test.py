@@ -45,7 +45,7 @@ def ctx(tmp_path):
     return Ctx(name="gen1", folder=str(folder))
 
 def test_openai_generator(config_openai):
-    gen = OpenAIGenerator(config_openai)
+    gen = OpenAIGenerator(config_openai, "local")
     query = "What is the capital of France?"
     input_data = [query, [
         {"role": "system", "content": "You are a helpful assistant. Answer the question in a few words"},

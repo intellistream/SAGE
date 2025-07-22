@@ -6,7 +6,7 @@ from sage_core.function.map_function import MapFunction
 from sage_libs.rag.retriever import DenseRetriever
 from sage_plugins.longrefiner_fn.longrefiner_adapter import LongRefinerAdapter
 from sage_libs.rag.promptor import QAPromptor
-from sage_libs.rag.generator import get_generator_preset
+from sage_libs.rag.generator import get_generator_preset, OpenAIGenerator
 
 from sage_common_funs.io.sink import TerminalSink
 from sage_common_funs.rag.evaluate import (
@@ -85,8 +85,7 @@ class TimeGenerator(MapFunction):
     def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
         # ———— 一行切换本地 or 远程模型 ————
-        #   只需 local 或 remote，参数全在 config/generator_presets.yaml 中定义
-        self.generator = get_generator_preset("local")
+        self.generator = OpenAIGenerator(config, "local")
         # 如果要使用远程模型，改成：
         # self.generator = get_generator_preset("remote")
         self.generator.runtime_context = self.runtime_context

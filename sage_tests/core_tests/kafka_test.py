@@ -2,7 +2,9 @@ import pytest
 import json
 import time
 from unittest.mock import Mock, patch
-from sage_core.api.local_environment import LocalStreamEnvironment, RemoteEnvironment
+
+from sage_core.api.local_environment import LocalEnvironment
+from sage_core.api.remote_environment import RemoteEnvironment
 from sage_core.function.kafka_source import KafkaSourceFunction
 from sage_core.function.base_function import BaseFunction
 
@@ -308,7 +310,7 @@ class TestKafkaSourceIntegration:
     
     def test_environment_kafka_source_creation(self):
         """测试Environment创建Kafka源"""
-        env = LocalStreamEnvironment()
+        env = LocalEnvironment()
         
         kafka_stream = env.from_kafka_source(
             bootstrap_servers="localhost:9092",
@@ -396,7 +398,7 @@ class TestKafkaSourcePipeline:
         mock_kafka_consumer.return_value = mock_consumer_instance
         
         # 创建测试pipeline
-        env = LocalStreamEnvironment()
+        env = LocalEnvironment()
         
         kafka_stream = env.from_kafka_source(
             bootstrap_servers="localhost:9092",
@@ -431,7 +433,7 @@ class TestKafkaSourcePipeline:
             json_data['custom_prefix'] = 'CUSTOM_'
             return json_data
         
-        env = LocalStreamEnvironment()
+        env = LocalEnvironment()
         
         kafka_stream = env.from_kafka_source(
             bootstrap_servers="localhost:9092",
@@ -450,7 +452,7 @@ class TestKafkaSourceConfiguration:
     
     def test_default_configuration(self):
         """测试默认配置"""
-        env = LocalStreamEnvironment()
+        env = LocalEnvironment()
         
         kafka_stream = env.from_kafka_source(
             bootstrap_servers="localhost:9092",
@@ -468,7 +470,7 @@ class TestKafkaSourceConfiguration:
     
     def test_custom_configuration(self):
         """测试自定义配置"""
-        env = LocalStreamEnvironment()
+        env = LocalEnvironment()
         
         kafka_stream = env.from_kafka_source(
             bootstrap_servers="custom:9092",
