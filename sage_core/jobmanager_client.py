@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any
 from sage_jobmanager.remote_job_manager import RemoteJobManager
 from sage_utils.custom_logger import CustomLogger
 from sage_utils.actor_wrapper import ActorWrapper
+from sage_utils.ray_init_helper import ensure_ray_initialized
 
 # ==================== 客户端工具类 ====================
 
@@ -51,8 +52,7 @@ class JobManagerClient:
             "action": "get_actor_handle",
             "request_id": str(uuid.uuid4())
         }
-        if not ray.is_initialized():
-            ray.init(address="auto", _temp_dir="/var/lib/ray_shared")
+        ensure_ray_initialized()
 
         response = self._send_request(request)
         
