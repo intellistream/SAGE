@@ -4,7 +4,7 @@ from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.operator.source_operator import SourceOperator
 if TYPE_CHECKING:
     from sage_core.function.base_function import BaseFunction
-    from sage_core.api.env import BaseEnvironment
+    from sage_core.environment.base_environment import BaseEnvironment
 
 
 class SourceTransformation(BaseTransformation):

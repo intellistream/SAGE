@@ -45,7 +45,7 @@ Sage Core 是 Sage 框架的核心模块，负责数据流管道的定义、编�
 
 #### 编译器系统 (`sage_core/core/compiler/`)
 - **`compiler.py`**: 管道编译器
-  - `Compiler`: 将逻辑管道编译为物理执行图
+  - `ExecutionGraph`: 将逻辑管道编译为物理执行图
   - `GraphNode`: 表示执行图中的节点
   - `GraphEdge`: 表示节点间的数据连接
   - 支持并行度展开和连接优化

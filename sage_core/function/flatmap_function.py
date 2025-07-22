@@ -58,24 +58,6 @@ class FlatMapFunction(BaseFunction):
         self.out.collect(data)
         self.logger.debug(f"Data collected: {data}")
 
-    def collect_multiple(self, data_list: Iterable[Any]):
-        """
-        Convenience method to collect multiple data items at once.
-        
-        Args:
-            data_list: Iterable of data items to collect
-            tag: Optional output tag
-        """
-        if self.out is None:
-            raise RuntimeError("Collector not initialized. This should be set by the operator.")
-        
-        count = 0
-        for item in data_list:
-            self.out.collect(item)
-            count += 1
-        
-        self.logger.debug(f"Collected {count} items via collect_multiple")
-
     @abstractmethod
     def execute(self, data: Any) -> Optional[Iterable[Any]]:
         """

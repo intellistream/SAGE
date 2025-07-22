@@ -1,7 +1,7 @@
 from .base_operator import BaseOperator
 from typing import Union, Any
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.io.packet import Packet
+from sage_runtime.router.packet import Packet
 
 
 class CoMapOperator(BaseOperator):
@@ -56,7 +56,7 @@ class CoMapOperator(BaseOperator):
             if result is not None:
                 # 继承原packet的分区信息
                 result_packet = packet.inherit_partition_info(result)
-                self.emit_packet(result_packet)
+                self.router.send(result_packet)
                 
         except Exception as e:
             self.logger.error(f"Error in CoMapOperator {self.name}: {e}", exc_info=True)
