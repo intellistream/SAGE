@@ -186,17 +186,17 @@ cleanup_temp_files() {
         log_success "PID files cleaned"
     fi
     
-    # 清理临时文件
-    if [ -d "$SAGE_TEMP_DIR" ]; then
-        rm -rf "$SAGE_TEMP_DIR"/*
-        log_success "Temp files cleaned"
-    fi
+    # # 清理临时文件
+    # if [ -d "$SAGE_TEMP_DIR" ]; then
+    #     rm -rf "$SAGE_TEMP_DIR"/*
+    #     log_success "Temp files cleaned"
+    # fi
     
-    # 清理旧的日志文件（保留最近的几个）
-    if [ -d "$SAGE_LOG_DIR" ]; then
-        find "$SAGE_LOG_DIR" -name "*.log" -mtime +7 -delete 2>/dev/null || true
-        log_success "Old log files cleaned"
-    fi
+    # # 清理旧的日志文件（保留最近的几个）
+    # if [ -d "$SAGE_LOG_DIR" ]; then
+    #     find "$SAGE_LOG_DIR" -name "*.log" -mtime +7 -delete 2>/dev/null || true
+    #     log_success "Old log files cleaned"
+    # fi
 }
 
 # 修复权限问题

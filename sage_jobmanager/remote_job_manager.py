@@ -58,8 +58,17 @@ class RemoteJobManager(JobManager):
             "actor_id": self.actor_id,
             "node_id": self.node_id,
             "session_id": self.session_id,
-            "log_base_dir": self.log_base_dir,
+            "log_base_dir": str(self.log_base_dir),
             "actor_type": "RemoteJobManager"
+        }
+    
+    def get_log_directory(self) -> Dict[str, Any]:
+        """获取日志目录信息"""
+        return {
+            "status": "success",
+            "log_base_dir": str(self.log_base_dir),
+            "session_id": self.session_id,
+            "latest_link": "/tmp/sage-jm/session_latest"
         }
     
     def _get_memory_info(self) -> Dict[str, Any]:
