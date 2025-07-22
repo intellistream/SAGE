@@ -16,11 +16,9 @@ class MemoryManager:
     内存管理器，管理不同类型的 MemoryCollection 实例
     """
 
-    def __init__(self, data_dir: Optional[str] = None, session_folder: str = None):
-        self.session_folder = session_folder or CustomLogger.get_session_folder()
+    def __init__(self, data_dir: Optional[str] = None):
         self.logger = CustomLogger(
             filename=f"MemoryManager",
-            session_folder=self.session_folder,
             console_output=False,
             file_output=True
         )
@@ -44,8 +42,6 @@ class MemoryManager:
             embedding_model: Optional[Any] = None,
             dim: Optional[int] = None,
             as_ray_actor: bool = False, 
-            session_folder: Optional[str] = None,
-            env_name: Optional[str] = None
     ) -> Union[BaseMemoryCollection, ActorHandle]:
         """
         创建新的集合（可选择作为Ray Actor封装）
@@ -73,7 +69,7 @@ class MemoryManager:
             # 创建Ray Actor
             # 根据类型处理不同构造参数
             if backend_type == "VDB":
-                collection = actor_cls.remote(name, embedding_model, dim, session_folder=self.session_folder, env_name=env_name)
+                collection = actor_cls.remote(name, embedding_model, dim)
             else:
                 collection = actor_cls.remote(name)
         else:
@@ -81,7 +77,7 @@ class MemoryManager:
             if backend_type == "VDB":
                 if embedding_model is None or dim is None:
                     raise ValueError("VDB requires 'embedding_model' and 'dim'")
-                collection = VDBMemoryCollection(name, embedding_model, dim, session_folder=self.session_folder)
+                collection = VDBMemoryCollection(name, embedding_model, dim)
             elif backend_type == "KV":
                 collection = KVMemoryCollection(name)
             elif backend_type == "GRAPH":

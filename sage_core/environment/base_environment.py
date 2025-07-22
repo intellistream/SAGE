@@ -10,6 +10,7 @@ import sage_memory.api
 from sage_core.api.datastream import DataStream
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.transformation.source_transformation import SourceTransformation
+from sage_core.transformation.batch_transformation import BatchTransformation
 from sage_core.transformation.future_transformation import FutureTransformation
 from sage_utils.custom_logger import CustomLogger
 from sage_jobmanager.utils.name_server import get_name
@@ -144,6 +145,202 @@ class BaseEnvironment(ABC):
                                               **kwargs)  # TODO: add a new transformation 去告诉engine这个input source是有界的，当执行完毕之后，会发送一个endofinput信号来停止所有进程。
 
         self.pipeline.append(transformation)
+        return DataStream(self, transformation)
+
+    def from_batch_collection(self, data: list, **kwargs) -> DataStream:
+        """
+        从数据集合创建批处理数据源，引擎会自动判断批次大小
+        
+        Args:
+            data: 要处理的数据列表
+            **kwargs: 其他配置参数，如progress_log_interval等
+            
+        Returns:
+            DataStream: 包含BatchTransformation的数据流
+            
+        Example:
+            # 处理简单数据列表
+            data = ["item1", "item2", "item3", "item4", "item5"]
+            batch_stream = env.from_batch_collection(data)
+            
+            # 配置进度日志间隔
+            batch_stream = env.from_batch_collection(
+                data, 
+                progress_log_interval=10
+            )
+        """
+        from sage_core.function.batch_function import SimpleBatchFunction
+        
+        transformation = BatchTransformation(
+            self,
+            SimpleBatchFunction,
+            data=data,
+            **kwargs
+        )
+        
+        self.pipeline.append(transformation)
+        self.logger.info(f"Batch collection source created with {len(data)} items")
+        
+        return DataStream(self, transformation)
+
+    def from_batch_file(self, file_path: str, encoding: str = 'utf-8', **kwargs) -> DataStream:
+        """
+        从文件创建批处理数据源，引擎会自动统计行数并判断批次大小
+        
+        Args:
+            file_path: 文件路径
+            encoding: 文件编码，默认为utf-8
+            **kwargs: 其他配置参数，如progress_log_interval等
+            
+        Returns:
+            DataStream: 包含BatchTransformation的数据流
+            
+        Example:
+            # 处理文本文件
+            batch_stream = env.from_batch_file("/path/to/data.txt")
+            
+            # 指定编码和进度间隔
+            batch_stream = env.from_batch_file(
+                "/path/to/data.txt",
+                encoding="gb2312",
+                progress_log_interval=1000
+            )
+        """
+        from sage_core.function.batch_function import FileBatchFunction
+        
+        transformation = BatchTransformation(
+            self,
+            FileBatchFunction,
+            file_path=file_path,
+            encoding=encoding,
+            **kwargs
+        )
+        
+        self.pipeline.append(transformation)
+        self.logger.info(f"Batch file source created for: {file_path}")
+        
+        return DataStream(self, transformation)
+
+    def from_batch_range(self, start: int, end: int, step: int = 1, **kwargs) -> DataStream:
+        """
+        从数字范围创建批处理数据源，引擎会自动计算范围大小
+        
+        Args:
+            start: 起始数字
+            end: 结束数字(不包含)
+            step: 步长，默认为1
+            **kwargs: 其他配置参数，如progress_log_interval等
+            
+        Returns:
+            DataStream: 包含BatchTransformation的数据流
+            
+        Example:
+            # 生成1到1000的数字
+            batch_stream = env.from_batch_range(1, 1001)
+            
+            # 生成偶数序列
+            batch_stream = env.from_batch_range(0, 100, step=2)
+        """
+        from sage_core.function.batch_function import NumberRangeBatchFunction
+        
+        transformation = BatchTransformation(
+            self,
+            NumberRangeBatchFunction,
+            start=start,
+            end=end,
+            step=step,
+            **kwargs
+        )
+        
+        total_count = max(0, (end - start + step - 1) // step)
+        self.pipeline.append(transformation)
+        self.logger.info(f"Batch range source created: {start}-{end} (step={step}, total={total_count})")
+        
+        return DataStream(self, transformation)
+
+    def from_batch_generator(self, generator_func: callable, total_count: int, **kwargs) -> DataStream:
+        """
+        从生成器函数创建批处理数据源，用户需要提供总数量
+        
+        Args:
+            generator_func: 数据生成器函数，应该返回Iterator[Any]
+            total_count: 预期生成的总数量
+            **kwargs: 其他配置参数，如progress_log_interval等
+            
+        Returns:
+            DataStream: 包含BatchTransformation的数据流
+            
+        Example:
+            # 斐波那契数列生成器
+            def fibonacci_generator():
+                a, b = 0, 1
+                for _ in range(100):
+                    yield a
+                    a, b = b, a + b
+            
+            batch_stream = env.from_batch_generator(fibonacci_generator, 100)
+        """
+        from sage_core.function.batch_function import CustomDataBatchFunction
+        
+        transformation = BatchTransformation(
+            self,
+            CustomDataBatchFunction,
+            data_generator_func=generator_func,
+            total_count=total_count,
+            **kwargs
+        )
+        
+        self.pipeline.append(transformation)
+        self.logger.info(f"Batch generator source created with {total_count} expected items")
+        
+        return DataStream(self, transformation)
+
+    def from_batch_custom(self, batch_function_class: Type['BaseFunction'], *args, **kwargs) -> DataStream:
+        """
+        从自定义批处理函数创建批处理数据源
+        
+        Args:
+            batch_function_class: 继承自BatchFunction的自定义函数类
+            *args: 传递给批处理函数的位置参数
+            **kwargs: 传递给批处理函数的关键字参数，以及transformation的配置参数
+            
+        Returns:
+            DataStream: 包含BatchTransformation的数据流
+            
+        Example:
+            class MyBatchFunction(BatchFunction):
+                def get_total_count(self) -> int:
+                    return 50
+                
+                def get_data_source(self) -> Iterator[Any]:
+                    return iter(range(50))
+            
+            batch_stream = env.from_batch_custom(MyBatchFunction)
+        """
+        # 分离transformation配置和function参数
+        transform_kwargs = {}
+        function_kwargs = {}
+        
+        # transformation相关的参数
+        transform_config_keys = {'delay', 'progress_log_interval'}
+        
+        for key, value in kwargs.items():
+            if key in transform_config_keys:
+                transform_kwargs[key] = value
+            else:
+                function_kwargs[key] = value
+        
+        transformation = BatchTransformation(
+            self,
+            batch_function_class,
+            *args,
+            **function_kwargs,
+            **transform_kwargs
+        )
+        
+        self.pipeline.append(transformation)
+        self.logger.info(f"Custom batch source created with {batch_function_class.__name__}")
+        
         return DataStream(self, transformation)
 
 
