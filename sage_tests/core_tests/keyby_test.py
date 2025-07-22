@@ -132,7 +132,7 @@ class TestKeyByFunctionality:
         """测试广播策略"""
         print("\n🚀 Testing KeyBy Broadcast Strategy")
         
-        env = LocalEnvironment("keyby_broadcast_test")
+        env = LocalEnvironment("Test_keyby_broadcast_test")
         
         result_stream = (
             env.from_source(TestDataSource, delay=0.3)
