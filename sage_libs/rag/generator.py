@@ -24,7 +24,7 @@ class OpenAIGenerator(GeneratorFunction):
         :param config: Dictionary containing configuration for the generator, including 
                        the method, model name, base URL, API key, etc.
         """
-        self.config = super().generator_config
+        self.config = super().generator_config.get(local_remote)
         # Apply the generator model with the provided configuration
         self.model = apply_generator_model(
             method=self.config["method"],
@@ -62,7 +62,7 @@ class OpenAIGenerator(GeneratorFunction):
         return (user_query, response)
 
 
-class OpenAIGeneratorWithHistory(StatefulFunction):
+class OpenAIGeneratorWithHistory(GeneratorFunction,StatefulFunction):
     """
     OpenAIGenerator with global dialogue memory.
     Maintains a rolling history of past user and assistant turns (stateful).

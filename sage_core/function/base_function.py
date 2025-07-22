@@ -88,19 +88,3 @@ class StatefulFunction(BaseFunction):
         os.makedirs(base, exist_ok=True)
         path = os.path.join(base, f"{self.ctx.name}.chkpt")
         save_function_state(self, path)
-
-# class MemoryFunction(BaseFunction):
-#     def __init__(self):
-#         self.runtime_context = None  # 需要在compiler里面实例化。
-
-#     @property
-#     def memory(self):
-#         if self.runtime_context is None:
-#             raise RuntimeError("runtime_context is not set")
-#         return self.runtime_context.memory
-
-# class StatefulFunction(BaseFunction):
-#     def __init__(self):
-#         self.runtime_context = None  # 需要在compiler里面实例化。
-#         self.state
-#         pass
