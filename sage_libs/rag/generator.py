@@ -1,45 +1,21 @@
 import os, yaml
 from typing import Tuple, List
 from sage_common_funs.utils.generator_model import apply_generator_model
+
+from sage_core.function.generator_function import GeneratorFunction
 from sage_core.function.map_function import MapFunction
 from sage_core.function.base_function import StatefulFunction
+from sage_utils.config_loader import load_config
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.state_persistence import load_function_state, save_function_state
+from sage_utils.state_persistence import load_function_state, save_function_state
 
-_PRESETS = yaml.safe_load(open(os.path.abspath("config/generator_presets.yaml"), encoding="utf-8"))["presets"]
-
-
-def get_generator_preset(name: str) -> MapFunction:
-    """
-    返回无状态版本的 OpenAIGenerator，一行切换本地/远程：
-        gen = get_generator_preset("local")
-        gen = get_generator_preset("remote")
-    """
-    cfg = _PRESETS.get(name)
-    if cfg is None:
-        raise ValueError(f"Unknown preset: {name!r}")
-    return OpenAIGenerator(cfg)
-
-
-def get_stateful_generator_preset(name: str) -> StatefulFunction:
-    """
-    返回带对话历史的生成器版本，一行切换本地/远程：
-        gen = get_stateful_generator_preset("local")
-        gen = get_stateful_generator_preset("remote")
-    """
-    cfg = _PRESETS.get(name)
-    if cfg is None:
-        raise ValueError(f"Unknown preset: {name!r}")
-    return OpenAIGeneratorWithHistory(cfg)
-
-
-class OpenAIGenerator(MapFunction):
+class OpenAIGenerator(GeneratorFunction):
     """
     OpenAIGenerator is a generator rag that interfaces with a specified OpenAI model
     to generate responses based on input data.
     """
 
-    def __init__(self, config, **kwargs):
+    def __init__(self, config, local_remote, **kwargs):
         super().__init__(**kwargs)
 
         """
@@ -48,7 +24,7 @@ class OpenAIGenerator(MapFunction):
         :param config: Dictionary containing configuration for the generator, including 
                        the method, model name, base URL, API key, etc.
         """
-        self.config = config
+        self.config = super().generator_config
         # Apply the generator model with the provided configuration
         self.model = apply_generator_model(
             method=self.config["method"],
