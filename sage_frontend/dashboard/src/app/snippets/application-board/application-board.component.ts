@@ -5,6 +5,7 @@ import {Job} from "../../model/Job";
 @Component({
   selector: 'app-application-board',
   templateUrl: './application-board.component.html',
+  standalone: true,
   styleUrls: ['./application-board.component.less']
 })
 export class ApplicationBoardComponent implements OnInit {
