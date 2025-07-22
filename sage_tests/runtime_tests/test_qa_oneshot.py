@@ -47,7 +47,7 @@ def test_pipeline_execution(env, config):
         .from_source(FileSource, config["source"])
         .map(DenseRetriever, config["retriever"])
         .map(QAPromptor, config["promptor"])
-        .map(OpenAIGenerator, config["generator"])
+        .map(OpenAIGenerator, config["generator"]["local"])
         .sink(TerminalSink, config["sink"])
     )
 

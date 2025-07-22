@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Type, TYPE_CHECKING, Union, Any, List, Tuple, TypeVar, Generic, get_args, get_origin
+from typing import Type, TYPE_CHECKING, Union, Any, List, Tuple, TypeVar, Generic, get_args, get_origin, Optional
 from sage_core.transformation.base_transformation import BaseTransformation
 from sage_core.transformation.filter_transformation import FilterTransformation
 from sage_core.transformation.flatmap_transformation import FlatMapTransformation
@@ -11,6 +11,7 @@ from sage_core.function.base_function import BaseFunction
 from sage_core.function.lambda_function import wrap_lambda, detect_lambda_type
 from .connected_streams import ConnectedStreams
 from sage_utils.custom_logger import CustomLogger
+
 if TYPE_CHECKING:
     from sage_core.environment.base_environment import BaseEnvironment
     from .datastream import DataStream
@@ -20,13 +21,15 @@ T = TypeVar("T")
 
 class DataStream(Generic[T]):
     """表示单个transformation生成的流结果"""
-    def __init__(self, env:'BaseEnvironment', transformation: 'BaseTransformation'):
+
+    def __init__(self, env: 'BaseEnvironment', transformation: 'BaseTransformation'):
         self.logger = CustomLogger()
         self._environment = env
         self.transformation = transformation
         self._type_param = self._resolve_type_param()
 
-        self.logger.debug(f"DataStream created with transformation: {transformation.function_class.__name__}, type_param: {self._type_param}")
+        self.logger.debug(
+            f"DataStream created with transformation: {transformation.function_class.__name__}, type_param: {self._type_param}")
 
     # ---------------------------------------------------------------------
     # general datastream api
@@ -34,61 +37,40 @@ class DataStream(Generic[T]):
     def map(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, 'map')
-        tr = MapTransformation(self._environment,function,*args,**kwargs)
+        tr = MapTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
 
-    def filter(self, function: Union[Type[BaseFunction], callable],*args, **kwargs) -> "DataStream":
+    def filter(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, 'filter')
         tr = FilterTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
 
-    def flatmap(self, function: Union[Type[BaseFunction], callable],*args, **kwargs) -> "DataStream":
+    def flatmap(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, 'flatmap')
         tr = FlatMapTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
-    
-    def sink(self, function: Union[Type[BaseFunction], callable],*args, **kwargs) -> "DataStream":
+
+    def sink(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, 'sink')
-        tr = SinkTransformation(self._environment,function,*args,**kwargs)
+        tr = SinkTransformation(self._environment, function, *args, **kwargs)
         self._apply(tr)
         return self  # sink不返回新的DataStream，因为它是终端操作
 
-    def keyby(self, function: Union[Type[BaseFunction], callable], 
-            strategy: str = "hash",*args, **kwargs) -> "DataStream":
-        """
-        Apply keyby transformation that partitions data based on extracted keys
-        
-        Args:
-            function: BaseFunction class that extracts partition key
-            strategy: Partitioning strategy ("hash", "round_robin", "broadcast")
-            
-        Returns:
-            DataStream: New stream with keyby transformation applied
-            
-        Example:
-            ```python
-            class UserIdExtractor(BaseFunction):
-                def execute(self, data):
-                    return data.user_id
-                    
-            stream.keyby(UserIdExtractor).map(UserProcessor)
-            ```
-        """
+    def keyby(self, function: Union[Type[BaseFunction], callable],
+              strategy: str = "hash", *args, **kwargs) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, 'keyby')
-            
+
         tr = KeyByTransformation(
-            self._environment, 
-            function, 
+            self._environment,
+            function,
             strategy=strategy
-            ,*args, **kwargs
+            , *args, **kwargs
         )
         return self._apply(tr)
-
-
 
     def connect(self, other: Union["DataStream", "ConnectedStreams"]) -> 'ConnectedStreams':
         """连接两个数据流，返回ConnectedStreams
@@ -109,7 +91,7 @@ class DataStream(Generic[T]):
             # DataStream + ConnectedStreams -> ConnectedStreams
             new_transformations = [self.transformation] + other.transformations
             return ConnectedStreams(self._environment, new_transformations)
-    
+
     def fill_future(self, future_stream: "DataStream") -> None:
         """
         将当前数据流填充到预先声明的future stream中，创建反馈边。
@@ -133,24 +115,25 @@ class DataStream(Generic[T]):
             processed_result.fill_future(future_stream)
         """
         from sage_core.transformation.future_transformation import FutureTransformation
-        
+
         # 验证目标是future stream
         if not isinstance(future_stream.transformation, FutureTransformation):
             raise ValueError("Target stream must be a future stream created by env.from_future()")
-        
+
         future_trans = future_stream.transformation
-        
+
         # 检查是否已经被填充
         if future_trans.filled:
             raise RuntimeError(f"Future stream '{future_trans.future_name}' has already been filled")
-        
+
         # 使用FutureTransformation的填充方法
         future_trans.fill_with_transformation(self.transformation)
-        
+
         # 从环境的pipeline中移除future transformation的引用
         # 注意：不能完全删除，因为可能有其他地方引用它，但标记为已填充
-        self.logger.debug(f"Filled future stream '{future_trans.future_name}' with transformation '{self.transformation.basename}'")
-        
+        self.logger.debug(
+            f"Filled future stream '{future_trans.future_name}' with transformation '{self.transformation.basename}'")
+
         # 记录反馈边的创建
         self.logger.info(f"Created feedback edge: {self.transformation.basename} -> {future_trans.future_name}")
 
@@ -178,11 +161,8 @@ class DataStream(Generic[T]):
             stream.print()  # 简单打印
             ```
         """
-        from sage_common_funs.io.sink import PrintSink
+        from sage_libs.io.sink import PrintSink
         return self.sink(PrintSink, prefix=prefix, separator=separator, colored=colored)
-
-
-
 
     # ---------------------------------------------------------------------
     # internel methods
@@ -190,10 +170,10 @@ class DataStream(Generic[T]):
     def _apply(self, tr: BaseTransformation) -> "DataStream":
         # 连接到输入索引0（单输入情况）
         tr.add_upstream(self.transformation, input_index=0)
-        
+
         self._environment.pipeline.append(tr)
         return DataStream(self._environment, tr)
-    
+
     def _resolve_type_param(self):
         # 利用 __orig_class__ 捕获 T
         orig = getattr(self, "__orig_class__", None)

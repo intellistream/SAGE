@@ -55,16 +55,7 @@ class HFGenerator:
         ).to(self.device)
 
         # Generate output
-        output = self.model.generate(
-            **input_ids,
-            max_new_tokens=kwargs.get("max_new_tokens", 512),
-            num_return_sequences=kwargs.get("num_return_sequences", 1),
-            temperature=kwargs.get("temperature", 1.0),
-            top_k=kwargs.get("top_k", 50),
-            top_p=kwargs.get("top_p", 1.0),
-            repetition_penalty=kwargs.get("repetition_penalty", 1.0),
-            do_sample=kwargs.get("do_sample", True)
-        )
+        output = self.model.generate("local", config["generator"]["local"], **input_ids)
 
         # Decode output
         response_text = self.tokenizer.decode(

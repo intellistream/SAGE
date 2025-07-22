@@ -1,8 +1,8 @@
 import logging
 
 from sage_core.api.local_environment import LocalStreamEnvironment
-from sage_common_funs.io.sink import MemWriteSink, FileSink
-from sage_common_funs.io.source import FileSource
+from sage_libs.io.sink import MemWriteSink, FileSink
+from sage_libs.io.source import FileSource
 
 from sage_libs.rag.chunk import CharacterSplitter
 from sage_libs.rag.generator import OpenAIGenerator

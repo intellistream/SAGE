@@ -45,7 +45,7 @@ class ConnectedStreams:
         Returns:
             DataStream: 返回新的数据流用于链式调用
         """
-        from sage_common_funs.io.sink import PrintSink
+        from sage_libs.io.sink import PrintSink
         return self.sink(PrintSink, prefix=prefix, separator=separator, colored=colored)
 
     def connect(self, other: Union['DataStream', 'ConnectedStreams']) -> 'ConnectedStreams':

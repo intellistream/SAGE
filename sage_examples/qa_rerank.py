@@ -6,8 +6,8 @@ from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
 from sage_libs.rag.reranker import BGEReranker
-from sage_common_funs.io.source import FileSource
-from sage_common_funs.io.sink import TerminalSink
+from sage_libs.io.source import FileSource
+from sage_libs.io.sink import TerminalSink
 from sage_utils.config_loader import load_config
 
 
@@ -25,7 +25,7 @@ def pipeline_run():
                     .map(DenseRetriever, config["retriever"])
                     .map(BGEReranker, config["reranker"])  
                     .map(QAPromptor, config["promptor"])
-                    .map(OpenAIGenerator, config["generator"])
+                    .map(OpenAIGenerator, config["generator"]["local"])
                     .sink(TerminalSink, config["sink"])
                     )
 

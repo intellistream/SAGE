@@ -1,7 +1,7 @@
 import time
 from dotenv import load_dotenv
 
-from sage_core.api.local_environment import LocalStreamEnvironment
+from sage_core.api.local_environment import LocalEnvironment
 from sage_libs.io.sink import TerminalSink
 from sage_libs.io.source import FileSource
 from sage_libs.rag.generator import OpenAIGenerator
@@ -17,7 +17,7 @@ def pipeline_run(config: dict) -> None:
     Args:
         config (dict): 包含各模块配置的配置字典。
     """
-    env = LocalStreamEnvironment()
+    env = LocalEnvironment()
     env.set_memory(config=None)
 
     # 构建数据处理流程
@@ -25,7 +25,7 @@ def pipeline_run(config: dict) -> None:
         .from_source(FileSource, config["source"])
         .map(DenseRetriever, config["retriever"])
         .map(QAPromptor, config["promptor"])
-        .map(OpenAIGenerator, config["generator"])
+        .map(OpenAIGenerator, config["generator"]["local"])
         .sink(TerminalSink, config["sink"])
     )
 
