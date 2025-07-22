@@ -6,7 +6,7 @@ import logging
 import time
 from typing import TYPE_CHECKING
 
-from sage_core.api.local_environment import LocalStreamEnvironment
+from sage_core.api.local_environment import LocalEnvironment
 from sage_libs.io.sink import FileSink
 from sage_libs.io.source import FileSource
 from sage_libs.rag.generator import OpenAIGenerator
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 def init_memory_and_pipeline():
     # 创建一个新的管道实例
-    pipeline = LocalStreamEnvironment()
+    pipeline = LocalEnvironment()
 
     # 步骤 1: 定义数据源（例如，来自用户的查询）
     query_stream: DataStream = pipeline.from_source(FileSource,config["source"])  # 从文件源读取数据
