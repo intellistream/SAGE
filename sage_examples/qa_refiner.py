@@ -1,7 +1,8 @@
 import time, json
 
 from sage_core.api.local_environment import LocalEnvironment
-from sage_libs.rag.evaluate import F1Evaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate
+from sage_libs.rag.evaluate import F1Evaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate, RecallEvaluate, \
+    AccuracyEvaluate, TokenCountEvaluate, LatencyEvaluate, ContextRecallEvaluate, CompressionRateEvaluate
 from sage_utils.config_loader import load_config
 from sage_core.function.map_function import MapFunction
 
@@ -79,7 +80,7 @@ class TimeQAPromptor(MapFunction):
 class TimeGenerator(MapFunction):
     def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
-        # ———— 一行切换本地 or 远程模型 ————
+        # ———— 一行切换本地, vllm or 远程模型 ————
         self.generator = OpenAIGenerator(config, "local")
         # 如果要使用远程模型，改成：
         # self.generator = get_generator_preset("remote")
@@ -97,15 +98,6 @@ class TimeGenerator(MapFunction):
         data["generated"]       = gen
         data["query"]           = query
         return data
-
-
-#class ResultFormatter(MapFunction):
-#    def __init__(self, config=None, **kwargs):
-#        super().__init__(**kwargs)
-#
-#    def execute(self, data: dict):
-#        return (data["query"], data["generated"])
-
 
 def pipeline_run(config):
     env = LocalEnvironment()

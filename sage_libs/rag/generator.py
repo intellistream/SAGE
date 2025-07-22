@@ -1,21 +1,18 @@
 import os, yaml
 from typing import Tuple, List
 from sage_common_funs.utils.generator_model import apply_generator_model
-
-from sage_core.function.generator_function import GeneratorFunction
 from sage_core.function.map_function import MapFunction
 from sage_core.function.base_function import StatefulFunction
-from sage_utils.config_loader import load_config
-from sage_utils.custom_logger import CustomLogger
 from sage_utils.state_persistence import load_function_state, save_function_state
 
-class OpenAIGenerator(GeneratorFunction):
+
+class OpenAIGenerator(MapFunction):
     """
     OpenAIGenerator is a generator rag that interfaces with a specified OpenAI model
     to generate responses based on input data.
     """
 
-    def __init__(self, config, local_remote, **kwargs):
+    def __init__(self, config, generator_deployment, **kwargs):
         super().__init__(**kwargs)
 
         """
@@ -24,8 +21,8 @@ class OpenAIGenerator(GeneratorFunction):
         :param config: Dictionary containing configuration for the generator, including 
                        the method, model name, base URL, API key, etc.
         """
-        self.config = super().generator_config.get(local_remote)
         # Apply the generator model with the provided configuration
+        self.config = config[generator_deployment]
         self.model = apply_generator_model(
             method=self.config["method"],
             model_name=self.config["model_name"],
@@ -62,24 +59,22 @@ class OpenAIGenerator(GeneratorFunction):
         return (user_query, response)
 
 
-class OpenAIGeneratorWithHistory(GeneratorFunction,StatefulFunction):
+class OpenAIGeneratorWithHistory(StatefulFunction):
     """
     OpenAIGenerator with global dialogue memory.
     Maintains a rolling history of past user and assistant turns (stateful).
     """
 
-    def __init__(self, config, **kwargs):
+    def __init__(self, config, generator_deployment, **kwargs):
         super().__init__(**kwargs)
-        self.config = config
-
+        self.config = config[generator_deployment]
         self.model = apply_generator_model(
             method=self.config["method"],
             model_name=self.config["model_name"],
             base_url=self.config["base_url"],
-            api_key=os.getenv("ALIBABA_API_KEY"),
-            seed=42
+            api_key=self.config["api_key"] or os.getenv("ALIBABA_API_KEY"),
+            seed=42  # Hardcoded seed for reproducibility
         )
-
         # 全局历史状态，按对话轮次记录字符串
         self.dialogue_history: List[str] = []
         self.history_turns = config.get("max_history_turns", 5)
