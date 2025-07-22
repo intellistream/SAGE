@@ -1,8 +1,9 @@
 from dotenv import load_dotenv
 import os, time
-from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_common_funs.io.source import FileSource
 from sage_common_funs.io.sink import TerminalSink
+
+from sage_core.api.local_environment import LocalEnvironment
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
@@ -44,7 +45,7 @@ def run_gc_report(verbose: bool = True):
 
 def pipeline_run():
     """创建并运行数据处理管道"""
-    env = LocalStreamEnvironment()
+    env = LocalEnvironment()
     env.set_memory(config=None)
     # 构建数据处理流程
     query_stream = (env
