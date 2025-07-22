@@ -100,3 +100,11 @@ class JobManagerClient:
         }
         
         return self._send_request(request)
+    
+    def get_log_directory(self) -> Dict[str, Any]:
+        """获取远程JobManager的日志目录信息"""
+        try:
+            actor_handle = self.get_actor_handle()
+            return actor_handle.get_log_directory()
+        except Exception as e:
+            return {"status": "error", "message": f"Failed to get log directory: {e}"}
