@@ -6,6 +6,8 @@ from sage_runtime.router.connection import Connection
 from sage_utils.custom_logger import CustomLogger
 import ray
 from ray.actor import ActorHandle
+
+from sage_utils.ray_init_helper import ensure_ray_initialized
 if TYPE_CHECKING:
     from sage_core.environment.base_environment import BaseEnvironment 
     from sage_jobmanager.execution_graph import ExecutionGraph, GraphNode
@@ -30,8 +32,8 @@ class Dispatcher():
         self.tasks: Dict[str, BaseTask] = {}
         self.is_running: bool = False
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
-        if env.platform is "remote" and not ray.is_initialized():
-            ray.init(address="auto", _temp_dir="/var/lib/ray_shared")
+        if env.platform is "remote":
+            ensure_ray_initialized()
         self.setup_logging_system()
 
     def receive_stop_signal(self):

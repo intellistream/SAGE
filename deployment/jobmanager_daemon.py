@@ -12,6 +12,8 @@ from typing import Optional, Dict, Any, TYPE_CHECKING
 from sage_utils.custom_logger import CustomLogger
 from sage_jobmanager.remote_job_manager import RemoteJobManager
 from ray.actor import ActorHandle
+
+from sage_utils.ray_init_helper import ensure_ray_initialized
     
 
 
@@ -85,9 +87,7 @@ class RayJobManagerDaemon:
             self.logger.info("Starting Ray JobManager Daemon...")
             
             # 1. 确保进程内Ray客户端已初始化
-            if not ray.is_initialized():
-                ray.init(address="auto", _temp_dir="/var/lib/ray_shared")
-                self.logger.info("Ray initialized")
+            ensure_ray_initialized()
             
             # 2. 启动JobManager Actor
             self._start_jobmanager_actor()
