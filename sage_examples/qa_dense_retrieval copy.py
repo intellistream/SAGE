@@ -23,13 +23,8 @@ def pipeline_run():
                     .map(OpenAIGenerator, config["generator"]["local"])
                     .sink(TerminalSink, config["sink"])
                     )
-    try:
-        env.submit()
-        env.run_once()  # 启动管道
-        time.sleep(15)  # 等待管道运行
-        env.stop()
-    finally:
-        env.close()
+    env.submit()
+    time.sleep(15)  # 等待管道运行
 
 if __name__ == '__main__':
     # 加载配置
