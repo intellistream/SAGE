@@ -24,8 +24,8 @@ class OperatorFactory:
         self.remote = remote
 
     def create_operator(self, runtime_context: 'RuntimeContext') -> 'BaseOperator':
-            Operator_class = self.operator_class
-            operator_instance = Operator_class(
+            operator_class = self.operator_class
+            operator_instance = operator_class(
                 self.function_factory,
                 runtime_context,
                 **self.operator_kwargs
