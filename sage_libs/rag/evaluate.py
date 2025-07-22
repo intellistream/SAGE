@@ -10,129 +10,156 @@ from sage_core.function.map_function import MapFunction
 
 
 class F1Evaluate(MapFunction):
-    def __init__(self, config, **kwargs):
+    def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
-    
-    def _get_tokens(self, text):
+
+    def _get_tokens(self, text: str):
         return text.lower().split()
-    
-    def _f1_score(self, prediction, reference):
-        reference_tokens = self._get_tokens(reference)
-        prediction_tokens = self._get_tokens(prediction)
 
-        common_tokens = Counter(reference_tokens) & Counter(prediction_tokens)
-        num_common = sum(common_tokens.values())
-
-        if len(reference_tokens) == 0 or len(prediction_tokens) == 0:
-            return int(reference_tokens == prediction_tokens)
-
+    def _f1_score(self, prediction: str, reference: str):
+        ref_toks  = self._get_tokens(reference)
+        pred_toks = self._get_tokens(prediction)
+        common    = Counter(ref_toks) & Counter(pred_toks)
+        num_common = sum(common.values())
+        if not ref_toks or not pred_toks:
+            return float(ref_toks == pred_toks)
         if num_common == 0:
-            return 0
+            return 0.0
+        p = num_common / len(pred_toks)
+        r = num_common / len(ref_toks)
+        return 2 * p * r / (p + r)
 
-        precision = num_common / len(prediction_tokens)
-        recall = num_common / len(reference_tokens)
-        f1 = (2 * precision * recall) / (precision + recall)
-        return f1
-
-    def execute(self, data: tuple[str, str]):
-        reference, prediction = data
-        score = self._f1_score(prediction, reference)
-
+    def execute(self, data: dict):
+        score = self._f1_score(data["generated"], data["reference"])
         print(f"\033[93m[F1 Score] : {score:.4f}\033[0m")
+        return data
+
+
+class RecallEvaluate(MapFunction):
+    """纯召回率 Recall = #common / |reference_tokens|"""
+    def __init__(self, config=None, **kwargs):
+        super().__init__(**kwargs)
+    def _get_tokens(self, text: str):
+        return text.lower().split()
+    def _recall(self, prediction: str, reference: str):
+        ref_toks = self._get_tokens(reference)
+        pred_toks= self._get_tokens(prediction)
+        if not ref_toks:
+            return 0.0
+        common = Counter(ref_toks) & Counter(pred_toks)
+        return float(sum(common.values()) / len(ref_toks))
+    def execute(self, data: dict):
+        score = self._recall(data["generated"], data["reference"])
+        print(f"\033[96m[Recall] : {score:.4f}\033[0m")
+        return data
 
 
 class BertRecallEvaluate(MapFunction):
-    def __init__(self, config, **kwargs):
+    def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
-        self.model = AutoModel.from_pretrained("bert-base-uncased")
+        self.model     = AutoModel.from_pretrained("bert-base-uncased")
         self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-        
-    def bert_recall(self, reference, generated):
+    def _bert_recall(self, reference: str, generated: str):
         if not generated.strip():
             return 0.0
-        inputs_ref = self.tokenizer(reference, return_tensors="pt", padding=True, truncation=True)
-        inputs_gen = self.tokenizer(generated, return_tensors="pt", padding=True, truncation=True)
-
+        inp_ref = self.tokenizer(reference, return_tensors="pt", padding=True, truncation=True)
+        inp_gen = self.tokenizer(generated, return_tensors="pt", padding=True, truncation=True)
         with torch.no_grad():
-            outputs_ref = self.model(**inputs_ref).last_hidden_state.mean(dim=1)
-            outputs_gen = self.model(**inputs_gen).last_hidden_state.mean(dim=1)
-
-        similarity = cosine_similarity(outputs_ref.numpy(), outputs_gen.numpy())
-        return similarity[0][0]
-
-    def execute(self, data: tuple[str, str]):
-        reference, generated = data
-        score = self.bert_recall(reference, generated)
-
+            out_ref = self.model(**inp_ref).last_hidden_state.mean(dim=1)
+            out_gen = self.model(**inp_gen).last_hidden_state.mean(dim=1)
+        sim = cosine_similarity(out_ref.numpy(), out_gen.numpy())
+        return float(sim[0][0])
+    def execute(self, data: dict):
+        score = self._bert_recall(data["reference"], data["generated"])
         print(f"\033[95m[BERT Recall] : {score:.4f}\033[0m")
+        return data
 
 
 class RougeLEvaluate(MapFunction):
-    def __init__(self, config, **kwargs):
+    def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
         self.rouge = Rouge()
-
-    def rouge_l(self, reference, generated):
+    def _rouge_l(self, reference: str, generated: str):
         if not generated.strip():
             return 0.0
         scores = self.rouge.get_scores(generated, reference)
-        return scores[0]['rouge-l']['f']
-
-    def execute(self, data: tuple[str, str]):
-        reference, generated = data
-        score = self.rouge_l(reference, generated)
-
+        return float(scores[0]['rouge-l']['f'])
+    def execute(self, data: dict):
+        score = self._rouge_l(data["reference"], data["generated"])
         print(f"\033[94m[ROUGE-L] : {score:.4f}\033[0m")
+        return data
 
 
 class BRSEvaluate(MapFunction):
-    def __init__(self, config, **kwargs):
+    def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
-        self.bert_recall_evaluate = BertRecallEvaluate(config)
-        self.rouge_l_evaluate = RougeLEvaluate(config)
-
-    def BRS(self, reference, generated):
-        bert_rec = self.bert_recall_evaluate.bert_recall(reference, generated)
-        rouge_l_score = self.rouge_l_evaluate.rouge_l(reference, generated)
-
-        if bert_rec == 0 or rouge_l_score == 0:
-            return 0
-        return (2 * bert_rec * rouge_l_score) / (bert_rec + rouge_l_score)
-
-    def execute(self, data: tuple[str, str]):
-        reference, generated = data
-        score = self.BRS(reference, generated)
-
+        self.bert = BertRecallEvaluate(config)
+        self.rouge = RougeLEvaluate(config)
+    def _brs(self, ref: str, gen: str):
+        b = self.bert._bert_recall(ref, gen)
+        r = self.rouge._rouge_l(ref, gen)
+        if b == 0 or r == 0:
+            return 0.0
+        return 2 * b * r / (b + r)
+    def execute(self, data: dict):
+        score = self._brs(data["reference"], data["generated"])
         print(f"\033[92m[BRS Score] : {score:.4f}\033[0m")
+        return data
 
 
+class AccuracyEvaluate(MapFunction):
+    """严格匹配准确率 ACC"""
+    def __init__(self, config=None, **kwargs):
+        super().__init__(**kwargs)
+    def execute(self, data: dict):
+        acc = float(data["reference"].strip() == data["generated"].strip())
+        print(f"\033[96m[ACC] : {acc:.4f}\033[0m")
+        return data
 
-# def test_evaluate_functions():
-#     # 模拟一条数据：reference 和 generated
-#     reference = "The cat sits on the mat."
-#     generated = "A cat is sitting on a mat."
 
-#     data = Data((reference, generated))
+class TokenCountEvaluate(MapFunction):
+    """原始/压缩 token 数及比例"""
+    def __init__(self, config=None, **kwargs):
+        super().__init__(**kwargs)
+    def _count(self, docs):
+        return sum(len(d.lower().split()) for d in docs)
+    def execute(self, data: dict):
+        o = self._count(data["retrieved_docs"])
+        r = self._count(data["refined_docs"]) or 1
+        print(f"\033[96m[Tokens] Orig: {o}, Ref: {r}, Ratio: {o/r:.2f}\033[0m")
+        return data
 
-#     config = {}  # 测试时config可以是空的
 
-#     # 初始化所有评估器
-#     f1_eval = F1Evaluate(config)
-#     bert_recall_eval = BertRecallEvaluate(config)
-#     rouge_l_eval = RougeLEvaluate(config)
-#     brs_eval = BRSEvaluate(config)
+class LatencyEvaluate(MapFunction):
+    """检索+压缩+生成 总延迟"""
+    def __init__(self, config=None, **kwargs):
+        super().__init__(**kwargs)
+    def execute(self, data: dict):
+        total = data["retrieval_time"] + data["refine_time"] + data["generation_time"]
+        print(f"\033[96m[Latency] Total: {total:.3f}s\033[0m")
+        return data
 
-#     # 分别执行
-#     print("\n=== F1 Evaluate ===")
-#     f1_eval.execute(data)
 
-#     print("\n=== BERT Recall Evaluate ===")
-#     bert_recall_eval.execute(data)
+class ContextRecallEvaluate(MapFunction):
+    """上下文召回率 = |gold ∩ ctx| / |gold|"""
+    def __init__(self, config=None, **kwargs):
+        super().__init__(**kwargs)
+    def _toks(self, t): return t.lower().split()
+    def execute(self, data: dict):
+        gold = set(self._toks(data["reference"]))
+        ctx  = set(self._toks(" ".join(data["refined_docs"])))
+        rec  = float(len(gold & ctx) / len(gold)) if gold else 0.0
+        print(f"\033[96m[Context Recall] : {rec:.4f}\033[0m")
+        return data
 
-#     print("\n=== ROUGE-L Evaluate ===")
-#     rouge_l_eval.execute(data)
 
-#     print("\n=== BRS Evaluate ===")
-#     brs_eval.execute(data)
-
-# test_evaluate_functions()
+class CompressionRateEvaluate(MapFunction):
+    """压缩率 = orig_tokens / refined_tokens"""
+    def __init__(self, config=None, **kwargs):
+        super().__init__(**kwargs)
+    def _count(self, docs): return sum(len(d.lower().split()) for d in docs) or 1
+    def execute(self, data: dict):
+        o = self._count(data["retrieved_docs"])
+        r = self._count(data["refined_docs"])
+        print(f"\033[96m[Compression Rate] : {o/r:.2f}×\033[0m")
+        return data
