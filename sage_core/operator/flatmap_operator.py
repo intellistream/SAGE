@@ -29,12 +29,13 @@ class FlatMapOperator(BaseOperator):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.out: Collector = Collector(
-            self.ctx,
-            self.router
-        )
+        self.out: Collector = Collector(self.ctx)
         self.function.insert_collector(self.out)
         self.logger.info(f"FlatMapOperator '{self.name}' initialized with collector")
+
+
+
+
 
     def process_packet(self, packet: 'Packet' = None):
         """

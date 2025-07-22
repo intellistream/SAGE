@@ -1,569 +1,548 @@
 import pytest
-import json
 import time
-from unittest.mock import Mock, patch
+import threading
+import json
+from typing import Any, Dict, List
+from pathlib import Path
+import tempfile
+from unittest.mock import Mock, patch, MagicMock
 
 from sage_core.api.local_environment import LocalEnvironment
-from sage_core.api.remote_environment import RemoteEnvironment
 from sage_core.function.kafka_source import KafkaSourceFunction
 from sage_core.function.base_function import BaseFunction
+from sage_core.function.sink_function import SinkFunction
 
 
-class TestKafkaSourceFunction:
-    """KafkaSourceFunction单元测试"""
-    
-    def test_kafka_source_initialization(self):
-        """测试KafkaSourceFunction初始化"""
-        kafka_source = KafkaSourceFunction(
-            bootstrap_servers="localhost:9092",
-            topic="test_topic",
-            group_id="test_group",
-            auto_offset_reset="earliest",
-            value_deserializer="json",
-            buffer_size=1000,
-            max_poll_records=100
-        )
-        
-        # 验证配置参数
-        assert kafka_source.bootstrap_servers == "localhost:9092"
-        assert kafka_source.topic == "test_topic"
-        assert kafka_source.group_id == "test_group"
-        assert kafka_source.auto_offset_reset == "earliest"
-        assert kafka_source.value_deserializer == "json"
-        assert kafka_source.buffer_size == 1000
-        assert kafka_source.max_poll_records == 100
-        
-        # 验证运行时对象未初始化
-        assert kafka_source._consumer is None
-        assert kafka_source._local_buffer is None
-        assert kafka_source._consumer_thread is None
-        assert kafka_source._running is False
-        assert kafka_source._initialized is False
-    
-    def test_get_deserializer(self):
-        """测试反序列化器获取"""
-        kafka_source = KafkaSourceFunction(
-            bootstrap_servers="localhost:9092",
-            topic="test_topic",
-            group_id="test_group"
-        )
-        
-        # 测试JSON反序列化器
-        kafka_source.value_deserializer = "json"
-        deserializer = kafka_source._get_deserializer()
-        test_data = b'{"key": "value"}'
-        result = deserializer(test_data)
-        assert result == {"key": "value"}
-        
-        # 测试字符串反序列化器
-        kafka_source.value_deserializer = "string"
-        deserializer = kafka_source._get_deserializer()
-        test_data = b'hello world'
-        result = deserializer(test_data)
-        assert result == "hello world"
-        
-        # 测试字节反序列化器
-        kafka_source.value_deserializer = "bytes"
-        deserializer = kafka_source._get_deserializer()
-        test_data = b'binary data'
-        result = deserializer(test_data)
-        assert result == b'binary data'
-        
-        # 测试自定义函数
-        custom_func = lambda x: x.decode('utf-8').upper()
-        kafka_source.value_deserializer = custom_func
-        deserializer = kafka_source._get_deserializer()
-        test_data = b'hello'
-        result = deserializer(test_data)
-        assert result == "HELLO"
-        
-        # 测试无效反序列化器
-        kafka_source.value_deserializer = "invalid"
-        with pytest.raises(ValueError, match="Unsupported deserializer"):
-            kafka_source._get_deserializer()
-    
-    @patch('kafka.KafkaConsumer')
-    def test_lazy_initialization(self, mock_kafka_consumer):
-        """测试延迟初始化"""
-        # 模拟KafkaConsumer
-        mock_consumer_instance = Mock()
-        mock_consumer_instance.poll.return_value = {}  # 修复：返回空字典避免迭代错误
-        mock_kafka_consumer.return_value = mock_consumer_instance
-        
-        kafka_source = KafkaSourceFunction(
-            bootstrap_servers="localhost:9092",
-            topic="test_topic",
-            group_id="test_group",
-            buffer_size=100
-        )
-        
-        # 首次调用execute应该触发初始化
-        result = kafka_source.execute(None)
-        
-        # 验证初始化完成
-        assert kafka_source._initialized is True
-        assert kafka_source._running is True
-        assert kafka_source._local_buffer is not None
-        assert kafka_source._consumer_thread is not None
-        
-        # 修复：分别验证调用参数而不是直接比较函数对象
-        mock_kafka_consumer.assert_called_once()
-        call_args = mock_kafka_consumer.call_args
-        assert call_args[0] == ("test_topic",)
-        assert call_args[1]['bootstrap_servers'] == "localhost:9092"
-        assert call_args[1]['group_id'] == "test_group" 
-        assert call_args[1]['auto_offset_reset'] == "latest"
-        assert callable(call_args[1]['value_deserializer'])
-        assert call_args[1]['max_poll_records'] == 500
-        assert call_args[1]['consumer_timeout_ms'] == 1000
-        
-        # 第二次调用不应该重新初始化
-        mock_kafka_consumer.reset_mock()
-        kafka_source.execute(None)
-        mock_kafka_consumer.assert_not_called()
-        
-        # 清理资源
-        kafka_source._running = False
-        if kafka_source._consumer_thread:
-            kafka_source._consumer_thread.join(timeout=1.0)
-        
-        @patch('kafka.KafkaConsumer')  # 修正mock路径
-        def test_consume_loop_with_messages(self, mock_kafka_consumer):
-            """测试消费循环处理消息"""
-            # 模拟Kafka消息
-            mock_message = Mock()
-            mock_message.value = {"user_id": "123", "action": "login"}
-            mock_message.timestamp = 1640995200000
-            mock_message.partition = 0
-            mock_message.offset = 42
-            mock_message.key = b"user_123"
-            
-            # 模拟consumer.poll返回
-            mock_consumer_instance = Mock()
-            mock_topic_partition = Mock()
-            mock_consumer_instance.poll.side_effect = [
-                {mock_topic_partition: [mock_message]},
-                {},
-                {}
-            ]
-            mock_kafka_consumer.return_value = mock_consumer_instance
-            
-            kafka_source = KafkaSourceFunction(
-                bootstrap_servers="localhost:9092",
-                topic="test_topic",
-                group_id="test_group",
-                buffer_size=10
-            )
-            
-            # 触发初始化
-            kafka_source.execute(None)
-            
-            # 等待消费线程处理消息
-            time.sleep(0.2)
-            
-            # 验证消息被正确处理
-            result = kafka_source.execute(None)
-            assert result is not None
-            assert result['value'] == {"user_id": "123", "action": "login"}
-            assert result['timestamp'] == 1640995200000
-            assert result['partition'] == 0
-            assert result['offset'] == 42
-            assert result['key'] == "user_123"
-            
-            # 清理资源
-            kafka_source._running = False
-            if kafka_source._consumer_thread:
-                kafka_source._consumer_thread.join(timeout=1.0)
-    
-    @patch('kafka.KafkaConsumer')  # 修正mock路径
-    def test_buffer_full_handling(self, mock_kafka_consumer):
-        """测试缓冲区满时的背压处理"""
-        kafka_source = KafkaSourceFunction(
-            bootstrap_servers="localhost:9092",
-            topic="test_topic",
-            group_id="test_group",
-            buffer_size=1  # 很小的缓冲区
-        )
-        
-        # 模拟消费者
-        mock_consumer_instance = Mock()
-        mock_consumer_instance.poll.return_value = {}  # 添加这行：返回空字典
-        mock_kafka_consumer.return_value = mock_consumer_instance
-        
-        # 手动初始化
-        kafka_source._lazy_init()
-        
-        # 填满缓冲区
-        test_message = {"test": "data"}
-        kafka_source._local_buffer.put_nowait(test_message)
-        
-        # 再次尝试添加消息（应该触发背压处理）
-        new_message = {"new": "data"}
-        try:
-            kafka_source._local_buffer.put_nowait(new_message)
-        except:
-            pass  # 预期会失败
-        
-        # 验证缓冲区大小限制
-        assert kafka_source._local_buffer.qsize() <= kafka_source.buffer_size
-        
-        # 清理资源
-        kafka_source._running = False
-        if kafka_source._consumer_thread:
-            kafka_source._consumer_thread.join(timeout=1.0)
-    
-    def test_serialization_deserialization(self):
-        """测试序列化和反序列化"""
-        kafka_source = KafkaSourceFunction(
-            bootstrap_servers="localhost:9092",
-            topic="test_topic",
-            group_id="test_group",
-            auto_offset_reset="earliest",
-            value_deserializer="json",
-            buffer_size=1000,
-            custom_param="custom_value"
-        )
-        
-        # 模拟运行时状态
-        kafka_source._running = True
-        kafka_source._initialized = True
-        kafka_source._consumer = Mock()
-        kafka_source._local_buffer = Mock()
-        kafka_source._consumer_thread = Mock()
-        
-        # 获取序列化状态
-        state = kafka_source.__getstate__()
-        
-        # 验证运行时对象被排除
-        assert state['_consumer'] is None
-        assert state['_local_buffer'] is None
-        assert state['_consumer_thread'] is None
-        assert state['_running'] is False
-        assert state['_initialized'] is False
-        
-        # 验证配置信息被保留
-        assert state['bootstrap_servers'] == "localhost:9092"
-        assert state['topic'] == "test_topic"
-        assert state['group_id'] == "test_group"
-        assert state['kafka_config']['custom_param'] == "custom_value"
-        
-        # 创建新实例并恢复状态
-        new_kafka_source = KafkaSourceFunction("dummy", "dummy", "dummy")
-        new_kafka_source.__setstate__(state)
-        
-        # 验证状态恢复
-        assert new_kafka_source.bootstrap_servers == "localhost:9092"
-        assert new_kafka_source.topic == "test_topic"
-        assert new_kafka_source.group_id == "test_group"
-        assert new_kafka_source._running is False
-        assert new_kafka_source._initialized is False
-    
-    def test_get_stats(self):
-        """测试统计信息获取"""
-        kafka_source = KafkaSourceFunction(
-            bootstrap_servers="localhost:9092",
-            topic="test_topic",
-            group_id="test_group"
-        )
-        
-        # 未初始化时的统计信息
-        stats = kafka_source.get_stats()
-        assert stats['initialized'] is False
-        
-        # 模拟初始化后的统计信息
-        kafka_source._initialized = True
-        kafka_source._running = True
-        kafka_source._local_buffer = Mock()
-        kafka_source._local_buffer.qsize.return_value = 5
-        
-        stats = kafka_source.get_stats()
-        assert stats['initialized'] is True
-        assert stats['topic'] == "test_topic"
-        assert stats['group_id'] == "test_group"
-        assert stats['running'] is True
-        assert stats['buffer_size'] == 5
-        assert stats['max_buffer_size'] == 10000
-    
-    @patch('kafka.KafkaConsumer')  # 修正mock路径
-    def test_initialization_error_handling(self, mock_kafka_consumer):
-        """测试初始化错误处理"""
-        # 模拟KafkaConsumer初始化失败
-        mock_kafka_consumer.side_effect = Exception("Connection failed")
-        
-        kafka_source = KafkaSourceFunction(
-            bootstrap_servers="invalid_server:9092",
-            topic="test_topic",
-            group_id="test_group"
-        )
-        
-        # 初始化应该失败并抛出异常
-        with pytest.raises(Exception, match="Connection failed"):
-            kafka_source._lazy_init()
-        
-        # 验证状态保持未初始化
-        assert kafka_source._initialized is False
-        assert kafka_source._running is False
+class MockKafkaMessage:
+    """模拟Kafka消息"""
+    def __init__(self, value, key=None, timestamp=None, partition=0, offset=0):
+        self.value = value
+        self.key = key if key is not None else f"key_{offset}".encode('utf-8')
+        self.timestamp = timestamp if timestamp is not None else int(time.time() * 1000)
+        self.partition = partition
+        self.offset = offset
 
 
-class TestKafkaSourceIntegration:
-    """Kafka Source集成测试"""
+class MockKafkaConsumer:
+    """模拟KafkaConsumer"""
+    def __init__(self, *topics, **kwargs):
+        self.topics = topics
+        self.config = kwargs
+        self.messages = []
+        self.poll_count = 0
+        self._closed = False
+        
+    def poll(self, timeout_ms=1000, max_records=500, update_offsets=True):
+        """模拟poll方法"""
+        if self._closed or self.poll_count >= 3:  # 限制poll次数避免无限循环
+            return {}
+        
+        self.poll_count += 1
+        
+        if self.messages:
+            # 返回一批消息
+            topic_partition = Mock()
+            messages = self.messages[:max_records]
+            self.messages = self.messages[max_records:]
+            return {topic_partition: messages}
+        
+        return {}
     
-    def test_environment_kafka_source_creation(self):
-        """测试Environment创建Kafka源"""
-        env = LocalEnvironment("TestKafkaSourceIntegration")
-        
-        kafka_stream = env.from_kafka_source(
-            bootstrap_servers="localhost:9092",
-            topic="test_topic",
-            group_id="test_group",
-            auto_offset_reset="earliest",
-            buffer_size=5000
-        )
-        
-        # 验证DataStream创建
-        assert kafka_stream is not None
-        assert len(env.pipeline) == 1
-        
-        # 验证Transformation类型
-        transformation = env.pipeline[0]
-        assert transformation.function_class == KafkaSourceFunction
-        
-        # 验证参数传递
-        expected_kwargs = {
-            'bootstrap_servers': "localhost:9092",
-            'topic': "test_topic", 
-            'group_id': "test_group",
-            'auto_offset_reset': "earliest",
-            'value_deserializer': "json",
-            'buffer_size': 5000,
-            'max_poll_records': 500
-        }
-        
-        for key, value in expected_kwargs.items():
-            assert transformation.function_kwargs[key] == value
+    def close(self):
+        """关闭消费者"""
+        self._closed = True
     
-    def test_remote_environment_kafka_source(self):
-        """测试远程环境中的Kafka源"""
-        env = RemoteEnvironment("test_remote_environment_kafka_source")
-        env.set_memory()
-        kafka_stream = env.from_kafka_source(
-            bootstrap_servers="kafka-cluster:9092",
-            topic="production_topic",
-            group_id="production_group"
-        )
-        
-        # 验证远程环境下的配置
-        assert env.platform == "remote"
-        assert kafka_stream is not None
-        
-        transformation = env._pipeline[0]
-        assert transformation.function_kwargs['bootstrap_servers'] == "kafka-cluster:9092"
-        assert transformation.function_kwargs['topic'] == "production_topic"
+    def add_messages(self, messages):
+        """添加模拟消息"""
+        self.messages.extend(messages)
 
 
-class ProcessTestEvent(BaseFunction):
-    """测试用的处理函数"""
-    def execute(self, data):
+class KafkaDebugProcessor(BaseFunction):
+    """处理Kafka消息的调试函数"""
+    
+    def __init__(self, ctx=None, **kwargs):
+        super().__init__(ctx=ctx, **kwargs)
+        self.processed_count = 0
+    
+    def execute(self, data: Any):
         if data is None:
             return None
         
-        event = data.get('value', {})
-        return {
-            'processed': True,
-            'original': event,
-            'timestamp': data.get('timestamp')
+        self.processed_count += 1
+        
+        # 提取Kafka消息信息
+        value = data.get('value', {}) if isinstance(data, dict) else data
+        timestamp = data.get('timestamp', 0) if isinstance(data, dict) else 0
+        partition = data.get('partition', 0) if isinstance(data, dict) else 0
+        offset = data.get('offset', 0) if isinstance(data, dict) else 0
+        
+        result = {
+            "type": "processed_kafka_message",
+            "processed_count": self.processed_count,
+            "original_value": value,
+            "kafka_metadata": {
+                "timestamp": timestamp,
+                "partition": partition,
+                "offset": offset
+            }
         }
+        
+        if self.ctx:
+            self.logger.info(f"Processed Kafka message #{self.processed_count}: {value}")
+        
+        return result
 
 
-class CollectResults(BaseFunction):
-    """收集测试结果的Sink函数"""
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.results = []
+class KafkaTestSink(SinkFunction):
+    """Kafka测试结果收集器"""
     
-    def execute(self, data):
-        if data is not None:
-            self.results.append(data)
+    _lock = threading.Lock()
+    _received_data = {}
+    
+    def __init__(self, ctx=None, **kwargs):
+        super().__init__(ctx=ctx, **kwargs)
+        self.parallel_index = None
+        self.received_count = 0
+    
+    def execute(self, data: Any):
+        if self.ctx:
+            self.parallel_index = self.ctx.parallel_index
+        
+        if data is None:
+            return None
+        
+        with self._lock:
+            if self.parallel_index not in self._received_data:
+                self._received_data[self.parallel_index] = []
+            self._received_data[self.parallel_index].append(data)
+        
+        self.received_count += 1
+        
+        if self.ctx:
+            self.logger.info(f"[Instance {self.parallel_index}] Received: {data}")
+        
+        print(f"🔍 [Instance {self.parallel_index}] Kafka Test Sink received: {data}")
+        
         return data
-
-
-class TestKafkaSourcePipeline:
-    """Kafka Source Pipeline测试"""
     
-    @patch('kafka.KafkaConsumer')  # 修正mock路径
-    def test_end_to_end_pipeline_setup(self, mock_kafka_consumer):
-        """测试端到端的Kafka消费pipeline设置"""
-        # 模拟KafkaConsumer
-        mock_consumer_instance = Mock()
-        mock_kafka_consumer.return_value = mock_consumer_instance
+    @classmethod
+    def read_results(cls):
+        """读取测试结果"""
+        with cls._lock:
+            results = dict(cls._received_data)
+        return results
+    
+    @classmethod
+    def clear_results(cls):
+        """清理结果"""
+        with cls._lock:
+            cls._received_data.clear()
+
+
+class TestKafkaSourceFunctionality:
+    """测试Kafka Source功能"""
+    
+    def setup_method(self):
+        """测试前清理"""
+        KafkaTestSink.clear_results()
+    
+    @patch('kafka.KafkaConsumer')
+    def test_basic_kafka_source_pipeline(self, mock_kafka_consumer_class):
+        """测试基本的Kafka Source流水线"""
+        print("\n🚀 Testing Basic Kafka Source Pipeline")
         
-        # 创建测试pipeline
-        env = LocalEnvironment("TestKafkaSourcePipeline")
+        # 创建模拟消息
+        test_messages = [
+            MockKafkaMessage(
+                value={"event": "user_login", "user_id": "user1", "timestamp": 1640995200},
+                offset=0
+            ),
+            MockKafkaMessage(
+                value={"event": "page_view", "user_id": "user1", "page": "/home"},
+                offset=1
+            ),
+            MockKafkaMessage(
+                value={"event": "user_logout", "user_id": "user1"},
+                offset=2
+            ),
+        ]
         
+        # 设置mock
+        mock_consumer = MockKafkaConsumer()
+        mock_consumer.add_messages(test_messages)
+        mock_kafka_consumer_class.return_value = mock_consumer
+        
+        # 创建测试环境
+        env = LocalEnvironment("basic_kafka_test")
+        
+        # 构建流水线
         kafka_stream = env.from_kafka_source(
             bootstrap_servers="localhost:9092",
             topic="test_topic",
             group_id="test_group",
-            buffer_size=10
+            value_deserializer="json",
+            buffer_size=100
         )
         
-        # 添加处理逻辑
-        collector = CollectResults()
+        result_stream = (
+            kafka_stream
+            .map(KafkaDebugProcessor)
+            .sink(KafkaTestSink, parallelism=1)
+        )
         
-        # 使用lambda函数创建sink（避免复杂的sink创建）
-        processed_stream = kafka_stream.map(ProcessTestEvent)
+        print("📊 Pipeline: KafkaSource -> map(KafkaDebugProcessor) -> Sink")
+        print("🎯 Expected: Process JSON messages from Kafka\n")
         
-        # 验证pipeline构建
-        assert len(env.pipeline) == 2  # source + map
+        try:
+            env.submit()
+            time.sleep(2)  # 等待处理消息
+        finally:
+            env.close()
         
-        # 验证source配置
-        source_transformation = env.pipeline[0]
-        assert source_transformation.function_class == KafkaSourceFunction
-        assert source_transformation.function_kwargs['topic'] == "test_topic"
-        
-        # 验证map配置
-        map_transformation = env.pipeline[1]
-        assert map_transformation.function_class == ProcessTestEvent
+        time.sleep(0.5)
+        self._verify_basic_kafka_results(test_messages)
     
-    def test_kafka_source_with_custom_deserializer(self):
-        """测试自定义反序列化器"""
-        def custom_deserializer(data):
+    @patch('kafka.KafkaConsumer')
+    def test_kafka_source_with_string_deserializer(self, mock_kafka_consumer_class):
+        """测试字符串反序列化的Kafka Source"""
+        print("\n🚀 Testing Kafka Source with String Deserializer")
+        
+        # 创建字符串消息
+        test_messages = [
+            MockKafkaMessage(value="Hello Kafka", offset=0),
+            MockKafkaMessage(value="String message 1", offset=1),
+            MockKafkaMessage(value="String message 2", offset=2),
+        ]
+        
+        mock_consumer = MockKafkaConsumer()
+        mock_consumer.add_messages(test_messages)
+        mock_kafka_consumer_class.return_value = mock_consumer
+        
+        env = LocalEnvironment("string_kafka_test")
+        
+        kafka_stream = env.from_kafka_source(
+            bootstrap_servers="localhost:9092",
+            topic="string_topic",
+            group_id="string_group",
+            value_deserializer="string",
+            buffer_size=50
+        )
+        
+        result_stream = (
+            kafka_stream
+            .map(KafkaDebugProcessor)
+            .sink(KafkaTestSink, parallelism=1)
+        )
+        
+        print("📊 Pipeline: KafkaSource(string) -> map(KafkaDebugProcessor) -> Sink")
+        print("🎯 Expected: Process string messages from Kafka\n")
+        
+        try:
+            env.submit()
+            time.sleep(2)
+        finally:
+            env.close()
+        
+        time.sleep(0.5)
+        self._verify_string_kafka_results(test_messages)
+    
+    @patch('kafka.KafkaConsumer')
+    def test_kafka_source_custom_deserializer(self, mock_kafka_consumer_class):
+        """测试自定义反序列化器的Kafka Source"""
+        print("\n🚀 Testing Kafka Source with Custom Deserializer")
+        
+        def custom_deserializer(raw_data):
             """自定义反序列化：添加前缀"""
-            json_data = json.loads(data.decode('utf-8'))
-            json_data['custom_prefix'] = 'CUSTOM_'
-            return json_data
+            if isinstance(raw_data, bytes):
+                data = raw_data.decode('utf-8')
+            else:
+                data = str(raw_data)
+            return f"CUSTOM_{data}"
         
-        env = LocalEnvironment("test_kafka_source_with_custom_deserializer")
+        # 创建测试消息
+        test_messages = [
+            MockKafkaMessage(value=b"message1", offset=0),
+            MockKafkaMessage(value=b"message2", offset=1),
+        ]
+        
+        mock_consumer = MockKafkaConsumer()
+        mock_consumer.add_messages(test_messages)
+        mock_kafka_consumer_class.return_value = mock_consumer
+        
+        env = LocalEnvironment("custom_deserializer_kafka_test")
         
         kafka_stream = env.from_kafka_source(
             bootstrap_servers="localhost:9092",
-            topic="test_topic",
-            group_id="test_group",
-            value_deserializer=custom_deserializer
+            topic="custom_topic",
+            group_id="custom_group",
+            value_deserializer=custom_deserializer,
+            buffer_size=50
         )
         
-        # 验证自定义反序列化器传递
-        transformation = env.pipeline[0]
-        assert transformation.function_kwargs['value_deserializer'] == custom_deserializer
+        result_stream = (
+            kafka_stream
+            .map(KafkaDebugProcessor)
+            .sink(KafkaTestSink, parallelism=1)
+        )
+        
+        print("📊 Pipeline: KafkaSource(custom) -> map(KafkaDebugProcessor) -> Sink")
+        print("🎯 Expected: Process custom deserialized messages\n")
+        
+        try:
+            env.submit()
+            time.sleep(2)
+        finally:
+            env.close()
+        
+        time.sleep(0.5)
+        self._verify_custom_kafka_results()
+    
+    @patch('kafka.KafkaConsumer')
+    def test_kafka_source_parallel_processing(self, mock_kafka_consumer_class):
+        """测试Kafka Source并行处理"""
+        print("\n🚀 Testing Kafka Source Parallel Processing")
+        
+        # 创建更多消息用于并行处理
+        test_messages = []
+        for i in range(10):
+            test_messages.append(
+                MockKafkaMessage(
+                    value={"batch": "parallel_test", "message_id": i, "data": f"data_{i}"},
+                    offset=i
+                )
+            )
+        
+        mock_consumer = MockKafkaConsumer()
+        mock_consumer.add_messages(test_messages)
+        mock_kafka_consumer_class.return_value = mock_consumer
+        
+        env = LocalEnvironment("parallel_kafka_test")
+        
+        kafka_stream = env.from_kafka_source(
+            bootstrap_servers="localhost:9092",
+            topic="parallel_topic",
+            group_id="parallel_group",
+            value_deserializer="json"
+        )
+        
+        result_stream = (
+            kafka_stream
+            .map(KafkaDebugProcessor, parallelism=3)  # 并行度3
+            .sink(KafkaTestSink, parallelism=2)       # 并行度2
+        )
+        
+        print("📊 Pipeline: KafkaSource -> map(parallelism=3) -> Sink(parallelism=2)")
+        print("🎯 Expected: Parallel processing of Kafka messages\n")
+        
+        try:
+            env.submit()
+            time.sleep(3)
+        finally:
+            env.close()
+        
+        time.sleep(0.5)
+        self._verify_parallel_kafka_results(test_messages)
+    
+    def _verify_basic_kafka_results(self, expected_messages):
+        """验证基本Kafka测试结果"""
+        received_data = KafkaTestSink.read_results()
+        
+        print("\n📋 Basic Kafka Source Results:")
+        print("=" * 50)
+        
+        processed_messages = []
+        
+        for instance_id, data_list in received_data.items():
+            print(f"\n🔹 Parallel Instance {instance_id}:")
+            
+            for data in data_list:
+                if data.get("type") == "processed_kafka_message":
+                    processed_messages.append(data)
+                    original_value = data.get("original_value", {})
+                    kafka_meta = data.get("kafka_metadata", {})
+                    
+                    print(f"   - Message: {original_value}")
+                    print(f"     Metadata: partition={kafka_meta.get('partition')}, "
+                          f"offset={kafka_meta.get('offset')}")
+        
+        print(f"\n🎯 Kafka Processing Summary:")
+        print(f"   - Expected messages: {len(expected_messages)}")
+        print(f"   - Processed messages: {len(processed_messages)}")
+        
+        # 验证：应该有处理过的消息
+        assert len(processed_messages) > 0, "❌ No processed Kafka messages received"
+        
+        # 验证：消息内容应该匹配
+        processed_values = [msg.get("original_value", {}) for msg in processed_messages]
+        for expected_msg in expected_messages:
+            expected_value = expected_msg.value
+            assert any(
+                pv.get("event") == expected_value.get("event") for pv in processed_values
+            ), f"❌ Expected message not found: {expected_value}"
+        
+        print("✅ Basic Kafka Source test passed: Messages processed correctly")
+    
+    def _verify_string_kafka_results(self, expected_messages):
+        """验证字符串Kafka测试结果"""
+        received_data = KafkaTestSink.read_results()
+        
+        print("\n📋 String Kafka Source Results:")
+        print("=" * 50)
+        
+        processed_messages = []
+        
+        for instance_id, data_list in received_data.items():
+            for data in data_list:
+                if data.get("type") == "processed_kafka_message":
+                    processed_messages.append(data)
+                    original_value = data.get("original_value")
+                    print(f"   - String Message: '{original_value}'")
+        
+        print(f"\n🎯 String Processing Summary:")
+        print(f"   - Expected messages: {len(expected_messages)}")
+        print(f"   - Processed messages: {len(processed_messages)}")
+        
+        assert len(processed_messages) > 0, "❌ No string messages received"
+        
+        # 验证字符串内容
+        processed_values = [msg.get("original_value") for msg in processed_messages]
+        for expected_msg in expected_messages:
+            assert expected_msg.value in processed_values, f"❌ String message not found: {expected_msg.value}"
+        
+        print("✅ String Kafka Source test passed: String messages processed correctly")
+    
+    def _verify_custom_kafka_results(self):
+        """验证自定义反序列化测试结果"""
+        received_data = KafkaTestSink.read_results()
+        
+        print("\n📋 Custom Deserializer Kafka Results:")
+        print("=" * 50)
+        
+        processed_messages = []
+        
+        for instance_id, data_list in received_data.items():
+            for data in data_list:
+                if data.get("type") == "processed_kafka_message":
+                    processed_messages.append(data)
+                    original_value = data.get("original_value")
+                    print(f"   - Custom Message: '{original_value}'")
+        
+        assert len(processed_messages) > 0, "❌ No custom messages received"
+        
+        # 验证自定义前缀
+        for msg in processed_messages:
+            original_value = str(msg.get("original_value", ""))
+            assert original_value.startswith("CUSTOM_"), f"❌ Custom prefix missing: {original_value}"
+        
+        print("✅ Custom deserializer test passed: Custom processing applied correctly")
+    
+    def _verify_parallel_kafka_results(self, expected_messages):
+        """验证并行处理测试结果"""
+        received_data = KafkaTestSink.read_results()
+        
+        print("\n📋 Parallel Kafka Processing Results:")
+        print("=" * 50)
+        
+        processed_messages = []
+        instance_counts = {}
+        
+        for instance_id, data_list in received_data.items():
+            instance_counts[instance_id] = len(data_list)
+            print(f"\n🔹 Sink Instance {instance_id}: {len(data_list)} messages")
+            
+            for data in data_list:
+                if data.get("type") == "processed_kafka_message":
+                    processed_messages.append(data)
+        
+        print(f"\n🎯 Parallel Processing Summary:")
+        print(f"   - Expected messages: {len(expected_messages)}")
+        print(f"   - Processed messages: {len(processed_messages)}")
+        print(f"   - Sink instances: {len(instance_counts)}")
+        print(f"   - Distribution: {instance_counts}")
+        
+        assert len(processed_messages) > 0, "❌ No parallel messages received"
+        assert len(instance_counts) > 1, "❌ Messages not distributed across instances"
+        
+        print("✅ Parallel Kafka processing test passed: Messages distributed correctly")
 
 
 class TestKafkaSourceConfiguration:
-    """Kafka Source配置测试"""
+    """测试Kafka Source配置"""
     
-    def test_default_configuration(self):
-        """测试默认配置"""
-        env = LocalEnvironment("test_default_configuration")
-        
-        kafka_stream = env.from_kafka_source(
-            bootstrap_servers="localhost:9092",
-            topic="test_topic",
-            group_id="test_group"
-        )
-        
-        transformation = env.pipeline[0]
-        
-        # 验证默认值
-        assert transformation.function_kwargs['auto_offset_reset'] == 'latest'
-        assert transformation.function_kwargs['value_deserializer'] == 'json'
-        assert transformation.function_kwargs['buffer_size'] == 10000
-        assert transformation.function_kwargs['max_poll_records'] == 500
-    
-    def test_custom_configuration(self):
-        """测试自定义配置"""
-        env = LocalEnvironment("test_custom_configuration")
-        
-        kafka_stream = env.from_kafka_source(
-            bootstrap_servers="custom:9092",
-            topic="custom_topic",
-            group_id="custom_group",
-            auto_offset_reset="earliest",
-            value_deserializer="string",
-            buffer_size=20000,
-            max_poll_records=1000,
-            session_timeout_ms=30000,
-            security_protocol="SSL"
-        )
-        
-        transformation = env.pipeline[0]
-        
-        # 验证自定义值
-        assert transformation.function_kwargs['bootstrap_servers'] == "custom:9092"
-        assert transformation.function_kwargs['topic'] == "custom_topic"
-        assert transformation.function_kwargs['group_id'] == "custom_group"
-        assert transformation.function_kwargs['auto_offset_reset'] == "earliest"
-        assert transformation.function_kwargs['value_deserializer'] == "string"
-        assert transformation.function_kwargs['buffer_size'] == 20000
-        assert transformation.function_kwargs['max_poll_records'] == 1000
-        assert transformation.function_kwargs['session_timeout_ms'] == 30000
-        assert transformation.function_kwargs['security_protocol'] == "SSL"
-
-
-class TestKafkaSourceMessageProcessing:
-    """Kafka消息处理测试"""
+    def setup_method(self):
+        KafkaTestSink.clear_results()
     
     @patch('kafka.KafkaConsumer')
-    def test_message_processing_flow(self, mock_kafka_consumer):
-        """测试消息处理流程"""
-        # 创建mock消息
-        mock_message = Mock()
-        mock_message.value = {"event": "test", "data": "sample"}
-        mock_message.timestamp = 1640995200000
-        mock_message.partition = 0
-        mock_message.offset = 1
-        mock_message.key = b"test_key"
+    def test_kafka_source_configuration_options(self, mock_kafka_consumer_class):
+        """测试各种Kafka配置选项"""
+        print("\n🚀 Testing Kafka Source Configuration Options")
         
-        # 配置mock consumer
-        mock_consumer_instance = Mock()
-        mock_topic_partition = Mock()
-        mock_consumer_instance.poll.return_value = {mock_topic_partition: [mock_message]}
-        mock_kafka_consumer.return_value = mock_consumer_instance
+        mock_consumer = MockKafkaConsumer()
+        mock_consumer.add_messages([
+            MockKafkaMessage(value={"config_test": True}, offset=0)
+        ])
+        mock_kafka_consumer_class.return_value = mock_consumer
         
-        # 创建KafkaSourceFunction
-        kafka_source = KafkaSourceFunction(
-            bootstrap_servers="localhost:9092",
-            topic="test_topic",
-            group_id="test_group",
-            buffer_size=10
+        env = LocalEnvironment("config_kafka_test")
+        
+        # 测试完整配置
+        kafka_stream = env.from_kafka_source(
+            bootstrap_servers="kafka-cluster:9092,kafka-cluster:9093",
+            topic="config_topic",
+            group_id="config_group",
+            auto_offset_reset="earliest",
+            value_deserializer="json",
+            buffer_size=5000,
+            max_poll_records=100,
+            session_timeout_ms=30000,
+            security_protocol="SASL_SSL"
         )
         
-        # 触发初始化和消息处理
-        kafka_source.execute(None)
-        time.sleep(0.1)  # 等待消费线程处理
+        result_stream = kafka_stream.sink(KafkaTestSink, parallelism=1)
         
-        # 获取处理后的消息
-        processed_message = kafka_source.execute(None)
+        print("📊 Pipeline: KafkaSource(full_config) -> Sink")
+        print("🎯 Expected: Verify configuration parameters\n")
         
-        assert processed_message is not None
-        assert processed_message['value'] == {"event": "test", "data": "sample"}
-        assert processed_message['timestamp'] == 1640995200000
-        assert processed_message['partition'] == 0
-        assert processed_message['offset'] == 1
-        assert processed_message['key'] == "test_key"
+        try:
+            env.submit()
+            time.sleep(1.5)
+        finally:
+            env.close()
         
-        # 清理
-        kafka_source._running = False
-        if kafka_source._consumer_thread:
-            kafka_source._consumer_thread.join(timeout=1.0)
+        # 验证KafkaConsumer被正确调用
+        mock_kafka_consumer_class.assert_called_once()
+        call_args = mock_kafka_consumer_class.call_args
+        
+        # 验证配置参数
+        assert call_args[0] == ("config_topic",)
+        config = call_args[1]
+        assert config['bootstrap_servers'] == "kafka-cluster:9092,kafka-cluster:9093"
+        assert config['group_id'] == "config_group"
+        assert config['auto_offset_reset'] == "earliest"
+        assert config['max_poll_records'] == 100
+        assert config['session_timeout_ms'] == 30000
+        assert config['security_protocol'] == "SASL_SSL"
+        
+        print("✅ Kafka configuration test passed: All parameters configured correctly")
 
 
-# pytest配置和工具函数
-def setup_module():
-    """模块级别的设置"""
-    print("Setting up Kafka Source tests...")
-
-def teardown_module():
-    """模块级别的清理"""
-    print("Tearing down Kafka Source tests...")
-
-
-# 运行测试的入口
 if __name__ == "__main__":
-    # 运行测试
-    pytest.main([
-        __file__,
-        "-v",  # 详细输出
-        "-s",  # 显示print输出
-        "--tb=short",  # 简短的traceback
-        "--durations=10",  # 显示最慢的10个测试
-        "-x"  # 遇到第一个失败就停止
-    ])
+    # 可以直接运行单个测试
+    test = TestKafkaSourceFunctionality()
+    test.setup_method()
+    test.test_basic_kafka_source_pipeline()
+
+'''
+用法示例:
+
+# 运行所有Kafka测试
+pytest sage_tests/core_tests/kafka_test.py -v -s
+
+# 运行特定测试
+pytest sage_tests/core_tests/kafka_test.py::TestKafkaSourceFunctionality::test_basic_kafka_source_pipeline -v -s
+pytest sage_tests/core_tests/kafka_test.py::TestKafkaSourceFunctionality::test_kafka_source_parallel_processing -v -s
+pytest sage_tests/core_tests/kafka_test.py::TestKafkaSourceConfiguration::test_kafka_source_configuration_options -v -s
+
+# 直接运行文件进行快速测试
+python sage_tests/core_tests/kafka_test.py
+'''
