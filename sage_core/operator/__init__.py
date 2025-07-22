@@ -5,6 +5,7 @@
 # from . import operator
 # from . import env
 # from . import query
+# from .batch_operator import BatchOperator, BatchSourceOperator
 
 # # 供顶层 sage/__init__.py 使用
-# __all__ = ["memory", "model", "operator", "env", "query"]
+# __all__ = ["memory", "model", "operator", "env", "query", "BatchOperator", "BatchSourceOperator"]

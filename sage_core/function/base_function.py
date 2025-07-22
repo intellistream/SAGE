@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 if TYPE_CHECKING:
     from sage_runtime.runtime_context import RuntimeContext
-
+import logging
 from sage_utils.state_persistence import load_function_state, save_function_state
 
 
@@ -16,11 +16,18 @@ class BaseFunction(ABC):
 
     def __init__(self, ctx:'RuntimeContext' = None, **kwargs):
         self.ctx = ctx
-        self.logger.info(f"Function {self.name} initialized")
+        self._logger = None  # 初始化_logger属性
+        if self.ctx is not None:
+            self.logger.info(f"Function {self.name} initialized")
         
     @property
     def logger(self):
-        return self.ctx.logger
+        if self._logger is None:
+            if self.ctx is None:
+                self._logger = logging.getLogger("sage.core.function")
+            else:
+                self._logger = self.ctx.logger
+        return self._logger
     
     @property
     def name(self):
