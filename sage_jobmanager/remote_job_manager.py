@@ -1,7 +1,11 @@
 import ray
 import time
+import os
+from pathlib import Path
+from datetime import datetime
 from typing import Dict, Any, List, TYPE_CHECKING
 from sage_jobmanager.job_manager import JobManager
+from sage_utils.custom_logger import CustomLogger
 from ray.actor import ActorHandle
 if TYPE_CHECKING:
     from sage_core.environment.base_environment import BaseEnvironment
@@ -154,6 +158,53 @@ class RemoteJobManager(JobManager):
     def __repr__(self) -> str:
         return f"RemoteJobManager(actor_id={self.actor_id[:8]}..., session={self.session_id}, jobs={len(self.jobs)})"
 
+    def setup_logging_system(self):
+        """
+        重写日志系统设置，为RemoteJobManager使用专门的日志目录结构
+        - 日志目录: /tmp/sage-jm/session_xxxx
+        - 软链接: /tmp/sage-jm/session_latest -> session_xxxx
+        """
+        # 1. 生成时间戳标识
+        self.session_timestamp = datetime.now()
+        self.session_id = self.session_timestamp.strftime("%Y%m%d_%H%M%S")
+        
+        # 2. 设置RemoteJobManager专用的日志目录结构
+        sage_jm_base = Path("/tmp/sage-jm")
+        sage_jm_base.mkdir(parents=True, exist_ok=True)
+        
+        # 具体的session目录
+        session_dir = sage_jm_base / f"session_{self.session_id}"
+        session_dir.mkdir(parents=True, exist_ok=True)
+        self.log_base_dir = session_dir
+        
+        # 3. 创建或更新 session_latest 软链接
+        latest_link = sage_jm_base / "session_latest"
+        try:
+            # 如果软链接已存在，先删除
+            if latest_link.is_symlink() or latest_link.exists():
+                latest_link.unlink()
+            
+            # 创建新的软链接，指向当前session目录
+            latest_link.symlink_to(f"session_{self.session_id}")
+            
+        except Exception as e:
+            # 如果创建软链接失败，记录警告但不影响主要功能
+            print(f"Warning: Failed to create session_latest symlink: {e}")
+        
+        # 4. 创建RemoteJobManager专用的日志配置
+        self.logger = CustomLogger([
+            ("console", "INFO"),  # 控制台显示重要信息
+            (os.path.join(self.log_base_dir, "remote_jobmanager.log"), "DEBUG"),  # 详细日志
+            (os.path.join(self.log_base_dir, "error.log"), "ERROR"),  # 错误日志
+            (os.path.join(self.log_base_dir, "actor.log"), "INFO")    # Actor专用日志
+        ], name="RemoteJobManager")
+        
+        # 5. 记录初始化信息
+        self.logger.info(f"RemoteJobManager logging system initialized")
+        self.logger.info(f"Session ID: {self.session_id}")
+        self.logger.info(f"Log directory: {self.log_base_dir}")
+        self.logger.info(f"Latest session link: {latest_link}")
+
     @property
     def handle(self) -> 'ActorHandle':
         if self._actor_handle is None:
@@ -173,3 +224,17 @@ class RemoteJobManager(JobManager):
                 raise RuntimeError(f"Cannot obtain actor handle: {e}")
         
         return self._actor_handle
+
+    def _create_self_proxy(self) -> 'ActorHandle':
+        """
+        创建自身的代理ActorHandle
+        这是一个临时解决方案，用于在无法通过名称获取ActorHandle时使用
+        """
+        try:
+            # 获取当前Actor的handle（这需要Ray版本支持）
+            import ray.actor
+            return ray.actor.ActorHandle._get_handle_for_current_actor()
+        except (AttributeError, NotImplementedError):
+            # 如果不支持，返回self作为fallback
+            self.logger.warning("Cannot create self proxy, using self as fallback")
+            return self
