@@ -162,6 +162,7 @@ show_help() {
     echo "  fix-ray-permissions  Fix Ray session permissions for sudo users"
     echo "  fix-permissions Fix all system permissions (for shared lab environment)"
     echo "  setup-permissions   Set up permissions from scratch"
+    echo "  check-permissions   Check current permission status and issues"
     echo "  start-daemon    Start JobManager Daemon only"
     echo "  stop-daemon     Stop JobManager Daemon only"
     echo "  restart-daemon  Restart JobManager Daemon only"
@@ -246,6 +247,10 @@ main() {
         setup-permissions)
             log_info "Setting up permissions for shared lab environment..."
             setup_system_directories
+            ;;
+        check-permissions)
+            log_info "Running comprehensive permission check..."
+            bash "$SCRIPT_DIR/check_permissions.sh"
             ;;
         start-daemon)
             if ! check_daemon_status; then

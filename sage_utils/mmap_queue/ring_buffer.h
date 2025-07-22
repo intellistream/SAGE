@@ -1,6 +1,7 @@
 #ifndef SAGE_RING_BUFFER_H
 #define SAGE_RING_BUFFER_H
 
+#define _GNU_SOURCE
 #include <stdint.h>
 #include <stdbool.h>
 #include <pthread.h>
