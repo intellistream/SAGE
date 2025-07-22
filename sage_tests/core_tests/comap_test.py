@@ -1,19 +1,21 @@
+import pytest
 import time
-from typing import Any
+import threading
+from typing import Any, Dict, List
+from pathlib import Path
+import tempfile
+import json
 
 from sage_core.api.local_environment import LocalEnvironment
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.comap_function import BaseCoMapFunction
 from sage_core.function.sink_function import SinkFunction
-import json
-import tempfile
-from pathlib import Path
 
 class OrderDataSource(SourceFunction):
     """生成订单数据"""
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, ctx=None, **kwargs):
+        super().__init__(ctx=ctx, **kwargs)
         self.counter = 0
         self.orders = [
             {"id": "order1", "user_id": "user1", "product": "laptop", "amount": 999.0, "type": "order"},
@@ -28,15 +30,16 @@ class OrderDataSource(SourceFunction):
         
         data = self.orders[self.counter]
         self.counter += 1
-        self.logger.info(f"OrderSource generated: {data}")
+        if self.ctx:
+            self.logger.info(f"OrderSource generated: {data}")
         return data
 
 
 class PaymentDataSource(SourceFunction):
     """生成支付数据"""
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, ctx=None, **kwargs):
+        super().__init__(ctx=ctx, **kwargs)
         self.counter = 0
         self.payments = [
             {"id": "pay1", "order_id": "order1", "method": "credit_card", "status": "success", "type": "payment"},
@@ -51,15 +54,16 @@ class PaymentDataSource(SourceFunction):
         
         data = self.payments[self.counter]
         self.counter += 1
-        self.logger.info(f"PaymentSource generated: {data}")
+        if self.ctx:
+            self.logger.info(f"PaymentSource generated: {data}")
         return data
 
 
 class InventoryDataSource(SourceFunction):
     """生成库存数据"""
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, ctx=None, **kwargs):
+        super().__init__(ctx=ctx, **kwargs)
         self.counter = 0
         self.inventory = [
             {"product": "laptop", "stock": 50, "warehouse": "WH1", "type": "inventory"},
@@ -74,16 +78,19 @@ class InventoryDataSource(SourceFunction):
         
         data = self.inventory[self.counter]
         self.counter += 1
-        self.logger.info(f"InventorySource generated: {data}")
+        if self.ctx:
+            self.logger.info(f"InventorySource generated: {data}")
         return data
 
 
 class CoMapDebugSink(SinkFunction):
-    """调试用的Sink，通过文件系统记录CoMap处理结果"""
+    """调试用的Sink，记录CoMap处理结果"""
     
-    def __init__(self, output_file=None, **kwargs):
-        super().__init__(**kwargs)
-        
+    _lock = threading.Lock()
+    _received_data = {}
+    
+    def __init__(self, ctx=None, output_file=None, **kwargs):
+        super().__init__(ctx=ctx, **kwargs)
         self.parallel_index = None
         self.received_count = 0
         # 如果没有指定输出文件，使用临时文件
@@ -91,7 +98,8 @@ class CoMapDebugSink(SinkFunction):
             self.output_file = Path(tempfile.gettempdir()) / "comap_test_results.json"
         else:
             self.output_file = Path(output_file)
-        self.logger.info(f"CoMapDebugSink initialized, output file: {self.output_file}")
+        if self.ctx:
+            self.logger.info(f"CoMapDebugSink initialized, output file: {self.output_file}")
 
     def execute(self, data: Any):
         if self.ctx:
@@ -105,13 +113,14 @@ class CoMapDebugSink(SinkFunction):
 
         self.received_count += 1
 
-        result_type = data.get('type', 'unknown')
-        source_stream = data.get('source_stream', -1)
+        result_type = data.get('type', 'unknown') if isinstance(data, dict) else str(type(data).__name__)
+        source_stream = data.get('source_stream', -1) if isinstance(data, dict) else -1
 
-        self.logger.info(
-            f"[Instance {self.parallel_index}] "
-            f"Received {result_type} from stream {source_stream}: {data}"
-        )
+        if self.ctx:
+            self.logger.info(
+                f"[Instance {self.parallel_index}] "
+                f"Received {result_type} from stream {source_stream}: {data}"
+            )
 
         # 打印调试信息
         print(f"🔍 [Instance {self.parallel_index}] Type: {result_type}, "
@@ -119,52 +128,39 @@ class CoMapDebugSink(SinkFunction):
 
         return data
     
+    
     def _append_record(self, record):
         """原子性地追加记录到文件"""
-        import fcntl  # Unix文件锁
-        
         try:
             # 以追加模式打开文件
             with open(self.output_file, 'a') as f:
-                # 获取文件锁
-                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 # 写入一行JSON
                 f.write(json.dumps(record) + '\n')
                 f.flush()
-                # 锁会在with块结束时自动释放
         except Exception as e:
             self.logger.error(f"Failed to write record: {e}")
     
-    @staticmethod
-    def read_results(output_file=None):
+    @classmethod
+    def read_results(cls, output_file=None):
         """读取测试结果"""
         if output_file is None:
             output_file = Path(tempfile.gettempdir()) / "comap_test_results.json"
         else:
             output_file = Path(output_file)
         
-        if not output_file.exists():
-            return {}
+        # 直接从类变量读取结果
+        with cls._lock:
+            results = dict(cls._received_data)
         
-        results = {}
-        try:
-            with open(output_file, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line:
-                        record = json.loads(line)
-                        parallel_index = record.get('parallel_index', 0)
-                        if parallel_index not in results:
-                            results[parallel_index] = []
-                        results[parallel_index].append(record['data'])
-        except Exception as e:
-            print(f"Error reading results: {e}")
-        print(f"📂 Read {len(results)} parallel instances from results file: {output_file}")
+        print(f"📂 Read {len(results)} parallel instances from memory")
         return results
     
-    @staticmethod
-    def clear_results(output_file=None):
-        """清理结果文件"""
+    @classmethod
+    def clear_results(cls, output_file=None):
+        """清理结果"""
+        with cls._lock:
+            cls._received_data.clear()
+        
         if output_file is None:
             output_file = Path(tempfile.gettempdir()) / "comap_test_results.json"
         else:
@@ -177,8 +173,8 @@ class CoMapDebugSink(SinkFunction):
 class OrderPaymentCoMapFunction(BaseCoMapFunction):
     """CoMap函数：处理订单和支付数据"""
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, ctx=None, **kwargs):
+        super().__init__(ctx=ctx, **kwargs)
         self.processed_orders = 0
         self.processed_payments = 0
     
@@ -197,7 +193,8 @@ class OrderPaymentCoMapFunction(BaseCoMapFunction):
             "processor": "OrderProcessor"
         }
         
-        self.logger.info(f"CoMap map0: processed order {order_data['id']} (#{self.processed_orders})")
+        if self.ctx:
+            self.logger.info(f"CoMap map0: processed order {order_data['id']} (#{self.processed_orders})")
         return result
     
     def map1(self, payment_data):
@@ -215,15 +212,16 @@ class OrderPaymentCoMapFunction(BaseCoMapFunction):
             "processor": "PaymentProcessor"
         }
         
-        self.logger.info(f"CoMap map1: processed payment {payment_data['id']} (#{self.processed_payments})")
+        if self.ctx:
+            self.logger.info(f"CoMap map1: processed payment {payment_data['id']} (#{self.processed_payments})")
         return result
 
 
 class TripleStreamCoMapFunction(BaseCoMapFunction):
     """三路CoMap函数：处理订单、支付和库存数据"""
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, ctx=None, **kwargs):
+        super().__init__(ctx=ctx, **kwargs)
         self.stream_counters = [0, 0, 0]  # 每个流的处理计数
     
     def map0(self, order_data):
@@ -241,7 +239,8 @@ class TripleStreamCoMapFunction(BaseCoMapFunction):
             "enrichment": "order_enriched"
         }
         
-        self.logger.info(f"TripleCoMap map0: enriched order {order_data['id']}")
+        if self.ctx:
+            self.logger.info(f"TripleCoMap map0: enriched order {order_data['id']}")
         return result
     
     def map1(self, payment_data):
@@ -259,7 +258,8 @@ class TripleStreamCoMapFunction(BaseCoMapFunction):
             "enrichment": "payment_enriched"
         }
         
-        self.logger.info(f"TripleCoMap map1: enriched payment {payment_data['id']}")
+        if self.ctx:
+            self.logger.info(f"TripleCoMap map1: enriched payment {payment_data['id']}")
         return result
     
     def map2(self, inventory_data):
@@ -276,15 +276,16 @@ class TripleStreamCoMapFunction(BaseCoMapFunction):
             "enrichment": "inventory_enriched"
         }
         
-        self.logger.info(f"TripleCoMap map2: enriched inventory {inventory_data['product']}")
+        if self.ctx:
+            self.logger.info(f"TripleCoMap map2: enriched inventory {inventory_data['product']}")
         return result
 
 
 class StatefulCoMapFunction(BaseCoMapFunction):
     """有状态的CoMap函数，演示状态维护"""
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, ctx=None, **kwargs):
+        super().__init__(ctx=ctx, **kwargs)
         self.order_cache = {}      # 订单缓存
         self.payment_stats = {     # 支付统计
             "total_amount": 0.0,
@@ -306,7 +307,8 @@ class StatefulCoMapFunction(BaseCoMapFunction):
             "source_stream": 0
         }
         
-        self.logger.info(f"StatefulCoMap map0: cached order {order_id}, cache size: {len(self.order_cache)}")
+        if self.ctx:
+            self.logger.info(f"StatefulCoMap map0: cached order {order_id}, cache size: {len(self.order_cache)}")
         return result
     
     def map1(self, payment_data):
@@ -335,7 +337,8 @@ class StatefulCoMapFunction(BaseCoMapFunction):
             "source_stream": 1
         }
         
-        self.logger.info(f"StatefulCoMap map1: processed payment {payment_data['id']}, stats: {self.payment_stats}")
+        if self.ctx:
+            self.logger.info(f"StatefulCoMap map1: processed payment {payment_data['id']}, stats: {self.payment_stats}")
         return result
 
 
@@ -352,7 +355,7 @@ class TestCoMapFunctionality:
     """测试CoMap功能"""
     
     def setup_method(self):
-        # 清理结果文件
+        # 清理结果
         CoMapDebugSink.clear_results()
     
     def test_basic_two_stream_comap(self):
@@ -369,7 +372,6 @@ class TestCoMapFunctionality:
             .connect(payment_stream)
             .comap(OrderPaymentCoMapFunction)
             .sink(CoMapDebugSink, parallelism=2)
-            .print()
         )
         
         print("📊 Pipeline: OrderStream + PaymentStream -> comap(OrderPaymentCoMapFunction) -> Sink(parallelism=2)")
@@ -377,14 +379,77 @@ class TestCoMapFunctionality:
         
         try:
             env.submit()
+            env.run_once()
             
-            time.sleep(10)
+            time.sleep(3)
         finally:
             env.close()
         
-        # 等待一下确保文件写入完成
+        # 等待一下确保处理完成
         time.sleep(1)
         self._verify_two_stream_comap_results()
+    
+    def test_three_stream_comap(self):
+        """测试三路CoMap处理"""
+        print("\n🚀 Testing Three-Stream CoMap")
+        
+        env = LocalEnvironment("triple_comap_test")
+        
+        order_stream = env.from_source(OrderDataSource, delay=0.2)
+        payment_stream = env.from_source(PaymentDataSource, delay=0.3)
+        inventory_stream = env.from_source(InventoryDataSource, delay=0.4)
+        
+        result_stream = (
+            order_stream
+            .connect(payment_stream)
+            .connect(inventory_stream)
+            .comap(TripleStreamCoMapFunction)
+            .sink(CoMapDebugSink, parallelism=1)
+        )
+        
+        print("📊 Pipeline: OrderStream + PaymentStream + InventoryStream -> comap(TripleStreamCoMapFunction) -> Sink")
+        print("🎯 Expected: Orders by map0, Payments by map1, Inventory by map2\n")
+        
+        try:
+            env.submit()
+            env.run_once()
+            
+            time.sleep(3)
+        finally:
+            env.close()
+        
+        time.sleep(1)
+        self._verify_three_stream_comap_results()
+    
+    def test_stateful_comap(self):
+        """测试有状态的CoMap处理"""
+        print("\n🚀 Testing Stateful CoMap")
+        
+        env = LocalEnvironment("stateful_comap_test")
+        
+        order_stream = env.from_source(OrderDataSource, delay=0.2)
+        payment_stream = env.from_source(PaymentDataSource, delay=0.3)
+        
+        result_stream = (
+            order_stream
+            .connect(payment_stream)
+            .comap(StatefulCoMapFunction)
+            .sink(CoMapDebugSink, parallelism=1)
+        )
+        
+        print("📊 Pipeline: OrderStream + PaymentStream -> comap(StatefulCoMapFunction) -> Sink")
+        print("🎯 Expected: Stateful processing with order caching and payment statistics\n")
+        
+        try:
+            env.submit()
+            env.run_once()
+            
+            time.sleep(4)
+        finally:
+            env.close()
+        
+        time.sleep(1)
+        self._verify_stateful_comap_results()
     
     def _verify_two_stream_comap_results(self):
         """验证两路CoMap的结果"""
@@ -434,6 +499,100 @@ class TestCoMapFunctionality:
             assert payment.get("source_stream") == 1, f"❌ Payment from wrong stream: {payment.get('source_stream')}"
         
         print("✅ Two-stream CoMap test passed: Correct stream routing and processing")
+    
+    def _verify_three_stream_comap_results(self):
+        """验证三路CoMap的结果"""
+        received_data = CoMapDebugSink.read_results()
+        
+        print("\n📋 Three-Stream CoMap Results:")
+        print("=" * 50)
+        
+        enriched_orders = []
+        enriched_payments = []
+        enriched_inventory = []
+        
+        for instance_id, data_list in received_data.items():
+            print(f"\n🔹 Parallel Instance {instance_id}:")
+            
+            for data in data_list:
+                result_type = data.get("type", "unknown")
+                source_stream = data.get("source_stream", -1)
+                enrichment = data.get("enrichment", "unknown")
+                
+                if result_type == "enriched_order":
+                    enriched_orders.append(data)
+                    order_id = data.get("order_id", "unknown")
+                    sequence = data.get("stream_sequence", 0)
+                    print(f"   - {enrichment}: Order {order_id} (seq #{sequence}) from stream {source_stream}")
+                    
+                elif result_type == "enriched_payment":
+                    enriched_payments.append(data)
+                    payment_id = data.get("payment_id", "unknown")
+                    sequence = data.get("stream_sequence", 0)
+                    print(f"   - {enrichment}: Payment {payment_id} (seq #{sequence}) from stream {source_stream}")
+                    
+                elif result_type == "enriched_inventory":
+                    enriched_inventory.append(data)
+                    product = data.get("product", "unknown")
+                    sequence = data.get("stream_sequence", 0)
+                    print(f"   - {enrichment}: Inventory {product} (seq #{sequence}) from stream {source_stream}")
+        
+        print(f"\n🎯 Three-Stream CoMap Summary:")
+        print(f"   - Enriched orders: {len(enriched_orders)}")
+        print(f"   - Enriched payments: {len(enriched_payments)}")
+        print(f"   - Enriched inventory: {len(enriched_inventory)}")
+        
+        # 验证：应该有三种类型的处理结果
+        assert len(enriched_orders) > 0, "❌ No enriched orders received"
+        assert len(enriched_payments) > 0, "❌ No enriched payments received"
+        assert len(enriched_inventory) > 0, "❌ No enriched inventory received"
+        
+        print("✅ Three-stream CoMap test passed: All three streams processed correctly")
+    
+    def _verify_stateful_comap_results(self):
+        """验证有状态CoMap的结果"""
+        received_data = CoMapDebugSink.read_results()
+        
+        print("\n📋 Stateful CoMap Results:")
+        print("=" * 50)
+        
+        cached_orders = []
+        enriched_payments = []
+        
+        for instance_id, data_list in received_data.items():
+            print(f"\n🔹 Parallel Instance {instance_id}:")
+            
+            for data in data_list:
+                result_type = data.get("type", "unknown")
+                
+                if result_type == "cached_order":
+                    cached_orders.append(data)
+                    order_id = data.get("order_id", "unknown")
+                    cache_size = data.get("cache_size", 0)
+                    print(f"   - Cached Order: {order_id} (cache size: {cache_size})")
+                    
+                elif result_type == "enriched_payment_with_stats":
+                    enriched_payments.append(data)
+                    payment_id = data.get("payment_id", "unknown")
+                    status = data.get("status", "unknown")
+                    stats = data.get("payment_stats", {})
+                    print(f"   - Enriched Payment: {payment_id} ({status})")
+                    print(f"     Stats: {stats}")
+        
+        print(f"\n🎯 Stateful CoMap Summary:")
+        print(f"   - Cached orders: {len(cached_orders)}")
+        print(f"   - Enriched payments: {len(enriched_payments)}")
+        
+        # 验证：应该有缓存订单和丰富支付结果
+        assert len(cached_orders) > 0, "❌ No cached orders received"
+        assert len(enriched_payments) > 0, "❌ No enriched payments received"
+        
+        # 验证状态变化：缓存大小应该递增
+        cache_sizes = [order.get("cache_size", 0) for order in cached_orders]
+        if len(cache_sizes) > 1:
+            assert max(cache_sizes) > min(cache_sizes), "❌ Cache size did not increase"
+        
+        print("✅ Stateful CoMap test passed: State maintained correctly")
 
 
 if __name__ == "__main__":
@@ -443,6 +602,8 @@ if __name__ == "__main__":
     test.test_basic_two_stream_comap()
 
 '''
+用法示例:
+
 # 运行所有CoMap测试
 pytest sage_tests/core_tests/comap_test.py -v -s
 
@@ -450,4 +611,7 @@ pytest sage_tests/core_tests/comap_test.py -v -s
 pytest sage_tests/core_tests/comap_test.py::TestCoMapFunctionality::test_basic_two_stream_comap -v -s
 pytest sage_tests/core_tests/comap_test.py::TestCoMapFunctionality::test_three_stream_comap -v -s
 pytest sage_tests/core_tests/comap_test.py::TestCoMapFunctionality::test_stateful_comap -v -s
+
+# 直接运行文件进行快速测试
+python sage_tests/core_tests/comap_test.py
 '''

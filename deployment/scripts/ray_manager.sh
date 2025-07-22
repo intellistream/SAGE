@@ -95,15 +95,15 @@ fix_ray_session_permissions() {
             log_warning "Failed to set setgid on directories in $real_session_dir"
         fi
         
-        # 特别设置 session.json 权限
-        local session_json="$real_session_dir/session.json"
-        if [ -f "$session_json" ]; then
-            if sudo chmod 664 "$session_json" 2>/dev/null; then
-                log_success "Fixed session.json permissions: $session_json"
-            else
-                log_warning "Failed to fix session.json permissions: $session_json"
+        # 特别设置关键文件权限（如果存在）
+        local important_files=("$real_session_dir/session.json" "$real_session_dir/ray_param.json")
+        for file in "${important_files[@]}"; do
+            if [ -f "$file" ]; then
+                if sudo chmod 664 "$file" 2>/dev/null; then
+                    log_success "Fixed permissions for: $(basename $file)"
+                fi
             fi
-        fi
+        done
         
         fixed_any=true
         log_success "Ray session permissions fixed for: $real_session_dir"

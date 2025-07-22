@@ -18,6 +18,6 @@ def ensure_ray_initialized():
         
         # 初始化Ray
         ray.init(address="auto", _temp_dir="/var/lib/ray_shared")
-        print(f"Ray initialized with logs in {"/var/lib/ray_shared"}")
+        print(f"Ray initialized with logs in /var/lib/ray_shared")
     else:
         print("Ray is already initialized.")
