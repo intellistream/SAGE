@@ -82,11 +82,6 @@ class TimeGenerator(MapFunction):
         super().__init__(**kwargs)
         self.generator.runtime_context = self.runtime_context
 
-    def run(self, element):
-        # 示例流程：调用底层 generator 生成结果
-        result = self.generator.run(element)
-        return result
-
     def execute(self, data: dict):
         start = time.time()
         query, gen = self.generator.execute((data["query"], data["prompt"]))
