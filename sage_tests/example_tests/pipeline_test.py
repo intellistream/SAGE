@@ -6,9 +6,9 @@ import logging
 import time
 from typing import TYPE_CHECKING
 
-from sage_core.api.env import LocalEnvironment
-from sage_common_funs.io.sink import FileSink
-from sage_common_funs.io.source import FileSource
+from sage_core.api.local_environment import LocalEnvironment
+from sage_libs.io.sink import FileSink
+from sage_libs.io.source import FileSource
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.refiner import AbstractiveRecompRefiner
@@ -32,7 +32,7 @@ def init_memory_and_pipeline():
     # routestreram = prompt_stream.route(router,config)
 
     # 步骤 4: 使用 OpenAIGenerator 生成最终的响应
-    response_stream: DataStream = prompt_stream.map(OpenAIGenerator, config["generator"])
+    response_stream: DataStream = prompt_stream.map(OpenAIGenerator, config["generator"]["local"])
     summarize_stream: DataStream = prompt_stream.map(AbstractiveRecompRefiner, config["refiner"])
 
     # 步骤 5: 输出到终端或文件

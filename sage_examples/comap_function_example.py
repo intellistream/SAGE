@@ -1,4 +1,5 @@
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.local_environment import LocalEnvironment
+from sage_core.api.remote_environment import RemoteEnvironment
 from sage_core.function.sink_function import SinkFunction
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.comap_function import BaseCoMapFunction
@@ -101,8 +102,6 @@ class TypeSpecificProcessor(BaseCoMapFunction):
 
 # 汇总输出函数
 class SensorSink(SinkFunction):
-    def __init__(self, **kwargs):
-        self.name = kwargs.get('name', 'SensorSink')
         
     def execute(self, data):
         if isinstance(data, dict) and 'alert' in data:
@@ -114,7 +113,7 @@ class SensorSink(SinkFunction):
 
 def main():
     # 创建环境
-    env = LocalEnvironment("comap_function_example")
+    env = RemoteEnvironment("comap_function_example")
     
     print("🚀 Starting CoMap Function Example")
     print("🌡️  Demonstrating multi-sensor data processing with CoMap")
@@ -146,6 +145,7 @@ def main():
     simple_result = (connected_sensors
         .comap(TypeSpecificProcessor)
         .print("🎯 Formatted Output")
+        
     )
     
     print("\n📈 All sensors connected and processing with CoMap...\n")
@@ -159,8 +159,8 @@ def main():
     try:
         # 运行流处理
         env.submit()
-        env.run_streaming()
-        time.sleep(15)  # 运行15秒以观察不同频率的数据
+        
+        # time.sleep(40)  # 运行15秒以观察不同频率的数据
         
     except KeyboardInterrupt:
         print("\n\n🛑 Stopping CoMap Function Example...")
@@ -176,7 +176,6 @@ def main():
         print("\n🔄 Comparison with regular map():")
         print("   - Regular map(): All inputs merged → single execute() method")
         print("   - CoMap: Each input stream → dedicated mapN() method")
-        env.close()
 
 if __name__ == "__main__":
     main()

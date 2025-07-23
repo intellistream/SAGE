@@ -212,9 +212,6 @@ async def delete_operator(operator_id: int,operator_name:str):
     except Exception as e:
         logging.error(f"Error listing directory {operator_path}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error listing operators: {str(e)}")
-    
-    if not found:
-        raise HTTPException(status_code=404, detail=f"Operator with ID {operator_id} not found")
         
     return {"message": f"Operator with ID {operator_id} deleted successfully"}
 

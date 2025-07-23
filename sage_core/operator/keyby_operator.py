@@ -1,8 +1,8 @@
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
 from sage_core.operator.base_operator import BaseOperator
-from sage_runtime.io.packet import Packet
+from sage_runtime.router.packet import Packet
 if TYPE_CHECKING:
-    from sage_runtime.io.connection import Connection
+    from sage_runtime.router.connection import Connection
 
 class KeyByOperator(BaseOperator):
     """
@@ -35,13 +35,13 @@ class KeyByOperator(BaseOperator):
             self.logger.debug(f"KeyByOperator '{self.name}' added key '{extracted_key}' to packet")
             
             # 直接发送带有分区信息的packet
-            self.emit_packet(keyed_packet)
+            self.router.send(keyed_packet)
             
         except Exception as e:
             self.logger.error(f"Error in KeyByOperator {self.name}: {e}", exc_info=True)
             # 回退：发送原始packet
             if packet:
-                self.emit_packet(packet)
+                self.router.send(packet)
 
 
     def process(self, raw_data: Any, input_index: int = 0) -> Any:

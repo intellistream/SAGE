@@ -1,17 +1,15 @@
 from __future__ import annotations
-from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
-from enum import Enum
-from abc import ABC, abstractmethod
+from typing import List, Type, Union, TYPE_CHECKING, Any
 from sage_utils.custom_logger import CustomLogger
-from sage_utils.name_server import get_name
-from sage_runtime.operator.factory import OperatorFactory
-from sage_runtime.function.factory import FunctionFactory
-from sage_runtime.dagnode.factory import DAGNodeFactory
+from sage_jobmanager.utils.name_server import get_name
+from sage_jobmanager.factory.operator_factory import OperatorFactory
+from sage_jobmanager.factory.function_factory import FunctionFactory
+from sage_jobmanager.factory.task_factory import TaskFactory
 from ray.actor import ActorHandle
 if TYPE_CHECKING:
     from sage_core.operator.base_operator import BaseOperator
     from sage_core.function.base_function import BaseFunction
-    from sage_core.api.env import BaseEnvironment
+    from sage_core.environment.base_environment import BaseEnvironment
 
 
 class BaseTransformation:
@@ -27,6 +25,8 @@ class BaseTransformation:
         self.operator_class:Type[BaseOperator]  # 由子类设置
 
         self.remote = (env.platform == "remote")
+        self.env_name = env.name
+        self.memory_collection: Union[Any, ActorHandle] = env.memory_collection
         self.env = env
         self.function_class = function
         self.function_args = args
@@ -35,14 +35,9 @@ class BaseTransformation:
         self.basename = get_name(name) if name else get_name(self.function_class.__name__)
             
 
-        self.logger = CustomLogger(
-            filename=f"{self.basename}_{self.__class__.__name__}",
-            env_name = env.name,
-            console_output=False,
-            file_output=True
-        )
-        if self.remote and not isinstance(env.memory_collection, ActorHandle):
-            raise Exception("Memory collection must be a Ray Actor handle for remote transformation")
+        self.logger = CustomLogger()
+        if self.remote and (env.memory_collection is not None) and (not isinstance(env.memory_collection, ActorHandle)):
+            raise Exception(f"Memory collection must be a Ray Actor handle for remote transformation, but got {type(env.memory_collection)}")
 
         self.logger.debug(f"Creating BaseTransformation of type {type} with rag {self.function_class.__name__}")
 
@@ -52,7 +47,7 @@ class BaseTransformation:
 
         
         # 懒加载工厂
-        self._dag_node_factory: DAGNodeFactory = None
+        self._dag_node_factory: TaskFactory = None
         self._operator_factory: OperatorFactory = None
         self._function_factory: FunctionFactory = None
         # 生成的平行节点名字：f"{transformation.function_class.__name__}_{i}"
@@ -98,16 +93,16 @@ class BaseTransformation:
                 operator_class=self.operator_class,
                 function_factory=self.function_factory,
                 basename=self.basename,
-                env_name=self.env.name,
+                env_name=self.env_name,
                 remote=self.remote
             )   
         return self._operator_factory
 
     @property
-    def dag_node_factory(self) -> DAGNodeFactory:
+    def task_factory(self) -> TaskFactory:
         """懒加载创建DAG节点工厂"""
         if self._dag_node_factory is None:
-            self._dag_node_factory = DAGNodeFactory(self)
+            self._dag_node_factory = TaskFactory(self)
         return self._dag_node_factory
 
     @property
@@ -116,6 +111,10 @@ class BaseTransformation:
     
     @property
     def is_spout(self) -> bool:
+        return False
+
+    @property
+    def is_sink(self) -> bool:
         return False
 
     @property

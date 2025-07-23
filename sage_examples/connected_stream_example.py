@@ -1,8 +1,8 @@
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_core.function.sink_function import SinkFunction
 from sage_core.function.source_function import SourceFunction
 import time
-import random
+
 
 # 简单的数字源
 class NumberSource(SourceFunction):
@@ -28,7 +28,7 @@ class StatsSink(SinkFunction):
 
 def main():
     # 创建环境
-    env = LocalEnvironment("simple_connected_example")
+    env = LocalStreamEnvironment("simple_connected_example")
     
     print("🚀 Starting Simple Connected Streams Example")
     print("📊 Demonstrating multiple stream processing and connection")
@@ -85,7 +85,7 @@ def main():
     try:
         # 运行流处理
         env.submit()
-        env.run_streaming()
+        
         time.sleep(5)  # 运行5秒
         
     except KeyboardInterrupt:

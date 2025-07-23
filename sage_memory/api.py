@@ -1,9 +1,9 @@
 from typing import Optional, TYPE_CHECKING
-from sage_utils.embedding_model import apply_embedding_model
+from sage_utils.embedding_methods.embedding_model import apply_embedding_model
 from sage_memory.memory_manager import MemoryManager
 from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
-    from sage_core.api.env import BaseEnvironment
+    pass
 
 
 _manager = None
@@ -51,8 +51,6 @@ def get_memory(config = None, remote:bool = False, env_name: Optional[str] = Non
                     dim=config["dim"],
                     description=config["description"],
                     as_ray_actor=remote, 
-                    session_folder=CustomLogger.get_session_folder() if remote else None,
-                    env_name=env_name
                 )
 
         elif config.get("backend_type") == "KV":
@@ -61,8 +59,6 @@ def get_memory(config = None, remote:bool = False, env_name: Optional[str] = Non
                     backend_type="KV",
                     description=config["description"],
                     as_ray_actor=remote, 
-                    session_folder=CustomLogger.get_session_folder() if remote else None,
-                    env_name=env_name
             )
             
         else:
@@ -101,8 +97,6 @@ def get_memory(config = None, remote:bool = False, env_name: Optional[str] = Non
                 dim=config["dim"],
                 description=config["description"],
                 as_ray_actor=remote, 
-                session_folder = CustomLogger.get_session_folder() if remote else None,
-                env_name = env_name
             )
         
         else:    

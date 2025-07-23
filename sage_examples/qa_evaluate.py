@@ -42,7 +42,7 @@ def pipeline_run(config):
     (env
      .from_source(CustomFileSource, config["source"])
      .map(CustomPromptor, config["promptor"])
-     .map(OpenAIGenerator, config["generator"])
+     .map(OpenAIGenerator, config["generator"]["local"])
      .map(F1Evaluate, config["evaluate"])
      )
     try:
