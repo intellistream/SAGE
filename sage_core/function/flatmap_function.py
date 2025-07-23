@@ -29,7 +29,6 @@ class FlatMapFunction(BaseFunction):
     
     def __init__(self, *args, **kwargs):
         self.out: Optional[Collector] = None
-        self.logger.debug(f"FlatMapFunction '{self.__class__.__name__}' initialized")
 
     def insert_collector(self, collector: Collector):
         """

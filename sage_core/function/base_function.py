@@ -15,11 +15,13 @@ class BaseFunction(ABC):
     """
     def __init__(self, *args, **kwargs):
         self.ctx: 'RuntimeContext' = None # 运行时注入
+        self._logger = None
+
     @property
     def logger(self):
-        if self._logger is None:
+        if not hasattr(self, "_logger") or self._logger is None:
             if self.ctx is None:
-                self._logger = logging.getLogger("sage.core.function")
+                self._logger = logging.getLogger("")
             else:
                 self._logger = self.ctx.logger
         return self._logger
