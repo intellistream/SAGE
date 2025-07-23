@@ -1,0 +1,9 @@
+site_name: SAGE 项目文档
+theme:
+  name: material
+
+nav:
+  - 首页: index.md
+  - 安装指南: install.md
+  - 使用说明: usage.md
+  - API 参考: api.md
