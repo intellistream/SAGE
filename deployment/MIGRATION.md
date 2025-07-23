@@ -7,10 +7,10 @@
 
 | 旧脚本/功能 | 新命令 | 说明 |
 |-------------|--------|------|
-| `./sage_deployment.sh start` | `./sage_deployment_v2.sh start` | 启动系统 |
-| `./sage_deployment.sh stop` | `./sage_deployment_v2.sh stop` | 停止系统 |
-| `./sage_deployment.sh status` | `./sage_deployment_v2.sh status` | 查看状态 |
-| `./fix_ray_permissions.sh` | `./sage_deployment_v2.sh fix-ray-permissions` | 修复Ray权限 |
+| `./sage_deployment.sh start` | `./sage_deployment.sh start` | 启动系统 |
+| `./sage_deployment.sh stop` | `./sage_deployment.sh stop` | 停止系统 |
+| `./sage_deployment.sh status` | `./sage_deployment.sh status` | 查看状态 |
+| `./fix_ray_permissions.sh` | `./sage_deployment.sh fix-ray-permissions` | 修复Ray权限 |
 
 ### 新增功能
 
@@ -18,24 +18,24 @@
 
 ```bash
 # 健康检查
-./sage_deployment_v2.sh health
+./sage_deployment.sh health
 
 # 实时监控
-./sage_deployment_v2.sh monitor
+./sage_deployment.sh monitor
 
 # 系统诊断
-./sage_deployment_v2.sh diagnose
+./sage_deployment.sh diagnose
 
 # 日志收集
-./sage_deployment_v2.sh collect-logs
+./sage_deployment.sh collect-logs
 
 # 独立组件管理
-./sage_deployment_v2.sh start-ray
-./sage_deployment_v2.sh stop-daemon
-./sage_deployment_v2.sh restart-ray
+./sage_deployment.sh start-ray
+./sage_deployment.sh stop-daemon
+./sage_deployment.sh restart-ray
 
 # 权限修复（集成了 fix_ray_permissions.sh）
-./sage_deployment_v2.sh fix-ray-permissions
+./sage_deployment.sh fix-ray-permissions
 ```
 
 ### 兼容性保证
@@ -50,10 +50,10 @@
 1. **测试新脚本**
    ```bash
    # 先测试状态查看
-   ./sage_deployment_v2.sh status
+   ./sage_deployment.sh status
    
    # 测试健康检查
-   ./sage_deployment_v2.sh health
+   ./sage_deployment.sh health
    ```
 
 2. **逐步切换**
@@ -62,20 +62,20 @@
    ./sage_deployment.sh stop
    
    # 启动新系统
-   ./sage_deployment_v2.sh start
+   ./sage_deployment.sh start
    ```
 
 3. **验证功能**
    ```bash
    # 验证所有组件正常
-   ./sage_deployment_v2.sh diagnose
+   ./sage_deployment.sh diagnose
    ```
 
 ### 弃用通知
 
 以下脚本已标记为弃用但仍可使用：
 
-- `fix_ray_permissions.sh` → 使用 `./sage_deployment_v2.sh fix-ray-permissions`
+- `fix_ray_permissions.sh` → 使用 `./sage_deployment.sh fix-ray-permissions`
 
 ### 回滚方案
 
@@ -83,7 +83,7 @@
 
 ```bash
 # 停止新系统
-./sage_deployment_v2.sh stop
+./sage_deployment.sh stop
 
 # 启动旧系统
 ./sage_deployment.sh start
@@ -93,8 +93,8 @@
 
 ```bash
 # 查看所有新命令
-./sage_deployment_v2.sh help
+./sage_deployment.sh help
 
 # 查看特定命令帮助
-./sage_deployment_v2.sh diagnose --help
+./sage_deployment.sh diagnose --help
 ```
