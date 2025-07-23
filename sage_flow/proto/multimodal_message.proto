@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package sage_flow;
+
+option cc_enable_arenas = true;
+option optimize_for = SPEED;
+
+// Content type enumeration
+enum ContentType {
+  TEXT = 0;
+  IMAGE = 1;
+  AUDIO = 2;
+  VIDEO = 3;
+  BINARY = 4;
+}
+
+// Vector data type enumeration
+enum VectorDataType {
+  FLOAT32 = 0;
+  FLOAT16 = 1;
+  BFLOAT16 = 2;
+  INT8 = 3;
+  UINT8 = 4;
+}
+
+// Vector data message
+message VectorData {
+  repeated float data = 1;
+  bytes raw_data = 2;
+  uint64 dimension = 3;
+  VectorDataType data_type = 4;
+}
+
+// Retrieval context message
+message RetrievalContext {
+  string source = 1;
+  float similarity_score = 2;
+  map<string, string> metadata = 3;
+}
+
+// Multi-modal message
+message MultiModalMessage {
+  uint64 uid = 1;
+  int64 timestamp = 2;
+  ContentType content_type = 3;
+  
+  // Content data (oneof for type safety)
+  oneof content {
+    string text_content = 4;
+    bytes binary_content = 5;
+  }
+  
+  // Optional vector embedding
+  optional VectorData embedding = 6;
+  
+  // Metadata and processing information
+  map<string, string> metadata = 7;
+  repeated string processing_trace = 8;
+  repeated RetrievalContext retrieval_contexts = 9;
+  
+  // Quality scoring
+  optional float quality_score = 10;
+}
+
+// Batch message for efficient processing
+message MessageBatch {
+  repeated MultiModalMessage messages = 1;
+  int64 batch_timestamp = 2;
+  string batch_id = 3;
+}
