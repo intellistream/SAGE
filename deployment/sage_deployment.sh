@@ -160,6 +160,9 @@ show_help() {
     echo "  stop-ray        Stop Ray cluster only"
     echo "  restart-ray     Restart Ray cluster only"
     echo "  fix-ray-permissions  Fix Ray session permissions for sudo users"
+    echo "  fix-permissions Fix all system permissions (for shared lab environment)"
+    echo "  setup-permissions   Set up permissions from scratch"
+    echo "  check-permissions   Check current permission status and issues"
     echo "  start-daemon    Start JobManager Daemon only"
     echo "  stop-daemon     Stop JobManager Daemon only"
     echo "  restart-daemon  Restart JobManager Daemon only"
@@ -236,6 +239,18 @@ main() {
             ;;
         fix-ray-permissions)
             fix_ray_permissions_standalone
+            ;;
+        fix-permissions)
+            log_info "Running comprehensive permission fix for shared lab environment..."
+            bash "$SCRIPT_DIR/fix_permissions.sh"
+            ;;
+        setup-permissions)
+            log_info "Setting up permissions for shared lab environment..."
+            setup_system_directories
+            ;;
+        check-permissions)
+            log_info "Running comprehensive permission check..."
+            bash "$SCRIPT_DIR/check_permissions.sh"
             ;;
         start-daemon)
             if ! check_daemon_status; then

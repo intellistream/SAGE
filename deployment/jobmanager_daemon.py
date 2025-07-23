@@ -273,6 +273,8 @@ class RayJobManagerDaemon:
                 return self._handle_health_check(request)
             elif action == "restart_actor":
                 return self._handle_restart_actor(request)
+            elif action == "get_environment_info":
+                return self._handle_get_environment_info(request)
             else:
                 return {
                     "status": "error",
@@ -423,6 +425,31 @@ class RayJobManagerDaemon:
             return {
                 "status": "error",
                 "message": f"Failed to restart Actor: {e}",
+                "request_id": request.get("request_id")
+            }
+    
+    def _handle_get_environment_info(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """处理获取环境信息请求"""
+        if self._actor_handle is None:
+            return {
+                "status": "error",
+                "message": "No JobManager Actor available",
+                "request_id": request.get("request_id")
+            }
+        
+        try:
+            # 从远程Actor获取环境信息
+            environment_info = ray.get(self._actor_handle.get_environment_info.remote(), timeout=10)
+            
+            return {
+                "status": "success",
+                "environment_info": environment_info,
+                "request_id": request.get("request_id")
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Failed to get environment info: {e}",
                 "request_id": request.get("request_id")
             }
     

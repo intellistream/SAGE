@@ -31,6 +31,8 @@ class MockKafkaConsumer:
         self.messages = []
         self.poll_count = 0
         self._closed = False
+        # 保存反序列化器
+        self.value_deserializer = kwargs.get('value_deserializer', lambda x: x)
         
     def poll(self, timeout_ms=1000, max_records=500, update_offsets=True):
         """模拟poll方法"""
@@ -40,9 +42,23 @@ class MockKafkaConsumer:
         self.poll_count += 1
         
         if self.messages:
-            # 返回一批消息
+            # 返回一批消息，应用反序列化器
             topic_partition = Mock()
-            messages = self.messages[:max_records]
+            messages = []
+            for msg in self.messages[:max_records]:
+                # 创建新的消息对象，应用反序列化器
+                deserialized_msg = Mock()
+                # 应用反序列化器到原始消息的value
+                if callable(self.value_deserializer):
+                    deserialized_msg.value = self.value_deserializer(msg.value)
+                else:
+                    deserialized_msg.value = msg.value
+                deserialized_msg.key = msg.key
+                deserialized_msg.timestamp = msg.timestamp
+                deserialized_msg.partition = msg.partition
+                deserialized_msg.offset = msg.offset
+                messages.append(deserialized_msg)
+            
             self.messages = self.messages[max_records:]
             return {topic_partition: messages}
         
@@ -151,18 +167,18 @@ class TestKafkaSourceFunctionality:
         """测试基本的Kafka Source流水线"""
         print("\n🚀 Testing Basic Kafka Source Pipeline")
         
-        # 创建模拟消息
+        # 创建模拟消息 - 对于JSON反序列化器，原始数据需要是JSON字符串的bytes
         test_messages = [
             MockKafkaMessage(
-                value={"event": "user_login", "user_id": "user1", "timestamp": 1640995200},
+                value=json.dumps({"event": "user_login", "user_id": "user1", "timestamp": 1640995200}).encode('utf-8'),
                 offset=0
             ),
             MockKafkaMessage(
-                value={"event": "page_view", "user_id": "user1", "page": "/home"},
+                value=json.dumps({"event": "page_view", "user_id": "user1", "page": "/home"}).encode('utf-8'),
                 offset=1
             ),
             MockKafkaMessage(
-                value={"event": "user_logout", "user_id": "user1"},
+                value=json.dumps({"event": "user_logout", "user_id": "user1"}).encode('utf-8'),
                 offset=2
             ),
         ]
@@ -170,7 +186,22 @@ class TestKafkaSourceFunctionality:
         # 设置mock
         mock_consumer = MockKafkaConsumer()
         mock_consumer.add_messages(test_messages)
-        mock_kafka_consumer_class.return_value = mock_consumer
+        
+        # 创建一个带有调试功能的MockKafkaConsumer实例
+        def create_mock_consumer(*topics, **kwargs):
+            consumer = MockKafkaConsumer(*topics, **kwargs)
+            consumer.add_messages(test_messages)
+            # 包装反序列化器用于调试
+            if 'value_deserializer' in kwargs and callable(kwargs['value_deserializer']):
+                original_deserializer = kwargs['value_deserializer']
+                def debug_deserializer(raw_data):
+                    result = original_deserializer(raw_data)
+                    print(f"🔧 Debug: Deserializing {raw_data} -> {result}")
+                    return result
+                consumer.value_deserializer = debug_deserializer
+            return consumer
+            
+        mock_kafka_consumer_class.side_effect = create_mock_consumer
         
         # 创建测试环境
         env = LocalEnvironment("basic_kafka_test")
@@ -253,20 +284,26 @@ class TestKafkaSourceFunctionality:
         
         def custom_deserializer(raw_data):
             """自定义反序列化：添加前缀"""
+            print(f"🔧 Custom deserializer called with: {raw_data}")
             if isinstance(raw_data, bytes):
                 data = raw_data.decode('utf-8')
             else:
                 data = str(raw_data)
-            return f"CUSTOM_{data}"
+            result = f"CUSTOM_{data}"
+            print(f"🔧 Deserializer output: {result}")
+            return result
         
-        # 创建测试消息
+        # 创建测试消息 - 注意这里value需要是bytes
         test_messages = [
             MockKafkaMessage(value=b"message1", offset=0),
             MockKafkaMessage(value=b"message2", offset=1),
         ]
         
+        # 创建mock consumer并预设反序列化器
         mock_consumer = MockKafkaConsumer()
         mock_consumer.add_messages(test_messages)
+        mock_consumer.value_deserializer = custom_deserializer
+        
         mock_kafka_consumer_class.return_value = mock_consumer
         
         env = LocalEnvironment("custom_deserializer_kafka_test")
@@ -374,11 +411,14 @@ class TestKafkaSourceFunctionality:
         
         # 验证：消息内容应该匹配
         processed_values = [msg.get("original_value", {}) for msg in processed_messages]
-        for expected_msg in expected_messages:
-            expected_value = expected_msg.value
-            assert any(
-                pv.get("event") == expected_value.get("event") for pv in processed_values
-            ), f"❌ Expected message not found: {expected_value}"
+        expected_events = ["user_login", "page_view", "user_logout"]
+        
+        for expected_event in expected_events:
+            found = any(
+                isinstance(pv, dict) and pv.get("event") == expected_event 
+                for pv in processed_values
+            )
+            assert found, f"❌ Expected event not found: {expected_event}"
         
         print("✅ Basic Kafka Source test passed: Messages processed correctly")
     
@@ -422,10 +462,13 @@ class TestKafkaSourceFunctionality:
         
         for instance_id, data_list in received_data.items():
             for data in data_list:
-                if data.get("type") == "processed_kafka_message":
+                if data and data.get("type") == "processed_kafka_message":
                     processed_messages.append(data)
                     original_value = data.get("original_value")
                     print(f"   - Custom Message: '{original_value}'")
+        
+        print(f"\n🎯 Custom Processing Summary:")
+        print(f"   - Processed messages: {len(processed_messages)}")
         
         assert len(processed_messages) > 0, "❌ No custom messages received"
         

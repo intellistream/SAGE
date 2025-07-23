@@ -38,11 +38,61 @@ check_command() {
 # 检查端口是否被占用
 check_port() {
     local port=$1
-    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
-        return 0  # 端口被占用
-    else
-        return 1  # 端口未被占用
+    
+    # 优先使用 ss (更可靠，特别是在多租户环境下)
+    if command -v ss >/dev/null 2>&1; then
+        if ss -ltn | grep -q ":$port "; then
+            return 0  # 端口被占用
+        fi
     fi
+    
+    # 备用方案：使用 netstat
+    if command -v netstat >/dev/null 2>&1; then
+        if netstat -ltn | grep -q ":$port "; then
+            return 0  # 端口被占用
+        fi
+    fi
+    
+    # 最后备用方案：使用 lsof (可能在多租户环境下失败)
+    if command -v lsof >/dev/null 2>&1; then
+        if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+            return 0  # 端口被占用
+        fi
+    fi
+    
+    return 1  # 端口未被占用
+}
+
+# 查找使用指定端口的进程PID
+find_port_processes() {
+    local port=$1
+    local pids=""
+    
+    # 优先使用 ss (更可靠，特别是在多租户环境下)
+    if command -v ss >/dev/null 2>&1; then
+        # 需要sudo权限才能看到进程信息
+        if command -v sudo >/dev/null 2>&1; then
+            pids=$(sudo ss -ltnp 2>/dev/null | grep ":$port " | grep -oE 'pid=[0-9]+' | cut -d= -f2 | head -1)
+        fi
+    fi
+    
+    # 备用方案：使用 netstat
+    if [ -z "$pids" ] && command -v netstat >/dev/null 2>&1; then
+        if command -v sudo >/dev/null 2>&1; then
+            pids=$(sudo netstat -ltnp 2>/dev/null | grep ":$port " | awk '{print $7}' | cut -d'/' -f1 | grep -E '^[0-9]+$' | head -1)
+        fi
+    fi
+    
+    # 最后备用方案：使用 lsof
+    if [ -z "$pids" ] && command -v lsof >/dev/null 2>&1; then
+        if command -v sudo >/dev/null 2>&1; then
+            pids=$(sudo lsof -ti :$port 2>/dev/null | head -1)
+        else
+            pids=$(lsof -ti :$port 2>/dev/null | head -1)
+        fi
+    fi
+    
+    echo "$pids"
 }
 
 # 检查端口范围是否可用
@@ -110,15 +160,58 @@ load_config() {
     fi
 }
 
-# 创建PID文件
+# 创建PID文件（适配共享机器）
 create_pid_file() {
     local service_name=$1
     local pid=$2
     local pid_dir="/tmp/sage"
     
-    mkdir -p "$pid_dir"
-    echo "$pid" > "$pid_dir/${service_name}.pid"
-    log_info "PID file created: $pid_dir/${service_name}.pid"
+    # 确保目录存在并且有正确的权限
+    if [ ! -d "$pid_dir" ]; then
+        mkdir -p "$pid_dir" 2>/dev/null || {
+            log_warning "Cannot create $pid_dir, trying with sudo"
+            sudo mkdir -p "$pid_dir"
+            
+            # 检查用户是否在sudo组并设置相应权限
+            if groups | grep -q sudo; then
+                sudo chown root:sudo "$pid_dir"
+                sudo chmod 775 "$pid_dir"
+                sudo chmod g+s "$pid_dir"
+                log_info "PID directory configured for sudo group sharing"
+            else
+                sudo chown $(whoami):$(id -gn) "$pid_dir"
+                log_info "PID directory configured for single user"
+            fi
+        }
+    fi
+    
+    # 检查目录权限
+    if [ ! -w "$pid_dir" ]; then
+        log_warning "No write permission for $pid_dir, fixing permissions"
+        if groups | grep -q sudo; then
+            # 为sudo组用户设置共享权限
+            sudo chown root:sudo "$pid_dir"
+            sudo chmod 775 "$pid_dir"
+            sudo chmod g+s "$pid_dir"
+        else
+            # 为普通用户设置个人权限
+            sudo chown $(whoami):$(id -gn) "$pid_dir"
+            chmod 755 "$pid_dir"
+        fi
+    fi
+    
+    # 创建PID文件
+    local pid_file="$pid_dir/${service_name}.pid"
+    if echo "$pid" > "$pid_file" 2>/dev/null; then
+        # 如果是sudo组用户，确保文件权限正确
+        if groups | grep -q sudo; then
+            chmod 664 "$pid_file" 2>/dev/null || true
+        fi
+        log_info "PID file created: $pid_file"
+    else
+        log_error "Failed to create PID file: $pid_file"
+        return 1
+    fi
 }
 
 # 读取PID文件
