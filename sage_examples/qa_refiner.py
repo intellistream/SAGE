@@ -1,8 +1,10 @@
+import os
 import time, json
 
 from sage_core.api.local_environment import LocalEnvironment
 from sage_libs.rag.evaluate import F1Evaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate, RecallEvaluate, \
     AccuracyEvaluate, TokenCountEvaluate, LatencyEvaluate, ContextRecallEvaluate, CompressionRateEvaluate
+from sage_utils.clients.generator_model import apply_generator_model
 from sage_utils.config_loader import load_config
 from sage_core.function.map_function import MapFunction
 
@@ -79,20 +81,31 @@ class TimeQAPromptor(MapFunction):
 class TimeGenerator(MapFunction):
     def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
-        self.generator.ctx = self.ctx
+        self.config = config
+        self.model = apply_generator_model(
+            method=self.config["method"],
+            model_name=self.config["model_name"],
+            base_url=self.config["base_url"],
+            api_key=self.config["api_key"] or os.getenv("ALIBABA_API_KEY"),
+            seed=42  # Hardcoded seed for reproducibility
+        )
+        self.num = 1
+
 
     def execute(self, data: dict):
         start = time.time()
-        query, gen = self.generator.execute((data["query"], data["prompt"]))
+        response = self.model.generate(data["prompt"])
+
+
         data["generation_time"] = time.time() - start
-        data["generated"] = gen
-        data["query"] = query
+        data["generated"] = response
+        data["query"] = data["query"]
         return data
 
 
 def pipeline_run(config):
     env = LocalEnvironment()
-    env.set_memory(config=None)
+    # env.set_memory(config=None)
 
     (
         env
@@ -100,7 +113,7 @@ def pipeline_run(config):
         .map(TimeDenseRetriever, config["retriever"])
         .map(TimeLongRefiner, config["refiner"])
         .map(TimeQAPromptor, config["promptor"])
-        .map(TimeGenerator, config["generator"]["local"])  ## ———— 一行切换本地, vllm or 远程模型 ————
+        .map(TimeGenerator, config["generator"]["vllm"])  ## ———— 一行切换本地, vllm or 远程模型 ————
         .map(F1Evaluate, config["evaluate"])
         .map(RecallEvaluate, config["evaluate"])
         .map(BertRecallEvaluate, config["evaluate"])
