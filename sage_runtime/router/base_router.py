@@ -22,7 +22,7 @@ class BaseRouter(ABC):
         # 下游连接管理
         self.downstream_groups: Dict[int, Dict[int, 'Connection']] = {}
         self.downstream_group_roundrobin: Dict[int, int] = {}
-        self.packet_max_load: float = 0.0  # 最大延迟，单位为秒
+        self.downstream_max_load: float = 0.0  # 最大延迟，单位为秒
         # Logger
         self.logger = ctx.logger
         self.logger.debug(f"Initialized {self.__class__.__name__} for {self.name}")
@@ -104,7 +104,7 @@ class BaseRouter(ABC):
             return False
         
         try:
-            self.packet_max_load = 0.0
+            self.downstream_max_load = 0.0
             self.logger.debug(f"Emitting packet: {packet}")
             
             # 根据packet的分区信息选择路由策略
@@ -190,7 +190,7 @@ class BaseRouter(ABC):
         try:
             # 检查下游负载并动态调整delay
             
-            self.packet_max_load = max(self.packet_max_load, connection.get_buffer_load())
+            self.downstream_max_load = max(self.downstream_max_load, connection.get_buffer_load())
             routed_packet = self._create_routed_packet(connection, packet)
             target_buffer = connection.target_buffer
             target_buffer.put_nowait(routed_packet)
@@ -204,7 +204,7 @@ class BaseRouter(ABC):
             self.logger.error(f"Failed to send packet to {connection.target_name}: {e}", exc_info=True)
             return False
     
-    def _adjust_delay_based_on_load(self, connection: 'Connection'):
+    def _adjust_delay_based_on_load(self):
         """
         根据当前连接的负载动态调整delay
         
@@ -214,14 +214,13 @@ class BaseRouter(ABC):
         try:
             # 获取当前delay
             current_delay = self.ctx.delay
-            self.logger.debug(f"Current delay for {connection.target_name}: {current_delay:.3f}s")
+            self.logger.debug(f"Current delay: {current_delay:.3f}s")
             # 根据当前连接的负载调整delay
-            current_load = connection.get_buffer_load()
-            new_delay = current_delay * (0.5 + current_load)
+            new_delay = current_delay * (0.5 + self.downstream_max_load)
             if new_delay < 0.001:
                 new_delay = 0.001
             self.ctx.delay = new_delay  # 直接把最大限制给去掉
-            self.logger.info(f"Load adjustment on {connection.target_name} ({current_load:.2f}), adjusted delay to {self.ctx.delay* 1000 :.3f}ms")
+            self.logger.info(f"Adjusted delay to {self.ctx.delay* 1000 :.3f}ms")
                 
         except Exception as e:
             self.logger.warning(f"Failed to adjust delay based on load: {e}", excinfo=True)
