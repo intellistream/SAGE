@@ -48,8 +48,3 @@ class Collector:
         self._collected_data.clear()
         if self.logger and count > 0:
             self.logger.debug(f"Cleared {count} collected items")
-
-
-    @property
-    def logger(self):
-        return self.ctx.logger

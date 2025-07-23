@@ -11,7 +11,6 @@ from sage_libs.io.sink import FileSink
 from sage_libs.io.source import FileSource
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
-from sage_libs.rag.refiner import AbstractiveRecompRefiner
 
 from sage_utils.config_loader import load_config
 from sage_utils.logging_utils import configure_logging
@@ -33,8 +32,6 @@ def init_memory_and_pipeline():
 
     # 步骤 4: 使用 OpenAIGenerator 生成最终的响应
     response_stream: DataStream = prompt_stream.map(OpenAIGenerator, config["generator"]["local"])
-    summarize_stream: DataStream = prompt_stream.map(AbstractiveRecompRefiner, config["refiner"])
-
     # 步骤 5: 输出到终端或文件
     sink_stream: DataStream = response_stream.sink(FileSink, config["sink"])
     # print(pipeline.get_graph_preview())
