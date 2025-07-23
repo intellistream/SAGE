@@ -4,8 +4,8 @@
 # 导入 Sage 中的 Environment 和相关组件
 import logging
 import re
-from sage_core.api.env import LocalEnvironment
-from sage_core.api.env import RemoteEnvironment
+from sage_core.api.local_environment import LocalStreamEnvironment
+from sage_core.environment.base_environment import RemoteEnvironment
 
 def init_memory_and_pipeline(job_id=None,  config=None, operators=None,use_ray=False):
     """
@@ -40,7 +40,7 @@ def init_memory_and_pipeline(job_id=None,  config=None, operators=None,use_ray=F
 
         env = RemoteEnvironment(env_name)
     else:
-        env = LocalEnvironment(env_name)
+        env = LocalStreamEnvironment(env_name)
     env.set_memory(config={"collection_name":f"{env_name}_memory"})
     # 如果没有提供operators配置，使用默认配置
     if not operators:
@@ -90,7 +90,7 @@ def init_memory_and_pipeline(job_id=None,  config=None, operators=None,use_ray=F
     # 提交管道到 SAGE 运行时
     try:
         env.submit(name = f"env_{job_id}" if job_id else "dynamic_pipeline")
-        env.run_streaming()
+        
     except Exception as e:
         logging.error(f"Failed to submit pipeline: {e}")
         raise  Exception(f"Pipeline submission failed: {e}")

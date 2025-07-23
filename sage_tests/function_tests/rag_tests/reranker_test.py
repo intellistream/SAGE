@@ -48,8 +48,8 @@ def mock_model_logits(*args, **kwargs):
             self.logits = torch.tensor([[i] for i in range(5)])
     return Output()
 
-@patch("sage_common_funs.rag.reranker.AutoTokenizer.from_pretrained")
-@patch("sage_common_funs.rag.reranker.AutoModelForSequenceClassification.from_pretrained")
+@patch("sage_libs.rag.reranker.AutoTokenizer.from_pretrained")
+@patch("sage_libs.rag.reranker.AutoModelForSequenceClassification.from_pretrained")
 def test_bge_reranker(mock_model_cls, mock_tokenizer_cls, config_bge, test_input):
     # Setup mocks
     mock_tokenizer = MagicMock()
@@ -70,8 +70,8 @@ def test_bge_reranker(mock_model_cls, mock_tokenizer_cls, config_bge, test_input
     assert isinstance(result[1], list)
     assert len(result[1]) <= config_bge["reranker"]["topk"]
 
-@patch("sage_common_funs.rag.reranker.AutoTokenizer.from_pretrained")
-@patch("sage_common_funs.rag.reranker.AutoModelForCausalLM.from_pretrained")
+@patch("sage_libs.rag.reranker.AutoTokenizer.from_pretrained")
+@patch("sage_libs.rag.reranker.AutoModelForCausalLM.from_pretrained")
 def test_llm_reranker(mock_model_cls, mock_tokenizer_cls, config_llm, test_input):
     # Setup tokenizer mock
     # mock tokenizer

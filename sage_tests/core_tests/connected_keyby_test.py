@@ -2,10 +2,9 @@ import pytest
 import time
 import threading
 from typing import List, Dict, Any
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.local_environment import LocalEnvironment
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.keyby_function import KeyByFunction
-from sage_core.function.base_function import BaseFunction
 from sage_core.function.comap_function import BaseCoMapFunction
 from sage_core.function.sink_function import SinkFunction
 
@@ -90,31 +89,31 @@ class ConnectedDebugSink(SinkFunction):
         super().__init__(**kwargs)
         self.parallel_index = None
         self.received_count = 0
-    
+
     def execute(self, data: Any):
-        if self.runtime_context:
-            self.parallel_index = self.runtime_context.parallel_index
-        
+        if self.ctx:
+            self.parallel_index = self.ctx.parallel_index
+
         with self._lock:
             if self.parallel_index not in self._received_data:
                 self._received_data[self.parallel_index] = []
-            
+
             self._received_data[self.parallel_index].append(data)
-        
+
         self.received_count += 1
-        
+
         data_type = data.get('type', 'unknown')
         key_info = data.get('user_id', 'no_key')
-        
+
         self.logger.info(
             f"[Instance {self.parallel_index}] "
             f"Received {data_type} data #{self.received_count}: {data}"
         )
-        
+
         # 打印调试信息
         print(f"🔍 [Instance {self.parallel_index}] Type: {data_type}, "
               f"Key: {key_info}, Data: {data}")
-        
+
         return data
     
     @classmethod
@@ -198,7 +197,7 @@ class TestConnectedStreamsKeyBy:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(3)
         finally:
             env.close()
@@ -228,7 +227,7 @@ class TestConnectedStreamsKeyBy:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(3)
         finally:
             env.close()
@@ -258,7 +257,7 @@ class TestConnectedStreamsKeyBy:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(4)  # 给更多时间让join操作完成
         finally:
             env.close()

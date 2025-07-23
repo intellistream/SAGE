@@ -64,6 +64,10 @@ class MemoryWriter(MapFunction):
                 continue
 
             try:
+
+                # TODO: 这里的实现实际上要成为由writer 这个function主动往memory manager function发送一个数据。
+                # 而 memory manager function拿到这个数据之后就会去执行 `execute' method 即可实现记忆的读写。
+                # 这里可能会有一个由于调度原因导致的阻塞 -- 可以被优化，请参考MorphStream！
                 self.state.store(
                     collection=collection,
                     documents=processed_data,

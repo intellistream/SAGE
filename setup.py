@@ -23,6 +23,6 @@ setup(
     author_email="intellistream@outlook.com",
     packages=find_packages(),
     url = "https://github.com/intellistream/SAGE",
-    install_requires=parse_requirements("requirements.txt"),
+    install_requires=parse_requirements("installation/env_setup/requirements.txt"),
     python_requires=">=3.11"
 )

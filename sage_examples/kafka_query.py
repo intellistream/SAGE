@@ -2,15 +2,13 @@ import logging
 import json
 import threading
 import time
-from kafka import KafkaProducer
 
-from sage_core.api.env import LocalEnvironment
-from sage_common_funs.io.sink import TerminalSink
+from sage_core.api.local_environment import LocalEnvironment
+from sage_libs.io.sink import TerminalSink
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
 from sage_utils.config_loader import load_config
-from sage_utils.custom_logger import CustomLogger
 from sage_utils.logging_utils import configure_logging
 
 
@@ -113,7 +111,7 @@ def extract_query_from_kafka(kafka_data):
 
 def pipeline_run():
     """创建并运行基于Kafka的数据处理管道"""
-    env = LocalEnvironment()
+    env = LocalEnvironment("kafka_query")
     env.set_memory(config=None)  # 初始化内存配置
     
     # 创建Kafka数据源
@@ -132,27 +130,16 @@ def pipeline_run():
     query_stream = kafka_stream.map(query_extractor)
     query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])
     prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
-    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
+    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"]["local"])
     response_stream.sink(TerminalSink, config["sink"])
 
     # 提交管道并运行
-    env.submit(name="kafka_rag_pipeline")
-    
-    # 在后台线程启动流处理
-    def run_pipeline():
-        try:
-            env.run_streaming()
-        except Exception as e:
-            logging.error(f"Pipeline error: {e}")
-    
-    pipeline_thread = threading.Thread(target=run_pipeline, daemon=True)
-    pipeline_thread.start()
+    env.submit()
+
     
     # 等待pipeline启动
     time.sleep(2)
     logging.info("Kafka RAG pipeline started successfully")
-    
-    return pipeline_thread
 
 
 def interactive_mode():
@@ -224,7 +211,6 @@ def main():
 
 if __name__ == '__main__':
     # 配置日志
-    CustomLogger.disable_global_console_debug()
     configure_logging(level=logging.INFO)
     
     # 加载配置

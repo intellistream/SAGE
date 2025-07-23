@@ -1,14 +1,10 @@
 import os
 from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
-
-from dotenv import load_dotenv
-
-from sage_utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from sage_runtime.runtime_context import RuntimeContext
-
-from sage_runtime.state_persistence import load_function_state, save_function_state
+import logging
+from sage_utils.state_persistence import load_function_state, save_function_state
 
 
 # 构造来源于sage_runtime/operator/factory.py
@@ -19,28 +15,23 @@ class BaseFunction(ABC):
     """
 
     def __init__(self, ctx:'RuntimeContext' = None, **kwargs):
-        self.runtime_context = ctx
-        self.name = ctx.name if ctx else self.__class__.__name__
-        self.env_name = ctx.env_name if ctx else None
-        self._logger = CustomLogger(
-            filename=f"Function_{self.name}",
-            env_name= self.env_name,
-            console_output="WARNING",
-            file_output="DEBUG",
-            global_output = "WARNING",
-            name = f"{self.name}_{self.__class__.__name__}",
-            session_folder=ctx.session_folder if ctx else None
-        )
-        # self.runtime_context.create_logger()
-        self.logger.info(f"Function {self.name} initialized")
+        self.ctx = ctx
+        self._logger = None  # 初始化_logger属性
+        if self.ctx is not None:
+            self.logger.info(f"Function {self.name} initialized")
         
     @property
     def logger(self):
-        if not hasattr(self, "_logger"):
-            import logging
-            self._logger = logging.getLogger(f"{self.__class__.__name__}")
+        if self._logger is None:
+            if self.ctx is None:
+                self._logger = logging.getLogger("sage.core.function")
+            else:
+                self._logger = self.ctx.logger
         return self._logger
-
+    
+    @property
+    def name(self):
+        return self.ctx.name
 
     # @abstractmethod
     # def close(self, *args, **kwargs):
@@ -71,14 +62,10 @@ class BaseFunction(ABC):
         """
         pass
 
-
-
-
-
 class MemoryFunction(BaseFunction):
     def __init__(self):
-        self.runtime_context = None  # 需要在compiler里面实例化。
-        self.memory= self.runtime_context.memory
+        self.ctx = None  # 需要在compiler里面实例化。
+        self.memory= self.ctx.memory
         pass
 
 class StatefulFunction(BaseFunction):
@@ -89,37 +76,21 @@ class StatefulFunction(BaseFunction):
     # 子类可覆盖：只保存 include 中字段
     __state_include__ = []
     # 默认排除 logger、私有属性和 runtime_context
-    __state_exclude__ = ['logger', '_logger', 'runtime_context']
+    __state_exclude__ = ['logger', '_logger', 'ctx']
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # 注入上下文
         # 恢复上次 checkpoint
-        chkpt_dir = os.path.join(self.runtime_context.session_folder, ".sage_checkpoints")
-        chkpt_path = os.path.join(chkpt_dir, f"{self.runtime_context.name}.chkpt")
+        chkpt_dir = os.path.join(self.ctx.env_base_dir, ".sage_checkpoints")
+        chkpt_path = os.path.join(chkpt_dir, f"{self.ctx.name}.chkpt")
         load_function_state(self, chkpt_path)
 
     def save_state(self):
         """
         将当前对象状态持久化到 disk，
         """
-        base = os.path.join(self.runtime_context.session_folder, ".sage_checkpoints")
+        base = os.path.join(self.ctx.env_base_dir, ".sage_checkpoints")
         os.makedirs(base, exist_ok=True)
-        path = os.path.join(base, f"{self.runtime_context.name}.chkpt")
+        path = os.path.join(base, f"{self.ctx.name}.chkpt")
         save_function_state(self, path)
-
-# class MemoryFunction(BaseFunction):
-#     def __init__(self):
-#         self.runtime_context = None  # 需要在compiler里面实例化。
-
-#     @property
-#     def memory(self):
-#         if self.runtime_context is None:
-#             raise RuntimeError("runtime_context is not set")
-#         return self.runtime_context.memory
-
-# class StatefulFunction(BaseFunction):
-#     def __init__(self):
-#         self.runtime_context = None  # 需要在compiler里面实例化。
-#         self.state
-#         pass

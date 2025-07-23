@@ -1,5 +1,7 @@
 import sys
 
+import aiohttp
+
 if sys.version_info < (3, 9):
     from typing import AsyncIterator
 else:

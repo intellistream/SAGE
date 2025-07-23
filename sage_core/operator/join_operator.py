@@ -1,7 +1,7 @@
 from .base_operator import BaseOperator
 from typing import Union, Any, List
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.io.packet import Packet
+from sage_runtime.router.packet import Packet
 
 
 class JoinOperator(BaseOperator):
@@ -123,7 +123,7 @@ class JoinOperator(BaseOperator):
                 partition_strategy=original_packet.partition_strategy or "hash",
             )
             
-            self.emit_packet(result_packet)
+            self.router.send(result_packet)
             
             self.logger.debug(
                 f"JoinOperator '{self.name}' emitted result for key '{join_key}': "
