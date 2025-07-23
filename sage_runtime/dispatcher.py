@@ -192,44 +192,57 @@ class Dispatcher():
             self.logger.error(f"Error during dispatcher cleanup: {e}")
 
     def _cleanup_ray_actors(self):
-        """清理所有 Ray Actors"""
-        
-        self.logger.info(f"Cleaning up {len(self.tasks)} Ray actors")
-        
-        # 第一阶段：发送清理信号
-        cleanup_futures = []
-        for actor in self.tasks:
+        """清理所有Ray Actor"""
+        if not self.tasks:
+            return
+
+        self.logger.info(f"Cleaning up {len(self.tasks)} actors...")
+
+        # 使用ActorWrapper的cleanup_and_kill方法
+        cleanup_results = []
+        for task_id, actor_wrapper in self.tasks.items():
             try:
-                # 调用 Actor 的 cleanup 方法
-                future = actor.cleanup.remote()
-                cleanup_futures.append((actor, future))
+                if hasattr(actor_wrapper, 'cleanup_and_kill'):
+                    # 使用ActorWrapper的封装方法
+                    cleanup_success, kill_success = actor_wrapper.cleanup_and_kill(
+                        cleanup_timeout=5.0, 
+                        no_restart=True
+                    )
+                    cleanup_results.append((task_id, cleanup_success, kill_success))
+                    
+                    if kill_success:
+                        self.logger.debug(f"Successfully killed actor for task {task_id}")
+                    else:
+                        self.logger.warning(f"Failed to kill actor for task {task_id}")
+                else:
+                    # 备用方案：直接使用kill_actor方法
+                    if hasattr(actor_wrapper, 'kill_actor'):
+                        kill_success = actor_wrapper.kill_actor(no_restart=True)
+                        cleanup_results.append((task_id, False, kill_success))
+                    else:
+                        self.logger.warning(f"ActorWrapper for task {task_id} does not support kill operations")
+                        cleanup_results.append((task_id, False, False))
+                        
             except Exception as e:
-                self.logger.warning(f"Failed to send cleanup signal to actor: {e}")
+                self.logger.warning(f"Error during cleanup for task {task_id}: {e}")
+                cleanup_results.append((task_id, False, False))
+
+        # 报告清理结果
+        successful_cleanups = sum(1 for _, cleanup_success, _ in cleanup_results if cleanup_success)
+        successful_kills = sum(1 for _, _, kill_success in cleanup_results if kill_success)
         
-        # 第二阶段：等待清理完成（有超时）
-        if cleanup_futures:
-            self._wait_for_cleanup_completion(cleanup_futures, timeout=5.0)
-        
-        try:
-        # 第三阶段：强制终止所有 Actor
-            for actor in self.tasks:
-                ray.kill(actor)
-                self.logger.debug(f"Killed Ray actor: {actor}")
-        except Exception as e:
-            self.logger.warning(f"Failed to kill Ray actor {actor}: {e}")
+        if successful_kills == len(self.tasks):
+            self.logger.info(f"Successfully cleaned up all {len(self.tasks)} actors")
+        else:
+            self.logger.warning(f"Cleanup completed: {successful_cleanups}/{len(self.tasks)} cleanups, {successful_kills}/{len(self.tasks)} kills successful")
 
     def _wait_for_cleanup_completion(self, cleanup_futures: List[Tuple[Any, Any]], timeout: float = 5.0):
-        """等待清理操作完成"""
-        self.logger.debug(f"Waiting for {len(cleanup_futures)} actors cleanup (timeout: {timeout}s)")
-        
-        try:
-            futures = [future for _, future in cleanup_futures]
-            ray.get(futures, timeout=timeout)
-            self.logger.debug("All actors cleaned up successfully")
-        except ray.exceptions.RayTimeoutError:
-            self.logger.warning(f"Timeout waiting for actors cleanup after {timeout}s")
-        except Exception as e:
-            self.logger.error(f"Error waiting for cleanup completion: {e}")
+        """
+        等待清理操作完成 (已弃用)
+        此方法现在不再使用，因为我们使用ActorWrapper.cleanup_and_kill()方法
+        """
+        self.logger.debug("_wait_for_cleanup_completion is deprecated, cleanup is now handled by ActorWrapper")
+        pass
 
 
     def get_task_status(self) -> Dict[str, Any]:
