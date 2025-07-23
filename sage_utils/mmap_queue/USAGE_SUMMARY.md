@@ -220,7 +220,22 @@ queue.close()  # 关闭句柄，共享内存仍存在
 destroy_queue("my_queue")  # 删除共享内存
 ```
 
-### 3. 错误处理
+### 3. 多进程访问原理
+```python
+# 主进程创建队列
+main_queue = SageQueue("shared_queue", maxsize=128*1024)
+main_queue.close()  # 关闭句柄但保留共享内存
+
+# 子进程通过同样的名称连接到相同的共享内存
+def worker(queue_name):
+    queue = SageQueue(queue_name)  # 连接到现有共享内存
+    queue.put("message from worker")
+    queue.close()
+
+process = multiprocessing.Process(target=worker, args=["shared_queue"])
+```
+
+### 4. 错误处理
 ```python
 from queue import Empty, Full
 
@@ -242,7 +257,7 @@ except Empty:
     print("获取超时")
 ```
 
-### 4. 性能优化建议
+### 5. 性能优化建议
 
 - 选择合适的缓冲区大小（maxsize）
 - 避免频繁的小数据传输
@@ -253,7 +268,7 @@ except Empty:
 ## 测试结果示例
 
 根据基准测试结果，SAGE Memory-Mapped Queue 可以达到：
-- 吞吐量：200K+ ops/sec (读写)
+- 吞吐量：100K+ ops/sec (多进程并发)
 - 延迟：3-5ms (平均往返延迟)
 - 内存效率：>90% 缓冲区利用率
 - 并发性能：支持多进程无锁并发访问
@@ -274,3 +289,8 @@ except Empty:
 4. **跨进程数据一致性**
    - SAGE Queue 保证数据的原子性读写
    - 复杂的数据结构会被序列化，注意性能影响
+
+5. **多进程访问原理**
+   - 不同进程通过相同队列名称连接到同一块共享内存
+   - 每个进程有自己的队列实例，但操作相同的底层缓冲区
+"""
