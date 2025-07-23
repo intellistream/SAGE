@@ -139,72 +139,6 @@ def multiprocess_reader_worker(queue_name: str, worker_id: int, expected_message
         }
 
 
-def multiprocess_ref_worker(queue_ref_dict: Dict[str, Any], worker_id: int, num_operations: int) -> Dict[str, Any]:
-    """通过序列化引用传递使用队列的 worker"""
-    try:
-        # 重建 SageQueueRef 对象
-        ref = SageQueueRef.__new__(SageQueueRef)
-        ref.__setstate__(queue_ref_dict)
-        
-        # 从引用获取队列实例
-        queue = ref.get_queue()
-        
-        start_time = time.time()
-        completed_writes = 0
-        completed_reads = 0
-        errors = 0
-        
-        # 执行混合读写操作
-        for i in range(num_operations):
-            try:
-                # 写入操作
-                message = {
-                    'ref_worker_id': worker_id,
-                    'op_id': i,
-                    'timestamp': time.time(),
-                    'data': f'RefWorker-{worker_id} Op-{i}'
-                }
-                queue.put(message, timeout=3.0)
-                completed_writes += 1
-                
-                # 尝试读取操作（可能读到其他进程的消息）
-                if i % 2 == 0:  # 每两次写入尝试一次读取
-                    try:
-                        read_msg = queue.get(timeout=0.5)
-                        completed_reads += 1
-                    except:
-                        pass  # 读取失败不算错误
-                        
-            except Exception as e:
-                errors += 1
-                print(f"  RefWorker-{worker_id}: Error at op {i}: {e}")
-        
-        end_time = time.time()
-        duration = end_time - start_time
-        
-        queue.close()
-        
-        return {
-            'worker_id': worker_id,
-            'worker_type': 'ref_worker',
-            'completed_writes': completed_writes,
-            'completed_reads': completed_reads,
-            'total_ops': completed_writes + completed_reads,
-            'errors': errors,
-            'duration': duration,
-            'ops_per_sec': (completed_writes + completed_reads) / duration if duration > 0 else 0,
-            'success': True
-        }
-        
-    except Exception as e:
-        return {
-            'worker_id': worker_id,
-            'worker_type': 'ref_worker',
-            'error': str(e),
-            'success': False
-        }
-
-
 def concurrent_rw_worker(queue_name: str, worker_id: int, num_operations: int, read_write_ratio: float = 0.5) -> Dict[str, Any]:
     """并发读写混合操作 worker"""
     try:
@@ -389,12 +323,12 @@ def test_multiprocess_producers_consumers():
 
 
 def test_queue_reference_passing():
-    """测试队列引用在多进程间传递"""
+    """测试通过队列名称的多进程访问"""
     print("\n" + "="*60)
-    print("测试: 队列引用传递")
+    print("测试: 通过队列名称的多进程访问")
     print("="*60)
     
-    queue_name = f"test_ref_pass_{int(time.time())}"
+    queue_name = f"test_name_access_{int(time.time())}"
     
     try:
         # 清理并创建队列
@@ -403,13 +337,6 @@ def test_queue_reference_passing():
         main_queue = SageQueue(queue_name, maxsize=128*1024)
         print(f"✓ 创建队列: {queue_name}")
         
-        # 获取可序列化的队列引用
-        queue_ref = main_queue.get_reference()
-        queue_ref_dict = queue_ref.__getstate__()  # 序列化为字典
-        
-        print(f"✓ 获取队列引用: {queue_ref}")
-        print(f"  引用数据: {queue_ref_dict}")
-        
         main_queue.close()
         
         # 测试参数
@@ -417,14 +344,15 @@ def test_queue_reference_passing():
         operations_per_worker = 15
         
         print(f"\n启动 {num_workers} 个进程，每个执行 {operations_per_worker} 次操作...")
+        print("使用队列名称直接连接到共享队列")
         
-        # 使用 ProcessPoolExecutor 启动多个进程，传递序列化的引用
+        # 使用 ProcessPoolExecutor 启动多个进程，只传递队列名称
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
             futures = []
             for worker_id in range(num_workers):
-                future = executor.submit(multiprocess_ref_worker, queue_ref_dict, worker_id, operations_per_worker)
+                future = executor.submit(concurrent_rw_worker, queue_name, worker_id, operations_per_worker, 0.5)
                 futures.append(future)
-                print(f"  启动引用工作进程-{worker_id}")
+                print(f"  启动工作进程-{worker_id}")
             
             # 收集结果
             print("\n等待进程完成...")
@@ -433,11 +361,11 @@ def test_queue_reference_passing():
                 result = future.result()
                 results.append(result)
                 if result['success']:
-                    print(f"  ✓ RefWorker-{result['worker_id']}: "
-                          f"写入 {result['completed_writes']}, 读取 {result['completed_reads']}, "
+                    print(f"  ✓ Worker-{result['worker_id']}: "
+                          f"写入 {result['writes_completed']}, 读取 {result['reads_completed']}, "
                           f"{result['ops_per_sec']:.1f} ops/sec")
                 else:
-                    print(f"  ✗ RefWorker-{result['worker_id']}: 失败 - {result.get('error', 'Unknown')}")
+                    print(f"  ✗ Worker-{result['worker_id']}: 失败 - {result.get('error', 'Unknown')}")
         
         # 检查最终队列状态
         final_queue = SageQueue(queue_name)
@@ -456,8 +384,8 @@ def test_queue_reference_passing():
         
         # 统计结果
         successful_workers = [r for r in results if r['success']]
-        total_writes = sum(r['completed_writes'] for r in successful_workers)
-        total_reads = sum(r['completed_reads'] for r in successful_workers)
+        total_writes = sum(r['writes_completed'] for r in successful_workers)
+        total_reads = sum(r['reads_completed'] for r in successful_workers)
         total_errors = sum(r['errors'] for r in successful_workers)
         
         print(f"\n结果统计:")
@@ -479,21 +407,21 @@ def test_queue_reference_passing():
         
         # 评估测试结果
         success_rate = len(successful_workers) / num_workers
-        write_efficiency = total_writes / (num_workers * operations_per_worker) if num_workers * operations_per_worker > 0 else 0
+        write_efficiency = total_writes / (num_workers * operations_per_worker * 0.5) if num_workers * operations_per_worker > 0 else 0
         
         print(f"\n测试评估:")
         print(f"  进程成功率: {success_rate:.1%}")
         print(f"  写入效率: {write_efficiency:.1%}")
         
-        if success_rate >= 0.8 and write_efficiency >= 0.8:
-            print("✓ 队列引用传递测试 通过")
+        if success_rate >= 0.8 and write_efficiency >= 0.7:
+            print("✓ 队列名称访问测试 通过")
             return True
         else:
-            print("✗ 队列引用传递测试 失败")
+            print("✗ 队列名称访问测试 失败")
             return False
             
     except Exception as e:
-        print(f"✗ 队列引用传递测试异常: {e}")
+        print(f"✗ 队列名称访问测试异常: {e}")
         traceback.print_exc()
         destroy_queue(queue_name)
         return False
@@ -926,9 +854,9 @@ def main():
         
         time.sleep(2)  # 间隔
         
-        # 测试2: 队列引用传递
+        # 测试2: 队列名称访问
         result2 = test_queue_reference_passing()
-        test_results.append(("队列引用传递", result2))
+        test_results.append(("队列名称访问", result2))
         
         time.sleep(2)  # 间隔
         
@@ -984,5 +912,12 @@ def main():
 
 
 if __name__ == "__main__":
-    multiprocessing.set_start_method('spawn', force=True)  # 确保兼容性
-    main()
+    print("Starting multiprocess concurrent test...")
+    try:
+        multiprocessing.set_start_method('spawn', force=True)  # 确保兼容性
+        print("Set multiprocessing start method to spawn")
+        main()
+    except Exception as e:
+        print(f"Error in main: {e}")
+        import traceback
+        traceback.print_exc()

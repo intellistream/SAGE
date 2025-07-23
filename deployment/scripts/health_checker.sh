@@ -39,7 +39,11 @@ check_python_environment() {
     local project_root=$(get_project_root)
     export PYTHONPATH="$project_root:$PYTHONPATH"
     
-    local modules_check=$(python3 -c "
+    local python_cmd=$(get_python_env_command "sage")
+    local env_info=$(get_python_env_info)
+    log_info "Checking Python environment: $env_info"
+    
+    local modules_check=$($python_cmd -c "
 import sys
 missing_modules = []
 try:
@@ -195,7 +199,8 @@ show_system_status() {
         fi
         
         # 显示 Actor 信息
-        local actor_info=$(python3 -c "
+        local python_cmd=$(get_python_env_command "sage")
+        local actor_info=$($python_cmd -c "
 import sys
 sys.path.append('$project_root')
 try:
