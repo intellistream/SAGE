@@ -9,12 +9,23 @@ setup_cli_tools() {
     
     local script_dir=$(get_script_dir)
     local wrapper_script="$script_dir/sage_jm_wrapper.sh"
-    local controller_script="$script_dir/jobmanager_controller.py"
+    local controller_script="$(dirname "$script_dir")/app/jobmanager_controller.py"
     local symlink_path="$CLI_SYMLINK_PATH"
+    
+    # 检查是否已经进行了系统级安装
+    if [ -f "/usr/local/lib/sage/sage_jm_wrapper.sh" ] && [ -L "/usr/local/bin/sage-jm" ]; then
+        local current_target=$(readlink "/usr/local/bin/sage-jm")
+        if [ "$current_target" = "/usr/local/lib/sage/sage_jm_wrapper.sh" ]; then
+            log_success "System-level CLI installation detected"
+            log_info "sage-jm command is managed by system installation"
+            return 0
+        fi
+    fi
     
     # 检查 wrapper 脚本是否存在
     if [ ! -f "$wrapper_script" ]; then
         log_error "JobManager wrapper script not found at $wrapper_script"
+        log_info "Consider running system installation: sudo ./deployment/install_system.sh"
         return 1
     fi
     
@@ -192,7 +203,7 @@ show_cli_usage_guide() {
         echo "  To set it up, run:"
         echo "    $0 install-cli"
         echo "  Or manually:"
-        echo "    sudo ln -s $(get_script_dir)/jobmanager_controller.py $CLI_SYMLINK_PATH"
+        echo "    sudo ln -s $(dirname "$(get_script_dir)")/app/jobmanager_controller.py $CLI_SYMLINK_PATH"
         echo
     fi
     
@@ -224,5 +235,5 @@ get_cli_info() {
         echo "Expected location: $CLI_SYMLINK_PATH"
     fi
     
-    echo "Controller script: $(get_script_dir)/jobmanager_controller.py"
+    echo "Controller script: $(dirname "$(get_script_dir)")/app/jobmanager_controller.py"
 }

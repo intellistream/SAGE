@@ -102,7 +102,7 @@ start_daemon() {
     mkdir -p "$sage_log_dir/daemon"
     
     # 后台启动守护进程 - 使用绝对路径确保正确执行
-    local daemon_script="$project_root/deployment/jobmanager_daemon.py"
+    local daemon_script="$project_root/deployment/app/jobmanager_daemon.py"
     local daemon_log="$sage_log_dir/daemon/sage_daemon.log"
     
     if [ ! -f "$daemon_script" ]; then

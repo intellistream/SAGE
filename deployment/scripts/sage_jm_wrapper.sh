@@ -4,8 +4,29 @@
 
 # 获取脚本的实际位置
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-CONTROLLER_SCRIPT="$SCRIPT_DIR/jobmanager_controller.py"
+
+# 检查是否在系统安装路径下
+if [[ "$SCRIPT_DIR" == "/usr/local/lib/sage"* ]]; then
+    # 系统级安装
+    SAGE_LIB_DIR="/usr/local/lib/sage"
+    CONTROLLER_SCRIPT="$SAGE_LIB_DIR/jobmanager_controller.py"
+    # 查找SAGE项目根目录
+    PROJECT_ROOT=""
+    for possible_root in "/opt/sage" "/usr/local/share/sage" "$HOME/SAGE"; do
+        if [ -d "$possible_root" ] && [ -f "$possible_root/setup.py" ]; then
+            PROJECT_ROOT="$possible_root"
+            break
+        fi
+    done
+    if [ -z "$PROJECT_ROOT" ]; then
+        echo "Warning: SAGE project root not found, using /opt/sage" >&2
+        PROJECT_ROOT="/opt/sage"
+    fi
+else
+    # 开发环境安装
+    PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+    CONTROLLER_SCRIPT="$(dirname "$SCRIPT_DIR")/app/jobmanager_controller.py"
+fi
 
 # 检查controller脚本是否存在
 if [ ! -f "$CONTROLLER_SCRIPT" ]; then

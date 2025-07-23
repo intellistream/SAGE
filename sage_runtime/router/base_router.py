@@ -22,7 +22,7 @@ class BaseRouter(ABC):
         # 下游连接管理
         self.downstream_groups: Dict[int, Dict[int, 'Connection']] = {}
         self.downstream_group_roundrobin: Dict[int, int] = {}
-        
+        self.packet_max_load: float = 0.0  # 最大延迟，单位为秒
         # Logger
         self.logger = ctx.logger
         self.logger.debug(f"Initialized {self.__class__.__name__} for {self.name}")
@@ -51,48 +51,7 @@ class BaseRouter(ABC):
         self.downstream_groups[broadcast_index][parallel_index] = connection
         
         self.logger.info(f"Added connection to {connection.target_name}")
-    
-    def remove_connection(self, broadcast_index: int, parallel_index: int) -> bool:
-        """
-        移除指定的连接
-        
-        Args:
-            broadcast_index: 广播索引
-            parallel_index: 并行索引
-            
-        Returns:
-            bool: 是否成功移除
-        """
-        try:
-            if broadcast_index in self.downstream_groups:
-                if parallel_index in self.downstream_groups[broadcast_index]:
-                    connection = self.downstream_groups[broadcast_index][parallel_index]
-                    del self.downstream_groups[broadcast_index][parallel_index]
-                    
-                    # 如果这个广播组空了，清理它
-                    if not self.downstream_groups[broadcast_index]:
-                        del self.downstream_groups[broadcast_index]
-                        del self.downstream_group_roundrobin[broadcast_index]
-                    else:
-                        # 重置轮询计数器
-                        self.downstream_group_roundrobin[broadcast_index] = 0
-                    
-                    self.logger.info(f"Removed connection to {connection.target_name}")
-                    return True
-            
-            self.logger.warning(f"Connection not found: broadcast_index={broadcast_index}, parallel_index={parallel_index}")
-            return False
-            
-        except Exception as e:
-            self.logger.error(f"Error removing connection: {e}")
-            return False
-    
-    def get_connection_count(self) -> int:
-        """获取总连接数"""
-        total = 0
-        for parallel_targets in self.downstream_groups.values():
-            total += len(parallel_targets)
-        return total
+
     
     def get_connections_info(self) -> Dict[str, Any]:
         """获取连接信息"""
@@ -110,84 +69,8 @@ class BaseRouter(ABC):
                 ]
             }
         return info
+
     
-    def get_downstream_loads(self) -> Dict[str, float]:
-        """
-        获取所有下游连接的负载信息
-        
-        Returns:
-            Dict[str, float]: {connection_name: load_ratio}
-        """
-        loads = {}
-        for broadcast_index, parallel_targets in self.downstream_groups.items():
-            for parallel_index, connection in parallel_targets.items():
-                connection_key = f"{connection.target_name}_{broadcast_index}_{parallel_index}"
-                loads[connection_key] = connection.get_buffer_load()
-        return loads
-    
-    def get_max_downstream_load(self) -> float:
-        """
-        获取下游连接中的最大负载率
-        
-        Returns:
-            float: 最大负载率 (0.0-1.0)
-        """
-        loads = self.get_downstream_loads()
-        return max(loads.values()) if loads else 0.0
-    
-    def get_downstream_load_stats(self) -> Dict[str, Any]:
-        """
-        获取下游负载的统计信息
-        
-        Returns:
-            Dict containing load statistics and trends
-        """
-        loads = []
-        increasing_count = 0
-        decreasing_count = 0
-        
-        for broadcast_index, parallel_targets in self.downstream_groups.items():
-            for connection in parallel_targets.values():
-                load = connection.get_buffer_load()
-                loads.append(load)
-                
-                if connection.is_load_increasing():
-                    increasing_count += 1
-                elif connection.is_load_decreasing():
-                    decreasing_count += 1
-        
-        if not loads:
-            return {
-                "max_load": 0.0,
-                "avg_load": 0.0,
-                "min_load": 0.0,
-                "total_connections": 0,
-                "increasing_count": 0,
-                "decreasing_count": 0,
-                "trend": "stable"
-            }
-        
-        max_load = max(loads)
-        avg_load = sum(loads) / len(loads)
-        min_load = min(loads)
-        
-        # 判断整体趋势
-        if increasing_count > len(loads) * 0.5:
-            trend = "increasing"
-        elif decreasing_count > len(loads) * 0.5:
-            trend = "decreasing"
-        else:
-            trend = "stable"
-        
-        return {
-            "max_load": max_load,
-            "avg_load": avg_load,
-            "min_load": min_load,
-            "total_connections": len(loads),
-            "increasing_count": increasing_count,
-            "decreasing_count": decreasing_count,
-            "trend": trend
-        }
 
     def send_stop_signal(self, stop_signal: 'StopSignal') -> None:
         """
@@ -221,14 +104,15 @@ class BaseRouter(ABC):
             return False
         
         try:
+            self.packet_max_load = 0.0
             self.logger.debug(f"Emitting packet: {packet}")
             
             # 根据packet的分区信息选择路由策略
             if packet.is_keyed():
-                return self._route_packet(packet)
+                self._route_packet(packet)
             else:
-                return self._route_round_robin_packet(packet)
-                
+                self._route_round_robin_packet(packet)
+            self._adjust_delay_based_on_load()
         except Exception as e:
             self.logger.error(f"Error emitting packet: {e}")
             return False
@@ -305,8 +189,8 @@ class BaseRouter(ABC):
     def _deliver_packet(self, connection: 'Connection', packet: 'Packet') -> bool:
         try:
             # 检查下游负载并动态调整delay
-            self._adjust_delay_based_on_load(connection)
             
+            self.packet_max_load = max(self.packet_max_load, connection.get_buffer_load())
             routed_packet = self._create_routed_packet(connection, packet)
             target_buffer = connection.target_buffer
             target_buffer.put_nowait(routed_packet)
@@ -344,22 +228,8 @@ class BaseRouter(ABC):
 
     def clear_all_connections(self):
         """清空所有连接"""
-        cleared_count = self.get_connection_count()
         self.downstream_groups.clear()
         self.downstream_group_roundrobin.clear()
-        
-        self.logger.info(f"Cleared all connections ({cleared_count} connections removed)")
-    
-    def get_statistics(self) -> Dict[str, Any]:
-        """获取路由统计信息"""
-        return {
-            "total_connections": self.get_connection_count(),
-            "broadcast_groups": len(self.downstream_groups),
-            "connections_by_group": {
-                broadcast_index: len(parallel_targets)
-                for broadcast_index, parallel_targets in self.downstream_groups.items()
-            }
-        }
     
     def _create_routed_packet(self, connection: 'Connection', packet: 'Packet') -> 'Packet':
         """创建路由后的数据包"""
