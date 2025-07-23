@@ -26,10 +26,7 @@ class FunctionFactory:
             **self.function_kwargs
         )
         function.ctx = ctx
-        return self.function_class(
-            *self.function_args, 
-            **self.function_kwargs
-        )
+        return function
     
     def __repr__(self) -> str:
         return f"<FunctionFactory {self.function_class.__name__}>"

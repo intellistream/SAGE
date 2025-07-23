@@ -7,12 +7,8 @@ class Collector:
     Supports both immediate emission and batched collection.
     """
 
-    def __init__(self, ctx:RuntimeContext):
-        # 数据收集缓存
-        self.ctx = ctx
+    def __init__(self, *args, **kwargs):
         self._collected_data: List[Any] = []
-        
-        self.logger.debug(f"Collector initialized with batch_mode={self._batch_mode}") if self.logger else None
         
     def collect(self, data: Any):
         """

@@ -26,10 +26,7 @@ class FilterFunction(BaseFunction):
             def execute(self, data):
                 return data.value is not None and data.value != ""
     """
-    
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.logger.debug(f"FilterFunction '{self.__class__.__name__}' initialized")
+
 
     @abstractmethod
     def execute(self, data: Any) -> bool:

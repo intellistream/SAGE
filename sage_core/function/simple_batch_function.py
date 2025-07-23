@@ -12,8 +12,7 @@ class SimpleBatchIteratorFunction(BaseFunction):
     只需要提供数据迭代器，不需要复杂的状态管理
     """
     
-    def __init__(self, data: List[Any], ctx: 'RuntimeContext' = None, **kwargs):
-        super().__init__(ctx, **kwargs)
+    def __init__(self, data: List[Any], **kwargs):
         self.data = data
     
     def execute(self, data: Any = None):

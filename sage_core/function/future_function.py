@@ -8,11 +8,7 @@ class FutureFunction(BaseFunction):
     Future transformation的占位符函数。
     这个函数不会被实际执行，只是作为placeholder存在。
     """
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        self.args = args
-        self.kwargs = kwargs
+
     
     def __call__(self, *args, **kwargs) -> Any:
         """

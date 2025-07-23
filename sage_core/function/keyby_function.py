@@ -25,9 +25,6 @@ class KeyByFunction(BaseFunction):
                 return f"{data.user_id}_{data.session_id}"
     """
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.logger.debug(f"KeyByFunction '{self.__class__.__name__}' initialized")
 
     @abstractmethod
     def execute(self, data: Any) -> Hashable:

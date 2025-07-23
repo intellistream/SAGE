@@ -27,8 +27,7 @@ class FlatMapFunction(BaseFunction):
             return words
     """
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
         self.out: Optional[Collector] = None
         self.logger.debug(f"FlatMapFunction '{self.__class__.__name__}' initialized")
 

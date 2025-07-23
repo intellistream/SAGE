@@ -13,13 +13,8 @@ class BaseFunction(ABC):
     BaseFunction is the abstract base class for all operator functions in SAGE.
     It defines the core interface and initializes a logger.
     """
-
-    def __init__(self, ctx:'RuntimeContext' = None, **kwargs):
-        self.ctx = ctx
-        self._logger = None  # 初始化_logger属性
-        if self.ctx is not None:
-            self.logger.info(f"Function {self.name} initialized")
-        
+    def __init__(self, *args, **kwargs):
+        self.ctx: 'RuntimeContext' = None # 运行时注入
     @property
     def logger(self):
         if self._logger is None:
