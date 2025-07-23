@@ -27,7 +27,6 @@ class Connection:
         self._last_load_check = time.time()
         self._load_trend = 0.0  # 负载趋势：正数表示增加，负数表示减少
         self._max_history_size = 10  # 保存最近10次的负载记录
-        self._last_load = 0.0  # 上次记录的负载
     
     def get_buffer_load(self) -> float:
         """
@@ -50,57 +49,51 @@ class Connection:
                 # Ray Actor类型，暂时返回0（后续可以扩展）
                 load_ratio = 0.0
             
-            # 更新负载历史和趋势
-            self._update_load_history(load_ratio)
-            
             return load_ratio
             
         except Exception:
             return 0.0
     
-    def should_increase_delay(self) -> bool:
-        """
-        判断是否应该增加delay
-        当前负载 > 60% 且比上次记录的高
-        """
-        current_load = self.get_buffer_load()
-        return current_load > 0.6 and current_load > self._last_load
+    # def should_increase_delay(self) -> bool:
+    #     """
+    #     判断是否应该增加delay
+    #     当前负载 > 60% 且比上次记录的高
+    #     """
+    #     current_load = self.get_buffer_load()
+    #     return current_load > 0.6
     
-    def should_decrease_delay(self) -> bool:
-        """
-        判断是否应该减少delay
-        当前负载 < 30% 且比上次记录的低
-        """
-        current_load = self.get_buffer_load()
-        return current_load < 0.3 and current_load < self._last_load
+    # def should_decrease_delay(self) -> bool:
+    #     """
+    #     判断是否应该减少delay
+    #     当前负载 < 30% 且比上次记录的低
+    #     """
+    #     current_load = self.get_buffer_load()
+    #     return current_load < 0.3
     
-    def _update_load_history(self, current_load: float):
-        """更新负载历史和计算趋势"""
-        current_time = time.time()
+    # def _update_load_history(self, current_load: float):
+    #     """更新负载历史和计算趋势"""
+    #     current_time = time.time()
         
-        # 更新上次负载记录
-        self._last_load = current_load
+    #     # 添加到历史记录
+    #     self._load_history.append((current_time, current_load))
         
-        # 添加到历史记录
-        self._load_history.append((current_time, current_load))
+    #     # 保持历史记录大小
+    #     if len(self._load_history) > self._max_history_size:
+    #         self._load_history.pop(0)
         
-        # 保持历史记录大小
-        if len(self._load_history) > self._max_history_size:
-            self._load_history.pop(0)
-        
-        # 计算负载趋势（最近3个点的斜率）
-        if len(self._load_history) >= 3:
-            recent_points = self._load_history[-3:]
-            # 计算简单的线性趋势
-            time_diff = recent_points[-1][0] - recent_points[0][0]
-            load_diff = recent_points[-1][1] - recent_points[0][1]
+    #     # 计算负载趋势（最近3个点的斜率）
+    #     if len(self._load_history) >= 3:
+    #         recent_points = self._load_history[-3:]
+    #         # 计算简单的线性趋势
+    #         time_diff = recent_points[-1][0] - recent_points[0][0]
+    #         load_diff = recent_points[-1][1] - recent_points[0][1]
             
-            if time_diff > 0:
-                self._load_trend = load_diff / time_diff
-            else:
-                self._load_trend = 0.0
+    #         if time_diff > 0:
+    #             self._load_trend = load_diff / time_diff
+    #         else:
+    #             self._load_trend = 0.0
         
-        self._last_load_check = current_time
+    #     self._last_load_check = current_time
     
     def get_load_trend(self) -> float:
         """

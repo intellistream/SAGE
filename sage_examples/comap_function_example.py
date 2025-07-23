@@ -113,7 +113,7 @@ class SensorSink(SinkFunction):
 
 def main():
     # 创建环境
-    env = LocalEnvironment("comap_function_example")
+    env = RemoteEnvironment("comap_function_example")
     
     print("🚀 Starting CoMap Function Example")
     print("🌡️  Demonstrating multi-sensor data processing with CoMap")

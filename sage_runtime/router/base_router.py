@@ -310,10 +310,14 @@ class BaseRouter(ABC):
             routed_packet = self._create_routed_packet(connection, packet)
             target_buffer = connection.target_buffer
             target_buffer.put_nowait(routed_packet)
-            self._log_delivery_success(connection, packet)
+            self.logger.debug(
+                f"Sent {'keyed' if packet.is_keyed() else 'unkeyed'} packet "
+                f"to {connection.target_name} (strategy: {packet.partition_strategy or 'round-robin'})"
+            )
             return True
         except Exception as e:
-            self._log_delivery_failure(connection, e)
+            """记录发送失败日志"""
+            self.logger.error(f"Failed to send packet to {connection.target_name}: {e}", exc_info=True)
             return False
     
     def _adjust_delay_based_on_load(self, connection: 'Connection'):
@@ -327,21 +331,13 @@ class BaseRouter(ABC):
             # 获取当前delay
             current_delay = self.ctx.delay
             self.logger.debug(f"Current delay for {connection.target_name}: {current_delay:.3f}s")
-            self.logger.debug(f"Connection last load is {connection._last_load :.2f}")
             # 根据当前连接的负载调整delay
-            if connection.should_increase_delay():
-                # 负载 > 60% 且比上次高，delay增加3%
-                new_delay = current_delay * 1.03
-                self.ctx.delay = min(new_delay, 2.0)  # 最大不超过2秒
-                current_load = connection.get_buffer_load()
-                self.logger.debug(f"Load increasing on {connection.target_name} ({current_load:.2f}), increased delay to {self.ctx.delay:.3f}s")
-                
-            elif connection.should_decrease_delay():
-                # 负载 < 30% 且比上次低，delay减少3%
-                new_delay = current_delay * 0.97
-                self.ctx.delay = max(new_delay, 0.001)  # 最小不低于1ms
-                current_load = connection.get_buffer_load()
-                self.logger.debug(f"Load decreasing on {connection.target_name} ({current_load:.2f}), decreased delay to {self.ctx.delay:.3f}s")
+            current_load = connection.get_buffer_load()
+            new_delay = current_delay * (0.5 + current_load)
+            if new_delay < 0.001:
+                new_delay = 0.001
+            self.ctx.delay = new_delay  # 直接把最大限制给去掉
+            self.logger.info(f"Load adjustment on {connection.target_name} ({current_load:.2f}), adjusted delay to {self.ctx.delay* 1000 :.3f}ms")
                 
         except Exception as e:
             self.logger.warning(f"Failed to adjust delay based on load: {e}", excinfo=True)
@@ -373,14 +369,3 @@ class BaseRouter(ABC):
             partition_key=packet.partition_key,
             partition_strategy=packet.partition_strategy,
         )
-    
-    def _log_delivery_success(self, connection: 'Connection', packet: 'Packet'):
-        """记录发送成功日志"""
-        self.logger.debug(
-            f"Sent {'keyed' if packet.is_keyed() else 'unkeyed'} packet "
-            f"to {connection.target_name} (strategy: {packet.partition_strategy or 'round-robin'})"
-        )
-    
-    def _log_delivery_failure(self, connection: 'Connection', error: Exception):
-        """记录发送失败日志"""
-        self.logger.error(f"Failed to send packet to {connection.target_name}: {error}", exc_info=True)
