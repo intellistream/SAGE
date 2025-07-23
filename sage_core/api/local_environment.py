@@ -23,6 +23,7 @@ class LocalEnvironment(BaseEnvironment):
         if env_uuid:
             self.env_uuid = env_uuid
             self.logger.info(f"Environment submitted with UUID: {self.env_uuid}")
+            self.logger.info(f"Using keyboard interrupt to stop job...")
             try:
                 # 阻塞主线程，直到 job 结束或被 Ctrl+C 打断
                 while True:
