@@ -30,6 +30,7 @@ class BaseTask(ABC):
             self.operator.task = self
         except Exception as e:
             self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
+            raise
 
 
     def start_running(self):
