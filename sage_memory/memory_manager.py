@@ -18,9 +18,6 @@ class MemoryManager:
 
     def __init__(self, data_dir: Optional[str] = None):
         self.logger = CustomLogger(
-            filename=f"MemoryManager",
-            console_output=False,
-            file_output=True
         )
         # 统一使用 collections 名称存储包装后的集合
         if data_dir is None:
