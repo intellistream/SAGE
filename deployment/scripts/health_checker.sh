@@ -39,7 +39,11 @@ check_python_environment() {
     local project_root=$(get_project_root)
     export PYTHONPATH="$project_root:$PYTHONPATH"
     
-    local modules_check=$(python3 -c "
+    local python_cmd=$(get_python_env_command "sage")
+    local env_info=$(get_python_env_info)
+    log_info "Checking Python environment: $env_info"
+    
+    local modules_check=$($python_cmd -c "
 import sys
 missing_modules = []
 try:
@@ -182,26 +186,36 @@ show_system_status() {
     echo -e "\n${BLUE}JobManager Daemon:${NC}"
     if check_daemon_status; then
         echo "  ✓ Running and healthy"
-        echo "  Host: $DAEMON_HOST"
-        echo "  Port: $DAEMON_PORT"
-        echo "  API Endpoint: tcp://$DAEMON_HOST:$DAEMON_PORT"
+        echo "  Host: 127.0.0.1"
+        echo "  Port: 19001" 
+        echo "  API Endpoint: tcp://127.0.0.1:19001"
+        
+        # 获取项目根目录
+        local project_root
+        if command -v get_project_root >/dev/null 2>&1; then
+            project_root=$(get_project_root)
+        else
+            project_root="$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")"
+        fi
         
         # 显示 Actor 信息
-        local actor_info=$(python3 -c "
+        local python_cmd=$(get_python_env_command "sage")
+        local actor_info=$($python_cmd -c "
 import sys
-sys.path.append('$(get_project_root)')
-from sage_core.jobmanager_client import JobManagerClient
+sys.path.append('$project_root')
 try:
-    client = JobManagerClient('$DAEMON_HOST', $DAEMON_PORT)
-    response = client.get_actor_info()
-    if response.get('status') == 'success':
+    from sage_core.jobmanager_client import JobManagerClient
+    client = JobManagerClient('127.0.0.1', 19001)
+    response = client._send_request({'action': 'get_actor_info', 'request_id': '123'})
+    if response and response.get('status') == 'success':
         info = response.get('actor_info', {})
         print(f\"  Actor: {info.get('actor_name', 'N/A')}@{info.get('namespace', 'N/A')}\")
         print(f\"  Actor ID: {info.get('actor_id', 'N/A')}\")
+        print(f\"  Status: {info.get('status', 'N/A')}\")
     else:
         print('  Actor info unavailable')
-except:
-    print('  Actor info error')
+except Exception as e:
+    print(f'  Actor info error: {e}')
 " 2>/dev/null)
         echo "$actor_info"
     else

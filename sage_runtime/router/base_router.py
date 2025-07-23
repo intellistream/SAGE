@@ -22,7 +22,7 @@ class BaseRouter(ABC):
         # 下游连接管理
         self.downstream_groups: Dict[int, Dict[int, 'Connection']] = {}
         self.downstream_group_roundrobin: Dict[int, int] = {}
-        
+        self.packet_max_load: float = 0.0  # 最大延迟，单位为秒
         # Logger
         self.logger = ctx.logger
         self.logger.debug(f"Initialized {self.__class__.__name__} for {self.name}")
@@ -51,48 +51,7 @@ class BaseRouter(ABC):
         self.downstream_groups[broadcast_index][parallel_index] = connection
         
         self.logger.info(f"Added connection to {connection.target_name}")
-    
-    def remove_connection(self, broadcast_index: int, parallel_index: int) -> bool:
-        """
-        移除指定的连接
-        
-        Args:
-            broadcast_index: 广播索引
-            parallel_index: 并行索引
-            
-        Returns:
-            bool: 是否成功移除
-        """
-        try:
-            if broadcast_index in self.downstream_groups:
-                if parallel_index in self.downstream_groups[broadcast_index]:
-                    connection = self.downstream_groups[broadcast_index][parallel_index]
-                    del self.downstream_groups[broadcast_index][parallel_index]
-                    
-                    # 如果这个广播组空了，清理它
-                    if not self.downstream_groups[broadcast_index]:
-                        del self.downstream_groups[broadcast_index]
-                        del self.downstream_group_roundrobin[broadcast_index]
-                    else:
-                        # 重置轮询计数器
-                        self.downstream_group_roundrobin[broadcast_index] = 0
-                    
-                    self.logger.info(f"Removed connection to {connection.target_name}")
-                    return True
-            
-            self.logger.warning(f"Connection not found: broadcast_index={broadcast_index}, parallel_index={parallel_index}")
-            return False
-            
-        except Exception as e:
-            self.logger.error(f"Error removing connection: {e}")
-            return False
-    
-    def get_connection_count(self) -> int:
-        """获取总连接数"""
-        total = 0
-        for parallel_targets in self.downstream_groups.values():
-            total += len(parallel_targets)
-        return total
+
     
     def get_connections_info(self) -> Dict[str, Any]:
         """获取连接信息"""
@@ -104,14 +63,15 @@ class BaseRouter(ABC):
                 "targets": [
                     {
                         "parallel_index": parallel_index,
-                        "target_name": connection.target_name,
-                        "connection_type": connection.connection_type.value
+                        "target_name": connection.target_name
                     }
                     for parallel_index, connection in parallel_targets.items()
                 ]
             }
         return info
+
     
+
     def send_stop_signal(self, stop_signal: 'StopSignal') -> None:
         """
         发送停止信号给所有下游连接
@@ -144,14 +104,15 @@ class BaseRouter(ABC):
             return False
         
         try:
+            self.packet_max_load = 0.0
             self.logger.debug(f"Emitting packet: {packet}")
             
             # 根据packet的分区信息选择路由策略
             if packet.is_keyed():
-                return self._route_packet(packet)
+                self._route_packet(packet)
             else:
-                return self._route_round_robin_packet(packet)
-                
+                self._route_round_robin_packet(packet)
+            self._adjust_delay_based_on_load()
         except Exception as e:
             self.logger.error(f"Error emitting packet: {e}")
             return False
@@ -227,33 +188,48 @@ class BaseRouter(ABC):
     
     def _deliver_packet(self, connection: 'Connection', packet: 'Packet') -> bool:
         try:
+            # 检查下游负载并动态调整delay
+            
+            self.packet_max_load = max(self.packet_max_load, connection.get_buffer_load())
             routed_packet = self._create_routed_packet(connection, packet)
             target_buffer = connection.target_buffer
             target_buffer.put_nowait(routed_packet)
-            self._log_delivery_success(connection, packet)
+            self.logger.debug(
+                f"Sent {'keyed' if packet.is_keyed() else 'unkeyed'} packet "
+                f"to {connection.target_name} (strategy: {packet.partition_strategy or 'round-robin'})"
+            )
             return True
         except Exception as e:
-            self._log_delivery_failure(connection, e)
+            """记录发送失败日志"""
+            self.logger.error(f"Failed to send packet to {connection.target_name}: {e}", exc_info=True)
             return False
     
+    def _adjust_delay_based_on_load(self, connection: 'Connection'):
+        """
+        根据当前连接的负载动态调整delay
+        
+        Args:
+            connection: 当前发送的目标连接
+        """
+        try:
+            # 获取当前delay
+            current_delay = self.ctx.delay
+            self.logger.debug(f"Current delay for {connection.target_name}: {current_delay:.3f}s")
+            # 根据当前连接的负载调整delay
+            current_load = connection.get_buffer_load()
+            new_delay = current_delay * (0.5 + current_load)
+            if new_delay < 0.001:
+                new_delay = 0.001
+            self.ctx.delay = new_delay  # 直接把最大限制给去掉
+            self.logger.info(f"Load adjustment on {connection.target_name} ({current_load:.2f}), adjusted delay to {self.ctx.delay* 1000 :.3f}ms")
+                
+        except Exception as e:
+            self.logger.warning(f"Failed to adjust delay based on load: {e}", excinfo=True)
+
     def clear_all_connections(self):
         """清空所有连接"""
-        cleared_count = self.get_connection_count()
         self.downstream_groups.clear()
         self.downstream_group_roundrobin.clear()
-        
-        self.logger.info(f"Cleared all connections ({cleared_count} connections removed)")
-    
-    def get_statistics(self) -> Dict[str, Any]:
-        """获取路由统计信息"""
-        return {
-            "total_connections": self.get_connection_count(),
-            "broadcast_groups": len(self.downstream_groups),
-            "connections_by_group": {
-                broadcast_index: len(parallel_targets)
-                for broadcast_index, parallel_targets in self.downstream_groups.items()
-            }
-        }
     
     def _create_routed_packet(self, connection: 'Connection', packet: 'Packet') -> 'Packet':
         """创建路由后的数据包"""
@@ -263,14 +239,3 @@ class BaseRouter(ABC):
             partition_key=packet.partition_key,
             partition_strategy=packet.partition_strategy,
         )
-    
-    def _log_delivery_success(self, connection: 'Connection', packet: 'Packet'):
-        """记录发送成功日志"""
-        self.logger.debug(
-            f"Sent {'keyed' if packet.is_keyed() else 'unkeyed'} packet "
-            f"to {connection.target_name} (strategy: {packet.partition_strategy or 'round-robin'})"
-        )
-    
-    def _log_delivery_failure(self, connection: 'Connection', error: Exception):
-        """记录发送失败日志"""
-        self.logger.error(f"Failed to send packet to {connection.target_name}: {error}", exc_info=True)

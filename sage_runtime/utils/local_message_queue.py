@@ -10,10 +10,10 @@ from sage_runtime.runtime_context import RuntimeContext
 class LocalMessageQueue:
 
     def __init__(self, ctx:RuntimeContext):
-        self.queue = queue.Queue(maxsize=50000)
+        self.queue = queue.Queue(maxsize=30000)
         self.name = ctx.name
         self.total_task = 0
-        self.max_buffer_size = 30000  # 总内存限制（字节）
+        self.maxsize = 30000  # 总内存限制（字节）
         self.current_buffer_usage = 0 # 当前使用的内存（字节）
         self.memory_tracker = {}  # 跟踪每个项目的内存大小 {id(item): size}
         # self.task_per_minute = 0
@@ -61,7 +61,7 @@ class LocalMessageQueue:
         """
         队列是否满了
         """
-        return self.current_buffer_usage >= self.max_buffer_size
+        return self.current_buffer_usage >= self.maxsize
 
     def is_empty(self):
         """
@@ -82,7 +82,7 @@ class LocalMessageQueue:
 
             with self.buffer_condition:
                 # 等待直到有足够的空间
-                while self.current_buffer_usage + item_size > self.max_buffer_size:
+                while self.current_buffer_usage + item_size > self.maxsize:
                     if timeout is None:
                         self.buffer_condition.wait()
                     else:
@@ -96,7 +96,7 @@ class LocalMessageQueue:
         else:
             with self.lock:
                 # 立即检查是否可以添加
-                if self.current_buffer_usage + item_size > self.max_buffer_size:
+                if self.current_buffer_usage + item_size > self.maxsize:
                     raise queue.Full("Memory limit exceeded")
                 self._do_put(item, item_size)
 
@@ -159,8 +159,8 @@ class LocalMessageQueue:
                 # 添加以下内存相关的指标
                 "memory_usage_bytes": self.current_buffer_usage,
                 "memory_usage_percent": (
-                                                    self.current_buffer_usage / self.max_buffer_size) * 100 if self.max_buffer_size > 0 else 0,
-                "memory_limit_bytes": self.max_buffer_size
+                                                    self.current_buffer_usage / self.maxsize) * 100 if self.maxsize > 0 else 0,
+                "memory_limit_bytes": self.maxsize
             }
 
 
