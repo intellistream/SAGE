@@ -104,14 +104,91 @@ class BaseRouter(ABC):
                 "targets": [
                     {
                         "parallel_index": parallel_index,
-                        "target_name": connection.target_name,
-                        "connection_type": connection.connection_type.value
+                        "target_name": connection.target_name
                     }
                     for parallel_index, connection in parallel_targets.items()
                 ]
             }
         return info
     
+    def get_downstream_loads(self) -> Dict[str, float]:
+        """
+        获取所有下游连接的负载信息
+        
+        Returns:
+            Dict[str, float]: {connection_name: load_ratio}
+        """
+        loads = {}
+        for broadcast_index, parallel_targets in self.downstream_groups.items():
+            for parallel_index, connection in parallel_targets.items():
+                connection_key = f"{connection.target_name}_{broadcast_index}_{parallel_index}"
+                loads[connection_key] = connection.get_buffer_load()
+        return loads
+    
+    def get_max_downstream_load(self) -> float:
+        """
+        获取下游连接中的最大负载率
+        
+        Returns:
+            float: 最大负载率 (0.0-1.0)
+        """
+        loads = self.get_downstream_loads()
+        return max(loads.values()) if loads else 0.0
+    
+    def get_downstream_load_stats(self) -> Dict[str, Any]:
+        """
+        获取下游负载的统计信息
+        
+        Returns:
+            Dict containing load statistics and trends
+        """
+        loads = []
+        increasing_count = 0
+        decreasing_count = 0
+        
+        for broadcast_index, parallel_targets in self.downstream_groups.items():
+            for connection in parallel_targets.values():
+                load = connection.get_buffer_load()
+                loads.append(load)
+                
+                if connection.is_load_increasing():
+                    increasing_count += 1
+                elif connection.is_load_decreasing():
+                    decreasing_count += 1
+        
+        if not loads:
+            return {
+                "max_load": 0.0,
+                "avg_load": 0.0,
+                "min_load": 0.0,
+                "total_connections": 0,
+                "increasing_count": 0,
+                "decreasing_count": 0,
+                "trend": "stable"
+            }
+        
+        max_load = max(loads)
+        avg_load = sum(loads) / len(loads)
+        min_load = min(loads)
+        
+        # 判断整体趋势
+        if increasing_count > len(loads) * 0.5:
+            trend = "increasing"
+        elif decreasing_count > len(loads) * 0.5:
+            trend = "decreasing"
+        else:
+            trend = "stable"
+        
+        return {
+            "max_load": max_load,
+            "avg_load": avg_load,
+            "min_load": min_load,
+            "total_connections": len(loads),
+            "increasing_count": increasing_count,
+            "decreasing_count": decreasing_count,
+            "trend": trend
+        }
+
     def send_stop_signal(self, stop_signal: 'StopSignal') -> None:
         """
         发送停止信号给所有下游连接
@@ -227,6 +304,9 @@ class BaseRouter(ABC):
     
     def _deliver_packet(self, connection: 'Connection', packet: 'Packet') -> bool:
         try:
+            # 检查下游负载并动态调整delay
+            self._adjust_delay_based_on_load(connection)
+            
             routed_packet = self._create_routed_packet(connection, packet)
             target_buffer = connection.target_buffer
             target_buffer.put_nowait(routed_packet)
@@ -236,6 +316,36 @@ class BaseRouter(ABC):
             self._log_delivery_failure(connection, e)
             return False
     
+    def _adjust_delay_based_on_load(self, connection: 'Connection'):
+        """
+        根据当前连接的负载动态调整delay
+        
+        Args:
+            connection: 当前发送的目标连接
+        """
+        try:
+            # 获取当前delay
+            current_delay = self.ctx.delay
+            self.logger.debug(f"Current delay for {connection.target_name}: {current_delay:.3f}s")
+            self.logger.debug(f"Connection last load is {connection._last_load :.2f}")
+            # 根据当前连接的负载调整delay
+            if connection.should_increase_delay():
+                # 负载 > 60% 且比上次高，delay增加3%
+                new_delay = current_delay * 1.03
+                self.ctx.delay = min(new_delay, 2.0)  # 最大不超过2秒
+                current_load = connection.get_buffer_load()
+                self.logger.debug(f"Load increasing on {connection.target_name} ({current_load:.2f}), increased delay to {self.ctx.delay:.3f}s")
+                
+            elif connection.should_decrease_delay():
+                # 负载 < 30% 且比上次低，delay减少3%
+                new_delay = current_delay * 0.97
+                self.ctx.delay = max(new_delay, 0.001)  # 最小不低于1ms
+                current_load = connection.get_buffer_load()
+                self.logger.debug(f"Load decreasing on {connection.target_name} ({current_load:.2f}), decreased delay to {self.ctx.delay:.3f}s")
+                
+        except Exception as e:
+            self.logger.warning(f"Failed to adjust delay based on load: {e}", excinfo=True)
+
     def clear_all_connections(self):
         """清空所有连接"""
         cleared_count = self.get_connection_count()
