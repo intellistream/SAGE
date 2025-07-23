@@ -69,3 +69,6 @@ drafts/
 run.sh
 third_party/
 tmp_ray/
+
+.cache/
+build/
