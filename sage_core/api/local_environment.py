@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 class LocalEnvironment(BaseEnvironment):
     """本地环境，直接使用本地JobManager实例"""
 
-    def __init__(self, name: str, config: dict | None = None):
+    def __init__(self, name: str = "localenvironment", config: dict | None = None):
         super().__init__(name, config, platform="local")
         
         # 本地环境不需要客户端

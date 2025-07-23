@@ -8,8 +8,8 @@ from vllm import LLM, SamplingParams
 from vllm.lora.request import LoRARequest
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoModel
 
-from longrefiner.prompt_template import PromptTemplate
-from longrefiner.task_instruction import *
+from sage_plugins.longrefiner_fn.longrefiner.prompt_template import PromptTemplate
+from sage_plugins.longrefiner_fn.longrefiner.task_instruction import *
 
 
 class LongRefiner:

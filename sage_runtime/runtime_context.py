@@ -391,7 +391,7 @@ class RuntimeContext:
         if self._logger is None:
             self._logger = CustomLogger([
                 ("console", "INFO"),  # 控制台显示重要信息
-                # (os.path.join(self.env_base_dir, f"{self.name}_debug.log"), "DEBUG"),  # 详细日志
+                (os.path.join(self.env_base_dir, f"{self.name}_debug.log"), "DEBUG"),  # 详细日志
                 (os.path.join(self.env_base_dir, "Error.log"), "ERROR"),  # 错误日志
                 (os.path.join(self.env_base_dir, f"{self.name}_info.log"), "INFO")  # 错误日志
             ],
