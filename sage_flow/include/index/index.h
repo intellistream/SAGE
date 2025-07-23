@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -11,7 +12,7 @@ class MemoryPool;
 
 /**
  * @brief Base class for all index types
- * Reference: flow_old/include/index/index.h
+ * Reference: DynaGraph/include/index/index.h
  */
 class Index {
  public:
@@ -42,6 +43,13 @@ class Index {
    * @return true if addition successful
    */
   virtual auto AddVector(uint64_t id, const std::vector<float>& vector) -> bool = 0;
+
+  /**
+   * @brief Remove vector from the index
+   * @param id Unique identifier for the vector to remove
+   * @return true if removal successful
+   */
+  virtual auto RemoveVector(uint64_t id) -> bool = 0;
 
   /**
    * @brief Search for k nearest neighbors
