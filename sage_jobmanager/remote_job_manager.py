@@ -1,6 +1,9 @@
 import ray
 import time
 import os
+import sys
+import subprocess
+import json
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, TYPE_CHECKING
@@ -70,6 +73,61 @@ class RemoteJobManager(JobManager):
             "session_id": self.session_id,
             "latest_link": "/tmp/sage-jm/session_latest"
         }
+    
+    def get_environment_info(self) -> Dict[str, Any]:
+        """获取远程JobManager的环境信息"""
+        try:
+            env_info = {
+                "python_version": sys.version,
+                "python_executable": sys.executable,
+                "platform": sys.platform,
+                "python_path": sys.path[:5],  # 只返回前5个路径，避免过长
+                "virtual_env": os.environ.get("VIRTUAL_ENV"),
+                "conda_env": os.environ.get("CONDA_DEFAULT_ENV"),
+                "working_directory": os.getcwd(),
+                "ray_version": ray.__version__,
+                "actor_id": self.actor_id,
+                "node_id": self.node_id,
+            }
+            
+            # 获取关键依赖版本
+            try:
+                import dill
+                env_info["dill_version"] = dill.__version__
+            except ImportError:
+                env_info["dill_version"] = None
+            
+            # 获取一些关键的已安装包（避免全量查询影响性能）
+            critical_packages = ["ray", "dill", "numpy", "torch", "transformers", "sage_core"]
+            try:
+                result = subprocess.run([sys.executable, "-m", "pip", "show"] + critical_packages,
+                                      capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    # 解析pip show输出
+                    package_info = {}
+                    current_package = None
+                    for line in result.stdout.split('\n'):
+                        if line.startswith('Name: '):
+                            current_package = line.split('Name: ')[1].strip()
+                        elif line.startswith('Version: ') and current_package:
+                            package_info[current_package] = line.split('Version: ')[1].strip()
+                    
+                    env_info["critical_packages"] = package_info
+                else:
+                    env_info["critical_packages"] = {}
+            except Exception:
+                env_info["critical_packages"] = {}
+            
+            return env_info
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to get environment info: {e}")
+            return {
+                "error": str(e),
+                "python_version": sys.version,
+                "python_executable": sys.executable,
+                "platform": sys.platform
+            }
     
     def _get_memory_info(self) -> Dict[str, Any]:
         """获取内存使用信息（简单版本）"""

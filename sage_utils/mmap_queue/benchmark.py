@@ -364,46 +364,54 @@ def benchmark_multiprocess() -> BenchmarkResult:
     """多进程基准测试"""
     result = BenchmarkResult("多进程测试")
     
-    def worker_process(queue_name: str, worker_id: int, num_operations: int) -> Dict[str, Any]:
-        """工作进程函数"""
-        try:
-            queue = SageQueue(queue_name)
-            
-            start_time = time.time()
-            completed = 0
-            
-            for i in range(num_operations):
-                message = {
+    # 导入外部 worker 函数
+    try:
+        from benchmark_workers import benchmark_multiprocess_worker
+        worker_process = benchmark_multiprocess_worker
+    except ImportError:
+        # 如果无法导入外部 worker，在顶层定义一个
+        def worker_process_fallback(queue_name: str, worker_id: int, num_operations: int) -> Dict[str, Any]:
+            try:
+                from sage_queue import SageQueue
+                queue = SageQueue(queue_name)
+                
+                start_time = time.time()
+                completed = 0
+                
+                for i in range(num_operations):
+                    message = {
+                        'worker_id': worker_id,
+                        'operation_id': i,
+                        'timestamp': time.time(),
+                        'data': f'process_{worker_id}_op_{i}'
+                    }
+                    
+                    # Put message
+                    queue.put(message, timeout=15.0)
+                    
+                    # Get message (might not be our own)
+                    retrieved = queue.get(timeout=15.0)
+                    
+                    completed += 2  # put + get
+                
+                end_time = time.time()
+                queue.close()
+                
+                return {
                     'worker_id': worker_id,
-                    'operation_id': i,
-                    'timestamp': time.time(),
-                    'data': f'process_{worker_id}_op_{i}'
+                    'completed': completed,
+                    'duration': end_time - start_time,
+                    'ops_per_sec': completed / (end_time - start_time) if end_time > start_time else 0
                 }
                 
-                # Put message
-                queue.put(message, timeout=15.0)
-                
-                # Get message (might not be our own)
-                retrieved = queue.get(timeout=15.0)
-                
-                completed += 2  # put + get
-            
-            end_time = time.time()
-            queue.close()
-            
-            return {
-                'worker_id': worker_id,
-                'completed': completed,
-                'duration': end_time - start_time,
-                'ops_per_sec': completed / (end_time - start_time) if end_time > start_time else 0
-            }
-            
-        except Exception as e:
-            return {
-                'worker_id': worker_id,
-                'error': str(e),
-                'completed': completed if 'completed' in locals() else 0
-            }
+            except Exception as e:
+                return {
+                    'worker_id': worker_id,
+                    'error': str(e),
+                    'completed': 0
+                }
+        
+        worker_process = worker_process_fallback
     
     try:
         queue_name = f"bench_multiproc_{int(time.time())}"
