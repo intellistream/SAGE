@@ -18,10 +18,17 @@ class FunctionFactory:
     
     def create_function(self, name:str, ctx:'RuntimeContext') -> BaseFunction:
         """创建函数实例"""
+        print(self.function_args)
+        print(self.function_kwargs)
+        # self.function_kwargs["ctx"] = 
+        function = self.function_class(
+            *self.function_args, 
+            **self.function_kwargs
+        )
+        function.ctx = ctx
         return self.function_class(
             *self.function_args, 
-            ctx=ctx,
-            **self.function_kwargs, 
+            **self.function_kwargs
         )
     
     def __repr__(self) -> str:

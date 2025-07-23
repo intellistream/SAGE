@@ -40,7 +40,7 @@ class CustomFileSource(SourceFunction):
         else:
             raise ValueError(f"Unsupported source.type: {self.source_type}")
 
-    def run(self):
+    def execute(self):
         # 在开始时打印一次，确认走的分支和路径
         print(f"[CustomFileSource] mode={self.source_type}, path={getattr(self, 'path', self.hf_name)}")
         if self.source_type == "local":

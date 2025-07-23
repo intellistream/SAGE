@@ -69,6 +69,7 @@ class JobManager: #Job Manager
         except Exception as e:
             job_info.update_status("failed", error=str(e))
             self.logger.error(f"Failed to submit environment {env.uuid}: {e}")
+            raise
 
         return env.uuid
 

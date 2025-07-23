@@ -29,6 +29,7 @@ class BaseOperator(ABC):
 
         except Exception as e:
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
+            raise
 
     # TODO: 去掉stateful function的概念，用某些策略对于function内部的可序列化字段做静态保存和checkpoint
     def save_state(self):
