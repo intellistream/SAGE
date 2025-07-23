@@ -94,6 +94,7 @@ class BaseTask(ABC):
                     self.logger.debug(f"Running spout node '{self.name}'")
                     self.operator.receive_packet(None)
                     # TODO: 做一个下游缓冲区反压机制，因为引入一个手动延迟实在是太呆了
+                    # Issue URL: https://github.com/intellistream/SAGE/issues/335
                     # sleep时间太短对kernel来说就没有意义了。
                     if self.delay > 0.002:
                         time.sleep(self.delay)
