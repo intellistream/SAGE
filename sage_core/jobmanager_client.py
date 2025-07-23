@@ -108,3 +108,26 @@ class JobManagerClient:
             return actor_handle.get_log_directory()
         except Exception as e:
             return {"status": "error", "message": f"Failed to get log directory: {e}"}
+
+    def get_environment_info(self) -> Dict[str, Any]:
+        """获取远程JobManager的环境信息"""
+        import uuid
+        request = {
+            "action": "get_environment_info",
+            "request_id": str(uuid.uuid4())
+        }
+        
+        response = self._send_request(request)
+        
+        if response.get("status") != "success":
+            # 如果守护服务不支持此功能，尝试通过Actor直接获取
+            try:
+                actor_handle = self.get_actor_handle()
+                if hasattr(actor_handle, 'get_environment_info'):
+                    return actor_handle.get_environment_info()
+                else:
+                    return {"status": "error", "message": "Remote JobManager does not support environment info query"}
+            except Exception as e:
+                return {"status": "error", "message": f"Failed to get environment info: {e}"}
+        
+        return response.get("environment_info", {})
