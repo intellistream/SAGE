@@ -59,6 +59,17 @@ class Dispatcher():
             name = f"Dispatcher_{self.name}",
         )
 
+    def start(self):
+        # 第三步：提交所有节点开始运行
+        for node_name, task in self.tasks.items():
+            try:
+                task.start_running()
+                self.logger.debug(f"Started node: {node_name}")
+            except Exception as e:
+                self.logger.error(f"Failed to start node {node_name}: {e}", exc_info=True)
+        self.logger.info(f"Job submission completed: {len(self.tasks)} nodes")
+        self.is_running = True
+
     # Dispatcher will submit the job to LocalEngine or Ray Server.    
     def submit(self):
         """编译图结构，创建节点并建立连接"""
@@ -76,16 +87,8 @@ class Dispatcher():
         # 第二步：建立节点间的连接
         for node_name, graph_node in self.graph.nodes.items():
             self._setup_node_connections(node_name, graph_node)
-        
-        # 第三步：提交所有节点开始运行
-        for node_name, task in self.tasks.items():
-            try:
-                task.start_running()
-                self.logger.debug(f"Started node: {node_name}")
-            except Exception as e:
-                self.logger.error(f"Failed to start node {node_name}: {e}", exc_info=True)
-        self.logger.info(f"Job submission completed: {len(self.tasks)} nodes")
-        self.is_running = True
+        self.start()
+
 
 
     def _setup_node_connections(self, node_name: str, graph_node: 'GraphNode'):

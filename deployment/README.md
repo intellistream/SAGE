@@ -7,7 +7,7 @@
 ```
 deployment/
 ├── sage_deployment.sh         # 原始单体脚本（保留）
-├── sage_deployment_v2.sh      # 新的模块化主脚本
+├── sage_deployment.sh      # 新的模块化主脚本
 ├── jobmanager_controller.py   # JobManager控制器
 ├── jobmanager_daemon.py       # JobManager守护进程
 ├── config/                    # 配置文件
@@ -31,7 +31,7 @@ deployment/
 
 ```bash
 # 启动完整的SAGE系统（新版本）
-./sage_deployment_v2.sh start
+./sage_deployment.sh start
 
 # 或使用原始脚本
 ./sage_deployment.sh start
@@ -41,17 +41,17 @@ deployment/
 
 ```bash
 # 检查系统状态
-./sage_deployment_v2.sh status
+./sage_deployment.sh status
 
 # 执行健康检查
-./sage_deployment_v2.sh health
+./sage_deployment.sh health
 ```
 
 ### 停止系统
 
 ```bash
 # 停止完整系统
-./sage_deployment_v2.sh stop
+./sage_deployment.sh stop
 ```
 
 ## 功能模块说明
@@ -100,39 +100,39 @@ deployment/
 ### 系统管理命令
 
 ```bash
-./sage_deployment_v2.sh start          # 启动系统
-./sage_deployment_v2.sh stop           # 停止系统  
-./sage_deployment_v2.sh restart        # 重启系统
-./sage_deployment_v2.sh status         # 显示状态
-./sage_deployment_v2.sh health         # 健康检查
-./sage_deployment_v2.sh monitor [间隔] # 实时监控
+./sage_deployment.sh start          # 启动系统
+./sage_deployment.sh stop           # 停止系统  
+./sage_deployment.sh restart        # 重启系统
+./sage_deployment.sh status         # 显示状态
+./sage_deployment.sh health         # 健康检查
+./sage_deployment.sh monitor [间隔] # 实时监控
 ```
 
 ### CLI工具管理
 
 ```bash
-./sage_deployment_v2.sh install-cli    # 安装CLI工具
-./sage_deployment_v2.sh uninstall-cli  # 卸载CLI工具
-./sage_deployment_v2.sh check-cli      # 检查CLI状态
+./sage_deployment.sh install-cli    # 安装CLI工具
+./sage_deployment.sh uninstall-cli  # 卸载CLI工具
+./sage_deployment.sh check-cli      # 检查CLI状态
 ```
 
 ### 单独组件管理
 
 ```bash
-./sage_deployment_v2.sh start-ray      # 仅启动Ray
-./sage_deployment_v2.sh stop-ray       # 仅停止Ray
-./sage_deployment_v2.sh start-daemon   # 仅启动守护进程
-./sage_deployment_v2.sh stop-daemon    # 仅停止守护进程
+./sage_deployment.sh start-ray      # 仅启动Ray
+./sage_deployment.sh stop-ray       # 仅停止Ray
+./sage_deployment.sh start-daemon   # 仅启动守护进程
+./sage_deployment.sh stop-daemon    # 仅停止守护进程
 ```
 
 ### 系统诊断和维护
 
 ```bash
-./sage_deployment_v2.sh diagnose       # 系统诊断
-./sage_deployment_v2.sh collect-logs   # 收集日志
-./sage_deployment_v2.sh cleanup        # 清理临时文件
-./sage_deployment_v2.sh report         # 生成系统报告
-./sage_deployment_v2.sh performance    # 性能测试
+./sage_deployment.sh diagnose       # 系统诊断
+./sage_deployment.sh collect-logs   # 收集日志
+./sage_deployment.sh cleanup        # 清理临时文件
+./sage_deployment.sh report         # 生成系统报告
+./sage_deployment.sh performance    # 性能测试
 ```
 
 ## 环境变量
@@ -153,7 +153,7 @@ export SAGE_LOG_DIR=/path/to/logs    # 日志目录
 从原始单体脚本升级到模块化版本：
 
 1. **兼容性**: 原始脚本 `./sage_deployment.sh` 仍然可用
-2. **新功能**: 新脚本 `./sage_deployment_v2.sh` 提供更多功能
+2. **新功能**: 新脚本 `./sage_deployment.sh` 提供更多功能
 3. **配置**: 环境变量完全兼容，无需修改
 4. **增强**: 新增诊断、监控、日志收集等功能
 
@@ -163,12 +163,12 @@ export SAGE_LOG_DIR=/path/to/logs    # 日志目录
 ```bash
 export RAY_HEAD_PORT=10011
 export RAY_DASHBOARD_PORT=8275
-./sage_deployment_v2.sh start
+./sage_deployment.sh start
 ```
 
 ### 权限问题
 ```bash
-./sage_deployment_v2.sh diagnose
+./sage_deployment.sh diagnose
 # 或手动修复
 sudo chmod 1777 /var/lib/ray_shared
 ```
@@ -176,10 +176,10 @@ sudo chmod 1777 /var/lib/ray_shared
 ### 查看详细日志
 ```bash
 # 收集所有日志
-./sage_deployment_v2.sh collect-logs
+./sage_deployment.sh collect-logs
 
 # 实时监控
-./sage_deployment_v2.sh monitor 3
+./sage_deployment.sh monitor 3
 ```
 
 ---

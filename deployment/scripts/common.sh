@@ -38,11 +38,61 @@ check_command() {
 # 检查端口是否被占用
 check_port() {
     local port=$1
-    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
-        return 0  # 端口被占用
-    else
-        return 1  # 端口未被占用
+    
+    # 优先使用 ss (更可靠，特别是在多租户环境下)
+    if command -v ss >/dev/null 2>&1; then
+        if ss -ltn | grep -q ":$port "; then
+            return 0  # 端口被占用
+        fi
     fi
+    
+    # 备用方案：使用 netstat
+    if command -v netstat >/dev/null 2>&1; then
+        if netstat -ltn | grep -q ":$port "; then
+            return 0  # 端口被占用
+        fi
+    fi
+    
+    # 最后备用方案：使用 lsof (可能在多租户环境下失败)
+    if command -v lsof >/dev/null 2>&1; then
+        if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+            return 0  # 端口被占用
+        fi
+    fi
+    
+    return 1  # 端口未被占用
+}
+
+# 查找使用指定端口的进程PID
+find_port_processes() {
+    local port=$1
+    local pids=""
+    
+    # 优先使用 ss (更可靠，特别是在多租户环境下)
+    if command -v ss >/dev/null 2>&1; then
+        # 需要sudo权限才能看到进程信息
+        if command -v sudo >/dev/null 2>&1; then
+            pids=$(sudo ss -ltnp 2>/dev/null | grep ":$port " | grep -oE 'pid=[0-9]+' | cut -d= -f2 | head -1)
+        fi
+    fi
+    
+    # 备用方案：使用 netstat
+    if [ -z "$pids" ] && command -v netstat >/dev/null 2>&1; then
+        if command -v sudo >/dev/null 2>&1; then
+            pids=$(sudo netstat -ltnp 2>/dev/null | grep ":$port " | awk '{print $7}' | cut -d'/' -f1 | grep -E '^[0-9]+$' | head -1)
+        fi
+    fi
+    
+    # 最后备用方案：使用 lsof
+    if [ -z "$pids" ] && command -v lsof >/dev/null 2>&1; then
+        if command -v sudo >/dev/null 2>&1; then
+            pids=$(sudo lsof -ti :$port 2>/dev/null | head -1)
+        else
+            pids=$(lsof -ti :$port 2>/dev/null | head -1)
+        fi
+    fi
+    
+    echo "$pids"
 }
 
 # 检查端口范围是否可用

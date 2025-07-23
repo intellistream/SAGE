@@ -100,20 +100,11 @@ class JobManager: #Job Manager
                 
                 # 等待停止完成
                 time.sleep(1.0)
-            
-            # 重新创建 dispatcher
-            from sage_jobmanager.execution_graph import ExecutionGraph
-            new_graph = ExecutionGraph(job_info.environment)
-            new_dispatcher = Dispatcher(new_graph, job_info.environment)
-            
-            # 更新 job_info
-            job_info.graph = new_graph
-            job_info.dispatcher = new_dispatcher
-            job_info.update_status("restarting")
+        
+            job_info.dispatcher.start()
             job_info.restart_count += 1
             
             # 重新提交作业
-            new_dispatcher.submit()
             job_info.update_status("running")
             
             self.logger.info(f"Job {env_uuid} restarted successfully (restart #{job_info.restart_count})")

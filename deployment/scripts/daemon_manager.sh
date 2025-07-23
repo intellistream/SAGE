@@ -44,7 +44,10 @@ except Exception as e:
             return 0
         else
             log_warning "JobManager Daemon is running but not healthy"
-            log_detail "Health check result: $health_check"
+            # 显示健康检查详细结果
+            if [ "$VERBOSE" = "true" ] || [ "$DEBUG" = "true" ]; then
+                log_info "Health check result: $health_check"
+            fi
             return 1
         fi
     else
@@ -171,14 +174,12 @@ stop_daemon() {
     else
         log_warning "PID file not found, searching for daemon process..."
         # 尝试通过端口查找并停止进程
-        if command -v lsof >/dev/null 2>&1; then
-            local daemon_processes=$(lsof -ti :$daemon_port 2>/dev/null || true)
-            if [ -n "$daemon_processes" ]; then
-                log_info "Found processes using port $daemon_port: $daemon_processes"
-                echo "$daemon_processes" | xargs kill 2>/dev/null || true
-            fi
+        local daemon_processes=$(find_port_processes $daemon_port)
+        if [ -n "$daemon_processes" ]; then
+            log_info "Found processes using port $daemon_port: $daemon_processes"
+            echo "$daemon_processes" | xargs kill 2>/dev/null || true
         else
-            log_warning "lsof not available, cannot search by port"
+            log_warning "No processes found using port $daemon_port"
         fi
     fi
     
