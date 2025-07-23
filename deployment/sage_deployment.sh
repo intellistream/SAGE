@@ -74,8 +74,31 @@ start_system() {
         log_success "JobManager Daemon is already running"
     fi
     
-    # 3. 设置命令行工具
-    setup_cli_tools
+    # 3. 自动设置和验证命令行工具
+    log_info "Setting up and verifying command line tools..."
+    
+    # 安装CLI工具
+    if ! setup_cli_tools; then
+        log_warning "CLI tools setup failed, but system will continue"
+    fi
+    
+    # 检查CLI工具状态
+    if check_cli_tools; then
+        log_success "CLI tools are properly installed and available"
+        
+        # 验证CLI工具功能（连接到daemon）
+        log_info "Verifying CLI tools connectivity..."
+        if command -v sage-jm >/dev/null 2>&1; then
+            if timeout 10 sage-jm health >/dev/null 2>&1; then
+                log_success "CLI tools can successfully connect to JobManager Daemon"
+            else
+                log_warning "CLI tools installed but cannot connect to daemon"
+            fi
+        fi
+    else
+        log_warning "CLI tools check failed, manual setup may be required"
+        log_info "You can manually install CLI tools later with: $0 install-cli"
+    fi
     
     # 4. 显示状态和使用指南
     show_system_status

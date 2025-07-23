@@ -61,6 +61,18 @@ class SageQueue:
     """
     与Python标准queue.Queue兼容的跨进程队列实现
     基于高性能mmap环形缓冲区，支持跨Actor通信
+    
+    多进程使用方法:
+        # 创建队列
+        queue = SageQueue("shared_queue_name", maxsize=64*1024)
+        
+        # 在不同进程中通过相同名称连接到同一队列
+        def worker(queue_name):
+            queue = SageQueue(queue_name)
+            queue.put("data")
+            queue.close()
+        
+        process = multiprocessing.Process(target=worker, args=["shared_queue_name"])
     """
     
     def __init__(self, name: str, maxsize: int = 0, auto_cleanup: bool = False):
@@ -313,7 +325,7 @@ class SageQueue:
             return self._lib.ring_buffer_is_full(self._rb)
     
     def get_reference(self) -> 'SageQueueRef':
-        """获取可序列化的队列引用，用于跨进程传递"""
+        """获取队列引用（用于内部统计和监控）"""
         ref_ptr = self._lib.ring_buffer_get_ref(self._rb)
         if not ref_ptr:
             raise RuntimeError("Failed to get queue reference")
@@ -362,7 +374,9 @@ class SageQueue:
         self.close()
     
     def __getstate__(self):
-        """支持pickle序列化"""
+        """
+        支持pickle序列化 - 只保存重建队列连接所需的基本信息
+        """
         return {
             'name': self.name,
             'maxsize': self.maxsize,
@@ -370,7 +384,9 @@ class SageQueue:
         }
     
     def __setstate__(self, state):
-        """支持pickle反序列化"""
+        """
+        支持pickle反序列化 - 在新进程中重新连接到共享内存队列
+        """
         self.__init__(state['name'], state['maxsize'], state['auto_cleanup'])
     
     def __del__(self):
@@ -383,7 +399,7 @@ class SageQueue:
 
 class SageQueueRef:
     """
-    可序列化的队列引用，用于跨进程/Actor传递
+    队列引用对象，用于内部统计和监控
     """
     
     def __init__(self, ref_struct: RingBufferRef, lib=None):
@@ -395,7 +411,7 @@ class SageQueueRef:
         self._lib = lib
     
     def get_queue(self) -> SageQueue:
-        """从引用创建队列实例"""
+        """从引用创建队列实例（内部使用）"""
         # 直接使用名称打开现有队列
         return SageQueue(self.name, self.size, self.auto_cleanup)
     

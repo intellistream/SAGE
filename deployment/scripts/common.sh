@@ -83,13 +83,19 @@ find_port_processes() {
         fi
     fi
     
-    # 最后备用方案：使用 lsof
+    # 第三备用方案：使用 lsof
     if [ -z "$pids" ] && command -v lsof >/dev/null 2>&1; then
         if command -v sudo >/dev/null 2>&1; then
             pids=$(sudo lsof -ti :$port 2>/dev/null | head -1)
         else
             pids=$(lsof -ti :$port 2>/dev/null | head -1)
         fi
+    fi
+    
+    # 最后备用方案：通过进程命令行搜索
+    if [ -z "$pids" ]; then
+        # 搜索包含端口的进程命令行
+        pids=$(ps aux | grep "[p]ort.*$port\\|--port.*$port\\|:$port" | awk '{print $2}' | head -1)
     fi
     
     echo "$pids"
@@ -246,4 +252,93 @@ is_process_running() {
     else
         return 1
     fi
+}
+
+# 检测并获取合适的Python环境命令
+get_python_env_command() {
+    local preferred_env="${1:-sage}"
+    local python_cmd="python3"
+    
+    # 检查是否在虚拟环境中
+    if [ -n "$VIRTUAL_ENV" ]; then
+        # log_info "Using active virtual environment: $VIRTUAL_ENV"
+        echo "$python_cmd"
+        return 0
+    fi
+    
+    # 检查conda环境
+    if command -v conda >/dev/null 2>&1; then
+        # 检查是否已经在目标环境中
+        if [ "$CONDA_DEFAULT_ENV" = "$preferred_env" ]; then
+            # log_info "Already in conda environment: $preferred_env"
+            echo "$python_cmd"
+            return 0
+        fi
+        
+        # 检查目标环境是否存在
+        if conda info --envs 2>/dev/null | grep -q "^${preferred_env} "; then
+            # log_info "Using conda environment: $preferred_env"
+            echo "conda run -n $preferred_env python3"
+            return 0
+        elif conda info --envs 2>/dev/null | grep -q " ${preferred_env} "; then
+            # log_info "Using conda environment: $preferred_env"
+            echo "conda run -n $preferred_env python3"
+            return 0
+        else
+            log_warning "Conda environment '$preferred_env' not found, available environments:"
+            conda info --envs 2>/dev/null | grep -v "^#" | head -5
+        fi
+    fi
+    
+    # 检查mamba环境
+    if command -v mamba >/dev/null 2>&1; then
+        if mamba info --envs 2>/dev/null | grep -q "^${preferred_env} \\|  ${preferred_env} "; then
+            # log_info "Using mamba environment: $preferred_env"
+            echo "mamba run -n $preferred_env python3"
+            return 0
+        fi
+    fi
+    
+    # 检查micromamba环境
+    if command -v micromamba >/dev/null 2>&1; then
+        if micromamba env list 2>/dev/null | grep -q "^${preferred_env} \\|  ${preferred_env} "; then
+            # log_info "Using micromamba environment: $preferred_env"
+            echo "micromamba run -n $preferred_env python3"
+            return 0
+        fi
+    fi
+    
+    # 回退到系统Python
+    # log_info "Using system Python (no preferred environment found)"
+    echo "$python_cmd"
+    return 1  # 返回1表示没有找到首选环境，但仍提供备用选项
+}
+
+# 在指定环境中执行Python命令
+run_python_in_env() {
+    local env_name="${1:-sage}"
+    shift
+    local python_args="$@"
+    
+    local python_cmd=$(get_python_env_command "$env_name")
+    eval "$python_cmd $python_args"
+}
+
+# 获取环境信息用于显示
+get_python_env_info() {
+    local env_info=""
+    
+    if [ -n "$VIRTUAL_ENV" ]; then
+        env_info="Virtual Env: $(basename "$VIRTUAL_ENV")"
+    elif [ -n "$CONDA_DEFAULT_ENV" ]; then
+        env_info="Conda Env: $CONDA_DEFAULT_ENV"
+    elif command -v conda >/dev/null 2>&1 && conda info --envs 2>/dev/null | grep -q "sage"; then
+        env_info="Conda Available (sage env detected)"
+    elif command -v mamba >/dev/null 2>&1 && mamba info --envs 2>/dev/null | grep -q "sage"; then
+        env_info="Mamba Available (sage env detected)"
+    else
+        env_info="System Python"
+    fi
+    
+    echo "$env_info"
 }
