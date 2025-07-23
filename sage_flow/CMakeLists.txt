@@ -40,6 +40,8 @@ set(SAGE_FLOW_SOURCES
   src/operator/operator.cpp
   src/function/text_processing.cpp
   src/index/index_operators.cpp
+  src/index/hnsw.cpp
+  src/index/ivf.cpp
 )
 
 # 目标库定义

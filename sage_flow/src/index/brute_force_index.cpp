@@ -29,6 +29,16 @@ auto BruteForceIndex::AddVector(uint64_t id, const std::vector<float>& vector) -
   return true;
 }
 
+auto BruteForceIndex::RemoveVector(uint64_t id) -> bool {
+  auto it = vectors_.find(id);
+  if (it == vectors_.end()) {
+    return false;  // Vector doesn't exist
+  }
+  
+  vectors_.erase(it);
+  return true;
+}
+
 auto BruteForceIndex::Search(const std::vector<float>& query_vector, size_t k) const 
     -> std::vector<SearchResult> {
   if (query_vector.size() != config_.dimension_) {

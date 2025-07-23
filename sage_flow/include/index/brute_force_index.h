@@ -41,6 +41,13 @@ class BruteForceIndex : public Index {
   auto AddVector(uint64_t id, const std::vector<float>& vector) -> bool override;
 
   /**
+   * @brief Remove vector from the index
+   * @param id Unique identifier for the vector to remove
+   * @return true if removal successful
+   */
+  auto RemoveVector(uint64_t id) -> bool override;
+
+  /**
    * @brief Search for k nearest neighbors using brute force
    * @param query_vector Query vector
    * @param k Number of nearest neighbors to return
