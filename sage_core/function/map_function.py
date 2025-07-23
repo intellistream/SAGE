@@ -17,10 +17,6 @@ class MapFunction(BaseFunction):
     用于数据转换、增强、格式化等操作
     """
 
-    def __init__(self, ctx: 'RuntimeContext', **kwargs):
-        self.ctx = ctx
-        super().__init__(self.ctx)
-
     @abstractmethod
     def execute(self, data: Any) -> Any:
         """

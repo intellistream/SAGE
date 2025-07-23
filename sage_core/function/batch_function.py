@@ -16,8 +16,7 @@ class BatchFunction(BaseFunction):
     这提供了更友好的用户接口，用户不需要手动管理停止逻辑。
     """
 
-    def __init__(self, ctx: 'RuntimeContext' = None, **kwargs):
-        super().__init__(ctx, **kwargs)
+    def __init__(self, *args, **kwargs):
         self._total_count: Optional[int] = None
         self._current_count: int = 0
         self._data_source: Optional[Iterator] = None

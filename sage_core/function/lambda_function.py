@@ -13,7 +13,6 @@ class LambdaMapFunction(MapFunction):
     
     def __init__(self, lambda_func: Callable[[Any], Any], **kwargs):
         self.lambda_func = lambda_func
-        super().__init__(**kwargs)
     
     def execute(self, data: Any) -> Any:
         return self.lambda_func(data)
@@ -23,7 +22,6 @@ class LambdaFilterFunction(FilterFunction):
     
     def __init__(self, lambda_func: Callable[[Any], bool], **kwargs):
         self.lambda_func = lambda_func
-        super().__init__(**kwargs)
     
     def execute(self, data: Any) -> bool:
         return self.lambda_func(data)
@@ -33,7 +31,6 @@ class LambdaFlatMapFunction(FlatMapFunction):
     
     def __init__(self, lambda_func: Callable[[Any], List[Any]], **kwargs):
         self.lambda_func = lambda_func
-        super().__init__(**kwargs)
     
     def execute(self, data: Any) -> List[Any]:
         result = self.lambda_func(data)
@@ -46,7 +43,6 @@ class LambdaSinkFunction(SinkFunction):
     
     def __init__(self, lambda_func: Callable[[Any], None], **kwargs):
         self.lambda_func = lambda_func
-        super().__init__(**kwargs)
     
     def execute(self, data: Any) -> None:
         self.lambda_func(data)
@@ -56,7 +52,6 @@ class LambdaSourceFunction(BaseFunction):
     
     def __init__(self, lambda_func: Callable[[], Any], **kwargs):
         self.lambda_func = lambda_func
-        super().__init__(**kwargs)
     
     def execute(self) -> Any:
         return self.lambda_func()
@@ -71,7 +66,6 @@ class LambdaKeyByFunction(KeyByFunction):
     """
     
     def __init__(self, lambda_func, **kwargs):
-        super().__init__(**kwargs)
         self.lambda_func = lambda_func
         self.logger.debug(f"LambdaKeyByFunction initialized with lambda")
 
