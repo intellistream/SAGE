@@ -41,6 +41,7 @@ class CustomFileSource(SourceFunction):
         else:
             raise ValueError(f"Unsupported source.type: {self.source_type}")
         self._iter = None
+        self._iter = None
 
     # ------------------------------------------------------
     def _build_iter(self):
@@ -52,6 +53,7 @@ class CustomFileSource(SourceFunction):
                         "query":      item.get("question", ""),
                         "references": item.get("golden_answers") or []
                     }
+        else:  # hf
         else:  # hf
             from datasets import load_dataset
             ds = load_dataset(self.hf_name, self.hf_config,
@@ -91,6 +93,7 @@ class TimeDenseRetriever(MapFunction):
             self.retriever.ctx = self.ctx
 
         start = time.time()
+        chunks = list(self.retriever.execute(data["query"]))
         chunks = list(self.retriever.execute(data["query"]))
         data["retrieval_time"] = time.time() - start
         data["retrieved_docs"] = [

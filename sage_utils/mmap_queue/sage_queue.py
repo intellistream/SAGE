@@ -75,7 +75,7 @@ class SageQueue:
         process = multiprocessing.Process(target=worker, args=["shared_queue_name"])
     """
     
-    def __init__(self, name: str, maxsize: int = 0, auto_cleanup: bool = False):
+    def __init__(self, name: str, auto_cleanup : bool = False):
         """
         初始化队列
         
@@ -85,7 +85,7 @@ class SageQueue:
             auto_cleanup: 是否自动清理共享内存
         """
         self.name = name
-        self.maxsize = maxsize if maxsize > 0 else 64 * 1024  # 默认64KB
+        self.maxsize =  1024 * 1024  # 默认1MB
         self.auto_cleanup = auto_cleanup
         
         # 加载C库
@@ -96,10 +96,29 @@ class SageQueue:
         
         # 创建或打开环形缓冲区
         self.name_bytes = name.encode('utf-8')
+        
+        # 首先尝试创建新的缓冲区
         self._rb = self._lib.ring_buffer_create(self.name_bytes, self.maxsize)
         
         if not self._rb:
-            raise RuntimeError(f"Failed to create ring buffer: {name}")
+            # 如果创建失败，尝试打开现有的
+            try:
+                self._rb = self._lib.ring_buffer_open(self.name_bytes)
+            except Exception as e:
+                self.logger.error(f"Failed to create or open ring buffer: {name}", exc_info=True)
+                raise
+            # 对于打开的现有缓冲区，需要增加引用计数
+            try:
+                ref_count = self._lib.ring_buffer_inc_ref(self._rb)
+            except Exception as e:
+                self.logger.error(f"Failed to increment reference count for ring buffer: {name}", exc_info=True)
+                raise
+        else:
+            # 对于新创建的缓冲区，也需要增加引用计数（因为构造函数算一个引用）
+            ref_count = self._lib.ring_buffer_inc_ref(self._rb)
+            if ref_count < 0:
+                self.logger.error(f"Failed to increment reference count for ring buffer: {name}", excinfo=True)
+                raise
         
         # 线程安全相关
         self._lock = threading.RLock()
@@ -107,6 +126,9 @@ class SageQueue:
         # 消息计数（用于qsize的近似值）
         self._message_count = 0
         self._message_lock = threading.Lock()
+        
+        # 标记是否已关闭
+        self._closed = False
     
     def _load_library(self) -> ctypes.CDLL:
         """加载C动态库"""
@@ -201,6 +223,9 @@ class SageQueue:
         Raises:
             Full: 当队列满且不阻塞时
         """
+        if self._closed:
+            raise RuntimeError("Queue is closed")
+            
         # 序列化数据
         try:
             data = pickle.dumps(item, protocol=pickle.HIGHEST_PROTOCOL)
@@ -255,6 +280,9 @@ class SageQueue:
         Raises:
             Empty: 当队列空且不阻塞时
         """
+        if self._closed:
+            raise RuntimeError("Queue is closed")
+            
         start_time = time.time()
         
         while True:
@@ -358,7 +386,19 @@ class SageQueue:
     
     def close(self):
         """关闭队列"""
+        if self._closed:
+            return
+            
+        self._closed = True
+        
         if self._rb:
+            # 减少引用计数
+            try:
+                self._lib.ring_buffer_dec_ref(self._rb)
+            except:
+                pass  # 忽略减少引用计数时的错误
+            
+            # 关闭缓冲区
             self._lib.ring_buffer_close(self._rb)
             self._rb = None
     
