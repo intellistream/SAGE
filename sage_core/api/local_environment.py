@@ -18,24 +18,6 @@ class LocalEnvironment(BaseEnvironment):
     def submit(self):
         # 如果需要阻塞，就在用户程序里自己写个循环阻塞。
         env_uuid = self.jobmanager.submit_job(self)
-<<<<<<< HEAD
-        # if env_uuid:
-        #     self.env_uuid = env_uuid
-        #     self.logger.info(f"Environment submitted with UUID: {self.env_uuid}")
-        #     try:
-        #         # 阻塞主线程，直到 job 结束或被 Ctrl+C 打断
-        #         while True:
-        #             status = self.jobmanager.get_job_status(self.env_uuid)
-        #             if status.get("status") not in ("running", "submitted"):
-        #                 break
-        #             time.sleep(0.5)
-        #     except KeyboardInterrupt:
-        #         self.logger.info("KeyboardInterrupt received, stopping job...")
-        #         self.jobmanager.pause_job(self.env_uuid)
-        # else:
-        #     raise RuntimeError("Failed to submit environment: no UUID returned")
-=======
->>>>>>> origin/v0.1.2-dev
 
     @property
     def jobmanager(self) -> 'JobManager':
