@@ -13,26 +13,26 @@
 
 **架构要求**：整个flow运行时核心必须使用C++17/20实现，Python仅用于与SAGE框架的接口交互层。
 
-## 规范与约束
+## 开发规范
 
-**代码规范要求**：
-- **严格遵循 Google C++ Style Guide**: 类名使用CamelCase，方法名使用camelBack，成员变量使用lower_case_后缀
-- **通过 clang-tidy 检查**: 必须满足现有 .clang-tidy 配置要求，包括google-*、modernize-*、performance-*等规则组
-- **代码质量标准**: 所有C++代码必须通过静态分析，零警告错误目标
-- **现代C++特性**: 充分利用C++17/20特性，如constexpr、auto、智能指针等
-- **文件组织规范**: 每个代码文件只允许存放一个class或struct，确保代码模块化和可维护性
+### 核心原则
+- **一个文件一个类**: 每个源代码文件只包含一个主要类定义
+- **Google C++ Style Guide**: 严格遵循命名规范和代码风格  
+- **现代C++**: 充分利用C++17/20特性，如constexpr、auto、智能指针等
+- **静态分析**: 通过clang-tidy检查，零警告目标
 
-**设计约束**：
-- 必须与 `sage_core.api.env.LocalEnvironment` 和 `RemoteEnvironment` 兼容
+### 设计约束
+- 与 `sage_core.api.env.LocalEnvironment` 和 `RemoteEnvironment` 兼容
 - 通过 DataStream API 提供统一的流処理接口
 - 支持 `sage_runtime` 本地和分布式执行
 - 与 `sage_memory` 协同提供向量检索能力
 - **功能等价保证**: 新框架必须提供与flow_old完全等价的数据处理能力
 
+详细规范请参考：[coding-standards.md](coding-standards.md)
+
 ## 文档结构
 
-本开发计划已拆分为以下文件：
-
+### 开发阶段文档
 1. **[api-requirements.md](api-requirements.md)** - Python API核心要求与SAGE生态系统兼容性
 2. **[phase1-core-types.md](phase1-core-types.md)** - 阶段1：核心数据类型与消息系统
 3. **[phase2-stream-engine.md](phase2-stream-engine.md)** - 阶段2：流处理核心引擎
@@ -40,4 +40,21 @@
 5. **[phase4-optimization.md](phase4-optimization.md)** - 阶段4：流处理优化与集成
 6. **[phase6-integration.md](phase6-integration.md)** - 阶段6：SAGE框架深度集成与协作
 
-每个文件包含相应阶段的详细实现要求、代码示例和技术规范。
+### 实施记录文档
+- **[coding-standards.md](coding-standards.md)** - 详细的代码组织规范与约束
+- **[refactoring-data-sources.md](refactoring-data-sources.md)** - 数据源架构重构任务完整记录
+
+## 当前状态
+
+### ✅ 已完成项目
+- **数据源架构重构**: 成功实现"一个文件一个类"组织原则，借鉴SAGE设计模式
+- **MultiModalMessage系统**: 多模态消息处理框架
+- **基础索引系统**: BruteForceIndex, HNSW, IVF索引实现
+- **内存管理**: MemoryPool接口和SimpleMemoryPool实现
+- **环境系统**: SageFlowEnvironment生命周期管理
+
+### 🔄 进行中项目
+根据具体开发进度更新...
+
+### 📋 待办事项
+根据phase文档中的具体任务规划...
