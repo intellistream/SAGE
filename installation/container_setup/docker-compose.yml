@@ -1,6 +1,7 @@
 services:
   sage:
     image: intellistream/sage:devel-ubuntu22.04
+    shm_size: '32g'
     environment:
       - CUDACXX=/usr/local/cuda/bin/nvcc
       - NVIDIA_VISIBLE_DEVICES=all  # Expose all GPUs (optional)
