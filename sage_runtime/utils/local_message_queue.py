@@ -9,15 +9,13 @@ from sage_runtime.runtime_context import RuntimeContext
 
 class LocalMessageQueue:
 
-    def __init__(self, ctx:RuntimeContext):
-        self.queue = queue.Queue(maxsize=30000)
-        self.name = ctx.name
+    def __init__(self, max_size: int = 30000):
+        self.queue = queue.Queue(max_size)
         self.total_task = 0
-        self.maxsize = 30000  # 总内存限制（字节）
+        self.maxsize = max_size  # 总内存限制（字节）
         self.current_buffer_usage = 0 # 当前使用的内存（字节）
         self.memory_tracker = {}  # 跟踪每个项目的内存大小 {id(item): size}
         # self.task_per_minute = 0
-        self.logger = ctx.logger
         self.timestamps = deque()
         self.lock = threading.Lock()
         self.buffer_condition = threading.Condition(self.lock)  # 用于内存空间通知
@@ -76,7 +74,6 @@ class LocalMessageQueue:
         """
         # 估算项目大小
         item_size = self._estimate_size(item)
-        self.logger.debug(f"Putting item of size {item_size} bytes into queue '{self.name}', current usage: {self.current_buffer_usage} bytes")
         if block:
             end_time = None if timeout is None else time.time() + timeout
 
