@@ -24,6 +24,7 @@ auto DocumentParserFunction::map(std::unique_ptr<MultiModalMessage> input)
   
   // For now, pass through content as-is
   // TODO(xinyan): Implement actual document parsing logic
+  // Issue URL: https://github.com/intellistream/SAGE/issues/356
   return input;
 }
 

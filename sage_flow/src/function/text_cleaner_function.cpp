@@ -260,6 +260,7 @@ auto TextCleanerFunction::compilePatterns() -> void {
     } catch (const std::regex_error& e) {
       // Log error but continue with other patterns
       // TODO(xinyan): Add proper logging integration
+      // Issue URL: https://github.com/intellistream/SAGE/issues/357
       static_cast<void>(e);  // Suppress unused variable warning
     }
   }

@@ -31,6 +31,7 @@ class BaseOperator(ABC):
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
 
     # TODO: 去掉stateful function的概念，用某些策略对于function内部的可序列化字段做静态保存和checkpoint
+    # Issue URL: https://github.com/intellistream/SAGE/issues/346
     def save_state(self):
         from sage_core.function.base_function import StatefulFunction
         if isinstance(self.function, StatefulFunction):

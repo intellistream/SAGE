@@ -254,6 +254,7 @@ auto TextCleanerFunction::compilePatterns() -> void {
     } catch (const std::regex_error& e) {
       // Log error but continue with other patterns
       // TODO(xinyan): Add proper logging integration
+      // Issue URL: https://github.com/intellistream/SAGE/issues/359
       static_cast<void>(e);  // Suppress unused variable warning
     }
   }
@@ -282,6 +283,7 @@ auto DocumentParserFunction::map(std::unique_ptr<MultiModalMessage> input)
   
   // For now, pass through content as-is
   // TODO(xinyan): Implement actual document parsing logic
+  // Issue URL: https://github.com/intellistream/SAGE/issues/358
   return input;
 }
 

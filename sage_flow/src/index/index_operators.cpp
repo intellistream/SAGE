@@ -26,6 +26,7 @@ auto CreateIndex(IndexType type,
     case IndexType::kKnn:
     default:
       // TODO(developer): Implement other indexes
+      // Issue URL: https://github.com/intellistream/SAGE/issues/360
       // For now, use brute force as fallback for all unimplemented types
       return std::make_unique<BruteForceIndex>(std::move(memory_pool));
   }

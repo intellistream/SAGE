@@ -81,6 +81,7 @@ class SageFlowEnvironment {
   /**
    * @brief Submit the job for execution (placeholder)
    * TODO(developer): Implement job submission when runtime is ready
+   Issue URL: https://github.com/intellistream/SAGE/issues/349
    */
   void submit();
 
@@ -92,12 +93,14 @@ class SageFlowEnvironment {
   /**
    * @brief Run in streaming mode (placeholder)
    * TODO(developer): Implement streaming execution when runtime is ready
+   Issue URL: https://github.com/intellistream/SAGE/issues/348
    */
   void run_streaming();
 
   /**
    * @brief Run in batch mode (placeholder)
    * TODO(developer): Implement batch execution when runtime is ready
+   Issue URL: https://github.com/intellistream/SAGE/issues/347
    */
   void run_batch();
 
