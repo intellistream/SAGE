@@ -5,6 +5,7 @@ from sage_runtime.task.base_task import BaseTask
 from sage_utils.actor_wrapper import ActorWrapper
 from sage_runtime.router.connection import Connection
 from sage_utils.custom_logger import CustomLogger
+from sage_runtime.service.base_service import BaseService
 import ray
 from ray.actor import ActorHandle
 
@@ -31,6 +32,7 @@ class Dispatcher():
         )
         # self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
         self.tasks: Dict[str, Union[BaseTask, ActorWrapper]] = {}
+        self.services: Dict[str, BaseService] = {}  # 存储服务实例
         self.is_running: bool = False
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
         if env.platform is "remote":
@@ -61,14 +63,27 @@ class Dispatcher():
         )
 
     def start(self):
-        # 第三步：提交所有节点开始运行
+        # 第三步：启动所有服务任务
+        for service_name, service_task in self.services.items():
+            try:
+                if hasattr(service_task, 'start_running'):
+                    service_task.start_running()
+                elif hasattr(service_task, '_actor') and hasattr(service_task, 'start_running'):
+                    # ActorWrapper包装的服务
+                    import ray
+                    ray.get(service_task.start_running.remote())
+                self.logger.debug(f"Started service task: {service_name}")
+            except Exception as e:
+                self.logger.error(f"Failed to start service task {service_name}: {e}", exc_info=True)
+        
+        # 第四步：提交所有节点开始运行
         for node_name, task in self.tasks.items():
             try:
                 task.start_running()
                 self.logger.debug(f"Started node: {node_name}")
             except Exception as e:
                 self.logger.error(f"Failed to start node {node_name}: {e}", exc_info=True)
-        self.logger.info(f"Job submission completed: {len(self.tasks)} nodes")
+        self.logger.info(f"Job submission completed: {len(self.tasks)} nodes, {len(self.services)} service tasks")
         self.is_running = True
 
     # Dispatcher will submit the job to LocalEngine or Ray Server.    
@@ -76,10 +91,25 @@ class Dispatcher():
         """编译图结构，创建节点并建立连接"""
         self.logger.info(f"Compiling Job for graph: {self.name}")
         
+        # 第零步：创建所有服务任务实例  
+        for service_name, service_task_factory in self.env.service_task_factories.items():
+            try:
+                # 使用ServiceTaskFactory创建服务任务
+                service_task = service_task_factory.create_service_task()
+                self.services[service_name] = service_task
+                service_type = "Ray Actor (wrapped)" if service_task_factory.remote else "Local"
+                self.logger.debug(f"Added {service_type} service task '{service_name}' of type '{service_task.__class__.__name__}'")
+            except Exception as e:
+                self.logger.error(f"Failed to create service task {service_name}: {e}", exc_info=True)
+                # 可以选择继续或停止，这里选择继续但记录错误
+        
         # 第一步：创建所有节点实例
         for node_name, graph_node in self.graph.nodes.items():
             # task = graph_node.create_dag_node()
             task = graph_node.transformation.task_factory.create_task(graph_node.name, graph_node.ctx)
+
+            # 设置services到runtime context
+            graph_node.ctx.set_dispatcher_services(self.services)
 
             self.tasks[node_name] = task
 
@@ -124,7 +154,7 @@ class Dispatcher():
                     self.logger.error(f"Error setting up connection {node_name} -> {target_name}: {e}", exc_info=True)
 
     def stop(self):
-        """停止所有任务"""
+        """停止所有任务和服务"""
         if not self.is_running:
             self.logger.warning("Dispatcher is not running")
             return
@@ -138,6 +168,18 @@ class Dispatcher():
                 self.logger.debug(f"Sent stop signal to node: {node_name}")
             except Exception as e:
                 self.logger.error(f"Error stopping node {node_name}: {e}")
+        
+        # 停止所有服务任务
+        for service_name, service_task in self.services.items():
+            try:
+                if hasattr(service_task, 'stop'):
+                    service_task.stop()
+                elif hasattr(service_task, '_actor') and hasattr(service_task._actor, 'stop'):
+                    # ActorWrapper包装的服务
+                    service_task._actor.stop()
+                self.logger.debug(f"Stopped service task: {service_name}")
+            except Exception as e:
+                self.logger.error(f"Error stopping service task {service_name}: {e}")
         
         # 等待所有任务停止（最多等待10秒）
         self._wait_for_tasks_stop(timeout=10.0)
@@ -170,23 +212,36 @@ class Dispatcher():
         self.logger.info(f"Cleaning up dispatcher '{self.name}'")
         
         try:
-            # 停止所有任务
+            # 停止所有任务和服务
             if self.is_running:
                 self.stop()
             
             if self.remote:
                 # 清理 Ray Actors
                 self._cleanup_ray_actors()
+                # 清理 Ray Services
+                self._cleanup_ray_services()
             else:
-                # 清理任务引用
+                # 清理本地任务
                 for node_name, task in self.tasks.items():
                     try:
                         task.cleanup()
                         self.logger.debug(f"Cleaned up task: {node_name}")
                     except Exception as e:
                         self.logger.error(f"Error cleaning up task {node_name}: {e}")
-            # 清空任务字典
+                
+                # 清理本地服务任务
+                for service_name, service_task in self.services.items():
+                    try:
+                        if hasattr(service_task, 'cleanup'):
+                            service_task.cleanup()
+                        self.logger.debug(f"Cleaned up service task: {service_name}")
+                    except Exception as e:
+                        self.logger.error(f"Error cleaning up service task {service_name}: {e}")
+            
+            # 清空任务和服务字典
             self.tasks.clear()
+            self.services.clear()
             
             self.logger.info("Dispatcher cleanup completed")
             
@@ -238,6 +293,51 @@ class Dispatcher():
         else:
             self.logger.warning(f"Cleanup completed: {successful_cleanups}/{len(self.tasks)} cleanups, {successful_kills}/{len(self.tasks)} kills successful")
 
+    def _cleanup_ray_services(self):
+        """清理所有Ray服务任务"""
+        if not self.services:
+            return
+
+        self.logger.info(f"Cleaning up {len(self.services)} service tasks...")
+
+        # 清理服务任务 - 现在统一使用相同的接口
+        cleanup_results = []
+        for service_name, service_task in self.services.items():
+            try:
+                if hasattr(service_task, 'cleanup_and_kill'):
+                    # 这是一个ActorWrapper包装的Ray服务任务
+                    cleanup_success, kill_success = service_task.cleanup_and_kill(
+                        cleanup_timeout=5.0,
+                        no_restart=True
+                    )
+                    cleanup_results.append((service_name, kill_success))
+                    
+                    if kill_success:
+                        self.logger.debug(f"Successfully killed Ray service actor {service_name}")
+                    else:
+                        self.logger.warning(f"Failed to kill Ray service actor {service_name}")
+                        
+                elif hasattr(service_task, 'cleanup'):
+                    # 这是一个本地服务任务
+                    service_task.cleanup()
+                    cleanup_results.append((service_name, True))
+                    self.logger.debug(f"Successfully cleaned up local service task {service_name}")
+                else:
+                    self.logger.warning(f"Service task {service_name} does not support cleanup")
+                    cleanup_results.append((service_name, False))
+                        
+            except Exception as e:
+                self.logger.warning(f"Error during cleanup for service task {service_name}: {e}")
+                cleanup_results.append((service_name, False))
+
+        # 报告清理结果
+        successful_cleanups = sum(1 for _, success in cleanup_results if success)
+        
+        if successful_cleanups == len(self.services):
+            self.logger.info(f"Successfully cleaned up all {len(self.services)} service tasks")
+        else:
+            self.logger.warning(f"Service task cleanup completed: {successful_cleanups}/{len(self.services)} successful")
+
     def _wait_for_cleanup_completion(self, cleanup_futures: List[Tuple[Any, Any]], timeout: float = 5.0):
         """
         等待清理操作完成 (已弃用)
@@ -268,6 +368,32 @@ class Dispatcher():
         
         return status
 
+    def get_service_status(self) -> Dict[str, Any]:
+        """获取所有服务任务的状态"""
+        status = {}
+        
+        for service_name, service_task in self.services.items():
+            try:
+                if hasattr(service_task, 'get_statistics'):
+                    service_status = service_task.get_statistics()
+                elif hasattr(service_task, '_actor') and hasattr(service_task._actor, 'get_statistics'):
+                    # ActorWrapper包装的服务
+                    service_status = service_task._actor.get_statistics()
+                else:
+                    service_status = {
+                        "service_name": service_name,
+                        "type": service_task.__class__.__name__,
+                        "status": "unknown"
+                    }
+                status[service_name] = service_status
+            except Exception as e:
+                status[service_name] = {
+                    "service_name": service_name,
+                    "error": str(e)
+                }
+        
+        return status
+
 
     def get_statistics(self) -> Dict[str, Any]:
         """获取dispatcher统计信息"""
@@ -275,5 +401,7 @@ class Dispatcher():
             "name": self.name,
             "is_running": self.is_running,
             "task_count": len(self.tasks),
-            "task_status": self.get_task_status()
+            "service_count": len(self.services),
+            "task_status": self.get_task_status(),
+            "service_status": self.get_service_status()
         }

@@ -5,8 +5,10 @@ from typing import Any, TYPE_CHECKING, Union, Optional
 from sage_runtime.runtime_context import RuntimeContext
 from sage_runtime.router.packet import Packet
 from ray.util.queue import Empty
+
+from sage_utils.mmap_queue.sage_queue import SageQueue
+from sage_runtime.router.router import BaseRouter
 if TYPE_CHECKING:
-    from sage_runtime.router.base_router import BaseRouter
     from sage_runtime.router.connection import Connection
     from sage_core.operator.base_operator import BaseOperator
     from sage_jobmanager.factory.operator_factory import OperatorFactory
@@ -14,9 +16,8 @@ if TYPE_CHECKING:
 class BaseTask(ABC):
     def __init__(self,runtime_context: 'RuntimeContext',operator_factory: 'OperatorFactory') -> None:
         self.ctx = runtime_context
-        # === 继承类设置 ===
-        self.router:BaseRouter
-        self.local_input_buffer: Any
+        self.input_buffer = SageQueue(self.ctx.name)
+        self.input_buffer.logger = self.ctx.logger
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
         self.is_running = False
@@ -25,9 +26,11 @@ class BaseTask(ABC):
         self._processed_count = 0
         self._error_count = 0
         self._last_activity_time = time.time()
+        self.router = BaseRouter(runtime_context)
         try:
             self.operator:BaseOperator = operator_factory.create_operator(self.ctx)
             self.operator.task = self
+            self.operator.inject_router(self.router)
         except Exception as e:
             self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
             raise
@@ -85,7 +88,7 @@ class BaseTask(ABC):
         获取输入缓冲区
         :return: 输入缓冲区对象
         """
-        return self.local_input_buffer
+        return self.input_buffer
 
     def _worker_loop(self) -> None:
         """
@@ -105,7 +108,7 @@ class BaseTask(ABC):
                     # For non-spout nodes, fetch input and process
                     # input_result = self.fetch_input()
                     try:
-                        data_packet = self.local_input_buffer.get(timeout=0.5)
+                        data_packet = self.input_buffer.get(timeout=0.5)
                     except Exception as e:
                         if self.delay > 0.002:
                             time.sleep(self.delay)
@@ -160,10 +163,10 @@ class BaseTask(ABC):
             #     self.router.cleanup()
             
             # 清理输入缓冲区
-            if hasattr(self.local_input_buffer, 'cleanup'):
-                self.local_input_buffer.cleanup()
-            elif hasattr(self.local_input_buffer, 'close'):
-                self.local_input_buffer.close()
+            if hasattr(self.input_buffer, 'cleanup'):
+                self.input_buffer.cleanup()
+            elif hasattr(self.input_buffer, 'close'):
+                self.input_buffer.close()
             
             self.logger.debug(f"Task {self.name} cleanup completed")
             
