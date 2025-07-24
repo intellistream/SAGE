@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from sage_core.transformation.base_transformation import BaseTransformation
     from sage_core.environment.base_environment import BaseEnvironment 
     from sage_jobmanager.job_manager import JobManager
-    from sage_core.service.service_caller import ServiceManager
+    from sage_runtime.service.service_caller import ServiceManager
 # task, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:
@@ -53,53 +53,9 @@ class RuntimeContext:
     def service_manager(self) -> 'ServiceManager':
         """懒加载服务管理器"""
         if self._service_manager is None:
-            from sage_core.service.service_caller import ServiceManager
+            from sage_runtime.service.service_caller import ServiceManager
             self._service_manager = ServiceManager(self)
         return self._service_manager
-    
-    @property
-    def call_service(self) -> Dict[str, Any]:
-        """
-        同步服务调用接口
-        
-        Usage:
-            result = self.ctx.call_service["cache_service"].get("key1")
-            data = self.ctx.call_service["db_service"].query("SELECT * FROM users")
-        """
-        class ServiceProxy:
-            def __init__(self, service_manager):
-                self._service_manager = service_manager
-                
-            def __getitem__(self, service_name: str):
-                return self._service_manager.get_sync_proxy(service_name)
-        
-        if not hasattr(self, '_call_service_proxy'):
-            self._call_service_proxy = ServiceProxy(self.service_manager)
-        return self._call_service_proxy
-    
-    @property 
-    def call_service_async(self) -> Dict[str, Any]:
-        """
-        异步服务调用接口
-        
-        Usage:
-            future = self.ctx.call_service_async["cache_service"].get("key1")
-            result = future.result()  # 阻塞等待结果
-            
-            # 或者非阻塞检查
-            if future.done():
-                result = future.result()
-        """
-        class AsyncServiceProxy:
-            def __init__(self, service_manager):
-                self._service_manager = service_manager
-                
-            def __getitem__(self, service_name: str):
-                return self._service_manager.get_async_proxy(service_name)
-        
-        if not hasattr(self, '_call_service_async_proxy'):
-            self._call_service_async_proxy = AsyncServiceProxy(self.service_manager)  
-        return self._call_service_async_proxy
 
 
     def retrieve(self,  query: Optional[str] = None, collection_config: Optional[Dict] = None) -> List[str]:

@@ -6,7 +6,7 @@ import pytest
 import time
 import threading
 from unittest.mock import Mock, patch
-from sage_core.service.service_caller import (
+from sage_runtime.service.service_caller import (
     ServiceManager, ServiceRequest, ServiceResponse, 
     CallMode, ServiceCallProxy, AsyncServiceCallProxy
 )
