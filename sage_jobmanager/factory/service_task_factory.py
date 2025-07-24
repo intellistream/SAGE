@@ -22,7 +22,6 @@ class ServiceTaskFactory:
         self.service_factory = service_factory
         self.service_name = service_factory.service_name
         self.remote = remote
-        self.logger = CustomLogger(name="ServiceTaskFactory")
         
     def create_service_task(self, ctx: 'RuntimeContext' = None) -> Union['BaseService', 'ActorWrapper']:
         """
@@ -48,8 +47,6 @@ class ServiceTaskFactory:
             from sage_utils.actor_wrapper import ActorWrapper
             service_task = ActorWrapper(ray_service_task)
             
-            self.logger.debug(f"Created Ray service task for {self.service_name}")
-            
         else:
             # 创建本地服务任务
             from sage_runtime.service.local_service_task import LocalServiceTask
@@ -58,8 +55,7 @@ class ServiceTaskFactory:
                 service_factory=self.service_factory,
                 ctx=ctx
             )
-            
-            self.logger.debug(f"Created local service task for {self.service_name}")
+        
         
         return service_task
     
