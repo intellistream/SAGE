@@ -18,7 +18,7 @@ from sage_core.api.env import LocalEnvironment
 # from sage_memory.api import get_memory, get_manager
 # from data.neuromem_datasets.locomo_dataloader import LocomoDataLoader
 
-from sage_common_funs.io.locomo import LocomoSource, LocomoTerminalSink
+from sage_libs.io.locomo import LocomoSource, LocomoTerminalSink
 
 def pipeline_run():
     env = LocalEnvironment()
@@ -44,10 +44,10 @@ if __name__ == '__main__':
 
 
 
-# from sage_common_funs.io.source import FileSource
-# from sage_common_funs.rag.generator import OpenAIGenerator
-# from sage_common_funs.rag.promptor import QAPromptor
-# from sage_common_funs.rag.retriever import BM25sRetriever
+# from sage_libs.io.source import FileSource
+# from sage_libs.rag.generator import OpenAIGenerator
+# from sage_libs.rag.promptor import QAPromptor
+# from sage_libs.rag.retriever import BM25sRetriever
 
 
 
@@ -59,11 +59,11 @@ if __name__ == '__main__':
 #     query_stream = env.from_source(FileSource, config["source"])
 #     query_and_chunks_stream = query_stream.map(BM25sRetriever, config["retriever"])
 #     prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
-#     response_stream = prompt_stream.map(OpenAIGenerator, config["generator"])
+#     response_stream = prompt_stream.map(OpenAIGenerator, config["generator"]["local"])
 #     response_stream.sink(TerminalSink, config["sink"])
 #     # 提交管道并运行
 #     env.submit()
-#     env.run_streaming()  # 启动管道
+#       # 启动管道
 
 #     # time.sleep(100)  # 等待管道运行
 

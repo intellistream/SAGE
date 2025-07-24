@@ -341,9 +341,8 @@ function main_menu() {
         echo "8.Install CANDY in Docker Instance (Optional)"
         echo "9. Install Kafka (Optional for streaming features)"
         echo "0.Exit"
-        pause
-         echo "===================================================="
-        read -p "Enter your choice [0-6]: " choice
+        echo "===================================================="
+        read -p "Enter your choice [0-9]: " choice
         case $choice in
             1) minimal_setup ;;
             # 2) setup_with_ray ;;

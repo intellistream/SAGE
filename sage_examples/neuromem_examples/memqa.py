@@ -21,6 +21,7 @@ else:
 
 
 # log 配置# TODO: 增加一个log功能，讲locomo数据集的情况打印出来（log请保存到sage_example同级目录data/output/locomo/memprompt下）
+# Issue URL: https://github.com/intellistream/SAGE/issues/303
 # 以下是具体要求，要输出sample_id数量（表明一共有多少个大任务）
 # 每个sample_id下有多少个QA以及其对应5个种类问题的统计数目（即category的统计），多少个session
 # 输出格式请美观一点，终端和log文件都需要有这些内容

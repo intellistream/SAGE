@@ -3,7 +3,8 @@ from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 from sage_core.function.base_function import BaseFunction
 
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.io.packet import Packet
+from sage_runtime.router.packet import Packet
+
 if TYPE_CHECKING:
     from sage_runtime.runtime_context import RuntimeContext
 
@@ -15,7 +16,11 @@ class MapFunction(BaseFunction):
     映射函数接收一个输入，产生一个输出
     用于数据转换、增强、格式化等操作
     """
-    
+
+    def __init__(self, ctx: 'RuntimeContext' = None, **kwargs):
+        self.ctx = ctx
+        super().__init__(self.ctx)
+
     @abstractmethod
     def execute(self, data: Any) -> Any:
         """

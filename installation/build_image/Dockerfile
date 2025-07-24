@@ -50,7 +50,7 @@ RUN curl -o cmake.sh -L https://github.com/Kitware/CMake/releases/download/v3.27
 RUN add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get update && apt-get purge -y python3.10 python3.10-dev python3.10-minimal && \
     apt-get install -y python3.11 python3.11-distutils python3.11-venv python3-pip python3.11-dev libpython3.11-dev && \
-    apt-get autoremove -y && rm -rf /usr/bin/python3.10* /usr/sage_common_funs/python3.10*
+    apt-get autoremove -y && rm -rf /usr/bin/python3.10* /usr/sage_libs/python3.10*
 
 # Set Python 3.11 as the default system Python
 RUN ln -sf /usr/bin/python3.11 /usr/bin/python3 && \

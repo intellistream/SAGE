@@ -1,12 +1,10 @@
-import pytest
 import time
 import threading
 from typing import List, Dict, Any
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.local_environment import LocalEnvironment
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.filter_function import FilterFunction
 from sage_core.function.sink_function import SinkFunction
-from sage_core.function.base_function import BaseFunction
 
 
 class NumberDataSource(SourceFunction):
@@ -71,29 +69,29 @@ class FilterDebugSink(SinkFunction):
         super().__init__(**kwargs)
         self.parallel_index = None
         self.received_count = 0
-    
+
     def execute(self, data: Any):
-        if self.runtime_context:
-            self.parallel_index = self.runtime_context.parallel_index
-        
+        if self.ctx:
+            self.parallel_index = self.ctx.parallel_index
+
         with self._lock:
             if self.parallel_index not in self._received_data:
                 self._received_data[self.parallel_index] = []
-            
+
             self._received_data[self.parallel_index].append(data)
-        
+
         self.received_count += 1
-        
+
         value = data.get('value', data.get('name', 'unknown'))
-        
+
         self.logger.info(
             f"[Instance {self.parallel_index}] "
             f"Received filtered data #{self.received_count}: {data}"
         )
-        
+
         # 打印调试信息
         print(f"🔍 [Instance {self.parallel_index}] Filtered data: {value}, Full: {data}")
-        
+
         return data
     
     @classmethod
@@ -202,7 +200,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(3)
         finally:
             env.close()
@@ -227,7 +225,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(3)
         finally:
             env.close()
@@ -252,7 +250,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(4)
         finally:
             env.close()
@@ -276,7 +274,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(3)
         finally:
             env.close()
@@ -300,7 +298,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(2)
         finally:
             env.close()
@@ -321,7 +319,6 @@ class TestFilterFunctionality:
         
         try:
             env2.submit()
-            env2.run_streaming()
             time.sleep(2)
         finally:
             env2.close()
@@ -353,7 +350,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(4)
         finally:
             env.close()
@@ -378,7 +375,7 @@ class TestFilterFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(3)
         finally:
             env.close()

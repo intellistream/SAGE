@@ -1,10 +1,10 @@
-import os
-from typing import Tuple,List
-from sage_common_funs.utils.generator_model import apply_generator_model
-from sage_core.function.map_function import MapFunction 
+import os, yaml
+from typing import Tuple, List
+from sage_core.function.map_function import MapFunction
 from sage_core.function.base_function import StatefulFunction
-from sage_utils.custom_logger import CustomLogger
-from sage_runtime.state_persistence import load_function_state, save_function_state
+from sage_utils.clients.generator_model import apply_generator_model
+from sage_utils.state_persistence import load_function_state, save_function_state
+
 
 class OpenAIGenerator(MapFunction):
     """
@@ -12,7 +12,7 @@ class OpenAIGenerator(MapFunction):
     to generate responses based on input data.
     """
 
-    def __init__(self, config, **kwargs):
+    def __init__(self, config, generator_deployment, **kwargs):
         super().__init__(**kwargs)
 
         """
@@ -21,8 +21,8 @@ class OpenAIGenerator(MapFunction):
         :param config: Dictionary containing configuration for the generator, including 
                        the method, model name, base URL, API key, etc.
         """
-        self.config = config
         # Apply the generator model with the provided configuration
+        self.config = config[generator_deployment]
         self.model = apply_generator_model(
             method=self.config["method"],
             model_name=self.config["model_name"],
@@ -31,8 +31,6 @@ class OpenAIGenerator(MapFunction):
             seed=42  # Hardcoded seed for reproducibility
         )
         self.num = 1
-
-
 
     # 其中原有的**kwargs应该由函数内部或者data内部提供
     def execute(self, data: list) -> Tuple[str, str]:
@@ -47,8 +45,8 @@ class OpenAIGenerator(MapFunction):
                 and response is the generated response from the model.
         """
         # Extract the user query from the input data
-        user_query = data[0] if len(data) > 1  else None
- 
+        user_query = data[0] if len(data) > 1 else None
+
         prompt = data[1] if len(data) > 1 else data
 
         response = self.model.generate(prompt)
@@ -60,32 +58,31 @@ class OpenAIGenerator(MapFunction):
         # Return the generated response along with the original user query as a tuple
         return (user_query, response)
 
+
 class OpenAIGeneratorWithHistory(StatefulFunction):
     """
     OpenAIGenerator with global dialogue memory.
     Maintains a rolling history of past user and assistant turns (stateful).
     """
 
-    def __init__(self, config, **kwargs):
+    def __init__(self, config, generator_deployment, **kwargs):
         super().__init__(**kwargs)
-        self.config = config
-
+        self.config = config[generator_deployment]
         self.model = apply_generator_model(
             method=self.config["method"],
             model_name=self.config["model_name"],
             base_url=self.config["base_url"],
-            api_key=os.getenv("ALIBABA_API_KEY"),
-            seed=42
+            api_key=self.config["api_key"] or os.getenv("ALIBABA_API_KEY"),
+            seed=42  # Hardcoded seed for reproducibility
         )
-
         # 全局历史状态，按对话轮次记录字符串
         self.dialogue_history: List[str] = []
         self.history_turns = config.get("max_history_turns", 5)
         self.num = 1
 
-        base = os.path.join(self.runtime_context.session_folder, ".sage_checkpoints")
+        base = os.path.join(self.ctx.session_folder, ".sage_checkpoints")
         os.makedirs(base, exist_ok=True)
-        path = os.path.join(base, f"{self.runtime_context.name}.chkpt")
+        path = os.path.join(base, f"{self.ctx.name}.chkpt")
         load_function_state(self, path)
 
     def execute(self, data: List, **kwargs) -> Tuple[str, str]:
@@ -94,7 +91,6 @@ class OpenAIGeneratorWithHistory(StatefulFunction):
         Where prompt_dict includes {"content": ...}
         """
         # 延迟恢复：在首次执行前根据 runtime_context 恢复状态
-
 
         user_query = data[0] if len(data) > 1 else None
         prompt_info = data[1] if len(data) > 1 else data
@@ -116,21 +112,22 @@ class OpenAIGeneratorWithHistory(StatefulFunction):
 
         self.logger.info(f"\033[32m[{self.__class__.__name__}] Response: {response}\033[0m")
 
-        # —— 自动持久化：每次 execute 后保存状态 —— 
-        base = os.path.join(self.runtime_context.session_folder, ".sage_checkpoints")
+        # —— 自动持久化：每次 execute 后保存状态 ——
+        base = os.path.join(self.ctx.session_folder, ".sage_checkpoints")
         os.makedirs(base, exist_ok=True)
-        path = os.path.join(base, f"{self.runtime_context.name}.chkpt")
+        path = os.path.join(base, f"{self.ctx.name}.chkpt")
         save_function_state(self, path)
         return (user_query, response)
-    
+
     def save_state(self):
         """
         手动触发：持久化当前 dialogue_history，用于测试调用。
         """
-        base = os.path.join(self.runtime_context.session_folder, ".sage_checkpoints")
+        base = os.path.join(self.ctx.session_folder, ".sage_checkpoints")
         os.makedirs(base, exist_ok=True)
-        path = os.path.join(base, f"{self.runtime_context.name}.chkpt")
+        path = os.path.join(base, f"{self.ctx.name}.chkpt")
         save_function_state(self, path)
+
 
 class HFGenerator(MapFunction):
     """
@@ -164,10 +161,10 @@ class HFGenerator(MapFunction):
         :return: A Data object containing the generated response as a string.
         """
         # Generate the response from the Hugging Face model using the provided data and additional arguments
-        user_query = data[0] if len(data) > 1  else None
- 
+        user_query = data[0] if len(data) > 1 else None
+
         prompt = data[1] if len(data) > 1 else data
-        
+
         response = self.model.generate(prompt, **kwargs)
 
         # Return the generated response as a Data object

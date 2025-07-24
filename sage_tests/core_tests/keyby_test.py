@@ -1,11 +1,9 @@
-import pytest
 import time
 import threading
 from typing import List, Dict, Any
-from sage_core.api.env import LocalEnvironment
+from sage_core.api.local_environment import LocalEnvironment
 from sage_core.function.source_function import SourceFunction
 from sage_core.function.keyby_function import KeyByFunction
-from sage_core.function.base_function import BaseFunction
 from sage_core.function.sink_function import SinkFunction
 
 
@@ -51,29 +49,29 @@ class ParallelDebugSink(SinkFunction):
         super().__init__(**kwargs)
         self.parallel_index = None
         self.received_count = 0
-    
+
     def execute(self, data: Any):
         # 从runtime_context获取parallel_index
-        if self.runtime_context:
-            self.parallel_index = self.runtime_context.parallel_index
-        
+        if self.ctx:
+            self.parallel_index = self.ctx.parallel_index
+
         with self._lock:
             if self.parallel_index not in self._received_data:
                 self._received_data[self.parallel_index] = []
-            
+
             self._received_data[self.parallel_index].append(data)
-        
+
         self.received_count += 1
-        
+
         self.logger.info(
             f"[Parallel Instance {self.parallel_index}] "
             f"Received data #{self.received_count}: {data}"
         )
-        
+
         # 打印调试信息
         print(f"🔍 [Instance {self.parallel_index}] User: {data['user_id']}, "
               f"Content: {data['content']}")
-        
+
         return data
     
     @classmethod
@@ -116,7 +114,7 @@ class TestKeyByFunctionality:
         try:
             # 提交并运行
             env.submit()
-            env.run_streaming()
+            
             
             # 运行一段时间让数据流过
             time.sleep(3)
@@ -134,7 +132,7 @@ class TestKeyByFunctionality:
         """测试广播策略"""
         print("\n🚀 Testing KeyBy Broadcast Strategy")
         
-        env = LocalEnvironment("keyby_broadcast_test")
+        env = LocalEnvironment("Test_keyby_broadcast_test")
         
         result_stream = (
             env.from_source(TestDataSource, delay=0.3)
@@ -147,7 +145,7 @@ class TestKeyByFunctionality:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(2)
         finally:
             env.close()
@@ -256,7 +254,7 @@ class TestAdvancedKeyBy:
         
         try:
             env.submit()
-            env.run_streaming()
+            
             time.sleep(3)
         finally:
             env.close()

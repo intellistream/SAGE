@@ -31,6 +31,7 @@ logs/
 output/
 .vscode/
 **/__pycache__/
+gitlogs.txt
 
 
 
@@ -68,3 +69,6 @@ drafts/
 run.sh
 third_party/
 tmp_ray/
+
+.cache/
+build/

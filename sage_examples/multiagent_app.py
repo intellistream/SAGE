@@ -1,6 +1,5 @@
-from dotenv import load_dotenv
-import os, time
-from sage_core.api.env import LocalEnvironment, RemoteEnvironment
+import time
+from sage_core.api.local_environment import LocalStreamEnvironment
 from sage_utils.config_loader import load_config
 from sage_libs.agents.question_bot import QuestionBot
 from sage_libs.agents.chief_bot import ChiefBot
@@ -11,11 +10,9 @@ from sage_libs.agents.answer_bot import AnswerBot
 from sage_libs.agents.critic_bot import CriticBot
 from sage_libs.utils.tool_filter import ToolFilter
 
-
-
 def pipeline_run():
     """创建并运行数据处理管道"""
-    env = LocalEnvironment()
+    env = LocalStreamEnvironment()
     env.set_memory(config=None)
 
     chief_stream = (
@@ -39,25 +36,12 @@ def pipeline_run():
 
 
     env.submit()
-    env.run_once()
     try:
         time.sleep(60)
     except KeyboardInterrupt:
         print("\n🛑 收到中断信号，正在关闭...")
     env.stop()
     env.close()
-    # try:
-    #     env.submit()
-    #     env.run_streaming() # 开销有点大，最好只润一次做测试
-    #     print("🌱 管道已启动，按 Ctrl+C 中断")
-    #     while True:
-    #         time.sleep(1)  # 持续运行直到被打断
-    # except KeyboardInterrupt:
-    #     print("\n🛑 收到中断信号，正在关闭...")
-    #     env.stop()
-    # finally:
-    #     env.close()
-    #     print("✅ 管道已安全关闭")
 
 if __name__ == '__main__':
     config = load_config("multiagent_config.yaml")
