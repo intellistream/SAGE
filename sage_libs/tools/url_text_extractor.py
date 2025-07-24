@@ -1,41 +1,105 @@
-from .base.base_tool import BaseTool
-import requests
 import os
-
+import requests
 from bs4 import BeautifulSoup
 
-class URL_text_extractor(BaseTool):
+from .base.base_tool import BaseTool
+
+class URL_Text_Extractor_Tool(BaseTool):
     def __init__(self):
         super().__init__(
-            tool_name="url_text_extractor",
-            tool_description="A tool that can extract text from a URL",
+            tool_name="URL_Text_Extractor_Tool",
+            tool_description="A tool that extracts all text from a given URL.",
             tool_version="1.0.0",
-            input_types={"url": "str"},
-            output_type="str",
+            input_types={
+                "url": "str - The URL from which to extract text.",
+            },
+            output_type="dict - A dictionary containing the extracted text and any error messages.",
             demo_commands=[
-                {"command": 'execution = tool.execute(url="https://www.example.com")',
-                    "description": "Extract text from a URL"},
-                {"command": 'execution = tool.execute(url="https://www.baidu.com", depth=2)',
-                    "description": "Extract text from a URL"}
+                {
+                    "command": 'execution = tool.execute(url="https://example.com")',
+                    "description": "Extract all text from the example.com website."
+                },
+                {
+                    "command": 'execution = tool.execute(url="https://en.wikipedia.org/wiki/Python_(programming_language)")',
+                    "description": "Extract all text from the Wikipedia page about Python programming language."
+                },
             ],
-            user_metadata={
-                "limitation": "The URL_text_extractor_Tool provides general text extraction from a URL but has limitations: 1) May not extract all the text from the URL. 2) Might not extract the text in the correct format. 3) Performance varies with the complexity of the URL. 4) Struggles with culturally specific or domain-specific content. 5) May overlook details or misinterpret object relationships. For precise descriptions, consider: using it with other tools for context/verification, as an initial step before refinement, or in multi-step processes for ambiguity resolution. Verify critical information with specialized tools or human expertise when necessary."
-            }
         )
 
-    def extract_text(self, url: str):
+    def extract_text_from_url(self, url):
         """
-        Extract text from a URL
-        """
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        return soup.get_text()
+        Extracts all text from the given URL.
 
-    def execute(self, url: str):
+        Parameters:
+            url (str): The URL from which to extract text.
+
+        Returns:
+            str: The extracted text.
+        """
+        url = url.replace("arxiv.org/pdf", "arxiv.org/abs")
+
         try:
-            return self.extract_text(url)
+            response = requests.get(url)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+            text = soup.get_text(separator='\n', strip=True)
+            text = text[:10000] # Limit the text to 10000 characters
+            return text
+        except requests.RequestException as e:
+            return f"Error fetching URL: {str(e)}"
         except Exception as e:
-            print(f"Error in URL_text_extractor: {e}")
-            return None
+            return f"Error extracting text: {str(e)}"
 
-        
+    def execute(self, url):
+        extracted_text = self.extract_text_from_url(url)
+        return {
+            "url": url,
+            "extracted_text": extracted_text
+        }
+    
+    def get_metadata(self):
+        """
+        Returns the metadata for the URL_Text_Extractor_Tool.
+
+        Returns:
+            dict: A dictionary containing the tool's metadata.
+        """
+        metadata = super().get_metadata()
+        return metadata
+
+
+if __name__ == "__main__":
+    # Test command:
+    """
+    Run the following commands in the terminal to test the script:
+
+    cd octotools/tools/url_text_extractor
+    python tool.py
+    """
+
+    # Get the directory of the current script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Example usage of the URL_Text_Extractor_Tool
+    tool = URL_Text_Extractor_Tool()
+
+    # Get tool metadata
+    metadata = tool.get_metadata()
+    print(metadata)
+
+    # Sample URL for extracting text
+    url = "https://intellistream.github.io/SAGE-Pub/get_start/install/"
+
+    import json
+
+    # Execute the tool with the sample URL
+    try:
+        execution = tool.execute(url=url)
+        print("Execution Result:")
+        print(json.dumps(execution, indent=4))
+        for key, value in execution.items():
+            print(f"{key}:\n{value}\n")
+    except ValueError as e:
+        print(f"Execution failed: {e}")
+
+    print("Done!")

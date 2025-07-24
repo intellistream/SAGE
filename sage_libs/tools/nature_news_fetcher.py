@@ -5,7 +5,7 @@ import time
 import logging
 import random
 
-from base.base_tool import BaseTool
+from sage_libs.tools.base.base_tool import BaseTool
 from typing import Dict, Any
 
 # Initialize logger
@@ -160,3 +160,38 @@ class Nature_News_Fetcher_Tool(BaseTool):
         else:
             metadata = {}
         return metadata
+
+if __name__ == "__main__":
+    
+
+    # Get the directory of the current script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Example usage of the Nature_News_Fetcher_Tool
+    tool = Nature_News_Fetcher_Tool()
+
+    # Get tool metadata
+    metadata = tool.get_metadata()
+    print(metadata)
+
+    import json
+  
+
+    # Execute the tool to fetch the latest 10 articles (for demonstration purposes)
+    try:
+        execution = tool.execute(num_articles=10, max_pages=1)
+        print(json.dumps(execution, indent=4))
+        print("\nExecution Result:")
+        print(f"Number of articles fetched: {len(execution)}")
+        print("\nSample articles:")
+        for i, article in enumerate(execution[:10], 1):
+            print(f"\n{i}. Title: {article['title']}")
+            print(f"   URL: {article['url']}")
+            print(f"   Description: {article['description'][:100]}...")  # Show first 100 characters
+            print(f"   Authors: {', '.join(article['authors'])}")
+            print(f"   Date: {article['date']}")
+            print(f"   Image URL: {article['image_url']}")
+    except Exception as e:
+        print(f"Execution failed: {e}")
+
+    print("Done!")
