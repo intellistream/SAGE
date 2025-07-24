@@ -40,6 +40,8 @@ setup(
     entry_points={
         'console_scripts': [
             'sage-jm=sage_core.jobmanager_client:main',
+            'sage-deploy=deployment.app.cli.sage_deploy:app',
+            'sage=deployment.app.cli.sage:app',
         ],
     },
     include_package_data=True,

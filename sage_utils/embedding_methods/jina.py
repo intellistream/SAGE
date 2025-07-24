@@ -3,8 +3,6 @@ import os
 import pipmaster as pm  # Pipmaster for dynamic library install
 
 # install specific modules
-if not pm.is_installed("lmdeploy"):
-    pm.install("lmdeploy")
 if not pm.is_installed("tenacity"):
     pm.install("tenacity")
 
