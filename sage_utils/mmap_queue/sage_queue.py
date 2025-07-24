@@ -75,7 +75,7 @@ class SageQueue:
         process = multiprocessing.Process(target=worker, args=["shared_queue_name"])
     """
     
-    def __init__(self, name: str, maxsize: int = 0, auto_cleanup: bool = False):
+    def __init__(self, name: str, auto_cleanup : bool = False):
         """
         初始化队列
         
@@ -85,7 +85,7 @@ class SageQueue:
             auto_cleanup: 是否自动清理共享内存
         """
         self.name = name
-        self.maxsize = maxsize if maxsize > 0 else 1024 * 1024  # 默认1MB
+        self.maxsize =  1024 * 1024  # 默认1MB
         self.auto_cleanup = auto_cleanup
         
         # 加载C库

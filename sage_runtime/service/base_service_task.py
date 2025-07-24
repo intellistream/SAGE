@@ -66,7 +66,7 @@ class BaseServiceTask(ABC):
         """初始化请求队列"""
         try:
             if self._request_queue is None:
-                self._request_queue = SageQueue(self._request_queue_name, maxsize=64*1024)
+                self._request_queue = SageQueue(self._request_queue_name)
                 self.logger.info(f"Initialized request queue: {self._request_queue_name}")
         except Exception as e:
             self.logger.error(f"Failed to initialize request queue: {e}")

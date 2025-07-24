@@ -4,6 +4,7 @@
 使用SAGE的完整流水线机制，展示服务在真实算子中的使用
 """
 
+from sage_core.api.remote_environment import RemoteEnvironment
 from sage_core.function.base_function import BaseFunction
 from sage_core.operator.base_operator import BaseOperator
 from sage_core.api.local_environment import LocalEnvironment
@@ -402,7 +403,7 @@ def test_realistic_sage_workflow():
     try:
         # 1. 创建环境
         print("\n1. 创建环境:")
-        env = LocalEnvironment("realistic_workflow_test")
+        env = RemoteEnvironment("realistic_workflow_test")
         
         # 2. 注册服务
         print("\n2. 注册服务:")
@@ -417,7 +418,7 @@ def test_realistic_sage_workflow():
         print("\n3. 构建流处理管道:")
         
         # 使用流式API构建处理管道
-        stream = env.from_source(RequestSourceFunction, request_count=3) \
+        stream = env.from_source(RequestSourceFunction, request_count=30) \
                    .map(FeatureEnrichmentFunction) \
                    .map(RecommendationFunction) \
                    .map(ResultSinkFunction)

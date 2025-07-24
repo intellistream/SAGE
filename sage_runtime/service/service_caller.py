@@ -61,10 +61,7 @@ class ServiceManager:
         """获取服务队列"""
         if service_name not in self._service_queues:
             queue_name = f"service_request_{service_name}"
-            self._service_queues[service_name] = SageQueue(
-                name=queue_name,
-                maxsize=1000
-            )
+            self._service_queues[service_name] = SageQueue(name=queue_name)
         return self._service_queues[service_name]
     
     def _get_response_queue(self) -> SageQueue:
