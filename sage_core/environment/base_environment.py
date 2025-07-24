@@ -4,7 +4,6 @@ from datetime import datetime
 import os
 from pathlib import Path
 from typing import List, Optional, TYPE_CHECKING, Type, Union, Any
-from sage_core.function.base_function import BaseFunction
 from sage_core.function.lambda_function import wrap_lambda
 import sage_memory.api
 from sage_core.api.datastream import DataStream
@@ -19,7 +18,7 @@ from sage_utils.actor_wrapper import ActorWrapper
 from sage_jobmanager.factory.service_factory import ServiceFactory
 if TYPE_CHECKING:
     from sage_jobmanager.job_manager import JobManager
-
+    from sage_core.function.base_function import BaseFunction
 class BaseEnvironment(ABC):
 
     __state_exclude__ = ["_engine_client", "client", "jobmanager"]
@@ -194,7 +193,7 @@ class BaseEnvironment(ABC):
         
         return DataStream(self, transformation)
 
-    def from_source(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> DataStream:
+    def from_source(self, function: Union[Type['BaseFunction'], callable], *args, **kwargs) -> DataStream:
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, 'flatmap')
@@ -205,7 +204,7 @@ class BaseEnvironment(ABC):
 
 
 
-    def from_collection(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> DataStream:
+    def from_collection(self, function: Union[Type['BaseFunction'], callable], *args, **kwargs) -> DataStream:
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, 'flatmap')
