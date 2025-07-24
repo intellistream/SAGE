@@ -6,6 +6,7 @@ from ray.util.queue import Queue as RayQueue
 from sage_runtime.task.base_task import BaseTask
 from sage_runtime.router.packet import Packet
 from sage_runtime.router.ray_router import RayRouter
+from sage_utils.mmap_queue.sage_queue import SageQueue
 if TYPE_CHECKING:
     from sage_jobmanager.factory.operator_factory import OperatorFactory
     from sage_runtime.runtime_context import RuntimeContext
@@ -29,7 +30,7 @@ class RayTask(BaseTask):
         # === Ray Queue 缓冲区 ===
         # 创建Ray Queue（这是一个Ray对象，自动支持跨进程）
         # 这个maxsize指的是物理字节容量
-        self.input_buffer = RayQueue(maxsize=10000)
+        self.local_input_buffer = SageQueue(self.ctx.name)
         # === 路由器 ===
         self.router = RayRouter(runtime_context)
         self.operator.router = self.router
@@ -55,9 +56,9 @@ class RayTask(BaseTask):
             #     self.router.cleanup()
             
             # 清理 Ray Queue
-            if hasattr(self.input_buffer, 'shutdown'):
+            if hasattr(self.local_input_buffer, 'shutdown'):
                 try:
-                    self.input_buffer.shutdown()
+                    self.local_input_buffer.shutdown()
                 except Exception as e:
                     self.logger.warning(f"Error shutting down input buffer: {e}")
             

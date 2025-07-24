@@ -160,7 +160,7 @@ def main():
         # 运行流处理
         env.submit()
         
-        # time.sleep(40)  # 运行15秒以观察不同频率的数据
+        time.sleep(40)  # 运行15秒以观察不同频率的数据
         
     except KeyboardInterrupt:
         print("\n\n🛑 Stopping CoMap Function Example...")

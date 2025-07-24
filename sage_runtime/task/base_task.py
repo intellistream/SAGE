@@ -16,7 +16,7 @@ class BaseTask(ABC):
         self.ctx = runtime_context
         # === 继承类设置 ===
         self.router:BaseRouter
-        self.input_buffer: Any
+        self.local_input_buffer: Any
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
         self.is_running = False
@@ -59,8 +59,8 @@ class BaseTask(ABC):
         self.router.add_connection(connection)
         self.logger.debug(f"Connection added to node '{self.name}': {connection}")
 
-    def remove_connection(self, broadcast_index: int, parallel_index: int) -> bool:
-        return self.router.remove_connection(broadcast_index, parallel_index)
+    # def remove_connection(self, broadcast_index: int, parallel_index: int) -> bool:
+    #     return self.router.remove_connection(broadcast_index, parallel_index)
 
 
     def trigger(self, input_tag: str = None, packet:'Packet' = None) -> None:
@@ -77,12 +77,15 @@ class BaseTask(ABC):
             self._stop_event.set()
             self.logger.info(f"Node '{self.name}' received stop signal.")
 
+    def get_object(self):
+        return self
+
     def get_input_buffer(self):
         """
         获取输入缓冲区
         :return: 输入缓冲区对象
         """
-        return self.input_buffer
+        return self.local_input_buffer
 
     def _worker_loop(self) -> None:
         """
@@ -94,9 +97,7 @@ class BaseTask(ABC):
                 if self.is_spout:
                     self.logger.debug(f"Running spout node '{self.name}'")
                     self.operator.receive_packet(None)
-                    # TODO: 做一个下游缓冲区反压机制，因为引入一个手动延迟实在是太呆了
-                    # Issue URL: https://github.com/intellistream/SAGE/issues/335
-                    # sleep时间太短对kernel来说就没有意义了。
+                    self.logger.debug(f"self.delay: {self.delay}")
                     if self.delay > 0.002:
                         time.sleep(self.delay)
                 else:
@@ -104,8 +105,8 @@ class BaseTask(ABC):
                     # For non-spout nodes, fetch input and process
                     # input_result = self.fetch_input()
                     try:
-                        data_packet = self.input_buffer.get(timeout=0.5)
-                    except Empty as e:
+                        data_packet = self.local_input_buffer.get(timeout=0.5)
+                    except Exception as e:
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue
@@ -159,10 +160,10 @@ class BaseTask(ABC):
             #     self.router.cleanup()
             
             # 清理输入缓冲区
-            if hasattr(self.input_buffer, 'cleanup'):
-                self.input_buffer.cleanup()
-            elif hasattr(self.input_buffer, 'close'):
-                self.input_buffer.close()
+            if hasattr(self.local_input_buffer, 'cleanup'):
+                self.local_input_buffer.cleanup()
+            elif hasattr(self.local_input_buffer, 'close'):
+                self.local_input_buffer.close()
             
             self.logger.debug(f"Task {self.name} cleanup completed")
             

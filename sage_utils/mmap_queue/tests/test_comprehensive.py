@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SAGE Memory-Mapped Queue 综合测试套件
+SAGE Memory-Mapped Queue 综合测试套件  
 Comprehensive test suite for SAGE high-performance memory-mapped queue
 """
 
@@ -15,15 +15,15 @@ import gc
 from typing import List, Dict, Any, Optional
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 
-# 添加当前目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 添加上级目录到Python路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
     from sage_queue import SageQueue, SageQueueRef, destroy_queue
     print("✓ 成功导入 SageQueue")
 except ImportError as e:
     print(f"✗ 导入失败: {e}")
-    print("请先运行 ./build.sh 编译C库")
+    print("请先运行 ../build.sh 编译C库")
     sys.exit(1)
 
 
@@ -245,8 +245,12 @@ def test_memory_leak() -> TestResult:
     result = TestResult("内存泄漏测试")
     
     try:
-        import psutil
-        import gc
+        try:
+            import psutil
+            import gc
+        except ImportError:
+            result.finish(False, "需要安装 psutil: pip install psutil")
+            return result
         
         process = psutil.Process()
         initial_memory = process.memory_info().rss / 1024 / 1024  # MB
@@ -309,8 +313,6 @@ def test_memory_leak() -> TestResult:
         
         result.finish(True, stats=stats)
         
-    except ImportError:
-        result.finish(False, "需要安装 psutil: pip install psutil")
     except Exception as e:
         result.finish(False, str(e))
     

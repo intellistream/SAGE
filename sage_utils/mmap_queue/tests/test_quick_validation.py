@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """
-快速测试SAGE Queue基本功能
+快速验证SAGE Queue基本功能
+Quick validation test for SAGE Queue basic functionality
 """
 
 import sys
 import os
 
-# 添加当前目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 添加上级目录到Python路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def quick_test():
-    print("SAGE Queue 快速测试")
+    print("SAGE Queue 快速验证测试")
     print("=" * 30)
     
     try:
