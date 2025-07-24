@@ -1,5 +1,6 @@
 import os
 import sys
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
 # 添加项目根目录到Python路径
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../..")))
@@ -23,7 +24,7 @@ class EmbeddingModel:
         初始化 embedding table
         :param method: 指定使用的 embedding 方法名称，例如 "openai" 或 "cohere" 或“hf"等
         """
- 
+        self.init_method = method
         self.dim = None
         if method == "default":
             method = "hf"
@@ -54,7 +55,7 @@ class EmbeddingModel:
             )
         self.embed_fn = self._get_embed_function(method)
 
-    def set_dim(self,model_name):
+    def set_dim(self, model_name):
         """
         :param model_name:
         :return:
@@ -119,6 +120,11 @@ class EmbeddingModel:
     
     def encode(self, text: str) -> list[float]:
         return self._embed(text)
+    
+    @property
+    def method_name(self) -> str:
+        """当前embedding方法名"""
+        return self.init_method
 
 
 def apply_embedding_model(name: str = "default",**kwargs) -> EmbeddingModel:
