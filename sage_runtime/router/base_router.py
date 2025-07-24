@@ -1,4 +1,5 @@
 # sage_runtime/base_router.py
+import traceback
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, TYPE_CHECKING
@@ -201,16 +202,22 @@ class BaseRouter(ABC):
             return True
         except Exception as e:
             """记录发送失败日志"""
-            self.logger.error(f"Failed to send packet to {connection.target_name}: {e}", exc_info=True)
+            self.logger.error(
+                f"Failed to send packet to {connection.target_name}: {e}\n{traceback.format_exc()}"
+            )
             return False
     
-    def _adjust_delay_based_on_load(self, connection: 'Connection'):
+    def _adjust_delay_based_on_load(self, connection: 'Connection' = None):
         """
         根据当前连接的负载动态调整delay
         
         Args:
             connection: 当前发送的目标连接
         """
+        # 旧路径 emit_packet 调用时不会传 connection；此时直接返回
+        if connection is None:
+            return
+
         try:
             # 获取当前delay
             current_delay = self.ctx.delay
@@ -224,7 +231,7 @@ class BaseRouter(ABC):
             self.logger.info(f"Load adjustment on {connection.target_name} ({current_load:.2f}), adjusted delay to {self.ctx.delay* 1000 :.3f}ms")
                 
         except Exception as e:
-            self.logger.warning(f"Failed to adjust delay based on load: {e}", excinfo=True)
+            self.logger.warning(f"Failed to adjust delay based on load: {e}\n{traceback.format_exc()}")
 
     def clear_all_connections(self):
         """清空所有连接"""
