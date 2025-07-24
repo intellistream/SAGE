@@ -69,7 +69,7 @@ class ExecutionGraph:
 
     def setup_logging_system(self): 
         self.logger = CustomLogger([
-                ("console", "INFO"),  # 控制台显示重要信息
+                ("console", self.env.console_log_level),  # 使用环境设置的控制台日志等级
                 (os.path.join(self.env.env_base_dir, "ExecutionGraph.log"), "DEBUG"),  # 详细日志
                 (os.path.join(self.env.env_base_dir, "Error.log"), "ERROR")  # 错误日志
             ],
@@ -88,15 +88,6 @@ class ExecutionGraph:
                 self.logger.debug(f"Generated runtime context for node: {node_name}")
             except Exception as e:
                 self.logger.error(f"Failed to generate runtime context for node {node_name}: {e}", exc_info=True)
-
-    def setup_logging_system(self):
-        self.logger = CustomLogger([
-                ("console", "INFO"),  # 控制台显示重要信息
-                (os.path.join(self.env.env_base_dir, "ExecutionGraph.log"), "DEBUG"),  # 详细日志
-                (os.path.join(self.env.env_base_dir, "Error.log"), "ERROR")  # 错误日志
-            ],
-            name = f"ExecutionGraph_{self.env.name}",
-        )
 
 
 

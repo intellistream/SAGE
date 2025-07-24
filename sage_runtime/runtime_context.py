@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from sage_core.transformation.base_transformation import BaseTransformation
     from sage_core.environment.base_environment import BaseEnvironment 
     from sage_jobmanager.job_manager import JobManager
+    from sage_core.service.service_caller import ServiceManager
 # task, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:
@@ -25,6 +26,7 @@ class RuntimeContext:
         self.env_name = env.name
         self.env_base_dir:str = env.env_base_dir
         self.env_uuid = env.uuid
+        self.env_console_log_level = env.console_log_level  # 保存环境的控制台日志等级
         self.jobmanager_handle: Optional[Union['JobManager', 'ActorHandle']] = jobmanager_handle
 
         self.memory_collection:Any = transformation.memory_collection
@@ -38,10 +40,66 @@ class RuntimeContext:
 
         self.delay = 0.01
         self.stop_signal_num = graph_node.stop_signal_num
+        
+        # 服务调用相关
+        self._service_manager: Optional['ServiceManager'] = None
+        self._dispatcher_services: Optional[Dict[str, Any]] = None  # 将由dispatcher设置
 
     @property
     def jobmanager(self) -> 'JobManager':
         return ActorWrapper(self.jobmanager_handle)
+    
+    @property
+    def service_manager(self) -> 'ServiceManager':
+        """懒加载服务管理器"""
+        if self._service_manager is None:
+            from sage_core.service.service_caller import ServiceManager
+            self._service_manager = ServiceManager(self)
+        return self._service_manager
+    
+    @property
+    def call_service(self) -> Dict[str, Any]:
+        """
+        同步服务调用接口
+        
+        Usage:
+            result = self.ctx.call_service["cache_service"].get("key1")
+            data = self.ctx.call_service["db_service"].query("SELECT * FROM users")
+        """
+        class ServiceProxy:
+            def __init__(self, service_manager):
+                self._service_manager = service_manager
+                
+            def __getitem__(self, service_name: str):
+                return self._service_manager.get_sync_proxy(service_name)
+        
+        if not hasattr(self, '_call_service_proxy'):
+            self._call_service_proxy = ServiceProxy(self.service_manager)
+        return self._call_service_proxy
+    
+    @property 
+    def call_service_async(self) -> Dict[str, Any]:
+        """
+        异步服务调用接口
+        
+        Usage:
+            future = self.ctx.call_service_async["cache_service"].get("key1")
+            result = future.result()  # 阻塞等待结果
+            
+            # 或者非阻塞检查
+            if future.done():
+                result = future.result()
+        """
+        class AsyncServiceProxy:
+            def __init__(self, service_manager):
+                self._service_manager = service_manager
+                
+            def __getitem__(self, service_name: str):
+                return self._service_manager.get_async_proxy(service_name)
+        
+        if not hasattr(self, '_call_service_async_proxy'):
+            self._call_service_async_proxy = AsyncServiceProxy(self.service_manager)  
+        return self._call_service_async_proxy
 
 
     def retrieve(self,  query: Optional[str] = None, collection_config: Optional[Dict] = None) -> List[str]:
@@ -390,7 +448,7 @@ class RuntimeContext:
         """懒加载logger"""
         if self._logger is None:
             self._logger = CustomLogger([
-                ("console", "INFO"),  # 控制台显示重要信息
+                ("console", self.env_console_log_level),  # 使用环境设置的控制台日志等级
                 (os.path.join(self.env_base_dir, f"{self.name}_debug.log"), "DEBUG"),  # 详细日志
                 (os.path.join(self.env_base_dir, "Error.log"), "ERROR"),  # 错误日志
                 (os.path.join(self.env_base_dir, f"{self.name}_info.log"), "INFO")  # 错误日志
@@ -398,3 +456,66 @@ class RuntimeContext:
             name = f"{self.name}",
         )
         return self._logger
+
+    def set_dispatcher_services(self, services: Dict[str, Any]):
+        """设置dispatcher管理的服务实例（由dispatcher调用）"""
+        self._dispatcher_services = services
+
+    def get_service(self, service_name: str) -> Any:
+        """
+        获取服务实例
+        
+        Args:
+            service_name: 服务名称
+            
+        Returns:
+            服务实例
+            
+        Raises:
+            ValueError: 当服务不存在时
+        """
+        if self._dispatcher_services is None:
+            raise RuntimeError("Services not available - dispatcher not initialized")
+        
+        if service_name not in self._dispatcher_services:
+            available_services = list(self._dispatcher_services.keys())
+            raise ValueError(f"Service '{service_name}' not found. Available services: {available_services}")
+        
+        return self._dispatcher_services[service_name]
+
+    def call_service(self, service_name: str, method_name: str, *args, **kwargs) -> Any:
+        """
+        调用服务方法
+        
+        Args:
+            service_name: 服务名称
+            method_name: 方法名称
+            *args: 位置参数
+            **kwargs: 关键字参数
+            
+        Returns:
+            方法调用结果
+        """
+        service = self.get_service(service_name)
+        
+        # 检查是否是ActorWrapper包装的Ray服务
+        if hasattr(service, '_actor') and hasattr(service, 'is_alive'):
+            # 这是一个ActorWrapper，需要使用remote调用
+            import ray
+            method = getattr(service, method_name)
+            if hasattr(method, 'remote'):
+                # 远程调用
+                future = method.remote(*args, **kwargs)
+                return ray.get(future)
+            else:
+                # 本地方法调用
+                return method(*args, **kwargs)
+        else:
+            # 本地服务，直接调用
+            return service.call_method(method_name, *args, **kwargs)
+
+    def list_services(self) -> List[str]:
+        """列出所有可用的服务名称"""
+        if self._dispatcher_services is None:
+            return []
+        return list(self._dispatcher_services.keys())

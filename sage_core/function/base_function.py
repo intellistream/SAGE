@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 if TYPE_CHECKING:
     from sage_runtime.runtime_context import RuntimeContext
+    from sage_core.service.service_caller import ServiceManager
 import logging
 from sage_utils.state_persistence import load_function_state, save_function_state
 
@@ -15,6 +16,7 @@ class BaseFunction(ABC):
     """
     def __init__(self, *args, **kwargs):
         self.ctx: 'RuntimeContext' = None # 运行时注入
+        self.router = None  # 运行时注入
         self._logger = None
 
     @property
@@ -29,6 +31,54 @@ class BaseFunction(ABC):
     @property
     def name(self):
         return self.ctx.name
+    
+    @property
+    def call_service(self):
+        """
+        同步服务调用语法糖
+        
+        用法:
+            result = self.call_service["cache_service"].get("key1")
+            data = self.call_service["db_service"].query("SELECT * FROM users")
+        """
+        if self.ctx is None:
+            raise RuntimeError("Runtime context not initialized. Cannot access services.")
+        
+        class ServiceProxy:
+            def __init__(self, service_manager: 'ServiceManager'):
+                self._service_manager = service_manager
+                
+            def __getitem__(self, service_name: str):
+                return self._service_manager.get_sync_proxy(service_name)
+        
+        # 每次调用都创建新的代理对象，避免并发冲突
+        return ServiceProxy(self.ctx.service_manager)
+    
+    @property 
+    def call_service_async(self):
+        """
+        异步服务调用语法糖
+        
+        用法:
+            future = self.call_service_async["cache_service"].get("key1")
+            result = future.result()  # 阻塞等待结果
+            
+            # 或者非阻塞检查
+            if future.done():
+                result = future.result()
+        """
+        if self.ctx is None:
+            raise RuntimeError("Runtime context not initialized. Cannot access services.")
+        
+        class AsyncServiceProxy:
+            def __init__(self, service_manager: 'ServiceManager'):
+                self._service_manager = service_manager
+                
+            def __getitem__(self, service_name: str):
+                return self._service_manager.get_async_proxy(service_name)
+        
+        # 每次调用都创建新的代理对象，避免并发冲突
+        return AsyncServiceProxy(self.ctx.service_manager)
 
     # @abstractmethod
     # def close(self, *args, **kwargs):
