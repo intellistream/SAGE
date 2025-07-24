@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, TYPE_CHECKING
 from sage_core.function.source_function import StopSignal
 from sage_runtime.router.packet import Packet
+from sage_utils.mmap_queue.sage_queue import SageQueue
 
 if TYPE_CHECKING:
     from sage_runtime.router.connection import Connection
@@ -36,7 +37,12 @@ class BaseRouter(ABC):
         """
         broadcast_index = connection.broadcast_index
         parallel_index = connection.parallel_index
-        
+        if connection.target_type == "local":
+            self.logger.debug(f"Adding local connection to {connection.target_name}")
+            connection.target_buffer = SageQueue(connection.target_name)
+            self.logger.debug(f"connection.target_buffer.get_stats(): {connection.target_buffer.get_stats()}")
+        else:  # 直接对ray节点通信
+            connection.target_buffer = connection.target_handle.get_input_buffer.remote()
         # Debug log
         self.logger.debug(
             f"Adding connection: broadcast_index={broadcast_index}, parallel_index={parallel_index}, target={connection.target_name}"
@@ -212,9 +218,10 @@ class BaseRouter(ABC):
             connection: 当前发送的目标连接
         """
         try:
+            self.logger.debug(f"Adjusting delay based on downstream load: {self.downstream_max_load:.3f}")
             # 获取当前delay
             current_delay = self.ctx.delay
-            self.logger.debug(f"Current delay: {current_delay:.3f}s")
+            self.logger.debug(f"Current delay: {self.ctx.delay* 1000 :.3f}ms")
             # 根据当前连接的负载调整delay
             new_delay = current_delay * (0.5 + self.downstream_max_load)
             if new_delay < 0.001:

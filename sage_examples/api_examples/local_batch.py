@@ -21,7 +21,7 @@ class NumberSequenceSource(SourceFunction):
         
         self.counter += 1
         number = self.counter * 10 + random.randint(1, 9)
-        print(f"[Source] Generating number {self.counter}/{self.max_count}: {number}")
+        self.logger.debug(f"[Source] Generating number {self.counter}/{self.max_count}: {number}")
         return number
 
 class FileLineSource(SourceFunction):
@@ -173,7 +173,7 @@ def run_processing_chain_test():
     print("⛓️  Test 4: Complex Processing Chain Batch")
     print("=" * 50)
     
-    env = RemoteEnvironment("complex_batch_test")  # 使用远程环境测试分布式批处理
+    env = LocalEnvironment("complex_batch_test")  # 使用远程环境测试分布式批处理
     
     source_stream = env.from_source(NumberSequenceSource, max_count=8, delay=0.3)
     

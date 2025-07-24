@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-SAGE Memory-Mapped Queue 测试脚本
-Test script for SAGE high-performance memory-mapped queue
+SAGE Memory-Mapped Queue 基本功能测试
+Basic functionality test for SAGE high-performance memory-mapped queue
 """
 
 import os
@@ -11,15 +11,15 @@ import multiprocessing
 import threading
 from typing import List, Dict, Any
 
-# 添加当前目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 添加上级目录到Python路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
     from sage_queue import SageQueue, SageQueueRef, destroy_queue
     print("✓ 成功导入 SageQueue")
 except ImportError as e:
     print(f"✗ 导入失败: {e}")
-    print("请先运行 ./build.sh 编译C库")
+    print("请先运行 ../build.sh 编译C库")
     sys.exit(1)
 
 
@@ -379,7 +379,7 @@ def cleanup_test_queues():
 
 def main():
     """主测试函数"""
-    print("SAGE Memory-Mapped Queue 测试套件")
+    print("SAGE Memory-Mapped Queue 基本功能测试套件")
     print("=" * 50)
     
     # 运行所有测试
@@ -393,7 +393,7 @@ def main():
     cleanup_test_queues()
     
     print("\n" + "=" * 50)
-    print("✓ 所有测试完成!")
+    print("✓ 所有基本功能测试完成!")
 
 
 if __name__ == "__main__":

@@ -1,8 +1,9 @@
+import os
 from typing import TYPE_CHECKING
 from sage_runtime.task.base_task import BaseTask
 from sage_runtime.utils.local_message_queue import LocalMessageQueue
 from sage_runtime.router.local_router import LocalRouter
-
+from sage_utils.mmap_queue import SageQueue
 if TYPE_CHECKING:
     from sage_jobmanager.factory.operator_factory import OperatorFactory
     from sage_runtime.runtime_context import RuntimeContext
@@ -25,8 +26,11 @@ class LocalTask(BaseTask):
 
         # === Local Message Queue 缓冲区 ===
         # 创建本地消息队列作为输入缓冲区
-        self.input_buffer = LocalMessageQueue()
-    
+        # env_mq_dir = runtime_context.env_base_dir
+        # queue_dir = os.path.join(env_mq_dir, self.ctx.name)
+        # self.logger.debug(f"Creating LocalMessageQueue at {queue_dir}")
+        self.local_input_buffer = SageQueue(self.ctx.name)
+        self.local_input_buffer.logger = self.ctx.logger
         
         # === 本地路由器 ===
         self.router = LocalRouter(runtime_context)

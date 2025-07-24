@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-SAGE Queue与Ray Actor集成示例
-Example of integrating SAGE Queue with Ray Actors for high-performance inter-actor communication
+SAGE Queue与Ray Actor集成测试
+Test for integrating SAGE Queue with Ray Actors for high-performance inter-actor communication
 """
 
 import os
@@ -10,15 +10,15 @@ import time
 import ray
 from typing import List, Dict, Any, Optional
 
-# 添加当前目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 添加上级目录到Python路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
     from sage_queue import SageQueue, SageQueueRef, destroy_queue
     print("✓ 成功导入 SageQueue")
 except ImportError as e:
     print(f"✗ 导入失败: {e}")
-    print("请先运行 ./build.sh 编译C库")
+    print("请先运行 ../build.sh 编译C库")
     sys.exit(1)
 
 

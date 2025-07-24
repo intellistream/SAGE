@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-SAGE Memory-Mapped Queue 基准测试
-Benchmark test for SAGE high-performance memory-mapped queue
+SAGE Memory-Mapped Queue 性能基准测试
+Performance benchmark test for SAGE high-performance memory-mapped queue
 """
 
 import os
@@ -14,14 +14,15 @@ import json
 from typing import List, Dict, Any, Tuple
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
-# 添加当前目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 添加上级目录到Python路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
     from sage_queue import SageQueue, SageQueueRef, destroy_queue
     print("✓ 成功导入 SageQueue")
 except ImportError as e:
     print(f"✗ 导入失败: {e}")
+    print("请先运行 ../build.sh 编译C库")
     sys.exit(1)
 
 
@@ -360,58 +361,52 @@ def benchmark_memory_efficiency() -> BenchmarkResult:
     return result
 
 
+def benchmark_multiprocess_worker(queue_name: str, worker_id: int, num_operations: int) -> Dict[str, Any]:
+    """多进程基准测试工作进程"""
+    try:
+        queue = SageQueue(queue_name)
+        
+        start_time = time.time()
+        completed = 0
+        
+        for i in range(num_operations):
+            message = {
+                'worker_id': worker_id,
+                'operation_id': i,
+                'timestamp': time.time(),
+                'data': f'process_{worker_id}_op_{i}'
+            }
+            
+            # Put message
+            queue.put(message, timeout=15.0)
+            
+            # Get message (might not be our own)
+            retrieved = queue.get(timeout=15.0)
+            
+            completed += 2  # put + get
+        
+        end_time = time.time()
+        queue.close()
+        
+        return {
+            'worker_id': worker_id,
+            'completed_operations': completed,
+            'duration': end_time - start_time,
+            'ops_per_second': completed / (end_time - start_time) if end_time > start_time else 0,
+            'success': True
+        }
+        
+    except Exception as e:
+        return {
+            'worker_id': worker_id,
+            'error': str(e),
+            'success': False
+        }
+
+
 def benchmark_multiprocess() -> BenchmarkResult:
     """多进程基准测试"""
     result = BenchmarkResult("多进程测试")
-    
-    # 导入外部 worker 函数
-    try:
-        from benchmark_workers import benchmark_multiprocess_worker
-        worker_process = benchmark_multiprocess_worker
-    except ImportError:
-        # 如果无法导入外部 worker，在顶层定义一个
-        def worker_process_fallback(queue_name: str, worker_id: int, num_operations: int) -> Dict[str, Any]:
-            try:
-                from sage_queue import SageQueue
-                queue = SageQueue(queue_name)
-                
-                start_time = time.time()
-                completed = 0
-                
-                for i in range(num_operations):
-                    message = {
-                        'worker_id': worker_id,
-                        'operation_id': i,
-                        'timestamp': time.time(),
-                        'data': f'process_{worker_id}_op_{i}'
-                    }
-                    
-                    # Put message
-                    queue.put(message, timeout=15.0)
-                    
-                    # Get message (might not be our own)
-                    retrieved = queue.get(timeout=15.0)
-                    
-                    completed += 2  # put + get
-                
-                end_time = time.time()
-                queue.close()
-                
-                return {
-                    'worker_id': worker_id,
-                    'completed': completed,
-                    'duration': end_time - start_time,
-                    'ops_per_sec': completed / (end_time - start_time) if end_time > start_time else 0
-                }
-                
-            except Exception as e:
-                return {
-                    'worker_id': worker_id,
-                    'error': str(e),
-                    'completed': 0
-                }
-        
-        worker_process = worker_process_fallback
     
     try:
         queue_name = f"bench_multiproc_{int(time.time())}"
@@ -419,17 +414,24 @@ def benchmark_multiprocess() -> BenchmarkResult:
         
         # 创建主队列
         main_queue = SageQueue(queue_name, maxsize=512*1024)  # 512KB buffer
-        main_queue.close()  # 关闭但不销毁
+        main_queue.close()  # 关闭主队列，让子进程使用
         
-        num_processes = min(4, multiprocessing.cpu_count())
-        operations_per_process = 50
+        # 测试参数
+        num_processes = 4
+        operations_per_process = 100
         
-        print(f"  启动 {num_processes} 个进程，每个执行 {operations_per_process} 次操作...")
+        print(f"  启动 {num_processes} 个进程，每个执行 {operations_per_process} 对操作...")
         
+        # 使用ProcessPoolExecutor执行
         with ProcessPoolExecutor(max_workers=num_processes) as executor:
             futures = []
             for worker_id in range(num_processes):
-                future = executor.submit(worker_process, queue_name, worker_id, operations_per_process)
+                future = executor.submit(
+                    benchmark_multiprocess_worker,
+                    queue_name,
+                    worker_id,
+                    operations_per_process
+                )
                 futures.append(future)
             
             # 收集结果
@@ -439,25 +441,31 @@ def benchmark_multiprocess() -> BenchmarkResult:
                     worker_result = future.result(timeout=60)
                     worker_results.append(worker_result)
                 except Exception as e:
-                    worker_results.append({'error': str(e), 'completed': 0})
+                    worker_results.append({
+                        'error': str(e),
+                        'success': False
+                    })
         
         # 分析结果
-        successful_workers = [r for r in worker_results if 'error' not in r]
-        total_completed = sum(r['completed'] for r in successful_workers)
-        avg_ops_per_sec = statistics.mean([r['ops_per_sec'] for r in successful_workers]) if successful_workers else 0
+        successful_workers = [r for r in worker_results if r.get('success', False)]
+        total_operations = sum(r['completed_operations'] for r in successful_workers)
+        avg_ops_per_sec = statistics.mean([r['ops_per_second'] for r in successful_workers]) if successful_workers else 0
         
         print(f"    成功进程: {len(successful_workers)}/{num_processes}")
-        print(f"    总操作数: {total_completed}")
+        print(f"    总操作数: {total_operations}")
         print(f"    平均性能: {avg_ops_per_sec:.0f} ops/s per process")
         
         destroy_queue(queue_name)
         
-        result.finish(True, 
-                     processes=num_processes,
-                     successful_processes=len(successful_workers),
-                     total_operations=total_completed,
-                     avg_ops_per_sec=avg_ops_per_sec,
-                     worker_results=worker_results)
+        multiprocess_stats = {
+            'num_processes': num_processes,
+            'successful_processes': len(successful_workers),
+            'total_operations': total_operations,
+            'avg_ops_per_second': avg_ops_per_sec,
+            'worker_results': successful_workers
+        }
+        
+        result.finish(True, multiprocess_performance=multiprocess_stats)
         
     except Exception as e:
         result.finish(False, error=str(e))
@@ -469,69 +477,77 @@ def benchmark_multiprocess() -> BenchmarkResult:
     return result
 
 
-def run_benchmarks():
+def run_all_benchmarks():
     """运行所有基准测试"""
-    print("SAGE Memory-Mapped Queue 基准测试套件")
+    print("SAGE Memory-Mapped Queue 性能基准测试")
     print("=" * 60)
+    print()
     
+    # 基准测试函数列表
     benchmarks = [
         benchmark_throughput,
         benchmark_latency,
-        benchmark_concurrent_access,
         benchmark_memory_efficiency,
+        benchmark_concurrent_access,
         benchmark_multiprocess,
     ]
     
     results = []
     
     for benchmark_func in benchmarks:
-        print(f"\n运行 {benchmark_func.__doc__ or benchmark_func.__name__}...")
+        print(f"运行 {benchmark_func.__doc__ or benchmark_func.__name__}...")
         try:
             benchmark_result = benchmark_func()
             results.append(benchmark_result)
             
             if benchmark_result.success:
-                print(f"✓ 完成 ({benchmark_result.duration:.1f}s)")
+                print(f"✓ {benchmark_result.name} 完成 ({benchmark_result.duration:.2f}s)")
             else:
-                print(f"✗ 失败: {benchmark_result.metrics.get('error', 'Unknown error')}")
-                
+                print(f"✗ {benchmark_result.name} 失败: {benchmark_result.metrics.get('error', 'Unknown error')}")
+            
+            print()
+            
         except Exception as e:
-            print(f"✗ 执行异常: {e}")
-            failed_result = BenchmarkResult(benchmark_func.__name__)
-            failed_result.finish(False, error=str(e))
-            results.append(failed_result)
+            print(f"✗ {benchmark_func.__name__} 执行异常: {e}")
+            print()
     
-    # 生成报告
-    print("\n" + "=" * 60)
-    print("基准测试报告")
+    # 生成汇总报告
+    print("=" * 60)
+    print("基准测试结果汇总:")
     print("-" * 60)
     
-    successful = 0
-    failed = 0
+    successful_tests = sum(1 for r in results if r.success)
+    total_tests = len(results)
     
-    for benchmark_result in results:
-        if benchmark_result.success:
-            print(f"✓ {benchmark_result.name}: {benchmark_result.duration:.1f}s")
-            successful += 1
-        else:
-            print(f"✗ {benchmark_result.name}: 失败")
-            failed += 1
+    print(f"成功测试: {successful_tests}/{total_tests}")
+    print(f"总耗时: {sum(r.duration for r in results):.1f}秒")
+    print("-" * 60)
     
-    print(f"\n总计: {successful} 成功, {failed} 失败")
+    for result in results:
+        status = "✓" if result.success else "✗"
+        print(f"{status} {result.name}: {result.duration:.2f}s")
     
-    # 保存详细结果到JSON
+    # 保存详细结果到文件
+    timestamp = int(time.time())
+    report_file = f"benchmark_report_{timestamp}.json"
+    
     report_data = {
-        'timestamp': time.time(),
+        'timestamp': timestamp,
+        'test_suite': 'SAGE Memory-Mapped Queue Benchmark',
+        'summary': {
+            'total_tests': total_tests,
+            'successful_tests': successful_tests,
+            'total_duration': sum(r.duration for r in results)
+        },
         'results': [r.to_dict() for r in results]
     }
     
-    report_file = f"benchmark_report_{int(time.time())}.json"
     with open(report_file, 'w', encoding='utf-8') as f:
-        json.dump(report_data, f, indent=2, ensure_ascii=False)
+        json.dump(report_data, f, indent=2, default=str)
     
-    print(f"详细报告已保存到: {report_file}")
+    print(f"\n📊 详细报告已保存到: {report_file}")
     
-    return successful == len(benchmarks)
+    return successful_tests == total_tests
 
 
 if __name__ == "__main__":
@@ -542,5 +558,5 @@ if __name__ == "__main__":
         except RuntimeError:
             pass
     
-    success = run_benchmarks()
+    success = run_all_benchmarks()
     sys.exit(0 if success else 1)

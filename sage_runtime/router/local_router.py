@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING
 from sage_runtime.router.base_router import BaseRouter
 from sage_runtime.router.packet import Packet
+from sage_utils.mmap_queue.sage_queue import SageQueue
 
 if TYPE_CHECKING:
     from sage_runtime.router.connection import Connection

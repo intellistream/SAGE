@@ -73,7 +73,7 @@ class ActorWrapper:
     def __repr__(self):
         return f"ActorWrapper[{self._execution_mode}]({repr(self._obj)})"
     
-    def get_wrapped_object(self):
+    def get_object(self):
         """获取被包装的原始对象"""
         return self._obj
     

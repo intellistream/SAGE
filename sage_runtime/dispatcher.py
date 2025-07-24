@@ -2,6 +2,7 @@ import os
 import time
 from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
 from sage_runtime.task.base_task import BaseTask
+from sage_utils.actor_wrapper import ActorWrapper
 from sage_runtime.router.connection import Connection
 from sage_utils.custom_logger import CustomLogger
 import ray
@@ -29,7 +30,7 @@ class Dispatcher():
             name = f"Environment_{self.name}",
         )
         # self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
-        self.tasks: Dict[str, BaseTask] = {}
+        self.tasks: Dict[str, Union[BaseTask, ActorWrapper]] = {}
         self.is_running: bool = False
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
         if env.platform is "remote":
@@ -111,8 +112,9 @@ class Dispatcher():
                     broadcast_index=broadcast_index,
                     parallel_index=parallel_index,
                     target_name=target_name,
-                    target_input_buffer = target_handle.get_input_buffer(),
-                    target_input_index = target_input_index
+                    target_handle=target_handle.get_object(),
+                    target_input_index = target_input_index,
+                    target_type="local"
                 )
                 try:
                     output_handle.add_connection(connection)

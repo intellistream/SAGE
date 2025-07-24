@@ -39,10 +39,9 @@ class CustomFileSource(SourceFunction):
             self.hf_split  = config.get("hf_split", "train")
         else:
             raise ValueError(f"Unsupported source.type: {self.source_type}")
+        self._iter = None
 
-    def execute(self):
-        # 在开始时打印一次，确认走的分支和路径
-        print(f"[CustomFileSource] mode={self.source_type}, path={getattr(self, 'path', self.hf_name)}")
+    def _build_iter(self):
         if self.source_type == "local":
             with open(self.path, "r", encoding="utf-8") as f:
                 for line in f:
@@ -52,20 +51,28 @@ class CustomFileSource(SourceFunction):
                         "query":      item.get("question", ""),
                         "references": golds
                     }
-
-        elif self.source_type == "hf":
+        else:  # hf
             from datasets import load_dataset
             ds = load_dataset(self.hf_name, self.hf_config, split=self.hf_split)
-            for ex in ds:
-                golds = ex.get("golden_answers") or ex.get("answers") or []
-                yield {
-                    "query":      ex.get("question", ""),
-                    "references": golds
-                }
+            return (
+                {
+                    "query": ex.get("question", ""),
+                    "references": ex.get("golden_answers") or ex.get("answers") or []
+                } for ex in ds
+            )
 
-        else:
-            # 不会走到这里
-            raise RuntimeError(f"Unknown source.type {self.source_type}")
+    def execute(self):
+        if self._iter is None:
+            self.logger.debug(f"Initializing data source: {self.source_type}")
+            print(f"[CustomFileSource] mode={self.source_type}, path={getattr(self, 'path', self.hf_name)}")
+            self._iter = self._build_iter()
+        try:
+            self.logger.debug("Fetching next data item from source")
+            data = next(self._iter)
+            self.logger.debug(f"Yielding data: {data}")
+            return data
+        except StopIteration:
+            return None
 
 
 class TimeDenseRetriever(MapFunction):
@@ -76,13 +83,12 @@ class TimeDenseRetriever(MapFunction):
 
     def execute(self, data: dict):
         start = time.time()
-        query, chunks = self.retriever.execute(data["query"])
+        chunks = list(self.retriever.execute(data["query"]))
         data["retrieval_time"] = time.time() - start
         data["retrieved_docs"] = [
             c["text"] if isinstance(c, dict) else c
             for c in chunks
         ]
-        data["query"] = query
         return data
 
 
@@ -152,7 +158,7 @@ def pipeline_run(config):
         .map(TimeGenerator, config["generator"]["vllm"])  ## ———— 一行切换本地, vllm or 远程模型 ————
         .map(F1Evaluate, config["evaluate"])
         .map(RecallEvaluate, config["evaluate"])
-        .map(BertRecallEvaluate, config["evaluate"])
+        # .map(BertRecallEvaluate, config["evaluate"])
         .map(RougeLEvaluate, config["evaluate"])
         .map(BRSEvaluate, config["evaluate"])
         .map(AccuracyEvaluate, config["evaluate"])
@@ -169,3 +175,12 @@ def pipeline_run(config):
 if __name__ == "__main__":
     config = load_config("config/config_refiner.yaml")
     pipeline_run(config)
+
+
+
+
+
+
+
+
+
