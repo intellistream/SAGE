@@ -4,7 +4,6 @@
 #include "index/ivf.h"
 
 #include <memory>
-#include <utility>
 
 namespace sage_flow {
 
@@ -15,9 +14,9 @@ auto CreateIndex(IndexType type,
     case IndexType::kBruteForce:
       return std::make_unique<BruteForceIndex>(std::move(memory_pool));
     case IndexType::kHnsw:
-      return {std::make_unique<HNSW>(std::move(memory_pool))};
+      return std::make_unique<HNSW>(std::move(memory_pool));
     case IndexType::kIvf:
-      return {std::make_unique<IVF>(std::move(memory_pool))};
+      return std::make_unique<IVF>(std::move(memory_pool));
     case IndexType::kAdaIvf:
     case IndexType::kVectraFlow:
     case IndexType::kVamana:
@@ -30,14 +29,6 @@ auto CreateIndex(IndexType type,
       // For now, use brute force as fallback for all unimplemented types
       return std::make_unique<BruteForceIndex>(std::move(memory_pool));
   }
-}
-
-auto CreateKnnOperator(std::shared_ptr<MemoryPool> memory_pool) -> std::unique_ptr<KnnOperator> {
-  return std::make_unique<KnnOperator>(std::move(memory_pool));
-}
-
-auto CreateTopKOperator(std::shared_ptr<MemoryPool> memory_pool) -> std::unique_ptr<ITopKOperator> {
-  return std::make_unique<TopKOperator>(std::move(memory_pool));
 }
 
 }  // namespace sage_flow

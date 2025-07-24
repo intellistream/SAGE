@@ -40,8 +40,15 @@ set(SAGE_FLOW_SOURCES
   src/operator/operator.cpp
   src/function/text_processing.cpp
   src/index/index_operators.cpp
+  src/index/brute_force_index.cpp
   src/index/hnsw.cpp
   src/index/ivf.cpp
+  src/memory/memory_pool.cpp
+  src/environment/sage_flow_environment.cpp
+  src/sources/file_data_source.cpp
+  src/sources/stream_data_source.cpp
+  src/sources/kafka_data_source.cpp
+  src/sources/data_source_factory.cpp
 )
 
 # 目标库定义
