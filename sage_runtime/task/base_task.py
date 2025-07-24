@@ -30,7 +30,6 @@ class BaseTask(ABC):
             self.operator.task = self
         except Exception as e:
             self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
-            raise
 
 
     def start_running(self):
@@ -95,10 +94,8 @@ class BaseTask(ABC):
                     self.logger.debug(f"Running spout node '{self.name}'")
                     self.operator.receive_packet(None)
                     # TODO: 做一个下游缓冲区反压机制，因为引入一个手动延迟实在是太呆了
-                    # Issue URL: https://github.com/intellistream/SAGE/issues/335
-                    # sleep时间太短对kernel来说就没有意义了。
-                    if self.delay > 0.002:
-                        time.sleep(self.delay)
+                    # Issue URL: https://github.com/intellistream/SAGE/issues/367
+                    time.sleep(self.delay)
                 else:
                     
                     # For non-spout nodes, fetch input and process
@@ -106,13 +103,11 @@ class BaseTask(ABC):
                     try:
                         data_packet = self.input_buffer.get(timeout=0.5)
                     except Empty as e:
-                        if self.delay > 0.002:
-                            time.sleep(self.delay)
+                        time.sleep(0.01)
                         continue
                     self.logger.debug(f"Node '{self.name}' received data packet: {data_packet}, type: {type(data_packet)}")
                     if data_packet is None:
-                        if self.delay > 0.002:
-                            time.sleep(self.delay)
+                        time.sleep(0.01)
                         continue
                     self.operator.receive_packet(data_packet)
             except Exception as e:

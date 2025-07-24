@@ -292,6 +292,7 @@ public class ExecutionEnvironmentImpl implements ExecutionEnvironment {
                 jobClient.getJobExecutionResult().get();
             }
             // TODO Supports accumulator.
+            // Issue URL: https://github.com/intellistream/SAGE/issues/344
         } catch (Throwable t) {
             // get() on the JobExecutionResult Future will throw an ExecutionException. This
             // behaviour was largely not there in Flink versions before the PipelineExecutor
@@ -310,6 +311,7 @@ public class ExecutionEnvironmentImpl implements ExecutionEnvironment {
 
         try {
             // TODO Supports job listeners.
+            // Issue URL: https://github.com/intellistream/SAGE/issues/343
             return jobClientFuture.get();
         } catch (ExecutionException executionException) {
             final Throwable strippedException =

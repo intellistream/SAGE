@@ -141,6 +141,7 @@ public abstract class AbstractFileSource<T, SplitT extends FileSourceSplit>
         final Collection<FileSourceSplit> splits;
         try {
             // TODO - in the next cleanup pass, we should try to remove the need to "wrap unchecked"
+            // Issue URL: https://github.com/intellistream/SAGE/issues/342
             // here
             splits = enumerator.enumerateSplits(inputPaths, enumContext.currentParallelism());
         } catch (IOException e) {

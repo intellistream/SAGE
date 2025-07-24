@@ -12,6 +12,7 @@ namespace sage_flow {
  * index creation and basic memory management needs.
  * 
  * TODO(developer): Implement full memory pool functionality
+ Issue URL: https://github.com/intellistream/SAGE/issues/350
  * when more sophisticated memory management is required.
  */
 class MemoryPool {

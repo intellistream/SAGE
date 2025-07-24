@@ -151,6 +151,7 @@ PYBIND11_MODULE(sage_flow_py, m) {
         .def_readwrite("ivf_nprobe_", &sage_flow::IndexConfig::ivf_nprobe_, "IVF nprobe parameter");
     
     // TODO(developer): Add Index base class binding when all implementations are ready
+    // Issue URL: https://github.com/intellistream/SAGE/issues/364
     // Currently disabled due to undefined symbol issues with abstract base class
     
     // Index base class (abstract)
@@ -227,5 +228,6 @@ PYBIND11_MODULE(sage_flow_py, m) {
              "Run in batch mode");
     
     // TODO(developer): Add specific index implementations when they're ready
+    // Issue URL: https://github.com/intellistream/SAGE/issues/363
     // - HNSW, IVF, Vamana, DynaGraph, AdaIVF, FreshVamana, SPFresh, VectraFlow
 }

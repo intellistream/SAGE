@@ -135,6 +135,7 @@ auto MultiModalMessage::serialize() const -> std::vector<uint8_t> {
   // Placeholder implementation - would use Protocol Buffers in production
   std::vector<uint8_t> result;
   // TODO(xinyan): Implement proper serialization
+  // Issue URL: https://github.com/intellistream/SAGE/issues/362
   return result;
 }
 
@@ -142,6 +143,7 @@ auto MultiModalMessage::deserialize(const std::vector<uint8_t>& data) -> std::un
   // Placeholder implementation - would use Protocol Buffers in production
   (void)data; // Suppress unused parameter warning
   // TODO(xinyan): Implement proper deserialization
+  // Issue URL: https://github.com/intellistream/SAGE/issues/361
   return std::make_unique<MultiModalMessage>(0);
 }
 
