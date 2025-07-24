@@ -1,5 +1,8 @@
-import os, yaml
-from typing import Tuple, List
+import os
+import yaml
+from typing import Tuple, List, Any
+from collections import deque
+
 from sage_core.function.map_function import MapFunction
 from sage_core.function.base_function import StatefulFunction
 from sage_utils.clients.generator_model import apply_generator_model
@@ -8,125 +11,120 @@ from sage_utils.state_persistence import load_function_state, save_function_stat
 
 class OpenAIGenerator(MapFunction):
     """
-    OpenAIGenerator is a generator rag that interfaces with a specified OpenAI model
-    to generate responses based on input data.
+    生成节点：调用 OpenAI-Compatible / VLLM / DashScope 等端点。
+
+    调用方式::
+        sub_conf = config["generator"]["vllm"]   # <- 单端点子配置
+        gen = OpenAIGenerator(sub_conf)
+
+    其中 `sub_conf` 结构示例::
+
+        {
+          "method":     "openai",
+          "model_name": "gpt-4o-mini",
+          "base_url":   "http://localhost:8000/v1",
+          "api_key":    "xxx",
+          "seed":       42
+        }
     """
 
-    def __init__(self, config, generator_deployment, **kwargs):
+    def __init__(self, config: dict, **kwargs):
         super().__init__(**kwargs)
 
-        """
-        Initializes the OpenAIGenerator instance with configuration parameters.
+        # 直接持有子配置
+        self.config = config
 
-        :param config: Dictionary containing configuration for the generator, including 
-                       the method, model name, base URL, API key, etc.
-        """
-        # Apply the generator model with the provided configuration
-        self.config = config[generator_deployment]
+        # 实例化模型
         self.model = apply_generator_model(
             method=self.config["method"],
             model_name=self.config["model_name"],
             base_url=self.config["base_url"],
             api_key=self.config["api_key"] or os.getenv("ALIBABA_API_KEY"),
-            seed=42  # Hardcoded seed for reproducibility
+            seed=self.config.get("seed", 42),
         )
         self.num = 1
 
-    # 其中原有的**kwargs应该由函数内部或者data内部提供
-    def execute(self, data: list) -> Tuple[str, str]:
+    def execute(self, data: List[Any]) -> Tuple[str, str]:
         """
-        Executes the response generation using the configured model based on the input data.
-
-        :param data: Data object containing a list of input data.
-                     The second item in the list is expected to be a dictionary with a "content" key that contains the user's query.
-        :param kwargs: Additional parameters for the model generation (e.g., temperature, max_tokens, etc.).
-
-        :return: A Data object containing a tuple (user_query, response), where user_query is the original input query,
-                and response is the generated response from the model.
+        输入 : [user_query, prompt]  *或*  [prompt]
+        输出 : (user_query | None, generated_text)
         """
-        # Extract the user query from the input data
         user_query = data[0] if len(data) > 1 else None
-
-        prompt = data[1] if len(data) > 1 else data
+        prompt = data[1] if len(data) > 1 else data[0]
 
         response = self.model.generate(prompt)
-
         self.num += 1
 
-        self.logger.info(f"[ {self.__class__.__name__}]: Response: {response}")
-
-        # Return the generated response along with the original user query as a tuple
-        return (user_query, response)
+        self.logger.info(f"[{self.__class__.__name__}] Response: {response}")
+        return user_query, response
 
 
 class OpenAIGeneratorWithHistory(StatefulFunction):
     """
-    OpenAIGenerator with global dialogue memory.
-    Maintains a rolling history of past user and assistant turns (stateful).
+    带滚动对话历史的生成节点。
+    子配置格式与 OpenAIGenerator 相同，并可额外设置 ::
+
+        {
+          ...,
+          "max_history_turns": 5
+        }
     """
 
-    def __init__(self, config, generator_deployment, **kwargs):
+    def __init__(self, config: dict, **kwargs):
         super().__init__(**kwargs)
-        self.config = config[generator_deployment]
+
+        # 子配置直接使用
+        self.config = config
         self.model = apply_generator_model(
             method=self.config["method"],
             model_name=self.config["model_name"],
             base_url=self.config["base_url"],
             api_key=self.config["api_key"] or os.getenv("ALIBABA_API_KEY"),
-            seed=42  # Hardcoded seed for reproducibility
+            seed=self.config.get("seed", 42),
         )
-        # 全局历史状态，按对话轮次记录字符串
-        self.dialogue_history: List[str] = []
-        self.history_turns = config.get("max_history_turns", 5)
+
+        # 对话历史
+        self.dialogue_history: List[dict] = []
+        self.history_turns = self.config.get("max_history_turns", 5)
         self.num = 1
 
+        # 尝试恢复历史
         base = os.path.join(self.ctx.session_folder, ".sage_checkpoints")
         os.makedirs(base, exist_ok=True)
-        path = os.path.join(base, f"{self.ctx.name}.chkpt")
-        load_function_state(self, path)
+        self.chkpt_path = os.path.join(base, f"{self.ctx.name}.chkpt")
+        load_function_state(self, self.chkpt_path)
 
-    def execute(self, data: List, **kwargs) -> Tuple[str, str]:
+    def execute(self, data: List[Any], **kwargs) -> Tuple[str, str]:
         """
-        Expects input data: [user_query, prompt_dict]
-        Where prompt_dict includes {"content": ...}
+        期望输入 : [user_query, prompt_list]
+        prompt_list == [{"role": "user"/"system", "content": ...}, ...]
         """
-        # 延迟恢复：在首次执行前根据 runtime_context 恢复状态
-
         user_query = data[0] if len(data) > 1 else None
-        prompt_info = data[1] if len(data) > 1 else data
+        prompt_info = data[1] if len(data) > 1 else data[0]
 
-        new_turns = [entry for entry in prompt_info if entry["role"] in ("user", "system")]
-
+        new_turns = [e for e in prompt_info if e["role"] in ("user", "system")]
         history_to_use = self.dialogue_history[-2 * self.history_turns:]
         full_prompt = history_to_use + new_turns
 
         self.logger.debug(f"[Prompt with history]:\n{full_prompt}")
-
         response = self.model.generate(full_prompt, **kwargs)
 
+        # 更新历史
         for entry in new_turns:
             if entry["role"] == "user":
                 self.dialogue_history.append(entry)
         self.dialogue_history.append({"role": "assistant", "content": response})
-        self.dialogue_history = self.dialogue_history[-2 * self.history_turns:]  # 保留最近 N 轮
+        self.dialogue_history = self.dialogue_history[-2 * self.history_turns:]
 
         self.logger.info(f"\033[32m[{self.__class__.__name__}] Response: {response}\033[0m")
 
-        # —— 自动持久化：每次 execute 后保存状态 ——
-        base = os.path.join(self.ctx.session_folder, ".sage_checkpoints")
-        os.makedirs(base, exist_ok=True)
-        path = os.path.join(base, f"{self.ctx.name}.chkpt")
-        save_function_state(self, path)
-        return (user_query, response)
+        # 自动持久化
+        save_function_state(self, self.chkpt_path)
+        return user_query, response
 
+    # 手动保存接口（可选）
     def save_state(self):
-        """
-        手动触发：持久化当前 dialogue_history，用于测试调用。
-        """
-        base = os.path.join(self.ctx.session_folder, ".sage_checkpoints")
-        os.makedirs(base, exist_ok=True)
-        path = os.path.join(base, f"{self.ctx.name}.chkpt")
-        save_function_state(self, path)
+        save_function_state(self, self.chkpt_path)
 
 
 class HFGenerator(MapFunction):
