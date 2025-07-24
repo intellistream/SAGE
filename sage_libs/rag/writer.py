@@ -37,7 +37,6 @@ class MemoryWriter(MapFunction):
             }
         # TODO: 在runtime_context中增加状态管理
         # Issue URL: https://github.com/intellistream/SAGE/issues/235
-        # state = getRuntimeContext().getState(xxx)
 
 
     def execute(self, data: Union[str, List[str], Tuple[str, str]]):

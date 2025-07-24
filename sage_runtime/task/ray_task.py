@@ -28,7 +28,8 @@ class RayTask(BaseTask):
 
         # === Ray Queue 缓冲区 ===
         # 创建Ray Queue（这是一个Ray对象，自动支持跨进程）
-        self.input_buffer = RayQueue(maxsize=1000)
+        # 这个maxsize指的是物理字节容量
+        self.input_buffer = RayQueue(maxsize=10000)
         # === 路由器 ===
         self.router = RayRouter(runtime_context)
         self.operator.router = self.router

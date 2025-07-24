@@ -9,15 +9,13 @@ from sage_runtime.runtime_context import RuntimeContext
 
 class LocalMessageQueue:
 
-    def __init__(self, ctx:RuntimeContext):
-        self.queue = queue.Queue(maxsize=50000)
-        self.name = ctx.name
+    def __init__(self, max_size: int = 30000):
+        self.queue = queue.Queue(max_size)
         self.total_task = 0
-        self.max_buffer_size = 30000  # 总内存限制（字节）
+        self.maxsize = max_size  # 总内存限制（字节）
         self.current_buffer_usage = 0 # 当前使用的内存（字节）
         self.memory_tracker = {}  # 跟踪每个项目的内存大小 {id(item): size}
         # self.task_per_minute = 0
-        self.logger = ctx.logger
         self.timestamps = deque()
         self.lock = threading.Lock()
         self.buffer_condition = threading.Condition(self.lock)  # 用于内存空间通知
@@ -61,7 +59,7 @@ class LocalMessageQueue:
         """
         队列是否满了
         """
-        return self.current_buffer_usage >= self.max_buffer_size
+        return self.current_buffer_usage >= self.maxsize
 
     def is_empty(self):
         """
@@ -76,13 +74,12 @@ class LocalMessageQueue:
         """
         # 估算项目大小
         item_size = self._estimate_size(item)
-        self.logger.debug(f"Putting item of size {item_size} bytes into queue '{self.name}', current usage: {self.current_buffer_usage} bytes")
         if block:
             end_time = None if timeout is None else time.time() + timeout
 
             with self.buffer_condition:
                 # 等待直到有足够的空间
-                while self.current_buffer_usage + item_size > self.max_buffer_size:
+                while self.current_buffer_usage + item_size > self.maxsize:
                     if timeout is None:
                         self.buffer_condition.wait()
                     else:
@@ -96,7 +93,7 @@ class LocalMessageQueue:
         else:
             with self.lock:
                 # 立即检查是否可以添加
-                if self.current_buffer_usage + item_size > self.max_buffer_size:
+                if self.current_buffer_usage + item_size > self.maxsize:
                     raise queue.Full("Memory limit exceeded")
                 self._do_put(item, item_size)
 
@@ -159,8 +156,8 @@ class LocalMessageQueue:
                 # 添加以下内存相关的指标
                 "memory_usage_bytes": self.current_buffer_usage,
                 "memory_usage_percent": (
-                                                    self.current_buffer_usage / self.max_buffer_size) * 100 if self.max_buffer_size > 0 else 0,
-                "memory_limit_bytes": self.max_buffer_size
+                                                    self.current_buffer_usage / self.maxsize) * 100 if self.maxsize > 0 else 0,
+                "memory_limit_bytes": self.maxsize
             }
 
 

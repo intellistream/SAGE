@@ -8,31 +8,49 @@ setup_cli_tools() {
     log_info "Setting up SAGE command line tools..."
     
     local script_dir=$(get_script_dir)
-    local controller_script="$script_dir/jobmanager_controller.py"
+    local wrapper_script="$script_dir/sage_jm_wrapper.sh"
+    local controller_script="$(dirname "$script_dir")/app/jobmanager_controller.py"
     local symlink_path="$CLI_SYMLINK_PATH"
+    
+    # 检查是否已经进行了系统级安装
+    if [ -f "/usr/local/lib/sage/sage_jm_wrapper.sh" ] && [ -L "/usr/local/bin/sage-jm" ]; then
+        local current_target=$(readlink "/usr/local/bin/sage-jm")
+        if [ "$current_target" = "/usr/local/lib/sage/sage_jm_wrapper.sh" ]; then
+            log_success "System-level CLI installation detected"
+            log_info "sage-jm command is managed by system installation"
+            return 0
+        fi
+    fi
+    
+    # 检查 wrapper 脚本是否存在
+    if [ ! -f "$wrapper_script" ]; then
+        log_error "JobManager wrapper script not found at $wrapper_script"
+        log_info "Consider running system installation: sudo ./deployment/install_system.sh"
+        return 1
+    fi
     
     # 检查 controller 脚本是否存在
     if [ ! -f "$controller_script" ]; then
-        log_warning "JobManager controller script not found at $controller_script"
+        log_error "JobManager controller script not found at $controller_script"
         return 1
     fi
     
     # 使脚本可执行
-    if chmod +x "$controller_script" 2>/dev/null; then
-        log_success "Controller script made executable"
+    if chmod +x "$wrapper_script" "$controller_script" 2>/dev/null; then
+        log_success "CLI scripts made executable"
     else
-        log_warning "Failed to make controller script executable (permission denied)"
-        log_info "You may need to run: chmod +x $controller_script"
+        log_warning "Failed to make CLI scripts executable (permission denied)"
+        log_info "You may need to run: chmod +x $wrapper_script $controller_script"
     fi
     
     # 检查是否已存在符号链接
     if [ -L "$symlink_path" ]; then
         local current_target=$(readlink "$symlink_path")
-        if [ "$current_target" = "$controller_script" ]; then
+        if [ "$current_target" = "$wrapper_script" ]; then
             log_success "Command line tool 'sage-jm' is already set up"
             return 0
         else
-            log_info "Updating existing sage-jm symlink"
+            log_info "Updating existing sage-jm symlink to use wrapper script"
             sudo rm -f "$symlink_path"
         fi
     elif [ -f "$symlink_path" ]; then
@@ -41,9 +59,9 @@ setup_cli_tools() {
         return 1
     fi
     
-    # 创建符号链接
-    if sudo ln -s "$controller_script" "$symlink_path" 2>/dev/null; then
-        log_success "Command line tool 'sage-jm' installed successfully"
+    # 创建符号链接，指向wrapper脚本而不是直接指向controller
+    if sudo ln -s "$wrapper_script" "$symlink_path" 2>/dev/null; then
+        log_success "Command line tool 'sage-jm' installed successfully (using wrapper script)"
         
         # 验证安装
         if command -v sage-jm >/dev/null 2>&1; then
@@ -57,7 +75,7 @@ setup_cli_tools() {
     else
         log_warning "Failed to create sage-jm symlink (sudo required)"
         log_info "To manually install the command line tool, run:"
-        log_info "  sudo ln -s $controller_script $symlink_path"
+        log_info "  sudo ln -s $wrapper_script $symlink_path"
         return 1
     fi
 }
@@ -185,7 +203,7 @@ show_cli_usage_guide() {
         echo "  To set it up, run:"
         echo "    $0 install-cli"
         echo "  Or manually:"
-        echo "    sudo ln -s $(get_script_dir)/jobmanager_controller.py $CLI_SYMLINK_PATH"
+        echo "    sudo ln -s $(dirname "$(get_script_dir)")/app/jobmanager_controller.py $CLI_SYMLINK_PATH"
         echo
     fi
     
@@ -217,5 +235,5 @@ get_cli_info() {
         echo "Expected location: $CLI_SYMLINK_PATH"
     fi
     
-    echo "Controller script: $(get_script_dir)/jobmanager_controller.py"
+    echo "Controller script: $(dirname "$(get_script_dir)")/app/jobmanager_controller.py"
 }

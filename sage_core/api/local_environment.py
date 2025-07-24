@@ -16,14 +16,8 @@ class LocalEnvironment(BaseEnvironment):
         self._engine_client = None
 
     def submit(self):
-        # 序列化环境
+        # 如果需要阻塞，就在用户程序里自己写个循环阻塞。
         env_uuid = self.jobmanager.submit_job(self)
-        
-        if env_uuid:
-            self.env_uuid = env_uuid
-            self.logger.info(f"Environment submitted with UUID: {self.env_uuid}")
-        else:
-            raise RuntimeError("Failed to submit environment: no UUID returned")
 
     @property
     def jobmanager(self) -> 'JobManager':

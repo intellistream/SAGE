@@ -409,18 +409,6 @@ class BaseEnvironment(ABC):
     @abstractmethod
     def submit(self):
         pass
-        # 序列化环境
-        from sage_utils.serialization.dill_serializer import serialize_object
-        serialized_env = serialize_object(self)
-        
-        # 通过jobmanager属性提交job
-        env_uuid = self.jobmanager.submit_job(serialized_env)
-        
-        if env_uuid:
-            self.env_uuid = env_uuid
-            self.logger.info(f"Environment submitted with UUID: {self.env_uuid}")
-        else:
-            raise RuntimeError("Failed to submit environment: no UUID returned")
 
     def stop(self):
         """停止管道运行"""

@@ -20,7 +20,8 @@ check_daemon_status() {
         fi
         
         # 尝试健康检查
-        local health_check=$(python3 -c "
+        local python_cmd=$(get_python_env_command "sage")
+        local health_check=$($python_cmd -c "
 import sys
 sys.path.append('$project_root')
 try:
@@ -88,6 +89,12 @@ start_daemon() {
         project_root="$(dirname "$script_dir")"
     fi
     
+    # 获取Python环境命令
+    local python_cmd=$(get_python_env_command "sage")
+    local env_info=$(get_python_env_info)
+    log_info "Python Environment: $env_info"
+    log_info "Using Python command: $python_cmd"
+    
     # 设置 Python 路径
     export PYTHONPATH="$project_root:$PYTHONPATH"
     
@@ -95,7 +102,7 @@ start_daemon() {
     mkdir -p "$sage_log_dir/daemon"
     
     # 后台启动守护进程 - 使用绝对路径确保正确执行
-    local daemon_script="$project_root/deployment/jobmanager_daemon.py"
+    local daemon_script="$project_root/deployment/app/jobmanager_daemon.py"
     local daemon_log="$sage_log_dir/daemon/sage_daemon.log"
     
     if [ ! -f "$daemon_script" ]; then
@@ -103,7 +110,8 @@ start_daemon() {
         return 1
     fi
     
-    nohup python3 "$daemon_script" \
+    # 使用环境感知的nohup命令启动daemon
+    nohup $python_cmd "$daemon_script" \
         --host "$daemon_host" \
         --port "$daemon_port" \
         --actor-name "$actor_name" \
@@ -222,7 +230,8 @@ get_daemon_info() {
         fi
         
         # 显示 Actor 信息
-        local actor_info=$(python3 -c "
+        local python_cmd=$(get_python_env_command "sage")
+        local actor_info=$($python_cmd -c "
 import sys
 sys.path.append('$project_root')
 try:
