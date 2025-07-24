@@ -4,7 +4,6 @@ from datetime import datetime
 import os
 from pathlib import Path
 from typing import List, Optional, TYPE_CHECKING, Type, Union, Any
-from sage_core.function.base_function import BaseFunction
 from sage_core.function.lambda_function import wrap_lambda
 import sage_memory.api
 from sage_core.api.datastream import DataStream
@@ -16,9 +15,10 @@ from sage_utils.custom_logger import CustomLogger
 from sage_jobmanager.utils.name_server import get_name
 from sage_core.jobmanager_client import JobManagerClient
 from sage_utils.actor_wrapper import ActorWrapper
+from sage_jobmanager.factory.service_factory import ServiceFactory
 if TYPE_CHECKING:
     from sage_jobmanager.job_manager import JobManager
-
+    from sage_core.function.base_function import BaseFunction
 class BaseEnvironment(ABC):
 
     __state_exclude__ = ["_engine_client", "client", "jobmanager"]
@@ -36,6 +36,9 @@ class BaseEnvironment(ABC):
         self._filled_futures: dict = {}  # 记录已填充的future stream信息：name -> {future_transformation, actual_transformation, filled_at}
         self.ctx = dict  # 需要在compiler里面实例化。
         self.memory_collection = None  # 用于存储内存集合
+        # 用于收集所有服务工厂，供任务提交时生成服务任务
+        self.service_factories: dict = {}  # service_name -> ServiceFactory
+        self.service_task_factories: dict = {}  # service_name -> ServiceTaskFactory
         self.is_running = False
         self.env_base_dir: Optional[str] = None  # 环境基础目录，用于存储日志和其他文件
         # JobManager 相关
@@ -44,15 +47,79 @@ class BaseEnvironment(ABC):
         # Engine 客户端相关
         self._engine_client: Optional[JobManagerClient] = None
         self.env_uuid: Optional[str] = None
+        
+        # 日志配置
+        self.console_log_level: str = "INFO"  # 默认console日志等级
 
     ########################################################
     #                  user interface                      #
     ########################################################
 
+    def set_console_log_level(self, level: str):
+        """
+        设置控制台日志等级
+        
+        Args:
+            level: 日志等级，可选值: "DEBUG", "INFO", "WARNING", "ERROR"
+            
+        Example:
+            env.set_console_log_level("DEBUG")  # 显示所有日志
+            env.set_console_log_level("WARNING")  # 只显示警告和错误
+        """
+        valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR"]
+        if level.upper() not in valid_levels:
+            raise ValueError(f"Invalid log level: {level}. Must be one of {valid_levels}")
+        
+        self.console_log_level = level.upper()
+        
+        # 如果logger已经初始化，更新其配置
+        if hasattr(self, '_logger') and self._logger is not None:
+            self._logger.update_output_level("console", self.console_log_level)
+
     def set_memory(self, config = None):
         self.memory_collection = sage_memory.api.get_memory(config=config, remote=(self.platform != "local"), env_name=self.name)
 
 
+    def register_service(self, service_name: str, service_class: Type, *args, **kwargs):
+        """
+        注册服务到环境中
+        
+        Args:
+            service_name: 服务名称，用于标识服务
+            service_class: 服务类，将在任务提交时实例化
+            *args: 传递给服务构造函数的位置参数
+            **kwargs: 传递给服务构造函数的关键字参数
+            
+        Example:
+            # 注册一个自定义服务
+            env.register_service("my_cache", MyCacheService, cache_size=1000)
+            
+            # 注册数据库连接服务
+            env.register_service("db_conn", DatabaseConnection, 
+                               host="localhost", port=5432, db="mydb")
+        """
+        # 创建服务工厂
+        service_factory = ServiceFactory(
+            service_name=service_name,
+            service_class=service_class,
+            service_args=args,
+            service_kwargs=kwargs
+        )
+        
+        # 创建服务任务工厂
+        from sage_jobmanager.factory.service_task_factory import ServiceTaskFactory
+        service_task_factory = ServiceTaskFactory(
+            service_factory=service_factory,
+            remote=(self.platform == "remote")
+        )
+        
+        self.service_factories[service_name] = service_factory
+        self.service_task_factories[service_name] = service_task_factory
+        
+        platform_str = "remote" if self.platform == "remote" else "local"
+        self.logger.info(f"Registered {platform_str} service: {service_name} ({service_class.__name__})")
+        
+        return service_factory
 
     def from_kafka_source(self, 
                          bootstrap_servers: str,
@@ -126,7 +193,7 @@ class BaseEnvironment(ABC):
         
         return DataStream(self, transformation)
 
-    def from_source(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> DataStream:
+    def from_source(self, function: Union[Type['BaseFunction'], callable], *args, **kwargs) -> DataStream:
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, 'flatmap')
@@ -137,7 +204,7 @@ class BaseEnvironment(ABC):
 
 
 
-    def from_collection(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> DataStream:
+    def from_collection(self, function: Union[Type['BaseFunction'], callable], *args, **kwargs) -> DataStream:
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, 'flatmap')
@@ -506,7 +573,7 @@ class BaseEnvironment(ABC):
         Path(self.env_base_dir).mkdir(parents=True, exist_ok=True)
 
         self._logger = CustomLogger([
-                ("console", "INFO"),  # 控制台显示重要信息
+                ("console", self.console_log_level),  # 使用用户设置的控制台日志等级
                 (os.path.join(self.env_base_dir, "Environment.log"), "DEBUG"),  # 详细日志
                 (os.path.join(self.env_base_dir, "Error.log"), "ERROR")  # 错误日志
             ],

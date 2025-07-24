@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from sage_runtime.router.connection import Connection
     from sage_runtime.runtime_context import RuntimeContext
     from sage_jobmanager.factory.function_factory import FunctionFactory
-    from sage_runtime.router.base_router import BaseRouter
+    from sage_runtime.router.router import BaseRouter
 
 class BaseOperator(ABC):
     def __init__(self, 
@@ -30,6 +30,14 @@ class BaseOperator(ABC):
         except Exception as e:
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
             raise
+
+    def inject_router(self, router: 'BaseRouter'):
+        """
+        注入路由器实例
+        """
+        self.router = router
+        self.logger.debug(f"Injected router into operator {self.name}")
+
 
     # TODO: 去掉stateful function的概念，用某些策略对于function内部的可序列化字段做静态保存和checkpoint
     def save_state(self):

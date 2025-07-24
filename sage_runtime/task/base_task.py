@@ -5,8 +5,10 @@ from typing import Any, TYPE_CHECKING, Union, Optional
 from sage_runtime.runtime_context import RuntimeContext
 from sage_runtime.router.packet import Packet
 from ray.util.queue import Empty
+
+from sage_utils.mmap_queue.sage_queue import SageQueue
+from sage_runtime.router.router import BaseRouter
 if TYPE_CHECKING:
-    from sage_runtime.router.base_router import BaseRouter
     from sage_runtime.router.connection import Connection
     from sage_core.operator.base_operator import BaseOperator
     from sage_jobmanager.factory.operator_factory import OperatorFactory
@@ -14,9 +16,8 @@ if TYPE_CHECKING:
 class BaseTask(ABC):
     def __init__(self,runtime_context: 'RuntimeContext',operator_factory: 'OperatorFactory') -> None:
         self.ctx = runtime_context
-        # === 继承类设置 ===
-        self.router:BaseRouter
-        self.input_buffer: Any
+        self.input_buffer = SageQueue(self.ctx.name)
+        self.input_buffer.logger = self.ctx.logger
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
         self.is_running = False
@@ -25,9 +26,11 @@ class BaseTask(ABC):
         self._processed_count = 0
         self._error_count = 0
         self._last_activity_time = time.time()
+        self.router = BaseRouter(runtime_context)
         try:
             self.operator:BaseOperator = operator_factory.create_operator(self.ctx)
             self.operator.task = self
+            self.operator.inject_router(self.router)
         except Exception as e:
             self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
             raise
@@ -59,8 +62,8 @@ class BaseTask(ABC):
         self.router.add_connection(connection)
         self.logger.debug(f"Connection added to node '{self.name}': {connection}")
 
-    def remove_connection(self, broadcast_index: int, parallel_index: int) -> bool:
-        return self.router.remove_connection(broadcast_index, parallel_index)
+    # def remove_connection(self, broadcast_index: int, parallel_index: int) -> bool:
+    #     return self.router.remove_connection(broadcast_index, parallel_index)
 
 
     def trigger(self, input_tag: str = None, packet:'Packet' = None) -> None:
@@ -76,6 +79,9 @@ class BaseTask(ABC):
         if not self._stop_event.is_set():
             self._stop_event.set()
             self.logger.info(f"Node '{self.name}' received stop signal.")
+
+    def get_object(self):
+        return self
 
     def get_input_buffer(self):
         """
@@ -94,9 +100,7 @@ class BaseTask(ABC):
                 if self.is_spout:
                     self.logger.debug(f"Running spout node '{self.name}'")
                     self.operator.receive_packet(None)
-                    # TODO: 做一个下游缓冲区反压机制，因为引入一个手动延迟实在是太呆了
-                    # Issue URL: https://github.com/intellistream/SAGE/issues/335
-                    # sleep时间太短对kernel来说就没有意义了。
+                    self.logger.debug(f"self.delay: {self.delay}")
                     if self.delay > 0.002:
                         time.sleep(self.delay)
                 else:
@@ -105,7 +109,7 @@ class BaseTask(ABC):
                     # input_result = self.fetch_input()
                     try:
                         data_packet = self.input_buffer.get(timeout=0.5)
-                    except Empty as e:
+                    except Exception as e:
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue

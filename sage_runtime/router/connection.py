@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import time
 from sage_runtime.utils.local_message_queue import LocalMessageQueue
 from ray.actor import ActorHandle
-
+from sage_runtime.task.base_task import BaseTask
 @dataclass
 class Connection:
     """
@@ -13,15 +13,17 @@ class Connection:
                  broadcast_index: int,
                  parallel_index: int,
                  target_name: str,
-                 target_input_buffer: Union[ActorHandle, LocalMessageQueue],
-                 target_input_index: int):
-
+                 target_handle: Union[ActorHandle, BaseTask],
+                 target_input_index: int,
+                 target_type: str = "local"):
+        
+        # 目前我们使用ray也只是在一台机器上
         self.broadcast_index: int = broadcast_index
         self.parallel_index: int = parallel_index
         self.target_name: str = target_name
-        self.target_buffer: Union[ActorHandle, LocalMessageQueue] = target_input_buffer
+        self.target_handle: Union[ActorHandle, BaseTask] = target_handle
         self.target_input_index: int = target_input_index
-        
+        self.target_type: str = target_type
         # 负载状态跟踪
         self._load_history = []  # 存储最近的负载历史
         self._last_load_check = time.time()
