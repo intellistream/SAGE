@@ -64,6 +64,8 @@ class RayJobManagerDaemon:
         log_dir = project_root / "logs" / "daemon"
         log_dir.mkdir(parents=True, exist_ok=True)
         
+
+         
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         self.logger = CustomLogger([
             ("console", "INFO"),
