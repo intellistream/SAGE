@@ -1,14 +1,14 @@
 import time
+from sage.lib.utils.tool_filter import ToolFilter
 from sage.core.api.local_environment import LocalEnvironment
+from sage.lib.tools.searcher_tool import BochaSearchTool
+from sage.lib.utils.context_sink import ContextFileSink
 from sage.utils.config_loader import load_config
-from .lib.question_bot import QuestionBot
-from .lib.chief_bot import ChiefBot
-from .lib.searcher_bot import SearcherBot
-from .lib.answer_bot import AnswerBot
-from .lib.critic_bot import CriticBot
-from .lib.tool_filter import ToolFilter
-from .lib.context_sink import ContextFileSink
-from .lib.searcher_tool import BochaSearchTool
+from sage.lib.agents.question_bot import QuestionBot
+from sage.lib.agents.chief_bot import ChiefBot
+from sage.lib.agents.searcher_bot import SearcherBot
+from sage.lib.agents.answer_bot import AnswerBot
+from sage.lib.agents.critic_bot import CriticBot
 
 
 def pipeline_run():
