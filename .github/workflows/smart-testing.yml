@@ -86,27 +86,27 @@ jobs:
           # 定义目录到测试的映射
           test_mappings = {
               # 核心模块测试映射
-              'sage_core/': [
+              'sage/core/': [
                   'tests/test_final_verification.py',
                   'tests/test_service_task_base.py'
               ],
-              'sage_runtime/': [
+              'sage/runtime/': [
                   'tests/test_final_verification.py',
                   'tests/test_service_task_base.py'
               ],
-              'sage_jobmanager/': [
+              'sage/jobmanager/': [
                   'tests/test_service_task_base.py'
               ],
-              'sage_utils/mmap_queue/': [
-                  'sage_utils/mmap_queue/tests/test_comprehensive.py',
-                  'sage_utils/mmap_queue/tests/test_multiprocess_concurrent.py',
-                  'sage_utils/mmap_queue/tests/test_performance_benchmark.py',
-                  'sage_utils/mmap_queue/tests/test_ray_integration.py'
+              'sage/utils/mmap_queue/': [
+                  'sage/utils/mmap_queue/tests/test_comprehensive.py',
+                  'sage/utils/mmap_queue/tests/test_multiprocess_concurrent.py',
+                  'sage/utils/mmap_queue/tests/test_performance_benchmark.py',
+                  'sage/utils/mmap_queue/tests/test_ray_integration.py'
               ],
-              'sage_libs/': [
+              'sage/libs/': [
                   'tests/test_final_verification.py'
               ],
-              'sage_examples/': [
+              'sage/examples/': [
                   'tests/test_final_verification.py',
                   'tests/test_service_task_base.py'
               ],
@@ -175,10 +175,10 @@ jobs:
               tests_to_run.update([
                   'tests/test_final_verification.py', 
                   'tests/test_service_task_base.py',
-                  'sage_utils/mmap_queue/tests/test_comprehensive.py',
-                  'sage_utils/mmap_queue/tests/test_multiprocess_concurrent.py',
-                  'sage_utils/mmap_queue/tests/test_performance_benchmark.py',
-                  'sage_utils/mmap_queue/tests/test_ray_integration.py'
+                  'sage/utils/mmap_queue/tests/test_comprehensive.py',
+                  'sage/utils/mmap_queue/tests/test_multiprocess_concurrent.py',
+                  'sage/utils/mmap_queue/tests/test_performance_benchmark.py',
+                  'sage/utils/mmap_queue/tests/test_ray_integration.py'
               ])
           
           # 过滤存在的测试文件

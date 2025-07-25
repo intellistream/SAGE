@@ -103,7 +103,7 @@ sage_examples/
 
 ### 基本用法
 ```python
-from sage_core.api.local_environment import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 
 # 创建环境
 env = LocalEnvironment("my_batch_job")

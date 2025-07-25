@@ -9,11 +9,11 @@ import multiprocessing
 from concurrent.futures import Future
 from typing import Any
 
-from sage_core.function.base_function import BaseFunction
-from sage_runtime.service.service_caller import ServiceManager
-from sage_runtime.service.local_service_task import LocalServiceTask
-from sage_jobmanager.factory.service_factory import ServiceFactory
-from sage_utils.mmap_queue.sage_queue import SageQueue
+from core.function.base_function import BaseFunction
+from runtime.service.service_caller import ServiceManager
+from runtime.service.local_service_task import LocalServiceTask
+from jobmanager.factory.service_factory import ServiceFactory
+from utils.mmap_queue.sage_queue import SageQueue
 
 
 class MockEnvironment:

@@ -1,7 +1,7 @@
 import sys
 
 import typer
-from sage_core.jobmanager_client import JobManagerClient
+from core.jobmanager_client import JobManagerClient
 import time
 import subprocess
 

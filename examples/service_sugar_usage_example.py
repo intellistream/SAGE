@@ -3,10 +3,10 @@ SAGE服务调用语法糖使用示例
 展示如何通过高性能mmap队列与服务进程通信
 """
 
-from sage_core.function.map_function import MapFunction
-from sage_core.function.source_function import SourceFunction
-from sage_core.function.sink_function import SinkFunction
-from sage_core.api.local_environment import LocalEnvironment
+from core.function.map_function import MapFunction
+from core.function.source_function import SourceFunction
+from core.function.sink_function import SinkFunction
+from core.api.local_environment import LocalEnvironment
 from typing import Any, List, Dict
 import time
 import json

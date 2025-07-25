@@ -2,8 +2,8 @@
 示例：如何在SAGE框架中使用全局服务调用
 """
 
-from sage_core.function.map_function import MapFunction
-from sage_core.api.local_environment import LocalEnvironment  # 使用实际存在的环境类
+from core.function.map_function import MapFunction
+from core.api.local_environment import LocalEnvironment  # 使用实际存在的环境类
 from typing import Any
 
 # ==================== 示例服务类 ====================

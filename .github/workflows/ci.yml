@@ -77,4 +77,4 @@
 #           conda activate sage
 #           export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 #           export PYTHONWARNINGS="ignore:DeprecationWarning"
-#           pytest -v sage_tests
+#           pytest -v sage/tests

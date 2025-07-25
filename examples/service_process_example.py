@@ -7,7 +7,7 @@ import time
 import json
 import threading
 from typing import Any, Dict
-from sage_utils.mmap_queue.sage_queue import SageQueue
+from utils.mmap_queue.sage_queue import SageQueue
 import logging
 
 

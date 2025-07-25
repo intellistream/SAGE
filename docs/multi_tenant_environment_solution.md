@@ -72,7 +72,7 @@ class RemoteJobManager:
 ### 基本用法
 
 ```python
-from sage_core.api.remote_environment import RemoteEnvironment
+from sage.core.api.remote_environment import RemoteEnvironment
 
 # 创建远程环境
 env = RemoteEnvironment("my_env")
