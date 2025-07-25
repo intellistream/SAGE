@@ -22,9 +22,9 @@ include README.md
 include LICENSE
 include *.md
 
-# 包含测试文件
-recursive-include tests *
-recursive-include sage_tests *
+# 排除测试文件（注释掉以避免安装测试文件）
+# recursive-include tests *
+# recursive-include sage_tests *
 
 # 排除不需要的文件
 global-exclude *.pyc
@@ -33,3 +33,11 @@ global-exclude *~
 global-exclude __pycache__
 global-exclude .git*
 global-exclude .DS_Store
+
+# 显式排除测试目录
+recursive-exclude tests *
+recursive-exclude */tests *
+recursive-exclude */test *
+prune tests
+prune */tests
+prune */test

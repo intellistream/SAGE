@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 
 # 项目根目录
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.absolute()
 
 # 测试模块映射
 TEST_MODULE_MAP = {
