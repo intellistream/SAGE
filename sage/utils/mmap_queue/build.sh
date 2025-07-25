@@ -78,7 +78,7 @@ if [[ -f "$OUTPUT_LIB" ]]; then
     chmod 755 "$OUTPUT_LIB"
     
     echo "编译完成! 现在可以使用Python接口了。"
-    echo "测试命令: python3 -c \"from sage_queue import SageQueue; print('导入成功!')\""
+    echo "测试命令: python3 -c \"from sage.utils.mmap_queue.sage_queue import SageQueue; print('导入成功!')\""
 else
     echo "✗ 编译失败!"
     exit 1

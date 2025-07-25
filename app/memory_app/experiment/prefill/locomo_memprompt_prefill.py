@@ -44,10 +44,10 @@ if __name__ == '__main__':
 
 
 
-# from sage_libs.io.source import FileSource
-# from sage_libs.rag.generator import OpenAIGenerator
-# from sage_libs.rag.promptor import QAPromptor
-# from sage_libs.rag.retriever import BM25sRetriever
+# from sage.libs.io.source import FileSource
+# from sage.libs.rag.generator import OpenAIGenerator
+# from sage.libs.rag.promptor import QAPromptor
+# from sage.libs.rag.retriever import BM25sRetriever
 
 
 

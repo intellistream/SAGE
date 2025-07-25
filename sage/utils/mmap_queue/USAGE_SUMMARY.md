@@ -14,7 +14,7 @@ SAGE Memory-Mapped Queue 基于共享内存实现跨进程通信，支持：
 ### 1. 基本队列创建和使用
 
 ```python
-from sage_queue import SageQueue, destroy_queue
+from sage.utils.mmap_queue.sage_queue import SageQueue, destroy_queue
 
 # 创建队列
 queue_name = "my_shared_queue"
@@ -38,7 +38,7 @@ destroy_queue(queue_name)
 
 ```python
 import multiprocessing
-from sage_queue import SageQueue
+from sage.utils.mmap_queue.sage_queue import SageQueue
 
 def worker_process(queue_name, worker_id):
     # 通过名称连接到同一个共享队列
@@ -82,11 +82,11 @@ if __name__ == "__main__":
 ```python
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
-from sage_queue import SageQueue
+from sage.utils.mmap_queue.sage_queue import SageQueue
 
 def ref_worker_process(queue_ref_dict, worker_id):
     # 从序列化引用重建队列引用
-    from sage_queue import SageQueueRef
+    from sage.utils.mmap_queue.sage_queue import SageQueueRef
     
     ref = SageQueueRef.__new__(SageQueueRef)
     ref.__setstate__(queue_ref_dict)
