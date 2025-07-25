@@ -188,7 +188,7 @@ class SageQueue:
         process = multiprocessing.Process(target=worker, args=["shared_queue_name"])
     """
     
-    def __init__(self, name: str, auto_cleanup: bool = False, namespace: Optional[str] = None, enable_multi_tenant: bool = True):
+    def __init__(self, name: str, auto_cleanup: bool = True, namespace: Optional[str] = None, enable_multi_tenant: bool = True):
         """
         初始化队列
         
@@ -217,7 +217,7 @@ class SageQueue:
         self._setup_function_signatures()
         
         # 创建或打开环形缓冲区
-        self.name_bytes = name.encode('utf-8')
+        self.name_bytes = self.name.encode('utf-8')  # 使用命名空间化的名称
         
         # 首先尝试创建新的缓冲区
         self._rb = self._lib.ring_buffer_create(self.name_bytes, self.maxsize)
@@ -253,11 +253,9 @@ class SageQueue:
                 logger.error(f"Failed to increment reference count for ring buffer: {name}", exc_info=True)
                 raise
         else:
-            # 对于新创建的缓冲区，也需要增加引用计数（因为构造函数算一个引用）
-            ref_count = self._lib.ring_buffer_inc_ref(self._rb)
-            if ref_count < 0:
-                logger.error(f"Failed to increment reference count for ring buffer: {name}", exc_info=True)
-                raise
+            # 对于新创建的缓冲区，不需要额外增加引用计数
+            # 因为ring_buffer_create已经设置了初始引用计数为1
+            pass
         
         print(self.get_stats())
         # 线程安全相关
@@ -590,23 +588,22 @@ Please ensure the C library is compiled. You can:
                 ref_count = self._lib.ring_buffer_dec_ref(self._rb)
                 logger.debug(f"Decreased ref count for {self.name}, new count: {ref_count}")
                 
-                # 如果启用自动清理且引用计数为0，则销毁共享内存
-                if self.auto_cleanup and ref_count <= 0:
-                    try:
-                        self.destroy()
-                        logger.info(f"Auto-cleaned shared memory for {self.name}")
-                    except Exception as e:
-                        logger.warning(f"Failed to auto-clean {self.name}: {e}")
-                        
+                # 如果引用计数达到0，C层会自动清理共享内存
+                # 这时我们不应该再调用ring_buffer_close，因为结构体可能已被释放
+                if ref_count > 0:
+                    # 只有引用计数大于0时才调用close
+                    self._lib.ring_buffer_close(self._rb)
+                    logger.debug(f"Closed ring buffer for {self.name}")
+                else:
+                    logger.debug(f"Ring buffer for {self.name} auto-cleaned by C layer")
+                    
             except Exception as e:
                 logger.warning(f"Error decrementing ref count for {self.name}: {e}")
-            
-            try:
-                # 关闭缓冲区
-                self._lib.ring_buffer_close(self._rb)
-                logger.debug(f"Closed ring buffer for {self.name}")
-            except Exception as e:
-                logger.warning(f"Error closing ring buffer for {self.name}: {e}")
+                # 如果dec_ref失败，仍然尝试关闭
+                try:
+                    self._lib.ring_buffer_close(self._rb)
+                except Exception:
+                    pass
             finally:
                 self._rb = None
     

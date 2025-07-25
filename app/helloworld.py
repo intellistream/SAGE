@@ -27,10 +27,12 @@ def main():
     env.from_source(HelloSource, delay=100).map(UpperCaseMap).sink(PrintSink)
     try:
         env.submit()
-        time.sleep(5)  # 运行5秒，演示用
+        while(1):
+            time.sleep(5)  # 运行5秒，演示用
     except KeyboardInterrupt:
         print("停止运行")
     finally:
-        print(":白色的对勾: Hello World 示例结束")
+        print("Hello World 示例结束")
+
 if __name__ == "__main__":
     main()
