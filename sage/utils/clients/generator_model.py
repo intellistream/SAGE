@@ -1,5 +1,5 @@
-from sage_utils.clients.hf import HFGenerator
-from sage_utils.clients.openaiclient import OpenAIClient
+from sage.utils.clients.hf import HFGenerator
+from sage.utils.clients.openaiclient import OpenAIClient
 class GeneratorFactory:
     @staticmethod
     def create_generator(method: str, model_name: str, **kwargs):

@@ -2,12 +2,12 @@ import time
 
 # 导入 Sage 相关模块
 from sage.core.api.local_environment import LocalBatchEnvironment
-from sage.libs.io.sink import TerminalSink
-from sage.libs.io.source import FileSource
-from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.rag.promptor import QAPromptor
-from sage.libs.rag.retriever import DenseRetriever
-from sage.libs.rag.refiner import AbstractiveRecompRefiner
+from sage.lib.io.sink import TerminalSink
+from sage.lib.io.source import FileSource
+from sage.lib.rag.generator import OpenAIGenerator
+from sage.lib.rag.promptor import QAPromptor
+from sage.lib.rag.retriever import DenseRetriever
+from sage.lib.rag.refiner import AbstractiveRecompRefiner
 from sage.utils.config_loader import load_config
 
 

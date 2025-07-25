@@ -217,11 +217,11 @@ SAGE uses a **fluent-style API** to declaratively define RAG pipelines. Here's h
 
 ```python
 from sage.core.api.env import LocalEnvironment
-from sage.libs.io.source import FileSource
-from sage.libs.rag.retriever import DenseRetriever
-from sage.libs.rag.promptor import QAPromptor
-from sage.libs.rag.generator import OpenAIGenerator
-from sage.libs.io.sink import TerminalSink
+from sage.lib.io.source import FileSource
+from sage.lib.rag.retriever import DenseRetriever
+from sage.lib.rag.promptor import QAPromptor
+from sage.lib.rag.generator import OpenAIGenerator
+from sage.lib.io.sink import TerminalSink
 from sage.utils.config_loader import load_config
 
 config = load_config("config.yaml")
