@@ -201,7 +201,7 @@ def stop_job(
         # 停止作业
         result = cli.client.pause_job(job_uuid)
         
-        if result.get("status") == "success":
+        if "success" in result.get("message", ""):
             print(f"✅ Job {job_uuid[:8]}... stopped successfully")
         else:
             print(f"❌ Failed to stop job: {result.get('message')}")
@@ -280,12 +280,7 @@ def delete_job(
         
         # 删除作业
         result = cli.client.delete_job(job_uuid, force=force)
-        
-        if result.get("status") == "success":
-            print(f"✅ Job {job_uuid[:8]}... deleted successfully")
-        else:
-            print(f"❌ Failed to delete job: {result.get('message')}")
-            raise typer.Exit(1)
+        print(f"✅ Job {job_uuid[:8]}... deleted . message:{result.get('message')})")
             
     except Exception as e:
         print(f"❌ Failed to delete job: {e}")
