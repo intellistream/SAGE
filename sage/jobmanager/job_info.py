@@ -5,7 +5,7 @@ import time
 if TYPE_CHECKING:
     from sage.core.environment.base_environment import BaseEnvironment
     from sage.jobmanager.execution_graph import ExecutionGraph
-    from sage_runtime.dispatcher import Dispatcher
+    from sage.runtime.dispatcher import Dispatcher
 
 class JobInfo:
     """作业信息类，用于跟踪和管理单个作业的状态"""

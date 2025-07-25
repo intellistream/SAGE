@@ -1,11 +1,11 @@
 import os
 from typing import TYPE_CHECKING
-from sage_runtime.task.base_task import BaseTask
-from sage_runtime.utils.local_message_queue import LocalMessageQueue
+from sage.runtime.task.base_task import BaseTask
+from sage.runtime.utils.local_message_queue import LocalMessageQueue
 from sage_utils.mmap_queue import SageQueue
 if TYPE_CHECKING:
     from sage.jobmanager.factory.operator_factory import OperatorFactory
-    from sage_runtime.runtime_context import RuntimeContext
+    from sage.runtime.runtime_context import RuntimeContext
 
 
 class LocalTask(BaseTask):

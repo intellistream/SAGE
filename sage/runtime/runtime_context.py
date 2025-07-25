@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from sage.core.transformation.base_transformation import BaseTransformation
     from sage.core.environment.base_environment import BaseEnvironment 
     from sage.jobmanager.job_manager import JobManager
-    from sage_runtime.service.service_caller import ServiceManager
+    from sage.runtime.service.service_caller import ServiceManager
 # task, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:
@@ -53,7 +53,7 @@ class RuntimeContext:
     def service_manager(self) -> 'ServiceManager':
         """懒加载服务管理器"""
         if self._service_manager is None:
-            from sage_runtime.service.service_caller import ServiceManager
+            from sage.runtime.service.service_caller import ServiceManager
             self._service_manager = ServiceManager(self)
         return self._service_manager
 

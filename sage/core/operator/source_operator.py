@@ -3,10 +3,10 @@ from sage.core.function.source_function import SourceFunction
 from sage_utils.custom_logger import CustomLogger
 from collections import deque
 from typing import Union, Dict, Deque, Tuple, Any, TYPE_CHECKING
-from sage_runtime.router.packet import Packet
+from sage.runtime.router.packet import Packet
 from sage.core.function.source_function import StopSignal
 if TYPE_CHECKING:
-    from sage_runtime.task.base_task import BaseTask
+    from sage.runtime.task.base_task import BaseTask
 
 class SourceOperator(BaseOperator):
     def __init__(self, *args, **kwargs):

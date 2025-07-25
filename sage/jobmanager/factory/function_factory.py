@@ -2,7 +2,7 @@ from typing import Type, Any, Tuple,TYPE_CHECKING, Union
 from sage.core.function.base_function import BaseFunction
 if TYPE_CHECKING:
     from ray.actor import ActorHandle
-    from sage_runtime.runtime_context import RuntimeContext
+    from sage.runtime.runtime_context import RuntimeContext
     
 class FunctionFactory:
     # 由transformation初始化

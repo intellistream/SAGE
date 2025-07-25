@@ -5,7 +5,7 @@ from sage.core.function.source_function import StopSignal
 from sage_utils.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
-    from sage_runtime.runtime_context import RuntimeContext
+    from sage.runtime.runtime_context import RuntimeContext
 
 class BatchFunction(BaseFunction):
     """

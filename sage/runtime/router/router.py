@@ -1,15 +1,15 @@
-# sage_runtime/base_router.py
+# sage.runtime/base_router.py
 import traceback
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, TYPE_CHECKING
 from sage.core.function.source_function import StopSignal
-from sage_runtime.router.packet import Packet
+from sage.runtime.router.packet import Packet
 from sage_utils.mmap_queue.sage_queue import SageQueue
 
 if TYPE_CHECKING:
-    from sage_runtime.router.connection import Connection
-    from sage_runtime.runtime_context import RuntimeContext
+    from sage.runtime.router.connection import Connection
+    from sage.runtime.runtime_context import RuntimeContext
 
 class BaseRouter(ABC):
     """

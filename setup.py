@@ -75,7 +75,7 @@ setup(
     version='0.1.1',
     author='IntelliStream',
     author_email="intellistream@outlook.com",
-    description="SAGE - Stream Processing Framework with JobManager",
+    description="SAGE - Stream Processing Framework for python-native distributed systems with JobManager",
     long_description=read_long_description(),
     long_description_content_type="text/markdown",
     packages=find_packages(),
@@ -88,8 +88,8 @@ setup(
     
     entry_points={
         'console_scripts': [
-            'sage-deploy=deployment.app.cli.sage_deploy:app',
-            'sage=deployment.app.cli.sage:app',
+            'sage=sage.cli.main:app',
+            'sage-jm=sage.cli.job:app',  # 保持向后兼容
         ],
     },
     include_package_data=True,

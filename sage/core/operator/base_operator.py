@@ -2,16 +2,16 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional, Set, TYPE_CHECKING, Type, Tuple
 from sage.core.function.source_function import StopSignal
-from sage_runtime.task.base_task import BaseTask
+from sage.runtime.task.base_task import BaseTask
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.router.packet import Packet
+from sage.runtime.router.packet import Packet
 
 if TYPE_CHECKING:
     from sage.core.function.base_function import BaseFunction
-    from sage_runtime.router.connection import Connection
-    from sage_runtime.runtime_context import RuntimeContext
+    from sage.runtime.router.connection import Connection
+    from sage.runtime.runtime_context import RuntimeContext
     from sage.jobmanager.factory.function_factory import FunctionFactory
-    from sage_runtime.router.router import BaseRouter
+    from sage.runtime.router.router import BaseRouter
 
 class BaseOperator(ABC):
     def __init__(self, 

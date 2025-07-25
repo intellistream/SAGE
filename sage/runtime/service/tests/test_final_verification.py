@@ -25,7 +25,7 @@ class MockRuntimeContext:
     @property
     def service_manager(self):
         if self._service_manager is None:
-            from sage_runtime.service.service_caller import ServiceManager
+            from sage.runtime.service.service_caller import ServiceManager
             self._service_manager = ServiceManager(self)
         return self._service_manager
 

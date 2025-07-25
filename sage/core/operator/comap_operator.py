@@ -1,7 +1,7 @@
 from .base_operator import BaseOperator
 from typing import Union, Any
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.router.packet import Packet
+from sage.runtime.router.packet import Packet
 
 
 class CoMapOperator(BaseOperator):

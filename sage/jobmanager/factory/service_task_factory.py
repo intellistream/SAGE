@@ -3,9 +3,9 @@ from sage_utils.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
     from sage.jobmanager.factory.service_factory import ServiceFactory
-    from sage_runtime.runtime_context import RuntimeContext
+    from sage.runtime.runtime_context import RuntimeContext
     from sage_utils.actor_wrapper import ActorWrapper
-    from sage_runtime.service.base_service import BaseService
+    from sage.runtime.service.base_service import BaseService
 
 
 class ServiceTaskFactory:
@@ -35,7 +35,7 @@ class ServiceTaskFactory:
         """
         if self.remote:
             # 创建Ray服务任务
-            from sage_runtime.service.ray_service_task import RayServiceTask
+            from sage.runtime.service.ray_service_task import RayServiceTask
             
             # 直接创建Ray Actor，传入ServiceFactory
             ray_service_task = RayServiceTask.options(lifetime="detached").remote(
@@ -49,7 +49,7 @@ class ServiceTaskFactory:
             
         else:
             # 创建本地服务任务
-            from sage_runtime.service.local_service_task import LocalServiceTask
+            from sage.runtime.service.local_service_task import LocalServiceTask
             
             service_task = LocalServiceTask(
                 service_factory=self.service_factory,

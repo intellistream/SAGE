@@ -1,26 +1,45 @@
 from __future__ import annotations
 
-from typing import Optional, TYPE_CHECKING, Dict, Any
-from pathlib import Path
-import os
-import sys
-import subprocess
-import json
+import logging
+from typing import Optional, Dict, Any
 from sage.core.environment.base_environment import BaseEnvironment
 from sage.jobmanager.jobmanager_client import JobManagerClient
-from sage_utils.actor_wrapper import ActorWrapper
-if TYPE_CHECKING:
-    from sage.jobmanager.job_manager import JobManager
+from sage_utils.serialization.dill_serializer import trim_object_for_ray
+
+logger = logging.getLogger(__name__)
 
 class RemoteEnvironment(BaseEnvironment):
-    """远程环境，通过客户端连接远程JobManager"""
+    """
+    简化的远程环境实现
+    专注于序列化环境并发送给远程JobManager
+    """
+    
+    # 序列化时排除的属性
+    __state_exclude__ = [
+        'logger', '_logger', 
+        '_engine_client', '_jobmanager',
+        'client', 'jobmanager'  # 避免序列化客户端连接
+    ]
 
     def __init__(self, name: str, config: dict | None = None, host: str = "127.0.0.1", port: int = 19001):
+        """
+        初始化远程环境
+        
+        Args:
+            name: 环境名称
+            config: 环境配置
+            host: JobManager服务主机
+            port: JobManager服务端口
+        """
         super().__init__(name, config, platform="remote")
         
-        # 设置远程连接配置
+        # 远程连接配置
         self.daemon_host = host
         self.daemon_port = port
+        
+        # 客户端连接（延迟初始化）
+        self._engine_client: Optional[JobManagerClient] = None
+        self._jobmanager = None
         
         # 更新配置
         self.config.update({
@@ -28,14 +47,13 @@ class RemoteEnvironment(BaseEnvironment):
             "engine_port": self.daemon_port
         })
         
-        # 初始化时尝试创建日志软链接
-        self._log_symlink_created = False
-        self._setup_log_symlink()
+        logger.info(f"RemoteEnvironment '{name}' initialized for {host}:{port}")
 
     @property
     def client(self) -> JobManagerClient:
-        """获取远程JobManager客户端"""
+        """获取JobManager客户端（延迟创建）"""
         if self._engine_client is None:
+            logger.debug(f"Creating JobManager client for {self.daemon_host}:{self.daemon_port}")
             self._engine_client = JobManagerClient(
                 host=self.daemon_host, 
                 port=self.daemon_port
@@ -43,9 +61,10 @@ class RemoteEnvironment(BaseEnvironment):
         return self._engine_client
 
     @property
-    def jobmanager(self) -> 'JobManager': # 是actorwrapper无感包着的
-        """通过客户端获取远程JobManager句柄"""
+    def jobmanager(self):
+        """获取远程JobManager句柄（延迟创建）"""
         if self._jobmanager is None:
+            logger.debug("Getting JobManager actor handle")
             self._jobmanager = self.client.get_actor_handle()
         return self._jobmanager
 

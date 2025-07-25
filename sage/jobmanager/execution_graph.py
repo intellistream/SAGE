@@ -7,7 +7,7 @@ from sage.core.environment.base_environment import BaseEnvironment
 from sage.core.transformation.base_transformation import BaseTransformation
 from sage_utils.custom_logger import CustomLogger
 from sage.jobmanager.utils.name_server import get_name
-from sage_runtime.runtime_context import RuntimeContext
+from sage.runtime.runtime_context import RuntimeContext
 if TYPE_CHECKING:
     from sage.jobmanager.job_manager import JobManager
     from ray.actor import ActorHandle
