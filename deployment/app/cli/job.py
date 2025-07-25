@@ -1,9 +1,38 @@
+import sys
+
 import typer
 from sage_core.jobmanager_client import JobManagerClient
 import time
 import subprocess
 
-app = typer.Typer(help="作业管理相关命令。支持作业列表、详情、停止、删除、状态、健康检查等。详细参数请用 --help 查看。")
+app = typer.Typer(help="作业管理相关命令。支持作业提交、列表、详情、停止、删除、状态、健康检查等。详细参数请用 --help 查看。")
+
+@app.command()
+def run(
+    script: str = typer.Argument(..., help="要运行的Python脚本"),
+    args: list[str] = typer.Argument(None, help="传递给脚本的参数")
+):
+    """
+    通过SAGE CLI提交并运行Python任务脚本
+    """
+    # 构造命令
+    cmd = [sys.executable, script] + list(args) if args else [sys.executable, script]
+    typer.echo(f"正在运行: {' '.join(cmd)}")
+    try:
+        # 实时输出脚本的stdout和stderr
+        process = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr)
+        process.communicate()
+        if process.returncode == 0:
+            typer.echo("任务运行完成。")
+        else:
+            typer.echo(f"任务运行失败，退出码: {process.returncode}")
+            raise typer.Exit(code=process.returncode)
+    except FileNotFoundError:
+        typer.echo(f"找不到脚本: {script}")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        typer.echo(f"运行出错: {e}")
+        raise typer.Exit(code=1)
 
 @app.command()
 def list(
