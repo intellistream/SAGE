@@ -60,14 +60,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
             self.default_topk = 5
             self.default_index_type = "FAISS"
         
-
-        self.logger = CustomLogger(
-            filename=f"VDBMemoryCollection",
-            env_name=env_name,
-            session_folder=session_folder,
-            console_output=False,
-            file_output=True
-        )
+        self.logger = CustomLogger()
 
     def store(self, store_path: Optional[str] = None):
         self.logger.debug(f"VDBMemoryCollection: store called")   ###########################
