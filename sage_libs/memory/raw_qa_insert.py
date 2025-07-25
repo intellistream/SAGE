@@ -1,5 +1,5 @@
 from typing import Union, List, Tuple, Optional, Dict
-from sage_core.function.map_function import MapFunction
+from sage.core.function.map_function import MapFunction
 
 class MemoryWriter(MapFunction):
 

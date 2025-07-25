@@ -57,8 +57,8 @@ ray_logs
 /output
 /logs
 /logs/**
-sage_frontend/sage_server/logs
-sage_frontend/sage_server/logs/**
+frontend/sage_server/logs
+frontend/sage_server/logs/**
 sage_examples/logs
 sage_examples/logs/**
 /.env

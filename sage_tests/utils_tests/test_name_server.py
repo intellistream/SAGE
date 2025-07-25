@@ -1,6 +1,6 @@
 import unittest
 import threading
-from sage_jobmanager.utils.name_server import NameServer
+from sage.jobmanager.utils.name_server import NameServer
 
 class TestNameServer(unittest.TestCase):
     

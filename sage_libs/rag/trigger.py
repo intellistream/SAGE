@@ -4,7 +4,7 @@ import threading
 import time
 from typing import Any, Optional
 
-from sage_core.function.map_function import MapFunction
+from sage.core.function.map_function import MapFunction
 
 
 

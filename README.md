@@ -216,7 +216,7 @@ SAGE uses a **fluent-style API** to declaratively define RAG pipelines. Here's h
 ---
 
 ```python
-from sage_core.api.env import LocalEnvironment
+from sage.core.api.env import LocalEnvironment
 from sage_libs.io.source import FileSource
 from sage_libs.rag.retriever import DenseRetriever
 from sage_libs.rag.promptor import QAPromptor
@@ -337,7 +337,7 @@ The Engine operates in four main phases:
 
 #### Experience our meticulously designed Sage -Dashboard both user-friendly and powerful::
 ```bash
-cd sage_frontend/sage_server
+cd frontend/sage_server
 python main.py --host 127.0.0.1 --port 8080 --log-level debug
 
 cd ../dashboard

@@ -1,4 +1,4 @@
-from sage_core.function.map_function import MapFunction
+from sage.core.function.map_function import MapFunction
 
 from typing import Dict, Any
 import requests

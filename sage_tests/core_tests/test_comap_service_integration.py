@@ -8,10 +8,10 @@ import time
 import threading
 import unittest
 from unittest.mock import Mock
-from sage_core.api.local_environment import LocalEnvironment
-from sage_core.function.source_function import SourceFunction
-from sage_core.function.comap_function import BaseCoMapFunction
-from sage_core.function.sink_function import SinkFunction
+from sage.core.api.local_environment import LocalEnvironment
+from sage.core.function.source_function import SourceFunction
+from sage.core.function.comap_function import BaseCoMapFunction
+from sage.core.function.sink_function import SinkFunction
 
 
 # ==================== 测试服务类 ====================

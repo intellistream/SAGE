@@ -22,18 +22,18 @@ class SmartTestRunner:
         # 定义源代码目录到测试目录的映射关系
         self.source_to_test_mapping = {
             # 核心模块映射
-            "sage_core/": "core_tests/",
+            "sage.core/": "core_tests/",
             "sage_runtime/": "runtime_tests/", 
             "sage_memory/": "memory_tests/",
             "sage_vector/": "vector_tests/",
-            "sage_frontend/": "frontend_tests/",
+            "frontend/": "frontend_tests/",
             "sage_utils/": "utils_tests/",
             "sage_libs/": "function_tests/",  # sage_libs 主要包含函数实现
             "sage_plugins/": "function_tests/",  # plugins 也归类到函数测试
             
             # 特殊映射
-            "sage_core/service/": "service_tests/",
-            "sage_core/function/": "function_tests/",
+            "sage.core/service/": "service_tests/",
+            "sage.core/function/": "function_tests/",
             "sage_libs/io/": "function_tests/io_tests/",
             "sage_libs/rag/": "function_tests/rag_tests/",
         }

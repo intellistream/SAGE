@@ -53,10 +53,10 @@ except ImportError:
     missing_modules.append('ray')
 
 try:
-    import sage_core
+    import sage.core
     print('SAGE core module: OK')
 except ImportError:
-    missing_modules.append('sage_core')
+    missing_modules.append('sage.core')
 
 if missing_modules:
     print(f'Missing modules: {missing_modules}')
@@ -204,7 +204,7 @@ show_system_status() {
 import sys
 sys.path.append('$project_root')
 try:
-    from sage_core.jobmanager_client import JobManagerClient
+    from sage.core.jobmanager_client import JobManagerClient
     client = JobManagerClient('127.0.0.1', 19001)
     response = client._send_request({'action': 'get_actor_info', 'request_id': '123'})
     if response and response.get('status') == 'success':

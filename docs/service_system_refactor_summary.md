@@ -7,12 +7,12 @@ SAGE服务系统重构总结
 
 ### 1. 核心组件
 
-#### ServiceFactory (/sage_jobmanager/factory/service_factory.py)
+#### ServiceFactory (/sage.jobmanager/factory/service_factory.py)
 - 职责: 创建原始服务实例，类似FunctionFactory
 - 主要方法: create_service()
 - 存储: service_name, service_class, service_args, service_kwargs
 
-#### ServiceTaskFactory (/sage_jobmanager/factory/service_task_factory.py)
+#### ServiceTaskFactory (/sage.jobmanager/factory/service_task_factory.py)
 - 职责: 创建服务任务（本地或Ray actor），类似TaskFactory
 - 主要方法: create_service_task()
 - 根据remote字段决定创建LocalServiceTask或RayServiceTask
@@ -29,7 +29,7 @@ SAGE服务系统重构总结
 
 ### 2. 环境集成
 
-#### BaseEnvironment (/sage_core/environment/base_environment.py)
+#### BaseEnvironment (/sage.core/environment/base_environment.py)
 - register_service方法现在创建两个工厂:
   - ServiceFactory: 存储在env.service_factories
   - ServiceTaskFactory: 存储在env.service_task_factories
