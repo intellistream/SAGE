@@ -18,7 +18,7 @@ from sage.utils.mmap_queue.sage_queue import SageQueue, destroy_queue
 
 # 创建队列
 queue_name = "my_shared_queue"
-queue = SageQueue(queue_name, maxsize=64*1024)  # 64KB 缓冲区
+queue = SageQueue(queue_name)  # 64KB 缓冲区
 
 # 写入数据
 queue.put({"message": "Hello, World!", "data": [1, 2, 3]})
@@ -103,7 +103,7 @@ def ref_worker_process(queue_ref_dict, worker_id):
 
 if __name__ == "__main__":
     # 创建队列并获取引用
-    queue = SageQueue("ref_example", maxsize=64*1024)
+    queue = SageQueue("ref_example")
     queue_ref = queue.get_reference()
     queue_ref_dict = queue_ref.__getstate__()  # 序列化为字典
     queue.close()
@@ -166,7 +166,7 @@ def consumer_worker(queue_name, consumer_id, max_messages):
 # 使用示例
 if __name__ == "__main__":
     queue_name = "prod_cons_example"
-    SageQueue(queue_name, maxsize=256*1024).close()  # 创建队列
+    SageQueue(queue_name).close()  # 创建队列
     
     with ProcessPoolExecutor() as executor:
         # 启动生产者
@@ -211,7 +211,7 @@ def main():
 ### 2. 队列生命周期管理
 ```python
 # 创建队列
-queue = SageQueue("my_queue", maxsize=64*1024)
+queue = SageQueue("my_queue")
 
 # 使用完毕后关闭
 queue.close()  # 关闭句柄，共享内存仍存在

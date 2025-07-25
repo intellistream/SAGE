@@ -68,7 +68,7 @@ class SageQueue:
     
     多进程使用方法:
         # 创建队列
-        queue = SageQueue("shared_queue_name", maxsize=64*1024)
+        queue = SageQueue("shared_queue_name")
         
         # 在不同进程中通过相同名称连接到同一队列
         def worker(queue_name):
@@ -103,7 +103,8 @@ class SageQueue:
         
         # 首先尝试创建新的缓冲区
         self._rb = self._lib.ring_buffer_create(self.name_bytes, self.maxsize)
-        
+        print(self._rb)
+
         if not self._rb:
             # 如果创建失败，尝试打开现有的
             try:
@@ -176,7 +177,7 @@ class SageQueue:
         
         # 最后尝试：看看是否有Python扩展模块
         try:
-            import sage_utils.mmap_queue.ring_buffer as ring_buffer_module
+            import sage.utils.mmap_queue.ring_buffer as ring_buffer_module
             # 如果有Python扩展，返回它的底层库
             if hasattr(ring_buffer_module, '_lib'):
                 return ring_buffer_module._lib
@@ -522,14 +523,6 @@ class SageQueueRef:
         return f"SageQueueRef(name='{self.name}', size={self.size}, creator_pid={self.creator_pid})"
 
 
-# 便利函数
-def create_queue(name: str, maxsize: int = 0) -> SageQueue:
-    """创建一个新的SageQueue"""
-    return SageQueue(name, maxsize)
-
-def open_queue(name: str) -> SageQueue:
-    """打开一个已存在的SageQueue"""
-    return SageQueue(name, maxsize=0)
 
 def destroy_queue(name: str):
     """销毁指定名称的队列"""

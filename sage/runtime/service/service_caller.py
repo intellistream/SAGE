@@ -67,10 +67,7 @@ class ServiceManager:
     def _get_response_queue(self) -> SageQueue:
         """获取响应队列"""
         if self._response_queue is None:
-            self._response_queue = SageQueue(
-                name=self._response_queue_name,
-                maxsize=1000
-            )
+            self._response_queue = SageQueue(name=self._response_queue_name)
         return self._response_queue
     
     def call_sync(
@@ -78,7 +75,7 @@ class ServiceManager:
         service_name: str, 
         method_name: str, 
         *args, 
-        timeout: Optional[float] = 30.0,
+        timeout: Optional[float] = 2.0, # 这里的timeout只容忍本地
         **kwargs
     ) -> Any:
         """

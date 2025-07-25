@@ -278,7 +278,7 @@ def test_simple_producer_consumer():
     
     try:
         # 创建队列
-        main_queue = SageQueue(queue_name, maxsize=64*1024)
+        main_queue = SageQueue(queue_name)
         queue_ref = main_queue.get_reference()
         print(f"✓ 创建队列: {queue_name}")
         
