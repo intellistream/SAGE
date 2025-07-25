@@ -16,7 +16,7 @@ import threading
 from sage.utils.serialization.dill_serializer import deserialize_object
 if TYPE_CHECKING:
     from sage.jobmanager.execution_graph import ExecutionGraph
-    from sage.core.environment.base_environment import BaseEnvironment
+    from sage.core.api.base_environment import BaseEnvironment
 
 import ray
 

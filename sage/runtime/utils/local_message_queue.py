@@ -4,7 +4,7 @@ import threading
 import time
 from collections import deque
 import sys
-from sage_runtime.runtime_context import RuntimeContext
+from sage.runtime.runtime_context import RuntimeContext
 
 
 class LocalMessageQueue:

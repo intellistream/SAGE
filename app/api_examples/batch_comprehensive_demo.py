@@ -138,7 +138,7 @@ class MockSageEnvironment:
         self.logger = self._create_logger()
         
         # 导入批处理方法
-        from sage.core.environment.base_environment import BaseEnvironment
+        from sage.core.api.base_environment import BaseEnvironment
         self._bind_batch_methods(BaseEnvironment)
     
     def _create_logger(self):

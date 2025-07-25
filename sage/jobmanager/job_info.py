@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional, TYPE_CHECKING
 import time
 
 if TYPE_CHECKING:
-    from sage.core.environment.base_environment import BaseEnvironment
+    from sage.core.api.base_environment import BaseEnvironment
     from sage.jobmanager.execution_graph import ExecutionGraph
     from sage.runtime.dispatcher import Dispatcher
 

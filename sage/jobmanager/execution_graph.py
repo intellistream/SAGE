@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 from typing import Dict, List, Set, Union
-from sage.core.environment.base_environment import BaseEnvironment
+from sage.core.api.base_environment import BaseEnvironment
 from sage.core.transformation.base_transformation import BaseTransformation
 from sage.utils.custom_logger import CustomLogger
 from sage.jobmanager.utils.name_server import get_name

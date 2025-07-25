@@ -11,7 +11,7 @@ from sage.jobmanager.job_manager import JobManager
 from sage.utils.custom_logger import CustomLogger
 from ray.actor import ActorHandle
 if TYPE_CHECKING:
-    from sage.core.environment.base_environment import BaseEnvironment
+    from sage.core.api.base_environment import BaseEnvironment
 
 
 @ray.remote

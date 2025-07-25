@@ -544,16 +544,6 @@ class BaseEnvironment(ABC):
         return self._engine_client
 
 
-    @property
-    @abstractmethod
-    def jobmanager(self) -> 'JobManager':
-        return
-        # """获取JobManager句柄，通过ActorWrapper封装以提供透明调用"""
-        # if self._jobmanager is None:
-        #     self._jobmanager = self.client.get_actor_handle()
-        # return self._jobmanager
-
-
 
     ########################################################
     #                auxiliary methods                     #
