@@ -32,17 +32,14 @@ class JobManagerClient:
                 while len(response_data) < response_length:
                     chunk = sock.recv(min(response_length - len(response_data), 8192))
                     response_data += chunk
-                print("Received response:", response_data)
                 return json.loads(response_data.decode('utf-8'))
                 
         except Exception as e:
-            print("ConnectionError")
             return {"status": "error", "message": f"Connection error: {e}"}
     
     def submit_job(self, serialized_data: bytes) -> Dict[str, Any]:
         """提交序列化的作业数据"""
         import base64
-        print("submitting job")
         request = {
             "action": "submit_job",
             "request_id": str(uuid.uuid4()),
