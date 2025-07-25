@@ -16,7 +16,7 @@ class JobManagerClient:
         """发送请求到守护服务"""
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(10)
+                sock.settimeout(30)
                 sock.connect((self.host, self.port))
                 
                 # 发送请求
