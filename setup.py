@@ -78,11 +78,14 @@ setup(
     description="SAGE - Stream Processing Framework for python-native distributed systems with JobManager",
     long_description=read_long_description(),
     long_description_content_type="text/markdown",
-    packages=find_packages(exclude=[
-        'tests', 'test', 
-        '*.tests', '*.tests.*', 
-        '*test*', '*tests*'
-    ]),
+    packages=find_packages(
+        include=['sage', 'sage.*'],
+        exclude=[
+            'tests', 'test', 
+            '*.tests', '*.tests.*', 
+            '*test*', '*tests*'
+        ]
+    ),
     url = "https://github.com/intellistream/SAGE",
     install_requires=parse_requirements("installation/env_setup/requirements.txt"),
     python_requires=">=3.11",

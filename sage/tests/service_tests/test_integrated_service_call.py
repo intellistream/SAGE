@@ -6,11 +6,11 @@ import time
 import threading
 import unittest
 from unittest.mock import Mock
-from sage_runtime.runtime_context import RuntimeContext
-from sage_runtime.service.local_service_task import LocalServiceTask
-from sage_runtime.service.service_caller import ServiceManager
-from sage.core.function.base_function import BaseFunction
-from sage.jobmanager.factory.service_factory import ServiceFactory
+from sage.runtime.runtime_context import RuntimeContext
+from sage.runtime.service.local_service_task import LocalServiceTask
+from sage.runtime.service.service_caller import ServiceManager
+from core.function.base_function import BaseFunction
+from jobmanager.factory.service_factory import ServiceFactory
 
 
 # 创建Mock对象来初始化RuntimeContext

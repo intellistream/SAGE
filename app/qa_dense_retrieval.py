@@ -1,3 +1,4 @@
+import time
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.remote_environment import RemoteEnvironment
 from sage.lib.io.source import FileSource
@@ -23,23 +24,8 @@ def pipeline_run():
                     .sink(TerminalSink, config["sink"]) # TM (JVM) --> 会打印在某一台机器的console里
                     )
 
-    # Streaming Environment.
-    # env.set_memory(config=None)
-    # env = LocalEnvironment() #DEBUG and Streaming
-    # env = RemoteStreamEnvironment("JM-IP")  # Deployment to JM.
-
-    # # 构建数据处理流程
-    # query_stream = (env
-    #                 .from_source(FileSource, config["source"])
-    #                 .map(DenseRetriever, config["retriever"])
-    #                 .map(QAPromptor, config["promptor"])
-    #                 .map(OpenAIGenerator, config["generator"])
-    #                 .sink(TerminalSink, config["sink"]) # TM (JVM) --> 会打印在某一台机器的console里
-    #                 )
-    try:
-        env.submit()
-    finally:
-        env.close()
+    env.submit()
+    time.sleep(5)
 
 if __name__ == '__main__':
     # 加载配置

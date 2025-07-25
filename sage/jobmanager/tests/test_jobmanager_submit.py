@@ -13,7 +13,7 @@ def test_jobmanager_submit_logic():
     print("=== 测试 JobManager submit_job 处理逻辑 ===")
     
     try:
-        from sage.jobmanager.job_manager import JobManagerDaemon, JobManager
+        from sage.jobmanager.job_manager import JobManagerServer, JobManager
         from sage.utils.serialization.dill_serializer import serialize_object
         from sage.core.api.local_environment import LocalEnvironment
         
@@ -31,7 +31,7 @@ def test_jobmanager_submit_logic():
         
         # 创建JobManager和Daemon实例
         jobmanager = JobManager(enable_daemon=False)  # 不启动实际的daemon
-        daemon = JobManagerDaemon(jobmanager)
+        daemon = JobManagerServer(jobmanager)
         print("4. Created JobManager and Daemon")
         
         # 模拟客户端请求
