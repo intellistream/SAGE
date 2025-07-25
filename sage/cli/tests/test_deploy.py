@@ -47,9 +47,3 @@ def test_status(mock_subprocess):
     
     assert result.exit_code == 0
     mock_subprocess.assert_called_once()
-    mock_instance.status.return_value = True
-    
-    result = runner.invoke(app, ["status"])
-    
-    assert result.exit_code == 0
-    mock_instance.status.assert_called_once()

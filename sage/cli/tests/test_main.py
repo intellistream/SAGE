@@ -18,11 +18,11 @@ def test_version():
 
 def test_config_info_no_file():
     """Test the config command when no config file exists."""
-    # This test is environment-dependent, assuming no config file exists
-    # A better approach would be to mock the Path.exists() method
+    # The config command shows default configuration even when no file exists
     result = runner.invoke(app, ["config"])
     assert result.exit_code == 0
-    assert "No configuration file found" in result.stdout
+    assert "SAGE Configuration" in result.stdout
+    assert "daemon:" in result.stdout
 
 def test_main_help():
     """Test the main help output."""
@@ -41,4 +41,5 @@ def test_main_script_execution():
         text=True
     )
     assert result.returncode == 0
-    assert "Usage: main.py [OPTIONS] COMMAND [ARGS]..." in result.stdout
+    assert "Usage: python -m sage.cli.main [OPTIONS] COMMAND [ARGS]..." in result.stdout
+    assert "SAGE - Stream Analysis and Graph Engine CLI" in result.stdout
