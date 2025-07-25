@@ -35,7 +35,7 @@ class Dispatcher():
         self.services: Dict[str, BaseService] = {}  # 存储服务实例
         self.is_running: bool = False
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
-        if env.platform is "remote":
+        if env.platform == "remote":
             ensure_ray_initialized()
         self.setup_logging_system()
 

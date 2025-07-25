@@ -4,7 +4,7 @@ import subprocess
 app = typer.Typer(help="系统部署与管理相关命令。支持启动、停止、重启、健康检查等。详细参数请用 --help 查看。")
 
 @app.command()
-def deploy(
+def start(
     ray_only: bool = typer.Option(False, "--ray-only", help="仅启动Ray集群"),
     daemon_only: bool = typer.Option(False, "--daemon-only", help="仅启动JobManager守护进程")
 ):

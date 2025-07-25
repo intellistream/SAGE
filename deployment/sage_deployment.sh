@@ -10,6 +10,10 @@ set -e  # 遇到错误立即退出
 # 获取脚本目录
 SCRIPT_DIR="$(dirname $(realpath $0))"
 
+# 自动检测python和ray路径
+PYTHON_BIN=$(which python)
+RAY_BIN=$(which ray)
+
 # 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -260,8 +264,8 @@ start_ray() {
         
         # 检查Ray是否已经在运行 - 使用更准确的方法
         local ray_running=false
-        if command -v ray >/dev/null 2>&1; then
-            if ray status >/dev/null 2>&1; then
+        if command -v ${RAY_BIN} >/dev/null 2>&1; then
+            if ${RAY_BIN} status >/dev/null 2>&1; then
                 ray_running=true
             fi
         else
@@ -272,9 +276,9 @@ start_ray() {
         fi
         
         if ! $ray_running; then
-            ray start --head --port="$ray_head_port" --dashboard-port="$ray_dashboard_port" \
+            ${RAY_BIN} start --head --port="$ray_head_port" --dashboard-port="$ray_dashboard_port" \
                 --temp-dir="$ray_temp_dir" --resources='{"jobmanager": 1.0}' 2>/dev/null || \
-            ray start --head --port="$ray_head_port" --dashboard-port="$ray_dashboard_port" \
+            ${RAY_BIN} start --head --port="$ray_head_port" --dashboard-port="$ray_dashboard_port" \
                 --temp-dir="/tmp/ray_shared" --resources='{"jobmanager": 1.0}'
             log_success "Ray cluster started"
         else
@@ -299,7 +303,7 @@ start_daemon() {
         fi
         
         if ! pgrep -f "jobmanager_daemon.py" >/dev/null; then
-            nohup python3 "$daemon_script" >/dev/null 2>&1 &
+            nohup ${PYTHON_BIN} "$daemon_script" >/dev/null 2>&1 &
             sleep 2
             if pgrep -f "jobmanager_daemon.py" >/dev/null; then
                 log_success "JobManager Daemon started"
@@ -362,9 +366,9 @@ stop_system() {
     fi
     
     # 停止Ray集群 - 使用更准确的方法
-    if command -v ray >/dev/null 2>&1; then
-        if ray status >/dev/null 2>&1; then
-            ray stop
+    if command -v ${RAY_BIN} >/dev/null 2>&1; then
+        if ${RAY_BIN} status >/dev/null 2>&1; then
+            ${RAY_BIN} stop
             log_success "Ray cluster stopped"
         fi
     else
@@ -383,11 +387,11 @@ show_system_status() {
     log_info "=== System Status ==="
     
     # Ray状态 - 使用更准确的检测方法
-    if command -v ray >/dev/null 2>&1; then
-        if ray status >/dev/null 2>&1; then
+    if command -v ${RAY_BIN} >/dev/null 2>&1; then
+        if ${RAY_BIN} status >/dev/null 2>&1; then
             log_success "Ray cluster: Running"
             # 显示Ray资源信息
-            local ray_info=$(ray status 2>/dev/null | grep -E "CPU|GPU|memory" | head -3)
+            local ray_info=$(${RAY_BIN} status 2>/dev/null | grep -E "CPU|GPU|memory" | head -3)
             if [ -n "$ray_info" ]; then
                 echo "  $ray_info" | sed 's/^/  /'
             fi
