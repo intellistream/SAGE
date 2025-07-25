@@ -25,7 +25,7 @@ CMakeUserPresets.json
 /sage.egg-info/
 /sage.egg-info/
 /deps/CANDY/.github/
-
+test_logs/
 draft/
 logs/
 output/
