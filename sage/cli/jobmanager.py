@@ -67,6 +67,121 @@ class JobManagerController:
                 self._sudo_password = ""
         return self._sudo_password
     
+    def diagnose_startup_issues(self) -> Dict[str, Any]:
+        """诊断启动问题"""
+        typer.echo("🔍 Diagnosing potential startup issues...")
+        
+        issues = []
+        warnings = []
+        info = {}
+        
+        # 1. 检查端口
+        port_occupied = self.is_port_occupied()
+        info['port_occupied'] = port_occupied
+        if port_occupied:
+            issues.append(f"Port {self.port} is occupied")
+        else:
+            typer.echo(f"✅ Port {self.port} is available")
+        
+        # 2. 检查端口绑定权限
+        can_bind = self._check_port_binding_permission()
+        info['can_bind_port'] = can_bind
+        if not can_bind:
+            issues.append(f"Cannot bind to port {self.port}")
+        else:
+            typer.echo(f"✅ Can bind to port {self.port}")
+        
+        # 3. 检查Python环境
+        python_path = sys.executable
+        info['python_path'] = python_path
+        typer.echo(f"🐍 Python executable: {python_path}")
+        
+        # 4. 检查SAGE模块
+        try:
+            import sage.jobmanager.job_manager
+            typer.echo("✅ SAGE JobManager module is accessible")
+            info['sage_module_accessible'] = True
+        except ImportError as e:
+            issues.append(f"Cannot import SAGE JobManager module: {e}")
+            info['sage_module_accessible'] = False
+        
+        # 5. 检查用户权限
+        current_user = os.getenv('USER', 'unknown')
+        current_uid = os.getuid() if hasattr(os, 'getuid') else 'unknown'
+        info['current_user'] = current_user
+        info['current_uid'] = current_uid
+        typer.echo(f"👤 Current user: {current_user} (UID: {current_uid})")
+        
+        # 6. 检查工作目录权限
+        try:
+            cwd = os.getcwd()
+            info['working_directory'] = cwd
+            # 测试在当前目录创建文件的权限
+            test_file = os.path.join(cwd, f'.sage_test_{int(time.time())}')
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+            typer.echo(f"✅ Working directory writable: {cwd}")
+            info['working_dir_writable'] = True
+        except Exception as e:
+            warnings.append(f"Working directory may not be writable: {e}")
+            info['working_dir_writable'] = False
+        
+        # 7. 检查环境变量
+        important_env_vars = ['PATH', 'PYTHONPATH', 'CONDA_DEFAULT_ENV', 'VIRTUAL_ENV']
+        env_info = {}
+        for var in important_env_vars:
+            value = os.getenv(var)
+            env_info[var] = value
+            if value:
+                typer.echo(f"🌍 {var}: {value}")
+        info['environment_variables'] = env_info
+        
+        # 8. 尝试创建测试进程
+        try:
+            test_cmd = [sys.executable, '-c', 'print("test process"); import sys; sys.exit(0)']
+            result = subprocess.run(test_cmd, capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                typer.echo("✅ Can create subprocess successfully")
+                info['can_create_subprocess'] = True
+            else:
+                issues.append(f"Test subprocess failed with return code {result.returncode}")
+                info['can_create_subprocess'] = False
+        except Exception as e:
+            issues.append(f"Cannot create subprocess: {e}")
+            info['can_create_subprocess'] = False
+        
+        # 9. 检查网络连接能力
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.settimeout(2)
+                sock.connect(('127.0.0.1', 80))  # 尝试连接到本地
+            typer.echo("✅ Network connectivity available")
+            info['network_available'] = True
+        except:
+            # 这不一定是问题，只是信息
+            info['network_available'] = False
+        
+        # 汇总结果
+        typer.echo(f"\n📊 Diagnosis Summary:")
+        if issues:
+            typer.echo(f"❌ Found {len(issues)} issues:")
+            for i, issue in enumerate(issues, 1):
+                typer.echo(f"   {i}. {issue}")
+        else:
+            typer.echo("✅ No critical issues found")
+            
+        if warnings:
+            typer.echo(f"⚠️  Found {len(warnings)} warnings:")
+            for i, warning in enumerate(warnings, 1):
+                typer.echo(f"   {i}. {warning}")
+        
+        return {
+            'issues': issues,
+            'warnings': warnings,
+            'info': info
+        }
+    
     def _wait_for_port_release(self, timeout: int = 10) -> bool:
         """等待端口释放"""
         typer.echo(f"⏳ Waiting for port {self.port} to be released...")
@@ -598,19 +713,39 @@ class JobManagerController:
                     typer.echo(f"Waiting... ({i+1}/{wait_for_ready})")
                 
                 typer.echo("JobManager did not become ready within timeout")
+                # 自动运行诊断
+                typer.echo("\n🔍 Running automatic diagnosis...")
+                self.diagnose_startup_issues()
+                
                 # 检查进程是否还在运行
                 try:
                     if process.poll() is None:
                         typer.echo("Process is still running but not responding to health checks")
                         typer.echo("This might indicate a startup issue")
+                        # 尝试获取进程输出
+                        try:
+                            stdout, stderr = process.communicate(timeout=2)
+                            if stdout:
+                                typer.echo(f"Process stdout: {stdout.decode()}")
+                            if stderr:
+                                typer.echo(f"Process stderr: {stderr.decode()}")
+                        except subprocess.TimeoutExpired:
+                            typer.echo("Process is still running, cannot get output")
+                        except Exception as e:
+                            typer.echo(f"Error getting process output: {e}")
                     else:
                         typer.echo(f"Process exited with code: {process.returncode}")
                         # 尝试获取错误输出
-                        _, stderr = process.communicate(timeout=1)
-                        if stderr:
-                            typer.echo(f"Process stderr: {stderr.decode()}")
-                except:
-                    pass
+                        try:
+                            stdout, stderr = process.communicate(timeout=1)
+                            if stdout:
+                                typer.echo(f"Process stdout: {stdout.decode()}")
+                            if stderr:
+                                typer.echo(f"Process stderr: {stderr.decode()}")
+                        except Exception as e:
+                            typer.echo(f"Error getting process output: {e}")
+                except Exception as e:
+                    typer.echo(f"Error checking process status: {e}")
                 return False
             
             return True
@@ -843,6 +978,34 @@ def kill(
     else:
         typer.echo(f"\n❌ Operation 'kill' failed")
         raise typer.Exit(code=1)
+
+@app.command()
+def diagnose(
+    host: str = typer.Option("127.0.0.1", help="JobManager host address"),
+    port: int = typer.Option(19001, help="JobManager port")
+):
+    """
+    Diagnose potential JobManager startup issues.
+    """
+    controller = get_controller(host, port)
+    diagnosis = controller.diagnose_startup_issues()
+    
+    if diagnosis['issues']:
+        typer.echo(f"\n💡 Suggestions to fix issues:")
+        for issue in diagnosis['issues']:
+            if "Port" in issue and "occupied" in issue:
+                typer.echo("   • Use --force to kill existing processes")
+                typer.echo("   • Or use a different port with --port")
+            elif "Cannot bind" in issue:
+                typer.echo("   • Check if port is privileged (< 1024)")
+                typer.echo("   • Try a different port with --port")
+            elif "Cannot import" in issue:
+                typer.echo("   • Check if SAGE is properly installed")
+                typer.echo("   • Verify conda/virtual environment is activated")
+            elif "subprocess" in issue:
+                typer.echo("   • Check system resources and permissions")
+    
+    typer.echo(f"\n✅ Operation 'diagnose' completed")
 
 if __name__ == "__main__":
     app()
