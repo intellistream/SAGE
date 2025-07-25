@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import threading
 import time
 from typing import Any, TYPE_CHECKING, Optional, Dict
-from sage_utils.custom_logger import CustomLogger
+from sage.utils.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
     pass

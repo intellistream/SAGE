@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from sage.runtime.runtime_context import RuntimeContext
     from sage.runtime.service.service_caller import ServiceManager
 import logging
-from sage_utils.state_persistence import load_function_state, save_function_state
+from sage.utils.state_persistence import load_function_state, save_function_state
 
 
 # 构造来源于sage.runtime/operator/factory.py

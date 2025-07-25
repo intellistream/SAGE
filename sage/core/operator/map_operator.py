@@ -3,7 +3,7 @@ from sage.core.function.map_function import MapFunction
 
 from typing import Union, Any
 from sage.core.function.map_function import MapFunction
-from sage_utils.custom_logger import CustomLogger
+from sage.utils.custom_logger import CustomLogger
 from sage.runtime.router.packet import Packet
 
 

@@ -4,7 +4,7 @@ from typing import Optional, List, Tuple
 from pathlib import Path
 from datetime import datetime
 from sage.core.function.source_function import SourceFunction
-from sage_utils.custom_logger import CustomLogger
+from sage.utils.custom_logger import CustomLogger
 from sage_libs.context.model_context import ModelContext
 
 class ContextFileSource(SourceFunction):

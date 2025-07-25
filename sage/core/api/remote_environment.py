@@ -4,7 +4,7 @@ import logging
 from typing import Optional, Dict, Any
 from sage.core.environment.base_environment import BaseEnvironment
 from sage.jobmanager.jobmanager_client import JobManagerClient
-from sage_utils.serialization.dill_serializer import trim_object_for_ray
+from sage.utils.serialization.dill_serializer import trim_object_for_ray
 
 logger = logging.getLogger(__name__)
 
@@ -449,7 +449,7 @@ class RemoteEnvironment(BaseEnvironment):
             self.logger.warning(f"Environment compatibility check failed: {e}, proceeding anyway...")
         
         # 序列化环境
-        from sage_utils.serialization.dill_serializer import trim_object_for_ray
+        from sage.utils.serialization.dill_serializer import trim_object_for_ray
         
         try:
             serialized_env = trim_object_for_ray(self)

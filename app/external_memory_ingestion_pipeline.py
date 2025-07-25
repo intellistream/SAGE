@@ -6,7 +6,7 @@ from sage_libs.io.source import FileSource
 
 from sage_libs.rag.chunk import CharacterSplitter
 from sage_libs.rag.writer import MemoryWriter
-from sage_utils.config_loader import load_config
+from sage.utils.config_loader import load_config
 
 
 def pipeline_run():

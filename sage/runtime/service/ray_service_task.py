@@ -1,7 +1,7 @@
 import ray
 import time
 from typing import Any, TYPE_CHECKING
-from sage_utils.custom_logger import CustomLogger
+from sage.utils.custom_logger import CustomLogger
 from .base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:

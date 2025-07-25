@@ -12,8 +12,8 @@ import os
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sage.core.function.base_function import BaseFunction
-from sage.runtime.service.service_caller import ServiceManager
+from core.function.base_function import BaseFunction
+from runtime.service.service_caller import ServiceManager
 
 
 class MockRuntimeContext:
@@ -80,7 +80,7 @@ class TestServiceSyntax(unittest.TestCase):
             _ = func.call_service_async
         self.assertIn("Runtime context not initialized", str(cm.exception))
     
-    @patch('sage.core.service.service_caller.ServiceManager')
+    @patch('sage_core.service.service_caller.ServiceManager')
     def test_sync_service_call_syntax(self, mock_service_manager_class):
         """测试同步服务调用语法"""
         # 设置mock
@@ -105,7 +105,7 @@ class TestServiceSyntax(unittest.TestCase):
         mock_method.assert_called_once_with("arg1", kwarg1="value1")
         self.assertEqual(result, "test_result")
     
-    @patch('sage.core.service.service_caller.ServiceManager')
+    @patch('sage_core.service.service_caller.ServiceManager')
     def test_async_service_call_syntax(self, mock_service_manager_class):
         """测试异步服务调用语法"""
         # 设置mock
@@ -133,7 +133,7 @@ class TestServiceSyntax(unittest.TestCase):
     
     def test_multiple_service_access(self):
         """测试访问多个不同的服务"""
-        with patch('sage.core.service.service_caller.ServiceManager') as mock_sm_class:
+        with patch('sage_core.service.service_caller.ServiceManager') as mock_sm_class:
             mock_service_manager = Mock()
             mock_sm_class.return_value = mock_service_manager
             

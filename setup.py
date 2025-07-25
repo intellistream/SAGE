@@ -29,7 +29,7 @@ def read_long_description():
 # 构建C扩展模块
 def build_c_extension():
     """构建ring_buffer C扩展"""
-    ring_buffer_dir = "sage_utils/mmap_queue"
+    ring_buffer_dir = "sage.utils/mmap_queue"
     
     # 检查是否已有编译好的库
     so_files = [
@@ -59,7 +59,7 @@ def build_c_extension():
     c_source = os.path.join(ring_buffer_dir, "ring_buffer.c")
     if os.path.exists(c_source):
         ring_buffer_ext = Extension(
-            'sage_utils.mmap_queue.ring_buffer',
+            'sage.utils.mmap_queue.ring_buffer',
             sources=[c_source],
             include_dirs=[ring_buffer_dir],
             libraries=['pthread'],  # Linux下需要pthread
@@ -96,7 +96,7 @@ setup(
     package_data={
         'sage.core': ['config/*.yaml'],
         'sage_deployment': ['scripts/*.sh', 'templates/*'],
-        'sage_utils.mmap_queue': [
+        'sage.utils.mmap_queue': [
             '*.so', '*.c', '*.h', 'Makefile', 'build.sh',
             'README.md', 'USAGE_SUMMARY.md', 'IMPLEMENTATION_SUMMARY.md'
         ],

@@ -27,6 +27,6 @@ pip install torch==2.4.0 huggingface_hub
 echo "Updating Conda environment with environment.yml..."
 conda env update --name sage --file $PROJ_DIR/installation/env_setup/environment.yml
 
-# Install/Update libstdc++ to avoid sage_runtime issues
+# Install/Update libstdc++ to avoid sage。runtime issues
 echo "Installing or updating libstdcxx-ng..."
 conda install -n sage -c conda-forge libstdcxx-ng -y

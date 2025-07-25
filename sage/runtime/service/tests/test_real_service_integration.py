@@ -13,7 +13,7 @@ from sage.core.function.base_function import BaseFunction
 from sage.runtime.service.service_caller import ServiceManager
 from sage.runtime.service.local_service_task import LocalServiceTask
 from sage.jobmanager.factory.service_factory import ServiceFactory
-from sage_utils.mmap_queue.sage_queue import SageQueue
+from sage.utils.mmap_queue.sage_queue import SageQueue
 
 
 class MockEnvironment:

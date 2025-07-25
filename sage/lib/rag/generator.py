@@ -5,8 +5,8 @@ from collections import deque
 
 from sage.core.function.map_function import MapFunction
 from sage.core.function.base_function import StatefulFunction
-from sage_utils.clients.generator_model import apply_generator_model
-from sage_utils.state_persistence import load_function_state, save_function_state
+from sage.utils.clients.generator_model import apply_generator_model
+from sage.utils.state_persistence import load_function_state, save_function_state
 
 
 class OpenAIGenerator(MapFunction):

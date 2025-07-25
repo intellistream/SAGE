@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, TYPE_CHECKING
 from sage.core.function.source_function import StopSignal
 from sage.runtime.router.packet import Packet
-from sage_utils.mmap_queue.sage_queue import SageQueue
+from sage.utils.mmap_queue.sage_queue import SageQueue
 
 if TYPE_CHECKING:
     from sage.runtime.router.connection import Connection

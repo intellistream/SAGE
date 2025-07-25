@@ -3,7 +3,7 @@ import time, os
 from typing import List, Dict, Any
 from jinja2 import Template
 from sage.core.function.map_function import MapFunction
-from sage_utils.custom_logger import CustomLogger
+from sage.utils.custom_logger import CustomLogger
 from sage.embedding.openaiclient import OpenAIClient
 from sage_libs.context.model_context import ModelContext
 

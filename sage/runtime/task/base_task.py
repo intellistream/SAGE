@@ -6,7 +6,7 @@ from sage.runtime.runtime_context import RuntimeContext
 from sage.runtime.router.packet import Packet
 from ray.util.queue import Empty
 
-from sage_utils.mmap_queue.sage_queue import SageQueue
+from sage.utils.mmap_queue.sage_queue import SageQueue
 from sage.runtime.router.router import BaseRouter
 if TYPE_CHECKING:
     from sage.runtime.router.connection import Connection

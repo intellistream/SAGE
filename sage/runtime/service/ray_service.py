@@ -2,7 +2,7 @@ import ray
 import time
 from typing import Type, Any, TYPE_CHECKING
 from sage.runtime.service.base_service import BaseService
-from sage_utils.actor_wrapper import ActorWrapper
+from sage.utils.actor_wrapper import ActorWrapper
 
 if TYPE_CHECKING:
     from ray.actor import ActorHandle

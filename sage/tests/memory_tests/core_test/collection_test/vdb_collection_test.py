@@ -4,7 +4,7 @@ import os
 import time
 import pytest
 from sage.service.memory.memory_collection.base_collection import get_default_data_dir
-from sage_utils.embedding_methods.mockembedder import MockTextEmbedder
+from sage.utils.embedding_methods.mockembedder import MockTextEmbedder
 from sage.service.memory.memory_collection.vdb_collection import VDBMemoryCollection
 
 

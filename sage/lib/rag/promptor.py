@@ -3,7 +3,7 @@ from sage.core.function.base_function import StatefulFunction, MemoryFunction
 
 from sage.core.function.map_function import MapFunction
 
-from sage_utils.custom_logger import CustomLogger
+from sage.utils.custom_logger import CustomLogger
 
 QA_prompt_template='''Instruction:
 You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.

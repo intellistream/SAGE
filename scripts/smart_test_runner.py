@@ -27,7 +27,7 @@ class SmartTestRunner:
             "sage.service.memory./": "memory_tests/",
             "sage_vector/": "vector_tests/",
             "frontend/": "frontend_tests/",
-            "sage_utils/": "utils_tests/",
+            "sage.utils/": "utils_tests/",
             "sage_libs/": "function_tests/",  # sage_libs 主要包含函数实现
             "sage_plugins/": "function_tests/",  # plugins 也归类到函数测试
             

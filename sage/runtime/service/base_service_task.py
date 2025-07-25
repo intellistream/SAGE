@@ -9,8 +9,8 @@ import time
 import traceback
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, TYPE_CHECKING
-from sage_utils.custom_logger import CustomLogger
-from sage_utils.mmap_queue.sage_queue import SageQueue
+from sage.utils.custom_logger import CustomLogger
+from sage.utils.mmap_queue.sage_queue import SageQueue
 
 if TYPE_CHECKING:
     from sage.jobmanager.factory.service_factory import ServiceFactory

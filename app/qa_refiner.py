@@ -3,7 +3,7 @@ import time
 import json
 
 from sage.core.api.local_environment import LocalEnvironment
-from sage_utils.config_loader import load_config
+from sage.utils.config_loader import load_config
 from sage.core.function.source_function import SourceFunction
 from sage.core.function.map_function import MapFunction
 

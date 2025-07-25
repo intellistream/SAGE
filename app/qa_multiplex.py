@@ -9,7 +9,7 @@ from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
 from sage_libs.dataflow.splitter import Splitter
 from sage_libs.dataflow.merger import Merger
-from sage_utils.config_loader import load_config
+from sage.utils.config_loader import load_config
 
 
 def pipeline_run(config):

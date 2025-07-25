@@ -26,7 +26,7 @@ tests/
 
 1. **编译C库**（必需）:
    ```bash
-   cd ..  # 回到 sage_utils/mmap_queue 目录
+   cd ..  # 回到 sage.utils/mmap_queue 目录
    ./build.sh
    ```
 

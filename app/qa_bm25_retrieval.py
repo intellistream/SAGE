@@ -7,8 +7,8 @@ from sage_libs.io.source import FileSource
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import BM25sRetriever
-from sage_utils.config_loader import load_config
-from sage_utils.logging_utils import configure_logging
+from sage.utils.config_loader import load_config
+from sage.utils.logging_utils import configure_logging
 
 
 def pipeline_run():

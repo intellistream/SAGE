@@ -45,7 +45,7 @@ config.read("config.ini")
 #     return globals().get("sage_examples", None)
 
 
-from sage_utils.embedding_methods.embedding_api import apply_embedding_model
+from sage.utils.embedding_methods.embedding_api import apply_embedding_model
 from sage.service.memory.memory_manager import MemoryManager
 
 

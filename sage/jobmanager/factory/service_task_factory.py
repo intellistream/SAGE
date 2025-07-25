@@ -1,10 +1,10 @@
 from typing import Union, TYPE_CHECKING
-from sage_utils.custom_logger import CustomLogger
+from sage.utils.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
     from sage.jobmanager.factory.service_factory import ServiceFactory
     from sage.runtime.runtime_context import RuntimeContext
-    from sage_utils.actor_wrapper import ActorWrapper
+    from sage.utils.actor_wrapper import ActorWrapper
     from sage.runtime.service.base_service import BaseService
 
 
@@ -44,7 +44,7 @@ class ServiceTaskFactory:
             )
             
             # 使用ActorWrapper包装
-            from sage_utils.actor_wrapper import ActorWrapper
+            from sage.utils.actor_wrapper import ActorWrapper
             service_task = ActorWrapper(ray_service_task)
             
         else:

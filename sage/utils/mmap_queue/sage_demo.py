@@ -9,7 +9,7 @@ import os
 import time
 import multiprocessing
 
-# 添加sage_utils到路径
+# 添加sage.utils到路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from mmap_queue import SageQueue, SageQueueRef, destroy_queue

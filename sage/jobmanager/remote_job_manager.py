@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, TYPE_CHECKING
 from sage.jobmanager.job_manager import JobManager
-from sage_utils.custom_logger import CustomLogger
+from sage.utils.custom_logger import CustomLogger
 from ray.actor import ActorHandle
 if TYPE_CHECKING:
     from sage.core.environment.base_environment import BaseEnvironment

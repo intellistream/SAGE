@@ -2,6 +2,19 @@
 """
 远程环境服务端测试脚本
 用于接收序列化的环境并验证其完整性
+
+Usage:
+    # 运行完整的RemoteEnvironment序列化测试
+    python test_remote_environment_server.py --mode remote_env_test
+    
+    # 只启动服务器
+    python test_remote_environment_server.py --mode server
+    
+    # 只发送测试数据
+    python test_remote_environment_server.py --mode client
+    
+    # 运行基础测试
+    python test_remote_environment_server.py --mode test
 """
 
 import socket
@@ -28,6 +41,15 @@ except ImportError as e:
     print("Falling back to pickle")
     import pickle
     has_sage_serializer = False
+
+# 导入RemoteEnvironment用于测试
+try:
+    from sage.core.api.remote_environment_simple import RemoteEnvironment
+    print("✅ Successfully imported RemoteEnvironment")
+    has_remote_environment = True
+except ImportError as e:
+    print(f"❌ Could not import RemoteEnvironment: {e}")
+    has_remote_environment = False
 
 # 配置日志
 logging.basicConfig(
@@ -356,6 +378,92 @@ def send_test_environment(server_host: str = "127.0.0.1", server_port: int = 190
         logger.error(f"Error sending test environment: {e}")
 
 
+def send_remote_environment_test(server_host: str = "127.0.0.1", server_port: int = 19002):
+    """发送真实的RemoteEnvironment实例进行序列化测试"""
+    if not has_remote_environment:
+        logger.error("RemoteEnvironment not available, skipping test")
+        return False
+    
+    try:
+        logger.info("Creating RemoteEnvironment instance for serialization test")
+        
+        # 创建RemoteEnvironment实例
+        remote_env = RemoteEnvironment(
+            name="test_remote_env",
+            config={
+                "test_param": "test_value",
+                "batch_size": 32,
+                "model_name": "test_model"
+            },
+            host="localhost",
+            port=19001
+        )
+        
+        # 模拟添加一些pipeline步骤
+        remote_env.pipeline.extend([
+            {"type": "preprocessor", "config": {"normalize": True}},
+            {"type": "model", "config": {"model_path": "/path/to/model"}},
+            {"type": "postprocessor", "config": {"format": "json"}}
+        ])
+        
+        logger.info(f"Created RemoteEnvironment: {remote_env}")
+        logger.info(f"Pipeline length: {len(remote_env.pipeline)}")
+        
+        # 使用SAGE的序列化工具进行序列化（模拟trim_object_for_ray的行为）
+        if has_sage_serializer:
+            from sage.utils.serialization.dill_serializer import trim_object_for_ray
+            logger.info("Using trim_object_for_ray for serialization")
+            serialized_data = trim_object_for_ray(remote_env)
+        else:
+            logger.warning("SAGE serializer not available, using pickle")
+            serialized_data = pickle.dumps(remote_env)
+        
+        logger.info(f"Serialized RemoteEnvironment ({len(serialized_data)} bytes)")
+        
+        # 连接到服务器并发送序列化数据
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+            client_socket.connect((server_host, server_port))
+            
+            # 发送数据长度
+            data_length = len(serialized_data)
+            client_socket.send(data_length.to_bytes(4, byteorder='big'))
+            
+            # 发送数据
+            client_socket.send(serialized_data)
+            
+            # 接收响应
+            response_length_data = client_socket.recv(4)
+            if len(response_length_data) != 4:
+                logger.error("Failed to receive response length")
+                return False
+                
+            response_length = int.from_bytes(response_length_data, byteorder='big')
+            
+            response_data = client_socket.recv(response_length)
+            response = json.loads(response_data.decode('utf-8'))
+            
+            logger.info(f"Server response: {response}")
+            
+            # 检查响应状态
+            if response.get("status") == "success":
+                logger.info("✅ RemoteEnvironment serialization test PASSED")
+                validation = response.get("validation", {})
+                if validation.get("valid"):
+                    logger.info("✅ Serialized environment validation PASSED")
+                    logger.info(f"Environment info: {validation.get('info', {})}")
+                else:
+                    logger.warning(f"⚠️ Validation warnings: {validation.get('warnings', [])}")
+                    logger.error(f"❌ Validation errors: {validation.get('errors', [])}")
+                return True
+            else:
+                logger.error(f"❌ RemoteEnvironment serialization test FAILED: {response.get('message')}")
+                return False
+                
+    except Exception as e:
+        logger.error(f"Error in RemoteEnvironment serialization test: {e}")
+        return False
+
+
 def main():
     """主函数"""
     import argparse
@@ -363,8 +471,8 @@ def main():
     parser = argparse.ArgumentParser(description="Remote Environment Test Server")
     parser.add_argument("--host", default="127.0.0.1", help="Server host")
     parser.add_argument("--port", type=int, default=19002, help="Server port")
-    parser.add_argument("--mode", choices=["server", "client", "test"], default="server",
-                       help="Run mode: server (start test server), client (send test data), test (both)")
+    parser.add_argument("--mode", choices=["server", "client", "test", "remote_env_test"], default="server",
+                       help="Run mode: server (start test server), client (send test data), test (both), remote_env_test (test RemoteEnvironment serialization)")
     
     args = parser.parse_args()
     
@@ -381,6 +489,68 @@ def main():
     elif args.mode == "client":
         # 发送测试数据
         send_test_environment(args.host, args.port)
+        
+    elif args.mode == "remote_env_test":
+        # 测试RemoteEnvironment序列化
+        server = EnvironmentTestServer(args.host, args.port)
+        
+        def run_server():
+            try:
+                server.start()
+            except:
+                pass
+        
+        # 在后台线程启动服务器
+        server_thread = threading.Thread(target=run_server)
+        server_thread.daemon = True
+        server_thread.start()
+        
+        # 等待服务器启动
+        time.sleep(1)
+        
+        try:
+            print("\n" + "="*60)
+            print("🚀 Starting RemoteEnvironment Serialization Test")
+            print("="*60)
+            
+            # 发送基础测试数据
+            print("\n📋 Step 1: Testing basic serialization...")
+            send_test_environment(args.host, args.port)
+            
+            # 发送RemoteEnvironment实例
+            print("\n🎯 Step 2: Testing RemoteEnvironment serialization...")
+            success = send_remote_environment_test(args.host, args.port)
+            
+            # 等待一下让服务器处理
+            time.sleep(1)
+            
+            # 显示统计信息
+            print("\n📊 Test Results:")
+            print("-" * 40)
+            
+            stats = server.get_stats()
+            print(f"Server Stats: {stats}")
+            
+            summary = server.get_environment_summary()
+            print(f"Environment Summary: {summary}")
+            
+            # 显示测试结果总结
+            print("\n🎉 Test Summary:")
+            print("-" * 40)
+            if success:
+                print("✅ RemoteEnvironment serialization test PASSED")
+                print("✅ Environment can be successfully serialized and deserialized")
+                print("✅ Validation checks completed")
+            else:
+                print("❌ RemoteEnvironment serialization test FAILED")
+                print("❌ Check logs for detailed error information")
+            
+            print("="*60)
+            
+        except KeyboardInterrupt:
+            logger.info("RemoteEnvironment test interrupted by user")
+        finally:
+            server.stop()
         
     elif args.mode == "test":
         # 启动服务器并发送测试数据

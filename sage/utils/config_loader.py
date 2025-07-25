@@ -1,4 +1,4 @@
-# sage/sage_utils/config_loader.py
+# sage/sage.utils/config_loader.py
 
 from pathlib import Path
 import os

@@ -39,11 +39,11 @@ class SmartTestRunner:
             'sage.jobmanager/': [
                 'tests/test_service_task_base.py'
             ],
-            'sage_utils/mmap_queue/': [
-                'sage_utils/mmap_queue/tests/test_comprehensive.py',
-                'sage_utils/mmap_queue/tests/test_multiprocess_concurrent.py',
-                'sage_utils/mmap_queue/tests/test_performance_benchmark.py',
-                'sage_utils/mmap_queue/tests/test_ray_integration.py'
+            'sage.utils/mmap_queue/': [
+                'sage.utils/mmap_queue/tests/test_comprehensive.py',
+                'sage.utils/mmap_queue/tests/test_multiprocess_concurrent.py',
+                'sage.utils/mmap_queue/tests/test_performance_benchmark.py',
+                'sage.utils/mmap_queue/tests/test_ray_integration.py'
             ],
             'sage_libs/': [
                 'tests/test_final_verification.py'
@@ -67,10 +67,10 @@ class SmartTestRunner:
         self.all_tests = [
             'tests/test_final_verification.py',
             'tests/test_service_task_base.py',
-            'sage_utils/mmap_queue/tests/test_comprehensive.py',
-            'sage_utils/mmap_queue/tests/test_multiprocess_concurrent.py',
-            'sage_utils/mmap_queue/tests/test_performance_benchmark.py',
-            'sage_utils/mmap_queue/tests/test_ray_integration.py'
+            'sage.utils/mmap_queue/tests/test_comprehensive.py',
+            'sage.utils/mmap_queue/tests/test_multiprocess_concurrent.py',
+            'sage.utils/mmap_queue/tests/test_performance_benchmark.py',
+            'sage.utils/mmap_queue/tests/test_ray_integration.py'
         ]
 
     def get_changed_files(self, since: str = "HEAD~1") -> List[str]:

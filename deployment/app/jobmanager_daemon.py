@@ -9,11 +9,11 @@ import sys
 import os
 from pathlib import Path
 from typing import Optional, Dict, Any, TYPE_CHECKING
-from sage_utils.custom_logger import CustomLogger
+from sage.utils.custom_logger import CustomLogger
 from sage.jobmanager.remote_job_manager import RemoteJobManager
 from ray.actor import ActorHandle
 
-from sage_utils.ray_init_helper import ensure_ray_initialized
+from sage.utils.ray_init_helper import ensure_ray_initialized
     
 
 

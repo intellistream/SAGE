@@ -17,12 +17,12 @@ SAGE服务系统重构总结
 - 主要方法: create_service_task()
 - 根据remote字段决定创建LocalServiceTask或RayServiceTask
 
-#### LocalServiceTask (/sage_runtime/service/local_service_task.py)
+#### LocalServiceTask (/sage。runtime/service/local_service_task.py)
 - 职责: 本地服务任务实现
 - 特性: 直接实例化服务，提供service属性访问
 - 方法: start_running(), terminate(), call_method()
 
-#### RayServiceTask (/sage_runtime/service/ray_service_task.py)
+#### RayServiceTask (/sage。runtime/service/ray_service_task.py)
 - 职责: Ray actor服务任务实现
 - 特性: 创建Ray actor，使用ActorWrapper统一接口
 - 方法: start_running(), terminate(), call_method()
@@ -37,7 +37,7 @@ SAGE服务系统重构总结
 
 ### 3. Dispatcher集成
 
-#### Dispatcher (/sage_runtime/dispatcher.py)
+#### Dispatcher (/sage。runtime/dispatcher.py)
 - instantiate_services: 使用ServiceTaskFactory创建服务任务
 - start方法: 启动所有服务任务
 - cleanup方法: 清理所有服务任务

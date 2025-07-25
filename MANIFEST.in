@@ -1,13 +1,13 @@
 # MANIFEST.in - 告诉setuptools包含哪些非Python文件
 
 # 包含C源代码和头文件
-include sage_utils/mmap_queue/*.c
-include sage_utils/mmap_queue/*.h
-include sage_utils/mmap_queue/Makefile
-include sage_utils/mmap_queue/build.sh
+include sage.utils/mmap_queue/*.c
+include sage.utils/mmap_queue/*.h
+include sage.utils/mmap_queue/Makefile
+include sage.utils/mmap_queue/build.sh
 
 # 包含预编译的共享库（可选，建议从源码编译）
-include sage_utils/mmap_queue/*.so
+include sage.utils/mmap_queue/*.so
 
 # 包含配置文件
 recursive-include config *.yaml *.yml

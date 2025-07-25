@@ -7,9 +7,9 @@ os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
 
 import logging
-from sage_utils.logging_utils import configure_logging
+from sage.utils.logging_utils import configure_logging
 
-from sage_utils.config_loader import load_config
+from sage.utils.config_loader import load_config
 
 from sage.core.api.env import LocalEnvironment
 
