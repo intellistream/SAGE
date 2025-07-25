@@ -1,0 +1,45 @@
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.11.10, pytest-7.4.4, pluggy-1.0.0 -- /opt/conda/envs/sage/bin/python
+cachedir: .pytest_cache
+rootdir: /home/tjy/SAGE
+plugins: typeguard-4.3.0, mock-3.14.1, anyio-4.6.0
+[1mcollecting ... [0mcollected 6 items
+
+sage/core/api/test/test_new_remote_env.py::test_serialization [32mPASSED[0m[33m     [ 16%][0m
+sage/core/api/test/test_new_remote_env.py::test_client [32mPASSED[0m[33m            [ 33%][0m
+sage/core/api/test/test_new_remote_env.py::test_remote_env [32mPASSED[0m[33m        [ 50%][0m
+sage/core/api/test/test_remote_env_serialization.py::test_remote_environment_serialization [32mPASSED[0m[33m [ 66%][0m
+sage/core/api/test/test_remote_env_serialization.py::test_client_methods [32mPASSED[0m[33m [ 83%][0m
+sage/core/api/test/test_remote_env_serialization.py::test_remote_environment_methods [32mPASSED[0m[33m [100%][0m
+
+[33m=============================== warnings summary ===============================[0m
+../../../opt/conda/envs/sage/lib/python3.11/site-packages/pipmaster/package_manager.py:4
+  /opt/conda/envs/sage/lib/python3.11/site-packages/pipmaster/package_manager.py:4: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
+    import pkg_resources
+
+sage/core/api/test/test_new_remote_env.py::test_serialization
+  /opt/conda/envs/sage/lib/python3.11/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but sage/core/api/test/test_new_remote_env.py::test_serialization returned True, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+sage/core/api/test/test_new_remote_env.py::test_client
+  /opt/conda/envs/sage/lib/python3.11/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but sage/core/api/test/test_new_remote_env.py::test_client returned True, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+sage/core/api/test/test_new_remote_env.py::test_remote_env
+  /opt/conda/envs/sage/lib/python3.11/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but sage/core/api/test/test_new_remote_env.py::test_remote_env returned True, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+sage/core/api/test/test_remote_env_serialization.py::test_remote_environment_serialization
+  /opt/conda/envs/sage/lib/python3.11/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but sage/core/api/test/test_remote_env_serialization.py::test_remote_environment_serialization returned True, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+sage/core/api/test/test_remote_env_serialization.py::test_client_methods
+  /opt/conda/envs/sage/lib/python3.11/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but sage/core/api/test/test_remote_env_serialization.py::test_client_methods returned True, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+sage/core/api/test/test_remote_env_serialization.py::test_remote_environment_methods
+  /opt/conda/envs/sage/lib/python3.11/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but sage/core/api/test/test_remote_env_serialization.py::test_remote_environment_methods returned True, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+[33m======================== [32m6 passed[0m, [33m[1m7 warnings[0m[33m in 4.45s[0m[33m =========================[0m

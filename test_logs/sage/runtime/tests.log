@@ -1,0 +1,13 @@
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.11.10, pytest-7.4.4, pluggy-1.0.0 -- /opt/conda/envs/sage/bin/python
+cachedir: .pytest_cache
+rootdir: /home/tjy/SAGE
+plugins: typeguard-4.3.0, mock-3.14.1, anyio-4.6.0
+[1mcollecting ... [0mcollected 6 items
+
+sage/runtime/tests/test_message_queue.py::TestMessageQueue::test_basic_functionality [32mPASSED[0m[32m [ 16%][0m
+sage/runtime/tests/test_message_queue.py::TestMessageQueue::test_memory_limit [32mPASSED[0m[32m [ 33%][0m
+sage/runtime/tests/test_message_queue.py::TestMessageQueue::test_memory_limit_blocking [32mPASSED[0m[32m [ 50%][0m
+sage/runtime/tests/test_message_queue.py::TestMessageQueue::test_metrics [32mPASSED[0m[32m [ 66%][0m
+sage/runtime/tests/test_message_queue.py::TestMessageQueue::test_multi_producer_consumer [32mPASSED[0m[32m [ 83%][0m
+sage/runtime/tests/test_message_queue.py::TestMessageQueue::test_throughput_accuracy 

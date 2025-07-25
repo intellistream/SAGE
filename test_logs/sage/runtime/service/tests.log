@@ -1,0 +1,71 @@
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.11.10, pytest-7.4.4, pluggy-1.0.0 -- /opt/conda/envs/sage/bin/python
+cachedir: .pytest_cache
+rootdir: /home/tjy/SAGE
+plugins: typeguard-4.3.0, mock-3.14.1, anyio-4.6.0
+[1mcollecting ... [0mcollected 23 items / 1 error
+
+==================================== ERRORS ====================================
+[31m[1m______ ERROR collecting sage/runtime/service/tests/test_service_caller.py ______[0m
+[31mImportError while importing test module '/home/tjy/SAGE/sage/runtime/service/tests/test_service_caller.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/conda/envs/sage/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+sage/runtime/service/tests/test_service_caller.py:9: in <module>
+    from sage.runtime.service.service_caller import (
+E   ImportError: cannot import name 'ServiceRequest' from 'sage.runtime.service.service_caller' (/home/tjy/SAGE/sage/runtime/service/service_caller.py)[0m
+[33m=============================== warnings summary ===============================[0m
+sage/runtime/service/tests/test_concurrent_service_calls.py:35
+  /home/tjy/SAGE/sage/runtime/service/tests/test_concurrent_service_calls.py:35: PytestCollectionWarning: cannot collect test class 'TestConcurrentFunction' because it has a __init__ constructor (from: sage/runtime/service/tests/test_concurrent_service_calls.py)
+    class TestConcurrentFunction(BaseFunction):
+
+sage/runtime/service/tests/test_deep_debug.py:35
+  /home/tjy/SAGE/sage/runtime/service/tests/test_deep_debug.py:35: PytestCollectionWarning: cannot collect test class 'TestFunction' because it has a __init__ constructor (from: sage/runtime/service/tests/test_deep_debug.py)
+    class TestFunction(BaseFunction):
+
+sage/runtime/service/tests/test_final_verification.py:33
+  /home/tjy/SAGE/sage/runtime/service/tests/test_final_verification.py:33: PytestCollectionWarning: cannot collect test class 'TestFunction' because it has a __init__ constructor (from: sage/runtime/service/tests/test_final_verification.py)
+    class TestFunction(BaseFunction):
+
+sage/runtime/service/tests/test_integrated_service_call.py:40
+  /home/tjy/SAGE/sage/runtime/service/tests/test_integrated_service_call.py:40: PytestCollectionWarning: cannot collect test class 'TestCacheService' because it has a __init__ constructor (from: sage/runtime/service/tests/test_integrated_service_call.py)
+    class TestCacheService:
+
+sage/runtime/service/tests/test_integrated_service_call.py:58
+  /home/tjy/SAGE/sage/runtime/service/tests/test_integrated_service_call.py:58: PytestCollectionWarning: cannot collect test class 'TestDatabaseService' because it has a __init__ constructor (from: sage/runtime/service/tests/test_integrated_service_call.py)
+    class TestDatabaseService:
+
+sage/runtime/service/tests/test_integrated_service_call.py:80
+  /home/tjy/SAGE/sage/runtime/service/tests/test_integrated_service_call.py:80: PytestCollectionWarning: cannot collect test class 'TestFunction' because it has a __init__ constructor (from: sage/runtime/service/tests/test_integrated_service_call.py)
+    class TestFunction(BaseFunction):
+
+sage/runtime/service/tests/test_real_service_integration.py:41
+  /home/tjy/SAGE/sage/runtime/service/tests/test_real_service_integration.py:41: PytestCollectionWarning: cannot collect test class 'TestCacheService' because it has a __init__ constructor (from: sage/runtime/service/tests/test_real_service_integration.py)
+    class TestCacheService:
+
+sage/runtime/service/tests/test_real_service_integration.py:69
+  /home/tjy/SAGE/sage/runtime/service/tests/test_real_service_integration.py:69: PytestCollectionWarning: cannot collect test class 'TestDatabaseService' because it has a __init__ constructor (from: sage/runtime/service/tests/test_real_service_integration.py)
+    class TestDatabaseService:
+
+sage/runtime/service/tests/test_real_service_integration.py:95
+  /home/tjy/SAGE/sage/runtime/service/tests/test_real_service_integration.py:95: PytestCollectionWarning: cannot collect test class 'TestFunction' because it has a __init__ constructor (from: sage/runtime/service/tests/test_real_service_integration.py)
+    class TestFunction(BaseFunction):
+
+sage/runtime/service/tests/test_service_syntax.py:34
+  /home/tjy/SAGE/sage/runtime/service/tests/test_service_syntax.py:34: PytestCollectionWarning: cannot collect test class 'TestFunction' because it has a __init__ constructor (from: sage/runtime/service/tests/test_service_syntax.py)
+    class TestFunction(BaseFunction):
+
+sage/runtime/service/tests/test_simple_concurrent.py:33
+  /home/tjy/SAGE/sage/runtime/service/tests/test_simple_concurrent.py:33: PytestCollectionWarning: cannot collect test class 'TestFunction' because it has a __init__ constructor (from: sage/runtime/service/tests/test_simple_concurrent.py)
+    class TestFunction(BaseFunction):
+
+sage/runtime/service/tests/test_simple_proxy_creation.py:31
+  /home/tjy/SAGE/sage/runtime/service/tests/test_simple_proxy_creation.py:31: PytestCollectionWarning: cannot collect test class 'TestFunction' because it has a __init__ constructor (from: sage/runtime/service/tests/test_simple_proxy_creation.py)
+    class TestFunction(BaseFunction):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+[36m[1m=========================== short test summary info ============================[0m
+[31mERROR[0m sage/runtime/service/tests/test_service_caller.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+[31m======================== [33m12 warnings[0m, [31m[1m1 error[0m[31m in 0.75s[0m[31m =========================[0m

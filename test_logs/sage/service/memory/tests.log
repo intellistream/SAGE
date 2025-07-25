@@ -1,0 +1,52 @@
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.11.10, pytest-7.4.4, pluggy-1.0.0 -- /opt/conda/envs/sage/bin/python
+cachedir: .pytest_cache
+rootdir: /home/tjy/SAGE
+plugins: typeguard-4.3.0, mock-3.14.1, anyio-4.6.0
+[1mcollecting ... [0mcollected 5 items
+
+sage/service/memory/tests/core_test/manager_test.py::test_vdb [31mFAILED[0m[31m     [ 20%][0m
+sage/service/memory/tests/core_test/collection_test/kv_collection_test.py::test_kv_retrieve [32mPASSED[0m[31m [ 40%][0m
+sage/service/memory/tests/core_test/collection_test/kv_collection_test.py::test_kv_update_and_delete [32mPASSED[0m[31m [ 60%][0m
+sage/service/memory/tests/core_test/collection_test/kv_collection_test.py::test_kv_persistence [31mFAILED[0m[31m [ 80%][0m
+sage/service/memory/tests/core_test/collection_test/vdb_collection_test.py::test_vdb_persist [31mERROR[0m[31m [100%][0m
+
+==================================== ERRORS ====================================
+[31m[1m______________________ ERROR at setup of test_vdb_persist ______________________[0m
+[1m[31msage/service/memory/tests/core_test/collection_test/vdb_collection_test.py[0m:42: in setup_vdb_collection
+    col.create_index([33m"[39;49;00m[33mglobal_index[39;49;00m[33m"[39;49;00m)[90m[39;49;00m
+[1m[31msage/service/memory/memory_collection/vdb_collection.py[0m:179: in create_index
+    index = FaissIndex(index_name, [96mself[39;49;00m.dim, vectors, filtered_ids, config)[90m[39;49;00m
+[1m[31msage/service/memory/search_engine/vdb_index/faiss_index.py[0m:36: in __init__
+    [96mself[39;49;00m.logger = CustomLogger([90m[39;49;00m
+[1m[31mE   TypeError: CustomLogger.__init__() got an unexpected keyword argument 'filename'[0m
+=================================== FAILURES ===================================
+[31m[1m___________________________________ test_vdb ___________________________________[0m
+[1m[31msage/service/memory/tests/core_test/manager_test.py[0m:25: in test_vdb
+    mgr = MemoryManager()[90m[39;49;00m
+[1m[31msage/service/memory/memory_manager.py[0m:34: in __init__
+    [96mself[39;49;00m.data_dir = data_dir [95mor[39;49;00m get_default_data_dir()[90m[39;49;00m
+[1m[31msage/service/memory/memory_collection/base_collection.py[0m:143: in get_default_data_dir
+    [94mraise[39;49;00m [96mFileNotFoundError[39;49;00m([33m"[39;49;00m[33mCould not find [39;49;00m[33m'[39;49;00m[33msage.service.memory.[39;49;00m[33m'[39;49;00m[33m directory in parent folders.[39;49;00m[33m"[39;49;00m)[90m[39;49;00m
+[1m[31mE   FileNotFoundError: Could not find 'sage.service.memory.' directory in parent folders.[0m
+[31m[1m_____________________________ test_kv_persistence ______________________________[0m
+[1m[31msage/service/memory/tests/core_test/collection_test/kv_collection_test.py[0m:48: in test_kv_persistence
+    store_path = get_default_data_dir()[90m[39;49;00m
+[1m[31msage/service/memory/memory_collection/base_collection.py[0m:143: in get_default_data_dir
+    [94mraise[39;49;00m [96mFileNotFoundError[39;49;00m([33m"[39;49;00m[33mCould not find [39;49;00m[33m'[39;49;00m[33msage.service.memory.[39;49;00m[33m'[39;49;00m[33m directory in parent folders.[39;49;00m[33m"[39;49;00m)[90m[39;49;00m
+[1m[31mE   FileNotFoundError: Could not find 'sage.service.memory.' directory in parent folders.[0m
+---------------------------- Captured stderr setup -----------------------------
+Tokenize texts:   0%|          | 0/6 [00:00<?, ?it/s]                                                     BM25S Count Tokens:   0%|          | 0/6 [00:00<?, ?it/s]                                                         BM25S Compute Scores:   0%|          | 0/6 [00:00<?, ?it/s]                                                           
+------------------------------ Captured log setup ------------------------------
+[35mDEBUG   [0m bm25s:__init__.py:471 Building index from token IDs
+[33m=============================== warnings summary ===============================[0m
+../../../opt/conda/envs/sage/lib/python3.11/site-packages/pipmaster/package_manager.py:4
+  /opt/conda/envs/sage/lib/python3.11/site-packages/pipmaster/package_manager.py:4: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
+    import pkg_resources
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m sage/service/memory/tests/core_test/manager_test.py::[1mtest_vdb[0m - FileNotFoundError: Could not find 'sage.service.memory.' directory in paren...
+[31mFAILED[0m sage/service/memory/tests/core_test/collection_test/kv_collection_test.py::[1mtest_kv_persistence[0m - FileNotFoundError: Could not find 'sage.service.memory.' directory in paren...
+[31mERROR[0m sage/service/memory/tests/core_test/collection_test/vdb_collection_test.py::[1mtest_vdb_persist[0m - TypeError: CustomLogger.__init__() got an unexpected keyword argument 'file...
+[31m=============== [31m[1m2 failed[0m, [32m2 passed[0m, [33m1 warning[0m, [31m[1m1 error[0m[31m in 4.55s[0m[31m ================[0m
