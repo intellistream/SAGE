@@ -67,10 +67,160 @@ class JobManagerController:
                 self._sudo_password = ""
         return self._sudo_password
     
+    def _wait_for_port_release(self, timeout: int = 10) -> bool:
+        """等待端口释放"""
+        typer.echo(f"⏳ Waiting for port {self.port} to be released...")
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            if not self.is_port_occupied():
+                typer.echo(f"✅ Port {self.port} is now available")
+                return True
+            typer.echo(f"   Port still occupied, waiting... ({int(time.time() - start_time)}/{timeout}s)")
+            time.sleep(1)
+        
+        typer.echo(f"⚠️  Port {self.port} is still occupied after {timeout} seconds")
+        return False
+    
+    def _aggressive_port_cleanup(self) -> bool:
+        """激进的端口清理 - 尝试杀死所有占用指定端口的进程"""
+        typer.echo(f"🔧 Performing aggressive cleanup for port {self.port}...")
+        
+        killed_any = False
+        
+        # 使用多种方法查找占用端口的进程
+        methods = [
+            # Method 1: lsof
+            lambda: self._find_port_processes_lsof(),
+            # Method 2: netstat + ss
+            lambda: self._find_port_processes_netstat(),
+            # Method 3: fuser
+            lambda: self._find_port_processes_fuser()
+        ]
+        
+        all_pids = set()
+        for method in methods:
+            try:
+                pids = method()
+                all_pids.update(pids)
+            except:
+                continue
+        
+        if not all_pids:
+            typer.echo("No processes found occupying the port")
+            return False
+        
+        # 尝试杀死所有找到的进程
+        for pid in all_pids:
+            try:
+                proc = psutil.Process(pid)
+                proc_info = self._get_process_info(pid)
+                typer.echo(f"🎯 Found port-occupying process: PID {pid} ({proc_info['user']})")
+                
+                # 先尝试普通kill
+                try:
+                    proc.kill()
+                    proc.wait(timeout=2)
+                    typer.echo(f"✅ Killed process {pid}")
+                    killed_any = True
+                except psutil.AccessDenied:
+                    # 尝试sudo kill
+                    if self._kill_process_with_sudo(pid):
+                        killed_any = True
+                except:
+                    continue
+                    
+            except psutil.NoSuchProcess:
+                continue
+            except Exception as e:
+                typer.echo(f"Error killing process {pid}: {e}")
+                continue
+        
+        return killed_any
+    
+    def _find_port_processes_lsof(self) -> List[int]:
+        """使用lsof查找占用端口的进程"""
+        try:
+            result = subprocess.run(
+                ['lsof', '-ti', f':{self.port}'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return [int(pid.strip()) for pid in result.stdout.strip().split('\n') if pid.strip().isdigit()]
+        except:
+            pass
+        return []
+    
+    def _find_port_processes_netstat(self) -> List[int]:
+        """使用netstat查找占用端口的进程"""
+        try:
+            result = subprocess.run(
+                ['netstat', '-tlnp'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            pids = []
+            if result.returncode == 0:
+                for line in result.stdout.split('\n'):
+                    if f':{self.port}' in line and 'LISTEN' in line:
+                        parts = line.split()
+                        if len(parts) > 6 and '/' in parts[6]:
+                            pid_str = parts[6].split('/')[0]
+                            if pid_str.isdigit():
+                                pids.append(int(pid_str))
+            return pids
+        except:
+            pass
+        return []
+    
+    def _find_port_processes_fuser(self) -> List[int]:
+        """使用fuser查找占用端口的进程"""
+        try:
+            result = subprocess.run(
+                ['fuser', f'{self.port}/tcp'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return [int(pid.strip()) for pid in result.stdout.strip().split() if pid.strip().isdigit()]
+        except:
+            pass
+        return []
+    
+    def _check_port_binding_permission(self) -> bool:
+        """检查是否有端口绑定权限"""
+        try:
+            # 尝试绑定端口来检查权限
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                sock.bind((self.host, self.port))
+                typer.echo(f"✅ Port {self.port} binding permission verified")
+                return True
+        except PermissionError:
+            typer.echo(f"❌ Permission denied to bind port {self.port}")
+            return False
+        except OSError as e:
+            if e.errno == 98:  # Address already in use
+                typer.echo(f"⚠️  Port {self.port} is still in use")
+                return False
+            else:
+                typer.echo(f"❌ Error checking port binding permission: {e}")
+                return False
+        except Exception as e:
+            typer.echo(f"❌ Unexpected error checking port permission: {e}")
+            return False
+    
     def _ensure_sudo_access(self) -> bool:
-        """确保有sudo访问权限"""
+        """确保有sudo访问权限，返回是否成功获取权限"""
         password = self._get_sudo_password()
-        return bool(password)
+        has_access = bool(password)
+        if not has_access:
+            typer.echo("⚠️  Warning: No sudo access available. May fail to terminate processes owned by other users.")
+        return has_access
     
     def _get_process_info(self, pid: int) -> Dict[str, str]:
         """获取进程详细信息"""
@@ -382,6 +532,15 @@ class JobManagerController:
                 if not self.force_kill():
                     typer.echo("❌ Failed to force kill existing processes")
                     return False
+                
+                # 等待端口释放
+                if not self._wait_for_port_release(15):
+                    typer.echo("❌ Port is still occupied after force kill")
+                    # 尝试更激进的端口清理
+                    typer.echo("🔧 Attempting aggressive port cleanup...")
+                    self._aggressive_port_cleanup()
+                    if not self._wait_for_port_release(5):
+                        typer.echo("❌ Unable to free the port, startup may fail")
             else:
                 health = self.check_health()
                 if health.get("status") == "success":
@@ -391,6 +550,14 @@ class JobManagerController:
                     typer.echo("Port occupied but JobManager not responding, stopping existing process...")
                     if not self.stop_gracefully():
                         return False
+                    # 等待端口释放
+                    self._wait_for_port_release(10)
+        
+        # 检查端口绑定权限
+        if not self._check_port_binding_permission():
+            typer.echo("❌ Cannot bind to port, startup will fail")
+            typer.echo("💡 Suggestion: Try using a different port with --port option")
+            return False
         
         # 构建启动命令
         jobmanager_module = "sage.jobmanager.job_manager"
@@ -431,6 +598,19 @@ class JobManagerController:
                     typer.echo(f"Waiting... ({i+1}/{wait_for_ready})")
                 
                 typer.echo("JobManager did not become ready within timeout")
+                # 检查进程是否还在运行
+                try:
+                    if process.poll() is None:
+                        typer.echo("Process is still running but not responding to health checks")
+                        typer.echo("This might indicate a startup issue")
+                    else:
+                        typer.echo(f"Process exited with code: {process.returncode}")
+                        # 尝试获取错误输出
+                        _, stderr = process.communicate(timeout=1)
+                        if stderr:
+                            typer.echo(f"Process stderr: {stderr.decode()}")
+                except:
+                    pass
                 return False
             
             return True
@@ -541,7 +721,15 @@ class JobManagerController:
         
         # 等待一下确保资源释放
         typer.echo("⏳ Waiting for resources to be released...")
-        time.sleep(2)
+        if force:
+            # 强制模式下等待更长时间，并确保端口释放
+            time.sleep(3)
+            if not self._wait_for_port_release(10):
+                typer.echo("⚠️  Port may still be occupied, attempting aggressive cleanup...")
+                self._aggressive_port_cleanup()
+                self._wait_for_port_release(5)
+        else:
+            time.sleep(2)
         
         # 启动新实例 - 始终使用用户权限，不使用force模式
         # 这确保新的JobManager运行在正确的conda环境中
