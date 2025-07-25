@@ -1,0 +1,153 @@
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.11.10, pytest-7.4.4, pluggy-1.0.0 -- /opt/conda/envs/sage/bin/python
+cachedir: .pytest_cache
+rootdir: /home/tjy/SAGE/sage/cli
+plugins: typeguard-4.3.0, mock-3.14.1, anyio-4.6.0
+[1mcollecting ... [0mcollected 28 items
+
+sage/cli/tests/test_deploy.py::test_start [31mFAILED[0m[31m                         [  3%][0m
+sage/cli/tests/test_deploy.py::test_stop [31mFAILED[0m[31m                          [  7%][0m
+sage/cli/tests/test_deploy.py::test_restart [31mFAILED[0m[31m                       [ 10%][0m
+sage/cli/tests/test_deploy.py::test_status [31mFAILED[0m[31m                        [ 14%][0m
+sage/cli/tests/test_job.py::test_list_jobs [31mFAILED[0m[31m                        [ 17%][0m
+sage/cli/tests/test_job.py::test_show_job [31mFAILED[0m[31m                         [ 21%][0m
+sage/cli/tests/test_job.py::test_run_job [31mFAILED[0m[31m                          [ 25%][0m
+sage/cli/tests/test_job.py::test_stop_job [31mFAILED[0m[31m                         [ 28%][0m
+sage/cli/tests/test_job.py::test_stop_job_force [31mFAILED[0m[31m                   [ 32%][0m
+sage/cli/tests/test_job.py::test_logs_job [31mFAILED[0m[31m                         [ 35%][0m
+sage/cli/tests/test_job.py::test_logs_job_follow [31mFAILED[0m[31m                  [ 39%][0m
+sage/cli/tests/test_jobmanager.py::test_start [32mPASSED[0m[31m                     [ 42%][0m
+sage/cli/tests/test_jobmanager.py::test_stop [32mPASSED[0m[31m                      [ 46%][0m
+sage/cli/tests/test_jobmanager.py::test_stop_force [32mPASSED[0m[31m                [ 50%][0m
+sage/cli/tests/test_jobmanager.py::test_restart [32mPASSED[0m[31m                   [ 53%][0m
+sage/cli/tests/test_jobmanager.py::test_status [32mPASSED[0m[31m                    [ 57%][0m
+sage/cli/tests/test_jobmanager.py::test_kill [32mPASSED[0m[31m                      [ 60%][0m
+sage/cli/tests/test_legacy.py::test_legacy_script_redirects [31mFAILED[0m[31m       [ 64%][0m
+sage/cli/tests/test_main.py::test_version [32mPASSED[0m[31m                         [ 67%][0m
+sage/cli/tests/test_main.py::test_config_info_no_file [32mPASSED[0m[31m             [ 71%][0m
+sage/cli/tests/test_main.py::test_main_help [32mPASSED[0m[31m                       [ 75%][0m
+sage/cli/tests/test_main.py::test_main_script_execution [31mFAILED[0m[31m           [ 78%][0m
+sage/cli/tests/test_setup.py::test_install_dependencies_success [32mPASSED[0m[31m   [ 82%][0m
+sage/cli/tests/test_setup.py::test_install_dependencies_failure [32mPASSED[0m[31m   [ 85%][0m
+sage/cli/tests/test_setup.py::test_create_config_directory_new [32mPASSED[0m[31m    [ 89%][0m
+sage/cli/tests/test_setup.py::test_create_config_directory_existing [32mPASSED[0m[31m [ 92%][0m
+sage/cli/tests/test_setup.py::test_main_flow [32mPASSED[0m[31m                      [ 96%][0m
+sage/cli/tests/test_setup.py::test_main_flow_install_fail [32mPASSED[0m[31m         [100%][0m
+
+=================================== FAILURES ===================================
+[31m[1m__________________________________ test_start __________________________________[0m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1375: in patched
+    [94mwith[39;49;00m [96mself[39;49;00m.decoration_helper(patched,[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/contextlib.py[0m:137: in __enter__
+    [94mreturn[39;49;00m [96mnext[39;49;00m([96mself[39;49;00m.gen)[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1357: in decoration_helper
+    arg = exit_stack.enter_context(patching)[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/contextlib.py[0m:517: in enter_context
+    result = _enter(cm)[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1446: in __enter__
+    original, local = [96mself[39;49;00m.get_original()[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1419: in get_original
+    [94mraise[39;49;00m [96mAttributeError[39;49;00m([90m[39;49;00m
+[1m[31mE   AttributeError: <module 'sage.cli.deploy' from '/home/tjy/SAGE/sage/cli/deploy.py'> does not have the attribute 'DeploymentController'[0m
+[31m[1m__________________________________ test_stop ___________________________________[0m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1375: in patched
+    [94mwith[39;49;00m [96mself[39;49;00m.decoration_helper(patched,[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/contextlib.py[0m:137: in __enter__
+    [94mreturn[39;49;00m [96mnext[39;49;00m([96mself[39;49;00m.gen)[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1357: in decoration_helper
+    arg = exit_stack.enter_context(patching)[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/contextlib.py[0m:517: in enter_context
+    result = _enter(cm)[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1446: in __enter__
+    original, local = [96mself[39;49;00m.get_original()[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1419: in get_original
+    [94mraise[39;49;00m [96mAttributeError[39;49;00m([90m[39;49;00m
+[1m[31mE   AttributeError: <module 'sage.cli.deploy' from '/home/tjy/SAGE/sage/cli/deploy.py'> does not have the attribute 'DeploymentController'[0m
+[31m[1m_________________________________ test_restart _________________________________[0m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1375: in patched
+    [94mwith[39;49;00m [96mself[39;49;00m.decoration_helper(patched,[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/contextlib.py[0m:137: in __enter__
+    [94mreturn[39;49;00m [96mnext[39;49;00m([96mself[39;49;00m.gen)[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1357: in decoration_helper
+    arg = exit_stack.enter_context(patching)[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/contextlib.py[0m:517: in enter_context
+    result = _enter(cm)[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1446: in __enter__
+    original, local = [96mself[39;49;00m.get_original()[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1419: in get_original
+    [94mraise[39;49;00m [96mAttributeError[39;49;00m([90m[39;49;00m
+[1m[31mE   AttributeError: <module 'sage.cli.deploy' from '/home/tjy/SAGE/sage/cli/deploy.py'> does not have the attribute 'DeploymentController'[0m
+[31m[1m_________________________________ test_status __________________________________[0m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1375: in patched
+    [94mwith[39;49;00m [96mself[39;49;00m.decoration_helper(patched,[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/contextlib.py[0m:137: in __enter__
+    [94mreturn[39;49;00m [96mnext[39;49;00m([96mself[39;49;00m.gen)[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1357: in decoration_helper
+    arg = exit_stack.enter_context(patching)[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/contextlib.py[0m:517: in enter_context
+    result = _enter(cm)[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1446: in __enter__
+    original, local = [96mself[39;49;00m.get_original()[90m[39;49;00m
+[1m[31m/opt/conda/envs/sage/lib/python3.11/unittest/mock.py[0m:1419: in get_original
+    [94mraise[39;49;00m [96mAttributeError[39;49;00m([90m[39;49;00m
+[1m[31mE   AttributeError: <module 'sage.cli.deploy' from '/home/tjy/SAGE/sage/cli/deploy.py'> does not have the attribute 'DeploymentController'[0m
+[31m[1m________________________________ test_list_jobs ________________________________[0m
+[1m[31msage/cli/tests/test_job.py[0m:19: in test_list_jobs
+    [94massert[39;49;00m result.exit_code == [94m0[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 1 == 0[0m
+[1m[31mE    +  where 1 = <Result SystemExit(1)>.exit_code[0m
+[31m[1m________________________________ test_show_job _________________________________[0m
+[1m[31msage/cli/tests/test_job.py[0m:30: in test_show_job
+    [94massert[39;49;00m result.exit_code == [94m0[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 1 == 0[0m
+[1m[31mE    +  where 1 = <Result SystemExit(1)>.exit_code[0m
+[31m[1m_________________________________ test_run_job _________________________________[0m
+[1m[31msage/cli/tests/test_job.py[0m:45: in test_run_job
+    [94massert[39;49;00m result.exit_code == [94m0[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 1 == 0[0m
+[1m[31mE    +  where 1 = <Result SystemExit(1)>.exit_code[0m
+[31m[1m________________________________ test_stop_job _________________________________[0m
+[1m[31msage/cli/tests/test_job.py[0m:56: in test_stop_job
+    [94massert[39;49;00m result.exit_code == [94m0[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 1 == 0[0m
+[1m[31mE    +  where 1 = <Result SystemExit(1)>.exit_code[0m
+[31m[1m_____________________________ test_stop_job_force ______________________________[0m
+[1m[31msage/cli/tests/test_job.py[0m:67: in test_stop_job_force
+    [94massert[39;49;00m result.exit_code == [94m0[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 1 == 0[0m
+[1m[31mE    +  where 1 = <Result SystemExit(1)>.exit_code[0m
+[31m[1m________________________________ test_logs_job _________________________________[0m
+[1m[31msage/cli/tests/test_job.py[0m:78: in test_logs_job
+    [94massert[39;49;00m result.exit_code == [94m0[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 2 == 0[0m
+[1m[31mE    +  where 2 = <Result SystemExit(2)>.exit_code[0m
+[31m[1m_____________________________ test_logs_job_follow _____________________________[0m
+[1m[31msage/cli/tests/test_job.py[0m:89: in test_logs_job_follow
+    [94massert[39;49;00m result.exit_code == [94m0[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 2 == 0[0m
+[1m[31mE    +  where 2 = <Result SystemExit(2)>.exit_code[0m
+[31m[1m_________________________ test_legacy_script_redirects _________________________[0m
+[1m[31msage/cli/tests/test_legacy.py[0m:18: in test_legacy_script_redirects
+    [94massert[39;49;00m result.returncode == [94m0[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 2 == 0[0m
+[1m[31mE    +  where 2 = CompletedProcess(args=['/opt/conda/envs/sage/bin/python', '-m', 'sage.cli.legacy'], returncode=2, stdout="🔄 Redirecting to new SAGE CLI...\n💡 Consider using 'sage job' instead of 'sage-jm' in the future\n", stderr="Usage: python -m sage.cli.legacy [OPTIONS] COMMAND [ARGS]...\nTry 'python -m sage.cli.legacy --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing command.                                                             │\n╰──────────────────────────────────────────────────────────────────────────────╯\n").returncode[0m
+[31m[1m__________________________ test_main_script_execution __________________________[0m
+[1m[31msage/cli/tests/test_main.py[0m:44: in test_main_script_execution
+    [94massert[39;49;00m [33m"[39;49;00m[33mUsage: main.py [OPTIONS] COMMAND [ARGS]...[39;49;00m[33m"[39;49;00m [95min[39;49;00m result.stdout[90m[39;49;00m
+[1m[31mE   AssertionError: assert 'Usage: main.py [OPTIONS] COMMAND [ARGS]...' in '                                                                                \n Usage: python -m sage.cli.main [OPTIONS] COMMAND [ARGS]...                     \n                                                                                \n 🚀 SAGE - Stream Analysis and Graph Engine CLI                                 \n                                                                                \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --version             -v        显示版本信息                                 │\n│ --install-completion            Install completion for the current shell.    │\n│ --show-completion               Show completion for the current shell, to    │\n│                                 copy it or customize the installation.       │\n│ --help                          Show this message and exit.                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Commands ───────────────────────────────────────────────────────────────────╮\n│ version      显示版本信息                                                    │\n│ config       显示配置信息                                                    │\n│ job          📋 作业管理 - 提交、监控、管理作业                              │\n│ deploy       🎯 系统部署 - 启动、停止、监控系统                              │\n│ jobmanager   🛠️ JobManager管理 - 启动、停止、重启JobManager                   │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n'[0m
+[1m[31mE    +  where '                                                                                \n Usage: python -m sage.cli.main [OPTIONS] COMMAND [ARGS]...                     \n                                                                                \n 🚀 SAGE - Stream Analysis and Graph Engine CLI                                 \n                                                                                \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --version             -v        显示版本信息                                 │\n│ --install-completion            Install completion for the current shell.    │\n│ --show-completion               Show completion for the current shell, to    │\n│                                 copy it or customize the installation.       │\n│ --help                          Show this message and exit.                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Commands ───────────────────────────────────────────────────────────────────╮\n│ version      显示版本信息                                                    │\n│ config       显示配置信息                                                    │\n│ job          📋 作业管理 - 提交、监控、管理作业                              │\n│ deploy       🎯 系统部署 - 启动、停止、监控系统                              │\n│ jobmanager   🛠️ JobManager管理 - 启动、停止、重启JobManager                   │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n' = CompletedProcess(args=['/opt/conda/envs/sage/bin/python', '-m', 'sage.cli.main', '--help'], returncode=0, stdout='                                                                                \n Usage: python -m sage.cli.main [OPTIONS] COMMAND [ARGS]...                     \n                                                                                \n 🚀 SAGE - Stream Analysis and Graph Engine CLI                                 \n                                                                                \n                                                                                \n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --version             -v        显示版本信息                                 │\n│ --install-completion            Install completion for the current shell.    │\n│ --show-completion               Show completion for the current shell, to    │\n│                                 copy it or customize the installation.       │\n│ --help                          Show this message and exit.                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Commands ───────────────────────────────────────────────────────────────────╮\n│ version      显示版本信息                                                    │\n│ config       显示配置信息                                                    │\n│ job          📋 作业管理 - 提交、监控、管理作业                              │\n│ deploy       🎯 系统部署 - 启动、停止、监控系统                              │\n│ jobmanager   🛠️ JobManager管理 - 启动、停止、重启JobManager                   │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n', stderr='').stdout[0m
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m sage/cli/tests/test_deploy.py::[1mtest_start[0m - AttributeError: <module 'sage.cli.deploy' from '/home/tjy/SAGE/sage/cli/dep...
+[31mFAILED[0m sage/cli/tests/test_deploy.py::[1mtest_stop[0m - AttributeError: <module 'sage.cli.deploy' from '/home/tjy/SAGE/sage/cli/dep...
+[31mFAILED[0m sage/cli/tests/test_deploy.py::[1mtest_restart[0m - AttributeError: <module 'sage.cli.deploy' from '/home/tjy/SAGE/sage/cli/dep...
+[31mFAILED[0m sage/cli/tests/test_deploy.py::[1mtest_status[0m - AttributeError: <module 'sage.cli.deploy' from '/home/tjy/SAGE/sage/cli/dep...
+[31mFAILED[0m sage/cli/tests/test_job.py::[1mtest_list_jobs[0m - assert 1 == 0
+[31mFAILED[0m sage/cli/tests/test_job.py::[1mtest_show_job[0m - assert 1 == 0
+[31mFAILED[0m sage/cli/tests/test_job.py::[1mtest_run_job[0m - assert 1 == 0
+[31mFAILED[0m sage/cli/tests/test_job.py::[1mtest_stop_job[0m - assert 1 == 0
+[31mFAILED[0m sage/cli/tests/test_job.py::[1mtest_stop_job_force[0m - assert 1 == 0
+[31mFAILED[0m sage/cli/tests/test_job.py::[1mtest_logs_job[0m - assert 2 == 0
+[31mFAILED[0m sage/cli/tests/test_job.py::[1mtest_logs_job_follow[0m - assert 2 == 0
+[31mFAILED[0m sage/cli/tests/test_legacy.py::[1mtest_legacy_script_redirects[0m - assert 2 == 0
+[31mFAILED[0m sage/cli/tests/test_main.py::[1mtest_main_script_execution[0m - AssertionError: assert 'Usage: main.py [OPTIONS] COMMAND [ARGS]...' in '   ...
+[31m======================== [31m[1m13 failed[0m, [32m15 passed[0m[31m in 2.48s[0m[31m =========================[0m

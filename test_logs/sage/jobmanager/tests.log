@@ -1,0 +1,57 @@
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.11.10, pytest-7.4.4, pluggy-1.0.0 -- /opt/conda/envs/sage/bin/python
+cachedir: .pytest_cache
+rootdir: /home/tjy/SAGE
+plugins: typeguard-4.3.0, mock-3.14.1, anyio-4.6.0
+[1mcollecting ... [0mcollected 4 items
+
+sage/jobmanager/tests/test_end_to_end.py::test_remote_submission_flow [32mPASSED[0m[32m [ 25%][0m
+sage/jobmanager/tests/test_end_to_end.py::test_serialization_only [32mPASSED[0m[33m [ 50%][0m
+sage/jobmanager/tests/test_jobmanager_submit.py::test_jobmanager_submit_logic [32mPASSED[0m[33m [ 75%][0m
+sage/jobmanager/tests/test_jobmanager_submit.py::test_client_request_format [32mPASSED[0m[33m [100%][0m
+
+[33m=============================== warnings summary ===============================[0m
+sage/jobmanager/tests/test_end_to_end.py::test_remote_submission_flow
+  /opt/conda/envs/sage/lib/python3.11/site-packages/pipmaster/package_manager.py:4: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
+    import pkg_resources
+
+sage/jobmanager/tests/test_end_to_end.py::test_remote_submission_flow
+  /opt/conda/envs/sage/lib/python3.11/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but sage/jobmanager/tests/test_end_to_end.py::test_remote_submission_flow returned False, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+sage/jobmanager/tests/test_end_to_end.py::test_remote_submission_flow
+  /opt/conda/envs/sage/lib/python3.11/site-packages/_pytest/threadexception.py:73: PytestUnhandledThreadExceptionWarning: Exception in thread Thread-1 (start_jobmanager)
+  
+  Traceback (most recent call last):
+    File "/opt/conda/envs/sage/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+      self.run()
+    File "/opt/conda/envs/sage/lib/python3.11/threading.py", line 982, in run
+      self._target(*self._args, **self._kwargs)
+    File "/home/tjy/SAGE/sage/jobmanager/tests/test_end_to_end.py", line 21, in start_jobmanager
+      jobmanager = JobManager(enable_daemon=True, daemon_host="127.0.0.1", daemon_port=19003)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "/home/tjy/SAGE/sage/jobmanager/job_manager.py", line 74, in __init__
+      self._setup_signal_handlers()
+    File "/home/tjy/SAGE/sage/jobmanager/job_manager.py", line 84, in _setup_signal_handlers
+      signal.signal(signal.SIGINT, signal_handler)
+    File "/opt/conda/envs/sage/lib/python3.11/signal.py", line 58, in signal
+      handler = _signal.signal(_enum_to_int(signalnum), _enum_to_int(handler))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ValueError: signal only works in main thread of the main interpreter
+  
+    warnings.warn(pytest.PytestUnhandledThreadExceptionWarning(msg))
+
+sage/jobmanager/tests/test_end_to_end.py::test_serialization_only
+  /opt/conda/envs/sage/lib/python3.11/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but sage/jobmanager/tests/test_end_to_end.py::test_serialization_only returned True, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+sage/jobmanager/tests/test_jobmanager_submit.py::test_jobmanager_submit_logic
+  /opt/conda/envs/sage/lib/python3.11/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but sage/jobmanager/tests/test_jobmanager_submit.py::test_jobmanager_submit_logic returned True, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+sage/jobmanager/tests/test_jobmanager_submit.py::test_client_request_format
+  /opt/conda/envs/sage/lib/python3.11/site-packages/_pytest/python.py:198: PytestReturnNotNoneWarning: Expected None, but sage/jobmanager/tests/test_jobmanager_submit.py::test_client_request_format returned True, which will be an error in a future version of pytest.  Did you mean to use `assert` instead of `return`?
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+[33m======================== [32m4 passed[0m, [33m[1m6 warnings[0m[33m in 6.82s[0m[33m =========================[0m
