@@ -1,0 +1,4 @@
+# Dependencies for SAGE Deployment Script (Python version)
+# 部署脚本Python版本的依赖项
+
+psutil>=5.8.0      # 进程和系统监控
