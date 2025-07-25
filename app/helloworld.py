@@ -28,8 +28,6 @@ def main():
     env.from_source(HelloSource, delay=100).map(UpperCaseMap).sink(PrintSink)
     try:
         env.submit()
-        while(1):
-            time.sleep(5)  # 运行5秒，演示用
     except KeyboardInterrupt:
         print("停止运行")
     finally:
