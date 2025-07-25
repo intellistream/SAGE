@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Optional, Dict, Any
-from sage.core.environment.base_environment import BaseEnvironment
+from sage.core.api.base_environment import BaseEnvironment
 from sage.jobmanager.jobmanager_client import JobManagerClient
 from sage.utils.serialization.dill_serializer import trim_object_for_ray
 

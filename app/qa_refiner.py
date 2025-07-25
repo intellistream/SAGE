@@ -7,11 +7,11 @@ from sage.utils.config_loader import load_config
 from sage.core.function.source_function import SourceFunction
 from sage.core.function.map_function import MapFunction
 
-from sage_libs.rag.retriever import DenseRetriever
-from sage_plugins.longrefiner_fn.longrefiner_adapter import LongRefinerAdapter
-from sage_libs.rag.promptor import QAPromptor
-from sage_libs.rag.generator import OpenAIGenerator
-from sage_libs.rag.evaluate import (
+from sage.libs.rag.retriever import DenseRetriever
+from sage.plugins.longrefiner_fn.longrefiner_adapter import LongRefinerAdapter
+from sage.libs.rag.promptor import QAPromptor
+from sage.libs.rag.generator import OpenAIGenerator
+from sage.libs.rag.evaluate import (
     F1Evaluate, RecallEvaluate, BertRecallEvaluate, RougeLEvaluate,
     BRSEvaluate, AccuracyEvaluate, TokenCountEvaluate,
     LatencyEvaluate, ContextRecallEvaluate, CompressionRateEvaluate

@@ -5,7 +5,7 @@ from jinja2 import Template
 from sage.core.function.map_function import MapFunction
 from sage.utils.custom_logger import CustomLogger
 from sage.embedding.openaiclient import OpenAIClient
-from sage_libs.context.model_context import ModelContext
+from sage.libs.context.model_context import ModelContext
 
 # 问题生成的prompt模板
 QUESTION_GENERATION_PROMPT = '''You are a Question Generator that creates diverse, realistic user questions for testing AI systems. Your task is to generate {{ num_questions }} random questions that represent real-world user scenarios.

@@ -3,11 +3,11 @@ import time
 from dotenv import load_dotenv
 import os
 from sage.core.api.remote_environment import RemoteStreamEnvironment
-from sage_libs.io.source import FileSource
-from sage_libs.io.sink import FileSink
-from sage_libs.rag.generator import OpenAIGenerator
-from sage_libs.rag.promptor import QAPromptor
-from sage_libs.rag.retriever import DenseRetriever
+from sage.libs.io.source import FileSource
+from sage.libs.io.sink import FileSink
+from sage.libs.rag.generator import OpenAIGenerator
+from sage.libs.rag.promptor import QAPromptor
+from sage.libs.rag.retriever import DenseRetriever
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
 

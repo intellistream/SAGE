@@ -9,10 +9,10 @@ from sage.utils.custom_logger import CustomLogger
 from sage.utils.actor_wrapper import ActorWrapper
 
 if TYPE_CHECKING:
-    from sage_jobmanager.execution_graph import ExecutionGraph, GraphNode
-    from sage_core.transformation.base_transformation import BaseTransformation
-    from sage_core.environment.base_environment import BaseEnvironment 
-    from sage_jobmanager.job_manager import JobManager
+    from sage.jobmanager.execution_graph import ExecutionGraph, GraphNode
+    from sage.core.transformation.base_transformation import BaseTransformation
+    from sage.core.environment.base_environment import BaseEnvironment 
+    from sage.jobmanager.job_manager import JobManager
     from sage.runtime.service.service_caller import ServiceManager
 # task, operator和function "形式上共享"的运行上下文
 

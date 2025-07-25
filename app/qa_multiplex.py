@@ -2,13 +2,13 @@ import time
 from dotenv import load_dotenv
 
 from sage.core.api.local_environment import LocalEnvironment
-from sage_libs.io.source import FileSource
-from sage_libs.io.sink import TerminalSink, FileSink
-from sage_libs.rag.generator import OpenAIGenerator
-from sage_libs.rag.promptor import QAPromptor
-from sage_libs.rag.retriever import DenseRetriever
-from sage_libs.dataflow.splitter import Splitter
-from sage_libs.dataflow.merger import Merger
+from sage.libs.io.source import FileSource
+from sage.libs.io.sink import TerminalSink, FileSink
+from sage.libs.rag.generator import OpenAIGenerator
+from sage.libs.rag.promptor import QAPromptor
+from sage.libs.rag.retriever import DenseRetriever
+from sage.libs.dataflow.splitter import Splitter
+from sage.libs.dataflow.merger import Merger
 from sage.utils.config_loader import load_config
 
 

@@ -1,9 +1,9 @@
 from typing import Union
 from dataclasses import dataclass
 import time
-from sage_runtime.utils.local_message_queue import LocalMessageQueue
+from sage.runtime.utils.local_message_queue import LocalMessageQueue
 from ray.actor import ActorHandle
-from sage_runtime.task.base_task import BaseTask
+from sage.runtime.task.base_task import BaseTask
 @dataclass
 class Connection:
     """

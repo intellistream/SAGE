@@ -57,7 +57,7 @@ def main():
     sys.path.insert(0, str(root_dir))
     
     try:
-        from sage_queue import SageQueue
+        from sage.utils.mmap_queue.sage_queue import SageQueue
         print("✅ SageQueue 导入成功")
     except ImportError as e:
         print(f"❌ SageQueue 导入失败: {e}")
