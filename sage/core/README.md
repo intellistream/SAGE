@@ -60,8 +60,8 @@ Sage Core 是 Sage 框架的核心模块，负责数据流管道的定义、编�
 
 ```python
 from sage.core.api.env import LocalEnvironment
-from sage.libs.io.source import FileSource
-from sage.libs.io.sink import TerminalSink
+from sage.lib.io.source import FileSource
+from sage.lib.io.sink import TerminalSink
 
 # 创建执行环境
 env = LocalEnvironment("example_pipeline")

@@ -2,12 +2,12 @@ import logging
 import time
 
 from sage.core.api.local_environment import LocalEnvironment
-from sage.libs.io.source import FileSource
-from sage.libs.io.sink import TerminalSink
+from sage.lib.io.source import FileSource
+from sage.lib.io.sink import TerminalSink
 
-from sage.libs.rag.generator import HFGenerator
-from sage.libs.rag.promptor import QAPromptor
-from sage.libs.rag.retriever import DenseRetriever
+from sage.lib.rag.generator import HFGenerator
+from sage.lib.rag.promptor import QAPromptor
+from sage.lib.rag.retriever import DenseRetriever
 from sage.utils.config_loader import load_config
 from sage.utils.logging_utils import configure_logging
 

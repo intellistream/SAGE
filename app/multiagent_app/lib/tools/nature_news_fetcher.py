@@ -5,7 +5,7 @@ import time
 import logging
 import random
 
-from sage.libs.tools.base.base_tool import BaseTool
+from sage.lib.tools.base.base_tool import BaseTool
 from typing import Dict, Any
 
 # Initialize logger

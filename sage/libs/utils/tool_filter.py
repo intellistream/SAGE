@@ -1,7 +1,12 @@
 import json
 from typing import List, Union, Set
+<<<<<<<< HEAD:app/multiagent_app/utils/tool_filter.py
 from sage.core.function.filter_function import FilterFunction
 from sage.lib.context.model_context import ModelContext, QualityLabel
+========
+from core.function.filter_function import FilterFunction
+from libs.context.model_context import ModelContext, QualityLabel
+>>>>>>>> 998c2f39e25fdcaf0fa9d2fd7b116b8974205893:sage/libs/utils/tool_filter.py
 
 class ToolFilter(FilterFunction):
     """

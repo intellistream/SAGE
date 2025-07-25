@@ -23,11 +23,10 @@ class FileSource(SourceFunction):
         :param config: Configuration dictionary containing source settings, including `data_path`.
         """
         self.config = config
-        # self.data_path = self.config["data_path"]
         self.data_path = self.resolve_data_path(config["data_path"])  # → project_root/data/sample/question.txt
         self.file_pos = 0  # Track the file read position
 
-    def resolve_data_path(path: str | Path) -> Path:
+    def resolve_data_path(self,path: str | Path) -> Path:
         """
         传入相对路径则返回相对于项目根目录的绝对路径（默认假设项目根目录含有 'data/' 子目录），
         传入绝对路径则直接返回。

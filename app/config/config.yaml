@@ -4,7 +4,7 @@ pipeline:
   version: "1.0.0"
 
 source:
-  data_path: "data/sample/question.txt"
+  data_path: "~/SAGE/app/data/sample/question.txt"
   platform: "local"
 
 retriever:

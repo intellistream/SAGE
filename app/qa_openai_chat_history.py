@@ -2,11 +2,11 @@ import time
 from dotenv import load_dotenv
 
 from sage.core.api.local_environment import LocalEnvironment
-from sage.libs.io.source import FileSource
-from sage.libs.io.sink import TerminalSink
+from sage.lib.io.source import FileSource
+from sage.lib.io.sink import TerminalSink
 
-from sage.libs.rag.generator import OpenAIGeneratorWithHistory
-from sage.libs.rag.promptor import QAPromptor
+from sage.lib.rag.generator import OpenAIGeneratorWithHistory
+from sage.lib.rag.promptor import QAPromptor
 from sage.utils.config_loader import load_config
 
 

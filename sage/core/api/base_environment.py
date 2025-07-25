@@ -76,8 +76,8 @@ class BaseEnvironment(ABC):
         if hasattr(self, '_logger') and self._logger is not None:
             self._logger.update_output_level("console", self.console_log_level)
 
-    def set_memory(self, config = None):
-        self.memory_collection = sage.service.memory.api.get_memory(config=config, remote=(self.platform != "local"), env_name=self.name)
+    # def set_memory(self, config = None):
+    #     self.memory_collection = sage.service.memory.api.get_memory(config=config, remote=(self.platform != "local"), env_name=self.name)
 
 
     def register_service(self, service_name: str, service_class: Type, *args, **kwargs):
@@ -477,50 +477,6 @@ class BaseEnvironment(ABC):
     def submit(self):
         pass
 
-    def stop(self):
-        """停止管道运行"""
-        if not self.env_uuid:
-            self.logger.warning("Environment not submitted, nothing to stop")
-            return
-        
-        self.logger.info("Stopping pipeline...")
-        
-        try:
-            response = self.jobmanager.pause_job(self.env_uuid)
-            
-            if response.get("status") == "success":
-                self.is_running = False
-                self.logger.info("Pipeline stopped successfully")
-            else:
-                self.logger.warning(f"Failed to stop pipeline: {response.get('message')}")
-        except Exception as e:
-            self.logger.error(f"Error stopping pipeline: {e}")
-
-    def close(self):
-        """关闭管道运行"""
-        if not self.env_uuid:
-            self.logger.warning("Environment not submitted, nothing to close")
-            return
-        
-        self.logger.info("Closing environment...")
-        
-        try:
-            response = self.jobmanager.pause_job(self.env_uuid)
-            
-            if response.get("status") == "success":
-                self.logger.info("Environment closed successfully")
-            else:
-                self.logger.warning(f"Failed to close environment: {response.get('message')}")
-                
-        except Exception as e:
-            self.logger.error(f"Error closing environment: {e}")
-        finally:
-            # 清理本地资源
-            self.is_running = False
-            self.env_uuid = None
-            
-            # 清理管道
-            self.pipeline.clear()
 
     ########################################################
     #                properties                            #

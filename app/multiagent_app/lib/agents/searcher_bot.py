@@ -2,7 +2,7 @@ import time
 from typing import List, Dict, Any
 from jinja2 import Template
 from sage.core.function.map_function import MapFunction
-from sage.libs.context.model_context import ModelContext
+from sage.lib.context.model_context import ModelContext
 from sage.utils.clients.generator_model import apply_generator_model
 
 # 搜索查询优化的prompt模板
