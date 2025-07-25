@@ -442,15 +442,19 @@ def send_remote_environment_test(server_host: str = "127.0.0.1", server_port: in
                 # 首先尝试直接使用serialize_object，这个更简单
                 logger.info("Using serialize_object for serialization")
                 serialized_data = serialize_object(remote_env)
+                logger.info(f"✅ serialize_object succeeded: {len(serialized_data)} bytes")
             except Exception as e:
                 logger.warning(f"serialize_object failed: {e}, trying trim_object_for_ray...")
                 try:
                     from sage.utils.serialization.dill_serializer import trim_object_for_ray
                     logger.info("Using trim_object_for_ray as fallback")
-                    serialized_data = trim_object_for_ray(remote_env)
+                    trimmed_env = trim_object_for_ray(remote_env)
+                    serialized_data = serialize_object(trimmed_env)
+                    logger.info(f"✅ trim_object_for_ray + serialize_object succeeded: {len(serialized_data)} bytes")
                 except Exception as e2:
-                    logger.warning(f"trim_object_for_ray also failed: {e2}, using pickle...")
+                    logger.warning(f"trim_object_for_ray also failed: {e2}, using pickle as final fallback...")
                     serialized_data = pickle.dumps(remote_env)
+                    logger.info(f"✅ pickle fallback succeeded: {len(serialized_data)} bytes")
         else:
             logger.warning("SAGE serializer not available, using pickle")
             serialized_data = pickle.dumps(remote_env)

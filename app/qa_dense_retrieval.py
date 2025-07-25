@@ -1,6 +1,6 @@
 from sage.libs.io.source import FileSource
 from sage.libs.io.sink import TerminalSink
-from sage.core.api.remote_environment import RemoteBatchEnvironment
+from draft.remote_environment import RemoteBatchEnvironment
 from sage.libs.rag.generator import OpenAIGenerator
 from sage.libs.rag.promptor import QAPromptor
 from sage.libs.rag.retriever import DenseRetriever
