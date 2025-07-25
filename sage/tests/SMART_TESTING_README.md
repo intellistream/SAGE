@@ -15,7 +15,7 @@
 |----------|----------|------|
 | `sage.core/` | `core_tests/` | 核心功能测试 |
 | `sage_runtime/` | `runtime_tests/` | 运行时测试 |
-| `sage_memory/` | `memory_tests/` | 内存管理测试 |
+| `sage.service.memory./` | `memory_tests/` | 内存管理测试 |
 | `sage_vector/` | `vector_tests/` | 向量操作测试 |
 | `frontend/` | `frontend_tests/` | 前端API测试 |
 | `sage_utils/` | `utils_tests/` | 工具类测试 |

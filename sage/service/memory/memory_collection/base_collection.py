@@ -1,5 +1,5 @@
-# file: sage_memory/memory_collection/base_collection.py
-# python -m sage.core.sage_memory.memory_collection.base_collection
+# file: sage.service.memory./memory_collection/base_collection.py
+# python -m sage.core.sage.service.memory.memory_collection.base_collection
 
 import os
 import hashlib
@@ -9,8 +9,8 @@ from typing import Dict, Optional, Callable, Any, List
 from sage.service.memory.storage_engine.metadata_storage import MetadataStorage
 from sage.service.memory.storage_engine.text_storage import TextStorage
 
-# from sage_memory.storage_engine.text_storage import TextStorage
-# from sage_memory.storage_engine.metadata_storage import MetadataStorage
+# from sage.service.memory..storage_engine.text_storage import TextStorage
+# from sage.service.memory..storage_engine.metadata_storage import MetadataStorage
 
 
 
@@ -117,7 +117,7 @@ class BaseMemoryCollection:
         
 
 # def get_default_data_dir():
-#     # 找到 sage 的父目录，并拼 data/sage_memory
+#     # 找到 sage 的父目录，并拼 data/sage.service.memory.
 #     this_file = os.path.abspath(__file__)
 #     parts = this_file.split(os.sep)
 #     try:
@@ -125,22 +125,22 @@ class BaseMemoryCollection:
 #     except ValueError:
 #         sage_idx = len(parts) - 1
 #     project_root = os.sep.join(parts[:sage_idx+1])
-#     data_dir = os.path.join(os.path.dirname(project_root), "data", "sage_memory")
+#     data_dir = os.path.join(os.path.dirname(project_root), "data", "sage.service.memory.")
 #     os.makedirs(data_dir, exist_ok=True)
 #     return data_dir
 def get_default_data_dir():
     this_file = os.path.abspath(__file__)
     cur_dir = os.path.dirname(this_file)
-    # 一直向上，直到找到 sage_memory 目录
+    # 一直向上，直到找到 sage.service.memory. 目录
     while True:
-        if os.path.basename(cur_dir) == "sage_memory":
+        if os.path.basename(cur_dir) == "sage.service.memory.":
             project_root = os.path.dirname(cur_dir)
             data_dir = os.path.join(project_root, "data", "neuromem_data")
             os.makedirs(data_dir, exist_ok=True)
             return data_dir
         parent = os.path.dirname(cur_dir)
         if parent == cur_dir:
-            raise FileNotFoundError("Could not find 'sage_memory' directory in parent folders.")
+            raise FileNotFoundError("Could not find 'sage.service.memory.' directory in parent folders.")
         cur_dir = parent
     
 if __name__ == "__main__":

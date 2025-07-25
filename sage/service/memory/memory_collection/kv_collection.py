@@ -1,5 +1,5 @@
-# file sage/core/sage_memory/memory_collection/kv_collection.py
-# python -m sage.core.sage_memory.memory_collection.kv_collection
+# file sage/core/sage.service.memory./memory_collection/kv_collection.py
+# python -m sage.core.sage.service.memory.memory_collection.kv_collection
 
 import os
 import json

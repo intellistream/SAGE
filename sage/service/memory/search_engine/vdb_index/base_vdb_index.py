@@ -1,4 +1,4 @@
-# file sage/core/sage_memory/search_engine/vdb_index/base_vdb_index.py
+# file sage/core/sage.service.memory./search_engine/vdb_index/base_vdb_index.py
 
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Dict, Any

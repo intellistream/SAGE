@@ -1,4 +1,4 @@
-# file sage/core/sage_memory/memory_collection/graph_collection.py
+# file sage/core/sage.service.memory./memory_collection/graph_collection.py
 from sage.service.memory.memory_collection.base_collection import BaseMemoryCollection
 
 

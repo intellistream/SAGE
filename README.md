@@ -3,7 +3,7 @@
 
 SAGE is a dataflow-native reasoning framework built from the ground up to support modular, controllable, and transparent workflows over Large Language Models (LLMs). It addresses common problems in existing LLM-augmented systems (like RAG and Agents), such as hard-coded orchestration logic, opaque execution paths, and limited runtime control. SAGE introduces a dataflow-centric abstraction, modeling reasoning workflows as directed acyclic graphs (DAGs) composed of typed operators.
 
-![](./asset/framework.png)
+![](./.github/asset/framework.png)
 
 ## ✨ Features
 
@@ -32,7 +32,7 @@ To accommodate different user environments and preferences, we provide **compreh
 
 SAGE is a dataflow-native reasoning framework built from the ground up to support modular, controllable, and transparent workflows over Large Language Models (LLMs). It addresses common problems in existing LLM-augmented systems (like RAG and Agents), such as hard-coded orchestration logic, opaque execution paths, and limited runtime control. SAGE introduces a dataflow-centric abstraction, modeling reasoning workflows as directed acyclic graphs (DAGs) composed of typed operators.
 
-![](./asset/framework.png)
+![](./.github/asset/framework.png)
 
 ## ✨ Features
 
@@ -289,7 +289,7 @@ SAGE follows a Flink-style pipeline architecture where each `Operator` acts as a
 | `RoutingOperator`    | Implements conditional branching or fallback logic within the pipeline (e.g., skip generation if retrieval fails). |
 
 ### Memory
-![](./asset/Memory_framework.png)
+![](./.github/asset/Memory_framework.png)
 
 ## Engine（执行引擎）
 
@@ -331,8 +331,8 @@ The Engine operates in four main phases:
 <details>
 <summary>Show more</summary>
 
- <!-- ![](./asset/UI.png) -->
- <img src="./asset/UI.png" alt="sage-dashboard" width="505"/>
+ <!-- ![](./.github/asset/UI.png) -->
+ <img src="./.github/asset/UI.png" alt="sage-dashboard" width="505"/>
 </details>
 
 #### Experience our meticulously designed Sage -Dashboard both user-friendly and powerful::
