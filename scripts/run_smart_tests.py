@@ -32,7 +32,7 @@ class SmartTestRunner:
                 'tests/test_final_verification.py',
                 'tests/test_service_task_base.py'
             ],
-            'sage_runtime/': [
+            'sage.runtime/': [
                 'tests/test_final_verification.py',
                 'tests/test_service_task_base.py'
             ],

@@ -1,11 +1,11 @@
 import os
 import time
 from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
-from sage_runtime.task.base_task import BaseTask
+from sage.runtime.task.base_task import BaseTask
 from sage_utils.actor_wrapper import ActorWrapper
-from sage_runtime.router.connection import Connection
+from sage.runtime.router.connection import Connection
 from sage_utils.custom_logger import CustomLogger
-from sage_runtime.service.base_service import BaseService
+from sage.runtime.service.base_service import BaseService
 import ray
 from ray.actor import ActorHandle
 

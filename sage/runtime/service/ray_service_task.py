@@ -6,7 +6,7 @@ from .base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:
     from sage.jobmanager.factory.service_factory import ServiceFactory
-    from sage_runtime.runtime_context import RuntimeContext
+    from sage.runtime.runtime_context import RuntimeContext
 
 
 @ray.remote

@@ -1,15 +1,15 @@
 import os
 from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
-from sage_runtime.service.service_caller import ServiceManager, ServiceCallProxy
+from sage.runtime.service.service_caller import ServiceManager, ServiceCallProxy
 if TYPE_CHECKING:
-    from sage_runtime.runtime_context import RuntimeContext
-    from sage_runtime.service.service_caller import ServiceManager
+    from sage.runtime.runtime_context import RuntimeContext
+    from sage.runtime.service.service_caller import ServiceManager
 import logging
 from sage_utils.state_persistence import load_function_state, save_function_state
 
 
-# 构造来源于sage_runtime/operator/factory.py
+# 构造来源于sage.runtime/operator/factory.py
 class BaseFunction(ABC):
     """
     BaseFunction is the abstract base class for all operator functions in SAGE.
@@ -49,7 +49,7 @@ class BaseFunction(ABC):
             raise RuntimeError("Runtime context not initialized. Cannot access services.")
         
         if self._call_service_proxy is None:
-            from sage_runtime.service.service_caller import ServiceCallProxy
+            from sage.runtime.service.service_caller import ServiceCallProxy
             
             class ServiceProxy:
                 def __init__(self, service_manager: 'ServiceManager'):
@@ -79,7 +79,7 @@ class BaseFunction(ABC):
             raise RuntimeError("Runtime context not initialized. Cannot access services.")
         
         if self._call_service_async_proxy is None:
-            from sage_runtime.service.service_caller import ServiceCallProxy
+            from sage.runtime.service.service_caller import ServiceCallProxy
             
             class AsyncServiceProxy:
                 def __init__(self, service_manager: 'ServiceManager'):

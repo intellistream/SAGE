@@ -2,7 +2,7 @@ from typing import Type, Any, Tuple, TYPE_CHECKING
 from sage.jobmanager.utils.name_server import get_name
 
 if TYPE_CHECKING:
-    from sage_runtime.runtime_context import RuntimeContext
+    from sage.runtime.runtime_context import RuntimeContext
 
 
 class ServiceFactory:

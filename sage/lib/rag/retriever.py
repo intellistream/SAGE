@@ -3,7 +3,7 @@ import time  # 替换 asyncio 为 time 用于同步延迟
 
 from sage.core.function.map_function import MapFunction
 from sage.core.function.base_function import MemoryFunction, StatefulFunction
-from sage_runtime.runtime_context import RuntimeContext
+from sage.runtime.runtime_context import RuntimeContext
 
 # 更新后的 SimpleRetriever
 class DenseRetriever(MapFunction):

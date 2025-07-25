@@ -2,14 +2,14 @@ from abc import ABC, abstractmethod
 from queue import Empty
 import threading, copy, time
 from typing import Any, TYPE_CHECKING, Union, Optional
-from sage_runtime.runtime_context import RuntimeContext
-from sage_runtime.router.packet import Packet
+from sage.runtime.runtime_context import RuntimeContext
+from sage.runtime.router.packet import Packet
 from ray.util.queue import Empty
 
 from sage_utils.mmap_queue.sage_queue import SageQueue
-from sage_runtime.router.router import BaseRouter
+from sage.runtime.router.router import BaseRouter
 if TYPE_CHECKING:
-    from sage_runtime.router.connection import Connection
+    from sage.runtime.router.connection import Connection
     from sage.core.operator.base_operator import BaseOperator
     from sage.jobmanager.factory.operator_factory import OperatorFactory
 
