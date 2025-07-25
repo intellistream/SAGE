@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-测试RemoteEnvironment的序列化提交流程
+专门用于测试 RemoteEnvironment 序列化的简化脚本
 """
 
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import threading
+import time
+from pathlib import Path
 
 # 添加项目路径
 project_root = Path(__file__).parent
