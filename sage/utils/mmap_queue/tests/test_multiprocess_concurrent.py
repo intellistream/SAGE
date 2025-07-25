@@ -278,7 +278,7 @@ def test_multiprocess_producer_consumer():
     
     try:
         # 创建主队列
-        main_queue = SageQueue(queue_name, maxsize=64*1024)
+        main_queue = SageQueue(queue_name)
         main_queue.close()  # 关闭主队列，让子进程使用
         
         # 测试参数
@@ -372,7 +372,7 @@ def test_concurrent_read_write():
     
     try:
         # 创建主队列并预填充一些数据
-        main_queue = SageQueue(queue_name, maxsize=128*1024)
+        main_queue = SageQueue(queue_name)
         
         # 预填充数据
         prefill_count = 50
@@ -467,7 +467,7 @@ def test_queue_reference_passing():
     
     try:
         # 创建主队列
-        main_queue = SageQueue(queue_name, maxsize=32*1024)
+        main_queue = SageQueue(queue_name)
         
         # 获取队列引用
         queue_ref = main_queue.get_reference()

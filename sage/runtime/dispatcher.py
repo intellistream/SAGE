@@ -1,11 +1,11 @@
 import os
 import time
 from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
+from sage.runtime.service.base_service_task import BaseServiceTask
 from sage.runtime.task.base_task import BaseTask
 from sage.utils.actor_wrapper import ActorWrapper
 from sage.runtime.router.connection import Connection
 from sage.utils.custom_logger import CustomLogger
-from sage.runtime.service.base_service import BaseService
 import ray
 from ray.actor import ActorHandle
 
@@ -32,7 +32,7 @@ class Dispatcher():
         )
         # self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
         self.tasks: Dict[str, Union[BaseTask, ActorWrapper]] = {}
-        self.services: Dict[str, BaseService] = {}  # 存储服务实例
+        self.services: Dict[str, BaseServiceTask] = {}  # 存储服务实例
         self.is_running: bool = False
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
         if env.platform == "remote":

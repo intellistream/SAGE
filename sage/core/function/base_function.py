@@ -19,9 +19,6 @@ class BaseFunction(ABC):
         self.ctx: 'RuntimeContext' = None # 运行时注入
         self.router = None  # 运行时注入
         self._logger = None
-        # 缓存服务代理
-        self._call_service_proxy = None
-        self._call_service_async_proxy = None
 
     @property
     def logger(self):
@@ -48,19 +45,18 @@ class BaseFunction(ABC):
         if self.ctx is None:
             raise RuntimeError("Runtime context not initialized. Cannot access services.")
         
-        if self._call_service_proxy is None:
-            from sage.runtime.service.service_caller import ServiceCallProxy
-            
-            class ServiceProxy:
-                def __init__(self, service_manager: 'ServiceManager'):
-                    self._service_manager = service_manager
-                    
-                def __getitem__(self, service_name: str):
-                    return ServiceCallProxy(self._service_manager, service_name, async_mode=False)
-            
-            self._call_service_proxy = ServiceProxy(self.ctx.service_manager)
+        from sage.runtime.service.service_caller import ServiceCallProxy
         
-        return self._call_service_proxy
+        class ServiceProxy:
+            def __init__(self, service_manager: 'ServiceManager'):
+                self._service_manager = service_manager
+                
+            def __getitem__(self, service_name: str):
+                return ServiceCallProxy(self._service_manager, service_name, async_mode=False)
+        
+        call_service_proxy = ServiceProxy(self.ctx.service_manager)
+        
+        return call_service_proxy
     
     @property 
     def call_service_async(self):
@@ -78,19 +74,17 @@ class BaseFunction(ABC):
         if self.ctx is None:
             raise RuntimeError("Runtime context not initialized. Cannot access services.")
         
-        if self._call_service_async_proxy is None:
-            from sage.runtime.service.service_caller import ServiceCallProxy
             
-            class AsyncServiceProxy:
-                def __init__(self, service_manager: 'ServiceManager'):
-                    self._service_manager = service_manager
-                    
-                def __getitem__(self, service_name: str):
-                    return ServiceCallProxy(self._service_manager, service_name, async_mode=True)
-            
-            self._call_service_async_proxy = AsyncServiceProxy(self.ctx.service_manager)
+        class AsyncServiceProxy:
+            def __init__(self, service_manager: 'ServiceManager'):
+                self._service_manager = service_manager
+                
+            def __getitem__(self, service_name: str):
+                return ServiceCallProxy(self._service_manager, service_name, async_mode=True)
         
-        return self._call_service_async_proxy
+        call_service_async_proxy = AsyncServiceProxy(self.ctx.service_manager)
+        
+        return call_service_async_proxy
 
     # @abstractmethod
     # def close(self, *args, **kwargs):
