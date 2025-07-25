@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import List, Optional, TYPE_CHECKING, Type, Union, Any
 from sage.core.function.lambda_function import wrap_lambda
-import sage_memory.api
+import sage.service.memory.api
 from sage.core.api.datastream import DataStream
 from sage.core.transformation.base_transformation import BaseTransformation
 from sage.core.transformation.source_transformation import SourceTransformation
@@ -13,7 +13,7 @@ from sage.core.transformation.batch_transformation import BatchTransformation
 from sage.core.transformation.future_transformation import FutureTransformation
 from sage_utils.custom_logger import CustomLogger
 from sage.jobmanager.utils.name_server import get_name
-from sage.core.jobmanager_client import JobManagerClient
+from sage.jobmanager.jobmanager_client import JobManagerClient
 from sage_utils.actor_wrapper import ActorWrapper
 from sage.jobmanager.factory.service_factory import ServiceFactory
 if TYPE_CHECKING:
@@ -77,7 +77,7 @@ class BaseEnvironment(ABC):
             self._logger.update_output_level("console", self.console_log_level)
 
     def set_memory(self, config = None):
-        self.memory_collection = sage_memory.api.get_memory(config=config, remote=(self.platform != "local"), env_name=self.name)
+        self.memory_collection = sage.service.memory.api.get_memory(config=config, remote=(self.platform != "local"), env_name=self.name)
 
 
     def register_service(self, service_name: str, service_class: Type, *args, **kwargs):

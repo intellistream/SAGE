@@ -7,7 +7,7 @@ import sys
 import subprocess
 import json
 from sage.core.environment.base_environment import BaseEnvironment
-from sage.core.jobmanager_client import JobManagerClient
+from sage.jobmanager.jobmanager_client import JobManagerClient
 from sage_utils.actor_wrapper import ActorWrapper
 if TYPE_CHECKING:
     from sage.jobmanager.job_manager import JobManager

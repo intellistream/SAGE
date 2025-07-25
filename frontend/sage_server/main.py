@@ -46,7 +46,7 @@ config.read("config.ini")
 
 
 from sage_utils.embedding_methods.embedding_api import apply_embedding_model
-from sage_memory.memory_manager import MemoryManager
+from sage.service.memory.memory_manager import MemoryManager
 
 
 class CustomPathFilter(logging.Filter):
