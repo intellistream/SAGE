@@ -19,12 +19,12 @@
 | `sage_vector/` | `vector_tests/` | 向量操作测试 |
 | `frontend/` | `frontend_tests/` | 前端API测试 |
 | `sage.utils/` | `utils_tests/` | 工具类测试 |
-| `sage_libs/` | `function_tests/` | 函数库测试 |
+| `sage.libs/` | `function_tests/` | 函数库测试 |
 | `sage_plugins/` | `function_tests/` | 插件测试 |
 | `sage.core/service/` | `service_tests/` | 服务系统测试 |
 | `sage.core/function/` | `function_tests/` | 函数测试 |
-| `sage_libs/io/` | `function_tests/io_tests/` | IO函数测试 |
-| `sage_libs/rag/` | `function_tests/rag_tests/` | RAG函数测试 |
+| `sage.libs/io/` | `function_tests/io_tests/` | IO函数测试 |
+| `sage.libs/rag/` | `function_tests/rag_tests/` | RAG函数测试 |
 
 ## 使用方法
 

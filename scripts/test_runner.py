@@ -213,7 +213,7 @@ class SAGETestRunner:
             print("✅ 没有需要运行的测试。")
             return True
 
-        print(f"\n🎯 准备运行 {len(test_dirs)} 个测试目录 (使用 {workers} 个并行进程):")
+        print(f"\n🎯 准备运行 {len(test_dirs)} 个测试目录 (最多使用 {workers} 个并行进程):")
         for test_dir in test_dirs:
             print(f"  - {test_dir.relative_to(self.project_root)}")
 
