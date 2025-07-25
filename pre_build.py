@@ -16,7 +16,7 @@ def build_ring_buffer():
     
     # 找到ring_buffer目录
     sage_root = Path(__file__).parent
-    ring_buffer_dir = sage_root / "sage_utils" / "mmap_queue"
+    ring_buffer_dir = sage_root / "sage.utils" / "mmap_queue"
     
     if not ring_buffer_dir.exists():
         print(f"Error: ring_buffer directory not found: {ring_buffer_dir}")
@@ -89,7 +89,7 @@ def build_ring_buffer():
 
 def verify_build():
     """验证构建结果"""
-    ring_buffer_dir = Path(__file__).parent / "sage_utils" / "mmap_queue"
+    ring_buffer_dir = Path(__file__).parent / "sage.utils" / "mmap_queue"
     
     so_files = [
         ring_buffer_dir / "ring_buffer.so",
@@ -125,7 +125,7 @@ def main():
         print("2. Make sure build-essential is installed: sudo apt-get install build-essential")
         print("3. Check if pthread library is available")
         print("4. Try manual compilation:")
-        print("   cd sage_utils/mmap_queue")
+        print("   cd sage.utils/mmap_queue")
         print("   gcc -shared -fPIC -O3 -o ring_buffer.so ring_buffer.c -lpthread")
         return False
     

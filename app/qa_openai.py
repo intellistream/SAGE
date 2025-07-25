@@ -7,7 +7,7 @@ from sage_libs.io.source import FileSource
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.retriever import DenseRetriever
-from sage_utils.config_loader import load_config
+from sage.utils.config_loader import load_config
 
 
 def pipeline_run(config: dict) -> None:

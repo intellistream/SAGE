@@ -2,7 +2,7 @@
 
 ## 🎯 项目概述
 
-基于您提供的设计文档，我已在 `sage_utils/mmap_queue` 中成功实现了一个高性能的进程间通信队列系统，该系统具备以下核心特性：
+基于您提供的设计文档，我已在 `sage.utils/mmap_queue` 中成功实现了一个高性能的进程间通信队列系统，该系统具备以下核心特性：
 
 ## ✨ 核心特性
 
@@ -31,7 +31,7 @@
 ## 📁 文件结构
 
 ```
-sage_utils/mmap_queue/
+sage.utils/mmap_queue/
 ├── ring_buffer.h           # C头文件定义
 ├── ring_buffer.c           # C实现（核心逻辑）
 ├── sage_queue.py           # Python封装和Queue接口
@@ -102,14 +102,14 @@ class ProcessorActor:
 
 ### 快速开始
 ```bash
-cd sage_utils/mmap_queue
+cd sage.utils/mmap_queue
 ./build.sh                    # 编译C库
 python3 quick_test.py          # 验证安装
 ```
 
 ### 基本使用
 ```python
-from sage_utils.mmap_queue import SageQueue
+from sage.utils.mmap_queue import SageQueue
 
 # 创建高性能队列
 queue = SageQueue("my_queue", maxsize=64*1024)
@@ -126,7 +126,7 @@ ref = queue.get_reference()
 ### Ray Actor集成
 ```python
 import ray
-from sage_utils.mmap_queue import SageQueue
+from sage.utils.mmap_queue import SageQueue
 
 # 主进程创建队列
 queue = SageQueue("actor_queue")

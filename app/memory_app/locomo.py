@@ -1,7 +1,7 @@
 from tqdm import tqdm
 from sage.core.function.source_function import SourceFunction
 from sage.core.function.sink_function import SinkFunction
-from sage_utils.custom_logger import CustomLogger
+from sage.utils.custom_logger import CustomLogger
 from data.neuromem_datasets.locomo_dataloader import LocomoDataLoader
 
 

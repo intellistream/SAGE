@@ -18,7 +18,7 @@
 | `sage.service.memory./` | `memory_tests/` | 内存管理测试 |
 | `sage_vector/` | `vector_tests/` | 向量操作测试 |
 | `frontend/` | `frontend_tests/` | 前端API测试 |
-| `sage_utils/` | `utils_tests/` | 工具类测试 |
+| `sage.utils/` | `utils_tests/` | 工具类测试 |
 | `sage_libs/` | `function_tests/` | 函数库测试 |
 | `sage_plugins/` | `function_tests/` | 插件测试 |
 | `sage.core/service/` | `service_tests/` | 服务系统测试 |
@@ -70,12 +70,12 @@ GitHub Actions配置文件：`.github/workflows/smart-tests.yml`
 🔍 检测到 15 个文件发生变化:
   - sage.core/service/service_caller.py
   - sage.runtime/dispatcher.py
-  - sage_utils/custom_logger.py
+  - sage.utils/custom_logger.py
   ...
 
 📁 sage.core/service/service_caller.py -> service_tests/
 📁 sage.runtime/dispatcher.py -> runtime_tests/
-📁 sage_utils/custom_logger.py -> utils_tests/
+📁 sage.utils/custom_logger.py -> utils_tests/
 
 🎯 需要运行的测试目录 (3 个):
   - /home/tjy/SAGE/sage_tests/service_tests

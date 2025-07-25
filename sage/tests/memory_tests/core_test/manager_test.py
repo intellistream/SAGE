@@ -6,7 +6,7 @@ from time import sleep
 
 def test_vdb(do_reload=True, do_delete=True):
     from sage.service.memory.memory_manager import MemoryManager
-    from sage_utils.embedding_methods.mockembedder import MockTextEmbedder
+    from sage.utils.embedding_methods.mockembedder import MockTextEmbedder
     import os
 
     def colored(text, color):

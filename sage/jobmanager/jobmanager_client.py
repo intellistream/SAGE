@@ -6,9 +6,9 @@ from ray.actor import ActorHandle
 from pathlib import Path
 from typing import Optional, Dict, Any
 from sage.jobmanager.remote_job_manager import RemoteJobManager
-from sage_utils.custom_logger import CustomLogger
-from sage_utils.actor_wrapper import ActorWrapper
-from sage_utils.ray_init_helper import ensure_ray_initialized
+from sage.utils.custom_logger import CustomLogger
+from sage.utils.actor_wrapper import ActorWrapper
+from sage.utils.ray_init_helper import ensure_ray_initialized
 
 # ==================== 客户端工具类 ====================
 

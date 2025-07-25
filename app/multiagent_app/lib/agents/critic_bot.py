@@ -3,7 +3,7 @@ import re
 from typing import Dict, Any, Tuple
 from jinja2 import Template
 from sage.core.function.map_function import MapFunction
-from sage_utils.clients.generator_model import apply_generator_model
+from sage.utils.clients.generator_model import apply_generator_model
 from sage_libs.context.model_context import ModelContext
 from sage_libs.context.quality_label import QualityLabel
 from sage_libs.context.critic_evaluation import CriticEvaluation

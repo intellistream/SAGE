@@ -1,6 +1,6 @@
 from .base_operator import BaseOperator
 from typing import Union, Any, List
-from sage_utils.custom_logger import CustomLogger
+from sage.utils.custom_logger import CustomLogger
 from sage.runtime.router.packet import Packet
 
 

@@ -17,7 +17,7 @@
 ### 编译C库
 
 ```bash
-cd sage_utils/mmap_queue
+cd sage.utils/mmap_queue
 chmod +x build.sh
 ./build.sh
 ```
@@ -25,7 +25,7 @@ chmod +x build.sh
 ### 基本使用
 
 ```python
-from sage_utils.mmap_queue import SageQueue
+from sage.utils.mmap_queue import SageQueue
 
 # 创建队列
 queue = SageQueue("my_queue", maxsize=64*1024)
@@ -50,7 +50,7 @@ queue.close()
 
 ```python
 import ray
-from sage_utils.mmap_queue import SageQueue
+from sage.utils.mmap_queue import SageQueue
 
 @ray.remote
 class Producer:

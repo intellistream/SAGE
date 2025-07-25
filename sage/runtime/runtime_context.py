@@ -5,8 +5,8 @@ from ray.actor import ActorHandle
 from typing import List,Dict,Optional, Any, Union
 from sage.service.memory.memory_collection.base_collection import BaseMemoryCollection
 from sage.service.memory.memory_collection.vdb_collection import VDBMemoryCollection
-from sage_utils.custom_logger import CustomLogger
-from sage_utils.actor_wrapper import ActorWrapper
+from sage.utils.custom_logger import CustomLogger
+from sage.utils.actor_wrapper import ActorWrapper
 
 if TYPE_CHECKING:
     from sage.jobmanager.execution_graph import ExecutionGraph, GraphNode

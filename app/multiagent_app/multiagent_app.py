@@ -1,6 +1,6 @@
 import time
 from sage.core.api.local_environment import LocalEnvironment
-from sage_utils.config_loader import load_config
+from sage.utils.config_loader import load_config
 from .lib.question_bot import QuestionBot
 from .lib.chief_bot import ChiefBot
 from .lib.searcher_bot import SearcherBot

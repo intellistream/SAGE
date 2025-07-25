@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING
 from sage.core.environment.base_environment import BaseEnvironment
-from sage_utils.actor_wrapper import ActorWrapper
+from sage.utils.actor_wrapper import ActorWrapper
 if TYPE_CHECKING:
     from sage.jobmanager.job_manager import JobManager
 

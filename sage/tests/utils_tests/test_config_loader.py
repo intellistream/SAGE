@@ -6,7 +6,7 @@ import yaml
 import tempfile
 import shutil
 from unittest.mock import patch
-from sage_utils.config_loader import load_config
+from sage.utils.config_loader import load_config
 
 class TestConfigLoader(unittest.TestCase):
     def setUp(self):
@@ -45,7 +45,7 @@ class TestConfigLoader(unittest.TestCase):
     #     user_file = fake_user_dir / "config.yaml"
     #     user_file.write_text(yaml.dump({"user_key": "user_value"}))
 
-    #     # with patch("sage_utils.config_loader.user_config_dir", return_value=str(fake_user_dir)):
+    #     # with patch("sage.utils.config_loader.user_config_dir", return_value=str(fake_user_dir)):
     #     #     config = load_config()
     #     #     self.assertEqual(config, {"user_key": "user_value"})
 

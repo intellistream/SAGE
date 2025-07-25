@@ -222,7 +222,7 @@ from sage_libs.rag.retriever import DenseRetriever
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.io.sink import TerminalSink
-from sage_utils.config_loader import load_config
+from sage.utils.config_loader import load_config
 
 config = load_config("config.yaml")
 

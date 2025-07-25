@@ -4,7 +4,7 @@ from sage.core.function.map_function import MapFunction
 from sage_libs.rag.generator import OpenAIGenerator
 from sage_libs.rag.promptor import QAPromptor
 from sage_libs.rag.evaluate import F1Evaluate
-from sage_utils.config_loader import load_config
+from sage.utils.config_loader import load_config
 import json
 
 class CustomFileSource(MapFunction):

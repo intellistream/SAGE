@@ -9,7 +9,7 @@ ENV PASSWD=sage
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="/usr/local/bin:$PATH"
 
-# Set LDFLAGS globally for sage_runtime and shell environments
+# Set LDFLAGS globally for sage。runtime and shell environments
 RUN echo 'export LDFLAGS="-L/usr/local/cuda-12.5/lib64"' >> /etc/profile && \
     echo 'export LDFLAGS="-L/usr/local/cuda-12.5/lib64"' >> /root/.bashrc
 

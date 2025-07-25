@@ -8,7 +8,7 @@ from sage_libs.rag.retriever import DenseRetriever
 from sage_libs.rag.reranker import BGEReranker
 from sage_libs.io.source import FileSource
 from sage_libs.io.sink import TerminalSink
-from sage_utils.config_loader import load_config
+from sage.utils.config_loader import load_config
 
 
 def pipeline_run():

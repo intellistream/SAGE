@@ -1,7 +1,7 @@
 from sage.core.function.source_function import StopSignal
 from sage.core.operator.base_operator import BaseOperator
 from sage.core.function.sink_function import SinkFunction
-from sage_utils.custom_logger import CustomLogger
+from sage.utils.custom_logger import CustomLogger
 from collections import deque
 from typing import Union, Dict, Deque, Tuple, Any
 from sage.runtime.router.packet import Packet

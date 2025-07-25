@@ -2,7 +2,7 @@ from typing import Any, TYPE_CHECKING, Union
 from sage.runtime.task.ray_task import RayTask
 from sage.runtime.task.local_task import LocalTask
 from sage.runtime.task.base_task import BaseTask
-from sage_utils.actor_wrapper import ActorWrapper
+from sage.utils.actor_wrapper import ActorWrapper
 if TYPE_CHECKING:
     from sage.core.transformation.base_transformation import BaseTransformation
     from ray.actor import ActorHandle

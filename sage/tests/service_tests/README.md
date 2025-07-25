@@ -28,7 +28,7 @@
 
 ### 2. mmap队列底层测试
 
-#### `sage_utils/mmap_queue/tests/test_comprehensive.py`
+#### `sage.utils/mmap_queue/tests/test_comprehensive.py`
 - **功能**: mmap队列的综合功能测试
 - **覆盖范围**:
   - ✅ 基本的put/get操作
@@ -38,7 +38,7 @@
   - ✅ 内存管理和清理
 - **替代**: `test_basic_functionality`, `test_quick_validation`, `test_safety`
 
-#### `sage_utils/mmap_queue/tests/test_multiprocess_concurrent.py`
+#### `sage.utils/mmap_queue/tests/test_multiprocess_concurrent.py`
 - **功能**: 多进程并发测试
 - **覆盖范围**:
   - ✅ 跨进程通信
@@ -46,7 +46,7 @@
   - ✅ 进程间数据一致性
   - ✅ 大批量数据传输
 
-#### `sage_utils/mmap_queue/tests/test_performance_benchmark.py`
+#### `sage.utils/mmap_queue/tests/test_performance_benchmark.py`
 - **功能**: 性能基准测试
 - **覆盖范围**:
   - ✅ 吞吐量测试
@@ -54,7 +54,7 @@
   - ✅ 内存使用效率
   - ✅ 与其他队列方案对比
 
-#### `sage_utils/mmap_queue/tests/test_ray_integration.py`
+#### `sage.utils/mmap_queue/tests/test_ray_integration.py`
 - **功能**: Ray集成测试
 - **覆盖范围**:
   - ✅ Ray远程调用集成
@@ -88,7 +88,7 @@ python tests/test_final_verification.py
 python tests/test_service_task_base.py
 
 # mmap队列综合测试
-python sage_utils/mmap_queue/tests/test_comprehensive.py
+python sage.utils/mmap_queue/tests/test_comprehensive.py
 ```
 
 ## 📊 测试覆盖
