@@ -12,6 +12,8 @@ import json
 import psutil
 import typer
 import subprocess
+import getpass
+import os
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
@@ -28,6 +30,72 @@ class JobManagerController:
         self.host = host
         self.port = port
         self.process_names = ["job_manager.py", "jobmanager_daemon.py", "sage.jobmanager.job_manager"]
+        self._sudo_password = None
+        
+    def _get_sudo_password(self) -> str:
+        """获取sudo密码"""
+        if self._sudo_password is None:
+            typer.echo("Some processes may require root privileges to terminate.")
+            password = getpass.getpass("Please enter your sudo password (or press Enter to skip): ")
+            if password.strip():
+                # 验证密码是否正确
+                try:
+                    result = subprocess.run(
+                        ['sudo', '-S', 'echo', 'password_test'],
+                        input=password + '\n',
+                        capture_output=True,
+                        text=True,
+                        timeout=10
+                    )
+                    if result.returncode == 0:
+                        self._sudo_password = password
+                        typer.echo("✅ Password verified successfully")
+                    else:
+                        typer.echo("❌ Invalid password, will continue without sudo privileges")
+                        self._sudo_password = ""
+                except subprocess.TimeoutExpired:
+                    typer.echo("❌ Password verification timeout, will continue without sudo privileges")
+                    self._sudo_password = ""
+                except Exception as e:
+                    typer.echo(f"❌ Error verifying password: {e}")
+                    self._sudo_password = ""
+            else:
+                self._sudo_password = ""
+        return self._sudo_password
+    
+    def _get_process_info(self, pid: int) -> Dict[str, str]:
+        """获取进程详细信息"""
+        try:
+            proc = psutil.Process(pid)
+            return {
+                "pid": str(pid),
+                "name": proc.name(),
+                "user": proc.username(),
+                "cmdline": ' '.join(proc.cmdline()),
+                "status": proc.status()
+            }
+        except psutil.NoSuchProcess:
+            return {"pid": str(pid), "name": "N/A", "user": "N/A", "cmdline": "N/A", "status": "Not Found"}
+        except psutil.AccessDenied:
+            return {"pid": str(pid), "name": "N/A", "user": "N/A", "cmdline": "N/A", "status": "Access Denied"}
+    
+    def _kill_process_with_sudo(self, pid: int) -> bool:
+        """使用sudo权限杀死进程"""
+        password = self._get_sudo_password()
+        if not password:
+            return False
+            
+        try:
+            result = subprocess.run(
+                ['sudo', '-S', 'kill', '-9', str(pid)],
+                input=password + '\n',
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            return result.returncode == 0
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError):
+            return False
         
     def check_health(self) -> Dict[str, Any]:
         """检查JobManager健康状态"""
@@ -191,58 +259,64 @@ class JobManagerController:
             typer.echo("No JobManager processes to kill")
             return True
         
-        typer.echo(f"Force killing {len(processes)} JobManager process(es)...")
+        typer.echo(f"🔪 Force killing {len(processes)} JobManager process(es)...")
         
         killed_count = 0
+        current_user = os.getenv('USER', 'unknown')
+        
         for proc in processes:
+            proc_info = self._get_process_info(proc.pid)
+            proc_user = proc_info['user']
+            
+            typer.echo(f"\n📋 Process Information:")
+            typer.echo(f"   PID: {proc_info['pid']}")
+            typer.echo(f"   Name: {proc_info['name']}")
+            typer.echo(f"   User: {proc_user}")
+            typer.echo(f"   Status: {proc_info['status']}")
+            typer.echo(f"   Command: {proc_info['cmdline']}")
+            
+            # 判断是否需要sudo权限
+            needs_sudo = proc_user != current_user and proc_user != 'N/A'
+            if needs_sudo:
+                typer.echo(f"⚠️  Process owned by different user ({proc_user}), may need sudo privileges")
+            
             try:
-                # 获取进程信息
-                try:
-                    proc_user = proc.username()
-                    proc_cmdline = ' '.join(proc.cmdline())
-                    typer.echo(f"Attempting to kill process {proc.pid} (user: {proc_user})")
-                    typer.echo(f"  Command: {proc_cmdline}")
-                except psutil.AccessDenied:
-                    typer.echo(f"Attempting to kill process {proc.pid} (access denied to process info)")
-                
                 # 尝试发送 SIGKILL
                 proc.kill()
                 proc.wait(timeout=5)
-                typer.echo(f"Process {proc.pid} killed successfully")
+                typer.echo(f"✅ Process {proc.pid} killed successfully")
                 killed_count += 1
                 
             except psutil.NoSuchProcess:
-                typer.echo(f"Process {proc.pid} already terminated")
+                typer.echo(f"✅ Process {proc.pid} already terminated")
                 killed_count += 1
             except psutil.AccessDenied:
-                typer.echo(f"Permission denied to kill process {proc.pid}")
-                # 尝试使用系统命令强制终止
-                try:
-                    subprocess.run(['sudo', 'kill', '-9', str(proc.pid)], 
-                                 capture_output=True, check=True)
-                    typer.echo(f"Process {proc.pid} killed with sudo")
+                typer.echo(f"❌ Permission denied to kill process {proc.pid}")
+                # 尝试使用sudo权限强制终止
+                if self._kill_process_with_sudo(proc.pid):
+                    typer.echo(f"✅ Process {proc.pid} killed with sudo privileges")
                     killed_count += 1
-                except subprocess.CalledProcessError:
-                    typer.echo(f"Failed to kill process {proc.pid} even with sudo")
+                else:
+                    typer.echo(f"❌ Failed to kill process {proc.pid} even with sudo privileges")
             except psutil.TimeoutExpired:
-                typer.echo(f"Process {proc.pid} did not respond to SIGKILL")
+                typer.echo(f"⏰ Process {proc.pid} did not respond to SIGKILL within timeout")
             except Exception as e:
-                typer.echo(f"Error killing process {proc.pid}: {e}")
+                typer.echo(f"❌ Error killing process {proc.pid}: {e}")
         
         # 再次检查是否还有残留进程
+        typer.echo(f"\n🔍 Checking for remaining processes...")
         time.sleep(2)
         remaining = self.find_jobmanager_processes()
+        
         if remaining:
-            typer.echo(f"Warning: {len(remaining)} processes may still be running")
+            typer.echo(f"⚠️  Warning: {len(remaining)} processes may still be running")
             # 显示残留进程信息
             for proc in remaining:
-                try:
-                    typer.echo(f"  Remaining process {proc.pid}: {proc.name()}")
-                except psutil.NoSuchProcess:
-                    pass
+                proc_info = self._get_process_info(proc.pid)
+                typer.echo(f"   Remaining: PID {proc_info['pid']}, User: {proc_info['user']}, Name: {proc_info['name']}")
             return killed_count > 0  # 如果至少杀死了一些进程，认为部分成功
         
-        typer.echo("All JobManager processes have been terminated")
+        typer.echo("✅ All JobManager processes have been terminated")
         return True
     
     def start(self, daemon: bool = True, wait_for_ready: int = 10, force: bool = False) -> bool:
@@ -254,9 +328,10 @@ class JobManagerController:
             typer.echo(f"Port {self.port} is already occupied")
             
             if force:
-                typer.echo("Force mode enabled, forcefully stopping existing process...")
+                typer.echo("🔥 Force mode enabled, forcefully stopping existing process...")
+                typer.echo("⚠️  This may require sudo privileges to kill processes owned by other users.")
                 if not self.force_kill():
-                    typer.echo("Failed to force kill existing processes")
+                    typer.echo("❌ Failed to force kill existing processes")
                     return False
             else:
                 health = self.check_health()
@@ -353,9 +428,42 @@ class JobManagerController:
         
         typer.echo(f"Process Count: {len(processes)}")
         for proc_info in status_info["processes"]:
-            typer.echo(f"  - PID {proc_info['pid']}: {proc_info['name']}")
+            proc_pid = proc_info['pid']
+            try:
+                proc = psutil.Process(proc_pid)
+                proc_user = proc.username()
+                proc_cmdline = ' '.join(proc.cmdline())
+                typer.echo(f"  - PID {proc_pid}: {proc_info['name']} (user: {proc_user})")
+                typer.echo(f"    Command: {proc_cmdline}")
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                typer.echo(f"  - PID {proc_pid}: {proc_info['name']} (process info unavailable)")
         
         typer.echo(f"Port {self.port} Occupied: {port_occupied}")
+        
+        # 如果端口被占用但没有找到JobManager进程，显示占用端口的进程信息
+        if port_occupied and not processes:
+            typer.echo("Port is occupied by non-JobManager process:")
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ['lsof', '-ti', f':{self.port}'], 
+                    capture_output=True, 
+                    text=True
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    pids = result.stdout.strip().split('\n')
+                    for pid_str in pids:
+                        try:
+                            pid = int(pid_str.strip())
+                            proc = psutil.Process(pid)
+                            proc_user = proc.username()
+                            proc_cmdline = ' '.join(proc.cmdline())
+                            typer.echo(f"  - PID {pid}: {proc.name()} (user: {proc_user})")
+                            typer.echo(f"    Command: {proc_cmdline}")
+                        except (ValueError, psutil.NoSuchProcess, psutil.AccessDenied):
+                            typer.echo(f"  - PID {pid_str}: (process info unavailable)")
+            except (subprocess.SubprocessError, FileNotFoundError):
+                typer.echo("  (Unable to determine which process is using the port)")
         
         return status_info
     
