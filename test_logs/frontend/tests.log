@@ -1,8 +1,0 @@
-[1m============================= test session starts ==============================[0m
-platform linux -- Python 3.11.10, pytest-7.4.4, pluggy-1.0.0 -- /opt/conda/envs/sage/bin/python
-cachedir: .pytest_cache
-rootdir: /home/tjy/SAGE
-plugins: typeguard-4.3.0, mock-3.14.1, anyio-4.6.0
-[1mcollecting ... [0mcollected 0 items
-
-[33m============================ [33mno tests ran[0m[33m in 0.09s[0m[33m =============================[0m
