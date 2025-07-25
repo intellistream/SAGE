@@ -45,7 +45,7 @@ except ImportError as e:
 
 # 导入RemoteEnvironment用于测试
 try:
-    from sage.core.api.remote_environment_simple import RemoteEnvironment
+    from sage.core.api.remote_environment import RemoteEnvironment
     print("✅ Successfully imported RemoteEnvironment")
     has_remote_environment = True
 except ImportError as e:

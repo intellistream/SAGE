@@ -1,19 +1,12 @@
-import ray
 import socket
 import json
-import pickle
-from ray.actor import ActorHandle
-from pathlib import Path
+import uuid
 from typing import Optional, Dict, Any
-from sage.jobmanager.remote_job_manager import RemoteJobManager
-from sage.utils.custom_logger import CustomLogger
-from sage.utils.actor_wrapper import ActorWrapper
-from sage.utils.ray_init_helper import ensure_ray_initialized
 
 # ==================== 客户端工具类 ====================
 
 class JobManagerClient:
-    """JobManager客户端，用于连接守护服务获取Actor句柄"""
+    """简化的JobManager客户端，专门用于发送序列化数据"""
     
     def __init__(self, host: str = "127.0.0.1", port: int = 19001):
         self.host = host
@@ -45,89 +38,43 @@ class JobManagerClient:
         except Exception as e:
             return {"status": "error", "message": f"Connection error: {e}"}
     
-    def get_actor_handle(self) -> 'RemoteJobManager':
-        """获取JobManager Actor句柄"""
-        import uuid
+    def submit_job(self, serialized_data: bytes) -> Dict[str, Any]:
+        """提交序列化的作业数据"""
+        import base64
+        
         request = {
-            "action": "get_actor_handle",
-            "request_id": str(uuid.uuid4())
+            "action": "submit_job",
+            "request_id": str(uuid.uuid4()),
+            "serialized_data": base64.b64encode(serialized_data).decode('utf-8')
         }
-        ensure_ray_initialized()
-
-        response = self._send_request(request)
         
-        if response.get("status") != "success":
-            raise Exception(f"Failed to get actor handle: {response.get('message')}")
-        
-        # 反序列化Actor句柄
-        actor_handle_hex = response.get("actor_handle")
-        actor_handle_bytes = bytes.fromhex(actor_handle_hex)
-        actor_handle = pickle.loads(actor_handle_bytes)
-        jobmanager = ActorWrapper(actor_handle)
-        return jobmanager
+        return self._send_request(request)
     
-    def get_actor_info(self) -> Dict[str, Any]:
-        """获取Actor信息"""
-        import uuid
+    def pause_job(self, job_uuid: str) -> Dict[str, Any]:
+        """暂停/停止作业"""
         request = {
-            "action": "get_actor_info",
-            "request_id": str(uuid.uuid4())
+            "action": "pause_job",
+            "request_id": str(uuid.uuid4()),
+            "job_uuid": job_uuid
         }
         
-        response = self._send_request(request)
+        return self._send_request(request)
+    
+    def get_job_status(self, job_uuid: str) -> Dict[str, Any]:
+        """获取作业状态"""
+        request = {
+            "action": "get_job_status", 
+            "request_id": str(uuid.uuid4()),
+            "job_uuid": job_uuid
+        }
         
-        if response.get("status") != "success":
-            raise Exception(f"Failed to get actor info: {response.get('message')}")
-        
-        return response.get("actor_info", {})
+        return self._send_request(request)
     
     def health_check(self) -> Dict[str, Any]:
         """健康检查"""
-        import uuid
         request = {
             "action": "health_check",
             "request_id": str(uuid.uuid4())
         }
         
         return self._send_request(request)
-    
-    def restart_actor(self) -> Dict[str, Any]:
-        """重启Actor"""
-        import uuid
-        request = {
-            "action": "restart_actor", 
-            "request_id": str(uuid.uuid4())
-        }
-        
-        return self._send_request(request)
-    
-    def get_log_directory(self) -> Dict[str, Any]:
-        """获取远程JobManager的日志目录信息"""
-        try:
-            actor_handle = self.get_actor_handle()
-            return actor_handle.get_log_directory()
-        except Exception as e:
-            return {"status": "error", "message": f"Failed to get log directory: {e}"}
-
-    def get_environment_info(self) -> Dict[str, Any]:
-        """获取远程JobManager的环境信息"""
-        import uuid
-        request = {
-            "action": "get_environment_info",
-            "request_id": str(uuid.uuid4())
-        }
-        
-        response = self._send_request(request)
-        
-        if response.get("status") != "success":
-            # 如果守护服务不支持此功能，尝试通过Actor直接获取
-            try:
-                actor_handle = self.get_actor_handle()
-                if hasattr(actor_handle, 'get_environment_info'):
-                    return actor_handle.get_environment_info()
-                else:
-                    return {"status": "error", "message": "Remote JobManager does not support environment info query"}
-            except Exception as e:
-                return {"status": "error", "message": f"Failed to get environment info: {e}"}
-        
-        return response.get("environment_info", {})
