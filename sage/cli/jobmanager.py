@@ -27,7 +27,7 @@ class JobManagerController:
     def __init__(self, host: str = "127.0.0.1", port: int = 19001):
         self.host = host
         self.port = port
-        self.process_name = "job_manager.py"
+        self.process_names = ["job_manager.py", "jobmanager_daemon.py", "sage.jobmanager.job_manager"]
         
     def check_health(self) -> Dict[str, Any]:
         """检查JobManager健康状态"""
@@ -72,10 +72,17 @@ class JobManagerController:
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
                 cmdline = proc.info['cmdline']
-                if cmdline and any(self.process_name in arg for arg in cmdline):
-                    # 进一步检查是否是我们的JobManager实例
-                    if any(str(self.port) in arg for arg in cmdline):
-                        processes.append(proc)
+                if cmdline:
+                    # 检查命令行参数是否包含任何JobManager进程名
+                    has_process_name = any(
+                        any(process_name in arg for arg in cmdline) 
+                        for process_name in self.process_names
+                    )
+                    
+                    if has_process_name:
+                        # 进一步检查是否是我们的JobManager实例（通过端口号）
+                        if any(str(self.port) in arg for arg in cmdline):
+                            processes.append(proc)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
                 

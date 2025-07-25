@@ -17,7 +17,7 @@ def ensure_ray_initialized():
         # os.makedirs(ray_logs_dir, exist_ok=True)
         
         # 初始化Ray
-        ray.init(address="auto", _temp_dir="/var/lib/ray_shared")
+        ray.init(address="auto")
         print(f"Ray initialized with logs in /var/lib/ray_shared")
     else:
         print("Ray is already initialized.")

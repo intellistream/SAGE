@@ -17,7 +17,8 @@ class RemoteEnvironment(BaseEnvironment):
     # 序列化时排除的属性
     __state_exclude__ = [
         'logger', '_logger', 
-        '_engine_client'
+        '_engine_client',
+        '_jobmanager'
         # 移除了'_jobmanager'，因为我们不再使用它
     ]
 

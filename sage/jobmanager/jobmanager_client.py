@@ -79,3 +79,51 @@ class JobManagerClient:
         }
         
         return self._send_request(request)
+    
+    def list_jobs(self) -> Dict[str, Any]:
+        """获取作业列表"""
+        request = {
+            "action": "list_jobs",
+            "request_id": str(uuid.uuid4())
+        }
+        
+        return self._send_request(request)
+    
+    def continue_job(self, job_uuid: str) -> Dict[str, Any]:
+        """继续作业"""
+        request = {
+            "action": "continue_job",
+            "request_id": str(uuid.uuid4()),
+            "job_uuid": job_uuid
+        }
+        
+        return self._send_request(request)
+    
+    def delete_job(self, job_uuid: str, force: bool = False) -> Dict[str, Any]:
+        """删除作业"""
+        request = {
+            "action": "delete_job",
+            "request_id": str(uuid.uuid4()),
+            "job_uuid": job_uuid,
+            "force": force
+        }
+        
+        return self._send_request(request)
+    
+    def get_server_info(self) -> Dict[str, Any]:
+        """获取服务器信息"""
+        request = {
+            "action": "get_server_info",
+            "request_id": str(uuid.uuid4())
+        }
+        
+        return self._send_request(request)
+    
+    def cleanup_all_jobs(self) -> Dict[str, Any]:
+        """清理所有作业"""
+        request = {
+            "action": "cleanup_all_jobs",
+            "request_id": str(uuid.uuid4())
+        }
+        
+        return self._send_request(request)

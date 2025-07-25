@@ -20,7 +20,6 @@ sys.path.append(str(project_root))
 
 try:
     from sage.jobmanager.jobmanager_client import JobManagerClient
-    from sage.utils.actor_wrapper import ActorWrapper
     import yaml
     from tabulate import tabulate
     from colorama import Fore, Back, Style, init
@@ -41,7 +40,6 @@ class JobManagerCLI:
         self.daemon_host = daemon_host
         self.daemon_port = daemon_port
         self.client: Optional[JobManagerClient] = None
-        self.jobmanager: Optional[ActorWrapper] = None
         self.connected = False
         
     def connect(self) -> bool:
@@ -53,9 +51,6 @@ class JobManagerCLI:
             health = self.client.health_check()
             if health.get("status") != "success":
                 raise Exception(f"Daemon health check failed: {health.get('message')}")
-            
-            # 获取JobManager句柄
-            self.jobmanager = self.client.get_actor_handle()
             self.connected = True
             return True
             
@@ -76,7 +71,11 @@ class JobManagerCLI:
             self.ensure_connected()
             
             # 获取作业列表
-            jobs = self.jobmanager.list_jobs()
+            response = self.client.list_jobs()
+            if response.get("status") != "success":
+                raise Exception(f"Failed to get job list: {response.get('message')}")
+            
+            jobs = response.get("jobs", [])
             
             # 如果是数字，当作作业编号处理
             if identifier.isdigit():
@@ -124,7 +123,11 @@ def list_jobs(
     """列出所有作业"""
     try:
         cli.ensure_connected()
-        jobs = cli.jobmanager.list_jobs()
+        response = cli.client.list_jobs()
+        if response.get("status") != "success":
+            raise Exception(f"Failed to get job list: {response.get('message')}")
+        
+        jobs = response.get("jobs", [])
         
         # 状态过滤
         if status:
@@ -153,7 +156,11 @@ def show_job(
             raise typer.Exit(1)
         
         cli.ensure_connected()
-        job_info = cli.jobmanager.get_job_status(job_uuid)
+        response = cli.client.get_job_status(job_uuid)
+        if response.get("status") != "success":
+            raise Exception(f"Failed to get job status: {response.get('message')}")
+        
+        job_info = response.get("job_status")
         
         if not job_info:
             print(f"❌ Job {job_uuid} not found")
@@ -181,8 +188,9 @@ def stop_job(
         
         # 确认操作
         if not force:
-            job_info = cli.jobmanager.get_job_status(job_uuid)
-            if job_info:
+            response = cli.client.get_job_status(job_uuid)
+            if response.get("status") == "success" and response.get("job_status"):
+                job_info = response.get("job_status")
                 job_name = job_info.get('name', 'unknown')
                 print(f"Job to stop: {job_name} ({job_uuid})")
             
@@ -191,9 +199,9 @@ def stop_job(
                 return
         
         # 停止作业
-        result = cli.jobmanager.pause_job(job_uuid)
+        result = cli.client.pause_job(job_uuid)
         
-        if result.get("status") == "stopped":
+        if result.get("status") == "success":
             print(f"✅ Job {job_uuid[:8]}... stopped successfully")
         else:
             print(f"❌ Failed to stop job: {result.get('message')}")
@@ -219,8 +227,9 @@ def continue_job(
         
         # 确认操作
         if not force:
-            job_info = cli.jobmanager.get_job_status(job_uuid)
-            if job_info:
+            response = cli.client.get_job_status(job_uuid)
+            if response.get("status") == "success" and response.get("job_status"):
+                job_info = response.get("job_status")
                 job_name = job_info.get('name', 'unknown')
                 print(f"Job to continue: {job_name} ({job_uuid})")
             
@@ -229,9 +238,9 @@ def continue_job(
                 return
         
         # 继续作业
-        result = cli.jobmanager.continue_job(job_uuid)
+        result = cli.client.continue_job(job_uuid)
         
-        if result.get("status") == "running":
+        if result.get("status") == "success":
             print(f"✅ Job {job_uuid[:8]}... continued successfully")
         else:
             print(f"❌ Failed to continue job: {result.get('message')}")
@@ -257,8 +266,9 @@ def delete_job(
         
         # 确认操作
         if not force:
-            job_info = cli.jobmanager.get_job_status(job_uuid)
-            if job_info:
+            response = cli.client.get_job_status(job_uuid)
+            if response.get("status") == "success" and response.get("job_status"):
+                job_info = response.get("job_status")
                 job_name = job_info.get('name', 'unknown')
                 job_status = job_info.get('status', 'unknown')
                 print(f"Job to delete: {job_name} ({job_uuid})")
@@ -269,9 +279,9 @@ def delete_job(
                 return
         
         # 删除作业
-        result = cli.jobmanager.delete_job(job_uuid, force=force)
+        result = cli.client.delete_job(job_uuid, force=force)
         
-        if result.get("status") == "deleted":
+        if result.get("status") == "success":
             print(f"✅ Job {job_uuid[:8]}... deleted successfully")
         else:
             print(f"❌ Failed to delete job: {result.get('message')}")
@@ -293,7 +303,11 @@ def job_status(
             raise typer.Exit(1)
             
         cli.ensure_connected()
-        job_info = cli.jobmanager.get_job_status(job_uuid)
+        response = cli.client.get_job_status(job_uuid)
+        if response.get("status") != "success":
+            raise Exception(f"Failed to get job status: {response.get('message')}")
+        
+        job_info = response.get("job_status")
         
         if not job_info:
             print(f"❌ Job {job_uuid} not found")
@@ -317,7 +331,11 @@ def cleanup_jobs(
         
         # 确认操作
         if not force:
-            jobs = cli.jobmanager.list_jobs()
+            response = cli.client.list_jobs()
+            if response.get("status") != "success":
+                raise Exception(f"Failed to get job list: {response.get('message')}")
+            
+            jobs = response.get("jobs", [])
             if not jobs:
                 print("ℹ️ No jobs to cleanup")
                 return
@@ -331,7 +349,7 @@ def cleanup_jobs(
                 return
         
         # 清理所有作业
-        result = cli.jobmanager.cleanup_all_jobs()
+        result = cli.client.cleanup_all_jobs()
         
         if result.get("status") == "success":
             print(f"✅ {result.get('message')}")
@@ -373,7 +391,11 @@ def system_info():
         cli.ensure_connected()
         
         # 获取系统信息
-        info = cli.jobmanager.get_server_info()
+        response = cli.client.get_server_info()
+        if response.get("status") != "success":
+            raise Exception(f"Failed to get server info: {response.get('message')}")
+        
+        info = response.get("server_info", {})
         
         print(f"\n{Fore.CYAN}=== JobManager System Information ==={Style.RESET_ALL}")
         print(f"Session ID: {info.get('session_id')}")
@@ -422,8 +444,12 @@ def monitor_jobs(
             print()
             
             # 获取并显示作业列表
-            jobs = cli.jobmanager.list_jobs()
-            _format_job_table(jobs)
+            response = cli.client.list_jobs()
+            if response.get("status") == "success":
+                jobs = response.get("jobs", [])
+                _format_job_table(jobs)
+            else:
+                print(f"❌ Failed to get job list: {response.get('message')}")
             
             # 等待
             time.sleep(refresh)
@@ -461,17 +487,20 @@ def watch_job(
             os.system('clear' if os.name == 'posix' else 'cls')
             
             # 显示作业详情
-            job_info = cli.jobmanager.get_job_status(job_uuid)
-            
-            if not job_info:
-                print(f"❌ Job {job_uuid} not found")
-                raise typer.Exit(1)
-            
-            print(f"{Fore.CYAN}=== Watching Job {job_uuid[:8]}... ==={Style.RESET_ALL}")
-            print(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            print()
-            
-            _format_job_details(job_info, verbose=True)
+            response = cli.client.get_job_status(job_uuid)
+            if response.get("status") == "success":
+                job_info = response.get("job_status")
+                if job_info:
+                    print(f"{Fore.CYAN}=== Watching Job {job_uuid[:8]}... ==={Style.RESET_ALL}")
+                    print(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                    print()
+                    _format_job_details(job_info, verbose=True)
+                else:
+                    print(f"❌ Job {job_uuid} not found")
+                    break
+            else:
+                print(f"❌ Failed to get job status: {response.get('message')}")
+                break
             
             time.sleep(refresh)
             

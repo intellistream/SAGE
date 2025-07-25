@@ -36,6 +36,7 @@ class Dispatcher():
         self.is_running: bool = False
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
         if env.platform == "remote":
+            self.logger.info(f"Dispatcher '{self.name}' is running in remote mode")
             ensure_ray_initialized()
         self.setup_logging_system()
 
@@ -102,25 +103,37 @@ class Dispatcher():
             except Exception as e:
                 self.logger.error(f"Failed to create service task {service_name}: {e}", exc_info=True)
                 # 可以选择继续或停止，这里选择继续但记录错误
-        
+
         # 第一步：创建所有节点实例
         for node_name, graph_node in self.graph.nodes.items():
-            # task = graph_node.create_dag_node()
-            task = graph_node.transformation.task_factory.create_task(graph_node.name, graph_node.ctx)
+            try:
+                # task = graph_node.create_dag_node()
+                task = graph_node.transformation.task_factory.create_task(graph_node.name, graph_node.ctx)
 
-            # 设置services到runtime context
-            graph_node.ctx.set_dispatcher_services(self.services)
+                # 设置services到runtime context
+                graph_node.ctx.set_dispatcher_services(self.services)
 
-            self.tasks[node_name] = task
+                self.tasks[node_name] = task
 
-            self.logger.debug(f"Added node '{node_name}' of type '{task.__class__.__name__}'")
+                self.logger.debug(f"Added node '{node_name}' of type '{task.__class__.__name__}'")
+            except Exception as e:
+                self.logger.error(f"Failed to create nodes: {e}", exc_info=True)
+                raise e
         
         # 第二步：建立节点间的连接
+
         for node_name, graph_node in self.graph.nodes.items():
-            self._setup_node_connections(node_name, graph_node)
-        self.start()
-
-
+            try:
+                self._setup_node_connections(node_name, graph_node)
+            except Exception as e:
+                self.logger.error(f"Error setting up connections for node {node_name}: {e}", exc_info=True)
+                raise e
+        
+        try:
+            self.start()
+        except Exception as e:
+            self.logger.error(f"Error starting dispatcher: {e}", exc_info=True)
+            raise e
 
     def _setup_node_connections(self, node_name: str, graph_node: 'GraphNode'):
         """
