@@ -1,6 +1,6 @@
 import pytest
 
-from sage_libs.rag.evaluate import (
+from sage.lib.rag.evaluate import (
     F1Evaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate
 )
 

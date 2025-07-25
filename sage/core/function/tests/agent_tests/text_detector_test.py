@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 # 关键修改：根据您的项目结构更新 import 语句
 # 假设您的源文件位于 sage_libs/tools/text_detector.py
 # ================================
-from sage_libs.tools.text_detector import text_detector
+from sage.lib.tools.text_detector import text_detector
 
 
 # ================================

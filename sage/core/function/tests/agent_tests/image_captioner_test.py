@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 # 关键修改：根据您的项目结构更新 import 语句
 # 假设您的源文件位于 sage_libs/tools/image_captioner.py
 # ================================
-from sage_libs.tools.image_captioner import ImageCaptioner
+from sage.lib.tools.image_captioner import ImageCaptioner
 
 
 # ================================
