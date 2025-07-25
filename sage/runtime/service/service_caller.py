@@ -14,7 +14,7 @@ from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from sage.utils.mmap_queue.sage_queue import SageQueue
 if TYPE_CHECKING:
-    from sage.core.environment.base_environment import BaseEnvironment
+    from sage.core.api.base_environment import BaseEnvironment
 
 @dataclass 
 class ServiceResponse:

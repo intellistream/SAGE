@@ -11,7 +11,7 @@ from ray.actor import ActorHandle
 
 from sage.utils.ray_init_helper import ensure_ray_initialized
 if TYPE_CHECKING:
-    from sage.core.environment.base_environment import BaseEnvironment 
+    from sage.core.api.base_environment import BaseEnvironment 
     from sage.jobmanager.execution_graph import ExecutionGraph, GraphNode
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
