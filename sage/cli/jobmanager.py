@@ -140,20 +140,90 @@ class JobManagerController:
     def force_kill(self) -> bool:
         """强制杀死JobManager进程"""
         processes = self.find_jobmanager_processes()
+        
+        # 如果没有找到进程，也尝试通过端口查找
+        if not processes:
+            typer.echo("No JobManager processes found by process name, checking by port...")
+            try:
+                # 使用 lsof 或 netstat 查找占用端口的进程
+                import subprocess
+                result = subprocess.run(
+                    ['lsof', '-ti', f':{self.port}'], 
+                    capture_output=True, 
+                    text=True
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    pids = result.stdout.strip().split('\n')
+                    for pid_str in pids:
+                        try:
+                            pid = int(pid_str.strip())
+                            process = psutil.Process(pid)
+                            processes.append(process)
+                            typer.echo(f"Found process using port {self.port}: PID {pid}")
+                        except (ValueError, psutil.NoSuchProcess):
+                            continue
+            except (subprocess.SubprocessError, FileNotFoundError):
+                # lsof 不可用，尝试使用 netstat
+                try:
+                    result = subprocess.run(
+                        ['netstat', '-tlnp'], 
+                        capture_output=True, 
+                        text=True
+                    )
+                    if result.returncode == 0:
+                        for line in result.stdout.split('\n'):
+                            if f':{self.port}' in line and 'LISTEN' in line:
+                                # 提取PID
+                                parts = line.split()
+                                if len(parts) > 6 and '/' in parts[6]:
+                                    pid_str = parts[6].split('/')[0]
+                                    try:
+                                        pid = int(pid_str)
+                                        process = psutil.Process(pid)
+                                        processes.append(process)
+                                        typer.echo(f"Found process using port {self.port}: PID {pid}")
+                                    except (ValueError, psutil.NoSuchProcess):
+                                        continue
+                except subprocess.SubprocessError:
+                    pass
+        
         if not processes:
             typer.echo("No JobManager processes to kill")
             return True
         
         typer.echo(f"Force killing {len(processes)} JobManager process(es)...")
         
+        killed_count = 0
         for proc in processes:
             try:
-                typer.echo(f"Sending SIGKILL to process {proc.pid}")
+                # 获取进程信息
+                try:
+                    proc_user = proc.username()
+                    proc_cmdline = ' '.join(proc.cmdline())
+                    typer.echo(f"Attempting to kill process {proc.pid} (user: {proc_user})")
+                    typer.echo(f"  Command: {proc_cmdline}")
+                except psutil.AccessDenied:
+                    typer.echo(f"Attempting to kill process {proc.pid} (access denied to process info)")
+                
+                # 尝试发送 SIGKILL
                 proc.kill()
                 proc.wait(timeout=5)
                 typer.echo(f"Process {proc.pid} killed successfully")
+                killed_count += 1
+                
             except psutil.NoSuchProcess:
                 typer.echo(f"Process {proc.pid} already terminated")
+                killed_count += 1
+            except psutil.AccessDenied:
+                typer.echo(f"Permission denied to kill process {proc.pid}")
+                # 尝试使用系统命令强制终止
+                try:
+                    subprocess.run(['sudo', 'kill', '-9', str(proc.pid)], 
+                                 capture_output=True, check=True)
+                    typer.echo(f"Process {proc.pid} killed with sudo")
+                    killed_count += 1
+                except subprocess.CalledProcessError:
+                    typer.echo(f"Failed to kill process {proc.pid} even with sudo")
             except psutil.TimeoutExpired:
                 typer.echo(f"Process {proc.pid} did not respond to SIGKILL")
             except Exception as e:
@@ -164,26 +234,39 @@ class JobManagerController:
         remaining = self.find_jobmanager_processes()
         if remaining:
             typer.echo(f"Warning: {len(remaining)} processes may still be running")
-            return False
+            # 显示残留进程信息
+            for proc in remaining:
+                try:
+                    typer.echo(f"  Remaining process {proc.pid}: {proc.name()}")
+                except psutil.NoSuchProcess:
+                    pass
+            return killed_count > 0  # 如果至少杀死了一些进程，认为部分成功
         
         typer.echo("All JobManager processes have been terminated")
         return True
     
-    def start(self, daemon: bool = True, wait_for_ready: int = 10) -> bool:
+    def start(self, daemon: bool = True, wait_for_ready: int = 10, force: bool = False) -> bool:
         """启动JobManager"""
         typer.echo(f"Starting JobManager on {self.host}:{self.port}...")
         
         # 检查端口是否已被占用
         if self.is_port_occupied():
             typer.echo(f"Port {self.port} is already occupied")
-            health = self.check_health()
-            if health.get("status") == "success":
-                typer.echo("JobManager is already running and healthy")
-                return True
-            else:
-                typer.echo("Port occupied but JobManager not responding, stopping existing process...")
-                if not self.stop_gracefully():
+            
+            if force:
+                typer.echo("Force mode enabled, forcefully stopping existing process...")
+                if not self.force_kill():
+                    typer.echo("Failed to force kill existing processes")
                     return False
+            else:
+                health = self.check_health()
+                if health.get("status") == "success":
+                    typer.echo("JobManager is already running and healthy")
+                    return True
+                else:
+                    typer.echo("Port occupied but JobManager not responding, stopping existing process...")
+                    if not self.stop_gracefully():
+                        return False
         
         # 构建启动命令
         jobmanager_module = "sage.jobmanager.job_manager"
@@ -318,14 +401,15 @@ def start(
     host: str = typer.Option("127.0.0.1", help="JobManager host address"),
     port: int = typer.Option(19001, help="JobManager port"),
     foreground: bool = typer.Option(False, "--foreground", help="Start in the foreground"),
-    no_wait: bool = typer.Option(False, "--no-wait", help="Do not wait for the service to be ready")
+    no_wait: bool = typer.Option(False, "--no-wait", help="Do not wait for the service to be ready"),
+    force: bool = typer.Option(False, "--force", "-f", help="Force start by killing any existing JobManager processes")
 ):
     """
     Start the JobManager service.
     """
     controller = get_controller(host, port)
     wait_time = 0 if no_wait else 10
-    success = controller.start(daemon=not foreground, wait_for_ready=wait_time)
+    success = controller.start(daemon=not foreground, wait_for_ready=wait_time, force=force)
     if success:
         typer.echo(f"\n✅ Operation 'start' completed successfully")
     else:
