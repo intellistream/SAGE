@@ -368,17 +368,18 @@ class JobManagerDaemon:
     def _handle_delete_job(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """处理删除作业请求"""
         try:
-            env_uuid = request.get("env_uuid")
+            # 支持新旧两种参数名
+            job_uuid = request.get("job_uuid") or request.get("env_uuid")
             force = request.get("force", False)
             
-            if not env_uuid:
+            if not job_uuid:
                 return {
                     "status": "error",
-                    "message": "Missing env_uuid parameter",
+                    "message": "Missing job_uuid parameter",
                     "request_id": request.get("request_id")
                 }
             
-            result = self.jobmanager.delete_job(env_uuid, force=force)
+            result = self.jobmanager.delete_job(job_uuid, force=force)
             result["request_id"] = request.get("request_id")
             return result
             
