@@ -2,7 +2,7 @@ import logging
 import time
 from dotenv import load_dotenv
 import os
-from draft.remote_environment import RemoteStreamEnvironment
+from sage.core.api.remote_environment import RemoteStreamEnvironment
 from sage.lib.io.source import FileSource
 from sage.lib.io.sink import FileSink
 from sage.lib.rag.generator import OpenAIGenerator

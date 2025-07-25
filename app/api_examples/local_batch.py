@@ -1,5 +1,5 @@
 from sage.core.api.local_environment import LocalEnvironment
-from draft.remote_environment import RemoteEnvironment
+from sage.core.api.remote_environment import RemoteEnvironment
 from sage.core.function.sink_function import SinkFunction
 from sage.core.function.source_function import SourceFunction, StopSignal
 import time

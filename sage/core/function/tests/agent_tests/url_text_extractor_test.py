@@ -14,7 +14,7 @@ from unittest.mock import MagicMock
 # 关键修改：根据您的项目结构更新 import 语句
 # 假设您的源文件位于 sage_libs/tools/url_text_extractor.py
 # ================================
-from sage_libs.tools.url_text_extractor import URL_Text_Extractor_Tool
+from sage.lib.tools.url_text_extractor import URL_Text_Extractor_Tool
 
 
 # ================================
