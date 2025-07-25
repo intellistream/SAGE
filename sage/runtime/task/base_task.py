@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 class BaseTask(ABC):
     def __init__(self,runtime_context: 'RuntimeContext',operator_factory: 'OperatorFactory') -> None:
         self.ctx = runtime_context
+        self.logger.debug(f"Queue name is {self.ctx.name}")
         self.input_buffer = SageQueue(self.ctx.name)
         self.input_buffer.logger = self.ctx.logger
         # === 线程控制 ===
