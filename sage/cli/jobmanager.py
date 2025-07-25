@@ -2,7 +2,7 @@
 """
 SAGE JobManager CLI
 
-This module provides CLI commands to manage the JobManager lifecycle.
+This module provides CLI commands to manage the JobManager lifecycle using Typer.
 """
 
 import sys
@@ -10,58 +10,65 @@ import time
 import socket
 import json
 import psutil
-import argparse
+import typer
 import subprocess
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from pathlib import Path
+
+app = typer.Typer(
+    name="jobmanager",
+    help="Manage the SAGE JobManager service 🚀",
+    no_args_is_help=True
+)
 
 class JobManagerController:
     """JobManager控制器"""
-
+    
     def __init__(self, host: str = "127.0.0.1", port: int = 19001):
         self.host = host
         self.port = port
         self.process_name = "job_manager.py"
-
+        
     def check_health(self) -> Dict[str, Any]:
         """检查JobManager健康状态"""
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.settimeout(5)
                 sock.connect((self.host, self.port))
-
+                
                 # 发送健康检查请求
                 request = {
                     "action": "health_check",
                     "request_id": "cli_health_check"
                 }
-
+                
                 request_data = json.dumps(request).encode('utf-8')
                 length_data = len(request_data).to_bytes(4, byteorder='big')
                 sock.sendall(length_data + request_data)
-
+                
                 # 接收响应
                 response_length_data = sock.recv(4)
                 if len(response_length_data) != 4:
                     return {"status": "error", "message": "Invalid response"}
-
+                
                 response_length = int.from_bytes(response_length_data, byteorder='big')
                 response_data = b''
                 while len(response_data) < response_length:
                     chunk = sock.recv(min(response_length - len(response_data), 8192))
                     response_data += chunk
-
+                
                 response = json.loads(response_data.decode('utf-8'))
                 return response
-
+                
         except socket.error as e:
             return {"status": "error", "message": f"Connection failed: {e}"}
         except Exception as e:
             return {"status": "error", "message": f"Health check failed: {e}"}
-
+    
     def find_jobmanager_processes(self) -> List[psutil.Process]:
         """查找所有JobManager进程"""
         processes = []
-
+        
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
                 cmdline = proc.info['cmdline']
@@ -71,39 +78,39 @@ class JobManagerController:
                         processes.append(proc)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
-
+                
         return processes
-
+    
     def stop_gracefully(self, timeout: int = 30) -> bool:
         """优雅地停止JobManager"""
-        print(f"Attempting graceful shutdown of JobManager on {self.host}:{self.port}...")
-
+        typer.echo(f"Attempting graceful shutdown of JobManager on {self.host}:{self.port}...")
+        
         # 首先尝试通过健康检查确认服务存在
         health = self.check_health()
         if health.get("status") != "success":
-            print("JobManager is not responding to health checks")
+            typer.echo("JobManager is not responding to health checks")
             return self.force_kill()
-
+        
         # 查找进程
         processes = self.find_jobmanager_processes()
         if not processes:
-            print("No JobManager processes found")
+            typer.echo("No JobManager processes found")
             return True
-
-        print(f"Found {len(processes)} JobManager process(es)")
-
+        
+        typer.echo(f"Found {len(processes)} JobManager process(es)")
+        
         # 发送SIGTERM信号进行优雅关闭
         for proc in processes:
             try:
-                print(f"Sending SIGTERM to process {proc.pid}")
+                typer.echo(f"Sending SIGTERM to process {proc.pid}")
                 proc.terminate()
             except psutil.NoSuchProcess:
                 continue
-
+        
         # 等待进程结束
-        print(f"Waiting up to {timeout} seconds for processes to exit...")
+        typer.echo(f"Waiting up to {timeout} seconds for processes to exit...")
         start_time = time.time()
-
+        
         while time.time() - start_time < timeout:
             remaining_processes = []
             for proc in processes:
@@ -112,65 +119,65 @@ class JobManagerController:
                         remaining_processes.append(proc)
                 except psutil.NoSuchProcess:
                     continue
-
+            
             if not remaining_processes:
-                print("All JobManager processes have exited gracefully")
+                typer.echo("All JobManager processes have exited gracefully")
                 return True
-
+                
             time.sleep(1)
-
+        
         # 如果还有进程在运行，进行强制终止
-        print("Some processes did not exit gracefully, forcing termination...")
+        typer.echo("Some processes did not exit gracefully, forcing termination...")
         return self.force_kill()
-
+    
     def force_kill(self) -> bool:
         """强制杀死JobManager进程"""
         processes = self.find_jobmanager_processes()
         if not processes:
-            print("No JobManager processes to kill")
+            typer.echo("No JobManager processes to kill")
             return True
-
-        print(f"Force killing {len(processes)} JobManager process(es)...")
-
+        
+        typer.echo(f"Force killing {len(processes)} JobManager process(es)...")
+        
         for proc in processes:
             try:
-                print(f"Sending SIGKILL to process {proc.pid}")
+                typer.echo(f"Sending SIGKILL to process {proc.pid}")
                 proc.kill()
                 proc.wait(timeout=5)
-                print(f"Process {proc.pid} killed successfully")
+                typer.echo(f"Process {proc.pid} killed successfully")
             except psutil.NoSuchProcess:
-                print(f"Process {proc.pid} already terminated")
+                typer.echo(f"Process {proc.pid} already terminated")
             except psutil.TimeoutExpired:
-                print(f"Process {proc.pid} did not respond to SIGKILL")
+                typer.echo(f"Process {proc.pid} did not respond to SIGKILL")
             except Exception as e:
-                print(f"Error killing process {proc.pid}: {e}")
-
+                typer.echo(f"Error killing process {proc.pid}: {e}")
+        
         # 再次检查是否还有残留进程
         time.sleep(2)
         remaining = self.find_jobmanager_processes()
         if remaining:
-            print(f"Warning: {len(remaining)} processes may still be running")
+            typer.echo(f"Warning: {len(remaining)} processes may still be running")
             return False
-
-        print("All JobManager processes have been terminated")
+        
+        typer.echo("All JobManager processes have been terminated")
         return True
-
+    
     def start(self, daemon: bool = True, wait_for_ready: int = 10) -> bool:
         """启动JobManager"""
-        print(f"Starting JobManager on {self.host}:{self.port}...")
-
+        typer.echo(f"Starting JobManager on {self.host}:{self.port}...")
+        
         # 检查端口是否已被占用
         if self.is_port_occupied():
-            print(f"Port {self.port} is already occupied")
+            typer.echo(f"Port {self.port} is already occupied")
             health = self.check_health()
             if health.get("status") == "success":
-                print("JobManager is already running and healthy")
+                typer.echo("JobManager is already running and healthy")
                 return True
             else:
-                print("Port occupied but JobManager not responding, stopping existing process...")
+                typer.echo("Port occupied but JobManager not responding, stopping existing process...")
                 if not self.stop_gracefully():
                     return False
-
+        
         # 构建启动命令
         jobmanager_module = "sage.jobmanager.job_manager"
         cmd = [
@@ -178,7 +185,7 @@ class JobManagerController:
             "--host", self.host,
             "--port", str(self.port)
         ]
-
+        
         try:
             # 启动JobManager进程
             if daemon:
@@ -190,34 +197,34 @@ class JobManagerController:
                     stdin=subprocess.PIPE,
                     start_new_session=True
                 )
-                print(f"JobManager started as daemon process (PID: {process.pid})")
+                typer.echo(f"JobManager started as daemon process (PID: {process.pid})")
             else:
                 # 在前台启动
-                print("Starting JobManager in foreground mode...")
+                typer.echo("Starting JobManager in foreground mode...")
                 process = subprocess.Popen(cmd)
-                print(f"JobManager started in foreground (PID: {process.pid})")
+                typer.echo(f"JobManager started in foreground (PID: {process.pid})")
                 return True  # 前台模式直接返回
-
+            
             # 等待服务就绪
             if wait_for_ready > 0:
-                print(f"Waiting up to {wait_for_ready} seconds for JobManager to be ready...")
+                typer.echo(f"Waiting up to {wait_for_ready} seconds for JobManager to be ready...")
                 for i in range(wait_for_ready):
                     time.sleep(1)
                     health = self.check_health()
                     if health.get("status") == "success":
-                        print(f"JobManager is ready and healthy (took {i+1} seconds)")
+                        typer.echo(f"JobManager is ready and healthy (took {i+1} seconds)")
                         return True
-                    print(f"Waiting... ({i+1}/{wait_for_ready})")
-
-                print("JobManager did not become ready within timeout")
+                    typer.echo(f"Waiting... ({i+1}/{wait_for_ready})")
+                
+                typer.echo("JobManager did not become ready within timeout")
                 return False
-
+            
             return True
-
+            
         except Exception as e:
-            print(f"Failed to start JobManager: {e}")
+            typer.echo(f"Failed to start JobManager: {e}")
             return False
-
+    
     def is_port_occupied(self) -> bool:
         """检查端口是否被占用"""
         try:
@@ -226,167 +233,162 @@ class JobManagerController:
                 return result == 0
         except Exception:
             return False
-
+    
     def status(self) -> Dict[str, Any]:
         """获取JobManager状态"""
-        print(f"Checking JobManager status on {self.host}:{self.port}...")
-
+        typer.echo(f"Checking JobManager status on {self.host}:{self.port}...")
+        
         # 检查健康状态
         health = self.check_health()
-
+        
         # 查找进程
         processes = self.find_jobmanager_processes()
-
+        
         # 检查端口占用
         port_occupied = self.is_port_occupied()
-
+        
         status_info = {
             "health": health,
             "processes": [{"pid": p.pid, "name": p.name()} for p in processes],
             "port_occupied": port_occupied,
             "host_port": f"{self.host}:{self.port}"
         }
-
+        
         # 打印状态信息
-        print(f"Health Status: {health.get('status', 'unknown')}")
+        typer.echo(f"Health Status: {health.get('status', 'unknown')}")
         if health.get("status") == "success":
             daemon_status = health.get("daemon_status", {})
-            print(f"  - Jobs Count: {daemon_status.get('jobs_count', 'unknown')}")
-            print(f"  - Session ID: {daemon_status.get('session_id', 'unknown')}")
-
-        print(f"Process Count: {len(processes)}")
+            typer.echo(f"  - Jobs Count: {daemon_status.get('jobs_count', 'unknown')}")
+            typer.echo(f"  - Session ID: {daemon_status.get('session_id', 'unknown')}")
+        
+        typer.echo(f"Process Count: {len(processes)}")
         for proc_info in status_info["processes"]:
-            print(f"  - PID {proc_info['pid']}: {proc_info['name']}")
-
-        print(f"Port {self.port} Occupied: {port_occupied}")
-
+            typer.echo(f"  - PID {proc_info['pid']}: {proc_info['name']}")
+        
+        typer.echo(f"Port {self.port} Occupied: {port_occupied}")
+        
         return status_info
-
+    
     def restart(self, force: bool = False, wait_for_ready: int = 10) -> bool:
         """重启JobManager"""
-        print("=" * 50)
-        print("RESTARTING JOBMANAGER")
-        print("=" * 50)
-
+        typer.echo("=" * 50)
+        typer.echo("RESTARTING JOBMANAGER")
+        typer.echo("=" * 50)
+        
         # 停止现有实例
         if force:
             stop_success = self.force_kill()
         else:
             stop_success = self.stop_gracefully()
-
+        
         if not stop_success:
-            print("Failed to stop existing JobManager instances")
+            typer.echo("Failed to stop existing JobManager instances")
             return False
-
+        
         # 等待一下确保资源释放
-        print("Waiting for resources to be released...")
+        typer.echo("Waiting for resources to be released...")
         time.sleep(2)
-
+        
         # 启动新实例
         start_success = self.start(daemon=True, wait_for_ready=wait_for_ready)
-
+        
         if start_success:
-            print("=" * 50)
-            print("JOBMANAGER RESTART SUCCESSFUL")
-            print("=" * 50)
+            typer.echo("=" * 50)
+            typer.echo("JOBMANAGER RESTART SUCCESSFUL")
+            typer.echo("=" * 50)
         else:
-            print("=" * 50)
-            print("JOBMANAGER RESTART FAILED")
-            print("=" * 50)
-
+            typer.echo("=" * 50)
+            typer.echo("JOBMANAGER RESTART FAILED")
+            typer.echo("=" * 50)
+        
         return start_success
 
-def run_jobmanager_command(args):
-    """Runs the jobmanager command."""
-    controller = JobManagerController(host=args.host, port=args.port)
+def get_controller(host: str, port: int) -> JobManagerController:
+    return JobManagerController(host=host, port=port)
 
-    success = False
-    wait_time = 0 if args.no_wait else 10
+@app.command()
+def start(
+    host: str = typer.Option("127.0.0.1", help="JobManager host address"),
+    port: int = typer.Option(19001, help="JobManager port"),
+    foreground: bool = typer.Option(False, "--foreground", help="Start in the foreground"),
+    no_wait: bool = typer.Option(False, "--no-wait", help="Do not wait for the service to be ready")
+):
+    """
+    Start the JobManager service.
+    """
+    controller = get_controller(host, port)
+    wait_time = 0 if no_wait else 10
+    success = controller.start(daemon=not foreground, wait_for_ready=wait_time)
+    if success:
+        typer.echo(f"\n✅ Operation 'start' completed successfully")
+    else:
+        typer.echo(f"\n❌ Operation 'start' failed")
+        raise typer.Exit(code=1)
 
-    try:
-        if args.action == "start":
-            success = controller.start(daemon=not args.foreground, wait_for_ready=wait_time)
-        elif args.action == "stop":
-            if args.force:
-                success = controller.force_kill()
-            else:
-                success = controller.stop_gracefully()
-        elif args.action == "restart":
-            success = controller.restart(force=args.force, wait_for_ready=wait_time)
-        elif args.action == "status":
-            controller.status()
-            success = True
-        elif args.action == "kill":
-            success = controller.force_kill()
+@app.command()
+def stop(
+    host: str = typer.Option("127.0.0.1", help="JobManager host address"),
+    port: int = typer.Option(19001, help="JobManager port"),
+    force: bool = typer.Option(False, "--force", "-f", help="Force the operation")
+):
+    """
+    Stop the JobManager service.
+    """
+    controller = get_controller(host, port)
+    if force:
+        success = controller.force_kill()
+    else:
+        success = controller.stop_gracefully()
+    
+    if success:
+        typer.echo(f"\n✅ Operation 'stop' completed successfully")
+    else:
+        typer.echo(f"\n❌ Operation 'stop' failed")
+        raise typer.Exit(code=1)
 
-        if success:
-            print(f"\n✅ Operation '{args.action}' completed successfully")
-        else:
-            print(f"\n❌ Operation '{args.action}' failed")
-            sys.exit(1)
+@app.command()
+def restart(
+    host: str = typer.Option("127.0.0.1", help="JobManager host address"),
+    port: int = typer.Option(19001, help="JobManager port"),
+    force: bool = typer.Option(False, "--force", "-f", help="Force the restart"),
+    no_wait: bool = typer.Option(False, "--no-wait", help="Do not wait for the service to be ready")
+):
+    """
+    Restart the JobManager service.
+    """
+    controller = get_controller(host, port)
+    wait_time = 0 if no_wait else 10
+    success = controller.restart(force=force, wait_for_ready=wait_time)
+    if not success:
+        raise typer.Exit(code=1)
 
-    except KeyboardInterrupt:
-        print("\n🛑 Operation interrupted by user")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\n💥 Unexpected error: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+@app.command()
+def status(
+    host: str = typer.Option("127.0.0.1", help="JobManager host address"),
+    port: int = typer.Option(19001, help="JobManager port")
+):
+    """
+    Check the status of the JobManager service.
+    """
+    controller = get_controller(host, port)
+    controller.status()
+    typer.echo(f"\n✅ Operation 'status' completed successfully")
 
-def add_jobmanager_parser(subparsers):
-    """Add a subparser for the jobmanager command."""
-    jobmanager_parser = subparsers.add_parser(
-        "jobmanager",
-        help="Manage the SAGE JobManager",
-        description="Start, stop, restart, and check the status of the SAGE JobManager.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  sage jobmanager start                    # 启动JobManager
-  sage jobmanager stop                     # 优雅停止JobManager
-  sage jobmanager restart                  # 重启JobManager
-  sage jobmanager status                   # 检查JobManager状态
-  sage jobmanager kill                     # 强制杀死JobManager进程
-  sage jobmanager --port 19002 restart     # 在指定端口重启JobManager
-        """
-    )
+@app.command()
+def kill(
+    host: str = typer.Option("127.0.0.1", help="JobManager host address"),
+    port: int = typer.Option(19001, help="JobManager port")
+):
+    """
+    Force kill the JobManager service.
+    """
+    controller = get_controller(host, port)
+    success = controller.force_kill()
+    if success:
+        typer.echo(f"\n✅ Operation 'kill' completed successfully")
+    else:
+        typer.echo(f"\n❌ Operation 'kill' failed")
+        raise typer.Exit(code=1)
 
-    jobmanager_parser.add_argument(
-        "action",
-        choices=["start", "stop", "restart", "status", "kill"],
-        help="The action to perform"
-    )
-
-    jobmanager_parser.add_argument(
-        "--host",
-        default="127.0.0.1",
-        help="JobManager host address (default: 127.0.0.1)"
-    )
-
-    jobmanager_parser.add_argument(
-        "--port",
-        type=int,
-        default=19001,
-        help="JobManager port (default: 19001)"
-    )
-
-    jobmanager_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Force the operation (for stop and restart)"
-    )
-
-    jobmanager_parser.add_argument(
-        "--no-wait",
-        action="store_true",
-        help="Do not wait for the service to be ready after starting"
-    )
-
-    jobmanager_parser.add_argument(
-        "--foreground",
-        action="store_true",
-        help="Start in the foreground (for start action only)"
-    )
-
-    jobmanager_parser.set_defaults(func=run_jobmanager_command)
+if __name__ == "__main__":
+    app()

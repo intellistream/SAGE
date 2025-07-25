@@ -10,6 +10,7 @@ from typing import Optional
 # 导入子命令模块
 from sage.cli.job import app as job_app
 from sage.cli.deploy import app as deploy_app
+from sage.cli.jobmanager import app as jobmanager_app
 
 # 创建主应用
 app = typer.Typer(
@@ -21,6 +22,7 @@ app = typer.Typer(
 # 注册子命令
 app.add_typer(job_app, name="job", help="📋 作业管理 - 提交、监控、管理作业")
 app.add_typer(deploy_app, name="deploy", help="🎯 系统部署 - 启动、停止、监控系统")
+app.add_typer(jobmanager_app, name="jobmanager", help="🛠️ JobManager管理 - 启动、停止、重启JobManager")
 
 @app.command("version")
 def version():
