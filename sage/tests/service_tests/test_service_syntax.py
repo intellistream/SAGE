@@ -13,7 +13,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.function.base_function import BaseFunction
-from runtime.service.service_caller import ServiceManager
+from sage.runtime.service.service_caller import ServiceManager
 
 
 class MockRuntimeContext:
