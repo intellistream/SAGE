@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class RuntimeContext:
     # 定义不需要序列化的属性
     __state_exclude__ = ["_logger", "env", "_env_logger_cache"]
-    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation', env: 'BaseEnvironment', jobmanager_handle: Optional[Union['JobManager', 'ActorHandle']] = None):
+    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation', env: 'BaseEnvironment'):
         
         self.name:str = graph_node.name
 
@@ -27,7 +27,6 @@ class RuntimeContext:
         self.env_base_dir:str = env.env_base_dir
         self.env_uuid = env.uuid
         self.env_console_log_level = env.console_log_level  # 保存环境的控制台日志等级
-        self.jobmanager_handle: Optional[Union['JobManager', 'ActorHandle']] = jobmanager_handle
 
         self.memory_collection:Any = transformation.memory_collection
 
@@ -44,10 +43,6 @@ class RuntimeContext:
         # 服务调用相关
         self._service_manager: Optional['ServiceManager'] = None
         self._dispatcher_services: Optional[Dict[str, Any]] = None  # 将由dispatcher设置
-
-    @property
-    def jobmanager(self) -> 'JobManager':
-        return ActorWrapper(self.jobmanager_handle)
     
     @property
     def service_manager(self) -> 'ServiceManager':

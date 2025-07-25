@@ -4,9 +4,24 @@ Tests for sage.cli.jobmanager
 from typer.testing import CliRunner
 from unittest.mock import MagicMock, patch
 
-from sage.cli.jobmanager import app
+from sage.cli.jobmanager import app, JobManagerController
 
 runner = CliRunner()
+
+def test_jobmanager_controller_init():
+    """Test JobManagerController initialization."""
+    controller = JobManagerController()
+    assert controller.host == "127.0.0.1"
+    assert controller.port == 19001
+    assert "job_manager.py" in controller.process_names
+    assert "jobmanager_daemon.py" in controller.process_names
+    assert "sage.jobmanager.job_manager" in controller.process_names
+
+def test_jobmanager_controller_init_custom():
+    """Test JobManagerController initialization with custom parameters."""
+    controller = JobManagerController(host="192.168.1.1", port=12345)
+    assert controller.host == "192.168.1.1"
+    assert controller.port == 12345
 
 @patch('sage.cli.jobmanager.JobManagerController')
 def test_start(MockController):
