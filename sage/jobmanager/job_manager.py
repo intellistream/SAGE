@@ -50,6 +50,7 @@ class JobManager: #Job Manager
 
 
         # TODO: 如果Job里面有申明'env.set_memory(config=None)'，则说明该job需要一个global memory manager.
+        # Issue URL: https://github.com/intellistream/SAGE/issues/374
         # 则在构建executiongraph的时候要单独是实例化一个特殊的operator，即 memory manager，并使得所有调用了memory相关操作的
         # 算子，双向连到该memory manager算子上。
         dispatcher = Dispatcher(graph, env)
