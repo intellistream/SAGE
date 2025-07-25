@@ -16,7 +16,7 @@ import os
 #         """启动后端服务器"""
 #         cls.server_process = subprocess.Popen(
 #             ["python", "main.py", "--host", "127.0.0.1", "--port", "8080", "--log-level", "debug"],
-#             cwd="sage_frontend/sage_server",
+#             cwd="frontend/sage_server",
 #             stdout=sys.stdout,
 #             stderr=sys.stderr
 #         )
@@ -77,7 +77,7 @@ import os
 #                                                      method="POST", data={})
 #             self.assertEqual(response2.status_code, 200, "API请求失败")
 
-#             with open(f"sage_frontend/sage_server/data/jobinfo/{job_id}.json", "r") as jobinfo:
+#             with open(f"frontend/sage_server/data/jobinfo/{job_id}.json", "r") as jobinfo:
 #                 jobinfo_content = json.load(jobinfo)
 #             file_duration = jobinfo_content['duration']
 #             assert file_duration == duration2, "文件中的duration与API返回的duration不一致"

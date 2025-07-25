@@ -876,11 +876,11 @@ class CoMapOperator(BaseOperator):
 ### 基础数据处理管道
 
 ```python
-from sage_core.api.local_environment import LocalEnvironment
-from sage_core.function.source_function import SourceFunction
-from sage_core.function.map_function import MapFunction
-from sage_core.function.filter_function import FilterFunction
-from sage_core.function.sink_function import SinkFunction
+from sage.core.api.local_environment import LocalEnvironment
+from sage.core.function.source_function import SourceFunction
+from sage.core.function.map_function import MapFunction
+from sage.core.function.filter_function import FilterFunction
+from sage.core.function.sink_function import SinkFunction
 
 # 1. 创建环境
 env = LocalEnvironment("basic_pipeline")

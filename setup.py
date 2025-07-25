@@ -1,7 +1,8 @@
 # conda create -n operator_test python=3.11
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
 import os
-
+import platform
+import subprocess
 import re
 
 def parse_requirements(filename):
@@ -25,6 +26,50 @@ def read_long_description():
     except FileNotFoundError:
         return "SAGE - Stream Processing Framework"
 
+# 构建C扩展模块
+def build_c_extension():
+    """构建ring_buffer C扩展"""
+    ring_buffer_dir = "sage_utils/mmap_queue"
+    
+    # 检查是否已有编译好的库
+    so_files = [
+        os.path.join(ring_buffer_dir, "ring_buffer.so"),
+        os.path.join(ring_buffer_dir, "libring_buffer.so")
+    ]
+    
+    # 如果没有编译好的库，尝试编译
+    if not any(os.path.exists(f) for f in so_files):
+        print("Compiling ring_buffer C library...")
+        try:
+            # 尝试使用Makefile编译
+            if os.path.exists(os.path.join(ring_buffer_dir, "Makefile")):
+                subprocess.run(["make", "-C", ring_buffer_dir], check=True)
+            # 或者使用build.sh
+            elif os.path.exists(os.path.join(ring_buffer_dir, "build.sh")):
+                subprocess.run(["bash", os.path.join(ring_buffer_dir, "build.sh")], check=True)
+            else:
+                print("Warning: No build system found for ring_buffer")
+        except subprocess.CalledProcessError as e:
+            print(f"Warning: Failed to compile ring_buffer: {e}")
+    
+    # 定义C扩展
+    ext_modules = []
+    
+    # 如果有C源文件，添加扩展模块
+    c_source = os.path.join(ring_buffer_dir, "ring_buffer.c")
+    if os.path.exists(c_source):
+        ring_buffer_ext = Extension(
+            'sage_utils.mmap_queue.ring_buffer',
+            sources=[c_source],
+            include_dirs=[ring_buffer_dir],
+            libraries=['pthread'],  # Linux下需要pthread
+            extra_compile_args=['-O3', '-fPIC'],
+            extra_link_args=['-shared'] if platform.system() != 'Darwin' else []
+        )
+        ext_modules.append(ring_buffer_ext)
+    
+    return ext_modules
+
 setup(
     name='sage',
     version='0.1.1',
@@ -37,6 +82,10 @@ setup(
     url = "https://github.com/intellistream/SAGE",
     install_requires=parse_requirements("installation/env_setup/requirements.txt"),
     python_requires=">=3.11",
+    
+    # C扩展模块
+    ext_modules=build_c_extension(),
+    
     entry_points={
         'console_scripts': [
             'sage-deploy=deployment.app.cli.sage_deploy:app',
@@ -45,8 +94,12 @@ setup(
     },
     include_package_data=True,
     package_data={
-        'sage_core': ['config/*.yaml'],
+        'sage.core': ['config/*.yaml'],
         'sage_deployment': ['scripts/*.sh', 'templates/*'],
+        'sage_utils.mmap_queue': [
+            '*.so', '*.c', '*.h', 'Makefile', 'build.sh',
+            'README.md', 'USAGE_SUMMARY.md', 'IMPLEMENTATION_SUMMARY.md'
+        ],
     },
     classifiers=[
         "Development Status :: 3 - Alpha",

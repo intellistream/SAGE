@@ -18,7 +18,7 @@
 ### 1. BatchFunction 基类
 
 ```python
-from sage_core.function.batch_function import BatchFunction
+from sage.core.function.batch_function import BatchFunction
 
 class MyBatchFunction(BatchFunction):
     def get_total_count(self) -> int:
@@ -39,7 +39,7 @@ class MyBatchFunction(BatchFunction):
 ### 2. BatchOperator 算子
 
 ```python
-from sage_core.operator.batch_operator import BatchOperator
+from sage.core.operator.batch_operator import BatchOperator
 ```
 
 #### 主要功能：
@@ -51,7 +51,7 @@ from sage_core.operator.batch_operator import BatchOperator
 ### 3. BatchTransformation 变换
 
 ```python
-from sage_core.transformation.batch_transformation import BatchTransformation
+from sage.core.transformation.batch_transformation import BatchTransformation
 ```
 
 #### 主要功能：

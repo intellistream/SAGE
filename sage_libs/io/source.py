@@ -1,5 +1,5 @@
 
-from sage_core.function.source_function import SourceFunction
+from sage.core.function.source_function import SourceFunction
 from sage_libs.io.utils.data_loader import resolve_data_path
 
 

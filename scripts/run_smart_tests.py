@@ -28,7 +28,7 @@ class SmartTestRunner:
         # 定义目录到测试的映射
         self.test_mappings = {
             # 核心模块测试映射
-            'sage_core/': [
+            'sage.core/': [
                 'tests/test_final_verification.py',
                 'tests/test_service_task_base.py'
             ],
@@ -36,7 +36,7 @@ class SmartTestRunner:
                 'tests/test_final_verification.py',
                 'tests/test_service_task_base.py'
             ],
-            'sage_jobmanager/': [
+            'sage.jobmanager/': [
                 'tests/test_service_task_base.py'
             ],
             'sage_utils/mmap_queue/': [

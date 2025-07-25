@@ -7,10 +7,10 @@ from pathlib import Path
 import tempfile
 from unittest.mock import Mock, patch, MagicMock
 
-from sage_core.api.local_environment import LocalEnvironment
-from sage_core.function.kafka_source import KafkaSourceFunction
-from sage_core.function.base_function import BaseFunction
-from sage_core.function.sink_function import SinkFunction
+from sage.core.api.local_environment import LocalEnvironment
+from sage.core.function.kafka_source import KafkaSourceFunction
+from sage.core.function.base_function import BaseFunction
+from sage.core.function.sink_function import SinkFunction
 
 
 class MockKafkaMessage:

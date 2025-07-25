@@ -81,7 +81,7 @@ def from_batch_iterable(self, iterable: Any, total_count: Optional[int] = None) 
 ## 代码结构
 
 ```
-sage_core/
+sage.core/
 ├── operator/
 │   └── batch_operator.py           # 简化的批处理算子（核心）
 ├── function/
@@ -103,7 +103,7 @@ sage_examples/
 
 ### 基本用法
 ```python
-from sage_core.api.local_environment import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 
 # 创建环境
 env = LocalEnvironment("my_batch_job")

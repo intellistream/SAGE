@@ -29,7 +29,7 @@
 在环境中注册全局服务：
 
 ```python
-from sage_core.api.local_environment import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 
 env = LocalEnvironment("my_app")
 

@@ -13,16 +13,16 @@
 
 | 源码目录 | 测试目录 | 说明 |
 |----------|----------|------|
-| `sage_core/` | `core_tests/` | 核心功能测试 |
+| `sage.core/` | `core_tests/` | 核心功能测试 |
 | `sage_runtime/` | `runtime_tests/` | 运行时测试 |
 | `sage_memory/` | `memory_tests/` | 内存管理测试 |
 | `sage_vector/` | `vector_tests/` | 向量操作测试 |
-| `sage_frontend/` | `frontend_tests/` | 前端API测试 |
+| `frontend/` | `frontend_tests/` | 前端API测试 |
 | `sage_utils/` | `utils_tests/` | 工具类测试 |
 | `sage_libs/` | `function_tests/` | 函数库测试 |
 | `sage_plugins/` | `function_tests/` | 插件测试 |
-| `sage_core/service/` | `service_tests/` | 服务系统测试 |
-| `sage_core/function/` | `function_tests/` | 函数测试 |
+| `sage.core/service/` | `service_tests/` | 服务系统测试 |
+| `sage.core/function/` | `function_tests/` | 函数测试 |
 | `sage_libs/io/` | `function_tests/io_tests/` | IO函数测试 |
 | `sage_libs/rag/` | `function_tests/rag_tests/` | RAG函数测试 |
 
@@ -68,12 +68,12 @@ GitHub Actions配置文件：`.github/workflows/smart-tests.yml`
 📂 测试目录: /home/tjy/SAGE/sage_tests
 
 🔍 检测到 15 个文件发生变化:
-  - sage_core/service/service_caller.py
+  - sage.core/service/service_caller.py
   - sage_runtime/dispatcher.py
   - sage_utils/custom_logger.py
   ...
 
-📁 sage_core/service/service_caller.py -> service_tests/
+📁 sage.core/service/service_caller.py -> service_tests/
 📁 sage_runtime/dispatcher.py -> runtime_tests/
 📁 sage_utils/custom_logger.py -> utils_tests/
 

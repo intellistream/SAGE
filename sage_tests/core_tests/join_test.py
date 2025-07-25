@@ -6,13 +6,13 @@ import tempfile
 import json
 from typing import List, Dict, Any
 from pathlib import Path
-from sage_core.api.local_environment import LocalEnvironment
-from sage_core.function.source_function import SourceFunction
-from sage_core.function.flatmap_function import FlatMapFunction
-from sage_core.function.filter_function import FilterFunction
-from sage_core.function.keyby_function import KeyByFunction
-from sage_core.function.join_function import BaseJoinFunction
-from sage_core.function.sink_function import SinkFunction
+from sage.core.api.local_environment import LocalEnvironment
+from sage.core.function.source_function import SourceFunction
+from sage.core.function.flatmap_function import FlatMapFunction
+from sage.core.function.filter_function import FilterFunction
+from sage.core.function.keyby_function import KeyByFunction
+from sage.core.function.join_function import BaseJoinFunction
+from sage.core.function.sink_function import SinkFunction
 
 
 # =====================================================================
