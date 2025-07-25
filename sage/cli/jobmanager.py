@@ -35,7 +35,7 @@ class JobManagerController:
     def _get_sudo_password(self) -> str:
         """获取sudo密码"""
         if self._sudo_password is None:
-            typer.echo("Some processes may require root privileges to terminate.")
+            typer.echo("🔐 Force mode requires sudo privileges to terminate processes owned by other users.")
             password = getpass.getpass("Please enter your sudo password (or press Enter to skip): ")
             if password.strip():
                 # 验证密码是否正确
@@ -49,19 +49,25 @@ class JobManagerController:
                     )
                     if result.returncode == 0:
                         self._sudo_password = password
-                        typer.echo("✅ Password verified successfully")
+                        typer.echo("✅ Sudo password verified successfully")
                     else:
-                        typer.echo("❌ Invalid password, will continue without sudo privileges")
+                        typer.echo("❌ Invalid sudo password, will continue without sudo privileges")
                         self._sudo_password = ""
                 except subprocess.TimeoutExpired:
-                    typer.echo("❌ Password verification timeout, will continue without sudo privileges")
+                    typer.echo("❌ Sudo password verification timeout, will continue without sudo privileges")
                     self._sudo_password = ""
                 except Exception as e:
-                    typer.echo(f"❌ Error verifying password: {e}")
+                    typer.echo(f"❌ Error verifying sudo password: {e}")
                     self._sudo_password = ""
             else:
+                typer.echo("⚠️  No sudo password provided, may fail to kill processes owned by other users")
                 self._sudo_password = ""
         return self._sudo_password
+    
+    def _ensure_sudo_access(self) -> bool:
+        """确保有sudo访问权限"""
+        password = self._get_sudo_password()
+        return bool(password)
     
     def _get_process_info(self, pid: int) -> Dict[str, str]:
         """获取进程详细信息"""
@@ -259,10 +265,25 @@ class JobManagerController:
             typer.echo("No JobManager processes to kill")
             return True
         
+        # 检查是否需要sudo权限
+        current_user = os.getenv('USER', 'unknown')
+        needs_sudo = False
+        
+        for proc in processes:
+            proc_info = self._get_process_info(proc.pid)
+            proc_user = proc_info['user']
+            if proc_user != current_user and proc_user != 'N/A':
+                needs_sudo = True
+                break
+        
+        # 如果需要sudo权限但还没有获取，先获取
+        if needs_sudo and self._sudo_password is None:
+            typer.echo("⚠️  Some processes are owned by other users, requesting sudo access...")
+            self._ensure_sudo_access()
+        
         typer.echo(f"🔪 Force killing {len(processes)} JobManager process(es)...")
         
         killed_count = 0
-        current_user = os.getenv('USER', 'unknown')
         
         for proc in processes:
             proc_info = self._get_process_info(proc.pid)
@@ -276,9 +297,9 @@ class JobManagerController:
             typer.echo(f"   Command: {proc_info['cmdline']}")
             
             # 判断是否需要sudo权限
-            needs_sudo = proc_user != current_user and proc_user != 'N/A'
-            if needs_sudo:
-                typer.echo(f"⚠️  Process owned by different user ({proc_user}), may need sudo privileges")
+            needs_sudo_for_proc = proc_user != current_user and proc_user != 'N/A'
+            if needs_sudo_for_proc:
+                typer.echo(f"⚠️  Process owned by different user ({proc_user}), using sudo privileges")
             
             try:
                 # 尝试发送 SIGKILL
@@ -323,13 +344,17 @@ class JobManagerController:
         """启动JobManager"""
         typer.echo(f"Starting JobManager on {self.host}:{self.port}...")
         
+        # 如果使用force模式，预先获取sudo权限
+        if force:
+            self._ensure_sudo_access()
+        
         # 检查端口是否已被占用
         if self.is_port_occupied():
             typer.echo(f"Port {self.port} is already occupied")
             
             if force:
                 typer.echo("🔥 Force mode enabled, forcefully stopping existing process...")
-                typer.echo("⚠️  This may require sudo privileges to kill processes owned by other users.")
+                typer.echo("⚠️  This will terminate processes owned by other users if necessary.")
                 if not self.force_kill():
                     typer.echo("❌ Failed to force kill existing processes")
                     return False
@@ -473,30 +498,39 @@ class JobManagerController:
         typer.echo("RESTARTING JOBMANAGER")
         typer.echo("=" * 50)
         
+        # 如果使用force模式，预先获取sudo权限用于停止阶段
+        if force:
+            typer.echo("🔐 Force restart mode: will use sudo to stop, then start with user privileges")
+            self._ensure_sudo_access()
+        
         # 停止现有实例
         if force:
+            typer.echo("🔪 Stopping existing instances with sudo privileges...")
             stop_success = self.force_kill()
         else:
+            typer.echo("🛑 Gracefully stopping existing instances...")
             stop_success = self.stop_gracefully()
         
         if not stop_success:
-            typer.echo("Failed to stop existing JobManager instances")
+            typer.echo("❌ Failed to stop existing JobManager instances")
             return False
         
         # 等待一下确保资源释放
-        typer.echo("Waiting for resources to be released...")
+        typer.echo("⏳ Waiting for resources to be released...")
         time.sleep(2)
         
-        # 启动新实例
-        start_success = self.start(daemon=True, wait_for_ready=wait_for_ready)
+        # 启动新实例 - 始终使用用户权限，不使用force模式
+        # 这确保新的JobManager运行在正确的conda环境中
+        typer.echo("🚀 Starting new instance with user privileges (in conda environment)...")
+        start_success = self.start(daemon=True, wait_for_ready=wait_for_ready, force=False)
         
         if start_success:
             typer.echo("=" * 50)
-            typer.echo("JOBMANAGER RESTART SUCCESSFUL")
+            typer.echo("✅ JOBMANAGER RESTART SUCCESSFUL")
             typer.echo("=" * 50)
         else:
             typer.echo("=" * 50)
-            typer.echo("JOBMANAGER RESTART FAILED")
+            typer.echo("❌ JOBMANAGER RESTART FAILED")
             typer.echo("=" * 50)
         
         return start_success
