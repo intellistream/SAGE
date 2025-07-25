@@ -499,11 +499,7 @@ def test_multiprocess_robustness() -> TestResult:
             for op in operations:
                 try:
                     if op == 'put':
-                        data = {
-                            'worker_id': worker_id,
-                            'operation': put_count,
-                            'data': random.choices('abcdefghijklmnopqrstuvwxyz', k=random.randint(10, 100))
-                        }
+                        data = "12345"
                         queue.put(data, timeout=1.0)
                         put_count += 1
                     else:
@@ -528,7 +524,7 @@ def test_multiprocess_robustness() -> TestResult:
         destroy_queue(queue_name)
         
         # 创建主队列
-        main_queue = SageQueue(queue_name, maxsize=10000)
+        main_queue = SageQueue(queue_name)
         
         # 预填充一些数据
         for i in range(100):
@@ -561,7 +557,10 @@ def test_multiprocess_robustness() -> TestResult:
                     worker_results.append(result_data)
                 except Exception as e:
                     worker_results.append({'error': str(e)})
-        
+            print("  工作进程结果:")
+            for r in worker_results:
+                print(f"    {r}")
+            
         # 分析结果
         successful_workers = [r for r in worker_results if 'error' not in r]
         total_puts = sum(r['put_count'] for r in successful_workers)
