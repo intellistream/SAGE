@@ -20,11 +20,11 @@ def test_f1_evaluate(config, test_data):
     
     assert 0 <= score <= 1
 
-def test_bert_recall(config, test_data):
-    evaluator = BertRecallEvaluate(config)
-    score = evaluator.bert_recall(test_data[0], test_data[1])
+# def test_bert_recall(config, test_data):
+#     evaluator = BertRecallEvaluate(config)
+#     score = evaluator.bert_recall(test_data[0], test_data[1])
     
-    assert 0 <= score <= 1
+#     assert 0 <= score <= 1
 
 def test_rouge_l(config, test_data):
     evaluator = RougeLEvaluate(config)

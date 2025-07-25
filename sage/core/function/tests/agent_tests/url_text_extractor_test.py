@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 # ================================
 # 关键修改：根据您的项目结构更新 import 语句
-# 假设您的源文件位于 sage_libs/tools/url_text_extractor.py
+# 假设您的源文件位于 sage.libs/tools/url_text_extractor.py
 # ================================
 from sage.lib.tools.url_text_extractor import URL_Text_Extractor_Tool
 
@@ -125,7 +125,7 @@ def test_general_error_handling(url_extractor_tool, mocker):
     # 模拟 BeautifulSoup 在解析时发生异常
     error_message = "Fake parsing error"
     mocker.patch('requests.get', return_value=MagicMock()) # 让 get 成功
-    mocker.patch('sage_libs.tools.url_text_extractor.BeautifulSoup', side_effect=Exception(error_message))
+    mocker.patch('sage.libs.tools.url_text_extractor.BeautifulSoup', side_effect=Exception(error_message))
 
     # --- 执行 (Act) ---
     result = url_extractor_tool.execute(url="https://badhtml.com")

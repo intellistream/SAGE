@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 
 # ================================
 # 关键修改：根据您的项目结构更新 import 语句
-# 假设您的源文件位于 sage_libs/tools/image_captioner.py
+# 假设您的源文件位于 sage.libs/tools/image_captioner.py
 # ================================
 from sage.lib.tools.image_captioner import ImageCaptioner
 
@@ -55,7 +55,7 @@ def test_execute_success(image_captioner_tool, mocker):
     # 使用 mocker 来“拦截” OpenAIClient 的创建过程。
     # 当代码尝试 `OpenAIClient(...)` 时，它将不会创建真实对象，而是返回我们上面配置好的模拟实例。
     # 注意：这里的路径是相对于您运行 pytest 的根目录的绝对路径。
-    mocker.patch('sage_libs.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
+    mocker.patch('sage.libs.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
 
     # --- 执行 (Act) ---
     result = image_captioner_tool.execute(image_path="path/to/fake_image.png")
@@ -98,7 +98,7 @@ def test_execute_retry_on_connection_error(image_captioner_tool, mocker):
         successful_caption
     ]
     
-    mocker.patch('sage_libs.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
+    mocker.patch('sage.libs.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
     # 同样需要模拟 time.sleep，否则测试会真的暂停
     mock_sleep = mocker.patch('time.sleep')
 
@@ -123,7 +123,7 @@ def test_execute_max_retries_exceeded(image_captioner_tool, mocker):
     # 模拟一个总是失败的场景
     mock_client_instance.generate.side_effect = ConnectionError("Persistent connection failure")
     
-    mocker.patch('sage_libs.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
+    mocker.patch('sage.libs.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
     mock_sleep = mocker.patch('time.sleep')
 
     # --- 执行 (Act) ---
@@ -147,7 +147,7 @@ def test_execute_handles_general_exception(image_captioner_tool, mocker):
     # 模拟一个通用的异常
     mock_client_instance.generate.side_effect = Exception("A generic error occurred")
     
-    mocker.patch('sage_libs.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
+    mocker.patch('sage.libs.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
 
     # --- 执行 (Act) ---
     result = image_captioner_tool.execute(image_path="path/to/image.png")
