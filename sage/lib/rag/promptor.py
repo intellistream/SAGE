@@ -25,7 +25,36 @@ Content to summarize:
 QA_prompt_template = Template(QA_prompt_template)
 summarization_prompt_template = Template(summarization_prompt_template)
 
+query_profiler_prompt_template = '''
+For the given query = how Trump earn his first 1 million dollars?: Analyze the language and internal structure of the query and provide the following information:
 
+1. Does it need joint reasoning across multiple documents?
+2. Provide a complexity profile for the query:
+   - Complexity: High / Low
+   - Joint Reasoning needed: Yes / No
+3. Does this query need input chunks to be summarized? If yes, provide a range in words for the summarized chunks.
+4. How many distinct pieces of information are needed to answer the query?
+
+database_metadata = The dataset consists of multiple chunks of information from Fortune 500 companies on financial reports from every quarter of 2023.
+chunk_size = 1024
+
+Estimate the query profile along with the database_metadata and chunk_size.
+
+Your output must be:
+- **Only a valid JSON object**
+- **No explanations, no formatting, no comments**
+- **No markdown code blocks or prose**
+- **Strictly conform to this schema:**
+
+{
+  "need_joint_reasoning": <true|false>,
+  "complexity": "High" or "Low",
+  "need_summarization": <true|false>,
+  "summarization_length": integer (30-200),
+  "n_info_items": integer (1-6)
+}
+'''
+query_profiler_prompt_template = Template(query_profiler_prompt_template)
 class QAPromptor(MapFunction):
     """
     QAPromptor is a prompt rag that generates a QA-style prompt using
@@ -179,3 +208,37 @@ class SummarizationPromptor(MapFunction):
 
         # Return the prompt list wrapped in a Data object
         return prompt
+    
+    
+    
+class QueryProfilerPromptor(MapFunction):
+    """
+    QueryProfilerPromptor provides a prompt for profiling queries.
+    
+    """
+    def __init__(self, config):
+        """
+        Initializes the QueryProfilerPromptor instance with configuration and prompt template.
+
+        :param config: Dictionary containing configuration for the prompt rag.
+        """
+        super().__init__()
+        self.config = config  # Store the configuration for later use
+        self.prompt_template = query_profiler_prompt_template  # Load the query profiler prompt template
+
+    def execute(self, data) -> list:
+        """
+        Generates a profiling prompt for the input query.
+
+        :param data: A string representing the query to be profiled.
+
+        :return: A list containing the profiling prompt.
+        """
+        query = data
+        prompt = {
+            "role": "user",
+            "content": self.prompt_template.render(query=query,metadata=self.config.get("metadata", {}),chunk_size=self.config.get("chunk_size", 1024))
+        }
+        return [prompt]
+
+
