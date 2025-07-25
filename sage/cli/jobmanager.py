@@ -40,6 +40,7 @@ class JobManagerController:
             if password.strip():
                 # 验证密码是否正确
                 try:
+                    typer.echo("🔍 Verifying sudo password...")
                     result = subprocess.run(
                         ['sudo', '-S', 'echo', 'password_test'],
                         input=password + '\n',
@@ -52,6 +53,8 @@ class JobManagerController:
                         typer.echo("✅ Sudo password verified successfully")
                     else:
                         typer.echo("❌ Invalid sudo password, will continue without sudo privileges")
+                        if result.stderr:
+                            typer.echo(f"   Error: {result.stderr.strip()}")
                         self._sudo_password = ""
                 except subprocess.TimeoutExpired:
                     typer.echo("❌ Sudo password verification timeout, will continue without sudo privileges")
@@ -89,9 +92,11 @@ class JobManagerController:
         """使用sudo权限杀死进程"""
         password = self._get_sudo_password()
         if not password:
+            typer.echo(f"❌ No sudo password available to kill process {pid}")
             return False
             
         try:
+            typer.echo(f"🔐 Attempting to kill process {pid} with sudo...")
             result = subprocess.run(
                 ['sudo', '-S', 'kill', '-9', str(pid)],
                 input=password + '\n',
@@ -99,8 +104,24 @@ class JobManagerController:
                 text=True,
                 timeout=10
             )
-            return result.returncode == 0
-        except (subprocess.TimeoutExpired, subprocess.SubprocessError):
+            
+            if result.returncode == 0:
+                typer.echo(f"✅ Successfully killed process {pid} with sudo")
+                return True
+            else:
+                typer.echo(f"❌ Failed to kill process {pid} with sudo")
+                if result.stderr:
+                    typer.echo(f"   Error: {result.stderr.strip()}")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            typer.echo(f"⏰ Timeout while trying to kill process {pid} with sudo")
+            return False
+        except subprocess.SubprocessError as e:
+            typer.echo(f"❌ Subprocess error while killing process {pid}: {e}")
+            return False
+        except Exception as e:
+            typer.echo(f"❌ Unexpected error while killing process {pid}: {e}")
             return False
         
     def check_health(self) -> Dict[str, Any]:
@@ -279,7 +300,10 @@ class JobManagerController:
         # 如果需要sudo权限但还没有获取，先获取
         if needs_sudo and self._sudo_password is None:
             typer.echo("⚠️  Some processes are owned by other users, requesting sudo access...")
-            self._ensure_sudo_access()
+            if not self._ensure_sudo_access():
+                typer.echo("❌ Unable to obtain sudo privileges. Cannot kill processes owned by other users.")
+                typer.echo("💡 Suggestion: Run this command as root or ask the process owner to stop the service.")
+                return False
         
         typer.echo(f"🔪 Force killing {len(processes)} JobManager process(es)...")
         
@@ -562,13 +586,17 @@ def start(
 def stop(
     host: str = typer.Option("127.0.0.1", help="JobManager host address"),
     port: int = typer.Option(19001, help="JobManager port"),
-    force: bool = typer.Option(False, "--force", "-f", help="Force the operation")
+    force: bool = typer.Option(False, "--force", "-f", help="Force stop by killing any existing JobManager processes")
 ):
     """
     Stop the JobManager service.
     """
     controller = get_controller(host, port)
+    
+    # 如果使用force模式，预先获取sudo权限
     if force:
+        typer.echo("🔐 Force stop mode: may require sudo privileges to terminate processes owned by other users.")
+        controller._ensure_sudo_access()
         success = controller.force_kill()
     else:
         success = controller.stop_gracefully()
@@ -616,6 +644,11 @@ def kill(
     Force kill the JobManager service.
     """
     controller = get_controller(host, port)
+    
+    # kill命令总是需要sudo权限，预先获取
+    typer.echo("🔐 Kill command: may require sudo privileges to terminate processes owned by other users.")
+    controller._ensure_sudo_access()
+    
     success = controller.force_kill()
     if success:
         typer.echo(f"\n✅ Operation 'kill' completed successfully")
