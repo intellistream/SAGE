@@ -1,5 +1,5 @@
-# file sage/core/sage_memory/storage_engine/metadata_storage.py
-# python -m sage.core.sage_memory.storage_engine.metadata_storage
+# file sage/core/sage.service.memory./storage_engine/metadata_storage.py
+# python -m sage.core.sage.service.memory..storage_engine.metadata_storage
 
 from typing import Dict, Any, Optional, List
 

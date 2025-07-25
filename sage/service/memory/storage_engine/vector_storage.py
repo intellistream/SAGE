@@ -1,5 +1,5 @@
-# file sage/core/sage_memory/storage_engine/vector_storage.py
-# python -m sage.core.sage_memory.storage_engine.vector_storage
+# file sage/core/sage.service.memory./storage_engine/vector_storage.py
+# python -m sage.core.sage.service.memory..storage_engine.vector_storage
 
 import json
 import numpy as np

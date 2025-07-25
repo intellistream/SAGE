@@ -24,7 +24,7 @@ class SmartTestRunner:
             # 核心模块映射
             "sage.core/": "core_tests/",
             "sage_runtime/": "runtime_tests/", 
-            "sage_memory/": "memory_tests/",
+            "sage.service.memory./": "memory_tests/",
             "sage_vector/": "vector_tests/",
             "frontend/": "frontend_tests/",
             "sage_utils/": "utils_tests/",

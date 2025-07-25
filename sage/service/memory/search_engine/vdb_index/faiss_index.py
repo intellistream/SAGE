@@ -1,5 +1,5 @@
-# file sage/core/sage_memory/search_engine/vdb_index/faiss_index.py
-# python -m sage.core.sage_memory.search_engine.vdb_index.faiss_index
+# file sage/core/sage.service.memory./search_engine/vdb_index/faiss_index.py
+# python -m sage.core.sage.service.memory..search_engine.vdb_index.faiss_index
 
 import json
 import faiss

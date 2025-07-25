@@ -15,7 +15,7 @@ from sage.core.api.env import LocalEnvironment
 
 
 # from tqdm import tqdm
-# from sage_memory.api import get_memory, get_manager
+# from sage.service.memory..api import get_memory, get_manager
 # from data.neuromem_datasets.locomo_dataloader import LocomoDataLoader
 
 from app.memory_app.locomo import LocomoSource, LocomoTerminalSink

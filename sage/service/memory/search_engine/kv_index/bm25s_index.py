@@ -1,5 +1,5 @@
-# file sage/core/sage_memory/search_engine/kv_index/bm25s_index.py
-# python -m sage.core.sage_memory.search_engine.kv_index.bm25s_index
+# file sage/core/sage.service.memory./search_engine/kv_index/bm25s_index.py
+# python -m sage.core.sage.service.memory..search_engine.kv_index.bm25s_index
 
 import os
 import bm25s
