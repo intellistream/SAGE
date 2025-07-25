@@ -43,7 +43,8 @@ def list(
     """列出所有作业。可按状态过滤，支持表格或JSON格式。"""
     client = JobManagerClient()
     try:
-        jobs = client.get_actor_handle().list_jobs()
+        jm = client.get_actor_handle()
+        jobs = jm.list_jobs()
         if status:
             jobs = [job for job in jobs if job.get("status") == status]
         if format == "json":
@@ -63,7 +64,8 @@ def show(job_identifier: str):
     """显示作业详情。"""
     client = JobManagerClient()
     try:
-        job = client.get_actor_handle().get_job_status(job_identifier)
+        jm = client.get_actor_handle()
+        job = jm.get_job_status(job_identifier)
         import json
         typer.echo(json.dumps(job, indent=2, ensure_ascii=False))
     except Exception as e:
@@ -76,7 +78,8 @@ def stop(job_identifier: str, force: bool = typer.Option(False, "--force", help=
     try:
         if not force:
             confirm = typer.confirm(f"确定要停止作业 {job_identifier} 吗？", abort=True)
-        result = client.get_actor_handle().pause_job(job_identifier)
+        jm = client.get_actor_handle()
+        result = jm.pause_job(job_identifier)
         typer.echo(f"停止结果: {result}")
     except Exception as e:
         typer.echo(f"[错误] 停止作业失败: {e}", err=True)
