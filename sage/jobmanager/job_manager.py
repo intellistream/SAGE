@@ -239,24 +239,42 @@ class JobManagerDaemon:
     def _handle_submit_job(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """处理提交作业请求"""
         try:
-            # 从请求中解析环境数据
-            env_data = request.get("environment")
-            if not env_data:
+            # 获取序列化的数据（新格式：base64编码的dill序列化数据）
+            serialized_data_b64 = request.get("serialized_data")
+            if serialized_data_b64:
+                # 新格式：base64解码 + dill反序列化
+                import base64
+                serialized_data = base64.b64decode(serialized_data_b64)
+                self.logger.debug("Deserializing environment from base64 + dill format")
+                env = deserialize_object(serialized_data)
+            else:
+                # 兼容旧格式
+                env_data = request.get("environment")
+                if not env_data:
+                    return {
+                        "status": "error",
+                        "message": "Missing serialized_data or environment data",
+                        "request_id": request.get("request_id")
+                    }
+                
+                # 反序列化环境对象（旧格式）
+                if isinstance(env_data, str):
+                    # 如果是hex字符串，先转换为bytes
+                    env_bytes = bytes.fromhex(env_data)
+                    import pickle
+                    env = pickle.loads(env_bytes)
+                else:
+                    env = deserialize_object(env_data)
+            
+            if env is None:
                 return {
-                    "status": "error",
-                    "message": "Missing environment data",
+                    "status": "error", 
+                    "message": "Failed to deserialize environment object",
                     "request_id": request.get("request_id")
                 }
             
-            # 反序列化环境对象
-            if isinstance(env_data, str):
-                # 如果是hex字符串，先转换为bytes
-                env_bytes = bytes.fromhex(env_data)
-                env = pickle.loads(env_bytes)
-            else:
-                env = deserialize_object(env_data)
-            
             # 调用JobManager的submit_job方法
+            self.logger.debug(f"Submitting deserialized environment: {getattr(env, 'name', 'Unknown')}")
             job_uuid = self.jobmanager.submit_job(env)
             
             return {
@@ -277,15 +295,16 @@ class JobManagerDaemon:
     def _handle_get_job_status(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """处理获取作业状态请求"""
         try:
-            env_uuid = request.get("env_uuid")
-            if not env_uuid:
+            # 支持新旧两种参数名
+            job_uuid = request.get("job_uuid") or request.get("env_uuid")
+            if not job_uuid:
                 return {
                     "status": "error",
-                    "message": "Missing env_uuid parameter",
+                    "message": "Missing job_uuid parameter",
                     "request_id": request.get("request_id")
                 }
             
-            job_status = self.jobmanager.get_job_status(env_uuid)
+            job_status = self.jobmanager.get_job_status(job_uuid)
             
             return {
                 "status": "success",
@@ -303,15 +322,16 @@ class JobManagerDaemon:
     def _handle_pause_job(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """处理暂停作业请求"""
         try:
-            env_uuid = request.get("env_uuid")
-            if not env_uuid:
+            # 支持新旧两种参数名
+            job_uuid = request.get("job_uuid") or request.get("env_uuid")
+            if not job_uuid:
                 return {
                     "status": "error",
-                    "message": "Missing env_uuid parameter",
+                    "message": "Missing job_uuid parameter",
                     "request_id": request.get("request_id")
                 }
             
-            result = self.jobmanager.pause_job(env_uuid)
+            result = self.jobmanager.pause_job(job_uuid)
             result["request_id"] = request.get("request_id")
             return result
             
@@ -325,15 +345,16 @@ class JobManagerDaemon:
     def _handle_continue_job(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """处理继续作业请求"""
         try:
-            env_uuid = request.get("env_uuid")
-            if not env_uuid:
+            # 支持新旧两种参数名
+            job_uuid = request.get("job_uuid") or request.get("env_uuid")
+            if not job_uuid:
                 return {
                     "status": "error",
-                    "message": "Missing env_uuid parameter",
+                    "message": "Missing job_uuid parameter",
                     "request_id": request.get("request_id")
                 }
             
-            result = self.jobmanager.continue_job(env_uuid)
+            result = self.jobmanager.continue_job(job_uuid)
             result["request_id"] = request.get("request_id")
             return result
             
