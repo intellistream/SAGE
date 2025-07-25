@@ -1,0 +1,44 @@
+"""
+Tests for sage.cli.main
+"""
+import subprocess
+import sys
+from typer.testing import CliRunner
+
+from sage.cli.main import app
+
+runner = CliRunner()
+
+def test_version():
+    """Test the version command."""
+    result = runner.invoke(app, ["version"])
+    assert result.exit_code == 0
+    assert "SAGE - Stream Analysis and Graph Engine" in result.stdout
+    assert "Version:" in result.stdout
+
+def test_config_info_no_file():
+    """Test the config command when no config file exists."""
+    # This test is environment-dependent, assuming no config file exists
+    # A better approach would be to mock the Path.exists() method
+    result = runner.invoke(app, ["config"])
+    assert result.exit_code == 0
+    assert "No configuration file found" in result.stdout
+
+def test_main_help():
+    """Test the main help output."""
+    result = runner.invoke(app, ["--help"])
+    assert result.exit_code == 0
+    assert "Usage: sage [OPTIONS] COMMAND [ARGS]..." in result.stdout
+    assert "job" in result.stdout
+    assert "deploy" in result.stdout
+    assert "jobmanager" in result.stdout
+
+def test_main_script_execution():
+    """Test running the CLI as a script."""
+    result = subprocess.run(
+        [sys.executable, "-m", "sage.cli.main", "--help"],
+        capture_output=True,
+        text=True
+    )
+    assert result.returncode == 0
+    assert "Usage: main.py [OPTIONS] COMMAND [ARGS]..." in result.stdout

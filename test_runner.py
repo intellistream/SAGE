@@ -168,35 +168,34 @@ class SAGETestRunner:
         start_time = time.time()
         
         try:
+            # 直接输出到控制台，不捕获输出
             proc_result = subprocess.run(
                 cmd, 
-                cwd=self.project_root, 
-                capture_output=True, 
-                text=True,
+                cwd=self.project_root,
                 timeout=300  # 5分钟超时
             )
             
             result["duration"] = time.time() - start_time
-            result["output"] = proc_result.stdout + proc_result.stderr
+            result["output"] = f"测试完成，返回码: {proc_result.returncode}"
             
             if proc_result.returncode == 0:
-                print(f"✅ {test_dir.relative_to(self.project_root)} 测试通过 ({result['duration']:.2f}s)")
+                print(f"\n✅ {test_dir.relative_to(self.project_root)} 测试通过 ({result['duration']:.2f}s)")
                 result["success"] = True
             else:
-                print(f"❌ {test_dir.relative_to(self.project_root)} 测试失败 (返回码: {proc_result.returncode}, {result['duration']:.2f}s)")
+                print(f"\n❌ {test_dir.relative_to(self.project_root)} 测试失败 (返回码: {proc_result.returncode}, {result['duration']:.2f}s)")
                 result["success"] = False
                 
         except subprocess.TimeoutExpired:
             result["duration"] = time.time() - start_time
             result["success"] = False
             result["output"] = "测试超时"
-            print(f"⏰ {test_dir.relative_to(self.project_root)} 测试超时 ({result['duration']:.2f}s)")
+            print(f"\n⏰ {test_dir.relative_to(self.project_root)} 测试超时 ({result['duration']:.2f}s)")
             
         except Exception as e:
             result["duration"] = time.time() - start_time
             result["success"] = False
             result["output"] = str(e)
-            print(f"💥 运行测试时出错: {e}")
+            print(f"\n💥 运行测试时出错: {e}")
         
         return result
     
