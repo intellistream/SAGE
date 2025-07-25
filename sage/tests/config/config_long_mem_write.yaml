@@ -1,6 +1,0 @@
-source:
-  data_path: "./sage/api/operator/operator_test/xiyouji.txt"
-chunk:
-  chunk_size: 256
-  over_lap: 32
-writer:
