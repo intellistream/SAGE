@@ -25,12 +25,13 @@ CMakeUserPresets.json
 /sage.egg-info/
 /sage.egg-info/
 /deps/CANDY/.github/
-
+test_logs/
 draft/
 logs/
 output/
 .vscode/
 **/__pycache__/
+gitlogs.txt
 
 
 
@@ -56,8 +57,8 @@ ray_logs
 /output
 /logs
 /logs/**
-sage_frontend/sage_server/logs
-sage_frontend/sage_server/logs/**
+frontend/sage_server/logs
+frontend/sage_server/logs/**
 sage_examples/logs
 sage_examples/logs/**
 /.env

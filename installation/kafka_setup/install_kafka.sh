@@ -1,5 +1,4 @@
 #!/bin/bash
-# filepath: /home/tjy/SAGE/installation/kafka_setup/install_kafka.sh
 
 # SAGE Kafka Installation Script
 # Installs Kafka to third_party directory if not already available in system

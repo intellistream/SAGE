@@ -3,7 +3,7 @@
 
 SAGE is a dataflow-native reasoning framework built from the ground up to support modular, controllable, and transparent workflows over Large Language Models (LLMs). It addresses common problems in existing LLM-augmented systems (like RAG and Agents), such as hard-coded orchestration logic, opaque execution paths, and limited runtime control. SAGE introduces a dataflow-centric abstraction, modeling reasoning workflows as directed acyclic graphs (DAGs) composed of typed operators.
 
-![](./asset/framework.png)
+![](./.github/asset/framework.png)
 
 ## ✨ Features
 
@@ -32,7 +32,7 @@ To accommodate different user environments and preferences, we provide **compreh
 
 SAGE is a dataflow-native reasoning framework built from the ground up to support modular, controllable, and transparent workflows over Large Language Models (LLMs). It addresses common problems in existing LLM-augmented systems (like RAG and Agents), such as hard-coded orchestration logic, opaque execution paths, and limited runtime control. SAGE introduces a dataflow-centric abstraction, modeling reasoning workflows as directed acyclic graphs (DAGs) composed of typed operators.
 
-![](./asset/framework.png)
+![](./.github/asset/framework.png)
 
 ## ✨ Features
 
@@ -216,13 +216,13 @@ SAGE uses a **fluent-style API** to declaratively define RAG pipelines. Here's h
 ---
 
 ```python
-from sage_core.api.env import LocalEnvironment
-from sage_common_funs.io.source import FileSource
-from sage_libs.rag.retriever import DenseRetriever
-from sage_libs.rag.promptor import QAPromptor
-from sage_libs.rag.generator import OpenAIGenerator
-from sage_common_funs.io.sink import TerminalSink
-from sage_utils.config_loader import load_config
+from sage.core.api.env import LocalEnvironment
+from sage.lib.io.source import FileSource
+from sage.lib.rag.retriever import DenseRetriever
+from sage.lib.rag.promptor import QAPromptor
+from sage.lib.rag.generator import OpenAIGenerator
+from sage.lib.io.sink import TerminalSink
+from sage.utils.config_loader import load_config
 
 config = load_config("config.yaml")
 
@@ -234,18 +234,14 @@ query_stream = (pipeline
                 .from_source(FileSource, config["source"])
                 .map(DenseRetriever, config["retriever"])
                 .map(QAPromptor, config["promptor"])
-                .map(OpenAIGenerator, config["generator"])
+                .map(OpenAIGenerator, config["generator"]["local"])
                 .sink(TerminalSink, config["sink"])
                 )
 
 # Submit and run the pipeline
 try:
     env.submit()
-    env.run_once()
     time.sleep(5)
-    env.stop()
-finally:
-    env.close()
 
 ```
 
@@ -261,7 +257,7 @@ env = RemoteEnvironment()
 #### 📘 About Long Running
 If your pipeline is meant to run as a long-lived service, use:
 ```python
-env.run_streaming() 
+ # deprecated
 ```
 
 See more examples under [sage_examples](sage_examples)
@@ -293,7 +289,7 @@ SAGE follows a Flink-style pipeline architecture where each `Operator` acts as a
 | `RoutingOperator`    | Implements conditional branching or fallback logic within the pipeline (e.g., skip generation if retrieval fails). |
 
 ### Memory
-![](./asset/Memory_framework.png)
+![](./.github/asset/Memory_framework.png)
 
 ## Engine（执行引擎）
 
@@ -304,7 +300,7 @@ Sage Engine is the core execution component that orchestrates the compilation an
 The Engine operates in four main phases:
 
 1. **Pipeline Collection**: Gathers user-defined logical pipelines built through DataStream API and validates pipeline integrity
-2. **Compilation & Optimization**: Uses Compiler to transform logical pipelines into optimized physical execution graphs with parallelism expansion
+2. **Compilation & Optimization**: Uses ExecutionGraph to transform logical pipelines into optimized physical execution graphs with parallelism expansion
 3. **Runtime Scheduling**: Selects appropriate Runtime (local/distributed) and converts execution graphs into concrete DAG nodes
 4. **Execution Monitoring**: Monitors pipeline execution status, collects performance metrics, and handles fault recovery
 
@@ -335,13 +331,13 @@ The Engine operates in four main phases:
 <details>
 <summary>Show more</summary>
 
- <!-- ![](./asset/UI.png) -->
- <img src="./asset/UI.png" alt="sage-dashboard" width="505"/>
+ <!-- ![](./.github/asset/UI.png) -->
+ <img src="./.github/asset/UI.png" alt="sage-dashboard" width="505"/>
 </details>
 
 #### Experience our meticulously designed Sage -Dashboard both user-friendly and powerful::
 ```bash
-cd sage_frontend/sage_server
+cd frontend/sage_server
 python main.py --host 127.0.0.1 --port 8080 --log-level debug
 
 cd ../dashboard
