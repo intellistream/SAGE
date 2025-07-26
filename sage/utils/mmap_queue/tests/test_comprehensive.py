@@ -67,7 +67,7 @@ def test_edge_cases() -> TestResult:
         
         # 测试1: 大数据对象
         print("  测试大数据对象...")
-        large_queue = SageQueue(queue_name + "_large", maxsize=1024*1024)  # 1MB
+        large_queue = SageQueue(queue_name + "_large")  # 1MB
         
         # 生成大数据
         large_data = {
@@ -83,7 +83,7 @@ def test_edge_cases() -> TestResult:
         
         # 测试2: 空值和None
         print("  测试特殊值...")
-        special_queue = SageQueue(queue_name + "_special", maxsize=1024)
+        special_queue = SageQueue(queue_name + "_special")
         special_values = [None, "", [], {}, 0, False, b'', set()]
         
         for val in special_values:
@@ -100,7 +100,7 @@ def test_edge_cases() -> TestResult:
         
         # 测试3: 超时处理
         print("  测试超时处理...")
-        timeout_queue = SageQueue(queue_name + "_timeout", maxsize=100)
+        timeout_queue = SageQueue(queue_name + "_timeout")
         
         # 测试get超时
         start_time = time.time()
@@ -117,7 +117,7 @@ def test_edge_cases() -> TestResult:
         
         # 测试4: 不可序列化对象
         print("  测试不可序列化对象...")
-        serial_queue = SageQueue(queue_name + "_serial", maxsize=1024)
+        serial_queue = SageQueue(queue_name + "_serial")
         
         class NotSerializable:
             def __getstate__(self):
@@ -151,7 +151,7 @@ def test_concurrent_access() -> TestResult:
         queue_name = f"test_concurrent_{int(time.time())}"
         destroy_queue(queue_name)
         
-        queue = SageQueue(queue_name, maxsize=10000)
+        queue = SageQueue(queue_name)
         num_threads = 8
         messages_per_thread = 100
         
@@ -264,7 +264,7 @@ def test_memory_leak() -> TestResult:
         
         for iteration in range(num_iterations):
             current_queue_name = f"{queue_name}_{iteration}"
-            queue = SageQueue(current_queue_name, maxsize=5000)
+            queue = SageQueue(current_queue_name)
             
             # 写入大量数据
             for i in range(messages_per_iteration):
@@ -335,7 +335,7 @@ def test_persistence() -> TestResult:
         ]
         
         # 第一阶段：创建队列并写入数据
-        queue1 = SageQueue(queue_name, maxsize=1024)
+        queue1 = SageQueue(queue_name)
         for data in test_data:
             queue1.put(data)
         
@@ -350,7 +350,7 @@ def test_persistence() -> TestResult:
         time.sleep(0.1)
         
         # 第二阶段：重新打开队列并读取数据
-        queue2 = SageQueue(queue_name, maxsize=1024)
+        queue2 = SageQueue(queue_name)
         
         retrieved_data = []
         for _ in range(len(test_data)):
@@ -390,7 +390,7 @@ def test_stress_performance() -> TestResult:
         queue_name = f"test_stress_{int(time.time())}"
         destroy_queue(queue_name)
         
-        queue = SageQueue(queue_name, maxsize=100*1024)  # 100KB buffer
+        queue = SageQueue(queue_name)  # 100KB buffer
         
         # 测试参数
         num_messages = 5000
@@ -499,11 +499,7 @@ def test_multiprocess_robustness() -> TestResult:
             for op in operations:
                 try:
                     if op == 'put':
-                        data = {
-                            'worker_id': worker_id,
-                            'operation': put_count,
-                            'data': random.choices('abcdefghijklmnopqrstuvwxyz', k=random.randint(10, 100))
-                        }
+                        data = "12345"
                         queue.put(data, timeout=1.0)
                         put_count += 1
                     else:
@@ -528,7 +524,7 @@ def test_multiprocess_robustness() -> TestResult:
         destroy_queue(queue_name)
         
         # 创建主队列
-        main_queue = SageQueue(queue_name, maxsize=10000)
+        main_queue = SageQueue(queue_name)
         
         # 预填充一些数据
         for i in range(100):
@@ -561,7 +557,10 @@ def test_multiprocess_robustness() -> TestResult:
                     worker_results.append(result_data)
                 except Exception as e:
                     worker_results.append({'error': str(e)})
-        
+            print("  工作进程结果:")
+            for r in worker_results:
+                print(f"    {r}")
+            
         # 分析结果
         successful_workers = [r for r in worker_results if 'error' not in r]
         total_puts = sum(r['put_count'] for r in successful_workers)

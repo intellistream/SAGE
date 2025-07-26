@@ -16,7 +16,7 @@ class JobManagerClient:
         """发送请求到守护服务"""
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(10)
+                sock.settimeout(30)
                 sock.connect((self.host, self.port))
                 
                 # 发送请求
@@ -103,6 +103,17 @@ class JobManagerClient:
             "request_id": str(uuid.uuid4()),
             "job_uuid": job_uuid,
             "force": force
+        }
+        
+        return self._send_request(request)
+    
+    def receive_node_stop_signal(self, job_uuid: str, node_name: str) -> Dict[str, Any]:
+        """发送节点停止信号"""
+        request = {
+            "action": "receive_node_stop_signal",
+            "request_id": str(uuid.uuid4()),
+            "job_uuid": job_uuid,
+            "node_name": node_name
         }
         
         return self._send_request(request)

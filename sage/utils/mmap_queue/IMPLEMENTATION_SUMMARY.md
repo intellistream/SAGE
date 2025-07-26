@@ -112,7 +112,7 @@ python3 quick_test.py          # 验证安装
 from sage.utils.mmap_queue import SageQueue
 
 # 创建高性能队列
-queue = SageQueue("my_queue", maxsize=64*1024)
+queue = SageQueue("my_queue")
 
 # 标准Queue接口
 queue.put({"data": [1, 2, 3], "meta": "SAGE"})

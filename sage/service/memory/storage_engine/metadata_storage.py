@@ -12,6 +12,10 @@ class MetadataStorage:
     A lightweight metadata manager that handles field registration,
     validation, and per-item metadata storage.
     简单的元数据管理器，用于处理字段注册、字段校验和每条数据的元数据存储。
+
+    Attributes:
+        fields (set): Set of registered metadata field names
+        backend (BaseKVBackend): Backend storage implementation
     """
 
     def __init__(self, backend: Optional[BaseKVBackend] = None):
@@ -20,48 +24,192 @@ class MetadataStorage:
         # 底层存储后端，默认是内存字典
         self.backend = backend or DictKVBackend()
 
-    def add_field(self, field_name: str):
+    def add_field(self, field_name: str) -> None:
+        """
+        Register a new metadata field. If the field is already registered, 
+        this operation is ignored.
+        注册新的元数据字段。如果字段已存在，则忽略此操作。
+
+        Args:
+            field_name: Name of the field to register
+            
+        Raises:
+            ValueError: If field_name is None or empty
+        """
+        if not field_name or not isinstance(field_name, str):
+            raise ValueError("Field name must be a non-empty string")
         self.fields.add(field_name)
 
-    def validate_fields(self, metadata: Dict[str, Any]):
+    def has_field(self, field_name: str) -> bool:
+        """
+        Check if a field is registered.
+        检查字段是否已注册。
+
+        Args:
+            field_name: Name of the field to check
+
+        Returns:
+            bool: True if the field is registered, False otherwise
+        """
+        return field_name in self.fields
+
+    def validate_fields(self, metadata: Dict[str, Any]) -> None:
+        """
+        Validate that all fields in the metadata are registered.
+        验证所有元数据字段是否已注册。
+
+        Args:
+            metadata: Metadata dictionary to validate
+
+        Raises:
+            ValueError: If any field is not registered or if metadata is invalid
+        """
+        if not isinstance(metadata, dict):
+            raise ValueError("Metadata must be a dictionary")
+            
         unregistered = set(metadata.keys()) - self.fields
         if unregistered:
             raise ValueError(f"Unregistered metadata fields: {unregistered}")
 
-    def store(self, item_id: str, metadata: Dict[str, Any]):
+    def store(self, item_id: str, metadata: Dict[str, Any]) -> None:
+        """
+        Store metadata for an item.
+        存储条目的元数据。
+
+        Args:
+            item_id: ID of the item
+            metadata: Metadata dictionary to store
+
+        Raises:
+            ValueError: If item_id is invalid or metadata validation fails
+        """
+        if not item_id or not isinstance(item_id, str):
+            raise ValueError("Item ID must be a non-empty string")
+        if metadata is None:
+            metadata = {}
+        elif not isinstance(metadata, dict):
+            raise ValueError("Metadata must be a dictionary")
+
         self.validate_fields(metadata)
         self.backend.set(item_id, metadata.copy())
         
     def get_all_ids(self) -> List[str]:
+        """
+        Get all stored item IDs.
+        获取所有已存储的条目ID。
+
+        Returns:
+            List of item IDs
+        """
         return self.backend.get_all_keys()
 
     def get(self, item_id: str) -> Dict[str, Any]:
+        """
+        Get metadata for an item.
+        获取条目的元数据。
+
+        Args:
+            item_id: ID of the item
+
+        Returns:
+            Metadata dictionary, empty dict if item doesn't exist
+            
+        Raises:
+            ValueError: If item_id is invalid
+        """
+        if not item_id or not isinstance(item_id, str):
+            raise ValueError("Item ID must be a non-empty string")
         return self.backend.get(item_id) or {}
 
     def has(self, item_id: str) -> bool:
+        """
+        Check if an item has metadata stored.
+        检查条目是否有存储的元数据。
+
+        Args:
+            item_id: ID of the item to check
+            
+        Returns:
+            bool: True if item has metadata, False otherwise
+            
+        Raises:
+            ValueError: If item_id is invalid
+        """
+        if not item_id or not isinstance(item_id, str):
+            raise ValueError("Item ID must be a non-empty string")
         return self.backend.has(item_id)
 
-    def delete(self, item_id: str):
+    def delete(self, item_id: str) -> None:
+        """
+        Delete metadata for an item.
+        删除条目的元数据。
+
+        Args:
+            item_id: ID of the item to delete
+            
+        Raises:
+            ValueError: If item_id is invalid
+        """
+        if not item_id or not isinstance(item_id, str):
+            raise ValueError("Item ID must be a non-empty string")
         self.backend.delete(item_id)
 
-    def clear(self):
+    def clear(self) -> None:
+        """Clear all metadata and registered fields."""
         self.fields.clear()
         self.backend.clear()
         
-    def store_to_disk(self, path: str):
-        """存储所有数据到磁盘 json 文件"""
+    def store_to_disk(self, path: str) -> None:
+        """
+        Store all data to disk as JSON file.
+        将所有数据存储到磁盘JSON文件。
+
+        Args:
+            path: Path to the JSON file
+            
+        Raises:
+            NotImplementedError: If backend doesn't support disk operations
+            ValueError: If path is invalid
+        """
+        if not path or not isinstance(path, str):
+            raise ValueError("Path must be a non-empty string")
         if not hasattr(self.backend, "store_data_to_disk"):
             raise NotImplementedError("Backend does not support store_data_to_disk")
         self.backend.store_data_to_disk(path)
 
-    def load_from_disk(self, path: str):
-        """从磁盘 json 文件加载所有数据（覆盖内存）"""
+    def load_from_disk(self, path: str) -> None:
+        """
+        Load all data from disk JSON file (overwrites memory).
+        从磁盘JSON文件加载所有数据（覆盖内存）。
+
+        Args:
+            path: Path to the JSON file
+            
+        Raises:
+            NotImplementedError: If backend doesn't support disk operations
+            ValueError: If path is invalid
+            FileNotFoundError: If file doesn't exist
+        """
+        if not path or not isinstance(path, str):
+            raise ValueError("Path must be a non-empty string")
         if not hasattr(self.backend, "load_data_to_memory"):
             raise NotImplementedError("Backend does not support load_data_to_memory")
         self.backend.load_data_to_memory(path)
 
-    def clear_disk_data(self, path: str):
-        """删除磁盘上的 json 文件"""
+    def clear_disk_data(self, path: str) -> None:
+        """
+        Delete the disk JSON file.
+        删除磁盘JSON文件。
+
+        Args:
+            path: Path to the JSON file
+            
+        Raises:
+            NotImplementedError: If backend doesn't support disk operations
+            ValueError: If path is invalid
+        """
+        if not path or not isinstance(path, str):
+            raise ValueError("Path must be a non-empty string")
         if not hasattr(self.backend, "clear_disk_data"):
             raise NotImplementedError("Backend does not support clear_disk_data")
         self.backend.clear_disk_data(path)

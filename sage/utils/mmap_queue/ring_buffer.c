@@ -326,17 +326,21 @@ int ring_buffer_dec_ref(ring_buffer_t* rb) {
         return -1;
     }
     
+    // 先保存需要的值，避免在解锁后访问
+    uint32_t total_size = sizeof(ring_buffer_t) + rb->buffer_size;
+    char shm_name[256];
+    snprintf(shm_name, sizeof(shm_name), "/sage_ringbuf_%s", rb->name);
+    
     pthread_mutex_lock(&rb->ref_mutex);
     uint32_t new_count = --rb->ref_count;
     
-    // 如果引用计数为0，标记可以清理
+    // 如果引用计数为0，清理资源
     if (new_count == 0) {
-        char shm_name[256];
-        snprintf(shm_name, sizeof(shm_name), "/sage_ringbuf_%s", rb->name);
+        // 销毁互斥锁（必须在munmap之前）
         pthread_mutex_unlock(&rb->ref_mutex);
+        pthread_mutex_destroy(&rb->ref_mutex);
         
         // 取消映射并删除共享内存
-        uint32_t total_size = sizeof(ring_buffer_t) + rb->buffer_size;
         munmap(rb, total_size);
         shm_unlink(shm_name);
         return 0;
