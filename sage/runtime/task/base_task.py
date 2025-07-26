@@ -100,10 +100,6 @@ class BaseTask(ABC):
         while not self.ctx.is_stop_requested():
             try:
                 if self.is_spout:
-                    # Check if stop is requested before processing
-                    if self.ctx.is_stop_requested():
-                        self.logger.info(f"Spout node '{self.name}' stopping due to stop signal")
-                        break
                         
                     self.logger.debug(f"Running spout node '{self.name}'")
                     self.operator.receive_packet(None)
@@ -129,10 +125,19 @@ class BaseTask(ABC):
                     # Check if received packet is a StopSignal
                     if isinstance(data_packet, StopSignal):
                         self.logger.info(f"Node '{self.name}' received stop signal: {data_packet}")
-                        self.operator.handle_stop_signal(data_packet)
-                        # Stop the worker loop by setting the shared stop event
-                        self.ctx.set_stop_signal()
-                        break
+                        
+                        # 在task层统一处理停止信号计数
+                        should_stop_pipeline = self.ctx.handle_stop_signal(data_packet)
+                        
+                        # 向下游转发停止信号
+                        self.router.send_stop_signal(data_packet)
+                        
+                        # 停止当前task的worker loop
+                        if should_stop_pipeline:
+                            self.ctx.set_stop_signal()
+                            break
+                        
+                        continue
                     
                     self.operator.receive_packet(data_packet)
             except Exception as e:
