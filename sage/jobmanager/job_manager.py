@@ -115,10 +115,19 @@ class JobManager: #Job Manager
 
     def submit_job(self, env: 'BaseEnvironment') -> str:
 
-
         env.setup_logging_system(self.log_base_dir)
         # 生成 UUID
         env.uuid = str(uuid.uuid4())
+        
+        # 向环境注入JobManager的网络地址信息
+        if self.daemon:
+            env.jobmanager_host = self.daemon.host
+            env.jobmanager_port = self.daemon.port
+        else:
+            # 如果没有daemon，使用默认地址
+            env.jobmanager_host = "127.0.0.1"
+            env.jobmanager_port = 19001
+            
         # 编译环境
         from sage.jobmanager.execution_graph import ExecutionGraph
         graph = ExecutionGraph(env, self.handle) 

@@ -107,6 +107,17 @@ class JobManagerClient:
         
         return self._send_request(request)
     
+    def receive_node_stop_signal(self, job_uuid: str, node_name: str) -> Dict[str, Any]:
+        """发送节点停止信号"""
+        request = {
+            "action": "receive_node_stop_signal",
+            "request_id": str(uuid.uuid4()),
+            "job_uuid": job_uuid,
+            "node_name": node_name
+        }
+        
+        return self._send_request(request)
+    
     def get_server_info(self) -> Dict[str, Any]:
         """获取服务器信息"""
         request = {

@@ -211,6 +211,8 @@ class JobManagerServer:
                 return self._handle_get_server_info(request)
             elif action == "cleanup_all_jobs":
                 return self._handle_cleanup_all_jobs(request)
+            elif action == "receive_node_stop_signal":
+                return self._handle_receive_node_stop_signal(request)
             elif action == "health_check":
                 return self._handle_health_check(request)
             elif action == "get_actor_handle":
@@ -437,6 +439,35 @@ class JobManagerServer:
             return {
                 "status": "error",
                 "message": f"Failed to cleanup jobs: {str(e)}",
+                "request_id": request.get("request_id")
+            }
+    
+    def _handle_receive_node_stop_signal(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """处理节点停止信号"""
+        try:
+            job_uuid = request.get("job_uuid")
+            node_name = request.get("node_name")
+            
+            if not job_uuid or not node_name:
+                return {
+                    "status": "error",
+                    "message": "Missing job_uuid or node_name",
+                    "request_id": request.get("request_id")
+                }
+            
+            # 调用JobManager的方法
+            self.jobmanager.receive_node_stop_signal(job_uuid, node_name)
+            
+            return {
+                "status": "success",
+                "message": f"Node stop signal received for {node_name}",
+                "request_id": request.get("request_id")
+            }
+            
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Failed to process node stop signal: {str(e)}",
                 "request_id": request.get("request_id")
             }
     
