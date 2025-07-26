@@ -151,8 +151,9 @@ class Dispatcher():
                 # task = graph_node.create_dag_node()
                 task = graph_node.transformation.task_factory.create_task(graph_node.name, graph_node.ctx)
 
-                # 设置services到runtime context
-                graph_node.ctx.set_dispatcher_services(self.services)
+                # 设置服务名称映射到runtime context
+                service_names = {name: name for name in self.services.keys()}
+                graph_node.ctx.set_service_names(service_names)
 
                 self.tasks[node_name] = task
 

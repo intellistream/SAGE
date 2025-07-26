@@ -62,14 +62,14 @@ class JobManager: #Job Manager
             self.setup_logging_system()
             
             # 初始化内置daemon（如果启用）
-            self.daemon = None
+            self.server = None
             if enable_daemon:
-                self.daemon = JobManagerServer(
+                self.server = JobManagerServer(
                     jobmanager=self,
                     host=daemon_host,
                     port=daemon_port
                 )
-                
+                self.server.logger = self.logger
                 # 设置信号处理
                 self._setup_signal_handlers()
 
@@ -86,8 +86,8 @@ class JobManager: #Job Manager
     
     def start_daemon(self):
         """启动内置daemon服务"""
-        if self.daemon:
-            return self.daemon.start_daemon()
+        if self.server:
+            return self.server.start_daemon()
         else:
             self.logger.warning("Daemon not enabled")
             return False
@@ -99,7 +99,7 @@ class JobManager: #Job Manager
             return False
         
         self.logger.info("JobManager started successfully")
-        self.logger.info(f"TCP service listening on {self.daemon.host}:{self.daemon.port}")
+        self.logger.info(f"TCP service listening on {self.server.host}:{self.server.port}")
         self.logger.info("Press Ctrl+C to stop...")
         
         try:
@@ -120,9 +120,9 @@ class JobManager: #Job Manager
         env.uuid = str(uuid.uuid4())
         
         # 向环境注入JobManager的网络地址信息
-        if self.daemon:
-            env.jobmanager_host = self.daemon.host
-            env.jobmanager_port = self.daemon.port
+        if self.server:
+            env.jobmanager_host = self.server.host
+            env.jobmanager_port = self.server.port
         else:
             # 如果没有daemon，使用默认地址
             env.jobmanager_host = "127.0.0.1"
@@ -371,8 +371,8 @@ class JobManager: #Job Manager
             "log_base_dir": str(self.log_base_dir),
             "environments_count": len(self.jobs),
             "jobs": job_summaries,
-            "daemon_enabled": self.daemon is not None,
-            "daemon_address": f"{self.daemon.host}:{self.daemon.port}" if self.daemon else None
+            "daemon_enabled": self.server is not None,
+            "daemon_address": f"{self.server.host}:{self.server.port}" if self.server else None
         }
     
 
@@ -381,8 +381,8 @@ class JobManager: #Job Manager
         self.logger.info("Shutting down JobManager and releasing resources")
 
         # 关闭daemon
-        if self.daemon:
-            self.daemon.shutdown()
+        if self.server:
+            self.server.shutdown()
 
         # 清理所有作业
         self.cleanup_all_jobs()

@@ -1,5 +1,6 @@
 import time
 from sage.core.api.local_environment import LocalEnvironment
+from sage.core.api.remote_environment import RemoteEnvironment
 from sage.core.function.sink_function import SinkFunction
 from sage.core.function.batch_function import BatchFunction
 from sage.core.function.map_function import MapFunction
@@ -29,7 +30,7 @@ class PrintSink(SinkFunction):
         return data
 
 def main():
-    env = LocalEnvironment("hello_world_batch_demo")
+    env = RemoteEnvironment("hello_world_batch_demo")
     
     # 批处理源 -> map -> sink
     env.from_batch(HelloBatch).map(UpperCaseMap).sink(PrintSink)

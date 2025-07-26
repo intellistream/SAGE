@@ -80,11 +80,13 @@ class ExecutionGraph:
     def generate_runtime_contexts(self, jobmanager_handle):
         """
         为每个节点生成运行时上下文
+        不再传递jobmanager handle，使用网络地址通信
         """
         self.logger.debug("Generating runtime contexts for all nodes")
         for node_name, node in self.nodes.items():
             try:
-                node.ctx = RuntimeContext(node, node.transformation, self.env, jobmanager_handle)
+                # 不传递jobmanager_handle，使用env中的网络地址信息
+                node.ctx = RuntimeContext(node, node.transformation, self.env)
                 self.logger.debug(f"Generated runtime context for node: {node_name}")
             except Exception as e:
                 self.logger.error(f"Failed to generate runtime context for node {node_name}: {e}", exc_info=True)
