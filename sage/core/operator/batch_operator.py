@@ -87,7 +87,12 @@ class BatchOperator(BaseOperator):
                 
                 if data is not None:
                     # 发送数据包
-                    self.router.send(Packet(data))
+                    success = self.router.send(Packet(data))
+                    if not success:
+                        self.logger.warning(f"Batch Operator {self.name} failed to send packet, stopping")
+                        self._send_stop_signal()
+                        return
+                    
                     self._current_count += 1
                     
                     # 记录进度

@@ -396,6 +396,7 @@ class JobManager: #Job Manager
         # 方案：/tmp/sage/logs 作为实际存储位置
         project_root = Path(__file__).parent.parent.parent
         self.log_base_dir = project_root / "logs" / f"jobmanager_{self.session_id}"
+        print(self.log_base_dir)
         Path(self.log_base_dir).mkdir(parents=True, exist_ok=True)
 
         
