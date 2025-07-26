@@ -210,6 +210,7 @@ class BaseEnvironment(ABC):
             function = wrap_lambda(function, 'flatmap')
         transformation = SourceTransformation(self, function, *args,
                                               **kwargs)  # TODO: add a new transformation 去告诉engine这个input source是有界的，当执行完毕之后，会发送一个endofinput信号来停止所有进程。
+                                                         # Issue URL: https://github.com/intellistream/SAGE/issues/387
 
         self.pipeline.append(transformation)
         return DataStream(self, transformation)
