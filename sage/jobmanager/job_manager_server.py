@@ -191,6 +191,7 @@ class JobManagerServer:
     def _process_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """处理客户端请求 - 解析消息并调用JobManager方法"""
         try:
+            self.logger.debug(f"Processing request: {request}")
             action = request.get("action", "")
             request_id = request.get("request_id")
             
