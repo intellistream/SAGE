@@ -1,4 +1,4 @@
-
+from datasets import load_dataset
 from sage.core.function.source_function import SourceFunction
 from pathlib import Path
 
@@ -38,7 +38,7 @@ class FileSource(SourceFunction):
         # 假设调用时 cwd 是项目的某个子目录，项目根为“当前工作目录的祖父目录”
         project_root = Path(os.getcwd()).resolve()
         return project_root  / p
-    
+
 
 
     def execute(self) -> str:
@@ -64,3 +64,31 @@ class FileSource(SourceFunction):
             self.logger.error(f"File not found: {self.data_path}")
         except Exception as e:
             self.logger.error(f"Error reading file '{self.data_path}': {e}")
+
+class HFDatasetSource(SourceFunction):
+    def __init__(self, config: dict = None, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config
+        self.hf_name = config["hf_dataset_name"]
+        self.hf_config = config.get("hf_dataset_config")
+        self.hf_split = config.get("hf_split", "train")
+        self._iter = None
+
+    def _build_iter(self):
+        ds = load_dataset(self.hf_name, self.hf_config, split=self.hf_split, streaming=True)
+        for ex in ds:
+            yield {
+                "query": ex.get("question", ""),
+                "references": ex.get("golden_answers") or []
+            }
+
+    def execute(self):
+        if self._iter is None:
+            self.logger.debug(f"Initializing HF dataset source: {self.hf_name}")
+            self._iter = self._build_iter()
+        try:
+            data = next(self._iter)
+            self.logger.debug(f"Yielding data: {data}")
+            return data
+        except StopIteration:
+            return None
