@@ -120,6 +120,7 @@ class BaseRouter(ABC):
             else:
                 self._route_round_robin_packet(packet)
             self._adjust_delay_based_on_load()
+            return True
         except Exception as e:
             self.logger.error(f"Error emitting packet: {e}")
             return False

@@ -53,6 +53,47 @@ class Dispatcher():
         else:
             return False
 
+    def receive_node_stop_signal(self, node_name: str) -> bool:
+        """
+        接收来自单个节点的停止信号并处理该节点
+        
+        Args:
+            node_name: 要停止的节点名称
+            
+        Returns:
+            bool: 如果所有节点都已停止返回True，否则返回False
+        """
+        self.logger.info(f"Dispatcher received node stop signal from: {node_name}")
+        
+        # 检查节点是否存在
+        if node_name not in self.tasks:
+            self.logger.warning(f"Node {node_name} not found in tasks")
+            return False
+        
+        # 停止并清理指定节点
+        try:
+            task = self.tasks[node_name]
+            task.stop()
+            task.cleanup()
+            
+            # 从任务列表中移除
+            del self.tasks[node_name]
+            
+            self.logger.info(f"Node {node_name} stopped and cleaned up")
+            
+        except Exception as e:
+            self.logger.error(f"Error stopping node {node_name}: {e}", exc_info=True)
+            return False
+        
+        # 检查是否所有节点都已停止
+        if len(self.tasks) == 0 and len(self.services) == 0:
+            self.logger.info("All nodes and services stopped, dispatcher can be cleaned up")
+            self.is_running = False
+            return True
+        else:
+            self.logger.info(f"Remaining nodes: {len(self.tasks)}, services: {len(self.services)}")
+            return False
+
 
     def setup_logging_system(self): 
         self.logger = CustomLogger([

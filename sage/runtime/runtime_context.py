@@ -519,11 +519,12 @@ class RuntimeContext:
         if self.stop_signal_count >= self.stop_signal_num:
             self.logger.info(f"Task {self.name} received all expected stop signals ({self.stop_signal_count}/{self.stop_signal_num})")
             
-            # 通知JobManager停止整个流水线
-            if self.jobmanager:
+            # 只有非源节点在收到所有预期的停止信号时才通知JobManager
+            # 源节点应该在自己完成时直接通知JobManager
+            if not self.is_spout and self.jobmanager:
                 try:
-                    self.logger.info(f"Task {self.name} notifying JobManager to stop pipeline")
-                    self.jobmanager.receive_stop_signal(self.env_uuid)
+                    self.logger.info(f"Task {self.name} notifying JobManager about node completion")
+                    self.jobmanager.receive_node_stop_signal(self.env_uuid, self.name)
                 except Exception as e:
                     self.logger.error(f"Failed to notify JobManager: {e}", exc_info=True)
             
