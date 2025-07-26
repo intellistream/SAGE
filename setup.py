@@ -4,6 +4,15 @@ import os
 import platform
 import subprocess
 import re
+from Cython.Build import cythonize
+import glob
+
+def get_py_files():
+    py_files = []
+    for path in glob.glob("sage/**/*.py", recursive=True):
+        if "test" not in path and "tests" not in path:
+            py_files.append(path)
+    return py_files
 
 def parse_requirements(filename):
     with open(filename, encoding="utf-8") as f:
@@ -91,14 +100,21 @@ setup(
     python_requires=">=3.11",
     
     # C扩展模块
-    ext_modules=build_c_extension(),
-    
+        # ext_modules=build_c_extension(),
+    # from Cython.Build import cythonize
+    ext_modules = cythonize(
+        get_py_files(),
+        build_dir="build",
+        compiler_directives={'language_level': "3"},
+    ),
+
+
     entry_points={
-        'console_scripts': [
-            'sage=sage.cli.main:app',
-            'sage-jm=sage.cli.job:app',  # 保持向后兼容
-        ],
-    },
+            'console_scripts': [
+                'sage=sage.cli.main:app',
+                'sage-jm=sage.cli.job:app',  # 保持向后兼容
+            ],
+        },
     include_package_data=True,
     package_data={
         'sage.core': ['config/*.yaml'],

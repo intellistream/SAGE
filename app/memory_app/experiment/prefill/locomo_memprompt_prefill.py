@@ -18,7 +18,7 @@ from sage.core.api.env import LocalEnvironment
 # from sage.service.memory..api import get_memory, get_manager
 # from data.neuromem_datasets.locomo_dataloader import LocomoDataLoader
 
-from app.memory_app.locomo import LocomoSource, LocomoTerminalSink
+from app.memory_app.experiment.function.locomo import LocomoSource, LocomoTerminalSink
 
 def pipeline_run():
     env = LocalEnvironment()
