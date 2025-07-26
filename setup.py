@@ -29,7 +29,7 @@ def read_long_description():
 # 构建C扩展模块
 def build_c_extension():
     """构建ring_buffer C扩展"""
-    ring_buffer_dir = "sage.utils/mmap_queue"
+    ring_buffer_dir = "sage/utils/mmap_queue"  # 修正路径
     
     # 检查是否已有编译好的库
     so_files = [
@@ -102,10 +102,10 @@ setup(
     include_package_data=True,
     package_data={
         'sage.core': ['config/*.yaml'],
-        'sage_deployment': ['scripts/*.sh', 'templates/*'],
         'sage.utils.mmap_queue': [
             '*.so', '*.c', '*.h', 'Makefile', 'build.sh',
-            'README.md', 'USAGE_SUMMARY.md', 'IMPLEMENTATION_SUMMARY.md'
+            'README.md', 'USAGE_SUMMARY.md', 'IMPLEMENTATION_SUMMARY.md',
+            'libring_buffer.so'  # 确保包含所有.so文件
         ],
     },
     classifiers=[
