@@ -12,9 +12,24 @@ retriever:
     topk: 3
 
 generator:
-  method: "hf"
-  model_name: "meta-llama/Llama-2-13b-chat-hf"
-  seed: 42
+  local:
+    method: "hf"
+    model_name: "meta-llama/Llama-2-13b-chat-hf"
+    seed: 42
+
+  vllm:
+    api_key: "token-abc123"
+    method: "openai"
+    model_name: "meta-llama/Llama-2-13b-chat-hf"
+    base_url: "http://localhost:8000/v1"
+    seed: 42
+
+  remote:
+    api_key: ""
+    method: "openai"
+    model_name: "qwen-turbo-0919"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    seed: 42
 
 promptor:
   platform: "local"
