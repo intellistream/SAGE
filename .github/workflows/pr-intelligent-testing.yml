@@ -8,7 +8,7 @@ on:
 jobs:
   intelligent-testing:
     name: Diff-Based Smart Testing
-    runs-on: ubuntu-latest
+    runs-on: self-host
     timeout-minutes: 45
     
     # 跳过草稿PR
