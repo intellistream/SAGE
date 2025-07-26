@@ -23,7 +23,7 @@ class PrintSink(SinkFunction):
         print(data)
         return data
 def main():
-    env = RemoteEnvironment("hello_world_demo")
+    env = LocalEnvironment("hello_world_demo")
     # 源 -> map -> sink
     env.from_source(HelloSource, delay=100).map(UpperCaseMap).sink(PrintSink)
     try:

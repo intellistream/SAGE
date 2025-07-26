@@ -1,4 +1,5 @@
 import os
+import threading
 from typing import TYPE_CHECKING
 import ray
 from ray.actor import ActorHandle
@@ -39,6 +40,9 @@ class RuntimeContext:
 
         self.delay = 0.01
         self.stop_signal_num = graph_node.stop_signal_num
+        
+        # 添加共享的停止事件，供operator和router使用
+        self._stop_event = threading.Event()
         
         # 服务调用相关
         self._service_manager: Optional['ServiceManager'] = None
@@ -470,3 +474,20 @@ class RuntimeContext:
         if self._dispatcher_services is None:
             return []
         return list(self._dispatcher_services.keys())
+
+    @property
+    def stop_event(self) -> threading.Event:
+        """获取共享的停止事件"""
+        return self._stop_event
+    
+    def set_stop_signal(self):
+        """设置停止信号"""
+        self._stop_event.set()
+    
+    def is_stop_requested(self) -> bool:
+        """检查是否请求停止"""
+        return self._stop_event.is_set()
+    
+    def clear_stop_signal(self):
+        """清除停止信号"""
+        self._stop_event.clear()

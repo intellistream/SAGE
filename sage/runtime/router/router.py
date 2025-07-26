@@ -206,6 +206,21 @@ class BaseRouter(ABC):
                 f"to {connection.target_name} (strategy: {packet.partition_strategy or 'round-robin'})"
             )
             return True
+        except RuntimeError as e:
+            # Check if the queue is closed
+            if "Queue is closed" in str(e):
+                self.logger.warning(
+                    f"Queue to {connection.target_name} is closed, setting stop signal in context"
+                )
+                # 设置上下文的停止信号，让源任务停止
+                self.ctx.set_stop_signal()
+                return False
+            else:
+                # Other RuntimeError
+                self.logger.error(
+                    f"Failed to send packet to {connection.target_name}: {e}\n{traceback.format_exc()}"
+                )
+                return False
         except Exception as e:
             """记录发送失败日志"""
             self.logger.error(

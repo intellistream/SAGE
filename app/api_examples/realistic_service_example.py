@@ -81,7 +81,7 @@ class ModelService:
             return {"error": "Model service not running"}
         
         self.prediction_count += 1
-        score = random.uniform(0.1, 0.9)
+        score = 0.6
         result = {
             "score": round(score, 3),
             "prediction_id": f"pred_{self.prediction_count}",
@@ -196,8 +196,8 @@ class RequestSourceFunction(BaseFunction):
         
         request = {
             "request_id": f"req_{self.current_count:03d}",
-            "user_id": random.choice(users),
-            "candidate_items": random.choice(items),
+            "user_id": users[1],
+            "candidate_items": items[1],
             "timestamp": time.time()
         }
         
@@ -402,7 +402,7 @@ def test_realistic_sage_workflow():
     try:
         # 1. 创建环境
         print("\n1. 创建环境:")
-        env = RemoteEnvironment("realistic_workflow_test")
+        env = LocalEnvironment("realistic_workflow_test")
         
         # 2. 注册服务
         print("\n2. 注册服务:")
