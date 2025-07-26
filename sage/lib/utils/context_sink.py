@@ -8,7 +8,7 @@ from sage.core.function.sink_function import SinkFunction
 from sage.core.function.source_function import SourceFunction
 from sage.utils.custom_logger import CustomLogger
 from sage.lib.context.model_context import ModelContext
-
+import time
 
 class ContextFileSink(SinkFunction):
     """
