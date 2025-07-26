@@ -8,11 +8,53 @@ from Cython.Build import cythonize
 import glob
 
 
+
+
 def get_py_files():
+    # 排除这些目录下所有py
+    ignore_dirs = [
+        "tests",
+        "test",
+        "example",
+        "__pycache__",
+        "cli",
+
+    ]
+
+    # 文件名或路径中出现这些关键词的也排除
+    ignore_keywords = [
+        "test",
+        "example",
+        "base",
+        "abc",
+        "interface",
+        "protocol",
+        "main",
+        "job",
+        "base"
+    ]
+
+    # 需要明确排除的具体文件（有报错的可手动加进来）
+    ignore_files = [
+        "main.py",
+        # 如遇到 cythonize 报错文件可加在这里
+    ]
+
     py_files = []
     for path in glob.glob("sage/**/*.py", recursive=True):
-        if "test" not in path and "tests" not in path:
-            py_files.append(path)
+        norm_path = path.replace("\\", "/")
+        path_parts = norm_path.split("/")
+
+        # 跳过明确的目录
+        if any(igdir in path_parts for igdir in ignore_dirs):
+            continue
+        # 跳过文件名/路径中有关键词的
+        if any(kw in norm_path for kw in ignore_keywords):
+            continue
+        # 跳过明确排除文件
+        if any(norm_path.endswith("/"+fname) for fname in ignore_files):
+            continue
+        py_files.append(path)
     return py_files
 
 
@@ -83,7 +125,10 @@ def build_c_extension():
 
     return ext_modules
 
-
+cythonized_files = get_py_files()
+with open("cythonized_files.txt", "w") as f:
+    for fn in cythonized_files:
+        f.write(fn + "\n")
 setup(
     name='sage',
     version='0.1.2',
@@ -108,7 +153,7 @@ setup(
     # ext_modules=build_c_extension(),
     # from Cython.Build import cythonize
     ext_modules=build_c_extension() + cythonize(
-        get_py_files(),
+        cythonized_files,
         build_dir="build",
         compiler_directives={'language_level': "3"},
     ),
