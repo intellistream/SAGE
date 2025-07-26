@@ -33,11 +33,7 @@ class FaissIndex(BaseVDBIndex):
         self.tombstones: set[str] = set()
         self._deletion_supported = True
         self.index = None
-        self.logger = CustomLogger(
-            filename=f"FaissIndex",
-            console_output=False,
-            file_output=True
-        )
+        self.logger = CustomLogger()
         if load_path is not None:
             self._load(load_path)
         else:

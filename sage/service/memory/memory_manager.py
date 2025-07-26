@@ -1,22 +1,17 @@
-
+# sage/service/memory/memory_manager.py
+# python -m sage.service.memory.memory_manager
 import os
 import json
 import shutil
 from typing import Any, Dict, List, Optional, Union
 
 from sage.utils.custom_logger import CustomLogger
-from sage.service.memory.memory_collection.base_collection import get_default_data_dir
-from sage.service.memory.memory_collection.base_collection import BaseMemoryCollection
-from sage.service.memory.memory_collection.graph_collection import GraphMemoryCollection
-from sage.service.memory.memory_collection.kv_collection import KVMemoryCollection
-from sage.service.memory.memory_collection.vdb_collection import VDBMemoryCollection
-
+from sage.service.memory.utils.path_utils import get_default_data_dir
 from sage.service.memory.memory_collection.base_collection import BaseMemoryCollection
 from sage.service.memory.memory_collection.graph_collection import GraphMemoryCollection
 from sage.service.memory.memory_collection.kv_collection import KVMemoryCollection
 from sage.service.memory.memory_collection.vdb_collection import VDBMemoryCollection
 from sage.utils.embedding_methods.embedding_api import apply_embedding_model
-from sage.service.memory.memory_collection.base_collection import get_default_data_dir
 
 class MemoryManager:
     """
