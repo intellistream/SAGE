@@ -7,12 +7,14 @@ import re
 from Cython.Build import cythonize
 import glob
 
+
 def get_py_files():
     py_files = []
     for path in glob.glob("sage/**/*.py", recursive=True):
         if "test" not in path and "tests" not in path:
             py_files.append(path)
     return py_files
+
 
 def parse_requirements(filename):
     with open(filename, encoding="utf-8") as f:
@@ -27,6 +29,7 @@ def parse_requirements(filename):
                     raise ValueError(f"Invalid requirement format: {line}")
         return deps
 
+
 # 读取README.md作为长描述
 def read_long_description():
     try:
@@ -35,17 +38,18 @@ def read_long_description():
     except FileNotFoundError:
         return "SAGE - Stream Processing Framework"
 
+
 # 构建C扩展模块
 def build_c_extension():
     """构建ring_buffer C扩展"""
     ring_buffer_dir = "sage.utils/mmap_queue"
-    
+
     # 检查是否已有编译好的库
     so_files = [
         os.path.join(ring_buffer_dir, "ring_buffer.so"),
         os.path.join(ring_buffer_dir, "libring_buffer.so")
     ]
-    
+
     # 如果没有编译好的库，尝试编译
     if not any(os.path.exists(f) for f in so_files):
         print("Compiling ring_buffer C library...")
@@ -60,10 +64,10 @@ def build_c_extension():
                 print("Warning: No build system found for ring_buffer")
         except subprocess.CalledProcessError as e:
             print(f"Warning: Failed to compile ring_buffer: {e}")
-    
+
     # 定义C扩展
     ext_modules = []
-    
+
     # 如果有C源文件，添加扩展模块
     c_source = os.path.join(ring_buffer_dir, "ring_buffer.c")
     if os.path.exists(c_source):
@@ -76,8 +80,9 @@ def build_c_extension():
             extra_link_args=['-shared'] if platform.system() != 'Darwin' else []
         )
         ext_modules.append(ring_buffer_ext)
-    
+
     return ext_modules
+
 
 setup(
     name='sage',
@@ -90,31 +95,30 @@ setup(
     packages=find_packages(
         include=['sage', 'sage.*'],
         exclude=[
-            'tests', 'test', 
-            '*.tests', '*.tests.*', 
+            'tests', 'test',
+            '*.tests', '*.tests.*',
             '*test*', '*tests*'
         ]
     ),
-    url = "https://github.com/intellistream/SAGE",
+    url="https://github.com/intellistream/SAGE",
     install_requires=parse_requirements("installation/env_setup/requirements.txt"),
     python_requires=">=3.11",
-    
+
     # C扩展模块
-        # ext_modules=build_c_extension(),
+    # ext_modules=build_c_extension(),
     # from Cython.Build import cythonize
-    ext_modules = cythonize(
+    ext_modules=build_c_extension() + cythonize(
         get_py_files(),
         build_dir="build",
         compiler_directives={'language_level': "3"},
     ),
 
-
     entry_points={
-            'console_scripts': [
-                'sage=sage.cli.main:app',
-                'sage-jm=sage.cli.job:app',  # 保持向后兼容
-            ],
-        },
+        'console_scripts': [
+            'sage=sage.cli.main:app',
+            'sage-jm=sage.cli.job:app',  # 保持向后兼容
+        ],
+    },
     include_package_data=True,
     package_data={
         'sage.core': ['config/*.yaml'],
