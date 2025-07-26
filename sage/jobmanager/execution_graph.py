@@ -84,7 +84,7 @@ class ExecutionGraph:
         self.logger.debug("Generating runtime contexts for all nodes")
         for node_name, node in self.nodes.items():
             try:
-                node.ctx = RuntimeContext(node, node.transformation, self.env)
+                node.ctx = RuntimeContext(node, node.transformation, self.env, jobmanager_handle)
                 self.logger.debug(f"Generated runtime context for node: {node_name}")
             except Exception as e:
                 self.logger.error(f"Failed to generate runtime context for node {node_name}: {e}", exc_info=True)

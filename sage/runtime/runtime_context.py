@@ -15,12 +15,13 @@ if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment 
     from sage.jobmanager.job_manager import JobManager
     from sage.runtime.service.service_caller import ServiceManager
+    from sage.core.function.source_function import StopSignal
 # task, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:
     # 定义不需要序列化的属性
     __state_exclude__ = ["_logger", "env", "_env_logger_cache"]
-    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation', env: 'BaseEnvironment'):
+    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation', env: 'BaseEnvironment', jobmanager: Union['JobManager', 'ActorHandle'] = None):
         
         self.name:str = graph_node.name
 
@@ -41,8 +42,15 @@ class RuntimeContext:
         self.delay = 0.01
         self.stop_signal_num = graph_node.stop_signal_num
         
+        # 添加JobManager引用，去actor化后的直接引用
+        self.jobmanager = jobmanager
+        
         # 添加共享的停止事件，供operator和router使用
         self._stop_event = threading.Event()
+        
+        # 停止信号计数相关（从SinkOperator移到这里）
+        self.received_stop_signals = set()
+        self.stop_signal_count = 0
         
         # 服务调用相关
         self._service_manager: Optional['ServiceManager'] = None
@@ -491,3 +499,35 @@ class RuntimeContext:
     def clear_stop_signal(self):
         """清除停止信号"""
         self._stop_event.clear()
+        # 同时清除停止信号计数
+        self.received_stop_signals.clear()
+        self.stop_signal_count = 0
+    
+    def handle_stop_signal(self, stop_signal: 'StopSignal') -> bool:
+        """
+        在task层处理停止信号计数
+        返回True表示收到了所有预期的停止信号
+        """
+        if stop_signal.name in self.received_stop_signals:
+            self.logger.debug(f"Already received stop signal from {stop_signal.name}")
+            return False
+        
+        self.received_stop_signals.add(stop_signal.name)
+        self.logger.info(f"Task {self.name} received stop signal from {stop_signal.name}")
+
+        self.stop_signal_count += 1
+        if self.stop_signal_count >= self.stop_signal_num:
+            self.logger.info(f"Task {self.name} received all expected stop signals ({self.stop_signal_count}/{self.stop_signal_num})")
+            
+            # 通知JobManager停止整个流水线
+            if self.jobmanager:
+                try:
+                    self.logger.info(f"Task {self.name} notifying JobManager to stop pipeline")
+                    self.jobmanager.receive_stop_signal(self.env_uuid)
+                except Exception as e:
+                    self.logger.error(f"Failed to notify JobManager: {e}", exc_info=True)
+            
+            return True
+        else:
+            self.logger.info(f"Task {self.name} stop signal count: {self.stop_signal_count}/{self.stop_signal_num}")
+            return False

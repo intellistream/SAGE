@@ -1,6 +1,6 @@
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Dict, Optional, Set, TYPE_CHECKING, Type, Tuple
+from typing import Any, List, Dict, Optional, TYPE_CHECKING, Type, Tuple
 from sage.core.function.source_function import StopSignal
 from sage.runtime.task.base_task import BaseTask
 from sage.utils.custom_logger import CustomLogger
@@ -18,7 +18,6 @@ class BaseOperator(ABC):
                  function_factory: 'FunctionFactory', ctx: 'RuntimeContext', *args,
                  **kwargs):
         
-        self.received_stop_signals: Set[str] = set()
         self.ctx: 'RuntimeContext' = ctx
         self.function:'BaseFunction'
         self.router:'BaseRouter'     # 由task传下来的
@@ -46,31 +45,15 @@ class BaseOperator(ABC):
             self.function.save_state()
 
     def receive_packet(self, packet: 'Packet'):
-        """l
+        """
         接收数据包并处理
         """
         if packet is None:
             self.logger.warning(f"Received None packet in {self.name}")
             return
-        if isinstance(packet, StopSignal):
-            self.handle_stop_signal(packet) 
-            return
         self.logger.debug(f"Operator {self.name} received packet: {packet}")
         # 处理数据包
         self.process_packet(packet)
-
-    def handle_stop_signal(self, stop_signal: StopSignal):
-        """
-        处理停止信号
-        """
-        if stop_signal.name in self.received_stop_signals:
-            self.logger.debug(f"Already received stop signal from {stop_signal.name}")
-            return
-        
-        self.received_stop_signals.add(stop_signal.name)
-        self.logger.info(f"Handling stop signal from {stop_signal.name}")
-        # 发送停止信号到路由器
-        self.router.send_stop_signal(stop_signal)
 
     @abstractmethod
     def process_packet(self, packet: 'Packet' = None):
