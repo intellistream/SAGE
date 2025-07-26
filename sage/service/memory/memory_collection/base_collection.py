@@ -17,7 +17,7 @@ from sage.service.memory.storage_engine.text_storage import TextStorage
 
 # 加载工程根目录下 sage/.env 配置
 # Load configuration from .env file under the sage directory
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../../.env'))
+# load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../../.env'))
 
 class BaseMemoryCollection:
     """
@@ -79,12 +79,17 @@ class BaseMemoryCollection:
     def insert(self, raw_text: str, metadata: Optional[Dict[str, Any]] = None) -> str:
         """
         Store raw text with optional metadata.
-        存储原始文本与可选的元数据。
+        存储原始文本与可选的元数据。自动注册未知的元数据字段。
         """
         stable_id = self._get_stable_id(raw_text)
         self.text_storage.store(stable_id, raw_text)
 
         if metadata:
+            # 自动注册所有未知的元数据字段
+            for field_name in metadata.keys():
+                if not self.metadata_storage.has_field(field_name):
+                    self.metadata_storage.add_field(field_name)
+            
             self.metadata_storage.store(stable_id, metadata)
 
         return stable_id
@@ -116,32 +121,19 @@ class BaseMemoryCollection:
         self.metadata_storage.clear()
         
 
-# def get_default_data_dir():
-#     # 找到 sage 的父目录，并拼 data/sage.service.memory.
-#     this_file = os.path.abspath(__file__)
-#     parts = this_file.split(os.sep)
-#     try:
-#         sage_idx = parts.index('sage')
-#     except ValueError:
-#         sage_idx = len(parts) - 1
-#     project_root = os.sep.join(parts[:sage_idx+1])
-#     data_dir = os.path.join(os.path.dirname(project_root), "data", "sage.service.memory.")
-#     os.makedirs(data_dir, exist_ok=True)
-#     return data_dir
 def get_default_data_dir():
+    # 找到 sage 的父目录，并拼 data/sage.service.memory.
     this_file = os.path.abspath(__file__)
-    cur_dir = os.path.dirname(this_file)
-    # 一直向上，直到找到 sage.service.memory. 目录
-    while True:
-        if os.path.basename(cur_dir) == "sage.service.memory.":
-            project_root = os.path.dirname(cur_dir)
-            data_dir = os.path.join(project_root, "data", "neuromem_data")
-            os.makedirs(data_dir, exist_ok=True)
-            return data_dir
-        parent = os.path.dirname(cur_dir)
-        if parent == cur_dir:
-            raise FileNotFoundError("Could not find 'sage.service.memory.' directory in parent folders.")
-        cur_dir = parent
+    parts = this_file.split(os.sep)
+    try:
+        sage_idx = parts.index('sage')
+    except ValueError:
+        sage_idx = len(parts) - 1
+    project_root = os.sep.join(parts[:sage_idx+1])
+    data_dir = os.path.join(os.path.dirname(project_root), "data", "sage.service.memory.")
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
+
     
 if __name__ == "__main__":
 

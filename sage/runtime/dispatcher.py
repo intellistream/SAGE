@@ -1,11 +1,11 @@
 import os
 import time
 from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
+from sage.runtime.service.base_service_task import BaseServiceTask
 from sage.runtime.task.base_task import BaseTask
 from sage.utils.actor_wrapper import ActorWrapper
 from sage.runtime.router.connection import Connection
 from sage.utils.custom_logger import CustomLogger
-from sage.runtime.service.base_service import BaseService
 import ray
 from ray.actor import ActorHandle
 
@@ -32,7 +32,7 @@ class Dispatcher():
         )
         # self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
         self.tasks: Dict[str, Union[BaseTask, ActorWrapper]] = {}
-        self.services: Dict[str, BaseService] = {}  # 存储服务实例
+        self.services: Dict[str, BaseServiceTask] = {}  # 存储服务实例
         self.is_running: bool = False
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
         if env.platform == "remote":
@@ -51,6 +51,47 @@ class Dispatcher():
             self.cleanup()
             return True
         else:
+            return False
+
+    def receive_node_stop_signal(self, node_name: str) -> bool:
+        """
+        接收来自单个节点的停止信号并处理该节点
+        
+        Args:
+            node_name: 要停止的节点名称
+            
+        Returns:
+            bool: 如果所有节点都已停止返回True，否则返回False
+        """
+        self.logger.info(f"Dispatcher received node stop signal from: {node_name}")
+        
+        # 检查节点是否存在
+        if node_name not in self.tasks:
+            self.logger.warning(f"Node {node_name} not found in tasks")
+            return False
+        
+        # 停止并清理指定节点
+        try:
+            task = self.tasks[node_name]
+            task.stop()
+            task.cleanup()
+            
+            # 从任务列表中移除
+            del self.tasks[node_name]
+            
+            self.logger.info(f"Node {node_name} stopped and cleaned up")
+            
+        except Exception as e:
+            self.logger.error(f"Error stopping node {node_name}: {e}", exc_info=True)
+            return False
+        
+        # 检查是否所有节点都已停止
+        if len(self.tasks) == 0 and len(self.services) == 0:
+            self.logger.info("All nodes and services stopped, dispatcher can be cleaned up")
+            self.is_running = False
+            return True
+        else:
+            self.logger.info(f"Remaining nodes: {len(self.tasks)}, services: {len(self.services)}")
             return False
 
 
@@ -110,8 +151,9 @@ class Dispatcher():
                 # task = graph_node.create_dag_node()
                 task = graph_node.transformation.task_factory.create_task(graph_node.name, graph_node.ctx)
 
-                # 设置services到runtime context
-                graph_node.ctx.set_dispatcher_services(self.services)
+                # 设置服务名称映射到runtime context
+                service_names = {name: name for name in self.services.keys()}
+                graph_node.ctx.set_service_names(service_names)
 
                 self.tasks[node_name] = task
 

@@ -8,6 +8,7 @@ from ray.util.queue import Empty
 
 from sage.utils.mmap_queue.sage_queue import SageQueue
 from sage.runtime.router.router import BaseRouter
+from sage.core.function.source_function import StopSignal
 if TYPE_CHECKING:
     from sage.runtime.router.connection import Connection
     from sage.core.operator.base_operator import BaseOperator
@@ -16,12 +17,17 @@ if TYPE_CHECKING:
 class BaseTask(ABC):
     def __init__(self,runtime_context: 'RuntimeContext',operator_factory: 'OperatorFactory') -> None:
         self.ctx = runtime_context
+        
+        # 初始化task层的context属性，避免序列化问题
+        self.ctx.initialize_task_context()
+        
+        self.logger.debug(f"Queue name is {self.ctx.name}")
         self.input_buffer = SageQueue(self.ctx.name)
         self.input_buffer.logger = self.ctx.logger
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
         self.is_running = False
-        self._stop_event = threading.Event()
+        # 使用ctx中的共享stop_event，不再自己维护
         # === 性能监控 ===
         self._processed_count = 0
         self._error_count = 0
@@ -46,7 +52,7 @@ class BaseTask(ABC):
         
         # 设置运行状态
         self.is_running = True
-        self._stop_event.clear()
+        self.ctx.clear_stop_signal()
         
         # 启动工作线程
         self._worker_thread = threading.Thread(
@@ -76,8 +82,8 @@ class BaseTask(ABC):
 
     def stop(self) -> None:
         """Signal the worker loop to stop."""
-        if not self._stop_event.is_set():
-            self._stop_event.set()
+        if not self.ctx.is_stop_requested():
+            self.ctx.set_stop_signal()
             self.logger.info(f"Node '{self.name}' received stop signal.")
 
     def get_object(self):
@@ -95,9 +101,10 @@ class BaseTask(ABC):
         Main worker loop that executes continuously until stop is signaled.
         """
         # Main execution loop
-        while not self._stop_event.is_set():
+        while not self.ctx.is_stop_requested():
             try:
                 if self.is_spout:
+                        
                     self.logger.debug(f"Running spout node '{self.name}'")
                     self.operator.receive_packet(None)
                     self.logger.debug(f"self.delay: {self.delay}")
@@ -118,6 +125,24 @@ class BaseTask(ABC):
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue
+                    
+                    # Check if received packet is a StopSignal
+                    if isinstance(data_packet, StopSignal):
+                        self.logger.info(f"Node '{self.name}' received stop signal: {data_packet}")
+                        
+                        # 在task层统一处理停止信号计数
+                        should_stop_pipeline = self.ctx.handle_stop_signal(data_packet)
+                        
+                        # 向下游转发停止信号
+                        self.router.send_stop_signal(data_packet)
+                        
+                        # 停止当前task的worker loop
+                        if should_stop_pipeline:
+                            self.ctx.set_stop_signal()
+                            break
+                        
+                        continue
+                    
                     self.operator.receive_packet(data_packet)
             except Exception as e:
                 self.logger.error(f"Critical error in node '{self.name}': {str(e)}")

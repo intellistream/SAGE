@@ -144,7 +144,7 @@ def benchmark_latency() -> BenchmarkResult:
         queue_name = f"bench_latency_{int(time.time())}"
         destroy_queue(queue_name)
         
-        queue = SageQueue(queue_name, maxsize=64*1024)
+        queue = SageQueue(queue_name)
         
         # 测试单次操作延迟
         num_samples = 1000
@@ -215,7 +215,7 @@ def benchmark_concurrent_access() -> BenchmarkResult:
         queue_name = f"bench_concurrent_{int(time.time())}"
         destroy_queue(queue_name)
         
-        queue = SageQueue(queue_name, maxsize=256*1024)  # 256KB buffer
+        queue = SageQueue(queue_name)  # 256KB buffer
         
         # 测试不同线程数的并发性能
         thread_counts = [1, 2, 4, 8]
@@ -413,7 +413,7 @@ def benchmark_multiprocess() -> BenchmarkResult:
         destroy_queue(queue_name)
         
         # 创建主队列
-        main_queue = SageQueue(queue_name, maxsize=512*1024)  # 512KB buffer
+        main_queue = SageQueue(queue_name)  # 512KB buffer
         main_queue.close()  # 关闭主队列，让子进程使用
         
         # 测试参数

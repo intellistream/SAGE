@@ -80,10 +80,12 @@ class ExecutionGraph:
     def generate_runtime_contexts(self, jobmanager_handle):
         """
         为每个节点生成运行时上下文
+        不再传递jobmanager handle，使用网络地址通信
         """
         self.logger.debug("Generating runtime contexts for all nodes")
         for node_name, node in self.nodes.items():
             try:
+                # 不传递jobmanager_handle，使用env中的网络地址信息
                 node.ctx = RuntimeContext(node, node.transformation, self.env)
                 self.logger.debug(f"Generated runtime context for node: {node_name}")
             except Exception as e:
@@ -179,7 +181,7 @@ class ExecutionGraph:
         
         # 使用广度优先搜索计算每个节点依赖的源节点
         for node_name, node in self.nodes.items():
-            if node.is_sink:
+            if not node.is_spout:
                 # 非源节点通过BFS收集所有上游源依赖
                 visited = set()
                 queue = [node_name]
@@ -202,5 +204,8 @@ class ExecutionGraph:
                             for edge in input_channel:
                                 if edge.upstream_node.name not in visited:
                                     queue.append(edge.upstream_node.name)
+            else:
+                # 源节点不需要等待停止信号
+                node.stop_signal_num = 0
             
-            self.logger.debug(f"Node {node_name} expects {node.stop_signal_num} source instances")
+            self.logger.debug(f"Node {node_name} expects {node.stop_signal_num} stop signals")

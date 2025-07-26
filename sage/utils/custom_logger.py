@@ -68,7 +68,7 @@ class CustomLogger:
             ], name="MyApp", log_base_folder="./logs")
         """
         self.name = name or "Logger"
-        project_root = Path(__file__).parent.parent
+        project_root = Path(__file__).parent.parent.parent
         self.log_base_folder = log_base_folder or project_root / "logs"
         
         # 确保log_base_folder存在

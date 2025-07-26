@@ -95,7 +95,7 @@ def main():
     # 运行最基本的测试
     try:
         # 创建小队列进行基本测试
-        queue = SageQueue("validation_test", 1024)
+        queue = SageQueue("validation_test")
         
         # 基本写入读取测试
         test_data = b"Hello, SAGE!"

@@ -1,0 +1,17 @@
+Trying to load library from: /home/tjy/SAGE/sage/utils/mmap_queue/ring_buffer.so
+<sage.utils.mmap_queue.sage_queue.LP_RingBufferStruct object at 0x7f72f2d5d490>
+()
+{}
+Trying to load library from: /home/tjy/SAGE/sage/utils/mmap_queue/ring_buffer.so
+<sage.utils.mmap_queue.sage_queue.LP_RingBufferStruct object at 0x7f72f2d5d5b0>
+()
+{}
+Trying to load library from: /home/tjy/SAGE/sage/utils/mmap_queue/ring_buffer.so
+<sage.utils.mmap_queue.sage_queue.LP_RingBufferStruct object at 0x7f72f2d5d7f0>
+()
+{}
+Trying to load library from: /home/tjy/SAGE/sage/utils/mmap_queue/ring_buffer.so
+<sage.utils.mmap_queue.sage_queue.LP_RingBufferStruct object at 0x7f72f2d5dbe0>
+Trying to load library from: /home/tjy/SAGE/sage/utils/mmap_queue/ring_buffer.so
+<sage.utils.mmap_queue.sage_queue.LP_RingBufferStruct object at 0x7f72f2d5dd90>
+:白色的对勾: Hello World 示例结束
