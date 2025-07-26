@@ -42,8 +42,9 @@ class RuntimeContext:
         self.delay = 0.01
         self.stop_signal_num = graph_node.stop_signal_num
         
-        # 添加JobManager引用，去actor化后的直接引用
-        self.jobmanager = jobmanager
+        # 保存JobManager的网络地址信息而不是直接引用
+        self.jobmanager_host = getattr(env, 'jobmanager_host', '127.0.0.1')
+        self.jobmanager_port = getattr(env, 'jobmanager_port', 19001)
         
         # 添加共享的停止事件，供operator和router使用
         self._stop_event = threading.Event()
@@ -503,6 +504,29 @@ class RuntimeContext:
         self.received_stop_signals.clear()
         self.stop_signal_count = 0
     
+    def send_stop_signal_back(self, node_name: str):
+        """
+        通过网络向JobManager发送节点停止信号
+        支持本地和远程(Ray Actor)环境
+        """
+        try:
+            # 导入JobManagerClient来发送网络请求
+            from sage.jobmanager.jobmanager_client import JobManagerClient
+            
+            self.logger.info(f"Task {node_name} sending stop signal back to JobManager at {self.jobmanager_host}:{self.jobmanager_port}")
+            
+            # 创建客户端并发送停止信号
+            client = JobManagerClient(host=self.jobmanager_host, port=self.jobmanager_port)
+            response = client.receive_node_stop_signal(self.env_uuid, node_name)
+            
+            if response.get('status') == 'success':
+                self.logger.debug(f"Successfully sent stop signal for node {node_name}")
+            else:
+                self.logger.warning(f"JobManager response: {response}")
+                
+        except Exception as e:
+            self.logger.error(f"Failed to send stop signal back for node {node_name}: {e}", exc_info=True)
+    
     def handle_stop_signal(self, stop_signal: 'StopSignal') -> bool:
         """
         在task层处理停止信号计数
@@ -521,12 +545,8 @@ class RuntimeContext:
             
             # 只有非源节点在收到所有预期的停止信号时才通知JobManager
             # 源节点应该在自己完成时直接通知JobManager
-            if not self.is_spout and self.jobmanager:
-                try:
-                    self.logger.info(f"Task {self.name} notifying JobManager about node completion")
-                    self.jobmanager.receive_node_stop_signal(self.env_uuid, self.name)
-                except Exception as e:
-                    self.logger.error(f"Failed to notify JobManager: {e}", exc_info=True)
+            if not self.is_spout:
+                self.send_stop_signal_back(self.name)
             
             return True
         else:

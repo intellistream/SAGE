@@ -25,12 +25,7 @@ class BatchOperator(BaseOperator):
                 self.logger.info(f"Batch Operator {self.name} completed, sending stop signal")
                 
                 # 源节点完成时，先通知JobManager该节点完成
-                if self.ctx.jobmanager:
-                    try:
-                        self.logger.info(f"Batch Operator {self.name} notifying JobManager about completion")
-                        self.ctx.jobmanager.receive_node_stop_signal(self.ctx.env_uuid, self.name)
-                    except Exception as e:
-                        self.logger.error(f"Failed to notify JobManager: {e}", exc_info=True)
+                self.ctx.send_stop_signal_back(self.name)
                 
                 # 然后向下游发送停止信号
                 stop_signal = StopSignal(self.name)
