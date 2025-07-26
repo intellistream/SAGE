@@ -55,7 +55,7 @@ class HFGenerator:
         ).to(self.device)
 
         # Generate output
-        output = self.model.generate("local", config["generator"]["local"], **input_ids)
+        output = self.model.generate(**input_ids)
 
         # Decode output
         response_text = self.tokenizer.decode(
