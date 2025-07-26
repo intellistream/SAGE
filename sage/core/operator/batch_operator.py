@@ -23,17 +23,20 @@ class BatchOperator(BaseOperator):
             # 如果结果是None，表示批处理完成，发送停止信号
             if result is None:
                 self.logger.info(f"Batch Operator {self.name} completed, sending stop signal")
+                
+                # 源节点完成时，先通知JobManager该节点完成
+                if self.ctx.jobmanager:
+                    try:
+                        self.logger.info(f"Batch Operator {self.name} notifying JobManager about completion")
+                        self.ctx.jobmanager.receive_node_stop_signal(self.ctx.env_uuid, self.name)
+                    except Exception as e:
+                        self.logger.error(f"Failed to notify JobManager: {e}", exc_info=True)
+                
+                # 然后向下游发送停止信号
                 stop_signal = StopSignal(self.name)
                 self.router.send_stop_signal(stop_signal)
+                
                 # 通过ctx停止task
-                self.ctx.set_stop_signal()
-                return
-            
-            # 如果结果是StopSignal，直接转发
-            if isinstance(result, StopSignal):
-                self.logger.info(f"Batch Operator {self.name} received stop signal: {result}")
-                result.name = self.name
-                self.router.send_stop_signal(result)
                 self.ctx.set_stop_signal()
                 return
             

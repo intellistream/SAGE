@@ -279,6 +279,30 @@ class JobManager: #Job Manager
             job_info.update_status("failed", error=str(e))
             self.logger.error(f"Failed to stop job {env_uuid}: {e}")
 
+    def receive_node_stop_signal(self, env_uuid: str, node_name: str):
+        """接收来自单个节点的停止信号"""
+        job_info = self.jobs.get(env_uuid)
+        if not job_info:
+            self.logger.error(f"Job with UUID {env_uuid} not found")
+            return
+        
+        try:
+            self.logger.info(f"Node {node_name} in job {env_uuid} requests to stop")
+            
+            # 通过dispatcher处理单个节点的停止
+            all_nodes_stopped = job_info.dispatcher.receive_node_stop_signal(node_name)
+            
+            # 如果所有节点都已停止，则删除整个job
+            if all_nodes_stopped:
+                self.delete_job(env_uuid, force=True)
+                self.logger.info(f"Job {env_uuid} deleted after all nodes stopped")
+            else:
+                self.logger.info(f"Node {node_name} stopped, job {env_uuid} continues with remaining nodes")
+            
+        except Exception as e:
+            job_info.update_status("failed", error=str(e))
+            self.logger.error(f"Failed to handle node stop signal from {node_name} in job {env_uuid}: {e}")
+
 
     def pause_job(self, env_uuid: str) -> Dict[str, Any]:
         """停止Job"""

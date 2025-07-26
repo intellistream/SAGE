@@ -179,7 +179,7 @@ class ExecutionGraph:
         
         # 使用广度优先搜索计算每个节点依赖的源节点
         for node_name, node in self.nodes.items():
-            if node.is_sink:
+            if not node.is_spout:
                 # 非源节点通过BFS收集所有上游源依赖
                 visited = set()
                 queue = [node_name]
@@ -202,5 +202,8 @@ class ExecutionGraph:
                             for edge in input_channel:
                                 if edge.upstream_node.name not in visited:
                                     queue.append(edge.upstream_node.name)
+            else:
+                # 源节点不需要等待停止信号
+                node.stop_signal_num = 0
             
-            self.logger.debug(f"Node {node_name} expects {node.stop_signal_num} source instances")
+            self.logger.debug(f"Node {node_name} expects {node.stop_signal_num} stop signals")
