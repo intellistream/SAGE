@@ -1,0 +1,7 @@
+{
+  "index_name": "user_index",
+  "dim": 16,
+  "next_id": 3,
+  "deletion_supported": true,
+  "config": {}
+}
