@@ -256,8 +256,8 @@ class SageQueue:
             # 对于新创建的缓冲区，不需要额外增加引用计数
             # 因为ring_buffer_create已经设置了初始引用计数为1
             pass
-        if CustomLogger.is_global_console_debug_enabled():
-            print(self.get_stats())
+        # if CustomLogger.is_global_console_debug_enabled():
+        #     print(self.get_stats())
         # 线程安全相关
         self._lock = threading.RLock()
         
