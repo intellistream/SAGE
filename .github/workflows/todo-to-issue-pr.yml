@@ -1,9 +1,18 @@
-name: TODO-to-Issue (PR)
+# ========================================
+# 🚫 WORKFLOW DISABLED TO SAVE COSTS 🚫
+# ========================================
+# 此工作流已被禁用以避免自动触发，节省费用
+# 如需运行TODO转Issue功能，请手动触发工作流
+# This workflow has been disabled to avoid automatic triggers and save costs
+# To run TODO-to-Issue feature, please trigger the workflow manually
+# ========================================
+
+name: TODO-to-Issue (PR) (DISABLED)
 
 on:
-  workflow_dispatch:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:  # 仅允许手动触发
+  # pull_request:     # 已禁用自动触发
+  #   types: [opened, synchronize, reopened]
 
 jobs:
   todo_to_issue:

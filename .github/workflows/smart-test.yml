@@ -1,9 +1,19 @@
-name: Smart Testing with AI
+# ========================================
+# 🚫 WORKFLOW DISABLED TO SAVE COSTS 🚫
+# ========================================
+# 此工作流已被禁用以避免自动触发测试，节省费用
+# 如需运行测试，请手动触发工作流
+# This workflow has been disabled to avoid automatic test triggers and save costs
+# To run tests, please trigger the workflow manually
+# ========================================
+
+name: Smart Testing with AI (DISABLED)
 
 on:
-  pull_request:
-    branches: [ main, develop ]
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:  # 仅允许手动触发
+  # pull_request:     # 已禁用自动触发
+  #   branches: [ main, develop ]
+  #   types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
