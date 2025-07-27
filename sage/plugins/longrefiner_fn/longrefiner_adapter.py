@@ -1,6 +1,8 @@
 from sage.core.function.map_function import MapFunction
-
-from sage_plugins.longrefiner_fn.longrefiner.refiner import LongRefiner
+from sage.plugins.longrefiner_fn.longrefiner.refiner import LongRefiner
+import os
+import time
+import json
 
 class LongRefinerAdapter(MapFunction):
     def __init__(self, config: dict, ctx=None):
@@ -19,8 +21,45 @@ class LongRefinerAdapter(MapFunction):
         if missing:
             raise RuntimeError(f"[LongRefinerAdapter] 缺少配置字段: {missing}")
         self.cfg = config
-        # 只在第一次 execute 时初始化
         self.refiner: LongRefiner | None = None
+
+        # 设置数据存储路径
+        if hasattr(self.ctx, 'env_base_dir') and self.ctx.env_base_dir:
+            self.data_base_path = os.path.join(self.ctx.env_base_dir, ".sage_states", "refiner_data")
+        else:
+            # 使用默认路径
+            self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "refiner_data")
+
+        os.makedirs(self.data_base_path, exist_ok=True)
+        self.data_records = []
+
+    def _save_data_record(self, question, input_docs, refined_docs):
+        """保存精炼数据记录"""
+        record = {
+            'timestamp': time.time(),
+            'question': question,
+            'input_docs': input_docs,
+            'refined_docs': refined_docs,
+            'budget': self.cfg["budget"]
+        }
+        self.data_records.append(record)
+        self._persist_data_records()
+
+    def _persist_data_records(self):
+        """将数据记录持久化到文件"""
+        if not self.data_records:
+            return
+
+        timestamp = int(time.time())
+        filename = f"refiner_data_{timestamp}.json"
+        path = os.path.join(self.data_base_path, filename)
+
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(self.data_records, f, ensure_ascii=False, indent=2)
+            self.data_records = []
+        except Exception as e:
+            self.logger.error(f"Failed to persist data records: {e}")
 
     def _init_refiner(self):
         if self.refiner is None:
@@ -55,6 +94,17 @@ class LongRefinerAdapter(MapFunction):
             # 避免索引越界或模型加载失败
             return question, []
 
-        # 最终把每个 item["contents"] 拿出来，返回 (query, [str,…])
+        # 最终把每个 item["contents"] 拿出来
         refined_texts = [item["contents"] for item in refined_items]
+
+        # 保存数据记录
+        self._save_data_record(question, texts, refined_texts)
+
         return question, refined_texts
+
+    def __del__(self):
+        """确保在对象销毁时保存所有未保存的记录"""
+        try:
+            self._persist_data_records()
+        except:
+            pass
