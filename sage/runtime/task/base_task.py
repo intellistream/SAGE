@@ -4,9 +4,7 @@ import threading, copy, time
 from typing import Any, TYPE_CHECKING, Union, Optional
 from sage.runtime.runtime_context import RuntimeContext
 from sage.runtime.router.packet import Packet
-from ray.util.queue import Empty
 
-from sage.utils.mmap_queue.sage_queue import SageQueue
 from sage.runtime.router.router import BaseRouter
 from sage.core.function.source_function import StopSignal
 if TYPE_CHECKING:
@@ -21,9 +19,10 @@ class BaseTask(ABC):
         # 初始化task层的context属性，避免序列化问题
         self.ctx.initialize_task_context()
         
-        self.logger.debug(f"Queue name is {self.ctx.name}")
-        self.input_buffer = SageQueue(self.ctx.name)
-        self.input_buffer.logger = self.ctx.logger
+        # 子类需要初始化自己的input_buffer
+        self.input_buffer = None
+        self._initialize_queue()
+        
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
         self.is_running = False
@@ -40,6 +39,11 @@ class BaseTask(ABC):
         except Exception as e:
             self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
             raise
+
+    @abstractmethod
+    def _initialize_queue(self):
+        """子类需要实现具体的队列初始化逻辑"""
+        pass
 
 
     def start_running(self):
@@ -113,10 +117,23 @@ class BaseTask(ABC):
                 else:
                     
                     # For non-spout nodes, fetch input and process
-                    # input_result = self.fetch_input()
                     try:
-                        data_packet = self.input_buffer.get(timeout=0.5)
-                    except Exception as e:
+                        # 根据不同队列类型使用不同的get方法
+                        if hasattr(self.input_buffer, 'get'):
+                            # Python标准队列和Ray队列都有get方法，支持timeout
+                            data_packet = self.input_buffer.get(timeout=0.5)
+                        else:
+                            # 其他类型的队列处理
+                            data_packet = None
+                    except (Empty, Exception) as e:
+                        # 处理超时和其他异常 - 兼容Python queue.Empty和Ray queue Empty
+                        if "Empty" in str(type(e).__name__) or isinstance(e, Empty):
+                            # 这是超时异常，正常处理
+                            pass
+                        else:
+                            # 其他异常，记录日志
+                            self.logger.debug(f"Exception in queue get: {e}")
+                        
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue
@@ -179,19 +196,20 @@ class BaseTask(ABC):
             if self.is_running:
                 self.stop()
             
-            # # 清理算子资源
-            # if hasattr(self.operator, 'cleanup'):
-            #     self.operator.cleanup()
-            # 这些内容应该会自己清理掉
-            # # 清理路由器
-            # if hasattr(self.router, 'cleanup'):
-            #     self.router.cleanup()
-            
-            # 清理输入缓冲区
-            if hasattr(self.input_buffer, 'cleanup'):
-                self.input_buffer.cleanup()
-            elif hasattr(self.input_buffer, 'close'):
-                self.input_buffer.close()
+            # 清理输入缓冲区 - 根据不同队列类型处理
+            if self.input_buffer is not None:
+                try:
+                    # 对于Ray Queue，可能需要特殊处理
+                    if hasattr(self.input_buffer, 'shutdown'):
+                        self.input_buffer.shutdown()
+                    elif hasattr(self.input_buffer, 'cleanup'):
+                        self.input_buffer.cleanup()
+                    elif hasattr(self.input_buffer, 'close'):
+                        self.input_buffer.close()
+                    # Python标准队列不需要特殊清理
+                    self.logger.debug(f"Input buffer cleaned up for {self.name}")
+                except Exception as e:
+                    self.logger.warning(f"Error cleaning up input buffer for {self.name}: {e}")
             
             # 清理运行时上下文（包括service_manager）
             if hasattr(self.ctx, 'cleanup'):

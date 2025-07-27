@@ -31,7 +31,7 @@ class PrintSink(SinkFunction):
         return data
 
 def main():
-    env = LocalEnvironment("hello_world_batch_demo")
+    env = RemoteEnvironment("hello_world_batch_demo")
     
     # 批处理源 -> map -> sink
     env.from_batch(HelloBatch).map(UpperCaseMap).sink(PrintSink)

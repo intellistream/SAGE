@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, TYPE_CHECKING
 from sage.core.function.source_function import StopSignal
 from sage.runtime.router.packet import Packet
-from sage.utils.mmap_queue.sage_queue import SageQueue
 
 if TYPE_CHECKING:
     from sage.runtime.router.connection import Connection
@@ -38,12 +37,26 @@ class BaseRouter(ABC):
         """
         broadcast_index = connection.broadcast_index
         parallel_index = connection.parallel_index
+        
+        # 设置目标缓冲区 - 根据连接类型处理
         if connection.target_type == "local":
             self.logger.debug(f"Adding local connection to {connection.target_name}")
-            connection.target_buffer = SageQueue(connection.target_name)
-            self.logger.debug(f"connection.target_buffer.get_stats(): {connection.target_buffer.get_stats()}")
-        else:  # 直接对ray节点通信
-            connection.target_buffer = connection.target_handle.get_input_buffer.remote()
+            # 对于本地连接，直接使用目标任务的input_buffer
+            connection.target_buffer = connection.target_handle.get_input_buffer()
+        elif connection.target_type == "ray":
+            self.logger.debug(f"Adding ray connection to {connection.target_name}")
+            # 对于Ray节点，使用ActorWrapper的透明方法调用
+            # ActorWrapper会自动处理.remote()调用
+            connection.target_buffer = connection.target_handle.get_input_buffer()
+        else:
+            # 兼容旧代码的默认处理
+            self.logger.debug(f"Adding connection to {connection.target_name} (default handling)")
+            try:
+                connection.target_buffer = connection.target_handle.get_input_buffer()
+            except AttributeError:
+                # 如果是Ray Actor，尝试远程调用
+                connection.target_buffer = connection.target_handle.get_input_buffer.remote()
+        
         # Debug log
         self.logger.debug(
             f"Adding connection: broadcast_index={broadcast_index}, parallel_index={parallel_index}, target={connection.target_name}"
@@ -91,7 +104,27 @@ class BaseRouter(ABC):
         for broadcast_index, parallel_targets in self.downstream_groups.items():
             for connection in parallel_targets.values():
                 try:
-                    connection.target_buffer.put_nowait(stop_signal)
+                    target_buffer = connection.target_buffer
+                    
+                    # 根据不同的队列类型使用不同的put方法
+                    if hasattr(target_buffer, 'put_nowait'):
+                        # Python标准队列都有put_nowait
+                        target_buffer.put_nowait(stop_signal)
+                    elif hasattr(target_buffer, 'put'):
+                        # Ray队列使用put方法（非阻塞）
+                        target_buffer.put(stop_signal, block=False)
+                    else:
+                        # Ray Actor远程调用或ObjectRef处理
+                        import ray
+                        if ray.is_object_ref(target_buffer):
+                            # 如果是ObjectRef，先获取实际的队列对象，然后调用put
+                            actual_buffer = ray.get(target_buffer)
+                            actual_buffer.put(stop_signal, block=False)
+                        else:
+                            # 直接远程调用put方法 - 这种情况应该很少见，因为我们现在使用ActorWrapper
+                            self.logger.warning(f"Unexpected target_buffer type for {connection.target_name}: {type(target_buffer)}")
+                            ray.get(target_buffer.put.remote(stop_signal))
+                    
                     self.logger.debug(f"Sent stop signal to {connection.target_name}")
                 except Exception as e:
                     self.logger.error(f"Failed to send stop signal to {connection.target_name}: {e}")
@@ -197,11 +230,29 @@ class BaseRouter(ABC):
     def _deliver_packet(self, connection: 'Connection', packet: 'Packet') -> bool:
         try:
             # 检查下游负载并动态调整delay
-            
             self.downstream_max_load = max(self.downstream_max_load, connection.get_buffer_load())
             routed_packet = self._create_routed_packet(connection, packet)
             target_buffer = connection.target_buffer
-            target_buffer.put_nowait(routed_packet)
+            
+            # 根据不同的队列类型使用不同的put方法
+            if hasattr(target_buffer, 'put_nowait'):
+                # Python标准队列都有put_nowait
+                target_buffer.put_nowait(routed_packet)
+            elif hasattr(target_buffer, 'put'):
+                # Ray队列使用put方法（非阻塞）
+                target_buffer.put(routed_packet, block=False)
+            else:
+                # Ray Actor远程调用或ObjectRef处理
+                import ray
+                if ray.is_object_ref(target_buffer):
+                    # 如果是ObjectRef，先获取实际的队列对象，然后调用put
+                    actual_buffer = ray.get(target_buffer)
+                    actual_buffer.put(routed_packet, block=False)
+                else:
+                    # 直接远程调用put方法 - 这种情况应该很少见，因为我们现在使用ActorWrapper
+                    self.logger.warning(f"Unexpected target_buffer type for {connection.target_name}: {type(target_buffer)}")
+                    ray.get(target_buffer.put.remote(routed_packet))
+            
             self.logger.debug(
                 f"Sent {'keyed' if packet.is_keyed() else 'unkeyed'} packet "
                 f"to {connection.target_name} (strategy: {packet.partition_strategy or 'round-robin'})"

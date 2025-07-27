@@ -1,8 +1,18 @@
-from typing import Union
+from typing import Union, Any
 from dataclasses import dataclass
 import time
-from ray.actor import ActorHandle
+
+# Import Ray components safely
+try:
+    from ray.actor import ActorHandle
+    RAY_AVAILABLE = True
+except ImportError:
+    ActorHandle = None
+    RAY_AVAILABLE = False
+
 from sage.runtime.task.base_task import BaseTask
+from sage.utils.actor_wrapper import ActorWrapper
+
 @dataclass
 class Connection:
     """
@@ -12,7 +22,7 @@ class Connection:
                  broadcast_index: int,
                  parallel_index: int,
                  target_name: str,
-                 target_handle: Union[ActorHandle, BaseTask],
+                 target_handle: Any,  # Union[ActorHandle, BaseTask, ActorWrapper] - using Any to avoid import issues
                  target_input_index: int,
                  target_type: str = "local"):
         
@@ -20,7 +30,23 @@ class Connection:
         self.broadcast_index: int = broadcast_index
         self.parallel_index: int = parallel_index
         self.target_name: str = target_name
-        self.target_handle: Union[ActorHandle, BaseTask] = target_handle
+        
+        # 如果target_handle是Ray Actor，用ActorWrapper包装
+        is_ray_actor = False
+        if RAY_AVAILABLE and ActorHandle and isinstance(target_handle, ActorHandle):
+            is_ray_actor = True
+        elif hasattr(target_handle, '__class__') and 'ActorHandle' in str(type(target_handle)):
+            # 额外的安全检查，防止import问题
+            is_ray_actor = True
+        
+        if is_ray_actor:
+            self.target_handle = ActorWrapper(target_handle)
+            # 如果传入的是裸露的Ray Actor，应该设置为ray类型
+            if target_type == "local":
+                target_type = "ray"
+        else:
+            self.target_handle = target_handle
+            
         self.target_input_index: int = target_input_index
         self.target_type: str = target_type
         # 负载状态跟踪
@@ -34,25 +60,32 @@ class Connection:
         获取目标缓冲区的负载率 (0.0-1.0)
         """
         try:
+            # 检查是否为Python标准队列
             if hasattr(self.target_buffer, 'qsize') and hasattr(self.target_buffer, 'maxsize'):
-                # SageQueue类型
                 current_size = self.target_buffer.qsize()
                 max_size = self.target_buffer.maxsize
                 if max_size > 0:
                     load_ratio = current_size / max_size
                 else:
                     load_ratio = 0.0
-            elif hasattr(self.target_buffer, 'get_buffer_stats'):
-                # 如果是SageQueue类型，使用统计信息
-                stats = self.target_buffer.get_buffer_stats()
-                load_ratio = stats.get('utilization', 0.0)
+            # 检查是否为Ray队列
+            elif hasattr(self.target_buffer, 'size') and hasattr(self.target_buffer, 'maxsize'):
+                current_size = self.target_buffer.size()
+                max_size = self.target_buffer.maxsize
+                if max_size > 0:
+                    load_ratio = current_size / max_size
+                else:
+                    load_ratio = 0.0
             else:
-                # Ray Actor类型，暂时返回0（后续可以扩展）
+                # 其他类型（ObjectRef等），暂时返回0
+                # 在实际使用中，Ray Queue通过ActorWrapper应该可以直接访问size()方法
                 load_ratio = 0.0
             
             return load_ratio
             
-        except Exception:
+        except Exception as e:
+            # 如果获取负载失败，记录调试信息并返回0
+            # 这可能发生在Ray远程调用失败时
             return 0.0
     
     # def should_increase_delay(self) -> bool:

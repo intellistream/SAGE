@@ -193,17 +193,28 @@ class Dispatcher():
                 target_input_index = parallel_edge.input_index
                 target_handle = self.tasks[target_name]
 
+                # 判断目标任务类型：如果是ActorWrapper，则为ray类型，否则为local类型
+                if hasattr(target_handle, '_actor'):
+                    # 这是一个ActorWrapper，说明是Ray Actor
+                    target_type = "ray"
+                    # 对于Ray Actor，保持ActorWrapper包装以便透明调用
+                    actual_target_handle = target_handle
+                else:
+                    # 这是一个本地任务
+                    target_type = "local"
+                    actual_target_handle = target_handle.get_object() if hasattr(target_handle, 'get_object') else target_handle
+
                 connection = Connection(
                     broadcast_index=broadcast_index,
                     parallel_index=parallel_index,
                     target_name=target_name,
-                    target_handle=target_handle.get_object(),
-                    target_input_index = target_input_index,
-                    target_type="local"
+                    target_handle=actual_target_handle,
+                    target_input_index=target_input_index,
+                    target_type=target_type
                 )
                 try:
                     output_handle.add_connection(connection)
-                    self.logger.debug(f"Setup connection: {node_name} -> {target_name}")
+                    self.logger.debug(f"Setup connection: {node_name} -> {target_name} ({target_type})")
                     
                 except Exception as e:
                     self.logger.error(f"Error setting up connection {node_name} -> {target_name}: {e}", exc_info=True)
