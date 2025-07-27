@@ -72,7 +72,7 @@ def build_c_extension():
 
 setup(
     name='sage',
-    version='0.1.1',
+    version='0.1.2',
     author='IntelliStream',
     author_email="intellistream@outlook.com",
     description="SAGE - Stream Processing Framework for python-native distributed systems with JobManager",
