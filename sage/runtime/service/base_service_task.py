@@ -132,12 +132,22 @@ class BaseServiceTask(ABC):
                     self._handle_service_request(request_data)
                     
                 except Exception as e:
-                    if "timed out" not in str(e).lower() and "empty" not in str(e).lower():
+                    # 如果是队列关闭，直接退出循环
+                    if "closed" in str(e).lower() or "Queue is closed" in str(e):
+                        self.logger.debug("Request queue closed, stopping listener")
+                        break
+                    # 忽略超时和空队列错误
+                    elif "timed out" not in str(e).lower() and "empty" not in str(e).lower():
                         self.logger.error(f"Error receiving request: {e}")
                 
             except Exception as e:
-                self.logger.error(f"Error in queue listener loop: {e}")
-                time.sleep(1.0)
+                # 如果是队列关闭相关错误，直接退出循环
+                if "closed" in str(e).lower() or "Queue is closed" in str(e):
+                    self.logger.debug("Queue closed, stopping listener loop")
+                    break
+                else:
+                    self.logger.error(f"Error in queue listener loop: {e}")
+                    time.sleep(1.0)
         
         self.logger.debug(f"Queue listener loop ended for service {self.service_name}")
     
