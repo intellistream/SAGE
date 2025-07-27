@@ -281,6 +281,11 @@ class ServiceCallProxy:
         self._service_name = service_name
         self._async_mode = async_mode
     
+    @property
+    def service_name(self) -> str:
+        """获取服务名称"""
+        return self._service_name
+    
     def __getattr__(self, method_name: str):
         """
         动态创建方法调用

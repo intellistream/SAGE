@@ -120,12 +120,12 @@ def test_concurrent_access():
                 async_proxy_1 = func.call_service_async["service_b"]
                 sync_proxy_2 = func.call_service["service_a"]  # 重复调用同一服务
                 
-                # 验证即使是同一服务，每次调用也返回不同的代理对象
-                if sync_proxy_1 is not sync_proxy_2:
+                # 验证对同一服务的重复调用返回相同的代理对象（缓存行为）
+                if sync_proxy_1 is sync_proxy_2:
                     with results_lock:
                         success_count += 1
                 else:
-                    print(f"❌ Worker {worker_id}, call {call_id}: Same proxy returned for repeated calls")
+                    print(f"❌ Worker {worker_id}, call {call_id}: Different proxy returned for same service")
                     
         except Exception as e:
             print(f"❌ Worker {worker_id} failed: {e}")

@@ -1,7 +1,6 @@
 import os
 from typing import TYPE_CHECKING
 from sage.runtime.task.base_task import BaseTask
-from sage.runtime.utils.local_message_queue import LocalMessageQueue
 from sage.utils.mmap_queue import SageQueue
 if TYPE_CHECKING:
     from sage.jobmanager.factory.operator_factory import OperatorFactory
@@ -10,7 +9,7 @@ if TYPE_CHECKING:
 
 class LocalTask(BaseTask):
     """
-    本地任务节点，使用LocalMessageQueue作为输入缓冲区
+    本地任务节点，使用SageQueue高性能共享队列作为输入缓冲区
     内部运行独立的工作线程，处理数据流
     """
     
