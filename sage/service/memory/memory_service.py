@@ -289,3 +289,36 @@ class MemoryService:
                 "status": "error",
                 "message": str(e)
             }
+
+    # 存储操作接口
+    def store_collection(self, collection_name: str) -> Dict[str, Any]:
+        """保存指定collection到磁盘"""
+        try:
+            collection = self.manager.get_collection(collection_name)
+            if not collection:
+                raise ValueError(f"Collection '{collection_name}' not found")
+                
+            self.manager.store_collection(collection_name)
+            return {
+                "status": "success",
+                "message": f"Collection '{collection_name}' stored successfully"
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+
+    def store(self) -> Dict[str, Any]:
+        """保存整个manager的所有信息到磁盘"""
+        try:
+            self.manager.store_collection()  # 保存所有已加载的collection
+            return {
+                "status": "success",
+                "message": "All manager data stored successfully"
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }

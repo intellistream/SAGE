@@ -5,7 +5,7 @@ import os
 import hashlib
 from dotenv import load_dotenv
 from typing import Dict, Optional, Callable, Any, List
-
+from sage.service.memory.utils.path_utils import get_default_data_dir
 from sage.service.memory.storage_engine.metadata_storage import MetadataStorage
 from sage.service.memory.storage_engine.text_storage import TextStorage
 
@@ -119,21 +119,6 @@ class BaseMemoryCollection:
         """
         self.text_storage.clear()
         self.metadata_storage.clear()
-        
-
-def get_default_data_dir():
-    # 找到 sage 的父目录，并拼 data/sage.service.memory.
-    this_file = os.path.abspath(__file__)
-    parts = this_file.split(os.sep)
-    try:
-        sage_idx = parts.index('sage')
-    except ValueError:
-        sage_idx = len(parts) - 1
-    project_root = os.sep.join(parts[:sage_idx+1])
-    data_dir = os.path.join(os.path.dirname(project_root), "data", "sage.service.memory.")
-    os.makedirs(data_dir, exist_ok=True)
-    return data_dir
-
     
 if __name__ == "__main__":
 

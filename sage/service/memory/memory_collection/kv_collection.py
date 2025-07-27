@@ -10,9 +10,9 @@ import warnings
 
 from typing import Optional, Dict, Any, List, Callable
 
-from sage.service.memory.memory_collection.base_collection import BaseMemoryCollection, get_default_data_dir
+from sage.service.memory.memory_collection.base_collection import BaseMemoryCollection
 from sage.service.memory.search_engine.kv_index.bm25s_index import BM25sIndex
-
+from sage.service.memory.utils.path_utils import get_default_data_dir
 
 # 通过config文件指定默认索引，neuromem默认索引，用户指定索引
 
