@@ -49,6 +49,9 @@ class ServiceManager:
         # 线程池
         self._executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="ServiceCall")
         
+        # 添加停止标志
+        self._shutdown = False
+        
         # 启动响应监听线程
         self._listener_thread = threading.Thread(
             target=self._response_listener,
@@ -179,10 +182,15 @@ class ServiceManager:
         """
         self.logger.debug("Service response listener started")
         
-        while True:
+        while not self._shutdown:
             try:
                 # 获取响应队列
                 response_queue = self._get_response_queue()
+                
+                # 检查队列是否已关闭
+                if hasattr(response_queue, 'is_closed') and response_queue.is_closed():
+                    self.logger.debug("Response queue is closed, stopping listener")
+                    break
                 
                 # 从响应队列获取响应（阻塞等待1秒）
                 try:
@@ -199,12 +207,18 @@ class ServiceManager:
                     self._handle_response(request_id, response)
                     
                 except Exception as e:
-                    if "timed out" not in str(e).lower():
+                    # 如果是超时或队列关闭，不记录错误
+                    if "timed out" not in str(e).lower() and "closed" not in str(e).lower():
                         self.logger.error(f"Error receiving response: {e}")
                 
             except Exception as e:
-                self.logger.error(f"Error in response listener: {e}")
-                time.sleep(1.0)
+                # 检查是否是队列关闭导致的错误
+                if "closed" in str(e).lower() or "Queue is closed" in str(e):
+                    self.logger.debug("Response queue closed, stopping listener")
+                    break
+                else:
+                    self.logger.error(f"Error in response listener: {e}")
+                    time.sleep(1.0)
     
     def _handle_response(self, request_id: str, response: ServiceResponse):
         """处理接收到的响应"""
@@ -223,6 +237,9 @@ class ServiceManager:
         """关闭服务管理器"""
         self.logger.debug("Shutting down ServiceManager")
         
+        # 设置停止标志
+        self._shutdown = True
+        
         # 关闭所有服务队列
         for service_name, queue in self._service_queues.items():
             try:
@@ -237,8 +254,23 @@ class ServiceManager:
             except Exception as e:
                 self.logger.warning(f"Error closing response queue: {e}")
         
+        # 等待监听线程结束（最多等待2秒）
+        if self._listener_thread and self._listener_thread.is_alive():
+            self._listener_thread.join(timeout=2.0)
+            if self._listener_thread.is_alive():
+                self.logger.warning("Response listener thread did not stop gracefully")
+        
         # 关闭线程池
         self._executor.shutdown(wait=True)
+    
+    def __del__(self):
+        """析构函数 - 确保资源被正确清理"""
+        try:
+            if not self._shutdown:
+                self.shutdown()
+        except Exception:
+            # 在析构函数中不记录错误，避免在程序退出时产生问题
+            pass
 
 
 class ServiceCallProxy:
@@ -271,7 +303,3 @@ class ServiceCallProxy:
                 )
         
         return _call
-
-
-# 向后兼容的别名
-ServiceCaller = ServiceManager
