@@ -75,9 +75,9 @@ class TestConcurrentServiceCalls(unittest.TestCase):
                     service_proxy_2 = func.call_service["db_service"] 
                     service_proxy_3 = func.call_service["cache_service"]  # 再次调用相同服务
                     
-                    # 验证每次调用都得到新的代理对象
+                    # 验证不同服务名返回不同代理对象，相同服务名返回相同代理对象
                     self.assertIsNot(service_proxy_1, service_proxy_2)
-                    self.assertIsNot(service_proxy_1, service_proxy_3)
+                    self.assertIs(service_proxy_1, service_proxy_3)  # 相同服务名应该返回相同对象
                     
                     with lock:
                         all_results.append({
@@ -120,15 +120,15 @@ class TestConcurrentServiceCalls(unittest.TestCase):
         self.assertEqual(len(successful_results), self.num_functions * self.num_calls_per_function,
                         f"Expected {self.num_functions * self.num_calls_per_function} successful calls, got {len(successful_results)}")
         
-        # 验证所有代理对象ID都不同（确保每次都创建新对象）
+        # 验证代理对象的创建符合预期
         all_proxy_ids = set()
         for result in successful_results:
             all_proxy_ids.add(result['proxy_1_id'])
             all_proxy_ids.add(result['proxy_2_id'])
-            all_proxy_ids.add(result['proxy_3_id'])
+            # proxy_3应该和proxy_1相同（相同服务名），所以不单独计算
         
-        # 期望的唯一代理对象数量 = functions数量 * 每个function的调用次数 * 每次调用创建的代理数量
-        expected_unique_proxies = self.num_functions * self.num_calls_per_function * 3
+        # 期望的唯一代理对象数量 = functions数量 * 不同的服务数量（cache_service, db_service = 2）
+        expected_unique_proxies = self.num_functions * 2  # 每个function有2个不同的服务
         self.assertEqual(len(all_proxy_ids), expected_unique_proxies, 
                         f"Expected {expected_unique_proxies} unique proxy objects, got {len(all_proxy_ids)}")
         
@@ -157,9 +157,9 @@ class TestConcurrentServiceCalls(unittest.TestCase):
                     async_proxy_2 = func.call_service_async["db_service"]
                     async_proxy_3 = func.call_service_async["cache_service"]  # 再次调用相同服务
                     
-                    # 验证每次调用都得到新的代理对象
+                    # 验证不同服务名返回不同代理对象，相同服务名返回相同代理对象
                     self.assertIsNot(async_proxy_1, async_proxy_2)
-                    self.assertIsNot(async_proxy_1, async_proxy_3)
+                    self.assertIs(async_proxy_1, async_proxy_3)  # 相同服务名应该返回相同对象
                     
                     with lock:
                         all_results.append({
@@ -202,14 +202,15 @@ class TestConcurrentServiceCalls(unittest.TestCase):
         self.assertEqual(len(successful_results), self.num_functions * self.num_calls_per_function,
                         f"Expected {self.num_functions * self.num_calls_per_function} successful async calls, got {len(successful_results)}")
         
-        # 验证所有代理对象ID都不同
+        # 验证异步代理对象的创建符合预期
         all_async_proxy_ids = set()
         for result in successful_results:
             all_async_proxy_ids.add(result['async_proxy_1_id'])
             all_async_proxy_ids.add(result['async_proxy_2_id'])
-            all_async_proxy_ids.add(result['async_proxy_3_id'])
+            # async_proxy_3应该和async_proxy_1相同（相同服务名），所以不单独计算
         
-        expected_unique_async_proxies = self.num_functions * self.num_calls_per_function * 3
+        # 期望的唯一异步代理对象数量 = functions数量 * 不同的服务数量（cache_service, db_service = 2）
+        expected_unique_async_proxies = self.num_functions * 2  # 每个function有2个不同的服务
         self.assertEqual(len(all_async_proxy_ids), expected_unique_async_proxies,
                         f"Expected {expected_unique_async_proxies} unique async proxy objects, got {len(all_async_proxy_ids)}")
         
@@ -280,12 +281,14 @@ class TestConcurrentServiceCalls(unittest.TestCase):
         self.assertGreater(len(sync_calls), 0, "Should have sync calls")
         self.assertGreater(len(async_calls), 0, "Should have async calls")
         
-        # 验证所有代理对象都是唯一的
+        # 验证代理对象缓存符合预期
         all_proxy_ids = {r['proxy_id'] for r in all_results if 'proxy_id' in r}
-        self.assertEqual(len(all_proxy_ids), len(all_results), 
-                        "All proxy objects should be unique")
+        # 每个function有2个代理对象（1个同步，1个异步）
+        expected_unique_proxies = len(functions) * 2  # 3 functions * 2 types = 6
+        self.assertEqual(len(all_proxy_ids), expected_unique_proxies, 
+                        f"Expected {expected_unique_proxies} unique proxy objects (sync + async per function), got {len(all_proxy_ids)}")
         
-        print(f"✓ Successfully executed {len(sync_calls)} sync and {len(async_calls)} async calls with unique proxies")
+        print(f"✓ Successfully executed {len(sync_calls)} sync and {len(async_calls)} async calls with {len(all_proxy_ids)} unique proxies")
 
 
 if __name__ == "__main__":

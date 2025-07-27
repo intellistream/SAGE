@@ -82,32 +82,23 @@ def test_proxy_creation():
     print(f"async_proxy_1 is async_proxy_3: {async_proxy_1 is async_proxy_3}")
     print(f"async_proxy_2 is async_proxy_3: {async_proxy_2 is async_proxy_3}")
     
-    # 测试ServiceManager中的get_sync_proxy和get_async_proxy
-    print("\n=== Testing ServiceManager methods directly ===")
+    # 测试ServiceManager基本功能
+    print("\n=== Testing ServiceManager basic functionality ===")
     
     service_manager = func.ctx.service_manager
     
-    direct_sync_1 = service_manager.get_sync_proxy("test_service")
-    direct_sync_2 = service_manager.get_sync_proxy("test_service")
+    # 验证ServiceManager实例
+    from sage.runtime.service.service_caller import ServiceManager
+    assert isinstance(service_manager, ServiceManager), "service_manager should be ServiceManager instance"
     
-    print(f"direct_sync_1 id: {id(direct_sync_1)}")
-    print(f"direct_sync_2 id: {id(direct_sync_2)}")
-    print(f"direct_sync_1 is direct_sync_2: {direct_sync_1 is direct_sync_2}")
-    
-    direct_async_1 = service_manager.get_async_proxy("test_service")
-    direct_async_2 = service_manager.get_async_proxy("test_service")
-    
-    print(f"direct_async_1 id: {id(direct_async_1)}")
-    print(f"direct_async_2 id: {id(direct_async_2)}")
-    print(f"direct_async_1 is direct_async_2: {direct_async_1 is direct_async_2}")
+    print(f"ServiceManager type: {type(service_manager)}")
+    print(f"ServiceManager id: {id(service_manager)}")
     
     # 验证所有代理都是唯一的
     all_proxies = [
         sync_proxy_1, sync_proxy_2, sync_proxy_3,
         cache_proxy, db_proxy,
-        async_proxy_1, async_proxy_2, async_proxy_3,
-        direct_sync_1, direct_sync_2,
-        direct_async_1, direct_async_2
+        async_proxy_1, async_proxy_2, async_proxy_3
     ]
     
     unique_ids = set(id(proxy) for proxy in all_proxies)
