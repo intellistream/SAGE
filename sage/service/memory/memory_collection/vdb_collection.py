@@ -9,10 +9,10 @@ import inspect
 import numpy as np
 from typing import Optional, Dict, Any, List, Callable
 from sage.utils.custom_logger import CustomLogger
-from sage.service.memory.memory_collection.base_collection import get_default_data_dir, BaseMemoryCollection
+from sage.service.memory.memory_collection.base_collection import BaseMemoryCollection
 from sage.service.memory.search_engine.vdb_index.faiss_index import FaissIndex
 from sage.service.memory.storage_engine.vector_storage import VectorStorage
-
+from sage.service.memory.utils.path_utils import get_default_data_dir
 
 def get_func_source(func):
     if func is None:
@@ -66,11 +66,13 @@ class VDBMemoryCollection(BaseMemoryCollection):
         self.logger.debug(f"VDBMemoryCollection: store called")
 
         if store_path is None:
-            store_path = get_default_data_dir()
-            collection_dir = os.path.join(store_path, "vdb_collection", self.name)
+            # 使用默认数据目录
+            base_dir = get_default_data_dir()
         else:
-            collection_dir = store_path
-
+            # 使用传入的数据目录（通常来自MemoryManager）
+            base_dir = store_path
+            
+        collection_dir = os.path.join(base_dir, "vdb_collection", self.name)
         os.makedirs(collection_dir, exist_ok=True)
 
         # 1. 各storage
@@ -112,7 +114,11 @@ class VDBMemoryCollection(BaseMemoryCollection):
         # cls.logger.debug(f"VDBMemoryCollection: load called")
 
         if load_path is None:
-            load_path = os.path.join(get_default_data_dir(), "vdb_collection", name)
+            # 如果没有指定路径，使用默认路径结构
+            base_dir = get_default_data_dir()
+            load_path = os.path.join(base_dir, "vdb_collection", name)
+        
+        # 此时 load_path 应该是指向具体collection的完整路径
         config_path = os.path.join(load_path, "config.json")
         if not os.path.exists(config_path):
             raise FileNotFoundError(f"No config found for collection at {config_path}")
