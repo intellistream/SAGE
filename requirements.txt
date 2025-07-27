@@ -49,3 +49,6 @@ dill~=0.3.8
 psutil>=5.8.0
 shellingham~=1.5.4
 typer~=0.16.0
+beautifulsoup4~=4.13.4
+bs4~=0.0.2
+soupsieve~=2.7
