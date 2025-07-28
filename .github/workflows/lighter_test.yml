@@ -13,9 +13,9 @@ name: Lighter runtime tests (DISABLED)
 on:
   workflow_dispatch:  # 仅允许手动触发
   push:             # 已禁用自动触发
-    branches: [ main ,refactor/refactor1]
+    branches: [ main ,refactor/refactor0.1]
   pull_request:     # 已禁用自动触发
-    branches: [ main ,refactor/refactor1]
+    branches: [ main ,refactor/refactor0.1]
 
 jobs:
   build-and-test:
