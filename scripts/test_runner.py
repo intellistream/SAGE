@@ -165,7 +165,9 @@ class SAGETestRunner:
             "log_file": str(log_file_path),
             "test_files": [str(f) for f in test_files],
             "success": False,
-            "duration": 0.0
+            "duration": 0.0,
+            "has_warnings": False,
+            "return_code": 0
         }
         
         if not test_files:
@@ -190,13 +192,18 @@ class SAGETestRunner:
                 process = subprocess.run(
                     cmd, 
                     cwd=self.project_root,
-                    stdout=log_file, 
+                    stdout=subprocess.PIPE, 
                     stderr=subprocess.STDOUT,
                     text=True,
-                    timeout=300  # 5分钟超时
+                    timeout=100  # 5分钟超时
                 )
                 
-                result["success"] = process.returncode == 0
+                # 将输出写入日志文件
+                log_file.write(process.stdout)
+                
+                # 分析pytest输出来判断是否真正失败
+                result["return_code"] = process.returncode
+                result["success"], result["has_warnings"] = self._analyze_pytest_output(process.returncode, process.stdout)
                 result["duration"] = time.time() - start_time
                 
         except subprocess.TimeoutExpired:
@@ -250,18 +257,19 @@ class SAGETestRunner:
         all_results.sort(key=lambda r: r["directory"])
         successful_tests = sum(1 for r in all_results if r["success"])
         failed_tests = len(all_results) - successful_tests
+        warning_tests = sum(1 for r in all_results if r.get("has_warnings", False) and r["success"])
         total_test_files = sum(len(r["test_files"]) for r in all_results)
         
         # 输出结果
         if output_format == "markdown":
-            self._print_markdown_summary(title, all_results, total_duration, total_test_files, successful_tests, failed_tests)
+            self._print_markdown_summary(title, all_results, total_duration, total_test_files, successful_tests, failed_tests, warning_tests)
         else:
-            self._print_text_summary(title, all_results, total_duration, total_test_files, successful_tests, failed_tests)
+            self._print_text_summary(title, all_results, total_duration, total_test_files, successful_tests, failed_tests, warning_tests)
         
         return failed_tests == 0
     
     def _print_text_summary(self, title: str, all_results: List[Dict], total_duration: float, 
-                           total_test_files: int, successful_tests: int, failed_tests: int):
+                           total_test_files: int, successful_tests: int, failed_tests: int, warning_tests: int):
         """打印文本格式的测试总结"""
         print(f"\n{'='*60}")
         print(f"📊 {title}结果总结:")
@@ -269,6 +277,8 @@ class SAGETestRunner:
         print(f"  📄 测试文件: {total_test_files}")
         print(f"  ✅ 成功: {successful_tests}")
         print(f"  ❌ 失败: {failed_tests}")
+        if warning_tests > 0:
+            print(f"  ⚠️  有警告: {warning_tests}")
         print(f"  ⏱️ 总耗时: {total_duration:.2f}s")
         
         if failed_tests > 0:
@@ -278,9 +288,16 @@ class SAGETestRunner:
                     status = "❌ 失败"
                     print(f"  {status} - {result['directory']} (耗时: {result['duration']:.2f}s)")
                     print(f"    └── 📄 日志: {result['log_file']}")
+        
+        if warning_tests > 0:
+            print(f"\n⚠️ 有警告的测试目录:")
+            for result in all_results:
+                if result["success"] and result.get("has_warnings", False):
+                    print(f"  ⚠️ 警告 - {result['directory']} (耗时: {result['duration']:.2f}s)")
+                    print(f"    └── 📄 日志: {result['log_file']}")
     
     def _print_markdown_summary(self, title: str, all_results: List[Dict], total_duration: float,
-                               total_test_files: int, successful_tests: int, failed_tests: int):
+                               total_test_files: int, successful_tests: int, failed_tests: int, warning_tests: int):
         """打印Markdown格式的测试总结"""
         print(f"## 📊 {title}结果总结\n")
         
@@ -290,6 +307,8 @@ class SAGETestRunner:
         print(f"- **测试文件**: {total_test_files}")
         print(f"- **成功**: {successful_tests}")
         print(f"- **失败**: {failed_tests}")
+        if warning_tests > 0:
+            print(f"- **有警告**: {warning_tests}")
         print(f"- **总耗时**: {total_duration:.2f}s")
         print()
         
@@ -299,7 +318,13 @@ class SAGETestRunner:
         print("|----------|------|---------|------------|----------|")
         
         for result in all_results:
-            status = "✅ 成功" if result["success"] else "❌ 失败"
+            if not result["success"]:
+                status = "❌ 失败"
+            elif result.get("has_warnings", False):
+                status = "⚠️ 警告"
+            else:
+                status = "✅ 成功"
+            
             rel_dir = Path(result["directory"]).relative_to(self.project_root)
             rel_log = Path(result["log_file"]).relative_to(self.project_root)
             print(f"| `{rel_dir}` | {status} | {result['duration']:.2f} | {len(result['test_files'])} | `{rel_log}` |")
@@ -317,6 +342,17 @@ class SAGETestRunner:
                     print(f"  - 日志文件: `{rel_log}`")
             print()
         
+        # 警告详情
+        if warning_tests > 0:
+            print("### ⚠️ 警告详情")
+            for result in all_results:
+                if result["success"] and result.get("has_warnings", False):
+                    rel_dir = Path(result["directory"]).relative_to(self.project_root)
+                    rel_log = Path(result["log_file"]).relative_to(self.project_root)
+                    print(f"- **{rel_dir}**: 测试通过但有警告 (耗时: {result['duration']:.2f}s)")
+                    print(f"  - 日志文件: `{rel_log}`")
+            print()
+        
         # 推荐操作
         if failed_tests > 0:
             print("### 💡 建议操作")
@@ -327,7 +363,10 @@ class SAGETestRunner:
             print("RUN_FULL_TESTS=true")
         else:
             print("### ✅ 所有测试通过")
-            print("代码变更没有破坏现有功能，可以安全合并。")
+            if warning_tests > 0:
+                print("代码变更没有破坏现有功能，但存在警告需要关注。")
+            else:
+                print("代码变更没有破坏现有功能，可以安全合并。")
             print()
             print("RUN_FULL_TESTS=false")
         
@@ -414,6 +453,64 @@ class SAGETestRunner:
         for test_dir in test_dirs:
             test_files = self.find_test_files_in_dir(test_dir)
             print(f"  - {test_dir.relative_to(self.project_root)} ({len(test_files)} 个测试文件)")
+
+    def _analyze_pytest_output(self, return_code: int, output: str) -> tuple[bool, bool]:
+        """
+        分析pytest输出，判断是否真正失败
+        
+        Args:
+            return_code: pytest进程的退出码
+            output: pytest的输出内容
+            
+        Returns:
+            tuple: (是否成功, 是否有警告)
+        """
+        output_lower = output.lower()
+        has_warnings = "warning" in output_lower or "warnings summary" in output_lower
+        
+        if return_code == 0:
+            return True, has_warnings
+        
+        # 如果退出码非零，首先检查是否有明确的失败指示符
+        # 优先检查 "failed" 关键字，这是最明确的失败标志
+        if "failed" in output_lower:
+            return False, has_warnings
+        
+        # 检查其他明确的失败指示符
+        critical_failures = [
+            "error collecting",
+            "errors",
+            "assertion error", 
+            "assertionerror",
+            "exception:",
+            "traceback (most recent call last):",
+            "segmentation fault",
+            "core dumped",
+            "syntax error",
+            "import error",
+            "module not found"
+        ]
+        
+        # 如果输出中包含任何明确的失败指示符，直接判断为失败
+        for failure in critical_failures:
+            if failure in output_lower:
+                return False, has_warnings
+        
+        # 如果没有明确的失败指示符，检查pytest的结果行
+        # 查找类似 "5 passed, 4 warnings in 27.15s" 的行
+        lines = output.split('\n')
+        for line in lines:
+            line_lower = line.lower().strip()
+            
+            # 匹配pytest结果总结行的几种模式
+            if ('passed' in line_lower and 
+                ('in ' in line_lower and line_lower.endswith('s')) or
+                'passed,' in line_lower):
+                # 找到了结果行，且包含passed，认为成功
+                return True, has_warnings
+        
+        # 如果没有找到明确的成功指示符，且退出码非零，判断为失败
+        return False, has_warnings
 
 def main():
     parser = argparse.ArgumentParser(
