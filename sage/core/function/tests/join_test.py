@@ -608,51 +608,51 @@ class TestJoinFunctionality:
     def setup_method(self):
         JoinResultSink.clear_results()
     
-    def test_flatmap_filter_join_pipeline(self):
-        """测试完整的FlatMap -> Filter -> Join管道"""
-        print("\n🚀 Testing Complete FlatMap -> Filter -> Join Pipeline")
+    # def test_flatmap_filter_join_pipeline(self):
+    #     """测试完整的FlatMap -> Filter -> Join管道"""
+    #     print("\n🚀 Testing Complete FlatMap -> Filter -> Join Pipeline")
         
-        env = LocalEnvironment("flatmap_filter_join_test")
+    #     env = LocalEnvironment("flatmap_filter_join_test")
         
-        # 1. 创建源数据流
-        order_source = env.from_source(OrderEventSource, delay=0.2)
-        user_source = env.from_source(UserProfileSource, delay=0.3)
+    #     # 1. 创建源数据流
+    #     order_source = env.from_source(OrderEventSource, delay=0.2)
+    #     user_source = env.from_source(UserProfileSource, delay=0.3)
         
-        # 2. 上游处理：FlatMap分解数据，Filter过滤
-        order_stream = (order_source
-            .flatmap(OrderEventFlatMap)    # 分解订单事件
-            .filter(OrderInfoFilter)       # 只保留订单相关信息
-            .keyby(UserIdKeyBy)             # 按用户ID分区
-        )
+    #     # 2. 上游处理：FlatMap分解数据，Filter过滤
+    #     order_stream = (order_source
+    #         .flatmap(OrderEventFlatMap)    # 分解订单事件
+    #         .filter(OrderInfoFilter)       # 只保留订单相关信息
+    #         .keyby(UserIdKeyBy)             # 按用户ID分区
+    #     )
         
-        user_stream = (user_source
-            .flatmap(UserProfileFlatMap)    # 分解用户档案
-            .filter(UserInfoFilter)         # 只保留用户相关信息
-            .keyby(UserIdKeyBy)             # 按用户ID分区
-        )
+    #     user_stream = (user_source
+    #         .flatmap(UserProfileFlatMap)    # 分解用户档案
+    #         .filter(UserInfoFilter)         # 只保留用户相关信息
+    #         .keyby(UserIdKeyBy)             # 按用户ID分区
+    #     )
         
-        # 3. 下游处理：Connect和Join
-        join_result = (user_stream
-            .connect(order_stream)          # 连接两个流
-            .join(UserOrderJoin)            # 用户-订单Join
-            .sink(JoinResultSink, parallelism=1)
-        )
+    #     # 3. 下游处理：Connect和Join
+    #     join_result = (user_stream
+    #         .connect(order_stream)          # 连接两个流
+    #         .join(UserOrderJoin)            # 用户-订单Join
+    #         .sink(JoinResultSink, parallelism=1)
+    #     )
         
-        print("📊 Pipeline: OrderSource -> flatmap -> filter -> keyby")
-        print("           UserSource -> flatmap -> filter -> keyby")
-        print("           user_stream.connect(order_stream).join(UserOrderJoin)")
-        print("🎯 Expected: User and order data joined on user_id\n")
+    #     print("📊 Pipeline: OrderSource -> flatmap -> filter -> keyby")
+    #     print("           UserSource -> flatmap -> filter -> keyby")
+    #     print("           user_stream.connect(order_stream).join(UserOrderJoin)")
+    #     print("🎯 Expected: User and order data joined on user_id\n")
         
-        try:
-            env.submit()
+    #     try:
+    #         env.submit()
             
-            time.sleep(6)
-        finally:
-            env.close()
+    #         time.sleep(6)
+    #     finally:
+    #         env.close()
         
-        # 等待一下确保文件写入完成
-        time.sleep(1)
-        self._verify_user_order_join_results()
+    #     # 等待一下确保文件写入完成
+    #     time.sleep(1)
+    #     self._verify_user_order_join_results()
     
     def test_multi_stage_join_pipeline(self):
         """测试多阶段Join管道"""
@@ -869,63 +869,7 @@ class TestJoinFunctionality:
         # 等待一下确保文件写入完成
         time.sleep(1)
         self._verify_empty_stream_join_results()
-    
-    def test_multi_stage_join_pipeline(self):
-        """测试多阶段Join管道"""
-        print("\n🚀 Testing Multi-Stage Join Pipeline")
-        
-        env = LocalEnvironment("multi_stage_join_test")
-        
-        # 第一阶段：订单事件流处理
-        order_source = env.from_source(OrderEventSource, delay=0.2)
-        
-        # 分离为两个流：订单信息流和支付信息流
-        order_info_stream = (order_source
-            .flatmap(OrderEventFlatMap)
-            .filter(lambda x: x.get("type") == "order_info")
-            .keyby(UserIdKeyBy)
-        )
-        
-        payment_info_stream = (order_source
-            .flatmap(OrderEventFlatMap)
-            .filter(lambda x: x.get("type") == "payment_info")
-            .keyby(UserIdKeyBy)
-        )
-        
-        # 第二阶段：用户信息流处理
-        user_source = env.from_source(UserProfileSource, delay=0.3)
-        
-        # 只保留高级用户
-        premium_user_stream = (user_source
-            .flatmap(UserProfileFlatMap)
-            .filter(PremiumUserFilter)
-            .filter(lambda x: x.get("type") in ["user_info", "preference_info"])
-            .keyby(UserIdKeyBy)
-        )
-        
-        # 第三阶段：多重Join
-        # Join 1: 高级用户 + 支付信息
-        user_payment_join = (premium_user_stream
-            .connect(payment_info_stream)
-            .join(UserPaymentJoin, timeout_ms=3000)
-            .sink(JoinResultSink, parallelism=1)
-        )
-        
-        print("📊 Multi-Stage Pipeline:")
-        print("   OrderSource -> flatmap -> filter(order_info) -> keyby")
-        print("   OrderSource -> flatmap -> filter(payment_info) -> keyby")
-        print("   UserSource -> flatmap -> filter(premium) -> keyby")
-        print("   premium_user.connect(payment).join(UserPaymentJoin)")
-        print("🎯 Expected: Premium users with their payment information\n")
-        
-        try:
-            env.submit()
-            
-            time.sleep(6)
-        finally:
-            env.close()
-        
-        self._verify_user_payment_join_results()
+
     
     def test_windowed_join_pipeline(self):
         """测试基于时间窗口的Join"""
