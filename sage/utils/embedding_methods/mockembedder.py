@@ -8,6 +8,8 @@ class MockTextEmbedder:
         self.fixed_dim = fixed_dim
         # 用模型名作为随机种子的一部分，确保不同实例行为一致
         self.seed = int(hashlib.sha256(model_name.encode()).hexdigest()[:8], 16)
+        # 添加 method_name 属性以兼容 MemoryManager
+        self.method_name = "mockembedder"
         
     def encode(self, text: str, max_length: int = 512, stride: Optional[int] = None) -> torch.Tensor:
         """生成固定维度的伪嵌入（相同文本输出相同）"""

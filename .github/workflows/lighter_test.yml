@@ -12,10 +12,10 @@ name: Lighter runtime tests (DISABLED)
 
 on:
   workflow_dispatch:  # 仅允许手动触发
-  # push:             # 已禁用自动触发
-  #   branches: [ main ]
-  # pull_request:     # 已禁用自动触发
-  #   branches: [ main ]
+  push:             # 已禁用自动触发
+    branches: [ main ,refactor/refactor1]
+  pull_request:     # 已禁用自动触发
+    branches: [ main ,refactor/refactor1]
 
 jobs:
   build-and-test:
@@ -87,4 +87,4 @@ jobs:
           conda activate sage
           export PYTHONPATH="${PYTHONPATH}:$(pwd)"
           export PYTHONWARNINGS="ignore:DeprecationWarning"
-          pytest -v sage_tests
+          pytest -v sage
