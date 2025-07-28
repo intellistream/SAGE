@@ -35,6 +35,8 @@ class Nature_News_Fetcher_Tool(BaseTool):
             ],
         )
         self.base_url = "https://www.nature.com/nature/articles"
+        # 控制每次抓取后的等待时间，可在测试中覆盖
+        self.sleep_time = 1
 
     def fetch_page(self, page_number):
         """
@@ -140,7 +142,7 @@ class Nature_News_Fetcher_Tool(BaseTool):
                 page_number += 1
                 # 只有在还需抓取下一页时才 sleep
                 if len(all_articles) < num_articles and page_number <= max_pages:
-                    time.sleep(1)  # Be polite to the server
+                    time.sleep(self.sleep_time)  # Be polite to the server
 
             return all_articles[:num_articles]
         except requests.exceptions.RequestException as e:
