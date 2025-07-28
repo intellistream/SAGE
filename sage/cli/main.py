@@ -11,6 +11,7 @@ from typing import Optional
 from sage.cli.job import app as job_app
 from sage.cli.deploy import app as deploy_app
 from sage.cli.jobmanager import app as jobmanager_app
+from sage.cli.worker_manager import app as worker_app
 
 # 创建主应用
 app = typer.Typer(
@@ -23,6 +24,7 @@ app = typer.Typer(
 app.add_typer(job_app, name="job", help="📋 作业管理 - 提交、监控、管理作业")
 app.add_typer(deploy_app, name="deploy", help="🎯 系统部署 - 启动、停止、监控系统")
 app.add_typer(jobmanager_app, name="jobmanager", help="🛠️ JobManager管理 - 启动、停止、重启JobManager")
+app.add_typer(worker_app, name="worker", help="👥 Worker管理 - 管理Ray集群的Worker节点")
 
 @app.command("version")
 def version():
@@ -36,21 +38,20 @@ def version():
 def config_info():
     """显示配置信息"""
     from pathlib import Path
-    import yaml
+    import re
     
     config_path = Path.home() / ".sage" / "config.yaml"
     
     if config_path.exists():
         try:
-            with open(config_path) as f:
-                config = yaml.safe_load(f)
             print("📋 Current SAGE Configuration:")
-            print(yaml.dump(config, default_flow_style=False))
+            with open(config_path, 'r', encoding='utf-8') as f:
+                print(f.read())
         except Exception as e:
             print(f"❌ Failed to load config: {e}")
     else:
-        print("ℹ️  No configuration file found at ~/.sage/config.yaml")
-        print("   Using default settings")
+        print("❌ Config file not found. Please run setup.py first.")
+        print("💡 Location should be: ~/.sage/config.yaml")
 
 @app.callback()
 def main(
