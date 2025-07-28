@@ -55,6 +55,19 @@ monitor:
 jobmanager:
   timeout: 30
   retry_attempts: 3
+
+# Ray cluster configuration
+workers:
+  head_node: "base-sage"
+  worker_nodes: "sage2:22,sage4:22"
+  ssh_user: "sage"
+  ssh_key_path: "~/.ssh/id_rsa"
+  head_port: 6379
+  worker_temp_dir: "/tmp/ray_worker"
+  worker_log_dir: "/tmp/sage_worker_logs"
+  remote_sage_home: "/home/sage"
+  remote_python_path: "/opt/conda/envs/sage/bin/python"
+  remote_ray_command: "/opt/conda/envs/sage/bin/ray"
 """
         config_file.write_text(default_config)
         print(f"✅ Created default config: {config_file}")

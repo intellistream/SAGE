@@ -50,3 +50,6 @@ rank_bm25
 tqdm
 json_repair
 typer
+Cython
+beautifulsoup4
+pytest-mock

@@ -5,7 +5,58 @@ import platform
 import subprocess
 import re
 
+from Cython.Build import cythonize
 import glob
+
+
+
+
+def get_py_files():
+    # 排除这些目录下所有py
+    ignore_dirs = [
+        "tests",
+        "test",
+        "example",
+        "__pycache__",
+        "cli",
+
+    ]
+
+    # 文件名或路径中出现这些关键词的也排除
+    ignore_keywords = [
+        "test",
+        "example",
+        "base",
+        "abc",
+        "interface",
+        "protocol",
+        "main",
+        "job",
+        "base"
+    ]
+
+    # 需要明确排除的具体文件（有报错的可手动加进来）
+    ignore_files = [
+        "main.py",
+        # 如遇到 cythonize 报错文件可加在这里
+    ]
+
+    py_files = []
+    for path in glob.glob("sage/**/*.py", recursive=True):
+        norm_path = path.replace("\\", "/")
+        path_parts = norm_path.split("/")
+
+        # 跳过明确的目录
+        if any(igdir in path_parts for igdir in ignore_dirs):
+            continue
+        # 跳过文件名/路径中有关键词的
+        if any(kw in norm_path for kw in ignore_keywords):
+            continue
+        # 跳过明确排除文件
+        if any(norm_path.endswith("/"+fname) for fname in ignore_files):
+            continue
+        py_files.append(path)
+    return py_files
 
 
 
@@ -62,7 +113,7 @@ def build_c_extension():
     ext_modules = []
 
     # 如果有C源文件，添加扩展模块
-    c_source = os.path.join(ring_buffer_dir, "ring_buffer.cpp")
+    c_source = os.path.join(ring_buffer_dir, "ring_buffer.c")
     if os.path.exists(c_source):
         ring_buffer_ext = Extension(
             'sage.utils.mmap_queue.ring_buffer',
@@ -76,8 +127,10 @@ def build_c_extension():
 
     return ext_modules
 
-
-
+cythonized_files = get_py_files()
+with open("cythonized_files.txt", "w") as f:
+    for fn in cythonized_files:
+        f.write(fn + "\n")
 setup(
     name='sage',
     version='0.1.2',
@@ -102,7 +155,12 @@ setup(
 
     # ext_modules=build_c_extension(),
     # from Cython.Build import cythonize
-    ext_modules=build_c_extension() ,
+    ext_modules=build_c_extension() + cythonize(
+        cythonized_files,
+        build_dir="build",
+        compiler_directives={'language_level': "3"},
+    ),
+
 
     entry_points={
         'console_scripts': [
@@ -129,7 +187,7 @@ setup(
     ],
 )
 
-# 不稳定版本 7.26
+# 不稳定版本 7.26 
 # # conda create -n operator_test python=3.11
 # from setuptools import setup, find_packages, Extension
 # import os
@@ -171,13 +229,13 @@ setup(
 # def build_c_extension():
 #     """构建ring_buffer C扩展"""
 #     ring_buffer_dir = "sage.utils/mmap_queue"
-
+    
 #     # 检查是否已有编译好的库
 #     so_files = [
 #         os.path.join(ring_buffer_dir, "ring_buffer.so"),
 #         os.path.join(ring_buffer_dir, "libring_buffer.so")
 #     ]
-
+    
 #     # 如果没有编译好的库，尝试编译
 #     if not any(os.path.exists(f) for f in so_files):
 #         print("Compiling ring_buffer C library...")
@@ -192,12 +250,12 @@ setup(
 #                 print("Warning: No build system found for ring_buffer")
 #         except subprocess.CalledProcessError as e:
 #             print(f"Warning: Failed to compile ring_buffer: {e}")
-
+    
 #     # 定义C扩展
 #     ext_modules = []
-
+    
 #     # 如果有C源文件，添加扩展模块
-#     c_source = os.path.join(ring_buffer_dir, "ring_buffer.cpp")
+#     c_source = os.path.join(ring_buffer_dir, "ring_buffer.c")
 #     if os.path.exists(c_source):
 #         ring_buffer_ext = Extension(
 #             'sage.utils.mmap_queue.ring_buffer',
@@ -208,7 +266,7 @@ setup(
 #             extra_link_args=['-shared'] if platform.system() != 'Darwin' else []
 #         )
 #         ext_modules.append(ring_buffer_ext)
-
+    
 #     return ext_modules
 
 # setup(
@@ -222,15 +280,15 @@ setup(
 #     packages=find_packages(
 #         include=['sage', 'sage.*'],
 #         exclude=[
-#             'tests', 'test',
-#             '*.tests', '*.tests.*',
+#             'tests', 'test', 
+#             '*.tests', '*.tests.*', 
 #             '*test*', '*tests*'
 #         ]
 #     ),
 #     url = "https://github.com/intellistream/SAGE",
 #     install_requires=parse_requirements("installation/env_setup/requirements.txt"),
 #     python_requires=">=3.11",
-
+    
 #     # C扩展模块
 #         # ext_modules=build_c_extension(),
 #     # from Cython.Build import cythonize

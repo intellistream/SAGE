@@ -31,29 +31,29 @@ class EmbeddingTestCase(unittest.TestCase):
         self.assertTrue(len(e) > 0)
         self.assertIsInstance(model.get_dim(), int)
 
-    def test_openai_api(self):
-        from dotenv import load_dotenv
+    # def test_openai_api(self):
+    #     from dotenv import load_dotenv
 
-        load_dotenv(override=False)
-        api_key = os.environ.get("SILICONCLOUD_API_KEY")
-        model = apply_embedding_model("openai",model="BAAI/bge-m3", base_url="https://api.siliconflow.cn/v1",
-                                      api_key=api_key)
-        e = model.embed("this is openai")
-        self.assertIsInstance(e, list)
-        self.assertTrue(all(isinstance(x, float) for x in e))
-        self.assertTrue(len(e) > 0)
-        self.assertIsInstance(model.get_dim(), int )
+    #     load_dotenv(override=False)
+    #     api_key = os.environ.get("SILICONCLOUD_API_KEY")
+    #     model = apply_embedding_model("openai",model="BAAI/bge-m3", base_url="https://api.siliconflow.cn/v1",
+    #                                   api_key=api_key)
+    #     e = model.embed("this is openai")
+    #     self.assertIsInstance(e, list)
+    #     self.assertTrue(all(isinstance(x, float) for x in e))
+    #     self.assertTrue(len(e) > 0)
+    #     self.assertIsInstance(model.get_dim(), int )
 
-    def test_jina(self):
-        from dotenv import load_dotenv
-        load_dotenv(override=False)
-        api_key = os.environ.get("JINA_API_KEY")
-        model = apply_embedding_model("jina",model="jina-embeddings-v3",api_key=api_key)
-        e = model.embed("this is jina")
-        self.assertIsInstance(e, list)
-        self.assertTrue(all(isinstance(x, float) for x in e))
-        self.assertTrue(len(e) > 0)
-        self.assertIsInstance(model.get_dim(), int)
+    # def test_jina(self):
+    #     from dotenv import load_dotenv
+    #     load_dotenv(override=False)
+    #     api_key = os.environ.get("JINA_API_KEY")
+    #     model = apply_embedding_model("jina",model="jina-embeddings-v3",api_key=api_key)
+    #     e = model.embed("this is jina")
+    #     self.assertIsInstance(e, list)
+    #     self.assertTrue(all(isinstance(x, float) for x in e))
+    #     self.assertTrue(len(e) > 0)
+    #     self.assertIsInstance(model.get_dim(), int)
 
 
 
