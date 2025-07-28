@@ -1,16 +1,7 @@
 pipeline:
-  name: "sage-api-operator-operator_test"
-  description: "Test pipeline for Sage API Operator"
+  name: "qa_source_interactive"
+  description: "Interactive terminal QA pipeline with LLM"
   version: "1.0.0"
-
-source:
-  data_path: "data/sample/question.txt"
-  platform: "local"
-
-retriever:
-  platform: "local"
-  ltm:
-    topk: 3
 
 generator:
   local:
@@ -37,4 +28,3 @@ promptor:
 
 sink:
   platform: "local"
-  file_path: "output.txt"

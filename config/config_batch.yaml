@@ -4,11 +4,13 @@ pipeline:
   version: "1.0.0"
 
 source:
-  data_path: "data/sample/question.txt"
+  data_path: "data/sample/one_question.txt"
   platform: "local"
 
 retriever:
   platform: "local"
+  collection_name: "biology_rag_knowledge"
+  index_name: "biology_index"
   ltm:
     topk: 3
 
