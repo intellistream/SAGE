@@ -314,9 +314,22 @@ function run_example_scripts() {
 }
 
 function install_sage() {
-    echo "Running pip install . to test the package installation..."
+    echo "Building C extensions and installing SAGE package..."
     source "$(conda info --base)/etc/profile.d/conda.sh"
     conda activate sage
+
+    # 首先构建C扩展
+    echo "Building ring_buffer C library..."
+    if [ -f "sage/utils/mmap_queue/build.sh" ]; then
+        cd sage/utils/mmap_queue
+        bash build.sh
+        cd ../../../
+    else
+        echo "Warning: build.sh not found in sage/utils/mmap_queue"
+    fi
+
+    # 然后安装Python包
+    echo "Installing Python package..."
     pip install .
     if [ $? -eq 0 ]; then
         echo "Package installed successfully."

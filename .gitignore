@@ -75,3 +75,24 @@ recommended_tests.txt
 local_workflow_logs/
 .pytest_cache/
 archive/
+
+# C/C++ compiled libraries and binaries
+*.so
+*.so.*
+*.a
+*.o
+*.obj
+*.dll
+*.dylib
+*.lib
+
+# SAGE mmap_queue compiled files
+sage/utils/mmap_queue/*.so
+sage/utils/mmap_queue/libring_buffer.so
+sage/utils/mmap_queue/ring_buffer.so
+
+# Benchmark and test reports
+**/benchmark_report_*.json
+**/test_results_*.json
+**/sage_queue_test_report_*.json
+**/sage_queue_test_report_*.md
