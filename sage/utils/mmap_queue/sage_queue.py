@@ -322,6 +322,66 @@ class SageQueue:
         except ImportError:
             pass
         
+        # 如果库不存在，尝试自动编译（仅在CI环境或开发环境中）
+        if os.environ.get('CI') or os.path.exists(os.path.join(current_dir, 'ring_buffer.cpp')):
+            print("Library not found, attempting auto-compilation...")
+            try:
+                import subprocess
+                
+                # 尝试使用auto_compile.sh脚本
+                auto_compile_script = os.path.join(current_dir, 'auto_compile.sh')
+                if os.path.exists(auto_compile_script):
+                    result = subprocess.run(['bash', auto_compile_script], 
+                                          cwd=current_dir, 
+                                          capture_output=True, 
+                                          text=True, 
+                                          timeout=120)
+                    if result.returncode == 0:
+                        print("Auto-compilation successful!")
+                        # 重新尝试加载库
+                        for lib_path in lib_paths:
+                            if os.path.exists(lib_path):
+                                try:
+                                    return ctypes.CDLL(lib_path)
+                                except OSError:
+                                    continue
+                    else:
+                        print(f"Auto-compilation failed: {result.stderr}")
+                
+                # 如果auto_compile.sh失败，尝试直接编译
+                print("Trying direct compilation...")
+                cpp_file = os.path.join(current_dir, 'ring_buffer.cpp')
+                output_file = os.path.join(current_dir, 'libring_buffer.so')
+                
+                compile_cmd = [
+                    'g++', '-std=c++11', '-fPIC', '-shared', '-O2',
+                    '-I.', '-o', output_file, cpp_file
+                ]
+                
+                result = subprocess.run(compile_cmd, 
+                                      cwd=current_dir,
+                                      capture_output=True, 
+                                      text=True, 
+                                      timeout=60)
+                
+                if result.returncode == 0:
+                    # 创建兼容性符号链接
+                    try:
+                        symlink_path = os.path.join(current_dir, 'ring_buffer.so')
+                        if os.path.exists(symlink_path):
+                            os.unlink(symlink_path)
+                        os.symlink('libring_buffer.so', symlink_path)
+                    except OSError:
+                        pass  # 在Windows上创建符号链接可能失败，但不影响功能
+                    
+                    print("Direct compilation successful!")
+                    return ctypes.CDLL(output_file)
+                else:
+                    print(f"Direct compilation failed: {result.stderr}")
+                    
+            except Exception as e:
+                print(f"Auto-compilation error: {e}")
+        
         # 提供更详细的错误信息
         error_msg = f"""
 Could not load ring_buffer library. Tried the following paths:
@@ -330,7 +390,8 @@ Could not load ring_buffer library. Tried the following paths:
 Please ensure the C library is compiled. You can:
 1. Run 'make' in {current_dir}
 2. Run 'bash build.sh' in {current_dir}
-3. Compile manually: gcc -shared -fPIC -o ring_buffer.so ring_buffer.c -lpthread
+3. Run 'bash auto_compile.sh' in {current_dir}
+4. Compile manually: g++ -std=c++11 -fPIC -shared -O2 -I. -o libring_buffer.so ring_buffer.cpp
         """
         raise RuntimeError(error_msg)
     
@@ -765,7 +826,7 @@ def cleanup_invalid_queues():
                     if filename.startswith('sage_ringbuf_'):
                         queue_name = filename[13:]  # 移除 "sage_ringbuf_" 前缀
                         
-                        # 检查是否属于当前用户
+                        # 检查是��属于当前用户
                         if owner != current_user:
                             print(f"发现其他用户({owner})的共享内存文件: {filename}")
                             continue

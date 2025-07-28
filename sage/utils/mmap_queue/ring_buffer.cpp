@@ -23,7 +23,7 @@ struct RingBuffer {
     moodycamel::ConcurrentQueue<std::vector<uint8_t>> queue;
     size_t capacity;
     std::atomic<size_t> current_size{0};
-    std::string name;  // 添加名称字段
+    std::string name;  // 队列名称
 };
 
 extern "C" {
