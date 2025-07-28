@@ -4,6 +4,7 @@ from sage.core.api.remote_environment import RemoteEnvironment
 from sage.core.function.sink_function import SinkFunction
 from sage.core.function.batch_function import BatchFunction
 from sage.core.function.map_function import MapFunction
+from sage.utils.custom_logger import CustomLogger
 
 # 批处理数据源：生成10条 Hello, World! 数据
 class HelloBatch(BatchFunction):
@@ -30,20 +31,22 @@ class PrintSink(SinkFunction):
         return data
 
 def main():
-    env = RemoteEnvironment("hello_world_batch_demo")
+    env = LocalEnvironment("hello_world_batch_demo")
     
     # 批处理源 -> map -> sink
     env.from_batch(HelloBatch).map(UpperCaseMap).sink(PrintSink)
     
     try:
+        print("Waiting for batch processing to complete...")
         env.submit()
         # 让主线程睡眠，让批处理自动完成并停止
-        print("Waiting for batch processing to complete...")
-        time.sleep(5)  # 等待5秒
+
+        time.sleep(3)  # 等待3秒
     except KeyboardInterrupt:
         print("停止运行")
     finally:
         print("Hello World 批处理示例结束")
 
 if __name__ == "__main__":
+    CustomLogger.disable_global_console_debug()
     main()

@@ -161,10 +161,10 @@ class MemoryManager:
         for cname in collections_to_save:
             if cname not in self.collections:
                 continue
-            wrapper = self.collections[cname]
-            col_obj = wrapper.obj if hasattr(wrapper, "obj") else wrapper
-            if hasattr(col_obj, "store"):
-                col_obj.store(self.data_dir)
+            collection = self.collections[cname]
+            if hasattr(collection, "store"):
+                # 传递MemoryManager的数据目录，让collection使用统一的目录结构
+                collection.store(self.data_dir)
         self._save_manager()
         
     def _save_manager(self):

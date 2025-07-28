@@ -193,6 +193,10 @@ class BaseTask(ABC):
             elif hasattr(self.input_buffer, 'close'):
                 self.input_buffer.close()
             
+            # 清理运行时上下文（包括service_manager）
+            if hasattr(self.ctx, 'cleanup'):
+                self.ctx.cleanup()
+            
             self.logger.debug(f"Task {self.name} cleanup completed")
             
         except Exception as e:

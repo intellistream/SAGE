@@ -69,3 +69,8 @@ drafts/
 run.sh
 third_party/
 tmp_ray/
+dist/
+
+recommended_tests.txt
+local_workflow_logs/
+.pytest_cache/
