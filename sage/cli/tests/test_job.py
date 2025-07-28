@@ -64,7 +64,7 @@ def test_stop_job(mock_cli):
     """Test the stop command."""
     mock_cli.ensure_connected.return_value = None
     mock_cli._resolve_job_identifier.return_value = "test-uuid"
-    mock_cli.client.pause_job.return_value = {"status": "success"}
+    mock_cli.client.pause_job.return_value = {"message": "Job stopped successfully"}
     
     result = runner.invoke(app, ["stop", "1", "--force"])
     
@@ -77,7 +77,7 @@ def test_stop_job_force(mock_cli):
     """Test the stop command with --force."""
     mock_cli.ensure_connected.return_value = None
     mock_cli._resolve_job_identifier.return_value = "test-uuid"
-    mock_cli.client.pause_job.return_value = {"status": "success"}
+    mock_cli.client.pause_job.return_value = {"message": "Job stopped successfully"}
     
     result = runner.invoke(app, ["stop", "1", "--force"])
     

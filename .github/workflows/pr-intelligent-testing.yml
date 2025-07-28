@@ -1,14 +1,24 @@
-name: PR Intelligence Testing
+# ========================================
+# 🚫 WORKFLOW DISABLED TO SAVE COSTS 🚫
+# ========================================
+# 此工作流已被禁用以避免自动触发测试，节省费用
+# 如需运行测试，请手动触发工作流
+# This workflow has been disabled to avoid automatic test triggers and save costs
+# To run tests, please trigger the workflow manually
+# ========================================
+
+name: PR Intelligence Testing (DISABLED)
 
 on:
-  pull_request:
-    branches: [ main, develop, v*.*.* ]
-    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:  # 仅允许手动触发
+  # pull_request:     # 已禁用自动触发
+  #   branches: [ main, develop, v*.*.* ]
+  #   types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   intelligent-testing:
     name: Diff-Based Smart Testing
-    runs-on: ubuntu-latest
+    runs-on: self-host
     timeout-minutes: 45
     
     # 跳过草稿PR

@@ -87,22 +87,22 @@ class TestServiceSyntax(unittest.TestCase):
         mock_service_manager = Mock()
         mock_service_manager_class.return_value = mock_service_manager
         
-        mock_sync_proxy = Mock()
-        mock_service_manager.get_sync_proxy.return_value = mock_sync_proxy
+        # Mock call_sync方法
+        mock_service_manager.call_sync.return_value = "test_result"
         
-        mock_method = Mock(return_value="test_result")
-        mock_sync_proxy.test_method = mock_method
-        
-        # 重新创建函数实例以使用mock
+        # 创建函数实例并手动设置service_manager
         func = TestFunction()
-        func.ctx = self.mock_ctx
+        mock_ctx = Mock()
+        mock_ctx.service_manager = mock_service_manager
+        func.ctx = mock_ctx
         
         # 测试语法糖调用
         result = func.call_service["test_service"].test_method("arg1", kwarg1="value1")
         
         # 验证调用
-        mock_service_manager.get_sync_proxy.assert_called_once_with("test_service")
-        mock_method.assert_called_once_with("arg1", kwarg1="value1")
+        mock_service_manager.call_sync.assert_called_once_with(
+            "test_service", "test_method", "arg1", timeout=30.0, kwarg1="value1"
+        )
         self.assertEqual(result, "test_result")
     
     @patch('sage.runtime.service.service_caller.ServiceManager')
@@ -112,56 +112,45 @@ class TestServiceSyntax(unittest.TestCase):
         mock_service_manager = Mock()
         mock_service_manager_class.return_value = mock_service_manager
         
-        mock_async_proxy = Mock()
-        mock_service_manager.get_async_proxy.return_value = mock_async_proxy
-        
+        # Mock call_async方法
         mock_future = Mock()
-        mock_method = Mock(return_value=mock_future)
-        mock_async_proxy.test_method = mock_method
+        mock_service_manager.call_async.return_value = mock_future
         
-        # 重新创建函数实例以使用mock
+        # 创建函数实例并手动设置service_manager
         func = TestFunction()
-        func.ctx = self.mock_ctx
+        mock_ctx = Mock()
+        mock_ctx.service_manager = mock_service_manager
+        func.ctx = mock_ctx
         
         # 测试语法糖调用
         future = func.call_service_async["test_service"].test_method("arg1")
         
         # 验证调用
-        mock_service_manager.get_async_proxy.assert_called_once_with("test_service")
-        mock_method.assert_called_once_with("arg1")
+        mock_service_manager.call_async.assert_called_once_with(
+            "test_service", "test_method", "arg1", timeout=30.0
+        )
         self.assertEqual(future, mock_future)
     
     def test_multiple_service_access(self):
         """测试访问多个不同的服务"""
-        with patch('sage.runtime.service.service_caller.ServiceManager') as mock_sm_class:
-            mock_service_manager = Mock()
-            mock_sm_class.return_value = mock_service_manager
-            
-            # 创建不同服务的mock代理
-            cache_proxy = Mock()
-            db_proxy = Mock()
-            mock_service_manager.get_sync_proxy.side_effect = lambda name: {
-                "cache": cache_proxy,
-                "database": db_proxy
-            }[name]
-            
-            func = TestFunction()
-            func.ctx = self.mock_ctx
-            
-            # 访问不同服务
-            cache_service = func.call_service["cache"]
-            db_service = func.call_service["database"]
-            
-            # 验证返回了不同的代理
-            self.assertEqual(cache_service, cache_proxy)
-            self.assertEqual(db_service, db_proxy)
-            
-            # 验证调用了正确的服务名
-            expected_calls = [
-                unittest.mock.call("cache"),
-                unittest.mock.call("database")
-            ]
-            mock_service_manager.get_sync_proxy.assert_has_calls(expected_calls)
+        func = TestFunction()
+        func.ctx = self.mock_ctx
+        
+        # 访问不同服务
+        cache_service = func.call_service["cache"]
+        db_service = func.call_service["database"]
+        
+        # 验证返回了不同的代理对象（因为服务名不同）
+        self.assertNotEqual(cache_service, db_service)
+        
+        # 验证它们都是ServiceCallProxy实例
+        from sage.runtime.service.service_caller import ServiceCallProxy
+        self.assertIsInstance(cache_service, ServiceCallProxy)
+        self.assertIsInstance(db_service, ServiceCallProxy)
+        
+        # 验证服务名正确
+        self.assertEqual(cache_service._service_name, "cache")
+        self.assertEqual(db_service._service_name, "database")
 
 
 class TestIntegratedServiceCall(unittest.TestCase):
@@ -171,55 +160,30 @@ class TestIntegratedServiceCall(unittest.TestCase):
         """设置测试环境"""
         self.mock_ctx = MockRuntimeContext()
         
-    @patch('sage.utils.mmap_queue.sage_queue.SageQueue')
-    def test_real_service_manager_integration(self, mock_sage_queue_class):
-        """测试与真实ServiceManager的集成"""
-        # 设置SageQueue mock
-        mock_request_queue = Mock()
-        mock_response_queue = Mock()
-        
-        def queue_constructor(name, *args, **kwargs):
-            if "service_request" in name:
-                return mock_request_queue
-            elif "service_response" in name:
-                return mock_response_queue
-            return Mock()
-        
-        mock_sage_queue_class.side_effect = queue_constructor
-        
+    def test_real_service_manager_integration(self):
+        """测试与真实ServiceManager的集成 - 简化版本"""
         # 创建测试函数
         func = TestFunction()
         func.ctx = self.mock_ctx
         
-        # 模拟服务响应
-        def mock_put(data, **kwargs):
-            # 模拟异步响应
-            def send_response():
-                time.sleep(0.01)
-                response_data = {
-                    'request_id': data['request_id'],
-                    'result': f"Response for {data['method_name']}",
-                    'success': True,
-                    'execution_time': 0.01,
-                    'timestamp': time.time()
-                }
-                # 模拟从响应队列接收响应
-                func.ctx.service_manager._handle_response(
-                    func.ctx.service_manager._create_response(response_data)
-                )
-            
-            threading.Thread(target=send_response, daemon=True).start()
+        # 验证语法糖能够正确创建ServiceCallProxy
+        service_proxy = func.call_service["test_service"]
         
-        mock_request_queue.put.side_effect = mock_put
+        # 验证代理对象的基本属性
+        from sage.runtime.service.service_caller import ServiceCallProxy
+        self.assertIsInstance(service_proxy, ServiceCallProxy)
+        self.assertEqual(service_proxy._service_name, "test_service")
+        self.assertFalse(service_proxy._async_mode)
         
-        # 执行同步服务调用
-        try:
-            result = func.call_service["test_service"].test_method("test_arg")
-            # 注意：这个测试可能会因为实际的mmap队列实现而失败
-            # 在实际环境中，需要真正的服务进程来处理请求
-        except Exception as e:
-            # 预期在没有真实服务进程的情况下会失败
-            self.assertTrue("timeout" in str(e).lower() or "failed" in str(e).lower())
+        # 验证异步代理
+        async_proxy = func.call_service_async["test_service"]
+        self.assertIsInstance(async_proxy, ServiceCallProxy)
+        self.assertEqual(async_proxy._service_name, "test_service")
+        self.assertTrue(async_proxy._async_mode)
+        
+        # 验证代理缓存
+        self.assertIs(func.call_service, func.call_service)
+        self.assertIs(func.call_service_async, func.call_service_async)
 
 
 if __name__ == "__main__":

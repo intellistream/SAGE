@@ -18,7 +18,7 @@ import getpass
 from typing import Any, Optional, List, Dict
 from queue import Empty, Full
 from ctypes import Structure, c_uint64, c_uint32, c_char, POINTER, c_void_p, c_int, c_bool
-
+from sage.utils.custom_logger import CustomLogger
 # 设置日志
 logger = logging.getLogger(__name__)
 
@@ -256,8 +256,8 @@ class SageQueue:
             # 对于新创建的缓冲区，不需要额外增加引用计数
             # 因为ring_buffer_create已经设置了初始引用计数为1
             pass
-        
-        print(self.get_stats())
+        # if CustomLogger.is_global_console_debug_enabled():
+        #     print(self.get_stats())
         # 线程安全相关
         self._lock = threading.RLock()
         
@@ -299,7 +299,8 @@ class SageQueue:
         for lib_path in lib_paths:
             if os.path.exists(lib_path):
                 try:
-                    print(f"Trying to load library from: {lib_path}")
+                    if CustomLogger.is_global_console_debug_enabled():
+                        print(f"Trying to load library from: {lib_path}")
                     return ctypes.CDLL(lib_path)
                 except OSError as e:
                     print(f"Failed to load {lib_path}: {e}")

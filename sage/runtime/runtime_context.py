@@ -75,6 +75,23 @@ class RuntimeContext:
             self._service_manager = ServiceManager(self)
         return self._service_manager
 
+    def cleanup(self):
+        """清理运行时上下文资源"""
+        if self._service_manager is not None:
+            try:
+                self._service_manager.shutdown()
+            except Exception as e:
+                self.logger.warning(f"Error shutting down service manager: {e}")
+            finally:
+                self._service_manager = None
+
+    def __del__(self):
+        """析构函数 - 确保资源被正确清理"""
+        try:
+            self.cleanup()
+        except Exception:
+            # 在析构函数中不记录错误，避免在程序退出时产生问题
+            pass
 
     def _is_ray_actor(self, obj) -> bool:
         """检测执行模式"""
