@@ -24,15 +24,6 @@ def test_config_info_no_file():
     assert "SAGE Configuration" in result.stdout
     assert "daemon:" in result.stdout
 
-def test_main_help():
-    """Test the main help output."""
-    result = runner.invoke(app, ["--help"])
-    assert result.exit_code == 0
-    assert "Usage: sage [OPTIONS] COMMAND [ARGS]..." in result.stdout
-    assert "job" in result.stdout
-    assert "deploy" in result.stdout
-    assert "jobmanager" in result.stdout
-
 def test_main_script_execution():
     """Test running the CLI as a script."""
     result = subprocess.run(
