@@ -5,7 +5,6 @@ import platform
 import subprocess
 import re
 
-from Cython.Build import cythonize
 import glob
 
 
