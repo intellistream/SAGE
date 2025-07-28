@@ -138,7 +138,9 @@ class Nature_News_Fetcher_Tool(BaseTool):
 
                 all_articles.extend(page_articles)
                 page_number += 1
-                time.sleep(1)  # Be polite to the server
+                # 只有在还需抓取下一页时才 sleep
+                if len(all_articles) < num_articles and page_number <= max_pages:
+                    time.sleep(1)  # Be polite to the server
 
             return all_articles[:num_articles]
         except requests.exceptions.RequestException as e:
