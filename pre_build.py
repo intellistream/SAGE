@@ -23,7 +23,7 @@ def build_ring_buffer():
         return False
     
     # 检查源文件是否存在
-    c_source = ring_buffer_dir / "ring_buffer.c"
+    c_source = ring_buffer_dir / "ring_buffer.cpp"
     h_header = ring_buffer_dir / "ring_buffer.h"
     
     if not c_source.exists():
@@ -70,7 +70,7 @@ def build_ring_buffer():
                 "-fPIC",
                 "-O3",
                 "-o", "ring_buffer.so",
-                "ring_buffer.c",
+                "ring_buffer.cpp",
                 "-lpthread"
             ]
             
@@ -126,7 +126,7 @@ def main():
         print("3. Check if pthread library is available")
         print("4. Try manual compilation:")
         print("   cd sage.utils/mmap_queue")
-        print("   gcc -shared -fPIC -O3 -o ring_buffer.so ring_buffer.c -lpthread")
+        print("   gcc -shared -fPIC -O3 -o ring_buffer.so ring_buffer.cpp -lpthread")
         return False
     
     # 验证构建结果

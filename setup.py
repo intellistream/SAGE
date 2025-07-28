@@ -113,7 +113,7 @@ def build_c_extension():
     ext_modules = []
 
     # 如果有C源文件，添加扩展模块
-    c_source = os.path.join(ring_buffer_dir, "ring_buffer.c")
+    c_source = os.path.join(ring_buffer_dir, "ring_buffer.cpp")
     if os.path.exists(c_source):
         ring_buffer_ext = Extension(
             'sage.utils.mmap_queue.ring_buffer',
@@ -255,7 +255,7 @@ setup(
 #     ext_modules = []
     
 #     # 如果有C源文件，添加扩展模块
-#     c_source = os.path.join(ring_buffer_dir, "ring_buffer.c")
+#     c_source = os.path.join(ring_buffer_dir, "ring_buffer.cpp")
 #     if os.path.exists(c_source):
 #         ring_buffer_ext = Extension(
 #             'sage.utils.mmap_queue.ring_buffer',

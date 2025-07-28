@@ -208,7 +208,7 @@ finally:
 sudo apt-get install build-essential
 
 # 手动编译
-gcc -std=c11 -Wall -Wextra -O3 -fPIC -shared -o ring_buffer.so ring_buffer.c -lrt -lpthread
+gcc -std=c11 -Wall -Wextra -O3 -fPIC -shared -o ring_buffer.so ring_buffer.cpp -lrt -lpthread
 ```
 
 ### 权限问题  
