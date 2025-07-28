@@ -1,7 +1,6 @@
 from typing import Union
 from dataclasses import dataclass
 import time
-from sage.runtime.utils.local_message_queue import LocalMessageQueue
 from ray.actor import ActorHandle
 from sage.runtime.task.base_task import BaseTask
 @dataclass
@@ -36,7 +35,7 @@ class Connection:
         """
         try:
             if hasattr(self.target_buffer, 'qsize') and hasattr(self.target_buffer, 'maxsize'):
-                # LocalMessageQueue类型
+                # SageQueue类型
                 current_size = self.target_buffer.qsize()
                 max_size = self.target_buffer.maxsize
                 if max_size > 0:

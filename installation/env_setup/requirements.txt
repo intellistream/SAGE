@@ -51,3 +51,6 @@ tqdm
 json_repair
 typer
 Cython
+beautifulsoup4
+pytest-mock
+
