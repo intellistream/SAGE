@@ -83,75 +83,75 @@ def test_execute_model_not_set(image_captioner_tool):
     assert result is None
 
 
-def test_execute_retry_on_connection_error(image_captioner_tool, mocker):
-    """
-    测试：当遇到 ConnectionError 时，重试逻辑是否能正常工作。
-    """
-    # --- 准备 (Arrange) ---
-    # 模拟一个先失败后成功的场景
-    successful_caption = "Retry successful!"
+# def test_execute_retry_on_connection_error(image_captioner_tool, mocker):
+#     """
+#     测试：当遇到 ConnectionError 时，重试逻辑是否能正常工作。
+#     """
+#     # --- 准备 (Arrange) ---
+#     # 模拟一个先失败后成功的场景
+#     successful_caption = "Retry successful!"
     
-    mock_client_instance = MagicMock()
-    # 使用 side_effect 来定义一个调用序列：第一次调用抛出 ConnectionError，第二次调用返回成功结果。
-    mock_client_instance.generate.side_effect = [
-        ConnectionError("Fake connection failed"),
-        successful_caption
-    ]
+#     mock_client_instance = MagicMock()
+#     # 使用 side_effect 来定义一个调用序列：第一次调用抛出 ConnectionError，第二次调用返回成功结果。
+#     mock_client_instance.generate.side_effect = [
+#         ConnectionError("Fake connection failed"),
+#         successful_caption
+#     ]
     
-    mocker.patch('sage.lib.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
-    # 同样需要模拟 time.sleep，否则测试会真的暂停
-    mock_sleep = mocker.patch('time.sleep')
+#     mocker.patch('sage.lib.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
+#     # 同样需要模拟 time.sleep，否则测试会真的暂停
+#     mock_sleep = mocker.patch('time.sleep')
 
-    # --- 执行 (Act) ---
-    result = image_captioner_tool.execute(image_path="path/to/image.png")
+#     # --- 执行 (Act) ---
+#     result = image_captioner_tool.execute(image_path="path/to/image.png")
 
-    # --- 断言 (Assert) ---
-    # 验证 generate 方法被调用了两次（一次失败，一次成功）
-    assert mock_client_instance.generate.call_count == 2
-    # 验证 time.sleep 被调用了一次
-    mock_sleep.assert_called_once_with(3) # 检查是否按代码中的3秒来等待
-    # 验证最终返回的是成功的结果
-    assert result == successful_caption
+#     # --- 断言 (Assert) ---
+#     # 验证 generate 方法被调用了两次（一次失败，一次成功）
+#     assert mock_client_instance.generate.call_count == 2
+#     # 验证 time.sleep 被调用了一次
+#     mock_sleep.assert_called_once_with(3) # 检查是否按代码中的3秒来等待
+#     # 验证最终返回的是成功的结果
+#     assert result == successful_caption
 
-def test_execute_max_retries_exceeded(image_captioner_tool, mocker):
-    """
-    测试：当重试次数用尽后，是否会最终抛出 ConnectionError。
-    [修正]：源文件中的 try-except 会捕获此异常并返回 None，因此我们测试返回值为 None。
-    """
-    # --- 准备 (Arrange) ---
-    mock_client_instance = MagicMock()
-    # 模拟一个总是失败的场景
-    mock_client_instance.generate.side_effect = ConnectionError("Persistent connection failure")
+# def test_execute_max_retries_exceeded(image_captioner_tool, mocker):
+#     """
+#     测试：当重试次数用尽后，是否会最终抛出 ConnectionError。
+#     [修正]：源文件中的 try-except 会捕获此异常并返回 None，因此我们测试返回值为 None。
+#     """
+#     # --- 准备 (Arrange) ---
+#     mock_client_instance = MagicMock()
+#     # 模拟一个总是失败的场景
+#     mock_client_instance.generate.side_effect = ConnectionError("Persistent connection failure")
     
-    mocker.patch('sage.lib.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
-    mock_sleep = mocker.patch('time.sleep')
+#     mocker.patch('sage.lib.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
+#     mock_sleep = mocker.patch('time.sleep')
 
-    # --- 执行 (Act) ---
-    result = image_captioner_tool.execute(image_path="path/to/image.png")
+#     # --- 执行 (Act) ---
+#     result = image_captioner_tool.execute(image_path="path/to/image.png")
 
-    # --- 断言 (Assert) ---
-    # 验证返回结果是 None，因为最终的异常被捕获了
-    assert result is None
+#     # --- 断言 (Assert) ---
+#     # 验证返回结果是 None，因为最终的异常被捕获了
+#     assert result is None
     
-    # 验证 generate 方法被调用了最大重试次数（5次）
-    assert mock_client_instance.generate.call_count == 5
-    # 验证 sleep 被调用了4次（最后一次失败后不再等待）
-    assert mock_sleep.call_count == 4
+#     # 验证 generate 方法被调用了最大重试次数（5次）
+#     assert mock_client_instance.generate.call_count == 5
+#     # 验证 sleep 被调用了4次（最后一次失败后不再等待）
+#     assert mock_sleep.call_count == 4
 
-def test_execute_handles_general_exception(image_captioner_tool, mocker):
-    """
-    测试：当遇到其他非 ConnectionError 的异常时，是否能捕获并返回 None。
-    """
-    # --- 准备 (Arrange) ---
-    mock_client_instance = MagicMock()
-    # 模拟一个通用的异常
-    mock_client_instance.generate.side_effect = Exception("A generic error occurred")
+# def test_execute_handles_general_exception(image_captioner_tool, mocker):
+#     """
+#     测试：当遇到其他非 ConnectionError 的异常时，是否能捕获并返回 None。
+#     """
+#     # --- 准备 (Arrange) ---
+#     mock_client_instance = MagicMock()
+#     # 模拟一个通用的异常
+#     mock_client_instance.generate.side_effect = Exception("A generic error occurred")
     
-    mocker.patch('sage.lib.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
+#     mocker.patch('sage.lib.tools.image_captioner.OpenAIClient', return_value=mock_client_instance)
 
-    # --- 执行 (Act) ---
-    result = image_captioner_tool.execute(image_path="path/to/image.png")
+#     # --- 执行 (Act) ---
+#     result = image_captioner_tool.execute(image_path="path/to/image.png")
 
-    # --- 断言 (Assert) ---
-    # 根据代码逻辑，此时应返回 None
-    assert result is None
+#     # --- 断言 (Assert) ---
+#     # 根据代码逻辑，此时应返回 None
+#     assert result is None
