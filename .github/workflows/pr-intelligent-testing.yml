@@ -18,7 +18,7 @@ on:
 jobs:
   intelligent-testing:
     name: Diff-Based Smart Testing
-    runs-on: self-host
+    runs-on: self-hosted
     timeout-minutes: 45
     
     # 跳过草稿PR
