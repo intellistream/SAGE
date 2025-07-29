@@ -1154,7 +1154,8 @@ fi
                     self.print_success(f"Removed {build_dir} directory")
             
             # Remove compiled C extensions
-            cpp_so_file = self.project_root / "sage" / "utils" / "mmap_queue" / "ring_buffer.so"
+            # sage_queue 现在位于 sage_ext/sage_queue，通过CMake独立构建
+            # 不再需要检查旧的 sage/utils/mmap_queue 路径
             if cpp_so_file.exists():
                 cpp_so_file.unlink()
                 self.print_success("Removed compiled C extensions")

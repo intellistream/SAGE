@@ -35,7 +35,8 @@ def read_long_description():
 # 构建C扩展模块
 def build_c_extension():
     """构建ring_buffer C扩展"""
-    ring_buffer_dir = "sage/utils/mmap_queue"  # 修复路径
+    # 注意：C++扩展现在通过CMake独立构建，不再依赖这个路径
+    # ring_buffer_dir = "sage/utils/mmap_queue"  # 过时路径
 
     # 检查是否已有编译好的库
     so_files = [
