@@ -127,7 +127,7 @@ class BaseAgent(MapFunction):
             self.logger.debug(output)
             output=self.parse_json_output(output)
             # self.logger.debug(output)
-            if output.get("final_answer") is not "":
+            if output.get("final_answer") != "":
                 final_answer = output["final_answer"]
                 
                 self.logger.debug(f"Final Answer: {final_answer}")

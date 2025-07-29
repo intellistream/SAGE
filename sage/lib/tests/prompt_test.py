@@ -1,5 +1,6 @@
 
 import pytest
+
 from sage.lib.rag.promptor import QAPromptor
 
 @pytest.fixture
