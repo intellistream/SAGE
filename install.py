@@ -24,6 +24,11 @@ import platform
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import time
+import threading
+import atexit
+import datetime
+import getpass
+import urllib.request
 
 # Color codes for terminal output
 class Colors:
@@ -58,7 +63,6 @@ class SageInstaller:
         self.auto_env_setup_script = self.project_root / "installation" / "env_setup" / "auto_env_setup.sh"
         
         # Register cleanup function
-        import atexit
         atexit.register(self._cleanup_temp_files)
     
     def _cleanup_temp_files(self):
@@ -117,8 +121,6 @@ class SageInstaller:
     def run_command_with_progress(self, cmd: List[str], description: str = "Processing", 
                                  cwd: Optional[Path] = None, env: Optional[Dict] = None) -> subprocess.CompletedProcess:
         """Run a command with a progress indicator."""
-        import threading
-        import time
         
         self.print_info(f"{description}...")
         print(f"{Colors.YELLOW}⏳ This may take several minutes, please wait...{Colors.RESET}")
@@ -210,7 +212,11 @@ class SageInstaller:
     def pause(self):
         """Pause for user input (skip in CI)."""
         if not self.is_ci:
-            input(f"{Colors.CYAN}Press [Enter] to continue...{Colors.RESET}")
+            try:
+                input(f"{Colors.CYAN}Press [Enter] to continue...{Colors.RESET}")
+            except (KeyboardInterrupt, EOFError):
+                print(f"\n{Colors.YELLOW}Installation cancelled by user.{Colors.RESET}")
+                sys.exit(0)
     
     def get_user_input(self, prompt: str, default: str = "") -> str:
         """Get user input with optional default."""
@@ -219,7 +225,7 @@ class SageInstaller:
         try:
             response = input(f"{Colors.YELLOW}{prompt}{Colors.RESET}")
             return response.strip() if response.strip() else default
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, EOFError):
             print(f"\n{Colors.YELLOW}Installation cancelled by user.{Colors.RESET}")
             sys.exit(0)
     
@@ -418,7 +424,6 @@ class SageInstaller:
         # Test HF Mirror connectivity
         self.print_step("Testing connectivity to HF Mirror...")
         try:
-            import urllib.request
             urllib.request.urlopen('https://hf-mirror.com', timeout=5)
             self.print_success("HF Mirror is accessible")
             hf_endpoint = "https://hf-mirror.com"
@@ -439,8 +444,6 @@ class SageInstaller:
             print(f"{Colors.BLUE}Please enter your Hugging Face token from:")
             print(f"{Colors.BLUE}https://huggingface.co/settings/tokens{Colors.RESET}")
             print(f"{Colors.YELLOW}Note: Your input will be hidden for security.{Colors.RESET}")
-            
-            import getpass
             hf_token = getpass.getpass("Token: ")
             
             if not hf_token.strip():
@@ -754,7 +757,6 @@ class SageInstaller:
                 self.print_error("CI detected but HF_TOKEN is not set.")
                 return
         else:
-            import getpass
             hf_token = getpass.getpass("Hugging Face Token: ")
             if not hf_token.strip():
                 self.print_info("Skipping Hugging Face authentication.")
@@ -1121,7 +1123,6 @@ fi
         if setup_type:
             print(f"{Colors.GREEN}✅ Setup Type: {setup_type.title()}{Colors.RESET}")
             if installation_date:
-                import datetime
                 date_str = datetime.datetime.fromtimestamp(installation_date).strftime('%Y-%m-%d %H:%M:%S')
                 print(f"{Colors.BLUE}📅 Installed: {date_str}{Colors.RESET}")
         else:
