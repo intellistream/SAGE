@@ -4,6 +4,7 @@
 import os
 import time
 import queue
+import pytest
 from sage.runtime.runtime_context import RuntimeContext
 from sage.runtime.service.local_service_task import LocalServiceTask
 from sage.runtime.service.service_caller import ServiceManager
@@ -37,7 +38,7 @@ class MockEnvironment:
         self.console_log_level = "INFO"
 
 
-class TestFunction(BaseFunction):
+class MockTestFunction(BaseFunction):
     def execute(self, data):
         return data
 
@@ -81,7 +82,7 @@ def test_memory_service_integrated():
         time.sleep(2.0)
         
         # 5. 创建测试函数并设置上下文
-        test_func = TestFunction()
+        test_func = MockTestFunction()
         test_func.ctx = test_ctx
         
         print("✅ Service started, testing operations...")
@@ -152,13 +153,11 @@ def test_memory_service_integrated():
         
         print("✅ All operations completed successfully!")
         
-        return True
-        
     except Exception as e:
         print(f"❌ Test failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        pytest.fail(f"Memory service integration test failed: {e}")
         
     finally:
         # 清理资源
