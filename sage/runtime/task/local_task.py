@@ -1,7 +1,7 @@
 import os
 from typing import TYPE_CHECKING
 from sage.runtime.task.base_task import BaseTask
-from sage.utils.mmap_queue import SageQueue
+from sage_ext.mmap_queue import SageQueue
 if TYPE_CHECKING:
     from sage.jobmanager.factory.operator_factory import OperatorFactory
     from sage.runtime.runtime_context import RuntimeContext

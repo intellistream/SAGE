@@ -6,7 +6,7 @@ from sage.runtime.runtime_context import RuntimeContext
 from sage.runtime.router.packet import Packet
 from ray.util.queue import Empty
 
-from sage.utils.mmap_queue.sage_queue import SageQueue
+from sage_ext.mmap_queue.sage_queue import SageQueue
 from sage.runtime.router.router import BaseRouter
 from sage.core.function.source_function import StopSignal
 if TYPE_CHECKING:

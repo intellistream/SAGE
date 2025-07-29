@@ -5,7 +5,7 @@ from typing import Any, Union, Tuple, TYPE_CHECKING, Dict, Optional
 from ray.util.queue import Queue as RayQueue
 from sage.runtime.task.base_task import BaseTask
 from sage.runtime.router.packet import Packet
-from sage.utils.mmap_queue.sage_queue import SageQueue
+from sage_ext.mmap_queue.sage_queue import SageQueue
 if TYPE_CHECKING:
     from sage.jobmanager.factory.operator_factory import OperatorFactory
     from sage.runtime.runtime_context import RuntimeContext
