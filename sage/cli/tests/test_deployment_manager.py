@@ -42,7 +42,6 @@ class TestDeploymentManager:
             (project_root / "installation").mkdir()
             
             (project_root / "setup.py").touch()
-            (project_root / "requirements.txt").touch()
             (project_root / "README.md").touch()
             (project_root / "LICENSE").touch()
             
@@ -65,7 +64,6 @@ class TestDeploymentManager:
                 assert 'frontend' in names
                 assert 'installation' in names
                 assert 'setup.py' in names
-                assert 'requirements.txt' in names
                 assert 'README.md' in names
                 assert 'LICENSE' in names
     
