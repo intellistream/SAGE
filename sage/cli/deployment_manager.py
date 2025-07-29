@@ -85,7 +85,7 @@ class DeploymentManager:
                 
                 # 添加安装文件
                 tar.add(self.project_root / "setup.py", arcname="setup.py")
-                tar.add(self.project_root / "requirements.txt", arcname="requirements.txt")
+                # tar.add(self.project_root / "requirements.txt", arcname="requirements.txt")
                 tar.add(self.project_root / "README.md", arcname="README.md")
                 
                 # 添加其他必要文件
