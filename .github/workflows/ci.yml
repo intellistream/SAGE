@@ -60,15 +60,24 @@ jobs:
       timeout-minutes: 10
         
     # 安装 SAGE (minimal 模式)
-    - name: Install SAGE
+    - name: Install SAGE Dependencies
+      env:
+        PIP_CACHE_DIR: /tmp/pip-cache
+      run: |
+        # 先安装依赖
+        pip install --upgrade pip setuptools wheel
+        pip install -r installation/env_setup/requirements.txt
+      timeout-minutes: 10
+        
+    - name: Install SAGE Package
       env:
         CI: true
         SAGE_MINIMAL_INSTALL: true
         PIP_CACHE_DIR: /tmp/pip-cache
       run: |
-        pip install --upgrade pip setuptools wheel
-        pip install . --no-deps || pip install .  # 优先尝试无依赖安装，失败则正常安装
-      timeout-minutes: 15
+        # 使用开发模式安装，避免打包步骤
+        pip install -e . --no-deps
+      timeout-minutes: 5
         
     # 运行基础测试
     - name: Run Basic Tests
