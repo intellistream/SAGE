@@ -70,11 +70,13 @@ jobs:
       timeout-minutes: 15
         
     # 运行基础测试 (使用 minimal 安装的功能)
-      - name: Basic Import Tests
-        run: |
-          python -c "import sage; print('✅ SAGE core import successful')"
-          python -c "import sage.utils; print('✅ SAGE utils import successful')"
-          python -c "from sage.utils.queue_adapter import get_queue_backends; print('✅ Queue adapter import successful')"    # 运行 pytest (minimal 模式的测试)
+    - name: Basic Import Tests
+      run: |
+        python -c "import sage; print('✅ SAGE core import successful')"
+        python -c "import sage.utils; print('✅ SAGE utils import successful')"
+        python -c "from sage.utils.queue_adapter import get_queue_backends; print('✅ Queue adapter import successful')"
+        
+    # 运行 pytest (minimal 模式的测试)
     - name: Run Test Suite (Minimal Mode)
       run: |
         echo "Running tests for minimal installation..."
@@ -84,10 +86,9 @@ jobs:
         
         pip install pytest pytest-timeout pytest-cov
         
-        # 运行不依赖 C++ 扩展的测试
-        pytest sage/cli/tests/ sage/lib/tests/ \
-          --tb=short --timeout=300 -v \
-          -k "not cpp and not sage_db and not sage_queue and not mmap" \
+        # 运行所有sage文件夹下的测试
+        pytest sage/ \
+          --tb=long --timeout=300 -v -s \
           || echo "Some tests failed - checking if critical tests passed..."
       timeout-minutes: 20
         
