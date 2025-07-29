@@ -57,6 +57,15 @@ jobs:
         python-version: '3.11'
         cache: 'pip'
       timeout-minutes: 5
+      
+    # 设置 Miniconda (install.py 需要conda可用)
+    - name: Setup Miniconda for install.py
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        miniconda-version: "latest"
+        auto-activate-base: true
+        python-version: '3.11'
+      timeout-minutes: 10
         
     # 安装系统依赖 (使用本地缓存)
     - name: Install System Dependencies
@@ -71,11 +80,13 @@ jobs:
         
     # 安装 SAGE (使用 minimal 模式) - 专为CI设计
     - name: Install SAGE (Minimal Mode)
+      shell: bash -l {0}
       env:
         CI: true
         PIP_CACHE_DIR: /tmp/pip-cache
       run: |
         echo "Installing SAGE using install.py --minimal"
+        conda --version
         python install.py --minimal
       timeout-minutes: 15
         
