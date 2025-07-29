@@ -37,6 +37,8 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 1
         clean: true
+        timeout: 300  # 5分钟超时
+      timeout-minutes: 8
       
     # 设置 Python 环境
     - name: Set up Python 3.11
@@ -44,32 +46,42 @@ jobs:
       with:
         python-version: '3.11'
         cache: 'pip'
+      timeout-minutes: 5
         
-    # 安装系统依赖
+    # 安装系统依赖 (使用本地缓存)
     - name: Install System Dependencies
       run: |
-        sudo apt-get update
+        # 只在需要时更新包列表
+        if [ ! -f /tmp/apt_updated_today ]; then
+          sudo apt-get update
+          touch /tmp/apt_updated_today
+        fi
         sudo apt-get install -y build-essential cmake pkg-config
+      timeout-minutes: 10
         
     # 安装 SAGE (minimal 模式)
     - name: Install SAGE
       env:
         CI: true
         SAGE_MINIMAL_INSTALL: true
+        PIP_CACHE_DIR: /tmp/pip-cache
       run: |
         pip install --upgrade pip setuptools wheel
-        pip install .
+        pip install . --no-deps || pip install .  # 优先尝试无依赖安装，失败则正常安装
+      timeout-minutes: 15
         
     # 运行基础测试
     - name: Run Basic Tests
       run: |
         python -c "import sage; print('✅ SAGE import successful')"
+      timeout-minutes: 2
         
     # 运行 pytest
     - name: Run Test Suite
       run: |
         pip install pytest pytest-timeout pytest-cov
         pytest sage/cli/tests/ sage/lib/tests/ --tb=short --timeout=300 -v
+      timeout-minutes: 20
         
   # 简化的代码质量检查
   lint:
@@ -83,15 +95,18 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 1
+      timeout-minutes: 5
         
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
+      timeout-minutes: 3
         
     - name: Install Linting Tools
       run: |
         pip install flake8 black isort
+      timeout-minutes: 5
         
     - name: Run Code Quality Checks
       run: |
@@ -101,3 +116,4 @@ jobs:
         isort --check-only --diff sage/ || echo "❌ Import sorting issues found"
         echo "Running linter..."
         flake8 sage/ --count --select=E9,F63,F7,F82 --show-source --statistics || echo "❌ Critical linting errors found"
+      timeout-minutes: 5
