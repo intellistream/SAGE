@@ -82,12 +82,7 @@ jobs:
         python -c "from sage.lib import *; print('✅ SAGE lib modules working')"
         
         # 测试 Ray 后端 (minimal 模式的默认后端)
-        python -c "
-import os
-# minimal 模式应该默认使用 Ray 后端
-from sage.utils.queue import get_queue_backend
-print(f'✅ Queue backend: {get_queue_backend()}')
-"
+        python -c "import os; from sage.utils.queue import get_queue_backend; print(f'✅ Queue backend: {get_queue_backend()}')"
       timeout-minutes: 5
 
     # 运行 pytest (minimal 模式的测试)
