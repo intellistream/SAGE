@@ -63,9 +63,9 @@ jobs:
       uses: conda-incubator/setup-miniconda@v3
       with:
         miniconda-version: "latest"
-        auto-activate-base: true
-        python-version: '3.11'
-      timeout-minutes: 10
+        use-mamba: true
+        python-version: 3.11
+        auto-activate-base: false
         
     # 安装系统依赖 (使用本地缓存)
     - name: Install System Dependencies
