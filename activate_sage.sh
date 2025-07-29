@@ -8,7 +8,7 @@ echo "🔧 Activating SAGE conda environment..."
 if ! command -v conda &> /dev/null; then
     echo "❌ Conda not found in PATH"
     echo "💡 Please ensure conda is installed and in your PATH"
-    return 1 2>/dev/null || exit 1
+    exit 1
 fi
 
 # Initialize conda for this shell session
@@ -16,8 +16,8 @@ eval "$(conda shell.bash hook)" 2>/dev/null || {
     echo "🔧 Initializing conda for bash..."
     conda init bash
     echo "📝 Conda initialized. Please restart your shell or run 'source ~/.bashrc'"
-    echo "📝 Then run this script again: source ./activate_sage.sh"
-    return 1 2>/dev/null || exit 1
+    echo "📝 Then run this script again: ./activate_sage.sh"
+    exit 0
 }
 
 # Activate the sage environment
@@ -27,10 +27,7 @@ if [ $? -eq 0 ]; then
     echo "✅ SAGE environment activated successfully!"
     echo "📝 You are now in the (sage) environment"
     echo "🚀 Test with: python -c \"import sage; print('SAGE ready!')\""
-    echo "💡 Type 'conda deactivate' to exit this environment"
-    echo ""
 else
     echo "❌ Failed to activate SAGE environment"
     echo "💡 Try: conda env list"
-    return 1 2>/dev/null || exit 1
 fi

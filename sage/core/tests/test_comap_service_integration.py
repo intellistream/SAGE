@@ -7,6 +7,7 @@ CoMap函数中服务调用集成测试
 import time
 import threading
 import unittest
+import pytest
 from unittest.mock import Mock
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.function.source_function import SourceFunction
@@ -469,12 +470,11 @@ def test_comap_service_integration():
     try:
         test_instance.test_comap_service_integration()
         print("\n🎉 All tests passed! CoMap service integration is working correctly.")
-        return True
     except Exception as e:
         print(f"\n💥 Test failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        pytest.fail(f"CoMap service integration test failed: {e}")
 
 
 if __name__ == "__main__":

@@ -11,8 +11,8 @@ from sage.core.function.comap_function import BaseCoMapFunction
 from sage.core.function.sink_function import SinkFunction
 
 
-# 简单的测试服务
-class TestService:
+# 简单的测试服务（改名避免pytest收集警告）
+class MockTestService:
     def __init__(self):
         self.data = {}
         self.call_count = 0
@@ -112,7 +112,7 @@ class TestCoMapServiceCalls:
         """测试CoMap函数中基本的服务调用功能"""
         # 创建环境并注册服务
         env = LocalEnvironment("comap_service_basic_test")
-        env.register_service("test_service", TestService)
+        env.register_service("test_service", MockTestService)
         
         # 创建数据源
         source1 = env.from_source(SimpleSource, data_list=[10, 20])
@@ -159,7 +159,7 @@ class TestCoMapServiceCalls:
     def test_comap_service_state_isolation(self):
         """测试CoMap中服务调用的状态隔离"""
         env = LocalEnvironment("comap_isolation_test")
-        env.register_service("test_service", TestService)
+        env.register_service("test_service", MockTestService)
         
         source1 = env.from_source(SimpleSource, data_list=[1])
         source2 = env.from_source(SimpleSource, data_list=[2])
@@ -201,12 +201,11 @@ def test_standalone_comap_service_integration():
         test_instance.test_comap_service_state_isolation()
         
         print("🎉 All CoMap service integration tests passed!")
-        return True
     except Exception as e:
         print(f"❌ Test failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        pytest.fail(f"CoMap service integration test failed: {e}")
 
 
 if __name__ == "__main__":
