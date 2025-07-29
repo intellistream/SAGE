@@ -57,6 +57,19 @@ class SageInstaller:
         self.install_dep_script = self.project_root / "installation" / "env_setup" / "install_dep.sh"
         self.auto_env_setup_script = self.project_root / "installation" / "env_setup" / "auto_env_setup.sh"
         
+        # Register cleanup function
+        import atexit
+        atexit.register(self._cleanup_temp_files)
+    
+    def _cleanup_temp_files(self):
+        """Clean up temporary files created during installation."""
+        temp_script = self.project_root / ".sage_temp_activate.sh"
+        if temp_script.exists():
+            try:
+                temp_script.unlink()
+            except:
+                pass  # Ignore cleanup errors
+        
     def load_config(self) -> Dict:
         """Load configuration from file."""
         if self.config_file.exists():
@@ -434,18 +447,59 @@ class SageInstaller:
             self.print_header("Installation Complete!")
             self.print_success("Minimal setup completed successfully!")
             print()
-            print(f"{Colors.BOLD}🔧 TO ACTIVATE THE SAGE ENVIRONMENT:{Colors.RESET}")
-            print(f"{Colors.GREEN}   conda activate sage{Colors.RESET}")
-            print()
-            print(f"{Colors.BLUE}📝 Once activated, you'll see (sage) in your prompt{Colors.RESET}")
-            print(f"{Colors.YELLOW}⚠️  Note: This version uses pure Python (no C++ extensions){Colors.RESET}")
-            print()
-            print(f"{Colors.BOLD}🚀 Quick test after activation:{Colors.RESET}")
-            print(f"{Colors.GREEN}   python -c \"import sage; print('SAGE imported successfully!'){Colors.RESET}")
+            print(f"{Colors.BLUE}� Note: This version uses pure Python (no C++ extensions){Colors.RESET}")
+            print(f"{Colors.GREEN}🚀 Automatically activating SAGE environment...{Colors.RESET}")
             print()
             
-            # Create activation script
+            # Create activation script for future use
             self.create_activation_script('minimal')
+            
+            # Auto-activate the environment if not in CI
+            if not self.is_ci:
+                self.print_success("🚀 Automatically activating SAGE environment...")
+                print(f"{Colors.GREEN}✅ You will now be dropped into the SAGE conda environment{Colors.RESET}")
+                print(f"{Colors.BLUE}📝 Your prompt will show (sage) when active{Colors.RESET}")
+                print(f"{Colors.YELLOW}💡 To exit the environment later, type: conda deactivate{Colors.RESET}")
+                print(f"{Colors.YELLOW}💡 To reactivate later, use: ./activate_sage.sh{Colors.RESET}")
+                print()
+                
+                # Test import before activation
+                try:
+                    self.run_command(['conda', 'run', '-n', 'sage', 'python', '-c', 'import sage; print("SAGE import test: OK")'], capture=True)
+                    test_passed = True
+                except:
+                    test_passed = False
+                
+                if test_passed:
+                    print(f"{Colors.GREEN}🎉 SAGE is ready!{Colors.RESET}")
+                    print()
+                    print(f"{Colors.YELLOW}📝 The installer is complete. To activate SAGE:{Colors.RESET}")
+                    print(f"{Colors.GREEN}   source ./activate_sage.sh{Colors.RESET}")
+                    print(f"{Colors.BLUE}   (Note: Use 'source' not './' - this activates conda in your current shell){Colors.RESET}")
+                    print()
+                    print(f"{Colors.BLUE}ℹ️  This will give you an activated SAGE environment with (sage) in your prompt{Colors.RESET}")
+                    print(f"{Colors.YELLOW}� Alternative: conda activate sage{Colors.RESET}")
+                    print()
+                    
+                    # Ask user if they want to auto-activate now
+                    if self.confirm_action("Activate SAGE environment now?"):
+                        print(f"{Colors.GREEN}� Activating SAGE environment...{Colors.RESET}")
+                        print(f"{Colors.YELLOW}📝 You'll get a new shell with (sage) environment active{Colors.RESET}")
+                        print(f"{Colors.YELLOW}📝 Type 'exit' to return to your original shell{Colors.RESET}")
+                        print()
+                        
+                        # Use os.execv to replace current process with activation script
+                        import os
+                        activation_script = self.project_root / "activate_sage.sh"
+                        os.execv('/bin/bash', ['bash', str(activation_script)])
+                    else:
+                        print(f"{Colors.BLUE}💡 Run ./activate_sage.sh when ready to use SAGE{Colors.RESET}")
+                    
+                else:
+                    self.print_warning("SAGE import test failed. Please check installation.")
+                    self.print_info("You can manually activate with: conda activate sage")
+            else:
+                self.print_info("CI mode: Environment ready for activation with 'conda activate sage'")
             
         except Exception as e:
             self.print_error(f"Minimal setup failed: {e}")
@@ -670,6 +724,24 @@ class SageInstaller:
 # Generated by SAGE installer
 
 echo "🔧 Activating SAGE conda environment..."
+
+# Initialize conda if not already initialized
+if ! command -v conda &> /dev/null; then
+    echo "❌ Conda not found in PATH"
+    echo "💡 Please ensure conda is installed and in your PATH"
+    exit 1
+fi
+
+# Initialize conda for this shell session
+eval "$(conda shell.bash hook)" 2>/dev/null || {{
+    echo "🔧 Initializing conda for bash..."
+    conda init bash
+    echo "📝 Conda initialized. Please restart your shell or run 'source ~/.bashrc'"
+    echo "📝 Then run this script again: ./activate_sage.sh"
+    exit 0
+}}
+
+# Activate the sage environment
 conda activate sage
 
 if [ $? -eq 0 ]; then
@@ -716,7 +788,7 @@ fi
         script_path.chmod(0o755)
         
         self.print_info(f"Created activation script: {script_path}")
-        self.print_info(f"Run: ./activate_sage.sh")
+        self.print_info(f"Run: source ./activate_sage.sh  (Note: use 'source', not './')")
     
     def uninstall_sage(self):
         """Complete uninstallation of SAGE."""
