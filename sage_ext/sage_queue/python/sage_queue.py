@@ -16,7 +16,10 @@ import atexit
 import signal
 import getpass
 from typing import Any, Optional, List, Dict
-from queue import Empty, Full
+from queue           
+        # 如果库不存在，尝试自动编译（仅在CI环境或开发环境中）     # 尝试从系统路径加载失败后，直接进入编译流程
+
+        # 如果库不存在，尝试自动编译（仅在CI环境或开发环境中）ty, Full
 from ctypes import Structure, c_uint64, c_uint32, c_char, POINTER, c_void_p, c_int, c_bool
 
 # 设置日志
@@ -311,16 +314,7 @@ class SageQueue:
         try:
             return ctypes.CDLL("libring_buffer.so")
         except OSError:
-            pass
-        
-        # 最后尝试：看看���否有Python扩展模块
-        try:
-            import sage.utils.mmap_queue.ring_buffer as ring_buffer_module
-            # 如果有Python扩展，返回它的底层库
-            if hasattr(ring_buffer_module, '_lib'):
-                return ring_buffer_module._lib
-        except ImportError:
-            pass
+            pass    
         
         # 如果库不存在，尝试自动编译（仅在CI环境或开发环境中）
         if os.environ.get('CI') or os.path.exists(os.path.join(current_dir, 'ring_buffer.cpp')):

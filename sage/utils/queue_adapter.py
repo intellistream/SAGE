@@ -18,7 +18,7 @@ def get_queue_backend_info() -> Dict[str, Any]:
     Returns:
         Dict containing backend information:
         - current_backend: The currently active backend
-        - sage_available: Whether SAGE mmap_queue extension is available
+        - sage_available: Whether SAGE queue extension is available
         - backends: List of available backends
         - capabilities: Backend capabilities
     """
@@ -33,14 +33,14 @@ def get_queue_backend_info() -> Dict[str, Any]:
         }
     }
     
-    # Check if SAGE mmap_queue extension is available
+    # Check if SAGE queue extension is available
     try:
-        import sage_ext.mmap_queue
-        from sage_ext.mmap_queue import SageQueue
+        import sage_ext.sage_queue.python.sage_queue as sage_queue_module
+        from sage_ext.sage_queue.python.sage_queue import SageQueue
         
         info["sage_available"] = True
-        info["current_backend"] = "sage_mmap_queue"
-        info["backends"].append("sage_mmap_queue")
+        info["current_backend"] = "sage_queue"
+        info["backends"].append("sage_queue")
         info["capabilities"]["multiprocess"] = True
         info["capabilities"]["memory_mapped"] = True
         info["capabilities"]["high_performance"] = True
@@ -82,7 +82,7 @@ def get_recommended_queue_backend() -> str:
     info = get_queue_backend_info()
     
     if info["sage_available"] and info.get("extension_status") == "working":
-        return "sage_mmap_queue"
+        return "sage_queue"
     elif "ray_queue" in info["backends"]:
         return "ray_queue"
     else:
@@ -94,7 +94,7 @@ def create_queue(backend: Optional[str] = None, **kwargs):
     Create a queue using the specified or recommended backend.
     
     Args:
-        backend: Backend to use ('sage_mmap_queue', 'ray_queue', 'python_queue')
+        backend: Backend to use ('sage_queue', 'sage', 'ray_queue', 'ray', 'python_queue')
         **kwargs: Backend-specific arguments
     
     Returns:
@@ -103,12 +103,20 @@ def create_queue(backend: Optional[str] = None, **kwargs):
     if backend is None:
         backend = get_recommended_queue_backend()
     
-    if backend == "sage_mmap_queue":
+    # Map legacy/short names to full backend names
+    backend_mapping = {
+        'sage': 'sage_queue',
+        'ray': 'ray_queue', 
+        'python': 'python_queue'
+    }
+    backend = backend_mapping.get(backend, backend)
+    
+    if backend == "sage_queue":
         try:
-            from sage_ext.mmap_queue import SageQueue
+            from sage_ext.sage_queue.python.sage_queue import SageQueue
             return SageQueue(**kwargs)
         except ImportError:
-            raise ImportError("SAGE mmap_queue extension not available")
+            raise ImportError("SAGE queue extension not available")
     
     elif backend == "ray_queue":
         try:
@@ -132,6 +140,6 @@ def get_queue_backends() -> List[str]:
 
 
 def is_sage_queue_available() -> bool:
-    """Check if SAGE mmap_queue extension is available and working."""
+    """Check if SAGE queue extension is available and working."""
     info = get_queue_backend_info()
     return info["sage_available"] and info.get("extension_status") == "working"

@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 
-from sage_ext.mmap_queue.sage_queue import SageQueue
+from sage_ext.sage_queue.python.sage_queue import SageQueue
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
 

@@ -14,7 +14,7 @@ import os
 import argparse
 sys.path.insert(0, '/home/tjy/SAGE')
 
-from sage.utils.mmap_queue.sage_queue import (
+from sage_ext.sage_queue.python.sage_queue import (
     SageQueue, 
     cleanup_invalid_queues, 
     cleanup_user_queues,

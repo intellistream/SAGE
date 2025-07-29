@@ -16,14 +16,14 @@ class QueueConfig:
     """Configuration for queue systems."""
     
     # Backend selection
-    backend: str = "auto"  # auto, sage_mmap_queue, ray_queue, python_queue
+    backend: str = "auto"  # auto, sage_queue, ray_queue, python_queue
     
     # Common queue settings
     maxsize: int = 1024 * 1024  # Default queue size
     auto_cleanup: bool = True
     timeout: float = 30.0
     
-    # SAGE mmap_queue specific settings
+    # SAGE queue specific settings
     namespace: Optional[str] = None
     enable_multi_tenant: bool = True
     mmap_path: Optional[str] = None
@@ -138,7 +138,7 @@ class QueueConfigManager:
         """Validate configuration settings."""
         try:
             # Check backend validity
-            valid_backends = ['auto', 'sage_mmap_queue', 'ray_queue', 'python_queue']
+            valid_backends = ['auto', 'sage_queue', 'ray_queue', 'python_queue']
             if config.backend not in valid_backends:
                 raise ValueError(f"Invalid backend: {config.backend}")
             

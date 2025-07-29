@@ -89,7 +89,7 @@ from sage.utils.queue import get_queue_backend
 print(f'✅ Queue backend: {get_queue_backend()}')
 "
       timeout-minutes: 5
-        
+
     # 运行 pytest (minimal 模式的测试)
     - name: Run Test Suite (Minimal Mode)
       run: |

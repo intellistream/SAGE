@@ -62,17 +62,8 @@ def build_c_extension():
     ext_modules = []
 
     # 如果有C源文件，添加扩展模块
-    c_source = os.path.join(ring_buffer_dir, "ring_buffer.cpp")
-    if os.path.exists(c_source):
-        ring_buffer_ext = Extension(
-            'sage.utils.mmap_queue.ring_buffer',
-            sources=[c_source],
-            include_dirs=[ring_buffer_dir],
-            libraries=['pthread'],  # Linux下需要pthread
-            extra_compile_args=['-O3', '-fPIC'],
-            extra_link_args=['-shared'] if platform.system() != 'Darwin' else []
-        )
-        ext_modules.append(ring_buffer_ext)
+    # 注意：sage_ext 模块（如 sage_queue、sage_db）现在使用独立的 CMake 构建系统
+    # 不再通过 setup.py 管理C++扩展
 
     return ext_modules
 
@@ -114,10 +105,6 @@ setup(
     package_data={
         'sage.core': ['config/*.yaml'],
         'sage_deployment': ['scripts/*.sh', 'templates/*'],
-        'sage.utils.mmap_queue': [
-            '*.so', '*.c', '*.h', 'Makefile', 'build.sh',
-            'README.md', 'USAGE_SUMMARY.md', 'IMPLEMENTATION_SUMMARY.md'
-        ],
     },
     classifiers=[
         "Development Status :: 3 - Alpha",
