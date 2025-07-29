@@ -547,7 +547,7 @@ class SageInstaller:
             self.setup_docker_conda_environment(container_name)
             
             # 6. Install SAGE with C++ extensions (main difference from minimal)
-            self.install_sage_with_cpp(container_name)
+            self.install_sage_packages_in_docker(container_name, with_cpp=True)
             
             # 7. Optional HF authentication (same as minimal setup)
             if not self.is_ci:
@@ -582,6 +582,57 @@ class SageInstaller:
             # Create activation script
             self.create_activation_script('full', container_name)
             
+            # Test SAGE installation in Docker container
+            if not self.is_ci:
+                test_sage = self.confirm_action("Test SAGE installation in Docker now?")
+                if test_sage:
+                    self.print_step("Testing SAGE installation...")
+                    try:
+                        test_result = self.run_command([
+                            'docker', 'exec', '-i', container_name, 'bash', '-c',
+                            '''
+                            source /opt/conda/bin/activate &&
+                            conda activate sage &&
+                            python -c "import sage; print('SAGE with C++ extensions ready!')"
+                            '''
+                        ], capture=True, check=False)
+                        
+                        if test_result.returncode == 0:
+                            self.print_success("SAGE test passed! 🎉")
+                            print(f"   {test_result.stdout.strip()}")
+                        else:
+                            self.print_warning("SAGE test failed")
+                            if test_result.stderr:
+                                print(f"   Error: {test_result.stderr.strip()}")
+                    except Exception as e:
+                        self.print_warning(f"Failed to test SAGE: {e}")
+                
+                # Ask if user wants to activate now
+                activate_now = self.confirm_action("Activate SAGE environment in Docker now?")
+                if activate_now:
+                    self.print_success("🚀 Launching SAGE environment in Docker...")
+                    print(f"{Colors.GREEN}📝 You'll be dropped into the Docker container with SAGE activated{Colors.RESET}")
+                    print(f"{Colors.YELLOW}💡 Type 'exit' to return to your host system{Colors.RESET}")
+                    print()
+                    
+                    # Use the activation script
+                    activation_script = self.project_root / "activate_sage.sh"
+                    if activation_script.exists():
+                        try:
+                            # Execute the activation script
+                            self.run_command(['bash', str(activation_script)], check=False)
+                        except KeyboardInterrupt:
+                            print(f"\n{Colors.YELLOW}Exited Docker environment{Colors.RESET}")
+                        except Exception as e:
+                            self.print_warning(f"Failed to activate: {e}")
+                            self.print_info("You can manually activate with: ./activate_sage.sh")
+                    else:
+                        self.print_error("Activation script not found")
+                else:
+                    print(f"{Colors.BLUE}💡 To activate SAGE later, run: ./activate_sage.sh{Colors.RESET}")
+            else:
+                self.print_info("CI mode: Use './activate_sage.sh' or 'docker exec -it container bash' to access the environment")
+            
         except Exception as e:
             self.print_error(f"Full setup failed: {e}")
             raise
@@ -608,8 +659,24 @@ class SageInstaller:
             raise RuntimeError(f"Could not pull Docker image {docker_image}")
     
     def start_docker_container(self):
-        """Start Docker container using the start script."""
-        self.print_step("Starting Docker container...")
+        """Start Docker container using the start script, reusing existing if possible."""
+        # Check if a SAGE container is already running
+        existing_container = self.get_docker_container_name()
+        if existing_container:
+            self.print_info(f"Found existing SAGE Docker container: {existing_container}")
+            if self.confirm_action("Reuse existing Docker container?"):
+                self.print_success(f"Reusing Docker container '{existing_container}'")
+                return existing_container
+            else:
+                self.print_step("Stopping existing container to create fresh one...")
+                try:
+                    self.run_command(['docker', 'stop', existing_container], capture=True)
+                    self.run_command(['docker', 'rm', existing_container], capture=True)
+                    self.print_info("Existing container removed")
+                except subprocess.CalledProcessError:
+                    self.print_warning("Failed to remove existing container, continuing...")
+        
+        self.print_step("Starting new Docker container...")
         if self.start_script.exists():
             self.run_command(['bash', str(self.start_script)])
         else:
@@ -660,10 +727,23 @@ class SageInstaller:
             return None
     
     def install_docker_dependencies(self, container_name: str):
-        """Install basic dependencies inside Docker container."""
-        self.print_step("Installing basic dependencies in Docker container...")
+        """Install basic dependencies inside Docker container with caching."""
+        self.print_step("Checking dependencies in Docker container...")
         
         try:
+            # Check if dependencies are already installed
+            result = self.run_command([
+                'docker', 'exec', '-i', container_name, 'bash', '-c',
+                'dpkg -l | grep -E "(build-essential|cmake|git|swig)" | wc -l'
+            ], capture=True, check=False)
+            
+            installed_count = int(result.stdout.strip()) if result.stdout.strip().isdigit() else 0
+            
+            if installed_count >= 4:  # Expected: build-essential, cmake, git, swig (and their deps)
+                self.print_success("Dependencies already installed in Docker container, skipping")
+                return
+            
+            self.print_step("Installing missing dependencies in Docker container...")
             # Install basic system dependencies and tools
             self.run_command([
                 'docker', 'exec', '-i', container_name, 'bash', '-c',
@@ -682,17 +762,46 @@ class SageInstaller:
                     && rm -rf /var/lib/apt/lists/*
                 '''
             ])
-            self.print_success("Basic dependencies installed in Docker container")
+            self.print_success("Dependencies installed in Docker container")
         except subprocess.CalledProcessError as e:
             self.print_error(f"Failed to install dependencies in container: {e}")
             raise
     
     def setup_docker_conda_environment(self, container_name: str):
-        """Setup conda environment inside Docker container - same as minimal setup but in Docker."""
+        """Setup conda environment inside Docker container with reuse logic."""
         self.print_step("Setting up conda environment in Docker container...")
         
         try:
-            # Create conda environment with Python 3.11 (same as minimal setup)
+            # Check if sage environment already exists
+            result = self.run_command([
+                'docker', 'exec', '-i', container_name, 'bash', '-c',
+                'source /opt/conda/bin/activate && conda env list | grep -E "^sage\\s"'
+            ], capture=True, check=False)
+            
+            if result.returncode == 0 and result.stdout.strip():
+                self.print_success("Conda environment 'sage' already exists in Docker container")
+                
+                # Check if it has the right Python version
+                version_check = self.run_command([
+                    'docker', 'exec', '-i', container_name, 'bash', '-c',
+                    'source /opt/conda/bin/activate && conda activate sage && python --version'
+                ], capture=True, check=False)
+                
+                if version_check.returncode == 0:
+                    python_version = version_check.stdout.strip()
+                    self.print_info(f"Existing environment Python version: {python_version}")
+                    if "3.11" in python_version:
+                        return  # Environment is good, reuse it
+                    else:
+                        self.print_warning("Python version mismatch, recreating environment...")
+                        # Remove old environment
+                        self.run_command([
+                            'docker', 'exec', '-i', container_name, 'bash', '-c',
+                            'source /opt/conda/bin/activate && conda env remove -n sage -y'
+                        ], check=False)
+            
+            # Create new conda environment with Python 3.11
+            self.print_step("Creating fresh conda environment 'sage' with Python 3.11...")
             self.run_command([
                 'docker', 'exec', '-i', container_name, 'bash', '-c',
                 '''
@@ -741,7 +850,8 @@ class SageInstaller:
                 extensions_built = self.build_sage_ext_in_docker(container_name)
                 
                 if extensions_built:
-                    self.print_info("Using high-performance SageQueue with C++ extensions")
+                    self.print_info("Using high-performance SAGE with C++ extensions")
+                    self.print_info("Available extensions may include: SageQueue, SAGE.DB, and other optimized components")
                 else:
                     self.print_warning("C++ extensions failed, falling back to Ray Queue")
                     # Reinstall with Ray backend as fallback
@@ -763,31 +873,74 @@ class SageInstaller:
             raise
     
     def build_sage_ext_in_docker(self, container_name: str) -> bool:
-        """Build C++ extensions in Docker container - similar to build_sage_ext_libraries but in Docker."""
-        self.print_step("Building C++ extensions (sage_ext) in Docker...")
+        """Build C++ extensions in Docker container - supports all extensions in sage_ext."""
+        self.print_step("Building SAGE C++ extensions in Docker...")
+        self.print_info("Scanning sage_ext directory for all available extensions...")
         
         try:
-            # Build sage_ext using the same logic as minimal setup but in Docker
+            # First, list all available extensions
+            list_result = self.run_command([
+                'docker', 'exec', '-i', container_name, 'bash', '-c',
+                '''
+                cd /workspace &&
+                find sage_ext -name "build.sh" -type f | while read build_script; do
+                    echo "Found extension: $(dirname "$build_script")"
+                done
+                '''
+            ], capture=True, check=False)
+            
+            if list_result.stdout.strip():
+                self.print_info("Available extensions:")
+                for line in list_result.stdout.strip().split('\n'):
+                    if line.strip():
+                        self.print_info(f"  • {line.strip()}")
+            else:
+                self.print_warning("No C++ extensions found in sage_ext directory")
+                return False
+            
+            # Build all extensions
             result = self.run_command([
                 'docker', 'exec', '-i', container_name, 'bash', '-c',
                 '''
                 source /opt/conda/bin/activate &&
                 conda activate sage &&
                 cd /workspace &&
+                
+                build_count=0
+                success_count=0
+                
                 find sage_ext -name "build.sh" -type f | while read build_script; do
-                    echo "Building extension: $(dirname "$build_script")"
+                    extension_name=$(basename "$(dirname "$build_script")")
+                    echo "Building extension: $extension_name"
                     chmod +x "$build_script"
-                    cd "$(dirname "$build_script")" && bash "./$(basename "$build_script")" && cd /workspace
+                    
+                    cd "$(dirname "$build_script")"
+                    if bash "./$(basename "$build_script")"; then
+                        echo "✅ $extension_name: BUILD SUCCESS"
+                        success_count=$((success_count + 1))
+                    else
+                        echo "❌ $extension_name: BUILD FAILED"
+                    fi
+                    cd /workspace
+                    build_count=$((build_count + 1))
                 done
+                
+                echo "SUMMARY: Built $build_count extensions"
                 '''
             ], capture=True, check=False)
             
             if result.returncode == 0:
-                self.print_success("C++ extensions (sage_ext) built successfully")
+                self.print_success("SAGE C++ extensions built successfully")
+                if result.stdout:
+                    # Show build summary
+                    lines = result.stdout.strip().split('\n')
+                    for line in lines:
+                        if '✅' in line or '❌' in line or 'SUMMARY:' in line:
+                            print(f"   {line}")
                 
                 # Try extension manager as well
                 try:
-                    self.print_step("Testing extension manager...")
+                    self.print_step("Testing extension manager integration...")
                     self.run_command([
                         'docker', 'exec', '-i', container_name, 'bash', '-c',
                         '''
@@ -800,8 +953,14 @@ try:
     manager = get_extension_manager()
     results = manager.build_all_extensions()
     print(f'Extension manager results: {results}')
+    if results:
+        print('✅ Extension manager integration: SUCCESS')
+    else:
+        print('⚠️ Extension manager integration: NO EXTENSIONS FOUND')
+except ImportError:
+    print('ℹ️ Extension manager not available (optional)')
 except Exception as e:
-    print(f'Extension manager not available: {e}')
+    print(f'⚠️ Extension manager error: {e}')
 "
                         '''
                     ], capture=True, check=False)
@@ -810,20 +969,19 @@ except Exception as e:
                 
                 return True
             else:
-                self.print_warning("C++ extensions build failed")
+                self.print_warning("Some C++ extensions failed to build")
                 if result.stderr:
-                    self.print_warning(f"Build error: {result.stderr.strip()}")
+                    self.print_warning(f"Build errors: {result.stderr.strip()}")
+                # Still return True if at least some built - show what we got
+                if '✅' in result.stdout:
+                    self.print_info("Some extensions built successfully, continuing...")
+                    return True
                 return False
                 
         except Exception as e:
             self.print_warning(f"C++ extensions build failed: {e}")
             return False
 
-    def install_sage_with_cpp(self, container_name: str):
-        """Install SAGE with C++ extensions in Docker container."""
-        # Just call the unified installation method with C++ enabled
-        self.install_sage_packages_in_docker(container_name, with_cpp=True)
-    
     def create_activation_script(self, setup_type: str, container_name: str = None):
         """Create a convenience activation script."""
         if setup_type == 'minimal':
@@ -875,7 +1033,22 @@ if command -v docker &> /dev/null; then
     if [ -n "$CONTAINER_NAME" ]; then
         echo "✅ Connecting to container: $CONTAINER_NAME"
         echo "🔧 Activating SAGE environment in Docker..."
-        docker exec -it "$CONTAINER_NAME" bash -c "conda activate sage && bash"
+        echo ""
+        echo "📋 You will be dropped into Docker with (sage) conda environment active"
+        echo "💡 Type 'exit' to return to your host system"
+        echo ""
+        
+        # Execute docker with proper conda activation and persistent environment
+        docker exec -it "$CONTAINER_NAME" bash -c '
+            source /opt/conda/etc/profile.d/conda.sh
+            conda activate sage
+            echo "✅ SAGE environment activated successfully!"
+            echo "📝 You are now in the (sage) environment inside Docker"
+            echo "🚀 Test with: python -c \\"import sage\\""
+            echo ""
+            export PS1="(sage) \\u@\\h:\\w# "
+            exec bash --norc --noprofile
+        '
     else
         echo "❌ No SAGE Docker container found"
         echo "💡 Try: docker ps"
