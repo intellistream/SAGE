@@ -57,10 +57,7 @@ class SageInstaller:
         self.config = self.load_config()
         
         # Installation paths
-        self.requirements_file = self.project_root / "installation" / "env_setup" / "requirements.txt"
         self.start_script = self.project_root / "installation" / "container_setup" / "start.sh"
-        self.install_dep_script = self.project_root / "installation" / "env_setup" / "install_dep.sh"
-        self.auto_env_setup_script = self.project_root / "installation" / "env_setup" / "auto_env_setup.sh"
         
         # Register cleanup function
         atexit.register(self._cleanup_temp_files)
@@ -370,53 +367,6 @@ class SageInstaller:
             
         return built_any
 
-    def install_python_packages_with_cpp(self):
-        """Install Python packages with C++ extensions in the sage environment."""
-        self.print_step("Installing Python packages with C++ extensions...")
-        
-        try:
-            # First, build all sage_ext C++ libraries
-            extensions_built = self.build_sage_ext_libraries()
-            
-            # Set environment variables for full installation
-            env = os.environ.copy()
-            env['SAGE_MINIMAL_INSTALL'] = 'false'
-            env['SAGE_INSTALLER_ACTIVE'] = 'true'  # Bypass setup.py guard
-            env['SAGE_QUEUE_BACKEND'] = 'sage' if extensions_built else 'ray'  # Use SageQueue if extensions built
-            
-            # Install the main SAGE package (full mode - with C++ extensions)
-            self.run_command(['conda', 'run', '-n', 'sage', 'pip', 'install', '.'], 
-                           env=env)
-            
-            # Try to build extensions using the extension manager
-            try:
-                self.print_step("Building C++ extensions via extension manager...")
-                self.run_command([
-                    'conda', 'run', '-n', 'sage', 'python', '-c',
-                    'from sage_ext import get_extension_manager; '
-                    'print("Extensions built:" if get_extension_manager().build_all_extensions() else "Extensions failed")'
-                ])
-                
-                self.print_success("C++ extensions built successfully")
-                    
-            except Exception as e:
-                self.print_warning(f"Extension manager build error: {e}")
-                if not extensions_built:
-                    self.print_warning("Falling back to Ray Queue")
-                    env['SAGE_QUEUE_BACKEND'] = 'ray'
-            
-            self.print_success("Python packages installed successfully (full mode).")
-            
-            backend = env.get('SAGE_QUEUE_BACKEND', 'ray')
-            if backend == 'sage':
-                self.print_info("Using high-performance SageQueue with C++ extensions")
-            else:
-                self.print_info("Using Ray Queue (C++ extensions not available)")
-                
-        except subprocess.CalledProcessError as e:
-            self.print_error(f"Failed to install Python packages: {e}")
-            raise
-    
     def setup_huggingface_auth(self):
         """Configure Hugging Face authentication."""
         self.print_header("Hugging Face Authentication")
@@ -577,64 +527,41 @@ class SageInstaller:
             raise RuntimeError("Docker not found")
         
         try:
-            # Pull Docker image if not exists
-            self.print_step("Checking and pulling SAGE Docker image...")
-            docker_image = "intellistream/sage:devel-ubuntu22.04"
+            # 1. Pull Docker image if needed
+            self.pull_docker_image()
             
-            try:
-                # Check if image exists locally
-                result = self.run_command(['docker', 'images', '-q', docker_image], capture=True)
-                if not result.stdout.strip():
-                    self.print_info(f"Docker image {docker_image} not found locally, pulling...")
-                    self.run_command_with_progress(
-                        ['docker', 'pull', docker_image],
-                        f"Pulling Docker image {docker_image}"
-                    )
-                    self.print_success(f"Docker image {docker_image} pulled successfully")
-                else:
-                    self.print_info(f"Docker image {docker_image} already exists locally")
-            except subprocess.CalledProcessError as e:
-                self.print_error(f"Failed to pull Docker image: {e}")
-                raise RuntimeError(f"Could not pull Docker image {docker_image}")
+            # 2. Start Docker container
+            self.start_docker_container()
             
-            # Start Docker container
-            self.print_step("Starting Docker container...")
-            if self.start_script.exists():
-                self.run_command(['bash', str(self.start_script)])
-            else:
-                self.print_error(f"Start script not found: {self.start_script}")
-                raise FileNotFoundError("Docker start script missing")
-            
-            # Get container name
+            # 3. Get container name
             container_name = self.get_docker_container_name()
             if not container_name:
                 self.print_error("Failed to detect running Docker container")
                 raise RuntimeError("No Docker container found")
-            
             self.print_success(f"Docker container '{container_name}' is running")
             
-            # Install dependencies in Docker
+            # 4. Install system dependencies in Docker (same as minimal setup logic)
             self.install_docker_dependencies(container_name)
             
-            # Setup conda environment in Docker
+            # 5. Create conda environment in Docker (same as minimal setup)
             self.setup_docker_conda_environment(container_name)
             
-            # Install SAGE with C++ extensions
+            # 6. Install SAGE with C++ extensions (main difference from minimal)
             self.install_sage_with_cpp(container_name)
             
-            # Configure HF auth
+            # 7. Optional HF authentication (same as minimal setup)
             if not self.is_ci:
                 configure_hf = self.confirm_action("Configure Hugging Face authentication now?")
                 if configure_hf:
                     self.setup_docker_huggingface_auth(container_name)
             
-            # Save configuration
+            # 8. Save configuration (same as minimal setup)
             self.config['setup_type'] = 'full'
             self.config['docker_container'] = container_name
             self.config['installation_date'] = time.time()
             self.save_config()
             
-            # Success message
+            # 9. Success message and activation instructions
             self.print_header("Installation Complete!")
             self.print_success("Full setup completed successfully!")
             print()
@@ -649,7 +576,7 @@ class SageInstaller:
             print(f"{Colors.GREEN}🚀 C++ extensions and all features available{Colors.RESET}")
             print()
             print(f"{Colors.BOLD}🚀 Quick test after activation:{Colors.RESET}")
-            print(f"{Colors.GREEN}   python -c \"import sage; print('SAGE with C++ extensions ready!'){Colors.RESET}")
+            print(f"{Colors.GREEN}   python -c \"import sage; print('SAGE with C++ extensions ready!')\"{Colors.RESET}")
             print()
             
             # Create activation script
@@ -658,6 +585,66 @@ class SageInstaller:
         except Exception as e:
             self.print_error(f"Full setup failed: {e}")
             raise
+    
+    def pull_docker_image(self):
+        """Pull Docker image if not exists locally."""
+        self.print_step("Checking and pulling SAGE Docker image...")
+        docker_image = "intellistream/sage:devel-ubuntu22.04"
+        
+        try:
+            # Check if image exists locally
+            result = self.run_command(['docker', 'images', '-q', docker_image], capture=True)
+            if not result.stdout.strip():
+                self.print_info(f"Docker image {docker_image} not found locally, pulling...")
+                self.run_command_with_progress(
+                    ['docker', 'pull', docker_image],
+                    f"Pulling Docker image {docker_image}"
+                )
+                self.print_success(f"Docker image {docker_image} pulled successfully")
+            else:
+                self.print_info(f"Docker image {docker_image} already exists locally")
+        except subprocess.CalledProcessError as e:
+            self.print_error(f"Failed to pull Docker image: {e}")
+            raise RuntimeError(f"Could not pull Docker image {docker_image}")
+    
+    def start_docker_container(self):
+        """Start Docker container using the start script."""
+        self.print_step("Starting Docker container...")
+        if self.start_script.exists():
+            self.run_command(['bash', str(self.start_script)])
+        else:
+            self.print_error(f"Start script not found: {self.start_script}")
+            raise FileNotFoundError("Docker start script missing")
+    
+    def setup_docker_huggingface_auth(self, container_name: str):
+        """Setup Hugging Face authentication in Docker container - same as minimal setup logic."""
+        self.print_step("Configuring Hugging Face authentication in Docker...")
+        
+        hf_endpoint = "https://hf-mirror.com"
+        
+        if self.is_ci:
+            hf_token = os.getenv('HF_TOKEN')
+            if not hf_token:
+                self.print_error("CI detected but HF_TOKEN is not set.")
+                return
+        else:
+            hf_token = getpass.getpass("Hugging Face Token: ")
+            if not hf_token.strip():
+                self.print_info("Skipping Hugging Face authentication.")
+                return
+        
+        try:
+            self.run_command([
+                'docker', 'exec', '-i', container_name, 'bash', '-c',
+                f'''
+                source /opt/conda/bin/activate &&
+                conda activate sage &&
+                HF_ENDPOINT={hf_endpoint} huggingface-cli login --token "{hf_token}"
+                '''
+            ])
+            self.print_success("Hugging Face authentication configured in Docker")
+        except subprocess.CalledProcessError:
+            self.print_error("Failed to configure Hugging Face authentication in Docker")
     
     def get_docker_container_name(self) -> Optional[str]:
         """Get the name of the running SAGE Docker container."""
@@ -701,11 +688,11 @@ class SageInstaller:
             raise
     
     def setup_docker_conda_environment(self, container_name: str):
-        """Setup conda environment inside Docker container."""
+        """Setup conda environment inside Docker container - same as minimal setup but in Docker."""
         self.print_step("Setting up conda environment in Docker container...")
         
         try:
-            # Create conda environment with Python 3.11
+            # Create conda environment with Python 3.11 (same as minimal setup)
             self.run_command([
                 'docker', 'exec', '-i', container_name, 'bash', '-c',
                 '''
@@ -717,122 +704,90 @@ class SageInstaller:
             ])
             self.print_success("Conda environment 'sage' created in Docker container")
             
-            # Install basic Python dependencies with better error handling
-            packages_to_install = [
-                ("torch", "PyTorch (ML framework)"),
-                ("huggingface_hub", "HuggingFace Hub (model repository)"),
-                ("transformers", "HuggingFace Transformers (NLP models)"),
-                ("datasets", "HuggingFace Datasets (data processing)")
-            ]
-            
-            installed_packages = []
-            failed_packages = []
-            
-            for package, description in packages_to_install:
-                self.print_step(f"Installing {package} - {description}...")
-                success = False
-                
-                # Try with different strategies
-                for attempt, strategy in enumerate([
-                    f"pip install {package} --timeout 300",
-                    f"pip install {package} --timeout 600 --retries 3",
-                    f"conda install {package} -y -c pytorch -c conda-forge",
-                    f"pip install {package} --no-cache-dir --timeout 900"
-                ], 1):
-                    try:
-                        self.run_command([
-                            'docker', 'exec', '-i', container_name, 'bash', '-c',
-                            f'''
-                            source /opt/conda/bin/activate &&
-                            conda activate sage &&
-                            {strategy}
-                            '''
-                        ])
-                        self.print_success(f"{package} installed successfully (attempt {attempt})")
-                        installed_packages.append(package)
-                        success = True
-                        break
-                        
-                    except subprocess.CalledProcessError as e:
-                        if attempt < 4:
-                            self.print_warning(f"{package} installation attempt {attempt} failed, trying alternative method...")
-                            time.sleep(2)  # Brief pause between attempts
-                        else:
-                            self.print_warning(f"Failed to install {package} after all attempts: {e}")
-                
-                if not success:
-                    failed_packages.append(package)
-            
-            if installed_packages:
-                self.print_success(f"Successfully installed: {', '.join(installed_packages)}")
-            
-            if failed_packages:
-                self.print_warning(f"Failed to install: {', '.join(failed_packages)}")
-                self.print_warning("Continuing installation - these can be installed manually later if needed")
-            
-            # Always install basic packages for SAGE to work
-            self.print_step("Installing essential packages for SAGE...")
-            self.run_command([
-                'docker', 'exec', '-i', container_name, 'bash', '-c',
-                '''
-                source /opt/conda/bin/activate &&
-                conda activate sage &&
-                pip install --timeout 300 pyyaml numpy pandas requests tqdm packaging
-                '''
-            ])
-            self.print_success("Essential packages installed in Docker container")
-            
         except subprocess.CalledProcessError as e:
             self.print_error(f"Failed to setup conda environment in container: {e}")
             raise
     
-    def install_sage_with_cpp(self, container_name: str):
-        """Install SAGE with C++ extensions in Docker container."""
-        self.print_step("Installing SAGE with C++ extensions in Docker...")
+    def install_sage_packages_in_docker(self, container_name: str, with_cpp: bool = False):
+        """Install SAGE packages in Docker container - reusing minimal setup logic."""
+        if with_cpp:
+            self.print_step("Installing SAGE with C++ extensions in Docker...")
+        else:
+            self.print_step("Installing SAGE (minimal) in Docker...")
         
         try:
-            # First install SAGE package itself
-            self.print_step("Installing SAGE Python package in Docker...")
+            # Set environment variables like minimal setup
+            env_vars = "SAGE_INSTALLER_ACTIVE=true"
+            if with_cpp:
+                env_vars += " SAGE_MINIMAL_INSTALL=false SAGE_QUEUE_BACKEND=sage"
+            else:
+                env_vars += " SAGE_MINIMAL_INSTALL=true SAGE_QUEUE_BACKEND=ray"
+            
+            # Install SAGE package (same command as minimal setup, but in Docker)
             self.run_command([
+                'docker', 'exec', '-i', container_name, 'bash', '-c',
+                f'''
+                source /opt/conda/bin/activate &&
+                conda activate sage &&
+                cd /workspace &&
+                {env_vars} pip install .
+                '''
+            ])
+            
+            if with_cpp:
+                self.print_success("SAGE with C++ extensions installed in Docker")
+                
+                # Build C++ extensions if requested
+                extensions_built = self.build_sage_ext_in_docker(container_name)
+                
+                if extensions_built:
+                    self.print_info("Using high-performance SageQueue with C++ extensions")
+                else:
+                    self.print_warning("C++ extensions failed, falling back to Ray Queue")
+                    # Reinstall with Ray backend as fallback
+                    self.run_command([
+                        'docker', 'exec', '-i', container_name, 'bash', '-c',
+                        '''
+                        source /opt/conda/bin/activate &&
+                        conda activate sage &&
+                        cd /workspace &&
+                        SAGE_MINIMAL_INSTALL=true SAGE_INSTALLER_ACTIVE=true SAGE_QUEUE_BACKEND=ray pip install . --force-reinstall
+                        '''
+                    ])
+            else:
+                self.print_success("SAGE (minimal) installed in Docker")
+                self.print_info("Using Ray Queue for communication")
+            
+        except subprocess.CalledProcessError as e:
+            self.print_error(f"Failed to install SAGE in container: {e}")
+            raise
+    
+    def build_sage_ext_in_docker(self, container_name: str) -> bool:
+        """Build C++ extensions in Docker container - similar to build_sage_ext_libraries but in Docker."""
+        self.print_step("Building C++ extensions (sage_ext) in Docker...")
+        
+        try:
+            # Build sage_ext using the same logic as minimal setup but in Docker
+            result = self.run_command([
                 'docker', 'exec', '-i', container_name, 'bash', '-c',
                 '''
                 source /opt/conda/bin/activate &&
                 conda activate sage &&
                 cd /workspace &&
-                SAGE_MINIMAL_INSTALL=false SAGE_INSTALLER_ACTIVE=true SAGE_QUEUE_BACKEND=sage pip install .
+                find sage_ext -name "build.sh" -type f | while read build_script; do
+                    echo "Building extension: $(dirname "$build_script")"
+                    chmod +x "$build_script"
+                    cd "$(dirname "$build_script")" && bash "./$(basename "$build_script")" && cd /workspace
+                done
                 '''
-            ])
-            self.print_success("SAGE Python package installed in Docker container")
+            ], capture=True, check=False)
             
-            # Build C++ extensions (sage_ext)
-            self.print_step("Building C++ extensions (sage_ext) in Docker...")
-            extensions_built = False
-            try:
-                self.run_command([
-                    'docker', 'exec', '-i', container_name, 'bash', '-c',
-                    '''
-                    source /opt/conda/bin/activate &&
-                    conda activate sage &&
-                    cd /workspace &&
-                    find sage_ext -name "build.sh" -type f | while read build_script; do
-                        echo "Building extension: $(dirname "$build_script")"
-                        chmod +x "$build_script"
-                        cd "$(dirname "$build_script")" && bash "./$(basename "$build_script")" && cd /workspace
-                    done
-                    '''
-                ])
-                
+            if result.returncode == 0:
                 self.print_success("C++ extensions (sage_ext) built successfully")
-                extensions_built = True
                 
-            except subprocess.CalledProcessError as e:
-                self.print_warning("C++ extensions build failed, falling back to Ray Queue")
-                extensions_built = False
-            
-            # Try to build extensions using the extension manager if available
-            if extensions_built:
+                # Try extension manager as well
                 try:
-                    self.print_step("Building C++ extensions via extension manager...")
+                    self.print_step("Testing extension manager...")
                     self.run_command([
                         'docker', 'exec', '-i', container_name, 'bash', '-c',
                         '''
@@ -844,85 +799,30 @@ try:
     from sage_ext import get_extension_manager
     manager = get_extension_manager()
     results = manager.build_all_extensions()
-    print(f'Extension manager build results: {results}')
+    print(f'Extension manager results: {results}')
 except Exception as e:
     print(f'Extension manager not available: {e}')
 "
                         '''
-                    ])
-                    self.print_success("Extension manager completed")
-                except subprocess.CalledProcessError:
-                    self.print_warning("Extension manager build had issues, but continuing")
-            
-            # Verify installation
-            self.print_step("Verifying SAGE installation in Docker...")
-            try:
-                self.run_command([
-                    'docker', 'exec', '-i', container_name, 'bash', '-c',
-                    '''
-                    source /opt/conda/bin/activate &&
-                    conda activate sage &&
-                    python -c "
-import sage
-print('✅ SAGE import successful')
-try:
-    from sage.utils.queue_adapter import get_queue_backend_info
-    info = get_queue_backend_info()
-    print(f'Queue backend: {info[\"current_backend\"]}')
-    print(f'Extensions available: {info[\"sage_available\"]}')
-except Exception as e:
-    print(f'Queue info not available: {e}')
-"
-                    '''
-                ])
-                self.print_success("SAGE installation verification successful")
-            except subprocess.CalledProcessError:
-                self.print_warning("Installation verification had issues, but continuing")
+                    ], capture=True, check=False)
+                except:
+                    pass  # Extension manager is optional
                 
-        except subprocess.CalledProcessError as e:
-            self.print_error(f"Failed to install SAGE in container: {e}")
-            # Fallback installation with minimal setup
-            self.print_step("Attempting fallback installation...")
-            try:
-                self.run_command([
-                    'docker', 'exec', '-i', container_name, 'bash', '-c',
-                    '''
-                    source /opt/conda/bin/activate &&
-                    conda activate sage &&
-                    cd /workspace &&
-                    SAGE_MINIMAL_INSTALL=true SAGE_INSTALLER_ACTIVE=true SAGE_QUEUE_BACKEND=ray pip install . --force-reinstall
-                    '''
-                ])
-                self.print_success("Fallback installation with Ray Queue completed")
-            except subprocess.CalledProcessError as fallback_error:
-                self.print_error(f"Fallback installation also failed: {fallback_error}")
-                raise
-    
-    def setup_docker_huggingface_auth(self, container_name: str):
-        """Setup Hugging Face authentication in Docker container."""
-        self.print_step("Configuring Hugging Face authentication in Docker...")
-        
-        hf_endpoint = "https://hf-mirror.com"
-        
-        if self.is_ci:
-            hf_token = os.getenv('HF_TOKEN')
-            if not hf_token:
-                self.print_error("CI detected but HF_TOKEN is not set.")
-                return
-        else:
-            hf_token = getpass.getpass("Hugging Face Token: ")
-            if not hf_token.strip():
-                self.print_info("Skipping Hugging Face authentication.")
-                return
-        
-        try:
-            self.run_command([
-                'docker', 'exec', '-i', container_name, 'bash', '-c',
-                f'HF_ENDPOINT={hf_endpoint} huggingface-cli login --token "{hf_token}"'
-            ])
-            self.print_success("Hugging Face authentication configured in Docker")
-        except subprocess.CalledProcessError:
-            self.print_error("Failed to configure Hugging Face authentication in Docker")
+                return True
+            else:
+                self.print_warning("C++ extensions build failed")
+                if result.stderr:
+                    self.print_warning(f"Build error: {result.stderr.strip()}")
+                return False
+                
+        except Exception as e:
+            self.print_warning(f"C++ extensions build failed: {e}")
+            return False
+
+    def install_sage_with_cpp(self, container_name: str):
+        """Install SAGE with C++ extensions in Docker container."""
+        # Just call the unified installation method with C++ enabled
+        self.install_sage_packages_in_docker(container_name, with_cpp=True)
     
     def create_activation_script(self, setup_type: str, container_name: str = None):
         """Create a convenience activation script."""
