@@ -18,7 +18,7 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from sage.utils.mmap_queue.sage_queue import SageQueue, SageQueueRef, destroy_queue
+    from sage_queue import SageQueue, SageQueueRef, destroy_queue
     print("✓ 成功导入 SageQueue")
 except ImportError as e:
     print(f"✗ 导入失败: {e}")
@@ -531,6 +531,14 @@ def run_all_benchmarks():
     timestamp = int(time.time())
     report_file = f"benchmark_report_{timestamp}.json"
     
+    # 确定项目根目录的logs文件夹
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+    logs_dir = os.path.join(project_root, 'logs')
+    os.makedirs(logs_dir, exist_ok=True)
+    
+    report_filepath = os.path.join(logs_dir, report_file)
+    
     report_data = {
         'timestamp': timestamp,
         'test_suite': 'SAGE Memory-Mapped Queue Benchmark',
@@ -542,10 +550,10 @@ def run_all_benchmarks():
         'results': [r.to_dict() for r in results]
     }
     
-    with open(report_file, 'w', encoding='utf-8') as f:
+    with open(report_filepath, 'w', encoding='utf-8') as f:
         json.dump(report_data, f, indent=2, default=str)
     
-    print(f"\n📊 详细报告已保存到: {report_file}")
+    print(f"\n📊 详细报告已保存到: {report_filepath}")
     
     return successful_tests == total_tests
 

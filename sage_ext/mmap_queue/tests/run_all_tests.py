@@ -276,6 +276,12 @@ class TestRunner:
         
         import json
         
+        # 确定项目根目录的logs文件夹
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+        logs_dir = os.path.join(project_root, 'logs')
+        os.makedirs(logs_dir, exist_ok=True)
+        
         report_data = {
             'timestamp': time.time(),
             'test_suite': 'SAGE Memory-Mapped Queue Test Suite',
@@ -288,7 +294,7 @@ class TestRunner:
             'results': self.results
         }
         
-        filepath = os.path.join(self.test_dir, filename)
+        filepath = os.path.join(logs_dir, filename)
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(report_data, f, indent=2, default=str)
         

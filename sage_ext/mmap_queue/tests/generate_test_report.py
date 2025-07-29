@@ -192,10 +192,17 @@ def save_report_to_file(report, filename=None):
         timestamp = int(time.time())
         filename = f"sage_queue_test_report_{timestamp}.json"
     
-    with open(filename, 'w', encoding='utf-8') as f:
+    # 确定项目根目录的logs文件夹
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+    logs_dir = os.path.join(project_root, 'logs')
+    os.makedirs(logs_dir, exist_ok=True)
+    
+    filepath = os.path.join(logs_dir, filename)
+    with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
     
-    return filename
+    return filepath
 
 
 def generate_markdown_report(report, filename=None):
@@ -204,7 +211,14 @@ def generate_markdown_report(report, filename=None):
         timestamp = int(time.time())
         filename = f"sage_queue_test_report_{timestamp}.md"
     
-    with open(filename, 'w', encoding='utf-8') as f:
+    # 确定项目根目录的logs文件夹
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+    logs_dir = os.path.join(project_root, 'logs')
+    os.makedirs(logs_dir, exist_ok=True)
+    
+    filepath = os.path.join(logs_dir, filename)
+    with open(filepath, 'w', encoding='utf-8') as f:
         f.write("# SAGE Memory-Mapped Queue 测试报告\n\n")
         f.write(f"**生成时间**: {report['timestamp']}  \n")
         f.write(f"**测试套件**: {report['test_suite']}  \n")
@@ -301,7 +315,7 @@ def generate_markdown_report(report, filename=None):
         f.write("- **易于使用**: 接口简洁，错误处理完善，监控信息丰富\n\n")
         f.write("**该模块已准备好用于生产环境，可以作为SAGE框架中高性能进程间通信的核心组件。**\n")
     
-    return filename
+    return filepath
 
 
 def main():

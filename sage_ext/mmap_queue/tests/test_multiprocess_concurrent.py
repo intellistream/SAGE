@@ -18,7 +18,7 @@ import traceback
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from sage.utils.mmap_queue.sage_queue import SageQueue, SageQueueRef, destroy_queue
+    from sage_queue import SageQueue, SageQueueRef, destroy_queue
     print("✓ 成功导入 SageQueue")
 except ImportError as e:
     print(f"✗ 导入失败: {e}")
@@ -206,7 +206,7 @@ def queue_reference_worker(queue_ref_data: Dict[str, Any], worker_id: int, num_o
         import pickle
         
         # 创建 SageQueueRef 对象
-        from sage.utils.mmap_queue.sage_queue import SageQueueRef
+        from sage_queue import SageQueueRef
         queue_ref = SageQueueRef(
             queue_ref_data['queue_name'],
             queue_ref_data['maxsize'],
