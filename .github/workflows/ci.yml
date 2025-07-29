@@ -47,6 +47,17 @@ jobs:
         python-version: '3.11'
         cache: 'pip'
       timeout-minutes: 5
+      
+    # 设置 Conda 环境
+    - name: Set up Conda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        auto-update-conda: true
+        python-version: '3.11'
+        activate-environment: sage
+        environment-file: ''
+        auto-activate-base: false
+      timeout-minutes: 10
         
     # 安装系统依赖 (使用本地缓存)
     - name: Install System Dependencies
@@ -64,24 +75,27 @@ jobs:
       env:
         CI: true
         PIP_CACHE_DIR: /tmp/pip-cache
+      shell: bash -l {0}
       run: |
         echo "Installing SAGE using install.py --minimal"
+        conda info
         python install.py --minimal
       timeout-minutes: 15
         
     # 运行基础测试 (使用 minimal 安装的功能)
     - name: Basic Import Tests
+      shell: bash -l {0}
       run: |
+        conda activate sage
         python -c "import sage; print('✅ SAGE core import successful')"
         python -c "import sage.utils; print('✅ SAGE utils import successful')"
         python -c "from sage.utils.queue_adapter import get_queue_backends; print('✅ Queue adapter import successful')"
         
     # 运行 pytest (minimal 模式的测试)
     - name: Run Test Suite (Minimal Mode)
+      shell: bash -l {0}
       run: |
         echo "Running tests for minimal installation..."
-        # 激活环境并运行测试
-        eval "$(conda shell.bash hook)"
         conda activate sage
         
         pip install pytest pytest-timeout pytest-cov
