@@ -192,10 +192,10 @@ def save_report_to_file(report, filename=None):
         timestamp = int(time.time())
         filename = f"sage_queue_test_report_{timestamp}.json"
     
-    # 确定项目根目录的logs文件夹
+    # 确定项目根目录的logs/sage_queue_tests文件夹
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
-    logs_dir = os.path.join(project_root, 'logs')
+    logs_dir = os.path.join(project_root, 'logs', 'sage_queue_tests')
     os.makedirs(logs_dir, exist_ok=True)
     
     filepath = os.path.join(logs_dir, filename)
@@ -211,10 +211,10 @@ def generate_markdown_report(report, filename=None):
         timestamp = int(time.time())
         filename = f"sage_queue_test_report_{timestamp}.md"
     
-    # 确定项目根目录的logs文件夹
+    # 确定项目根目录的logs/sage_queue_tests文件夹
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
-    logs_dir = os.path.join(project_root, 'logs')
+    logs_dir = os.path.join(project_root, 'logs', 'sage_queue_tests')
     os.makedirs(logs_dir, exist_ok=True)
     
     filepath = os.path.join(logs_dir, filename)

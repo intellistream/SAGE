@@ -531,10 +531,10 @@ def run_all_benchmarks():
     timestamp = int(time.time())
     report_file = f"benchmark_report_{timestamp}.json"
     
-    # 确定项目根目录的logs文件夹
+    # 确定项目根目录的logs/sage_queue_tests文件夹
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
-    logs_dir = os.path.join(project_root, 'logs')
+    logs_dir = os.path.join(project_root, 'logs', 'sage_queue_tests')
     os.makedirs(logs_dir, exist_ok=True)
     
     report_filepath = os.path.join(logs_dir, report_file)
