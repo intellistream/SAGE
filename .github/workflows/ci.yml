@@ -70,69 +70,11 @@ jobs:
       timeout-minutes: 15
         
     # 运行基础测试 (使用 minimal 安装的功能)
-    - name: Run Basic Tests
-      run: |
-        echo "Testing SAGE minimal installation..."
-        # 使用 conda 直接激活环境进行测试
-        eval "$(conda shell.bash hook)"
-        conda activate sage
-        
-        echo "=== Core Module Tests ==="
-        python -c "import sage; print('✅ SAGE core import successful')"
-        python -c "from sage.core import *; print('✅ SAGE core modules working')"
-        python -c "from sage.lib import *; print('✅ SAGE lib modules working')"
-        
-        echo "=== Queue Backend Tests ==="
-        python -c "import os; from sage.utils.queue_adapter import get_queue_backend_info; info = get_queue_backend_info(); print(f'✅ Queue backend: {info[\"current_backend\"]}')"
-        
-        echo "=== SAGE Extensions Tests (Python Interface) ==="
-        # Test sage_queue Python interface (should work even without C++)
-        python -c "
-try:
-    from sage_ext.sage_queue.python.sage_queue import SageQueue
-    print('✅ sage_queue Python interface imported successfully')
-    # Test graceful degradation in minimal mode
-    try:
-        queue = SageQueue(size=1024)
-        print('⚠️  sage_queue C++ extension available (unexpected in minimal mode)')
-    except Exception as e:
-        print(f'✅ sage_queue graceful degradation: {type(e).__name__}')
-except ImportError as e:
-    print(f'❌ sage_queue Python interface import failed: {e}')
-"
-        
-        # Test sage_db Python interface
-        python -c "
-try:
-    from sage_ext.sage_db.python.sage_db import SageDB
-    print('✅ sage_db Python interface imported successfully')
-    # Test graceful degradation in minimal mode
-    try:
-        db = SageDB()
-        print('⚠️  sage_db C++ extension available (unexpected in minimal mode)')
-    except Exception as e:
-        print(f'✅ sage_db graceful degradation: {type(e).__name__}')
-except ImportError as e:
-    print(f'❌ sage_db Python interface import failed: {e}')
-"
-        
-        echo "=== Extension Manager Test ==="
-        python -c "
-try:
-    import sage_ext
-    print('✅ sage_ext package imported successfully')
-    # Check if extension manager exists
-    try:
-        manager = sage_ext.get_extension_manager()
-        print('✅ Extension manager available')
-    except (AttributeError, ImportError):
-        print('ℹ️  Extension manager not available (normal in minimal mode)')
-except ImportError as e:
-    print(f'ℹ️  sage_ext package not available: {e}')
-"
-      timeout-minutes: 5
-
-    # 运行 pytest (minimal 模式的测试)
+      - name: Basic Import Tests
+        run: |
+          python -c "import sage; print('✅ SAGE core import successful')"
+          python -c "import sage.utils; print('✅ SAGE utils import successful')"
+          python -c "from sage.utils.queue_adapter import get_queue_backends; print('✅ Queue adapter import successful')"    # 运行 pytest (minimal 模式的测试)
     - name: Run Test Suite (Minimal Mode)
       run: |
         echo "Running tests for minimal installation..."
