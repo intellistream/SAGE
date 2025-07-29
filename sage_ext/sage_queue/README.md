@@ -1,8 +1,89 @@
-# SAGE Memory-Mapped Queue
+# SAGE Queue
 
-高性能进程间通信队列，基于mmap和C实现的环形缓冲区，为SAGE系统提供零拷贝的跨Actor通信能力。
+High-performance memory-mapped queue implementation for inter-process communication in the SAGE framework.
 
-## 特性
+## Directory Structure
+
+```
+sage_queue/
+├── CMakeLists.txt          # CMake build configuration
+├── build.sh                # Legacy build script (now calls CMake)
+├── build_cmake.sh          # New CMake build script
+├── auto_compile.sh         # Auto-compilation for CI
+├── include/                # Header files
+│   ├── ring_buffer.h
+│   └── concurrentqueue.h
+├── src/                    # Source files
+│   └── ring_buffer.cpp
+├── bindings/               # Python bindings (pybind11)
+│   └── sage_queue_bindings.cpp
+├── python/                 # Python interface files
+│   ├── sage_queue.py
+│   └── sage_queue_manager.py
+├── tests/                  # Test files
+│   └── test_basic.cpp
+└── build/                  # CMake build output (generated)
+```
+
+## Building
+
+### Using CMake (Recommended)
+
+```bash
+# Release build
+./build_cmake.sh
+
+# Debug build with AddressSanitizer
+./build_cmake.sh debug
+
+# Clean build
+./build_cmake.sh clean
+
+# Debug clean build
+./build_cmake.sh debug clean
+```
+
+### Using Legacy Script
+
+The original `build.sh` script is still available for compatibility:
+
+```bash
+# Release build
+./build.sh
+
+# Debug build
+./build.sh debug
+```
+
+## Build Options
+
+The CMake build system supports the following options:
+
+- `BUILD_DEBUG`: Enable debug symbols and AddressSanitizer
+- `BUILD_TESTS`: Build test programs (default: ON)
+- `BUILD_PYTHON_BINDINGS`: Build Python bindings with pybind11 (default: ON)
+- `USE_OPENMP`: Enable OpenMP support (default: ON)
+
+## Output
+
+- **Library**: `build/libring_buffer.so`
+- **Compatibility symlinks**: `ring_buffer.so` and `libring_buffer.so` in the root directory
+- **Tests**: `build/test_sage_queue` (if `BUILD_TESTS=ON`)
+- **Python bindings**: `build/sage_queue_bindings.so` (if `BUILD_PYTHON_BINDINGS=ON`)
+
+## Features
+
+- Memory-mapped ring buffer for high-performance IPC
+- Thread-safe concurrent queue implementation
+- Debug builds with AddressSanitizer support
+- CMake-based build system for consistency with other SAGE components
+- Automatic testing and validation
+
+## Integration
+
+This module integrates with the main SAGE installation system and follows the same CMake patterns as other components in `sage_ext/`.
+
+## Original Features (Preserved)
 
 - 🚀 **高性能**: 基于mmap的零拷贝内存映射，原子操作无锁设计
 - 🔄 **兼容性**: 完全兼容Python标准`queue.Queue`接口
@@ -11,13 +92,6 @@
 - 📦 **可序列化**: 队列引用支持pickle序列化，可在Actor间传递
 - 🔧 **灵活配置**: 支持自定义缓冲区大小和清理策略
 - 📊 **监控统计**: 提供详细的性能统计和诊断信息
-
-## 快速开始
-
-### 编译C库
-
-```bash
-cd sage.utils/mmap_queue
 chmod +x build.sh
 ./build.sh
 ```
