@@ -6,83 +6,24 @@ Ray Worker节点管理相关命令
 
 import typer
 import subprocess
-import sys
-import re
 import tempfile
 import os
 import time
 from pathlib import Path
 from typing import List, Tuple
 
+from .config_manager import get_config_manager
+from .deployment_manager import DeploymentManager
+
 app = typer.Typer(name="worker", help="Ray Worker节点管理")
 
-def load_config():
-    """加载配置文件（简单解析YAML格式）"""
-    config_file = Path.home() / ".sage" / "config.yaml"
-    if not config_file.exists():
-        typer.echo(f"❌ Config file not found: {config_file}")
-        typer.echo("💡 Please run setup.py first to create default config")
-        raise typer.Exit(1)
-    
-    try:
-        config = {}
-        current_section = None
-        
-        with open(config_file, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith('#'):
-                    continue
-                
-                # 匹配section header (如 workers:)
-                section_match = re.match(r'^(\w+):\s*$', line)
-                if section_match:
-                    current_section = section_match.group(1)
-                    config[current_section] = {}
-                    continue
-                
-                # 匹配key: value对
-                kv_match = re.match(r'^(\w+):\s*(.+)$', line)
-                if kv_match and current_section:
-                    key, value = kv_match.groups()
-                    # 处理数值
-                    if value.isdigit():
-                        value = int(value)
-                    # 处理字符串，去掉引号
-                    elif value.startswith('"') and value.endswith('"'):
-                        value = value[1:-1]
-                    config[current_section][key] = value
-                    continue
-                
-                # 匹配简单赋值 (如 head_node = sage1)
-                assign_match = re.match(r'^(\w+)\s*=\s*(.+)$', line)
-                if assign_match and current_section:
-                    key, value = assign_match.groups()
-                    if value.isdigit():
-                        value = int(value)
-                    config[current_section][key] = value
-        
-        return config
-    except Exception as e:
-        typer.echo(f"❌ Failed to load config: {e}")
-        raise typer.Exit(1)
-
-def parse_worker_nodes(worker_nodes_str: str) -> List[Tuple[str, int]]:
-    """解析worker节点列表"""
-    nodes = []
-    for node in worker_nodes_str.split(','):
-        node = node.strip()
-        if ':' in node:
-            host, port = node.split(':', 1)
-            port = int(port)
-        else:
-            host = node
-            port = 22  # 默认SSH端口
-        nodes.append((host, port))
-    return nodes
-
-def execute_remote_command(host: str, port: int, command: str, ssh_user: str, ssh_key_path: str, timeout: int = 60) -> bool:
+def execute_remote_command(host: str, port: int, command: str, timeout: int = 60) -> bool:
     """在远程主机上执行命令"""
+    config_manager = get_config_manager()
+    ssh_config = config_manager.get_ssh_config()
+    ssh_user = ssh_config.get('user', 'sage')
+    ssh_key_path = os.path.expanduser(ssh_config.get('key_path', '~/.ssh/id_rsa'))
+    
     typer.echo(f"🔗 连接到 {ssh_user}@{host}:{port}")
     
     # 创建临时脚本文件
@@ -94,11 +35,11 @@ def execute_remote_command(host: str, port: int, command: str, ssh_user: str, ss
     try:
         ssh_cmd = [
             'ssh',
-            '-i', os.path.expanduser(ssh_key_path),
+            '-i', ssh_key_path,
             '-p', str(port),
             '-o', 'StrictHostKeyChecking=no',
             '-o', 'UserKnownHostsFile=/dev/null',
-            '-o', 'ConnectTimeout=10',
+            '-o', f'ConnectTimeout={ssh_config.get("connect_timeout", 10)}',
             '-o', 'ServerAliveInterval=60',
             '-o', 'ServerAliveCountMax=3',
             f'{ssh_user}@{host}',
@@ -134,7 +75,7 @@ def execute_remote_command(host: str, port: int, command: str, ssh_user: str, ss
         except OSError:
             pass
 
-def get_conda_init_code(remote_conda_env: str = "sage") -> str:
+def get_conda_init_code(conda_env: str = "sage") -> str:
     """获取Conda环境初始化代码"""
     return f'''
 # 多种conda安装路径尝试
@@ -158,48 +99,49 @@ if [ -z "$CONDA_FOUND" ]; then
 fi
 
 # 激活sage环境
-if ! conda activate {remote_conda_env}; then
-    echo "[ERROR] 无法激活conda环境: {remote_conda_env}"
+if ! conda activate {conda_env}; then
+    echo "[ERROR] 无法激活conda环境: {conda_env}"
     echo "[INFO] 可用的conda环境:"
     conda env list
     exit 1
 fi
 
-echo "[SUCCESS] 已激活conda环境: {remote_conda_env}"
+echo "[SUCCESS] 已激活conda环境: {conda_env}"
 '''
 
 @app.command("start")
 def start_workers():
     """启动所有Ray Worker节点"""
     typer.echo("🚀 启动Ray Worker节点...")
-    config = load_config()
     
-    workers_config = config.get('workers', {})
-    head_node = workers_config.get('head_node')
-    worker_nodes = workers_config.get('worker_nodes')
-    head_port = workers_config.get('head_port', 6379)
-    ssh_user = workers_config.get('ssh_user', 'sage')
-    ssh_key_path = workers_config.get('ssh_key_path', '~/.ssh/id_rsa')
-    worker_temp_dir = workers_config.get('worker_temp_dir', '/tmp/ray_worker')
-    worker_log_dir = workers_config.get('worker_log_dir', '/tmp/sage_worker_logs')
-    remote_sage_home = workers_config.get('remote_sage_home', '/home/sage')
-    remote_python_path = workers_config.get('remote_python_path', '/opt/conda/envs/sage/bin/python')
-    remote_ray_command = workers_config.get('remote_ray_command', '/opt/conda/envs/sage/bin/ray')
+    config_manager = get_config_manager()
+    head_config = config_manager.get_head_config()
+    worker_config = config_manager.get_worker_config()
+    remote_config = config_manager.get_remote_config()
+    workers = config_manager.get_workers_ssh_hosts()
     
-    if not head_node or not worker_nodes:
-        typer.echo("❌ 配置错误: head_node 或 worker_nodes 未设置")
+    if not workers:
+        typer.echo("❌ 未配置任何worker节点")
         raise typer.Exit(1)
     
+    head_host = head_config.get('host', 'localhost')
+    head_port = head_config.get('head_port', 6379)
+    worker_bind_host = worker_config.get('bind_host', 'localhost')
+    worker_temp_dir = worker_config.get('temp_dir', '/tmp/ray_worker')
+    worker_log_dir = worker_config.get('log_dir', '/tmp/sage_worker_logs')
+    
+    ray_command = remote_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
+    conda_env = remote_config.get('conda_env', 'sage')
+    
     typer.echo(f"📋 配置信息:")
-    typer.echo(f"   Head节点: {head_node}:{head_port}")
-    typer.echo(f"   Worker节点: {worker_nodes}")
-    typer.echo(f"   SSH用户: {ssh_user}")
+    typer.echo(f"   Head节点: {head_host}:{head_port}")
+    typer.echo(f"   Worker节点: {len(workers)} 个")
+    typer.echo(f"   Worker绑定主机: {worker_bind_host}")
     
-    nodes = parse_worker_nodes(worker_nodes)
     success_count = 0
-    total_count = len(nodes)
+    total_count = len(workers)
     
-    for i, (host, port) in enumerate(nodes, 1):
+    for i, (host, port) in enumerate(workers, 1):
         typer.echo(f"\n🔧 启动Worker节点 {i}/{total_count}: {host}:{port}")
         
         start_command = f'''set -e
@@ -217,15 +159,16 @@ mkdir -p "$LOG_DIR" "$WORKER_TEMP_DIR"
 echo "===============================================" | tee -a "$LOG_DIR/worker.log"
 echo "Ray Worker启动 ($(date '+%Y-%m-%d %H:%M:%S'))" | tee -a "$LOG_DIR/worker.log"
 echo "Worker节点: $(hostname)" | tee -a "$LOG_DIR/worker.log"
-echo "目标头节点: {head_node}:{head_port}" | tee -a "$LOG_DIR/worker.log"
+echo "目标头节点: {head_host}:{head_port}" | tee -a "$LOG_DIR/worker.log"
+echo "绑定主机: {worker_bind_host}" | tee -a "$LOG_DIR/worker.log"
 echo "===============================================" | tee -a "$LOG_DIR/worker.log"
 
 # 初始化conda环境
-{get_conda_init_code()}
+{get_conda_init_code(conda_env)}
 
 # 停止现有的ray进程
 echo "[INFO] 停止现有Ray进程..." | tee -a "$LOG_DIR/worker.log"
-{remote_ray_command} stop >> "$LOG_DIR/worker.log" 2>&1 || true
+{ray_command} stop >> "$LOG_DIR/worker.log" 2>&1 || true
 sleep 2
 
 # 强制清理残留进程
@@ -245,9 +188,12 @@ rm -rf "$WORKER_TEMP_DIR"/* 2>/dev/null || true
 
 sleep 3
 
-# 使用配置文件中指定的节点名称
-NODE_IP="$CURRENT_HOST"
-echo "[INFO] 使用节点名称: $NODE_IP" | tee -a "$LOG_DIR/worker.log"
+# 设置节点IP
+NODE_IP="{worker_bind_host}"
+if [ "{worker_bind_host}" = "localhost" ] || [ "{worker_bind_host}" = "127.0.0.1" ]; then
+    NODE_IP="$CURRENT_HOST"
+fi
+echo "[INFO] 使用节点IP: $NODE_IP" | tee -a "$LOG_DIR/worker.log"
 
 # 设置环境变量
 export RAY_TMPDIR="$WORKER_TEMP_DIR"
@@ -255,15 +201,15 @@ export RAY_DISABLE_IMPORT_WARNING=1
 
 # 测试连通性
 echo "[INFO] 测试到头节点的连通性..." | tee -a "$LOG_DIR/worker.log"
-if timeout 10 nc -z {head_node} {head_port} 2>/dev/null; then
-    echo "[SUCCESS] 可以连接到头节点 {head_node}:{head_port}" | tee -a "$LOG_DIR/worker.log"
+if timeout 10 nc -z {head_host} {head_port} 2>/dev/null; then
+    echo "[SUCCESS] 可以连接到头节点 {head_host}:{head_port}" | tee -a "$LOG_DIR/worker.log"
 else
     echo "[WARNING] 无法验证到头节点的连通性，但继续尝试启动Ray" | tee -a "$LOG_DIR/worker.log"
 fi
 
 # 启动ray worker
 echo "[INFO] 启动Ray Worker进程..." | tee -a "$LOG_DIR/worker.log"
-RAY_START_CMD="{remote_ray_command} start --address={head_node}:{head_port} --node-ip-address=$NODE_IP --temp-dir=$WORKER_TEMP_DIR"
+RAY_START_CMD="{ray_command} start --address={head_host}:{head_port} --node-ip-address=$NODE_IP --temp-dir=$WORKER_TEMP_DIR"
 echo "[INFO] 执行命令: $RAY_START_CMD" | tee -a "$LOG_DIR/worker.log"
 
 $RAY_START_CMD >> "$LOG_DIR/worker.log" 2>&1
@@ -276,7 +222,7 @@ if [ $RAY_EXIT_CODE -eq 0 ]; then
     RAY_PIDS=$(pgrep -f 'raylet|core_worker' || true)
     if [[ -n "$RAY_PIDS" ]]; then
         echo "[SUCCESS] Ray Worker进程正在运行，PIDs: $RAY_PIDS" | tee -a "$LOG_DIR/worker.log"
-        echo "[INFO] 节点已连接到集群: {head_node}:{head_port}" | tee -a "$LOG_DIR/worker.log"
+        echo "[INFO] 节点已连接到集群: {head_host}:{head_port}" | tee -a "$LOG_DIR/worker.log"
     else
         echo "[WARNING] Ray启动命令成功但未发现运行中的进程" | tee -a "$LOG_DIR/worker.log"
     fi
@@ -285,7 +231,7 @@ else
     exit 1
 fi'''
         
-        if execute_remote_command(host, port, start_command, ssh_user, ssh_key_path, 120):
+        if execute_remote_command(host, port, start_command, 120):
             typer.echo(f"✅ Worker节点 {host} 启动成功")
             success_count += 1
         else:
@@ -302,25 +248,25 @@ fi'''
 def stop_workers():
     """停止所有Ray Worker节点"""
     typer.echo("🛑 停止Ray Worker节点...")
-    config = load_config()
     
-    workers_config = config.get('workers', {})
-    worker_nodes = workers_config.get('worker_nodes')
-    ssh_user = workers_config.get('ssh_user', 'sage')
-    ssh_key_path = workers_config.get('ssh_key_path', '~/.ssh/id_rsa')
-    worker_temp_dir = workers_config.get('worker_temp_dir', '/tmp/ray_worker')
-    worker_log_dir = workers_config.get('worker_log_dir', '/tmp/sage_worker_logs')
-    remote_ray_command = workers_config.get('remote_ray_command', '/opt/conda/envs/sage/bin/ray')
+    config_manager = get_config_manager()
+    worker_config = config_manager.get_worker_config()
+    remote_config = config_manager.get_remote_config()
+    workers = config_manager.get_workers_ssh_hosts()
     
-    if not worker_nodes:
-        typer.echo("❌ 配置错误: worker_nodes 未设置")
+    if not workers:
+        typer.echo("❌ 未配置任何worker节点")
         raise typer.Exit(1)
     
-    nodes = parse_worker_nodes(worker_nodes)
-    success_count = 0
-    total_count = len(nodes)
+    worker_temp_dir = worker_config.get('temp_dir', '/tmp/ray_worker')
+    worker_log_dir = worker_config.get('log_dir', '/tmp/sage_worker_logs')
+    ray_command = remote_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
+    conda_env = remote_config.get('conda_env', 'sage')
     
-    for i, (host, port) in enumerate(nodes, 1):
+    success_count = 0
+    total_count = len(workers)
+    
+    for i, (host, port) in enumerate(workers, 1):
         typer.echo(f"\n🔧 停止Worker节点 {i}/{total_count}: {host}:{port}")
         
         stop_command = f'''set +e
@@ -335,11 +281,11 @@ echo "Worker节点: $(hostname)" | tee -a "$LOG_DIR/worker.log"
 echo "===============================================" | tee -a "$LOG_DIR/worker.log"
 
 # 初始化conda环境
-{get_conda_init_code()}
+{get_conda_init_code(conda_env)}
 
 # 优雅停止
 echo "[INFO] 正在优雅停止Ray进程..." | tee -a "$LOG_DIR/worker.log"
-{remote_ray_command} stop >> "$LOG_DIR/worker.log" 2>&1 || true
+{ray_command} stop >> "$LOG_DIR/worker.log" 2>&1 || true
 sleep 2
 
 # 强制停止残留进程
@@ -363,7 +309,7 @@ fi
 
 echo "[SUCCESS] Ray Worker已停止 ($(date '+%Y-%m-%d %H:%M:%S'))" | tee -a "$LOG_DIR/worker.log"'''
         
-        if execute_remote_command(host, port, stop_command, ssh_user, ssh_key_path, 60):
+        if execute_remote_command(host, port, stop_command, 60):
             typer.echo(f"✅ Worker节点 {host} 停止成功")
             success_count += 1
         else:
@@ -377,26 +323,27 @@ echo "[SUCCESS] Ray Worker已停止 ($(date '+%Y-%m-%d %H:%M:%S'))" | tee -a "$L
 def status_workers():
     """检查所有Ray Worker节点状态"""
     typer.echo("📊 检查Ray Worker节点状态...")
-    config = load_config()
     
-    workers_config = config.get('workers', {})
-    head_node = workers_config.get('head_node')
-    worker_nodes = workers_config.get('worker_nodes')
-    head_port = workers_config.get('head_port', 6379)
-    ssh_user = workers_config.get('ssh_user', 'sage')
-    ssh_key_path = workers_config.get('ssh_key_path', '~/.ssh/id_rsa')
-    worker_log_dir = workers_config.get('worker_log_dir', '/tmp/sage_worker_logs')
-    remote_ray_command = workers_config.get('remote_ray_command', '/opt/conda/envs/sage/bin/ray')
+    config_manager = get_config_manager()
+    head_config = config_manager.get_head_config()
+    worker_config = config_manager.get_worker_config()
+    remote_config = config_manager.get_remote_config()
+    workers = config_manager.get_workers_ssh_hosts()
     
-    if not worker_nodes:
-        typer.echo("❌ 配置错误: worker_nodes 未设置")
+    if not workers:
+        typer.echo("❌ 未配置任何worker节点")
         raise typer.Exit(1)
     
-    nodes = parse_worker_nodes(worker_nodes)
-    running_count = 0
-    total_count = len(nodes)
+    head_host = head_config.get('host', 'localhost')
+    head_port = head_config.get('head_port', 6379)
+    worker_log_dir = worker_config.get('log_dir', '/tmp/sage_worker_logs')
+    ray_command = remote_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
+    conda_env = remote_config.get('conda_env', 'sage')
     
-    for i, (host, port) in enumerate(nodes, 1):
+    running_count = 0
+    total_count = len(workers)
+    
+    for i, (host, port) in enumerate(workers, 1):
         typer.echo(f"\n📋 检查Worker节点 {i}/{total_count}: {host}:{port}")
         
         status_command = f'''set +e
@@ -407,7 +354,7 @@ echo "节点状态检查: $(hostname) ($(date '+%Y-%m-%d %H:%M:%S'))"
 echo "==============================================="
 
 # 初始化conda环境
-{get_conda_init_code()}
+{get_conda_init_code(conda_env)}
 
 # 检查Ray进程
 echo "--- Ray进程状态 ---"
@@ -422,7 +369,7 @@ if [[ -n "$RAY_PIDS" ]]; then
     
     echo ""
     echo "--- Ray集群连接状态 ---"
-    timeout 10 {remote_ray_command} status 2>/dev/null || echo "[警告] 无法获取Ray集群状态"
+    timeout 10 {ray_command} status 2>/dev/null || echo "[警告] 无法获取Ray集群状态"
     exit 0
 else
     echo "[已停止] 未发现Ray进程"
@@ -431,10 +378,10 @@ fi
 
 echo ""
 echo "--- 网络连通性测试 ---"
-if timeout 5 nc -z {head_node} {head_port} 2>/dev/null; then
-    echo "[正常] 可以连接到头节点 {head_node}:{head_port}"
+if timeout 5 nc -z {head_host} {head_port} 2>/dev/null; then
+    echo "[正常] 可以连接到头节点 {head_host}:{head_port}"
 else
-    echo "[异常] 无法连接到头节点 {head_node}:{head_port}"
+    echo "[异常] 无法连接到头节点 {head_host}:{head_port}"
 fi
 
 # 显示最近的日志
@@ -447,7 +394,7 @@ fi
 
 echo "==============================================="'''
         
-        if execute_remote_command(host, port, status_command, ssh_user, ssh_key_path, 30):
+        if execute_remote_command(host, port, status_command, 30):
             typer.echo(f"✅ Worker节点 {host} 正在运行")
             running_count += 1
         else:
@@ -484,20 +431,217 @@ def restart_workers():
 def show_config():
     """显示当前Worker配置信息"""
     typer.echo("📋 当前Worker配置信息")
-    config = load_config()
     
-    workers_config = config.get('workers', {})
+    config_manager = get_config_manager()
+    head_config = config_manager.get_head_config()
+    worker_config = config_manager.get_worker_config()
+    ssh_config = config_manager.get_ssh_config()
+    remote_config = config_manager.get_remote_config()
+    workers = config_manager.get_workers_ssh_hosts()
     
-    typer.echo(f"Head节点: {workers_config.get('head_node', 'N/A')}")
-    typer.echo(f"Head端口: {workers_config.get('head_port', 'N/A')}")
-    typer.echo(f"Worker节点: {workers_config.get('worker_nodes', 'N/A')}")
-    typer.echo(f"SSH用户: {workers_config.get('ssh_user', 'N/A')}")
-    typer.echo(f"SSH密钥路径: {workers_config.get('ssh_key_path', 'N/A')}")
-    typer.echo(f"临时目录: {workers_config.get('worker_temp_dir', 'N/A')}")
-    typer.echo(f"日志目录: {workers_config.get('worker_log_dir', 'N/A')}")
-    typer.echo(f"远程SAGE目录: {workers_config.get('remote_sage_home', 'N/A')}")
-    typer.echo(f"远程Python路径: {workers_config.get('remote_python_path', 'N/A')}")
-    typer.echo(f"远程Ray命令: {workers_config.get('remote_ray_command', 'N/A')}")
+    typer.echo(f"Head节点: {head_config.get('host', 'N/A')}")
+    typer.echo(f"Head端口: {head_config.get('head_port', 'N/A')}")
+    typer.echo(f"Dashboard端口: {head_config.get('dashboard_port', 'N/A')}")
+    typer.echo(f"Dashboard主机: {head_config.get('dashboard_host', 'N/A')}")
+    typer.echo(f"Worker绑定主机: {worker_config.get('bind_host', 'N/A')}")
+    typer.echo(f"Worker节点数量: {len(workers)}")
+    if workers:
+        for i, (host, port) in enumerate(workers, 1):
+            typer.echo(f"  Worker {i}: {host}:{port}")
+    typer.echo(f"SSH用户: {ssh_config.get('user', 'N/A')}")
+    typer.echo(f"SSH密钥路径: {ssh_config.get('key_path', 'N/A')}")
+    typer.echo(f"Worker临时目录: {worker_config.get('temp_dir', 'N/A')}")
+    typer.echo(f"Worker日志目录: {worker_config.get('log_dir', 'N/A')}")
+    typer.echo(f"远程SAGE目录: {remote_config.get('sage_home', 'N/A')}")
+    typer.echo(f"远程Python路径: {remote_config.get('python_path', 'N/A')}")
+    typer.echo(f"远程Ray命令: {remote_config.get('ray_command', 'N/A')}")
+
+@app.command("deploy")
+def deploy_workers():
+    """部署项目到所有Worker节点"""
+    typer.echo("🚀 开始部署到Worker节点...")
+    
+    deployment_manager = DeploymentManager()
+    success_count, total_count = deployment_manager.deploy_to_all_workers()
+    
+    if success_count == total_count:
+        typer.echo("✅ 所有节点部署成功！")
+    else:
+        typer.echo("⚠️  部分节点部署失败")
+        raise typer.Exit(1)
+
+@app.command("add")
+def add_worker(node: str = typer.Argument(..., help="节点地址，格式为 host:port")):
+    """动态添加新的Worker节点"""
+    typer.echo(f"➕ 添加新Worker节点: {node}")
+    
+    # 解析节点地址
+    if ':' in node:
+        host, port_str = node.split(':', 1)
+        try:
+            port = int(port_str)
+        except ValueError:
+            typer.echo("❌ 端口号必须是数字")
+            raise typer.Exit(1)
+    else:
+        host = node
+        port = 22
+    
+    config_manager = get_config_manager()
+    
+    # 添加到配置
+    if config_manager.add_worker_ssh_host(host, port):
+        typer.echo(f"✅ 已添加Worker节点 {host}:{port} 到配置")
+    else:
+        typer.echo(f"⚠️  Worker节点 {host}:{port} 已存在")
+    
+    # 部署到新节点
+    typer.echo(f"🚀 开始部署到新节点 {host}:{port}...")
+    deployment_manager = DeploymentManager()
+    
+    if deployment_manager.deploy_to_worker(host, port):
+        typer.echo(f"✅ 新节点 {host}:{port} 部署成功")
+        
+        # 启动worker
+        typer.echo(f"🔧 启动新Worker节点...")
+        head_config = config_manager.get_head_config()
+        worker_config = config_manager.get_worker_config()
+        remote_config = config_manager.get_remote_config()
+        
+        head_host = head_config.get('host', 'localhost')
+        head_port = head_config.get('head_port', 6379)
+        worker_bind_host = worker_config.get('bind_host', 'localhost')
+        worker_temp_dir = worker_config.get('temp_dir', '/tmp/ray_worker')
+        worker_log_dir = worker_config.get('log_dir', '/tmp/sage_worker_logs')
+        ray_command = remote_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
+        conda_env = remote_config.get('conda_env', 'sage')
+        
+        start_command = f'''set -e
+export PYTHONUNBUFFERED=1
+
+CURRENT_HOST='{host}'
+LOG_DIR='{worker_log_dir}'
+WORKER_TEMP_DIR='{worker_temp_dir}'
+mkdir -p "$LOG_DIR" "$WORKER_TEMP_DIR"
+
+echo "===============================================" | tee -a "$LOG_DIR/worker.log"
+echo "新Worker节点启动 ($(date '+%Y-%m-%d %H:%M:%S'))" | tee -a "$LOG_DIR/worker.log"
+echo "Worker节点: $(hostname)" | tee -a "$LOG_DIR/worker.log"
+echo "目标头节点: {head_host}:{head_port}" | tee -a "$LOG_DIR/worker.log"
+echo "===============================================" | tee -a "$LOG_DIR/worker.log"
+
+# 初始化conda环境
+{get_conda_init_code(conda_env)}
+
+# 停止现有的ray进程
+{ray_command} stop >> "$LOG_DIR/worker.log" 2>&1 || true
+sleep 2
+
+# 设置节点IP
+NODE_IP="{worker_bind_host}"
+if [ "{worker_bind_host}" = "localhost" ] || [ "{worker_bind_host}" = "127.0.0.1" ]; then
+    NODE_IP="$CURRENT_HOST"
+fi
+
+export RAY_TMPDIR="$WORKER_TEMP_DIR"
+export RAY_DISABLE_IMPORT_WARNING=1
+
+# 启动ray worker
+echo "[INFO] 启动Ray Worker进程..." | tee -a "$LOG_DIR/worker.log"
+nohup {ray_command} start --address={head_host}:{head_port} --node-ip-address=$NODE_IP --temp-dir=$WORKER_TEMP_DIR >> "$LOG_DIR/worker.log" 2>&1 &
+
+# 等待一下让Ray有时间启动
+sleep 5
+
+# 检查Ray是否启动成功
+RAY_PIDS=$(pgrep -f 'raylet' || true)
+if [[ -n "$RAY_PIDS" ]]; then
+    echo "[SUCCESS] 新Worker节点启动成功，PIDs: $RAY_PIDS" | tee -a "$LOG_DIR/worker.log"
+else
+    echo "[ERROR] 新Worker节点启动失败，未发现raylet进程" | tee -a "$LOG_DIR/worker.log"
+    # 显示最近的日志以便调试
+    echo "[DEBUG] 最近的Ray日志:" | tee -a "$LOG_DIR/worker.log"
+    tail -10 "$LOG_DIR/worker.log" | tee -a "$LOG_DIR/worker.log"
+    exit 1
+fi'''
+        
+        if execute_remote_command(host, port, start_command, 30):
+            typer.echo(f"✅ 新Worker节点 {host}:{port} 启动成功")
+        else:
+            typer.echo(f"❌ 新Worker节点 {host}:{port} 启动失败")
+            raise typer.Exit(1)
+    else:
+        typer.echo(f"❌ 新节点 {host}:{port} 部署失败")
+        raise typer.Exit(1)
+
+@app.command("remove")
+def remove_worker(node: str = typer.Argument(..., help="节点地址，格式为 host:port")):
+    """移除Worker节点"""
+    typer.echo(f"➖ 移除Worker节点: {node}")
+    
+    # 解析节点地址
+    if ':' in node:
+        host, port_str = node.split(':', 1)
+        try:
+            port = int(port_str)
+        except ValueError:
+            typer.echo("❌ 端口号必须是数字")
+            raise typer.Exit(1)
+    else:
+        host = node
+        port = 22
+    
+    config_manager = get_config_manager()
+    
+    # 先停止该节点上的worker
+    typer.echo(f"🛑 停止Worker节点 {host}:{port}...")
+    worker_config = config_manager.get_worker_config()
+    remote_config = config_manager.get_remote_config()
+    
+    worker_temp_dir = worker_config.get('temp_dir', '/tmp/ray_worker')
+    worker_log_dir = worker_config.get('log_dir', '/tmp/sage_worker_logs')
+    ray_command = remote_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
+    conda_env = remote_config.get('conda_env', 'sage')
+    
+    stop_command = f'''set +e
+LOG_DIR='{worker_log_dir}'
+mkdir -p "$LOG_DIR"
+
+echo "停止Worker节点 ($(date '+%Y-%m-%d %H:%M:%S'))" | tee -a "$LOG_DIR/worker.log"
+
+# 初始化conda环境
+{get_conda_init_code(conda_env)}
+
+# 停止Ray
+{ray_command} stop >> "$LOG_DIR/worker.log" 2>&1 || true
+
+# 强制清理
+for pattern in 'ray.*start' 'raylet' 'core_worker'; do
+    PIDS=$(pgrep -f "$pattern" 2>/dev/null || true)
+    if [[ -n "$PIDS" ]]; then
+        echo "$PIDS" | xargs -r kill -TERM 2>/dev/null || true
+        sleep 1
+        echo "$PIDS" | xargs -r kill -KILL 2>/dev/null || true
+    fi
+done
+
+# 清理临时文件
+rm -rf {worker_temp_dir}/* 2>/dev/null || true
+
+echo "Worker节点已停止" | tee -a "$LOG_DIR/worker.log"'''
+    
+    if execute_remote_command(host, port, stop_command, 60):
+        typer.echo(f"✅ Worker节点 {host}:{port} 已停止")
+    else:
+        typer.echo(f"⚠️  Worker节点 {host}:{port} 停止可能未完全成功")
+    
+    # 从配置中移除
+    if config_manager.remove_worker_ssh_host(host, port):
+        typer.echo(f"✅ 已从配置中移除Worker节点 {host}:{port}")
+    else:
+        typer.echo(f"⚠️  Worker节点 {host}:{port} 不在配置中")
+    
+    typer.echo(f"✅ Worker节点 {host}:{port} 移除完成")
 
 if __name__ == "__main__":
     app()
