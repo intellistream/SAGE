@@ -5,7 +5,11 @@ from sage.core.function.map_function import MapFunction
 
 from sage.utils.custom_logger import CustomLogger
 
-QA_prompt_template='''Instruction:
+import os
+import time
+import json
+
+QA_prompt_template = '''Instruction:
 You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.
 Only give me the answer and do not output any other words.
 {%- if external_corpus %}
@@ -55,17 +59,19 @@ Your output must be:
 }
 '''
 query_profiler_prompt_template = Template(query_profiler_prompt_template)
+
+
 class QAPromptor(MapFunction):
     """
     QAPromptor is a prompt rag that generates a QA-style prompt using
-    an external corpus and a user query. This class is designed to prepare 
+    an external corpus and a user query. This class is designed to prepare
     the necessary prompt structure for a question-answering model.
 
     Attributes:
         config: Configuration data for initializing the prompt rag (e.g., model details, etc.).
         prompt_template: A template used for generating the system prompt, typically includes context or instructions.
     """
-    
+
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
 
@@ -76,6 +82,43 @@ class QAPromptor(MapFunction):
         """
         self.config = config  # Store the configuration for later use
         self.prompt_template = QA_prompt_template  # Load the QA prompt template
+
+        # 设置数据存储路径
+        if hasattr(self.ctx, 'env_base_dir') and self.ctx.env_base_dir:
+            self.data_base_path = os.path.join(self.ctx.env_base_dir, ".sage_states", "promptor_data")
+        else:
+            # 使用默认路径
+            self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "promptor_data")
+
+        os.makedirs(self.data_base_path, exist_ok=True)
+        self.data_records = []
+
+    def _save_data_record(self, query, external_corpus, prompt):
+        """保存提示词数据记录"""
+        record = {
+            'timestamp': time.time(),
+            'query': query,
+            'external_corpus': external_corpus,
+            'prompt': prompt
+        }
+        self.data_records.append(record)
+        self._persist_data_records()
+
+    def _persist_data_records(self):
+        """将数据记录持久化到文件"""
+        if not self.data_records:
+            return
+
+        timestamp = int(time.time())
+        filename = f"promptor_data_{timestamp}.json"
+        path = os.path.join(self.data_base_path, filename)
+
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(self.data_records, f, ensure_ascii=False, indent=2)
+            self.data_records = []
+        except Exception as e:
+            self.logger.error(f"Failed to persist data records: {e}")
 
     # sage_lib/functions/rag/qapromptor.py
     def execute(self, data) -> list:
@@ -121,7 +164,11 @@ class QAPromptor(MapFunction):
             }
 
             prompt = [system_prompt, user_prompt]
-            return [query,prompt]
+
+            # 保存数据记录
+            self._save_data_record(query, external_corpus, prompt)
+
+            return [query, prompt]
 
         except Exception as e:
             self.logger.error(
@@ -138,6 +185,13 @@ class QAPromptor(MapFunction):
                 },
             ]
             return fallback
+
+    def __del__(self):
+        """确保在对象销毁时保存所有未保存的记录"""
+        try:
+            self._persist_data_records()
+        except:
+            pass
 
 
 class SummarizationPromptor(MapFunction):
@@ -208,14 +262,14 @@ class SummarizationPromptor(MapFunction):
 
         # Return the prompt list wrapped in a Data object
         return prompt
-    
-    
-    
+
+
 class QueryProfilerPromptor(MapFunction):
     """
     QueryProfilerPromptor provides a prompt for profiling queries.
-    
+
     """
+
     def __init__(self, config):
         """
         Initializes the QueryProfilerPromptor instance with configuration and prompt template.
@@ -237,8 +291,7 @@ class QueryProfilerPromptor(MapFunction):
         query = data
         prompt = {
             "role": "user",
-            "content": self.prompt_template.render(query=query,metadata=self.config.get("metadata", {}),chunk_size=self.config.get("chunk_size", 1024))
+            "content": self.prompt_template.render(query=query, metadata=self.config.get("metadata", {}),
+                                                   chunk_size=self.config.get("chunk_size", 1024))
         }
         return [prompt]
-
-

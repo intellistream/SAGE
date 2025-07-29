@@ -2,6 +2,8 @@ import os
 import yaml
 from typing import Tuple, List, Any
 from collections import deque
+import time
+import json
 
 from sage.core.function.map_function import MapFunction
 from sage.core.function.base_function import StatefulFunction
@@ -44,6 +46,44 @@ class OpenAIGenerator(MapFunction):
         )
         self.num = 1
 
+        # 设置数据存储路径
+        if hasattr(self.ctx, 'env_base_dir') and self.ctx.env_base_dir:
+            self.data_base_path = os.path.join(self.ctx.env_base_dir, ".sage_states", "generator_data")
+        else:
+            # 使用默认路径
+            self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "generator_data")
+
+        os.makedirs(self.data_base_path, exist_ok=True)
+        self.data_records = []
+
+    def _save_data_record(self, query, prompt, response):
+        """保存生成数据记录"""
+        record = {
+            'timestamp': time.time(),
+            'query': query,
+            'prompt': prompt,
+            'response': response,
+            'model_name': self.config["model_name"]
+        }
+        self.data_records.append(record)
+        self._persist_data_records()
+
+    def _persist_data_records(self):
+        """将数据记录持久化到文件"""
+        if not self.data_records:
+            return
+
+        timestamp = int(time.time())
+        filename = f"generator_data_{timestamp}.json"
+        path = os.path.join(self.data_base_path, filename)
+
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(self.data_records, f, ensure_ascii=False, indent=2)
+            self.data_records = []
+        except Exception as e:
+            self.logger.error(f"Failed to persist data records: {e}")
+
     def execute(self, data: List[Any]) -> Tuple[str, str]:
         """
         输入 : [user_query, prompt]  *或*  [prompt]
@@ -55,8 +95,18 @@ class OpenAIGenerator(MapFunction):
         response = self.model.generate(prompt)
         self.num += 1
 
+        # 保存数据记录
+        self._save_data_record(user_query, prompt, response)
+
         self.logger.info(f"[{self.__class__.__name__}] Response: {response}")
         return user_query, response
+
+    def __del__(self):
+        """确保在对象销毁时保存所有未保存的记录"""
+        try:
+            self._persist_data_records()
+        except:
+            pass
 
 
 class OpenAIGeneratorWithHistory(StatefulFunction):
@@ -88,10 +138,20 @@ class OpenAIGeneratorWithHistory(StatefulFunction):
         self.history_turns = self.config.get("max_history_turns", 5)
         self.num = 1
 
-        # 尝试恢复历史
-        base = os.path.join(self.ctx.session_folder, ".sage_checkpoints")
+        # 设置检查点存储路径
+        if hasattr(self.ctx, 'session_folder') and self.ctx.session_folder:
+            base = os.path.join(self.ctx.session_folder, ".sage_checkpoints")
+        else:
+            # 使用默认路径
+            base = os.path.join(os.getcwd(), ".sage_checkpoints")
+
         os.makedirs(base, exist_ok=True)
-        self.chkpt_path = os.path.join(base, f"{self.ctx.name}.chkpt")
+
+        if hasattr(self.ctx, 'name'):
+            self.chkpt_path = os.path.join(base, f"{self.ctx.name}.chkpt")
+        else:
+            self.chkpt_path = os.path.join(base, "default.chkpt")
+
         load_function_state(self, self.chkpt_path)
 
     def execute(self, data: List[Any], **kwargs) -> Tuple[str, str]:

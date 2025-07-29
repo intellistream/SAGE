@@ -1,4 +1,4 @@
-
+from datasets import load_dataset
 from sage.core.function.source_function import SourceFunction
 from pathlib import Path
 
@@ -15,7 +15,7 @@ class FileSource(SourceFunction):
         file_pos: Tracks the current position in the file for sequential reading.
     """
 
-    def __init__(self, config: dict = None,  **kwargs):
+    def __init__(self, config: dict = None, **kwargs):
         super().__init__(**kwargs)
         """
         Initializes the FileSource with the provided configuration and sets the data path for the file.
@@ -26,7 +26,7 @@ class FileSource(SourceFunction):
         self.data_path = self.resolve_data_path(config["data_path"])  # → project_root/data/sample/question.txt
         self.file_pos = 0  # Track the file read position
 
-    def resolve_data_path(self,path: str | Path) -> Path:
+    def resolve_data_path(self, path: str | Path) -> Path:
         """
         传入相对路径则返回相对于项目根目录的绝对路径（默认假设项目根目录含有 'data/' 子目录），
         传入绝对路径则直接返回。
@@ -37,9 +37,7 @@ class FileSource(SourceFunction):
             return p
         # 假设调用时 cwd 是项目的某个子目录，项目根为“当前工作目录的祖父目录”
         project_root = Path(os.getcwd()).resolve()
-        return project_root  / p
-    
-
+        return project_root / p
 
     def execute(self) -> str:
         """
@@ -57,10 +55,40 @@ class FileSource(SourceFunction):
                         self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Read query: {line.strip()}\033[0m ")
                         return line.strip()  # Return non-empty lines
                     else:
-                        self.logger.info(f"\033[33m[ {self.__class__.__name__}]: Reached end of file, maintaining position.\033[0m ")
+                        self.logger.info(
+                            f"\033[33m[ {self.__class__.__name__}]: Reached end of file, maintaining position.\033[0m ")
                         # Reset position if end of file is reached (optional)
                         continue
         except FileNotFoundError:
             self.logger.error(f"File not found: {self.data_path}")
         except Exception as e:
             self.logger.error(f"Error reading file '{self.data_path}': {e}")
+
+
+class HFDatasetSource(SourceFunction):
+    def __init__(self, config: dict = None, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config
+        self.hf_name = config["hf_dataset_name"]
+        self.hf_config = config.get("hf_dataset_config")
+        self.hf_split = config.get("hf_split", "train")
+        self._iter = None
+
+    def _build_iter(self):
+        ds = load_dataset(self.hf_name, self.hf_config, split=self.hf_split, streaming=True)
+        for ex in ds:
+            yield {
+                "query": ex.get("question", ""),
+                "references": ex.get("golden_answers") or []
+            }
+
+    def execute(self):
+        if self._iter is None:
+            self.logger.debug(f"Initializing HF dataset source: {self.hf_name}")
+            self._iter = self._build_iter()
+        try:
+            data = next(self._iter)
+            self.logger.debug(f"Yielding data: {data}")
+            return data
+        except StopIteration:
+            return None
