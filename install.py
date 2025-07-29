@@ -1026,7 +1026,7 @@ conda activate sage
 if [ $? -eq 0 ]; then
     echo "✅ SAGE environment activated successfully!"
     echo "📝 You are now in the (sage) environment"
-    echo "🚀 Test with: python -c \\"import sage; print('SAGE ready!')\""
+    echo "🚀 Test with: python -c 'import sage; print(\"SAGE ready!\")'"
 else
     echo "❌ Failed to activate SAGE environment"
     echo "💡 Try: conda env list"
