@@ -13,6 +13,16 @@ jobs:
     runs-on: self-hosted  # 使用 self-hosted runner
     timeout-minutes: 60
     
+    env:
+      CI: true          
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+      ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
+      VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+      HF_ENDPOINT: https://hf-mirror.com
+    
     steps:
     # 配置 Git 和认证
     - name: Configure Git and Authentication
@@ -47,17 +57,6 @@ jobs:
         python-version: '3.11'
         cache: 'pip'
       timeout-minutes: 5
-      
-    # 设置 Conda 环境
-    - name: Set up Conda
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        auto-update-conda: true
-        python-version: '3.11'
-        activate-environment: sage
-        environment-file: ''
-        auto-activate-base: false
-      timeout-minutes: 10
         
     # 安装系统依赖 (使用本地缓存)
     - name: Install System Dependencies
@@ -70,35 +69,44 @@ jobs:
         sudo apt-get install -y build-essential cmake pkg-config
       timeout-minutes: 10
         
-    # 安装 SAGE (使用 minimal 模式)
+    # 安装 SAGE (使用 minimal 模式) - 专为CI设计
     - name: Install SAGE (Minimal Mode)
       env:
         CI: true
         PIP_CACHE_DIR: /tmp/pip-cache
-      shell: bash -l {0}
       run: |
         echo "Installing SAGE using install.py --minimal"
-        conda info
         python install.py --minimal
       timeout-minutes: 15
         
+    # 安装测试依赖
+    - name: Install Test Dependencies
+      run: |
+        source ./activate_sage.sh
+        pip install pytest pytest-timeout pytest-cov
+      timeout-minutes: 5
+      
+    # 调试环境变量 (参考 lighter_test.yml)
+    - name: Debug environment variables
+      run: |
+        env | grep -E 'CI|HF_TOKEN|SILICONCLOUD_API_KEY|OPENAI_API_KEY|JINA_API_KEY|ALIBABA_API_KEY|VLLM_API_KEY'
+        
     # 运行基础测试 (使用 minimal 安装的功能)
     - name: Basic Import Tests
-      shell: bash -l {0}
       run: |
-        conda activate sage
+        source ./activate_sage.sh
         python -c "import sage; print('✅ SAGE core import successful')"
         python -c "import sage.utils; print('✅ SAGE utils import successful')"
         python -c "from sage.utils.queue_adapter import get_queue_backends; print('✅ Queue adapter import successful')"
         
     # 运行 pytest (minimal 模式的测试)
     - name: Run Test Suite (Minimal Mode)
-      shell: bash -l {0}
       run: |
         echo "Running tests for minimal installation..."
-        conda activate sage
-        
-        pip install pytest pytest-timeout pytest-cov
+        echo "Debug API Key: $ALIBABA_API_KEY"
+        source ./activate_sage.sh
+        export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+        export PYTHONWARNINGS="ignore:DeprecationWarning"
         
         # 运行所有sage文件夹下的测试
         pytest sage/ \
