@@ -16,10 +16,7 @@ import atexit
 import signal
 import getpass
 from typing import Any, Optional, List, Dict
-from queue           
-        # 如果库不存在，尝试自动编译（仅在CI环境或开发环境中）     # 尝试从系统路径加载失败后，直接进入编译流程
-
-        # 如果库不存在，尝试自动编译（仅在CI环境或开发环境中）ty, Full
+from queue import Queue, Empty, Full
 from ctypes import Structure, c_uint64, c_uint32, c_char, POINTER, c_void_p, c_int, c_bool
 
 # 设置日志
