@@ -30,9 +30,9 @@
 - Includes installation and packaging support
 
 ### 3. Build Scripts
-- **New**: `build_cmake.sh` - Main CMake build script
-- **Updated**: `build.sh` - Now calls `build_cmake.sh` for compatibility
-- **Updated**: `auto_compile.sh` - Now uses CMake instead of direct g++
+- **Unified**: `build.sh` - Now uses CMake directly (consistent with `sage_db`)
+- **Updated**: `auto_compile.sh` - Now uses the unified `build.sh`
+- **Removed**: `build_cmake.sh` - No longer needed, functionality integrated into `build.sh`
 
 ### 4. Build Options
 - Release/Debug builds with proper optimization
@@ -43,11 +43,11 @@
 
 ## Benefits
 
-1. **Consistency**: Now matches `sage_db` project structure exactly
+1. **Consistency**: Now matches `sage_db` project structure and build system exactly
 2. **Maintainability**: Clear separation of headers, sources, and Python code
 3. **Extensibility**: Easy to add tests, documentation, and Python bindings
 4. **Standards Compliance**: Follows CMake best practices
-5. **Backward Compatibility**: Existing code continues to work unchanged
+5. **Unified Interface**: Single `build.sh` script like other `sage_ext` components
 
 ## Testing
 

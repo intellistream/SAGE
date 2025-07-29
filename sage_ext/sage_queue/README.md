@@ -7,12 +7,12 @@ High-performance memory-mapped queue implementation for inter-process communicat
 ```
 sage_queue/
 ├── CMakeLists.txt          # CMake build configuration
-├── build.sh                # Legacy build script (now calls CMake)
-├── build_cmake.sh          # New CMake build script
+├── build.sh                # Main build script (CMake-based)
 ├── auto_compile.sh         # Auto-compilation for CI
 ├── include/                # Header files
 │   ├── ring_buffer.h
-│   └── concurrentqueue.h
+│   ├── concurrentqueue.h
+│   └── lightweightsemaphore.h
 ├── src/                    # Source files
 │   └── ring_buffer.cpp
 ├── bindings/               # Python bindings (pybind11)
@@ -27,32 +27,23 @@ sage_queue/
 
 ## Building
 
-### Using CMake (Recommended)
-
-```bash
-# Release build
-./build_cmake.sh
-
-# Debug build with AddressSanitizer
-./build_cmake.sh debug
-
-# Clean build
-./build_cmake.sh clean
-
-# Debug clean build
-./build_cmake.sh debug clean
-```
-
-### Using Legacy Script
-
-The original `build.sh` script is still available for compatibility:
+### Standard Build
 
 ```bash
 # Release build
 ./build.sh
 
-# Debug build
+# Debug build with AddressSanitizer
 ./build.sh debug
+
+# Clean build
+./build.sh clean
+
+# Debug clean build
+./build.sh debug clean
+
+# Install build dependencies
+./build.sh --install-deps
 ```
 
 ## Build Options

@@ -42,9 +42,9 @@ if ! command -v g++ &> /dev/null; then
     fi
 fi
 
-# Build using CMake
-echo "Building with CMake..."
-./build_cmake.sh
+# Build using the standard build script
+echo "Building with standard build.sh script..."
+./build.sh
 
 echo "✓ Auto-compilation completed successfully"
     echo "Installing build dependencies..."
