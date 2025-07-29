@@ -1,6 +1,6 @@
 import time
 from dotenv import load_dotenv
-
+from sage.utils.custom_logger import CustomLogger
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.function.batch_function import BatchFunction
 from sage.core.function.map_function import MapFunction
@@ -131,6 +131,7 @@ def pipeline_run(config: dict) -> None:
 
 
 if __name__ == '__main__':
+    CustomLogger.disable_global_console_debug()
     load_dotenv(override=False)
     config = load_config("config_batch.yaml")
     pipeline_run(config)

@@ -1,5 +1,7 @@
 from typing import Tuple, List
 import time  # 替换 asyncio 为 time 用于同步延迟
+import os
+import json
 
 from sage.core.function.map_function import MapFunction
 from sage.core.function.base_function import MemoryFunction, StatefulFunction
@@ -9,21 +11,56 @@ from sage.runtime.runtime_context import RuntimeContext
 class DenseRetriever(MapFunction):
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
-
         self.config = config
 
-        
         if self.config.get("ltm", False):
             self.ltm_config = self.config.get("ltm", {})
         else:
             self.ltm = None
 
-    def execute(self, data: str) -> Tuple[str, List[str]]:
+        # 设置数据存储路径
+        if hasattr(self.ctx, 'env_base_dir') and self.ctx.env_base_dir:
+            self.data_base_path = os.path.join(self.ctx.env_base_dir, ".sage_states", "retriever_data")
+        else:
+            # 使用默认路径
+            self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "retriever_data")
 
+        os.makedirs(self.data_base_path, exist_ok=True)
+        self.data_records = []
+
+    def _save_data_record(self, query, retrieved_docs):
+        """保存检索数据记录"""
+        record = {
+            'timestamp': time.time(),
+            'query': query,
+            'retrieved_docs': retrieved_docs,
+            'collection_config': self.ltm_config if self.config.get("ltm", False) else {}
+        }
+        self.data_records.append(record)
+        self._persist_data_records()
+
+    def _persist_data_records(self):
+        """将数据记录持久化到文件"""
+        if not self.data_records:
+            return
+
+        timestamp = int(time.time())
+        filename = f"retriever_data_{timestamp}.json"
+        path = os.path.join(self.data_base_path, filename)
+
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(self.data_records, f, ensure_ascii=False, indent=2)
+            self.data_records = []
+        except Exception as e:
+            self.logger.error(f"Failed to persist data records: {e}")
+
+    def execute(self, data: str) -> Tuple[str, List[str]]:
         input_query = data[0] if isinstance(data, tuple) and len(data) > 0 else data
         chunks = []
         self.logger.info(f"[ {self.__class__.__name__}]: Retrieving from LTM")
         self.logger.info(f"Starting retrieval for query: {input_query}")
+
         # LTM 检索
         if self.config.get("ltm", False):
             self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Retrieving from LTM \033[0m ")
@@ -37,11 +74,21 @@ class DenseRetriever(MapFunction):
                 self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Retrieval Results: {ltm_results}\033[0m ")
                 chunks.extend(ltm_results)
 
+                # 保存数据记录
+                self._save_data_record(input_query, chunks)
+
             except Exception as e:
                 self.logger.error(f"LTM retrieval failed: {str(e)}")
 
         return (input_query, chunks)
-    
+
+    def __del__(self):
+        """确保在对象销毁时保存所有未保存的记录"""
+        try:
+            self._persist_data_records()
+        except:
+            pass
+
 class BM25sRetriever(MapFunction): # 目前runtime context还只支持ltm
     def __init__(self, config, **kwargs):
         super().__init__(**kwargs)
