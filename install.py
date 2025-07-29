@@ -757,6 +757,7 @@ class SageInstaller:
                     curl \
                     vim \
                     swig \
+                    pkg-config \
                     python3-dev \
                     && apt-get clean \
                     && rm -rf /var/lib/apt/lists/*
@@ -811,7 +812,19 @@ class SageInstaller:
                 pip install --upgrade pip
                 '''
             ])
-            self.print_success("Conda environment 'sage' created in Docker container")
+            
+            # Install C++ build dependencies for sage_ext
+            self.print_step("Installing C++ build dependencies in conda environment...")
+            self.run_command([
+                'docker', 'exec', '-i', container_name, 'bash', '-c',
+                '''
+                source /opt/conda/bin/activate &&
+                conda activate sage &&
+                conda install -c conda-forge pkg-config faiss-cpu cmake pybind11 -y &&
+                pip install numpy
+                '''
+            ])
+            self.print_success("Conda environment 'sage' created with C++ dependencies in Docker container")
             
         except subprocess.CalledProcessError as e:
             self.print_error(f"Failed to setup conda environment in container: {e}")

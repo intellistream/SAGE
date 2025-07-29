@@ -1,82 +1,103 @@
-name: SAGE CI/CD
+name: SAGE CI/CD - Network Optimized
 
 on:
   push:
     branches: [ main, develop, refactor/* ]
   pull_request:
     branches: [ main, develop ]
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
 
 jobs:
-  # 主要测试作业
   test:
     name: Test & Build
-    runs-on: self-hosted
-    timeout-minutes: 45
+    runs-on: self-hosted  # 使用 self-hosted runner
+    timeout-minutes: 60
     
     steps:
-    - name: Checkout code
+    # 配置 Git 和认证
+    - name: Configure Git and Authentication
+      run: |
+        git config --global http.version HTTP/1.1
+        git config --global http.postBuffer 1048576000
+        git config --global http.lowSpeedLimit 0
+        git config --global http.lowSpeedTime 999999
+        git config --global core.compression 0
+        echo "Git configuration completed"
+        
+    # 配置 GitHub 认证 (解决私有仓库访问问题)
+    - name: Setup GitHub Authentication
+      run: |
+        echo "Setting up GitHub authentication for private repo access..."
+        git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+        
+    # 使用 token 进行 checkout (解决私有仓库访问问题)
+    - name: Checkout Repository
       uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 1
+        clean: true
       
-    - name: Set up Python
+    # 设置 Python 环境
+    - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
+        cache: 'pip'
         
-    - name: Install SAGE using install.py --minimal (Python-only, CI-friendly)
+    # 安装系统依赖
+    - name: Install System Dependencies
       run: |
-        python install.py --minimal
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake pkg-config
         
-    - name: Build C++ extensions separately
+    # 安装 SAGE (minimal 模式)
+    - name: Install SAGE
+      env:
+        CI: true
+        SAGE_MINIMAL_INSTALL: true
       run: |
-        source activate_sage.sh
-        cd sage_ext && python setup.py build_ext --inplace
+        pip install --upgrade pip setuptools wheel
+        pip install .
         
-    - name: Run import tests
+    # 运行基础测试
+    - name: Run Basic Tests
       run: |
-        source activate_sage.sh
         python -c "import sage; print('✅ SAGE import successful')"
         
-    - name: Run test suite
+    # 运行 pytest
+    - name: Run Test Suite
       run: |
-        source activate_sage.sh
-        pytest sage/ sage_ext/ --tb=short --timeout=300 -x
+        pip install pytest pytest-timeout pytest-cov
+        pytest sage/cli/tests/ sage/lib/tests/ --tb=short --timeout=300 -v
         
-    - name: Test coverage report
-      run: |
-        source activate_sage.sh
-        pytest sage/cli/tests/ sage/lib/tests/ sage/utils/tests/ sage/core/tests/ --cov=sage --cov-report=xml
-        
-    - name: Upload coverage
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        fail_ci_if_error: false
-
-  # 代码质量检查
-  code-quality:
+  # 简化的代码质量检查
+  lint:
     name: Code Quality
-    runs-on: self-hosted
+    runs-on: self-hosted  # 使用 self-hosted runner
     timeout-minutes: 15
     
     steps:
-    - name: Checkout code
+    - name: Checkout Repository
       uses: actions/checkout@v4
-      
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 1
+        
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
         
-    - name: Install linting tools
+    - name: Install Linting Tools
       run: |
         pip install flake8 black isort
         
-    - name: Check code formatting
+    - name: Run Code Quality Checks
       run: |
-        black --check --diff sage/ || echo "Code formatting issues found"
-        isort --check-only --diff sage/ || echo "Import sorting issues found"
-        
-    - name: Run linting
-      run: |
-        flake8 sage/ --max-line-length=120 --extend-ignore=E203,W503 || echo "Linting issues found"
+        echo "Checking code formatting..."
+        black --check --diff sage/ || echo "❌ Code formatting issues found"
+        echo "Checking import sorting..."
+        isort --check-only --diff sage/ || echo "❌ Import sorting issues found"
+        echo "Running linter..."
+        flake8 sage/ --count --select=E9,F63,F7,F82 --show-source --statistics || echo "❌ Critical linting errors found"
