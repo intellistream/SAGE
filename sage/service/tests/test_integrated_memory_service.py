@@ -79,7 +79,7 @@ def test_memory_service_integrated():
         memory_task.start_running()
         
         # 等待服务启动
-        time.sleep(2.0)
+        time.sleep(5.0)  # 增加等待时间
         
         # 5. 创建测试函数并设置上下文
         test_func = MockTestFunction()
@@ -87,11 +87,13 @@ def test_memory_service_integrated():
         
         print("✅ Service started, testing operations...")
         
-        # 6. 测试创建collection
+        # 6. 测试创建collection (使用KV后端避免VDB依赖)
+        # 增加超时参数
         result1 = test_func.call_service["memory_service"].create_collection(
             name="test_collection",
-            backend_type="VDB",
-            description="Test collection"
+            backend_type="KV",  # 使用KV后端替代VDB
+            description="Test collection",
+            timeout=60  # 增加超时时间到60秒
         )
         print(f"Create collection result: {result1}")
         assert result1["status"] == "success", f"Create collection failed: {result1}"

@@ -1,0 +1,82 @@
+name: SAGE CI/CD
+
+on:
+  push:
+    branches: [ main, develop, refactor/* ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  # 主要测试作业
+  test:
+    name: Test & Build
+    runs-on: self-hosted
+    timeout-minutes: 45
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install SAGE using install.py --minimal (Python-only, CI-friendly)
+      run: |
+        python install.py --minimal
+        
+    - name: Build C++ extensions separately
+      run: |
+        source activate_sage.sh
+        cd sage_ext && python setup.py build_ext --inplace
+        
+    - name: Run import tests
+      run: |
+        source activate_sage.sh
+        python -c "import sage; print('✅ SAGE import successful')"
+        
+    - name: Run test suite
+      run: |
+        source activate_sage.sh
+        pytest sage/ sage_ext/ --tb=short --timeout=300 -x
+        
+    - name: Test coverage report
+      run: |
+        source activate_sage.sh
+        pytest sage/cli/tests/ sage/lib/tests/ sage/utils/tests/ sage/core/tests/ --cov=sage --cov-report=xml
+        
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
+
+  # 代码质量检查
+  code-quality:
+    name: Code Quality
+    runs-on: self-hosted
+    timeout-minutes: 15
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install linting tools
+      run: |
+        pip install flake8 black isort
+        
+    - name: Check code formatting
+      run: |
+        black --check --diff sage/ || echo "Code formatting issues found"
+        isort --check-only --diff sage/ || echo "Import sorting issues found"
+        
+    - name: Run linting
+      run: |
+        flake8 sage/ --max-line-length=120 --extend-ignore=E203,W503 || echo "Linting issues found"

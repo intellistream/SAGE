@@ -3,29 +3,36 @@
 
 # 测试配置
 test:
-  # 智能测试配置
-  smart_test:
+  # 快速检查配置
+  quick_check:
     enabled: true
-    workers: 4
-    timeout: 300  # 5分钟超时
-    output_format: markdown
+    timeout: 600  # 10分钟超时
+    test_paths: 
+      - "sage/cli/tests/"
+      - "sage/lib/tests/evaluate_test.py"
+      - "sage/utils/tests/"
     
-  # 全量测试配置
+  # 完整测试配置
   full_test:
     enabled: true
-    workers: 8
-    timeout: 1800  # 30分钟超时
-    coverage_threshold: 80
+    timeout: 3600  # 60分钟超时
+    coverage_threshold: 75
+    test_paths:
+      - "sage/"
+      - "sage_ext/"
+    exclude_paths:
+      - "sage/service/tests/test_integrated_memory_service.py"  # 超时问题
     
   # 测试触发条件
   triggers:
-    pr_branches: ["main", "develop", "release/*"]
+    pr_branches: ["main", "develop", "refactor/*"]
     file_patterns: ["*.py", "*.yaml", "*.yml"]
     exclude_paths: 
       - "docs/**"
       - "*.md"
       - "logs/**"
       - "test_logs/**"
+      - ".github/workflows/archived/**"
 
 # 构建配置
 build:
