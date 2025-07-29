@@ -1,0 +1,42 @@
+pipeline:
+  name: "sage-api-operator-operator_test"
+  description: "Test pipeline for Sage API Operator"
+  version: "1.0.0"
+
+source:
+  data_path: "data/sample/one_question.txt"
+  platform: "local"
+
+retriever:
+  platform: "local"
+  collection_name: "biology_rag_knowledge"
+  index_name: "biology_index"
+  ltm:
+    topk: 3
+
+generator:
+  local:
+    method: "hf"
+    model_name: "meta-llama/Llama-2-13b-chat-hf"
+    seed: 42
+
+  vllm:
+    api_key: "token-abc123"
+    method: "openai"
+    model_name: "meta-llama/Llama-2-13b-chat-hf"
+    base_url: "http://localhost:8000/v1"
+    seed: 42
+
+  remote:
+    api_key: ""
+    method: "openai"
+    model_name: "qwen-turbo-0919"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    seed: 42
+
+promptor:
+  platform: "local"
+
+sink:
+  platform: "local"
+  file_path: "output.txt"

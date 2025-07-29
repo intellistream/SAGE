@@ -18,14 +18,14 @@ def pipeline_run(config: dict) -> None:
         config (dict): 包含各模块配置的配置字典。
     """
     env = LocalEnvironment()
-    env.set_memory(config=None)
+    #env.set_memory(config=None)
 
     # 构建数据处理流程
     (env
         .from_source(FileSource, config["source"])
         .map(DenseRetriever, config["retriever"])
         .map(QAPromptor, config["promptor"])
-        .map(OpenAIGenerator, config["generator"]["local"])
+        .map(OpenAIGenerator, config["generator"]["vllm"])
         .sink(TerminalSink, config["sink"])
     )
 
