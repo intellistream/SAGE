@@ -137,7 +137,7 @@ class ConfigManager:
                 'head_port': 6379,
                 'dashboard_port': 8265,
                 'dashboard_host': '0.0.0.0',
-                'temp_dir': '/tmp/ray_head',
+                'temp_dir': '/tmp/ray',
                 'log_dir': '/tmp/sage_head_logs'
             },
             'worker': {
