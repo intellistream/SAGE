@@ -9,9 +9,13 @@ from sage.runtime.router.packet import Packet
 
 
 class MapOperator(BaseOperator):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._setup_time_tracking()
+    def __init__(self, function_factory: 'FunctionFactory', ctx: 'RuntimeContext', enable_profile=False, *args, **kwargs):
+        # 从 kwargs 中移除 enable_profile，避免传递给 BaseOperator
+        kwargs.pop('enable_profile', None)
+        super().__init__(function_factory, ctx, *args, **kwargs)
+        self.enable_profile = enable_profile
+        if self.enable_profile:
+            self._setup_time_tracking()
 
     def _setup_time_tracking(self):
         """设置时间统计的存储路径"""
@@ -26,6 +30,9 @@ class MapOperator(BaseOperator):
 
     def _save_time_record(self, duration: float):
         """保存时间记录"""
+        if not self.enable_profile:
+            return
+
         record = {
             'timestamp': time.time(),
             'duration': duration,
@@ -37,7 +44,7 @@ class MapOperator(BaseOperator):
 
     def _persist_time_records(self):
         """将时间记录持久化到文件"""
-        if not self.time_records:
+        if not self.enable_profile or not self.time_records:
             return
 
         timestamp = int(time.time())
@@ -66,8 +73,9 @@ class MapOperator(BaseOperator):
                 end_time = time.time()
                 duration = end_time - start_time
 
-                # 保存时间记录
-                self._save_time_record(duration)
+                # 保存时间记录（只有enable_profile=True时才保存）
+                if self.enable_profile:
+                    self._save_time_record(duration)
 
                 self.logger.debug(f"Operator {self.name} processed data with result: {result}")
                 result_packet = packet.inherit_partition_info(result) if (result is not None) else None
@@ -79,7 +87,8 @@ class MapOperator(BaseOperator):
 
     def __del__(self):
         """确保在对象销毁时保存所有未保存的记录"""
-        try:
-            self._persist_time_records()
-        except:
-            pass
+        if hasattr(self, 'enable_profile') and self.enable_profile:
+            try:
+                self._persist_time_records()
+            except:
+                pass

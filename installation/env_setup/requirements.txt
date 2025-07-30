@@ -53,3 +53,8 @@ typer
 Cython
 beautifulsoup4
 pytest-mock
+datasets
+nltk
+peft
+watchdog>=2.1.5,<7
+vllm
