@@ -6,7 +6,7 @@ from sage.runtime.runtime_context import RuntimeContext
 from sage.runtime.router.packet import Packet
 from ray.util.queue import Empty
 
-from sage.utils.mmap_queue.sage_queue import SageQueue
+from sage.utils.queue_adapter import create_queue
 from sage.runtime.router.router import BaseRouter
 from sage.core.function.source_function import StopSignal
 if TYPE_CHECKING:
@@ -21,9 +21,10 @@ class BaseTask(ABC):
         # 初始化task层的context属性，避免序列化问题
         self.ctx.initialize_task_context()
         
-        self.logger.debug(f"Queue name is {self.ctx.name}")
-        self.input_buffer = SageQueue(self.ctx.name)
-        self.input_buffer.logger = self.ctx.logger
+        self.logger.info(f"🎯 Task: Creating input_buffer with name='{self.ctx.name}'")
+        self.input_buffer = create_queue(name=self.ctx.name)
+        if hasattr(self.input_buffer, 'logger'):
+            self.input_buffer.logger = self.ctx.logger
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
         self.is_running = False
@@ -115,13 +116,17 @@ class BaseTask(ABC):
                     # For non-spout nodes, fetch input and process
                     # input_result = self.fetch_input()
                     try:
+                        self.logger.info(f"Task {self.name}: Attempting to get packet from input_buffer (timeout=0.5s)")
                         data_packet = self.input_buffer.get(timeout=0.5)
+                        self.logger.info(f"Task {self.name}: Successfully got packet from input_buffer: {data_packet}")
                     except Exception as e:
+                        self.logger.info(f"Task {self.name}: No packet received from input_buffer (timeout/exception): {e}")
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue
                     self.logger.debug(f"Node '{self.name}' received data packet: {data_packet}, type: {type(data_packet)}")
                     if data_packet is None:
+                        self.logger.info(f"Task {self.name}: Received None packet, continuing loop")
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue

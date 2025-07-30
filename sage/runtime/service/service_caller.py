@@ -11,8 +11,7 @@ from concurrent.futures import ThreadPoolExecutor, Future
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-
-from sage.utils.mmap_queue.sage_queue import SageQueue
+from sage.utils.queue_adapter import create_queue
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
 
@@ -60,17 +59,17 @@ class ServiceManager:
         )
         self._listener_thread.start()
     
-    def _get_service_queue(self, service_name: str) -> SageQueue:
+    def _get_service_queue(self, service_name: str):
         """获取服务队列"""
         if service_name not in self._service_queues:
             queue_name = f"service_request_{service_name}"
-            self._service_queues[service_name] = SageQueue(name=queue_name)
+            self._service_queues[service_name] = create_queue(name=queue_name)
         return self._service_queues[service_name]
     
-    def _get_response_queue(self) -> SageQueue:
+    def _get_response_queue(self):
         """获取响应队列"""
         if self._response_queue is None:
-            self._response_queue = SageQueue(name=self._response_queue_name)
+            self._response_queue = create_queue(name=self._response_queue_name)
         return self._response_queue
     
     def call_sync(

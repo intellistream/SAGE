@@ -5,6 +5,7 @@
 import time
 import threading
 import unittest
+import pytest
 from unittest.mock import Mock
 from sage.runtime.runtime_context import RuntimeContext
 from sage.runtime.service.local_service_task import LocalServiceTask
@@ -37,7 +38,7 @@ class MockEnvironment:
 
 
 # 测试用的服务类
-class TestCacheService:
+class MockCacheService:
     def __init__(self):
         self.cache_data = {}
     
@@ -55,7 +56,7 @@ class TestCacheService:
         return f"Key {key} not found"
 
 
-class TestDatabaseService:
+class MockDatabaseService:
     def __init__(self):
         self.users = [
             {"id": 1, "name": "Alice", "email": "alice@example.com"},
@@ -77,7 +78,7 @@ class TestDatabaseService:
 
 
 # 测试用的Function类
-class TestFunction(BaseFunction):
+class MockTestFunction(BaseFunction):
     def execute(self, data):
         return data
 
@@ -104,8 +105,8 @@ def test_integrated_service_call():
         test_ctx = RuntimeContext(test_graph_node, test_transformation, test_env)
         
         # 2. 创建服务工厂
-        cache_factory = ServiceFactory("cache_service", TestCacheService)
-        db_factory = ServiceFactory("db_service", TestDatabaseService)
+        cache_factory = ServiceFactory("cache_service", MockCacheService)
+        db_factory = ServiceFactory("db_service", MockDatabaseService)
         
         # 3. 创建服务任务
         cache_task = LocalServiceTask(cache_factory, cache_ctx)
@@ -119,7 +120,7 @@ def test_integrated_service_call():
         time.sleep(2.0)
         
         # 5. 创建测试函数并设置上下文
-        test_func = TestFunction()
+        test_func = MockTestFunction()
         test_func.ctx = test_ctx
         
         print("✅ Services started, testing synchronous calls...")
@@ -182,13 +183,11 @@ def test_integrated_service_call():
         
         print("✅ Concurrent async calls completed!")
         
-        return True
-        
     except Exception as e:
         print(f"❌ Test failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        pytest.fail(f"Integrated service call test failed: {e}")
         
     finally:
         # 清理资源

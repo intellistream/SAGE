@@ -34,47 +34,14 @@ def read_long_description():
 
 # 构建C扩展模块
 def build_c_extension():
-    """构建ring_buffer C扩展"""
-    ring_buffer_dir = "sage/utils/mmap_queue"  # 修复路径
-
-    # 检查是否已有编译好的库
-    so_files = [
-        os.path.join(ring_buffer_dir, "ring_buffer.so"),
-        os.path.join(ring_buffer_dir, "libring_buffer.so")
-    ]
-
-    # 如果没有编译好的库，尝试编译
-    if not any(os.path.exists(f) for f in so_files):
-        print("Compiling ring_buffer C library...")
-        try:
-            # 尝试使用Makefile编译
-            if os.path.exists(os.path.join(ring_buffer_dir, "Makefile")):
-                subprocess.run(["make", "-C", ring_buffer_dir], check=True)
-            # 或者使用build.sh
-            elif os.path.exists(os.path.join(ring_buffer_dir, "build.sh")):
-                subprocess.run(["bash", os.path.join(ring_buffer_dir, "build.sh")], check=True)
-            else:
-                print("Warning: No build system found for ring_buffer")
-        except subprocess.CalledProcessError as e:
-            print(f"Warning: Failed to compile ring_buffer: {e}")
-
-    # 定义C扩展
-    ext_modules = []
-
-    # 如果有C源文件，添加扩展模块
-    c_source = os.path.join(ring_buffer_dir, "ring_buffer.cpp")
-    if os.path.exists(c_source):
-        ring_buffer_ext = Extension(
-            'sage.utils.mmap_queue.ring_buffer',
-            sources=[c_source],
-            include_dirs=[ring_buffer_dir],
-            libraries=['pthread'],  # Linux下需要pthread
-            extra_compile_args=['-O3', '-fPIC'],
-            extra_link_args=['-shared'] if platform.system() != 'Darwin' else []
-        )
-        ext_modules.append(ring_buffer_ext)
-
-    return ext_modules
+    """
+    注意：C++扩展现在通过CMake独立构建，不再通过setup.py管理
+    - sage_ext/sage_queue: 通过CMake构建
+    - sage_ext/sage_db: 通过CMake构建
+    
+    setup.py现在只负责安装Python部分
+    """
+    return []  # 返回空列表，不构建任何C扩展
 
 
 
@@ -114,10 +81,6 @@ setup(
     package_data={
         'sage.core': ['config/*.yaml'],
         'sage_deployment': ['scripts/*.sh', 'templates/*'],
-        'sage.utils.mmap_queue': [
-            '*.so', '*.c', '*.h', 'Makefile', 'build.sh',
-            'README.md', 'USAGE_SUMMARY.md', 'IMPLEMENTATION_SUMMARY.md'
-        ],
     },
     classifiers=[
         "Development Status :: 3 - Alpha",
