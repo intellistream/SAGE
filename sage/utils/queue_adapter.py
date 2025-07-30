@@ -235,8 +235,15 @@ def create_queue(backend: Optional[str] = None, **kwargs):
             import ray
             if not ray.is_initialized():
                 try:
-                    ray.init(ignore_reinit_error=True)
-                    logger.info("Initialized Ray for queue creation")
+                    # Initialize Ray with better configurations
+                    ray.init(
+                        ignore_reinit_error=True,
+                        object_store_memory=1000000000,  # 1GB for object store
+                        num_cpus=None,  # Use all available CPUs
+                        log_to_driver=False,  # Reduce log verbosity
+                        local_mode=False  # Use cluster mode for better performance
+                    )
+                    logger.info("Initialized Ray for queue creation with optimized settings")
                 except Exception as e:
                     logger.warning(f"Failed to initialize Ray ({e}), falling back to Python queue")
                     return create_queue(backend="python_queue", **kwargs)
