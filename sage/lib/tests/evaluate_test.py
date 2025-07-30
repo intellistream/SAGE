@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import Mock, patch
 
 from sage.lib.rag.evaluate import (
     F1Evaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate
@@ -27,14 +28,42 @@ def test_f1_evaluate(config, test_data):
     result = evaluator.execute(test_data)
     assert result == test_data  # execute 方法应该返回原始数据
 
-def test_bert_recall(config, test_data):
+@patch('sage.lib.rag.evaluate.AutoTokenizer.from_pretrained')
+@patch('sage.lib.rag.evaluate.AutoModel.from_pretrained')
+def test_bert_recall(mock_model, mock_tokenizer, config, test_data):
+    """测试BertRecallEvaluate，使用mock避免下载模型"""
+    # Mock tokenizer
+    mock_tokenizer_instance = Mock()
+    mock_tokenizer_instance.return_value = {
+        'input_ids': [[1, 2, 3], [4, 5, 6]], 
+        'attention_mask': [[1, 1, 1], [1, 1, 1]]
+    }
+    mock_tokenizer.return_value = mock_tokenizer_instance
+    
+    # Mock model
+    mock_model_instance = Mock()
+    mock_output = Mock()
+    # Mock embeddings: create 2D numpy arrays that simulate averaged model output
+    import numpy as np
+    mock_embeddings = np.array([[0.1, 0.2, 0.3], [0.2, 0.3, 0.4]])  # 2D array: [2, 3]
+    mock_output.last_hidden_state.mean.return_value.detach.return_value.numpy.return_value = mock_embeddings
+    mock_model_instance.return_value = mock_output
+    mock_model.return_value = mock_model_instance
+    
     evaluator = BertRecallEvaluate(config)
     
     # 测试 execute 方法
     result = evaluator.execute(test_data)
     assert result == test_data  # execute 方法应该返回原始数据
 
-def test_rouge_l(config, test_data):
+@patch('sage.lib.rag.evaluate.Rouge')
+def test_rouge_l(mock_rouge_class, config, test_data):
+    """测试RougeLEvaluate，使用mock避免依赖问题"""
+    # Mock Rouge instance
+    mock_rouge_instance = Mock()
+    mock_rouge_instance.get_scores.return_value = [{"rouge-l": {"f": 0.75}}]
+    mock_rouge_class.return_value = mock_rouge_instance
+    
     evaluator = RougeLEvaluate(config)
     
     # 测试 execute 方法

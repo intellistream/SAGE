@@ -10,7 +10,7 @@ import traceback
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, TYPE_CHECKING
 from sage.utils.custom_logger import CustomLogger
-from sage.utils.mmap_queue.sage_queue import SageQueue
+from sage.utils.queue_adapter import create_queue
 
 if TYPE_CHECKING:
     from sage.jobmanager.factory.service_factory import ServiceFactory
@@ -66,17 +66,17 @@ class BaseServiceTask(ABC):
         """初始化请求队列"""
         try:
             if self._request_queue is None:
-                self._request_queue = SageQueue(self._request_queue_name)
+                self._request_queue = create_queue(name=self._request_queue_name)
                 self.logger.info(f"Initialized request queue: {self._request_queue_name}")
         except Exception as e:
             self.logger.error(f"Failed to initialize request queue: {e}")
             raise
     
-    def _get_response_queue(self, queue_name: str) -> SageQueue:
+    def _get_response_queue(self, queue_name: str):
         """获取或创建响应队列"""
         if queue_name not in self._response_queues:
             try:
-                self._response_queues[queue_name] = SageQueue(queue_name)
+                self._response_queues[queue_name] = create_queue(name=queue_name)
                 self.logger.debug(f"Created response queue: {queue_name}")
             except Exception as e:
                 self.logger.error(f"Failed to create response queue {queue_name}: {e}")

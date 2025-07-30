@@ -27,7 +27,9 @@ class SourceOperator(BaseOperator):
                 self.task.stop()
                 return
             if result is not None:
+                self.logger.info(f"SourceOperator {self.name}: Sending packet with payload: {result}")
                 success = self.router.send(Packet(result))
+                self.logger.info(f"SourceOperator {self.name}: Send result: {success}")
                 # If sending failed (e.g., queue is closed), stop the task
                 if not success:
                     self.logger.warning(f"Source Operator {self.name} failed to send packet, stopping task")

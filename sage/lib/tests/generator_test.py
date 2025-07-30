@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch, Mock
 
 from sage.lib.rag.generator import OpenAIGenerator,OpenAIGeneratorWithHistory
 from dotenv import load_dotenv
@@ -7,26 +8,40 @@ import time
 
 import test
 load_dotenv(override=False)
-api_key = os.environ.get("VLLM_API_KEY")
-# api_key = os.environ.get("ALIBABA_API_KEY")
-print(api_key)
+
 @pytest.fixture
 def config_openai():
     return {
         "method": "openai",
         "model_name": "meta-llama/Llama-2-13b-chat-hf",
         "base_url": "http://localhost:8000/v1",
-        "api_key": api_key,
+        "api_key": "token-abc123",  # 使用配置中的固定token
         "seed": 42,
         "max_tokens": 3000
     }
 
 @pytest.fixture
-def config_local():
+def config_vllm():
+    """VLLM配置 - 根据config.yaml中的vllm配置"""
     return {
-        "method": "hf",
+        "method": "openai",
         "model_name": "meta-llama/Llama-2-13b-chat-hf",
-        "seed": 42
+        "base_url": "http://localhost:8000/v1",
+        "api_key": "token-abc123",
+        "seed": 42,
+        "max_tokens": 3000
+    }
+
+@pytest.fixture
+def config_remote():
+    """远程配置 - 根据config.yaml中的remote配置"""
+    return {
+        "method": "openai",
+        "model_name": "qwen-turbo-0919",
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "api_key": "",  # 空的api_key用于测试
+        "seed": 42,
+        "max_tokens": 3000
     }
 
 # 
@@ -47,53 +62,19 @@ def ctx(tmp_path):
     folder.mkdir()
     return Ctx(name="gen1", folder=str(folder))
 
-def test_openai_generator(config_openai):
-    gen = OpenAIGenerator(config_openai)
-    query = "What is the capital of France?"
-    input_data = [query, [
-        {"role": "system", "content": "You are a helpful assistant. Answer the question in a few words"},
-        {"role": "user", "content": "What is the capital of France?"}
-    ]]
-    result = gen.execute(input_data)
-    assert result[0] == "What is the capital of France?"
-
-    assert "Paris" in result[1]
-
-
-
-# def test_openai_generator_history_state(config_openai, ctx):
-#     gen = OpenAIGeneratorWithHistory(config_openai, ctx)
-
-#     # 第一次用户提问
-#     query1 = "What is the capital of France?"
-#     input_data1 = [query1, [{"role": "user", "content": query1}]]
-#     gen.execute(input_data1)
-#     time.sleep(5)
-
-#     # 第二次用户提问
-#     query2 = "Which river flows through it?"
-#     input_data2 = [query2, [{"role": "user", "content": query2}]]
-#     gen.execute(input_data2)
-
-#     # 检查内存中状态是否更新正确
-#     history = gen.dialogue_history
-#     assert len(history) == 4  # 2 轮对话 = 2 user + 2 assistant
-#     assert history[0]["role"] == "user"
-#     assert history[0]["content"] == query1
-#     assert history[2]["role"] == "user"
-#     assert history[2]["content"] == query2
-#     assert history[1]["role"] == "assistant"
-#     assert isinstance(history[1]["content"], str)
-#     assert history[3]["role"] == "assistant"
-
-#     gen.save_state()
-
-#     gen2 = OpenAIGeneratorWithHistory(config_openai, ctx)
-#     history2 = gen2.dialogue_history
+@patch('sage.utils.clients.openaiclient.OpenAI')
+def test_openai_generator(mock_openai_class, config_openai):
+    """测试OpenAI生成器基本功能"""
+    # Mock OpenAI client
+    mock_client = Mock()
+    mock_openai_class.return_value = mock_client
     
-#     assert history2 == history
-def test_openai_generator_vllm(config_openai):
-    """测试使用VLLM配置的OpenAI生成器"""
+    # Mock chat completion response
+    mock_response = Mock()
+    mock_response.choices = [Mock()]
+    mock_response.choices[0].message.content = "Paris is the capital of France."
+    mock_client.chat.completions.create.return_value = mock_response
+    
     gen = OpenAIGenerator(config_openai)
     query = "What is the capital of France?"
     input_data = [query, [
@@ -104,6 +85,44 @@ def test_openai_generator_vllm(config_openai):
     assert result[0] == "What is the capital of France?"
     assert "Paris" in result[1]
 
-# config=config_openai()
-# test_openai_generator(config)
-# test_openai_generator_history_state(config, ctx)
+
+@patch('sage.utils.clients.openaiclient.OpenAI')
+def test_openai_generator_vllm(mock_openai_class, config_vllm):
+    """测试使用VLLM配置的OpenAI生成器"""
+    # Mock OpenAI client
+    mock_client = Mock()
+    mock_openai_class.return_value = mock_client
+    
+    # Mock VLLM response
+    mock_response = Mock()
+    mock_response.choices = [Mock()]
+    mock_response.choices[0].message.content = "Paris"
+    mock_client.chat.completions.create.return_value = mock_response
+    
+    gen = OpenAIGenerator(config_vllm)
+    query = "What is the capital of France?"
+    input_data = [query, [
+        {"role": "system", "content": "You are a helpful assistant. Answer the question in a few words"},
+        {"role": "user", "content": "What is the capital of France?"}
+    ]]
+    result = gen.execute(input_data)
+    assert result[0] == "What is the capital of France?"
+    assert "Paris" in result[1]
+    
+    # 验证VLLM特定配置
+    mock_openai_class.assert_called_with(
+        api_key="token-abc123",
+        base_url="http://localhost:8000/v1"
+    )
+
+
+def test_openai_generator_missing_api_key(config_remote):
+    """测试缺少API key时的错误处理"""
+    with pytest.raises(Exception):  # 应该抛出OpenAI API key相关的异常
+        gen = OpenAIGenerator(config_remote)
+        query = "What is the capital of France?"
+        input_data = [query, [
+            {"role": "system", "content": "You are a helpful assistant"},
+            {"role": "user", "content": "What is the capital of France?"}
+        ]]
+        gen.execute(input_data)
