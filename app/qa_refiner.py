@@ -38,13 +38,15 @@ def pipeline_run(config):
 
     env.register_service("memory_service", memory_service_factory)
 
+    enable_profile = True
+
     (
         env
         .from_batch(HFDatasetBatch, config["source"])
-        .map(DenseRetriever, config["retriever"])
-        .map(LongRefinerAdapter, config["refiner"])
-        .map(QAPromptor, config["promptor"])
-        .map(OpenAIGenerator, config["generator"]["vllm"])
+        .map(DenseRetriever, config["retriever"], enable_profile=enable_profile)
+        .map(LongRefinerAdapter, config["refiner"], enable_profile=enable_profile)
+        .map(QAPromptor, config["promptor"], enable_profile=enable_profile)
+        .map(OpenAIGenerator, config["generator"]["vllm"], enable_profile=enable_profile)
         .map(F1Evaluate, config["evaluate"])
         .map(RecallEvaluate, config["evaluate"])
         .map(RougeLEvaluate, config["evaluate"])
@@ -58,7 +60,6 @@ def pipeline_run(config):
 
     try:
         env.submit()
-        # 等待任务完成；视需要调整
         time.sleep(200)
     except KeyboardInterrupt:
         print("停止运行")
