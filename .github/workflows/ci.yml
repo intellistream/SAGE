@@ -107,7 +107,7 @@ jobs:
         source ./activate_sage.sh
         python -c "import sage; print('✅ SAGE core import successful')"
         python -c "import sage.utils; print('✅ SAGE utils import successful')"
-        python -c "from sage.utils.queue_adapter import get_queue_backends; print('✅ Queue adapter import successful')"
+        python -c "from sage.utils.queue_adapter import get_queue_backend_info; print('✅ Queue adapter import successful')"
         
     # 运行 pytest (minimal 模式的测试)
     - name: Run Test Suite (Minimal Mode)
