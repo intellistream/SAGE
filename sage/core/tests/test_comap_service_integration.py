@@ -318,6 +318,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
                 "processor": "RecommendationProcessor"
             }
         
+        return result
         if self.ctx:
             self.logger.info(f"CoMap map1: processed request for user {user_id} in context {context}")
         

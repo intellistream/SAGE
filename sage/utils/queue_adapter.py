@@ -5,7 +5,6 @@ Provides a unified interface for different queue backends and information
 about available queue implementations.
 
 Updated with intelligent auto-fallback system for distributed environments.
-"""
 
 import os
 import sys
@@ -196,9 +195,7 @@ def create_queue(backend: Optional[str] = None, **kwargs):
     Create a queue using the specified or recommended backend.
     
     Args:
-        backend: Backend to use ('sage_queue', 'sage', 'ray_queue', 'ray', 'python_queue', 'auto')
-        **kwargs: Backend-specific arguments (name, maxsize, etc.)
-    
+        backend: Backend to use ('sage_queue', 'sage', 'ray_queue', 'ray', 'python_queue', 'auto')   
     Returns:
         Queue instance
     """
