@@ -1,5 +1,6 @@
 import time
 from sage.core.api.local_environment import LocalEnvironment
+from sage.core.api.remote_environment import RemoteEnvironment
 from sage.service.memory.memory_service import MemoryService
 from sage.core.function.map_function import MapFunction
 from sage.core.function.batch_function import BatchFunction
@@ -120,7 +121,7 @@ class MemorySink(SinkFunction):
 def pipeline_run():
     """创建并运行使用memory service的数据处理管道"""
     # 创建本地环境
-    env = LocalEnvironment()
+    env = LocalEnvironment("mem_examples")
     
     # 注册memory service并初始化操作的表格
     def memory_service_factory():

@@ -33,29 +33,38 @@ class BaseServiceTask(ABC):
             service_factory: 服务工厂实例
             ctx: 运行时上下文
         """
+        # 初始化默认值，防止在初始化失败时访问未定义的属性
+        self.service_name = "Unknown"
+        self.service_factory = None
+        self.ctx = ctx
+        self.service_instance = None
+        self.service = None
+        self.is_running = False
+        self._request_count = 0
+        self._error_count = 0
+        self._last_activity_time = time.time()
+        self._request_queue = None
+        self._response_queues = {}
+        self._queue_listener_thread = None
+        self._queue_listener_running = False
+        self._request_queue_name = "unknown_request_queue"
+        
+        # 确保 service_factory 有必要的属性
+        if not hasattr(service_factory, 'service_name'):
+            raise ValueError("ServiceFactory missing required attribute: service_name")
+        if not hasattr(service_factory, 'service_class'):
+            raise ValueError("ServiceFactory missing required attribute: service_class")
+            
         self.service_factory = service_factory
         self.service_name = service_factory.service_name
-        self.ctx = ctx
         
         # 创建实际的服务实例
         self.service_instance = service_factory.create_service(ctx)
         # 提供service别名以便访问
         self.service = self.service_instance
         
-        # 基础状态
-        self.is_running = False
-        self._request_count = 0
-        self._error_count = 0
-        self._last_activity_time = time.time()
-        
         # 日志记录器
         self.logger = CustomLogger(name=f"{self.__class__.__name__}_{self.service_name}")
-        
-        # 高性能队列相关
-        self._request_queue: Optional[SageQueue] = None
-        self._response_queues: Dict[str, SageQueue] = {}  # 缓存响应队列
-        self._queue_listener_thread: Optional[threading.Thread] = None
-        self._queue_listener_running = False
         
         # 队列名称
         self._request_queue_name = f"service_request_{self.service_name}"
@@ -323,16 +332,22 @@ class BaseServiceTask(ABC):
     
     def get_statistics(self) -> Dict[str, Any]:
         """获取服务统计信息"""
+        # 安全地获取服务类名
+        service_class_name = "Unknown"
+        if hasattr(self, 'service_factory') and hasattr(self.service_factory, 'service_class'):
+            if self.service_factory.service_class is not None:
+                service_class_name = self.service_factory.service_class.__name__
+        
         base_stats = {
-            "service_name": self.service_name,
+            "service_name": getattr(self, 'service_name', 'Unknown'),
             "service_type": self.__class__.__name__,
-            "is_running": self.is_running,
-            "request_count": self._request_count,
-            "error_count": self._error_count,
-            "last_activity_time": self._last_activity_time,
-            "service_class": self.service_factory.service_class.__name__,
-            "request_queue_name": self._request_queue_name,
-            "response_queues_count": len(self._response_queues)
+            "is_running": getattr(self, 'is_running', False),
+            "request_count": getattr(self, '_request_count', 0),
+            "error_count": getattr(self, '_error_count', 0),
+            "last_activity_time": getattr(self, '_last_activity_time', 0),
+            "service_class": service_class_name,
+            "request_queue_name": getattr(self, '_request_queue_name', 'Unknown'),
+            "response_queues_count": len(getattr(self, '_response_queues', {}))
         }
         
         # 添加队列统计信息
@@ -398,7 +413,13 @@ class BaseServiceTask(ABC):
         pass
     
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} {self.service_name}: {self.service_factory.service_class.__name__}>"
+        service_name = getattr(self, 'service_name', 'Unknown')
+        service_factory = getattr(self, 'service_factory', None)
+        if service_factory and hasattr(service_factory, 'service_class') and service_factory.service_class is not None:
+            service_class_name = service_factory.service_class.__name__
+        else:
+            service_class_name = 'Unknown'
+        return f"<{self.__class__.__name__} {service_name}: {service_class_name}>"
     
     def __enter__(self):
         return self

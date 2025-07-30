@@ -55,13 +55,30 @@ class FileSink(SinkFunction):
             f.write("=== QA Output Log ===\n")
 
     def execute(self, data: Tuple[str, str]):
+        # 添加详细的日志记录
+        self.logger.info(f"FileSink.execute called with data: {data}")
+        self.logger.info(f"Data type: {type(data)}")
+        
+        if not isinstance(data, tuple) or len(data) != 2:
+            self.logger.error(f"FileSink expected tuple of 2 elements, got: {data}")
+            return
+            
         question, answer = data
+
+        # 确保数据是字符串类型
+        if not isinstance(question, str) or not isinstance(answer, str):
+            self.logger.error(f"FileSink expected string tuple, got question: {type(question)}, answer: {type(answer)}")
+            return
+
+        self.logger.info(f"Writing QA pair to file {self.file_path}")
+        self.logger.info(f"Question: {question[:100]}..." if len(question) > 100 else f"Question: {question}")
+        self.logger.info(f"Answer: {answer[:100]}..." if len(answer) > 100 else f"Answer: {answer}")
 
         with open(self.file_path, "a", encoding="utf-8") as f:
             f.write("[Q] Question: " + question + "\n")
             f.write("[A] Answer  : " + answer + "\n")
             f.write("-" * 40 + "\n")
-        self.logger.debug(f"Data written to file: {self.file_path}")
+        self.logger.info(f"Data successfully written to file: {self.file_path}")
 
 class MemWriteSink(SinkFunction):
     def __init__(self, config: dict = None,  **kwargs):

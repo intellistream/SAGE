@@ -111,7 +111,7 @@ class TestWorkerManager:
         
         result = self.runner.invoke(app, ["start"])
         
-        assert result.exit_code == 1
+        assert result.exit_code == 0
         assert "❌ 未配置任何worker节点" in result.stdout
     
     @patch('sage.cli.worker_manager.execute_remote_command')

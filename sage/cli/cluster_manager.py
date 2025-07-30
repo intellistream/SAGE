@@ -39,7 +39,17 @@ def start_cluster():
     typer.echo("第2步: 启动所有Worker节点")
     try:
         from .worker_manager import start_workers
-        start_workers()
+        from .config_manager import get_config_manager
+        
+        # 检查是否配置了worker节点
+        config_manager = get_config_manager()
+        workers = config_manager.get_workers_ssh_hosts()
+        
+        if not workers:
+            typer.echo("💡 未配置worker节点，跳过worker启动")
+        else:
+            start_workers()
+            typer.echo("✅ Worker节点启动完成")
     except Exception as e:
         typer.echo(f"❌ Worker节点启动失败: {e}")
         typer.echo("💡 Head节点已启动，可尝试手动启动Worker节点")

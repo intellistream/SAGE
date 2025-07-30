@@ -25,6 +25,7 @@ class FileSource(SourceFunction):
         self.config = config
         self.data_path = self.resolve_data_path(config["data_path"])  # → project_root/data/sample/question.txt
         self.file_pos = 0  # Track the file read position
+        self.loop_reading = config.get("loop_reading", False)  # Whether to restart from beginning when EOF reached
 
     def resolve_data_path(self, path: str | Path) -> Path:
         """
@@ -55,10 +56,17 @@ class FileSource(SourceFunction):
                         self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Read query: {line.strip()}\033[0m ")
                         return line.strip()  # Return non-empty lines
                     else:
-                        self.logger.info(
-                            f"\033[33m[ {self.__class__.__name__}]: Reached end of file, maintaining position.\033[0m ")
-                        # Reset position if end of file is reached (optional)
-                        continue
+                        if self.loop_reading:
+                            self.logger.info(
+                                f"\033[33m[ {self.__class__.__name__}]: Reached end of file, restarting from beginning.\033[0m ")
+                            self.file_pos = 0  # Reset to beginning of file
+                            continue
+                        else:
+                            self.logger.info(
+                                f"\033[33m[ {self.__class__.__name__}]: Reached end of file, maintaining position.\033[0m ")
+                            # Reset position if end of file is reached (optional)
+                            continue
+                sleep(2)
         except FileNotFoundError:
             self.logger.error(f"File not found: {self.data_path}")
         except Exception as e:

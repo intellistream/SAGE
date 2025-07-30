@@ -7,6 +7,15 @@ from sage.core.function.source_function import StopSignal
 from sage.runtime.router.packet import Packet
 from sage.utils.queue_adapter import create_queue
 
+# 添加 Ray 相关导入以检测 Actor
+try:
+    import ray
+    from ray.actor import ActorHandle
+    RAY_AVAILABLE = True
+except ImportError:
+    RAY_AVAILABLE = False
+    ActorHandle = None
+
 if TYPE_CHECKING:
     from sage.runtime.router.connection import Connection
     from sage.runtime.runtime_context import RuntimeContext
@@ -29,6 +38,12 @@ class BaseRouter(ABC):
         self.logger = ctx.logger
         self.logger.debug(f"Initialized {self.__class__.__name__} for {self.name}")
     
+    def _is_ray_actor(self, obj) -> bool:
+        """检测对象是否为 Ray Actor"""
+        if not RAY_AVAILABLE:
+            return False
+        return isinstance(obj, ActorHandle) or hasattr(obj, 'remote')
+    
     def add_connection(self, connection: 'Connection') -> None:
         """
         添加下游连接
@@ -38,27 +53,40 @@ class BaseRouter(ABC):
         """
         broadcast_index = connection.broadcast_index
         parallel_index = connection.parallel_index
-        if connection.target_type == "local":
-            self.logger.info(f"🔗 Router: Getting input_buffer from target task '{connection.target_name}'")
-            # 对于本地连接，直接获取目标任务的input_buffer而不是创建新队列
-            connection.target_buffer = connection.target_handle.get_input_buffer()
-            self.logger.info(f"✅ Router: Successfully got input_buffer from {connection.target_name}")
-        else:  # 直接对ray节点通信
-            connection.target_buffer = connection.target_handle.get_input_buffer.remote()
-        # Debug log
-        self.logger.debug(
-            f"Adding connection: broadcast_index={broadcast_index}, parallel_index={parallel_index}, target={connection.target_name}"
-        )
         
-        # 初始化广播组（如果不存在）
-        if broadcast_index not in self.downstream_groups:
-            self.downstream_groups[broadcast_index] = {}
-            self.downstream_group_roundrobin[broadcast_index] = 0
-        
-        # 保存完整的Connection对象
-        self.downstream_groups[broadcast_index][parallel_index] = connection
-        
-        self.logger.info(f"Added connection to {connection.target_name}")
+        try:
+            # 检测 target_handle 是否为 Ray Actor
+            is_ray_actor = self._is_ray_actor(connection.target_handle)
+            
+            if is_ray_actor:
+                self.logger.info(f"🔗 Router: Getting remote input_buffer from target task '{connection.target_name}' (Ray Actor)")
+                connection.target_buffer = connection.target_handle.get_input_buffer.remote()
+                self.logger.info(f"✅ Router: Successfully got remote input_buffer from {connection.target_name}")
+            else:
+                self.logger.info(f"🔗 Router: Getting input_buffer from target task '{connection.target_name}' (Local object)")
+                # 对于本地对象，直接获取目标任务的input_buffer
+                connection.target_buffer = connection.target_handle.get_input_buffer()
+                self.logger.info(f"✅ Router: Successfully got input_buffer from {connection.target_name}")
+                
+            # Debug log
+            self.logger.debug(
+                f"Adding connection: broadcast_index={broadcast_index}, parallel_index={parallel_index}, target={connection.target_name}, is_ray_actor={is_ray_actor}"
+            )
+            
+            # 初始化广播组（如果不存在）
+            if broadcast_index not in self.downstream_groups:
+                self.downstream_groups[broadcast_index] = {}
+                self.downstream_group_roundrobin[broadcast_index] = 0
+            
+            # 保存完整的Connection对象
+            self.downstream_groups[broadcast_index][parallel_index] = connection
+            
+            self.logger.info(f"Added connection to {connection.target_name}")
+            self.logger.info(f"Current downstream groups: {list(self.downstream_groups.keys())}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to add connection to {connection.target_name}: {e}", exc_info=True)
+            raise
 
     
     def get_connections_info(self) -> Dict[str, Any]:
@@ -107,8 +135,11 @@ class BaseRouter(ABC):
         Returns:
             bool: 是否成功发送
         """
+        self.logger.debug(f"Router {self.name}: Send called with downstream_groups: {list(self.downstream_groups.keys())}")
+        
         if not self.downstream_groups:
             self.logger.warning(f"No downstream connections available for {self.name}")
+            self.logger.warning(f"Current downstream_groups state: {self.downstream_groups}")
             return False
         
         try:
@@ -211,12 +242,49 @@ class BaseRouter(ABC):
             self.logger.info(f"Router {self.name}: Created routed packet: {routed_packet}")
             
             target_buffer = connection.target_buffer
-            self.logger.info(f"Router {self.name}: Target buffer: {target_buffer}")
-            self.logger.info(f"Router {self.name}: Calling target_buffer.put_nowait()")
+            target_handle = connection.target_handle
+            self.logger.info(f"Router {self.name}: Target buffer: {target_buffer} (type: {type(target_buffer)})")
+            self.logger.info(f"Router {self.name}: Target handle: {target_handle} (type: {type(target_handle)})")
             
-            target_buffer.put_nowait(routed_packet)
+            # 检查是否为 Ray Actor
+            is_ray_actor = self._is_ray_actor(target_handle)
+            self.logger.info(f"Router {self.name}: Is Ray Actor: {is_ray_actor}")
             
-            self.logger.info(f"Router {self.name}: Successfully put packet in target buffer")
+            # 检查 target_buffer 是否是 Ray ObjectRef
+            is_ray_object_ref = RAY_AVAILABLE and str(type(target_buffer)).find('ray._raylet.ObjectRef') != -1
+            self.logger.info(f"Router {self.name}: Is Ray ObjectRef: {is_ray_object_ref}")
+            
+            if is_ray_actor:
+                # 对于 Ray Actor，直接调用 put_packet 方法（不使用 hasattr 检查）
+                self.logger.info(f"Router {self.name}: Using Ray Actor put_packet method")
+                try:
+                    result_future = target_handle.put_packet.remote(routed_packet)
+                    # 等待结果以确保调用成功
+                    result = ray.get(result_future)
+                    self.logger.info(f"Router {self.name}: Ray Actor put_packet result: {result}")
+                    if not result:
+                        self.logger.error(f"Router {self.name}: put_packet returned False")
+                        return False
+                except AttributeError as e:
+                    self.logger.error(f"Router {self.name}: Ray Actor does not have put_packet method: {e}")
+                    return False
+                except Exception as e:
+                    self.logger.error(f"Router {self.name}: Failed to call Ray Actor put_packet: {e}")
+                    return False
+            elif is_ray_object_ref:
+                # target_buffer 是 Ray ObjectRef，这种情况不应该发生，因为我们应该从上面的分支处理
+                self.logger.error(f"Router {self.name}: Unexpected Ray ObjectRef without Ray Actor handle")
+                return False
+            elif hasattr(target_buffer, 'put_nowait'):
+                # 这是一个普通的队列对象
+                self.logger.info(f"Router {self.name}: Calling target_buffer.put_nowait() on local buffer")
+                target_buffer.put_nowait(routed_packet)
+            else:
+                # 回退方案
+                self.logger.warning(f"Router {self.name}: Using fallback method for unknown buffer type: {type(target_buffer)}")
+                target_buffer.put_nowait(routed_packet)
+            
+            self.logger.info(f"Router {self.name}: Successfully sent packet to target")
             self.logger.debug(
                 f"Sent {'keyed' if packet.is_keyed() else 'unkeyed'} packet "
                 f"to {connection.target_name} (strategy: {packet.partition_strategy or 'round-robin'})"

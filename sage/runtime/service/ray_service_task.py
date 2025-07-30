@@ -21,8 +21,17 @@ class RayServiceTask(BaseServiceTask):
             service_factory: 服务工厂实例
             ctx: 运行时上下文
         """
-        super().__init__(service_factory, ctx)
-        self.logger.debug(f"Ray service task '{self.service_name}' initialized")
+        try:
+            super().__init__(service_factory, ctx)
+            self.logger.debug(f"Ray service task '{self.service_name}' initialized")
+        except Exception as e:
+            # 如果父类初始化失败，确保至少有基本属性
+            if not hasattr(self, 'service_name'):
+                self.service_name = "Unknown_Ray_Service"
+            if not hasattr(self, 'logger'):
+                self.logger = CustomLogger(name=f"RayServiceTask_{self.service_name}")
+            self.logger.error(f"Failed to initialize Ray service task: {e}")
+            raise
     
     def _start_service_instance(self):
         """启动Ray服务实例"""

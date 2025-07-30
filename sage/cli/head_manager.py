@@ -65,8 +65,8 @@ def start_head():
     head_temp_dir = head_config.get('temp_dir', '/tmp/ray_head')
     head_log_dir = head_config.get('log_dir', '/tmp/sage_head_logs')
     
-    ray_command = remote_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
-    conda_env = remote_config.get('conda_env', 'sage')
+    ray_command = head_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
+    conda_env = head_config.get('conda_env', 'sage')
     
     typer.echo(f"📋 配置信息:")
     typer.echo(f"   Head主机: {head_host}")

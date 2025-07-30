@@ -58,5 +58,6 @@ class ServiceTaskFactory:
         return service_task
     
     def __repr__(self) -> str:
-        remote_str = "Remote" if self.remote else "Local"
-        return f"<ServiceTaskFactory {self.service_name} ({remote_str})>"
+        remote_str = "Remote" if getattr(self, 'remote', False) else "Local"
+        service_name = getattr(self, 'service_name', 'Unknown')
+        return f"<ServiceTaskFactory {service_name} ({remote_str})>"
