@@ -62,10 +62,12 @@ jobs:
     - name: Setup Miniconda for install.py
       uses: conda-incubator/setup-miniconda@v3
       with:
-        miniconda-version: "latest"
+        miniforge-version: latest
         use-mamba: true
         python-version: 3.11
         auto-activate-base: false
+        activate-environment: ""
+      timeout-minutes: 10
         
     # 安装系统依赖 (使用本地缓存)
     - name: Install System Dependencies
