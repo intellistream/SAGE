@@ -5,6 +5,7 @@ Provides a unified interface for different queue backends and information
 about available queue implementations.
 
 Updated with intelligent auto-fallback system for distributed environments.
+"""
 
 import os
 import sys
@@ -84,12 +85,6 @@ def get_queue_backend_info() -> Dict[str, Any]:
     
     return info
 
-
-import logging
-from typing import Optional, Any
-import threading
-
-logger = logging.getLogger(__name__)
 
 class QueueWrapper:
     """包装标准队列以提供SageQueue兼容接口"""
