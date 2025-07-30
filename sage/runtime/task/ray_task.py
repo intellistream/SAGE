@@ -27,3 +27,20 @@ class RayTask(BaseTask):
         super().__init__(runtime_context, operator_factory)
 
         self.logger.info(f"Initialized RayTask: {self.ctx.name}")
+    
+    def put_packet(self, packet: 'Packet'):
+        """
+        直接向任务的输入缓冲区放入数据包，避免序列化缓冲区对象
+        
+        Args:
+            packet: 要放入的数据包
+        """
+        try:
+            self.logger.info(f"RayTask.put_packet called for {self.ctx.name} with packet: {packet}")
+            # 使用异步方式放入数据包以避免死锁
+            self.input_buffer.put(packet, block=False)
+            self.logger.info(f"RayTask.put_packet succeeded for {self.ctx.name}")
+            return True
+        except Exception as e:
+            self.logger.error(f"RayTask.put_packet failed for {self.ctx.name}: {e}")
+            return False

@@ -122,7 +122,7 @@ def start_workers():
     
     if not workers:
         typer.echo("❌ 未配置任何worker节点")
-        raise typer.Exit(1)
+        return  # 没有worker节点不应该视为错误
     
     head_host = head_config.get('host', 'localhost')
     head_port = head_config.get('head_port', 6379)

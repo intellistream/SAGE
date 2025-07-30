@@ -193,17 +193,41 @@ class Dispatcher():
                 target_input_index = parallel_edge.input_index
                 target_handle = self.tasks[target_name]
 
+                # 更准确地判断target_handle的类型
+                import ray
+                is_ray_actor = False
+                
+                # 检查是否是Ray Actor
+                if hasattr(target_handle, '_actor_id'):
+                    is_ray_actor = True
+                elif hasattr(target_handle, '__class__') and 'ray.actor.ActorHandle' in str(type(target_handle)):
+                    is_ray_actor = True
+                elif hasattr(ray, 'actor') and isinstance(target_handle, ray.actor.ActorHandle):
+                    is_ray_actor = True
+                
+                target_type = "remote" if is_ray_actor else "local"
+                
+                self.logger.debug(f"Target {target_name}: type={type(target_handle)}, is_ray_actor={is_ray_actor}, target_type={target_type}")
+                
+                # 根据类型获取对象引用
+                if target_type == "remote":
+                    # Ray Actor，直接使用handle而不调用get_object()
+                    target_object = target_handle
+                else:
+                    # 本地对象，调用get_object()
+                    target_object = target_handle.get_object()
+                
                 connection = Connection(
                     broadcast_index=broadcast_index,
                     parallel_index=parallel_index,
                     target_name=target_name,
-                    target_handle=target_handle.get_object(),
+                    target_handle=target_object,
                     target_input_index = target_input_index,
-                    target_type="local"
+                    target_type=target_type
                 )
                 try:
                     output_handle.add_connection(connection)
-                    self.logger.debug(f"Setup connection: {node_name} -> {target_name}")
+                    self.logger.debug(f"Setup connection: {node_name} -> {target_name} (type: {target_type})")
                     
                 except Exception as e:
                     self.logger.error(f"Error setting up connection {node_name} -> {target_name}: {e}", exc_info=True)

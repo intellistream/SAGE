@@ -118,6 +118,7 @@ class BaseTask(ABC):
                     try:
                         self.logger.info(f"Task {self.name}: Attempting to get packet from input_buffer (timeout=5.0s)")
                         data_packet = self.input_buffer.get(timeout=5.0)
+
                         self.logger.info(f"Task {self.name}: Successfully got packet from input_buffer: {data_packet}")
                     except Exception as e:
                         self.logger.info(f"Task {self.name}: No packet received from input_buffer (timeout/exception): {e}")

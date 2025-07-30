@@ -9,6 +9,7 @@ source:
   # data_path: "sample/one_question.txt"
   data_path: "/home/sage/SAGE/data/sample/question.txt"
   platform: "remote"
+  loop_reading: true
 
 retriever:
   platform: "remote"
@@ -55,3 +56,4 @@ promptor:
 
 sink:
   platform: "remote"
+  file_path: "/home/sage/SAGE/output/qa_output_distributed.txt"
