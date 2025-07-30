@@ -33,14 +33,23 @@ class FilterOperator(BaseOperator):
         """Filter需要特殊处理：可能不产生输出"""
         try:
             if packet is None or packet.payload is None:
+                self.logger.debug(f"FilterOperator {self.name}: Received empty packet")
                 return
+            
+            # 添加调试日志
+            self.logger.info(f"FilterOperator {self.name}: Processing packet with payload: {packet.payload}")
             
             # 执行过滤逻辑
             should_pass = self.function.execute(packet.payload)
             
+            self.logger.info(f"FilterOperator {self.name}: Filter result: {should_pass}")
+            
             if should_pass:
                 # 通过过滤，继承分区信息
+                self.logger.info(f"FilterOperator {self.name}: Sending packet downstream")
                 self.router.send(packet)
+            else:
+                self.logger.info(f"FilterOperator {self.name}: Packet filtered out")
             # 不通过过滤：不发送任何packet
             
         except Exception as e:

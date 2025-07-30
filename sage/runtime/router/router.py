@@ -39,13 +39,10 @@ class BaseRouter(ABC):
         broadcast_index = connection.broadcast_index
         parallel_index = connection.parallel_index
         if connection.target_type == "local":
-            self.logger.debug(f"Adding local connection to {connection.target_name}")
-            connection.target_buffer = create_queue(name=connection.target_name)
-            # Check if queue has get_stats method before calling
-            if hasattr(connection.target_buffer, 'get_stats'):
-                self.logger.debug(f"connection.target_buffer.get_stats(): {connection.target_buffer.get_stats()}")
-            else:
-                self.logger.debug(f"Created target buffer for {connection.target_name}")
+            self.logger.info(f"🔗 Router: Getting input_buffer from target task '{connection.target_name}'")
+            # 对于本地连接，直接获取目标任务的input_buffer而不是创建新队列
+            connection.target_buffer = connection.target_handle.get_input_buffer()
+            self.logger.info(f"✅ Router: Successfully got input_buffer from {connection.target_name}")
         else:  # 直接对ray节点通信
             connection.target_buffer = connection.target_handle.get_input_buffer.remote()
         # Debug log
@@ -116,17 +113,23 @@ class BaseRouter(ABC):
         
         try:
             self.downstream_max_load = 0.0
+            self.logger.info(f"Router {self.name}: Sending packet: {packet.payload}")
+            self.logger.info(f"Router {self.name}: Downstream groups: {list(self.downstream_groups.keys())}")
             self.logger.debug(f"Emitting packet: {packet}")
             
             # 根据packet的分区信息选择路由策略
             if packet.is_keyed():
-                self._route_packet(packet)
+                self.logger.info(f"Router {self.name}: Using keyed routing")
+                result = self._route_packet(packet)
             else:
-                self._route_round_robin_packet(packet)
+                self.logger.info(f"Router {self.name}: Using round-robin routing")
+                result = self._route_round_robin_packet(packet)
+            
+            self.logger.info(f"Router {self.name}: Routing result: {result}")
             self._adjust_delay_based_on_load()
             return True
         except Exception as e:
-            self.logger.error(f"Error emitting packet: {e}")
+            self.logger.error(f"Error emitting packet: {e}", exc_info=True)
             return False
     
     def _route_packet(self, packet: 'Packet') -> bool:
@@ -201,11 +204,19 @@ class BaseRouter(ABC):
     def _deliver_packet(self, connection: 'Connection', packet: 'Packet') -> bool:
         try:
             # 检查下游负载并动态调整delay
+            self.logger.info(f"Router {self.name}: Starting packet delivery to {connection.target_name}")
             
             self.downstream_max_load = max(self.downstream_max_load, connection.get_buffer_load())
             routed_packet = self._create_routed_packet(connection, packet)
+            self.logger.info(f"Router {self.name}: Created routed packet: {routed_packet}")
+            
             target_buffer = connection.target_buffer
+            self.logger.info(f"Router {self.name}: Target buffer: {target_buffer}")
+            self.logger.info(f"Router {self.name}: Calling target_buffer.put_nowait()")
+            
             target_buffer.put_nowait(routed_packet)
+            
+            self.logger.info(f"Router {self.name}: Successfully put packet in target buffer")
             self.logger.debug(
                 f"Sent {'keyed' if packet.is_keyed() else 'unkeyed'} packet "
                 f"to {connection.target_name} (strategy: {packet.partition_strategy or 'round-robin'})"
