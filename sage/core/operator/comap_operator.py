@@ -60,6 +60,23 @@ class CoMapOperator(BaseOperator):
                 
         except Exception as e:
             self.logger.error(f"Error in CoMapOperator {self.name}: {e}", exc_info=True)
+            
+            # 发送错误结果，确保下游仍能收到数据（关键修复）
+            error_result = {
+                "type": "comap_error",
+                "error": str(e),
+                "original_payload": packet.payload if packet else None,
+                "input_index": packet.input_index if packet else -1,
+                "operator": self.name
+            }
+            
+            try:
+                if packet:
+                    error_packet = packet.inherit_partition_info(error_result)
+                    self.router.send(error_packet)
+                    self.logger.info(f"CoMapOperator {self.name}: Sent error result downstream")
+            except Exception as send_error:
+                self.logger.error(f"Failed to send error result in CoMapOperator {self.name}: {send_error}")
     
     def _get_max_supported_index(self) -> int:
         """

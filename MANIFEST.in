@@ -1,13 +1,7 @@
 # MANIFEST.in - 告诉setuptools包含哪些非Python文件
 
 # 注意：C++扩展文件现在通过CMake独立管理，不再通过setup.py包含
-# include sage.utils/mmap_queue/*.c
-# include sage.utils/mmap_queue/*.h
-# include sage.utils/mmap_queue/Makefile
-# include sage.utils/mmap_queue/build.sh
-
-# 包含预编译的共享库（可选，建议从源码编译）
-# include sage.utils/mmap_queue/*.so
+# sage_ext/sage_queue/ 下的C++文件由独立构建系统管理
 
 # 包含配置文件
 recursive-include config *.yaml *.yml
