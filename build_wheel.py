@@ -58,15 +58,17 @@ def compile_c_extensions():
     """编译C扩展"""
     print("Compiling C extensions...")
     
-    ring_buffer_dir = Path("sage/utils/mmap_queue")
+    # 使用新的 sage_ext/sage_queue 路径
+    sage_queue_dir = Path("sage_ext/sage_queue")
     
     # 检查是否存在构建脚本
-    if (ring_buffer_dir / "build.sh").exists():
-        run_command(["bash", "build.sh"], cwd=ring_buffer_dir)
-    elif (ring_buffer_dir / "Makefile").exists():
-        run_command(["make"], cwd=ring_buffer_dir)
+    if (sage_queue_dir / "build.sh").exists():
+        run_command(["bash", "build.sh"], cwd=sage_queue_dir)
+    elif (sage_queue_dir / "CMakeLists.txt").exists():
+        # 使用 CMake 构建
+        run_command(["bash", "build_cmake.sh"], cwd=sage_queue_dir)
     else:
-        print("Warning: No build system found for ring_buffer")
+        print("Warning: No build system found for sage_queue")
     
     # 验证.so文件是否存在
     so_files = list(ring_buffer_dir.glob("*.so"))

@@ -1,0 +1,17 @@
+[
+  {
+    "timestamp": 1753839692.9384096,
+    "query": "What is AI?",
+    "external_corpus": "AI is the field of study focused on making machines intelligent.",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "Instruction:\nYou are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.\nOnly give me the answer and do not output any other words.\nRelevant corpus for the current question:\nAI is the field of study focused on making machines intelligent."
+      },
+      {
+        "role": "user",
+        "content": "Question: What is AI?"
+      }
+    ]
+  }
+]

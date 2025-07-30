@@ -319,13 +319,13 @@ function install_sage() {
     conda activate sage
 
     # 首先构建C扩展
-    echo "Building ring_buffer C library..."
-    if [ -f "sage/utils/mmap_queue/build.sh" ]; then
-        cd sage/utils/mmap_queue
+    echo "Building SAGE Queue C++ library..."
+    if [ -f "sage_ext/sage_queue/build.sh" ]; then
+        cd sage_ext/sage_queue
         bash build.sh
-        cd ../../../
+        cd ../../
     else
-        echo "Warning: build.sh not found in sage/utils/mmap_queue"
+        echo "Warning: build.sh not found in sage_ext/sage_queue"
     fi
 
     # 然后安装Python包

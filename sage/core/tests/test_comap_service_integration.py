@@ -104,11 +104,14 @@ class UserEventSource(SourceFunction):
         ]
     
     def execute(self):
+        print(f"[DEBUG] UserEventSource execute called, counter={self.counter}, total_events={len(self.events)}")
         if self.counter >= len(self.events):
+            print("[DEBUG] UserEventSource: No more events, returning None")
             return None
         
         event = self.events[self.counter]
         self.counter += 1
+        print(f"[DEBUG] UserEventSource generated event {self.counter}/{len(self.events)}: {event}")
         if self.ctx:
             self.logger.info(f"UserEventSource generated: {event}")
         return event
@@ -127,11 +130,14 @@ class RecommendationRequestSource(SourceFunction):
         ]
     
     def execute(self):
+        print(f"[DEBUG] RecommendationRequestSource execute called, counter={self.counter}, total_requests={len(self.requests)}")
         if self.counter >= len(self.requests):
+            print("[DEBUG] RecommendationRequestSource: No more requests, returning None")
             return None
         
         request = self.requests[self.counter]
         self.counter += 1
+        print(f"[DEBUG] RecommendationRequestSource generated request {self.counter}/{len(self.requests)}: {request}")
         if self.ctx:
             self.logger.info(f"RecommendationRequestSource generated: {request}")
         return request
@@ -153,6 +159,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
     
     def map0(self, event_data):
         """处理用户事件流 (stream 0) - 使用服务调用"""
+        print(f"[DEBUG] CoMap.map0 called with event_data: {event_data}")
         self.processed_events += 1
         
         user_id = event_data["user_id"]
@@ -161,27 +168,36 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
         
         # 使用服务调用语法糖 - 同步调用用户画像服务（增加容错处理）
         activity_description = f"{interaction_type}_{item_id}"
+        print(f"[DEBUG] CoMap.map0: About to call user_profile service for {user_id}")
         try:
-            update_result = self.call_service["user_profile"].update_activity(user_id, activity_description, timeout=10.0)
+            update_result = self.call_service["user_profile"].update_activity(user_id, activity_description, timeout=2.0)
+            print(f"[DEBUG] CoMap.map0: user_profile service call succeeded: {update_result}")
         except Exception as e:
             update_result = f"Service call failed: {str(e)[:100]}"
+            print(f"[DEBUG] CoMap.map0: user_profile service call failed: {e}")
             self.logger.warning(f"User profile service call failed: {e}")
         
         # 使用服务调用语法糖 - 同步调用推荐服务跟踪交互（增加容错处理）
+        print(f"[DEBUG] CoMap.map0: About to call recommendation service for {user_id}")
         try:
             track_result = self.call_service["recommendation"].track_interaction(
-                user_id, item_id, interaction_type, timeout=10.0
+                user_id, item_id, interaction_type, timeout=2.0
             )
+            print(f"[DEBUG] CoMap.map0: recommendation service call succeeded: {track_result}")
         except Exception as e:
             track_result = {"tracked": False, "error": str(e)[:100]}
+            print(f"[DEBUG] CoMap.map0: recommendation service call failed: {e}")
             self.logger.warning(f"Recommendation service call failed: {e}")
         
         # 使用服务调用语法糖 - 异步调用缓存服务清理相关缓存（增加容错处理）
         cache_key_pattern = f"rec_{user_id}"
+        print(f"[DEBUG] CoMap.map0: About to call cache service async for {user_id}")
         try:
-            cache_future = self.call_service_async["cache"].invalidate(cache_key_pattern, timeout=10.0)
+            cache_future = self.call_service_async["cache"].invalidate(cache_key_pattern, timeout=2.0)
+            print(f"[DEBUG] CoMap.map0: cache service async call initiated")
         except Exception as e:
             cache_future = None
+            print(f"[DEBUG] CoMap.map0: cache service async call failed: {e}")
             self.logger.warning(f"Cache service async call failed: {e}")
         
         result = {
@@ -197,23 +213,30 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
         }
         
         # 获取异步结果（增加容错处理）
+        print(f"[DEBUG] CoMap.map0: Processing async results for {user_id}")
         if cache_future is not None:
             try:
-                cache_result = cache_future.result(timeout=5.0)  # 减少超时时间
+                cache_result = cache_future.result(timeout=2.0)  # 减少超时时间
                 result["cache_invalidation_result"] = cache_result
+                print(f"[DEBUG] CoMap.map0: cache async result succeeded: {cache_result}")
             except Exception as e:
                 result["cache_invalidation_error"] = str(e)[:100]
+                print(f"[DEBUG] CoMap.map0: cache async result failed: {e}")
                 self.logger.warning(f"Cache service result failed: {e}")
         else:
             result["cache_invalidation_error"] = "Cache service call not initiated"
+            print(f"[DEBUG] CoMap.map0: no cache async call to process")
         
+        print(f"[DEBUG] CoMap.map0: About to return result for {user_id}")
         if self.ctx:
             self.logger.info(f"CoMap map0: processed event {event_data['type']} for user {user_id}")
         
+        print(f"[DEBUG] CoMap.map0: Returning result: {result}")
         return result
     
     def map1(self, request_data):
         """处理推荐请求流 (stream 1) - 使用服务调用"""
+        print(f"[DEBUG] CoMap.map1 called with request_data: {request_data}")
         self.processed_requests += 1
         
         user_id = request_data["user_id"]
@@ -295,6 +318,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
                 "processor": "RecommendationProcessor"
             }
         
+        return result
         if self.ctx:
             self.logger.info(f"CoMap map1: processed request for user {user_id} in context {context}")
         
@@ -318,10 +342,14 @@ class ServiceTestSink(SinkFunction):
         self.instance_id = id(self)
     
     def execute(self, data):
+        print(f"[DEBUG] ServiceTestSink.execute called with data: {data}")
+        
         with ServiceTestSink._lock:
             if self.instance_id not in ServiceTestSink._results:
                 ServiceTestSink._results[self.instance_id] = []
             ServiceTestSink._results[self.instance_id].append(data)
+        
+        print(f"[DEBUG] Total results stored: {sum(len(results) for results in ServiceTestSink._results.values())}")
         
         # 打印处理结果
         result_type = data.get("type", "unknown")
@@ -381,9 +409,9 @@ class TestCoMapServiceIntegration:
         print("   - recommendation: RecommendationService")
         print("   - cache: CacheService")
         
-        # 创建数据源
-        event_stream = env.from_source(UserEventSource, delay=0.3)
-        request_stream = env.from_source(RecommendationRequestSource, delay=0.4)
+        # 创建数据源 - 减少延迟以便更快生成数据
+        event_stream = env.from_source(UserEventSource, delay=0.1)
+        request_stream = env.from_source(RecommendationRequestSource, delay=0.1)
         
         # 构建CoMap处理管道
         result_stream = (

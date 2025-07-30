@@ -47,7 +47,6 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 1
         clean: true
-        timeout: 300  # 5分钟超时
       timeout-minutes: 8
       
     # 设置 Python 环境
@@ -108,7 +107,7 @@ jobs:
         source ./activate_sage.sh
         python -c "import sage; print('✅ SAGE core import successful')"
         python -c "import sage.utils; print('✅ SAGE utils import successful')"
-        python -c "from sage.utils.queue_adapter import get_queue_backends; print('✅ Queue adapter import successful')"
+        python -c "from sage.utils.queue_adapter import get_queue_backend_info; print('✅ Queue adapter import successful')"
         
     # 运行 pytest (minimal 模式的测试)
     - name: Run Test Suite (Minimal Mode)
@@ -120,9 +119,7 @@ jobs:
         export PYTHONWARNINGS="ignore:DeprecationWarning"
         
         # 运行所有sage文件夹下的测试，排除依赖C++扩展的测试
-        pytest sage/ \
-          --tb=short --timeout=300 \
-          || echo "Some tests failed - checking if critical tests passed..."
+        pytest -v sage
       timeout-minutes: 20
         
   # Docker 集成测试提醒
