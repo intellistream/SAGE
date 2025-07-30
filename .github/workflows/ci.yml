@@ -64,9 +64,7 @@ jobs:
       with:
         miniforge-version: latest
         use-mamba: true
-        python-version: 3.11
         auto-activate-base: false
-        activate-environment: ""
       timeout-minutes: 10
         
     # 安装系统依赖 (使用本地缓存)
