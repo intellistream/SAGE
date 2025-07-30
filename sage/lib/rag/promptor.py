@@ -134,6 +134,7 @@ class QAPromptor(MapFunction):
         1. (query, external_corpus_list_or_str))
         2. query_str)
         """
+        logger.info(f"QAPromptor received data: {data}")
         try:
             # -------- 解析输入 --------
             raw = data
@@ -167,7 +168,9 @@ class QAPromptor(MapFunction):
                 "role": "user",
                 "content": f"Question: {query}",
             }
-
+            self.logger.info(
+                f"QAPromptor generated prompt: {system_prompt['content']} | {user_prompt['content']}"
+            )
             prompt = [system_prompt, user_prompt]
 
             # 保存数据记录（只有enable_profile=True时才保存）

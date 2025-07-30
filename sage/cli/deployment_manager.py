@@ -63,7 +63,7 @@ class DeploymentManager:
                 tar.add(self.project_root / "app", arcname="app")
                 tar.add(self.project_root / "config", arcname="config")
                 tar.add(self.project_root / "frontend", arcname="frontend")
-                
+                tar.add(self.project_root / "data", arcname="data")
                 # 添加安装相关目录
                 if (self.project_root / "installation").exists():
                     tar.add(self.project_root / "installation", arcname="installation")
@@ -75,13 +75,13 @@ class DeploymentManager:
                 if (self.project_root / "docs").exists():
                     tar.add(self.project_root / "docs", arcname="docs")
                 
-                # 添加数据目录（如果存在且不太大）
-                data_dir = self.project_root / "data"
-                if data_dir.exists():
-                    # 只添加小的配置文件，跳过大数据文件
-                    for item in data_dir.iterdir():
-                        if item.is_file() and item.suffix in ['.yaml', '.yml', '.json', '.txt', '.md']:
-                            tar.add(item, arcname=f"data/{item.name}")
+                # # 添加数据目录（如果存在且不太大）
+                # data_dir = self.project_root / "data"
+                # if data_dir.exists():
+                #     # 只添加小的配置文件，跳过大数据文件
+                #     for item in data_dir.iterdir():
+                #         if item.is_file() and item.suffix in ['.yaml', '.yml', '.json', '.txt', '.md']:
+                #             tar.add(item, arcname=f"data/{item.name}")
                 
                 # 添加安装文件
                 tar.add(self.project_root / "setup.py", arcname="setup.py")

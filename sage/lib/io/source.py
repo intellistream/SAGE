@@ -59,6 +59,7 @@ class FileSource(SourceFunction):
                             f"\033[33m[ {self.__class__.__name__}]: Reached end of file, maintaining position.\033[0m ")
                         # Reset position if end of file is reached (optional)
                         continue
+                sleep(2)
         except FileNotFoundError:
             self.logger.error(f"File not found: {self.data_path}")
         except Exception as e:

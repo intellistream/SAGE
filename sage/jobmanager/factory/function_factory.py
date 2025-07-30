@@ -31,4 +31,5 @@ class FunctionFactory:
         return function
     
     def __repr__(self) -> str:
-        return f"<FunctionFactory {self.function_class.__name__}>"
+        function_class_name = getattr(self, 'function_class', type(None)).__name__
+        return f"<FunctionFactory {function_class_name}>"

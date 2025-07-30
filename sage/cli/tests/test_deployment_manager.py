@@ -40,7 +40,7 @@ class TestDeploymentManager:
             (project_root / "config").mkdir()
             (project_root / "frontend").mkdir()
             (project_root / "installation").mkdir()
-            
+            (project_root / "data").mkdir()
             (project_root / "setup.py").touch()
             (project_root / "README.md").touch()
             (project_root / "LICENSE").touch()

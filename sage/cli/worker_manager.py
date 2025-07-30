@@ -212,22 +212,44 @@ echo "[INFO] 启动Ray Worker进程..." | tee -a "$LOG_DIR/worker.log"
 RAY_START_CMD="{ray_command} start --address={head_host}:{head_port} --node-ip-address=$NODE_IP --temp-dir=$WORKER_TEMP_DIR"
 echo "[INFO] 执行命令: $RAY_START_CMD" | tee -a "$LOG_DIR/worker.log"
 
-$RAY_START_CMD >> "$LOG_DIR/worker.log" 2>&1
+# 执行Ray启动命令并捕获输出和退出码
+set +e  # 临时允许命令失败
+RAY_OUTPUT=$($RAY_START_CMD 2>&1)
 RAY_EXIT_CODE=$?
+set -e  # 重新开启严格模式
 
-if [ $RAY_EXIT_CODE -eq 0 ]; then
-    echo "[SUCCESS] Ray Worker启动成功" | tee -a "$LOG_DIR/worker.log"
-    sleep 3
+# 将输出写入日志
+echo "$RAY_OUTPUT" | tee -a "$LOG_DIR/worker.log"
+
+# 等待一下让Ray有时间完全启动
+sleep 5
+
+# 检查Ray进程是否真正启动成功
+RAY_PIDS=$(pgrep -f 'raylet|core_worker' || true)
+if [[ -n "$RAY_PIDS" ]]; then
+    echo "[SUCCESS] Ray Worker启动成功，进程PIDs: $RAY_PIDS" | tee -a "$LOG_DIR/worker.log"
+    echo "[INFO] 节点已连接到集群: {head_host}:{head_port}" | tee -a "$LOG_DIR/worker.log"
     
+    # 验证Ray状态
+    if timeout 10 {ray_command} status > /dev/null 2>&1; then
+        echo "[SUCCESS] Ray集群连接验证成功" | tee -a "$LOG_DIR/worker.log"
+    else
+        echo "[WARNING] Ray集群连接验证失败，但进程正在运行" | tee -a "$LOG_DIR/worker.log"
+    fi
+elif [ $RAY_EXIT_CODE -eq 0 ]; then
+    echo "[WARNING] Ray启动命令成功但未发现运行中的进程，可能仍在启动中" | tee -a "$LOG_DIR/worker.log"
+    sleep 3
+    # 再次检查
     RAY_PIDS=$(pgrep -f 'raylet|core_worker' || true)
     if [[ -n "$RAY_PIDS" ]]; then
-        echo "[SUCCESS] Ray Worker进程正在运行，PIDs: $RAY_PIDS" | tee -a "$LOG_DIR/worker.log"
-        echo "[INFO] 节点已连接到集群: {head_host}:{head_port}" | tee -a "$LOG_DIR/worker.log"
+        echo "[SUCCESS] Ray Worker延迟启动成功，进程PIDs: $RAY_PIDS" | tee -a "$LOG_DIR/worker.log"
     else
-        echo "[WARNING] Ray启动命令成功但未发现运行中的进程" | tee -a "$LOG_DIR/worker.log"
+        echo "[ERROR] Ray Worker启动失败，未发现进程且退出码: $RAY_EXIT_CODE" | tee -a "$LOG_DIR/worker.log"
+        exit 1
     fi
 else
     echo "[ERROR] Ray Worker启动失败，退出码: $RAY_EXIT_CODE" | tee -a "$LOG_DIR/worker.log"
+    echo "[DEBUG] Ray启动输出: $RAY_OUTPUT" | tee -a "$LOG_DIR/worker.log"
     exit 1
 fi'''
         
@@ -548,20 +570,40 @@ export RAY_DISABLE_IMPORT_WARNING=1
 
 # 启动ray worker
 echo "[INFO] 启动Ray Worker进程..." | tee -a "$LOG_DIR/worker.log"
-nohup {ray_command} start --address={head_host}:{head_port} --node-ip-address=$NODE_IP --temp-dir=$WORKER_TEMP_DIR >> "$LOG_DIR/worker.log" 2>&1 &
+RAY_START_CMD="{ray_command} start --address={head_host}:{head_port} --node-ip-address=$NODE_IP --temp-dir=$WORKER_TEMP_DIR"
+echo "[INFO] 执行命令: $RAY_START_CMD" | tee -a "$LOG_DIR/worker.log"
+
+# 执行Ray启动命令并捕获输出和退出码
+set +e  # 临时允许命令失败
+RAY_OUTPUT=$($RAY_START_CMD 2>&1)
+RAY_EXIT_CODE=$?
+set -e  # 重新开启严格模式
+
+# 将输出写入日志
+echo "$RAY_OUTPUT" | tee -a "$LOG_DIR/worker.log"
 
 # 等待一下让Ray有时间启动
 sleep 5
 
 # 检查Ray是否启动成功
-RAY_PIDS=$(pgrep -f 'raylet' || true)
+RAY_PIDS=$(pgrep -f 'raylet|core_worker' || true)
 if [[ -n "$RAY_PIDS" ]]; then
     echo "[SUCCESS] 新Worker节点启动成功，PIDs: $RAY_PIDS" | tee -a "$LOG_DIR/worker.log"
+elif [ $RAY_EXIT_CODE -eq 0 ]; then
+    echo "[WARNING] Ray启动命令成功但未发现运行中的进程，可能仍在启动中" | tee -a "$LOG_DIR/worker.log"
+    sleep 3
+    # 再次检查
+    RAY_PIDS=$(pgrep -f 'raylet|core_worker' || true)
+    if [[ -n "$RAY_PIDS" ]]; then
+        echo "[SUCCESS] 新Worker节点延迟启动成功，PIDs: $RAY_PIDS" | tee -a "$LOG_DIR/worker.log"
+    else
+        echo "[ERROR] 新Worker节点启动失败，未发现进程" | tee -a "$LOG_DIR/worker.log"
+        echo "[DEBUG] Ray启动输出: $RAY_OUTPUT" | tee -a "$LOG_DIR/worker.log"
+        exit 1
+    fi
 else
-    echo "[ERROR] 新Worker节点启动失败，未发现raylet进程" | tee -a "$LOG_DIR/worker.log"
-    # 显示最近的日志以便调试
-    echo "[DEBUG] 最近的Ray日志:" | tee -a "$LOG_DIR/worker.log"
-    tail -10 "$LOG_DIR/worker.log" | tee -a "$LOG_DIR/worker.log"
+    echo "[ERROR] 新Worker节点启动失败，退出码: $RAY_EXIT_CODE" | tee -a "$LOG_DIR/worker.log"
+    echo "[DEBUG] Ray启动输出: $RAY_OUTPUT" | tee -a "$LOG_DIR/worker.log"
     exit 1
 fi'''
         
