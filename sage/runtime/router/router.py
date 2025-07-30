@@ -41,9 +41,11 @@ class BaseRouter(ABC):
         if connection.target_type == "local":
             self.logger.debug(f"Adding local connection to {connection.target_name}")
             connection.target_buffer = create_queue(name=connection.target_name)
-            # Check if target_buffer has get_stats method before calling it
+            # Check if queue has get_stats method before calling
             if hasattr(connection.target_buffer, 'get_stats'):
                 self.logger.debug(f"connection.target_buffer.get_stats(): {connection.target_buffer.get_stats()}")
+            else:
+                self.logger.debug(f"Created target buffer for {connection.target_name}")
         else:  # 直接对ray节点通信
             connection.target_buffer = connection.target_handle.get_input_buffer.remote()
         # Debug log

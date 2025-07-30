@@ -72,6 +72,76 @@ def get_queue_backend_info() -> Dict[str, Any]:
     return info
 
 
+import logging
+from typing import Optional, Any
+import threading
+
+logger = logging.getLogger(__name__)
+
+class QueueWrapper:
+    """包装标准队列以提供SageQueue兼容接口"""
+    
+    def __init__(self, queue_instance):
+        self._queue = queue_instance
+        self._lock = threading.Lock()
+    
+    def put(self, item: Any, block: bool = True, timeout: Optional[float] = None) -> None:
+        """添加元素到队列"""
+        self._queue.put(item, block=block, timeout=timeout)
+    
+    def put_nowait(self, item: Any) -> None:
+        """非阻塞添加元素"""
+        try:
+            self._queue.put_nowait(item)
+        except AttributeError:
+            # Ray Queue可能没有put_nowait方法，使用put with timeout=0
+            try:
+                self._queue.put(item, block=False)
+            except:
+                # 如果还是失败，用put with very short timeout
+                self._queue.put(item, timeout=0.001)
+    
+    def get(self, block: bool = True, timeout: Optional[float] = None) -> Any:
+        """从队列获取元素"""
+        return self._queue.get(block=block, timeout=timeout)
+    
+    def get_nowait(self) -> Any:
+        """非阻塞获取元素"""
+        try:
+            return self._queue.get_nowait()
+        except AttributeError:
+            # Ray Queue可能没有get_nowait方法，使用get with timeout=0
+            try:
+                return self._queue.get(block=False)
+            except:
+                # 如果还是失败，用get with very short timeout
+                return self._queue.get(timeout=0.001)
+    
+    def qsize(self) -> int:
+        """返回队列大小"""
+        return self._queue.qsize()
+    
+    def empty(self) -> bool:
+        """检查队列是否为空"""
+        return self._queue.empty()
+    
+    def full(self) -> bool:
+        """检查队列是否满"""
+        return self._queue.full()
+    
+    def get_stats(self) -> dict:
+        """返回队列统计信息（兼容性方法）"""
+        return {
+            'size': self.qsize(),
+            'empty': self.empty(),
+            'full': self.full()
+        }
+    
+    def close(self) -> None:
+        """关闭队列（兼容性方法）"""
+        pass
+
+
 def get_recommended_queue_backend() -> str:
     """
     Get the recommended queue backend based on availability and performance.
@@ -120,25 +190,34 @@ def create_queue(backend: Optional[str] = None, **kwargs):
             import queue
             # Filter kwargs that python queue doesn't support
             queue_kwargs = {k: v for k, v in kwargs.items() if k in ['maxsize']}
-            return queue.Queue(**queue_kwargs)
+            python_queue = queue.Queue(**queue_kwargs)
+            return QueueWrapper(python_queue)
     
     elif backend == "ray_queue":
         try:
+            # Ensure Ray is initialized before creating Ray queue
+            import ray
+            if not ray.is_initialized():
+                ray.init(ignore_reinit_error=True)
+            
             from ray.util.queue import Queue as RayQueue
             # Filter kwargs that ray queue doesn't support
             ray_kwargs = {k: v for k, v in kwargs.items() if k in ['maxsize']}
-            return RayQueue(**ray_kwargs)
+            ray_queue = RayQueue(**ray_kwargs)
+            return QueueWrapper(ray_queue)
         except ImportError:
             # Fallback to Python queue if Ray not available
             import queue
             queue_kwargs = {k: v for k, v in kwargs.items() if k in ['maxsize']}
-            return queue.Queue(**queue_kwargs)
+            python_queue = queue.Queue(**queue_kwargs)
+            return QueueWrapper(python_queue)
     
     elif backend == "python_queue":
         import queue
         # Filter kwargs that python queue doesn't support
         queue_kwargs = {k: v for k, v in kwargs.items() if k in ['maxsize']}
-        return queue.Queue(**queue_kwargs)
+        python_queue = queue.Queue(**queue_kwargs)
+        return QueueWrapper(python_queue)
     
     else:
         raise ValueError(f"Unknown backend: {backend}")
