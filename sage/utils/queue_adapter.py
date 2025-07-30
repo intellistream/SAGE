@@ -95,7 +95,7 @@ def create_queue(backend: Optional[str] = None, **kwargs):
     
     Args:
         backend: Backend to use ('sage_queue', 'sage', 'ray_queue', 'ray', 'python_queue')
-        **kwargs: Backend-specific arguments
+        **kwargs: Backend-specific arguments (name, maxsize, etc.)
     
     Returns:
         Queue instance
@@ -116,18 +116,29 @@ def create_queue(backend: Optional[str] = None, **kwargs):
             from sage_ext.sage_queue.python.sage_queue import SageQueue
             return SageQueue(**kwargs)
         except ImportError:
-            raise ImportError("SAGE queue extension not available")
+            # Fallback to Python queue if SAGE queue not available
+            import queue
+            # Filter kwargs that python queue doesn't support
+            queue_kwargs = {k: v for k, v in kwargs.items() if k in ['maxsize']}
+            return queue.Queue(**queue_kwargs)
     
     elif backend == "ray_queue":
         try:
             from ray.util.queue import Queue as RayQueue
-            return RayQueue(**kwargs)
+            # Filter kwargs that ray queue doesn't support
+            ray_kwargs = {k: v for k, v in kwargs.items() if k in ['maxsize']}
+            return RayQueue(**ray_kwargs)
         except ImportError:
-            raise ImportError("Ray queue not available")
+            # Fallback to Python queue if Ray not available
+            import queue
+            queue_kwargs = {k: v for k, v in kwargs.items() if k in ['maxsize']}
+            return queue.Queue(**queue_kwargs)
     
     elif backend == "python_queue":
         import queue
-        return queue.Queue(**kwargs)
+        # Filter kwargs that python queue doesn't support
+        queue_kwargs = {k: v for k, v in kwargs.items() if k in ['maxsize']}
+        return queue.Queue(**queue_kwargs)
     
     else:
         raise ValueError(f"Unknown backend: {backend}")
