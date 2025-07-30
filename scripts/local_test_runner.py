@@ -196,7 +196,7 @@ class LocalWorkflowRunner:
         
         # 步骤2: 构建C扩展 (模拟)
         build_result = self._run_command(
-            ["ls", "sage/utils/mmap_queue"], 
+            ["ls", "sage_ext/sage_queue"], 
             "检查C扩展目录", 
             capture_output=True
         )

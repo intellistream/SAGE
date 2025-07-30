@@ -3,12 +3,25 @@ Queue Backend Adapter
 
 Provides a unified interface for different queue backends and information
 about available queue implementations.
-"""
+
+Updated with intelligent auto-fallback system for distributed environments.
 
 import os
 import sys
 import importlib.util
 from typing import Dict, Any, List, Optional
+import logging
+from typing import Optional, Any
+import threading
+
+logger = logging.getLogger(__name__)
+
+# Import the new auto-fallback system
+try:
+    from .queue_auto_fallback import get_optimal_queue_backend, get_queue_backend_info_detailed, QueueBackendType
+    AUTO_FALLBACK_AVAILABLE = True
+except ImportError:
+    AUTO_FALLBACK_AVAILABLE = False
 
 
 def get_queue_backend_info() -> Dict[str, Any]:
@@ -149,12 +162,30 @@ def get_recommended_queue_backend() -> str:
     Returns:
         String name of recommended backend
     """
+    # Use new auto-fallback system if available
+    if AUTO_FALLBACK_AVAILABLE:
+        return get_optimal_queue_backend()
+    
+    # Fallback to original logic
     info = get_queue_backend_info()
     
+    # Check if we're in a distributed environment (Ray)
+    try:
+        import ray
+        if ray.is_initialized():
+            # In Ray environment, prefer Ray queue for distributed support
+            if "ray_queue" in info["backends"]:
+                return "ray_queue"
+            # Fallback to python_queue if Ray queue not available
+            return "python_queue"
+    except ImportError:
+        pass
+    
+    # For local/non-distributed environments
     if info["sage_available"] and info.get("extension_status") == "working":
         return "sage_queue"
     elif "ray_queue" in info["backends"]:
-        return "ray_queue"
+        return "ray_queue" 
     else:
         return "python_queue"
 
@@ -164,13 +195,11 @@ def create_queue(backend: Optional[str] = None, **kwargs):
     Create a queue using the specified or recommended backend.
     
     Args:
-        backend: Backend to use ('sage_queue', 'sage', 'ray_queue', 'ray', 'python_queue')
-        **kwargs: Backend-specific arguments (name, maxsize, etc.)
-    
+        backend: Backend to use ('sage_queue', 'sage', 'ray_queue', 'ray', 'python_queue', 'auto')   
     Returns:
         Queue instance
     """
-    if backend is None:
+    if backend is None or backend == "auto":
         backend = get_recommended_queue_backend()
     
     # Map legacy/short names to full backend names
@@ -181,36 +210,54 @@ def create_queue(backend: Optional[str] = None, **kwargs):
     }
     backend = backend_mapping.get(backend, backend)
     
+    logger.debug(f"Creating queue with backend: {backend}, kwargs: {kwargs}")
+    
     if backend == "sage_queue":
         try:
             from sage_ext.sage_queue.python.sage_queue import SageQueue
+            # Check if SAGE queue supports distributed (it doesn't currently)
+            try:
+                import ray
+                if ray.is_initialized():
+                    logger.warning("SAGE queue doesn't support distributed environments, falling back to Ray queue")
+                    # Fallback to Ray queue in distributed environment
+                    return create_queue(backend="ray_queue", **kwargs)
+            except ImportError:
+                pass
+            
             return SageQueue(**kwargs)
-        except ImportError:
-            # Fallback to Python queue if SAGE queue not available
-            import queue
-            # Filter kwargs that python queue doesn't support
-            queue_kwargs = {k: v for k, v in kwargs.items() if k in ['maxsize']}
-            python_queue = queue.Queue(**queue_kwargs)
-            return QueueWrapper(python_queue)
+        except ImportError as e:
+            logger.warning(f"SAGE queue not available ({e}), falling back to Ray queue")
+            # Fallback to Ray queue if SAGE queue not available
+            return create_queue(backend="ray_queue", **kwargs)
+        except Exception as e:
+            logger.error(f"Error creating SAGE queue ({e}), falling back to Ray queue")
+            return create_queue(backend="ray_queue", **kwargs)
     
     elif backend == "ray_queue":
         try:
             # Ensure Ray is initialized before creating Ray queue
             import ray
             if not ray.is_initialized():
-                ray.init(ignore_reinit_error=True)
+                try:
+                    ray.init(ignore_reinit_error=True)
+                    logger.info("Initialized Ray for queue creation")
+                except Exception as e:
+                    logger.warning(f"Failed to initialize Ray ({e}), falling back to Python queue")
+                    return create_queue(backend="python_queue", **kwargs)
             
             from ray.util.queue import Queue as RayQueue
             # Filter kwargs that ray queue doesn't support
             ray_kwargs = {k: v for k, v in kwargs.items() if k in ['maxsize']}
             ray_queue = RayQueue(**ray_kwargs)
             return QueueWrapper(ray_queue)
-        except ImportError:
+        except ImportError as e:
+            logger.warning(f"Ray not available ({e}), falling back to Python queue")
             # Fallback to Python queue if Ray not available
-            import queue
-            queue_kwargs = {k: v for k, v in kwargs.items() if k in ['maxsize']}
-            python_queue = queue.Queue(**queue_kwargs)
-            return QueueWrapper(python_queue)
+            return create_queue(backend="python_queue", **kwargs)
+        except Exception as e:
+            logger.error(f"Error creating Ray queue ({e}), falling back to Python queue")
+            return create_queue(backend="python_queue", **kwargs)
     
     elif backend == "python_queue":
         import queue
