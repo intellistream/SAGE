@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, TYPE_CHECKING
 from sage.core.function.source_function import StopSignal
 from sage.runtime.router.packet import Packet
-from sage_ext.sage_queue.python.sage_queue import SageQueue
+from sage.utils.queue_adapter import create_queue
 
 if TYPE_CHECKING:
     from sage.runtime.router.connection import Connection
@@ -40,8 +40,10 @@ class BaseRouter(ABC):
         parallel_index = connection.parallel_index
         if connection.target_type == "local":
             self.logger.debug(f"Adding local connection to {connection.target_name}")
-            connection.target_buffer = SageQueue(connection.target_name)
-            self.logger.debug(f"connection.target_buffer.get_stats(): {connection.target_buffer.get_stats()}")
+            connection.target_buffer = create_queue(name=connection.target_name)
+            # Check if target_buffer has get_stats method before calling it
+            if hasattr(connection.target_buffer, 'get_stats'):
+                self.logger.debug(f"connection.target_buffer.get_stats(): {connection.target_buffer.get_stats()}")
         else:  # 直接对ray节点通信
             connection.target_buffer = connection.target_handle.get_input_buffer.remote()
         # Debug log
