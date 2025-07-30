@@ -1,14 +1,29 @@
 #!/bin/bash
 
+# SAGE Conda Environment Name Configuration
+# Default environment name
+SAGE_ENV_NAME="${SAGE_ENV_NAME:-sage}"
+
+# Check if user wants to specify a custom environment name
+if [ -z "$CI" ] && [ "$#" -eq 0 ]; then
+    echo "🔧 Conda Environment Configuration"
+    echo "Current default environment name: $SAGE_ENV_NAME"
+    echo ""
+    read -p "Enter custom environment name (press Enter for '$SAGE_ENV_NAME'): " custom_env_name
+    if [ -n "$custom_env_name" ]; then
+        SAGE_ENV_NAME="$custom_env_name"
+        echo "Environment name set to: $SAGE_ENV_NAME"
+    else
+        echo "Using default environment name: $SAGE_ENV_NAME"
+    fi
+    echo ""
+fi
+
 MARKER_DIR="$HOME/.sage_setup"
 mkdir -p "$MARKER_DIR"
 
 echo "[$(date '+%H:%M:%S')] setup.sh sees CI='$CI'"
-
-MARKER_DIR="$HOME/.sage_setup"
-mkdir -p "$MARKER_DIR"
-
-echo "[$(date '+%H:%M:%S')] setup.sh sees CI='$CI'"
+echo "[$(date '+%H:%M:%S')] Using conda environment: $SAGE_ENV_NAME"
 
 # Interactive Bash Script for SAGE Project Setup
 # Dynamically detects the Docker container name and reuses it across functions.
@@ -210,16 +225,16 @@ create_sage_env_without_docker() {
     fi
 
     # 幂等：如果 env 已存在，则跳过
-    if conda env list | grep -q '^sage[[:space:]]'; then
-        echo "  ➜ Conda env 'sage' already exists, skipping creation."
+    if conda env list | grep -q "^$SAGE_ENV_NAME[[:space:]]"; then
+        echo "  ➜ Conda env '$SAGE_ENV_NAME' already exists, skipping creation."
     else
-        echo "🚀 正在创建名为 'sage' 的 Conda 环境（Python 3.11）..."
-        conda create -y -n sage python=3.11
+        echo "🚀 正在创建名为 '$SAGE_ENV_NAME' 的 Conda 环境（Python 3.11）..."
+        conda create -y -n "$SAGE_ENV_NAME" python=3.11
     fi
 
     # 激活环境
     echo "✅ 环境创建成功。要激活它，请运行："
-    echo "   conda activate sage"
+    echo "   conda activate $SAGE_ENV_NAME"
 }
 
 function install_necessary_dependencies() {
@@ -254,7 +269,7 @@ function minimal_setup() {
     echo "Setting up Conda environment without Docker..."
     create_sage_env_without_docker 
     echo "activate the Conda environment with:"
-    echo "conda activate sage"
+    echo "conda activate $SAGE_ENV_NAME"
     install_sage
     echo "Hugging Face authentication is required to run the SAGE system."
     configure_huggingface_auth
@@ -268,7 +283,7 @@ function minimal_setup_without_HF() {
     echo "Setting up Conda environment without Docker..."
     create_sage_env_without_docker 
     echo "activate the Conda environment with:"
-    echo "conda activate sage"
+    echo "conda activate $SAGE_ENV_NAME"
     install_sage
     echo "Hugging Face authentication is required to run the SAGE system."
     pause
@@ -278,7 +293,7 @@ function setup_with_ray() {
     echo "Setting up SAGE with Ray..."
     minimal_setup
     echo "Installing Ray..."
-    conda activate sage
+    conda activate "$SAGE_ENV_NAME"
     pip install remote[default]
     echo "Ray setup completed successfully."
     pause
@@ -316,7 +331,7 @@ function run_example_scripts() {
 function install_sage() {
     echo "Building C extensions and installing SAGE package..."
     source "$(conda info --base)/etc/profile.d/conda.sh"
-    conda activate sage
+    conda activate "$SAGE_ENV_NAME"
 
     # 首先构建C扩展
     echo "Building SAGE Queue C++ library..."

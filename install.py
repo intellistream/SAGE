@@ -46,15 +46,18 @@ class Colors:
 class SageInstaller:
     """Main SAGE installation and management class."""
     
-    def __init__(self):
+    def __init__(self, conda_env_name: str = "sage"):
+        # Load existing configuration first
         self.sage_dir = Path.home() / ".sage_setup"
         self.sage_dir.mkdir(exist_ok=True)
         self.config_file = self.sage_dir / "config.json"
+        self.config = self.load_config()
+        
+        # Use environment name from config if available, otherwise use provided name
+        self.conda_env_name = self.config.get('conda_env_name', conda_env_name)
+        
         self.project_root = Path.cwd()
         self.is_ci = os.getenv('CI', '').lower() in ('true', '1', 'yes')
-        
-        # Load existing configuration
-        self.config = self.load_config()
         
         # Installation paths
         self.start_script = self.project_root / "installation" / "container_setup" / "start.sh"
@@ -193,14 +196,14 @@ class SageInstaller:
         """Check if sage conda environment exists."""
         try:
             result = self.run_command(['conda', 'env', 'list'], capture=True)
-            # Look for sage environment in the conda base directory (not user directories)
+            # Look for the specified environment in the conda base directory
             for line in result.stdout.split('\n'):
                 if line.strip():
                     parts = line.split()
-                    if len(parts) >= 2 and parts[0] == 'sage':
+                    if len(parts) >= 2 and parts[0] == self.conda_env_name:
                         # Check if it's in the main conda directory
                         env_path = parts[-1]
-                        if '/opt/conda/envs/sage' in env_path or env_path.endswith('/sage'):
+                        if f'/opt/conda/envs/{self.conda_env_name}' in env_path or env_path.endswith(f'/{self.conda_env_name}'):
                             return True
             return False
         except (subprocess.CalledProcessError, FileNotFoundError):
@@ -268,8 +271,8 @@ class SageInstaller:
             self.print_info("Please ensure you have the following installed: swig, cmake, build tools")
     
     def create_conda_environment(self):
-        """Create the sage conda environment."""
-        self.print_step("Creating conda environment 'sage'...")
+        """Create the conda environment."""
+        self.print_step(f"Creating conda environment '{self.conda_env_name}'...")
         
         if not self.check_conda_installed():
             self.print_error("Conda is not installed. Please install Miniconda or Anaconda first.")
@@ -277,18 +280,18 @@ class SageInstaller:
             raise RuntimeError("Conda not found")
         
         if self.check_sage_env_exists():
-            self.print_info("Conda environment 'sage' already exists, skipping creation.")
+            self.print_info(f"Conda environment '{self.conda_env_name}' already exists, skipping creation.")
             return
         
         try:
-            self.run_command(['conda', 'create', '-y', '-n', 'sage', 'python=3.11'])
-            self.print_success("Conda environment 'sage' created successfully.")
+            self.run_command(['conda', 'create', '-y', '-n', self.conda_env_name, 'python=3.11'])
+            self.print_success(f"Conda environment '{self.conda_env_name}' created successfully.")
         except subprocess.CalledProcessError as e:
             self.print_error(f"Failed to create conda environment: {e}")
             raise
     
     def install_python_packages(self):
-        """Install Python packages in the sage environment."""
+        """Install Python packages in the conda environment."""
         self.print_step("Installing Python packages...")
         
         try:
@@ -300,7 +303,7 @@ class SageInstaller:
             
             # Install the main SAGE package (minimal mode - no C++ extensions) with progress
             self.run_command_with_progress(
-                ['conda', 'run', '-n', 'sage', 'pip', 'install', '.'], 
+                ['conda', 'run', '-n', self.conda_env_name, 'pip', 'install', '.'], 
                 "Installing SAGE and dependencies",
                 env=env
             )
@@ -405,11 +408,11 @@ class SageInstaller:
             env = os.environ.copy()
             env['HF_ENDPOINT'] = hf_endpoint
             
-            self.run_command(['conda', 'run', '-n', 'sage', 'huggingface-cli', 'login', 
+            self.run_command(['conda', 'run', '-n', self.conda_env_name, 'huggingface-cli', 'login', 
                             '--token', hf_token], capture=True)
             
             # Verify login
-            self.run_command(['conda', 'run', '-n', 'sage', 'huggingface-cli', 'whoami'], 
+            self.run_command(['conda', 'run', '-n', self.conda_env_name, 'huggingface-cli', 'whoami'], 
                            capture=True)
             
             self.print_success("Hugging Face authentication successful!")
@@ -422,7 +425,7 @@ class SageInstaller:
             self.print_error("Hugging Face authentication failed.")
             self.print_info("You can configure this later manually:")
             self.print_info(f"  export HF_ENDPOINT={hf_endpoint}")
-            self.print_info("  conda activate sage")
+            self.print_info(f"  conda activate {self.conda_env_name}")
             self.print_info("  huggingface-cli login --token <your_token>")
     
     def minimal_setup(self):
@@ -446,6 +449,7 @@ class SageInstaller:
             
             # Save configuration
             self.config['setup_type'] = 'minimal'
+            self.config['conda_env_name'] = self.conda_env_name
             self.config['installation_date'] = time.time()
             self.save_config()
             
@@ -483,14 +487,14 @@ class SageInstaller:
                     print(f"{Colors.GREEN}   source ./activate_sage.sh{Colors.RESET}")
                     print(f"{Colors.BLUE}   (Note: Use 'source' not './' - this activates conda in your current shell){Colors.RESET}")
                     print()
-                    print(f"{Colors.BLUE}ℹ️  This will give you an activated SAGE environment with (sage) in your prompt{Colors.RESET}")
-                    print(f"{Colors.YELLOW}� Alternative: conda activate sage{Colors.RESET}")
+                    print(f"{Colors.BLUE}ℹ️  This will give you an activated SAGE environment with ({self.conda_env_name}) in your prompt{Colors.RESET}")
+                    print(f"{Colors.YELLOW}🔄 Alternative: conda activate {self.conda_env_name}{Colors.RESET}")
                     print()
                     
                     # Ask user if they want to auto-activate now
                     if self.confirm_action("Activate SAGE environment now?"):
-                        print(f"{Colors.GREEN}� Activating SAGE environment...{Colors.RESET}")
-                        print(f"{Colors.YELLOW}📝 You'll get a new shell with (sage) environment active{Colors.RESET}")
+                        print(f"{Colors.GREEN}🚀 Activating SAGE environment...{Colors.RESET}")
+                        print(f"{Colors.YELLOW}📝 You'll get a new shell with ({self.conda_env_name}) environment active{Colors.RESET}")
                         print(f"{Colors.YELLOW}📝 Type 'exit' to return to your original shell{Colors.RESET}")
                         print()
                         
@@ -505,7 +509,7 @@ class SageInstaller:
                     self.print_warning("SAGE import test failed. Please check installation.")
                     self.print_info("You can manually activate with: source ./activate_sage.sh")
             else:
-                self.print_info("CI mode: Environment ready for activation with 'conda activate sage'")
+                self.print_info(f"CI mode: Environment ready for activation with 'conda activate {self.conda_env_name}'")
             
         except Exception as e:
             self.print_error(f"Minimal setup failed: {e}")
@@ -557,6 +561,7 @@ class SageInstaller:
             
             # 8. Save configuration (same as minimal setup)
             self.config['setup_type'] = 'full'
+            self.config['conda_env_name'] = self.conda_env_name
             self.config['docker_container'] = container_name
             self.config['installation_date'] = time.time()
             self.save_config()
@@ -570,9 +575,9 @@ class SageInstaller:
             print(f"{Colors.GREEN}   OR: docker exec -it {container_name} bash{Colors.RESET}")
             print()
             print(f"{Colors.BOLD}🔧 ONCE IN DOCKER, ACTIVATE SAGE ENVIRONMENT:{Colors.RESET}")
-            print(f"{Colors.GREEN}   conda activate sage{Colors.RESET}")
+            print(f"{Colors.GREEN}   conda activate {self.conda_env_name}{Colors.RESET}")
             print()
-            print(f"{Colors.BLUE}📝 You'll then see (sage) in your prompt{Colors.RESET}")
+            print(f"{Colors.BLUE}📝 You'll then see ({self.conda_env_name}) in your prompt{Colors.RESET}")
             print(f"{Colors.GREEN}🚀 C++ extensions and all features available{Colors.RESET}")
             print()
             print(f"{Colors.BOLD}🚀 Quick test after activation:{Colors.RESET}")
@@ -590,9 +595,9 @@ class SageInstaller:
                     try:
                         test_result = self.run_command([
                             'docker', 'exec', '-i', container_name, 'bash', '-c',
-                            '''
+                            f'''
                             source /opt/conda/bin/activate &&
-                            conda activate sage &&
+                            conda activate {self.conda_env_name} &&
                             python -c "import sage; print('SAGE with C++ extensions ready!')"
                             '''
                         ], capture=True, check=False)
@@ -705,7 +710,7 @@ class SageInstaller:
                 'docker', 'exec', '-i', container_name, 'bash', '-c',
                 f'''
                 source /opt/conda/bin/activate &&
-                conda activate sage &&
+                conda activate {self.conda_env_name} &&
                 HF_ENDPOINT={hf_endpoint} huggingface-cli login --token "{hf_token}"
                 '''
             ])
@@ -773,19 +778,19 @@ class SageInstaller:
         self.print_step("Setting up conda environment in Docker container...")
         
         try:
-            # Check if sage environment already exists
+            # Check if conda environment already exists
             result = self.run_command([
                 'docker', 'exec', '-i', container_name, 'bash', '-c',
-                'source /opt/conda/bin/activate && conda env list | grep -E "^sage\\s"'
+                f'source /opt/conda/bin/activate && conda env list | grep -E "^{self.conda_env_name}\\s"'
             ], capture=True, check=False)
             
             if result.returncode == 0 and result.stdout.strip():
-                self.print_success("Conda environment 'sage' already exists in Docker container")
+                self.print_success(f"Conda environment '{self.conda_env_name}' already exists in Docker container")
                 
                 # Check if it has the right Python version
                 version_check = self.run_command([
                     'docker', 'exec', '-i', container_name, 'bash', '-c',
-                    'source /opt/conda/bin/activate && conda activate sage && python --version'
+                    f'source /opt/conda/bin/activate && conda activate {self.conda_env_name} && python --version'
                 ], capture=True, check=False)
                 
                 if version_check.returncode == 0:
@@ -798,17 +803,17 @@ class SageInstaller:
                         # Remove old environment
                         self.run_command([
                             'docker', 'exec', '-i', container_name, 'bash', '-c',
-                            'source /opt/conda/bin/activate && conda env remove -n sage -y'
+                            f'source /opt/conda/bin/activate && conda env remove -n {self.conda_env_name} -y'
                         ], check=False)
             
             # Create new conda environment with Python 3.11
-            self.print_step("Creating fresh conda environment 'sage' with Python 3.11...")
+            self.print_step(f"Creating fresh conda environment '{self.conda_env_name}' with Python 3.11...")
             self.run_command([
                 'docker', 'exec', '-i', container_name, 'bash', '-c',
-                '''
+                f'''
                 source /opt/conda/bin/activate &&
-                conda create -n sage python=3.11 -y &&
-                conda activate sage &&
+                conda create -n {self.conda_env_name} python=3.11 -y &&
+                conda activate {self.conda_env_name} &&
                 pip install --upgrade pip
                 '''
             ])
@@ -817,14 +822,14 @@ class SageInstaller:
             self.print_step("Installing C++ build dependencies in conda environment...")
             self.run_command([
                 'docker', 'exec', '-i', container_name, 'bash', '-c',
-                '''
+                f'''
                 source /opt/conda/bin/activate &&
-                conda activate sage &&
+                conda activate {self.conda_env_name} &&
                 conda install -c conda-forge pkg-config faiss-cpu cmake pybind11 -y &&
                 pip install numpy
                 '''
             ])
-            self.print_success("Conda environment 'sage' created with C++ dependencies in Docker container")
+            self.print_success(f"Conda environment '{self.conda_env_name}' created with C++ dependencies in Docker container")
             
         except subprocess.CalledProcessError as e:
             self.print_error(f"Failed to setup conda environment in container: {e}")
@@ -850,7 +855,7 @@ class SageInstaller:
                 'docker', 'exec', '-i', container_name, 'bash', '-c',
                 f'''
                 source /opt/conda/bin/activate &&
-                conda activate sage &&
+                conda activate {self.conda_env_name} &&
                 cd /workspace &&
                 {env_vars} pip install .
                 '''
@@ -870,9 +875,9 @@ class SageInstaller:
                     # Reinstall with Ray backend as fallback
                     self.run_command([
                         'docker', 'exec', '-i', container_name, 'bash', '-c',
-                        '''
+                        f'''
                         source /opt/conda/bin/activate &&
-                        conda activate sage &&
+                        conda activate {self.conda_env_name} &&
                         cd /workspace &&
                         SAGE_MINIMAL_INSTALL=true SAGE_INSTALLER_ACTIVE=true SAGE_QUEUE_BACKEND=ray pip install . --force-reinstall
                         '''
@@ -914,9 +919,9 @@ class SageInstaller:
             # Build all extensions
             result = self.run_command([
                 'docker', 'exec', '-i', container_name, 'bash', '-c',
-                '''
+                f'''
                 source /opt/conda/bin/activate &&
-                conda activate sage &&
+                conda activate {self.conda_env_name} &&
                 cd /workspace &&
                 
                 build_count=0
@@ -958,7 +963,7 @@ class SageInstaller:
                         'docker', 'exec', '-i', container_name, 'bash', '-c',
                         '''
                         source /opt/conda/bin/activate &&
-                        conda activate sage &&
+                        conda activate {self.conda_env_name} &&
                         cd /workspace &&
                         python -c "
 try:
@@ -1020,12 +1025,12 @@ eval "$(conda shell.bash hook)" 2>/dev/null || {{
     exit 0
 }}
 
-# Activate the sage environment
-conda activate sage
+# Activate the conda environment
+conda activate {self.conda_env_name}
 
 if [ $? -eq 0 ]; then
     echo "✅ SAGE environment activated successfully!"
-    echo "📝 You are now in the (sage) environment"
+    echo "📝 You are now in the ({self.conda_env_name}) environment"
     echo "🚀 Test with: python -c 'import sage; print(\"SAGE ready!\")'"
 else
     echo "❌ Failed to activate SAGE environment"
@@ -1047,19 +1052,19 @@ if command -v docker &> /dev/null; then
         echo "✅ Connecting to container: $CONTAINER_NAME"
         echo "🔧 Activating SAGE environment in Docker..."
         echo ""
-        echo "📋 You will be dropped into Docker with (sage) conda environment active"
+        echo "📋 You will be dropped into Docker with ({self.conda_env_name}) conda environment active"
         echo "💡 Type 'exit' to return to your host system"
         echo ""
         
         # Execute docker with proper conda activation and persistent environment
         docker exec -it "$CONTAINER_NAME" bash -c '
             source /opt/conda/etc/profile.d/conda.sh
-            conda activate sage
+            conda activate {self.conda_env_name}
             echo "✅ SAGE environment activated successfully!"
-            echo "📝 You are now in the (sage) environment inside Docker"
+            echo "📝 You are now in the ({self.conda_env_name}) environment inside Docker"
             echo "🚀 Test with: python -c \\"import sage\\""
             echo ""
-            export PS1="(sage) \\u@\\h:\\w# "
+            export PS1="({self.conda_env_name}) \\u@\\h:\\w# "
             exec bash --norc --noprofile
         '
     else
@@ -1101,12 +1106,12 @@ fi
         
         try:
             # Remove conda environment
-            self.print_step("Removing conda environment 'sage'...")
+            self.print_step(f"Removing conda environment '{self.conda_env_name}'...")
             try:
-                self.run_command(['conda', 'env', 'remove', '-n', 'sage', '-y'], capture=True)
+                self.run_command(['conda', 'env', 'remove', '-n', self.conda_env_name, '-y'], capture=True)
                 self.print_success("Conda environment removed")
             except subprocess.CalledProcessError:
-                self.print_info("Conda environment 'sage' not found or already removed")
+                self.print_info(f"Conda environment '{self.conda_env_name}' not found or already removed")
             
             # Remove Docker containers and images
             self.print_step("Removing SAGE Docker containers and images...")
@@ -1153,11 +1158,14 @@ fi
                     shutil.rmtree(build_path)
                     self.print_success(f"Removed {build_dir} directory")
             
-            # Remove compiled C extensions
-            # sage_queue 现在位于 sage_ext/sage_queue，通过CMake独立构建
-            # 不再需要检查旧的 sage/utils/mmap_queue 路径
-            if cpp_so_file.exists():
-                cpp_so_file.unlink()
+            # Remove compiled C extensions from sage_ext directory
+            sage_ext_dir = self.project_root / "sage_ext"
+            if sage_ext_dir.exists():
+                for so_file in sage_ext_dir.rglob("*.so"):
+                    so_file.unlink()
+                for build_dir in sage_ext_dir.rglob("build"):
+                    if build_dir.is_dir():
+                        shutil.rmtree(build_dir)
                 self.print_success("Removed compiled C extensions")
             
             # Remove Python cache
@@ -1324,19 +1332,19 @@ fi
         print(f"{Colors.BOLD}🛠️ TROUBLESHOOTING:{Colors.RESET}")
         print()
         print("• Environment Issues:")
-        print("  conda activate sage              # Activate SAGE environment")
+        print(f"  conda activate {self.conda_env_name}              # Activate SAGE environment")
         print("  conda env list                   # List all environments")
         print("  conda deactivate                 # Exit current environment")
         print()
         print("• After Minimal Setup:")
-        print("  conda activate sage              # Must run after script exits")
+        print(f"  conda activate {self.conda_env_name}              # Must run after script exits")
         print("  python -c \"import sage\"          # Test installation")
         print("  ./activate_sage.sh               # Use convenience script")
         print()
         print("• After Full Setup:")
         print("  ./activate_sage.sh               # Use convenience script")
         print("  ssh root@localhost -p 2222      # Manual Docker connection")
-        print("  conda activate sage              # Activate in Docker")
+        print(f"  conda activate {self.conda_env_name}              # Activate in Docker")
         print()
         print("• Hugging Face Authentication:")
         print("  export HF_ENDPOINT=https://hf-mirror.com")
@@ -1370,9 +1378,9 @@ fi
         
         # Check conda environment
         if self.check_sage_env_exists():
-            print(f"{Colors.GREEN}✅ Conda environment 'sage' exists{Colors.RESET}")
+            print(f"{Colors.GREEN}✅ Conda environment '{self.conda_env_name}' exists{Colors.RESET}")
         else:
-            print(f"{Colors.RED}❌ Conda environment 'sage' not found{Colors.RESET}")
+            print(f"{Colors.RED}❌ Conda environment '{self.conda_env_name}' not found{Colors.RESET}")
         
         # Check Docker (for full setup)
         if setup_type == "full":
@@ -1393,7 +1401,7 @@ fi
         print()
         if setup_type == "minimal":
             print(f"{Colors.BOLD}💡 To use SAGE:{Colors.RESET}")
-            print(f"{Colors.GREEN}   conda activate sage{Colors.RESET}")
+            print(f"{Colors.GREEN}   conda activate {self.conda_env_name}{Colors.RESET}")
             print(f"{Colors.GREEN}   ./activate_sage.sh{Colors.RESET}")
         elif setup_type == "full":
             print(f"{Colors.BOLD}💡 To use SAGE:{Colors.RESET}")
@@ -1404,9 +1412,29 @@ fi
     
     def main_menu(self):
         """Show the main interactive menu."""
+        # Ask for environment name if not already set and not in CI mode
+        if not self.is_ci and self.conda_env_name == "sage":
+            print(f"{Colors.BOLD}🔧 Conda Environment Configuration{Colors.RESET}")
+            print()
+            print("You can choose a custom name for your conda environment.")
+            print(f"Current default: {Colors.GREEN}sage{Colors.RESET}")
+            print()
+            
+            custom_env = self.get_user_input("Enter custom environment name (press Enter for 'sage'): ", "sage").strip()
+            if custom_env and custom_env != "sage":
+                self.conda_env_name = custom_env
+                self.print_info(f"Environment name set to: {Colors.GREEN}{self.conda_env_name}{Colors.RESET}")
+            else:
+                self.print_info(f"Using default environment name: {Colors.GREEN}sage{Colors.RESET}")
+            print()
+        
         while True:
             try:
                 self.print_header("SAGE Project Installation")
+                
+                # Show current environment name
+                print(f"{Colors.BOLD}📦 Conda Environment: {Colors.GREEN}{self.conda_env_name}{Colors.RESET}")
+                print()
                 
                 # Show status
                 setup_type = self.config.get('setup_type')
@@ -1416,10 +1444,10 @@ fi
                         print(f"{Colors.BLUE}💡 To use: ./activate_sage.sh{Colors.RESET}")
                     elif setup_type == "minimal":
                         print(f"{Colors.GREEN}🔧 Current setup: Minimal (SAGE environment available){Colors.RESET}")
-                        print(f"{Colors.BLUE}💡 To use: conda activate sage{Colors.RESET}")
+                        print(f"{Colors.BLUE}💡 To use: conda activate {self.conda_env_name}{Colors.RESET}")
                 elif self.check_sage_env_exists():
                     print(f"{Colors.YELLOW}📦 Sage environment detected (type unknown){Colors.RESET}")
-                    print(f"{Colors.BLUE}💡 To use: conda activate sage{Colors.RESET}")
+                    print(f"{Colors.BLUE}💡 To use: conda activate {self.conda_env_name}{Colors.RESET}")
                 else:
                     print(f"{Colors.RED}❌ No SAGE installation found{Colors.RESET}")
                 
@@ -1479,10 +1507,11 @@ def main():
     parser.add_argument('--uninstall', action='store_true', help='Uninstall SAGE completely')
     parser.add_argument('--status', action='store_true', help='Show installation status')
     parser.add_argument('--help-sage', action='store_true', help='Show SAGE help information')
+    parser.add_argument('--env-name', type=str, default='sage', help='Name for the conda environment (default: sage)')
     
     args = parser.parse_args()
     
-    installer = SageInstaller()
+    installer = SageInstaller(conda_env_name=args.env_name)
     
     try:
         if args.minimal:
