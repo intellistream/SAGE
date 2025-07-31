@@ -94,3 +94,4 @@ activate_sage.sh
 **/sage_queue_test_report_*.json
 **/sage_queue_test_report_*.md
 
+sage_ext/sage_db/build/

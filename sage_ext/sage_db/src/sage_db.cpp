@@ -1,5 +1,6 @@
 #include "sage_db/sage_db.h"
 #include <algorithm>
+#include <fstream>
 
 namespace sage_db {
 
