@@ -213,7 +213,7 @@ PYBIND11_MODULE(_sage_db, m) {
         }
         
         return db.add_batch(vec_list, meta_list);
-    }, py::arg("vectors"), py::arg("metadata") = py::list(),
+    }, py::arg("db"), py::arg("vectors"), py::arg("metadata") = py::list(),
        "Add vectors from NumPy array with optional metadata");
     
     m.def("search_numpy", [](const SageDB& db, py::array_t<float> query, const SearchParams& params) {
@@ -230,6 +230,6 @@ PYBIND11_MODULE(_sage_db, m) {
         }
         
         return db.search(query_vec, params);
-    }, py::arg("query"), py::arg("params") = SearchParams(),
+    }, py::arg("db"), py::arg("query"), py::arg("params") = SearchParams(),
        "Search with NumPy query vector");
 }

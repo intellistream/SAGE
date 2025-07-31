@@ -3,6 +3,8 @@
 #include <fstream>
 #include <iostream>
 #include <algorithm>
+#include <unordered_map>
+#include <cmath>
 
 #ifdef FAISS_AVAILABLE
 #include <faiss/IndexFlat.h>
@@ -32,11 +34,18 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
         
 #ifdef FAISS_AVAILABLE
-        if (index_) {
-            faiss::idx_t id = static_cast<faiss::idx_t>(next_id_);
+        if (index_ && index_->is_trained) {
+            VectorId custom_id = next_id_++;
             index_->add(1, vector.data());
-            id_to_vector_[next_id_] = vector;
-            return next_id_++;
+            id_to_vector_[custom_id] = vector;
+            faiss_to_custom_id_.push_back(custom_id);  // Map FAISS index to custom ID
+            return custom_id;
+        } else if (index_ && !index_->is_trained) {
+            // Index exists but not trained - store in fallback until training
+            VectorId custom_id = next_id_++;
+            id_to_vector_[custom_id] = vector;
+            vectors_.emplace_back(custom_id, vector);
+            return custom_id;
         }
 #endif
         // Fallback implementation
@@ -51,22 +60,31 @@ public:
         ids.reserve(vectors.size());
         
 #ifdef FAISS_AVAILABLE
-        if (index_ && !vectors.empty()) {
+        if (index_ && !vectors.empty() && index_->is_trained) {
             // Prepare data for batch insertion
             std::vector<float> data;
             data.reserve(vectors.size() * config_.dimension);
             
-            for (const auto& vec : vectors) {
+        for (const auto& vector : vectors) {
+            VectorId id = next_id_++;
+            ids.push_back(id);
+            id_to_vector_[id] = vector;
+            faiss_to_custom_id_.push_back(id);  // Map FAISS index to custom ID
+            
+            for (float val : vector) {
+                data.push_back(val);
+            }
+        }
+            index_->add(vectors.size(), data.data());
+            return ids;
+        } else if (index_ && !vectors.empty() && !index_->is_trained) {
+            // Index exists but not trained - store in fallback until training
+            for (const auto& vector : vectors) {
                 VectorId id = next_id_++;
                 ids.push_back(id);
-                id_to_vector_[id] = vec;
-                
-                for (float val : vec) {
-                    data.push_back(val);
-                }
+                id_to_vector_[id] = vector;
+                vectors_.emplace_back(id, vector);
             }
-            
-            index_->add(vectors.size(), data.data());
             return ids;
         }
 #endif
@@ -211,9 +229,13 @@ private:
     mutable std::mutex mutex_;
     std::atomic<VectorId> next_id_{1};
     
+    // Always have vectors_ for fallback support
+    std::vector<std::pair<VectorId, Vector>> vectors_;
+    
 #ifdef FAISS_AVAILABLE
     std::unique_ptr<faiss::Index> index_;
     std::unordered_map<VectorId, Vector> id_to_vector_;
+    std::vector<VectorId> faiss_to_custom_id_;  // Map FAISS index to custom ID
     bool is_trained_ = false;
     
     void create_index() {
@@ -250,7 +272,7 @@ private:
     std::vector<QueryResult> search_faiss(const Vector& query, const SearchParams& params) const {
         if (!index_) return {};
         
-        std::vector<faiss::idx_t> indices(params.k);
+        std::vector<long> indices(params.k);
         std::vector<float> distances(params.k);
         
         // Set search parameters for IVF indices
@@ -265,15 +287,18 @@ private:
         results.reserve(params.k);
         
         for (size_t i = 0; i < params.k && indices[i] >= 0; ++i) {
-            VectorId id = static_cast<VectorId>(indices[i]);
-            Score score = distances[i];
-            
-            // Convert distance to similarity if needed
-            if (config_.metric == DistanceMetric::INNER_PRODUCT) {
-                score = -score; // Higher is better for inner product
+            size_t faiss_index = static_cast<size_t>(indices[i]);
+            if (faiss_index < faiss_to_custom_id_.size()) {
+                VectorId id = faiss_to_custom_id_[faiss_index];
+                Score score = distances[i];
+                
+                // Convert distance to similarity if needed
+                if (config_.metric == DistanceMetric::INNER_PRODUCT) {
+                    score = -score; // Higher is better for inner product
+                }
+                
+                results.emplace_back(id, score);
             }
-            
-            results.emplace_back(id, score);
         }
         
         return results;
@@ -293,6 +318,9 @@ private:
         
         index_->train(id_to_vector_.size(), training_data.data());
         is_trained_ = true;
+        
+        // After training, transfer vectors from fallback storage to FAISS index
+        transfer_vectors_to_faiss();
     }
     
     void train_index_with_data(const std::vector<Vector>& training_data) {
@@ -309,10 +337,35 @@ private:
         
         index_->train(training_data.size(), data.data());
         is_trained_ = true;
+        
+        // After training, transfer vectors from fallback storage to FAISS index
+        transfer_vectors_to_faiss();
     }
-#else
-    // Fallback implementation without FAISS
-    std::vector<std::pair<VectorId, Vector>> vectors_;
+    
+    void transfer_vectors_to_faiss() {
+        if (!index_ || !is_trained_ || vectors_.empty()) return;
+        
+        // Prepare batch data for FAISS
+        std::vector<float> data;
+        data.reserve(vectors_.size() * config_.dimension);
+        
+        for (const auto& pair : vectors_) {
+            const Vector& vec = pair.second;
+            for (float val : vec) {
+                data.push_back(val);
+            }
+            // Update the mapping
+            faiss_to_custom_id_.push_back(pair.first);
+        }
+        
+        // Add all vectors to FAISS at once
+        if (!data.empty()) {
+            index_->add(vectors_.size(), data.data());
+        }
+        
+        // Clear the fallback storage since vectors are now in FAISS
+        vectors_.clear();
+    }
 #endif
     
     // Fallback search implementation (brute force)

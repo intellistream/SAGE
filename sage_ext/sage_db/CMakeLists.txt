@@ -12,6 +12,10 @@ option(USE_OPENMP "Enable OpenMP support" ON)
 # Find packages
 find_package(PkgConfig REQUIRED)
 
+# Find BLAS and LAPACK for FAISS
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
+
 # Try to find FAISS
 find_path(FAISS_INCLUDE_DIR NAMES faiss/IndexFlat.h
     HINTS
@@ -74,7 +78,7 @@ target_include_directories(sage_db PUBLIC
 
 if(FAISS_FOUND)
     target_include_directories(sage_db PRIVATE ${FAISS_INCLUDE_DIR})
-    target_link_libraries(sage_db PRIVATE ${FAISS_LIBRARY})
+    target_link_libraries(sage_db PRIVATE ${FAISS_LIBRARY} ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
     target_compile_definitions(sage_db PRIVATE FAISS_AVAILABLE)
 endif()
 
@@ -94,18 +98,15 @@ target_compile_options(sage_db PRIVATE
 if(BUILD_PYTHON_BINDINGS)
     find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
     
-    # Try to find pybind11
-    find_package(pybind11 QUIET)
-    if(NOT pybind11_FOUND)
-        message(STATUS "pybind11 not found, downloading...")
-        include(FetchContent)
-        FetchContent_Declare(
-            pybind11
-            GIT_REPOSITORY https://github.com/pybind/pybind11
-            GIT_TAG v2.11.1
-        )
-        FetchContent_MakeAvailable(pybind11)
-    endif()
+    # Always download a newer pybind11 version that supports Python 3.11
+    message(STATUS "Downloading pybind11 for Python 3.11 compatibility...")
+    include(FetchContent)
+    FetchContent_Declare(
+        pybind11
+        GIT_REPOSITORY https://github.com/pybind/pybind11
+        GIT_TAG v2.13.0
+    )
+    FetchContent_MakeAvailable(pybind11)
     
     pybind11_add_module(_sage_db python/bindings.cpp)
     target_link_libraries(_sage_db PRIVATE sage_db)
