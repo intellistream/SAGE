@@ -11,6 +11,8 @@ from sage.runtime.runtime_context import RuntimeContext
 if TYPE_CHECKING:
     from sage.jobmanager.job_manager import JobManager
     from ray.actor import ActorHandle
+    from sage.jobmanager.factory.service_factory import ServiceFactory
+    from sage.jobmanager.factory.service_task_factory import ServiceTaskFactory
 
 
 class GraphNode:
@@ -28,6 +30,23 @@ class GraphNode:
         self.ctx: RuntimeContext = None
 
 
+class ServiceNode:
+    def __init__(self, name: str, service_factory: 'ServiceFactory', service_task_factory: 'ServiceTaskFactory'):
+        """
+        服务节点，简化版本只记录基本信息
+        
+        Args:
+            name: 节点名称
+            service_factory: 服务工厂
+            service_task_factory: 服务任务工厂
+        """
+        self.name: str = name
+        self.service_factory: 'ServiceFactory' = service_factory
+        self.service_task_factory: 'ServiceTaskFactory' = service_task_factory
+        self.service_name: str = service_factory.service_name
+        self.ctx: RuntimeContext = None
+
+
 class GraphEdge:
     def __init__(self,name:str,  output_node: GraphNode,  input_node:GraphNode = None, input_index:int = 0):
         """
@@ -42,21 +61,22 @@ class GraphEdge:
         self.input_index:int = input_index
 
 class ExecutionGraph:
-    def __init__(self, env:BaseEnvironment, jobmanager_handle:Union['JobManager', 'ActorHandle']):
+    def __init__(self, env:BaseEnvironment):
         self.env = env
         self.nodes:Dict[str, GraphNode] = {}
+        self.service_nodes:Dict[str, ServiceNode] = {}  # 存储服务节点
         self.edges:Dict[str, GraphEdge] = {}
         # 构建数据流之间的连接映射
 
-        # self.log_base_dir = env.log_base_dir
-        # self.env_base_dir = env.env_base_dir
         self.setup_logging_system()
         # 构建基础图结构
         self._build_graph_from_pipeline(env)
+        # 构建服务节点
+        self._build_service_nodes(env)
         self._calculate_source_dependencies()
-        self.generate_runtime_contexts(jobmanager_handle)
+        self.generate_runtime_contexts()
         self.total_stop_signals = self.calculate_total_stop_signals()
-        self.logger.info(f"Successfully converted and optimized pipeline '{env.name}' to compiler with {len(self.nodes)} nodes and {len(self.edges)} edges")
+        self.logger.info(f"Successfully converted and optimized pipeline '{env.name}' to compiler with {len(self.nodes)} transformation nodes, {len(self.service_nodes)} service nodes and {len(self.edges)} edges")
 
 
     def calculate_total_stop_signals(self):
@@ -77,19 +97,122 @@ class ExecutionGraph:
         )
 
 
-    def generate_runtime_contexts(self, jobmanager_handle):
+    def generate_runtime_contexts(self):
         """
         为每个节点生成运行时上下文
         不再传递jobmanager handle，使用网络地址通信
         """
         self.logger.debug("Generating runtime contexts for all nodes")
+        
+        # 为流水线节点生成运行时上下文
         for node_name, node in self.nodes.items():
             try:
-                # 不传递jobmanager_handle，使用env中的网络地址信息
                 node.ctx = RuntimeContext(node, node.transformation, self.env)
-                self.logger.debug(f"Generated runtime context for node: {node_name}")
+                self.logger.debug(f"Generated runtime context for transformation node: {node_name}")
             except Exception as e:
                 self.logger.error(f"Failed to generate runtime context for node {node_name}: {e}", exc_info=True)
+        
+        # 为服务节点生成运行时上下文
+        for service_name, service_node in self.service_nodes.items():
+            try:
+                service_node.ctx = self._create_service_runtime_context(service_node)
+                self.logger.debug(f"Generated runtime context for service node: {service_name}")
+            except Exception as e:
+                self.logger.error(f"Failed to generate runtime context for service node {service_name}: {e}", exc_info=True)
+
+    def _create_service_runtime_context(self, service_node: ServiceNode) -> RuntimeContext:
+        """
+        为服务节点创建运行时上下文，使用简化的模拟对象
+        
+        Args:
+            service_node: 服务节点
+            
+        Returns:
+            RuntimeContext: 标准的运行时上下文
+        """
+        # 创建简单的模拟对象来满足 RuntimeContext 的构造函数
+        class MockTransformation:
+            def __init__(self):
+                self.is_spout = False
+                
+        class MockGraphNode:
+            def __init__(self, service_node: ServiceNode):
+                self.name = service_node.name
+                self.parallel_index = 0
+                self.parallelism = 1
+                self.stop_signal_num = 0
+        
+        mock_transformation = MockTransformation()
+        mock_graph_node = MockGraphNode(service_node)
+        
+        return RuntimeContext(mock_graph_node, mock_transformation, self.env)
+
+    def _build_service_nodes(self, env: BaseEnvironment):
+        """
+        构建服务节点，从环境中获取ServiceTaskFactory
+        
+        Args:
+            env: 环境对象
+        """
+        self.logger.debug("Building service nodes from environment")
+        
+        for service_name, service_factory in env.service_factories.items():
+            try:
+                # 生成唯一的服务节点名称
+                service_node_name = get_name(f"service_{service_name}")
+                
+                # 从环境中获取对应的ServiceTaskFactory
+                service_task_factory = env.service_task_factories.get(service_name)
+                if service_task_factory is None:
+                    raise RuntimeError(f"ServiceTaskFactory not found for service {service_name}")
+                
+                # 创建服务节点，同时传入ServiceFactory和ServiceTaskFactory
+                service_node = ServiceNode(
+                    name=service_node_name,
+                    service_factory=service_factory,
+                    service_task_factory=service_task_factory
+                )
+                
+                # 添加到服务节点字典
+                self.service_nodes[service_node_name] = service_node
+                
+                self.logger.debug(f"Created service node: {service_node_name} for service: {service_name}")
+                
+            except Exception as e:
+                self.logger.error(f"Error creating service node for {service_name}: {e}")
+                raise
+        
+        self.logger.info(f"Created {len(self.service_nodes)} service nodes")
+
+    def get_all_nodes(self) -> Dict[str, Union[GraphNode, ServiceNode]]:
+        """
+        获取所有节点（包括流水线节点和服务节点）
+        
+        Returns:
+            Dict[str, Union[GraphNode, ServiceNode]]: 所有节点的字典
+        """
+        all_nodes = {}
+        all_nodes.update(self.nodes)
+        all_nodes.update(self.service_nodes)
+        return all_nodes
+
+    def get_service_nodes(self) -> Dict[str, ServiceNode]:
+        """
+        获取所有服务节点
+        
+        Returns:
+            Dict[str, ServiceNode]: 服务节点字典
+        """
+        return self.service_nodes.copy()
+
+    def get_transformation_nodes(self) -> Dict[str, GraphNode]:
+        """
+        获取所有流水线转换节点
+        
+        Returns:
+            Dict[str, GraphNode]: 流水线节点字典
+        """
+        return self.nodes.copy()
 
 
 

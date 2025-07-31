@@ -15,6 +15,7 @@ from sage.utils.custom_logger import CustomLogger
 from sage.runtime.dispatcher import Dispatcher
 import threading
 from sage.utils.serialization.dill_serializer import deserialize_object
+from sage.utils.network.local_tcp_server import BaseTcpServer
 if TYPE_CHECKING:
     from sage.jobmanager.execution_graph import ExecutionGraph
     from sage.core.api.base_environment import BaseEnvironment
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 
 
 
-class JobManagerServer:
+class JobManagerServer(BaseTcpServer):
     """
     JobManager内置的TCP守护服务
     负责解析TCP消息并调用JobManager的服务方法
@@ -43,25 +44,18 @@ class JobManagerServer:
             actor_name: JobManager Actor名称（如果作为Ray Actor运行）
             namespace: Ray命名空间
         """
+        # 初始化基类
+        super().__init__(host, port, jobmanager.logger, "JobManagerServer")
+        
         self.jobmanager = jobmanager
-        self.host = host
-        self.port = port
         self.actor_name = actor_name
         self.namespace = namespace
-        
-        # Socket服务
-        self._server_socket: Optional[socket.socket] = None
-        self._server_thread: Optional[threading.Thread] = None
-        self._running = False
-        
-        # 日志使用JobManager的logger
-        self.logger = jobmanager.logger
 
         try:
             self.logger.info("Starting JobManager TCP Daemon...")
             
             # 启动Socket服务
-            self._start_socket_service()
+            self.start()
             
             self.logger.info(f"JobManager Daemon started successfully on {self.host}:{self.port}")
             
@@ -69,121 +63,29 @@ class JobManagerServer:
             self.logger.error(f"Failed to start daemon: {e}")
             self.shutdown()
     
-    def _start_socket_service(self):
-        """启动Socket服务"""
+    def _handle_message_data(self, message_data: bytes, client_address: tuple) -> Optional[Dict[str, Any]]:
+        """处理接收到的消息数据"""
         try:
-            self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self._server_socket.bind((self.host, self.port))
-            self._server_socket.listen(10)
+            # JobManager使用JSON格式的消息
+            request_data = message_data.decode('utf-8')
+            request = json.loads(request_data)
+            self.logger.debug(f"Received request from {client_address}: {request}")
             
-            self._running = True
-            self._server_thread = threading.Thread(
-                target=self._socket_server_loop,
-                name="SocketServer",
-                daemon=True
-            )
-            self._server_thread.start()
-            
-            self.logger.info(f"Socket service started on {self.host}:{self.port}")
+            # 处理请求
+            response = self._process_request(request)
+            return response
             
         except Exception as e:
-            self.logger.error(f"Failed to start socket service: {e}")
-            raise
+            self.logger.error(f"Error processing message from {client_address}: {e}")
+            return {
+                "status": "error", 
+                "message": str(e),
+                "request_id": None
+            }
     
-    def _socket_server_loop(self):
-        """Socket服务主循环"""
-        self.logger.debug("Socket server loop started")
-        
-        while self._running:
-            try:
-                if not self._server_socket:
-                    break
-                    
-                self._server_socket.settimeout(1.0)  # 1秒超时，允许检查_running状态
-                
-                try:
-                    client_socket, address = self._server_socket.accept()
-                    self.logger.debug(f"New client connected: {address}")
-                    
-                    # 在新线程中处理客户端
-                    client_thread = threading.Thread(
-                        target=self._handle_client,
-                        args=(client_socket, address),
-                        name=f"Client-{address[0]}:{address[1]}",
-                        daemon=True
-                    )
-                    client_thread.start()
-                    
-                except socket.timeout:
-                    continue
-                    
-            except Exception as e:
-                if self._running:
-                    self.logger.error(f"Error in socket server loop: {e}")
-                break
-        
-        self.logger.debug("Socket server loop stopped")
-    
-    def _handle_client(self, client_socket: socket.socket, address: tuple):
-        """处理客户端请求"""
-        try:
-            with client_socket:
-                # 接收请求
-                request_data = self._receive_message(client_socket)
-                if not request_data:
-                    return
-                
-                request = json.loads(request_data.decode('utf-8'))
-                self.logger.debug(f"Received request from {address}: {request}")
-                
-                # 处理请求
-                response = self._process_request(request)
-                
-                # 发送响应
-                self._send_message(client_socket, json.dumps(response).encode('utf-8'))
-                
-        except Exception as e:
-            self.logger.error(f"Error handling client {address}: {e}")
-    
-    def _receive_message(self, client_socket: socket.socket) -> Optional[bytes]:
-        """接收消息"""
-        try:
-            # 接收消息长度
-            length_data = client_socket.recv(4)
-            if len(length_data) != 4:
-                return None
-            
-            message_length = int.from_bytes(length_data, byteorder='big')
-            if message_length <= 0 or message_length > 10 * 1024 * 1024:  # 10MB限制
-                return None
-            
-            # 接收消息内容
-            message_data = b''
-            while len(message_data) < message_length:
-                chunk = client_socket.recv(min(message_length - len(message_data), 8192))
-                if not chunk:
-                    return None
-                message_data += chunk
-            
-            return message_data
-            
-        except Exception as e:
-            self.logger.debug(f"Error receiving message: {e}")
-            return None
-    
-    def _send_message(self, client_socket: socket.socket, message: bytes):
-        """发送消息"""
-        try:
-            # 发送消息长度
-            length_data = len(message).to_bytes(4, byteorder='big')
-            client_socket.sendall(length_data)
-            
-            # 发送消息内容
-            client_socket.sendall(message)
-            
-        except Exception as e:
-            self.logger.debug(f"Error sending message: {e}")
+    def _serialize_response(self, response: Any) -> bytes:
+        """序列化响应（JobManager使用JSON格式）"""
+        return json.dumps(response).encode('utf-8')
     
     def _process_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """处理客户端请求 - 解析消息并调用JobManager方法"""
@@ -508,20 +410,12 @@ class JobManagerServer:
                 "request_id": request.get("request_id")
             }
     
+    
     def shutdown(self):
         """关闭守护服务"""
         self.logger.info("Shutting down JobManager daemon...")
         
-        # 停止socket服务
-        self._running = False
-        if self._server_socket:
-            try:
-                self._server_socket.close()
-            except:
-                pass
-        
-        # 等待服务线程结束
-        if self._server_thread and self._server_thread.is_alive():
-            self._server_thread.join(timeout=5)
+        # 调用基类的停止方法
+        self.stop()
         
         self.logger.info("JobManager daemon shutdown complete")

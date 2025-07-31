@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING
 import ray
 from ray.actor import ActorHandle
 from typing import List,Dict,Optional, Any, Union
-from sage.service.memory.memory_collection.base_collection import BaseMemoryCollection
-from sage.service.memory.memory_collection.vdb_collection import VDBMemoryCollection
 from sage.utils.custom_logger import CustomLogger
 from sage.utils.actor_wrapper import ActorWrapper
 
@@ -27,10 +25,8 @@ class RuntimeContext:
 
         self.env_name = env.name
         self.env_base_dir:str = env.env_base_dir
-        self.env_uuid = env.uuid
+        self.env_uuid = getattr(env, 'uuid', None)  # 使用 getattr 以避免 AttributeError
         self.env_console_log_level = env.console_log_level  # 保存环境的控制台日志等级
-
-        self.memory_collection:Any = transformation.memory_collection
 
         self.parallel_index:int = graph_node.parallel_index
         self.parallelism:int = graph_node.parallelism

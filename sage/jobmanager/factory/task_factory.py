@@ -19,7 +19,6 @@ class TaskFactory:
         self.operator_factory = transformation.operator_factory
         self.delay = transformation.delay
         self.remote:bool = transformation.remote
-        self.memory_collection:Union[Any, ActorHandle] = transformation.memory_collection
         self.is_spout = transformation.is_spout
 
         # 这些参数在创建节点时注入

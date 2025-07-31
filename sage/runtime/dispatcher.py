@@ -12,7 +12,7 @@ from ray.actor import ActorHandle
 from sage.utils.ray_helper import ensure_ray_initialized
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment 
-    from sage.jobmanager.execution_graph import ExecutionGraph, GraphNode
+    from sage.jobmanager.execution_graph import ExecutionGraph, GraphNode, ServiceNode
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
 class Dispatcher():
@@ -27,11 +27,14 @@ class Dispatcher():
         self.tasks: Dict[str, Union[BaseTask, ActorWrapper]] = {}
         self.services: Dict[str, BaseServiceTask] = {}  # 存储服务实例
         self.is_running: bool = False
+        
+        # 首先设置日志系统
+        self.setup_logging_system()
+        
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
         if env.platform == "remote":
             self.logger.info(f"Dispatcher '{self.name}' is running in remote mode")
             ensure_ray_initialized()
-        self.setup_logging_system()
 
     def receive_stop_signal(self):
         """
@@ -126,16 +129,19 @@ class Dispatcher():
         """编译图结构，创建节点并建立连接"""
         self.logger.info(f"Compiling Job for graph: {self.name}")
         
-        # 第零步：创建所有服务任务实例  
-        for service_name, service_task_factory in self.env.service_task_factories.items():
+        # 第零步：从执行图的服务节点创建所有服务任务实例
+        for service_node_name, service_node in self.graph.service_nodes.items():
             try:
-                # 使用ServiceTaskFactory创建服务任务
-                service_task = service_task_factory.create_service_task()
-                self.services[service_name] = service_task
-                service_type = "Ray Actor (wrapped)" if service_task_factory.remote else "Local"
-                self.logger.debug(f"Added {service_type} service task '{service_name}' of type '{service_task.__class__.__name__}'")
+                # 直接使用服务节点中的ServiceTaskFactory创建服务任务，传入ctx
+                service_task = service_node.service_task_factory.create_service_task(ctx=service_node.ctx)
+                
+                # 存储服务任务，使用service_name作为key（而不是service_node_name）
+                self.services[service_node.service_name] = service_task
+                
+                service_type = "Ray Actor (wrapped)" if self.remote else "Local"
+                self.logger.debug(f"Added {service_type} service task '{service_node.service_name}' from service node '{service_node_name}' of type '{service_task.__class__.__name__}'")
             except Exception as e:
-                self.logger.error(f"Failed to create service task {service_name}: {e}", exc_info=True)
+                self.logger.error(f"Failed to create service task from service node {service_node_name}: {e}", exc_info=True)
                 # 可以选择继续或停止，这里选择继续但记录错误
 
         # 设置服务名称映射到runtime context

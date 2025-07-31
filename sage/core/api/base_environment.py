@@ -33,13 +33,11 @@ class BaseEnvironment(ABC):
         self.platform:str = platform
         # 用于收集所有 BaseTransformation，供 ExecutionGraph 构建 DAG
         self.pipeline: List[BaseTransformation] = []
-        self._filled_futures: dict = {}  # 记录已填充的future stream信息：name -> {future_transformation, actual_transformation, filled_at}
-        self.ctx = dict  # 需要在compiler里面实例化。
-        self.memory_collection = None  # 用于存储内存集合
+        self._filled_futures: dict = {}  
         # 用于收集所有服务工厂，供任务提交时生成服务任务
         self.service_factories: dict = {}  # service_name -> ServiceFactory
         self.service_task_factories: dict = {}  # service_name -> ServiceTaskFactory
-        self.is_running = False
+
         self.env_base_dir: Optional[str] = None  # 环境基础目录，用于存储日志和其他文件
         # JobManager 相关
         self._jobmanager: Optional[ActorWrapper] = None
@@ -75,9 +73,6 @@ class BaseEnvironment(ABC):
         # 如果logger已经初始化，更新其配置
         if hasattr(self, '_logger') and self._logger is not None:
             self._logger.update_output_level("console", self.console_log_level)
-
-    # def set_memory(self, config = None):
-    #     self.memory_collection = sage.service.memory.api.get_memory(config=config, remote=(self.platform != "local"), env_name=self.name)
 
 
     def register_service(self, service_name: str, service_class: Type, *args, **kwargs):
@@ -208,7 +203,7 @@ class BaseEnvironment(ABC):
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, 'flatmap')
-        transformation = SourceTransformation(self, function, *args,
+        transformation = BatchTransformation(self, function, *args,
                                               **kwargs)  # TODO: add a new transformation 去告诉engine这个input source是有界的，当执行完毕之后，会发送一个endofinput信号来停止所有进程。
                                                          # Issue URL: https://github.com/intellistream/SAGE/issues/387
 

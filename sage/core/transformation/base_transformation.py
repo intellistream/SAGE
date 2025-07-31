@@ -26,7 +26,6 @@ class BaseTransformation:
 
         self.remote = (env.platform == "remote")
         self.env_name = env.name
-        self.memory_collection: Union[Any, ActorHandle] = env.memory_collection
         self.env = env
         self.function_class = function
         self.function_args = args
@@ -36,8 +35,6 @@ class BaseTransformation:
             
 
         self.logger = CustomLogger()
-        if self.remote and (env.memory_collection is not None) and (not isinstance(env.memory_collection, ActorHandle)):
-            raise Exception(f"Memory collection must be a Ray Actor handle for remote transformation, but got {type(env.memory_collection)}")
 
         self.logger.debug(f"Creating BaseTransformation of type {type} with rag {self.function_class.__name__}")
 

@@ -119,7 +119,7 @@ class JobManager: #Job Manager
             
         # 编译环境
         from sage.jobmanager.execution_graph import ExecutionGraph
-        graph = ExecutionGraph(env, self.handle) 
+        graph = ExecutionGraph(env) 
 
 
 
