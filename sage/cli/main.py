@@ -10,7 +10,7 @@ from typing import Optional
 # 导入子命令模块
 from sage.cli.job import app as job_app
 from sage.cli.deploy import app as deploy_app
-from sage.cli.jobmanager import app as jobmanager_app
+from sage.cli.jobmanager_controller import app as jobmanager_app
 from sage.cli.worker_manager import app as worker_app
 from sage.cli.head_manager import app as head_app
 from sage.cli.cluster_manager import app as cluster_app

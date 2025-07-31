@@ -29,7 +29,10 @@ from .process_utils import (
     terminate_process_tree,
     wait_for_process_termination,
     get_system_process_summary,
-    is_process_running
+    is_process_running,
+    SudoManager,
+    create_sudo_manager,
+    check_process_ownership
 )
 
 from .environment_utils import (
@@ -72,6 +75,9 @@ __all__ = [
     'wait_for_process_termination',
     'get_system_process_summary',
     'is_process_running',
+    'SudoManager',
+    'create_sudo_manager',
+    'check_process_ownership',
     
     # Environment utilities
     'detect_execution_environment',

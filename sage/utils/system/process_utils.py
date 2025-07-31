@@ -10,6 +10,7 @@ import psutil
 import subprocess
 import getpass
 import time
+import os
 from typing import List, Dict, Any, Optional
 
 
@@ -408,3 +409,208 @@ def is_process_running(pid: int) -> bool:
         return False
     except Exception:
         return False
+
+
+class SudoManager:
+    """
+    Sudo权限管理器
+    
+    提供安全的sudo权限获取、验证和使用功能
+    """
+    
+    def __init__(self):
+        self._cached_password = None
+        self._password_verified = False
+    
+    def get_sudo_password(self, prompt_message: str = None) -> str:
+        """
+        获取sudo密码
+        
+        Args:
+            prompt_message: 自定义提示信息
+            
+        Returns:
+            str: sudo密码（如果获取失败返回空字符串）
+        """
+        if self._cached_password is not None:
+            return self._cached_password
+        
+        default_prompt = "🔐 This operation requires sudo privileges to manage processes owned by other users."
+        if prompt_message:
+            print(prompt_message)
+        else:
+            print(default_prompt)
+        
+        password = getpass.getpass("Please enter your sudo password (or press Enter to skip): ")
+        
+        if password.strip():
+            # 验证密码是否正确
+            print("🔍 Verifying sudo password...")
+            if verify_sudo_password(password):
+                self._cached_password = password
+                self._password_verified = True
+                print("✅ Sudo password verified successfully")
+                return password
+            else:
+                print("❌ Invalid sudo password, will continue without sudo privileges")
+                self._cached_password = ""
+                return ""
+        else:
+            print("⚠️  No sudo password provided, may fail to manage processes owned by other users")
+            self._cached_password = ""
+            return ""
+    
+    def ensure_sudo_access(self, prompt_message: str = None) -> bool:
+        """
+        确保有sudo访问权限
+        
+        Args:
+            prompt_message: 自定义提示信息
+            
+        Returns:
+            bool: 是否成功获取sudo权限
+        """
+        password = self.get_sudo_password(prompt_message)
+        has_access = bool(password)
+        
+        if not has_access:
+            print("⚠️  Warning: No sudo access available. May fail to manage processes owned by other users.")
+        
+        return has_access
+    
+    def has_sudo_access(self) -> bool:
+        """
+        检查是否已有sudo访问权限
+        
+        Returns:
+            bool: 是否有sudo权限
+        """
+        return self._password_verified and bool(self._cached_password)
+    
+    def get_cached_password(self) -> str:
+        """
+        获取缓存的密码（如果已验证）
+        
+        Returns:
+            str: 缓存的密码
+        """
+        return self._cached_password if self._password_verified else ""
+    
+    def clear_cache(self):
+        """清除缓存的密码"""
+        self._cached_password = None
+        self._password_verified = False
+    
+    def execute_with_sudo(self, command: List[str], timeout: int = 30) -> Dict[str, Any]:
+        """
+        使用sudo执行命令
+        
+        Args:
+            command: 要执行的命令列表
+            timeout: 超时时间（秒）
+            
+        Returns:
+            Dict: 执行结果
+        """
+        password = self.get_cached_password()
+        if not password:
+            return {
+                "success": False,
+                "error": "No sudo password available"
+            }
+        
+        try:
+            sudo_command = ['sudo', '-S'] + command
+            result = subprocess.run(
+                sudo_command,
+                input=password + '\n',
+                capture_output=True,
+                text=True,
+                timeout=timeout
+            )
+            
+            if result.returncode == 0:
+                return {
+                    "success": True,
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                    "returncode": result.returncode
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": f"Command failed with code {result.returncode}",
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                    "returncode": result.returncode
+                }
+                
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "error": f"Command timeout after {timeout} seconds"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Error executing sudo command: {e}"
+            }
+
+
+def create_sudo_manager() -> SudoManager:
+    """
+    创建sudo管理器实例
+    
+    Returns:
+        SudoManager: sudo管理器实例
+    """
+    return SudoManager()
+
+
+def check_process_ownership(pid: int, current_user: str = None) -> Dict[str, Any]:
+    """
+    检查进程所有权，判断是否需要sudo权限
+    
+    Args:
+        pid: 进程ID
+        current_user: 当前用户名（如果为None则自动获取）
+        
+    Returns:
+        Dict: 所有权信息
+    """
+    if current_user is None:
+        current_user = os.getenv('USER', 'unknown')
+    
+    try:
+        proc = psutil.Process(pid)
+        proc_user = proc.username()
+        
+        return {
+            "pid": pid,
+            "process_user": proc_user,
+            "current_user": current_user,
+            "needs_sudo": proc_user != current_user and proc_user != 'N/A',
+            "accessible": True
+        }
+        
+    except psutil.NoSuchProcess:
+        return {
+            "pid": pid,
+            "error": "Process not found",
+            "accessible": False
+        }
+    except psutil.AccessDenied:
+        return {
+            "pid": pid,
+            "process_user": "Unknown",
+            "current_user": current_user,
+            "needs_sudo": True,
+            "accessible": False,
+            "error": "Access denied"
+        }
+    except Exception as e:
+        return {
+            "pid": pid,
+            "error": f"Error checking ownership: {e}",
+            "accessible": False
+        }

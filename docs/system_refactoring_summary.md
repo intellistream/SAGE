@@ -35,6 +35,9 @@
 - `wait_for_process_termination(pid, timeout)` - 等待进程终止
 - `get_system_process_summary()` - 获取系统进程概要
 - `is_process_running(pid)` - 检查进程运行状态
+- `SudoManager` - Sudo权限管理器类
+- `create_sudo_manager()` - 创建sudo管理器实例
+- `check_process_ownership(pid, current_user)` - 检查进程所有权
 
 ### 3. `sage.utils.system.environment_utils.py`
 **环境检测和配置工具**

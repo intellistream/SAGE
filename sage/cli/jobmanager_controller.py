@@ -32,7 +32,9 @@ from sage.utils.system.process_utils import (
     terminate_process,
     terminate_processes_by_name,
     kill_process_with_sudo,
-    verify_sudo_password
+    verify_sudo_password,
+    create_sudo_manager,
+    check_process_ownership
 )
 
 app = typer.Typer(
@@ -48,38 +50,7 @@ class JobManagerController:
         self.host = host
         self.port = port
         self.process_names = ["job_manager.py", "jobmanager_daemon.py", "sage.jobmanager.job_manager"]
-        self._sudo_password = None
-        
-    def _get_sudo_password(self) -> str:
-        """获取sudo密码"""
-        if self._sudo_password is None:
-            typer.echo("🔐 Force mode requires sudo privileges to terminate processes owned by other users.")
-            password = getpass.getpass("Please enter your sudo password (or press Enter to skip): ")
-            if password.strip():
-                # 验证密码是否正确
-                try:
-                    typer.echo("🔍 Verifying sudo password...")
-                    if verify_sudo_password(password):
-                        self._sudo_password = password
-                        typer.echo("✅ Sudo password verified successfully")
-                    else:
-                        typer.echo("❌ Invalid sudo password, will continue without sudo privileges")
-                        self._sudo_password = ""
-                except Exception as e:
-                    typer.echo(f"❌ Error verifying sudo password: {e}")
-                    self._sudo_password = ""
-            else:
-                typer.echo("⚠️  No sudo password provided, may fail to kill processes owned by other users")
-                self._sudo_password = ""
-        return self._sudo_password
-    
-    def _ensure_sudo_access(self) -> bool:
-        """确保有sudo访问权限，返回是否成功获取权限"""
-        password = self._get_sudo_password()
-        has_access = bool(password)
-        if not has_access:
-            typer.echo("⚠️  Warning: No sudo access available. May fail to terminate processes owned by other users.")
-        return has_access
+        self.sudo_manager = create_sudo_manager()
         
     def check_health(self) -> Dict[str, Any]:
         """检查JobManager健康状态"""
@@ -199,16 +170,16 @@ class JobManagerController:
         needs_sudo = False
         
         for proc in processes:
-            proc_info = self._get_process_info(proc.pid)
-            proc_user = proc_info['user']
+            proc_info = get_process_info(proc.pid)
+            proc_user = proc_info.get('user', 'N/A')
             if proc_user != current_user and proc_user != 'N/A':
                 needs_sudo = True
                 break
         
         # 如果需要sudo权限但还没有获取，先获取
-        if needs_sudo and self._sudo_password is None:
+        if needs_sudo and not self.sudo_manager.has_sudo_access():
             typer.echo("⚠️  Some processes are owned by other users, requesting sudo access...")
-            if not self._ensure_sudo_access():
+            if not self.sudo_manager.ensure_sudo_access():
                 typer.echo("❌ Unable to obtain sudo privileges. Cannot kill processes owned by other users.")
                 typer.echo("💡 Suggestion: Run this command as root or ask the process owner to stop the service.")
                 return False
@@ -243,7 +214,7 @@ class JobManagerController:
                 typer.echo(f"❌ {result['error']}")
                 # 如果普通终止失败且是权限问题，尝试sudo
                 if result.get("method") == "access_denied" and needs_sudo_for_proc:
-                    sudo_result = kill_process_with_sudo(proc.pid, self._get_sudo_password())
+                    sudo_result = kill_process_with_sudo(proc.pid, self.sudo_manager.get_cached_password())
                     if sudo_result["success"]:
                         typer.echo(f"✅ Process {proc.pid} killed with sudo privileges")
                         killed_count += 1
@@ -259,8 +230,8 @@ class JobManagerController:
             typer.echo(f"⚠️  Warning: {len(remaining)} processes may still be running")
             # 显示残留进程信息
             for proc in remaining:
-                proc_info = self._get_process_info(proc.pid)
-                typer.echo(f"   Remaining: PID {proc_info['pid']}, User: {proc_info['user']}, Name: {proc_info['name']}")
+                proc_info = get_process_info(proc.pid)
+                typer.echo(f"   Remaining: PID {proc_info.get('pid', 'N/A')}, User: {proc_info.get('user', 'N/A')}, Name: {proc_info.get('name', 'N/A')}")
             return killed_count > 0  # 如果至少杀死了一些进程，认为部分成功
         
         typer.echo("✅ All JobManager processes have been terminated")
@@ -272,7 +243,7 @@ class JobManagerController:
         
         # 如果使用force模式，预先获取sudo权限
         if force:
-            self._ensure_sudo_access()
+            self.sudo_manager.ensure_sudo_access()
         
         # 检查端口是否已被占用
         if self.is_port_occupied():
@@ -453,7 +424,7 @@ class JobManagerController:
         # 如果使用force模式，预先获取sudo权限用于停止阶段
         if force:
             typer.echo("🔐 Force restart mode: will use sudo to stop, then start with user privileges")
-            self._ensure_sudo_access()
+            self.sudo_manager.ensure_sudo_access()
         
         # 停止现有实例
         if force:
@@ -495,9 +466,6 @@ class JobManagerController:
         
         return start_success
 
-def get_controller(host: str, port: int) -> JobManagerController:
-    return JobManagerController(host=host, port=port)
-
 @app.command()
 def start(
     host: str = typer.Option("127.0.0.1", help="JobManager host address"),
@@ -509,7 +477,7 @@ def start(
     """
     Start the JobManager service.
     """
-    controller = get_controller(host, port)
+    controller = JobManagerController(host, port)
     wait_time = 0 if no_wait else 10
     success = controller.start(daemon=not foreground, wait_for_ready=wait_time, force=force)
     if success:
@@ -527,12 +495,12 @@ def stop(
     """
     Stop the JobManager service.
     """
-    controller = get_controller(host, port)
+    controller = JobManagerController(host, port)
     
     # 如果使用force模式，预先获取sudo权限
     if force:
         typer.echo("🔐 Force stop mode: may require sudo privileges to terminate processes owned by other users.")
-        controller._ensure_sudo_access()
+        controller.sudo_manager.ensure_sudo_access()
         success = controller.force_kill()
     else:
         success = controller.stop_gracefully()
@@ -553,7 +521,7 @@ def restart(
     """
     Restart the JobManager service.
     """
-    controller = get_controller(host, port)
+    controller = JobManagerController(host, port)
     wait_time = 0 if no_wait else 10
     success = controller.restart(force=force, wait_for_ready=wait_time)
     if not success:
@@ -567,7 +535,7 @@ def status(
     """
     Check the status of the JobManager service.
     """
-    controller = get_controller(host, port)
+    controller = JobManagerController(host, port)
     controller.status()
     typer.echo(f"\n✅ Operation 'status' completed successfully")
 
@@ -579,11 +547,11 @@ def kill(
     """
     Force kill the JobManager service.
     """
-    controller = get_controller(host, port)
+    controller = JobManagerController(host, port)
     
     # kill命令总是需要sudo权限，预先获取
     typer.echo("🔐 Kill command: may require sudo privileges to terminate processes owned by other users.")
-    controller._ensure_sudo_access()
+    controller.sudo_manager.ensure_sudo_access()
     
     success = controller.force_kill()
     if success:

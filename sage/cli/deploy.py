@@ -107,7 +107,7 @@ def start_system(
             typer.echo("🚀 Starting JobManager...")
             
             # 使用sage jobmanager start命令
-            sage_cmd = [sys.executable, "-m", "sage.cli.jobmanager", "start"]
+            sage_cmd = [sys.executable, "-m", "sage.cli.jobmanager_controller", "start"]
             
             typer.echo(f"💻 Running: {' '.join(sage_cmd)}")
             result = subprocess.run(sage_cmd, check=True)
@@ -167,7 +167,7 @@ def stop_system(
     # 停止JobManager
     try:
         typer.echo("🛑 Stopping JobManager...")
-        sage_cmd = [sys.executable, "-m", "sage.cli.jobmanager", "stop"]
+        sage_cmd = [sys.executable, "-m", "sage.cli.jobmanager_controller", "stop"]
         typer.echo(f"💻 Running: {' '.join(sage_cmd)}")
         result = subprocess.run(sage_cmd, check=True)
         typer.echo("✅ JobManager stopped successfully")
@@ -226,7 +226,7 @@ def system_status():
     
     # 检查JobManager状态
     try:
-        jm_cmd = [sys.executable, "-m", "sage.cli.jobmanager", "status"]
+        jm_cmd = [sys.executable, "-m", "sage.cli.jobmanager_controller", "status"]
         jm_result = subprocess.run(jm_cmd, capture_output=True, text=True)
         if jm_result.returncode == 0:
             typer.echo("✅ JobManager is running")
