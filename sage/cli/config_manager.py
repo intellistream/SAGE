@@ -133,12 +133,12 @@ class ConfigManager:
         """创建默认配置文件"""
         default_config = {
             'head': {
-                'host': 'base-sage',
+                'host': 'base-sage', # 需要自动捕获头节点ip 
                 'head_port': 6379,
                 'dashboard_port': 8265,
                 'dashboard_host': '0.0.0.0',
                 'temp_dir': '/var/tmp/ray',
-                'log_dir': '/var/tmp/sage_head_logs',  # 添加缺少的逗号
+                'log_dir': '/var/tmp/sage_head_logs',  
                 'conda_env': 'sage_lj',
                 'python_path': '/home/sage/.conda/envs/sage_lj/bin/python',
                 'ray_command': '/home/sage/.conda/envs/sage_lj/bin/ray',   
@@ -163,7 +163,7 @@ class ConfigManager:
                 'conda_env': 'sage'
             },
             'daemon': {
-                'host': 'base-sage',
+                'host': 'base-sage', # 需要改成头节点ip
                 'port': 19001
             },
             'output': {
