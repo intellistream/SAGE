@@ -23,13 +23,6 @@ class Dispatcher():
         self.env = env
         self.name:str = env.name
         self.remote = env.platform == "remote"
-        self.logger = CustomLogger([
-                ("console", "INFO"),  # 控制台显示重要信息
-                (os.path.join(env.env_base_dir, "Dispatcher.log"), "DEBUG"),  # 详细日志
-                (os.path.join(env.env_base_dir, "Error.log"), "ERROR")  # 错误日志
-            ],
-            name = f"Environment_{self.name}",
-        )
         # self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
         self.tasks: Dict[str, Union[BaseTask, ActorWrapper]] = {}
         self.services: Dict[str, BaseServiceTask] = {}  # 存储服务实例
@@ -145,16 +138,14 @@ class Dispatcher():
                 self.logger.error(f"Failed to create service task {service_name}: {e}", exc_info=True)
                 # 可以选择继续或停止，这里选择继续但记录错误
 
+        # 设置服务名称映射到runtime context
+        service_names = {name: name for name in self.services.keys()}
         # 第一步：创建所有节点实例
         for node_name, graph_node in self.graph.nodes.items():
             try:
+                graph_node.ctx.set_service_names(service_names)
                 # task = graph_node.create_dag_node()
                 task = graph_node.transformation.task_factory.create_task(graph_node.name, graph_node.ctx)
-
-                # 设置服务名称映射到runtime context
-                service_names = {name: name for name in self.services.keys()}
-                graph_node.ctx.set_service_names(service_names)
-
                 self.tasks[node_name] = task
 
                 self.logger.debug(f"Added node '{node_name}' of type '{task.__class__.__name__}'")
