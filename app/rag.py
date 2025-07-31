@@ -392,7 +392,9 @@ def pipeline_run() -> None:
     
     # 注册服务到环境中
     env.register_service("memory_service", memory_service_factory)
-    
+    # 其实”工厂“从功能上是等价于Class的。
+
+
     # 显示界面信息
     UIHelper.print_header()
     UIHelper.print_pipeline_diagram()

@@ -13,6 +13,7 @@ import os
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
 from enum import Enum
+from sage.utils.system.environment_utils import detect_execution_environment, is_ray_available
 
 logger = logging.getLogger(__name__)
 
@@ -58,14 +59,6 @@ class QueueBackendSelector:
         }
         
         self._cached_availability = {}
-    
-    def is_distributed_environment(self) -> bool:
-        """Check if we're in a distributed environment"""
-        try:
-            import ray
-            return ray.is_initialized()
-        except ImportError:
-            return False
     
     def check_backend_availability(self, backend: QueueBackendType) -> Dict[str, Any]:
         """Check if a backend is available and working"""
@@ -157,7 +150,8 @@ class QueueBackendSelector:
             requirements = {}
         
         # Determine if we need distributed support
-        needs_distributed = requirements.get('distributed', self.is_distributed_environment())
+        env_type = detect_execution_environment()
+        needs_distributed = requirements.get('distributed', env_type in ['ray', 'kubernetes', 'slurm'])
         needs_high_performance = requirements.get('high_performance', True)
         
         # Priority order for selection
@@ -190,7 +184,8 @@ class QueueBackendSelector:
     
     def get_fallback_chain(self, preferred_backend: QueueBackendType) -> List[QueueBackendType]:
         """Get the fallback chain for a preferred backend"""
-        is_distributed = self.is_distributed_environment()
+        env_type = detect_execution_environment()
+        is_distributed = env_type in ['ray', 'kubernetes', 'slurm']
         
         if preferred_backend == QueueBackendType.SAGE_QUEUE:
             if is_distributed:
@@ -219,10 +214,12 @@ def get_optimal_queue_backend(requirements: Optional[Dict[str, bool]] = None) ->
 
 def get_queue_backend_info_detailed() -> Dict[str, Any]:
     """Get detailed information about all queue backends"""
+    env_type = detect_execution_environment()
     info = {
         "environment": {
-            "distributed": _backend_selector.is_distributed_environment(),
-            "ray_available": False,
+            "type": env_type,
+            "distributed": env_type in ['ray', 'kubernetes', 'slurm'],
+            "ray_available": is_ray_available(),
             "sage_extension_available": False
         },
         "backends": {},

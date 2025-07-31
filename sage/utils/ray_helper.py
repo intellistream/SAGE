@@ -21,3 +21,14 @@ def ensure_ray_initialized():
         print(f"Ray initialized with logs in /var/lib/ray_shared")
     else:
         print("Ray is already initialized.")
+
+def is_distributed_environment() -> bool:
+    """
+    检查是否在分布式环境中运行。
+    尝试导入Ray并检查是否已初始化。
+    """
+    try:
+        import ray
+        return ray.is_initialized()
+    except ImportError:
+        return False

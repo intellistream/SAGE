@@ -9,7 +9,7 @@ from sage.utils.custom_logger import CustomLogger
 import ray
 from ray.actor import ActorHandle
 
-from sage.utils.ray_init_helper import ensure_ray_initialized
+from sage.utils.ray_helper import ensure_ray_initialized
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment 
     from sage.jobmanager.execution_graph import ExecutionGraph, GraphNode

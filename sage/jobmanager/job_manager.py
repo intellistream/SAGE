@@ -84,19 +84,8 @@ class JobManager: #Job Manager
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
     
-    def start_daemon(self):
-        """启动内置daemon服务"""
-        if self.server:
-            return self.server.start_daemon()
-        else:
-            self.logger.warning("Daemon not enabled")
-            return False
-    
     def run_forever(self):
         """运行JobManager直到收到停止信号"""
-        if not self.start_daemon():
-            self.logger.error("Failed to start daemon")
-            return False
         
         self.logger.info("JobManager started successfully")
         self.logger.info(f"TCP service listening on {self.server.host}:{self.server.port}")

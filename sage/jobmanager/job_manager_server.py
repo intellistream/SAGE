@@ -56,9 +56,7 @@ class JobManagerServer:
         
         # 日志使用JobManager的logger
         self.logger = jobmanager.logger
-        
-    def start_daemon(self):
-        """启动守护服务"""
+
         try:
             self.logger.info("Starting JobManager TCP Daemon...")
             
@@ -66,12 +64,10 @@ class JobManagerServer:
             self._start_socket_service()
             
             self.logger.info(f"JobManager Daemon started successfully on {self.host}:{self.port}")
-            return True
             
         except Exception as e:
             self.logger.error(f"Failed to start daemon: {e}")
             self.shutdown()
-            return False
     
     def _start_socket_service(self):
         """启动Socket服务"""
@@ -217,12 +213,6 @@ class JobManagerServer:
                 return self._handle_receive_node_stop_signal(request)
             elif action == "health_check":
                 return self._handle_health_check(request)
-            elif action == "get_actor_handle":
-                return self._handle_get_actor_handle(request)
-            elif action == "get_actor_info":
-                return self._handle_get_actor_info(request)
-            elif action == "restart_actor":
-                return self._handle_restart_actor(request)
             elif action == "get_environment_info":
                 return self._handle_get_environment_info(request)
             else:
@@ -489,72 +479,6 @@ class JobManagerServer:
             "daemon_status": daemon_status,
             "request_id": request.get("request_id")
         }
-    
-    def _handle_get_actor_handle(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """处理获取Actor句柄请求（如果JobManager作为Ray Actor运行）"""
-        try:
-            # 如果JobManager作为Ray Actor运行，返回当前Actor的句柄
-            # 注意：这里需要根据实际情况调整
-            return {
-                "status": "success",
-                "actor_name": self.actor_name,
-                "namespace": self.namespace,
-                "message": "JobManager is running as embedded daemon",
-                "request_id": request.get("request_id")
-            }
-            
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": f"Failed to get actor handle: {e}",
-                "request_id": request.get("request_id")
-            }
-    
-    def _handle_get_actor_info(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """处理获取Actor信息请求"""
-        try:
-            actor_info = {
-                "actor_name": self.actor_name,
-                "namespace": self.namespace,
-                "session_id": self.jobmanager.session_id,
-                "status": "ready",
-                "jobs_count": len(self.jobmanager.jobs)
-            }
-            
-            return {
-                "status": "success",
-                "actor_info": actor_info,
-                "request_id": request.get("request_id")
-            }
-            
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": f"Failed to get actor info: {e}",
-                "request_id": request.get("request_id")
-            }
-    
-    def _handle_restart_actor(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """处理重启Actor请求"""
-        try:
-            # 清理所有作业
-            self.jobmanager.cleanup_all_jobs()
-            
-            # 重新初始化日志系统
-            self.jobmanager.setup_logging_system()
-            
-            return {
-                "status": "success",
-                "message": "JobManager restarted successfully",
-                "request_id": request.get("request_id")
-            }
-            
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": f"Failed to restart JobManager: {e}",
-                "request_id": request.get("request_id")
-            }
     
     def _handle_get_environment_info(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """处理获取环境信息请求"""
