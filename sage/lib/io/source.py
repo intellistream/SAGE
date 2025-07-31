@@ -1,6 +1,7 @@
 from datasets import load_dataset
 from sage.core.function.source_function import SourceFunction
 from pathlib import Path
+from time import sleep
 
 class FileSource(SourceFunction):
     """
@@ -66,7 +67,7 @@ class FileSource(SourceFunction):
                                 f"\033[33m[ {self.__class__.__name__}]: Reached end of file, maintaining position.\033[0m ")
                             # Reset position if end of file is reached (optional)
                             continue
-                sleep(2)
+                time.sleep(2)
         except FileNotFoundError:
             self.logger.error(f"File not found: {self.data_path}")
         except Exception as e:

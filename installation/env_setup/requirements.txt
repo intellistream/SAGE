@@ -58,3 +58,4 @@ nltk
 peft
 watchdog>=2.1.5,<7
 vllm
+pybind11
