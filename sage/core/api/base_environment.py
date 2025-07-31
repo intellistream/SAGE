@@ -395,6 +395,8 @@ class BaseEnvironment(ABC):
         return DataStream(self, transformation)
 
     def setup_logging_system(self, log_base_dir: str): 
+        self.name = get_name(self.name)
+        # 这行代码的目的是让自己在jobmanager的名字唯一，不与其他注册过的环境冲突
         # this method is called by jobmanager when receiving the job, not the user
         self.session_timestamp = datetime.now()
         self.session_id = self.session_timestamp.strftime("%Y%m%d_%H%M%S")

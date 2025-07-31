@@ -121,7 +121,7 @@ class BaseTask(ABC):
 
                         self.logger.info(f"Task {self.name}: Successfully got packet from input_buffer: {data_packet}")
                     except Exception as e:
-                        self.logger.info(f"Task {self.name}: No packet received from input_buffer (timeout/exception): {e}")
+                        self.logger.error(f"Task {self.name}: No packet received from input_buffer (timeout/exception): {e}")
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue

@@ -1,5 +1,6 @@
 import time
 from dotenv import load_dotenv
+from sage.core.api.remote_environment import RemoteEnvironment
 from sage.utils.custom_logger import CustomLogger
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.function.batch_function import BatchFunction
@@ -12,7 +13,6 @@ from sage.service.memory.memory_service import MemoryService
 import os
 import json
 import time
-import requests
 from typing import Any, List, Tuple
 from sage.core.function.map_function import MapFunction
 
@@ -36,7 +36,8 @@ class OpenAIGenerator(MapFunction):
             self.data_records = []
 
         self.num = 1
-        self.session = requests.Session()
+        from requests import Session
+        self.session = Session()
 
     def _call_openai_api(self, prompt: str) -> str:
         url = self.config["base_url"].rstrip("/") + "/chat/completions"
@@ -59,7 +60,7 @@ class OpenAIGenerator(MapFunction):
 
         resp = self.session.post(url, headers=headers, json=payload, timeout=60)
         if resp.status_code != 200:
-            print(f"===> DashScope返回: {resp.status_code} {resp.text}")
+            self.logger.error(f"DashScope返回: {resp.status_code} {resp.text}")
             resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"]
@@ -89,7 +90,7 @@ class OpenAIGenerator(MapFunction):
                 json.dump(self.data_records, f, ensure_ascii=False, indent=2)
             self.data_records = []
         except Exception as e:
-            print(f"Failed to persist data records: {e}")
+            self.logger.error(f"Failed to persist data records: {e}")
 
     def execute(self, data: List[Any]) -> Tuple[str, str]:
         user_query = data[0] if len(data) > 1 else None
@@ -255,12 +256,11 @@ class PrivateQABatch(BatchFunction):
         # 强制限制，避免无限循环
         if self.counter >= self.max_questions or self.counter >= len(self.questions):
             if self.counter == self.max_questions:  # 只打印一次完成消息
-                print(UIHelper.format_success(f"所有 {self.max_questions} 个问题处理完成"))
+                self.logger.info(f"所有 {self.max_questions} 个问题处理完成")
             return None  # 明确返回None表示批处理完成
 
         question = self.questions[self.counter]
-        print(f"\n{UIHelper.COLORS['CYAN']}{UIHelper.COLORS['BOLD']}📝 正在处理第 {self.counter + 1}/{len(self.questions)} 个问题:{UIHelper.COLORS['END']}")
-        print(f"   {UIHelper.COLORS['YELLOW']}❓ {question}{UIHelper.COLORS['END']}")
+        self.logger.info(f"正在处理第 {self.counter + 1}/{len(self.questions)} 个问题: {question}")
         self.counter += 1
         
         # 添加小延迟避免过快发送
@@ -275,21 +275,21 @@ class SafePrivateRetriever(MapFunction):
     def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
         self.collection_name = "private_info_knowledge"
-        print(f"🔧 SafePrivateRetriever 初始化完成")
+        self.logger.debug("SafePrivateRetriever 初始化完成")
 
     def execute(self, data):
-        print(f"🔍 SafePrivateRetriever 收到数据: {data} (类型: {type(data)})")
+        self.logger.debug(f"SafePrivateRetriever 收到数据: {data} (类型: {type(data)})")
         
         if not data:
-            print(f"   {UIHelper.COLORS['RED']}❌ 检索器收到空数据{UIHelper.COLORS['END']}")
+            self.logger.error("检索器收到空数据")
             return None
 
         query = data
-        print(f"   {UIHelper.COLORS['BLUE']}🔍 检索问题: {query}{UIHelper.COLORS['END']}")
+        self.logger.info(f"检索问题: {query}")
         
         try:
             # 使用 memory service 检索相关信息
-            print(f"   🔄 正在调用 memory service...")
+            self.logger.debug("正在调用 memory service...")
             result = self.call_service["memory_service"].retrieve_data(
                 collection_name=self.collection_name,
                 query_text=query,
@@ -299,40 +299,35 @@ class SafePrivateRetriever(MapFunction):
             
             if result['status'] == 'success' and result.get('results'):
                 retrieved_texts = [item.get('text', '') for item in result['results']]
-                print(f"   {UIHelper.COLORS['GREEN']}📋 找到 {len(retrieved_texts)} 条相关信息{UIHelper.COLORS['END']}")
+                self.logger.info(f"找到 {len(retrieved_texts)} 条相关信息")
                 if retrieved_texts:
-                    print(f"   检索结果预览: {retrieved_texts[0][:50]}...")  # 显示第一条的前50个字符
+                    self.logger.debug(f"检索结果预览: {retrieved_texts[0][:50]}...")  # 显示第一条的前50个字符
                 # 确保返回标准格式给后续组件
                 return (query, retrieved_texts)
             else:
                 error_msg = result.get('message', '未知错误') if result else '服务返回空结果'
-                print(f"   {UIHelper.COLORS['YELLOW']}⚠️  检索失败: {error_msg}，返回空结果{UIHelper.COLORS['END']}")
+                self.logger.warning(f"检索失败: {error_msg}，返回空结果")
                 return (query, ["未找到相关信息"])
                 
         except Exception as e:
             error_msg = str(e)
-            print(f"   {UIHelper.COLORS['RED']}❌ 检索异常: {error_msg}{UIHelper.COLORS['END']}")
+            self.logger.error(f"检索异常: {error_msg}")
             
             # 记录具体错误类型
             if "timeout" in error_msg.lower() or "TimeoutError" in error_msg:
-                print(f"   {UIHelper.COLORS['YELLOW']}⚠️  Memory service 超时，但仍会传递问题给下游组件{UIHelper.COLORS['END']}")
+                self.logger.warning("Memory service 超时，但仍会传递问题给下游组件")
                 return (query, ["由于服务超时暂时无法检索到相关信息，但这不影响系统处理"])
             else:
-                print(f"   {UIHelper.COLORS['YELLOW']}⚠️  Memory service 其他错误，传递问题给下游组件{UIHelper.COLORS['END']}")
+                self.logger.warning("Memory service 其他错误，传递问题给下游组件")
                 return (query, [f"检索服务出现问题：{error_msg}，但系统会继续处理"])
 
-
-def pipeline_run() -> None:
-    """创建并运行数据处理管道"""
+class PrivateMemoryService(MemoryService):
+    """继承自 MemoryService 的私密信息知识库服务类"""
     
-    config = load_config("config_batch.yaml")   
-     
-    # 创建本地环境
-    env = LocalEnvironment()
-    
-    # 注册 memory service 并预先插入知识数据
-    def memory_service_factory():
-        """创建 memory service 并预先插入私密信息知识"""
+    def __init__(self, **kwargs):
+        """初始化并预先插入私密信息知识"""
+        super().__init__(**kwargs)
+        
         # 私密信息知识句子
         knowledge_sentences = [
             "张先生通常将手机放在办公桌右侧的抽屉里，充电线在左侧抽屉。",
@@ -347,27 +342,25 @@ def pipeline_run() -> None:
             "张先生的钱包放在裤子口袋里，李女士的证件在抽屉中。"
         ]
         
-        # 创建 memory service 实例
-        memory_service = MemoryService()
-        collection_name = "private_info_knowledge"
+        self.collection_name = "private_info_knowledge"
         
         # 创建集合
-        result = memory_service.create_collection(
-            name=collection_name,
+        result = self.create_collection(
+            name=self.collection_name,
             backend_type="VDB",
             description="Private information RAG knowledge base"
         )
         
         if result['status'] == 'success':
-            print(UIHelper.format_success("知识库集合创建成功"))
+            self.logger.info("知识库集合创建成功")
             
             # 预先插入知识句子
-            print(UIHelper.format_processing("正在插入私密信息知识..."))
+            self.logger.info("正在插入私密信息知识...")
             success_count = 0
             
             for i, sentence in enumerate(knowledge_sentences):
-                insert_result = memory_service.insert_data(
-                    collection_name=collection_name,
+                insert_result = self.insert_data(
+                    collection_name=self.collection_name,
                     text=sentence,
                     metadata={
                         "id": i + 1, 
@@ -381,17 +374,28 @@ def pipeline_run() -> None:
                 if insert_result['status'] == 'success':
                     success_count += 1
                 else:
-                    print(UIHelper.format_error(f"插入第 {i+1} 条知识失败: {insert_result['message']}"))
-            
-            print(UIHelper.format_success(f"成功插入 {success_count}/{len(knowledge_sentences)} 条私密信息知识"))
-            
+                    self.logger.error(f"插入第 {i+1} 条知识失败: {insert_result['message']}")
+
+            self.logger.info(f"成功插入 {success_count}/{len(knowledge_sentences)} 条私密信息知识")
+
         else:
-            print(UIHelper.format_error(f"创建知识库集合失败: {result['message']}"))
-            
-        return memory_service
+            self.logger.error(f"创建知识库集合失败: {result['message']}")
+
+
+
+
+def pipeline_run() -> None:
+    """创建并运行数据处理管道"""
+    
+    config = load_config("config_batch.yaml")   
+     
+    # 创建本地环境
+    env = RemoteEnvironment()
+    
+
     
     # 注册服务到环境中
-    env.register_service("memory_service", memory_service_factory)
+    env.register_service("memory_service", PrivateMemoryService)
     # 其实”工厂“从功能上是等价于Class的。
 
 

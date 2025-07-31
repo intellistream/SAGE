@@ -22,7 +22,7 @@ class RemoteEnvironment(BaseEnvironment):
         # 移除了'_jobmanager'，因为我们不再使用它
     ]
 
-    def __init__(self, name: str, config: dict | None = None, host: str = "127.0.0.1", port: int = 19001):
+    def __init__(self, name: str = "remote_environment", config: dict | None = None, host: str = "127.0.0.1", port: int = 19001):
         """
         初始化远程环境
         
