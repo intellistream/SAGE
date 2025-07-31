@@ -2,9 +2,9 @@ from __future__ import annotations
 from typing import List, Type, Union, TYPE_CHECKING, Any
 from sage.utils.custom_logger import CustomLogger
 from sage.jobmanager.utils.name_server import get_name
-from sage.jobmanager.factory.operator_factory import OperatorFactory
-from sage.jobmanager.factory.function_factory import FunctionFactory
-from sage.jobmanager.factory.task_factory import TaskFactory
+from sage.runtime.factory.operator_factory import OperatorFactory
+from sage.runtime.factory.function_factory import FunctionFactory
+from sage.runtime.factory.task_factory import TaskFactory
 from ray.actor import ActorHandle
 if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator

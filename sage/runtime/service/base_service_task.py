@@ -13,7 +13,7 @@ from sage.utils.custom_logger import CustomLogger
 from sage.utils.queue_adapter import create_queue
 
 if TYPE_CHECKING:
-    from sage.jobmanager.factory.service_factory import ServiceFactory
+    from sage.runtime.factory.service_factory import ServiceFactory
     from sage.runtime.runtime_context import RuntimeContext
 
 
@@ -62,9 +62,6 @@ class BaseServiceTask(ABC):
         self.service_instance = service_factory.create_service(ctx)
         # 提供service别名以便访问
         self.service = self.service_instance
-        
-        # 日志记录器
-        self.logger = CustomLogger(name=f"{self.__class__.__name__}_{self.service_name}")
         
         # 队列名称
         self._request_queue_name = f"service_request_{self.service_name}"
@@ -426,3 +423,8 @@ class BaseServiceTask(ABC):
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.cleanup()
+
+    @property
+    def logger(self):
+        """获取当前任务的日志记录器"""
+        return self.ctx.logger

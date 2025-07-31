@@ -9,7 +9,7 @@ from sage.runtime.runtime_context import RuntimeContext
 from sage.runtime.service.local_service_task import LocalServiceTask
 from sage.runtime.service.service_caller import ServiceManager
 from sage.core.function.base_function import BaseFunction
-from sage.jobmanager.factory.service_factory import ServiceFactory
+from sage.runtime.factory.service_factory import ServiceFactory
 from sage.service.memory.memory_service import MemoryService
 from sage.utils.embedding_methods.embedding_api import apply_embedding_model
 from sage.utils.custom_logger import CustomLogger

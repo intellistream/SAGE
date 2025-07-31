@@ -12,7 +12,7 @@ from sage.core.function.source_function import StopSignal
 if TYPE_CHECKING:
     from sage.runtime.router.connection import Connection
     from sage.core.operator.base_operator import BaseOperator
-    from sage.jobmanager.factory.operator_factory import OperatorFactory
+    from sage.runtime.factory.operator_factory import OperatorFactory
 
 class BaseTask(ABC):
     def __init__(self,runtime_context: 'RuntimeContext',operator_factory: 'OperatorFactory') -> None:

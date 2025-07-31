@@ -2,7 +2,7 @@ from typing import Union, TYPE_CHECKING
 from sage.utils.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
-    from sage.jobmanager.factory.service_factory import ServiceFactory
+    from sage.runtime.factory.service_factory import ServiceFactory
     from sage.runtime.runtime_context import RuntimeContext
     from sage.utils.actor_wrapper import ActorWrapper
     from sage.runtime.service.base_service import BaseService

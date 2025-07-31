@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from sage.core.function.base_function import BaseFunction
     from sage.runtime.router.connection import Connection
     from sage.runtime.runtime_context import RuntimeContext
-    from sage.jobmanager.factory.function_factory import FunctionFactory
+    from sage.runtime.factory.function_factory import FunctionFactory
     from sage.runtime.router.router import BaseRouter
 
 class BaseOperator(ABC):

@@ -15,7 +15,7 @@ from sage.utils.custom_logger import CustomLogger
 from sage.jobmanager.utils.name_server import get_name
 from sage.jobmanager.jobmanager_client import JobManagerClient
 from sage.utils.actor_wrapper import ActorWrapper
-from sage.jobmanager.factory.service_factory import ServiceFactory
+from sage.runtime.factory.service_factory import ServiceFactory
 if TYPE_CHECKING:
     from sage.jobmanager.job_manager import JobManager
     from sage.core.function.base_function import BaseFunction
@@ -102,7 +102,7 @@ class BaseEnvironment(ABC):
         )
         
         # 创建服务任务工厂
-        from sage.jobmanager.factory.service_task_factory import ServiceTaskFactory
+        from sage.runtime.factory.service_task_factory import ServiceTaskFactory
         service_task_factory = ServiceTaskFactory(
             service_factory=service_factory,
             remote=(self.platform == "remote")

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, List
 from .base_operator import BaseOperator
-from sage.jobmanager.factory.function_factory import FunctionFactory
+from sage.runtime.factory.function_factory import FunctionFactory
 
 
 class FutureOperator(BaseOperator):

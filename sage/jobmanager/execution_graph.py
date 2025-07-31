@@ -11,8 +11,8 @@ from sage.runtime.runtime_context import RuntimeContext
 if TYPE_CHECKING:
     from sage.jobmanager.job_manager import JobManager
     from ray.actor import ActorHandle
-    from sage.jobmanager.factory.service_factory import ServiceFactory
-    from sage.jobmanager.factory.service_task_factory import ServiceTaskFactory
+    from sage.runtime.factory.service_factory import ServiceFactory
+    from sage.runtime.factory.service_task_factory import ServiceTaskFactory
 
 
 class GraphNode:
