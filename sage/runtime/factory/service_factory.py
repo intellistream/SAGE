@@ -55,9 +55,7 @@ class ServiceFactory:
             **self.service_kwargs
         )
         
-        # 如果服务有ctx属性，设置运行时上下文
-        if hasattr(service, 'ctx') and ctx is not None:
-            service.ctx = ctx
+        service.ctx = ctx
         
         return service
     

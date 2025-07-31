@@ -176,7 +176,7 @@ class BaseServiceTask(ABC):
             response_queue_name = request_data.get('response_queue')
             timeout = request_data.get('timeout', 30.0)
             
-            self.logger.debug(
+            self.logger.info(
                 f"Processing service request {request_id}: {method_name} "
                 f"with args={args}, kwargs={kwargs}"
             )
@@ -209,8 +209,8 @@ class BaseServiceTask(ABC):
             # 发送响应
             if response_queue_name:
                 self._send_response(response_queue_name, response_data)
-            
-            self.logger.debug(
+
+            self.logger.info(
                 f"Completed service request {request_id} in {execution_time:.3f}s, "
                 f"success={success}"
             )
