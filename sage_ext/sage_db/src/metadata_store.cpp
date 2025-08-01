@@ -146,15 +146,15 @@ void MetadataStore::save(const std::string& filepath) const {
     for (const auto& pair : metadata_map_) {
         if (!first) file << ",\n";
         first = false;
-        
-        file << "  \"" << pair.first << "\": {";
+
+        file << "  \"" << pair.first << "\": {\n";
         bool first_meta = true;
         for (const auto& meta_pair : pair.second) {
-            if (!first_meta) file << ", ";
+            if (!first_meta) file << ",\n";
             first_meta = false;
-            file << "\"" << meta_pair.first << "\": \"" << meta_pair.second << "\"";
+            file << "    \"" << meta_pair.first << "\": \"" << meta_pair.second << "\"";
         }
-        file << "}";
+        file << "\n  }";
     }
     file << "\n}\n";
 }
@@ -164,47 +164,63 @@ void MetadataStore::load(const std::string& filepath) {
     if (!file.is_open()) {
         throw SageDBException("Cannot open file for reading: " + filepath);
     }
-    
+
     std::unique_lock<std::shared_mutex> lock(mutex_);
     metadata_map_.clear();
-    
-    // Simple parser for the JSON-like format
-    // This is a basic implementation - in production, you'd want a proper JSON library
+
     std::string line;
     VectorId current_id = 0;
     bool in_metadata = false;
-    
+
     while (std::getline(file, line)) {
-        // Remove whitespace
+        // Remove leading and trailing whitespace
         line.erase(0, line.find_first_not_of(" \t"));
         line.erase(line.find_last_not_of(" \t") + 1);
-        
-        if (line == "{" || line == "}") continue;
-        
-        if (line.back() == ',' || line.back() == ':') {
+
+        // Skip empty lines and standalone braces
+        if (line.empty() || line == "{" || line == "}") {
+            continue;
+        }
+
+        // Remove trailing comma
+        if (line.back() == ',') {
             line.pop_back();
         }
-        
+
+        // Parse vector ID line (format: "123": {)
         if (line.find("\"") == 0 && line.find("\": {") != std::string::npos) {
-            // Parse vector ID
             size_t start = 1;
             size_t end = line.find("\"", start);
-            current_id = std::stoull(line.substr(start, end - start));
-            in_metadata = true;
-            metadata_map_[current_id] = Metadata{};
-        } else if (in_metadata && line.find("\"") == 0) {
-            // Parse metadata key-value
+            if (start < end) {
+                current_id = std::stoull(line.substr(start, end - start));
+                in_metadata = true;
+                metadata_map_[current_id] = Metadata{};
+            }
+        }
+        // Check for metadata section end
+        else if (line == "}") {
+            in_metadata = false;
+        }
+        // Parse metadata key-value pairs (format: "key": "value")
+        else if (in_metadata && line.find("\"") == 0 && line.find("\": \"") != std::string::npos) {
+            // Extract key
             size_t key_start = 1;
             size_t key_end = line.find("\"", key_start);
+            if (key_start >= key_end) continue;
+
             std::string key = line.substr(key_start, key_end - key_start);
-            
-            size_t value_start = line.find("\"", key_end + 1) + 1;
+
+            // Extract value
+            size_t value_marker_pos = line.find("\": \"", key_end);
+            if (value_marker_pos == std::string::npos) continue;
+
+            size_t value_start = value_marker_pos + 4; // Skip ": "
             size_t value_end = line.find("\"", value_start);
+            if (value_start >= value_end) continue;
+
             std::string value = line.substr(value_start, value_end - value_start);
-            
+
             metadata_map_[current_id][key] = value;
-        } else if (line == "}") {
-            in_metadata = false;
         }
     }
 }
