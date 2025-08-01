@@ -59,7 +59,7 @@ Sage Core 采用分层架构设计，每一层都有明确的职责和接口：
 ```python
 # 用户使用 API 模块定义数据流管道
 env = LocalEnvironment()
-stream = env.from_batch_collection([1, 2, 3, 4, 5])
+stream = env.from_batch([1, 2, 3, 4, 5])
 result = stream.map(lambda x: x * 2).filter(lambda x: x > 4).sink(lambda x: print(x))
 ```
 

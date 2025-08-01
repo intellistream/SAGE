@@ -25,119 +25,41 @@ SAGE is a dataflow-native reasoning framework built from the ground up to suppor
 
 ## 🔧 Installation
 
-To accommodate different user environments and preferences, we provide **comprehensive setup scripts** that support multiple installation modes. Simply run the top-level `./setup.sh` script and choose from the following four installation options:
+SAGE now provides a modern, streamlined installation system. Choose from the following options:
 
-# <div align="center">🧠 SAGE: A Dataflow-Native Framework for LLM Reasoning<div>
-
-
-SAGE is a dataflow-native reasoning framework built from the ground up to support modular, controllable, and transparent workflows over Large Language Models (LLMs). It addresses common problems in existing LLM-augmented systems (like RAG and Agents), such as hard-coded orchestration logic, opaque execution paths, and limited runtime control. SAGE introduces a dataflow-centric abstraction, modeling reasoning workflows as directed acyclic graphs (DAGs) composed of typed operators.
-
-![](./.github/asset/framework.png)
-
-## ✨ Features
-
-- 🧩 **Declarative & Modular Composition**: Build complex reasoning pipelines from typed, reusable operators. The dataflow graph cleanly separates what to compute from how to compute it.
-
-- 🔀 **Unified Data and Control Flow**: Express conditional branching, tool routing, and fallback logic declaratively within the graph structure, eliminating brittle, imperative control code.
-
-- 💾 **Native Stateful Operators**: Memory is a first-class citizen. Model session, task, and long-term memory as stateful nodes directly within the graph for persistent, context-aware computation.
-
-- ⚡ **Asynchronous & Resilient Runtime**: The engine executes DAGs asynchronously in a non-blocking, data-driven manner. It features stream-aware queues, event-driven scheduling, and built-in backpressure to handle complex workloads gracefully.
-
-- 📊 **Built-in Observability & Introspection**: An interactive dashboard provides runtime instrumentation out-of-the-box. Visually inspect execution graphs, monitor operator-level metrics, and debug pipeline behavior in real-time.
-
-## 🔧 Installation
-
-To accommodate different user environments and preferences, we provide **comprehensive setup scripts** that support multiple installation modes. Simply run the top-level `./setup.sh` script and choose from the following four installation options:
+### 🚀 One-Click Installation (Recommended)
 
 ```bash
-./setup.sh
+# Interactive installation with guided setup
+python quick_install.py
+
+# Or directly choose installation mode:
+python quick_install.py --python-only    # Python-only installation (fast)
+python quick_install.py --full          # Full installation with C++ extensions
 ```
 
-You will be prompted to select one of the following modes:
+### 📦 Direct pip Installation
 
-1. **Minimal Setup**  
-   Set up only the Conda environment.
+```bash
+# Install from source
+pip install -e .
 
-   To start with Minimal Setup, you need:
+# Or install from wheel package
+pip install dist/sage_stream-*.whl
+```
 
-   - Conda (Miniconda or Anaconda)
-   - Python ≥ 3.11
-   - Hugging Face CLI
+### ✅ Verify Installation
 
-<!-- 2. **Setup with Ray**  
-   Includes the minimal setup and additionally installs [Ray](https://www.ray.io/), a distributed computing framework. -->
+```bash
+# Check installation status
+python quick_install.py --check
 
-2. **Setup with Docker**  
-   Launches a pre-configured Docker container and sets up the Conda environment inside it.
-    
-   **Prerequisites**:
-   - If you are located in mainland China, you need to configure Docker to use a mirror registry to ensure smooth image pulling. Follow the steps below:
-     - Open or create the Docker daemon configuration file: `/etc/docker/daemon.json`.
-     - Add the following content to configure a mirror registry:
-       ```json
-       {
-         "registry-mirrors": ["https://docker.xuanyuan.me", ... ]
-       }
-       ```
-     - Restart Docker to apply the changes:
-       ```bash
-       systemctl daemon-reload
-       systemctl restart docker
-       ```
-     - Verify the configuration:
-       ```bash
-       docker info
-       ```
-       Ensure the `Registry Mirrors` section lists the configured mirror.
+# Manual verification
+python -c "import sage; print(f'SAGE version: {sage.__version__}')"
+sage --help
+```
 
-   - Ensure Docker is installed and running on your system.
-   - **Install NVIDIA GPU Support** :
-     To make `nvidia-smi` visible within Docker containers, follow these steps:
-     - Add the NVIDIA GPG key and repository:
-        ```bash
-        curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
-        distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
-        curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
-        ```
-     - Update the apt index and install `nvidia-docker2`:
-        ```bash
-        sudo apt update
-        sudo apt install -y nvidia-docker2
-        ```
-     - Restart the Docker service:
-        ```bash
-        sudo systemctl restart docker
-        ```
-     - Verify GPU support:
-        ```bash
-        docker run --rm --gpus all nvidia/cuda:11.8.0-base nvidia-smi
-        ```
-        Ensure the output displays GPU information.
-
-3. **Full Setup**  
-   Launches the Docker container, installs all required dependencies (including **CANDY**, our in-house vector database), and sets up the Conda environment.
-
----
-
-Alternatively, you can install the project manually:
-
-1. Create a new Conda environment with Python ≥ 3.11:
-
-   ```bash
-   conda create -n sage python=3.11
-   conda activate sage
-   ```
-
-2. Install the package from the root directory:
-
-   ```bash
-   pip install .
-   ```
-
-This method is recommended for advanced users who prefer manual dependency management or wish to integrate the project into existing workflows.
-
-
+For detailed installation instructions and troubleshooting, see [INSTALL_GUIDE.md](INSTALL_GUIDE.md).
 
 
 ## 🚀 Quick Start

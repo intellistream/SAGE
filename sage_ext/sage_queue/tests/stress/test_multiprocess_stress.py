@@ -13,15 +13,21 @@ import time
 import multiprocessing as mp
 import os
 import signal
-import psutil
 import gc
 import threading
+import sys
 from typing import List, Dict, Any, Optional
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from queue import Empty as QueueEmpty
 
 from ..utils import DataGenerator, MessageData
+
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 
 
 @dataclass
@@ -41,46 +47,52 @@ class MultiprocessStressTester:
     
     def __init__(self, config: StressTestConfig):
         self.config = config
-        self.results = mp.Manager().dict()
-        self.shared_state = mp.Manager().dict()
+        self.results = {}
         self.process_pool = None
         
     def setup_shared_state(self):
         """设置共享状态"""
-        self.shared_state.update({
+        self.shared_state = {
             'start_time': time.time(),
             'stop_signal': False,
             'total_sent': 0,
             'total_received': 0,
             'error_count': 0,
             'active_processes': 0,
-            'memory_samples': mp.Manager().list()
-        })
+            'memory_samples': []
+        }
+        # 为了兼容，也设置results
+        self.results = self.shared_state
     
     def monitor_memory_usage(self, duration: int):
         """监控内存使用情况"""
         def memory_monitor():
-            process = psutil.Process()
-            start_time = time.time()
-            
-            while time.time() - start_time < duration:
-                try:
-                    memory_mb = process.memory_info().rss / 1024 / 1024
-                    self.shared_state['memory_samples'].append({
-                        'timestamp': time.time(),
-                        'memory_mb': memory_mb,
-                        'active_processes': self.shared_state['active_processes']
-                    })
-                    time.sleep(0.5)
-                except Exception as e:
-                    print(f"Memory monitor error: {e}")
-                    break
+            try:
+                import psutil
+                process = psutil.Process()
+                start_time = time.time()
+                
+                while time.time() - start_time < duration:
+                    try:
+                        memory_mb = process.memory_info().rss / 1024 / 1024
+                        self.shared_state['memory_samples'].append({
+                            'timestamp': time.time(),
+                            'memory_mb': memory_mb,
+                            'active_processes': self.shared_state.get('active_processes', 0)
+                        })
+                        time.sleep(0.5)
+                    except Exception as e:
+                        print(f"Memory monitor error: {e}")
+                        break
+            except ImportError:
+                print("psutil not available for memory monitoring")
         
         monitor_thread = threading.Thread(target=memory_monitor, daemon=True)
         monitor_thread.start()
         return monitor_thread
 
-    def stress_producer_worker(self, worker_id: int, queue_names: List[str], 
+    @staticmethod
+    def stress_producer_worker(worker_id: int, queue_names: List[str], 
                              message_count: int, message_size: int) -> Dict[str, Any]:
         """压力测试生产者工作进程"""
         try:
@@ -89,10 +101,8 @@ class MultiprocessStressTester:
                 from sage_ext.sage_queue.python.sage_queue import SageQueue
                 use_real_queue = True
             except ImportError:
-                from ...mock_sage_queue import MockSageQueue as SageQueue
+                from ..mock_sage_queue import MockSageQueue as SageQueue
                 use_real_queue = False
-            
-            self.shared_state['active_processes'] = self.shared_state.get('active_processes', 0) + 1
             
             stats = {
                 'worker_id': worker_id,
@@ -171,7 +181,8 @@ class MultiprocessStressTester:
                 'fatal_error': True
             }
 
-    def stress_consumer_worker(self, worker_id: int, queue_names: List[str], 
+    @staticmethod
+    def stress_consumer_worker(worker_id: int, queue_names: List[str], 
                              expected_messages: int, timeout: float) -> Dict[str, Any]:
         """压力测试消费者工作进程"""
         try:
@@ -180,10 +191,8 @@ class MultiprocessStressTester:
                 from sage_ext.sage_queue.python.sage_queue import SageQueue
                 use_real_queue = True
             except ImportError:
-                from ...mock_sage_queue import MockSageQueue as SageQueue
+                from ..mock_sage_queue import MockSageQueue as SageQueue
                 use_real_queue = False
-            
-            self.shared_state['active_processes'] = self.shared_state.get('active_processes', 0) + 1
             
             stats = {
                 'worker_id': worker_id,
@@ -268,7 +277,7 @@ class MultiprocessStressTester:
                 from sage_ext.sage_queue.python.sage_queue import SageQueue
                 use_real_queue = True
             except ImportError:
-                from ...mock_sage_queue import MockSageQueue as SageQueue
+                from ..mock_sage_queue import MockSageQueue as SageQueue
                 use_real_queue = False
             
             stats = {

@@ -19,6 +19,8 @@ from sage.runtime.factory.service_factory import ServiceFactory
 if TYPE_CHECKING:
     from sage.jobmanager.job_manager import JobManager
     from sage.core.function.base_function import BaseFunction
+
+    
 class BaseEnvironment(ABC):
 
     __state_exclude__ = ["_engine_client", "client", "jobmanager"]

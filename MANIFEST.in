@@ -1,37 +1,37 @@
-# MANIFEST.in - 告诉setuptools包含哪些非Python文件
+# MANIFEST.in - 现代化包文件管理
 
-# 注意：C++扩展文件现在通过CMake独立管理，不再通过setup.py包含
-# sage_ext/sage_queue/ 下的C++文件由独立构建系统管理
-
-# 包含配置文件
-recursive-include config *.yaml *.yml
-recursive-include deployment/config *.yaml *.yml
-
-# 包含脚本文件
-recursive-include deployment/scripts *.sh
-recursive-include deployment/templates *
-
-# 包含文档
+# 包含项目元数据
 include README.md
 include LICENSE
+include pyproject.toml
 include *.md
 
-# 排除测试文件（注释掉以避免安装测试文件）
-# recursive-include tests *
-# recursive-include sage_tests *
+# 包含配置文件
+recursive-include sage *.yaml *.yml *.json
+recursive-include config *.yaml *.yml
 
-# 排除不需要的文件
+# 包含脚本和模板
+recursive-include installation *.sh *.py
+recursive-include scripts *.sh *.py
+
+# 包含版本文件
+include sage/_version.py
+
+# 排除开发和测试文件
+recursive-exclude tests *
+recursive-exclude */tests *
+recursive-exclude */test *
+recursive-exclude example *
+recursive-exclude examples *
 global-exclude *.pyc
 global-exclude *.pyo
 global-exclude *~
 global-exclude __pycache__
 global-exclude .git*
 global-exclude .DS_Store
+global-exclude *.so.dSYM
 
-# 显式排除测试目录
-recursive-exclude tests *
-recursive-exclude */tests *
-recursive-exclude */test *
-prune tests
-prune */tests
-prune */test
+# 排除构建文件
+global-exclude build
+global-exclude dist
+global-exclude *.egg-info

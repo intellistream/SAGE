@@ -2,92 +2,106 @@
 Sage Runtime Communication Module
 
 统一的通信系统，提供队列描述符和各种通信方式的抽象。
-
-重要说明：
-- v2.0+ 版本使用统一的 QueueDescriptor 架构
-- queue_stubs 模块已废弃，建议使用迁移工具迁移到新架构
-- 提供向后兼容包装器以便平滑迁移
 """
 
-import warnings
+# 基础抽象类
+from .queue_descriptor import QueueDescriptor
 
-from .queue_descriptor import (
-    QueueDescriptor,
-    resolve_descriptor,
-    create_descriptor_from_existing_queue,
-    # 便利函数
-    get_local_queue,
-    attach_to_shm_queue,
-    get_ray_actor_queue,
-    get_ray_queue,
-    get_rpc_queue,
-    get_sage_queue,
-    # 批量操作
-    create_queue_pool,
-    serialize_queue_pool,
-    deserialize_queue_pool,
-)
+# 专用队列描述符
+from .python_queue_descriptor import PythonQueueDescriptor, create_python_queue
+from .ray_queue_descriptor import RayQueueDescriptor, create_ray_queue
+from .sage_queue_descriptor import SageQueueDescriptor, create_sage_queue
+from .rpc_queue_descriptor import RPCQueueDescriptor, create_rpc_queue
 
-# 迁移工具
-from .migration_guide import (
-    QueueMigrationHelper,
-    migrate_queue_pool,
-    quick_migrate,
-    LegacyQueueStubWrapper,
-    create_legacy_wrapper,
-)
+# 工厂函数和便利函数
+def get_local_queue(queue_id=None, maxsize=0, use_multiprocessing=False):
+    """获取本地Python队列"""
+    return create_python_queue(
+        queue_id=queue_id,
+        maxsize=maxsize,
+        use_multiprocessing=use_multiprocessing
+    )
+
+def get_ray_queue(queue_id=None, maxsize=0, actor_name=None):
+    """获取Ray队列"""
+    return create_ray_queue(
+        queue_id=queue_id,
+        maxsize=maxsize,
+        actor_name=actor_name
+    )
+
+def get_sage_queue(queue_id=None, maxsize=1024*1024, auto_cleanup=True, namespace=None):
+    """获取SAGE队列"""
+    return create_sage_queue(
+        queue_id=queue_id,
+        maxsize=maxsize,
+        auto_cleanup=auto_cleanup,
+        namespace=namespace
+    )
+
+def get_rpc_queue(queue_id=None, host="localhost", port=8000):
+    """获取RPC队列"""
+    return create_rpc_queue(
+        queue_id=queue_id,
+        host=host,
+        port=port
+    )
+
+# 类型解析
+def resolve_descriptor(data):
+    """从序列化数据解析队列描述符"""
+    if isinstance(data, dict) and 'queue_type' in data:
+        queue_type = data['queue_type']
+        if queue_type == 'python_queue':
+            return PythonQueueDescriptor.from_dict(data)
+        elif queue_type == 'ray_queue':
+            return RayQueueDescriptor.from_dict(data)
+        elif queue_type == 'sage_queue':
+            return SageQueueDescriptor.from_dict(data)
+        elif queue_type == 'rpc_queue':
+            return RPCQueueDescriptor.from_dict(data)
+        else:
+            raise ValueError(f"Unknown queue type: {queue_type}")
+    else:
+        raise ValueError("Invalid queue descriptor data")
+
+def create_descriptor_from_existing_queue(queue_instance, queue_type=None, queue_id=None):
+    """从现有队列实例创建描述符"""
+    if queue_type == 'python' or str(type(queue_instance).__module__).startswith('queue'):
+        return PythonQueueDescriptor(queue_id=queue_id, queue_instance=queue_instance)
+    elif queue_type == 'ray' or 'ray' in str(type(queue_instance)):
+        return RayQueueDescriptor(queue_id=queue_id, queue_instance=queue_instance)
+    elif queue_type == 'sage' or 'sage' in str(type(queue_instance).__module__).lower():
+        return SageQueueDescriptor(queue_id=queue_id, queue_instance=queue_instance)
+    elif queue_type == 'rpc':
+        return RPCQueueDescriptor(queue_id=queue_id, queue_instance=queue_instance)
+    else:
+        # 默认尝试Python描述符
+        return PythonQueueDescriptor(queue_id=queue_id, queue_instance=queue_instance)
 
 __all__ = [
-    # 核心类
+    # 抽象基类
     'QueueDescriptor',
     
-    # 核心函数
-    'resolve_descriptor',
-    'create_descriptor_from_existing_queue',
+    # 专用描述符类
+    'PythonQueueDescriptor',
+    'RayQueueDescriptor', 
+    'SageQueueDescriptor',
+    'RPCQueueDescriptor',
+    
+    # 创建函数
+    'create_python_queue',
+    'create_ray_queue',
+    'create_sage_queue', 
+    'create_rpc_queue',
     
     # 便利函数
     'get_local_queue',
-    'attach_to_shm_queue',
-    'get_ray_actor_queue',
     'get_ray_queue',
-    'get_rpc_queue',
     'get_sage_queue',
+    'get_rpc_queue',
     
-    # 批量操作
-    'create_queue_pool',
-    'serialize_queue_pool',
-    'deserialize_queue_pool',
-    
-    # 迁移工具
-    'QueueMigrationHelper',
-    'migrate_queue_pool',
-    'quick_migrate',
-    'LegacyQueueStubWrapper',
-    'create_legacy_wrapper',
+    # 工具函数
+    'resolve_descriptor',
+    'create_descriptor_from_existing_queue',
 ]
-
-# 向后兼容性：提供旧的 queue_stubs 导入路径
-def _import_deprecated_stubs():
-    """处理对已废弃 queue_stubs 模块的导入"""
-    warnings.warn(
-        "queue_stubs module is deprecated since version 2.0. "
-        "Please use QueueDescriptor unified architecture instead. "
-        "Use migration_guide tools for smooth migration.",
-        DeprecationWarning,
-        stacklevel=3
-    )
-    
-    # 返回兼容性包装器
-    return type('DeprecatedStubs', (), {
-        'SageQueueStub': lambda desc: LegacyQueueStubWrapper(desc),
-        'LocalQueueStub': lambda desc: LegacyQueueStubWrapper(desc),
-        'SharedMemoryQueueStub': lambda desc: LegacyQueueStubWrapper(desc),
-        'RayQueueStub': lambda desc: LegacyQueueStubWrapper(desc),
-    })
-
-# 为向后兼容性提供 queue_stubs 导入
-try:
-    import sys
-    sys.modules[f"{__name__}.queue_stubs"] = _import_deprecated_stubs()
-except Exception:
-    pass  # 忽略导入错误

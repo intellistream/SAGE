@@ -34,8 +34,8 @@ from sage.core.api.local_environment import LocalEnvironment
 # 创建本地环境
 env = LocalEnvironment()
 
-# 创建数据流管道（使用正确的API）
-stream = env.from_batch_collection([1, 2, 3, 4, 5])
+# 创建数据流管道（使用统一的 from_batch API）
+stream = env.from_batch([1, 2, 3, 4, 5])
 result = stream.map(lambda x: x * 2).sink(lambda x: print(f"Result: {x}"))
 
 # 提交管道执行

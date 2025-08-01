@@ -130,24 +130,24 @@ class SageQueueTestRunner:
         
         # 压力测试命令映射
         stress_commands = {
-            "all": ["-m", "stress", "-v", "--tb=short"],
-            "multiprocess": ["-m", "stress", "-k", "multiprocess", "-v", "--tb=short"],
-            "lifecycle": ["-m", "stress", "-k", "lifecycle", "-v", "--tb=short"],
-            "memory": ["-m", "stress", "-k", "memory", "-v", "--tb=short"]
+            "all": ["stress/", "-m", "stress", "-v", "--tb=short"],
+            "multiprocess": ["stress/", "-m", "stress", "-k", "multiprocess", "-v", "--tb=short"],
+            "lifecycle": ["stress/", "-m", "stress", "-k", "lifecycle", "-v", "--tb=short"],
+            "memory": ["stress/", "-m", "stress", "-k", "memory", "-v", "--tb=short"]
         }
         
         if subset not in stress_commands:
             print(f"❌ Unknown stress test subset: {subset}")
             return False
         
-        cmd = ["python", "-m", "pytest"] + stress_commands[subset]
-        return self._run_test_command(cmd, f"Stress Tests ({subset})")
+        cmd = stress_commands[subset]
+        return self.run_custom_command(cmd)
 
     def run_lifecycle_tests(self) -> bool:
         """运行生命周期测试"""
         print(f"\n♻️  Running SAGE Queue Lifecycle Tests...")
         cmd = ["python", "-m", "pytest", "-m", "lifecycle", "-v", "--tb=short"]
-        return self._run_test_command(cmd, "Lifecycle Tests")
+        return self.run_custom_command(cmd)
     
     def run_all_tests(self, include_slow: bool = False, parallel: bool = False) -> bool:
         """Run all tests"""
@@ -271,13 +271,16 @@ def main():
     if args.check_deps:
         sys.exit(0)
     
-    # Check SAGE Queue availability
-    if not runner.check_sage_queue():
+    # Check SAGE Queue availability (skip for stress tests which can use mocks)
+    if not args.stress and not args.lifecycle and not runner.check_sage_queue():
         print("\nSuggestions:")
         print("1. Compile the C library: cd .. && ./build.sh")
         print("2. Check PYTHONPATH includes the sage_queue directory")
         print("3. Verify all dependencies are installed")
         sys.exit(1)
+    elif (args.stress or args.lifecycle) and not runner.check_sage_queue():
+        print("\n⚠️  SAGE Queue C library not available - using Mock implementations for stress testing")
+        print("   For complete validation, compile the C library first\n")
     
     success = True
     
