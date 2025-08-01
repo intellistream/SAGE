@@ -5,15 +5,71 @@ import ray
 from ray.actor import ActorHandle
 from typing import List,Dict,Optional, Any, Union
 from sage.utils.custom_logger import CustomLogger
-from sage.utils.actor_wrapper import ActorWrapper
+from sage.utils.actor_wrapper import ActorWrapper            return False
+        else:
+            self.logger.info(f"Task {self.name} stop signal count: {self.stop_signal_count}/{self.stop_signal_num}")
+            return False
 
-if TYPE_CHECKING:
+    # ================== 队列描述符管理方法 ==================
+    
+    def set_input_queue_descriptor(self, descriptor: 'BaseQueueDescriptor'):
+        """设置输入队列描述符（用于graph node）"""
+        self._input_queue_descriptor = descriptor
+    
+    def get_input_queue_descriptor(self) -> Optional['BaseQueueDescriptor']:
+        """获取输入队列描述符"""
+        return self._input_queue_descriptor
+    
+    def set_service_response_queue_descriptor(self, descriptor: 'BaseQueueDescriptor'):
+        """设置服务响应队列描述符（用于graph node）"""
+        self._service_response_queue_descriptor = descriptor
+    
+    def get_service_response_queue_descriptor(self) -> Optional['BaseQueueDescriptor']:
+        """获取服务响应队列描述符"""
+        return self._service_response_queue_descriptor
+    
+    def set_request_queue_descriptor(self, descriptor: 'BaseQueueDescriptor'):
+        """设置请求队列描述符（用于service task）"""
+        self._request_queue_descriptor = descriptor
+    
+    def get_request_queue_descriptor(self) -> Optional['BaseQueueDescriptor']:
+        """获取请求队列描述符"""
+        return self._request_queue_descriptor
+    
+    def set_service_request_queue_descriptors(self, descriptors: Dict[str, 'BaseQueueDescriptor']):
+        """设置服务请求队列描述符映射（用于graph node访问各个service）"""
+        self._service_request_queue_descriptors = descriptors
+    
+    def get_service_request_queue_descriptors(self) -> Optional[Dict[str, 'BaseQueueDescriptor']]:
+        """获取服务请求队列描述符映射"""
+        return self._service_request_queue_descriptors
+        
+    def get_service_request_queue_descriptor(self, service_name: str) -> Optional['BaseQueueDescriptor']:
+        """获取指定服务的请求队列描述符"""
+        if self._service_request_queue_descriptors:
+            return self._service_request_queue_descriptors.get(service_name)
+        return None
+    
+    def set_service_response_queue_descriptors(self, descriptors: Dict[str, 'BaseQueueDescriptor']):
+        """设置服务响应队列描述符映射（用于service task访问各个response队列）"""
+        self._service_response_queue_descriptors = descriptors
+    
+    def get_service_response_queue_descriptors(self) -> Optional[Dict[str, 'BaseQueueDescriptor']]:
+        """获取服务响应队列描述符映射"""
+        return self._service_response_queue_descriptors
+        
+    def get_service_response_queue_descriptor(self, service_name: str) -> Optional['BaseQueueDescriptor']:
+        """获取指定服务的响应队列描述符"""
+        if self._service_response_queue_descriptors:
+            return self._service_response_queue_descriptors.get(service_name)
+        return None TYPE_CHECKING:
     from sage.jobmanager.execution_graph import ExecutionGraph, GraphNode
     from sage.core.transformation.base_transformation import BaseTransformation
     from sage.core.api.base_environment import BaseEnvironment 
     from sage.jobmanager.job_manager import JobManager
     from sage.runtime.service.service_caller import ServiceManager
     from sage.core.function.source_function import StopSignal
+    from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
 # task, operator和function "形式上共享"的运行上下文
 
 class RuntimeContext:
@@ -50,6 +106,13 @@ class RuntimeContext:
         # 服务调用相关
         self._service_manager: Optional['ServiceManager'] = None
         self._service_names: Optional[Dict[str, str]] = None  # 只保存服务名称映射而不是实例
+        
+        # 队列描述符管理
+        self._input_queue_descriptor: Optional['BaseQueueDescriptor'] = None
+        self._service_response_queue_descriptor: Optional['BaseQueueDescriptor'] = None
+        self._request_queue_descriptor: Optional['BaseQueueDescriptor'] = None  # 用于service task
+        self._service_request_queue_descriptors: Optional[Dict[str, 'BaseQueueDescriptor']] = None  # graph node访问service的队列
+        self._service_response_queue_descriptors: Optional[Dict[str, 'BaseQueueDescriptor']] = None  # service task访问各个response队列
     
     def initialize_task_context(self):
         """
@@ -248,3 +311,57 @@ class RuntimeContext:
         else:
             self.logger.info(f"Task {self.name} stop signal count: {self.stop_signal_count}/{self.stop_signal_num}")
             return False
+
+    # ================== 队列描述符管理方法 ==================
+    
+    def set_input_queue_descriptor(self, descriptor: 'BaseQueueDescriptor'):
+        """设置输入队列描述符（用于graph node）"""
+        self._input_queue_descriptor = descriptor
+    
+    def get_input_queue_descriptor(self) -> Optional['BaseQueueDescriptor']:
+        """获取输入队列描述符"""
+        return self._input_queue_descriptor
+    
+    def set_service_response_queue_descriptor(self, descriptor: 'BaseQueueDescriptor'):
+        """设置服务响应队列描述符（用于graph node）"""
+        self._service_response_queue_descriptor = descriptor
+    
+    def get_service_response_queue_descriptor(self) -> Optional['BaseQueueDescriptor']:
+        """获取服务响应队列描述符"""
+        return self._service_response_queue_descriptor
+    
+    def set_request_queue_descriptor(self, descriptor: 'BaseQueueDescriptor'):
+        """设置请求队列描述符（用于service task）"""
+        self._request_queue_descriptor = descriptor
+    
+    def get_request_queue_descriptor(self) -> Optional['BaseQueueDescriptor']:
+        """获取请求队列描述符"""
+        return self._request_queue_descriptor
+    
+    def set_service_request_queue_descriptors(self, descriptors: Dict[str, 'BaseQueueDescriptor']):
+        """设置服务请求队列描述符映射（用于graph node访问各个service）"""
+        self._service_request_queue_descriptors = descriptors
+    
+    def get_service_request_queue_descriptors(self) -> Optional[Dict[str, 'BaseQueueDescriptor']]:
+        """获取服务请求队列描述符映射"""
+        return self._service_request_queue_descriptors
+        
+    def get_service_request_queue_descriptor(self, service_name: str) -> Optional['BaseQueueDescriptor']:
+        """获取指定服务的请求队列描述符"""
+        if self._service_request_queue_descriptors:
+            return self._service_request_queue_descriptors.get(service_name)
+        return None
+    
+    def set_service_response_queue_descriptors(self, descriptors: Dict[str, 'BaseQueueDescriptor']):
+        """设置服务响应队列描述符映射（用于service task访问各个response队列）"""
+        self._service_response_queue_descriptors = descriptors
+    
+    def get_service_response_queue_descriptors(self) -> Optional[Dict[str, 'BaseQueueDescriptor']]:
+        """获取服务响应队列描述符映射"""
+        return self._service_response_queue_descriptors
+        
+    def get_service_response_queue_descriptor(self, service_name: str) -> Optional['BaseQueueDescriptor']:
+        """获取指定服务的响应队列描述符"""
+        if self._service_response_queue_descriptors:
+            return self._service_response_queue_descriptors.get(service_name)
+        return None

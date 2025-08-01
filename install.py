@@ -8,10 +8,10 @@ SAGE 一键安装脚本
 2. 完整安装（包含 C++ 扩展，需要编译环境）
 
 使用方法:
-    python quick_install.py                 # 交互式安装
-    python quick_install.py --python-only   # 仅安装 Python 部分
-    python quick_install.py --full         # 完整安装（需要编译环境）
-    python quick_install.py --check        # 检查安装状态
+    python install.py                 # 交互式安装
+    python install.py --python-only   # 仅安装 Python 部分
+    python install.py --full         # 完整安装（需要编译环境）
+    python install.py --check        # 检查安装状态
 """
 
 import sys
@@ -229,6 +229,11 @@ def interactive_install():
     print("     SAGE 框架一键安装向导")
     print("=" * 60)
     print(f"{Colors.RESET}")
+    
+    print(f"{Colors.YELLOW}💡 安装说明:{Colors.RESET}")
+    print("• 纯Python安装: 使用 'pip install .' 即可完成基础安装")
+    print("• 完整安装: 需要此脚本来正确构建C++扩展")
+    print()
     
     print("选择安装模式:")
     print("1. 纯 Python 安装 (推荐，快速安装)")

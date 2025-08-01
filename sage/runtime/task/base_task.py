@@ -21,10 +21,14 @@ class BaseTask(ABC):
         # 初始化task层的context属性，避免序列化问题
         self.ctx.initialize_task_context()
         
-        self.logger.info(f"🎯 Task: Creating input_buffer with name='{self.ctx.name}'")
-        self.input_buffer = create_queue(name=self.ctx.name)
-        if hasattr(self.input_buffer, 'logger'):
-            self.input_buffer.logger = self.ctx.logger
+        # 使用从上下文传入的队列描述符，而不是直接创建队列
+        self.input_queue_descriptor = self.ctx.get_input_queue_descriptor()
+        if self.input_queue_descriptor is None:
+            # 兜底方案：如果没有传入描述符，则创建默认的本地队列
+            self.input_queue_descriptor = self._create_default_queue_descriptor()
+        
+        self.logger.info(f"🎯 Task: Using queue descriptor for input buffer: {self.input_queue_descriptor.queue_id}")
+        
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
         self.is_running = False
@@ -94,7 +98,28 @@ class BaseTask(ABC):
         获取输入缓冲区
         :return: 输入缓冲区对象
         """
-        return self.input_buffer
+        # 通过描述符获取队列实例
+        return self.input_queue_descriptor._ensure_queue_initialized()
+    
+    def _create_default_queue_descriptor(self):
+        """创建默认队列描述符（兜底方案）"""
+        from sage.runtime.communication.queue_creation_strategy import QueueCreationStrategy
+        
+        # 检查运行环境选择合适的队列类型
+        try:
+            import ray
+            if ray.is_initialized():
+                return QueueCreationStrategy.create_task_input_queue(
+                    task_name=self.ctx.name,
+                    is_remote=True
+                )
+        except ImportError:
+            pass
+        
+        return QueueCreationStrategy.create_task_input_queue(
+            task_name=self.ctx.name,
+            is_remote=False
+        )
 
     def _worker_loop(self) -> None:
         """

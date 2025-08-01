@@ -8,8 +8,6 @@ from typing import Any, Dict, Optional
 import logging
 from .base_queue_descriptor import BaseQueueDescriptor
 
-logger = logging.getLogger(__name__)
-
 
 class SageQueueDescriptor(BaseQueueDescriptor):
     """
@@ -62,11 +60,23 @@ class SageQueueDescriptor(BaseQueueDescriptor):
             "enable_multi_tenant": self.enable_multi_tenant
         }
     
+    @property
+    def logger(self):
+        """获取日志记录器"""
+        if not hasattr(self, '_logger'):
+            self._logger = logging.getLogger(f"SageQueueDescriptor.{self.queue_id}")
+            self._logger.setLevel(logging.INFO)
+        return self._logger
+
     def _create_queue_instance(self) -> Any:
         """创建SAGE队列实例"""
         try:
             # 动态导入 SAGE Queue，避免循环依赖
             from sage_ext.sage_queue.python.sage_queue import SageQueue
+            import threading
+            
+            # 检查是否在主线程中
+            is_main_thread = threading.current_thread() is threading.main_thread()
             
             # 创建或连接到 SAGE Queue
             sage_queue = SageQueue(
@@ -77,14 +87,27 @@ class SageQueueDescriptor(BaseQueueDescriptor):
                 enable_multi_tenant=self.enable_multi_tenant
             )
             
-            logger.info(f"Successfully initialized SAGE Queue: {self.queue_id}")
+            self.logger.info(f"Successfully initialized SAGE Queue: {self.queue_id} (main_thread: {is_main_thread})")
             return sage_queue
             
         except ImportError as e:
-            logger.error(f"Failed to import SageQueue: {e}")
+            self.logger.error(f"Failed to import SageQueue: {e}")
             raise RuntimeError(f"SAGE Queue not available: {e}")
         except Exception as e:
-            logger.error(f"Failed to initialize SAGE Queue: {e}")
+            self.logger.error(f"Failed to initialize SAGE Queue: {e}")
+            # 如果是信号相关错误，尝试使用Mock队列
+            if "signal only works in main thread" in str(e):
+                self.logger.warning(f"Signal handling error, attempting fallback to Mock queue")
+                try:
+                    from sage_ext.sage_queue.tests.mock_sage_queue import MockSageQueue
+                    mock_queue = MockSageQueue(
+                        name=self.queue_id,
+                        maxsize=self.maxsize
+                    )
+                    self.logger.info(f"Using Mock SAGE Queue as fallback: {self.queue_id}")
+                    return mock_queue
+                except ImportError:
+                    self.logger.error("Mock SAGE Queue not available")
             raise
     
     def get_stats(self) -> Dict[str, Any]:

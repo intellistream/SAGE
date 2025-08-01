@@ -13,61 +13,19 @@ import threading
 import os
 import logging
 import atexit
-import signal
 import getpass
+import threading
 from typing import Any, Optional, List, Dict
 from queue import Queue, Empty, Full
 from ctypes import Structure, c_uint64, c_uint32, c_char, POINTER, c_void_p, c_int, c_bool
 
-# 设置日志
+# 配置日志
 logger = logging.getLogger(__name__)
 
-# 全局队列注册表，用于自动清理
+# 全局队列注册表和锁
 _global_queue_registry = {}
 _registry_lock = threading.Lock()
-_cleanup_registered = False
 
-def _register_queue(queue_name: str, queue_obj):
-    """注册队列到全局注册表"""
-    global _cleanup_registered
-    with _registry_lock:
-        _global_queue_registry[queue_name] = queue_obj
-        # 只在第一次注册时设置清理器
-        if not _cleanup_registered:
-            _setup_cleanup_handlers()
-            _cleanup_registered = True
-
-def _unregister_queue(queue_name: str):
-    """从全局注册表移除队列"""
-    with _registry_lock:
-        _global_queue_registry.pop(queue_name, None)
-
-def _cleanup_all_queues():
-    """清理所有注册的队列"""
-    with _registry_lock:
-        for queue_name, queue_obj in list(_global_queue_registry.items()):
-            try:
-                if hasattr(queue_obj, 'close') and callable(queue_obj.close):
-                    if not getattr(queue_obj, '_closed', False):
-                        queue_obj.close()
-            except Exception:
-                # 忽略清理时的异常，避免阻塞进程退出
-                pass
-        _global_queue_registry.clear()
-
-def _signal_handler(signum, frame):
-    """信号处理器，用于优雅关闭"""
-    try:
-        _cleanup_all_queues()
-    except Exception:
-        pass  # 忽略异常，确保信号处理器不会阻塞
-    # 不要调用sys.exit()，让默认处理器处理信号
-
-def _setup_cleanup_handlers():
-    """设置清理处理器"""
-    atexit.register(_cleanup_all_queues)
-    signal.signal(signal.SIGTERM, _signal_handler)
-    signal.signal(signal.SIGINT, _signal_handler)
 
 def _get_user_prefix():
     """
@@ -269,8 +227,6 @@ class SageQueue:
         # 标记是否已关闭
         self._closed = False
         
-        # 注册到全局注册表
-        _register_queue(self.name, self)
     
     def _load_library(self) -> ctypes.CDLL:
         """加载C动态库"""

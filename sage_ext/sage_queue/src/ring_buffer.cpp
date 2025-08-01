@@ -4,7 +4,7 @@
 #include <atomic>
 #include <cstring>
 #include <memory>
-#include <string>  // 添加缺少的 string 头文件
+#include <string>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -12,151 +12,256 @@
 #include <errno.h>
 #include <map>
 #include <mutex>
+#include <semaphore.h>
+#include <cstdio>
+#include <ctime>
 #include "ring_buffer.h"
-#include "concurrentqueue.h"
 
-// 全局共享队列映射，用于进程内队列共享
-static std::map<std::string, RingBuffer*> g_shared_queues;
-static std::mutex g_shared_queues_mutex;
+// 跨进程共享内存结构
+struct SharedMemoryQueue {
+    size_t capacity;
+    std::atomic<size_t> head{0};
+    std::atomic<size_t> tail{0};
+    std::atomic<size_t> count{0};
+    sem_t put_semaphore;
+    sem_t get_semaphore;
+    char data[];  // 柔性数组成员，存储实际数据
+};
 
 struct RingBuffer {
-    moodycamel::ConcurrentQueue<std::vector<uint8_t>> queue;
-    size_t capacity;
-    std::atomic<size_t> current_size{0};
-    std::string name;  // 队列名称
+    SharedMemoryQueue* shared_queue;
+    int shm_fd;
+    size_t shm_size;
+    std::string name;
+    bool is_owner;  // 是否是创建者
 };
+
+// 计算共享内存大小
+size_t calculate_shm_size(size_t capacity) {
+    return sizeof(SharedMemoryQueue) + capacity;
+}
 
 extern "C" {
 
 RingBuffer* ring_buffer_create(size_t capacity) {
-    auto* rb = new RingBuffer();
-    rb->capacity = capacity;
-    rb->current_size.store(0);
-    return rb;
+    // 为了向后兼容，使用默认名称创建命名队列
+    char default_name[64];
+    snprintf(default_name, sizeof(default_name), "rb_%d_%ld", getpid(), (long)time(nullptr));
+    return ring_buffer_create_named(default_name, capacity);
 }
 
-// 重新实现：支持真正的共享内存队列
 RingBuffer* ring_buffer_create_named(const char* name, size_t capacity) {
     if (!name) return nullptr;
 
-    std::lock_guard<std::mutex> lock(g_shared_queues_mutex);
+    auto* rb = new RingBuffer();
+    rb->name = std::string("/") + name;  // POSIX共享内存名称必须以/开头
+    rb->shm_size = calculate_shm_size(capacity);
+    rb->is_owner = false;
 
-    std::string queue_name(name);
-
-    // 如果队列已存在，返回现有的
-    auto it = g_shared_queues.find(queue_name);
-    if (it != g_shared_queues.end()) {
-        return it->second;
+    // 尝试创建共享内存
+    rb->shm_fd = shm_open(rb->name.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
+    if (rb->shm_fd == -1) {
+        if (errno == EEXIST) {
+            // 已存在，打开现有的
+            rb->shm_fd = shm_open(rb->name.c_str(), O_RDWR, 0666);
+            if (rb->shm_fd == -1) {
+                delete rb;
+                return nullptr;
+            }
+        } else {
+            delete rb;
+            return nullptr;
+        }
+    } else {
+        // 新创建的，设置大小
+        rb->is_owner = true;
+        if (ftruncate(rb->shm_fd, rb->shm_size) == -1) {
+            close(rb->shm_fd);
+            shm_unlink(rb->name.c_str());
+            delete rb;
+            return nullptr;
+        }
     }
 
-    // 创建新队列
-    auto* rb = new RingBuffer();
-    rb->capacity = capacity;
-    rb->current_size.store(0);
-    rb->name = queue_name;
+    // 映射共享内存
+    void* addr = mmap(nullptr, rb->shm_size, PROT_READ | PROT_WRITE, 
+                      MAP_SHARED, rb->shm_fd, 0);
+    if (addr == MAP_FAILED) {
+        close(rb->shm_fd);
+        if (rb->is_owner) {
+            shm_unlink(rb->name.c_str());
+        }
+        delete rb;
+        return nullptr;
+    }
 
-    g_shared_queues[queue_name] = rb;
+    rb->shared_queue = static_cast<SharedMemoryQueue*>(addr);
+
+    // 如果是创建者，初始化共享结构
+    if (rb->is_owner) {
+        rb->shared_queue->capacity = capacity;
+        rb->shared_queue->head.store(0);
+        rb->shared_queue->tail.store(0);
+        rb->shared_queue->count.store(0);
+        
+        // 初始化信号量
+        if (sem_init(&rb->shared_queue->put_semaphore, 1, 0) == -1 ||
+            sem_init(&rb->shared_queue->get_semaphore, 1, 0) == -1) {
+            munmap(addr, rb->shm_size);
+            close(rb->shm_fd);
+            shm_unlink(rb->name.c_str());
+            delete rb;
+            return nullptr;
+        }
+    }
+
     return rb;
 }
 
 RingBuffer* ring_buffer_open(const char* name) {
     if (!name) return nullptr;
-
-    std::lock_guard<std::mutex> lock(g_shared_queues_mutex);
-
-    std::string queue_name(name);
-    auto it = g_shared_queues.find(queue_name);
-
-    if (it != g_shared_queues.end()) {
-        return it->second;
+    
+    // 尝试打开现有的共享内存
+    std::string shm_name = std::string("/") + name;
+    int shm_fd = shm_open(shm_name.c_str(), O_RDWR, 0666);
+    if (shm_fd == -1) {
+        // 不存在，创建一个新的
+        return ring_buffer_create_named(name, 1024 * 1024);
     }
 
-    // 如果不存在，创建一个新的
-    return ring_buffer_create_named(name, 1024 * 1024);
+    // 获取大小
+    struct stat st;
+    if (fstat(shm_fd, &st) == -1) {
+        close(shm_fd);
+        return nullptr;
+    }
+
+    auto* rb = new RingBuffer();
+    rb->name = shm_name;
+    rb->shm_fd = shm_fd;
+    rb->shm_size = st.st_size;
+    rb->is_owner = false;
+
+    // 映射共享内存
+    void* addr = mmap(nullptr, rb->shm_size, PROT_READ | PROT_WRITE, 
+                      MAP_SHARED, rb->shm_fd, 0);
+    if (addr == MAP_FAILED) {
+        close(rb->shm_fd);
+        delete rb;
+        return nullptr;
+    }
+
+    rb->shared_queue = static_cast<SharedMemoryQueue*>(addr);
+    return rb;
 }
 
 void ring_buffer_destroy(RingBuffer* rb) {
     if (rb) {
-        // 从全局映射中移除
-        std::lock_guard<std::mutex> lock(g_shared_queues_mutex);
-        if (!rb->name.empty()) {
-            g_shared_queues.erase(rb->name);
+        if (rb->shared_queue) {
+            // 如果是创建者，销毁信号量
+            if (rb->is_owner) {
+                sem_destroy(&rb->shared_queue->put_semaphore);
+                sem_destroy(&rb->shared_queue->get_semaphore);
+            }
+            munmap(rb->shared_queue, rb->shm_size);
         }
+        
+        if (rb->shm_fd != -1) {
+            close(rb->shm_fd);
+        }
+        
+        // 如果是创建者，删除共享内存
+        if (rb->is_owner && !rb->name.empty()) {
+            shm_unlink(rb->name.c_str());
+        }
+        
         delete rb;
     }
 }
 
 int ring_buffer_put(RingBuffer* rb, const void* data, size_t size) {
-    if (!rb || !data || size == 0) return -1;
+    if (!rb || !data || size == 0 || !rb->shared_queue) return -1;
 
-    if (rb->current_size.load() >= rb->capacity) {
+    // 检查是否有足够空间（包括长度字段）
+    size_t total_size = sizeof(size_t) + size;
+    if (rb->shared_queue->count.load() * (sizeof(size_t) + 1024) >= rb->shared_queue->capacity) {
         return -1; // 队列满
     }
 
-    std::vector<uint8_t> item(static_cast<const uint8_t*>(data),
-                              static_cast<const uint8_t*>(data) + size);
-
-    if (rb->queue.enqueue(std::move(item))) {
-        rb->current_size.fetch_add(1);
-        return 0;
-    }
-    return -1;
+    // 原子操作获取写入位置
+    size_t current_tail = rb->shared_queue->tail.fetch_add(total_size) % rb->shared_queue->capacity;
+    
+    // 写入数据长度
+    *reinterpret_cast<size_t*>(rb->shared_queue->data + current_tail) = size;
+    
+    // 写入数据
+    memcpy(rb->shared_queue->data + current_tail + sizeof(size_t), data, size);
+    
+    // 增加计数
+    rb->shared_queue->count.fetch_add(1);
+    
+    // 发信号给等待的读者
+    sem_post(&rb->shared_queue->get_semaphore);
+    
+    return 0;
 }
 
 int ring_buffer_get(RingBuffer* rb, void* data, size_t* size) {
-    if (!rb || !data || !size) return -1;
+    if (!rb || !data || !size || !rb->shared_queue) return -1;
 
-    std::vector<uint8_t> item;
-
-    // 使用非阻塞方式，让Python层处理超时
-    if (!rb->queue.try_dequeue(item)) {
-        return -1; // 队列空，立即返回
+    // 检查是否有数据
+    if (rb->shared_queue->count.load() == 0) {
+        return -1; // 队列空
     }
 
-    if (*size >= item.size()) {
-        std::memcpy(data, item.data(), item.size());
-        *size = item.size();
-        rb->current_size.fetch_sub(1);
-        return 0;
+    // 原子操作获取读取位置
+    size_t current_head = rb->shared_queue->head.load();
+    
+    // 读取数据长度
+    size_t data_size = *reinterpret_cast<size_t*>(rb->shared_queue->data + current_head);
+    
+    // 检查缓冲区大小
+    if (*size < data_size) {
+        return -2; // 缓冲区太小
     }
-
-    // 数据太大，重新放回队列
-    rb->queue.enqueue(std::move(item));
-    return -2; // 缓冲区太小
+    
+    // 复制数据
+    memcpy(data, rb->shared_queue->data + current_head + sizeof(size_t), data_size);
+    *size = data_size;
+    
+    // 更新头指针
+    size_t total_size = sizeof(size_t) + data_size;
+    rb->shared_queue->head.fetch_add(total_size);
+    
+    // 减少计数
+    rb->shared_queue->count.fetch_sub(1);
+    
+    // 发信号给等待的写者
+    sem_post(&rb->shared_queue->put_semaphore);
+    
+    return 0;
 }
 
 int ring_buffer_try_get(RingBuffer* rb, void* data, size_t* size) {
-    if (!rb || !data || !size) return -1;
-
-    std::vector<uint8_t> item;
-    if (rb->queue.try_dequeue(item)) {  // 非阻塞
-        if (*size >= item.size()) {
-            std::memcpy(data, item.data(), item.size());
-            *size = item.size();
-            rb->current_size.fetch_sub(1);
-            return 0;
-        }
-        rb->queue.enqueue(std::move(item));
-        return -2;
-    }
-    return -1; // 队列空
+    // 非阻塞版本，与 get 相同
+    return ring_buffer_get(rb, data, size);
 }
 
 size_t ring_buffer_size(RingBuffer* rb) {
-    return rb ? rb->current_size.load() : 0;
+    return rb && rb->shared_queue ? rb->shared_queue->count.load() : 0;
 }
 
 int ring_buffer_empty(RingBuffer* rb) {
-    return rb ? (rb->current_size.load() == 0 ? 1 : 0) : 1;
+    return rb && rb->shared_queue ? (rb->shared_queue->count.load() == 0 ? 1 : 0) : 1;
 }
 
 void ring_buffer_clear(RingBuffer* rb) {
-    if (!rb) return;
-
-    std::vector<uint8_t> dummy;
-    while (rb->queue.try_dequeue(dummy)) {
-        rb->current_size.fetch_sub(1);
-    }
+    if (!rb || !rb->shared_queue) return;
+    
+    rb->shared_queue->head.store(0);
+    rb->shared_queue->tail.store(0);
+    rb->shared_queue->count.store(0);
+}
 }
 
 // 新增函数：按名称销毁队列

@@ -30,6 +30,9 @@ SAGE now provides a modern, streamlined installation system. Choose from the fol
 ### 🚀 One-Click Installation (Recommended)
 
 ```bash
+# Standard installation (works for most users)
+pip install -e .
+
 # Interactive installation with guided setup
 python quick_install.py
 
@@ -38,26 +41,56 @@ python quick_install.py --python-only    # Python-only installation (fast)
 python quick_install.py --full          # Full installation with C++ extensions
 ```
 
-### 📦 Direct pip Installation
+### 🧩 C++ Extensions (Optional)
+
+For advanced users who need high-performance C++ extensions:
 
 ```bash
-# Install from source
-pip install -e .
+# Check extension status
+sage extensions status
 
-# Or install from wheel package
-pip install dist/sage_stream-*.whl
+# Install all C++ extensions
+sage extensions install
+
+# Install specific extension
+sage extensions install sage_queue
+
+# View extension information
+sage extensions info
+```
+
+### 📦 Build Distribution Packages
+
+```bash
+# Build modern wheel
+./build_modern_wheel.sh                 # Python-only wheel
+./build_modern_wheel.sh --with-cpp      # With C++ extensions
 ```
 
 ### ✅ Verify Installation
 
 ```bash
+# Quick check
+python -c "import sage; print(f'SAGE version: {sage.__version__}')"
+sage --help
+
+# Comprehensive system diagnosis
+sage doctor
+
 # Check installation status
 python quick_install.py --check
 
-# Manual verification
-python -c "import sage; print(f'SAGE version: {sage.__version__}')"
-sage --help
+# Run example to test installation
+python app/qa_dense_retrieval.py
 ```
+
+### 🛠️ System Requirements
+
+- **Python**: 3.11+ (required)
+- **Memory**: 8GB+ RAM (16GB+ recommended for large models)
+- **Storage**: 10GB+ available space
+- **Optional**: CUDA 11.0+ for GPU acceleration
+- **C++ Extensions**: gcc/g++, cmake, make (for extensions only)
 
 For detailed installation instructions and troubleshooting, see [INSTALL_GUIDE.md](INSTALL_GUIDE.md).
 
@@ -65,80 +98,140 @@ For detailed installation instructions and troubleshooting, see [INSTALL_GUIDE.m
 ## 🚀 Quick Start
 ### 🧠 Memory Toolkit
 
-Memory provides a lightweight in-memory vector database (VDB) supporting text embeddings, vector indexing, multi-index management, metadata filtering, persistence to disk, and recovery.
+SAGE provides a comprehensive memory management system with a lightweight in-memory vector database (VDB) supporting text embeddings, vector indexing, multi-index management, metadata filtering, persistence to disk, and recovery. The memory system is a first-class citizen in SAGE's dataflow architecture.
 
 ---
 
-#### (1). Initialize Vector DB and Embedding Model
+#### (1). Initialize Memory Manager and Vector Database
 
 ```python
+from sage.service.memory.memory_manager import MemoryManager
+from sage.utils.embedding_methods.embedding_api import apply_embedding_model
+
+# Create memory manager with default or custom data directory
 mgr = MemoryManager()
-embedder = MockTextEmbedder(fixed_dim=16)
+
+# Apply embedding model (supports various models including OpenAI, HuggingFace, etc.)
+embedder = apply_embedding_model("default")  # or specify model like "openai" or "huggingface"
+dim = embedder.get_dim()
+
+# Create a vector database collection
 col = mgr.create_collection(
     name="test_vdb",
-    backend_type="VDB",
-    description="test VDB",
+    backend_type="VDB",                    # Vector Database
+    description="Test vector database collection",
     embedding_model=embedder,
-    dim=16
+    dim=dim
 )
-​````
+```
 
+#### (2). Insert Text Entries with Rich Metadata
 
-#### (2). Insert Text Entries with Metadata
-
-​```python
+```python
+# Add metadata fields for structured filtering
 col.add_metadata_field("tag")
-col.insert("Alpha", {"tag": "A"})
-col.insert("Beta", {"tag": "B"})
-col.insert("Gamma", {"tag": "A"})
+col.add_metadata_field("category") 
+col.add_metadata_field("source")
+
+# Insert documents with associated metadata
+col.insert("Artificial Intelligence is transforming industries worldwide", {
+    "tag": "technology", 
+    "category": "AI",
+    "source": "research_paper"
+})
+col.insert("Machine Learning algorithms learn from data patterns", {
+    "tag": "technology", 
+    "category": "ML",
+    "source": "textbook"
+})
+col.insert("Deep learning uses neural networks with multiple layers", {
+    "tag": "technology", 
+    "category": "DL", 
+    "source": "tutorial"
+})
 ```
 
-
-#### (3). Create Indexes (e.g., Filtered by Metadata)
+#### (3). Create Multiple Indexes with Filtering
 
 ```python
+# Create global index for all documents
 col.create_index("global_index")
-col.create_index("tag_A_index", metadata_filter_func=lambda m: m.get("tag") == "A")
+
+# Create filtered indexes based on metadata
+col.create_index("ai_index", metadata_filter_func=lambda m: m.get("category") == "AI")
+col.create_index("tech_index", metadata_filter_func=lambda m: m.get("tag") == "technology")
 ```
 
-#### (4). Retrieve Similar Vectors
+#### (4). Retrieve Similar Vectors with Smart Querying
 
 ```python
-res1 = col.retrieve("Alpha", topk=1, index_name="global_index")
-res2 = col.retrieve("Alpha", topk=5, index_name="tag_A_index")
+# Retrieve from global index
+global_results = col.retrieve("What is artificial intelligence?", topk=3, index_name="global_index")
+
+# Retrieve from filtered index
+ai_results = col.retrieve("AI applications", topk=5, index_name="ai_index")
+
+# Display results with similarity scores and metadata
+for result in global_results:
+    print(f"Text: {result['text']}")
+    print(f"Metadata: {result['metadata']}")
+    print(f"Score: {result.get('score', 'N/A')}")
 ```
 
-#### (5). Persist Collection to Local Disk
+#### (5). Persist and Manage Collections
 
 ```python
+# Save collection to persistent storage
 mgr.store_collection()
-print("Saved to:", mgr.data_dir)
+print(f"Collection saved to: {mgr.data_dir}")
+
+# List all available collections
+available_collections = mgr.list_collections()
+print(f"Available collections: {available_collections}")
 ```
 
-#### (6). Reload Persisted Collection (Requires Embedding Model)
+#### (6). Reload and Connect to Persisted Collections
 
 ```python
+# Create new manager instance
 mgr2 = MemoryManager()
-embedder2 = MockTextEmbedder(fixed_dim=16)
+
+# Reconnect to existing collection (requires compatible embedding model)
+embedder2 = apply_embedding_model("default")
 col2 = mgr2.connect_collection("test_vdb", embedding_model=embedder2)
+
+# Verify collection is loaded and functional
+test_results = col2.retrieve("machine learning", topk=2, index_name="global_index")
+print(f"Reconnected collection works: {len(test_results)} results found")
 ```
 
-#### (7). Delete All Persisted Data (Optional)
+#### (7). Advanced Memory Operations
 
 ```python
+# Update existing documents
+col.update("doc_id_1", "Updated content about AI and its applications", {"updated": True})
+
+# Delete specific documents
+col.delete("doc_id_2")
+
+# Clear specific collection data
+from sage.service.memory.memory_collection.vdb_collection import VDBMemoryCollection
 VDBMemoryCollection.clear("test_vdb", mgr.data_dir)
+
+# Clean up manager metadata
+import os
 manager_json = os.path.join(mgr.data_dir, "manager.json")
 if os.path.exists(manager_json):
     os.remove(manager_json)
 ```
 
 ### 🔧 Step-by-Step: Build a Local RAG Pipeline
-SAGE uses a **fluent-style API** to declaratively define RAG pipelines. Here's how to get started:
+SAGE uses a **fluent-style API** to declaratively define RAG pipelines with comprehensive support for memory management, distributed execution, and real-time monitoring.
 
 ---
 
 ```python
-from sage.core.api.env import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment  # Updated import
 from sage.lib.io.source import FileSource
 from sage.lib.rag.retriever import DenseRetriever
 from sage.lib.rag.promptor import QAPromptor
@@ -146,13 +239,15 @@ from sage.lib.rag.generator import OpenAIGenerator
 from sage.lib.io.sink import TerminalSink
 from sage.utils.config_loader import load_config
 
+# Load configuration
 config = load_config("config.yaml")
 
-# Build pipeline using Fluent API
-env = LocalEnvironment()
-env.set_memory(config=None)
+# Create local execution environment with memory support
+env = LocalEnvironment("rag_pipeline")
+env.set_memory(config=None)  # Initialize built-in memory system
 
-query_stream = (pipeline
+# Build pipeline using Fluent API with method chaining
+query_stream = (env
                 .from_source(FileSource, config["source"])
                 .map(DenseRetriever, config["retriever"])
                 .map(QAPromptor, config["promptor"])
@@ -160,31 +255,156 @@ query_stream = (pipeline
                 .sink(TerminalSink, config["sink"])
                 )
 
-# Submit and run the pipeline
+# Submit and execute the pipeline
 try:
     env.submit()
-    time.sleep(5)
-
+    print("✅ Pipeline submitted successfully")
+    # Pipeline runs asynchronously - you can do other work here
+    
+except Exception as e:
+    print(f"❌ Pipeline execution failed: {e}")
 ```
 
-#### 📘 About config
+#### 📘 About Configuration
 
-Each operator in the pipeline requires a configuration dictionary config that provides runtime parameters. You can find example config.yaml under [config](./config).
+Each operator in the pipeline requires a configuration dictionary that provides runtime parameters, connection details, and behavioral settings. SAGE provides flexible configuration management:
 
-#### 📘 About Ray
-To enable distributed execution using Ray, you can use RemoteEnvironment.
+```yaml
+# Example config.yaml structure
+source:
+  file_path: "data/questions.txt"
+  batch_size: 10
+
+retriever:
+  collection_name: "knowledge_base"
+  top_k: 5
+  similarity_threshold: 0.7
+
+promptor:
+  template: "Answer the question based on context: {context}\nQuestion: {query}\nAnswer:"
+  max_context_length: 2000
+
+generator:
+  local:
+    model: "gpt-3.5-turbo"
+    temperature: 0.7
+    max_tokens: 500
+  vllm:
+    model_path: "/models/llama-7b"
+    gpu_memory_utilization: 0.9
+
+sink:
+  output_format: "json"
+  file_path: "results/answers.json"
+```
+
+You can find comprehensive example configurations under [config/](./config/).
+
+#### 📘 About Distributed Execution with Ray
+
+SAGE supports seamless scaling from local to distributed execution using Ray:
+
 ```python
-env = RemoteEnvironment()
-```
-#### 📘 About Long Running
-If your pipeline is meant to run as a long-lived service, use:
-```python
- # deprecated
+from sage.core.api.remote_environment import RemoteEnvironment
+
+# Create distributed environment  
+env = RemoteEnvironment("distributed_rag", jobmanager_address="localhost:19001")
+env.set_memory(config=config["memory"])
+
+# Same pipeline code works in distributed mode
+query_stream = (env
+                .from_source(FileSource, config["source"])
+                .map(DenseRetriever, config["retriever"])
+                .map(QAPromptor, config["promptor"])  
+                .map(OpenAIGenerator, config["generator"]["vllm"])
+                .sink(TerminalSink, config["sink"])
+                )
+
+# Submit to Ray cluster
+job_id = env.submit()
+print(f"Job submitted with ID: {job_id}")
+env.wait_for_completion(job_id)
 ```
 
-See more examples under [sage_examples](sage_examples)
+#### 📘 About Service Integration
+
+SAGE supports service-oriented architecture with memory services and other specialized services:
+
+```python
+from sage.service.memory import MemoryService
+
+# Register memory service
+def memory_service_factory():
+    service = MemoryService()
+    result = service.create_collection(
+        name="qa_collection",
+        backend_type="VDB", 
+        description="QA pipeline memory"
+    )
+    return service
+
+env.register_service("memory_service", memory_service_factory)
+
+# Use in pipeline
+query_stream = (env
+                .from_source(FileSource, config["source"])
+                .map(DenseRetriever, config["retriever"])  # Uses registered memory service
+                .map(QAPromptor, config["promptor"])
+                .map(OpenAIGenerator, config["generator"]["local"])
+                .sink(TerminalSink, config["sink"])
+                )
+```
+
+#### 📘 About Production Deployment
+
+For production deployments, SAGE provides:
+
+- **Docker containerization** with `docker-compose` support
+- **Kubernetes deployments** with Helm charts
+- **Monitoring and observability** via built-in dashboard
+- **Auto-scaling** based on workload demands
+
+See more comprehensive examples under [app/](./app/) directory.
 
 ## 🧩 Components
+
+### 🎯 Command-Line Interface (CLI)
+
+SAGE provides a comprehensive CLI system for managing distributed deployments, cluster operations, and job lifecycle:
+
+```bash
+# Cluster management (unified approach)
+sage cluster start                    # Start entire Ray cluster (Head + Workers)
+sage cluster stop                     # Stop entire cluster
+sage cluster status                   # Check cluster health and status
+sage cluster deploy                   # Deploy SAGE to all worker nodes
+sage cluster scale add worker:22      # Dynamic scaling: add worker nodes
+sage cluster scale remove worker:22   # Dynamic scaling: remove worker nodes
+
+# System deployment
+sage deploy start                      # Start SAGE system (Ray + JobManager)
+sage deploy stop                      # Stop system components
+sage deploy status                    # Check system health
+
+# Job management
+sage job list                         # List all running jobs
+sage job show <job_id>                # Show detailed job information
+sage job stop <job_id>                # Stop specific job
+sage job logs <job_id>                # View job logs
+
+# Individual node management (advanced)
+sage head start/stop/status           # Head node management
+sage worker start/stop/status         # Worker nodes management
+```
+
+**Key CLI Features:**
+- **Unified Cluster Management**: Single command to manage entire distributed clusters
+- **Automated Deployment**: One-click deployment to multiple worker nodes with SSH
+- **Dynamic Scaling**: Add/remove worker nodes without stopping running jobs
+- **Health Monitoring**: Real-time status checking and health diagnostics
+- **Configuration Management**: Centralized configuration with validation
+- **Job Lifecycle Control**: Complete job management from submission to termination
+
 ### Operator
 SAGE follows a Flink-style pipeline architecture where each `Operator` acts as a modular and composable processing unit. Operators can be chained together using a fluent API to form a streaming data pipeline. Internally, each `Operator` wraps a stateless or stateful `Function` that defines its core logic.
 
@@ -196,76 +416,230 @@ SAGE follows a Flink-style pipeline architecture where each `Operator` acts as a
 | `flatmap()`    | Similar to `map()`, but allows one input to emit zero or more outputs (many-to-many).                          |
 | `sink()`        | Defines the terminal output of the stream, consuming the final data (e.g., write to terminal, file, database). |
 
-#### 🔧 Supported Fuction
-| Fuction Type        | Description                                                                                                        |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `SourceOperator`     | Entry point of the pipeline. Ingests input data from external sources such as files, APIs, or user queries.        |
-| `RetrievalOperator`  | Performs dense or hybrid retrieval from a vector database or document store based on the input query.              |
-| `RerankOperator`     | Reorders retrieved documents using a reranker model (e.g., cross-encoder) to improve relevance.                    |
-| `RefineOperator`     | Compresses or filters retrieved context to reduce input length for faster and more accurate model inference.       |
-| `PromptOperator`     | Builds model-ready prompts by formatting the query and context into a specific template or structure.              |
-| `GenerationOperator` | Generates answers using a large language model (e.g., OpenAI, LLaMA, vLLM) based on the constructed prompt.        |
-| `SinkOperator`       | Terminal point of the pipeline. Outputs final results to various sinks like terminal, files, databases, or APIs.   |
-| `AgentOperator`      | Enables multi-step decision-making agents that call tools or external APIs based on reasoning strategies.          |
-| `EvaluateOperator`   | Calculates metrics like F1, ROUGE, BLEU for model output evaluation. Often used in test/evaluation pipelines.      |
-| `RoutingOperator`    | Implements conditional branching or fallback logic within the pipeline (e.g., skip generation if retrieval fails). |
+#### 🔧 Supported Function Types
+
+| Function Type         | Description                                                                                                        | Example Usage |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------- |
+| `SourceFunction`      | Entry point of the pipeline. Ingests input data from external sources such as files, APIs, databases, or user queries | `FileSource`, `KafkaSource`, `HFDatasetBatch` |
+| `RetrievalFunction`   | Performs dense, sparse, or hybrid retrieval from vector databases, document stores, or knowledge bases based on input queries | `DenseRetriever`, `BM25Retriever`, `HybridRetriever` |
+| `RefineFunction`      | Compresses, filters, or optimizes retrieved context to reduce input length for faster and more accurate model inference | `LongRefinerAdapter`, `ContextCompressor` |
+| `RerankFunction`      | Reorders retrieved documents using reranker models (e.g., cross-encoder, LLM-based) to improve relevance scoring | `CrossEncoderReranker`, `LLMbasedReranker` |
+| `PromptFunction`      | Builds model-ready prompts by formatting queries and context into specific templates or structured formats | `QAPromptor`, `ChatPromptor`, `FewShotPromptor` |
+| `GenerationFunction`  | Generates answers using large language models (OpenAI, LLaMA, vLLM, HuggingFace) based on constructed prompts | `OpenAIGenerator`, `VLLMGenerator`, `HuggingFaceGenerator` |
+| `AgentFunction`       | Enables multi-step decision-making agents that call tools, APIs, or other services based on reasoning strategies | `AnswerBot`, `SearcherBot`, `ChiefBot` |
+| `EvaluateFunction`    | Calculates comprehensive metrics like F1, ROUGE, BLEU, BERTScore for model output evaluation and benchmarking | `F1Evaluate`, `RougeLEvaluate`, `BERTRecallEvaluate` |
+| `MemoryFunction`      | Manages persistent storage, retrieval, and indexing operations for long-term knowledge and context management | `MemoryWriter`, `MemoryRetriever`, `IndexBuilder` |
+| `TransformFunction`   | Handles data transformation, preprocessing, chunking, and format conversion operations | `CharacterSplitter`, `DocumentParser`, `DataNormalizer` |
+| `RoutingFunction`     | Implements conditional branching, fallback logic, and dynamic workflow control within pipelines | `ConditionalRouter`, `LoadBalancer`, `FallbackHandler` |
+| `SinkFunction`        | Terminal point of the pipeline. Outputs final results to various destinations like terminal, files, databases, or APIs | `TerminalSink`, `FileSink`, `DatabaseSink`, `APISink` |
 
 ### Memory
-![](./.github/asset/Memory_framework.png)
+![Memory Architecture](./.github/asset/Memory_framework.png)
+
+SAGE's memory system provides a comprehensive solution for persistent knowledge management, vector storage, and intelligent retrieval:
+
+**Core Features:**
+- **Multi-Backend Support**: Vector databases (VDB), key-value stores (KV), and graph databases (Graph)
+- **Advanced Indexing**: Multi-index support with metadata filtering and semantic search
+- **Persistent Storage**: Automatic serialization, disk persistence, and recovery mechanisms  
+- **Service Integration**: Memory-as-a-Service with REST API and pipeline integration
+- **Scalable Architecture**: From single-machine to distributed memory clusters
+
+**Supported Operations:**
+- Document insertion with rich metadata
+- Semantic similarity search and retrieval
+- Index management and optimization
+- Collection lifecycle management
+- Cross-collection queries and federated search
 
 ## Engine（执行引擎）
 
-Sage Engine is the core execution component that orchestrates the compilation and execution of data flow pipelines. It uses a layered architecture to transform logical pipelines into physical execution graphs and efficiently execute them across different runtime environments, supporting both local multi-thread accleration or execution on distributed platrofms.
+SAGE Engine is the sophisticated execution component that orchestrates the compilation and execution of dataflow pipelines. It uses a modern layered architecture to transform logical pipelines into optimized physical execution graphs and efficiently execute them across different runtime environments, supporting both local multi-threaded acceleration and distributed execution on platforms like Ray.
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    SAGE Engine Architecture                │
+├─────────────────────────────────────────────────────────────┤
+│  User API (LocalEnvironment / RemoteEnvironment)          │
+├─────────────────────────────────────────────────────────────┤
+│              JobManager (Centralized Orchestration)        │
+│  • Job Lifecycle Management    • Resource Allocation       │
+│  • Execution Graph Compilation • Health Monitoring         │
+│  • Distributed Coordination    • Service Integration       │
+├─────────────────────────────────────────────────────────────┤
+│                   Execution Runtime                        │
+│  LocalEnvironment     │      RemoteEnvironment             │
+│  (Multi-threaded)     │      (Ray Distributed)             │
+├─────────────────────────────────────────────────────────────┤
+│              ExecutionGraph Compiler                       │
+│         (Optimization & Parallelization)                   │
+├─────────────────────────────────────────────────────────────┤
+│    Function Layer     │      Operator Layer                │
+│    (Business Logic)   │      (Runtime Execution)           │
+├─────────────────────────────────────────────────────────────┤
+│              Communication & Memory                         │
+│            (Queues, Services, Storage)                     │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ### How It Works
 
-The Engine operates in four main phases:
+The Engine operates through a well-defined four-phase execution model:
 
-1. **Pipeline Collection**: Gathers user-defined logical pipelines built through DataStream API and validates pipeline integrity
-2. **Compilation & Optimization**: Uses ExecutionGraph to transform logical pipelines into optimized physical execution graphs with parallelism expansion
-3. **Runtime Scheduling**: Selects appropriate Runtime (local/distributed) and converts execution graphs into concrete DAG nodes
-4. **Execution Monitoring**: Monitors pipeline execution status, collects performance metrics, and handles fault recovery
+1. **Pipeline Collection & Validation**: Gathers user-defined logical pipelines built through the DataStream API, validates pipeline integrity, and performs dependency analysis
+
+2. **Compilation & Optimization**: Uses the ExecutionGraph system to transform logical pipelines into optimized physical execution graphs with automatic parallelism expansion, operator fusion, and resource allocation
+
+3. **Runtime Scheduling**: Intelligently selects appropriate Runtime (LocalEnvironment/RemoteEnvironment), converts execution graphs into concrete DAG nodes, and handles resource management
+
+4. **Execution Monitoring**: Continuously monitors pipeline execution status, collects comprehensive performance metrics, handles fault recovery, and provides real-time observability
 
 ### Key Features
 
-- **Declarative Programming**: Users describe "what to do", Engine handles "how to do it"
-- **Auto-Parallelization**: Automatically determines parallel execution strategies based on data dependencies
-- **Platform Agnostic**: Same logical pipeline runs on both local and distributed environments
-- **Performance Optimization**: Combines compile-time optimization with runtime tuning
-- **Fault Tolerance**: Comprehensive error handling and recovery mechanisms (Under development)
+- **Centralized Job Management**: The JobManager acts as a singleton orchestrator, managing job lifecycle, resource allocation, and distributed coordination across the entire cluster
+- **Declarative Programming Model**: Users describe "what to compute", Engine handles "how to compute it" with automatic optimization
+- **Intelligent Auto-Parallelization**: Automatically determines optimal parallel execution strategies based on data dependencies and resource availability  
+- **Platform Agnostic Design**: Same logical pipeline code runs seamlessly on both local and distributed environments without modification
+- **Advanced Performance Optimization**: Combines compile-time graph optimization with runtime adaptive tuning for maximum efficiency
+- **Comprehensive Fault Tolerance**: Built-in error handling, automatic recovery mechanisms, and checkpoint-restart capabilities
+- **Real-time Observability**: Rich monitoring, profiling, and debugging support through integrated dashboard and metrics collection
+- **Service-Oriented Architecture**: Native support for microservices integration with automatic service discovery and load balancing
+
+### Execution Environments
+
+**LocalEnvironment**: High-performance single-machine execution with:
+- Multi-threaded parallel processing  
+- Direct JobManager integration
+- Optimized memory management
+- Local service integration
+- Development and testing support
+
+**RemoteEnvironment**: Distributed execution capabilities with:
+- Ray-based cluster computing
+- Remote JobManager communication via TCP
+- Horizontal scaling across nodes  
+- Fault tolerance and high availability
+- Production-grade performance
+- Automatic resource management
+
+### JobManager Features
+
+The JobManager serves as the central brain of SAGE's distributed system:
+
+- **Job Lifecycle Management**: Complete job submission, execution, monitoring, and cleanup
+- **Resource Orchestration**: Intelligent resource allocation and load balancing
+- **Health Monitoring**: Real-time health checks and system diagnostics  
+- **Service Registry**: Centralized service discovery and management
+- **TCP Daemon**: High-performance network communication for remote clients
+- **Persistence**: Job state persistence and recovery capabilities
 
 ## 🎨 SAGE-Dashboard
-<p>With the <strong>SAGE-Dashboard</strong>, you can quickly orchestrate a large model application and run it with one click. Our meticulously designed visual interface will help you efficiently build, monitor, and manage complex workflows!</p>
 
+<p>With the <strong>SAGE-Dashboard</strong>, you can quickly orchestrate complex LLM applications and monitor them with one click. Our meticulously designed visual interface helps you efficiently build, monitor, and manage sophisticated AI workflows in real-time!</p>
 
+### ✨ Advanced Features
 
-### ✨: Features
-- **DAG Visualization**
-  - In the dashboard, the running DAG (Directed Acyclic Graph) is rendered in real-time, making your application workflow clear at a glance.</li>
-  - Intuitively displays data flows and component dependencies, simplifying the process of understanding complex applications.</li>
-- **Live Monitoring**
-  - During execution, you can observe the resource usage of various components, including operators and memory, in real-time through the built-in dashboard.</li>
-  - Operators are annotated with latency heatmaps, queue occupancy, and runtime statistics. Developers can observe the execution flow in real time, trace performance bottlenecks, and monitor memory behavior.</li>
-- **Drag-and-Drop DAG Construction**
-  - Quickly assemble a complete DAG workflow by simply arranging and connecting nodes on the canvas, with no need to write complex configuration files.</li>
-  - Intuitively define your workflow by dragging and dropping from a rich library of built-in component nodes.</li>
+- **Real-time DAG Visualization**
+  - Interactive rendering of running DAGs (Directed Acyclic Graphs) with live updates
+  - Intuitive display of data flows, component dependencies, and execution paths
+  - Color-coded status indicators and progress tracking
+  - Zoom, pan, and drill-down capabilities for complex workflows
+
+- **Comprehensive Live Monitoring**
+  - Real-time resource utilization monitoring (CPU, memory, GPU, network)
+  - Operator-level performance metrics with latency heatmaps
+  - Queue occupancy, throughput statistics, and bottleneck detection
+  - Memory usage patterns and garbage collection insights
+  - Error tracking and exception handling visualization
+
+- **Intelligent Drag-and-Drop DAG Construction**
+  - Visual pipeline builder with rich component library
+  - Smart connector system with type checking and validation
+  - Template gallery for common patterns (RAG, agents, evaluation pipelines)
+  - Real-time syntax checking and configuration validation
+  - One-click deployment from visual design to execution
+
+- **Advanced Analytics & Debugging**
+  - Performance profiling with detailed execution traces
+  - A/B testing capabilities for pipeline variants
+  - Historical performance analysis and trend monitoring
+  - Debug mode with step-by-step execution and breakpoints
+  - Export capabilities for reports and documentation
+
+- **Multi-tenant & Collaboration Support**
+  - User authentication and role-based access control
+  - Project workspaces with sharing and collaboration features
+  - Version control integration for pipeline definitions
+  - Team activity feeds and notification system
 
 <details>
-<summary>Show more</summary>
+<summary>🖼️ Dashboard Screenshots</summary>
 
  <!-- ![](./.github/asset/UI.png) -->
- <img src="./.github/asset/UI.png" alt="sage-dashboard" width="505"/>
+ <img src="./.github/asset/UI.png" alt="sage-dashboard" width="800"/>
+ 
+ **Key Dashboard Components:**
+ - **Pipeline Canvas**: Visual DAG editor with drag-and-drop components
+ - **Component Palette**: Library of pre-built operators and functions
+ - **Monitoring Panel**: Real-time metrics and performance indicators
+ - **Configuration Editor**: YAML/JSON configuration with syntax highlighting
+ - **Execution Console**: Live logs and execution status
 </details>
 
-#### Experience our meticulously designed Sage -Dashboard both user-friendly and powerful::
-```bash
-cd frontend/sage_server
-python main.py --host 127.0.0.1 --port 8080 --log-level debug
+#### 🚀 Experience the Power of SAGE-Dashboard
 
+Start the integrated development and monitoring environment:
+
+```bash
+# Start the backend server
+cd frontend/sage_server
+python main.py --host 0.0.0.0 --port 8080 --log-level info
+
+# In a new terminal, start the frontend dashboard
 cd ../dashboard
-npm i 
+npm install
 npm start
+
+# Access at http://localhost:4200
 ```
 
+**Production Deployment:**
+```bash
+# Build for production
+cd frontend/dashboard
+npm run build
+
+# Deploy with Docker
+docker-compose up -d sage-dashboard
+```
+
+The dashboard provides a complete IDE experience for SAGE development, from visual pipeline design to real-time monitoring and debugging.
+
 ## 🔖 License
+
 SAGE is licensed under the [MIT License](./LICENSE).
+
+---
+
+## 📚 Additional Resources
+
+- **Documentation**: [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
+- **Source Repository**: [https://github.com/intellistream/SAGE-Pub](https://github.com/intellistream/SAGE-Pub)
+- **Installation Guide**: [INSTALL_GUIDE.md](INSTALL_GUIDE.md)
+- **API Examples**: [app/](./app/) directory
+- **Configuration Samples**: [config/](./config/) directory
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our contributing guidelines and join our community:
+
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/intellistream/SAGE/issues)
+- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/intellistream/SAGE/discussions)
+- 📖 **Documentation**: Help improve our docs and examples
+- 🚀 **Code Contributions**: Submit pull requests for new features and fixes
+
+---
+
+**Built with ❤️ by the SAGE Team | Transforming AI Application Development**

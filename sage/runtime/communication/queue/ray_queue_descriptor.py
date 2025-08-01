@@ -38,7 +38,7 @@ class RayQueueDescriptor(BaseQueueDescriptor):
     @property
     def can_serialize(self) -> bool:
         """Ray队列可以序列化"""
-        return self._queue_instance is None
+        return True
     
     @property
     def metadata(self) -> Dict[str, Any]:

@@ -29,12 +29,22 @@ if(USE_OPENMP)
     endif()
 endif()
 
+# Find Boost
+find_package(Boost REQUIRED)
+if(Boost_FOUND)
+    message(STATUS "Boost found: ${Boost_VERSION}")
+    include_directories(${Boost_INCLUDE_DIRS})
+else()
+    message(FATAL_ERROR "Boost not found")
+endif()
+
 # Source files
 set(SAGE_QUEUE_SOURCES
-    src/ring_buffer.cpp
+    src/simple_boost_queue.cpp
 )
 
 set(SAGE_QUEUE_HEADERS
+    include/simple_boost_queue.h
     include/ring_buffer.h
     include/concurrentqueue.h
     include/lightweightsemaphore.h
@@ -58,6 +68,9 @@ set_target_properties(sage_queue PROPERTIES
 if(OpenMP_CXX_FOUND AND USE_OPENMP)
     target_link_libraries(sage_queue OpenMP::OpenMP_CXX)
 endif()
+
+# Link required libraries for Boost.Interprocess
+target_link_libraries(sage_queue rt pthread)
 
 # Compiler-specific options
 target_compile_options(sage_queue PRIVATE

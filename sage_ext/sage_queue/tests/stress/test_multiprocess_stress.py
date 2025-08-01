@@ -136,7 +136,7 @@ def stress_consumer_worker_func(worker_id: int, queue_names: List[str],
         queues = {}
         for queue_name in queue_names:
             try:
-                queues[queue_name] = SageQueue(queue_name)
+                queues[queue_name] = SageQueue(queue_name, maxsize=10000)
             except Exception as e:
                 stats['errors'].append(f"Queue connection failed: {e}")
                 continue
@@ -536,7 +536,7 @@ class TestMultiprocessStress:
             num_producers = config.num_processes // 2
             for i in range(num_producers):
                 future = executor.submit(
-                    tester.stress_producer_worker,
+                    stress_producer_worker_func,
                     i,
                     queue_names,
                     config.messages_per_process,
@@ -550,7 +550,7 @@ class TestMultiprocessStress:
             
             for i in range(num_consumers):
                 future = executor.submit(
-                    tester.stress_consumer_worker,
+                    stress_consumer_worker_func,
                     i + num_producers,
                     queue_names,
                     expected_per_consumer,
@@ -667,7 +667,7 @@ class TestMultiprocessStress:
                 for i in range(config.num_processes // 2):
                     # 生产者
                     future = executor.submit(
-                        tester.stress_producer_worker,
+                        stress_producer_worker_func,
                         f"{phase_name}_prod_{i}",
                         queue_names,
                         messages_per_process,
@@ -677,7 +677,7 @@ class TestMultiprocessStress:
                     
                     # 消费者
                     future = executor.submit(
-                        tester.stress_consumer_worker,
+                        stress_consumer_worker_func,
                         f"{phase_name}_cons_{i}",
                         queue_names,
                         messages_per_process,
@@ -733,7 +733,7 @@ class TestMultiprocessStress:
                 if i % 3 == 0:
                     # 生产者
                     future = executor.submit(
-                        tester.stress_producer_worker,
+                        stress_producer_worker_func,
                         f"extreme_prod_{i}",
                         queue_names,
                         config.messages_per_process,
@@ -743,7 +743,7 @@ class TestMultiprocessStress:
                 elif i % 3 == 1:
                     # 消费者
                     future = executor.submit(
-                        tester.stress_consumer_worker,
+                        stress_consumer_worker_func,
                         f"extreme_cons_{i}",
                         queue_names,
                         config.messages_per_process,
