@@ -416,9 +416,8 @@ class JobManager: #Job Manager
         self.session_id = self.session_timestamp.strftime("%Y%m%d_%H%M%S")
         
         # 2. 确定日志基础目录
-        # 方案：/tmp/sage/logs 作为实际存储位置
-        project_root = Path(__file__).parent.parent.parent
-        self.log_base_dir = project_root / "logs" / f"jobmanager_{self.session_id}"
+        # 方案：~/.sage/logs 作为实际存储位置
+        self.log_base_dir = Path.home() / ".sage" / "logs" / f"jobmanager_{self.session_id}"
         print(self.log_base_dir)
         Path(self.log_base_dir).mkdir(parents=True, exist_ok=True)
 
