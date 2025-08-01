@@ -124,14 +124,14 @@ def run_basic_queue_tests():
         )
         
         # 测试Python队列创建
-        python_queue = create_python_queue("basic_test_python")
+        python_queue = PythonQueueDescriptor("basic_test_python")
         python_queue.put("test_item")
         item = python_queue.get()
         assert item == "test_item"
         print("✅ Python队列基础功能正常")
         
         # 测试multiprocessing队列创建
-        mp_queue = create_python_queue("basic_test_mp", use_multiprocessing=True)
+        mp_queue = PythonQueueDescriptor("basic_test_mp", use_multiprocessing=True)
         mp_queue.put("mp_test_item")
         mp_item = mp_queue.get()
         assert mp_item == "mp_test_item"

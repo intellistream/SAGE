@@ -68,27 +68,7 @@ class BaseServiceTask(ABC):
         
         self.logger.debug(f"Base service task '{self.service_name}' initialized")
     
-    def _initialize_request_queue(self):
-        """初始化请求队列"""
-        try:
-            if self._request_queue is None:
-                self._request_queue = create_queue(name=self._request_queue_name)
-                self.logger.info(f"Initialized request queue: {self._request_queue_name}")
-        except Exception as e:
-            self.logger.error(f"Failed to initialize request queue: {e}")
-            raise
-    
-    def _get_response_queue(self, queue_name: str):
-        """获取或创建响应队列"""
-        if queue_name not in self._response_queues:
-            try:
-                self._response_queues[queue_name] = create_queue(name=queue_name)
-                self.logger.debug(f"Created response queue: {queue_name}")
-            except Exception as e:
-                self.logger.error(f"Failed to create response queue {queue_name}: {e}")
-                raise
-        
-        return self._response_queues[queue_name]
+
     
     def _start_queue_listener(self):
         """启动队列监听线程"""

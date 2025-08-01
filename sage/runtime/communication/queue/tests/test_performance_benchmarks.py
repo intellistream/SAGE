@@ -294,11 +294,11 @@ class PerformanceBenchmark:
         queue_configs = [
             {
                 'name': 'Python线程队列',
-                'creator': lambda: create_python_queue("perf_python_thread", maxsize=50000, use_multiprocessing=False)
+                'creator': lambda: PythonQueueDescriptor("perf_python_thread", maxsize=50000, use_multiprocessing=False)
             },
             {
                 'name': 'Python多进程队列',
-                'creator': lambda: create_python_queue("perf_python_mp", maxsize=50000, use_multiprocessing=True)
+                'creator': lambda: PythonQueueDescriptor("perf_python_mp", maxsize=50000, use_multiprocessing=True)
             }
         ]
         

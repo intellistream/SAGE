@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from queue import Empty
 import threading, copy, time
 from typing import Any, TYPE_CHECKING, Union, Optional
-from sage.runtime.runtime_context import RuntimeContext
+from sage.runtime.task_context import TaskContext
 from sage.runtime.communication.router.packet import Packet
 from ray.util.queue import Empty
 
@@ -15,28 +15,21 @@ if TYPE_CHECKING:
     from sage.runtime.factory.operator_factory import OperatorFactory
 
 class BaseTask(ABC):
-    def __init__(self,runtime_context: 'RuntimeContext',operator_factory: 'OperatorFactory') -> None:
-        self.ctx = runtime_context
-        
-        # 初始化task层的context属性，避免序列化问题
-        self.ctx.initialize_task_context()
+    def __init__(self, ctx: 'TaskContext',operator_factory: 'OperatorFactory') -> None:
+        self.ctx = ctx
         
         # 使用从上下文传入的队列描述符，而不是直接创建队列
-        self.input_queue_descriptor = self.ctx.get_input_queue_descriptor()
-        if self.input_queue_descriptor is None:
-            # 兜底方案：如果没有传入描述符，则创建默认的本地队列
-            self.input_queue_descriptor = self._create_default_queue_descriptor()
+        self.input_qd = self.ctx.input_qd
         
-        self.logger.info(f"🎯 Task: Using queue descriptor for input buffer: {self.input_queue_descriptor.queue_id}")
+        self.logger.info(f"🎯 Task: Using queue descriptor for input buffer: {self.input_qd.queue_id}")
         
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
         self.is_running = False
-        # 使用ctx中的共享stop_event，不再自己维护
         # === 性能监控 ===
         self._processed_count = 0
         self._error_count = 0
-        self.router = BaseRouter(runtime_context)
+        self.router = BaseRouter(ctx)
         try:
             self.operator:BaseOperator = operator_factory.create_operator(self.ctx)
             self.operator.task = self
@@ -99,7 +92,7 @@ class BaseTask(ABC):
         :return: 输入缓冲区对象
         """
         # 通过描述符获取队列实例
-        return self.input_queue_descriptor._ensure_queue_initialized()
+        return self.input_qd.queue_instance
     
     def _create_default_queue_descriptor(self):
         """创建默认队列描述符（兜底方案）"""
@@ -141,7 +134,7 @@ class BaseTask(ABC):
                     # input_result = self.fetch_input()
                     try:
                         self.logger.info(f"Task {self.name}: Attempting to get packet from input_buffer (timeout=5.0s)")
-                        data_packet = self.input_buffer.get(timeout=5.0)
+                        data_packet = self.input_qd.get(timeout=5.0)
 
                         self.logger.info(f"Task {self.name}: Successfully got packet from input_buffer: {data_packet}")
                     except Exception as e:

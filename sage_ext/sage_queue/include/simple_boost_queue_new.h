@@ -94,16 +94,9 @@ extern "C" {
     RingBufferStruct* ring_buffer_open(const char* name);
     void ring_buffer_destroy(RingBufferStruct* rb);
     
-    // 修改 destroy 函数以匹配 SageQueue 期望 - 按名称销毁
-    void ring_buffer_destroy_named(const char* name);
-    
     int ring_buffer_put(RingBufferStruct* rb, const void* data, uint32_t data_size, double timeout_sec);
     int ring_buffer_get(RingBufferStruct* rb, void* buffer, uint32_t* buffer_size, double timeout_sec);
     int ring_buffer_peek(RingBufferStruct* rb, void* buffer, uint32_t* buffer_size);
-    
-    // SageQueue 兼容接口
-    int ring_buffer_write(RingBufferStruct* rb, const void* data, uint32_t data_size);
-    int ring_buffer_read(RingBufferStruct* rb, void* buffer, uint32_t buffer_size);
     
     int ring_buffer_is_empty(RingBufferStruct* rb);
     int ring_buffer_is_full(RingBufferStruct* rb);
@@ -121,8 +114,6 @@ extern "C" {
     
     // 统计信息
     RingBufferStats ring_buffer_get_stats(RingBufferStruct* rb);
-    void ring_buffer_get_stats_ptr(RingBufferStruct* rb, RingBufferStats* stats);
-    void ring_buffer_reset_stats(RingBufferStruct* rb);
 
 #ifdef __cplusplus
 }

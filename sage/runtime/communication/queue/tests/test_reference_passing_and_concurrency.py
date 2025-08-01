@@ -183,7 +183,7 @@ class TestReferencePassingAndConcurrency:
         print("\n=== 测试Python队列多线程并发 ===")
         
         # 创建队列描述符
-        queue_desc = create_python_queue(queue_id="test_python_mt", maxsize=100)
+        queue_desc = PythonQueueDescriptor(queue_id="test_python_mt", maxsize=100)
         
         # 参数设置
         num_producers = 3
@@ -236,7 +236,7 @@ class TestReferencePassingAndConcurrency:
         """测试Python队列的混合读写操作"""
         print("\n=== 测试Python队列混合读写操作 ===")
         
-        queue_desc = create_python_queue(queue_id="test_python_mixed", maxsize=50)
+        queue_desc = PythonQueueDescriptor(queue_id="test_python_mixed", maxsize=50)
         
         # 先放入一些初始数据
         for i in range(10):
@@ -394,7 +394,7 @@ class TestReferencePassingAndConcurrency:
         print("\n=== 测试队列引用完整性 ===")
         
         # 创建原始队列描述符
-        original_desc = create_python_queue(queue_id="reference_test", maxsize=20)
+        original_desc = PythonQueueDescriptor(queue_id="reference_test", maxsize=20)
         
         # 放入一些数据
         for i in range(5):
@@ -427,7 +427,7 @@ class TestReferencePassingAndConcurrency:
         """并发压力测试"""
         print("\n=== 并发压力测试 ===")
         
-        queue_desc = create_python_queue(queue_id="stress_test", maxsize=1000)
+        queue_desc = PythonQueueDescriptor(queue_id="stress_test", maxsize=1000)
         
         num_threads = 10
         operations_per_thread = 50

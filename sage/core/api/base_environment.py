@@ -11,6 +11,7 @@ from sage.core.transformation.base_transformation import BaseTransformation
 from sage.core.transformation.source_transformation import SourceTransformation
 from sage.core.transformation.batch_transformation import BatchTransformation
 from sage.core.transformation.future_transformation import FutureTransformation
+from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
 from sage.utils.custom_logger import CustomLogger
 from sage.jobmanager.utils.name_server import get_name
 from sage.jobmanager.jobmanager_client import JobManagerClient
@@ -280,6 +281,100 @@ class BaseEnvironment(ABC):
                     f"Expected BaseFunction subclass, list, tuple, or any iterable object."
                 )
 
+
+
+
+    def from_future(self, name: str) -> DataStream:
+        """
+        创建一个future stream占位符，用于建立反馈边。
+        
+        Args:
+            name: future stream的名称，用于标识和调试
+            
+        Returns:
+            DataStream: 包含FutureTransformation的数据流
+            
+        Example:
+            future_stream = env.from_future("feedback_loop")
+            # 使用future_stream参与pipeline构建
+            result = source.connect(future_stream).comap(CombineFunction)
+            # 最后填充future
+            result.fill_future(future_stream)
+        """
+        transformation = FutureTransformation(self, name)
+        self.pipeline.append(transformation)
+        return DataStream(self, transformation)
+
+    ########################################################
+    #                jobmanager interface                  #
+    ########################################################
+    @abstractmethod
+    def submit(self):
+        pass
+
+
+    ########################################################
+    #                properties                            #
+    ########################################################
+
+    @property
+    def logger(self):
+        if not hasattr(self, "_logger"):
+            self._logger = CustomLogger()
+        return self._logger
+
+    @property
+    def client(self)-> JobManagerClient:
+        if self._engine_client is None:
+            # 从配置中获取 Engine 地址，或使用默认值
+            daemon_host = self.config.get("engine_host", "127.0.0.1")
+            daemon_port = self.config.get("engine_port", 19000)
+            
+            self._engine_client = JobManagerClient(host=daemon_host, port=daemon_port)
+            
+        return self._engine_client
+
+
+
+
+
+
+    ########################################################
+    #                called inside methods                 #
+    ########################################################
+
+    def setup_logging_system(self, log_base_dir: str): 
+        self.name = get_name(self.name)
+        # 这行代码的目的是让自己在jobmanager的名字唯一，不与其他注册过的环境冲突
+        # this method is called by jobmanager when receiving the job, not the user
+        self.session_timestamp = datetime.now()
+        self.session_id = self.session_timestamp.strftime("%Y%m%d_%H%M%S")
+        # self.log_base_dir = log_base_dir
+        self.env_base_dir = os.path.join(log_base_dir, f"env_{self.name}_{self.session_id}")
+        Path(self.env_base_dir).mkdir(parents=True, exist_ok=True)
+
+        self._logger = CustomLogger([
+                ("console", self.console_log_level),  # 使用用户设置的控制台日志等级
+                (os.path.join(self.env_base_dir, "Environment.log"), "DEBUG"),  # 详细日志
+                (os.path.join(self.env_base_dir, "Error.log"), "ERROR")  # 错误日志
+            ],
+            name = f"Environment_{self.name}",
+        )
+    
+    @abstractmethod
+    def get_qd(self, name: str, maxsize: int = 10000) -> 'BaseQueueDescriptor':
+        pass
+    
+
+    ########################################################
+    #                auxiliary methods                     #
+    ########################################################
+
+    def _append(self, transformation: BaseTransformation):
+        """将 BaseTransformation 添加到管道中（Compiler 会使用）。"""
+        self.pipeline.append(transformation)
+        return DataStream(self, transformation)
+
     def _from_batch_function_class(self, batch_function_class: Type['BaseFunction'], *args, **kwargs) -> DataStream:
         """
         从自定义批处理函数类创建批处理数据源
@@ -359,83 +454,3 @@ class BaseEnvironment(ABC):
         self.logger.info(f"Batch iterable source created from {type_name}{count_info}")
         
         return DataStream(self, transformation)
-
-
-    def from_future(self, name: str) -> DataStream:
-        """
-        创建一个future stream占位符，用于建立反馈边。
-        
-        Args:
-            name: future stream的名称，用于标识和调试
-            
-        Returns:
-            DataStream: 包含FutureTransformation的数据流
-            
-        Example:
-            future_stream = env.from_future("feedback_loop")
-            # 使用future_stream参与pipeline构建
-            result = source.connect(future_stream).comap(CombineFunction)
-            # 最后填充future
-            result.fill_future(future_stream)
-        """
-        transformation = FutureTransformation(self, name)
-        self.pipeline.append(transformation)
-        return DataStream(self, transformation)
-
-    ########################################################
-    #                jobmanager interface                  #
-    ########################################################
-    @abstractmethod
-    def submit(self):
-        pass
-
-
-    ########################################################
-    #                properties                            #
-    ########################################################
-
-    @property
-    def logger(self):
-        if not hasattr(self, "_logger"):
-            self._logger = CustomLogger()
-        return self._logger
-
-    @property
-    def client(self)-> JobManagerClient:
-        if self._engine_client is None:
-            # 从配置中获取 Engine 地址，或使用默认值
-            daemon_host = self.config.get("engine_host", "127.0.0.1")
-            daemon_port = self.config.get("engine_port", 19000)
-            
-            self._engine_client = JobManagerClient(host=daemon_host, port=daemon_port)
-            
-        return self._engine_client
-
-
-
-    ########################################################
-    #                auxiliary methods                     #
-    ########################################################
-
-    def _append(self, transformation: BaseTransformation):
-        """将 BaseTransformation 添加到管道中（Compiler 会使用）。"""
-        self.pipeline.append(transformation)
-        return DataStream(self, transformation)
-
-    def setup_logging_system(self, log_base_dir: str): 
-        self.name = get_name(self.name)
-        # 这行代码的目的是让自己在jobmanager的名字唯一，不与其他注册过的环境冲突
-        # this method is called by jobmanager when receiving the job, not the user
-        self.session_timestamp = datetime.now()
-        self.session_id = self.session_timestamp.strftime("%Y%m%d_%H%M%S")
-        # self.log_base_dir = log_base_dir
-        self.env_base_dir = os.path.join(log_base_dir, f"env_{self.name}_{self.session_id}")
-        Path(self.env_base_dir).mkdir(parents=True, exist_ok=True)
-
-        self._logger = CustomLogger([
-                ("console", self.console_log_level),  # 使用用户设置的控制台日志等级
-                (os.path.join(self.env_base_dir, "Environment.log"), "DEBUG"),  # 详细日志
-                (os.path.join(self.env_base_dir, "Error.log"), "ERROR")  # 错误日志
-            ],
-            name = f"Environment_{self.name}",
-        )

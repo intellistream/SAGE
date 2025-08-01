@@ -9,16 +9,16 @@ from .base_queue_descriptor import BaseQueueDescriptor
 
 # 专用队列描述符
 from .python_queue_descriptor import (
-    PythonQueueDescriptor, create_python_queue, create_local_queue
+    PythonQueueDescriptor
 )
-from .ray_queue_descriptor import RayQueueDescriptor, create_ray_queue
+from .ray_queue_descriptor import RayQueueDescriptor
 from .sage_queue_descriptor import SageQueueDescriptor, create_sage_queue
 from .rpc_queue_descriptor import RPCQueueDescriptor, create_rpc_queue
 
 # 工厂函数和便利函数
 def get_local_queue(queue_id=None, maxsize=0, use_multiprocessing=False):
     """获取本地Python队列"""
-    return create_python_queue(
+    return PythonQueueDescriptor(
         queue_id=queue_id,
         maxsize=maxsize,
         use_multiprocessing=use_multiprocessing

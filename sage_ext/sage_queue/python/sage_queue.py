@@ -54,15 +54,15 @@ def _get_user_prefix():
 def _get_namespaced_queue_name(name: str, namespace: Optional[str] = None) -> str:
     """
     获取带命名空间的队列名称
-    格式: {user_prefix}_{pid}_{namespace}_{name} 或 {user_prefix}_{pid}_{name}
+    格式: {user_prefix}_{namespace}_{name} 或 {user_prefix}_{name}
+    注意：移除了 PID 以支持跨进程共享
     """
     user_prefix = _get_user_prefix()
-    pid = os.getpid()
     
     if namespace:
-        return f"{user_prefix}_{pid}_{namespace}_{name}"
+        return f"{user_prefix}_{namespace}_{name}"
     else:
-        return f"{user_prefix}_{pid}_{name}"
+        return f"{user_prefix}_{name}"
 
 def _extract_queue_info(namespaced_name: str) -> tuple:
     """从带命名空间的名称中提取信息"""
@@ -366,8 +366,9 @@ Please ensure the C library is compiled. You can:
         self._lib.ring_buffer_close.argtypes = [POINTER(RingBufferStruct)]
         self._lib.ring_buffer_close.restype = None
         
-        self._lib.ring_buffer_destroy.argtypes = [ctypes.c_char_p]
-        self._lib.ring_buffer_destroy.restype = None
+        # 销毁函数（按名称销毁共享内存）
+        self._lib.ring_buffer_destroy_named.argtypes = [ctypes.c_char_p]
+        self._lib.ring_buffer_destroy_named.restype = None
         
         # 读写操作
         self._lib.ring_buffer_write.argtypes = [POINTER(RingBufferStruct), c_void_p, c_uint32]
@@ -627,7 +628,7 @@ Please ensure the C library is compiled. You can:
         """销毁队列（删除共享内存）"""
         if self.name:
             name_bytes = self.name.encode('utf-8')
-            self._lib.ring_buffer_destroy(name_bytes)
+            self._lib.ring_buffer_destroy_named(name_bytes)
             logger.info(f"Destroyed shared memory for queue: {self.name}")
     
     def get_shared_memory_info(self) -> Dict[str, Any]:

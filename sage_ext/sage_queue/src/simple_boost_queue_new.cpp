@@ -224,11 +224,9 @@ uint32_t SimpleBoostQueue::size_limit() {
 }
 
 void SimpleBoostQueue::close() {
-    // 对于 Boost.Interprocess 实现，我们不设置 closed 标志
-    // 因为共享内存应该在进程间保持持久性
-    // 只是清理本地资源
     if (metadata) {
-        // 通知任何等待的线程
+        scoped_lock<interprocess_mutex> lock(metadata->mutex);
+        metadata->closed = true;
         metadata->not_empty.notify_all();
         metadata->not_full.notify_all();
     }
@@ -293,16 +291,6 @@ extern "C" {
         }
     }
     
-    void ring_buffer_destroy_named(const char* name) {
-        if (name) {
-            try {
-                shared_memory_object::remove(name);
-            } catch (const std::exception& e) {
-                std::cerr << "Error removing shared memory: " << e.what() << std::endl;
-            }
-        }
-    }
-    
     int ring_buffer_put(RingBufferStruct* rb, const void* data, uint32_t data_size, double timeout_sec) {
         return rb ? static_cast<SimpleBoostQueue*>(rb)->put(data, data_size, timeout_sec) : 0;
     }
@@ -313,18 +301,6 @@ extern "C" {
     
     int ring_buffer_peek(RingBufferStruct* rb, void* buffer, uint32_t* buffer_size) {
         return rb ? static_cast<SimpleBoostQueue*>(rb)->peek(buffer, buffer_size) : 0;
-    }
-    
-    // SageQueue 兼容接口
-    int ring_buffer_write(RingBufferStruct* rb, const void* data, uint32_t data_size) {
-        return rb ? static_cast<SimpleBoostQueue*>(rb)->put(data, data_size, -1) : 0;
-    }
-    
-    int ring_buffer_read(RingBufferStruct* rb, void* buffer, uint32_t buffer_size) {
-        if (!rb) return 0;
-        uint32_t actual_size = buffer_size;
-        bool success = static_cast<SimpleBoostQueue*>(rb)->get(buffer, &actual_size, -1);
-        return success ? actual_size : 0;
     }
     
     int ring_buffer_is_empty(RingBufferStruct* rb) {
@@ -391,20 +367,6 @@ extern "C" {
             stats = static_cast<SimpleBoostQueue*>(rb)->get_stats();
         }
         return stats;
-    }
-    
-    void ring_buffer_get_stats_ptr(RingBufferStruct* rb, RingBufferStats* stats) {
-        if (rb && stats) {
-            *stats = static_cast<SimpleBoostQueue*>(rb)->get_stats();
-        }
-    }
-    
-    void ring_buffer_reset_stats(RingBufferStruct* rb) {
-        if (rb) {
-            auto* queue = static_cast<SimpleBoostQueue*>(rb);
-            queue->total_bytes_written = 0;
-            queue->total_bytes_read = 0;
-        }
     }
     
     int ring_buffer_dec_ref(RingBufferStruct* rb) {

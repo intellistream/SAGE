@@ -50,7 +50,7 @@
 ### 1. 引用传递能力
 ```python
 # 队列描述符可以在线程间安全传递
-original_queue = create_python_queue('shared_queue')
+original_queue = PythonQueueDescriptor('shared_queue')
 cloned_queue = original_queue.clone('shared_queue_clone')
 # 两个描述符引用相同的底层队列
 ```

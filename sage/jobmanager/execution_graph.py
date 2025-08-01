@@ -1,13 +1,19 @@
 
 from __future__ import annotations
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from typing import Dict, List, Set, Union
 from sage.core.api.base_environment import BaseEnvironment
 from sage.core.transformation.base_transformation import BaseTransformation
 from sage.utils.custom_logger import CustomLogger
+from sage.runtime.communication.queue_creation_strategy import QueueCreationStrategy
 from sage.jobmanager.utils.name_server import get_name
 from sage.runtime.runtime_context import RuntimeContext
+from sage.runtime.task_context import TaskContext
+from sage.runtime.service_context import ServiceContext
+from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
+
+
 if TYPE_CHECKING:
     from sage.jobmanager.job_manager import JobManager
     from ray.actor import ActorHandle
@@ -25,13 +31,14 @@ class GraphNode:
         self.is_sink: bool = transformation.is_sink
         self.input_channels:dict[int, List[GraphEdge]] = {}
         self.output_channels:List[List[GraphEdge]] = []
-
+        self.input_qd: 'BaseQueueDescriptor' = env.get_qd(name)  # 输入队列描述符
+        self.service_response_qd: 'BaseQueueDescriptor' = env.get_qd(f"{name}_response")  # 服务响应队列描述符
         self.stop_signal_num: int = 0  # 预期的源节点数量
-        self.ctx: RuntimeContext = None
+        self.ctx: TaskContext = None
 
 
 class ServiceNode:
-    def __init__(self, name: str, service_factory: 'ServiceFactory', service_task_factory: 'ServiceTaskFactory'):
+    def __init__(self, name: str, service_factory: 'ServiceFactory', service_task_factory: 'ServiceTaskFactory', env: BaseEnvironment):
         """
         服务节点，简化版本只记录基本信息
         
@@ -44,7 +51,8 @@ class ServiceNode:
         self.service_factory: 'ServiceFactory' = service_factory
         self.service_task_factory: 'ServiceTaskFactory' = service_task_factory
         self.service_name: str = service_factory.service_name
-        self.ctx: RuntimeContext = None
+        self.service_qd: 'BaseQueueDescriptor' = env.get_qd(f"{name}_service")  # 服务队列描述符
+        self.ctx: ServiceContext = None
 
 
 class GraphEdge:
@@ -104,11 +112,34 @@ class ExecutionGraph:
         """
         self.logger.debug("Generating runtime contexts for all nodes")
         
+        # 创建队列创建策略
+        queue_creation_strategy = QueueCreationStrategy()
+        is_remote = self.env.platform == "remote"
+        default_params = queue_creation_strategy.get_default_queue_params(is_remote)
+        
         # 为流水线节点生成运行时上下文
         for node_name, node in self.nodes.items():
             try:
-                node.ctx = RuntimeContext(node, node.transformation, self.env)
-                self.logger.debug(f"Generated runtime context for transformation node: {node_name}")
+                node.ctx = TaskContext(node, node.transformation, self.env)
+                
+                # 为每个graph node创建input queue descriptor
+                input_queue_desc = queue_creation_strategy.create_task_input_queue(
+                    task_name=node_name,
+                    is_remote=is_remote,
+                    **default_params
+                )
+                node.ctx.set_input_queue_descriptor(input_queue_desc)
+                
+                # 为每个graph node创建service response queue descriptor
+                service_response_queue_desc = queue_creation_strategy.create_service_response_queue(
+                    service_name="response",  # 通用响应队列名称
+                    node_name=node_name,
+                    is_remote=is_remote,
+                    **default_params
+                )
+                node.ctx.set_service_response_queue_descriptor(service_response_queue_desc)
+                
+                self.logger.debug(f"Generated runtime context and queue descriptors for transformation node: {node_name}")
             except Exception as e:
                 self.logger.error(f"Failed to generate runtime context for node {node_name}: {e}", exc_info=True)
         
@@ -116,9 +147,21 @@ class ExecutionGraph:
         for service_name, service_node in self.service_nodes.items():
             try:
                 service_node.ctx = self._create_service_runtime_context(service_node)
-                self.logger.debug(f"Generated runtime context for service node: {service_name}")
+                
+                # 为每个service创建request queue descriptor
+                service_request_queue_desc = queue_creation_strategy.create_service_request_queue(
+                    service_name=service_node.service_name,
+                    is_remote=is_remote,
+                    **default_params
+                )
+                service_node.ctx.set_request_queue_descriptor(service_request_queue_desc)
+                
+                self.logger.debug(f"Generated runtime context and queue descriptors for service node: {service_name}")
             except Exception as e:
                 self.logger.error(f"Failed to generate runtime context for service node {service_name}: {e}", exc_info=True)
+        
+        # 现在分发跨节点的队列描述符
+        self._distribute_queue_descriptors()
 
     def _create_service_runtime_context(self, service_node: ServiceNode) -> RuntimeContext:
         """
@@ -146,6 +189,36 @@ class ExecutionGraph:
         mock_graph_node = MockGraphNode(service_node)
         
         return RuntimeContext(mock_graph_node, mock_transformation, self.env)
+    
+    def _distribute_queue_descriptors(self):
+        """将队列描述符分发到相应的运行时上下文"""
+        self.logger.debug("Distributing queue descriptors across runtime contexts")
+        
+        # 收集所有service的request queue descriptors
+        service_request_descriptors = {}
+        for service_name, service_node in self.service_nodes.items():
+            service_request_desc = service_node.ctx.get_request_queue_descriptor()
+            if service_request_desc:
+                service_request_descriptors[service_node.service_name] = service_request_desc
+        
+        # 收集所有graph node的service response queue descriptors
+        service_response_descriptors = {}
+        for node_name, graph_node in self.nodes.items():
+            service_response_desc = graph_node.ctx.get_service_response_queue_descriptor()
+            if service_response_desc:
+                service_response_descriptors[node_name] = service_response_desc
+        
+        # 为每个graph node设置service request queue descriptors（让graph node可以访问所有service）
+        for node_name, graph_node in self.nodes.items():
+            graph_node.ctx.set_service_request_queue_descriptors(service_request_descriptors)
+            self.logger.debug(f"Set service request queue descriptors for graph node: {node_name}")
+        
+        # 为每个service task设置service response queue descriptors（让service可以访问所有response队列）
+        for service_name, service_node in self.service_nodes.items():
+            service_node.ctx.set_service_response_queue_descriptors(service_response_descriptors)
+            self.logger.debug(f"Set service response queue descriptors for service: {service_name}")
+        
+        self.logger.info("Queue descriptor distribution completed")
 
     def _build_service_nodes(self, env: BaseEnvironment):
         """
@@ -170,7 +243,8 @@ class ExecutionGraph:
                 service_node = ServiceNode(
                     name=service_node_name,
                     service_factory=service_factory,
-                    service_task_factory=service_task_factory
+                    service_task_factory=service_task_factory,
+                    env=env
                 )
                 
                 # 添加到服务节点字典

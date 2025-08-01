@@ -43,7 +43,7 @@ class BaseQueueDescriptor(ABC):
         created_timestamp: 创建时间戳（自动生成）
     """
     
-    def __init__(self, queue_id: Optional[str] = None, queue_instance: Optional[Any] = None):
+    def __init__(self, queue_id: Optional[str] = None):
         """
         初始化队列描述符基类
         
@@ -53,11 +53,7 @@ class BaseQueueDescriptor(ABC):
         """
         self.queue_id = queue_id or self._generate_queue_id()
         self.created_timestamp = time.time()
-        
-        # 队列实例管理
-        self._queue_instance = queue_instance
-        self._initialized = queue_instance is not None
-        self._lazy_loading = queue_instance is None
+    
         
         self._validate()
     
@@ -77,16 +73,6 @@ class BaseQueueDescriptor(ABC):
         """是否可以序列化"""
         pass
     
-    @property
-    @abstractmethod
-    def metadata(self) -> Dict[str, Any]:
-        """元数据字典"""
-        pass
-    
-    @abstractmethod
-    def _create_queue_instance(self) -> Any:
-        """创建队列实例（由子类实现）"""
-        pass
     
     def _validate(self):
         """验证描述符参数"""
@@ -97,67 +83,35 @@ class BaseQueueDescriptor(ABC):
         if not isinstance(self.metadata, dict):
             raise ValueError("metadata must be a dictionary")
     
-    def _ensure_queue_initialized(self) -> Any:
-        """确保队列实例已初始化（懒加载）"""
-        if not self._initialized:
-            if self._queue_instance is None:
-                self._queue_instance = self._create_queue_instance()
-            self._initialized = True
-        return self._queue_instance
-    
     # ============ 队列接口实现 ============
     
     def put(self, item: Any, block: bool = True, timeout: Optional[float] = None) -> None:
-        """向队列中放入项目"""
-        queue = self._ensure_queue_initialized()
-        return queue.put(item, block=block, timeout=timeout)
+        return self.queue_instance.put(item, block=block, timeout=timeout)
     
     def get(self, block: bool = True, timeout: Optional[float] = None) -> Any:
         """从队列中获取项目"""
-        queue = self._ensure_queue_initialized()
-        return queue.get(block=block, timeout=timeout)
+        return self.queue_instance.get(block=block, timeout=timeout)
     
     def empty(self) -> bool:
         """检查队列是否为空"""
-        queue = self._ensure_queue_initialized()
-        return queue.empty()
+        return self.queue_instance.empty()
     
     def qsize(self) -> int:
         """获取队列大小"""
-        queue = self._ensure_queue_initialized()
-        return queue.qsize()
+        return self.queue_instance.qsize()
     
     # 额外的队列方法（如果底层队列支持）
     def put_nowait(self, item: Any) -> None:
         """非阻塞放入项目"""
-        queue = self._ensure_queue_initialized()
-        if hasattr(queue, 'put_nowait'):
-            return queue.put_nowait(item)
-        else:
-            return queue.put(item, block=False)
+        return self.queue_instance.put_nowait(item)
     
     def get_nowait(self) -> Any:
         """非阻塞获取项目"""
-        queue = self._ensure_queue_initialized()
-        if hasattr(queue, 'get_nowait'):
-            return queue.get_nowait()
-        else:
-            return queue.get(block=False)
-    
+        return self.queue_instance.get_nowait()
+
     def full(self) -> bool:
         """检查队列是否已满"""
-        queue = self._ensure_queue_initialized()
-        if hasattr(queue, 'full'):
-            return queue.full()
-        else:
-            # 默认实现：尝试估算
-            try:
-                maxsize = self.metadata.get('maxsize', 0)
-                if maxsize <= 0:
-                    return False  # 无限大小队列
-                return queue.qsize() >= maxsize
-            except:
-                return False
+        return self.queue_instance.full()
     
     # ============ 描述符管理方法 ============
     
@@ -181,6 +135,13 @@ class BaseQueueDescriptor(ABC):
         # 创建同类型的新实例
         new_instance = type(self)(queue_id=new_queue_id or f"{self.queue_id}_clone")
         return new_instance
+    
+    def trim(self):
+        """清除队列实例引用，释放内存但保留描述符信息"""
+        if hasattr(self, '_queue_instance'):
+            self._queue_instance = None
+        if hasattr(self, '_initialized'):
+            self._initialized = False
     
     # ============ 序列化支持 ============
     
@@ -232,34 +193,8 @@ class BaseQueueDescriptor(ABC):
         
         # 创建同类型的新实例（不包含队列实例）
         return type(self)(queue_id=self.queue_id)
+
     
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'BaseQueueDescriptor':
-        """从字典创建实例"""
-        # 根据 class_name 动态创建正确的子类实例
-        class_name = data.get('class_name')
-        if class_name and class_name != cls.__name__:
-            # 尝试从全局命名空间找到正确的类
-            for subclass in cls.__subclasses__():
-                if subclass.__name__ == class_name:
-                    return subclass.from_dict(data)
-        
-        # 基础实现：直接创建当前类的实例
-        instance = cls(queue_id=data['queue_id'])
-        instance.created_timestamp = data.get('created_timestamp', time.time())
-        return instance
-    
-    @classmethod
-    def from_json(cls, json_str: str) -> 'BaseQueueDescriptor':
-        """从JSON字符串创建实例"""
-        data = json.loads(json_str)
-        return cls.from_dict(data)
-    
-    @classmethod
-    def from_existing_queue(cls, queue_instance: Any, queue_id: Optional[str] = None, 
-                           **kwargs) -> 'BaseQueueDescriptor':
-        """从现有队列实例创建描述符（不可序列化）"""
-        return cls(queue_id=queue_id, queue_instance=queue_instance)
     
     # ============ 魔法方法 ============
     
@@ -290,29 +225,3 @@ class BaseQueueDescriptor(ABC):
     
     def __hash__(self) -> int:
         return hash((self.queue_id, self.queue_type))
-
-
-# ============ 便利函数 ============
-
-def resolve_descriptor(desc: BaseQueueDescriptor) -> Any:
-    """
-    解析队列描述符，返回队列实例
-    
-    Args:
-        desc: 队列描述符
-        
-    Returns:
-        队列实例
-    """
-    return desc._ensure_queue_initialized()
-
-
-def create_descriptor_from_existing_queue(queue: Any, descriptor_class: type, 
-                                        queue_id: Optional[str] = None, 
-                                        **kwargs) -> BaseQueueDescriptor:
-    """从现有队列创建描述符"""
-    return descriptor_class.from_existing_queue(
-        queue_instance=queue,
-        queue_id=queue_id,
-        **kwargs
-    )

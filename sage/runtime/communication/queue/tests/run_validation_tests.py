@@ -25,7 +25,7 @@ def test_basic_functionality():
         )
         
         # 测试Python队列
-        python_queue = create_python_queue('test_basic_python')
+        python_queue = PythonQueueDescriptor('test_basic_python')
         python_queue.put('hello python')
         item = python_queue.get()
         assert item == 'hello python'
@@ -83,7 +83,7 @@ def test_multithreading_concurrency():
         from sage.runtime.communication.queue import create_python_queue
         
         # 创建队列
-        queue_desc = create_python_queue('test_concurrent', maxsize=100)
+        queue_desc = PythonQueueDescriptor('test_concurrent', maxsize=100)
         
         # 配置
         num_producers = 3
@@ -204,7 +204,7 @@ def test_queue_reference_passing():
         from sage.runtime.communication.queue import create_python_queue
         
         # 创建原始队列
-        original_queue = create_python_queue('test_reference', maxsize=20)
+        original_queue = PythonQueueDescriptor('test_reference', maxsize=20)
         
         # 添加一些数据
         test_items = ["ref_item1", "ref_item2", "ref_item3"]
