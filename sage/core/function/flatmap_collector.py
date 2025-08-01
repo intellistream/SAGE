@@ -1,6 +1,6 @@
 from typing import Optional, List, Any, Dict, Tuple
 from sage.runtime.runtime_context import RuntimeContext
-from sage.runtime.router.router import BaseRouter
+from sage.runtime.communication.router.router import BaseRouter
 class Collector:
     """
     Enhanced Collector class for collecting data from a function.

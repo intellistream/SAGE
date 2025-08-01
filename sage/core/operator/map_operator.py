@@ -5,7 +5,7 @@ import os
 import json
 from typing import Union, Any
 from sage.utils.custom_logger import CustomLogger
-from sage.runtime.router.packet import Packet
+from sage.runtime.communication.router.packet import Packet
 
 
 class MapOperator(BaseOperator):

@@ -3,14 +3,14 @@ from queue import Empty
 import threading, copy, time
 from typing import Any, TYPE_CHECKING, Union, Optional
 from sage.runtime.runtime_context import RuntimeContext
-from sage.runtime.router.packet import Packet
+from sage.runtime.communication.router.packet import Packet
 from ray.util.queue import Empty
 
 from sage.utils.queue_adapter import create_queue
-from sage.runtime.router.router import BaseRouter
+from sage.runtime.communication.router.router import BaseRouter
 from sage.core.function.source_function import StopSignal
 if TYPE_CHECKING:
-    from sage.runtime.router.connection import Connection
+    from sage.runtime.communication.router.connection import Connection
     from sage.core.operator.base_operator import BaseOperator
     from sage.runtime.factory.operator_factory import OperatorFactory
 

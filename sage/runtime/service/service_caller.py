@@ -34,11 +34,11 @@ class ServiceManager:
         self.logger = logging.getLogger(__name__)
         
         # 服务队列缓存
-        self._service_queues: Dict[str, SageQueue] = {}
+        self._service_queues: Dict[str, Any] = {}
         
         # 响应队列
         self._response_queue_name = f"service_responses_{uuid.uuid4().hex[:8]}"
-        self._response_queue: Optional[SageQueue] = None
+        self._response_queue: Optional[Any] = None
         
         # 请求结果管理
         self._result_lock = threading.RLock()

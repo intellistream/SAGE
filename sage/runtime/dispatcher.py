@@ -4,7 +4,7 @@ from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
 from sage.runtime.service.base_service_task import BaseServiceTask
 from sage.runtime.task.base_task import BaseTask
 from sage.utils.actor_wrapper import ActorWrapper
-from sage.runtime.router.connection import Connection
+from sage.runtime.communication.router.connection import Connection
 from sage.utils.custom_logger import CustomLogger
 import ray
 from ray.actor import ActorHandle

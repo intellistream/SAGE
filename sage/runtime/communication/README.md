@@ -1,306 +1,182 @@
-# Queue Descriptor - 统一通信描述符系统
+# Communication 通信模块
 
-## 概述
+Communication 模块提供 SAGE 运行时的统一通信框架，支持多种通信模式和数据路由策略。
 
-Queue Descriptor 是一个统一的通信描述符系统，用于在异构通信环境中管理各种类型的队列通信方式。它提供了一个可序列化的描述符结构，支持本地队列、共享内存队列、Ray Actor队列、RPC队列等多种通信方式。
+## 模块架构
 
-## 🆕 增强功能
+### 队列通信系统 (`queue/`)
+提供统一的队列抽象和多种队列实现。
 
-### 序列化控制
-- **can_serialize 字段**: 控制描述符是否可以序列化
-- **智能序列化**: 自动检测和防止不可序列化对象的序列化
+**核心组件**：
+- **队列描述符**: 统一的多态队列描述符系统
+- **队列桩**: 各种队列类型的封装和转换
+- **描述符扩展**: 队列描述符的基础设施支持
 
-### 专用描述符类
-- **LocalQueueDescriptor**: 包含队列对象引用，支持直接操作，不可序列化
-- **RemoteQueueDescriptor**: 支持懒加载和缓存，可序列化，适合跨进程通信
+**主要特性**：
+- 支持本地队列、共享内存队列、Ray Actor 队列等
+- 统一的队列接口和序列化支持
+- 跨进程队列描述符传递
 
-### 直接队列操作
-- 描述符本身支持队列操作（put、get、empty、qsize等）
-- 无需额外的 resolve_descriptor 调用
+### 路由系统 (`router/`)
+处理数据包路由、连接管理和负载均衡。
 
-## 核心功能
+**核心组件**：
+- **路由器**: 负责数据包的智能路由和分发
+- **连接管理**: 管理节点间的通信连接
+- **数据包**: 定义通信的基本数据单元
 
-- **统一接口**: 为不同类型的队列提供统一的 `QueueLike` 协议
-- **可序列化**: 支持跨进程传递队列引用
-- **可扩展**: 支持动态注册新的队列类型实现
-- **类型安全**: 使用 Python 类型提示和协议检查
+**主要特性**：
+- 多种路由策略（轮询、键分区、负载均衡）
+- 实时负载监控和自适应调整
+- 支持本地和分布式混合连接
 
-## 核心组件
+## 通信模式
 
-### 1. QueueDescriptor
-
-可序列化的队列描述符，包含以下字段：
-
-- `queue_id`: 队列的唯一标识符
-- `queue_type`: 通信方式类型（如 "local", "shm", "ray_actor", "rpc" 等）
-- `metadata`: 保存额外参数的字典（如 shm 名称、socket 地址、ray actor name 等）
-- `can_serialize`: 是否可序列化（新增）
-- `created_timestamp`: 创建时间戳
-
-### 2. LocalQueueDescriptor
-
-本地队列描述符，继承自 QueueDescriptor：
-
-- 包含对实际队列对象的引用
-- 支持直接的队列操作（put、get、empty、qsize等）
-- `can_serialize = False`（不可序列化）
-- 可转换为可序列化版本
-
-### 3. RemoteQueueDescriptor  
-
-远程队列描述符，继承自 QueueDescriptor：
-
-- 支持懒加载：首次访问时才创建队列实例
-- 支持缓存管理：可清除和重新初始化
-- `can_serialize = True`（可序列化）
-- 适合跨进程通信场景
-
-### 2. QueueLike 协议
-
-定义所有队列类型必须实现的方法：
-
+### 1. 点对点通信
 ```python
-def put(self, item: Any, block: bool = True, timeout: Optional[float] = None) -> None
-def get(self, block: bool = True, timeout: Optional[float] = None) -> Any
-def empty(self) -> bool
-def qsize(self) -> int
-```
+from sage.runtime.communication.queue import QueueDescriptor
+from sage.runtime.communication.router import Connection
 
-### 3. 解析和注册系统
-
-- `resolve_descriptor(desc: QueueDescriptor) -> QueueLike`: 根据描述符创建队列实例
-- `register_queue_implementation(queue_type: str, implementation_class)`: 注册队列类型实现
-- `get_registered_queue_types()`: 获取已注册的队列类型
-
-## 使用方法
-
-### 基本用法（传统方式）
-
-```python
-from sage.runtime.communication.queue_descriptor import (
-    QueueDescriptor, resolve_descriptor, register_queue_implementation
+# 创建队列描述符
+descriptor = QueueDescriptor(
+    queue_id="p2p_queue",
+    queue_type="local",
+    metadata={"maxsize": 1000}
 )
 
-# 1. 创建队列描述符
-desc = QueueDescriptor(queue_id="sink1", queue_type="shm", metadata={"shm_name": "shm_abc"})
-
-# 2. 注册队列实现（需要先实现对应的队列类）
-register_queue_implementation("shm", YourShmQueueImplementation)
-
-# 3. 解析描述符获取队列对象
-queue = resolve_descriptor(desc)
-
-# 4. 使用队列
-queue.put("test")
-data = queue.get()  # 返回 "test"
+# 建立连接
+connection = Connection(
+    broadcast_index=0,
+    parallel_index=0,
+    target_name="receiver",
+    target_handle=receiver_task,
+    target_input_index=0
+)
 ```
 
-### 🆕 增强用法
-
-#### 直接队列操作（LocalQueueDescriptor）
-
+### 2. 广播通信
 ```python
-import queue
-from sage.runtime.communication.queue_descriptor import create_local_queue_descriptor_with_ref
+# 创建广播路由器
+router = BroadcastRouter(ctx)
 
-# 从现有队列创建描述符
-python_queue = queue.Queue(maxsize=10)
-local_desc = create_local_queue_descriptor_with_ref(
-    queue_obj=python_queue,
-    queue_id="my_queue",
-    maxsize=10
+# 添加多个下游连接
+for i, target in enumerate(targets):
+    connection = Connection(
+        broadcast_index=i,
+        parallel_index=0,
+        target_name=f"target_{i}",
+        target_handle=target,
+        target_input_index=0
+    )
+    router.add_connection(connection)
+```
+
+### 3. 分区通信
+```python
+from sage.runtime.communication.router.packet import Packet
+
+# 创建带分区键的数据包
+packet = Packet(
+    payload=data,
+    partition_key=user_id,
+    partition_strategy="hash"
 )
 
-# 直接通过描述符操作队列
-local_desc.put("message1")
-local_desc.put("message2")
-print(f"队列大小: {local_desc.qsize()}")
-data = local_desc.get()  # 返回 "message1"
-
-# 注意：LocalQueueDescriptor 不可序列化
-print(f"可序列化: {local_desc.can_serialize}")  # False
+# 路由器根据分区键选择目标
+router.route(packet)
 ```
 
-#### 懒加载远程队列（RemoteQueueDescriptor）
+## 队列类型支持
 
-```python
-from sage.runtime.communication.queue_descriptor import QueueDescriptor
+### 本地队列 (Local Queue)
+- **适用场景**: 单进程内线程间通信
+- **特点**: 低延迟，高性能
+- **实现**: 基于 Python `queue.Queue`
 
-# 创建远程队列描述符（可序列化）
-remote_desc = QueueDescriptor.create_shm_queue("my_shm", "remote_queue")
+### 共享内存队列 (Shared Memory Queue)
+- **适用场景**: 多进程间通信
+- **特点**: 高效的跨进程数据传输
+- **实现**: 基于共享内存机制
 
-# 直接操作，首次访问时自动初始化
-remote_desc.put("lazy_message")  # 触发懒加载
-data = remote_desc.get()
+### Ray Actor 队列
+- **适用场景**: 分布式计算环境
+- **特点**: 跨节点通信，自动容错
+- **实现**: 基于 Ray 分布式框架
 
-# 可以序列化传递
-json_data = remote_desc.to_json()
-# 在另一个进程中...
-restored_desc = QueueDescriptor.from_json(json_data)
+### SAGE 队列
+- **适用场景**: 高性能流处理
+- **特点**: 专为 SAGE 优化的高性能队列
+- **实现**: 自定义实现，支持背压和流控
+
+## 性能优化
+
+### 负载均衡
+- **动态负载监控**: 实时跟踪下游节点负载
+- **自适应路由**: 根据负载情况动态调整路由策略
+- **负载预测**: 基于历史数据预测负载趋势
+
+### 内存管理
+- **零拷贝传输**: 在可能的情况下避免数据拷贝
+- **缓冲区管理**: 智能缓冲区大小调整
+- **内存池**: 复用内存对象减少 GC 压力
+
+### 网络优化
+- **连接复用**: 复用网络连接减少开销
+- **批量传输**: 合并小数据包提高传输效率
+- **压缩传输**: 对大数据进行压缩传输
+
+## 故障处理
+
+### 连接故障
+- **健康检查**: 定期检查连接健康状态
+- **自动重连**: 连接断开时自动重新建立
+- **故障转移**: 将流量转移到健康的连接
+
+### 数据丢失防护
+- **确认机制**: 可选的消息确认机制
+- **重传策略**: 失败消息的重传处理
+- **持久化**: 关键数据的持久化存储
+
+## 监控和调试
+
+### 通信指标
+- **吞吐量**: 消息传输速率统计
+- **延迟**: 端到端消息延迟测量
+- **队列状态**: 队列大小和利用率监控
+
+### 调试支持
+- **消息追踪**: 跟踪消息的完整传输路径
+- **性能分析**: 通信性能瓶颈分析
+- **日志记录**: 详细的通信日志记录
+
+## 配置选项
+
+### 队列配置
+```yaml
+communication:
+  queue:
+    default_type: "local"
+    max_size: 10000
+    timeout: 30
+  
+  router:
+    strategy: "load_balance"
+    health_check_interval: 5
+    max_retries: 3
 ```
 
-#### 序列化控制
-
-```python
-# 检查是否可序列化
-if desc.can_serialize:
-    json_data = desc.to_json()
-else:
-    # 转换为可序列化版本
-    serializable_desc = desc.to_serializable_descriptor()
-    json_data = serializable_desc.to_json()
+### 性能调优
+```yaml
+performance:
+  batch_size: 100
+  compression: true
+  zero_copy: true
+  memory_pool_size: 1024
 ```
 
-### 工厂方法
+## 参考
 
-```python
-# 创建本地队列
-local_desc = QueueDescriptor.create_local_queue("my_local", maxsize=100)
-
-# 创建共享内存队列
-shm_desc = QueueDescriptor.create_shm_queue("my_shm", "shm_name", maxsize=1000)
-
-# 创建Ray Actor队列
-ray_actor_desc = QueueDescriptor.create_ray_actor_queue("my_actor", "actor_name")
-
-# 创建Ray分布式队列
-ray_queue_desc = QueueDescriptor.create_ray_queue("my_ray", maxsize=50)
-
-# 创建RPC队列
-rpc_desc = QueueDescriptor.create_rpc_queue("localhost", 8080, "my_rpc")
-
-# 创建SAGE高性能队列
-sage_desc = QueueDescriptor.create_sage_queue("my_sage", maxsize=200)
-```
-
-### 序列化和跨进程传输
-
-```python
-# 序列化
-desc = QueueDescriptor.create_local_queue("test")
-json_str = desc.to_json()
-
-# 反序列化
-desc2 = QueueDescriptor.from_json(json_str)
-
-# 在另一个进程中使用
-queue = resolve_descriptor(desc2)
-```
-
-### 便利函数
-
-```python
-from sage.runtime.communication.queue_descriptor import (
-    get_local_queue, attach_to_shm_queue, get_sage_queue
-)
-
-# 直接获取队列对象（需要先注册相应实现）
-local_queue = get_local_queue("test_local", maxsize=10)
-shm_queue = attach_to_shm_queue("test_shm", "shm_queue", maxsize=100)
-sage_queue = get_sage_queue("test_sage", maxsize=200)
-```
-
-## 实现自定义队列类型
-
-### 1. 实现队列类
-
-```python
-from sage.runtime.communication.queue_descriptor import QueueDescriptor
-import queue
-
-class MyCustomQueue:
-    def __init__(self, descriptor: QueueDescriptor):
-        self.descriptor = descriptor
-        self.queue_id = descriptor.queue_id
-        self.metadata = descriptor.metadata
-        # 根据 metadata 初始化你的队列
-        self._queue = queue.Queue()
-    
-    def put(self, item, block=True, timeout=None):
-        self._queue.put(item, block=block, timeout=timeout)
-    
-    def get(self, block=True, timeout=None):
-        return self._queue.get(block=block, timeout=timeout)
-    
-    def empty(self):
-        return self._queue.empty()
-    
-    def qsize(self):
-        return self._queue.qsize()
-```
-
-### 2. 注册实现
-
-```python
-from sage.runtime.communication.queue_descriptor import register_queue_implementation
-
-register_queue_implementation("my_custom", MyCustomQueue)
-```
-
-### 3. 创建和使用
-
-```python
-desc = QueueDescriptor(
-    queue_id="custom_test",
-    queue_type="my_custom",
-    metadata={"custom_param": "value"}
-)
-
-queue = resolve_descriptor(desc)
-queue.put("Hello Custom Queue!")
-```
-
-## 支持的队列类型
-
-系统设计支持以下队列类型（具体实现需要单独注册）：
-
-- **local**: 本地内存队列
-- **shm**: 共享内存队列
-- **ray_actor**: Ray Actor 队列
-- **ray_queue**: Ray 分布式队列
-- **rpc**: RPC 队列
-- **sage_queue**: SAGE 高性能队列
-
-## 测试
-
-系统提供了完整的测试套件，包含各种队列类型的存根实现：
-
-```bash
-cd /api-rework
-python sage/runtime/communication/test_queue_descriptor.py
-```
-
-或者运行简单测试：
-
-```bash
-python simple_test.py
-```
-
-## 在 SAGE 系统中的应用
-
-Queue Descriptor 系统专为 SAGE 引擎的异构通信需求设计，可以在以下场景中使用：
-
-1. **跨进程任务通信**: 在 Dispatcher 中传递队列引用
-2. **服务间通信**: 统一不同服务的通信接口
-3. **本地/远程切换**: 根据运行环境动态选择通信方式
-4. **资源管理**: 统一管理和清理各种通信资源
-
-## 架构优势
-
-- **解耦**: 队列描述符与具体实现分离
-- **灵活**: 支持运行时动态注册新的队列类型
-- **一致性**: 为所有队列类型提供统一的接口
-- **可维护性**: 集中管理通信逻辑
-- **可测试性**: 提供存根实现便于单元测试
-
-## 扩展指南
-
-要添加新的队列类型：
-
-1. 实现 `QueueLike` 协议的队列类
-2. 在构造函数中接受 `QueueDescriptor` 参数
-3. 使用 `register_queue_implementation` 注册实现
-4. 可选：在 `QueueDescriptor` 中添加工厂方法
-5. 可选：在便利函数中添加快捷方法
-
-这个设计确保了系统的可扩展性和向后兼容性。
+相关模块：
+- `../task/`: 任务执行系统
+- `../service/`: 服务调用框架
+- `../../core/`: 核心执行引擎

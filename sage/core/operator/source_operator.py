@@ -3,7 +3,7 @@ from sage.core.function.source_function import SourceFunction
 from sage.utils.custom_logger import CustomLogger
 from collections import deque
 from typing import Union, Dict, Deque, Tuple, Any, TYPE_CHECKING
-from sage.runtime.router.packet import Packet
+from sage.runtime.communication.router.packet import Packet
 from sage.core.function.source_function import StopSignal
 if TYPE_CHECKING:
     from sage.runtime.task.base_task import BaseTask

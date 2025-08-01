@@ -4,14 +4,14 @@ from typing import Any, List, Dict, Optional, TYPE_CHECKING, Type, Tuple
 from sage.core.function.source_function import StopSignal
 from sage.runtime.task.base_task import BaseTask
 from sage.utils.custom_logger import CustomLogger
-from sage.runtime.router.packet import Packet
+from sage.runtime.communication.router.packet import Packet
 
 if TYPE_CHECKING:
     from sage.core.function.base_function import BaseFunction
-    from sage.runtime.router.connection import Connection
+    from sage.runtime.communication.router.connection import Connection
     from sage.runtime.runtime_context import RuntimeContext
     from sage.runtime.factory.function_factory import FunctionFactory
-    from sage.runtime.router.router import BaseRouter
+    from sage.runtime.communication.router.router import BaseRouter
 
 class BaseOperator(ABC):
     def __init__(self, 
