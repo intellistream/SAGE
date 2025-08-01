@@ -30,10 +30,19 @@ class SageInstaller(BaseInstaller):
         self.package_manager = PackageManager(conda_env_name)
         self.menu_handler = MenuHandler(conda_env_name)
         
+        # Set parent reference for menu handler
+        self.menu_handler._parent_installer = self
+        
         # Sync configuration across modules
         for module in [self.system_manager, self.conda_manager, self.docker_manager, 
                       self.package_manager, self.menu_handler]:
             module.config = self.config
+            module.conda_env_name = self.conda_env_name
+    
+    def sync_conda_env_name(self):
+        """Synchronize conda environment name across all modules."""
+        for module in [self.system_manager, self.conda_manager, self.docker_manager, 
+                      self.package_manager, self.menu_handler]:
             module.conda_env_name = self.conda_env_name
     
     def minimal_setup(self):
