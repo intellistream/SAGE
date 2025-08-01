@@ -30,6 +30,171 @@ except ImportError:
     PSUTIL_AVAILABLE = False
 
 
+def stress_producer_worker_func(worker_id: int, queue_names: List[str], 
+                               message_count: int, message_size: int) -> Dict[str, Any]:
+    """压力测试生产者工作进程（独立函数）"""
+    try:
+        # 尝试导入真实的 SageQueue
+        try:
+            from sage_ext.sage_queue.python.sage_queue import SageQueue
+            use_real_queue = True
+        except ImportError:
+            from ..mock_sage_queue import MockSageQueue as SageQueue
+            use_real_queue = False
+        
+        stats = {
+            'worker_id': worker_id,
+            'messages_sent': 0,
+            'errors': [],
+            'start_time': time.time(),
+            'queue_type': 'real' if use_real_queue else 'mock'
+        }
+        
+        # 创建多个队列连接
+        queues = {}
+        for queue_name in queue_names:
+            try:
+                queues[queue_name] = SageQueue(queue_name, maxsize=10000)
+            except Exception as e:
+                stats['errors'].append(f"Queue creation failed: {e}")
+                continue
+        
+        if not queues:
+            stats['errors'].append("No queues available")
+            return stats
+        
+        # 生成测试数据
+        test_data = DataGenerator.string(message_size)
+        
+        # 压力发送消息
+        for i in range(message_count):
+            # 轮换队列发送
+            queue_name = queue_names[i % len(queue_names)]
+            queue = queues.get(queue_name)
+            
+            if queue is None:
+                continue
+            
+            try:
+                message = MessageData.create({
+                    'worker_id': worker_id,
+                    'message_id': i,
+                    'data': test_data,
+                    'timestamp': time.time()
+                })
+                
+                queue.put(message, timeout=1.0)
+                stats['messages_sent'] += 1
+            
+            except Exception as e:
+                stats['errors'].append(f"Send error at message {i}: {e}")
+                if len(stats['errors']) > 10:  # 限制错误记录数量
+                    break
+        
+        stats['end_time'] = time.time()
+        stats['duration'] = stats['end_time'] - stats['start_time']
+        
+        # 清理队列
+        for queue in queues.values():
+            try:
+                queue.close()
+            except:
+                pass
+        
+        return stats
+        
+    except Exception as e:
+        return {
+            'worker_id': worker_id,
+            'messages_sent': 0,
+            'errors': [f"Worker failed: {e}"],
+            'fatal_error': True
+        }
+
+
+def stress_consumer_worker_func(worker_id: int, queue_names: List[str], 
+                               expected_messages: int, timeout: float) -> Dict[str, Any]:
+    """压力测试消费者工作进程（独立函数）"""
+    try:
+        # 尝试导入真实的 SageQueue
+        try:
+            from sage_ext.sage_queue.python.sage_queue import SageQueue
+            use_real_queue = True
+        except ImportError:
+            from ..mock_sage_queue import MockSageQueue as SageQueue
+            use_real_queue = False
+        
+        stats = {
+            'worker_id': worker_id,
+            'messages_received': 0,
+            'errors': [],
+            'start_time': time.time(),
+            'queue_type': 'real' if use_real_queue else 'mock'
+        }
+        
+        # 创建多个队列连接
+        queues = {}
+        for queue_name in queue_names:
+            try:
+                queues[queue_name] = SageQueue(queue_name)
+            except Exception as e:
+                stats['errors'].append(f"Queue connection failed: {e}")
+                continue
+        
+        if not queues:
+            stats['errors'].append("No queues available")
+            return stats
+        
+        # 压力接收消息
+        received_count = 0
+        start_time = time.time()
+        
+        while received_count < expected_messages:
+            if time.time() - start_time > timeout:
+                break
+            
+            for queue_name, queue in queues.items():
+                try:
+                    message = queue.get(timeout=0.1)
+                    received_count += 1
+                    stats['messages_received'] += 1
+                    
+                    # 验证消息完整性
+                    if hasattr(message, 'payload') and isinstance(message.payload, dict):
+                        if 'worker_id' not in message.payload:
+                            stats['errors'].append(f"Invalid message format")
+                    
+                    if received_count >= expected_messages:
+                        break
+                        
+                except Exception as e:
+                    if "timeout" not in str(e).lower() and "empty" not in str(e).lower():
+                        stats['errors'].append(f"Receive error: {e}")
+            
+            # 防止CPU占用过高
+            time.sleep(0.001)
+        
+        stats['end_time'] = time.time()
+        stats['duration'] = stats['end_time'] - stats['start_time']
+        
+        # 清理队列
+        for queue in queues.values():
+            try:
+                queue.close()
+            except:
+                pass
+        
+        return stats
+        
+    except Exception as e:
+        return {
+            'worker_id': worker_id,
+            'messages_received': 0,
+            'errors': [f"Worker failed: {e}"],
+            'fatal_error': True
+        }
+
+
 @dataclass
 class StressTestConfig:
     """压力测试配置"""
@@ -91,8 +256,7 @@ class MultiprocessStressTester:
         monitor_thread.start()
         return monitor_thread
 
-    @staticmethod
-    def stress_producer_worker(worker_id: int, queue_names: List[str], 
+    def stress_producer_worker(self, worker_id: int, queue_names: List[str], 
                              message_count: int, message_size: int) -> Dict[str, Any]:
         """压力测试生产者工作进程"""
         try:
@@ -181,8 +345,7 @@ class MultiprocessStressTester:
                 'fatal_error': True
             }
 
-    @staticmethod
-    def stress_consumer_worker(worker_id: int, queue_names: List[str], 
+    def stress_consumer_worker(self, worker_id: int, queue_names: List[str], 
                              expected_messages: int, timeout: float) -> Dict[str, Any]:
         """压力测试消费者工作进程"""
         try:

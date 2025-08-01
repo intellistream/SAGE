@@ -276,7 +276,7 @@ class TestRayObjectTrimmer:
                 self.server_socket = "socket"
                 self.client_socket = "client_socket"
                 self.server_thread = "thread"
-                self.__weakref__ = "weakref"
+                # 注意：__weakref__ 是只读属性，不能直接赋值
         
         obj = MockOperator()
         result = RayObjectTrimmer.trim_operator_for_ray(obj)

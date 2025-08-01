@@ -5,10 +5,12 @@ Sage Runtime Communication Module
 """
 
 # 基础抽象类
-from .queue_descriptor import QueueDescriptor
+from .base_queue_descriptor import BaseQueueDescriptor
 
 # 专用队列描述符
-from .python_queue_descriptor import PythonQueueDescriptor, create_python_queue
+from .python_queue_descriptor import (
+    PythonQueueDescriptor, create_python_queue, create_local_queue
+)
 from .ray_queue_descriptor import RayQueueDescriptor, create_ray_queue
 from .sage_queue_descriptor import SageQueueDescriptor, create_sage_queue
 from .rpc_queue_descriptor import RPCQueueDescriptor, create_rpc_queue
@@ -22,12 +24,11 @@ def get_local_queue(queue_id=None, maxsize=0, use_multiprocessing=False):
         use_multiprocessing=use_multiprocessing
     )
 
-def get_ray_queue(queue_id=None, maxsize=0, actor_name=None):
+def get_ray_queue(queue_id=None, maxsize=0):
     """获取Ray队列"""
     return create_ray_queue(
         queue_id=queue_id,
-        maxsize=maxsize,
-        actor_name=actor_name
+        maxsize=maxsize
     )
 
 def get_sage_queue(queue_id=None, maxsize=1024*1024, auto_cleanup=True, namespace=None):
@@ -66,22 +67,15 @@ def resolve_descriptor(data):
         raise ValueError("Invalid queue descriptor data")
 
 def create_descriptor_from_existing_queue(queue_instance, queue_type=None, queue_id=None):
-    """从现有队列实例创建描述符"""
-    if queue_type == 'python' or str(type(queue_instance).__module__).startswith('queue'):
-        return PythonQueueDescriptor(queue_id=queue_id, queue_instance=queue_instance)
-    elif queue_type == 'ray' or 'ray' in str(type(queue_instance)):
-        return RayQueueDescriptor(queue_id=queue_id, queue_instance=queue_instance)
-    elif queue_type == 'sage' or 'sage' in str(type(queue_instance).__module__).lower():
-        return SageQueueDescriptor(queue_id=queue_id, queue_instance=queue_instance)
-    elif queue_type == 'rpc':
-        return RPCQueueDescriptor(queue_id=queue_id, queue_instance=queue_instance)
-    else:
-        # 默认尝试Python描述符
-        return PythonQueueDescriptor(queue_id=queue_id, queue_instance=queue_instance)
+    """从现有队列实例创建描述符 - 已废弃，不再支持"""
+    raise NotImplementedError(
+        "从现有队列实例创建描述符的功能已被移除。"
+        "请使用对应的工厂函数创建新的队列描述符。"
+    )
 
 __all__ = [
     # 抽象基类
-    'QueueDescriptor',
+    'BaseQueueDescriptor',
     
     # 专用描述符类
     'PythonQueueDescriptor',
@@ -91,6 +85,7 @@ __all__ = [
     
     # 创建函数
     'create_python_queue',
+    'create_local_queue',
     'create_ray_queue',
     'create_sage_queue', 
     'create_rpc_queue',

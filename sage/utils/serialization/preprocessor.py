@@ -34,14 +34,23 @@ def filter_attrs(attrs: Dict[str, Any],
 def should_skip(obj: Any) -> bool:
     """判断对象是否应该跳过序列化"""
     # 检查黑名单 - 修改为更精确的检查
-    for i, blacklisted_type in enumerate(BLACKLIST):
-        if isinstance(obj, blacklisted_type):
-            # print(f"Skipping blacklisted instance {i}: {type(obj)}, {obj}")
-            return True
+    for blacklisted_type in BLACKLIST:
+        try:
+            if isinstance(obj, blacklisted_type):
+                # print(f"Skipping blacklisted instance: {type(obj)}, {obj}")
+                return True
+        except (TypeError, AttributeError):
+            # 某些类型检查可能失败，继续检查其他类型
+            continue
     
     # 检查是否是模块（通常不应该序列化）
     if inspect.ismodule(obj):
         # print(f"Skipping module: {obj}")
+        return True
+    
+    # 额外检查：特定类型名称匹配（用于处理类型检查失败的情况）
+    obj_type_name = type(obj).__name__
+    if obj_type_name in ('lock', '_thread.lock', 'LockType', '_TemporaryFileWrapper'):
         return True
     
     return False

@@ -1,5 +1,5 @@
 """
-Queue Descriptor - 统一多态通信描述符基类
+Base Queue Descriptor - 统一多态通信描述符基类
 
 提供一个统一的多态队列描述符结构，支持：
 1. 直接调用队列方法 (put, get, empty, qsize等)
@@ -20,7 +20,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class QueueDescriptor(ABC):
+class BaseQueueDescriptor(ABC):
     """
     统一的多态队列描述符基类
     
@@ -176,7 +176,7 @@ class QueueDescriptor(ABC):
         """检查队列是否已初始化"""
         return self._initialized
     
-    def clone(self, new_queue_id: Optional[str] = None) -> 'QueueDescriptor':
+    def clone(self, new_queue_id: Optional[str] = None) -> 'BaseQueueDescriptor':
         """克隆描述符（不包含队列实例）"""
         # 创建同类型的新实例
         new_instance = type(self)(queue_id=new_queue_id or f"{self.queue_id}_clone")
@@ -220,7 +220,7 @@ class QueueDescriptor(ABC):
             raise ValueError(f"Queue descriptor '{self.queue_id}' contains non-serializable objects")
         return json.dumps(self.to_dict())
     
-    def to_serializable_descriptor(self) -> 'QueueDescriptor':
+    def to_serializable_descriptor(self) -> 'BaseQueueDescriptor':
         """
         转换为可序列化的描述符（移除队列实例引用）
         
@@ -234,7 +234,7 @@ class QueueDescriptor(ABC):
         return type(self)(queue_id=self.queue_id)
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'QueueDescriptor':
+    def from_dict(cls, data: Dict[str, Any]) -> 'BaseQueueDescriptor':
         """从字典创建实例"""
         # 根据 class_name 动态创建正确的子类实例
         class_name = data.get('class_name')
@@ -250,14 +250,14 @@ class QueueDescriptor(ABC):
         return instance
     
     @classmethod
-    def from_json(cls, json_str: str) -> 'QueueDescriptor':
+    def from_json(cls, json_str: str) -> 'BaseQueueDescriptor':
         """从JSON字符串创建实例"""
         data = json.loads(json_str)
         return cls.from_dict(data)
     
     @classmethod
     def from_existing_queue(cls, queue_instance: Any, queue_id: Optional[str] = None, 
-                           **kwargs) -> 'QueueDescriptor':
+                           **kwargs) -> 'BaseQueueDescriptor':
         """从现有队列实例创建描述符（不可序列化）"""
         return cls(queue_id=queue_id, queue_instance=queue_instance)
     
@@ -282,7 +282,7 @@ class QueueDescriptor(ABC):
         return f"Queue[{self.queue_type}]({self.queue_id})"
     
     def __eq__(self, other) -> bool:
-        if not isinstance(other, QueueDescriptor):
+        if not isinstance(other, BaseQueueDescriptor):
             return False
         return (self.queue_id == other.queue_id and 
                 self.queue_type == other.queue_type and
@@ -294,7 +294,7 @@ class QueueDescriptor(ABC):
 
 # ============ 便利函数 ============
 
-def resolve_descriptor(desc: QueueDescriptor) -> Any:
+def resolve_descriptor(desc: BaseQueueDescriptor) -> Any:
     """
     解析队列描述符，返回队列实例
     
@@ -309,7 +309,7 @@ def resolve_descriptor(desc: QueueDescriptor) -> Any:
 
 def create_descriptor_from_existing_queue(queue: Any, descriptor_class: type, 
                                         queue_id: Optional[str] = None, 
-                                        **kwargs) -> QueueDescriptor:
+                                        **kwargs) -> BaseQueueDescriptor:
     """从现有队列创建描述符"""
     return descriptor_class.from_existing_queue(
         queue_instance=queue,

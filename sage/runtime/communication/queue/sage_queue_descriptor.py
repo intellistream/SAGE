@@ -6,12 +6,12 @@ SAGE Queue Descriptor - SAGE高性能队列描述符
 
 from typing import Any, Dict, Optional
 import logging
-from .queue_descriptor import QueueDescriptor
+from .base_queue_descriptor import BaseQueueDescriptor
 
 logger = logging.getLogger(__name__)
 
 
-class SageQueueDescriptor(QueueDescriptor):
+class SageQueueDescriptor(BaseQueueDescriptor):
     """
     SAGE高性能队列描述符
     

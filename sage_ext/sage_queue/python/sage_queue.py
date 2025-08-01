@@ -283,15 +283,23 @@ class SageQueue:
             os.path.join(current_dir, "ring_buffer.so"),
             os.path.join(current_dir, "libring_buffer.so"),
             
-            # 2. 安装后的包内文件
+            # 2. 父目录的构建目录（cmake构建）
+            os.path.join(current_dir, "..", "build", "ring_buffer.so"),
+            os.path.join(current_dir, "..", "build", "libring_buffer.so"),
+            
+            # 3. 父目录下的库文件（直接链接）
+            os.path.join(current_dir, "..", "ring_buffer.so"),
+            os.path.join(current_dir, "..", "libring_buffer.so"),
+            
+            # 4. 安装后的包内文件
             os.path.join(current_dir, "..", "..", "lib", "ring_buffer.so"),
             os.path.join(current_dir, "..", "..", "lib", "libring_buffer.so"),
             
-            # 3. 系统库路径
+            # 5. 系统库路径
             "ring_buffer.so",
             "libring_buffer.so",
             
-            # 4. 相对路径查找
+            # 6. 相对路径查找
             "./ring_buffer.so",
             "./libring_buffer.so"
         ]

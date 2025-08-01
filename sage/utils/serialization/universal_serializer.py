@@ -32,6 +32,28 @@ class UniversalSerializer:
         
         try:
             # 预处理对象，清理不可序列化的内容
+            # 注意：include/exclude 参数通过对象的 __state_include__/__state_exclude__ 属性处理
+            # 或者需要在预处理前应用这些过滤器
+            if include or exclude:
+                # 如果有自定义的 include/exclude，需要特殊处理
+                if hasattr(obj, '__dict__'):
+                    # 创建一个临时对象来应用过滤器
+                    obj_class = type(obj)
+                    try:
+                        temp_obj = obj_class.__new__(obj_class)
+                        attrs = gather_attrs(obj)
+                        filtered_attrs = filter_attrs(attrs, include, exclude)
+                        
+                        for attr_name, attr_value in filtered_attrs.items():
+                            try:
+                                setattr(temp_obj, attr_name, attr_value)
+                            except Exception:
+                                pass
+                        obj = temp_obj
+                    except Exception:
+                        # 如果无法创建临时对象，使用原对象
+                        pass
+            
             cleaned_obj = preprocess_for_dill(obj)
             
             # 使用dill序列化
@@ -96,8 +118,9 @@ class UniversalSerializer:
             # 加载序列化的对象
             loaded_obj = UniversalSerializer.load_object_from_file(path)
             
-            # 检查类型是否匹配
-            if type(obj) != type(loaded_obj):
+            # 检查类型是否兼容（允许相同类名的类）
+            if (type(obj).__name__ != type(loaded_obj).__name__ and 
+                type(obj) != type(loaded_obj)):
                 return False
             
             # 复制属性
@@ -120,5 +143,7 @@ class UniversalSerializer:
             
             return True
             
-        except Exception:
+        except Exception as e:
+            # 调试用：打印异常信息
+            # print(f"Debug: load_object_state failed with: {e}")
             return False
