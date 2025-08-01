@@ -98,31 +98,55 @@ class LocalQueueStub:
         Returns:
             LocalQueueStub 实例
         """
+        from ..queue_descriptor import LocalQueueDescriptor
+        
         if queue_id is None:
             queue_id = f"local_{id(queue)}"
         
         # 提取 Queue 的配置信息
-        default_metadata = {
-            'maxsize': getattr(queue, '_maxsize', 0)
-        }
+        maxsize = getattr(queue, '_maxsize', 0)
         
-        # 合并用户提供的元数据
-        default_metadata.update(metadata)
-        
-        # 创建描述符
-        descriptor = QueueDescriptor(
+        # 创建本地队列描述符（包含队列引用，不可序列化）
+        descriptor = LocalQueueDescriptor(
             queue_id=queue_id,
-            queue_type="local",
-            metadata=default_metadata
+            queue_obj=queue,
+            maxsize=maxsize,
+            **metadata
         )
         
         # 创建 stub 实例
-        stub = cls(descriptor)
-        
-        # 直接使用传入的 queue 对象，而不是重新创建
+        stub = cls.__new__(cls)  # 避免调用 __init__
+        stub.descriptor = descriptor
         stub._queue = queue
         
+        logger.info(f"Successfully created LocalQueueStub from existing queue: {queue_id}")
         return stub
+    
+    def to_serializable_descriptor(self):
+        """
+        获取可序列化的描述符版本
+        
+        Returns:
+            可序列化的 QueueDescriptor（不包含队列对象引用）
+        """
+        if hasattr(self.descriptor, 'to_serializable_descriptor'):
+            return self.descriptor.to_serializable_descriptor()
+        else:
+            # 如果不是 LocalQueueDescriptor，创建一个新的可序列化版本
+            from ..queue_descriptor import QueueDescriptor
+            
+            serializable_metadata = {
+                k: v for k, v in self.descriptor.metadata.items() 
+                if k != 'queue_ref' and not callable(v)
+            }
+            
+            return QueueDescriptor(
+                queue_id=self.descriptor.queue_id,
+                queue_type=self.descriptor.queue_type,
+                metadata=serializable_metadata,
+                can_serialize=True,
+                created_timestamp=self.descriptor.created_timestamp
+            )
     
     def __repr__(self) -> str:
         return f"LocalQueueStub(queue_id='{self.descriptor.queue_id}', maxsize={self._queue._maxsize})"

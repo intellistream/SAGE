@@ -5,7 +5,10 @@ Sage Runtime Communication Module
 """
 
 from .queue_descriptor import (
-    QueueDescriptor,
+    UnifiedQueueDescriptor,
+    QueueDescriptor,  # 向后兼容别名
+    LocalQueueDescriptor,  # 向后兼容别名
+    RemoteQueueDescriptor,  # 向后兼容别名
     QueueLike,
     resolve_descriptor,
     register_queue_implementation,
@@ -23,7 +26,10 @@ from .queue_descriptor import (
 
 __all__ = [
     # 核心类和协议
-    'QueueDescriptor',
+    'UnifiedQueueDescriptor',
+    'QueueDescriptor',  # 向后兼容别名
+    'LocalQueueDescriptor',  # 向后兼容别名
+    'RemoteQueueDescriptor',  # 向后兼容别名
     'QueueLike',
     
     # 核心函数

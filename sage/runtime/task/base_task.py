@@ -32,7 +32,6 @@ class BaseTask(ABC):
         # === 性能监控 ===
         self._processed_count = 0
         self._error_count = 0
-        self._last_activity_time = time.time()
         self.router = BaseRouter(runtime_context)
         try:
             self.operator:BaseOperator = operator_factory.create_operator(self.ctx)

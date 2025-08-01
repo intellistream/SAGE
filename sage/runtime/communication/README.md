@@ -4,6 +4,20 @@
 
 Queue Descriptor 是一个统一的通信描述符系统，用于在异构通信环境中管理各种类型的队列通信方式。它提供了一个可序列化的描述符结构，支持本地队列、共享内存队列、Ray Actor队列、RPC队列等多种通信方式。
 
+## 🆕 增强功能
+
+### 序列化控制
+- **can_serialize 字段**: 控制描述符是否可以序列化
+- **智能序列化**: 自动检测和防止不可序列化对象的序列化
+
+### 专用描述符类
+- **LocalQueueDescriptor**: 包含队列对象引用，支持直接操作，不可序列化
+- **RemoteQueueDescriptor**: 支持懒加载和缓存，可序列化，适合跨进程通信
+
+### 直接队列操作
+- 描述符本身支持队列操作（put、get、empty、qsize等）
+- 无需额外的 resolve_descriptor 调用
+
 ## 核心功能
 
 - **统一接口**: 为不同类型的队列提供统一的 `QueueLike` 协议
@@ -20,7 +34,26 @@ Queue Descriptor 是一个统一的通信描述符系统，用于在异构通信
 - `queue_id`: 队列的唯一标识符
 - `queue_type`: 通信方式类型（如 "local", "shm", "ray_actor", "rpc" 等）
 - `metadata`: 保存额外参数的字典（如 shm 名称、socket 地址、ray actor name 等）
+- `can_serialize`: 是否可序列化（新增）
 - `created_timestamp`: 创建时间戳
+
+### 2. LocalQueueDescriptor
+
+本地队列描述符，继承自 QueueDescriptor：
+
+- 包含对实际队列对象的引用
+- 支持直接的队列操作（put、get、empty、qsize等）
+- `can_serialize = False`（不可序列化）
+- 可转换为可序列化版本
+
+### 3. RemoteQueueDescriptor  
+
+远程队列描述符，继承自 QueueDescriptor：
+
+- 支持懒加载：首次访问时才创建队列实例
+- 支持缓存管理：可清除和重新初始化
+- `can_serialize = True`（可序列化）
+- 适合跨进程通信场景
 
 ### 2. QueueLike 协议
 
@@ -41,7 +74,7 @@ def qsize(self) -> int
 
 ## 使用方法
 
-### 基本用法
+### 基本用法（传统方式）
 
 ```python
 from sage.runtime.communication.queue_descriptor import (
@@ -60,6 +93,62 @@ queue = resolve_descriptor(desc)
 # 4. 使用队列
 queue.put("test")
 data = queue.get()  # 返回 "test"
+```
+
+### 🆕 增强用法
+
+#### 直接队列操作（LocalQueueDescriptor）
+
+```python
+import queue
+from sage.runtime.communication.queue_descriptor import create_local_queue_descriptor_with_ref
+
+# 从现有队列创建描述符
+python_queue = queue.Queue(maxsize=10)
+local_desc = create_local_queue_descriptor_with_ref(
+    queue_obj=python_queue,
+    queue_id="my_queue",
+    maxsize=10
+)
+
+# 直接通过描述符操作队列
+local_desc.put("message1")
+local_desc.put("message2")
+print(f"队列大小: {local_desc.qsize()}")
+data = local_desc.get()  # 返回 "message1"
+
+# 注意：LocalQueueDescriptor 不可序列化
+print(f"可序列化: {local_desc.can_serialize}")  # False
+```
+
+#### 懒加载远程队列（RemoteQueueDescriptor）
+
+```python
+from sage.runtime.communication.queue_descriptor import QueueDescriptor
+
+# 创建远程队列描述符（可序列化）
+remote_desc = QueueDescriptor.create_shm_queue("my_shm", "remote_queue")
+
+# 直接操作，首次访问时自动初始化
+remote_desc.put("lazy_message")  # 触发懒加载
+data = remote_desc.get()
+
+# 可以序列化传递
+json_data = remote_desc.to_json()
+# 在另一个进程中...
+restored_desc = QueueDescriptor.from_json(json_data)
+```
+
+#### 序列化控制
+
+```python
+# 检查是否可序列化
+if desc.can_serialize:
+    json_data = desc.to_json()
+else:
+    # 转换为可序列化版本
+    serializable_desc = desc.to_serializable_descriptor()
+    json_data = serializable_desc.to_json()
 ```
 
 ### 工厂方法
