@@ -17,6 +17,7 @@ httpx==0.28.1
 InstructorEmbedding==1.0.1
 Jinja2==3.1.6
 numpy==1.26.4
+ollama
 openai
 opencv_python_headless==4.10.0.84
 Pillow

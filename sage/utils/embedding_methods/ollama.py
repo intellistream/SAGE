@@ -7,14 +7,24 @@ else:
 
 import pipmaster as pm  # Pipmaster for dynamic library install
 
-# install specific modules
-if not pm.is_installed("ollama"):
-    pm.install("ollama")
-if not pm.is_installed("tenacity"):
-    pm.install("tenacity")
+# Dependencies should be installed via requirements.txt
+# ollama and tenacity are required for this module to work
 
+try:
+    import ollama
+except ImportError:
+    raise ImportError(
+        "ollama package is required for Ollama embedding functionality. "
+        "Please install it via: pip install ollama"
+    )
 
-import ollama
+try:
+    import tenacity
+except ImportError:
+    raise ImportError(
+        "tenacity package is required for Ollama embedding functionality. "
+        "Please install it via: pip install tenacity"
+    )
 
 
 

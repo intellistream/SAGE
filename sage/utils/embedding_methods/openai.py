@@ -11,12 +11,16 @@ else:
     from collections.abc import AsyncIterator
 import pipmaster as pm  # Pipmaster for dynamic library install
 
-# install specific modules
-if not pm.is_installed("openai"):
-    pm.install("openai")
+# Dependencies should be installed via requirements.txt
+# openai is required for this module
 
-
-from openai import AsyncOpenAI  # 确保导入了这个
+try:
+    from openai import AsyncOpenAI  # 确保导入了这个
+except ImportError:
+    raise ImportError(
+        "openai package is required for OpenAI embedding functionality. "
+        "Please install it via: pip install openai"
+    )
 
 async def openai_embed(
     text: str,

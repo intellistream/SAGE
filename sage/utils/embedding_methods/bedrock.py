@@ -4,18 +4,31 @@ import json
 
 import pipmaster as pm  # Pipmaster for dynamic library install
 
-if not pm.is_installed("aioboto3"):
-    pm.install("aioboto3")
-if not pm.is_installed("tenacity"):
-    pm.install("tenacity")
-import aioboto3
+# Dependencies should be installed via requirements.txt
+# aioboto3 and tenacity are required for this module
+
+try:
+    import aioboto3
+except ImportError:
+    raise ImportError(
+        "aioboto3 package is required for AWS Bedrock embedding functionality. "
+        "Please install it via: pip install aioboto3"
+    )
+
+try:
+    from tenacity import (
+        retry,
+        stop_after_attempt,
+        wait_exponential,
+        retry_if_exception_type,
+    )
+except ImportError:
+    raise ImportError(
+        "tenacity package is required for AWS Bedrock embedding functionality. "
+        "Please install it via: pip install tenacity"
+    )
+
 import numpy as np
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-)
 
 
 
