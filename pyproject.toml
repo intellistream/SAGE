@@ -105,8 +105,8 @@ Documentation = "https://github.com/intellistream/SAGE/docs"
 sage = "sage.cli.main:app"
 sage-jm = "sage.cli.job:app"
 
-[tool.setuptools]
-packages = ["sage", "sage_ext"]
+[tool.setuptools.packages.find]
+include = ["sage*", "sage_ext*"]
 
 [tool.setuptools.package-data]
 "sage.core" = ["config/*.yaml"]
