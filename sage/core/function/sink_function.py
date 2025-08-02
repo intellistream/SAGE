@@ -3,8 +3,6 @@ from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 from sage.core.function.base_function import BaseFunction
 
 from sage.utils.custom_logger import CustomLogger
-if TYPE_CHECKING:
-    from archive.runtime_context import RuntimeContext
 
 
 class SinkFunction(BaseFunction):

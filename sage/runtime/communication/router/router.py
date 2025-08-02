@@ -18,7 +18,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from sage.runtime.communication.router.connection import Connection
-    from archive.runtime_context import RuntimeContext
+    from sage.runtime.task_context import TaskContext
     from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
 
 class BaseRouter(ABC):
@@ -27,12 +27,12 @@ class BaseRouter(ABC):
     子类只需要实现具体的数据发送逻辑
     """
     
-    def __init__(self, ctx: 'RuntimeContext'):
+    def __init__(self, ctx: 'TaskContext'):
         self.name = ctx.name
         self.ctx = ctx
         
         # 从TaskContext获取下游连接组信息
-        self.downstream_groups: Dict[int, Dict[int, 'Connection']] = getattr(ctx, 'downstream_groups', {})
+        self.downstream_groups: Dict[int, Dict[int, 'Connection']] = ctx.downstream_groups
         self.downstream_group_roundrobin: Dict[int, int] = {}
         
         # 初始化轮询状态
@@ -247,11 +247,8 @@ class BaseRouter(ABC):
             partition_strategy=packet.partition_strategy,
         )
     
-    def _create_routed_packet(self, input_index: int, packet: 'Packet') -> 'Packet':
-        """创建路由后的数据包"""
-        return Packet(
-            payload=packet.payload,
-            input_index=input_index,
-            partition_key=packet.partition_key,
-            partition_strategy=packet.partition_strategy,
-        )
+    def _adjust_delay_based_on_load(self):
+        """根据下游负载调整延迟（目前是占位符实现）"""
+        # 这是一个占位符方法，可以在未来根据队列负载情况调整发送延迟
+        # 目前不做任何调整
+        pass

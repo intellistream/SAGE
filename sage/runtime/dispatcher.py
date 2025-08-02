@@ -126,10 +126,10 @@ class Dispatcher():
 
     # Dispatcher will submit the job to LocalEngine or Ray Server.    
     def submit(self):
-        """编译图结构，创建节点并建立连接"""
-        self.logger.info(f"Compiling Job for graph: {self.name}")
+        """创建服务任务和流水线任务实例"""
+        self.logger.info(f"Creating tasks for graph: {self.name}")
         
-        # 第零步：从执行图的服务节点创建所有服务任务实例
+        # 第一步：从执行图的服务节点创建所有服务任务实例  
         for service_node_name, service_node in self.graph.service_nodes.items():
             try:
                 # 直接使用服务节点中的ServiceTaskFactory创建服务任务，传入ctx
@@ -139,33 +139,25 @@ class Dispatcher():
                 self.services[service_node.service_name] = service_task
                 
                 service_type = "Ray Actor (wrapped)" if self.remote else "Local"
-                self.logger.debug(f"Added {service_type} service task '{service_node.service_name}' from service node '{service_node_name}' of type '{service_task.__class__.__name__}'")
+                self.logger.debug(f"Created {service_type} service task '{service_node.service_name}' from service node '{service_node_name}' of type '{service_task.__class__.__name__}'")
             except Exception as e:
                 self.logger.error(f"Failed to create service task from service node {service_node_name}: {e}", exc_info=True)
                 # 可以选择继续或停止，这里选择继续但记录错误
 
         # 设置服务名称映射到runtime context
         service_names = {name: name for name in self.services.keys()}
-        # 第一步：创建所有节点实例
+        
+        # 第二步：创建所有流水线任务实例（连接关系已在Context中完成）
         for node_name, graph_node in self.graph.nodes.items():
             try:
                 graph_node.ctx.set_service_names(service_names)
-                # task = graph_node.create_dag_node()
+                # 创建任务实例，连接关系已在TaskContext构造函数中建立
                 task = graph_node.transformation.task_factory.create_task(graph_node.name, graph_node.ctx)
                 self.tasks[node_name] = task
 
-                self.logger.debug(f"Added node '{node_name}' of type '{task.__class__.__name__}'")
+                self.logger.debug(f"Created task '{node_name}' of type '{task.__class__.__name__}' (connections handled by Context)")
             except Exception as e:
-                self.logger.error(f"Failed to create nodes: {e}", exc_info=True)
-                raise e
-        
-        # 第二步：建立节点间的连接
-
-        for node_name, graph_node in self.graph.nodes.items():
-            try:
-                self._setup_node_connections(node_name, graph_node)
-            except Exception as e:
-                self.logger.error(f"Error setting up connections for node {node_name}: {e}", exc_info=True)
+                self.logger.error(f"Failed to create task {node_name}: {e}", exc_info=True)
                 raise e
         
         try:
@@ -173,61 +165,6 @@ class Dispatcher():
         except Exception as e:
             self.logger.error(f"Error starting dispatcher: {e}", exc_info=True)
             raise e
-
-    def _setup_node_connections(self, node_name: str, graph_node: 'GraphNode'):
-        """
-        为节点设置下游连接
-        
-        Args:
-            node_name: 节点名称
-            graph_node: 图节点对象
-        """
-        output_handle = self.tasks[node_name]
-        
-        for broadcast_index, parallel_edges in enumerate(graph_node.output_channels):
-            for parallel_index, parallel_edge in enumerate(parallel_edges):
-                target_name = parallel_edge.downstream_node.name
-                target_input_index = parallel_edge.input_index
-                target_handle = self.tasks[target_name]
-
-                # 更准确地判断target_handle的类型
-                import ray
-                is_ray_actor = False
-                
-                # 检查是否是Ray Actor
-                if hasattr(target_handle, '_actor_id'):
-                    is_ray_actor = True
-                elif hasattr(target_handle, '__class__') and 'ray.actor.ActorHandle' in str(type(target_handle)):
-                    is_ray_actor = True
-                elif hasattr(ray, 'actor') and isinstance(target_handle, ray.actor.ActorHandle):
-                    is_ray_actor = True
-                
-                target_type = "remote" if is_ray_actor else "local"
-                
-                self.logger.debug(f"Target {target_name}: type={type(target_handle)}, is_ray_actor={is_ray_actor}, target_type={target_type}")
-                
-                # 根据类型获取对象引用
-                if target_type == "remote":
-                    # Ray Actor，直接使用handle而不调用get_object()
-                    target_object = target_handle
-                else:
-                    # 本地对象，调用get_object()
-                    target_object = target_handle.get_object()
-                
-                connection = Connection(
-                    broadcast_index=broadcast_index,
-                    parallel_index=parallel_index,
-                    target_name=target_name,
-                    target_handle=target_object,
-                    target_input_index = target_input_index,
-                    target_type=target_type
-                )
-                try:
-                    output_handle.add_connection(connection)
-                    self.logger.debug(f"Setup connection: {node_name} -> {target_name} (type: {target_type})")
-                    
-                except Exception as e:
-                    self.logger.error(f"Error setting up connection {node_name} -> {target_name}: {e}", exc_info=True)
 
     def stop(self):
         """停止所有任务和服务"""

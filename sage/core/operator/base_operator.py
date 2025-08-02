@@ -9,16 +9,16 @@ from sage.runtime.communication.router.packet import Packet
 if TYPE_CHECKING:
     from sage.core.function.base_function import BaseFunction
     from sage.runtime.communication.router.connection import Connection
-    from archive.runtime_context import RuntimeContext
+    from sage.runtime.task_context import TaskContext
     from sage.runtime.factory.function_factory import FunctionFactory
     from sage.runtime.communication.router.router import BaseRouter
 
 class BaseOperator(ABC):
     def __init__(self, 
-                 function_factory: 'FunctionFactory', ctx: 'RuntimeContext', *args,
+                 function_factory: 'FunctionFactory', ctx: 'TaskContext', *args,
                  **kwargs):
         
-        self.ctx: 'RuntimeContext' = ctx
+        self.ctx: 'TaskContext' = ctx
         self.function:'BaseFunction'
         self.router:'BaseRouter'     # 由task传下来的
         self.task: Optional['BaseTask'] = None

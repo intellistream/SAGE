@@ -2,7 +2,7 @@ from sage.core.function.source_function import SourceFunction
 from typing import Callable, Dict, Any, TYPE_CHECKING
 import threading, json, queue
 if TYPE_CHECKING:
-    from archive.runtime_context import RuntimeContext
+    from sage.runtime.task_context import TaskContext
 
 
 class KafkaSourceFunction(SourceFunction):
@@ -17,7 +17,7 @@ class KafkaSourceFunction(SourceFunction):
                  group_id: str,
                  auto_offset_reset: str = 'latest',
                  value_deserializer: str = 'json',
-                 ctx:'RuntimeContext' = None,
+                 ctx:'TaskContext' = None,
                  buffer_size: int = 10000,
                  max_poll_records: int = 500,
                  **kafka_config):

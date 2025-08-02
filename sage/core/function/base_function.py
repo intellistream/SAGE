@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 from sage.runtime.service.service_caller import ServiceManager, ServiceCallProxy
 if TYPE_CHECKING:
-    from archive.runtime_context import RuntimeContext
+    from sage.runtime.task_context import TaskContext
     from sage.runtime.service.service_caller import ServiceManager
 import logging
 from sage.utils.state_persistence import load_function_state, save_function_state
@@ -16,7 +16,7 @@ class BaseFunction(ABC):
     It defines the core interface and initializes a logger.
     """
     def __init__(self, *args, **kwargs):
-        self.ctx: 'RuntimeContext' = None # 运行时注入
+        self.ctx: 'TaskContext' = None # 运行时注入
         self.router = None  # 运行时注入
         self._logger = None
         # 服务代理缓存

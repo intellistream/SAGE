@@ -6,7 +6,7 @@ from sage.utils.actor_wrapper import ActorWrapper
 if TYPE_CHECKING:
     from sage.core.transformation.base_transformation import BaseTransformation
     from ray.actor import ActorHandle
-    from archive.runtime_context import RuntimeContext
+    from sage.runtime.task_context import TaskContext
     
 class TaskFactory:
     def __init__(
@@ -29,7 +29,7 @@ class TaskFactory:
     def create_task(
         self,
         name: str,
-        runtime_context: 'RuntimeContext' = None,
+        runtime_context: 'TaskContext' = None,
     ) -> 'BaseTask':
         if self.remote:
             node = RayTask.options(lifetime="detached").remote(runtime_context,  self.operator_factory)

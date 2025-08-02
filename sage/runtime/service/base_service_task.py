@@ -14,7 +14,7 @@ from sage.utils.queue_adapter import create_queue
 
 if TYPE_CHECKING:
     from sage.runtime.factory.service_factory import ServiceFactory
-    from archive.runtime_context import RuntimeContext
+    from sage.runtime.service_context import ServiceContext
 
 
 class BaseServiceTask(ABC):
@@ -25,13 +25,13 @@ class BaseServiceTask(ABC):
     所有服务任务（本地和远程）都应该继承此基类
     """
     
-    def __init__(self, service_factory: 'ServiceFactory', ctx: 'RuntimeContext' = None):
+    def __init__(self, service_factory: 'ServiceFactory', ctx: 'ServiceContext' = None):
         """
         初始化基础服务任务
         
         Args:
             service_factory: 服务工厂实例
-            ctx: 运行时上下文
+            ctx: 服务运行时上下文
         """
         # 初始化默认值，防止在初始化失败时访问未定义的属性
         self.service_name = "Unknown"
@@ -43,11 +43,14 @@ class BaseServiceTask(ABC):
         self._request_count = 0
         self._error_count = 0
         self._last_activity_time = time.time()
-        self._request_queue = None
-        self._response_queues = {}
+        
+        # 队列管理 - 延迟初始化，由ServiceContext提供
+        self._request_queue = None  # 请求队列实例
+        self._response_queues = {}  # 响应队列缓存
+        
+        # 线程管理
         self._queue_listener_thread = None
         self._queue_listener_running = False
-        self._request_queue_name = "unknown_request_queue"
         
         # 确保 service_factory 有必要的属性
         if not hasattr(service_factory, 'service_name'):
@@ -63,10 +66,7 @@ class BaseServiceTask(ABC):
         # 提供service别名以便访问
         self.service = self.service_instance
         
-        # 队列名称
-        self._request_queue_name = f"service_request_{self.service_name}"
-        
-        self.logger.debug(f"Base service task '{self.service_name}' initialized")
+        self.logger.debug(f"Base service task '{self.service_name}' initialized with ServiceContext")
     
 
     
@@ -216,6 +216,53 @@ class BaseServiceTask(ABC):
         except Exception as e:
             self.logger.error(f"Failed to send response to {response_queue_name}: {e}")
     
+    def _initialize_request_queue(self):
+        """初始化请求队列"""
+        try:
+            # 从ServiceContext获取请求队列描述符
+            request_qd = self.ctx.get_request_queue_descriptor()
+            if request_qd is None:
+                raise RuntimeError(f"No request queue descriptor found for service {self.service_name}")
+            
+            # 使用队列描述符获取队列实例
+            self._request_queue = request_qd.queue_instance
+            self.logger.info(f"Initialized request queue for service {self.service_name}: {request_qd.queue_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to initialize request queue for service {self.service_name}: {e}")
+            raise
+    
+    def _get_response_queue(self, response_queue_name: str):
+        """
+        获取响应队列
+        
+        Args:
+            response_queue_name: 响应队列名称（通常是节点名称）
+            
+        Returns:
+            队列实例
+        """
+        try:
+            # 检查本地缓存
+            if response_queue_name in self._response_queues:
+                return self._response_queues[response_queue_name]
+            
+            # 从ServiceContext获取响应队列描述符
+            response_qd = self.ctx.get_service_response_queue_descriptor(response_queue_name)
+            if response_qd is None:
+                raise RuntimeError(f"No response queue descriptor found for {response_queue_name}")
+            
+            # 获取队列实例并缓存
+            response_queue = response_qd.queue_instance
+            self._response_queues[response_queue_name] = response_queue
+            
+            self.logger.debug(f"Retrieved response queue for {response_queue_name}: {response_qd.queue_id}")
+            return response_queue
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get response queue for {response_queue_name}: {e}")
+            raise
+
     def start_running(self):
         """启动服务任务"""
         if self.is_running:
@@ -315,6 +362,11 @@ class BaseServiceTask(ABC):
             if self.service_factory.service_class is not None:
                 service_class_name = self.service_factory.service_class.__name__
         
+        # 从ServiceContext获取队列信息
+        request_queue_id = "Unknown"
+        if self.ctx and self.ctx.get_request_queue_descriptor():
+            request_queue_id = self.ctx.get_request_queue_descriptor().queue_id
+        
         base_stats = {
             "service_name": getattr(self, 'service_name', 'Unknown'),
             "service_type": self.__class__.__name__,
@@ -323,12 +375,13 @@ class BaseServiceTask(ABC):
             "error_count": getattr(self, '_error_count', 0),
             "last_activity_time": getattr(self, '_last_activity_time', 0),
             "service_class": service_class_name,
-            "request_queue_name": getattr(self, '_request_queue_name', 'Unknown'),
-            "response_queues_count": len(getattr(self, '_response_queues', {}))
+            "request_queue_id": request_queue_id,
+            "response_queues_count": len(getattr(self, '_response_queues', {})),
+            "available_response_queues": len(self.ctx.get_service_response_queue_descriptors()) if self.ctx else 0
         }
         
         # 添加队列统计信息
-        if self._request_queue:
+        if self._request_queue and hasattr(self._request_queue, 'get_stats'):
             try:
                 queue_stats = self._request_queue.get_stats()
                 base_stats["queue_stats"] = queue_stats

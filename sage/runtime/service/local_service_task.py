@@ -4,13 +4,13 @@ from .base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:
     from sage.runtime.factory.service_factory import ServiceFactory
-    from archive.runtime_context import RuntimeContext
+    from sage.runtime.service_context import ServiceContext
 
 
 class LocalServiceTask(BaseServiceTask):
     """本地服务任务，继承BaseServiceTask并提供本地执行支持"""
     
-    def __init__(self, service_factory: 'ServiceFactory', ctx: 'RuntimeContext' = None):
+    def __init__(self, service_factory: 'ServiceFactory', ctx: 'ServiceContext' = None):
         """
         初始化本地服务任务
         

@@ -5,7 +5,7 @@ import os
 import time
 import queue
 import pytest
-from archive.runtime_context import RuntimeContext
+from sage.runtime.service_context import ServiceContext
 from sage.runtime.service.local_service_task import LocalServiceTask
 from sage.runtime.service.service_caller import ServiceManager
 from sage.core.function.base_function import BaseFunction
@@ -15,7 +15,7 @@ from sage.utils.embedding_methods.embedding_api import apply_embedding_model
 from sage.utils.custom_logger import CustomLogger
 
 
-# 创建Mock对象来初始化RuntimeContext
+# 创建Mock对象来初始化ServiceContext
 class MockGraphNode:
     def __init__(self, name: str):
         self.name = name
@@ -52,12 +52,12 @@ def test_memory_service_integrated():
         memory_graph_node = MockGraphNode("memory_service")
         memory_transformation = MockTransformation()
         memory_env = MockEnvironment("test_env")
-        memory_ctx = RuntimeContext(memory_graph_node, memory_transformation, memory_env)
+        memory_ctx = ServiceContext(memory_graph_node, memory_transformation, memory_env)
         
         test_graph_node = MockGraphNode("test_function")
         test_transformation = MockTransformation()
         test_env = MockEnvironment("test_env")
-        test_ctx = RuntimeContext(test_graph_node, test_transformation, test_env)
+        test_ctx = ServiceContext(test_graph_node, test_transformation, test_env)
         
         # 2. 创建Memory Service实例和工厂
         # 指定临时测试目录

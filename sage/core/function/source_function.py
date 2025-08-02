@@ -4,7 +4,7 @@ from sage.core.function.base_function import BaseFunction
 
 from sage.utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
-    from archive.runtime_context import RuntimeContext
+    from sage.runtime.task_context import TaskContext
 
 class StopSignal:
     """

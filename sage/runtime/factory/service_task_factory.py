@@ -3,7 +3,7 @@ from sage.utils.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
     from sage.runtime.factory.service_factory import ServiceFactory
-    from archive.runtime_context import RuntimeContext
+    from sage.runtime.service_context import ServiceContext
     from sage.utils.actor_wrapper import ActorWrapper
     from sage.runtime.service.base_service import BaseService
 
@@ -23,12 +23,12 @@ class ServiceTaskFactory:
         self.service_name = service_factory.service_name
         self.remote = remote
         
-    def create_service_task(self, ctx: 'RuntimeContext' = None) -> Union['BaseService', 'ActorWrapper']:
+    def create_service_task(self, ctx: 'ServiceContext' = None) -> Union['BaseService', 'ActorWrapper']:
         """
         参考task_factory.create_task的逻辑，创建服务任务实例
         
         Args:
-            ctx: 运行时上下文
+            ctx: 服务运行时上下文
             
         Returns:
             服务任务实例（LocalServiceTask或ActorWrapper包装的RayServiceTask）

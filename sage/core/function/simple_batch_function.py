@@ -2,7 +2,7 @@ from typing import Iterator, Any, TYPE_CHECKING, List, Optional, Union, Callable
 from sage.core.function.base_function import BaseFunction
 
 if TYPE_CHECKING:
-    from archive.runtime_context import RuntimeContext
+    from sage.runtime.task_context import TaskContext
 
 
 class SimpleBatchIteratorFunction(BaseFunction):
@@ -37,7 +37,7 @@ class FileBatchIteratorFunction(BaseFunction):
     逐行迭代文件内容
     """
     
-    def __init__(self, file_path: str, encoding: str = 'utf-8', ctx: 'RuntimeContext' = None, **kwargs):
+    def __init__(self, file_path: str, encoding: str = 'utf-8', ctx: 'TaskContext' = None, **kwargs):
         super().__init__(ctx, **kwargs)
         self.file_path = file_path
         self.encoding = encoding
@@ -76,7 +76,7 @@ class RangeBatchIteratorFunction(BaseFunction):
     生成指定范围的数字序列
     """
     
-    def __init__(self, start: int, end: int, step: int = 1, ctx: 'RuntimeContext' = None, **kwargs):
+    def __init__(self, start: int, end: int, step: int = 1, ctx: 'TaskContext' = None, **kwargs):
         super().__init__(ctx, **kwargs)
         self.start = start
         self.end = end
@@ -103,7 +103,7 @@ class GeneratorBatchIteratorFunction(BaseFunction):
     """
     
     def __init__(self, generator_func: Callable[[], Iterator[Any]], 
-                 total_count: Optional[int] = None, ctx: 'RuntimeContext' = None, **kwargs):
+                 total_count: Optional[int] = None, ctx: 'TaskContext' = None, **kwargs):
         super().__init__(ctx, **kwargs)
         self.generator_func = generator_func
         self.total_count = total_count
@@ -129,7 +129,7 @@ class IterableBatchIteratorFunction(BaseFunction):
     """
     
     def __init__(self, iterable: Any, total_count: Optional[int] = None, 
-                 ctx: 'RuntimeContext' = None, **kwargs):
+                 ctx: 'TaskContext' = None, **kwargs):
         super().__init__(ctx, **kwargs)
         self.iterable = iterable
         self.total_count = total_count

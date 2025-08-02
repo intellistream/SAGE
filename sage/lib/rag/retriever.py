@@ -5,7 +5,6 @@ import json
 
 from sage.core.function.map_function import MapFunction
 from sage.core.function.base_function import MemoryFunction, StatefulFunction
-from archive.runtime_context import RuntimeContext
 
 # 更新后的 SimpleRetriever
 class DenseRetriever(MapFunction):

@@ -10,7 +10,6 @@ from sage.utils.queue_adapter import create_queue
 from sage.runtime.communication.router.router import BaseRouter
 from sage.core.function.source_function import StopSignal
 if TYPE_CHECKING:
-    from sage.runtime.communication.router.connection import Connection
     from sage.core.operator.base_operator import BaseOperator
     from sage.runtime.factory.operator_factory import OperatorFactory
 
@@ -61,13 +60,7 @@ class BaseTask(ABC):
         
         self.logger.info(f"Task {self.name} started with worker thread")
 
-    def add_connection(self, connection: 'Connection'):
-        self.router.add_connection(connection)
-        self.logger.debug(f"Connection added to node '{self.name}': {connection}")
-
-    # def remove_connection(self, broadcast_index: int, parallel_index: int) -> bool:
-    #     return self.router.remove_connection(broadcast_index, parallel_index)
-
+    # 连接管理现在由TaskContext在构造时完成，不再需要动态添加连接
 
     def trigger(self, input_tag: str = None, packet:'Packet' = None) -> None:
         try:
@@ -93,26 +86,6 @@ class BaseTask(ABC):
         """
         # 通过描述符获取队列实例
         return self.input_qd.queue_instance
-    
-    def _create_default_queue_descriptor(self):
-        """创建默认队列描述符（兜底方案）"""
-        from sage.runtime.communication.queue_creation_strategy import QueueCreationStrategy
-        
-        # 检查运行环境选择合适的队列类型
-        try:
-            import ray
-            if ray.is_initialized():
-                return QueueCreationStrategy.create_task_input_queue(
-                    task_name=self.ctx.name,
-                    is_remote=True
-                )
-        except ImportError:
-            pass
-        
-        return QueueCreationStrategy.create_task_input_queue(
-            task_name=self.ctx.name,
-            is_remote=False
-        )
 
     def _worker_loop(self) -> None:
         """
@@ -210,11 +183,11 @@ class BaseTask(ABC):
             # if hasattr(self.router, 'cleanup'):
             #     self.router.cleanup()
             
-            # 清理输入缓冲区
-            if hasattr(self.input_buffer, 'cleanup'):
-                self.input_buffer.cleanup()
-            elif hasattr(self.input_buffer, 'close'):
-                self.input_buffer.close()
+            # 清理输入队列描述符
+            if self.input_qd and hasattr(self.input_qd, 'cleanup'):
+                self.input_qd.cleanup()
+            elif self.input_qd and hasattr(self.input_qd, 'close'):
+                self.input_qd.close()
             
             # 清理运行时上下文（包括service_manager）
             if hasattr(self.ctx, 'cleanup'):

@@ -7,14 +7,14 @@ import threading
 import unittest
 import pytest
 from unittest.mock import Mock
-from archive.runtime_context import RuntimeContext
+from sage.runtime.service_context import ServiceContext
 from sage.runtime.service.local_service_task import LocalServiceTask
 from sage.runtime.service.service_caller import ServiceManager
 from sage.core.function.base_function import BaseFunction
 from sage.runtime.factory.service_factory import ServiceFactory
 
 
-# 创建Mock对象来初始化RuntimeContext
+# 创建Mock对象来初始化ServiceContext
 class MockGraphNode:
     def __init__(self, name: str):
         self.name = name
@@ -92,17 +92,17 @@ def test_integrated_service_call():
         cache_graph_node = MockGraphNode("cache_service")
         cache_transformation = MockTransformation()
         cache_env = MockEnvironment("test_env")
-        cache_ctx = RuntimeContext(cache_graph_node, cache_transformation, cache_env)
+        cache_ctx = ServiceContext(cache_graph_node, cache_transformation, cache_env)
         
         db_graph_node = MockGraphNode("db_service")
         db_transformation = MockTransformation()
         db_env = MockEnvironment("test_env")
-        db_ctx = RuntimeContext(db_graph_node, db_transformation, db_env)
+        db_ctx = ServiceContext(db_graph_node, db_transformation, db_env)
         
         test_graph_node = MockGraphNode("test_function")
         test_transformation = MockTransformation()
         test_env = MockEnvironment("test_env")
-        test_ctx = RuntimeContext(test_graph_node, test_transformation, test_env)
+        test_ctx = ServiceContext(test_graph_node, test_transformation, test_env)
         
         # 2. 创建服务工厂
         cache_factory = ServiceFactory("cache_service", MockCacheService)
