@@ -28,11 +28,12 @@ class Dispatcher():
         self.tasks: Dict[str, Union[BaseTask, ActorWrapper]] = {}
         self.services: Dict[str, BaseServiceTask] = {}  # 存储服务实例
         self.is_running: bool = False
+        self.setup_logging_system()
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
         if env.platform == "remote":
             self.logger.info(f"Dispatcher '{self.name}' is running in remote mode")
             ensure_ray_initialized()
-        self.setup_logging_system()
+
 
     def receive_stop_signal(self):
         """

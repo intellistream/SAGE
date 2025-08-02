@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from queue import Empty
-import threading, copy, time
+import threading, copy, time, os
 from typing import Any, TYPE_CHECKING, Union, Optional
 from sage.runtime.task_context import TaskContext
 from sage.runtime.communication.router.packet import Packet
@@ -9,6 +9,7 @@ from ray.util.queue import Empty
 from sage.utils.queue_adapter import create_queue
 from sage.runtime.communication.router.router import BaseRouter
 from sage.core.function.source_function import StopSignal
+from sage.utils.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator
     from sage.runtime.factory.operator_factory import OperatorFactory
@@ -20,7 +21,10 @@ class BaseTask(ABC):
         # 使用从上下文传入的队列描述符，而不是直接创建队列
         self.input_qd = self.ctx.input_qd
         
-        self.logger.info(f"🎯 Task: Using queue descriptor for input buffer: {self.input_qd.queue_id}")
+        if self.input_qd:
+            self.logger.info(f"🎯 Task: Using queue descriptor for input buffer: {self.input_qd.queue_id}")
+        else:
+            self.logger.info(f"🎯 Task: No input queue (source/spout node)")
         
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
