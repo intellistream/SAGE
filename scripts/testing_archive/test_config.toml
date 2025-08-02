@@ -1,0 +1,174 @@
+# SAGE 测试自动化配置文件
+# 此文件定义了各种测试套件和配置选项
+
+[test_suites]
+# 快速测试套件 - 用于日常开发
+quick_tests = [
+    "sage/cli/tests/test_config_manager.py",
+    "sage/utils/tests/test_embedding.py", 
+    "sage/lib/io/tests/test_print_functionality.py",
+    "sage/runtime/service/tests/test_debug_concurrent.py"
+]
+
+# 核心功能测试
+core_tests = [
+    "sage/core/",
+    "sage/cli/",
+    "sage/utils/",
+    "sage/runtime/"
+]
+
+# 集成测试
+integration_tests = [
+    "sage/jobmanager/tests/test_end_to_end.py",
+    "sage/core/tests/test_comap_service_integration.py",
+    "sage/service/memory/tests/test_memory_service.py"
+]
+
+# 性能测试
+performance_tests = [
+    "sage/runtime/communication/queue/tests/test_performance_benchmarks.py"
+]
+
+[test_config]
+# 默认并行进程数
+default_workers = 4
+
+# 最大并行进程数
+max_workers = 8
+
+# 测试超时时间 (秒)
+test_timeout = 300
+
+# 失败后是否继续 
+continue_on_failure = true
+
+# 是否生成详细日志
+verbose_logging = true
+
+# 测试报告格式
+report_format = "markdown"
+
+[paths]
+# 项目根目录
+project_root = "."
+
+# 虚拟环境路径
+venv_path = "./test_env"
+
+# 测试日志目录
+test_logs_dir = "./test_logs"
+
+# 测试报告目录
+reports_dir = "./test_reports"
+
+# 临时文件目录
+temp_dir = "./temp"
+
+[github_actions]
+# 工作流目录
+workflows_dir = "./.github/workflows"
+
+# 主要工作流文件
+main_workflows = [
+    "ci.yml",
+    "build-release.yml"
+]
+
+# 是否启用 Docker 模拟
+enable_docker_simulation = false
+
+# Act 工具参数
+act_args = ["--rm", "--pull=false"]
+
+[notifications]
+# 是否启用通知
+enable_notifications = false
+
+# 通知类型 (email, slack, webhook)
+notification_types = ["console"]
+
+# 仅在失败时通知
+notify_on_failure_only = true
+
+[performance]
+# 内存限制 (GB)
+memory_limit = 8
+
+# CPU 使用限制 (%)
+cpu_limit = 80
+
+# 并发测试文件数限制
+concurrent_files_limit = 10
+
+[filters]
+# 排除的测试文件模式
+exclude_patterns = [
+    "**/test_*_slow.py",
+    "**/test_*_manual.py"
+]
+
+# 包含的测试文件模式
+include_patterns = [
+    "**/test_*.py",
+    "**/*_test.py"
+]
+
+# 排除的目录
+exclude_directories = [
+    "__pycache__",
+    ".git",
+    "node_modules",
+    ".venv",
+    "build",
+    "dist"
+]
+
+[reporting]
+# 报告包含的信息
+include_sections = [
+    "summary",
+    "environment",
+    "test_results", 
+    "performance",
+    "recommendations"
+]
+
+# 是否包含详细日志
+include_detailed_logs = false
+
+# 是否生成 HTML 报告
+generate_html_report = false
+
+# 是否生成 JSON 报告
+generate_json_report = true
+
+[environment]
+# 必需的 Python 版本
+required_python_version = "3.11"
+
+# 必需的依赖包
+required_packages = [
+    "pytest>=7.4.4",
+    "torch>=2.4.0",
+    "ray>=2.37.0",
+    "fastapi>=0.115.0"
+]
+
+# 环境变量
+[environment.variables]
+PYTHONPATH = "."
+SAGE_ENV = "test"
+
+[hooks]
+# 测试前钩子脚本
+pre_test_hooks = []
+
+# 测试后钩子脚本  
+post_test_hooks = []
+
+# 失败时钩子脚本
+on_failure_hooks = []
+
+# 成功时钩子脚本
+on_success_hooks = []

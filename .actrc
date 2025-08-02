@@ -1,0 +1,5 @@
+# Act 配置文件 - 针对 build-release.yml 工作流
+-P ubuntu-latest=ubuntu:22.04
+--container-daemon-socket -
+--env GITHUB_TOKEN=fake_token
+--env PYTHON_VERSION=3.11
