@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import ray
 from ray.actor import ActorHandle
 from typing import List,Dict,Optional, Any, Union
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 from sage.utils.actor_wrapper import ActorWrapper
 
 if TYPE_CHECKING:

@@ -14,6 +14,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # 添加项目路径
 sys.path.insert(0, '/api-rework')
 
+from sage.runtime.communication.queue import (
+    PythonQueueDescriptor,
+    RayQueueDescriptor,
+    SageQueueDescriptor,
+    RPCQueueDescriptor,
+    resolve_descriptor
+)
+
 def test_basic_functionality():
     """测试基础功能"""
     print("🧪 测试基础功能...")
@@ -263,7 +271,8 @@ def test_serialization():
             print(f"序列化字典包含字段: {list(queue_dict.keys())}")
             
             # 从字典恢复
-            restored_queue = queue_desc.__class__.from_dict(queue_dict)
+            from sage.runtime.communication.queue import resolve_descriptor
+            restored_queue = resolve_descriptor(queue_dict)
             print(f"恢复的队列ID: {restored_queue.queue_id}")
             print(f"恢复的队列类型: {restored_queue.queue_type}")
             

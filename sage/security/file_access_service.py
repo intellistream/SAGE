@@ -13,7 +13,7 @@ from typing import Dict, Any, List
 import stat
 import pwd
 import grp
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 
 class SecureFileAccessService:
     """

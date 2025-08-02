@@ -28,8 +28,9 @@ try:
         PythonQueueDescriptor,
         RayQueueDescriptor,
         SageQueueDescriptor,
-        RPCQueueDescriptor,
+        resolve_descriptor
     )
+    from sage.utils.ray_helper import ensure_ray_initialized
     print("✓ 成功导入队列描述符")
 except ImportError as e:
     print(f"✗ 导入失败: {e}")
@@ -124,7 +125,8 @@ try:
             """生产物品到队列"""
             try:
                 # 从字典重建队列描述符
-                queue_desc = RayQueueDescriptor.from_dict(queue_desc_dict)
+                from sage.runtime.communication.queue import resolve_descriptor
+                queue_desc = resolve_descriptor(queue_desc_dict)
                 
                 for i in range(num_items):
                     item = f"ray_actor_{actor_id}_{i}"
@@ -143,7 +145,8 @@ try:
             """从队列消费物品"""
             try:
                 # 从字典重建队列描述符
-                queue_desc = RayQueueDescriptor.from_dict(queue_desc_dict)
+                from sage.runtime.communication.queue import resolve_descriptor
+                queue_desc = resolve_descriptor(queue_desc_dict)
                 
                 consumed_items = []
                 start_time = time.time()
@@ -326,8 +329,7 @@ class TestReferencePassingAndConcurrency:
         
         try:
             # 初始化Ray
-            if not ray.is_initialized():
-                ray.init()
+            ensure_ray_initialized()
             
             # 创建Ray队列描述符
             queue_desc = RayQueueDescriptor(queue_id="test_ray_actor", maxsize=100)

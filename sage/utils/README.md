@@ -92,7 +92,7 @@ from sage.utils.config_loader import ConfigLoader
 config = ConfigLoader("app_config.yaml")
 
 # 日志记录
-from sage.utils.custom_logger import get_logger
+from sage.utils.logger.custom_logger import get_logger
 logger = get_logger("my_app")
 logger.info("Application started")
 

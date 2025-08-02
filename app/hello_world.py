@@ -4,7 +4,7 @@ from sage.core.api.remote_environment import RemoteEnvironment
 from sage.core.function.sink_function import SinkFunction
 from sage.core.function.batch_function import BatchFunction
 from sage.core.function.map_function import MapFunction
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 
 # 批处理数据源：生成10条 Hello, World! 数据
 class HelloBatch(BatchFunction):

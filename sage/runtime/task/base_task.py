@@ -9,7 +9,7 @@ from ray.util.queue import Empty
 from sage.utils.queue_adapter import create_queue
 from sage.runtime.communication.router.router import BaseRouter
 from sage.core.function.source_function import StopSignal
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator
     from sage.runtime.factory.operator_factory import OperatorFactory
@@ -115,7 +115,7 @@ class BaseTask(ABC):
 
                         self.logger.info(f"Task {self.name}: Successfully got packet from input_buffer: {data_packet}")
                     except Exception as e:
-                        self.logger.error(f"Task {self.name}: No packet received from input_buffer (timeout/exception): {e}")
+                        self.logger.debug(f"Task {self.name}: No packet received from input_buffer (timeout/exception): {e}")
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue

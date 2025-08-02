@@ -8,7 +8,7 @@ import shutil
 import inspect
 import numpy as np
 from typing import Optional, Dict, Any, List, Callable
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 from sage.service.memory.memory_collection.base_collection import BaseMemoryCollection
 from sage.service.memory.search_engine.vdb_index.faiss_index import FaissIndex
 from sage.service.memory.storage_engine.vector_storage import VectorStorage

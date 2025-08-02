@@ -17,6 +17,13 @@ from sage.runtime.communication.queue import (
     resolve_descriptor
 )
 
+# 检查Ray是否可用
+try:
+    import ray
+    RAY_AVAILABLE = True
+except ImportError:
+    RAY_AVAILABLE = False
+
 
 class TestBaseQueueDescriptor:
     """测试基础队列描述符"""
@@ -125,7 +132,8 @@ class TestPythonQueueDescriptor:
 class TestRayQueueDescriptor:
     """测试Ray队列描述符"""
     
-    @patch('ray.util.queue.Queue')
+    @pytest.mark.skipif(not RAY_AVAILABLE, reason="Ray not available")
+    @patch('sage.runtime.communication.queue.ray_queue_descriptor.Queue')
     @patch('ray.is_initialized')
     def test_ray_queue_creation(self, mock_ray_initialized, mock_ray_queue):
         """测试Ray队列创建"""
@@ -139,6 +147,7 @@ class TestRayQueueDescriptor:
         assert queue.queue_type == "ray_queue"
         assert queue.metadata["maxsize"] == 100
     
+    @pytest.mark.skipif(not RAY_AVAILABLE, reason="Ray not available")
     @patch('ray.init')
     @patch('ray.is_initialized')
     def test_ray_actor_queue_creation(self, mock_ray_initialized, mock_ray_init):
@@ -220,12 +229,13 @@ class TestDescriptorResolution:
     def test_resolve_python_descriptor(self):
         """测试解析Python描述符"""
         queue = PythonQueueDescriptor(queue_id="test_resolve")
-        resolved = resolve_descriptor(queue)
+        data = queue.to_dict()
+        resolved = resolve_descriptor(data)
         
-        # 解析应该返回底层队列实例
+        # 解析应该返回相同类型的队列描述符
         assert resolved is not None
-        assert hasattr(resolved, 'put')
-        assert hasattr(resolved, 'get')
+        assert resolved.queue_id == queue.queue_id
+        assert resolved.queue_type == queue.queue_type
 
 
 class TestErrorHandling:

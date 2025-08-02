@@ -22,6 +22,7 @@ try:
     from sage.runtime.communication.queue import (
         RayQueueDescriptor,
     )
+    from sage.utils.ray_helper import ensure_ray_initialized
     print("✓ 成功导入Ray队列描述符")
 except ImportError as e:
     print(f"✗ 导入失败: {e}")
@@ -46,7 +47,8 @@ class PersistentQueueActor:
     def __init__(self, queue_desc_dict: Dict[str, Any], actor_name: str):
         """初始化Actor并建立队列连接"""
         self.actor_name = actor_name
-        self.queue_desc = RayQueueDescriptor.from_dict(queue_desc_dict)
+        from sage.runtime.communication.queue import resolve_descriptor
+        self.queue_desc = resolve_descriptor(queue_desc_dict)
         self.operations_count = 0
         self.last_operation_time = time.time()
         
@@ -150,7 +152,8 @@ class QueueCoordinatorActor:
     
     def register_queue(self, queue_name: str, queue_desc_dict: Dict[str, Any]):
         """注册一个队列"""
-        queue_desc = RayQueueDescriptor.from_dict(queue_desc_dict)
+        from sage.runtime.communication.queue import resolve_descriptor
+        queue_desc = resolve_descriptor(queue_desc_dict)
         self.managed_queues[queue_name] = queue_desc
         self.coordination_log.append(f"registered_queue:{queue_name}")
         return f"Queue {queue_name} registered"
@@ -207,10 +210,9 @@ class QueueCoordinatorActor:
 class TestRayQueueActorCommunication:
     """Ray队列Actor通信测试"""
     
-    def setUp(self):
+    def setup_method(self):
         """测试设置"""
-        if not ray.is_initialized():
-            ray.init()
+        ensure_ray_initialized()
         
         # 创建测试队列
         self.test_queue = RayQueueDescriptor(queue_id="test_ray_actor_comm", maxsize=1000)

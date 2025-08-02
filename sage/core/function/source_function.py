@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 from sage.core.function.base_function import BaseFunction
 
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from sage.runtime.task_context import TaskContext
 

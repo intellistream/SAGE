@@ -1,7 +1,7 @@
 import time
 from dotenv import load_dotenv
 from sage.core.api.remote_environment import RemoteEnvironment
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.function.batch_function import BatchFunction
 from sage.core.function.map_function import MapFunction

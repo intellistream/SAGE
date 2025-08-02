@@ -9,7 +9,6 @@ from sage.lib.rag.generator import OpenAIGenerator
 from sage.lib.rag.promptor import QAPromptor
 from sage.lib.rag.retriever import DenseRetriever
 from sage.utils.config_loader import load_config
-from sage.utils.logging_utils import configure_logging
 
 
 class InteractiveKafkaProducer:
@@ -210,8 +209,6 @@ def main():
 
 
 if __name__ == '__main__':
-    # 配置日志
-    configure_logging(level=logging.INFO)
     
     # 加载配置
     config = load_config('./config_instance.yaml')

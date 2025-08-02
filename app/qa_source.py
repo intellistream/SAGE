@@ -4,7 +4,7 @@
 """
 import time
 from dotenv import load_dotenv
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.function.map_function import MapFunction
 from sage.core.function.sink_function import SinkFunction

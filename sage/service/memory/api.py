@@ -1,7 +1,7 @@
 from typing import Optional, TYPE_CHECKING
 from sage.utils.embedding_methods.embedding_model import apply_embedding_model
 from sage.service.memory.memory_manager import MemoryManager
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 if TYPE_CHECKING:
     pass
 

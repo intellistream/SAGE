@@ -3,7 +3,7 @@ from sage.core.function.base_function import StatefulFunction, MemoryFunction
 
 from sage.core.function.map_function import MapFunction
 
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 
 import os
 import time

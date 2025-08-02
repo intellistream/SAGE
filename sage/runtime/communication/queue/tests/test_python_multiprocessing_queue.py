@@ -75,7 +75,8 @@ def mp_consumer_worker(queue_desc_data: Dict[str, Any], worker_id: int, target_i
     """多进程消费者工作函数"""
     try:
         # 重建队列描述符
-        queue_desc = PythonQueueDescriptor.from_dict(queue_desc_data)
+        from sage.runtime.communication.queue import resolve_descriptor
+        queue_desc = resolve_descriptor(queue_desc_data)
         
         consumed_items = []
         start_time = time.time()
@@ -118,7 +119,8 @@ def mp_mixed_worker(queue_desc_data: Dict[str, Any], worker_id: int, num_operati
     """多进程混合读写工作函数"""
     try:
         # 重建队列描述符
-        queue_desc = PythonQueueDescriptor.from_dict(queue_desc_data)
+        from sage.runtime.communication.queue import resolve_descriptor
+        queue_desc = resolve_descriptor(queue_desc_data)
         
         put_count = 0
         get_count = 0
@@ -166,7 +168,8 @@ def mp_queue_monitor(queue_desc_data: Dict[str, Any], monitor_duration: int, sha
     """多进程队列监控函数"""
     try:
         # 重建队列描述符
-        queue_desc = PythonQueueDescriptor.from_dict(queue_desc_data)
+        from sage.runtime.communication.queue import resolve_descriptor
+        queue_desc = resolve_descriptor(queue_desc_data)
         
         monitor_data = []
         start_time = time.time()
@@ -483,7 +486,8 @@ class TestPythonQueueMultiprocessing:
             """子进程操作函数"""
             try:
                 # 反序列化
-                restored_desc = PythonQueueDescriptor.from_dict(queue_data)
+                from sage.runtime.communication.queue import resolve_descriptor
+                restored_desc = resolve_descriptor(queue_data)
                 
                 # 读取所有数据
                 items = []
