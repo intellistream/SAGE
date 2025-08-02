@@ -110,12 +110,8 @@ class BaseTask(ABC):
                     # For non-spout nodes, fetch input and process
                     # input_result = self.fetch_input()
                     try:
-                        self.logger.info(f"Task {self.name}: Attempting to get packet from input_buffer (timeout=5.0s)")
                         data_packet = self.input_qd.get(timeout=5.0)
-
-                        self.logger.info(f"Task {self.name}: Successfully got packet from input_buffer: {data_packet}")
                     except Exception as e:
-                        self.logger.debug(f"Task {self.name}: No packet received from input_buffer (timeout/exception): {e}")
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue

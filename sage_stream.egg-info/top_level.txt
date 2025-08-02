@@ -1,2 +1,0 @@
-sage
-sage_ext

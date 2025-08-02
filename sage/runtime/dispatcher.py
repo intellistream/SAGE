@@ -138,7 +138,7 @@ class Dispatcher():
             service_node = None
             for node_name, node in self.graph.service_nodes.items():
                 # 通过service_factory的名称匹配
-                if hasattr(node, 'service_factory') and node.service_factory and node.service_factory.name == service_name:
+                if hasattr(node, 'service_factory') and node.service_factory and node.service_factory.service_name == service_name:
                     service_node = node
                     break
             

@@ -175,9 +175,12 @@ class BaseServiceTask(ABC):
                 
                 # 从请求队列获取消息（超时1秒）
                 try:
+                    self.logger.debug(f"[SERVICE_TASK] Attempting to get request from queue for service '{self.service_name}'")
                     request_data = request_queue.get(block=True, timeout=1.0)
                     request_count += 1
-                    self.logger.debug(f"Received request #{request_count} for service '{self.service_name}': {request_data.get('request_id', 'unknown')}")
+                    request_id = request_data.get('request_id', 'unknown')
+                    method_name = request_data.get('method_name', 'unknown')
+                    self.logger.info(f"[SERVICE_TASK] Received request #{request_count} for service '{self.service_name}': {method_name} (request_id: {request_id})")
                     self._handle_service_request(request_data)
                     
                 except Exception as e:
@@ -324,21 +327,23 @@ class BaseServiceTask(ABC):
             response_queue_name = request_data.get('response_queue')
             timeout = request_data.get('timeout', 30.0)
             
-            self.logger.debug(
-                f"Processing service request {request_id}: {method_name} "
+            self.logger.info(
+                f"[SERVICE_TASK] Processing service request {request_id}: {method_name} "
                 f"with args={args}, kwargs={kwargs}"
             )
             
             # 调用服务方法
             try:
+                self.logger.debug(f"[SERVICE_TASK] Calling service method {method_name}")
                 result = self.call_method(method_name, *args, **kwargs)
                 success = True
                 error_msg = None
+                self.logger.info(f"[SERVICE_TASK] Service method {method_name} succeeded: {result}")
             except Exception as e:
                 result = None
                 success = False
                 error_msg = str(e)
-                self.logger.error(f"Service method call failed: {e}")
+                self.logger.error(f"[SERVICE_TASK] Service method call failed: {e}")
                 self.logger.debug(f"Stack trace: {traceback.format_exc()}")
             
             # 计算执行时间
@@ -356,10 +361,13 @@ class BaseServiceTask(ABC):
             
             # 发送响应
             if response_queue_name:
+                self.logger.info(f"[SERVICE_TASK] Sending response for request {request_id} to queue {response_queue_name}")
                 self._send_response(response_queue_name, response_data)
-            
-            self.logger.debug(
-                f"Completed service request {request_id} in {execution_time:.3f}s, "
+            else:
+                self.logger.warning(f"[SERVICE_TASK] No response queue specified for request {request_id}")
+                
+            self.logger.info(
+                f"[SERVICE_TASK] Completed service request {request_id} in {execution_time:.3f}s, "
                 f"success={success}"
             )
             
@@ -369,27 +377,50 @@ class BaseServiceTask(ABC):
     
     def _send_response(self, response_queue_name: str, response_data: Dict[str, Any]):
         """
-        发送响应到响应队列 - 使用ServiceContext中的队列描述符
+        发送响应到响应队列
         
         Args:
-            response_queue_name: 响应队列名称（通常是节点名称）
+            response_queue_name: 响应队列名称
             response_data: 响应数据
         """
+    def _send_response(self, response_queue_name: str, response_data: Dict[str, Any]):
+        """
+        发送响应到响应队列
+        
+        ServiceManager发送请求时会指定自己的响应队列名称，
+        BaseServiceTask通过这个名称找到对应的响应队列并发送响应。
+        
+        Args:
+            response_queue_name: 响应队列名称 (来自ServiceManager的_response_queue_name)
+            response_data: 响应数据
+        """
+        request_id = response_data.get('request_id', 'unknown')
+        
         try:
-            # 从ServiceContext获取响应队列
-            response_queue = self.get_response_queue(response_queue_name)
-            if response_queue is None:
-                self.logger.error(f"Response queue '{response_queue_name}' not found in service context")
-                return
+            self.logger.info(f"[SERVICE_TASK] Starting response send process for request {request_id}")
+            self.logger.info(f"[SERVICE_TASK] Target response queue name: '{response_queue_name}'")
+            self.logger.debug(f"[SERVICE_TASK] Response data: {response_data}")
             
-            # 发送响应数据
-            response_queue.put(response_data, block=False, timeout=5.0)
+            # 通过队列名称创建/获取队列实例（与ServiceManager的_get_response_queue方法保持一致）
+            from sage.utils.queue_adapter import create_queue
+            self.logger.debug(f"[SERVICE_TASK] Creating queue instance for: '{response_queue_name}'")
+            response_queue = create_queue(name=response_queue_name)
+            self.logger.info(f"[SERVICE_TASK] Created response queue instance type: {type(response_queue).__name__}")
             
-            self.logger.debug(f"Sent response to queue {response_queue_name}")
+            # 发送响应数据 - 使用阻塞模式确保响应被发送
+            self.logger.info(f"[SERVICE_TASK] Attempting to put response data to queue '{response_queue_name}' for request {request_id}")
+            send_start_time = time.time()
+            response_queue.put(response_data, timeout=10.0)  # 增加超时时间到10秒
+            send_time = time.time() - send_start_time
+            
+            self.logger.info(f"[SERVICE_TASK] Successfully sent response for request {request_id} to queue '{response_queue_name}' in {send_time:.3f}s")
             
         except Exception as e:
-            self.logger.error(f"Failed to send response to {response_queue_name}: {e}")
+            self.logger.error(f"[SERVICE_TASK] Failed to send response for request {request_id} to '{response_queue_name}': {e}")
+            self.logger.error(f"[SERVICE_TASK] Exception type: {type(e).__name__}")
             self.logger.debug(f"Stack trace: {traceback.format_exc()}")
+            # 不要抛出异常，避免影响服务任务的继续运行
+            # raise
     
     def start_running(self):
         """启动服务任务"""

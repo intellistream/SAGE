@@ -101,7 +101,7 @@ class TaskContext:
         if self._service_manager is None:
             from sage.runtime.service.service_caller import ServiceManager
             # ServiceManager需要完整的运行时上下文来访问dispatcher服务
-            self._service_manager = ServiceManager(self)
+            self._service_manager = ServiceManager(self, logger=self.logger)
         return self._service_manager
 
     def cleanup(self):

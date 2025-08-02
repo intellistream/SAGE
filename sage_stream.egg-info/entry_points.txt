@@ -1,3 +1,0 @@
-[console_scripts]
-sage = sage.cli.main:app
-sage-jm = sage.cli.job:app
