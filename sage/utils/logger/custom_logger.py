@@ -50,17 +50,24 @@ class CustomLogger:
                       - 绝对路径: 完整路径，如 "/tmp/app.log"
                     - level 可以是字符串("DEBUG", "INFO"等) 或数字
             name: logger名称，默认使用 "Logger"
-            log_base_folder: 日志基础文件夹，用于解析相对路径
+            log_base_folder: 日志基础文件夹，用于解析相对路径。如果为None，则不支持相对路径
         
         Examples:
-            # JobManager示例
+            # JobManager示例 - 必须提供log_base_folder才能使用相对路径
             logger = CustomLogger([
                 ("console", "INFO"),
                 ("jobmanager.log", "DEBUG"),           # 相对路径
                 ("error.log", "ERROR"),               # 相对路径
             ], name="JobManager", log_base_folder="/tmp/sage/logs")
             
-            # 混合路径示例
+            # 仅使用绝对路径示例 - 无需log_base_folder
+            logger = CustomLogger([
+                ("console", "INFO"),
+                ("/tmp/app.log", "DEBUG"),             # 绝对路径
+                ("/var/log/error.log", "ERROR")        # 绝对路径
+            ], name="MyApp")
+            
+            # 混合路径示例 - 需要log_base_folder支持相对路径
             logger = CustomLogger([
                 ("console", "INFO"),
                 ("app.log", "DEBUG"),                 # 相对于log_base_folder
@@ -68,11 +75,11 @@ class CustomLogger:
             ], name="MyApp", log_base_folder="./logs")
         """
         self.name = name or "Logger"
-        project_root = Path(__file__).parent.parent.parent
-        self.log_base_folder = log_base_folder or project_root / "logs"
+        self.log_base_folder = log_base_folder
         
-        # 确保log_base_folder存在
-        Path(self.log_base_folder).mkdir(parents=True, exist_ok=True)
+        # 如果提供了log_base_folder，确保其存在
+        if self.log_base_folder:
+            Path(self.log_base_folder).mkdir(parents=True, exist_ok=True)
 
         self.logger = logging.getLogger(self.name)
 
@@ -122,6 +129,9 @@ class CustomLogger:
             
         Returns:
             str: 解析后的路径
+            
+        Raises:
+            ValueError: 当使用相对路径但未设置log_base_folder时
         """
         if output_target == "console":
             return "console"
@@ -130,7 +140,12 @@ class CustomLogger:
         if os.path.isabs(output_target):
             return output_target
         else:
-            # 相对路径，相对于log_base_folder
+            # 相对路径需要log_base_folder支持
+            if not self.log_base_folder:
+                raise ValueError(
+                    f"Cannot use relative path '{output_target}' without log_base_folder. "
+                    f"Please provide log_base_folder in __init__ or use absolute path."
+                )
             return os.path.join(self.log_base_folder, output_target)
 
     def _extract_log_level(self, level_setting: Union[str, int]) -> int:
@@ -205,7 +220,10 @@ class CustomLogger:
         """打印当前输出配置"""
         configs = self.get_output_configs()
         print(f"\n=== Logger '{self.name}' Output Configurations ===")
-        print(f"Log base folder: {self.log_base_folder}")
+        if self.log_base_folder:
+            print(f"Log base folder: {self.log_base_folder}")
+        else:
+            print("Log base folder: Not set (relative paths not supported)")
         for i, config in enumerate(configs, 1):
             status = "ACTIVE" if config['handler_active'] else "INACTIVE"
             print(f"{i}. Target: {config['target']}")
