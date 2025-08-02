@@ -37,8 +37,9 @@ except ImportError as e:
 def mp_producer_worker(queue_desc_data: Dict[str, Any], worker_id: int, num_items: int, shared_stats: Dict):
     """多进程生产者工作函数"""
     try:
-        # 重建队列描述符
-        queue_desc = PythonQueueDescriptor.from_dict(queue_desc_data)
+        # 重建队列描述符 - 使用 resolve_descriptor 替代 from_dict
+        from sage.runtime.communication.queue import resolve_descriptor
+        queue_desc = resolve_descriptor(queue_desc_data)
         
         produced_count = 0
         start_time = time.time()

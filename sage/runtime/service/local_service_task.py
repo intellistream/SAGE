@@ -4,8 +4,8 @@ from sage.utils.custom_logger import CustomLogger
 from .base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:
-    from sage.jobmanager.factory.service_factory import ServiceFactory
-    from sage.runtime.runtime_context import RuntimeContext
+    from sage.runtime.factory.service_factory import ServiceFactory
+    from sage.runtime.service_context import ServiceContext
 
 
 class LocalServiceTask(BaseServiceTask):

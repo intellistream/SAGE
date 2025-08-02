@@ -21,7 +21,9 @@ try:
     )
     from sage.runtime.communication.queue import (
         PythonQueueDescriptor,
+        RayQueueDescriptor,
         SageQueueDescriptor,
+        RPCQueueDescriptor,
         resolve_descriptor
     )
     
@@ -94,8 +96,8 @@ def test_serialization():
     json_str = desc.to_json()
     print(f"JSON长度: {len(json_str)}")
     
-    # 从JSON恢复
-    restored_desc = QueueDescriptor.from_json(json_str)
+    # 通过 resolve_descriptor 从字典恢复描述符
+    restored_desc = resolve_descriptor(data)
     print(f"恢复的描述符: {restored_desc}")
     
     # 验证恢复的描述符

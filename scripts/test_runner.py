@@ -180,8 +180,8 @@ class SAGETestRunner:
         
         try:
             # 运行pytest
-            cmd = ["python", "-m", "pytest", str(test_dir), "-v", "--tb=short"]
-            
+            cmd = ["python", "-m", "pytest", str(test_dir), "-v", "-s","--maxfail=1", "--tb=short"]
+
             with open(log_file_path, 'w', encoding='utf-8') as log_file:
                 log_file.write(f"Running tests in: {test_dir}\n")
                 log_file.write(f"Test files: {[str(f.relative_to(self.project_root)) for f in test_files]}\n")
@@ -195,7 +195,7 @@ class SAGETestRunner:
                     stdout=subprocess.PIPE, 
                     stderr=subprocess.STDOUT,
                     text=True,
-                    timeout=300  # 5分钟超时
+                    timeout=180  # 2分钟超时
                 )
                 
                 # 将输出写入日志文件

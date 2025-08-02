@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 import logging
 
 if TYPE_CHECKING:
-    from sage.runtime.runtime_context import RuntimeContext
+    from sage.runtime.service_context import ServiceContext
 
 
 class BaseService(ABC):

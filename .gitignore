@@ -87,7 +87,7 @@ archive/
 *.lib
 
 activate_sage.sh
-
+.venv/
 # Benchmark and test reports
 **/benchmark_report_*.json
 **/test_results_*.json

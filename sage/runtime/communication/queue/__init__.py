@@ -18,14 +18,37 @@ def resolve_descriptor(data):
     """从序列化数据解析队列描述符"""
     if isinstance(data, dict) and 'queue_type' in data:
         queue_type = data['queue_type']
-        if queue_type == 'python_queue':
-            return PythonQueueDescriptor.from_dict(data)
+        metadata = data.get('metadata', {})
+        queue_id = data.get('queue_id')
+        
+        if queue_type == 'python':
+            return PythonQueueDescriptor(
+                queue_id=queue_id,
+                maxsize=metadata.get('maxsize', 0),
+                use_multiprocessing=metadata.get('use_multiprocessing', False)
+            )
         elif queue_type == 'ray_queue':
-            return RayQueueDescriptor.from_dict(data)
+            return RayQueueDescriptor(
+                queue_id=queue_id,
+                maxsize=metadata.get('maxsize', 0)
+            )
         elif queue_type == 'sage_queue':
-            return SageQueueDescriptor.from_dict(data)
+            return SageQueueDescriptor(
+                queue_id=queue_id,
+                maxsize=metadata.get('maxsize', 1024*1024),
+                auto_cleanup=metadata.get('auto_cleanup', True),
+                namespace=metadata.get('namespace'),
+                enable_multi_tenant=metadata.get('enable_multi_tenant', True)
+            )
         elif queue_type == 'rpc_queue':
-            return RPCQueueDescriptor.from_dict(data)
+            return RPCQueueDescriptor(
+                queue_id=queue_id,
+                host=metadata.get('host', 'localhost'),
+                port=metadata.get('port', 8000),
+                connection_timeout=metadata.get('connection_timeout', 30.0),
+                retry_count=metadata.get('retry_count', 3),
+                enable_pooling=metadata.get('enable_pooling', True)
+            )
         else:
             raise ValueError(f"Unknown queue type: {queue_type}")
     else:
