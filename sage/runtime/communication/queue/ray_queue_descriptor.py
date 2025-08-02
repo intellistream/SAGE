@@ -8,9 +8,51 @@ from typing import Any, Dict, Optional
 import logging
 from ray.util.queue import Queue
 from .base_queue_descriptor import BaseQueueDescriptor
+import ray
 
 logger = logging.getLogger(__name__)
 
+# 全局队列管理器，用于在不同Actor之间共享队列实例
+@ray.remote
+class RayQueueManager:
+    """Ray队列管理器，管理全局队列实例"""
+    
+    def __init__(self):
+        self.queues = {}
+    
+    def get_or_create_queue(self, queue_id: str, maxsize: int):
+        """获取或创建队列"""
+        if queue_id not in self.queues:
+            self.queues[queue_id] = Queue(maxsize=maxsize if maxsize > 0 else None)
+            logger.debug(f"Created new Ray queue {queue_id}")
+        else:
+            logger.debug(f"Retrieved existing Ray queue {queue_id}")
+        return self.queues[queue_id]
+    
+    def queue_exists(self, queue_id: str):
+        """检查队列是否存在"""
+        return queue_id in self.queues
+    
+    def delete_queue(self, queue_id: str):
+        """删除队列"""
+        if queue_id in self.queues:
+            del self.queues[queue_id]
+            return True
+        return False
+
+# 全局队列管理器实例
+_global_queue_manager = None
+
+def get_global_queue_manager():
+    """获取全局队列管理器"""
+    try:
+        # 尝试获取现有的命名Actor
+        return ray.get_actor("global_ray_queue_manager")
+    except ValueError:
+        # 如果不存在，创建新的命名Actor
+        global _global_queue_manager
+        _global_queue_manager = RayQueueManager.options(name="global_ray_queue_manager").remote()
+        return _global_queue_manager
 
 class RayQueueDescriptor(BaseQueueDescriptor):
     """
@@ -29,8 +71,7 @@ class RayQueueDescriptor(BaseQueueDescriptor):
             queue_id: 队列唯一标识符
         """
         self.maxsize = maxsize
-        # 直接创建队列实例，不通过metadata
-        self._queue = Queue(maxsize=self.maxsize if self.maxsize > 0 else None)
+        self._queue = None  # 延迟初始化
         super().__init__(queue_id=queue_id)
     
     @property
@@ -50,5 +91,27 @@ class RayQueueDescriptor(BaseQueueDescriptor):
     
     @property
     def queue_instance(self) -> Any:
-        """获取队列实例"""
+        """获取队列实例 - 使用全局管理器确保同一队列ID共享同一实例"""
+        if self._queue is None:
+            manager = get_global_queue_manager()
+            self._queue = ray.get(manager.get_or_create_queue.remote(self.queue_id, self.maxsize))
         return self._queue
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """序列化为字典，包含队列元信息"""
+        return {
+            'queue_type': self.queue_type,
+            'queue_id': self.queue_id,
+            'metadata': self.metadata,
+            'created_timestamp': self.created_timestamp
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'RayQueueDescriptor':
+        """从字典反序列化"""
+        instance = cls(
+            maxsize=data['metadata'].get('maxsize', 1024*1024),
+            queue_id=data['queue_id']
+        )
+        instance.created_timestamp = data.get('created_timestamp', instance.created_timestamp)
+        return instance

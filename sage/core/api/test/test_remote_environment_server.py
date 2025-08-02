@@ -106,15 +106,37 @@ class EnvironmentTestServer:
         
     def start(self):
         """启动服务器"""
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                self.socket.settimeout(1.0)  # 设置超时以便能优雅退出
+                self.socket.bind((self.host, self.port))
+                self.socket.listen(5)
+                
+                self.running = True
+                logger.info(f"Environment test server started on {self.host}:{self.port}")
+                break
+                
+            except OSError as e:
+                if e.errno == 98:  # Address already in use
+                    if attempt < max_retries - 1:
+                        # 尝试下一个端口
+                        self.port += 1
+                        logger.warning(f"Port {self.port - 1} in use, trying {self.port}")
+                        continue
+                    else:
+                        logger.error(f"Failed to bind after {max_retries} attempts: {e}")
+                        return
+                else:
+                    logger.error(f"Failed to start server: {e}")
+                    return
+            except Exception as e:
+                logger.error(f"Failed to start server: {e}")
+                return
+        
         try:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.socket.bind((self.host, self.port))
-            self.socket.listen(5)
-            
-            self.running = True
-            logger.info(f"Environment test server started on {self.host}:{self.port}")
-            
             while self.running:
                 try:
                     client_socket, client_address = self.socket.accept()
@@ -135,7 +157,7 @@ class EnvironmentTestServer:
                         logger.error(f"Error accepting connection: {e}")
                     
         except Exception as e:
-            logger.error(f"Failed to start server: {e}")
+            logger.error(f"Server loop error: {e}")
         finally:
             self.stop()
     
@@ -329,9 +351,14 @@ class EnvironmentTestServer:
         self.running = False
         if self.socket:
             try:
+                self.socket.shutdown(socket.SHUT_RDWR)
+            except:
+                pass
+            try:
                 self.socket.close()
             except:
                 pass
+            self.socket = None
         logger.info("Environment test server stopped")
     
     def get_stats(self) -> Dict[str, Any]:
@@ -709,6 +736,19 @@ import signal
 import tempfile
 import os
 
+def find_free_port(start_port=19003, max_attempts=100):
+    """找到一个可用的端口"""
+    for port in range(start_port, start_port + max_attempts):
+        try:
+            test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            test_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            test_socket.bind(("127.0.0.1", port))
+            test_socket.close()
+            return port
+        except OSError:
+            continue
+    raise RuntimeError(f"Could not find a free port in range {start_port}-{start_port + max_attempts}")
+
 # 测试服务器的全局实例
 _test_server = None
 _server_thread = None
@@ -718,22 +758,33 @@ def test_server():
     """提供测试服务器的fixture"""
     global _test_server, _server_thread
     
-    # 使用一个可用的端口
-    server = EnvironmentTestServer("127.0.0.1", 19003)
+    # 动态找到一个可用的端口
+    free_port = find_free_port()
+    logger.info(f"Using free port {free_port} for test server")
+    server = EnvironmentTestServer("127.0.0.1", free_port)
     
     def run_server():
         try:
             server.start()
-        except:
-            pass
+        except Exception as e:
+            logger.error(f"Server start error: {e}")
     
     # 在后台线程启动服务器
     server_thread = threading.Thread(target=run_server)
     server_thread.daemon = True
     server_thread.start()
     
-    # 等待服务器启动
-    time.sleep(1)
+    # 等待服务器启动，并验证是否成功
+    max_wait = 5  # 最多等待5秒
+    for i in range(max_wait * 10):  # 每0.1秒检查一次
+        if server.running:
+            break
+        time.sleep(0.1)
+    
+    if not server.running:
+        raise RuntimeError(f"Test server failed to start within {max_wait} seconds")
+    
+    logger.info(f"Test server successfully started on {server.host}:{server.port}")
     
     _test_server = server
     _server_thread = server_thread
@@ -741,7 +792,11 @@ def test_server():
     yield server
     
     # 清理
+    logger.info("Cleaning up test server")
     server.stop()
+    # 等待线程结束
+    if server_thread.is_alive():
+        server_thread.join(timeout=2)
 
 
 @pytest.fixture(scope="function")
@@ -753,9 +808,11 @@ def clean_server_state(test_server):
 
 def test_environment_test_server_creation():
     """测试EnvironmentTestServer类的创建"""
-    server = EnvironmentTestServer("localhost", 19004)
+    # 使用动态端口避免冲突
+    test_port = find_free_port(19100)
+    server = EnvironmentTestServer("localhost", test_port)
     assert server.host == "localhost"
-    assert server.port == 19004
+    assert server.port == test_port
     assert server.running == False
     assert len(server.received_environments) == 0
 
@@ -781,30 +838,50 @@ def test_basic_environment_serialization(clean_server_state):
     assert len(serialized_data) > 0
     
     # 发送到测试服务器
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-            client_socket.connect((server.host, server.port))
-            
-            # 发送数据长度
-            data_length = len(serialized_data)
-            client_socket.send(data_length.to_bytes(4, byteorder='big'))
-            
-            # 发送数据
-            client_socket.send(serialized_data)
-            
-            # 接收响应
-            response_length_data = client_socket.recv(4)
-            response_length = int.from_bytes(response_length_data, byteorder='big')
-            
-            response_data = client_socket.recv(response_length)
-            response = json.loads(response_data.decode('utf-8'))
-            
-            # 验证响应
-            assert response["status"] == "success"
-            assert "validation" in response
-            
-    except Exception as e:
-        pytest.fail(f"Basic serialization test failed: {e}")
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+                client_socket.settimeout(10.0)  # 10秒超时
+                client_socket.connect((server.host, server.port))
+                
+                # 发送数据长度
+                data_length = len(serialized_data)
+                client_socket.send(data_length.to_bytes(4, byteorder='big'))
+                
+                # 发送数据
+                client_socket.send(serialized_data)
+                
+                # 接收响应
+                response_length_data = client_socket.recv(4)
+                if len(response_length_data) != 4:
+                    raise ConnectionError("Failed to receive response length")
+                    
+                response_length = int.from_bytes(response_length_data, byteorder='big')
+                
+                response_data = b""
+                while len(response_data) < response_length:
+                    chunk = client_socket.recv(response_length - len(response_data))
+                    if not chunk:
+                        raise ConnectionError("Connection closed while receiving response")
+                    response_data += chunk
+                
+                response = json.loads(response_data.decode('utf-8'))
+                
+                # 验证响应
+                assert response["status"] == "success"
+                assert "validation" in response
+                break  # 成功，跳出重试循环
+                
+        except (ConnectionResetError, ConnectionRefusedError, socket.timeout) as e:
+            if attempt < max_retries - 1:
+                logger.warning(f"Connection attempt {attempt + 1} failed: {e}, retrying...")
+                time.sleep(0.5)
+                continue
+            else:
+                pytest.fail(f"Basic serialization test failed after {max_retries} attempts: {e}")
+        except Exception as e:
+            pytest.fail(f"Basic serialization test failed: {e}")
     
     # 等待服务器处理
     time.sleep(0.5)
@@ -857,39 +934,57 @@ def test_remote_environment_serialization(clean_server_state):
     assert len(serialized_data) > 0
     
     # 发送到测试服务器
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-            client_socket.connect((server.host, server.port))
-            
-            # 发送数据长度
-            data_length = len(serialized_data)
-            client_socket.send(data_length.to_bytes(4, byteorder='big'))
-            
-            # 发送数据
-            client_socket.send(serialized_data)
-            
-            # 接收响应
-            response_length_data = client_socket.recv(4)
-            if len(response_length_data) != 4:
-                pytest.fail("Failed to receive response length")
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+                client_socket.settimeout(10.0)
+                client_socket.connect((server.host, server.port))
                 
-            response_length = int.from_bytes(response_length_data, byteorder='big')
-            response_data = client_socket.recv(response_length)
-            response = json.loads(response_data.decode('utf-8'))
-            
-            # 验证响应
-            assert response["status"] == "success"
-            validation = response.get("validation", {})
-            assert validation.get("valid") == True
-            
-            # 验证环境信息
-            info = validation.get("info", {})
-            assert "name" in info
-            assert "config" in info
-            assert "pipeline_length" in info
-            
-    except Exception as e:
-        pytest.fail(f"RemoteEnvironment serialization test failed: {e}")
+                # 发送数据长度
+                data_length = len(serialized_data)
+                client_socket.send(data_length.to_bytes(4, byteorder='big'))
+                
+                # 发送数据
+                client_socket.send(serialized_data)
+                
+                # 接收响应
+                response_length_data = client_socket.recv(4)
+                if len(response_length_data) != 4:
+                    raise ConnectionError("Failed to receive response length")
+                    
+                response_length = int.from_bytes(response_length_data, byteorder='big')
+                
+                response_data = b""
+                while len(response_data) < response_length:
+                    chunk = client_socket.recv(response_length - len(response_data))
+                    if not chunk:
+                        raise ConnectionError("Connection closed while receiving response")
+                    response_data += chunk
+                
+                response = json.loads(response_data.decode('utf-8'))
+                
+                # 验证响应
+                assert response["status"] == "success"
+                validation = response.get("validation", {})
+                assert validation.get("valid") == True
+                
+                # 验证环境信息
+                info = validation.get("info", {})
+                assert "name" in info
+                assert "config" in info
+                assert "pipeline_length" in info
+                break  # 成功，跳出重试循环
+                
+        except (ConnectionResetError, ConnectionRefusedError, socket.timeout) as e:
+            if attempt < max_retries - 1:
+                logger.warning(f"RemoteEnvironment test attempt {attempt + 1} failed: {e}, retrying...")
+                time.sleep(0.5)
+                continue
+            else:
+                pytest.fail(f"RemoteEnvironment serialization test failed after {max_retries} attempts: {e}")
+        except Exception as e:
+            pytest.fail(f"RemoteEnvironment serialization test failed: {e}")
     
     # 等待服务器处理
     time.sleep(0.5)
@@ -942,17 +1037,30 @@ def test_server_stats_and_summary(clean_server_state):
     test_data = {"name": "stats_test", "config": {}}
     serialized_data = pickle.dumps(test_data)
     
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-        client_socket.connect((server.host, server.port))
-        data_length = len(serialized_data)
-        client_socket.send(data_length.to_bytes(4, byteorder='big'))
-        client_socket.send(serialized_data)
-        
-        # 接收响应
-        response_length_data = client_socket.recv(4)
-        response_length = int.from_bytes(response_length_data, byteorder='big')
-        response_data = client_socket.recv(response_length)
-        response = json.loads(response_data.decode('utf-8'))
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+            client_socket.settimeout(10.0)
+            client_socket.connect((server.host, server.port))
+            data_length = len(serialized_data)
+            client_socket.send(data_length.to_bytes(4, byteorder='big'))
+            client_socket.send(serialized_data)
+            
+            # 接收响应
+            response_length_data = client_socket.recv(4)
+            if len(response_length_data) != 4:
+                raise ConnectionError("Failed to receive response length")
+            response_length = int.from_bytes(response_length_data, byteorder='big')
+            
+            response_data = b""
+            while len(response_data) < response_length:
+                chunk = client_socket.recv(response_length - len(response_data))
+                if not chunk:
+                    raise ConnectionError("Connection closed while receiving response")
+                response_data += chunk
+            
+            response = json.loads(response_data.decode('utf-8'))
+    except Exception as e:
+        pytest.fail(f"Failed to send stats test data: {e}")
     
     time.sleep(0.5)
     

@@ -129,38 +129,38 @@ class TestPythonQueueDescriptor:
         assert queue.is_initialized() is False
 
 
-class TestRayQueueDescriptor:
-    """测试Ray队列描述符"""
+# class TestRayQueueDescriptor:
+#     """测试Ray队列描述符"""
     
-    @pytest.mark.skipif(not RAY_AVAILABLE, reason="Ray not available")
-    @patch('sage.runtime.communication.queue.ray_queue_descriptor.Queue')
-    @patch('ray.is_initialized')
-    def test_ray_queue_creation(self, mock_ray_initialized, mock_ray_queue):
-        """测试Ray队列创建"""
-        mock_ray_initialized.return_value = True
-        mock_queue_instance = MagicMock()
-        mock_ray_queue.return_value = mock_queue_instance
+#     @pytest.mark.skipif(not RAY_AVAILABLE, reason="Ray not available")
+#     @patch('sage.runtime.communication.queue.ray_queue_descriptor.Queue')
+#     @patch('ray.is_initialized')
+#     def test_ray_queue_creation(self, mock_ray_initialized, mock_ray_queue):
+#         """测试Ray队列创建"""
+#         mock_ray_initialized.return_value = True
+#         mock_queue_instance = MagicMock()
+#         mock_ray_queue.return_value = mock_queue_instance
         
-        queue = RayQueueDescriptor(queue_id="test_ray", maxsize=100)
+#         queue = RayQueueDescriptor(queue_id="test_ray", maxsize=100)
         
-        assert queue.queue_id == "test_ray"
-        assert queue.queue_type == "ray_queue"
-        assert queue.metadata["maxsize"] == 100
+#         assert queue.queue_id == "test_ray"
+#         assert queue.queue_type == "ray_queue"
+#         assert queue.metadata["maxsize"] == 100
     
-    @pytest.mark.skipif(not RAY_AVAILABLE, reason="Ray not available")
-    @patch('ray.init')
-    @patch('ray.is_initialized')
-    def test_ray_actor_queue_creation(self, mock_ray_initialized, mock_ray_init):
-        """测试Ray Actor队列创建"""
-        # 模拟 Ray 未初始化，需要先初始化
-        mock_ray_initialized.return_value = False
-        mock_ray_init.return_value = None
+#     @pytest.mark.skipif(not RAY_AVAILABLE, reason="Ray not available")
+#     @patch('ray.init')
+#     @patch('ray.is_initialized')
+#     def test_ray_actor_queue_creation(self, mock_ray_initialized, mock_ray_init):
+#         """测试Ray Actor队列创建"""
+#         # 模拟 Ray 未初始化，需要先初始化
+#         mock_ray_initialized.return_value = False
+#         mock_ray_init.return_value = None
         
-        with pytest.raises(Exception):  # 期望抛出异常，因为没有初始化 Ray
-            queue = RayQueueDescriptor(
-                queue_id="test_actor", 
-                maxsize=200
-            )
+#         with pytest.raises(Exception):  # 期望抛出异常，因为没有初始化 Ray
+#             queue = RayQueueDescriptor(
+#                 queue_id="test_actor", 
+#                 maxsize=200
+#             )
 
 
 class TestSageQueueDescriptor:

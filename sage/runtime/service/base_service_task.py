@@ -366,8 +366,19 @@ class BaseServiceTask(ABC):
             
             # 发送响应
             if response_queue:
-                self.logger.info(f"[SERVICE_TASK] Sending response for request {request_id} to queue {response_queue_name}")
-                self._send_response_to_queue(response_queue, response_data)
+                # 如果response_queue是字符串，需要通过ServiceContext获取实际队列实例
+                if isinstance(response_queue, str):
+                    actual_queue = self.get_response_queue(response_queue)
+                    queue_name = response_queue
+                    if actual_queue:
+                        self.logger.info(f"[SERVICE_TASK] Sending response for request {request_id} to queue '{queue_name}'")
+                        self._send_response_to_queue(actual_queue, response_data)
+                    else:
+                        self.logger.error(f"[SERVICE_TASK] Response queue '{queue_name}' not found in service context for request {request_id}")
+                else:
+                    # response_queue已经是队列实例
+                    self.logger.info(f"[SERVICE_TASK] Sending response for request {request_id} to queue {response_queue_name}")
+                    self._send_response_to_queue(response_queue, response_data)
             else:
                 self.logger.warning(f"[SERVICE_TASK] No response queue specified for request {request_id}")
                 

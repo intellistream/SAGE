@@ -236,9 +236,20 @@ class TestRayQueueActorCommunication:
         produce_result = ray.get(producer_actor.put_items.remote(items_to_produce))
         print(f"生产结果: {len(produce_result)} 项目")
         
+        # 添加小延迟确保数据已写入
+        time.sleep(0.1)
+        
+        # 检查队列状态
+        producer_status = ray.get(producer_actor.check_queue_status.remote())
+        print(f"生产后队列状态: {producer_status}")
+        
         # 消费者获取数据
-        consume_result = ray.get(consumer_actor.get_items.remote(len(items_to_produce)))
+        consume_result = ray.get(consumer_actor.get_items.remote(len(items_to_produce), timeout_per_item=2.0))
         print(f"消费结果: {len(consume_result)} 项目")
+        
+        # 统计成功获取的项目数
+        successful_gets = [r for r in consume_result if r.startswith("get_success")]
+        print(f"成功获取的项目数: {len(successful_gets)}")
         
         # 检查Actor状态
         producer_info = ray.get(producer_actor.get_queue_info.remote())
@@ -247,8 +258,13 @@ class TestRayQueueActorCommunication:
         print(f"生产者状态: {producer_info}")
         print(f"消费者状态: {consumer_info}")
         
-        assert producer_info['operations_count'] == len(items_to_produce)
-        assert consumer_info['operations_count'] > 0
+        # 验证断言
+        assert producer_info['operations_count'] == len(items_to_produce), f"生产者应该执行了{len(items_to_produce)}次操作"
+        assert len(successful_gets) > 0, f"消费者应该成功获取了一些项目，但实际获取了{len(successful_gets)}个"
+        
+        # 打印成功获取的项目
+        for item in successful_gets:
+            print(f"  成功获取: {item}")
         
         print("✓ 基础Actor队列操作测试通过")
     
