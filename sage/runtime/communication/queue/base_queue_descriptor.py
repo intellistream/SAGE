@@ -58,8 +58,8 @@ class BaseQueueDescriptor(ABC):
         self._queue_instance = None
         self._initialized = False
         
-        # 子类应该设置这个属性
-        self.metadata = {}
+        # 子类应该实现metadata属性
+        # self.metadata = {}  # 删除这行，让子类自己实现
         
         self._validate()
     
@@ -120,22 +120,15 @@ class BaseQueueDescriptor(ABC):
         return self.queue_instance.full()
     
     # ============ 描述符管理方法 ============
-    
+
     @property
+    @abstractmethod
     def queue_instance(self) -> Optional[Any]:
-        """获取底层队列实例（如果已初始化）"""
-        return self._queue_instance if self._initialized else None
+        pass
     
     def get_queue(self) -> Any:
-        """获取队列实例，如果未初始化则初始化它"""
-        if not self._initialized:
-            self._ensure_queue_initialized()
-        return self._queue_instance
-    
-    @abstractmethod
-    def _ensure_queue_initialized(self) -> None:
-        """确保队列实例已初始化（由子类实现）"""
-        pass
+        return self.queue_instance
+
     
     def clear_cache(self):
         """清除队列缓存，下次访问时重新初始化"""

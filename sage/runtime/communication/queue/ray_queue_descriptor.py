@@ -29,8 +29,8 @@ class RayQueueDescriptor(BaseQueueDescriptor):
             queue_id: 队列唯一标识符
         """
         self.maxsize = maxsize
-        self.metadata = {"queue_instance":Queue(maxsize=self.maxsize if self.maxsize > 0 else None)}
-        self._queue = self.metadata["queue_instance"]
+        # 直接创建队列实例，不通过metadata
+        self._queue = Queue(maxsize=self.maxsize if self.maxsize > 0 else None)
         super().__init__(queue_id=queue_id)
     
     @property

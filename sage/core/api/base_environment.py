@@ -362,7 +362,18 @@ class BaseEnvironment(ABC):
         )
     
     @abstractmethod
+    @abstractmethod
     def get_qd(self, name: str, maxsize: int = 10000) -> 'BaseQueueDescriptor':
+        """
+        创建队列描述符
+        
+        Args:
+            name: 队列名称/ID
+            maxsize: 队列最大容量
+            
+        Returns:
+            队列描述符实例
+        """
         pass
     
 

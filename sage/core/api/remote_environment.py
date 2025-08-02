@@ -194,9 +194,8 @@ class RemoteEnvironment(BaseEnvironment):
         return f"RemoteEnvironment(name='{self.name}', host='{self.daemon_host}', port={self.daemon_port})"
 
 
-    def get_qd(self, maxsize: int = 0) -> RayQueueDescriptor:
+    def get_qd(self, name: str, maxsize: int = 0) -> RayQueueDescriptor:
         return RayQueueDescriptor(
-            queue_id=f"remote_env_{self.name}",
-            maxsize=0,  # 默认无限制
-            metadata={"environment": self.name}
+            queue_id=name,
+            maxsize=maxsize if maxsize > 0 else 0  # Ray队列默认无限制
         )

@@ -4,15 +4,16 @@ from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
 from sage.runtime.service.base_service_task import BaseServiceTask
 from sage.runtime.task.base_task import BaseTask
 from sage.utils.actor_wrapper import ActorWrapper
-from sage.runtime.communication.router.connection import Connection
+from sage.runtime.router.connection import Connection
 from sage.utils.custom_logger import CustomLogger
 import ray
 from ray.actor import ActorHandle
 
-from sage.utils.ray_helper import ensure_ray_initialized
+from sage.utils.ray_init_helper import ensure_ray_initialized
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment 
-    from sage.jobmanager.execution_graph import ExecutionGraph, GraphNode, ServiceNode
+    from sage.jobmanager.execution_graph import ExecutionGraph, GraphNode
+    from sage.runtime.runtime_context import RuntimeContext
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
 class Dispatcher():
@@ -23,18 +24,22 @@ class Dispatcher():
         self.env = env
         self.name:str = env.name
         self.remote = env.platform == "remote"
+        self.logger = CustomLogger([
+                ("console", "INFO"),  # 控制台显示重要信息
+                (os.path.join(env.env_base_dir, "Dispatcher.log"), "DEBUG"),  # 详细日志
+                (os.path.join(env.env_base_dir, "Error.log"), "ERROR")  # 错误日志
+            ],
+            name = f"Environment_{self.name}",
+        )
         # self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
         self.tasks: Dict[str, Union[BaseTask, ActorWrapper]] = {}
         self.services: Dict[str, BaseServiceTask] = {}  # 存储服务实例
         self.is_running: bool = False
-        
-        # 首先设置日志系统
-        self.setup_logging_system()
-        
         self.logger.info(f"Dispatcher '{self.name}' construction complete")
         if env.platform == "remote":
             self.logger.info(f"Dispatcher '{self.name}' is running in remote mode")
             ensure_ray_initialized()
+        self.setup_logging_system()
 
     def receive_stop_signal(self):
         """
@@ -124,40 +129,114 @@ class Dispatcher():
         self.logger.info(f"Job submission completed: {len(self.tasks)} nodes, {len(self.services)} service tasks")
         self.is_running = True
 
+    def _create_service_runtime_context(self, service_name: str) -> 'RuntimeContext':
+        """
+        为service task创建专用的runtime context
+        从graph node的runtime context模板创建，但修改name为service name
+        
+        Args:
+            service_name: 服务名称
+            
+        Returns:
+            专用于该服务的runtime context
+        """
+        # 获取任意一个graph node的runtime context作为模板
+        template_ctx = None
+        for graph_node in self.graph.nodes.values():
+            template_ctx = graph_node.ctx
+            break
+        
+        if template_ctx is None:
+            self.logger.warning(f"No graph nodes found to create template context for service {service_name}")
+            return None
+        
+        # 手动创建新的RuntimeContext实例，只复制service task需要的关键字段
+        # 由于RuntimeContext没有copy方法，我们需要手动创建一个新实例
+        try:
+            # 创建一个最小化的runtime context，只包含service task需要的字段
+            service_ctx = type(template_ctx).__new__(type(template_ctx))
+            
+            # 复制基本字段但修改name
+            service_ctx.name = service_name  # 修改为service name
+            service_ctx.env_name = template_ctx.env_name
+            service_ctx.env_base_dir = template_ctx.env_base_dir
+            service_ctx.env_uuid = template_ctx.env_uuid
+            service_ctx.env_console_log_level = template_ctx.env_console_log_level
+            
+            # 复制其他必要字段
+            service_ctx.parallel_index = 0  # service不需要并行索引
+            service_ctx.parallelism = 1     # service不需要并行度
+            service_ctx.is_spout = False    # service不是spout
+            service_ctx.delay = template_ctx.delay
+            service_ctx.stop_signal_num = 0  # service不需要停止信号
+            
+            # 复制jobmanager信息
+            service_ctx.jobmanager_host = template_ctx.jobmanager_host
+            service_ctx.jobmanager_port = template_ctx.jobmanager_port
+            
+            # 初始化延迟属性
+            service_ctx._logger = None
+            service_ctx._stop_event = None
+            service_ctx.received_stop_signals = None
+            service_ctx.stop_signal_count = 0
+            
+            # 初始化服务相关属性
+            service_ctx._service_manager = None
+            service_ctx._service_names = None
+            service_ctx._service_handles = {}
+            service_ctx._wrapped_services = {}
+            
+            # 复制memory collection（如果存在）
+            if hasattr(template_ctx, 'memory_collection'):
+                service_ctx.memory_collection = template_ctx.memory_collection
+            
+            self.logger.debug(f"Created runtime context for service '{service_name}'")
+            return service_ctx
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create runtime context for service {service_name}: {e}", exc_info=True)
+            return None
+
     # Dispatcher will submit the job to LocalEngine or Ray Server.    
     def submit(self):
-        """创建服务任务和流水线任务实例"""
-        self.logger.info(f"Creating tasks for graph: {self.name}")
+        """编译图结构，创建节点并建立连接"""
+        self.logger.info(f"Compiling Job for graph: {self.name}")
         
-        # 第一步：从执行图的服务节点创建所有服务任务实例  
-        for service_node_name, service_node in self.graph.service_nodes.items():
+        # 第零步：创建所有服务任务实例  
+        for service_name, service_task_factory in self.env.service_task_factories.items():
             try:
-                # 直接使用服务节点中的ServiceTaskFactory创建服务任务，传入ctx
-                service_task = service_node.service_task_factory.create_service_task(ctx=service_node.ctx)
+                # 为service task创建专用的runtime context
+                service_ctx = self._create_service_runtime_context(service_name)
                 
-                # 存储服务任务，使用service_name作为key（而不是service_node_name）
-                self.services[service_node.service_name] = service_task
-                
-                service_type = "Ray Actor (wrapped)" if self.remote else "Local"
-                self.logger.debug(f"Created {service_type} service task '{service_node.service_name}' from service node '{service_node_name}' of type '{service_task.__class__.__name__}'")
+                # 使用ServiceTaskFactory创建服务任务，注入runtime context
+                service_task = service_task_factory.create_service_task(service_ctx)
+                self.services[service_name] = service_task
+                service_type = "Ray Actor (wrapped)" if service_task_factory.remote else "Local"
+                self.logger.debug(f"Added {service_type} service task '{service_name}' of type '{service_task.__class__.__name__}' with runtime context")
             except Exception as e:
-                self.logger.error(f"Failed to create service task from service node {service_node_name}: {e}", exc_info=True)
+                self.logger.error(f"Failed to create service task {service_name}: {e}", exc_info=True)
                 # 可以选择继续或停止，这里选择继续但记录错误
 
-        # 设置服务名称映射到runtime context
-        service_names = {name: name for name in self.services.keys()}
-        
-        # 第二步：创建所有流水线任务实例（连接关系已在Context中完成）
+        # 第一步：创建所有节点实例
         for node_name, graph_node in self.graph.nodes.items():
             try:
-                graph_node.ctx.set_service_names(service_names)
-                # 创建任务实例，连接关系已在TaskContext构造函数中建立
+                # task = graph_node.create_dag_node()
                 task = graph_node.transformation.task_factory.create_task(graph_node.name, graph_node.ctx)
+
                 self.tasks[node_name] = task
 
-                self.logger.debug(f"Created task '{node_name}' of type '{task.__class__.__name__}' (connections handled by Context)")
+                self.logger.debug(f"Added node '{node_name}' of type '{task.__class__.__name__}'")
             except Exception as e:
-                self.logger.error(f"Failed to create task {node_name}: {e}", exc_info=True)
+                self.logger.error(f"Failed to create nodes: {e}", exc_info=True)
+                raise e
+        
+        # 第二步：建立节点间的连接
+
+        for node_name, graph_node in self.graph.nodes.items():
+            try:
+                self._setup_node_connections(node_name, graph_node)
+            except Exception as e:
+                self.logger.error(f"Error setting up connections for node {node_name}: {e}", exc_info=True)
                 raise e
         
         try:
@@ -165,6 +244,48 @@ class Dispatcher():
         except Exception as e:
             self.logger.error(f"Error starting dispatcher: {e}", exc_info=True)
             raise e
+
+    def _setup_node_connections(self, node_name: str, graph_node: 'GraphNode'):
+        """
+        为节点设置下游连接
+        
+        Args:
+            node_name: 节点名称
+            graph_node: 图节点对象
+        """
+        output_handle = self.tasks[node_name]
+        
+        for broadcast_index, parallel_edges in enumerate(graph_node.output_channels):
+            for parallel_index, parallel_edge in enumerate(parallel_edges):
+                target_name = parallel_edge.downstream_node.name
+                target_input_index = parallel_edge.input_index
+                target_handle = self.tasks[target_name]
+
+                # 判断目标任务类型：如果是ActorWrapper，则为ray类型，否则为local类型
+                if hasattr(target_handle, '_actor'):
+                    # 这是一个ActorWrapper，说明是Ray Actor
+                    target_type = "ray"
+                    # 对于Ray Actor，保持ActorWrapper包装以便透明调用
+                    actual_target_handle = target_handle
+                else:
+                    # 这是一个本地任务
+                    target_type = "local"
+                    actual_target_handle = target_handle.get_object() if hasattr(target_handle, 'get_object') else target_handle
+
+                connection = Connection(
+                    broadcast_index=broadcast_index,
+                    parallel_index=parallel_index,
+                    target_name=target_name,
+                    target_handle=actual_target_handle,
+                    target_input_index=target_input_index,
+                    target_type=target_type
+                )
+                try:
+                    output_handle.add_connection(connection)
+                    self.logger.debug(f"Setup connection: {node_name} -> {target_name} ({target_type})")
+                    
+                except Exception as e:
+                    self.logger.error(f"Error setting up connection {node_name} -> {target_name}: {e}", exc_info=True)
 
     def stop(self):
         """停止所有任务和服务"""

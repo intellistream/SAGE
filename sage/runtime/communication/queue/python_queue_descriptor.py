@@ -9,8 +9,6 @@ import logging
 from queue import Queue
 from .base_queue_descriptor import BaseQueueDescriptor
 
-logger = logging.getLogger(__name__)
-
 
 class PythonQueueDescriptor(BaseQueueDescriptor):
     """
