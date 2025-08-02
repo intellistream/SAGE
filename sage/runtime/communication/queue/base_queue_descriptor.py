@@ -49,7 +49,6 @@ class BaseQueueDescriptor(ABC):
         
         Args:
             queue_id: 队列唯一标识符，如果为None则自动生成
-            queue_instance: 可选的队列实例（直接传入时不可序列化）
         """
         self.queue_id = queue_id or self._generate_queue_id()
         self.created_timestamp = time.time()
@@ -132,8 +131,9 @@ class BaseQueueDescriptor(ABC):
     
     def clear_cache(self):
         """清除队列缓存，下次访问时重新初始化"""
-        if self._lazy_loading:  # 只有懒加载的才能清除缓存
+        if hasattr(self, '_queue_instance'):
             self._queue_instance = None
+        if hasattr(self, '_initialized'):
             self._initialized = False
     
     def is_initialized(self) -> bool:
@@ -235,3 +235,7 @@ class BaseQueueDescriptor(ABC):
     
     def __hash__(self) -> int:
         return hash((self.queue_id, self.queue_type))
+
+
+# 为了向后兼容性，提供 QueueDescriptor 别名
+QueueDescriptor = BaseQueueDescriptor

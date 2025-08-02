@@ -21,7 +21,6 @@ sys.path.insert(0, '/api-rework')
 try:
     from sage.runtime.communication.queue import (
         RayQueueDescriptor,
-        create_ray_queue
     )
     print("✓ 成功导入Ray队列描述符")
 except ImportError as e:
@@ -214,7 +213,7 @@ class TestRayQueueActorCommunication:
             ray.init()
         
         # 创建测试队列
-        self.test_queue = create_ray_queue(queue_id="test_ray_actor_comm", maxsize=1000)
+        self.test_queue = RayQueueDescriptor(queue_id="test_ray_actor_comm", maxsize=1000)
         self.queue_dict = self.test_queue.to_dict()
     
     def tearDown(self):

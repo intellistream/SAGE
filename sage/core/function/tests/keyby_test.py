@@ -1,5 +1,7 @@
 import time
 import threading
+import json
+import os
 from typing import List, Dict, Any
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.function.source_function import SourceFunction
@@ -7,7 +9,7 @@ from sage.core.function.keyby_function import KeyByFunction
 from sage.core.function.sink_function import SinkFunction
 
 
-class TestDataSource(SourceFunction):
+class KeyByTestDataSource(SourceFunction):
     """生成带有用户ID的测试数据"""
     
     def __init__(self, **kwargs):
@@ -49,6 +51,9 @@ class ParallelDebugSink(SinkFunction):
         super().__init__(**kwargs)
         self.parallel_index = None
         self.received_count = 0
+        # 创建输出目录
+        self.output_dir = "/api-rework/test_logs/keyby_results"
+        os.makedirs(self.output_dir, exist_ok=True)
 
     def execute(self, data: Any):
         # 从runtime_context获取parallel_index
@@ -73,6 +78,31 @@ class ParallelDebugSink(SinkFunction):
               f"Content: {data['content']}")
 
         return data
+    
+    @classmethod
+    def save_results_to_file(cls, test_name: str):
+        """将测试结果保存到文件"""
+        output_dir = "/api-rework/test_logs/keyby_results"
+        os.makedirs(output_dir, exist_ok=True)
+        
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        filename = f"{test_name}_{timestamp}.json"
+        filepath = os.path.join(output_dir, filename)
+        
+        with cls._lock:
+            result_data = {
+                "test_name": test_name,
+                "timestamp": timestamp,
+                "received_data": dict(cls._received_data),
+                "total_instances": len(cls._received_data),
+                "total_messages": sum(len(data_list) for data_list in cls._received_data.values())
+            }
+            
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(result_data, f, indent=2, ensure_ascii=False)
+        
+        print(f"📁 Results saved to: {filepath}")
+        return filepath
     
     @classmethod
     def get_received_data(cls) -> Dict[int, List[Dict]]:
@@ -103,30 +133,40 @@ class TestKeyByFunctionality:
         
         # 构建数据流：source -> keyby -> parallel sink
         result_stream = (
-            env.from_source(TestDataSource, delay=0.5)
+            env.from_source(KeyByTestDataSource, delay=0.5)
             .keyby(UserIdKeyExtractor, strategy="hash")
             .sink(ParallelDebugSink, parallelism=2)  # 2个并行实例
         )
         
-        print("📊 Pipeline: TestDataSource -> KeyBy(UserIdExtractor) -> ParallelDebugSink(parallelism=2)")
+        print("📊 Pipeline: KeyByTestDataSource -> KeyBy(UserIdExtractor) -> ParallelDebugSink(parallelism=2)")
         print("🎯 Expected: Same user_id data should go to same parallel instance\n")
         
         try:
             # 提交并运行
             env.submit()
             
-            
             # 运行一段时间让数据流过
-            time.sleep(3)
+            time.sleep(2)
             
         except Exception as e:
             print(f"❌ Error during execution: {e}")
             raise
         finally:
-            env.close()
+            try:
+                env.close()
+            except:
+                pass  # 忽略关闭时的错误
+        
+        # 保存结果到文件
+        result_file = ParallelDebugSink.save_results_to_file("hash_partitioning_test")
         
         # 验证分区效果
-        self._verify_hash_partitioning()
+        success = self._verify_hash_partitioning()
+        
+        # 将验证结果也写入文件
+        self._save_verification_result(result_file, "hash_partitioning", success)
+        
+        assert success, "Hash partitioning test failed"
     
     def test_keyby_broadcast_strategy(self):
         """测试广播策略"""
@@ -135,23 +175,54 @@ class TestKeyByFunctionality:
         env = LocalEnvironment("Test_keyby_broadcast_test")
         
         result_stream = (
-            env.from_source(TestDataSource, delay=0.3)
+            env.from_source(KeyByTestDataSource, delay=0.3)
             .keyby(UserIdKeyExtractor, strategy="broadcast")
             .sink(ParallelDebugSink, parallelism=3)  # 3个并行实例
         )
         
-        print("📊 Pipeline: TestDataSource -> KeyBy(broadcast) -> ParallelDebugSink(parallelism=3)")
+        print("📊 Pipeline: KeyByTestDataSource -> KeyBy(broadcast) -> ParallelDebugSink(parallelism=3)")
         print("🎯 Expected: All data should be sent to all parallel instances\n")
         
         try:
             env.submit()
             
             time.sleep(2)
+        except Exception as e:
+            print(f"❌ Error during execution: {e}")
+            raise
         finally:
-            env.close()
+            try:
+                env.close()
+            except:
+                pass
+        
+        # 保存结果到文件
+        result_file = ParallelDebugSink.save_results_to_file("broadcast_strategy_test")
         
         # 验证广播效果
-        self._verify_broadcast_strategy()
+        success = self._verify_broadcast_strategy()
+        
+        # 将验证结果写入文件
+        self._save_verification_result(result_file, "broadcast_strategy", success)
+        
+        assert success, "Broadcast strategy test failed"
+    
+    def _save_verification_result(self, result_file: str, test_type: str, success: bool):
+        """将验证结果保存到文件"""
+        if os.path.exists(result_file):
+            with open(result_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            data['verification'] = {
+                'test_type': test_type,
+                'success': success,
+                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S")
+            }
+            
+            with open(result_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            
+            print(f"✍️ Verification result saved to: {result_file}")
     
     def _verify_hash_partitioning(self):
         """验证hash分区的正确性"""
@@ -159,6 +230,10 @@ class TestKeyByFunctionality:
         
         print("\n📋 Hash Partitioning Results:")
         print("=" * 50)
+        
+        if not received_data:
+            print("❌ No data received by any instance")
+            return False
         
         # 统计每个实例接收到的用户数据
         user_distribution = {}
@@ -180,13 +255,17 @@ class TestKeyByFunctionality:
             print(f"   - {user_id}: routed to instance(s) {instances}")
         
         # 验证：每个用户的数据应该只路由到一个实例
+        success = True
         for user_id, instances in user_distribution.items():
-            assert len(instances) == 1, (
-                f"❌ User {user_id} data was routed to multiple instances: {instances}. "
-                f"Hash partitioning should send same key to same instance."
-            )
+            if len(instances) != 1:
+                print(f"❌ User {user_id} data was routed to multiple instances: {instances}. "
+                      f"Hash partitioning should send same key to same instance.")
+                success = False
         
-        print("✅ Hash partitioning test passed: Each user routed to exactly one instance")
+        if success:
+            print("✅ Hash partitioning test passed: Each user routed to exactly one instance")
+        
+        return success
     
     def _verify_broadcast_strategy(self):
         """验证广播策略的正确性"""
@@ -194,6 +273,10 @@ class TestKeyByFunctionality:
         
         print("\n📋 Broadcast Strategy Results:")
         print("=" * 50)
+        
+        if not received_data:
+            print("❌ No data received by any instance")
+            return False
         
         instance_counts = {}
         total_unique_messages = 0
@@ -215,10 +298,21 @@ class TestKeyByFunctionality:
         print(f"   - Instances message counts: {instance_counts}")
         
         # 验证：每个实例应该接收到相同数量的消息（广播效果）
-        if len(set(instance_counts.values())) <= 1:
+        unique_counts = set(instance_counts.values())
+        if len(unique_counts) <= 1:
             print("✅ Broadcast test passed: All instances received same number of messages")
+            return True
         else:
             print(f"⚠️  Note: Instance counts differ, this might be due to timing or test duration")
+            # 如果差异不大（比如只差1-2条消息），仍然认为测试通过
+            min_count = min(instance_counts.values())
+            max_count = max(instance_counts.values())
+            if max_count - min_count <= 2:
+                print("✅ Broadcast test passed: Instance counts are within acceptable range")
+                return True
+            else:
+                print("❌ Broadcast test failed: Instance counts differ significantly")
+                return False
 
 
 class AdvancedKeyExtractor(KeyByFunction):
@@ -244,22 +338,37 @@ class TestAdvancedKeyBy:
         env = LocalEnvironment("advanced_keyby_test")
         
         result_stream = (
-            env.from_source(TestDataSource, delay=0.4)
+            env.from_source(KeyByTestDataSource, delay=0.4)
             .keyby(AdvancedKeyExtractor, strategy="hash")
             .sink(ParallelDebugSink, parallelism=4)  # 4个并行实例
         )
         
-        print("📊 Pipeline: TestDataSource -> KeyBy(AdvancedKeyExtractor) -> ParallelDebugSink(parallelism=4)")
+        print("📊 Pipeline: KeyByTestDataSource -> KeyBy(AdvancedKeyExtractor) -> ParallelDebugSink(parallelism=4)")
         print("🎯 Key format: 'user_id + message_id%2' (e.g., 'user1_0', 'user1_1')\n")
         
         try:
             env.submit()
             
-            time.sleep(3)
+            time.sleep(2)
+        except Exception as e:
+            print(f"❌ Error during execution: {e}")
+            raise
         finally:
-            env.close()
+            try:
+                env.close()
+            except:
+                pass
         
-        self._analyze_advanced_distribution()
+        # 保存结果到文件
+        result_file = ParallelDebugSink.save_results_to_file("advanced_key_extraction_test")
+        
+        # 分析分布效果
+        success = self._analyze_advanced_distribution()
+        
+        # 将验证结果写入文件
+        self._save_verification_result(result_file, "advanced_key_extraction", success)
+        
+        assert success, "Advanced key extraction test failed"
     
     def _analyze_advanced_distribution(self):
         """分析高级key提取的分布效果"""
@@ -267,6 +376,10 @@ class TestAdvancedKeyBy:
         
         print("\n📋 Advanced Key Distribution Analysis:")
         print("=" * 50)
+        
+        if not received_data:
+            print("❌ No data received by any instance")
+            return False
         
         key_distribution = {}
         for instance_id, data_list in received_data.items():
@@ -284,12 +397,33 @@ class TestAdvancedKeyBy:
             print(f"   - Key '{key}': routed to instance(s) {instances}")
         
         # 验证一致性：相同key应该路由到相同实例
+        success = True
         for key, instances in key_distribution.items():
-            assert len(instances) == 1, (
-                f"❌ Key '{key}' was routed to multiple instances: {instances}"
-            )
+            if len(instances) != 1:
+                print(f"❌ Key '{key}' was routed to multiple instances: {instances}")
+                success = False
         
-        print("✅ Advanced key extraction test passed: Each unique key consistently routed")
+        if success:
+            print("✅ Advanced key extraction test passed: Each unique key consistently routed")
+        
+        return success
+    
+    def _save_verification_result(self, result_file: str, test_type: str, success: bool):
+        """将验证结果保存到文件"""
+        if os.path.exists(result_file):
+            with open(result_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            data['verification'] = {
+                'test_type': test_type,
+                'success': success,
+                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S")
+            }
+            
+            with open(result_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            
+            print(f"✍️ Verification result saved to: {result_file}")
 
 
 if __name__ == "__main__":

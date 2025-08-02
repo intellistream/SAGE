@@ -195,7 +195,7 @@ class SAGETestRunner:
                     stdout=subprocess.PIPE, 
                     stderr=subprocess.STDOUT,
                     text=True,
-                    timeout=100  # 5分钟超时
+                    timeout=300  # 5分钟超时
                 )
                 
                 # 将输出写入日志文件

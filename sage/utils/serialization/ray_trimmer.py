@@ -34,30 +34,27 @@ def trim_object_for_ray(obj: Any,
         result = ray_actor.process_transformation.remote(cleaned_trans)
     """
     try:
-        # 使用现有的预处理函数，但不进行dill序列化
+        # 如果指定了include或exclude，直接使用用户的过滤规则
+        if include or exclude:
+            attrs = gather_attrs(obj)
+            filtered_attrs = filter_attrs(attrs, include, exclude)
+            
+            # 创建新对象并设置过滤后的属性
+            obj_class = type(obj)
+            try:
+                final_obj = obj_class.__new__(obj_class)
+                for attr_name, attr_value in filtered_attrs.items():
+                    try:
+                        setattr(final_obj, attr_name, attr_value)
+                    except Exception:
+                        pass  # 忽略设置失败的属性
+                return final_obj
+            except Exception:
+                # 如果无法创建新实例，回退到预处理
+                pass
+        
+        # 如果没有特殊的include/exclude需求，使用现有的预处理函数
         cleaned_obj = preprocess_for_dill(obj)
-        
-        # 如果有额外的include/exclude需求，再次过滤
-        if cleaned_obj is not SKIP_VALUE and hasattr(cleaned_obj, '__dict__'):
-            # 应用用户指定的include/exclude
-            if include or exclude:
-                attrs = gather_attrs(cleaned_obj)
-                filtered_attrs = filter_attrs(attrs, include, exclude)
-                
-                # 创建新对象并设置过滤后的属性
-                obj_class = type(cleaned_obj)
-                try:
-                    final_obj = obj_class.__new__(obj_class)
-                    for attr_name, attr_value in filtered_attrs.items():
-                        try:
-                            setattr(final_obj, attr_name, attr_value)
-                        except Exception:
-                            pass  # 忽略设置失败的属性
-                    return final_obj
-                except Exception:
-                    # 如果无法创建新实例，返回原对象
-                    return cleaned_obj
-        
         return cleaned_obj if cleaned_obj is not SKIP_VALUE else None
         
     except Exception as e:
@@ -105,8 +102,21 @@ class RayObjectTrimmer:
                     return obj
             return obj
         else:
-            # 深度清理：使用完整的预处理流程
-            return trim_object_for_ray(obj, include, exclude)
+            # 深度清理：使用完整的预处理流程，并递归处理嵌套对象
+            cleaned = trim_object_for_ray(obj, include, exclude)
+            
+            # 确保嵌套对象也被正确清理
+            if cleaned and hasattr(cleaned, '__dict__'):
+                for attr_name, attr_value in list(cleaned.__dict__.items()):
+                    if hasattr(attr_value, '__dict__'):
+                        # 递归清理嵌套对象，使用默认的黑名单清理（应用ATTRIBUTE_BLACKLIST）
+                        from .config import ATTRIBUTE_BLACKLIST
+                        nested_cleaned = RayObjectTrimmer.trim_for_remote_call(
+                            attr_value, include=None, exclude=list(ATTRIBUTE_BLACKLIST), deep_clean=True
+                        )
+                        setattr(cleaned, attr_name, nested_cleaned)
+            
+            return cleaned
     
     @staticmethod
     def trim_transformation_for_ray(transformation_obj) -> Any:

@@ -53,5 +53,5 @@ RAY_OPERATOR_EXCLUDE_ATTRS = [
     'emit_context',
     'server_socket', 'client_socket',
     'server_thread', '_server_thread',
-    '__weakref__',
+    # 注意：__weakref__ 是内置属性，不能简单移除，所以不包含在这里
 ]

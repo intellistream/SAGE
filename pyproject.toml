@@ -76,7 +76,10 @@ dependencies = [
     "colorama>=0.4.6",
     "rank_bm25",
     "tqdm",
-    "typer>=0.9.0"
+    "typer>=0.9.0",
+    "beautifulsoup4>=4.13.4",
+    "bs4>=0.0.2",
+    "soupsieve>=2.7"
 ]
 
 [project.optional-dependencies]

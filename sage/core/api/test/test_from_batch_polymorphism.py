@@ -5,12 +5,18 @@
 
 from sage.core.api.base_environment import BaseEnvironment
 from sage.core.function.base_function import BaseFunction
+from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
 
 
-class TestEnvironment(BaseEnvironment):
+class MockEnvironment(BaseEnvironment):
     """测试用的环境实现"""
     def submit(self):
         pass
+    
+    def get_qd(self, name: str, maxsize: int = 10000) -> 'BaseQueueDescriptor':
+        """实现抽象方法 get_qd"""
+        # 返回一个模拟的队列描述符，这里可以返回 None 或者一个简单的模拟对象
+        return None
 
 
 class CustomBatchFunction(BaseFunction):
@@ -29,7 +35,7 @@ class CustomBatchFunction(BaseFunction):
 
 def test_from_batch_polymorphism():
     """测试 from_batch 方法的多态性"""
-    env = TestEnvironment("test_env", {})
+    env = MockEnvironment("test_env", {})
     
     print("Testing from_batch polymorphism...")
     
@@ -103,12 +109,13 @@ def test_from_batch_polymorphism():
     for i, transformation in enumerate(env.pipeline):
         print(f"   {i+1}. {transformation.__class__.__name__}")
     
-    return True
+    # Assert success instead of returning True
+    assert len(env.pipeline) > 0
 
 
 def test_error_handling():
     """测试错误处理"""
-    env = TestEnvironment("test_env", {})
+    env = MockEnvironment("test_env", {})
     
     print("\nTesting error handling...")
     
@@ -117,12 +124,12 @@ def test_error_handling():
         unsupported_data = 12345  # 数字不可迭代
         batch_stream = env.from_batch(unsupported_data)
         print("   ❌ Should have raised TypeError")
-        return False
+        assert False, "Should have raised TypeError"
     except TypeError as e:
         print(f"   ✓ Correctly raised TypeError: {e}")
     
     print("✅ Error handling test passed!")
-    return True
+    # Assert success instead of returning True
 
 
 if __name__ == "__main__":

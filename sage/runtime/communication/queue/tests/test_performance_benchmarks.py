@@ -26,10 +26,9 @@ sys.path.insert(0, '/api-rework')
 
 try:
     from sage.runtime.communication.queue import (
-        create_python_queue,
-        create_ray_queue,
-        create_sage_queue,
-        PythonQueueDescriptor
+        PythonQueueDescriptor,
+        RayQueueDescriptor,  
+        SageQueueDescriptor
     )
     print("✓ 成功导入队列描述符")
 except ImportError as e:
@@ -307,7 +306,7 @@ class PerformanceBenchmark:
             import ray
             queue_configs.append({
                 'name': 'Ray队列',
-                'creator': lambda: create_ray_queue("perf_ray", maxsize=50000)
+                'creator': lambda: RayQueueDescriptor(queue_id="perf_ray", maxsize=50000)
             })
         except ImportError:
             print("⚠️ Ray不可用，跳过Ray队列测试")
@@ -315,7 +314,7 @@ class PerformanceBenchmark:
         try:
             queue_configs.append({
                 'name': 'SAGE队列',
-                'creator': lambda: create_sage_queue("perf_sage", maxsize=50*1024*1024)
+                'creator': lambda: SageQueueDescriptor(queue_id="perf_sage", maxsize=50*1024*1024)
             })
         except Exception:
             print("⚠️ SAGE队列不可用，跳过SAGE队列测试")

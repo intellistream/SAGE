@@ -74,8 +74,14 @@ class TestClusterManager:
     @patch('time.sleep')
     @patch('sage.cli.head_manager.start_head')
     @patch('sage.cli.worker_manager.start_workers')
-    def test_start_cluster_success(self, mock_start_workers, mock_start_head, mock_sleep):
+    @patch('sage.cli.config_manager.get_config_manager')
+    def test_start_cluster_success(self, mock_get_config_manager, mock_start_workers, mock_start_head, mock_sleep):
         """Test successful cluster start"""
+        # Mock config manager to return worker hosts
+        mock_config_manager = MagicMock()
+        mock_config_manager.get_workers_ssh_hosts.return_value = ["worker1:22", "worker2:22"]
+        mock_get_config_manager.return_value = mock_config_manager
+        
         result = self.runner.invoke(app, ["start"])
         
         assert result.exit_code == 0

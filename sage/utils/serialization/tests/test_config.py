@@ -97,7 +97,7 @@ class TestSerializationConfig:
             'emit_context',
             'server_socket', 'client_socket',
             'server_thread', '_server_thread',
-            '__weakref__'
+            # 注意：__weakref__ 已移除，因为它是不可删除的内置属性
         ]
         
         for attr in expected_attrs:

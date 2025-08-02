@@ -24,11 +24,17 @@ def filter_attrs(attrs: Dict[str, Any],
                 exclude: Optional[List[str]]) -> Dict[str, Any]:
     """根据 include/exclude 过滤字段字典。"""
     if include:
+        # 如果指定了include，只保留include中的属性，忽略默认的blacklist
         return {k: attrs[k] for k in include if k in attrs}
     
     # 合并用户定义的exclude和系统默认的exclude
     all_exclude = set(exclude or []) | ATTRIBUTE_BLACKLIST
-    return {k: v for k, v in attrs.items() if k not in all_exclude}
+    
+    # 过滤掉不能设置的特殊属性
+    UNSETABLE_ATTRS = {'__weakref__', '__dict__', '__class__'}
+    
+    return {k: v for k, v in attrs.items() 
+            if k not in all_exclude and k not in UNSETABLE_ATTRS}
 
 
 def should_skip(obj: Any) -> bool:

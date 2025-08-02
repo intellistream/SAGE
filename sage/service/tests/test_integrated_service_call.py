@@ -8,6 +8,7 @@ import unittest
 import pytest
 from unittest.mock import Mock
 from sage.runtime.service_context import ServiceContext
+from sage.runtime.task_context import TaskContext
 from sage.runtime.service.local_service_task import LocalServiceTask
 from sage.runtime.service.service_caller import ServiceManager
 from sage.core.function.base_function import BaseFunction
@@ -21,12 +22,18 @@ class MockGraphNode:
         self.parallel_index = 0
         self.parallelism = 1
         self.stop_signal_num = 1
+        self.service_qd = None
+        self.input_qd = None
+        self.service_response_qd = None
+        self.input_qd = None
+        self.service_response_qd = None
 
 
 class MockTransformation:
     def __init__(self):
         self.is_spout = False
         self.memory_collection = None
+        self.name = "mock_transformation"
 
 
 class MockEnvironment:
@@ -92,17 +99,17 @@ def test_integrated_service_call():
         cache_graph_node = MockGraphNode("cache_service")
         cache_transformation = MockTransformation()
         cache_env = MockEnvironment("test_env")
-        cache_ctx = ServiceContext(cache_graph_node, cache_transformation, cache_env)
+        cache_ctx = ServiceContext(cache_graph_node, cache_env)
         
         db_graph_node = MockGraphNode("db_service")
         db_transformation = MockTransformation()
         db_env = MockEnvironment("test_env")
-        db_ctx = ServiceContext(db_graph_node, db_transformation, db_env)
+        db_ctx = ServiceContext(db_graph_node, db_env)
         
         test_graph_node = MockGraphNode("test_function")
         test_transformation = MockTransformation()
         test_env = MockEnvironment("test_env")
-        test_ctx = ServiceContext(test_graph_node, test_transformation, test_env)
+        test_ctx = TaskContext(test_graph_node, test_transformation, test_env)
         
         # 2. 创建服务工厂
         cache_factory = ServiceFactory("cache_service", MockCacheService)

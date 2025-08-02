@@ -22,7 +22,7 @@ class SageQueueDescriptor(BaseQueueDescriptor):
     
     def __init__(self, maxsize: int = 1024 * 1024, auto_cleanup: bool = True,
                  namespace: Optional[str] = None, enable_multi_tenant: bool = True,
-                 queue_id: Optional[str] = None, queue_instance: Optional[Any] = None):
+                 queue_id: Optional[str] = None):
         """
         初始化SAGE队列描述符
         
@@ -32,13 +32,12 @@ class SageQueueDescriptor(BaseQueueDescriptor):
             namespace: 命名空间
             enable_multi_tenant: 是否启用多租户
             queue_id: 队列唯一标识符
-            queue_instance: 可选的队列实例
         """
         self.maxsize = maxsize
         self.auto_cleanup = auto_cleanup
         self.namespace = namespace
         self.enable_multi_tenant = enable_multi_tenant
-        super().__init__(queue_id=queue_id, queue_instance=queue_instance)
+        super().__init__(queue_id=queue_id)
     
     @property
     def queue_type(self) -> str:
@@ -49,6 +48,14 @@ class SageQueueDescriptor(BaseQueueDescriptor):
     def can_serialize(self) -> bool:
         """SAGE队列可以序列化"""
         return self._queue_instance is None
+    
+    @property
+    def queue_instance(self) -> Optional[Any]:
+        """获取队列实例（实现抽象方法）"""
+        if not self._initialized:
+            self._queue_instance = self._create_queue_instance()
+            self._initialized = True
+        return self._queue_instance
     
     @property
     def metadata(self) -> Dict[str, Any]:
@@ -143,17 +150,3 @@ class SageQueueDescriptor(BaseQueueDescriptor):
         )
         instance.created_timestamp = data.get('created_timestamp', instance.created_timestamp)
         return instance
-
-
-# 便利函数
-def create_sage_queue(queue_id: Optional[str] = None, maxsize: int = 1024 * 1024,
-                     auto_cleanup: bool = True, namespace: Optional[str] = None,
-                     enable_multi_tenant: bool = True) -> SageQueueDescriptor:
-    """创建SAGE队列描述符"""
-    return SageQueueDescriptor(
-        maxsize=maxsize,
-        auto_cleanup=auto_cleanup,
-        namespace=namespace,
-        enable_multi_tenant=enable_multi_tenant,
-        queue_id=queue_id
-    )

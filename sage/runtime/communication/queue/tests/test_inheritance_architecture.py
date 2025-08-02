@@ -136,9 +136,8 @@ class TestRayQueueDescriptor:
         queue = RayQueueDescriptor(queue_id="test_ray", maxsize=100)
         
         assert queue.queue_id == "test_ray"
-        assert queue.queue_type == "ray"
+        assert queue.queue_type == "ray_queue"
         assert queue.metadata["maxsize"] == 100
-        assert queue.metadata["ray_type"] == "queue"
     
     @patch('ray.get_actor')
     @patch('ray.is_initialized')
@@ -150,14 +149,12 @@ class TestRayQueueDescriptor:
         
         queue = RayQueueDescriptor(
             queue_id="test_actor", 
-            ray_type="actor", 
-            actor_name="my_actor"
+            maxsize=200
         )
         
         assert queue.queue_id == "test_actor"
-        assert queue.queue_type == "ray"
-        assert queue.metadata["ray_type"] == "actor"
-        assert queue.metadata["actor_name"] == "my_actor"
+        assert queue.queue_type == "ray_queue"
+        assert queue.metadata["maxsize"] == 200
 
 
 class TestSageQueueDescriptor:

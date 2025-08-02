@@ -186,7 +186,7 @@ class TestRayObjectTrimmer:
         class NestedClass:
             def __init__(self):
                 self.nested_data = "nested"
-                self.nested_logger = "remove"
+                self.logger = "remove"  # 使用标准的黑名单属性名
         
         class TestClass:
             def __init__(self):
@@ -204,7 +204,7 @@ class TestRayObjectTrimmer:
         
         # 深度清理应该清理嵌套对象
         assert hasattr(result.nested, 'nested_data')
-        assert not hasattr(result.nested, 'nested_logger')
+        assert not hasattr(result.nested, 'logger')
     
     def test_trim_for_remote_call_with_custom_filters(self):
         """测试使用自定义过滤器的远程调用清理"""

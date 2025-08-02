@@ -25,7 +25,6 @@ sys.path.insert(0, '/api-rework')
 try:
     from sage.runtime.communication.queue import (
         PythonQueueDescriptor,
-        create_python_queue
     )
     print("✓ 成功导入Python队列描述符")
 except ImportError as e:

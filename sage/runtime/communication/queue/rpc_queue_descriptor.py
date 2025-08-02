@@ -24,8 +24,7 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
     
     def __init__(self, host: str = "localhost", port: int = 8000,
                  connection_timeout: float = 30.0, retry_count: int = 3,
-                 enable_pooling: bool = True, queue_id: Optional[str] = None,
-                 queue_instance: Optional[Any] = None):
+                 enable_pooling: bool = True, queue_id: Optional[str] = None):
         """
         初始化RPC队列描述符
         
@@ -36,14 +35,13 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
             retry_count: 重试次数
             enable_pooling: 是否启用连接池
             queue_id: 队列唯一标识符
-            queue_instance: 可选的队列实例
         """
         self.host = host
         self.port = port
         self.connection_timeout = connection_timeout
         self.retry_count = retry_count
         self.enable_pooling = enable_pooling
-        super().__init__(queue_id=queue_id, queue_instance=queue_instance)
+        super().__init__(queue_id=queue_id)
     
     @property
     def queue_type(self) -> str:
@@ -54,6 +52,14 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
     def can_serialize(self) -> bool:
         """RPC队列可以序列化"""
         return self._queue_instance is None
+    
+    @property
+    def queue_instance(self) -> Optional[Any]:
+        """获取队列实例（实现抽象方法）"""
+        if not self._initialized:
+            self._queue_instance = self._create_queue_instance()
+            self._initialized = True
+        return self._queue_instance
     
     @property
     def metadata(self) -> Dict[str, Any]:
@@ -124,18 +130,3 @@ class RPCQueueDescriptor(BaseQueueDescriptor):
         )
         instance.created_timestamp = data.get('created_timestamp', instance.created_timestamp)
         return instance
-
-
-# 便利函数
-def create_rpc_queue(queue_id: Optional[str] = None, host: str = "localhost", 
-                    port: int = 8000, connection_timeout: float = 30.0,
-                    retry_count: int = 3, enable_pooling: bool = True) -> RPCQueueDescriptor:
-    """创建RPC队列描述符"""
-    return RPCQueueDescriptor(
-        host=host,
-        port=port,
-        connection_timeout=connection_timeout,
-        retry_count=retry_count,
-        enable_pooling=enable_pooling,
-        queue_id=queue_id
-    )

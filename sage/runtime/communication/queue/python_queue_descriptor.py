@@ -17,7 +17,7 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
     只支持 queue.Queue (本地进程内队列)
     """
     
-    def __init__(self, maxsize: int = 0, queue_id: Optional[str] = None):
+    def __init__(self, maxsize: int = 0, use_multiprocessing: bool = False, queue_id: Optional[str] = None):
         """
         初始化Python队列描述符
         
@@ -25,9 +25,9 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
             maxsize: 队列最大大小，0表示无限制
             use_multiprocessing: 是否使用multiprocessing.Queue
             queue_id: 队列唯一标识符
-            queue_instance: 可选的队列实例
         """
         self.maxsize = maxsize
+        self.use_multiprocessing = use_multiprocessing
         self._initialized = False  # 是否已初始化队列实例
         super().__init__(queue_id=queue_id)
     
@@ -38,15 +38,19 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
     
     @property
     def can_serialize(self) -> bool:
-        return False  # queue.Queue 不能序列化
+        return not self._initialized  # 未初始化时可以序列化
     
     @property
     def metadata(self) -> Dict[str, Any]:
         """元数据字典"""
         base_metadata = {
             "maxsize": self.maxsize,
-            "queue_instance": self.queue_instance,  # 包含队列实例引用
+            "use_multiprocessing": self.use_multiprocessing,
         }
+        
+        # 只有在不可序列化时才包含队列实例引用
+        if not self.can_serialize:
+            base_metadata["queue_instance"] = self.queue_instance
         
         return base_metadata
     

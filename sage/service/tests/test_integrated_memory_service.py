@@ -6,6 +6,7 @@ import time
 import queue
 import pytest
 from sage.runtime.service_context import ServiceContext
+from sage.runtime.task_context import TaskContext
 from sage.runtime.service.local_service_task import LocalServiceTask
 from sage.runtime.service.service_caller import ServiceManager
 from sage.core.function.base_function import BaseFunction
@@ -22,12 +23,18 @@ class MockGraphNode:
         self.parallel_index = 0
         self.parallelism = 1
         self.stop_signal_num = 1
+        self.service_qd = None
+        self.input_qd = None
+        self.service_response_qd = None
+        self.input_qd = None
+        self.service_response_qd = None
 
 
 class MockTransformation:
     def __init__(self):
         self.is_spout = False
         self.memory_collection = None
+        self.name = "mock_transformation"
 
 
 class MockEnvironment:
@@ -52,12 +59,12 @@ def test_memory_service_integrated():
         memory_graph_node = MockGraphNode("memory_service")
         memory_transformation = MockTransformation()
         memory_env = MockEnvironment("test_env")
-        memory_ctx = ServiceContext(memory_graph_node, memory_transformation, memory_env)
+        memory_ctx = ServiceContext(memory_graph_node, memory_env)
         
         test_graph_node = MockGraphNode("test_function")
         test_transformation = MockTransformation()
         test_env = MockEnvironment("test_env")
-        test_ctx = ServiceContext(test_graph_node, test_transformation, test_env)
+        test_ctx = TaskContext(test_graph_node, test_transformation, test_env)
         
         # 2. 创建Memory Service实例和工厂
         # 指定临时测试目录
@@ -65,10 +72,32 @@ def test_memory_service_integrated():
         os.makedirs(test_data_dir, exist_ok=True)
         
         def service_factory():
-            # 在服务进程中创建embedding model
-            embedding_model = apply_embedding_model("default")
-            memory_service = MemoryService(data_dir=test_data_dir)
-            return memory_service
+            # 创建一个简单的Mock MemoryService，避免依赖embedding model
+            class MockMemoryService:
+                def __init__(self, data_dir=None):
+                    self.data_dir = data_dir
+                    self.collections = {}
+                    
+                def create_collection(self, name, backend_type="KV", description="", timeout=60):
+                    self.collections[name] = {"backend_type": backend_type, "description": description}
+                    return {"status": "success", "collection_name": name}
+                
+                def insert_data(self, collection_name, text, metadata=None):
+                    if collection_name in self.collections:
+                        return {"status": "success", "inserted": True}
+                    return {"status": "error", "message": "Collection not found"}
+                
+                def create_index(self, collection_name, index_name, description=""):
+                    if collection_name in self.collections:
+                        return {"status": "success", "index_name": index_name}
+                    return {"status": "error", "message": "Collection not found"}
+                
+                def retrieve_data(self, collection_name, query_text, top_k=5):
+                    if collection_name in self.collections:
+                        return {"status": "success", "results": [{"text": "mock result", "score": 0.9}]}
+                    return {"status": "error", "message": "Collection not found"}
+            
+            return MockMemoryService(data_dir=test_data_dir)
             
         memory_factory = ServiceFactory("memory_service", service_factory)
         

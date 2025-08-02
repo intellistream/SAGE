@@ -29,10 +29,6 @@ try:
         RayQueueDescriptor,
         SageQueueDescriptor,
         RPCQueueDescriptor,
-        create_python_queue,
-        create_ray_queue,
-        create_sage_queue,
-        create_rpc_queue
     )
     print("✓ 成功导入队列描述符")
 except ImportError as e:
@@ -270,7 +266,7 @@ class TestReferencePassingAndConcurrency:
         
         try:
             # 创建SAGE队列描述符
-            queue_desc = create_sage_queue(queue_id="test_sage_mt", maxsize=1024*1024)
+            queue_desc = SageQueueDescriptor(queue_id="test_sage_mt", maxsize=1024*1024)
             
             num_producers = 2
             num_consumers = 2
@@ -334,7 +330,7 @@ class TestReferencePassingAndConcurrency:
                 ray.init()
             
             # 创建Ray队列描述符
-            queue_desc = create_ray_queue(queue_id="test_ray_actor", maxsize=100)
+            queue_desc = RayQueueDescriptor(queue_id="test_ray_actor", maxsize=100)
             queue_dict = queue_desc.to_dict()
             
             num_producer_actors = 2

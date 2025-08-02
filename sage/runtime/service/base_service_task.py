@@ -7,6 +7,7 @@ Base Service Task - 服务任务基类
 import threading
 import time
 import traceback
+import queue
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, TYPE_CHECKING
 from sage.utils.custom_logger import CustomLogger
@@ -183,8 +184,13 @@ class BaseServiceTask(ABC):
                     if "closed" in str(e).lower() or "Queue is closed" in str(e):
                         self.logger.info(f"Request queue closed for service '{self.service_name}', stopping listener")
                         break
-                    # 忽略超时和空队列错误
-                    elif "timed out" not in str(e).lower() and "empty" not in str(e).lower():
+                    # 忽略超时和空队列错误（包括queue.Empty异常）
+                    elif (isinstance(e, queue.Empty) or 
+                          "timed out" in str(e).lower() or 
+                          "empty" in str(e).lower()):
+                        # 这些是正常的超时/空队列情况，不需要记录错误
+                        pass
+                    else:
                         self.logger.error(f"Error receiving request for service '{self.service_name}': {e}")
                         self.logger.debug(f"Stack trace: {traceback.format_exc()}")
                 

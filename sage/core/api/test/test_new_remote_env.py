@@ -48,13 +48,15 @@ def test_serialization():
         print(f"   Config: {getattr(deserialized_env, 'config', 'N/A')}")
         
         print("\n✅ 序列化测试通过!")
-        return True
+        # Assert that the test succeeded
+        assert deserialized_env is not None
+        assert hasattr(deserialized_env, 'name')
         
     except Exception as e:
         print(f"\n❌ 测试失败: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        assert False, f"测试失败: {e}"
 
 def test_client():
     """测试JobManagerClient"""
@@ -71,13 +73,16 @@ def test_client():
         print(f"Available methods: {methods}")
         
         print("\n✅ Client测试通过!")
-        return True
+        # Assert that the test succeeded
+        assert client is not None
+        assert hasattr(client, 'host')
+        assert hasattr(client, 'port')
         
     except Exception as e:
         print(f"\n❌ Client测试失败: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        assert False, f"Client测试失败: {e}"
 
 def test_remote_env():
     """测试RemoteEnvironment方法"""
@@ -101,13 +106,15 @@ def test_remote_env():
         print(f"Job status: {status}")
         
         print("\n✅ RemoteEnvironment方法测试通过!")
-        return True
+        # Assert that the test succeeded
+        assert remote_env is not None
+        assert client is not None
         
     except Exception as e:
         print(f"\n❌ RemoteEnvironment方法测试失败: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        assert False, f"RemoteEnvironment方法测试失败: {e}"
 
 if __name__ == "__main__":
     print("开始测试 RemoteEnvironment 修改...")
