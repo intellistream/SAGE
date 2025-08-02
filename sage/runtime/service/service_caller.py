@@ -7,6 +7,7 @@ import logging
 import time
 import threading
 import uuid
+import queue
 from concurrent.futures import ThreadPoolExecutor, Future
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, TYPE_CHECKING
@@ -21,6 +22,7 @@ class ServiceResponse:
     success: bool
     result: Any = None
     error: str = None
+    request_id: str = None
 
 
 class ServiceManager:
@@ -153,7 +155,8 @@ class ServiceManager:
             self._pending_requests[request_id] = event
         
         try:
-            # 构造请求数据
+            # 构造请求数据 - 传递响应队列实例而不是名称
+            response_queue = self._get_response_queue()
             request_data = {
                 'request_id': request_id,
                 'service_name': service_name,
@@ -162,7 +165,8 @@ class ServiceManager:
                 'kwargs': kwargs,
                 'timeout': timeout,
                 'timestamp': time.time(),
-                'response_queue': self._response_queue_name
+                'response_queue': response_queue,  # 传递队列实例而不是名称
+                'response_queue_name': self._response_queue_name  # 仍然保留名称用于日志
             }
             
             # 发送请求到服务队列
@@ -273,17 +277,32 @@ class ServiceManager:
                     self._handle_response(response_data)
                     
                 except Exception as queue_error:
-                    # 如果是超时或队列关闭，不记录错误
+                    # 检查具体的队列异常类型
+                    error_type = type(queue_error).__name__
+                    
+                    # 处理标准Python队列超时异常（queue.Empty）
+                    if isinstance(queue_error, queue.Empty):
+                        # 这是正常的超时，继续循环而不记录任何消息
+                        continue
+                    
+                    # 处理其他可能的超时异常
                     error_str = str(queue_error).lower()
-                    if "timed out" in error_str or "timeout" in error_str or "empty" in error_str:
-                        # 超时是正常的，继续循环
+                    if error_type == 'Empty' or 'empty' in error_type.lower():
+                        # 其他类型的Empty异常
+                        continue
+                    elif "timed out" in error_str or "timeout" in error_str:
+                        # 其他类型的超时异常
                         continue
                     elif "closed" in error_str or "queue is closed" in error_str:
                         # 队列关闭
                         self.logger.debug(f"Queue operation result: {queue_error}")
                         continue
                     else:
-                        self.logger.warning(f"Queue operation issue: {queue_error}")
+                        # 其他未知的队列异常
+                        if error_str.strip():  # 如果错误消息不为空
+                            self.logger.warning(f"Queue operation issue ({error_type}): {queue_error}")
+                        else:  # 如果错误消息为空，提供更多上下文
+                            self.logger.debug(f"Queue operation ({error_type}): Empty message from queue.get() - likely timeout")
                         continue  # 继续运行，不要因为队列问题停止
                 
             except Exception as e:

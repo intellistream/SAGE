@@ -282,31 +282,35 @@ class BaseServiceTask(ABC):
     
     def _send_response_to_queue(self, response_queue, response_data: Dict[str, Any]):
         """
-        发送响应到指定的队列对象
+        发送响应到指定的队列对象（修正版本）
         
         Args:
-            response_queue: 响应队列对象（可能是Python queue或Ray queue）
+            response_queue: 响应队列对象（来自ServiceManager的队列实例）
             response_data: 响应数据
         """
         request_id = response_data.get('request_id', 'unknown')
         
         try:
-            self.logger.debug(f"Sending response for request {request_id} to queue type: {type(response_queue).__name__}")
+            self.logger.info(f"[SERVICE_TASK] Starting response send for request {request_id}")
+            self.logger.info(f"[SERVICE_TASK] Response queue type: {type(response_queue).__name__}")
+            self.logger.debug(f"[SERVICE_TASK] Response data: {response_data}")
             
             # 使用阻塞的put方法，确保消息被成功发送
             if hasattr(response_queue, 'put'):
-                # 使用阻塞put，超时5秒
-                response_queue.put(response_data, block=True, timeout=5.0)
-                self.logger.debug(f"Response sent via put for request {request_id}")
+                send_start_time = time.time()
+                # 使用阻塞put，超时10秒
+                response_queue.put(response_data, block=True, timeout=10.0)
+                send_time = time.time() - send_start_time
+                self.logger.info(f"[SERVICE_TASK] Response sent successfully for request {request_id} in {send_time:.3f}s")
             else:
-                self.logger.error(f"Unknown response queue type: {type(response_queue)} for request {request_id}")
+                self.logger.error(f"[SERVICE_TASK] Unknown response queue type: {type(response_queue)} for request {request_id}")
                 return
             
-            self.logger.debug(f"Successfully sent response for request {request_id} to {type(response_queue).__name__}")
-            
         except Exception as e:
-            self.logger.error(f"Failed to send response for request {request_id} to queue: {e}")
+            self.logger.error(f"[SERVICE_TASK] Failed to send response for request {request_id}: {e}")
+            self.logger.error(f"[SERVICE_TASK] Exception type: {type(e).__name__}")
             self.logger.debug(f"Stack trace: {traceback.format_exc()}")
+            # 不要抛出异常，避免影响服务任务的继续运行
 
     def _handle_service_request(self, request_data: Dict[str, Any]):
         """
@@ -324,7 +328,8 @@ class BaseServiceTask(ABC):
             method_name = request_data.get('method_name')
             args = request_data.get('args', ())
             kwargs = request_data.get('kwargs', {})
-            response_queue_name = request_data.get('response_queue')
+            response_queue = request_data.get('response_queue')  # 现在这是队列实例而不是名称
+            response_queue_name = request_data.get('response_queue_name', 'unknown')  # 用于日志的名称
             timeout = request_data.get('timeout', 30.0)
             
             self.logger.info(
@@ -360,9 +365,9 @@ class BaseServiceTask(ABC):
             }
             
             # 发送响应
-            if response_queue_name:
+            if response_queue:
                 self.logger.info(f"[SERVICE_TASK] Sending response for request {request_id} to queue {response_queue_name}")
-                self._send_response(response_queue_name, response_data)
+                self._send_response_to_queue(response_queue, response_data)
             else:
                 self.logger.warning(f"[SERVICE_TASK] No response queue specified for request {request_id}")
                 
