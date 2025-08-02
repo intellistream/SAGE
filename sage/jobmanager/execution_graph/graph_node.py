@@ -46,29 +46,19 @@ class GraphNode:
     
     def _create_queue_descriptors(self, env: 'BaseEnvironment'):
         """在节点构造时创建队列描述符"""
-        from sage.runtime.communication.queue_creation_strategy import QueueCreationStrategy
-        
-        queue_creation_strategy = QueueCreationStrategy()
-        is_remote = env.platform == "remote"
-        default_params = queue_creation_strategy.get_default_queue_params(is_remote)
-        
         # 为每个节点创建单一的输入队列描述符（被所有上游复用）
         if not self.is_spout:  # 源节点不需要输入队列
-            self.input_qd = queue_creation_strategy.create_inter_task_queue(
-                source_task="upstream",
-                target_task=self.name,
-                is_remote=is_remote,
-                **default_params
+            self.input_qd = env.get_qd(
+                name=f"input_{self.name}",
+                maxsize=10000
             )
         else:
             self.input_qd = None
         
         # 为每个graph node创建service response queue descriptor
-        self.service_response_qd = queue_creation_strategy.create_service_response_queue(
-            service_name="response",  # 通用响应队列名称
-            node_name=self.name,
-            is_remote=is_remote,
-            **default_params
+        self.service_response_qd = env.get_qd(
+            name=f"service_response_{self.name}",
+            maxsize=10000
         )
     
     def __repr__(self) -> str:

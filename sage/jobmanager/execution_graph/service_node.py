@@ -47,17 +47,10 @@ class ServiceNode:
     
     def _create_queue_descriptors(self, env: 'BaseEnvironment'):
         """在服务节点构造时创建队列描述符"""
-        from sage.runtime.communication.queue_creation_strategy import QueueCreationStrategy
-        
-        queue_creation_strategy = QueueCreationStrategy()
-        is_remote = env.platform == "remote"
-        default_params = queue_creation_strategy.get_default_queue_params(is_remote)
-        
         # 为每个service创建request queue descriptor
-        self.service_qd = queue_creation_strategy.create_service_request_queue(
-            service_name=self.service_name,
-            is_remote=is_remote,
-            **default_params
+        self.service_qd = env.get_qd(
+            name=f"service_request_{self.service_name}",
+            maxsize=10000
         )
     
     def __repr__(self) -> str:
