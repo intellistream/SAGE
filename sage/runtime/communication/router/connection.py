@@ -1,29 +1,29 @@
-from typing import Union
+from typing import Union, TYPE_CHECKING
 from dataclasses import dataclass
 import time
-from ray.actor import ActorHandle
-from sage.runtime.task.base_task import BaseTask
+
+if TYPE_CHECKING:
+    from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
+
 @dataclass
 class Connection:
     """
-    用于表示本地节点和Ray Actor之间的连接
+    用于表示节点间的连接，包含队列描述符和路由信息
     """
     def __init__(self,
                  broadcast_index: int,
                  parallel_index: int,
                  target_name: str,
-                 target_handle: Union[ActorHandle, BaseTask],
-                 target_input_index: int,
-                 target_type: str = "local"):
+                 queue_descriptor: 'BaseQueueDescriptor',
+                 target_input_index: int):
         
-        # 目前我们使用ray也只是在一台机器上
         self.broadcast_index: int = broadcast_index
         self.parallel_index: int = parallel_index
         self.target_name: str = target_name
-        self.target_handle: Union[ActorHandle, BaseTask] = target_handle
+        self.queue_descriptor: 'BaseQueueDescriptor' = queue_descriptor
         self.target_input_index: int = target_input_index
-        self.target_type: str = target_type
-        # 负载状态跟踪
+        
+        # 负载状态跟踪（保留用于监控）
         self._load_history = []  # 存储最近的负载历史
         self._last_load_check = time.time()
         self._load_trend = 0.0  # 负载趋势：正数表示增加，负数表示减少
@@ -34,20 +34,23 @@ class Connection:
         获取目标缓冲区的负载率 (0.0-1.0)
         """
         try:
-            if hasattr(self.target_buffer, 'qsize') and hasattr(self.target_buffer, 'maxsize'):
-                # SageQueue类型
-                current_size = self.target_buffer.qsize()
-                max_size = self.target_buffer.maxsize
+            # 通过队列描述符获取队列
+            target_queue = self.queue_descriptor.get_queue()
+            
+            if hasattr(target_queue, 'qsize') and hasattr(target_queue, 'maxsize'):
+                # 标准队列类型
+                current_size = target_queue.qsize()
+                max_size = target_queue.maxsize
                 if max_size > 0:
                     load_ratio = current_size / max_size
                 else:
                     load_ratio = 0.0
-            elif hasattr(self.target_buffer, 'get_buffer_stats'):
+            elif hasattr(target_queue, 'get_buffer_stats'):
                 # 如果是SageQueue类型，使用统计信息
-                stats = self.target_buffer.get_buffer_stats()
+                stats = target_queue.get_buffer_stats()
                 load_ratio = stats.get('utilization', 0.0)
             else:
-                # Ray Actor类型，暂时返回0（后续可以扩展）
+                # 其他类型，暂时返回0
                 load_ratio = 0.0
             
             return load_ratio

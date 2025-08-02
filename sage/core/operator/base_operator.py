@@ -9,7 +9,7 @@ from sage.runtime.communication.router.packet import Packet
 if TYPE_CHECKING:
     from sage.core.function.base_function import BaseFunction
     from sage.runtime.communication.router.connection import Connection
-    from sage.runtime.runtime_context import RuntimeContext
+    from archive.runtime_context import RuntimeContext
     from sage.runtime.factory.function_factory import FunctionFactory
     from sage.runtime.communication.router.router import BaseRouter
 

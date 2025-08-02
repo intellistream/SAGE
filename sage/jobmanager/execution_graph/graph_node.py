@@ -1,0 +1,75 @@
+"""
+GraphNode - 图节点类
+
+每个GraphNode代表一个transformation的单个并行实例，包含：
+- 单一输入队列描述符（被所有上游复用）
+- 服务响应队列描述符
+- 输入通道和输出通道的连接信息
+- 运行时上下文
+"""
+
+from __future__ import annotations
+from typing import TYPE_CHECKING, Dict, List
+
+if TYPE_CHECKING:
+    from sage.core.api.base_environment import BaseEnvironment
+    from sage.core.transformation.base_transformation import BaseTransformation
+    from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
+    from sage.runtime.task_context import TaskContext
+    from .graph_edge import GraphEdge
+
+
+class GraphNode:
+    """
+    图节点类
+    
+    每个GraphNode只有一个输入队列描述符 - 不是每个输入通道一个
+    这个输入队列被所有上游节点复用 - 所有上游都写入同一个队列
+    输入通道只是逻辑概念 - 用于区分不同的输入数据流，但物理上共享同一个队列
+    """
+    
+    def __init__(self, name: str, transformation: 'BaseTransformation', parallel_index: int, env: 'BaseEnvironment'):
+        self.name: str = name
+        self.transformation: 'BaseTransformation' = transformation
+        self.parallel_index: int = parallel_index  # 在该transformation中的并行索引
+        self.parallelism: int = transformation.parallelism
+        self.is_spout: bool = transformation.is_spout
+        self.is_sink: bool = transformation.is_sink
+        self.input_channels: Dict[int, List['GraphEdge']] = {}
+        self.output_channels: List[List['GraphEdge']] = []
+        
+        # 在构造时创建队列描述符
+        self._create_queue_descriptors(env)
+        
+        self.stop_signal_num: int = 0  # 预期的源节点数量
+        self.ctx: 'TaskContext' = None
+    
+    def _create_queue_descriptors(self, env: 'BaseEnvironment'):
+        """在节点构造时创建队列描述符"""
+        from sage.runtime.communication.queue_creation_strategy import QueueCreationStrategy
+        
+        queue_creation_strategy = QueueCreationStrategy()
+        is_remote = env.platform == "remote"
+        default_params = queue_creation_strategy.get_default_queue_params(is_remote)
+        
+        # 为每个节点创建单一的输入队列描述符（被所有上游复用）
+        if not self.is_spout:  # 源节点不需要输入队列
+            self.input_qd = queue_creation_strategy.create_inter_task_queue(
+                source_task="upstream",
+                target_task=self.name,
+                is_remote=is_remote,
+                **default_params
+            )
+        else:
+            self.input_qd = None
+        
+        # 为每个graph node创建service response queue descriptor
+        self.service_response_qd = queue_creation_strategy.create_service_response_queue(
+            service_name="response",  # 通用响应队列名称
+            node_name=self.name,
+            is_remote=is_remote,
+            **default_params
+        )
+    
+    def __repr__(self) -> str:
+        return f"GraphNode(name={self.name}, parallel_index={self.parallel_index}, is_spout={self.is_spout}, is_sink={self.is_sink})"

@@ -2,7 +2,7 @@ from typing import Iterator, Any, TYPE_CHECKING, List, Optional, Union, Callable
 from sage.core.function.base_function import BaseFunction
 
 if TYPE_CHECKING:
-    from sage.runtime.runtime_context import RuntimeContext
+    from archive.runtime_context import RuntimeContext
 
 
 class SimpleBatchIteratorFunction(BaseFunction):

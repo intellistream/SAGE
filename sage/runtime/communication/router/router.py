@@ -18,7 +18,8 @@ except ImportError:
 
 if TYPE_CHECKING:
     from sage.runtime.communication.router.connection import Connection
-    from sage.runtime.runtime_context import RuntimeContext
+    from archive.runtime_context import RuntimeContext
+    from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
 
 class BaseRouter(ABC):
     """
@@ -30,64 +31,19 @@ class BaseRouter(ABC):
         self.name = ctx.name
         self.ctx = ctx
         
-        # 下游连接管理
-        self.downstream_groups: Dict[int, Dict[int, 'Connection']] = {}
+        # 从TaskContext获取下游连接组信息
+        self.downstream_groups: Dict[int, Dict[int, 'Connection']] = getattr(ctx, 'downstream_groups', {})
         self.downstream_group_roundrobin: Dict[int, int] = {}
-        self.downstream_max_load: float = 0.0  # 最大延迟，单位为秒
+        
+        # 初始化轮询状态
+        for broadcast_index in self.downstream_groups.keys():
+            self.downstream_group_roundrobin[broadcast_index] = 0
+        
         # Logger
         self.logger = ctx.logger
         self.logger.debug(f"Initialized {self.__class__.__name__} for {self.name}")
+        self.logger.debug(f"Downstream groups: {list(self.downstream_groups.keys())}")
     
-    def _is_ray_actor(self, obj) -> bool:
-        """检测对象是否为 Ray Actor"""
-        if not RAY_AVAILABLE:
-            return False
-        return isinstance(obj, ActorHandle) or hasattr(obj, 'remote')
-    
-    def add_connection(self, connection: 'Connection') -> None:
-        """
-        添加下游连接
-        
-        Args:
-            connection: Connection对象，包含所有连接信息
-        """
-        broadcast_index = connection.broadcast_index
-        parallel_index = connection.parallel_index
-        
-        try:
-            # 检测 target_handle 是否为 Ray Actor
-            is_ray_actor = self._is_ray_actor(connection.target_handle)
-            
-            if is_ray_actor:
-                self.logger.info(f"🔗 Router: Getting remote input_buffer from target task '{connection.target_name}' (Ray Actor)")
-                connection.target_buffer = connection.target_handle.get_input_buffer.remote()
-                self.logger.info(f"✅ Router: Successfully got remote input_buffer from {connection.target_name}")
-            else:
-                self.logger.info(f"🔗 Router: Getting input_buffer from target task '{connection.target_name}' (Local object)")
-                # 对于本地对象，直接获取目标任务的input_buffer
-                connection.target_buffer = connection.target_handle.get_input_buffer()
-                self.logger.info(f"✅ Router: Successfully got input_buffer from {connection.target_name}")
-                
-            # Debug log
-            self.logger.debug(
-                f"Adding connection: broadcast_index={broadcast_index}, parallel_index={parallel_index}, target={connection.target_name}, is_ray_actor={is_ray_actor}"
-            )
-            
-            # 初始化广播组（如果不存在）
-            if broadcast_index not in self.downstream_groups:
-                self.downstream_groups[broadcast_index] = {}
-                self.downstream_group_roundrobin[broadcast_index] = 0
-            
-            # 保存完整的Connection对象
-            self.downstream_groups[broadcast_index][parallel_index] = connection
-            
-            self.logger.info(f"Added connection to {connection.target_name}")
-            self.logger.info(f"Current downstream groups: {list(self.downstream_groups.keys())}")
-            
-        except Exception as e:
-            self.logger.error(f"Failed to add connection to {connection.target_name}: {e}", exc_info=True)
-            raise
-
     
     def get_connections_info(self) -> Dict[str, Any]:
         """获取连接信息"""
@@ -99,7 +55,8 @@ class BaseRouter(ABC):
                 "targets": [
                     {
                         "parallel_index": parallel_index,
-                        "target_name": connection.target_name
+                        "target_name": connection.target_name,
+                        "queue_id": connection.queue_descriptor.queue_id
                     }
                     for parallel_index, connection in parallel_targets.items()
                 ]
@@ -120,7 +77,9 @@ class BaseRouter(ABC):
         for broadcast_index, parallel_targets in self.downstream_groups.items():
             for connection in parallel_targets.values():
                 try:
-                    connection.target_buffer.put_nowait(stop_signal)
+                    # 通过连接的队列描述符获取队列并发送停止信号
+                    queue = connection.queue_descriptor.get_queue()
+                    queue.put_nowait(stop_signal)
                     self.logger.debug(f"Sent stop signal to {connection.target_name}")
                 except Exception as e:
                     self.logger.error(f"Failed to send stop signal to {connection.target_name}: {e}")
@@ -192,7 +151,7 @@ class BaseRouter(ABC):
             
             # 发送到选中的连接
             connection = parallel_targets[target_parallel_index]
-            if not self._deliver_packet(connection, packet):
+            if not self._deliver_packet_to_connection(connection, packet):
                 success = False
         
         return success
@@ -203,7 +162,7 @@ class BaseRouter(ABC):
         
         for broadcast_index, parallel_targets in self.downstream_groups.items():
             for connection in parallel_targets.values():
-                if not self._deliver_packet(connection, packet):
+                if not self._deliver_packet_to_connection(connection, packet):
                     success = False
         
         return success
@@ -227,117 +186,53 @@ class BaseRouter(ABC):
             target_parallel_index = parallel_indices[target_index]
             
             connection = parallel_targets[target_parallel_index]
-            if not self._deliver_packet(connection, packet):
+            if not self._deliver_packet_to_connection(connection, packet):
                 success = False
         
         return success
     
-    def _deliver_packet(self, connection: 'Connection', packet: 'Packet') -> bool:
+    def _deliver_packet_to_connection(self, connection: 'Connection', packet: 'Packet') -> bool:
+        """
+        将数据包发送到连接对应的队列
+        
+        Args:
+            connection: 目标连接
+            packet: 要发送的数据包
+            
+        Returns:
+            bool: 是否成功发送
+        """
         try:
-            # 检查下游负载并动态调整delay
-            self.logger.info(f"Router {self.name}: Starting packet delivery to {connection.target_name}")
+            self.logger.info(f"Router {self.name}: Delivering packet to {connection.target_name}")
             
-            self.downstream_max_load = max(self.downstream_max_load, connection.get_buffer_load())
+            # 创建路由包，包含target_input_index信息
             routed_packet = self._create_routed_packet(connection, packet)
-            self.logger.info(f"Router {self.name}: Created routed packet: {routed_packet}")
             
-            target_buffer = connection.target_buffer
-            target_handle = connection.target_handle
-            self.logger.info(f"Router {self.name}: Target buffer: {target_buffer} (type: {type(target_buffer)})")
-            self.logger.info(f"Router {self.name}: Target handle: {target_handle} (type: {type(target_handle)})")
+            # 通过连接的队列描述符获取队列
+            target_queue = connection.queue_descriptor.get_queue()
+            self.logger.info(f"Router {self.name}: Got target queue: {target_queue} (type: {type(target_queue)})")
             
-            # 检查是否为 Ray Actor
-            is_ray_actor = self._is_ray_actor(target_handle)
-            self.logger.info(f"Router {self.name}: Is Ray Actor: {is_ray_actor}")
+            # 直接发送到队列
+            target_queue.put_nowait(routed_packet)
+            self.logger.info(f"Router {self.name}: Successfully sent packet to {connection.target_name}")
             
-            # 检查 target_buffer 是否是 Ray ObjectRef
-            is_ray_object_ref = RAY_AVAILABLE and str(type(target_buffer)).find('ray._raylet.ObjectRef') != -1
-            self.logger.info(f"Router {self.name}: Is Ray ObjectRef: {is_ray_object_ref}")
+            return True
             
-            if is_ray_actor:
-                # 对于 Ray Actor，直接调用 put_packet 方法（不使用 hasattr 检查）
-                self.logger.info(f"Router {self.name}: Using Ray Actor put_packet method")
-                try:
-                    result_future = target_handle.put_packet.remote(routed_packet)
-                    # 等待结果以确保调用成功
-                    result = ray.get(result_future)
-                    self.logger.info(f"Router {self.name}: Ray Actor put_packet result: {result}")
-                    if not result:
-                        self.logger.error(f"Router {self.name}: put_packet returned False")
-                        return False
-                except AttributeError as e:
-                    self.logger.error(f"Router {self.name}: Ray Actor does not have put_packet method: {e}")
-                    return False
-                except Exception as e:
-                    self.logger.error(f"Router {self.name}: Failed to call Ray Actor put_packet: {e}")
-                    return False
-            elif is_ray_object_ref:
-                # target_buffer 是 Ray ObjectRef，这种情况不应该发生，因为我们应该从上面的分支处理
-                self.logger.error(f"Router {self.name}: Unexpected Ray ObjectRef without Ray Actor handle")
-                return False
-            elif hasattr(target_buffer, 'put_nowait'):
-                # 这是一个普通的队列对象
-                self.logger.info(f"Router {self.name}: Calling target_buffer.put_nowait() on local buffer")
-                target_buffer.put_nowait(routed_packet)
-            else:
-                # 回退方案
-                self.logger.warning(f"Router {self.name}: Using fallback method for unknown buffer type: {type(target_buffer)}")
-                target_buffer.put_nowait(routed_packet)
-            
-            self.logger.info(f"Router {self.name}: Successfully sent packet to target")
+        except Exception as e:
+            self.logger.error(f"Router {self.name}: Failed to deliver packet to {connection.target_name}: {e}")
+            traceback.print_exc()
+            return False
             self.logger.debug(
                 f"Sent {'keyed' if packet.is_keyed() else 'unkeyed'} packet "
                 f"to {connection.target_name} (strategy: {packet.partition_strategy or 'round-robin'})"
             )
             return True
-        except RuntimeError as e:
-            # Check if the queue is closed
-            if "Queue is closed" in str(e):
-                self.logger.warning(
-                    f"Queue to {connection.target_name} is closed, setting stop signal in context"
-                )
-                # 设置上下文的停止信号，让源任务停止
-                self.ctx.set_stop_signal()
-                return False
-            else:
-                # Other RuntimeError
-                self.logger.error(
-                    f"Failed to send packet to {connection.target_name}: {e}\n{traceback.format_exc()}"
-                )
-                return False
+            
         except Exception as e:
-            """记录发送失败日志"""
-            self.logger.error(
-                f"Failed to send packet to {connection.target_name}: {e}\n{traceback.format_exc()}"
-            )
+            self.logger.error(f"Router {self.name}: Failed to deliver packet to {connection.target_name}: {e}")
+            traceback.print_exc()
             return False
     
-    def _adjust_delay_based_on_load(self, connection: 'Connection' = None):
-        """
-        根据当前连接的负载动态调整delay
-        
-        Args:
-            connection: 当前发送的目标连接
-        """
-        # 旧路径 emit_packet 调用时不会传 connection；此时直接返回
-        if connection is None:
-            return
-
-        try:
-            self.logger.debug(f"Adjusting delay based on downstream load: {self.downstream_max_load:.3f}")
-            # 获取当前delay
-            current_delay = self.ctx.delay
-            self.logger.debug(f"Current delay: {self.ctx.delay* 1000 :.3f}ms")
-            # 根据当前连接的负载调整delay
-            new_delay = current_delay * (0.5 + self.downstream_max_load)
-            if new_delay < 0.001:
-                new_delay = 0.001
-            self.ctx.delay = new_delay  # 直接把最大限制给去掉
-            self.logger.info(f"Adjusted delay to {self.ctx.delay* 1000 :.3f}ms")
-                
-        except Exception as e:
-            self.logger.warning(f"Failed to adjust delay based on load: {e}\n{traceback.format_exc()}")
-
     def clear_all_connections(self):
         """清空所有连接"""
         self.downstream_groups.clear()
@@ -348,6 +243,15 @@ class BaseRouter(ABC):
         return Packet(
             payload=packet.payload,
             input_index=connection.target_input_index,
+            partition_key=packet.partition_key,
+            partition_strategy=packet.partition_strategy,
+        )
+    
+    def _create_routed_packet(self, input_index: int, packet: 'Packet') -> 'Packet':
+        """创建路由后的数据包"""
+        return Packet(
+            payload=packet.payload,
+            input_index=input_index,
             partition_key=packet.partition_key,
             partition_strategy=packet.partition_strategy,
         )

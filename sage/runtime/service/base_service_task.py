@@ -14,7 +14,7 @@ from sage.utils.queue_adapter import create_queue
 
 if TYPE_CHECKING:
     from sage.runtime.factory.service_factory import ServiceFactory
-    from sage.runtime.runtime_context import RuntimeContext
+    from archive.runtime_context import RuntimeContext
 
 
 class BaseServiceTask(ABC):

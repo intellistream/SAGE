@@ -4,7 +4,7 @@ from sage.runtime.task.base_task import BaseTask
 from sage.utils.queue_adapter import create_queue
 if TYPE_CHECKING:
     from sage.runtime.factory.operator_factory import OperatorFactory
-    from sage.runtime.runtime_context import RuntimeContext
+    from archive.runtime_context import RuntimeContext
 
 
 class LocalTask(BaseTask):

@@ -3,7 +3,7 @@ from typing import Any, TYPE_CHECKING
 from sage.core.function.base_function import BaseFunction
 
 if TYPE_CHECKING:
-    from sage.runtime.runtime_context import RuntimeContext
+    from archive.runtime_context import RuntimeContext
 
 class BatchFunction(BaseFunction):
     """

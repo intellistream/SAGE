@@ -8,7 +8,7 @@ from sage.runtime.communication.router.packet import Packet
 from sage.utils.queue_adapter import create_queue
 if TYPE_CHECKING:
     from sage.runtime.factory.operator_factory import OperatorFactory
-    from sage.runtime.runtime_context import RuntimeContext
+    from archive.runtime_context import RuntimeContext
 
 
 

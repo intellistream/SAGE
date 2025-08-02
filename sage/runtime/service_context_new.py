@@ -39,12 +39,11 @@ class ServiceContext:
         # 队列描述符管理 - 在构造时从service_node和execution_graph获取
         self._request_queue_descriptor: Optional['BaseQueueDescriptor'] = service_node.service_qd  # 用于service task接收请求
         
-        # 从execution_graph获取service response队列描述符 - 直接遍历nodes获取
-        self._service_response_queue_descriptors: Dict[str, 'BaseQueueDescriptor'] = {}
-        if execution_graph:
-            for node_name, node in execution_graph.nodes.items():
-                if node.service_response_qd:
-                    self._service_response_queue_descriptors[node_name] = node.service_response_qd
+        # 从execution_graph获取service response队列描述符
+        if execution_graph and hasattr(execution_graph, 'service_response_descriptors'):
+            self._service_response_queue_descriptors: Dict[str, 'BaseQueueDescriptor'] = execution_graph.service_response_descriptors.copy()
+        else:
+            self._service_response_queue_descriptors: Dict[str, 'BaseQueueDescriptor'] = {}  # service task访问各个response队列，稍后分发时设置
 
     @property
     def logger(self) -> CustomLogger:

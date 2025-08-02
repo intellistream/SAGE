@@ -15,12 +15,13 @@ if TYPE_CHECKING:
     from sage.runtime.service.service_caller import ServiceManager
     from sage.core.function.source_function import StopSignal
     from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
+    from sage.runtime.communication.router.connection import Connection
 # task, operator和function "形式上共享"的运行上下文
 
 class TaskContext:
     # 定义不需要序列化的属性
     __state_exclude__ = ["_logger", "env", "_env_logger_cache"]
-    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation', env: 'BaseEnvironment'):
+    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation', env: 'BaseEnvironment', execution_graph: 'ExecutionGraph' = None):
         
         self.name:str = graph_node.name
 
@@ -52,12 +53,46 @@ class TaskContext:
         self._service_manager: Optional['ServiceManager'] = None
         self._service_names: Optional[Dict[str, str]] = None  # 只保存服务名称映射而不是实例
         
-        # 队列描述符管理
-        self.input_qd: 'BaseQueueDescriptor' = None
-        self.downstream_qds: List[List['BaseQueueDescriptor']] = None  # 下游任务访问的队列
-
-        self.response_qd: 'BaseQueueDescriptor' = None
-        self.service_qds: Dict[str, 'BaseQueueDescriptor'] = None  # graph node访问service的队列
+        # 队列描述符管理 - 在构造时从graph_node和execution_graph获取
+        self.input_qd: 'BaseQueueDescriptor' = graph_node.input_qd
+        self.response_qd: 'BaseQueueDescriptor' = graph_node.service_response_qd
+        
+        # 从execution_graph获取service队列描述符 - 直接遍历service_nodes获取
+        self.service_qds: Dict[str, 'BaseQueueDescriptor'] = {}
+        if execution_graph:
+            for service_name, service_node in execution_graph.service_nodes.items():
+                if service_node.service_qd:
+                    self.service_qds[service_node.service_name] = service_node.service_qd
+        
+        # 下游连接组管理 - 从execution_graph构建downstream_groups
+        self.downstream_groups: Dict[int, Dict[int, 'Connection']] = {}
+        if execution_graph:
+            self._build_downstream_groups(graph_node, execution_graph)
+    
+    def _build_downstream_groups(self, graph_node: 'GraphNode', execution_graph: 'ExecutionGraph'):
+        """从execution_graph构建downstream_groups"""
+        # 遍历输出通道，构建downstream_groups
+        for broadcast_index, output_group in enumerate(graph_node.output_channels):
+            if output_group:  # 确保输出组不为空
+                self.downstream_groups[broadcast_index] = {}
+                
+                for edge in output_group:
+                    if edge.downstream_node and edge.downstream_node.input_qd:
+                        # 使用下游节点的单一输入队列描述符
+                        downstream_queue_descriptor = edge.downstream_node.input_qd
+                        
+                        # 创建Connection对象
+                        from sage.runtime.communication.router.connection import Connection
+                        connection = Connection(
+                            broadcast_index=broadcast_index,
+                            parallel_index=edge.downstream_node.parallel_index,
+                            target_name=edge.downstream_node.name,
+                            queue_descriptor=downstream_queue_descriptor,
+                            target_input_index=edge.input_index
+                        )
+                        
+                        # 使用downstream node的parallel_index作为key
+                        self.downstream_groups[broadcast_index][edge.downstream_node.parallel_index] = connection
     
     
     @property
@@ -211,3 +246,48 @@ class TaskContext:
         except Exception:
             # 在析构函数中不记录错误，避免在程序退出时产生问题
             pass
+
+    # ================== 队列描述符管理方法 ==================
+    
+    def set_input_queue_descriptor(self, descriptor: 'BaseQueueDescriptor'):
+        """设置输入队列描述符"""
+        self.input_qd = descriptor
+    
+    def get_input_queue_descriptor(self) -> Optional['BaseQueueDescriptor']:
+        """获取输入队列描述符"""
+        return self.input_qd
+    
+    def set_service_response_queue_descriptor(self, descriptor: 'BaseQueueDescriptor'):
+        """设置服务响应队列描述符"""
+        self._service_response_queue_descriptor = descriptor
+        self.response_qd = descriptor
+    
+    def get_service_response_queue_descriptor(self) -> Optional['BaseQueueDescriptor']:
+        """获取服务响应队列描述符"""
+        return self._service_response_queue_descriptor
+    
+    def set_upstream_queue_descriptors(self, descriptors: Dict[int, List['BaseQueueDescriptor']]):
+        """设置上游队列描述符映射"""
+        self._upstream_queue_descriptors = descriptors
+    
+    def get_upstream_queue_descriptors(self) -> Optional[Dict[int, List['BaseQueueDescriptor']]]:
+        """获取上游队列描述符映射"""
+        return self._upstream_queue_descriptors
+    
+    def set_downstream_queue_descriptors(self, descriptors: List[List['BaseQueueDescriptor']]):
+        """设置下游队列描述符映射"""
+        self._downstream_queue_descriptors = descriptors
+        self.downstream_qds = descriptors
+    
+    def get_downstream_queue_descriptors(self) -> Optional[List[List['BaseQueueDescriptor']]]:
+        """获取下游队列描述符映射"""
+        return self._downstream_queue_descriptors
+    
+    def set_service_request_queue_descriptors(self, descriptors: Dict[str, 'BaseQueueDescriptor']):
+        """设置服务请求队列描述符映射"""
+        self._service_request_queue_descriptors = descriptors
+        self.service_qds = descriptors
+    
+    def get_service_request_queue_descriptors(self) -> Optional[Dict[str, 'BaseQueueDescriptor']]:
+        """获取服务请求队列描述符映射"""
+        return self._service_request_queue_descriptors

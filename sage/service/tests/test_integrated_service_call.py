@@ -7,7 +7,7 @@ import threading
 import unittest
 import pytest
 from unittest.mock import Mock
-from sage.runtime.runtime_context import RuntimeContext
+from archive.runtime_context import RuntimeContext
 from sage.runtime.service.local_service_task import LocalServiceTask
 from sage.runtime.service.service_caller import ServiceManager
 from sage.core.function.base_function import BaseFunction
