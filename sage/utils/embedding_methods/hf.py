@@ -5,19 +5,40 @@ from functools import lru_cache
 import asyncio
 import pipmaster as pm  # Pipmaster for dynamic library install
 
-# install specific modules
-if not pm.is_installed("transformers"):
-    pm.install("transformers")
-if not pm.is_installed("torch"):
-    pm.install("torch")
-if not pm.is_installed("tenacity"):
-    pm.install("tenacity")
-if not pm.is_installed("numpy"):
-    pm.install("numpy")
-if not pm.is_installed("tenacity"):
-    pm.install("tenacity")
+# Dependencies should be installed via requirements.txt
+# transformers, torch, tenacity, and numpy are required for this module
 
-from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModel
+try:
+    from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModel
+except ImportError:
+    raise ImportError(
+        "transformers package is required for HuggingFace embedding functionality. "
+        "Please install it via: pip install transformers"
+    )
+
+try:
+    import torch
+except ImportError:
+    raise ImportError(
+        "torch package is required for HuggingFace embedding functionality. "
+        "Please install it via: pip install torch"
+    )
+
+try:
+    import tenacity
+except ImportError:
+    raise ImportError(
+        "tenacity package is required for HuggingFace embedding functionality. "
+        "Please install it via: pip install tenacity"
+    )
+
+try:
+    import numpy
+except ImportError:
+    raise ImportError(
+        "numpy package is required for HuggingFace embedding functionality. "
+        "Please install it via: pip install numpy"
+    )
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 

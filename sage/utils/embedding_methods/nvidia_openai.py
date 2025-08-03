@@ -9,12 +9,16 @@ else:
 
 import pipmaster as pm  # Pipmaster for dynamic library install
 
-# install specific modules
-if not pm.is_installed("openai"):
-    pm.install("openai")
+# Dependencies should be installed via requirements.txt
+# openai is required for this module
 
-
-from openai import AsyncOpenAI
+try:
+    from openai import AsyncOpenAI
+except ImportError:
+    raise ImportError(
+        "openai package is required for NVIDIA OpenAI embedding functionality. "
+        "Please install it via: pip install openai"
+    )
 
 async def nvidia_openai_embed(
     text: str,

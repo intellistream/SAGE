@@ -1,17 +1,29 @@
 import sys
 
-import aiohttp
-
 if sys.version_info < (3, 9):
     from typing import AsyncIterator
 else:
     from collections.abc import AsyncIterator
 import pipmaster as pm  # Pipmaster for dynamic library install
 
-if not pm.is_installed("aiohttp"):
-    pm.install("aiohttp")
-if not pm.is_installed("tenacity"):
-    pm.install("tenacity")
+# Dependencies should be installed via requirements.txt
+# aiohttp and tenacity are required for this module
+
+try:
+    import aiohttp
+except ImportError:
+    raise ImportError(
+        "aiohttp package is required for Lollms embedding functionality. "
+        "Please install it via: pip install aiohttp"
+    )
+
+try:
+    import tenacity
+except ImportError:
+    raise ImportError(
+        "tenacity package is required for Lollms embedding functionality. "
+        "Please install it via: pip install tenacity"
+    )
 
 
 

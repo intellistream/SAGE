@@ -28,6 +28,10 @@ class MenuHandler(BaseInstaller):
             custom_env = self.get_user_input("Enter custom environment name (press Enter for 'sage'): ", "sage").strip()
             if custom_env and custom_env != "sage":
                 self.conda_env_name = custom_env
+                # Sync the environment name change across all modules
+                if hasattr(self, '_parent_installer'):
+                    self._parent_installer.conda_env_name = custom_env
+                    self._parent_installer.sync_conda_env_name()
                 self.print_info(f"Environment name set to: {Colors.GREEN}{self.conda_env_name}{Colors.RESET}")
             else:
                 self.print_info(f"Using default environment name: {Colors.GREEN}sage{Colors.RESET}")
