@@ -75,9 +75,6 @@ namespaces = false
 [tool.setuptools.package-data]
 "sage.extensions" = ["*.so", "*.pyd", "*.dll", "py.typed", "*.pyi"]
 
-# 自定义构建配置
-[tool.setuptools.build_meta]
-# 可以在这里添加自定义构建逻辑
 
 # C++编译配置
 [tool.cibuildwheel]
