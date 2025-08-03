@@ -214,7 +214,7 @@ name = "sage-core"
 version = "1.0.0"
 description = "SAGE Framework - Core Python Implementation"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
     {name = "IntelliStream Team", email = "sage@intellistream.cc"},
@@ -497,7 +497,7 @@ name = "sage-extensions"
 version = "1.0.0"
 description = "SAGE Framework - High-Performance C++ Extensions"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
     {name = "IntelliStream Team", email = "sage@intellistream.cc"},

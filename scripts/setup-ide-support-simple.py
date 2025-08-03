@@ -17,15 +17,46 @@ def setup_development_links(repo_root: Path):
     print("🔧 设置开发环境链接...")
     
     packages_dir = repo_root / 'packages'
-    packages = ['sage-utils', 'sage-core', 'sage-extensions', 'sage-dashboard']
+    packages = [
+        'sage-cli',
+        'sage-core', 
+        'sage-extensions',
+        'sage-frontend',
+        'sage-lib',
+        'sage-plugins',
+        'sage-service',
+        'sage-utils'
+    ]
+    
+    # 尝试不同的Python可执行文件
+    python_executables = [sys.executable, 'python3', 'python']
+    
+    for python_exe in python_executables:
+        try:
+            # 测试pip是否可用
+            result = subprocess.run([python_exe, '-m', 'pip', '--version'], 
+                                  capture_output=True, text=True)
+            if result.returncode == 0:
+                print(f"✅ 使用Python: {python_exe}")
+                break
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            continue
+    else:
+        print("⚠️  警告: 未找到可用的pip，跳过包安装")
+        print("💡 请手动安装pip或使用虚拟环境")
+        return
     
     for package in packages:
         package_path = packages_dir / package
         if package_path.exists():
             print(f"📦 安装开发模式: {package}")
-            subprocess.run([
-                sys.executable, '-m', 'pip', 'install', '-e', str(package_path)
-            ], check=True)
+            try:
+                subprocess.run([
+                    python_exe, '-m', 'pip', 'install', '-e', str(package_path)
+                ], check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"⚠️  警告: {package} 安装失败: {e}")
+                continue
     
     print("✅ 开发环境链接设置完成")
 
@@ -41,7 +72,11 @@ def create_vscode_settings(repo_root: Path):
         str(packages_dir / 'sage-core' / 'src'),
         str(packages_dir / 'sage-utils' / 'src'),
         str(packages_dir / 'sage-extensions' / 'src'),
-        str(packages_dir / 'sage-dashboard' / 'backend' / 'src'),
+        str(packages_dir / 'sage-cli' / 'src'),
+        str(packages_dir / 'sage-lib' / 'src'),
+        str(packages_dir / 'sage-plugins' / 'src'),
+        str(packages_dir / 'sage-service' / 'src'),
+        str(packages_dir / 'sage-frontend'),  # 这个包没有src目录
         str(repo_root),
     ]
     

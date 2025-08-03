@@ -25,19 +25,45 @@ class IDESetupManager:
         
         # 获取所有包
         packages = [
-            'sage-utils',
+            'sage-cli',
             'sage-core', 
             'sage-extensions',
-            'sage-dashboard'
+            'sage-frontend',
+            'sage-lib',
+            'sage-plugins',
+            'sage-service',
+            'sage-utils',
         ]
+        
+        # 尝试不同的Python可执行文件
+        python_executables = [sys.executable, 'python3', 'python']
+        
+        for python_exe in python_executables:
+            try:
+                # 测试pip是否可用
+                result = subprocess.run([python_exe, '-m', 'pip', '--version'], 
+                                      capture_output=True, text=True)
+                if result.returncode == 0:
+                    print(f"✅ 使用Python: {python_exe}")
+                    break
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                continue
+        else:
+            print("⚠️  警告: 未找到可用的pip，跳过包安装")
+            print("💡 请手动安装pip或使用虚拟环境")
+            return
         
         for package in packages:
             package_path = self.packages_dir / package
             if package_path.exists():
                 print(f"📦 安装开发模式: {package}")
-                subprocess.run([
-                    sys.executable, '-m', 'pip', 'install', '-e', str(package_path)
-                ], check=True)
+                try:
+                    subprocess.run([
+                        python_exe, '-m', 'pip', 'install', '-e', str(package_path)
+                    ], check=True)
+                except subprocess.CalledProcessError as e:
+                    print(f"⚠️  警告: {package} 安装失败: {e}")
+                    continue
         
         print("✅ 开发环境链接设置完成")
     
@@ -53,7 +79,11 @@ class IDESetupManager:
             str(self.packages_dir / 'sage-core' / 'src'),
             str(self.packages_dir / 'sage-utils' / 'src'),
             str(self.packages_dir / 'sage-extensions' / 'src'),
-            str(self.packages_dir / 'sage-dashboard' / 'backend' / 'src'),
+            str(self.packages_dir / 'sage-cli' / 'src'),
+            str(self.packages_dir / 'sage-lib' / 'src'),
+            str(self.packages_dir / 'sage-plugins' / 'src'),
+            str(self.packages_dir / 'sage-service' / 'src'),
+            str(self.packages_dir / 'sage-frontend'),  # 这个包没有src目录
             str(self.repo_root),  # 根目录
         ]
         
@@ -153,7 +183,7 @@ build-backend = "setuptools.build_meta"
 name = "sage-workspace"
 version = "1.0.0"
 description = "SAGE Framework - Monorepo Workspace"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 
 # 这是一个虚拟包，用于工作空间管理
 dependencies = []
@@ -164,7 +194,11 @@ full = [
     "sage-core",
     "sage-utils", 
     "sage-extensions",
-    "sage-dashboard"
+    "sage-cli",
+    "sage-lib",
+    "sage-plugins",
+    "sage-service",
+    "sage-frontend"
 ]
 
 # 开发环境
@@ -200,7 +234,11 @@ src_paths = [
     "packages/sage-core/src",
     "packages/sage-utils/src", 
     "packages/sage-extensions/src",
-    "packages/sage-dashboard/backend/src"
+    "packages/sage-cli/src",
+    "packages/sage-lib/src",
+    "packages/sage-plugins/src",
+    "packages/sage-service/src",
+    "packages/sage-frontend"
 ]
 
 [tool.mypy]
@@ -214,7 +252,11 @@ mypy_path = [
     "packages/sage-core/src",
     "packages/sage-utils/src",
     "packages/sage-extensions/src",
-    "packages/sage-dashboard/backend/src"
+    "packages/sage-cli/src",
+    "packages/sage-lib/src",
+    "packages/sage-plugins/src",
+    "packages/sage-service/src",
+    "packages/sage-frontend"
 ]
 
 # 每个包的具体配置
@@ -228,7 +270,11 @@ testpaths = [
     "packages/sage-core/tests",
     "packages/sage-utils/tests",
     "packages/sage-extensions/tests", 
-    "packages/sage-dashboard/tests",
+    "packages/sage-cli/tests",
+    "packages/sage-lib/tests",
+    "packages/sage-plugins/tests",
+    "packages/sage-service/tests",
+    "packages/sage-frontend/tests",
     "tests"  # 集成测试
 ]
 python_files = ["test_*.py", "*_test.py"]

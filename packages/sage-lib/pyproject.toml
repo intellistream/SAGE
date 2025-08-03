@@ -1,0 +1,143 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sage-lib"
+version = "1.0.0"
+description = "SAGE Framework - 核心库组件"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "IntelliStream Team", email = "sage@intellistream.cc"},
+]
+keywords = ["rag", "llm", "library", "components", "algorithms"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "sage-utils",  # 依赖工具包
+    "numpy>=1.21.0",
+    "pandas>=1.3.0",
+    "pydantic>=2.0.0",
+    "rich>=13.0.0",
+    "PyYAML>=6.0",
+    "httpx>=0.24.0",
+    "aiofiles>=0.8.0",
+    "asyncio>=3.4.3",
+    "transformers>=4.30.0",
+    "torch>=2.0.0",
+    "sentence-transformers>=2.2.0",
+]
+
+[project.optional-dependencies]
+# 向量数据库支持
+vectordb = [
+    "faiss-cpu>=1.7.0",
+    "chromadb>=0.4.0",
+    "qdrant-client>=1.0.0",
+    "weaviate-client>=3.0.0",
+]
+
+# 图数据库支持
+graphdb = [
+    "neo4j>=5.0.0",
+    "networkx>=3.0.0",
+]
+
+# RAG增强
+rag = [
+    "langchain>=0.1.0",
+    "llama-index>=0.9.0",
+]
+
+# 完整功能
+full = ["vectordb", "graphdb", "rag"]
+
+# 开发依赖 
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+
+# 测试依赖
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.10.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Repository = "https://github.com/intellistream/SAGE.git"
+Documentation = "https://sage-docs.intellistream.cc"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sage*"]
+namespaces = false
+
+# 添加类型信息支持
+[tool.setuptools.package-data]
+"sage.lib" = ["py.typed", "*.pyi"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "src"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = [
+    "--cov=sage.lib",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.git
+    | \.venv
+    | build
+    | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["sage"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+strict_optional = true
+
+[[tool.mypy.overrides]]
+module = "sage.lib.*"
+ignore_missing_imports = false

@@ -1,0 +1,131 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+    "pybind11>=2.10.0",
+    "cmake>=3.18",
+    "ninja; platform_system!='Windows'",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sage-extensions"
+version = "1.0.0"
+description = "SAGE Framework - 高性能C++扩展"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "IntelliStream Team", email = "sage@intellistream.cc"},
+]
+keywords = ["rag", "llm", "high-performance", "cpp", "extensions"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: C++",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Hardware",
+]
+
+dependencies = [
+    "sage-core",  # 依赖核心包
+    "sage-utils", # 依赖工具包
+    "numpy>=1.21.0",
+    "pybind11>=2.10.0",
+]
+
+[project.optional-dependencies]
+# 开发依赖
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "cmake>=3.18",
+    "ninja",
+    "pybind11-stubgen>=0.10.0",
+]
+
+# 测试依赖
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-benchmark>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Repository = "https://github.com/intellistream/SAGE.git"
+Documentation = "https://sage-docs.intellistream.cc"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sage*"]
+namespaces = false
+
+# C++扩展的特殊配置
+[tool.setuptools.package-data]
+"sage.extensions" = ["*.so", "*.pyd", "*.dll", "py.typed", "*.pyi"]
+
+# 自定义构建配置
+[tool.setuptools.build_meta]
+# 可以在这里添加自定义构建逻辑
+
+# C++编译配置
+[tool.cibuildwheel]
+build = "cp311-* cp312-*"
+skip = "*-win32 *-manylinux_i686"
+
+[tool.cibuildwheel.environment]
+CMAKE_BUILD_TYPE = "Release"
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "src"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = [
+    "--cov=sage.extensions",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.git
+    | \.venv
+    | build
+    | dist
+    | \.pybind11
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["sage"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+# C++扩展可能需要更宽松的类型检查
+disallow_untyped_defs = false
+no_implicit_optional = true
+strict_optional = true
+
+[[tool.mypy.overrides]]
+module = "sage.extensions.*"
+ignore_missing_imports = true  # C++扩展可能没有类型信息

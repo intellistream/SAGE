@@ -6,10 +6,20 @@ echo "Building SAGE C extensions for CI/CD..."
 # 确保在正确的目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-MMAP_QUEUE_DIR="$PROJECT_ROOT/sage/utils/mmap_queue"
+# 更新路径以适应新的包结构
+MMAP_QUEUE_DIR="$PROJECT_ROOT/packages/sage-utils/src/sage/utils/mmap_queue"
 
 echo "Project root: $PROJECT_ROOT"
 echo "mmap_queue directory: $MMAP_QUEUE_DIR"
+
+# 检查新的utils路径是否存在
+UTILS_DIR="$PROJECT_ROOT/packages/sage-utils/src/sage/utils"
+if [ ! -d "$UTILS_DIR" ]; then
+    echo "Info: New utils directory not found at $UTILS_DIR"
+    # 尝试旧路径作为备用
+    MMAP_QUEUE_DIR="$PROJECT_ROOT/sage/utils/mmap_queue"
+    echo "Using fallback path: $MMAP_QUEUE_DIR"
+fi
 
 # 检查目录是否存在
 if [ ! -d "$MMAP_QUEUE_DIR" ]; then
