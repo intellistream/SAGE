@@ -11,7 +11,7 @@ version = "1.0.0"
 description = "SAGE Framework - 智能化Monorepo工作空间"
 readme = "README.md"  
 requires-python = ">=3.10"
-license = {file = "LICENSE"}
+license = "Apache-2.0"
 authors = [
     {name = "IntelliStream Team", email = "sage@intellistream.cc"},
 ]
@@ -19,7 +19,6 @@ keywords = ["rag", "llm", "framework", "monorepo", "workspace"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -76,6 +75,25 @@ dev = [
 Homepage = "https://github.com/intellistream/SAGE"
 Repository = "https://github.com/intellistream/SAGE.git"
 Documentation = "https://sage-docs.intellistream.cc"
+
+[tool.setuptools]
+# 由于这是一个工作空间级别的虚拟包，我们不包含任何 Python 包
+py-modules = []
+
+[tool.setuptools.packages.find]
+exclude = [
+    "app*",
+    "data*", 
+    "config*",
+    "archive*",
+    "test_env*",
+    "packages*",
+    "test_logs*",
+    "test_reports*",
+    "htmlcov*",
+    "scripts*",
+    "docs*",
+]
 
 [tool.black]
 line-length = 88

@@ -5,6 +5,7 @@ requires = [
     "pybind11>=2.10.0",
     "cmake>=3.18",
     "ninja; platform_system!='Windows'",
+    "numpy>=1.21.0",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -54,6 +55,14 @@ test = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-benchmark>=4.0.0",
+]
+
+# 构建依赖（在 build-system 之外额外声明）
+build = [
+    "cmake>=3.18",
+    "ninja; platform_system!='Windows'",
+    "pybind11>=2.10.0",
+    "faiss-cpu",
 ]
 
 [project.urls]

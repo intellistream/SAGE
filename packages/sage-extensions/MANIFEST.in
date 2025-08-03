@@ -1,0 +1,30 @@
+# 包含所有源文件和构建脚本
+include README.md
+include LICENSE
+include pyproject.toml
+include setup.py
+
+# 包含脚本目录
+recursive-include scripts *.py *.sh
+
+# 包含 C++ 源代码和头文件
+recursive-include src/sage/extensions/sage_db *.cpp *.h *.hpp
+recursive-include src/sage/extensions/sage_db *.txt *.cmake
+recursive-include src/sage/extensions/sage_db *.sh
+
+# 包含 Python 绑定
+recursive-include src/sage/extensions/sage_db/python *.py *.cpp
+
+# 包含编译好的库文件（如果有的话）
+recursive-include src/sage/extensions *.so *.pyd *.dll
+
+# 包含类型提示文件
+recursive-include src/sage/extensions *.pyi *.typed
+
+# 排除不需要的文件
+global-exclude *.pyc
+global-exclude __pycache__
+global-exclude .git*
+global-exclude *.tmp
+global-exclude build/
+global-exclude .pytest_cache/
