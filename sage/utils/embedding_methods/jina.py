@@ -2,13 +2,26 @@ import asyncio
 import os
 import pipmaster as pm  # Pipmaster for dynamic library install
 
-# install specific modules
-if not pm.is_installed("tenacity"):
-    pm.install("tenacity")
+# Dependencies should be installed via requirements.txt
+# tenacity is required for this module
 
+try:
+    import tenacity
+except ImportError:
+    raise ImportError(
+        "tenacity package is required for Jina embedding functionality. "
+        "Please install it via: pip install tenacity"
+    )
+
+try:
+    import aiohttp
+except ImportError:
+    raise ImportError(
+        "aiohttp package is required for Jina embedding functionality. "
+        "Please install it via: pip install aiohttp"
+    )
 
 import numpy as np
-import aiohttp
 
 
 async def fetch_data(url, headers, data):

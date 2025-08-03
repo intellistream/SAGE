@@ -9,9 +9,16 @@ else:
     pass
 import pipmaster as pm  # Pipmaster for dynamic library install
 
-# install specific modules
-if not pm.is_installed("zhipuai"):
-    pm.install("zhipuai")
+# Dependencies should be installed via requirements.txt
+# zhipuai is required for this module
+
+try:
+    import zhipuai
+except ImportError:
+    raise ImportError(
+        "zhipuai package is required for ZhipuAI embedding functionality. "
+        "Please install it via: pip install zhipuai"
+    )
 
 
 async def zhipu_embedding(
