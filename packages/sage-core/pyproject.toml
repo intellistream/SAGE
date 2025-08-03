@@ -44,6 +44,11 @@ dependencies = [
     "redis>=4.5.0",
     "asyncio>=3.4.3",
     "aiofiles>=0.8.0",
+    "ascii_colors>=0.10.0",
+    "pipmaster>=0.1.0",  # 用于包管理和版本控制
+    "tqdm>=4.60.0",  # 用于进度条显示
+    "pre-commit>=3.0.0",  # 用于代码质量检查和格式化
+    "wcwidth>=0.2.13",  
 ]
 
 [project.optional-dependencies]

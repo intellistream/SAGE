@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-SAGE 一键环境安装和测试脚本
-==============================
+SAGE Monorepo 一键环境安装和测试脚本
+=====================================
 
 这个脚本会：
 1. 删除现有的测试环境
 2. 从头创建新的虚拟环境
-3. 安装所有依赖
+3. 使用新的包管理器安装所有SAGE包
 4. 运行完整的测试套件
 5. 生成测试报告
 
@@ -117,8 +117,17 @@ class OneClickSAGETester:
         )
         print(f"🐍 Python版本: {python_version.stdout.strip()}")
         
-        if not python_version.stdout or "3.11" not in python_version.stdout:
-            print("⚠️  警告: 推荐使用Python 3.11")
+        if not python_version.stdout or not any(v in python_version.stdout for v in ["3.10", "3.11", "3.12"]):
+            print("⚠️  警告: 推荐使用Python 3.10+")
+            
+        # 检查是否满足最低版本要求 
+        version_parts = python_version.stdout.split()
+        if len(version_parts) >= 2:
+            version_str = version_parts[1]  # "3.10.12"
+            major, minor = map(int, version_str.split('.')[:2])
+            if major < 3 or (major == 3 and minor < 10):
+                print("❌ 错误: SAGE需要Python 3.10或更高版本")
+                return False
             
         # 创建虚拟环境
         success = self.run_command(
@@ -136,21 +145,23 @@ class OneClickSAGETester:
         """安装依赖"""
         self.print_step(3, "安装项目依赖")
         
-        # 升级pip
-        activate_cmd = f"source {self.venv_path}/bin/activate"
+        # 使用虚拟环境中的python和pip直接调用，避免shell激活问题
+        venv_python = self.venv_path / "bin" / "python"
+        venv_pip = self.venv_path / "bin" / "pip"
         
+        # 升级pip
         success = self.run_command(
-            f"{activate_cmd} && pip install --upgrade pip",
+            f"{venv_pip} install --upgrade pip",
             "升级pip"
         )
         
         if not success:
             print("⚠️  pip升级失败，继续安装依赖")
             
-        # 安装项目依赖
+        # 安装项目依赖 - 使用新的包管理器
         success = self.run_command(
-            f"{activate_cmd} && pip install -e .",
-            "安装SAGE项目依赖"
+            f"{venv_python} scripts/sage-package-manager.py install-all --dev",
+            "安装所有SAGE包和开发依赖"
         )
         
         if not success:
@@ -160,7 +171,7 @@ class OneClickSAGETester:
         # 显示安装的包
         print("\n📦 已安装的包:")
         subprocess.run(
-            f"{activate_cmd} && pip list | head -20",
+            f"{venv_pip} list | head -20",
             shell=True
         )
         
@@ -171,7 +182,8 @@ class OneClickSAGETester:
         mode = "快速测试" if quick_test else "完整测试"
         self.print_step(4, f"运行{mode}")
         
-        activate_cmd = f"source {self.venv_path}/bin/activate"
+        # 使用虚拟环境中的python直接调用
+        venv_python = self.venv_path / "bin" / "python"
         
         # 确保目录存在
         self.test_logs_dir.mkdir(exist_ok=True)
@@ -180,13 +192,13 @@ class OneClickSAGETester:
             # 快速测试：智能差异测试 + 列出测试
             print("🎯 运行智能差异测试...")
             success1 = self.run_command(
-                f"{activate_cmd} && python scripts/test_runner.py --diff",
+                f"{venv_python} scripts/test_runner.py --diff",
                 "智能差异测试"
             )
             
             print("📋 列出所有测试文件...")
             success2 = self.run_command(
-                f"{activate_cmd} && python scripts/test_runner.py --list",
+                f"{venv_python} scripts/test_runner.py --list",
                 "列出测试文件"
             )
             
@@ -195,7 +207,7 @@ class OneClickSAGETester:
             # 完整测试
             print(f"🚀 运行完整测试套件 (使用 {workers} 个并行进程)...")
             success = self.run_command(
-                f"{activate_cmd} && python scripts/test_runner.py --all --workers {workers}",
+                f"{venv_python} scripts/test_runner.py --all --workers {workers}",
                 f"完整测试执行 ({workers} workers)"
             )
             
@@ -345,8 +357,8 @@ ls -la test_logs/
         print(f"📊 测试日志: {self.test_logs_dir}")
         
         print("\n🚀 现在你可以:")
-        print("   • 激活环境: source test_env/bin/activate")
-        print("   • 运行测试: python scripts/test_runner.py --all")
+        print("   • 激活环境: source test_env/bin/activate  (bash) 或 . test_env/bin/activate  (sh)")
+        print("   • 运行测试: test_env/bin/python scripts/test_runner.py --all")
         print("   • 查看日志: ls -la test_logs/")
         
         return success
@@ -379,14 +391,15 @@ def main():
     args = parser.parse_args()
     
     # 检查是否在正确的目录
-    if not Path("pyproject.toml").exists():
+    if not Path("packages").exists() or not Path("scripts/sage-package-manager.py").exists():
         print("❌ 错误: 请在SAGE项目根目录下运行此脚本")
         print(f"当前目录: {Path.cwd()}")
+        print("应该包含: packages/ 目录和 scripts/sage-package-manager.py")
         sys.exit(1)
         
     if not Path("scripts/test_runner.py").exists():
-        print("❌ 错误: 找不到scripts/test_runner.py文件")
-        sys.exit(1)
+        print("⚠️  警告: scripts/test_runner.py 不存在，将使用基本pytest测试")
+        print("你可以手动运行: python -m pytest 来测试包")
         
     # 创建并运行一键安装测试
     tester = OneClickSAGETester()

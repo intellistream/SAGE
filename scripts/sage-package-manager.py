@@ -112,7 +112,8 @@ class SagePackageManager:
         
         print(f"📦 安装 {package_name} ({pkg_info['description']})")
         
-        install_cmd = ['python3', '-m', 'pip', 'install']
+        # 使用当前Python解释器（支持虚拟环境）
+        install_cmd = [sys.executable, '-m', 'pip', 'install']
         
         if editable:
             install_cmd.append('-e')
@@ -141,7 +142,46 @@ class SagePackageManager:
         for package_name in ordered_packages:
             if self.install_package(package_name, dev=dev, editable=editable):
                 success_count += 1
-        
+                
+        # 如果是开发模式，安装工作空间级别的开发依赖
+        if dev:
+            print("\n🔧 安装工作空间开发依赖...")
+            try:
+                # 先安装关键的开发工具，不依赖工作空间配置
+                essential_dev_deps = [
+                    'tqdm>=4.60.0',
+                    'pytest>=7.0.0', 
+                    'pytest-cov>=4.0.0',
+                    'pytest-asyncio>=0.21.0',
+                    'black>=23.0.0',
+                    'isort>=5.12.0',
+                    'mypy>=1.0.0',
+                    'ruff>=0.1.0'
+                ]
+                
+                print("📋 安装关键开发工具...")
+                for dep in essential_dev_deps:
+                    install_cmd = [sys.executable, '-m', 'pip', 'install', dep]
+                    subprocess.run(install_cmd, check=True, capture_output=True)
+                    
+                print("✅ 关键开发工具安装成功")
+                
+                # 尝试安装工作空间的开发依赖（如果失败也没关系）
+                workspace_pyproject = self.repo_root / "pyproject.toml"
+                if workspace_pyproject.exists():
+                    print("📋 尝试安装工作空间开发依赖...")
+                    install_cmd = [sys.executable, '-m', 'pip', 'install', '-e', f"{self.repo_root}[dev]"]
+                    result = subprocess.run(install_cmd, capture_output=True)
+                    if result.returncode == 0:
+                        print("✅ 工作空间开发依赖安装成功")
+                    else:
+                        print("⚠️  工作空间开发依赖安装失败（但关键工具已安装）")
+                else:
+                    print("⚠️  未找到工作空间 pyproject.toml")
+            except subprocess.CalledProcessError as e:
+                print(f"⚠️  开发依赖安装失败: {e}")
+                print("但这不影响包的正常使用")
+
         print(f"\n✅ 成功安装 {success_count}/{len(ordered_packages)} 个包")
         
         if success_count == len(ordered_packages):

@@ -32,6 +32,7 @@ dependencies = [
     "PyYAML>=6.0",
     "click>=8.0.0",
     "pathlib-abc>=0.1.0",
+    "pipmaster>=0.1.0",
 ]
 
 [project.optional-dependencies]

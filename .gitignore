@@ -50,7 +50,9 @@ __pycache__/
 /arxiv_pdfs
 /arxiv_structured_json
 /sage/.env
-
+test_env/
+test_*
+test_reports/
 ray_logs
 /output
 /logs
