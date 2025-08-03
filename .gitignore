@@ -29,7 +29,6 @@ test_logs/
 draft/
 logs/
 output/
-.vscode/
 **/__pycache__/
 gitlogs.txt
 
