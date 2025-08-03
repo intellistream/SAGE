@@ -406,7 +406,7 @@ class OneClickSAGETester:
         except:
             return False
         
-    def run_tests(self, workers: int = 4, quick_test: bool = False, test_files: List[Path] = None, categorized_tests: Dict[str, List[Path]] = None):
+    def run_tests(self, workers: int = 16, quick_test: bool = False, test_files: List[Path] = None, categorized_tests: Dict[str, List[Path]] = None):
         """运行测试"""
         mode = "快速测试" if quick_test else "完整测试"
         self.print_step("4", f"运行{mode}")
@@ -511,7 +511,7 @@ class OneClickSAGETester:
                 
                 return success
 
-    def run_only_tests(self, workers: int = 4, quick_test: bool = False):
+    def run_only_tests(self, workers: int = 16, quick_test: bool = False):
         """仅运行测试（假设环境已经设置好）"""
         self.print_header("SAGE 仅运行测试")
         

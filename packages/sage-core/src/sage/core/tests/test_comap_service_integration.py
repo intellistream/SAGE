@@ -249,14 +249,6 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
             }
         
         return result
-        if self.ctx:
-            self.logger.info(f"CoMap map1: processed request for user {user_id} in context {context}")
-        
-        return result
-        if self.ctx:
-            self.logger.info(f"CoMap map1: processed recommendation request for user {user_id}")
-        
-        return result
 
 
 # ==================== 调试输出Sink ====================
