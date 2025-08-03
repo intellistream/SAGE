@@ -6,12 +6,9 @@ import os
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
 
-import logging
-from sage.utils.logging_utils import configure_logging
-
 from sage.utils.config_loader import load_config
 
-from sage.core.api.env import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 
 
 # from tqdm import tqdm
@@ -35,7 +32,6 @@ def pipeline_run():
 if __name__ == '__main__':
     # 加载配置并初始化日志
     # config = load_config('config_bm25s.yaml')
-    configure_logging(level=logging.INFO)
     # 初始化内存并运行管道
     pipeline_run()
 
@@ -70,7 +66,6 @@ if __name__ == '__main__':
 # if __name__ == '__main__':
 #     # 加载配置并初始化日志
 #     config = load_config('config_bm25s.yaml')
-#     configure_logging(level=logging.INFO)
 #     # 初始化内存并运行管道
 #     pipeline_run()
 

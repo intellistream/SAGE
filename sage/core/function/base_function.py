@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 from sage.runtime.service.service_caller import ServiceManager, ServiceCallProxy
 if TYPE_CHECKING:
-    from sage.runtime.runtime_context import RuntimeContext
+    from sage.runtime.task_context import TaskContext
     from sage.runtime.service.service_caller import ServiceManager
 import logging
 from sage.utils.state_persistence import load_function_state, save_function_state
@@ -16,7 +16,7 @@ class BaseFunction(ABC):
     It defines the core interface and initializes a logger.
     """
     def __init__(self, *args, **kwargs):
-        self.ctx: 'RuntimeContext' = None # 运行时注入
+        self.ctx: 'TaskContext' = None # 运行时注入
         self.router = None  # 运行时注入
         self._logger = None
         # 服务代理缓存
@@ -53,18 +53,19 @@ class BaseFunction(ABC):
             from sage.runtime.service.service_caller import ServiceCallProxy
             
             class ServiceProxy:
-                def __init__(self, service_manager: 'ServiceManager'):
+                def __init__(self, service_manager: 'ServiceManager', logger=None):
                     self._service_manager = service_manager
                     self._service_proxies = {}  # 缓存ServiceCallProxy对象
+                    self.logger = logger if logger is not None else logging.getLogger(__name__)
                     
                 def __getitem__(self, service_name: str):
                     if service_name not in self._service_proxies:
                         self._service_proxies[service_name] = ServiceCallProxy(
-                            self._service_manager, service_name, async_mode=False
+                            self._service_manager, service_name, logger=self.logger
                         )
                     return self._service_proxies[service_name]
             
-            self._call_service_proxy = ServiceProxy(self.ctx.service_manager)
+            self._call_service_proxy = ServiceProxy(self.ctx.service_manager, logger=self.logger)
         
         return self._call_service_proxy
     
@@ -87,19 +88,20 @@ class BaseFunction(ABC):
         # 懒加载缓存机制
         if not hasattr(self, '_call_service_async_proxy') or self._call_service_async_proxy is None:
             class AsyncServiceProxy:
-                def __init__(self, service_manager: 'ServiceManager'):
+                def __init__(self, service_manager: 'ServiceManager', logger=None):
                     self._service_manager = service_manager
                     self._async_service_proxies = {}  # 缓存ServiceCallProxy对象
+                    self.logger = logger if logger is not None else logging.getLogger(__name__)
                     
                 def __getitem__(self, service_name: str):
                     if service_name not in self._async_service_proxies:
                         from sage.runtime.service.service_caller import ServiceCallProxy
                         self._async_service_proxies[service_name] = ServiceCallProxy(
-                            self._service_manager, service_name, async_mode=True
+                            self._service_manager, service_name, logger=self.logger
                         )
                     return self._async_service_proxies[service_name]
             
-            self._call_service_async_proxy = AsyncServiceProxy(self.ctx.service_manager)
+            self._call_service_async_proxy = AsyncServiceProxy(self.ctx.service_manager, logger=self.logger)
         
         return self._call_service_async_proxy
 

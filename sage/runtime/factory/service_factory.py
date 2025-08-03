@@ -2,7 +2,7 @@ from typing import Type, Any, Tuple, TYPE_CHECKING
 from sage.jobmanager.utils.name_server import get_name
 
 if TYPE_CHECKING:
-    from sage.runtime.runtime_context import RuntimeContext
+    from sage.runtime.service_context import ServiceContext
 
 
 class ServiceFactory:
@@ -35,12 +35,12 @@ class ServiceFactory:
         self.service_args = service_args
         self.service_kwargs = service_kwargs or {}
     
-    def create_service(self, ctx: 'RuntimeContext' = None) -> Any:
+    def create_service(self, ctx: 'ServiceContext' = None) -> Any:
         """
         创建服务实例
         
         Args:
-            ctx: 运行时上下文
+            ctx: 服务运行时上下文
             
         Returns:
             创建的服务实例

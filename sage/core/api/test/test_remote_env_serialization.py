@@ -61,10 +61,11 @@ def test_remote_environment_serialization():
         print(f"   Config: {getattr(deserialized_env, 'config', 'N/A')}")
     except Exception as e:
         print(f"   Error during deserialization: {e}")
-        return False
+        assert False, f"Deserialization failed: {e}"
     
     print("\n✅ 所有序列化测试通过!")
-    return True
+    # Assert success instead of returning True
+    assert deserialized_env is not None
 
 def test_client_methods():
     """测试JobManagerClient的方法（不实际连接）"""
@@ -82,7 +83,10 @@ def test_client_methods():
         print(f"  - {method}")
     
     print("\n✅ Client测试通过!")
-    return True
+    # Assert success instead of returning True
+    assert client is not None
+    assert hasattr(client, 'host')
+    assert hasattr(client, 'port')
 
 def test_remote_environment_methods():
     """测试RemoteEnvironment的新方法（不实际连接）"""
@@ -106,7 +110,9 @@ def test_remote_environment_methods():
     print(f"Job status: {status}")
     
     print("\n✅ RemoteEnvironment方法测试通过!")
-    return True
+    # Assert success instead of returning True
+    assert remote_env is not None
+    assert client is not None
 
 if __name__ == "__main__":
     try:

@@ -4,11 +4,11 @@ import threading
 from typing import Any, Union, Tuple, TYPE_CHECKING, Dict, Optional
 from ray.util.queue import Queue as RayQueue
 from sage.runtime.task.base_task import BaseTask
-from sage.runtime.router.packet import Packet
+from sage.runtime.communication.router.packet import Packet
 from sage.utils.queue_adapter import create_queue
 if TYPE_CHECKING:
     from sage.runtime.factory.operator_factory import OperatorFactory
-    from sage.runtime.runtime_context import RuntimeContext
+    from sage.runtime.task_context import TaskContext
 
 
 
@@ -20,7 +20,7 @@ class RayTask(BaseTask):
     """
     
     def __init__(self,
-                 runtime_context: 'RuntimeContext', 
+                 runtime_context: 'TaskContext', 
                  operator_factory: 'OperatorFactory') -> None:
         
         # 调用父类初始化

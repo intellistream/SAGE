@@ -4,7 +4,7 @@ from sage.jobmanager.utils.name_server import get_name
 if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator
     from sage.runtime.factory.function_factory import FunctionFactory
-    from sage.runtime.runtime_context import RuntimeContext
+    from sage.runtime.task_context import TaskContext
 
 
 class OperatorFactory:
@@ -23,7 +23,7 @@ class OperatorFactory:
         self.basename = get_name(basename) or get_name(self.function_factory.function_class.__name__)
         self.remote = remote
 
-    def create_operator(self, runtime_context: 'RuntimeContext') -> 'BaseOperator':
+    def create_operator(self, runtime_context: 'TaskContext') -> 'BaseOperator':
             operator_class = self.operator_class
             operator_instance = operator_class(
                 self.function_factory,

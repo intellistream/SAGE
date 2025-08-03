@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-SAGE 智能测试运行器 (多核并行版)
+SAGE 智能测试运行器 (多核并行版 - 文件级)
 
 支持两种测试模式：
-1. 全量测试：并行运行 sage/ 和 frontend/ 目录下所有的 test/tests 文件夹
-2. 智能测试：根据 git diff，并行运行受影响文件的递归父目录中的 tests
+1. 全量测试：并行运行 sage/ 和 frontend/ 目录下所有的测试文件
+2. 智能测试：根据 git diff，并行运行受影响文件的递归父目录中的所有测试文件
 
 特性:
-- 多核并行执行测试，提升效率
-- 自动生成日志，路径与源码结构对应 (./test_logs/)
+- 文件级多核并行执行测试，提升效率和粒度
+- 为每个测试文件生成独立日志，路径与源码结构对应 (./test_logs/)
 - 实时进度显示和详细的最终报告
 - 支持GitHub Actions集成，输出markdown格式报告
 
 Usage:
-    python test_runner.py --all                    # 运行所有测试
+    python test_runner.py --all                    # 运行所有测试文件
     python test_runner.py --diff                   # 基于git diff运行智能测试
     python test_runner.py --diff --base main       # 指定基准分支
-    python test_runner.py --list                   # 列出所有测试目录
+    python test_runner.py --list                   # 列出所有测试目录和文件
     python test_runner.py --all --workers 4        # 指定4个worker并行运行
     python test_runner.py --diff --output-format markdown  # 输出markdown格式
     python test_runner.py --diff --pr-branch feature-branch --base-branch main  # PR模式
@@ -149,42 +149,29 @@ class SAGETestRunner:
         # 去重并排序
         return sorted(list(set(test_files)))
     
-    def run_tests_in_directory(self, test_dir: Path) -> Dict[str, any]:
-        """在单个进程中运行指定目录的测试，并记录日志"""
+    def run_single_test_file(self, test_file: Path) -> Dict[str, any]:
+        """在单个进程中运行单个测试文件，并记录日志"""
         start_time = time.time()
         
-        # 生成日志文件路径，保持与源码目录结构对应
-        rel_test_dir = test_dir.relative_to(self.project_root)
-        log_file_path = self.test_logs_dir / f"{str(rel_test_dir).replace('/', '_')}.log"
-        
-        # 查找测试文件
-        test_files = self.find_test_files_in_dir(test_dir)
+        # 生成日志文件路径，保持与源码文件结构对应
+        rel_test_file = test_file.relative_to(self.project_root)
+        log_file_path = self.test_logs_dir / f"{str(rel_test_file).replace('/', '_')}.log"
         
         result = {
-            "directory": str(test_dir),
+            "test_file": str(test_file),
             "log_file": str(log_file_path),
-            "test_files": [str(f) for f in test_files],
             "success": False,
             "duration": 0.0,
             "has_warnings": False,
             "return_code": 0
         }
         
-        if not test_files:
-            # 没有测试文件，记录并返回成功
-            with open(log_file_path, 'w', encoding='utf-8') as log_file:
-                log_file.write(f"No test files found in {test_dir}\n")
-            result["success"] = True
-            result["duration"] = time.time() - start_time
-            return result
-        
         try:
-            # 运行pytest
-            cmd = ["python", "-m", "pytest", str(test_dir), "-v", "--tb=short"]
-            
+            # 运行pytest针对单个文件
+            cmd = ["python", "-m", "pytest", str(test_file), "-v", "-s", "--maxfail=1", "--tb=short"]
+
             with open(log_file_path, 'w', encoding='utf-8') as log_file:
-                log_file.write(f"Running tests in: {test_dir}\n")
-                log_file.write(f"Test files: {[str(f.relative_to(self.project_root)) for f in test_files]}\n")
+                log_file.write(f"Running test file: {test_file}\n")
                 log_file.write(f"Command: {' '.join(cmd)}\n")
                 log_file.write("=" * 60 + "\n\n")
                 log_file.flush()
@@ -195,7 +182,7 @@ class SAGETestRunner:
                     stdout=subprocess.PIPE, 
                     stderr=subprocess.STDOUT,
                     text=True,
-                    timeout=100  # 5分钟超时
+                    timeout=180  # 2分钟超时
                 )
                 
                 # 将输出写入日志文件
@@ -220,9 +207,32 @@ class SAGETestRunner:
         
         return result
 
-    def _execute_test_suite(self, test_dirs: List[Path], title: str, workers: int, output_format: str = "text") -> bool:
+    def get_all_test_files(self) -> List[Path]:
+        """获取所有测试文件的列表"""
+        test_files = []
+        test_dirs = self.find_all_test_directories()
+        
+        for test_dir in test_dirs:
+            files_in_dir = self.find_test_files_in_dir(test_dir)
+            test_files.extend(files_in_dir)
+        
+        # 去重并排序
+        return sorted(list(set(test_files)))
+    
+    def get_test_files_from_directories(self, test_dirs: List[Path]) -> List[Path]:
+        """从指定的测试目录中获取所有测试文件"""
+        test_files = []
+        
+        for test_dir in test_dirs:
+            files_in_dir = self.find_test_files_in_dir(test_dir)
+            test_files.extend(files_in_dir)
+        
+        # 去重并排序
+        return sorted(list(set(test_files)))
+    
+    def _execute_test_suite(self, test_files: List[Path], title: str, workers: int, output_format: str = "text") -> bool:
         """并行执行测试套件的核心逻辑"""
-        if not test_dirs:
+        if not test_files:
             if output_format == "markdown":
                 print("## ✅ Test Results\n\nNo tests need to be run.")
             else:
@@ -230,51 +240,49 @@ class SAGETestRunner:
             return True
 
         if output_format == "text":
-            print(f"\n🎯 准备运行 {len(test_dirs)} 个测试目录 (最多使用 {workers} 个并行进程):")
-            for test_dir in test_dirs:
-                print(f"  - {test_dir.relative_to(self.project_root)}")
+            print(f"\n🎯 准备运行 {len(test_files)} 个测试文件 (最多使用 {workers} 个并行进程):")
+            for test_file in test_files:
+                print(f"  - {test_file.relative_to(self.project_root)}")
 
         all_results = []
         start_time = time.time()
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
-            future_to_dir = {executor.submit(self.run_tests_in_directory, test_dir): test_dir for test_dir in test_dirs}
+            future_to_file = {executor.submit(self.run_single_test_file, test_file): test_file for test_file in test_files}
             
             if output_format == "text":
-                with tqdm(total=len(test_dirs), desc="执行测试", unit="dir") as pbar:
-                    for future in concurrent.futures.as_completed(future_to_dir):
+                with tqdm(total=len(test_files), desc="执行测试", unit="file") as pbar:
+                    for future in concurrent.futures.as_completed(future_to_file):
                         result = future.result()
                         all_results.append(result)
                         pbar.update(1)
             else:
-                for future in concurrent.futures.as_completed(future_to_dir):
+                for future in concurrent.futures.as_completed(future_to_file):
                     result = future.result()
                     all_results.append(result)
         
         total_duration = time.time() - start_time
         
         # 统计结果
-        all_results.sort(key=lambda r: r["directory"])
+        all_results.sort(key=lambda r: r["test_file"])
         successful_tests = sum(1 for r in all_results if r["success"])
         failed_tests = len(all_results) - successful_tests
         warning_tests = sum(1 for r in all_results if r.get("has_warnings", False) and r["success"])
-        total_test_files = sum(len(r["test_files"]) for r in all_results)
         
         # 输出结果
         if output_format == "markdown":
-            self._print_markdown_summary(title, all_results, total_duration, total_test_files, successful_tests, failed_tests, warning_tests)
+            self._print_markdown_summary(title, all_results, total_duration, successful_tests, failed_tests, warning_tests)
         else:
-            self._print_text_summary(title, all_results, total_duration, total_test_files, successful_tests, failed_tests, warning_tests)
+            self._print_text_summary(title, all_results, total_duration, successful_tests, failed_tests, warning_tests)
         
         return failed_tests == 0
     
     def _print_text_summary(self, title: str, all_results: List[Dict], total_duration: float, 
-                           total_test_files: int, successful_tests: int, failed_tests: int, warning_tests: int):
+                           successful_tests: int, failed_tests: int, warning_tests: int):
         """打印文本格式的测试总结"""
         print(f"\n{'='*60}")
         print(f"📊 {title}结果总结:")
-        print(f"  📁 测试目录: {len(all_results)}")
-        print(f"  📄 测试文件: {total_test_files}")
+        print(f"  � 测试文件: {len(all_results)}")
         print(f"  ✅ 成功: {successful_tests}")
         print(f"  ❌ 失败: {failed_tests}")
         if warning_tests > 0:
@@ -282,29 +290,30 @@ class SAGETestRunner:
         print(f"  ⏱️ 总耗时: {total_duration:.2f}s")
         
         if failed_tests > 0:
-            print(f"\n💥 失败的测试目录 (详情请查看日志):")
+            print(f"\n💥 失败的测试文件 (详情请查看日志):")
             for result in all_results:
                 if not result["success"]:
                     status = "❌ 失败"
-                    print(f"  {status} - {result['directory']} (耗时: {result['duration']:.2f}s)")
-                    print(f"    └── 📄 日志: {result['log_file']}")
+                    rel_test_file = Path(result["test_file"]).relative_to(self.project_root)
+                    print(f"  {status} - {rel_test_file} (耗时: {result['duration']:.2f}s)")
+                    print(f"    └── 📄 日志: {Path(result['log_file']).relative_to(self.project_root)}")
         
         if warning_tests > 0:
-            print(f"\n⚠️ 有警告的测试目录:")
+            print(f"\n⚠️ 有警告的测试文件:")
             for result in all_results:
                 if result["success"] and result.get("has_warnings", False):
-                    print(f"  ⚠️ 警告 - {result['directory']} (耗时: {result['duration']:.2f}s)")
-                    print(f"    └── 📄 日志: {result['log_file']}")
+                    rel_test_file = Path(result["test_file"]).relative_to(self.project_root)
+                    print(f"  ⚠️ 警告 - {rel_test_file} (耗时: {result['duration']:.2f}s)")
+                    print(f"    └── 📄 日志: {Path(result['log_file']).relative_to(self.project_root)}")
     
     def _print_markdown_summary(self, title: str, all_results: List[Dict], total_duration: float,
-                               total_test_files: int, successful_tests: int, failed_tests: int, warning_tests: int):
+                               successful_tests: int, failed_tests: int, warning_tests: int):
         """打印Markdown格式的测试总结"""
         print(f"## 📊 {title}结果总结\n")
         
         # 基本统计
         print("### 📈 统计信息")
-        print(f"- **测试目录**: {len(all_results)}")
-        print(f"- **测试文件**: {total_test_files}")
+        print(f"- **测试文件**: {len(all_results)}")
         print(f"- **成功**: {successful_tests}")
         print(f"- **失败**: {failed_tests}")
         if warning_tests > 0:
@@ -314,8 +323,8 @@ class SAGETestRunner:
         
         # 详细结果表格
         print("### 📋 详细结果")
-        print("| 测试目录 | 状态 | 耗时(s) | 测试文件数 | 日志文件 |")
-        print("|----------|------|---------|------------|----------|")
+        print("| 测试文件 | 状态 | 耗时(s) | 日志文件 |")
+        print("|----------|------|---------|----------|")
         
         for result in all_results:
             if not result["success"]:
@@ -325,9 +334,9 @@ class SAGETestRunner:
             else:
                 status = "✅ 成功"
             
-            rel_dir = Path(result["directory"]).relative_to(self.project_root)
+            rel_file = Path(result["test_file"]).relative_to(self.project_root)
             rel_log = Path(result["log_file"]).relative_to(self.project_root)
-            print(f"| `{rel_dir}` | {status} | {result['duration']:.2f} | {len(result['test_files'])} | `{rel_log}` |")
+            print(f"| `{rel_file}` | {status} | {result['duration']:.2f} | `{rel_log}` |")
         
         print()
         
@@ -336,9 +345,9 @@ class SAGETestRunner:
             print("### ❌ 失败详情")
             for result in all_results:
                 if not result["success"]:
-                    rel_dir = Path(result["directory"]).relative_to(self.project_root)
+                    rel_file = Path(result["test_file"]).relative_to(self.project_root)
                     rel_log = Path(result["log_file"]).relative_to(self.project_root)
-                    print(f"- **{rel_dir}**: 测试失败 (耗时: {result['duration']:.2f}s)")
+                    print(f"- **{rel_file}**: 测试失败 (耗时: {result['duration']:.2f}s)")
                     print(f"  - 日志文件: `{rel_log}`")
             print()
         
@@ -347,9 +356,9 @@ class SAGETestRunner:
             print("### ⚠️ 警告详情")
             for result in all_results:
                 if result["success"] and result.get("has_warnings", False):
-                    rel_dir = Path(result["directory"]).relative_to(self.project_root)
+                    rel_file = Path(result["test_file"]).relative_to(self.project_root)
                     rel_log = Path(result["log_file"]).relative_to(self.project_root)
-                    print(f"- **{rel_dir}**: 测试通过但有警告 (耗时: {result['duration']:.2f}s)")
+                    print(f"- **{rel_file}**: 测试通过但有警告 (耗时: {result['duration']:.2f}s)")
                     print(f"  - 日志文件: `{rel_log}`")
             print()
         
@@ -375,19 +384,18 @@ class SAGETestRunner:
             print("\n### 📝 已测试的文件")
             with open("recommended_tests.txt", "w") as f:
                 for result in all_results:
-                    for test_file in result["test_files"]:
-                        rel_test_file = Path(test_file).relative_to(self.project_root)
-                        f.write(f"{rel_test_file}\n")
-                        print(f"- `{rel_test_file}`")
+                    rel_test_file = Path(result["test_file"]).relative_to(self.project_root)
+                    f.write(f"{rel_test_file}\n")
+                    print(f"- `{rel_test_file}`")
             print()
             print("测试文件列表已保存到 `recommended_tests.txt`")
 
     def run_all_tests(self, workers: int, output_format: str = "text") -> bool:
-        """运行所有测试目录中的测试"""
+        """运行所有测试文件中的测试"""
         if output_format == "text":
             print("🚀 运行全量测试...")
-        test_dirs = self.find_all_test_directories()
-        return self._execute_test_suite(test_dirs, "全量测试", workers, output_format)
+        test_files = self.get_all_test_files()
+        return self._execute_test_suite(test_files, "全量测试", workers, output_format)
     
     def run_smart_tests(self, base_branch: str, workers: int, output_format: str = "text") -> bool:
         """基于git diff运行智能测试"""
@@ -437,22 +445,31 @@ class SAGETestRunner:
                 print()
             else:
                 print("没有找到受影响的测试目录。")
+        
+        # 从受影响的测试目录中获取所有测试文件
+        test_files = self.get_test_files_from_directories(list(affected_test_dirs))
                 
-        return self._execute_test_suite(list(affected_test_dirs), "智能测试", workers, output_format)
+        return self._execute_test_suite(test_files, "智能测试", workers, output_format)
     
     def list_test_directories(self):
-        """列出所有测试目录"""
-        print("📋 所有测试目录:")
+        """列出所有测试目录和测试文件"""
+        print("📋 所有测试目录和文件:")
         test_dirs = self.find_all_test_directories()
         
         if not test_dirs:
             print("❌ 没有找到任何测试目录")
             return
         
+        total_test_files = 0
         print(f"\n找到 {len(test_dirs)} 个测试目录:")
         for test_dir in test_dirs:
             test_files = self.find_test_files_in_dir(test_dir)
-            print(f"  - {test_dir.relative_to(self.project_root)} ({len(test_files)} 个测试文件)")
+            total_test_files += len(test_files)
+            print(f"  📁 {test_dir.relative_to(self.project_root)} ({len(test_files)} 个测试文件)")
+            for test_file in test_files:
+                print(f"    📄 {test_file.relative_to(self.project_root)}")
+        
+        print(f"\n总计: {total_test_files} 个测试文件将会并行执行")
 
     def _analyze_pytest_output(self, return_code: int, output: str) -> tuple[bool, bool]:
         """
@@ -514,14 +531,14 @@ class SAGETestRunner:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="SAGE 智能测试运行器 (多核并行版)",
+        description="SAGE 智能测试运行器 (多核并行版 - 文件级)",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--all", action="store_true", help="运行所有测试目录中的测试")
+    group.add_argument("--all", action="store_true", help="运行所有测试文件中的测试")
     group.add_argument("--diff", action="store_true", help="基于git diff运行智能测试")
-    group.add_argument("--list", action="store_true", help="列出所有测试目录")
+    group.add_argument("--list", action="store_true", help="列出所有测试目录和文件")
     
     parser.add_argument("--base", default="HEAD~1", help="git diff的基准分支 (默认: HEAD~1)")
     parser.add_argument("--base-branch", help="PR基准分支 (用于GitHub Actions)")

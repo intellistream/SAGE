@@ -13,7 +13,6 @@ from sage.lib.rag.generator import OpenAIGenerator
 from sage.lib.rag.promptor import QAPromptor
 from sage.lib.rag.retriever import DenseRetriever
 from sage.utils.config_loader import load_config
-from sage.utils.logging_utils import configure_logging
 
 class SafeBiologyRetriever(MapFunction):
     """带超时保护的生物学知识检索器"""
@@ -131,7 +130,6 @@ def pipeline_run(config):
 
 
 if __name__ == '__main__':
-    configure_logging(level=logging.INFO)
     # 加载配置并初始化日志
     config = load_config('config_ray.yaml')
     # load_dotenv(override=False)

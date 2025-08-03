@@ -26,7 +26,7 @@ def test_config_info_no_file():
     # The config command shows default configuration even when no file exists
     result = runner.invoke(app, ["config"])
     assert result.exit_code == 0
-    assert "Current SAGE Configuration" in result.stdout
+    assert "SAGE 配置信息" in result.stdout
 
 def test_main_help():
     """Test the main help output."""
@@ -53,7 +53,7 @@ def test_worker_subcommand_help():
     """Test worker subcommand help."""
     result = runner.invoke(app, ["worker", "--help"])
     assert result.exit_code == 0
-    assert "Worker管理" in result.stdout
+    assert "Worker节点管理" in result.stdout
 
 @mock.patch('tempfile.NamedTemporaryFile')
 @mock.patch('os.path.expanduser')
@@ -70,7 +70,7 @@ def test_config_with_existing_config(mock_load_config, mock_expanduser, mock_tem
     # Run the config command
     result = runner.invoke(app, ["config"])
     assert result.exit_code == 0
-    assert "Current SAGE Configuration" in result.stdout
+    assert "SAGE 配置信息" in result.stdout
 
 def test_main_script_execution():
     """Test running the CLI as a script."""

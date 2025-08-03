@@ -1,7 +1,7 @@
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from dotenv import load_dotenv
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.function.batch_function import BatchFunction
 from sage.core.function.map_function import MapFunction

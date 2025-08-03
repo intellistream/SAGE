@@ -9,16 +9,18 @@ def ensure_ray_initialized():
     确保Ray已经初始化，如果未初始化则进行初始化。
     """
     if not ray.is_initialized():
-        # # 获取当前脚本所在目录
-        # project_root = Path(__file__).parent.parent
-        # ray_logs_dir = project_root / "logs" / "ray"
-
-        # # 确保日志目录存在
-        # os.makedirs(ray_logs_dir, exist_ok=True)
-        
-        # 初始化Ray
-        ray.init(address="auto")
-        print(f"Ray initialized with logs in /var/lib/ray_shared")
+        try:
+            # 在测试环境中，先尝试连接现有的Ray集群
+            ray.init(address="auto", ignore_reinit_error=True)
+            print(f"Ray initialized with existing cluster")
+        except Exception:
+            try:
+                # 如果连接失败，启动本地Ray实例
+                ray.init(ignore_reinit_error=True)
+                print(f"Ray initialized locally")
+            except Exception as e:
+                print(f"Failed to initialize Ray: {e}")
+                raise
     else:
         print("Ray is already initialized.")
 

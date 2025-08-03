@@ -1,8 +1,8 @@
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
 from sage.core.operator.base_operator import BaseOperator
-from sage.runtime.router.packet import Packet
+from sage.runtime.communication.router.packet import Packet
 if TYPE_CHECKING:
-    from sage.runtime.router.connection import Connection
+    from sage.runtime.communication.router.connection import Connection
 
 class KeyByOperator(BaseOperator):
     """

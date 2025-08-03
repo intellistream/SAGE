@@ -5,7 +5,7 @@ import json
 import shutil
 from typing import Any, Dict, List, Optional, Union
 
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 from sage.service.memory.utils.path_utils import get_default_data_dir
 from sage.service.memory.memory_collection.base_collection import BaseMemoryCollection
 from sage.service.memory.memory_collection.graph_collection import GraphMemoryCollection

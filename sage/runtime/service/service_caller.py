@@ -7,6 +7,7 @@ import logging
 import time
 import threading
 import uuid
+import queue
 from concurrent.futures import ThreadPoolExecutor, Future
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, TYPE_CHECKING
@@ -21,6 +22,7 @@ class ServiceResponse:
     success: bool
     result: Any = None
     error: str = None
+    request_id: str = None
 
 
 class ServiceManager:
@@ -29,16 +31,42 @@ class ServiceManager:
     负责所有服务调用的请求/响应匹配和管理
     """
     
-    def __init__(self, env: 'BaseEnvironment'):
-        self.env = env
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, context, logger=None):
+        # 支持传入TaskContext或BaseEnvironment
+        if hasattr(context, 'env_name'):
+            # 这是TaskContext
+            self.context = context
+            self.env = None
+        else:
+            # 这是BaseEnvironment
+            self.env = context
+            self.context = None
+            
+        # 使用注入的logger或默认logger
+        if logger is not None:
+            self.logger = logger
+        elif self.context is not None and hasattr(self.context, 'logger'):
+            self.logger = self.context.logger
+        else:
+            self.logger = logging.getLogger(__name__)
+            
+        self.logger.debug(f"ServiceManager initialized for context: {getattr(context, 'name', 'unknown')}")
         
         # 服务队列缓存
-        self._service_queues: Dict[str, SageQueue] = {}
+        self._service_queues: Dict[str, Any] = {}
         
-        # 响应队列
-        self._response_queue_name = f"service_responses_{uuid.uuid4().hex[:8]}"
-        self._response_queue: Optional[SageQueue] = None
+        # 响应队列 - 使用TaskContext中的响应队列
+        self._response_queue: Optional[Any] = None
+        if self.context is not None:
+            # 从TaskContext获取响应队列名称
+            if hasattr(self.context, 'response_qd') and self.context.response_qd:
+                self._response_queue_name = self.context.response_qd.queue_id
+            else:
+                # 如果没有响应队列描述符，创建一个唯一名称
+                self._response_queue_name = f"service_responses_{uuid.uuid4().hex[:8]}"
+        else:
+            # 兼容性处理
+            self._response_queue_name = f"service_responses_{uuid.uuid4().hex[:8]}"
         
         # 请求结果管理
         self._result_lock = threading.RLock()
@@ -60,16 +88,34 @@ class ServiceManager:
         self._listener_thread.start()
     
     def _get_service_queue(self, service_name: str):
-        """获取服务队列"""
-        if service_name not in self._service_queues:
-            queue_name = f"service_request_{service_name}"
-            self._service_queues[service_name] = create_queue(name=queue_name)
-        return self._service_queues[service_name]
+        """从TaskContext获取服务队列"""
+        if self.context is not None:
+            # 从TaskContext的服务队列描述符获取队列
+            if hasattr(self.context, 'service_qds') and service_name in self.context.service_qds:
+                return self.context.service_qds[service_name].queue_instance
+            else:
+                self.logger.error(f"Service queue descriptor not found for service: {service_name}")
+                raise RuntimeError(f"Service queue not available for service: {service_name}")
+        else:
+            # 如果没有TaskContext，则直接创建队列（兼容性处理）
+            if service_name not in self._service_queues:
+                queue_name = f"service_request_{service_name}"
+                self._service_queues[service_name] = create_queue(name=queue_name)
+            return self._service_queues[service_name]
     
     def _get_response_queue(self):
-        """获取响应队列"""
+        """从TaskContext获取响应队列"""
         if self._response_queue is None:
-            self._response_queue = create_queue(name=self._response_queue_name)
+            if self.context is not None:
+                # 从TaskContext的服务响应队列描述符获取队列
+                if hasattr(self.context, 'response_qd') and self.context.response_qd:
+                    self._response_queue = self.context.response_qd.queue_instance
+                else:
+                    self.logger.error("Service response queue descriptor not found")
+                    raise RuntimeError("Service response queue not available")
+            else:
+                # 如果没有TaskContext，则直接创建队列（兼容性处理）
+                self._response_queue = create_queue(name=self._response_queue_name)
         return self._response_queue
     
     def call_sync(
@@ -77,7 +123,7 @@ class ServiceManager:
         service_name: str, 
         method_name: str, 
         *args, 
-        timeout: Optional[float] = 2.0, # 这里的timeout只容忍本地
+        timeout: Optional[float] = 10.0, # 增加默认超时时间到10秒
         **kwargs
     ) -> Any:
         """
@@ -98,6 +144,10 @@ class ServiceManager:
             RuntimeError: 服务调用失败
         """
         request_id = str(uuid.uuid4())
+        call_start_time = time.time()
+        
+        self.logger.info(f"[SERVICE_CALL] Starting sync call: {service_name}.{method_name} (request_id: {request_id})")
+        self.logger.debug(f"[SERVICE_CALL] Call args: {args}, kwargs: {kwargs}, timeout: {timeout}s")
         
         # 创建等待事件
         event = threading.Event()
@@ -105,7 +155,8 @@ class ServiceManager:
             self._pending_requests[request_id] = event
         
         try:
-            # 构造请求数据
+            # 构造请求数据 - 传递响应队列实例而不是名称
+            response_queue = self._get_response_queue()
             request_data = {
                 'request_id': request_id,
                 'service_name': service_name,
@@ -114,29 +165,48 @@ class ServiceManager:
                 'kwargs': kwargs,
                 'timeout': timeout,
                 'timestamp': time.time(),
-                'response_queue': self._response_queue_name
+                'response_queue': response_queue,  # 传递队列实例而不是名称
+                'response_queue_name': self._response_queue_name  # 仍然保留名称用于日志
             }
             
             # 发送请求到服务队列
             service_queue = self._get_service_queue(service_name)
-            service_queue.put(request_data, timeout=5.0)
             
-            self.logger.debug(f"Sent sync request {request_id}: {service_name}.{method_name}")
+            self.logger.debug(f"[SERVICE_CALL] Sending request to service queue: {service_name}")
+            queue_send_start = time.time()
+            service_queue.put(request_data, timeout=5.0)
+            queue_send_time = time.time() - queue_send_start
+            
+            self.logger.debug(f"[SERVICE_CALL] Request sent successfully in {queue_send_time:.3f}s (request_id: {request_id})")
             
             # 等待结果
+            wait_start_time = time.time()
+            self.logger.debug(f"[SERVICE_CALL] Waiting for response (timeout: {timeout}s)")
+            
             if not event.wait(timeout=timeout):
+                wait_time = time.time() - wait_start_time
+                self.logger.error(f"[SERVICE_CALL] TIMEOUT after {wait_time:.3f}s: {service_name}.{method_name} (request_id: {request_id})")
                 raise TimeoutError(f"Service call timeout after {timeout}s: {service_name}.{method_name}")
+            
+            wait_time = time.time() - wait_start_time
+            self.logger.debug(f"[SERVICE_CALL] Response received after {wait_time:.3f}s")
             
             # 获取结果
             with self._result_lock:
                 if request_id not in self._request_results:
+                    self.logger.error(f"[SERVICE_CALL] Result not found for request_id: {request_id}")
                     raise RuntimeError(f"Service call result not found: {request_id}")
                 
                 response = self._request_results.pop(request_id)
                 
+                total_time = time.time() - call_start_time
+                
                 if response.success:
+                    self.logger.info(f"[SERVICE_CALL] SUCCESS: {service_name}.{method_name} completed in {total_time:.3f}s (request_id: {request_id})")
+                    self.logger.debug(f"[SERVICE_CALL] Response result: {response.result}")
                     return response.result
                 else:
+                    self.logger.error(f"[SERVICE_CALL] FAILURE: {service_name}.{method_name} failed in {total_time:.3f}s - {response.error} (request_id: {request_id})")
                     raise RuntimeError(f"Service call failed: {response.error}")
                     
         except Exception as e:
@@ -144,6 +214,9 @@ class ServiceManager:
             with self._result_lock:
                 self._pending_requests.pop(request_id, None)  
                 self._request_results.pop(request_id, None)
+            
+            total_time = time.time() - call_start_time
+            self.logger.error(f"[SERVICE_CALL] EXCEPTION: {service_name}.{method_name} failed in {total_time:.3f}s - {str(e)} (request_id: {request_id})")
             raise
     
     def call_async(
@@ -194,43 +267,86 @@ class ServiceManager:
                 # 从响应队列获取响应（阻塞等待1秒）
                 try:
                     response_data = response_queue.get(timeout=1.0)
+                    self.logger.debug(f"[SERVICE_RESPONSE] Received raw response data: {response_data}")
                     
-                    # 构造ServiceResponse对象
-                    response = ServiceResponse(
-                        success=response_data.get('success', True),
-                        result=response_data.get('result'),
-                        error=response_data.get('error')
-                    )
+                    if response_data is None:
+                        self.logger.debug("[SERVICE_RESPONSE] Received None from queue, continuing")
+                        continue
                     
-                    request_id = response_data['request_id']
-                    self._handle_response(request_id, response)
+                    # 处理响应数据
+                    self._handle_response(response_data)
                     
-                except Exception as e:
-                    # 如果是超时或队列关闭，不记录错误
-                    if "timed out" not in str(e).lower() and "closed" not in str(e).lower():
-                        self.logger.error(f"Error receiving response: {e}")
+                except Exception as queue_error:
+                    # 检查具体的队列异常类型
+                    error_type = type(queue_error).__name__
+                    
+                    # 处理标准Python队列超时异常（queue.Empty）
+                    if isinstance(queue_error, queue.Empty):
+                        # 这是正常的超时，继续循环而不记录任何消息
+                        continue
+                    
+                    # 处理其他可能的超时异常
+                    error_str = str(queue_error).lower()
+                    if error_type == 'Empty' or 'empty' in error_type.lower():
+                        # 其他类型的Empty异常
+                        continue
+                    elif "timed out" in error_str or "timeout" in error_str:
+                        # 其他类型的超时异常
+                        continue
+                    elif "closed" in error_str or "queue is closed" in error_str:
+                        # 队列关闭
+                        self.logger.debug(f"Queue operation result: {queue_error}")
+                        continue
+                    else:
+                        # 其他未知的队列异常
+                        if error_str.strip():  # 如果错误消息不为空
+                            self.logger.warning(f"Queue operation issue ({error_type}): {queue_error}")
+                        else:  # 如果错误消息为空，提供更多上下文
+                            self.logger.debug(f"Queue operation ({error_type}): Empty message from queue.get() - likely timeout")
+                        continue  # 继续运行，不要因为队列问题停止
                 
             except Exception as e:
                 # 检查是否是队列关闭导致的错误
-                if "closed" in str(e).lower() or "Queue is closed" in str(e):
+                error_str = str(e).lower()
+                if "closed" in error_str or "queue is closed" in error_str:
                     self.logger.debug("Response queue closed, stopping listener")
                     break
                 else:
                     self.logger.error(f"Error in response listener: {e}")
+                    self.logger.debug(f"Listener error details: {type(e).__name__}: {e}")
                     time.sleep(1.0)
     
-    def _handle_response(self, request_id: str, response: ServiceResponse):
-        """处理接收到的响应"""
+    def _handle_response(self, response_data: Dict[str, Any]) -> None:
+        """处理服务响应"""
+        request_id = response_data.get('request_id')
+        if not request_id:
+            self.logger.warning("[SERVICE_RESPONSE] Received response without request_id")
+            return
+        
+        self.logger.debug(f"[SERVICE_RESPONSE] Received response for request_id: {request_id}")
+        
         with self._result_lock:
-            # 保存结果
-            self._request_results[request_id] = response
+            if request_id not in self._pending_requests:
+                self.logger.warning(f"[SERVICE_RESPONSE] No pending request found for request_id: {request_id}")
+                return
             
-            # 通知等待的线程
-            event = self._pending_requests.get(request_id)
+            # 存储结果
+            self._request_results[request_id] = ServiceResponse(
+                request_id=request_id,
+                success=response_data.get('success', False),
+                result=response_data.get('result'),
+                error=response_data.get('error')
+            )
+            
+            self.logger.debug(f"[SERVICE_RESPONSE] Stored result for request_id: {request_id}, success: {response_data.get('success', False)}")
+            
+            # 唤醒等待的线程
+            event = self._pending_requests.pop(request_id, None)
             if event:
                 event.set()
-        
-        self.logger.debug(f"Response handled for request {request_id}")
+                self.logger.debug(f"[SERVICE_RESPONSE] Notified waiting thread for request_id: {request_id}")
+            else:
+                self.logger.warning(f"[SERVICE_RESPONSE] No waiting event found for request_id: {request_id}")
     
     def shutdown(self):
         """关闭服务管理器"""
@@ -273,37 +389,42 @@ class ServiceManager:
 
 
 class ServiceCallProxy:
-    """统一的服务调用代理类，支持同步和异步调用"""
+    """服务调用代理，提供语法糖支持"""
     
-    def __init__(self, service_manager: ServiceManager, service_name: str, async_mode: bool = False):
+    def __init__(self, service_manager: 'ServiceManager', service_name: str, logger=None):
         self._service_manager = service_manager
         self._service_name = service_name
-        self._async_mode = async_mode
-    
-    @property
-    def service_name(self) -> str:
-        """获取服务名称"""
-        return self._service_name
+        self.logger = logger if logger is not None else logging.getLogger(f"{__name__}.{service_name}")
+        
+        self.logger.debug(f"[PROXY] Created ServiceCallProxy for service: {service_name}")
     
     def __getattr__(self, method_name: str):
-        """
-        动态创建方法调用
+        """获取服务方法的调用代理"""
+        self.logger.debug(f"[PROXY] Creating method proxy for {self._service_name}.{method_name}")
         
-        Args:
-            method_name: 要调用的服务方法名
+        def method_call(*args, timeout: Optional[float] = 2.0, **kwargs):
+            proxy_call_start = time.time()
+            self.logger.info(f"[PROXY] Calling {self._service_name}.{method_name} with args={args}, kwargs={kwargs}, timeout={timeout}s")
             
-        Returns:
-            如果是异步模式，返回Future对象
-            如果是同步模式，返回方法执行结果
-        """
-        def _call(*args, timeout: Optional[float] = 30.0, **kwargs):
-            if self._async_mode:
-                return self._service_manager.call_async(
-                    self._service_name, method_name, *args, timeout=timeout, **kwargs
+            try:
+                result = self._service_manager.call_sync(
+                    self._service_name, 
+                    method_name, 
+                    *args, 
+                    timeout=timeout, 
+                    **kwargs
                 )
-            else:
-                return self._service_manager.call_sync(
-                    self._service_name, method_name, *args, timeout=timeout, **kwargs
-                )
+                
+                proxy_call_time = time.time() - proxy_call_start
+                self.logger.info(f"[PROXY] SUCCESS: {self._service_name}.{method_name} completed in {proxy_call_time:.3f}s")
+                self.logger.debug(f"[PROXY] Method result: {result}")
+                return result
+                
+            except Exception as e:
+                proxy_call_time = time.time() - proxy_call_start
+                self.logger.error(f"[PROXY] FAILED: {self._service_name}.{method_name} failed in {proxy_call_time:.3f}s - {str(e)}")
+                raise
         
-        return _call
+        # 设置方法名称用于调试
+        method_call.__name__ = f"{self._service_name}.{method_name}"
+        return method_call

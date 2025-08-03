@@ -15,18 +15,36 @@ class TestWorkerManager:
         """Setup test runner"""
         self.runner = CliRunner()
     
-    @patch('sage.cli.worker_manager.subprocess.run')
     @patch('sage.cli.worker_manager.get_config_manager')
-    def test_execute_remote_command_success(self, mock_get_config_manager, mock_subprocess):
+    @patch('sage.cli.worker_manager.subprocess.run')
+    @patch('sage.cli.worker_manager.tempfile.NamedTemporaryFile')
+    @patch('sage.cli.worker_manager.os.path.expanduser')
+    @patch('sage.cli.worker_manager.os.unlink')
+    @patch('builtins.open')
+    def test_execute_remote_command_success(self, mock_open, mock_unlink, mock_expanduser, mock_tempfile, mock_subprocess, mock_get_config_manager):
         """Test successful remote command execution"""
         mock_config_manager = MagicMock()
         mock_config_manager.get_ssh_config.return_value = {
             'user': 'testuser',
             'key_path': '~/.ssh/id_rsa',
-            'connect_timeout': 10
         }
         mock_get_config_manager.return_value = mock_config_manager
         
+        # Mock os.path.expanduser
+        mock_expanduser.return_value = '/home/testuser/.ssh/id_rsa'
+        
+        # Mock tempfile.NamedTemporaryFile
+        mock_temp_script = MagicMock()
+        mock_temp_script.name = '/tmp/test_script.sh'
+        mock_temp_script.__enter__.return_value = mock_temp_script
+        mock_temp_script.__exit__.return_value = None
+        mock_tempfile.return_value = mock_temp_script
+        
+        # Mock open for reading script file
+        mock_script_file = MagicMock()
+        mock_open.return_value.__enter__.return_value = mock_script_file
+        
+        # Mock subprocess.run
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = "Command executed successfully"
@@ -37,6 +55,8 @@ class TestWorkerManager:
         
         assert result is True
         mock_subprocess.assert_called_once()
+        mock_tempfile.assert_called_once()
+        mock_unlink.assert_called_once_with('/tmp/test_script.sh')
     
     @patch('sage.cli.worker_manager.execute_remote_command')
     @patch('sage.cli.worker_manager.get_config_manager')

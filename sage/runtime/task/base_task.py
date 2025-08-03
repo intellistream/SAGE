@@ -1,39 +1,38 @@
 from abc import ABC, abstractmethod
 from queue import Empty
-import threading, copy, time
+import threading, copy, time, os
 from typing import Any, TYPE_CHECKING, Union, Optional
-from sage.runtime.runtime_context import RuntimeContext
-from sage.runtime.router.packet import Packet
+from sage.runtime.task_context import TaskContext
+from sage.runtime.communication.router.packet import Packet
 from ray.util.queue import Empty
 
 from sage.utils.queue_adapter import create_queue
-from sage.runtime.router.router import BaseRouter
+from sage.runtime.communication.router.router import BaseRouter
 from sage.core.function.source_function import StopSignal
+from sage.utils.logger.custom_logger import CustomLogger
 if TYPE_CHECKING:
-    from sage.runtime.router.connection import Connection
     from sage.core.operator.base_operator import BaseOperator
     from sage.runtime.factory.operator_factory import OperatorFactory
 
 class BaseTask(ABC):
-    def __init__(self,runtime_context: 'RuntimeContext',operator_factory: 'OperatorFactory') -> None:
-        self.ctx = runtime_context
+    def __init__(self, ctx: 'TaskContext',operator_factory: 'OperatorFactory') -> None:
+        self.ctx = ctx
         
-        # 初始化task层的context属性，避免序列化问题
-        self.ctx.initialize_task_context()
+        # 使用从上下文传入的队列描述符，而不是直接创建队列
+        self.input_qd = self.ctx.input_qd
         
-        self.logger.info(f"🎯 Task: Creating input_buffer with name='{self.ctx.name}'")
-        self.input_buffer = create_queue(name=self.ctx.name)
-        if hasattr(self.input_buffer, 'logger'):
-            self.input_buffer.logger = self.ctx.logger
+        if self.input_qd:
+            self.logger.info(f"🎯 Task: Using queue descriptor for input buffer: {self.input_qd.queue_id}")
+        else:
+            self.logger.info(f"🎯 Task: No input queue (source/spout node)")
+        
         # === 线程控制 ===
         self._worker_thread: Optional[threading.Thread] = None
         self.is_running = False
-        # 使用ctx中的共享stop_event，不再自己维护
         # === 性能监控 ===
         self._processed_count = 0
         self._error_count = 0
-        self._last_activity_time = time.time()
-        self.router = BaseRouter(runtime_context)
+        self.router = BaseRouter(ctx)
         try:
             self.operator:BaseOperator = operator_factory.create_operator(self.ctx)
             self.operator.task = self
@@ -65,13 +64,7 @@ class BaseTask(ABC):
         
         self.logger.info(f"Task {self.name} started with worker thread")
 
-    def add_connection(self, connection: 'Connection'):
-        self.router.add_connection(connection)
-        self.logger.debug(f"Connection added to node '{self.name}': {connection}")
-
-    # def remove_connection(self, broadcast_index: int, parallel_index: int) -> bool:
-    #     return self.router.remove_connection(broadcast_index, parallel_index)
-
+    # 连接管理现在由TaskContext在构造时完成，不再需要动态添加连接
 
     def trigger(self, input_tag: str = None, packet:'Packet' = None) -> None:
         try:
@@ -95,7 +88,8 @@ class BaseTask(ABC):
         获取输入缓冲区
         :return: 输入缓冲区对象
         """
-        return self.input_buffer
+        # 通过描述符获取队列实例
+        return self.input_qd.queue_instance
 
     def _worker_loop(self) -> None:
         """
@@ -116,12 +110,8 @@ class BaseTask(ABC):
                     # For non-spout nodes, fetch input and process
                     # input_result = self.fetch_input()
                     try:
-                        self.logger.info(f"Task {self.name}: Attempting to get packet from input_buffer (timeout=5.0s)")
-                        data_packet = self.input_buffer.get(timeout=5.0)
-
-                        self.logger.info(f"Task {self.name}: Successfully got packet from input_buffer: {data_packet}")
+                        data_packet = self.input_qd.get(timeout=5.0)
                     except Exception as e:
-                        self.logger.error(f"Task {self.name}: No packet received from input_buffer (timeout/exception): {e}")
                         if self.delay > 0.002:
                             time.sleep(self.delay)
                         continue
@@ -193,11 +183,11 @@ class BaseTask(ABC):
             # if hasattr(self.router, 'cleanup'):
             #     self.router.cleanup()
             
-            # 清理输入缓冲区
-            if hasattr(self.input_buffer, 'cleanup'):
-                self.input_buffer.cleanup()
-            elif hasattr(self.input_buffer, 'close'):
-                self.input_buffer.close()
+            # 清理输入队列描述符
+            if self.input_qd and hasattr(self.input_qd, 'cleanup'):
+                self.input_qd.cleanup()
+            elif self.input_qd and hasattr(self.input_qd, 'close'):
+                self.input_qd.close()
             
             # 清理运行时上下文（包括service_manager）
             if hasattr(self.ctx, 'cleanup'):

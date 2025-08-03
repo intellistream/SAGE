@@ -9,7 +9,6 @@ from sage.lib.rag.generator import HFGenerator
 from sage.lib.rag.promptor import QAPromptor
 from sage.lib.rag.retriever import DenseRetriever
 from sage.utils.config_loader import load_config
-from sage.utils.logging_utils import configure_logging
 
 
 def pipeline_run(config: dict) -> None:
@@ -40,6 +39,5 @@ def pipeline_run(config: dict) -> None:
 
 
 if __name__ == '__main__':
-    configure_logging(level=logging.INFO)
     config = load_config("config_hf.yaml")
     pipeline_run(config)

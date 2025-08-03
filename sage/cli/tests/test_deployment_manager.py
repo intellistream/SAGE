@@ -24,7 +24,7 @@ class TestDeploymentManager:
         manager = DeploymentManager()
         
         assert manager.config_manager == mock_config_manager
-        assert manager.project_root.name == "SAGE"
+        assert manager.project_root.name == "api-rework"
     
     @patch('sage.cli.deployment_manager.get_config_manager')
     def test_create_deployment_package(self, mock_get_config_manager):

@@ -4,7 +4,7 @@ from sage.runtime.task.base_task import BaseTask
 from sage.utils.queue_adapter import create_queue
 if TYPE_CHECKING:
     from sage.runtime.factory.operator_factory import OperatorFactory
-    from sage.runtime.runtime_context import RuntimeContext
+    from sage.runtime.task_context import TaskContext
 
 
 class LocalTask(BaseTask):
@@ -14,7 +14,7 @@ class LocalTask(BaseTask):
     """
     
     def __init__(self,
-                 runtime_context: 'RuntimeContext', 
+                 runtime_context: 'TaskContext', 
                  operator_factory: 'OperatorFactory',
                  max_buffer_size: int = 30000,
                  queue_maxsize: int = 50000) -> None:

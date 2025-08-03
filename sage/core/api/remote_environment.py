@@ -4,6 +4,7 @@ import logging
 from typing import Optional, Dict, Any
 from sage.core.api.base_environment import BaseEnvironment
 from sage.jobmanager.jobmanager_client import JobManagerClient
+from sage.runtime.communication.queue.ray_queue_descriptor import RayQueueDescriptor
 from sage.utils.serialization.dill_serializer import trim_object_for_ray, serialize_object
 
 logger = logging.getLogger(__name__)
@@ -191,3 +192,10 @@ class RemoteEnvironment(BaseEnvironment):
 
     def __repr__(self) -> str:
         return f"RemoteEnvironment(name='{self.name}', host='{self.daemon_host}', port={self.daemon_port})"
+
+
+    def get_qd(self, name: str, maxsize: int = 0) -> RayQueueDescriptor:
+        return RayQueueDescriptor(
+            queue_id=name,
+            maxsize=maxsize if maxsize > 0 else 0  # Ray队列默认无限制
+        )

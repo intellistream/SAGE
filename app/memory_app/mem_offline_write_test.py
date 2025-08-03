@@ -2,7 +2,7 @@
 流处理RAG测试：使用流处理框架测试RAG知识库的写入和检索
 """
 import time
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 from sage.core.api.local_environment import LocalEnvironment
 from sage.service.memory.memory_service import MemoryService
 from sage.utils.embedding_methods.embedding_api import apply_embedding_model

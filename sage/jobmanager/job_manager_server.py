@@ -11,7 +11,7 @@ import signal
 import sys
 from uuid import UUID
 from sage.jobmanager.job_info import JobInfo
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 from sage.runtime.dispatcher import Dispatcher
 import threading
 from sage.utils.serialization.dill_serializer import deserialize_object

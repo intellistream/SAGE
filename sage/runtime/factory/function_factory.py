@@ -1,9 +1,9 @@
 from typing import Type, Any, Tuple,TYPE_CHECKING, Union
 from sage.core.function.base_function import BaseFunction
-from sage.utils.custom_logger import CustomLogger
+from sage.utils.logger.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from ray.actor import ActorHandle
-    from sage.runtime.runtime_context import RuntimeContext
+    from sage.runtime.task_context import TaskContext
     
 class FunctionFactory:
     # 由transformation初始化
@@ -17,12 +17,12 @@ class FunctionFactory:
         self.function_args = function_args
         self.function_kwargs = function_kwargs or {}
     
-    def create_function(self, name:str, ctx:'RuntimeContext') -> BaseFunction:
+    def create_function(self, name:str, ctx:'TaskContext') -> BaseFunction:
         """创建函数实例"""
         if CustomLogger.is_global_console_debug_enabled():
             print(self.function_args)
             print(self.function_kwargs)
-        # self.function_kwargs["ctx"] = 
+        # self.function_kwargs["ctx"] =
         function = self.function_class(
             *self.function_args, 
             **self.function_kwargs

@@ -13,61 +13,19 @@ import threading
 import os
 import logging
 import atexit
-import signal
 import getpass
+import threading
 from typing import Any, Optional, List, Dict
 from queue import Queue, Empty, Full
 from ctypes import Structure, c_uint64, c_uint32, c_char, POINTER, c_void_p, c_int, c_bool
 
-# 设置日志
+# 配置日志
 logger = logging.getLogger(__name__)
 
-# 全局队列注册表，用于自动清理
+# 全局队列注册表和锁
 _global_queue_registry = {}
 _registry_lock = threading.Lock()
-_cleanup_registered = False
 
-def _register_queue(queue_name: str, queue_obj):
-    """注册队列到全局注册表"""
-    global _cleanup_registered
-    with _registry_lock:
-        _global_queue_registry[queue_name] = queue_obj
-        # 只在第一次注册时设置清理器
-        if not _cleanup_registered:
-            _setup_cleanup_handlers()
-            _cleanup_registered = True
-
-def _unregister_queue(queue_name: str):
-    """从全局注册表移除队列"""
-    with _registry_lock:
-        _global_queue_registry.pop(queue_name, None)
-
-def _cleanup_all_queues():
-    """清理所有注册的队列"""
-    with _registry_lock:
-        for queue_name, queue_obj in list(_global_queue_registry.items()):
-            try:
-                if hasattr(queue_obj, 'close') and callable(queue_obj.close):
-                    if not getattr(queue_obj, '_closed', False):
-                        queue_obj.close()
-            except Exception:
-                # 忽略清理时的异常，避免阻塞进程退出
-                pass
-        _global_queue_registry.clear()
-
-def _signal_handler(signum, frame):
-    """信号处理器，用于优雅关闭"""
-    try:
-        _cleanup_all_queues()
-    except Exception:
-        pass  # 忽略异常，确保信号处理器不会阻塞
-    # 不要调用sys.exit()，让默认处理器处理信号
-
-def _setup_cleanup_handlers():
-    """设置清理处理器"""
-    atexit.register(_cleanup_all_queues)
-    signal.signal(signal.SIGTERM, _signal_handler)
-    signal.signal(signal.SIGINT, _signal_handler)
 
 def _get_user_prefix():
     """
@@ -96,15 +54,15 @@ def _get_user_prefix():
 def _get_namespaced_queue_name(name: str, namespace: Optional[str] = None) -> str:
     """
     获取带命名空间的队列名称
-    格式: {user_prefix}_{pid}_{namespace}_{name} 或 {user_prefix}_{pid}_{name}
+    格式: {user_prefix}_{namespace}_{name} 或 {user_prefix}_{name}
+    注意：移除了 PID 以支持跨进程共享
     """
     user_prefix = _get_user_prefix()
-    pid = os.getpid()
     
     if namespace:
-        return f"{user_prefix}_{pid}_{namespace}_{name}"
+        return f"{user_prefix}_{namespace}_{name}"
     else:
-        return f"{user_prefix}_{pid}_{name}"
+        return f"{user_prefix}_{name}"
 
 def _extract_queue_info(namespaced_name: str) -> tuple:
     """从带命名空间的名称中提取信息"""
@@ -269,8 +227,6 @@ class SageQueue:
         # 标记是否已关闭
         self._closed = False
         
-        # 注册到全局注册表
-        _register_queue(self.name, self)
     
     def _load_library(self) -> ctypes.CDLL:
         """加载C动态库"""
@@ -283,15 +239,23 @@ class SageQueue:
             os.path.join(current_dir, "ring_buffer.so"),
             os.path.join(current_dir, "libring_buffer.so"),
             
-            # 2. 安装后的包内文件
+            # 2. 父目录的构建目录（cmake构建）
+            os.path.join(current_dir, "..", "build", "ring_buffer.so"),
+            os.path.join(current_dir, "..", "build", "libring_buffer.so"),
+            
+            # 3. 父目录下的库文件（直接链接）
+            os.path.join(current_dir, "..", "ring_buffer.so"),
+            os.path.join(current_dir, "..", "libring_buffer.so"),
+            
+            # 4. 安装后的包内文件
             os.path.join(current_dir, "..", "..", "lib", "ring_buffer.so"),
             os.path.join(current_dir, "..", "..", "lib", "libring_buffer.so"),
             
-            # 3. 系统库路径
+            # 5. 系统库路径
             "ring_buffer.so",
             "libring_buffer.so",
             
-            # 4. 相对路径查找
+            # 6. 相对路径查找
             "./ring_buffer.so",
             "./libring_buffer.so"
         ]
@@ -402,8 +366,9 @@ Please ensure the C library is compiled. You can:
         self._lib.ring_buffer_close.argtypes = [POINTER(RingBufferStruct)]
         self._lib.ring_buffer_close.restype = None
         
-        self._lib.ring_buffer_destroy.argtypes = [ctypes.c_char_p]
-        self._lib.ring_buffer_destroy.restype = None
+        # 销毁函数（按名称销毁共享内存）
+        self._lib.ring_buffer_destroy_named.argtypes = [ctypes.c_char_p]
+        self._lib.ring_buffer_destroy_named.restype = None
         
         # 读写操作
         self._lib.ring_buffer_write.argtypes = [POINTER(RingBufferStruct), c_void_p, c_uint32]
@@ -663,7 +628,7 @@ Please ensure the C library is compiled. You can:
         """销毁队列（删除共享内存）"""
         if self.name:
             name_bytes = self.name.encode('utf-8')
-            self._lib.ring_buffer_destroy(name_bytes)
+            self._lib.ring_buffer_destroy_named(name_bytes)
             logger.info(f"Destroyed shared memory for queue: {self.name}")
     
     def get_shared_memory_info(self) -> Dict[str, Any]:

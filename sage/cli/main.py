@@ -14,6 +14,7 @@ from sage.cli.jobmanager_controller import app as jobmanager_app
 from sage.cli.worker_manager import app as worker_app
 from sage.cli.head_manager import app as head_app
 from sage.cli.cluster_manager import app as cluster_app
+from sage.cli.extensions import app as extensions_app
 
 # 创建主应用
 app = typer.Typer(
@@ -28,13 +29,14 @@ app.add_typer(deploy_app, name="deploy", help="🎯 系统部署 - 启动、停�
 app.add_typer(jobmanager_app, name="jobmanager", help="🛠️ JobManager管理 - 启动、停止、重启JobManager")
 app.add_typer(cluster_app, name="cluster", help="🏗️ 集群管理 - 统一管理Ray集群")
 app.add_typer(head_app, name="head", help="🏠 Head节点管理 - 管理Ray集群的Head节点")
-app.add_typer(worker_app, name="worker", help="👥 Worker管理 - 管理Ray集群的Worker节点")
+app.add_typer(worker_app, name="worker", help="👷 Worker节点管理 - 管理Ray集群的Worker节点")
+app.add_typer(extensions_app, name="extensions", help="🧩 扩展管理 - 安装和管理C++扩展")
 
 @app.command("version")
 def version():
     """显示版本信息"""
     print("🚀 SAGE - Stream Analysis and Graph Engine")
-    print("Version: 0.1.1")
+    print("Version: 0.1.2")
     print("Author: IntelliStream")
     print("Repository: https://github.com/intellistream/SAGE")
 
@@ -47,23 +49,25 @@ def config_info():
         config_manager = get_config_manager()
         config = config_manager.load_config()
         
-        print("📋 Current SAGE Configuration:")
-        print("=" * 50)
+        print("📋 SAGE 配置信息:")
+        print(f"配置文件: {config_manager.config_path}")
+        print(f"数据目录: {config.get('data_dir', '未设置')}")
+        print(f"日志级别: {config.get('log_level', '未设置')}")
+        print(f"工作目录: {config.get('work_dir', '未设置')}")
         
-        import yaml
-        print(yaml.dump(config, default_flow_style=False, allow_unicode=True))
+        if 'ray' in config:
+            ray_config = config['ray']
+            print(f"Ray地址: {ray_config.get('address', '未设置')}")
+            print(f"Ray端口: {ray_config.get('port', '未设置')}")
         
-    except FileNotFoundError:
-        print("❌ Config file not found. Creating default config...")
-        config_manager = get_config_manager()
-        config_manager.create_default_config()
-        print("✅ Default config created at ~/.sage/config.yaml")
-        print("💡 Please edit the config file to match your environment")
     except Exception as e:
-        print(f"❌ Failed to load config: {e}")
+        print(f"❌ 读取配置失败: {e}")
+        print("💡 运行 'sage init' 创建配置文件")
 
 @app.command("init")
-def init_config():
+def init_config(
+    force: bool = typer.Option(False, "--force", "-f", help="强制覆盖现有配置")
+):
     """初始化SAGE配置文件"""
     from .config_manager import get_config_manager
     
@@ -71,30 +75,68 @@ def init_config():
         config_manager = get_config_manager()
         
         if config_manager.config_path.exists():
-            print(f"⚠️  Configuration file already exists: {config_manager.config_path}")
-            confirm = typer.confirm("Do you want to overwrite it?")
-            if not confirm:
-                print("❌ Configuration initialization cancelled")
+            if not force:
+                print(f"配置文件已存在: {config_manager.config_path}")
+                print("使用 --force 选项覆盖现有配置")
                 return
+            else:
+                print("🔄 覆盖现有配置文件...")
         
-        config_manager.create_default_config()
-        print(f"✅ Configuration file created: {config_manager.config_path}")
-        print("💡 Please edit the config file to match your environment")
+        # 创建默认配置
+        default_config = {
+            "log_level": "INFO",
+            "data_dir": "~/sage_data",
+            "work_dir": "~/sage_work",
+            "ray": {
+                "address": "auto",
+                "port": 10001
+            }
+        }
         
-        # 显示配置模板位置
-        from pathlib import Path
-        template_path = Path(__file__).parent.parent.parent / "config" / "cluster_config_template.yaml"
-        if template_path.exists():
-            print(f"📋 Reference template: {template_path}")
+        config_manager.save_config(default_config)
+        print(f"✅ 配置文件已创建: {config_manager.config_path}")
+        print("🔧 你可以编辑配置文件来自定义设置")
         
     except Exception as e:
-        print(f"❌ Failed to initialize config: {e}")
-        raise typer.Exit(1)
+        print(f"❌ 初始化配置失败: {e}")
+
+@app.command("doctor")
+def doctor():
+    """诊断SAGE安装和配置"""
+    print("🔍 SAGE 系统诊断")
+    print("=" * 40)
+    
+    # 检查Python版本
+    import sys
+    print(f"Python版本: {sys.version.split()[0]}")
+    
+    # 检查SAGE安装
+    try:
+        import sage
+        print(f"✅ SAGE安装: v{sage.__version__}")
+    except ImportError:
+        print("❌ SAGE未安装")
+    
+    # 检查扩展
+    extensions = ["sage_ext", "sage_ext.sage_queue", "sage_ext.sage_db"]
+    for ext in extensions:
+        try:
+            __import__(ext)
+            print(f"✅ {ext}")
+        except ImportError:
+            print(f"⚠️ {ext} 不可用")
+    
+    # 检查Ray
+    try:
+        import ray
+        print(f"✅ Ray: v{ray.__version__}")
+    except ImportError:
+        print("❌ Ray未安装")
+    
+    print("\n💡 如需安装扩展，运行: sage extensions install")
 
 @app.callback()
-def main(
-    version: Optional[bool] = typer.Option(None, "--version", "-v", help="显示版本信息")
-):
+def callback():
     """
     SAGE CLI - Stream Analysis and Graph Engine 命令行工具
     
@@ -105,16 +147,13 @@ def main(
     
     📖 使用示例:
     sage job list                    # 列出所有作业
-    sage job show 1                  # 显示作业1的详情
-    sage job run script.py           # 运行Python脚本
     sage deploy start               # 启动SAGE系统
-    sage deploy status              # 查看系统状态
+    sage cluster status             # 查看集群状态
+    sage extensions install         # 安装C++扩展
     
-    💡 提示: 使用 'sage <command> --help' 查看具体命令帮助
+    🔗 更多信息: https://github.com/intellistream/SAGE
     """
-    if version:
-        print("SAGE CLI v0.1.1")
-        raise typer.Exit()
+    pass
 
 if __name__ == "__main__":
     app()

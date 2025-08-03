@@ -3,7 +3,9 @@
 远程环境服务端测试脚本
 用于接收序列化的环境并验证其完整性
 
-Usage:
+这个文件既可以作为独立的测试服务器运行，也可以通过pytest运行标准测试。
+
+独立运行Usage:
     # 运行完整的RemoteEnvironment序列化测试
     python test_remote_environment_server.py --mode remote_env_test
     
@@ -15,6 +17,13 @@ Usage:
     
     # 运行基础测试
     python test_remote_environment_server.py --mode test
+
+Pytest运行Usage:
+    # 运行所有pytest测试
+    python -m pytest test_remote_environment_server.py -v
+    
+    # 运行特定测试
+    python -m pytest test_remote_environment_server.py::test_basic_environment_serialization -v
 """
 
 import socket
@@ -97,15 +106,37 @@ class EnvironmentTestServer:
         
     def start(self):
         """启动服务器"""
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                self.socket.settimeout(1.0)  # 设置超时以便能优雅退出
+                self.socket.bind((self.host, self.port))
+                self.socket.listen(5)
+                
+                self.running = True
+                logger.info(f"Environment test server started on {self.host}:{self.port}")
+                break
+                
+            except OSError as e:
+                if e.errno == 98:  # Address already in use
+                    if attempt < max_retries - 1:
+                        # 尝试下一个端口
+                        self.port += 1
+                        logger.warning(f"Port {self.port - 1} in use, trying {self.port}")
+                        continue
+                    else:
+                        logger.error(f"Failed to bind after {max_retries} attempts: {e}")
+                        return
+                else:
+                    logger.error(f"Failed to start server: {e}")
+                    return
+            except Exception as e:
+                logger.error(f"Failed to start server: {e}")
+                return
+        
         try:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.socket.bind((self.host, self.port))
-            self.socket.listen(5)
-            
-            self.running = True
-            logger.info(f"Environment test server started on {self.host}:{self.port}")
-            
             while self.running:
                 try:
                     client_socket, client_address = self.socket.accept()
@@ -126,7 +157,7 @@ class EnvironmentTestServer:
                         logger.error(f"Error accepting connection: {e}")
                     
         except Exception as e:
-            logger.error(f"Failed to start server: {e}")
+            logger.error(f"Server loop error: {e}")
         finally:
             self.stop()
     
@@ -320,9 +351,14 @@ class EnvironmentTestServer:
         self.running = False
         if self.socket:
             try:
+                self.socket.shutdown(socket.SHUT_RDWR)
+            except:
+                pass
+            try:
                 self.socket.close()
             except:
                 pass
+            self.socket = None
         logger.info("Environment test server stopped")
     
     def get_stats(self) -> Dict[str, Any]:
@@ -690,6 +726,388 @@ def run_remote_environment_test(host: str = "127.0.0.1", port: int = 19002) -> b
     finally:
         server.stop()
 
+
+# ======================================================================
+# PYTEST TESTS - 符合pytest规范的测试函数
+# ======================================================================
+
+import pytest
+import signal
+import tempfile
+import os
+
+def find_free_port(start_port=19003, max_attempts=100):
+    """找到一个可用的端口"""
+    for port in range(start_port, start_port + max_attempts):
+        try:
+            test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            test_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            test_socket.bind(("127.0.0.1", port))
+            test_socket.close()
+            return port
+        except OSError:
+            continue
+    raise RuntimeError(f"Could not find a free port in range {start_port}-{start_port + max_attempts}")
+
+# 测试服务器的全局实例
+_test_server = None
+_server_thread = None
+
+@pytest.fixture(scope="module")
+def test_server():
+    """提供测试服务器的fixture"""
+    global _test_server, _server_thread
+    
+    # 动态找到一个可用的端口
+    free_port = find_free_port()
+    logger.info(f"Using free port {free_port} for test server")
+    server = EnvironmentTestServer("127.0.0.1", free_port)
+    
+    def run_server():
+        try:
+            server.start()
+        except Exception as e:
+            logger.error(f"Server start error: {e}")
+    
+    # 在后台线程启动服务器
+    server_thread = threading.Thread(target=run_server)
+    server_thread.daemon = True
+    server_thread.start()
+    
+    # 等待服务器启动，并验证是否成功
+    max_wait = 5  # 最多等待5秒
+    for i in range(max_wait * 10):  # 每0.1秒检查一次
+        if server.running:
+            break
+        time.sleep(0.1)
+    
+    if not server.running:
+        raise RuntimeError(f"Test server failed to start within {max_wait} seconds")
+    
+    logger.info(f"Test server successfully started on {server.host}:{server.port}")
+    
+    _test_server = server
+    _server_thread = server_thread
+    
+    yield server
+    
+    # 清理
+    logger.info("Cleaning up test server")
+    server.stop()
+    # 等待线程结束
+    if server_thread.is_alive():
+        server_thread.join(timeout=2)
+
+
+@pytest.fixture(scope="function")
+def clean_server_state(test_server):
+    """每个测试前清理服务器状态"""
+    test_server.received_environments.clear()
+    yield test_server
+
+
+def test_environment_test_server_creation():
+    """测试EnvironmentTestServer类的创建"""
+    # 使用动态端口避免冲突
+    test_port = find_free_port(19100)
+    server = EnvironmentTestServer("localhost", test_port)
+    assert server.host == "localhost"
+    assert server.port == test_port
+    assert server.running == False
+    assert len(server.received_environments) == 0
+
+
+def test_basic_environment_serialization(clean_server_state):
+    """测试基础环境数据的序列化和传输"""
+    server = clean_server_state
+    
+    # 创建基础测试数据
+    test_env_data = {
+        "name": "test_environment", 
+        "config": {"test_key": "test_value"},
+        "platform": "remote",
+        "pipeline": ["step1", "step2", "step3"]
+    }
+    
+    # 序列化数据
+    if has_sage_serializer:
+        serialized_data = serialize_object(test_env_data)
+    else:
+        serialized_data = pickle.dumps(test_env_data)
+    
+    assert len(serialized_data) > 0
+    
+    # 发送到测试服务器
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+                client_socket.settimeout(10.0)  # 10秒超时
+                client_socket.connect((server.host, server.port))
+                
+                # 发送数据长度
+                data_length = len(serialized_data)
+                client_socket.send(data_length.to_bytes(4, byteorder='big'))
+                
+                # 发送数据
+                client_socket.send(serialized_data)
+                
+                # 接收响应
+                response_length_data = client_socket.recv(4)
+                if len(response_length_data) != 4:
+                    raise ConnectionError("Failed to receive response length")
+                    
+                response_length = int.from_bytes(response_length_data, byteorder='big')
+                
+                response_data = b""
+                while len(response_data) < response_length:
+                    chunk = client_socket.recv(response_length - len(response_data))
+                    if not chunk:
+                        raise ConnectionError("Connection closed while receiving response")
+                    response_data += chunk
+                
+                response = json.loads(response_data.decode('utf-8'))
+                
+                # 验证响应
+                assert response["status"] == "success"
+                assert "validation" in response
+                break  # 成功，跳出重试循环
+                
+        except (ConnectionResetError, ConnectionRefusedError, socket.timeout) as e:
+            if attempt < max_retries - 1:
+                logger.warning(f"Connection attempt {attempt + 1} failed: {e}, retrying...")
+                time.sleep(0.5)
+                continue
+            else:
+                pytest.fail(f"Basic serialization test failed after {max_retries} attempts: {e}")
+        except Exception as e:
+            pytest.fail(f"Basic serialization test failed: {e}")
+    
+    # 等待服务器处理
+    time.sleep(0.5)
+    
+    # 验证服务器收到了数据
+    assert len(server.received_environments) == 1
+    assert server.received_environments[0]["validation"]["valid"] == True
+
+
+def test_remote_environment_serialization(clean_server_state):
+    """测试RemoteEnvironment实例的序列化"""
+    if not has_remote_environment:
+        pytest.skip("RemoteEnvironment not available")
+    
+    server = clean_server_state
+    
+    # 创建RemoteEnvironment实例
+    remote_env = RemoteEnvironment(
+        name="pytest_remote_env",
+        config={
+            "test_param": "pytest_value",
+            "batch_size": 16,
+            "model_name": "pytest_model"
+        },
+        host="localhost",
+        port=19001
+    )
+    
+    # 添加pipeline步骤
+    remote_env.pipeline.extend([
+        {"type": "preprocessor", "config": {"normalize": True}},
+        {"type": "model", "config": {"model_path": "/test/model"}},
+        {"type": "postprocessor", "config": {"format": "json"}}
+    ])
+    
+    # 序列化
+    if has_sage_serializer:
+        try:
+            serialized_data = serialize_object(remote_env)
+        except Exception as e:
+            try:
+                from sage.utils.serialization.dill_serializer import trim_object_for_ray
+                trimmed_env = trim_object_for_ray(remote_env)
+                serialized_data = serialize_object(trimmed_env)
+            except Exception as e2:
+                serialized_data = pickle.dumps(remote_env)
+    else:
+        serialized_data = pickle.dumps(remote_env)
+    
+    assert len(serialized_data) > 0
+    
+    # 发送到测试服务器
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+                client_socket.settimeout(10.0)
+                client_socket.connect((server.host, server.port))
+                
+                # 发送数据长度
+                data_length = len(serialized_data)
+                client_socket.send(data_length.to_bytes(4, byteorder='big'))
+                
+                # 发送数据
+                client_socket.send(serialized_data)
+                
+                # 接收响应
+                response_length_data = client_socket.recv(4)
+                if len(response_length_data) != 4:
+                    raise ConnectionError("Failed to receive response length")
+                    
+                response_length = int.from_bytes(response_length_data, byteorder='big')
+                
+                response_data = b""
+                while len(response_data) < response_length:
+                    chunk = client_socket.recv(response_length - len(response_data))
+                    if not chunk:
+                        raise ConnectionError("Connection closed while receiving response")
+                    response_data += chunk
+                
+                response = json.loads(response_data.decode('utf-8'))
+                
+                # 验证响应
+                assert response["status"] == "success"
+                validation = response.get("validation", {})
+                assert validation.get("valid") == True
+                
+                # 验证环境信息
+                info = validation.get("info", {})
+                assert "name" in info
+                assert "config" in info
+                assert "pipeline_length" in info
+                break  # 成功，跳出重试循环
+                
+        except (ConnectionResetError, ConnectionRefusedError, socket.timeout) as e:
+            if attempt < max_retries - 1:
+                logger.warning(f"RemoteEnvironment test attempt {attempt + 1} failed: {e}, retrying...")
+                time.sleep(0.5)
+                continue
+            else:
+                pytest.fail(f"RemoteEnvironment serialization test failed after {max_retries} attempts: {e}")
+        except Exception as e:
+            pytest.fail(f"RemoteEnvironment serialization test failed: {e}")
+    
+    # 等待服务器处理
+    time.sleep(0.5)
+    
+    # 验证服务器状态
+    assert len(server.received_environments) == 1
+    received_env = server.received_environments[0]
+    assert received_env["validation"]["valid"] == True
+
+
+def test_serialization_fallback():
+    """测试序列化回退机制"""
+    # 创建一个可能难以序列化的对象
+    complex_data = {
+        "name": "complex_test",
+        "config": {"nested": {"deep": {"value": 42}}},
+        "lambda_func": lambda x: x * 2,  # 这可能会导致序列化问题
+        "platform": "test"
+    }
+    
+    # 测试不同的序列化方法
+    serialized = None
+    
+    if has_sage_serializer:
+        try:
+            serialized = serialize_object(complex_data)
+        except Exception:
+            # 预期可能失败，使用pickle作为后备
+            try:
+                serialized = pickle.dumps(complex_data)
+            except Exception:
+                # 移除problematic元素再试
+                clean_data = {k: v for k, v in complex_data.items() if k != "lambda_func"}
+                serialized = pickle.dumps(clean_data)
+    
+    assert serialized is not None
+    assert len(serialized) > 0
+
+
+def test_server_stats_and_summary(clean_server_state):
+    """测试服务器统计功能"""
+    server = clean_server_state
+    
+    # 初始状态
+    stats = server.get_stats()
+    assert stats["running"] == True
+    assert stats["received_count"] == 0
+    
+    # 发送一些测试数据
+    test_data = {"name": "stats_test", "config": {}}
+    serialized_data = pickle.dumps(test_data)
+    
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+            client_socket.settimeout(10.0)
+            client_socket.connect((server.host, server.port))
+            data_length = len(serialized_data)
+            client_socket.send(data_length.to_bytes(4, byteorder='big'))
+            client_socket.send(serialized_data)
+            
+            # 接收响应
+            response_length_data = client_socket.recv(4)
+            if len(response_length_data) != 4:
+                raise ConnectionError("Failed to receive response length")
+            response_length = int.from_bytes(response_length_data, byteorder='big')
+            
+            response_data = b""
+            while len(response_data) < response_length:
+                chunk = client_socket.recv(response_length - len(response_data))
+                if not chunk:
+                    raise ConnectionError("Connection closed while receiving response")
+                response_data += chunk
+            
+            response = json.loads(response_data.decode('utf-8'))
+    except Exception as e:
+        pytest.fail(f"Failed to send stats test data: {e}")
+    
+    time.sleep(0.5)
+    
+    # 检查更新后的统计
+    updated_stats = server.get_stats()
+    assert updated_stats["received_count"] == 1
+    assert updated_stats["last_received"] is not None
+    
+    # 测试环境摘要
+    summary = server.get_environment_summary()
+    assert "environments" in summary
+    assert len(summary["environments"]) == 1
+    
+    # 测试特定环境详情
+    detail = server.get_environment_summary(1)
+    assert "validation" in detail
+    assert "timestamp" in detail
+
+
+def test_environment_validation():
+    """测试环境验证逻辑"""
+    server = EnvironmentTestServer()
+    
+    # 测试有效环境
+    valid_env = type('TestEnv', (), {
+        'name': 'valid_test',
+        'config': {'key': 'value'},
+        'platform': 'test',
+        'pipeline': ['step1', 'step2']
+    })()
+    
+    validation = server._validate_environment(valid_env)
+    assert validation["valid"] == True
+    assert len(validation["errors"]) == 0
+    assert "name" in validation["info"]
+    assert "config" in validation["info"]
+    assert "platform" in validation["info"]
+    
+    # 测试None环境
+    null_validation = server._validate_environment(None)
+    assert null_validation["valid"] == False
+    assert len(null_validation["errors"]) > 0
+
+
+# ======================================================================
+# 兼容性：保留原有的命令行接口
+# ======================================================================
 
 if __name__ == "__main__":
     # 如果直接运行且没有参数，默认运行RemoteEnvironment测试

@@ -2,9 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Any, TYPE_CHECKING
 from sage.core.function.base_function import BaseFunction
 
-if TYPE_CHECKING:
-    from sage.runtime.runtime_context import RuntimeContext
-
 class BatchFunction(BaseFunction):
     """
     批处理函数基类
