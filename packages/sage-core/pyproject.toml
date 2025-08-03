@@ -49,6 +49,7 @@ dependencies = [
     "tqdm>=4.60.0",  # 用于进度条显示
     "pre-commit>=3.0.0",  # 用于代码质量检查和格式化
     "wcwidth>=0.2.13",  
+    "ollama>=0.5.1",
 ]
 
 [project.optional-dependencies]
@@ -110,7 +111,7 @@ addopts = [
     "--cov=sage.runtime",
     "--cov-report=term-missing",
     "--cov-report=html",
-    "--cov-report=xml",
+#    "--cov-report=xml",
 ]
 
 [tool.black]

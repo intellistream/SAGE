@@ -100,7 +100,7 @@ addopts = [
     "--cov=sage.utils",
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
-    "--cov-report=xml",
+#    "--cov-report=xml",
     "--strict-markers",
     "--strict-config",
     "-ra",

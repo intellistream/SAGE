@@ -128,7 +128,7 @@ addopts = [
     "--cov=sage.service",
     "--cov-report=term-missing",
     "--cov-report=html",
-    "--cov-report=xml",
+#    "--cov-report=xml",
 ]
 
 [tool.black]

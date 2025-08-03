@@ -186,7 +186,7 @@ class SAGETestRunner:
                 str(test_file),
                 "-v",
                 "--tb=short",
-                f"--junitxml={log_file.with_suffix('.xml')}"
+                # f"--junitxml={log_file.with_suffix('.xml')}"
             ]
             
             with open(log_file, 'w') as f:
