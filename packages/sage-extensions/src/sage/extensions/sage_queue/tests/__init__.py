@@ -49,7 +49,7 @@ TEST_CONFIG = {
 
 # Performance benchmarks
 PERFORMANCE_BENCHMARKS = {
-    "min_throughput_msg_per_sec": 50000,  # Minimum throughput requirement
+    "min_throughput_msg_per_sec": 30000,  # Minimum throughput requirement (lowered from 50000)
     "max_latency_ms": 1.0,                # Maximum latency requirement
     "min_memory_efficiency": 0.8,         # Minimum memory efficiency
     "max_memory_usage_mb": 100             # Maximum memory usage

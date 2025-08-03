@@ -180,12 +180,15 @@ class SAGETestRunner:
         start_time = time.time()
         
         try:
-            # 运行 pytest
+            # 运行 pytest，指定配置文件以避免第三方依赖测试
             cmd = [
                 sys.executable, "-m", "pytest", 
                 str(test_file),
+                "-c", "pytest-no-cov.ini",  # 使用专门的配置文件
                 "-v",
                 "--tb=short",
+                "--ignore-glob=**/build/**",  # 额外忽略构建目录
+                "--ignore-glob=**/_deps/**",  # 额外忽略依赖目录
                 # f"--junitxml={log_file.with_suffix('.xml')}"
             ]
             

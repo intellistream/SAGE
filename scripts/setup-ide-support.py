@@ -203,7 +203,7 @@ full = [
 
 # 开发环境
 dev = [
-    "pytest>=7.0.0",
+    "pytest",
     "black>=23.0.0", 
     "isort>=5.12.0",
     "mypy>=1.0.0",

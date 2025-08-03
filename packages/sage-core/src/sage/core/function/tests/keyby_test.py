@@ -3,10 +3,21 @@ import threading
 import json
 import os
 from typing import List, Dict, Any
+from pathlib import Path
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.function.source_function import SourceFunction
 from sage.core.function.keyby_function import KeyByFunction
 from sage.core.function.sink_function import SinkFunction
+
+
+def find_project_root() -> Path:
+    """查找项目根目录（包含packages目录的目录）"""
+    current_path = Path(__file__).resolve()
+    for parent in current_path.parents:
+        if (parent / "packages").exists() and (parent / "pyproject.toml").exists():
+            return parent
+    # 如果找不到，使用当前文件的相对路径作为fallback
+    return Path(__file__).resolve().parent.parent.parent.parent.parent.parent
 
 
 class KeyByTestDataSource(SourceFunction):
@@ -51,9 +62,10 @@ class ParallelDebugSink(SinkFunction):
         super().__init__(**kwargs)
         self.parallel_index = None
         self.received_count = 0
-        # 创建输出目录
-        self.output_dir = "/api-rework/test_logs/keyby_results"
-        os.makedirs(self.output_dir, exist_ok=True)
+        # 创建输出目录 - 使用项目根目录的相对路径
+        project_root = find_project_root()
+        self.output_dir = project_root / "test_logs" / "keyby_results"
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def execute(self, data: Any):
         # 从runtime_context获取parallel_index
@@ -82,12 +94,13 @@ class ParallelDebugSink(SinkFunction):
     @classmethod
     def save_results_to_file(cls, test_name: str):
         """将测试结果保存到文件"""
-        output_dir = "/api-rework/test_logs/keyby_results"
-        os.makedirs(output_dir, exist_ok=True)
+        project_root = find_project_root()
+        output_dir = project_root / "test_logs" / "keyby_results"
+        output_dir.mkdir(parents=True, exist_ok=True)
         
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         filename = f"{test_name}_{timestamp}.json"
-        filepath = os.path.join(output_dir, filename)
+        filepath = output_dir / filename
         
         with cls._lock:
             result_data = {
@@ -102,7 +115,7 @@ class ParallelDebugSink(SinkFunction):
                 json.dump(result_data, f, indent=2, ensure_ascii=False)
         
         print(f"📁 Results saved to: {filepath}")
-        return filepath
+        return str(filepath)
     
     @classmethod
     def get_received_data(cls) -> Dict[int, List[Dict]]:

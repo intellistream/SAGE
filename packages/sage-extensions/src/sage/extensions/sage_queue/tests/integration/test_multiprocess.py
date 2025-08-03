@@ -14,7 +14,7 @@ from ..utils import DataGenerator, ProducerConsumerScenario, ConcurrencyTester
 
 def producer_worker(queue_name: str, num_messages: int, message_size: int):
     """Producer worker for multiprocessing tests"""
-    from sage_queue import SageQueue
+    from sage.extensions.sage_queue import SageQueue
     
     try:
         queue = SageQueue(queue_name)
@@ -37,7 +37,7 @@ def producer_worker(queue_name: str, num_messages: int, message_size: int):
 
 def consumer_worker(queue_name: str, expected_messages: int, timeout: float = 30.0):
     """Consumer worker for multiprocessing tests"""
-    from sage_queue import SageQueue
+    from sage.extensions.sage_queue import SageQueue
     
     try:
         queue = SageQueue(queue_name)
@@ -245,7 +245,7 @@ class TestMultiprocessErrorHandling:
         """Test system behavior when producer fails"""
         def failing_producer(queue_name: str):
             """Producer that fails after sending some messages"""
-            from sage_queue import SageQueue
+            from sage.extensions.sage_queue import SageQueue
             
             try:
                 queue = SageQueue(queue_name)
@@ -309,7 +309,7 @@ class TestMultiprocessErrorHandling:
 def test_producer_consumer_scenario_integration(queue_name):
     """Integration test using ProducerConsumerScenario utility"""
     def queue_factory(name):
-        from sage_queue import SageQueue
+        from sage.extensions.sage_queue import SageQueue
         return SageQueue(name, maxsize=10000)
     
     scenario = ProducerConsumerScenario(

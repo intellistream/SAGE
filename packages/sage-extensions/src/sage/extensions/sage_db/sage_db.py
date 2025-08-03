@@ -1,9 +1,44 @@
 """
-SAGE DB - High-performance vector database with FAISS backend
+SAGE DB - 高性能向量数据库
 
-This module provides a Python interface to the SAGE DB vector database,
-which supports efficient similarity search with metadata filtering.
+直接导出 C++ 扩展中的类和函数
 """
+
+# 直接从 C++ 扩展导入所有必要的类
+try:
+    from ._sage_db import (
+        SageDB,
+        DatabaseConfig,
+        IndexType,
+        DistanceMetric,
+        QueryResult,
+        SearchParams,
+        SageDBException,
+        create_database,
+        index_type_to_string,
+        string_to_index_type,
+        distance_metric_to_string,
+        string_to_distance_metric
+    )
+    print("✓ SAGE DB C++ extension loaded successfully")
+except ImportError as e:
+    raise ImportError(f"Failed to import SAGE DB C++ extension: {e}")
+
+# 导出所有API
+__all__ = [
+    'SageDB',
+    'DatabaseConfig', 
+    'IndexType',
+    'DistanceMetric',
+    'QueryResult',
+    'SearchParams',
+    'SageDBException',
+    'create_database',
+    'index_type_to_string',
+    'string_to_index_type',
+    'distance_metric_to_string',
+    'string_to_distance_metric'
+]
 
 import numpy as np
 from typing import List, Dict, Any, Optional, Callable, Tuple, Union

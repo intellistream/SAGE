@@ -77,8 +77,8 @@ full = ["database", "messagequeue", "monitoring", "websocket"]
 
 # 开发依赖
 dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
+    "pytest",
+    #     "pytest-cov>=4.0.0" # Coverage disabled,
     "pytest-asyncio>=0.21.0",
     "httpx>=0.24.0",  # 用于测试API
     "black>=23.0.0",
@@ -89,8 +89,8 @@ dev = [
 
 # 测试依赖
 test = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
+    "pytest",
+    #     "pytest-cov>=4.0.0" # Coverage disabled,
     "pytest-asyncio>=0.21.0",
     "pytest-mock>=3.10.0",
     "httpx>=0.24.0",
@@ -125,9 +125,9 @@ namespaces = false
 testpaths = ["tests", "src"]
 python_files = ["test_*.py", "*_test.py"]
 addopts = [
-    "--cov=sage.service",
-    "--cov-report=term-missing",
-    "--cov-report=html",
+    #     "--cov=sage.service" # Coverage disabled,
+    #     "--cov-report=term-missing" # Coverage disabled,
+    #     "--cov-report=html" # Coverage disabled,
 #    "--cov-report=xml",
 ]
 

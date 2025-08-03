@@ -13,7 +13,7 @@ from queue import Empty, Full
 
 # 添加父目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from sage_queue import SageQueue
+from sage.extensions.sage_queue import SageQueue
 
 class TestBasicFunctionality(unittest.TestCase):
     """测试基础功能"""

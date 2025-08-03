@@ -18,24 +18,9 @@ current_dir = Path(__file__).parent
 sage_queue_dir = current_dir.parent
 sys.path.insert(0, str(sage_queue_dir))
 
-try:
-    # Try multiple import paths
-    try:
-        from sage_queue import SageQueue, SageQueueManager
-        print("✓ Using real SageQueue implementation")
-    except ImportError:
-        # Try importing from parent python module
-        sys.path.insert(0, str(sage_queue_dir))
-        try:
-            from python.sage_queue import SageQueue
-            from python.sage_queue_manager import SageQueueManager
-            print("✓ Using real SageQueue from python submodule")
-        except ImportError:
-            # Fall back to mock implementation for testing the test suite
-            from .mock_sage_queue import SageQueue, SageQueueManager
-            print("⚠ Using mock SageQueue implementation for testing")
-except ImportError:
-    pytest.skip("SageQueue not available", allow_module_level=True)
+
+from sage.extensions.sage_queue import SageQueue
+print("✓ Using real SageQueue implementation")
 
 from . import TEST_CONFIG
 

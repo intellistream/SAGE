@@ -126,6 +126,14 @@ PYBIND11_MODULE(_sage_db, m) {
     // SageDB (main class)
     py::class_<SageDB>(m, "SageDB")
         .def(py::init<const DatabaseConfig&>())
+        // 便捷构造函数
+        .def(py::init([](Dimension dimension, IndexType index_type, DistanceMetric metric) {
+            DatabaseConfig config;
+            config.dimension = dimension;
+            config.index_type = index_type;
+            config.metric = metric;
+            return std::make_unique<SageDB>(config);
+        }), py::arg("dimension"), py::arg("index_type") = IndexType::AUTO, py::arg("metric") = DistanceMetric::L2)
         .def("add", &SageDB::add, py::arg("vector"), py::arg("metadata") = Metadata{})
         .def("add_batch", &SageDB::add_batch, 
              py::arg("vectors"), py::arg("metadata") = std::vector<Metadata>{})

@@ -43,8 +43,8 @@ dependencies = [
 [project.optional-dependencies]
 # 开发依赖
 dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
+    "pytest",
+    #     "pytest-cov>=4.0.0" # Coverage disabled,
     "cmake>=3.18",
     "ninja",
     "pybind11-stubgen>=0.10.0",
@@ -52,8 +52,8 @@ dev = [
 
 # 测试依赖
 test = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
+    "pytest",
+    #     "pytest-cov>=4.0.0" # Coverage disabled,
     "pytest-benchmark>=4.0.0",
 ]
 
@@ -83,6 +83,7 @@ namespaces = false
 # C++扩展的特殊配置
 [tool.setuptools.package-data]
 "sage.extensions" = ["*.so", "*.pyd", "*.dll", "py.typed", "*.pyi"]
+"sage.extensions.sage_db" = ["*.so", "*.pyd", "*.dll"]
 
 
 # C++编译配置
@@ -97,9 +98,9 @@ CMAKE_BUILD_TYPE = "Release"
 testpaths = ["tests", "src"]
 python_files = ["test_*.py", "*_test.py"]
 addopts = [
-    "--cov=sage.extensions",
-    "--cov-report=term-missing",
-    "--cov-report=html",
+    #     "--cov=sage.extensions" # Coverage disabled,
+    #     "--cov-report=term-missing" # Coverage disabled,
+    #     "--cov-report=html" # Coverage disabled,
 #    "--cov-report=xml",
 ]
 

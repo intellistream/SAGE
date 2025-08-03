@@ -60,13 +60,8 @@ class FixedMultiprocessStressTester:
                             test_dir: str) -> Dict[str, Any]:
         """修复版的生产者工作进程"""
         try:
-            # 导入队列实现
-            try:
-                from sage_ext.sage_queue.python.sage_queue import SageQueue
-                use_real_queue = True
-            except ImportError:
-                from mock_sage_queue import MockSageQueue as SageQueue
-                use_real_queue = False
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
+            use_real_queue = True
             
             stats = {
                 'worker_id': worker_id,
@@ -135,13 +130,8 @@ class FixedMultiprocessStressTester:
                             test_dir: str) -> Dict[str, Any]:
         """修复版的消费者工作进程"""
         try:
-            # 导入队列实现
-            try:
-                from sage_ext.sage_queue.python.sage_queue import SageQueue
-                use_real_queue = True
-            except ImportError:
-                from mock_sage_queue import MockSageQueue as SageQueue
-                use_real_queue = False
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
+            use_real_queue = True
             
             stats = {
                 'worker_id': worker_id,
@@ -213,13 +203,8 @@ class FixedMultiprocessStressTester:
     def fixed_lifecycle_worker(worker_id: int, cycles: int, test_dir: str) -> Dict[str, Any]:
         """修复版的生命周期工作进程"""
         try:
-            # 导入队列实现
-            try:
-                from sage_ext.sage_queue.python.sage_queue import SageQueue
-                use_real_queue = True
-            except ImportError:
-                from mock_sage_queue import MockSageQueue as SageQueue
-                use_real_queue = False
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
+            use_real_queue = True
             
             stats = {
                 'worker_id': worker_id,

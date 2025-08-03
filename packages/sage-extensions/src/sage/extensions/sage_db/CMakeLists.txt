@@ -111,6 +111,19 @@ if(BUILD_PYTHON_BINDINGS)
     pybind11_add_module(_sage_db python/bindings.cpp)
     target_link_libraries(_sage_db PRIVATE sage_db)
     target_compile_definitions(_sage_db PRIVATE VERSION_INFO="${PROJECT_VERSION}")
+    
+    # 禁用 LTO 以避免链接器问题，设置输出属性
+    set_target_properties(_sage_db PROPERTIES
+        INTERPROCEDURAL_OPTIMIZATION OFF
+        OUTPUT_NAME "_sage_db"
+        PREFIX ""
+    )
+    
+    # 在某些系统上，pybind11 默认启用 LTO，我们需要显式禁用
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        target_compile_options(_sage_db PRIVATE -fno-lto)
+        target_link_options(_sage_db PRIVATE -fno-lto)
+    endif()
 endif()
 
 # Tests

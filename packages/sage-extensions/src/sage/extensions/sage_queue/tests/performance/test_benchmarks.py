@@ -186,8 +186,6 @@ class TestLatencyBenchmarks:
             
             with latency_lock:
                 all_latencies.extend(thread_latencies)
-        
-        import threading
         threads = []
         for i in range(num_threads):
             thread = threading.Thread(target=latency_worker, args=(i,))
@@ -380,8 +378,6 @@ class TestStressBenchmarks:
             
             with stats_lock:
                 stats["messages_consumed"] += count
-        
-        import threading
         
         performance_monitor.start()
         

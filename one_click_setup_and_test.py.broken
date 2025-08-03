@@ -14,22 +14,31 @@ SAGE Monorepo 一键环境安装和测试脚本
     python one_click_setup_and_test.py
     python one_click_setup_and_test.py --workers 8
     python one_click_setup_and_test.py --quick-test
-    python one_click_setup_and_test.py --discover-only
-    python one_click_setup_and_test.py --test-only
 """
 
 import os
 import sys
 import subprocess
 import shutil
-import argparse
+import argpars    def check_pytest_xdist(self, venv_python: Path) -> bool:
+        """检查pytest-xdist是否可用"""
+        try:
+            result = subprocess.run(
+                [str(venv_python), "-c", "import xdist; print('available')"],
+                capture_output=True,
+                text=True
+            )
+            return result.returncode == 0 and "available" in result.stdout
+        except:
+            return False
+    
+    def run_tests(self, workers: int = 4, quick_test: bool = False, test_files: List[Path] = None, categorized_tests: Dict[str, List[Path]] = None):
 import time
 import re
 import json
 from pathlib import Path
 from datetime import datetime
 from typing import List, Set, Dict, Tuple
-
 
 class TestFileCollector:
     """智能测试文件收集器"""
@@ -56,7 +65,6 @@ class TestFileCollector:
             r'.*_setup\.py$',          # 设置脚本
             r'validate_.*\.py$',       # 验证脚本
             r'quick_reference\.py$',   # 参考文档
-            r'one_click_setup_and_test.*\.py$',  # 本脚本及其变体
         ]
         
         # 测试目录模式
@@ -121,8 +129,7 @@ class TestFileCollector:
             # 跳过虚拟环境和构建目录
             if any(part in str(py_file) for part in [
                 'venv', '.venv', 'env', 'test_env', 'test_env_minimal',
-                'build', 'dist', '.git', '__pycache__', '.pytest_cache',
-                '_deps', 'third_party', 'external'  # 排除第三方依赖
+                'build', 'dist', '.git', '__pycache__', '.pytest_cache'
             ]):
                 continue
                 
@@ -181,7 +188,7 @@ class OneClickSAGETester:
         print(f"🚀 {title}")
         print(f"{'='*60}")
         
-    def print_step(self, step: str, title: str):
+    def print_step(self, step: int, title: str):
         """打印步骤"""
         print(f"\n📋 步骤 {step}: {title}")
         print("-" * 40)
@@ -205,7 +212,7 @@ class OneClickSAGETester:
             
     def cleanup_old_environment(self):
         """清理旧环境"""
-        self.print_step("1", "清理旧环境")
+        self.print_step(1, "清理旧环境")
         
         # 删除虚拟环境
         if self.venv_path.exists():
@@ -265,7 +272,7 @@ class OneClickSAGETester:
         
     def create_fresh_environment(self):
         """创建新环境"""
-        self.print_step("2", "创建新的虚拟环境")
+        self.print_step(2, "创建新的虚拟环境")
         
         # 检查Python版本
         python_version = subprocess.run(
@@ -301,7 +308,7 @@ class OneClickSAGETester:
         
     def discover_and_analyze_tests(self):
         """发现和分析测试文件"""
-        self.print_step("2.5", "发现和分析测试文件")
+        self.print_step(2.5, "发现和分析测试文件")
         
         print("🔍 扫描项目中的测试文件...")
         test_files = self.test_collector.collect_test_files()
@@ -345,7 +352,7 @@ class OneClickSAGETester:
         
     def install_dependencies(self):
         """安装依赖"""
-        self.print_step("3", "安装项目依赖")
+        self.print_step(3, "安装项目依赖")
         
         # 使用虚拟环境中的python和pip直接调用，避免shell激活问题
         venv_python = self.venv_path / "bin" / "python"
@@ -393,35 +400,17 @@ class OneClickSAGETester:
         )
         
         return True
-    
-    def check_pytest_xdist(self, venv_python: Path) -> bool:
-        """检查pytest-xdist是否可用"""
-        try:
-            result = subprocess.run(
-                [str(venv_python), "-c", "import xdist; print('available')"],
-                capture_output=True,
-                text=True
-            )
-            return result.returncode == 0 and "available" in result.stdout
-        except:
-            return False
         
-    def run_tests(self, workers: int = 4, quick_test: bool = False, test_files: List[Path] = None, categorized_tests: Dict[str, List[Path]] = None):
+    def run_tests(self, workers: int = 16, quick_test: bool = False, test_files: List[Path] = None, categorized_tests: Dict[str, List[Path]] = None):
         """运行测试"""
         mode = "快速测试" if quick_test else "完整测试"
-        self.print_step("4", f"运行{mode}")
+        self.print_step(4, f"运行{mode}")
         
         # 使用虚拟环境中的python直接调用
         venv_python = self.venv_path / "bin" / "python"
         
         # 确保目录存在
         self.test_logs_dir.mkdir(exist_ok=True)
-        
-        # 检查是否支持并行测试
-        use_parallel = self.check_pytest_xdist(venv_python)
-        if not use_parallel:
-            print("⚠️  pytest-xdist 不可用，将使用串行测试")
-            workers = 1
         
         if quick_test:
             # 快速测试：直接使用pytest运行一小部分测试文件
@@ -434,12 +423,8 @@ class OneClickSAGETester:
                 for test_path in test_paths:
                     print(f"  - {test_path}")
                 
-                pytest_cmd = f"{venv_python} -m pytest {' '.join(test_paths)} -v --tb=short"
-                if use_parallel and workers > 1:
-                    pytest_cmd += f" -n {min(workers, len(sample_tests))}"
-                
                 success = self.run_command(
-                    pytest_cmd,
+                    f"{venv_python} -m pytest {' '.join(test_paths)} -v --tb=short",
                     f"快速测试执行 ({len(sample_tests)} 个文件)"
                 )
                 
@@ -473,12 +458,8 @@ class OneClickSAGETester:
                         print(f"\n📦 测试包: {category} ({len(files)} 个文件)")
                         test_paths = [str(f.relative_to(self.project_root)) for f in files]
                         
-                        pytest_cmd = f"{venv_python} -m pytest {' '.join(test_paths)} -v --tb=short"
-                        if use_parallel and workers > 1:
-                            pytest_cmd += f" -n {min(workers, len(files))}"
-                        
                         success = self.run_command(
-                            pytest_cmd,
+                            f"{venv_python} -m pytest {' '.join(test_paths)} -v --tb=short -n {min(workers, len(files))}",
                             f"测试 {category}"
                         )
                         
@@ -490,13 +471,8 @@ class OneClickSAGETester:
                 else:
                     # 所有测试文件一起运行
                     test_paths = [str(f.relative_to(self.project_root)) for f in test_files]
-                    
-                    pytest_cmd = f"{venv_python} -m pytest {' '.join(test_paths)} -v --tb=short"
-                    if use_parallel and workers > 1:
-                        pytest_cmd += f" -n {workers}"
-                    
                     success = self.run_command(
-                        pytest_cmd,
+                        f"{venv_python} -m pytest {' '.join(test_paths)} -v --tb=short -n {workers}",
                         f"完整测试执行 ({len(test_files)} 个文件)"
                     )
                     
@@ -510,36 +486,10 @@ class OneClickSAGETester:
                 )
                 
                 return success
-
-    def run_only_tests(self, workers: int = 4, quick_test: bool = False):
-        """仅运行测试（假设环境已经设置好）"""
-        self.print_header("SAGE 仅运行测试")
-        
-        if not self.venv_path.exists():
-            print("❌ 虚拟环境不存在，请先运行完整安装")
-            return False
-        
-        # 发现测试文件
-        test_files, categorized_tests = self.discover_and_analyze_tests()
-        
-        # 运行测试
-        test_success = self.run_tests(workers, quick_test, test_files, categorized_tests)
-        
-        # 生成报告
-        report_file = self.generate_report(test_files, categorized_tests)
-        
-        if test_success:
-            print("🎉 测试成功完成！")
-        else:
-            print("⚠️  部分测试失败")
-        
-        print(f"📄 详细报告: {report_file}")
-        
-        return test_success
             
     def generate_report(self, test_files: List[Path] = None, categorized_tests: Dict[str, List[Path]] = None):
         """生成测试报告"""
-        self.print_step("5", "生成测试报告")
+        self.print_step(5, "生成测试报告")
         
         # 确保报告目录存在
         self.reports_dir.mkdir(exist_ok=True)
@@ -654,7 +604,6 @@ ls -la test_logs/
 ## 🚀 快速命令
 - **重新运行测试**: `python one_click_setup_and_test.py --quick-test`
 - **完整测试**: `python one_click_setup_and_test.py --workers 8`
-- **仅运行测试**: `python one_click_setup_and_test.py --test-only`
 
 ---
 *报告由SAGE一键安装测试脚本生成*
@@ -675,7 +624,6 @@ ls -la test_logs/
         print("这个脚本将:")
         print("✅ 删除现有测试环境")
         print("✅ 创建新的虚拟环境")
-        print("✅ 发现和分析测试文件")
         print("✅ 安装所有项目依赖")
         print("✅ 运行完整测试套件")
         print("✅ 生成详细测试报告")
@@ -751,7 +699,6 @@ def main():
   python one_click_setup_and_test.py --workers 8       # 使用8个并行进程
   python one_click_setup_and_test.py --quick-test      # 快速测试模式
   python one_click_setup_and_test.py --discover-only   # 仅发现测试文件
-  python one_click_setup_and_test.py --test-only       # 仅运行测试
         """
     )
     
@@ -770,11 +717,6 @@ def main():
         "--discover-only",
         action="store_true",
         help="仅发现和分析测试文件，不运行测试"
-    )
-    parser.add_argument(
-        "--test-only",
-        action="store_true",
-        help="仅运行测试，假设环境已经设置好"
     )
     
     args = parser.parse_args()
@@ -796,26 +738,43 @@ def main():
     try:
         if args.discover_only:
             # 仅发现测试文件
+            print("🔍 仅运行测试文件发现模式")
             test_files, categorized_tests = tester.discover_and_analyze_tests()
+            
+            # 生成简单报告
             if test_files:
-                print(f"\n🎉 成功发现 {len(test_files)} 个测试文件")
+                print(f"\n✅ 发现 {len(test_files)} 个测试文件")
+                print("详细信息已保存到 test_reports/discovered_test_files.json")
+                
+                # 生成简化报告
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                report_file = tester.reports_dir / f"test_discovery_report_{timestamp}.md"
+                tester.reports_dir.mkdir(exist_ok=True)
+                
+                with open(report_file, 'w', encoding='utf-8') as f:
+                    f.write("# SAGE 测试文件发现报告\n\n")
+                    f.write(f"发现时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                    f.write(f"总文件数: {len(test_files)}\n\n")
+                    
+                    f.write("## 按包分类\n\n")
+                    for category, files in categorized_tests.items():
+                        f.write(f"### {category} ({len(files)} 个文件)\n\n")
+                        for file_path in files:
+                            rel_path = file_path.relative_to(tester.project_root)
+                            f.write(f"- `{rel_path}`\n")
+                        f.write("\n")
+                
+                print(f"📄 发现报告已保存到: {report_file}")
+                sys.exit(0)
             else:
-                print("\n⚠️  未发现测试文件")
-            success = len(test_files) > 0
-        elif args.test_only:
-            # 仅运行测试
-            success = tester.run_only_tests(
-                workers=args.workers,
-                quick_test=args.quick_test
-            )
+                print("❌ 未发现任何测试文件")
+                sys.exit(1)
         else:
-            # 完整的安装和测试流程
             success = tester.run_complete_setup(
                 workers=args.workers,
                 quick_test=args.quick_test
             )
-        
-        sys.exit(0 if success else 1)
+            sys.exit(0 if success else 1)
     except KeyboardInterrupt:
         print("\n\n⏹️  操作被用户中断")
         sys.exit(1)

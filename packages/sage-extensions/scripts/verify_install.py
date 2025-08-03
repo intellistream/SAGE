@@ -13,6 +13,14 @@ def main():
     print("Verifying SAGE Extensions installation...")
     print("=" * 50)
     
+    # 设置库路径
+    import os
+    sage_db_dir = os.path.join(os.path.dirname(__file__), "..", "src", "sage", "extensions", "sage_db")
+    if "LD_LIBRARY_PATH" in os.environ:
+        os.environ["LD_LIBRARY_PATH"] = f"{sage_db_dir}:{os.environ['LD_LIBRARY_PATH']}"
+    else:
+        os.environ["LD_LIBRARY_PATH"] = sage_db_dir
+    
     # 测试基本导入
     try:
         import sage.extensions

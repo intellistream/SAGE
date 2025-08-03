@@ -56,30 +56,44 @@ include_directories(include)
 # Create shared library
 add_library(sage_queue SHARED ${SAGE_QUEUE_SOURCES})
 
-# Set library properties
+# Set library properties - 完全避免版本管理
 set_target_properties(sage_queue PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    SOVERSION 1
     OUTPUT_NAME "ring_buffer"  # For compatibility with existing code
     POSITION_INDEPENDENT_CODE ON
+    NO_SONAME TRUE  # 避免创建SONAME
+)
+
+# Also create a sage_queue named library for the new interface
+add_library(sage_queue_lib SHARED ${SAGE_QUEUE_SOURCES})
+set_target_properties(sage_queue_lib PROPERTIES
+    OUTPUT_NAME "sage_queue"
+    POSITION_INDEPENDENT_CODE ON
+    NO_SONAME TRUE  # 避免创建SONAME
 )
 
 # Link libraries
 if(OpenMP_CXX_FOUND AND USE_OPENMP)
     target_link_libraries(sage_queue OpenMP::OpenMP_CXX)
+    target_link_libraries(sage_queue_lib OpenMP::OpenMP_CXX)
 endif()
 
 # Link required libraries for Boost.Interprocess
 target_link_libraries(sage_queue rt pthread)
+target_link_libraries(sage_queue_lib rt pthread)
 
 # Compiler-specific options
 target_compile_options(sage_queue PRIVATE
     $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra>
     $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra>
 )
+target_compile_options(sage_queue_lib PRIVATE
+    $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra>
+    $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra>
+)
 
 # Install targets
-install(TARGETS sage_queue
+install(TARGETS sage_queue sage_queue_lib
+    EXPORT sage_queue_targets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
@@ -103,26 +117,51 @@ if(BUILD_PYTHON_BINDINGS)
     find_package(Python3 COMPONENTS Interpreter Development)
     
     if(Python3_FOUND)
-        # Try to find pybind11
+        message(STATUS "Found Python: ${Python3_VERSION}")
+        message(STATUS "Python executable: ${Python3_EXECUTABLE}")
+        message(STATUS "Python include dirs: ${Python3_INCLUDE_DIRS}")
+        message(STATUS "Python libraries: ${Python3_LIBRARIES}")
+        
+        # Try to find pybind11 using find_package
         find_package(pybind11 QUIET)
         
-        if(pybind11_FOUND)
-            message(STATUS "Found pybind11: ${pybind11_VERSION}")
-            
-            # Create Python module
-            pybind11_add_module(sage_queue_bindings 
-                bindings/sage_queue_bindings.cpp
+        if(NOT pybind11_FOUND)
+            # Always download a newer pybind11 version that supports Python 3.11+
+            message(STATUS "Downloading pybind11 for Python 3.11+ compatibility...")
+            include(FetchContent)
+            FetchContent_Declare(
+                pybind11
+                GIT_REPOSITORY https://github.com/pybind/pybind11
+                GIT_TAG v2.13.0
             )
-            
-            target_link_libraries(sage_queue_bindings PRIVATE sage_queue)
-            
-            # Install Python module
-            install(TARGETS sage_queue_bindings
-                LIBRARY DESTINATION python/sage_queue
-            )
+            FetchContent_MakeAvailable(pybind11)
         else()
-            message(WARNING "pybind11 not found, skipping Python bindings")
+            message(STATUS "Found pybind11: ${pybind11_VERSION}")
         endif()
+        
+        # Create Python module
+        pybind11_add_module(sage_queue_bindings 
+            bindings/sage_queue_bindings.cpp
+        )
+        
+        target_link_libraries(sage_queue_bindings PRIVATE sage_queue_lib)
+        target_compile_definitions(sage_queue_bindings PRIVATE VERSION_INFO="${PROJECT_VERSION}")
+        
+        # 禁用 LTO 以避免链接器问题，设置输出属性
+        set_target_properties(sage_queue_bindings PROPERTIES
+            INTERPROCEDURAL_OPTIMIZATION OFF
+            OUTPUT_NAME "sage_queue_bindings"
+            PREFIX ""
+        )
+        
+        # 在某些系统上，pybind11 默认启用 LTO，我们需要显式禁用
+        if(CMAKE_BUILD_TYPE STREQUAL "Release")
+            target_compile_options(sage_queue_bindings PRIVATE -fno-lto)
+            target_link_options(sage_queue_bindings PRIVATE -fno-lto)
+        endif()
+        
+        # Install Python module
+        install(TARGETS sage_queue_bindings DESTINATION .)
     else()
         message(WARNING "Python3 not found, skipping Python bindings")
     endif()

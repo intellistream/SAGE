@@ -50,7 +50,7 @@ def get_queue_backend_info() -> Dict[str, Any]:
     # Check if SAGE queue extension is available
     try:
         import sage_ext.sage_queue.python.sage_queue as sage_queue_module
-        from sage_ext.sage_queue.python.sage_queue import SageQueue
+        from sage.extensions.sage_queue.python.sage_queue import SageQueue
         
         info["sage_available"] = True
         info["current_backend"] = "sage_queue"
@@ -209,7 +209,7 @@ def create_queue(backend: Optional[str] = None, **kwargs):
     
     if backend == "sage_queue":
         try:
-            from sage_ext.sage_queue.python.sage_queue import SageQueue
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
             # Check if SAGE queue supports distributed (it doesn't currently)
             try:
                 import ray

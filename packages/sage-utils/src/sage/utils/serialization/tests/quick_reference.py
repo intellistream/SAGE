@@ -7,7 +7,6 @@ def run_all_tests():
     运行所有序列化模块测试
     
     使用方法:
-        cd /api-rework
         python sage/utils/serialization/tests/run_tests.py
     """
     pass
@@ -17,7 +16,6 @@ def run_single_test():
     运行单个测试模块
     
     使用方法:
-        cd /api-rework
         python sage/utils/serialization/tests/run_tests.py test_exceptions
         python sage/utils/serialization/tests/run_tests.py test_config
         python sage/utils/serialization/tests/run_tests.py test_preprocessor
@@ -32,7 +30,6 @@ def run_with_pytest():
     使用pytest直接运行测试
     
     使用方法:
-        cd /api-rework
         
         # 运行所有测试
         python -m pytest sage/utils/serialization/tests/ -v

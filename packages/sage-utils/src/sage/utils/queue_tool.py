@@ -198,7 +198,7 @@ class QueueTool:
             # Sage queue cleanup
             if is_sage_queue_available():
                 try:
-                    from sage_ext.sage_queue.python.sage_queue import SageQueue
+                    from sage.extensions.sage_queue.python.sage_queue import SageQueue
                     # Add cleanup logic here
                     print("SAGE queue resources cleaned up")
                 except Exception as e:

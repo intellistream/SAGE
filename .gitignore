@@ -96,3 +96,15 @@ activate_sage.sh
 **.egg-info
 sage_ext/sage_db/build/
 build/
+
+
+# CMake FetchContent 构建目录
+**/pybind11-subbuild/
+**/pybind11-src/
+**/pybind11-build/
+**/CMakeFiles/
+**/CMakeCache.txt
+**/Makefile
+**/cmake_install.cmake
+
+**.ninja**

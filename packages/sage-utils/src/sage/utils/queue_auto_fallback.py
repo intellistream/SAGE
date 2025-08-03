@@ -90,7 +90,7 @@ class QueueBackendSelector:
     def _check_sage_queue(self) -> Dict[str, Any]:
         """Check SAGE queue availability"""
         try:
-            from sage_ext.sage_queue.python.sage_queue import SageQueue
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
             
             # Try to create a test queue
             test_queue = SageQueue(name="test_availability", maxsize=10)

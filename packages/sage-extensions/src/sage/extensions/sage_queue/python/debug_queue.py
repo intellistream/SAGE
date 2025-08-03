@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from sage_ext.sage_queue.python.sage_queue import SageQueue
+from sage.extensions.sage_queue.python.sage_queue import SageQueue
 import pickle
 import struct
 import ctypes

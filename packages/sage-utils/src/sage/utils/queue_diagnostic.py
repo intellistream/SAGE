@@ -136,7 +136,7 @@ def check_sage_queue() -> Dict[str, Any]:
         
         # Try importing - use absolute import
         try:
-            from sage_ext.sage_queue.python.sage_queue import SageQueue
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
         except ImportError:
             # Alternative import path
             import sage_ext.sage_queue.python.sage_queue as sage_queue_module

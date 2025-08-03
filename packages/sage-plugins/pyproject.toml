@@ -70,8 +70,8 @@ full = ["llm", "embedding", "storage", "network"]
 
 # 开发依赖
 dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
+    "pytest",
+    #     "pytest-cov>=4.0.0" # Coverage disabled,
     "pytest-asyncio>=0.21.0",
     "black>=23.0.0",
     "isort>=5.12.0",
@@ -81,8 +81,8 @@ dev = [
 
 # 测试依赖
 test = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
+    "pytest",
+    #     "pytest-cov>=4.0.0" # Coverage disabled,
     "pytest-asyncio>=0.21.0",
     "pytest-mock>=3.10.0",
     "pytest-plugin>=1.0.0",
@@ -115,9 +115,9 @@ namespaces = false
 testpaths = ["tests", "src"]
 python_files = ["test_*.py", "*_test.py"]
 addopts = [
-    "--cov=sage.plugins",
-    "--cov-report=term-missing",
-    "--cov-report=html",
+    #     "--cov=sage.plugins" # Coverage disabled,
+    #     "--cov-report=term-missing" # Coverage disabled,
+    #     "--cov-report=html" # Coverage disabled,
 #    "--cov-report=xml",
 ]
 

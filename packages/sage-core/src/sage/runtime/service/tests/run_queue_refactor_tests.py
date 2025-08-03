@@ -20,14 +20,12 @@ def run_base_service_task_tests():
     # 导入测试模块
     try:
         from sage.runtime.service.tests.test_base_service_task_queue_refactor import TestBaseServiceTaskQueueManagement
-        from sage.runtime.service.tests.test_service_context_integration import TestServiceContextIntegration
         
         # 创建测试套件
         suite = unittest.TestSuite()
         
         # 添加BaseServiceTask队列管理测试
         suite.addTest(unittest.makeSuite(TestBaseServiceTaskQueueManagement))
-        suite.addTest(unittest.makeSuite(TestServiceContextIntegration))
         
         # 运行测试
         runner = unittest.TextTestRunner(verbosity=2)

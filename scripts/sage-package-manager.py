@@ -150,7 +150,7 @@ class SagePackageManager:
                 # 先安装关键的开发工具，不依赖工作空间配置
                 essential_dev_deps = [
                     'tqdm>=4.60.0',
-                    'pytest>=7.0.0', 
+                    'pytest', 
                     'pytest-cov>=4.0.0',
                     'pytest-asyncio>=0.21.0',
                     'black>=23.0.0',

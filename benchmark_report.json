@@ -1,0 +1,286 @@
+{
+  "Python线程队列": {
+    "single_thread": {
+      "queue_type": "python",
+      "num_items": 5000,
+      "write_duration": 0.0034394264221191406,
+      "read_duration": 0.0033714771270751953,
+      "write_throughput": 1453730.7638985165,
+      "read_throughput": 1483029.4887207411,
+      "total_duration": 0.006810903549194336,
+      "memory_delta_mb": 0.0,
+      "memory_before": {
+        "rss_mb": 627.03515625,
+        "vms_mb": 13563.58984375,
+        "percent": 1.3056761419511327
+      },
+      "memory_after": {
+        "rss_mb": 627.03515625,
+        "vms_mb": 13563.58984375,
+        "percent": 1.3056761419511327
+      }
+    },
+    "multi_thread": {
+      "queue_type": "python",
+      "num_threads": 4,
+      "items_per_thread": 1250,
+      "total_items": 5000,
+      "producer_duration": 0.006568431854248047,
+      "consumer_duration": 0.010037422180175781,
+      "total_consumed": 5000,
+      "avg_producer_throughput": 1260263.4449848887,
+      "max_producer_throughput": 1370687.5816993464,
+      "avg_consumer_throughput": 1333206.3940939782,
+      "max_consumer_throughput": 1402589.62011771,
+      "memory_delta_mb": 0.00390625,
+      "producer_results": [
+        {
+          "thread_id": 0,
+          "duration": 0.0009818077087402344,
+          "throughput": 1273161.7289946575
+        },
+        {
+          "thread_id": 1,
+          "duration": 0.0009119510650634766,
+          "throughput": 1370687.5816993464
+        },
+        {
+          "thread_id": 2,
+          "duration": 0.0009450912475585938,
+          "throughput": 1322623.6125126134
+        },
+        {
+          "thread_id": 3,
+          "duration": 0.0011632442474365234,
+          "throughput": 1074580.856732937
+        }
+      ],
+      "consumer_results": [
+        {
+          "thread_id": 2,
+          "duration": 0.0009257793426513672,
+          "consumed": 1250,
+          "throughput": 1350213.7522534123
+        },
+        {
+          "thread_id": 1,
+          "duration": 0.0008912086486816406,
+          "consumed": 1250,
+          "throughput": 1402589.62011771
+        },
+        {
+          "thread_id": 0,
+          "duration": 0.0009248256683349609,
+          "consumed": 1250,
+          "throughput": 1351606.084042279
+        },
+        {
+          "thread_id": 3,
+          "duration": 0.0010175704956054688,
+          "consumed": 1250,
+          "throughput": 1228416.1199625118
+        }
+      ]
+    },
+    "latency": {
+      "queue_type": "python",
+      "num_samples": 500,
+      "avg_latency_ms": 0.0015732619649497792,
+      "median_latency_ms": 0.0014140005077933893,
+      "min_latency_ms": 0.001186999725177884,
+      "max_latency_ms": 0.046928002120694146,
+      "p95_latency_ms": 0.0016839985619299114,
+      "p99_latency_ms": 0.003079570633417461,
+      "stddev_latency_ms": 0.002113957280907831
+    },
+    "queue_size": {
+      "queue_type": "python",
+      "max_size": 50000,
+      "step_size": 10000,
+      "size_results": [
+        {
+          "queue_size": 10000,
+          "fill_duration": 0.00966954231262207,
+          "fill_throughput": 1034175.1115713686,
+          "read_duration": 0.0007383823394775391,
+          "read_throughput": 1354311.9147562156,
+          "memory_mb": 627.0390625
+        },
+        {
+          "queue_size": 20000,
+          "fill_duration": 0.020745515823364258,
+          "fill_throughput": 964063.7605874984,
+          "read_duration": 0.0006184577941894531,
+          "read_throughput": 1616925.2120277563,
+          "memory_mb": 627.8125
+        },
+        {
+          "queue_size": 30000,
+          "fill_duration": 0.030867815017700195,
+          "fill_throughput": 971886.0885617407,
+          "read_duration": 0.0007901191711425781,
+          "read_throughput": 1265631.8648159325,
+          "memory_mb": 628.328125
+        },
+        {
+          "queue_size": 40000,
+          "fill_duration": 0.04422736167907715,
+          "fill_throughput": 904417.5026818974,
+          "read_duration": 0.0007598400115966797,
+          "read_throughput": 1316066.520238469,
+          "memory_mb": 629.1015625
+        },
+        {
+          "queue_size": 50000,
+          "fill_duration": 0.05275368690490723,
+          "fill_throughput": 947801.0530359524,
+          "read_duration": 0.0017855167388916016,
+          "read_throughput": 560061.957537722,
+          "memory_mb": 629.875
+        }
+      ]
+    }
+  },
+  "Python多进程队列": {
+    "single_thread": {
+      "queue_type": "python",
+      "num_items": 5000,
+      "write_duration": 0.003760099411010742,
+      "read_duration": 0.0030045509338378906,
+      "write_throughput": 1329752.0765962843,
+      "read_throughput": 1664142.199650849,
+      "total_duration": 0.006764650344848633,
+      "memory_delta_mb": 0.0,
+      "memory_before": {
+        "rss_mb": 629.875,
+        "vms_mb": 13565.58984375,
+        "percent": 1.3115895523784191
+      },
+      "memory_after": {
+        "rss_mb": 629.875,
+        "vms_mb": 13565.58984375,
+        "percent": 1.3115895523784191
+      }
+    },
+    "multi_thread": {
+      "queue_type": "python",
+      "num_threads": 4,
+      "items_per_thread": 1250,
+      "total_items": 5000,
+      "producer_duration": 0.006043672561645508,
+      "consumer_duration": 0.009080648422241211,
+      "total_consumed": 5000,
+      "avg_producer_throughput": 1053455.4550910154,
+      "max_producer_throughput": 1155328.338475099,
+      "avg_consumer_throughput": 1271102.595435774,
+      "max_consumer_throughput": 1353350.5420753744,
+      "memory_delta_mb": 0.0,
+      "producer_results": [
+        {
+          "thread_id": 1,
+          "duration": 0.0010819435119628906,
+          "throughput": 1155328.338475099
+        },
+        {
+          "thread_id": 0,
+          "duration": 0.0011262893676757812,
+          "throughput": 1109839.1193903473
+        },
+        {
+          "thread_id": 2,
+          "duration": 0.0012710094451904297,
+          "throughput": 983470.268242356
+        },
+        {
+          "thread_id": 3,
+          "duration": 0.0012950897216796875,
+          "throughput": 965184.0942562592
+        }
+      ],
+      "consumer_results": [
+        {
+          "thread_id": 2,
+          "duration": 0.0009679794311523438,
+          "consumed": 1250,
+          "throughput": 1291349.7536945813
+        },
+        {
+          "thread_id": 0,
+          "duration": 0.0010628700256347656,
+          "consumed": 1250,
+          "throughput": 1176061.0139075818
+        },
+        {
+          "thread_id": 1,
+          "duration": 0.0009891986846923828,
+          "consumed": 1250,
+          "throughput": 1263649.072065558
+        },
+        {
+          "thread_id": 3,
+          "duration": 0.0009236335754394531,
+          "consumed": 1250,
+          "throughput": 1353350.5420753744
+        }
+      ]
+    },
+    "latency": {
+      "queue_type": "python",
+      "num_samples": 500,
+      "avg_latency_ms": 0.001543488004244864,
+      "median_latency_ms": 0.0014159995771478862,
+      "min_latency_ms": 0.0012809978215955198,
+      "max_latency_ms": 0.012166998203611001,
+      "p95_latency_ms": 0.001799899291654583,
+      "p99_latency_ms": 0.0038565327849937603,
+      "stddev_latency_ms": 0.0007004670659343429
+    },
+    "queue_size": {
+      "queue_type": "python",
+      "max_size": 50000,
+      "step_size": 10000,
+      "size_results": [
+        {
+          "queue_size": 10000,
+          "fill_duration": 0.010317564010620117,
+          "fill_throughput": 969221.0283073368,
+          "read_duration": 0.0005595684051513672,
+          "read_throughput": 1787091.6063059224,
+          "memory_mb": 629.875
+        },
+        {
+          "queue_size": 20000,
+          "fill_duration": 0.020151853561401367,
+          "fill_throughput": 992464.5362800658,
+          "read_duration": 0.0005941390991210938,
+          "read_throughput": 1683107.544141252,
+          "memory_mb": 629.875
+        },
+        {
+          "queue_size": 30000,
+          "fill_duration": 0.03679490089416504,
+          "fill_throughput": 815330.3656474156,
+          "read_duration": 0.00080108642578125,
+          "read_throughput": 1248304.761904762,
+          "memory_mb": 629.875
+        },
+        {
+          "queue_size": 40000,
+          "fill_duration": 0.042548179626464844,
+          "fill_throughput": 940110.7250924577,
+          "read_duration": 0.0006773471832275391,
+          "read_throughput": 1476347.7648715242,
+          "memory_mb": 629.875
+        },
+        {
+          "queue_size": 50000,
+          "fill_duration": 0.05618548393249512,
+          "fill_throughput": 889909.5727300888,
+          "read_duration": 0.00080108642578125,
+          "read_throughput": 1248304.761904762,
+          "memory_mb": 629.875
+        }
+      ]
+    }
+  }
+}

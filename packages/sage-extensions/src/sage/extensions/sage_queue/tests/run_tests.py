@@ -54,7 +54,7 @@ class SageQueueTestRunner:
     def check_sage_queue(self) -> bool:
         """Check if SAGE Queue is available"""
         try:
-            from sage_queue import SageQueue, SageQueueManager
+            from sage.extensions.sage_queue import SageQueue, SageQueueManager
             print("✓ SAGE Queue modules available")
             return True
         except ImportError as e:

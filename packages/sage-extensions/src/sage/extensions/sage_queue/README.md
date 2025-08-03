@@ -90,7 +90,7 @@ chmod +x build.sh
 ### 基本使用
 
 ```python
-from sage_ext.sage_queue.python.sage_queue import SageQueue
+from sage.extensions.sage_queue.python.sage_queue import SageQueue
 
 # 创建队列
 queue = SageQueue("my_queue", maxsize=64*1024)
@@ -115,7 +115,7 @@ queue.close()
 
 ```python
 import ray
-from sage_ext.sage_queue.python.sage_queue import SageQueue
+from sage.extensions.sage_queue.python.sage_queue import SageQueue
 
 @ray.remote
 class Producer:

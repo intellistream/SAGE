@@ -1,0 +1,42 @@
+# pytest 忽略文件 - 第三方依赖和构建目录
+# 这个文件告诉pytest忽略哪些目录和文件
+
+# 构建目录
+build/
+**/build/
+dist/
+**/dist/
+
+# 第三方依赖
+_deps/
+**/_deps/
+third_party/
+**/third_party/
+external/
+**/external/
+vendor/
+**/vendor/
+
+# pybind11 依赖特定
+**/pybind11-src/
+**/pybind11**/tests/
+
+# CMake 构建产物
+CMakeFiles/
+**/CMakeFiles/
+CMakeCache.txt
+**/CMakeCache.txt
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# C++ 编译产物
+*.so
+*.dylib
+*.dll
+*.a
+*.o

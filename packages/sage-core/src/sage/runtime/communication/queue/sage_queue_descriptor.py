@@ -79,7 +79,7 @@ class SageQueueDescriptor(BaseQueueDescriptor):
         """创建SAGE队列实例"""
         try:
             # 动态导入 SAGE Queue，避免循环依赖
-            from sage_ext.sage_queue.python.sage_queue import SageQueue
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
             import threading
             
             # 检查是否在主线程中
@@ -100,23 +100,7 @@ class SageQueueDescriptor(BaseQueueDescriptor):
         except ImportError as e:
             self.logger.error(f"Failed to import SageQueue: {e}")
             raise RuntimeError(f"SAGE Queue not available: {e}")
-        except Exception as e:
-            self.logger.error(f"Failed to initialize SAGE Queue: {e}")
-            # 如果是信号相关错误，尝试使用Mock队列
-            if "signal only works in main thread" in str(e):
-                self.logger.warning(f"Signal handling error, attempting fallback to Mock queue")
-                try:
-                    from sage_ext.sage_queue.tests.mock_sage_queue import MockSageQueue
-                    mock_queue = MockSageQueue(
-                        name=self.queue_id,
-                        maxsize=self.maxsize
-                    )
-                    self.logger.info(f"Using Mock SAGE Queue as fallback: {self.queue_id}")
-                    return mock_queue
-                except ImportError:
-                    self.logger.error("Mock SAGE Queue not available")
-            raise
-    
+
     def get_stats(self) -> Dict[str, Any]:
         """获取队列统计信息"""
         if self._initialized and hasattr(self._queue_instance, 'get_stats'):

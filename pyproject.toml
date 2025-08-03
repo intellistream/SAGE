@@ -58,8 +58,8 @@ full = [
 
 # 开发环境
 dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
+    "pytest",
+    # "pytest-cov>=4.0.0",  # Coverage disabled
     "pytest-asyncio>=0.21.0",
     "black>=23.0.0",
     "isort>=5.12.0", 
@@ -157,26 +157,7 @@ testpaths = [
 ]
 python_files = ["test_*.py", "*_test.py"]
 addopts = [
-    "--cov=sage",
-    "--cov-report=term-missing",
     "-v",
 ]
 
-[tool.coverage.run]
-source = [
-    "packages/sage-core/src",
-    "packages/sage-utils/src", 
-    "packages/sage-lib/src",
-    "packages/sage-extensions/src",
-    "packages/sage-plugins/src",
-    "packages/sage-service/src",
-    "packages/sage-cli/src",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-]
+# Coverage sections completely removed
