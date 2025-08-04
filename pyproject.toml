@@ -148,7 +148,7 @@ src_paths = [
     "packages/sage-extensions/src",
     "packages/sage-plugins/src",
     "packages/sage-service/src",
-    "packages/sage-cli/src",
+    "packages/tools/sage-cli/src",
 ]
 
 [tool.mypy]
@@ -164,7 +164,7 @@ mypy_path = [
     "packages/sage-extensions/src", 
     "packages/sage-plugins/src",
     "packages/sage-service/src",
-    "packages/sage-cli/src",
+    "packages/tools/sage-cli/src",
 ]
 
 [[tool.mypy.overrides]]
@@ -179,7 +179,7 @@ testpaths = [
     "packages/sage-extensions/tests",
     "packages/sage-plugins/tests", 
     "packages/sage-service/tests",
-    "packages/sage-cli/tests",
+    "packages/tools/sage-cli/tests",
     "tests",
 ]
 python_files = ["test_*.py", "*_test.py"]

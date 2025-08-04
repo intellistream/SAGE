@@ -234,11 +234,11 @@ src_paths = [
     "packages/sage-core/src",
     "packages/sage-utils/src", 
     "packages/sage-extensions/src",
-    "packages/sage-cli/src",
+    "packages/tools/sage-cli/src",
     "packages/sage-lib/src",
     "packages/sage-plugins/src",
     "packages/sage-service/src",
-    "packages/sage-frontend"
+    "packages/tools/sage-frontend"
 ]
 
 [tool.mypy]
@@ -252,11 +252,11 @@ mypy_path = [
     "packages/sage-core/src",
     "packages/sage-utils/src",
     "packages/sage-extensions/src",
-    "packages/sage-cli/src",
+    "packages/tools/sage-cli/src",
     "packages/sage-lib/src",
     "packages/sage-plugins/src",
     "packages/sage-service/src",
-    "packages/sage-frontend"
+    "packages/tools/sage-frontend"
 ]
 
 # 每个包的具体配置
@@ -270,11 +270,11 @@ testpaths = [
     "packages/sage-core/tests",
     "packages/sage-utils/tests",
     "packages/sage-extensions/tests", 
-    "packages/sage-cli/tests",
+    "packages/tools/sage-cli/tests",
     "packages/sage-lib/tests",
     "packages/sage-plugins/tests",
     "packages/sage-service/tests",
-    "packages/sage-frontend/tests",
+    "packages/tools/sage-frontend/tests",
     "tests"  # 集成测试
 ]
 python_files = ["test_*.py", "*_test.py"]
