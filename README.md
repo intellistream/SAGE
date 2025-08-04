@@ -70,6 +70,7 @@ SAGE provides two primary installation methods, tailored for different use cases
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 For users who want to use SAGE in their projects, the recommended installation method is via PyPI. This ensures you get a stable, tested version of the framework.
 =======
 SAGE 使用 Monorepo 架构，包含多个独立的子包。**重要：需要两步安装过程**
@@ -84,6 +85,9 @@ SAGE 使用 Monorepo 架构，包含多个独立的子包。**重要：需要两
 
 #### 方式1: 标准安装 (推荐)
 >>>>>>> 8edc6b2 (再试试安装)
+=======
+For users who want to use SAGE in their projects, the recommended installation method is via PyPI. This ensures you get a stable, tested version of the framework.
+>>>>>>> 42a3e65 (使用install_packages.sh)
 
 ```bash
 # Install the complete SAGE framework (metapackage)
@@ -105,6 +109,7 @@ For developers who want to contribute to SAGE or work with the latest source cod
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -159,12 +164,21 @@ pip install . && pip install -r requirements-subpackages.txt
 
 ```bash
 # 运行自动安装脚本 (包含详细输出)
+=======
+# 2. Run the installation script
+# This script will install all sub-packages in editable mode.
+>>>>>>> 42a3e65 (使用install_packages.sh)
 ./install_packages.sh
 ```
 
-#### 方式3: 手动逐个安装
+This script iterates through all the sub-packages (`sage-kernel`, `sage-middleware`, `dev-toolkit`, etc.) and installs them using `pip install -e`. This "editable" installation means that any changes you make to the source code will be immediately effective without needing to reinstall.
+
+### ✅ Verifying Your Local Installation
+
+After running the script, you can verify that all packages are installed correctly:
 
 ```bash
+<<<<<<< HEAD
 # 先安装工作空间包
 pip install .
 
@@ -241,21 +255,19 @@ sage --version
 **解决方案：**
 ```bash
 # 运行验证脚本检查安装状态
+=======
+# Run the verification script
+>>>>>>> 42a3e65 (使用install_packages.sh)
 python verify_installation.py
-
-# 重新安装所有子包
-./install_packages.sh
 ```
 
-#### 问题：包版本显示为 "UNKNOWN"
+This will check if all core components of SAGE are importable and ready to use.
 
-**原因：** 使用了简化的安装方式，这是正常的。
+### 🔧 Troubleshooting
 
-**解决方案：** 这不影响功能，但如果需要正确的版本信息，请使用：
-```bash
-pip install -r requirements-subpackages.txt
-```
+If you encounter any issues, here are some common solutions:
 
+<<<<<<< HEAD
 **包含的子包：**
 - `sage-kernel`: 统一内核层 (Core + Runtime + Utils + CLI集成)
 - `sage-middleware`: 中间件层 (LLM服务、数据库、内存管理)
@@ -305,6 +317,20 @@ After running the script, you can verify that all packages are installed correct
 >>>>>>> 42a3e65 (使用install_packages.sh)
 python verify_installation.py
 ```
+=======
+#### Problem: `sage` command not found after installation.
+**Reason:** The shell hasn't recognized the new command.
+**Solution:**
+1. Open a new terminal window.
+2. If that doesn't work, ensure that your user's local bin directory (e.g., `~/.local/bin` on Linux) is in your shell's `PATH`.
+
+#### Problem: `ImportError: No module named 'sage.xxx'`
+**Reason:** The sub-packages were not installed correctly.
+**Solution:**
+1. Make sure you did **not** run `pip install .` from the root.
+2. Rerun the installation script: `./install_packages.sh`.
+3. Run the verification script to confirm: `python verify_installation.py`.
+>>>>>>> 42a3e65 (使用install_packages.sh)
 
 This will check if all core components of SAGE are importable and ready to use.
 
