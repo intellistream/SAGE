@@ -27,7 +27,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "sage-kernel>=1.0.0",  
+    "sage-kernel",  
     
     # 服务层专用依赖
     "python-jose[cryptography]>=3.3.0", # JWT 处理
