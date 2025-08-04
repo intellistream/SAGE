@@ -25,45 +25,21 @@ classifiers = [
 ]
 
 dependencies = [
-    "numpy>=1.21.0",
+    # 基础工具和配置 - 保持最小依赖集
     "pydantic>=2.0.0",
-    "typing-extensions>=4.0.0",
-    "rich>=13.0.0",
-    "PyYAML>=6.0",
+    "PyYAML>=6.0.2",
+    "rich>=13.0.0", 
     "click>=8.0.0",
+    "typing-extensions>=4.0.0",
     "pathlib-abc>=0.1.0",
     "pipmaster>=0.1.0",
 ]
 
 [project.optional-dependencies]
-# 开发依赖
-dev = [
-    "pytest",
-    #     "pytest-cov>=4.0.0" # Coverage disabled,
-    "pytest-asyncio>=0.21.0",
-    "black>=23.0.0",
-    "isort>=5.12.0",
-    "mypy>=1.0.0",
-    "ruff>=0.1.0",
-]
-
-# 测试依赖
-test = [
-    "pytest",
-    #     "pytest-cov>=4.0.0" # Coverage disabled,
-    "pytest-mock>=3.10.0",
-    "pytest-xdist>=3.0.0",
-]
-
-# 性能测试
+# 性能测试专用
 benchmark = [
     "pytest-benchmark>=4.0.0",
     "memory-profiler>=0.60.0",
-]
-
-# 完整开发环境
-full = [
-    "sage-utils[dev,test,benchmark]",
 ]
 
 [project.urls]

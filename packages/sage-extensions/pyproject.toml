@@ -34,35 +34,33 @@ classifiers = [
 ]
 
 dependencies = [
-    "sage-core",  # 依赖核心包
-    "sage-utils", # 依赖工具包
-    "numpy>=1.21.0",
-    "pybind11>=2.10.0",
+    "sage-core",  # 通过 sage-core 获取 numpy, pybind11 等依赖
+    "sage-utils", # 基础工具
+    
+    # C++扩展构建专用依赖
+    "cmake-build-extension>=0.5.0",     # CMake 构建支持
+    "setuptools-cpp>=0.1.0",           # C++ setuptools 扩展
 ]
 
 [project.optional-dependencies]
-# 开发依赖
-dev = [
-    "pytest",
-    #     "pytest-cov>=4.0.0" # Coverage disabled,
-    "cmake>=3.18",
-    "ninja",
-    "pybind11-stubgen>=0.10.0",
-]
-
-# 测试依赖
-test = [
-    "pytest",
-    #     "pytest-cov>=4.0.0" # Coverage disabled,
+# 性能分析和基准测试
+benchmark = [
     "pytest-benchmark>=4.0.0",
+    "memory-profiler>=0.60.0",
+    "line-profiler>=4.0.0",
 ]
 
-# 构建依赖（在 build-system 之外额外声明）
-build = [
+# 高性能计算扩展
+hpc = [
+    "numba>=0.58.0",       # JIT 编译
+    "cython>=3.0.0",       # C 扩展优化
+]
+
+# 构建时工具（开发时需要）
+build-tools = [
     "cmake>=3.18",
     "ninja; platform_system!='Windows'",
-    "pybind11>=2.10.0",
-    "faiss-cpu",
+    "pybind11-stubgen>=0.10.0",  # 生成类型存根
 ]
 
 [project.urls]

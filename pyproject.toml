@@ -29,46 +29,73 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-# 基础安装 - 只包含核心包
-basic = [
-    "sage-utils",
-    "sage-core",
-    "sage-lib",
-]
+# 按功能分层的安装选项
+minimal = ["sage-utils"]
+core = ["sage-utils", "sage-core"]
+standard = ["sage-utils", "sage-core", "sage-lib"]
+extended = ["sage-utils", "sage-core", "sage-lib", "sage-extensions"]
+plugins = ["sage-utils", "sage-core", "sage-plugins"]
+services = ["sage-utils", "sage-core", "sage-lib", "sage-service"]
+cli = ["sage-utils", "sage-core", "sage-cli"]
 
-# 扩展安装 - 包含性能扩展
-extended = [
-    "sage-utils",
-    "sage-core", 
-    "sage-lib",
-    "sage-extensions",
-    "sage-plugins",
-]
-
-# 完整安装 - 包含所有包
+# 组合安装选项
 full = [
-    "sage-utils",
-    "sage-core",
-    "sage-lib", 
-    "sage-extensions",
-    "sage-plugins",
-    "sage-service",
-    "sage-cli",
+    "sage-utils", "sage-core", "sage-lib", 
+    "sage-extensions", "sage-plugins", "sage-service", "sage-cli"
 ]
 
-# 开发环境
+# 统一的开发环境配置
 dev = [
-    "pytest",
-    # "pytest-cov>=4.0.0",  # Coverage disabled
-    "pytest-asyncio>=0.21.0",
+    # 测试框架
+    "pytest>=7.4.4",
+    "pytest-asyncio>=0.21.0", 
+    "pytest-mock>=3.10.0",
+    "pytest-benchmark>=4.0.0",
+    "pytest-xdist>=3.0.0",
+    "pytest-timeout>=2.1.0",
+    
+    # 代码质量工具
     "black>=23.0.0",
-    "isort>=5.12.0", 
-    "mypy>=1.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0", 
     "ruff>=0.1.0",
     "pre-commit>=3.0.0",
+    
+    # 构建和发布工具
     "build>=0.10.0",
+    "wheel>=0.40.0",
     "tqdm>=4.60.0",
-    "pipmaster>=0.1.0",
+    "pipmaster>=0.5.1",
+]
+
+# 测试环境（最小测试依赖集）
+test = [
+    "pytest>=7.4.4",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.10.0",
+]
+
+# 性能分析工具
+profile = [
+    "py-spy>=0.3.0",
+    "memory-profiler>=0.60.0", 
+    "line-profiler>=4.0.0",
+    "pytest-benchmark>=4.0.0",
+]
+
+# 版本约束（用于统一管理关键依赖版本）
+constraints = [
+    "numpy==2.2.6",
+    "pydantic==2.10.4", 
+    "PyYAML==6.0.2",
+    "rich==13.9.4",
+    "torch==2.4.0",
+    "transformers==4.45.2",
+    "sentence-transformers==3.1.1",
+    "faiss-cpu==1.9.0",
+    "httpx==0.28.1",
+    "fastapi==0.115.12",
+    "pytest==7.4.4",
 ]
 
 [project.urls]

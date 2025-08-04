@@ -118,16 +118,6 @@ dependencies = [
     "typeguard==4.3.0",
     "tenacity==9.0.0",
     
-    # Development and testing (moved to optional-dependencies but keeping some core ones)
-    "pytest==7.4.4",
-    "pytest-mock",
-    "datasets",
-    "execnet",
-    "pytest-asyncio",
-    "pytest-benchmark",
-    "pytest-xdist",
-
-
     # Legacy dependencies to maintain compatibility
     "aiofiles>=0.8.0",
     "ascii_colors>=0.10.0",
@@ -145,28 +135,6 @@ plugins = ["sage-plugins"]
 service = ["sage-service"]
 # 完整功能
 full = ["sage-extensions", "sage-plugins", "sage-service"]
-
-# 开发依赖
-dev = [
-    "pytest>=7.0.0",
-    #     "pytest-cov>=4.0.0" # Coverage disabled,
-    "pytest-asyncio>=0.21.0",
-    "pytest-mock>=3.10.0",
-    "black>=23.0.0",
-    "isort>=5.12.0",
-    "mypy>=1.0.0",
-    "ruff>=0.1.0",
-    "pre-commit>=3.0.0",
-    "build>=0.10.0",
-]
-
-# 测试依赖
-test = [
-    "pytest",
-    #     "pytest-cov>=4.0.0" # Coverage disabled,
-    "pytest-asyncio>=0.21.0",
-    "pytest-mock>=3.10.0",
-]
 
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"

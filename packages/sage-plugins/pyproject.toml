@@ -26,13 +26,14 @@ classifiers = [
 ]
 
 dependencies = [
-    "sage-core",  # 依赖核心包
-    "sage-utils", # 依赖工具包
-    "pydantic>=2.0.0",
-    "rich>=13.0.0",
-    "PyYAML>=6.0",
-    "importlib-metadata>=4.0.0",
-    "stevedore>=5.0.0",  # 插件管理
+    "sage-core",  # 通过 sage-core 获取 pydantic, rich, PyYAML 等依赖
+    "sage-utils", # 基础工具
+    
+    # 插件系统专用依赖
+    "importlib-metadata>=4.0.0",        # 元数据管理
+    "stevedore>=5.0.0",                 # 插件管理框架
+    "pluggy>=1.0.0",                    # 插件钩子系统
+    "entrypoints>=0.4",                 # 入口点管理
 ]
 
 [project.optional-dependencies]
@@ -66,27 +67,7 @@ network = [
 ]
 
 # 完整插件套装
-full = ["llm", "embedding", "storage", "network"]
-
-# 开发依赖
-dev = [
-    "pytest",
-    #     "pytest-cov>=4.0.0" # Coverage disabled,
-    "pytest-asyncio>=0.21.0",
-    "black>=23.0.0",
-    "isort>=5.12.0",
-    "mypy>=1.0.0",
-    "ruff>=0.1.0",
-]
-
-# 测试依赖
-test = [
-    "pytest",
-    #     "pytest-cov>=4.0.0" # Coverage disabled,
-    "pytest-asyncio>=0.21.0",
-    "pytest-mock>=3.10.0",
-    "pytest-plugin>=1.0.0",
-]
+full = ["sage-plugins[llm,embedding,storage,network]"]
 
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
