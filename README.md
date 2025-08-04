@@ -175,7 +175,7 @@ sage doctor
 python quick_install.py --check
 
 # 运行示例来测试安装
-python app/qa_dense_retrieval.py
+python sage-examples/rag/qa_dense_retrieval.py
 ```
 
 ### 🔧 故障排除
@@ -520,7 +520,7 @@ For production deployments, SAGE provides:
 - **Monitoring and observability** via built-in dashboard
 - **Auto-scaling** based on workload demands
 
-See more comprehensive examples under [app/](./app/) directory.
+See more comprehensive examples under [sage-examples/](./sage-examples/) directory.
 
 ## 🧩 Components
 
@@ -784,7 +784,7 @@ SAGE is licensed under the [MIT License](./LICENSE).
 - **Documentation**: [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
 - **Source Repository**: [https://github.com/intellistream/SAGE-Pub](https://github.com/intellistream/SAGE-Pub)
 - **Installation Guide**: [INSTALL_GUIDE.md](INSTALL_GUIDE.md)
-- **API Examples**: [app/](./app/) directory
+- **SAGE Examples**: [sage-examples/](./sage-examples/) directory
 - **Configuration Samples**: [config/](./config/) directory
 
 ## 🤝 Contributing
