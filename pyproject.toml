@@ -26,12 +26,16 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
-# 这是一个虚拟包，用于工作空间管理
+# Monorepo 工作空间配置 - 通过脚本安装所有子包
 # 新的三层架构：
 # - sage-kernel: 统一内核层 (Core + Runtime + Utils + CLI集成)
 # - sage-middleware: 中间件层 (LLM服务、数据库、内存管理)
 # - sage-userspace: 用户空间层 (RAG算子、插件、高级功能)
 # - sage-cli: 独立的命令行工具包
+# - sage-dev-toolkit: 开发工具包
+#
+# 注意：使用 pip install . 会运行 setup.py 自动安装所有子包
+# 或者直接运行: ./install_packages.sh
 dependencies = []
 
 [project.optional-dependencies]
@@ -40,6 +44,9 @@ minimal = ["sage-kernel"]                                    # 最小安装：�
 core = ["sage-kernel", "sage-middleware"]                   # 核心安装：内核 + 中间件
 standard = ["sage-kernel", "sage-middleware", "sage-userspace"]  # 标准安装：完整开源版
 cli = ["sage-kernel", "sage-middleware", "sage-userspace", "sage-cli"]  # 包含CLI工具
+
+# 开发工具包
+dev-toolkit = ["sage-dev-toolkit"]                          # 开发工具包
 
 # 商业版选项
 commercial-kernel = ["sage-kernel-commercial"]
@@ -67,16 +74,30 @@ professional = [
     "sage-kernel-commercial", "sage-middleware-commercial"
 ]
 
+# 开发者完整安装选项
+developer = [
+    "sage-kernel", "sage-middleware", "sage-userspace", "sage-cli", "sage-dev-toolkit"
+]
+developer-enterprise = [
+    "sage-kernel", "sage-middleware", "sage-userspace", "sage-cli", "sage-dev-toolkit",
+    "sage-kernel-commercial", "sage-middleware-commercial", "sage-userspace-commercial"
+]
+
 # 安装示例:
 # pip install sage-workspace[minimal]     # 仅内核
 # pip install sage-workspace[core]        # 内核 + 中间件  
 # pip install sage-workspace[standard]    # 完整开源版
 # pip install sage-workspace[community]   # 社区版 (与standard相同)
 # pip install sage-workspace[full]        # 开源版 + CLI工具
+# pip install sage-workspace[dev-toolkit] # 仅开发工具包
+# pip install sage-workspace[developer]   # 开发者版 (开源版 + CLI + 开发工具)
 # pip install sage-workspace[enterprise]  # 企业版 (需要商业许可)
 
 # 统一的开发环境配置
 dev = [
+    # SAGE 开发工具包
+    "sage-dev-toolkit",
+    
     # 测试框架
     "pytest>=7.4.4",
     "pytest-asyncio>=0.21.0", 
@@ -135,10 +156,18 @@ Repository = "https://github.com/intellistream/SAGE.git"
 Documentation = "https://sage-docs.intellistream.cc"
 
 [tool.setuptools]
-# 由于这是一个工作空间级别的虚拟包，我们不包含任何 Python 包
+# Monorepo 工作空间包配置 - 支持子包安装
 py-modules = []
 
+# 配置子包的相对路径安装
+[tool.setuptools.package-dir]
+"" = "."
+
+# 定义包发现规则，指向实际的子包
 [tool.setuptools.packages.find]
+# 不在这里查找包，而是通过依赖关系安装子包
+where = ["."]
+include = []  # 空列表，因为我们通过 dependencies 安装子包
 exclude = [
     "app*",
     "data*", 
@@ -146,6 +175,7 @@ exclude = [
     "archive*",
     "test_env*",
     "packages*",
+    "dev-toolkit*",
     "test_logs*",
     "test_reports*",
     "htmlcov*",
@@ -164,6 +194,8 @@ extend-exclude = '''
     | dist
     | packages/.*/build
     | packages/.*/dist
+    | dev-toolkit/build
+    | dev-toolkit/dist
 )/
 '''
 
@@ -171,12 +203,13 @@ extend-exclude = '''
 profile = "black"
 multi_line_output = 3
 line_length = 88
-known_first_party = ["sage"]
+known_first_party = ["sage", "sage_dev_toolkit"]
 src_paths = [
     "packages/sage-kernel/src",
     "packages/sage-middleware/src",
     "packages/sage-userspace/src", 
     "packages/tools/sage-cli/src",
+    "dev-toolkit/src",
 ]
 
 [tool.mypy]
@@ -190,10 +223,11 @@ mypy_path = [
     "packages/sage-middleware/src",
     "packages/sage-userspace/src",
     "packages/tools/sage-cli/src",
+    "dev-toolkit/src",
 ]
 
 [[tool.mypy.overrides]]
-module = "sage.*"
+module = ["sage.*", "sage_dev_toolkit.*"]
 ignore_missing_imports = false
 
 [tool.pytest.ini_options]
@@ -202,6 +236,7 @@ testpaths = [
     "packages/sage-middleware/tests",
     "packages/sage-userspace/tests",
     "packages/tools/sage-cli/tests",
+    "dev-toolkit/tests",
     "tests",
 ]
 python_files = ["test_*.py", "*_test.py"]

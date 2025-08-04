@@ -30,29 +30,48 @@ def get_project_sage_dir(project_name: str = "SAGE") -> Path:
     return project_dir
 
 
+def _get_sage_dir_for_project(project_name: str = "SAGE") -> Path:
+    """Get the appropriate SAGE directory for a project.
+    
+    For the main SAGE project, returns ~/.sage directly.
+    For other projects, returns ~/.sage/projects/<project_name>.
+    """
+    if project_name and project_name.upper() == "SAGE":
+        sage_dir = get_sage_home_dir()
+    else:
+        sage_dir = get_project_sage_dir(project_name)
+    
+    # Ensure subdirectories exist
+    subdirs = ['logs', 'reports', 'cache', 'temp', 'coverage']
+    for subdir in subdirs:
+        (sage_dir / subdir).mkdir(exist_ok=True)
+    
+    return sage_dir
+
+
 def get_logs_dir(project_name: str = "SAGE") -> Path:
     """Get the logs directory within project SAGE home."""
-    return get_project_sage_dir(project_name) / 'logs'
+    return _get_sage_dir_for_project(project_name) / 'logs'
 
 
 def get_reports_dir(project_name: str = "SAGE") -> Path:
     """Get the reports directory within project SAGE home."""
-    return get_project_sage_dir(project_name) / 'reports'
+    return _get_sage_dir_for_project(project_name) / 'reports'
 
 
 def get_cache_dir(project_name: str = "SAGE") -> Path:
     """Get the cache directory within project SAGE home."""
-    return get_project_sage_dir(project_name) / 'cache'
+    return _get_sage_dir_for_project(project_name) / 'cache'
 
 
 def get_temp_dir(project_name: str = "SAGE") -> Path:
     """Get the temporary files directory within project SAGE home."""
-    return get_project_sage_dir(project_name) / 'temp'
+    return _get_sage_dir_for_project(project_name) / 'temp'
 
 
 def get_coverage_dir(project_name: str = "SAGE") -> Path:
     """Get the coverage reports directory within project SAGE home."""
-    return get_project_sage_dir(project_name) / 'coverage'
+    return _get_sage_dir_for_project(project_name) / 'coverage'
 
 
 def create_symlink_if_needed(project_root: Path, link_name: str, target_path: Path) -> bool:
@@ -100,13 +119,18 @@ def setup_project_symlinks(project_root: Path, project_name: str = None) -> dict
     """
     Set up a single symlink from project root to SAGE home.
     
+    For the main SAGE project, link directly to ~/.sage
+    For other projects, link to ~/.sage/projects/<project_name>
+    
     Returns:
         Dict with status of symlink creation
     """
     results = {}
     
     try:
-        sage_home = get_sage_home_dir(project_name)
+        # Use the helper function to get the correct SAGE directory
+        sage_home = _get_sage_dir_for_project(project_name)
+        
         link_path = project_root / '.sage'
         
         # If link already exists and points to correct target, we're done

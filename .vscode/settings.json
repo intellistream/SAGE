@@ -134,5 +134,24 @@
       "name": "",
       "depth": 2
     }
-  ]
+  ],
+  "search.exclude": {
+  "**/node_modules": false,
+  "**/dist": false,
+  "**/build": false,
+  "**/.git": false,
+  "**/.venv": false,
+  "**/__pycache__": false
+  },
+  "files.exclude": {
+  "**/node_modules": false,
+  "**/.git": false,
+  "**/.venv": false
+  },
+  "remote.WSL.fileWatcher.polling": true,
+  "remote.WSL.fileWatcher.pollingInterval": 1000,
+  "search.quickOpen.includeSymbols": true,
+  "search.quickOpen.includeHistory": true,
+  "search.followSymlinks": true,
+  "search.maxResults": 10000
 }

@@ -63,9 +63,36 @@ For detailed documentation, see [dev-toolkit/README.md](dev-toolkit/README.md).
 
 ## 🔧 Installation
 
-SAGE now provides a modern, streamlined installation system. Choose from the following options:
+SAGE 现在提供现代化的、流畅的安装系统。根据您的需求选择以下安装方式：
 
-### 🚀 One-Click Installation (Recommended)
+### 🔄 Monorepo 完整安装 (推荐开发者)
+
+SAGE 使用 Monorepo 架构，包含多个独立的子包。您可以使用以下方式安装所有子包：
+
+```bash
+# 方式1: 使用 pip 自动安装所有子包
+pip install -e .
+
+# 方式2: 使用专用安装脚本 (更详细的输出)
+./install_packages.sh
+
+# 方式3: 手动安装特定包
+pip install -e packages/sage-middleware    # 先安装中间件 (被其他包依赖)
+pip install -e packages/sage-kernel        # 安装内核
+pip install -e packages/sage-userspace     # 安装用户空间
+pip install -e packages/tools/sage-cli     # 安装CLI工具
+pip install -e dev-toolkit                 # 安装开发工具包
+```
+
+**包含的子包：**
+- `sage-kernel`: 统一内核层 (Core + Runtime + Utils + CLI集成)
+- `sage-middleware`: 中间件层 (LLM服务、数据库、内存管理)
+- `sage-userspace`: 用户空间层 (RAG算子、插件、高级功能)
+- `sage-cli`: 独立的命令行工具包
+- `sage-frontend`: 前端工具
+- `sage-dev-toolkit`: 开发工具包
+
+### 🚀 一键安装 (适合最终用户)
 
 ```bash
 # Standard installation (works for most users)
@@ -105,20 +132,23 @@ sage extensions info
 ./build_modern_wheel.sh --with-cpp      # With C++ extensions
 ```
 
-### ✅ Verify Installation
+### ✅ 验证安装
 
 ```bash
-# Quick check
+# 快速验证 Monorepo 安装
+python verify_installation.py
+
+# 传统验证方式
 python -c "import sage; print(f'SAGE version: {sage.__version__}')"
 sage --help
 
-# Comprehensive system diagnosis
+# 综合系统诊断
 sage doctor
 
-# Check installation status
+# 检查安装状态
 python quick_install.py --check
 
-# Run example to test installation
+# 运行示例来测试安装
 python app/qa_dense_retrieval.py
 ```
 

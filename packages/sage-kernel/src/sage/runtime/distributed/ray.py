@@ -1,13 +1,23 @@
 
-import socket, ray
+import socket
 import threading
 import os
 from pathlib import Path
+
+try:
+    import ray
+    RAY_AVAILABLE = True
+except ImportError:
+    ray = None
+    RAY_AVAILABLE = False
 
 def ensure_ray_initialized():
     """
     确保Ray已经初始化，如果未初始化则进行初始化。
     """
+    if not RAY_AVAILABLE:
+        raise ImportError("Ray is not available")
+    
     if not ray.is_initialized():
         try:
             # 在测试环境中，先尝试连接现有的Ray集群
@@ -29,8 +39,10 @@ def is_distributed_environment() -> bool:
     检查是否在分布式环境中运行。
     尝试导入Ray并检查是否已初始化。
     """
+    if not RAY_AVAILABLE:
+        return False
+    
     try:
-        import ray
         return ray.is_initialized()
-    except ImportError:
+    except Exception:
         return False

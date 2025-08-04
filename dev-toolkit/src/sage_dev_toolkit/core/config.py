@@ -100,7 +100,12 @@ class ToolkitConfig:
         # Set up paths using ~/.sage/ directory structure
         sage_home = Path.home() / ".sage"
         project_name = project_root.name
-        project_sage_dir = sage_home / "projects" / project_name
+        
+        # Use direct ~/.sage path for SAGE project, projects subdirectory for others
+        if project_name and project_name.upper() == "SAGE":
+            project_sage_dir = sage_home
+        else:
+            project_sage_dir = sage_home / "projects" / project_name
         
         return cls(
             project_root=project_root,

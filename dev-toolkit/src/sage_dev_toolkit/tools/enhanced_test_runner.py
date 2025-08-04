@@ -10,6 +10,7 @@ import sys
 import subprocess
 import json
 import time
+import importlib.util
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -36,9 +37,20 @@ class EnhancedTestRunner:
         self.test_logs_dir = sage_link / 'logs'
         self.reports_dir = sage_link / 'reports'
         
+        # Check if pytest-benchmark is available
+        self.has_benchmark = self._check_pytest_benchmark_available()
+        
         # Ensure directories exist
         self.test_logs_dir.mkdir(parents=True, exist_ok=True)
         self.reports_dir.mkdir(parents=True, exist_ok=True)
+
+    def _check_pytest_benchmark_available(self) -> bool:
+        """Check if pytest-benchmark plugin is available."""
+        try:
+            import pytest_benchmark
+            return True
+        except ImportError:
+            return False
     
     def run_tests(self, mode: str = 'diff', **kwargs) -> Dict:
         """Run tests based on specified mode."""
@@ -320,6 +332,24 @@ class EnhancedTestRunner:
             relative_path = test_file.relative_to(self.project_root)
             log_file = self.test_logs_dir / f"{str(relative_path).replace('/', '_')}.log"
             
+            # Set coverage data file to .sage directory
+            coverage_dir = self.project_root / '.sage' / 'coverage'
+            coverage_dir.mkdir(parents=True, exist_ok=True)
+            coverage_file = coverage_dir / '.coverage'
+            
+            # Set up environment for coverage and other outputs
+            env = os.environ.copy()
+            env['COVERAGE_FILE'] = str(coverage_file)
+            
+            # Set benchmark output to .sage directory only if pytest-benchmark is available
+            if self.has_benchmark:
+                benchmark_file = self.reports_dir / 'benchmark_report.json'
+                cmd.extend(['--benchmark-json', str(benchmark_file)])
+            
+            # Set coverage HTML output to .sage directory
+            coverage_html_dir = coverage_dir / 'htmlcov'
+            cmd.extend(['--cov-report=html:' + str(coverage_html_dir)])
+            
             # Run test
             start_time = time.time()
             result = subprocess.run(
@@ -327,7 +357,8 @@ class EnhancedTestRunner:
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                cwd=str(self.project_root)
+                cwd=str(self.project_root),
+                env=env
             )
             duration = time.time() - start_time
             

@@ -121,8 +121,17 @@ network = [
     "kafka-python>=2.0.0",
 ]
 
+# 测试专用依赖
+testing = [
+    "pytest>=7.0.0",               # 测试框架
+    "pytest-asyncio>=0.21.0",      # 异步测试
+    "pytest-cov>=4.0.0",           # 覆盖率测试
+    "pytest-benchmark>=4.0.0",     # 性能基准测试
+    "pytest-mock>=3.10.0",         # 模拟工具
+]
+
 # 完整功能
-full = ["sage-userspace[vectordb,advanced,graph,math,graphdb,rag,llm,embedding,storage,network]"]
+full = ["sage-userspace[vectordb,advanced,graph,math,graphdb,rag,llm,embedding,storage,network,testing]"]
 
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"

@@ -797,6 +797,8 @@ def home_command(
     project_root: Optional[str] = typer.Option(None, help="Project root directory")
 ):
     """🏠 Manage SAGE home directory (~/.sage/)."""
+    import os
+    
     try:
         # 使用直接路径而不是get_toolkit避免循环导入
         if project_root:
@@ -814,51 +816,88 @@ def home_command(
         
         project_name = project_path.name
         
-        # 简化策略：直接在项目根目录创建.sage目录
-        sage_home_dir = project_path / ".sage"
+        # 实际的SAGE家目录在用户目录下
+        real_sage_home = Path.home() / ".sage"
+        # 项目中的软链接
+        project_sage_link = project_path / ".sage"
         
         if action == "setup":
             with console.status("🏗️ Setting up SAGE home directory..."):
-                # 创建.sage目录
-                sage_home_dir.mkdir(exist_ok=True)
+                # 1. 创建用户家目录下的.sage目录
+                real_sage_home.mkdir(exist_ok=True)
                 
-                # 创建子目录
+                # 2. 创建子目录
                 for subdir in ["logs", "reports", "coverage", "temp", "cache"]:
-                    (sage_home_dir / subdir).mkdir(exist_ok=True)
+                    (real_sage_home / subdir).mkdir(exist_ok=True)
                 
-                success = sage_home_dir.exists()
+                # 3. 如果项目中已有.sage，先检查和处理
+                if project_sage_link.exists():
+                    if project_sage_link.is_symlink():
+                        # 如果已经是软链接，检查是否指向正确位置
+                        if project_sage_link.resolve() != real_sage_home:
+                            project_sage_link.unlink()
+                            project_sage_link.symlink_to(real_sage_home)
+                    else:
+                        # 如果是实际目录，需要备份并创建软链接
+                        backup_path = project_path / f".sage_backup_{project_name}"
+                        if backup_path.exists():
+                            import shutil
+                            shutil.rmtree(backup_path)
+                        project_sage_link.rename(backup_path)
+                        project_sage_link.symlink_to(real_sage_home)
+                        console.print(f"⚠️ Moved existing .sage to {backup_path.name}", style="yellow")
+                else:
+                    # 4. 创建软链接
+                    project_sage_link.symlink_to(real_sage_home)
+                
+                success = real_sage_home.exists() and project_sage_link.is_symlink()
             
             console.print("🏠 SAGE Home Directory Setup Complete!", style="green")
-            console.print(f"📁 SAGE home: {sage_home_dir}")
+            console.print(f"📁 Real SAGE home: {real_sage_home}")
+            console.print(f"🔗 Project symlink: {project_sage_link}")
             
             status_icon = "✅" if success else "❌"
-            console.print(f"\n🔗 Directory created:")
-            console.print(f"  {status_icon} .sage/ -> 项目本地目录")
+            console.print(f"\n🔗 Setup result:")
+            console.print(f"  {status_icon} ~/.sage/ -> Real home directory")
+            console.print(f"  {status_icon} .sage/ -> Symlink to ~/.sage/")
         
         elif action == "status":
             with console.status("📊 Checking SAGE home status..."):
                 pass
             
             console.print("📊 SAGE Home Status:", style="cyan")
-            console.print(f"📁 SAGE home: {sage_home_dir}")
-            console.print(f"🔗 Project directory: {sage_home_dir}")
+            console.print(f"📁 Real SAGE home: {real_sage_home}")
+            console.print(f"🔗 Project symlink: {project_sage_link}")
             
-            # Check directory status
-            if sage_home_dir.exists():
-                if sage_home_dir.is_dir():
-                    console.print("✅ .sage directory exists")
+            # Check real directory status
+            if real_sage_home.exists():
+                if real_sage_home.is_dir():
+                    console.print("✅ ~/.sage directory exists")
                     
                     # Check subdirectories
                     subdirs = ["logs", "reports", "coverage", "temp", "cache"]
-                    missing_dirs = [d for d in subdirs if not (sage_home_dir / d).exists()]
+                    missing_dirs = [d for d in subdirs if not (real_sage_home / d).exists()]
                     if missing_dirs:
                         console.print(f"⚠️ Missing subdirectories: {', '.join(missing_dirs)}")
                     else:
                         console.print("✅ All subdirectories present")
                 else:
-                    console.print("❌ .sage exists but is not a directory")
+                    console.print("❌ ~/.sage exists but is not a directory")
             else:
-                console.print("❌ .sage directory does not exist")
+                console.print("❌ ~/.sage directory does not exist")
+            
+            # Check symlink status
+            if project_sage_link.exists():
+                if project_sage_link.is_symlink():
+                    target = project_sage_link.resolve()
+                    if target == real_sage_home:
+                        console.print("✅ Project .sage symlink is correct")
+                    else:
+                        console.print(f"⚠️ Project .sage points to wrong location: {target}")
+                else:
+                    console.print("⚠️ Project .sage exists but is not a symlink")
+            else:
+                console.print("❌ Project .sage symlink does not exist")
         
         else:
             console.print(f"❌ Unknown action: {action}", style="red")

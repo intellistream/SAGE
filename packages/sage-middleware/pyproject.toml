@@ -89,6 +89,10 @@ full = ["sage-middleware[database,messagequeue,monitoring,websocket,llm]"]
 
 # 测试专用依赖（非开发工具）
 testing = [
+    "pytest>=7.0.0",               # 测试框架
+    "pytest-asyncio>=0.21.0",      # 异步测试
+    "pytest-cov>=4.0.0",           # 覆盖率测试
+    "pytest-benchmark>=4.0.0",     # 性能基准测试
     "testcontainers>=3.7.0",       # 容器化测试
     "pytest-mock>=3.10.0",         # 模拟工具
 ]

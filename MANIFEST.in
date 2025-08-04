@@ -1,0 +1,33 @@
+# SAGE Framework Monorepo MANIFEST.in
+# 指定要包含在发布包中的文件
+
+# 包含主要配置文件
+include README.md
+include LICENSE
+include pyproject.toml
+include setup.py
+include install_packages.sh
+
+# 包含配置目录
+recursive-include config *.yaml *.yml *.json *.toml
+
+# 包含文档
+recursive-include docs *.md *.rst *.txt
+
+# 包含所有子包的配置
+recursive-include packages */pyproject.toml */README.md */LICENSE
+recursive-include dev-toolkit pyproject.toml README.md
+
+# 排除不需要的文件
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * *.so
+recursive-exclude * .DS_Store
+recursive-exclude * .git*
+recursive-exclude * build
+recursive-exclude * dist
+recursive-exclude * *.egg-info
+recursive-exclude htmlcov *
+recursive-exclude test_* *
+exclude .coverage
+exclude .pytest_cache
