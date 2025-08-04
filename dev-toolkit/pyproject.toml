@@ -84,19 +84,27 @@ Repository = "https://github.com/intellistream/SAGE.git"
 Documentation = "https://sage-docs.intellistream.cc/dev-toolkit"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
+# CLI入口点定义
 [project.scripts]
-sage-dev = "sage_dev_toolkit.cli.main:main"
-sage-toolkit = "sage_dev_toolkit.cli.main:main"
+sage-dev = "sage_dev_toolkit.cli.main:app"
+sage-toolkit = "sage_dev_toolkit.cli.main:app"
+sagedev = "sage_dev_toolkit.cli.main:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+zip-safe = false
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["sage_dev_toolkit*"]
+namespaces = false
 
+# 添加类型信息支持
 [tool.setuptools.package-data]
-"sage_dev_toolkit" = [
-    "py.typed",
-    "config/*.yaml",
-    "templates/**/*",
-]
+"sage_dev_toolkit" = ["py.typed", "*.pyi"]
+"sage_dev_toolkit.config" = ["*.yaml"]
+"sage_dev_toolkit.templates" = ["**/*"]
 
 # 代码质量工具配置
 [tool.black]

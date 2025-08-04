@@ -1,71 +1,29 @@
 """
 Main CLI entry point for SAGE Development Toolkit.
 
-This module provides the command-line interface using Click framework
+This module provides the command-line interface using Typer framework
 for intuitive and powerful command-line interactions.
 """
 
 import sys
-import click
+import typer
 from pathlib import Path
 from typing import Optional
+from rich.console import Console
+from rich.table import Table
 
 from ..core.toolkit import SAGEDevToolkit
 from ..core.exceptions import SAGEDevToolkitError
 
+# 创建控制台对象用于富文本输出
+console = Console()
 
-@click.group()
-@click.option(
-    '--project-root',
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
-    help='Project root directory path'
+# 创建主应用
+app = typer.Typer(
+    name="sage-dev",
+    help="🛠️ SAGE Development Toolkit - Unified development tools for SAGE project",
+    no_args_is_help=True
 )
-@click.option(
-    '--config',
-    type=click.Path(exists=True, file_okay=True, dir_okay=False, path_type=Path),
-    help='Configuration file path'
-)
-@click.option(
-    '--environment',
-    type=click.Choice(['development', 'production', 'ci']),
-    help='Environment configuration to use'
-)
-@click.option(
-    '--verbose', '-v',
-    is_flag=True,
-    help='Enable verbose logging'
-)
-@click.pass_context
-def cli(ctx, project_root: Optional[Path], config: Optional[Path], 
-        environment: Optional[str], verbose: bool):
-    """SAGE Development Toolkit - Unified development tools for SAGE project."""
-    
-    # Ensure the context object exists
-    ctx.ensure_object(dict)
-    
-    try:
-        # Initialize toolkit
-        toolkit = SAGEDevToolkit(
-            project_root=str(project_root) if project_root else None,
-            config_file=str(config) if config else None,
-            environment=environment
-        )
-        
-        # Store toolkit in context for subcommands
-        ctx.obj['toolkit'] = toolkit
-        ctx.obj['verbose'] = verbose
-        
-        if verbose:
-            click.echo(f"✅ Toolkit initialized for environment: {toolkit.config.environment}")
-            click.echo(f"📁 Project root: {toolkit.config.project_root}")
-            click.echo(f"🔧 Available tools: {', '.join(toolkit.tools.keys())}")
-            
-    except SAGEDevToolkitError as e:
-        click.echo(f"❌ Error initializing toolkit: {e}", err=True)
-        sys.exit(1)
-    except Exception as e:
-        click.echo(f"❌ Unexpected error: {e}", err=True)
-        sys.exit(1)
 
 
 @cli.command()
