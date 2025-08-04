@@ -67,22 +67,48 @@ SAGE 现在提供现代化的、流畅的安装系统。根据您的需求选择
 
 ### 🔄 Monorepo 完整安装 (推荐开发者)
 
-SAGE 使用 Monorepo 架构，包含多个独立的子包。您可以使用以下方式安装所有子包：
+SAGE 使用 Monorepo 架构，包含多个独立的子包。请按以下步骤安装：
+
+#### 方式1: 自动安装脚本 (推荐)
 
 ```bash
-# 方式1: 使用 pip 自动安装所有子包
-pip install -e .
+# 克隆仓库
+git clone https://github.com/intellistream/SAGE.git
+cd SAGE
 
-# 方式2: 使用专用安装脚本 (更详细的输出)
+# 运行自动安装脚本
 ./install_packages.sh
 
-# 方式3: 手动安装特定包
-pip install -e packages/sage-middleware    # 先安装中间件 (被其他包依赖)
-pip install -e packages/sage-kernel        # 安装内核
-pip install -e packages/sage-userspace     # 安装用户空间
-pip install -e packages/tools/sage-cli     # 安装CLI工具
-pip install -e dev-toolkit                 # 安装开发工具包
+# 或者使用 Python 脚本
+python setup.py
 ```
+
+#### 方式2: pip 安装 + 手动安装子包
+
+```bash
+# 先安装工作空间包
+pip install -e .
+
+# 然后安装子包 (按顺序执行)
+pip install -e packages/sage-middleware    # 1. 先安装中间件 (被其他包依赖)
+pip install -e packages/sage-kernel        # 2. 安装内核
+pip install -e packages/sage-userspace     # 3. 安装用户空间
+pip install -e packages/tools/sage-cli     # 4. 安装CLI工具
+pip install -e packages/tools/sage-frontend  # 5. 安装前端工具
+pip install -e dev-toolkit                 # 6. 安装开发工具包
+```
+
+#### 方式3: 一键脚本安装
+
+```bash
+# 下载并运行一键安装脚本
+curl -fsSL https://raw.githubusercontent.com/intellistream/SAGE/main/install_packages.sh | bash
+
+# 或者本地运行
+chmod +x install_packages.sh && ./install_packages.sh
+```
+
+**⚠️ 重要提示：** 如果您在其他机器上运行 `pip install .` 遇到 "UNKNOWN" 包的问题，请使用上述方式1或方式2进行安装。
 
 **包含的子包：**
 - `sage-kernel`: 统一内核层 (Core + Runtime + Utils + CLI集成)
@@ -150,6 +176,68 @@ python quick_install.py --check
 
 # 运行示例来测试安装
 python app/qa_dense_retrieval.py
+```
+
+### 🔧 故障排除
+
+#### 问题1: `pip install .` 显示 "UNKNOWN" 包
+
+**症状：**
+```
+Building wheels for collected packages: UNKNOWN
+  Building wheel for UNKNOWN (pyproject.toml) ... done
+  Created wheel for UNKNOWN: filename=UNKNOWN-0.0.0-py3-none-any.whl
+```
+
+**解决方案：**
+这是因为根目录的 `pyproject.toml` 配置为 Monorepo 工作空间包。请使用以下方法之一：
+
+```bash
+# 方法1: 使用专用安装脚本
+./install_packages.sh
+
+# 方法2: 手动安装子包
+pip install -e packages/sage-middleware
+pip install -e packages/sage-kernel  
+pip install -e packages/sage-userspace
+pip install -e packages/tools/sage-cli
+pip install -e dev-toolkit
+
+# 方法3: 使用 Python 脚本
+python setup.py
+```
+
+#### 问题2: 包导入失败
+
+**症状：**
+```python
+ImportError: No module named 'sage.middleware'
+```
+
+**解决方案：**
+确保所有子包都已安装：
+```bash
+python verify_installation.py  # 检查安装状态
+./install_packages.sh          # 重新安装子包
+```
+
+#### 问题3: 权限问题
+
+**症状：**
+```
+Defaulting to user installation because normal site-packages is not writeable
+```
+
+**解决方案：**
+```bash
+# 使用用户安装模式
+pip install -e . --user
+
+# 或者使用虚拟环境
+python -m venv sage_env
+source sage_env/bin/activate  # Linux/Mac
+# 或 sage_env\Scripts\activate  # Windows
+pip install -e .
 ```
 
 ### 🛠️ System Requirements
