@@ -30,14 +30,18 @@ def install_subpackages():
         root_dir / "dev-toolkit",
     ]
     
-    # 添加商业包（如果存在）
+    # 添加商业包（如果存在且不重复）
     commercial_dir = root_dir / "packages" / "commercial"
     if commercial_dir.exists():
-        packages_to_install.extend([
+        commercial_packages = [
             commercial_dir / "sage-middleware",
             commercial_dir / "sage-kernel",
             commercial_dir / "sage-userspace",
-        ])
+        ]
+        # 只添加存在的商业包
+        for pkg in commercial_packages:
+            if pkg.exists():
+                packages_to_install.append(pkg)
     
     success_count = 0
     failed_packages = []
@@ -45,7 +49,7 @@ def install_subpackages():
     for package_path in packages_to_install:
         if package_path.exists() and (package_path / "pyproject.toml").exists():
             try:
-                print(f"正在安装: {package_path.name}")
+                print(f"正在安装: {package_path.name} (来自 {package_path.parent.name})")
                 result = subprocess.run([
                     sys.executable, "-m", "pip", "install", "-e", str(package_path)
                 ], check=True, capture_output=True, text=True)
