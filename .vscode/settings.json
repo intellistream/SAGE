@@ -1,8 +1,8 @@
 {
   "python.analysis.extraPaths": [
-    "./packages/sage-core/src",
-    "./packages/sage-utils/src",
-    "./packages/sage-extensions/src",
+    "./packages/commercial/sage-kernel/src",
+    "./packages/commercial/sage-middleware/src",
+    "./packages/commercial/sage-userspace/src",
     "./packages/sage-kernel/src",
     "./packages/sage-middleware/src",
     "./packages/sage-userspace/src",
@@ -11,9 +11,9 @@
     "."
   ],
   "python.autoComplete.extraPaths": [
-    "./packages/sage-core/src",
-    "./packages/sage-utils/src",
-    "./packages/sage-extensions/src",
+    "./packages/commercial/sage-kernel/src",
+    "./packages/commercial/sage-middleware/src",
+    "./packages/commercial/sage-userspace/src",
     "./packages/sage-kernel/src",
     "./packages/sage-middleware/src",
     "./packages/sage-userspace/src",
@@ -27,6 +27,5 @@
   "pylance.insidersChannel": "off",
   "python.languageServer": "Pylance",
   "python.analysis.typeCheckingMode": "off",
-  "python.defaultInterpreterPath": "/usr/bin/python3",
-
+  "python.defaultInterpreterPath": "/usr/bin/python3"
 }

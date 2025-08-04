@@ -26,10 +26,10 @@
 
 ```bash
 # 运行所有API测试
-python -m pytest sage/core/api/test/
+python -m pytest tests/core/api/
 
 # 运行特定测试文件
-python -m pytest sage/core/api/test/test_new_remote_env.py
+python -m pytest tests/core/api/test_new_remote_env.py
 ```
 
 ## 测试环境要求

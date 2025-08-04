@@ -1761,16 +1761,16 @@ SAGE包路径映射:
   错误: Cannot find 'RemoteEnvironment' in module 'sage.core.api.remote_environment'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/tests/jobmanager/test_end_to_end.py
-  行 87: from sage.utils.serialization.dill_serializer import deserialize_object
-  错误: Cannot find 'deserialize_object' in module 'sage.utils.serialization.dill_serializer'
+  行 87: from sage.runtime.serialization.dill import deserialize_object
+  错误: Cannot find 'deserialize_object' in module 'sage.runtime.serialization.dill'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/tests/jobmanager/test_jobmanager_submit.py
   行 16: from sage.jobmanager.job_manager import JobManager
   错误: Cannot find 'JobManager' in module 'sage.jobmanager.job_manager'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/tests/jobmanager/test_jobmanager_submit.py
-  行 17: from sage.utils.serialization.dill_serializer import serialize_object
-  错误: Cannot find 'serialize_object' in module 'sage.utils.serialization.dill_serializer'
+  行 17: from sage.runtime.serialization.dill import serialize_object
+  错误: Cannot find 'serialize_object' in module 'sage.runtime.serialization.dill'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/tests/jobmanager/test_jobmanager_submit.py
   行 18: from sage.core.api.local_environment import LocalEnvironment
@@ -2175,8 +2175,8 @@ SAGE包路径映射:
   错误: Cannot find 'Dispatcher' in module 'sage.runtime.dispatcher'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/src/sage/jobmanager/job_manager.py
-  行 17: from sage.utils.serialization.dill_serializer import deserialize_object
-  错误: Cannot find 'deserialize_object' in module 'sage.utils.serialization.dill_serializer'
+  行 17: from sage.runtime.serialization.dill import deserialize_object
+  错误: Cannot find 'deserialize_object' in module 'sage.runtime.serialization.dill'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/src/sage/jobmanager/job_manager.py
   行 19: from sage.jobmanager.execution_graph import ExecutionGraph
@@ -2200,8 +2200,8 @@ SAGE包路径映射:
   错误: Cannot find 'Dispatcher' in module 'sage.runtime.dispatcher'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/src/sage/jobmanager/job_manager_server.py
-  行 17: from sage.utils.serialization.dill_serializer import deserialize_object
-  错误: Cannot find 'deserialize_object' in module 'sage.utils.serialization.dill_serializer'
+  行 17: from sage.runtime.serialization.dill import deserialize_object
+  错误: Cannot find 'deserialize_object' in module 'sage.runtime.serialization.dill'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/src/sage/jobmanager/job_manager_server.py
   行 20: from sage.jobmanager.execution_graph import ExecutionGraph
@@ -2637,8 +2637,8 @@ SAGE包路径映射:
   错误: Cannot find 'BaseEnvironment' in module 'sage.core.api.base_environment'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/remote_environment.py
-  行 8: from sage.utils.serialization.dill_serializer import serialize_object
-  错误: Cannot find 'serialize_object' in module 'sage.utils.serialization.dill_serializer'
+  行 8: from sage.runtime.serialization.dill import serialize_object
+  错误: Cannot find 'serialize_object' in module 'sage.runtime.serialization.dill'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/connected_streams.py
   行 3: from sage.core.transformation.base_transformation import BaseTransformation
@@ -2700,28 +2700,28 @@ SAGE包路径映射:
   建议: from sage.runtime.communication.actor import ActorWrapper
 
 文件: /home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/test/test_new_remote_env.py
-  行 16: from sage.utils.serialization.dill_serializer import deserialize_object
-  错误: Cannot find 'deserialize_object' in module 'sage.utils.serialization.dill_serializer'
+  行 16: from sage.runtime.serialization.dill import deserialize_object
+  错误: Cannot find 'deserialize_object' in module 'sage.runtime.serialization.dill'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/test/test_remote_env_serialization.py
-  行 15: from sage.utils.serialization.dill_serializer import deserialize_object
-  错误: Cannot find 'deserialize_object' in module 'sage.utils.serialization.dill_serializer'
+  行 15: from sage.runtime.serialization.dill import deserialize_object
+  错误: Cannot find 'deserialize_object' in module 'sage.runtime.serialization.dill'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/test/test_remote_env_serialization.py
   行 137: from sage.core.api.test.test_remote_environment_server import run_remote_environment_test
   错误: Cannot find 'run_remote_environment_test' in module 'sage.core.api.test.test_remote_environment_server'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/test/test_remote_environment_server.py
-  行 46: from sage.utils.serialization.dill_serializer import deserialize_object
-  错误: Cannot find 'deserialize_object' in module 'sage.utils.serialization.dill_serializer'
+  行 46: from sage.runtime.serialization.dill import deserialize_object
+  错误: Cannot find 'deserialize_object' in module 'sage.runtime.serialization.dill'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/test/test_remote_environment_server.py
-  行 926: from sage.utils.serialization.dill_serializer import trim_object_for_ray
-  错误: Cannot find 'trim_object_for_ray' in module 'sage.utils.serialization.dill_serializer'
+  行 926: from sage.runtime.serialization.dill import trim_object_for_ray
+  错误: Cannot find 'trim_object_for_ray' in module 'sage.runtime.serialization.dill'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/test/test_remote_environment_server.py
-  行 485: from sage.utils.serialization.dill_serializer import trim_object_for_ray
-  错误: Cannot find 'trim_object_for_ray' in module 'sage.utils.serialization.dill_serializer'
+  行 485: from sage.runtime.serialization.dill import trim_object_for_ray
+  错误: Cannot find 'trim_object_for_ray' in module 'sage.runtime.serialization.dill'
 
 文件: /home/flecther/SAGE/packages/sage-kernel/src/sage/core/operator/map_operator.py
   行 7: from sage.utils.logging.custom_logger import CustomLogger

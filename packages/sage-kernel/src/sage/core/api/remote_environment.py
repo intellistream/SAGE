@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any
 from sage.core.api.base_environment import BaseEnvironment
 from sage.jobmanager.jobmanager_client import JobManagerClient
 from sage.runtime.communication.queue.ray_queue_descriptor import RayQueueDescriptor
-from sage.utils.serialization.dill_serializer import trim_object_for_ray, serialize_object
+from sage.runtime.serialization.dill import trim_object_for_ray, serialize_object
 
 logger = logging.getLogger(__name__)
 

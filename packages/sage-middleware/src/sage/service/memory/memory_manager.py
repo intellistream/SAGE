@@ -11,7 +11,7 @@ from sage.service.memory.memory_collection.base_collection import BaseMemoryColl
 from sage.service.memory.memory_collection.graph_collection import GraphMemoryCollection
 from sage.service.memory.memory_collection.kv_collection import KVMemoryCollection
 from sage.service.memory.memory_collection.vdb_collection import VDBMemoryCollection
-from sage.utils.embedding_methods.embedding_api import apply_embedding_model
+from sage.llm.embedding.embedding_api import apply_embedding_model
 
 class MemoryManager:
     """

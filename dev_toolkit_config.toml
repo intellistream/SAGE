@@ -1,0 +1,92 @@
+# SAGE Development Toolkit Configuration
+# ======================================
+
+[toolkit]
+name = "SAGE Development Toolkit"
+version = "1.0.0"
+description = "统一的SAGE项目开发工具集合"
+
+# 项目结构配置
+[paths]
+packages_dir = "packages"
+scripts_dir = "scripts"
+output_dir = "dev_reports"
+logs_dir = "test_logs"
+config_dir = "config"
+
+# 测试配置
+[testing]
+default_workers = 4
+test_timeout = 300
+test_patterns = ["test_*.py", "*_test.py"]
+exclude_patterns = ["__pycache__", "*.pyc", ".git"]
+pytest_args = ["-v", "--tb=short"]
+
+# 依赖分析配置
+[dependency_analysis]
+include_external = true
+max_depth = 10
+exclude_paths = ["__pycache__", ".git", "node_modules", ".venv", "venv"]
+output_formats = ["json", "markdown", "csv"]
+
+# 包管理配置
+[package_management]
+auto_install_deps = true
+build_timeout = 600
+install_timeout = 300
+package_order = [
+    "sage-utils",
+    "sage-core", 
+    "sage-lib",
+    "sage-extensions",
+    "sage-plugins",
+    "sage-cli",
+    "sage-frontend",
+    "sage-userspace"
+]
+
+# 报告配置
+[reporting]
+output_formats = ["json", "markdown", "html"]
+include_timestamps = true
+include_git_info = true
+max_report_size_mb = 50
+
+# 工具集成配置
+[tools]
+# 可用的工具及其配置
+[tools.test_runner]
+enabled = true
+script_path = "scripts/test_runner.py"
+class_name = "SAGETestRunner"
+
+[tools.dependency_analyzer]
+enabled = true
+script_path = "scripts/advanced_dependency_analyzer_with_sage_mapping.py"
+class_name = "SAGEDependencyAnalyzer"
+
+[tools.package_manager]
+enabled = true
+script_path = "scripts/sage-package-manager.py"
+class_name = "SagePackageManager"
+
+[tools.dependency_summary]
+enabled = true
+script_path = "scripts/dependency_summary.py"
+function_name = "generate_summary_report"
+
+# 日志配置
+[logging]
+level = "INFO"
+format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+file_rotation = true
+max_file_size_mb = 10
+backup_count = 5
+
+# 性能配置
+[performance]
+max_concurrent_jobs = 8
+memory_limit_mb = 2048
+timeout_seconds = 600
+enable_caching = true
+cache_expiry_hours = 24

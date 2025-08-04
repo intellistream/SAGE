@@ -14,7 +14,7 @@ from sage.jobmanager.job_info import JobInfo
 from sage.utils.logging.custom_logger import CustomLogger
 from sage.runtime.dispatcher import Dispatcher
 import threading
-from sage.utils.serialization.dill_serializer import deserialize_object
+from sage.runtime.serialization.dill import deserialize_object
 from sage.utils.network.local_tcp_server import BaseTcpServer
 if TYPE_CHECKING:
     from sage.jobmanager.execution_graph import ExecutionGraph

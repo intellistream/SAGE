@@ -1,0 +1,218 @@
+# SAGE开发工具包配置文件
+# sage_dev_toolkit.yaml
+
+# 项目基础配置
+project:
+  name: "SAGE Framework"
+  version: "1.0.0"
+  root_dir: "."
+  
+# 目录配置
+directories:
+  packages: "./packages"
+  scripts: "./scripts"
+  output: "./dev_reports"
+  logs: "./test_logs" 
+  temp: "./temp"
+
+# 测试配置
+testing:
+  # 默认测试模式
+  default_mode: "diff"  # all, diff, package
+  
+  # 并发配置
+  max_workers: 4
+  timeout: 300  # 5分钟
+  
+  # 测试文件模式
+  test_patterns:
+    - "**/test_*.py"
+    - "**/tests/*.py"
+    - "**/*_test.py"
+  
+  # 需要跳过的包或测试
+  skip_packages:
+    - "sage-frontend"  # 前端包不需要Python测试
+  
+  skip_tests:
+    - "test_slow_integration"
+    - "test_manual_*"
+
+# 依赖分析配置  
+dependency_analysis:
+  # 分析深度
+  max_depth: 10
+  
+  # 忽略的导入模式
+  ignore_patterns:
+    - "__pycache__"
+    - "*.pyc"
+    - ".git"
+    - "node_modules"
+    - ".pytest_cache"
+  
+  # 外部包忽略列表（不分析这些包的内部依赖）
+  external_packages:
+    - "numpy"
+    - "pandas" 
+    - "torch"
+    - "transformers"
+    - "ray"
+  
+  # 关键依赖监控（循环依赖检测重点关注）
+  critical_packages:
+    - "sage-kernel"
+    - "sage-middleware"
+    - "sage-userspace"
+
+# 包管理配置
+package_management:
+  # 包安装顺序（解决依赖关系）
+  install_order:
+    - "sage-kernel"
+    - "sage-middleware" 
+    - "sage-userspace"
+    - "sage-extensions"
+  
+  # 开发模式安装
+  dev_install: true
+  
+  # 安装超时
+  install_timeout: 600  # 10分钟
+  
+  # pip 额外参数
+  pip_args:
+    - "--no-cache-dir"
+    - "--upgrade"
+
+# 报告配置
+reporting:
+  # 输出格式
+  formats:
+    - "json"
+    - "markdown"
+    - "html"  # 未来支持
+  
+  # 报告模板
+  templates:
+    markdown: "./templates/report_template.md"
+    html: "./templates/report_template.html"
+  
+  # 包含的分析部分
+  sections:
+    - "package_status"
+    - "dependency_analysis" 
+    - "test_results"
+    - "code_quality"  # 未来支持
+    - "performance"   # 未来支持
+
+# 交互模式配置
+interactive:
+  # 命令历史
+  history_file: ".sage_dev_history"
+  max_history: 1000
+  
+  # 自动补全
+  auto_complete: true
+  
+  # 彩色输出
+  colored_output: true
+  
+  # 提示符
+  prompt: "SAGE-DEV> "
+
+# 工具集成配置
+tools:
+  # 测试运行器
+  test_runner:
+    module: "test_runner"
+    class: "SAGETestRunner"
+    enabled: true
+    
+  # 依赖分析器  
+  dependency_analyzer:
+    module: "advanced_dependency_analyzer_with_sage_mapping"
+    class: "SAGEDependencyAnalyzer"
+    enabled: true
+    
+  # 包管理器
+  package_manager:
+    module: "sage-package-manager"
+    class: "SagePackageManager"
+    enabled: true
+    
+  # 重构工具
+  refactor_tool:
+    module: "refactor_utils"
+    class: "RefactorTool"
+    enabled: false  # 可选工具
+    
+  # 代码质量检查器（未来）
+  quality_checker:
+    module: "quality_checker"
+    class: "QualityChecker"
+    enabled: false
+
+# 日志配置
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # 日志文件配置
+  file_logging:
+    enabled: true
+    max_bytes: 10485760  # 10MB
+    backup_count: 5
+  
+  # 控制台日志
+  console_logging:
+    enabled: true
+    colored: true
+
+# 性能配置
+performance:
+  # 缓存配置
+  cache:
+    enabled: true
+    max_size: 1000
+    ttl: 3600  # 1小时
+  
+  # 并发限制
+  max_concurrent_operations: 4
+  
+  # 内存限制（MB）
+  max_memory_usage: 2048
+
+# 钩子和扩展
+hooks:
+  # 测试前钩子
+  pre_test:
+    - "echo 'Starting tests...'"
+    
+  # 测试后钩子  
+  post_test:
+    - "echo 'Tests completed'"
+    
+  # 报告生成后钩子
+  post_report:
+    - "echo 'Report generated'"
+
+# 环境特定配置
+environments:
+  development:
+    logging:
+      level: "DEBUG"
+    testing:
+      max_workers: 2
+      
+  production:
+    logging:
+      level: "WARNING"
+    testing:
+      max_workers: 8
+      
+  ci:
+    reporting:
+      formats: ["json"]
+    testing:
+      timeout: 600

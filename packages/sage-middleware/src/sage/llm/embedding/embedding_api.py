@@ -1,4 +1,4 @@
-from sage.sage.middleware.llm.embedding_methods.embedding_model import EmbeddingModel
+from sage.llm.embedding.embedding_model import EmbeddingModel
 
 
 def apply_embedding_model(name: str = "default",**kwargs) -> EmbeddingModel:

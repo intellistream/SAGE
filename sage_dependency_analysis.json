@@ -494,7 +494,7 @@
       "sage.jobmanager.job_manager_server",
       "sage.utils.logging.custom_logger",
       "sage.runtime.dispatcher",
-      "sage.utils.serialization.dill_serializer",
+      "sage.runtime.serialization.dill",
       "sage.jobmanager.execution_graph",
       "sage.core.api.base_environment"
     ],
@@ -505,7 +505,7 @@
       "sage.jobmanager.job_info",
       "sage.utils.logging.custom_logger",
       "sage.runtime.dispatcher",
-      "sage.utils.serialization.dill_serializer",
+      "sage.runtime.serialization.dill",
       "sage.utils.network.local_tcp_server",
       "sage.jobmanager.execution_graph",
       "sage.core.api.base_environment",
@@ -776,7 +776,7 @@
       "sage.core.api.base_environment",
       "sage.jobmanager.jobmanager_client",
       "sage.runtime.communication.queue.ray_queue_descriptor",
-      "sage.utils.serialization.dill_serializer"
+      "sage.runtime.serialization.dill"
     ],
     "sage.core.api.connected_streams": [
       "sage.core.transformation.base_transformation",
@@ -814,12 +814,12 @@
     ],
     "sage.core.api.test.test_new_remote_env": [
       "sage.core.api.remote_environment",
-      "sage.utils.serialization.dill_serializer",
+      "sage.runtime.serialization.dill",
       "sage.jobmanager.jobmanager_client"
     ],
     "sage.core.api.test.test_remote_env_serialization": [
       "sage.core.api.remote_environment",
-      "sage.utils.serialization.dill_serializer",
+      "sage.runtime.serialization.dill",
       "sage.core.api.test.test_remote_environment_server",
       "sage.jobmanager.jobmanager_client"
     ],
@@ -829,7 +829,7 @@
       "sage.runtime.communication.queue.base_queue_descriptor"
     ],
     "sage.core.api.test.test_remote_environment_server": [
-      "sage.utils.serialization.dill_serializer",
+      "sage.runtime.serialization.dill",
       "sage.core.api.remote_environment"
     ],
     "sage.core.api.test.__init__": [],
@@ -40475,7 +40475,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/jobmanager/test_end_to_end.py:87": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.serialization.dill_serializer",
+        "module": "sage.runtime.serialization.dill",
         "name": "deserialize_object",
         "asname": null,
         "line": 87
@@ -40483,7 +40483,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'deserialize_object' in module 'sage.utils.serialization.dill_serializer'",
+        "error_message": "Cannot find 'deserialize_object' in module 'sage.runtime.serialization.dill'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -40611,7 +40611,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/jobmanager/test_jobmanager_submit.py:17": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.serialization.dill_serializer",
+        "module": "sage.runtime.serialization.dill",
         "name": "serialize_object",
         "asname": null,
         "line": 17
@@ -40619,7 +40619,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'serialize_object' in module 'sage.utils.serialization.dill_serializer'",
+        "error_message": "Cannot find 'serialize_object' in module 'sage.runtime.serialization.dill'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -46833,7 +46833,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/jobmanager/job_manager.py:17": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.serialization.dill_serializer",
+        "module": "sage.runtime.serialization.dill",
         "name": "deserialize_object",
         "asname": null,
         "line": 17
@@ -46841,7 +46841,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'deserialize_object' in module 'sage.utils.serialization.dill_serializer'",
+        "error_message": "Cannot find 'deserialize_object' in module 'sage.runtime.serialization.dill'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -47275,7 +47275,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/jobmanager/job_manager_server.py:17": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.serialization.dill_serializer",
+        "module": "sage.runtime.serialization.dill",
         "name": "deserialize_object",
         "asname": null,
         "line": 17
@@ -47283,7 +47283,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'deserialize_object' in module 'sage.utils.serialization.dill_serializer'",
+        "error_message": "Cannot find 'deserialize_object' in module 'sage.runtime.serialization.dill'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -53667,7 +53667,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/remote_environment.py:8": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.serialization.dill_serializer",
+        "module": "sage.runtime.serialization.dill",
         "name": "serialize_object",
         "asname": null,
         "line": 8
@@ -53675,7 +53675,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'serialize_object' in module 'sage.utils.serialization.dill_serializer'",
+        "error_message": "Cannot find 'serialize_object' in module 'sage.runtime.serialization.dill'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -54466,7 +54466,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/test/test_new_remote_env.py:16": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.serialization.dill_serializer",
+        "module": "sage.runtime.serialization.dill",
         "name": "deserialize_object",
         "asname": null,
         "line": 16
@@ -54474,7 +54474,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'deserialize_object' in module 'sage.utils.serialization.dill_serializer'",
+        "error_message": "Cannot find 'deserialize_object' in module 'sage.runtime.serialization.dill'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -54653,7 +54653,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/test/test_remote_env_serialization.py:15": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.serialization.dill_serializer",
+        "module": "sage.runtime.serialization.dill",
         "name": "deserialize_object",
         "asname": null,
         "line": 15
@@ -54661,7 +54661,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'deserialize_object' in module 'sage.utils.serialization.dill_serializer'",
+        "error_message": "Cannot find 'deserialize_object' in module 'sage.runtime.serialization.dill'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -54993,7 +54993,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/test/test_remote_environment_server.py:46": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.serialization.dill_serializer",
+        "module": "sage.runtime.serialization.dill",
         "name": "deserialize_object",
         "asname": null,
         "line": 46
@@ -55001,7 +55001,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'deserialize_object' in module 'sage.utils.serialization.dill_serializer'",
+        "error_message": "Cannot find 'deserialize_object' in module 'sage.runtime.serialization.dill'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -55061,7 +55061,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/test/test_remote_environment_server.py:926": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.serialization.dill_serializer",
+        "module": "sage.runtime.serialization.dill",
         "name": "trim_object_for_ray",
         "asname": null,
         "line": 926
@@ -55069,7 +55069,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'trim_object_for_ray' in module 'sage.utils.serialization.dill_serializer'",
+        "error_message": "Cannot find 'trim_object_for_ray' in module 'sage.runtime.serialization.dill'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -55078,7 +55078,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/test/test_remote_environment_server.py:485": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.serialization.dill_serializer",
+        "module": "sage.runtime.serialization.dill",
         "name": "trim_object_for_ray",
         "asname": null,
         "line": 485
@@ -55086,7 +55086,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'trim_object_for_ray' in module 'sage.utils.serialization.dill_serializer'",
+        "error_message": "Cannot find 'trim_object_for_ray' in module 'sage.runtime.serialization.dill'",
         "suggested_import": null,
         "is_sage_import": true
       },

@@ -1,5 +1,6 @@
-# SAGE智能化Monorepo工作空间配置
-# 这个文件主要为IDE和工具提供工作空间级别的配置
+# SAGE三层架构Monorepo工作空间配置
+# 新架构：Kernel (内核) -> Middleware (中间件) -> Userspace (用户空间)
+# 支持开源版本和商业版本的统一管理
 
 [build-system]
 requires = ["setuptools>=64", "wheel"]
@@ -8,14 +9,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sage-workspace"
 version = "1.0.0"
-description = "SAGE Framework - 智能化Monorepo工作空间"
+description = "SAGE Framework - 三层架构智能化Monorepo工作空间 (Kernel + Middleware + Userspace)"
 readme = "README.md"  
 requires-python = ">=3.10"
 license = "Apache-2.0"
 authors = [
     {name = "IntelliStream Team", email = "sage@intellistream.cc"},
 ]
-keywords = ["rag", "llm", "framework", "monorepo", "workspace"]
+keywords = ["rag", "llm", "framework", "monorepo", "workspace", "kernel", "middleware", "userspace"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -26,17 +27,19 @@ classifiers = [
 ]
 
 # 这是一个虚拟包，用于工作空间管理
+# 新的三层架构：
+# - sage-kernel: 统一内核层 (Core + Runtime + Utils + CLI集成)
+# - sage-middleware: 中间件层 (LLM服务、数据库、内存管理)
+# - sage-userspace: 用户空间层 (RAG算子、插件、高级功能)
+# - sage-cli: 独立的命令行工具包
 dependencies = []
 
 [project.optional-dependencies]
-# 按功能分层的安装选项
-minimal = ["sage-utils"]
-core = ["sage-utils", "sage-core"]
-standard = ["sage-utils", "sage-core", "sage-lib"]
-extended = ["sage-utils", "sage-core", "sage-lib", "sage-extensions"]
-plugins = ["sage-utils", "sage-core", "sage-plugins"]
-services = ["sage-utils", "sage-core", "sage-lib", "sage-service"]
-cli = ["sage-utils", "sage-core", "sage-cli"]
+# 按功能分层的安装选项 - 基于新的三层架构
+minimal = ["sage-kernel"]                                    # 最小安装：仅内核
+core = ["sage-kernel", "sage-middleware"]                   # 核心安装：内核 + 中间件
+standard = ["sage-kernel", "sage-middleware", "sage-userspace"]  # 标准安装：完整开源版
+cli = ["sage-kernel", "sage-middleware", "sage-userspace", "sage-cli"]  # 包含CLI工具
 
 # 商业版选项
 commercial-kernel = ["sage-kernel-commercial"]
@@ -48,14 +51,29 @@ commercial = [
 
 # 组合安装选项
 full = [
-    "sage-utils", "sage-core", "sage-lib", 
-    "sage-extensions", "sage-plugins", "sage-service", "sage-cli"
+    "sage-kernel", "sage-middleware", "sage-userspace", "sage-cli"
 ]
 enterprise = [
-    "sage-utils", "sage-core", "sage-lib", 
-    "sage-plugins", "sage-service", "sage-cli",
+    "sage-kernel", "sage-middleware", "sage-userspace", "sage-cli",
     "sage-kernel-commercial", "sage-middleware-commercial", "sage-userspace-commercial"
 ]
+
+# 社区版与专业版安装选项 (符合商业化策略)
+community = [
+    "sage-kernel", "sage-middleware", "sage-userspace"
+]
+professional = [
+    "sage-kernel", "sage-middleware", "sage-userspace", "sage-cli",
+    "sage-kernel-commercial", "sage-middleware-commercial"
+]
+
+# 安装示例:
+# pip install sage-workspace[minimal]     # 仅内核
+# pip install sage-workspace[core]        # 内核 + 中间件  
+# pip install sage-workspace[standard]    # 完整开源版
+# pip install sage-workspace[community]   # 社区版 (与standard相同)
+# pip install sage-workspace[full]        # 开源版 + CLI工具
+# pip install sage-workspace[enterprise]  # 企业版 (需要商业许可)
 
 # 统一的开发环境配置
 dev = [
@@ -155,12 +173,9 @@ multi_line_output = 3
 line_length = 88
 known_first_party = ["sage"]
 src_paths = [
-    "packages/sage-core/src",
-    "packages/sage-utils/src",
-    "packages/sage-lib/src", 
-    "packages/sage-extensions/src",
-    "packages/sage-plugins/src",
-    "packages/sage-service/src",
+    "packages/sage-kernel/src",
+    "packages/sage-middleware/src",
+    "packages/sage-userspace/src", 
     "packages/tools/sage-cli/src",
 ]
 
@@ -171,12 +186,9 @@ warn_unused_configs = true
 namespace_packages = true
 explicit_package_bases = true
 mypy_path = [
-    "packages/sage-core/src",
-    "packages/sage-utils/src",
-    "packages/sage-lib/src",
-    "packages/sage-extensions/src", 
-    "packages/sage-plugins/src",
-    "packages/sage-service/src",
+    "packages/sage-kernel/src",
+    "packages/sage-middleware/src",
+    "packages/sage-userspace/src",
     "packages/tools/sage-cli/src",
 ]
 
@@ -186,12 +198,9 @@ ignore_missing_imports = false
 
 [tool.pytest.ini_options]
 testpaths = [
-    "packages/sage-core/tests",
-    "packages/sage-utils/tests",
-    "packages/sage-lib/tests",
-    "packages/sage-extensions/tests",
-    "packages/sage-plugins/tests", 
-    "packages/sage-service/tests",
+    "packages/sage-kernel/tests",
+    "packages/sage-middleware/tests",
+    "packages/sage-userspace/tests",
     "packages/tools/sage-cli/tests",
     "tests",
 ]
