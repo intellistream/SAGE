@@ -26,19 +26,25 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
-# Monorepo 工作空间配置 - 自动安装所有子包
+# Monorepo 工作空间配置 - 直接安装所有子包
 # 新的三层架构：
 # - sage-kernel: 统一内核层 (Core + Runtime + Utils + CLI集成)
 # - sage-middleware: 中间件层 (LLM服务、数据库、内存管理)
 # - sage-userspace: 用户空间层 (RAG算子、插件、高级功能)
 # - sage-cli: 独立的命令行工具包
 # - sage-dev-toolkit: 开发工具包
-#
-# 这个包会触发所有子包的安装
 dependencies = [
-    "setuptools>=64",
-    "wheel",
-    "pip>=21.0",
+    # 核心开源包 (按依赖顺序安装)
+    "sage-middleware",
+    "sage-kernel", 
+    "sage-userspace",
+    
+    # 工具包
+    "sage-cli",
+    # "sage-frontend",
+    
+    # 开发工具包
+    "sage-dev-toolkit",
 ]
 
 [project.optional-dependencies]

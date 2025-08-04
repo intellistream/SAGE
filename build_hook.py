@@ -25,7 +25,7 @@ def build_hook():
         root_dir / "packages" / "sage-kernel", 
         root_dir / "packages" / "sage-userspace",
         root_dir / "packages" / "tools" / "sage-cli",
-        root_dir / "packages" / "tools" / "sage-frontend",
+        # root_dir / "packages" / "tools" / "sage-frontend",
         root_dir / "dev-toolkit",
     ]
     
