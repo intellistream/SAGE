@@ -97,13 +97,18 @@ class ToolkitConfig:
         # Extract directory configuration
         dirs = config_data.get('directories', {})
         
+        # Set up paths using ~/.sage/ directory structure
+        sage_home = Path.home() / ".sage"
+        project_name = project_root.name
+        project_sage_dir = sage_home / "projects" / project_name
+        
         return cls(
             project_root=project_root,
             packages_dir=project_root / dirs.get('packages', 'packages'),
             scripts_dir=project_root / dirs.get('scripts', 'scripts'),
-            output_dir=project_root / dirs.get('output', 'dev_reports'),
-            logs_dir=project_root / dirs.get('logs', 'test_logs'),
-            temp_dir=project_root / dirs.get('temp', 'temp'),
+            output_dir=project_sage_dir / "reports",  # Use ~/.sage/ for outputs
+            logs_dir=project_sage_dir / "logs",       # Use ~/.sage/ for logs  
+            temp_dir=project_sage_dir / "temp",       # Use ~/.sage/ for temp files
             config_data=config_data,
             environment=environment
         )

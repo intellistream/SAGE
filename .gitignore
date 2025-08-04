@@ -108,3 +108,6 @@ build/
 **/cmake_install.cmake
 
 **.ninja**
+
+coverage.xml
+dev_reports/

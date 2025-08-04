@@ -18,7 +18,7 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 # 导入系统工具模块
-from sage.utils.system.network_utils import (
+from sage.utils.system.network import (
     is_port_occupied,
     wait_for_port_release,
     find_port_processes,
@@ -26,7 +26,7 @@ from sage.utils.system.network_utils import (
     check_port_binding_permission,
     send_tcp_health_check
 )
-from sage.utils.system.process_utils import (
+from sage.utils.system.process import (
     find_processes_by_name,
     get_process_info,
     terminate_process,
@@ -344,7 +344,7 @@ class JobManagerController:
     
     def is_port_occupied(self) -> bool:
         """检查端口是否被占用"""
-        from sage.utils.system.network_utils import is_port_occupied as check_port_occupied
+        from sage.utils.system.network import is_port_occupied as check_port_occupied
         return check_port_occupied(self.host, self.port)
     
     def status(self) -> Dict[str, Any]:

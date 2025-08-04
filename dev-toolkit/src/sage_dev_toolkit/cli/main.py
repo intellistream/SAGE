@@ -791,5 +791,83 @@ def classes_command(
         console.print(f"❌ Class analysis failed: {e}", style="red")
         raise typer.Exit(1)
 
+@app.command("home")
+def home_command(
+    action: str = typer.Argument(help="Action: setup, status"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory")
+):
+    """🏠 Manage SAGE home directory (~/.sage/)."""
+    try:
+        # 使用直接路径而不是get_toolkit避免循环导入
+        if project_root:
+            project_path = Path(project_root).resolve()
+        else:
+            # 从当前目录开始向上查找项目根目录
+            current = Path.cwd()
+            while current != current.parent:
+                if (current / "pyproject.toml").exists() or (current / "setup.py").exists():
+                    project_path = current
+                    break
+                current = current.parent
+            else:
+                project_path = Path.cwd()
+        
+        project_name = project_path.name
+        
+        # 简化策略：直接在项目根目录创建.sage目录
+        sage_home_dir = project_path / ".sage"
+        
+        if action == "setup":
+            with console.status("🏗️ Setting up SAGE home directory..."):
+                # 创建.sage目录
+                sage_home_dir.mkdir(exist_ok=True)
+                
+                # 创建子目录
+                for subdir in ["logs", "reports", "coverage", "temp", "cache"]:
+                    (sage_home_dir / subdir).mkdir(exist_ok=True)
+                
+                success = sage_home_dir.exists()
+            
+            console.print("🏠 SAGE Home Directory Setup Complete!", style="green")
+            console.print(f"📁 SAGE home: {sage_home_dir}")
+            
+            status_icon = "✅" if success else "❌"
+            console.print(f"\n🔗 Directory created:")
+            console.print(f"  {status_icon} .sage/ -> 项目本地目录")
+        
+        elif action == "status":
+            with console.status("📊 Checking SAGE home status..."):
+                pass
+            
+            console.print("📊 SAGE Home Status:", style="cyan")
+            console.print(f"📁 SAGE home: {sage_home_dir}")
+            console.print(f"🔗 Project directory: {sage_home_dir}")
+            
+            # Check directory status
+            if sage_home_dir.exists():
+                if sage_home_dir.is_dir():
+                    console.print("✅ .sage directory exists")
+                    
+                    # Check subdirectories
+                    subdirs = ["logs", "reports", "coverage", "temp", "cache"]
+                    missing_dirs = [d for d in subdirs if not (sage_home_dir / d).exists()]
+                    if missing_dirs:
+                        console.print(f"⚠️ Missing subdirectories: {', '.join(missing_dirs)}")
+                    else:
+                        console.print("✅ All subdirectories present")
+                else:
+                    console.print("❌ .sage exists but is not a directory")
+            else:
+                console.print("❌ .sage directory does not exist")
+        
+        else:
+            console.print(f"❌ Unknown action: {action}", style="red")
+            console.print("Available actions: setup, status")
+            raise typer.Exit(1)
+            
+    except Exception as e:
+        console.print(f"❌ SAGE home management failed: {e}", style="red")
+        raise typer.Exit(1)
+
 if __name__ == '__main__':
     main()

@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, Set
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from ..core.exceptions import SAGEDevToolkitError
+from ..utils.sage_home import get_logs_dir, get_reports_dir, setup_project_symlinks
 
 
 class EnhancedTestRunner:
@@ -23,12 +24,21 @@ class EnhancedTestRunner:
     def __init__(self, project_root: str):
         self.project_root = Path(project_root)
         self.packages_dir = self.project_root / 'packages'
-        self.test_logs_dir = self.project_root / 'test_logs'
-        self.reports_dir = self.project_root / 'dev_reports'
+        
+        # Get project name from path
+        project_name = self.project_root.name
+        
+        # Set up symlink to SAGE home
+        setup_project_symlinks(self.project_root, project_name)
+        
+        # Use .sage subdirectories for all output
+        sage_link = self.project_root / '.sage'
+        self.test_logs_dir = sage_link / 'logs'
+        self.reports_dir = sage_link / 'reports'
         
         # Ensure directories exist
-        self.test_logs_dir.mkdir(exist_ok=True)
-        self.reports_dir.mkdir(exist_ok=True)
+        self.test_logs_dir.mkdir(parents=True, exist_ok=True)
+        self.reports_dir.mkdir(parents=True, exist_ok=True)
     
     def run_tests(self, mode: str = 'diff', **kwargs) -> Dict:
         """Run tests based on specified mode."""
