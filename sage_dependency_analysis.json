@@ -301,7 +301,7 @@
     "sage.lib.rag.generator": [
       "sage.core.function.map_function",
       "sage.core.function.base_function",
-      "sage.utils.clients.generator_model",
+      "sage.llm.clients.base",
       "sage.utils.state_persistence"
     ],
     "sage.lib.rag.reranker": [
@@ -347,13 +347,13 @@
       "sage.utils.logging.custom_logger"
     ],
     "sage.lib.agents.agent": [
-      "sage.utils.clients.generator_model",
+      "sage.llm.clients.base",
       "sage.core.function.map_function"
     ],
     "sage.lib.agents.searcher_bot": [
       "sage.core.function.map_function",
       "sage.lib.context.model_context",
-      "sage.utils.clients.generator_model"
+      "sage.llm.clients.base"
     ],
     "sage.lib.agents.question_bot": [
       "sage.core.function.map_function",
@@ -363,7 +363,7 @@
     ],
     "sage.lib.agents.critic_bot": [
       "sage.core.function.map_function",
-      "sage.utils.clients.generator_model",
+      "sage.llm.clients.base",
       "sage.lib.context.model_context",
       "sage.lib.context.quality_label",
       "sage.lib.context.critic_evaluation"
@@ -21078,7 +21078,7 @@
     "/home/flecther/SAGE/packages/sage-userspace/build/lib/sage/lib/rag/generator.py:10": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.clients.generator_model",
+        "module": "sage.llm.clients.base",
         "name": "apply_generator_model",
         "asname": null,
         "line": 10
@@ -21086,7 +21086,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'",
+        "error_message": "Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -22319,7 +22319,7 @@
     "/home/flecther/SAGE/packages/sage-userspace/build/lib/sage/lib/agents/agent.py:1": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.clients.generator_model",
+        "module": "sage.llm.clients.base",
         "name": "apply_generator_model",
         "asname": null,
         "line": 1
@@ -22327,7 +22327,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'",
+        "error_message": "Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -22506,7 +22506,7 @@
     "/home/flecther/SAGE/packages/sage-userspace/build/lib/sage/lib/agents/searcher_bot.py:6": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.clients.generator_model",
+        "module": "sage.llm.clients.base",
         "name": "apply_generator_model",
         "asname": null,
         "line": 6
@@ -22514,7 +22514,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'",
+        "error_message": "Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -22795,7 +22795,7 @@
     "/home/flecther/SAGE/packages/sage-userspace/build/lib/sage/lib/agents/critic_bot.py:6": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.clients.generator_model",
+        "module": "sage.llm.clients.base",
         "name": "apply_generator_model",
         "asname": null,
         "line": 6
@@ -22803,7 +22803,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'",
+        "error_message": "Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -26858,7 +26858,7 @@
     "/home/flecther/SAGE/packages/sage-userspace/src/sage/lib/rag/generator.py:10": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.clients.generator_model",
+        "module": "sage.llm.clients.base",
         "name": "apply_generator_model",
         "asname": null,
         "line": 10
@@ -26866,7 +26866,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'",
+        "error_message": "Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -28099,7 +28099,7 @@
     "/home/flecther/SAGE/packages/sage-userspace/src/sage/lib/agents/agent.py:1": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.clients.generator_model",
+        "module": "sage.llm.clients.base",
         "name": "apply_generator_model",
         "asname": null,
         "line": 1
@@ -28107,7 +28107,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'",
+        "error_message": "Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -28286,7 +28286,7 @@
     "/home/flecther/SAGE/packages/sage-userspace/src/sage/lib/agents/searcher_bot.py:6": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.clients.generator_model",
+        "module": "sage.llm.clients.base",
         "name": "apply_generator_model",
         "asname": null,
         "line": 6
@@ -28294,7 +28294,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'",
+        "error_message": "Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -28575,7 +28575,7 @@
     "/home/flecther/SAGE/packages/sage-userspace/src/sage/lib/agents/critic_bot.py:6": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.clients.generator_model",
+        "module": "sage.llm.clients.base",
         "name": "apply_generator_model",
         "asname": null,
         "line": 6
@@ -28583,7 +28583,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'",
+        "error_message": "Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'",
         "suggested_import": null,
         "is_sage_import": true
       },

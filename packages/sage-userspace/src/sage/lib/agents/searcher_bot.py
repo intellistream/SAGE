@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 from jinja2 import Template
 from sage.core.function.map_function import MapFunction
 from sage.lib.context.model_context import ModelContext
-from sage.utils.clients.generator_model import apply_generator_model
+from sage.llm.clients.base import apply_generator_model
 
 # 搜索查询优化的prompt模板
 SEARCH_QUERY_OPTIMIZATION_PROMPT = '''You are a search query optimization specialist. Your task is to analyze the user's original question and existing retrieved information, then design optimized search queries to fill information gaps.

@@ -977,8 +977,8 @@ SAGE包路径映射:
   错误: Cannot find 'StatefulFunction' in module 'sage.core.function.base_function'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/build/lib/sage/lib/rag/generator.py
-  行 10: from sage.utils.clients.generator_model import apply_generator_model
-  错误: Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'
+  行 10: from sage.llm.clients.base import apply_generator_model
+  错误: Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/build/lib/sage/lib/rag/generator.py
   行 11: from sage.utils.state_persistence import save_function_state
@@ -1054,8 +1054,8 @@ SAGE包路径映射:
   错误: Cannot find 'CustomLogger' in module 'sage.utils.logging.custom_logger'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/build/lib/sage/lib/agents/agent.py
-  行 1: from sage.utils.clients.generator_model import apply_generator_model
-  错误: Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'
+  行 1: from sage.llm.clients.base import apply_generator_model
+  错误: Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/build/lib/sage/lib/agents/agent.py
   行 2: from sage.core.function.map_function import MapFunction
@@ -1070,8 +1070,8 @@ SAGE包路径映射:
   错误: Cannot find 'ModelContext' in module 'sage.lib.context.model_context'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/build/lib/sage/lib/agents/searcher_bot.py
-  行 6: from sage.utils.clients.generator_model import apply_generator_model
-  错误: Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'
+  行 6: from sage.llm.clients.base import apply_generator_model
+  错误: Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/build/lib/sage/lib/agents/question_bot.py
   行 5: from sage.core.function.map_function import MapFunction
@@ -1095,8 +1095,8 @@ SAGE包路径映射:
   错误: Cannot find 'MapFunction' in module 'sage.core.function.map_function'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/build/lib/sage/lib/agents/critic_bot.py
-  行 6: from sage.utils.clients.generator_model import apply_generator_model
-  错误: Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'
+  行 6: from sage.llm.clients.base import apply_generator_model
+  错误: Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/build/lib/sage/lib/agents/critic_bot.py
   行 7: from sage.lib.context.model_context import ModelContext
@@ -1273,8 +1273,8 @@ SAGE包路径映射:
   错误: Cannot find 'StatefulFunction' in module 'sage.core.function.base_function'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/src/sage/lib/rag/generator.py
-  行 10: from sage.utils.clients.generator_model import apply_generator_model
-  错误: Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'
+  行 10: from sage.llm.clients.base import apply_generator_model
+  错误: Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/src/sage/lib/rag/generator.py
   行 11: from sage.utils.state_persistence import save_function_state
@@ -1345,8 +1345,8 @@ SAGE包路径映射:
   错误: Cannot find 'CustomLogger' in module 'sage.utils.logging.custom_logger'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/src/sage/lib/agents/agent.py
-  行 1: from sage.utils.clients.generator_model import apply_generator_model
-  错误: Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'
+  行 1: from sage.llm.clients.base import apply_generator_model
+  错误: Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/src/sage/lib/agents/agent.py
   行 2: from sage.core.function.map_function import MapFunction
@@ -1357,8 +1357,8 @@ SAGE包路径映射:
   错误: Cannot find 'MapFunction' in module 'sage.core.function.map_function'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/src/sage/lib/agents/searcher_bot.py
-  行 6: from sage.utils.clients.generator_model import apply_generator_model
-  错误: Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'
+  行 6: from sage.llm.clients.base import apply_generator_model
+  错误: Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/src/sage/lib/agents/question_bot.py
   行 5: from sage.core.function.map_function import MapFunction
@@ -1373,8 +1373,8 @@ SAGE包路径映射:
   错误: Cannot find 'MapFunction' in module 'sage.core.function.map_function'
 
 文件: /home/flecther/SAGE/packages/sage-userspace/src/sage/lib/agents/critic_bot.py
-  行 6: from sage.utils.clients.generator_model import apply_generator_model
-  错误: Cannot find 'apply_generator_model' in module 'sage.utils.clients.generator_model'
+  行 6: from sage.llm.clients.base import apply_generator_model
+  错误: Cannot find 'apply_generator_model' in module 'sage.llm.clients.base'
 
 文件: /home/flecther/SAGE/packages/tools/sage-frontend/sage_server/start_a_pipeline.py
   行 7: from sage.core.api.local_environment import LocalEnvironment

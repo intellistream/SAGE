@@ -19,7 +19,7 @@ class ImportPathFixer:
         self.path_mappings = {
             # 错误的导入 -> 正确的导入
             'sage.utils.logging.custom_logger': 'sage.utils.logging.custom_logger',
-            'sage.utils.clients.generator_model': 'sage.llm.clients.base',
+            'sage.llm.clients.base': 'sage.llm.clients.base',
             'sage.utils.state_persistence': 'sage.llm.persistence.state',
             'sage_ext.sage_queue': 'sage.extensions.sage_queue',
             'sage_queue': 'sage.extensions.sage_queue.python.sage_queue',
