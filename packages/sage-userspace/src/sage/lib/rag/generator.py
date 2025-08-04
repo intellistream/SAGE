@@ -8,7 +8,7 @@ import json
 from sage.core.function.map_function import MapFunction
 from sage.core.function.base_function import StatefulFunction
 from sage.llm.clients.base import apply_generator_model
-from sage.utils.state_persistence import load_function_state, save_function_state
+from sage.runtime.state import load_function_state, save_function_state
 
 
 class OpenAIGenerator(MapFunction):

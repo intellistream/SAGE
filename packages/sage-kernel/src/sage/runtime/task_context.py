@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from sage.jobmanager.job_manager import JobManager
     from sage.runtime.service.service_caller import ServiceManager
     from sage.core.function.source_function import StopSignal
-    from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
+    from sage.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
     from sage.runtime.communication.router.connection import Connection
 # task, operator和function "形式上共享"的运行上下文
 

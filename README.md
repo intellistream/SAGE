@@ -5,6 +5,44 @@ SAGE is a dataflow-native reasoning framework built from the ground up to suppor
 
 ![](./.github/asset/framework.png)
 
+
+## 🛠️ SAGE Development Toolkit
+
+The SAGE Development Toolkit provides unified development tools for the SAGE project. It integrates various development utilities into a single, easy-to-use command-line interface.
+
+### Quick Start
+
+```bash
+# Install the toolkit
+pip install -e dev-toolkit/
+
+# Show all available commands
+sage-dev --help
+
+# Check toolkit status
+sage-dev status
+
+# Run tests on changed files
+sage-dev test --mode diff
+
+# Update VS Code paths
+sage-dev update-vscode
+```
+
+### Available Commands
+
+- `sage-dev test` - Intelligent test execution with parallel support
+- `sage-dev analyze` - Comprehensive dependency analysis  
+- `sage-dev package` - Package management across SAGE ecosystem
+- `sage-dev report` - Generate development reports
+- `sage-dev fix-imports` - Fix import paths automatically
+- `sage-dev update-vscode` - Update VS Code Python configurations
+- `sage-dev setup-test` - One-click environment setup and testing
+- `sage-dev list-tests` - List all available tests
+
+For detailed documentation, see [dev-toolkit/README.md](dev-toolkit/README.md).
+
+
 ## ✨ Features
 
 - 🧩 **Declarative & Modular Composition**: Build complex reasoning pipelines from typed, reusable operators. The dataflow graph cleanly separates what to compute from how to compute it.

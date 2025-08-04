@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .graph_node import GraphNode
-    from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
+    from sage.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
 
 class GraphEdge:

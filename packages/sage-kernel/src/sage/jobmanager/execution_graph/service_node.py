@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
     from sage.runtime.factory.service_factory import ServiceFactory
     from sage.runtime.factory.service_task_factory import ServiceTaskFactory
-    from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
+    from sage.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
     from sage.runtime.service_context import ServiceContext
 
 

@@ -20,7 +20,7 @@ The `QueueDescriptor` is the central class that provides:
 Standard Python `queue.Queue` for single-process communication.
 
 ```python
-from sage.runtime.communication.queue import QueueDescriptor
+from sage.runtime.communication.queue_descriptor import QueueDescriptor
 
 queue = QueueDescriptor.create_local_queue(
     queue_id="my_local_queue",
@@ -131,7 +131,7 @@ queue_pool = {
 }
 
 # Serialize entire pool
-from sage.runtime.communication.queue import serialize_queue_pool, deserialize_queue_pool
+from sage.runtime.communication.queue_descriptor import serialize_queue_pool, deserialize_queue_pool
 json_data = serialize_queue_pool(queue_pool)
 restored_pool = deserialize_queue_pool(json_data)
 ```

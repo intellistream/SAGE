@@ -104,10 +104,38 @@ class SAGEDevToolkit:
                 self.logger.warning(f"Could not setup file logging: {e}")
     
     def _load_tools(self) -> None:
-        """Dynamically load tool modules from scripts directory."""
+        """Load integrated tools and dynamically load additional tools from scripts directory."""
+        # Load integrated tools first
+        from ..tools import (
+            ImportPathFixer, VSCodePathManager, OneClickSetupTester,
+            EnhancedPackageManager, EnhancedTestRunner
+        )
+        
+        # Map integrated tools
+        integrated_tools = {
+            'test_runner': EnhancedTestRunner,
+            'package_manager': EnhancedPackageManager,
+            'dependency_analyzer': EnhancedTestRunner,  # Can also analyze dependencies
+            'import_fixer': ImportPathFixer,
+            'vscode_manager': VSCodePathManager,
+            'setup_tester': OneClickSetupTester
+        }
+        
+        # Load integrated tools based on configuration
         tools_config = self.config.get_tools_config()
         
+        for tool_name, tool_class in integrated_tools.items():
+            if self.config.is_tool_enabled(tool_name):
+                self.tools[tool_name] = tool_class
+                self.logger.info(f"Successfully loaded tool: {tool_name}")
+            else:
+                self.logger.info(f"Skipping disabled tool: {tool_name}")
+        
+        # Load additional tools from scripts directory (for backwards compatibility)
         for tool_name, tool_config in tools_config.items():
+            if tool_name in integrated_tools:
+                continue  # Already loaded as integrated tool
+                
             if not self.config.is_tool_enabled(tool_name):
                 self.logger.info(f"Skipping disabled tool: {tool_name}")
                 continue
@@ -146,7 +174,7 @@ class SAGEDevToolkit:
     
     def run_tests(self, mode: str = "diff", **kwargs) -> Dict[str, Any]:
         """
-        Run tests using the configured test runner.
+        Run tests using the enhanced test runner.
         
         Args:
             mode: Test mode ("all", "diff", "package")
@@ -178,18 +206,8 @@ class SAGEDevToolkit:
             # Create test runner instance
             runner = self.tools['test_runner'](str(self.config.project_root))
             
-            # Execute tests based on mode
-            if mode == "all":
-                results = runner.run_all_tests(**test_kwargs)
-            elif mode == "diff":
-                results = runner.run_smart_tests(**test_kwargs)
-            elif mode == "package":
-                package_name = kwargs.get('package')
-                if not package_name:
-                    raise TestExecutionError("Package name required for package mode")
-                results = runner.run_package_tests(package_name, **test_kwargs)
-            else:
-                raise TestExecutionError(f"Unknown test mode: {mode}")
+            # Execute tests using the enhanced runner
+            results = runner.run_tests(mode, **test_kwargs)
             
             # Add metadata
             execution_time = time.time() - start_time
@@ -198,6 +216,15 @@ class SAGEDevToolkit:
             results['mode'] = mode
             
             # Save results
+            output_file = self._save_results('test_execution', results)
+            
+            self.logger.info(f"📄 Test results saved to: {output_file}")
+            self.logger.info(f"⏱️  Test execution time: {execution_time:.2f}s")
+            
+            return results
+            
+        except Exception as e:
+            raise TestExecutionError(f"Test execution failed: {e}") from e
             output_file = self._save_results('test_results', results)
             
             self.logger.info(f"📄 Test results saved to: {output_file}")
@@ -265,7 +292,7 @@ class SAGEDevToolkit:
         **kwargs
     ) -> Dict[str, Any]:
         """
-        Manage SAGE packages.
+        Manage SAGE packages using the enhanced package manager.
         
         Args:
             action: Package action ("list", "install", "uninstall", "status", "build")
@@ -285,26 +312,26 @@ class SAGEDevToolkit:
         
         try:
             # Create package manager instance
-            manager = self.tools['package_manager'](self.config.project_root)
+            manager = self.tools['package_manager'](str(self.config.project_root))
             
-            # Execute action
+            # Execute action using the enhanced manager
             if action == "list":
                 return manager.list_packages()
             elif action == "install":
                 if not package_name:
-                    raise PackageManagementError("Package name required for install")
-                return manager.install_package(package_name, **kwargs)
+                    return manager.install_all_packages(**kwargs)
+                else:
+                    return manager.install_package(package_name, **kwargs)
             elif action == "uninstall":
                 if not package_name:
                     raise PackageManagementError("Package name required for uninstall")
                 return manager.uninstall_package(package_name)
             elif action == "status":
-                return manager.get_status()
+                return manager.check_dependencies()
             elif action == "build":
-                if package_name:
-                    return manager.build_package(package_name)
-                else:
-                    return manager.build_all_packages()
+                if not package_name:
+                    raise PackageManagementError("Package name required for build")
+                return manager.build_package(package_name)
             else:
                 raise PackageManagementError(f"Unknown package action: {action}")
                 
@@ -460,3 +487,47 @@ class SAGEDevToolkit:
     def validate_configuration(self) -> List[str]:
         """Validate toolkit configuration and return any errors."""
         return self.config.validate()
+    
+    def fix_import_paths(self, dry_run: bool = False) -> Dict[str, Any]:
+        """Fix import paths in SAGE packages."""
+        if 'import_fixer' not in self.tools:
+            raise ToolError("Import path fixer not available")
+        
+        try:
+            fixer = self.tools['import_fixer'](str(self.config.packages_dir))
+            return fixer.fix_imports(dry_run=dry_run)
+        except Exception as e:
+            raise SAGEDevToolkitError(f"Import path fixing failed: {e}") from e
+    
+    def update_vscode_paths(self, mode: str = 'enhanced') -> Dict[str, Any]:
+        """Update VS Code Python path configurations."""
+        if 'vscode_manager' not in self.tools:
+            raise ToolError("VS Code path manager not available")
+        
+        try:
+            manager = self.tools['vscode_manager'](str(self.config.project_root))
+            return manager.update_python_paths(mode=mode)
+        except Exception as e:
+            raise SAGEDevToolkitError(f"VS Code path update failed: {e}") from e
+    
+    def one_click_setup_and_test(self, **kwargs) -> Dict[str, Any]:
+        """Run one-click setup and test cycle."""
+        if 'setup_tester' not in self.tools:
+            raise ToolError("Setup tester not available")
+        
+        try:
+            tester = self.tools['setup_tester'](str(self.config.project_root))
+            return tester.setup_and_test(**kwargs)
+        except Exception as e:
+            raise SAGEDevToolkitError(f"Setup and test failed: {e}") from e
+    
+    def list_available_tests(self) -> Dict[str, Any]:
+        """List all available tests in the project."""
+        if 'test_runner' not in self.tools:
+            raise ToolError("Test runner not available")
+        
+        try:
+            runner = self.tools['test_runner'](str(self.config.project_root))
+            return runner.list_tests()
+        except Exception as e:
+            raise SAGEDevToolkitError(f"Test listing failed: {e}") from e

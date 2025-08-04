@@ -83,7 +83,7 @@ def run_quick_functionality_check():
         print("✅ ServiceContext import successful")
         
         # 检查BaseQueueDescriptor导入
-        from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
+        from sage.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
         print("✅ BaseQueueDescriptor import successful")
         
         # 检查关键方法存在

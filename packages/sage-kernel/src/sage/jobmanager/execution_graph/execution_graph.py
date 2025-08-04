@@ -20,7 +20,7 @@ from sage.runtime.task_context import TaskContext
 from sage.runtime.service_context import ServiceContext
 
 if TYPE_CHECKING:
-    from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
+    from sage.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
 from .graph_node import GraphNode
 from .service_node import ServiceNode

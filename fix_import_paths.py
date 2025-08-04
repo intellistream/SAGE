@@ -20,7 +20,7 @@ class ImportPathFixer:
             # 错误的导入 -> 正确的导入
             'sage.utils.logging.custom_logger': 'sage.utils.logging.custom_logger',
             'sage.llm.clients.base': 'sage.llm.clients.base',
-            'sage.utils.state_persistence': 'sage.llm.persistence.state',
+            'sage.runtime.state': 'sage.llm.persistence.state',
             'sage_ext.sage_queue': 'sage.extensions.sage_queue',
             'sage_queue': 'sage.extensions.sage_queue.python.sage_queue',
             'sage_plugins': 'sage.plugins',
@@ -76,7 +76,7 @@ class ImportPathFixer:
         # 修复一些常见的错误路径
         path_fixes = {
             'sage.utils.clients': 'sage.llm.clients',
-            'sage.utils.state_persistence': 'sage.llm.persistence.state',
+            'sage.runtime.state': 'sage.llm.persistence.state',
         }
         
         for wrong, correct in path_fixes.items():

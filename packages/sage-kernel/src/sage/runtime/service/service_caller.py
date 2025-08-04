@@ -7,12 +7,10 @@ import logging
 import time
 import threading
 import uuid
-import queue
 from concurrent.futures import ThreadPoolExecutor, Future
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from sage.utils.queue_adapter import create_queue
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
 

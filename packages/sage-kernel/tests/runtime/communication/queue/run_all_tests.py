@@ -117,7 +117,7 @@ def run_basic_queue_tests():
     print("="*60)
     
     try:
-        from sage.runtime.communication.queue import (
+        from sage.runtime.communication.queue_descriptor import (
             create_python_queue,
             create_ray_queue,
             create_sage_queue

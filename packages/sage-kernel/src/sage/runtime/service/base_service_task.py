@@ -418,7 +418,6 @@ class BaseServiceTask(ABC):
             self.logger.debug(f"[SERVICE_TASK] Response data: {response_data}")
             
             # 通过队列名称创建/获取队列实例（与ServiceManager的_get_response_queue方法保持一致）
-            from sage.utils.queue_adapter import create_queue
             self.logger.debug(f"[SERVICE_TASK] Creating queue instance for: '{response_queue_name}'")
             response_queue = create_queue(name=response_queue_name)
             self.logger.info(f"[SERVICE_TASK] Created response queue instance type: {type(response_queue).__name__}")

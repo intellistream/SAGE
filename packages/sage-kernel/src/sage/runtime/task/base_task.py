@@ -6,7 +6,6 @@ from sage.runtime.task_context import TaskContext
 from sage.runtime.communication.router.packet import Packet
 from ray.util.queue import Empty
 
-from sage.utils.queue_adapter import create_queue
 from sage.runtime.communication.router.router import BaseRouter
 from sage.core.function.source_function import StopSignal
 from sage.utils.logging.custom_logger import CustomLogger

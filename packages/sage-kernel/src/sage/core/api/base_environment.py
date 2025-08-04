@@ -11,7 +11,7 @@ from sage.core.transformation.base_transformation import BaseTransformation
 from sage.core.transformation.source_transformation import SourceTransformation
 from sage.core.transformation.batch_transformation import BatchTransformation
 from sage.core.transformation.future_transformation import FutureTransformation
-from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
+from sage.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 from sage.utils.logging.custom_logger import CustomLogger
 from sage.jobmanager.utils.name_server import get_name
 from sage.jobmanager.jobmanager_client import JobManagerClient

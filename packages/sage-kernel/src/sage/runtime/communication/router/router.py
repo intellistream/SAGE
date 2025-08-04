@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, TYPE_CHECKING
 from sage.core.function.source_function import StopSignal
 from sage.runtime.communication.router.packet import Packet
-from sage.utils.queue_adapter import create_queue
 
 # 添加 Ray 相关导入以检测 Actor
 try:
@@ -19,7 +18,7 @@ except ImportError:
 if TYPE_CHECKING:
     from sage.runtime.communication.router.connection import Connection
     from sage.runtime.task_context import TaskContext
-    from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
+    from sage.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
 class BaseRouter(ABC):
     """

@@ -302,7 +302,7 @@
       "sage.core.function.map_function",
       "sage.core.function.base_function",
       "sage.llm.clients.base",
-      "sage.utils.state_persistence"
+      "sage.runtime.state"
     ],
     "sage.lib.rag.reranker": [
       "sage.core.function.map_function"
@@ -521,24 +521,24 @@
       "sage.jobmanager.utils.name_server",
       "sage.runtime.task_context",
       "sage.runtime.service_context",
-      "sage.runtime.communication.queue.base_queue_descriptor",
+      "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
       "sage.jobmanager.job_manager",
       "sage.core.transformation.future_transformation"
     ],
     "sage.jobmanager.execution_graph.graph_edge": [
-      "sage.runtime.communication.queue.base_queue_descriptor"
+      "sage.runtime.communication.queue_descriptor.base_queue_descriptor"
     ],
     "sage.jobmanager.execution_graph.graph_node": [
       "sage.core.api.base_environment",
       "sage.core.transformation.base_transformation",
-      "sage.runtime.communication.queue.base_queue_descriptor",
+      "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
       "sage.runtime.task_context"
     ],
     "sage.jobmanager.execution_graph.service_node": [
       "sage.core.api.base_environment",
       "sage.runtime.factory.service_factory",
       "sage.runtime.factory.service_task_factory",
-      "sage.runtime.communication.queue.base_queue_descriptor",
+      "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
       "sage.runtime.service_context"
     ],
     "sage.jobmanager.execution_graph.__init__": [],
@@ -562,7 +562,7 @@
       "sage.jobmanager.job_manager",
       "sage.runtime.service.service_caller",
       "sage.core.function.source_function",
-      "sage.runtime.communication.queue.base_queue_descriptor",
+      "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
       "sage.runtime.communication.router.connection",
       "sage.jobmanager.jobmanager_client"
     ],
@@ -578,7 +578,7 @@
       "sage.jobmanager.job_manager",
       "sage.runtime.service.service_caller",
       "sage.core.function.source_function",
-      "sage.runtime.communication.queue.base_queue_descriptor"
+      "sage.runtime.communication.queue_descriptor.base_queue_descriptor"
     ],
     "sage.runtime.factory.service_task_factory": [
       "sage.utils.logging.custom_logger",
@@ -644,20 +644,20 @@
     "sage.runtime.serialization.__init__": [],
     "sage.runtime.communication.actor": [],
     "sage.runtime.communication.__init__": [],
-    "sage.runtime.communication.queue.base_queue_descriptor": [],
-    "sage.runtime.communication.queue.sage_queue_descriptor": [
+    "sage.runtime.communication.queue_descriptor.base_queue_descriptor": [],
+    "sage.runtime.communication.queue_descriptor.sage_queue_descriptor": [
       "sage.extensions.sage_queue.python.sage_queue"
     ],
-    "sage.runtime.communication.queue.ray_queue_descriptor": [],
-    "sage.runtime.communication.queue.python_queue_descriptor": [],
-    "sage.runtime.communication.queue.rpc_queue_descriptor": [
+    "sage.runtime.communication.queue_descriptor.ray_queue_descriptor": [],
+    "sage.runtime.communication.queue_descriptor.python_queue_descriptor": [],
+    "sage.runtime.communication.queue_descriptor.rpc_queue_descriptor": [
       "sage.runtime.communication.rpc.rpc_queue"
     ],
-    "sage.runtime.communication.queue.__init__": [
+    "sage.runtime.communication.queue_descriptor.__init__": [
       "sage_queue_descriptor"
     ],
     "sage.runtime.communication.router.connection": [
-      "sage.runtime.communication.queue.base_queue_descriptor"
+      "sage.runtime.communication.queue_descriptor.base_queue_descriptor"
     ],
     "sage.runtime.communication.router.router": [
       "sage.core.function.source_function",
@@ -665,7 +665,7 @@
       "sage.utils.queue_adapter",
       "sage.runtime.communication.router.connection",
       "sage.runtime.task_context",
-      "sage.runtime.communication.queue.base_queue_descriptor"
+      "sage.runtime.communication.queue_descriptor.base_queue_descriptor"
     ],
     "sage.runtime.communication.router.packet": [],
     "sage.runtime.communication.router.__init__": [],
@@ -703,7 +703,7 @@
     ],
     "sage.core.function.base_function": [
       "sage.runtime.service.service_caller",
-      "sage.utils.state_persistence",
+      "sage.runtime.state",
       "sage.runtime.task_context"
     ],
     "sage.core.function.map_function": [
@@ -754,7 +754,7 @@
     "sage.core.api.local_environment": [
       "sage.core.api.base_environment",
       "sage.utils.actor_wrapper",
-      "sage.runtime.communication.queue.python_queue_descriptor",
+      "sage.runtime.communication.queue_descriptor.python_queue_descriptor",
       "sage.jobmanager.job_manager"
     ],
     "sage.core.api.datastream": [
@@ -775,7 +775,7 @@
     "sage.core.api.remote_environment": [
       "sage.core.api.base_environment",
       "sage.jobmanager.jobmanager_client",
-      "sage.runtime.communication.queue.ray_queue_descriptor",
+      "sage.runtime.communication.queue_descriptor.ray_queue_descriptor",
       "sage.runtime.serialization.dill"
     ],
     "sage.core.api.connected_streams": [
@@ -800,7 +800,7 @@
       "sage.core.transformation.source_transformation",
       "sage.core.transformation.batch_transformation",
       "sage.core.transformation.future_transformation",
-      "sage.runtime.communication.queue.base_queue_descriptor",
+      "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
       "sage.utils.logging.custom_logger",
       "sage.jobmanager.utils.name_server",
       "sage.jobmanager.jobmanager_client",
@@ -826,7 +826,7 @@
     "sage.core.api.test.test_from_batch_polymorphism": [
       "sage.core.api.base_environment",
       "sage.core.function.base_function",
-      "sage.runtime.communication.queue.base_queue_descriptor"
+      "sage.runtime.communication.queue_descriptor.base_queue_descriptor"
     ],
     "sage.core.api.test.test_remote_environment_server": [
       "sage.runtime.serialization.dill",
@@ -6883,13 +6883,13 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/serialization/dill.py": "sage.runtime.serialization.dill",
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication": "sage.runtime.communication",
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/actor.py": "sage.runtime.communication.actor",
-    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue": "sage.runtime.communication.queue",
-    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/base_queue_descriptor.py": "sage.runtime.communication.queue.base_queue_descriptor",
-    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/sage_queue_descriptor.py": "sage.runtime.communication.queue.sage_queue_descriptor",
-    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/ray_queue_descriptor.py": "sage.runtime.communication.queue.ray_queue_descriptor",
-    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/python_queue_descriptor.py": "sage.runtime.communication.queue.python_queue_descriptor",
-    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/rpc_queue_descriptor.py": "sage.runtime.communication.queue.rpc_queue_descriptor",
-    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/__pycache__": "sage.runtime.communication.queue.__pycache__",
+    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue": "sage.runtime.communication.queue_descriptor",
+    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/base_queue_descriptor.py": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
+    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/sage_queue_descriptor.py": "sage.runtime.communication.queue_descriptor.sage_queue_descriptor",
+    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/ray_queue_descriptor.py": "sage.runtime.communication.queue_descriptor.ray_queue_descriptor",
+    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/python_queue_descriptor.py": "sage.runtime.communication.queue_descriptor.python_queue_descriptor",
+    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/rpc_queue_descriptor.py": "sage.runtime.communication.queue_descriptor.rpc_queue_descriptor",
+    "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/__pycache__": "sage.runtime.communication.queue_descriptor.__pycache__",
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/router": "sage.runtime.communication.router",
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/router/connection.py": "sage.runtime.communication.router.connection",
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/router/router.py": "sage.runtime.communication.router.router",
@@ -21095,7 +21095,7 @@
     "/home/flecther/SAGE/packages/sage-userspace/build/lib/sage/lib/rag/generator.py:11": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.state_persistence",
+        "module": "sage.runtime.state",
         "name": "save_function_state",
         "asname": null,
         "line": 11
@@ -21103,7 +21103,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'save_function_state' in module 'sage.utils.state_persistence'",
+        "error_message": "Cannot find 'save_function_state' in module 'sage.runtime.state'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -26875,7 +26875,7 @@
     "/home/flecther/SAGE/packages/sage-userspace/src/sage/lib/rag/generator.py:11": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.state_persistence",
+        "module": "sage.runtime.state",
         "name": "save_function_state",
         "asname": null,
         "line": 11
@@ -26883,7 +26883,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'save_function_state' in module 'sage.utils.state_persistence'",
+        "error_message": "Cannot find 'save_function_state' in module 'sage.runtime.state'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -41206,7 +41206,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_ray_actor_queue_communication.py:22": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "RayQueueDescriptor",
         "asname": null,
         "line": 22
@@ -41214,7 +41214,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'RayQueueDescriptor' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'RayQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -41257,7 +41257,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_ray_actor_queue_communication.py:50": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "resolve_descriptor",
         "asname": null,
         "line": 50
@@ -41265,7 +41265,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -41274,7 +41274,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_ray_actor_queue_communication.py:155": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "resolve_descriptor",
         "asname": null,
         "line": 155
@@ -41282,7 +41282,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -41495,7 +41495,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_performance_benchmarks.py:29": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "SageQueueDescriptor",
         "asname": null,
         "line": 29
@@ -41503,7 +41503,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'SageQueueDescriptor' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'SageQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -41784,7 +41784,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_reference_passing_and_concurrency.py:26": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "resolve_descriptor",
         "asname": null,
         "line": 26
@@ -41792,7 +41792,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -41852,7 +41852,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_reference_passing_and_concurrency.py:128": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "resolve_descriptor",
         "asname": null,
         "line": 128
@@ -41860,7 +41860,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -41869,7 +41869,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_reference_passing_and_concurrency.py:148": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "resolve_descriptor",
         "asname": null,
         "line": 148
@@ -41877,7 +41877,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -41937,7 +41937,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_refactored_queue_descriptor.py:19": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "QueueDescriptor",
         "asname": null,
         "line": 19
@@ -41945,7 +41945,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'QueueDescriptor' in module 'sage.runtime.communication.queue.base_queue_descriptor'",
+        "error_message": "Cannot find 'QueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.base_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -41954,7 +41954,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_refactored_queue_descriptor.py:22": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "resolve_descriptor",
         "asname": null,
         "line": 22
@@ -41962,7 +41962,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42073,7 +42073,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/run_validation_tests.py:17": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "resolve_descriptor",
         "asname": null,
         "line": 17
@@ -42081,7 +42081,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42090,7 +42090,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/run_validation_tests.py:30": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "create_sage_queue",
         "asname": null,
         "line": 30
@@ -42098,7 +42098,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'create_sage_queue' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'create_sage_queue' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42107,7 +42107,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/run_validation_tests.py:91": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "create_python_queue",
         "asname": null,
         "line": 91
@@ -42115,7 +42115,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'create_python_queue' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'create_python_queue' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42124,7 +42124,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/run_validation_tests.py:155": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "create_sage_queue",
         "asname": null,
         "line": 155
@@ -42132,7 +42132,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'create_sage_queue' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'create_sage_queue' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42141,7 +42141,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/run_validation_tests.py:212": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "create_python_queue",
         "asname": null,
         "line": 212
@@ -42149,7 +42149,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'create_python_queue' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'create_python_queue' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42158,7 +42158,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/run_validation_tests.py:260": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "create_sage_queue",
         "asname": null,
         "line": 260
@@ -42166,7 +42166,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'create_sage_queue' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'create_sage_queue' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42209,7 +42209,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/run_validation_tests.py:274": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "resolve_descriptor",
         "asname": null,
         "line": 274
@@ -42217,7 +42217,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42345,7 +42345,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_queue_descriptor.py:26": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "QueueDescriptor",
         "asname": null,
         "line": 26
@@ -42353,7 +42353,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'QueueDescriptor' in module 'sage.runtime.communication.queue.base_queue_descriptor'",
+        "error_message": "Cannot find 'QueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.base_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42362,7 +42362,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_queue_descriptor.py:30": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.python_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.python_queue_descriptor",
         "name": "PythonQueueDescriptor",
         "asname": null,
         "line": 30
@@ -42370,7 +42370,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'PythonQueueDescriptor' in module 'sage.runtime.communication.queue.python_queue_descriptor'",
+        "error_message": "Cannot find 'PythonQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.python_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42379,7 +42379,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_queue_descriptor.py:34": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.ray_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.ray_queue_descriptor",
         "name": "RayQueueDescriptor",
         "asname": null,
         "line": 34
@@ -42387,7 +42387,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'RayQueueDescriptor' in module 'sage.runtime.communication.queue.ray_queue_descriptor'",
+        "error_message": "Cannot find 'RayQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.ray_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42396,7 +42396,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_queue_descriptor.py:39": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.sage_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.sage_queue_descriptor",
         "name": "SageQueueDescriptor",
         "asname": null,
         "line": 39
@@ -42404,7 +42404,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'SageQueueDescriptor' in module 'sage.runtime.communication.queue.sage_queue_descriptor'",
+        "error_message": "Cannot find 'SageQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.sage_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42413,7 +42413,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_queue_descriptor.py:44": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.rpc_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.rpc_queue_descriptor",
         "name": "RPCQueueDescriptor",
         "asname": null,
         "line": 44
@@ -42421,7 +42421,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'RPCQueueDescriptor' in module 'sage.runtime.communication.queue.rpc_queue_descriptor'",
+        "error_message": "Cannot find 'RPCQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.rpc_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42532,7 +42532,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/run_all_tests.py:120": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "create_sage_queue",
         "asname": null,
         "line": 120
@@ -42540,7 +42540,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'create_sage_queue' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'create_sage_queue' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -42617,7 +42617,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/communication/queue/test_inheritance_architecture.py:11": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue",
+        "module": "sage.runtime.communication.queue_descriptor",
         "name": "resolve_descriptor",
         "asname": null,
         "line": 11
@@ -42625,7 +42625,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue'",
+        "error_message": "Cannot find 'resolve_descriptor' in module 'sage.runtime.communication.queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -43025,7 +43025,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/service/test_base_service_task_queue_refactor.py:18": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "BaseQueueDescriptor",
         "asname": null,
         "line": 18
@@ -43033,7 +43033,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue.base_queue_descriptor'",
+        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.base_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -43178,7 +43178,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/tests/runtime/service/run_queue_refactor_tests.py:86": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "BaseQueueDescriptor",
         "asname": null,
         "line": 86
@@ -43186,7 +43186,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue.base_queue_descriptor'",
+        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.base_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -47649,7 +47649,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/jobmanager/execution_graph/execution_graph.py:23": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "BaseQueueDescriptor",
         "asname": null,
         "line": 23
@@ -47657,7 +47657,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue.base_queue_descriptor'",
+        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.base_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -47768,7 +47768,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/jobmanager/execution_graph/graph_edge.py:15": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "BaseQueueDescriptor",
         "asname": null,
         "line": 15
@@ -47776,7 +47776,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue.base_queue_descriptor'",
+        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.base_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -47853,7 +47853,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/jobmanager/execution_graph/graph_node.py:17": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "BaseQueueDescriptor",
         "asname": null,
         "line": 17
@@ -47861,7 +47861,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue.base_queue_descriptor'",
+        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.base_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -47989,7 +47989,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/jobmanager/execution_graph/service_node.py:17": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "BaseQueueDescriptor",
         "asname": null,
         "line": 17
@@ -47997,7 +47997,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue.base_queue_descriptor'",
+        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.base_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -48584,7 +48584,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/task_context.py:17": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "BaseQueueDescriptor",
         "asname": null,
         "line": 17
@@ -48592,7 +48592,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue.base_queue_descriptor'",
+        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.base_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -48941,7 +48941,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/service_context.py:19": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "BaseQueueDescriptor",
         "asname": null,
         "line": 19
@@ -48949,7 +48949,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue.base_queue_descriptor'",
+        "error_message": "Cannot find 'BaseQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.base_queue_descriptor'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -50922,7 +50922,7 @@
         "is_valid": false,
         "error_type": "not_found",
         "error_message": "Cannot find 'RPCQueue' in module 'sage.runtime.communication.rpc.rpc_queue'",
-        "suggested_import": "from sage.runtime.communication.queue.rpc_queue_descriptor import RPCQueueDescriptor",
+        "suggested_import": "from sage.runtime.communication.queue_descriptor.rpc_queue_descriptor import RPCQueueDescriptor",
         "is_sage_import": true
       },
       "source_file": "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/rpc_queue_descriptor.py"
@@ -50990,7 +50990,7 @@
         "is_valid": false,
         "error_type": "not_found",
         "error_message": "Cannot find 'SageQueueDescriptor' in module 'sage_queue_descriptor'",
-        "suggested_import": "from sage.runtime.communication.queue.sage_queue_descriptor import SageQueueDescriptor",
+        "suggested_import": "from sage.runtime.communication.queue_descriptor.sage_queue_descriptor import SageQueueDescriptor",
         "is_sage_import": true
       },
       "source_file": "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/queue/__init__.py"
@@ -51066,7 +51066,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/router/connection.py:6": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "BaseQueueDescriptor",
         "asname": null,
         "line": 6
@@ -51253,7 +51253,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/runtime/communication/router/router.py:22": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "BaseQueueDescriptor",
         "asname": null,
         "line": 22
@@ -52256,7 +52256,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/core/function/base_function.py:9": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.utils.state_persistence",
+        "module": "sage.runtime.state",
         "name": "save_function_state",
         "asname": null,
         "line": 9
@@ -52264,7 +52264,7 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'save_function_state' in module 'sage.utils.state_persistence'",
+        "error_message": "Cannot find 'save_function_state' in module 'sage.runtime.state'",
         "suggested_import": null,
         "is_sage_import": true
       },
@@ -53225,7 +53225,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/local_environment.py:6": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.python_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.python_queue_descriptor",
         "name": "PythonQueueDescriptor",
         "asname": null,
         "line": 6
@@ -53233,8 +53233,8 @@
       "validation": {
         "is_valid": false,
         "error_type": "not_found",
-        "error_message": "Cannot find 'PythonQueueDescriptor' in module 'sage.runtime.communication.queue.python_queue_descriptor'",
-        "suggested_import": "from sage.runtime.communication.queue.python_queue_descriptor import PythonQueueDescriptor",
+        "error_message": "Cannot find 'PythonQueueDescriptor' in module 'sage.runtime.communication.queue_descriptor.python_queue_descriptor'",
+        "suggested_import": "from sage.runtime.communication.queue_descriptor.python_queue_descriptor import PythonQueueDescriptor",
         "is_sage_import": true
       },
       "source_file": "/home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/local_environment.py"
@@ -53650,7 +53650,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/remote_environment.py:7": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.ray_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.ray_queue_descriptor",
         "name": "RayQueueDescriptor",
         "asname": null,
         "line": 7
@@ -54194,7 +54194,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/base_environment.py:14": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "BaseQueueDescriptor",
         "asname": null,
         "line": 14
@@ -54755,7 +54755,7 @@
     "/home/flecther/SAGE/packages/sage-kernel/src/sage/core/api/test/test_from_batch_polymorphism.py:8": {
       "import_info": {
         "type": "from_import",
-        "module": "sage.runtime.communication.queue.base_queue_descriptor",
+        "module": "sage.runtime.communication.queue_descriptor.base_queue_descriptor",
         "name": "BaseQueueDescriptor",
         "asname": null,
         "line": 8

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Dict, List
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
     from sage.core.transformation.base_transformation import BaseTransformation
-    from sage.runtime.communication.queue.base_queue_descriptor import BaseQueueDescriptor
+    from sage.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
     from sage.runtime.task_context import TaskContext
     from .graph_edge import GraphEdge
 

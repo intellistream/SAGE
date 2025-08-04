@@ -11,12 +11,16 @@ from pathlib import Path
 from typing import Optional
 from rich.console import Console
 from rich.table import Table
+from rich.panel import Panel
 
 from ..core.toolkit import SAGEDevToolkit
 from ..core.exceptions import SAGEDevToolkitError
 
 # 创建控制台对象用于富文本输出
 console = Console()
+
+# 全局变量存储toolkit实例
+_toolkit: Optional[SAGEDevToolkit] = None
 
 # 创建主应用
 app = typer.Typer(
@@ -25,22 +29,51 @@ app = typer.Typer(
     no_args_is_help=True
 )
 
+def get_toolkit(
+    project_root: Optional[str] = None,
+    config_file: Optional[str] = None,
+    environment: Optional[str] = None
+) -> SAGEDevToolkit:
+    """获取或创建toolkit实例"""
+    global _toolkit
+    
+    if _toolkit is None:
+        try:
+            _toolkit = SAGEDevToolkit(
+                project_root=project_root,
+                config_file=config_file,
+                environment=environment
+            )
+        except SAGEDevToolkitError as e:
+            console.print(f"❌ Error initializing toolkit: {e}", style="red")
+            raise typer.Exit(1)
+        except Exception as e:
+            console.print(f"❌ Unexpected error: {e}", style="red")
+            raise typer.Exit(1)
+    
+    return _toolkit
 
-@cli.command()
-@click.option('--mode', type=click.Choice(['all', 'diff', 'package']), default='diff',
-              help='Test execution mode')
-@click.option('--package', help='Package name for package mode')
-@click.option('--workers', type=int, help='Number of parallel workers')
-@click.option('--timeout', type=int, help='Test timeout in seconds')
-@click.option('--quick', is_flag=True, help='Run quick tests only')
-@click.pass_context
-def test(ctx, mode: str, package: Optional[str], workers: Optional[int], 
-         timeout: Optional[int], quick: bool):
+@app.command("test")
+def test_command(
+    mode: str = typer.Option("diff", help="Test execution mode: all, diff, package"),
+    package: Optional[str] = typer.Option(None, help="Package name for package mode"),
+    workers: Optional[int] = typer.Option(None, help="Number of parallel workers"),
+    timeout: Optional[int] = typer.Option(None, help="Test timeout in seconds"),
+    quick: bool = typer.Option(False, help="Run quick tests only"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory"),
+    config: Optional[str] = typer.Option(None, help="Configuration file path"),
+    environment: Optional[str] = typer.Option(None, help="Environment (development/production/ci)"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Enable verbose output")
+):
     """Run tests with various modes and options."""
-    toolkit = ctx.obj['toolkit']
-    verbose = ctx.obj['verbose']
+    
+    if mode not in ["all", "diff", "package"]:
+        console.print("❌ Invalid mode. Choose from: all, diff, package", style="red")
+        raise typer.Exit(1)
     
     try:
+        toolkit = get_toolkit(project_root, config, environment)
+        
         kwargs = {}
         if package:
             kwargs['package'] = package
@@ -52,40 +85,50 @@ def test(ctx, mode: str, package: Optional[str], workers: Optional[int],
             kwargs['quick'] = quick
             
         if verbose:
-            click.echo(f"🧪 Running tests in '{mode}' mode...")
+            console.print(f"🧪 Running tests in '{mode}' mode...")
             
         results = toolkit.run_tests(mode, **kwargs)
         
         # Display summary
         if 'summary' in results:
             summary = results['summary']
-            click.echo(f"✅ Tests completed:")
-            click.echo(f"  - Total: {summary.get('total', 0)}")
-            click.echo(f"  - Passed: {summary.get('passed', 0)}")
-            click.echo(f"  - Failed: {summary.get('failed', 0)}")
-            click.echo(f"  - Duration: {results.get('execution_time', 0):.2f}s")
+            
+            table = Table(title="Test Results")
+            table.add_column("Metric", style="cyan")
+            table.add_column("Count", style="green")
+            
+            table.add_row("Total", str(summary.get('total', 0)))
+            table.add_row("Passed", str(summary.get('passed', 0)))
+            table.add_row("Failed", str(summary.get('failed', 0)))
+            table.add_row("Duration", f"{results.get('execution_time', 0):.2f}s")
+            
+            console.print(table)
         else:
-            click.echo("✅ Tests completed successfully")
+            console.print("✅ Tests completed successfully", style="green")
             
     except SAGEDevToolkitError as e:
-        click.echo(f"❌ Test execution failed: {e}", err=True)
-        sys.exit(1)
+        console.print(f"❌ Test execution failed: {e}", style="red")
+        raise typer.Exit(1)
 
-
-@cli.command()
-@click.option('--type', 'analysis_type', 
-              type=click.Choice(['full', 'summary', 'circular']), 
-              default='summary',
-              help='Type of dependency analysis')
-@click.pass_context
-def analyze(ctx, analysis_type: str):
+@app.command("analyze")
+def analyze_command(
+    analysis_type: str = typer.Option("summary", help="Analysis type: full, summary, circular"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory"),
+    config: Optional[str] = typer.Option(None, help="Configuration file path"),
+    environment: Optional[str] = typer.Option(None, help="Environment (development/production/ci)"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Enable verbose output")
+):
     """Analyze project dependencies."""
-    toolkit = ctx.obj['toolkit']
-    verbose = ctx.obj['verbose']
+    
+    if analysis_type not in ["full", "summary", "circular"]:
+        console.print("❌ Invalid analysis type. Choose from: full, summary, circular", style="red")
+        raise typer.Exit(1)
     
     try:
+        toolkit = get_toolkit(project_root, config, environment)
+        
         if verbose:
-            click.echo(f"🔍 Running dependency analysis: {analysis_type}")
+            console.print(f"🔍 Running dependency analysis: {analysis_type}")
             
         results = toolkit.analyze_dependencies(analysis_type)
         
@@ -93,34 +136,42 @@ def analyze(ctx, analysis_type: str):
         if analysis_type == 'circular':
             circular_deps = results.get('circular_dependencies', [])
             if circular_deps:
-                click.echo("⚠️  Circular dependencies found:")
-                for dep in circular_deps[:5]:  # Show first 5
-                    click.echo(f"  - {' -> '.join(dep)}")
+                console.print("⚠️ Circular dependencies found:", style="yellow")
+                for i, dep in enumerate(circular_deps[:5]):  # Show first 5
+                    console.print(f"  {i+1}. {' -> '.join(dep)}")
                 if len(circular_deps) > 5:
-                    click.echo(f"  ... and {len(circular_deps) - 5} more")
+                    console.print(f"  ... and {len(circular_deps) - 5} more")
             else:
-                click.echo("✅ No circular dependencies found")
+                console.print("✅ No circular dependencies found", style="green")
         else:
-            click.echo("✅ Dependency analysis completed")
-            click.echo(f"  - Analysis time: {results.get('execution_time', 0):.2f}s")
+            console.print("✅ Dependency analysis completed", style="green")
+            console.print(f"⏱️ Analysis time: {results.get('execution_time', 0):.2f}s")
             
     except SAGEDevToolkitError as e:
-        click.echo(f"❌ Dependency analysis failed: {e}", err=True)
-        sys.exit(1)
+        console.print(f"❌ Dependency analysis failed: {e}", style="red")
+        raise typer.Exit(1)
 
-
-@cli.command()
-@click.argument('action', type=click.Choice(['list', 'install', 'uninstall', 'status', 'build']))
-@click.argument('package_name', required=False)
-@click.option('--dev', is_flag=True, help='Install in development mode')
-@click.option('--force', is_flag=True, help='Force operation')
-@click.pass_context
-def package(ctx, action: str, package_name: Optional[str], dev: bool, force: bool):
+@app.command("package")
+def package_command(
+    action: str = typer.Argument(help="Package action: list, install, uninstall, status, build"),
+    package_name: Optional[str] = typer.Argument(None, help="Package name"),
+    dev: bool = typer.Option(False, help="Install in development mode"),
+    force: bool = typer.Option(False, help="Force operation"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory"),
+    config: Optional[str] = typer.Option(None, help="Configuration file path"),
+    environment: Optional[str] = typer.Option(None, help="Environment (development/production/ci)"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Enable verbose output")
+):
     """Manage SAGE packages."""
-    toolkit = ctx.obj['toolkit']
-    verbose = ctx.obj['verbose']
+    
+    valid_actions = ['list', 'install', 'uninstall', 'status', 'build']
+    if action not in valid_actions:
+        console.print(f"❌ Invalid action. Choose from: {', '.join(valid_actions)}", style="red")
+        raise typer.Exit(1)
     
     try:
+        toolkit = get_toolkit(project_root, config, environment)
+        
         kwargs = {}
         if dev:
             kwargs['dev'] = dev
@@ -128,185 +179,344 @@ def package(ctx, action: str, package_name: Optional[str], dev: bool, force: boo
             kwargs['force'] = force
             
         if verbose:
-            click.echo(f"📦 Package management: {action}")
+            console.print(f"📦 Package management: {action}")
             
         results = toolkit.manage_packages(action, package_name, **kwargs)
         
         # Display results based on action
         if action == 'list':
             packages = results.get('packages', [])
-            click.echo(f"📦 Found {len(packages)} packages:")
+            
+            table = Table(title=f"SAGE Packages ({len(packages)} found)")
+            table.add_column("Package", style="cyan")
+            table.add_column("Status", style="green")
+            table.add_column("Version", style="yellow")
+            
             for pkg in packages:
-                status = "✅" if pkg.get('installed') else "❌"
-                click.echo(f"  {status} {pkg.get('name', 'Unknown')}")
+                status = "✅ Installed" if pkg.get('installed') else "❌ Not Installed"
+                version = pkg.get('version', 'Unknown')
+                table.add_row(pkg.get('name', 'Unknown'), status, version)
+            
+            console.print(table)
+            
         elif action == 'status':
-            click.echo("📦 Package status:")
+            console.print("📦 Package Status:", style="bold")
             for key, value in results.items():
-                click.echo(f"  - {key}: {value}")
+                console.print(f"  • {key}: {value}")
         else:
-            click.echo(f"✅ Package {action} completed successfully")
+            console.print(f"✅ Package {action} completed successfully", style="green")
             
     except SAGEDevToolkitError as e:
-        click.echo(f"❌ Package management failed: {e}", err=True)
-        sys.exit(1)
+        console.print(f"❌ Package management failed: {e}", style="red")
+        raise typer.Exit(1)
 
-
-@cli.command()
-@click.option('--format', 'output_format', 
-              type=click.Choice(['json', 'markdown', 'both']), 
-              default='both',
-              help='Output format for report')
-@click.pass_context
-def report(ctx, output_format: str):
+@app.command("report")
+def report_command(
+    output_format: str = typer.Option("both", help="Output format: json, markdown, both"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory"),
+    config: Optional[str] = typer.Option(None, help="Configuration file path"),
+    environment: Optional[str] = typer.Option(None, help="Environment (development/production/ci)"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Enable verbose output")
+):
     """Generate comprehensive development report."""
-    toolkit = ctx.obj['toolkit']
-    verbose = ctx.obj['verbose']
+    
+    if output_format not in ["json", "markdown", "both"]:
+        console.print("❌ Invalid format. Choose from: json, markdown, both", style="red")
+        raise typer.Exit(1)
     
     try:
+        toolkit = get_toolkit(project_root, config, environment)
+        
         if verbose:
-            click.echo("📊 Generating comprehensive report...")
+            console.print("📊 Generating comprehensive report...")
             
         results = toolkit.generate_comprehensive_report()
         
         # Display summary
         sections = results.get('sections', {})
-        click.echo("📊 Report generated successfully:")
+        
+        table = Table(title="Report Summary")
+        table.add_column("Section", style="cyan")
+        table.add_column("Status", style="green")
         
         for section_name, section_data in sections.items():
             status = section_data.get('status', 'unknown')
             icon = "✅" if status == "success" else "❌" if status == "error" else "⚠️"
             section_title = section_name.replace('_', ' ').title()
-            click.echo(f"  {icon} {section_title}")
-            
+            table.add_row(section_title, f"{icon} {status.title()}")
+        
+        console.print(table)
+        
         execution_time = results.get('metadata', {}).get('execution_time', 0)
-        click.echo(f"⏱️  Report generation time: {execution_time:.2f}s")
+        console.print(f"⏱️ Report generation time: {execution_time:.2f}s", style="yellow")
             
     except SAGEDevToolkitError as e:
-        click.echo(f"❌ Report generation failed: {e}", err=True)
-        sys.exit(1)
+        console.print(f"❌ Report generation failed: {e}", style="red")
+        raise typer.Exit(1)
 
-
-@cli.command()
-@click.pass_context
-def interactive(ctx):
-    """Enter interactive mode."""
-    toolkit = ctx.obj['toolkit']
-    
-    click.echo("🚀 SAGE Development Toolkit - Interactive Mode")
-    click.echo("Type 'help' for available commands, 'exit' to quit")
-    
-    while True:
-        try:
-            command = click.prompt("\nSAGE-DEV", default="", show_default=False)
-            command = command.strip()
-            
-            if not command:
-                continue
-                
-            if command in ('exit', 'quit', 'q'):
-                click.echo("👋 Goodbye!")
-                break
-                
-            elif command == 'help':
-                click.echo("Available commands:")
-                click.echo("  test [mode]           - Run tests")
-                click.echo("  analyze [type]        - Analyze dependencies")
-                click.echo("  package list          - List packages")
-                click.echo("  package status        - Package status")
-                click.echo("  report                - Generate report")
-                click.echo("  status                - Show toolkit status")
-                click.echo("  exit/quit/q           - Exit interactive mode")
-                
-            elif command.startswith('test'):
-                parts = command.split()
-                mode = parts[1] if len(parts) > 1 else 'diff'
-                try:
-                    results = toolkit.run_tests(mode)
-                    click.echo("✅ Tests completed")
-                except Exception as e:
-                    click.echo(f"❌ Test failed: {e}")
-                    
-            elif command.startswith('analyze'):
-                parts = command.split()
-                analysis_type = parts[1] if len(parts) > 1 else 'summary'
-                try:
-                    results = toolkit.analyze_dependencies(analysis_type)
-                    click.echo("✅ Analysis completed")
-                except Exception as e:
-                    click.echo(f"❌ Analysis failed: {e}")
-                    
-            elif command == 'package list':
-                try:
-                    results = toolkit.manage_packages('list')
-                    packages = results.get('packages', [])
-                    click.echo(f"📦 {len(packages)} packages found")
-                except Exception as e:
-                    click.echo(f"❌ Package listing failed: {e}")
-                    
-            elif command == 'package status':
-                try:
-                    results = toolkit.manage_packages('status')
-                    click.echo("📦 Package status retrieved")
-                except Exception as e:
-                    click.echo(f"❌ Status check failed: {e}")
-                    
-            elif command == 'report':
-                try:
-                    results = toolkit.generate_comprehensive_report()
-                    click.echo("📊 Report generated")
-                except Exception as e:
-                    click.echo(f"❌ Report generation failed: {e}")
-                    
-            elif command == 'status':
-                status = toolkit.get_tool_status()
-                click.echo(f"🔧 Loaded tools: {', '.join(status['loaded_tools'])}")
-                
-            else:
-                click.echo(f"❓ Unknown command: {command}. Type 'help' for available commands.")
-                
-        except KeyboardInterrupt:
-            click.echo("\n👋 Goodbye!")
-            break
-        except EOFError:
-            click.echo("\n👋 Goodbye!")
-            break
-        except Exception as e:
-            click.echo(f"❌ Error: {e}")
-
-
-@cli.command()
-@click.pass_context
-def status(ctx):
+@app.command("status")
+def status_command(
+    project_root: Optional[str] = typer.Option(None, help="Project root directory"),
+    config: Optional[str] = typer.Option(None, help="Configuration file path"),
+    environment: Optional[str] = typer.Option(None, help="Environment (development/production/ci)")
+):
     """Show toolkit status and configuration."""
-    toolkit = ctx.obj['toolkit']
     
-    click.echo("🔧 SAGE Development Toolkit Status")
-    click.echo(f"📁 Project root: {toolkit.config.project_root}")
-    click.echo(f"🌍 Environment: {toolkit.config.environment}")
-    
-    status_info = toolkit.get_tool_status()
-    loaded_tools = status_info['loaded_tools']
-    available_tools = status_info['available_tools']
-    
-    click.echo(f"🛠️  Tools: {len(loaded_tools)}/{len(available_tools)} loaded")
-    for tool in available_tools:
-        icon = "✅" if tool in loaded_tools else "❌"
-        click.echo(f"  {icon} {tool}")
-    
-    # Validate configuration
-    errors = toolkit.validate_configuration()
-    if errors:
-        click.echo("⚠️  Configuration issues:")
-        for error in errors:
-            click.echo(f"  - {error}")
-    else:
-        click.echo("✅ Configuration is valid")
+    try:
+        toolkit = get_toolkit(project_root, config, environment)
+        
+        # Basic info panel
+        info_text = f"""
+📁 Project root: {toolkit.config.project_root}
+🌍 Environment: {toolkit.config.environment}
+📦 Packages dir: {toolkit.config.packages_dir}
+📜 Scripts dir: {toolkit.config.scripts_dir}
+📊 Output dir: {toolkit.config.output_dir}
+        """
+        
+        console.print(Panel(info_text.strip(), title="🔧 SAGE Development Toolkit Status", expand=False))
+        
+        # Tools status
+        status_info = toolkit.get_tool_status()
+        loaded_tools = status_info['loaded_tools']
+        available_tools = status_info['available_tools']
+        
+        table = Table(title=f"Tools Status ({len(loaded_tools)}/{len(available_tools)} loaded)")
+        table.add_column("Tool", style="cyan")
+        table.add_column("Status", style="green")
+        
+        for tool in available_tools:
+            status = "✅ Loaded" if tool in loaded_tools else "❌ Not Loaded"
+            table.add_row(tool, status)
+        
+        console.print(table)
+        
+        # Configuration validation
+        errors = toolkit.validate_configuration()
+        if errors:
+            console.print("⚠️ Configuration Issues:", style="yellow")
+            for error in errors:
+                console.print(f"  • {error}", style="red")
+        else:
+            console.print("✅ Configuration is valid", style="green")
+            
+    except SAGEDevToolkitError as e:
+        console.print(f"❌ Status check failed: {e}", style="red")
+        raise typer.Exit(1)
 
+@app.command("version")
+def version_command():
+    """Show version information."""
+    console.print("🛠️ SAGE Development Toolkit", style="bold green")
+    console.print("Version: 1.0.0")
+    console.print("Author: IntelliStream Team")
+    console.print("Repository: https://github.com/intellistream/SAGE")
+
+@app.command("fix-imports")
+def fix_imports_command(
+    dry_run: bool = typer.Option(False, help="Show what would be fixed without making changes"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory"),
+    config: Optional[str] = typer.Option(None, help="Configuration file path"),
+    environment: Optional[str] = typer.Option(None, help="Environment (development/production/ci)"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Enable verbose output")
+):
+    """Fix import paths in SAGE packages."""
+    try:
+        toolkit = get_toolkit(project_root, config, environment)
+        
+        if verbose:
+            console.print("🔧 Fixing import paths in SAGE packages...")
+            
+        results = toolkit.fix_import_paths(dry_run=dry_run)
+        
+        # Display results
+        if dry_run:
+            console.print("🔍 Dry run - showing what would be fixed:", style="yellow")
+        else:
+            console.print("✅ Import path fixing completed", style="green")
+        
+        console.print(f"📁 Files checked: {results.get('total_files_checked', 0)}")
+        console.print(f"🔧 Fixes applied: {len(results.get('fixes_applied', []))}")
+        console.print(f"❌ Fixes failed: {len(results.get('fixes_failed', []))}")
+        
+        if results.get('fixes_applied'):
+            table = Table(title="Applied Fixes")
+            table.add_column("File", style="cyan")
+            table.add_column("Changes", style="green")
+            
+            for fix in results['fixes_applied'][:10]:  # Show first 10
+                changes = len(fix.get('changes', []))
+                table.add_row(fix['file'], str(changes))
+            
+            console.print(table)
+            
+            if len(results['fixes_applied']) > 10:
+                console.print(f"... and {len(results['fixes_applied']) - 10} more files")
+        
+    except SAGEDevToolkitError as e:
+        console.print(f"❌ Import fixing failed: {e}", style="red")
+        raise typer.Exit(1)
+
+@app.command("update-vscode")
+def update_vscode_command(
+    mode: str = typer.Option("enhanced", help="Update mode: basic (pyproject.toml only) or enhanced (all packages)"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory"),
+    config: Optional[str] = typer.Option(None, help="Configuration file path"),
+    environment: Optional[str] = typer.Option(None, help="Environment (development/production/ci)"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Enable verbose output")
+):
+    """Update VS Code Python path configurations."""
+    try:
+        toolkit = get_toolkit(project_root, config, environment)
+        
+        if verbose:
+            console.print(f"🔧 Updating VS Code paths in {mode} mode...")
+            
+        results = toolkit.update_vscode_paths(mode=mode)
+        
+        # Display results
+        console.print("✅ VS Code paths updated successfully", style="green")
+        console.print(f"📁 Settings file: {results.get('settings_file', 'Unknown')}")
+        console.print(f"🔗 Paths added: {results.get('paths_added', 0)}")
+        
+        if verbose and results.get('paths'):
+            table = Table(title="Added Paths")
+            table.add_column("Path", style="cyan")
+            
+            for path in results['paths'][:15]:  # Show first 15
+                table.add_row(path)
+            
+            console.print(table)
+            
+            if len(results['paths']) > 15:
+                console.print(f"... and {len(results['paths']) - 15} more paths")
+        
+    except SAGEDevToolkitError as e:
+        console.print(f"❌ VS Code update failed: {e}", style="red")
+        raise typer.Exit(1)
+
+@app.command("setup-test")
+def setup_test_command(
+    workers: Optional[int] = typer.Option(None, help="Number of parallel workers"),
+    quick_test: bool = typer.Option(False, help="Run quick tests only"),
+    discover_only: bool = typer.Option(False, help="Only discover test structure"),
+    test_only: bool = typer.Option(False, help="Skip setup, only run tests"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory"),
+    config: Optional[str] = typer.Option(None, help="Configuration file path"),
+    environment: Optional[str] = typer.Option(None, help="Environment (development/production/ci)"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Enable verbose output")
+):
+    """Run one-click setup and test cycle."""
+    try:
+        toolkit = get_toolkit(project_root, config, environment)
+        
+        console.print("🚀 Starting one-click setup and test cycle...", style="bold blue")
+        
+        kwargs = {}
+        if workers:
+            kwargs['workers'] = workers
+        if quick_test:
+            kwargs['quick_test'] = quick_test
+        if discover_only:
+            kwargs['discover_only'] = discover_only
+        if test_only:
+            kwargs['test_only'] = test_only
+            
+        results = toolkit.one_click_setup_and_test(**kwargs)
+        
+        # Display results
+        if results['status'] == 'success':
+            console.print("✅ Setup and test cycle completed successfully", style="green")
+        else:
+            console.print("❌ Setup and test cycle failed", style="red")
+        
+        console.print(f"⏱️ Total execution time: {results.get('total_execution_time', 0):.2f}s")
+        
+        # Show phase results
+        phases = results.get('phases', {})
+        
+        table = Table(title="Phase Results")
+        table.add_column("Phase", style="cyan")
+        table.add_column("Status", style="green")
+        table.add_column("Details", style="yellow")
+        
+        for phase_name, phase_data in phases.items():
+            status = phase_data.get('status', 'unknown')
+            icon = "✅" if status == 'success' else "❌"
+            details = ""
+            
+            if phase_name == 'install' and 'installed_packages' in phase_data:
+                details = f"{len(phase_data['installed_packages'])} packages"
+            elif phase_name == 'test' and 'stdout' in phase_data:
+                details = "Check logs for details"
+            
+            table.add_row(phase_name.title(), f"{icon} {status.title()}", details)
+        
+        console.print(table)
+        
+    except SAGEDevToolkitError as e:
+        console.print(f"❌ Setup and test failed: {e}", style="red")
+        raise typer.Exit(1)
+
+@app.command("list-tests")
+def list_tests_command(
+    project_root: Optional[str] = typer.Option(None, help="Project root directory"),
+    config: Optional[str] = typer.Option(None, help="Configuration file path"),
+    environment: Optional[str] = typer.Option(None, help="Environment (development/production/ci)"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Enable verbose output")
+):
+    """List all available tests in the project."""
+    try:
+        toolkit = get_toolkit(project_root, config, environment)
+        
+        results = toolkit.list_available_tests()
+        
+        test_structure = results.get('test_structure', {})
+        
+        console.print(f"📋 Found {results.get('total_test_files', 0)} test files in {results.get('total_packages', 0)} packages", style="bold")
+        
+        for package_name, test_files in test_structure.items():
+            console.print(f"\n📦 {package_name} ({len(test_files)} tests)", style="cyan")
+            
+            if verbose:
+                for test_file in test_files:
+                    console.print(f"  • {test_file}")
+            else:
+                # Show first 5 test files
+                for test_file in test_files[:5]:
+                    console.print(f"  • {test_file}")
+                if len(test_files) > 5:
+                    console.print(f"  ... and {len(test_files) - 5} more")
+        
+    except SAGEDevToolkitError as e:
+        console.print(f"❌ Test listing failed: {e}", style="red")
+        raise typer.Exit(1)
+
+@app.callback()
+def callback():
+    """
+    SAGE Development Toolkit - Unified development tools for SAGE project
+    
+    🛠️ Features:
+    • Test execution with intelligent change detection
+    • Comprehensive dependency analysis
+    • Package management across SAGE ecosystem
+    • Rich reporting with multiple output formats
+    • Interactive and batch operation modes
+    
+    📖 Usage Examples:
+    sage-dev test --mode diff           # Run tests on changed code
+    sage-dev analyze --type circular    # Check for circular dependencies
+    sage-dev package list               # List all SAGE packages
+    sage-dev report                     # Generate comprehensive report
+    
+    🔗 More info: https://github.com/intellistream/SAGE/tree/main/dev-toolkit
+    """
+    pass
 
 def main():
     """Main entry point for the CLI."""
-    cli()
-
+    app()
 
 if __name__ == '__main__':
     main()
