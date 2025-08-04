@@ -5,7 +5,7 @@ from sage.utils.logging.custom_logger import CustomLogger
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.function.batch_function import BatchFunction
 from sage.core.function.map_function import MapFunction
-from sage.lib.io.sink import TerminalSink
+from sage.lib.io_utils.sink import TerminalSink
 from sage.lib.rag.generator import OpenAIGenerator
 from sage.lib.rag.promptor import QAPromptor
 from sage.utils.config_loader import load_config
