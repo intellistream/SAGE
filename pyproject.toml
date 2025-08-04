@@ -26,7 +26,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
-# Monorepo 工作空间配置 - 通过脚本安装所有子包
+# Monorepo 工作空间配置 - 自动安装所有子包
 # 新的三层架构：
 # - sage-kernel: 统一内核层 (Core + Runtime + Utils + CLI集成)
 # - sage-middleware: 中间件层 (LLM服务、数据库、内存管理)
@@ -34,9 +34,12 @@ classifiers = [
 # - sage-cli: 独立的命令行工具包
 # - sage-dev-toolkit: 开发工具包
 #
-# 注意：使用 pip install . 会运行 setup.py 自动安装所有子包
-# 或者直接运行: ./install_packages.sh
-dependencies = []
+# 这个包会触发所有子包的安装
+dependencies = [
+    "setuptools>=64",
+    "wheel",
+    "pip>=21.0",
+]
 
 [project.optional-dependencies]
 # 按功能分层的安装选项 - 基于新的三层架构
@@ -156,26 +159,21 @@ Repository = "https://github.com/intellistream/SAGE.git"
 Documentation = "https://sage-docs.intellistream.cc"
 
 [tool.setuptools]
-# Monorepo 工作空间包配置 - 支持子包安装
-py-modules = []
+# Monorepo 工作空间包配置
+py-modules = ["__init__"]  # 包含根目录的 __init__.py
 
-# 配置子包的相对路径安装
-[tool.setuptools.package-dir]
-"" = "."
-
-# 定义包发现规则，指向实际的子包
+# 定义包发现规则
 [tool.setuptools.packages.find]
-# 不在这里查找包，而是通过依赖关系安装子包
 where = ["."]
-include = []  # 空列表，因为我们通过 dependencies 安装子包
+include = ["sage_workspace*"]  # 如果有的话
 exclude = [
     "app*",
     "data*", 
     "config*",
     "archive*",
     "test_env*",
-    "packages*",
-    "dev-toolkit*",
+    "packages*",  # 排除子包目录，它们单独安装
+    "dev-toolkit*",  # 开发工具包单独安装
     "test_logs*",
     "test_reports*",
     "htmlcov*",
