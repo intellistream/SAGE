@@ -1,5 +1,5 @@
 [build-system]
-requires = [
+requires = [            # 安装构建工具的依赖
     "setuptools>=64",
     "wheel",
     "pybind11>=2.10.0",
@@ -7,7 +7,7 @@ requires = [
     "ninja; platform_system!='Windows'",
     "numpy>=1.21.0",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "setuptools.build_meta" # 内部会调用setup.py或setup.cfg来完成构建
 
 [project]
 name = "sage-extensions"
