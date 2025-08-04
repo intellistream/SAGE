@@ -26,7 +26,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "sage-utils",                  # 保持原有的 sage.utils 导入路径
+    "sage-kernel",                 
     "sage-middleware",             # 中间件 (包含 LLM 功能)
     
     # 算法实现专用依赖（从 sage-lib 继承）

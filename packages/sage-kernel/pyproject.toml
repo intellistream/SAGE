@@ -27,7 +27,6 @@ classifiers = [
 ]
 
 dependencies = [
-    "sage-middleware",                # 中间件 (包含 LLM 功能)
     
     # Dependencies from sage-kernel-utils
     "pyyaml>=6.0.2",

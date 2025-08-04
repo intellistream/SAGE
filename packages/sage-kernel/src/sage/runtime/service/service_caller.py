@@ -96,11 +96,7 @@ class ServiceManager:
                 self.logger.error(f"Service queue descriptor not found for service: {service_name}")
                 raise RuntimeError(f"Service queue not available for service: {service_name}")
         else:
-            # 如果没有TaskContext，则直接创建队列（兼容性处理）
-            if service_name not in self._service_queues:
-                queue_name = f"service_request_{service_name}"
-                self._service_queues[service_name] = create_queue(name=queue_name)
-            return self._service_queues[service_name]
+            raise RuntimeError("No TaskContext available to get service queue")
     
     def _get_response_queue(self):
         """从TaskContext获取响应队列"""

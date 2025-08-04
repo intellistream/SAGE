@@ -42,15 +42,15 @@ install_package() {
 echo ""
 echo "开始安装 SAGE 子包..."
 
-# 1. 先安装中间件（被其他包依赖）
+# 1. 安装内核
 echo ""
-echo "1. 安装中间件层..."
-install_package "packages/sage-middleware"
-
-# 2. 安装内核
-echo ""
-echo "2. 安装内核层..."
+echo "1. 安装内核层..."
 install_package "packages/sage-kernel"
+
+# 2. 安装中间件
+echo ""
+echo "2. 安装中间件层..."
+install_package "packages/sage-middleware"
 
 # 3. 安装用户空间
 echo ""
