@@ -27,10 +27,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "sage-core",  # 通过 sage-core 获取 fastapi, uvicorn, pydantic, httpx, aiofiles, redis 等依赖
-    "sage-utils", # 基础工具
-    "sage-lib",   # 算法库组件
-    "sage-kernel", # 统一内核 (替代原sage-kernel-utils依赖)
+    "sage-kernel",  
     
     # 服务层专用依赖
     "python-jose[cryptography]>=3.3.0", # JWT 处理
