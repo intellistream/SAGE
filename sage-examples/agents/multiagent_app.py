@@ -43,5 +43,5 @@ def pipeline_run():
     env.close()
 
 if __name__ == '__main__':
-    config = load_config("multiagent_config.yaml")
+    config = load_config("../config/multiagent_config.yaml")
     pipeline_run()

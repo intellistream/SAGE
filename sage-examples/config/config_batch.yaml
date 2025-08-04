@@ -4,11 +4,13 @@ pipeline:
   version: "1.0.0"
 
 source:
-  data_path: "data/sample/question.txt"
+  data_path: "../data/sample/one_question.txt"
   platform: "local"
 
 retriever:
   platform: "local"
+  collection_name: "biology_rag_knowledge"
+  index_name: "biology_index"
   ltm:
     topk: 3
 
@@ -26,9 +28,9 @@ generator:
     seed: 42
 
   remote:
-    api_key: ""
+    api_key: "sk-8298f15945af41988281d7348b008c96"
     method: "openai"
-    model_name: "qwen-turbo-0919"
+    model_name: "qwen-turbo-2025-07-15"
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     seed: 42
 

@@ -24,7 +24,7 @@ def pipeline_run():
 
 if __name__ == '__main__':
     # 加载配置并初始化日志
-    config = load_config('config_for_ingest.yaml')
+    config = load_config('../config/config_for_ingest.yaml')
     logging.basicConfig(level=logging.INFO)
     # 初始化内存并运行管道
     pipeline_run()

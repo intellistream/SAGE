@@ -29,5 +29,5 @@ def pipeline_run():
 
 if __name__ == '__main__':
     # 加载配置
-    config = load_config("config.yaml")
+    config = load_config("../config/config.yaml")
     pipeline_run()

@@ -41,7 +41,7 @@ def pipeline_run():
 
 if __name__ == '__main__':
     # 加载配置文件
-    config = load_config('config_rerank.yaml')
+    config = load_config('../config/config_rerank.yaml')
     
     # 运行管道
     pipeline_run()

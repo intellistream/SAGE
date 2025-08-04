@@ -27,6 +27,6 @@ def pipeline_run():
 
 if __name__ == '__main__':
     # 加载配置并初始化日志
-    config = load_config('config_bm25s.yaml')
+    config = load_config('../config/config_bm25s.yaml')
     # 初始化内存并运行管道
     pipeline_run()

@@ -62,7 +62,7 @@ if __name__ == '__main__':
     load_dotenv(override=False)
 
     # Load configuration from the YAML file
-    config = load_config("config_multiplex.yaml")
+    config = load_config("../config/config_multiplex.yaml")
 
     # Run the pipeline
     pipeline_run(config)

@@ -131,7 +131,7 @@ def pipeline_run(config):
 
 if __name__ == '__main__':
     # 加载配置并初始化日志
-    config = load_config('config_ray.yaml')
+    config = load_config('../config/config_ray.yaml')
     # load_dotenv(override=False)
 
     # api_key = os.environ.get("ALIBABA_API_KEY")

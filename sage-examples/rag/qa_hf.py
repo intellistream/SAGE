@@ -39,5 +39,5 @@ def pipeline_run(config: dict) -> None:
 
 
 if __name__ == '__main__':
-    config = load_config("config_hf.yaml")
+    config = load_config("../config/config_hf.yaml")
     pipeline_run(config)

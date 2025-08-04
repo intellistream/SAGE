@@ -38,8 +38,8 @@ def qa_pipeline_run():
 
 if __name__ == '__main__':
     # 加载配置并初始化日志
-    config_for_ingest= load_config('config_for_ingest.yaml')
-    config_for_qa= load_config('config_for_qa.yaml')
+    config_for_ingest= load_config('../config/config_for_ingest.yaml')
+    config_for_qa= load_config('../config/config_for_qa.yaml')
     logging.basicConfig(level=logging.INFO)
     ingest_pipeline_run()
     qa_pipeline_run()

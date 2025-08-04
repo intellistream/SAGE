@@ -36,5 +36,5 @@ def pipeline_run(config: dict) -> None:
 
 if __name__ == '__main__':
     load_dotenv(override=False)
-    config = load_config("config.yaml")
+    config = load_config("../config/config.yaml")
     pipeline_run(config)

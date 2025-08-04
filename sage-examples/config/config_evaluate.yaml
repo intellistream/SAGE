@@ -2,25 +2,10 @@ pipeline:
   name: "sage-api-operator-operator_test"
   description: "Test pipeline for Sage API Operator"
   version: "1.0.0"
-  type: "local"
 
 source:
-  data_path: "./data/sample/question.txt"
-
-retriever:
-  ltm:
-    topk: 1
-
-reranker:
-  model_name: "BAAI/bge-reranker-v2-m3"
-  top_k: 3
-
-refiner:
-  method: "openai"
-  model_name: "qwen-turbo-0919"
-  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  api_key: ""
-  seed: 42
+  data_path: "../data/sample/evaluate.json"
+  platform: "local"
 
 generator:
   local:
@@ -43,6 +28,7 @@ generator:
     seed: 42
 
 promptor:
+  platform: "local"
 
-sink:
-  file_path: "output.txt"
+evaluate:
+  platform: "local"

@@ -454,7 +454,7 @@ sink:
   file_path: "results/answers.json"
 ```
 
-You can find comprehensive example configurations under [config/](./config/).
+You can find comprehensive example configurations under [sage-examples/config/](./sage-examples/config/).
 
 #### 📘 About Distributed Execution with Ray
 

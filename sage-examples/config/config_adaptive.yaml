@@ -3,28 +3,25 @@ pipeline:
   description: "Test pipeline for Sage API Operator"
   version: "1.0.0"
 
-
-
 source:
   # data_path: "sample/one_question.txt"
-  data_path: "/home/sage/SAGE/data/sample/question.txt"
-  platform: "remote"
-  loop_reading: true
+  data_path: "../data/sample/question1.txt"
+  platform: "local"
 
 retriever:
-  platform: "remote"
+  platform: "local"
   ltm:
     topk: 3
 
 reranker:
-  platform: "remote"
+  platform: "local"
   model_name: "BAAI/bge-reranker-v2-m3"
   top_k: 3
 
 refiner:
-  platform: "remote"
+  platform: "local"
   method: "openai"
-  model_name: "qwen-turbo"
+  model_name: "qwen-turbo-0919"
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
   api_key: ""
   seed: 42
@@ -43,17 +40,30 @@ generator:
     seed: 42
 
   remote:
-    api_key: "token-abc123"
+    api_key: ""
     method: "openai"
-    model_name: "meta-llama/Llama-2-13b-chat-hf"
-    base_url: "http://base-sage:8000/v1"
+    model_name: "qwen-turbo-0919"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     seed: 42
 
 writer:
 
 promptor:
-  platform: "remote"
+  platform: "local"
 
 sink:
-  platform: "remote"
-  file_path: "/home/sage/SAGE/output/qa_output_distributed.txt"
+  platform: "local"
+
+route_promptor:
+  platform: "local"
+route_splitter:
+  platform: "local"
+
+agent:
+  platform: "local"
+  method: "openai"
+  model_name: "qwen-turbo-0919"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  api_key: ""
+  seed: 42
+  search_api_key: ""

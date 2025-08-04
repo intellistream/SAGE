@@ -54,5 +54,5 @@ def pipeline_run(config):
         env.close()
 
 if __name__ == "__main__":
-    config = load_config("config_evaluate.yaml")
+    config = load_config("../config/config_evaluate.yaml")
     pipeline_run(config)
