@@ -1,5 +1,5 @@
 from typing import Union, TYPE_CHECKING
-from sage.utils.logger.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
     from sage.runtime.factory.service_factory import ServiceFactory

@@ -4,7 +4,7 @@ Memory Service: 将Memory Manager包装成服务进程形式的封装层
 from typing import Dict, List, Any, Optional, Union
 from sage.service.memory.memory_manager import MemoryManager
 from sage.service.memory.memory_collection.base_collection import BaseMemoryCollection
-from sage.utils.logger.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 
 class MemoryService:
     """

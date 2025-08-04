@@ -9,7 +9,7 @@ from ray.util.queue import Empty
 from sage.utils.queue_adapter import create_queue
 from sage.runtime.communication.router.router import BaseRouter
 from sage.core.function.source_function import StopSignal
-from sage.utils.logger.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator
     from sage.runtime.factory.operator_factory import OperatorFactory

@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sage-kernel-commercial"
+version = "0.1.0"
+description = "SAGE Commercial Kernel Extensions - High-performance core infrastructure"
+readme = "README.md"
+authors = [
+    {name = "SAGE Team", email = "team@sage.ai"},
+]
+license = {text = "Commercial License"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "sage-kernel>=0.1.0",
+    "redis>=4.0.0",
+    "aioredis>=2.0.0",
+    "zmq>=0.0.0",
+    "msgpack>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-asyncio>=0.18.0",
+    "black>=22.0",
+    "isort>=5.0",
+    "mypy>=0.991",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"

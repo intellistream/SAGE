@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional, TYPE_CHECKING, Type, Tuple
 from sage.core.function.source_function import StopSignal
 from sage.runtime.task.base_task import BaseTask
-from sage.utils.logger.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 from sage.runtime.communication.router.packet import Packet
 
 if TYPE_CHECKING:

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Dict, List, Union
 
 from sage.core.api.base_environment import BaseEnvironment
 from sage.core.transformation.base_transformation import BaseTransformation
-from sage.utils.logger.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 from sage.jobmanager.utils.name_server import get_name
 from sage.runtime.task_context import TaskContext
 from sage.runtime.service_context import ServiceContext

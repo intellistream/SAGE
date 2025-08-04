@@ -297,7 +297,7 @@ addopts = [
         test_imports = [
             "from sage.utils import logging",
             "from sage.utils.config_loader import load_config", 
-            "from sage.utils.logger.custom_logger import CustomLogger",
+            "from sage.utils.logging.custom_logger import CustomLogger",
             "import sage.utils",
         ]
         

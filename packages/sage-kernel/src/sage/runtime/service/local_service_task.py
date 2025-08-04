@@ -1,6 +1,6 @@
 import queue
 from typing import Any, TYPE_CHECKING
-from sage.utils.logger.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 from .base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:

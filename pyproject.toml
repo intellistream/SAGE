@@ -38,10 +38,23 @@ plugins = ["sage-utils", "sage-core", "sage-plugins"]
 services = ["sage-utils", "sage-core", "sage-lib", "sage-service"]
 cli = ["sage-utils", "sage-core", "sage-cli"]
 
+# 商业版选项
+commercial-kernel = ["sage-kernel-commercial"]
+commercial-middleware = ["sage-middleware-commercial"] 
+commercial-userspace = ["sage-userspace-commercial"]
+commercial = [
+    "sage-kernel-commercial", "sage-middleware-commercial", "sage-userspace-commercial"
+]
+
 # 组合安装选项
 full = [
     "sage-utils", "sage-core", "sage-lib", 
     "sage-extensions", "sage-plugins", "sage-service", "sage-cli"
+]
+enterprise = [
+    "sage-utils", "sage-core", "sage-lib", 
+    "sage-plugins", "sage-service", "sage-cli",
+    "sage-kernel-commercial", "sage-middleware-commercial", "sage-userspace-commercial"
 ]
 
 # 统一的开发环境配置

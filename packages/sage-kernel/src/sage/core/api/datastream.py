@@ -10,7 +10,7 @@ from sage.core.transformation.keyby_transformation import KeyByTransformation
 from sage.core.function.base_function import BaseFunction
 from sage.core.function.lambda_function import wrap_lambda, detect_lambda_type
 from .connected_streams import ConnectedStreams
-from sage.utils.logger.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment

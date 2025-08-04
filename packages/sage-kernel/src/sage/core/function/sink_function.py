@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 from sage.core.function.base_function import BaseFunction
 
-from sage.utils.logger.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 
 
 class SinkFunction(BaseFunction):

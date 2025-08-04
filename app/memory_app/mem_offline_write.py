@@ -2,7 +2,7 @@
 离线写入示例：Naive RAG知识库构建
 将10句关于AI/ML的知识保存到memory service中
 """
-from sage.utils.logger.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 from sage.service.memory.memory_service import MemoryService
 from sage.utils.embedding_methods.embedding_api import apply_embedding_model
 

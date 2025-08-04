@@ -4,7 +4,7 @@ import threading
 import ray
 from ray.actor import ActorHandle
 from typing import TYPE_CHECKING, List, Dict, Optional, Any, Union
-from sage.utils.logger.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 from sage.utils.actor_wrapper import ActorWrapper
 
 if TYPE_CHECKING:

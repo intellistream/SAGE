@@ -4,7 +4,7 @@ import time
 import os
 import json
 from typing import Union, Any
-from sage.utils.logger.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 from sage.runtime.communication.router.packet import Packet
 
 

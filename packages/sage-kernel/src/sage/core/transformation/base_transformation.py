@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List, Type, Union, TYPE_CHECKING, Any
-from sage.utils.logger.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 from sage.jobmanager.utils.name_server import get_name
 from sage.runtime.factory.operator_factory import OperatorFactory
 from sage.runtime.factory.function_factory import FunctionFactory
