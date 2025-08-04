@@ -3,12 +3,13 @@ import time
 from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
 from sage.runtime.service.base_service_task import BaseServiceTask
 from sage.runtime.task.base_task import BaseTask
-from sage.utils.actor_wrapper import ActorWrapper
+from sage.runtime.distributed.actor import ActorWrapper
+from sage.runtime.distributed.ray import ensure_ray_initialized
 from sage.utils.logging.custom_logger import CustomLogger
 import ray
 from ray.actor import ActorHandle
 
-from sage.utils.ray_helper import ensure_ray_initialized
+
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment 
     from sage.jobmanager.execution_graph import ExecutionGraph, GraphNode

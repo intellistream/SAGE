@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING
 from sage.core.api.base_environment import BaseEnvironment
-from sage.utils.actor_wrapper import ActorWrapper
 from sage.runtime.communication.queue_descriptor.python_queue_descriptor import PythonQueueDescriptor
 if TYPE_CHECKING:
     from sage.jobmanager.job_manager import JobManager

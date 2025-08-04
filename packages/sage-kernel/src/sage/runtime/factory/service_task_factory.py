@@ -4,7 +4,7 @@ from sage.utils.logging.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from sage.runtime.factory.service_factory import ServiceFactory
     from sage.runtime.service_context import ServiceContext
-    from sage.utils.actor_wrapper import ActorWrapper
+    from sage.runtime.distributed.actor import ActorWrapper
     from sage.runtime.service.base_service import BaseService
 
 
@@ -44,7 +44,7 @@ class ServiceTaskFactory:
             )
             
             # 使用ActorWrapper包装
-            from sage.utils.actor_wrapper import ActorWrapper
+            from sage.runtime.distributed.actor import ActorWrapper
             service_task = ActorWrapper(ray_service_task)
             
         else:

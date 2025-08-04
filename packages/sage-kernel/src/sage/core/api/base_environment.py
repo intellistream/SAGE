@@ -15,7 +15,6 @@ from sage.runtime.communication.queue_descriptor.base_queue_descriptor import Ba
 from sage.utils.logging.custom_logger import CustomLogger
 from sage.jobmanager.utils.name_server import get_name
 from sage.jobmanager.jobmanager_client import JobManagerClient
-from sage.utils.actor_wrapper import ActorWrapper
 from sage.runtime.factory.service_factory import ServiceFactory
 if TYPE_CHECKING:
     from sage.jobmanager.job_manager import JobManager
@@ -43,7 +42,7 @@ class BaseEnvironment(ABC):
 
         self.env_base_dir: Optional[str] = None  # 环境基础目录，用于存储日志和其他文件
         # JobManager 相关
-        self._jobmanager: Optional[ActorWrapper] = None
+        self._jobmanager: Optional[Any] = None
         
         # Engine 客户端相关
         self._engine_client: Optional[JobManagerClient] = None

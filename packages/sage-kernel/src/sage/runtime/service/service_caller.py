@@ -7,6 +7,7 @@ import logging
 import time
 import threading
 import uuid
+import queue
 from concurrent.futures import ThreadPoolExecutor, Future
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, TYPE_CHECKING
@@ -111,9 +112,6 @@ class ServiceManager:
                 else:
                     self.logger.error("Service response queue descriptor not found")
                     raise RuntimeError("Service response queue not available")
-            else:
-                # 如果没有TaskContext，则直接创建队列（兼容性处理）
-                self._response_queue = create_queue(name=self._response_queue_name)
         return self._response_queue
     
     def call_sync(

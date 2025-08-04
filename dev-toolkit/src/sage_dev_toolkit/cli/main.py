@@ -518,5 +518,278 @@ def main():
     """Main entry point for the CLI."""
     app()
 
+@app.command("commercial")
+def commercial_command(
+    action: str = typer.Argument(help="Action: list, install, build, status"),
+    package: Optional[str] = typer.Option(None, help="Package name for install/build actions"),
+    dev_mode: bool = typer.Option(True, help="Install in development mode"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory")
+):
+    """🏢 Manage commercial SAGE packages."""
+    try:
+        from ..tools.commercial_package_manager import CommercialPackageManager
+        
+        toolkit = get_toolkit(project_root=project_root)
+        manager = CommercialPackageManager(str(toolkit.config.project_root))
+        
+        if action == "list":
+            with console.status("🔍 Listing commercial packages..."):
+                result = manager.list_commercial_packages()
+            
+            table = Table(title="Commercial SAGE Packages")
+            table.add_column("Package", style="cyan")
+            table.add_column("Description", style="white")
+            table.add_column("Status", style="green")
+            table.add_column("Components", style="yellow")
+            
+            for pkg in result['packages']:
+                status = "✅ Available" if pkg['exists'] else "❌ Missing"
+                components = ", ".join(pkg['components'])
+                table.add_row(pkg['name'], pkg['description'], status, components)
+            
+            console.print(table)
+            console.print(f"\n📊 Total packages: {result['total_packages']}")
+        
+        elif action == "install":
+            if not package:
+                console.print("❌ Package name required for install action", style="red")
+                raise typer.Exit(1)
+            
+            with console.status(f"📦 Installing {package}..."):
+                result = manager.install_commercial_package(package, dev_mode)
+            
+            if result['status'] == 'success':
+                console.print(f"✅ Successfully installed {package}", style="green")
+            else:
+                console.print(f"❌ Failed to install {package}: {result.get('stderr', 'Unknown error')}", style="red")
+        
+        elif action == "build":
+            with console.status("🔨 Building commercial extensions..."):
+                result = manager.build_commercial_extensions(package)
+            
+            if package:
+                if result['status'] == 'success':
+                    console.print(f"✅ Successfully built {package}", style="green")
+                else:
+                    console.print(f"❌ Failed to build {package}: {result.get('error', 'Unknown error')}", style="red")
+            else:
+                success_count = sum(1 for r in result['results'].values() if r['status'] == 'success')
+                total_count = len(result['results'])
+                console.print(f"✅ Built {success_count}/{total_count} packages successfully", style="green")
+        
+        elif action == "status":
+            with console.status("📊 Checking commercial package status..."):
+                result = manager.check_commercial_status()
+            
+            table = Table(title="Commercial Package Status")
+            table.add_column("Package", style="cyan")
+            table.add_column("Available", style="white")
+            table.add_column("Installed", style="green")
+            table.add_column("Components Built", style="yellow")
+            
+            for name, status in result['packages'].items():
+                available = "✅" if status['exists'] else "❌"
+                installed = "✅" if status['installed'] else "❌"
+                built = "✅" if status['components_built'] else "❌"
+                table.add_row(name, available, installed, built)
+            
+            console.print(table)
+            console.print(f"\n📊 Summary: {result['summary']['available']}/{result['summary']['total']} available, "
+                         f"{result['summary']['installed']}/{result['summary']['total']} installed")
+        
+        else:
+            console.print(f"❌ Unknown action: {action}", style="red")
+            console.print("Available actions: list, install, build, status")
+            raise typer.Exit(1)
+            
+    except Exception as e:
+        console.print(f"❌ Commercial package management failed: {e}", style="red")
+        raise typer.Exit(1)
+
+@app.command("dependencies")
+def dependencies_command(
+    action: str = typer.Argument(help="Action: analyze, report, health"),
+    output_format: str = typer.Option("json", help="Output format: json, markdown, summary"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory")
+):
+    """📊 Analyze project dependencies."""
+    try:
+        from ..tools.dependency_analyzer import DependencyAnalyzer
+        
+        toolkit = get_toolkit(project_root=project_root)
+        analyzer = DependencyAnalyzer(str(toolkit.config.project_root))
+        
+        if action == "analyze":
+            with console.status("🔍 Analyzing dependencies..."):
+                result = analyzer.analyze_all_dependencies()
+            
+            if output_format == "json":
+                import json
+                console.print(json.dumps(result, indent=2, default=str))
+            else:
+                # Show summary table
+                table = Table(title="Dependency Analysis Summary")
+                table.add_column("Package", style="cyan")
+                table.add_column("Dependencies", style="white")
+                table.add_column("Dev Dependencies", style="yellow")
+                table.add_column("Optional Dependencies", style="green")
+                
+                for name, info in result['packages'].items():
+                    table.add_row(
+                        name,
+                        str(len(info['dependencies'])),
+                        str(len(info['dev_dependencies'])),
+                        str(len(info['optional_dependencies']))
+                    )
+                
+                console.print(table)
+                console.print(f"\n📊 Total packages: {result['summary']['total_packages']}")
+                console.print(f"📊 Unique dependencies: {result['summary']['total_unique_dependencies']}")
+        
+        elif action == "report":
+            with console.status("📋 Generating dependency report..."):
+                result = analyzer.generate_dependency_report(output_format)
+            
+            if output_format == "markdown":
+                console.print(result)
+            elif output_format == "summary":
+                console.print("📊 Dependency Report Summary")
+                console.print(f"Total packages: {result['total_packages']}")
+                console.print(f"Total dependencies: {result['total_dependencies']}")
+                console.print(f"Conflicts: {result['conflicts']}")
+                console.print(f"Circular dependencies: {result['circular_dependencies']}")
+            else:
+                import json
+                console.print(json.dumps(result, indent=2, default=str))
+        
+        elif action == "health":
+            with console.status("🏥 Checking dependency health..."):
+                result = analyzer.check_dependency_health()
+            
+            # Display health score
+            score = result['health_score']
+            grade = result['grade']
+            
+            if score >= 90:
+                score_style = "green"
+            elif score >= 70:
+                score_style = "yellow"
+            else:
+                score_style = "red"
+            
+            console.print(f"🏥 Dependency Health Score: {score}/100 (Grade: {grade})", style=score_style)
+            
+            if result['issues']:
+                console.print("\n⚠️ Issues Found:", style="yellow")
+                for issue in result['issues']:
+                    console.print(f"  • {issue}")
+            
+            if result['recommendations']:
+                console.print("\n💡 Recommendations:", style="blue")
+                for rec in result['recommendations']:
+                    console.print(f"  • {rec}")
+        
+        else:
+            console.print(f"❌ Unknown action: {action}", style="red")
+            console.print("Available actions: analyze, report, health")
+            raise typer.Exit(1)
+            
+    except Exception as e:
+        console.print(f"❌ Dependency analysis failed: {e}", style="red")
+        raise typer.Exit(1)
+
+@app.command("classes")
+def classes_command(
+    action: str = typer.Argument(help="Action: analyze, usage, diagram"),
+    target: Optional[str] = typer.Option(None, help="Target class name or path"),
+    output_format: str = typer.Option("mermaid", help="Diagram format: mermaid, dot"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory")
+):
+    """🏗️ Analyze class dependencies and relationships."""
+    try:
+        from ..tools.class_dependency_checker import ClassDependencyChecker
+        
+        toolkit = get_toolkit(project_root=project_root)
+        checker = ClassDependencyChecker(str(toolkit.config.project_root))
+        
+        if action == "analyze":
+            target_paths = [target] if target else None
+            
+            with console.status("🔍 Analyzing class dependencies..."):
+                result = checker.analyze_class_dependencies(target_paths)
+            
+            # Show summary
+            console.print(f"📊 Analysis Results:")
+            console.print(f"  • Total classes: {result['summary']['total_classes']}")
+            console.print(f"  • Total files: {result['summary']['total_files']}")
+            console.print(f"  • Inheritance chains: {len(result['summary']['inheritance_chains'])}")
+            console.print(f"  • Circular imports: {len(result['summary']['circular_imports'])}")
+            console.print(f"  • Unused classes: {len(result['summary']['unused_classes'])}")
+            
+            # Show top classes
+            if result['classes']:
+                table = Table(title="Classes Found")
+                table.add_column("Class", style="cyan")
+                table.add_column("Module", style="white")
+                table.add_column("Methods", style="yellow")
+                table.add_column("Bases", style="green")
+                
+                for class_name, class_info in list(result['classes'].items())[:10]:  # Show top 10
+                    bases = ", ".join(class_info['bases']) if class_info['bases'] else "None"
+                    table.add_row(
+                        class_name.split('.')[-1],
+                        class_info['module'],
+                        str(len(class_info['methods'])),
+                        bases
+                    )
+                
+                console.print(table)
+        
+        elif action == "usage":
+            if not target:
+                console.print("❌ Class name required for usage analysis", style="red")
+                raise typer.Exit(1)
+            
+            with console.status(f"🔍 Checking usage of class {target}..."):
+                result = checker.check_class_usage(target)
+            
+            console.print(f"🔍 Usage Analysis for '{target}':")
+            console.print(f"  • Total usages: {result['summary']['total_usages']}")
+            console.print(f"  • Files with usage: {result['summary']['files_with_usage']}")
+            
+            if result['usages']:
+                table = Table(title="Usage Details")
+                table.add_column("Type", style="cyan")
+                table.add_column("File", style="white")
+                table.add_column("Line", style="yellow")
+                table.add_column("Context", style="green")
+                
+                for usage in result['usages'][:20]:  # Show top 20
+                    file_name = Path(usage['file']).name
+                    table.add_row(
+                        usage['type'],
+                        file_name,
+                        str(usage['line']),
+                        usage['context']
+                    )
+                
+                console.print(table)
+        
+        elif action == "diagram":
+            with console.status(f"🎨 Generating class diagram in {output_format} format..."):
+                result = checker.generate_class_diagram(output_format)
+            
+            console.print(f"🎨 Class Diagram ({output_format.upper()}):")
+            console.print(result)
+        
+        else:
+            console.print(f"❌ Unknown action: {action}", style="red")
+            console.print("Available actions: analyze, usage, diagram")
+            raise typer.Exit(1)
+            
+    except Exception as e:
+        console.print(f"❌ Class analysis failed: {e}", style="red")
+        raise typer.Exit(1)
+
 if __name__ == '__main__':
     main()

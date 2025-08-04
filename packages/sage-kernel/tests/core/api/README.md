@@ -1,13 +1,24 @@
-# API Test 模块
+# SAGE Core API Tests
 
-该目录包含 Sage Core API 层的测试文件，主要测试远程环境相关功能。
+This directory contains comprehensive unit tests for the `sage.core.api` module, following the testing organization structure outlined in the project issue.
 
-## 测试文件说明
+## Test Structure
 
-### `test_new_remote_env.py`
-测试新版本的远程环境实现：
-- 远程环境的创建和初始化
-- 远程任务的提交和执行
+The test organization follows the source code structure exactly:
+
+```
+tests/core/api/
+├── conftest.py                    # Shared test configuration and fixtures
+├── test_base_environment.py       # Tests for base_environment.py
+├── test_local_environment.py      # Tests for local_environment.py
+├── test_remote_environment.py     # Tests for remote_environment.py
+├── test_datastream.py             # Tests for datastream.py
+└── test_connected_streams.py      # Tests for connected_streams.py
+```
+
+## Test Categories
+
+All tests are properly marked with pytest markers:
 - 错误处理和恢复机制
 
 ### `test_remote_env_serialization.py`  
