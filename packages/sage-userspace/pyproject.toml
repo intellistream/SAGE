@@ -1,0 +1,195 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sage-userspace"
+version = "1.0.0"
+description = "SAGE Framework - 用户空间组件 (合并 sage-lib 和 sage-plugins)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "IntelliStream Team", email = "sage@intellistream.cc"},
+]
+keywords = ["rag", "llm", "library", "plugins", "components", "algorithms", "extensions", "ecosystem"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Framework :: Setuptools Plugin",
+]
+
+dependencies = [
+    "sage-utils",                  # 保持原有的 sage.utils 导入路径
+    "sage-middleware",             # 中间件 (包含 LLM 功能)
+    
+    # 算法实现专用依赖（从 sage-lib 继承）
+    "scikit-learn>=1.3.0",    # 机器学习算法
+    "sympy>=1.12",            # 符号计算
+    "networkx>=3.0",          # 图算法
+    "joblib>=1.3.0",          # 并行计算支持
+    
+    # 数据处理专用（从 sage-lib 继承）
+    "polars>=0.20.0",         # 高性能数据处理
+    "pyarrow>=12.0.0",        # 列式数据格式
+    
+    # 异步支持（从 sage-lib 继承）
+    "aiofiles>=0.8.0",        # 异步文件操作
+    
+    # 插件系统专用依赖（从 sage-plugins 继承）
+    "importlib-metadata>=4.0.0",        # 元数据管理
+    "stevedore>=5.0.0",                 # 插件管理框架
+    "pluggy>=1.0.0",                    # 插件钩子系统
+    "entrypoints>=0.4",                 # 入口点管理
+]
+
+[project.optional-dependencies]
+# 向量数据库支持（从 sage-lib 继承）
+vectordb = [
+    "chromadb>=0.4.0",
+    "qdrant-client>=1.0.0",
+    "weaviate-client>=3.0.0",
+    "pinecone-client>=2.0.0",
+]
+
+# 高级算法库（从 sage-lib 继承）
+advanced = [
+    "optuna>=3.0.0",                    # 超参数优化
+    "hyperopt>=0.2.7",                  # 贝叶斯优化  
+    "bayesian-optimization>=1.4.0",     # 贝叶斯优化
+    "scikit-optimize>=0.9.0",          # 科学优化
+]
+
+# 图计算扩展（从 sage-lib 继承）
+graph = [
+    "igraph>=0.10.0",                   # 高性能图计算
+    "graph-tool>=2.45",                 # 大规模图分析
+    "networkit>=10.1",                  # 网络分析
+]
+
+# 数学计算扩展（从 sage-lib 继承）
+math = [
+    "cvxpy>=1.3.0",                     # 凸优化
+    "gekko>=1.0.6",                     # 优化求解器
+    "pulp>=2.7.0",                      # 线性规划
+]
+
+# 图数据库支持（从 sage-lib 继承）
+graphdb = [
+    "neo4j>=5.0.0",
+    "networkx>=3.0.0",
+]
+
+# RAG增强（从 sage-lib 继承）
+rag = [
+    "langchain>=0.1.0",
+    "llama-index>=0.9.0",
+]
+
+# LLM插件（从 sage-plugins 继承）
+llm = [
+    "openai>=1.0.0",
+    "anthropic>=0.3.0",
+    "google-generativeai>=0.3.0",
+    "cohere>=4.0.0",
+]
+
+# 向量化插件（从 sage-plugins 继承）
+embedding = [
+    "sentence-transformers>=2.2.0",
+    "openai>=1.0.0",
+    "cohere>=4.0.0",
+]
+
+# 存储插件（从 sage-plugins 继承）
+storage = [
+    "redis>=4.5.0",
+    "pymongo>=4.0.0",
+    "elasticsearch>=8.0.0",
+]
+
+# 网络插件（从 sage-plugins 继承）
+network = [
+    "httpx>=0.24.0",
+    "websockets>=11.0.0",
+    "kafka-python>=2.0.0",
+]
+
+# 完整功能
+full = ["sage-userspace[vectordb,advanced,graph,math,graphdb,rag,llm,embedding,storage,network]"]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Repository = "https://github.com/intellistream/SAGE.git"
+Documentation = "https://sage-docs.intellistream.cc"
+
+# 插件入口点
+[project.entry-points."sage.plugins"]
+# 插件入口点会在实际使用时注册
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sage*"]
+namespaces = false
+
+# 添加类型信息支持
+[tool.setuptools.package-data]
+"sage.lib" = ["py.typed", "*.pyi"]
+"sage.plugins" = ["py.typed", "*.pyi", "*.yaml", "*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "src"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = [
+    #     "--cov=sage.lib" # Coverage disabled,
+    #     "--cov=sage.plugins" # Coverage disabled,
+    #     "--cov-report=term-missing" # Coverage disabled,
+    #     "--cov-report=html" # Coverage disabled,
+#    "--cov-report=xml",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.git
+    | \.venv
+    | build
+    | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["sage"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+strict_optional = true
+
+[[tool.mypy.overrides]]
+module = "sage.lib.*"
+ignore_missing_imports = false
+
+[[tool.mypy.overrides]]
+module = "sage.plugins.*"
+ignore_missing_imports = false

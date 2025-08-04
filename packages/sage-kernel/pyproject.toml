@@ -1,0 +1,251 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sage-kernel"
+version = "1.0.0"
+description = "SAGE Framework - 统一内核 (Core + Runtime + Utils + CLI)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "IntelliStream Team", email = "sage@intellistream.cc"},
+]
+keywords = ["rag", "llm", "dataflow", "reasoning", "framework", "cli", "kernel"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Systems Administration",
+    "Environment :: Console",
+]
+
+dependencies = [
+    "sage-middleware",                # 中间件 (包含 LLM 功能)
+    
+    # Dependencies from sage-kernel-utils
+    "pyyaml>=6.0.2",
+    "python-dotenv>=1.1.0",
+    
+    # Dependencies from sage-kernel-runtime-extended  
+    "dill>=0.3.8",
+    "ray>=2.0.0",
+    
+    # Core ML/AI dependencies
+    "accelerate>=0.29.3",
+    "einops",
+    "outlines",
+    "sentencepiece",
+    "tiktoken",
+    "torchvision<=0.20.1,>=0.15.0",
+    "torch==2.4.0",
+    "transformers==4.45.2",
+    "sentence_transformers==3.1.1",
+    "InstructorEmbedding==1.0.1",
+    "huggingface_hub>=0.22.2",
+    "peft",
+    "vllm",
+    
+    # System and utilities
+    "psutil",
+    "numpy>=2.2.6",
+    "pandas>=1.3.0",
+    "scipy==1.15.3",
+    "scikit_learn==1.7.0",
+    "sympy>=1.12",
+    "Cython",
+    "pybind11",
+    
+    # Web and API
+    "aioboto3==14.1.0",
+    "fastapi==0.115.12",
+    "uvicorn==0.34.3",
+    "python-multipart>=0.0.6",
+    "h11==0.14.0",
+    "httpx==0.28.1",
+    "Requests==2.32.4",
+    "socksio>=1.0.0",
+    "aiohttp>=3.12.15",
+    "aiohappyeyeballs>=2.6.1",
+    "aiosignal>=1.4.0",
+
+    # Data processing and storage
+    "zhipuai>=2.1.5",
+    "cohere>=5.15.0",
+    "bm25s>=0.2.13",
+    "snowballstemmer>=3.0.1",
+    
+    # LLM Services
+    "openai",
+    "ollama",
+    
+    # Search and retrieval
+    "faiss-cpu==1.9.0",
+    "bm25s==0.2.13",
+    "rank_bm25",
+    "PyStemmer==3.0.0",
+    
+    # Text and document processing
+    "feedparser==6.0.11",
+    "beautifulsoup4",
+    "nltk",
+    "rouge==1.0.1",
+    "dill>=0.3.8",
+    
+    # Image processing
+    "fitz==0.0.1.dev2",
+    "opencv_python_headless==4.10.0.84",
+    "Pillow",
+    
+    # Configuration and data
+    "pydantic",
+    "PyYAML==6.0.2",
+    "python-dotenv==1.1.0",
+    "Jinja2==3.1.6",
+    
+    # CLI 专用依赖
+    "shellingham>=1.5.0",              # Shell 检测
+    "questionary>=1.10.0",             # 交互式命令行界面
+]
+
+[project.optional-dependencies]
+# CLI 增强功能
+enhanced = [
+    "ipython>=8.0.0",                  # 交互式 Python shell
+    "colorama>=0.4.6",                 # 跨平台彩色输出
+    "pygments>=2.15.0",                # 语法高亮
+]
+
+# 开发依赖
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Repository = "https://github.com/intellistream/SAGE.git"
+Documentation = "https://sage-docs.intellistream.cc"
+
+# CLI入口点定义
+[project.scripts]
+sage = "sage.cli.main:app"
+sage-kernel = "sage.cli.main:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"sage" = ["py.typed"]
+
+# pytest配置
+[tool.pytest.ini_options]
+testpaths = ["tests", "src/sage"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "-ra",
+    "--cov=sage",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+# Coverage配置
+[tool.coverage.run]
+source = ["src/sage"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/_test_*.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
+# Black代码格式化
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.ruff_cache
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# Ruff linting
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**/*" = ["PLR2004", "S101", "TID252"]
+
+# MyPy类型检查
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "sage.*",
+]
+ignore_missing_imports = true
