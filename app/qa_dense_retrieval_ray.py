@@ -6,9 +6,9 @@ from sage.core.function.map_function import MapFunction
 from sage.core.api.remote_environment import RemoteEnvironment
 from sage.service.memory.memory_service import MemoryService
 from sage.utils.embedding_methods.embedding_api import apply_embedding_model
-from sage.lib.io.source import FileSource
-from sage.lib.io.sink import FileSink
-from sage.lib.io.sink import TerminalSink
+from sage.lib.io_utils.source import FileSource
+from sage.lib.io_utils.sink import FileSink
+from sage.lib.io_utils.sink import TerminalSink
 from sage.lib.rag.generator import OpenAIGenerator
 from sage.lib.rag.promptor import QAPromptor
 from sage.lib.rag.retriever import DenseRetriever

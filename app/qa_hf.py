@@ -2,8 +2,8 @@ import logging
 import time
 
 from sage.core.api.local_environment import LocalEnvironment
-from sage.lib.io.source import FileSource
-from sage.lib.io.sink import TerminalSink
+from sage.lib.io_utils.source import FileSource
+from sage.lib.io_utils.sink import TerminalSink
 
 from sage.lib.rag.generator import HFGenerator
 from sage.lib.rag.promptor import QAPromptor
