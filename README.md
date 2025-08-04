@@ -67,7 +67,9 @@ SAGE provides two primary installation methods, tailored for different use cases
 
 ### For End-Users: Installing via PyPI (Recommended)
 
-For users who want to use SAGE in their projects, the recommended installation method is via PyPI. This ensures you get a stable, tested version of the framework.
+SAGE 使用 Monorepo 架构，包含多个独立的子包。**重要：需要两步安装过程**
+
+#### 方式1: 标准安装 (推荐)
 
 ```bash
 # Install the complete SAGE framework (metapackage)
@@ -89,20 +91,36 @@ For developers who want to contribute to SAGE or work with the latest source cod
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 
-# 2. Run the installation script
-# This script will install all sub-packages in editable mode.
+# 第一步：安装工作空间根包
+pip install .
+
+# 第二步：安装所有子包
+pip install -r requirements-subpackages.txt
+
+# 一条命令完成安装：
+pip install . && pip install -r requirements-subpackages.txt
+```
+
+#### 方式2: 自动安装脚本
+
+```bash
+# 运行自动安装脚本 (包含详细输出)
 ./install_packages.sh
 ```
 
-This script iterates through all the sub-packages (`sage-kernel`, `sage-middleware`, `dev-toolkit`, etc.) and installs them using `pip install -e`. This "editable" installation means that any changes you make to the source code will be immediately effective without needing to reinstall.
-
-### ✅ Verifying Your Local Installation
-
-After running the script, you can verify that all packages are installed correctly:
+#### 方式3: 手动逐个安装
 
 ```bash
-# Run the verification script
-python verify_installation.py
+# 先安装工作空间包
+pip install .
+
+# 然后按顺序安装子包
+pip install -e packages/sage-middleware    # 1. 先安装中间件 (被其他包依赖)
+pip install -e packages/sage-kernel        # 2. 安装内核
+pip install -e packages/sage-userspace     # 3. 安装用户空间
+pip install -e packages/tools/sage-cli     # 4. 安装CLI工具
+pip install -e packages/tools/sage-frontend  # 5. 安装前端工具
+pip install -e dev-toolkit                 # 6. 安装开发工具包
 ```
 
 This will check if all core components of SAGE are importable and ready to use.
@@ -117,12 +135,67 @@ If you encounter any issues, here are some common solutions:
 1. Open a new terminal window.
 2. If that doesn't work, ensure that your user's local bin directory (e.g., `~/.local/bin` on Linux) is in your shell's `PATH`.
 
-#### Problem: `ImportError: No module named 'sage.xxx'`
-**Reason:** The sub-packages were not installed correctly.
-**Solution:**
-1. Make sure you did **not** run `pip install .` from the root.
-2. Rerun the installation script: `./install_packages.sh`.
-3. Run the verification script to confirm: `python verify_installation.py`.
+### 🔧 故障排除
+
+#### 问题：pip install . 后无法找到 sage 命令
+
+**原因：** `pip install .` 只安装了工作空间根包，没有安装包含 CLI 命令的子包。
+
+**解决方案：**
+```bash
+# 安装包含 CLI 命令的子包
+pip install -r requirements-subpackages.txt
+
+# 或者手动安装 CLI 包
+pip install -e packages/tools/sage-cli
+
+# 验证安装
+sage --version
+```
+
+#### 问题：ImportError: No module named 'sage.xxx'
+
+**原因：** 子包没有正确安装。
+
+**解决方案：**
+```bash
+# 运行验证脚本检查安装状态
+python verify_installation.py
+
+# 重新安装所有子包
+./install_packages.sh
+```
+
+#### 问题：包版本显示为 "UNKNOWN"
+
+**原因：** 使用了简化的安装方式，这是正常的。
+
+**解决方案：** 这不影响功能，但如果需要正确的版本信息，请使用：
+```bash
+pip install -r requirements-subpackages.txt
+```
+
+**包含的子包：**
+- `sage-kernel`: 统一内核层 (Core + Runtime + Utils + CLI集成)
+- `sage-middleware`: 中间件层 (LLM服务、数据库、内存管理)
+- `sage-userspace`: 用户空间层 (RAG算子、插件、高级功能)
+- `sage-cli`: 独立的命令行工具包
+- `sage-frontend`: 前端工具
+- `sage-dev-toolkit`: 开发工具包
+
+### 🚀 一键安装 (适合最终用户)
+
+```bash
+# Standard installation (works for most users)
+pip install -e .
+
+# Interactive installation with guided setup
+python quick_install.py
+
+# Or directly choose installation mode:
+python quick_install.py --python-only    # Python-only installation (fast)
+python quick_install.py --full          # Full installation with C++ extensions
+```
 
 ### 🧩 C++ Extensions (Optional)
 
