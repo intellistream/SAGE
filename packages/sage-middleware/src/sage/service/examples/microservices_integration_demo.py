@@ -1,6 +1,6 @@
 """
 SAGE Middleware 微服务集成示例
-展示如何在真实应用中注册和使用所有微服务
+展示如何在真实应用中注册和使用所有微服务，包括正确的API调用方式
 """
 import time
 import numpy as np
@@ -12,6 +12,9 @@ from sage.service import (
     create_graph_service_factory, 
     create_memory_service_factory
 )
+
+# 导入API接口（用于类型提示和接口说明）
+from sage.service.api import KVServiceAPI, VDBServiceAPI, MemoryServiceAPI, GraphServiceAPI
 
 
 class SAGEMicroservicesDemo:
