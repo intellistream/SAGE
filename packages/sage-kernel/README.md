@@ -66,7 +66,7 @@ sage cluster start
 sage job submit my_job.py
 
 # 管理配置
-sage config set llm.provider openai
+sage config set utils.provider openai
 sage config show
 
 # 查看帮助

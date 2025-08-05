@@ -435,7 +435,7 @@ class EnhancedQuestionBot(QuestionBot):
 
 '''
 # config/question_bot.yaml
-llm:
+utils:
   method: "openai"
   model_name: "gpt-3.5-turbo"
   base_url: "https://api.openai.com/v1"
