@@ -7,7 +7,7 @@ from sage.lib.io_utils.sink import TerminalSink
 
 from sage.lib.rag.generator import OpenAIGeneratorWithHistory
 from sage.lib.rag.promptor import QAPromptor
-from sage.utils.config_loader import load_config
+from sage.utils.config.loader import load_config
 
 
 def pipeline_run(config: dict) -> None:

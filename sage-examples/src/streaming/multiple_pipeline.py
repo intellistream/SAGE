@@ -10,7 +10,7 @@ from sage.lib.rag.promptor import QAPromptor
 from sage.lib.rag.retriever import DenseRetriever
 from sage.lib.rag.writer import MemoryWriter
 
-from sage.utils.config_loader import load_config
+from sage.utils.config.loader import load_config
 
 def ingest_pipeline_run():
     env = LocalEnvironment()

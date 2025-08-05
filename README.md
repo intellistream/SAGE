@@ -385,7 +385,7 @@ from sage.lib.rag.retriever import DenseRetriever
 from sage.lib.rag.promptor import QAPromptor
 from sage.lib.rag.generator import OpenAIGenerator
 from sage.lib.io.sink import TerminalSink
-from sage.utils.config_loader import load_config
+from sage.utils.config.loader import load_config
 
 # Load configuration
 config = load_config("config.yaml")

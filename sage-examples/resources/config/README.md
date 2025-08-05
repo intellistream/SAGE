@@ -44,7 +44,7 @@
 
 ### 基本用法
 ```python
-from sage.utils.config_loader import load_config
+from sage.utils.config.loader import load_config
 
 # 加载配置文件
 config = load_config("../config/config.yaml")

@@ -11,7 +11,7 @@ from sage.core.function.sink_function import SinkFunction
 from sage.core.function.source_function import SourceFunction
 from sage.lib.rag.generator import OpenAIGenerator
 from sage.lib.rag.promptor import QAPromptor
-from sage.utils.config_loader import load_config
+from sage.utils.config.loader import load_config
 
 
 class TerminalInputSource(SourceFunction):
