@@ -41,7 +41,7 @@ dependencies = [
     "cohere==5.16.2",                  # Cohere API 客户端
     "transformers==4.54.1",            # HuggingFace 模型
     "tokenizers==0.21.4",              # Tokenizers for transformers
-    "vllm==0.10.0",                     # vLLM for high-performance inference
+    "vllm>=0.8.0,<1.0.0",                     # vLLM dev version for PyTorch 2.7+ support
     
     # Search and retrieval dependencies (pinned versions)
     "faiss-cpu==1.9.0",               # FAISS for vector similarity search

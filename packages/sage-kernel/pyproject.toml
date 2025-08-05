@@ -38,8 +38,8 @@ dependencies = [
     "protobuf==6.31.1",
     "msgpack==1.1.1",
     # Core system dependencies (pinned versions)
-    "torch==2.3.0",  # vllm requires exactly torch==2.3.0
-    "torchvision==0.18.0",
+    "torch==2.7.1",  # Latest stable version
+    "torchvision==0.22.1",
     
     # Network dependencies for proxy support (pinned versions)
     "httpx==0.28.1",
