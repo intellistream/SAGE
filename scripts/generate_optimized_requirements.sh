@@ -22,7 +22,7 @@ sage-dev-toolkit==1.0.0
 
 # Core system dependencies
 numpy==2.2.6
-scipy==1.16.1
+scipy==1.15.3
 pandas==2.3.1
 packaging==25.0
 typing-extensions==4.14.1
@@ -130,7 +130,7 @@ gitpython==3.1.45
 gitdb==4.0.12
 smmap==5.0.2
 shellingham==1.5.4
-networkx==3.5
+networkx==3.4.2
 
 # Data processing utilities
 feedparser==6.0.11

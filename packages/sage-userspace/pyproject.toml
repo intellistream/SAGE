@@ -42,7 +42,7 @@ dependencies = [
     # 算法实现专用依赖（从 sage-lib 继承）
     "scikit-learn>=1.3.0",    # 机器学习算法
     "sympy>=1.12",            # 符号计算
-    "networkx>=3.0",          # 图算法
+    "networkx==3.4.2",          # 图算法
     "joblib>=1.3.0",          # 并行计算支持
     
     # 数据处理专用（从 sage-lib 继承）
@@ -93,7 +93,7 @@ math = [
 # 图数据库支持（从 sage-lib 继承）
 graphdb = [
     "neo4j>=5.0.0",
-    "networkx>=3.0.0",
+    "networkx==3.4.2.0",
 ]
 
 # RAG增强（从 sage-lib 继承）

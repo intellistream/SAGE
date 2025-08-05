@@ -38,7 +38,7 @@ dependencies = [
     "protobuf==6.31.1",
     "msgpack==1.1.1",
     # Core system dependencies (pinned versions)
-    "torch==2.7.1",  # Latest stable version
+    "torch==2.7.1",  # Latest stable version (compatible with xformers)
     "torchvision==0.22.1",
     
     # Network dependencies for proxy support (pinned versions)

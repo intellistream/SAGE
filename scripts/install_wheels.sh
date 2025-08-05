@@ -87,7 +87,7 @@ if [ -f "requirements-lock.txt" ]; then
         --timeout=300 \
         --retries=3 \
         --cache-dir=/tmp/pip-cache \
-        2>&1 | tee install.log
+        2>&1 | tee ./sage/makefile_logs/install.log
 else
     echo "📋 使用常规依赖解析安装 SAGE..."
     pip install sage \
@@ -101,7 +101,7 @@ else
         --timeout=300 \
         --retries=3 \
         --cache-dir=/tmp/pip-cache \
-        2>&1 | tee install.log
+        2>&1 | tee ./sage/makefile_logs/install.log
 fi
 
 echo "✅ 安装完成！"
