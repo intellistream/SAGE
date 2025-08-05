@@ -27,6 +27,7 @@ dependencies = [
     "sage-kernel>=1.0.0",
     "sage-middleware>=1.0.0",
     "sage-userspace>=1.0.0",
+    "sage-cli>=1.0.0",
     # "sage-dev-toolkit>=1.0.0",
 ]
 
