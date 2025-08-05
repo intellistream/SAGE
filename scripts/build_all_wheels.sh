@@ -34,7 +34,7 @@ echo "📦 预安装可能有构建问题的包..."
 pip install --prefer-binary --only-binary=:all: \
     "outlines>=1.2.0,<1.3.0" \
     "xformers>=0.0.28" \
-    --constraint=../constraints-build.txt 2>/dev/null || {
+    --constraint=./constraints-build.txt 2>/dev/null || {
     
     echo "⚠️  预编译包安装失败，准备源码编译环境..."
     
@@ -156,7 +156,7 @@ build_package() {
   
   # 使用约束文件（如果存在）
   local constraint_args=""
-  if [ -f "../constraints-build.txt" ]; then
+  if [ -f "./constraints-build.txt" ]; then
     constraint_args="--constraint ../constraints-build.txt"
   fi
   

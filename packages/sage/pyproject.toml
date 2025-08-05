@@ -28,6 +28,8 @@ dependencies = [
     "sage-middleware>=1.0.0",
     "sage-userspace>=1.0.0",
     "sage-dev-toolkit>=1.0.0",
+    "sage-cli>=1.0.0",
+    "sage-dev-toolkit>=1.0.0"
 ]
 
 [project.urls]
@@ -44,7 +46,7 @@ zip-safe = false
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["sage*"]
-namespaces = false
+namespaces = true
 
 [tool.setuptools.package-data]
 "sage" = ["py.typed"]

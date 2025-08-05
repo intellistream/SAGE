@@ -60,7 +60,7 @@ zip-safe = false
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["sage*"]
-namespaces = false
+namespaces = true
 
 # 添加类型信息支持
 [tool.setuptools.package-data]

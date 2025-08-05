@@ -76,6 +76,7 @@ if [ -f "./scripts/constraints.txt" ]; then
     constraint_args="$constraint_args --constraint=./scripts/constraints.txt"
 fi
 
+mkdir -p ./sage/makefile_logs
 # 使用锁定依赖优先安装（如果存在）
 if [ -f "requirements-lock.txt" ]; then
     echo "📋 使用锁定依赖文件进行快速安装..."
@@ -83,7 +84,6 @@ if [ -f "requirements-lock.txt" ]; then
         --find-links=./build/wheels \
         $constraint_args \
         --prefer-binary \
-        --only-binary=:all: \
         --timeout=300 \
         --retries=3 \
         --cache-dir=/tmp/pip-cache \
@@ -94,9 +94,6 @@ else
         --find-links=./build/wheels \
         $constraint_args \
         --prefer-binary \
-        --only-binary=:all: \
-        --no-deps-check \
-        --disable-pip-version-check \
         --no-warn-conflicts \
         --timeout=300 \
         --retries=3 \
