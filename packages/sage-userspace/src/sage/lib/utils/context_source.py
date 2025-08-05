@@ -3,8 +3,8 @@ import json
 from typing import Optional, List, Tuple
 from pathlib import Path
 from datetime import datetime
-from sage.api.function.source_function import SourceFunction
-from sage.utils.logging.custom_logger import CustomLogger
+from sage.kernel.api.function.source_function import SourceFunction
+from sage.kernel.utils.logging.custom_logger import CustomLogger
 from sage.lib.context.model_context import ModelContext
 
 class ContextFileSource(SourceFunction):

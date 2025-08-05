@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
-from sage.kernels.core.transformation.base_transformation import BaseTransformation
-from sage.kernels.core.operator.batch_operator import BatchOperator
+from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+from sage.kernel.kernels.core.operator.batch_operator import BatchOperator
 if TYPE_CHECKING:
-    from sage.api.function.base_function import BaseFunction
-    from sage.api.base_environment import BaseEnvironment
+    from sage.kernel.api.function.base_function import BaseFunction
+    from sage.kernel.api.base_environment import BaseEnvironment
 
 
 class BatchTransformation(BaseTransformation):

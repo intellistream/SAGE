@@ -1,8 +1,8 @@
 from typing import Any, Iterable, Optional
-from sage.kernels.core.operator.base_operator import BaseOperator
-from sage.api.function.flatmap_function import FlatMapFunction
-from sage.api.function.flatmap_collector import Collector
-from sage.kernels.runtime.communication.router.packet import Packet
+from sage.kernel.kernels.core.operator.base_operator import BaseOperator
+from sage.kernel.api.function.flatmap_function import FlatMapFunction
+from sage.kernel.api.function.flatmap_collector import Collector
+from sage.kernel.kernels.runtime.communication.router.packet import Packet
 
 
 class FlatMapOperator(BaseOperator):
@@ -70,7 +70,7 @@ class FlatMapOperator(BaseOperator):
                 self.out.clear()
             
             # 保存状态逻辑（如果function是StatefulFunction）
-            from sage.api.function.base_function import StatefulFunction
+            from sage.kernel.api.function.base_function import StatefulFunction
             if isinstance(self.function, StatefulFunction):
                 self.function.save_state()
             

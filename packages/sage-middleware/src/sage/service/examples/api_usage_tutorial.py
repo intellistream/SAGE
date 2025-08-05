@@ -15,7 +15,7 @@ from sage.service import (
     create_kv_service_factory, create_vdb_service_factory, 
     create_memory_service_factory, create_graph_service_factory
 )
-from sage.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 
 
 class ServiceAPITutorial:

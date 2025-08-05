@@ -1,5 +1,5 @@
-from sage.api.local_environment import LocalEnvironment
-from sage.api.function.source_function import SourceFunction
+from sage.kernel.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.source_function import SourceFunction
 from collections import Counter
 import time
 

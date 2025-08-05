@@ -393,7 +393,7 @@ class TestThreadingErrorHandling:
     
     def test_concurrent_queue_lifecycle(self, queue_name):
         """Test concurrent queue creation/destruction"""
-        from sage_queue import SageQueue
+        from sage.extensions.sage_queue.python.sage_queue import SageQueue
         
         num_threads = 4
         operations_per_thread = 10

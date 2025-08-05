@@ -19,7 +19,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 
 try:
-    from sage.kernels.jobmanager.jobmanager_client import JobManagerClient
+    from sage.kernel.kernels.jobmanager.jobmanager_client import JobManagerClient
     import yaml
     from tabulate import tabulate
     from colorama import Fore, Back, Style, init

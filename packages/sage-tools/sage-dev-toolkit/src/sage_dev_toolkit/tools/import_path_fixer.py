@@ -25,10 +25,17 @@ class ImportPathFixer:
             # Incorrect import -> Correct import
             'sage.utils.logging.custom_logger': 'sage.utils.logging.custom_logger',
             'sage.utils.llm-clients.base': 'sage.utils.llm-clients.base',
-            'sage.kernels.runtime.state': 'sage.utils.persistence.state',
+            'sage.kernels.runtime.state': 'sage.kernel.utils.persistence.state',
             'sage_ext.sage_queue': 'sage.extensions.sage_queue',
             'sage_queue': 'sage.extensions.sage_queue.python.sage_queue',
             'sage_plugins': 'sage.plugins',
+            
+            # sage-kernel restructuring mappings
+            'sage.api': 'sage.kernel.api',
+            'sage.kernels': 'sage.kernel.kernels',
+            'sage.utils': 'sage.kernel.utils',
+            'sage.cli': 'sage.kernel.cli',
+            'sage.examples': 'sage.kernel.examples',
         }
         
         # File patterns to check
@@ -66,13 +73,35 @@ class ImportPathFixer:
                 
                 # Apply path mappings
                 for wrong_import, correct_import in self.path_mappings.items():
-                    pattern = rf'\bfrom\s+{re.escape(wrong_import)}\b'
-                    replacement = f'from {correct_import}'
-                    content = re.sub(pattern, replacement, content)
-                    
-                    pattern = rf'\bimport\s+{re.escape(wrong_import)}\b'
-                    replacement = f'import {correct_import}'
-                    content = re.sub(pattern, replacement, content)
+                    # Handle submodule imports (e.g., sage.api.* -> sage.kernel.api.*)
+                    if wrong_import.endswith('.*'):
+                        # This is a wildcard pattern
+                        base_wrong = wrong_import[:-2]  # Remove .*
+                        base_correct = correct_import[:-2]
+                        
+                        # Match pattern like "from sage.kernel.api.something import ..."
+                        pattern = rf'\bfrom\s+{re.escape(base_wrong)}(\.[a-zA-Z_][a-zA-Z0-9_]*)*\b'
+                        def replace_func(match):
+                            full_path = match.group(0)
+                            # Replace the base path
+                            return full_path.replace(base_wrong, base_correct)
+                        content = re.sub(pattern, replace_func, content)
+                        
+                        # Match pattern like "import sage.kernel.api.something"
+                        pattern = rf'\bimport\s+{re.escape(base_wrong)}(\.[a-zA-Z_][a-zA-Z0-9_]*)*\b'
+                        content = re.sub(pattern, replace_func, content)
+                    else:
+                        # Exact match and submodule match
+                        # Match "from sage.kernel.api" and "from sage.kernel.api.something"
+                        pattern = rf'\bfrom\s+{re.escape(wrong_import)}(\.[a-zA-Z_][a-zA-Z0-9_]*)*\b'
+                        def replace_func(match):
+                            full_path = match.group(0)
+                            return full_path.replace(wrong_import, correct_import)
+                        content = re.sub(pattern, replace_func, content)
+                        
+                        # Match "import sage.kernel.api" and "import sage.kernel.api.something"  
+                        pattern = rf'\bimport\s+{re.escape(wrong_import)}(\.[a-zA-Z_][a-zA-Z0-9_]*)*\b'
+                        content = re.sub(pattern, replace_func, content)
                 
                 if content != original_content:
                     fix_info = {

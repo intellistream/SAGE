@@ -3,9 +3,9 @@
 针对生物学问题"Answer with True or False: Meiosis produces four genetically identical daughter cells."
 创建包含强相关、弱相关和无关知识的知识库
 """
-from sage.utils.logging.custom_logger import CustomLogger
+from sage.kernel.utils.logging.custom_logger import CustomLogger
 from sage.service.memory.memory_service import MemoryService
-from sage.utils.embedding_methods.embedding_api import apply_embedding_model
+from sage.kernel.utils.embedding_methods.embedding_api import apply_embedding_model
 
 def create_biology_rag_knowledge_base():
     """创建生物学RAG知识库"""

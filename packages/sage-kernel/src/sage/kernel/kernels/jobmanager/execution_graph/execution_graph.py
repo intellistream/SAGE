@@ -12,22 +12,22 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Dict, List, Union
 
-from sage.api.base_environment import BaseEnvironment
-from sage.kernels.core.transformation.base_transformation import BaseTransformation
-from sage.utils.logging.custom_logger import CustomLogger
-from sage.kernels.jobmanager.utils.name_server import get_name
-from sage.kernels.runtime.task_context import TaskContext
-from sage.kernels.runtime.service_context import ServiceContext
+from sage.kernel.api.base_environment import BaseEnvironment
+from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.kernel.kernels.jobmanager.utils.name_server import get_name
+from sage.kernel.kernels.runtime.task_context import TaskContext
+from sage.kernel.kernels.runtime.service_context import ServiceContext
 
 if TYPE_CHECKING:
-    from sage.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
+    from sage.kernel.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
 from .graph_node import GraphNode
 from .service_node import ServiceNode
 from .graph_edge import GraphEdge
 
 if TYPE_CHECKING:
-    from sage.kernels.jobmanager.job_manager import JobManager
+    from sage.kernel.kernels.jobmanager.job_manager import JobManager
     from ray.actor import ActorHandle
 
 
@@ -188,7 +188,7 @@ class ExecutionGraph:
         self.logger.debug("Step 1: Generating parallel nodes for each transformation")
         for transformation in env.pipeline:
             # 安全检查：如果发现未填充的future transformation，报错
-            from sage.kernels.core.transformation.future_transformation import FutureTransformation
+            from sage.kernel.kernels.core.transformation.future_transformation import FutureTransformation
             if isinstance(transformation, FutureTransformation):
                 if not transformation.filled:
                     raise RuntimeError(

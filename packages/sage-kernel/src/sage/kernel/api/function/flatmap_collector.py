@@ -1,5 +1,5 @@
 from typing import Optional, List, Any, Dict, Tuple
-from sage.kernels.runtime.communication.router.router import BaseRouter
+from sage.kernel.kernels.runtime.communication.router.router import BaseRouter
 class Collector:
     """
     Enhanced Collector class for collecting data from a function.

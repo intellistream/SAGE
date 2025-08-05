@@ -1,6 +1,6 @@
 import logging
 
-from sage.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.lib.io_utils.sink import MemWriteSink, FileSink
 from sage.lib.io_utils.source import FileSource
 
@@ -10,7 +10,7 @@ from sage.lib.rag.promptor import QAPromptor
 from sage.lib.rag.retriever import DenseRetriever
 from sage.lib.rag.writer import MemoryWriter
 
-from sage.utils.config.loader import load_config
+from sage.kernel.utils.config.loader import load_config
 
 def ingest_pipeline_run():
     env = LocalEnvironment()

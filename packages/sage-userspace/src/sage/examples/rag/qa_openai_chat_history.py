@@ -1,13 +1,13 @@
 import time
 from dotenv import load_dotenv
 
-from sage.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.lib.io_utils.source import FileSource
 from sage.lib.io_utils.sink import TerminalSink
 
 from sage.lib.rag.generator import OpenAIGeneratorWithHistory
 from sage.lib.rag.promptor import QAPromptor
-from sage.utils.config.loader import load_config
+from sage.kernel.utils.config.loader import load_config
 
 
 def pipeline_run(config: dict) -> None:

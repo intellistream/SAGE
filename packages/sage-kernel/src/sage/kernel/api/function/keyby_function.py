@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Any, Optional, Union, Hashable
-from sage.api.function.base_function import BaseFunction
+from sage.kernel.api.function.base_function import BaseFunction
 
 
 class KeyByFunction(BaseFunction):

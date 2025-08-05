@@ -1,12 +1,12 @@
 from typing import Any, Optional
 from typing import Any, List, Dict, Optional, Set, TYPE_CHECKING, Type, Tuple
-from sage.kernels.core.operator.base_operator import BaseOperator
-from sage.api.function.filter_function import FilterFunction
-from sage.kernels.runtime.communication.router.packet import Packet
+from sage.kernel.kernels.core.operator.base_operator import BaseOperator
+from sage.kernel.api.function.filter_function import FilterFunction
+from sage.kernel.kernels.runtime.communication.router.packet import Packet
 
 if TYPE_CHECKING:
-    from sage.api.function.base_function import BaseFunction
-    from sage.kernels.runtime.communication.router.connection import Connection
+    from sage.kernel.api.function.base_function import BaseFunction
+    from sage.kernel.kernels.runtime.communication.router.connection import Connection
     
 
 class FilterOperator(BaseOperator):

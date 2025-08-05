@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from .base_transformation import BaseTransformation
-from sage.kernels.core.operator.future_operator import FutureOperator
+from sage.kernel.kernels.core.operator.future_operator import FutureOperator
 
 if TYPE_CHECKING:
-    from sage.api.base_environment import BaseEnvironment
+    from sage.kernel.api.base_environment import BaseEnvironment
 
 
 class FutureTransformation(BaseTransformation):
@@ -15,7 +15,7 @@ class FutureTransformation(BaseTransformation):
     
     def __init__(self, env: 'BaseEnvironment', name: str):
         # 使用一个特殊的function作为占位符
-        from sage.api.function.future_function import FutureFunction
+        from sage.kernel.api.function.future_function import FutureFunction
         
         # 设置operator类（必须在super().__init__之前）
         self.operator_class = FutureOperator

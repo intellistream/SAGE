@@ -4,18 +4,18 @@ from typing import TYPE_CHECKING
 import ray
 from ray.actor import ActorHandle
 from typing import List,Dict,Optional, Any, Union
-from sage.utils.logging.custom_logger import CustomLogger
-from sage.kernels.runtime.distributed.actor import ActorWrapper
+from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.kernel.kernels.runtime.distributed.actor import ActorWrapper
 
 if TYPE_CHECKING:
-    from sage.kernels.jobmanager.execution_graph import ExecutionGraph, GraphNode
-    from sage.kernels.core.transformation.base_transformation import BaseTransformation
-    from sage.api.base_environment import BaseEnvironment 
-    from sage.kernels.jobmanager.job_manager import JobManager
-    from sage.kernels.runtime.service.service_caller import ServiceManager
-    from sage.api.function.source_function import StopSignal
-    from sage.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
-    from sage.kernels.runtime.communication.router.connection import Connection
+    from sage.kernel.kernels.jobmanager.execution_graph import ExecutionGraph, GraphNode
+    from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+    from sage.kernel.api.base_environment import BaseEnvironment 
+    from sage.kernel.kernels.jobmanager.job_manager import JobManager
+    from sage.kernel.kernels.runtime.service.service_caller import ServiceManager
+    from sage.kernel.api.function.source_function import StopSignal
+    from sage.kernel.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
+    from sage.kernel.kernels.runtime.communication.router.connection import Connection
 # task, operator和function "形式上共享"的运行上下文
 
 class TaskContext:
@@ -82,7 +82,7 @@ class TaskContext:
                         downstream_queue_descriptor = edge.downstream_node.input_qd
                         
                         # 创建Connection对象
-                        from sage.kernels.runtime.communication.router.connection import Connection
+                        from sage.kernel.kernels.runtime.communication.router.connection import Connection
                         connection = Connection(
                             broadcast_index=broadcast_index,
                             parallel_index=edge.downstream_node.parallel_index,
@@ -99,7 +99,7 @@ class TaskContext:
     def service_manager(self) -> 'ServiceManager':
         """懒加载服务管理器"""
         if self._service_manager is None:
-            from sage.kernels.runtime.service.service_caller import ServiceManager
+            from sage.kernel.kernels.runtime.service.service_caller import ServiceManager
             # ServiceManager需要完整的运行时上下文来访问dispatcher服务
             self._service_manager = ServiceManager(self, logger=self.logger)
         return self._service_manager
@@ -192,7 +192,7 @@ class TaskContext:
         """
         try:
             # 导入JobManagerClient来发送网络请求
-            from sage.kernels.jobmanager.jobmanager_client import JobManagerClient
+            from sage.kernel.kernels.jobmanager.jobmanager_client import JobManagerClient
             
             self.logger.info(f"Task {node_name} sending stop signal back to JobManager at {self.jobmanager_host}:{self.jobmanager_port}")
             

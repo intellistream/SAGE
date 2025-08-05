@@ -3,11 +3,11 @@ import time
 import threading
 from typing import Any, Union, Tuple, TYPE_CHECKING, Dict, Optional
 from ray.util.queue import Queue as RayQueue
-from sage.kernels.runtime.task.base_task import BaseTask
-from sage.kernels.runtime.communication.router.packet import Packet
+from sage.kernel.kernels.runtime.task.base_task import BaseTask
+from sage.kernel.kernels.runtime.communication.router.packet import Packet
 if TYPE_CHECKING:
-    from sage.kernels.runtime.factory.operator_factory import OperatorFactory
-    from sage.kernels.runtime.task_context import TaskContext
+    from sage.kernel.kernels.runtime.factory.operator_factory import OperatorFactory
+    from sage.kernel.kernels.runtime.task_context import TaskContext
 
 
 

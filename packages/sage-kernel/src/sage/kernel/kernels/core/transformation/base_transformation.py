@@ -1,15 +1,15 @@
 from __future__ import annotations
 from typing import List, Type, Union, TYPE_CHECKING, Any
-from sage.utils.logging.custom_logger import CustomLogger
-from sage.kernels.jobmanager.utils.name_server import get_name
-from sage.kernels.runtime.factory.operator_factory import OperatorFactory
-from sage.kernels.runtime.factory.function_factory import FunctionFactory
-from sage.kernels.runtime.factory.task_factory import TaskFactory
+from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.kernel.kernels.jobmanager.utils.name_server import get_name
+from sage.kernel.kernels.runtime.factory.operator_factory import OperatorFactory
+from sage.kernel.kernels.runtime.factory.function_factory import FunctionFactory
+from sage.kernel.kernels.runtime.factory.task_factory import TaskFactory
 from ray.actor import ActorHandle
 if TYPE_CHECKING:
-    from sage.kernels.core.operator.base_operator import BaseOperator
-    from sage.api.function.base_function import BaseFunction
-    from sage.api.base_environment import BaseEnvironment
+    from sage.kernel.kernels.core.operator.base_operator import BaseOperator
+    from sage.kernel.api.function.base_function import BaseFunction
+    from sage.kernel.api.base_environment import BaseEnvironment
 
 
 class BaseTransformation:

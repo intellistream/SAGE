@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Any, List, Tuple, Type, Iterable, Optional, Union
-from sage.api.function.base_function import BaseFunction
-from sage.api.function.flatmap_collector import Collector
+from sage.kernel.api.function.base_function import BaseFunction
+from sage.kernel.api.function.flatmap_collector import Collector
 
 
 

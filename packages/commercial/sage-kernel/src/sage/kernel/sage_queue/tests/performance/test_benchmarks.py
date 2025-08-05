@@ -220,7 +220,7 @@ class TestMemoryEfficiency:
             pytest.skip("psutil required for memory testing")
         
         try:
-            from sage_queue import SageQueue
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
         except ImportError:
             pytest.skip("Real SageQueue module required for memory testing")
         
@@ -275,7 +275,7 @@ class TestMemoryEfficiency:
             pytest.skip("psutil required for memory leak testing")
         
         try:
-            from sage_queue import SageQueue
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
         except ImportError:
             pytest.skip("Real SageQueue module required for memory leak testing")
         

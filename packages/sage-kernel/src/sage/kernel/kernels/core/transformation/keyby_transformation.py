@@ -1,6 +1,6 @@
-from sage.kernels.core.transformation.base_transformation import BaseTransformation
-from sage.kernels.core.operator.keyby_operator import KeyByOperator
-from sage.kernels.runtime.factory.operator_factory import OperatorFactory
+from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+from sage.kernel.kernels.core.operator.keyby_operator import KeyByOperator
+from sage.kernel.kernels.runtime.factory.operator_factory import OperatorFactory
 
 class KeyByTransformation(BaseTransformation):
     """

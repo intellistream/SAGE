@@ -1,9 +1,9 @@
 from __future__ import annotations
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
-from sage.kernels.core.transformation.base_transformation import BaseTransformation
+from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
 if TYPE_CHECKING:
-    from sage.api.function.join_function import BaseJoinFunction
-    from sage.api.base_environment import BaseEnvironment
+    from sage.kernel.api.function.join_function import BaseJoinFunction
+    from sage.kernel.api.base_environment import BaseEnvironment
 
 
 class JoinTransformation(BaseTransformation):
@@ -30,7 +30,7 @@ class JoinTransformation(BaseTransformation):
         self._validate_required_methods(function)
         
         # 导入operator类（延迟导入避免循环依赖）
-        from sage.kernels.core.operator.join_operator import JoinOperator
+        from sage.kernel.kernels.core.operator.join_operator import JoinOperator
         self.operator_class = JoinOperator
         
         super().__init__(env, function, *args, **kwargs)
@@ -174,7 +174,7 @@ class JoinTransformation(BaseTransformation):
         Raises:
             ValueError: 如果有流没有被keyed
         """
-        from sage.kernels.core.transformation.keyby_transformation import KeyByTransformation
+        from sage.kernel.kernels.core.transformation.keyby_transformation import KeyByTransformation
         
         for i, transformation in enumerate(stream_transformations):
             # 检查是否是KeyByTransformation或者其下游
@@ -195,7 +195,7 @@ class JoinTransformation(BaseTransformation):
         Returns:
             bool: 是否为keyed stream
         """
-        from sage.kernels.core.transformation.keyby_transformation import KeyByTransformation
+        from sage.kernel.kernels.core.transformation.keyby_transformation import KeyByTransformation
         
         # 直接是KeyByTransformation
         if isinstance(transformation, KeyByTransformation):

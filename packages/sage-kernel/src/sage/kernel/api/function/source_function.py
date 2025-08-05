@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
-from sage.api.function.base_function import BaseFunction
+from sage.kernel.api.function.base_function import BaseFunction
 
-from sage.utils.logging.custom_logger import CustomLogger
+from sage.kernel.utils.logging.custom_logger import CustomLogger
 if TYPE_CHECKING:
-    from sage.kernels.runtime.task_context import TaskContext
+    from sage.kernel.kernels.runtime.task_context import TaskContext
 
 class StopSignal:
     """

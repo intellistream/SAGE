@@ -11,11 +11,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from sage.api.base_environment import BaseEnvironment
-    from sage.kernels.runtime.factory.service_factory import ServiceFactory
-    from sage.kernels.runtime.factory.service_task_factory import ServiceTaskFactory
-    from sage.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
-    from sage.kernels.runtime.service_context import ServiceContext
+    from sage.kernel.api.base_environment import BaseEnvironment
+    from sage.kernel.kernels.runtime.factory.service_factory import ServiceFactory
+    from sage.kernel.kernels.runtime.factory.service_task_factory import ServiceTaskFactory
+    from sage.kernel.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
+    from sage.kernel.kernels.runtime.service_context import ServiceContext
 
 
 class ServiceNode:

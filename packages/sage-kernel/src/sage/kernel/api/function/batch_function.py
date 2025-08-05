@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, TYPE_CHECKING
-from sage.api.function.base_function import BaseFunction
+from sage.kernel.api.function.base_function import BaseFunction
 
 class BatchFunction(BaseFunction):
     """

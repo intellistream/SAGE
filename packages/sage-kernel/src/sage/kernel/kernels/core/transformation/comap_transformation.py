@@ -1,9 +1,9 @@
 from __future__ import annotations
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
-from sage.kernels.core.transformation.base_transformation import BaseTransformation
+from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
 if TYPE_CHECKING:
-    from sage.api.function.comap_function import BaseCoMapFunction
-    from sage.api.base_environment import BaseEnvironment
+    from sage.kernel.api.function.comap_function import BaseCoMapFunction
+    from sage.kernel.api.base_environment import BaseEnvironment
 
 
 class CoMapTransformation(BaseTransformation):
@@ -30,7 +30,7 @@ class CoMapTransformation(BaseTransformation):
         self._validate_required_methods(function)
         
         # 导入operator类（延迟导入避免循环依赖）
-        from sage.kernels.core.operator.comap_operator import CoMapOperator
+        from sage.kernel.kernels.core.operator.comap_operator import CoMapOperator
         self.operator_class = CoMapOperator
         
         super().__init__(env, function, *args, **kwargs)

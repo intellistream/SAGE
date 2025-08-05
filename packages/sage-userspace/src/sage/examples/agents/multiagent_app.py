@@ -1,9 +1,9 @@
 import time
 from sage.lib.utils.tool_filter import ToolFilter
-from sage.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.lib.tools.searcher_tool import BochaSearchTool
 from sage.lib.utils.context_sink import ContextFileSink
-from sage.utils.config.loader import load_config
+from sage.kernel.utils.config.loader import load_config
 from sage.lib.agents.question_bot import QuestionBot
 from sage.lib.agents.chief_bot import ChiefBot
 from sage.lib.agents.searcher_bot import SearcherBot

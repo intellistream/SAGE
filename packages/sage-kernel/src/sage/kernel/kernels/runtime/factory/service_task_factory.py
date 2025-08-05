@@ -1,11 +1,11 @@
 from typing import Union, TYPE_CHECKING
-from sage.utils.logging.custom_logger import CustomLogger
+from sage.kernel.utils.logging.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
-    from sage.kernels.runtime.factory.service_factory import ServiceFactory
-    from sage.kernels.runtime.service_context import ServiceContext
-    from sage.kernels.runtime.distributed.actor import ActorWrapper
-    from sage.kernels.runtime.service.base_service import BaseService
+    from sage.kernel.kernels.runtime.factory.service_factory import ServiceFactory
+    from sage.kernel.kernels.runtime.service_context import ServiceContext
+    from sage.kernel.kernels.runtime.distributed.actor import ActorWrapper
+    from sage.kernel.kernels.runtime.service.base_service import BaseService
 
 
 class ServiceTaskFactory:
@@ -35,7 +35,7 @@ class ServiceTaskFactory:
         """
         if self.remote:
             # 创建Ray服务任务
-            from sage.kernels.runtime.service.ray_service_task import RayServiceTask
+            from sage.kernel.kernels.runtime.service.ray_service_task import RayServiceTask
             
             # 直接创建Ray Actor，传入ServiceFactory和ctx
             ray_service_task = RayServiceTask.options(lifetime="detached").remote(
@@ -44,12 +44,12 @@ class ServiceTaskFactory:
             )
             
             # 使用ActorWrapper包装
-            from sage.kernels.runtime.distributed.actor import ActorWrapper
+            from sage.kernel.kernels.runtime.distributed.actor import ActorWrapper
             service_task = ActorWrapper(ray_service_task)
             
         else:
             # 创建本地服务任务
-            from sage.kernels.runtime.service.local_service_task import LocalServiceTask
+            from sage.kernel.kernels.runtime.service.local_service_task import LocalServiceTask
             
             service_task = LocalServiceTask(
                 service_factory=self.service_factory,

@@ -116,7 +116,7 @@ def lifecycle_creator_worker(worker_id: int, config: LifecycleStressConfig,
     try:
         # 尝试导入真实的 SageQueue
         try:
-            from sage_ext.sage_queue.python.sage_queue import SageQueue
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
             use_real_queue = True
         except ImportError:
             from ...mock_sage_queue import MockSageQueue as SageQueue
@@ -204,7 +204,7 @@ def lifecycle_destructor_worker(worker_id: int, config: LifecycleStressConfig,
     try:
         # 尝试导入真实的 SageQueue
         try:
-            from sage_ext.sage_queue.python.sage_queue import SageQueue
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
             use_real_queue = True
         except ImportError:
             from ...mock_sage_queue import MockSageQueue as SageQueue
@@ -273,7 +273,7 @@ def resource_leak_detector_worker(config: LifecycleStressConfig,
     try:
         # 尝试导入真实的 SageQueue
         try:
-            from sage_ext.sage_queue.python.sage_queue import SageQueue
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
             use_real_queue = True
         except ImportError:
             from ...mock_sage_queue import MockSageQueue as SageQueue
@@ -465,7 +465,7 @@ class TestLifecycleStress:
             try:
                 # 尝试导入真实的 SageQueue
                 try:
-                    from sage_ext.sage_queue.python.sage_queue import SageQueue
+                    from sage.extensions.sage_queue.python.sage_queue import SageQueue
                     use_real_queue = True
                 except ImportError:
                     from ...mock_sage_queue import MockSageQueue as SageQueue
@@ -559,7 +559,7 @@ class TestLifecycleStress:
             try:
                 # 尝试导入真实的 SageQueue
                 try:
-                    from sage_ext.sage_queue.python.sage_queue import SageQueue
+                    from sage.extensions.sage_queue.python.sage_queue import SageQueue
                     use_real_queue = True
                 except ImportError:
                     from ...mock_sage_queue import MockSageQueue as SageQueue

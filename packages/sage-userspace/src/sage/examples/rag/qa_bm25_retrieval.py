@@ -1,13 +1,13 @@
 
 import logging
 
-from sage.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.lib.io_utils.sink import TerminalSink
 from sage.lib.io_utils.source import FileSource
 from sage.lib.rag.generator import OpenAIGenerator
 from sage.lib.rag.promptor import QAPromptor
 from sage.lib.rag.retriever import BM25sRetriever
-from sage.utils.config.loader import load_config
+from sage.kernel.utils.config.loader import load_config
 
 
 def pipeline_run():

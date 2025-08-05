@@ -3,9 +3,9 @@ from typing import Dict, Any, Optional, TYPE_CHECKING
 import time
 
 if TYPE_CHECKING:
-    from sage.api.base_environment import BaseEnvironment
-    from sage.kernels.jobmanager.execution_graph import ExecutionGraph
-    from sage.kernels.runtime.dispatcher import Dispatcher
+    from sage.kernel.api.base_environment import BaseEnvironment
+    from sage.kernel.kernels.jobmanager.execution_graph import ExecutionGraph
+    from sage.kernel.kernels.runtime.dispatcher import Dispatcher
 
 class JobInfo:
     """作业信息类，用于跟踪和管理单个作业的状态"""

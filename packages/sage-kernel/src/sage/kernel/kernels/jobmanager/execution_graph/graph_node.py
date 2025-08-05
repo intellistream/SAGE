@@ -12,10 +12,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, List
 
 if TYPE_CHECKING:
-    from sage.api.base_environment import BaseEnvironment
-    from sage.kernels.core.transformation.base_transformation import BaseTransformation
-    from sage.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
-    from sage.kernels.runtime.task_context import TaskContext
+    from sage.kernel.api.base_environment import BaseEnvironment
+    from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+    from sage.kernel.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
+    from sage.kernel.kernels.runtime.task_context import TaskContext
     from .graph_edge import GraphEdge
 
 

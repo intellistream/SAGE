@@ -5,9 +5,9 @@ This example demonstrates how to use the basic SAGE Kernel APIs
 for creating and executing simple data processing tasks.
 """
 
-from sage.api.function.base_function import BaseFunction
-from sage.api.local_environment import LocalEnvironment
-from sage.api.datastream import DataStream
+from sage.kernel.api.function.base_function import BaseFunction
+from sage.kernel.api.local_environment import LocalEnvironment
+from sage.kernel.api.datastream import DataStream
 
 class SimpleMapFunction(BaseFunction):
     """A simple map function that doubles input values"""

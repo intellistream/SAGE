@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import time
 
 if TYPE_CHECKING:
-    from sage.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
+    from sage.kernel.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
 @dataclass
 class Connection:

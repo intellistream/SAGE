@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING
-from sage.api.base_environment import BaseEnvironment
-from sage.kernels.runtime.communication.queue_descriptor.python_queue_descriptor import PythonQueueDescriptor
+from sage.kernel.api.base_environment import BaseEnvironment
+from sage.kernel.kernels.runtime.communication.queue_descriptor.python_queue_descriptor import PythonQueueDescriptor
 if TYPE_CHECKING:
-    from sage.kernels.jobmanager.job_manager import JobManager
+    from sage.kernel.kernels.jobmanager.job_manager import JobManager
 
 class LocalEnvironment(BaseEnvironment):
     """本地环境，直接使用本地JobManager实例"""
@@ -23,7 +23,7 @@ class LocalEnvironment(BaseEnvironment):
     def jobmanager(self) -> 'JobManager':
         """直接返回JobManager的单例实例"""
         if self._jobmanager is None:
-            from sage.kernels.jobmanager.job_manager import JobManager
+            from sage.kernel.kernels.jobmanager.job_manager import JobManager
             # 获取JobManager单例实例
             jobmanager_instance = JobManager()
             # 本地环境直接返回JobManager实例，不使用ActorWrapper

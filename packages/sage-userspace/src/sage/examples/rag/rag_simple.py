@@ -8,10 +8,10 @@
 import yaml
 import time
 from dotenv import load_dotenv
-from sage.utils.logging.custom_logger import CustomLogger
-from sage.api.local_environment import LocalEnvironment
-from sage.api.function.map_function import MapFunction
-from sage.api.function.source_function import SourceFunction
+from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.kernel.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.map_function import MapFunction
+from sage.kernel.api.function.source_function import SourceFunction
 from sage.lib.io_utils.sink import TerminalSink
 
 

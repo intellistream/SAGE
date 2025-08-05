@@ -1,12 +1,12 @@
 from typing import Any, TYPE_CHECKING, Union
-from sage.kernels.runtime.task.ray_task import RayTask
-from sage.kernels.runtime.task.local_task import LocalTask
-from sage.kernels.runtime.task.base_task import BaseTask
-from sage.kernels.runtime.distributed.actor import ActorWrapper
+from sage.kernel.kernels.runtime.task.ray_task import RayTask
+from sage.kernel.kernels.runtime.task.local_task import LocalTask
+from sage.kernel.kernels.runtime.task.base_task import BaseTask
+from sage.kernel.kernels.runtime.distributed.actor import ActorWrapper
 if TYPE_CHECKING:
-    from sage.kernels.core.transformation.base_transformation import BaseTransformation
+    from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
     from ray.actor import ActorHandle
-    from sage.kernels.runtime.task_context import TaskContext
+    from sage.kernel.kernels.runtime.task_context import TaskContext
     
 class TaskFactory:
     def __init__(

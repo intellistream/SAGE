@@ -1,11 +1,11 @@
 from __future__ import annotations
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
-from sage.kernels.core.transformation.base_transformation import BaseTransformation
-from sage.kernels.core.operator.filter_operator import FilterOperator
+from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+from sage.kernel.kernels.core.operator.filter_operator import FilterOperator
 if TYPE_CHECKING:
-    from sage.kernels.core.operator.base_operator import BaseOperator
-    from sage.api.function.base_function import BaseFunction
-    from sage.api.base_environment import BaseEnvironment
+    from sage.kernel.kernels.core.operator.base_operator import BaseOperator
+    from sage.kernel.api.function.base_function import BaseFunction
+    from sage.kernel.api.base_environment import BaseEnvironment
 
 
 

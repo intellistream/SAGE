@@ -1,10 +1,10 @@
 from typing import Type, TYPE_CHECKING
-from sage.kernels.jobmanager.utils.name_server import get_name
+from sage.kernel.kernels.jobmanager.utils.name_server import get_name
 
 if TYPE_CHECKING:
-    from sage.kernels.core.operator.base_operator import BaseOperator
-    from sage.kernels.runtime.factory.function_factory import FunctionFactory
-    from sage.kernels.runtime.task_context import TaskContext
+    from sage.kernel.kernels.core.operator.base_operator import BaseOperator
+    from sage.kernel.kernels.runtime.factory.function_factory import FunctionFactory
+    from sage.kernel.kernels.runtime.task_context import TaskContext
 
 
 class OperatorFactory:

@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from sage.api.base_environment import BaseEnvironment
+    from sage.kernel.api.base_environment import BaseEnvironment
 
 @dataclass 
 class ServiceResponse:

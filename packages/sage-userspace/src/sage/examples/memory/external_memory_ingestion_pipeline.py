@@ -1,12 +1,12 @@
 import logging
 import time
-from sage.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.lib.io_utils.sink import MemWriteSink
 from sage.lib.io_utils.source import FileSource
 
 from sage.lib.rag.chunk import CharacterSplitter
 from sage.lib.rag.writer import MemoryWriter
-from sage.utils.config.loader import load_config
+from sage.kernel.utils.config.loader import load_config
 
 
 def pipeline_run():

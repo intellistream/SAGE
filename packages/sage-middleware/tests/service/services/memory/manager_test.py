@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
 
 # def kvtest():
-#     from sage.api.sage.service.memory..memory_manager import MemoryManager
+#     from sage.kernel.api.sage.service.memory..memory_manager import MemoryManager
 #     import os
 
 #     def colored(text, color):
@@ -142,7 +142,7 @@ if __name__ == "__main__":
 #     # 8. 删除所有数据
 #     user_input = input(colored("输入 yes 删除磁盘所有数据: ", "yellow"))
 #     if user_input.strip().lower() == "yes":
-#         from sage.api.sage.service.memory.memory_collection.kv_collection import KVMemoryCollection
+#         from sage.kernel.api.sage.service.memory.memory_collection.kv_collection import KVMemoryCollection
 #         KVMemoryCollection.clear("test_kv", data_dir)
 #         manager_json = os.path.join(data_dir, "manager.json")
 #         if os.path.exists(manager_json):

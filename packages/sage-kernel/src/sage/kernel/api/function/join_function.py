@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Any, Optional, Dict, List
-from sage.api.function.base_function import BaseFunction
+from sage.kernel.api.function.base_function import BaseFunction
 
 
 class BaseJoinFunction(BaseFunction):

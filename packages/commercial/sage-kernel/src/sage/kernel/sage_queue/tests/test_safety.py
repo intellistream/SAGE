@@ -14,7 +14,7 @@ from queue import Empty, Full
 
 # 添加父目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from sage_queue import SageQueue
+from sage.extensions.sage_queue.python.sage_queue import SageQueue
 
 class TestSafety(unittest.TestCase):
     """测试安全性和错误处理"""

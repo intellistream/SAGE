@@ -1,11 +1,11 @@
 from .base_operator import BaseOperator
-from sage.api.function.map_function import MapFunction
+from sage.kernel.api.function.map_function import MapFunction
 import time
 import os
 import json
 from typing import Union, Any
-from sage.utils.logging.custom_logger import CustomLogger
-from sage.kernels.runtime.communication.router.packet import Packet
+from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.kernel.kernels.runtime.communication.router.packet import Packet
 
 
 class MapOperator(BaseOperator):

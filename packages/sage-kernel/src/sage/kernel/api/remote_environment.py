@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import logging
 from typing import Optional, Dict, Any
-from sage.api.base_environment import BaseEnvironment
-from sage.kernels.jobmanager.jobmanager_client import JobManagerClient
-from sage.kernels.runtime.communication.queue_descriptor.ray_queue_descriptor import RayQueueDescriptor
-from sage.kernels.runtime.serialization.dill import trim_object_for_ray, serialize_object
+from sage.kernel.api.base_environment import BaseEnvironment
+from sage.kernel.kernels.jobmanager.jobmanager_client import JobManagerClient
+from sage.kernel.kernels.runtime.communication.queue_descriptor.ray_queue_descriptor import RayQueueDescriptor
+from sage.kernel.kernels.runtime.serialization.dill import trim_object_for_ray, serialize_object
 
 logger = logging.getLogger(__name__)
 

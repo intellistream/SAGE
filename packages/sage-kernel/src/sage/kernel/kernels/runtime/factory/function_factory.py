@@ -1,9 +1,9 @@
 from typing import Type, Any, Tuple,TYPE_CHECKING, Union
-from sage.api.function.base_function import BaseFunction
-from sage.utils.logging.custom_logger import CustomLogger
+from sage.kernel.api.function.base_function import BaseFunction
+from sage.kernel.utils.logging.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from ray.actor import ActorHandle
-    from sage.kernels.runtime.task_context import TaskContext
+    from sage.kernel.kernels.runtime.task_context import TaskContext
     
 class FunctionFactory:
     # 由transformation初始化

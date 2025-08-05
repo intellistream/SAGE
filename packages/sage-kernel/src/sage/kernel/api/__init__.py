@@ -1,7 +1,7 @@
 """
-SAGE API模块
+SAGE Kernel API Module
 
-提供流处理的核心API接口
+Core streaming API interfaces for SAGE kernel.
 """
 
 from .datastream import DataStream

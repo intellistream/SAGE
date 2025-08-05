@@ -4,19 +4,19 @@ import threading
 import ray
 from ray.actor import ActorHandle
 from typing import TYPE_CHECKING, List, Dict, Optional, Any, Union
-from sage.utils.logging.custom_logger import CustomLogger
-from sage.kernels.runtime.distributed.actor import ActorWrapper
+from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.kernel.kernels.runtime.distributed.actor import ActorWrapper
 
 if TYPE_CHECKING:
-    from sage.kernels.jobmanager.execution_graph.execution_graph import ExecutionGraph
-    from sage.kernels.jobmanager.execution_graph.graph_node import GraphNode
-    from sage.kernels.jobmanager.execution_graph.service_node import ServiceNode
-    from sage.kernels.core.transformation.base_transformation import BaseTransformation
-    from sage.api.base_environment import BaseEnvironment 
-    from sage.kernels.jobmanager.job_manager import JobManager
-    from sage.kernels.runtime.service.service_caller import ServiceManager
-    from sage.api.function.source_function import StopSignal
-    from sage.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
+    from sage.kernel.kernels.jobmanager.execution_graph.execution_graph import ExecutionGraph
+    from sage.kernel.kernels.jobmanager.execution_graph.graph_node import GraphNode
+    from sage.kernel.kernels.jobmanager.execution_graph.service_node import ServiceNode
+    from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+    from sage.kernel.api.base_environment import BaseEnvironment 
+    from sage.kernel.kernels.jobmanager.job_manager import JobManager
+    from sage.kernel.kernels.runtime.service.service_caller import ServiceManager
+    from sage.kernel.api.function.source_function import StopSignal
+    from sage.kernel.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
 # task, operator和function "形式上共享"的运行上下文
 

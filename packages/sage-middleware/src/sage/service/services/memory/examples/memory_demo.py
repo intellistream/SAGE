@@ -5,7 +5,7 @@ Memory服务作为编排服务，协调KV、VDB和Graph服务
 """
 import numpy as np
 import time
-from sage.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.service import (
     create_kv_service_factory,
     create_vdb_service_factory, 

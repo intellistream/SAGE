@@ -36,7 +36,7 @@ def stress_producer_worker_func(worker_id: int, queue_names: List[str],
     try:
         # 尝试导入真实的 SageQueue
         try:
-            from sage_ext.sage_queue.python.sage_queue import SageQueue
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
             use_real_queue = True
         except ImportError:
             from ..mock_sage_queue import MockSageQueue as SageQueue
@@ -118,7 +118,7 @@ def stress_consumer_worker_func(worker_id: int, queue_names: List[str],
     try:
         # 尝试导入真实的 SageQueue
         try:
-            from sage_ext.sage_queue.python.sage_queue import SageQueue
+            from sage.extensions.sage_queue.python.sage_queue import SageQueue
             use_real_queue = True
         except ImportError:
             from ..mock_sage_queue import MockSageQueue as SageQueue
@@ -262,7 +262,7 @@ class MultiprocessStressTester:
         try:
             # 尝试导入真实的 SageQueue
             try:
-                from sage_ext.sage_queue.python.sage_queue import SageQueue
+                from sage.extensions.sage_queue.python.sage_queue import SageQueue
                 use_real_queue = True
             except ImportError:
                 from ..mock_sage_queue import MockSageQueue as SageQueue
@@ -351,7 +351,7 @@ class MultiprocessStressTester:
         try:
             # 尝试导入真实的 SageQueue
             try:
-                from sage_ext.sage_queue.python.sage_queue import SageQueue
+                from sage.extensions.sage_queue.python.sage_queue import SageQueue
                 use_real_queue = True
             except ImportError:
                 from ..mock_sage_queue import MockSageQueue as SageQueue
@@ -437,7 +437,7 @@ class MultiprocessStressTester:
         try:
             # 尝试导入真实的 SageQueue
             try:
-                from sage_ext.sage_queue.python.sage_queue import SageQueue
+                from sage.extensions.sage_queue.python.sage_queue import SageQueue
                 use_real_queue = True
             except ImportError:
                 from ..mock_sage_queue import MockSageQueue as SageQueue

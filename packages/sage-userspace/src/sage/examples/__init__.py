@@ -4,13 +4,13 @@ SAGE Examples - 示例代码和教程
 这个模块包含了 SAGE 框架的各种使用示例和教程。
 
 Examples:
-    >>> from sage.examples import tutorials
-    >>> from sage.examples import rag
-    >>> from sage.examples import agents
-    >>> from sage.examples import streaming
-    >>> from sage.examples import memory
-    >>> from sage.examples import evaluation
-    >>> from sage.examples import resources
+    >>> from sage.kernel.examples import tutorials
+    >>> from sage.kernel.examples import rag
+    >>> from sage.kernel.examples import agents
+    >>> from sage.kernel.examples import streaming
+    >>> from sage.kernel.examples import memory
+    >>> from sage.kernel.examples import evaluation
+    >>> from sage.kernel.examples import resources
 """
 
 # 导入所有子模块
@@ -71,7 +71,7 @@ def list_examples():
         print(f"  • {category}: {description}")
     
     print("\n📖 使用方法:")
-    print("  from sage.examples import <category>")
+    print("  from sage.kernel.examples import <category>")
     print("  # 查看具体示例: help(<category>)")
 
 def get_example_path():

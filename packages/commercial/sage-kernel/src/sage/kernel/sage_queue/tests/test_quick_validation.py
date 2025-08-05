@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 def test_import():
     """测试模块导入"""
     try:
-        from sage_queue import SageQueue
+        from sage.extensions.sage_queue.python.sage_queue import SageQueue
         print("✅ 模块导入成功")
         return True
     except Exception as e:
@@ -24,7 +24,7 @@ def test_import():
 def test_queue_creation():
     """测试队列创建"""
     try:
-        from sage_queue import SageQueue
+        from sage.extensions.sage_queue.python.sage_queue import SageQueue
         queue = SageQueue(f"quick_test_{int(time.time() * 1000)}", maxsize=1024)
         queue.close()
         print("✅ 队列创建成功")
@@ -36,7 +36,7 @@ def test_queue_creation():
 def test_basic_operations():
     """测试基本操作"""
     try:
-        from sage_queue import SageQueue
+        from sage.extensions.sage_queue.python.sage_queue import SageQueue
         queue = SageQueue(f"quick_ops_{int(time.time() * 1000)}", maxsize=1024)
         
         # 测试 put/get
@@ -60,7 +60,7 @@ def test_basic_operations():
 def test_queue_states():
     """测试队列状态"""
     try:
-        from sage_queue import SageQueue
+        from sage.extensions.sage_queue.python.sage_queue import SageQueue
         queue = SageQueue(f"quick_state_{int(time.time() * 1000)}", maxsize=1024)
         
         # 测试空队列
@@ -92,7 +92,7 @@ def test_queue_states():
 def test_serialization():
     """测试序列化功能"""
     try:
-        from sage_queue import SageQueue
+        from sage.extensions.sage_queue.python.sage_queue import SageQueue
         queue = SageQueue(f"quick_serial_{int(time.time() * 1000)}", maxsize=1024)
         
         # 测试复杂数据类型

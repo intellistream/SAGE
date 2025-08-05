@@ -1,16 +1,16 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, List, TypeVar, Generic, get_args, get_origin, Callable
-from sage.kernels.core.transformation.base_transformation import BaseTransformation
-from sage.kernels.core.transformation.map_transformation import MapTransformation
-from sage.kernels.core.transformation.sink_transformation import SinkTransformation
-from sage.kernels.core.transformation.join_transformation import JoinTransformation
-from sage.api.function.base_function import BaseFunction
-from sage.api.function.lambda_function import wrap_lambda
-from sage.api.function.comap_function import BaseCoMapFunction
-from sage.api.function.join_function import BaseJoinFunction
+from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+from sage.kernel.kernels.core.transformation.map_transformation import MapTransformation
+from sage.kernel.kernels.core.transformation.sink_transformation import SinkTransformation
+from sage.kernel.kernels.core.transformation.join_transformation import JoinTransformation
+from sage.kernel.api.function.base_function import BaseFunction
+from sage.kernel.api.function.lambda_function import wrap_lambda
+from sage.kernel.api.function.comap_function import BaseCoMapFunction
+from sage.kernel.api.function.join_function import BaseJoinFunction
 if TYPE_CHECKING:
     from .datastream import DataStream
-    from sage.kernels.core.environment.base_environment import BaseEnvironment
+    from sage.kernel.kernels.core.environment.base_environment import BaseEnvironment
 
 class ConnectedStreams:
     """表示多个transformation连接后的流结果"""
@@ -125,7 +125,7 @@ class ConnectedStreams:
             )
         
         # Import BaseCoMapFunction for type checking
-        from sage.api.function.comap_function import BaseCoMapFunction
+        from sage.kernel.api.function.comap_function import BaseCoMapFunction
         
         # Type validation: Check if function is a proper CoMap function
         if not isinstance(function, type):
@@ -164,7 +164,7 @@ class ConnectedStreams:
                 )
         
         # Import CoMapTransformation (delayed import to avoid circular dependencies)
-        from sage.kernels.core.transformation.comap_transformation import CoMapTransformation
+        from sage.kernel.kernels.core.transformation.comap_transformation import CoMapTransformation
         
         # Create CoMapTransformation
         tr = CoMapTransformation(self._environment, function, *args, **kwargs)

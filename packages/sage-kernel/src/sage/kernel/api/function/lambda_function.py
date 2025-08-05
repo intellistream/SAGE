@@ -1,11 +1,11 @@
 from typing import Callable, Any, List, Tuple, Type, Optional, Hashable
-from sage.api.function.base_function import BaseFunction
-from sage.api.function.map_function import MapFunction
-from sage.api.function.filter_function import FilterFunction
-from sage.api.function.flatmap_function import FlatMapFunction
-from sage.api.function.sink_function import SinkFunction
-from sage.api.function.source_function import SourceFunction
-from sage.api.function.keyby_function import KeyByFunction
+from sage.kernel.api.function.base_function import BaseFunction
+from sage.kernel.api.function.map_function import MapFunction
+from sage.kernel.api.function.filter_function import FilterFunction
+from sage.kernel.api.function.flatmap_function import FlatMapFunction
+from sage.kernel.api.function.sink_function import SinkFunction
+from sage.kernel.api.function.source_function import SourceFunction
+from sage.kernel.api.function.keyby_function import KeyByFunction
 import inspect
 
 class LambdaMapFunction(MapFunction):

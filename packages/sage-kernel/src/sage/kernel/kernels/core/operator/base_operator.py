@@ -1,17 +1,17 @@
 
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional, TYPE_CHECKING, Type, Tuple
-from sage.api.function.source_function import StopSignal
-from sage.kernels.runtime.task.base_task import BaseTask
-from sage.utils.logging.custom_logger import CustomLogger
-from sage.kernels.runtime.communication.router.packet import Packet
+from sage.kernel.api.function.source_function import StopSignal
+from sage.kernel.kernels.runtime.task.base_task import BaseTask
+from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.kernel.kernels.runtime.communication.router.packet import Packet
 
 if TYPE_CHECKING:
-    from sage.api.function.base_function import BaseFunction
-    from sage.kernels.runtime.communication.router.connection import Connection
-    from sage.kernels.runtime.task_context import TaskContext
-    from sage.kernels.runtime.factory.function_factory import FunctionFactory
-    from sage.kernels.runtime.communication.router.router import BaseRouter
+    from sage.kernel.api.function.base_function import BaseFunction
+    from sage.kernel.kernels.runtime.communication.router.connection import Connection
+    from sage.kernel.kernels.runtime.task_context import TaskContext
+    from sage.kernel.kernels.runtime.factory.function_factory import FunctionFactory
+    from sage.kernel.kernels.runtime.communication.router.router import BaseRouter
 
 class BaseOperator(ABC):
     def __init__(self, 
@@ -41,7 +41,7 @@ class BaseOperator(ABC):
     # TODO: 去掉stateful function的概念，用某些策略对于function内部的可序列化字段做静态保存和checkpoint
     # Issue URL: https://github.com/intellistream/SAGE/issues/388
     def save_state(self):
-        from sage.api.function.base_function import StatefulFunction
+        from sage.kernel.api.function.base_function import StatefulFunction
         if isinstance(self.function, StatefulFunction):
             self.function.save_state()
 

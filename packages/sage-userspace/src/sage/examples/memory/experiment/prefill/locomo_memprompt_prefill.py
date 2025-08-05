@@ -6,9 +6,9 @@ import os
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
 
-from sage.utils.config.loader import load_config
+from sage.kernel.utils.config.loader import load_config
 
-from sage.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 
 
 # from tqdm import tqdm

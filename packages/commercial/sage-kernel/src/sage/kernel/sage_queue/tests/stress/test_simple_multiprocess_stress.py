@@ -48,7 +48,7 @@ def stress_producer_worker(worker_id: int, queue_names: List[str],
             use_real_queue = False
         except ImportError:
             try:
-                from sage_ext.sage_queue.python.sage_queue import SageQueue
+                from sage.extensions.sage_queue.python.sage_queue import SageQueue
                 use_real_queue = True
             except ImportError:
                 # 如果都没有，创建一个最简单的mock
@@ -158,7 +158,7 @@ def stress_consumer_worker(worker_id: int, queue_names: List[str],
             use_real_queue = False
         except ImportError:
             try:
-                from sage_ext.sage_queue.python.sage_queue import SageQueue
+                from sage.extensions.sage_queue.python.sage_queue import SageQueue
                 use_real_queue = True
             except ImportError:
                 # 如果都没有，创建一个最简单的mock
@@ -268,7 +268,7 @@ def lifecycle_stress_worker(worker_id: int, cycles: int, results_file: str) -> N
             use_real_queue = False
         except ImportError:
             try:
-                from sage_ext.sage_queue.python.sage_queue import SageQueue
+                from sage.extensions.sage_queue.python.sage_queue import SageQueue
                 use_real_queue = True
             except ImportError:
                 # 如果都没有，创建一个最简单的mock

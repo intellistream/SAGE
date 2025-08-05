@@ -1,4 +1,4 @@
-from sage.api.function.sink_function import SinkFunction
+from sage.kernel.api.function.sink_function import SinkFunction
 from typing import Tuple, List, Union, Type, Any
 import os
 

@@ -1,8 +1,8 @@
 from typing import Iterator, Any, TYPE_CHECKING, List, Optional, Union, Callable
-from sage.api.function.base_function import BaseFunction
+from sage.kernel.api.function.base_function import BaseFunction
 
 if TYPE_CHECKING:
-    from sage.kernels.runtime.task_context import TaskContext
+    from sage.kernel.kernels.runtime.task_context import TaskContext
 
 
 class SimpleBatchIteratorFunction(BaseFunction):

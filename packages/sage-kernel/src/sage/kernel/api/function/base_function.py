@@ -1,12 +1,12 @@
 import os
 from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
-from sage.kernels.runtime.service.service_caller import ServiceManager, ServiceCallProxy
+from sage.kernel.kernels.runtime.service.service_caller import ServiceManager, ServiceCallProxy
 if TYPE_CHECKING:
-    from sage.kernels.runtime.task_context import TaskContext
-    from sage.kernels.runtime.service.service_caller import ServiceManager
+    from sage.kernel.kernels.runtime.task_context import TaskContext
+    from sage.kernel.kernels.runtime.service.service_caller import ServiceManager
 import logging
-from sage.kernels.runtime.state import load_function_state, save_function_state
+from sage.kernel.utils.persistence.state import load_function_state, save_function_state
 
 
 # 构造来源于sage.kernels.runtime/operator/factory.py
@@ -50,7 +50,7 @@ class BaseFunction(ABC):
         
         # 懒加载缓存机制
         if not hasattr(self, '_call_service_proxy') or self._call_service_proxy is None:
-            from sage.kernels.runtime.service.service_caller import ServiceCallProxy
+            from sage.kernel.kernels.runtime.service.service_caller import ServiceCallProxy
             
             class ServiceProxy:
                 def __init__(self, service_manager: 'ServiceManager', logger=None):
@@ -95,7 +95,7 @@ class BaseFunction(ABC):
                     
                 def __getitem__(self, service_name: str):
                     if service_name not in self._async_service_proxies:
-                        from sage.kernels.runtime.service.service_caller import ServiceCallProxy
+                        from sage.kernel.kernels.runtime.service.service_caller import ServiceCallProxy
                         self._async_service_proxies[service_name] = ServiceCallProxy(
                             self._service_manager, service_name, logger=self.logger
                         )

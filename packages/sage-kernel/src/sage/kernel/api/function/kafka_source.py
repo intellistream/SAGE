@@ -1,8 +1,8 @@
-from sage.api.function.source_function import SourceFunction
+from sage.kernel.api.function.source_function import SourceFunction
 from typing import Callable, Dict, Any, TYPE_CHECKING
 import threading, json, queue
 if TYPE_CHECKING:
-    from sage.kernels.runtime.task_context import TaskContext
+    from sage.kernel.kernels.runtime.task_context import TaskContext
 
 
 class KafkaSourceFunction(SourceFunction):

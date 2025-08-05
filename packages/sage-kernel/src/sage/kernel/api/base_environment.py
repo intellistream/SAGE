@@ -4,20 +4,20 @@ from datetime import datetime
 import os
 from pathlib import Path
 from typing import List, Optional, TYPE_CHECKING, Type, Union, Any
-from sage.api.function.lambda_function import wrap_lambda
-from sage.api.datastream import DataStream
-from sage.kernels.core.transformation.base_transformation import BaseTransformation
-from sage.kernels.core.transformation.source_transformation import SourceTransformation
-from sage.kernels.core.transformation.batch_transformation import BatchTransformation
-from sage.kernels.core.transformation.future_transformation import FutureTransformation
-from sage.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
-from sage.utils.logging.custom_logger import CustomLogger
-from sage.kernels.jobmanager.utils.name_server import get_name
-from sage.kernels.jobmanager.jobmanager_client import JobManagerClient
-from sage.kernels.runtime.factory.service_factory import ServiceFactory
+from sage.kernel.api.function.lambda_function import wrap_lambda
+from sage.kernel.api.datastream import DataStream
+from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+from sage.kernel.kernels.core.transformation.source_transformation import SourceTransformation
+from sage.kernel.kernels.core.transformation.batch_transformation import BatchTransformation
+from sage.kernel.kernels.core.transformation.future_transformation import FutureTransformation
+from sage.kernel.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
+from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.kernel.kernels.jobmanager.utils.name_server import get_name
+from sage.kernel.kernels.jobmanager.jobmanager_client import JobManagerClient
+from sage.kernel.kernels.runtime.factory.service_factory import ServiceFactory
 if TYPE_CHECKING:
-    from sage.kernels.jobmanager.job_manager import JobManager
-    from sage.api.function.base_function import BaseFunction
+    from sage.kernel.kernels.jobmanager.job_manager import JobManager
+    from sage.kernel.api.function.base_function import BaseFunction
 
     
 class BaseEnvironment(ABC):
@@ -103,7 +103,7 @@ class BaseEnvironment(ABC):
         )
         
         # 创建服务任务工厂
-        from sage.kernels.runtime.factory.service_task_factory import ServiceTaskFactory
+        from sage.kernel.kernels.runtime.factory.service_task_factory import ServiceTaskFactory
         service_task_factory = ServiceTaskFactory(
             service_factory=service_factory,
             remote=(self.platform == "remote")
@@ -168,7 +168,7 @@ class BaseEnvironment(ABC):
                      .filter(FilterFunction)
                      .sink(OutputSinkFunction))
         """
-        from sage.api.function.kafka_source import KafkaSourceFunction
+        from sage.kernel.api.function.kafka_source import KafkaSourceFunction
         
         # 创建Kafka Source Function
         transformation = SourceTransformation(
@@ -253,7 +253,7 @@ class BaseEnvironment(ABC):
         # 检查 source 的类型并相应处理
         if isinstance(source, type) and hasattr(source, '__bases__'):
             # source 是一个类，检查是否是 BaseFunction 的子类
-            from sage.api.function.base_function import BaseFunction
+            from sage.kernel.api.function.base_function import BaseFunction
             if issubclass(source, BaseFunction):
                 # 使用自定义批处理函数类
                 return self._from_batch_function_class(source, *args, **kwargs)
@@ -418,7 +418,7 @@ class BaseEnvironment(ABC):
         """
         从数据集合创建批处理数据源
         """
-        from sage.api.function.simple_batch_function import SimpleBatchIteratorFunction
+        from sage.kernel.api.function.simple_batch_function import SimpleBatchIteratorFunction
         
         transformation = BatchTransformation(
             self,
@@ -436,7 +436,7 @@ class BaseEnvironment(ABC):
         """
         从任何可迭代对象创建批处理数据源
         """
-        from sage.api.function.simple_batch_function import IterableBatchIteratorFunction
+        from sage.kernel.api.function.simple_batch_function import IterableBatchIteratorFunction
         
         # 尝试获取总数量
         total_count = kwargs.pop('total_count', None)

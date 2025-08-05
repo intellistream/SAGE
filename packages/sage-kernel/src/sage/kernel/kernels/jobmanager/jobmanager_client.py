@@ -1,7 +1,7 @@
 import base64
 import uuid
 from typing import Dict, Any
-from sage.utils.network.base_tcp_client import BaseTcpClient
+from sage.kernel.utils.network.base_tcp_client import BaseTcpClient
 
 # ==================== 客户端工具类 ====================
 

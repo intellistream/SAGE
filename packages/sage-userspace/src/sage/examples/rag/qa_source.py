@@ -4,14 +4,14 @@
 """
 import time
 from dotenv import load_dotenv
-from sage.utils.logging.custom_logger import CustomLogger
-from sage.api.local_environment import LocalEnvironment
-from sage.api.function.map_function import MapFunction
-from sage.api.function.sink_function import SinkFunction
-from sage.api.function.source_function import SourceFunction
+from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.kernel.api.local_environment import LocalEnvironment
+from sage.kernel.api.function.map_function import MapFunction
+from sage.kernel.api.function.sink_function import SinkFunction
+from sage.kernel.api.function.source_function import SourceFunction
 from sage.lib.rag.generator import OpenAIGenerator
 from sage.lib.rag.promptor import QAPromptor
-from sage.utils.config.loader import load_config
+from sage.kernel.utils.config.loader import load_config
 
 
 class TerminalInputSource(SourceFunction):

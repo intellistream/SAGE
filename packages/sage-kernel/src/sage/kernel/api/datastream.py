@@ -1,19 +1,19 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, List, Tuple, TypeVar, Generic, get_args, get_origin, Optional
-from sage.kernels.core.transformation.base_transformation import BaseTransformation
-from sage.kernels.core.transformation.filter_transformation import FilterTransformation
-from sage.kernels.core.transformation.flatmap_transformation import FlatMapTransformation
-from sage.kernels.core.transformation.map_transformation import MapTransformation
-from sage.kernels.core.transformation.sink_transformation import SinkTransformation
-from sage.kernels.core.transformation.source_transformation import SourceTransformation
-from sage.kernels.core.transformation.keyby_transformation import KeyByTransformation
-from sage.api.function.base_function import BaseFunction
-from sage.api.function.lambda_function import wrap_lambda, detect_lambda_type
+from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+from sage.kernel.kernels.core.transformation.filter_transformation import FilterTransformation
+from sage.kernel.kernels.core.transformation.flatmap_transformation import FlatMapTransformation
+from sage.kernel.kernels.core.transformation.map_transformation import MapTransformation
+from sage.kernel.kernels.core.transformation.sink_transformation import SinkTransformation
+from sage.kernel.kernels.core.transformation.source_transformation import SourceTransformation
+from sage.kernel.kernels.core.transformation.keyby_transformation import KeyByTransformation
+from sage.kernel.api.function.base_function import BaseFunction
+from sage.kernel.api.function.lambda_function import wrap_lambda, detect_lambda_type
 from .connected_streams import ConnectedStreams
-from sage.utils.logging.custom_logger import CustomLogger
+from sage.kernel.utils.logging.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
-    from sage.api.base_environment import BaseEnvironment
+    from sage.kernel.api.base_environment import BaseEnvironment
     from .datastream import DataStream
 
 T = TypeVar("T")
@@ -114,7 +114,7 @@ class DataStream(Generic[T]):
             processed_result = result.filter(SomeFilter)
             processed_result.fill_future(future_stream)
         """
-        from sage.kernels.core.transformation.future_transformation import FutureTransformation
+        from sage.kernel.kernels.core.transformation.future_transformation import FutureTransformation
 
         # 验证目标是future stream
         if not isinstance(future_stream.transformation, FutureTransformation):

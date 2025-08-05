@@ -1,9 +1,9 @@
-from sage.kernels.core.operator.base_operator import BaseOperator
-from sage.api.function.sink_function import SinkFunction
-from sage.utils.logging.custom_logger import CustomLogger
+from sage.kernel.kernels.core.operator.base_operator import BaseOperator
+from sage.kernel.api.function.sink_function import SinkFunction
+from sage.kernel.utils.logging.custom_logger import CustomLogger
 from collections import deque
 from typing import Union, Dict, Deque, Tuple, Any
-from sage.kernels.runtime.communication.router.packet import Packet
+from sage.kernel.kernels.runtime.communication.router.packet import Packet
 
 
 class SinkOperator(BaseOperator):

@@ -1,11 +1,11 @@
 import queue
 from typing import Any, TYPE_CHECKING
-from sage.utils.logging.custom_logger import CustomLogger
+from sage.kernel.utils.logging.custom_logger import CustomLogger
 from .base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:
-    from sage.kernels.runtime.factory.service_factory import ServiceFactory
-    from sage.kernels.runtime.service_context import ServiceContext
+    from sage.kernel.kernels.runtime.factory.service_factory import ServiceFactory
+    from sage.kernel.kernels.runtime.service_context import ServiceContext
 
 
 class LocalServiceTask(BaseServiceTask):

@@ -1,12 +1,12 @@
-from sage.kernels.core.operator.base_operator import BaseOperator
-from sage.api.function.source_function import SourceFunction
-from sage.utils.logging.custom_logger import CustomLogger
+from sage.kernel.kernels.core.operator.base_operator import BaseOperator
+from sage.kernel.api.function.source_function import SourceFunction
+from sage.kernel.utils.logging.custom_logger import CustomLogger
 from collections import deque
 from typing import Union, Dict, Deque, Tuple, Any, TYPE_CHECKING
-from sage.kernels.runtime.communication.router.packet import Packet
-from sage.api.function.source_function import StopSignal
+from sage.kernel.kernels.runtime.communication.router.packet import Packet
+from sage.kernel.api.function.source_function import StopSignal
 if TYPE_CHECKING:
-    from sage.kernels.runtime.task.base_task import BaseTask
+    from sage.kernel.kernels.runtime.task.base_task import BaseTask
 
 class SourceOperator(BaseOperator):
     def __init__(self, *args, **kwargs):

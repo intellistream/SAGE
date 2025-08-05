@@ -1,9 +1,9 @@
 import os
 from typing import TYPE_CHECKING
-from sage.kernels.runtime.task.base_task import BaseTask
+from sage.kernel.kernels.runtime.task.base_task import BaseTask
 if TYPE_CHECKING:
-    from sage.kernels.runtime.factory.operator_factory import OperatorFactory
-    from sage.kernels.runtime.task_context import TaskContext
+    from sage.kernel.kernels.runtime.factory.operator_factory import OperatorFactory
+    from sage.kernel.kernels.runtime.task_context import TaskContext
 
 
 class LocalTask(BaseTask):

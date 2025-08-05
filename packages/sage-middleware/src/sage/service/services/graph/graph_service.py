@@ -9,11 +9,11 @@ import logging
 import time
 import uuid
 
-from sage.kernels.runtime.service.base_service_task import BaseServiceTask
+from sage.kernel.kernels.runtime.service.base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:
-    from sage.kernels.runtime.factory.service_factory import ServiceFactory
-    from sage.kernels.runtime.service_context import ServiceContext
+    from sage.kernel.kernels.runtime.factory.service_factory import ServiceFactory
+    from sage.kernel.kernels.runtime.service_context import ServiceContext
 
 
 @dataclass
@@ -525,7 +525,7 @@ def create_graph_service_factory(
     Returns:
         ServiceFactory: 可以用于注册到环境的服务工厂
     """
-    from sage.kernels.runtime.factory.service_factory import ServiceFactory
+    from sage.kernel.kernels.runtime.factory.service_factory import ServiceFactory
     
     config = GraphConfig(
         backend_type=backend_type,

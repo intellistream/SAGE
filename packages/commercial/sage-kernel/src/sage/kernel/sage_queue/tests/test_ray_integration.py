@@ -14,7 +14,7 @@ from typing import List, Dict, Any, Optional
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from sage_queue import SageQueue, SageQueueRef, destroy_queue
+    from sage.extensions.sage_queue.python.sage_queue import SageQueue, SageQueueRef, destroy_queue
     print("✓ 成功导入 SageQueue")
 except ImportError as e:
     print(f"✗ 导入失败: {e}")

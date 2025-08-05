@@ -1,7 +1,7 @@
 import ray
 import time
 from typing import Any, TYPE_CHECKING
-from sage.utils.logging.custom_logger import CustomLogger
+from sage.kernel.utils.logging.custom_logger import CustomLogger
 from .base_service_task import BaseServiceTask
 
 # 安全导入Ray队列
@@ -13,8 +13,8 @@ except ImportError:
     RAY_QUEUE_AVAILABLE = False
 
 if TYPE_CHECKING:
-    from sage.kernels.runtime.factory.service_factory import ServiceFactory
-    from sage.kernels.runtime.service_context import ServiceContext
+    from sage.kernel.kernels.runtime.factory.service_factory import ServiceFactory
+    from sage.kernel.kernels.runtime.service_context import ServiceContext
 
 
 @ray.remote

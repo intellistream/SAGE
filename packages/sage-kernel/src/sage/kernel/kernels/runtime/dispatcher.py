@@ -1,20 +1,20 @@
 import os
 import time
 from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
-from sage.kernels.runtime.service.base_service_task import BaseServiceTask
-from sage.kernels.runtime.task.base_task import BaseTask
-from sage.kernels.runtime.distributed.actor import ActorWrapper
-from sage.kernels.runtime.distributed.ray import ensure_ray_initialized
-from sage.utils.logging.custom_logger import CustomLogger
+from sage.kernel.kernels.runtime.service.base_service_task import BaseServiceTask
+from sage.kernel.kernels.runtime.task.base_task import BaseTask
+from sage.kernel.kernels.runtime.distributed.actor import ActorWrapper
+from sage.kernel.kernels.runtime.distributed.ray import ensure_ray_initialized
+from sage.kernel.utils.logging.custom_logger import CustomLogger
 import ray
 from ray.actor import ActorHandle
 
 
 if TYPE_CHECKING:
-    from sage.api.base_environment import BaseEnvironment 
-    from sage.kernels.jobmanager.execution_graph import ExecutionGraph, GraphNode
-    from sage.kernels.runtime.service_context import ServiceContext
-    from sage.kernels.runtime.task_context import TaskContext
+    from sage.kernel.api.base_environment import BaseEnvironment 
+    from sage.kernel.kernels.jobmanager.execution_graph import ExecutionGraph, GraphNode
+    from sage.kernel.kernels.runtime.service_context import ServiceContext
+    from sage.kernel.kernels.runtime.task_context import TaskContext
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
 class Dispatcher():

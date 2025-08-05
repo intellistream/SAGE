@@ -1,7 +1,7 @@
-from sage.api.local_environment import LocalEnvironment
-from sage.api.remote_environment import RemoteEnvironment
-from sage.api.function.sink_function import SinkFunction
-from sage.api.function.source_function import SourceFunction, StopSignal
+from sage.kernel.api.local_environment import LocalEnvironment
+from sage.kernel.api.remote_environment import RemoteEnvironment
+from sage.kernel.api.function.sink_function import SinkFunction
+from sage.kernel.api.function.source_function import SourceFunction, StopSignal
 import time
 import random
 

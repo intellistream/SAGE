@@ -8,7 +8,7 @@ from typing import List
 import numpy as np
 
 # 导入SAGE环境和服务
-from sage.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 from sage.service import (
     MemoryService,
     create_kv_service_factory,

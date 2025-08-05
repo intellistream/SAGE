@@ -9,15 +9,15 @@ import pickle
 import signal
 import sys
 from uuid import UUID
-from sage.kernels.jobmanager.job_info import JobInfo
-from sage.kernels.jobmanager.job_manager_server import JobManagerServer
-from sage.utils.logging.custom_logger import CustomLogger
-from sage.kernels.runtime.dispatcher import Dispatcher
+from sage.kernel.kernels.jobmanager.job_info import JobInfo
+from sage.kernel.kernels.jobmanager.job_manager_server import JobManagerServer
+from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.kernel.kernels.runtime.dispatcher import Dispatcher
 import threading
-from sage.kernels.runtime.serialization.dill import deserialize_object
+from sage.kernel.kernels.runtime.serialization.dill import deserialize_object
 if TYPE_CHECKING:
-    from sage.kernels.jobmanager.execution_graph import ExecutionGraph
-    from sage.api.base_environment import BaseEnvironment
+    from sage.kernel.kernels.jobmanager.execution_graph import ExecutionGraph
+    from sage.kernel.api.base_environment import BaseEnvironment
 
 import ray
 
@@ -118,7 +118,7 @@ class JobManager: #Job Manager
             env.jobmanager_port = 19001
             
         # 编译环境
-        from sage.kernels.jobmanager.execution_graph import ExecutionGraph
+        from sage.kernel.kernels.jobmanager.execution_graph import ExecutionGraph
         graph = ExecutionGraph(env) 
 
 

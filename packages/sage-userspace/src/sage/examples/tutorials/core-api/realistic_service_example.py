@@ -4,10 +4,10 @@
 使用SAGE的完整流水线机制，展示服务在真实算子中的使用
 """
 
-from sage.api.remote_environment import RemoteEnvironment
-from sage.api.function.base_function import BaseFunction
-from sage.api.operator.base_operator import BaseOperator
-from sage.api.local_environment import LocalEnvironment
+from sage.kernel.api.remote_environment import RemoteEnvironment
+from sage.kernel.api.function.base_function import BaseFunction
+from sage.kernel.api.operator.base_operator import BaseOperator
+from sage.kernel.api.local_environment import LocalEnvironment
 import json
 import time
 

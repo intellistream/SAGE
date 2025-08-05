@@ -10,16 +10,16 @@ import pickle
 import signal
 import sys
 from uuid import UUID
-from sage.kernels.jobmanager.job_info import JobInfo
-from sage.utils.logging.custom_logger import CustomLogger
-from sage.kernels.runtime.dispatcher import Dispatcher
+from sage.kernel.kernels.jobmanager.job_info import JobInfo
+from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.kernel.kernels.runtime.dispatcher import Dispatcher
 import threading
-from sage.kernels.runtime.serialization.dill import deserialize_object
-from sage.utils.network.local_tcp_server import BaseTcpServer
+from sage.kernel.kernels.runtime.serialization.dill import deserialize_object
+from sage.kernel.utils.network.local_tcp_server import BaseTcpServer
 if TYPE_CHECKING:
-    from sage.kernels.jobmanager.execution_graph import ExecutionGraph
-    from sage.api.base_environment import BaseEnvironment
-    from sage.kernels.jobmanager.job_manager import JobManager
+    from sage.kernel.kernels.jobmanager.execution_graph import ExecutionGraph
+    from sage.kernel.api.base_environment import BaseEnvironment
+    from sage.kernel.kernels.jobmanager.job_manager import JobManager
 
 
 
