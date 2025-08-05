@@ -165,3 +165,11 @@ jsonschema==4.25.0
 # Build tools
 Cython==3.1.2
 pybind11==3.0.0
+
+# LLM and structured generation
+outlines==1.2.1
+xformers>=0.0.28
+
+# Additional Rust-based packages
+setuptools-rust>=1.6.0
+maturin>=1.0.0

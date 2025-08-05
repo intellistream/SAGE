@@ -187,8 +187,8 @@ pip install .
 pip install -e packages/sage-middleware    # 1. 先安装中间件 (被其他包依赖)
 pip install -e packages/sage-kernel        # 2. 安装内核
 pip install -e packages/sage-userspace     # 3. 安装用户空间
-pip install -e packages/tools/sage-cli     # 4. 安装CLI工具
-pip install -e packages/tools/sage-frontend  # 5. 安装前端工具
+pip install -e packages/sage-tools/sage-cli     # 4. 安装CLI工具
+pip install -e packages/sage-tools/sage-frontend  # 5. 安装前端工具
 pip install -e dev-toolkit                 # 6. 安装开发工具包
 ```
 
@@ -216,7 +216,7 @@ If you encounter any issues, here are some common solutions:
 pip install -r requirements-subpackages.txt
 
 # 或者手动安装 CLI 包
-pip install -e packages/tools/sage-cli
+pip install -e packages/sage-tools/sage-cli
 
 # 验证安装
 sage --version
@@ -242,7 +242,7 @@ sage --version
 pip install -r requirements-subpackages.txt
 
 # 或者手动安装 CLI 包
-pip install -e packages/tools/sage-cli
+pip install -e packages/sage-tools/sage-cli
 
 # 验证安装
 sage --version
@@ -287,7 +287,7 @@ If you encounter any issues, here are some common solutions:
 pip install -r requirements-subpackages.txt
 
 # 或者手动安装 CLI 包
-pip install -e packages/tools/sage-cli
+pip install -e packages/sage-tools/sage-cli
 
 # 验证安装
 sage --version
@@ -452,7 +452,7 @@ Building wheels for collected packages: UNKNOWN
 pip install -e packages/sage-middleware
 pip install -e packages/sage-kernel  
 pip install -e packages/sage-userspace
-pip install -e packages/tools/sage-cli
+pip install -e packages/sage-tools/sage-cli
 pip install -e dev-toolkit
 
 # 方法3: 使用 Python 脚本

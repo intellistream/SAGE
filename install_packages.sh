@@ -60,8 +60,8 @@ install_package "packages/sage-userspace"
 # 4. 安装工具包
 echo ""
 echo "4. 安装工具包..."
-install_package "packages/tools/sage-cli"
-install_package "packages/tools/sage-frontend"
+install_package "packages/sage-tools/sage-cli"
+install_package "packages/sage-tools/sage-frontend"
 
 # 5. 安装开发工具包
 echo ""

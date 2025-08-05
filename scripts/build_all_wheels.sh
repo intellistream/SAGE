@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # build_all_wheels.sh
-# Script to build wheel packages for all projects under packages/, packages/commercial/, and packages/tools/
+# Script to build wheel packages for all projects under packages/, packages/commercial/, and packages/sage-tools/
 
 set -euo pipefail
 
@@ -64,14 +64,14 @@ fi
 
 
 # Directories to scan
-ROOTS=("packages" "packages/commercial" "packages/tools")
+ROOTS=("packages" "packages/commercial" "packages/sage-tools")
 
 
 echo "Pre-installing common dependencies..."
 pip install --upgrade httpx[socks] socksio
 
 # Directories to scan
-ROOTS=("packages" "packages/commercial" "packages/tools")
+ROOTS=("packages" "packages/commercial" "packages/sage-tools")
 
 echo "Collecting all project dependencies for download..."
 # gather main dependencies from pyproject.toml of each package
