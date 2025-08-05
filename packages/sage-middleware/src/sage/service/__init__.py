@@ -10,13 +10,13 @@ __description__ = "SAGE Microservices as Service Tasks"
 # 微服务组件 - 基于BaseServiceTask的服务任务
 try:
     # KV服务
-    from .kv.kv_service import KVService, create_kv_service_factory
+    from .services.kv.kv_service import KVService, create_kv_service_factory
     
     # VDB服务
-    from .vdb.vdb_service import VDBService, create_vdb_service_factory
+    from .services.vdb.vdb_service import VDBService, create_vdb_service_factory
     
     # Memory编排服务
-    from .memory_orchestrator.memory_service import MemoryOrchestratorService, create_memory_service_factory
+    from .services.memory.memory_orchestrator_service import MemoryOrchestratorService, create_memory_service_factory
 
     __all__ = [
         # 服务任务类
@@ -37,8 +37,8 @@ except ImportError as e:
 
 # 兼容性：保留原有的memory service导入
 try:
-    from .memory.memory_service import MemoryService as LegacyMemoryService
-    from .memory.memory_manager import MemoryManager
+    from .services.memory.memory_service import MemoryService as LegacyMemoryService
+    from .services.memory.memory_manager import MemoryManager
     
     # 添加到导出列表
     if 'LegacyMemoryService' not in locals().get('__all__', []):
