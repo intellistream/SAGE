@@ -4,7 +4,13 @@
 
 set -euo pipefail
 
+
+OUTPUT_DIR="wheelhouse"
+
 OUTPUT_DIR="build/wheels"
+
+OUTPUT_DIR="build/wheels"
+
 mkdir -p "$OUTPUT_DIR"
 
 # Install GNU parallel if not available (for faster builds)
@@ -36,6 +42,7 @@ if ! python3 -c "from build import ProjectBuilder; print('build module working')
   pip install --upgrade build[virtualenv]
 fi
 
+
 # Ensure setuptools-scm is available if needed for build-system.requires
 if ! python3 -c "import setuptools_scm" &>/dev/null; then
   echo "Installing setuptools-scm..."
@@ -54,6 +61,12 @@ else
 fi
 
 # Pre-install dependencies to avoid compilation issues during wheel building
+
+
+# Directories to scan
+ROOTS=("packages" "packages/commercial" "packages/tools")
+
+
 echo "Pre-installing common dependencies..."
 pip install --upgrade httpx[socks] socksio
 

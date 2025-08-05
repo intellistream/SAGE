@@ -8,7 +8,9 @@ version = "1.0.0"
 description = "SAGE Framework Development Toolkit - Unified development tools for SAGE project"
 readme = "README.md"
 requires-python = ">=3.10"
+
 license = "MIT"
+
 authors = [
     {name = "IntelliStream Team", email = "sage@intellistream.cc"},
 ]
@@ -16,6 +18,8 @@ keywords = ["development", "testing", "analysis", "automation", "sage", "toolkit
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+
+
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -45,10 +49,12 @@ dependencies = [
     # Security analysis (pinned versions)
     "safety==3.6.0",
     
-    # Packaging (pinned versions)
-    "packaging==25.0",
-    "tomli==2.2.1",
-    "tomli-w==1.2.0",
+    # Packaging
+    "packaging>=21.0",
+
+    "tomli>=2.0.0",
+
+    "tomli-w>=1.0.0",
     
     # System utilities (pinned versions)
     "psutil==7.0.0",

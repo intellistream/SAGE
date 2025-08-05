@@ -93,6 +93,8 @@ dev = [
 
 web = [
     "fastapi>=0.100.0", # 这个是frontend使用的
+
+    "uvicorn>=0.23.0",  # 这个也是frontend使用的
     "websockets>=11.0", # 这个也是frontend使用的
 ]
 

@@ -49,15 +49,15 @@ dependencies = [
     "rank-bm25==0.2.2",                      # BM25 ranking algorithm (fixed name)
     "PyStemmer==3.0.0",               # Text stemming for search
     
-    # aiohttp (pinned versions)
-    "aiohttp==3.12.15",
-    "frozenlist==1.7.0",
+
+    # aiohttp
+    "aiohttp>=3.12.15",
+    "frozenlist>=1.6.2",
 
     # httpx (pinned versions)
     "httpx==0.28.1",
-    "certifi==2025.8.3",
-
-    # Text processing dependencies (pinned versions)
+    "certifi>=2025.7.14",
+    # Text processing dependencies
     "feedparser==6.0.11",             # RSS/Atom feed parsing
     
     # ML/AI dependencies used in middleware (pinned versions)

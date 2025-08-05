@@ -1,20 +1,49 @@
 """
-SAGE - Stream Analysis and Graph Engine
-智能流分析和图计算引擎
+SAGE 微服务架构
+提供解耦的KV、VDB和Memory编排服务，集成到SAGE DAG中
 """
 
-__version__ = "0.1.1"
-__author__ = "IntelliStream"
-__email__ = "intellistream@outlook.com"
+__version__ = "2.0.0"
+__author__ = "SAGE Team"
+__description__ = "SAGE Microservices as Service Tasks"
 
-# 核心模块导入
+# 微服务组件 - 基于BaseServiceTask的服务任务
 try:
-    from sage.core import *
-except ImportError:
-    pass
+    # KV服务
+    from .kv.kv_service import KVService, create_kv_service_factory
+    
+    # VDB服务
+    from .vdb.vdb_service import VDBService, create_vdb_service_factory
+    
+    # Memory编排服务
+    from .memory_orchestrator.memory_service import MemoryOrchestratorService, create_memory_service_factory
 
+    __all__ = [
+        # 服务任务类
+        "KVService",
+        "VDBService", 
+        "MemoryOrchestratorService",
+        
+        # 工厂函数
+        "create_kv_service_factory",
+        "create_vdb_service_factory",
+        "create_memory_service_factory"
+    ]
+    
+except ImportError as e:
+    print(f"⚠️ Microservices components not available: {e}")
+    print("Some dependencies may be missing for the new microservices architecture")
+    __all__ = []
+
+# 兼容性：保留原有的memory service导入
 try:
-    from sage.jobmanager import *
+    from .memory.memory_service import MemoryService as LegacyMemoryService
+    from .memory.memory_manager import MemoryManager
+    
+    # 添加到导出列表
+    if 'LegacyMemoryService' not in locals().get('__all__', []):
+        __all__.extend(['LegacyMemoryService', 'MemoryManager'])
+        
 except ImportError:
     pass
 

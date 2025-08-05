@@ -8,7 +8,9 @@ version = "1.0.0"
 description = "SAGE Framework Meta Package"
 readme = "README.md"
 requires-python = ">=3.10"
+
 license = "MIT"
+
 authors = [
     {name = "IntelliStream Team", email = "sage@intellistream.cc"},
 ]
@@ -16,6 +18,7 @@ keywords = ["sage", "framework", "meta package"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
 ]
