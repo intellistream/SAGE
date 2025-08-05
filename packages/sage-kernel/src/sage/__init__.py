@@ -16,9 +16,9 @@ __version__ = "1.0.0"
 __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
 # 导出核心组件
-from sage.core import *
-from sage.jobmanager import *
-from sage.runtime import *
+from sage.kernels.core import *
+from sage.kernels.jobmanager import *
+from sage.kernels.runtime import *
 
 # CLI 工具通过 sage.cli.main:app 入口点使用
 # 不在这里直接导入以避免命令行依赖污染
