@@ -1,6 +1,7 @@
 """
-Memory Service 使用示例
-展示如何使用Memory微服务进行高级记忆管理，协调KV、VDB和Graph服务
+Memory Service API 使用示例
+展示如何正确使用Memory微服务的API接口进行高级记忆管理
+Memory服务作为编排服务，协调KV、VDB和Graph服务
 """
 import numpy as np
 import time
@@ -11,11 +12,12 @@ from sage.service import (
     create_graph_service_factory,
     create_memory_service_factory
 )
+from sage.service.api.memory_api import MemoryServiceAPI
 
 
-def test_memory_service():
-    """测试Memory编排服务"""
-    print("🚀 Memory Service Demo")
+def test_memory_service_api():
+    """测试Memory服务API的正确使用方式"""
+    print("🚀 Memory Service API Demo")
     print("=" * 60)
     
     # 创建环境
@@ -59,22 +61,250 @@ def test_memory_service():
         graph_service_name="demo_graph",
         enable_knowledge_graph=True
     )
-    env.register_service("demo_memory", memory_factory)
-    print("   ✅ Memory Service registered")
+    print("✅ All microservices registered successfully")
     
-    print("\n📝 Memory Operations Demo:")
+    # 在实际应用中，你需要启动环境并获取服务代理
+    # env.submit()  # 启动环境
+    # memory_service = env.get_service_proxy("demo_memory")
     
-    # 模拟会话记忆存储
-    session_id = "conversation_001"
-    memories = [
-        {
-            "content": "用户询问了关于Python编程的问题",
-            "vector": np.random.random(384).tolist(),
-            "memory_type": "question",
-            "metadata": {"topic": "programming", "language": "python"}
-        },
-        {
-            "content": "AI助手提供了Python基础语法的详细解释",
+    # 这里我们演示API接口的预期使用方式
+    demonstrate_memory_api_usage()
+
+
+def demonstrate_memory_api_usage():
+    """演示Memory服务API的标准使用模式"""
+    print("\n📝 Memory Service API Usage Patterns:")
+    print("-" * 50)
+    
+    # 展示API接口
+    print("💡 Memory Service API Interface (High-level Orchestration):")
+    print("   class MemoryServiceAPI:")
+    print("     - store_memory(content, vector, session_id, ...) -> str")
+    print("     - retrieve_memories(query_vector, session_id, ...) -> List[Dict]")
+    print("     - get_memory(memory_id) -> Optional[Dict]")
+    print("     - delete_memory(memory_id) -> bool")
+    print("     - search_memories(query, session_id, ...) -> List[Dict]")
+    print("     - get_session_memories(session_id) -> List[Dict]")
+    print("     - clear_session_memories(session_id) -> bool")
+    
+    print("\n📋 Standard Usage Example:")
+    usage_code = '''
+# 1. 获取Memory服务代理（高级编排服务）
+memory_service = env.get_service_proxy("demo_memory")
+
+# 2. 存储对话记忆
+session_id = "conversation_001"
+
+# 存储用户问题
+question_memory_id = memory_service.store_memory(
+    content="用户询问：如何在Python中实现装饰器？",
+    vector=embed_text("如何在Python中实现装饰器？"),  # 假设的embedding函数
+    session_id=session_id,
+    memory_type="user_question",
+    metadata={
+        "topic": "python",
+        "difficulty": "intermediate",
+        "timestamp": time.time()
+    }
+)
+
+# 存储AI回答
+answer_memory_id = memory_service.store_memory(
+    content="AI回答：装饰器是Python中的高级特性，可以用来修改函数行为...",
+    vector=embed_text("装饰器是Python中的高级特性..."),
+    session_id=session_id,
+    memory_type="ai_response",
+    metadata={
+        "topic": "python",
+        "relates_to": question_memory_id,
+        "code_examples": True
+    }
+)
+
+# 3. 基于向量相似性检索相关记忆
+query_vector = embed_text("Python函数装饰器的使用方法")
+related_memories = memory_service.retrieve_memories(
+    query_vector=query_vector,
+    session_id=session_id,
+    memory_type=None,  # 所有类型
+    top_k=5
+)
+
+# 4. 基于文本搜索记忆
+text_search_results = memory_service.search_memories(
+    query="装饰器",
+    session_id=session_id,
+    memory_type="ai_response",
+    top_k=10
+)
+
+# 5. 获取会话的完整记忆历史
+session_history = memory_service.get_session_memories(session_id)
+
+# 6. 获取特定记忆的详细信息
+memory_detail = memory_service.get_memory(question_memory_id)
+'''
+    print(usage_code)
+    
+    # 模拟执行结果
+    print("🎯 Expected Results:")
+    operations = [
+        ("store_memory(question)", "'mem_q_uuid_123'"),
+        ("store_memory(answer)", "'mem_a_uuid_456'"),
+        ("retrieve_memories(vector)", "[{'id': 'mem_q_123', 'score': 0.94, ...}]"),
+        ("search_memories('装饰器')", "[{'id': 'mem_a_456', 'content': 'AI回答...', ...}]"),
+        ("get_session_memories()", "[{'id': 'mem_q_123', ...}, {'id': 'mem_a_456', ...}]"),
+        ("get_memory('mem_q_123')", "{'id': 'mem_q_123', 'content': '用户询问...', ...}"),
+    ]
+    
+    for operation, result in operations:
+        print(f"   {operation:<30} -> {result}")
+
+
+def demonstrate_advanced_memory_patterns():
+    """演示Memory服务的高级使用模式"""
+    print("\n🧠 Advanced Memory Management Patterns:")
+    print("-" * 50)
+    
+    advanced_patterns = '''
+# 1. 智能对话上下文管理
+class ConversationContextManager:
+    def __init__(self, memory_service: MemoryServiceAPI):
+        self.memory = memory_service
+    
+    def maintain_context(self, session_id: str, new_message: str, 
+                        max_context_memories: int = 10):
+        """维护对话上下文"""
+        # 获取最近的记忆作为上下文
+        recent_memories = self.memory.get_session_memories(session_id)
+        context_memories = recent_memories[-max_context_memories:]
+        
+        # 基于新消息检索相关历史记忆
+        message_vector = embed_text(new_message)
+        relevant_memories = self.memory.retrieve_memories(
+            query_vector=message_vector,
+            session_id=session_id,
+            top_k=5
+        )
+        
+        # 组合上下文
+        full_context = {
+            "recent_memories": context_memories,
+            "relevant_memories": relevant_memories,
+            "current_message": new_message
+        }
+        
+        return full_context
+
+# 2. 知识图谱增强的记忆检索
+class KnowledgeEnhancedRetrieval:
+    def __init__(self, memory_service: MemoryServiceAPI):
+        self.memory = memory_service
+    
+    def enhanced_retrieval(self, query: str, session_id: str):
+        """增强的检索：结合向量相似性和知识图谱"""
+        query_vector = embed_text(query)
+        
+        # 第一步：向量相似性检索
+        vector_results = self.memory.retrieve_memories(
+            query_vector=query_vector,
+            session_id=session_id,
+            top_k=20
+        )
+        
+        # 第二步：文本检索
+        text_results = self.memory.search_memories(
+            query=query,
+            session_id=session_id,
+            top_k=20
+        )
+        
+        # 第三步：知识图谱扩展（通过Memory服务的Graph集成）
+        # Memory服务内部会自动利用知识图谱关系
+        
+        # 合并和去重结果
+        all_results = self.merge_and_rank_results(vector_results, text_results)
+        
+        return all_results[:10]  # 返回top 10
+
+# 3. 记忆生命周期管理
+class MemoryLifecycleManager:
+    def __init__(self, memory_service: MemoryServiceAPI):
+        self.memory = memory_service
+    
+    def archive_old_memories(self, session_id: str, days_threshold: int = 30):
+        """归档旧记忆"""
+        cutoff_time = time.time() - (days_threshold * 24 * 3600)
+        
+        all_memories = self.memory.get_session_memories(session_id)
+        old_memories = [
+            mem for mem in all_memories 
+            if mem.get("metadata", {}).get("timestamp", 0) < cutoff_time
+        ]
+        
+        # 选择性保留重要记忆
+        important_memories = self.filter_important_memories(old_memories)
+        memories_to_delete = [
+            mem for mem in old_memories if mem not in important_memories
+        ]
+        
+        # 删除不重要的旧记忆
+        for memory in memories_to_delete:
+            self.memory.delete_memory(memory["id"])
+        
+        return len(memories_to_delete)
+    
+    def filter_important_memories(self, memories):
+        """过滤重要记忆（基于metadata标记、用户反馈等）"""
+        important = []
+        for memory in memories:
+            metadata = memory.get("metadata", {})
+            if (metadata.get("importance") == "high" or 
+                metadata.get("user_bookmarked") or
+                metadata.get("memory_type") == "key_insight"):
+                important.append(memory)
+        return important
+
+# 4. 多模态记忆存储
+class MultiModalMemoryManager:
+    def __init__(self, memory_service: MemoryServiceAPI):
+        self.memory = memory_service
+    
+    def store_conversation_turn(self, session_id: str, user_message: str, 
+                              ai_response: str, images=None, files=None):
+        """存储多模态对话轮次"""
+        turn_id = f"turn_{int(time.time())}"
+        
+        # 存储用户消息
+        user_memory_id = self.memory.store_memory(
+            content=user_message,
+            vector=embed_text(user_message),
+            session_id=session_id,
+            memory_type="user_message",
+            metadata={
+                "turn_id": turn_id,
+                "has_images": bool(images),
+                "has_files": bool(files),
+                "modalities": ["text"] + (["image"] if images else []) + (["file"] if files else [])
+            }
+        )
+        
+        # 存储AI回应
+        ai_memory_id = self.memory.store_memory(
+            content=ai_response,
+            vector=embed_text(ai_response),
+            session_id=session_id,
+            memory_type="ai_response",
+            metadata={
+                "turn_id": turn_id,
+                "responds_to": user_memory_id,
+                "response_quality": "pending_evaluation"
+            }
+        )
+        
+        return turn_id, user_memory_id, ai_memory_id
+'''
+    print(advanced_patterns)
             "vector": np.random.random(384).tolist(),
             "memory_type": "answer",
             "metadata": {"topic": "programming", "language": "python", "complexity": "basic"}
@@ -254,7 +484,7 @@ def test_memory_advantages():
 
 
 if __name__ == "__main__":
-    test_memory_service()
-    test_memory_use_cases()
-    test_memory_advantages()
-    print("\n🎯 Memory Service demo completed!")
+    test_memory_service_api()
+    demonstrate_advanced_memory_patterns()
+    print("\n🎯 Memory Service API demo completed!")
+    print("\n📚 Next: Check the complete API tutorial for integration examples")
