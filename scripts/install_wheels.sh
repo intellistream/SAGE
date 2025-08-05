@@ -93,19 +93,74 @@ if [ -f "requirements-lock.txt" ]; then
         --cache-dir=/tmp/pip-cache \
         2>&1 | tee ~/.sage/makefile_logs/install.log
 else
-    echo "📋 直接从wheels安装 SAGE..."
-    # 直接安装所有SAGE相关的wheels
+    echo "📋 混合安装策略：预处理依赖 + wheels安装..."
+    
+    # 策略1: 先安装基础依赖和可能有冲突的包
+    echo "🔧 步骤1: 预安装核心依赖，避免解析冲突..."
+    pip install \
+        $constraint_args \
+        --prefer-binary \
+        --only-binary=:all: \
+        --no-warn-conflicts \
+        --timeout=300 \
+        --retries=3 \
+        --cache-dir=/tmp/pip-cache \
+        torch==2.7.1 \
+        torchvision==0.22.1 \
+        transformers \
+        fastapi \
+        uvicorn \
+        pydantic \
+        numpy \
+        2>&1 | tee ~/.sage/makefile_logs/install.log
+    
+    # 策略2: 使用我们的wheels安装SAGE包（非editable模式）
+    echo "🔧 步骤2: 从wheels安装SAGE组件到site-packages..."
     if [ -d "./build/wheels" ] && [ "$(ls -A ./build/wheels/*.whl 2>/dev/null)" ]; then
-        echo "📦 安装所有组件..."
-        pip install ./build/wheels/sage*.whl \
+        # 按依赖顺序安装wheels
+        echo "📦 安装 sage-kernel..."
+        pip install ./build/wheels/sage_kernel-*.whl \
             --force-reinstall \
+            --no-deps \
             $constraint_args \
             --prefer-binary \
-            --no-warn-conflicts \
-            --timeout=300 \
-            --retries=3 \
-            --cache-dir=/tmp/pip-cache \
-            2>&1 | tee ~/.sage/makefile_logs/install.log
+            2>&1 | tee -a ~/.sage/makefile_logs/install.log
+            
+        echo "📦 安装 sage-middleware..."
+        pip install ./build/wheels/sage_middleware-*.whl \
+            --force-reinstall \
+            --no-deps \
+            $constraint_args \
+            --prefer-binary \
+            2>&1 | tee -a ~/.sage/makefile_logs/install.log
+            
+        echo "📦 安装 sage-userspace..."
+        pip install ./build/wheels/sage_userspace-*.whl \
+            --force-reinstall \
+            --no-deps \
+            $constraint_args \
+            --prefer-binary \
+            2>&1 | tee -a ~/.sage/makefile_logs/install.log
+            
+        echo "📦 安装 sage (主包)..."
+        pip install ./build/wheels/sage-1.*.whl \
+            --force-reinstall \
+            --no-deps \
+            $constraint_args \
+            --prefer-binary \
+            2>&1 | tee -a ~/.sage/makefile_logs/install.log
+    
+    # 策略3: 最后解析任何缺失的依赖
+    echo "🔧 步骤3: 解析剩余依赖..."
+    pip install sage \
+        $constraint_args \
+        --prefer-binary \
+        --no-warn-conflicts \
+        --timeout=300 \
+        --retries=3 \
+        --cache-dir=/tmp/pip-cache \
+        2>&1 | tee -a ~/.sage/makefile_logs/install.log
+        
     else
         echo "❌ 没有找到wheels文件，请先运行 make build"
         exit 1

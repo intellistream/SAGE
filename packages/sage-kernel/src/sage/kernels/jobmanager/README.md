@@ -120,7 +120,7 @@ SUBMITTED → PENDING → RUNNING → COMPLETED
 
 ### 启动JobManager服务
 ```python
-from sage.jobmanager import JobManagerServer
+from sage.kernels.jobmanager import JobManagerServer
 
 # 创建并启动JobManager服务
 server = JobManagerServer(
@@ -134,7 +134,7 @@ server.start()
 
 ### 提交作业
 ```python
-from sage.jobmanager import JobManagerClient
+from sage.kernels.jobmanager import JobManagerClient
 
 # 连接到JobManager
 client = JobManagerClient("localhost:19001")

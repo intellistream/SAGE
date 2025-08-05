@@ -10,7 +10,7 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 
 from sage.api.remote_environment import RemoteEnvironment
-from sage.jobmanager.jobmanager_client import JobManagerClient
+from sage.kernels.jobmanager.jobmanager_client import JobManagerClient
 
 
 @pytest.fixture

@@ -26,7 +26,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "sage-kernel>=1.0.0",  
+    "sage-kernel==1.0.0",  
     
     # 服务层专用依赖 (pinned versions)
     "python-jose==3.5.0", # JWT 处理 (removed [cryptography] extra)
@@ -34,14 +34,14 @@ dependencies = [
     "celery==5.5.3",                   # 任务队列
     "flower==2.0.1",                   # Celery 监控界面
     
-    # LLM 中间件专用依赖 (flexible versions)
-    "openai>=1.87.0,<=1.98.0",                # OpenAI API 客户端 (flexible for compatibility)
+    # LLM 中间件专用依赖 (fixed versions)
+    "openai==1.98.0",                # OpenAI API 客户端 (fixed version)
     "ollama==0.5.1",                          # Ollama API 客户端
     "zhipuai==2.1.5.20250801",                  # 智谱AI API 客户端
-    "cohere==5.16.2",                  # Cohere API 客户端
+    "cohere==5.16.1",                  # Cohere API 客户端
     "transformers==4.54.1",            # HuggingFace 模型
     "tokenizers==0.21.4",              # Tokenizers for transformers
-    "vllm>=0.8.0,<1.0.0",                     # vLLM dev version for PyTorch 2.7+ support
+    "vllm==0.1.2",                     # vLLM fixed version for PyTorch 2.7+ support
     
     # Search and retrieval dependencies (pinned versions)
     "faiss-cpu==1.9.0",               # FAISS for vector similarity search
@@ -50,55 +50,63 @@ dependencies = [
     "PyStemmer==3.0.0",               # Text stemming for search
     
 
-    # aiohttp
-    "aiohttp>=3.12.15",
-    "frozenlist>=1.6.2",
+    # aiohttp (fixed versions)
+    "aiohttp==3.12.15",
+    "frozenlist==1.7.0",
 
     # httpx (pinned versions)
     "httpx==0.28.1",
-    "certifi>=2025.7.14",
+    "certifi==2025.8.3",
     # Text processing dependencies
     "feedparser==6.0.11",             # RSS/Atom feed parsing
     
     # ML/AI dependencies used in middleware (pinned versions)
     "accelerate==1.9.0",              # For model acceleration
-    "sentence-transformers==5.0.0",    # For embeddings
+    "sentence-transformers==3.1.1",    # For embeddings
     "InstructorEmbedding==1.0.1",      # For instructor embeddings
     "huggingface-hub==0.34.3",         # HuggingFace Hub client
     "peft==0.17.0",                            # Parameter-efficient fine-tuning
+    
+    # Core dependencies (fixed versions)
+    "numpy==2.2.6",                   # NumPy
+    "scipy==1.15.3",                  # SciPy
+    "fastapi==0.115.12",               # FastAPI
+    "uvicorn==0.34.3",                # ASGI server
+    "pydantic",               # Data validation
+    "pyyaml==6.0.2",                  # YAML parser
 ]
 
 [project.optional-dependencies]
 # 数据库支持
 database = [
-    "sqlalchemy>=2.0.0",
-    "alembic>=1.11.0",
-    "asyncpg>=0.28.0",
-    "pymongo[srv]>=4.0.0",
+    "sqlalchemy==2.0.32",
+    "alembic==1.13.2",
+    "asyncpg==0.30.0",
+    "pymongo[srv]==4.8.0",
 ]
 
 # 消息队列支持
 messagequeue = [
-    "celery>=5.3.0",
-    "redis>=4.5.0",
-    "kafka-python>=2.0.0",
-    "pika>=1.3.0",
+    "celery==5.5.3",
+    "redis==5.2.1",
+    "kafka-python==2.0.3",
+    "pika==1.3.2",
 ]
 
 # 监控和日志
 monitoring = [
-    "prometheus-client>=0.17.0",
-    "structlog>=23.0.0",
-    "sentry-sdk[fastapi]>=1.32.0",
+    "prometheus-client==0.21.1",
+    "structlog==24.4.0",
+    "sentry-sdk[fastapi]==2.18.0",
 ]
 
 # LLM 中间件扩展（从 sage-middleware-utils 合并）
 llm = [
-    "anthropic>=0.3.0",               # Anthropic Claude API
-    "google-generativeai>=0.3.0",     # Google Gemini API
-    "cohere>=4.0.0",                  # Cohere API
-    "langchain>=0.1.0",               # LangChain 框架
-    "llama-index>=0.9.0",             # LlamaIndex 框架
+    "anthropic==0.34.2",               # Anthropic Claude API
+    "google-generativeai==0.8.3",     # Google Gemini API
+    "cohere==5.16.2",                  # Cohere API
+    "langchain==0.3.18",               # LangChain 框架
+    "llama-index==0.11.33",             # LlamaIndex 框架
 ]
 
 # 完整中间件功能
@@ -106,12 +114,12 @@ full = ["sage-middleware[database,messagequeue,monitoring,websocket,llm]"]
 
 # 测试专用依赖（非开发工具）
 testing = [
-    "pytest>=7.0.0",               # 测试框架
-    "pytest-asyncio>=0.21.0",      # 异步测试
-    "pytest-cov>=4.0.0",           # 覆盖率测试
-    "pytest-benchmark>=4.0.0",     # 性能基准测试
-    "testcontainers>=3.7.0",       # 容器化测试
-    "pytest-mock>=3.10.0",         # 模拟工具
+    "pytest==8.3.4",               # 测试框架
+    "pytest-asyncio==0.25.0",      # 异步测试
+    "pytest-cov==6.0.0",           # 覆盖率测试
+    "pytest-benchmark==4.0.0",     # 性能基准测试
+    "testcontainers==4.8.2",       # 容器化测试
+    "pytest-mock==3.14.0",         # 模拟工具
 ]
 
 [project.urls]

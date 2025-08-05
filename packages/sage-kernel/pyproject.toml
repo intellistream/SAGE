@@ -62,7 +62,7 @@ dependencies = [
     "aiosignal==1.4.0",
     
     # Configuration and data (pinned versions)
-    "pydantic==2.9.2",
+    "pydantic",
     "PyYAML==6.0.2",
     "python-dotenv==1.1.1",
     "Jinja2==3.1.6",

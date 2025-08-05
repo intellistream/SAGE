@@ -11,7 +11,7 @@
 - **函数管理**: Function registry 和 operator 管理
 - **配置系统**: 统一的配置管理和验证
 
-### ⚙️ 任务管理 (sage.jobmanager)  
+### ⚙️ 任务管理 (sage.kernels.jobmanager)  
 - **任务调度**: 分布式任务执行和调度
 - **执行图**: DAG 执行图构建和优化
 - **客户端接口**: JobManager 客户端和服务端
@@ -43,7 +43,7 @@ pip install sage-kernel
 
 ```python
 from sage.core import Function, Config
-from sage.jobmanager import JobManager
+from sage.kernels.jobmanager import JobManager
 from sage.runtime import ServiceTaskFactory
 
 # 创建并使用函数

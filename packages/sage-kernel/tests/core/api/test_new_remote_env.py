@@ -62,7 +62,7 @@ def test_client():
     print("\n=== 测试 JobManagerClient ===")
     
     try:
-        from sage.jobmanager.jobmanager_client import JobManagerClient
+        from sage.kernels.jobmanager.jobmanager_client import JobManagerClient
         
         client = JobManagerClient("127.0.0.1", 19001)
         print(f"Created client: {client.host}:{client.port}")

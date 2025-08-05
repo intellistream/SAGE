@@ -29,7 +29,7 @@ PyStemmer==3.0.0
 # 其他核心工具（无冲突）
 feedparser==6.0.11
 accelerate==1.9.0
-sentence-transformers==5.0.0
+sentence-transformers==3.1.1
 InstructorEmbedding==1.0.1
 huggingface-hub==0.34.3
 peft==0.17.0

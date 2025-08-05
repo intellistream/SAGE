@@ -212,7 +212,7 @@ pytest tests/jobmanager/ -m "unit" -v
 pytest tests/jobmanager/ -m "integration" -v
 
 # 运行覆盖率测试
-pytest tests/jobmanager/ --cov=sage.jobmanager --cov-report=html
+pytest tests/jobmanager/ --cov=sage.kernels.jobmanager --cov-report=html
 ```
 
 ## 测试覆盖范围

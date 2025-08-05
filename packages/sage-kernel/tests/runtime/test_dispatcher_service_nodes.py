@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__)))
 
 from sage.api.local_environment import LocalEnvironment
 from sage.api.function.base_function import BaseFunction
-from sage.jobmanager.execution_graph import ExecutionGraph
+from sage.kernels.jobmanager.execution_graph import ExecutionGraph
 from sage.runtime.dispatcher import Dispatcher
 
 

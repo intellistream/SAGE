@@ -28,7 +28,6 @@ dependencies = [
     # 依赖SAGE核心包
     "sage-kernel>=1.0.0",
     "sage-middleware>=1.0.0", 
-    "sage-userspace>=1.0.0",
     
     # CLI专用依赖
     "typer>=0.15.0",

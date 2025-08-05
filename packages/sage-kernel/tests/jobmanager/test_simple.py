@@ -3,7 +3,7 @@
 """
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from sage.jobmanager.job_manager import JobManager
+from sage.kernels.jobmanager.job_manager import JobManager
 
 
 def test_jobmanager_can_be_imported():

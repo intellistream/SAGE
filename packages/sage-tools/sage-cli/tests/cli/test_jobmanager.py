@@ -15,7 +15,7 @@ def test_jobmanager_controller_init():
     assert controller.port == 19001
     assert "job_manager.py" in controller.process_names
     assert "jobmanager_daemon.py" in controller.process_names
-    assert "sage.jobmanager.job_manager" in controller.process_names
+    assert "sage.kernels.jobmanager.job_manager" in controller.process_names
 
 def test_jobmanager_controller_init_custom():
     """Test JobManagerController initialization with custom parameters."""

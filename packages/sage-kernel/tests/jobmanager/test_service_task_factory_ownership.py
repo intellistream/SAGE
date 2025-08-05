@@ -8,7 +8,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 
 from sage.api.local_environment import LocalEnvironment
-from sage.jobmanager.execution_graph import ExecutionGraph
+from sage.kernels.jobmanager.execution_graph import ExecutionGraph
 
 
 # 测试服务类

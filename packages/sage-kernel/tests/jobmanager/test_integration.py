@@ -8,11 +8,11 @@ import threading
 import concurrent.futures
 from unittest.mock import Mock, patch, MagicMock
 
-from sage.jobmanager.job_manager import JobManager
-from sage.jobmanager.jobmanager_client import JobManagerClient
-from sage.jobmanager.job_manager_server import JobManagerServer
-from sage.jobmanager.job_info import JobInfo
-from sage.jobmanager.execution_graph.execution_graph import ExecutionGraph
+from sage.kernels.jobmanager.job_manager import JobManager
+from sage.kernels.jobmanager.jobmanager_client import JobManagerClient
+from sage.kernels.jobmanager.job_manager_server import JobManagerServer
+from sage.kernels.jobmanager.job_info import JobInfo
+from sage.kernels.jobmanager.execution_graph.execution_graph import ExecutionGraph
 
 
 @pytest.mark.integration
@@ -40,7 +40,7 @@ class TestJobManagerFullIntegration:
 
     def test_complete_job_submission_workflow(self, reset_jobmanager_singleton, mock_environment):
         """测试完整的作业提交工作流程"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'), \
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'), \
              patch('sage.runtime.serialization.dill.deserialize_object'), \
              patch('sage.runtime.dispatcher.Dispatcher'):
             
@@ -94,7 +94,7 @@ class TestJobManagerFullIntegration:
 
     def test_client_server_communication(self, reset_jobmanager_singleton):
         """测试客户端-服务器通信"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             job_manager = JobManager(enable_daemon=False)
             
             # 模拟客户端请求
@@ -116,7 +116,7 @@ class TestJobManagerFullIntegration:
 
     def test_multiple_jobs_concurrent_management(self, reset_jobmanager_singleton, mock_environment):
         """测试多作业并发管理"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             job_manager = JobManager(enable_daemon=False)
             
             # 创建多个环境
@@ -154,7 +154,7 @@ class TestJobManagerFullIntegration:
 
     def test_job_lifecycle_state_transitions(self, reset_jobmanager_singleton, mock_environment):
         """测试作业生命周期状态转换"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             job_manager = JobManager(enable_daemon=False)
             
             with patch.object(job_manager, '_generate_job_uuid') as mock_uuid, \
@@ -199,7 +199,7 @@ class TestJobManagerFullIntegration:
 
     def test_error_handling_and_recovery(self, reset_jobmanager_singleton, mock_environment):
         """测试错误处理和恢复"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             job_manager = JobManager(enable_daemon=False)
             
             # 测试提交失败的恢复
@@ -226,7 +226,7 @@ class TestJobManagerFullIntegration:
 
     def test_resource_cleanup_on_shutdown(self, reset_jobmanager_singleton):
         """测试关闭时的资源清理"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer') as mock_server_class:
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer') as mock_server_class:
             mock_server = Mock()
             mock_server_class.return_value = mock_server
             
@@ -363,7 +363,7 @@ class TestJobManagerExecutionGraphIntegration:
 
     def test_job_submission_with_execution_graph(self, mock_environment_with_pipeline):
         """测试带有执行图的作业提交"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'), \
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'), \
              patch.object(ExecutionGraph, '__init__', return_value=None), \
              patch('sage.runtime.dispatcher.Dispatcher'):
             
@@ -428,7 +428,7 @@ class TestJobManagerExecutionGraphIntegration:
             mock_transform = Mock()
             mock_transform.name = "test_transform"
             
-            from sage.jobmanager.execution_graph.graph_node import GraphNode
+            from sage.kernels.jobmanager.execution_graph.graph_node import GraphNode
             node = GraphNode(
                 transformation=mock_transform,
                 name="test_node",
@@ -438,7 +438,7 @@ class TestJobManagerExecutionGraphIntegration:
             graph.nodes["test_node"] = node
             
             # 添加服务节点
-            from sage.jobmanager.execution_graph.service_node import ServiceNode
+            from sage.kernels.jobmanager.execution_graph.service_node import ServiceNode
             service_node = ServiceNode(
                 service_name="test_service",
                 service_type="ML_SERVICE"
@@ -485,7 +485,7 @@ class TestJobManagerRealWorldScenarios:
             "model_deployment"
         ]
         
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             JobManager.instance = None
             job_manager = JobManager(enable_daemon=False)
             
@@ -531,7 +531,7 @@ class TestJobManagerRealWorldScenarios:
         batch_env.name = "daily_data_processing"
         batch_env.env_uuid = None
         
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             JobManager.instance = None
             job_manager = JobManager(enable_daemon=False)
             
@@ -577,7 +577,7 @@ class TestJobManagerRealWorldScenarios:
         distributed_env.name = "distributed_computation"
         distributed_env.env_uuid = None
         
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             JobManager.instance = None
             job_manager = JobManager(enable_daemon=False)
             
@@ -629,7 +629,7 @@ class TestJobManagerRealWorldScenarios:
         service_env.name = "long_running_service"
         service_env.env_uuid = None
         
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             JobManager.instance = None
             job_manager = JobManager(enable_daemon=False)
             
@@ -682,7 +682,7 @@ class TestJobManagerPerformanceIntegration:
 
     def test_high_throughput_job_submission(self):
         """测试高吞吐量作业提交"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             JobManager.instance = None
             job_manager = JobManager(enable_daemon=False)
             
@@ -717,7 +717,7 @@ class TestJobManagerPerformanceIntegration:
 
     def test_concurrent_operations_stress(self):
         """测试并发操作压力"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             JobManager.instance = None
             job_manager = JobManager(enable_daemon=False)
             

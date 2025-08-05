@@ -433,7 +433,7 @@ class JobManager: #Job Manager
     def handle(self) -> 'JobManager':
         return self
 
-# python -m sage.jobmanager.job_manager --host 127.0.0.1 --port 19001
+# python -m sage.kernels.jobmanager.job_manager --host 127.0.0.1 --port 19001
 # ==================== 命令行工具 ====================
 
 def main():

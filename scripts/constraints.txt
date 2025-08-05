@@ -87,7 +87,6 @@ testcontainers>=3.7.0
 # Development tools
 rich>=13.0.0
 typer>=0.9.0
-safety>=2.0.0
 black>=23.0.0
 mypy>=1.0.0
 isort>=5.12.0

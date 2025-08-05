@@ -69,7 +69,7 @@ def test_client_methods():
     """测试JobManagerClient的方法（不实际连接）"""
     print("\n=== 测试 JobManagerClient 方法 ===")
     
-    from sage.jobmanager.jobmanager_client import JobManagerClient
+    from sage.kernels.jobmanager.jobmanager_client import JobManagerClient
     
     client = JobManagerClient("127.0.0.1", 19001)
     print(f"Created client: {client.host}:{client.port}")

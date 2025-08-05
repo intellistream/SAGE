@@ -139,7 +139,7 @@ build_package() {
 }
 
 # Collect all packages first
-ROOTS=("packages" "packages/commercial" "packages/sage-tools")
+ROOTS=("packages" "packages/commercial")
 PACKAGES=()
 for root in "${ROOTS[@]}"; do
   [ -d "$root" ] || continue
@@ -150,6 +150,16 @@ for root in "${ROOTS[@]}"; do
     fi
   done
 done
+
+# Add sage-tools packages (they have a different structure)
+if [ -d "packages/sage-tools" ]; then
+  for pkg in packages/sage-tools/*; do
+    [ -d "$pkg" ] || continue
+    if [ -f "$pkg/pyproject.toml" ] || [ -f "$pkg/setup.py" ]; then
+      PACKAGES+=("$pkg")
+    fi
+  done
+fi
 
 # Build in parallel (limit to 4 concurrent jobs to avoid overwhelming system)
 export -f build_package

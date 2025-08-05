@@ -14,7 +14,7 @@ except ImportError:
     pass
 
 try:
-    from sage.jobmanager import *
+    from sage.kernels.jobmanager import *
 except ImportError:
     pass
 

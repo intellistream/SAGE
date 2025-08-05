@@ -34,7 +34,7 @@ JobManager工具模块提供作业管理器相关的辅助工具和服务。
 ## 快速开始
 
 ```python
-from sage.jobmanager.utils.name_server import NameServer
+from sage.kernels.jobmanager.utils.name_server import NameServer
 
 # 创建名称服务器
 name_server = NameServer(host="localhost", port=8080)

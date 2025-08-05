@@ -510,7 +510,7 @@ class TestBaseEnvironmentLoggingSetup:
     @pytest.mark.unit
     @patch('sage.core.api.base_environment.CustomLogger')
     @patch('sage.core.api.base_environment.Path')
-    @patch('sage.jobmanager.utils.name_server.get_name')
+    @patch('sage.kernels.jobmanager.utils.name_server.get_name')
     def test_setup_logging_system(self, mock_get_name, mock_path_class, mock_logger_class, mock_env):
         """Test logging system setup"""
         mock_get_name.return_value = "unique_test_env"

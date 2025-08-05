@@ -1,12 +1,12 @@
 """
 JobManager工具模块测试
-测试 sage.jobmanager.utils 中的所有工具功能，包括名称服务器等
+测试 sage.kernels.jobmanager.utils 中的所有工具功能，包括名称服务器等
 """
 import pytest
 import socket
 from unittest.mock import Mock, patch
 
-from sage.jobmanager.utils.name_server import get_name
+from sage.kernels.jobmanager.utils.name_server import get_name
 
 
 @pytest.mark.unit
@@ -16,7 +16,7 @@ class TestNameServer:
     def test_get_name_basic(self):
         """测试基本名称获取"""
         with patch('socket.gethostname') as mock_hostname, \
-             patch('sage.jobmanager.utils.name_server.get_available_port') as mock_port:
+             patch('sage.kernels.jobmanager.utils.name_server.get_available_port') as mock_port:
             
             mock_hostname.return_value = "test-host"
             mock_port.return_value = 12345
@@ -30,7 +30,7 @@ class TestNameServer:
     def test_get_name_with_prefix(self):
         """测试带前缀的名称获取"""
         with patch('socket.gethostname') as mock_hostname, \
-             patch('sage.jobmanager.utils.name_server.get_available_port') as mock_port:
+             patch('sage.kernels.jobmanager.utils.name_server.get_available_port') as mock_port:
             
             mock_hostname.return_value = "test-host"
             mock_port.return_value = 8080
@@ -47,7 +47,7 @@ class TestNameServer:
         with patch('socket.gethostname') as mock_hostname:
             mock_hostname.return_value = "test-host"
             
-            with patch('sage.jobmanager.utils.name_server.get_available_port') as mock_port:
+            with patch('sage.kernels.jobmanager.utils.name_server.get_available_port') as mock_port:
                 # 模拟不同的端口返回
                 mock_port.side_effect = [8080, 8081, 8082]
                 
@@ -62,7 +62,7 @@ class TestNameServer:
     def test_get_name_hostname_failure(self):
         """测试主机名获取失败的处理"""
         with patch('socket.gethostname') as mock_hostname, \
-             patch('sage.jobmanager.utils.name_server.get_available_port') as mock_port:
+             patch('sage.kernels.jobmanager.utils.name_server.get_available_port') as mock_port:
             
             # 模拟gethostname失败
             mock_hostname.side_effect = socket.error("Hostname lookup failed")
@@ -78,7 +78,7 @@ class TestNameServer:
 
     def test_get_available_port_basic(self):
         """测试获取可用端口"""
-        from sage.jobmanager.utils.name_server import get_available_port
+        from sage.kernels.jobmanager.utils.name_server import get_available_port
         
         port = get_available_port()
         
@@ -88,7 +88,7 @@ class TestNameServer:
 
     def test_get_available_port_range(self):
         """测试指定范围的端口获取"""
-        from sage.jobmanager.utils.name_server import get_available_port
+        from sage.kernels.jobmanager.utils.name_server import get_available_port
         
         port = get_available_port(start_port=8000, end_port=9000)
         
@@ -96,7 +96,7 @@ class TestNameServer:
 
     def test_get_available_port_host_binding(self):
         """测试指定主机的端口绑定"""
-        from sage.jobmanager.utils.name_server import get_available_port
+        from sage.kernels.jobmanager.utils.name_server import get_available_port
         
         # 测试localhost绑定
         port = get_available_port(host="localhost")
@@ -108,7 +108,7 @@ class TestNameServer:
 
     def test_get_available_port_exhaustion(self):
         """测试端口耗尽情况"""
-        from sage.jobmanager.utils.name_server import get_available_port
+        from sage.kernels.jobmanager.utils.name_server import get_available_port
         
         # 模拟所有端口都被占用的情况
         with patch('socket.socket') as mock_socket:
@@ -124,7 +124,7 @@ class TestNameServer:
 
     def test_get_available_port_concurrent_access(self):
         """测试并发访问时的端口分配"""
-        from sage.jobmanager.utils.name_server import get_available_port
+        from sage.kernels.jobmanager.utils.name_server import get_available_port
         import threading
         import time
         
@@ -160,7 +160,7 @@ class TestNameServerConfiguration:
     def test_name_format_customization(self):
         """测试名称格式自定义"""
         with patch('socket.gethostname') as mock_hostname, \
-             patch('sage.jobmanager.utils.name_server.get_available_port') as mock_port:
+             patch('sage.kernels.jobmanager.utils.name_server.get_available_port') as mock_port:
             
             mock_hostname.return_value = "custom-host"
             mock_port.return_value = 7777
@@ -179,7 +179,7 @@ class TestNameServerConfiguration:
     def test_name_with_metadata(self):
         """测试带元数据的名称生成"""
         with patch('socket.gethostname') as mock_hostname, \
-             patch('sage.jobmanager.utils.name_server.get_available_port') as mock_port:
+             patch('sage.kernels.jobmanager.utils.name_server.get_available_port') as mock_port:
             
             mock_hostname.return_value = "meta-host"
             mock_port.return_value = 6666
@@ -200,7 +200,7 @@ class TestNameServerConfiguration:
 
     def test_name_validation(self):
         """测试名称验证"""
-        from sage.jobmanager.utils.name_server import validate_name
+        from sage.kernels.jobmanager.utils.name_server import validate_name
         
         # 有效名称
         valid_names = [
@@ -226,7 +226,7 @@ class TestNameServerConfiguration:
 
     def test_name_registry_operations(self):
         """测试名称注册表操作"""
-        from sage.jobmanager.utils.name_server import NameRegistry
+        from sage.kernels.jobmanager.utils.name_server import NameRegistry
         
         registry = NameRegistry()
         
@@ -254,7 +254,7 @@ class TestNameServerConfiguration:
 
     def test_name_lease_management(self):
         """测试名称租约管理"""
-        from sage.jobmanager.utils.name_server import NameLease
+        from sage.kernels.jobmanager.utils.name_server import NameLease
         
         lease_duration = 60  # 60秒
         lease = NameLease("service_host_8080", lease_duration)
@@ -294,7 +294,7 @@ class TestNameServerErrorHandling:
 
     def test_port_allocation_error_handling(self):
         """测试端口分配错误处理"""
-        from sage.jobmanager.utils.name_server import get_available_port
+        from sage.kernels.jobmanager.utils.name_server import get_available_port
         
         with patch('socket.socket') as mock_socket:
             mock_sock_instance = Mock()
@@ -308,7 +308,7 @@ class TestNameServerErrorHandling:
 
     def test_resource_cleanup_on_error(self):
         """测试错误时的资源清理"""
-        from sage.jobmanager.utils.name_server import get_available_port
+        from sage.kernels.jobmanager.utils.name_server import get_available_port
         
         with patch('socket.socket') as mock_socket:
             mock_sock_instance = Mock()
@@ -328,7 +328,7 @@ class TestNameServerErrorHandling:
 
     def test_concurrent_access_race_condition(self):
         """测试并发访问竞争条件"""
-        from sage.jobmanager.utils.name_server import get_available_port
+        from sage.kernels.jobmanager.utils.name_server import get_available_port
         import threading
         import time
         
@@ -365,7 +365,7 @@ class TestNameServerIntegration:
 
     def test_real_network_port_allocation(self):
         """测试真实网络端口分配"""
-        from sage.jobmanager.utils.name_server import get_available_port
+        from sage.kernels.jobmanager.utils.name_server import get_available_port
         
         # 获取真实可用端口
         port1 = get_available_port()
@@ -399,7 +399,7 @@ class TestNameServerIntegration:
 
     def test_service_lifecycle_simulation(self):
         """测试服务生命周期模拟"""
-        from sage.jobmanager.utils.name_server import NameRegistry
+        from sage.kernels.jobmanager.utils.name_server import NameRegistry
         
         registry = NameRegistry()
         
@@ -431,7 +431,7 @@ class TestNameServerIntegration:
 
     def test_distributed_name_coordination(self):
         """测试分布式名称协调"""
-        from sage.jobmanager.utils.name_server import DistributedNameCoordinator
+        from sage.kernels.jobmanager.utils.name_server import DistributedNameCoordinator
         
         # 模拟多节点环境
         coordinator = DistributedNameCoordinator(node_id="node1")

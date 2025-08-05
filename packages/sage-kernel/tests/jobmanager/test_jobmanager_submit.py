@@ -13,7 +13,7 @@ def test_jobmanager_submit_logic():
     print("=== 测试 JobManager submit_job 处理逻辑 ===")
     
     try:
-        from sage.jobmanager.job_manager import JobManagerServer, JobManager
+        from sage.kernels.jobmanager.job_manager import JobManagerServer, JobManager
         from sage.utils.serialization.dill_serializer import serialize_object
         from sage.api.local_environment import LocalEnvironment
         
@@ -64,7 +64,7 @@ def test_client_request_format():
     print("\n=== 测试 JobManagerClient 请求格式 ===")
     
     try:
-        from sage.jobmanager.jobmanager_client import JobManagerClient
+        from sage.kernels.jobmanager.jobmanager_client import JobManagerClient
         import uuid
         
         # 创建客户端

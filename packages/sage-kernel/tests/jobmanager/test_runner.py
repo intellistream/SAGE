@@ -109,7 +109,7 @@ def run_coverage_tests():
     
     return pytest.main([
         "-v",
-        "--cov=sage.jobmanager",
+        "--cov=sage.kernels.jobmanager",
         "--cov-report=html:htmlcov",
         "--cov-report=term",
         "--cov-report=xml",

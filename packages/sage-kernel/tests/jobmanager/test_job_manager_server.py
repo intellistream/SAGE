@@ -10,7 +10,7 @@ import time
 import base64
 from unittest.mock import Mock, patch, MagicMock
 
-from sage.jobmanager.job_manager_server import JobManagerServer
+from sage.kernels.jobmanager.job_manager_server import JobManagerServer
 
 
 @pytest.mark.unit

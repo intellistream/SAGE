@@ -9,8 +9,8 @@ import uuid
 from unittest.mock import Mock, patch, MagicMock
 from typing import Dict, Any
 
-from sage.jobmanager.job_manager import JobManager
-from sage.jobmanager.job_info import JobInfo
+from sage.kernels.jobmanager.job_manager import JobManager
+from sage.kernels.jobmanager.job_info import JobInfo
 
 
 @pytest.fixture
@@ -81,7 +81,7 @@ class TestJobManagerInitialization:
 
     def test_default_initialization(self, reset_jobmanager_singleton):
         """测试默认参数初始化"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             jm = JobManager()
             assert jm.enable_daemon is True
             assert jm.daemon_host == "127.0.0.1"
@@ -89,7 +89,7 @@ class TestJobManagerInitialization:
 
     def test_custom_initialization(self, reset_jobmanager_singleton):
         """测试自定义参数初始化"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             jm = JobManager(
                 enable_daemon=False,
                 daemon_host="0.0.0.0",
@@ -101,7 +101,7 @@ class TestJobManagerInitialization:
 
     def test_daemon_server_creation(self, reset_jobmanager_singleton):
         """测试守护进程服务器创建"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer') as mock_server:
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer') as mock_server:
             jm = JobManager(enable_daemon=True)
             mock_server.assert_called_once_with(
                 host="127.0.0.1",
@@ -111,7 +111,7 @@ class TestJobManagerInitialization:
 
     def test_no_daemon_server_creation(self, reset_jobmanager_singleton):
         """测试禁用守护进程时不创建服务器"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer') as mock_server:
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer') as mock_server:
             jm = JobManager(enable_daemon=False)
             mock_server.assert_not_called()
 
@@ -123,7 +123,7 @@ class TestJobManagerJobSubmission:
     @pytest.fixture
     def job_manager(self, reset_jobmanager_singleton):
         """创建JobManager实例"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             return JobManager(enable_daemon=False)
 
     def test_submit_job_basic(self, job_manager):
@@ -218,7 +218,7 @@ class TestJobManagerJobControl:
     @pytest.fixture
     def job_manager(self, reset_jobmanager_singleton):
         """创建JobManager实例"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             return JobManager(enable_daemon=False)
 
     def test_pause_job_success(self, job_manager):
@@ -311,7 +311,7 @@ class TestJobManagerJobStatus:
     @pytest.fixture
     def job_manager(self, reset_jobmanager_singleton):
         """创建JobManager实例"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             return JobManager(enable_daemon=False)
 
     def test_get_job_status_existing(self, job_manager):
@@ -389,7 +389,7 @@ class TestJobManagerLifecycle:
     @pytest.fixture
     def job_manager(self, reset_jobmanager_singleton):
         """创建JobManager实例"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             return JobManager(enable_daemon=False)
 
     def test_start_daemon_server(self, job_manager):
@@ -435,7 +435,7 @@ class TestJobManagerIntegration:
     @pytest.fixture
     def job_manager(self, reset_jobmanager_singleton):
         """创建JobManager实例"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             return JobManager(enable_daemon=False)
 
     def test_full_job_lifecycle(self, job_manager):
@@ -523,7 +523,7 @@ class TestJobManagerPerformance:
     @pytest.fixture
     def job_manager(self, reset_jobmanager_singleton):
         """创建JobManager实例"""
-        with patch('sage.jobmanager.job_manager.JobManagerServer'):
+        with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'):
             return JobManager(enable_daemon=False)
 
     def test_job_submission_performance(self, job_manager):

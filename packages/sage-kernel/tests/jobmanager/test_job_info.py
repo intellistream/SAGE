@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 from unittest.mock import Mock, patch
 
-from sage.jobmanager.job_info import JobInfo
+from sage.kernels.jobmanager.job_info import JobInfo
 
 
 @pytest.mark.unit

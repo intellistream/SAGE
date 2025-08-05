@@ -6,10 +6,10 @@ import pytest
 import os
 from unittest.mock import Mock, patch, MagicMock
 
-from sage.jobmanager.execution_graph.execution_graph import ExecutionGraph
-from sage.jobmanager.execution_graph.graph_node import GraphNode  
-from sage.jobmanager.execution_graph.service_node import ServiceNode
-from sage.jobmanager.execution_graph.graph_edge import GraphEdge
+from sage.kernels.jobmanager.execution_graph.execution_graph import ExecutionGraph
+from sage.kernels.jobmanager.execution_graph.graph_node import GraphNode  
+from sage.kernels.jobmanager.execution_graph.service_node import ServiceNode
+from sage.kernels.jobmanager.execution_graph.graph_edge import GraphEdge
 
 
 @pytest.mark.unit

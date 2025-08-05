@@ -17,7 +17,7 @@ def test_remote_submission_flow():
     print("1. Starting JobManager...")
     
     def start_jobmanager():
-        from sage.jobmanager.job_manager import JobManager
+        from sage.kernels.jobmanager.job_manager import JobManager
         jobmanager = JobManager(enable_daemon=True, daemon_host="127.0.0.1", daemon_port=19003)
         jobmanager.run_forever()
     

@@ -10,7 +10,7 @@ import uuid
 import time
 from unittest.mock import Mock, patch, MagicMock
 
-from sage.jobmanager.jobmanager_client import JobManagerClient
+from sage.kernels.jobmanager.jobmanager_client import JobManagerClient
 
 
 @pytest.mark.unit

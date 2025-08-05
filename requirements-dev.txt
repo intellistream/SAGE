@@ -1,16 +1,33 @@
-# SAGE 开发环境 - Editable Install (简化版)
+# SAGE 开发环境 - Editable Install (修复版)
 # 使用方法: pip install -r requirements-dev.txt
 
-# 核心包 (按依赖顺序) - 只安装基础包
+# 预先安装基础依赖，避免版本冲突
+# 注意：这些版本需要与constraints文件一致
+
+# 核心ML依赖（按特定版本安装）
+torch==2.7.1
+torchvision==0.22.1
+transformers>=4.40.0
+numpy>=1.21.0
+scipy>=1.9.0
+
+# Web框架
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pydantic>=2.0.0
+
+# 核心SAGE包 (按依赖顺序安装)
 -e ./packages/sage-kernel
-# 暂时跳过有复杂依赖的包
+
+# 暂时注释掉有复杂依赖的包，避免冲突
+# 可以在核心包安装成功后再逐个启用
 # -e ./packages/sage-middleware  
 # -e ./packages/sage-userspace
 
-# 开发工具
+# 开发工具（独立安装，避免依赖冲突）
 -e ./packages/sage-tools/sage-dev-toolkit
 
-# 开发依赖 (移除有冲突的包)
+# 开发依赖
 pytest>=7.0
 pytest-asyncio
 pytest-cov
@@ -19,10 +36,7 @@ isort
 flake8
 mypy
 
-# 暂时移除safety包，因为它与psutil有版本冲突
-# safety>=3.6.0
-
-# 可选: 如需商业版组件，取消注释下面的行
+# 可选: 商业版组件（如需要，取消注释）
 # -e ./packages/commercial/sage-kernel
 # -e ./packages/commercial/sage-middleware
 # -e ./packages/commercial/sage-userspace
