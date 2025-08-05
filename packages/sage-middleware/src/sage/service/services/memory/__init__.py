@@ -6,11 +6,7 @@ Memory Service Module
 # 主要的记忆服务
 from .memory_service import MemoryService, create_memory_service_factory
 
-# 兼容性导入
-from .memory_manager import MemoryManager
-
 __all__ = [
     "MemoryService", 
-    "create_memory_service_factory",
-    "MemoryManager"
+    "create_memory_service_factory"
 ]
