@@ -161,5 +161,5 @@ def pipeline_run(config: dict) -> None:
 if __name__ == '__main__':
     CustomLogger.disable_global_console_debug()
     load_dotenv(override=False)
-    config = load_config("../config/config_batch.yaml")
+    config = load_config("../../resources/config/config_batch.yaml")
     pipeline_run(config)

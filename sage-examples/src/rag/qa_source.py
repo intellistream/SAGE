@@ -77,7 +77,7 @@ def create_qa_pipeline():
     """创建QA处理管道"""
     # 加载配置
     load_dotenv(override=False)
-    config = load_config("../config/config_source.yaml")
+    config = load_config("../../resources/config/config_source.yaml")
 
     # 创建本地环境
     env = LocalEnvironment()

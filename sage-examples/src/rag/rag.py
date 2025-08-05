@@ -387,7 +387,7 @@ class PrivateMemoryService(MemoryService):
 def pipeline_run() -> None:
     """创建并运行数据处理管道"""
     
-    config = load_config("../config/config_batch.yaml")   
+    config = load_config("../../resources/config/config_batch.yaml")   
      
     # 创建本地环境
     env = RemoteEnvironment()
