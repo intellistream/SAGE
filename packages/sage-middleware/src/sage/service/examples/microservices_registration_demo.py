@@ -4,7 +4,6 @@ SAGE 微服务集成示例
 """
 import time
 from sage.core.api.local_environment import LocalEnvironment
-from sage.service import register_all_services
 from sage.service import (
     create_kv_service_factory, 
     create_vdb_service_factory,
@@ -21,13 +20,26 @@ def test_microservices_registration():
     # 创建环境
     env = LocalEnvironment("sage_microservices_test")
     
-    # 方式1: 使用便捷函数注册所有服务
-    print("\n📋 Method 1: Register all services using convenience function")
-    registered_services = register_all_services(env)
-    print(f"Registered services: {list(registered_services.keys())}")
+    # 注册所有核心微服务
+    print("\n📋 Registering core microservices")
     
-    # 方式2: 手动注册单个服务（更灵活的配置）
-    print("\n📋 Method 2: Manual registration with custom configuration")
+    # 注册KV服务
+    kv_factory = create_kv_service_factory("kv_service")
+    env.register_service_factory("kv_service", kv_factory)
+    
+    # 注册VDB服务  
+    vdb_factory = create_vdb_service_factory("vdb_service")
+    env.register_service_factory("vdb_service", vdb_factory)
+    
+    # 注册Memory编排服务
+    memory_factory = create_memory_service_factory("memory_service")
+    env.register_service_factory("memory_service", memory_factory)
+    
+    registered_services = ["kv_service", "vdb_service", "memory_service"]
+    print(f"Registered services: {registered_services}")
+    
+    # 手动注册服务（更灵活的配置）
+    print("\n📋 Manual registration with custom configuration")
     
     # 创建环境2用于手动注册
     env2 = LocalEnvironment("sage_microservices_manual")

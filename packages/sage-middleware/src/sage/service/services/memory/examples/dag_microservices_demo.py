@@ -10,6 +10,7 @@ import numpy as np
 # 导入SAGE环境和服务
 from sage.core.api.local_environment import LocalEnvironment
 from sage.service import (
+    MemoryService,
     create_kv_service_factory,
     create_vdb_service_factory, 
     create_memory_service_factory
@@ -175,7 +176,7 @@ def create_conversation_dag():
     # 注册微服务
     env.register_service("kv_service", KVService, create_kv_service_factory())
     env.register_service("vdb_service", VDBService, create_vdb_service_factory())
-    env.register_service("memory_service", MemoryOrchestratorService, create_memory_service_factory())
+    env.register_service("memory_service", MemoryService, create_memory_service_factory())
     
     # 创建数据流
     stream = env.from_kafka_source(...)

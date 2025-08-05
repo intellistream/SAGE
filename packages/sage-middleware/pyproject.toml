@@ -121,8 +121,8 @@ Documentation = "https://sage-docs.intellistream.cc"
 
 # 中间件入口点
 [project.scripts]
-sage-middleware = "sage.service.main:main"
-sage-server = "sage.service.server:main"
+# sage-middleware = "sage.service.main:main"
+# sage-server = "sage.service.server:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

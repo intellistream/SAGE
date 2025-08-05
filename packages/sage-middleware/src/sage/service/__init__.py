@@ -15,14 +15,14 @@ try:
     # VDB服务
     from .services.vdb.vdb_service import VDBService, create_vdb_service_factory
     
-    # Memory编排服务
-    from .services.memory.memory_orchestrator_service import MemoryOrchestratorService, create_memory_service_factory
+    # Memory服务
+    from .services.memory.memory_service import MemoryService, create_memory_service_factory
 
     __all__ = [
         # 服务任务类
         "KVService",
         "VDBService", 
-        "MemoryOrchestratorService",
+        "MemoryService",
         
         # 工厂函数
         "create_kv_service_factory",
