@@ -1,6 +1,6 @@
-# SAGE 开源版安装
-# 适用于：开源开发者，社区贡献者
-# 安装方式：pip install -r requirements-open-source.txt
+# SAGE 商业版安装 (需要商业授权)
+# 适用于：企业开发者，内部团队
+# 安装方式：pip install -r requirements-commercial.txt
 
 # ==================================================
 # SAGE 包 (Editable 模式)
@@ -9,9 +9,9 @@
 -e ./packages/sage-kernel
 -e ./packages/sage-tools/sage-dev-toolkit
 -e ./packages/sage-tools/sage-cli
--e ./packages/sage-middleware
--e ./packages/sage-userspace
--e ./packages/sage
+-e ./packages/commercial/sage-middleware
+-e ./packages/commercial/sage-userspace
+-e ./packages/commercial/sage-kernel
 
 # ==================================================
 # 开发工具

@@ -1,0 +1,14 @@
+# SAGE 开源版安装
+# 适用于：开源开发者，社区贡献者
+# 安装方式：pip install -r requirements-open-source.txt
+
+# ==================================================
+# SAGE 包
+# ==================================================
+
+./packages/sage-kernel
+./packages/sage-tools/sage-dev-toolkit
+./packages/sage-tools/sage-cli
+./packages/sage-middleware
+./packages/sage-userspace
+./packages/sage

@@ -1,0 +1,43 @@
+# SAGE 安装配置
+# 控制是否安装商业版本组件
+
+# ============================================
+# 版本控制
+# ============================================
+version: "open-source"  # 可选: "open-source" 或 "commercial"
+
+# ============================================
+# 包配置
+# ============================================
+packages:
+  # 核心包 (始终安装)
+  core:
+    - "packages/sage-kernel"
+    - "packages/sage-tools/sage-dev-toolkit" 
+    - "packages/sage-tools/sage-cli"
+  
+  # 开源版本
+  open-source:
+    - "packages/sage-middleware"
+    - "packages/sage-userspace"
+    - "packages/sage"
+  
+  # 商业版本 (需要授权)
+  commercial:
+    - "packages/commercial/sage-middleware"
+    - "packages/commercial/sage-userspace"
+    - "packages/commercial/sage-kernel"  # 增强版
+
+# ============================================
+# 开发工具
+# ============================================
+dev-tools:
+  - "pytest>=7.0"
+  - "pytest-asyncio"
+  - "pytest-cov"
+  - "black"
+  - "isort"
+  - "flake8"
+  - "mypy"
+  - "ipython"
+  - "jupyter"
