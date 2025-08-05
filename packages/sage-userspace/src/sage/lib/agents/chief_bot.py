@@ -16,7 +16,7 @@ class ChiefBot(FlatMapFunction):
     def get_default_config() -> Dict[str, Any]:
         """获取默认配置，包括LLM设置和可用工具"""
         return {
-            "llm": {
+            "utils": {
                 "method": "openai",
                 "model_name": "gpt-3.5-turbo",
                 "base_url": "https://api.openai.com/v1",
@@ -56,7 +56,7 @@ class ChiefBot(FlatMapFunction):
             self.config['available_tools'] = kwargs['available_tools']
         
         # 提取配置项
-        self.llm_config = self.config["llm"]
+        self.llm_config = self.config["utils"]
         self.available_tools = self.config["available_tools"]
         self.tool_selection_config = self.config["tool_selection"]
         self.reasoning_config = self.config["reasoning"]
