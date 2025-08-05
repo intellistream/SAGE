@@ -4,7 +4,11 @@
 
 set -euo pipefail
 
+<<<<<<< HEAD
 OUTPUT_DIR="build/wheels"
+=======
+OUTPUT_DIR="wheelhouse"
+>>>>>>> 7e283a1 (code cleanups)
 mkdir -p "$OUTPUT_DIR"
 
 # Ensure build tool is available
@@ -19,6 +23,7 @@ if ! python3 -c "import setuptools_scm" &>/dev/null; then
   pip install setuptools-scm
 fi
 
+<<<<<<< HEAD
 # Install Rust if not available (required for tokenizers and other Rust-based packages)
 if ! command -v rustc &> /dev/null; then
     echo "Installing Rust toolchain for tokenizers compilation..."
@@ -34,6 +39,14 @@ fi
 echo "Pre-installing common dependencies..."
 pip install --upgrade httpx[socks] socksio
 
+=======
+# Ensure torch is available for vllm build dependencies
+if ! python3 -c "import torch" &>/dev/null; then
+  echo "Installing torch to satisfy build requirements..."
+  pip install torch
+fi
+
+>>>>>>> 7e283a1 (code cleanups)
 # Directories to scan
 ROOTS=("packages" "packages/commercial" "packages/tools")
 
@@ -44,9 +57,12 @@ for root in "${ROOTS[@]}"; do
     if [ -f "$pkg/pyproject.toml" ] || [ -f "$pkg/setup.py" ]; then
       echo "Building wheel for $pkg"
       # use no isolation to leverage existing torch install and avoid strict torch==2.3.0
+<<<<<<< HEAD
       # add --no-build-isolation and set PIP_NO_BUILD_ISOLATION to speed up dependency resolution
       export PIP_NO_BUILD_ISOLATION=1
       export PIP_DISABLE_PIP_VERSION_CHECK=1
+=======
+>>>>>>> 7e283a1 (code cleanups)
       (cd "$pkg" && python3 -m build --wheel --no-isolation --outdir "$OLDPWD/$OUTPUT_DIR")
     fi
   done

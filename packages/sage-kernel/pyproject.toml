@@ -36,6 +36,7 @@ dependencies = [
     "dill>=0.3.8",
     "ray>=2.0.0",
     
+<<<<<<< HEAD
     # Core system dependencies
     "torch==2.3.0",  # vllm requires exactly torch==2.3.0
     "torchvision",
@@ -43,6 +44,22 @@ dependencies = [
     # Network dependencies for proxy support
     "httpx[socks]>=0.25.0",
     "socksio>=1.0.0",
+=======
+    # Core ML/AI dependencies
+    "accelerate>=0.29.3",
+    "einops",
+    "outlines",
+    "sentencepiece",
+    "tiktoken",
+    "torchvision",
+    "torch",
+    "transformers==4.45.2",
+    "sentence_transformers==3.1.1",
+    "InstructorEmbedding==1.0.1",
+    "huggingface_hub>=0.22.2",
+    "peft",
+    "vllm",
+>>>>>>> 7e283a1 (code cleanups)
     
     # System and utilities
     "psutil",
