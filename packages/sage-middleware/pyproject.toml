@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "SAGE Framework - 中间件组件 (包含 LLM 中间件服务)"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "IntelliStream Team", email = "sage@intellistream.cc"},
 ]
@@ -16,7 +16,6 @@ keywords = ["rag", "llm", "middleware", "service", "api", "dataflow", "reasoning
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -49,6 +48,14 @@ dependencies = [
     "bm25s>=0.2.13",                  # BM25 search implementation
     "rank_bm25",                      # BM25 ranking algorithm
     "PyStemmer==3.0.0",               # Text stemming for search
+    
+    # aiohttp
+    "aiohttp>=3.12.15",
+    "frozenlist>=1.6.2",
+
+    # httpx
+    "httpx==0.28.1",
+    "certifi>=2025.7.14",
     
     # Text processing dependencies
     "feedparser==6.0.11",             # RSS/Atom feed parsing

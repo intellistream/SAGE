@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "SAGE Framework - 统一内核 (Core + Runtime + Utils + CLI)"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "IntelliStream Team", email = "sage@intellistream.cc"},
 ]
@@ -16,7 +16,6 @@ keywords = ["rag", "llm", "dataflow", "reasoning", "framework", "cli", "kernel"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -31,11 +30,13 @@ dependencies = [
     # Dependencies from sage-kernel-utils
     "pyyaml>=6.0.2",
     "python-dotenv>=1.1.0",
-    
+    "python_multipart>=0.0.19",
     # Dependencies from sage-kernel-runtime-extended  
     "dill>=0.3.8",
-    "ray>=2.0.0",
-    
+    "ray>=2.47.0",
+    "grpcio>=1.74.0",
+    "protobuf>=6.30",
+    "msgpack>=1.1.0",
     # Core system dependencies
     "torch==2.3.0",  # vllm requires exactly torch==2.3.0
     "torchvision",
@@ -54,11 +55,8 @@ dependencies = [
     "aioboto3==14.1.0",
     "fastapi==0.115.12",
     "uvicorn==0.34.3",
-    "python-multipart>=0.0.6",
-    "h11",
-    "httpx==0.28.1",
+    
     "Requests==2.32.4",
-    "aiohttp>=3.12.15",
     "aiohappyeyeballs>=2.6.1",
     "aiosignal>=1.4.0",
     
@@ -70,7 +68,6 @@ dependencies = [
     
     # CLI 专用依赖
     "shellingham>=1.5.0",              # Shell 检测
-    "questionary>=1.10.0",             # 交互式命令行界面
 ]
 
 [project.optional-dependencies]

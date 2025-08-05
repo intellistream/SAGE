@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "SAGE Framework - 用户空间组件 (合并 sage-lib 和 sage-plugins)"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "IntelliStream Team", email = "sage@intellistream.cc"},
 ]
@@ -16,7 +16,6 @@ keywords = ["rag", "llm", "library", "plugins", "components", "algorithms", "ext
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
