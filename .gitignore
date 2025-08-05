@@ -110,3 +110,4 @@ build/
 
 coverage.xml
 dev_reports/
+!/Makefile
