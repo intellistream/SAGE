@@ -4,7 +4,13 @@
 
 set -euo pipefail
 
+
+OUTPUT_DIR="wheelhouse"
+
 OUTPUT_DIR="build/wheels"
+
+OUTPUT_DIR="build/wheels"
+
 mkdir -p "$OUTPUT_DIR"
 
 # Ensure build tool is available
@@ -19,6 +25,7 @@ if ! python3 -c "from build import ProjectBuilder; print('build module working')
   pip uninstall -y build
   pip install --upgrade build[virtualenv]
 fi
+
 
 # Ensure setuptools-scm is available if needed for build-system.requires
 if ! python3 -c "import setuptools_scm" &>/dev/null; then
@@ -38,6 +45,12 @@ else
 fi
 
 # Pre-install dependencies to avoid compilation issues during wheel building
+
+
+# Directories to scan
+ROOTS=("packages" "packages/commercial" "packages/tools")
+
+
 echo "Pre-installing common dependencies..."
 pip install --upgrade httpx[socks] socksio
 
@@ -74,11 +87,21 @@ for root in "${ROOTS[@]}"; do
     [ -d "$pkg" ] || continue
     if [ -f "$pkg/pyproject.toml" ] || [ -f "$pkg/setup.py" ]; then
       echo "Building wheel for $pkg"
+
       # use no isolation to leverage existing torch install and avoid strict torch==2.3.0
       # add --no-build-isolation and set PIP_NO_BUILD_ISOLATION to speed up dependency resolution
       export PIP_NO_BUILD_ISOLATION=1
       export PIP_DISABLE_PIP_VERSION_CHECK=1
       (cd "$pkg" && python3 -m build --wheel --no-isolation --outdir "$OLDPWD/$OUTPUT_DIR")
+
+      (cd "$pkg" && python3 -m build --wheel --outdir "$OLDPWD/$OUTPUT_DIR")
+
+      # use no isolation to leverage existing torch install and avoid strict torch==2.3.0
+      # add --no-build-isolation and set PIP_NO_BUILD_ISOLATION to speed up dependency resolution
+      export PIP_NO_BUILD_ISOLATION=1
+      export PIP_DISABLE_PIP_VERSION_CHECK=1
+      (cd "$pkg" && python3 -m build --wheel --no-isolation --outdir "$OLDPWD/$OUTPUT_DIR")
+
     fi
   done
 done
