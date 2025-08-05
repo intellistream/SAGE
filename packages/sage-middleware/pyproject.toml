@@ -35,7 +35,7 @@ dependencies = [
     "celery>=5.3.0",                   # 任务队列
     "flower>=2.0.0",                   # Celery 监控界面
     
-    # LLM 中间件专用依赖（从 sage-middleware-llm 合并）
+    # LLM 中间件专用依赖（从 sage-middleware-utils 合并）
     "openai",                          # OpenAI API 客户端
     "transformers>=4.45.2",            # HuggingFace 模型
     "sentence-transformers>=3.1.1",    # 句子嵌入
@@ -72,7 +72,7 @@ websocket = [
     "python-socketio>=5.8.0",
 ]
 
-# LLM 中间件扩展（从 sage-middleware-llm 合并）
+# LLM 中间件扩展（从 sage-middleware-utils 合并）
 llm = [
     "anthropic>=0.3.0",               # Anthropic Claude API
     "google-generativeai>=0.3.0",     # Google Gemini API
