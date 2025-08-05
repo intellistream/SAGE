@@ -498,17 +498,20 @@ def callback():
     """
     SAGE Development Toolkit - Unified development tools for SAGE project
     
-    🛠️ Features:
+    🛠️ Core Features:
     • Test execution with intelligent change detection
-    • Comprehensive dependency analysis
+    • Comprehensive dependency analysis  
     • Package management across SAGE ecosystem
+    • Build artifacts cleanup and management
     • Rich reporting with multiple output formats
     • Interactive and batch operation modes
     
-    📖 Usage Examples:
+    📖 Common Usage Examples:
     sage-dev test --mode diff           # Run tests on changed code
     sage-dev analyze --type circular    # Check for circular dependencies
     sage-dev package list               # List all SAGE packages
+    sage-dev clean --dry-run            # Preview build artifacts cleanup
+    sage-dev clean --categories pycache # Clean Python cache files
     sage-dev report                     # Generate comprehensive report
     
     🔗 More info: https://github.com/intellistream/SAGE/tree/main/dev-toolkit
@@ -790,6 +793,180 @@ def classes_command(
             
     except Exception as e:
         console.print(f"❌ Class analysis failed: {e}", style="red")
+        raise typer.Exit(1)
+
+@app.command("clean")
+def clean_command(
+    categories: Optional[str] = typer.Option(None, help="Categories to clean (comma-separated): egg_info,dist,build,pycache,coverage,pytest,mypy,temp,logs,all"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be cleaned without actually deleting"),
+    force: bool = typer.Option(False, "--force", "-f", help="Force cleanup without confirmation"),
+    older_than_days: Optional[int] = typer.Option(None, "--older-than-days", help="Only clean files older than specified days"),
+    create_script: bool = typer.Option(False, "--create-script", help="Generate cleanup script"),
+    update_gitignore: bool = typer.Option(False, "--update-gitignore", help="Update .gitignore with build artifact rules"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Enable verbose output")
+):
+    """🧹 Clean build artifacts and pip install intermediates."""
+    try:
+        from ..tools.build_artifacts_manager import BuildArtifactsManager
+        
+        toolkit = get_toolkit(project_root=project_root)
+        manager = BuildArtifactsManager(str(toolkit.config.project_root))
+        
+        # 处理类别参数
+        category_list = None
+        if categories:
+            if categories.lower() == "all":
+                category_list = None  # None means all categories
+            else:
+                category_list = [cat.strip() for cat in categories.split(",")]
+                # 验证类别
+                valid_categories = set(manager.DEFAULT_PATTERNS.keys())
+                invalid_categories = set(category_list) - valid_categories
+                if invalid_categories:
+                    console.print(f"❌ Invalid categories: {', '.join(invalid_categories)}", style="red")
+                    console.print(f"Valid categories: {', '.join(valid_categories)}")
+                    raise typer.Exit(1)
+        
+        # 更新gitignore
+        if update_gitignore:
+            with console.status("📝 Updating .gitignore..."):
+                gitignore_result = manager.setup_gitignore_rules()
+            
+            console.print("📝 .gitignore Update Results:", style="cyan")
+            console.print(f"  📄 File: {gitignore_result['gitignore_path']}")
+            console.print(f"  ➕ Rules added: {gitignore_result['rules_added']}")
+            if gitignore_result['new_rules']:
+                console.print("  📋 New rules:", style="yellow")
+                for rule in gitignore_result['new_rules'][:5]:
+                    console.print(f"    • {rule}")
+                if len(gitignore_result['new_rules']) > 5:
+                    console.print(f"    ... and {len(gitignore_result['new_rules']) - 5} more")
+        
+        # 创建清理脚本
+        if create_script:
+            with console.status("📜 Creating cleanup script..."):
+                script_path = manager.create_cleanup_script()
+            
+            console.print(f"📜 Cleanup script created: {script_path}", style="green")
+            console.print("   Run with: bash scripts/cleanup_build_artifacts.sh")
+            return
+        
+        # 扫描构建产物
+        with console.status("🔍 Scanning build artifacts..."):
+            artifacts = manager.scan_artifacts()
+            summary = manager.get_artifacts_summary(artifacts)
+        
+        # 显示扫描结果
+        console.print("🔍 Build Artifacts Scan Results:", style="cyan")
+        
+        # 创建汇总表格
+        table = Table(title="Build Artifacts Summary")
+        table.add_column("Category", style="cyan")
+        table.add_column("Count", style="yellow")
+        table.add_column("Size", style="green")
+        table.add_column("Sample Paths", style="white")
+        
+        total_count = 0
+        total_size = 0
+        
+        for category, info in summary.items():
+            if info['count'] > 0:
+                total_count += info['count']
+                total_size += info['total_size']
+                
+                # 只有在详细模式或该类别将被清理时才显示路径样本
+                sample_paths = ""
+                if verbose or (category_list is None or category in (category_list or [])):
+                    sample_paths = "\n".join(info['paths'][:3])
+                    if len(info['paths']) > 3:
+                        sample_paths += f"\n... +{len(info['paths']) - 3} more"
+                
+                table.add_row(
+                    category.replace('_', ' ').title(),
+                    str(info['count']),
+                    info['size_formatted'],
+                    sample_paths
+                )
+        
+        console.print(table)
+        console.print(f"\n📊 Total: {total_count} items ({manager._format_size(total_size)})")
+        
+        # 应用时间过滤提示
+        if older_than_days:
+            console.print(f"⏰ Filtering: Only items older than {older_than_days} days", style="yellow")
+        
+        # 如果没有找到任何构建产物
+        if total_count == 0:
+            console.print("✨ No build artifacts found to clean!", style="green")
+            return
+        
+        # 执行清理
+        if not dry_run:
+            # 确认操作（除非强制模式）
+            if not force:
+                action_desc = f"clean {category_list if category_list else 'all'} categories"
+                if older_than_days:
+                    action_desc += f" (older than {older_than_days} days)"
+                
+                confirm = typer.confirm(f"🗑️ Proceed to {action_desc}?")
+                if not confirm:
+                    console.print("❌ Operation cancelled.", style="yellow")
+                    return
+        
+        # 执行清理
+        action_desc = "preview" if dry_run else "clean"
+        with console.status(f"🧹 Starting {action_desc} operation..."):
+            results = manager.clean_artifacts(
+                categories=category_list,
+                dry_run=dry_run,
+                force=force,
+                older_than_days=older_than_days
+            )
+        
+        # 显示结果
+        mode_text = "Preview" if dry_run else "Cleanup"
+        console.print(f"🧹 {mode_text} Results:", style="green")
+        
+        if results['total_files_removed'] > 0 or results['total_dirs_removed'] > 0:
+            console.print(f"  📄 Files: {results['total_files_removed']}")
+            console.print(f"  📁 Directories: {results['total_dirs_removed']}")
+            console.print(f"  💾 Space freed: {manager._format_size(results['total_size_freed'])}")
+            
+            if verbose and results['cleaned_categories']:
+                detail_table = Table(title="Detailed Results")
+                detail_table.add_column("Category", style="cyan")
+                detail_table.add_column("Files", style="yellow")
+                detail_table.add_column("Dirs", style="yellow") 
+                detail_table.add_column("Size", style="green")
+                
+                for category, stats in results['cleaned_categories'].items():
+                    detail_table.add_row(
+                        category.replace('_', ' ').title(),
+                        str(stats['files_removed']),
+                        str(stats['dirs_removed']),
+                        manager._format_size(stats['size_freed'])
+                    )
+                
+                console.print(detail_table)
+        
+        # 显示错误
+        if results['errors']:
+            console.print(f"\n⚠️ Errors occurred:", style="yellow")
+            for error in results['errors'][:5]:  # Show first 5 errors
+                console.print(f"  ❌ {error}", style="red")
+            if len(results['errors']) > 5:
+                console.print(f"  ... and {len(results['errors']) - 5} more errors")
+        
+        # 提供额外建议
+        if not dry_run and results['total_files_removed'] > 0:
+            console.print("\n💡 Tips:", style="blue")
+            console.print("  • Use --dry-run to preview before cleaning")
+            console.print("  • Use --update-gitignore to prevent future artifacts")
+            console.print("  • Use --create-script to generate automated cleanup")
+        
+    except Exception as e:
+        console.print(f"❌ Build artifacts cleanup failed: {e}", style="red")
         raise typer.Exit(1)
 
 @app.command("home")

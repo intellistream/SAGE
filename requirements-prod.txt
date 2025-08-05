@@ -20,11 +20,11 @@ numpy>=1.21.0
 pyyaml>=6.0.0
 
 # SAGE 核心组件（按依赖顺序）
-./build/wheels/sage_kernel-1.0.0-py3-none-any.whl
-./build/wheels/sage_middleware-1.0.0-py3-none-any.whl  
-./build/wheels/sage_userspace-1.0.0-py3-none-any.whl
-./build/wheels/sage-1.0.0-py3-none-any.whl
+./build/wheels/sage_kernel-*-py3-none-any.whl
+./build/wheels/sage_middleware-*-py3-none-any.whl  
+./build/wheels/sage_userspace-*-py3-none-any.whl
+./build/wheels/sage-*-py3-none-any.whl
 
 # 可选：CLI工具
-# ./build/wheels/sage_cli-1.0.0-py3-none-any.whl
-# ./build/wheels/sage_dev_toolkit-1.0.0-py3-none-any.whl
+# ./build/wheels/sage_cli-*-py3-none-any.whl
+# ./build/wheels/sage_dev_toolkit-*-py3-none-any.whl

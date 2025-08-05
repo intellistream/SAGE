@@ -92,8 +92,6 @@ Issues = "https://github.com/intellistream/SAGE/issues"
 
 [project.scripts]
 sage-dev = "sage_dev_toolkit.cli.main:app"
-sage-toolkit = "sage_dev_toolkit.cli.main:app"
-sagedev = "sage_dev_toolkit.cli.main:app"
 
 [tool.setuptools]
 include-package-data = true
