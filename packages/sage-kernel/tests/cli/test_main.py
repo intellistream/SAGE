@@ -5,6 +5,8 @@ Tests for sage.cli.main
 """
 
 import pytest
+import sys
+import subprocess
 from typer.testing import CliRunner
 from unittest.mock import patch, MagicMock
 
@@ -236,13 +238,14 @@ class TestMainCLI:
 
 def test_worker_subcommand_help():
     """Test worker subcommand help."""
+    runner = CliRunner()
     result = runner.invoke(app, ["worker", "--help"])
     assert result.exit_code == 0
     assert "Worker节点管理" in result.stdout
 
-@mock.patch('tempfile.NamedTemporaryFile')
-@mock.patch('os.path.expanduser')
-@mock.patch('sage.cli.config_manager.ConfigManager.load_config')
+@patch('tempfile.NamedTemporaryFile')
+@patch('os.path.expanduser')
+@patch('sage.cli.config_manager.ConfigManager.load_config')
 def test_config_with_existing_config(mock_load_config, mock_expanduser, mock_tempfile):
     """Test config command with existing configuration."""
     # Mock the config
@@ -253,6 +256,7 @@ def test_config_with_existing_config(mock_load_config, mock_expanduser, mock_tem
     mock_load_config.return_value = mock_config
     
     # Run the config command
+    runner = CliRunner()
     result = runner.invoke(app, ["config"])
     assert result.exit_code == 0
     assert "SAGE 配置信息" in result.stdout

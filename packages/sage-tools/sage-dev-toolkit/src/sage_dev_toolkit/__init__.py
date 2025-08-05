@@ -8,7 +8,7 @@ tools for testing, dependency analysis, package management, and reporting.
 
 __version__ = "1.0.0"
 __author__ = "IntelliStream Team"
-__email__ = "sage@intellistream.cc"
+__email__ = "intellistream@outlook.com"
 
 # Delayed imports to avoid circular dependencies
 def get_toolkit():

@@ -28,9 +28,9 @@ from sage.utils.system.network import (
     aggressive_port_cleanup,
     get_host_ip,
     test_tcp_connection,
-    _find_processes_by_lsof,
-    _find_processes_by_netstat,
-    _find_processes_by_fuser
+    _find_processes_with_lsof,
+    _find_processes_with_netstat,
+    _find_processes_with_fuser
 )
 
 
@@ -183,7 +183,7 @@ class TestFindProcessesByLsof:
                 stdout=mock_output
             )
             
-            result = _find_processes_by_lsof(8080)
+            result = _find_processes_with_lsof(8080)
             assert result == [1234, 5678]
             mock_run.assert_called_once_with(
                 ['lsof', '-t', '-i:8080'],
@@ -201,21 +201,21 @@ class TestFindProcessesByLsof:
                 stdout=""
             )
             
-            result = _find_processes_by_lsof(8080)
+            result = _find_processes_with_lsof(8080)
             assert result == []
     
     @pytest.mark.unit
     def test_lsof_not_available(self):
         """Test when lsof is not available"""
         with patch('subprocess.run', side_effect=FileNotFoundError):
-            result = _find_processes_by_lsof(8080)
+            result = _find_processes_with_lsof(8080)
             assert result == []
     
     @pytest.mark.unit
     def test_lsof_timeout(self):
         """Test lsof command timeout"""
         with patch('subprocess.run', side_effect=subprocess.TimeoutExpired('lsof', 5)):
-            result = _find_processes_by_lsof(8080)
+            result = _find_processes_with_lsof(8080)
             assert result == []
     
     @pytest.mark.unit
@@ -229,7 +229,7 @@ class TestFindProcessesByLsof:
                 stdout=mock_output
             )
             
-            result = _find_processes_by_lsof(8080)
+            result = _find_processes_with_lsof(8080)
             assert result == [1234]  # Only valid PID extracted
 
 
@@ -247,7 +247,7 @@ class TestFindProcessesByNetstat:
                 stdout=mock_output
             )
             
-            result = _find_processes_by_netstat(8080)
+            result = _find_processes_with_netstat(8080)
             assert result == [1234]
     
     @pytest.mark.unit
@@ -259,14 +259,14 @@ class TestFindProcessesByNetstat:
                 stdout=""
             )
             
-            result = _find_processes_by_netstat(8080)
+            result = _find_processes_with_netstat(8080)
             assert result == []
     
     @pytest.mark.unit
     def test_netstat_not_available(self):
         """Test when netstat is not available"""
         with patch('subprocess.run', side_effect=FileNotFoundError):
-            result = _find_processes_by_netstat(8080)
+            result = _find_processes_with_netstat(8080)
             assert result == []
 
 
@@ -284,7 +284,7 @@ class TestFindProcessesByFuser:
                 stdout=mock_output
             )
             
-            result = _find_processes_by_fuser(8080)
+            result = _find_processes_with_fuser(8080)
             assert result == [1234, 5678]
     
     @pytest.mark.unit
@@ -296,14 +296,14 @@ class TestFindProcessesByFuser:
                 stdout=""
             )
             
-            result = _find_processes_by_fuser(8080)
+            result = _find_processes_with_fuser(8080)
             assert result == []
     
     @pytest.mark.unit
     def test_fuser_not_available(self):
         """Test when fuser is not available"""
         with patch('subprocess.run', side_effect=FileNotFoundError):
-            result = _find_processes_by_fuser(8080)
+            result = _find_processes_with_fuser(8080)
             assert result == []
 
 
@@ -313,36 +313,36 @@ class TestFindPortProcesses:
     @pytest.mark.unit
     def test_find_processes_lsof_success(self):
         """Test successful process finding with lsof"""
-        with patch('sage.utils.system.network._find_processes_by_lsof', return_value=[1234]):
-            with patch('sage.utils.system.network._find_processes_by_netstat', return_value=[]):
-                with patch('sage.utils.system.network._find_processes_by_fuser', return_value=[]):
+        with patch('sage.utils.system.network._find_processes_with_lsof', return_value=[1234]):
+            with patch('sage.utils.system.network._find_processes_with_netstat', return_value=[]):
+                with patch('sage.utils.system.network._find_processes_with_fuser', return_value=[]):
                     result = find_port_processes(8080)
                     assert result == [1234]
     
     @pytest.mark.unit
     def test_find_processes_fallback_to_netstat(self):
         """Test fallback to netstat when lsof fails"""
-        with patch('sage.utils.system.network._find_processes_by_lsof', return_value=[]):
-            with patch('sage.utils.system.network._find_processes_by_netstat', return_value=[5678]):
-                with patch('sage.utils.system.network._find_processes_by_fuser', return_value=[]):
+        with patch('sage.utils.system.network._find_processes_with_lsof', return_value=[]):
+            with patch('sage.utils.system.network._find_processes_with_netstat', return_value=[5678]):
+                with patch('sage.utils.system.network._find_processes_with_fuser', return_value=[]):
                     result = find_port_processes(8080)
                     assert result == [5678]
     
     @pytest.mark.unit
     def test_find_processes_fallback_to_fuser(self):
         """Test fallback to fuser when others fail"""
-        with patch('sage.utils.system.network._find_processes_by_lsof', return_value=[]):
-            with patch('sage.utils.system.network._find_processes_by_netstat', return_value=[]):
-                with patch('sage.utils.system.network._find_processes_by_fuser', return_value=[9999]):
+        with patch('sage.utils.system.network._find_processes_with_lsof', return_value=[]):
+            with patch('sage.utils.system.network._find_processes_with_netstat', return_value=[]):
+                with patch('sage.utils.system.network._find_processes_with_fuser', return_value=[9999]):
                     result = find_port_processes(8080)
                     assert result == [9999]
     
     @pytest.mark.unit
     def test_find_processes_combine_results(self):
         """Test combining results from multiple tools"""
-        with patch('sage.utils.system.network._find_processes_by_lsof', return_value=[1234]):
-            with patch('sage.utils.system.network._find_processes_by_netstat', return_value=[5678]):
-                with patch('sage.utils.system.network._find_processes_by_fuser', return_value=[1234, 9999]):
+        with patch('sage.utils.system.network._find_processes_with_lsof', return_value=[1234]):
+            with patch('sage.utils.system.network._find_processes_with_netstat', return_value=[5678]):
+                with patch('sage.utils.system.network._find_processes_with_fuser', return_value=[1234, 9999]):
                     result = find_port_processes(8080)
                     # Should combine and deduplicate
                     assert set(result) == {1234, 5678, 9999}
@@ -350,9 +350,9 @@ class TestFindPortProcesses:
     @pytest.mark.unit
     def test_find_processes_no_results(self):
         """Test when no processes are found by any tool"""
-        with patch('sage.utils.system.network._find_processes_by_lsof', return_value=[]):
-            with patch('sage.utils.system.network._find_processes_by_netstat', return_value=[]):
-                with patch('sage.utils.system.network._find_processes_by_fuser', return_value=[]):
+        with patch('sage.utils.system.network._find_processes_with_lsof', return_value=[]):
+            with patch('sage.utils.system.network._find_processes_with_netstat', return_value=[]):
+                with patch('sage.utils.system.network._find_processes_with_fuser', return_value=[]):
                     result = find_port_processes(8080)
                     assert result == []
 
@@ -807,9 +807,9 @@ class TestIntegrationScenarios:
     def test_cross_platform_process_finding(self):
         """Test process finding across different tools"""
         # Simulate different tools finding different processes
-        with patch('sage.utils.system.network._find_processes_by_lsof', return_value=[1001, 1002]):
-            with patch('sage.utils.system.network._find_processes_by_netstat', return_value=[1002, 1003]):
-                with patch('sage.utils.system.network._find_processes_by_fuser', return_value=[1003, 1004]):
+        with patch('sage.utils.system.network._find_processes_with_lsof', return_value=[1001, 1002]):
+            with patch('sage.utils.system.network._find_processes_with_netstat', return_value=[1002, 1003]):
+                with patch('sage.utils.system.network._find_processes_with_fuser', return_value=[1003, 1004]):
                     processes = find_port_processes(8080)
                     
                     # Should combine and deduplicate all results
@@ -840,7 +840,7 @@ class TestPerformanceScenarios:
         """Test handling large process lists"""
         large_pid_list = list(range(1000, 2000))  # 1000 PIDs
         
-        with patch('sage.utils.system.network._find_processes_by_lsof', return_value=large_pid_list):
+        with patch('sage.utils.system.network._find_processes_with_lsof', return_value=large_pid_list):
             result = find_port_processes(8080)
             assert len(result) == 1000
             assert result == large_pid_list

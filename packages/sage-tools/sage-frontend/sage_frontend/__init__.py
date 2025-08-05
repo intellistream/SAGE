@@ -12,7 +12,7 @@ Web前端和仪表板界面组件，提供可视化的数据处理管道管理�
 
 __version__ = "1.0.0"
 __author__ = "IntelliStream Team"
-__email__ = "sage@intellistream.cc"
+__email__ = "intellistream@outlook.com"
 
 # 包的主要模块导入
 try:

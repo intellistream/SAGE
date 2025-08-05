@@ -114,17 +114,19 @@ class ConfigManager:
                 save_format = 'yaml'  # 默认使用YAML
         
         # 保存文件
-        with open(config_path, 'w', encoding='utf-8') as f:
-            if save_format == 'yaml':
-                yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
-            elif save_format == 'json':
-                json.dump(config, f, indent=2, ensure_ascii=False)
-            elif save_format == 'toml':
-                try:
-                    import tomli_w
+        if save_format == 'toml':
+            try:
+                import tomli_w
+                with open(config_path, 'wb') as f:
                     tomli_w.dump(config, f)
-                except ImportError:
-                    raise ImportError("需要安装 tomli-w 库来保存 TOML 格式")
+            except ImportError:
+                raise ImportError("需要安装 tomli-w 库来保存 TOML 格式")
+        else:
+            with open(config_path, 'w', encoding='utf-8') as f:
+                if save_format == 'yaml':
+                    yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
+                elif save_format == 'json':
+                    json.dump(config, f, indent=2, ensure_ascii=False)
         
         # 更新缓存
         self._cache[filename] = config.copy()

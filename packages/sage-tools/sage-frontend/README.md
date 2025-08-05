@@ -59,7 +59,7 @@ cd ..
 ### 使用pip安装
 
 ```bash
-pip install sage-frontend
+pip install intellistream-sage-frontend
 ```
 
 ## 快速开始
@@ -213,7 +213,7 @@ docker run -p 8080:8080 sage-frontend
 
 ```bash
 # 安装生产依赖
-pip install sage-frontend[monitoring,security]
+pip install intellistream-sage-frontend[monitoring,security]
 
 # 使用Gunicorn部署
 gunicorn sage_frontend.sage_server.main:app \
@@ -226,16 +226,16 @@ gunicorn sage_frontend.sage_server.main:app \
 
 ```bash
 # 安装可视化增强功能
-pip install sage-frontend[visualization]
+pip install intellistream-sage-frontend[visualization]
 
 # 安装安全增强功能
-pip install sage-frontend[security]
+pip install intellistream-sage-frontend[security]
 
 # 安装监控功能
-pip install sage-frontend[monitoring]
+pip install intellistream-sage-frontend[monitoring]
 
 # 安装所有可选功能
-pip install sage-frontend[dev,visualization,security,monitoring]
+pip install intellistream-sage-frontend[dev,visualization,security,monitoring]
 ```
 
 ## 贡献
@@ -254,9 +254,9 @@ pip install sage-frontend[dev,visualization,security,monitoring]
 
 ## 支持
 
-- **文档**: https://sage-docs.intellistream.cc/frontend
+- **文档**: https://intellistream.github.io/SAGE-Pub/
 - **问题反馈**: https://github.com/intellistream/SAGE/issues
-- **邮箱**: sage@intellistream.cc
+- **邮箱**: intellistream@outlook.com
 
 ## 相关项目
 

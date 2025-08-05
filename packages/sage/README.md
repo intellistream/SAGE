@@ -14,7 +14,7 @@ SAGE Framework是一个统一的AI推理和数据流处理框架，提供完整�
 ## 安装
 
 ```bash
-pip install sage
+pip install intellistream-sage
 ```
 
 ## 快速开始
@@ -36,7 +36,7 @@ print(result)  # [2, 4, 6, 8, 10]
 ## 文档
 
 更多详细信息请参考：
-- [官方文档](https://sage-docs.intellistream.cc)
+- [官方文档](https://intellistream.github.io/SAGE-Pub/)
 - [GitHub仓库](https://github.com/intellistream/SAGE)
 
 ## 许可证

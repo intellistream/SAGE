@@ -221,7 +221,7 @@ SAGE Middleware提供中间件服务，包含LLM中间件、API服务、任务�
 ## 安装
 
 ```bash
-pip install sage-middleware
+pip install intellistream-sage-middleware
 ```
 
 ## 基本使用

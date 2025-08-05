@@ -1,47 +1,57 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = [
+    "setuptools>=64",
+    "wheel",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sage"
-version = "1.0.0"
+name = "intsage"
+version = "1.0.1"
 description = "SAGE Framework Meta Package"
 readme = "README.md"
 requires-python = ">=3.10"
-
-license = "MIT"
-
 authors = [
-    {name = "IntelliStream Team", email = "sage@intellistream.cc"},
+    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
 ]
-keywords = ["sage", "framework", "meta package"]
+keywords = [
+    "data",
+    "ml",
+    "framework",
+    "intellistream",
+    "ai",
+    "sage",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Distributed Computing",
+]
+dependencies = [
+    "intsage-kernel>=1.0.0",
+    "intsage-middleware>=1.0.0",
+    "intsage-userspace>=1.0.0",
 ]
 
-dependencies = [
-    "sage-kernel>=1.0.0",
-    "sage-middleware>=1.0.0",
-    "sage-userspace>=1.0.0",
-    "sage-cli>=1.0.0",
-    # "sage-dev-toolkit>=1.0.0",
-]
+[project.license]
+text = "MIT"
 
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Repository = "https://github.com/intellistream/SAGE.git"
-Documentation = "https://sage-docs.intellistream.cc"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools]
-# 这是一个meta package，不包含实际的Python代码
-# 只用于聚合其他sage包的依赖
 packages = []
 include-package-data = false
 zip-safe = true
-
-# README

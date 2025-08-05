@@ -138,15 +138,31 @@ class BaseTcpServer(ABC):
     
     def _server_loop(self):
         """TCP服务器主循环"""
-        self.logger.debug(f"{self.server_name} loop started")
+        try:
+            self.logger.debug(f"{self.server_name} loop started")
+        except:
+            print(f"{self.server_name} loop started")
         
         while self.running:
             try:
                 if not self.server_socket:
                     break
+                
+                # 检查socket是否仍然有效
+                try:
+                    result = self.server_socket.accept()
+                    if result is None or len(result) != 2:
+                        self.logger.warning("Socket accept returned invalid result")
+                        break
+                    client_socket, address = result
+                except ValueError as ve:
+                    self.logger.warning(f"Socket accept unpacking error: {ve}")
+                    break
                     
-                client_socket, address = self.server_socket.accept()
-                self.logger.debug(f"New TCP client connected from {address}")
+                try:
+                    self.logger.debug(f"New TCP client connected from {address}")
+                except:
+                    print(f"New TCP client connected from {address}")
                 
                 # 在新线程中处理客户端
                 client_thread = threading.Thread(
@@ -160,13 +176,21 @@ class BaseTcpServer(ABC):
                 continue
             except OSError as e:
                 if self.running:
-                    self.logger.error(f"Error accepting TCP connection: {e}")
+                    try:
+                        self.logger.error(f"Error accepting TCP connection: {e}")
+                    except:
+                        print(f"Error accepting TCP connection: {e}")
                 break
             except Exception as e:
                 if self.running:
-                    self.logger.error(f"Unexpected error in server loop: {e}")
+                    # 使用print而不是logger来避免I/O错误
+                    print(f"Unexpected error in server loop: {e}")
+                break
         
-        self.logger.debug(f"{self.server_name} loop stopped")
+        try:
+            self.logger.debug(f"{self.server_name} loop stopped")
+        except:
+            print(f"{self.server_name} loop stopped")
     
     def _handle_client(self, client_socket: socket.socket, address: tuple):
         """处理客户端连接和消息"""
@@ -196,7 +220,11 @@ class BaseTcpServer(ABC):
                         self._send_response(client_socket, response)
                         
                 except Exception as e:
-                    self.logger.error(f"Error processing message from {address}: {e}")
+                    # 安全地记录错误，避免I/O错误
+                    try:
+                        self.logger.error(f"Error processing message from {address}: {e}")
+                    except:
+                        print(f"Error processing message from {address}: {e}")
                     # 发送错误响应
                     error_response = self._create_error_response(
                         {"request_id": None}, "ERR_INTERNAL_ERROR", f"Internal server error: {str(e)}"
@@ -204,13 +232,20 @@ class BaseTcpServer(ABC):
                     self._send_response(client_socket, error_response)
                 
         except Exception as e:
-            self.logger.error(f"Error handling TCP client {address}: {e}")
+            # 安全地记录错误，避免I/O错误
+            try:
+                self.logger.error(f"Error handling TCP client {address}: {e}")
+            except:
+                print(f"Error handling TCP client {address}: {e}")
         finally:
             try:
                 client_socket.close()
             except:
                 pass
-            self.logger.debug(f"TCP client {address} disconnected")
+            try:
+                self.logger.debug(f"TCP client {address} disconnected")
+            except:
+                pass
     
     def _receive_full_message(self, client_socket: socket.socket, message_size: int) -> Optional[bytes]:
         """接收完整的消息数据"""
@@ -219,7 +254,10 @@ class BaseTcpServer(ABC):
             chunk_size = min(message_size - len(message_data), 8192)
             chunk = client_socket.recv(chunk_size)
             if not chunk:
-                self.logger.warning("Connection closed while receiving message")
+                try:
+                    self.logger.warning("Connection closed while receiving message")
+                except:
+                    print("Connection closed while receiving message")
                 return None
             message_data += chunk
         

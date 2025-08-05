@@ -1,72 +1,77 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = [
+    "setuptools>=64",
+    "wheel",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sage-frontend"
-version = "1.0.0"
+name = "intsage-frontend"
+version = "1.0.1"
 description = "SAGE Framework - Web Frontend and Dashboard Interface"
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
 authors = [
-    {name = "IntelliStream Team", email = "sage@intellistream.cc"},
+    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
 ]
-keywords = ["web", "frontend", "dashboard", "fastapi", "angular", "ui", "visualization"]
+keywords = [
+    "data",
+    "web",
+    "fastapi",
+    "ui",
+    "ml",
+    "frontend",
+    "framework",
+    "angular",
+    "intellistream",
+    "visualization",
+    "ai",
+    "dashboard",
+    "sage",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
-    "Topic :: Scientific/Engineering :: Visualization",
-    "Framework :: FastAPI",
-    "Environment :: Web Environment",
+    "Topic :: System :: Distributed Computing",
 ]
-
 dependencies = [
-    # Web框架核心依赖
     "fastapi>=0.100.0",
     "uvicorn[standard]>=0.23.0",
     "websockets>=11.0",
-    
-    # 服务器和中间件
     "python-multipart>=0.0.6",
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
-    
-    # 配置和环境
     "python-dotenv>=1.0.0",
     "pydantic[email]>=2.0.0",
     "pydantic-settings>=2.0.0",
     "configparser>=5.3.0",
-    
-    # 数据处理
     "PyYAML>=6.0",
     "pandas>=2.0.0",
     "numpy>=1.24.0",
-    
-    # 文件上传和处理
     "aiofiles>=23.0.0",
     "python-multipart>=0.0.6",
-    
-    # 日志和监控
     "structlog>=23.0.0",
     "rich>=13.0.0",
 ]
 
+[project.license]
+text = "MIT"
+
 [project.optional-dependencies]
-# SAGE核心包集成
 sage = [
     "sage-kernel>=1.0.0",
-    "sage-middleware>=1.0.0", 
+    "sage-middleware>=1.0.0",
     "sage-userspace>=1.0.0",
 ]
-
-# 开发依赖
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
@@ -78,8 +83,6 @@ dev = [
     "ruff>=0.1.0",
     "pre-commit>=3.0.0",
 ]
-
-# 数据可视化增强
 visualization = [
     "plotly>=5.15.0",
     "dash>=2.11.0",
@@ -87,15 +90,11 @@ visualization = [
     "matplotlib>=3.7.0",
     "seaborn>=0.12.0",
 ]
-
-# 安全增强
 security = [
     "cryptography>=41.0.0",
     "bcrypt>=4.0.0",
     "authlib>=1.2.0",
 ]
-
-# 性能监控
 monitoring = [
     "prometheus-client>=0.17.0",
     "psutil>=5.9.0",
@@ -105,51 +104,52 @@ monitoring = [
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Repository = "https://github.com/intellistream/SAGE.git"
-Documentation = "https://sage-docs.intellistream.cc/frontend"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
-# Web服务入口点定义
 [project.scripts]
 sage-frontend = "sage_frontend.sage_server.main:main"
 sage-server = "sage_frontend.sage_server.main:main"
 sage-dashboard = "sage_frontend.sage_server.main:main"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
 include-package-data = true
 zip-safe = false
 
+[tool.setuptools.package-dir]
+"" = "src"
+
 [tool.setuptools.packages.find]
-where = ["src"]
-include = ["sage_frontend*"]
+where = [
+    "src",
+]
+include = [
+    "sage_frontend*",
+]
 namespaces = true
 
-# 包含静态文件和模板
 [tool.setuptools.package-data]
-"sage_frontend" = ["py.typed", "*.pyi"]
+sage_frontend = [
+    "py.typed",
+    "*.pyi",
+]
 
-# 代码质量工具配置
 [tool.black]
 line-length = 88
-target-version = ['py310']
-include = '\.pyi?$'
+target-version = [
+    "py310",
+]
+include = "\\.pyi?$"
 skip-string-normalization = true
-extend-exclude = '''
-/(
-    \.git
-    | \.venv
-    | build
-    | dist
-    | dashboard/node_modules
-    | dashboard/dist
-)/
-'''
+extend-exclude = "/(\n    \\.git\n    | \\.venv\n    | build\n    | dist\n    | dashboard/node_modules\n    | dashboard/dist\n)/\n"
 
 [tool.isort]
 profile = "black"
 multi_line_output = 3
 line_length = 88
-skip = ["dashboard"]
+skip = [
+    "dashboard",
+]
 
 [tool.mypy]
 python_version = "3.10"
@@ -168,17 +168,17 @@ exclude = [
 line-length = 88
 target-version = "py310"
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "C4",
+    "UP",
 ]
 ignore = [
-    "E501",  # line too long, handled by black
-    "B008",  # do not perform function calls in argument defaults
+    "E501",
+    "B008",
 ]
 exclude = [
     "dashboard",
@@ -186,18 +186,24 @@ exclude = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "sage_server"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
+testpaths = [
+    "tests",
+    "sage_server",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
 addopts = [
     "--strict-markers",
     "--strict-config",
     "-v",
-    # Coverage disabled for now
-    # "--cov=sage_frontend",
-    # "--cov-report=html",
-    # "--cov-report=term-missing",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
@@ -208,7 +214,9 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["sage_frontend"]
+source = [
+    "sage_frontend",
+]
 omit = [
     "*/tests/*",
     "*/test_*",

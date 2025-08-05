@@ -36,7 +36,7 @@
 pip install -e packages/sage-kernel
 
 # 或者从 PyPI 安装（发布后）
-pip install sage-kernel
+pip install intellistream-sage-kernel
 ```
 
 ### 使用核心API

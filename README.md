@@ -6,35 +6,41 @@ SAGE is a dataflow-native reasoning framework built from the ground up to suppor
 ![](./.github/asset/framework.png)
 
 
-## � Quick Installation
+## 📦 Quick Installation
 
-### For Developers
+### 一键安装（推荐）
 ```bash
-git clone <repo-url>
+pip install intsage
+```
+
+### 从源码安装（开发者）
+```bash
+git clone https://github.com/intellistream/SAGE.git
 cd SAGE
-pip install -r requirements-dev.txt
+pip install -e ".[dev]"
 ```
 
-### For Production
+### 模块化安装
 ```bash
-pip install -r requirements.txt
+# 核心组件
+pip install intsage-kernel
+
+# 用户空间（含示例）  
+pip install intsage-userspace
+
+# 中间件服务
+pip install intsage-middleware
+
+# 开发工具
+pip install intsage-dev-toolkit
+
+# Web前端
+pip install intsage-frontend
 ```
 
-### Commercial Version
-```bash
-# 1. Install base version
-pip install -r requirements.txt
+详细安装说明请参考 [INSTALLATION.md](INSTALLATION.md)。
 
-# 2. Install license
-python scripts/sage-license.py install <license-key>
-
-# 3. Install commercial components
-pip install -r requirements-commercial.txt
-```
-
-See [INSTALL_GUIDE.md](INSTALL_GUIDE.md) for detailed installation instructions.
-
-## �🛠️ SAGE Development Toolkit
+## 🛠️ SAGE Development Toolkit
 
 The SAGE Development Toolkit provides unified development tools for the SAGE project. It integrates various development utilities into a single, easy-to-use command-line interface.
 
@@ -42,7 +48,7 @@ The SAGE Development Toolkit provides unified development tools for the SAGE pro
 
 ```bash
 # Install the toolkit
-pip install -e dev-toolkit/
+pip install intsage-dev-toolkit
 
 # Show all available commands
 sage-dev --help
@@ -56,6 +62,31 @@ sage-dev test --mode diff
 # Update VS Code paths
 sage-dev update-vscode
 ```
+
+### 🎯 User-Friendly CLI Commands
+
+SAGE provides intuitive standalone CLI commands with tab completion support:
+
+```bash
+# JobManager (supports tab completion)
+sage-jobmanager start    # Start JobManager
+sage-jobmanager status   # Check status
+
+# Cluster management
+sage-cluster start       # Start cluster
+sage-cluster scale       # Scale cluster
+
+# Job management  
+sage-job submit job.py   # Submit job
+sage-job status          # Check job status
+
+# Other tools
+sage-worker start        # Start worker node
+sage-head start          # Start head node
+sage-config show         # Show configuration
+```
+
+💡 **Tip**: Use `sage-<TAB>` to see all available standalone commands!
 
 ### Available Commands
 
@@ -119,12 +150,12 @@ For users who want to use SAGE in their projects, the recommended installation m
 
 ```bash
 # Install the complete SAGE framework (metapackage)
-pip install sage-framework
+pip install intellistream-sage
 
 # After installation, you can verify it by checking the version
 sage --version
 ```
-*Note: The `sage-framework` package is a metapackage that will automatically install all the necessary sub-packages like `sage-kernel`, `sage-middleware`, etc. This package will be available on PyPI soon.*
+*Note: The `intellistream-sage` package is a metapackage that will automatically install all the necessary sub-packages like `intellistream-sage-kernel`, `intellistream-sage-middleware`, etc.*
 
 ### For Developers: Setting up a Local Development Environment
 

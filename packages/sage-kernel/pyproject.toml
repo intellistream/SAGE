@@ -1,94 +1,97 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = [
+    "setuptools>=64",
+    "wheel",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sage-kernel"
-version = "1.0.0"
+name = "intsage-kernel"
+version = "1.0.1"
 description = "SAGE Framework - 统一内核 (Core + Runtime + Utils + CLI)"
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
 authors = [
-    {name = "IntelliStream Team", email = "sage@intellistream.cc"},
+    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
 ]
-keywords = ["rag", "llm", "dataflow", "reasoning", "framework", "cli", "kernel"]
+keywords = [
+    "data",
+    "reasoning",
+    "kernel",
+    "dataflow",
+    "llm",
+    "ml",
+    "framework",
+    "rag",
+    "intellistream",
+    "cli",
+    "ai",
+    "sage",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: System :: Systems Administration",
-    "Environment :: Console",
+    "Topic :: System :: Distributed Computing",
 ]
-
 dependencies = [
-    
-    # Dependencies from sage-kernel-utils (pinned versions)
     "pyyaml==6.0.2",
     "python-dotenv==1.1.1",
     "python_multipart==0.0.20",
-    # Dependencies from sage-kernel-runtime-extended (pinned versions)
     "dill==0.4.0",
     "ray==2.48.0",
     "grpcio==1.74.0",
     "protobuf==6.31.1",
     "msgpack==1.1.1",
-    # Core system dependencies (pinned versions)
-    "torch==2.7.1",  # Latest stable version (compatible with xformers)
+    "torch>=2.7.0,<=2.7.1",  # 与vllm兼容的torch版本
     "torchvision==0.22.1",
-    
-    # Network dependencies for proxy support (pinned versions)
     "httpx==0.28.1",
     "socksio==1.0.0",
-    
-    # System and utilities (pinned versions)
     "psutil==6.1.0",
-    "numpy==2.2.6",
+    "numpy>=1.25.0,<2.0.0",  # 与vllm兼容的numpy版本
     "Cython==3.1.2",
     "pybind11==3.0.0",
-    
-    # Web and API (pinned versions)
     "aioboto3==14.1.0",
     "fastapi==0.115.12",
     "uvicorn==0.34.3",
-    "h11==0.16.0", # uvicorn requires h11>=0.8.0
-
+    "h11==0.16.0",
     "requests==2.32.4",
     "aiohappyeyeballs==2.6.1",
     "aiosignal==1.4.0",
-    
-    # Configuration and data (pinned versions)
     "pydantic",
     "PyYAML==6.0.2",
     "python-dotenv==1.1.1",
     "Jinja2==3.1.6",
-    
-    # CLI 专用依赖 (pinned versions)
-    "shellingham==1.5.4",              # Shell 检测
-    # CLI专用依赖
+    "shellingham==1.5.4",
+    "tabulate>=0.9.0",
+    "colorama>=0.4.6",
     "typer>=0.15.0",
     "rich>=13.0.0",
     "click>=8.0.0",
     "pydantic>=2.0.0",
     "PyYAML>=6.0",
-    "shellingham>=1.5.0",              # Shell 检测
-    "questionary>=1.10.0",             # 交互式命令行界面
-    "prompt_toolkit>=3.0.50",          # questionary
+    "shellingham>=1.5.0",
+    "questionary>=1.10.0",
+    "prompt_toolkit>=3.0.50",
 ]
+
+[project.license]
+text = "MIT"
 
 [project.optional-dependencies]
-# CLI 增强功能
 enhanced = [
-    "ipython>=8.0.0",                  # 交互式 Python shell
-    "colorama>=0.4.6",                 # 跨平台彩色输出
-    "pygments>=2.15.0",                # 语法高亮
+    "ipython>=8.0.0",
+    "colorama>=0.4.6",
+    "pygments>=2.15.0",
 ]
-
-# 开发依赖
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -99,14 +102,11 @@ dev = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
 ]
-
 web = [
-    "fastapi>=0.100.0", # 这个是frontend使用的
-
-    "uvicorn>=0.23.0",  # 这个也是frontend使用的
-    "websockets>=11.0", # 这个也是frontend使用的
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "websockets>=11.0",
 ]
-
 docs = [
     "sphinx>=7.0.0",
     "sphinx-rtd-theme>=1.3.0",
@@ -116,30 +116,53 @@ docs = [
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Repository = "https://github.com/intellistream/SAGE.git"
-Documentation = "https://sage-docs.intellistream.cc"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
+Issues = "https://github.com/intellistream/SAGE/issues"
 
-# CLI入口点定义
 [project.scripts]
 sage = "sage.cli.main:app"
 sage-kernel = "sage.cli.main:app"
+sage-jobmanager = "sage.cli.jobmanager_controller:app"
+sage-worker = "sage.cli.worker_manager:app"
+sage-head = "sage.cli.head_manager:app"
+sage-cluster = "sage.cli.cluster_manager:app"
+sage-job = "sage.cli.job:app"
+sage-deploy = "sage.cli.deploy:app"
+sage-extensions = "sage.cli.extensions:app"
+sage-config = "sage.cli.config_manager:app"
 
-[tool.setuptools]
-package-dir = {"" = "src"}
+[tool.setuptools.package-dir]
+"" = "src"
 
 [tool.setuptools.packages.find]
-where = ["src"]
-include = ["sage*"]
+where = [
+    "src",
+]
+include = [
+    "sage*",
+]
 namespaces = true
 
 [tool.setuptools.package-data]
-"sage" = ["py.typed"]
+sage = [
+    "py.typed",
+]
 
-# pytest配置
 [tool.pytest.ini_options]
-testpaths = ["tests", "src/sage"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
+testpaths = [
+    "tests",
+    "src/sage",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
 addopts = [
     "--strict-markers",
     "--strict-config",
@@ -156,11 +179,13 @@ markers = [
     "unit: marks tests as unit tests",
     "network: marks tests as network tests",
     "system: marks tests as system tests",
+    "core: marks tests as core functionality tests",
 ]
 
-# Coverage配置
 [tool.coverage.run]
-source = ["src/sage"]
+source = [
+    "src/sage",
+]
 omit = [
     "*/tests/*",
     "*/test_*.py",
@@ -176,50 +201,42 @@ exclude_lines = [
     "if __name__ == .__main__.:",
 ]
 
-# Black代码格式化
 [tool.black]
 line-length = 88
-target-version = ['py311']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.pytest_cache
-  | \.ruff_cache
-  | \.venv
-  | build
-  | dist
-)/
-'''
+target-version = [
+    "py311",
+]
+include = "\\.pyi?$"
+extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.pytest_cache\n  | \\.ruff_cache\n  | \\.venv\n  | build\n  | dist\n)/\n"
 
-# Ruff linting
 [tool.ruff]
 target-version = "py311"
 line-length = 88
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "C4",
+    "UP",
 ]
 ignore = [
-    "E501",  # line too long, handled by black
-    "B008",  # do not perform function calls in argument defaults
-    "C901",  # too complex
+    "E501",
+    "B008",
+    "C901",
 ]
 
 [tool.ruff.per-file-ignores]
-"__init__.py" = ["F401"]
-"tests/**/*" = ["PLR2004", "S101", "TID252"]
+"__init__.py" = [
+    "F401",
+]
+"tests/**/*" = [
+    "PLR2004",
+    "S101",
+    "TID252",
+]
 
-# MyPy类型检查
 [tool.mypy]
 python_version = "3.11"
 check_untyped_defs = true

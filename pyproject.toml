@@ -24,10 +24,10 @@ classifiers = [
 
 # 核心依赖 - 安装本地包
 dependencies = [
-    "sage-kernel",
-    "sage-middleware", 
-    "sage-userspace",
-    "sage-cli",
+    "intsage-kernel",
+    "intsage-middleware", 
+    "intsage-userspace",
+    "intsage-dev-toolkit",
 ]
 
 [project.optional-dependencies]
@@ -43,7 +43,7 @@ dev = [
     "mypy",
     "ipython",
     "jupyter",
-    "sage-dev-toolkit",
+    "intsage-dev-toolkit",
 ]
 
 # 文档依赖

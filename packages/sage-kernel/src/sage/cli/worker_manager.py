@@ -685,5 +685,13 @@ echo "Worker节点已停止" | tee -a "$LOG_DIR/worker.log"'''
     
     typer.echo(f"✅ Worker节点 {host}:{port} 移除完成")
 
+@app.command("version")
+def version_command():
+    """Show version information."""
+    typer.echo("👥 SAGE Worker Manager")
+    typer.echo("Version: 1.0.1")
+    typer.echo("Author: IntelliStream Team")
+    typer.echo("Repository: https://github.com/intellistream/SAGE")
+
 if __name__ == "__main__":
     app()

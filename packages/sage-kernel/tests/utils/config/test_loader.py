@@ -25,8 +25,8 @@ class TestLoadConfig:
     
     def setup_method(self):
         """测试前准备"""
-        self.temp_dir = tempfile.mkdtemp()
-        self.config_dir = Path(self.temp_dir) / "config"
+        self.temp_dir = Path(tempfile.mkdtemp())
+        self.config_dir = self.temp_dir / "config"
         self.config_dir.mkdir(parents=True, exist_ok=True)
         
         # 创建测试配置文件

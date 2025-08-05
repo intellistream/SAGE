@@ -1,35 +1,142 @@
 # SAGE 安装指南
 
-## 快速开始
+## 📦 推荐安装方式
 
-### 开源版本
+### 快速安装
+
+```bash
+# 安装完整 SAGE 框架
+pip install intsage
+```
+
+### 验证安装
+
+```bash
+# 检查安装是否成功
+python -c "import sage; print('SAGE 安装成功！版本:', sage.__version__)"
+```
+
+## 🚀 详细安装选项
+
+### 从 PyPI 安装
+
+```bash
+# 1. 完整框架（推荐）
+pip install intsage
+
+# 2. 按需安装
+pip install intsage-kernel      # 核心引擎
+pip install intsage-userspace   # 用户空间（含示例）
+pip install intsage-middleware  # 中间件服务
+pip install intsage-dev-toolkit # 开发工具
+pip install intsage-frontend    # Web前端
+```
+
+### 从源码安装（开发者）
 
 ```bash
 # 1. 克隆仓库
-git clone <repo-url>
+git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 
-# 2. 安装核心包 (生产环境)
-pip install -r requirements.txt
+# 2. 开发环境安装
+pip install -e ".[dev]"
 
-# 3. 开发环境 (推荐)
-pip install -r requirements-dev.txt
+# 3. 或者仅安装核心包
+pip install -e .
 ```
 
-### 商业版本
+## 📚 快速上手
+
+### 基础使用
+
+```python
+import sage
+
+# 创建本地执行环境
+env = sage.LocalEnvironment()
+
+# 创建数据流
+stream = env.from_collection([1, 2, 3, 4, 5])
+
+# 应用转换操作
+result = stream.map(lambda x: x * 2).collect()
+print(result)  # [2, 4, 6, 8, 10]
+```
+
+### 使用内置示例
+
+```python
+# 访问教程示例
+from sage.examples.tutorials import hello_world
+
+# 访问 RAG 示例
+from sage.examples.rag import qa_simple
+
+# 访问智能体示例
+from sage.examples.agents import multiagent_app
+
+# 访问流处理示例
+from sage.examples.streaming import kafka_query
+```
+
+### Web 前端使用
 
 ```bash
-# 1. 安装开源版本
-pip install -r requirements.txt
+# 安装前端组件
+pip install intsage-frontend
 
-# 2. 安装许可证
-python scripts/sage-license.py install <your-license-key>
+# 启动 Web 界面
+sage-web --port 8080
+```
+
+## 🔧 开发工具
+
+```bash
+# 安装开发工具
+pip install intsage-dev-toolkit
+
+# 使用开发工具
+sage-dev --help
+sage-dev test
+sage-dev analyze
+```
+
+## ⚡ CLI 工具快速上手
+
+SAGE 提供了用户友好的独立CLI命令：
+
+```bash
+# JobManager 管理（支持 tab 补全）
+sage-jobmanager start    # 启动 JobManager
+sage-jobmanager status   # 查看状态
+sage-jobmanager stop     # 停止
+
+# 集群管理
+sage-cluster start       # 启动集群
+sage-cluster status      # 集群状态
+sage-cluster stop        # 停止集群
+
+# 作业管理
+sage-job submit my_job.py  # 提交作业
+sage-job status            # 查看作业状态
+sage-job list              # 列出所有作业
+
+# 其他工具
+sage-worker start         # 启动 Worker 节点
+sage-head start           # 启动 Head 节点
+sage-deploy start         # 启动部署
+sage-config show          # 显示配置
+```
+
+💡 **提示**: 使用 `sage-<TAB>` 可以查看所有可用的独立命令！
+python tools/license/sage_license.py install <your-license-key>
 
 # 3. 安装商业版组件
 pip install -r requirements-commercial.txt
 
 # 4. 验证安装
-python scripts/sage-license.py status
+python tools/license/sage_license.py status
 ```
 
 ## 安装选项说明
@@ -57,6 +164,34 @@ SAGE/
     └── sage-userspace/
 ```
 
+## 商业版许可证管理
+
+### 为客户生成许可证 (供应商使用)
+
+```bash
+# 生成新许可证 (默认365天有效期)
+python tools/license/sage_license.py generate "Company ABC"
+
+# 生成指定有效期的许可证
+python tools/license/sage_license.py generate "Customer XYZ" 180
+
+# 查看已生成的许可证
+python tools/license/sage_license.py list
+```
+
+### 许可证安装和管理 (客户使用)
+
+```bash
+# 安装许可证
+python tools/license/sage_license.py install SAGE-COMM-2025-A1B2-C3D4-E5F6
+
+# 查看许可证状态
+python tools/license/sage_license.py status
+
+# 移除许可证
+python tools/license/sage_license.py remove
+```
+
 ## 验证安装
 
 ```bash
@@ -67,7 +202,7 @@ python -c "import sage; print('SAGE installed successfully')"
 sage --version
 
 # 检查商业版许可证 (如果适用)
-python scripts/sage-license.py status
+python tools/license/sage_license.py status
 ```
 
 ## 故障排除
@@ -103,7 +238,7 @@ python -c "import sage; print('SAGE Ready!')"
 
 ```bash
 # 安装商业许可
-python scripts/sage-license.py install YOUR-LICENSE-KEY
+python tools/license/sage_license.py install YOUR-LICENSE-KEY
 
 # 重新安装以获得商业功能
 pip install --upgrade --force-reinstall -e .

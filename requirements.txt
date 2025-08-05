@@ -3,5 +3,4 @@
 -e packages/sage-kernel
 -e packages/sage-middleware  
 -e packages/sage-userspace
--e packages/sage-tools/sage-cli
 -e packages/sage

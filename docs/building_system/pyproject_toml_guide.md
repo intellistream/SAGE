@@ -89,7 +89,7 @@ readme = "README.md"                      # README 文件
 requires-python = ">=3.10"               # Python 版本要求
 license = "Apache-2.0"                   # 许可证
 authors = [                              # 作者信息
-    {name = "IntelliStream Team", email = "sage@intellistream.cc"},
+    {name = "IntelliStream Team", email = "intellistream@outlook.com"},
 ]
 keywords = ["rag", "llm", "framework"]   # 关键词
 classifiers = [                          # PyPI 分类器
