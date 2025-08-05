@@ -4,7 +4,7 @@ from sage.kernels.core.transformation.base_transformation import BaseTransformat
 from sage.kernels.core.operator.sink_operator import SinkOperator
 if TYPE_CHECKING:
     from sage.api.function.sink_function import SinkFunction
-    from sage.kernels.core.environment.base_environment import BaseEnvironment
+    from sage.api.base_environment import BaseEnvironment
 
 
 class SinkTransformation(BaseTransformation):

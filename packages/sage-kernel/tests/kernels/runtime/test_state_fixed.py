@@ -462,13 +462,13 @@ class TestStateBlacklistHandling:
         file_type = type(open(__file__, 'r'))
         file_handle = open(__file__, 'r')
         try:
-            assert isinstance(file_handle, _BLACKLIST)
+            assert isinstance(file_handle, tuple(_BLACKLIST))
         finally:
             file_handle.close()
         
         # Thread type should be in blacklist
         thread = threading.Thread()
-        assert isinstance(thread, _BLACKLIST)
+        assert isinstance(thread, tuple(_BLACKLIST))
 
     @pytest.mark.unit
     def test_blacklist_detection_in_is_serializable(self):

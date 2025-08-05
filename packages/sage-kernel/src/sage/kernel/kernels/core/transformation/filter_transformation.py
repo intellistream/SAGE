@@ -1,14 +1,17 @@
 from __future__ import annotations
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
 from sage.kernels.core.transformation.base_transformation import BaseTransformation
-from sage.kernels.core.operator.flatmap_operator import FlatMapOperator
+from sage.kernels.core.operator.filter_operator import FilterOperator
 if TYPE_CHECKING:
+    from sage.kernels.core.operator.base_operator import BaseOperator
     from sage.api.function.base_function import BaseFunction
-    from sage.kernels.core.environment.base_environment import BaseEnvironment
+    from sage.api.base_environment import BaseEnvironment
 
 
-class FlatMapTransformation(BaseTransformation):
-    """扁平映射变换 - 一对多数据变换"""
+
+
+class FilterTransformation(BaseTransformation):
+    """过滤变换 - 数据过滤"""
     
     def __init__(
         self,
@@ -17,5 +20,5 @@ class FlatMapTransformation(BaseTransformation):
         *args,
         **kwargs
     ):
-        self.operator_class = FlatMapOperator
+        self.operator_class = FilterOperator
         super().__init__(env, function, *args, **kwargs)

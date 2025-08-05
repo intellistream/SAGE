@@ -27,7 +27,7 @@ from sage.utils.system.network import (
     allocate_free_port,
     aggressive_port_cleanup,
     get_host_ip,
-    test_tcp_connection,
+    check_tcp_connection,
     _find_processes_with_lsof,
     _find_processes_with_netstat,
     _find_processes_with_fuser
@@ -660,7 +660,7 @@ class TestTcpConnection:
             mock_sock.connect_ex.return_value = 0
             
             with patch('time.time', side_effect=[0, 0.5]):
-                result = test_tcp_connection("127.0.0.1", 8080)
+                result = check_tcp_connection("127.0.0.1", 8080)
             
             assert result["success"] is True
             assert "Connection to 127.0.0.1:8080 successful" in result["message"]
@@ -675,7 +675,7 @@ class TestTcpConnection:
             mock_sock.connect_ex.return_value = 111  # Connection refused
             
             with patch('time.time', side_effect=[0, 0.1]):
-                result = test_tcp_connection("127.0.0.1", 8080)
+                result = check_tcp_connection("127.0.0.1", 8080)
             
             assert result["success"] is False
             assert "Connection to 127.0.0.1:8080 failed" in result["message"]
@@ -690,7 +690,7 @@ class TestTcpConnection:
             mock_socket.return_value.__enter__.return_value = mock_sock
             mock_sock.connect_ex.side_effect = socket.timeout()
             
-            result = test_tcp_connection("127.0.0.1", 8080, timeout=5)
+            result = check_tcp_connection("127.0.0.1", 8080, timeout=5)
             
             assert result["success"] is False
             assert "Connection timeout to 127.0.0.1:8080" in result["message"]
@@ -704,7 +704,7 @@ class TestTcpConnection:
             mock_socket.return_value.__enter__.return_value = mock_sock
             mock_sock.connect_ex.side_effect = Exception("Socket error")
             
-            result = test_tcp_connection("127.0.0.1", 8080)
+            result = check_tcp_connection("127.0.0.1", 8080)
             
             assert result["success"] is False
             assert "Connection test failed" in result["message"]
@@ -718,7 +718,7 @@ class TestTcpConnection:
             mock_socket.return_value.__enter__.return_value = mock_sock
             mock_sock.connect_ex.return_value = 0
             
-            test_tcp_connection("127.0.0.1", 8080, timeout=10)
+            check_tcp_connection("127.0.0.1", 8080, timeout=10)
             
             mock_sock.settimeout.assert_called_once_with(10)
 
@@ -766,7 +766,7 @@ class TestIntegrationScenarios:
             mock_socket.return_value.__enter__.return_value = mock_sock
             mock_sock.connect_ex.return_value = 0
             
-            conn_result = test_tcp_connection("127.0.0.1", 8080)
+            conn_result = check_tcp_connection("127.0.0.1", 8080)
             assert conn_result["success"] is True
         
         # Then test health check
@@ -896,7 +896,7 @@ class TestErrorHandlingScenarios:
     def test_network_interface_errors(self):
         """Test handling network interface errors"""
         # Invalid network interface
-        result = test_tcp_connection("999.999.999.999", 8080)
+        result = check_tcp_connection("999.999.999.999", 8080)
         assert not result["success"]
         
         # IPv6 localhost
@@ -905,7 +905,7 @@ class TestErrorHandlingScenarios:
             mock_socket.return_value.__enter__.return_value = mock_sock
             mock_sock.connect_ex.return_value = 0
             
-            result = test_tcp_connection("::1", 8080)
+            result = check_tcp_connection("::1", 8080)
             assert result["success"]
     
     @pytest.mark.unit
@@ -925,7 +925,7 @@ class TestErrorHandlingScenarios:
             result = is_port_occupied("127.0.0.1", 8080)
             assert not result
             
-            result = test_tcp_connection("127.0.0.1", 8080)
+            result = check_tcp_connection("127.0.0.1", 8080)
             assert not result["success"]
 
 

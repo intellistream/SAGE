@@ -87,7 +87,8 @@ class TestBaseTcpServer:
             mock_socket.return_value = mock_sock
             mock_sock.getsockname.return_value = ("192.168.1.100", 12345)
             
-            server = self.ConcreteTcpServer()
+            # Create server without triggering initialization calls to _get_host_ip
+            server = self.ConcreteTcpServer(host="127.0.0.1")  # Provide host to avoid calling _get_host_ip
             result = server._get_host_ip()
             
             assert result == "192.168.1.100"

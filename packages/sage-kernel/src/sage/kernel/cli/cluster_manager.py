@@ -223,5 +223,13 @@ def cluster_info():
     typer.echo(f"   Ray命令: {remote_config.get('ray_command', 'N/A')}")
     typer.echo(f"   Conda环境: {remote_config.get('conda_env', 'N/A')}")
 
+@app.command("version")
+def version_command():
+    """Show version information."""
+    typer.echo("🏗️ SAGE Cluster Manager")
+    typer.echo("Version: 1.0.1")
+    typer.echo("Author: IntelliStream Team")
+    typer.echo("Repository: https://github.com/intellistream/SAGE")
+
 if __name__ == "__main__":
     app()

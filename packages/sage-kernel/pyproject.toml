@@ -170,8 +170,8 @@ addopts = [
     "-ra",
     "--cov=sage",
     "--cov-report=term-missing",
-    "--cov-report=html:htmlcov",
-    "--cov-report=xml",
+    "--cov-report=html:.sage/logs/htmlcov",
+    "--cov-report=xml:.sage/logs/coverage.xml",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
@@ -183,6 +183,7 @@ markers = [
 ]
 
 [tool.coverage.run]
+data_file = ".sage/logs/.coverage"
 source = [
     "src/sage",
 ]

@@ -375,7 +375,7 @@ def get_host_ip() -> str:
         return "127.0.0.1"
 
 
-def test_tcp_connection(host: str, port: int, timeout: int = 5) -> Dict[str, Any]:
+def check_tcp_connection(host: str, port: int, timeout: int = 5) -> Dict[str, Any]:
     """
     测试TCP连接
     

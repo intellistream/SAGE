@@ -4,7 +4,7 @@ from sage.kernels.core.transformation.base_transformation import BaseTransformat
 from sage.kernels.core.operator.map_operator import MapOperator
 if TYPE_CHECKING:
     from sage.api.function.base_function import BaseFunction
-    from sage.kernels.core.environment.base_environment import BaseEnvironment
+    from sage.api.base_environment import BaseEnvironment
 
 class MapTransformation(BaseTransformation):
     """映射变换 - 一对一数据变换"""

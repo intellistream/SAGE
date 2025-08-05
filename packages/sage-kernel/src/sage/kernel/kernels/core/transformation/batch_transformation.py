@@ -4,7 +4,7 @@ from sage.kernels.core.transformation.base_transformation import BaseTransformat
 from sage.kernels.core.operator.batch_operator import BatchOperator
 if TYPE_CHECKING:
     from sage.api.function.base_function import BaseFunction
-    from sage.kernels.core.environment.base_environment import BaseEnvironment
+    from sage.api.base_environment import BaseEnvironment
 
 
 class BatchTransformation(BaseTransformation):

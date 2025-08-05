@@ -125,13 +125,9 @@ class TestRayDetection:
     
     def test_is_ray_available_true(self):
         """测试Ray可用检测"""
-        with patch('importlib.import_module') as mock_import:
-            mock_ray = MagicMock()
-            mock_import.return_value = mock_ray
-            
+        with patch.dict('sys.modules', {'ray': MagicMock()}):
             result = is_ray_available()
             assert result is True
-            mock_import.assert_called_with('ray')
     
     def test_is_ray_available_false(self):
         """测试Ray不可用检测"""

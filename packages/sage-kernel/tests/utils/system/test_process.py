@@ -113,10 +113,14 @@ class TestFindProcessesByName:
             mock_proc1.info = {'pid': 1234, 'name': 'python', 'cmdline': ['python']}
             
             mock_proc2 = MagicMock()
-            mock_proc2.info = property(lambda x: (_ for _ in ()).throw(psutil.AccessDenied()))
+            # When accessing info, raise AccessDenied
+            mock_proc2.info = MagicMock()
+            mock_proc2.info.__getitem__.side_effect = psutil.AccessDenied()
             
             mock_proc3 = MagicMock()
-            mock_proc3.info = property(lambda x: (_ for _ in ()).throw(psutil.NoSuchProcess(1234)))
+            # When accessing info, raise NoSuchProcess
+            mock_proc3.info = MagicMock()
+            mock_proc3.info.__getitem__.side_effect = psutil.NoSuchProcess(1234)
             
             return [mock_proc1, mock_proc2, mock_proc3]
         

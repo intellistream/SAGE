@@ -4,7 +4,7 @@ from .base_transformation import BaseTransformation
 from sage.kernels.core.operator.future_operator import FutureOperator
 
 if TYPE_CHECKING:
-    from sage.kernels.core.environment.base_environment import BaseEnvironment
+    from sage.api.base_environment import BaseEnvironment
 
 
 class FutureTransformation(BaseTransformation):

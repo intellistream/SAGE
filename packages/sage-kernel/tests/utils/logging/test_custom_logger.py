@@ -64,10 +64,11 @@ class TestCustomLogger:
         )
         
         assert logger.log_base_folder == self.temp_dir
-        assert len(logger.output_configs) == 2
+        output_configs = logger.get_output_configs()
+        assert len(output_configs) == 2
         
         # 验证路径解析
-        file_config = next(c for c in logger.output_configs if c['target'] == "app.log")
+        file_config = next(c for c in output_configs if c['target'] == "app.log")
         expected_path = os.path.join(self.temp_dir, "app.log")
         assert file_config['resolved_path'] == expected_path
         

@@ -33,6 +33,20 @@ class TestTcpClient(BaseTcpClient):
     def handle_response(self, response_data):
         """处理响应"""
         return response_data
+    
+    def _build_health_check_request(self):
+        """构建健康检查请求"""
+        return {
+            "type": "health_check",
+            "timestamp": time.time()
+        }
+    
+    def _build_server_info_request(self):
+        """构建服务器信息请求"""
+        return {
+            "type": "server_info",
+            "timestamp": time.time()
+        }
 
 
 @pytest.mark.unit
