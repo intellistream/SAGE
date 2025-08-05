@@ -27,49 +27,48 @@ classifiers = [
 
 dependencies = [
     
-    # Dependencies from sage-kernel-utils
-    "pyyaml>=6.0.2",
-    "python-dotenv>=1.1.0",
-    "python_multipart>=0.0.19",
-    # Dependencies from sage-kernel-runtime-extended  
-    "dill>=0.3.8",
-    "ray>=2.47.0",
-    "grpcio>=1.74.0",
-    "protobuf>=6.30",
-    "msgpack>=1.1.0",
-    # Core system dependencies
+    # Dependencies from sage-kernel-utils (pinned versions)
+    "pyyaml==6.0.2",
+    "python-dotenv==1.1.1",
+    "python_multipart==0.0.20",
+    # Dependencies from sage-kernel-runtime-extended (pinned versions)
+    "dill==0.4.0",
+    "ray==2.48.0",
+    "grpcio==1.74.0",
+    "protobuf==6.31.1",
+    "msgpack==1.1.1",
+    # Core system dependencies (pinned versions)
     "torch==2.3.0",  # vllm requires exactly torch==2.3.0
-    "torchvision",
+    "torchvision==0.18.0",
     
-    # Network dependencies for proxy support
-    "httpx[socks]>=0.25.0",
-    "socksio>=1.0.0",
+    # Network dependencies for proxy support (pinned versions)
+    "httpx==0.28.1",
+    "socksio==1.0.0",
     
-    # System and utilities
-    "psutil",
-    "numpy>=2.2.6",
-    "Cython",
-    "pybind11",
+    # System and utilities (pinned versions)
+    "psutil==7.0.0",
+    "numpy==2.3.2",
+    "Cython==3.1.2",
+    "pybind11==3.0.0",
     
-    # Web and API # 其中很多依赖都是sage-frontend使用的，需要找个机会搬过去
+    # Web and API (pinned versions)
     "aioboto3==14.1.0",
     "fastapi==0.115.12",
     "uvicorn==0.34.3",
-    "h11>=0.16.0", # uvicorn requires h11>=0.8.0
+    "h11==0.16.0", # uvicorn requires h11>=0.8.0
 
-
-    "Requests==2.32.4",
-    "aiohappyeyeballs>=2.6.1",
-    "aiosignal>=1.4.0",
+    "requests==2.32.4",
+    "aiohappyeyeballs==2.6.1",
+    "aiosignal==1.4.0",
     
-    # Configuration and data
-    "pydantic",
+    # Configuration and data (pinned versions)
+    "pydantic==2.9.2",
     "PyYAML==6.0.2",
-    "python-dotenv>=1.1.0",
+    "python-dotenv==1.1.1",
     "Jinja2==3.1.6",
     
-    # CLI 专用依赖
-    "shellingham>=1.5.0",              # Shell 检测
+    # CLI 专用依赖 (pinned versions)
+    "shellingham==1.5.4",              # Shell 检测
 ]
 
 [project.optional-dependencies]

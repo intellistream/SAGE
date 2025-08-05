@@ -28,44 +28,44 @@ classifiers = [
 dependencies = [
     "sage-kernel>=1.0.0",  
     
-    # 服务层专用依赖
-    "python-jose[cryptography]>=3.3.0", # JWT 处理
-    "passlib[bcrypt]>=1.7.4",          # 密码加密  
-    "celery>=5.3.0",                   # 任务队列
-    "flower>=2.0.0",                   # Celery 监控界面
+    # 服务层专用依赖 (pinned versions)
+    "python-jose==3.5.0", # JWT 处理 (removed [cryptography] extra)
+    "passlib==1.7.4",          # 密码加密 (removed [bcrypt] extra)
+    "celery==5.5.3",                   # 任务队列
+    "flower==2.0.1",                   # Celery 监控界面
     
-    # LLM 中间件专用依赖
-    "openai",                          # OpenAI API 客户端
-    "ollama",                          # Ollama API 客户端
-    "zhipuai>=2.1.5",                  # 智谱AI API 客户端
-    "cohere>=5.15.0",                  # Cohere API 客户端
-    "transformers>=4.40.0",            # HuggingFace 模型
-    "tokenizers>=0.19.0",              # Tokenizers for transformers
-    "vllm>=0.6.0",                     # vLLM for high-performance inference
+    # LLM 中间件专用依赖 (pinned versions)
+    "openai==1.98.0",                          # OpenAI API 客户端
+    "ollama==0.5.1",                          # Ollama API 客户端
+    "zhipuai==2.1.5.20250801",                  # 智谱AI API 客户端
+    "cohere==5.16.2",                  # Cohere API 客户端
+    "transformers==4.54.1",            # HuggingFace 模型
+    "tokenizers==0.21.4",              # Tokenizers for transformers
+    "vllm==0.10.0",                     # vLLM for high-performance inference
     
-    # Search and retrieval dependencies
+    # Search and retrieval dependencies (pinned versions)
     "faiss-cpu==1.9.0",               # FAISS for vector similarity search
-    "bm25s>=0.2.13",                  # BM25 search implementation
-    "rank_bm25",                      # BM25 ranking algorithm
+    "bm25s==0.2.13",                  # BM25 search implementation
+    "rank-bm25==0.2.2",                      # BM25 ranking algorithm (fixed name)
     "PyStemmer==3.0.0",               # Text stemming for search
     
-    # aiohttp
-    "aiohttp>=3.12.15",
-    "frozenlist>=1.6.2",
+    # aiohttp (pinned versions)
+    "aiohttp==3.12.15",
+    "frozenlist==1.7.0",
 
-    # httpx
+    # httpx (pinned versions)
     "httpx==0.28.1",
-    "certifi>=2025.7.14",
-    
-    # Text processing dependencies
+    "certifi==2025.8.3",
+
+    # Text processing dependencies (pinned versions)
     "feedparser==6.0.11",             # RSS/Atom feed parsing
     
-    # ML/AI dependencies used in middleware
-    "accelerate>=0.29.3",              # For model acceleration
-    "sentence_transformers>=3.1.1",    # For embeddings
-    "InstructorEmbedding>=1.0.1",      # For instructor embeddings
-    "huggingface_hub>=0.22.2",         # HuggingFace Hub client
-    "peft",                            # Parameter-efficient fine-tuning
+    # ML/AI dependencies used in middleware (pinned versions)
+    "accelerate==1.9.0",              # For model acceleration
+    "sentence-transformers==5.0.0",    # For embeddings
+    "InstructorEmbedding==1.0.1",      # For instructor embeddings
+    "huggingface-hub==0.34.3",         # HuggingFace Hub client
+    "peft==0.17.0",                            # Parameter-efficient fine-tuning
 ]
 
 [project.optional-dependencies]
