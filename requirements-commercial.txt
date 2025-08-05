@@ -1,0 +1,51 @@
+# SAGE 商业版开发者安装 (闭源)
+# 适用于：内部开发者，企业客户
+# 安装方式：pip install -r requirements-commercial.txt
+# ⚠️  此文件不应上传到公共代码仓库
+
+# ============================================
+# SAGE 商业版包 (Editable 模式)
+# ============================================
+
+# 商业版核心内核 (包含高性能队列等)
+-e ./packages/commercial/sage-kernel
+
+# 商业版中间件 (包含数据库连接器等)
+-e ./packages/commercial/sage-middleware
+
+# 商业版用户空间 (包含企业功能)
+-e ./packages/commercial/sage-userspace
+
+# ============================================
+# 开源工具包 (可复用)
+# ============================================
+
+# 开发工具包 (开源)
+-e ./packages/sage-tools/sage-dev-toolkit
+
+# CLI工具 (开源)
+-e ./packages/sage-tools/sage-cli
+
+# ============================================
+# 开发工具
+# ============================================
+
+# 测试框架
+pytest>=7.0
+pytest-asyncio
+pytest-cov
+pytest-benchmark
+
+# 代码质量
+black
+isort
+flake8
+mypy
+
+# 文档生成
+sphinx
+sphinx-rtd-theme
+
+# 调试和分析
+ipython
+jupyter

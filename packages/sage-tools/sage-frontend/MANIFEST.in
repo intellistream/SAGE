@@ -1,0 +1,54 @@
+# Include documentation
+include README.md
+include LICENSE
+
+# Include configuration files
+include *.toml
+include *.ini
+include *.yaml
+include *.yml
+include *.env
+
+# Include all source files
+recursive-include src *.py
+recursive-include src *.pyi
+recursive-include src *.typed
+
+# Include sage_server files
+recursive-include sage_server *.py
+recursive-include sage_server *.ini
+recursive-include sage_server *.env
+recursive-include sage_server *.yaml
+recursive-include sage_server *.json
+recursive-include sage_server/data *
+recursive-include sage_server/routers *.py
+recursive-include sage_server/static *
+recursive-include sage_server/templates *
+
+# Include dashboard build artifacts (Angular frontend)
+recursive-include dashboard/dist *
+include dashboard/package.json
+include dashboard/angular.json
+include dashboard/*.json
+
+# Include operators
+recursive-include operators *.py
+recursive-include operators *.yaml
+recursive-include operators *.json
+
+# Exclude development and build files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude __pycache__
+global-exclude .git*
+global-exclude .DS_Store
+global-exclude *.so
+global-exclude .tox
+
+# Exclude node_modules and Angular development files
+prune dashboard/node_modules
+prune dashboard/src
+exclude dashboard/tsconfig*.json
+exclude dashboard/.editorconfig
+exclude dashboard/.gitignore

@@ -9,6 +9,10 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 CMakeUserPresets.json
+
+# ============================================
+# 构建和安装目录
+# ============================================
 /deps/CANDY/installation/dist/
 /deps/CANDY/installation/candy.egg-info/
 /deps/CANDY/installation/build/
