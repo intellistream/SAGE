@@ -1,0 +1,11 @@
+# SAGE 安装步骤2：AI/ML功能层
+# 包含可能有版本冲突的包
+
+# SAGE 用户空间（含AI/ML依赖）
+-e ./packages/sage-userspace
+
+# CLI工具
+-e ./packages/sage-tools/sage-cli
+
+# SAGE 元包（聚合所有功能）
+-e ./packages/sage

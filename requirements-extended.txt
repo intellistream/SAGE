@@ -1,0 +1,15 @@
+# SAGE 扩展功能 (可选安装)
+# 前提: 先安装 requirements-core.txt
+# 安装方法: pip install -r requirements-extended.txt
+
+# 中间件包 (包含AI/ML功能，可能有版本冲突)
+-e ./packages/sage-middleware
+
+# 用户空间包
+-e ./packages/sage-userspace
+
+# CLI工具 (修复依赖后)
+-e ./packages/sage-tools/sage-cli
+
+# Meta package
+-e ./packages/sage

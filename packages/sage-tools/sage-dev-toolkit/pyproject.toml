@@ -46,8 +46,8 @@ dependencies = [
     # Code analysis (pinned versions)
     "gitpython==3.1.45",
     
-    # Security analysis (pinned versions)
-    "safety==3.6.0",
+    # Security analysis (pinned versions) - 暂时注释掉，因为版本冲突
+    # "safety==3.6.0",
     
     # Packaging
     "packaging>=21.0",
