@@ -112,7 +112,7 @@ cat sample/question.txt | head -5
 # 测试配置路径
 cd ../rag
 python -c "
-from sage.utils.config_loader import load_config
+from sage.utils.config.loader import load_config
 config = load_config('../config/config.yaml')
 print('数据路径:', config['source']['data_path'])
 "

@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-OUTPUT_DIR="wheelhouse"
+OUTPUT_DIR="build/wheels"
 mkdir -p "$OUTPUT_DIR"
 
 # Ensure build tool is available
@@ -19,11 +19,20 @@ if ! python3 -c "import setuptools_scm" &>/dev/null; then
   pip install setuptools-scm
 fi
 
-# Ensure torch is available for vllm build dependencies
-if ! python3 -c "import torch" &>/dev/null; then
-  echo "Installing torch to satisfy build requirements..."
-  pip install torch
+# Install Rust if not available (required for tokenizers and other Rust-based packages)
+if ! command -v rustc &> /dev/null; then
+    echo "Installing Rust toolchain for tokenizers compilation..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+    source ~/.cargo/env
+    export PATH="$HOME/.cargo/bin:$PATH"
+    echo "Rust installed successfully"
+else
+    echo "Rust is already available"
 fi
+
+# Pre-install dependencies to avoid compilation issues during wheel building
+echo "Pre-installing common dependencies..."
+pip install --upgrade httpx[socks] socksio
 
 # Directories to scan
 ROOTS=("packages" "packages/commercial" "packages/tools")

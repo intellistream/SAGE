@@ -74,7 +74,7 @@ source:
 ### 配置验证
 ```python
 # 验证配置文件加载
-from sage.utils.config_loader import load_config
+from sage.utils.config.loader import load_config
 config = load_config("../../resources/config/config.yaml")
 print("配置加载成功:", config.keys())
 ```
