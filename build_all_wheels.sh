@@ -5,10 +5,14 @@
 set -euo pipefail
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 OUTPUT_DIR="build/wheels"
 =======
 OUTPUT_DIR="wheelhouse"
 >>>>>>> 7e283a1 (code cleanups)
+=======
+OUTPUT_DIR="build/wheels"
+>>>>>>> e3ad356 (renames)
 mkdir -p "$OUTPUT_DIR"
 
 # Ensure build tool is available
@@ -24,6 +28,9 @@ if ! python3 -c "import setuptools_scm" &>/dev/null; then
 fi
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e3ad356 (renames)
 # Install Rust if not available (required for tokenizers and other Rust-based packages)
 if ! command -v rustc &> /dev/null; then
     echo "Installing Rust toolchain for tokenizers compilation..."
@@ -33,6 +40,7 @@ if ! command -v rustc &> /dev/null; then
     echo "Rust installed successfully"
 else
     echo "Rust is already available"
+<<<<<<< HEAD
 fi
 
 # Pre-install dependencies to avoid compilation issues during wheel building
@@ -47,6 +55,14 @@ if ! python3 -c "import torch" &>/dev/null; then
 fi
 
 >>>>>>> 7e283a1 (code cleanups)
+=======
+fi
+
+# Pre-install dependencies to avoid compilation issues during wheel building
+echo "Pre-installing common dependencies..."
+pip install --upgrade httpx[socks] socksio
+
+>>>>>>> e3ad356 (renames)
 # Directories to scan
 ROOTS=("packages" "packages/commercial" "packages/tools")
 

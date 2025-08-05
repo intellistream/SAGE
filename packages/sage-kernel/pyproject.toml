@@ -36,15 +36,6 @@ dependencies = [
     "dill>=0.3.8",
     "ray>=2.0.0",
     
-<<<<<<< HEAD
-    # Core system dependencies
-    "torch==2.3.0",  # vllm requires exactly torch==2.3.0
-    "torchvision",
-    
-    # Network dependencies for proxy support
-    "httpx[socks]>=0.25.0",
-    "socksio>=1.0.0",
-=======
     # Core ML/AI dependencies
     "accelerate>=0.29.3",
     "einops",
@@ -52,14 +43,19 @@ dependencies = [
     "sentencepiece",
     "tiktoken",
     "torchvision",
-    "torch",
-    "transformers==4.45.2",
+    "torch>=2.5.0",
+    "transformers>=4.40.0",
+    "tokenizers>=0.19.0",
     "sentence_transformers==3.1.1",
     "InstructorEmbedding==1.0.1",
     "huggingface_hub>=0.22.2",
     "peft",
+    "vllm>=0.6.0",
+    
+    # Network dependencies for proxy support
+    "httpx[socks]>=0.25.0",
+    "socksio>=1.0.0",
     "vllm",
->>>>>>> 7e283a1 (code cleanups)
     
     # System and utilities
     "psutil",
@@ -118,9 +114,9 @@ dev = [
 ]
 
 web = [
-    "fastapi>=0.100.0", # 这个是frontend使用的
-    "uvicorn>=0.23.0",  # 这个也是frontend使用的
-    "websockets>=11.0", # 这个也是frontend使用的
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "websockets>=11.0",
 ]
 
 docs = [

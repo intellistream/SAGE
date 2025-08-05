@@ -5,10 +5,14 @@
 set -euo pipefail
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 OUTPUT_DIR="build/wheels"
 =======
 OUTPUT_DIR="wheelhouse"
 >>>>>>> 7e283a1 (code cleanups)
+=======
+OUTPUT_DIR="build/wheels"
+>>>>>>> e3ad356 (renames)
 mkdir -p "$OUTPUT_DIR"
 
 # Ensure build tool is available
@@ -18,6 +22,9 @@ if ! python3 -c "import build" &>/dev/null; then
 fi
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e3ad356 (renames)
 # Ensure setuptools-scm is available if needed for build-system.requires
 if ! python3 -c "import setuptools_scm" &>/dev/null; then
   echo "Installing setuptools-scm..."
@@ -39,8 +46,11 @@ fi
 echo "Pre-installing common dependencies to avoid compilation during build..."
 pip install --upgrade httpx[socks] socksio
 
+<<<<<<< HEAD
 =======
 >>>>>>> 7e283a1 (code cleanups)
+=======
+>>>>>>> e3ad356 (renames)
 # Directories to scan
 ROOTS=("packages" "packages/commercial" "packages/tools")
 
@@ -51,6 +61,7 @@ for root in "${ROOTS[@]}"; do
     if [ -f "$pkg/pyproject.toml" ] || [ -f "$pkg/setup.py" ]; then
       echo "Building wheel for $pkg"
 <<<<<<< HEAD
+<<<<<<< HEAD
       # use no isolation to leverage existing torch install and avoid strict torch==2.3.0
       # add --no-build-isolation and set PIP_NO_BUILD_ISOLATION to speed up dependency resolution
       export PIP_NO_BUILD_ISOLATION=1
@@ -59,6 +70,10 @@ for root in "${ROOTS[@]}"; do
 =======
       (cd "$pkg" && python3 -m build --wheel --outdir "$OLDPWD/$OUTPUT_DIR")
 >>>>>>> 7e283a1 (code cleanups)
+=======
+      # use no isolation to leverage existing torch install and avoid strict torch==2.3.0
+      (cd "$pkg" && python3 -m build --wheel --no-isolation --outdir "$OLDPWD/$OUTPUT_DIR")
+>>>>>>> e3ad356 (renames)
     fi
   done
 done
