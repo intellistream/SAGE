@@ -1,0 +1,32 @@
+# SAGE 开发环境 - Editable Install
+# 使用方法: pip install -r requirements-dev.txt
+
+# 核心包 (按依赖顺序)
+-e ./packages/sage-kernel
+-e ./packages/sage-middleware  
+-e ./packages/sage-userspace
+
+# 开发工具
+-e ./packages/sage-tools/sage-dev-toolkit
+# 先注释掉有问题的sage-cli
+# -e ./packages/sage-tools/sage-cli
+
+# Meta package (先注释掉，确保其他包能正常安装)
+# -e ./packages/sage
+
+# 开发依赖 (移除有冲突的包)
+pytest>=7.0
+pytest-asyncio
+pytest-cov
+black
+isort
+flake8
+mypy
+
+# 暂时移除safety包，因为它与psutil有版本冲突
+# safety>=3.6.0
+
+# 可选: 如需商业版组件，取消注释下面的行
+# -e ./packages/commercial/sage-kernel
+# -e ./packages/commercial/sage-middleware
+# -e ./packages/commercial/sage-userspace

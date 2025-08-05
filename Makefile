@@ -1,7 +1,14 @@
 # SAGE Project Makefile
 # 已集成构建和安装问题修复
 
-.PHONY: build install all help clean
+.PHONY: build install all help clean dev-install
+
+# Development install (editable mode) - 推荐给开发者使用
+dev-install:
+	@echo "🛠️  Installing SAGE in development mode (editable)..."
+	pip install -r requirements-dev.txt
+	@echo "✅ Development installation complete!"
+	@echo "💡 Code changes will take effect immediately (except C++ extensions)"
 
 # Build all wheels using the fixed build script
 build:
@@ -33,11 +40,15 @@ clean:
 # Show help information
 help:
 	@echo "Available targets:"
-	@echo "  build   - Build all wheels (with outlines_core/xformers fixes)"
-	@echo "  install - Install wheels (with dependency resolution fixes)"
-	@echo "  all     - Build and install in one command"
-	@echo "  clean   - Clean all build artifacts"
-	@echo "  help    - Show this help message"
+	@echo "  dev-install - Install in development mode (editable, recommended for devs)"
+	@echo "  build       - Build all wheels (with outlines_core/xformers fixes)"
+	@echo "  install     - Install wheels (with dependency resolution fixes)"
+	@echo "  all         - Build and install in one command"
+	@echo "  clean       - Clean all build artifacts"
+	@echo "  help        - Show this help message"
+	@echo ""
+	@echo "🚀 Quick start for developers:"
+	@echo "   make dev-install  # Editable install, code changes take effect immediately"
 	@echo ""
 	@echo "🔧 Integrated fixes:"
 	@echo "  ✅ outlines_core build failure fix"

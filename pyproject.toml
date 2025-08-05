@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sage-workspace"
+version = "1.0.0"
+description = "SAGE Monorepo Workspace - Development Environment"
+readme = "README.md"
+requires-python = ">=3.10"
+
+# 开发环境采用editable安装，直接引用本地包
+dependencies = [
+    # 使用相对路径进行editable安装
+    "sage-kernel @ file:///${PWD}/packages/sage-kernel",
+    "sage-middleware @ file:///${PWD}/packages/sage-middleware", 
+    "sage-userspace @ file:///${PWD}/packages/sage-userspace",
+    "sage-dev-toolkit @ file:///${PWD}/packages/sage-tools/sage-dev-toolkit",
+    "sage-cli @ file:///${PWD}/packages/sage-tools/sage-cli",
+    "sage @ file:///${PWD}/packages/sage",
+]
+
+[project.optional-dependencies]
+# 开发依赖
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio",
+    "pytest-cov",
+    "black",
+    "isort",
+    "flake8",
+    "mypy",
+]
+
+# 商业版组件
+commercial = [
+    "sage-kernel-commercial",
+    "sage-middleware-commercial", 
+    "sage-userspace-commercial",
+]
+
+[tool.setuptools]
+# 这是一个虚拟包，不包含实际代码
+packages = []
