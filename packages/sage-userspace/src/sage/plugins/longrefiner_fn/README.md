@@ -32,7 +32,7 @@ SAGE框架适配器：
 ## 在SAGE中的使用
 
 ```python
-from sage.core.api.env import LocalEnvironment
+from sage.api.env import LocalEnvironment
 from sage.plugins.longrefiner_fn import LongRefinerFunction
 
 # 创建环境

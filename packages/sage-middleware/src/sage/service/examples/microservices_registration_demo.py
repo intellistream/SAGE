@@ -3,7 +3,7 @@ SAGE 微服务集成示例
 展示如何正确注册和使用KV、VDB、Graph和Memory服务
 """
 import time
-from sage.core.api.local_environment import LocalEnvironment
+from sage.api.local_environment import LocalEnvironment
 from sage.service import (
     create_kv_service_factory, 
     create_vdb_service_factory,

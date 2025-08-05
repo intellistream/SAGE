@@ -60,7 +60,7 @@ IO模块实现了SAGE框架的数据输入输出抽象层，提供标准化的�
 ## 数据流集成
 
 ```python
-from sage.core.api.env import LocalEnvironment
+from sage.api.env import LocalEnvironment
 from sage.lib.io.source import FileSource
 from sage.lib.io.sink import FileSink, ConsoleSink
 

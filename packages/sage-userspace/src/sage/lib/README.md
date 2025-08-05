@@ -77,7 +77,7 @@ result = generator.generate(query, retriever.retrieve(query))
 ### 数据流集成
 ```python
 # 在SAGE数据流中使用
-from sage.core.api.env import LocalEnvironment
+from sage.api.env import LocalEnvironment
 from sage.lib.tools import ArxivPaperSearcher
 from sage.lib.io import FileSink
 

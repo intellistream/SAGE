@@ -284,7 +284,7 @@ class SAGEBuilder:
         # 定义已知的依赖顺序
         known_order = [
             "sage-utils",
-            "sage-core", 
+            "sage-kernel", 
             "sage-lib",
             "sage-extensions",
             "sage-plugins",
@@ -578,7 +578,7 @@ jobs:
     needs: [quality, test]
     strategy:
       matrix:
-        package: [sage-core, sage-lib, sage-extensions]
+        package: [sage-kernel, sage-lib, sage-extensions]
         
     steps:
     - uses: actions/checkout@v4

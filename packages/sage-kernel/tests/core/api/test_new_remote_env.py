@@ -11,7 +11,7 @@ def test_serialization():
     print("=== 测试 RemoteEnvironment 序列化流程 ===")
     
     try:
-        from sage.core.api.remote_environment import RemoteEnvironment
+        from sage.api.remote_environment import RemoteEnvironment
         from sage.runtime.serialization.dill import trim_object_for_ray, serialize_object, deserialize_object
         
         # 1. 创建RemoteEnvironment实例
@@ -88,7 +88,7 @@ def test_remote_env():
     print("\n=== 测试 RemoteEnvironment 方法 ===")
     
     try:
-        from sage.core.api.remote_environment import RemoteEnvironment
+        from sage.api.remote_environment import RemoteEnvironment
         
         remote_env = RemoteEnvironment("test_env2")
         

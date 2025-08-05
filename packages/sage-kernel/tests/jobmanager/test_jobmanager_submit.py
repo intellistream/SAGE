@@ -15,7 +15,7 @@ def test_jobmanager_submit_logic():
     try:
         from sage.jobmanager.job_manager import JobManagerServer, JobManager
         from sage.utils.serialization.dill_serializer import serialize_object
-        from sage.core.api.local_environment import LocalEnvironment
+        from sage.api.local_environment import LocalEnvironment
         
         # 创建一个真实的LocalEnvironment用于测试
         local_env = LocalEnvironment("test_submit")

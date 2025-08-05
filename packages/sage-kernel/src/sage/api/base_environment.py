@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 from typing import List, Optional, TYPE_CHECKING, Type, Union, Any
 from sage.api.function.lambda_function import wrap_lambda
-import sage.service.memory.api
 from sage.api.datastream import DataStream
 from sage.kernels.core.transformation.base_transformation import BaseTransformation
 from sage.kernels.core.transformation.source_transformation import SourceTransformation

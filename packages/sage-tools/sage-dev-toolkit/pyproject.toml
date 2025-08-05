@@ -57,7 +57,7 @@ dependencies = [
     "tomli-w>=1.0.0",
     
     # System utilities (pinned versions)
-    "psutil==7.0.0",
+    "psutil==6.1.0",
     "pathspec==0.12.1",
     
     # Data processing (pinned versions)

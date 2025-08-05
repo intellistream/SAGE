@@ -1,6 +1,6 @@
 import logging
 import time
-from sage.core.api.local_environment import LocalEnvironment
+from sage.api.local_environment import LocalEnvironment
 from sage.lib.io_utils.sink import MemWriteSink
 from sage.lib.io_utils.source import FileSource
 

@@ -124,7 +124,7 @@ pytest-benchmark==5.1.0
 safety==3.6.0
 
 # System utilities
-psutil==7.0.0
+psutil==6.1.0
 pathspec==0.12.1
 gitpython==3.1.45
 gitdb==4.0.12

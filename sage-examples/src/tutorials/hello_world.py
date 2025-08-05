@@ -1,9 +1,9 @@
 import time
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.api.remote_environment import RemoteEnvironment
-from sage.core.function.sink_function import SinkFunction
-from sage.core.function.batch_function import BatchFunction
-from sage.core.function.map_function import MapFunction
+from sage.api.local_environment import LocalEnvironment
+from sage.api.remote_environment import RemoteEnvironment
+from sage.api.function.sink_function import SinkFunction
+from sage.api.function.batch_function import BatchFunction
+from sage.api.function.map_function import MapFunction
 from sage.utils.logging.custom_logger import CustomLogger
 
 # 批处理数据源：生成10条 Hello, World! 数据

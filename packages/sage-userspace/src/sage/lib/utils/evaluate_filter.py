@@ -1,6 +1,6 @@
 import json
 from typing import List, Union, Set
-from sage.core.function.filter_function import FilterFunction
+from sage.api.function.filter_function import FilterFunction
 from ..context.model_context import ModelContext, QualityLabel
 
 

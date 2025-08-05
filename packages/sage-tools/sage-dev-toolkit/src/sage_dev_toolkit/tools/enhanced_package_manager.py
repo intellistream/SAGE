@@ -28,8 +28,8 @@ class EnhancedPackageManager:
                 'dependencies': [],  # Base package, no dependencies
                 'description': 'Common utilities and tools'
             },
-            'sage-core': {
-                'path': self.packages_dir / 'sage-core',
+            'sage-kernel': {
+                'path': self.packages_dir / 'sage-kernel',
                 'namespace': 'sage.core',
                 'dependencies': ['sage-utils'],
                 'description': 'Core framework components'
@@ -43,25 +43,25 @@ class EnhancedPackageManager:
             'sage-extensions': {
                 'path': self.packages_dir / 'sage-extensions',
                 'namespace': 'sage.extensions',
-                'dependencies': ['sage-core', 'sage-utils'],
+                'dependencies': ['sage-kernel', 'sage-utils'],
                 'description': 'High-performance C++ extensions'
             },
             'sage-plugins': {
                 'path': self.packages_dir / 'sage-plugins',
                 'namespace': 'sage.plugins',
-                'dependencies': ['sage-core', 'sage-utils'],
+                'dependencies': ['sage-kernel', 'sage-utils'],
                 'description': 'Plugin system'
             },
             'sage-service': {
                 'path': self.packages_dir / 'sage-service',
                 'namespace': 'sage.service',
-                'dependencies': ['sage-core', 'sage-lib', 'sage-utils'],
+                'dependencies': ['sage-kernel', 'sage-lib', 'sage-utils'],
                 'description': 'Service layer components'
             },
             'sage-cli': {
                 'path': self.packages_dir / 'sage-cli',
                 'namespace': 'sage.cli',
-                'dependencies': ['sage-core', 'sage-utils'],
+                'dependencies': ['sage-kernel', 'sage-utils'],
                 'description': 'Command-line interface'
             }
         }

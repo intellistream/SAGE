@@ -7,7 +7,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 
-from sage.core.api.local_environment import LocalEnvironment
+from sage.api.local_environment import LocalEnvironment
 from sage.jobmanager.execution_graph import ExecutionGraph
 
 

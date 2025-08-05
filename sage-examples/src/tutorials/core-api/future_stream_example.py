@@ -1,8 +1,8 @@
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.function.sink_function import SinkFunction
-from sage.core.function.source_function import SourceFunction
-from sage.core.function.comap_function import BaseCoMapFunction
-from sage.core.function.base_function import BaseFunction
+from sage.api.local_environment import LocalEnvironment
+from sage.api.function.sink_function import SinkFunction
+from sage.api.function.source_function import SourceFunction
+from sage.api.function.comap_function import BaseCoMapFunction
+from sage.api.function.base_function import BaseFunction
 import time
 
 # 初始数据源：启动计数器

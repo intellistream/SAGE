@@ -6,8 +6,8 @@ import pytest
 from unittest.mock import Mock, MagicMock, patch
 from abc import ABC, abstractmethod
 
-from sage.core.operator.base_operator import BaseOperator
-from sage.core.function.source_function import StopSignal
+from sage.api.operator.base_operator import BaseOperator
+from sage.api.function.source_function import StopSignal
 
 
 class MockOperator(BaseOperator):

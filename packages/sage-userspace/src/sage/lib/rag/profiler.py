@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 
 
-from sage.core.function.filter_function import FilterFunction
+from sage.api.function.filter_function import FilterFunction
 
 
 @dataclass

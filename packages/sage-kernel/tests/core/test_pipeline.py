@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import Mock, patch
 from typing import Any
 
-from sage.core.pipeline import (
+from sage.api.pipeline import (
     Pipeline, 
     PipelineStep, 
     DataTransformStep, 

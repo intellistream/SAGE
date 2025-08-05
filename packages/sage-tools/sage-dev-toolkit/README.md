@@ -42,7 +42,7 @@ sage-dev status
 sage-dev test --mode diff --workers 4
 
 # Run all tests for a specific package
-sage-dev test --mode package --package sage-core
+sage-dev test --mode package --package sage-kernel
 
 # Fix import paths (dry run to see what would change)
 sage-dev fix-imports --dry-run

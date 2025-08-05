@@ -6,8 +6,8 @@
 """
 
 from typing import List, Any, Iterator
-from sage.core.function.batch_function import BatchFunction, SimpleBatchFunction, FileBatchFunction
-from sage.core.operator.batch_operator import BatchOperator, BatchSourceOperator
+from sage.api.function.batch_function import BatchFunction, SimpleBatchFunction, FileBatchFunction
+from sage.api.operator.batch_operator import BatchOperator, BatchSourceOperator
 
 
 class NumberRangeBatchFunction(BatchFunction):

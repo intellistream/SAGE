@@ -46,7 +46,7 @@ dependencies = [
     "socksio==1.0.0",
     
     # System and utilities (pinned versions)
-    "psutil==7.0.0",
+    "psutil==6.1.0",
     "numpy==2.2.6",
     "Cython==3.1.2",
     "pybind11==3.0.0",

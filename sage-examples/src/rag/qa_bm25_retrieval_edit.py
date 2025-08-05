@@ -1,7 +1,7 @@
 
 import logging
 
-from sage.core.api.local_environment import LocalEnvironment
+from sage.api.local_environment import LocalEnvironment
 from sage.lib.io_utils.sink import TerminalSink
 from sage.lib.io_utils.source import FileSource
 from sage.lib.rag.generator import OpenAIGenerator

@@ -98,8 +98,8 @@ result = stream.map(lambda x: x * 2).filter(lambda x: x > 4).sink(lambda x: prin
 ## 使用示例
 
 ```python
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.function.source_function import SourceFunction
+from sage.api.local_environment import LocalEnvironment
+from sage.api.function.source_function import SourceFunction
 
 # 创建执行环境
 env = LocalEnvironment("example_pipeline")

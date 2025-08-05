@@ -99,7 +99,7 @@ commercial = [
 
 # 企业版完整安装
 enterprise = [
-    "sage-utils", "sage-core", "sage-lib", 
+    "sage-utils", "sage-kernel", "sage-lib", 
     "sage-plugins", "sage-service", "sage-cli",
     "sage-kernel-commercial", "sage-middleware-commercial", "sage-userspace-commercial"
 ]

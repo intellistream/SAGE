@@ -5,8 +5,8 @@ BatchOperator vs SourceOperator 对比示例
 """
 
 from typing import Any
-from sage.core.function.source_function import SourceFunction, StopSignal
-from sage.core.function.batch_function import SimpleBatchFunction
+from sage.api.function.source_function import SourceFunction, StopSignal
+from sage.api.function.batch_function import SimpleBatchFunction
 
 
 class OldStyleSourceFunction(SourceFunction):

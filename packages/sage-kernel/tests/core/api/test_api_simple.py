@@ -32,7 +32,7 @@ class TestBaseEnvironmentAPI:
         """Test that BaseEnvironment API interface is properly defined"""
         # Import with proper error handling
         try:
-            from sage.core.api.base_environment import BaseEnvironment
+            from sage.api.base_environment import BaseEnvironment
             
             # Test that the class exists and has expected methods
             assert hasattr(BaseEnvironment, '__init__')
@@ -102,7 +102,7 @@ class TestLocalEnvironmentAPI:
     def test_local_environment_interface(self):
         """Test LocalEnvironment interface"""
         try:
-            from sage.core.api.local_environment import LocalEnvironment
+            from sage.api.local_environment import LocalEnvironment
             
             # Test that the class exists and has expected methods
             assert hasattr(LocalEnvironment, '__init__')
@@ -118,7 +118,7 @@ class TestLocalEnvironmentAPI:
     def test_queue_descriptor_interface(self):
         """Test queue descriptor creation interface"""
         try:
-            from sage.core.api.local_environment import LocalEnvironment
+            from sage.api.local_environment import LocalEnvironment
             
             # Create environment with minimal setup
             env = LocalEnvironment("test", {})
@@ -143,7 +143,7 @@ class TestRemoteEnvironmentAPI:
     def test_remote_environment_interface(self):
         """Test RemoteEnvironment interface"""
         try:
-            from sage.core.api.remote_environment import RemoteEnvironment
+            from sage.api.remote_environment import RemoteEnvironment
             
             # Test that the class exists and has expected methods
             assert hasattr(RemoteEnvironment, '__init__')
@@ -158,7 +158,7 @@ class TestRemoteEnvironmentAPI:
     def test_connection_parameters(self):
         """Test connection parameter handling"""
         try:
-            from sage.core.api.remote_environment import RemoteEnvironment
+            from sage.api.remote_environment import RemoteEnvironment
             
             # Test initialization with connection parameters
             env = RemoteEnvironment("test", {}, host="test.host.com", port=8080)
@@ -179,7 +179,7 @@ class TestDataStreamAPI:
     def test_datastream_interface(self):
         """Test DataStream interface"""
         try:
-            from sage.core.api.datastream import DataStream
+            from sage.api.datastream import DataStream
             
             # Test that the class exists and has expected methods
             assert hasattr(DataStream, '__init__')
@@ -203,7 +203,7 @@ class TestConnectedStreamsAPI:
     def test_connected_streams_interface(self):
         """Test ConnectedStreams interface"""
         try:
-            from sage.core.api.connected_streams import ConnectedStreams
+            from sage.api.connected_streams import ConnectedStreams
             
             # Test that the class exists and has expected methods
             assert hasattr(ConnectedStreams, '__init__')
@@ -224,7 +224,7 @@ class TestAPIIntegration:
     def test_environment_datastream_integration(self):
         """Test integration between environment and datastream"""
         try:
-            from sage.core.api.local_environment import LocalEnvironment
+            from sage.api.local_environment import LocalEnvironment
             
             env = LocalEnvironment("integration_test", {})
             

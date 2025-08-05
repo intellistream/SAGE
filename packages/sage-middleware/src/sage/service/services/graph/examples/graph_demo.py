@@ -2,7 +2,7 @@
 Graph Service 使用示例
 展示如何使用Graph微服务进行知识图谱构建和查询
 """
-from sage.core.api.local_environment import LocalEnvironment
+from sage.api.local_environment import LocalEnvironment
 from sage.service.services.graph import create_graph_service_factory
 
 

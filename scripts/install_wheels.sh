@@ -64,6 +64,10 @@ echo "✅ 安装问题修复完成"
 # Install sage with comprehensive constraints and options to speed up resolution
 echo "📦 安装 SAGE 及其依赖（使用优化选项）..."
 
+# 首先卸载任何现有的 SAGE 安装（包括开发模式）
+echo "🗑️  卸载现有的 SAGE 安装..."
+pip uninstall -y sage sage-kernel sage-middleware sage-userspace sage-cli sage-dev-toolkit 2>/dev/null || true
+
 # 构建约束参数
 constraint_args=""
 if [ -f "constraints.txt" ]; then
@@ -76,7 +80,7 @@ if [ -f "./scripts/constraints.txt" ]; then
     constraint_args="$constraint_args --constraint=./scripts/constraints.txt"
 fi
 
-mkdir -p ./sage/makefile_logs
+mkdir -p ~/.sage/makefile_logs
 # 使用锁定依赖优先安装（如果存在）
 if [ -f "requirements-lock.txt" ]; then
     echo "📋 使用锁定依赖文件进行快速安装..."
@@ -87,18 +91,25 @@ if [ -f "requirements-lock.txt" ]; then
         --timeout=300 \
         --retries=3 \
         --cache-dir=/tmp/pip-cache \
-        2>&1 | tee ./sage/makefile_logs/install.log
+        2>&1 | tee ~/.sage/makefile_logs/install.log
 else
-    echo "📋 使用常规依赖解析安装 SAGE..."
-    pip install sage \
-        --find-links=./build/wheels \
-        $constraint_args \
-        --prefer-binary \
-        --no-warn-conflicts \
-        --timeout=300 \
-        --retries=3 \
-        --cache-dir=/tmp/pip-cache \
-        2>&1 | tee ./sage/makefile_logs/install.log
+    echo "📋 直接从wheels安装 SAGE..."
+    # 直接安装所有SAGE相关的wheels
+    if [ -d "./build/wheels" ] && [ "$(ls -A ./build/wheels/*.whl 2>/dev/null)" ]; then
+        echo "📦 安装所有组件..."
+        pip install ./build/wheels/sage*.whl \
+            --force-reinstall \
+            $constraint_args \
+            --prefer-binary \
+            --no-warn-conflicts \
+            --timeout=300 \
+            --retries=3 \
+            --cache-dir=/tmp/pip-cache \
+            2>&1 | tee ~/.sage/makefile_logs/install.log
+    else
+        echo "❌ 没有找到wheels文件，请先运行 make build"
+        exit 1
+    fi
 fi
 
 echo "✅ 安装完成！"

@@ -67,7 +67,7 @@ OpenAI客户端工具：
 
 ```python
 from sage.lib.utils import ContextSink, EvaluateFilter
-from sage.core.api.env import LocalEnvironment
+from sage.api.env import LocalEnvironment
 
 # 创建环境
 env = LocalEnvironment("context_processing")

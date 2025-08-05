@@ -26,13 +26,13 @@ class CommercialPackageManager:
                 "path": self.commercial_path / "sage-kernel",
                 "description": "High-performance kernel infrastructure",
                 "components": ["sage_queue"],
-                "dependencies": ["sage-core", "sage-utils"]
+                "dependencies": ["sage-kernel", "sage-utils"]
             },
             "sage-middleware": {
                 "path": self.commercial_path / "sage-middleware", 
                 "description": "Database and storage middleware",
                 "components": ["sage_db"],
-                "dependencies": ["sage-core", "sage-utils"]
+                "dependencies": ["sage-kernel", "sage-utils"]
             },
             "sage-userspace": {
                 "path": self.commercial_path / "sage-userspace",

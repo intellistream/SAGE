@@ -10,13 +10,13 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from typing import List
 
-from sage.core.api.connected_streams import ConnectedStreams
-from sage.core.api.datastream import DataStream
-from sage.core.transformation.base_transformation import BaseTransformation
-from sage.core.transformation.map_transformation import MapTransformation
-from sage.core.transformation.sink_transformation import SinkTransformation
-from sage.core.transformation.join_transformation import JoinTransformation
-from sage.core.function.base_function import BaseFunction
+from sage.api.connected_streams import ConnectedStreams
+from sage.api.datastream import DataStream
+from sage.api.transformation.base_transformation import BaseTransformation
+from sage.api.transformation.map_transformation import MapTransformation
+from sage.api.transformation.sink_transformation import SinkTransformation
+from sage.api.transformation.join_transformation import JoinTransformation
+from sage.api.function.base_function import BaseFunction
 
 
 class MockEnvironment:
@@ -429,7 +429,7 @@ class TestConnectedStreamsIntegration:
     @pytest.mark.integration
     def test_comap_integration(self, mock_env):
         """Test comap integration with proper function class"""
-        from sage.core.function.comap_function import BaseCoMapFunction
+        from sage.api.function.comap_function import BaseCoMapFunction
         
         # Create mock CoMap function
         class MockCoMapFunction(BaseCoMapFunction):

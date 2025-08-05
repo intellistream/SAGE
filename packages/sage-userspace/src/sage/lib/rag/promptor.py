@@ -1,7 +1,7 @@
 from jinja2 import Template
-from sage.core.function.base_function import StatefulFunction, MemoryFunction
+from sage.api.function.base_function import StatefulFunction, MemoryFunction
 
-from sage.core.function.map_function import MapFunction
+from sage.api.function.map_function import MapFunction
 
 from sage.utils.logging.custom_logger import CustomLogger
 

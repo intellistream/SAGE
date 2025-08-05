@@ -6,10 +6,10 @@ from pathlib import Path
 import tempfile
 import json
 
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.function.source_function import SourceFunction
-from sage.core.function.comap_function import BaseCoMapFunction
-from sage.core.function.sink_function import SinkFunction
+from sage.api.local_environment import LocalEnvironment
+from sage.api.function.source_function import SourceFunction
+from sage.api.function.comap_function import BaseCoMapFunction
+from sage.api.function.sink_function import SinkFunction
 
 class OrderDataSource(SourceFunction):
     """生成订单数据"""

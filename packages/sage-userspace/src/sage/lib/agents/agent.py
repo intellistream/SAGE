@@ -1,5 +1,5 @@
 from sage.llm.clients.base import apply_generator_model
-from sage.core.function.map_function import MapFunction
+from sage.api.function.map_function import MapFunction
 
 from typing import Tuple
 import requests

@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import Mock, MagicMock, patch
 from abc import abstractmethod
 
-from sage.core.function.base_function import BaseFunction
+from sage.api.function.base_function import BaseFunction
 
 
 class MockFunction(BaseFunction):

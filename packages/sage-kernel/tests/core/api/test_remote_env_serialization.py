@@ -9,7 +9,7 @@ import threading
 import time
 
 # 添加项目路径
-from sage.core.api.remote_environment import RemoteEnvironment
+from sage.api.remote_environment import RemoteEnvironment
 from sage.runtime.serialization.dill import trim_object_for_ray, serialize_object, deserialize_object
 
 def test_remote_environment_serialization():
@@ -132,7 +132,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
 # 导入测试服务器
-from sage.core.api.test.test_remote_environment_server import (
+from sage.api.test.test_remote_environment_server import (
     EnvironmentTestServer,
     send_test_environment,
     send_remote_environment_test,

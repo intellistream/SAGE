@@ -2,7 +2,7 @@ import os
 from typing import List, Dict, Union
 from jinja2 import Template
 
-from sage.core.function.map_function import MapFunction
+from sage.api.function.map_function import MapFunction
 from sage.utils.logging.custom_logger import CustomLogger
 
 from ..utils.openaiclient import OpenAIClient

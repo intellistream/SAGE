@@ -14,8 +14,8 @@ from typing import List, Any
 # Add the project root to Python path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.function.source_function import SourceFunction
+from sage.api.local_environment import LocalEnvironment
+from sage.api.function.source_function import SourceFunction
 
 
 class ListSource(SourceFunction):

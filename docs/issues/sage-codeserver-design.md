@@ -86,14 +86,14 @@ SAGE CodeServer
 POST /api/test/run
 {
     "type": "all|diff|package",
-    "target": "sage-core",  # 可选，指定包名
+    "target": "sage-kernel",  # 可选，指定包名
     "base_branch": "main",  # diff模式的基准分支
     "parallel_workers": 4
 }
 
 GET /api/test/status/{task_id}
 GET /api/test/results/{task_id}
-GET /api/test/history?package=sage-core&limit=50
+GET /api/test/history?package=sage-kernel&limit=50
 ```
 
 ### 2. 依赖分析中心 (Dependency Analysis)
@@ -116,7 +116,7 @@ GET /api/test/history?package=sage-core&limit=50
 POST /api/analysis/dependencies
 {
     "scope": "all|package",
-    "package": "sage-core",  # 可选
+    "package": "sage-kernel",  # 可选
     "include_external": true
 }
 
@@ -138,7 +138,7 @@ GET /api/analysis/graph-data?format=json|graphml
 GET /api/packages/list
 POST /api/packages/install
 {
-    "packages": ["sage-core", "sage-utils"],
+    "packages": ["sage-kernel", "sage-utils"],
     "mode": "development|production"
 }
 

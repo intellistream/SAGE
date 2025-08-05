@@ -23,7 +23,7 @@ python-dotenv==1.1.1
 dill==0.4.0
 msgpack==1.1.1
 protobuf==6.31.1
-psutil==7.0.0
+psutil==6.1.0
 
 # Web framework
 fastapi==0.115.12

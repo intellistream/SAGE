@@ -3,7 +3,7 @@ from transformers import AutoTokenizer, AutoModel
 from sklearn.metrics.pairwise import cosine_similarity
 from rouge import Rouge
 
-from sage.core.function.map_function import MapFunction
+from sage.api.function.map_function import MapFunction
 
 
 

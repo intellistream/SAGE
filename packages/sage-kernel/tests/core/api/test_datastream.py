@@ -10,16 +10,16 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from typing import Any
 
-from sage.core.api.datastream import DataStream
-from sage.core.transformation.base_transformation import BaseTransformation
-from sage.core.transformation.map_transformation import MapTransformation
-from sage.core.transformation.filter_transformation import FilterTransformation
-from sage.core.transformation.flatmap_transformation import FlatMapTransformation
-from sage.core.transformation.sink_transformation import SinkTransformation
-from sage.core.transformation.keyby_transformation import KeyByTransformation
-from sage.core.transformation.future_transformation import FutureTransformation
-from sage.core.function.base_function import BaseFunction
-from sage.core.api.connected_streams import ConnectedStreams
+from sage.api.datastream import DataStream
+from sage.api.transformation.base_transformation import BaseTransformation
+from sage.api.transformation.map_transformation import MapTransformation
+from sage.api.transformation.filter_transformation import FilterTransformation
+from sage.api.transformation.flatmap_transformation import FlatMapTransformation
+from sage.api.transformation.sink_transformation import SinkTransformation
+from sage.api.transformation.keyby_transformation import KeyByTransformation
+from sage.api.transformation.future_transformation import FutureTransformation
+from sage.api.function.base_function import BaseFunction
+from sage.api.connected_streams import ConnectedStreams
 
 
 class MockEnvironment:

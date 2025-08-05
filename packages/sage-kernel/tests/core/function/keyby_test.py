@@ -4,10 +4,10 @@ import json
 import os
 from typing import List, Dict, Any
 from pathlib import Path
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.function.source_function import SourceFunction
-from sage.core.function.keyby_function import KeyByFunction
-from sage.core.function.sink_function import SinkFunction
+from sage.api.local_environment import LocalEnvironment
+from sage.api.function.source_function import SourceFunction
+from sage.api.function.keyby_function import KeyByFunction
+from sage.api.function.sink_function import SinkFunction
 
 
 def find_project_root() -> Path:

@@ -1,9 +1,9 @@
-#!/usr/bin/envfrom sage.core.api.base_environment import BaseEnvironment
-from sage.core.api.datastream import DataStream
-from sage.core.transformation.source_transformation import SourceTransformation
-from sage.core.transformation.batch_transformation import BatchTransformation
-from sage.core.transformation.future_transformation import FutureTransformation
-from sage.core.function.base_function import BaseFunction
+#!/usr/bin/envfrom sage.api.base_environment import BaseEnvironment
+from sage.api.datastream import DataStream
+from sage.api.transformation.source_transformation import SourceTransformation
+from sage.api.transformation.batch_transformation import BatchTransformation
+from sage.api.transformation.future_transformation import FutureTransformation
+from sage.api.function.base_function import BaseFunction
 from sage.runtime.factory.service_factory import ServiceFactory
 """
 Tests for sage.core.api.base_environment module
@@ -18,12 +18,12 @@ from unittest.mock import Mock, patch, MagicMock, call
 from datetime import datetime
 from typing import Any
 
-from sage.core.api.base_environment import BaseEnvironment
-from sage.core.api.datastream import DataStream
-from sage.core.transformation.source_transformation import SourceTransformation
-from sage.core.transformation.batch_transformation import BatchTransformation
-from sage.core.transformation.future_transformation import FutureTransformation
-from sage.core.function.base_function import BaseFunction
+from sage.api.base_environment import BaseEnvironment
+from sage.api.datastream import DataStream
+from sage.api.transformation.source_transformation import SourceTransformation
+from sage.api.transformation.batch_transformation import BatchTransformation
+from sage.api.transformation.future_transformation import FutureTransformation
+from sage.api.function.base_function import BaseFunction
 from sage.runtime.factory.service_factory import ServiceFactory
 from sage.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 

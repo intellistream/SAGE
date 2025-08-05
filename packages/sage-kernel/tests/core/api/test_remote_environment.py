@@ -9,7 +9,7 @@ following the testing organization structure outlined in the issue.
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from sage.core.api.remote_environment import RemoteEnvironment
+from sage.api.remote_environment import RemoteEnvironment
 from sage.jobmanager.jobmanager_client import JobManagerClient
 
 
@@ -256,7 +256,7 @@ class TestRemoteEnvironmentInheritance:
     @pytest.mark.unit
     def test_inherits_from_base_environment(self):
         """Test that RemoteEnvironment properly inherits from BaseEnvironment"""
-        from sage.core.api.base_environment import BaseEnvironment
+        from sage.api.base_environment import BaseEnvironment
         assert issubclass(RemoteEnvironment, BaseEnvironment)
     
     @pytest.mark.unit
@@ -361,7 +361,7 @@ class TestRemoteEnvironmentIntegration:
         env = RemoteEnvironment("integration_test", {}, "test.host.com", 8080)
         
         # Add some pipeline elements
-        from sage.core.api.datastream import DataStream
+        from sage.api.datastream import DataStream
         batch_stream = env.from_batch([1, 2, 3])
         assert isinstance(batch_stream, DataStream)
         assert len(env.pipeline) == 1

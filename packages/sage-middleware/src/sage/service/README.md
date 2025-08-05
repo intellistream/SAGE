@@ -103,7 +103,7 @@ print(session)  # {"user_id": 123, "name": "Alice"}
 
 ### 集成到SAGE流程
 ```python
-from sage.core.api.env import LocalEnvironment
+from sage.api.env import LocalEnvironment
 from sage.service.memory import MemoryServiceConnector
 
 env = LocalEnvironment("service_integration")

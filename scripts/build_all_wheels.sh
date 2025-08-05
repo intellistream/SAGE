@@ -117,32 +117,6 @@ fi
 echo "📦 Pre-installing common dependencies..."
 pip install --upgrade httpx[socks] socksio
 
-# Directories to scan
-ROOTS=("packages" "packages/commercial" "packages/tools")
-
-echo "📋 Collecting all project dependencies for download..."
-# gather main dependencies from pyproject.toml of each package
-TMP_REQS=$(mktemp)
-for root in "${ROOTS[@]}"; do
-  [ -d "$root" ] || continue
-  for TOML in "$root"/*/pyproject.toml; do
-    [ -f "$TOML" ] || continue
-    python3 -c "
-import tomllib
-with open('$TOML', 'rb') as f:
-    data = tomllib.load(f)
-for dep in data.get('project', {}).get('dependencies', []):
-    # strip version specifiers
-    print(dep.split()[0])
-" >> "$TMP_REQS"
-  done
-done
-
-if [ -s "$TMP_REQS" ]; then
-  echo "📥 Downloading dependencies to wheelhouse..."
-  pip download --dest "$OUTPUT_DIR" --no-deps -r "$TMP_REQS" || echo "Warning: Some dependencies could not be downloaded"
-fi
-rm "$TMP_REQS"
 
 # Build wheels with enhanced error handling
 build_package() {
@@ -165,6 +139,7 @@ build_package() {
 }
 
 # Collect all packages first
+ROOTS=("packages" "packages/commercial" "packages/sage-tools")
 PACKAGES=()
 for root in "${ROOTS[@]}"; do
   [ -d "$root" ] || continue

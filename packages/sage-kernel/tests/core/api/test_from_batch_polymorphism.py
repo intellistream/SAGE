@@ -3,8 +3,8 @@
 测试改进后的 from_batch 接口的多态性
 """
 
-from sage.core.api.base_environment import BaseEnvironment
-from sage.core.function.base_function import BaseFunction
+from sage.api.base_environment import BaseEnvironment
+from sage.api.function.base_function import BaseFunction
 from sage.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
 

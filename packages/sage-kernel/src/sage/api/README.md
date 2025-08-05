@@ -29,7 +29,7 @@
 ## 使用示例
 
 ```python
-from sage.core.api.local_environment import LocalEnvironment
+from sage.api.local_environment import LocalEnvironment
 
 # 创建本地环境
 env = LocalEnvironment()

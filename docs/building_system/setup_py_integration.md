@@ -333,7 +333,7 @@ target-version = ["py311"]
 [tool.mypy]
 python_version = "3.11"
 mypy_path = [
-    "packages/sage-core/src",
+    "packages/sage-kernel/src",
     "packages/sage-extensions/src",
 ]
 ```
@@ -351,7 +351,7 @@ requires = [
 [project]
 name = "sage-extensions"
 dependencies = [
-    "sage-core",           # 内部依赖
+    "sage-kernel",           # 内部依赖
     "numpy>=1.21.0",       # C++ 扩展需要
 ]
 ```
@@ -378,7 +378,7 @@ def build_all_packages():
     """按依赖顺序构建所有包"""
     build_order = [
         'sage-utils',      # 基础工具，无依赖
-        'sage-core',       # 核心功能，依赖 utils
+        'sage-kernel',       # 核心功能，依赖 utils
         'sage-lib',        # 算法库，依赖 core
         'sage-extensions', # C++ 扩展，依赖 lib
         'sage-plugins',    # 插件系统，依赖 extensions

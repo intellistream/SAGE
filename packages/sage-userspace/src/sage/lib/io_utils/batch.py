@@ -1,5 +1,5 @@
 from datasets import load_dataset
-from sage.core.function.batch_function import BatchFunction
+from sage.api.function.batch_function import BatchFunction
 
 
 class HFDatasetBatch(BatchFunction):

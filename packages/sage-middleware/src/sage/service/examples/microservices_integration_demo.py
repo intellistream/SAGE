@@ -5,7 +5,7 @@ SAGE Middleware 微服务集成示例
 import time
 import numpy as np
 from typing import Dict, List, Any
-from sage.core.api.local_environment import LocalEnvironment
+from sage.api.local_environment import LocalEnvironment
 from sage.service import (
     create_kv_service_factory,
     create_vdb_service_factory,

@@ -50,7 +50,7 @@ Service Tasks (BaseServiceTask)
 ### 第一步：注册服务
 
 ```python
-from sage.core.api.local_environment import LocalEnvironment
+from sage.api.local_environment import LocalEnvironment
 from sage.service import (
     create_kv_service_factory,
     create_vdb_service_factory,
@@ -69,7 +69,7 @@ env.register_service("memory_service", MemoryOrchestratorService, create_memory_
 ### 第二步：在Function中使用
 
 ```python
-from sage.core.function.base_function import BaseFunction
+from sage.api.function.base_function import BaseFunction
 
 class MyProcessor(BaseFunction):
     def process(self, data):

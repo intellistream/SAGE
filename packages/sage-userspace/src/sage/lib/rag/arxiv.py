@@ -12,7 +12,7 @@ from collections import Counter
 import json
 import re
 
-from sage.core.function.map_function import MapFunction
+from sage.api.function.map_function import MapFunction
 
 
 

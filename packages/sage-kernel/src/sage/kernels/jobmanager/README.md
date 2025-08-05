@@ -158,7 +158,7 @@ if status == "COMPLETED":
 
 ### 提交SAGE管道作业
 ```python
-from sage.core.api.env import RemoteEnvironment
+from sage.api.env import RemoteEnvironment
 
 # 创建远程执行环境
 env = RemoteEnvironment(

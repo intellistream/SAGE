@@ -9,8 +9,8 @@ following the testing organization structure outlined in the issue.
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.api.datastream import DataStream
+from sage.api.local_environment import LocalEnvironment
+from sage.api.datastream import DataStream
 
 
 @pytest.fixture
@@ -320,7 +320,7 @@ class TestLocalEnvironmentInheritance:
     @pytest.mark.unit
     def test_inherits_from_base_environment(self):
         """Test that LocalEnvironment properly inherits from BaseEnvironment"""
-        from sage.core.api.base_environment import BaseEnvironment
+        from sage.api.base_environment import BaseEnvironment
         assert issubclass(LocalEnvironment, BaseEnvironment)
     
     @pytest.mark.unit

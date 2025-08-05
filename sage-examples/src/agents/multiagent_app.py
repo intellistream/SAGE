@@ -1,6 +1,6 @@
 import time
 from sage.lib.utils.tool_filter import ToolFilter
-from sage.core.api.local_environment import LocalEnvironment
+from sage.api.local_environment import LocalEnvironment
 from sage.lib.tools.searcher_tool import BochaSearchTool
 from sage.lib.utils.context_sink import ContextFileSink
 from sage.utils.config.loader import load_config

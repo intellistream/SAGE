@@ -1,10 +1,10 @@
 import time
 from dotenv import load_dotenv
-from sage.core.api.remote_environment import RemoteEnvironment
+from sage.api.remote_environment import RemoteEnvironment
 from sage.utils.logging.custom_logger import CustomLogger
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.function.batch_function import BatchFunction
-from sage.core.function.map_function import MapFunction
+from sage.api.local_environment import LocalEnvironment
+from sage.api.function.batch_function import BatchFunction
+from sage.api.function.map_function import MapFunction
 from sage.lib.io_utils.sink import TerminalSink
 from sage.lib.rag.promptor import QAPromptor
 from sage.utils.config.loader import load_config
@@ -14,7 +14,7 @@ import os
 import json
 import time
 from typing import Any, List, Tuple
-from sage.core.function.map_function import MapFunction
+from sage.api.function.map_function import MapFunction
 
 class OpenAIGenerator(MapFunction):
     """

@@ -43,7 +43,7 @@ examples/
 ```python
 # 1. 注册服务
 from sage.service import create_kv_service_factory
-from sage.core.api.local_environment import LocalEnvironment
+from sage.api.local_environment import LocalEnvironment
 
 env = LocalEnvironment("my_app")
 kv_factory = create_kv_service_factory("my_kv", backend_type="memory")

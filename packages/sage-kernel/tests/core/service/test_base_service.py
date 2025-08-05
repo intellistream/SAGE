@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 from abc import ABC, abstractmethod
 import logging
 
-from sage.core.service.base_service import BaseService
+from sage.api.service.base_service import BaseService
 
 
 class MockService(BaseService):

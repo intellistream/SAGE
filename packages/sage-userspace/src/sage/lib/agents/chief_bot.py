@@ -2,7 +2,7 @@ from typing import List, Tuple, Dict, Any
 import json
 import re
 from ..context.model_context import ModelContext
-from sage.core.function.flatmap_function import FlatMapFunction
+from sage.api.function.flatmap_function import FlatMapFunction
 from sage.lib.utils.openaiclient import OpenAIClient
 
 class ChiefBot(FlatMapFunction):

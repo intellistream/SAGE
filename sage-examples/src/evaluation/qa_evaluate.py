@@ -1,6 +1,6 @@
 import time
-from sage.core.api.env import LocalEnvironment
-from sage.core.function.map_function import MapFunction
+from sage.api.env import LocalEnvironment
+from sage.api.function.map_function import MapFunction
 from sage.lib.rag.generator import OpenAIGenerator
 from sage.lib.rag.promptor import QAPromptor
 from sage.lib.rag.evaluate import F1Evaluate

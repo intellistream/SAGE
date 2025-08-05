@@ -7,7 +7,7 @@ from unittest.mock import Mock, MagicMock, patch
 from abc import ABC, abstractmethod
 from typing import Iterator, List, Any
 
-from sage.core.function.source_function import SourceFunction, StopSignal
+from sage.api.function.source_function import SourceFunction, StopSignal
 
 
 class MockSourceFunction(SourceFunction):

@@ -61,7 +61,7 @@ BaseFunction (抽象基类)
 
 ### 自定义函数实现
 ```python
-from sage.core.function.base_function import BaseFunction
+from sage.api.function.base_function import BaseFunction
 
 class MyMapFunction(BaseFunction):
     def apply(self, data):

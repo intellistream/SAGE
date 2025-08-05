@@ -32,7 +32,7 @@ def test_remote_submission_flow():
     # 2. 创建RemoteEnvironment并提交
     print("2. Creating and submitting RemoteEnvironment...")
     try:
-        from sage.core.api.remote_environment import RemoteEnvironment
+        from sage.api.remote_environment import RemoteEnvironment
         
         # 创建远程环境
         remote_env = RemoteEnvironment(
@@ -83,7 +83,7 @@ def test_serialization_only():
     print("\n=== 测试序列化部分 ===")
     
     try:
-        from sage.core.api.remote_environment import RemoteEnvironment
+        from sage.api.remote_environment import RemoteEnvironment
         from sage.utils.serialization.dill_serializer import trim_object_for_ray, serialize_object, deserialize_object
         
         # 创建环境

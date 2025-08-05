@@ -3,8 +3,8 @@ import time  # 替换 asyncio 为 time 用于同步延迟
 import os
 import json
 
-from sage.core.function.map_function import MapFunction
-from sage.core.function.base_function import MemoryFunction, StatefulFunction
+from sage.api.function.map_function import MapFunction
+from sage.api.function.base_function import MemoryFunction, StatefulFunction
 
 # 更新后的 SimpleRetriever
 class DenseRetriever(MapFunction):

@@ -122,13 +122,13 @@ dependencies = [
 # 基础安装
 basic = [
     "sage-utils",
-    "sage-core",
+    "sage-kernel",
 ]
 
 # 扩展功能
 extended = [
     "sage-utils",
-    "sage-core", 
+    "sage-kernel", 
     "sage-extensions",  # C++ 扩展
 ]
 
@@ -189,7 +189,7 @@ multi_line_output = 3               # 多行输出格式
 line_length = 88                    # 与 black 保持一致
 known_first_party = ["sage"]        # 第一方包
 src_paths = [                       # 源代码路径
-    "packages/sage-core/src",
+    "packages/sage-kernel/src",
     "packages/sage-utils/src",
 ]
 ```
@@ -203,7 +203,7 @@ warn_return_any = true              # 警告返回 Any
 warn_unused_configs = true          # 警告未使用的配置
 namespace_packages = true           # 命名空间包支持
 mypy_path = [                       # 类型检查路径
-    "packages/sage-core/src",
+    "packages/sage-kernel/src",
     "packages/sage-utils/src",
 ]
 
@@ -217,7 +217,7 @@ ignore_missing_imports = false
 ```toml
 [tool.pytest.ini_options]
 testpaths = [                       # 测试路径
-    "packages/sage-core/tests",
+    "packages/sage-kernel/tests",
     "packages/sage-utils/tests",
     "tests",
 ]
@@ -250,9 +250,9 @@ dependencies = []                    # 虚拟包，无直接依赖
 
 [project.optional-dependencies]
 # 分层安装策略
-basic = ["sage-utils", "sage-core", "sage-lib"]
-extended = ["sage-utils", "sage-core", "sage-lib", "sage-extensions"]
-full = ["sage-utils", "sage-core", "sage-lib", "sage-extensions", 
+basic = ["sage-utils", "sage-kernel", "sage-lib"]
+extended = ["sage-utils", "sage-kernel", "sage-lib", "sage-extensions"]
+full = ["sage-utils", "sage-kernel", "sage-lib", "sage-extensions", 
         "sage-plugins", "sage-service", "sage-cli"]
 
 # 统一的开发工具链
@@ -279,7 +279,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sage-extensions"
 dependencies = [
-    "sage-core",                     # 内部依赖
+    "sage-kernel",                     # 内部依赖
     "numpy>=1.21.0",                 # C++ 扩展需要
     "pybind11>=2.10.0",             # 运行时绑定
 ]
@@ -344,26 +344,26 @@ performance = [
 [project.optional-dependencies]
 # 生产环境：最小依赖
 prod = [
-    "sage-core",
+    "sage-kernel",
     "numpy>=1.21.0",
 ]
 
 # 开发环境：完整工具链
 dev = [
-    "sage-core[prod]",
+    "sage-kernel[prod]",
     "pytest", "black", "mypy",
     "pre-commit",
 ]
 
 # 测试环境：测试相关工具
 test = [
-    "sage-core[prod]",
+    "sage-kernel[prod]",
     "pytest", "pytest-cov", "pytest-asyncio",
 ]
 
 # CI 环境：自动化工具
 ci = [
-    "sage-core[test]",
+    "sage-kernel[test]",
     "tox", "coverage", "codecov",
 ]
 ```

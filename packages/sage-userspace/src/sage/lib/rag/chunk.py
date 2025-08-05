@@ -1,5 +1,5 @@
 from typing import Any, List, Literal, Optional, Union
-from sage.core.function.map_function import MapFunction
+from sage.api.function.map_function import MapFunction
 
 from typing import Any, List, Optional
 from sentence_transformers import SentenceTransformer

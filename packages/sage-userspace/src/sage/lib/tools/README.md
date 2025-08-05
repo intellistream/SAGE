@@ -121,7 +121,7 @@ content = extractor.extract("https://example.com/article")
 ## 在SAGE中使用
 
 ```python
-from sage.core.api.env import LocalEnvironment
+from sage.api.env import LocalEnvironment
 from sage.lib.tools import ArxivPaperSearcher, ImageCaptioner
 
 # 创建环境

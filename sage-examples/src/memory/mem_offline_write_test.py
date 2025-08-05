@@ -3,12 +3,12 @@
 """
 import time
 from sage.utils.logging.custom_logger import CustomLogger
-from sage.core.api.local_environment import LocalEnvironment
+from sage.api.local_environment import LocalEnvironment
 from sage.service.memory.memory_service import MemoryService
 from sage.utils.embedding_methods.embedding_api import apply_embedding_model
-from sage.core.function.map_function import MapFunction
-from sage.core.function.batch_function import BatchFunction
-from sage.core.function.sink_function import SinkFunction
+from sage.api.function.map_function import MapFunction
+from sage.api.function.batch_function import BatchFunction
+from sage.api.function.sink_function import SinkFunction
 
 class RAGQuerySource(BatchFunction):
     def __init__(self, **kwargs):

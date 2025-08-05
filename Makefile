@@ -1,7 +1,7 @@
 # SAGE Project Makefile
 # 已集成构建和安装问题修复
 
-.PHONY: build install all help clean dev-install
+.PHONY: build install install-prod all help clean dev-install
 
 # Development install (editable mode) - 推荐给开发者使用
 dev-install:
@@ -16,11 +16,14 @@ build:
 	mkdir -p ~/.sage/makefile_logs
 	./scripts/build_all_wheels.sh > ~/.sage/makefile_logs/build.log 2>&1
 
-# Install all wheels using the fixed install script
+# Install all wheels using the fixed install script (production install)
 install:
-	@echo "📦 Installing wheels (with integrated fixes)..."
+	@echo "📦 Installing wheels to site-packages (production mode)..."
 	mkdir -p ~/.sage/makefile_logs
 	./scripts/install_wheels.sh > ~/.sage/makefile_logs/install.log 2>&1
+
+# Alias for production install
+install-prod: install
 
 # Build and install in one command
 all:
@@ -40,15 +43,17 @@ clean:
 # Show help information
 help:
 	@echo "Available targets:"
-	@echo "  dev-install - Install in development mode (editable, recommended for devs)"
-	@echo "  build       - Build all wheels (with outlines_core/xformers fixes)"
-	@echo "  install     - Install wheels (with dependency resolution fixes)"
-	@echo "  all         - Build and install in one command"
-	@echo "  clean       - Clean all build artifacts"
-	@echo "  help        - Show this help message"
+	@echo "  dev-install  - Install in development mode (editable, recommended for devs)"
+	@echo "  build        - Build all wheels (with outlines_core/xformers fixes)"
+	@echo "  install      - Install wheels to site-packages (production mode)"
+	@echo "  install-prod - Alias for production install"
+	@echo "  all          - Build and install in one command"
+	@echo "  clean        - Clean all build artifacts"
+	@echo "  help         - Show this help message"
 	@echo ""
-	@echo "🚀 Quick start for developers:"
-	@echo "   make dev-install  # Editable install, code changes take effect immediately"
+	@echo "🚀 Quick start:"
+	@echo "   make dev-install   # For development (editable install)"
+	@echo "   make install-prod  # For production (install to site-packages)"
 	@echo ""
 	@echo "🔧 Integrated fixes:"
 	@echo "  ✅ outlines_core build failure fix"

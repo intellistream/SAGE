@@ -1,3 +1,0 @@
-Defaulting to user installation because normal site-packages is not writeable
-Looking in links: ./build/wheels
-Requirement already satisfied: sage in ./packages/sage-userspace/src (0.0.0)

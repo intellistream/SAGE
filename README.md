@@ -639,7 +639,7 @@ SAGE uses a **fluent-style API** to declaratively define RAG pipelines with comp
 ---
 
 ```python
-from sage.core.api.local_environment import LocalEnvironment  # Updated import
+from sage.api.local_environment import LocalEnvironment  # Updated import
 from sage.lib.io.source import FileSource
 from sage.lib.rag.retriever import DenseRetriever
 from sage.lib.rag.promptor import QAPromptor
@@ -713,7 +713,7 @@ You can find comprehensive example configurations under [sage-examples/config/](
 SAGE supports seamless scaling from local to distributed execution using Ray:
 
 ```python
-from sage.core.api.remote_environment import RemoteEnvironment
+from sage.api.remote_environment import RemoteEnvironment
 
 # Create distributed environment  
 env = RemoteEnvironment("distributed_rag", jobmanager_address="localhost:19001")
