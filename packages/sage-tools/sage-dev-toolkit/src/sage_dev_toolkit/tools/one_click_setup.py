@@ -123,41 +123,63 @@ class OneClickSetupTester:
             }
     
     def _install_dependencies(self) -> Dict[str, Any]:
-        """Install project dependencies."""
+        """Install project dependencies using requirements-dev.txt."""
         try:
-            installed_packages = []
+            installed_components = []
             
-            # Check for pyproject.toml in root
-            pyproject_file = self.project_root / 'pyproject.toml'
-            if pyproject_file.exists():
+            # Modern approach: Use requirements-dev.txt for all dependencies
+            requirements_dev = self.project_root / 'requirements-dev.txt'
+            if requirements_dev.exists():
+                console_print("📋 Installing from requirements-dev.txt...")
                 result = subprocess.run([
-                    sys.executable, '-m', 'pip', 'install', '-e', '.'
+                    sys.executable, '-m', 'pip', 'install', '-r', 'requirements-dev.txt'
                 ], capture_output=True, text=True, cwd=self.project_root)
                 
                 if result.returncode != 0:
                     return {
                         'status': 'failed',
-                        'error': 'Failed to install main package',
-                        'stderr': result.stderr
+                        'error': 'Failed to install from requirements-dev.txt',
+                        'stderr': result.stderr,
+                        'stdout': result.stdout
                     }
-                installed_packages.append('main_package')
-            
-            # Check for packages directory
-            packages_dir = self.project_root / 'packages'
-            if packages_dir.exists():
-                for package_path in packages_dir.iterdir():
-                    if package_path.is_dir() and (package_path / 'pyproject.toml').exists():
-                        result = subprocess.run([
-                            sys.executable, '-m', 'pip', 'install', '-e', str(package_path)
-                        ], capture_output=True, text=True, cwd=self.project_root)
-                        
-                        if result.returncode == 0:
-                            installed_packages.append(package_path.name)
+                installed_components.append('requirements-dev.txt')
+                
+            else:
+                # Fallback: Legacy method with individual package installation
+                console_print("⚠️  requirements-dev.txt not found, using legacy package installation...")
+                
+                # Check for pyproject.toml in root
+                pyproject_file = self.project_root / 'pyproject.toml'
+                if pyproject_file.exists():
+                    result = subprocess.run([
+                        sys.executable, '-m', 'pip', 'install', '-e', '.'
+                    ], capture_output=True, text=True, cwd=self.project_root)
+                    
+                    if result.returncode != 0:
+                        return {
+                            'status': 'failed',
+                            'error': 'Failed to install main package',
+                            'stderr': result.stderr
+                        }
+                    installed_components.append('main_package')
+                
+                # Check for packages directory
+                packages_dir = self.project_root / 'packages'
+                if packages_dir.exists():
+                    for package_path in packages_dir.iterdir():
+                        if package_path.is_dir() and (package_path / 'pyproject.toml').exists():
+                            result = subprocess.run([
+                                sys.executable, '-m', 'pip', 'install', '-e', str(package_path)
+                            ], capture_output=True, text=True, cwd=self.project_root)
+                            
+                            if result.returncode == 0:
+                                installed_components.append(package_path.name)
             
             return {
                 'status': 'success',
-                'installed_packages': installed_packages,
-                'message': f'Installed {len(installed_packages)} packages'
+                'installed_components': installed_components,
+                'method': 'requirements-dev.txt' if requirements_dev.exists() else 'legacy',
+                'message': f'Installed using {"requirements-dev.txt" if requirements_dev.exists() else f"{len(installed_components)} individual packages"}'
             }
             
         except Exception as e:

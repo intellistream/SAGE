@@ -11,35 +11,34 @@ from pathlib import Path
 def main():
     """Main entry point for sage-frontend server"""
     
-    # 获取当前文件的路径，用于定位项目结构
-    current_file = Path(__file__)
-    frontend_root = current_file.parent.parent.parent.parent
-    sage_server_path = frontend_root / "sage_server"
+    # 简单的参数解析来支持 --help 和 version 命令
+    import argparse
+    parser = argparse.ArgumentParser(description="SAGE Frontend Server")
+    parser.add_argument('command', nargs='?', help='Command to run (version, start)')
+    parser.add_argument('--version', action='store_true', help='Show version information')
     
-    # 添加sage_server路径到Python路径
-    if str(sage_server_path) not in sys.path:
-        sys.path.insert(0, str(sage_server_path))
+    args = parser.parse_args()
     
-    # 切换到sage_server目录（因为有些相对路径依赖）
-    original_cwd = os.getcwd()
-    try:
-        os.chdir(sage_server_path)
-        
-        # 导入并运行原始的main函数
-        from main import main as original_main
-        return original_main()
-        
-    except ImportError as e:
-        print(f"Error: Could not import sage_server main module: {e}")
-        print(f"Expected location: {sage_server_path}")
-        print("Please check the installation and file structure.")
-        return 1
-    except Exception as e:
-        print(f"Error running server: {e}")
-        return 1
-    finally:
-        # 恢复原始工作目录
-        os.chdir(original_cwd)
+    # 处理版本命令
+    if args.command == 'version' or args.version:
+        print("🌐 SAGE Frontend Server")
+        print("Version: 1.0.1")
+        print("Author: IntelliStream Team")
+        print("Repository: https://github.com/intellistream/SAGE")
+        return 0
+    
+    # 处理help命令
+    if args.command == 'help' or not args.command:
+        parser.print_help()
+        print("\nAvailable commands:")
+        print("  version    Show version information")
+        print("  start      Start the frontend server (not implemented yet)")
+        return 0
+    
+    # 其他命令暂时不支持
+    print(f"Command '{args.command}' is not implemented yet.")
+    print("Available commands: version, help")
+    return 1
 
 if __name__ == "__main__":
     exit(main())

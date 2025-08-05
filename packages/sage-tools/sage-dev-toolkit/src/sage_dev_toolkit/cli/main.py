@@ -445,8 +445,9 @@ def setup_test_command(
             icon = "✅" if status == 'success' else "❌"
             details = ""
             
-            if phase_name == 'install' and 'installed_packages' in phase_data:
-                details = f"{len(phase_data['installed_packages'])} packages"
+            if phase_name == 'install' and 'installed_components' in phase_data:
+                method = phase_data.get('method', 'unknown')
+                details = f"{len(phase_data['installed_components'])} components ({method})"
             elif phase_name == 'test' and 'stdout' in phase_data:
                 details = "Check logs for details"
             
@@ -793,10 +794,13 @@ def classes_command(
 
 @app.command("home")
 def home_command(
-    action: str = typer.Argument(help="Action: setup, status"),
-    project_root: Optional[str] = typer.Option(None, help="Project root directory")
+    action: str = typer.Argument(help="Action: setup, status, clean, logs"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory"),
+    force: bool = typer.Option(False, "--force", "-f", help="Force operation without confirmation"),
+    days: int = typer.Option(7, "--days", "-d", help="Clean logs older than specified days"),
+    log_type: Optional[str] = typer.Option(None, "--type", "-t", help="Log type filter: test, jobmanager, toolkit, all")
 ):
-    """🏠 Manage SAGE home directory (~/.sage/)."""
+    """🏠 Manage SAGE home directory (~/.sage/) and logs."""
     import os
     
     try:
@@ -899,14 +903,239 @@ def home_command(
             else:
                 console.print("❌ Project .sage symlink does not exist")
         
+        elif action == "clean":
+            _clean_logs(real_sage_home, force, days, log_type)
+        
+        elif action == "logs":
+            _show_logs_info(real_sage_home)
+        
         else:
             console.print(f"❌ Unknown action: {action}", style="red")
-            console.print("Available actions: setup, status")
+            console.print("Available actions: setup, status, clean, logs")
             raise typer.Exit(1)
             
     except Exception as e:
         console.print(f"❌ SAGE home management failed: {e}", style="red")
         raise typer.Exit(1)
 
+
+def _clean_logs(sage_home: Path, force: bool, days: int, log_type: Optional[str] = None):
+    """Clean logs from SAGE home directory."""
+    import time
+    import shutil
+    from datetime import datetime, timedelta
+    
+    logs_dir = sage_home / "logs"
+    if not logs_dir.exists():
+        console.print("📁 No logs directory found.", style="yellow")
+        return
+    
+    # Calculate cutoff time
+    cutoff_time = time.time() - (days * 24 * 3600)
+    cutoff_date = datetime.fromtimestamp(cutoff_time)
+    
+    console.print(f"🗂️ Scanning logs directory: {logs_dir}")
+    console.print(f"📅 Cleaning logs older than {days} days (before {cutoff_date.strftime('%Y-%m-%d %H:%M:%S')})")
+    
+    # Collect files to clean
+    files_to_clean = []
+    total_size = 0
+    
+    for item in logs_dir.rglob("*"):
+        if item.is_file():
+            # Check file age
+            file_mtime = item.stat().st_mtime
+            if file_mtime < cutoff_time:
+                # Apply log type filter if specified
+                if log_type and log_type != "all":
+                    if log_type == "test" and not any(pattern in item.name for pattern in ["test_", "_test", "packages_"]):
+                        continue
+                    elif log_type == "jobmanager" and "jobmanager" not in str(item.parent):
+                        continue
+                    elif log_type == "toolkit" and "sage_dev_toolkit" not in item.name:
+                        continue
+                
+                file_size = item.stat().st_size
+                files_to_clean.append((item, file_size))
+                total_size += file_size
+    
+    # Also collect empty directories
+    dirs_to_clean = []
+    for item in logs_dir.rglob("*"):
+        if item.is_dir() and not any(item.iterdir()):  # Empty directory
+            dir_mtime = item.stat().st_mtime
+            if dir_mtime < cutoff_time:
+                dirs_to_clean.append(item)
+    
+    if not files_to_clean and not dirs_to_clean:
+        console.print("✨ No old log files to clean.", style="green")
+        return
+    
+    # Format size
+    def format_size(size):
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{size:.1f} TB"
+    
+    # Show summary
+    console.print(f"🧹 Found {len(files_to_clean)} old log files ({format_size(total_size)}) and {len(dirs_to_clean)} empty directories")
+    
+    # Show files to be cleaned if not too many
+    if len(files_to_clean) <= 10:
+        for file_path, size in files_to_clean:
+            rel_path = file_path.relative_to(logs_dir)
+            age_days = (time.time() - file_path.stat().st_mtime) / (24 * 3600)
+            console.print(f"  📄 {rel_path} ({format_size(size)}, {age_days:.1f} days old)")
+    else:
+        console.print(f"  📄 {len(files_to_clean)} files total...")
+    
+    # Ask for confirmation unless force is specified
+    if not force:
+        confirm = typer.confirm(f"🗑️ Delete {len(files_to_clean)} files and {len(dirs_to_clean)} directories?")
+        if not confirm:
+            console.print("❌ Operation cancelled.", style="yellow")
+            return
+    
+    # Clean files
+    cleaned_files = 0
+    cleaned_size = 0
+    failed_files = []
+    
+    with console.status("🧹 Cleaning log files..."):
+        for file_path, size in files_to_clean:
+            try:
+                file_path.unlink()
+                cleaned_files += 1
+                cleaned_size += size
+            except Exception as e:
+                failed_files.append((file_path, str(e)))
+        
+        # Clean empty directories
+        for dir_path in dirs_to_clean:
+            try:
+                dir_path.rmdir()
+            except Exception as e:
+                failed_files.append((dir_path, str(e)))
+    
+    # Report results
+    console.print(f"✅ Cleaned {cleaned_files} log files ({format_size(cleaned_size)})", style="green")
+    
+    if failed_files:
+        console.print(f"⚠️ Failed to clean {len(failed_files)} items:", style="yellow")
+        for path, error in failed_files[:5]:  # Show first 5 failures
+            console.print(f"  ❌ {path.name}: {error}")
+        if len(failed_files) > 5:
+            console.print(f"  ... and {len(failed_files) - 5} more")
+
+
+def _show_logs_info(sage_home: Path):
+    """Show information about logs in SAGE home directory."""
+    from datetime import datetime
+    import time
+    
+    logs_dir = sage_home / "logs"
+    if not logs_dir.exists():
+        console.print("📁 No logs directory found.", style="yellow")
+        return
+    
+    console.print("📊 SAGE Logs Information", style="cyan")
+    console.print(f"📁 Logs directory: {logs_dir}")
+    
+    # Categorize log files
+    categories = {
+        'test': {'files': [], 'size': 0},
+        'jobmanager': {'files': [], 'size': 0},
+        'toolkit': {'files': [], 'size': 0},
+        'other': {'files': [], 'size': 0}
+    }
+    
+    total_files = 0
+    total_size = 0
+    oldest_file = None
+    newest_file = None
+    
+    def format_size(size):
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{size:.1f} TB"
+    
+    # Scan all files
+    for item in logs_dir.rglob("*"):
+        if item.is_file():
+            file_size = item.stat().st_size
+            file_mtime = item.stat().st_mtime
+            
+            total_files += 1
+            total_size += file_size
+            
+            # Track oldest and newest
+            if oldest_file is None or file_mtime < oldest_file[1]:
+                oldest_file = (item, file_mtime)
+            if newest_file is None or file_mtime > newest_file[1]:
+                newest_file = (item, file_mtime)
+            
+            # Categorize
+            if any(pattern in item.name for pattern in ["test_", "_test", "packages_"]):
+                categories['test']['files'].append(item)
+                categories['test']['size'] += file_size
+            elif "jobmanager" in str(item.parent) or "jobmanager" in item.name:
+                categories['jobmanager']['files'].append(item)
+                categories['jobmanager']['size'] += file_size
+            elif "sage_dev_toolkit" in item.name:
+                categories['toolkit']['files'].append(item)
+                categories['toolkit']['size'] += file_size
+            else:
+                categories['other']['files'].append(item)
+                categories['other']['size'] += file_size
+    
+    # Show summary
+    console.print(f"\n📈 Summary:")
+    console.print(f"  📄 Total files: {total_files}")
+    console.print(f"  💾 Total size: {format_size(total_size)}")
+    
+    if oldest_file and newest_file:
+        oldest_date = datetime.fromtimestamp(oldest_file[1])
+        newest_date = datetime.fromtimestamp(newest_file[1])
+        age_days = (newest_file[1] - oldest_file[1]) / (24 * 3600)
+        console.print(f"  📅 Date range: {oldest_date.strftime('%Y-%m-%d')} to {newest_date.strftime('%Y-%m-%d')} ({age_days:.1f} days)")
+    
+    # Show categories
+    console.print(f"\n📊 By Category:")
+    for category, data in categories.items():
+        if data['files']:
+            icon = {"test": "🧪", "jobmanager": "📋", "toolkit": "🔧", "other": "📄"}[category]
+            console.print(f"  {icon} {category.title()}: {len(data['files'])} files ({format_size(data['size'])})")
+    
+    # Show recent files (last 5)
+    recent_files = sorted(
+        [item for item in logs_dir.rglob("*") if item.is_file()],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True
+    )[:5]
+    
+    if recent_files:
+        console.print(f"\n🕐 Recent files:")
+        for item in recent_files:
+            rel_path = item.relative_to(logs_dir)
+            file_time = datetime.fromtimestamp(item.stat().st_mtime)
+            file_size = format_size(item.stat().st_size)
+            console.print(f"  📄 {rel_path} ({file_size}, {file_time.strftime('%Y-%m-%d %H:%M')})")
+
+
 if __name__ == '__main__':
+    def main():
+        """Main entry point for the CLI."""
+        try:
+            app()
+        except KeyboardInterrupt:
+            console.print("\n👋 Goodbye!", style="yellow")
+            sys.exit(0)
+        except Exception as e:
+            console.print(f"❌ Unexpected error: {e}", style="red")
+            sys.exit(1)
+    
     main()
