@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "SAGE Framework - 命令行界面工具"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "IntelliStream Team", email = "sage@intellistream.cc"},
 ]
@@ -16,7 +16,6 @@ keywords = ["rag", "llm", "cli", "command-line", "tools"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -32,6 +31,7 @@ dependencies = [
     # CLI 专用依赖
     "shellingham>=1.5.0",              # Shell 检测
     "questionary>=1.10.0",             # 交互式命令行界面
+    "prompt_toolkit>=3.0.50",          # questionary
 ]
 
 [project.optional-dependencies]

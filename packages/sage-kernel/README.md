@@ -128,7 +128,7 @@ mypy src/sage
 
 ### 外部核心依赖
 - **ML/AI**: torch, transformers, sentence-transformers, faiss-cpu
-- **Web/API**: fastapi, uvicorn, aiohttp, httpx
+- **Web/API**: fastapi, uvicorn, aiohttp
 - **数据处理**: numpy, pandas, scipy, scikit-learn
 - **CLI**: typer, rich, click, questionary
 - **配置**: pydantic, PyYAML, python-dotenv
