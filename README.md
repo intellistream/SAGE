@@ -6,7 +6,35 @@ SAGE is a dataflow-native reasoning framework built from the ground up to suppor
 ![](./.github/asset/framework.png)
 
 
-## 🛠️ SAGE Development Toolkit
+## � Quick Installation
+
+### For Developers
+```bash
+git clone <repo-url>
+cd SAGE
+pip install -r requirements-dev.txt
+```
+
+### For Production
+```bash
+pip install -r requirements.txt
+```
+
+### Commercial Version
+```bash
+# 1. Install base version
+pip install -r requirements.txt
+
+# 2. Install license
+python scripts/sage-license.py install <license-key>
+
+# 3. Install commercial components
+pip install -r requirements-commercial.txt
+```
+
+See [INSTALL_GUIDE.md](INSTALL_GUIDE.md) for detailed installation instructions.
+
+## �🛠️ SAGE Development Toolkit
 
 The SAGE Development Toolkit provides unified development tools for the SAGE project. It integrates various development utilities into a single, easy-to-use command-line interface.
 

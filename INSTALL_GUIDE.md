@@ -1,115 +1,137 @@
-# 🚀 SAGE 安装指南 (开源 + 商业版)
+# SAGE 安装指南
 
-## 🎯 双版本Requirements文件
+## 快速开始
 
-### 📁 文件结构
-```
-/home/shuhao/SAGE/
-├── requirements.txt           # 🌍 开源生产版 (可上传PyPI)
-├── requirements-dev.txt       # 👨‍💻 开源开发版 (可上传PyPI)  
-└── requirements-commercial.txt # 🏢 商业版 (� 绝不上传)
-```
+### 开源版本
 
-## 🌍 开源版本安装
-
-### �‍💻 开发者安装（推荐）
 ```bash
-# 方法1: 使用Makefile (推荐)
-make dev-install
+# 1. 克隆仓库
+git clone <repo-url>
+cd SAGE
 
-# 方法2: 直接使用pip
+# 2. 安装核心包 (生产环境)
+pip install -r requirements.txt
+
+# 3. 开发环境 (推荐)
 pip install -r requirements-dev.txt
 ```
 
-**包含功能：**
-- ✅ **sage-kernel** - 核心流处理引擎
-- ✅ **sage-middleware** - 中间件服务  
-- ✅ **sage-userspace** - 用户应用层
-- ✅ **sage-tools/sage-cli** - 命令行工具
-- ✅ **sage-tools/sage-dev-toolkit** - 开发工具包
-- ✅ **开发工具** - pytest, black, isort, flake8, mypy, jupyter
+### 商业版本
 
-### � 生产环境安装
 ```bash
+# 1. 安装开源版本
 pip install -r requirements.txt
-```
 
-## 🏢 商业版本安装 (内部使用)
+# 2. 安装许可证
+python scripts/sage-license.py install <your-license-key>
 
-### 🔒 商业版开发者安装
-```bash
-# 需要商业授权和内部访问权限
-make commercial-install
-
-# 或直接使用pip (如果有requirements-commercial.txt)
+# 3. 安装商业版组件
 pip install -r requirements-commercial.txt
+
+# 4. 验证安装
+python scripts/sage-license.py status
 ```
 
-**额外商业功能：**
-- ⭐ **sage-kernel-commercial** - 高性能队列，企业级优化
-- ⭐ **sage-middleware-commercial** - 数据库连接器，存储中间件
-- ⭐ **sage-userspace-commercial** - 企业用户空间，高级安全
+## 安装选项说明
 
-## 🔐 PyPI 发布安全性
+| 文件 | 用途 | 包含内容 |
+|------|------|----------|
+| `requirements.txt` | 生产环境 | 核心SAGE包 |
+| `requirements-dev.txt` | 开发环境 | 核心包 + 开发工具 |
+| `requirements-commercial.txt` | 商业版 | 核心包 + 商业功能 |
 
-### ✅ 可以安全上传的内容：
-- `requirements.txt` - 只包含开源包路径
-- `requirements-dev.txt` - 只包含开源包路径
-- 所有 `packages/` 下的开源目录
+## 包结构
 
-### 🔒 绝对不能上传的内容：
-- `requirements-commercial.txt` 
-- `packages/commercial/` 目录
-- 任何包含 "commercial" 的文件
+```
+SAGE/
+├── packages/sage/              # 元包
+├── packages/sage-kernel/       # 核心引擎
+├── packages/sage-middleware/   # 中间件
+├── packages/sage-userspace/    # 用户空间
+├── packages/sage-tools/        # 工具集
+│   ├── sage-cli/              # 命令行工具
+│   └── sage-dev-toolkit/      # 开发工具
+└── packages/commercial/        # 商业版组件 (需要许可证)
+    ├── sage-kernel/
+    ├── sage-middleware/
+    └── sage-userspace/
+```
 
-### 🛡️ 安全检查
+## 验证安装
+
 ```bash
-# 上传前运行安全检查
-./scripts/check-commercial-safety.sh
+# 检查核心包
+python -c "import sage; print('SAGE installed successfully')"
 
-# 如果通过检查，显示: ✅ 安全! 可以上传到PyPI
-# 如果发现商业内容，显示: ❌ 危险! 发现商业内容
+# 检查CLI工具
+sage --version
+
+# 检查商业版许可证 (如果适用)
+python scripts/sage-license.py status
 ```
 
-## 🔄 开发体验
+## 故障排除
 
-### Editable模式优势
-```python
-# 修改代码后立即生效，无需重新安装
-# 编辑 packages/sage-kernel/src/sage/api/datastream.py
+### 常见问题
+
+1. **导入错误**: 确保使用editable install (`-e`)
+2. **依赖冲突**: 建议使用虚拟环境
+3. **商业版访问**: 检查许可证状态
+
+### 开发者注意事项
+
+- 所有包都使用editable install，修改代码后无需重新安装
+- 商业版代码需要有效许可证才能访问
+- 使用`requirements-dev.txt`获得最佳开发体验
 
 # 立即测试
 python -c "from sage.api import DataStream; ..."
 ```
 
-## 💡 常用命令
-
+### 验证安装
 ```bash
-# 开源版安装
-make dev-install                    # 开发版
-pip install -r requirements.txt     # 生产版
-
-# 商业版安装 (内部)
-make commercial-install             # 需要商业授权
-
-# 安全检查
-./scripts/check-commercial-safety.sh
-
-# 查看安装的包
+# 检查安装的包
 pip list | grep sage
 
-# 测试安装
-python -c "import sage; print(f'SAGE {sage.__version__} ready!')"
+# 测试导入
+python -c "import sage; print('SAGE Ready!')"
 ```
 
-## 🎯 总结
+## 🏢 商业版本
 
-1. **完美分离** - 开源和商业版本完全隔离
-2. **安全发布** - 可以安心上传requirements.txt到PyPI
-3. **统一体验** - 相同的pip install开发体验
-4. **商业保护** - 商业功能完全闭源保护
-5. **自动检查** - 防止意外泄露商业内容
+如需商业版本功能，请使用许可管理工具：
+
+```bash
+# 安装商业许可
+python scripts/sage-license.py install YOUR-LICENSE-KEY
+
+# 重新安装以获得商业功能
+pip install --upgrade --force-reinstall -e .
+```
+
+## 💡 常见问题
+
+### Q: 如何切换开发/生产模式？
+```bash
+# 开发模式 (包含测试工具)
+pip install -e ".[dev]"
+
+# 生产模式 (仅核心功能)
+pip install -e .
+```
+
+### Q: 如何更新依赖？
+```bash
+# 重新安装所有依赖
+pip install --upgrade --force-reinstall -e ".[dev]"
+```
+
+### Q: 如何卸载？
+```bash
+# 卸载SAGE相关包
+pip uninstall sage sage-kernel sage-middleware sage-userspace sage-cli sage-dev-toolkit
+```
 
 ---
 
-**现在您既有简单的pip安装体验，又有完善的商业版本保护！** 🎯
+**现在安装更简单了！推荐使用 `pip install -e ".[dev]"` 进行开发。** 🎯

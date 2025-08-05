@@ -1,25 +1,12 @@
-# SAGE 开源版安装
-# 适用于：开源开发者，社区贡献者
-# 安装方式：pip install -r requirements-open-source.txt
+# 开发环境安装 - 包含开发工具
+-r requirements.txt
+-e packages/sage-tools/sage-dev-toolkit
 
-# ==================================================
-# SAGE 包 (Editable 模式)
-# ==================================================
-
--e ./packages/sage-kernel
--e ./packages/sage-tools/sage-dev-toolkit
--e ./packages/sage-tools/sage-cli
--e ./packages/sage-middleware
--e ./packages/sage-userspace
--e ./packages/sage
-
-# ==================================================
 # 开发工具
-# ==================================================
-
 pytest>=7.0
 pytest-asyncio
 pytest-cov
+pytest-benchmark
 black
 isort
 flake8
