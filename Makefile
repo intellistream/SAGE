@@ -1,22 +1,46 @@
 # SAGE Project Makefile
+# 已集成构建和安装问题修复
 
-.PHONY: build install help
+.PHONY: build install all help clean
 
-# Build all wheels using the build script
+# Build all wheels using the fixed build script
 build:
-	@echo "Building all wheels..."
+	@echo "🔨 Building all wheels (with integrated fixes)..."
 	mkdir -p ~/.sage/makefile_logs
 	./scripts/build_all_wheels.sh > ~/.sage/makefile_logs/build.log 2>&1
 
-# Install all wheels using the install script
+# Install all wheels using the fixed install script
 install:
-	@echo "Installing wheels..."
+	@echo "📦 Installing wheels (with integrated fixes)..."
 	mkdir -p ~/.sage/makefile_logs
 	./scripts/install_wheels.sh > ~/.sage/makefile_logs/install.log 2>&1
+
+# Build and install in one command
+all:
+	@echo "🚀 Building and installing SAGE (with integrated fixes)..."
+	mkdir -p ~/.sage/makefile_logs
+	./build_and_install.sh > ~/.sage/makefile_logs/all.log 2>&1
+
+# Clean build artifacts
+clean:
+	@echo "🧹 Cleaning build artifacts..."
+	rm -rf build/wheels/
+	rm -rf dist/
+	rm -rf ~/.sage/makefile_logs/
+	find . -name "*.pyc" -delete
+	find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 
 # Show help information
 help:
 	@echo "Available targets:"
-	@echo "  build   - Build all wheels using build_all_wheels.sh"
-	@echo "  install - Install wheels using install_wheels.sh"
+	@echo "  build   - Build all wheels (with outlines_core/xformers fixes)"
+	@echo "  install - Install wheels (with dependency resolution fixes)"
+	@echo "  all     - Build and install in one command"
+	@echo "  clean   - Clean all build artifacts"
 	@echo "  help    - Show this help message"
+	@echo ""
+	@echo "🔧 Integrated fixes:"
+	@echo "  ✅ outlines_core build failure fix"
+	@echo "  ✅ xformers PEP517 deprecation warning fix"
+	@echo "  ✅ Rust environment auto-setup"
+	@echo "  ✅ Binary package preference"

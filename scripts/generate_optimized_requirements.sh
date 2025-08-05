@@ -21,7 +21,7 @@ sage-userspace==1.0.0
 sage-dev-toolkit==1.0.0
 
 # Core system dependencies
-numpy==2.3.2
+numpy==2.2.6
 scipy==1.16.1
 pandas==2.3.1
 packaging==25.0
