@@ -27,7 +27,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "sage-kernel",  
+    "sage-kernel>=1.0.0",  
     
     # 服务层专用依赖
     "python-jose[cryptography]>=3.3.0", # JWT 处理
@@ -35,11 +35,18 @@ dependencies = [
     "celery>=5.3.0",                   # 任务队列
     "flower>=2.0.0",                   # Celery 监控界面
     
-    # LLM 中间件专用依赖（从 sage-middleware-utils 合并）
+    # LLM 中间件专用依赖
     "openai",                          # OpenAI API 客户端
-    "transformers>=4.45.2",            # HuggingFace 模型
-    "sentence-transformers>=3.1.1",    # 句子嵌入
-    "huggingface-hub>=0.22.2",        # HuggingFace Hub 客户端
+    "transformers>=4.40.0",            # HuggingFace 模型
+    "tokenizers>=0.19.0",              # Tokenizers for transformers
+    "vllm>=0.6.0",                     # vLLM for high-performance inference
+    
+    # ML/AI dependencies used in middleware
+    "accelerate>=0.29.3",              # For model acceleration
+    "sentence_transformers>=3.1.1",    # For embeddings
+    "InstructorEmbedding>=1.0.1",      # For instructor embeddings
+    "huggingface_hub>=0.22.2",         # HuggingFace Hub client
+    "peft",                            # Parameter-efficient fine-tuning
 ]
 
 [project.optional-dependencies]
