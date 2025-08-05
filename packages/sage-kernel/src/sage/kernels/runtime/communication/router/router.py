@@ -1,4 +1,4 @@
-# sage.runtime/base_router.py
+# sage.kernels.runtime/base_router.py
 import traceback
 
 from abc import ABC, abstractmethod

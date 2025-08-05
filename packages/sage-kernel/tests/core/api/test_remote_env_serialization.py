@@ -10,7 +10,7 @@ import time
 
 # 添加项目路径
 from sage.api.remote_environment import RemoteEnvironment
-from sage.runtime.serialization.dill import trim_object_for_ray, serialize_object, deserialize_object
+from sage.kernels.runtime.serialization.dill import trim_object_for_ray, serialize_object, deserialize_object
 
 def test_remote_environment_serialization():
     """测试RemoteEnvironment的序列化过程"""

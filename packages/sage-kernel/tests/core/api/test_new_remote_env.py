@@ -12,7 +12,7 @@ def test_serialization():
     
     try:
         from sage.api.remote_environment import RemoteEnvironment
-        from sage.runtime.serialization.dill import trim_object_for_ray, serialize_object, deserialize_object
+        from sage.kernels.runtime.serialization.dill import trim_object_for_ray, serialize_object, deserialize_object
         
         # 1. 创建RemoteEnvironment实例
         print("1. Creating RemoteEnvironment...")

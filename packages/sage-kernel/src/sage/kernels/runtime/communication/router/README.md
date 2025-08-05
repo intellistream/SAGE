@@ -25,7 +25,7 @@ Communication Router 负责处理运行时的数据路由和连接管理，提�
 
 ### 1. 数据路由
 ```python
-from sage.runtime.communication.router import BaseRouter
+from sage.kernels.runtime.communication.router import BaseRouter
 
 class CustomRouter(BaseRouter):
     def route_packet(self, packet):
@@ -36,7 +36,7 @@ class CustomRouter(BaseRouter):
 
 ### 2. 连接管理
 ```python
-from sage.runtime.communication.router.connection import Connection
+from sage.kernels.runtime.communication.router.connection import Connection
 
 # 创建连接
 connection = Connection(
@@ -54,7 +54,7 @@ load = connection.get_buffer_load()
 
 ### 3. 数据包处理
 ```python
-from sage.runtime.communication.router.packet import Packet
+from sage.kernels.runtime.communication.router.packet import Packet
 
 # 创建数据包
 packet = Packet(

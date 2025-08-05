@@ -1,5 +1,5 @@
 """
-Test suite for sage.runtime.service_context module
+Test suite for sage.kernels.runtime.service_context module
 
 Tests the ServiceContext class which provides shared runtime context
 for service tasks.
@@ -9,7 +9,7 @@ import threading
 from unittest.mock import Mock, patch, MagicMock
 from typing import Dict, Any
 
-from sage.runtime.service_context import ServiceContext
+from sage.kernels.runtime.service_context import ServiceContext
 
 
 class MockServiceNode:

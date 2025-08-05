@@ -1,5 +1,5 @@
 """
-Test suite for sage.runtime.serialization.universal module
+Test suite for sage.kernels.runtime.serialization.universal module
 
 Tests the UniversalSerializer class which provides universal
 serialization functionality based on dill.
@@ -10,7 +10,7 @@ import tempfile
 from unittest.mock import Mock, patch, mock_open
 from typing import List, Dict, Any
 
-from sage.runtime.serialization.universal import UniversalSerializer
+from sage.kernels.runtime.serialization.universal import UniversalSerializer
 
 
 class SerializableTestClass:
@@ -151,7 +151,7 @@ class TestUniversalSerializer:
         assert deserialized.level2["nested"].value == 2
 
     @pytest.mark.unit
-    @patch('sage.runtime.serialization.universal.dill')
+    @patch('sage.kernels.runtime.serialization.universal.dill')
     def test_serialize_dill_not_available(self, mock_dill):
         """Test serialization when dill is not available"""
         mock_dill.__bool__ = Mock(return_value=False)
@@ -162,7 +162,7 @@ class TestUniversalSerializer:
             UniversalSerializer.serialize_object(obj)
 
     @pytest.mark.unit
-    @patch('sage.runtime.serialization.universal.dill')
+    @patch('sage.kernels.runtime.serialization.universal.dill')
     def test_deserialize_dill_not_available(self, mock_dill):
         """Test deserialization when dill is not available"""
         mock_dill.__bool__ = Mock(return_value=False)
@@ -171,7 +171,7 @@ class TestUniversalSerializer:
             UniversalSerializer.deserialize_object(b"fake_data")
 
     @pytest.mark.unit
-    @patch('sage.runtime.serialization.universal.dill.dumps')
+    @patch('sage.kernels.runtime.serialization.universal.dill.dumps')
     def test_serialize_dill_failure(self, mock_dumps):
         """Test serialization when dill.dumps fails"""
         mock_dumps.side_effect = Exception("Dill serialization failed")
@@ -182,7 +182,7 @@ class TestUniversalSerializer:
             UniversalSerializer.serialize_object(obj)
 
     @pytest.mark.unit
-    @patch('sage.runtime.serialization.universal.dill.loads')
+    @patch('sage.kernels.runtime.serialization.universal.dill.loads')
     def test_deserialize_dill_failure(self, mock_loads):
         """Test deserialization when dill.loads fails"""
         mock_loads.side_effect = Exception("Dill deserialization failed")

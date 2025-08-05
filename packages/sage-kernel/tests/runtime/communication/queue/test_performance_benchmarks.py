@@ -26,7 +26,7 @@ import pytest
 sys.path.insert(0, '/api-rework')
 
 try:
-    from sage.runtime.communication.queue_descriptor import (
+    from sage.kernels.runtime.communication.queue_descriptor import (
         PythonQueueDescriptor,
         RayQueueDescriptor,  
         SageQueueDescriptor

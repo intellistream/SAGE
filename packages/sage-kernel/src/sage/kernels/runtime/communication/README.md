@@ -34,8 +34,8 @@ Communication 模块提供 SAGE 运行时的统一通信框架，支持多种通
 
 ### 1. 点对点通信
 ```python
-from sage.runtime.communication.queue_descriptor import QueueDescriptor
-from sage.runtime.communication.router import Connection
+from sage.kernels.runtime.communication.queue_descriptor import QueueDescriptor
+from sage.kernels.runtime.communication.router import Connection
 
 # 创建队列描述符
 descriptor = QueueDescriptor(
@@ -73,7 +73,7 @@ for i, target in enumerate(targets):
 
 ### 3. 分区通信
 ```python
-from sage.runtime.communication.router.packet import Packet
+from sage.kernels.runtime.communication.router.packet import Packet
 
 # 创建带分区键的数据包
 packet = Packet(

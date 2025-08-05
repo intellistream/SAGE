@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # 添加项目路径
 sys.path.insert(0, '/api-rework')
 
-from sage.runtime.communication.queue_descriptor import (
+from sage.kernels.runtime.communication.queue_descriptor import (
     PythonQueueDescriptor,
     RayQueueDescriptor,
     SageQueueDescriptor,
@@ -27,7 +27,7 @@ def test_basic_functionality():
     print("🧪 测试基础功能...")
     
     try:
-        from sage.runtime.communication.queue_descriptor import (
+        from sage.kernels.runtime.communication.queue_descriptor import (
             create_python_queue,
             create_sage_queue
         )
@@ -88,7 +88,7 @@ def test_multithreading_concurrency():
     print("\n🧪 测试多线程并发...")
     
     try:
-        from sage.runtime.communication.queue_descriptor import create_python_queue
+        from sage.kernels.runtime.communication.queue_descriptor import create_python_queue
         
         # 创建队列
         queue_desc = PythonQueueDescriptor('test_concurrent', maxsize=100)
@@ -152,7 +152,7 @@ def test_sage_queue_concurrency():
     print("\n🧪 测试SAGE队列并发...")
     
     try:
-        from sage.runtime.communication.queue_descriptor import create_sage_queue
+        from sage.kernels.runtime.communication.queue_descriptor import create_sage_queue
         
         # 创建SAGE队列
         queue_desc = create_sage_queue('test_sage_concurrent', maxsize=1024*1024)
@@ -209,7 +209,7 @@ def test_queue_reference_passing():
     print("\n🧪 测试队列引用传递...")
     
     try:
-        from sage.runtime.communication.queue_descriptor import create_python_queue
+        from sage.kernels.runtime.communication.queue_descriptor import create_python_queue
         
         # 创建原始队列
         original_queue = PythonQueueDescriptor('test_reference', maxsize=20)
@@ -257,7 +257,7 @@ def test_serialization():
     print("\n🧪 测试序列化功能...")
     
     try:
-        from sage.runtime.communication.queue_descriptor import create_sage_queue
+        from sage.kernels.runtime.communication.queue_descriptor import create_sage_queue
         
         # 创建可序列化的队列描述符
         queue_desc = create_sage_queue('test_serialization', maxsize=1024*1024)
@@ -271,7 +271,7 @@ def test_serialization():
             print(f"序列化字典包含字段: {list(queue_dict.keys())}")
             
             # 从字典恢复
-            from sage.runtime.communication.queue_descriptor import resolve_descriptor
+            from sage.kernels.runtime.communication.queue_descriptor import resolve_descriptor
             restored_queue = resolve_descriptor(queue_dict)
             print(f"恢复的队列ID: {restored_queue.queue_id}")
             print(f"恢复的队列类型: {restored_queue.queue_type}")

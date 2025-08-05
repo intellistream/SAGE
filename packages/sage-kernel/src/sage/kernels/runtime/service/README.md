@@ -30,7 +30,7 @@ Runtime Service 模块提供服务任务的执行框架，支持本地和分布�
 
 ### 1. 服务任务创建
 ```python
-from sage.runtime.service.local_service_task import LocalServiceTask
+from sage.kernels.runtime.service.local_service_task import LocalServiceTask
 
 # 创建本地服务任务
 service_task = LocalServiceTask(service_factory, runtime_context)
@@ -44,7 +44,7 @@ status = service_task.get_service_status()
 
 ### 2. 服务调用
 ```python
-from sage.runtime.service.service_caller import ServiceManager
+from sage.kernels.runtime.service.service_caller import ServiceManager
 
 # 创建服务管理器
 service_manager = ServiceManager(environment)

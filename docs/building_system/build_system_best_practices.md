@@ -289,7 +289,6 @@ class SAGEBuilder:
             "sage-extensions",
             "sage-plugins",
             "sage-service",
-            "sage-cli",
         ]
         
         # 按已知顺序排序，未知包放最后

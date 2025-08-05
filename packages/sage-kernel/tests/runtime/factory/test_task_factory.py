@@ -1,5 +1,5 @@
 """
-Test suite for sage.runtime.factory.task_factory module
+Test suite for sage.kernels.runtime.factory.task_factory module
 
 Tests the TaskFactory class which creates task instances
 for both local and remote execution environments.
@@ -7,9 +7,9 @@ for both local and remote execution environments.
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from sage.runtime.factory.task_factory import TaskFactory
-from sage.runtime.task.local_task import LocalTask
-from sage.runtime.distributed.actor import ActorWrapper
+from sage.kernels.runtime.factory.task_factory import TaskFactory
+from sage.kernels.runtime.task.local_task import LocalTask
+from sage.kernels.runtime.distributed.actor import ActorWrapper
 
 
 class MockTransformation:
@@ -93,14 +93,14 @@ class TestTaskFactory:
         assert not isinstance(task, ActorWrapper)
 
     @pytest.mark.unit
-    @patch('sage.runtime.factory.task_factory.RayTask')
+    @patch('sage.kernels.runtime.factory.task_factory.RayTask')
     def test_create_remote_task(self, mock_ray_task_class, remote_factory, mock_context):
         """Test creating a remote task"""
         # Mock the Ray task class and its options method
         mock_ray_task_instance = Mock()
         mock_ray_task_class.options.return_value.remote.return_value = mock_ray_task_instance
         
-        with patch('sage.runtime.factory.task_factory.ActorWrapper') as mock_wrapper:
+        with patch('sage.kernels.runtime.factory.task_factory.ActorWrapper') as mock_wrapper:
             mock_wrapper_instance = Mock()
             mock_wrapper.return_value = mock_wrapper_instance
             
@@ -165,8 +165,8 @@ class TestTaskFactory:
         assert non_spout_factory.is_spout is False
 
     @pytest.mark.integration
-    @patch('sage.runtime.factory.task_factory.RayTask')
-    @patch('sage.runtime.factory.task_factory.ActorWrapper')
+    @patch('sage.kernels.runtime.factory.task_factory.RayTask')
+    @patch('sage.kernels.runtime.factory.task_factory.ActorWrapper')
     def test_factory_integration_local_and_remote(self, mock_wrapper, mock_ray_task, mock_context):
         """Integration test creating both local and remote tasks"""
         # Create factories
@@ -239,7 +239,7 @@ class TestTaskFactoryEdgeCases:
             TaskFactory(None)
 
     @pytest.mark.unit
-    @patch('sage.runtime.factory.task_factory.RayTask')
+    @patch('sage.kernels.runtime.factory.task_factory.RayTask')
     def test_remote_task_creation_ray_failure(self, mock_ray_task_class, mock_context):
         """Test remote task creation when Ray operations fail"""
         # Mock Ray task creation failure

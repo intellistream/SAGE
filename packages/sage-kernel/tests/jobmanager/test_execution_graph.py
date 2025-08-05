@@ -333,7 +333,7 @@ class TestExecutionGraphRuntimeContext:
         
         execution_graph.nodes["test_node"] = node
         
-        with patch('sage.runtime.task_context.TaskContext') as mock_task_context:
+        with patch('sage.kernels.runtime.task_context.TaskContext') as mock_task_context:
             mock_context_instance = Mock()
             mock_task_context.return_value = mock_context_instance
             
@@ -356,7 +356,7 @@ class TestExecutionGraphRuntimeContext:
         
         execution_graph.service_nodes["test_service"] = service_node
         
-        with patch('sage.runtime.service_context.ServiceContext') as mock_service_context:
+        with patch('sage.kernels.runtime.service_context.ServiceContext') as mock_service_context:
             mock_context_instance = Mock()
             mock_service_context.return_value = mock_context_instance
             
@@ -382,7 +382,7 @@ class TestExecutionGraphRuntimeContext:
         
         execution_graph.nodes["error_node"] = node
         
-        with patch('sage.runtime.task_context.TaskContext') as mock_task_context, \
+        with patch('sage.kernels.runtime.task_context.TaskContext') as mock_task_context, \
              patch.object(execution_graph, 'logger') as mock_logger:
             
             # 模拟TaskContext创建失败
@@ -670,8 +670,8 @@ class TestExecutionGraphIntegration:
         mock_env.pipeline.transformations = transforms
         
         with patch('sage.utils.logging.custom_logger.CustomLogger'), \
-             patch('sage.runtime.task_context.TaskContext'), \
-             patch('sage.runtime.service_context.ServiceContext'):
+             patch('sage.kernels.runtime.task_context.TaskContext'), \
+             patch('sage.kernels.runtime.service_context.ServiceContext'):
             
             graph = ExecutionGraph(mock_env)
             

@@ -16,7 +16,7 @@
 - **执行图**: DAG 执行图构建和优化
 - **客户端接口**: JobManager 客户端和服务端
 
-### 🔧 运行时系统 (sage.runtime)
+### 🔧 运行时系统 (sage.kernels.runtime)
 - **服务工厂**: 任务和服务的动态创建
 - **通信队列**: 高性能的进程间通信
 - **服务管理**: 微服务架构的服务生命周期管理
@@ -44,7 +44,7 @@ pip install sage-kernel
 ```python
 from sage.core import Function, Config
 from sage.kernels.jobmanager import JobManager
-from sage.runtime import ServiceTaskFactory
+from sage.kernels.runtime import ServiceTaskFactory
 
 # 创建并使用函数
 @Function

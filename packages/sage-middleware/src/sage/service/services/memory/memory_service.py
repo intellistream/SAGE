@@ -9,11 +9,11 @@ import logging
 import time
 import uuid
 
-from sage.runtime.service.base_service_task import BaseServiceTask
+from sage.kernels.runtime.service.base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:
-    from sage.runtime.factory.service_factory import ServiceFactory
-    from sage.runtime.service_context import ServiceContext
+    from sage.kernels.runtime.factory.service_factory import ServiceFactory
+    from sage.kernels.runtime.service_context import ServiceContext
 
 
 @dataclass
@@ -457,7 +457,7 @@ def create_memory_service_factory(
     Returns:
         ServiceFactory: 可以用于注册到环境的服务工厂
     """
-    from sage.runtime.factory.service_factory import ServiceFactory
+    from sage.kernels.runtime.factory.service_factory import ServiceFactory
     
     config = MemoryConfig(
         kv_service_name=kv_service_name,

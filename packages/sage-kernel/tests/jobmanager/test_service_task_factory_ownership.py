@@ -132,7 +132,7 @@ def test_dispatcher_no_factory_creation():
             original_factories[service_node.service_name] = service_node.service_task_factory
         
         # 4. 创建Dispatcher并提交
-        from sage.runtime.dispatcher import Dispatcher
+        from sage.kernels.runtime.dispatcher import Dispatcher
         dispatcher = Dispatcher(execution_graph, env)
         dispatcher.submit()
         

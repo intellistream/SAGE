@@ -1,5 +1,5 @@
 """
-Test suite for sage.runtime.state module
+Test suite for sage.kernels.runtime.state module
 
 Tests state management functionality including serialization
 and object attribute filtering.
@@ -10,7 +10,7 @@ import threading
 from unittest.mock import Mock, patch, mock_open
 from collections.abc import Mapping, Sequence, Set
 
-from sage.runtime.state import (
+from sage.kernels.runtime.state import (
     _gather_attrs, _filter_attrs, _is_serializable, _prepare,
     save_function_state, load_function_state,
     _BLACKLIST

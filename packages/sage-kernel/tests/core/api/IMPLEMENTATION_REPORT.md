@@ -159,7 +159,7 @@ pytest tests/core/api/ --cov=sage.core.api --cov-report=html -v
 ## 遇到的挑战和解决方案
 
 ### 1. 依赖问题
-- **问题**: 部分模块导入失败（如 `sage.runtime.distributed.actor`）
+- **问题**: 部分模块导入失败（如 `sage.kernels.runtime.distributed.actor`）
 - **解决方案**: 创建了Mock版本和简化测试，确保测试框架可以运行
 
 ### 2. 复杂依赖关系

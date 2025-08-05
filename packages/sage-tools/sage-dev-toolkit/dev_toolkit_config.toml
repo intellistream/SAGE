@@ -40,7 +40,6 @@ package_order = [
     "sage-lib",
     "sage-extensions",
     "sage-plugins",
-    "sage-cli",
     # "sage-frontend",
     "sage-userspace"
 ]

@@ -1,5 +1,5 @@
 """
-Test suite for sage.runtime module
+Test suite for sage.kernels.runtime module
 
 This module contains comprehensive unit and integration tests
 for the SAGE runtime components including:

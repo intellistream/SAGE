@@ -1,5 +1,5 @@
 """
-Test suite for sage.runtime.distributed.actor module
+Test suite for sage.kernels.runtime.distributed.actor module
 
 Tests the ActorWrapper class which provides transparent proxying
 between local objects and Ray actors.
@@ -10,7 +10,7 @@ import asyncio
 import concurrent.futures
 from typing import Any
 
-from sage.runtime.distributed.actor import ActorWrapper
+from sage.kernels.runtime.distributed.actor import ActorWrapper
 
 
 class MockLocalObject:

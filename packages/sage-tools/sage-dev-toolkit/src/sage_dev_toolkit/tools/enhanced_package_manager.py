@@ -58,12 +58,6 @@ class EnhancedPackageManager:
                 'dependencies': ['sage-kernel', 'sage-lib', 'sage-utils'],
                 'description': 'Service layer components'
             },
-            'sage-cli': {
-                'path': self.packages_dir / 'sage-cli',
-                'namespace': 'sage.cli',
-                'dependencies': ['sage-kernel', 'sage-utils'],
-                'description': 'Command-line interface'
-            }
         }
     
     def list_packages(self) -> Dict:

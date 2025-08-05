@@ -5,7 +5,7 @@
 
 from sage.api.base_environment import BaseEnvironment
 from sage.api.function.base_function import BaseFunction
-from sage.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
+from sage.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
 
 class MockEnvironment(BaseEnvironment):

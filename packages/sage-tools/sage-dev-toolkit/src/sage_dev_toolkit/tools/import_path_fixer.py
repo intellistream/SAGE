@@ -25,7 +25,7 @@ class ImportPathFixer:
             # Incorrect import -> Correct import
             'sage.utils.logging.custom_logger': 'sage.utils.logging.custom_logger',
             'sage.utils.llm-clients.base': 'sage.utils.llm-clients.base',
-            'sage.runtime.state': 'sage.utils.persistence.state',
+            'sage.kernels.runtime.state': 'sage.utils.persistence.state',
             'sage_ext.sage_queue': 'sage.extensions.sage_queue',
             'sage_queue': 'sage.extensions.sage_queue.python.sage_queue',
             'sage_plugins': 'sage.plugins',

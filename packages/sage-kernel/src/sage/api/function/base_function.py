@@ -9,7 +9,7 @@ import logging
 from sage.kernels.runtime.state import load_function_state, save_function_state
 
 
-# 构造来源于sage.runtime/operator/factory.py
+# 构造来源于sage.kernels.runtime/operator/factory.py
 class BaseFunction(ABC):
     """
     BaseFunction is the abstract base class for all operator functions in SAGE.

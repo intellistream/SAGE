@@ -33,7 +33,7 @@ Runtime Factory 模块提供各种运行时组件的工厂类，负责创建和�
 
 ### 1. 函数实例化
 ```python
-from sage.runtime.factory.function_factory import FunctionFactory
+from sage.kernels.runtime.factory.function_factory import FunctionFactory
 
 # 创建函数工厂
 factory = FunctionFactory(
@@ -48,7 +48,7 @@ function = factory.create_function("my_function", runtime_context)
 
 ### 2. 算子创建
 ```python
-from sage.runtime.factory.operator_factory import OperatorFactory
+from sage.kernels.runtime.factory.operator_factory import OperatorFactory
 
 # 创建算子工厂
 operator_factory = OperatorFactory(
@@ -64,7 +64,7 @@ operator = operator_factory.create_operator(runtime_context)
 
 ### 3. 任务部署
 ```python
-from sage.runtime.factory.task_factory import TaskFactory
+from sage.kernels.runtime.factory.task_factory import TaskFactory
 
 # 创建任务工厂
 task_factory = TaskFactory(transformation=transformation)

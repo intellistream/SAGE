@@ -41,8 +41,8 @@ class TestJobManagerFullIntegration:
     def test_complete_job_submission_workflow(self, reset_jobmanager_singleton, mock_environment):
         """测试完整的作业提交工作流程"""
         with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'), \
-             patch('sage.runtime.serialization.dill.deserialize_object'), \
-             patch('sage.runtime.dispatcher.Dispatcher'):
+             patch('sage.kernels.runtime.serialization.dill.deserialize_object'), \
+             patch('sage.kernels.runtime.dispatcher.Dispatcher'):
             
             # 1. 创建JobManager
             job_manager = JobManager(enable_daemon=False)
@@ -365,7 +365,7 @@ class TestJobManagerExecutionGraphIntegration:
         """测试带有执行图的作业提交"""
         with patch('sage.kernels.jobmanager.job_manager.JobManagerServer'), \
              patch.object(ExecutionGraph, '__init__', return_value=None), \
-             patch('sage.runtime.dispatcher.Dispatcher'):
+             patch('sage.kernels.runtime.dispatcher.Dispatcher'):
             
             JobManager.instance = None  # 重置单例
             job_manager = JobManager(enable_daemon=False)
@@ -445,8 +445,8 @@ class TestJobManagerExecutionGraphIntegration:
             )
             graph.service_nodes["test_service"] = service_node
             
-            with patch('sage.runtime.task_context.TaskContext') as mock_task_context, \
-                 patch('sage.runtime.service_context.ServiceContext') as mock_service_context:
+            with patch('sage.kernels.runtime.task_context.TaskContext') as mock_task_context, \
+                 patch('sage.kernels.runtime.service_context.ServiceContext') as mock_service_context:
                 
                 mock_task_context.return_value = Mock()
                 mock_service_context.return_value = Mock()

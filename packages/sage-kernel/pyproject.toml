@@ -69,6 +69,15 @@ dependencies = [
     
     # CLI 专用依赖 (pinned versions)
     "shellingham==1.5.4",              # Shell 检测
+    # CLI专用依赖
+    "typer>=0.15.0",
+    "rich>=13.0.0",
+    "click>=8.0.0",
+    "pydantic>=2.0.0",
+    "PyYAML>=6.0",
+    "shellingham>=1.5.0",              # Shell 检测
+    "questionary>=1.10.0",             # 交互式命令行界面
+    "prompt_toolkit>=3.0.50",          # questionary
 ]
 
 [project.optional-dependencies]

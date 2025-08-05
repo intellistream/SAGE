@@ -24,7 +24,7 @@
 ## 当前状态
 
 目前该目录为空，相关功能可能在其他模块中实现或计划中。如需了解服务相关功能，请参考：
-- `sage.runtime.service` - 运行时服务功能
+- `sage.kernels.runtime.service` - 运行时服务功能
 - `sage.service` - 全局服务系统
 
 ## 未来计划

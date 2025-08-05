@@ -23,25 +23,25 @@ from queue import Empty, Full
 sys.path.insert(0, '/api-rework')
 
 try:
-    from sage.runtime.communication.queue_descriptor.base_queue_descriptor import (
+    from sage.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import (
         BaseQueueDescriptor,
         QueueDescriptor
     )
-    from sage.runtime.communication.queue_descriptor.python_queue_descriptor import PythonQueueDescriptor
+    from sage.kernels.runtime.communication.queue_descriptor.python_queue_descriptor import PythonQueueDescriptor
     
     # 尝试导入其他队列类型（可能不存在）
     try:
-        from sage.runtime.communication.queue_descriptor.ray_queue_descriptor import RayQueueDescriptor
+        from sage.kernels.runtime.communication.queue_descriptor.ray_queue_descriptor import RayQueueDescriptor
     except ImportError:
         RayQueueDescriptor = None
     
     try:
-        from sage.runtime.communication.queue_descriptor.sage_queue_descriptor import SageQueueDescriptor
+        from sage.kernels.runtime.communication.queue_descriptor.sage_queue_descriptor import SageQueueDescriptor
     except ImportError:
         SageQueueDescriptor = None
         
     try:
-        from sage.runtime.communication.queue_descriptor.rpc_queue_descriptor import RPCQueueDescriptor  
+        from sage.kernels.runtime.communication.queue_descriptor.rpc_queue_descriptor import RPCQueueDescriptor  
     except ImportError:
         RPCQueueDescriptor = None
         

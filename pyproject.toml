@@ -16,7 +16,6 @@ dependencies = [
     "sage-middleware @ file:///${PWD}/packages/sage-middleware", 
     "sage-userspace @ file:///${PWD}/packages/sage-userspace",
     # "sage-dev-toolkit @ file:///${PWD}/packages/sage-tools/sage-dev-toolkit",
-    "sage-cli @ file:///${PWD}/packages/sage-tools/sage-cli",
     "sage @ file:///${PWD}/packages/sage",
 ]
 

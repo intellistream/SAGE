@@ -44,7 +44,7 @@ class MockRuntimeContext:
     @property
     def service_manager(self):
         if self._service_manager is None:
-            from sage.runtime.service.service_caller import ServiceManager
+            from sage.kernels.runtime.service.service_caller import ServiceManager
             self._service_manager = ServiceManager(self)
         return self._service_manager
 
@@ -67,7 +67,7 @@ class DebugTestFunction(BaseFunction):
                 self._function_instance = function_instance
                 
             def __getitem__(self, service_name: str):
-                from sage.runtime.service.service_caller import ServiceCallProxy
+                from sage.kernels.runtime.service.service_caller import ServiceCallProxy
                 proxy = ServiceCallProxy(self._service_manager, service_name)
                 
                 # 记录创建信息
@@ -94,7 +94,7 @@ class DebugTestFunction(BaseFunction):
                 self._function_instance = function_instance
                 
             def __getitem__(self, service_name: str):
-                from sage.runtime.service.service_caller import ServiceCallProxy
+                from sage.kernels.runtime.service.service_caller import ServiceCallProxy
                 proxy = ServiceCallProxy(self._service_manager, service_name)
                 
                 # 记录创建信息

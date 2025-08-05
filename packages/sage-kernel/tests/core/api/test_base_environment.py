@@ -4,7 +4,7 @@ from sage.api.transformation.source_transformation import SourceTransformation
 from sage.api.transformation.batch_transformation import BatchTransformation
 from sage.api.transformation.future_transformation import FutureTransformation
 from sage.api.function.base_function import BaseFunction
-from sage.runtime.factory.service_factory import ServiceFactory
+from sage.kernels.runtime.factory.service_factory import ServiceFactory
 """
 Tests for sage.core.api.base_environment module
 
@@ -24,8 +24,8 @@ from sage.api.transformation.source_transformation import SourceTransformation
 from sage.api.transformation.batch_transformation import BatchTransformation
 from sage.api.transformation.future_transformation import FutureTransformation
 from sage.api.function.base_function import BaseFunction
-from sage.runtime.factory.service_factory import ServiceFactory
-from sage.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
+from sage.kernels.runtime.factory.service_factory import ServiceFactory
+from sage.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
 
 class MockEnvironment(BaseEnvironment):
@@ -164,7 +164,7 @@ class TestBaseEnvironmentServiceRegistration:
     
     @pytest.mark.unit
     @patch('sage.core.api.base_environment.ServiceFactory')
-    @patch('sage.runtime.factory.service_task_factory.ServiceTaskFactory')
+    @patch('sage.kernels.runtime.factory.service_task_factory.ServiceTaskFactory')
     def test_register_service_local(self, mock_task_factory_class, mock_service_factory_class, mock_env, mock_logger):
         """Test service registration in local environment"""
         # Setup mocks
@@ -205,7 +205,7 @@ class TestBaseEnvironmentServiceRegistration:
     
     @pytest.mark.unit
     @patch('sage.core.api.base_environment.ServiceFactory')
-    @patch('sage.runtime.factory.service_task_factory.ServiceTaskFactory')
+    @patch('sage.kernels.runtime.factory.service_task_factory.ServiceTaskFactory')
     def test_register_service_remote(self, mock_task_factory_class, mock_service_factory_class, mock_logger):
         """Test service registration in remote environment"""
         # Create remote environment

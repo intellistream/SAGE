@@ -55,7 +55,7 @@ async def bedrock_embed(
     )
 
     session = aioboto3.Session()
-    async with session.client("bedrock-sage.runtime") as bedrock_async_client:
+    async with session.client("bedrock-sage.kernels.runtime") as bedrock_async_client:
         model_provider = model.split(".")[0]
 
         if model_provider == "amazon":
@@ -130,7 +130,7 @@ def bedrock_embed_sync(
     if aws_session_token:
         os.environ["AWS_SESSION_TOKEN"] = aws_session_token
 
-    bedrock_client = boto3.client("bedrock-sage.runtime")
+    bedrock_client = boto3.client("bedrock-sage.kernels.runtime")
 
     model_provider = model.split(".")[0]
 

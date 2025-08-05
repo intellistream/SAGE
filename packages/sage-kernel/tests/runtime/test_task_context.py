@@ -1,5 +1,5 @@
 """
-Test suite for sage.runtime.task_context module
+Test suite for sage.kernels.runtime.task_context module
 
 Tests the TaskContext class which provides shared runtime context
 for tasks, operators and functions.
@@ -9,7 +9,7 @@ import threading
 from unittest.mock import Mock, patch, MagicMock
 from typing import Dict, Any
 
-from sage.runtime.task_context import TaskContext
+from sage.kernels.runtime.task_context import TaskContext
 
 
 class MockGraphNode:

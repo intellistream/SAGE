@@ -5,7 +5,7 @@
 
 本次改造将SAGE的集成式memory service重构为真正的服务化架构，符合您提出的要求：
 
-1. ✅ **使用sage-kernel的BaseServiceTask** - 所有服务继承自`sage.runtime.service.base_service_task.BaseServiceTask`
+1. ✅ **使用sage-kernel的BaseServiceTask** - 所有服务继承自`sage.kernels.runtime.service.base_service_task.BaseServiceTask`
 2. ✅ **服务作为Task运行** - 服务本质上是特殊的Task，可以在DAG中作为节点运行
 3. ✅ **移除服务启动脚本** - 不再有独立的服务启动器，服务由应用程序在构建DAG时初始化
 4. ✅ **支持Ray分布式** - 服务可以作为Ray Actor运行，支持集群部署

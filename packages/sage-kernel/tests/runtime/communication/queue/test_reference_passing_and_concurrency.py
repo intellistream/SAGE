@@ -23,7 +23,7 @@ import logging
 sys.path.insert(0, '/api-rework')
 
 try:
-    from sage.runtime.communication.queue_descriptor import (
+    from sage.kernels.runtime.communication.queue_descriptor import (
         BaseQueueDescriptor,
         PythonQueueDescriptor,
         RayQueueDescriptor,
@@ -125,7 +125,7 @@ try:
             """生产物品到队列"""
             try:
                 # 从字典重建队列描述符
-                from sage.runtime.communication.queue_descriptor import resolve_descriptor
+                from sage.kernels.runtime.communication.queue_descriptor import resolve_descriptor
                 queue_desc = resolve_descriptor(queue_desc_dict)
                 
                 for i in range(num_items):
@@ -145,7 +145,7 @@ try:
             """从队列消费物品"""
             try:
                 # 从字典重建队列描述符
-                from sage.runtime.communication.queue_descriptor import resolve_descriptor
+                from sage.kernels.runtime.communication.queue_descriptor import resolve_descriptor
                 queue_desc = resolve_descriptor(queue_desc_dict)
                 
                 consumed_items = []

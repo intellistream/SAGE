@@ -2,7 +2,7 @@
 """
 SAGE Runtime Test Runner
 
-Comprehensive test runner for sage.runtime module with various test categories
+Comprehensive test runner for sage.kernels.runtime module with various test categories
 and reporting options.
 
 Usage:
@@ -147,7 +147,7 @@ def main():
     # Coverage options
     if args.coverage and not args.no_cov:
         pytest_args.extend([
-            "--cov=sage.runtime",
+            "--cov=sage.kernels.runtime",
             "--cov-report=term-missing",
             "--cov-report=html:htmlcov/runtime",
             "--cov-report=xml:coverage-runtime.xml",

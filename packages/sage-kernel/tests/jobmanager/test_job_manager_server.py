@@ -348,7 +348,7 @@ class TestJobManagerServerJobProcessing:
         """测试成功反序列化环境"""
         test_data = b"serialized environment"
         
-        with patch('sage.runtime.serialization.dill.deserialize_object') as mock_deserialize:
+        with patch('sage.kernels.runtime.serialization.dill.deserialize_object') as mock_deserialize:
             mock_env = Mock()
             mock_deserialize.return_value = mock_env
             
@@ -361,7 +361,7 @@ class TestJobManagerServerJobProcessing:
         """测试反序列化环境失败"""
         test_data = b"invalid data"
         
-        with patch('sage.runtime.serialization.dill.deserialize_object') as mock_deserialize:
+        with patch('sage.kernels.runtime.serialization.dill.deserialize_object') as mock_deserialize:
             mock_deserialize.side_effect = Exception("Deserialization error")
             
             with pytest.raises(Exception, match="Deserialization error"):

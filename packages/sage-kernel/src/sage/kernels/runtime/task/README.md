@@ -25,7 +25,7 @@ Runtime Task 模块提供 SAGE 框架的任务执行抽象，支持本地和分�
 
 ### 1. 任务生命周期管理
 ```python
-from sage.runtime.task.local_task import LocalTask
+from sage.kernels.runtime.task.local_task import LocalTask
 
 # 创建任务
 task = LocalTask(runtime_context, operator_factory)
@@ -42,7 +42,7 @@ task.stop()
 
 ### 2. 数据包处理
 ```python
-from sage.runtime.communication.router.packet import Packet
+from sage.kernels.runtime.communication.router.packet import Packet
 
 # 创建数据包
 packet = Packet(payload=data, input_index=0)

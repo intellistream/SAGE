@@ -12,10 +12,10 @@ import queue
 from unittest.mock import Mock, MagicMock, patch
 from typing import Dict, Any
 
-from sage.runtime.service.base_service_task import BaseServiceTask
-from sage.runtime.service_context import ServiceContext
-from sage.runtime.factory.service_factory import ServiceFactory
-from sage.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
+from sage.kernels.runtime.service.base_service_task import BaseServiceTask
+from sage.kernels.runtime.service_context import ServiceContext
+from sage.kernels.runtime.factory.service_factory import ServiceFactory
+from sage.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
 
 class MockQueueDescriptor(BaseQueueDescriptor):
