@@ -40,17 +40,6 @@ dependencies = [
     "torch==2.3.0",  # vllm requires exactly torch==2.3.0
     "torchvision",
     
-    # Moved ML/AI dependencies to sage-middleware and sage-userspace
-    # "accelerate>=0.29.3",         # Not used in kernel
-    # "einops",                     # Not used in kernel
-    # "outlines",                   # Not used in kernel
-    # "sentencepiece",              # Not used in kernel
-    # "tiktoken",                   # Moved to sage-userspace
-    # "sentence_transformers==3.1.1",  # Moved to sage-middleware/userspace
-    # "InstructorEmbedding==1.0.1",    # Moved to sage-middleware
-    # "huggingface_hub>=0.22.2",       # Not used in kernel
-    # "peft",                           # Not used in kernel
-    
     # Network dependencies for proxy support
     "httpx[socks]>=0.25.0",
     "socksio>=1.0.0",
@@ -66,44 +55,24 @@ dependencies = [
     "fastapi==0.115.12",
     "uvicorn==0.34.3",
     "python-multipart>=0.0.6",
-    "h11==0.14.0",
+    "h11",
     "httpx==0.28.1",
     "Requests==2.32.4",
-    "socksio>=1.0.0",
     "aiohttp>=3.12.15",
     "aiohappyeyeballs>=2.6.1",
     "aiosignal>=1.4.0",
 
-    # Data processing and storage
-    "zhipuai>=2.1.5",   # 应该放到middleware里边去
-    "cohere>=5.15.0",   # 应该放到middleware里边去
-    "bm25s>=0.2.13",    # 应该放到middleware里边去
-    
-    # LLM Services
-    "openai",   # 应该放到middleware里边去
-    "ollama",   # 应该放到middleware里边去
-    
-    # Search and retrieval
-    "faiss-cpu==1.9.0", # 应该放到middleware里边去
-    "rank_bm25",        # 应该放到middleware里边去
-    "PyStemmer==3.0.0", # 应该放到middleware里边去
-    
-    # Text and document processing
-    "feedparser==6.0.11",   # 应该放到里边去
-    "beautifulsoup4",
-    "nltk",
-    "rouge==1.0.1",
-    "dill>=0.3.8",
-    
-    # Image processing
-    "fitz==0.0.1.dev2",
-    "opencv_python_headless==4.10.0.84",
-    "Pillow",
+    # NOTE: Following dependencies moved to appropriate modules:
+    # - LLM services (openai, ollama, zhipuai, cohere) -> sage-middleware
+    # - Search/retrieval (faiss-cpu, bm25s, rank_bm25, PyStemmer) -> sage-middleware  
+    # - Text processing (feedparser) -> sage-middleware
+    # - Evaluation tools (rouge) -> sage-userspace
+    # - Document processing (fitz) -> sage-userspace
     
     # Configuration and data
     "pydantic",
     "PyYAML==6.0.2",
-    "python-dotenv==1.1.0",
+    "python-dotenv>=1.1.0",
     "Jinja2==3.1.6",
     
     # CLI 专用依赖
@@ -132,9 +101,9 @@ dev = [
 ]
 
 web = [
-    "fastapi>=0.100.0",
-    "uvicorn>=0.23.0",
-    "websockets>=11.0",
+    "fastapi>=0.100.0", # 这个是frontend使用的
+    "uvicorn>=0.23.0",  # 这个也是frontend使用的
+    "websockets>=11.0", # 这个也是frontend使用的
 ]
 
 docs = [
