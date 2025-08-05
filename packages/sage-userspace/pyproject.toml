@@ -36,10 +36,6 @@ dependencies = [
     "outlines",                    # For structured generation
     "sentencepiece",               # For tokenization
     
-    # Evaluation and document processing dependencies
-    "rouge==1.0.1",               # Text evaluation metrics
-    "fitz==0.0.1.dev2",           # PDF document processing (PyMuPDF)
-    
     # 算法实现专用依赖（从 sage-lib 继承）
     "scikit-learn>=1.3.0",    # 机器学习算法
     "sympy>=1.12",            # 符号计算

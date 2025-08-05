@@ -74,11 +74,17 @@ for root in "${ROOTS[@]}"; do
       echo "Building wheel for $pkg"
       # use no isolation to leverage existing torch install and avoid strict torch==2.3.0
 <<<<<<< HEAD
+<<<<<<< HEAD
       # add --no-build-isolation and set PIP_NO_BUILD_ISOLATION to speed up dependency resolution
       export PIP_NO_BUILD_ISOLATION=1
       export PIP_DISABLE_PIP_VERSION_CHECK=1
 =======
 >>>>>>> 7e283a1 (code cleanups)
+=======
+      # add --no-build-isolation and set PIP_NO_BUILD_ISOLATION to speed up dependency resolution
+      export PIP_NO_BUILD_ISOLATION=1
+      export PIP_DISABLE_PIP_VERSION_CHECK=1
+>>>>>>> 5d3c601 (added tests)
       (cd "$pkg" && python3 -m build --wheel --no-isolation --outdir "$OLDPWD/$OUTPUT_DIR")
     fi
   done

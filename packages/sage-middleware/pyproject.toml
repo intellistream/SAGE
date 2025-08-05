@@ -27,7 +27,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "sage-kernel",  
+    "sage-kernel>=1.0.0",  
     
     # 服务层专用依赖
     "python-jose[cryptography]>=3.3.0", # JWT 处理
@@ -35,23 +35,11 @@ dependencies = [
     "celery>=5.3.0",                   # 任务队列
     "flower>=2.0.0",                   # Celery 监控界面
     
-    # LLM 中间件专用依赖（从 sage-middleware-utils 合并）
+    # LLM 中间件专用依赖
     "openai",                          # OpenAI API 客户端
-    "ollama",                          # Ollama API 客户端
-    "zhipuai>=2.1.5",                  # 智谱AI API 客户端
-    "cohere>=5.15.0",                  # Cohere API 客户端
     "transformers>=4.40.0",            # HuggingFace 模型
     "tokenizers>=0.19.0",              # Tokenizers for transformers
     "vllm>=0.6.0",                     # vLLM for high-performance inference
-    
-    # Search and retrieval dependencies
-    "faiss-cpu==1.9.0",               # FAISS for vector similarity search
-    "bm25s>=0.2.13",                  # BM25 search implementation
-    "rank_bm25",                      # BM25 ranking algorithm
-    "PyStemmer==3.0.0",               # Text stemming for search
-    
-    # Text processing dependencies
-    "feedparser==6.0.11",             # RSS/Atom feed parsing
     
     # ML/AI dependencies used in middleware
     "accelerate>=0.29.3",              # For model acceleration
