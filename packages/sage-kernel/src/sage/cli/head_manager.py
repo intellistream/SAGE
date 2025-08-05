@@ -370,5 +370,13 @@ def show_logs(lines: int = typer.Option(20, "--lines", "-n", help="显示日志�
     except Exception as e:
         typer.echo(f"❌ 读取日志失败: {e}")
 
+@app.command("version")
+def version_command():
+    """Show version information."""
+    typer.echo("🏠 SAGE Head Manager")
+    typer.echo("Version: 1.0.1")
+    typer.echo("Author: IntelliStream Team")
+    typer.echo("Repository: https://github.com/intellistream/SAGE")
+
 if __name__ == "__main__":
     app()
