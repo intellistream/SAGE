@@ -35,7 +35,7 @@ dependencies = [
     "celery>=5.3.0",                   # 任务队列
     "flower>=2.0.0",                   # Celery 监控界面
     
-    # LLM 中间件专用依赖
+    # LLM 中间件专用依赖（从 sage-middleware-utils 合并）
     "openai",                          # OpenAI API 客户端
     "ollama",                          # Ollama API 客户端
     "zhipuai>=2.1.5",                  # 智谱AI API 客户端
@@ -83,6 +83,12 @@ monitoring = [
     "prometheus-client>=0.17.0",
     "structlog>=23.0.0",
     "sentry-sdk[fastapi]>=1.32.0",
+]
+
+# WebSocket支持
+websocket = [
+    "websockets>=11.0.0",
+    "python-socketio>=5.8.0",
 ]
 
 # LLM 中间件扩展（从 sage-middleware-utils 合并）
