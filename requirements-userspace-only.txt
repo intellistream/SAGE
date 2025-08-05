@@ -1,0 +1,26 @@
+# SAGE Userspace用户空间安装（高级功能）
+# 基于核心包安装
+
+# 需要先安装: pip install -r requirements-core.txt
+
+# Userspace包
+-e ./packages/sage-userspace
+
+# AI和ML工具
+tiktoken
+einops
+outlines
+sentencepiece
+rouge==1.0.1
+
+# 科学计算和数据处理
+scikit-learn>=1.3.0
+polars>=0.20.0
+pyarrow>=12.0.0
+
+# 系统集成工具
+importlib-metadata>=4.0.0
+stevedore>=5.0.0
+entrypoints>=0.4
+
+# 说明：Userspace包含高级AI功能，可能需要额外配置

@@ -34,8 +34,8 @@ dependencies = [
     "celery==5.5.3",                   # 任务队列
     "flower==2.0.1",                   # Celery 监控界面
     
-    # LLM 中间件专用依赖 (pinned versions)
-    "openai==1.98.0",                          # OpenAI API 客户端
+    # LLM 中间件专用依赖 (flexible versions)
+    "openai>=1.87.0,<=1.98.0",                # OpenAI API 客户端 (flexible for compatibility)
     "ollama==0.5.1",                          # Ollama API 客户端
     "zhipuai==2.1.5.20250801",                  # 智谱AI API 客户端
     "cohere==5.16.2",                  # Cohere API 客户端
