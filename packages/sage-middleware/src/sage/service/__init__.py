@@ -15,19 +15,24 @@ try:
     # VDB服务
     from .services.vdb.vdb_service import VDBService, create_vdb_service_factory
     
-    # Memory编排服务
-    from .services.memory.memory_orchestrator_service import MemoryOrchestratorService, create_memory_service_factory
+    # Memory服务
+    from .services.memory.memory_service import MemoryService, create_memory_service_factory
+    
+    # Graph服务
+    from .services.graph.graph_service import GraphService, create_graph_service_factory
 
     __all__ = [
         # 服务任务类
         "KVService",
         "VDBService", 
-        "MemoryOrchestratorService",
+        "MemoryService",
+        "GraphService",
         
         # 工厂函数
         "create_kv_service_factory",
         "create_vdb_service_factory",
-        "create_memory_service_factory"
+        "create_memory_service_factory",
+        "create_graph_service_factory"
     ]
     
 except ImportError as e:
@@ -38,11 +43,10 @@ except ImportError as e:
 # 兼容性：保留原有的memory service导入
 try:
     from .services.memory.memory_service import MemoryService as LegacyMemoryService
-    from .services.memory.memory_manager import MemoryManager
     
     # 添加到导出列表
     if 'LegacyMemoryService' not in locals().get('__all__', []):
-        __all__.extend(['LegacyMemoryService', 'MemoryManager'])
+        __all__.extend(['LegacyMemoryService'])
         
 except ImportError:
     pass

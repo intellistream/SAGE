@@ -7,7 +7,7 @@ import shutil
 import Stemmer
 from typing import List, Optional, Dict, Any
 
-from sage.service.memory.search_engine.kv_index.base_kv_index import BaseKVIndex
+from sage.service.services.memory.search_engine.kv_index.base_kv_index import BaseKVIndex
 
 
 class BM25sIndex(BaseKVIndex):

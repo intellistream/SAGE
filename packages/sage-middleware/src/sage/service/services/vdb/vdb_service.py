@@ -54,7 +54,7 @@ class FaissVDBBackend:
         
         # 导入FaissIndex
         try:
-            from sage.service.vdb.search_engine.faiss_index import FaissIndex
+            from sage.service.services.vdb.search_engine.faiss_index import FaissIndex
             
             # 初始化FAISS索引
             self.faiss_index = FaissIndex(
@@ -192,7 +192,7 @@ class FaissVDBBackend:
         self.documents.clear()
         # 重新初始化FAISS索引
         try:
-            from sage.service.vdb.search_engine.faiss_index import FaissIndex
+            from sage.service.services.vdb.search_engine.faiss_index import FaissIndex
             self.faiss_index = FaissIndex(
                 name="vdb_index",
                 dim=self.embedding_dimension,
@@ -216,7 +216,7 @@ class FaissVDBBackend:
     def load_index(self, path: str) -> bool:
         """从磁盘加载索引"""
         try:
-            from sage.service.vdb.search_engine.faiss_index import FaissIndex
+            from sage.service.services.vdb.search_engine.faiss_index import FaissIndex
             self.faiss_index = FaissIndex(
                 name="vdb_index", 
                 dim=self.embedding_dimension,
