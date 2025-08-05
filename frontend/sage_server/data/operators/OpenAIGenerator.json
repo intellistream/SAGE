@@ -1,9 +1,0 @@
-{
-    "id":1,
-    "name":"OpenAIGenerator",
-    "description":"A generator that uses OpenAI's  API to generate responses.",
-    "code":"",
-    "transformation":"map",
-    "isCustom":false
-}
-
