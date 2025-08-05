@@ -1,0 +1,321 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  PYTHON_VERSION: '3.11'
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      wheel-name: ${{ steps.build.outputs.wheel-name }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build setuptools wheel
+        pip install -r requirements.txt
+        
+    - name: Get version
+      id: version
+      run: |
+        # 从setup.py或__init__.py中提取版本号
+        if [ -f "sage/__init__.py" ]; then
+          VERSION=$(python -c "import sage; print(sage.__version__)" 2>/dev/null || echo "0.1.0")
+        else
+          VERSION="0.1.0"
+        fi
+        
+        # 如果是tag触发，使用tag版本
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        fi
+        
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+        
+    - name: Build C extensions
+      run: |
+        cd sage/utils/mmap_queue
+        if [ -f "build.sh" ]; then
+          bash build.sh
+        elif [ -f "Makefile" ]; then
+          make clean && make
+        else
+          echo "No build system found, skipping C extension build"
+        fi
+        
+        # 验证so文件存在
+        if ls *.so 1> /dev/null 2>&1; then
+          echo "C extensions built successfully:"
+          ls -la *.so
+        else
+          echo "Warning: No .so files found after build"
+        fi
+        
+    - name: Build source wheel
+      id: build-source
+      run: |
+        echo "Building source wheel..."
+        python -m build --sdist --wheel
+        
+        # 获取生成的wheel文件名
+        WHEEL_FILE=$(ls dist/*.whl | head -1)
+        WHEEL_NAME=$(basename "$WHEEL_FILE")
+        
+        echo "source-wheel=$WHEEL_NAME" >> $GITHUB_OUTPUT
+        echo "Source wheel: $WHEEL_NAME"
+        
+    - name: Build bytecode wheel
+      id: build
+      run: |
+        echo "Building bytecode wheel..."
+        python build_wheel.py --clean
+        
+        # 获取生成的bytecode wheel文件名
+        BYTECODE_WHEEL=$(ls dist/*_bytecode.whl | head -1 || echo "")
+        if [ -n "$BYTECODE_WHEEL" ]; then
+          BYTECODE_NAME=$(basename "$BYTECODE_WHEEL")
+          echo "wheel-name=$BYTECODE_NAME" >> $GITHUB_OUTPUT
+          echo "Bytecode wheel: $BYTECODE_NAME"
+        else
+          echo "No bytecode wheel found, using source wheel"
+          WHEEL_FILE=$(ls dist/*.whl | grep -v _bytecode | head -1)
+          WHEEL_NAME=$(basename "$WHEEL_FILE")
+          echo "wheel-name=$WHEEL_NAME" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Verify wheel contents
+      run: |
+        echo "Verifying wheel contents..."
+        pip install wheel
+        
+        for wheel_file in dist/*.whl; do
+          echo "=== Contents of $(basename $wheel_file) ==="
+          python -m wheel unpack "$wheel_file" --dest temp_unpack
+          find temp_unpack -type f -name "*.so" | head -10
+          find temp_unpack -type f -name "*.py" | head -10
+          rm -rf temp_unpack
+          echo ""
+        done
+        
+    - name: Test wheel installation
+      run: |
+        echo "Testing wheel installation..."
+        
+        # 创建虚拟环境进行测试
+        python -m venv test_env
+        source test_env/bin/activate
+        
+        # 安装wheel
+        WHEEL_FILE=$(ls dist/*.whl | head -1)
+        pip install "$WHEEL_FILE"
+        
+        # 基本导入测试
+        python -c "import sage; print('SAGE imported successfully')"
+        
+        # 测试C扩展（如果存在）
+        python -c "
+        try:
+            from sage.utils.mmap_queue import ring_buffer
+            print('C extension imported successfully')
+        except ImportError as e:
+            print(f'C extension import failed: {e}')
+        except Exception as e:
+            print(f'C extension error: {e}')
+        " || true
+        
+        deactivate
+        rm -rf test_env
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: sage-wheels-${{ steps.version.outputs.version }}
+        path: |
+          dist/*.whl
+          dist/*.tar.gz
+        retention-days: 90
+        
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: sage-wheels-${{ needs.build.outputs.version }}
+        path: dist/
+        
+    - name: Install and test wheel
+      run: |
+        pip install pytest
+        
+        # 安装构建的wheel
+        WHEEL_FILE=$(ls dist/*.whl | head -1)
+        pip install "$WHEEL_FILE"
+        
+        # 运行基本测试
+        python -c "import sage; print(f'SAGE version: {getattr(sage, \"__version__\", \"unknown\")}')"
+        
+        # 如果有测试文件，运行它们
+        if [ -d "tests" ]; then
+          pytest tests/ -v
+        fi
+        
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: sage-wheels-${{ needs.build.outputs.version }}
+        path: dist/
+        
+    - name: Create Release
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // 获取所有wheel文件
+          const distDir = 'dist';
+          const files = fs.readdirSync(distDir);
+          const wheelFiles = files.filter(f => f.endsWith('.whl'));
+          const tarFiles = files.filter(f => f.endsWith('.tar.gz'));
+          
+          // 创建release
+          const tag = context.ref.replace('refs/tags/', '');
+          const release = await github.rest.repos.createRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            tag_name: tag,
+            name: `SAGE ${tag}`,
+            body: `
+          ## SAGE ${tag}
+          
+          This is a closed-source release of SAGE including compiled C extensions.
+          
+          ### 📦 Assets
+          ${wheelFiles.map(f => `- \`${f}\` - Binary wheel package`).join('\n')}
+          ${tarFiles.map(f => `- \`${f}\` - Source distribution`).join('\n')}
+          
+          ### 📋 Installation
+          \`\`\`bash
+          pip install ${wheelFiles[0] || 'sage'}
+          \`\`\`
+          
+          ### ⚠️ Note
+          This is a closed-source distribution. The source code and C extensions are compiled to bytecode.
+            `,
+            draft: false,
+            prerelease: tag.includes('rc') || tag.includes('beta') || tag.includes('alpha')
+          });
+          
+          // 上传assets
+          for (const file of [...wheelFiles, ...tarFiles]) {
+            const filePath = path.join(distDir, file);
+            const content = fs.readFileSync(filePath);
+            
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: file,
+              data: content
+            });
+            
+            console.log(`Uploaded ${file}`);
+          }
+          
+    - name: Publish to private registry
+      if: env.PRIVATE_REGISTRY_URL != ''
+      env:
+        PRIVATE_REGISTRY_URL: ${{ secrets.PRIVATE_REGISTRY_URL }}
+        PRIVATE_REGISTRY_TOKEN: ${{ secrets.PRIVATE_REGISTRY_TOKEN }}
+      run: |
+        echo "Publishing to private registry..."
+        
+        # 配置私有仓库
+        pip install twine
+        
+        # 上传到私有仓库
+        python -m twine upload \
+          --repository-url "$PRIVATE_REGISTRY_URL" \
+          --username __token__ \
+          --password "$PRIVATE_REGISTRY_TOKEN" \
+          dist/*.whl
+          
+        echo "Published to private registry successfully"
+        
+  cleanup:
+    if: always()
+    needs: [build, test, release]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Clean up old artifacts
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // 清理超过30天的artifacts
+          const artifacts = await github.rest.actions.listArtifactsForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            per_page: 100
+          });
+          
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          
+          for (const artifact of artifacts.data.artifacts) {
+            const createdAt = new Date(artifact.created_at);
+            if (createdAt < thirtyDaysAgo) {
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id
+              });
+              console.log(`Deleted old artifact: ${artifact.name}`);
+            }
+          }

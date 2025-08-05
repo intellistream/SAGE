@@ -1,0 +1,37 @@
+# MANIFEST.in - 现代化包文件管理
+
+# 包含项目元数据
+include README.md
+include LICENSE
+include pyproject.toml
+include *.md
+
+# 包含配置文件
+recursive-include sage *.yaml *.yml *.json
+recursive-include config *.yaml *.yml
+
+# 包含脚本和模板
+recursive-include installation *.sh *.py
+recursive-include scripts *.sh *.py
+
+# 包含版本文件
+include sage/_version.py
+
+# 排除开发和测试文件
+recursive-exclude tests *
+recursive-exclude */tests *
+recursive-exclude */test *
+recursive-exclude example *
+recursive-exclude examples *
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *~
+global-exclude __pycache__
+global-exclude .git*
+global-exclude .DS_Store
+global-exclude *.so.dSYM
+
+# 排除构建文件
+global-exclude build
+global-exclude dist
+global-exclude *.egg-info
