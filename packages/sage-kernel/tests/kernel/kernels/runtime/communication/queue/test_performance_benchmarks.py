@@ -401,7 +401,7 @@ class PerformanceBenchmark:
         import json
         from pathlib import Path
         
-        report_file = Path("benchmark_report.json")
+        report_file = Path(os.path.expanduser("~/benchmark_report.json"))
         with open(report_file, 'w', encoding='utf-8') as f:
             json.dump(self.results, f, indent=2, ensure_ascii=False)
         

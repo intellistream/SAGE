@@ -341,9 +341,9 @@ class EnhancedTestRunner:
             env = os.environ.copy()
             env['COVERAGE_FILE'] = str(coverage_file)
             
-            # Set benchmark output to .sage directory only if pytest-benchmark is available
+            # Set benchmark output to home directory if pytest-benchmark is available
             if self.has_benchmark:
-                benchmark_file = self.reports_dir / 'benchmark_report.json'
+                benchmark_file = os.path.expanduser('~/benchmark_report.json')
                 cmd.extend(['--benchmark-json', str(benchmark_file)])
             
             # Set coverage HTML output to .sage directory
