@@ -7,16 +7,6 @@ __version__ = "0.1.1"
 __author__ = "IntelliStream"
 __email__ = "intellistream@outlook.com"
 
-# 核心模块导入
-try:
-    from sage.core import *
-except ImportError:
-    pass
-
-try:
-    from sage.kernel.kernels.jobmanager import *
-except ImportError:
-    pass
 
 # CLI模块在需要时导入
 def get_cli():

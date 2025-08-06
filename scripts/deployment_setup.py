@@ -44,8 +44,8 @@ class SAGESetup:
             
         self.docs_public_path = self.repo_root / "docs-public"
         self.requirements_files = [
-            "requirements.txt",
-            "requirements-dev.txt"
+            "scripts/requirements/requirements.txt",
+            "scripts/requirements/requirements-dev.txt"
         ]
         
     def print_colored(self, message: str, color: str = Colors.OKGREEN):

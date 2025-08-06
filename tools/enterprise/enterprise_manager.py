@@ -220,13 +220,14 @@ class SAGEEnterpriseInstaller:
     def get_installation_command(self, mode: str = "standard") -> str:
         """Get the appropriate installation command based on mode."""
         if mode == "enterprise":
-            return "pip install -r requirements-commercial.txt"
+            # requirements-commercial.txt的位置被挪到scripts/requirements里边了
+            return "pip install -r scripts/requirements/requirements-commercial.txt"
         elif mode == "dev":
             return "pip install -e .[enterprise]"
         elif mode == "individual":
             return "pip install intsage-kernel[enterprise] intsage-middleware[enterprise] intsage-userspace[enterprise]"
         else:
-            return "pip install -r requirements.txt"
+            return "pip install -r scripts/requirements/requirements.txt"
 
 
 def check_enterprise_features() -> Dict[str, Any]:
