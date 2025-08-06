@@ -8,13 +8,14 @@ for intuitive and powerful command-line interactions.
 import sys
 import typer
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
 from ..core.toolkit import SAGEDevToolkit
 from ..core.exceptions import SAGEDevToolkitError
+from ..core.bytecode_compiler import BytecodeCompiler, compile_multiple_packages
 
 # 创建控制台对象用于富文本输出
 console = Console()
@@ -312,6 +313,144 @@ def version_command():
     console.print("Author: IntelliStream Team")
     console.print("Repository: https://github.com/intellistream/SAGE")
 
+@app.command("compile")
+def compile_command(
+    package_path: str = typer.Argument(help="Path to the package to compile (single package or comma-separated list)"),
+    output_dir: Optional[str] = typer.Option(None, "--output", "-o", help="Output directory for compiled packages (overrides --use-sage-home)"),
+    build_wheel: bool = typer.Option(False, "--build", "-b", help="Build wheel package after compilation"),
+    upload: bool = typer.Option(False, "--upload", "-u", help="Upload to PyPI after building"),
+    dry_run: bool = typer.Option(True, "--dry-run", help="Dry run mode (default: true, use --no-dry-run to disable)"),
+    force_cleanup: bool = typer.Option(False, "--force-cleanup", help="Force cleanup of temporary directories"),
+    batch_mode: bool = typer.Option(False, "--batch", help="Batch mode for multiple packages"),
+    use_sage_home: bool = typer.Option(True, "--use-sage-home", help="Use ~/.sage/dist as output directory (default: true)"),
+    create_symlink: bool = typer.Option(True, "--create-symlink", help="Create symlink .sage -> ~/.sage in current directory (default: true)"),
+    show_sage_info: bool = typer.Option(False, "--info", help="Show SAGE home directory information"),
+    project_root: Optional[str] = typer.Option(None, help="Project root directory"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Enable verbose output")
+):
+    """🔧 Compile Python packages to bytecode (.pyc files) to hide source code."""
+    
+    try:
+        # 显示SAGE home信息（如果需要）
+        if show_sage_info:
+            from ..core.bytecode_compiler import _get_sage_home_info
+            _get_sage_home_info()
+            if not package_path or package_path.strip() == "":
+                return
+        
+        # 解析包路径
+        if "," in package_path:
+            # 多个包路径
+            package_paths = [Path(p.strip()) for p in package_path.split(",")]
+            batch_mode = True
+        else:
+            # 单个包路径
+            package_paths = [Path(package_path)]
+        
+        # 验证包路径
+        valid_paths = []
+        for path in package_paths:
+            if not path.is_absolute():
+                # 如果是相对路径，尝试相对于项目根目录或当前目录
+                if project_root:
+                    abs_path = Path(project_root) / path
+                else:
+                    abs_path = Path.cwd() / path
+            else:
+                abs_path = path
+            
+            if not abs_path.exists():
+                console.print(f"❌ 包路径不存在: {abs_path}", style="red")
+                continue
+            
+            if not abs_path.is_dir():
+                console.print(f"❌ 路径不是目录: {abs_path}", style="red")
+                continue
+            
+            valid_paths.append(abs_path)
+        
+        if not valid_paths:
+            console.print("❌ 没有有效的包路径", style="red")
+            raise typer.Exit(1)
+        
+        # 设置输出目录
+        output_path = Path(output_dir) if output_dir else None
+        
+        # 如果指定了output_dir，则不使用sage_home
+        if output_dir:
+            use_sage_home = False
+            console.print(f"📁 使用指定输出目录: {output_path}", style="blue")
+        
+        if len(valid_paths) == 1 and not batch_mode:
+            # 单包模式
+            package_path = valid_paths[0]
+            console.print(f"🎯 编译单个包: {package_path.name}", style="bold cyan")
+            
+            # 创建软链接（如果需要）
+            if use_sage_home and create_symlink:
+                from ..core.bytecode_compiler import _create_sage_home_symlink
+                _create_sage_home_symlink()
+            
+            try:
+                compiler = BytecodeCompiler(package_path)
+                compiled_path = compiler.compile_package(output_path, use_sage_home)
+                
+                if build_wheel:
+                    success = compiler.build_wheel(upload=upload, dry_run=dry_run)
+                    if not success:
+                        console.print("❌ Wheel构建失败", style="red")
+                        raise typer.Exit(1)
+                
+                console.print(f"✅ 编译完成: {compiled_path}", style="green")
+                
+                if force_cleanup:
+                    compiler.cleanup_temp_dir()
+                
+            except SAGEDevToolkitError as e:
+                console.print(f"❌ 编译失败: {e}", style="red")
+                raise typer.Exit(1)
+        
+        else:
+            # 批量模式
+            console.print(f"🎯 批量编译 {len(valid_paths)} 个包", style="bold cyan")
+            
+            results = compile_multiple_packages(
+                package_paths=valid_paths,
+                output_dir=output_path,
+                build_wheels=build_wheel,
+                upload=upload,
+                dry_run=dry_run,
+                use_sage_home=use_sage_home,
+                create_symlink=create_symlink
+            )
+            
+            failed_packages = [name for name, success in results.items() if not success]
+            if failed_packages:
+                console.print(f"❌ 以下包编译失败: {', '.join(failed_packages)}", style="red")
+                raise typer.Exit(1)
+        
+        # 显示使用提示
+        if dry_run and (build_wheel or upload):
+            console.print("\n💡 提示: 当前为预演模式，要实际执行请使用 --no-dry-run", style="yellow")
+        
+        if upload and not build_wheel:
+            console.print("\n💡 提示: 要上传到PyPI需要同时使用 --build 和 --upload", style="yellow")
+        
+        if use_sage_home:
+            sage_home = Path.home() / ".sage" / "dist"
+            console.print(f"\n📂 编译产物保存在: {sage_home}", style="blue")
+            
+            symlink_path = Path.cwd() / ".sage"
+            if symlink_path.exists() and symlink_path.is_symlink():
+                console.print(f"🔗 可通过软链接访问: {symlink_path}", style="blue")
+        
+    except Exception as e:
+        console.print(f"❌ 命令执行失败: {e}", style="red")
+        if verbose:
+            import traceback
+            console.print(traceback.format_exc(), style="dim red")
+        raise typer.Exit(1)
+
 @app.command("fix-imports")
 def fix_imports_command(
     dry_run: bool = typer.Option(False, help="Show what would be fixed without making changes"),
@@ -502,6 +641,7 @@ def callback():
     • Test execution with intelligent change detection
     • Comprehensive dependency analysis  
     • Package management across SAGE ecosystem
+    • Bytecode compilation for source code protection
     • Build artifacts cleanup and management
     • Rich reporting with multiple output formats
     • Interactive and batch operation modes
@@ -510,6 +650,11 @@ def callback():
     sage-dev test --mode diff           # Run tests on changed code
     sage-dev analyze --type circular    # Check for circular dependencies
     sage-dev package list               # List all SAGE packages
+    sage-dev compile packages/sage-apps # Compile package to ~/.sage/dist with symlink
+    sage-dev compile packages/sage-apps --no-create-symlink  # Compile without symlink
+    sage-dev compile packages/sage-apps --output /tmp/build  # Compile to custom directory
+    sage-dev compile packages/sage-apps --build --upload --no-dry-run  # Compile and upload
+    sage-dev compile --info             # Show SAGE home directory information
     sage-dev clean --dry-run            # Preview build artifacts cleanup
     sage-dev clean --categories pycache # Clean Python cache files
     sage-dev report                     # Generate comprehensive report

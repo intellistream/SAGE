@@ -5,45 +5,13 @@
 
 set -e
 
-# 颜色定义
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+# 获取脚本所在目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 打印带颜色的消息
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-print_header() {
-    echo -e "\n${PURPLE}================================${NC}"
-    echo -e "${PURPLE}$1${NC}"
-    echo -e "${PURPLE}================================${NC}\n"
-}
-
-# 检查命令是否存在
-check_command() {
-    if ! command -v $1 &> /dev/null; then
-        print_error "$1 未安装，请先安装 $1"
-        exit 1
-    fi
-}
+# 引入工具模块
+source "$SCRIPT_DIR/scripts/logging.sh"
+source "$SCRIPT_DIR/scripts/common_utils.sh"
+source "$SCRIPT_DIR/scripts/conda_utils.sh"
 
 # 脚本开始
 print_header "🌟 SAGE 项目快速启动脚本"
@@ -52,24 +20,29 @@ print_status "检查依赖环境..."
 
 # 检查必要的命令
 check_command "git"
-check_command "python3"
-check_command "pip"
+# 检查下载工具
+if ! check_command_optional wget && ! check_command_optional curl; then
+    print_error "需要 wget 或 curl 来下载 Miniconda，请先安装其中之一"
+    exit 1
+fi
+# 注意：python3 和 pip 检查移到环境设置后进行
 
-print_success "环境检查通过"
+print_success "基础环境检查通过"
 
-# 获取脚本所在目录
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# 切换到项目根目录
 cd "$SCRIPT_DIR"
-
 print_status "当前目录: $SCRIPT_DIR"
 
-# 检查是否在正确的SAGE项目目录
-if [ ! -f "pyproject.toml" ] || [ ! -d "packages" ]; then
+# 验证项目结构
+if ! validate_project_structure "$SCRIPT_DIR"; then
     print_error "请在SAGE项目根目录运行此脚本"
     exit 1
 fi
 
 print_success "确认在SAGE项目目录"
+
+# 设置项目环境变量
+setup_project_env "$SCRIPT_DIR"
 
 # 询问用户安装类型
 echo
@@ -100,8 +73,54 @@ case $choice in
         ;;
 esac
 
+# 环境设置阶段
+print_header "🔧 环境设置"
+
+# 1. 安装 Miniconda
+if ! install_miniconda; then
+    print_error "Miniconda 安装失败"
+    exit 1
+fi
+
+# 2. 设置 SAGE 环境
+if ! setup_sage_environment; then
+    print_error "SAGE 环境设置失败"
+    exit 1
+fi
+
+# 3. 检查 Python 和 pip（现在应该在 conda 环境中）
+print_status "验证 Python 环境..."
+if ! check_command_optional python3; then
+    if ! check_command_optional python; then
+        print_error "Python 未找到，环境设置可能失败"
+        exit 1
+    else
+        # 创建 python3 别名
+        alias python3=python
+        print_warning "使用 python 命令代替 python3"
+    fi
+fi
+
+if ! check_command_optional pip; then
+    print_error "pip 未找到，环境设置可能失败"
+    exit 1
+fi
+
+print_success "Python 环境验证通过"
+
 # 使用Python脚本执行安装
 print_header "🚀 开始执行安装"
+
+# 确保 conda 环境在当前 shell 中激活
+if ! init_conda; then
+    print_error "Conda 初始化失败"
+    exit 1
+fi
+
+if ! activate_conda_env "$SAGE_ENV_NAME"; then
+    print_error "无法激活 SAGE 环境"
+    exit 1
+fi
 
 if [ "$INSTALL_TYPE" = "quick" ]; then
     python3 scripts/deployment_setup.py init
@@ -112,7 +131,7 @@ elif [ "$INSTALL_TYPE" = "full" ]; then
     python3 scripts/deployment_setup.py full --dev
     if [ -d "docs-public" ]; then
         print_status "构建文档..."
-        cd docs-public
+        safe_cd "docs-public"
         if command -v mkdocs &> /dev/null; then
             mkdocs build
             print_success "文档构建完成"
@@ -128,7 +147,12 @@ print_header "✅ 安装完成！"
 
 echo -e "${GREEN}🎉 SAGE项目已成功设置！${NC}\n"
 
+# 显示环境信息
+show_conda_env_info "$SAGE_ENV_NAME"
+
+echo
 echo "📋 下一步可以做什么:"
+echo "  • 激活环境: conda activate sage"
 echo "  • 查看项目状态: python3 scripts/deployment_setup.py status"
 echo "  • 运行测试: python3 scripts/deployment_setup.py test"
 echo "  • 启动Jupyter: jupyter notebook"
@@ -140,6 +164,7 @@ fi
 
 echo
 echo "🛠️ 常用开发命令:"
+echo "  • 激活环境: conda activate sage"
 echo "  • 同步文档: ./tools/sync_docs.sh"
 echo "  • 安装包: pip install -e packages/sage-kernel"
 echo "  • 运行示例: python examples/hello_world.py"
@@ -147,5 +172,6 @@ echo "  • 运行示例: python examples/hello_world.py"
 echo
 echo -e "${CYAN}📖 更多信息请参考: docs/DOCUMENTATION_GUIDE.md${NC}"
 echo -e "${CYAN}🆘 遇到问题可以查看: packages/sage-kernel/docs/faq.md${NC}"
+echo -e "${YELLOW}⚠️  重要: 每次使用SAGE时，请先运行 'conda activate sage' 激活环境${NC}"
 
 print_success "欢迎加入SAGE开发团队！ 🎯"

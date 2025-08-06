@@ -529,7 +529,7 @@ def run_all_benchmarks():
     
     # 保存详细结果到文件
     timestamp = int(time.time())
-    report_file = f"benchmark_report_{timestamp}.json"
+    report_file = os.path.expanduser(f"~/benchmark_report_{timestamp}.json")
     
     # 确定项目根目录的logs/sage_queue_tests文件夹
     current_dir = os.path.dirname(os.path.abspath(__file__))

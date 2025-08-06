@@ -1,6 +1,57 @@
 # SAGE Scripts Directory
 
-本目录包含SAGE项目的各种自动化脚本和工具。
+本目录包含SAGE项目的各种自动化脚本和工具，采用模块化架构设计。
+
+## 📦 模块化架构
+
+### 核心模块
+
+#### 📝 logging.sh
+提供统一的彩色日志输出功能。
+
+**主要功能：**
+- 彩色日志输出（INFO、SUCCESS、WARNING、ERROR）
+- 带时间戳的日志记录
+- 调试日志支持
+- 进度条显示
+- 用户确认提示
+
+#### 🐍 conda_utils.sh
+提供 Conda 环境管理功能。
+
+**主要功能：**
+- 自动安装 Miniconda（多平台支持）
+- Conda 环境创建和管理
+- 包安装和依赖管理
+- 环境激活和初始化
+
+#### 🛠️ common_utils.sh
+提供通用工具函数。
+
+**主要功能：**
+- 命令存在性检查
+- 文件和目录验证
+- 项目结构验证
+- 环境变量设置
+
+#### ⚙️ config.sh
+配置文件，定义默认设置。
+
+### 使用示例
+
+```bash
+#!/bin/bash
+
+# 引入模块
+source scripts/logging.sh
+source scripts/common_utils.sh
+source scripts/conda_utils.sh
+
+# 使用功能
+print_header "开始执行任务"
+check_command "git"
+setup_sage_environment
+```
 
 ## 🚀 部署脚本
 
