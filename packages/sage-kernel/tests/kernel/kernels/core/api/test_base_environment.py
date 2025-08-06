@@ -73,7 +73,7 @@ def mock_env():
 @pytest.fixture
 def mock_logger():
     """Fixture providing a mock logger"""
-    with patch('sage.core.api.base_environment.CustomLogger') as mock_logger_class:
+    with patch('sage.kernel.api.base_environment.CustomLogger') as mock_logger_class:
         mock_logger_instance = Mock()
         mock_logger_class.return_value = mock_logger_instance
         yield mock_logger_instance
@@ -159,7 +159,7 @@ class TestBaseEnvironmentServiceRegistration:
     """Test service registration functionality"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.base_environment.ServiceFactory')
+    @patch('sage.kernel.api.base_environment.ServiceFactory')
     @patch('sage.kernel.kernels.runtime.factory.service_task_factory.ServiceTaskFactory')
     def test_register_service_local(self, mock_task_factory_class, mock_service_factory_class, mock_env, mock_logger):
         """Test service registration in local environment"""
@@ -200,7 +200,7 @@ class TestBaseEnvironmentServiceRegistration:
         )
     
     @pytest.mark.unit
-    @patch('sage.core.api.base_environment.ServiceFactory')
+    @patch('sage.kernel.api.base_environment.ServiceFactory')
     @patch('sage.kernel.kernels.runtime.factory.service_task_factory.ServiceTaskFactory')
     def test_register_service_remote(self, mock_task_factory_class, mock_service_factory_class, mock_logger):
         """Test service registration in remote environment"""
@@ -233,7 +233,7 @@ class TestBaseEnvironmentKafkaSource:
     """Test Kafka source creation"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.base_environment.KafkaSourceFunction')
+    @patch('sage.kernel.api.base_environment.KafkaSourceFunction')
     def test_from_kafka_source_basic(self, mock_kafka_function, mock_env, mock_logger):
         """Test basic Kafka source creation"""
         mock_env._logger = mock_logger
@@ -258,7 +258,7 @@ class TestBaseEnvironmentKafkaSource:
         )
     
     @pytest.mark.unit
-    @patch('sage.core.api.base_environment.KafkaSourceFunction')
+    @patch('sage.kernel.api.base_environment.KafkaSourceFunction')
     def test_from_kafka_source_with_options(self, mock_kafka_function, mock_env):
         """Test Kafka source creation with additional options"""
         result = mock_env.from_kafka_source(
@@ -280,7 +280,7 @@ class TestBaseEnvironmentDataSources:
     """Test data source creation methods"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.base_environment.wrap_lambda')
+    @patch('sage.kernel.api.base_environment.wrap_lambda')
     def test_from_source_with_function_class(self, mock_wrap_lambda, mock_env):
         """Test from_source with function class"""
         mock_function = Mock()
@@ -296,7 +296,7 @@ class TestBaseEnvironmentDataSources:
         assert isinstance(transformation, SourceTransformation)
     
     @pytest.mark.unit
-    @patch('sage.core.api.base_environment.wrap_lambda')
+    @patch('sage.kernel.api.base_environment.wrap_lambda')
     def test_from_source_with_lambda(self, mock_wrap_lambda, mock_env):
         """Test from_source with lambda function"""
         lambda_func = lambda x: x * 2
@@ -312,7 +312,7 @@ class TestBaseEnvironmentDataSources:
         assert len(mock_env.pipeline) == 1
     
     @pytest.mark.unit
-    @patch('sage.core.api.base_environment.wrap_lambda')
+    @patch('sage.kernel.api.base_environment.wrap_lambda')
     def test_from_collection_with_function_class(self, mock_wrap_lambda, mock_env):
         """Test from_collection with function class"""
         mock_function = Mock()
@@ -326,7 +326,7 @@ class TestBaseEnvironmentDataSources:
         assert isinstance(transformation, BatchTransformation)
     
     @pytest.mark.unit
-    @patch('sage.core.api.base_environment.wrap_lambda')
+    @patch('sage.kernel.api.base_environment.wrap_lambda')
     def test_from_collection_with_lambda(self, mock_wrap_lambda, mock_env):
         """Test from_collection with lambda function"""
         lambda_func = lambda x: [x, x*2]
@@ -453,7 +453,7 @@ class TestBaseEnvironmentProperties:
     """Test BaseEnvironment properties"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.base_environment.CustomLogger')
+    @patch('sage.kernel.api.base_environment.CustomLogger')
     def test_logger_property_lazy_creation(self, mock_logger_class, mock_env):
         """Test logger property creates logger lazily"""
         mock_logger_instance = Mock()
@@ -471,7 +471,7 @@ class TestBaseEnvironmentProperties:
         assert mock_logger_class.call_count == 1
     
     @pytest.mark.unit
-    @patch('sage.core.api.base_environment.JobManagerClient')
+    @patch('sage.kernel.api.base_environment.JobManagerClient')
     def test_client_property_lazy_creation(self, mock_client_class, mock_env):
         """Test client property creates client lazily"""
         mock_client_instance = Mock()
@@ -488,7 +488,7 @@ class TestBaseEnvironmentProperties:
         assert mock_client_class.call_count == 1
     
     @pytest.mark.unit
-    @patch('sage.core.api.base_environment.JobManagerClient')
+    @patch('sage.kernel.api.base_environment.JobManagerClient')
     def test_client_property_with_config(self, mock_client_class):
         """Test client property uses config values"""
         env = MockEnvironment("test_env", {
@@ -504,8 +504,8 @@ class TestBaseEnvironmentLoggingSetup:
     """Test logging system setup"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.base_environment.CustomLogger')
-    @patch('sage.core.api.base_environment.Path')
+    @patch('sage.kernel.api.base_environment.CustomLogger')
+    @patch('sage.kernel.api.base_environment.Path')
     @patch('sage.kernel.kernels.jobmanager.utils.name_server.get_name')
     def test_setup_logging_system(self, mock_get_name, mock_path_class, mock_logger_class, mock_env):
         """Test logging system setup"""
@@ -516,7 +516,7 @@ class TestBaseEnvironmentLoggingSetup:
         mock_path_class.return_value = mock_path_instance
         
         # Mock datetime
-        with patch('sage.core.api.base_environment.datetime') as mock_datetime:
+        with patch('sage.kernel.api.base_environment.datetime') as mock_datetime:
             mock_now = Mock()
             mock_now.strftime.return_value = "20240101_120000"
             mock_datetime.now.return_value = mock_now
@@ -566,7 +566,7 @@ class TestBaseEnvironmentAuxiliaryMethods:
         assert result.transformation == mock_transformation
     
     @pytest.mark.unit
-    @patch('sage.core.function.simple_batch_function.SimpleBatchIteratorFunction')
+    @patch('sage.kernel.api.function.simple_batch_function.SimpleBatchIteratorFunction')
     def test_from_batch_collection_internal(self, mock_batch_function, mock_env, mock_logger):
         """Test internal _from_batch_collection method"""
         mock_env._logger = mock_logger
@@ -584,7 +584,7 @@ class TestBaseEnvironmentAuxiliaryMethods:
         )
     
     @pytest.mark.unit
-    @patch('sage.core.function.simple_batch_function.IterableBatchIteratorFunction')
+    @patch('sage.kernel.api.function.simple_batch_function.IterableBatchIteratorFunction')
     def test_from_batch_iterable_internal(self, mock_batch_function, mock_env, mock_logger):
         """Test internal _from_batch_iterable method"""
         mock_env._logger = mock_logger
@@ -598,7 +598,7 @@ class TestBaseEnvironmentAuxiliaryMethods:
         )
     
     @pytest.mark.unit
-    @patch('sage.core.function.simple_batch_function.IterableBatchIteratorFunction')
+    @patch('sage.kernel.api.function.simple_batch_function.IterableBatchIteratorFunction')
     def test_from_batch_iterable_without_len(self, mock_batch_function, mock_env, mock_logger):
         """Test _from_batch_iterable with object that has no len()"""
         mock_env._logger = mock_logger

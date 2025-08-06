@@ -25,6 +25,8 @@ def test_command(
     workers: Optional[int] = typer.Option(None, help="Number of parallel workers"),
     timeout: Optional[int] = typer.Option(None, help="Test timeout in seconds"),
     quick: bool = typer.Option(False, help="Run quick tests only"),
+    enable_coverage: bool = typer.Option(False, "--enable-coverage", help="Enable coverage reporting"),
+    show_details: bool = typer.Option(False, "--show-details", help="Show detailed test report with individual file results"),
     project_root: Optional[str] = PROJECT_ROOT_OPTION,
     config: Optional[str] = CONFIG_OPTION,
     environment: Optional[str] = ENVIRONMENT_OPTION,
@@ -48,17 +50,19 @@ def test_command(
             kwargs['timeout'] = timeout
         if quick:
             kwargs['quick'] = quick
+        if enable_coverage:
+            kwargs['enable_coverage'] = enable_coverage
             
         if verbose:
             console.print(f"🧪 Running tests in '{mode}' mode...")
             
         results = toolkit.run_tests(mode, **kwargs)
         
-        # Display summary
+        # Display summary table
         if 'summary' in results:
             summary = results['summary']
             
-            table = Table(title="Test Results")
+            table = Table(title="Test Results Summary")
             table.add_column("Metric", style="cyan")
             table.add_column("Count", style="green")
             
@@ -68,6 +72,11 @@ def test_command(
             table.add_row("Duration", f"{results.get('execution_time', 0):.2f}s")
             
             console.print(table)
+            
+            # Display detailed test file report
+            if 'results' in results and results['results']:
+                console.print()
+                _display_test_report(results['results'], verbose or show_details)
         else:
             console.print("✅ Tests completed successfully", style="green")
             
@@ -173,3 +182,92 @@ def version_command():
     console.print("Version: 1.0.0")
     console.print("Author: IntelliStream Team")
     console.print("Repository: https://github.com/intellistream/SAGE")
+
+
+def _display_test_report(test_results, verbose=False):
+    """Display detailed test report showing which files passed/failed."""
+    from typing import List, Dict
+    
+    passed_tests = []
+    failed_tests = []
+    
+    # Categorize test results
+    for result in test_results:
+        test_file = result.get('test_file', 'Unknown')
+        log_file = result.get('log_file')  # Extract log file path
+        if result.get('passed', False):
+            passed_tests.append({
+                'file': test_file,
+                'duration': result.get('duration', 0),
+                'log_file': log_file
+            })
+        else:
+            failed_tests.append({
+                'file': test_file,
+                'duration': result.get('duration', 0),
+                'error': result.get('error', 'Unknown error'),
+                'log_file': log_file
+            })
+    
+    # Display passed tests
+    if passed_tests:
+        console.print("\n✅ Passed Tests:", style="bold green")
+        
+        if verbose:
+            # Show all passed tests with duration
+            for test in passed_tests:
+                duration_str = f"({test['duration']:.2f}s)" if test['duration'] > 0 else ""
+                console.print(f"  ✓ {test['file']} {duration_str}", style="green")
+                # Show log file path if available
+                log_file = test.get('log_file')
+                if log_file:
+                    console.print(f"    📄 Log: {log_file}", style="dim cyan")
+        else:
+            # Show summary for passed tests
+            if len(passed_tests) <= 3:
+                for test in passed_tests:
+                    console.print(f"  ✓ {test['file']}", style="green")
+                    # Show log file path if available
+                    log_file = test.get('log_file')
+                    if log_file:
+                        console.print(f"    📄 Log: {log_file}", style="dim cyan")
+            else:
+                # Show first 2 and indicate more
+                for test in passed_tests[:2]:
+                    console.print(f"  ✓ {test['file']}", style="green")
+                    # Show log file path if available
+                    log_file = test.get('log_file')
+                    if log_file:
+                        console.print(f"    📄 Log: {log_file}", style="dim cyan")
+                console.print(f"  ✓ ... and {len(passed_tests) - 2} more passed tests", style="dim green")
+    
+    # Display failed tests
+    if failed_tests:
+        console.print("\n❌ Failed Tests:", style="bold red")
+        
+        for test in failed_tests:
+            duration_str = f"({test['duration']:.2f}s)" if test['duration'] > 0 else ""
+            console.print(f"  ✗ {test['file']} {duration_str}", style="red")
+            
+            # Show log file path if available
+            log_file = test.get('log_file')
+            if log_file:
+                console.print(f"    📄 Log: {log_file}", style="dim cyan")
+            
+            if verbose and test['error']:
+                # Show error details in verbose mode
+                error_lines = test['error'].split('\n')[:3]  # First 3 lines
+                for line in error_lines:
+                    if line.strip():
+                        console.print(f"    {line.strip()}", style="dim red")
+                if len(test['error'].split('\n')) > 3:
+                    console.print("    ...", style="dim red")
+    
+    # Overall status
+    console.print()
+    if not failed_tests:
+        console.print("🎉 All tests passed!", style="bold green")
+    else:
+        total_tests = len(passed_tests) + len(failed_tests)
+        console.print(f"📊 Test Status: {len(passed_tests)}/{total_tests} passed, {len(failed_tests)} failed", 
+                     style="yellow" if failed_tests else "green")

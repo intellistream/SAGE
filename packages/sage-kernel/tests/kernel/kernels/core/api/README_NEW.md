@@ -1,6 +1,6 @@
 # SAGE Core API Tests
 
-This directory contains comprehensive unit tests for the `sage.core.api` module, following the testing organization structure outlined in the project issue.
+This directory contains comprehensive unit tests for the `sage.kernel.api` module, following the testing organization structure outlined in the project issue.
 
 ## Test Structure
 
@@ -100,7 +100,7 @@ pytest tests/core/api/ -m integration -v
 
 ### Run with coverage:
 ```bash
-pytest tests/core/api/ --cov=sage.core.api --cov-report=html -v
+pytest tests/core/api/ --cov=sage.kernel.api --cov-report=html -v
 ```
 
 ### Run specific test class:
@@ -140,7 +140,7 @@ These tests are designed to run in CI/CD pipelines with:
 
 ## Contributing
 
-When adding new functionality to `sage.core.api`:
+When adding new functionality to `sage.kernel.api`:
 
 1. Add corresponding tests following the naming convention
 2. Use appropriate pytest markers

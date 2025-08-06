@@ -36,7 +36,7 @@ class EnhancedPackageManager:
             },
             'sage-lib': {
                 'path': self.packages_dir / 'sage-lib',
-                'namespace': 'sage.lib',
+                'namespace': 'sage.apps.lib',
                 'dependencies': ['sage-utils'],
                 'description': 'Core library components'
             },

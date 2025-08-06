@@ -56,7 +56,7 @@ class SafeBiologyRetriever(MapFunction):
         """安全地初始化memory service"""
         def init_service():
             try:
-                from sage.service.memory.memory_service import MemoryService
+                from sage.middleware.services.memory.memory_service import MemoryService
                 from sage.kernel.utils.embedding_methods.embedding_api import apply_embedding_model
                 
                 embedding_model = apply_embedding_model("default")

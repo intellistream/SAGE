@@ -62,6 +62,53 @@ def should_skip(obj: Any) -> bool:
     return False
 
 
+def has_circular_reference(obj: Any, _seen: Optional[TypingSet[int]] = None, max_depth: int = 10) -> bool:
+    """检查对象是否包含循环引用"""
+    if _seen is None:
+        _seen = set()
+    
+    if max_depth <= 0:
+        return False
+        
+    obj_id = id(obj)
+    if obj_id in _seen:
+        return True
+    
+    # 基本类型不会有循环引用
+    if isinstance(obj, (int, float, str, bool, type(None))):
+        return False
+    
+    _seen.add(obj_id)
+    try:
+        # 检查字典
+        if isinstance(obj, Mapping):
+            for k, v in obj.items():
+                if has_circular_reference(k, _seen, max_depth - 1) or has_circular_reference(v, _seen, max_depth - 1):
+                    return True
+        
+        # 检查序列
+        elif isinstance(obj, Sequence) and not isinstance(obj, str):
+            for item in obj:
+                if has_circular_reference(item, _seen, max_depth - 1):
+                    return True
+        
+        # 检查集合
+        elif isinstance(obj, AbstractSet):
+            for item in obj:
+                if has_circular_reference(item, _seen, max_depth - 1):
+                    return True
+        
+        # 检查复杂对象
+        elif hasattr(obj, '__dict__'):
+            for attr_value in obj.__dict__.values():
+                if has_circular_reference(attr_value, _seen, max_depth - 1):
+                    return True
+        
+        return False
+    finally:
+        _seen.remove(obj_id)
+
+
 def preprocess_for_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> Any:
     """
     递归预处理对象，清理不可序列化的内容，为dill序列化做准备。
@@ -77,11 +124,15 @@ def preprocess_for_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> Any
     if _seen is None:
         _seen = set()
     
-    # 防止循环引用
+    # 防止循环引用 - 如果检测到循环引用，直接返回原对象让dill处理
     obj_id = id(obj)
     if obj_id in _seen:
-        # print(f"Skipping already seen object: {obj}")
-        return SKIP_VALUE
+        return obj
+    
+    # 对于复杂对象，先检查是否有循环引用
+    if hasattr(obj, '__dict__') and has_circular_reference(obj):
+        # 如果有循环引用，直接返回原对象让dill处理
+        return obj
     
     # 基本类型直接返回
     if isinstance(obj, (int, float, str, bool, type(None))):
@@ -126,7 +177,11 @@ def preprocess_for_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> Any
                     cleaned_item = preprocess_for_dill(item, _seen)
                     if cleaned_item is not SKIP_VALUE:
                         cleaned.append(cleaned_item)
-            return type(obj)(cleaned) if cleaned else []
+            # 保持原始类型：如果是元组，返回元组；如果是列表，返回列表
+            if isinstance(obj, tuple):
+                return tuple(cleaned) if cleaned else ()
+            else:
+                return type(obj)(cleaned) if cleaned else []
         finally:
             _seen.remove(obj_id)
     
@@ -243,7 +298,11 @@ def postprocess_from_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> A
                     cleaned_item = postprocess_from_dill(item, _seen)
                     # 保留所有值，包括None、False、0等
                     cleaned.append(cleaned_item)
-            return type(obj)(cleaned)
+            # 保持原始类型：如果是元组，返回元组；如果是列表，返回列表
+            if isinstance(obj, tuple):
+                return tuple(cleaned)
+            else:
+                return type(obj)(cleaned)
         finally:
             _seen.remove(obj_id)
     

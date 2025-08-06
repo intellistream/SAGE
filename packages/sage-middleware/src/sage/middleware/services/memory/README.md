@@ -67,7 +67,7 @@ memory/
 ### 1. 原有方式 (保持兼容)
 
 ```python
-from sage.service.memory import MemoryService, get_memory
+from sage.middleware.services.memory import MemoryService, get_memory
 
 # 直接使用原有服务
 memory_service = MemoryService()
@@ -84,7 +84,7 @@ memory = get_memory({
 ### 2. 新的服务任务方式
 
 ```python
-from sage.service.memory import MemoryServiceTask, create_memory_service_factory
+from sage.middleware.services.memory import MemoryServiceTask, create_memory_service_factory
 
 # 创建服务工厂
 memory_factory = create_memory_service_factory(
@@ -99,7 +99,7 @@ memory_factory = create_memory_service_factory(
 ### 3. 与KV/VDB服务协同
 
 ```python
-from sage.service import (
+from sage.middleware.services import (
     create_kv_service_factory, 
     create_vdb_service_factory,
     create_memory_service_factory

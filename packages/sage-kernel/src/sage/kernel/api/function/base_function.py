@@ -34,6 +34,8 @@ class BaseFunction(ABC):
     
     @property
     def name(self):
+        if self.ctx is None:
+            return self.__class__.__name__
         return self.ctx.name
     
     @property

@@ -594,7 +594,7 @@ SAGE provides a comprehensive memory management system with a lightweight in-mem
 #### (1). Initialize Memory Manager and Vector Database
 
 ```python
-from sage.service.memory.memory_manager import MemoryManager
+from sage.middleware.services.memory.memory_manager import MemoryManager
 from sage.utils.embedding_methods.embedding_api import apply_embedding_model
 
 # Create memory manager with default or custom data directory
@@ -704,7 +704,7 @@ col.update("doc_id_1", "Updated content about AI and its applications", {"update
 col.delete("doc_id_2")
 
 # Clear specific collection data
-from sage.service.memory.memory_collection.vdb_collection import VDBMemoryCollection
+from sage.middleware.services.memory.memory_collection.vdb_collection import VDBMemoryCollection
 VDBMemoryCollection.clear("test_vdb", mgr.data_dir)
 
 # Clean up manager metadata
@@ -820,7 +820,7 @@ env.wait_for_completion(job_id)
 SAGE supports service-oriented architecture with memory services and other specialized services:
 
 ```python
-from sage.service.memory import MemoryService
+from sage.middleware.services.memory import MemoryService
 
 # Register memory service
 def memory_service_factory():

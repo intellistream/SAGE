@@ -17,8 +17,22 @@ import os
 import threading
 from pathlib import Path
 from unittest.mock import patch, MagicMock, mock_open
+from contextlib import contextmanager
 
 from sage.kernel.utils.logging.custom_logger import CustomLogger
+
+
+@contextmanager
+def sage_temp_directory():
+    """使用 ~/.sage/test_tmp 创建临时目录的上下文管理器"""
+    sage_test_dir = os.path.expanduser("~/.sage/test_tmp")
+    os.makedirs(sage_test_dir, exist_ok=True)
+    temp_dir = tempfile.mkdtemp(dir=sage_test_dir)
+    try:
+        yield temp_dir
+    finally:
+        import shutil
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 @pytest.mark.unit
@@ -27,7 +41,10 @@ class TestCustomLogger:
     
     def setup_method(self):
         """测试前准备"""
-        self.temp_dir = tempfile.mkdtemp()
+        # 使用 ~/.sage/test_tmp 而不是系统临时目录
+        sage_test_dir = os.path.expanduser("~/.sage/test_tmp")
+        os.makedirs(sage_test_dir, exist_ok=True)
+        self.temp_dir = tempfile.mkdtemp(dir=sage_test_dir)
         # 确保每个测试开始时重置全局状态
         CustomLogger.enable_global_console_debug()
     
@@ -59,7 +76,7 @@ class TestCustomLogger:
                 ("console", "INFO"),
                 ("app.log", "DEBUG")
             ],
-            name="TestLogger",
+            name="TestLoggerBaseFolder",
             log_base_folder=self.temp_dir
         )
         
@@ -122,20 +139,21 @@ class TestCustomLogger:
             ("FATAL", logging.CRITICAL),
         ]
         
-        for level_str, expected_level in level_tests:
-            logger = CustomLogger([("console", level_str)])
+        for i, (level_str, expected_level) in enumerate(level_tests):
+            logger = CustomLogger([("console", level_str)], name=f"TestLogger_{i}")
+            # Use internal config to test the integer level mapping
             config = logger.output_configs[0]
             assert config['level'] == expected_level
     
     def test_invalid_log_level(self):
         """测试无效日志级别处理"""
         with pytest.raises(ValueError, match="Invalid log level"):
-            CustomLogger([("console", "INVALID_LEVEL")])
+            CustomLogger([("console", "INVALID_LEVEL")], name="TestInvalidLevel")
     
     def test_invalid_level_type(self):
         """测试无效级别类型处理"""
         with pytest.raises(TypeError, match="level_setting must be str or int"):
-            CustomLogger([("console", [])])  # 列表类型无效
+            CustomLogger([("console", [])], name="TestInvalidType")  # 列表类型无效
 
 
 @pytest.mark.unit
@@ -144,7 +162,10 @@ class TestPathResolution:
     
     def setup_method(self):
         """测试前准备"""
-        self.temp_dir = tempfile.mkdtemp()
+        # 使用 ~/.sage/test_tmp 而不是系统临时目录
+        sage_test_dir = os.path.expanduser("~/.sage/test_tmp")
+        os.makedirs(sage_test_dir, exist_ok=True)
+        self.temp_dir = tempfile.mkdtemp(dir=sage_test_dir)
     
     def teardown_method(self):
         """测试后清理"""
@@ -192,7 +213,10 @@ class TestLoggingMethods:
     
     def setup_method(self):
         """测试前准备"""
-        self.temp_dir = tempfile.mkdtemp()
+        # 使用 ~/.sage/test_tmp 而不是系统临时目录
+        sage_test_dir = os.path.expanduser("~/.sage/test_tmp")
+        os.makedirs(sage_test_dir, exist_ok=True)
+        self.temp_dir = tempfile.mkdtemp(dir=sage_test_dir)
         self.log_file = os.path.join(self.temp_dir, "test.log")
         
         self.logger = CustomLogger(
@@ -309,7 +333,10 @@ class TestDynamicConfiguration:
     
     def setup_method(self):
         """测试前准备"""
-        self.temp_dir = tempfile.mkdtemp()
+        # 使用 ~/.sage/test_tmp 而不是系统临时目录
+        sage_test_dir = os.path.expanduser("~/.sage/test_tmp")
+        os.makedirs(sage_test_dir, exist_ok=True)
+        self.temp_dir = tempfile.mkdtemp(dir=sage_test_dir)
         self.logger = CustomLogger(
             outputs=[("console", "INFO")],
             name="DynamicLogger",
@@ -488,7 +515,7 @@ class TestUtilityMethods:
     
     def test_print_current_configs(self):
         """测试打印当前配置"""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with sage_temp_directory() as temp_dir:
             logger = CustomLogger(
                 outputs=[
                     ("console", "INFO"),
@@ -536,7 +563,7 @@ class TestCustomLoggerIntegration:
     
     def test_real_world_logging_scenario(self):
         """测试真实世界的日志记录场景"""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with sage_temp_directory() as temp_dir:
             # 创建多层次日志配置
             logger = CustomLogger(
                 outputs=[
@@ -607,7 +634,7 @@ class TestCustomLoggerIntegration:
     
     def test_dynamic_configuration_workflow(self):
         """测试动态配置工作流程"""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with sage_temp_directory() as temp_dir:
             # 初始配置
             logger = CustomLogger(
                 outputs=[("console", "INFO")],
@@ -695,7 +722,7 @@ class TestCustomLoggerPerformance:
         """测试日志记录性能"""
         import time
         
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with sage_temp_directory() as temp_dir:
             logger = CustomLogger(
                 outputs=[
                     ("console", "INFO"),
@@ -734,7 +761,7 @@ class TestCustomLoggerPerformance:
         """测试多handler性能"""
         import time
         
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with sage_temp_directory() as temp_dir:
             # 创建多个输出handler
             outputs = [("console", "INFO")]
             for i in range(10):

@@ -103,10 +103,13 @@ class JobManager: #Job Manager
 
 
     def submit_job(self, env: 'BaseEnvironment') -> str:
-
+        """提交作业"""
         env.setup_logging_system(self.log_base_dir)
+        
         # 生成 UUID
-        env.uuid = str(uuid.uuid4())
+        job_uuid = self._generate_job_uuid()
+        env.uuid = job_uuid
+        env.env_uuid = job_uuid
         
         # 向环境注入JobManager的网络地址信息
         if self.server:
@@ -117,36 +120,52 @@ class JobManager: #Job Manager
             env.jobmanager_host = "127.0.0.1"
             env.jobmanager_port = 19001
             
-        # 编译环境
-        from sage.kernel.kernels.jobmanager.execution_graph import ExecutionGraph
-        graph = ExecutionGraph(env) 
-
-
-
-        # TODO: 如果Job里面有申明'env.set_memory(config=None)'，则说明该job需要一个global memory manager.
-        # Issue URL: https://github.com/intellistream/SAGE/issues/389
-        # 则在构建executiongraph的时候要单独是实例化一个特殊的operator，即 memory manager，并使得所有调用了memory相关操作的
-        # 算子，双向连到该memory manager算子上。
-        dispatcher = Dispatcher(graph, env)
-
-            # 创建 JobInfo 对象
-        job_info = JobInfo(env, graph, dispatcher, env.uuid)
-
-        self.jobs[env.uuid] = job_info
+        # 创建执行图
+        graph = self._create_execution_graph(env)
         
+        # 创建 JobInfo 对象
+        job_info = self._create_job_info(env, graph, job_uuid)
+        
+        # 提交到调度器
+        success = self._submit_to_dispatcher(job_info)
+        
+        if success:
+            self.logger.info(f"Environment '{env.name}' submitted with UUID {job_uuid}")
+        else:
+            raise Exception("Failed to submit job to dispatcher")
+
+        return job_uuid
+
+    def _generate_job_uuid(self) -> str:
+        """生成作业UUID"""
+        return str(uuid.uuid4())
+
+    def _create_execution_graph(self, env: 'BaseEnvironment') -> 'ExecutionGraph':
+        """创建执行图"""
+        from sage.kernel.kernels.jobmanager.execution_graph import ExecutionGraph
+        return ExecutionGraph(env)
+
+    def _create_job_info(self, env: 'BaseEnvironment', graph: 'ExecutionGraph', job_uuid: str) -> JobInfo:
+        """创建JobInfo对象"""
+        dispatcher = Dispatcher(graph, env)
+        job_info = JobInfo(env, graph, dispatcher, job_uuid)
+        self.jobs[job_uuid] = job_info
+        return job_info
+
+    def _submit_to_dispatcher(self, job_info: JobInfo) -> bool:
+        """提交到调度器"""
         try:
-            # 提交 DAG
-            dispatcher.submit()
+            job_info.dispatcher.submit()
             job_info.update_status("running")
-            
-            self.logger.info(f"Environment '{env.name}' submitted with UUID {env.uuid}")
-            
+            return True
         except Exception as e:
             job_info.update_status("failed", error=str(e))
-            self.logger.error(f"Failed to submit environment {env.uuid}: {e}")
-            raise
+            self.logger.error(f"Failed to submit job {job_info.job_uuid}: {e}")
+            return False
 
-        return env.uuid
+    def _get_job_info(self, job_uuid: str) -> Optional[JobInfo]:
+        """获取JobInfo对象"""
+        return self.jobs.get(job_uuid)
 
     def continue_job(self, env_uuid: str) -> Dict[str, Any]:
         """重启作业"""
@@ -338,17 +357,66 @@ class JobManager: #Job Manager
             }
 
     def get_job_status(self, env_uuid: str) -> Dict[str, Any]:
-        job_info = self.jobs.get(env_uuid)
+        """获取作业状态"""
+        job_info = self._get_job_info(env_uuid)
         
         if not job_info:
             self.logger.warning(f"Job with UUID {env_uuid} not found")
             return {
+                "success": False,
                 "uuid": env_uuid,
                 "status": "not_found",
                 "message": f"Job with UUID {env_uuid} not found"
             }
         
-        return job_info.get_status()
+        status_info = job_info.get_status()
+        status_info["success"] = True
+        return status_info
+
+    def health_check(self) -> Dict[str, Any]:
+        """健康检查"""
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "jobs_count": len(self.jobs)
+        }
+
+    def resume_job(self, env_uuid: str) -> Dict[str, Any]:
+        """恢复作业（继续作业的别名）"""
+        return self.continue_job(env_uuid)
+
+    def _pause_job_execution(self, job_info: JobInfo) -> bool:
+        """暂停作业执行"""
+        try:
+            job_info.dispatcher.stop()
+            job_info.update_status("stopped")
+            return True
+        except Exception as e:
+            job_info.update_status("failed", error=str(e))
+            self.logger.error(f"Failed to pause job execution: {e}")
+            return False
+
+    def _resume_job_execution(self, job_info: JobInfo) -> bool:
+        """恢复作业执行"""
+        try:
+            job_info.dispatcher.start()
+            job_info.update_status("running")
+            return True
+        except Exception as e:
+            job_info.update_status("failed", error=str(e))
+            self.logger.error(f"Failed to resume job execution: {e}")
+            return False
+
+    def stop_daemon(self) -> bool:
+        """停止守护进程"""
+        if self.server:
+            try:
+                self.server.shutdown()
+                return True
+            except Exception as e:
+                self.logger.error(f"Failed to stop daemon: {e}")
+                return False
+        return True
 
     def list_jobs(self) -> List[Dict[str, Any]]:
         return [job_info.get_summary() for job_info in self.jobs.values()]

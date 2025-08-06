@@ -1,5 +1,5 @@
 """
-测试 sage.lib.rag.evaluate 模块
+测试 sage.apps.lib.rag.evaluate 模块
 """
 
 import pytest
@@ -135,8 +135,8 @@ class TestRecallEvaluate:
 class TestBertRecallEvaluate:
     """测试BertRecallEvaluate类"""
     
-    @patch('sage.lib.rag.evaluate.AutoTokenizer')
-    @patch('sage.lib.rag.evaluate.AutoModel')
+    @patch('sage.apps.lib.rag.evaluate.AutoTokenizer')
+    @patch('sage.apps.lib.rag.evaluate.AutoModel')
     def test_bert_recall_initialization(self, mock_model, mock_tokenizer):
         """测试BertRecallEvaluate初始化"""
         if not EVALUATE_AVAILABLE:
@@ -153,9 +153,9 @@ class TestBertRecallEvaluate:
         mock_tokenizer.from_pretrained.assert_called_with("bert-base-uncased")
         mock_model.from_pretrained.assert_called_with("bert-base-uncased")
     
-    @patch('sage.lib.rag.evaluate.AutoTokenizer')
-    @patch('sage.lib.rag.evaluate.AutoModel')
-    @patch('sage.lib.rag.evaluate.cosine_similarity')
+    @patch('sage.apps.lib.rag.evaluate.AutoTokenizer')
+    @patch('sage.apps.lib.rag.evaluate.AutoModel')
+    @patch('sage.apps.lib.rag.evaluate.cosine_similarity')
     def test_bert_recall_execute(self, mock_cosine, mock_model_class, mock_tokenizer_class, sample_evaluation_data):
         """测试BertRecallEvaluate执行"""
         if not EVALUATE_AVAILABLE:
@@ -193,7 +193,7 @@ class TestBertRecallEvaluate:
 class TestRougeLEvaluate:
     """测试RougeLEvaluate类"""
     
-    @patch('sage.lib.rag.evaluate.Rouge')
+    @patch('sage.apps.lib.rag.evaluate.Rouge')
     def test_rouge_l_initialization(self, mock_rouge_class):
         """测试RougeLEvaluate初始化"""
         if not EVALUATE_AVAILABLE:
@@ -207,7 +207,7 @@ class TestRougeLEvaluate:
         assert evaluator.rouge is not None
         mock_rouge_class.assert_called_once()
     
-    @patch('sage.lib.rag.evaluate.Rouge')
+    @patch('sage.apps.lib.rag.evaluate.Rouge')
     def test_rouge_l_execute(self, mock_rouge_class, sample_evaluation_data):
         """测试RougeLEvaluate执行"""
         if not EVALUATE_AVAILABLE:

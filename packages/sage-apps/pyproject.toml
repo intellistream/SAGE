@@ -196,7 +196,7 @@ exclude = [
 namespaces = true
 
 [tool.setuptools.package-data]
-"sage.lib" = [
+"sage.apps.lib" = [
     "py.typed",
     "*.pyi",
 ]
@@ -250,6 +250,6 @@ disallow_untyped_defs = true
 no_implicit_optional = true
 strict_optional = true
 overrides = [
-    { module = "sage.lib.*", ignore_missing_imports = false },
+    { module = "sage.apps.lib.*", ignore_missing_imports = false },
     { module = "sage.plugins.*", ignore_missing_imports = false },
 ]

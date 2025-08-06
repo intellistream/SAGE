@@ -5,7 +5,7 @@ from sage.kernel.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.utils.config.loader import load_config
 from sage.apps.lib.io_utils.batch import HFDatasetBatch
-from sage.service.memory.memory_service import MemoryService
+from sage.middleware.services.memory.memory_service import MemoryService
 
 from sage.apps.lib.rag.retriever import DenseRetriever
 from sage.plugins.longrefiner_fn.longrefiner_adapter import LongRefinerAdapter

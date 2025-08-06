@@ -27,7 +27,7 @@ class UniversalSerializer:
         Returns:
             序列化后的字节数据
         """
-        if dill is None:
+        if not dill:
             raise SerializationError("dill is required for serialization. Install with: pip install dill")
         
         try:
@@ -73,7 +73,7 @@ class UniversalSerializer:
         Returns:
             反序列化后的对象
         """
-        if dill is None:
+        if not dill:
             raise SerializationError("dill is required for deserialization. Install with: pip install dill")
         
         try:

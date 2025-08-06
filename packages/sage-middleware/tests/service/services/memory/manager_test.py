@@ -5,8 +5,8 @@ from time import sleep
 
 
 def test_vdb(do_reload=True, do_delete=True):
-    from sage.service.memory.memory_manager import MemoryManager
-    from sage.llm.embedding.mockembedder import MockTextEmbedder
+    from sage.middleware.services.memory.memory_manager import MemoryManager
+    from sage.middleware.utils.embedding.mockembedder import MockTextEmbedder
     import os
 
     def colored(text, color):
@@ -55,7 +55,7 @@ def test_vdb(do_reload=True, do_delete=True):
 
     # 7. 读取持久化数据，自动测试时直接执行
     if do_reload:
-        from sage.service.memory.memory_manager import MemoryManager
+        from sage.middleware.services.memory.memory_manager import MemoryManager
         embedder2 = MockTextEmbedder(fixed_dim=16)
         mgr2 = MemoryManager()
         col2 = mgr2.connect_collection("test_vdb", embedding_model=embedder2)
@@ -67,7 +67,7 @@ def test_vdb(do_reload=True, do_delete=True):
     sleep(10)  # 等待一会儿，确保所有操作完成
     # 8. 删除所有数据
     if do_delete:
-        from sage.service.memory.memory_collection.vdb_collection import VDBMemoryCollection
+        from sage.middleware.services.memory.memory_collection.vdb_collection import VDBMemoryCollection
         VDBMemoryCollection.clear("test_vdb", data_dir)
         manager_json = os.path.join(data_dir, "manager.json")
         if os.path.exists(manager_json):

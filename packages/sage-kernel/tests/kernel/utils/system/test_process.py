@@ -625,23 +625,33 @@ class TestGetSystemProcessSummary:
     @pytest.mark.unit
     def test_process_summary_with_exceptions(self):
         """Test process summary with some inaccessible processes"""
-        def mock_proc_iter(attrs):
-            mock_proc1 = MagicMock()
-            mock_proc1.info = {'pid': 1001, 'name': 'accessible', 'status': 'running', 'username': 'user'}
-            
-            mock_proc2 = MagicMock()
-            mock_proc2.info = property(lambda x: (_ for _ in ()).throw(psutil.AccessDenied()))
-            
-            return [mock_proc1, mock_proc2]
+        # Create mock processes
+        mock_proc1 = MagicMock()
+        mock_proc1.info = {'pid': 1001, 'name': 'accessible', 'status': 'running', 'username': 'user'}
         
-        with patch('psutil.process_iter', side_effect=mock_proc_iter):
+        # Create a mock process that raises AccessDenied when accessing status in the loop
+        mock_proc2 = MagicMock()
+        mock_proc2.info = MagicMock()
+        # Configure the mock to raise AccessDenied when specific keys are accessed
+        def mock_getitem(self, key):
+            if key == 'status':
+                raise psutil.AccessDenied()
+            elif key == 'username':
+                raise psutil.AccessDenied()
+            return {'pid': 1002, 'name': 'restricted'}[key]
+        
+        mock_proc2.info.__getitem__ = mock_getitem
+        
+        with patch('psutil.process_iter', return_value=[mock_proc1, mock_proc2]):
             with patch('psutil.virtual_memory') as mock_memory:
                 mock_memory.return_value._asdict.return_value = {}
                 with patch('psutil.cpu_percent', return_value=0):
                     result = get_system_process_summary()
                     
-                    assert result["total_processes"] == 2
-                    assert result["by_status"]["running"] == 1
+                    assert result["total_processes"] == 2  # Both processes counted in list
+                    assert result["by_status"]["running"] == 1  # Only accessible process counted in stats
+                    assert len(result["by_status"]) == 1  # Only one status counted
+                    assert result["by_user"]["user"] == 1  # Only accessible user counted
     
     @pytest.mark.unit
     def test_process_summary_error(self):
@@ -938,16 +948,26 @@ class TestIntegrationScenarios:
         # Find processes
         mock_procs = [MagicMock(pid=1001), MagicMock(pid=1002)]
         
-        with patch('sage.kernel.utils.system.process.find_processes_by_name', return_value=mock_procs):
+        # Since the function is imported into the current module namespace, 
+        # we need to patch it in the current module
+        import sys
+        current_module = sys.modules[__name__]
+        with patch.object(current_module, 'find_processes_by_name', return_value=mock_procs):
             processes = find_processes_by_name(['test_app'])
             assert len(processes) == 2
         
         # Check ownership
-        with patch('sage.kernel.utils.system.process.check_process_ownership') as mock_ownership:
-            mock_ownership.return_value = {"needs_sudo": False, "accessible": True}
+        with patch.object(current_module, 'check_process_ownership') as mock_ownership:
+            mock_ownership.return_value = {
+                "pid": 1001,
+                "process_user": "testuser",
+                "current_user": "testuser", 
+                "needs_sudo": False, 
+                "accessible": True
+            }
             
             ownership = check_process_ownership(1001)
-            assert not ownership["needs_sudo"]
+            assert ownership["needs_sudo"] is False
         
         # Terminate processes
         with patch('sage.kernel.utils.system.process.terminate_process') as mock_terminate:

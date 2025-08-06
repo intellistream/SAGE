@@ -267,7 +267,9 @@ fi'''
         raise typer.Exit(1)
 
 @app.command("stop")
-def stop_workers():
+def stop_workers(
+    force: bool = typer.Option(False, "--force", "-f", help="强制停止所有Ray进程")
+):
     """停止所有Ray Worker节点"""
     typer.echo("🛑 停止Ray Worker节点...")
     
@@ -291,7 +293,40 @@ def stop_workers():
     for i, (host, port) in enumerate(workers, 1):
         typer.echo(f"\n🔧 停止Worker节点 {i}/{total_count}: {host}:{port}")
         
-        stop_command = f'''set +e
+        if force:
+            # 强制模式：直接杀死所有进程
+            stop_command = f'''set +e
+export PYTHONUNBUFFERED=1
+
+LOG_DIR='{worker_log_dir}'
+mkdir -p "$LOG_DIR"
+
+echo "===============================================" | tee -a "$LOG_DIR/worker.log"
+echo "Ray Worker强制停止 ($(date '+%Y-%m-%d %H:%M:%S'))" | tee -a "$LOG_DIR/worker.log"
+echo "Worker节点: $(hostname)" | tee -a "$LOG_DIR/worker.log"
+echo "===============================================" | tee -a "$LOG_DIR/worker.log"
+
+# 强制杀死所有Ray相关进程
+echo "[INFO] 强制终止所有Ray进程..." | tee -a "$LOG_DIR/worker.log"
+for pattern in 'ray.*start' 'raylet' 'core_worker' 'ray::' 'python.*ray'; do
+    PIDS=$(pgrep -f "$pattern" 2>/dev/null || true)
+    if [[ -n "$PIDS" ]]; then
+        echo "[INFO] 强制终止进程: $pattern (PIDs: $PIDS)" | tee -a "$LOG_DIR/worker.log"
+        echo "$PIDS" | xargs -r kill -KILL 2>/dev/null || true
+    fi
+done
+
+# 清理临时文件
+WORKER_TEMP_DIR='{worker_temp_dir}'
+if [[ -d "$WORKER_TEMP_DIR" ]]; then
+    echo "[INFO] 清理临时目录: $WORKER_TEMP_DIR" | tee -a "$LOG_DIR/worker.log"
+    rm -rf "$WORKER_TEMP_DIR"/* 2>/dev/null || true
+fi
+
+echo "[SUCCESS] Ray Worker强制停止完成 ($(date '+%Y-%m-%d %H:%M:%S'))" | tee -a "$LOG_DIR/worker.log"'''
+        else:
+            # 正常模式：优雅停止
+            stop_command = f'''set +e
 export PYTHONUNBUFFERED=1
 
 LOG_DIR='{worker_log_dir}'
@@ -684,6 +719,25 @@ echo "Worker节点已停止" | tee -a "$LOG_DIR/worker.log"'''
         typer.echo(f"⚠️  Worker节点 {host}:{port} 不在配置中")
     
     typer.echo(f"✅ Worker节点 {host}:{port} 移除完成")
+
+@app.command("list")
+def list_workers():
+    """列出所有配置的Worker节点"""
+    typer.echo("📋 配置的Worker节点列表")
+    
+    config_manager = get_config_manager()
+    workers = config_manager.get_workers_ssh_hosts()
+    
+    if not workers:
+        typer.echo("❌ 未配置任何Worker节点")
+        typer.echo("💡 使用 'sage worker add <host> [port]' 添加Worker节点")
+        return
+    
+    typer.echo(f"📊 共配置了 {len(workers)} 个Worker节点:")
+    for i, (host, port) in enumerate(workers, 1):
+        typer.echo(f"  {i}. {host}:{port}")
+    
+    typer.echo("\n💡 使用 'sage worker status' 检查节点状态")
 
 @app.command("version")
 def version_command():

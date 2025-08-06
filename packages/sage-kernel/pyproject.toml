@@ -211,10 +211,11 @@ addopts = [
     "--strict-config",
     "--verbose",
     "-ra",
-    "--cov=sage",
-    "--cov-report=term-missing",
-    "--cov-report=html:.sage/logs/htmlcov",
-    "--cov-report=xml:.sage/logs/coverage.xml",
+    # Coverage options commented out for better test output readability
+    # "--cov=sage",
+    # "--cov-report=term-missing",
+    # "--cov-report=html:.sage/logs/htmlcov",
+    # "--cov-report=xml:.sage/logs/coverage.xml",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",

@@ -122,23 +122,6 @@ class TestBaseTcpServer:
             mock_sock.bind.assert_called()
     
     @pytest.mark.unit
-    def test_allocate_tcp_port_system_fallback(self):
-        """Test TCP port allocation fallback to system assignment"""
-        with patch('socket.socket') as mock_socket:
-            mock_sock = MagicMock()
-            mock_socket.return_value.__enter__.return_value = mock_sock
-            
-            # First 800 calls fail (predefined range), last one succeeds with system port
-            mock_sock.bind.side_effect = ([OSError("Port in use")] * 800 + [None])
-            mock_sock.getsockname.return_value = ("127.0.0.1", 35678)
-            
-            server = self.ConcreteTcpServer()
-            server.host = "127.0.0.1"
-            result = server._allocate_tcp_port()
-            
-            assert result == 35678
-    
-    @pytest.mark.unit
     def test_server_start_success(self):
         """Test successful server startup"""
         with patch('socket.socket') as mock_socket:
@@ -171,12 +154,25 @@ class TestBaseTcpServer:
     def test_server_start_failure(self):
         """Test server startup failure"""
         with patch('socket.socket') as mock_socket:
-            mock_socket.side_effect = Exception("Socket creation failed")
+            # Set up the mock for initialization (_get_host_ip and _allocate_tcp_port)
+            mock_sock_get_ip = MagicMock()
+            mock_sock_get_ip.getsockname.return_value = ("127.0.0.1", 12345)
             
-            server = self.ConcreteTcpServer()
+            mock_sock_allocate = MagicMock()
+            mock_sock_allocate.__enter__ = MagicMock(return_value=mock_sock_allocate)
+            mock_sock_allocate.__exit__ = MagicMock(return_value=None)
+            
+            # Set up the mock for the start method (which should fail)
+            mock_socket.side_effect = [
+                mock_sock_get_ip,      # Used by _get_host_ip
+                mock_sock_allocate,    # Used by _allocate_tcp_port
+                Exception("Socket creation failed")  # Used by start() - should fail
+            ]
+            
+            server = self.ConcreteTcpServer()  # This uses the first two mocks (success)
             
             with pytest.raises(Exception, match="Socket creation failed"):
-                server.start()
+                server.start()  # This uses the third mock (failure)
             
             assert server.running is False
     
@@ -184,11 +180,25 @@ class TestBaseTcpServer:
     def test_server_stop(self):
         """Test server shutdown"""
         with patch('socket.socket') as mock_socket:
-            mock_sock = MagicMock()
-            mock_socket.return_value = mock_sock
+            # Set up mocks for initialization phase
+            mock_sock_get_ip = MagicMock()
+            mock_sock_get_ip.getsockname.return_value = ("127.0.0.1", 12345)
             
-            server = self.ConcreteTcpServer()
-            server.start()
+            mock_sock_allocate = MagicMock()
+            mock_sock_allocate.__enter__ = MagicMock(return_value=mock_sock_allocate)
+            mock_sock_allocate.__exit__ = MagicMock(return_value=None)
+            
+            # Set up mock for server socket
+            mock_sock_server = MagicMock()
+            
+            mock_socket.side_effect = [
+                mock_sock_get_ip,      # Used by _get_host_ip
+                mock_sock_allocate,    # Used by _allocate_tcp_port  
+                mock_sock_server       # Used by start()
+            ]
+            
+            server = self.ConcreteTcpServer()  # Uses first two mocks
+            server.start()  # Uses third mock
             
             # Mock thread to simulate it stopping
             server.server_thread.is_alive = MagicMock(return_value=False)
@@ -196,7 +206,7 @@ class TestBaseTcpServer:
             server.stop()
             
             assert server.running is False
-            mock_sock.close.assert_called_once()
+            mock_sock_server.close.assert_called_once()  # Only the server socket should be closed
     
     @pytest.mark.unit
     def test_server_stop_not_running(self):

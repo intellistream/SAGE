@@ -4,7 +4,7 @@ SAGE 微服务集成示例
 """
 import time
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.service import (
+from sage.middleware.services import (
     create_kv_service_factory, 
     create_vdb_service_factory,
     create_graph_service_factory,

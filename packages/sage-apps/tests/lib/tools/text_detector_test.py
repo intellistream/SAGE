@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 
 # ================================
 # 关键修改：根据您的项目结构更新 import 语句
-# 假设您的源文件位于 sage.lib/tools/text_detector.py
+# 假设您的源文件位于 sage.apps.lib/tools/text_detector.py
 # ================================
 from sage.apps.lib.tools.text_detector import text_detector
 
@@ -107,7 +107,7 @@ def test_cuda_out_of_memory_with_retry_and_clear_cache(detector_tool, mocker):
     # --- 准备 (Arrange) ---
     # [修正]：直接 patch 在被测模块中使用的 torch 对象，而不是通过 sys.modules。
     # 这是因为被测模块在顶层已经导入了 torch，我们需要替换那个已经被导入的引用。
-    mock_torch = mocker.patch('sage.lib.tools.text_detector.torch')
+    mock_torch = mocker.patch('sage.apps.lib.tools.text_detector.torch')
 
     # 模拟 easyocr，让它第一次调用抛出 CUDA 错误，第二次成功
     mock_reader_instance = MagicMock()
@@ -136,7 +136,7 @@ def test_cuda_out_of_memory_with_retry_and_clear_cache(detector_tool, mocker):
 #     """
 #     # --- 准备 (Arrange) ---
 #     # [修正]：同样，直接 patch 在被测模块中使用的 torch 对象。
-#     mocker.patch('sage.lib.tools.text_detector.torch')
+#     mocker.patch('sage.apps.lib.tools.text_detector.torch')
     
 #     # 模拟一个总是失败的 easyocr.readtext
 #     mock_reader_instance = MagicMock()

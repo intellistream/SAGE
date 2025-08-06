@@ -4,7 +4,7 @@
 import time
 from sage.kernel.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.service.memory.memory_service import MemoryService
+from sage.middleware.services.memory.memory_service import MemoryService
 from sage.kernel.utils.embedding_methods.embedding_api import apply_embedding_model
 from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.function.batch_function import BatchFunction

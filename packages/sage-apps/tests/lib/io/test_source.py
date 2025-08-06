@@ -1,5 +1,5 @@
 """
-测试 sage.lib.io.source 模块
+测试 sage.apps.lib.io.source 模块
 """
 
 import pytest
@@ -253,7 +253,7 @@ class TestKafkaSource:
         except Exception as e:
             pytest.skip(f"KafkaSource initialization failed: {e}")
     
-    @patch('sage.lib.io.source.KafkaConsumer')
+    @patch('sage.apps.lib.io.source.KafkaConsumer')
     def test_kafka_source_execute(self, mock_consumer):
         """测试KafkaSource执行"""
         if not IO_SOURCE_AVAILABLE:
@@ -312,7 +312,7 @@ class TestDatabaseSource:
         except Exception as e:
             pytest.skip(f"DatabaseSource initialization failed: {e}")
     
-    @patch('sage.lib.io.source.create_engine')
+    @patch('sage.apps.lib.io.source.create_engine')
     def test_database_source_execute(self, mock_engine):
         """测试DatabaseSource执行"""
         if not IO_SOURCE_AVAILABLE:
@@ -374,7 +374,7 @@ class TestAPISource:
         except Exception as e:
             pytest.skip(f"APISource initialization failed: {e}")
     
-    @patch('sage.lib.io.source.requests')
+    @patch('sage.apps.lib.io.source.requests')
     def test_api_source_execute(self, mock_requests):
         """测试APISource执行"""
         if not IO_SOURCE_AVAILABLE:
@@ -489,7 +489,7 @@ class TestSourceExternal:
         except Exception as e:
             pytest.skip(f"File not found test failed: {e}")
     
-    @patch('sage.lib.io.source.requests')
+    @patch('sage.apps.lib.io.source.requests')
     def test_api_timeout_handling(self, mock_requests):
         """测试API超时处理"""
         if not IO_SOURCE_AVAILABLE:

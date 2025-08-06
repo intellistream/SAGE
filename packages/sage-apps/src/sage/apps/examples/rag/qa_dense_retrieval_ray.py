@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import os
 from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.remote_environment import RemoteEnvironment
-from sage.service.memory.memory_service import MemoryService
+from sage.middleware.services.memory.memory_service import MemoryService
 from sage.kernel.utils.embedding_methods.embedding_api import apply_embedding_model
 from sage.apps.lib.io_utils.source import FileSource
 from sage.apps.lib.io_utils.sink import FileSink
@@ -29,7 +29,7 @@ class SafeBiologyRetriever(MapFunction):
         """安全地初始化memory service"""
         def init_service():
             try:
-                from sage.service.memory.memory_service import MemoryService
+                from sage.middleware.services.memory.memory_service import MemoryService
                 from sage.kernel.utils.embedding_methods.embedding_api import apply_embedding_model
                 
                 embedding_model = apply_embedding_model("default")
@@ -112,7 +112,7 @@ def pipeline_run(config):
     env = RemoteEnvironment(name="qa_dense_retrieval_ray", host="base-sage", port=19001)  # 连接到base-sage上的JobManager
     
     # 直接注册 MemoryService 类
-    from sage.service.memory.memory_service import MemoryService
+    from sage.middleware.services.memory.memory_service import MemoryService
     env.register_service("memory_service", SafeBiologyRetriever)
     # 构建数据处理流程
     query_stream = env.from_source(FileSource, config["source"])

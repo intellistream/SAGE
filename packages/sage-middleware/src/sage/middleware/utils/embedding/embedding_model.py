@@ -11,8 +11,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from sage.llm.embedding import hf, ollama, siliconcloud, openai, bedrock, zhipu, mockembedder  # , instructor
-from sage.llm.embedding import _cohere, nvidia_openai, lollms, jina
+from sage.middleware.utils.embedding import hf, ollama, siliconcloud, openai, bedrock, zhipu, mockembedder  # , instructor
+from sage.middleware.utils.embedding import _cohere, nvidia_openai, lollms, jina
 from transformers import AutoModel, AutoTokenizer
 
 

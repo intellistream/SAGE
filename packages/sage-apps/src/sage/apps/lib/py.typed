@@ -1,2 +1,2 @@
 # Marker file for PEP 561
-# This indicates that the sage.lib package supports type checking
+# This indicates that the sage.apps.lib package supports type checking

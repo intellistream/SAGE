@@ -44,6 +44,7 @@ class ExecutionGraph:
         self.service_nodes: Dict[str, ServiceNode] = {}  # 存储服务节点
         self.edges: Dict[str, GraphEdge] = {}
         
+        # 首先设置日志系统
         self.setup_logging_system()
         
         # 构建基础图结构
@@ -70,13 +71,27 @@ class ExecutionGraph:
         return total_signals
 
     def setup_logging_system(self): 
-        self.logger = CustomLogger([
-                ("console", self.env.console_log_level),  # 使用环境设置的控制台日志等级
-                (os.path.join(self.env.env_base_dir, "ExecutionGraph.log"), "DEBUG"),  # 详细日志
-                (os.path.join(self.env.env_base_dir, "Error.log"), "ERROR")  # 错误日志
-            ],
-            name = f"ExecutionGraph_{self.env.name}",
-        )
+        """设置日志系统，支持模拟环境"""
+        try:
+            # 获取控制台日志级别，如果不存在则使用默认值
+            console_log_level = getattr(self.env, 'console_log_level', 'INFO')
+            
+            # 获取环境基础目录，如果不存在则使用临时目录
+            env_base_dir = getattr(self.env, 'env_base_dir', '/tmp')
+            
+            # 获取环境名称，如果不存在则使用默认名称
+            env_name = getattr(self.env, 'name', 'unknown_env')
+            
+            self.logger = CustomLogger([
+                    ("console", console_log_level),  # 使用环境设置的控制台日志等级
+                    (os.path.join(env_base_dir, "ExecutionGraph.log"), "DEBUG"),  # 详细日志
+                    (os.path.join(env_base_dir, "Error.log"), "ERROR")  # 错误日志
+                ],
+                name = f"ExecutionGraph_{env_name}",
+            )
+        except Exception as e:
+            # 如果设置日志系统失败，创建一个基础的日志器
+            self.logger = CustomLogger([("console", "INFO")], name="ExecutionGraph_fallback")
 
     def generate_runtime_contexts(self):
         """

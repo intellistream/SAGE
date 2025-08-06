@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for sage.core.api.remote_environment module
+Tests for sage.kernel.api.remote_environment module
 
 This module provides comprehensive unit tests for the RemoteEnvironment class,
 following the testing organization structure outlined in the issue.
@@ -88,7 +88,7 @@ class TestRemoteEnvironmentClient:
     """Test JobManager client functionality"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.remote_environment.JobManagerClient')
+    @patch('sage.kernel.api.remote_environment.JobManagerClient')
     def test_client_property_lazy_creation(self, mock_client_class, remote_env):
         """Test client property creates client lazily"""
         mock_client_instance = Mock()
@@ -109,7 +109,7 @@ class TestRemoteEnvironmentClient:
         assert mock_client_class.call_count == 1
     
     @pytest.mark.unit
-    @patch('sage.core.api.remote_environment.JobManagerClient')
+    @patch('sage.kernel.api.remote_environment.JobManagerClient')
     def test_client_property_with_custom_host_port(self, mock_client_class):
         """Test client property uses custom host and port"""
         env = RemoteEnvironment("test", {}, host="custom.host.com", port=8888)
@@ -125,8 +125,8 @@ class TestRemoteEnvironmentSubmit:
     """Test job submission functionality"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.remote_environment.serialize_object')
-    @patch('sage.core.api.remote_environment.trim_object_for_ray')
+    @patch('sage.kernel.api.remote_environment.serialize_object')
+    @patch('sage.kernel.api.remote_environment.trim_object_for_ray')
     def test_submit_successful(self, mock_trim, mock_serialize, remote_env, mock_client):
         """Test successful job submission"""
         # Setup mocks
@@ -151,8 +151,8 @@ class TestRemoteEnvironmentSubmit:
         assert remote_env.env_uuid == "test_job_uuid"
     
     @pytest.mark.unit
-    @patch('sage.core.api.remote_environment.serialize_object')
-    @patch('sage.core.api.remote_environment.trim_object_for_ray')
+    @patch('sage.kernel.api.remote_environment.serialize_object')
+    @patch('sage.kernel.api.remote_environment.trim_object_for_ray')
     def test_submit_failure_response(self, mock_trim, mock_serialize, remote_env, mock_client):
         """Test job submission with failure response"""
         # Setup mocks
@@ -169,8 +169,8 @@ class TestRemoteEnvironmentSubmit:
             remote_env.submit()
     
     @pytest.mark.unit
-    @patch('sage.core.api.remote_environment.serialize_object')
-    @patch('sage.core.api.remote_environment.trim_object_for_ray')
+    @patch('sage.kernel.api.remote_environment.serialize_object')
+    @patch('sage.kernel.api.remote_environment.trim_object_for_ray')
     def test_submit_success_without_uuid(self, mock_trim, mock_serialize, remote_env, mock_client):
         """Test job submission success response without UUID"""
         # Setup mocks
@@ -187,8 +187,8 @@ class TestRemoteEnvironmentSubmit:
             remote_env.submit()
     
     @pytest.mark.unit
-    @patch('sage.core.api.remote_environment.serialize_object')
-    @patch('sage.core.api.remote_environment.trim_object_for_ray')
+    @patch('sage.kernel.api.remote_environment.serialize_object')
+    @patch('sage.kernel.api.remote_environment.trim_object_for_ray')
     def test_submit_serialization_error(self, mock_trim, mock_serialize, remote_env):
         """Test job submission with serialization error"""
         # Setup mocks
@@ -200,8 +200,8 @@ class TestRemoteEnvironmentSubmit:
             remote_env.submit()
     
     @pytest.mark.unit
-    @patch('sage.core.api.remote_environment.serialize_object')
-    @patch('sage.core.api.remote_environment.trim_object_for_ray')
+    @patch('sage.kernel.api.remote_environment.serialize_object')
+    @patch('sage.kernel.api.remote_environment.trim_object_for_ray')
     def test_submit_client_error(self, mock_trim, mock_serialize, remote_env, mock_client):
         """Test job submission with client communication error"""
         # Setup mocks
@@ -280,7 +280,7 @@ class TestRemoteEnvironmentLogging:
     """Test logging functionality"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.remote_environment.logger')
+    @patch('sage.kernel.api.remote_environment.logger')
     def test_init_logging(self, mock_module_logger):
         """Test that initialization logs are created"""
         env = RemoteEnvironment("test_env", {}, "example.com", 9000)
@@ -290,8 +290,8 @@ class TestRemoteEnvironmentLogging:
         )
     
     @pytest.mark.unit
-    @patch('sage.core.api.remote_environment.logger')
-    @patch('sage.core.api.remote_environment.JobManagerClient')
+    @patch('sage.kernel.api.remote_environment.logger')
+    @patch('sage.kernel.api.remote_environment.JobManagerClient')
     def test_client_creation_logging(self, mock_client_class, mock_module_logger, remote_env):
         """Test that client creation is logged"""
         mock_client_instance = Mock()
@@ -305,9 +305,9 @@ class TestRemoteEnvironmentLogging:
         )
     
     @pytest.mark.unit
-    @patch('sage.core.api.remote_environment.logger')
-    @patch('sage.core.api.remote_environment.serialize_object')
-    @patch('sage.core.api.remote_environment.trim_object_for_ray')
+    @patch('sage.kernel.api.remote_environment.logger')
+    @patch('sage.kernel.api.remote_environment.serialize_object')
+    @patch('sage.kernel.api.remote_environment.trim_object_for_ray')
     def test_submit_logging(self, mock_trim, mock_serialize, mock_module_logger, remote_env, mock_client):
         """Test that submit process is properly logged"""
         # Setup mocks
@@ -342,9 +342,9 @@ class TestRemoteEnvironmentIntegration:
     """Integration tests for RemoteEnvironment"""
     
     @pytest.mark.integration
-    @patch('sage.core.api.remote_environment.serialize_object')
-    @patch('sage.core.api.remote_environment.trim_object_for_ray')
-    @patch('sage.core.api.remote_environment.JobManagerClient')
+    @patch('sage.kernel.api.remote_environment.serialize_object')
+    @patch('sage.kernel.api.remote_environment.trim_object_for_ray')
+    @patch('sage.kernel.api.remote_environment.JobManagerClient')
     def test_full_workflow(self, mock_client_class, mock_trim, mock_serialize):
         """Test full workflow: create -> add pipelines -> submit"""
         # Setup mocks
@@ -421,8 +421,8 @@ class TestRemoteEnvironmentEdgeCases:
     @pytest.mark.unit
     def test_multiple_submit_calls(self, remote_env, mock_client):
         """Test multiple submit calls behavior"""
-        with patch('sage.core.api.remote_environment.serialize_object') as mock_serialize, \
-             patch('sage.core.api.remote_environment.trim_object_for_ray') as mock_trim:
+        with patch('sage.kernel.api.remote_environment.serialize_object') as mock_serialize, \
+             patch('sage.kernel.api.remote_environment.trim_object_for_ray') as mock_trim:
             
             mock_trim.return_value = {}
             mock_serialize.return_value = b"data"
@@ -459,7 +459,7 @@ class TestRemoteEnvironmentEdgeCases:
     @pytest.mark.unit
     def test_client_property_thread_safety(self, remote_env):
         """Test that client property is thread-safe (basic check)"""
-        with patch('sage.core.api.remote_environment.JobManagerClient') as mock_client_class:
+        with patch('sage.kernel.api.remote_environment.JobManagerClient') as mock_client_class:
             mock_client_instance = Mock()
             mock_client_class.return_value = mock_client_instance
             

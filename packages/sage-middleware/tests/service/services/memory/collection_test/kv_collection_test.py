@@ -1,6 +1,6 @@
 import pytest
-from sage.service.memory.memory_collection.kv_collection import KVMemoryCollection
-from sage.service.memory.memory_collection.base_collection import get_default_data_dir
+from sage.middleware.services.memory.memory_collection.kv_collection import KVMemoryCollection
+from sage.middleware.services.memory.memory_collection.base_collection import get_default_data_dir
 
 @pytest.fixture
 def setup_kv_collection():

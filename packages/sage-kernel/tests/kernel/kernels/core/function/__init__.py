@@ -4,10 +4,10 @@ Core Function模块测试包
 该包包含了sage.core.function模块的所有测试用例，按照测试组织架构规范设计。
 
 测试文件映射:
-- test_base_function.py     -> sage.core.function.base_function
-- test_comap_function.py    -> sage.core.function.comap_function  
-- test_sink_function.py     -> sage.core.function.sink_function
-- test_source_function.py   -> sage.core.function.source_function
+- test_base_function.py     -> sage.kernel.api.function.base_function
+- test_comap_function.py    -> sage.kernel.api.function.comap_function  
+- test_sink_function.py     -> sage.kernel.api.function.sink_function
+- test_source_function.py   -> sage.kernel.api.function.source_function
 """
 
 # 测试配置

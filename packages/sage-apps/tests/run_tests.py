@@ -112,7 +112,7 @@ def main():
     # 添加覆盖率选项
     if args.coverage or args.html_coverage:
         cmd.extend([
-            "--cov=sage.lib",
+            "--cov=sage.apps.lib",
             "--cov=sage.plugins", 
             "--cov=sage.userspace",
             "--cov-report=term-missing"

@@ -160,13 +160,26 @@ class TestWorkerStartCommand:
     @patch('sage.kernel.cli.worker_manager.execute_remote_command')
     def test_start_workers_success(self, mock_execute_remote, mock_get_config_manager):
         """测试成功启动Worker节点"""
-        # Mock配置
+        # Mock配置管理器
         mock_config_manager = MagicMock()
-        mock_config_manager.get_worker_config.return_value = {
-            'worker_nodes': 'worker1:22,worker2:22',
-            'head_node': 'head-node',
+        mock_config_manager.get_head_config.return_value = {
+            'host': 'head-node',
             'head_port': 6379
         }
+        mock_config_manager.get_worker_config.return_value = {
+            'bind_host': 'localhost',
+            'temp_dir': '/tmp/ray_worker',
+            'log_dir': '/tmp/sage_worker_logs'
+        }
+        mock_config_manager.get_remote_config.return_value = {
+            'ray_command': '/opt/conda/envs/sage/bin/ray',
+            'conda_env': 'sage'
+        }
+        # 关键：mock get_workers_ssh_hosts 方法
+        mock_config_manager.get_workers_ssh_hosts.return_value = [
+            ('worker1', 22),
+            ('worker2', 22)
+        ]
         mock_get_config_manager.return_value = mock_config_manager
         
         # Mock远程命令执行成功
@@ -175,7 +188,7 @@ class TestWorkerStartCommand:
         result = self.runner.invoke(app, ["start"])
         
         assert result.exit_code == 0
-        assert "启动Worker节点" in result.stdout or "start" in result.stdout.lower()
+        assert "启动Ray Worker节点" in result.stdout or "worker" in result.stdout.lower()
         
         # 验证为每个worker节点调用了远程命令
         assert mock_execute_remote.call_count == 2  # 两个worker节点
@@ -186,13 +199,25 @@ class TestWorkerStartCommand:
     @patch('sage.kernel.cli.worker_manager.execute_remote_command')
     def test_start_workers_partial_failure(self, mock_execute_remote, mock_get_config_manager):
         """测试部分Worker节点启动失败"""
-        # Mock配置
+        # Mock配置管理器
         mock_config_manager = MagicMock()
-        mock_config_manager.get_worker_config.return_value = {
-            'worker_nodes': 'worker1:22,worker2:22',
-            'head_node': 'head-node',
+        mock_config_manager.get_head_config.return_value = {
+            'host': 'head-node',
             'head_port': 6379
         }
+        mock_config_manager.get_worker_config.return_value = {
+            'bind_host': 'localhost',
+            'temp_dir': '/tmp/ray_worker',
+            'log_dir': '/tmp/sage_worker_logs'
+        }
+        mock_config_manager.get_remote_config.return_value = {
+            'ray_command': '/opt/conda/envs/sage/bin/ray',
+            'conda_env': 'sage'
+        }
+        mock_config_manager.get_workers_ssh_hosts.return_value = [
+            ('worker1', 22),
+            ('worker2', 22)
+        ]
         mock_get_config_manager.return_value = mock_config_manager
         
         # Mock第一个worker成功，第二个失败
@@ -200,7 +225,7 @@ class TestWorkerStartCommand:
         
         result = self.runner.invoke(app, ["start"])
         
-        assert result.exit_code == 0  # 命令本身应该成功执行
+        assert result.exit_code == 1  # 应该以错误码退出，因为有节点启动失败
         assert mock_execute_remote.call_count == 2
     
     @pytest.mark.unit
@@ -208,14 +233,25 @@ class TestWorkerStartCommand:
     def test_start_workers_no_config(self, mock_get_config_manager):
         """测试没有worker配置时的处理"""
         mock_config_manager = MagicMock()
-        mock_config_manager.get_worker_config.return_value = {}
+        mock_config_manager.get_head_config.return_value = {
+            'host': 'head-node',
+            'head_port': 6379
+        }
+        mock_config_manager.get_worker_config.return_value = {
+            'bind_host': 'localhost'
+        }
+        mock_config_manager.get_remote_config.return_value = {
+            'ray_command': '/opt/conda/envs/sage/bin/ray',
+            'conda_env': 'sage'
+        }
+        mock_config_manager.get_workers_ssh_hosts.return_value = []  # 没有worker节点
         mock_get_config_manager.return_value = mock_config_manager
         
         result = self.runner.invoke(app, ["start"])
         
-        # 应该处理没有配置的情况
+        # 应该处理没有配置的情况，不应该失败
         assert result.exit_code == 0
-        assert "配置" in result.stdout or "config" in result.stdout.lower()
+        assert "未配置任何worker节点" in result.stdout or "no worker" in result.stdout.lower()
 
 
 class TestWorkerStopCommand:

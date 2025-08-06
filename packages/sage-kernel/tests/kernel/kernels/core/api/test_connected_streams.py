@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for sage.core.api.connected_streams module
+Tests for sage.kernel.api.connected_streams module
 
 This module provides comprehensive unit tests for the ConnectedStreams class,
 following the testing organization structure outlined in the issue.
@@ -107,7 +107,7 @@ class TestConnectedStreamsTransformations:
     """Test ConnectedStreams transformation methods"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.connected_streams.wrap_lambda')
+    @patch('sage.kernel.api.connected_streams.wrap_lambda')
     def test_map_with_function_class(self, mock_wrap_lambda, connected_streams):
         """Test map with function class"""
         mock_function = Mock(spec=type)
@@ -123,7 +123,7 @@ class TestConnectedStreamsTransformations:
         assert isinstance(transformation, MapTransformation)
     
     @pytest.mark.unit
-    @patch('sage.core.api.connected_streams.wrap_lambda')
+    @patch('sage.kernel.api.connected_streams.wrap_lambda')
     def test_map_with_lambda(self, mock_wrap_lambda, connected_streams):
         """Test map with lambda function"""
         lambda_func = lambda x: x * 2
@@ -136,7 +136,7 @@ class TestConnectedStreamsTransformations:
         assert isinstance(result, DataStream)
     
     @pytest.mark.unit
-    @patch('sage.core.api.connected_streams.wrap_lambda')
+    @patch('sage.kernel.api.connected_streams.wrap_lambda')
     def test_sink_with_function_class(self, mock_wrap_lambda, connected_streams):
         """Test sink with function class"""
         mock_function = Mock(spec=type)
@@ -149,7 +149,7 @@ class TestConnectedStreamsTransformations:
         assert isinstance(transformation, SinkTransformation)
     
     @pytest.mark.unit
-    @patch('sage.core.api.connected_streams.wrap_lambda')
+    @patch('sage.kernel.api.connected_streams.wrap_lambda')
     def test_sink_with_lambda(self, mock_wrap_lambda, connected_streams):
         """Test sink with lambda function"""
         lambda_func = lambda x: print(x)
@@ -322,7 +322,7 @@ class TestConnectedStreamsChaining:
     """Test ConnectedStreams method chaining"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.connected_streams.wrap_lambda')
+    @patch('sage.kernel.api.connected_streams.wrap_lambda')
     def test_chaining_transformations(self, mock_wrap_lambda, connected_streams):
         """Test chaining multiple transformations"""
         mock_function = Mock(spec=type)
@@ -334,7 +334,7 @@ class TestConnectedStreamsChaining:
         assert len(connected_streams._environment.pipeline) == 1
     
     @pytest.mark.unit
-    @patch('sage.core.api.connected_streams.wrap_lambda')
+    @patch('sage.kernel.api.connected_streams.wrap_lambda')
     def test_chaining_with_sink(self, mock_wrap_lambda, connected_streams):
         """Test chaining ending with sink"""
         mock_function = Mock(spec=type)
@@ -359,7 +359,7 @@ class TestConnectedStreamsMultipleInputs:
         
         # Apply a transformation
         mock_function = Mock(spec=type)
-        with patch('sage.core.api.connected_streams.wrap_lambda'):
+        with patch('sage.kernel.api.connected_streams.wrap_lambda'):
             result = cs.map(mock_function)
         
         # Verify both inputs were connected
@@ -378,7 +378,7 @@ class TestConnectedStreamsMultipleInputs:
         
         # Apply a transformation
         mock_function = Mock(spec=type)
-        with patch('sage.core.api.connected_streams.wrap_lambda'):
+        with patch('sage.kernel.api.connected_streams.wrap_lambda'):
             result = cs.map(mock_function)
         
         # Verify all inputs were connected with correct indices
@@ -420,7 +420,7 @@ class TestConnectedStreamsIntegration:
         
         # Apply transformation
         mock_function = Mock(spec=type)
-        with patch('sage.core.api.connected_streams.wrap_lambda'):
+        with patch('sage.kernel.api.connected_streams.wrap_lambda'):
             result = extended.map(mock_function)
         
         assert isinstance(result, DataStream)
@@ -459,7 +459,7 @@ class TestConnectedStreamsEdgeCases:
         cs = ConnectedStreams(mock_env, [])
         
         mock_function = Mock(spec=type)
-        with patch('sage.core.api.connected_streams.wrap_lambda'):
+        with patch('sage.kernel.api.connected_streams.wrap_lambda'):
             result = cs.map(mock_function)
         
         assert isinstance(result, DataStream)
@@ -477,7 +477,7 @@ class TestConnectedStreamsEdgeCases:
         cs = ConnectedStreams(mock_env, [trans])
         
         mock_function = Mock(spec=type)
-        with patch('sage.core.api.connected_streams.wrap_lambda'):
+        with patch('sage.kernel.api.connected_streams.wrap_lambda'):
             result = cs.map(mock_function)
         
         assert isinstance(result, DataStream)
@@ -497,7 +497,7 @@ class TestConnectedStreamsEdgeCases:
         """Test multiple operations on the same ConnectedStreams instance"""
         mock_function = Mock(spec=type)
         
-        with patch('sage.core.api.connected_streams.wrap_lambda'):
+        with patch('sage.kernel.api.connected_streams.wrap_lambda'):
             result1 = connected_streams.map(mock_function)
             result2 = connected_streams.sink(mock_function)
         

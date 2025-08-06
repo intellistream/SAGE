@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for sage.core.api.datastream module
+Tests for sage.kernel.api.datastream module
 
 This module provides comprehensive unit tests for the DataStream class,
 following the testing organization structure outlined in the issue.
@@ -27,6 +27,7 @@ class MockEnvironment:
     def __init__(self):
         self.pipeline = []
         self.name = "mock_env"
+        self.platform = "local"  # 添加 platform 属性
 
 
 class MockTransformation(BaseTransformation):
@@ -76,7 +77,7 @@ class TestDataStreamInit:
         assert hasattr(ds, '_type_param')
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.CustomLogger')
+    @patch('sage.kernel.api.datastream.CustomLogger')
     def test_init_logger_creation(self, mock_logger_class, mock_env, mock_transformation):
         """Test that logger is created during initialization"""
         mock_logger_instance = Mock()
@@ -100,7 +101,7 @@ class TestDataStreamTransformations:
     """Test DataStream transformation methods"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_map_with_function_class(self, mock_wrap_lambda, datastream):
         """Test map with function class"""
         mock_function = Mock(spec=type)
@@ -116,7 +117,7 @@ class TestDataStreamTransformations:
         assert isinstance(transformation, MapTransformation)
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_map_with_lambda(self, mock_wrap_lambda, datastream):
         """Test map with lambda function"""
         lambda_func = lambda x: x * 2
@@ -129,7 +130,7 @@ class TestDataStreamTransformations:
         assert isinstance(result, DataStream)
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_filter_with_function_class(self, mock_wrap_lambda, datastream):
         """Test filter with function class"""
         mock_function = Mock(spec=type)
@@ -142,7 +143,7 @@ class TestDataStreamTransformations:
         assert isinstance(transformation, FilterTransformation)
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_filter_with_lambda(self, mock_wrap_lambda, datastream):
         """Test filter with lambda function"""
         lambda_func = lambda x: x > 0
@@ -155,7 +156,7 @@ class TestDataStreamTransformations:
         assert isinstance(result, DataStream)
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_flatmap_with_function_class(self, mock_wrap_lambda, datastream):
         """Test flatmap with function class"""
         mock_function = Mock(spec=type)
@@ -168,7 +169,7 @@ class TestDataStreamTransformations:
         assert isinstance(transformation, FlatMapTransformation)
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_flatmap_with_lambda(self, mock_wrap_lambda, datastream):
         """Test flatmap with lambda function"""
         lambda_func = lambda x: [x, x*2]
@@ -181,7 +182,7 @@ class TestDataStreamTransformations:
         assert isinstance(result, DataStream)
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_sink_with_function_class(self, mock_wrap_lambda, datastream):
         """Test sink with function class"""
         mock_function = Mock(spec=type)
@@ -195,7 +196,7 @@ class TestDataStreamTransformations:
         assert isinstance(transformation, SinkTransformation)
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_sink_with_lambda(self, mock_wrap_lambda, datastream):
         """Test sink with lambda function"""
         lambda_func = lambda x: print(x)
@@ -208,7 +209,7 @@ class TestDataStreamTransformations:
         assert result == datastream
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_keyby_with_default_strategy(self, mock_wrap_lambda, datastream):
         """Test keyby with default hash strategy"""
         mock_function = Mock(spec=type)
@@ -220,7 +221,7 @@ class TestDataStreamTransformations:
         assert isinstance(transformation, KeyByTransformation)
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_keyby_with_custom_strategy(self, mock_wrap_lambda, datastream):
         """Test keyby with custom strategy"""
         mock_function = Mock(spec=type)
@@ -232,7 +233,7 @@ class TestDataStreamTransformations:
         assert isinstance(transformation, KeyByTransformation)
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_keyby_with_lambda(self, mock_wrap_lambda, datastream):
         """Test keyby with lambda function"""
         lambda_func = lambda x: x.id
@@ -322,7 +323,7 @@ class TestDataStreamPrint:
     """Test DataStream print functionality"""
     
     @pytest.mark.unit
-    @patch('sage.lib.io.sink.PrintSink')
+    @patch('sage.apps.lib.io.sink.PrintSink')
     def test_print_with_defaults(self, mock_print_sink, datastream):
         """Test print with default parameters"""
         result = datastream.print()
@@ -333,7 +334,7 @@ class TestDataStreamPrint:
         assert isinstance(transformation, SinkTransformation)
     
     @pytest.mark.unit
-    @patch('sage.lib.io.sink.PrintSink')
+    @patch('sage.apps.lib.io.sink.PrintSink')
     def test_print_with_custom_params(self, mock_print_sink, datastream):
         """Test print with custom parameters"""
         result = datastream.print(
@@ -395,7 +396,7 @@ class TestDataStreamChaining:
     """Test DataStream method chaining"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_chaining_transformations(self, mock_wrap_lambda, datastream):
         """Test chaining multiple transformations"""
         mock_function = Mock(spec=type)
@@ -418,7 +419,7 @@ class TestDataStreamChaining:
         assert isinstance(transformations[2], FlatMapTransformation)
     
     @pytest.mark.unit
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_chaining_with_sink(self, mock_wrap_lambda, datastream):
         """Test chaining ending with sink"""
         mock_function = Mock(spec=type)
@@ -441,7 +442,7 @@ class TestDataStreamIntegration:
     """Integration tests for DataStream"""
     
     @pytest.mark.integration
-    @patch('sage.core.api.datastream.wrap_lambda')
+    @patch('sage.kernel.api.datastream.wrap_lambda')
     def test_complex_pipeline(self, mock_wrap_lambda, mock_env):
         """Test complex pipeline with multiple operations"""
         # Create initial transformation and datastream
@@ -485,7 +486,7 @@ class TestDataStreamIntegration:
         
         # Process and fill future (simulate processing result)
         mock_function = Mock(spec=type)
-        with patch('sage.core.api.datastream.wrap_lambda'):
+        with patch('sage.kernel.api.datastream.wrap_lambda'):
             processed = source_stream.map(mock_function)
         
         # Fill the future
@@ -506,7 +507,7 @@ class TestDataStreamEdgeCases:
         
         # Operations should still work
         mock_function = Mock(spec=type)
-        with patch('sage.core.api.datastream.wrap_lambda'):
+        with patch('sage.kernel.api.datastream.wrap_lambda'):
             result = ds.map(mock_function)
         
         assert isinstance(result, DataStream)
@@ -525,7 +526,7 @@ class TestDataStreamEdgeCases:
         """Test multiple sink operations on same stream"""
         mock_function = Mock(spec=type)
         
-        with patch('sage.core.api.datastream.wrap_lambda'):
+        with patch('sage.kernel.api.datastream.wrap_lambda'):
             result1 = datastream.sink(mock_function)
             result2 = datastream.sink(mock_function)
         

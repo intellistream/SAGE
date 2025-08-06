@@ -3,7 +3,7 @@
 Test runner for SAGE Core API tests
 
 This script provides convenient ways to run the comprehensive test suite
-for sage.core.api module with different configurations.
+for sage.kernel.api module with different configurations.
 """
 
 import argparse
@@ -135,7 +135,7 @@ def main():
     # Coverage
     if args.coverage:
         cmd.extend([
-            '--cov=sage.core.api',
+            '--cov=sage.kernel.api',
             '--cov-report=html',
             '--cov-report=term-missing'
         ])

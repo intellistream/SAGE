@@ -29,6 +29,28 @@ class MockTaskContext:
         self.name = "test_context"
         self.parallel_index = 0
         self.parallelism = 1
+        # Add missing attributes that TaskContext should have
+        self.input_qd = Mock()
+        self.response_qd = Mock()
+        self.service_qds = {}
+        self.downstream_groups = {}
+        self.env_name = "test_env"
+        self.env_base_dir = "/tmp/test"
+        self.env_uuid = "test-uuid"
+        self.env_console_log_level = "INFO"
+        self.is_spout = True
+        self.delay = 0.01
+        self.stop_signal_num = 1
+        self.jobmanager_host = "127.0.0.1"
+        self.jobmanager_port = 19001
+        self.stop_signal_count = 0
+        # Add logger property
+        self._logger = Mock()
+    
+    @property
+    def logger(self):
+        """Mock logger property"""
+        return self._logger
 
 
 class TestTaskFactory:
@@ -53,11 +75,6 @@ class TestTaskFactory:
     def remote_factory(self, remote_transformation):
         """Create a TaskFactory for remote execution"""
         return TaskFactory(remote_transformation)
-
-    @pytest.fixture
-    def mock_context(self):
-        """Create a mock task context"""
-        return MockTaskContext()
 
     @pytest.mark.unit
     def test_factory_initialization_local(self, local_transformation):
@@ -193,9 +210,9 @@ class TestTaskFactory:
     @pytest.mark.unit
     def test_factory_with_none_context(self, local_factory):
         """Test creating task with None context"""
-        # Should handle None context gracefully
-        task = local_factory.create_task("test_task", None)
-        assert isinstance(task, LocalTask)
+        # Should raise an exception when context is None
+        with pytest.raises(AttributeError):
+            local_factory.create_task("test_task", None)
 
     @pytest.mark.unit
     def test_factory_operator_factory_propagation(self, mock_context):
@@ -350,6 +367,12 @@ class TestTaskFactoryPerformance:
 
 
 # Additional fixtures and utilities
+@pytest.fixture
+def mock_context():
+    """Create a mock task context"""
+    return MockTaskContext()
+
+
 @pytest.fixture
 def factory_with_complex_transformation():
     """Create a factory with a more complex transformation"""

@@ -1,5 +1,5 @@
 """
-测试 sage.lib.agents 模块的其他组件
+测试 sage.apps.lib.agents 模块的其他组件
 """
 
 import pytest

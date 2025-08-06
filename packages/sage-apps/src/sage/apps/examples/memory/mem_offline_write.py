@@ -3,7 +3,7 @@
 将10句关于AI/ML的知识保存到memory service中
 """
 from sage.kernel.utils.logging.custom_logger import CustomLogger
-from sage.service.memory.memory_service import MemoryService
+from sage.middleware.services.memory.memory_service import MemoryService
 from sage.kernel.utils.embedding_methods.embedding_api import apply_embedding_model
 
 def create_naive_rag_knowledge_base():

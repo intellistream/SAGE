@@ -42,7 +42,7 @@ examples/
 ### 服务注册和获取
 ```python
 # 1. 注册服务
-from sage.service import create_kv_service_factory
+from sage.middleware.services import create_kv_service_factory
 from sage.api.local_environment import LocalEnvironment
 
 env = LocalEnvironment("my_app")

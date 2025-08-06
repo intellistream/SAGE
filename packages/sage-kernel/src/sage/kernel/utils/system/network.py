@@ -26,6 +26,7 @@ def is_port_occupied(host: str, port: int) -> bool:
     """
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(1)
             result = sock.connect_ex((host, port))
             return result == 0
     except Exception:
@@ -80,7 +81,7 @@ def check_port_binding_permission(host: str, port: int) -> Dict[str, Any]:
         }
 
 
-def wait_for_port_release(host: str, port: int, timeout: int = 10) -> bool:
+def wait_for_port_release(host: str, port: int, timeout: int = 10, check_interval: float = 1) -> bool:
     """
     等待端口释放
     
@@ -88,6 +89,7 @@ def wait_for_port_release(host: str, port: int, timeout: int = 10) -> bool:
         host: 主机地址
         port: 端口号
         timeout: 超时时间（秒）
+        check_interval: 检查间隔（秒）
         
     Returns:
         bool: True表示端口已释放，False表示超时
@@ -97,7 +99,7 @@ def wait_for_port_release(host: str, port: int, timeout: int = 10) -> bool:
     while time.time() - start_time < timeout:
         if not is_port_occupied(host, port):
             return True
-        time.sleep(1)
+        time.sleep(check_interval)
     
     return False
 
@@ -139,17 +141,20 @@ def _find_processes_with_lsof(port: int) -> List[int]:
     """
     try:
         result = subprocess.run(
-            ['lsof', '-ti', f':{port}'],
+            ['lsof', '-t', f'-i:{port}'],
             capture_output=True, 
             text=True, 
             timeout=5
         )
         if result.returncode == 0 and result.stdout.strip():
-            return [
-                int(pid.strip()) 
-                for pid in result.stdout.strip().split('\n') 
-                if pid.strip().isdigit()
-            ]
+            pids = []
+            for line in result.stdout.strip().split('\n'):
+                line = line.strip()
+                if line.startswith('p'):
+                    line = line[1:]  # Remove 'p' prefix
+                if line.isdigit():
+                    pids.append(int(line))
+            return pids
     except (subprocess.SubprocessError, FileNotFoundError, ValueError):
         pass
     return []
@@ -232,12 +237,18 @@ def send_tcp_health_check(host: str, port: int,
         Dict: 响应数据或错误信息
     """
     try:
+        # Validate JSON serialization upfront
+        request_data = json.dumps(request).encode('utf-8')
+    except (TypeError, ValueError) as e:
+        # Re-raise JSON serialization errors
+        raise e
+    
+    try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.settimeout(timeout)
             sock.connect((host, port))
             
             # 发送请求
-            request_data = json.dumps(request).encode('utf-8')
             length_data = len(request_data).to_bytes(4, byteorder='big')
             sock.sendall(length_data + request_data)
             

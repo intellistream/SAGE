@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test configuration and utilities for sage.core.api tests
+Test configuration and utilities for sage.kernel.api tests
 
 This module provides shared test configurations, fixtures, and utilities
 for all API tests following the testing organization structure.

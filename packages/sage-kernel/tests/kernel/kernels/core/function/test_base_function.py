@@ -117,7 +117,7 @@ class TestBaseFunction:
         func.ctx = mock_ctx
         
         # 这里需要mock ServiceCallProxy的创建
-        with patch('sage.core.function.base_function.ServiceCallProxy') as mock_proxy_class:
+        with patch('sage.kernel.api.function.base_function.ServiceCallProxy') as mock_proxy_class:
             mock_proxy = Mock()
             mock_proxy_class.return_value = mock_proxy
             
@@ -167,7 +167,7 @@ class TestBaseFunction:
 class TestBaseFunctionStateManagement:
     """BaseFunction状态管理测试"""
     
-    @patch('sage.core.function.base_function.save_function_state')
+    @patch('sage.kernel.api.function.base_function.save_function_state')
     def test_state_saving(self, mock_save_state):
         """测试状态保存功能"""
         func = MockFunction()
@@ -175,7 +175,7 @@ class TestBaseFunctionStateManagement:
         # 由于状态管理可能在具体子类中实现，这里主要测试导入是否正常
         assert mock_save_state is not None
         
-    @patch('sage.core.function.base_function.load_function_state')
+    @patch('sage.kernel.api.function.base_function.load_function_state')
     def test_state_loading(self, mock_load_state):
         """测试状态加载功能"""
         func = MockFunction()
@@ -216,7 +216,7 @@ class TestBaseFunctionIntegration:
         mock_ctx = MockTaskContext()
         func.ctx = mock_ctx
         
-        with patch('sage.core.function.base_function.ServiceCallProxy') as mock_proxy_class:
+        with patch('sage.kernel.api.function.base_function.ServiceCallProxy') as mock_proxy_class:
             mock_proxy = Mock()
             mock_proxy_class.return_value = mock_proxy
             

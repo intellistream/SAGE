@@ -525,7 +525,8 @@ class TestConfigManagerPerformance:
         with tempfile.TemporaryDirectory() as temp_dir:
             manager = ConfigManager(temp_dir)
             
-            config = {"test": "value"} * 1000
+            # 创建一个包含1000个键值对的大配置字典
+            config = {f"test_key_{i}": f"test_value_{i}" for i in range(1000)}
             manager.save("perf_test.yaml", config)
             
             # 第一次加载（无缓存）

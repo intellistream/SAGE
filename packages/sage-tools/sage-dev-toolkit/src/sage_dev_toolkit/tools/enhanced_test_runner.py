@@ -22,9 +22,10 @@ from ..utils.sage_home import get_logs_dir, get_reports_dir, setup_project_symli
 class EnhancedTestRunner:
     """Enhanced test runner with intelligent change detection."""
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, enable_coverage: bool = False):
         self.project_root = Path(project_root)
         self.packages_dir = self.project_root / 'packages'
+        self.enable_coverage = enable_coverage
         
         # Get project name from path
         project_name = self.project_root.name
@@ -94,7 +95,7 @@ class EnhancedTestRunner:
         
         return {
             'mode': 'all',
-            'test_files': [str(f) for f in test_files],
+            'test_files': [self._simplify_test_path(f) for f in test_files],
             'results': results,
             'summary': self._calculate_summary(results),
             'execution_time': execution_time,
@@ -144,7 +145,7 @@ class EnhancedTestRunner:
             'mode': 'diff',
             'base_branch': base_branch,
             'changed_files': [str(f) for f in changed_files],
-            'test_files': [str(f) for f in test_files],
+            'test_files': [self._simplify_test_path(f) for f in test_files],
             'results': results,
             'summary': self._calculate_summary(results),
             'execution_time': execution_time,
@@ -181,13 +182,34 @@ class EnhancedTestRunner:
         return {
             'mode': 'package',
             'package': package_name,
-            'test_files': [str(f) for f in test_files],
+            'test_files': [self._simplify_test_path(f) for f in test_files],
             'results': results,
             'summary': self._calculate_summary(results),
             'execution_time': execution_time,
             'status': 'success' if all(r['passed'] for r in results) else 'failed'
         }
     
+    def _simplify_test_path(self, test_file: Path) -> str:
+        """Simplify test file path for display."""
+        try:
+            relative_path = test_file.relative_to(self.project_root)
+            path_parts = relative_path.parts
+            
+            if 'packages' in path_parts and 'tests' in path_parts:
+                # Find package name and tests part
+                packages_idx = path_parts.index('packages')
+                tests_idx = path_parts.index('tests')
+                if packages_idx < tests_idx:
+                    # Get the actual package name (could be multiple levels deep)
+                    package_parts = path_parts[packages_idx + 1:tests_idx]
+                    package_name = '/'.join(package_parts)
+                    test_path_parts = path_parts[tests_idx:]
+                    return f"{package_name}/{'/'.join(test_path_parts)}"
+            
+            return str(relative_path)
+        except ValueError:
+            return str(test_file)
+
     def _discover_all_test_files(self) -> List[Path]:
         """Discover all test files in the project."""
         test_files = []
@@ -310,7 +332,7 @@ class EnhancedTestRunner:
                     results.append(result)
                 except Exception as e:
                     results.append({
-                        'test_file': str(test_file),
+                        'test_file': self._simplify_test_path(test_file),
                         'passed': False,
                         'duration': 0,
                         'output': '',
@@ -328,23 +350,32 @@ class EnhancedTestRunner:
             if quick:
                 cmd.extend(['-x'])  # Stop on first failure
             
-            # Create log file path
-            relative_path = test_file.relative_to(self.project_root)
-            log_file = self.test_logs_dir / f"{str(relative_path).replace('/', '_')}.log"
+            # If coverage is disabled, override any pyproject.toml coverage settings
+            if not self.enable_coverage:
+                cmd.extend(['--cov=', '--no-cov'])  # Explicitly disable coverage
             
-            # Set coverage data file to .sage directory
-            coverage_dir = self.project_root / '.sage' / 'coverage'
-            coverage_dir.mkdir(parents=True, exist_ok=True)
-            coverage_file = coverage_dir / '.coverage'
+            # Create log file with simple test file name
+            log_file = self.test_logs_dir / f"{test_file.name}.log"
             
-            # Set up environment for coverage and other outputs
+            # Set up environment for test execution
             env = os.environ.copy()
-            env['COVERAGE_FILE'] = str(coverage_file)
             
-            
-            # Set coverage HTML output to .sage directory
-            coverage_html_dir = coverage_dir / 'htmlcov'
-            cmd.extend(['--cov-report=html:' + str(coverage_html_dir)])
+            # Only add coverage if enabled
+            if self.enable_coverage:
+                # Set coverage data file to .sage directory
+                coverage_dir = self.project_root / '.sage' / 'coverage'
+                coverage_dir.mkdir(parents=True, exist_ok=True)
+                coverage_file = coverage_dir / '.coverage'
+                
+                # Set up environment for coverage outputs
+                env['COVERAGE_FILE'] = str(coverage_file)
+                
+                # Set coverage HTML output to .sage directory
+                coverage_html_dir = coverage_dir / 'htmlcov'
+                cmd.extend(['--cov-report=html:' + str(coverage_html_dir)])
+                
+                # Add explicit coverage source if needed
+                # Note: pyproject.toml should have the coverage source settings
             
             # Run test
             start_time = time.time()
@@ -367,7 +398,7 @@ class EnhancedTestRunner:
                 f.write(f"=== STDERR ===\n{result.stderr}\n")
             
             return {
-                'test_file': str(test_file),
+                'test_file': self._simplify_test_path(test_file),
                 'passed': result.returncode == 0,
                 'duration': duration,
                 'output': result.stdout,
@@ -377,7 +408,7 @@ class EnhancedTestRunner:
             
         except subprocess.TimeoutExpired:
             return {
-                'test_file': str(test_file),
+                'test_file': self._simplify_test_path(test_file),
                 'passed': False,
                 'duration': timeout,
                 'output': '',
@@ -385,7 +416,7 @@ class EnhancedTestRunner:
             }
         except Exception as e:
             return {
-                'test_file': str(test_file),
+                'test_file': self._simplify_test_path(test_file),
                 'passed': False,
                 'duration': 0,
                 'output': '',
@@ -419,7 +450,7 @@ class EnhancedTestRunner:
                     
                     if test_files:
                         test_structure[package_name] = [
-                            str(f.relative_to(self.project_root)) for f in test_files
+                            self._simplify_test_path(f) for f in test_files
                         ]
             
             total_tests = sum(len(files) for files in test_structure.values())

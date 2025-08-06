@@ -4,7 +4,7 @@
 创建包含强相关、弱相关和无关知识的知识库
 """
 from sage.kernel.utils.logging.custom_logger import CustomLogger
-from sage.service.memory.memory_service import MemoryService
+from sage.middleware.services.memory.memory_service import MemoryService
 from sage.kernel.utils.embedding_methods.embedding_api import apply_embedding_model
 
 def create_biology_rag_knowledge_base():

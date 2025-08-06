@@ -83,12 +83,13 @@ class CustomLogger:
 
         self.logger = logging.getLogger(self.name)
 
-        # 避免重复初始化同一个logger
-        if self.logger.handlers:
-            return
-
-        # 解析输出配置
+        # 解析输出配置 - 需要在早期返回之前初始化
         self.output_configs = []
+
+        # 清除已有handlers以确保重新配置
+        for handler in self.logger.handlers[:]:
+            self.logger.removeHandler(handler)
+            
         enabled_levels = []
         
         for output_target, level in outputs:
@@ -183,12 +184,11 @@ class CustomLogger:
         try:
             if config['target'] == "console":
                 # 控制台输出
-                if self._global_console_debug_enabled:
-                    handler = logging.StreamHandler()
-                    handler.setFormatter(formatter)
-                    return handler
-                else:
+                if not self._global_console_debug_enabled:
                     return None
+                handler = logging.StreamHandler()
+                handler.setFormatter(formatter)
+                return handler
             else:
                 # 文件输出
                 file_path = config['resolved_path']
@@ -209,7 +209,8 @@ class CustomLogger:
             {
                 'target': config['target'],
                 'resolved_path': config['resolved_path'],
-                'level': config['level_str'],
+                'level': config['level_str'],  # Return string level for public API consistency
+                'level_str': config['level_str'],
                 'level_num': config['level'],
                 'handler_active': config['handler'] is not None
             }

@@ -57,7 +57,7 @@ class BaseCoMapFunction(BaseFunction):
         Returns:
             Processed result for stream 2
         """
-        raise NotImplementedError(f"map2 not implemented for {self.__class__.__name__}")
+        return None
     
     def map3(self, data: Any) -> Any:
         """
@@ -69,7 +69,7 @@ class BaseCoMapFunction(BaseFunction):
         Returns:
             Processed result for stream 3
         """
-        raise NotImplementedError(f"map3 not implemented for {self.__class__.__name__}")
+        return None
     
     def map4(self, data: Any) -> Any:
         """
@@ -81,7 +81,7 @@ class BaseCoMapFunction(BaseFunction):
         Returns:
             Processed result for stream 4
         """
-        raise NotImplementedError(f"map4 not implemented for {self.__class__.__name__}")
+        return None
     
     def execute(self, data: Any) -> Any:
         """

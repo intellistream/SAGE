@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-根据 `test-organization-planning-issue.md` 中的要求，我们为 `packages/sage-kernel` 中的 `sage.core.api` 模块建立了完善的测试组织架构。本次实施专注于为每个API文件创建相应的单元测试，确保代码质量和可靠性。
+根据 `test-organization-planning-issue.md` 中的要求，我们为 `packages/sage-kernel` 中的 `sage.kernel.api` 模块建立了完善的测试组织架构。本次实施专注于为每个API文件创建相应的单元测试，确保代码质量和可靠性。
 
 ## 完成的工作
 
@@ -147,7 +147,7 @@ pytest tests/core/api/test_base_environment.py -v
 pytest tests/core/api/ -m unit -v
 
 # 生成覆盖率报告
-pytest tests/core/api/ --cov=sage.core.api --cov-report=html -v
+pytest tests/core/api/ --cov=sage.kernel.api --cov-report=html -v
 
 # 使用测试运行脚本
 ./tests/core/api/run_tests.py --unit --coverage
@@ -192,7 +192,7 @@ pytest tests/core/api/ --cov=sage.core.api --cov-report=html -v
 
 ## 结论
 
-本次实施成功建立了 `sage.core.api` 模块的完整测试组织架构，为代码质量和可靠性提供了强有力的保障。测试套件遵循了现代软件测试的最佳实践，具有良好的可维护性和扩展性。
+本次实施成功建立了 `sage.kernel.api` 模块的完整测试组织架构，为代码质量和可靠性提供了强有力的保障。测试套件遵循了现代软件测试的最佳实践，具有良好的可维护性和扩展性。
 
 **项目状态**: ✅ 完成  
 **质量等级**: 生产就绪  

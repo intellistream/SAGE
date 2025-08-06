@@ -1,6 +1,6 @@
 # SAGE Core API Tests
 
-This directory contains comprehensive unit tests for the `sage.core.api` module, following the testing organization structure outlined in the project issue.
+This directory contains comprehensive unit tests for the `sage.kernel.api` module, following the testing organization structure outlined in the project issue.
 
 ## Test Structure
 

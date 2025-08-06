@@ -62,10 +62,10 @@ src/sage/service/
 
 ```python
 # 导入服务类
-from sage.service import KVService, VDBService, MemoryService, GraphService
+from sage.middleware.services import KVService, VDBService, MemoryService, GraphService
 
 # 导入工厂函数
-from sage.service import (
+from sage.middleware.services import (
     create_kv_service_factory,
     create_vdb_service_factory, 
     create_memory_service_factory,
@@ -73,7 +73,7 @@ from sage.service import (
 )
 
 # 导入API接口
-from sage.service.api import KVServiceAPI, VDBServiceAPI, MemoryServiceAPI, GraphServiceAPI
+from sage.middleware.services.api import KVServiceAPI, VDBServiceAPI, MemoryServiceAPI, GraphServiceAPI
 ```
 
 ## 重构要点

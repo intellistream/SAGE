@@ -6,13 +6,13 @@ Memory服务作为编排服务，协调KV、VDB和Graph服务
 import numpy as np
 import time
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.service import (
+from sage.middleware.services import (
     create_kv_service_factory,
     create_vdb_service_factory, 
     create_graph_service_factory,
     create_memory_service_factory
 )
-from sage.service.api.memory_api import MemoryServiceAPI
+from sage.middleware.services.api.memory_api import MemoryServiceAPI
 
 
 def test_memory_service_api():

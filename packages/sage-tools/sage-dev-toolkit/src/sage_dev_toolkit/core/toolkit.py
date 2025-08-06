@@ -204,7 +204,8 @@ class SAGEDevToolkit:
             }
             
             # Create test runner instance
-            runner = self.tools['test_runner'](str(self.config.project_root))
+            enable_coverage = kwargs.get('enable_coverage', False)
+            runner = self.tools['test_runner'](str(self.config.project_root), enable_coverage=enable_coverage)
             
             # Execute tests using the enhanced runner
             results = runner.run_tests(mode, **test_kwargs)

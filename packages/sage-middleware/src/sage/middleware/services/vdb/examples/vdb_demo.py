@@ -4,8 +4,8 @@ VDB Service API 使用示例
 """
 import numpy as np
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.service.services.vdb import create_vdb_service_factory
-from sage.service.api.vdb_api import VDBServiceAPI
+from sage.middleware.services.services.vdb import create_vdb_service_factory
+from sage.middleware.services.api.vdb_api import VDBServiceAPI
 
 
 def test_vdb_service_api():

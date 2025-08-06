@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for sage.core.api.local_environment module
+Tests for sage.kernel.api.local_environment module
 
 This module provides comprehensive unit tests for the LocalEnvironment class,
 following the testing organization structure outlined in the issue.
@@ -62,7 +62,7 @@ class TestLocalEnvironmentJobManager:
     """Test JobManager integration"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.local_environment.JobManager')
+    @patch('sage.kernel.api.local_environment.JobManager')
     def test_jobmanager_property_lazy_creation(self, mock_jobmanager_class, local_env):
         """Test jobmanager property creates JobManager lazily"""
         mock_jobmanager_instance = Mock()
@@ -80,7 +80,7 @@ class TestLocalEnvironmentJobManager:
         assert mock_jobmanager_class.call_count == 1
     
     @pytest.mark.unit
-    @patch('sage.core.api.local_environment.JobManager')
+    @patch('sage.kernel.api.local_environment.JobManager')
     def test_jobmanager_property_singleton(self, mock_jobmanager_class, local_env):
         """Test jobmanager property gets singleton instance"""
         mock_jobmanager_instance = Mock()
@@ -97,7 +97,7 @@ class TestLocalEnvironmentSubmit:
     """Test job submission functionality"""
     
     @pytest.mark.unit
-    @patch('sage.core.api.local_environment.JobManager')
+    @patch('sage.kernel.api.local_environment.JobManager')
     def test_submit_job(self, mock_jobmanager_class, local_env):
         """Test submitting job to local JobManager"""
         mock_jobmanager_instance = Mock()
@@ -349,7 +349,7 @@ class TestLocalEnvironmentIntegration:
     """Integration tests for LocalEnvironment"""
     
     @pytest.mark.integration
-    @patch('sage.core.api.local_environment.JobManager')
+    @patch('sage.kernel.api.local_environment.JobManager')
     def test_full_workflow(self, mock_jobmanager_class):
         """Test full workflow: create -> add pipelines -> submit -> stop -> close"""
         mock_jobmanager_instance = Mock()

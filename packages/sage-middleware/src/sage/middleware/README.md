@@ -73,7 +73,7 @@ Service Service Service
 
 ### 启动内存服务
 ```python
-from sage.service.memory import MemoryService
+from sage.middleware.services.memory import MemoryService
 
 # 创建内存服务实例
 memory_service = MemoryService(
@@ -88,7 +88,7 @@ memory_service.start()
 
 ### 调用服务API
 ```python
-from sage.service.memory.api import MemoryServiceClient
+from sage.middleware.services.memory.api import MemoryServiceClient
 
 # 连接到内存服务
 client = MemoryServiceClient("localhost:8080")
@@ -104,7 +104,7 @@ print(session)  # {"user_id": 123, "name": "Alice"}
 ### 集成到SAGE流程
 ```python
 from sage.api.env import LocalEnvironment
-from sage.service.memory import MemoryServiceConnector
+from sage.middleware.services.memory import MemoryServiceConnector
 
 env = LocalEnvironment("service_integration")
 
@@ -176,7 +176,7 @@ print(f"Response time: {metrics['avg_response_time']}ms")
 
 ### 服务发现
 ```python
-from sage.service.discovery import ServiceRegistry
+from sage.middleware.services.discovery import ServiceRegistry
 
 registry = ServiceRegistry()
 

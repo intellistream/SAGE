@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simplified tests for sage.core.api.base_environment module
+Simplified tests for sage.kernel.api.base_environment module
 
 This module provides unit tests focused on testing the API interfaces
 without heavy dependencies that might not be available in the test environment.

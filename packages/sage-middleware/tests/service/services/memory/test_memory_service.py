@@ -4,8 +4,8 @@
 import os
 import shutil
 import traceback
-from sage.service.memory.memory_service import MemoryService
-from sage.llm.embedding.embedding_api import apply_embedding_model
+from sage.middleware.services.memory.memory_service import MemoryService
+from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
 
 def test_memory_service():
     """测试Memory Service的主要功能（直接测试，不使用服务框架）"""

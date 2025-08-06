@@ -51,7 +51,7 @@ Service Tasks (BaseServiceTask)
 
 ```python
 from sage.api.local_environment import LocalEnvironment
-from sage.service import (
+from sage.middleware.services import (
     create_kv_service_factory,
     create_vdb_service_factory,
     create_memory_service_factory

@@ -81,11 +81,9 @@ class BaseTcpServer(ABC):
             except OSError:
                 continue
         
-        # 如果预设范围都被占用，使用系统分配
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            self.logger.warning("All predefined ports are occupied, using system-assigned port")
-            s.bind((self.host or "127.0.0.1", 0))
-            return s.getsockname()[1]
+        # 如果预设范围都被占用，直接抛出异常
+        self.logger.error("All predefined ports are occupied, no available port")
+        raise OSError("No available port in the predefined range (19200-19999)")
 
     def start(self):
         """启动TCP服务器"""
