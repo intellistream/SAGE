@@ -17,6 +17,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from ..core.exceptions import SAGEDevToolkitError
 from ..utils.sage_home import get_logs_dir, get_reports_dir, setup_project_symlinks
+from .test_failure_cache import TestFailureCache
 
 
 class EnhancedTestRunner:
@@ -26,6 +27,9 @@ class EnhancedTestRunner:
         self.project_root = Path(project_root)
         self.packages_dir = self.project_root / 'packages'
         self.enable_coverage = enable_coverage
+        
+        # Initialize test failure cache
+        self.failure_cache = TestFailureCache(str(self.project_root))
         
         # Get project name from path
         project_name = self.project_root.name
@@ -57,16 +61,24 @@ class EnhancedTestRunner:
         """Run tests based on specified mode."""
         try:
             if mode == 'all':
-                return self._run_all_tests(**kwargs)
+                result = self._run_all_tests(**kwargs)
             elif mode == 'diff':
-                return self._run_diff_tests(**kwargs)
+                result = self._run_diff_tests(**kwargs)
             elif mode == 'package':
                 package = kwargs.get('package')
                 if not package:
                     raise SAGEDevToolkitError("Package name required for package mode")
-                return self._run_package_tests(package, **kwargs)
+                result = self._run_package_tests(package, **kwargs)
+            elif mode == 'failed':
+                result = self._run_failed_tests(**kwargs)
             else:
                 raise SAGEDevToolkitError(f"Unknown test mode: {mode}")
+            
+            # Update failure cache with results (except for failed mode to avoid recursion)
+            if mode != 'failed':
+                self.failure_cache.update_from_test_results(result)
+            
+            return result
                 
         except Exception as e:
             raise SAGEDevToolkitError(f"Test execution failed: {e}")
@@ -187,6 +199,59 @@ class EnhancedTestRunner:
             'summary': self._calculate_summary(results),
             'execution_time': execution_time,
             'status': 'success' if all(r['passed'] for r in results) else 'failed'
+        }
+    
+    def _run_failed_tests(self, **kwargs) -> Dict:
+        """Run previously failed tests from cache."""
+        start_time = time.time()
+        
+        # Check if there are cached failed tests
+        if not self.failure_cache.has_failed_tests():
+            return {
+                'mode': 'failed',
+                'test_files': [],
+                'results': [],
+                'summary': {'total': 0, 'passed': 0, 'failed': 0},
+                'execution_time': 0,
+                'status': 'success',
+                'message': 'No failed tests found in cache'
+            }
+        
+        # Get failed test paths and resolve them
+        test_files = self.failure_cache.resolve_test_paths(self.packages_dir)
+        
+        if not test_files:
+            return {
+                'mode': 'failed',
+                'cached_failed_count': len(self.failure_cache.get_failed_test_paths()),
+                'test_files': [],
+                'results': [],
+                'summary': {'total': 0, 'passed': 0, 'failed': 0},
+                'execution_time': 0,
+                'status': 'success',
+                'message': 'Cached failed tests could not be resolved to existing files'
+            }
+        
+        # Run the resolved test files
+        results = self._execute_test_files(test_files, **kwargs)
+        
+        execution_time = time.time() - start_time
+        
+        # Check if any previously failed tests now pass
+        now_passing = [r for r in results if r['passed']]
+        still_failing = [r for r in results if not r['passed']]
+        
+        return {
+            'mode': 'failed',
+            'cached_failed_count': len(self.failure_cache.get_failed_test_paths()),
+            'resolved_test_count': len(test_files),
+            'test_files': [self._simplify_test_path(f) for f in test_files],
+            'results': results,
+            'summary': self._calculate_summary(results),
+            'execution_time': execution_time,
+            'status': 'success' if all(r['passed'] for r in results) else 'failed',
+            'now_passing_count': len(now_passing),
+            'still_failing_count': len(still_failing)
         }
     
     def _simplify_test_path(self, test_file: Path) -> str:
@@ -464,3 +529,19 @@ class EnhancedTestRunner:
             
         except Exception as e:
             raise SAGEDevToolkitError(f"Test listing failed: {e}")
+    
+    def get_failure_cache_info(self) -> Dict:
+        """Get information about the test failure cache."""
+        return self.failure_cache.get_cache_info()
+    
+    def clear_failure_cache(self) -> None:
+        """Clear the test failure cache."""
+        self.failure_cache.clear_cache()
+    
+    def print_cache_status(self) -> None:
+        """Print test failure cache status."""
+        self.failure_cache.print_cache_status()
+    
+    def get_cache_history(self, limit: int = 5) -> List[Dict]:
+        """Get test run history from cache."""
+        return self.failure_cache.get_history(limit)

@@ -683,25 +683,30 @@ class TestErrorHandling:
     
     def test_handler_creation_failure(self):
         """测试handler创建失败的处理"""
-        with patch('os.makedirs', side_effect=OSError("Permission denied")):
-            logger = CustomLogger(
-                outputs=[("test.log", "INFO")],
-                log_base_folder="/invalid/path"
-            )
-            
-            # 应该能创建logger，但handler为None
-            file_config = next(c for c in logger.output_configs if c['target'] == "test.log")
-            assert file_config['handler'] is None
+        # 使用安全的测试目录
+        with sage_temp_directory() as temp_dir:
+            invalid_path = os.path.join(temp_dir, "invalid", "nested", "path")
+            with patch('os.makedirs', side_effect=OSError("Permission denied")):
+                logger = CustomLogger(
+                    outputs=[("test.log", "INFO")],
+                    log_base_folder=invalid_path
+                )
+                
+                # 应该能创建logger，但handler为None
+                file_config = next(c for c in logger.output_configs if c['target'] == "test.log")
+                assert file_config['handler'] is None
     
     def test_file_logging_with_invalid_directory(self):
         """测试无效目录的文件日志处理"""
         # 这里测试目录创建失败的情况
-        with patch('logging.FileHandler', side_effect=OSError("Cannot create file")):
-            logger = CustomLogger([("/invalid/path/test.log", "INFO")])
-            
-            # logger应该能正常创建，但文件handler为None
-            file_config = logger.output_configs[0]
-            assert file_config['handler'] is None
+        with sage_temp_directory() as temp_dir:
+            invalid_file_path = os.path.join(temp_dir, "invalid", "path", "test.log")
+            with patch('logging.FileHandler', side_effect=OSError("Cannot create file")):
+                logger = CustomLogger([(invalid_file_path, "INFO")])
+                
+                # logger应该能正常创建，但文件handler为None
+                file_config = logger.output_configs[0]
+                assert file_config['handler'] is None
     
     def test_logging_without_handlers(self):
         """测试没有有效handler时的日志记录"""

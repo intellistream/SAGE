@@ -3,7 +3,7 @@ import os
 from urllib import response
 
 from httpx import stream
-from sage.middleware.llm.embedding_methods.embedding_api import apply_embedding_model
+from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
 import unittest
 
 

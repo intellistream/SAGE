@@ -20,13 +20,16 @@ app = typer.Typer(name="core", help="Core SAGE development commands")
 
 @app.command("test")
 def test_command(
-    mode: str = typer.Option("diff", help="Test execution mode: all, diff, package"),
+    mode: str = typer.Option("diff", help="Test execution mode: all, diff, package, failed"),
     package: Optional[str] = typer.Option(None, help="Package name for package mode"),
     workers: Optional[int] = typer.Option(None, help="Number of parallel workers"),
     timeout: Optional[int] = typer.Option(None, help="Test timeout in seconds"),
     quick: bool = typer.Option(False, help="Run quick tests only"),
     enable_coverage: bool = typer.Option(False, "--enable-coverage", help="Enable coverage reporting"),
     show_details: bool = typer.Option(False, "--show-details", help="Show detailed test report with individual file results"),
+    failed: bool = typer.Option(False, "--failed", help="Run only previously failed tests"),
+    clear_cache: bool = typer.Option(False, "--clear-cache", help="Clear the failed tests cache"),
+    cache_status: bool = typer.Option(False, "--cache-status", help="Show test failure cache status"),
     project_root: Optional[str] = PROJECT_ROOT_OPTION,
     config: Optional[str] = CONFIG_OPTION,
     environment: Optional[str] = ENVIRONMENT_OPTION,
@@ -34,12 +37,34 @@ def test_command(
 ):
     """Run tests with various modes and options."""
     
-    if mode not in ["all", "diff", "package"]:
-        console.print("❌ Invalid mode. Choose from: all, diff, package", style="red")
+    # Handle --failed flag by setting mode
+    if failed:
+        mode = "failed"
+    
+    if mode not in ["all", "diff", "package", "failed"]:
+        console.print("❌ Invalid mode. Choose from: all, diff, package, failed", style="red")
         raise typer.Exit(1)
     
     try:
         toolkit = get_toolkit(project_root, config, environment)
+        
+        # Handle cache-related options first
+        if clear_cache:
+            if 'test_runner' in toolkit.tools:
+                runner = toolkit.tools['test_runner'](str(toolkit.config.project_root))
+                runner.clear_failure_cache()
+                console.print("✅ Test failure cache cleared", style="green")
+            else:
+                console.print("❌ Test runner not available", style="red")
+            return
+        
+        if cache_status:
+            if 'test_runner' in toolkit.tools:
+                runner = toolkit.tools['test_runner'](str(toolkit.config.project_root))
+                runner.print_cache_status()
+            else:
+                console.print("❌ Test runner not available", style="red")
+            return
         
         kwargs = {}
         if package:
@@ -71,7 +96,23 @@ def test_command(
             table.add_row("Failed", str(summary.get('failed', 0)))
             table.add_row("Duration", f"{results.get('execution_time', 0):.2f}s")
             
+            # Add special metrics for failed mode
+            if mode == "failed":
+                if 'cached_failed_count' in results:
+                    table.add_row("Cached Failed", str(results['cached_failed_count']))
+                if 'now_passing_count' in results:
+                    table.add_row("Now Passing", str(results['now_passing_count']))
+                if 'still_failing_count' in results:
+                    table.add_row("Still Failing", str(results['still_failing_count']))
+            
             console.print(table)
+            
+            # Display mode-specific messages
+            if mode == "failed":
+                if 'message' in results:
+                    console.print(f"ℹ️  {results['message']}", style="yellow")
+                elif results.get('now_passing_count', 0) > 0:
+                    console.print(f"🎉 {results['now_passing_count']} previously failed tests now pass!", style="green")
             
             # Display detailed test file report
             if 'results' in results and results['results']:
