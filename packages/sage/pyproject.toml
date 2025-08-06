@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "intsage"
-version = "1.0.1"
+version = "0.1.0"
 description = "SAGE Framework Meta Package"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -37,9 +37,9 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 dependencies = [
-    "intsage-kernel>=1.0.0",
-    "intsage-middleware>=1.0.0",
-    "intsage-apps>=1.0.0",
+    "intsage-kernel>=0.1.0",
+    "intsage-middleware>=0.1.0",
+    "intsage-apps>=0.1.0",
 ]
 
 [project.license]

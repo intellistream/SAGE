@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "intsage-kernel"
-version = "1.0.1"
+version = "0.1.0"
 description = "SAGE Framework - 统一内核 (Core + Runtime + Utils + CLI)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -179,6 +179,14 @@ where = [
 ]
 include = [
     "sage*",
+]
+exclude = [
+    "*enterprise*",
+    "*commercial*",
+    "*.enterprise.*",
+    "*.commercial.*",
+    "**/enterprise/**",
+    "**/commercial/**",
 ]
 namespaces = true
 

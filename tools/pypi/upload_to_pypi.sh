@@ -123,10 +123,8 @@ done
 declare -A OPENSOURCE_PACKAGES=(
     ["intsage-kernel"]="$PACKAGES_DIR/sage-kernel"
     ["intsage-middleware"]="$PACKAGES_DIR/sage-middleware"
-    ["intsage-userspace"]="$PACKAGES_DIR/sage-userspace"
+    ["intsage-apps"]="$PACKAGES_DIR/sage-apps"
     ["intsage"]="$PACKAGES_DIR/sage"
-    ["intsage-dev-toolkit"]="$PACKAGES_DIR/sage-tools/sage-dev-toolkit"
-    ["intsage-frontend"]="$PACKAGES_DIR/sage-tools/sage-frontend"
 )
 
 # 如果没有指定包，则上传所有开源包
@@ -239,11 +237,24 @@ build_package() {
         fi
     fi
     
-    # 构建包
-    if [[ "$VERBOSE" == "true" ]]; then
-        python3 -m build
+    # 字节码编译构建 (保护源代码)
+    log_info "$package_name: 启用字节码编译保护..."
+    
+    # 使用字节码发布工具
+    if [[ -f "$SCRIPT_DIR/bytecode_release.py" ]]; then
+        if [[ "$VERBOSE" == "true" ]]; then
+            python3 "$SCRIPT_DIR/bytecode_release.py" "$package_path"
+        else
+            python3 "$SCRIPT_DIR/bytecode_release.py" "$package_path" > /dev/null 2>&1
+        fi
     else
-        python3 -m build > /dev/null 2>&1
+        # 回退到标准构建
+        log_warning "$package_name: 字节码工具未找到，使用标准构建"
+        if [[ "$VERBOSE" == "true" ]]; then
+            python3 -m build
+        else
+            python3 -m build > /dev/null 2>&1
+        fi
     fi
     
     # 验证构建结果

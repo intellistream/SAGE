@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "intsage-apps"
-version = "1.0.1"
+version = "0.1.0"
 description = "SAGE Framework - Application Components (高级应用组件)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -184,6 +184,14 @@ where = [
 ]
 include = [
     "sage*",
+]
+exclude = [
+    "*enterprise*",
+    "*commercial*",
+    "*.enterprise.*",
+    "*.commercial.*",
+    "**/enterprise/**",
+    "**/commercial/**",
 ]
 namespaces = true
 
