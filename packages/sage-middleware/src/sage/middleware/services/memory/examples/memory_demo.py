@@ -304,18 +304,18 @@ class MultiModalMemoryManager:
         
         return turn_id, user_memory_id, ai_memory_id
 '''
-    print(advanced_patterns)
-            "vector": np.random.random(384).tolist(),
-            "memory_type": "answer",
-            "metadata": {"topic": "programming", "language": "python", "complexity": "basic"}
-        },
-        {
-            "content": "用户表示理解了，并询问更高级的主题",
-            "vector": np.random.random(384).tolist(),
-            "memory_type": "feedback",
-            "metadata": {"sentiment": "positive", "next_topic": "advanced"}
-        }
-    ]
+    # print(advanced_patterns)
+    #         "vector": np.random.random(384).tolist(),
+    #         "memory_type": "answer",
+    #         "metadata": {"topic": "programming", "language": "python", "complexity": "basic"}
+    #     },
+    #     {
+    #         "content": "用户表示理解了，并询问更高级的主题",
+    #         "vector": np.random.random(384).tolist(),
+    #         "memory_type": "feedback",
+    #         "metadata": {"sentiment": "positive", "next_topic": "advanced"}
+    #     }
+    # ]
     
     print(f"\n🧠 Storing memories for session {session_id}:")
     memory_ids = []

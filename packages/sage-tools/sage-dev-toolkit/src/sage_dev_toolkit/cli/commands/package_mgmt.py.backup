@@ -19,6 +19,11 @@ from .common import (
 from ...core.bytecode_compiler import BytecodeCompiler, compile_multiple_packages
 
 app = typer.Typer(name="package", help="Package management commands")
+    PROJECT_ROOT_OPTION, CONFIG_OPTION, ENVIRONMENT_OPTION, VERBOSE_OPTION
+)
+from ...core.bytecode_compiler import BytecodeCompiler, compile_multiple_packages
+
+app = typer.Typer(name="package", help="Package management commands")
 
 
 def _load_project_config(project_root: Path) -> dict:
@@ -142,18 +147,21 @@ def compile_command(
         else:
             project_root_path = Path.cwd()
         
-        # 检查是否提供了package_path，如果没有则使用项目配置中的所有包
+        # 检查是否提供了package_path
         if not package_path or package_path.strip() == "":
-            console.print("📦 未指定包路径，将编译项目配置中的所有包...", style="blue")
+            # 没有提供package_path，从project_config.toml读取所有包
+            console.print("📋 未指定包路径，正在从 project_config.toml 读取所有包...", style="blue")
             package_paths = _get_all_package_paths(project_root_path)
+            
             if not package_paths:
-                console.print("❌ 项目配置中没有找到有效的包路径", style="red")
-                console.print("💡 使用 --info 可以只显示SAGE home信息", style="yellow")
+                console.print("❌ 没有找到有效的包路径", style="red")
+                console.print("💡 请检查 project_config.toml 文件中的包配置", style="yellow")
                 raise typer.Exit(1)
+            
             batch_mode = True
-            console.print(f"🎯 将编译 {len(package_paths)} 个包", style="bold cyan")
+            console.print(f"📦 找到 {len(package_paths)} 个包: {', '.join([p.name for p in package_paths])}", style="green")
         else:
-            # 解析用户提供的包路径
+            # 解析提供的包路径
             if "," in package_path:
                 # 多个包路径
                 package_paths = [Path(p.strip()) for p in package_path.split(",")]
@@ -166,7 +174,7 @@ def compile_command(
         valid_paths = []
         for path in package_paths:
             if not path.is_absolute():
-                # 如果是相对路径，尝试相对于项目根目录
+                # 如果是相对路径，尝试相对于项目根目录或当前目录
                 abs_path = project_root_path / path
             else:
                 abs_path = path

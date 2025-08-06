@@ -1007,3 +1007,68 @@ class TestTcpClientIntegration:
             assert client.connected is False
             # 模拟的超时应该很快返回
             assert elapsed_time < 1.0
+
+
+# 性能测试
+@pytest.mark.slow
+class TestTcpClientPerformance:
+    """TCP客户端性能测试"""
+    
+    @patch('socket.socket')
+    def test_multiple_connections_performance(self, mock_socket_class):
+        """测试多次连接的性能"""
+        import time
+        
+        mock_socket = MagicMock()
+        mock_socket_class.return_value = mock_socket
+        
+        client = MockTcpClient()
+        
+        # 测试多次连接和断开的性能
+        num_connections = 100
+        start_time = time.time()
+        
+        for _ in range(num_connections):
+            client.connect()
+            client.disconnect()
+        
+        elapsed_time = time.time() - start_time
+        
+        # 性能断言（这些值可以根据实际需要调整）
+        assert elapsed_time < 1.0  # 100次连接应在1秒内完成
+        
+        # 验证调用次数
+        assert mock_socket.connect.call_count == num_connections
+        assert mock_socket.close.call_count == num_connections
+    
+    @patch('socket.socket')
+    def test_large_data_transfer_performance(self, mock_socket_class):
+        """测试大数据传输性能"""
+        import time
+        
+        mock_socket = MagicMock()
+        mock_socket_class.return_value = mock_socket
+        
+        # 模拟大响应数据
+        large_response = {"data": "x" * 100000}  # 100KB数据
+        response_json = json.dumps(large_response).encode('utf-8')
+        response_length = len(response_json).to_bytes(4, byteorder='big')
+        
+        # 模拟按顺序接收：先长度，后数据
+        mock_socket.recv.side_effect = [response_length, response_json]
+        
+        client = MockTcpClient()
+        client.connect()
+        
+        # 测试大数据传输性能
+        start_time = time.time()
+        
+        request_data = {"query": "large_data"}
+        result = client.send_request(request_data)
+        
+        elapsed_time = time.time() - start_time
+        
+        # 性能断言
+        assert elapsed_time < 1.0  # 100KB数据传输应在1秒内完成
+        assert result == large_response
+        assert len(result["data"]) == 100000
