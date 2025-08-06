@@ -182,7 +182,8 @@ def _find_processes_with_netstat(port: int) -> List[int]:
                         if pid_str.isdigit():
                             pids.append(int(pid_str))
         return pids
-    except (subprocess.SubprocessError, ValueError):
+    except (subprocess.SubprocessError, ValueError, FileNotFoundError):
+        # netstat命令不存在或执行失败
         pass
     return []
 

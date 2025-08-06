@@ -158,7 +158,7 @@ class JobManagerController:
                                         typer.echo(f"Found process using port {self.port}: PID {pid}")
                                     except (ValueError, psutil.NoSuchProcess):
                                         continue
-                except subprocess.SubprocessError:
+                except (subprocess.SubprocessError, FileNotFoundError):
                     pass
         
         if not processes:

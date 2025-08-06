@@ -3,21 +3,21 @@
     "single_thread": {
       "queue_type": "python",
       "num_items": 5000,
-      "write_duration": 0.011034965515136719,
-      "read_duration": 0.009317636489868164,
-      "write_throughput": 453105.1767349408,
-      "read_throughput": 536616.770297587,
-      "total_duration": 0.020352602005004883,
+      "write_duration": 0.012853860855102539,
+      "read_duration": 0.010874271392822266,
+      "write_throughput": 388988.18466789083,
+      "read_throughput": 459800.9208506906,
+      "total_duration": 0.023728132247924805,
       "memory_delta_mb": 0.0,
       "memory_before": {
-        "rss_mb": 97.67578125,
-        "vms_mb": 191.60546875,
-        "percent": 0.30509529271090075
+        "rss_mb": 97.46875,
+        "vms_mb": 199.60546875,
+        "percent": 0.3044486200248908
       },
       "memory_after": {
-        "rss_mb": 97.67578125,
-        "vms_mb": 191.60546875,
-        "percent": 0.30509529271090075
+        "rss_mb": 97.46875,
+        "vms_mb": 199.60546875,
+        "percent": 0.3044486200248908
       }
     },
     "multi_thread": {
@@ -25,73 +25,73 @@
       "num_threads": 4,
       "items_per_thread": 1250,
       "total_items": 5000,
-      "producer_duration": 0.03976845741271973,
-      "consumer_duration": 0.01474761962890625,
+      "producer_duration": 0.04191780090332031,
+      "consumer_duration": 0.09969449043273926,
       "total_consumed": 5000,
-      "avg_producer_throughput": 117796.06751958892,
-      "max_producer_throughput": 177064.505234718,
-      "avg_consumer_throughput": 405011.89652043814,
-      "max_consumer_throughput": 415277.62376237626,
+      "avg_producer_throughput": 116680.3466928556,
+      "max_producer_throughput": 179207.00027344818,
+      "avg_consumer_throughput": 15205.000390201421,
+      "max_consumer_throughput": 15780.114734263167,
       "memory_delta_mb": 0.0,
       "producer_results": [
         {
-          "thread_id": 0,
-          "duration": 0.00720977783203125,
-          "throughput": 173375.66137566138
+          "thread_id": 1,
+          "duration": 0.0069751739501953125,
+          "throughput": 179207.00027344818
         },
         {
-          "thread_id": 1,
-          "duration": 0.007059574127197266,
-          "throughput": 177064.505234718
+          "thread_id": 0,
+          "duration": 0.007258415222167969,
+          "throughput": 172213.90093286033
         },
         {
           "thread_id": 2,
-          "duration": 0.02326798439025879,
-          "throughput": 53721.88579098911
+          "duration": 0.02300858497619629,
+          "throughput": 54327.54779545101
         },
         {
           "thread_id": 3,
-          "duration": 0.018650531768798828,
-          "throughput": 67022.21767698719
+          "duration": 0.020500898361206055,
+          "throughput": 60972.93776966286
         }
       ],
       "consumer_results": [
         {
-          "thread_id": 1,
-          "duration": 0.0030100345611572266,
+          "thread_id": 0,
+          "duration": 0.07921361923217773,
           "consumed": 1250,
-          "throughput": 415277.62376237626
+          "throughput": 15780.114734263167
+        },
+        {
+          "thread_id": 1,
+          "duration": 0.08761072158813477,
+          "consumed": 1250,
+          "throughput": 14267.6601372644
         },
         {
           "thread_id": 2,
-          "duration": 0.0031578540802001953,
+          "duration": 0.08320355415344238,
           "consumed": 1250,
-          "throughput": 395838.429596074
-        },
-        {
-          "thread_id": 0,
-          "duration": 0.003094196319580078,
-          "consumed": 1250,
-          "throughput": 403982.1235937741
+          "throughput": 15023.396689218038
         },
         {
           "thread_id": 3,
-          "duration": 0.0030868053436279297,
+          "duration": 0.07937097549438477,
           "consumed": 1250,
-          "throughput": 404949.4091295281
+          "throughput": 15748.830000060078
         }
       ]
     },
     "latency": {
       "queue_type": "python",
       "num_samples": 500,
-      "avg_latency_ms": 0.010528232001888682,
-      "median_latency_ms": 0.009321999641542789,
-      "min_latency_ms": 0.008911999429983553,
-      "max_latency_ms": 0.10920400018221699,
-      "p95_latency_ms": 0.00982985011432902,
-      "p99_latency_ms": 0.06093968977438635,
-      "stddev_latency_ms": 0.008791342329456716
+      "avg_latency_ms": 0.010843004012713209,
+      "median_latency_ms": 0.009418999979970977,
+      "min_latency_ms": 0.009112000043387525,
+      "max_latency_ms": 0.10207800005446188,
+      "p95_latency_ms": 0.012275750123080797,
+      "p99_latency_ms": 0.059993900313202175,
+      "stddev_latency_ms": 0.008149649385295034
     },
     "queue_size": {
       "queue_type": "python",
@@ -100,43 +100,43 @@
       "size_results": [
         {
           "queue_size": 10000,
-          "fill_duration": 0.02187180519104004,
-          "fill_throughput": 457209.6318824466,
-          "read_duration": 0.001783132553100586,
-          "read_throughput": 560810.8035833668,
-          "memory_mb": 97.67578125
+          "fill_duration": 0.022968530654907227,
+          "fill_throughput": 435378.30740006437,
+          "read_duration": 0.0018193721771240234,
+          "read_throughput": 549640.1520115319,
+          "memory_mb": 97.46875
         },
         {
           "queue_size": 20000,
-          "fill_duration": 0.04497885704040527,
-          "fill_throughput": 444653.36195701145,
-          "read_duration": 0.0017993450164794922,
-          "read_throughput": 555757.7845501524,
-          "memory_mb": 98.23828125
+          "fill_duration": 0.04525279998779297,
+          "fill_throughput": 441961.6024952056,
+          "read_duration": 0.0018534660339355469,
+          "read_throughput": 539529.7144327245,
+          "memory_mb": 98.03125
         },
         {
           "queue_size": 30000,
-          "fill_duration": 0.06641077995300293,
-          "fill_throughput": 451733.8905103986,
-          "read_duration": 0.0018162727355957031,
-          "read_throughput": 550578.1044893673,
-          "memory_mb": 99.08203125
+          "fill_duration": 0.06648635864257812,
+          "fill_throughput": 451220.3798267256,
+          "read_duration": 0.0017664432525634766,
+          "read_throughput": 566109.3264948037,
+          "memory_mb": 98.875
         },
         {
           "queue_size": 40000,
-          "fill_duration": 0.09145069122314453,
-          "fill_throughput": 437394.1789285975,
-          "read_duration": 0.001875162124633789,
-          "read_throughput": 533287.22186904,
-          "memory_mb": 99.12890625
+          "fill_duration": 0.08916735649108887,
+          "fill_throughput": 448594.6603564219,
+          "read_duration": 0.0018644332885742188,
+          "read_throughput": 536356.0102301791,
+          "memory_mb": 98.9296875
         },
         {
           "queue_size": 50000,
-          "fill_duration": 0.11264634132385254,
-          "fill_throughput": 443867.05695351906,
-          "read_duration": 0.0017926692962646484,
-          "read_throughput": 557827.3706609921,
-          "memory_mb": 99.2109375
+          "fill_duration": 0.11137962341308594,
+          "fill_throughput": 448915.1468447641,
+          "read_duration": 0.0018546581268310547,
+          "read_throughput": 539182.9283969662,
+          "memory_mb": 99.01171875
         }
       ]
     }
@@ -145,21 +145,21 @@
     "single_thread": {
       "queue_type": "python",
       "num_items": 5000,
-      "write_duration": 0.010996818542480469,
-      "read_duration": 0.00906515121459961,
-      "write_throughput": 454676.957766022,
-      "read_throughput": 551562.7794434801,
-      "total_duration": 0.020061969757080078,
+      "write_duration": 0.011083364486694336,
+      "read_duration": 0.00925445556640625,
+      "write_throughput": 451126.55150902405,
+      "read_throughput": 540280.296784831,
+      "total_duration": 0.020337820053100586,
       "memory_delta_mb": 0.0,
       "memory_before": {
-        "rss_mb": 99.2109375,
-        "vms_mb": 264.99609375,
-        "percent": 0.30989043168452135
+        "rss_mb": 99.01171875,
+        "vms_mb": 409.0,
+        "percent": 0.3092681617413798
       },
       "memory_after": {
-        "rss_mb": 99.2109375,
-        "vms_mb": 264.99609375,
-        "percent": 0.30989043168452135
+        "rss_mb": 99.01171875,
+        "vms_mb": 409.0,
+        "percent": 0.3092681617413798
       }
     },
     "multi_thread": {
@@ -167,73 +167,73 @@
       "num_threads": 4,
       "items_per_thread": 1250,
       "total_items": 5000,
-      "producer_duration": 0.30151915550231934,
-      "consumer_duration": 0.014243364334106445,
+      "producer_duration": 0.30081725120544434,
+      "consumer_duration": 0.022052526473999023,
       "total_consumed": 5000,
-      "avg_producer_throughput": 5770.314269070544,
-      "max_producer_throughput": 10242.220481393428,
-      "avg_consumer_throughput": 394463.43337348907,
-      "max_consumer_throughput": 409280.24980483996,
+      "avg_producer_throughput": 5967.9430943011375,
+      "max_producer_throughput": 11002.849935572149,
+      "avg_consumer_throughput": 280127.672856787,
+      "max_consumer_throughput": 374678.7679554063,
       "memory_delta_mb": 0.0,
       "producer_results": [
         {
           "thread_id": 0,
-          "duration": 0.12204384803771973,
-          "throughput": 10242.220481393428
+          "duration": 0.11360692977905273,
+          "throughput": 11002.849935572149
         },
         {
           "thread_id": 2,
-          "duration": 0.2904813289642334,
-          "throughput": 4303.202565401066
-        },
-        {
-          "thread_id": 3,
-          "duration": 0.29105424880981445,
-          "throughput": 4294.732013401378
+          "duration": 0.28916263580322266,
+          "throughput": 4322.826829018927
         },
         {
           "thread_id": 1,
-          "duration": 0.2947347164154053,
-          "throughput": 4241.102016086303
+          "duration": 0.2935056686401367,
+          "throughput": 4258.861526564272
+        },
+        {
+          "thread_id": 3,
+          "duration": 0.2915632724761963,
+          "throughput": 4287.234086049202
         }
       ],
       "consumer_results": [
         {
-          "thread_id": 1,
-          "duration": 0.0030541419982910156,
+          "thread_id": 0,
+          "duration": 0.0069179534912109375,
           "consumed": 1250,
-          "throughput": 409280.24980483996
+          "throughput": 180689.27488282326
         },
         {
-          "thread_id": 0,
-          "duration": 0.0031557083129882812,
+          "thread_id": 1,
+          "duration": 0.006109952926635742,
           "consumed": 1250,
-          "throughput": 396107.5853732245
+          "throughput": 204584.22757248214
         },
         {
           "thread_id": 2,
-          "duration": 0.003398895263671875,
+          "duration": 0.003336191177368164,
           "consumed": 1250,
-          "throughput": 367766.5544332211
+          "throughput": 374678.7679554063
         },
         {
           "thread_id": 3,
-          "duration": 0.003088712692260742,
+          "duration": 0.0034668445587158203,
           "consumed": 1250,
-          "throughput": 404699.3438826708
+          "throughput": 360558.4210164363
         }
       ]
     },
     "latency": {
       "queue_type": "python",
       "num_samples": 500,
-      "avg_latency_ms": 0.004344624005170772,
-      "median_latency_ms": 0.0040979994082590565,
-      "min_latency_ms": 0.003994999133283272,
-      "max_latency_ms": 0.05470399992191233,
-      "p95_latency_ms": 0.004301999979361426,
-      "p99_latency_ms": 0.013198609849496279,
-      "stddev_latency_ms": 0.002686790303026585
+      "avg_latency_ms": 0.010477433981577633,
+      "median_latency_ms": 0.009418999979970977,
+      "min_latency_ms": 0.009112000043387525,
+      "max_latency_ms": 0.11385199923097389,
+      "p95_latency_ms": 0.010130900136573473,
+      "p99_latency_ms": 0.056715879964031046,
+      "stddev_latency_ms": 0.007389666530378154
     },
     "queue_size": {
       "queue_type": "python",
@@ -242,43 +242,43 @@
       "size_results": [
         {
           "queue_size": 10000,
-          "fill_duration": 0.02150869369506836,
-          "fill_throughput": 464928.2816414304,
-          "read_duration": 0.0017592906951904297,
-          "read_throughput": 568410.8957853367,
-          "memory_mb": 99.2109375
+          "fill_duration": 0.03454995155334473,
+          "fill_throughput": 289436.0064314451,
+          "read_duration": 0.0021882057189941406,
+          "read_throughput": 456995.4238396165,
+          "memory_mb": 99.01171875
         },
         {
           "queue_size": 20000,
-          "fill_duration": 0.04270124435424805,
-          "fill_throughput": 468370.4257908901,
-          "read_duration": 0.0017311573028564453,
-          "read_throughput": 577648.2578157278,
-          "memory_mb": 99.2109375
+          "fill_duration": 0.055690765380859375,
+          "fill_throughput": 359125.96753202274,
+          "read_duration": 0.002137899398803711,
+          "read_throughput": 467748.8569198171,
+          "memory_mb": 99.01171875
         },
         {
           "queue_size": 30000,
-          "fill_duration": 0.0680391788482666,
-          "fill_throughput": 440922.42892734875,
-          "read_duration": 0.001848459243774414,
-          "read_throughput": 540991.10021927,
-          "memory_mb": 99.2109375
+          "fill_duration": 0.08162331581115723,
+          "fill_throughput": 367542.03994123026,
+          "read_duration": 0.003078937530517578,
+          "read_throughput": 324787.36255226884,
+          "memory_mb": 99.01171875
         },
         {
           "queue_size": 40000,
-          "fill_duration": 0.08604145050048828,
-          "fill_throughput": 464892.20913091186,
-          "read_duration": 0.001756429672241211,
-          "read_throughput": 569336.7720917605,
-          "memory_mb": 99.21875
+          "fill_duration": 0.1115729808807373,
+          "fill_throughput": 358509.73671445454,
+          "read_duration": 0.0021593570709228516,
+          "read_throughput": 463100.8060064039,
+          "memory_mb": 99.01171875
         },
         {
           "queue_size": 50000,
-          "fill_duration": 0.11060595512390137,
-          "fill_throughput": 452055.2256340062,
-          "read_duration": 0.0017592906951904297,
-          "read_throughput": 568410.8957853367,
-          "memory_mb": 99.21875
+          "fill_duration": 0.1191704273223877,
+          "fill_throughput": 419567.1789003215,
+          "read_duration": 0.0018475055694580078,
+          "read_throughput": 541270.3574654794,
+          "memory_mb": 99.01171875
         }
       ]
     }

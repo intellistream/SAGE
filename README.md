@@ -8,19 +8,39 @@ SAGE is a dataflow-native reasoning framework built from the ground up to suppor
 
 ## 📦 Quick Installation
 
-### 一键安装（推荐）
+### 🚀 一键部署（开发者推荐）
+
+适合想要快速启动和贡献代码的开发者：
+
+```bash
+# 克隆项目
+git clone https://github.com/intellistream/SAGE.git
+cd SAGE
+
+# 运行一键部署脚本
+./quickstart.sh
+```
+
+脚本会自动：
+- ✅ 检查环境依赖（Git, Python, pip）
+- ✅ 初始化文档子模块（无需了解Git submodule）
+- ✅ 安装所有依赖包
+- ✅ 构建项目和文档
+- ✅ 设置开发环境
+
+### 🏃 快速安装（用户）
 ```bash
 pip install intsage
 ```
 
-### 从源码安装（开发者）
+### 🛠️ 从源码安装（高级）
 ```bash
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 pip install -e ".[dev]"
 ```
 
-### 模块化安装
+### 🧩 模块化安装
 ```bash
 # 核心组件
 pip install intsage-kernel
@@ -38,7 +58,10 @@ pip install intsage-dev-toolkit
 pip install intsage-frontend
 ```
 
-详细安装说明请参考 [INSTALLATION.md](INSTALLATION.md)。
+📖 更多安装选项请参考：
+- **详细指南**: [INSTALLATION.md](INSTALLATION.md)
+- **开发者指南**: [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)
+- **在线文档**: [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
 
 ## 🛠️ SAGE Development Toolkit
 
@@ -514,7 +537,7 @@ pip install -e packages/sage-tools/sage-cli
 pip install -e dev-toolkit
 
 # 方法3: 使用 Python 脚本
-python setup.py
+python3 scripts/deployment_setup.py install --dev
 ```
 
 #### 问题2: 包导入失败

@@ -32,9 +32,8 @@ __all__ = [
     "resources"
 ]
 
-__version__ = "1.0.0"
 
-__version__ = "1.0.0"
+__version__ = "0.1.0"
 __author__ = "IntelliStream Team"
 __email__ = "intellistream@outlook.com"
 

@@ -167,6 +167,12 @@ exclude = [
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+exclude = [
+    "dashboard",
+    "node_modules",
+]
+
+[tool.ruff.lint]
 select = [
     "E",
     "W",
@@ -179,10 +185,6 @@ select = [
 ignore = [
     "E501",
     "B008",
-]
-exclude = [
-    "dashboard",
-    "node_modules",
 ]
 
 [tool.pytest.ini_options]

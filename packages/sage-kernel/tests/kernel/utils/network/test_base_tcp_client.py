@@ -92,7 +92,7 @@ class TestBaseTcpClient:
         logger = self.client._create_default_logger()
         assert logger.name == "TestClient"
         assert len(logger.handlers) > 0
-        assert logger.level == 10  # logging.INFO = 20, but it might be set to DEBUG = 10
+        assert logger.level == 20  # logging.INFO = 20
     
     @patch('socket.socket')
     def test_successful_connection(self, mock_socket_class):
@@ -179,20 +179,29 @@ class TestBaseTcpClient:
         # 模拟连接成功
         self.client.connect()
         
-        # 模拟接收响应
+        # 模拟接收响应 - 需要模拟二进制协议
         response_data = {"status": "success", "data": "test_response"}
-        response_json = json.dumps(response_data) + "\n"
-        mock_socket.recv.return_value = response_json.encode('utf-8')
+        response_json = json.dumps(response_data)
+        response_bytes = response_json.encode('utf-8')
+        
+        # 模拟接收：先接收4字节长度，然后接收数据
+        def mock_recv(size):
+            if size == 4:
+                # 返回响应数据长度（大端序）
+                return len(response_bytes).to_bytes(4, byteorder='big')
+            else:
+                # 返回响应数据
+                return response_bytes
+        
+        mock_socket.recv.side_effect = mock_recv
         
         request_data = {"test": "data"}
         result = self.client.send_request(request_data)
         
         assert result == response_data
         
-        # 验证发送的数据
-        expected_request = self.client.build_request(request_data)
-        expected_json = json.dumps(expected_request) + "\n"
-        mock_socket.send.assert_called_once_with(expected_json.encode('utf-8'))
+        # 验证调用了sendall方法（发送长度和数据）
+        assert mock_socket.sendall.call_count == 2  # 一次发送长度，一次发送数据
     
     @patch('socket.socket')
     def test_send_request_connection_error(self, mock_socket_class):
@@ -201,12 +210,15 @@ class TestBaseTcpClient:
         mock_socket_class.return_value = mock_socket
         
         self.client.connect()
-        mock_socket.send.side_effect = ConnectionError("Connection lost")
+        mock_socket.sendall.side_effect = ConnectionError("Connection lost")
         
         request_data = {"test": "data"}
         
-        with pytest.raises(ConnectionError):
-            self.client.send_request(request_data)
+        result = self.client.send_request(request_data)
+        
+        # 应该返回错误响应而不是抛出异常
+        assert result["status"] == "error"
+        assert result["error_code"] == "ERR_COMMUNICATION_FAILED"
     
     @patch('socket.socket')
     def test_send_request_timeout(self, mock_socket_class):
@@ -219,8 +231,11 @@ class TestBaseTcpClient:
         
         request_data = {"test": "data"}
         
-        with pytest.raises(socket.timeout):
-            self.client.send_request(request_data)
+        result = self.client.send_request(request_data)
+        
+        # 应该返回错误响应而不是抛出异常
+        assert result["status"] == "error"
+        assert result["error_code"] == "ERR_NO_RESPONSE"
     
     @patch('socket.socket')
     def test_send_request_invalid_json_response(self, mock_socket_class):
@@ -230,13 +245,17 @@ class TestBaseTcpClient:
         
         self.client.connect()
         
-        # 模拟接收无效JSON
-        mock_socket.recv.return_value = b"invalid json\n"
+        # 模拟接收无效的响应长度（第一个4字节不是有效长度）
+        invalid_length_bytes = b"abcd"  # 这会被解释为一个非常大的数字
+        mock_socket.recv.return_value = invalid_length_bytes
         
         request_data = {"test": "data"}
         
-        with pytest.raises(json.JSONDecodeError):
-            self.client.send_request(request_data)
+        result = self.client.send_request(request_data)
+        
+        # 应该返回错误响应
+        assert result["status"] == "error"
+        assert result["error_code"] == "ERR_NO_RESPONSE"
     
     @patch('socket.socket')
     def test_send_request_empty_response(self, mock_socket_class):
@@ -251,8 +270,11 @@ class TestBaseTcpClient:
         
         request_data = {"test": "data"}
         
-        with pytest.raises(ConnectionError, match="Connection closed by server"):
-            self.client.send_request(request_data)
+        result = self.client.send_request(request_data)
+        
+        # 应该返回错误响应而不是抛出异常
+        assert result["status"] == "error"
+        assert result["error_code"] == "ERR_NO_RESPONSE"
     
     @patch('socket.socket')
     def test_send_request_partial_response(self, mock_socket_class):
@@ -264,21 +286,39 @@ class TestBaseTcpClient:
         
         # 模拟分多次接收完整响应
         response_data = {"status": "success", "large_data": "x" * 1000}
-        response_json = json.dumps(response_data) + "\n"
+        response_json = json.dumps(response_data)
         response_bytes = response_json.encode('utf-8')
         
-        # 分两次接收
-        mid_point = len(response_bytes) // 2
-        mock_socket.recv.side_effect = [
-            response_bytes[:mid_point],
-            response_bytes[mid_point:]
-        ]
+        # 模拟接收：先接收4字节长度，然后分多次接收数据
+        recv_calls = []
+        
+        def mock_recv(size):
+            if size == 4:
+                # 第一次调用，返回响应数据长度
+                return len(response_bytes).to_bytes(4, byteorder='big')
+            else:
+                # 后续调用，分多次返回数据
+                if not hasattr(mock_recv, 'call_count'):
+                    mock_recv.call_count = 0
+                    mock_recv.data_sent = 0
+                
+                mock_recv.call_count += 1
+                remaining_size = len(response_bytes) - mock_recv.data_sent
+                chunk_size = min(size, remaining_size // 2 if mock_recv.call_count == 1 else remaining_size)
+                
+                if chunk_size > 0:
+                    chunk = response_bytes[mock_recv.data_sent:mock_recv.data_sent + chunk_size]
+                    mock_recv.data_sent += chunk_size
+                    return chunk
+                else:
+                    return b""
+        
+        mock_socket.recv.side_effect = mock_recv
         
         request_data = {"test": "data"}
         result = self.client.send_request(request_data)
         
         assert result == response_data
-        assert mock_socket.recv.call_count == 2
 
 
 @pytest.mark.unit
@@ -313,10 +353,21 @@ class TestTcpClientEdgeCases:
         client = TestTcpClient()
         client.connect()
         
-        # 模拟Unicode响应
+        # 模拟Unicode响应 - 使用二进制协议
         response_data = {"message": "你好世界", "emoji": "🌍"}
-        response_json = json.dumps(response_data, ensure_ascii=False) + "\n"
-        mock_socket.recv.return_value = response_json.encode('utf-8')
+        response_json = json.dumps(response_data, ensure_ascii=False)
+        response_bytes = response_json.encode('utf-8')
+        
+        # 模拟接收：先接收4字节长度，然后接收数据
+        def mock_recv(size):
+            if size == 4:
+                # 返回响应数据长度（大端序）
+                return len(response_bytes).to_bytes(4, byteorder='big')
+            else:
+                # 返回响应数据
+                return response_bytes
+        
+        mock_socket.recv.side_effect = mock_recv
         
         request_data = {"query": "测试查询", "symbols": "™®©"}
         result = client.send_request(request_data)
@@ -341,14 +392,29 @@ class TestTcpClientEdgeCases:
             {"id": 3, "result": "third"}
         ]
         
-        def mock_recv_side_effect(*args, **kwargs):
-            if len(responses) > 0:
-                response = responses.pop(0)
-                response_json = json.dumps(response) + "\n"
-                return response_json.encode('utf-8')
-            return b""
+        response_index = 0
         
-        mock_socket.recv.side_effect = mock_recv_side_effect
+        def mock_recv(size):
+            nonlocal response_index
+            if size == 4:
+                # 返回响应数据长度
+                if response_index < len(responses):
+                    response_json = json.dumps(responses[response_index])
+                    response_bytes = response_json.encode('utf-8')
+                    return len(response_bytes).to_bytes(4, byteorder='big')
+                else:
+                    return b""
+            else:
+                # 返回响应数据
+                if response_index < len(responses):
+                    response_json = json.dumps(responses[response_index])
+                    response_bytes = response_json.encode('utf-8')
+                    response_index += 1
+                    return response_bytes
+                else:
+                    return b""
+        
+        mock_socket.recv.side_effect = mock_recv
         
         # 发送多个请求
         for i in range(3):
