@@ -1,0 +1,3 @@
+"""
+SAGE namespace package
+"""

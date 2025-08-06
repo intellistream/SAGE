@@ -26,11 +26,18 @@ classifiers = [
 dependencies = [
     "intsage-kernel",
     "intsage-middleware", 
-    "intsage-userspace",
+    "intsage-apps",
     "intsage-dev-toolkit",
 ]
 
 [project.optional-dependencies]
+# Commercial/Enterprise Edition (requires license)
+enterprise = [
+    "intsage-kernel[enterprise]",
+    "intsage-middleware[enterprise]", 
+    "intsage-apps[enterprise]",
+]
+
 # 开发依赖
 dev = [
     "pytest>=7.0",
@@ -52,8 +59,16 @@ docs = [
     "sphinx-rtd-theme",
 ]
 
+# All features combined
+all = [
+    "sage[enterprise]",
+    "sage[dev]",
+    "sage[docs]",
+]
+
 [project.scripts]
-sage-license = "scripts.sage_license:main"
+sage-license = "tools.license.sage_license:main"
+sage-enterprise = "tools.enterprise.enterprise_manager:main"
 
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"

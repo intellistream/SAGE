@@ -87,11 +87,41 @@ dependencies = [
 text = "MIT"
 
 [project.optional-dependencies]
+# Commercial/Enterprise features (requires license)
+enterprise = [
+    # High-performance computing dependencies
+    "numpy>=1.25.0",
+    "scipy>=1.10.0", 
+    "scikit-learn>=1.3.0",
+    "numba>=0.58.0",
+    "cython>=3.0.0",
+    "joblib>=1.3.0",
+    "tqdm>=4.65.0",
+    # Memory optimization
+    "psutil>=5.9.0",
+    # Performance monitoring
+    "py-spy>=0.3.14",
+    # Advanced queue implementations
+    "pyzmq>=25.0.0",
+    "redis>=4.5.0",
+]
+
+# Development dependencies for enterprise
+enterprise-dev = [
+    "intsage-kernel[enterprise]",
+    "pytest-benchmark>=4.0.0",
+    "memory-profiler>=0.60.0",
+    "line-profiler>=4.0.0",
+]
+
+# Enhanced development features
 enhanced = [
     "ipython>=8.0.0",
     "colorama>=0.4.6",
     "pygments>=2.15.0",
 ]
+
+# Development dependencies
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -102,15 +132,24 @@ dev = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
 ]
+
+# Web/API features
 web = [
     "fastapi>=0.100.0",
     "uvicorn>=0.23.0",
     "websockets>=11.0",
 ]
+
+# Documentation
 docs = [
     "sphinx>=7.0.0",
     "sphinx-rtd-theme>=1.3.0",
     "myst-parser>=2.0.0",
+]
+
+# All commercial features combined
+commercial = [
+    "intsage-kernel[enterprise]",
 ]
 
 [project.urls]

@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "intsage-middleware"
 version = "1.0.1"
-description = "SAGE Framework - 中间件组件 (包含 LLM 中间件服务)"
+description = "SAGE Framework - Middleware Components (中间件组件)"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -25,7 +25,6 @@ keywords = [
     "framework",
     "rag",
     "intellistream",
-    "service",
     "ai",
     "sage",
 ]
@@ -82,18 +81,57 @@ dependencies = [
 text = "MIT"
 
 [project.optional-dependencies]
+# Commercial/Enterprise features (requires license)
+enterprise = [
+    # Enterprise database support
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.13.0", 
+    "asyncpg>=0.30.0",
+    "pymongo[srv]>=4.8.0",
+    "redis>=5.2.0",
+    # Enterprise database drivers
+    "psycopg2-binary>=2.9.0",
+    "cx-Oracle>=8.3.0",      # Oracle support
+    "pyodbc>=4.0.0",         # SQL Server support
+    "pymysql>=1.1.0",        # MySQL support
+    # Message queuing and streaming
+    "celery>=5.5.0",
+    "kafka-python>=2.0.0",
+    "apache-airflow>=2.8.0",
+    # High-performance serialization
+    "orjson>=3.8.0",
+    "msgpack>=1.0.0",
+    "apache-arrow>=15.0.0",
+    # Caching and performance
+    "memcached>=1.6.0",
+    "elasticsearch>=8.0.0",
+    # Monitoring and observability
+    "prometheus-client>=0.19.0",
+    "jaeger-client>=4.8.0",
+]
+
+# Development dependencies for enterprise
+enterprise-dev = [
+    "intsage-middleware[enterprise]",
+    "pytest-asyncio>=0.23.0",
+    "pytest-docker>=2.0.0",
+    "testcontainers>=3.7.0",
+]
+
 # VLLM支持（可选，需要CUDA）
 vllm = [
     "vllm>=0.6.0,<0.7.0",
 ]
 
-# 数据库支持
+# 基础数据库支持
 database = [
     "sqlalchemy==2.0.32",
     "alembic==1.13.2",
     "asyncpg==0.30.0",
     "pymongo[srv]==4.8.0",
 ]
+
+# 消息队列支持
 messagequeue = [
     "celery==5.5.3",
     "redis==5.2.1",
@@ -149,17 +187,13 @@ include = [
 namespaces = true
 
 [tool.setuptools.package-data]
-"sage.service" = [
+"sage.middleware" = [
     "py.typed",
     "*.pyi",
     "*.yaml",
     "*.json",
     "templates/*",
     "static/*",
-]
-"sage.middleware" = [
-    "py.typed",
-    "*.pyi",
 ]
 
 [tool.pytest.ini_options]

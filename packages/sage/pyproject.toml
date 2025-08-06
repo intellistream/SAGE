@@ -39,7 +39,7 @@ classifiers = [
 dependencies = [
     "intsage-kernel>=1.0.0",
     "intsage-middleware>=1.0.0",
-    "intsage-userspace>=1.0.0",
+    "intsage-apps>=1.0.0",
 ]
 
 [project.license]
