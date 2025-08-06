@@ -11,13 +11,13 @@ from unittest.mock import Mock, patch, MagicMock
 from typing import Any
 
 from sage.kernel.api.datastream import DataStream
-from sage.kernel.api.transformation.base_transformation import BaseTransformation
-from sage.kernel.api.transformation.map_transformation import MapTransformation
-from sage.kernel.api.transformation.filter_transformation import FilterTransformation
-from sage.kernel.api.transformation.flatmap_transformation import FlatMapTransformation
-from sage.kernel.api.transformation.sink_transformation import SinkTransformation
-from sage.kernel.api.transformation.keyby_transformation import KeyByTransformation
-from sage.kernel.api.transformation.future_transformation import FutureTransformation
+from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+from sage.kernel.kernels.core.transformation.map_transformation import MapTransformation
+from sage.kernel.kernels.core.transformation.filter_transformation import FilterTransformation
+from sage.kernel.kernels.core.transformation.flatmap_transformation import FlatMapTransformation
+from sage.kernel.kernels.core.transformation.sink_transformation import SinkTransformation
+from sage.kernel.kernels.core.transformation.keyby_transformation import KeyByTransformation
+from sage.kernel.kernels.core.transformation.future_transformation import FutureTransformation
 from sage.kernel.api.function.base_function import BaseFunction
 from sage.kernel.api.connected_streams import ConnectedStreams
 

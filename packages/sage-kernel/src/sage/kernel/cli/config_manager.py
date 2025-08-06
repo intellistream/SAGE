@@ -188,15 +188,54 @@ def get_config_manager(config_path: Optional[str] = None) -> ConfigManager:
     return ConfigManager(config_path)
 
 
-if __name__ == "__main__":
-    # 测试配置管理器
-    config_manager = get_config_manager()
+# Typer应用
+app = typer.Typer(help="SAGE configuration management")
+
+@app.command()
+def show(
+    config_path: Optional[str] = typer.Option(None, "--config", "-c", help="Configuration file path")
+):
+    """显示当前配置"""
+    config_manager = get_config_manager(config_path)
     try:
         config = config_manager.load_config()
         print("当前配置:")
         import pprint
         pprint.pprint(config)
     except FileNotFoundError:
-        print("配置文件不存在，创建默认配置...")
-        config_manager.create_default_config()
-        print("默认配置已创建!")
+        print("配置文件不存在，请先创建配置")
+
+@app.command()
+def create(
+    config_path: Optional[str] = typer.Option(None, "--config", "-c", help="Configuration file path")
+):
+    """创建默认配置"""
+    config_manager = get_config_manager(config_path)
+    config_manager.create_default_config()
+    print(f"默认配置已创建: {config_manager.config_path}")
+
+@app.command()
+def set(
+    key: str = typer.Argument(..., help="Configuration key"),
+    value: str = typer.Argument(..., help="Configuration value"),
+    config_path: Optional[str] = typer.Option(None, "--config", "-c", help="Configuration file path")
+):
+    """设置配置值"""
+    config_manager = get_config_manager(config_path)
+    try:
+        config = config_manager.load_config()
+        # Simple dot notation support for nested keys
+        keys = key.split('.')
+        current = config
+        for k in keys[:-1]:
+            if k not in current:
+                current[k] = {}
+            current = current[k]
+        current[keys[-1]] = value
+        config_manager.save_config(config)
+        print(f"配置已更新: {key} = {value}")
+    except FileNotFoundError:
+        print("配置文件不存在，请先创建配置")
+
+if __name__ == "__main__":
+    app()

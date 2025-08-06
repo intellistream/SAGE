@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "intsage-middleware"
 version = "0.1.0"
-description = "SAGE Framework - Middleware Components (中间件组件)"
+description = "SAGE Framework - Middleware Services (Storage, Vector DB, Memory, etc.)"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -43,7 +43,7 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 dependencies = [
-    "intsage-kernel>=1.0.1",  # 使用最新版本
+    "intsage-kernel>=0.1.0",  # 使用统一版本号
     "python-jose==3.5.0",
     "passlib==1.7.4",
     "celery==5.5.3",

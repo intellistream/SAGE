@@ -6,7 +6,7 @@ import time
 import numpy as np
 from typing import Dict, List, Any
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.service import (
+from sage.middleware import (
     create_kv_service_factory,
     create_vdb_service_factory,
     create_graph_service_factory, 
@@ -14,7 +14,7 @@ from sage.service import (
 )
 
 # 导入API接口（用于类型提示和接口说明）
-from sage.service.api import KVServiceAPI, VDBServiceAPI, MemoryServiceAPI, GraphServiceAPI
+from sage.middleware.api import KVServiceAPI, VDBServiceAPI, MemoryServiceAPI, GraphServiceAPI
 
 
 class SAGEMicroservicesDemo:

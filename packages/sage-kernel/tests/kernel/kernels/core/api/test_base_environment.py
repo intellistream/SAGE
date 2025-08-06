@@ -1,12 +1,6 @@
-#!/usr/bin/envfrom sage.kernel.api.base_environment import BaseEnvironment
-from sage.kernel.api.datastream import DataStream
-from sage.kernel.api.transformation.source_transformation import SourceTransformation
-from sage.kernel.api.transformation.batch_transformation import BatchTransformation
-from sage.kernel.api.transformation.future_transformation import FutureTransformation
-from sage.kernel.api.function.base_function import BaseFunction
-from sage.kernel.kernels.runtime.factory.service_factory import ServiceFactory
+#!/usr/bin/env python3
 """
-Tests for sage.core.api.base_environment module
+Tests for sage.kernel.api.base_environment module
 
 This module provides comprehensive unit tests for the BaseEnvironment class,
 following the testing organization structure outlined in the issue.
@@ -20,9 +14,11 @@ from typing import Any
 
 from sage.kernel.api.base_environment import BaseEnvironment
 from sage.kernel.api.datastream import DataStream
-from sage.kernel.api.transformation.source_transformation import SourceTransformation
-from sage.kernel.api.transformation.batch_transformation import BatchTransformation
-from sage.kernel.api.transformation.future_transformation import FutureTransformation
+from sage.kernel.kernels.core.transformation.source_transformation import SourceTransformation
+from sage.kernel.kernels.core.transformation.batch_transformation import BatchTransformation
+from sage.kernel.kernels.core.transformation.future_transformation import FutureTransformation
+from sage.kernel.api.function.base_function import BaseFunction
+from sage.kernel.kernels.runtime.factory.service_factory import ServiceFactory
 from sage.kernel.api.function.base_function import BaseFunction
 from sage.kernel.kernels.runtime.factory.service_factory import ServiceFactory
 from sage.kernel.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor

@@ -7,7 +7,7 @@ import pickle
 import numpy as np
 from typing import Optional, List, Dict, Any
 from sage.kernel.utils.logging.custom_logger import CustomLogger
-from sage.service.services.memory.search_engine.vdb_index.base_vdb_index import BaseVDBIndex
+from sage.middleware.services.vdb.search_engine.base_vdb_index import BaseVDBIndex
 import os
 
 class FaissIndex(BaseVDBIndex):

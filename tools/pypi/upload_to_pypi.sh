@@ -237,24 +237,13 @@ build_package() {
         fi
     fi
     
-    # 字节码编译构建 (保护源代码)
-    log_info "$package_name: 启用字节码编译保护..."
+    # 标准构建 (暂时禁用字节码编译)
+    log_info "$package_name: 使用标准构建..."
     
-    # 使用字节码发布工具
-    if [[ -f "$SCRIPT_DIR/bytecode_release.py" ]]; then
-        if [[ "$VERBOSE" == "true" ]]; then
-            python3 "$SCRIPT_DIR/bytecode_release.py" "$package_path"
-        else
-            python3 "$SCRIPT_DIR/bytecode_release.py" "$package_path" > /dev/null 2>&1
-        fi
+    if [[ "$VERBOSE" == "true" ]]; then
+        python3 -m build
     else
-        # 回退到标准构建
-        log_warning "$package_name: 字节码工具未找到，使用标准构建"
-        if [[ "$VERBOSE" == "true" ]]; then
-            python3 -m build
-        else
-            python3 -m build > /dev/null 2>&1
-        fi
+        python3 -m build > /dev/null 2>&1
     fi
     
     # 验证构建结果

@@ -159,16 +159,12 @@ Documentation = "https://intellistream.github.io/SAGE-Pub/"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
 [project.scripts]
+# 主要的sage命令入口
 sage = "sage.kernel.cli.main:app"
 sage-kernel = "sage.kernel.cli.main:app"
-sage-jobmanager = "sage.kernel.cli.jobmanager_controller:app"
-sage-worker = "sage.kernel.cli.worker_manager:app"
-sage-head = "sage.kernel.cli.head_manager:app"
-sage-cluster = "sage.kernel.cli.cluster_manager:app"
-sage-job = "sage.kernel.cli.job:app"
-sage-deploy = "sage.kernel.cli.deploy:app"
-sage-extensions = "sage.kernel.cli.extensions:app"
-sage-config = "sage.kernel.cli.config_manager:app"
+
+# 统一core命令 - 唯一CLI入口点
+sage-core = "sage.kernel.cli.core_cli:app"
 
 [tool.setuptools.package-dir]
 "" = "src"

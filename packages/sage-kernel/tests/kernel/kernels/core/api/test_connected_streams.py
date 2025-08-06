@@ -12,10 +12,10 @@ from typing import List
 
 from sage.kernel.api.connected_streams import ConnectedStreams
 from sage.kernel.api.datastream import DataStream
-from sage.kernel.api.transformation.base_transformation import BaseTransformation
-from sage.kernel.api.transformation.map_transformation import MapTransformation
-from sage.kernel.api.transformation.sink_transformation import SinkTransformation
-from sage.kernel.api.transformation.join_transformation import JoinTransformation
+from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+from sage.kernel.kernels.core.transformation.map_transformation import MapTransformation
+from sage.kernel.kernels.core.transformation.sink_transformation import SinkTransformation
+from sage.kernel.kernels.core.transformation.join_transformation import JoinTransformation
 from sage.kernel.api.function.base_function import BaseFunction
 
 

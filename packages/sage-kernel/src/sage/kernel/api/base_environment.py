@@ -117,6 +117,34 @@ class BaseEnvironment(ABC):
         
         return service_factory
 
+    def register_service_factory(self, service_name: str, service_factory: ServiceFactory):
+        """
+        注册服务工厂到环境中
+        
+        Args:
+            service_name: 服务名称，用于标识服务
+            service_factory: 服务工厂实例
+            
+        Example:
+            # 注册预配置的服务工厂
+            kv_factory = create_kv_service_factory("my_kv", backend_type="memory")
+            env.register_service_factory("my_kv", kv_factory)
+        """
+        # 创建服务任务工厂
+        from sage.kernel.kernels.runtime.factory.service_task_factory import ServiceTaskFactory
+        service_task_factory = ServiceTaskFactory(
+            service_factory=service_factory,
+            remote=(self.platform == "remote")
+        )
+        
+        self.service_factories[service_name] = service_factory
+        self.service_task_factories[service_name] = service_task_factory
+        
+        platform_str = "remote" if self.platform == "remote" else "local"
+        self.logger.info(f"Registered {platform_str} service factory: {service_name}")
+        
+        return service_factory
+
     def from_kafka_source(self, 
                          bootstrap_servers: str,
                          topic: str,

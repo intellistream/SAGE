@@ -7,8 +7,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "intsage-frontend"
-version = "1.0.1"
-description = "SAGE Framework - Web Frontend and Dashboard Interface"
+version = "0.1.0"
+description = "SAGE Framework Frontend - Web UI and Dashboard"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [

@@ -7,10 +7,10 @@ import numpy as np
 from typing import List, Dict, Any
 
 # 导入API接口
-from sage.service.api import KVServiceAPI, VDBServiceAPI, MemoryServiceAPI, GraphServiceAPI
+from sage.middleware.api import KVServiceAPI, VDBServiceAPI, MemoryServiceAPI, GraphServiceAPI
 
 # 导入具体服务实现和工厂函数
-from sage.service import (
+from sage.middleware import (
     KVService, VDBService, MemoryService, GraphService,
     create_kv_service_factory, create_vdb_service_factory, 
     create_memory_service_factory, create_graph_service_factory

@@ -4,8 +4,8 @@ KV Service API 使用示例
 """
 import time
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.service.services.kv import create_kv_service_factory
-from sage.service.api.kv_api import KVServiceAPI
+from sage.middleware.services.kv.kv_service import create_kv_service_factory
+from sage.middleware.api.kv_api import KVServiceAPI
 
 
 def test_kv_service_api():

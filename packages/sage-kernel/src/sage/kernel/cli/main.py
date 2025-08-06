@@ -39,6 +39,11 @@ def version():
     print("Version: 0.1.2")
     print("Author: IntelliStream")
     print("Repository: https://github.com/intellistream/SAGE")
+    print("")
+    print("💡 Tip: Use 'sage-core' for unified core commands:")
+    print("   sage-core jobmanager  # instead of sage-jobmanager")
+    print("   sage-core worker      # instead of sage-worker")
+    print("   sage-core cluster     # instead of sage-cluster")
 
 @app.command("config")
 def config_info():

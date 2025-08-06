@@ -189,10 +189,25 @@ def main():
     print("🎯 SAGE字节码编译发布")
     print("=" * 50)
     
-    # 检查当前目录
-    if not Path("packages").exists():
-        print("❌ 请在SAGE项目根目录运行此脚本")
+    # 检查是否从包目录调用，如果是，则调整到项目根目录
+    current_dir = Path.cwd()
+    project_root = None
+    
+    # 尝试找到项目根目录
+    check_dir = current_dir
+    while check_dir != check_dir.parent:
+        if (check_dir / "packages").exists() and (check_dir / "pyproject.toml").exists():
+            project_root = check_dir
+            break
+        check_dir = check_dir.parent
+    
+    if project_root is None:
+        print("❌ 无法找到SAGE项目根目录")
         sys.exit(1)
+    
+    # 切换到项目根目录
+    os.chdir(project_root)
+    print(f"📂 工作目录: {project_root}")
     
     try:
         # 构建字节码包
