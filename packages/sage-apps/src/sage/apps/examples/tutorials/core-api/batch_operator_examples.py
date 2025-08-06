@@ -7,7 +7,7 @@
 
 from typing import List, Any, Iterator
 from sage.kernel.api.function.batch_function import BatchFunction, SimpleBatchFunction, FileBatchFunction
-from sage.kernel.api.operator.batch_operator import BatchOperator, BatchSourceOperator
+from sage.kernel.kernels.core.operator.batch_operator import BatchOperator, BatchSourceOperator
 
 
 class NumberRangeBatchFunction(BatchFunction):

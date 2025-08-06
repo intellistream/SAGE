@@ -6,7 +6,7 @@
 
 from sage.kernel.api.remote_environment import RemoteEnvironment
 from sage.kernel.api.function.base_function import BaseFunction
-from sage.kernel.api.operator.base_operator import BaseOperator
+from sage.kernel.kernels.core.operator.base_operator import BaseOperator
 from sage.kernel.api.local_environment import LocalEnvironment
 import json
 import time
