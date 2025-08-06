@@ -19,11 +19,11 @@ try:
     apps = get_apps()
     print(f"✅ Successfully got {len(apps)} command modules:")
     for name, app_obj in apps.items():
-        commands = list(app_obj.registered_commands.keys())
+        commands = [cmd.name for cmd in app_obj.registered_commands]
         print(f"  📦 {name}: {len(commands)} commands - {', '.join(commands)}")
     
     # Test main app commands
-    main_commands = list(app.registered_commands.keys())
+    main_commands = [cmd.name for cmd in app.registered_commands]
     print(f"\n✅ Main app has {len(main_commands)} registered commands:")
     for cmd in sorted(main_commands):
         print(f"  🔧 {cmd}")

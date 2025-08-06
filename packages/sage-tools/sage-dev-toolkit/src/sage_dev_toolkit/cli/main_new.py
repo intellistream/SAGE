@@ -22,11 +22,41 @@ def _register_commands():
     """注册所有模块化命令"""
     apps = get_apps()
     
-    # 从各个模块添加命令到主应用
-    for app_name, sub_app in apps.items():
-        # 将子应用的所有命令添加到主应用
-        for command_info in sub_app.registered_commands:
-            app.registered_commands.append(command_info)
+    # 直接从各个模块注册命令到主应用
+    # Core commands
+    core_app = apps['core']
+    for command_name, command_func in core_app.registered_commands.items():
+        app.registered_commands[command_name] = command_func
+    
+    # Package management commands  
+    package_app = apps['package_mgmt']
+    for command_name, command_func in package_app.registered_commands.items():
+        app.registered_commands[command_name] = command_func
+    
+    # Maintenance commands
+    maintenance_app = apps['maintenance']
+    for command_name, command_func in maintenance_app.registered_commands.items():
+        app.registered_commands[command_name] = command_func
+        
+    # Commercial commands
+    commercial_app = apps['commercial']
+    for command_name, command_func in commercial_app.registered_commands.items():
+        app.registered_commands[command_name] = command_func
+        
+    # Development commands
+    development_app = apps['development']
+    for command_name, command_func in development_app.registered_commands.items():
+        app.registered_commands[command_name] = command_func
+        
+    # Reporting commands
+    reporting_app = apps['reporting']
+    for command_name, command_func in reporting_app.registered_commands.items():
+        app.registered_commands[command_name] = command_func
+        
+    # Home commands
+    home_app = apps['home']
+    for command_name, command_func in home_app.registered_commands.items():
+        app.registered_commands[command_name] = command_func
 
 # 注册所有命令
 _register_commands()
