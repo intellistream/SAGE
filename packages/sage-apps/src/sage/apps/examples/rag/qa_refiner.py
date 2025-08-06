@@ -4,14 +4,14 @@ import json
 from sage.kernel.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.utils.config.loader import load_config
-from sage.lib.io_utils.batch import HFDatasetBatch
+from sage.apps.lib.io_utils.batch import HFDatasetBatch
 from sage.service.memory.memory_service import MemoryService
 
-from sage.lib.rag.retriever import DenseRetriever
+from sage.apps.lib.rag.retriever import DenseRetriever
 from sage.plugins.longrefiner_fn.longrefiner_adapter import LongRefinerAdapter
-from sage.lib.rag.promptor import QAPromptor
-from sage.lib.rag.generator import OpenAIGenerator
-from sage.lib.rag.evaluate import (
+from sage.apps.lib.rag.promptor import QAPromptor
+from sage.apps.lib.rag.generator import OpenAIGenerator
+from sage.apps.lib.rag.evaluate import (
     F1Evaluate, RecallEvaluate, BertRecallEvaluate, RougeLEvaluate,
     BRSEvaluate, AccuracyEvaluate, TokenCountEvaluate,
     LatencyEvaluate, ContextRecallEvaluate, CompressionRateEvaluate

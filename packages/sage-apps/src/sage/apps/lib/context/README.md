@@ -95,7 +95,7 @@
 ## 快速开始
 
 ```python
-from sage.lib.context import ModelContext, SearchSession, QualityLabel
+from sage.apps.lib.context import ModelContext, SearchSession, QualityLabel
 
 # 创建模型上下文
 model_ctx = ModelContext(
@@ -150,7 +150,7 @@ results = context.search(
 
 ### 上下文融合
 ```python
-from sage.lib.context import ContextFusion
+from sage.apps.lib.context import ContextFusion
 
 fusion = ContextFusion()
 combined_context = fusion.merge([context1, context2, context3])
@@ -158,7 +158,7 @@ combined_context = fusion.merge([context1, context2, context3])
 
 ### 上下文分析
 ```python
-from sage.lib.context import ContextAnalyzer
+from sage.apps.lib.context import ContextAnalyzer
 
 analyzer = ContextAnalyzer()
 insights = analyzer.analyze(context)
@@ -167,7 +167,7 @@ patterns = analyzer.find_patterns(context_history)
 
 ### 上下文优化
 ```python
-from sage.lib.context import ContextOptimizer
+from sage.apps.lib.context import ContextOptimizer
 
 optimizer = ContextOptimizer()
 optimized_context = optimizer.optimize(context, constraints)

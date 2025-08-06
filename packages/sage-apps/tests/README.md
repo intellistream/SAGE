@@ -320,7 +320,7 @@ from unittest.mock import Mock, patch
 
 # 尝试导入，处理依赖不可用的情况
 try:
-    from sage.lib.module_name import TargetClass
+    from sage.apps.lib.module_name import TargetClass
     MODULE_AVAILABLE = True
 except ImportError as e:
     MODULE_AVAILABLE = False

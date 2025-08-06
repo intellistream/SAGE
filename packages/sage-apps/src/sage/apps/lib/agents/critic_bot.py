@@ -4,9 +4,9 @@ from typing import Dict, Any, Tuple
 from jinja2 import Template
 from sage.kernel.api.function.map_function import MapFunction
 from sage.llm.clients.base import apply_generator_model
-from sage.lib.context.model_context import ModelContext
-from sage.lib.context.quality_label import QualityLabel
-from sage.lib.context.critic_evaluation import CriticEvaluation
+from sage.apps.lib.context.model_context import ModelContext
+from sage.apps.lib.context.quality_label import QualityLabel
+from sage.apps.lib.context.critic_evaluation import CriticEvaluation
 
 
 

@@ -2,7 +2,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-from sage.lib.tools.base.base_tool import BaseTool
+from sage.apps.lib.tools.base.base_tool import BaseTool
 import logging
 
 

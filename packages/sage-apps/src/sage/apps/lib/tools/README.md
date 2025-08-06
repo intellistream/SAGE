@@ -94,25 +94,25 @@ Nature新闻获取工具：
 
 ```python
 # ArXiv论文搜索
-from sage.lib.tools.arxiv_paper_searcher import ArxivPaperSearcher
+from sage.apps.lib.tools.arxiv_paper_searcher import ArxivPaperSearcher
 
 searcher = ArxivPaperSearcher()
 papers = searcher.search("machine learning", max_results=10)
 
 # 图像描述生成
-from sage.lib.tools.image_captioner import ImageCaptioner
+from sage.apps.lib.tools.image_captioner import ImageCaptioner
 
 captioner = ImageCaptioner()
 description = captioner.caption("path/to/image.jpg")
 
 # 文本检测
-from sage.lib.tools.text_detector import TextDetector
+from sage.apps.lib.tools.text_detector import TextDetector
 
 detector = TextDetector()
 text_results = detector.detect_text("path/to/image_with_text.jpg")
 
 # URL文本提取
-from sage.lib.tools.url_text_extractor import URLTextExtractor
+from sage.apps.lib.tools.url_text_extractor import URLTextExtractor
 
 extractor = URLTextExtractor()
 content = extractor.extract("https://example.com/article")
@@ -122,7 +122,7 @@ content = extractor.extract("https://example.com/article")
 
 ```python
 from sage.api.env import LocalEnvironment
-from sage.lib.tools import ArxivPaperSearcher, ImageCaptioner
+from sage.apps.lib.tools import ArxivPaperSearcher, ImageCaptioner
 
 # 创建环境
 env = LocalEnvironment("research_pipeline")
@@ -202,7 +202,7 @@ extractor_config = {
 
 ### 自定义工具
 ```python
-from sage.lib.tools.base import BaseTool
+from sage.apps.lib.tools.base import BaseTool
 
 class CustomTool(BaseTool):
     def __init__(self, config=None):
@@ -220,7 +220,7 @@ class CustomTool(BaseTool):
 
 ### 工具注册
 ```python
-from sage.lib.tools.base import ToolRegistry
+from sage.apps.lib.tools.base import ToolRegistry
 
 registry = ToolRegistry()
 registry.register_tool("custom_tool", CustomTool)

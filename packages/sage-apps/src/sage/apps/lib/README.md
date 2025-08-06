@@ -63,8 +63,8 @@ SAGE库模块提供丰富的功能组件和工具集合，包括智能代理、�
 ### 独立使用
 ```python
 # 直接使用库组件
-from sage.lib.agents import AnswerBot
-from sage.lib.rag import Retriever, Generator
+from sage.apps.lib.agents import AnswerBot
+from sage.apps.lib.rag import Retriever, Generator
 
 bot = AnswerBot()
 answer = bot.generate_answer("什么是机器学习？")
@@ -78,8 +78,8 @@ result = generator.generate(query, retriever.retrieve(query))
 ```python
 # 在SAGE数据流中使用
 from sage.api.env import LocalEnvironment
-from sage.lib.tools import ArxivPaperSearcher
-from sage.lib.io import FileSink
+from sage.apps.lib.tools import ArxivPaperSearcher
+from sage.apps.lib.io import FileSink
 
 env = LocalEnvironment("research_pipeline")
 
@@ -94,8 +94,8 @@ env.execute()
 ### 组件协作
 ```python
 # 多组件协作
-from sage.lib.agents import ChiefBot, SearcherBot, AnswerBot
-from sage.lib.context import ModelContext
+from sage.apps.lib.agents import ChiefBot, SearcherBot, AnswerBot
+from sage.apps.lib.context import ModelContext
 
 # 创建代理团队
 chief = ChiefBot()

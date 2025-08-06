@@ -12,7 +12,7 @@ import os
 pytest_plugins = []
 
 try:
-    from sage.lib.io_utils.source import (
+    from sage.apps.lib.io_utils.source import (
         TextFileSource, JSONFileSource, CSVFileSource, 
         KafkaSource, DatabaseSource, APISource
     )
@@ -31,7 +31,7 @@ class TestTextFileSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
         
-        from sage.lib.io_utils.source import TextFileSource
+        from sage.apps.lib.io_utils.source import TextFileSource
         assert TextFileSource is not None
     
     def test_text_file_source_initialization(self, temp_dir):
@@ -101,7 +101,7 @@ class TestJSONFileSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
         
-        from sage.lib.io_utils.source import JSONFileSource
+        from sage.apps.lib.io_utils.source import JSONFileSource
         assert JSONFileSource is not None
     
     def test_json_file_source_initialization(self, temp_dir):
@@ -180,7 +180,7 @@ class TestCSVFileSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
         
-        from sage.lib.io_utils.source import CSVFileSource
+        from sage.apps.lib.io_utils.source import CSVFileSource
         assert CSVFileSource is not None
     
     def test_csv_file_source_initialization(self, temp_dir):
@@ -232,7 +232,7 @@ class TestKafkaSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
         
-        from sage.lib.io_utils.source import KafkaSource
+        from sage.apps.lib.io_utils.source import KafkaSource
         assert KafkaSource is not None
     
     def test_kafka_source_initialization(self):
@@ -292,7 +292,7 @@ class TestDatabaseSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
         
-        from sage.lib.io_utils.source import DatabaseSource
+        from sage.apps.lib.io_utils.source import DatabaseSource
         assert DatabaseSource is not None
     
     def test_database_source_initialization(self):
@@ -353,7 +353,7 @@ class TestAPISource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
         
-        from sage.lib.io_utils.source import APISource
+        from sage.apps.lib.io_utils.source import APISource
         assert APISource is not None
     
     def test_api_source_initialization(self):

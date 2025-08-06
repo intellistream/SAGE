@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from sage.lib.rag.reranker import BGEReranker, LLMbased_Reranker
+from sage.apps.lib.rag.reranker import BGEReranker, LLMbased_Reranker
 import torch
 
 @pytest.fixture

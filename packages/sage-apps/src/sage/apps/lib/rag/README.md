@@ -127,7 +127,7 @@ Promptor  Searcher   Evaluate  Writer   Profiler
 ## 快速开始
 
 ```python
-from sage.lib.rag import Retriever, Generator, RAGPipeline
+from sage.apps.lib.rag import Retriever, Generator, RAGPipeline
 
 # 创建RAG组件
 retriever = Retriever(
@@ -187,7 +187,7 @@ evaluation_config = {
 
 ### 文档预处理
 ```python
-from sage.lib.rag.chunk import DocumentChunker
+from sage.apps.lib.rag.chunk import DocumentChunker
 
 chunker = DocumentChunker(
     chunk_size=512,
@@ -200,7 +200,7 @@ chunks = chunker.chunk_documents(documents)
 
 ### 向量索引构建
 ```python
-from sage.lib.rag.retriever import VectorIndexBuilder
+from sage.apps.lib.rag.retriever import VectorIndexBuilder
 
 builder = VectorIndexBuilder(
     embedding_model="text-embedding-ada-002",

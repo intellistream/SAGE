@@ -6,12 +6,12 @@ from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.remote_environment import RemoteEnvironment
 from sage.service.memory.memory_service import MemoryService
 from sage.kernel.utils.embedding_methods.embedding_api import apply_embedding_model
-from sage.lib.io_utils.source import FileSource
-from sage.lib.io_utils.sink import FileSink
-from sage.lib.io_utils.sink import TerminalSink
-from sage.lib.rag.generator import OpenAIGenerator
-from sage.lib.rag.promptor import QAPromptor
-from sage.lib.rag.retriever import DenseRetriever
+from sage.apps.lib.io_utils.source import FileSource
+from sage.apps.lib.io_utils.sink import FileSink
+from sage.apps.lib.io_utils.sink import TerminalSink
+from sage.apps.lib.rag.generator import OpenAIGenerator
+from sage.apps.lib.rag.promptor import QAPromptor
+from sage.apps.lib.rag.retriever import DenseRetriever
 from sage.kernel.utils.config.loader import load_config
 
 class SafeBiologyRetriever(MapFunction):

@@ -1,6 +1,6 @@
 import os
 import time
-from sage.lib.tools.base.base_tool import BaseTool
+from sage.apps.lib.tools.base.base_tool import BaseTool
 from ..utils.openaiclient import OpenAIClient
 
 class ImageCaptioner(BaseTool):

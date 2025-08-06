@@ -66,7 +66,7 @@ OpenAI客户端工具：
 ## 快速开始
 
 ```python
-from sage.lib.utils import ContextSink, EvaluateFilter
+from sage.apps.lib.utils import ContextSink, EvaluateFilter
 from sage.api.env import LocalEnvironment
 
 # 创建环境

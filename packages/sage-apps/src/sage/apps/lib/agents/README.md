@@ -97,7 +97,7 @@ Critic    Critic   Critic
 ## 快速开始
 
 ```python
-from sage.lib.agents import AnswerBot, QuestionBot, SearcherBot
+from sage.apps.lib.agents import AnswerBot, QuestionBot, SearcherBot
 
 # 创建代理实例
 answer_bot = AnswerBot(model="gpt-4")
@@ -120,7 +120,7 @@ follow_up = question_bot.generate_questions(user_query, answer)
 ## 协作工作流
 
 ```python
-from sage.lib.agents import ChiefBot
+from sage.apps.lib.agents import ChiefBot
 
 # 创建主管代理
 chief = ChiefBot()
@@ -155,7 +155,7 @@ bot = AnswerBot(config=agent_config)
 
 ### 自定义代理
 ```python
-from sage.lib.agents.agent import BaseAgent
+from sage.apps.lib.agents.agent import BaseAgent
 
 class CustomBot(BaseAgent):
     def __init__(self, config=None):

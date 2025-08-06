@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 
-from sage.lib.rag.evaluate import (
+from sage.apps.lib.rag.evaluate import (
     F1Evaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate
 )
 
@@ -132,7 +132,7 @@ def test_f1_score_calculation():
 
 def test_recall_calculation():
     """测试RecallEvaluate类"""
-    from sage.lib.rag.evaluate import RecallEvaluate
+    from sage.apps.lib.rag.evaluate import RecallEvaluate
     
     evaluator = RecallEvaluate({})
     test_data = {
@@ -149,7 +149,7 @@ def test_recall_calculation():
 
 def test_accuracy_evaluate():
     """测试AccuracyEvaluate类"""
-    from sage.lib.rag.evaluate import AccuracyEvaluate
+    from sage.apps.lib.rag.evaluate import AccuracyEvaluate
     
     evaluator = AccuracyEvaluate({})
     

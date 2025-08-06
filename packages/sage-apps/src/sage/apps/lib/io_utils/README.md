@@ -61,8 +61,8 @@ IO模块实现了SAGE框架的数据输入输出抽象层，提供标准化的�
 
 ```python
 from sage.api.env import LocalEnvironment
-from sage.lib.io.source import FileSource
-from sage.lib.io.sink import FileSink, ConsoleSink
+from sage.apps.lib.io.source import FileSource
+from sage.apps.lib.io.sink import FileSink, ConsoleSink
 
 # 创建执行环境
 env = LocalEnvironment("data_processing")
@@ -160,7 +160,7 @@ sink = FileSink(config=sink_config)
 
 ### 自定义数据源
 ```python
-from sage.lib.io.source import BaseSource
+from sage.apps.lib.io.source import BaseSource
 
 class CustomSource(BaseSource):
     def __init__(self, config):
@@ -178,7 +178,7 @@ class CustomSource(BaseSource):
 
 ### 自定义接收器
 ```python
-from sage.lib.io.sink import BaseSink
+from sage.apps.lib.io.sink import BaseSink
 
 class CustomSink(BaseSink):
     def __init__(self, config):

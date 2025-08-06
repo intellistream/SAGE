@@ -44,7 +44,7 @@ python qa_evaluate.py
 
 ### 自定义评估
 ```python
-from sage.lib.rag.evaluate import F1Evaluate, BertRecallEvaluate
+from sage.apps.lib.rag.evaluate import F1Evaluate, BertRecallEvaluate
 
 # 配置评估器
 evaluators = [
@@ -130,7 +130,7 @@ evaluation:
 
 ### 添加自定义评估器
 ```python
-from sage.lib.rag.evaluate import BaseEvaluate
+from sage.apps.lib.rag.evaluate import BaseEvaluate
 
 class CustomEvaluate(BaseEvaluate):
     def evaluate(self, predicted, ground_truth):

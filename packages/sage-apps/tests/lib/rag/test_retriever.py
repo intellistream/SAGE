@@ -10,7 +10,7 @@ import numpy as np
 pytest_plugins = []
 
 try:
-    from sage.lib.rag.retriever import DenseRetriever, BM25Retriever, HybridRetriever
+    from sage.apps.lib.rag.retriever import DenseRetriever, BM25Retriever, HybridRetriever
     RETRIEVER_AVAILABLE = True
 except ImportError as e:
     RETRIEVER_AVAILABLE = False
@@ -26,7 +26,7 @@ class TestDenseRetriever:
         if not RETRIEVER_AVAILABLE:
             pytest.skip("Retriever module not available")
         
-        from sage.lib.rag.retriever import DenseRetriever
+        from sage.apps.lib.rag.retriever import DenseRetriever
         assert DenseRetriever is not None
     
     def test_dense_retriever_initialization(self, sample_config):
@@ -91,7 +91,7 @@ class TestBM25Retriever:
         if not RETRIEVER_AVAILABLE:
             pytest.skip("Retriever module not available")
         
-        from sage.lib.rag.retriever import BM25Retriever
+        from sage.apps.lib.rag.retriever import BM25Retriever
         assert BM25Retriever is not None
     
     def test_bm25_retriever_initialization(self, sample_config):
@@ -144,7 +144,7 @@ class TestHybridRetriever:
         if not RETRIEVER_AVAILABLE:
             pytest.skip("Retriever module not available")
         
-        from sage.lib.rag.retriever import HybridRetriever
+        from sage.apps.lib.rag.retriever import HybridRetriever
         assert HybridRetriever is not None
     
     def test_hybrid_retriever_initialization(self, sample_config):

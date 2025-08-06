@@ -12,7 +12,7 @@ from sage.kernel.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.api.function.map_function import MapFunction
 from sage.kernel.api.function.source_function import SourceFunction
-from sage.lib.io_utils.sink import TerminalSink
+from sage.apps.lib.io_utils.sink import TerminalSink
 
 
 class SimpleQuestionSource(SourceFunction):

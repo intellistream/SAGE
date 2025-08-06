@@ -8,7 +8,7 @@ import requests
 # 假设您的项目根目录是 /home/wxh/refactor_wxh/MemoRAG/
 # 并且您会从该根目录运行 pytest
 # ================================
-from sage.lib.tools.arxiv_paper_searcher import _Searcher_Tool
+from sage.apps.lib.tools.arxiv_paper_searcher import _Searcher_Tool
 
 
 # ================================

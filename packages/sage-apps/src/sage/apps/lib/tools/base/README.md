@@ -31,7 +31,7 @@
 
 ### 基础工具类
 ```python
-from sage.lib.tools.base.base_tool import BaseTool
+from sage.apps.lib.tools.base.base_tool import BaseTool
 
 class MyTool(BaseTool):
     def __init__(self, config=None):
@@ -49,7 +49,7 @@ class MyTool(BaseTool):
 
 ### 工具注册
 ```python
-from sage.lib.tools.base.tool_registry import ToolRegistry
+from sage.apps.lib.tools.base.tool_registry import ToolRegistry
 
 registry = ToolRegistry()
 registry.register_tool("my_tool", MyTool, version="1.0.0")

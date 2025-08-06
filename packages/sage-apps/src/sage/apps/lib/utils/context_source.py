@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from sage.kernel.api.function.source_function import SourceFunction
 from sage.kernel.utils.logging.custom_logger import CustomLogger
-from sage.lib.context.model_context import ModelContext
+from sage.apps.lib.context.model_context import ModelContext
 
 class ContextFileSource(SourceFunction):
     """

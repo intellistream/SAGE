@@ -11,7 +11,7 @@ from collections import Counter
 pytest_plugins = []
 
 try:
-    from sage.lib.rag.evaluate import (
+    from sage.apps.lib.rag.evaluate import (
         F1Evaluate, RecallEvaluate, BertRecallEvaluate, 
         RougeLEvaluate, BRSEvaluate, AccuracyEvaluate
     )

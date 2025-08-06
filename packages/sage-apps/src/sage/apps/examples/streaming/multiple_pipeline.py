@@ -1,14 +1,14 @@
 import logging
 
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.lib.io_utils.sink import MemWriteSink, FileSink
-from sage.lib.io_utils.source import FileSource
+from sage.apps.lib.io_utils.sink import MemWriteSink, FileSink
+from sage.apps.lib.io_utils.source import FileSource
 
-from sage.lib.rag.chunk import CharacterSplitter
-from sage.lib.rag.generator import OpenAIGenerator
-from sage.lib.rag.promptor import QAPromptor
-from sage.lib.rag.retriever import DenseRetriever
-from sage.lib.rag.writer import MemoryWriter
+from sage.apps.lib.rag.chunk import CharacterSplitter
+from sage.apps.lib.rag.generator import OpenAIGenerator
+from sage.apps.lib.rag.promptor import QAPromptor
+from sage.apps.lib.rag.retriever import DenseRetriever
+from sage.apps.lib.rag.writer import MemoryWriter
 
 from sage.kernel.utils.config.loader import load_config
 
