@@ -17,7 +17,7 @@ def load_config():
     config_file = Path.home() / ".sage" / "config.yaml"
     if not config_file.exists():
         typer.echo(f"❌ Config file not found: {config_file}")
-        typer.echo("💡 Please run setup.py first to create default config")
+        typer.echo("💡 Please run 'sage init' to create default config")
         raise typer.Exit(1)
     
     try:

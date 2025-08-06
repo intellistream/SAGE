@@ -3,13 +3,15 @@ import pickle
 import inspect
 import threading
 import io
+import types
 from collections.abc import Mapping, Sequence, Set
 
 # TODO: state 的持久化管理不应该由 function来定义，而是应该交给系统自动在operator / task里面生成。
 # 不可序列化类型黑名单
 _BLACKLIST = (
-    io.IOBase,         # 文件句柄基类（包括所有文件类型）
-    threading.Thread,  # 线程
+    io.IOBase,                    # 文件句柄基类（包括所有文件类型）
+    threading.Thread,             # 线程
+    types.BuiltinFunctionType,    # 内置函数（如 open, len 等）
 )
 
 def _gather_attrs(obj):

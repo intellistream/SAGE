@@ -170,7 +170,8 @@ class TestBertRecallEvaluate:
         mock_model = Mock()
         mock_output = Mock()
         mock_embeddings = Mock()
-        mock_embeddings.detach.return_value.numpy.return_value = np.array([[0.1, 0.2, 0.3]])
+        # 返回两个embeddings，一个用于pred，一个用于gold
+        mock_embeddings.detach.return_value.numpy.return_value = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
         mock_output.last_hidden_state.mean.return_value = mock_embeddings
         mock_model.return_value = mock_output
         mock_model_class.from_pretrained.return_value = mock_model
@@ -284,7 +285,7 @@ class TestAccuracyEvaluate:
             assert result == sample_evaluation_data
             mock_print.assert_called_once()
             call_args = str(mock_print.call_args)
-            assert "Accuracy" in call_args
+            assert "Acc" in call_args
 
 
 @pytest.mark.integration

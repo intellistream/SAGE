@@ -49,7 +49,7 @@ def is_ray_available() -> bool:
         bool: Ray是否可用
     """
     try:
-        import ray
+        importlib.import_module('ray')
         return True
     except ImportError:
         return False
@@ -66,7 +66,7 @@ def is_ray_cluster_active() -> bool:
         return False
     
     try:
-        import ray
+        ray = importlib.import_module('ray')
         return ray.is_initialized()
     except Exception:
         return False
@@ -83,7 +83,7 @@ def get_ray_cluster_info() -> Dict[str, Any]:
         return {"available": False, "error": "Ray not installed"}
     
     try:
-        import ray
+        ray = importlib.import_module('ray')
         
         if not ray.is_initialized():
             return {"available": True, "initialized": False}
@@ -175,7 +175,7 @@ def get_system_resources() -> Dict[str, Any]:
         Dict: 系统资源信息
     """
     try:
-        import psutil
+        psutil = importlib.import_module('psutil')
         
         # CPU信息
         cpu_info = {
@@ -277,7 +277,7 @@ def get_network_interfaces() -> List[Dict[str, Any]]:
         List[Dict]: 网络接口列表
     """
     try:
-        import psutil
+        psutil = importlib.import_module('psutil')
         
         interfaces = []
         for interface, addrs in psutil.net_if_addrs().items():

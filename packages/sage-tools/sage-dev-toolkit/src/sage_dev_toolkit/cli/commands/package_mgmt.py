@@ -5,8 +5,9 @@ Includes: package, compile, dependencies commands.
 """
 
 import json
+import tomli
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import typer
 from rich.table import Table
@@ -18,6 +19,36 @@ from .common import (
 from ...core.bytecode_compiler import BytecodeCompiler, compile_multiple_packages
 
 app = typer.Typer(name="package", help="Package management commands")
+
+
+def _load_project_config(project_root: Path) -> dict:
+    """加载项目配置文件"""
+    config_path = project_root / "project_config.toml"
+    if not config_path.exists():
+        raise FileNotFoundError(f"项目配置文件不存在: {config_path}")
+    
+    with open(config_path, 'rb') as f:
+        return tomli.load(f)
+
+
+def _get_all_package_paths(project_root: Path) -> List[Path]:
+    """从project_config.toml获取所有包的路径"""
+    try:
+        config = _load_project_config(project_root)
+        packages = config.get('packages', {})
+        
+        package_paths = []
+        for package_name, package_dir in packages.items():
+            package_path = project_root / package_dir
+            if package_path.exists() and package_path.is_dir():
+                package_paths.append(package_path)
+            else:
+                console.print(f"⚠️  包路径不存在或不是目录: {package_path}", style="yellow")
+        
+        return package_paths
+    except Exception as e:
+        console.print(f"❌ 读取项目配置失败: {e}", style="red")
+        return []
 
 
 @app.command("manage-package")

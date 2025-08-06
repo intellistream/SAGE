@@ -125,6 +125,78 @@ def test_command(
         handle_command_error(e, "Test execution", verbose)
 
 
+@app.command("test-cache")
+def test_cache_command(
+    action: str = typer.Option("status", help="Cache action: status, clear, history"),
+    limit: int = typer.Option(5, help="Number of history entries to show"),
+    project_root: Optional[str] = PROJECT_ROOT_OPTION,
+    config: Optional[str] = CONFIG_OPTION,
+    environment: Optional[str] = ENVIRONMENT_OPTION,
+    verbose: bool = VERBOSE_OPTION
+):
+    """Manage test failure cache."""
+    
+    if action not in ["status", "clear", "history"]:
+        console.print("❌ Invalid action. Choose from: status, clear, history", style="red")
+        raise typer.Exit(1)
+    
+    try:
+        toolkit = get_toolkit(project_root, config, environment)
+        
+        if 'test_runner' not in toolkit.tools:
+            console.print("❌ Test runner not available", style="red")
+            raise typer.Exit(1)
+        
+        runner = toolkit.tools['test_runner'](str(toolkit.config.project_root))
+        
+        if action == "status":
+            runner.print_cache_status()
+            
+        elif action == "clear":
+            runner.clear_failure_cache()
+            console.print("✅ Test failure cache cleared", style="green")
+            
+        elif action == "history":
+            history = runner.get_cache_history(limit)
+            
+            if not history:
+                console.print("📜 No test run history available", style="yellow")
+                return
+            
+            console.print(f"📜 Test Run History (last {len(history)} runs):")
+            
+            for i, entry in enumerate(history):
+                timestamp = entry.get('timestamp', 'Unknown')
+                summary = entry.get('summary', {})
+                failed_count = entry.get('failed_count', 0)
+                
+                # Format timestamp
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                    time_str = dt.strftime('%Y-%m-%d %H:%M:%S')
+                except:
+                    time_str = timestamp
+                
+                status_emoji = "✅" if failed_count == 0 else "❌"
+                console.print(f"  {i+1}. {status_emoji} {time_str}")
+                console.print(f"     Tests: {summary.get('total', 0)} total, "
+                            f"{summary.get('passed', 0)} passed, {summary.get('failed', 0)} failed")
+                console.print(f"     Duration: {summary.get('execution_time', 0):.2f}s")
+                console.print(f"     Mode: {summary.get('mode', 'unknown')}")
+                
+                if failed_count > 0:
+                    failed_tests = entry.get('failed_tests', [])
+                    if failed_tests:
+                        console.print(f"     Failed tests: {', '.join(failed_tests[:3])}")
+                        if len(failed_tests) > 3:
+                            console.print(f"     ... and {len(failed_tests) - 3} more")
+                console.print()
+            
+    except Exception as e:
+        handle_command_error(e, "Test cache management", verbose)
+
+
 @app.command("analyze")
 def analyze_command(
     analysis_type: str = typer.Option("summary", help="Analysis type: full, summary, circular"),
