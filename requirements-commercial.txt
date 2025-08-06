@@ -1,46 +1,21 @@
 # SAGE Enterprise Edition Requirements
-# 企业版安装 - 基于开源版本的企业功能扩展
+# 企业版安装 - 清洁版本，避免依赖冲突
 
-# === 基础安装 (必需) ===
-# 安装基础SAGE框架
--r requirements.txt
-
-# === 企业功能安装 ===
-# 现代Python包管理方式 - 通过optional dependencies
-
-# 方式1: 安装完整企业版 (推荐)
-sage[enterprise]
-
-# 方式2: 按模块安装企业功能
-intsage-kernel[enterprise]      # 企业级内核扩展（高性能队列、优化算法）
-intsage-middleware[enterprise]   # 企业级中间件（数据库、消息队列）
-intsage-apps[enterprise]         # 企业级应用组件（向量数据库、图计算）
-
-# 方式3: 开发模式 (本地开发推荐)
-# -e .[enterprise]                 # 安装本地项目的企业版
-
-# === 安装指南 ===
+# === 推荐安装方式 ===
+# 
+# 方式1: 分步安装 (推荐，最快)
+# pip install -r requirements.txt
+# pip install -r requirements-commercial.txt
 #
-# 1. 简单安装企业版:
-#    pip install -r requirements-commercial.txt
-#
-# 2. 开发模式安装:
-#    pip install -e .[enterprise]
-#    
-# 3. 带license验证安装:
-#    SAGE_LICENSE_KEY=your-key pip install -r requirements-commercial.txt
-#
-# 4. 检查已安装功能:
-#    python -c "import sage; print(sage.check_enterprise_features())"
-#
-# 5. 验证企业功能:
-#    python -c "from sage.kernel.enterprise import sage_queue; print('High-performance queue available')"
-#    python -c "from sage.middleware.enterprise import sage_db; print('Enterprise database available')"
-#    python -c "from sage.apps.enterprise import vectordb; print('Enterprise apps available')"
+# 方式2: 本地企业版安装 (开发用)
+# pip install -e packages/sage[enterprise]
 
-# === 许可说明 ===
-# • 企业功能需要有效的SAGE商业许可证
-# • 无许可证时企业功能将不可用，但开源功能正常工作
-# • 企业功能通过动态license检查控制访问
-# • 每个包的企业功能可以独立控制
-# • 企业功能扩展而不替代开源功能
+# === 企业版本地包安装 ===
+# 通过optional dependencies安装企业功能
+-e packages/sage-kernel[enterprise]
+-e packages/sage-middleware[enterprise] 
+-e packages/sage-apps[enterprise]
+
+# === 验证 ===
+# python tools/license/sage_license.py status
+# 企业功能需要有效的SAGE商业许可证，无许可证时企业功能将被禁用

@@ -45,6 +45,31 @@ dependencies = [
 [project.license]
 text = "MIT"
 
+[project.optional-dependencies]
+# Commercial/Enterprise features (requires license)
+# 安装所有子包的企业版功能
+enterprise = [
+    "intsage-kernel[enterprise]",
+    "intsage-middleware[enterprise]", 
+    "intsage-apps[enterprise]",
+]
+
+# 开发环境 (包含企业版)
+enterprise-dev = [
+    "intsage[enterprise]",
+    "intsage-kernel[enterprise-dev]",
+    "intsage-middleware[enterprise-dev]",
+    "intsage-apps[enterprise-dev]",
+]
+
+# 完整安装 (所有功能)
+full = [
+    "intsage[enterprise]",
+    "intsage-kernel[enhanced]",
+    "intsage-middleware[vllm,database,messagequeue]",
+    "intsage-apps[vectordb,advanced]",
+]
+
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Repository = "https://github.com/intellistream/SAGE.git"
@@ -52,6 +77,7 @@ Documentation = "https://intellistream.github.io/SAGE-Pub/"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools]
-packages = []
+packages = ["intsage"]
+package-dir = {"" = "src"}
 include-package-data = false
 zip-safe = true

@@ -100,7 +100,7 @@ class LicenseClient:
                     pass
         else:
             print("Features: Open-source functionality")
-            print("💡 Get commercial version: Contact sales@sage.com")
+            print("💡 Get commercial version: Contact intellistream@outlook.com")
 
 
 def main():

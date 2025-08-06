@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 # 添加license工具到路径
-_PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent
+_PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent.parent
 _LICENSE_TOOLS = _PROJECT_ROOT / "tools" / "license"
 
 if _LICENSE_TOOLS.exists():
@@ -40,15 +40,8 @@ def _check_enterprise_license():
 # 企业版功能可用性检查
 _ENTERPRISE_AVAILABLE = _check_enterprise_license()
 
-if not _ENTERPRISE_AVAILABLE:
-    import warnings
-    warnings.warn(
-        f"SAGE sage-userspace Enterprise features require a valid commercial license. "
-        "Enterprise functionality will be disabled. "
-        "Please contact your SAGE vendor for licensing information.",
-        UserWarning,
-        stacklevel=2
-    )
+# Note: Enterprise license warning is now handled in the main sage package
+# to avoid duplicate warnings when importing multiple enterprise modules
 
 
 def require_enterprise_license(func):

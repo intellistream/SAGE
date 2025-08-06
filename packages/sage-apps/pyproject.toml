@@ -160,7 +160,7 @@ testing = [
     "pytest-mock>=3.10.0",
 ]
 full = [
-    "sage-userspace[vectordb,advanced,graph,math,graphdb,rag,llm,embedding,storage,network,testing]",
+    "intsage-apps[vectordb,advanced,graph,math,graphdb,rag,llm,embedding,storage,network,testing]",
 ]
 
 [project.urls]

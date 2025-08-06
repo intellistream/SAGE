@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 # 添加license工具到路径
-_PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent
+_PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent.parent
 _LICENSE_TOOLS = _PROJECT_ROOT / "tools" / "license"
 
 if _LICENSE_TOOLS.exists():

@@ -101,9 +101,9 @@ enterprise = [
     # High-performance serialization
     "orjson>=3.8.0",
     "msgpack>=1.0.0",
-    "apache-arrow>=15.0.0",
+    "pyarrow>=15.0.0",
     # Caching and performance
-    "memcached>=1.6.0",
+    "python-memcached>=1.6.0",
     "elasticsearch>=8.0.0",
     # Monitoring and observability
     "prometheus-client>=0.19.0",
