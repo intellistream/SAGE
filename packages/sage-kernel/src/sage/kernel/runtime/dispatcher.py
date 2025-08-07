@@ -219,11 +219,7 @@ class Dispatcher():
         # 停止所有服务任务
         for service_name, service_task in self.services.items():
             try:
-                if hasattr(service_task, 'stop'):
-                    service_task.stop()
-                elif hasattr(service_task, '_actor') and hasattr(service_task._actor, 'stop'):
-                    # ActorWrapper包装的服务
-                    service_task._actor.stop()
+                service_task.stop()
                 self.logger.debug(f"Stopped service task: {service_name}")
             except Exception as e:
                 self.logger.error(f"Error stopping service task {service_name}: {e}")

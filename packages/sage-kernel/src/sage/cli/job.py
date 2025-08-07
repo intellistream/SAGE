@@ -31,7 +31,7 @@ except ImportError as e:
 # 初始化colorama
 init(autoreset=True)
 
-app = typer.Typer(name="job", help="SAGE作业管理工具")
+app = typer.Typer(name="job", help="SAGE作业管理工具 - 提供作业的暂停、恢复、监控等功能")
 
 class JobManagerCLI:
     """JobManager命令行界面"""
@@ -173,11 +173,12 @@ def show_job(
         raise typer.Exit(1)
 
 @app.command("stop")
+@app.command("pause", hidden=True)  # 隐藏别名，不在帮助中显示
 def stop_job(
     job_identifier: str = typer.Argument(..., help="作业编号或UUID"),
     force: bool = typer.Option(False, "--force", "-f", help="强制停止，无需确认")
 ):
-    """停止作业"""
+    """停止/暂停作业 (别名: pause)"""
     try:
         # 解析作业标识符
         job_uuid = cli._resolve_job_identifier(job_identifier)
@@ -192,7 +193,9 @@ def stop_job(
             if response.get("status") == "success" and response.get("job_status"):
                 job_info = response.get("job_status")
                 job_name = job_info.get('name', 'unknown')
+                job_status = job_info.get('status', 'unknown')
                 print(f"Job to stop: {job_name} ({job_uuid})")
+                print(f"Current status: {job_status}")
             
             if not typer.confirm(f"Are you sure you want to stop this job?"):
                 print("ℹ️ Operation cancelled")
@@ -201,7 +204,7 @@ def stop_job(
         # 停止作业
         result = cli.client.pause_job(job_uuid)
         
-        if "success" in result.get("message", ""):
+        if result.get("status") == "stopped":
             print(f"✅ Job {job_uuid[:8]}... stopped successfully")
         else:
             print(f"❌ Failed to stop job: {result.get('message')}")
@@ -212,11 +215,12 @@ def stop_job(
         raise typer.Exit(1)
 
 @app.command("continue")
+@app.command("resume", hidden=True)  # 隐藏别名，不在帮助中显示
 def continue_job(
     job_identifier: str = typer.Argument(..., help="作业编号或UUID"),
     force: bool = typer.Option(False, "--force", "-f", help="强制继续，无需确认")
 ):
-    """继续作业"""
+    """继续/恢复作业 (别名: resume)"""
     try:
         # 解析作业标识符
         job_uuid = cli._resolve_job_identifier(job_identifier)
@@ -231,7 +235,9 @@ def continue_job(
             if response.get("status") == "success" and response.get("job_status"):
                 job_info = response.get("job_status")
                 job_name = job_info.get('name', 'unknown')
+                job_status = job_info.get('status', 'unknown')
                 print(f"Job to continue: {job_name} ({job_uuid})")
+                print(f"Current status: {job_status}")
             
             if not typer.confirm(f"Are you sure you want to continue this job?"):
                 print("ℹ️ Operation cancelled")
@@ -240,7 +246,7 @@ def continue_job(
         # 继续作业
         result = cli.client.continue_job(job_uuid)
         
-        if result.get("status") == "success":
+        if result.get("status") == "running":
             print(f"✅ Job {job_uuid[:8]}... continued successfully")
         else:
             print(f"❌ Failed to continue job: {result.get('message')}")
@@ -505,36 +511,6 @@ def watch_job(
         print(f"❌ Watch failed: {e}")
         raise typer.Exit(1)
 
-@app.command("run")
-def run_script(
-    script: str = typer.Argument(..., help="要运行的Python脚本"),
-    args: List[str] = typer.Argument(None, help="传递给脚本的参数")
-):
-    """通过SAGE CLI提交并运行Python任务脚本"""
-    import subprocess
-    
-    # 构造命令
-    cmd = [sys.executable, script] + (list(args) if args else [])
-    print(f"🚀 Running: {' '.join(cmd)}")
-    
-    try:
-        # 实时输出脚本的stdout和stderr
-        process = subprocess.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr)
-        process.communicate()
-        
-        if process.returncode == 0:
-            print("✅ Task completed successfully")
-        else:
-            print(f"❌ Task failed with exit code: {process.returncode}")
-            raise typer.Exit(code=process.returncode)
-            
-    except FileNotFoundError:
-        print(f"❌ Script not found: {script}")
-        raise typer.Exit(code=1)
-    except Exception as e:
-        print(f"❌ Execution error: {e}")
-        raise typer.Exit(code=1)
-
 # ==================== 辅助函数 ====================
 
 def _format_job_table(jobs: List[Dict[str, Any]], short_uuid: bool = False):
@@ -570,7 +546,7 @@ def _format_job_table(jobs: List[Dict[str, Any]], short_uuid: bool = False):
         # 状态着色
         if status == 'running':
             status = f"{Fore.GREEN}{status}{Style.RESET_ALL}"
-        elif status == 'stopped':
+        elif status in ['stopped', 'paused']:
             status = f"{Fore.YELLOW}{status}{Style.RESET_ALL}"
         elif status == 'failed':
             status = f"{Fore.RED}{status}{Style.RESET_ALL}"
@@ -600,7 +576,7 @@ def _format_job_details(job_info: Dict[str, Any], verbose: bool = False):
     # 状态着色
     if status == 'running':
         status_colored = f"{Fore.GREEN}{status}{Style.RESET_ALL}"
-    elif status == 'stopped':
+    elif status in ['stopped', 'paused']:
         status_colored = f"{Fore.YELLOW}{status}{Style.RESET_ALL}"
     elif status == 'failed':
         status_colored = f"{Fore.RED}{status}{Style.RESET_ALL}"
@@ -625,8 +601,11 @@ def _print_status_colored(message: str):
     """打印带颜色的状态消息"""
     if 'running' in message:
         print(message.replace('running', f"{Fore.GREEN}running{Style.RESET_ALL}"))
-    elif 'stopped' in message:
-        print(message.replace('stopped', f"{Fore.YELLOW}stopped{Style.RESET_ALL}"))
+    elif 'stopped' in message or 'paused' in message:
+        if 'stopped' in message:
+            print(message.replace('stopped', f"{Fore.YELLOW}stopped{Style.RESET_ALL}"))
+        if 'paused' in message:
+            print(message.replace('paused', f"{Fore.YELLOW}paused{Style.RESET_ALL}"))
     elif 'failed' in message:
         print(message.replace('failed', f"{Fore.RED}failed{Style.RESET_ALL}"))
     else:
