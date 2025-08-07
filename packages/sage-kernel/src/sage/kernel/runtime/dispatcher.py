@@ -1,7 +1,7 @@
 import os
 import time
 from typing import Dict, List, Any, Tuple, Union, TYPE_CHECKING
-from sage.core.api.service.base_service_task import BaseServiceTask
+from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.runtime.task.base_task import BaseTask
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.utils.ray.ray import ensure_ray_initialized

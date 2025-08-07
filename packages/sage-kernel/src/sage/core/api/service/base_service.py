@@ -13,7 +13,7 @@ class BaseService(ABC):
     """
     
     def __init__(self, *args, **kwargs):
-        self.ctx: 'RuntimeContext' = None  # 运行时注入
+        self.ctx: 'ServiceContext' = None  # 运行时注入
         self._logger = None
     
     @property

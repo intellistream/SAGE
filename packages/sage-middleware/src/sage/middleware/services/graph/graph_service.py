@@ -9,7 +9,7 @@ import logging
 import time
 import uuid
 
-from sage.core.api.service.base_service_task import BaseServiceTask
+from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.factory.service_factory import ServiceFactory

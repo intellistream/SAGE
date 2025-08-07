@@ -8,8 +8,8 @@ import threading
 BLACKLIST = [
     threading.Thread,  # 线程
     type(open),        # 文件句柄
-    type(threading.Lock),    # 锁
-    type(threading.RLock),   # 递归锁
+    # type(threading.Lock),    # 锁
+    # type(threading.RLock),   # 递归锁
     threading.Event,   # 事件
     threading.Condition,  # 条件变量
 ]

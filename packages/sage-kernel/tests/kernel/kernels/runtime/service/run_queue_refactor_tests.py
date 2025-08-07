@@ -75,7 +75,7 @@ def run_quick_functionality_check():
     
     try:
         # 检查BaseServiceTask导入
-        from sage.core.api.service.base_service_task import BaseServiceTask
+        from sage.kernel.runtime.service.base_service_task import BaseServiceTask
         print("✅ BaseServiceTask import successful")
         
         # 检查ServiceContext导入

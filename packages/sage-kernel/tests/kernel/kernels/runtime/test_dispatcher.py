@@ -12,7 +12,7 @@ from typing import Dict, Any
 
 from sage.kernel.runtime.dispatcher import Dispatcher
 from sage.kernel.runtime.task.base_task import BaseTask
-from sage.core.api.service.base_service_task import BaseServiceTask
+from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 from sage.kernel.utils.ray.actor import ActorWrapper
 
 
