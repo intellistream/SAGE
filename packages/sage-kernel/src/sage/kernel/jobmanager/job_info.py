@@ -4,7 +4,7 @@ import time
 
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
-    from sage.kernel.jobmanager.execution_graph import ExecutionGraph
+    from sage.kernel.jobmanager.compiler import ExecutionGraph
     from sage.kernel.runtime.dispatcher import Dispatcher
 
 class JobInfo:
@@ -26,6 +26,17 @@ class JobInfo:
         
         # 统计信息
         self.restart_count = 0
+        
+        # 元数据信息
+        self.metadata: Dict[str, Any] = {}
+        
+    def add_metadata(self, key: str, value: Any):
+        """添加元数据"""
+        self.metadata[key] = value
+    
+    def get_metadata(self, key: str, default: Any = None) -> Any:
+        """获取元数据"""
+        return self.metadata.get(key, default)
         
     def update_status(self, new_status: str, error: Optional[str] = None):
         """更新作业状态"""

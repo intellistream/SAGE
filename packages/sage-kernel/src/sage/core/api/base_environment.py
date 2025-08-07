@@ -9,14 +9,11 @@ from sage.core.api.datastream import DataStream
 from sage.core.transformation.base_transformation import BaseTransformation
 from sage.core.transformation.source_transformation import SourceTransformation
 from sage.core.transformation.batch_transformation import BatchTransformation
-from sage.core.transformation.future_transformation import FutureTransformation
-from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
+from sage.core.transformation.future_transformation import FutureTransformation 
 from sage.kernel.utils.logging.custom_logger import CustomLogger
-from sage.kernel.jobmanager.utils.name_server import get_name
 from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
 from sage.kernel.runtime.factory.service_factory import ServiceFactory
 if TYPE_CHECKING:
-    from sage.kernel.jobmanager.job_manager import JobManager
     from sage.core.api.function.base_function import BaseFunction
 
     
@@ -27,7 +24,7 @@ class BaseEnvironment(ABC):
 
     def __init__(self, name: str, config: dict | None, *, platform: str = "local"):
 
-        self.name = get_name(name)
+        self.name = name
         self.uuid: Optional[str] # 由jobmanager生成
 
         self.config: dict = dict(config or {})
@@ -370,6 +367,7 @@ class BaseEnvironment(ABC):
     ########################################################
 
     def setup_logging_system(self, log_base_dir: str): 
+        from sage.kernel.jobmanager.utils.name_server import get_name
         self.name = get_name(self.name)
         # 这行代码的目的是让自己在jobmanager的名字唯一，不与其他注册过的环境冲突
         # this method is called by jobmanager when receiving the job, not the user
@@ -386,21 +384,6 @@ class BaseEnvironment(ABC):
             ],
             name = f"Environment_{self.name}",
         )
-    
-    @abstractmethod
-    @abstractmethod
-    def get_qd(self, name: str, maxsize: int = 10000) -> 'BaseQueueDescriptor':
-        """
-        创建队列描述符
-        
-        Args:
-            name: 队列名称/ID
-            maxsize: 队列最大容量
-            
-        Returns:
-            队列描述符实例
-        """
-        pass
     
 
     ########################################################

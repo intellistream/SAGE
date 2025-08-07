@@ -12,7 +12,7 @@ from ray.actor import ActorHandle
 
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment 
-    from sage.kernel.jobmanager.execution_graph import ExecutionGraph, GraphNode
+    from sage.kernel.jobmanager.compiler import ExecutionGraph, TaskNode
     from sage.kernel.runtime.service_context import ServiceContext
     from sage.kernel.runtime.task_context import TaskContext
 

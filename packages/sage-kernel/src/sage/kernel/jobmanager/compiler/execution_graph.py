@@ -22,7 +22,7 @@ from sage.kernel.runtime.service_context import ServiceContext
 if TYPE_CHECKING:
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
-from .graph_node import GraphNode
+from .graph_node import TaskNode
 from .service_node import ServiceNode
 from .graph_edge import GraphEdge
 
@@ -40,29 +40,34 @@ class ExecutionGraph:
     
     def __init__(self, env: BaseEnvironment):
         self.env = env
-        self.nodes: Dict[str, GraphNode] = {}
+        self.nodes: Dict[str, TaskNode] = {}
         self.service_nodes: Dict[str, ServiceNode] = {}  # 存储服务节点
         self.edges: Dict[str, GraphEdge] = {}
+        # 初始化映射表
+        self.service_request_qds: Dict[str, 'BaseQueueDescriptor'] = {}
+        self.service_response_qds: Dict[str, 'BaseQueueDescriptor'] = {}
         
         # 首先设置日志系统
-        self.setup_logging_system()
+        self._setup_logging_system()
         
         # 构建基础图结构
-        self._build_graph_from_pipeline(env)
+        self._build_task_nodes(env)
         # 构建服务节点
         self._build_service_nodes(env)
+        # 提取队列描述符映射表
+        self._extract_queue_descriptor_mappings()
         # 生成运行时上下文（队列描述符和连接关系都在Context构造函数中处理）
-        self.generate_runtime_contexts()
+        self._generate_runtime_contexts()
 
         # 停止信号相关
         self._calculate_source_dependencies()
-        self.total_stop_signals = self.calculate_total_stop_signals()
+        self.total_stop_signals = self._calculate_total_stop_signals()
         
         self.logger.info(f"Successfully converted and optimized pipeline '{env.name}' to compiler with "
                         f"{len(self.nodes)} transformation nodes, {len(self.service_nodes)} service nodes "
                         f"and {len(self.edges)} edges")
 
-    def calculate_total_stop_signals(self):
+    def _calculate_total_stop_signals(self):
         """计算所有源节点的停止信号总数"""
         total_signals = 0
         for node in self.nodes.values():
@@ -70,7 +75,7 @@ class ExecutionGraph:
                 total_signals += node.stop_signal_num
         return total_signals
 
-    def setup_logging_system(self): 
+    def _setup_logging_system(self): 
         """设置日志系统，支持模拟环境"""
         try:
             # 获取控制台日志级别，如果不存在则使用默认值
@@ -93,7 +98,7 @@ class ExecutionGraph:
             # 如果设置日志系统失败，创建一个基础的日志器
             self.logger = CustomLogger([("console", "INFO")], name="ExecutionGraph_fallback")
 
-    def generate_runtime_contexts(self):
+    def _generate_runtime_contexts(self):
         """
         为每个节点生成运行时上下文
         队列描述符和连接关系都在Context构造函数中处理，这里只需创建Context即可
@@ -162,37 +167,38 @@ class ExecutionGraph:
         
         self.logger.info(f"Created {len(self.service_nodes)} service nodes")
 
-    def get_all_nodes(self) -> Dict[str, Union[GraphNode, ServiceNode]]:
+    def _extract_queue_descriptor_mappings(self):
         """
-        获取所有节点（包括流水线节点和服务节点）
+        从所有节点中提取队列描述符映射表
+        - service_request_qds: name -> service request queue descriptor
+        - service_response_qds: name -> service response queue descriptor
+        """
+        self.logger.debug("Extracting queue descriptor mappings from all nodes")
         
-        Returns:
-            Dict[str, Union[GraphNode, ServiceNode]]: 所有节点的字典
-        """
-        all_nodes = {}
-        all_nodes.update(self.nodes)
-        all_nodes.update(self.service_nodes)
-        return all_nodes
-
-    def get_service_nodes(self) -> Dict[str, ServiceNode]:
-        """
-        获取所有服务节点
+        # 从transformation nodes提取service response queue descriptors
+        for node_name, node in self.nodes.items():
+            if hasattr(node, 'service_response_qd') and node.service_response_qd:
+                self.service_response_qds[node_name] = node.service_response_qd
+                self.logger.debug(f"Extracted service response qd from transformation node: {node_name}")
         
-        Returns:
-            Dict[str, ServiceNode]: 服务节点字典
-        """
-        return self.service_nodes.copy()
-
-    def get_transformation_nodes(self) -> Dict[str, GraphNode]:
-        """
-        获取所有流水线转换节点
+        # 从service nodes提取service request和response queue descriptors
+        for service_node_name, service_node in self.service_nodes.items():
+            # Service request queue (重命名为更清晰的名称)
+            if hasattr(service_node, 'service_qd') and service_node.service_qd:
+                self.service_request_qds[service_node.service_name] = service_node.service_qd
+                self.logger.debug(f"Extracted service request qd from service node: {service_node.service_name}")
+            
+            # Service response queue
+            if hasattr(service_node, 'service_response_qd') and service_node.service_response_qd:
+                self.service_response_qds[service_node_name] = service_node.service_response_qd
+                self.logger.debug(f"Extracted service response qd from service node: {service_node_name}")
         
-        Returns:
-            Dict[str, GraphNode]: 流水线节点字典
-        """
-        return self.nodes.copy()
+        self.logger.info(f"Queue descriptor mappings extracted: "
+                        f"{len(self.service_request_qds)} service request queues, "
+                        f"{len(self.service_response_qds)} service response queues")
 
-    def _build_graph_from_pipeline(self, env: BaseEnvironment):
+
+    def _build_task_nodes(self, env: BaseEnvironment):
         """
         根据transformation pipeline构建图, 支持并行度和多对多连接
         分为三步: 1) 生成并行节点 2) 生成物理边 3) 创建图结构
@@ -216,7 +222,7 @@ class ExecutionGraph:
                 try:
                     node_name = get_name(f"{transformation.basename}_{i}")
                     node_names.append(node_name)
-                    self.nodes[node_name] = GraphNode(node_name, transformation, i, env)
+                    self.nodes[node_name] = TaskNode(node_name, transformation, i, env)
                     self.logger.debug(f"Created node: {node_name} (parallel index: {i})")
                 except Exception as e:
                     self.logger.error(f"Error creating node {node_name}: {e}")

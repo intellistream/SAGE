@@ -52,6 +52,12 @@ class ServiceNode:
             name=f"service_request_{self.service_name}",
             maxsize=10000
         )
+        
+        # 为每个service node创建service response queue descriptor (与graph node一样)
+        self.service_response_qd = env.get_qd(
+            name=f"service_response_{self.name}",
+            maxsize=10000
+        )
     
     def __repr__(self) -> str:
         return f"ServiceNode(name={self.name}, service_name={self.service_name})"

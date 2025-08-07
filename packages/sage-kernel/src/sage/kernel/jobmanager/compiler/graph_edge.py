@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .graph_node import GraphNode
+    from .graph_node import TaskNode
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
 
@@ -22,7 +22,7 @@ class GraphEdge:
     表示编译器图中两个节点之间的连接
     """
     
-    def __init__(self, name: str, output_node: 'GraphNode', input_node: 'GraphNode' = None, input_index: int = 0):
+    def __init__(self, name: str, output_node: 'TaskNode', input_node: 'TaskNode' = None, input_index: int = 0):
         """
         初始化图边
         
@@ -33,8 +33,8 @@ class GraphEdge:
             input_index: 输入索引，表示连接到下游节点的哪个输入通道
         """
         self.name: str = name
-        self.upstream_node: 'GraphNode' = output_node
-        self.downstream_node: 'GraphNode' = input_node
+        self.upstream_node: 'TaskNode' = output_node
+        self.downstream_node: 'TaskNode' = input_node
         self.input_index: int = input_index
         
         # 队列描述符已不再在边上维护，而是在下游节点上

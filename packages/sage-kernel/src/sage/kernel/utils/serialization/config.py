@@ -2,14 +2,15 @@
 序列化配置和常量定义
 """
 import threading
+import io
 
 
 # 不可序列化类型黑名单
 BLACKLIST = [
     threading.Thread,  # 线程
-    type(open),        # 文件句柄
-    # type(threading.Lock),    # 锁
-    # type(threading.RLock),   # 递归锁
+    io.TextIOWrapper,  # 文件句柄类型
+    type(threading.Lock()),    # 锁
+    type(threading.RLock()),   # 递归锁
     threading.Event,   # 事件
     threading.Condition,  # 条件变量
 ]

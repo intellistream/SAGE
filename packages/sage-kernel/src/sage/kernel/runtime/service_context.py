@@ -8,9 +8,9 @@ from sage.kernel.utils.logging.custom_logger import CustomLogger
 from sage.kernel.utils.ray.actor import ActorWrapper
 
 if TYPE_CHECKING:
-    from sage.kernel.jobmanager.execution_graph.execution_graph import ExecutionGraph
-    from sage.kernel.jobmanager.execution_graph.graph_node import GraphNode
-    from sage.kernel.jobmanager.execution_graph.service_node import ServiceNode
+    from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
+    from sage.kernel.jobmanager.compiler.graph_node import GraphNode
+    from sage.kernel.jobmanager.compiler.service_node import ServiceNode
     from sage.core.transformation.base_transformation import BaseTransformation
     from sage.core.api.base_environment import BaseEnvironment 
     from sage.kernel.jobmanager.job_manager import JobManager
@@ -39,12 +39,26 @@ class ServiceContext:
         # 队列描述符管理 - 在构造时从service_node和execution_graph获取
         self._request_queue_descriptor: Optional['BaseQueueDescriptor'] = service_node.service_qd  # 用于service task接收请求
         
-        # 从execution_graph获取service response队列描述符 - 直接遍历nodes获取
+        # 维护自己的service response queue descriptor (用于接收service调用的响应)
+        self._own_service_response_qd: Optional['BaseQueueDescriptor'] = None
+        if hasattr(service_node, 'service_response_qd'):
+            self._own_service_response_qd = service_node.service_response_qd
+            self.logger.debug(f"ServiceContext got own service response queue: {service_node.service_response_qd.name if service_node.service_response_qd else 'None'}")
+        
+        # 从execution_graph的提取好的映射表获取service response队列描述符 - 简化逻辑
         self._service_response_queue_descriptors: Dict[str, 'BaseQueueDescriptor'] = {}
-        if execution_graph:
-            for node_name, node in execution_graph.nodes.items():
-                if node.service_response_qd:
-                    self._service_response_queue_descriptors[node_name] = node.service_response_qd
+        if execution_graph and hasattr(execution_graph, 'service_response_qds'):
+            self._service_response_queue_descriptors = execution_graph.service_response_qds.copy()
+            self.logger.debug(f"ServiceContext got {len(self._service_response_queue_descriptors)} service response queues from execution graph")
+        
+        # 从execution_graph获取service request队列描述符 - 用于service-to-service调用
+        self._service_request_queue_descriptors: Dict[str, 'BaseQueueDescriptor'] = {}
+        if execution_graph and hasattr(execution_graph, 'service_request_qds'):
+            self._service_request_queue_descriptors = execution_graph.service_request_qds.copy()
+            self.logger.debug(f"ServiceContext got {len(self._service_request_queue_descriptors)} service request queues from execution graph")
+
+        # 服务调用相关
+        self._service_manager: Optional['ServiceManager'] = None
 
     @property
     def logger(self) -> CustomLogger:
@@ -59,6 +73,15 @@ class ServiceContext:
             name = f"{self.name}",
         )
         return self._logger
+
+    @property
+    def service_manager(self) -> 'ServiceManager':
+        """懒加载服务管理器"""
+        if self._service_manager is None:
+            from sage.kernel.runtime.service.service_caller import ServiceManager
+            # ServiceManager需要完整的运行时上下文来访问dispatcher服务
+            self._service_manager = ServiceManager(self, logger=self.logger)
+        return self._service_manager
 
     def set_request_queue_descriptor(self, descriptor: 'BaseQueueDescriptor'):
         """设置请求队列描述符（用于service task）"""
@@ -81,3 +104,17 @@ class ServiceContext:
         if self._service_response_queue_descriptors:
             return self._service_response_queue_descriptors.get(node_name)
         return None
+    
+    def get_service_request_queue_descriptors(self) -> Dict[str, 'BaseQueueDescriptor']:
+        """获取service request队列描述符（用于service-to-service调用）"""
+        return self._service_request_queue_descriptors if self._service_request_queue_descriptors else {}
+    
+    def get_service_request_queue_descriptor(self, service_name: str) -> Optional['BaseQueueDescriptor']:
+        """获取指定服务的service request队列描述符"""
+        if self._service_request_queue_descriptors:
+            return self._service_request_queue_descriptors.get(service_name)
+        return None
+    
+    def get_own_service_response_queue_descriptor(self) -> Optional['BaseQueueDescriptor']:
+        """获取自己的service response队列描述符（用于接收service调用的响应）"""
+        return self._own_service_response_qd

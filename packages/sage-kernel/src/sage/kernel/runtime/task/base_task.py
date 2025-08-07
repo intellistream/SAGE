@@ -7,7 +7,6 @@ from sage.kernel.runtime.communication.router.packet import Packet
 from ray.util.queue import Empty
 
 from sage.kernel.runtime.communication.router.router import BaseRouter
-from sage.core.api.function.source_function import StopSignal
 from sage.kernel.utils.logging.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator
@@ -122,6 +121,7 @@ class BaseTask(ABC):
                         continue
                     
                     # Check if received packet is a StopSignal
+                    from sage.core.api.function.source_function import StopSignal
                     if isinstance(data_packet, StopSignal):
                         self.logger.info(f"Node '{self.name}' received stop signal: {data_packet}")
                         

@@ -1,7 +1,7 @@
 """
-GraphNode - 图节点类
+TaskNode - 图节点类
 
-每个GraphNode代表一个transformation的单个并行实例，包含：
+每个TaskNode代表一个transformation的单个并行实例，包含：
 - 单一输入队列描述符（被所有上游复用）
 - 服务响应队列描述符
 - 输入通道和输出通道的连接信息
@@ -19,11 +19,11 @@ if TYPE_CHECKING:
     from .graph_edge import GraphEdge
 
 
-class GraphNode:
+class TaskNode:
     """
     图节点类
     
-    每个GraphNode只有一个输入队列描述符 - 不是每个输入通道一个
+    每个TaskNode只有一个输入队列描述符 - 不是每个输入通道一个
     这个输入队列被所有上游节点复用 - 所有上游都写入同一个队列
     输入通道只是逻辑概念 - 用于区分不同的输入数据流，但物理上共享同一个队列
     """
@@ -62,4 +62,4 @@ class GraphNode:
         )
     
     def __repr__(self) -> str:
-        return f"GraphNode(name={self.name}, parallel_index={self.parallel_index}, is_spout={self.is_spout}, is_sink={self.is_sink})"
+        return f"TaskNode(name={self.name}, parallel_index={self.parallel_index}, is_spout={self.is_spout}, is_sink={self.is_sink})"

@@ -16,7 +16,7 @@ from sage.kernel.runtime.dispatcher import Dispatcher
 import threading
 from sage.kernel.utils.serialization.dill import deserialize_object
 if TYPE_CHECKING:
-    from sage.kernel.jobmanager.execution_graph import ExecutionGraph
+    from sage.kernel.jobmanager.compiler import ExecutionGraph
     from sage.core.api.base_environment import BaseEnvironment
 
 import ray
@@ -142,7 +142,7 @@ class JobManager: #Job Manager
 
     def _create_execution_graph(self, env: 'BaseEnvironment') -> 'ExecutionGraph':
         """创建执行图"""
-        from sage.kernel.jobmanager.execution_graph import ExecutionGraph
+        from sage.kernel.jobmanager.compiler import ExecutionGraph
         return ExecutionGraph(env)
 
     def _create_job_info(self, env: 'BaseEnvironment', graph: 'ExecutionGraph', job_uuid: str) -> JobInfo:

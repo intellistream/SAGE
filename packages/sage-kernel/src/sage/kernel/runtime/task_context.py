@@ -8,7 +8,7 @@ from sage.kernel.utils.logging.custom_logger import CustomLogger
 from sage.kernel.utils.ray.actor import ActorWrapper
 
 if TYPE_CHECKING:
-    from sage.kernel.jobmanager.execution_graph import ExecutionGraph, GraphNode
+    from sage.kernel.jobmanager.compiler import ExecutionGraph, TaskNode
     from sage.core.transformation.base_transformation import BaseTransformation
     from sage.core.api.base_environment import BaseEnvironment 
     from sage.kernel.jobmanager.job_manager import JobManager
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 class TaskContext:
     # 定义不需要序列化的属性
     __state_exclude__ = ["_logger", "env", "_env_logger_cache"]
-    def __init__(self, graph_node: 'GraphNode', transformation: 'BaseTransformation', env: 'BaseEnvironment', execution_graph: 'ExecutionGraph' = None):
+    def __init__(self, graph_node: 'TaskNode', transformation: 'BaseTransformation', env: 'BaseEnvironment', execution_graph: 'ExecutionGraph' = None):
         
         self.name:str = graph_node.name
 
@@ -57,19 +57,18 @@ class TaskContext:
         self.input_qd: 'BaseQueueDescriptor' = graph_node.input_qd
         self.response_qd: 'BaseQueueDescriptor' = graph_node.service_response_qd
         
-        # 从execution_graph获取service队列描述符 - 直接遍历service_nodes获取
+        # 从execution_graph的提取好的映射表获取service队列描述符 - 简化逻辑
         self.service_qds: Dict[str, 'BaseQueueDescriptor'] = {}
-        if execution_graph:
-            for service_name, service_node in execution_graph.service_nodes.items():
-                if service_node.service_qd:
-                    self.service_qds[service_node.service_name] = service_node.service_qd
+        if execution_graph and hasattr(execution_graph, 'service_request_qds'):
+            self.service_qds = execution_graph.service_request_qds.copy()
+            self.logger.debug(f"TaskContext got {len(self.service_qds)} service request queues from execution graph")
         
         # 下游连接组管理 - 从execution_graph构建downstream_groups
         self.downstream_groups: Dict[int, Dict[int, 'Connection']] = {}
         if execution_graph:
             self._build_downstream_groups(graph_node, execution_graph)
     
-    def _build_downstream_groups(self, graph_node: 'GraphNode', execution_graph: 'ExecutionGraph'):
+    def _build_downstream_groups(self, graph_node: 'TaskNode', execution_graph: 'ExecutionGraph'):
         """从execution_graph构建downstream_groups"""
         # 遍历输出通道，构建downstream_groups
         for broadcast_index, output_group in enumerate(graph_node.output_channels):

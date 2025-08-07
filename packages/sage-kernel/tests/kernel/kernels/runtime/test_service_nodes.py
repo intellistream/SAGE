@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__)))
 
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.function.base_function import BaseFunction
-from sage.kernel.jobmanager.execution_graph import ExecutionGraph
+from sage.kernel.jobmanager.compiler import ExecutionGraph
 
 
 # 测试服务类
@@ -143,13 +143,6 @@ def test_service_nodes_integration():
             if hasattr(service_node, 'ctx') and service_node.ctx:
                 print(f"    运行时上下文: {service_node.ctx.name}")
         
-        # 9. 测试获取所有节点
-        print("\n9. 获取所有节点:")
-        all_nodes = execution_graph.get_all_nodes()
-        print(f"总节点数: {len(all_nodes)}")
-        for name, node in all_nodes.items():
-            node_type = "Service" if name in execution_graph.service_nodes else "Transformation"
-            print(f"  - {name}: {node_type}")
         
         print("\n=== 服务节点集成测试成功 ===")
         return True
