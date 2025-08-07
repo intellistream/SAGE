@@ -4,9 +4,9 @@ from typing import Any, List, Dict, Optional, TYPE_CHECKING, Type, Tuple
 from sage.core.api.function.source_function import StopSignal
 from sage.kernel.runtime.task.base_task import BaseTask
 from sage.kernel.utils.logging.custom_logger import CustomLogger
-from sage.kernel.runtime.communication.router.packet import Packet
 
 if TYPE_CHECKING:
+    from sage.kernel.runtime.communication.router.packet import Packet
     from sage.core.api.function.base_function import BaseFunction
     from sage.kernel.runtime.communication.router.connection import Connection
     from sage.kernel.runtime.task_context import TaskContext

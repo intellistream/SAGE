@@ -6,6 +6,7 @@ from ray.actor import ActorHandle
 from typing import TYPE_CHECKING, List, Dict, Optional, Any, Union
 from sage.kernel.utils.logging.custom_logger import CustomLogger
 from sage.kernel.utils.ray.actor import ActorWrapper
+from sage.kernel.runtime.base_context import BaseRuntimeContext
 
 if TYPE_CHECKING:
     from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
@@ -20,11 +21,12 @@ if TYPE_CHECKING:
 
 # task, operator和function "形式上共享"的运行上下文
 
-class ServiceContext:
+class ServiceContext(BaseRuntimeContext):
     # 定义不需要序列化的属性
     __state_exclude__ = ["_logger", "env", "_env_logger_cache"]
     
     def __init__(self, service_node: 'ServiceNode', env: 'BaseEnvironment', execution_graph: 'ExecutionGraph' = None):
+        super().__init__()  # Initialize base context
         
         self.name: str = service_node.name
 
@@ -43,7 +45,10 @@ class ServiceContext:
         self._own_service_response_qd: Optional['BaseQueueDescriptor'] = None
         if hasattr(service_node, 'service_response_qd'):
             self._own_service_response_qd = service_node.service_response_qd
-            self.logger.debug(f"ServiceContext got own service response queue: {service_node.service_response_qd.name if service_node.service_response_qd else 'None'}")
+            self.logger.debug(f"ServiceContext got own service response queue: {service_node.name if service_node.service_response_qd else 'None'}")
+        
+        # 提供response_qd属性以兼容ServiceManager（指向自己的service response queue）
+        self.response_qd: Optional['BaseQueueDescriptor'] = self._own_service_response_qd
         
         # 从execution_graph的提取好的映射表获取service response队列描述符 - 简化逻辑
         self._service_response_queue_descriptors: Dict[str, 'BaseQueueDescriptor'] = {}
@@ -56,9 +61,11 @@ class ServiceContext:
         if execution_graph and hasattr(execution_graph, 'service_request_qds'):
             self._service_request_queue_descriptors = execution_graph.service_request_qds.copy()
             self.logger.debug(f"ServiceContext got {len(self._service_request_queue_descriptors)} service request queues from execution graph")
+        
+        # 兼容ServiceManager - 提供service_qds属性（指向service request queue descriptors）
+        self.service_qds: Dict[str, 'BaseQueueDescriptor'] = self._service_request_queue_descriptors
 
-        # 服务调用相关
-        self._service_manager: Optional['ServiceManager'] = None
+        # 服务调用相关 - service_manager已在BaseRuntimeContext中定义
 
     @property
     def logger(self) -> CustomLogger:
@@ -73,15 +80,6 @@ class ServiceContext:
             name = f"{self.name}",
         )
         return self._logger
-
-    @property
-    def service_manager(self) -> 'ServiceManager':
-        """懒加载服务管理器"""
-        if self._service_manager is None:
-            from sage.kernel.runtime.service.service_caller import ServiceManager
-            # ServiceManager需要完整的运行时上下文来访问dispatcher服务
-            self._service_manager = ServiceManager(self, logger=self.logger)
-        return self._service_manager
 
     def set_request_queue_descriptor(self, descriptor: 'BaseQueueDescriptor'):
         """设置请求队列描述符（用于service task）"""

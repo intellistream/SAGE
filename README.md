@@ -917,7 +917,6 @@ SAGE follows a Flink-style pipeline architecture where each `Operator` acts as a
 | `GenerationFunction`  | Generates answers using large language models (OpenAI, LLaMA, vLLM, HuggingFace) based on constructed prompts | `OpenAIGenerator`, `VLLMGenerator`, `HuggingFaceGenerator` |
 | `AgentFunction`       | Enables multi-step decision-making agents that call tools, APIs, or other services based on reasoning strategies | `AnswerBot`, `SearcherBot`, `ChiefBot` |
 | `EvaluateFunction`    | Calculates comprehensive metrics like F1, ROUGE, BLEU, BERTScore for model output evaluation and benchmarking | `F1Evaluate`, `RougeLEvaluate`, `BERTRecallEvaluate` |
-| `MemoryFunction`      | Manages persistent storage, retrieval, and indexing operations for long-term knowledge and context management | `MemoryWriter`, `MemoryRetriever`, `IndexBuilder` |
 | `TransformFunction`   | Handles data transformation, preprocessing, chunking, and format conversion operations | `CharacterSplitter`, `DocumentParser`, `DataNormalizer` |
 | `RoutingFunction`     | Implements conditional branching, fallback logic, and dynamic workflow control within pipelines | `ConditionalRouter`, `LoadBalancer`, `FallbackHandler` |
 | `SinkFunction`        | Terminal point of the pipeline. Outputs final results to various destinations like terminal, files, databases, or APIs | `TerminalSink`, `FileSink`, `DatabaseSink`, `APISink` |

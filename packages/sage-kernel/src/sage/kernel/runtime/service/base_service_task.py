@@ -175,7 +175,6 @@ class BaseServiceTask(ABC):
                 
                 # 从请求队列获取消息（超时1秒）
                 try:
-                    self.logger.debug(f"[SERVICE_TASK] Attempting to get request from queue for service '{self.service_name}'")
                     request_data = request_queue.get(block=True, timeout=1.0)
                     request_count += 1
                     request_id = request_data.get('request_id', 'unknown')
@@ -192,7 +191,6 @@ class BaseServiceTask(ABC):
                     elif (isinstance(e, queue.Empty) or 
                           "timed out" in str(e).lower() or 
                           "empty" in str(e).lower()):
-                        # 这些是正常的超时/空队列情况，不需要记录错误
                         pass
                     else:
                         self.logger.error(f"Error receiving request for service '{self.service_name}': {e}")

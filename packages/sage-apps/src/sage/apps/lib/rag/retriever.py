@@ -4,8 +4,6 @@ import os
 import json
 
 from sage.core.api.function.map_function import MapFunction
-from sage.core.api.function.base_function import MemoryFunction, StatefulFunction
-
 # 更新后的 SimpleRetriever
 class DenseRetriever(MapFunction):
     def __init__(self, config, enable_profile=False, **kwargs):

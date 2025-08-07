@@ -19,9 +19,7 @@ class BaseFunction(ABC):
         self.ctx: 'TaskContext' = None # 运行时注入
         self.router = None  # 运行时注入
         self._logger = None
-        # 服务代理缓存
-        self._call_service_proxy = None
-        self._call_service_async_proxy = None
+        # 服务代理缓存已移至ServiceCallMixin处理
 
     @property
     def logger(self):
@@ -50,26 +48,7 @@ class BaseFunction(ABC):
         if self.ctx is None:
             raise RuntimeError("Runtime context not initialized. Cannot access services.")
         
-        # 懒加载缓存机制
-        if not hasattr(self, '_call_service_proxy') or self._call_service_proxy is None:
-            from sage.kernel.runtime.service.service_caller import ServiceCallProxy
-            
-            class ServiceProxy:
-                def __init__(self, service_manager: 'ServiceManager', logger=None):
-                    self._service_manager = service_manager
-                    self._service_proxies = {}  # 缓存ServiceCallProxy对象
-                    self.logger = logger if logger is not None else logging.getLogger(__name__)
-                    
-                def __getitem__(self, service_name: str):
-                    if service_name not in self._service_proxies:
-                        self._service_proxies[service_name] = ServiceCallProxy(
-                            self._service_manager, service_name, logger=self.logger
-                        )
-                    return self._service_proxies[service_name]
-            
-            self._call_service_proxy = ServiceProxy(self.ctx.service_manager, logger=self.logger)
-        
-        return self._call_service_proxy
+        return self.ctx.call_service()
     
     @property 
     def call_service_async(self):
@@ -87,40 +66,7 @@ class BaseFunction(ABC):
         if self.ctx is None:
             raise RuntimeError("Runtime context not initialized. Cannot access services.")
         
-        # 懒加载缓存机制
-        if not hasattr(self, '_call_service_async_proxy') or self._call_service_async_proxy is None:
-            class AsyncServiceProxy:
-                def __init__(self, service_manager: 'ServiceManager', logger=None):
-                    self._service_manager = service_manager
-                    self._async_service_proxies = {}  # 缓存ServiceCallProxy对象
-                    self.logger = logger if logger is not None else logging.getLogger(__name__)
-                    
-                def __getitem__(self, service_name: str):
-                    if service_name not in self._async_service_proxies:
-                        from sage.kernel.runtime.service.service_caller import ServiceCallProxy
-                        self._async_service_proxies[service_name] = ServiceCallProxy(
-                            self._service_manager, service_name, logger=self.logger
-                        )
-                    return self._async_service_proxies[service_name]
-            
-            self._call_service_async_proxy = AsyncServiceProxy(self.ctx.service_manager, logger=self.logger)
-        
-        return self._call_service_async_proxy
-
-    # @abstractmethod
-    # def close(self, *args, **kwargs):
-    #     """
-    #     Abstract method to be implemented by subclasses.
-
-    #     Each rag must define its own execute logic that processes input data
-    #     and returns the output.
-
-    #     :param args: Positional input data.
-    #     :param kwargs: Additional keyword arguments.
-    #     :return: Output data.
-    #     """
-    #     pass
-
+        return self.ctx.call_service_async()
 
     @abstractmethod
     def execute(self, data:any):
@@ -136,11 +82,6 @@ class BaseFunction(ABC):
         """
         pass
 
-class MemoryFunction(BaseFunction):
-    def __init__(self):
-        self.ctx = None  # 需要在compiler里面实例化。
-        self.memory= self.ctx.memory
-        pass
 
 class StatefulFunction(BaseFunction):
     """

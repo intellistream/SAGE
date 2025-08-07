@@ -106,7 +106,10 @@ class ServiceManager:
                 if hasattr(self.context, 'response_qd') and self.context.response_qd:
                     self._response_queue = self.context.response_qd.queue_instance
                 else:
-                    self.logger.error("Service response queue descriptor not found")
+                    context_type = type(self.context).__name__
+                    has_response_qd = hasattr(self.context, 'response_qd')
+                    response_qd_value = getattr(self.context, 'response_qd', None)
+                    self.logger.error(f"Service response queue descriptor not found. Context: {context_type}, has_response_qd: {has_response_qd}, response_qd: {response_qd_value}")
                     raise RuntimeError("Service response queue not available")
         return self._response_queue
     
@@ -148,6 +151,7 @@ class ServiceManager:
         
         try:
             # 构造请求数据 - 传递响应队列实例而不是名称
+            self.logger.debug(f"Getting response queue for service call: {service_name}.{method_name}")
             response_queue = self._get_response_queue()
             request_data = {
                 'request_id': request_id,
@@ -249,6 +253,7 @@ class ServiceManager:
         while not self._shutdown:
             try:
                 # 获取响应队列
+                self.logger.debug("Response listener: Getting response queue")
                 response_queue = self._get_response_queue()
                 
                 # 检查队列是否已关闭

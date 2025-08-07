@@ -6,6 +6,7 @@ from ray.actor import ActorHandle
 from typing import List,Dict,Optional, Any, Union
 from sage.kernel.utils.logging.custom_logger import CustomLogger
 from sage.kernel.utils.ray.actor import ActorWrapper
+from sage.kernel.runtime.base_context import BaseRuntimeContext
 
 if TYPE_CHECKING:
     from sage.kernel.jobmanager.compiler import ExecutionGraph, TaskNode
@@ -18,10 +19,11 @@ if TYPE_CHECKING:
     from sage.kernel.runtime.communication.router.connection import Connection
 # task, operator和function "形式上共享"的运行上下文
 
-class TaskContext:
+class TaskContext(BaseRuntimeContext):
     # 定义不需要序列化的属性
     __state_exclude__ = ["_logger", "env", "_env_logger_cache"]
     def __init__(self, graph_node: 'TaskNode', transformation: 'BaseTransformation', env: 'BaseEnvironment', execution_graph: 'ExecutionGraph' = None):
+        super().__init__()  # Initialize base context
         
         self.name:str = graph_node.name
 
@@ -49,8 +51,7 @@ class TaskContext:
         self.received_stop_signals = None  # 延迟初始化
         self.stop_signal_count = 0
         
-        # 服务调用相关
-        self._service_manager: Optional['ServiceManager'] = None
+        # 服务相关 - service_manager已在BaseRuntimeContext中定义
         self._service_names: Optional[Dict[str, str]] = None  # 只保存服务名称映射而不是实例
         
         # 队列描述符管理 - 在构造时从graph_node和execution_graph获取
@@ -94,24 +95,9 @@ class TaskContext:
                         self.downstream_groups[broadcast_index][edge.downstream_node.parallel_index] = connection
     
     
-    @property
-    def service_manager(self) -> 'ServiceManager':
-        """懒加载服务管理器"""
-        if self._service_manager is None:
-            from sage.kernel.runtime.service.service_caller import ServiceManager
-            # ServiceManager需要完整的运行时上下文来访问dispatcher服务
-            self._service_manager = ServiceManager(self, logger=self.logger)
-        return self._service_manager
-
     def cleanup(self):
         """清理运行时上下文资源"""
-        if self._service_manager is not None:
-            try:
-                self._service_manager.shutdown()
-            except Exception as e:
-                self.logger.warning(f"Error shutting down service manager: {e}")
-            finally:
-                self._service_manager = None
+        self.cleanup_service_manager()  # 使用基类的清理方法
 
 
 
@@ -152,21 +138,7 @@ class TaskContext:
         # 通过service_manager获取实际的服务实例
         return self.service_manager.get_service(service_name)
 
-    def call_service(self, service_name: str, method_name: str, *args, **kwargs) -> Any:
-        """
-        调用服务方法
-        
-        Args:
-            service_name: 服务名称
-            method_name: 方法名称
-            *args: 位置参数
-            **kwargs: 关键字参数
-            
-        Returns:
-            方法调用结果
-        """
-        # 通过service_manager调用服务方法
-        return self.service_manager.call_service(service_name, method_name, *args, **kwargs)
+
 
     @property
     def stop_event(self) -> threading.Event:
