@@ -173,7 +173,6 @@ def show_job(
         raise typer.Exit(1)
 
 @app.command("stop")
-@app.command("pause", hidden=True)  # 隐藏别名，不在帮助中显示
 def stop_job(
     job_identifier: str = typer.Argument(..., help="作业编号或UUID"),
     force: bool = typer.Option(False, "--force", "-f", help="强制停止，无需确认")
@@ -214,8 +213,10 @@ def stop_job(
         print(f"❌ Failed to stop job: {e}")
         raise typer.Exit(1)
 
+# 添加 pause 作为 stop 的别名
+app.command("pause", hidden=True)(stop_job)
+
 @app.command("continue")
-@app.command("resume", hidden=True)  # 隐藏别名，不在帮助中显示
 def continue_job(
     job_identifier: str = typer.Argument(..., help="作业编号或UUID"),
     force: bool = typer.Option(False, "--force", "-f", help="强制继续，无需确认")
@@ -255,6 +256,9 @@ def continue_job(
     except Exception as e:
         print(f"❌ Failed to continue job: {e}")
         raise typer.Exit(1)
+
+# 添加 resume 作为 continue 的别名
+app.command("resume", hidden=True)(continue_job)
 
 @app.command("delete")
 def delete_job(
