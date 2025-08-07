@@ -9,7 +9,7 @@
 适用于单机开发、测试和小规模数据处理。
 
 ```python
-from sage.kernel.api.local_environment import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 
 # 创建本地环境
 env = LocalEnvironment("my_local_app")
@@ -30,7 +30,7 @@ env = LocalEnvironment(
 适用于生产环境和分布式集群部署。
 
 ```python
-from sage.kernel.api.remote_environment import RemoteEnvironment
+from sage.core.api.remote_environment import RemoteEnvironment
 
 # 创建远程环境
 env = RemoteEnvironment(

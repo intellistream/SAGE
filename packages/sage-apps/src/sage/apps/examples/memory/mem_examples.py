@@ -1,10 +1,10 @@
 import time
-from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.api.remote_environment import RemoteEnvironment
+from sage.core.api.local_environment import LocalEnvironment
+from sage.core.api.remote_environment import RemoteEnvironment
 from sage.middleware.services.memory.memory_service import MemoryService
-from sage.kernel.api.function.map_function import MapFunction
-from sage.kernel.api.function.batch_function import BatchFunction
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.core.api.function.map_function import MapFunction
+from sage.core.api.function.batch_function import BatchFunction
+from sage.core.api.function.sink_function import SinkFunction
 
 # 具体的算子里要写请求服务的逻辑，使用memory service来存储和检索数据。
 class MemorySource(BatchFunction):

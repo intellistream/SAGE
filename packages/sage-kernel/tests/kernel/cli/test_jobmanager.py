@@ -4,7 +4,7 @@ Tests for sage.cli.jobmanager_controller
 from typer.testing import CliRunner
 from unittest.mock import MagicMock, patch
 
-from sage.kernel.cli.jobmanager_controller import app, JobManagerController
+from sage.cli.jobmanager_controller import app, JobManagerController
 
 runner = CliRunner()
 
@@ -23,7 +23,7 @@ def test_jobmanager_controller_init_custom():
     assert controller.host == "192.168.1.1"
     assert controller.port == 12345
 
-@patch('sage.kernel.cli.jobmanager_controller.JobManagerController')
+@patch('sage.cli.jobmanager_controller.JobManagerController')
 def test_start(MockController):
     """Test the start command."""
     mock_instance = MockController.return_value
@@ -36,7 +36,7 @@ def test_start(MockController):
     MockController.assert_called_with('127.0.0.1', 12345)
     mock_instance.start.assert_called_once()
 
-@patch('sage.kernel.cli.jobmanager_controller.JobManagerController')
+@patch('sage.cli.jobmanager_controller.JobManagerController')
 def test_stop(MockController):
     """Test the stop command."""
     mock_instance = MockController.return_value
@@ -48,7 +48,7 @@ def test_stop(MockController):
     assert "Operation 'stop' completed successfully" in result.stdout
     mock_instance.stop_gracefully.assert_called_once()
 
-@patch('sage.kernel.cli.jobmanager_controller.JobManagerController')
+@patch('sage.cli.jobmanager_controller.JobManagerController')
 def test_stop_force(MockController):
     """Test the stop command with --force."""
     mock_instance = MockController.return_value
@@ -60,7 +60,7 @@ def test_stop_force(MockController):
     assert "Operation 'stop' completed successfully" in result.stdout
     mock_instance.force_kill.assert_called_once()
 
-@patch('sage.kernel.cli.jobmanager_controller.JobManagerController')
+@patch('sage.cli.jobmanager_controller.JobManagerController')
 def test_restart(MockController):
     """Test the restart command."""
     mock_instance = MockController.return_value
@@ -71,7 +71,7 @@ def test_restart(MockController):
     assert result.exit_code == 0
     mock_instance.restart.assert_called_once()
 
-@patch('sage.kernel.cli.jobmanager_controller.JobManagerController')
+@patch('sage.cli.jobmanager_controller.JobManagerController')
 def test_status(MockController):
     """Test the status command."""
     mock_instance = MockController.return_value
@@ -82,7 +82,7 @@ def test_status(MockController):
     assert "Operation 'status' completed successfully" in result.stdout
     mock_instance.status.assert_called_once()
 
-@patch('sage.kernel.cli.jobmanager_controller.JobManagerController')
+@patch('sage.cli.jobmanager_controller.JobManagerController')
 def test_kill(MockController):
     """Test the kill command."""
     mock_instance = MockController.return_value

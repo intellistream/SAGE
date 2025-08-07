@@ -14,7 +14,7 @@ class TestExtensionsManager(unittest.TestCase):
     def test_import_exists(self):
         """Test that the extensions module can be imported."""
         try:
-            from sage.kernel.cli import extensions
+            from sage.cli import extensions
             # Basic import test
             self.assertTrue(True)
         except ImportError as e:

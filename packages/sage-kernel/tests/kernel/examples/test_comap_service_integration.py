@@ -9,9 +9,9 @@ import threading
 import unittest
 import pytest
 from unittest.mock import Mock
-from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.api.function.comap_function import BaseCoMapFunction
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.core.api.local_environment import LocalEnvironment
+from sage.core.api.function.comap_function import BaseCoMapFunction
+from sage.core.api.function.sink_function import SinkFunction
 
 
 # ==================== 测试服务类 ====================

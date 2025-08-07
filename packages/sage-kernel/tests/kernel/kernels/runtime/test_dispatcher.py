@@ -10,10 +10,10 @@ from unittest.mock import Mock, MagicMock, patch, call
 import threading
 from typing import Dict, Any
 
-from sage.kernel.kernels.runtime.dispatcher import Dispatcher
-from sage.kernel.kernels.runtime.task.base_task import BaseTask
-from sage.kernel.kernels.runtime.service.base_service_task import BaseServiceTask
-from sage.kernel.kernels.runtime.distributed.actor import ActorWrapper
+from sage.kernel.runtime.dispatcher import Dispatcher
+from sage.kernel.runtime.task.base_task import BaseTask
+from sage.core.api.service.base_service_task import BaseServiceTask
+from sage.kernel.utils.ray.actor import ActorWrapper
 
 
 class MockExecutionGraph:
@@ -53,13 +53,13 @@ class TestDispatcher:
     @pytest.fixture
     def local_dispatcher(self, mock_graph, mock_env):
         """Create a local dispatcher for testing"""
-        with patch('sage.kernel.kernels.runtime.dispatcher.ensure_ray_initialized'):
+        with patch('sage.kernel.runtime.dispatcher.ensure_ray_initialized'):
             return Dispatcher(mock_graph, mock_env)
 
     @pytest.fixture
     def remote_dispatcher(self, mock_graph, mock_remote_env):
         """Create a remote dispatcher for testing"""
-        with patch('sage.kernel.kernels.runtime.dispatcher.ensure_ray_initialized') as mock_ray:
+        with patch('sage.kernel.runtime.dispatcher.ensure_ray_initialized') as mock_ray:
             dispatcher = Dispatcher(mock_graph, mock_remote_env)
             mock_ray.assert_called_once()
             return dispatcher
@@ -67,7 +67,7 @@ class TestDispatcher:
     @pytest.mark.unit
     def test_dispatcher_initialization_local(self, mock_graph, mock_env):
         """Test dispatcher initialization in local mode"""
-        with patch('sage.kernel.kernels.runtime.dispatcher.ensure_ray_initialized') as mock_ray:
+        with patch('sage.kernel.runtime.dispatcher.ensure_ray_initialized') as mock_ray:
             dispatcher = Dispatcher(mock_graph, mock_env)
             
             # Verify basic attributes
@@ -85,7 +85,7 @@ class TestDispatcher:
     @pytest.mark.unit
     def test_dispatcher_initialization_remote(self, mock_graph, mock_remote_env):
         """Test dispatcher initialization in remote mode"""
-        with patch('sage.kernel.kernels.runtime.dispatcher.ensure_ray_initialized') as mock_ray:
+        with patch('sage.kernel.runtime.dispatcher.ensure_ray_initialized') as mock_ray:
             dispatcher = Dispatcher(mock_graph, mock_remote_env)
             
             # Verify basic attributes
@@ -181,7 +181,7 @@ class TestDispatcher:
         env1 = MockEnvironment("env1")
         env2 = MockEnvironment("env2") 
         
-        with patch('sage.kernel.kernels.runtime.dispatcher.ensure_ray_initialized'):
+        with patch('sage.kernel.runtime.dispatcher.ensure_ray_initialized'):
             dispatcher1 = Dispatcher(mock_graph, env1)
             dispatcher2 = Dispatcher(mock_graph, env2)
             
@@ -217,13 +217,13 @@ class TestDispatcher:
             pytest.fail(f"Logger should be functional: {e}")
 
     @pytest.mark.integration
-    @patch('sage.kernel.kernels.runtime.distributed.ray.ensure_ray_initialized')
+    @patch('sage.kernel.utils.ray.ray.ensure_ray_initialized')
     def test_dispatcher_ray_integration(self, mock_ray_init, mock_graph):
         """Integration test for Ray initialization"""
         remote_env = MockEnvironment(platform="remote")
         
         # Since actual Ray init happens, mock it to capture the call
-        with patch('sage.kernel.kernels.runtime.dispatcher.ensure_ray_initialized') as dispatcher_ray_mock:
+        with patch('sage.kernel.runtime.dispatcher.ensure_ray_initialized') as dispatcher_ray_mock:
             dispatcher = Dispatcher(mock_graph, remote_env)
             
             # Check the Ray init call was made (either mock could be called)
@@ -262,7 +262,7 @@ class TestDispatcher:
         # Create many dispatchers quickly
         dispatchers = []
         for i in range(100):
-            with patch('sage.kernel.kernels.runtime.dispatcher.ensure_ray_initialized'):
+            with patch('sage.kernel.runtime.dispatcher.ensure_ray_initialized'):
                 dispatcher = Dispatcher(mock_graph, mock_env)
                 dispatchers.append(dispatcher)
         
@@ -297,7 +297,7 @@ class TestDispatcherEdgeCases:
         graph = MockExecutionGraph(total_stop_signals=0)
         env = MockEnvironment()
         
-        with patch('sage.kernel.kernels.runtime.dispatcher.ensure_ray_initialized'):
+        with patch('sage.kernel.runtime.dispatcher.ensure_ray_initialized'):
             dispatcher = Dispatcher(graph, env)
             
             # Should immediately return True
@@ -310,7 +310,7 @@ class TestDispatcherEdgeCases:
         graph = MockExecutionGraph(total_stop_signals=-1)
         env = MockEnvironment()
         
-        with patch('sage.kernel.kernels.runtime.dispatcher.ensure_ray_initialized'):
+        with patch('sage.kernel.runtime.dispatcher.ensure_ray_initialized'):
             dispatcher = Dispatcher(graph, env)
             
             # Should handle gracefully
@@ -323,7 +323,7 @@ class TestDispatcherEdgeCases:
         graph = MockExecutionGraph(total_stop_signals=1000000)
         env = MockEnvironment()
         
-        with patch('sage.kernel.kernels.runtime.dispatcher.ensure_ray_initialized'):
+        with patch('sage.kernel.runtime.dispatcher.ensure_ray_initialized'):
             dispatcher = Dispatcher(graph, env)
             
             # Should handle large numbers

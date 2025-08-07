@@ -229,7 +229,7 @@ python -m pytest tests/core/ --cov=src/sage/core --cov-report=html --cov-report=
 
 2. **使用Mock**：减少外部依赖
    ```python
-   @patch('sage.kernel.api.function.base_function.ServiceCallProxy')
+   @patch('sage.core.api.function.base_function.ServiceCallProxy')
    def test_with_mocked_service(self, mock_proxy):
        # 测试逻辑
    ```

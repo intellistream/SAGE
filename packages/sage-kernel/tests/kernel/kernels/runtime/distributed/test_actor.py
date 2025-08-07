@@ -10,7 +10,7 @@ import asyncio
 import concurrent.futures
 from typing import Any
 
-from sage.kernel.kernels.runtime.distributed.actor import ActorWrapper
+from sage.kernel.utils.ray.actor import ActorWrapper
 
 
 class MockLocalObject:

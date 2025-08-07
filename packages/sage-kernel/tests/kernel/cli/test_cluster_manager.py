@@ -5,14 +5,14 @@ import pytest
 from unittest.mock import patch, MagicMock
 from typer.testing import CliRunner
 
-from sage.kernel.cli.cluster_manager import app
+from sage.cli.cluster_manager import app
 
 
 class TestClusterManager:
     def setup_method(self):
         self.runner = CliRunner()
     
-    @patch('sage.kernel.cli.cluster_manager.get_config_manager')
+    @patch('sage.cli.cluster_manager.get_config_manager')
     def test_show_info(self, mock_get_config_manager):
         """Test showing cluster information"""
         mock_config_manager = MagicMock()
@@ -47,7 +47,7 @@ class TestClusterManager:
         assert "Ray集群配置信息" in result.stdout
         assert "head-node" in result.stdout
     
-    @patch('sage.kernel.cli.cluster_manager.DeploymentManager')
+    @patch('sage.cli.cluster_manager.DeploymentManager')
     def test_deploy_cluster_success(self, mock_deployment_class):
         """Test successful cluster deployment"""
         mock_deployment_manager = MagicMock()
@@ -59,7 +59,7 @@ class TestClusterManager:
         assert result.exit_code == 0
         assert "集群部署成功" in result.stdout
     
-    @patch('sage.kernel.cli.cluster_manager.DeploymentManager')
+    @patch('sage.cli.cluster_manager.DeploymentManager')
     def test_deploy_cluster_partial_failure(self, mock_deployment_class):
         """Test cluster deployment with partial failure"""
         mock_deployment_manager = MagicMock()
@@ -72,9 +72,9 @@ class TestClusterManager:
         assert "部分节点部署失败" in result.stdout
     
     @patch('time.sleep')
-    @patch('sage.kernel.cli.head_manager.start_head')
-    @patch('sage.kernel.cli.worker_manager.start_workers')
-    @patch('sage.kernel.cli.config_manager.get_config_manager')
+    @patch('sage.cli.head_manager.start_head')
+    @patch('sage.cli.worker_manager.start_workers')
+    @patch('sage.cli.config_manager.get_config_manager')
     def test_start_cluster_success(self, mock_get_config_manager, mock_start_workers, mock_start_head, mock_sleep):
         """Test successful cluster start"""
         # Mock config manager to return worker hosts
@@ -90,7 +90,7 @@ class TestClusterManager:
         mock_start_head.assert_called_once()
         mock_start_workers.assert_called_once()
     
-    @patch('sage.kernel.cli.head_manager.start_head')
+    @patch('sage.cli.head_manager.start_head')
     def test_start_cluster_head_failure(self, mock_start_head):
         """Test cluster start with head failure"""
         mock_start_head.side_effect = Exception("Head start failed")
@@ -101,8 +101,8 @@ class TestClusterManager:
         assert "Head节点启动失败" in result.stdout
     
     @patch('time.sleep')
-    @patch('sage.kernel.cli.head_manager.stop_head')
-    @patch('sage.kernel.cli.worker_manager.stop_workers')
+    @patch('sage.cli.head_manager.stop_head')
+    @patch('sage.cli.worker_manager.stop_workers')
     def test_stop_cluster_success(self, mock_stop_workers, mock_stop_head, mock_sleep):
         """Test successful cluster stop"""
         result = self.runner.invoke(app, ["stop"])
@@ -113,9 +113,9 @@ class TestClusterManager:
         mock_stop_workers.assert_called_once()
         mock_stop_head.assert_called_once()
     
-    @patch('sage.kernel.cli.worker_manager.status_workers')
-    @patch('sage.kernel.cli.head_manager.status_head')
-    @patch('sage.kernel.cli.cluster_manager.get_config_manager')
+    @patch('sage.cli.worker_manager.status_workers')
+    @patch('sage.cli.head_manager.status_head')
+    @patch('sage.cli.cluster_manager.get_config_manager')
     def test_status_cluster(self, mock_get_config_manager, mock_status_head, mock_status_workers):
         """Test cluster status check"""
         mock_config_manager = MagicMock()
@@ -138,8 +138,8 @@ class TestClusterManager:
         mock_status_workers.assert_called_once()
     
     @patch('time.sleep')
-    @patch('sage.kernel.cli.cluster_manager.start_cluster')
-    @patch('sage.kernel.cli.cluster_manager.stop_cluster')
+    @patch('sage.cli.cluster_manager.start_cluster')
+    @patch('sage.cli.cluster_manager.stop_cluster')
     def test_restart_cluster(self, mock_stop_cluster, mock_start_cluster, mock_sleep):
         """Test cluster restart"""
         result = self.runner.invoke(app, ["restart"])
@@ -148,7 +148,7 @@ class TestClusterManager:
         assert "重启Ray集群" in result.stdout
         assert "集群重启完成" in result.stdout
     
-    @patch('sage.kernel.cli.worker_manager.add_worker')
+    @patch('sage.cli.worker_manager.add_worker')
     def test_scale_add_worker(self, mock_add_worker):
         """Test adding worker to cluster"""
         result = self.runner.invoke(app, ["scale", "add", "newworker:22"])
@@ -158,7 +158,7 @@ class TestClusterManager:
         assert "newworker:22" in result.stdout
         mock_add_worker.assert_called_once_with("newworker:22")
     
-    @patch('sage.kernel.cli.worker_manager.remove_worker')
+    @patch('sage.cli.worker_manager.remove_worker')
     def test_scale_remove_worker(self, mock_remove_worker):
         """Test removing worker from cluster"""
         result = self.runner.invoke(app, ["scale", "remove", "worker1:22"])

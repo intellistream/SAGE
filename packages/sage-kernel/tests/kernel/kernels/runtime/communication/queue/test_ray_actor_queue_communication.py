@@ -19,10 +19,10 @@ from typing import List, Dict, Any, Optional
 sys.path.insert(0, '/api-rework')
 
 try:
-    from sage.kernel.kernels.runtime.communication.queue_descriptor import (
+    from sage.kernel.runtime.communication.queue_descriptor import (
         RayQueueDescriptor,
     )
-    from sage.kernel.kernels.runtime.distributed.ray import ensure_ray_initialized
+    from sage.kernel.utils.ray.ray import ensure_ray_initialized
     print("✓ 成功导入Ray队列描述符")
 except ImportError as e:
     print(f"✗ 导入失败: {e}")
@@ -47,7 +47,7 @@ class PersistentQueueActor:
     def __init__(self, queue_desc_dict: Dict[str, Any], actor_name: str):
         """初始化Actor并建立队列连接"""
         self.actor_name = actor_name
-        from sage.kernel.kernels.runtime.communication.queue_descriptor import resolve_descriptor
+        from sage.kernel.runtime.communication.queue_descriptor import resolve_descriptor
         self.queue_desc = resolve_descriptor(queue_desc_dict)
         self.operations_count = 0
         self.last_operation_time = time.time()
@@ -152,7 +152,7 @@ class QueueCoordinatorActor:
     
     def register_queue(self, queue_name: str, queue_desc_dict: Dict[str, Any]):
         """注册一个队列"""
-        from sage.kernel.kernels.runtime.communication.queue_descriptor import resolve_descriptor
+        from sage.kernel.runtime.communication.queue_descriptor import resolve_descriptor
         queue_desc = resolve_descriptor(queue_desc_dict)
         self.managed_queues[queue_name] = queue_desc
         self.coordination_log.append(f"registered_queue:{queue_name}")

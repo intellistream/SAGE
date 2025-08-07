@@ -12,17 +12,17 @@ from unittest.mock import patch, MagicMock
 
 # Mock all the CLI sub-modules before importing main
 with patch.dict('sys.modules', {
-    'sage.kernel.cli.job': MagicMock(),
-    'sage.kernel.cli.deploy': MagicMock(),
-    'sage.kernel.cli.jobmanager_controller': MagicMock(),
-    'sage.kernel.cli.worker_manager': MagicMock(),
-    'sage.kernel.cli.head_manager': MagicMock(),
-    'sage.kernel.cli.cluster_manager': MagicMock(),
-    'sage.kernel.cli.extensions': MagicMock(),
+    'sage.cli.job': MagicMock(),
+    'sage.cli.deploy': MagicMock(),
+    'sage.cli.jobmanager_controller': MagicMock(),
+    'sage.cli.worker_manager': MagicMock(),
+    'sage.cli.head_manager': MagicMock(),
+    'sage.cli.cluster_manager': MagicMock(),
+    'sage.cli.extensions': MagicMock(),
     'sage.kernel.utils.system.network_utils': MagicMock(),
-    'sage.kernel.kernels.jobmanager.jobmanager_client': MagicMock(),
+    'sage.kernel.jobmanager.jobmanager_client': MagicMock(),
 }):
-    from sage.kernel.cli.main import app
+    from sage.cli.main import app
 
 
 class TestMainCLI:
@@ -44,7 +44,7 @@ class TestMainCLI:
         assert "Repository: https://github.com/intellistream/SAGE" in result.stdout
     
     @pytest.mark.unit
-    @patch('sage.kernel.cli.config_manager.get_config_manager')
+    @patch('sage.cli.config_manager.get_config_manager')
     def test_config_command_success(self, mock_get_config_manager):
         """测试配置命令成功显示配置信息"""
         mock_config_manager = MagicMock()
@@ -61,7 +61,7 @@ class TestMainCLI:
         mock_config_manager.load_config.assert_called_once()
     
     @pytest.mark.unit
-    @patch('sage.kernel.cli.config_manager.get_config_manager')
+    @patch('sage.cli.config_manager.get_config_manager')
     def test_config_command_error(self, mock_get_config_manager):
         """测试配置命令在配置加载失败时的错误处理"""
         mock_get_config_manager.side_effect = Exception("Config load error")
@@ -104,7 +104,7 @@ import pytest
 from typer.testing import CliRunner
 from unittest.mock import patch, MagicMock
 
-from sage.kernel.cli.main import app
+from sage.cli.main import app
 
 
 class TestMainCLI:
@@ -126,7 +126,7 @@ class TestMainCLI:
         assert "Repository: https://github.com/intellistream/SAGE" in result.stdout
     
     @pytest.mark.unit
-    @patch('sage.kernel.cli.config_manager.get_config_manager')
+    @patch('sage.cli.config_manager.get_config_manager')
     def test_config_command_success(self, mock_get_config_manager):
         """测试配置命令成功显示配置信息"""
         mock_config_manager = MagicMock()
@@ -142,7 +142,7 @@ class TestMainCLI:
         mock_config_manager.load_config.assert_called_once()
     
     @pytest.mark.unit
-    @patch('sage.kernel.cli.config_manager.get_config_manager')
+    @patch('sage.cli.config_manager.get_config_manager')
     def test_config_command_error(self, mock_get_config_manager):
         """测试配置命令在配置加载失败时的错误处理"""
         mock_get_config_manager.side_effect = Exception("Config load error")
@@ -246,7 +246,7 @@ def test_worker_subcommand_help():
 
 @patch('tempfile.NamedTemporaryFile')
 @patch('os.path.expanduser')
-@patch('sage.kernel.cli.config_manager.ConfigManager.load_config')
+@patch('sage.cli.config_manager.ConfigManager.load_config')
 def test_config_with_existing_config(mock_load_config, mock_expanduser, mock_tempfile):
     """Test config command with existing configuration."""
     # Mock the config
@@ -265,7 +265,7 @@ def test_config_with_existing_config(mock_load_config, mock_expanduser, mock_tem
 def test_main_script_execution():
     """Test running the CLI as a script."""
     result = subprocess.run(
-        [sys.executable, "-m", "sage.kernel.cli.main", "--help"],
+        [sys.executable, "-m", "sage.cli.main", "--help"],
         capture_output=True,
         text=True
     )

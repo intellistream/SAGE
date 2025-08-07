@@ -13,7 +13,7 @@ class TestHeadManager(unittest.TestCase):
     def test_import_exists(self):
         """Test that the head_manager module can be imported."""
         try:
-            from sage.kernel.cli import head_manager
+            from sage.cli import head_manager
             # Just test that the module imports successfully
             self.assertTrue(True)
         except ImportError as e:

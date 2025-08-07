@@ -14,7 +14,7 @@ class TestCLIMain(unittest.TestCase):
     def test_import_exists(self):
         """Test that the main CLI module can be imported."""
         try:
-            from sage.kernel.cli import main
+            from sage.cli import main
             # Basic import test
             self.assertTrue(True)
         except ImportError as e:

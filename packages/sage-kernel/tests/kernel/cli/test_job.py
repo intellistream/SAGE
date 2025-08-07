@@ -5,11 +5,11 @@ import os
 from typer.testing import CliRunner
 from unittest.mock import patch, MagicMock
 
-from sage.kernel.cli.job import app
+from sage.cli.job import app
 
 runner = CliRunner()
 
-@patch('sage.kernel.cli.job.cli')
+@patch('sage.cli.job.cli')
 def test_list_jobs(mock_cli):
     """Test the list command."""
     mock_cli.ensure_connected.return_value = None
@@ -24,7 +24,7 @@ def test_list_jobs(mock_cli):
     mock_cli.ensure_connected.assert_called_once()
     mock_cli.client.list_jobs.assert_called_once()
 
-@patch('sage.kernel.cli.job.cli')
+@patch('sage.cli.job.cli')
 def test_show_job(mock_cli):
     """Test the show command."""
     mock_cli.ensure_connected.return_value = None
@@ -40,7 +40,7 @@ def test_show_job(mock_cli):
     mock_cli._resolve_job_identifier.assert_called_with("1")
     mock_cli.client.get_job_status.assert_called_with("test-uuid")
 
-@patch('sage.kernel.cli.job.cli')
+@patch('sage.cli.job.cli')
 def test_run_job(mock_cli):
     """Test the run command."""
     # This test is more complex as it involves file operations
@@ -59,7 +59,7 @@ def test_run_job(mock_cli):
         if os.path.exists("dummy_script.py"):
             os.remove("dummy_script.py")
 
-@patch('sage.kernel.cli.job.cli')
+@patch('sage.cli.job.cli')
 def test_stop_job(mock_cli):
     """Test the stop command."""
     mock_cli.ensure_connected.return_value = None
@@ -72,7 +72,7 @@ def test_stop_job(mock_cli):
     mock_cli._resolve_job_identifier.assert_called_with("1")
     mock_cli.client.pause_job.assert_called_with("test-uuid")
 
-@patch('sage.kernel.cli.job.cli')
+@patch('sage.cli.job.cli')
 def test_stop_job_force(mock_cli):
     """Test the stop command with --force."""
     mock_cli.ensure_connected.return_value = None
@@ -84,7 +84,7 @@ def test_stop_job_force(mock_cli):
     assert result.exit_code == 0
     mock_cli.client.pause_job.assert_called_with("test-uuid")
 
-@patch('sage.kernel.cli.job.cli')
+@patch('sage.cli.job.cli')
 def test_logs_job(mock_cli):
     """Test the logs command."""
     # The logs command may not be fully implemented yet
@@ -95,7 +95,7 @@ def test_logs_job(mock_cli):
     # or handle gracefully
     assert result.exit_code in [0, 1, 2]
 
-@patch('sage.kernel.cli.job.cli')
+@patch('sage.cli.job.cli')
 def test_logs_job_follow(mock_cli):
     """Test the logs command with --follow."""
     # The logs command may not be fully implemented yet

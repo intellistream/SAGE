@@ -19,7 +19,7 @@ def run_base_service_task_tests():
     
     # 导入测试模块
     try:
-        from sage.kernel.kernels.runtime.service.tests.test_base_service_task_queue_refactor import TestBaseServiceTaskQueueManagement
+        from sage.kernel.runtime.service.tests.test_base_service_task_queue_refactor import TestBaseServiceTaskQueueManagement
         
         # 创建测试套件
         suite = unittest.TestSuite()
@@ -75,15 +75,15 @@ def run_quick_functionality_check():
     
     try:
         # 检查BaseServiceTask导入
-        from sage.kernel.kernels.runtime.service.base_service_task import BaseServiceTask
+        from sage.core.api.service.base_service_task import BaseServiceTask
         print("✅ BaseServiceTask import successful")
         
         # 检查ServiceContext导入
-        from sage.kernel.kernels.runtime.service_context import ServiceContext
+        from sage.kernel.runtime.service_context import ServiceContext
         print("✅ ServiceContext import successful")
         
         # 检查BaseQueueDescriptor导入
-        from sage.kernel.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
+        from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
         print("✅ BaseQueueDescriptor import successful")
         
         # 检查关键方法存在

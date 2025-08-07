@@ -24,7 +24,7 @@ BaseFunction (抽象基类)
 ### MapFunction - 一对一转换
 
 ```python
-from sage.kernel.api.function import MapFunction
+from sage.core.api.function import MapFunction
 from typing import TypeVar
 
 T = TypeVar('T')
@@ -67,7 +67,7 @@ user_data.map(UserProfileExtractor())
 ### FlatMapFunction - 一对多转换
 
 ```python
-from sage.kernel.api.function import FlatMapFunction
+from sage.core.api.function import FlatMapFunction
 from typing import Iterable
 
 class FlatMapFunction(BaseFunction[T, Iterable[U]]):
@@ -107,7 +107,7 @@ text.flat_map(GenerateNGramsFunction(3))  # 3-grams
 ### FilterFunction - 过滤操作
 
 ```python
-from sage.kernel.api.function import FilterFunction
+from sage.core.api.function import FilterFunction
 
 class FilterFunction(BaseFunction[T, bool]):
     """过滤函数基类"""
@@ -145,7 +145,7 @@ products.filter(PriceRangeFilter(10.0, 100.0))
 ### KeySelector - 键选择器
 
 ```python
-from sage.kernel.api.function import KeySelector
+from sage.core.api.function import KeySelector
 
 K = TypeVar('K')  # 键类型
 
@@ -179,7 +179,7 @@ sales.key_by(CompositeKeySelector())
 ### ReduceFunction - 归约操作
 
 ```python
-from sage.kernel.api.function import ReduceFunction
+from sage.core.api.function import ReduceFunction
 
 class ReduceFunction(BaseFunction[T, T]):
     """归约函数基类"""
@@ -219,7 +219,7 @@ user_updates.key_by(lambda x: x["id"]).reduce(MergeUserFunction())
 ### AggregateFunction - 聚合操作
 
 ```python
-from sage.kernel.api.function import AggregateFunction
+from sage.core.api.function import AggregateFunction
 
 ACC = TypeVar('ACC')  # 累加器类型
 OUT = TypeVar('OUT')  # 输出类型
@@ -298,7 +298,7 @@ class TopKAggregateFunction(AggregateFunction[int, list, list]):
 ### ProcessFunction - 通用处理
 
 ```python
-from sage.kernel.api.function import ProcessFunction, ProcessContext
+from sage.core.api.function import ProcessFunction, ProcessContext
 
 class ProcessFunction(BaseFunction[T, U]):
     """通用处理函数，支持副输出、定时器等高级功能"""
@@ -359,7 +359,7 @@ class SessionTimeoutFunction(ProcessFunction[dict, dict]):
 ### SourceFunction - 数据源
 
 ```python
-from sage.kernel.api.function import SourceFunction, SourceContext
+from sage.core.api.function import SourceFunction, SourceContext
 
 class SourceFunction(BaseFunction[None, T]):
     """数据源函数基类"""
@@ -427,7 +427,7 @@ class KafkaSourceFunction(SourceFunction[dict]):
 ### SinkFunction - 数据输出
 
 ```python
-from sage.kernel.api.function import SinkFunction
+from sage.core.api.function import SinkFunction
 
 class SinkFunction(BaseFunction[T, None]):
     """数据输出函数基类"""
@@ -498,7 +498,7 @@ class DatabaseSinkFunction(SinkFunction[dict]):
 ### JoinFunction - 流连接
 
 ```python
-from sage.kernel.api.function import JoinFunction
+from sage.core.api.function import JoinFunction
 
 class JoinFunction(BaseFunction[T1, T2, OUT]):
     """连接函数基类"""
@@ -532,7 +532,7 @@ class ClickImpressionJoinFunction(JoinFunction[dict, dict, dict]):
 ### CoMapFunction - 协同映射
 
 ```python
-from sage.kernel.api.function import CoMapFunction
+from sage.core.api.function import CoMapFunction
 
 class CoMapFunction(BaseFunction[T1, T2, OUT]):
     """协同映射函数基类"""

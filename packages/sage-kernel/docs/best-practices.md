@@ -346,7 +346,7 @@ secure_stream = (input_stream
 
 ```python
 import unittest
-from sage.kernel.api import LocalEnvironment
+from sage.core.api import LocalEnvironment
 
 class TestStreamProcessing(unittest.TestCase):
     def setUp(self):
@@ -605,7 +605,7 @@ ENV SAGE_ENV=production
 ENV LOG_LEVEL=INFO
 
 # Run application
-CMD ["python", "-m", "sage.kernel.cli", "serve"]
+CMD ["python", "-m", "sage.cli", "serve"]
 ```
 
 ```yaml

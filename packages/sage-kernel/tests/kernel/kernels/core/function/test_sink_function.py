@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import Mock, MagicMock, patch
 from abc import ABC, abstractmethod
 
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.core.api.function.sink_function import SinkFunction
 
 
 class MockSinkFunction(SinkFunction):

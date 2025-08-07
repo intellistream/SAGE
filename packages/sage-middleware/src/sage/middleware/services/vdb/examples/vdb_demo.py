@@ -3,7 +3,7 @@ VDB Service API 使用示例
 展示如何正确使用VDB微服务的API接口进行向量存储和相似性搜索
 """
 import numpy as np
-from sage.kernel.api.local_environment import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 from sage.middleware.services.services.vdb import create_vdb_service_factory
 from sage.middleware.services.api.vdb_api import VDBServiceAPI
 

@@ -1,7 +1,7 @@
 import time
 
 # 导入 Sage 相关模块
-from sage.kernel.api.local_environment import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 from sage.apps.lib.rag.generator import OpenAIGenerator
 from sage.apps.lib.rag.promptor import QAPromptor
 from sage.apps.lib.rag.retriever import DenseRetriever

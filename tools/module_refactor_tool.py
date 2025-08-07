@@ -30,78 +30,78 @@ class ModuleRefactorTool:
         self.import_mappings = [
             # 函数相关
             ImportMapping(
-                "sage.kernel.api.function.lambda_function",
+                "sage.core.api.function.lambda_function",
                 "sage.kernel.function",
                 ["wrap_lambda"]
             ),
             ImportMapping(
-                "sage.kernel.api.function.base_function",
+                "sage.core.api.function.base_function",
                 "sage.kernel.function",
                 ["BaseFunction"]
             ),
             ImportMapping(
-                "sage.kernel.api.function.kafka_source",
+                "sage.core.api.function.kafka_source",
                 "sage.kernel.function",
                 ["KafkaSourceFunction"]
             ),
             
             # API相关
             ImportMapping(
-                "sage.kernel.api.datastream",
-                "sage.kernel.api",
+                "sage.core.api.datastream",
+                "sage.core.api",
                 ["DataStream"]
             ),
             
             # 转换相关
             ImportMapping(
-                "sage.kernel.kernels.core.transformation.base_transformation",
+                "sage.core.transformation.base_transformation",
                 "sage.kernel.transformation",
                 ["BaseTransformation"]
             ),
             ImportMapping(
-                "sage.kernel.kernels.core.transformation.source_transformation",
+                "sage.core.transformation.source_transformation",
                 "sage.kernel.transformation",
                 ["SourceTransformation"]
             ),
             ImportMapping(
-                "sage.kernel.kernels.core.transformation.batch_transformation",
+                "sage.core.transformation.batch_transformation",
                 "sage.kernel.transformation",
                 ["BatchTransformation"]
             ),
             ImportMapping(
-                "sage.kernel.kernels.core.transformation.future_transformation",
+                "sage.core.transformation.future_transformation",
                 "sage.kernel.transformation",
                 ["FutureTransformation"]
             ),
             ImportMapping(
-                "sage.kernel.kernels.core.transformation.map_transformation",
+                "sage.core.transformation.map_transformation",
                 "sage.kernel.transformation",
                 ["MapTransformation"]
             ),
             ImportMapping(
-                "sage.kernel.kernels.core.transformation.filter_transformation",
+                "sage.core.transformation.filter_transformation",
                 "sage.kernel.transformation",
                 ["FilterTransformation"]
             ),
             ImportMapping(
-                "sage.kernel.kernels.core.transformation.flatmap_transformation",
+                "sage.core.transformation.flatmap_transformation",
                 "sage.kernel.transformation",
                 ["FlatMapTransformation"]
             ),
             ImportMapping(
-                "sage.kernel.kernels.core.transformation.sink_transformation",
+                "sage.core.transformation.sink_transformation",
                 "sage.kernel.transformation",
                 ["SinkTransformation"]
             ),
             ImportMapping(
-                "sage.kernel.kernels.core.transformation.keyby_transformation",
+                "sage.core.transformation.keyby_transformation",
                 "sage.kernel.transformation",
                 ["KeyByTransformation"]
             ),
             
             # 通信相关
             ImportMapping(
-                "sage.kernel.kernels.runtime.communication.queue_descriptor.base_queue_descriptor",
+                "sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor",
                 "sage.kernel.communication",
                 ["BaseQueueDescriptor"]
             ),
@@ -115,24 +115,24 @@ class ModuleRefactorTool:
             
             # 作业管理相关
             ImportMapping(
-                "sage.kernel.kernels.jobmanager.utils.name_server",
+                "sage.kernel.jobmanager.utils.name_server",
                 "sage.kernel.jobmanager",
                 ["get_name"]
             ),
             ImportMapping(
-                "sage.kernel.kernels.jobmanager.jobmanager_client",
+                "sage.kernel.jobmanager.jobmanager_client",
                 "sage.kernel.jobmanager",
                 ["JobManagerClient"]
             ),
             ImportMapping(
-                "sage.kernel.kernels.jobmanager.job_manager",
+                "sage.kernel.jobmanager.job_manager",
                 "sage.kernel.jobmanager",
                 ["JobManager"]
             ),
             
             # 工厂相关
             ImportMapping(
-                "sage.kernel.kernels.runtime.factory.service_factory",
+                "sage.kernel.runtime.factory.service_factory",
                 "sage.kernel.factory",
                 ["ServiceFactory"]
             ),

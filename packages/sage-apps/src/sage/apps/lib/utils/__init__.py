@@ -8,7 +8,7 @@ __author__ = "IntelliStream"
 __email__ = "intellistream@outlook.com"
 
 try:
-    from sage.kernel.kernels.jobmanager import *
+    from sage.kernel.jobmanager import *
 except ImportError:
     pass
 
@@ -16,7 +16,7 @@ except ImportError:
 def get_cli():
     """获取CLI应用"""
     try:
-        from sage.kernel.cli.main import app
+        from sage.cli.main import app
         return app
     except ImportError as e:
         print(f"CLI dependencies not installed: {e}")

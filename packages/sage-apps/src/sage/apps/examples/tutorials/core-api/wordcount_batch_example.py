@@ -2,8 +2,8 @@
 有界流WordCount示例
 使用BatchFunction处理固定数据集，展示词频统计的批处理模式
 """
-from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.api.function.batch_function import BatchFunction
+from sage.core.api.local_environment import LocalEnvironment
+from sage.core.api.function.batch_function import BatchFunction
 from collections import Counter
 
 

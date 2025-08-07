@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 import os, time
-from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.api.remote_environment import RemoteEnvironment
+from sage.core.api.local_environment import LocalEnvironment
+from sage.core.api.remote_environment import RemoteEnvironment
 from sage.apps.lib.io_utils.source import FileSource
 from sage.apps.lib.io_utils.sink import TerminalSink
 from sage.apps.lib.rag.generator import OpenAIGenerator

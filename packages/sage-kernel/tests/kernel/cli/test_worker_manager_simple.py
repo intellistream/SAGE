@@ -13,7 +13,7 @@ class TestWorkerManager(unittest.TestCase):
     def test_import_exists(self):
         """Test that the worker_manager module can be imported."""
         try:
-            from sage.kernel.cli import worker_manager
+            from sage.cli import worker_manager
             # Just test that the module imports successfully
             self.assertTrue(True)
         except ImportError as e:

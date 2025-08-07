@@ -16,10 +16,10 @@ import os
 sys.path.insert(0, '/api-rework')
 
 try:
-    from sage.kernel.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import (
+    from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import (
         QueueDescriptor,
     )
-    from sage.kernel.kernels.runtime.communication.queue_descriptor import (
+    from sage.kernel.runtime.communication.queue_descriptor import (
         PythonQueueDescriptor,
         RayQueueDescriptor,
         SageQueueDescriptor,

@@ -5,7 +5,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from typer.testing import CliRunner
 
-from sage.kernel.cli.worker_manager import app, execute_remote_command
+from sage.cli.worker_manager import app, execute_remote_command
 
 
 class TestWorkerManager:
@@ -15,11 +15,11 @@ class TestWorkerManager:
         """Setup test runner"""
         self.runner = CliRunner()
     
-    @patch('sage.kernel.cli.worker_manager.get_config_manager')
-    @patch('sage.kernel.cli.worker_manager.subprocess.run')
-    @patch('sage.kernel.cli.worker_manager.tempfile.NamedTemporaryFile')
-    @patch('sage.kernel.cli.worker_manager.os.path.expanduser')
-    @patch('sage.kernel.cli.worker_manager.os.unlink')
+    @patch('sage.cli.worker_manager.get_config_manager')
+    @patch('sage.cli.worker_manager.subprocess.run')
+    @patch('sage.cli.worker_manager.tempfile.NamedTemporaryFile')
+    @patch('sage.cli.worker_manager.os.path.expanduser')
+    @patch('sage.cli.worker_manager.os.unlink')
     @patch('builtins.open')
     def test_execute_remote_command_success(self, mock_open, mock_unlink, mock_expanduser, mock_tempfile, mock_subprocess, mock_get_config_manager):
         """Test successful remote command execution"""
@@ -58,8 +58,8 @@ class TestWorkerManager:
         mock_tempfile.assert_called_once()
         mock_unlink.assert_called_once_with('/tmp/test_script.sh')
     
-    @patch('sage.kernel.cli.worker_manager.execute_remote_command')
-    @patch('sage.kernel.cli.worker_manager.get_config_manager')
+    @patch('sage.cli.worker_manager.execute_remote_command')
+    @patch('sage.cli.worker_manager.get_config_manager')
     def test_start_workers_success(self, mock_get_config_manager, mock_execute_remote):
         """Test successful worker nodes start"""
         mock_config_manager = MagicMock()
@@ -91,8 +91,8 @@ class TestWorkerManager:
         assert "✅ 所有Worker节点启动成功" in result.stdout
         assert mock_execute_remote.call_count == 2  # Two workers
     
-    @patch('sage.kernel.cli.worker_manager.execute_remote_command')
-    @patch('sage.kernel.cli.worker_manager.get_config_manager')
+    @patch('sage.cli.worker_manager.execute_remote_command')
+    @patch('sage.cli.worker_manager.get_config_manager')
     def test_start_workers_partial_failure(self, mock_get_config_manager, mock_execute_remote):
         """Test worker nodes start with partial failure"""
         mock_config_manager = MagicMock()
@@ -122,7 +122,7 @@ class TestWorkerManager:
         assert result.exit_code == 1
         assert "⚠️  部分Worker节点启动失败" in result.stdout
     
-    @patch('sage.kernel.cli.worker_manager.get_config_manager')
+    @patch('sage.cli.worker_manager.get_config_manager')
     def test_start_workers_no_workers_configured(self, mock_get_config_manager):
         """Test starting workers when none are configured"""
         mock_config_manager = MagicMock()
@@ -134,8 +134,8 @@ class TestWorkerManager:
         assert result.exit_code == 0
         assert "❌ 未配置任何worker节点" in result.stdout
     
-    @patch('sage.kernel.cli.worker_manager.execute_remote_command')
-    @patch('sage.kernel.cli.worker_manager.get_config_manager')
+    @patch('sage.cli.worker_manager.execute_remote_command')
+    @patch('sage.cli.worker_manager.get_config_manager')
     def test_stop_workers_success(self, mock_get_config_manager, mock_execute_remote):
         """Test successful worker nodes stop"""
         mock_config_manager = MagicMock()
@@ -161,8 +161,8 @@ class TestWorkerManager:
         assert "🛑 停止Ray Worker节点" in result.stdout
         assert "✅ 所有Worker节点停止操作完成" in result.stdout
     
-    @patch('sage.kernel.cli.worker_manager.execute_remote_command')
-    @patch('sage.kernel.cli.worker_manager.get_config_manager')
+    @patch('sage.cli.worker_manager.execute_remote_command')
+    @patch('sage.cli.worker_manager.get_config_manager')
     def test_status_workers_all_running(self, mock_get_config_manager, mock_execute_remote):
         """Test worker status when all are running"""
         mock_config_manager = MagicMock()
@@ -191,8 +191,8 @@ class TestWorkerManager:
         assert "📊 检查Ray Worker节点状态" in result.stdout
         assert "✅ 所有Worker节点都在正常运行" in result.stdout
     
-    @patch('sage.kernel.cli.worker_manager.execute_remote_command')
-    @patch('sage.kernel.cli.worker_manager.get_config_manager')
+    @patch('sage.cli.worker_manager.execute_remote_command')
+    @patch('sage.cli.worker_manager.get_config_manager')
     def test_status_workers_none_running(self, mock_get_config_manager, mock_execute_remote):
         """Test worker status when none are running"""
         mock_config_manager = MagicMock()
@@ -220,8 +220,8 @@ class TestWorkerManager:
         assert result.exit_code == 0
         assert "❌ 没有Worker节点在运行" in result.stdout
     
-    @patch('sage.kernel.cli.worker_manager.start_workers')
-    @patch('sage.kernel.cli.worker_manager.stop_workers')
+    @patch('sage.cli.worker_manager.start_workers')
+    @patch('sage.cli.worker_manager.stop_workers')
     def test_restart_workers(self, mock_stop, mock_start):
         """Test worker nodes restart"""
         result = self.runner.invoke(app, ["restart"])
@@ -229,7 +229,7 @@ class TestWorkerManager:
         assert result.exit_code == 0
         assert "🔄 重启Ray Worker节点" in result.stdout
     
-    @patch('sage.kernel.cli.worker_manager.get_config_manager')
+    @patch('sage.cli.worker_manager.get_config_manager')
     def test_show_config(self, mock_get_config_manager):
         """Test showing worker configuration"""
         mock_config_manager = MagicMock()
@@ -266,8 +266,8 @@ class TestWorkerManager:
         assert "head-node" in result.stdout
         assert "Worker节点数量: 2" in result.stdout
     
-    @patch('sage.kernel.cli.worker_manager.DeploymentManager')
-    @patch('sage.kernel.cli.worker_manager.get_config_manager')
+    @patch('sage.cli.worker_manager.DeploymentManager')
+    @patch('sage.cli.worker_manager.get_config_manager')
     def test_deploy_workers_success(self, mock_get_config_manager, mock_deployment_manager):
         """Test successful worker deployment"""
         mock_deployment_instance = MagicMock()
@@ -280,9 +280,9 @@ class TestWorkerManager:
         assert "🚀 开始部署到Worker节点" in result.stdout
         assert "✅ 所有节点部署成功" in result.stdout
     
-    @patch('sage.kernel.cli.worker_manager.execute_remote_command')
-    @patch('sage.kernel.cli.worker_manager.DeploymentManager')
-    @patch('sage.kernel.cli.worker_manager.get_config_manager')
+    @patch('sage.cli.worker_manager.execute_remote_command')
+    @patch('sage.cli.worker_manager.DeploymentManager')
+    @patch('sage.cli.worker_manager.get_config_manager')
     def test_add_worker_success(self, mock_get_config_manager, mock_deployment_manager, mock_execute_remote):
         """Test successful worker addition"""
         mock_config_manager = MagicMock()
@@ -314,8 +314,8 @@ class TestWorkerManager:
         assert "➕ 添加新Worker节点: newworker:22" in result.stdout
         mock_config_manager.add_worker_ssh_host.assert_called_with('newworker', 22)
     
-    @patch('sage.kernel.cli.worker_manager.execute_remote_command')
-    @patch('sage.kernel.cli.worker_manager.get_config_manager')
+    @patch('sage.cli.worker_manager.execute_remote_command')
+    @patch('sage.cli.worker_manager.get_config_manager')
     def test_remove_worker_success(self, mock_get_config_manager, mock_execute_remote):
         """Test successful worker removal"""
         mock_config_manager = MagicMock()

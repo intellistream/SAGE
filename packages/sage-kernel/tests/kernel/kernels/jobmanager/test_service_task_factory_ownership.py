@@ -7,8 +7,8 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 
-from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.kernels.jobmanager.execution_graph import ExecutionGraph
+from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.jobmanager.execution_graph import ExecutionGraph
 
 
 # 测试服务类
@@ -132,7 +132,7 @@ def test_dispatcher_no_factory_creation():
             original_factories[service_node.service_name] = service_node.service_task_factory
         
         # 4. 创建Dispatcher并提交
-        from sage.kernel.kernels.runtime.dispatcher import Dispatcher
+        from sage.kernel.runtime.dispatcher import Dispatcher
         dispatcher = Dispatcher(execution_graph, env)
         dispatcher.submit()
         

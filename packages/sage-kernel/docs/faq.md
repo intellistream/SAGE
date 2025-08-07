@@ -36,7 +36,7 @@ pip install intsage-kernel[dev]
 ### Why am I getting import errors?
 
 Common causes:
-1. **Wrong package name**: Use `from sage.kernel.api import LocalEnvironment`
+1. **Wrong package name**: Use `from sage.core.api import LocalEnvironment`
 2. **Missing dependencies**: Install with `pip install intsage-kernel[all]`
 3. **Virtual environment**: Ensure you're in the correct environment
 
@@ -45,7 +45,7 @@ Common causes:
 Create a configuration file or use environment variables:
 
 ```python
-from sage.kernel.api import LocalEnvironment
+from sage.core.api import LocalEnvironment
 
 env = LocalEnvironment(config={
     "log_level": "INFO",
@@ -59,7 +59,7 @@ env = LocalEnvironment(config={
 ### How do I create a basic stream?
 
 ```python
-from sage.kernel.api import LocalEnvironment
+from sage.core.api import LocalEnvironment
 
 env = LocalEnvironment()
 stream = env.create_stream("my_data")
@@ -95,7 +95,7 @@ result = stream.map(safe_processor).filter(lambda x: x is not None)
 Yes, use ConnectedStreams:
 
 ```python
-from sage.kernel.api.connected_streams import ConnectedStreams
+from sage.core.api.connected_streams import ConnectedStreams
 
 stream1 = env.create_stream("source1")
 stream2 = env.create_stream("source2")
@@ -254,7 +254,7 @@ stream.sink(lambda data: producer.send('output_topic', json.dumps(data)))
 Yes, register custom functions:
 
 ```python
-from sage.kernel.api.functions import register_function
+from sage.core.api.functions import register_function
 
 @register_function
 def my_custom_function(data):
@@ -300,7 +300,7 @@ stream.map(my_custom_function)
 ### How do I handle connection failures in RemoteEnvironment?
 
 ```python
-from sage.kernel.api import RemoteEnvironment
+from sage.core.api import RemoteEnvironment
 
 env = RemoteEnvironment(
     endpoint="https://api.sage-cluster.com",

@@ -2,7 +2,7 @@ import os
 import time
 import json
 from sage.kernel.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.local_environment import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 from sage.kernel.utils.config.loader import load_config
 from sage.apps.lib.io_utils.batch import HFDatasetBatch
 from sage.middleware.services.memory.memory_service import MemoryService

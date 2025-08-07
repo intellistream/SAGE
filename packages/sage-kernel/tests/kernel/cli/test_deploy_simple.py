@@ -14,7 +14,7 @@ class TestDeployManager(unittest.TestCase):
     def test_import_exists(self):
         """Test that the deploy module can be imported."""
         try:
-            from sage.kernel.cli import deploy
+            from sage.cli import deploy
             # Basic import test
             self.assertTrue(True)
         except ImportError as e:

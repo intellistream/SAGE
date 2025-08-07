@@ -9,13 +9,13 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock, call
 from typer.testing import CliRunner
 
-from sage.kernel.cli.deployment_manager import DeploymentManager
+from sage.cli.deployment_manager import DeploymentManager
 
 
 class TestDeploymentManager:
     """Test DeploymentManager class"""
     
-    @patch('sage.kernel.cli.deployment_manager.get_config_manager')
+    @patch('sage.cli.deployment_manager.get_config_manager')
     def test_init(self, mock_get_config_manager):
         """Test DeploymentManager initialization"""
         mock_config_manager = MagicMock()
@@ -38,7 +38,7 @@ class TestDeploymentManager:
         # 不管是什么环境，都应该有一个有意义的路径
         assert len(str(manager.project_root)) > 1
     
-    @patch('sage.kernel.cli.deployment_manager.get_config_manager')
+    @patch('sage.cli.deployment_manager.get_config_manager')
     def test_project_root_detection_flexibility(self, mock_get_config_manager):
         """Test that project root detection is flexible and doesn't rely on hardcoded names"""
         mock_config_manager = MagicMock()
@@ -67,7 +67,7 @@ class TestDeploymentManager:
         # 至少满足一个条件
         assert any(possible_indicators), f"Project root {project_root} doesn't match expected patterns"
     
-    @patch('sage.kernel.cli.deployment_manager.get_config_manager')
+    @patch('sage.cli.deployment_manager.get_config_manager')
     def test_create_deployment_package(self, mock_get_config_manager):
         """Test creating deployment package"""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -108,8 +108,8 @@ class TestDeploymentManager:
                 assert 'README.md' in names
                 assert 'LICENSE' in names
     
-    @patch('sage.kernel.cli.deployment_manager.subprocess.run')
-    @patch('sage.kernel.cli.deployment_manager.get_config_manager')
+    @patch('sage.cli.deployment_manager.subprocess.run')
+    @patch('sage.cli.deployment_manager.get_config_manager')
     def test_execute_ssh_command_success(self, mock_get_config_manager, mock_subprocess):
         """Test successful SSH command execution"""
         mock_config_manager = MagicMock()
@@ -132,8 +132,8 @@ class TestDeploymentManager:
         assert result is True
         mock_subprocess.assert_called_once()
     
-    @patch('sage.kernel.cli.deployment_manager.subprocess.run')
-    @patch('sage.kernel.cli.deployment_manager.get_config_manager')
+    @patch('sage.cli.deployment_manager.subprocess.run')
+    @patch('sage.cli.deployment_manager.get_config_manager')
     def test_execute_ssh_command_failure(self, mock_get_config_manager, mock_subprocess):
         """Test failed SSH command execution"""
         mock_config_manager = MagicMock()
@@ -155,8 +155,8 @@ class TestDeploymentManager:
         
         assert result is False
     
-    @patch('sage.kernel.cli.deployment_manager.subprocess.run')
-    @patch('sage.kernel.cli.deployment_manager.get_config_manager')
+    @patch('sage.cli.deployment_manager.subprocess.run')
+    @patch('sage.cli.deployment_manager.get_config_manager')
     def test_transfer_file_success(self, mock_get_config_manager, mock_subprocess):
         """Test successful file transfer"""
         mock_config_manager = MagicMock()
@@ -179,8 +179,8 @@ class TestDeploymentManager:
             assert result is True
             mock_subprocess.assert_called_once()
     
-    @patch('sage.kernel.cli.deployment_manager.subprocess.run')
-    @patch('sage.kernel.cli.deployment_manager.get_config_manager')
+    @patch('sage.cli.deployment_manager.subprocess.run')
+    @patch('sage.cli.deployment_manager.get_config_manager')
     def test_transfer_file_failure(self, mock_get_config_manager, mock_subprocess):
         """Test failed file transfer"""
         mock_config_manager = MagicMock()
@@ -206,7 +206,7 @@ class TestDeploymentManager:
     @patch.object(DeploymentManager, 'execute_ssh_command')
     @patch.object(DeploymentManager, 'transfer_file')
     @patch.object(DeploymentManager, 'create_deployment_package')
-    @patch('sage.kernel.cli.deployment_manager.get_config_manager')
+    @patch('sage.cli.deployment_manager.get_config_manager')
     def test_deploy_to_worker_success(self, mock_get_config_manager, mock_create_package, 
                                       mock_transfer_file, mock_execute_ssh):
         """Test successful worker deployment"""
@@ -234,7 +234,7 @@ class TestDeploymentManager:
     
     @patch.object(DeploymentManager, 'transfer_file')
     @patch.object(DeploymentManager, 'create_deployment_package')
-    @patch('sage.kernel.cli.deployment_manager.get_config_manager')
+    @patch('sage.cli.deployment_manager.get_config_manager')
     def test_deploy_to_worker_transfer_failure(self, mock_get_config_manager, 
                                                mock_create_package, mock_transfer_file):
         """Test worker deployment with transfer failure"""
@@ -250,7 +250,7 @@ class TestDeploymentManager:
         assert result is False
     
     @patch.object(DeploymentManager, 'deploy_to_worker')
-    @patch('sage.kernel.cli.deployment_manager.get_config_manager')
+    @patch('sage.cli.deployment_manager.get_config_manager')
     def test_deploy_to_all_workers(self, mock_get_config_manager, mock_deploy_to_worker):
         """Test deploying to all workers"""
         mock_config_manager = MagicMock()
@@ -270,7 +270,7 @@ class TestDeploymentManager:
         assert mock_deploy_to_worker.call_count == 2
     
     @patch.object(DeploymentManager, 'deploy_to_worker')
-    @patch('sage.kernel.cli.deployment_manager.get_config_manager')
+    @patch('sage.cli.deployment_manager.get_config_manager')
     def test_deploy_to_all_workers_partial_failure(self, mock_get_config_manager, 
                                                     mock_deploy_to_worker):
         """Test deploying to all workers with partial failure"""
@@ -289,7 +289,7 @@ class TestDeploymentManager:
         assert success_count == 1
         assert total_count == 2
     
-    @patch('sage.kernel.cli.deployment_manager.get_config_manager')
+    @patch('sage.cli.deployment_manager.get_config_manager')
     def test_deploy_to_all_workers_no_workers(self, mock_get_config_manager):
         """Test deploying when no workers are configured"""
         mock_config_manager = MagicMock()

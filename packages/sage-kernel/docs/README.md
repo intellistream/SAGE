@@ -30,7 +30,7 @@
 ## 🚀 快速开始
 
 ```python
-from sage.kernel.api.local_environment import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 
 # 创建本地环境
 env = LocalEnvironment("my_app")

@@ -3,7 +3,7 @@ KV Service API 使用示例
 展示如何正确使用KV微服务的API接口
 """
 import time
-from sage.kernel.api.local_environment import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 from sage.middleware.services.kv.kv_service import create_kv_service_factory
 from sage.middleware.api.kv_api import KVServiceAPI
 

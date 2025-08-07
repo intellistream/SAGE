@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import Mock, MagicMock
 from abc import ABC, abstractmethod
 
-from sage.kernel.api.function.comap_function import BaseCoMapFunction
+from sage.core.api.function.comap_function import BaseCoMapFunction
 
 
 class MockCoMapFunction(BaseCoMapFunction):

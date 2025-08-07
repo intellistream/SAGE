@@ -1,4 +1,4 @@
-from sage.kernel.api.function.map_function import MapFunction
+from sage.core.api.function.map_function import MapFunction
 from sage.plugins.longrefiner_fn.longrefiner.refiner import LongRefiner
 import os
 import time

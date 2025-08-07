@@ -3,7 +3,7 @@ from typing import List, Tuple
 from transformers import AutoModelForSequenceClassification, AutoTokenizer,AutoModelForCausalLM
 import logging
 
-from sage.kernel.api.function.map_function import MapFunction
+from sage.core.api.function.map_function import MapFunction
 
 
 

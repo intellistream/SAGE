@@ -5,8 +5,8 @@ from collections import deque
 import time
 import json
 
-from sage.kernel.api.function.map_function import MapFunction
-from sage.kernel.api.function.base_function import StatefulFunction
+from sage.core.api.function.map_function import MapFunction
+from sage.core.api.function.base_function import StatefulFunction
 from sage.llm.clients.base import apply_generator_model
 from sage.kernel.utils.persistence.state import load_function_state, save_function_state
 

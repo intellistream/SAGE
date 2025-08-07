@@ -17,7 +17,7 @@ Connected streams allow you to:
 Main class for managing connected stream operations.
 
 ```python
-from sage.kernel.api.connected_streams import ConnectedStreams
+from sage.core.api.connected_streams import ConnectedStreams
 
 # Create connected streams from multiple sources
 stream1 = environment.create_stream("source1")
@@ -98,7 +98,7 @@ windowed = connected.window(
 Shared state management for connected streams.
 
 ```python
-from sage.kernel.api.connected_streams import StreamState
+from sage.core.api.connected_streams import StreamState
 
 # Create shared state
 state = StreamState()
@@ -214,8 +214,8 @@ connected.configure_backpressure(
 ### Simple Stream Merge
 
 ```python
-from sage.kernel.api import LocalEnvironment
-from sage.kernel.api.connected_streams import ConnectedStreams
+from sage.core.api import LocalEnvironment
+from sage.core.api.connected_streams import ConnectedStreams
 
 # Setup
 env = LocalEnvironment()
@@ -266,7 +266,7 @@ aggregated = windowed.process(window_aggregator)
 ### Complex Event Processing
 
 ```python
-from sage.kernel.api.connected_streams import StreamState
+from sage.core.api.connected_streams import StreamState
 
 def event_processor(streams, state):
     """Process complex event patterns"""
@@ -393,7 +393,7 @@ connected.set_error_threshold(max_errors=10, time_window=60)
 ### With DataStream API
 
 ```python
-from sage.kernel.api import DataStream
+from sage.core.api import DataStream
 
 # Create individual streams
 stream1 = DataStream("stream1")
@@ -406,7 +406,7 @@ connected = ConnectedStreams([stream1, stream2])
 ### With Functions API
 
 ```python
-from sage.kernel.api.functions import register_function
+from sage.core.api.functions import register_function
 
 @register_function
 def connected_processor(connected_streams):

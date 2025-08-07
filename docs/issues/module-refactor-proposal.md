@@ -11,7 +11,7 @@ milestone: ""
 
 ### 🚨 当前问题
 
-1. **导入路径过深**: 例如 `sage.kernel.kernels.core.transformation.base_transformation`
+1. **导入路径过深**: 例如 `sage.core.transformation.base_transformation`
 2. **不符合Python习惯**: 直接导入实现细节而不是通过模块接口
 3. **维护困难**: 内部结构调整需要修改大量导入语句
 4. **耦合度高**: 模块间直接依赖实现细节，不利于重构
@@ -20,16 +20,16 @@ milestone: ""
 
 **当前base_environment.py中的导入问题**:
 ```python
-from sage.kernel.api.function.lambda_function import wrap_lambda
-from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
-from sage.kernel.kernels.core.transformation.source_transformation import SourceTransformation
-from sage.kernel.kernels.core.transformation.batch_transformation import BatchTransformation
-from sage.kernel.kernels.core.transformation.future_transformation import FutureTransformation
-from sage.kernel.kernels.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
+from sage.core.api.function.lambda_function import wrap_lambda
+from sage.core.transformation.base_transformation import BaseTransformation
+from sage.core.transformation.source_transformation import SourceTransformation
+from sage.core.transformation.batch_transformation import BatchTransformation
+from sage.core.transformation.future_transformation import FutureTransformation
+from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 from sage.kernel.utils.logging.custom_logger import CustomLogger
-from sage.kernel.kernels.jobmanager.utils.name_server import get_name
-from sage.kernel.kernels.jobmanager.jobmanager_client import JobManagerClient
-from sage.kernel.kernels.runtime.factory.service_factory import ServiceFactory
+from sage.kernel.jobmanager.utils.name_server import get_name
+from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+from sage.kernel.runtime.factory.service_factory import ServiceFactory
 ```
 
 ❌ **问题分析**:
@@ -91,7 +91,7 @@ from sage.kernel.transformation import BatchTransformation
 from sage.kernel.runtime import JobManager
 
 # 方式3: 完整路径导入 (兼容现有代码)
-from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+from sage.core.transformation.base_transformation import BaseTransformation
 ```
 
 ### ✨ 重构后效果
@@ -124,7 +124,7 @@ processed = batch_stream.transform(DataProcessor).aggregate(Aggregator)
 **向后兼容导入** (保留现有代码):
 ```python
 # 现有代码继续工作，逐步迁移
-from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation
+from sage.core.transformation.base_transformation import BaseTransformation
 from sage.kernel.utils.logging.custom_logger import CustomLogger
 ```
 
@@ -204,7 +204,7 @@ from sage.kernel import BaseEnvironment, DataStream  # 推荐
 from sage.kernel.transformation import BatchTransformation  # 可选
 
 # 阶段3: 保留旧API兼容(24个月)
-from sage.kernel.kernels.core.transformation.base_transformation import BaseTransformation  # 兼容
+from sage.core.transformation.base_transformation import BaseTransformation  # 兼容
 ```
 
 ### 企业级质量保证

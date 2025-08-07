@@ -1,6 +1,6 @@
 from tqdm import tqdm
-from sage.kernel.api.function.source_function import SourceFunction
-from sage.kernel.api.function.sink_function import SinkFunction
+from sage.core.api.function.source_function import SourceFunction
+from sage.core.api.function.sink_function import SinkFunction
 from sage.kernel.utils.logging.custom_logger import CustomLogger
 from data.neuromem_datasets.locomo_dataloader import LocomoDataLoader
 

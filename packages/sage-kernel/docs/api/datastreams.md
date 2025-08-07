@@ -7,7 +7,7 @@ DataStream 是 SAGE Kernel 的核心抽象，代表一个数据流。它提供�
 ### 创建数据流
 
 ```python
-from sage.kernel.api.local_environment import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 
 env = LocalEnvironment("stream_demo")
 
@@ -189,7 +189,7 @@ merged_users = user_updates.key_by(lambda u: u["id"]).reduce(MergeUsers())
 ### 时间窗口
 
 ```python
-from sage.kernel.api.window import TumblingTimeWindows, SlidingTimeWindows
+from sage.core.api.window import TumblingTimeWindows, SlidingTimeWindows
 from datetime import timedelta
 
 # 滚动时间窗口
@@ -209,7 +209,7 @@ sliding = events.key_by(lambda e: e["user_id"]) \
 ### 计数窗口
 
 ```python
-from sage.kernel.api.window import TumblingCountWindows
+from sage.core.api.window import TumblingCountWindows
 
 # 每100个元素一个窗口
 count_windowed = stream.key_by(key_selector) \
@@ -220,7 +220,7 @@ count_windowed = stream.key_by(key_selector) \
 ### 会话窗口
 
 ```python
-from sage.kernel.api.window import SessionWindows
+from sage.core.api.window import SessionWindows
 
 # 会话窗口 - 30秒不活跃则关闭窗口
 session_windowed = events.key_by(lambda e: e["session_id"]) \

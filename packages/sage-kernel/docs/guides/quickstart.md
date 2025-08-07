@@ -30,7 +30,7 @@ pip install -e .
 ### 1. 简单的数据转换
 
 ```python
-from sage.kernel.api.local_environment import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 
 # 创建本地环境
 env = LocalEnvironment("hello_sage")
@@ -51,7 +51,7 @@ env.submit()
 ### 2. 文本处理示例
 
 ```python
-from sage.kernel.api.local_environment import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 
 env = LocalEnvironment("text_processing")
 
@@ -77,8 +77,8 @@ env.submit()
 ### 3. 实时数据处理
 
 ```python
-from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.api.function import SourceFunction, SourceContext
+from sage.core.api.local_environment import LocalEnvironment
+from sage.core.api.function import SourceFunction, SourceContext
 import time
 import random
 
@@ -189,8 +189,8 @@ stream.sink(MySinkFunction())
 ## 📊 完整示例：网站访问日志分析
 
 ```python
-from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.api.function import MapFunction, FilterFunction
+from sage.core.api.local_environment import LocalEnvironment
+from sage.core.api.function import MapFunction, FilterFunction
 import json
 from datetime import datetime
 

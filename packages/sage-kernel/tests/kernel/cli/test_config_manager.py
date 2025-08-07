@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 import yaml
 
-from sage.kernel.cli.config_manager import ConfigManager
+from sage.cli.config_manager import ConfigManager
 
 
 class TestConfigManager:

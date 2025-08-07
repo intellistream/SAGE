@@ -1,5 +1,5 @@
 from datasets import load_dataset
-from sage.kernel.api.function.source_function import SourceFunction
+from sage.core.api.function.source_function import SourceFunction
 from pathlib import Path
 from time import sleep
 

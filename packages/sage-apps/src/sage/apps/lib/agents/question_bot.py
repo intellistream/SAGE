@@ -2,7 +2,7 @@ import random
 import time, os
 from typing import List, Dict, Any
 from jinja2 import Template
-from sage.kernel.api.function.map_function import MapFunction
+from sage.core.api.function.map_function import MapFunction
 from sage.kernel.utils.logging.custom_logger import CustomLogger
 from sage.apps.lib.utils.openaiclient import OpenAIClient
 from sage.apps.lib.context.model_context import ModelContext

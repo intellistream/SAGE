@@ -3,7 +3,7 @@ import json
 import threading
 import time
 
-from sage.kernel.api.local_environment import LocalEnvironment
+from sage.core.api.local_environment import LocalEnvironment
 from sage.apps.lib.io_utils.sink import TerminalSink
 from sage.apps.lib.rag.generator import OpenAIGenerator
 from sage.apps.lib.rag.promptor import QAPromptor
@@ -83,7 +83,7 @@ class InteractiveKafkaProducer:
 
 def extract_query_from_kafka(kafka_data):
     """从Kafka消息中提取查询文本的Function"""
-    from sage.kernel.api.function.base_function import BaseFunction
+    from sage.core.api.function.base_function import BaseFunction
     
     class QueryExtractor(BaseFunction):
         def execute(self, data):

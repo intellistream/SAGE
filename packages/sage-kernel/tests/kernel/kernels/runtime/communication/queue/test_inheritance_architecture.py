@@ -8,7 +8,7 @@ import pytest
 import time
 from unittest.mock import patch, MagicMock
 
-from sage.kernel.kernels.runtime.communication.queue_descriptor import (
+from sage.kernel.runtime.communication.queue_descriptor import (
     BaseQueueDescriptor,
     PythonQueueDescriptor,
     RayQueueDescriptor,
@@ -140,7 +140,7 @@ class TestPythonQueueDescriptor:
 #     """测试Ray队列描述符"""
     
 #     @pytest.mark.skipif(not RAY_AVAILABLE, reason="Ray not available")
-#     @patch('sage.kernel.kernels.runtime.communication.queue_descriptor.ray_queue_descriptor.Queue')
+#     @patch('sage.kernel.runtime.communication.queue_descriptor.ray_queue_descriptor.Queue')
 #     @patch('ray.is_initialized')
 #     def test_ray_queue_creation(self, mock_ray_initialized, mock_ray_queue):
 #         """测试Ray队列创建"""

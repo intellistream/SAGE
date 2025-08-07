@@ -1,8 +1,8 @@
-from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.api.remote_environment import RemoteEnvironment
-from sage.kernel.api.function.sink_function import SinkFunction
-from sage.kernel.api.function.source_function import SourceFunction
-from sage.kernel.api.function.comap_function import BaseCoMapFunction
+from sage.core.api.local_environment import LocalEnvironment
+from sage.core.api.remote_environment import RemoteEnvironment
+from sage.core.api.function.sink_function import SinkFunction
+from sage.core.api.function.source_function import SourceFunction
+from sage.core.api.function.comap_function import BaseCoMapFunction
 import time
 import random
 

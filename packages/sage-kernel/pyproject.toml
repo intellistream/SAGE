@@ -160,11 +160,11 @@ Issues = "https://github.com/intellistream/SAGE/issues"
 
 [project.scripts]
 # 主要的sage命令入口
-sage = "sage.kernel.cli.main:app"
-sage-kernel = "sage.kernel.cli.main:app"
+sage = "sage.cli.main:app"
+sage-kernel = "sage.cli.main:app"
 
 # 统一core命令 - 唯一CLI入口点
-sage-core = "sage.kernel.cli.core_cli:app"
+sage-core = "sage.cli.core_cli:app"
 
 [tool.setuptools.package-dir]
 "" = "src"

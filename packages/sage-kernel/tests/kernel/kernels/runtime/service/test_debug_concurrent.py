@@ -11,7 +11,7 @@ from collections import defaultdict
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sage.kernel.api.function.base_function import BaseFunction
+from sage.core.api.function.base_function import BaseFunction
 
 
 class DebugServiceManager:
@@ -44,7 +44,7 @@ class MockRuntimeContext:
     @property
     def service_manager(self):
         if self._service_manager is None:
-            from sage.kernel.kernels.runtime.service.service_caller import ServiceManager
+            from sage.kernel.runtime.service.service_caller import ServiceManager
             self._service_manager = ServiceManager(self)
         return self._service_manager
 
@@ -67,7 +67,7 @@ class DebugTestFunction(BaseFunction):
                 self._function_instance = function_instance
                 
             def __getitem__(self, service_name: str):
-                from sage.kernel.kernels.runtime.service.service_caller import ServiceCallProxy
+                from sage.kernel.runtime.service.service_caller import ServiceCallProxy
                 proxy = ServiceCallProxy(self._service_manager, service_name)
                 
                 # 记录创建信息
@@ -94,7 +94,7 @@ class DebugTestFunction(BaseFunction):
                 self._function_instance = function_instance
                 
             def __getitem__(self, service_name: str):
-                from sage.kernel.kernels.runtime.service.service_caller import ServiceCallProxy
+                from sage.kernel.runtime.service.service_caller import ServiceCallProxy
                 proxy = ServiceCallProxy(self._service_manager, service_name)
                 
                 # 记录创建信息

@@ -2,8 +2,8 @@ import logging
 import time
 from dotenv import load_dotenv
 import os
-from sage.kernel.api.function.map_function import MapFunction
-from sage.kernel.api.remote_environment import RemoteEnvironment
+from sage.core.api.function.map_function import MapFunction
+from sage.core.api.remote_environment import RemoteEnvironment
 from sage.middleware.services.memory.memory_service import MemoryService
 from sage.kernel.utils.embedding_methods.embedding_api import apply_embedding_model
 from sage.apps.lib.io_utils.source import FileSource
