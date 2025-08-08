@@ -1,0 +1,247 @@
+# SAGE Development Toolkit - Default Configuration
+# ===============================================
+
+# Project Information
+project:
+  name: "SAGE Framework"
+  version: "1.0.0"
+  description: "Dataflow-native LLM reasoning framework"
+
+# Environment (can be overridden by SAGE_DEV_ENV environment variable)
+environment: "development"
+
+# Directory Configuration
+directories:
+  packages: "./packages"        # SAGE packages directory
+  scripts: "./scripts"          # Legacy scripts directory
+  output: "./dev_reports"       # Output directory for reports
+  logs: "./test_logs"          # Log files directory  
+  temp: "./temp"               # Temporary files directory
+
+# Testing Configuration
+testing:
+  # Default test execution mode
+  default_mode: "diff"          # all, diff, package
+  
+  # Parallel execution
+  max_workers: 4
+  timeout: 300                  # 5 minutes default timeout
+  
+  # Test discovery patterns
+  test_patterns:
+    - "**/test_*.py"
+    - "**/tests/*.py"
+    - "**/*_test.py"
+  
+  # Packages to skip during testing
+  skip_packages:
+    - "sage-frontend"           # Frontend package (no Python tests)
+  
+  # Test patterns to skip
+  skip_tests:
+    - "test_slow_*"
+    - "test_manual_*"
+    - "test_integration_*"      # Skip by default unless specifically requested
+
+# Dependency Analysis Configuration
+dependency_analysis:
+  # Maximum analysis depth
+  max_depth: 10
+  
+  # Patterns to ignore during analysis
+  ignore_patterns:
+    - "__pycache__"
+    - "*.pyc"
+    - "*.pyo"
+    - ".git"
+    - ".pytest_cache"
+    - "node_modules"
+    - ".venv"
+    - "venv"
+    - "*.egg-info"
+  
+  # External packages (don't analyze their internals)
+  external_packages:
+    - "numpy"
+    - "pandas"
+    - "torch"
+    - "transformers"
+    - "ray"
+    - "fastapi"
+    - "uvicorn"
+    - "pytest"
+    - "click"
+    - "pyyaml"
+  
+  # Critical packages for circular dependency monitoring
+  critical_packages:
+    - "sage-kernel"
+    - "sage-middleware"
+    - "sage-userspace"
+
+# Package Management Configuration
+package_management:
+  # Installation order (resolves dependencies)
+  install_order:
+    - "sage-kernel"
+    - "sage-middleware"
+    - "sage-userspace"
+    - "sage-extensions"
+  
+  # Default to development mode installation
+  dev_install: true
+  
+  # Installation timeout
+  install_timeout: 600          # 10 minutes
+  
+  # Additional pip arguments
+  pip_args:
+    - "--no-cache-dir"
+    - "--upgrade"
+    - "--force-reinstall"
+
+# Reporting Configuration
+reporting:
+  # Output formats to generate
+  formats:
+    - "json"
+    - "markdown"
+  
+  # Report sections to include
+  sections:
+    - "package_status"
+    - "dependency_analysis"
+    - "test_results"
+    - "configuration_status"
+  
+  # Template paths (relative to toolkit root)
+  templates:
+    markdown: "templates/reports/markdown_report.jinja2"
+    html: "templates/reports/html_report.jinja2"
+
+# Interactive Mode Configuration
+interactive:
+  # Command history
+  history_file: ".sage_dev_history"
+  max_history: 1000
+  
+  # Interface settings
+  auto_complete: true
+  colored_output: true
+  prompt: "SAGE-DEV> "
+  
+  # Shortcuts
+  aliases:
+    "t": "test"
+    "a": "analyze"
+    "p": "package"
+    "r": "report"
+    "s": "status"
+
+# Tool Integration Configuration
+tools:
+  # Test Runner
+  test_runner:
+    module: "test_runner"
+    class: "SAGETestRunner"
+    enabled: true
+    
+  # Dependency Analyzer
+  dependency_analyzer:
+    module: "advanced_dependency_analyzer_with_sage_mapping"
+    class: "SAGEDependencyAnalyzer"
+    enabled: true
+    
+  # Package Manager
+  package_manager:
+    module: "sage-package-manager"
+    class: "SagePackageManager"
+    enabled: true
+    
+  # Refactor Tool (optional)
+  refactor_tool:
+    module: "refactor_utils"
+    class: "RefactorTool"
+    enabled: false
+
+# Logging Configuration
+logging:
+  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  level: "INFO"
+  
+  # Log message format
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Console logging
+  console_logging:
+    enabled: true
+    colored: true
+  
+  # File logging
+  file_logging:
+    enabled: true
+    max_bytes: 10485760         # 10MB
+    backup_count: 5
+
+# Performance Configuration
+performance:
+  # Caching
+  cache:
+    enabled: true
+    max_size: 1000
+    ttl: 3600                   # 1 hour
+  
+  # Concurrency limits
+  max_concurrent_operations: 4
+  
+  # Memory limits (MB)
+  max_memory_usage: 2048
+
+# Hooks Configuration (commands to run at specific points)
+hooks:
+  # Before test execution
+  pre_test: []
+  
+  # After test execution
+  post_test: []
+  
+  # After report generation
+  post_report: []
+
+# Environment-specific Overrides
+environments:
+  # Development environment
+  development:
+    logging:
+      level: "DEBUG"
+    testing:
+      max_workers: 2
+      timeout: 180
+    performance:
+      max_memory_usage: 1024
+      
+  # Production environment  
+  production:
+    logging:
+      level: "WARNING"
+      console_logging:
+        colored: false
+    testing:
+      max_workers: 8
+      timeout: 600
+    performance:
+      max_memory_usage: 4096
+      
+  # CI environment
+  ci:
+    logging:
+      level: "INFO"
+      console_logging:
+        colored: false
+    testing:
+      max_workers: 4
+      timeout: 900
+    reporting:
+      formats: ["json"]         # Only JSON in CI
+    interactive:
+      auto_complete: false

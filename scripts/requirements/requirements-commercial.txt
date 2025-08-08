@@ -1,0 +1,21 @@
+# SAGE Enterprise Edition Requirements
+# 企业版安装 - 清洁版本，避免依赖冲突
+
+# === 推荐安装方式 ===
+# 
+# 方式1: 分步安装 (推荐，最快)
+# pip install -r requirements.txt
+# pip install -r requirements-commercial.txt
+#
+# 方式2: 本地企业版安装 (开发用)
+# pip install -e packages/sage[enterprise]
+
+# === 企业版本地包安装 ===
+# 通过optional dependencies安装企业功能
+-e packages/sage-kernel[enterprise]
+-e packages/sage-middleware[enterprise] 
+-e packages/sage-apps[enterprise]
+
+# === 验证 ===
+# python tools/license/sage_license.py status
+# 企业功能需要有效的SAGE商业许可证，无许可证时企业功能将被禁用

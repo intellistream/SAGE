@@ -1,0 +1,6 @@
+# 生产环境安装 - 仅核心包
+# 注意：需要先安装各个包的依赖
+-e packages/sage-kernel
+-e packages/sage-middleware  
+-e packages/sage-apps
+-e packages/sage

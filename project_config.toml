@@ -1,0 +1,79 @@
+# SAGE 项目统一配置文件
+# 这个文件包含了所有包共享的元数据信息
+
+[project]
+# 组织信息
+organization = "IntelliStream"
+team_name = "IntelliStream Team"
+contact_email = "intellistream@outlook.com"
+
+# 项目信息
+project_name = "SAGE"
+project_description = "Smart Analytics and Graph Engine"
+package_prefix = "intsage"  # PyPI包名前缀
+license = "MIT"  # 许可证
+
+# Python 版本要求
+python_requires = ">=3.10"
+python_versions = ["3.10", "3.11", "3.12"]
+
+# URLs (统一管理所有链接)
+[urls]
+homepage = "https://github.com/intellistream/SAGE"
+repository = "https://github.com/intellistream/SAGE.git"
+documentation = "https://intellistream.github.io/SAGE-Pub/"
+issues = "https://github.com/intellistream/SAGE/issues"
+changelog = "https://github.com/intellistream/SAGE/releases"
+
+# 通用分类器
+[classifiers]
+items = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Distributed Computing",
+]
+
+# 版本管理
+[versions]
+# 主版本号，所有包统一使用
+major = "1"
+minor = "0"
+patch = "1"
+current = "1.0.1"
+
+# 包名映射 (PyPI名称 -> 目录路径)
+[packages]
+"intsage" = "packages/sage"
+"intsage-kernel" = "packages/sage-kernel"
+"intsage-middleware" = "packages/sage-middleware"
+"intsage-userspace" = "packages/sage-userspace"
+"intsage-dev-toolkit" = "packages/sage-tools/sage-dev-toolkit"
+"intsage-frontend" = "packages/sage-tools/sage-frontend"
+
+# 包描述
+[package_descriptions]
+"intsage" = "SAGE Framework Meta Package"
+"intsage-kernel" = "SAGE Framework - 统一内核 (Core + Runtime + Utils + CLI)"
+"intsage-middleware" = "SAGE Framework - 中间件组件 (包含 LLM 中间件服务)"
+"intsage-userspace" = "SAGE Framework - 用户空间组件 (合并 sage-lib, sage-plugins 和 sage-examples)"
+"intsage-dev-toolkit" = "SAGE Framework Development Toolkit - Unified development tools for SAGE project"
+"intsage-frontend" = "SAGE Framework - Web Frontend and Dashboard Interface"
+
+# 关键词
+[keywords]
+common = ["sage", "framework", "intellistream", "ai", "ml", "data"]
+kernel = ["rag", "llm", "dataflow", "reasoning", "framework", "cli", "kernel"]
+middleware = ["rag", "llm", "middleware", "service", "api", "dataflow", "reasoning", "framework"]
+userspace = ["rag", "llm", "library", "plugins", "components", "algorithms", "extensions", "ecosystem"]
+dev_toolkit = ["development", "tools", "cli", "testing", "linting", "formatting", "utilities"]
+frontend = ["web", "frontend", "dashboard", "fastapi", "angular", "ui", "visualization"]
+platform = ["stream processing", "real-time", "data streams", "analytics", "machine learning"]

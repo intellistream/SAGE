@@ -1,0 +1,21 @@
+# 开发环境安装 - 包含开发工具
+-r requirements.txt
+-e packages/sage-tools/sage-dev-toolkit
+
+# 安装后可用的命令行工具：
+# - sage-dev: SAGE 开发工具包主命令
+# - sage-kernel: SAGE 内核管理命令  
+# - sage-license: 许可证管理工具
+# + 其他 sage-* 内核子命令
+
+# 开发工具
+pytest>=7.0
+pytest-asyncio
+pytest-cov
+pytest-benchmark
+black
+isort
+flake8
+mypy
+ipython
+jupyter
