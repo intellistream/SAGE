@@ -18,7 +18,7 @@ class NumberSource(SourceFunction):
 # 简单的统计汇总函数
 class StatsSink(SinkFunction):
     def __init__(self, **kwargs):
-        self.name = kwargs.get('name', 'StatsSink')
+        super().__init__(**kwargs)
         
     def execute(self, data):
         print(f"[{self.name}] Received: {data}")
