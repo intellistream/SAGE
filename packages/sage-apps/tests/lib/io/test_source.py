@@ -1,5 +1,5 @@
 """
-测试 sage.apps.lib.io.source 模块
+测试 sage.lib.io.source 模块
 """
 
 import pytest
@@ -12,7 +12,7 @@ import os
 pytest_plugins = []
 
 try:
-    from sage.apps.lib.io_utils.source import (
+    from sage.lib.io_utils.source import (
         TextFileSource, JSONFileSource, CSVFileSource, 
         KafkaSource, DatabaseSource, APISource
     )
@@ -31,7 +31,7 @@ class TestTextFileSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
         
-        from sage.apps.lib.io_utils.source import TextFileSource
+        from sage.lib.io_utils.source import TextFileSource
         assert TextFileSource is not None
     
     def test_text_file_source_initialization(self, temp_dir):
@@ -101,7 +101,7 @@ class TestJSONFileSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
         
-        from sage.apps.lib.io_utils.source import JSONFileSource
+        from sage.lib.io_utils.source import JSONFileSource
         assert JSONFileSource is not None
     
     def test_json_file_source_initialization(self, temp_dir):
@@ -180,7 +180,7 @@ class TestCSVFileSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
         
-        from sage.apps.lib.io_utils.source import CSVFileSource
+        from sage.lib.io_utils.source import CSVFileSource
         assert CSVFileSource is not None
     
     def test_csv_file_source_initialization(self, temp_dir):
@@ -232,7 +232,7 @@ class TestKafkaSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
         
-        from sage.apps.lib.io_utils.source import KafkaSource
+        from sage.lib.io_utils.source import KafkaSource
         assert KafkaSource is not None
     
     def test_kafka_source_initialization(self):
@@ -253,7 +253,7 @@ class TestKafkaSource:
         except Exception as e:
             pytest.skip(f"KafkaSource initialization failed: {e}")
     
-    @patch('sage.apps.lib.io.source.KafkaConsumer')
+    @patch('sage.lib.io.source.KafkaConsumer')
     def test_kafka_source_execute(self, mock_consumer):
         """测试KafkaSource执行"""
         if not IO_SOURCE_AVAILABLE:
@@ -292,7 +292,7 @@ class TestDatabaseSource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
         
-        from sage.apps.lib.io_utils.source import DatabaseSource
+        from sage.lib.io_utils.source import DatabaseSource
         assert DatabaseSource is not None
     
     def test_database_source_initialization(self):
@@ -312,7 +312,7 @@ class TestDatabaseSource:
         except Exception as e:
             pytest.skip(f"DatabaseSource initialization failed: {e}")
     
-    @patch('sage.apps.lib.io.source.create_engine')
+    @patch('sage.lib.io.source.create_engine')
     def test_database_source_execute(self, mock_engine):
         """测试DatabaseSource执行"""
         if not IO_SOURCE_AVAILABLE:
@@ -353,7 +353,7 @@ class TestAPISource:
         if not IO_SOURCE_AVAILABLE:
             pytest.skip("IO Source module not available")
         
-        from sage.apps.lib.io_utils.source import APISource
+        from sage.lib.io_utils.source import APISource
         assert APISource is not None
     
     def test_api_source_initialization(self):
@@ -374,7 +374,7 @@ class TestAPISource:
         except Exception as e:
             pytest.skip(f"APISource initialization failed: {e}")
     
-    @patch('sage.apps.lib.io.source.requests')
+    @patch('sage.lib.io.source.requests')
     def test_api_source_execute(self, mock_requests):
         """测试APISource执行"""
         if not IO_SOURCE_AVAILABLE:
@@ -489,7 +489,7 @@ class TestSourceExternal:
         except Exception as e:
             pytest.skip(f"File not found test failed: {e}")
     
-    @patch('sage.apps.lib.io.source.requests')
+    @patch('sage.lib.io.source.requests')
     def test_api_timeout_handling(self, mock_requests):
         """测试API超时处理"""
         if not IO_SOURCE_AVAILABLE:

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 
-from sage.apps.lib.rag.evaluate import (
+from sage.lib.rag.evaluate import (
     F1Evaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate
 )
 
@@ -28,8 +28,8 @@ def test_f1_evaluate(config, test_data):
     result = evaluator.execute(test_data)
     assert result == test_data  # execute 方法应该返回原始数据
 
-@patch('sage.apps.lib.rag.evaluate.AutoTokenizer.from_pretrained')
-@patch('sage.apps.lib.rag.evaluate.AutoModel.from_pretrained')
+@patch('sage.lib.rag.evaluate.AutoTokenizer.from_pretrained')
+@patch('sage.lib.rag.evaluate.AutoModel.from_pretrained')
 def test_bert_recall(mock_model, mock_tokenizer, config, test_data):
     """测试BertRecallEvaluate，使用mock避免下载模型"""
     # Mock tokenizer
@@ -56,7 +56,7 @@ def test_bert_recall(mock_model, mock_tokenizer, config, test_data):
     result = evaluator.execute(test_data)
     assert result == test_data  # execute 方法应该返回原始数据
 
-@patch('sage.apps.lib.rag.evaluate.Rouge')
+@patch('sage.lib.rag.evaluate.Rouge')
 def test_rouge_l(mock_rouge_class, config, test_data):
     """测试RougeLEvaluate，使用mock避免依赖问题"""
     # Mock Rouge instance
@@ -132,7 +132,7 @@ def test_f1_score_calculation():
 
 def test_recall_calculation():
     """测试RecallEvaluate类"""
-    from sage.apps.lib.rag.evaluate import RecallEvaluate
+    from sage.lib.rag.evaluate import RecallEvaluate
     
     evaluator = RecallEvaluate({})
     test_data = {
@@ -149,7 +149,7 @@ def test_recall_calculation():
 
 def test_accuracy_evaluate():
     """测试AccuracyEvaluate类"""
-    from sage.apps.lib.rag.evaluate import AccuracyEvaluate
+    from sage.lib.rag.evaluate import AccuracyEvaluate
     
     evaluator = AccuracyEvaluate({})
     

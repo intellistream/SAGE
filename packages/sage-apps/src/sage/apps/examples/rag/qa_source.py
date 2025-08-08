@@ -9,8 +9,8 @@ from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.function.map_function import MapFunction
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction
-from sage.apps.lib.rag.generator import OpenAIGenerator
-from sage.apps.lib.rag.promptor import QAPromptor
+from sage.lib.rag.generator import OpenAIGenerator
+from sage.lib.rag.promptor import QAPromptor
 from sage.kernel.utils.config.loader import load_config
 
 

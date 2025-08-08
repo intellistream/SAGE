@@ -1,5 +1,5 @@
 """
-测试 sage.apps.lib.rag.retriever 模块
+测试 sage.lib.rag.retriever 模块
 """
 
 import pytest
@@ -10,7 +10,7 @@ import numpy as np
 pytest_plugins = []
 
 try:
-    from sage.apps.lib.rag.retriever import DenseRetriever, BM25Retriever, HybridRetriever
+    from sage.lib.rag.retriever import DenseRetriever, BM25Retriever, HybridRetriever
     RETRIEVER_AVAILABLE = True
 except ImportError as e:
     RETRIEVER_AVAILABLE = False
@@ -26,7 +26,7 @@ class TestDenseRetriever:
         if not RETRIEVER_AVAILABLE:
             pytest.skip("Retriever module not available")
         
-        from sage.apps.lib.rag.retriever import DenseRetriever
+        from sage.lib.rag.retriever import DenseRetriever
         assert DenseRetriever is not None
     
     def test_dense_retriever_initialization(self, sample_config):
@@ -47,7 +47,7 @@ class TestDenseRetriever:
         except Exception as e:
             pytest.skip(f"DenseRetriever initialization failed: {e}")
     
-    @patch('sage.apps.lib.rag.retriever.SentenceTransformer')
+    @patch('sage.lib.rag.retriever.SentenceTransformer')
     def test_dense_retriever_execute(self, mock_transformer, sample_documents):
         """测试DenseRetriever执行"""
         if not RETRIEVER_AVAILABLE:
@@ -91,7 +91,7 @@ class TestBM25Retriever:
         if not RETRIEVER_AVAILABLE:
             pytest.skip("Retriever module not available")
         
-        from sage.apps.lib.rag.retriever import BM25Retriever
+        from sage.lib.rag.retriever import BM25Retriever
         assert BM25Retriever is not None
     
     def test_bm25_retriever_initialization(self, sample_config):
@@ -108,7 +108,7 @@ class TestBM25Retriever:
         except Exception as e:
             pytest.skip(f"BM25Retriever initialization failed: {e}")
     
-    @patch('sage.apps.lib.rag.retriever.BM25Okapi')
+    @patch('sage.lib.rag.retriever.BM25Okapi')
     def test_bm25_retriever_execute(self, mock_bm25, sample_documents):
         """测试BM25Retriever执行"""
         if not RETRIEVER_AVAILABLE:
@@ -144,7 +144,7 @@ class TestHybridRetriever:
         if not RETRIEVER_AVAILABLE:
             pytest.skip("Retriever module not available")
         
-        from sage.apps.lib.rag.retriever import HybridRetriever
+        from sage.lib.rag.retriever import HybridRetriever
         assert HybridRetriever is not None
     
     def test_hybrid_retriever_initialization(self, sample_config):
@@ -295,7 +295,7 @@ class TestRetrieverExternal:
         if not RETRIEVER_AVAILABLE:
             pytest.skip("Retriever module not available")
         
-        with patch('sage.apps.lib.rag.retriever.SentenceTransformer') as mock_transformer:
+        with patch('sage.lib.rag.retriever.SentenceTransformer') as mock_transformer:
             # 模拟模型加载失败
             mock_transformer.side_effect = Exception("模型加载失败")
             

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, Mock
 
-from sage.apps.lib.rag.generator import OpenAIGenerator,OpenAIGeneratorWithHistory
+from sage.lib.rag.generator import OpenAIGenerator,OpenAIGeneratorWithHistory
 from dotenv import load_dotenv
 import os
 import time

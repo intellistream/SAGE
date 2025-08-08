@@ -66,9 +66,9 @@ sage-userspace/
 #### 导入路径保持不变：
 ```python
 # sage-lib 的导入路径保持不变
-from sage.apps.lib.rag import Retriever
-from sage.apps.lib.agents import Agent
-from sage.apps.lib.tools import ArxivPaperSearcher
+from sage.lib.rag import Retriever
+from sage.lib.agents import Agent
+from sage.lib.tools import ArxivPaperSearcher
 
 # sage-plugins 的导入路径保持不变  
 from sage.plugins import load_plugin

@@ -2,7 +2,7 @@ import pytest
 
 import os
 
-from sage.apps.lib.io_utils.sink import TerminalSink, RetriveSink, FileSink, MemWriteSink
+from sage.lib.io_utils.sink import TerminalSink, RetriveSink, FileSink, MemWriteSink
 
 
 @pytest.fixture
