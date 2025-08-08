@@ -125,14 +125,22 @@ install_sage_packages() {
     
     print_status "检查现有安装并清理冲突..."
     
-    # 卸载可能存在冲突的包
-    local packages_to_uninstall=("intsage" "intsage-kernel" "intsage-middleware" "intsage-apps" "intsage-dev-toolkit" "intsage-frontend")
+    # 卸载可能存在冲突的包（包括任何版本的sage相关包）
+    local packages_to_uninstall=("intsage" "intsage-kernel" "intsage-middleware" "intsage-apps" "intsage-dev-toolkit" "intsage-frontend" "sage")
     for pkg in "${packages_to_uninstall[@]}"; do
         if pip show "$pkg" >/dev/null 2>&1; then
             print_status "卸载现有包: $pkg"
             pip uninstall -y "$pkg" >/dev/null 2>&1 || true
         fi
     done
+    
+    # 清理pip缓存以防止版本冲突
+    print_status "清理pip缓存..."
+    pip cache purge >/dev/null 2>&1 || true
+    
+    # 查找并移除任何遗留的sage相关包
+    print_status "清理遗留包..."
+    pip list | grep -E "(sage|intsage)" | awk '{print $1}' | xargs -r pip uninstall -y >/dev/null 2>&1 || true
     
     # 清理可能的site-packages冲突
     local conda_env_path="$HOME/miniconda3/envs/$SAGE_ENV_NAME"
