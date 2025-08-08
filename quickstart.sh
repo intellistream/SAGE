@@ -85,6 +85,19 @@ fi
 # 2. 设置 SAGE 环境
 if ! setup_sage_environment; then
     print_error "SAGE 环境设置失败"
+    echo
+    print_warning "如果是服务条款 (Terms of Service) 问题，请运行修复脚本:"
+    print_status "  ./scripts/fix_conda_tos.sh"
+    echo
+    print_warning "其他常见解决方案:"
+    print_warning "1. 手动接受服务条款:"
+    print_warning "   conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main"
+    print_warning "   conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r"
+    print_warning "2. 或者使用 conda-forge 频道:"
+    print_warning "   conda config --add channels conda-forge"
+    print_warning "   conda config --set channel_priority strict"
+    print_warning "3. 然后重新运行此脚本: ./quickstart.sh"
+    echo
     exit 1
 fi
 
