@@ -138,17 +138,34 @@ install_miniconda() {
 init_conda() {
     local conda_path="${1:-$SAGE_CONDA_PATH}"
     
+    # 首先尝试从 bashrc 加载 conda 初始化
+    if [ -f "$HOME/.bashrc" ]; then
+        # 检查 bashrc 中是否有 conda 初始化代码
+        if grep -q "# >>> conda initialize >>>" "$HOME/.bashrc"; then
+            print_status "从 ~/.bashrc 加载 conda 初始化..."
+            # 提取并执行 conda 初始化部分
+            eval "$(sed -n '/# >>> conda initialize >>>/,/# <<< conda initialize <<</p' "$HOME/.bashrc")"
+        fi
+    fi
+    
     if ! is_conda_installed; then
         # 尝试从指定路径加载 conda
         if [ -f "$conda_path/bin/conda" ]; then
             export PATH="$conda_path/bin:$PATH"
             if [ -f "$conda_path/etc/profile.d/conda.sh" ]; then
+                print_status "从 conda 安装路径加载初始化脚本..."
                 source "$conda_path/etc/profile.d/conda.sh"
             fi
         else
             print_error "Conda 未找到，请确保 Miniconda 已正确安装"
             return 1
         fi
+    fi
+    
+    # 验证 conda 是否可用
+    if ! command -v conda &> /dev/null; then
+        print_error "Conda 初始化失败，请手动运行 'conda init bash' 然后重新启动终端"
+        return 1
     fi
     
     return 0
@@ -179,10 +196,33 @@ activate_conda_env() {
     local env_name="$1"
     
     print_status "激活 Conda 环境 '$env_name'..."
-    conda activate "$env_name" || {
-        print_error "无法激活 Conda 环境 '$env_name'"
+    
+    # 确保 conda 命令可用
+    if ! command -v conda &> /dev/null; then
+        print_error "conda 命令不可用，请先运行 init_conda"
         return 1
-    }
+    fi
+    
+    # 检查环境是否存在
+    if ! conda_env_exists "$env_name"; then
+        print_error "Conda 环境 '$env_name' 不存在"
+        print_status "可用的环境列表:"
+        conda env list
+        return 1
+    fi
+    
+    # 尝试激活环境
+    if conda activate "$env_name" 2>/dev/null; then
+        print_success "成功激活环境 '$env_name'"
+        return 0
+    else
+        print_error "无法激活 Conda 环境 '$env_name'"
+        print_warning "请尝试以下解决方案:"
+        print_warning "1. 运行 'conda init bash' 然后重新启动终端"
+        print_warning "2. 或者运行 'source ~/.bashrc'"
+        print_warning "3. 然后重新运行此脚本"
+        return 1
+    fi
 }
 
 # 在指定环境中安装包
