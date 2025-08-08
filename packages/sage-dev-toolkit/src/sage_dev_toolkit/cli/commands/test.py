@@ -545,6 +545,9 @@ class TestCommand(BaseCommand):
             
             console.print(f"🔍 Testing project at: {project_path}", style="blue")
             
+            # 创建测试日志目录以获取绝对路径
+            testlogs_dir = self._create_testlogs_dir(project_path)
+            
             # 运行测试
             try:
                 results = self._run_tests(
@@ -571,7 +574,7 @@ class TestCommand(BaseCommand):
                             console.print("=" * 60, style="dim")
                         
                         if results['failed_tests']:
-                            console.print("Failed tests saved to .testlogs/failed_tests.txt", style="dim")
+                            console.print(f"Failed tests saved to {testlogs_dir / 'failed_tests.txt'}", style="dim")
                         raise typer.Exit(1)
                 else:
                     console.print("⚠️  No tests were run", style="yellow")

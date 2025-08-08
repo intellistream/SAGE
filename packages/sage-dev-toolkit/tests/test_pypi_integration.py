@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-测试 PyPI 上传功能的简单脚本
+测试 PyPI 上传功能
 """
 
 import sys
 import subprocess
 import os
+import pytest
 from pathlib import Path
 
 def run_command(cmd, description):
@@ -38,42 +39,41 @@ def run_command(cmd, description):
         print(f"❌ 执行失败: {e}")
         return False
 
-def main():
-    """主测试函数"""
-    print("🚀 SAGE Dev Toolkit PyPI 功能测试")
+
+class TestPyPIIntegration:
+    """PyPI integration tests"""
     
-    # 测试命令列表
-    tests = [
-        (["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "--help"], "PyPI 帮助命令"),
-        (["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "list"], "列出可用包"),
-        (["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "check"], "检查包配置"),
-        (["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "build", "--help"], "构建帮助"),
-        (["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "upload", "--help"], "上传帮助"),
-        (["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "upload", "--dry-run", "intellistream-sage-kernel", "--skip-checks", "--skip-build"], "预演上传测试"),
-    ]
+    def test_pypi_help_command(self):
+        """测试 PyPI 帮助命令"""
+        cmd = ["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "--help"]
+        success = run_command(cmd, "PyPI 帮助命令")
+        assert success, "PyPI 帮助命令应该成功执行"
     
-    results = []
-    for cmd, desc in tests:
-        success = run_command(cmd, desc)
-        results.append((desc, success))
+    def test_pypi_info_command(self):
+        """测试显示包信息"""
+        cmd = ["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "info"]
+        success = run_command(cmd, "显示包信息")
+        assert success, "显示包信息命令应该成功执行"
     
-    # 显示总结
-    print("\n📊 测试总结:")
-    passed = sum(1 for _, success in results if success)
-    total = len(results)
+    def test_pypi_check_command(self):
+        """测试检查包配置"""
+        cmd = ["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "check"]
+        success = run_command(cmd, "检查包配置")
+        assert success, "检查包配置命令应该成功执行"
     
-    for desc, success in results:
-        status = "✅" if success else "❌"
-        print(f"  {status} {desc}")
+    def test_pypi_build_help(self):
+        """测试构建帮助"""
+        cmd = ["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "build", "--help"]
+        success = run_command(cmd, "构建帮助")
+        assert success, "构建帮助命令应该成功执行"
     
-    print(f"\n🎯 通过: {passed}/{total}")
-    
-    if passed == total:
-        print("🎉 所有测试通过!")
-        return 0
-    else:
-        print("⚠️ 部分测试失败")
-        return 1
+    def test_pypi_clean_help(self):
+        """测试清理帮助"""
+        cmd = ["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "clean", "--help"]
+        success = run_command(cmd, "清理帮助")
+        assert success, "清理帮助命令应该成功执行"
+
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # 如果直接运行此文件，执行所有测试
+    pytest.main([__file__, "-v"])
