@@ -127,3 +127,4 @@ dev_reports/
 **/*.tmp
 **/*.temp
 **/.tmp/
+.sage/
