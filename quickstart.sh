@@ -278,8 +278,41 @@ verify_installation() {
         fi
     fi
     
-    if [ "$all_good" = true ]; then
-        print_success "所有核心包验证通过"
+    # 验证版本一致性
+    print_status "🔍 验证包版本..."
+    
+    # 动态获取主包版本作为参考版本
+    local expected_version=$(pip show "intsage" 2>/dev/null | grep "Version:" | awk '{print $2}')
+    local version_consistent=true
+    
+    if [ -z "$expected_version" ]; then
+        print_warning "⚠️ 无法获取主包版本，跳过版本一致性检查"
+        expected_version="unknown"
+        version_consistent=false
+    else
+        print_status "📦 参考版本: v$expected_version (来自主包 intsage)"
+    fi
+    
+    local packages_to_check=("intsage" "intsage-kernel" "intsage-middleware" "intsage-apps")
+    if [ "$INSTALL_TYPE" != "quick" ]; then
+        packages_to_check+=("intsage-dev-toolkit" "intsage-frontend")
+    fi
+    
+    for pkg in "${packages_to_check[@]}"; do
+        local version=$(pip show "$pkg" 2>/dev/null | grep "Version:" | awk '{print $2}')
+        if [ "$version" = "$expected_version" ]; then
+            print_status "✅ $pkg: v$version"
+        else
+            print_warning "⚠️ $pkg: v$version (期望: v$expected_version)"
+            version_consistent=false
+        fi
+    done
+    
+    if [ "$all_good" = true ] && [ "$version_consistent" = true ]; then
+        print_success "所有核心包验证通过，版本一致"
+        return 0
+    elif [ "$all_good" = true ]; then
+        print_success "所有核心包导入成功，但版本可能不一致"
         return 0
     else
         print_warning "部分包验证失败，但可以继续使用"
