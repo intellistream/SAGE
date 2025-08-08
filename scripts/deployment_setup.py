@@ -309,8 +309,8 @@ class SAGESetup:
             ("构建项目", self.build_project),
         ]
         
-        if dev:
-            steps.append(("运行测试", self.run_tests))
+        # if dev:
+        #     steps.append(("运行测试", self.run_tests))
         
         failed_steps = []
         

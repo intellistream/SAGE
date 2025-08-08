@@ -6,12 +6,12 @@
 set -e
 
 # 获取脚本所在目录
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+echo "脚本目录: $PROJECT_ROOT"
 # 引入工具模块
-source "$SCRIPT_DIR/scripts/logging.sh"
-source "$SCRIPT_DIR/scripts/common_utils.sh"
-source "$SCRIPT_DIR/scripts/conda_utils.sh"
+source "$PROJECT_ROOT/scripts/logging.sh"
+source "$PROJECT_ROOT/scripts/common_utils.sh"
+source "$PROJECT_ROOT/scripts/conda_utils.sh"
 
 # 脚本开始
 print_header "🌟 SAGE 项目快速启动脚本"
@@ -30,11 +30,11 @@ fi
 print_success "基础环境检查通过"
 
 # 切换到项目根目录
-cd "$SCRIPT_DIR"
-print_status "当前目录: $SCRIPT_DIR"
+cd "$PROJECT_ROOT"
+print_status "当前目录: $PROJECT_ROOT"
 
 # 验证项目结构
-if ! validate_project_structure "$SCRIPT_DIR"; then
+if ! validate_project_structure "$PROJECT_ROOT"; then
     print_error "请在SAGE项目根目录运行此脚本"
     exit 1
 fi
@@ -42,7 +42,7 @@ fi
 print_success "确认在SAGE项目目录"
 
 # 设置项目环境变量
-setup_project_env "$SCRIPT_DIR"
+setup_project_env "$PROJECT_ROOT"
 
 # 询问用户安装类型
 echo
