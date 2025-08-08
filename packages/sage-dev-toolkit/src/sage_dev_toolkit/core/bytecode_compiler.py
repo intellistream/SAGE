@@ -33,6 +33,7 @@ class BytecodeCompiler:
         self.package_path = Path(package_path)
         self.temp_dir = temp_dir
         self.compiled_path = None
+        self._binary_extensions = []
         
         if not self.package_path.exists():
             raise SAGEDevToolkitError(f"Package path does not exist: {package_path}")
@@ -103,6 +104,9 @@ class BytecodeCompiler:
         
         console.print(f"  📝 找到 {len(files_to_compile)} 个Python文件需要编译")
         
+        # 检查和保留二进制扩展文件
+        self._preserve_binary_extensions()
+        
         # 使用进度条显示编译进度
         with Progress() as progress:
             task = progress.add_task("编译Python文件", total=len(files_to_compile))
@@ -137,6 +141,28 @@ class BytecodeCompiler:
                 progress.update(task, advance=1)
         
         console.print(f"  📊 编译统计: 成功 {compiled_count}, 失败 {failed_count}")
+    
+    def _preserve_binary_extensions(self):
+        """检查和保留二进制扩展文件"""
+        # 查找所有二进制扩展文件
+        extensions = []
+        for ext in ["*.so", "*.pyd", "*.dylib"]:
+            extensions.extend(self.compiled_path.rglob(ext))
+        
+        if not extensions:
+            console.print("  ℹ️ 未找到二进制扩展文件", style="blue")
+            return
+        
+        console.print(f"  🔧 找到 {len(extensions)} 个二进制扩展文件")
+        
+        # 记录所有扩展文件
+        for ext_file in extensions:
+            rel_path = ext_file.relative_to(self.compiled_path)
+            size_kb = ext_file.stat().st_size / 1024
+            console.print(f"    📦 保留: {rel_path} ({size_kb:.1f} KB)", style="blue")
+            
+        # 确保不会删除这些文件
+        self._binary_extensions = extensions
     
     def _should_skip_file(self, py_file: Path) -> bool:
         """判断是否应该跳过文件"""
@@ -186,6 +212,13 @@ class BytecodeCompiler:
                 kept_count += 1
                 console.print(f"    ⚠️ 保留(无.pyc): {py_file.relative_to(self.compiled_path)}", style="yellow")
         
+        # 确保不会删除二进制扩展文件
+        if hasattr(self, '_binary_extensions') and self._binary_extensions:
+            for ext_file in self._binary_extensions:
+                if ext_file.exists():
+                    size_kb = ext_file.stat().st_size / 1024
+                    console.print(f"    ✅ 保留二进制: {ext_file.relative_to(self.compiled_path)} ({size_kb:.1f} KB)", style="green")
+        
         console.print(f"  📊 清理统计: 删除 {removed_count}, 保留 {kept_count}")
     
     def _should_keep_source(self, py_file: Path) -> bool:
@@ -213,20 +246,44 @@ class BytecodeCompiler:
             has_packages_list = 'packages = [' in content  # 静态包列表
             has_packages_find = "[tool.setuptools.packages.find]" in content  # 动态查找
             has_pyc_package_data = '"*.pyc"' in content and "[tool.setuptools.package-data]" in content
+            has_include_package_data = "include-package-data = true" in content.lower()
             
-            if (has_packages_list or has_packages_find) and has_pyc_package_data:
-                console.print("  ✓ pyproject.toml已包含包配置和.pyc文件配置", style="green")
-                return
+            modified = False
             
             # 需要添加配置
-            additions = []
-            
-            # 只有在既没有packages也没有packages.find的情况下才添加packages.find
             if not has_packages_list and not has_packages_find:
-                additions.append("""
+                content += """
 [tool.setuptools.packages.find]
-where = ["src"]""")
+where = ["src"]
+"""
+                modified = True
+                console.print("  📝 添加packages.find配置", style="green")
             
+            # 确保include-package-data设置为true
+            if not has_include_package_data:
+                # 检查是否有[tool.setuptools]部分
+                if "[tool.setuptools]" in content:
+                    # 在现有部分添加
+                    import re
+                    pattern = r'(\[tool\.setuptools\][\s\S]*?)(?=\n\[|\n$|$)'
+                    match = re.search(pattern, content)
+                    if match:
+                        existing_section = match.group(1)
+                        if "include-package-data" not in existing_section:
+                            updated_section = existing_section.rstrip() + '\ninclude-package-data = true\n'
+                            content = content.replace(existing_section, updated_section)
+                            modified = True
+                            console.print("  📝 更新include-package-data = true", style="green")
+                else:
+                    # 添加新部分
+                    content += """
+[tool.setuptools]
+include-package-data = true
+"""
+                    modified = True
+                    console.print("  📝 添加include-package-data = true", style="green")
+            
+            # 添加package-data配置
             if not has_pyc_package_data:
                 # 检查是否已有package-data部分
                 if "[tool.setuptools.package-data]" in content:
@@ -237,31 +294,66 @@ where = ["src"]""")
                     if match:
                         existing_data = match.group(1)
                         if '"*.pyc"' not in existing_data:
-                            # 在现有配置中添加*.pyc
-                            updated_data = existing_data.rstrip() + '\n"*" = ["*.pyc"]'
+                            # 在现有配置中添加*.pyc和二进制扩展文件
+                            updated_data = existing_data.rstrip() + '\n"*" = ["*.pyc", "*.pyo", "__pycache__/*", "*.so", "*.pyd", "*.dylib"]\n'
                             content = content.replace(existing_data, updated_data)
+                            modified = True
+                            console.print("  📝 更新package-data配置包含二进制文件", style="green")
                 else:
                     # 添加新的package-data配置
-                    additions.append("""
+                    content += """
 [tool.setuptools.package-data]
-"*" = ["*.pyc"]""")
+"*" = ["*.pyc", "*.pyo", "__pycache__/*", "*.so", "*.pyd", "*.dylib"]
+"""
+                    modified = True
+                    console.print("  📝 添加package-data配置包含二进制文件", style="green")
             
-            if additions:
-                content += "\n".join(additions) + "\n"
+            # 添加MANIFEST.in文件以确保包含所有二进制文件
+            manifest_file = self.compiled_path / "MANIFEST.in"
+            manifest_content = """
+# 包含所有编译文件和二进制扩展
+recursive-include src *.pyc
+recursive-include src *.pyo
+recursive-include src __pycache__/*
+recursive-include src *.so
+recursive-include src *.pyd
+recursive-include src *.dylib
+"""
+            manifest_file.write_text(manifest_content, encoding='utf-8')
+            console.print("  📝 创建MANIFEST.in文件", style="green")
+            
+            # 添加setup.py文件确保包含所有文件
+            setup_py_file = self.compiled_path / "setup.py"
+            setup_py_content = """
+from setuptools import setup
+
+setup(
+    include_package_data=True,
+    package_data={
+        "": ["*.pyc", "*.pyo", "__pycache__/*", "*.so", "*.pyd", "*.dylib"],
+    },
+)
+"""
+            setup_py_file.write_text(setup_py_content, encoding='utf-8')
+            console.print("  📝 创建setup.py文件", style="green")
+            
+            if modified:
                 pyproject_file.write_text(content, encoding='utf-8')
-                console.print("  📝 更新pyproject.toml包含.pyc文件", style="green")
+                console.print("  ✅ 更新pyproject.toml配置", style="green")
             else:
                 console.print("  ✓ pyproject.toml配置已满足要求", style="green")
                 
         except Exception as e:
             console.print(f"  ❌ 更新pyproject.toml失败: {e}", style="red")
     
-    def build_wheel(self, compiled_path: Optional[Path] = None) -> Path:
+    def build_wheel(self, compiled_path: Optional[Path] = None, upload: bool = False, dry_run: bool = True) -> Path:
         """
         构建wheel包
         
         Args:
             compiled_path: 已编译的包路径，如果未提供则使用self.compiled_path
+            upload: 是否上传到PyPI
+            dry_run: 是否为预演模式
             
         Returns:
             wheel文件路径
@@ -286,10 +378,14 @@ where = ["src"]""")
                     shutil.rmtree(build_dir)
                     console.print(f"  🧹 清理目录: {build_dir}")
             
+            # 验证.pyc文件是否存在
+            pyc_files = list(Path('.').rglob('*.pyc'))
+            console.print(f"  📊 找到 {len(pyc_files)} 个.pyc文件")
+            
             # 构建wheel
             console.print("  🔨 构建wheel...")
             result = subprocess.run([
-                sys.executable, "-m", "build", "--wheel"
+                sys.executable, "-m", "build", "--wheel", "--no-isolation"
             ], capture_output=True, text=True)
             
             if result.returncode == 0:
@@ -303,6 +399,15 @@ where = ["src"]""")
                 wheel_file = dist_files[0]  # 通常只有一个wheel文件
                 file_size = wheel_file.stat().st_size / 1024 / 1024  # MB
                 console.print(f"    📄 {wheel_file.name} ({file_size:.2f} MB)")
+                
+                # 验证wheel内容
+                self._verify_wheel_contents(wheel_file)
+                
+                # 如果需要上传
+                if upload and not dry_run:
+                    self._upload_to_pypi()
+                elif upload and dry_run:
+                    console.print("  🔍 预演模式：跳过上传", style="yellow")
                 
                 # 返回绝对路径
                 return wheel_file.resolve()
@@ -323,6 +428,60 @@ where = ["src"]""")
         finally:
             # 返回原目录
             os.chdir(original_dir)
+            
+    def _verify_wheel_contents(self, wheel_file: Path):
+        """验证wheel包内容是否包含.pyc文件"""
+        console.print("  🔍 验证wheel包内容...", style="cyan")
+        
+        try:
+            # 创建临时目录解压wheel
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+                
+                # 解压wheel
+                import zipfile
+                with zipfile.ZipFile(wheel_file, 'r') as zip_ref:
+                    zip_ref.extractall(temp_path)
+                    
+                    # 列出所有文件
+                    all_files = list(zip_ref.namelist())
+                    
+                # 计数
+                pyc_count = sum(1 for f in all_files if f.endswith('.pyc'))
+                py_count = sum(1 for f in all_files if f.endswith('.py'))
+                binary_count = sum(1 for f in all_files if f.endswith(('.so', '.pyd', '.dylib')))
+                total_count = len(all_files)
+                
+                console.print(f"    📊 文件总数: {total_count}")
+                console.print(f"    📊 .pyc文件: {pyc_count}")
+                console.print(f"    📊 .py文件: {py_count}")
+                console.print(f"    📊 二进制扩展文件: {binary_count}")
+                
+                # 检查包是否太小
+                if total_count < 10:
+                    console.print("    ⚠️ 警告: wheel包文件数量过少，可能打包不完整", style="yellow")
+                    
+                if pyc_count == 0 and binary_count == 0:
+                    console.print("    ❌ 错误: wheel包中没有.pyc或二进制扩展文件！", style="red")
+                    console.print("    💡 尝试使用以下步骤修复:")
+                    console.print("       1. 确保pyproject.toml中设置了include-package-data = true")
+                    console.print("       2. 确保pyproject.toml中设置了package-data配置")
+                    console.print("       3. 检查MANIFEST.in文件是否包含了*.pyc和*.so等")
+                    
+                    # 尝试输出部分文件列表以帮助诊断
+                    console.print("    📁 wheel包内容示例:")
+                    for f in all_files[:10]:
+                        console.print(f"       - {f}")
+                    if len(all_files) > 10:
+                        console.print(f"       ... 还有 {len(all_files)-10} 个文件")
+                else:
+                    if pyc_count > 0:
+                        console.print("    ✅ wheel包包含.pyc文件", style="green")
+                    if binary_count > 0:
+                        console.print("    ✅ wheel包包含二进制扩展文件", style="green")
+                    
+        except Exception as e:
+            console.print(f"    ❌ 验证wheel内容失败: {e}", style="red")
     
     def _upload_to_pypi(self) -> bool:
         """上传到PyPI"""

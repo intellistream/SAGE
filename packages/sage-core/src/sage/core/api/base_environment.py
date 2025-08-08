@@ -5,10 +5,16 @@ import os
 from pathlib import Path
 from typing import List, Optional, TYPE_CHECKING, Type, Union, Any
 from sage.core.api.function.lambda_function import wrap_lambda
-from sage.utils.logging.custom_logger import CustomLogger
+
+# 使用兼容性层安全导入闭源依赖
+from sage.core.api.compatibility import safe_import_kernel_client, safe_import_custom_logger
+
+# 获取闭源模块的类（如果可用，否则使用回退实现）
+_JobManagerClient = safe_import_kernel_client()
+_CustomLogger = safe_import_custom_logger()
+
 from sage.core.factory.service_factory import ServiceFactory
 
-from sage.kernel import JobManagerClient
 if TYPE_CHECKING:
     from sage.core.api.function.base_function import BaseFunction
     from sage.core.api.datastream import DataStream
@@ -16,6 +22,12 @@ if TYPE_CHECKING:
     from sage.core.transformation.source_transformation import SourceTransformation
     from sage.core.transformation.batch_transformation import BatchTransformation
     from sage.core.transformation.future_transformation import FutureTransformation
+    # 类型提示使用 Any 来避免循环导入问题
+    JobManagerClientType = Any
+    CustomLoggerType = Any
+else:
+    JobManagerClientType = _JobManagerClient
+    CustomLoggerType = _CustomLogger
 
     
 class BaseEnvironment(ABC):
@@ -64,7 +76,7 @@ class BaseEnvironment(ABC):
         self._jobmanager: Optional[Any] = None
         
         # Engine 客户端相关
-        self._engine_client: Optional[JobManagerClient] = None
+        self._engine_client: Optional[JobManagerClientType] = None
         self.env_uuid: Optional[str] = None
         
         # 日志配置
@@ -361,17 +373,17 @@ class BaseEnvironment(ABC):
     @property
     def logger(self):
         if not hasattr(self, "_logger"):
-            self._logger = CustomLogger()
+            self._logger = _CustomLogger()
         return self._logger
 
     @property
-    def client(self)-> JobManagerClient:
+    def client(self) -> JobManagerClientType:
         if self._engine_client is None:
             # 从配置中获取 Engine 地址，或使用默认值
             daemon_host = self.config.get("engine_host", "127.0.0.1")
             daemon_port = self.config.get("engine_port", 19000)
             
-            self._engine_client = JobManagerClient(host=daemon_host, port=daemon_port)
+            self._engine_client = _JobManagerClient(host=daemon_host, port=daemon_port)
             
         return self._engine_client
 

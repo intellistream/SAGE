@@ -98,7 +98,7 @@ Issues = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-include-package-data = false
+include-package-data = true
 zip-safe = true
 
 [tool.setuptools.packages.find]

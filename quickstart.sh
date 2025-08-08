@@ -235,7 +235,8 @@ install_sage_packages() {
         fi
     else
         print_status "快速安装模式，跳过开发工具"
-    fi    print_success "SAGE 包安装完成"
+    fi    
+    print_success "SAGE 包安装完成"
     return 0
 }
 

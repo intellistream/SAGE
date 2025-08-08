@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "intellistream-sage-dev-toolkit"
-version = "0.1.3"
+version = "0.1.4"
 description = "SAGE Framework Development Toolkit - Unified development tools for SAGE project"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -92,7 +92,7 @@ Repository = "https://github.com/intellistream/SAGE.git"
 Documentation = "https://intellistream.github.io/SAGE-Pub/"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
-[project.scripts]
+[project.entry-points."console_scripts"]
 sage-dev = "sage_dev_toolkit.cli.main:app"
 
 [tool.setuptools]

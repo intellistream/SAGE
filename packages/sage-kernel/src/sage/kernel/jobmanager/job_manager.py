@@ -161,7 +161,7 @@ class JobManager: #Job Manager
             return True
         except Exception as e:
             job_info.update_status("failed", error=str(e))
-            self.logger.error(f"Failed to submit job {job_info.job_uuid}: {e}")
+            self.logger.error(f"Failed to submit job {job_info.uuid}: {e}")
             return False
 
     def _get_job_info(self, job_uuid: str) -> Optional[JobInfo]:

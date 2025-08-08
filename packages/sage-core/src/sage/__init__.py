@@ -8,11 +8,10 @@ and distributed computing. It provides both open source and enterprise features.
 # This is a namespace package - allow extension by other packages
 __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
-import warnings
-
 __version__ = "1.0.1"
 __author__ = "SAGE Team"
 __email__ = "team@sage.com"
+
 
 def get_version():
     """Get SAGE version."""

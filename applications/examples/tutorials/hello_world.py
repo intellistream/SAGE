@@ -31,7 +31,7 @@ class PrintSink(SinkFunction):
         return data
 
 def main():
-    env = LocalEnvironment("hello_world_batch_demo")
+    env = RemoteEnvironment("hello_world_batch_demo")
     
     # 设置日志级别为WARNING以减少调试输出
     env.set_console_log_level("WARNING")

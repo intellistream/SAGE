@@ -282,6 +282,8 @@ class JobManagerController:
             typer.echo("💡 Suggestion: Try using a different port with --port option")
             return False
         
+        # 在 start 方法的开头添加：
+        typer.echo(f"Using Python interpreter: {sys.executable}")
         # 构建启动命令
         jobmanager_module = "sage.kernel.jobmanager.job_manager"
         cmd = [

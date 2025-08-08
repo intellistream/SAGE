@@ -116,7 +116,6 @@ class SAGEDevToolkit:
             'test_runner': EnhancedTestRunner,
             'package_manager': EnhancedPackageManager,
             'dependency_analyzer': EnhancedTestRunner,  # Can also analyze dependencies
-            
             'vscode_manager': VSCodePathManager,
             'setup_tester': OneClickSetupTester
         }
