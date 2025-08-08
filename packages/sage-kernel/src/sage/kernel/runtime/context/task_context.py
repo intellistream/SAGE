@@ -1,13 +1,14 @@
 import os
 import threading
 from typing import TYPE_CHECKING
+from PIL.ExifTags import Base
 import ray
 from ray.actor import ActorHandle
 from typing import List,Dict,Optional, Any, Union
 from sage.utils.logging.custom_logger import CustomLogger
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.runtime.context.base_context import BaseRuntimeContext
-
+from sage.kernel.runtime.communication.router.router import BaseRouter
 if TYPE_CHECKING:
     from sage.kernel.jobmanager.compiler import ExecutionGraph, TaskNode
     from sage.core.transformation.base_transformation import BaseTransformation
@@ -100,7 +101,13 @@ class TaskContext(BaseRuntimeContext):
         """清理运行时上下文资源"""
         self.cleanup_service_manager()  # 使用基类的清理方法
 
-
+    @property
+    def router(self):
+        if hasattr(self, '_router') and self._router is not None:
+            return self._router
+        else:
+            self._router = BaseRouter(self)
+            return self._router
 
     @property
     def logger(self) -> CustomLogger:

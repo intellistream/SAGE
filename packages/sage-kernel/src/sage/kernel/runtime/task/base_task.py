@@ -30,7 +30,6 @@ class BaseTask(ABC):
         # === 性能监控 ===
         self._processed_count = 0
         self._error_count = 0
-        self.router = BaseRouter(ctx)
         try:
             self.operator:BaseOperator = operator_factory.create_operator(self.ctx)
             self.operator.task = self
@@ -40,6 +39,9 @@ class BaseTask(ABC):
             self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
             raise
 
+    @property
+    def router(self):
+        return self.ctx.router
 
     def start_running(self):
         """启动任务的工作循环"""

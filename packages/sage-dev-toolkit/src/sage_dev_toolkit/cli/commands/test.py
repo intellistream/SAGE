@@ -113,10 +113,13 @@ class TestCommand(BaseCommand):
             f.write(f"Status: {'PASSED' if results['failed'] == 0 else 'FAILED'}\n")
             f.write(f"Total: {results['total']}, Passed: {results['passed']}, Failed: {results['failed']}\n")
     
-    def _run_tests_with_pytest(self, test_files: List[Path], verbose: bool = False) -> dict:
+    def _run_tests_with_pytest(self, test_files: List[Path], verbose: bool = False, timeout: int = 300, testlogs_dir: Path = None) -> dict:
         """使用 pytest 运行测试"""
         try:
             cmd = [sys.executable, "-m", "pytest"]
+            
+            # 总是添加 -s 来捕获所有输出
+            cmd.append("-s")
             
             if verbose:
                 cmd.extend(["-v", "--tb=short"])
@@ -126,17 +129,87 @@ class TestCommand(BaseCommand):
             # 添加测试文件
             cmd.extend([str(f) for f in test_files])
             
-            # 运行测试
-            result = subprocess.run(
-                cmd, 
-                capture_output=True, 
-                text=True,
-                cwd=test_files[0].parent if test_files else None
-            )
+            # 创建实时输出文件
+            if testlogs_dir:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                output_file = testlogs_dir / f"pytest_output_{timestamp}.log"
+                console.print(f"📝 Test output will be saved to: {output_file}", style="blue")
+            else:
+                output_file = None
+            
+            # 运行测试，添加超时控制
+            console.print(f"🕐 Running tests with {timeout}s timeout...", style="blue")
+            
+            if output_file:
+                # 使用实时输出重定向
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    process = subprocess.Popen(
+                        cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        cwd=test_files[0].parent if test_files else None,
+                        bufsize=1,
+                        universal_newlines=True
+                    )
+                    
+                    output_lines = []
+                    try:
+                        import select
+                        import time
+                        start_time = time.time()
+                        
+                        # 实时读取输出并写入文件
+                        while True:
+                            # 检查超时
+                            if time.time() - start_time > timeout:
+                                process.kill()
+                                process.wait()
+                                raise subprocess.TimeoutExpired(cmd, timeout)
+                            
+                            # 检查进程是否结束
+                            if process.poll() is not None:
+                                # 读取剩余输出
+                                remaining = process.stdout.read()
+                                if remaining:
+                                    f.write(remaining)
+                                    f.flush()
+                                    output_lines.extend(remaining.splitlines())
+                                break
+                            
+                            # 读取输出
+                            line = process.stdout.readline()
+                            if line:
+                                f.write(line)
+                                f.flush()
+                                output_lines.append(line.rstrip())
+                                # 如果是详细模式，也打印到控制台
+                                if verbose:
+                                    console.print(line.rstrip(), style="dim")
+                            else:
+                                time.sleep(0.1)  # 短暂等待
+                                
+                    except Exception as e:
+                        process.kill()
+                        process.wait()
+                        raise e
+                    
+                    output = '\n'.join(output_lines)
+                    return_code = process.returncode
+                    
+            else:
+                # 回退到原来的方式
+                result = subprocess.run(
+                    cmd, 
+                    capture_output=True, 
+                    text=True,
+                    timeout=timeout,
+                    cwd=test_files[0].parent if test_files else None
+                )
+                output = result.stdout + result.stderr
+                return_code = result.returncode
             
             # 解析结果（简化版本）
-            output = result.stdout + result.stderr
-            
             results = {
                 'total': 0,
                 'passed': 0,
@@ -167,6 +240,18 @@ class TestCommand(BaseCommand):
             
             return results
             
+        except subprocess.TimeoutExpired as e:
+            console.print(f"⏰ Tests timed out after {timeout} seconds", style="red")
+            console.print("💡 Try running with a longer timeout using --timeout option", style="yellow")
+            return {
+                'total': len(test_files),
+                'passed': 0,
+                'failed': len(test_files),
+                'errors': 0,
+                'skipped': 0,
+                'failed_tests': [str(f) for f in test_files],
+                'output': f'Tests timed out after {timeout} seconds'
+            }
         except Exception as e:
             console.print(f"❌ Error running pytest: {e}", style="red")
             return {
@@ -179,13 +264,13 @@ class TestCommand(BaseCommand):
                 'output': str(e)
             }
     
-    def _run_tests_with_unittest(self, test_files: List[Path], verbose: bool = False) -> dict:
+    def _run_tests_with_unittest(self, test_files: List[Path], verbose: bool = False, timeout: int = 300) -> dict:
         """使用 unittest 运行测试"""
         try:
             cmd = [sys.executable, "-m", "unittest"]
             
-            if verbose:
-                cmd.append("-v")
+            # 总是使用 verbose 模式获取详细输出
+            cmd.append("-v")
             
             # 转换文件路径为模块路径
             modules = []
@@ -195,10 +280,12 @@ class TestCommand(BaseCommand):
             
             cmd.extend(modules)
             
+            console.print(f"🕐 Running unittest with {timeout}s timeout...", style="blue")
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
+                timeout=timeout,
                 cwd=test_files[0].parent if test_files else None
             )
             
@@ -217,6 +304,18 @@ class TestCommand(BaseCommand):
             
             return results
             
+        except subprocess.TimeoutExpired as e:
+            console.print(f"⏰ Unittest timed out after {timeout} seconds", style="red")
+            console.print("💡 Try running with a longer timeout using --timeout option", style="yellow")
+            return {
+                'total': len(test_files),
+                'passed': 0,
+                'failed': len(test_files),
+                'errors': 0,
+                'skipped': 0,
+                'failed_tests': [str(f) for f in test_files],
+                'output': f'Unittest timed out after {timeout} seconds'
+            }
         except Exception as e:
             console.print(f"❌ Error running unittest: {e}", style="red")
             return {
@@ -234,7 +333,8 @@ class TestCommand(BaseCommand):
         project_path: Path, 
         failed_only: bool = False,
         pattern: str = "test_*.py",
-        verbose: bool = False
+        verbose: bool = False,
+        timeout: int = 300
     ) -> dict:
         """运行测试的主要逻辑"""
         
@@ -297,10 +397,10 @@ class TestCommand(BaseCommand):
                 console.print(f"   - {test_file.relative_to(project_path)}", style="dim")
         
         # 尝试使用 pytest，如果失败则使用 unittest
-        results = self._run_tests_with_pytest(test_files, verbose)
+        results = self._run_tests_with_pytest(test_files, verbose, timeout, testlogs_dir)
         if results['errors'] > 0 and 'pytest' in results['output']:
             console.print("⚠️  pytest failed, trying unittest...", style="yellow")
-            results = self._run_tests_with_unittest(test_files, verbose)
+            results = self._run_tests_with_unittest(test_files, verbose, timeout)
         
         # 写入测试结果
         self._write_test_results(testlogs_dir, results)
@@ -332,6 +432,11 @@ class TestCommand(BaseCommand):
                 "-v", 
                 "--verbose", 
                 help="Verbose output"
+            ),
+            timeout: int = typer.Option(
+                300,
+                "--timeout",
+                help="Test execution timeout in seconds (default: 300)"
             )
         ):
             """🧪 Universal test runner for Python projects
@@ -342,10 +447,11 @@ class TestCommand(BaseCommand):
             Test results and logs are saved to .testlogs/ directory in the project root.
             
             Examples:
-              sage-dev test                    # Run all tests in current directory
-              sage-dev test /path/to/project   # Run tests in specific project
-              sage-dev test --failed           # Run only previously failed tests
+              sage-dev test                        # Run all tests in current directory
+              sage-dev test /path/to/project       # Run tests in specific project
+              sage-dev test --failed               # Run only previously failed tests
               sage-dev test --pattern "*_test.py"  # Use custom test file pattern
+              sage-dev test --timeout 600          # Set 10-minute timeout
             """
             # 如果有子命令被调用，不执行主命令逻辑
             if ctx.invoked_subcommand is not None:
@@ -369,7 +475,8 @@ class TestCommand(BaseCommand):
                     project_path=project_path,
                     failed_only=failed,
                     pattern=pattern,
-                    verbose=verbose
+                    verbose=verbose,
+                    timeout=timeout
                 )
                 
                 # 显示结果摘要
@@ -378,6 +485,14 @@ class TestCommand(BaseCommand):
                         console.print(f"✅ All tests passed! ({results['passed']}/{results['total']})", style="green")
                     else:
                         console.print(f"❌ Tests failed: {results['failed']} failed, {results['errors']} errors, {results['passed']} passed", style="red")
+                        
+                        # 显示测试输出
+                        if results.get('output') and results['output'].strip():
+                            console.print("\n📋 Test Output:", style="yellow")
+                            console.print("=" * 60, style="dim")
+                            console.print(results['output'], style="white")
+                            console.print("=" * 60, style="dim")
+                        
                         if results['failed_tests']:
                             console.print("Failed tests saved to .testlogs/failed_tests.txt", style="dim")
                         raise typer.Exit(1)

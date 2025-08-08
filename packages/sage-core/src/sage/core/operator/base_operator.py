@@ -42,7 +42,10 @@ class BaseOperator(ABC):
         获取路由信息，用于调试和监控
         """
         return self.ctx.get_routing_info()
-
+    
+    @property
+    def router(self):
+        return self.ctx.router
 
     # TODO: 去掉stateful function的概念，用某些策略对于function内部的可序列化字段做静态保存和checkpoint
     # Issue URL: https://github.com/intellistream/SAGE/issues/388

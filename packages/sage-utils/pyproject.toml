@@ -71,13 +71,18 @@ Documentation = "https://intellistream.github.io/SAGE"
 Repository = "https://github.com/intellistream/SAGE"
 "Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["sage*"]
-namespaces = true
-
 [tool.setuptools.package-dir]
 "" = "src"
+
+[tool.setuptools.packages.find]
+where = [
+    "src",
+]
+include = [
+    "sage*",
+]
+namespaces = true
+
 
 [tool.black]
 line-length = 88

@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "intellistream-sage-cli"
-version = "0.1.0"
+version = "0.1.2"
 description = "SAGE Framework - 命令行工具包，提供集群管理、作业部署和配置管理功能"
 readme = "README.md"
 requires-python = ">=3.10"

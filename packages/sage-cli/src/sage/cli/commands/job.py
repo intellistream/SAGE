@@ -18,15 +18,10 @@ import signal
 project_root = Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 
-try:
-    from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
-    import yaml
-    from tabulate import tabulate
-    from colorama import Fore, Back, Style, init
-except ImportError as e:
-    print(f"Missing required dependencies: {e}")
-    print("Please install: pip install pyyaml tabulate colorama")
-    sys.exit(1)
+from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+import yaml
+from tabulate import tabulate
+from colorama import Fore, Back, Style, init
 
 # 初始化colorama
 init(autoreset=True)

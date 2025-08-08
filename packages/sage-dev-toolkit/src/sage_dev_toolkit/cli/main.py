@@ -7,6 +7,7 @@ for intuitive and powerful command-line interactions.
 
 import sys
 import typer
+import importlib
 from .commands.common import console
 from .commands import get_apps
 
@@ -25,11 +26,24 @@ def _register_commands():
     # 特殊处理需要作为子命令组的命令
     subcommand_groups = {'pypi', 'package', 'test'}
     
+    # 需要作为独立命令（而非子命令组）添加的命令
+    standalone_commands = {'check_dependency': 'check-dependency'}
+    
     # 从各个模块添加命令到主应用
     for app_name, sub_app in apps.items():
         if app_name in subcommand_groups:
             # 将这些应用作为子命令组添加
             app.add_typer(sub_app, name=app_name)
+        elif app_name in standalone_commands:
+            # 将这些应用作为独立命令添加（使用自定义名称）
+            command_name = standalone_commands[app_name]
+            module = importlib.import_module(f".{app_name}", package="sage_dev_toolkit.cli.commands")
+            if hasattr(module.command, 'command'):
+                # 如果是单个命令
+                app.command(name=command_name)(module.command.command)
+            else:
+                # 如果是typer应用
+                app.add_typer(sub_app, name=command_name)
         else:
             # 将其他子应用的所有命令直接添加到主应用
             try:

@@ -209,23 +209,49 @@ class BytecodeCompiler:
         try:
             content = pyproject_file.read_text(encoding='utf-8')
             
-            # 检查是否已经有setuptools配置
-            if "[tool.setuptools.packages.find]" not in content:
-                # 添加包含.pyc的配置
-                setuptools_config = """
-
+            # 检查现有的包配置
+            has_packages_list = 'packages = [' in content  # 静态包列表
+            has_packages_find = "[tool.setuptools.packages.find]" in content  # 动态查找
+            has_pyc_package_data = '"*.pyc"' in content and "[tool.setuptools.package-data]" in content
+            
+            if (has_packages_list or has_packages_find) and has_pyc_package_data:
+                console.print("  ✓ pyproject.toml已包含包配置和.pyc文件配置", style="green")
+                return
+            
+            # 需要添加配置
+            additions = []
+            
+            # 只有在既没有packages也没有packages.find的情况下才添加packages.find
+            if not has_packages_list and not has_packages_find:
+                additions.append("""
 [tool.setuptools.packages.find]
-where = ["src"]
-
+where = ["src"]""")
+            
+            if not has_pyc_package_data:
+                # 检查是否已有package-data部分
+                if "[tool.setuptools.package-data]" in content:
+                    # 需要更新现有的package-data配置
+                    import re
+                    pattern = r'(\[tool\.setuptools\.package-data\][\s\S]*?)(?=\n\[|\n$|$)'
+                    match = re.search(pattern, content)
+                    if match:
+                        existing_data = match.group(1)
+                        if '"*.pyc"' not in existing_data:
+                            # 在现有配置中添加*.pyc
+                            updated_data = existing_data.rstrip() + '\n"*" = ["*.pyc"]'
+                            content = content.replace(existing_data, updated_data)
+                else:
+                    # 添加新的package-data配置
+                    additions.append("""
 [tool.setuptools.package-data]
-"*" = ["*.pyc"]
-
-"""
-                content += setuptools_config
+"*" = ["*.pyc"]""")
+            
+            if additions:
+                content += "\n".join(additions) + "\n"
                 pyproject_file.write_text(content, encoding='utf-8')
                 console.print("  📝 更新pyproject.toml包含.pyc文件", style="green")
             else:
-                console.print("  ✓ pyproject.toml已包含setuptools配置", style="green")
+                console.print("  ✓ pyproject.toml配置已满足要求", style="green")
                 
         except Exception as e:
             console.print(f"  ❌ 更新pyproject.toml失败: {e}", style="red")
@@ -278,10 +304,17 @@ where = ["src"]
                 file_size = wheel_file.stat().st_size / 1024 / 1024  # MB
                 console.print(f"    📄 {wheel_file.name} ({file_size:.2f} MB)")
                 
-                return wheel_file
+                # 返回绝对路径
+                return wheel_file.resolve()
                 
             else:
-                raise SAGEDevToolkitError(f"构建失败: {result.stderr}")
+                # 构建失败，收集错误信息
+                error_msg = "构建失败"
+                if result.stderr.strip():
+                    error_msg += f": {result.stderr.strip()}"
+                if result.stdout.strip():
+                    error_msg += f"\n详细信息: {result.stdout.strip()}"
+                raise SAGEDevToolkitError(error_msg)
                 
         except Exception as e:
             console.print(f"  💥 构建异常: {e}", style="red")

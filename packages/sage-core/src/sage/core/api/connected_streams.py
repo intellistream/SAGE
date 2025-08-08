@@ -1,22 +1,38 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, List, TypeVar, Generic, get_args, get_origin, Callable
 from sage.core.api.base_environment import BaseEnvironment
-from sage.core.transformation.base_transformation import BaseTransformation
-from sage.core.transformation.map_transformation import MapTransformation
-from sage.core.transformation.sink_transformation import SinkTransformation
-from sage.core.transformation.join_transformation import JoinTransformation
 from sage.core.api.function.base_function import BaseFunction
 from sage.core.api.function.lambda_function import wrap_lambda
 from sage.core.api.function.comap_function import BaseCoMapFunction
 from sage.core.api.function.join_function import BaseJoinFunction
 if TYPE_CHECKING:
     from .datastream import DataStream
+    from sage.core.transformation.base_transformation import BaseTransformation
+    from sage.core.transformation.map_transformation import MapTransformation
+    from sage.core.transformation.sink_transformation import SinkTransformation
+    from sage.core.transformation.join_transformation import JoinTransformation
 
 class ConnectedStreams:
     """表示多个transformation连接后的流结果"""
-    def __init__(self, env: 'BaseEnvironment', transformations: List[BaseTransformation]):
+    def __init__(self, env: 'BaseEnvironment', transformations: List['BaseTransformation']):
         self._environment = env
         self.transformations = transformations
+
+    def _get_transformation_classes(self):
+        """动态导入transformation类以避免循环导入"""
+        if not hasattr(self, '_transformation_classes'):
+            from sage.core.transformation.base_transformation import BaseTransformation
+            from sage.core.transformation.map_transformation import MapTransformation
+            from sage.core.transformation.sink_transformation import SinkTransformation
+            from sage.core.transformation.join_transformation import JoinTransformation
+            
+            self._transformation_classes = {
+                'BaseTransformation': BaseTransformation,
+                'MapTransformation': MapTransformation,
+                'SinkTransformation': SinkTransformation,
+                'JoinTransformation': JoinTransformation
+            }
+        return self._transformation_classes
 
     # ---------------------------------------------------------------------
     # general datastream api
@@ -24,12 +40,18 @@ class ConnectedStreams:
     def map(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> 'DataStream':
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, 'map')
+        
+        # 获取MapTransformation类
+        MapTransformation = self._get_transformation_classes()['MapTransformation']
         tr = MapTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
 
     def sink(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> 'DataStream':
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, 'sink')
+        
+        # 获取SinkTransformation类
+        SinkTransformation = self._get_transformation_classes()['SinkTransformation']
         tr = SinkTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
 

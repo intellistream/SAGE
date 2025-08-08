@@ -21,6 +21,26 @@ if TYPE_CHECKING:
     from .graph_edge import GraphEdge
 
 
+def _create_queue_descriptor(env: 'BaseEnvironment', name: str, maxsize: int) -> 'BaseQueueDescriptor':
+    """
+    根据环境平台类型创建相应的队列描述符
+    
+    Args:
+        env: 环境对象
+        name: 队列名称
+        maxsize: 队列最大大小
+        
+    Returns:
+        对应平台的队列描述符
+    """
+    if env.platform == "remote":
+        from sage.kernel.runtime.communication.queue_descriptor.ray_queue_descriptor import RayQueueDescriptor
+        return RayQueueDescriptor(maxsize=maxsize, queue_id=name)
+    else:  # local 或其他情况使用 python 队列
+        from sage.kernel.runtime.communication.queue_descriptor.python_queue_descriptor import PythonQueueDescriptor
+        return PythonQueueDescriptor(maxsize=maxsize, queue_id=name)
+
+
 class TaskNode:
     """
     图节点类
@@ -53,7 +73,8 @@ class TaskNode:
         """在节点构造时创建队列描述符"""
         # 为每个节点创建单一的输入队列描述符（被所有上游复用）
         if not self.is_spout:  # 源节点不需要输入队列
-            self.input_qd = env.get_qd(
+            self.input_qd = _create_queue_descriptor(
+                env=env,
                 name=f"input_{self.name}",
                 maxsize=10000
             )
@@ -61,7 +82,8 @@ class TaskNode:
             self.input_qd = None
         
         # 为每个graph node创建service response queue descriptor
-        self.service_response_qd = env.get_qd(
+        self.service_response_qd = _create_queue_descriptor(
+            env=env,
             name=f"service_response_{self.name}",
             maxsize=10000
         )

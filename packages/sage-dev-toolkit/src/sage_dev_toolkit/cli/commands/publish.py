@@ -261,8 +261,32 @@ class PublishCommand(BaseCommand):
             }
             
         except Exception as e:
-            console.print(f"  💥 构建异常: {e}", style="red")
-            return {'success': False}
+            # 显示详细的错误信息
+            error_msg = str(e)
+            console.print(f"  💥 构建异常: {error_msg}", style="red")
+            
+            # 如果是构建错误，尝试显示更多调试信息
+            if "构建失败" in error_msg or "parse" in error_msg.lower():
+                console.print("  🔍 调试提示:", style="yellow")
+                console.print(f"    - 包路径: {package_path}", style="dim")
+                
+                # 检查是否是编译阶段的问题
+                if 'compiled_path' in locals():
+                    console.print(f"    - 编译路径: {compiled_path}", style="dim")
+                    
+                    # 检查编译后的pyproject.toml
+                    compiled_pyproject = compiled_path / "pyproject.toml"
+                    if compiled_pyproject.exists():
+                        console.print("    - 编译后的pyproject.toml存在", style="dim")
+                        # 检查是否有语法错误提示
+                        if "parse" in error_msg.lower() or "declare" in error_msg.lower():
+                            console.print("    - 💡 可能是pyproject.toml配置重复或语法错误", style="yellow")
+                    else:
+                        console.print("    - ⚠️ 编译后的pyproject.toml不存在", style="yellow")
+                else:
+                    console.print("    - 编译路径: 编译未完成", style="dim")
+            
+            return {'success': False, 'error': error_msg}
     
     def _clean_build_dirs(self, package_path: Path):
         """清理构建目录"""
@@ -347,8 +371,9 @@ class PublishCommand(BaseCommand):
                 if result.returncode == 0:
                     console.print(f"  ✅ {wheel_file.name} 上传成功", style="green")
                 else:
-                    console.print(f"  ❌ {wheel_file.name} 上传失败: {result.stderr}", style="red")
-                    raise RuntimeError(f"上传失败: {result.stderr}")
+                    error_msg = result.stderr or result.stdout or "未知错误"
+                    console.print(f"  ❌ {wheel_file.name} 上传失败: {error_msg}", style="red")
+                    raise RuntimeError(f"上传失败: {error_msg}")
         
         except FileNotFoundError:
             console.print("❌ 未找到twine工具，请先安装: pip install twine", style="red")
@@ -371,8 +396,9 @@ class PublishCommand(BaseCommand):
             if result.returncode == 0:
                 console.print(f"  ✅ {wheel_path.name} 上传成功", style="green")
             else:
-                console.print(f"  ❌ {wheel_path.name} 上传失败: {result.stderr}", style="red")
-                raise RuntimeError(f"上传失败: {result.stderr}")
+                error_msg = result.stderr or result.stdout or "未知错误"
+                console.print(f"  ❌ {wheel_path.name} 上传失败: {error_msg}", style="red")
+                raise RuntimeError(f"上传失败: {error_msg}")
         
         except FileNotFoundError:
             console.print("❌ 未找到twine工具，请先安装: pip install twine", style="red")

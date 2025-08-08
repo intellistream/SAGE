@@ -38,6 +38,10 @@ def test_task_factory_creation_in_task_node():
         name="test_transformation"
     )
     
+    # Mock operator_class 属性，因为BaseTransformation是抽象类
+    from sage.core.operator.base_operator import BaseOperator
+    transformation.operator_class = Mock(spec=BaseOperator)
+    
     # 验证BaseTransformation不再有task_factory属性
     assert not hasattr(transformation, 'task_factory'), "BaseTransformation should not have task_factory attribute"
     assert not hasattr(transformation, '_task_factory'), "BaseTransformation should not have _task_factory attribute"
@@ -48,10 +52,7 @@ def test_task_factory_creation_in_task_node():
     
     from sage.kernel.jobmanager.compiler.graph_node import TaskNode
     
-    # 创建mock environment
-    mock_env.get_qd = Mock(return_value=Mock())  # Mock queue descriptor
-    
-    # 创建TaskNode
+    # 创建TaskNode - 不再需要mock env.get_qd，因为现在直接使用env.platform
     task_node = TaskNode(
         name="test_node",
         transformation=transformation,

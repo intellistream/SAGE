@@ -5,10 +5,6 @@ import os
 from pathlib import Path
 from typing import List, Optional, TYPE_CHECKING, Type, Union, Any
 from sage.core.api.function.lambda_function import wrap_lambda
-from sage.core.transformation.base_transformation import BaseTransformation
-from sage.core.transformation.source_transformation import SourceTransformation
-from sage.core.transformation.batch_transformation import BatchTransformation
-from sage.core.transformation.future_transformation import FutureTransformation 
 from sage.utils.logging.custom_logger import CustomLogger
 from sage.core.factory.service_factory import ServiceFactory
 
@@ -16,6 +12,10 @@ from sage.kernel import JobManagerClient
 if TYPE_CHECKING:
     from sage.core.api.function.base_function import BaseFunction
     from sage.core.api.datastream import DataStream
+    from sage.core.transformation.base_transformation import BaseTransformation
+    from sage.core.transformation.source_transformation import SourceTransformation
+    from sage.core.transformation.batch_transformation import BatchTransformation
+    from sage.core.transformation.future_transformation import FutureTransformation
 
     
 class BaseEnvironment(ABC):
@@ -30,6 +30,22 @@ class BaseEnvironment(ABC):
             self._datastream_class = DataStream
         return self._datastream_class
 
+    def _get_transformation_classes(self):
+        """动态导入transformation类以避免循环导入"""
+        if not hasattr(self, '_transformation_classes'):
+            from sage.core.transformation.base_transformation import BaseTransformation
+            from sage.core.transformation.source_transformation import SourceTransformation  
+            from sage.core.transformation.batch_transformation import BatchTransformation
+            from sage.core.transformation.future_transformation import FutureTransformation
+            
+            self._transformation_classes = {
+                'BaseTransformation': BaseTransformation,
+                'SourceTransformation': SourceTransformation,
+                'BatchTransformation': BatchTransformation,
+                'FutureTransformation': FutureTransformation
+            }
+        return self._transformation_classes
+
     def __init__(self, name: str, config: dict | None, *, platform: str = "local"):
 
         self.name = name
@@ -38,7 +54,7 @@ class BaseEnvironment(ABC):
         self.config: dict = dict(config or {})
         self.platform:str = platform
         # 用于收集所有 BaseTransformation，供 ExecutionGraph 构建 DAG
-        self.pipeline: List[BaseTransformation] = []
+        self.pipeline: List['BaseTransformation'] = []
         self._filled_futures: dict = {}  
         # 用于收集所有服务工厂，供ExecutionGraph构建服务节点时使用
         self.service_factories: dict = {}  # service_name -> ServiceFactory
@@ -186,6 +202,9 @@ class BaseEnvironment(ABC):
         """
         from sage.core.api.function.kafka_source import KafkaSourceFunction
         
+        # 获取SourceTransformation类
+        SourceTransformation = self._get_transformation_classes()['SourceTransformation']
+        
         # 创建Kafka Source Function
         transformation = SourceTransformation(
             self,
@@ -209,6 +228,9 @@ class BaseEnvironment(ABC):
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, 'flatmap')
+        
+        # 获取SourceTransformation类
+        SourceTransformation = self._get_transformation_classes()['SourceTransformation']
         transformation = SourceTransformation(self, function, *args, **kwargs)
 
         self.pipeline.append(transformation)
@@ -220,6 +242,9 @@ class BaseEnvironment(ABC):
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, 'flatmap')
+        
+        # 获取BatchTransformation类
+        BatchTransformation = self._get_transformation_classes()['BatchTransformation']
         transformation = BatchTransformation(self, function, *args,
                                               **kwargs)  # TODO: add a new transformation 去告诉engine这个input source是有界的，当执行完毕之后，会发送一个endofinput信号来停止所有进程。
                                                          # Issue URL: https://github.com/intellistream/SAGE/issues/387
@@ -315,6 +340,8 @@ class BaseEnvironment(ABC):
             # 最后填充future
             result.fill_future(future_stream)
         """
+        # 获取FutureTransformation类
+        FutureTransformation = self._get_transformation_classes()['FutureTransformation']
         transformation = FutureTransformation(self, name)
         self.pipeline.append(transformation)
         return self._get_datastream_class()(self, transformation)
@@ -358,7 +385,7 @@ class BaseEnvironment(ABC):
     ########################################################
 
 
-    def _append(self, transformation: BaseTransformation):
+    def _append(self, transformation: 'BaseTransformation'):
         """将 BaseTransformation 添加到管道中（Compiler 会使用）。"""
         self.pipeline.append(transformation)
         return self._get_datastream_class()(self, transformation)
@@ -380,6 +407,8 @@ class BaseEnvironment(ABC):
             else:
                 function_kwargs[key] = value
         
+        # 获取BatchTransformation类
+        BatchTransformation = self._get_transformation_classes()['BatchTransformation']
         transformation = BatchTransformation(
             self,
             batch_function_class,
@@ -399,6 +428,8 @@ class BaseEnvironment(ABC):
         """
         from sage.core.api.function.simple_batch_function import SimpleBatchIteratorFunction
         
+        # 获取BatchTransformation类
+        BatchTransformation = self._get_transformation_classes()['BatchTransformation']
         transformation = BatchTransformation(
             self,
             SimpleBatchIteratorFunction,
@@ -426,6 +457,8 @@ class BaseEnvironment(ABC):
                 # 如果对象没有 len() 方法，则保持 None
                 total_count = None
         
+        # 获取BatchTransformation类
+        BatchTransformation = self._get_transformation_classes()['BatchTransformation']
         transformation = BatchTransformation(
             self,
             IterableBatchIteratorFunction,

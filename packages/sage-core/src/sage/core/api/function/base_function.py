@@ -14,7 +14,6 @@ class BaseFunction(ABC):
     """
     def __init__(self, *args, **kwargs):
         self.ctx: 'TaskContext' = None # 运行时注入
-        self.router = None  # 运行时注入
         self._logger = None
         # 服务代理缓存已移至ServiceCallMixin处理
 
