@@ -17,9 +17,19 @@ Please accept or remove them before proceeding:
 
 ## 解决方案
 
-### 方案 1：使用自动修复脚本（推荐）
+### ✅ 自动解决（推荐）
 
-运行我们提供的修复脚本：
+**SAGE 安装脚本现已自动处理此问题**！直接运行：
+
+```bash
+./quickstart.sh
+```
+
+脚本会在环境设置过程中自动接受必要的服务条款。
+
+### 方案 1：使用专用修复脚本
+
+如果仍遇到问题，运行我们提供的修复脚本：
 
 ```bash
 ./scripts/fix_conda_tos.sh

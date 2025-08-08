@@ -179,36 +179,41 @@ conda_env_exists() {
 
 # 接受 Conda 频道的服务条款
 accept_conda_tos() {
-    print_status "检查并接受 Conda 服务条款..."
+    print_status "自动接受 Conda 服务条款..."
     
-    # 检查是否需要接受服务条款
-    if conda info 2>&1 | grep -q "Terms of Service have not been accepted"; then
-        print_status "需要接受 Conda 服务条款..."
+    # 主要频道列表
+    local main_channels=(
+        "https://repo.anaconda.com/pkgs/main"
+        "https://repo.anaconda.com/pkgs/r"
+    )
+    
+    local success_count=0
+    
+    for channel in "${main_channels[@]}"; do
+        print_status "接受频道服务条款: $channel"
         
-        # 静默接受主要频道的服务条款
-        local main_channels=(
-            "https://repo.anaconda.com/pkgs/main"
-            "https://repo.anaconda.com/pkgs/r"
-        )
-        
-        for channel in "${main_channels[@]}"; do
-            print_debug "接受频道 '$channel' 的服务条款..."
-            if conda tos accept --override-channels --channel "$channel" 2>/dev/null; then
-                print_debug "成功接受频道 '$channel' 的服务条款"
-            else
-                print_debug "频道 '$channel' 的服务条款可能已经接受或不需要"
-            fi
-        done
-        
-        # 验证是否成功
-        if conda info 2>&1 | grep -q "Terms of Service have not been accepted"; then
-            print_warning "部分服务条款可能仍需手动接受"
-            print_warning "如果遇到问题，可以手动运行: conda tos accept --override-channels --channel <频道名>"
+        # 使用更详细的错误处理
+        if conda tos accept --override-channels --channel "$channel" 2>&1; then
+            print_success "✓ 已接受: $channel"
+            ((success_count++))
         else
-            print_success "Conda 服务条款接受完成"
+            # 检查错误原因
+            local exit_code=$?
+            if [ $exit_code -eq 1 ]; then
+                print_debug "频道 $channel 的服务条款可能已经接受过"
+            else
+                print_warning "✗ 接受失败 (退出代码: $exit_code): $channel"
+            fi
         fi
+    done
+    
+    print_debug "处理了 ${#main_channels[@]} 个频道，成功处理 $success_count 个"
+    
+    # 验证是否还有未接受的服务条款
+    if conda info 2>&1 | grep -q "Terms of Service have not been accepted"; then
+        print_debug "仍有其他频道的服务条款未接受，但主要频道已处理"
     else
-        print_debug "Conda 服务条款已经接受，无需重复操作"
+        print_success "所有必要的服务条款已接受"
     fi
 }
 
@@ -221,9 +226,6 @@ create_conda_env() {
         print_status "Conda 环境 '$env_name' 已存在，跳过创建步骤..."
         return 0
     fi
-    
-    # 接受 Conda 频道的服务条款
-    accept_conda_tos
     
     print_status "创建新的 Conda 环境 '$env_name' (Python $python_version)..."
     
@@ -320,6 +322,9 @@ setup_sage_environment() {
     if ! init_conda "$conda_path"; then
         return 1
     fi
+    
+    # 优先接受服务条款，避免后续创建环境时出错
+    accept_conda_tos
     
     # 创建环境
     if ! create_conda_env "$env_name" "$python_version"; then
