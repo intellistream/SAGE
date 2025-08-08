@@ -139,7 +139,7 @@ install_sage_packages() {
     print_status "检查现有安装并清理冲突..."
     
     # 卸载可能存在冲突的包（包括任何版本的sage相关包）
-    local packages_to_uninstall=("intsage" "intsage-kernel" "intsage-middleware"  "intsage-dev-toolkit" "intsage-frontend" "sage")
+    local packages_to_uninstall=("intellistream-sage" "intellistream-sage-kernel" "intellistream-sage-middleware"  "intellistream-sage-dev-toolkit" "intellistream-sage-frontend" "intellistream-sage-cli" "sage")
     for pkg in "${packages_to_uninstall[@]}"; do
         if pip show "$pkg" >/dev/null 2>&1; then
             print_status "卸载现有包: $pkg"
@@ -153,7 +153,7 @@ install_sage_packages() {
     
     # 查找并移除任何遗留的sage相关包
     print_status "清理遗留包..."
-    pip list | grep -E "(sage|intsage)" | awk '{print $1}' | xargs -r pip uninstall -y >/dev/null 2>&1 || true
+    pip list | grep -E "(sage|intellistream-sage)" | awk '{print $1}' | xargs -r pip uninstall -y >/dev/null 2>&1 || true
     
     # 清理可能的site-packages冲突
     local conda_env_path="$HOME/miniconda3/envs/$SAGE_ENV_NAME"
@@ -295,7 +295,7 @@ verify_installation() {
     print_status "🔍 验证包版本..."
     
     # 动态获取主包版本作为参考版本
-    local expected_version=$(pip show "intsage" 2>/dev/null | grep "Version:" | awk '{print $2}')
+    local expected_version=$(pip show "intellistream-sage" 2>/dev/null | grep "Version:" | awk '{print $2}')
     local version_consistent=true
     
     if [ -z "$expected_version" ]; then
@@ -303,12 +303,12 @@ verify_installation() {
         expected_version="unknown"
         version_consistent=false
     else
-        print_status "📦 参考版本: v$expected_version (来自主包 intsage)"
+        print_status "📦 参考版本: v$expected_version (来自主包 intellistream-sage)"
     fi
     
-    local packages_to_check=("intsage" "intsage-kernel" "intsage-middleware" )
+    local packages_to_check=("intellistream-sage" "intellistream-sage-kernel" "intellistream-sage-middleware" )
     if [ "$INSTALL_TYPE" != "quick" ]; then
-        packages_to_check+=("intsage-dev-toolkit" "intsage-frontend")
+        packages_to_check+=("intellistream-sage-dev-toolkit" "intellistream-sage-frontend")
     fi
     
     for pkg in "${packages_to_check[@]}"; do

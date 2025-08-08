@@ -25,7 +25,7 @@ cd SAGE
 
 ### 🏃 从 PyPI 安装
 ```bash
-pip install intsage
+pip install intellistream-sage
 ```
 
 📖 遇到问题可查看 [在线文档](https://intellistream.github.io/SAGE-Pub/)
@@ -38,7 +38,7 @@ The SAGE Development Toolkit provides unified development tools for the SAGE pro
 
 ```bash
 # Install the toolkit
-pip install intsage-dev-toolkit
+pip install intellistream-sage-dev-toolkit
 
 # Show all available commands
 sage-dev --help

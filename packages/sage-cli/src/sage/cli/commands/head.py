@@ -9,7 +9,7 @@ import subprocess
 import os
 import time
 from pathlib import Path
-from .config_manager import get_config_manager
+from ..config_manager import get_config_manager
 
 app = typer.Typer(name="head", help="Ray Head节点管理")
 

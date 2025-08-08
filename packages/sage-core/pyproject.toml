@@ -3,14 +3,10 @@ requires = [
     "setuptools>=64",
     "wheel",
 ]
-build-backend = "setuptoo[tool.setuptools]
-packages = ["sage", "sage.core", "sage.core.api", "sage.core.api.function", "sage.core.api.service", "sage.core.operator", "sage.core.transformation", "sage.lib"]
-package-dir = {"" = "src"}
-include-package-data = true
-zip-safe = falseild_meta"
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "intsage"
+name = "intellistream-sage"
 version = "0.1.0"
 description = "SAGE Framework - 核心API和前端统一框架，包含用户核心API接口"
 readme = "README.md"
@@ -51,10 +47,10 @@ dependencies = [
     "typing-extensions>=4.0.0",
     
     # Kernel dependencies (for core API support)
-    "intsage-kernel>=0.1.0",
+    "intellistream-sage-kernel>=0.1.0",
     
     # Optional middleware and apps (for extended functionality)
-    "intsage-middleware>=0.1.0",
+    "intellistream-sage-middleware>=0.1.0",
 ]
 
 [project.license]
@@ -64,8 +60,8 @@ text = "MIT"
 # Commercial/Enterprise features (requires license)
 # 安装所有子包的企业版功能
 enterprise = [
-    "intsage-kernel[enterprise]",
-    "intsage-middleware[enterprise]", 
+    "intellistream-sage-kernel[enterprise]",
+    "intellistream-sage-middleware[enterprise]", 
 ]
 
 # Core API development dependencies
@@ -80,17 +76,17 @@ api-dev = [
 
 # 开发环境 (包含企业版)
 enterprise-dev = [
-    "intsage[enterprise]",
-    "intsage[api-dev]",
-    "intsage-kernel[enterprise-dev]",
-    "intsage-middleware[enterprise-dev]",
+    "intellistream-sage[enterprise]",
+    "intellistream-sage[api-dev]",
+    "intellistream-sage-kernel[enterprise-dev]",
+    "intellistream-sage-middleware[enterprise-dev]",
 ]
 
 # 完整安装 (所有功能)
 full = [
-    "intsage[enterprise]",
-    "intsage-kernel[enhanced]",
-    "intsage-middleware[vllm,database,messagequeue]",
+    "intellistream-sage[enterprise]",
+    "intellistream-sage-kernel[enhanced]",
+    "intellistream-sage-middleware[vllm,database,messagequeue]",
 ]
 
 [project.urls]
@@ -100,7 +96,7 @@ Documentation = "https://intellistream.github.io/SAGE-Pub/"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools]
-packages = ["intsage"]
+packages = ["intellistream_sage"]
 package-dir = {"" = "src"}
 include-package-data = false
 zip-safe = true

@@ -6,7 +6,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "intsage-frontend"
+name = "intellistream-sage-frontend"
 version = "0.1.0"
 description = "SAGE Framework Frontend - Web UI and Dashboard"
 readme = "README.md"

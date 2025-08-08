@@ -119,8 +119,8 @@ class SAGEEnterpriseInstaller:
         
         # Install enterprise packages
         enterprise_packages = [
-            "intsage-kernel[enterprise]",
-            "intsage-middleware[enterprise]", 
+            "intellistream-sage-kernel[enterprise]",
+            "intellistream-sage-middleware[enterprise]", 
         ]
         
         results = []
@@ -224,7 +224,7 @@ class SAGEEnterpriseInstaller:
         elif mode == "dev":
             return "pip install -e .[enterprise]"
         elif mode == "individual":
-            return "pip install intsage-kernel[enterprise] intsage-middleware[enterprise] intsage-userspace[enterprise]"
+            return "pip install intellistream-sage-kernel[enterprise] intellistream-sage-middleware[enterprise] intellistream-sage-userspace[enterprise]"
         else:
             return "pip install -r scripts/requirements/requirements.txt"
 

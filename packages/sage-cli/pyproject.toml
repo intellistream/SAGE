@@ -1,0 +1,165 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "intellistream-sage-cli"
+version = "0.1.0"
+description = "SAGE Framework - 命令行工具包，提供集群管理、作业部署和配置管理功能"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
+]
+keywords = [
+    "cli",
+    "command-line",
+    "sage",
+    "cluster",
+    "management",
+    "deployment",
+    "job",
+    "ray",
+    "intellistream",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+    "Environment :: Console",
+]
+dependencies = [
+    # CLI framework dependencies
+    "typer>=0.15.0",
+    "rich>=13.0.0",
+    "click>=8.0.0",
+    
+    # Configuration and serialization
+    "pyyaml>=6.0.0",
+    "python-dotenv>=1.0.0",
+    
+    # System utilities
+    "psutil>=5.9.0",
+    "shellingham>=1.5.0",
+    
+    # Core SAGE kernel dependency (for system utilities and network functions)
+    "intellistream-sage-kernel>=0.1.0",
+]
+
+[project.license]
+text = "MIT"
+
+[project.optional-dependencies]
+# Development dependencies
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.10.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+    "types-PyYAML>=6.0.0",
+]
+
+# Enhanced CLI features
+enhanced = [
+    "questionary>=1.10.0",
+    "prompt_toolkit>=3.0.50",
+    "colorama>=0.4.6",
+    "tabulate>=0.9.0",
+]
+
+# Full installation with enhanced features
+full = [
+    "intellistream-sage-cli[enhanced]",
+]
+
+[project.scripts]
+# Main CLI entry points
+sage = "sage.cli.main:app"
+sage-cli = "sage.cli.main:app"
+
+# Specific command entry points for direct access
+sage-job = "sage.cli.job:app"
+sage-deploy = "sage.cli.deploy:app" 
+sage-cluster = "sage.cli.cluster_manager:app"
+sage-config = "sage.cli.config_manager:app"
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Repository = "https://github.com/intellistream/SAGE.git"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
+Issues = "https://github.com/intellistream/SAGE/issues"
+
+[tool.setuptools]
+packages = [
+    "sage.cli",
+]
+package-dir = {"" = "src"}
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.package-data]
+"sage.cli" = ["*.md", "*.yaml", "*.yml"]
+
+# Development tools configuration
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311", "py312"]
+include = '\.pyi?$'
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = "-v --tb=short --strict-config --strict-markers"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]

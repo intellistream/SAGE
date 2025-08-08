@@ -43,6 +43,7 @@ def callback():
     • Package management across SAGE ecosystem
     • Bytecode compilation for source code protection
     • Build artifacts cleanup and management
+    • PyPI package upload and publishing
     • Rich reporting with multiple output formats
     • Interactive and batch operation modes
     
@@ -55,6 +56,11 @@ def callback():
     sage-dev compile packages/sage-apps --output /tmp/build  # Compile to custom directory
     sage-dev compile packages/sage-apps --build --upload --no-dry-run  # Compile and upload
     sage-dev compile --info             # Show SAGE home directory information
+    sage-dev pypi list                  # List all available packages for PyPI upload
+    sage-dev pypi build                 # Build all open-source packages
+    sage-dev pypi upload --no-dry-run   # Upload all open-source packages to PyPI
+    sage-dev pypi upload pkg1,pkg2 -t   # Upload specific packages to TestPyPI
+    sage-dev pypi check                 # Check package configurations and build artifacts
     sage-dev clean --dry-run            # Preview build artifacts cleanup
     sage-dev clean --categories pycache # Clean Python cache files
     sage-dev report                     # Generate comprehensive report

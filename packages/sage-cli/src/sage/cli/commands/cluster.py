@@ -5,10 +5,10 @@ SAGE Cluster Manager CLI
 """
 
 import typer
-from .config_manager import get_config_manager
-from .deployment_manager import DeploymentManager
-from .head_manager import app as head_app
-from .worker_manager import app as worker_app
+from ..config_manager import get_config_manager
+from ..deployment_manager import DeploymentManager
+from .head import app as head_app
+from .worker import app as worker_app
 
 app = typer.Typer(name="cluster", help="🏗️ Ray集群统一管理")
 
@@ -24,7 +24,7 @@ def start_cluster():
     # 1. 启动Head节点
     typer.echo("第1步: 启动Head节点")
     try:
-        from .head_manager import start_head
+        from .head import start_head
         start_head()
     except Exception as e:
         typer.echo(f"❌ Head节点启动失败: {e}")
@@ -38,8 +38,8 @@ def start_cluster():
     # 2. 启动所有Worker节点
     typer.echo("第2步: 启动所有Worker节点")
     try:
-        from .worker_manager import start_workers
-        from .config_manager import get_config_manager
+        from .worker import start_workers
+        from ..config_manager import get_config_manager
         
         # 检查是否配置了worker节点
         config_manager = get_config_manager()
@@ -65,7 +65,7 @@ def stop_cluster():
     # 1. 先停止所有Worker节点
     typer.echo("第1步: 停止所有Worker节点")
     try:
-        from .worker_manager import stop_workers
+        from .worker import stop_workers
         stop_workers()
     except Exception as e:
         typer.echo(f"⚠️  Worker节点停止遇到问题: {e}")
@@ -79,7 +79,7 @@ def stop_cluster():
     # 2. 停止Head节点
     typer.echo("第2步: 停止Head节点")
     try:
-        from .head_manager import stop_head
+        from .head import stop_head
         stop_head()
     except Exception as e:
         typer.echo(f"⚠️  Head节点停止遇到问题: {e}")
@@ -121,7 +121,7 @@ def status_cluster():
     # 1. 检查Head节点
     typer.echo("\n🏠 Head节点状态:")
     try:
-        from .head_manager import status_head
+        from .head import status_head
         status_head()
         head_running = True
     except:
@@ -130,7 +130,7 @@ def status_cluster():
     # 2. 检查Worker节点
     typer.echo(f"\n👥 Worker节点状态 ({len(workers)} 个节点):")
     try:
-        from .worker_manager import status_workers
+        from .worker import status_workers
         status_workers()
     except:
         pass
@@ -168,7 +168,7 @@ def scale_cluster(
     if action == "add":
         typer.echo(f"➕ 扩容集群: 添加节点 {node}")
         try:
-            from .worker_manager import add_worker
+            from .worker import add_worker
             add_worker(node)
         except Exception as e:
             typer.echo(f"❌ 添加节点失败: {e}")
@@ -176,7 +176,7 @@ def scale_cluster(
     else:
         typer.echo(f"➖ 缩容集群: 移除节点 {node}")
         try:
-            from .worker_manager import remove_worker
+            from .worker import remove_worker
             remove_worker(node)
         except Exception as e:
             typer.echo(f"❌ 移除节点失败: {e}")

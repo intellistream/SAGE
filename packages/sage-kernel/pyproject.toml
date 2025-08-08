@@ -6,7 +6,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "intsage-kernel"
+name = "intellistream-sage-kernel"
 version = "0.1.0"
 description = "SAGE Framework - 统一内核 (Core + Runtime + Utils + CLI)"
 readme = "README.md"
@@ -108,7 +108,7 @@ enterprise = [
 
 # Development dependencies for enterprise
 enterprise-dev = [
-    "intsage-kernel[enterprise]",
+    "intellistream-sage-kernel[enterprise]",
     "pytest-benchmark>=4.0.0",
     "memory-profiler>=0.60.0",
     "line-profiler>=4.0.0",
@@ -149,7 +149,7 @@ docs = [
 
 # All commercial features combined
 commercial = [
-    "intsage-kernel[enterprise]",
+    "intellistream-sage-kernel[enterprise]",
 ]
 
 [project.urls]

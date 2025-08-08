@@ -6,7 +6,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "intsage-dev-toolkit"
+name = "intellistream-sage-dev-toolkit"
 version = "0.1.0"
 description = "SAGE Framework Development Toolkit - Unified development tools for SAGE project"
 readme = "README.md"
@@ -60,6 +60,8 @@ dependencies = [
     "pathspec==0.12.1",
     "pandas==2.3.1",
     "networkx==3.4.2",
+    "build>=0.10.0",
+    "twine>=4.0.0",
 ]
 
 [project.license]

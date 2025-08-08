@@ -24,16 +24,22 @@ classifiers = [
 
 # 核心依赖 - 安装本地包
 dependencies = [
-    "intsage-kernel",
-    "intsage-middleware", 
-    "intsage-dev-toolkit",
+    "intellistream-sage-kernel",
+    "intellistream-sage-middleware", 
+    "intellistream-sage-dev-toolkit",
+    "intellistream-sage-cli",
 ]
 
 [project.optional-dependencies]
 # Commercial/Enterprise Edition (requires license)
 enterprise = [
-    "intsage-kernel[enterprise]",
-    "intsage-middleware[enterprise]", 
+    "intellistream-sage-kernel[enterprise]",
+    "intellistream-sage-middleware[enterprise]", 
+]
+
+# CLI 增强功能
+cli = [
+    "intellistream-sage-cli[enhanced]",
 ]
 
 # 开发依赖
@@ -48,7 +54,7 @@ dev = [
     "mypy",
     "ipython",
     "jupyter",
-    "intsage-dev-toolkit",
+    "intellistream-sage-dev-toolkit",
 ]
 
 # 文档依赖
@@ -60,11 +66,17 @@ docs = [
 # All features combined
 all = [
     "sage[enterprise]",
+    "sage[cli]",
     "sage[dev]",
     "sage[docs]",
 ]
 
 [project.scripts]
+# CLI commands provided by sage-cli package
+sage = "sage.cli.main:app"
+sage-cli = "sage.cli.main:app"
+
+# License and enterprise management
 sage-license = "tools.license.sage_license:main"
 sage-enterprise = "tools.enterprise.enterprise_manager:main"
 

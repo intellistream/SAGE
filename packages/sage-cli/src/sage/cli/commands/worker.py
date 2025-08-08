@@ -12,8 +12,8 @@ import time
 from pathlib import Path
 from typing import List, Tuple
 
-from .config_manager import get_config_manager
-from .deployment_manager import DeploymentManager
+from ..config_manager import get_config_manager
+from ..deployment_manager import DeploymentManager
 
 app = typer.Typer(name="worker", help="Ray Worker节点管理")
 
