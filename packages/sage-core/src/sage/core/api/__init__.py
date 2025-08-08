@@ -37,9 +37,6 @@ __all__ = [
     'DataStream',
     'ConnectedStreams',
     
-    # 数据包类
-    'Packet',
-    
     # 函数类
     'BaseFunction',
     'BatchFunction',
@@ -52,12 +49,3 @@ __all__ = [
     'BaseCoMapFunction',
     'BaseJoinFunction',
 ]
-
-# 如果变换模块可用，添加到导出列表
-if _transformations_available:
-    __all__.extend([
-        'BaseTransformation',
-        'MapTransformation',
-        'FilterTransformation', 
-        'SinkTransformation',
-    ])

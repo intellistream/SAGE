@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Optional, Dict, Any
 from sage.core.api.base_environment import BaseEnvironment
-from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+from sage.kernel import JobManagerClient
 from sage.utils.serialization.dill import trim_object_for_ray, serialize_object
 
 logger = logging.getLogger(__name__)

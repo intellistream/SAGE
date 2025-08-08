@@ -6,6 +6,7 @@ TaskNode - 图节点类
 - 服务响应队列描述符
 - 输入通道和输出通道的连接信息
 - 运行时上下文
+- TaskFactory用于创建任务实例
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
     from sage.core.transformation.base_transformation import BaseTransformation
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
     from sage.kernel.runtime.context.task_context import TaskContext
+    from sage.kernel.runtime.factory.task_factory import TaskFactory
     from .graph_edge import GraphEdge
 
 
@@ -41,6 +43,9 @@ class TaskNode:
         # 在构造时创建队列描述符
         self._create_queue_descriptors(env)
         
+        # 在ExecutionGraph中创建TaskFactory，而不是在BaseTransformation中
+        self.task_factory: 'TaskFactory' = self._create_task_factory()
+        
         self.stop_signal_num: int = 0  # 预期的源节点数量
         self.ctx: 'TaskContext' = None
     
@@ -60,6 +65,11 @@ class TaskNode:
             name=f"service_response_{self.name}",
             maxsize=10000
         )
+    
+    def _create_task_factory(self) -> 'TaskFactory':
+        """在TaskNode中创建TaskFactory，避免BaseTransformation依赖runtime层"""
+        from sage.kernel.runtime.factory.task_factory import TaskFactory
+        return TaskFactory(self.transformation)
     
     def __repr__(self) -> str:
         return f"TaskNode(name={self.name}, parallel_index={self.parallel_index}, is_spout={self.is_spout}, is_sink={self.is_sink})"

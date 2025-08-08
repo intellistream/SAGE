@@ -185,8 +185,8 @@ class Dispatcher():
         # 第二步：创建所有节点实例
         for node_name, graph_node in self.graph.nodes.items():
             try:
-                # task = graph_node.create_dag_node()
-                task = graph_node.transformation.task_factory.create_task(graph_node.name, graph_node.ctx)
+                # 使用TaskNode中的task_factory创建任务，而不是从transformation获取
+                task = graph_node.task_factory.create_task(graph_node.name, graph_node.ctx)
 
                 self.tasks[node_name] = task
 

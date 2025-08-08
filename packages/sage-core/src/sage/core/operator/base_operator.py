@@ -1,7 +1,7 @@
 
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional, TYPE_CHECKING, Type, Tuple
-from sage.core.api.function.source_function import StopSignal
+from sage.core.communication.stop_signal import StopSignal
 
 if TYPE_CHECKING:
     from sage.core.communication.packet import Packet

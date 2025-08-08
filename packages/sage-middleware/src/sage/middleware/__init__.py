@@ -81,14 +81,3 @@ try:
         
 except ImportError:
     pass
-
-# CLI模块在需要时导入
-def get_cli():
-    """获取CLI应用"""
-    try:
-        from sage.cli.main import app
-        return app
-    except ImportError as e:
-        print(f"CLI dependencies not installed: {e}")
-        print("Run: python sage/cli/setup.py")
-        return None

@@ -3,7 +3,6 @@ from typing import List, Type, Union, TYPE_CHECKING, Any
 from sage.utils.logging.custom_logger import CustomLogger
 from sage.core.factory.operator_factory import OperatorFactory
 from sage.core.factory.function_factory import FunctionFactory
-from sage.kernel.runtime.factory.task_factory import TaskFactory
 from ray.actor import ActorHandle
 if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator
@@ -43,7 +42,6 @@ class BaseTransformation:
 
         
         # 懒加载工厂
-        self._dag_node_factory: TaskFactory = None
         self._operator_factory: OperatorFactory = None
         self._function_factory: FunctionFactory = None
         # 生成的平行节点名字：f"{transformation.function_class.__name__}_{i}"
@@ -93,13 +91,6 @@ class BaseTransformation:
                 remote=self.remote
             )   
         return self._operator_factory
-
-    @property
-    def task_factory(self) -> TaskFactory:
-        """懒加载创建DAG节点工厂"""
-        if self._dag_node_factory is None:
-            self._dag_node_factory = TaskFactory(self)
-        return self._dag_node_factory
 
     @property
     def delay(self) -> float:

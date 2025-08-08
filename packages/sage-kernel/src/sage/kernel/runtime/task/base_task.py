@@ -122,7 +122,7 @@ class BaseTask(ABC):
                         continue
                     
                     # Check if received packet is a StopSignal
-                    from sage.core.api.function.source_function import StopSignal
+                    from sage.core.communication.stop_signal import StopSignal
                     if isinstance(data_packet, StopSignal):
                         self.logger.info(f"Node '{self.name}' received stop signal: {data_packet}")
                         

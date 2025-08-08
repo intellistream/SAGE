@@ -4,7 +4,7 @@ from sage.utils.logging.custom_logger import CustomLogger
 from collections import deque
 from typing import Union, Dict, Deque, Tuple, Any, TYPE_CHECKING
 from sage.core.communication.packet import Packet
-from sage.core.api.function.source_function import StopSignal
+from sage.core.communication.stop_signal import StopSignal
 
 class BatchOperator(BaseOperator):
     def __init__(self, *args, **kwargs):

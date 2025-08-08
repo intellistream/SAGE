@@ -45,11 +45,11 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pydantic>=2.0.0",
     "typing-extensions>=4.0.0",
-    "rouge>=1.0.1"
-    # Kernel dependencies (for core API support)
-    "intellistream-sage-kernel>=0.1.0",
+    "rouge>=1.0.1",
     
-    # Optional middleware and apps (for extended functionality)
+    # SAGE ecosystem dependencies (closed-source packages from PyPI)
+    "intellistream-sage-utils>=0.1.0",
+    "intellistream-sage-kernel>=0.1.0",
     "intellistream-sage-middleware>=0.1.0",
 ]
 

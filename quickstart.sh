@@ -167,7 +167,15 @@ install_sage_packages() {
     fi
     
     print_status "按正确顺序安装 SAGE 包..."
-    
+
+
+    # 1. 安装sage基础设施
+    print_status "1/5 安装 sage-utils..."
+    if ! pip install -e packages/sage-utils; then
+        print_error "sage-utils 安装失败"
+        return 1
+    fi
+
     # 2. 安装统一内核包
     print_status "1/5 安装 sage-kernel..."
     if ! pip install -e packages/sage-kernel; then
@@ -175,7 +183,7 @@ install_sage_packages() {
         return 1
     fi
 
-    # 1. 首先安装中间件包（提供基础服务）
+    # 3. 首先安装中间件包（提供基础服务）
     print_status "2/5 安装 sage-middleware..."
     if ! pip install -e packages/sage-middleware; then
         print_error "sage-middleware 安装失败"
@@ -184,21 +192,21 @@ install_sage_packages() {
     
 
     
-    # 3. 安装核心API包（主包）
+    # 4. 安装核心API包（主包）
     print_status "3/5 安装 sage-core..."
     if ! pip install -e packages/sage-core; then
         print_error "sage-core 安装失败"
         return 1
     fi
     
-    # 4. 安装CLI工具包
+    # 5. 安装CLI工具包
     print_status "4/5 安装 sage-cli..."
     if ! pip install -e packages/sage-cli; then
         print_error "sage-cli 安装失败"
         return 1
     fi
     
-    # 5. 最后安装开发工具（如果需要）
+    # 6. 最后安装开发工具（如果需要）
     if [ "$install_type" != "quick" ]; then
         print_status "5/5 安装 sage-dev-toolkit..."
         if ! pip install -e packages/sage-dev-toolkit; then

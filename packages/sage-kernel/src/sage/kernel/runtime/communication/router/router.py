@@ -15,7 +15,7 @@ except ImportError:
     ActorHandle = None
 
 if TYPE_CHECKING:
-    from sage.core.api.function.source_function import StopSignal
+    from sage.core.communication.stop_signal import StopSignal
     from sage.kernel.runtime.communication.router.connection import Connection
     from sage.kernel.runtime.context.task_context import TaskContext
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
