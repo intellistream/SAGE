@@ -2,16 +2,15 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Optional, TYPE_CHECKING, Type, Tuple
 from sage.core.api.function.source_function import StopSignal
-from sage.kernel.runtime.task.base_task import BaseTask
-from sage.kernel.utils.logging.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.communication.router.packet import Packet
     from sage.core.api.function.base_function import BaseFunction
-    from sage.kernel.runtime.communication.router.connection import Connection
     from sage.kernel.runtime.task_context import TaskContext
     from sage.kernel.runtime.factory.function_factory import FunctionFactory
     from sage.kernel.runtime.communication.router.router import BaseRouter
+    from sage.kernel.runtime.task.base_task import BaseTask
+    from sage.kernel.utils.logging.custom_logger import CustomLogger
 
 class BaseOperator(ABC):
     def __init__(self, 
@@ -66,6 +65,6 @@ class BaseOperator(ABC):
         return self.ctx.name
 
     @property
-    def logger(self) -> CustomLogger:
+    def logger(self) -> 'CustomLogger':
         """获取当前任务的日志记录器"""
         return self.ctx.logger

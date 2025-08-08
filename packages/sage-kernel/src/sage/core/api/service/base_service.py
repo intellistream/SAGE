@@ -4,7 +4,6 @@ import logging
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.service_context import ServiceContext
-    from sage.kernel.runtime.service.service_caller import ServiceManager
 
 
 class BaseService(ABC):

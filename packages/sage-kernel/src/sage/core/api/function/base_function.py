@@ -1,10 +1,8 @@
 import os
 from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
-from sage.kernel.runtime.service.service_caller import ServiceManager, ServiceCallProxy
 if TYPE_CHECKING:
     from sage.kernel.runtime.task_context import TaskContext
-    from sage.kernel.runtime.service.service_caller import ServiceManager
 import logging
 from sage.kernel.utils.persistence.state import load_function_state, save_function_state
 

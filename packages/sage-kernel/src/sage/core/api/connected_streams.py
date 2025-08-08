@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Type, TYPE_CHECKING, Union, Any, List, TypeVar, Generic, get_args, get_origin, Callable
+from sage.core.api.base_environment import BaseEnvironment
 from sage.core.transformation.base_transformation import BaseTransformation
 from sage.core.transformation.map_transformation import MapTransformation
 from sage.core.transformation.sink_transformation import SinkTransformation
@@ -10,7 +11,6 @@ from sage.core.api.function.comap_function import BaseCoMapFunction
 from sage.core.api.function.join_function import BaseJoinFunction
 if TYPE_CHECKING:
     from .datastream import DataStream
-    from sage.kernel.kernels.core.environment.base_environment import BaseEnvironment
 
 class ConnectedStreams:
     """表示多个transformation连接后的流结果"""
