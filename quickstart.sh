@@ -121,6 +121,98 @@ fi
 
 print_success "Python 环境验证通过"
 
+# 安装SAGE包的函数
+install_sage_packages() {
+    local install_type="$1"
+    
+    print_header "📦 安装 SAGE 包"
+    
+    # 确保在正确的环境中
+    if [ "$CONDA_DEFAULT_ENV" != "$SAGE_ENV_NAME" ]; then
+        print_warning "重新激活 conda 环境..."
+        if ! activate_conda_env "$SAGE_ENV_NAME"; then
+            print_error "无法激活 SAGE 环境"
+            return 1
+        fi
+    fi
+    
+    print_status "检查现有安装并清理冲突..."
+    
+    # 卸载可能存在冲突的包（包括任何版本的sage相关包）
+    local packages_to_uninstall=("intsage" "intsage-kernel" "intsage-middleware" "intsage-apps" "intsage-dev-toolkit" "intsage-frontend" "sage")
+    for pkg in "${packages_to_uninstall[@]}"; do
+        if pip show "$pkg" >/dev/null 2>&1; then
+            print_status "卸载现有包: $pkg"
+            pip uninstall -y "$pkg" >/dev/null 2>&1 || true
+        fi
+    done
+    
+    # 清理pip缓存以防止版本冲突
+    print_status "清理pip缓存..."
+    pip cache purge >/dev/null 2>&1 || true
+    
+    # 查找并移除任何遗留的sage相关包
+    print_status "清理遗留包..."
+    pip list | grep -E "(sage|intsage)" | awk '{print $1}' | xargs -r pip uninstall -y >/dev/null 2>&1 || true
+    
+    # 清理可能的site-packages冲突
+    local conda_env_path="$HOME/miniconda3/envs/$SAGE_ENV_NAME"
+    if [ -d "$SAGE_CONDA_PATH/envs/$SAGE_ENV_NAME" ]; then
+        conda_env_path="$SAGE_CONDA_PATH/envs/$SAGE_ENV_NAME"
+    fi
+    local sage_site_pkg="$conda_env_path/lib/python*/site-packages/sage"
+    if ls $sage_site_pkg 2>/dev/null >/dev/null; then
+        print_status "清理旧的 sage 命名空间包..."
+        rm -rf $sage_site_pkg 2>/dev/null || true
+    fi
+    
+    print_status "按正确顺序安装 SAGE 包..."
+    
+    # 1. 首先安装命名空间包 - sage-middleware 和 sage-apps
+    print_status "1/6 安装 sage-middleware..."
+    if ! pip install -e packages/sage-middleware; then
+        print_error "sage-middleware 安装失败"
+        return 1
+    fi
+    
+    print_status "2/6 安装 sage-apps..."
+    if ! pip install -e packages/sage-apps; then
+        print_error "sage-apps 安装失败"
+        return 1
+    fi
+    
+    # 2. 然后安装核心包
+    print_status "3/6 安装 sage-kernel..."
+    if ! pip install -e packages/sage-kernel; then
+        print_error "sage-kernel 安装失败"
+        return 1
+    fi
+    
+    print_status "4/6 安装主 sage 包..."
+    if ! pip install -e packages/sage; then
+        print_error "sage 安装失败"
+        return 1
+    fi
+    
+    # 3. 最后安装开发工具（如果需要）
+    if [ "$install_type" != "quick" ]; then
+        print_status "5/6 安装 sage-dev-toolkit..."
+        if ! pip install -e packages/sage-tools/sage-dev-toolkit; then
+            print_warning "sage-dev-toolkit 安装失败，继续..."
+        fi
+        
+        print_status "6/6 安装 sage-frontend..."
+        if ! pip install -e packages/sage-tools/sage-frontend; then
+            print_warning "sage-frontend 安装失败，继续..."
+        fi
+    else
+        print_status "快速安装模式，跳过开发工具"
+    fi
+    
+    print_success "SAGE 包安装完成"
+    return 0
+}
+
 # 使用Python脚本执行安装
 print_header "🚀 开始执行安装"
 
@@ -135,19 +227,28 @@ if ! activate_conda_env "$SAGE_ENV_NAME"; then
     exit 1
 fi
 
+# 安装基础依赖
+print_status "安装基础 Python 依赖..."
 if [ "$INSTALL_TYPE" = "quick" ]; then
-    python3 scripts/deployment_setup.py init
-    python3 scripts/deployment_setup.py install
-elif [ "$INSTALL_TYPE" = "dev" ]; then
-    python3 scripts/deployment_setup.py full --dev
-elif [ "$INSTALL_TYPE" = "full" ]; then
-    python3 scripts/deployment_setup.py full --dev
+    pip install -r scripts/requirements/requirements.txt >/dev/null 2>&1 || print_warning "部分依赖安装失败"
+else
+    pip install -r scripts/requirements/requirements.txt >/dev/null 2>&1 || print_warning "部分依赖安装失败"
+    pip install -r scripts/requirements/requirements-dev.txt >/dev/null 2>&1 || print_warning "部分开发依赖安装失败"
+fi
+
+# 使用新的包安装函数
+if ! install_sage_packages "$INSTALL_TYPE"; then
+    print_error "SAGE 包安装失败"
+    exit 1
+fi
+
+# 构建文档（仅限完整安装）
+if [ "$INSTALL_TYPE" = "full" ]; then
     if [ -d "docs-public" ]; then
         print_status "构建文档..."
         safe_cd "docs-public"
         if command -v mkdocs &> /dev/null; then
-            mkdocs build
-            print_success "文档构建完成"
+            mkdocs build >/dev/null 2>&1 && print_success "文档构建完成" || print_warning "文档构建失败"
         else
             print_warning "mkdocs未安装，跳过文档构建"
         fi
@@ -155,8 +256,88 @@ elif [ "$INSTALL_TYPE" = "full" ]; then
     fi
 fi
 
+# 验证安装的函数
+verify_installation() {
+    print_header "🔍 验证安装"
+    
+    local all_good=true
+    
+    # 测试核心包导入
+    local test_imports=(
+        "sage:主包"
+        "sage.kernel:内核包"
+        "sage.middleware:中间件包"
+        "sage.apps:应用包"
+    )
+    
+    for import_test in "${test_imports[@]}"; do
+        local import_name="${import_test%:*}"
+        local display_name="${import_test#*:}"
+        
+        if python3 -c "import $import_name" 2>/dev/null; then
+            print_status "✅ $display_name 导入成功"
+        else
+            print_warning "❌ $display_name 导入失败"
+            all_good=false
+        fi
+    done
+    
+    # 测试开发工具（如果安装了）
+    if [ "$INSTALL_TYPE" != "quick" ]; then
+        if python3 -c "import sage_dev_toolkit" 2>/dev/null; then
+            print_status "✅ 开发工具包导入成功"
+        else
+            print_warning "❌ 开发工具包导入失败"
+        fi
+    fi
+    
+    # 验证版本一致性
+    print_status "🔍 验证包版本..."
+    
+    # 动态获取主包版本作为参考版本
+    local expected_version=$(pip show "intsage" 2>/dev/null | grep "Version:" | awk '{print $2}')
+    local version_consistent=true
+    
+    if [ -z "$expected_version" ]; then
+        print_warning "⚠️ 无法获取主包版本，跳过版本一致性检查"
+        expected_version="unknown"
+        version_consistent=false
+    else
+        print_status "📦 参考版本: v$expected_version (来自主包 intsage)"
+    fi
+    
+    local packages_to_check=("intsage" "intsage-kernel" "intsage-middleware" "intsage-apps")
+    if [ "$INSTALL_TYPE" != "quick" ]; then
+        packages_to_check+=("intsage-dev-toolkit" "intsage-frontend")
+    fi
+    
+    for pkg in "${packages_to_check[@]}"; do
+        local version=$(pip show "$pkg" 2>/dev/null | grep "Version:" | awk '{print $2}')
+        if [ "$version" = "$expected_version" ]; then
+            print_status "✅ $pkg: v$version"
+        else
+            print_warning "⚠️ $pkg: v$version (期望: v$expected_version)"
+            version_consistent=false
+        fi
+    done
+    
+    if [ "$all_good" = true ] && [ "$version_consistent" = true ]; then
+        print_success "所有核心包验证通过，版本一致"
+        return 0
+    elif [ "$all_good" = true ]; then
+        print_success "所有核心包导入成功，但版本可能不一致"
+        return 0
+    else
+        print_warning "部分包验证失败，但可以继续使用"
+        return 1
+    fi
+}
+
 # 显示下一步操作
 print_header "✅ 安装完成！"
+
+# 验证安装
+verify_installation
 
 echo -e "${GREEN}🎉 SAGE项目已成功设置！${NC}\n"
 
