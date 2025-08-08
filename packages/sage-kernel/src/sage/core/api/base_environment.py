@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 from typing import List, Optional, TYPE_CHECKING, Type, Union, Any
 from sage.core.api.function.lambda_function import wrap_lambda
-from sage.core.api.datastream import DataStream
 from sage.core.transformation.base_transformation import BaseTransformation
 from sage.core.transformation.source_transformation import SourceTransformation
 from sage.core.transformation.batch_transformation import BatchTransformation
@@ -15,12 +14,20 @@ from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
 from sage.kernel.runtime.factory.service_factory import ServiceFactory
 if TYPE_CHECKING:
     from sage.core.api.function.base_function import BaseFunction
+    from sage.core.api.datastream import DataStream
 
     
 class BaseEnvironment(ABC):
 
     __state_exclude__ = ["_engine_client", "client", "jobmanager"]
     # 会被继承，但是不会被自动合并
+
+    def _get_datastream_class(self):
+        """Deferred import of DataStream to avoid circular imports"""
+        if not hasattr(self, '_datastream_class'):
+            from sage.core.api.datastream import DataStream
+            self._datastream_class = DataStream
+        return self._datastream_class
 
     def __init__(self, name: str, config: dict | None, *, platform: str = "local"):
 
@@ -150,7 +157,7 @@ class BaseEnvironment(ABC):
                          value_deserializer: str = 'json',
                          buffer_size: int = 10000,
                          max_poll_records: int = 500,
-                         **kafka_config) -> DataStream:
+                         **kafka_config) -> 'DataStream':
         """
         创建Kafka数据源，采用Flink兼容的架构设计
         
@@ -212,20 +219,20 @@ class BaseEnvironment(ABC):
         self.pipeline.append(transformation)
         self.logger.info(f"Kafka source created for topic: {topic}, group: {group_id}")
         
-        return DataStream(self, transformation)
+        return self._get_datastream_class()(self, transformation)
 
-    def from_source(self, function: Union[Type['BaseFunction'], callable], *args, **kwargs) -> DataStream:
+    def from_source(self, function: Union[Type['BaseFunction'], callable], *args, **kwargs) -> 'DataStream':
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, 'flatmap')
         transformation = SourceTransformation(self, function, *args, **kwargs)
 
         self.pipeline.append(transformation)
-        return DataStream(self, transformation)
+        return self._get_datastream_class()(self, transformation)
 
 
 
-    def from_collection(self, function: Union[Type['BaseFunction'], callable], *args, **kwargs) -> DataStream:
+    def from_collection(self, function: Union[Type['BaseFunction'], callable], *args, **kwargs) -> 'DataStream':
         if callable(function) and not isinstance(function, type):
             # 这是一个 lambda 函数或普通函数
             function = wrap_lambda(function, 'flatmap')
@@ -234,9 +241,9 @@ class BaseEnvironment(ABC):
                                                          # Issue URL: https://github.com/intellistream/SAGE/issues/387
 
         self.pipeline.append(transformation)
-        return DataStream(self, transformation)
+        return self._get_datastream_class()(self, transformation)
 
-    def from_batch(self, source: Union[Type['BaseFunction'], Any], *args, **kwargs) -> DataStream:
+    def from_batch(self, source: Union[Type['BaseFunction'], Any], *args, **kwargs) -> 'DataStream':
         """
         统一的批处理数据源创建方法，支持多种输入类型
         
@@ -307,7 +314,7 @@ class BaseEnvironment(ABC):
 
 
 
-    def from_future(self, name: str) -> DataStream:
+    def from_future(self, name: str) -> 'DataStream':
         """
         创建一个future stream占位符，用于建立反馈边。
         
@@ -326,7 +333,7 @@ class BaseEnvironment(ABC):
         """
         transformation = FutureTransformation(self, name)
         self.pipeline.append(transformation)
-        return DataStream(self, transformation)
+        return self._get_datastream_class()(self, transformation)
 
     ########################################################
     #                jobmanager interface                  #
@@ -393,9 +400,9 @@ class BaseEnvironment(ABC):
     def _append(self, transformation: BaseTransformation):
         """将 BaseTransformation 添加到管道中（Compiler 会使用）。"""
         self.pipeline.append(transformation)
-        return DataStream(self, transformation)
+        return self._get_datastream_class()(self, transformation)
 
-    def _from_batch_function_class(self, batch_function_class: Type['BaseFunction'], *args, **kwargs) -> DataStream:
+    def _from_batch_function_class(self, batch_function_class: Type['BaseFunction'], *args, **kwargs) -> 'DataStream':
         """
         从自定义批处理函数类创建批处理数据源
         """
@@ -423,9 +430,9 @@ class BaseEnvironment(ABC):
         self.pipeline.append(transformation)
         self.logger.info(f"Custom batch source created with {batch_function_class.__name__}")
         
-        return DataStream(self, transformation)
+        return self._get_datastream_class()(self, transformation)
 
-    def _from_batch_collection(self, data: Union[list, tuple], **kwargs) -> DataStream:
+    def _from_batch_collection(self, data: Union[list, tuple], **kwargs) -> 'DataStream':
         """
         从数据集合创建批处理数据源
         """
@@ -441,9 +448,9 @@ class BaseEnvironment(ABC):
         self.pipeline.append(transformation)
         self.logger.info(f"Batch collection source created with {len(data)} items")
         
-        return DataStream(self, transformation)
+        return self._get_datastream_class()(self, transformation)
 
-    def _from_batch_iterable(self, iterable: Any, **kwargs) -> DataStream:
+    def _from_batch_iterable(self, iterable: Any, **kwargs) -> 'DataStream':
         """
         从任何可迭代对象创建批处理数据源
         """
@@ -473,4 +480,4 @@ class BaseEnvironment(ABC):
         count_info = f" with {total_count} items" if total_count is not None else ""
         self.logger.info(f"Batch iterable source created from {type_name}{count_info}")
         
-        return DataStream(self, transformation)
+        return self._get_datastream_class()(self, transformation)
