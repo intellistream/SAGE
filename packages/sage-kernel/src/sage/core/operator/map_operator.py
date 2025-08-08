@@ -1,15 +1,16 @@
+from sage.kernel.runtime.factory.function_factory import FunctionFactory
+from sage.kernel.runtime.task_context import TaskContext
 from .base_operator import BaseOperator
 from sage.core.api.function.map_function import MapFunction
 import time
 import os
 import json
 from typing import Union, Any
-from sage.kernel.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.communication.router.packet import Packet
 
 
 class MapOperator(BaseOperator):
-    def __init__(self, function_factory: 'FunctionFactory', ctx: 'RuntimeContext', enable_profile=False, *args, **kwargs):
+    def __init__(self, function_factory: 'FunctionFactory', ctx: 'TaskContext', enable_profile=False, *args, **kwargs):
         # 从 kwargs 中移除 enable_profile，避免传递给 BaseOperator
         kwargs.pop('enable_profile', None)
         super().__init__(function_factory, ctx, *args, **kwargs)

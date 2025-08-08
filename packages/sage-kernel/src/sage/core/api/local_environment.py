@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING
 from sage.core.api.base_environment import BaseEnvironment
-from sage.kernel.runtime.communication.queue_descriptor.python_queue_descriptor import PythonQueueDescriptor
 if TYPE_CHECKING:
     from sage.kernel.jobmanager.job_manager import JobManager
 
@@ -76,6 +75,3 @@ class LocalEnvironment(BaseEnvironment):
             
             # 清理管道
             self.pipeline.clear()
-
-    def get_qd(self, name, maxsize = 10000):
-        return PythonQueueDescriptor(queue_id=name, maxsize=maxsize)

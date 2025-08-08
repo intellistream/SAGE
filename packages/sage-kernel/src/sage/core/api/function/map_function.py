@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 from sage.core.api.function.base_function import BaseFunction
-from sage.kernel.runtime.communication.router.packet import Packet
 
 
 class MapFunction(BaseFunction):

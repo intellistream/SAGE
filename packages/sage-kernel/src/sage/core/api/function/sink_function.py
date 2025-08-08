@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 from sage.core.api.function.base_function import BaseFunction
 
-from sage.kernel.utils.logging.custom_logger import CustomLogger
-
 
 class SinkFunction(BaseFunction):
     """
