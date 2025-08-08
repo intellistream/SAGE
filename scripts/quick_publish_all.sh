@@ -19,12 +19,52 @@ RED='\033[0;31m'
 BOLD='\033[1m'
 NC='\033[0m'
 
+# 版本递增函数
+increment_version() {
+    local package_path="$1"
+    local pyproject_file="$package_path/pyproject.toml"
+    
+    if [[ ! -f "$pyproject_file" ]]; then
+        echo -e "${RED}❌ 未找到 pyproject.toml: $package_path${NC}"
+        return 1
+    fi
+    
+    # 备份原文件
+    cp "$pyproject_file" "$pyproject_file.backup"
+    
+    # 提取当前版本
+    local current_version=$(grep -E '^version\s*=' "$pyproject_file" | sed 's/.*"\(.*\)".*/\1/')
+    if [[ -z "$current_version" ]]; then
+        echo -e "${RED}❌ 无法获取当前版本${NC}"
+        return 1
+    fi
+    
+    echo -e "${YELLOW}  当前版本: $current_version${NC}"
+    
+    # 递增补丁版本号 (x.y.z -> x.y.z+1)
+    local version_parts=(${current_version//./ })
+    local major=${version_parts[0]}
+    local minor=${version_parts[1]}
+    local patch=${version_parts[2]}
+    
+    # 递增patch版本
+    ((patch++))
+    local new_version="$major.$minor.$patch"
+    
+    # 更新版本号
+    sed -i "s/version = \"$current_version\"/version = \"$new_version\"/" "$pyproject_file"
+    
+    echo -e "${GREEN}  新版本: $new_version${NC}"
+    return 0
+}
+
 echo -e "${BOLD}🚀 SAGE Framework 快速闭源发布${NC}"
 echo -e "====================================="
 
 # 检查参数
 DRY_RUN=false
 FORCE=false
+AUTO_INCREMENT=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -36,10 +76,15 @@ while [[ $# -gt 0 ]]; do
             FORCE=true  
             shift
             ;;
+        --auto-increment)
+            AUTO_INCREMENT=true
+            shift
+            ;;
         -h|--help)
-            echo "用法: $0 [--dry-run] [--force]"
-            echo "  --dry-run  预演模式，不实际发布"
-            echo "  --force    强制发布，跳过确认"
+            echo "用法: $0 [--dry-run] [--force] [--auto-increment]"
+            echo "  --dry-run        预演模式，不实际发布"
+            echo "  --force          强制发布，跳过确认"
+            echo "  --auto-increment 自动递增版本号（当文件已存在时）"
             exit 0
             ;;
         *)
@@ -98,12 +143,48 @@ for package in "${packages[@]}"; do
     fi
     
     # 执行发布
-    if eval $cmd; then
+    output=$(eval $cmd 2>&1)
+    exit_code=$?
+    
+    if [ $exit_code -eq 0 ]; then
         echo -e "${GREEN}✅ $package 发布成功${NC}"
         ((success_count++))
     else
-        echo -e "${RED}❌ $package 发布失败${NC}"
-        ((failed_count++))
+        # 检查是否为文件已存在错误
+        if echo "$output" | grep -q "File already exists\|already exists"; then
+            echo -e "${YELLOW}⚠️ $package 发布跳过: 文件已存在${NC}"
+            
+            if [ "$AUTO_INCREMENT" = true ]; then
+                echo -e "${YELLOW}  🔄 尝试自动递增版本号...${NC}"
+                
+                if increment_version "$package_path"; then
+                    echo -e "${YELLOW}  📦 重新尝试发布...${NC}"
+                    
+                    # 重新尝试发布
+                    retry_output=$(eval $cmd 2>&1)
+                    retry_exit_code=$?
+                    
+                    if [ $retry_exit_code -eq 0 ]; then
+                        echo -e "${GREEN}✅ $package 发布成功 (版本已递增)${NC}"
+                        ((success_count++))
+                    else
+                        echo -e "${RED}❌ $package 重试发布失败${NC}"
+                        echo -e "${RED}   错误信息: ${retry_output}${NC}"
+                        ((failed_count++))
+                    fi
+                else
+                    echo -e "${RED}❌ 版本递增失败${NC}"
+                    ((failed_count++))
+                fi
+            else
+                echo -e "${YELLOW}   提示: 请手动在 pyproject.toml 中递增版本号，或使用 --auto-increment 选项${NC}"
+                ((failed_count++))
+            fi
+        else
+            echo -e "${RED}❌ $package 发布失败${NC}"
+            echo -e "${RED}   错误信息: ${output}${NC}"
+            ((failed_count++))
+        fi
         
         if [ "$FORCE" = false ]; then
             read -p "继续发布其他包？ (y/N): " -n 1 -r

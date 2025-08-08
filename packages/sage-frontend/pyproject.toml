@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "intellistream-sage-frontend"
-version = "0.1.0"
+version = "0.1.3"
 description = "SAGE Framework Frontend - Web UI and Dashboard"
 readme = "README.md"
 requires-python = ">=3.10"
