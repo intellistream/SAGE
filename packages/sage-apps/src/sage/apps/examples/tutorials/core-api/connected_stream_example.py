@@ -30,6 +30,9 @@ def main():
     # 创建环境
     env = LocalEnvironment("simple_connected_example")
     
+    # 设置日志级别为WARNING以减少调试输出
+    env.set_console_log_level("WARNING")
+    
     print("🚀 Starting Simple Connected Streams Example")
     print("📊 Demonstrating multiple stream processing and connection")
     print("⏹️  Press Ctrl+C to stop\n")
