@@ -177,6 +177,41 @@ conda_env_exists() {
     conda env list | grep -q "^$env_name "
 }
 
+# 接受 Conda 频道的服务条款
+accept_conda_tos() {
+    print_status "检查并接受 Conda 服务条款..."
+    
+    # 检查是否需要接受服务条款
+    if conda info 2>&1 | grep -q "Terms of Service have not been accepted"; then
+        print_status "需要接受 Conda 服务条款..."
+        
+        # 静默接受主要频道的服务条款
+        local main_channels=(
+            "https://repo.anaconda.com/pkgs/main"
+            "https://repo.anaconda.com/pkgs/r"
+        )
+        
+        for channel in "${main_channels[@]}"; do
+            print_debug "接受频道 '$channel' 的服务条款..."
+            if conda tos accept --override-channels --channel "$channel" 2>/dev/null; then
+                print_debug "成功接受频道 '$channel' 的服务条款"
+            else
+                print_debug "频道 '$channel' 的服务条款可能已经接受或不需要"
+            fi
+        done
+        
+        # 验证是否成功
+        if conda info 2>&1 | grep -q "Terms of Service have not been accepted"; then
+            print_warning "部分服务条款可能仍需手动接受"
+            print_warning "如果遇到问题，可以手动运行: conda tos accept --override-channels --channel <频道名>"
+        else
+            print_success "Conda 服务条款接受完成"
+        fi
+    else
+        print_debug "Conda 服务条款已经接受，无需重复操作"
+    fi
+}
+
 # 创建 Conda 环境
 create_conda_env() {
     local env_name="$1"
@@ -187,8 +222,26 @@ create_conda_env() {
         return 0
     fi
     
+    # 接受 Conda 频道的服务条款
+    accept_conda_tos
+    
     print_status "创建新的 Conda 环境 '$env_name' (Python $python_version)..."
-    conda create -n "$env_name" python="$python_version" -y
+    
+    # 首先尝试使用默认频道创建环境
+    if conda create -n "$env_name" python="$python_version" -y 2>/dev/null; then
+        print_success "使用默认频道成功创建环境"
+        return 0
+    fi
+    
+    # 如果失败，尝试使用 conda-forge 频道
+    print_warning "使用默认频道失败，尝试使用 conda-forge 频道..."
+    if conda create -n "$env_name" -c conda-forge python="$python_version" -y; then
+        print_success "使用 conda-forge 频道成功创建环境"
+        return 0
+    else
+        print_error "环境创建失败"
+        return 1
+    fi
 }
 
 # 激活 Conda 环境
@@ -237,7 +290,22 @@ install_conda_packages() {
     fi
     
     print_status "在环境 '$env_name' 中安装包: ${packages[*]}"
-    conda install -n "$env_name" "${packages[@]}" -y
+    
+    # 首先尝试使用默认频道安装
+    if conda install -n "$env_name" "${packages[@]}" -y 2>/dev/null; then
+        print_success "使用默认频道成功安装包"
+        return 0
+    fi
+    
+    # 如果失败，尝试使用 conda-forge 频道
+    print_warning "使用默认频道安装失败，尝试使用 conda-forge 频道..."
+    if conda install -n "$env_name" -c conda-forge "${packages[@]}" -y; then
+        print_success "使用 conda-forge 频道成功安装包"
+        return 0
+    else
+        print_error "包安装失败: ${packages[*]}"
+        return 1
+    fi
 }
 
 # 设置完整的 SAGE 开发环境
