@@ -14,7 +14,7 @@ import logging
 from unittest.mock import patch, MagicMock
 from datetime import datetime
 
-from sage.kernel.utils.logging.custom_formatter import CustomFormatter
+from sage.utils.logging.custom_formatter import CustomFormatter
 
 
 @pytest.mark.unit

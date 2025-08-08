@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import ray
 from ray.actor import ActorHandle
 from typing import List,Dict,Optional, Any, Union
-from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.api.base_context import BaseRuntimeContext
 
@@ -163,7 +163,7 @@ class TaskContext(BaseRuntimeContext):
         """
         try:
             # 导入JobManagerClient来发送网络请求
-            from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+            from sage.kernel.api.jobmanager_client import JobManagerClient
             
             self.logger.info(f"Task {node_name} sending stop signal back to JobManager at {self.jobmanager_host}:{self.jobmanager_port}")
             

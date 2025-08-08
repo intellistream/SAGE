@@ -19,7 +19,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock, mock_open
 from contextlib import contextmanager
 
-from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 
 
 @contextmanager

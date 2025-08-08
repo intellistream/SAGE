@@ -13,11 +13,11 @@ The current architecture exhibits poor separation of concerns between the core A
 ```python
 # From base_operator.py
 from sage.kernel.runtime.task.base_task import BaseTask
-from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.communication.router.packet import Packet
 from sage.kernel.runtime.communication.router.connection import Connection
 from sage.kernel.runtime.task_context import TaskContext
-from sage.kernel.runtime.factory.function_factory import FunctionFactory
+from sage.core.factory.function_factory import FunctionFactory
 from sage.kernel.runtime.communication.router.router import BaseRouter
 ```
 
@@ -33,9 +33,9 @@ from sage.kernel.runtime.communication.router.router import BaseRouter
 
 ```python
 # From base_environment.py
-from sage.kernel.utils.logging.custom_logger import CustomLogger
-from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
-from sage.kernel.runtime.factory.service_factory import ServiceFactory
+from sage.utils.logging.custom_logger import CustomLogger
+from sage.kernel.api.jobmanager_client import JobManagerClient
+from sage.core.factory.service_factory import ServiceFactory
 
 # Direct factory instantiation
 from sage.kernel.runtime.factory.service_task_factory import ServiceTaskFactory

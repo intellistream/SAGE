@@ -2,7 +2,7 @@ from jinja2 import Template
 
 from sage.core.api.function.map_function import MapFunction
 
-from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 
 import os
 import time

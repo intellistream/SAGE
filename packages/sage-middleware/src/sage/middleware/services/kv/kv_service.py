@@ -11,7 +11,7 @@ import logging
 from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:
-    from sage.kernel.runtime.factory.service_factory import ServiceFactory
+    from sage.core.factory.service_factory import ServiceFactory
     from sage.kernel.api.service_context import ServiceContext
 
 
@@ -291,7 +291,7 @@ def create_kv_service_factory(
     Returns:
         ServiceFactory: 可以用于注册到环境的服务工厂
     """
-    from sage.kernel.runtime.factory.service_factory import ServiceFactory
+    from sage.core.factory.service_factory import ServiceFactory
     
     config = KVConfig(
         backend_type=backend_type,

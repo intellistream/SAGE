@@ -47,7 +47,7 @@ def test_jobmanager_client():
     print("\n=== 测试 JobManagerClient ===")
     
     try:
-        from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+        from sage.kernel.api.jobmanager_client import JobManagerClient
         
         # 创建客户端
         client = JobManagerClient("127.0.0.1", 19001, timeout=10.0)
@@ -98,7 +98,7 @@ def test_backward_compatibility():
     print("\n=== 测试向后兼容性 ===")
     
     try:
-        from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+        from sage.kernel.api.jobmanager_client import JobManagerClient
         
         # 测试原有的初始化方式
         client1 = JobManagerClient()  # 默认参数

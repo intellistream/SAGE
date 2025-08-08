@@ -8,7 +8,7 @@ from sage.lib.io_utils.sink import TerminalSink
 from sage.lib.rag.generator import OpenAIGenerator
 from sage.lib.rag.promptor import QAPromptor
 from sage.lib.rag.retriever import DenseRetriever
-from sage.kernel.utils.config.loader import load_config
+from sage.utils.config.loader import load_config
 
 def pipeline_run():
     """创建并运行数据处理管道"""

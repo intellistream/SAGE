@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
-    from sage.kernel.runtime.factory.service_factory import ServiceFactory
+    from sage.core.factory.service_factory import ServiceFactory
     from sage.kernel.runtime.factory.service_task_factory import ServiceTaskFactory
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
     from sage.kernel.api.service_context import ServiceContext

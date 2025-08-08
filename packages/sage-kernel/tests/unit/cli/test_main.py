@@ -20,7 +20,7 @@ with patch.dict('sys.modules', {
     'sage.cli.cluster_manager': MagicMock(),
     'sage.cli.extensions': MagicMock(),
     'sage.kernel.utils.system.network_utils': MagicMock(),
-    'sage.kernel.jobmanager.jobmanager_client': MagicMock(),
+    'sage.kernel.api.jobmanager_client': MagicMock(),
 }):
     from sage.cli.main import app
 

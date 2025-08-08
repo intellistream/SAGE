@@ -11,7 +11,7 @@ import sys
 from uuid import UUID
 from sage.kernel.jobmanager.job_info import JobInfo
 from sage.kernel.jobmanager.job_manager_server import JobManagerServer
-from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.dispatcher import Dispatcher
 import threading
 from sage.kernel.utils.serialization.dill import deserialize_object

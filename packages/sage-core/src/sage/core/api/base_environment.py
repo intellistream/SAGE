@@ -9,9 +9,9 @@ from sage.core.transformation.base_transformation import BaseTransformation
 from sage.core.transformation.source_transformation import SourceTransformation
 from sage.core.transformation.batch_transformation import BatchTransformation
 from sage.core.transformation.future_transformation import FutureTransformation 
-from sage.kernel.utils.logging.custom_logger import CustomLogger
-from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
-from sage.kernel.runtime.factory.service_factory import ServiceFactory
+from sage.utils.logging.custom_logger import CustomLogger
+from sage.kernel.api.jobmanager_client import JobManagerClient
+from sage.core.factory.service_factory import ServiceFactory
 if TYPE_CHECKING:
     from sage.core.api.function.base_function import BaseFunction
     from sage.core.api.datastream import DataStream

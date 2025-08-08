@@ -64,7 +64,7 @@ def test_client_request_format():
     print("\n=== 测试 JobManagerClient 请求格式 ===")
     
     try:
-        from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+        from sage.kernel.api.jobmanager_client import JobManagerClient
         import uuid
         
         # 创建客户端

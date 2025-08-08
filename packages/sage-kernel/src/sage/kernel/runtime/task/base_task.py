@@ -7,10 +7,10 @@ from sage.kernel.runtime.communication.router.packet import Packet
 from ray.util.queue import Empty
 
 from sage.kernel.runtime.communication.router.router import BaseRouter
-from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator
-    from sage.kernel.runtime.factory.operator_factory import OperatorFactory
+    from sage.core.factory.operator_factory import OperatorFactory
 
 class BaseTask(ABC):
     def __init__(self, ctx: 'TaskContext',operator_factory: 'OperatorFactory') -> None:

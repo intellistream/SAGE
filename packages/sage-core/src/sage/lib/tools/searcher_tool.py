@@ -8,7 +8,7 @@ from ..context.search_result import SearchResult
 from ..context.search_query_results import SearchQueryResults
 from ..context.search_session import SearchSession
 from sage.core.api.function.map_function import MapFunction
-from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 
 class BochaSearchTool(MapFunction):
     """

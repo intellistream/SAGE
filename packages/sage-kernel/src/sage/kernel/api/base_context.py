@@ -4,7 +4,7 @@ import logging
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.service.service_caller import ServiceManager
-    from sage.kernel.utils.logging.custom_logger import CustomLogger
+    from sage.utils.logging.custom_logger import CustomLogger
 
 
 class BaseRuntimeContext(ABC):

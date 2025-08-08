@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from sage.core.factory.function_factory import FunctionFactory
     from sage.kernel.runtime.communication.router.router import BaseRouter
     from sage.kernel.runtime.task.base_task import BaseTask
-    from sage.kernel.utils.logging.custom_logger import CustomLogger
+    from sage.utils.logging.custom_logger import CustomLogger
 
 class BaseOperator(ABC):
     def __init__(self, 

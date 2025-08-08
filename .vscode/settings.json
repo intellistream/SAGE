@@ -1,25 +1,17 @@
 {
   "python.analysis.extraPaths": [
-    "./packages/commercial/sage-kernel/src",
-    "./packages/commercial/sage-middleware/src",
-    "./packages/commercial/sage-userspace/src",
     "./packages/sage-kernel/src",
     "./packages/sage-middleware/src",
-    "./packages/sage-userspace/src",
-    "./packages/sage/src",
+    "./packages/sage-core/src",
     "./packages/sage-cli/src",
     "./packages/sage-dev-toolkit/src",
     "./packages/sage-frontend",
     "."
   ],
   "python.autoComplete.extraPaths": [
-    "./packages/commercial/sage-kernel/src",
-    "./packages/commercial/sage-middleware/src",
-    "./packages/commercial/sage-userspace/src",
     "./packages/sage-kernel/src",
     "./packages/sage-middleware/src",
-    "./packages/sage-userspace/src",
-    "./packages/sage/src",
+    "./packages/sage-core/src",
     "./packages/sage-cli/src",
     "./packages/sage-dev-toolkit/src",
     "./packages/sage-frontend",

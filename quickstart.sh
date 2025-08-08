@@ -168,19 +168,21 @@ install_sage_packages() {
     
     print_status "按正确顺序安装 SAGE 包..."
     
+    # 2. 安装统一内核包
+    print_status "1/5 安装 sage-kernel..."
+    if ! pip install -e packages/sage-kernel; then
+        print_error "sage-kernel 安装失败"
+        return 1
+    fi
+
     # 1. 首先安装中间件包（提供基础服务）
-    print_status "1/5 安装 sage-middleware..."
+    print_status "2/5 安装 sage-middleware..."
     if ! pip install -e packages/sage-middleware; then
         print_error "sage-middleware 安装失败"
         return 1
     fi
     
-    # 2. 安装统一内核包
-    print_status "2/5 安装 sage-kernel..."
-    if ! pip install -e packages/sage-kernel; then
-        print_error "sage-kernel 安装失败"
-        return 1
-    fi
+
     
     # 3. 安装核心API包（主包）
     print_status "3/5 安装 sage-core..."

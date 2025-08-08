@@ -6,7 +6,7 @@ import faiss
 import pickle
 import numpy as np
 from typing import Optional, List, Dict, Any
-from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 from sage.middleware.services.vdb.search_engine.base_vdb_index import BaseVDBIndex
 import os
 

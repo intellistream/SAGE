@@ -108,7 +108,7 @@ class ModuleRefactorTool:
             
             # 日志相关
             ImportMapping(
-                "sage.kernel.utils.logging.custom_logger",
+                "sage.utils.logging.custom_logger",
                 "sage.kernel.logging",
                 ["CustomLogger"]
             ),
@@ -120,7 +120,7 @@ class ModuleRefactorTool:
                 ["get_name"]
             ),
             ImportMapping(
-                "sage.kernel.jobmanager.jobmanager_client",
+                "sage.kernel.api.jobmanager_client",
                 "sage.kernel.jobmanager",
                 ["JobManagerClient"]
             ),
@@ -132,7 +132,7 @@ class ModuleRefactorTool:
             
             # 工厂相关
             ImportMapping(
-                "sage.kernel.runtime.factory.service_factory",
+                "sage.core.factory.service_factory",
                 "sage.kernel.factory",
                 ["ServiceFactory"]
             ),

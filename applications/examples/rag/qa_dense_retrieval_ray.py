@@ -5,14 +5,14 @@ import os
 from sage.core.api.function.map_function import MapFunction
 from sage.core.api.remote_environment import RemoteEnvironment
 from sage.middleware.services.memory.memory_service import MemoryService
-from sage.kernel.utils.embedding_methods.embedding_api import apply_embedding_model
+from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
 from sage.lib.io_utils.source import FileSource
 from sage.lib.io_utils.sink import FileSink
 from sage.lib.io_utils.sink import TerminalSink
 from sage.lib.rag.generator import OpenAIGenerator
 from sage.lib.rag.promptor import QAPromptor
 from sage.lib.rag.retriever import DenseRetriever
-from sage.kernel.utils.config.loader import load_config
+from sage.utils.config.loader import load_config
 
 class SafeBiologyRetriever(MapFunction):
     """带超时保护的生物学知识检索器"""
@@ -30,7 +30,7 @@ class SafeBiologyRetriever(MapFunction):
         def init_service():
             try:
                 from sage.middleware.services.memory.memory_service import MemoryService
-                from sage.kernel.utils.embedding_methods.embedding_api import apply_embedding_model
+                from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
                 
                 embedding_model = apply_embedding_model("default")
                 memory_service = MemoryService()

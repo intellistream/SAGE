@@ -2,10 +2,10 @@
 流处理RAG测试：使用流处理框架测试RAG知识库的写入和检索
 """
 import time
-from sage.kernel.utils.logging.custom_logger import CustomLogger
+from sage.utils.logging.custom_logger import CustomLogger
 from sage.core.api.local_environment import LocalEnvironment
 from sage.middleware.services.memory.memory_service import MemoryService
-from sage.kernel.utils.embedding_methods.embedding_api import apply_embedding_model
+from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
 from sage.core.api.function.map_function import MapFunction
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.sink_function import SinkFunction

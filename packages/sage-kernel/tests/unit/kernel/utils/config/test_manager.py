@@ -18,7 +18,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 from pydantic import ValidationError
 
-from sage.kernel.utils.config.manager import (
+from sage.utils.config.manager import (
     ConfigManager, 
     BaseConfig, 
     load_config, 
@@ -397,7 +397,7 @@ class TestConvenienceFunctions:
     
     def test_load_config_function_global_manager(self):
         """测试load_config便捷函数使用全局管理器"""
-        with patch('sage.kernel.utils.config.manager._global_config_manager') as mock_manager:
+        with patch('sage.utils.config.manager._global_config_manager') as mock_manager:
             mock_manager.load.return_value = self.test_config
             
             config = load_config("test.yaml")
@@ -417,7 +417,7 @@ class TestConvenienceFunctions:
     
     def test_save_config_function_global_manager(self):
         """测试save_config便捷函数使用全局管理器"""
-        with patch('sage.kernel.utils.config.manager._global_config_manager') as mock_manager:
+        with patch('sage.utils.config.manager._global_config_manager') as mock_manager:
             save_config("test.yaml", self.test_config)
             mock_manager.save.assert_called_once_with("test.yaml", self.test_config)
 
