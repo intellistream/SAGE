@@ -258,9 +258,32 @@ setup_sage_environment() {
         return 1
     fi
     
-    # 激活环境
-    if ! activate_conda_env "$env_name"; then
-        return 1
+    # 激活环境 - 更强的重试机制
+    local max_retries=3
+    local retry_count=0
+    
+    while [ $retry_count -lt $max_retries ]; do
+        if activate_conda_env "$env_name"; then
+            break
+        else
+            retry_count=$((retry_count + 1))
+            if [ $retry_count -lt $max_retries ]; then
+                print_warning "激活失败，重试中... ($retry_count/$max_retries)"
+                sleep 2
+                # 重新初始化 conda
+                init_conda "$conda_path"
+            else
+                print_error "多次尝试后仍无法激活环境"
+                return 1
+            fi
+        fi
+    done
+    
+    # 验证环境激活
+    if [ "$CONDA_DEFAULT_ENV" != "$env_name" ]; then
+        print_warning "环境可能未正确激活，尝试手动设置..."
+        export CONDA_DEFAULT_ENV="$env_name"
+        export PATH="$conda_path/envs/$env_name/bin:$PATH"
     fi
     
     # 安装基础开发工具
