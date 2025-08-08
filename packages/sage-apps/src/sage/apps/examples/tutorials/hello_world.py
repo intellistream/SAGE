@@ -33,6 +33,9 @@ class PrintSink(SinkFunction):
 def main():
     env = LocalEnvironment("hello_world_batch_demo")
     
+    # 设置日志级别为WARNING以减少调试输出
+    env.set_console_log_level("WARNING")
+    
     # 批处理源 -> map -> sink
     env.from_batch(HelloBatch).map(UpperCaseMap).sink(PrintSink)
     
