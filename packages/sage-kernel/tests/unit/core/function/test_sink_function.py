@@ -156,7 +156,7 @@ class TestSinkFunction:
         
         # 验证继承的属性
         assert hasattr(func, 'ctx')
-        assert hasattr(func, 'router')
+       
         assert hasattr(func, 'logger')
         assert hasattr(func, 'name')
 

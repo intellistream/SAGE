@@ -43,9 +43,14 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 dependencies = [
+    # SAGE framework dependencies
     "intellistream-sage-kernel>=0.1.0",  # 使用统一版本号
+    
+    # Authentication and security
     "python-jose==3.5.0",
     "passlib==1.7.4",
+    
+    # Task queue
     "celery==5.5.3",
     "flower==2.0.1",
     "openai>=1.52.0,<=1.90.0",  # 与vllm兼容的openai版本
@@ -81,8 +86,14 @@ dependencies = [
 text = "MIT"
 
 [project.optional-dependencies]
+# SAGE framework dependencies (for local development)  
+sage = [
+    "intellistream-sage-utils>=0.1.0",
+]
+
 # Commercial/Enterprise features (requires license)
 enterprise = [
+    "intellistream-sage-middleware[sage]",
     # Enterprise database support
     "sqlalchemy>=2.0.0",
     "alembic>=1.13.0", 
@@ -154,6 +165,7 @@ full = [
     "sage-middleware[database,messagequeue,monitoring,websocket,llm]",
 ]
 testing = [
+    "intellistream-sage-middleware[sage]",
     "pytest==8.3.4",
     "pytest-asyncio==0.25.0",
     "pytest-cov==6.0.0",

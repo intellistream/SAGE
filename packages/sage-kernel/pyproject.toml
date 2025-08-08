@@ -43,6 +43,7 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 dependencies = [
+    # External dependencies
     "pyyaml==6.0.2",
     "python-dotenv==1.1.1",
     "python_multipart==0.0.20",
@@ -87,8 +88,14 @@ dependencies = [
 text = "MIT"
 
 [project.optional-dependencies]
+# SAGE framework dependencies (for local development)
+sage = [
+    "intellistream-sage-utils>=0.1.0",
+]
+
 # Commercial/Enterprise features (requires license)
 enterprise = [
+    "intellistream-sage-kernel[sage]",
     # High-performance computing dependencies
     "numpy>=1.25.0",
     "scipy>=1.10.0", 
@@ -123,6 +130,7 @@ enhanced = [
 
 # Development dependencies
 dev = [
+    "intellistream-sage-kernel[sage]",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",

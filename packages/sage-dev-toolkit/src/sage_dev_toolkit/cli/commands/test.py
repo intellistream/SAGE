@@ -113,156 +113,218 @@ class TestCommand(BaseCommand):
             f.write(f"Status: {'PASSED' if results['failed'] == 0 else 'FAILED'}\n")
             f.write(f"Total: {results['total']}, Passed: {results['passed']}, Failed: {results['failed']}\n")
     
-    def _run_tests_with_pytest(self, test_files: List[Path], verbose: bool = False, timeout: int = 300, testlogs_dir: Path = None) -> dict:
-        """使用 pytest 运行测试"""
-        try:
-            cmd = [sys.executable, "-m", "pytest"]
-            
-            # 总是添加 -s 来捕获所有输出
-            cmd.append("-s")
-            
-            if verbose:
-                cmd.extend(["-v", "--tb=short"])
-            else:
-                cmd.append("-q")
-            
-            # 添加测试文件
-            cmd.extend([str(f) for f in test_files])
-            
-            # 创建实时输出文件
-            if testlogs_dir:
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                output_file = testlogs_dir / f"pytest_output_{timestamp}.log"
-                console.print(f"📝 Test output will be saved to: {output_file}", style="blue")
-            else:
-                output_file = None
-            
-            # 运行测试，添加超时控制
-            console.print(f"🕐 Running tests with {timeout}s timeout...", style="blue")
-            
-            if output_file:
-                # 使用实时输出重定向
-                with open(output_file, 'w', encoding='utf-8') as f:
-                    process = subprocess.Popen(
-                        cmd,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
-                        text=True,
-                        cwd=test_files[0].parent if test_files else None,
-                        bufsize=1,
-                        universal_newlines=True
-                    )
-                    
-                    output_lines = []
-                    try:
-                        import select
-                        import time
-                        start_time = time.time()
+    def _run_tests_with_pytest(self, test_files: List[Path], verbose: bool = False, timeout: int = 300, testlogs_dir: Path = None, max_workers: int = None) -> dict:
+        """使用 pytest 运行测试 - 支持并行执行"""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        import threading
+        
+        results = {
+            'total': 0,
+            'passed': 0,
+            'failed': 0,
+            'errors': 0,
+            'skipped': 0,
+            'failed_tests': [],
+            'output': ''
+        }
+        
+        # 如果没有指定并行数，使用 CPU 核心数或测试文件数的较小值
+        if max_workers is None:
+            import os
+            max_workers = min(len(test_files), os.cpu_count() or 1, 4)  # 最多4个并行
+        
+        # 定义单个测试文件的运行函数
+        def run_single_test(test_file: Path) -> dict:
+            """运行单个测试文件"""
+            try:
+                # 确保使用正确的Python解释器
+                cmd = [sys.executable, "-m", "pytest"]
+                
+                # 总是添加 -s 来捕获所有输出
+                cmd.append("-s")
+                
+                if verbose:
+                    cmd.extend(["-v", "--tb=short"])
+                else:
+                    cmd.append("-q")
+                
+                # 添加当前测试文件
+                cmd.append(str(test_file))
+                
+                # 创建该测试文件的专用日志文件
+                if testlogs_dir:
+                    log_filename = test_file.stem + ".log"
+                    output_file = testlogs_dir / log_filename
+                else:
+                    output_file = None
+                
+                # 在详细模式下显示开始信息
+                if verbose:
+                    console.print(f"  🧪 Starting {test_file.name}...", style="dim blue")
+                
+                if output_file:
+                    # 使用实时输出重定向
+                    with open(output_file, 'w', encoding='utf-8') as f:
+                        f.write(f"Test file: {test_file}\n")
+                        f.write(f"Command: {' '.join(cmd)}\n")
+                        f.write(f"Python executable: {sys.executable}\n")
+                        f.write(f"Started at: {datetime.now().isoformat()}\n")
+                        f.write("=" * 80 + "\n\n")
                         
-                        # 实时读取输出并写入文件
-                        while True:
-                            # 检查超时
-                            if time.time() - start_time > timeout:
-                                process.kill()
-                                process.wait()
-                                raise subprocess.TimeoutExpired(cmd, timeout)
+                        # 确保传递正确的环境变量
+                        import os
+                        env = os.environ.copy()
+                        
+                        process = subprocess.Popen(
+                            cmd,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            text=True,
+                            cwd=test_file.parent,
+                            env=env,  # 传递环境变量
+                            bufsize=1,
+                            universal_newlines=True
+                        )
+                        
+                        output_lines = []
+                        try:
+                            import time
+                            start_time = time.time()
                             
-                            # 检查进程是否结束
-                            if process.poll() is not None:
-                                # 读取剩余输出
-                                remaining = process.stdout.read()
-                                if remaining:
-                                    f.write(remaining)
+                            # 实时读取输出并写入文件
+                            while True:
+                                # 检查超时
+                                if time.time() - start_time > timeout:
+                                    f.write(f"\n\n=== TIMEOUT AFTER {timeout} SECONDS ===\n")
                                     f.flush()
-                                    output_lines.extend(remaining.splitlines())
-                                break
-                            
-                            # 读取输出
-                            line = process.stdout.readline()
-                            if line:
-                                f.write(line)
-                                f.flush()
-                                output_lines.append(line.rstrip())
-                                # 如果是详细模式，也打印到控制台
-                                if verbose:
-                                    console.print(line.rstrip(), style="dim")
-                            else:
-                                time.sleep(0.1)  # 短暂等待
+                                    process.kill()
+                                    process.wait()
+                                    return {
+                                        'file': test_file,
+                                        'status': 'timeout',
+                                        'output': f'Test timed out after {timeout} seconds'
+                                    }
                                 
-                    except Exception as e:
-                        process.kill()
-                        process.wait()
-                        raise e
+                                # 检查进程是否结束
+                                if process.poll() is not None:
+                                    # 读取剩余输出
+                                    remaining = process.stdout.read()
+                                    if remaining:
+                                        f.write(remaining)
+                                        f.flush()
+                                        output_lines.extend(remaining.splitlines())
+                                    break
+                                
+                                # 读取输出
+                                line = process.stdout.readline()
+                                if line:
+                                    f.write(line)
+                                    f.flush()
+                                    output_lines.append(line.rstrip())
+                                else:
+                                    time.sleep(0.01)  # 短暂等待
+                                    
+                        except Exception as e:
+                            process.kill()
+                            process.wait()
+                            return {
+                                'file': test_file,
+                                'status': 'error',
+                                'output': f'Error: {str(e)}'
+                            }
+                        
+                        output = '\n'.join(output_lines)
+                        return_code = process.returncode
+                        
+                        # 写入结束信息
+                        f.write(f"\n\n" + "=" * 80 + "\n")
+                        f.write(f"Finished at: {datetime.now().isoformat()}\n")
+                        f.write(f"Return code: {return_code}\n")
+                        
+                else:
+                    # 回退到原来的方式
+                    import os
+                    env = os.environ.copy()
                     
-                    output = '\n'.join(output_lines)
-                    return_code = process.returncode
+                    result = subprocess.run(
+                        cmd, 
+                        capture_output=True, 
+                        text=True,
+                        timeout=timeout,
+                        cwd=test_file.parent,
+                        env=env  # 传递环境变量
+                    )
+                    output = result.stdout + result.stderr
+                    return_code = result.returncode
+                
+                # 返回结果
+                if return_code == 0:
+                    return {
+                        'file': test_file,
+                        'status': 'passed',
+                        'output': output
+                    }
+                else:
+                    return {
+                        'file': test_file,
+                        'status': 'failed',
+                        'output': output
+                    }
+                
+            except subprocess.TimeoutExpired:
+                return {
+                    'file': test_file,
+                    'status': 'timeout',
+                    'output': f'Test timed out after {timeout} seconds'
+                }
+            except Exception as e:
+                return {
+                    'file': test_file,
+                    'status': 'error',
+                    'output': f'Error: {str(e)}'
+                }
+        
+        # 使用线程池并行执行测试
+        console.print(f"🚀 Running {len(test_files)} test files with {max_workers} parallel workers...", style="blue")
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # 提交所有任务
+            future_to_file = {executor.submit(run_single_test, test_file): test_file for test_file in test_files}
+            
+            # 处理完成的任务
+            for future in as_completed(future_to_file):
+                test_file = future_to_file[future]
+                try:
+                    result = future.result()
+                    status = result['status']
                     
-            else:
-                # 回退到原来的方式
-                result = subprocess.run(
-                    cmd, 
-                    capture_output=True, 
-                    text=True,
-                    timeout=timeout,
-                    cwd=test_files[0].parent if test_files else None
-                )
-                output = result.stdout + result.stderr
-                return_code = result.returncode
-            
-            # 解析结果（简化版本）
-            results = {
-                'total': 0,
-                'passed': 0,
-                'failed': 0,
-                'errors': 0,
-                'skipped': 0,
-                'failed_tests': [],
-                'output': output
-            }
-            
-            # 简单的输出解析
-            lines = output.split('\n')
-            for line in lines:
-                if "failed" in line.lower() and "passed" in line.lower():
-                    # 例如: "2 failed, 3 passed in 1.23s"
-                    parts = line.split()
-                    for i, part in enumerate(parts):
-                        if part == "failed":
-                            results['failed'] = int(parts[i-1])
-                        elif part == "passed":
-                            results['passed'] = int(parts[i-1])
-                        elif part == "skipped":
-                            results['skipped'] = int(parts[i-1])
-                        elif part == "error":
-                            results['errors'] = int(parts[i-1])
-            
-            results['total'] = results['passed'] + results['failed'] + results['errors'] + results['skipped']
-            
-            return results
-            
-        except subprocess.TimeoutExpired as e:
-            console.print(f"⏰ Tests timed out after {timeout} seconds", style="red")
-            console.print("💡 Try running with a longer timeout using --timeout option", style="yellow")
-            return {
-                'total': len(test_files),
-                'passed': 0,
-                'failed': len(test_files),
-                'errors': 0,
-                'skipped': 0,
-                'failed_tests': [str(f) for f in test_files],
-                'output': f'Tests timed out after {timeout} seconds'
-            }
-        except Exception as e:
-            console.print(f"❌ Error running pytest: {e}", style="red")
-            return {
-                'total': 0,
-                'passed': 0,
-                'failed': 0,
-                'errors': 1,
-                'skipped': 0,
-                'failed_tests': [],
-                'output': str(e)
-            }
+                    if status == 'passed':
+                        results['passed'] += 1
+                        console.print(f"✅ {result['file'].name} PASSED", style="green")
+                    elif status == 'failed':
+                        results['failed'] += 1
+                        results['failed_tests'].append(str(result['file']))
+                        console.print(f"❌ {result['file'].name} FAILED", style="red")
+                    elif status == 'timeout':
+                        results['failed'] += 1
+                        results['failed_tests'].append(str(result['file']))
+                        console.print(f"⏰ {result['file'].name} TIMEOUT", style="yellow")
+                    elif status == 'error':
+                        results['errors'] += 1
+                        results['failed_tests'].append(str(result['file']))
+                        console.print(f"💥 {result['file'].name} ERROR", style="red")
+                    
+                    results['total'] += 1
+                    results['output'] += f"\n=== {result['file'].name} ===\n" + result['output'] + "\n"
+                    
+                except Exception as e:
+                    console.print(f"💥 {test_file.name} EXCEPTION: {e}", style="red")
+                    results['errors'] += 1
+                    results['failed_tests'].append(str(test_file))
+                    results['total'] += 1
+                    results['output'] += f"\n=== {test_file.name} ===\nException: {str(e)}\n"
+        
+        return results
     
     def _run_tests_with_unittest(self, test_files: List[Path], verbose: bool = False, timeout: int = 300) -> dict:
         """使用 unittest 运行测试"""
@@ -281,12 +343,17 @@ class TestCommand(BaseCommand):
             cmd.extend(modules)
             
             console.print(f"🕐 Running unittest with {timeout}s timeout...", style="blue")
+            
+            import os
+            env = os.environ.copy()
+            
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 timeout=timeout,
-                cwd=test_files[0].parent if test_files else None
+                cwd=test_files[0].parent if test_files else None,
+                env=env  # 传递环境变量
             )
             
             output = result.stdout + result.stderr
@@ -334,7 +401,8 @@ class TestCommand(BaseCommand):
         failed_only: bool = False,
         pattern: str = "test_*.py",
         verbose: bool = False,
-        timeout: int = 300
+        timeout: int = 300,
+        max_workers: int = None
     ) -> dict:
         """运行测试的主要逻辑"""
         
@@ -397,7 +465,7 @@ class TestCommand(BaseCommand):
                 console.print(f"   - {test_file.relative_to(project_path)}", style="dim")
         
         # 尝试使用 pytest，如果失败则使用 unittest
-        results = self._run_tests_with_pytest(test_files, verbose, timeout, testlogs_dir)
+        results = self._run_tests_with_pytest(test_files, verbose, timeout, testlogs_dir, max_workers)
         if results['errors'] > 0 and 'pytest' in results['output']:
             console.print("⚠️  pytest failed, trying unittest...", style="yellow")
             results = self._run_tests_with_unittest(test_files, verbose, timeout)
@@ -437,6 +505,12 @@ class TestCommand(BaseCommand):
                 300,
                 "--timeout",
                 help="Test execution timeout in seconds (default: 300)"
+            ),
+            jobs: int = typer.Option(
+                None,
+                "-j",
+                "--jobs",
+                help="Number of parallel test jobs (default: auto-detect)"
             )
         ):
             """🧪 Universal test runner for Python projects
@@ -452,6 +526,8 @@ class TestCommand(BaseCommand):
               sage-dev test --failed               # Run only previously failed tests
               sage-dev test --pattern "*_test.py"  # Use custom test file pattern
               sage-dev test --timeout 600          # Set 10-minute timeout
+              sage-dev test -j 8                   # Use 8 parallel workers
+              sage-dev test -j 1                   # Disable parallel execution
             """
             # 如果有子命令被调用，不执行主命令逻辑
             if ctx.invoked_subcommand is not None:
@@ -476,7 +552,8 @@ class TestCommand(BaseCommand):
                     failed_only=failed,
                     pattern=pattern,
                     verbose=verbose,
-                    timeout=timeout
+                    timeout=timeout,
+                    max_workers=jobs
                 )
                 
                 # 显示结果摘要
