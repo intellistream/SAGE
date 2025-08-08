@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "intellistream-sage-kernel"
-version = "0.1.5"
+version = "0.1.6"
 description = "SAGE Framework - 统一内核 (Core + Runtime + Utils + CLI)"
 readme = "README.md"
 requires-python = ">=3.10"
