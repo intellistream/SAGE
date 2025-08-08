@@ -132,4 +132,35 @@ __all__ = [
     "install_open_source",
     "is_enterprise_licensed",
     "info",
+    # Core API exports
+    "LocalEnvironment",
+    "RemoteEnvironment", 
+    "DataStream",
+    "ConnectedStreams",
+    "BaseFunction",
+    "MapFunction",
+    "FilterFunction",
+    "SinkFunction",
+    "SourceFunction",
 ]
+
+# Import core API for user convenience (when kernel is available)
+try:
+    from .core.api import (
+        LocalEnvironment,
+        RemoteEnvironment,
+        DataStream,
+        ConnectedStreams,
+        BaseFunction,
+        MapFunction, 
+        FilterFunction,
+        SinkFunction,
+        SourceFunction,
+    )
+except ImportError as e:
+    # Gracefully handle missing dependencies
+    warnings.warn(
+        f"Core API not available due to missing dependencies: {e}. "
+        "Install with 'pip install intsage[full]' for full functionality.",
+        UserWarning
+    )

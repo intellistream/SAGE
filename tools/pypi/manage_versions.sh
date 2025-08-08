@@ -83,8 +83,8 @@ declare -A OPENSOURCE_PACKAGES=(
     ["sage-middleware"]="$PACKAGES_DIR/sage-middleware"
     ["sage-userspace"]="$PACKAGES_DIR/sage-userspace"
     ["sage"]="$PACKAGES_DIR/sage"
-    ["sage-dev-toolkit"]="$PACKAGES_DIR/sage-tools/sage-dev-toolkit"
-    ["sage-frontend"]="$PACKAGES_DIR/sage-tools/sage-frontend"
+    ["sage-dev-toolkit"]="$PACKAGES_DIR/sage-dev-toolkit"
+    ["sage-frontend"]="$PACKAGES_DIR/sage-frontend"
 )
 
 # 解析命令行参数

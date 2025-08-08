@@ -121,7 +121,6 @@ class SAGEEnterpriseInstaller:
         enterprise_packages = [
             "intsage-kernel[enterprise]",
             "intsage-middleware[enterprise]", 
-            "intsage-apps[enterprise]"
         ]
         
         results = []

@@ -7,9 +7,9 @@
     "./packages/sage-middleware/src",
     "./packages/sage-userspace/src",
     "./packages/sage/src",
-    "./packages/sage-tools/sage-cli/src",
-    "./packages/sage-tools/sage-dev-toolkit/src",
-    "./packages/sage-tools/sage-frontend",
+    "./packages/sage-cli/src",
+    "./packages/sage-dev-toolkit/src",
+    "./packages/sage-frontend",
     "."
   ],
   "python.autoComplete.extraPaths": [
@@ -20,9 +20,9 @@
     "./packages/sage-middleware/src",
     "./packages/sage-userspace/src",
     "./packages/sage/src",
-    "./packages/sage-tools/sage-cli/src",
-    "./packages/sage-tools/sage-dev-toolkit/src",
-    "./packages/sage-tools/sage-frontend",
+    "./packages/sage-cli/src",
+    "./packages/sage-dev-toolkit/src",
+    "./packages/sage-frontend",
     "."
   ],
   "python.analysis.autoSearchPaths": true,

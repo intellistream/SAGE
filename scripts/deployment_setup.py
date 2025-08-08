@@ -182,8 +182,8 @@ class SAGESetup:
                 "packages/sage-kernel", 
                 "packages/sage-middleware",
                 "packages/sage-userspace",
-                "packages/sage-tools/sage-dev-toolkit",
-                "packages/sage-tools/sage-frontend"
+                "packages/sage-dev-toolkit",
+                "packages/sage-frontend"
             ]
             
             for package_dir in sage_packages:

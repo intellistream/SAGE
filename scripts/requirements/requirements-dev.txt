@@ -1,6 +1,6 @@
 # 开发环境安装 - 包含开发工具
 -r requirements.txt
--e packages/sage-tools/sage-dev-toolkit
+-e packages/sage-dev-toolkit
 
 # 安装后可用的命令行工具：
 # - sage-dev: SAGE 开发工具包主命令

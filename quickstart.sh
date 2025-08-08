@@ -139,7 +139,7 @@ install_sage_packages() {
     print_status "检查现有安装并清理冲突..."
     
     # 卸载可能存在冲突的包（包括任何版本的sage相关包）
-    local packages_to_uninstall=("intsage" "intsage-kernel" "intsage-middleware" "intsage-apps" "intsage-dev-toolkit" "intsage-frontend" "sage")
+    local packages_to_uninstall=("intsage" "intsage-kernel" "intsage-middleware"  "intsage-dev-toolkit" "intsage-frontend" "sage")
     for pkg in "${packages_to_uninstall[@]}"; do
         if pip show "$pkg" >/dev/null 2>&1; then
             print_status "卸载现有包: $pkg"
@@ -197,12 +197,12 @@ install_sage_packages() {
     # 3. 最后安装开发工具（如果需要）
     if [ "$install_type" != "quick" ]; then
         print_status "5/6 安装 sage-dev-toolkit..."
-        if ! pip install -e packages/sage-tools/sage-dev-toolkit; then
+        if ! pip install -e packages/sage-dev-toolkit; then
             print_warning "sage-dev-toolkit 安装失败，继续..."
         fi
         
         print_status "6/6 安装 sage-frontend..."
-        if ! pip install -e packages/sage-tools/sage-frontend; then
+        if ! pip install -e packages/sage-frontend; then
             print_warning "sage-frontend 安装失败，继续..."
         fi
     else
@@ -306,7 +306,7 @@ verify_installation() {
         print_status "📦 参考版本: v$expected_version (来自主包 intsage)"
     fi
     
-    local packages_to_check=("intsage" "intsage-kernel" "intsage-middleware" "intsage-apps")
+    local packages_to_check=("intsage" "intsage-kernel" "intsage-middleware" )
     if [ "$INSTALL_TYPE" != "quick" ]; then
         packages_to_check+=("intsage-dev-toolkit" "intsage-frontend")
     fi

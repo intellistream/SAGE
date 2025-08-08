@@ -55,7 +55,6 @@ dependencies = [
     
     # Optional middleware and apps (for extended functionality)
     "intsage-middleware>=0.1.0",
-    "intsage-apps>=0.1.0",
 ]
 
 [project.license]
@@ -67,7 +66,6 @@ text = "MIT"
 enterprise = [
     "intsage-kernel[enterprise]",
     "intsage-middleware[enterprise]", 
-    "intsage-apps[enterprise]",
 ]
 
 # Core API development dependencies
@@ -86,7 +84,6 @@ enterprise-dev = [
     "intsage[api-dev]",
     "intsage-kernel[enterprise-dev]",
     "intsage-middleware[enterprise-dev]",
-    "intsage-apps[enterprise-dev]",
 ]
 
 # 完整安装 (所有功能)
@@ -94,7 +91,6 @@ full = [
     "intsage[enterprise]",
     "intsage-kernel[enhanced]",
     "intsage-middleware[vllm,database,messagequeue]",
-    "intsage-apps[vectordb,advanced]",
 ]
 
 [project.urls]

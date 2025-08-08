@@ -41,7 +41,7 @@ pip install --constraint ./scripts/constraints.txt torch==2.7.1 torchvision==0.2
 
 # 3. 逐个安装核心包
 pip install -e ./packages/sage-kernel
-pip install -e ./packages/sage-tools/sage-dev-toolkit
+pip install -e ./packages/sage-dev-toolkit
 
 # 4. 选择性安装其他包
 pip install -e ./packages/sage-middleware  # 如果需要

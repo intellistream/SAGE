@@ -123,7 +123,6 @@ done
 declare -A OPENSOURCE_PACKAGES=(
     ["intsage-kernel"]="$PACKAGES_DIR/sage-kernel"
     ["intsage-middleware"]="$PACKAGES_DIR/sage-middleware"
-    ["intsage-apps"]="$PACKAGES_DIR/sage-apps"
     ["intsage"]="$PACKAGES_DIR/sage"
 )
 

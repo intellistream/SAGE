@@ -12,7 +12,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # 路径定义
 SAGE_KERNEL_DOCS="$REPO_ROOT/packages/sage-kernel/docs"
 SAGE_MIDDLEWARE_DOCS="$REPO_ROOT/packages/sage-middleware/docs"
-SAGE_TOOLS_DOCS="$REPO_ROOT/packages/sage-tools/docs"
+SAGE_TOOLS_DOCS="$REPO_ROOT/packages/docs"
 PUBLIC_DOCS="$REPO_ROOT/docs-public/docs_src"
 
 echo "🔄 开始同步 SAGE 文档..."

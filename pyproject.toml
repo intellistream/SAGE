@@ -26,7 +26,6 @@ classifiers = [
 dependencies = [
     "intsage-kernel",
     "intsage-middleware", 
-    "intsage-apps",
     "intsage-dev-toolkit",
 ]
 
@@ -35,7 +34,6 @@ dependencies = [
 enterprise = [
     "intsage-kernel[enterprise]",
     "intsage-middleware[enterprise]", 
-    "intsage-apps[enterprise]",
 ]
 
 # 开发依赖

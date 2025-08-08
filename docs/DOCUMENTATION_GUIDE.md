@@ -36,7 +36,7 @@ SAGE 采用分层文档架构，对应项目的三层技术栈：
 packages/
 ├── sage-kernel/docs/          # Kernel层文档
 ├── sage-middleware/docs/      # Middleware层文档 (待创建)
-└── sage-tools/docs/          # Tools层文档 (待创建)
+└── docs/          # Tools层文档 (待创建)
 ```
 
 ### 公开文档 (用户文档)
