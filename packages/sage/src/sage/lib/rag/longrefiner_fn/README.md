@@ -33,7 +33,7 @@ SAGE框架适配器：
 
 ```python
 from sage.api.env import LocalEnvironment
-from sage.plugins.longrefiner_fn import LongRefinerFunction
+from sage.lib.rag.longrefiner_fn import LongRefinerFunction
 
 # 创建环境
 env = LocalEnvironment("text_refinement")

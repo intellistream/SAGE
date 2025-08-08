@@ -8,7 +8,7 @@ from sage.lib.io_utils.batch import HFDatasetBatch
 from sage.middleware.services.memory.memory_service import MemoryService
 
 from sage.lib.rag.retriever import DenseRetriever
-from sage.plugins.longrefiner_fn.longrefiner_adapter import LongRefinerAdapter
+from sage.lib.rag.longrefiner_fn.longrefiner_adapter import LongRefinerAdapter
 from sage.lib.rag.promptor import QAPromptor
 from sage.lib.rag.generator import OpenAIGenerator
 from sage.lib.rag.evaluate import (

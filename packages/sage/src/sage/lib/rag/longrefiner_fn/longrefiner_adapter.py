@@ -1,5 +1,5 @@
 from sage.core.api.function.map_function import MapFunction
-from sage.plugins.longrefiner_fn.longrefiner.refiner import LongRefiner
+from sage.lib.rag.longrefiner_fn.longrefiner.refiner import LongRefiner
 import os
 import time
 import json

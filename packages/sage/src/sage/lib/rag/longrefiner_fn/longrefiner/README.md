@@ -78,8 +78,8 @@ LongRefiner模块实现了智能的长文本处理算法，能够将冗长的文
 ## 快速开始
 
 ```python
-from sage.plugins.longrefiner_fn.longrefiner import LongRefiner
-from sage.plugins.longrefiner_fn.longrefiner.quick_start import QuickStart
+from sage.lib.rag.longrefiner_fn.longrefiner import LongRefiner
+from sage.lib.rag.longrefiner_fn.longrefiner.quick_start import QuickStart
 
 # 使用快速开始接口
 quick_refiner = QuickStart()

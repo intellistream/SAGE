@@ -1,6 +1,6 @@
 import json
 
-from sage.plugins.longrefiner_fn.longrefiner.refiner import LongRefiner
+from sage.lib.rag.longrefiner_fn.longrefiner.refiner import LongRefiner
 
 # Initialize
 query_analysis_module_lora_path = "jinjiajie/Query-Analysis-Qwen2.5-3B-Instruct"

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sage"
 version = "0.1.0"
-description = "SAGE - Streaming Analytics and Graph Engine"
+description = "SAGE - Streaming Analytics and Graph Engine with Core API"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -77,7 +77,7 @@ Documentation = "https://sage.readthedocs.io/"
 "Bug Reports" = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools]
-# 元包配置
+# 元包配置 - 主要依赖于子包，同时提供统一入口点
 packages = ["sage"]
 include-package-data = true
 
