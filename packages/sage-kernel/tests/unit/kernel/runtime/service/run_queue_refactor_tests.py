@@ -79,7 +79,7 @@ def run_quick_functionality_check():
         print("✅ BaseServiceTask import successful")
         
         # 检查ServiceContext导入
-        from sage.kernel.api.service_context import ServiceContext
+        from sage.kernel import ServiceContext
         print("✅ ServiceContext import successful")
         
         # 检查BaseQueueDescriptor导入

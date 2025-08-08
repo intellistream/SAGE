@@ -13,8 +13,8 @@ from ray.actor import ActorHandle
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment 
     from sage.kernel.jobmanager.compiler import ExecutionGraph, TaskNode
-    from sage.kernel.api.service_context import ServiceContext
-    from sage.kernel.api.task_context import TaskContext
+    from sage.kernel.runtime.context.service_context import ServiceContext
+    from sage.kernel.runtime.context.task_context import TaskContext
 
 # 这个dispatcher可以直接打包传给ray sage daemon service
 class Dispatcher():

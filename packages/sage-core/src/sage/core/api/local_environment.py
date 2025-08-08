@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, TYPE_CHECKING
 from sage.core.api.base_environment import BaseEnvironment
 if TYPE_CHECKING:
-    from sage.kernel.api import JobManager
+    from sage.kernel import JobManager
 
 class LocalEnvironment(BaseEnvironment):
     """本地环境，直接使用本地JobManager实例"""
@@ -22,7 +22,7 @@ class LocalEnvironment(BaseEnvironment):
     def jobmanager(self) -> 'JobManager':
         """直接返回JobManager的单例实例"""
         if self._jobmanager is None:
-            from sage.kernel.api import JobManager
+            from sage.kernel import JobManager
             # 获取JobManager单例实例
             jobmanager_instance = JobManager()
             # 本地环境直接返回JobManager实例，不使用ActorWrapper

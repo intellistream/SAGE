@@ -1,7 +1,7 @@
 from typing import Type, Any, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from sage.kernel.api.service_context import ServiceContext
+    from sage.kernel import ServiceContext
 
 
 class ServiceFactory:

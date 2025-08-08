@@ -13,7 +13,7 @@ from unittest.mock import Mock, MagicMock, patch
 from typing import Dict, Any
 
 from sage.kernel.runtime.service.base_service_task import BaseServiceTask
-from sage.kernel.api.service_context import ServiceContext
+from sage.kernel import ServiceContext
 from sage.core.factory.service_factory import ServiceFactory
 from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from queue import Empty
 import threading, copy, time, os
 from typing import Any, TYPE_CHECKING, Union, Optional
-from sage.kernel.api.task_context import TaskContext
+from sage.kernel.runtime.context.task_context import TaskContext
 from sage.core.communication.packet import Packet
 from ray.util.queue import Empty
 

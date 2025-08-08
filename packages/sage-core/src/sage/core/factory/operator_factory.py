@@ -3,7 +3,7 @@ from typing import Type, TYPE_CHECKING
 if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator
     from sage.core.factory.function_factory import FunctionFactory
-    from sage.kernel.api.task_context import TaskContext
+    from sage.kernel import TaskContext
 
 
 class OperatorFactory:

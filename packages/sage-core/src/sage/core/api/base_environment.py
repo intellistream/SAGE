@@ -10,8 +10,9 @@ from sage.core.transformation.source_transformation import SourceTransformation
 from sage.core.transformation.batch_transformation import BatchTransformation
 from sage.core.transformation.future_transformation import FutureTransformation 
 from sage.utils.logging.custom_logger import CustomLogger
-from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
 from sage.core.factory.service_factory import ServiceFactory
+
+from sage.kernel import JobManagerClient
 if TYPE_CHECKING:
     from sage.core.api.function.base_function import BaseFunction
     from sage.core.api.datastream import DataStream
@@ -353,32 +354,9 @@ class BaseEnvironment(ABC):
 
 
     ########################################################
-    #                called inside methods                 #
-    ########################################################
-
-    def setup_logging_system(self, log_base_dir: str): 
-        from sage.kernel.jobmanager.utils.name_server import get_name
-        self.name = get_name(self.name)
-        # 这行代码的目的是让自己在jobmanager的名字唯一，不与其他注册过的环境冲突
-        # this method is called by jobmanager when receiving the job, not the user
-        self.session_timestamp = datetime.now()
-        self.session_id = self.session_timestamp.strftime("%Y%m%d_%H%M%S")
-        # self.log_base_dir = log_base_dir
-        self.env_base_dir = os.path.join(log_base_dir, f"env_{self.name}_{self.session_id}")
-        Path(self.env_base_dir).mkdir(parents=True, exist_ok=True)
-
-        self._logger = CustomLogger([
-                ("console", self.console_log_level),  # 使用用户设置的控制台日志等级
-                (os.path.join(self.env_base_dir, "Environment.log"), "DEBUG"),  # 详细日志
-                (os.path.join(self.env_base_dir, "Error.log"), "ERROR")  # 错误日志
-            ],
-            name = f"Environment_{self.name}",
-        )
-    
-
-    ########################################################
     #                auxiliary methods                     #
     ########################################################
+
 
     def _append(self, transformation: BaseTransformation):
         """将 BaseTransformation 添加到管道中（Compiler 会使用）。"""

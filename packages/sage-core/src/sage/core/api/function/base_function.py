@@ -2,7 +2,7 @@ import os
 from abc import ABC, abstractmethod
 from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
 if TYPE_CHECKING:
-    from sage.kernel.api.task_context import TaskContext
+    from sage.kernel import TaskContext
 import logging
 
 

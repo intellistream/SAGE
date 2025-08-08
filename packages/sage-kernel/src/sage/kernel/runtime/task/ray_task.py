@@ -7,7 +7,7 @@ from sage.kernel.runtime.task.base_task import BaseTask
 from sage.core.communication.packet import Packet
 if TYPE_CHECKING:
     from sage.core.factory.operator_factory import OperatorFactory
-    from sage.kernel.api.task_context import TaskContext
+    from sage.kernel.runtime.context.task_context import TaskContext
 
 
 

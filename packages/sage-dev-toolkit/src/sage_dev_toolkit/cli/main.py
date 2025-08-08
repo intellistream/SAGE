@@ -23,7 +23,7 @@ def _register_commands():
     apps = get_apps()
     
     # 特殊处理需要作为子命令组的命令
-    subcommand_groups = {'pypi', 'package'}
+    subcommand_groups = {'pypi', 'package', 'test'}
     
     # 从各个模块添加命令到主应用
     for app_name, sub_app in apps.items():

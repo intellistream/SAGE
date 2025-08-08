@@ -104,12 +104,13 @@ class JobManager: #Job Manager
 
     def submit_job(self, env: 'BaseEnvironment') -> str:
         """提交作业"""
-        env.setup_logging_system(self.log_base_dir)
-        
         # 生成 UUID
         job_uuid = self._generate_job_uuid()
         env.uuid = job_uuid
         env.env_uuid = job_uuid
+        
+        # 设置环境的日志系统
+        self.setup_env_logging(env)
         
         # 向环境注入JobManager的网络地址信息
         if self.server:
@@ -496,6 +497,30 @@ class JobManager: #Job Manager
             (os.path.join(self.log_base_dir, "jobmanager.log"), "DEBUG"),      # 详细日志
             (os.path.join(self.log_base_dir, "error.log"), "ERROR") # 错误日志
         ], name="JobManager")
+
+    def setup_env_logging(self, env: 'BaseEnvironment'):
+        """为Environment设置日志系统"""
+        from sage.kernel.jobmanager.utils.name_server import get_name
+        
+        # 确保环境名称唯一，不与其他注册过的环境冲突
+        env.name = get_name(env.name)
+        
+        # 生成时间戳标识
+        env.session_timestamp = datetime.now()
+        env.session_id = env.session_timestamp.strftime("%Y%m%d_%H%M%S")
+        
+        # 设置环境基础目录
+        env.env_base_dir = os.path.join(self.log_base_dir, f"env_{env.name}_{env.session_id}")
+        Path(env.env_base_dir).mkdir(parents=True, exist_ok=True)
+
+        # 创建Environment专用的日志器
+        env._logger = CustomLogger([
+                ("console", env.console_log_level),  # 使用用户设置的控制台日志等级
+                (os.path.join(env.env_base_dir, "Environment.log"), "DEBUG"),  # 详细日志
+                (os.path.join(env.env_base_dir, "Error.log"), "ERROR")  # 错误日志
+            ],
+            name=f"Environment_{env.name}",
+        )
 
     @property
     def handle(self) -> 'JobManager':

@@ -13,7 +13,7 @@ from sage.kernel.runtime.service.base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:
     from sage.core.factory.service_factory import ServiceFactory
-    from sage.kernel.api.service_context import ServiceContext
+    from sage.kernel import ServiceContext
 
 
 @dataclass
