@@ -96,7 +96,9 @@ Documentation = "https://intellistream.github.io/SAGE-Pub/"
 Issues = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools]
-packages = ["intellistream_sage"]
 package-dir = {"" = "src"}
 include-package-data = false
 zip-safe = true
+
+[tool.setuptools.packages.find]
+where = ["src"]

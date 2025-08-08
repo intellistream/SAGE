@@ -5,6 +5,7 @@
 
 import sys
 import subprocess
+import os
 from pathlib import Path
 
 def run_command(cmd, description):
@@ -13,7 +14,12 @@ def run_command(cmd, description):
     print(f"💻 命令: {' '.join(cmd)}")
     
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=Path(__file__).parent.parent)
+        # 使用项目根目录作为工作目录，设置 PYTHONPATH
+        project_root = Path(__file__).parent.parent.parent.parent
+        env = os.environ.copy()
+        env['PYTHONPATH'] = str(Path(__file__).parent / "src")
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=project_root, env=env)
         
         if result.returncode == 0:
             print(f"✅ 成功")
@@ -43,6 +49,7 @@ def main():
         (["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "check"], "检查包配置"),
         (["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "build", "--help"], "构建帮助"),
         (["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "upload", "--help"], "上传帮助"),
+        (["python", "-m", "sage_dev_toolkit.cli.main", "pypi", "upload", "--dry-run", "intellistream-sage-kernel", "--skip-checks", "--skip-build"], "预演上传测试"),
     ]
     
     results = []

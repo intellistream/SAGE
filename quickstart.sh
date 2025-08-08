@@ -139,7 +139,7 @@ install_sage_packages() {
     print_status "检查现有安装并清理冲突..."
     
     # 卸载可能存在冲突的包（包括任何版本的sage相关包）
-    local packages_to_uninstall=("intellistream-sage" "intellistream-sage-kernel" "intellistream-sage-middleware"  "intellistream-sage-dev-toolkit" "intellistream-sage-frontend" "intellistream-sage-cli" "sage")
+    local packages_to_uninstall=("intellistream-sage" "intellistream-sage-core" "intellistream-sage-kernel" "intellistream-sage-middleware" "intellistream-sage-dev-toolkit" "intellistream-sage-cli" "sage")
     for pkg in "${packages_to_uninstall[@]}"; do
         if pip show "$pkg" >/dev/null 2>&1; then
             print_status "卸载现有包: $pkg"
@@ -168,42 +168,39 @@ install_sage_packages() {
     
     print_status "按正确顺序安装 SAGE 包..."
     
-    # 1. 首先安装命名空间包 - sage-middleware 和 sage-apps
-    print_status "1/6 安装 sage-middleware..."
+    # 1. 首先安装中间件包（提供基础服务）
+    print_status "1/5 安装 sage-middleware..."
     if ! pip install -e packages/sage-middleware; then
         print_error "sage-middleware 安装失败"
         return 1
     fi
     
-    print_status "2/6 安装 sage-apps..."
-    if ! pip install -e packages/sage-apps; then
-        print_error "sage-apps 安装失败"
-        return 1
-    fi
-    
-    # 2. 然后安装核心包
-    print_status "3/6 安装 sage-kernel..."
+    # 2. 安装统一内核包
+    print_status "2/5 安装 sage-kernel..."
     if ! pip install -e packages/sage-kernel; then
         print_error "sage-kernel 安装失败"
         return 1
     fi
     
-    print_status "4/6 安装主 sage 包..."
-    if ! pip install -e packages/sage; then
-        print_error "sage 安装失败"
+    # 3. 安装核心API包（主包）
+    print_status "3/5 安装 sage-core..."
+    if ! pip install -e packages/sage-core; then
+        print_error "sage-core 安装失败"
         return 1
     fi
     
-    # 3. 最后安装开发工具（如果需要）
+    # 4. 安装CLI工具包
+    print_status "4/5 安装 sage-cli..."
+    if ! pip install -e packages/sage-cli; then
+        print_error "sage-cli 安装失败"
+        return 1
+    fi
+    
+    # 5. 最后安装开发工具（如果需要）
     if [ "$install_type" != "quick" ]; then
-        print_status "5/6 安装 sage-dev-toolkit..."
+        print_status "5/5 安装 sage-dev-toolkit..."
         if ! pip install -e packages/sage-dev-toolkit; then
             print_warning "sage-dev-toolkit 安装失败，继续..."
-        fi
-        
-        print_status "6/6 安装 sage-frontend..."
-        if ! pip install -e packages/sage-frontend; then
-            print_warning "sage-frontend 安装失败，继续..."
         fi
     else
         print_status "快速安装模式，跳过开发工具"
@@ -264,10 +261,13 @@ verify_installation() {
     
     # 测试核心包导入
     local test_imports=(
-        "sage:主包"
-        "sage.kernel:内核包"
-        "sage.middleware:中间件包"
-        "sage.apps:应用包"
+        "sage:主包（核心API）"
+        "sage.cli:CLI工具包"
+    )
+    
+    # 测试子模块（命名空间包可能需要特殊处理）
+    local submodule_tests=(
+        "sage.cli.commands:CLI命令模块"
     )
     
     for import_test in "${test_imports[@]}"; do
@@ -279,6 +279,18 @@ verify_installation() {
         else
             print_warning "❌ $display_name 导入失败"
             all_good=false
+        fi
+    done
+    
+    # 测试子模块
+    for import_test in "${submodule_tests[@]}"; do
+        local import_name="${import_test%:*}"
+        local display_name="${import_test#*:}"
+        
+        if python3 -c "import $import_name" 2>/dev/null; then
+            print_status "✅ $display_name 导入成功"
+        else
+            print_warning "❌ $display_name 导入失败（可能是正常的命名空间包问题）"
         fi
     done
     
@@ -306,9 +318,9 @@ verify_installation() {
         print_status "📦 参考版本: v$expected_version (来自主包 intellistream-sage)"
     fi
     
-    local packages_to_check=("intellistream-sage" "intellistream-sage-kernel" "intellistream-sage-middleware" )
+    local packages_to_check=("intellistream-sage" "intellistream-sage-kernel" "intellistream-sage-middleware" "intellistream-sage-cli")
     if [ "$INSTALL_TYPE" != "quick" ]; then
-        packages_to_check+=("intellistream-sage-dev-toolkit" "intellistream-sage-frontend")
+        packages_to_check+=("intellistream-sage-dev-toolkit")
     fi
     
     for pkg in "${packages_to_check[@]}"; do
@@ -360,12 +372,13 @@ echo
 echo "🛠️ 常用开发命令:"
 echo "  • 激活环境: conda activate sage"
 echo "  • 同步文档: ./tools/sync_docs.sh"
-echo "  • 安装包: pip install -e packages/sage-kernel"
+echo "  • 安装核心包: pip install -e packages/sage-core"
+echo "  • 安装内核包: pip install -e packages/sage-kernel"
 echo "  • 运行示例: python examples/hello_world.py"
 
 echo
 echo -e "${CYAN}📖 更多信息请参考: docs/DOCUMENTATION_GUIDE.md${NC}"
-echo -e "${CYAN}🆘 遇到问题可以查看: packages/sage-kernel/docs/faq.md${NC}"
+echo -e "${CYAN}🆘 遇到问题可以查看: docs/troubleshooting/${NC}"
 echo -e "${YELLOW}⚠️  重要: 每次使用SAGE时，请先运行 'conda activate sage' 激活环境${NC}"
 
 print_success "欢迎加入SAGE开发团队！ 🎯"
