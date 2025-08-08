@@ -1,7 +1,6 @@
 import os
 import threading
 from typing import TYPE_CHECKING
-from PIL.ExifTags import Base
 import ray
 from ray.actor import ActorHandle
 from typing import List,Dict,Optional, Any, Union
@@ -9,6 +8,7 @@ from sage.utils.logging.custom_logger import CustomLogger
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 from sage.kernel.runtime.communication.router.router import BaseRouter
+from sage.kernel.runtime.communication.router.connection import Connection
 if TYPE_CHECKING:
     from sage.kernel.jobmanager.compiler import ExecutionGraph, TaskNode
     from sage.core.transformation.base_transformation import BaseTransformation
@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from sage.kernel.runtime.service.service_caller import ServiceManager
     from sage.core.communication.stop_signal import StopSignal
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
-    from sage.kernel.runtime.communication.router.connection import Connection
     from sage.core.communication.packet import Packet
 # task, operator和function "形式上共享"的运行上下文
 
@@ -64,7 +63,6 @@ class TaskContext(BaseRuntimeContext):
         self.service_qds: Dict[str, 'BaseQueueDescriptor'] = {}
         if execution_graph and hasattr(execution_graph, 'service_request_qds'):
             self.service_qds = execution_graph.service_request_qds.copy()
-            self.logger.debug(f"TaskContext got {len(self.service_qds)} service request queues from execution graph")
         
         # 下游连接组管理 - 从execution_graph构建downstream_groups
         self.downstream_groups: Dict[int, Dict[int, 'Connection']] = {}
@@ -84,7 +82,7 @@ class TaskContext(BaseRuntimeContext):
                         downstream_queue_descriptor = edge.downstream_node.input_qd
                         
                         # 创建Connection对象
-                        from sage.kernel.runtime.communication.router.connection import Connection
+                        
                         connection = Connection(
                             broadcast_index=broadcast_index,
                             parallel_index=edge.downstream_node.parallel_index,

@@ -45,7 +45,6 @@ class ServiceContext(BaseRuntimeContext):
         self._own_service_response_qd: Optional['BaseQueueDescriptor'] = None
         if hasattr(service_node, 'service_response_qd'):
             self._own_service_response_qd = service_node.service_response_qd
-            self.logger.debug(f"ServiceContext got own service response queue: {service_node.name if service_node.service_response_qd else 'None'}")
         
         # 提供response_qd属性以兼容ServiceManager（指向自己的service response queue）
         self.response_qd: Optional['BaseQueueDescriptor'] = self._own_service_response_qd
@@ -54,13 +53,11 @@ class ServiceContext(BaseRuntimeContext):
         self._service_response_queue_descriptors: Dict[str, 'BaseQueueDescriptor'] = {}
         if execution_graph and hasattr(execution_graph, 'service_response_qds'):
             self._service_response_queue_descriptors = execution_graph.service_response_qds.copy()
-            self.logger.debug(f"ServiceContext got {len(self._service_response_queue_descriptors)} service response queues from execution graph")
         
         # 从execution_graph获取service request队列描述符 - 用于service-to-service调用
         self._service_request_queue_descriptors: Dict[str, 'BaseQueueDescriptor'] = {}
         if execution_graph and hasattr(execution_graph, 'service_request_qds'):
             self._service_request_queue_descriptors = execution_graph.service_request_qds.copy()
-            self.logger.debug(f"ServiceContext got {len(self._service_request_queue_descriptors)} service request queues from execution graph")
         
         # 兼容ServiceManager - 提供service_qds属性（指向service request queue descriptors）
         self.service_qds: Dict[str, 'BaseQueueDescriptor'] = self._service_request_queue_descriptors
