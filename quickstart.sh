@@ -243,8 +243,8 @@ verify_installation() {
     
     # 测试核心包导入
     local test_imports=(
-        "intsage:主包"
-        "intsage.kernel:内核包"
+        "sage:主包"
+        "sage.kernel:内核包"
         "sage.middleware:中间件包"
         "sage.apps:应用包"
     )
