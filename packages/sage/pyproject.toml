@@ -3,7 +3,11 @@ requires = [
     "setuptools>=64",
     "wheel",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "setuptoo[tool.setuptools]
+packages = ["sage", "sage.core", "sage.core.api", "sage.core.api.function", "sage.core.api.service", "sage.core.operator", "sage.core.transformation", "sage.lib"]
+package-dir = {"" = "src"}
+include-package-data = true
+zip-safe = falseild_meta"
 
 [project]
 name = "intsage"
