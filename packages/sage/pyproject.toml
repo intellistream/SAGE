@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "intsage"
 version = "0.1.0"
-description = "SAGE Framework - 前端应用层统一框架"
+description = "SAGE Framework - 核心API和前端统一框架，包含用户核心API接口"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -21,6 +21,9 @@ keywords = [
     "intellistream",
     "ai",
     "sage",
+    "api",
+    "core",
+    "streaming",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -37,7 +40,16 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 dependencies = [
+    # Core runtime dependencies for SAGE API
+    "pyyaml>=6.0.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    "typing-extensions>=4.0.0",
+    
+    # Kernel dependencies (for core API support)
     "intsage-kernel>=0.1.0",
+    
+    # Optional middleware and apps (for extended functionality)
     "intsage-middleware>=0.1.0",
     "intsage-apps>=0.1.0",
 ]

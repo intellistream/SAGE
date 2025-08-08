@@ -1,4 +1,4 @@
-from sage.llm.clients.base import apply_generator_model
+from sage.lib.rag.generator import apply_generator_model
 from sage.core.api.function.map_function import MapFunction
 
 from typing import Tuple
