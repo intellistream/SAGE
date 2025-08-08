@@ -8,7 +8,7 @@ import threading
 import json
 from unittest.mock import patch
 
-from sage.kernel.api.jobmanager_client import JobManagerClient
+from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
 
 
 @pytest.mark.integration

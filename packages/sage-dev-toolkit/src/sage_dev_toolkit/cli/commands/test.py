@@ -10,7 +10,9 @@ class TestCommand(BaseCommand):
     """测试命令"""
     
     def __init__(self):
-        super().__init__("test", "Run tests with various modes and options")
+        super().__init__()
+        self.app = typer.Typer(name="test", help="🧪 运行测试工具")
+        self._register_commands()
     
     def _register_commands(self):
         """注册测试相关命令"""

@@ -1,6 +1,6 @@
 from typing import List, Type, Union, Tuple, Dict, Set, TYPE_CHECKING, Any, Optional
 from sage.core.operator.base_operator import BaseOperator
-from sage.kernel.runtime.communication.router.packet import Packet
+from sage.core.communication.packet import Packet
 
 class KeyByOperator(BaseOperator):
     """

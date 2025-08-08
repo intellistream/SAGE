@@ -230,28 +230,29 @@ where = ["src"]
         except Exception as e:
             console.print(f"  ❌ 更新pyproject.toml失败: {e}", style="red")
     
-    def build_wheel(self, upload: bool = False, dry_run: bool = True) -> bool:
+    def build_wheel(self, compiled_path: Optional[Path] = None) -> Path:
         """
         构建wheel包
         
         Args:
-            upload: 是否上传到PyPI
-            dry_run: 是否为预演模式
+            compiled_path: 已编译的包路径，如果未提供则使用self.compiled_path
             
         Returns:
-            是否成功
+            wheel文件路径
         """
-        if not self.compiled_path:
+        target_path = compiled_path or self.compiled_path
+        
+        if not target_path:
             raise SAGEDevToolkitError("Package not compiled yet. Call compile_package() first.")
         
-        console.print(f"📦 构建wheel包: {self.compiled_path.name}", style="cyan")
+        console.print(f"📦 构建wheel包: {target_path.name}", style="cyan")
         
         # 保存当前目录
         original_dir = Path.cwd()
         
         try:
             # 进入包目录
-            os.chdir(self.compiled_path)
+            os.chdir(target_path)
             
             # 清理旧构建
             for build_dir in ["dist", "build"]:
@@ -268,27 +269,23 @@ where = ["src"]
             if result.returncode == 0:
                 console.print(f"  ✅ 构建成功", style="green")
                 
-                # 显示构建的文件
+                # 查找构建的wheel文件
                 dist_files = list(Path("dist").glob("*.whl"))
-                for dist_file in dist_files:
-                    file_size = dist_file.stat().st_size / 1024 / 1024  # MB
-                    console.print(f"    📄 {dist_file.name} ({file_size:.2f} MB)")
+                if not dist_files:
+                    raise SAGEDevToolkitError("构建完成但未找到wheel文件")
                 
-                # 上传到PyPI
-                if upload and not dry_run:
-                    return self._upload_to_pypi()
-                elif upload and dry_run:
-                    console.print("  🔍 [预演模式] 跳过上传", style="yellow")
+                wheel_file = dist_files[0]  # 通常只有一个wheel文件
+                file_size = wheel_file.stat().st_size / 1024 / 1024  # MB
+                console.print(f"    📄 {wheel_file.name} ({file_size:.2f} MB)")
                 
-                return True
+                return wheel_file
                 
             else:
-                console.print(f"  ❌ 构建失败: {result.stderr}", style="red")
-                return False
+                raise SAGEDevToolkitError(f"构建失败: {result.stderr}")
                 
         except Exception as e:
             console.print(f"  💥 构建异常: {e}", style="red")
-            return False
+            raise
         
         finally:
             # 返回原目录

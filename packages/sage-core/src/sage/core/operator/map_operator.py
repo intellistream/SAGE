@@ -6,7 +6,7 @@ import time
 import os
 import json
 from typing import Union, Any
-from sage.kernel.runtime.communication.router.packet import Packet
+from sage.core.communication.packet import Packet
 
 
 class MapOperator(BaseOperator):

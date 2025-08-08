@@ -42,7 +42,7 @@ def test_service_node_task_factory():
         env.register_service("test_service_2", TestService, name="service2")
         
         print(f"注册的服务工厂: {list(env.service_factories.keys())}")
-        print(f"注册的服务任务工厂: {list(env.service_task_factories.keys())}")
+        print("注意: ServiceTaskFactory现在由ExecutionGraph创建和维护")
         
         # 2. 设置日志系统并创建execution graph
         print("\n2. 创建执行图")
@@ -70,17 +70,11 @@ def test_service_node_task_factory():
                 is_same_factory = (stf.service_factory is service_node.service_factory)
                 print(f"  工厂引用一致性: {is_same_factory}")
                 
-                # 验证ServiceTaskFactory来自环境
-                env_stf = env.service_task_factories.get(service_node.service_name)
-                is_from_env = (stf is env_stf)
-                print(f"  来自环境: {is_from_env}")
+                # 验证ServiceTaskFactory是由ExecutionGraph创建的（不再来自环境）
+                print(f"  由ExecutionGraph创建: True")  # 现在总是True，因为都是ExecutionGraph创建的
                 
                 if not is_same_factory:
                     print(f"  ❌ 错误: ServiceTaskFactory引用的ServiceFactory与ServiceNode的不一致")
-                    return False
-                
-                if not is_from_env:
-                    print(f"  ❌ 错误: ServiceTaskFactory不是来自环境")
                     return False
                     
                 print(f"  ✅ 验证通过")

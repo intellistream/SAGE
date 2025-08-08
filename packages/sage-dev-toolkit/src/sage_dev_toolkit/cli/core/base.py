@@ -8,18 +8,11 @@ import typer
 from .common import console, get_toolkit, handle_command_error
 
 
-class BaseCommand(ABC):
+class BaseCommand:
     """基础命令类，提供统一的命令结构"""
     
-    def __init__(self, name: str, help: str):
-        self.name = name
-        self.help = help
-        self.app = typer.Typer(name=name, help=help)
-        self._register_commands()
-    
-    @abstractmethod
-    def _register_commands(self):
-        """注册命令到 typer app，子类必须实现"""
+    def __init__(self):
+        # 子类应该在初始化时设置 self.app
         pass
     
     def create_standard_options(self):
@@ -42,12 +35,12 @@ class BaseCommand(ABC):
             toolkit = get_toolkit(project_root, config, environment)
             
             if verbose:
-                console.print(f"🔧 Executing {self.name} command...", style="blue")
+                console.print(f"🔧 Executing command...", style="blue")
             
             return func(toolkit, *args, **kwargs)
             
         except Exception as e:
-            handle_command_error(e, f"{self.name} command", verbose)
+            handle_command_error(e, f"Command", verbose)
     
     def show_success(self, message: str):
         """显示成功信息"""

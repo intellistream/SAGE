@@ -10,7 +10,7 @@ from sage.core.transformation.source_transformation import SourceTransformation
 from sage.core.transformation.batch_transformation import BatchTransformation
 from sage.core.transformation.future_transformation import FutureTransformation 
 from sage.utils.logging.custom_logger import CustomLogger
-from sage.kernel.api.jobmanager_client import JobManagerClient
+from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
 from sage.core.factory.service_factory import ServiceFactory
 if TYPE_CHECKING:
     from sage.core.api.function.base_function import BaseFunction
@@ -39,9 +39,8 @@ class BaseEnvironment(ABC):
         # 用于收集所有 BaseTransformation，供 ExecutionGraph 构建 DAG
         self.pipeline: List[BaseTransformation] = []
         self._filled_futures: dict = {}  
-        # 用于收集所有服务工厂，供任务提交时生成服务任务
+        # 用于收集所有服务工厂，供ExecutionGraph构建服务节点时使用
         self.service_factories: dict = {}  # service_name -> ServiceFactory
-        self.service_task_factories: dict = {}  # service_name -> ServiceTaskFactory
 
         self.env_base_dir: Optional[str] = None  # 环境基础目录，用于存储日志和其他文件
         # JobManager 相关
@@ -106,15 +105,7 @@ class BaseEnvironment(ABC):
             service_kwargs=kwargs
         )
         
-        # 创建服务任务工厂
-        from sage.kernel.runtime.factory.service_task_factory import ServiceTaskFactory
-        service_task_factory = ServiceTaskFactory(
-            service_factory=service_factory,
-            remote=(self.platform == "remote")
-        )
-        
         self.service_factories[service_name] = service_factory
-        self.service_task_factories[service_name] = service_task_factory
         
         platform_str = "remote" if self.platform == "remote" else "local"
         self.logger.info(f"Registered {platform_str} service: {service_name} ({service_class.__name__})")
@@ -134,15 +125,7 @@ class BaseEnvironment(ABC):
             kv_factory = create_kv_service_factory("my_kv", backend_type="memory")
             env.register_service_factory("my_kv", kv_factory)
         """
-        # 创建服务任务工厂
-        from sage.kernel.runtime.factory.service_task_factory import ServiceTaskFactory
-        service_task_factory = ServiceTaskFactory(
-            service_factory=service_factory,
-            remote=(self.platform == "remote")
-        )
-        
         self.service_factories[service_name] = service_factory
-        self.service_task_factories[service_name] = service_task_factory
         
         platform_str = "remote" if self.platform == "remote" else "local"
         self.logger.info(f"Registered {platform_str} service factory: {service_name}")

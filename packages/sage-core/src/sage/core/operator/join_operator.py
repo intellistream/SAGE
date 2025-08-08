@@ -1,6 +1,6 @@
 from .base_operator import BaseOperator
 from typing import Union, Any, List
-from sage.kernel.runtime.communication.router.packet import Packet
+from sage.core.communication.packet import Packet
 
 
 class JoinOperator(BaseOperator):

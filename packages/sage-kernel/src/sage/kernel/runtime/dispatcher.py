@@ -165,8 +165,11 @@ class Dispatcher():
         self.logger.info(f"Compiling Job for graph: {self.name}")
         
         # 第一步：创建所有服务任务实例  
-        for service_name, service_task_factory in self.env.service_task_factories.items():
+        for service_node_name, service_node in self.graph.service_nodes.items():
             try:
+                service_name = service_node.service_name
+                service_task_factory = service_node.service_task_factory
+                
                 # 为service task创建专用的runtime context
                 service_ctx = self._create_service_context(service_name)
                 

@@ -14,8 +14,8 @@ from sage.kernel.jobmanager.job_info import JobInfo
 from sage.utils.logging.custom_logger import CustomLogger
 from sage.kernel.runtime.dispatcher import Dispatcher
 import threading
-from sage.kernel.utils.serialization.dill import deserialize_object
-from sage.kernel.utils.network.local_tcp_server import BaseTcpServer
+from sage.utils.serialization.dill import deserialize_object
+from sage.utils.network.local_tcp_server import BaseTcpServer
 if TYPE_CHECKING:
     from sage.kernel.jobmanager.compiler import ExecutionGraph
     from sage.core.api.base_environment import BaseEnvironment

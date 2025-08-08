@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from sage.core.api.function.source_function import StopSignal
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
     from sage.kernel.runtime.communication.router.connection import Connection
+    from sage.core.communication.packet import Packet
 # task, operator和function "形式上共享"的运行上下文
 
 class TaskContext(BaseRuntimeContext):
@@ -163,7 +164,7 @@ class TaskContext(BaseRuntimeContext):
         """
         try:
             # 导入JobManagerClient来发送网络请求
-            from sage.kernel.api.jobmanager_client import JobManagerClient
+            from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
             
             self.logger.info(f"Task {node_name} sending stop signal back to JobManager at {self.jobmanager_host}:{self.jobmanager_port}")
             
@@ -217,6 +218,50 @@ class TaskContext(BaseRuntimeContext):
         except Exception:
             # 在析构函数中不记录错误，避免在程序退出时产生问题
             pass
+
+    # ================== 路由接口 - 封装BaseRouter功能 ==================
+    
+    def _get_router(self):
+        """延迟初始化router，避免直接暴露BaseRouter给core组件"""
+        if not hasattr(self, '_router') or self._router is None:
+            from sage.kernel.runtime.communication.router.router import BaseRouter
+            self._router = BaseRouter(self)
+            self.logger.debug(f"Initialized router for TaskContext {self.name}")
+        return self._router
+    
+    def send_packet(self, packet: 'Packet') -> bool:
+        """
+        通过TaskContext发送数据包，隐藏BaseRouter实现细节
+        这是核心API组件与kernel通信的统一接口
+        """
+        try:
+            router = self._get_router()
+            return router.send(packet)
+        except Exception as e:
+            self.logger.error(f"Failed to send packet through TaskContext: {e}")
+            return False
+    
+    def send_stop_signal(self, stop_signal: 'StopSignal') -> None:
+        """
+        通过TaskContext发送停止信号，隐藏BaseRouter实现细节
+        """
+        try:
+            router = self._get_router()
+            router.send_stop_signal(stop_signal)
+            self.logger.debug(f"Sent stop signal through TaskContext")
+        except Exception as e:
+            self.logger.error(f"Failed to send stop signal through TaskContext: {e}")
+    
+    def get_routing_info(self) -> Dict[str, Any]:
+        """
+        获取路由连接信息，提供给上层调试和监控
+        """
+        try:
+            router = self._get_router()
+            return router.get_connections_info()
+        except Exception as e:
+            self.logger.error(f"Failed to get routing info: {e}")
+            return {}
 
     # ================== 队列描述符管理方法 ==================
     

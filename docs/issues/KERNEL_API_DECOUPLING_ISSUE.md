@@ -14,7 +14,7 @@ The current architecture exhibits poor separation of concerns between the core A
 # From base_operator.py
 from sage.kernel.runtime.task.base_task import BaseTask
 from sage.utils.logging.custom_logger import CustomLogger
-from sage.kernel.runtime.communication.router.packet import Packet
+from sage.core.api.packet import Packet
 from sage.kernel.runtime.communication.router.connection import Connection
 from sage.kernel.runtime.task_context import TaskContext
 from sage.core.factory.function_factory import FunctionFactory

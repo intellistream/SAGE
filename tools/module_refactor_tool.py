@@ -125,7 +125,7 @@ class ModuleRefactorTool:
                 ["JobManagerClient"]
             ),
             ImportMapping(
-                "sage.kernel.jobmanager.job_manager",
+                "sage.kernel.api",
                 "sage.kernel.jobmanager",
                 ["JobManager"]
             ),

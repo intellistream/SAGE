@@ -17,7 +17,7 @@ import sys
 import subprocess
 from unittest.mock import patch, MagicMock, mock_open, call
 
-from sage.kernel.utils.system.environment import (
+from sage.utils.system.environment import (
     detect_execution_environment,
     is_ray_available,
     is_ray_cluster_active,
@@ -38,11 +38,11 @@ from sage.kernel.utils.system.environment import (
 class TestEnvironmentDetection:
     """环境检测测试"""
     
-    @patch('sage.kernel.utils.system.environment.is_ray_cluster_active')
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
-    @patch('sage.kernel.utils.system.environment.is_kubernetes_environment')
-    @patch('sage.kernel.utils.system.environment.is_docker_environment')
-    @patch('sage.kernel.utils.system.environment.is_slurm_environment')
+    @patch('sage.utils.system.environment.is_ray_cluster_active')
+    @patch('sage.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.is_kubernetes_environment')
+    @patch('sage.utils.system.environment.is_docker_environment')
+    @patch('sage.utils.system.environment.is_slurm_environment')
     def test_detect_execution_environment_ray(self, mock_slurm, mock_docker, mock_k8s, mock_ray_available, mock_ray_active):
         """测试检测Ray环境"""
         mock_ray_available.return_value = True
@@ -54,11 +54,11 @@ class TestEnvironmentDetection:
         result = detect_execution_environment()
         assert result == 'ray'
     
-    @patch('sage.kernel.utils.system.environment.is_ray_cluster_active')
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
-    @patch('sage.kernel.utils.system.environment.is_kubernetes_environment')
-    @patch('sage.kernel.utils.system.environment.is_docker_environment')
-    @patch('sage.kernel.utils.system.environment.is_slurm_environment')
+    @patch('sage.utils.system.environment.is_ray_cluster_active')
+    @patch('sage.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.is_kubernetes_environment')
+    @patch('sage.utils.system.environment.is_docker_environment')
+    @patch('sage.utils.system.environment.is_slurm_environment')
     def test_detect_execution_environment_kubernetes(self, mock_slurm, mock_docker, mock_k8s, mock_ray_available, mock_ray_active):
         """测试检测Kubernetes环境"""
         mock_ray_available.return_value = False
@@ -70,11 +70,11 @@ class TestEnvironmentDetection:
         result = detect_execution_environment()
         assert result == 'kubernetes'
     
-    @patch('sage.kernel.utils.system.environment.is_ray_cluster_active')
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
-    @patch('sage.kernel.utils.system.environment.is_kubernetes_environment')
-    @patch('sage.kernel.utils.system.environment.is_docker_environment')
-    @patch('sage.kernel.utils.system.environment.is_slurm_environment')
+    @patch('sage.utils.system.environment.is_ray_cluster_active')
+    @patch('sage.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.is_kubernetes_environment')
+    @patch('sage.utils.system.environment.is_docker_environment')
+    @patch('sage.utils.system.environment.is_slurm_environment')
     def test_detect_execution_environment_docker(self, mock_slurm, mock_docker, mock_k8s, mock_ray_available, mock_ray_active):
         """测试检测Docker环境"""
         mock_ray_available.return_value = False
@@ -86,11 +86,11 @@ class TestEnvironmentDetection:
         result = detect_execution_environment()
         assert result == 'docker'
     
-    @patch('sage.kernel.utils.system.environment.is_ray_cluster_active')
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
-    @patch('sage.kernel.utils.system.environment.is_kubernetes_environment')
-    @patch('sage.kernel.utils.system.environment.is_docker_environment')
-    @patch('sage.kernel.utils.system.environment.is_slurm_environment')
+    @patch('sage.utils.system.environment.is_ray_cluster_active')
+    @patch('sage.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.is_kubernetes_environment')
+    @patch('sage.utils.system.environment.is_docker_environment')
+    @patch('sage.utils.system.environment.is_slurm_environment')
     def test_detect_execution_environment_slurm(self, mock_slurm, mock_docker, mock_k8s, mock_ray_available, mock_ray_active):
         """测试检测SLURM环境"""
         mock_ray_available.return_value = False
@@ -102,11 +102,11 @@ class TestEnvironmentDetection:
         result = detect_execution_environment()
         assert result == 'slurm'
     
-    @patch('sage.kernel.utils.system.environment.is_ray_cluster_active')
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
-    @patch('sage.kernel.utils.system.environment.is_kubernetes_environment')
-    @patch('sage.kernel.utils.system.environment.is_docker_environment')
-    @patch('sage.kernel.utils.system.environment.is_slurm_environment')
+    @patch('sage.utils.system.environment.is_ray_cluster_active')
+    @patch('sage.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.is_kubernetes_environment')
+    @patch('sage.utils.system.environment.is_docker_environment')
+    @patch('sage.utils.system.environment.is_slurm_environment')
     def test_detect_execution_environment_local(self, mock_slurm, mock_docker, mock_k8s, mock_ray_available, mock_ray_active):
         """测试检测本地环境"""
         mock_ray_available.return_value = False
@@ -135,7 +135,7 @@ class TestRayDetection:
             result = is_ray_available()
             assert result is False
     
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.is_ray_available')
     def test_is_ray_cluster_active_not_available(self, mock_ray_available):
         """测试Ray不可用时的集群状态"""
         mock_ray_available.return_value = False
@@ -143,7 +143,7 @@ class TestRayDetection:
         result = is_ray_cluster_active()
         assert result is False
     
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.is_ray_available')
     def test_is_ray_cluster_active_true(self, mock_ray_available):
         """测试Ray集群活跃状态"""
         mock_ray_available.return_value = True
@@ -156,7 +156,7 @@ class TestRayDetection:
             result = is_ray_cluster_active()
             assert result is True
     
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.is_ray_available')
     def test_is_ray_cluster_active_false(self, mock_ray_available):
         """测试Ray集群非活跃状态"""
         mock_ray_available.return_value = True
@@ -169,7 +169,7 @@ class TestRayDetection:
             result = is_ray_cluster_active()
             assert result is False
     
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.is_ray_available')
     def test_get_ray_cluster_info_not_available(self, mock_ray_available):
         """测试获取Ray集群信息 - 不可用"""
         mock_ray_available.return_value = False
@@ -178,7 +178,7 @@ class TestRayDetection:
         assert result["available"] is False
         assert "Ray not installed" in result["error"]
     
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.is_ray_available')
     def test_get_ray_cluster_info_not_initialized(self, mock_ray_available):
         """测试获取Ray集群信息 - 未初始化"""
         mock_ray_available.return_value = True
@@ -192,7 +192,7 @@ class TestRayDetection:
             assert result["available"] is True
             assert result["initialized"] is False
     
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.is_ray_available')
     def test_get_ray_cluster_info_initialized(self, mock_ray_available):
         """测试获取Ray集群信息 - 已初始化"""
         mock_ray_available.return_value = True
@@ -494,9 +494,9 @@ class TestNetworkInterfaces:
 class TestBackendRecommendation:
     """后端推荐测试"""
     
-    @patch('sage.kernel.utils.system.environment.detect_execution_environment')
-    @patch('sage.kernel.utils.system.environment.get_system_resources')
-    @patch('sage.kernel.utils.system.environment.detect_gpu_resources')
+    @patch('sage.utils.system.environment.detect_execution_environment')
+    @patch('sage.utils.system.environment.get_system_resources')
+    @patch('sage.utils.system.environment.detect_gpu_resources')
     def test_recommend_backend_ray_environment(self, mock_gpu, mock_resources, mock_env):
         """测试Ray环境的后端推荐"""
         mock_env.return_value = "ray"
@@ -510,9 +510,9 @@ class TestBackendRecommendation:
         assert result["communication_layer"] == "ray_queue"
         assert any("Ray cluster detected" in reason for reason in result["reasoning"])
     
-    @patch('sage.kernel.utils.system.environment.detect_execution_environment')
-    @patch('sage.kernel.utils.system.environment.get_system_resources')
-    @patch('sage.kernel.utils.system.environment.detect_gpu_resources')
+    @patch('sage.utils.system.environment.detect_execution_environment')
+    @patch('sage.utils.system.environment.get_system_resources')
+    @patch('sage.utils.system.environment.detect_gpu_resources')
     def test_recommend_backend_kubernetes_environment(self, mock_gpu, mock_resources, mock_env):
         """测试Kubernetes环境的后端推荐"""
         mock_env.return_value = "kubernetes"
@@ -526,9 +526,9 @@ class TestBackendRecommendation:
         assert "local" in result["secondary_backends"]
         assert result["communication_layer"] == "network"
     
-    @patch('sage.kernel.utils.system.environment.detect_execution_environment')
-    @patch('sage.kernel.utils.system.environment.get_system_resources')
-    @patch('sage.kernel.utils.system.environment.detect_gpu_resources')
+    @patch('sage.utils.system.environment.detect_execution_environment')
+    @patch('sage.utils.system.environment.get_system_resources')
+    @patch('sage.utils.system.environment.detect_gpu_resources')
     def test_recommend_backend_with_gpu(self, mock_gpu, mock_resources, mock_env):
         """测试有GPU时的后端推荐"""
         mock_env.return_value = "local"
@@ -541,9 +541,9 @@ class TestBackendRecommendation:
         assert result["communication_layer"] == "gpu_direct"
         assert any("GPU available" in reason for reason in result["reasoning"])
     
-    @patch('sage.kernel.utils.system.environment.detect_execution_environment')
-    @patch('sage.kernel.utils.system.environment.get_system_resources')
-    @patch('sage.kernel.utils.system.environment.detect_gpu_resources')
+    @patch('sage.utils.system.environment.detect_execution_environment')
+    @patch('sage.utils.system.environment.get_system_resources')
+    @patch('sage.utils.system.environment.detect_gpu_resources')
     def test_recommend_backend_high_memory(self, mock_gpu, mock_resources, mock_env):
         """测试高内存时的后端推荐"""
         mock_env.return_value = "local"
@@ -555,9 +555,9 @@ class TestBackendRecommendation:
         assert result["memory_strategy"] == "mmap"
         assert any("High memory available" in reason for reason in result["reasoning"])
     
-    @patch('sage.kernel.utils.system.environment.detect_execution_environment')
-    @patch('sage.kernel.utils.system.environment.get_system_resources')
-    @patch('sage.kernel.utils.system.environment.detect_gpu_resources')
+    @patch('sage.utils.system.environment.detect_execution_environment')
+    @patch('sage.utils.system.environment.get_system_resources')
+    @patch('sage.utils.system.environment.detect_gpu_resources')
     def test_recommend_backend_low_memory(self, mock_gpu, mock_resources, mock_env):
         """测试低内存时的后端推荐"""
         mock_env.return_value = "local"
@@ -582,12 +582,12 @@ class TestEnvironmentValidation:
         assert result["supported"] is True
         assert len(result["issues"]) == 0
     
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.is_ray_available')
     def test_validate_environment_for_backend_ray_available(self, mock_ray_available):
         """测试Ray后端环境验证 - 可用"""
         mock_ray_available.return_value = True
         
-        with patch('sage.kernel.utils.system.environment.is_ray_cluster_active', return_value=False):
+        with patch('sage.utils.system.environment.is_ray_cluster_active', return_value=False):
             result = validate_environment_for_backend("ray")
         
         assert result["backend"] == "ray"
@@ -595,7 +595,7 @@ class TestEnvironmentValidation:
         assert len(result["issues"]) == 0
         assert any("Initialize Ray cluster" in rec for rec in result["recommendations"])
     
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.is_ray_available')
     def test_validate_environment_for_backend_ray_not_available(self, mock_ray_available):
         """测试Ray后端环境验证 - 不可用"""
         mock_ray_available.return_value = False
@@ -607,8 +607,8 @@ class TestEnvironmentValidation:
         assert "Ray not installed" in result["issues"]
         assert any("Install Ray" in rec for rec in result["recommendations"])
     
-    @patch('sage.kernel.utils.system.environment.is_ray_available')
-    @patch('sage.kernel.utils.system.environment.get_network_interfaces')
+    @patch('sage.utils.system.environment.is_ray_available')
+    @patch('sage.utils.system.environment.get_network_interfaces')
     def test_validate_environment_for_backend_distributed(self, mock_network, mock_ray_available):
         """测试分布式后端环境验证"""
         mock_ray_available.return_value = True
@@ -624,12 +624,12 @@ class TestEnvironmentValidation:
 class TestEnvironmentCapabilities:
     """环境能力集成测试"""
     
-    @patch('sage.kernel.utils.system.environment.detect_execution_environment')
-    @patch('sage.kernel.utils.system.environment.get_system_resources')
-    @patch('sage.kernel.utils.system.environment.detect_gpu_resources')
-    @patch('sage.kernel.utils.system.environment.get_network_interfaces')
-    @patch('sage.kernel.utils.system.environment.get_ray_cluster_info')
-    @patch('sage.kernel.utils.system.environment.recommend_backend')
+    @patch('sage.utils.system.environment.detect_execution_environment')
+    @patch('sage.utils.system.environment.get_system_resources')
+    @patch('sage.utils.system.environment.detect_gpu_resources')
+    @patch('sage.utils.system.environment.get_network_interfaces')
+    @patch('sage.utils.system.environment.get_ray_cluster_info')
+    @patch('sage.utils.system.environment.recommend_backend')
     def test_get_environment_capabilities(self, mock_recommend, mock_ray_info, mock_network, mock_gpu, mock_resources, mock_env):
         """测试获取完整环境能力"""
         # 设置模拟返回值
@@ -694,8 +694,8 @@ class TestEnvironmentPerformance:
         # 10次检测应该在合理时间内完成
         assert elapsed_time < 1.0  # 应在1秒内完成
     
-    @patch('sage.kernel.utils.system.environment.get_system_resources')
-    @patch('sage.kernel.utils.system.environment.detect_gpu_resources')
+    @patch('sage.utils.system.environment.get_system_resources')
+    @patch('sage.utils.system.environment.detect_gpu_resources')
     def test_get_environment_capabilities_performance(self, mock_gpu, mock_resources):
         """测试获取环境能力的性能"""
         import time

@@ -1,5 +1,4 @@
 from typing import Type, Any, Tuple, TYPE_CHECKING
-from sage.kernel.jobmanager.utils.name_server import get_name
 
 if TYPE_CHECKING:
     from sage.kernel.api.service_context import ServiceContext
@@ -29,7 +28,7 @@ class ServiceFactory:
         if not service_class:
             raise ValueError("service_class cannot be None")
             
-        self.service_name = get_name(service_name)
+        self.service_name = service_name or service_class.__name__
         self.service_class = service_class
         print(f"ServiceFactory initialized for {self.service_name} with class {self.service_class}")
         self.service_args = service_args

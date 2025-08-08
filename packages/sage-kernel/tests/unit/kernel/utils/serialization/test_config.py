@@ -12,7 +12,7 @@ import pytest
 import threading
 from unittest.mock import Mock
 
-from sage.kernel.utils.serialization.config import (
+from sage.utils.serialization.config import (
     BLACKLIST,
     ATTRIBUTE_BLACKLIST,
     SKIP_VALUE,

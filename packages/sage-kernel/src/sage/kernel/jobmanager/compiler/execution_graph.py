@@ -131,7 +131,7 @@ class ExecutionGraph:
 
     def _build_service_nodes(self, env: BaseEnvironment):
         """
-        构建服务节点，从环境中获取ServiceTaskFactory
+        构建服务节点，在ExecutionGraph中创建ServiceTaskFactory
         
         Args:
             env: 环境对象
@@ -143,10 +143,12 @@ class ExecutionGraph:
                 # 生成唯一的服务节点名称
                 service_node_name = get_name(f"service_{service_name}")
                 
-                # 从环境中获取对应的ServiceTaskFactory
-                service_task_factory = env.service_task_factories.get(service_name)
-                if service_task_factory is None:
-                    raise RuntimeError(f"ServiceTaskFactory not found for service {service_name}")
+                # 在ExecutionGraph中创建ServiceTaskFactory，而不是从环境中获取
+                from sage.kernel.runtime.factory.service_task_factory import ServiceTaskFactory
+                service_task_factory = ServiceTaskFactory(
+                    service_factory=service_factory,
+                    remote=(env.platform == "remote")
+                )
                 
                 # 创建服务节点，同时传入ServiceFactory和ServiceTaskFactory
                 service_node = ServiceNode(
@@ -159,7 +161,8 @@ class ExecutionGraph:
                 # 添加到服务节点字典
                 self.service_nodes[service_node_name] = service_node
                 
-                self.logger.debug(f"Created service node: {service_node_name} for service: {service_name}")
+                platform_str = "remote" if env.platform == "remote" else "local"
+                self.logger.debug(f"Created service node: {service_node_name} for service: {service_name} ({platform_str})")
                 
             except Exception as e:
                 self.logger.error(f"Error creating service node for {service_name}: {e}")

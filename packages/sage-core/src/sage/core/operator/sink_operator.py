@@ -3,7 +3,7 @@ from sage.core.api.function.sink_function import SinkFunction
 from sage.utils.logging.custom_logger import CustomLogger
 from collections import deque
 from typing import Union, Dict, Deque, Tuple, Any
-from sage.kernel.runtime.communication.router.packet import Packet
+from sage.core.communication.packet import Packet
 
 
 class SinkOperator(BaseOperator):

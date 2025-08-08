@@ -3,7 +3,7 @@ from queue import Empty
 import threading, copy, time, os
 from typing import Any, TYPE_CHECKING, Union, Optional
 from sage.kernel.api.task_context import TaskContext
-from sage.kernel.runtime.communication.router.packet import Packet
+from sage.core.communication.packet import Packet
 from ray.util.queue import Empty
 
 from sage.kernel.runtime.communication.router.router import BaseRouter
@@ -34,7 +34,8 @@ class BaseTask(ABC):
         try:
             self.operator:BaseOperator = operator_factory.create_operator(self.ctx)
             self.operator.task = self
-            self.operator.inject_router(self.router)
+            # 不再需要inject_router，operator通过ctx.send_packet()进行路由
+            # self.operator.inject_router(self.router)
         except Exception as e:
             self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
             raise

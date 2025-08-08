@@ -107,7 +107,7 @@ class SAGEDevToolkit:
         """Load integrated tools and dynamically load additional tools from scripts directory."""
         # Load integrated tools first
         from ..tools import (
-            ImportPathFixer, VSCodePathManager, OneClickSetupTester,
+            VSCodePathManager, OneClickSetupTester,
             EnhancedPackageManager, EnhancedTestRunner
         )
         
@@ -116,7 +116,7 @@ class SAGEDevToolkit:
             'test_runner': EnhancedTestRunner,
             'package_manager': EnhancedPackageManager,
             'dependency_analyzer': EnhancedTestRunner,  # Can also analyze dependencies
-            'import_fixer': ImportPathFixer,
+            
             'vscode_manager': VSCodePathManager,
             'setup_tester': OneClickSetupTester
         }

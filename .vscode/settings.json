@@ -2,6 +2,7 @@
   "python.analysis.extraPaths": [
     "./packages/sage-kernel/src",
     "./packages/sage-middleware/src",
+    "./packages/sage-utils/src",
     "./packages/sage-core/src",
     "./packages/sage-cli/src",
     "./packages/sage-dev-toolkit/src",
@@ -11,6 +12,7 @@
   "python.autoComplete.extraPaths": [
     "./packages/sage-kernel/src",
     "./packages/sage-middleware/src",
+    "./packages/sage-utils/src",
     "./packages/sage-core/src",
     "./packages/sage-cli/src",
     "./packages/sage-dev-toolkit/src",

@@ -16,7 +16,7 @@ import time
 import threading
 from unittest.mock import patch, MagicMock, Mock
 
-from sage.kernel.utils.network.base_tcp_client import BaseTcpClient
+from sage.utils.network.base_tcp_client import BaseTcpClient
 
 
 class MockTcpClient(BaseTcpClient):

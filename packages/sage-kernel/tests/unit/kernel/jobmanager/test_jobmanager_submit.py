@@ -14,7 +14,7 @@ def test_jobmanager_submit_logic():
     
     try:
         from sage.kernel.jobmanager.job_manager import JobManagerServer, JobManager
-        from sage.kernel.utils.serialization.dill_serializer import serialize_object
+        from sage.utils.serialization.dill_serializer import serialize_object
         from sage.core.api.local_environment import LocalEnvironment
         
         # 创建一个真实的LocalEnvironment用于测试
@@ -64,7 +64,7 @@ def test_client_request_format():
     print("\n=== 测试 JobManagerClient 请求格式 ===")
     
     try:
-        from sage.kernel.api.jobmanager_client import JobManagerClient
+        from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
         import uuid
         
         # 创建客户端

@@ -3,10 +3,8 @@ from sage.core.api.function.batch_function import BatchFunction
 from sage.utils.logging.custom_logger import CustomLogger
 from collections import deque
 from typing import Union, Dict, Deque, Tuple, Any, TYPE_CHECKING
-from sage.kernel.runtime.communication.router.packet import Packet
+from sage.core.communication.packet import Packet
 from sage.core.api.function.source_function import StopSignal
-if TYPE_CHECKING:
-    from sage.kernel.runtime.task.base_task import BaseTask
 
 class BatchOperator(BaseOperator):
     def __init__(self, *args, **kwargs):

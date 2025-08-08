@@ -14,6 +14,7 @@ from .remote_environment import RemoteEnvironment
 from .datastream import DataStream
 from .connected_streams import ConnectedStreams
 
+
 # 核心函数基类
 from .function.base_function import BaseFunction
 from .function.batch_function import BatchFunction
@@ -26,16 +27,6 @@ from .function.flatmap_function import FlatMapFunction
 from .function.comap_function import BaseCoMapFunction
 from .function.join_function import BaseJoinFunction
 
-# 变换接口 (从kernel模块导入)
-try:
-    from ..kernels.core.transformation.base_transformation import BaseTransformation
-    from ..kernels.core.transformation.map_transformation import MapTransformation
-    from ..kernels.core.transformation.filter_transformation import FilterTransformation
-    from ..kernels.core.transformation.sink_transformation import SinkTransformation
-    _transformations_available = True
-except ImportError:
-    _transformations_available = False
-
 __all__ = [
     # 环境类
     'BaseEnvironment',
@@ -45,6 +36,9 @@ __all__ = [
     # 数据流类
     'DataStream',
     'ConnectedStreams',
+    
+    # 数据包类
+    'Packet',
     
     # 函数类
     'BaseFunction',

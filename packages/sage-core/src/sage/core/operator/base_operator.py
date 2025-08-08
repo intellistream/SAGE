@@ -4,12 +4,10 @@ from typing import Any, List, Dict, Optional, TYPE_CHECKING, Type, Tuple
 from sage.core.api.function.source_function import StopSignal
 
 if TYPE_CHECKING:
-    from sage.kernel.runtime.communication.router.packet import Packet
+    from sage.core.communication.packet import Packet
     from sage.core.api.function.base_function import BaseFunction
     from sage.kernel.api.task_context import TaskContext
     from sage.core.factory.function_factory import FunctionFactory
-    from sage.kernel.runtime.communication.router.router import BaseRouter
-    from sage.kernel.runtime.task.base_task import BaseTask
     from sage.utils.logging.custom_logger import CustomLogger
 
 class BaseOperator(ABC):
@@ -19,8 +17,6 @@ class BaseOperator(ABC):
         
         self.ctx: 'TaskContext' = ctx
         self.function:'BaseFunction'
-        self.router:'BaseRouter'     # 由task传下来的
-        self.task: Optional['BaseTask'] = None
         try:
             self.function = function_factory.create_function(self.name, ctx)
             self.logger.debug(f"Created function instance with {function_factory}")
@@ -29,12 +25,23 @@ class BaseOperator(ABC):
             self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
             raise
 
-    def inject_router(self, router: 'BaseRouter'):
+    def send_packet(self, packet: 'Packet') -> bool:
         """
-        注入路由器实例
+        通过TaskContext发送数据包，间接调用router功能
         """
-        self.router = router
-        self.logger.debug(f"Injected router into operator {self.name}")
+        return self.ctx.send_packet(packet)
+
+    def send_stop_signal(self, stop_signal: 'StopSignal') -> None:
+        """
+        通过TaskContext发送停止信号，间接调用router功能
+        """
+        self.ctx.send_stop_signal(stop_signal)
+    
+    def get_routing_info(self) -> Dict[str, Any]:
+        """
+        获取路由信息，用于调试和监控
+        """
+        return self.ctx.get_routing_info()
 
 
     # TODO: 去掉stateful function的概念，用某些策略对于function内部的可序列化字段做静态保存和checkpoint

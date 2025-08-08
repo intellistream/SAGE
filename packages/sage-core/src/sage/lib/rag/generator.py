@@ -6,9 +6,7 @@ import time
 import json
 
 from sage.core.api.function.map_function import MapFunction
-from sage.core.api.function.base_function import StatefulFunction
 from sage.lib.rag.generator import apply_generator_model
-from sage.kernel.utils.persistence.state import load_function_state, save_function_state
 
 
 class OpenAIGenerator(MapFunction):

@@ -84,7 +84,7 @@ def test_serialization_only():
     
     try:
         from sage.core.api.remote_environment import RemoteEnvironment
-        from sage.kernel.utils.serialization.dill_serializer import trim_object_for_ray, serialize_object, deserialize_object
+        from sage.utils.serialization.dill_serializer import trim_object_for_ray, serialize_object, deserialize_object
         
         # 创建环境
         env = RemoteEnvironment("test_serialization", {"key": "value"})

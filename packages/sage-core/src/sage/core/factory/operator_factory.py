@@ -1,5 +1,4 @@
 from typing import Type, TYPE_CHECKING
-from sage.kernel.jobmanager.utils.name_server import get_name
 
 if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator

@@ -18,7 +18,7 @@ from typing import Dict, List, Any, Optional, Callable
 
 import pytest
 
-from sage.kernel.utils.network.local_tcp_server import BaseTcpServer, LocalTcpServer
+from sage.utils.network.local_tcp_server import BaseTcpServer, LocalTcpServer
 
 
 class TestBaseTcpServer:

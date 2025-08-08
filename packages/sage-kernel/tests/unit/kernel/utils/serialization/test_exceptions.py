@@ -9,7 +9,7 @@ Tests for sage.utils.serialization.exceptions module
 """
 
 import pytest
-from sage.kernel.utils.serialization.exceptions import SerializationError
+from sage.utils.serialization.exceptions import SerializationError
 
 
 @pytest.mark.unit
