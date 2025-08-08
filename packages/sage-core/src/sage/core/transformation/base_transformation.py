@@ -1,9 +1,8 @@
 from __future__ import annotations
 from typing import List, Type, Union, TYPE_CHECKING, Any
 from sage.kernel.utils.logging.custom_logger import CustomLogger
-from sage.kernel.jobmanager.utils.name_server import get_name
 from sage.kernel.runtime.factory.operator_factory import OperatorFactory
-from sage.kernel.runtime.factory.function_factory import FunctionFactory
+from sage.core.factory.function_factory import FunctionFactory
 from sage.kernel.runtime.factory.task_factory import TaskFactory
 from ray.actor import ActorHandle
 if TYPE_CHECKING:
@@ -31,7 +30,7 @@ class BaseTransformation:
         self.function_args = args
         self.function_kwargs = kwargs
 
-        self.basename = get_name(name) if name else get_name(self.function_class.__name__)
+        self.basename =  name or self.function_class.__name__
             
 
         self.logger = CustomLogger()

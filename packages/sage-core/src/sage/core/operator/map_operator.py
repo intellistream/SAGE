@@ -1,5 +1,5 @@
-from sage.kernel.runtime.factory.function_factory import FunctionFactory
-from sage.kernel.runtime.task_context import TaskContext
+from sage.core.factory.function_factory import FunctionFactory
+from sage.kernel.api.task_context import TaskContext
 from .base_operator import BaseOperator
 from sage.core.api.function.map_function import MapFunction
 import time

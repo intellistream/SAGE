@@ -6,8 +6,8 @@ from sage.core.api.function.source_function import StopSignal
 if TYPE_CHECKING:
     from sage.kernel.runtime.communication.router.packet import Packet
     from sage.core.api.function.base_function import BaseFunction
-    from sage.kernel.runtime.task_context import TaskContext
-    from sage.kernel.runtime.factory.function_factory import FunctionFactory
+    from sage.kernel.api.task_context import TaskContext
+    from sage.core.factory.function_factory import FunctionFactory
     from sage.kernel.runtime.communication.router.router import BaseRouter
     from sage.kernel.runtime.task.base_task import BaseTask
     from sage.kernel.utils.logging.custom_logger import CustomLogger
@@ -39,10 +39,10 @@ class BaseOperator(ABC):
 
     # TODO: 去掉stateful function的概念，用某些策略对于function内部的可序列化字段做静态保存和checkpoint
     # Issue URL: https://github.com/intellistream/SAGE/issues/388
-    def save_state(self):
-        from sage.core.api.function.base_function import StatefulFunction
-        if isinstance(self.function, StatefulFunction):
-            self.function.save_state()
+    # def save_state(self):
+    #     from sage.core.api.function.base_function import StatefulFunction
+    #     if isinstance(self.function, StatefulFunction):
+    #         self.function.save_state()
 
     def receive_packet(self, packet: 'Packet'):
         """

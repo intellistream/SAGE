@@ -5,7 +5,7 @@ from .base_service_task import BaseServiceTask
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.factory.service_factory import ServiceFactory
-    from sage.kernel.runtime.service_context import ServiceContext
+    from sage.kernel.api.service_context import ServiceContext
 
 
 class LocalServiceTask(BaseServiceTask):

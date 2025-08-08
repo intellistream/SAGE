@@ -14,7 +14,7 @@ from sage.kernel.utils.logging.custom_logger import CustomLogger
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.factory.service_factory import ServiceFactory
-    from sage.kernel.runtime.service_context import ServiceContext
+    from sage.kernel.api.service_context import ServiceContext
 
 
 class BaseServiceTask(ABC):

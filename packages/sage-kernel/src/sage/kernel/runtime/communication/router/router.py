@@ -17,7 +17,7 @@ except ImportError:
 if TYPE_CHECKING:
     from sage.core.api.function.source_function import StopSignal
     from sage.kernel.runtime.communication.router.connection import Connection
-    from sage.kernel.runtime.task_context import TaskContext
+    from sage.kernel.api.task_context import TaskContext
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
 class BaseRouter(ABC):

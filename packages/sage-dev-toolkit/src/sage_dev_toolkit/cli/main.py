@@ -22,15 +22,22 @@ def _register_commands():
     """注册所有模块化命令"""
     apps = get_apps()
     
-    # 从各个模块添加子应用到主应用
+    # 特殊处理需要作为子命令组的命令
+    subcommand_groups = {'pypi', 'package'}
+    
+    # 从各个模块添加命令到主应用
     for app_name, sub_app in apps.items():
-        if app_name == 'pypi':
-            # 将 pypi 应用作为子命令组添加
-            app.add_typer(sub_app, name="pypi")
+        if app_name in subcommand_groups:
+            # 将这些应用作为子命令组添加
+            app.add_typer(sub_app, name=app_name)
         else:
-            # 将其他子应用的所有命令添加到主应用
-            for command_info in sub_app.registered_commands:
-                app.registered_commands.append(command_info)
+            # 将其他子应用的所有命令直接添加到主应用
+            try:
+                for command_info in sub_app.registered_commands:
+                    app.registered_commands.append(command_info)
+            except AttributeError:
+                # 如果没有 registered_commands 属性，则作为子命令组添加
+                app.add_typer(sub_app, name=app_name)
 
 # 注册所有命令
 _register_commands()

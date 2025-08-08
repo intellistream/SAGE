@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
     from sage.core.transformation.base_transformation import BaseTransformation
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
-    from sage.kernel.runtime.task_context import TaskContext
+    from sage.kernel.api.task_context import TaskContext
     from .graph_edge import GraphEdge
 
 

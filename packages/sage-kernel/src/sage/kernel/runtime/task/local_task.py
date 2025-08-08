@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from sage.kernel.runtime.task.base_task import BaseTask
 if TYPE_CHECKING:
     from sage.kernel.runtime.factory.operator_factory import OperatorFactory
-    from sage.kernel.runtime.task_context import TaskContext
+    from sage.kernel.api.task_context import TaskContext
 
 
 class LocalTask(BaseTask):

@@ -3,8 +3,8 @@ from sage.kernel.jobmanager.utils.name_server import get_name
 
 if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator
-    from sage.kernel.runtime.factory.function_factory import FunctionFactory
-    from sage.kernel.runtime.task_context import TaskContext
+    from sage.core.factory.function_factory import FunctionFactory
+    from sage.kernel.api.task_context import TaskContext
 
 
 class OperatorFactory:
@@ -12,7 +12,6 @@ class OperatorFactory:
     def __init__(self, 
                  operator_class: Type['BaseOperator'],
                  function_factory: 'FunctionFactory',
-                 basename: str = None,
                  env_name:str = None,
                  remote:bool = False,
                  **operator_kwargs):
@@ -20,7 +19,6 @@ class OperatorFactory:
         self.operator_kwargs = operator_kwargs  # 保存额外的operator参数
         self.function_factory = function_factory
         self.env_name = env_name
-        self.basename = get_name(basename) or get_name(self.function_factory.function_class.__name__)
         self.remote = remote
 
     def create_operator(self, runtime_context: 'TaskContext') -> 'BaseOperator':

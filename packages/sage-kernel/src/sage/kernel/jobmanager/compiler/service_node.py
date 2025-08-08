@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from sage.kernel.runtime.factory.service_factory import ServiceFactory
     from sage.kernel.runtime.factory.service_task_factory import ServiceTaskFactory
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
-    from sage.kernel.runtime.service_context import ServiceContext
+    from sage.kernel.api.service_context import ServiceContext
 
 
 class ServiceNode:

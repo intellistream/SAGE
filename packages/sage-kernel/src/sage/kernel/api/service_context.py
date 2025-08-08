@@ -6,7 +6,7 @@ from ray.actor import ActorHandle
 from typing import TYPE_CHECKING, List, Dict, Optional, Any, Union
 from sage.kernel.utils.logging.custom_logger import CustomLogger
 from sage.kernel.utils.ray.actor import ActorWrapper
-from sage.kernel.runtime.base_context import BaseRuntimeContext
+from sage.kernel.api.base_context import BaseRuntimeContext
 
 if TYPE_CHECKING:
     from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
