@@ -9,7 +9,7 @@ import logging
 import time
 import uuid
 
-from sage.kernel.runtime.service.base_service_task import BaseServiceTask
+from sage.core.api.service.base_service import BaseService
 
 if TYPE_CHECKING:
     from sage.core.factory.service_factory import ServiceFactory
@@ -28,7 +28,7 @@ class MemoryConfig:
     enable_knowledge_graph: bool = True
 
 
-class MemoryService(BaseServiceTask):
+class MemoryService(BaseService):
     """
     记忆编排服务任务
     

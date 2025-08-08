@@ -12,7 +12,7 @@
 - 已经过验证的架构
 
 **改进方案:**
-- 创建 `MemoryServiceTask` 继承 `BaseServiceTask`
+- 创建 `MemoryService` 继承 `BaseService`
 - 保留原有 `MemoryService` 以维持向后兼容
 - 保持所有原有功能不变
 

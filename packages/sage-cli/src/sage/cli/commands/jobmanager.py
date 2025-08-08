@@ -49,7 +49,7 @@ class JobManagerController:
     def __init__(self, host: str = "127.0.0.1", port: int = 19001):
         self.host = host
         self.port = port
-        self.process_names = ["job_manager.py", "jobmanager_daemon.py", "sage.kernel.jobmanager.job_manager"]
+        self.process_names = ["job_manager.py", "jobmanager_daemon.py"]
         self.sudo_manager = create_sudo_manager()
         
     def check_health(self) -> Dict[str, Any]:

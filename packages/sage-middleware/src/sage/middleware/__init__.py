@@ -38,7 +38,7 @@ __version__ = "2.0.0"
 __author__ = "SAGE Team"
 __description__ = "SAGE Microservices as Service Tasks"
 
-# 微服务组件 - 基于BaseServiceTask的服务任务
+# 微服务组件 - 基于BaseService的服务任务
 try:
     # KV服务
     from .services.kv.kv_service import KVService, create_kv_service_factory

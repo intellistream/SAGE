@@ -9,7 +9,7 @@ import logging
 import time
 import uuid
 
-from sage.kernel.runtime.service.base_service_task import BaseServiceTask
+from sage.core.api.service.base_service import BaseService
 
 if TYPE_CHECKING:
     from sage.core.factory.service_factory import ServiceFactory
@@ -330,7 +330,7 @@ class Neo4jGraphBackend:
             self.logger.debug("Cleared Neo4j database")
 
 
-class GraphService(BaseServiceTask):
+class GraphService(BaseService):
     """
     Graph服务任务
     

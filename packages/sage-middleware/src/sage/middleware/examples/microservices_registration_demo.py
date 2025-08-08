@@ -101,7 +101,7 @@ def test_microservices_registration():
     print("   - Service factories are created using create_*_service_factory() functions")
     print("   - Services can be configured with different backends (memory, redis, chroma, neo4j)")
     print("   - Memory service coordinates KV, VDB, and Graph services")
-    print("   - Services inherit from BaseServiceTask for SAGE DAG integration")
+    print("   - Services inherit from BaseService for SAGE DAG integration")
     
     return env, env2
 

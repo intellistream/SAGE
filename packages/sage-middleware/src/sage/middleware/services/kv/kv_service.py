@@ -8,7 +8,8 @@ import json
 import time
 import logging
 
-from sage.kernel.runtime.service.base_service_task import BaseServiceTask
+from sage.core.api.service.base_service import BaseService
+
 
 if TYPE_CHECKING:
     from sage.core.factory.service_factory import ServiceFactory
@@ -184,7 +185,7 @@ class RedisKVBackend:
             self.logger.error(f"Error clearing database: {e}")
 
 
-class KVService(BaseServiceTask):
+class KVService(BaseService):
     """
     KV服务任务
     

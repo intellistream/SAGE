@@ -10,7 +10,7 @@ import logging
 import time
 import uuid
 
-from sage.kernel.runtime.service.base_service_task import BaseServiceTask
+from sage.core.api.service.base_service import BaseService
 
 if TYPE_CHECKING:
     from sage.core.factory.service_factory import ServiceFactory
@@ -251,7 +251,7 @@ class FaissVDBBackend:
             return {"error": str(e)}
 
 
-class VDBService(BaseServiceTask):
+class VDBService(BaseService):
     """
     VDB服务任务
     
