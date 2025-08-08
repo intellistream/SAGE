@@ -18,7 +18,7 @@ class NumberSource(SourceFunction):
 # 简单的统计汇总函数
 class StatsSink(SinkFunction):
     def __init__(self, **kwargs):
-        self.name = kwargs.get('name', 'StatsSink')
+        super().__init__(**kwargs)
         
     def execute(self, data):
         print(f"[{self.name}] Received: {data}")
@@ -29,6 +29,9 @@ class StatsSink(SinkFunction):
 def main():
     # 创建环境
     env = LocalEnvironment("simple_connected_example")
+    
+    # 设置日志级别为WARNING以减少调试输出
+    env.set_console_log_level("WARNING")
     
     print("🚀 Starting Simple Connected Streams Example")
     print("📊 Demonstrating multiple stream processing and connection")

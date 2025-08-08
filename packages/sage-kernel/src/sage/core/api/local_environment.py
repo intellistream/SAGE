@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING
 from sage.core.api.base_environment import BaseEnvironment
+from sage.kernel.runtime.communication.queue_descriptor.python_queue_descriptor import PythonQueueDescriptor
 if TYPE_CHECKING:
     from sage.kernel.jobmanager.job_manager import JobManager
 
@@ -13,6 +14,14 @@ class LocalEnvironment(BaseEnvironment):
         
         # 本地环境不需要客户端
         self._engine_client = None
+
+    def get_qd(self, name: str, maxsize: int = 0) -> PythonQueueDescriptor:
+        """获取本地环境的队列描述符"""
+        return PythonQueueDescriptor(
+            maxsize=maxsize,
+            use_multiprocessing=False,  # 本地环境使用进程内队列
+            queue_id=name
+        )
 
     def submit(self):
         # 如果需要阻塞，就在用户程序里自己写个循环阻塞。

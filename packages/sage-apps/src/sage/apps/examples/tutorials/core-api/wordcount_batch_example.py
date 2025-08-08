@@ -34,6 +34,9 @@ def main():
     """运行有界流WordCount示例"""
     # 创建本地环境
     env = LocalEnvironment("batch_wordcount")
+    
+    # 设置日志级别为WARNING以减少输出噪音
+    env.set_console_log_level("WARNING")
 
     # 全局词汇计数器
     word_counts = Counter()
