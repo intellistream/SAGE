@@ -9,8 +9,8 @@ from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.function.map_function import MapFunction
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction
-from sage.lib.rag.generator import OpenAIGenerator
-from sage.lib.rag.promptor import QAPromptor
+from sage.apps.libs.rag.generator import OpenAIGenerator
+from sage.apps.libs.rag.promptor import QAPromptor
 from sage.common.utils.config.loader import load_config
 
 
@@ -77,7 +77,7 @@ def create_qa_pipeline():
     """创建QA处理管道"""
     # 加载配置
     load_dotenv(override=False)
-    config = load_config("../../resources/config/config_source.yaml")
+    config = load_config("../config/config_source.yaml")
 
     # 创建本地环境
     env = LocalEnvironment()

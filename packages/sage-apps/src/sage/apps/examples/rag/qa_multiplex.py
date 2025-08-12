@@ -2,13 +2,13 @@ import time
 from dotenv import load_dotenv
 
 from sage.core.api.local_environment import LocalEnvironment
-from sage.lib.io_utils.source import FileSource
-from sage.lib.io_utils.sink import TerminalSink, FileSink
-from sage.lib.rag.generator import OpenAIGenerator
-from sage.lib.rag.promptor import QAPromptor
-from sage.lib.rag.retriever import DenseRetriever
-from sage.lib.dataflow.splitter import Splitter
-from sage.lib.dataflow.merger import Merger
+from sage.apps.libs.io_utils.source import FileSource
+from sage.apps.libs.io_utils.sink import TerminalSink, FileSink
+from sage.apps.libs.rag.generator import OpenAIGenerator
+from sage.apps.libs.rag.promptor import QAPromptor
+from sage.apps.libs.rag.retriever import DenseRetriever
+from sage.apps.libs.dataflow.splitter import Splitter
+from sage.apps.libs.dataflow.merger import Merger
 from sage.common.utils.config.loader import load_config
 
 
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     load_dotenv(override=False)
 
     # Load configuration from the YAML file
-    config = load_config("../../resources/config/config_multiplex.yaml")
+    config = load_config("../config/config_multiplex.yaml")
 
     # Run the pipeline
     pipeline_run(config)

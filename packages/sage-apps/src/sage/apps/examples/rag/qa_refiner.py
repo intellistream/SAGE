@@ -4,14 +4,14 @@ import json
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.local_environment import LocalEnvironment
 from sage.common.utils.config.loader import load_config
-from sage.lib.io_utils.batch import HFDatasetBatch
+from sage.apps.libs.io_utils.batch import HFDatasetBatch
 from sage.middleware.services.memory.memory_service import MemoryService
 
-from sage.lib.rag.retriever import DenseRetriever
-from sage.lib.rag.longrefiner_fn.longrefiner_adapter import LongRefinerAdapter
-from sage.lib.rag.promptor import QAPromptor
-from sage.lib.rag.generator import OpenAIGenerator
-from sage.lib.rag.evaluate import (
+from sage.apps.libs.rag.retriever import DenseRetriever
+from sage.apps.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
+from sage.apps.libs.rag.promptor import QAPromptor
+from sage.apps.libs.rag.generator import OpenAIGenerator
+from sage.apps.libs.rag.evaluate import (
     F1Evaluate, RecallEvaluate, BertRecallEvaluate, RougeLEvaluate,
     BRSEvaluate, AccuracyEvaluate, TokenCountEvaluate,
     LatencyEvaluate, ContextRecallEvaluate, CompressionRateEvaluate
@@ -69,5 +69,5 @@ def pipeline_run(config):
 # ==========================================================
 if __name__ == "__main__":
     CustomLogger.disable_global_console_debug()
-    cfg = load_config("../../resources/config/config_refiner.yaml")
+    cfg = load_config("../config/config_refiner.yaml")
     pipeline_run(cfg)

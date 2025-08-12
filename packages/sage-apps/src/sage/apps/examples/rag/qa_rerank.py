@@ -2,12 +2,12 @@ import time
 
 # 导入 Sage 相关模块
 from sage.core.api.local_environment import LocalEnvironment
-from sage.lib.rag.generator import OpenAIGenerator
-from sage.lib.rag.promptor import QAPromptor
-from sage.lib.rag.retriever import DenseRetriever
-from sage.lib.rag.reranker import BGEReranker
-from sage.lib.io_utils.source import FileSource
-from sage.lib.io_utils.sink import TerminalSink
+from sage.apps.libs.rag.generator import OpenAIGenerator
+from sage.apps.libs.rag.promptor import QAPromptor
+from sage.apps.libs.rag.retriever import DenseRetriever
+from sage.apps.libs.rag.reranker import BGEReranker
+from sage.apps.libs.io_utils.source import FileSource
+from sage.apps.libs.io_utils.sink import TerminalSink
 from sage.common.utils.config.loader import load_config
 
 
@@ -41,7 +41,7 @@ def pipeline_run():
 
 if __name__ == '__main__':
     # 加载配置文件
-    config = load_config('../../resources/config/config_rerank.yaml')
+    config = load_config('../config/config_rerank.yaml')
     
     # 运行管道
     pipeline_run()

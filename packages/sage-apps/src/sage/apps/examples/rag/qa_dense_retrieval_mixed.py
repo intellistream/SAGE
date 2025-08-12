@@ -3,11 +3,11 @@ import time
 from dotenv import load_dotenv
 import os
 from sage.core.api.local_environment import LocalEnvironment
-from sage.lib.io_utils.source import FileSource
-from sage.lib.io_utils.sink import TerminalSink
-from sage.lib.rag.generator import OpenAIGenerator
-from sage.lib.rag.promptor import QAPromptor
-from sage.lib.rag.retriever import DenseRetriever
+from sage.apps.libs.io_utils.source import FileSource
+from sage.apps.libs.io_utils.sink import TerminalSink
+from sage.apps.libs.rag.generator import OpenAIGenerator
+from sage.apps.libs.rag.promptor import QAPromptor
+from sage.apps.libs.rag.retriever import DenseRetriever
 from sage.common.utils.config.loader import load_config
 
 def pipeline_run():

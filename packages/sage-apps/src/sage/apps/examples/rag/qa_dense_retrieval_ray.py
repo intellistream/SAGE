@@ -2,16 +2,17 @@ import logging
 import time
 from dotenv import load_dotenv
 import os
+from concurrent.futures import ThreadPoolExecutor
 from sage.core.api.function.map_function import MapFunction
 from sage.core.api.remote_environment import RemoteEnvironment
 from sage.middleware.services.memory.memory_service import MemoryService
 from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
-from sage.lib.io_utils.source import FileSource
-from sage.lib.io_utils.sink import FileSink
-from sage.lib.io_utils.sink import TerminalSink
-from sage.lib.rag.generator import OpenAIGenerator
-from sage.lib.rag.promptor import QAPromptor
-from sage.lib.rag.retriever import DenseRetriever
+from sage.apps.libs.io_utils.source import FileSource
+from sage.apps.libs.io_utils.sink import FileSink
+from sage.apps.libs.io_utils.sink import TerminalSink
+from sage.apps.libs.rag.generator import OpenAIGenerator
+from sage.apps.libs.rag.promptor import QAPromptor
+from sage.apps.libs.rag.retriever import DenseRetriever
 from sage.common.utils.config.loader import load_config
 
 class SafeBiologyRetriever(MapFunction):
