@@ -93,8 +93,11 @@ class OpenAIGenerator(MapFunction):
             self.logger.error(f"Failed to persist data records: {e}")
 
     def execute(self, data: List[Any]) -> Tuple[str, str]:
-        user_query = data[0] if len(data) > 1 else None
-        prompt = data[1] if len(data) > 1 else data[0]
+        if len(data) > 1:
+            user_query = data[0]
+            prompt = data[1]
+        else:
+            user_query = prompt = data[0]
 
         try:
             response = self._call_openai_api(prompt)
