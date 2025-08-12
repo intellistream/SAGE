@@ -1,0 +1,224 @@
+# ========================================
+# 🚫 WORKFLOW DISABLED TO SAVE COSTS 🚫
+# ========================================
+# 此工作流已被禁用以避免自动触发测试，节省费用
+# 如需运行测试，请手动触发工作流
+# This workflow has been disabled to avoid automatic test triggers and save costs
+# To run tests, please trigger the workflow manually
+# ========================================
+
+name: Smart Testing with AI (DISABLED)
+
+on:
+  workflow_dispatch:  # 仅允许手动触发
+  # pull_request:     # 已禁用自动触发
+  #   branches: [ main, develop ]
+  #   types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  smart-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取完整历史，用于diff分析
+        
+    - name: Checkout target branch
+      run: |
+        git fetch origin ${{ github.base_ref }}:${{ github.base_ref }}
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-xdist
+        
+    - name: Install SAGE package
+      run: |
+        pip install -e .
+        
+    - name: Build C extensions
+      run: |
+        cd sage/utils/mmap_queue
+        if [ -f "build.sh" ]; then
+          bash build.sh
+        elif [ -f "Makefile" ]; then
+          make
+        fi
+        
+    - name: Run Smart Test Analysis
+      id: smart_test
+      run: |
+        echo "Running smart test analysis..."
+        
+        # 创建输出文件
+        OUTPUT_FILE="smart_test_output.md"
+        
+        # 运行智能测试
+        python scripts/test_runner.py --diff \
+          --base-branch=${{ github.base_ref }} \
+          --pr-branch=${{ github.head_ref }} \
+          --output-format=markdown > "$OUTPUT_FILE" 2>&1
+        
+        # 检查测试是否成功
+        if [ $? -eq 0 ]; then
+          echo "smart_test_status=success" >> $GITHUB_OUTPUT
+        else
+          echo "smart_test_status=failure" >> $GITHUB_OUTPUT
+        fi
+        
+        # 设置输出文件路径
+        echo "output_file=$OUTPUT_FILE" >> $GITHUB_OUTPUT
+        
+        # 读取输出内容（限制长度以避免GitHub API限制）
+        if [ -f "$OUTPUT_FILE" ]; then
+          # 限制输出长度为60000字符（GitHub评论限制）
+          OUTPUT_CONTENT=$(head -c 60000 "$OUTPUT_FILE")
+          echo "SMART_TEST_OUTPUT<<EOF" >> $GITHUB_ENV
+          echo "$OUTPUT_CONTENT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+        fi
+        
+    - name: Run Full Test Suite (if smart test indicates)
+      if: steps.smart_test.outputs.smart_test_status == 'success'
+      run: |
+        echo "Running recommended test suite..."
+        
+        # 检查是否需要运行完整测试
+        if grep -q "RUN_FULL_TESTS=true" smart_test_output.md; then
+          echo "Smart test recommends running full test suite"
+          pytest --cov=sage --cov-report=xml --cov-report=html -v
+        else
+          echo "Smart test indicates selective testing is sufficient"
+          # 运行智能推荐的特定测试
+          if [ -f "recommended_tests.txt" ]; then
+            pytest --cov=sage --cov-report=xml -v $(cat recommended_tests.txt)
+          fi
+        fi
+        
+    - name: Upload Coverage Reports
+      if: always()
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        
+    - name: Comment PR with Smart Test Results
+      if: always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          // 准备评论内容
+          let commentBody = `## 🤖 Smart Test Analysis Results\n\n`;
+          
+          // 添加测试状态
+          const testStatus = '${{ steps.smart_test.outputs.smart_test_status }}';
+          if (testStatus === 'success') {
+            commentBody += `✅ **Status**: Smart test analysis completed successfully\n\n`;
+          } else {
+            commentBody += `❌ **Status**: Smart test analysis encountered issues\n\n`;
+          }
+          
+          // 添加输出内容
+          try {
+            const output = process.env.SMART_TEST_OUTPUT;
+            if (output) {
+              commentBody += `### 📊 Analysis Report\n\n`;
+              commentBody += '```\n' + output + '\n```\n\n';
+            }
+          } catch (error) {
+            commentBody += `⚠️ Could not read test output: ${error.message}\n\n`;
+          }
+          
+          // 添加建议
+          commentBody += `### 💡 Recommendations\n\n`;
+          commentBody += `- Review the analysis results above\n`;
+          commentBody += `- Check if any critical components were modified\n`;
+          commentBody += `- Consider running additional tests if suggested\n\n`;
+          
+          // 添加元信息
+          commentBody += `---\n`;
+          commentBody += `*Generated by SAGE Smart Test Runner*\n`;
+          commentBody += `*Commit: ${context.sha.substring(0, 7)}*\n`;
+          commentBody += `*Base branch: ${{ github.base_ref }}*\n`;
+          
+          // 查找现有评论
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          const botComment = comments.find(comment => 
+            comment.user.type === 'Bot' && 
+            comment.body.includes('Smart Test Analysis Results')
+          );
+          
+          if (botComment) {
+            // 更新现有评论
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: commentBody
+            });
+          } else {
+            // 创建新评论
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: commentBody
+            });
+          }
+          
+    - name: Set Check Status
+      if: always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const testStatus = '${{ steps.smart_test.outputs.smart_test_status }}';
+          
+          await github.rest.checks.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: 'Smart Test Analysis',
+            head_sha: context.sha,
+            status: 'completed',
+            conclusion: testStatus === 'success' ? 'success' : 'failure',
+            output: {
+              title: testStatus === 'success' ? 
+                'Smart test analysis passed' : 
+                'Smart test analysis failed',
+              summary: testStatus === 'success' ? 
+                'All smart test checks passed successfully.' : 
+                'Smart test analysis encountered issues. Please check the details.',
+            }
+          });
+          
+    - name: Upload Test Artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: smart-test-results
+        path: |
+          smart_test_output.md
+          recommended_tests.txt
+          coverage.xml
+          htmlcov/
+        retention-days: 30

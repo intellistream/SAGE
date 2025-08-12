@@ -1,0 +1,305 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isage-kernel"
+version = "0.1.0"
+description = "SAGE Kernel Module"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
+]
+keywords = [
+    "data",
+    "reasoning",
+    "kernel",
+    "dataflow",
+    "llm",
+    "ml",
+    "framework",
+    "rag",
+    "intellistream",
+    "cli",
+    "ai",
+    "sage",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Distributed Computing",
+]
+dependencies = [
+    # External dependencies
+    "pyyaml==6.0.2",
+    "python-dotenv==1.1.1",
+    "python_multipart==0.0.20",
+    "dill>=0.3.8",
+    "ray==2.48.0",
+    "grpcio==1.74.0",
+    "protobuf==6.31.1",
+    "msgpack==1.1.1",
+    "torch>=2.7.0,<=2.7.1",  # 与vllm兼容的torch版本
+    "torchvision==0.22.1",
+    "httpx==0.28.1",
+    "socksio==1.0.0",
+    "psutil==6.1.0",
+    "numpy>=1.25.0,<3.0.0",  # 兼容numpy 2.x版本
+    "Cython==3.1.2",
+    "pybind11==3.0.0",
+    "aioboto3==14.1.0",
+    "fastapi==0.115.12",
+    "uvicorn==0.34.3",
+    "h11==0.16.0",
+    "requests==2.32.4",
+    "aiohappyeyeballs==2.6.1",
+    "aiosignal==1.4.0",
+    "pydantic",
+    "PyYAML==6.0.2",
+    "python-dotenv==1.1.1",
+    "Jinja2==3.1.6",
+    "shellingham==1.5.4",
+    "tabulate>=0.9.0",
+    "colorama>=0.4.6",
+    "typer>=0.15.0",
+    "rich>=13.0.0",
+    "click>=8.0.0",
+    "pydantic>=2.0.0",
+    "PyYAML>=6.0",
+    "shellingham>=1.5.0",
+    "questionary>=1.10.0",
+    "prompt_toolkit>=3.0.50",
+]
+
+[project.license]
+text = "MIT"
+
+[project.optional-dependencies]
+# SAGE framework dependencies (for local development)
+sage = [
+    "isage-common>=0.1.0",
+]
+
+# Commercial/Enterprise features (requires license)
+enterprise = [
+    "isage-kernel[sage]",
+    # High-performance computing dependencies
+    "numpy>=1.25.0",
+    "scipy>=1.10.0", 
+    "scikit-learn>=1.3.0",
+    "numba>=0.58.0",
+    "cython>=3.0.0",
+    "joblib>=1.3.0",
+    "tqdm>=4.65.0",
+    # Memory optimization
+    "psutil>=5.9.0",
+    # Performance monitoring
+    "py-spy>=0.3.14",
+    # Advanced queue implementations
+    "pyzmq>=25.0.0",
+    "redis>=4.5.0",
+]
+
+# Development dependencies for enterprise
+enterprise-dev = [
+    "isage-kernel[enterprise]",
+    "pytest-benchmark>=4.0.0",
+    "memory-profiler>=0.60.0",
+    "line-profiler>=4.0.0",
+]
+
+# Enhanced development features
+enhanced = [
+    "ipython>=8.0.0",
+    "colorama>=0.4.6",
+    "pygments>=2.15.0",
+]
+
+# Development dependencies
+dev = [
+    "isage-kernel[sage]",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-benchmark>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "pytest-timeout>=2.0.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+
+# Web/API features
+web = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "websockets>=11.0",
+]
+
+# Documentation
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=1.3.0",
+    "myst-parser>=2.0.0",
+]
+
+# All commercial features combined
+commercial = [
+    "isage-kernel[enterprise]",
+]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Repository = "https://github.com/intellistream/SAGE.git"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
+Issues = "https://github.com/intellistream/SAGE/issues"
+
+# [project.scripts]
+# sage-kernel功能已合并到sage主命令的kernel子命令
+# 使用: sage kernel info, sage kernel status, sage kernel restart
+# 而不是: sage-kernel info, sage-kernel status, sage-kernel restart
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = [
+    "src",
+]
+include = [
+    "sage*",
+]
+exclude = [
+    "tests*",
+    "docs*",
+    # 只排除顶级的企业版目录，保留核心功能中的企业版选项
+    "enterprise/*",
+    "commercial/*",
+]
+namespaces = true
+
+[tool.setuptools.package-data]
+sage = [
+    "py.typed",
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+    "src/sage",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "-ra",
+    # Coverage options commented out for better test output readability
+    # "--cov=sage",
+    # "--cov-report=term-missing",
+    # "--cov-report=html:.sage/logs/htmlcov",
+    # "--cov-report=xml:.sage/logs/coverage.xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "network: marks tests as network tests",
+    "system: marks tests as system tests",
+    "core: marks tests as core functionality tests",
+]
+
+[tool.coverage.run]
+data_file = ".sage/logs/.coverage"
+source = [
+    "src/sage",
+]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/_test_*.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
+[tool.black]
+line-length = 88
+target-version = [
+    "py311",
+]
+include = "\\.pyi?$"
+extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.pytest_cache\n  | \\.ruff_cache\n  | \\.venv\n  | build\n  | dist\n)/\n"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "C4",
+    "UP",
+]
+ignore = [
+    "E501",
+    "B008",
+    "C901",
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = [
+    "F401",
+]
+"tests/**/*" = [
+    "PLR2004",
+    "S101",
+    "TID252",
+]
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "sage.*",
+]
+ignore_missing_imports = true

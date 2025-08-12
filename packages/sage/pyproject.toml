@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isage"
+version = "0.1.0"
+description = "SAGE (Meta Package)"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "SAGE Team", email = "sage@intellistream.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: System :: Distributed Computing",
+]
+requires-python = ">=3.8"
+
+# SAGE Meta Package - 安装所有核心组件  
+dependencies = [
+    "isage-common>=0.1.0",  # 基础工具包 (不包含额外功能)
+    "isage-kernel>=0.1.0", 
+    "isage-middleware>=0.1.0",
+    "isage-apps>=0.1.0",  # 应用示例核心功能
+]
+
+[project.optional-dependencies]
+# 开发工具
+dev = [
+    "isage-common[dev]>=0.1.0",
+]
+
+# CLI工具
+cli = [
+    "isage-common[cli]>=0.1.0", 
+]
+
+# 前端组件
+frontend = [
+    "isage-common[frontend]>=0.1.0",
+]
+
+# 完整功能 (包括所有额外功能)
+full = [
+    "isage-common[full]>=0.1.0",
+    "isage-apps[full]>=0.1.0",
+]
+
+# 企业版功能
+enterprise = [
+    "isage-apps[enterprise]>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
+Repository = "https://github.com/intellistream/SAGE.git"
+"Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
+
+[project.scripts]
+sage = "sage.common.cli.main:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"

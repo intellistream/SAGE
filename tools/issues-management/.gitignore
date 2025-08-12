@@ -1,0 +1,31 @@
+# Issues management workspace - 下载的GitHub issues数据
+# 这些是从GitHub API下载的临时数据，不需要版本控制
+
+# 下载的issues数据
+issues/
+by_label/
+metadata/
+
+# 分析报告和输出文件 (统一放在output目录)
+output/
+*.md
+!README.md
+!scripts/README.md
+
+# 保留说明文档和脚本
+!WORKFLOW_GUIDE.md
+!scripts/_scripts/README.md
+
+# Python缓存文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 临时文件
+.DS_Store
+.vscode/
+.idea/
+*.tmp
+*.log
