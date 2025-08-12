@@ -390,7 +390,7 @@ def pipeline_run() -> None:
     config = load_config("../../resources/config/config_batch.yaml")   
      
     # 创建本地环境
-    env = RemoteEnvironment()
+    env = RemoteEnvironment('rag_pipeline')
     
 
     
