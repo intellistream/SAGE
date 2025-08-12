@@ -34,7 +34,7 @@ def main():
     
     def update_word_count(words_with_count):
         """更新全局词汇计数"""
-        global word_counts, total_processed
+        nonlocal word_counts, total_processed
         word, count = words_with_count
         word_counts[word] += count
         total_processed += count
