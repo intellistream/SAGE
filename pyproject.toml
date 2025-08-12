@@ -1,0 +1,108 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isage"
+version = "0.1.0"
+description = "SAGE - Streaming Analytics and Graph Engine with Core API"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    {name = "SAGE Team", email = "team@sage.com"},
+]
+license = {text = "Apache-2.0"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+# 核心依赖 - 安装本地包
+dependencies = [
+    "isage-kernel",
+    "isage-middleware", 
+    "isage-apps",
+    "isage-common",
+]
+
+[project.optional-dependencies]
+# Commercial/Enterprise Edition (requires license)
+enterprise = [
+    "isage-kernel[enterprise]",
+    "isage-middleware[enterprise]", 
+]
+
+# 基础工具包 (包含CLI)
+basic = [
+    "isage-common[cli]",
+]
+
+# 开发依赖
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-benchmark",
+    "black",
+    "isort",
+    "flake8",
+    "mypy",
+    "ipython",
+    "jupyter",
+    "isage-common[dev]",
+]
+
+# 前端功能
+frontend = [
+    "isage-common[frontend]",
+]
+
+# 文档依赖
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+    "isage-common[docs]",
+]
+
+# All features combined
+all = [
+    "isage[enterprise]",
+    "isage[basic]",
+    "isage[frontend]",
+    "isage[dev]",
+    "isage[docs]",
+]
+
+[project.scripts]
+# 主CLI命令 - 由sage-common提供
+sage = "sage.common.cli.main:app"
+sage-cli = "sage.common.cli.main:app"
+
+# 核心工具由各自的包提供，这里只是确保环境正确
+# sage-core, sage-dev, sage-server, sage-install 由 sage-common 提供
+# sage-kernel 由 sage-kernel 包提供
+# sage-examples 由 sage-apps 包提供
+# sage-jobmanager 由 sage-common 提供
+
+# 企业版和许可证管理工具
+sage-license = "tools.license.sage_license:main"
+sage-enterprise = "tools.enterprise.enterprise_manager:main"
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Repository = "https://github.com/intellistream/SAGE"
+Documentation = "https://sage.readthedocs.io/"
+"Bug Reports" = "https://github.com/intellistream/SAGE/issues"
+
+[tool.setuptools]
+# 元包配置 - 主要依赖于子包，同时提供统一入口点
+packages = ["sage"]
+include-package-data = true
+
+[tool.setuptools.package-dir]
+sage = "packages/sage/src/sage"

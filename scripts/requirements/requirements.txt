@@ -1,0 +1,24 @@
+# SAGE生产环境安装 - 核心包
+# 按依赖顺序安装各个SAGE组件
+
+# 1. 基础工具库（仅包含基本CLI功能）
+-e packages/sage-common[basic]
+
+# 2. 核心计算引擎
+-e packages/sage-kernel
+
+# 3. 中间件和API服务
+-e packages/sage-middleware
+
+# 4. 应用示例和模板
+-e packages/sage-apps
+
+# 5. 主包（元包，统一所有组件）
+-e packages/sage
+
+# 安装后可用的主要命令：
+# - sage: 主CLI工具
+# - sage-jobmanager: 作业管理器
+# - sage-kernel: 内核管理
+# - sage-examples: 应用示例
+# - sage-install: 安装验证

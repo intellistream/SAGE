@@ -1,0 +1,6 @@
+htmlcov/
+coverage.xml
+.coverage
+build/
+.pytest_cache/
+.benchmarks/
