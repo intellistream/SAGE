@@ -1,0 +1,245 @@
+2025-08-12 07:26:46,358 - __main__ - INFO - 开始SAGE安装 - 配置: development, 环境: ybsage
+2025-08-12 07:26:46,359 - core.dependency_checker - INFO - 🔍 开始系统依赖检查...
+2025-08-12 07:26:47,888 - core.dependency_checker - INFO - 📊 依赖检查完成: 9/9 项通过
+2025-08-12 07:26:50,326 - core.package_installer - INFO - 📦 安装包: numpy
+2025-08-12 07:28:18,708 - core.package_installer - INFO - ✅ 通过conda成功安装: numpy
+2025-08-12 07:28:18,708 - core.package_installer - INFO - 📦 安装包: pandas
+2025-08-12 07:28:55,184 - core.package_installer - INFO - ✅ 通过conda成功安装: pandas
+2025-08-12 07:28:55,185 - core.package_installer - INFO - 📦 安装包: matplotlib
+2025-08-12 07:29:29,418 - core.package_installer - INFO - ✅ 通过conda成功安装: matplotlib
+2025-08-12 07:29:29,418 - core.package_installer - INFO - 📦 安装包: scipy
+2025-08-12 07:30:00,886 - core.package_installer - INFO - ✅ 通过conda成功安装: scipy
+2025-08-12 07:30:00,886 - core.package_installer - INFO - 📦 安装包: scikit-learn
+2025-08-12 07:30:35,859 - core.package_installer - INFO - ✅ 通过conda成功安装: scikit-learn
+2025-08-12 07:30:35,859 - core.package_installer - INFO - 📦 安装包: jupyter
+2025-08-12 07:32:03,132 - core.package_installer - INFO - ✅ 通过conda成功安装: jupyter
+2025-08-12 07:32:03,133 - core.package_installer - INFO - 📦 安装包: pytest
+2025-08-12 07:32:36,947 - core.package_installer - INFO - ✅ 通过conda成功安装: pytest
+2025-08-12 07:32:36,947 - core.package_installer - INFO - 📦 安装包: black
+2025-08-12 07:33:09,297 - core.package_installer - INFO - ✅ 通过conda成功安装: black
+2025-08-12 07:33:09,297 - core.package_installer - INFO - 📦 安装包: flake8
+2025-08-12 07:33:44,638 - core.package_installer - INFO - ✅ 通过conda成功安装: flake8
+2025-08-12 07:33:44,688 - core.package_installer - INFO - 📦 安装包: sage
+2025-08-12 07:34:35,435 - core.package_installer - ERROR - ❌ 包安装失败: sage
+2025-08-12 07:34:35,536 - core.package_installer - INFO - 📦 安装包: sage-common
+2025-08-12 07:34:36,501 - core.package_installer - ERROR - ❌ 包安装失败: sage-common
+2025-08-12 07:34:36,602 - core.package_installer - INFO - 📦 安装包: sage-kernel
+2025-08-12 07:34:37,572 - core.package_installer - ERROR - ❌ 包安装失败: sage-kernel
+2025-08-12 07:34:37,673 - core.package_installer - INFO - 📦 安装包: sage-middleware
+2025-08-12 07:34:38,645 - core.package_installer - ERROR - ❌ 包安装失败: sage-middleware
+2025-08-12 07:34:38,745 - core.package_installer - INFO - 📦 安装包: numpy>=1.21.0
+2025-08-12 07:34:39,544 - core.package_installer - INFO - ✅ 通过pip成功安装: numpy>=1.21.0
+2025-08-12 07:34:39,644 - core.package_installer - INFO - 📦 安装包: pandas>=1.3.0
+2025-08-12 07:34:40,353 - core.package_installer - INFO - ✅ 通过pip成功安装: pandas>=1.3.0
+2025-08-12 07:34:40,454 - core.package_installer - INFO - 📦 安装包: matplotlib>=3.4.0
+2025-08-12 07:34:41,490 - core.package_installer - INFO - ✅ 通过pip成功安装: matplotlib>=3.4.0
+2025-08-12 07:34:41,590 - core.package_installer - INFO - 📦 安装包: scipy>=1.7.0
+2025-08-12 07:34:42,503 - core.package_installer - INFO - ✅ 通过pip成功安装: scipy>=1.7.0
+2025-08-12 07:34:42,603 - core.package_installer - INFO - 📦 安装包: scikit-learn>=1.0.0
+2025-08-12 07:34:43,305 - core.package_installer - INFO - ✅ 通过pip成功安装: scikit-learn>=1.0.0
+2025-08-12 07:34:43,406 - core.package_installer - INFO - 📦 安装包: jupyter>=1.0.0
+2025-08-12 07:34:44,261 - core.package_installer - INFO - ✅ 通过pip成功安装: jupyter>=1.0.0
+2025-08-12 07:34:44,361 - core.package_installer - INFO - 📦 安装包: ipykernel>=6.0.0
+2025-08-12 07:34:45,438 - core.package_installer - INFO - ✅ 通过pip成功安装: ipykernel>=6.0.0
+2025-08-12 07:34:45,538 - core.package_installer - INFO - 📦 安装包: pytest>=6.0.0
+2025-08-12 07:34:46,251 - core.package_installer - INFO - ✅ 通过pip成功安装: pytest>=6.0.0
+2025-08-12 07:34:46,352 - core.package_installer - INFO - 📦 安装包: pytest-cov>=2.12.0
+2025-08-12 07:34:47,072 - core.package_installer - INFO - ✅ 通过pip成功安装: pytest-cov>=2.12.0
+2025-08-12 07:34:47,173 - core.package_installer - INFO - 📦 安装包: black>=21.0.0
+2025-08-12 07:34:48,181 - core.package_installer - INFO - ✅ 通过pip成功安装: black>=21.0.0
+2025-08-12 07:34:48,281 - core.package_installer - INFO - 📦 安装包: flake8>=3.9.0
+2025-08-12 07:34:51,000 - core.package_installer - INFO - ✅ 通过pip成功安装: flake8>=3.9.0
+2025-08-12 07:34:51,100 - core.package_installer - INFO - 📦 安装包: mypy>=0.910
+2025-08-12 07:34:51,987 - core.package_installer - INFO - ✅ 通过pip成功安装: mypy>=0.910
+2025-08-12 07:34:52,087 - core.package_installer - INFO - 📦 安装包: pre-commit>=2.15.0
+2025-08-12 07:34:53,082 - core.package_installer - INFO - ✅ 通过pip成功安装: pre-commit>=2.15.0
+2025-08-12 07:34:53,182 - core.package_installer - INFO - 📦 安装包: sphinx>=4.0.0
+2025-08-12 07:35:00,501 - core.package_installer - INFO - ✅ 通过pip成功安装: sphinx>=4.0.0
+2025-08-12 07:35:00,602 - core.package_installer - INFO - 📦 安装包: sphinx-rtd-theme>=0.5.0
+2025-08-12 07:35:06,259 - core.package_installer - INFO - ✅ 通过pip成功安装: sphinx-rtd-theme>=0.5.0
+2025-08-12 07:35:06,429 - core.package_installer - INFO - 🔧 安装本地包: /home/cyb/SAGE/packages/sage-common
+2025-08-12 07:35:10,807 - core.package_installer - INFO - ✅ 本地包安装成功
+2025-08-12 07:35:10,808 - core.package_installer - INFO - 🔧 安装本地包: /home/cyb/SAGE/packages/sage-kernel
+2025-08-12 07:35:48,527 - core.package_installer - ERROR - ❌ 本地包安装失败: Command '['pip', 'install', '-e', '/home/cyb/SAGE/packages/sage-kernel']' returned non-zero exit status 1.
+2025-08-12 07:35:48,527 - core.package_installer - ERROR - 错误输出: ERROR: Could not install packages due to an OSError: [Errno 2] No such file or directory: '/home/cyb/.conda/envs/ybsage/lib/python3.11/site-packages/torch/include/tensorpipe/config.h'
+
+
+2025-08-12 07:35:48,529 - core.package_installer - INFO - 🔧 安装本地包: /home/cyb/SAGE/packages/sage-middleware
+2025-08-12 07:36:08,402 - core.package_installer - ERROR - ❌ 本地包安装失败: Command '['pip', 'install', '-e', '/home/cyb/SAGE/packages/sage-middleware']' returned non-zero exit status 1.
+2025-08-12 07:36:08,403 - core.package_installer - ERROR - 错误输出: ERROR: Could not install packages due to an OSError: [Errno 2] No such file or directory: '/home/cyb/.conda/envs/ybsage/lib/python3.11/site-packages/torch/include/tensorpipe/config.h'
+
+
+2025-08-12 07:36:08,405 - core.package_installer - INFO - 🔧 安装本地包: /home/cyb/SAGE/packages/sage
+2025-08-12 07:36:27,446 - core.package_installer - ERROR - ❌ 本地包安装失败: Command '['pip', 'install', '-e', '/home/cyb/SAGE/packages/sage']' returned non-zero exit status 1.
+2025-08-12 07:36:27,447 - core.package_installer - ERROR - 错误输出: ERROR: Could not install packages due to an OSError: [Errno 2] No such file or directory: '/home/cyb/.conda/envs/ybsage/lib/python3.11/site-packages/torch/include/tensorpipe/config.h'
+
+
+2025-08-12 07:43:54,257 - __main__ - INFO - 开始SAGE安装 - 配置: development, 环境: ybsage
+2025-08-12 07:43:54,258 - core.dependency_checker - INFO - 🔍 开始系统依赖检查...
+2025-08-12 07:43:56,367 - core.dependency_checker - INFO - 📊 依赖检查完成: 9/9 项通过
+2025-08-12 07:43:58,784 - core.package_installer - INFO - 📦 安装包: numpy
+2025-08-12 07:44:29,110 - core.package_installer - INFO - ✅ 通过conda成功安装: numpy
+2025-08-12 07:44:29,110 - core.package_installer - INFO - 📦 安装包: pandas
+2025-08-12 07:44:59,826 - core.package_installer - INFO - ✅ 通过conda成功安装: pandas
+2025-08-12 07:44:59,827 - core.package_installer - INFO - 📦 安装包: matplotlib
+2025-08-12 07:45:31,645 - core.package_installer - INFO - ✅ 通过conda成功安装: matplotlib
+2025-08-12 07:45:31,645 - core.package_installer - INFO - 📦 安装包: scipy
+2025-08-12 07:46:02,658 - core.package_installer - INFO - ✅ 通过conda成功安装: scipy
+2025-08-12 07:46:02,658 - core.package_installer - INFO - 📦 安装包: scikit-learn
+2025-08-12 07:46:33,609 - core.package_installer - INFO - ✅ 通过conda成功安装: scikit-learn
+2025-08-12 07:46:33,609 - core.package_installer - INFO - 📦 安装包: jupyter
+2025-08-12 07:47:04,892 - core.package_installer - INFO - ✅ 通过conda成功安装: jupyter
+2025-08-12 07:47:04,892 - core.package_installer - INFO - 📦 安装包: pytest
+2025-08-12 07:47:43,020 - core.package_installer - INFO - ✅ 通过conda成功安装: pytest
+2025-08-12 07:47:43,020 - core.package_installer - INFO - 📦 安装包: black
+2025-08-12 07:48:14,373 - core.package_installer - INFO - ✅ 通过conda成功安装: black
+2025-08-12 07:48:14,373 - core.package_installer - INFO - 📦 安装包: flake8
+2025-08-12 07:48:45,473 - core.package_installer - INFO - ✅ 通过conda成功安装: flake8
+2025-08-12 07:48:45,546 - core.package_installer - INFO - 📦 安装包: sage
+2025-08-12 07:49:29,961 - core.package_installer - INFO - ✅ 通过pip成功安装: sage
+2025-08-12 07:49:30,061 - core.package_installer - INFO - 📦 安装包: sage-common
+2025-08-12 07:49:31,027 - core.package_installer - ERROR - ❌ 包安装失败: sage-common
+2025-08-12 07:49:31,128 - core.package_installer - INFO - 📦 安装包: sage-kernel
+2025-08-12 07:49:32,008 - core.package_installer - ERROR - ❌ 包安装失败: sage-kernel
+2025-08-12 07:49:32,108 - core.package_installer - INFO - 📦 安装包: sage-middleware
+2025-08-12 07:49:33,094 - core.package_installer - ERROR - ❌ 包安装失败: sage-middleware
+2025-08-12 07:49:33,194 - core.package_installer - INFO - 📦 安装包: numpy>=1.21.0
+2025-08-12 07:49:34,082 - core.package_installer - INFO - ✅ 通过pip成功安装: numpy>=1.21.0
+2025-08-12 07:49:34,182 - core.package_installer - INFO - 📦 安装包: pandas>=1.3.0
+2025-08-12 07:49:34,855 - core.package_installer - INFO - ✅ 通过pip成功安装: pandas>=1.3.0
+2025-08-12 07:49:34,955 - core.package_installer - INFO - 📦 安装包: matplotlib>=3.4.0
+2025-08-12 07:49:35,634 - core.package_installer - INFO - ✅ 通过pip成功安装: matplotlib>=3.4.0
+2025-08-12 07:49:35,734 - core.package_installer - INFO - 📦 安装包: scipy>=1.7.0
+2025-08-12 07:49:36,633 - core.package_installer - INFO - ✅ 通过pip成功安装: scipy>=1.7.0
+2025-08-12 07:49:36,734 - core.package_installer - INFO - 📦 安装包: scikit-learn>=1.0.0
+2025-08-12 07:49:37,705 - core.package_installer - INFO - ✅ 通过pip成功安装: scikit-learn>=1.0.0
+2025-08-12 07:49:37,805 - core.package_installer - INFO - 📦 安装包: jupyter>=1.0.0
+2025-08-12 07:49:38,668 - core.package_installer - INFO - ✅ 通过pip成功安装: jupyter>=1.0.0
+2025-08-12 07:49:38,769 - core.package_installer - INFO - 📦 安装包: ipykernel>=6.0.0
+2025-08-12 07:49:39,464 - core.package_installer - INFO - ✅ 通过pip成功安装: ipykernel>=6.0.0
+2025-08-12 07:49:39,564 - core.package_installer - INFO - 📦 安装包: pytest>=6.0.0
+2025-08-12 07:49:40,236 - core.package_installer - INFO - ✅ 通过pip成功安装: pytest>=6.0.0
+2025-08-12 07:49:40,336 - core.package_installer - INFO - 📦 安装包: pytest-cov>=2.12.0
+2025-08-12 07:49:41,009 - core.package_installer - INFO - ✅ 通过pip成功安装: pytest-cov>=2.12.0
+2025-08-12 07:49:41,109 - core.package_installer - INFO - 📦 安装包: black>=21.0.0
+2025-08-12 07:49:41,776 - core.package_installer - INFO - ✅ 通过pip成功安装: black>=21.0.0
+2025-08-12 07:49:41,876 - core.package_installer - INFO - 📦 安装包: flake8>=3.9.0
+2025-08-12 07:49:42,549 - core.package_installer - INFO - ✅ 通过pip成功安装: flake8>=3.9.0
+2025-08-12 07:49:42,650 - core.package_installer - INFO - 📦 安装包: mypy>=0.910
+2025-08-12 07:49:43,320 - core.package_installer - INFO - ✅ 通过pip成功安装: mypy>=0.910
+2025-08-12 07:49:43,420 - core.package_installer - INFO - 📦 安装包: pre-commit>=2.15.0
+2025-08-12 07:49:44,095 - core.package_installer - INFO - ✅ 通过pip成功安装: pre-commit>=2.15.0
+2025-08-12 07:49:44,196 - core.package_installer - INFO - 📦 安装包: sphinx>=4.0.0
+2025-08-12 07:49:44,876 - core.package_installer - INFO - ✅ 通过pip成功安装: sphinx>=4.0.0
+2025-08-12 07:49:44,977 - core.package_installer - INFO - 📦 安装包: sphinx-rtd-theme>=0.5.0
+2025-08-12 07:49:45,660 - core.package_installer - INFO - ✅ 通过pip成功安装: sphinx-rtd-theme>=0.5.0
+2025-08-12 07:49:45,842 - core.package_installer - INFO - 🔧 安装本地包: /home/cyb/SAGE/packages/sage-common
+2025-08-12 07:49:49,824 - core.package_installer - INFO - ✅ 本地包安装成功
+2025-08-12 07:49:49,824 - core.package_installer - INFO - 🔧 安装本地包: /home/cyb/SAGE/packages/sage-kernel
+2025-08-12 07:50:30,385 - core.package_installer - ERROR - ❌ 本地包安装失败: Command '['pip', 'install', '-e', '/home/cyb/SAGE/packages/sage-kernel']' returned non-zero exit status 1.
+2025-08-12 07:50:30,385 - core.package_installer - ERROR - 错误输出: ERROR: Could not install packages due to an OSError: [Errno 2] No such file or directory: '/home/cyb/.conda/envs/ybsage/lib/python3.11/site-packages/torch/include/tensorpipe/config.h'
+
+
+2025-08-12 07:50:30,387 - core.package_installer - INFO - 🔧 安装本地包: /home/cyb/SAGE/packages/sage-middleware
+2025-08-12 07:50:49,707 - core.package_installer - ERROR - ❌ 本地包安装失败: Command '['pip', 'install', '-e', '/home/cyb/SAGE/packages/sage-middleware']' returned non-zero exit status 1.
+2025-08-12 07:50:49,707 - core.package_installer - ERROR - 错误输出: ERROR: Could not install packages due to an OSError: [Errno 2] No such file or directory: '/home/cyb/.conda/envs/ybsage/lib/python3.11/site-packages/torch/include/tensorpipe/config.h'
+
+
+2025-08-12 07:50:49,709 - core.package_installer - INFO - 🔧 安装本地包: /home/cyb/SAGE/packages/sage
+2025-08-12 07:51:06,925 - core.package_installer - ERROR - ❌ 本地包安装失败: Command '['pip', 'install', '-e', '/home/cyb/SAGE/packages/sage']' returned non-zero exit status 1.
+2025-08-12 07:51:06,926 - core.package_installer - ERROR - 错误输出: ERROR: Could not install packages due to an OSError: [Errno 2] No such file or directory: '/home/cyb/.conda/envs/ybsage/lib/python3.11/site-packages/torch/include/tensorpipe/config.h'
+
+
+2025-08-12 08:03:02,074 - __main__ - INFO - 开始SAGE安装 - 配置: development, 环境: ybsage
+2025-08-12 08:03:02,076 - core.dependency_checker - INFO - 🔍 开始系统依赖检查...
+2025-08-12 08:03:03,780 - core.dependency_checker - INFO - 📊 依赖检查完成: 9/9 项通过
+2025-08-12 08:03:04,983 - core.environment_manager - INFO - 🚀 创建conda环境: ybsage (Python 3.11)
+2025-08-12 08:03:05,348 - core.environment_manager - ERROR - ❌ 环境创建失败: Command '['conda', 'create', '-n', 'ybsage', 'python=3.11', '-y']' returned non-zero exit status 1.
+2025-08-12 08:03:05,348 - core.environment_manager - ERROR - 错误输出: 
+CondaValueError: prefix already exists: /home/cyb/.conda/envs/ybsage
+
+
+2025-08-12 08:04:51,595 - __main__ - INFO - 开始SAGE安装 - 配置: development, 环境: ybsage
+2025-08-12 08:04:51,597 - core.dependency_checker - INFO - 🔍 开始系统依赖检查...
+2025-08-12 08:04:53,068 - core.dependency_checker - INFO - 📊 依赖检查完成: 8/9 项通过
+2025-08-12 08:09:57,866 - __main__ - INFO - 开始SAGE安装 - 配置: development, 环境: ybsage
+2025-08-12 08:09:57,867 - core.dependency_checker - INFO - 🔍 开始系统依赖检查...
+2025-08-12 08:10:00,316 - core.dependency_checker - INFO - 📊 依赖检查完成: 9/9 项通过
+2025-08-12 08:10:02,656 - core.package_installer - INFO - 📦 安装包: numpy
+2025-08-12 08:10:08,573 - core.package_installer - INFO - ✅ 通过conda成功安装: numpy
+2025-08-12 08:10:08,574 - core.package_installer - INFO - 📦 安装包: pandas
+2025-08-12 08:10:15,780 - core.package_installer - INFO - ✅ 通过conda成功安装: pandas
+2025-08-12 08:10:15,780 - core.package_installer - INFO - 📦 安装包: matplotlib
+2025-08-12 08:10:46,100 - __main__ - INFO - 开始SAGE安装 - 配置: development, 环境: ybsage
+2025-08-12 08:10:46,101 - core.dependency_checker - INFO - 🔍 开始系统依赖检查...
+2025-08-12 08:10:47,759 - core.dependency_checker - INFO - 📊 依赖检查完成: 9/9 项通过
+2025-08-12 08:10:49,764 - core.package_installer - INFO - 📦 安装包: numpy
+2025-08-12 08:10:52,344 - core.package_installer - INFO - ✅ 通过conda成功安装: numpy
+2025-08-12 08:10:52,345 - core.package_installer - INFO - 📦 安装包: pandas
+2025-08-12 08:10:54,665 - core.package_installer - INFO - ✅ 通过conda成功安装: pandas
+2025-08-12 08:10:54,665 - core.package_installer - INFO - 📦 安装包: matplotlib
+2025-08-12 08:12:01,034 - core.package_installer - INFO - ✅ 通过conda成功安装: matplotlib
+2025-08-12 08:12:01,035 - core.package_installer - INFO - 📦 安装包: scipy
+2025-08-12 08:12:09,152 - core.package_installer - INFO - ✅ 通过conda成功安装: scipy
+2025-08-12 08:12:09,152 - core.package_installer - INFO - 📦 安装包: scikit-learn
+2025-08-12 08:12:15,321 - core.package_installer - INFO - ✅ 通过conda成功安装: scikit-learn
+2025-08-12 08:12:15,321 - core.package_installer - INFO - 📦 安装包: jupyter
+2025-08-12 08:12:33,516 - core.package_installer - INFO - ✅ 通过conda成功安装: jupyter
+2025-08-12 08:12:33,516 - core.package_installer - INFO - 📦 安装包: pytest
+2025-08-12 08:12:38,928 - core.package_installer - INFO - ✅ 通过conda成功安装: pytest
+2025-08-12 08:12:38,929 - core.package_installer - INFO - 📦 安装包: black
+2025-08-12 08:12:43,773 - core.package_installer - INFO - ✅ 通过conda成功安装: black
+2025-08-12 08:12:43,774 - core.package_installer - INFO - 📦 安装包: flake8
+2025-08-12 08:12:49,468 - core.package_installer - INFO - ✅ 通过conda成功安装: flake8
+2025-08-12 08:12:49,557 - core.package_installer - INFO - 📦 安装包: sage
+2025-08-12 08:12:50,192 - core.package_installer - ERROR - ❌ 包安装失败: sage
+2025-08-12 08:12:50,292 - core.package_installer - INFO - 📦 安装包: sage-common
+2025-08-12 08:12:51,174 - core.package_installer - ERROR - ❌ 包安装失败: sage-common
+2025-08-12 08:12:51,275 - core.package_installer - INFO - 📦 安装包: sage-kernel
+2025-08-12 08:12:52,044 - core.package_installer - ERROR - ❌ 包安装失败: sage-kernel
+2025-08-12 08:12:52,144 - core.package_installer - INFO - 📦 安装包: sage-middleware
+2025-08-12 08:12:52,911 - core.package_installer - ERROR - ❌ 包安装失败: sage-middleware
+2025-08-12 08:12:53,011 - core.package_installer - INFO - 📦 安装包: numpy>=1.21.0
+2025-08-12 08:12:53,478 - core.package_installer - INFO - ✅ 通过pip成功安装: numpy>=1.21.0
+2025-08-12 08:12:53,579 - core.package_installer - INFO - 📦 安装包: pandas>=1.3.0
+2025-08-12 08:12:54,044 - core.package_installer - INFO - ✅ 通过pip成功安装: pandas>=1.3.0
+2025-08-12 08:12:54,145 - core.package_installer - INFO - 📦 安装包: matplotlib>=3.4.0
+2025-08-12 08:12:54,840 - core.package_installer - INFO - ✅ 通过pip成功安装: matplotlib>=3.4.0
+2025-08-12 08:12:54,940 - core.package_installer - INFO - 📦 安装包: scipy>=1.7.0
+2025-08-12 08:12:55,415 - core.package_installer - INFO - ✅ 通过pip成功安装: scipy>=1.7.0
+2025-08-12 08:12:55,516 - core.package_installer - INFO - 📦 安装包: scikit-learn>=1.0.0
+2025-08-12 08:12:55,983 - core.package_installer - INFO - ✅ 通过pip成功安装: scikit-learn>=1.0.0
+2025-08-12 08:12:56,083 - core.package_installer - INFO - 📦 安装包: jupyter>=1.0.0
+2025-08-12 08:13:00,542 - core.package_installer - INFO - ✅ 通过pip成功安装: jupyter>=1.0.0
+2025-08-12 08:13:00,642 - core.package_installer - INFO - 📦 安装包: ipykernel>=6.0.0
+2025-08-12 08:13:01,419 - core.package_installer - INFO - ✅ 通过pip成功安装: ipykernel>=6.0.0
+2025-08-12 08:13:01,519 - core.package_installer - INFO - 📦 安装包: pytest>=6.0.0
+2025-08-12 08:13:02,255 - core.package_installer - INFO - ✅ 通过pip成功安装: pytest>=6.0.0
+2025-08-12 08:13:02,356 - core.package_installer - INFO - 📦 安装包: pytest-cov>=2.12.0
+2025-08-12 08:13:03,878 - core.package_installer - INFO - ✅ 通过pip成功安装: pytest-cov>=2.12.0
+2025-08-12 08:13:03,979 - core.package_installer - INFO - 📦 安装包: black>=21.0.0
+2025-08-12 08:13:04,702 - core.package_installer - INFO - ✅ 通过pip成功安装: black>=21.0.0
+2025-08-12 08:13:04,803 - core.package_installer - INFO - 📦 安装包: flake8>=3.9.0
+2025-08-12 08:13:05,525 - core.package_installer - INFO - ✅ 通过pip成功安装: flake8>=3.9.0
+2025-08-12 08:13:05,625 - core.package_installer - INFO - 📦 安装包: mypy>=0.910
+2025-08-12 08:13:08,482 - core.package_installer - INFO - ✅ 通过pip成功安装: mypy>=0.910
+2025-08-12 08:13:08,583 - core.package_installer - INFO - 📦 安装包: pre-commit>=2.15.0
+2025-08-12 08:13:12,575 - core.package_installer - INFO - ✅ 通过pip成功安装: pre-commit>=2.15.0
+2025-08-12 08:13:12,675 - core.package_installer - INFO - 📦 安装包: sphinx>=4.0.0
+2025-08-12 08:13:16,837 - core.package_installer - INFO - ✅ 通过pip成功安装: sphinx>=4.0.0
+2025-08-12 08:13:16,937 - core.package_installer - INFO - 📦 安装包: sphinx-rtd-theme>=0.5.0
+2025-08-12 08:13:18,304 - core.package_installer - INFO - ✅ 通过pip成功安装: sphinx-rtd-theme>=0.5.0
+2025-08-12 08:13:18,406 - core.package_installer - INFO - 🔧 安装本地包: /home/cyb/SAGE/packages/sage-common
+2025-08-12 08:13:24,503 - core.package_installer - INFO - ✅ 本地包安装成功
+2025-08-12 08:13:24,504 - core.package_installer - INFO - 🔧 安装本地包: /home/cyb/SAGE/packages/sage-kernel
+2025-08-12 08:14:30,480 - core.package_installer - INFO - ✅ 本地包安装成功
+2025-08-12 08:14:30,480 - core.package_installer - INFO - 🔧 安装本地包: /home/cyb/SAGE/packages/sage-middleware
+2025-08-12 08:14:57,016 - core.package_installer - INFO - ✅ 本地包安装成功
+2025-08-12 08:14:57,016 - core.package_installer - INFO - 🔧 安装本地包: /home/cyb/SAGE/packages/sage
+2025-08-12 08:15:02,304 - core.package_installer - INFO - ✅ 本地包安装成功
+2025-08-12 08:15:02,377 - core.submodule_manager - INFO - 🔄 初始化Git子模块...
+2025-08-12 08:15:02,425 - core.submodule_manager - INFO - ✅ 子模块初始化成功
+2025-08-12 08:15:02,428 - core.submodule_manager - INFO - ⬇️ 更新Git子模块...
+2025-08-12 08:15:09,610 - core.submodule_manager - INFO - ✅ 子模块更新成功
+2025-08-12 08:15:10,752 - utils.validator - INFO - 🔍 开始全面安装验证...
+2025-08-12 08:15:13,867 - utils.validator - INFO - 📊 验证完成: 发现问题

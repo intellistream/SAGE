@@ -1,5 +1,5 @@
 """
-测试 sage.plugins.longrefiner_fn.longrefiner_adapter 模块
+测试 sage.apps.libs.rag.longrefiner.longrefiner_adapter 模块
 """
 
 import pytest
@@ -12,7 +12,7 @@ import tempfile
 pytest_plugins = []
 
 try:
-    from sage.plugins.longrefiner_fn.longrefiner_adapter import LongRefinerAdapter
+    from sage.apps.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
     LONGREFINER_AVAILABLE = True
 except ImportError as e:
     LONGREFINER_AVAILABLE = False
@@ -28,7 +28,7 @@ class TestLongRefinerAdapter:
         if not LONGREFINER_AVAILABLE:
             pytest.skip("LongRefiner module not available")
         
-        from sage.plugins.longrefiner_fn.longrefiner_adapter import LongRefinerAdapter
+        from sage.apps.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
         assert LongRefinerAdapter is not None
     
     def test_longrefiner_adapter_initialization_missing_config(self):
@@ -181,7 +181,7 @@ class TestLongRefinerAdapterMethods:
         except Exception as e:
             pytest.skip(f"Save data record enabled test failed: {e}")
     
-    @patch('sage.plugins.longrefiner_fn.longrefiner.refiner.LongRefiner')
+    @patch('sage.apps.libs.rag.longrefiner.longrefiner.refiner.LongRefiner')
     def test_init_refiner(self, mock_longrefiner_class):
         """测试refiner初始化"""
         if not LONGREFINER_AVAILABLE:
@@ -233,7 +233,7 @@ class TestLongRefinerAdapterExecution:
             "budget": 1000
         }
     
-    @patch('sage.plugins.longrefiner_fn.longrefiner.refiner.LongRefiner')
+    @patch('sage.apps.libs.rag.longrefiner.longrefiner.refiner.LongRefiner')
     def test_execute_with_dict_docs(self, mock_longrefiner_class):
         """测试执行字典格式文档"""
         if not LONGREFINER_AVAILABLE:
@@ -280,7 +280,7 @@ class TestLongRefinerAdapterExecution:
         except Exception as e:
             pytest.skip(f"Execute with dict docs test failed: {e}")
     
-    @patch('sage.plugins.longrefiner_fn.longrefiner.refiner.LongRefiner')
+    @patch('sage.apps.libs.rag.longrefiner.longrefiner.refiner.LongRefiner')
     def test_execute_with_string_docs(self, mock_longrefiner_class):
         """测试执行字符串格式文档"""
         if not LONGREFINER_AVAILABLE:
@@ -312,7 +312,7 @@ class TestLongRefinerAdapterExecution:
         except Exception as e:
             pytest.skip(f"Execute with string docs test failed: {e}")
     
-    @patch('sage.plugins.longrefiner_fn.longrefiner.refiner.LongRefiner')
+    @patch('sage.apps.libs.rag.longrefiner.longrefiner.refiner.LongRefiner')
     def test_execute_with_exception(self, mock_longrefiner_class):
         """测试执行异常处理"""
         if not LONGREFINER_AVAILABLE:
@@ -364,7 +364,7 @@ class TestLongRefinerAdapterIntegration:
         mock_ctx.env_base_dir = temp_dir
         
         # 模拟完整的文档精炼工作流
-        with patch('sage.plugins.longrefiner_fn.longrefiner.refiner.LongRefiner') as mock_refiner_class:
+        with patch('sage.apps.libs.rag.longrefiner.longrefiner.refiner.LongRefiner') as mock_refiner_class:
             mock_refiner = Mock()
             mock_refiner.run.return_value = [
                 {"contents": "精炼后的重要文档1"},
@@ -418,7 +418,7 @@ class TestLongRefinerAdapterIntegration:
             return query, [
                 {"text": "相关文档1"},
                 {"text": "相关文档2"},
-                {"text": "不相关文档"},
+                {"text": "无关文档"},
                 {"text": "相关文档3"}
             ]
         

@@ -60,7 +60,7 @@ dependencies = [
     "cohere==5.16.1",
     "transformers>=4.54.1",
     "tokenizers==0.21.4",
-    # "vllm>=0.6.0,<0.7.0",  # 移到可选依赖，避免CUDA问题
+    # "vllm>=0.10.0",  # 移到可选依赖，避免CUDA问题
     "faiss-cpu==1.9.0",
     "bm25s==0.2.13",
     "rank-bm25==0.2.2",
@@ -132,7 +132,7 @@ enterprise-dev = [
 
 # VLLM支持（可选，需要CUDA）
 vllm = [
-    "vllm>=0.6.0,<0.7.0",
+    "vllm>=0.10.0",
 ]
 
 # 基础数据库支持
