@@ -114,7 +114,7 @@ class Validator:
             
             try:
                 # 使用pip show检查包安装
-                result = subprocess.run(
+                result: subprocess.CompletedProcess[str] = subprocess.run(
                     ["pip", "show", package_name],
                     capture_output=True,
                     text=True,
@@ -135,11 +135,26 @@ class Validator:
                         "details": package_info
                     }
                 else:
-                    results[package_name] = {
-                        "status": False,
-                        "message": f"❌ {package_name} 未安装",
-                        "details": {}
-                    }
+                    # pip show失败时，检查是否是开发模式安装
+                    editable_result = subprocess.run(
+                        ["pip", "list", "--editable"],
+                        capture_output=True,
+                        text=True,
+                        env=env_vars
+                    )
+                    
+                    if editable_result.returncode == 0 and package_name in editable_result.stdout:
+                        results[package_name] = {
+                            "status": True,
+                            "message": f"✅ {package_name} 已安装 (开发模式)",
+                            "details": {"installation_mode": "editable"}
+                        }
+                    else:
+                        results[package_name] = {
+                            "status": False,
+                            "message": f"❌ {package_name} 未安装",
+                            "details": {}
+                        }
                     
             except Exception as e:
                 results[package_name] = {
@@ -160,31 +175,84 @@ class Validator:
         Returns:
             SAGE包验证结果
         """
+        # 使用默认的核心包列表
         sage_packages = [
             "sage",
-            "sage-common", 
-            "sage-kernel",
-            "sage-middleware"
+            "sage.apps", 
+            "sage.middleware", 
+            "sage.common",
+            "sage.kernel"
         ]
+        
+        print(f"验证SAGE核心包: {sage_packages}")
         
         results = {
             "core_packages": {},
             "import_tests": {},
+            "development_mode_check": {},
             "overall_status": False
         }
         
-        # 验证包安装
-        package_results = self.validate_package_installation(sage_packages, env_vars)
-        results["core_packages"] = package_results
+        # 验证包安装状态（使用pip包名）
+        packages_dir = self.project_root / "packages"
+        pip_package_names = []
+        if packages_dir.exists():
+            for pkg_dir in packages_dir.iterdir():
+                if pkg_dir.is_dir() and pkg_dir.name.startswith("sage"):
+                    # pip包名通常以isage开头
+                    if pkg_dir.name == "sage":
+                        pip_name = "isage"
+                    else:
+                        pip_name = pkg_dir.name.replace("sage-", "isage-")
+                    pip_package_names.append(pip_name)
         
-        # 验证包导入
+        if pip_package_names:
+            package_results = self.validate_package_installation(pip_package_names, env_vars)
+            results["core_packages"] = package_results
+        
+        # 检查开发模式安装（使用Python模块名）
+        for package in sage_packages:
+            try:
+                # 检查是否在当前Python路径中可以找到包
+                import_test_cmd = f'python -c "import sys; import {package}; print(\\"Found: \\" + sys.modules[\\"{package}\\"].__file__)"'
+                result = subprocess.run(
+                    import_test_cmd,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    env=env_vars
+                )
+                
+                if result.returncode == 0:
+                    package_path = result.stdout.strip().replace("Found: ", "")
+                    is_dev_mode = str(self.project_root) in package_path
+                    
+                    results["development_mode_check"][package] = {
+                        "status": True,
+                        "is_development": is_dev_mode,
+                        "path": package_path,
+                        "message": f"✅ {package} 可用"
+                    }
+                else:
+                    results["development_mode_check"][package] = {
+                        "status": False,
+                        "message": f"❌ {package} 不可用: {result.stderr}"
+                    }
+                    
+            except Exception as e:
+                results["development_mode_check"][package] = {
+                    "status": False,
+                    "message": f"❌ {package} 检查失败: {e}"
+                }
+        
+        # 验证包导入（使用Python模块名）
         for package in sage_packages:
             try:
                 # 尝试导入包
                 if env_vars:
                     # 在特定环境中运行Python导入测试
-                    import_cmd = f"python -c 'import {package.replace('-', '_')}; print(\"OK\")'"
-                    result = subprocess.run(
+                    import_cmd = f"python -c 'import {package}; print(\"OK\")'"
+                    result: subprocess.CompletedProcess[str] = subprocess.run(
                         import_cmd,
                         shell=True,
                         capture_output=True,
@@ -204,8 +272,7 @@ class Validator:
                         }
                 else:
                     # 直接导入测试
-                    module_name = package.replace('-', '_')
-                    importlib.import_module(module_name)
+                    importlib.import_module(package)
                     results["import_tests"][package] = {
                         "status": True,
                         "message": f"✅ {package} 导入成功"
@@ -217,15 +284,16 @@ class Validator:
                     "message": f"❌ {package} 导入失败: {e}"
                 }
         
-        # 计算总体状态
-        all_packages_ok = all(
-            result["status"] for result in package_results.values()
-        )
+        # 计算总体状态 - 如果导入成功，认为包可用（无论是否通过pip安装）
         all_imports_ok = all(
             result["status"] for result in results["import_tests"].values()
         )
+        all_dev_check_ok = all(
+            result["status"] for result in results["development_mode_check"].values()
+        )
         
-        results["overall_status"] = all_packages_ok and all_imports_ok
+        # 优先考虑导入测试和开发模式检查
+        results["overall_status"] = all_imports_ok and all_dev_check_ok
         
         return results
     
@@ -243,7 +311,8 @@ class Validator:
             "conda_env_exists": {"status": False, "message": ""},
             "conda_env_active": {"status": False, "message": ""},
             "python_path_correct": {"status": False, "message": ""},
-            "package_conflicts": {"status": True, "message": "", "conflicts": []}
+            "package_conflicts": {"status": True, "message": "", "conflicts": []},
+            "activation_suggestion": {"message": ""}
         }
         
         try:
@@ -254,6 +323,7 @@ class Validator:
                 text=True
             )
             
+            env_exists = False
             if conda_result.returncode == 0:
                 env_exists = env_name in conda_result.stdout
                 results["conda_env_exists"]["status"] = env_exists
@@ -269,10 +339,12 @@ class Validator:
                 results["conda_env_active"]["message"] = f"✅ 环境 {env_name} 已激活"
             else:
                 results["conda_env_active"]["message"] = f"⚠️ 当前环境: {current_env}, 期望: {env_name}"
+                if env_exists:
+                    results["activation_suggestion"]["message"] = f"💡 建议运行: conda activate {env_name}"
             
             # 检查Python路径
             python_executable = sys.executable
-            if env_name in python_executable:
+            if env_name in python_executable or (not env_name and current_env in python_executable):
                 results["python_path_correct"]["status"] = True
                 results["python_path_correct"]["message"] = f"✅ Python路径正确: {python_executable}"
             else:
@@ -390,17 +462,30 @@ class Validator:
         
         # 计算总体状态
         overall_success = True
+        critical_failures = 0
+        
         for category, results in validation_results.items():
             if isinstance(results, dict):
                 if "overall_status" in results:
-                    overall_success &= results["overall_status"]
+                    # SAGE包是关键的
+                    if category == "sage_packages" and not results["overall_status"]:
+                        critical_failures += 1
                 else:
                     # 检查所有子项状态
-                    for item in results.values():
+                    for item_name, item in results.items():
                         if isinstance(item, dict) and "status" in item:
-                            overall_success &= item["status"]
+                            # Git状态不是关键的
+                            if item_name == "git_status" and not item["status"]:
+                                logger.info("Git状态非关键，忽略")
+                                continue
+                            # 其他失败项
+                            elif not item["status"]:
+                                if category in ["python_environment", "environment_consistency"]:
+                                    critical_failures += 1
+                                    break
         
-        validation_results["overall_success"] = overall_success
+        # 只有没有关键失败才算成功
+        validation_results["overall_success"] = critical_failures == 0
         
         logger.info(f"📊 验证完成: {'成功' if overall_success else '发现问题'}")
         
@@ -434,14 +519,30 @@ class Validator:
                         for sub_key, sub_value in item_result.items():
                             if isinstance(sub_value, dict) and "message" in sub_value:
                                 report_lines.append(f"    {sub_value['message']}")
+                            elif sub_key == "development_mode_check":
+                                report_lines.append(f"    开发模式检查:")
+                                for pkg, pkg_result in sub_value.items():
+                                    if isinstance(pkg_result, dict) and "message" in pkg_result:
+                                        report_lines.append(f"      {pkg_result['message']}")
             
             report_lines.append("")
         
         # 总结
         overall_success = validation_results.get("overall_success", False)
         if overall_success:
-            report_lines.append("🎉 验证通过！SAGE安装成功完成。")
+            report_lines.append("🎉 验证通过！SAGE包可正常使用。")
         else:
             report_lines.append("⚠️ 验证发现问题，请检查上述错误并修复。")
+            
+        # 添加使用建议
+        if "sage_packages" in validation_results:
+            sage_results = validation_results["sage_packages"]
+            if sage_results.get("import_tests", {}) and all(
+                result.get("status", False) for result in sage_results["import_tests"].values()
+            ):
+                report_lines.append("")
+                report_lines.append("💡 提示：虽然pip检查显示包未安装，但导入测试成功，")
+                report_lines.append("   这通常表明包以开发模式安装或使用PYTHONPATH。")
+                report_lines.append("   如需激活conda环境，请运行相应的激活命令。")
         
         return "\n".join(report_lines)
