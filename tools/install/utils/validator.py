@@ -319,8 +319,7 @@ class Validator:
         
         results = {
             "structure_check": {},
-            "permissions_check": {},
-            "git_status": {"status": False, "message": ""}
+            "permissions_check": {}
         }
         
         # 检查必需路径
@@ -346,26 +345,26 @@ class Validator:
                     "message": "✅ 权限正常" if readable and writable else "⚠️ 权限问题"
                 }
         
-        # 检查Git状态
-        try:
-            git_result = subprocess.run(
-                ["git", "status", "--porcelain"],
-                cwd=self.project_root,
-                capture_output=True,
-                text=True
-            )
+        # # 检查Git状态
+        # try:
+        #     git_result = subprocess.run(
+        #         ["git", "status", "--porcelain"],
+        #         cwd=self.project_root,
+        #         capture_output=True,
+        #         text=True
+        #     )
             
-            if git_result.returncode == 0:
-                if git_result.stdout.strip():
-                    results["git_status"]["message"] = "⚠️ 有未提交的更改"
-                else:
-                    results["git_status"]["status"] = True
-                    results["git_status"]["message"] = "✅ Git工作目录干净"
-            else:
-                results["git_status"]["message"] = "⚠️ 无法检查Git状态"
+        #     if git_result.returncode == 0:
+        #         if git_result.stdout.strip():
+        #             results["git_status"]["message"] = "⚠️ 有未提交的更改"
+        #         else:
+        #             results["git_status"]["status"] = True
+        #             results["git_status"]["message"] = "✅ Git工作目录干净"
+        #     else:
+        #         results["git_status"]["message"] = "⚠️ 无法检查Git状态"
                 
-        except Exception:
-            results["git_status"]["message"] = "⚠️ Git不可用"
+        # except Exception:
+        #     results["git_status"]["message"] = "⚠️ Git不可用"
         
         return results
     
