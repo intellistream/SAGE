@@ -19,7 +19,7 @@ class InstallationProfile:
     install_submodules: bool
     environment_suffix: str = ""
     additional_config: Dict[str, Any] = None
-    
+    local_packages = SAGE_PACKAGES
     def __post_init__(self):
         if self.additional_config is None:
             self.additional_config = {}
@@ -31,8 +31,9 @@ INSTALLATION_PROFILES = {
         name="快速安装",
         description="仅安装核心SAGE包，适合快速体验和测试",
         python_version=DEFAULT_PYTHON_VERSION,
-        packages=SAGE_PACKAGES,
+        packages=[],
         conda_packages=[],
+        
         install_submodules=False,
         environment_suffix="quick",
         additional_config={
@@ -46,7 +47,6 @@ INSTALLATION_PROFILES = {
         description="推荐的标准安装，包含SAGE核心包和常用科学计算库",
         python_version=DEFAULT_PYTHON_VERSION,
         packages=[
-            *SAGE_PACKAGES,
             "numpy>=1.21.0",
             "pandas>=1.3.0", 
             "matplotlib>=3.4.0",
@@ -54,6 +54,7 @@ INSTALLATION_PROFILES = {
             "jupyter>=1.0.0"
         ],
         conda_packages=["numpy", "pandas", "matplotlib", "scipy", "jupyter"],
+        
         install_submodules=True,
         environment_suffix="standard",
         additional_config={
@@ -67,7 +68,6 @@ INSTALLATION_PROFILES = {
         description="完整的开发环境，包含所有依赖、开发工具和测试框架",
         python_version=DEFAULT_PYTHON_VERSION,
         packages=[
-            *SAGE_PACKAGES,
             "numpy>=1.21.0",
             "pandas>=1.3.0",
             "matplotlib>=3.4.0", 
@@ -88,6 +88,7 @@ INSTALLATION_PROFILES = {
             "numpy", "pandas", "matplotlib", "scipy", "scikit-learn", 
             "jupyter", "pytest", "black", "flake8"
         ],
+        
         install_submodules=True,
         environment_suffix="dev",
         additional_config={
@@ -119,7 +120,6 @@ INSTALLATION_PROFILES = {
         description="面向科研工作的安装配置，包含数据科学和机器学习工具",
         python_version=DEFAULT_PYTHON_VERSION,
         packages=[
-            *SAGE_PACKAGES,
             "numpy>=1.21.0",
             "pandas>=1.3.0",
             "matplotlib>=3.4.0",
@@ -139,6 +139,7 @@ INSTALLATION_PROFILES = {
             "numpy", "pandas", "matplotlib", "scipy", "scikit-learn",
             "seaborn", "jupyter", "jupyterlab", "statsmodels", "networkx"
         ],
+        
         install_submodules=True,
         environment_suffix="research",
         additional_config={
@@ -153,7 +154,6 @@ INSTALLATION_PROFILES = {
         description="生产环境安装，优化性能和稳定性",
         python_version=DEFAULT_PYTHON_VERSION,
         packages=[
-            *SAGE_PACKAGES,
             "numpy>=1.21.0",
             "pandas>=1.3.0",
             "fastapi>=0.70.0",
@@ -163,6 +163,7 @@ INSTALLATION_PROFILES = {
             "psycopg2-binary>=2.9.0"
         ],
         conda_packages=["numpy", "pandas"],
+        
         install_submodules=True,
         environment_suffix="prod",
         additional_config={
