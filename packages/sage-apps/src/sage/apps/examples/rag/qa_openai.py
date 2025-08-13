@@ -25,7 +25,7 @@ def pipeline_run(config: dict) -> None:
         .from_source(FileSource, config["source"])
         .map(DenseRetriever, config["retriever"])
         .map(QAPromptor, config["promptor"])
-        .map(OpenAIGenerator, config["generator"]["local"])
+        .map(OpenAIGenerator, config["generator"]["vllm"])
         .sink(TerminalSink, config["sink"])
     )
 
