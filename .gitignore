@@ -35,7 +35,7 @@ logs/
 output/
 **/__pycache__/
 gitlogs.txt
-
+install.log
 
 .github/chatmodes/
 id_llm
