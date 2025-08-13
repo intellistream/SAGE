@@ -17,7 +17,7 @@ def pipeline_run():
     query_stream = env.from_source(FileSource, config["source"])
     query_and_chunks_stream = query_stream.map(BM25sRetriever, config["retriever"])
     prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
-    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"]["local"])
+    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"]["vllm"])
     response_stream.sink(TerminalSink, config["sink"])
     # 提交管道并运行
     env.submit()

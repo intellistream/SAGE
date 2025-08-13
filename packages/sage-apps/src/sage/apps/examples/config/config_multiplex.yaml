@@ -5,7 +5,7 @@ pipeline:
 
 source:
   # data_path: "sample/one_question.txt"
-  data_path: "data/sample/question.txt"
+  data_path: "packages/sage-apps/src/sage/apps/examples/data/sample/question.txt"
   platform: "local"
 
 retriever:

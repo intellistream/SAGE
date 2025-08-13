@@ -20,7 +20,7 @@ def pipeline_run():
                     .from_source(FileSource, config["source"]) # 处理且处理一整个file 一次。
                     # .map(DenseRetriever, config["retriever"])
                     .map(QAPromptor, config["promptor"])
-                    .map(OpenAIGenerator, config["generator"])
+                    .map(OpenAIGenerator, config["generator"]["vllm"])
                     .sink(TerminalSink, config["sink"]) # TM (JVM) --> 会打印在某一台机器的console里
                     )
 

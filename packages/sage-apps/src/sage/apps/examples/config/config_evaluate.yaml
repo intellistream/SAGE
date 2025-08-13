@@ -4,7 +4,7 @@ pipeline:
   version: "1.0.0"
 
 source:
-  data_path: "data/sample/evaluate.json"
+  data_path: "packages/sage-apps/src/sage/apps/examples/data/sample/evaluate.json"
   platform: "local"
 
 generator:

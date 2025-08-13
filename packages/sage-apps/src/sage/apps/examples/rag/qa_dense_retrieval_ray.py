@@ -119,7 +119,7 @@ def pipeline_run(config):
     query_stream = env.from_source(FileSource, config["source"])
     query_and_chunks_stream = query_stream.map(SafeBiologyRetriever, config["retriever"])  # 使用BiologyRetriever
     prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
-    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"]["remote"])
+    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"]["vllm"])
     response_stream.sink(FileSink, config["sink"])
     # 提交管道并运行
     env.submit()
@@ -132,7 +132,7 @@ def pipeline_run(config):
 
 if __name__ == '__main__':
     # 加载配置并初始化日志
-    config = load_config('../../resources/config/config_ray.yaml')
+    config = load_config('../config/config_ray.yaml')
     # load_dotenv(override=False)
 
     # api_key = os.environ.get("ALIBABA_API_KEY")

@@ -27,7 +27,7 @@ def pipeline_run(config):
             env.from_source(FileSource, config["source"])
             .map(DenseRetriever, config["retriever"])
             .map(QAPromptor, config["promptor"])
-            .map(OpenAIGenerator, config["generator"]["local"])
+            .map(OpenAIGenerator, config["generator"]["vllm"])
         )
 
         # Split response into true/false streams

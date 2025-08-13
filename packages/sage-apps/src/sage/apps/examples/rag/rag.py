@@ -423,7 +423,7 @@ def pipeline_run() -> None:
         .from_batch(PrivateQABatch)
         .map(SafePrivateRetriever)
         .map(QAPromptor, config["promptor"])
-        .map(OpenAIGenerator, config["generator"]["remote"])
+        .map(OpenAIGenerator, config["generator"]["vllm"])
         .sink(TerminalSink, config["sink"])
     )
 

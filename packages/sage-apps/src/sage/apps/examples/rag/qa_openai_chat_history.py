@@ -24,7 +24,7 @@ def pipeline_run(config: dict) -> None:
     (env
         .from_source(FileSource, config["source"])
         .map(QAPromptor, config["promptor"])
-        .map(OpenAIGeneratorWithHistory, config["generator"]["local"])
+        .map(OpenAIGeneratorWithHistory, config["generator"]["vllm"])
         .sink(TerminalSink, config["sink"])
     )
 

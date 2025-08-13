@@ -25,7 +25,7 @@ def pipeline_run():
                     .map(DenseRetriever, config["retriever"])
                     .map(BGEReranker, config["reranker"])  
                     .map(QAPromptor, config["promptor"])
-                    .map(OpenAIGenerator, config["generator"]["local"])
+                    .map(OpenAIGenerator, config["generator"]["vllm"])
                     .sink(TerminalSink, config["sink"])
                     )
 
