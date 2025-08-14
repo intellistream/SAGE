@@ -13,7 +13,7 @@ from sage.common.utils.config.loader import load_config
 def pipeline_run():
     """创建并运行数据处理管道"""
     env = LocalEnvironment()
-    env.set_memory(config=None)
+    #env.set_memory(config=None)
     # 构建数据处理流程
     query_stream = env.from_source(FileSource, config["source"])
     query_and_chunks_stream = query_stream.map(DenseRetriever, config["retriever"])

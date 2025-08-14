@@ -18,7 +18,7 @@ def pipeline_run(config: dict) -> None:
         config (dict): 包含各模块配置的配置字典。
     """
     env = LocalEnvironment()
-    env.set_memory(config=None)
+    #env.set_memory(config=None)
 
     # 构建数据处理流程
     (env

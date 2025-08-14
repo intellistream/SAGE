@@ -20,7 +20,7 @@ def pipeline_run(config):
     """
     try:
         env = LocalEnvironment()
-        env.set_memory(config=None)  # Set environment memory if required.
+        #env.set_memory(config=None)  # Set environment memory if required.
 
         # Constructing the data processing pipeline
         response_stream = (

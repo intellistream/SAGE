@@ -68,6 +68,5 @@ def pipeline_run(config):
 
 # ==========================================================
 if __name__ == "__main__":
-    CustomLogger.disable_global_console_debug()
-    cfg = load_config("../config/config_refiner.yaml")
-    pipeline_run(cfg)
+    config = load_config("../config/config_refiner.yaml")
+    pipeline_run(config)

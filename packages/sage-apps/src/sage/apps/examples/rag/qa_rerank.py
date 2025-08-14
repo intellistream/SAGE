@@ -18,7 +18,7 @@ def pipeline_run():
     """
     # 初始化环境
     env = LocalEnvironment()
-    env.set_memory(config=None)  # 初始化内存配置
+    #env.set_memory(config=None)  # 初始化内存配置
 
     # 构建数据处理流程
     query_stream = (env.from_source(FileSource, config["source"])
