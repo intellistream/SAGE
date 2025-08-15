@@ -5,6 +5,7 @@ SAGE用户界面工具
 
 import os
 import sys
+import shutil
 from typing import List, Dict, Optional, Callable, Any
 
 
@@ -19,7 +20,57 @@ class UserInterface:
             quiet_mode: 静默模式，减少交互
         """
         self.quiet_mode = quiet_mode
+        self.terminal_width = self._get_terminal_width()
         
+    def _get_terminal_width(self) -> int:
+        """获取终端宽度"""
+        try:
+            return shutil.get_terminal_size().columns
+        except:
+            return 80
+            
+    def _center_text(self, text: str, width: Optional[int] = None) -> str:
+        """居中文本"""
+        if width is None:
+            width = self.terminal_width
+        lines = text.split('\n')
+        centered_lines = []
+        for line in lines:
+            if len(line) <= width:
+                centered_lines.append(line.center(width))
+            else:
+                centered_lines.append(line)
+        return '\n'.join(centered_lines)
+    
+    def _create_box(self, content: str, style: str = "double") -> str:
+        """创建文本框"""
+        lines = content.split('\n')
+        max_width = max(len(line) for line in lines) if lines else 0
+        box_width = min(max_width + 4, self.terminal_width - 4)
+        
+        if style == "double":
+            top = "╔" + "═" * (box_width - 2) + "╗"
+            bottom = "╚" + "═" * (box_width - 2) + "╝"
+            side = "║"
+        else:  # single
+            top = "┌" + "─" * (box_width - 2) + "┐"
+            bottom = "└" + "─" * (box_width - 2) + "┘"
+            side = "│"
+        
+        result = [top]
+        for line in lines:
+            padding = (box_width - 2 - len(line)) // 2
+            padded_line = " " * padding + line + " " * (box_width - 2 - len(line) - padding)
+            result.append(f"{side}{padded_line}{side}")
+        result.append(bottom)
+        
+        return '\n'.join(result)
+    
+    def clear_screen(self) -> None:
+        """清屏"""
+        if not self.quiet_mode:
+            os.system('clear' if os.name == 'posix' else 'cls')
+    
     def show_welcome(self, title: str = "SAGE安装向导") -> None:
         """
         显示欢迎信息
@@ -29,12 +80,17 @@ class UserInterface:
         """
         if self.quiet_mode:
             return
-            
-        width = max(50, len(title) + 10)
-        print("=" * width)
-        print(f"🚀 {title}".center(width))
-        print("=" * width)
-        print()
+        
+        self.clear_screen()
+        
+        # 创建美化的标题
+        welcome_text = f"🚀 {title}"
+        box = self._create_box(welcome_text, "double")
+        centered_box = self._center_text(box)
+        
+        print("\n" * 3)
+        print(centered_box)
+        print("\n" * 2)
     
     def show_section(self, title: str, description: str = "") -> None:
         """
@@ -46,11 +102,118 @@ class UserInterface:
         """
         if self.quiet_mode:
             return
-            
-        print(f"\n📋 {title}")
-        print("-" * (len(title) + 5))
+        
+        print()
+        section_text = f"� {title}"
         if description:
-            print(f"{description}\n")
+            section_text += f"\n{description}"
+        
+        box = self._create_box(section_text, "single")
+        print(box)
+        print()
+    
+    def show_progress_section(self, title: str, current_step: int, total_steps: int) -> None:
+        """
+        显示进度章节
+        
+        Args:
+            title: 章节标题  
+            current_step: 当前步骤
+            total_steps: 总步骤数
+        """
+        if self.quiet_mode:
+            return
+        
+        print()
+        
+        # 创建进度条
+        progress_percent = (current_step / total_steps) * 100
+        progress_width = min(50, self.terminal_width - 20)
+        filled = int(progress_width * current_step / total_steps)
+        bar = "█" * filled + "░" * (progress_width - filled)
+        
+        section_text = f"📋 {title}"
+        progress_text = f"进度: [{bar}] {progress_percent:.1f}% ({current_step}/{total_steps})"
+        
+        full_text = f"{section_text}\n{progress_text}"
+        box = self._create_box(full_text, "single")
+        print(box)
+        print()
+    
+    def show_info(self, message: str) -> None:
+        """显示信息"""
+        print(f"ℹ️ {message}")
+    
+    def show_success(self, message: str) -> None:
+        """显示成功消息"""
+        print(f"✅ {message}")
+    
+    def show_warning(self, message: str) -> None:
+        """显示警告"""
+        print(f"⚠️ {message}")
+    
+    def show_error(self, message: str) -> None:
+        """显示错误"""
+        print(f"❌ {message}")
+    
+    def show_key_value(self, data: Dict[str, Any], title: str = "") -> None:
+        """
+        显示键值对信息
+        
+        Args:
+            data: 键值对数据
+            title: 可选标题
+        """
+        if self.quiet_mode:
+            return
+        
+        if title:
+            print(f"\n📋 {title}")
+        
+        # 计算最大键长度
+        max_key_length = max(len(str(key)) for key in data.keys()) if data else 0
+        
+        for key, value in data.items():
+            print(f"  {str(key):<{max_key_length}} | {value}")
+    
+    def show_progress_summary(self, summary: Dict[str, Any]) -> None:
+        """
+        显示进度摘要
+        
+        Args:
+            summary: 进度摘要数据
+        """
+        if self.quiet_mode:
+            return
+        
+        print("\n")
+        summary_text = "📊 安装总结"
+        
+        # 创建摘要内容
+        content_lines = [
+            summary_text,
+            "",
+            f"项目     | 数值    ",
+            "---------------",
+            f"总步骤数   | {summary.get('total_steps', 0):<5}",
+            f"✅ 成功   | {summary.get('completed', 0):<5}",
+            f"❌ 失败   | {summary.get('failed', 0):<5}",
+            f"⏱️ 总用时 | {summary.get('total_time', 0):.1f}秒",
+            f"📈 成功率  | {summary.get('success_rate', 0):.1%} ",
+            "",
+        ]
+        
+        if summary.get('completed', 0) == summary.get('total_steps', 0) and summary.get('failed', 0) == 0:
+            content_lines.append("✅ 🎉 安装成功完成！")
+        elif summary.get('failed', 0) > 0:
+            content_lines.append("❌ 安装过程中有失败项")
+        
+        content = '\n'.join(content_lines)
+        box = self._create_box(content, "double")
+        centered_box = self._center_text(box)
+        
+        print(centered_box)
+        print()
     
     def show_menu(self, 
                   title: str, 

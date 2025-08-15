@@ -38,6 +38,7 @@ class ProgressTracker:
         self._spinner_thread = None
         self._spinner_stop = threading.Event()
         self._current_message = ""
+        self._step_counter = 0  # 用于跟踪实际执行的步骤数
         
     def add_step(self, name: str, description: str) -> None:
         """
@@ -64,7 +65,8 @@ class ProgressTracker:
         if step:
             step.status = "running"
             step.start_time = time.time()
-            self.current_step = self.steps.index(step) + 1
+            self._step_counter += 1
+            self.current_step = self._step_counter
         
         display_message = message or f"正在执行: {step_name}"
         self._update_display(display_message)
@@ -206,23 +208,9 @@ class ProgressTracker:
         """打印进度摘要"""
         summary = self.get_summary()
         
-        print("\n" + "=" * 50)
-        print("📊 安装进度摘要")
-        print("=" * 50)
-        print(f"总步骤数: {summary['total_steps']}")
-        print(f"✅ 已完成: {summary['completed']}")
-        print(f"❌ 失败: {summary['failed']}")
-        print(f"🔄 运行中: {summary['running']}")
-        print(f"⏳ 待处理: {summary['pending']}")
-        print(f"⏱️ 总用时: {summary['total_time']:.1f}秒")
-        print(f"📈 成功率: {summary['success_rate']:.1%}")
-        
-        # 显示失败的步骤
-        failed_steps = [step for step in self.steps if step.status == "failed"]
-        if failed_steps:
-            print("\n❌ 失败的步骤:")
-            for step in failed_steps:
-                print(f"  • {step.name}: {step.error_message or '未知错误'}")
+        # 这里不再直接打印，而是通过UI组件处理
+        # 主要用于返回摘要数据给UI组件
+        pass
     
     def __enter__(self):
         """上下文管理器入口"""

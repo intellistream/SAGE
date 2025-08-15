@@ -237,7 +237,9 @@ class SAGEInstaller:
     
     def run_dependency_check(self) -> bool:
         """运行依赖检查"""
-        self.ui.show_section("系统依赖检查")
+        self.ui.show_progress_section("系统依赖检查", 
+                                    self.progress.current_step + 1, 
+                                    self.progress.total_steps)
         self.progress.start_step("dependency_check", "检查系统依赖...")
         
         try:
@@ -276,7 +278,9 @@ class SAGEInstaller:
         env_name = self.config["env_name"]
         python_version = self.config["python_version"]
         
-        self.ui.show_section(f"设置环境: {env_name}")
+        self.ui.show_progress_section(f"设置环境: {env_name}", 
+                                    self.progress.current_step, 
+                                    self.progress.total_steps)
         
         # 检查环境是否已存在
         if self.env_manager.environment_exists(env_name):
@@ -306,7 +310,9 @@ class SAGEInstaller:
         profile = get_profile(self.config["profile"])
         env_name = self.config["env_name"]
         
-        self.ui.show_section("安装Python包")
+        self.ui.show_progress_section("安装Python包", 
+                                    self.progress.current_step, 
+                                    self.progress.total_steps)
         
         # 获取环境变量
         env_vars = self.env_manager.activate_environment(env_name)
@@ -389,7 +395,9 @@ class SAGEInstaller:
         if not profile.install_submodules:
             return True
         
-        self.ui.show_section("设置Git子模块")
+        self.ui.show_progress_section("设置Git子模块", 
+                                    self.progress.current_step, 
+                                    self.progress.total_steps)
         self.progress.start_step("submodules", "初始化和更新子模块...")
         
         try:
@@ -408,7 +416,9 @@ class SAGEInstaller:
         if self.config["skip_validation"]:
             return True
         
-        self.ui.show_section("验证安装")
+        self.ui.show_progress_section("验证安装", 
+                                    self.progress.current_step, 
+                                    self.progress.total_steps)
         self.progress.start_step("validation", "验证安装结果...")
         
         try:
@@ -439,7 +449,9 @@ class SAGEInstaller:
         env_name = self.config["env_name"]
         profile = get_profile(self.config["profile"])
         
-        self.ui.show_section("安装完成")
+        self.ui.show_progress_section("安装完成", 
+                                    self.progress.total_steps, 
+                                    self.progress.total_steps)
         self.ui.show_success("🎉 SAGE安装成功完成！")
         
         # 显示环境信息
@@ -480,19 +492,36 @@ class SAGEInstaller:
             if not self.config["profile"] or not self.config["env_name"]:
                 self.interactive_setup()
             
-            # 初始化进度跟踪
-            steps = [
+            # 根据配置决定要执行的步骤
+            profile = get_profile(self.config["profile"])
+            
+            # 动态确定步骤列表
+            steps_to_execute = [
                 ("dependency_check", "系统依赖检查"),
                 ("create_env", "创建conda环境"),
-                ("requirements_install", "安装requirements文件"),
-                ("conda_packages", "安装conda包"),
-                ("pip_packages", "安装外部依赖"),
-                ("sage_packages", "安装SAGE源代码包"),
-                ("submodules", "设置Git子模块"),
-                ("validation", "验证安装")
             ]
             
-            for step_name, description in steps:
+            # 根据配置添加包安装步骤
+            if "use_requirements" in profile.additional_config:
+                steps_to_execute.append(("requirements_install", "安装requirements文件"))
+            else:
+                if profile.conda_packages:
+                    steps_to_execute.append(("conda_packages", "安装conda包"))
+                if profile.packages:
+                    steps_to_execute.append(("pip_packages", "安装外部依赖"))
+                steps_to_execute.append(("sage_packages", "安装SAGE源代码包"))
+            
+            # 添加子模块步骤（如果需要）
+            if profile.install_submodules:
+                steps_to_execute.append(("submodules", "设置Git子模块"))
+            
+            # 添加验证步骤（如果不跳过）
+            if not self.config["skip_validation"]:
+                steps_to_execute.append(("validation", "验证安装"))
+            
+            # 初始化进度跟踪，使用实际步骤数
+            self.progress.total_steps = len(steps_to_execute)
+            for step_name, description in steps_to_execute:
                 self.progress.add_step(step_name, description)
             
             # 执行安装步骤
@@ -507,10 +536,10 @@ class SAGEInstaller:
             if not self.install_packages():
                 return False
             
-            if not self.setup_submodules():
+            if profile.install_submodules and not self.setup_submodules():
                 return False
             
-            if not self.run_validation():
+            if not self.config["skip_validation"] and not self.run_validation():
                 return False
             
             # 显示完成信息
