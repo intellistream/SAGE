@@ -207,7 +207,7 @@ class Validator:
                         }
                 else:
                     # 直接导入测试
-                    module_name = package.replace('-', '_')
+                    module_name = package.replace('-', '.')
                     importlib.import_module(module_name)
                     results["import_tests"][package] = {
                         "status": True,

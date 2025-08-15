@@ -111,6 +111,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "sage.libs" = ["py.typed", "**/*"]
+"sage.apps" = ["py.typed", "**/*"]
 
 # Development tools configuration
 [tool.black]
