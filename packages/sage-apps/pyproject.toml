@@ -99,7 +99,7 @@ Repository = "https://github.com/intellistream/SAGE.git"
 "Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
 
 # [project.scripts]
-# sage-examples = "sage.apps.cli:main"
+# sage-examples = "sage.libs.cli:main"
 # Note: sage-examples CLI is not yet implemented
 # This command entry point is commented out to avoid import errors
 
@@ -110,8 +110,7 @@ where = ["src"]
 "" = "src"
 
 [tool.setuptools.package-data]
-"sage.apps.examples.resources" = ["**/*"]
-"sage.libs" = ["py.typed"]
+"sage.libs" = ["py.typed", "**/*"]
 
 # Development tools configuration
 [tool.black]

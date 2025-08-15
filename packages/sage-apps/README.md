@@ -39,8 +39,8 @@ SAGE Applications 是基于 SAGE Framework 构建的应用示例和模板集合�
 ## 🚀 快速开始
 
 ```python
-from sage.apps.examples.rag import simple_rag
-from sage.apps.examples.tutorials import hello_world
+from sage.libs.examples.rag import simple_rag
+from sage.libs.examples.tutorials import hello_world
 
 # 运行 Hello World 示例
 hello_world.run()

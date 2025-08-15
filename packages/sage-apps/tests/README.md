@@ -14,7 +14,7 @@ tests/
 ├── run_tests.py                   # 测试运行脚本
 ├── generate_reports.py            # 测试报告生成器
 ├── README.md                      # 本文档
-├── lib/                          # sage.apps.lib 模块測试
+├── lib/                          # sage.libs 模块測试
 │   ├── agents/
 │   │   ├── test_agent.py         # Agent基础类测试
 │   │   └── test_bots.py          # 各种Bot组件测试
@@ -147,7 +147,7 @@ python -m pytest tests/lib/agents/test_agent.py::TestTool::test_tool_initializat
 python -m pytest -m "unit and not slow" -v
 
 # 生成覆盖率报告
-python -m pytest --cov=sage.apps.lib --cov=sage.plugins --cov=sage.userspace --cov-report=html
+python -m pytest --cov=sage.libs --cov=sage.plugins --cov=sage.userspace --cov-report=html
 ```
 
 ## 生成测试报告
@@ -197,7 +197,7 @@ testpaths = ["tests", "src"]
 python_files = ["test_*.py", "*_test.py"]
 addopts = [
     # 覆盖率选项已注释，按需启用
-    # "--cov=sage.apps.lib",
+    # "--cov=sage.libs",
     # "--cov=sage.plugins", 
     # "--cov=sage.userspace",
 ]
@@ -312,7 +312,7 @@ mypy src/
 ```python
 # 测试文件模板
 """
-测试 sage.apps.lib.module_name 模块
+测试 sage.libs.module_name 模块
 """
 
 import pytest
@@ -320,7 +320,7 @@ from unittest.mock import Mock, patch
 
 # 尝试导入，处理依赖不可用的情况
 try:
-    from sage.apps.lib.module_name import TargetClass
+    from sage.libs.module_name import TargetClass
     MODULE_AVAILABLE = True
 except ImportError as e:
     MODULE_AVAILABLE = False
