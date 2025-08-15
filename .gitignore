@@ -13,6 +13,7 @@ CMakeUserPresets.json
 # ============================================
 # 构建和安装目录
 # ============================================
+install.log
 /deps/CANDY/installation/dist/
 /deps/CANDY/installation/candy.egg-info/
 /deps/CANDY/installation/build/

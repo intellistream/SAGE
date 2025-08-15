@@ -29,16 +29,16 @@ print_error() {
 # 检查Python是否可用
 check_python() {
     if ! command -v python3 &> /dev/null; then
-        print_error "Python3 未找到，请先安装 Python 3.8+"
+        print_error "Python3 未找到，请先安装 Python 3.11"
         exit 1
     fi
     
     # 检查Python版本
     python_version=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-    if python3 -c "import sys; exit(0 if sys.version_info >= (3, 8) else 1)"; then
+    if python3 -c "import sys; exit(0 if sys.version_info >= (3, 11) else 1)"; then
         print_info "Python版本: $python_version ✓"
     else
-        print_error "Python版本 $python_version 不满足要求，需要 3.8+"
+        print_error "Python版本 $python_version 不满足要求，需要 3.11"
         exit 1
     fi
 }
@@ -59,19 +59,7 @@ check_modular_installer() {
 # 显示欢迎信息
 show_welcome() {
     echo "
-🚀 SAGE 快速启动脚本 (模块化版本)
-================================================
-
-此脚本已升级为轻量级委托器，实际安装由模块化系统处理：
-📍 模块化安装系统: tools/install/install.py
-
-主要改进:
-✨ 模块化架构 - 易于维护和测试
-🔧 可配置安装模式 - 从最小到完整开发环境
-🎯 智能依赖检查 - 提前发现问题
-📊 进度跟踪 - 清晰的安装状态
-🔍 安装验证 - 确保安装质量
-
+🚀 SAGE 快速启动脚本 
 "
 }
 
@@ -80,7 +68,7 @@ show_usage() {
     echo "💡 使用方法:
   
   🏃 快速开始:
-    $0                          # 交互式安装（推荐新用户）
+    $0                       # 交互式安装（推荐新用户）
     $0 --dev                    # 开发模式
     $0 --minimal                # 最小安装
   

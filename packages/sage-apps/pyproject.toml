@@ -47,7 +47,7 @@ dependencies = [
 [project.optional-dependencies]
 # RAG示例依赖
 rag = [
-    "transformers>=4.21.0",
+    "transformers>=4.54.1",  # 与sage-middleware保持一致
     "sentence-transformers>=2.2.0",
     "faiss-cpu>=1.7.0",
     "rank-bm25>=0.2.0",
