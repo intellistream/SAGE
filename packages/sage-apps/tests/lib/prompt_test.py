@@ -1,7 +1,7 @@
 
 import pytest
 
-from sage.apps.libs.rag.promptor import QAPromptor
+from sage.libs.rag.promptor import QAPromptor
 
 @pytest.fixture
 def config():

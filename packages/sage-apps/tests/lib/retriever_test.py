@@ -1,6 +1,6 @@
 import pytest
 
-from sage.apps.libs.rag.retriever import DenseRetriever, BM25sRetriever  # 替换为你代码实际模块路径
+from sage.libs.rag.retriever import DenseRetriever, BM25sRetriever  # 替换为你代码实际模块路径
 
 @pytest.fixture
 def dense_retriever_config():

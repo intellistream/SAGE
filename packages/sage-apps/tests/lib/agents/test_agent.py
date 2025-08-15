@@ -1,5 +1,5 @@
 """
-测试 sage.apps.libs.agents.agent 模块
+测试 sage.libs.agents.agent 模块
 """
 
 import pytest
@@ -11,7 +11,7 @@ import requests
 pytest_plugins = []
 
 try:
-    from sage.apps.libs.agents.agent import Tool, BochaSearch, Agent, PREFIX, FORMAT_INSTRUCTIONS
+    from sage.libs.agents.agent import Tool, BochaSearch, Agent, PREFIX, FORMAT_INSTRUCTIONS
     AGENT_AVAILABLE = True
 except ImportError as e:
     AGENT_AVAILABLE = False
@@ -289,7 +289,7 @@ class TestAgentModuleFallback:
         """测试模块导入降级"""
         # 这个测试总是运行，检查模块可用性
         try:
-            from sage.apps.libs.agents.agent import Tool
+            from sage.libs.agents.agent import Tool
             assert True  # 导入成功
         except ImportError:
             # 模块不可用，但测试应该通过

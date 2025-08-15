@@ -1,0 +1,59 @@
+pipeline:
+  name: "sage-api-operator-operator_test"
+  description: "Test pipeline for Sage API Operator"
+  version: "1.0.0"
+
+source:
+  # 数据源类型：'local'（本地 JSONL） 或 'hf'（HuggingFace Dataset）
+  type: "hf"
+  # 本地 JSONL 文件路径（type=local 时生效）
+  data_path: "examples/data/sample/evaluate.json"
+
+  # HuggingFace Dataset 参数（type=hf 时生效）
+  hf_dataset_name:   "RUC-NLPIR/FlashRAG_datasets"
+  hf_dataset_config: "2wikimultihopqa"
+  hf_split:          "train"
+
+retriever:
+  platform: "local"
+  ltm:
+    topk: 3
+
+generator:
+  local:
+    method: "hf"
+    model_name: "meta-llama/Llama-2-13b-chat-hf"
+    seed: 42
+
+  vllm:
+    api_key: "token-abc123"
+    method: "openai"
+    model_name: "meta-llama/Llama-2-13b-chat-hf"
+    base_url: "http://localhost:8000/v1"
+    seed: 42
+
+  remote:
+    api_key: ""
+    method: "openai"
+    model_name: "qwen-turbo-0919"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    seed: 42
+
+promptor:
+  platform: "local"
+
+sink:
+  platform: "local"
+
+refiner:
+  base_model_path: "Qwen/Qwen2.5-3B-Instruct"
+  query_analysis_module_lora_path: "jinjiajie/Query-Analysis-Qwen2.5-3B-Instruct"
+  doc_structuring_module_lora_path: "jinjiajie/Doc-Structuring-Qwen2.5-3B-Instruct"
+  global_selection_module_lora_path: "jinjiajie/Global-Selection-Qwen2.5-3B-Instruct"
+  score_model_name: "bge-reranker-v2-m3"
+  score_model_path: "BAAI/bge-reranker-v2-m3"
+  max_model_len: 25000
+  budget: 2048
+
+evaluate:
+  platform: "local"

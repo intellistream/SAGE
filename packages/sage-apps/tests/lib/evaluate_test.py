@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 # 尝试导入评估模块，处理依赖不可用的情况
 try:
-    from sage.apps.libs.rag.evaluate import (
+    from sage.libs.rag.evaluate import (
         F1Evaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate
     )
     EVALUATE_AVAILABLE = True
@@ -43,8 +43,8 @@ def test_f1_evaluate(config, test_data):
     result = evaluator.execute(test_data)
     assert result == test_data  # execute 方法应该返回原始数据
 
-@patch('sage.apps.libs.rag.evaluate.AutoTokenizer.from_pretrained')
-@patch('sage.apps.libs.rag.evaluate.AutoModel.from_pretrained')
+@patch('sage.libs.rag.evaluate.AutoTokenizer.from_pretrained')
+@patch('sage.libs.rag.evaluate.AutoModel.from_pretrained')
 def test_bert_recall(mock_model, mock_tokenizer, config, test_data):
     if not EVALUATE_AVAILABLE:
         pytest.skip("Evaluate module not available")
@@ -74,7 +74,7 @@ def test_bert_recall(mock_model, mock_tokenizer, config, test_data):
     result = evaluator.execute(test_data)
     assert result == test_data  # execute 方法应该返回原始数据
 
-@patch('sage.apps.libs.rag.evaluate.Rouge')
+@patch('sage.libs.rag.evaluate.Rouge')
 def test_rouge_l(mock_rouge_class, config, test_data):
     if not EVALUATE_AVAILABLE:
         pytest.skip("Evaluate module not available")
@@ -171,7 +171,7 @@ def test_recall_calculation():
         pytest.skip("Evaluate module not available")
 
     """测试RecallEvaluate类"""
-    from sage.apps.libs.rag.evaluate import RecallEvaluate
+    from sage.libs.rag.evaluate import RecallEvaluate
     
     evaluator = RecallEvaluate({})
     test_data = {
@@ -191,7 +191,7 @@ def test_accuracy_evaluate():
         pytest.skip("Evaluate module not available")
 
     """测试AccuracyEvaluate类"""
-    from sage.apps.libs.rag.evaluate import AccuracyEvaluate
+    from sage.libs.rag.evaluate import AccuracyEvaluate
     
     evaluator = AccuracyEvaluate({})
     
