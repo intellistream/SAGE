@@ -312,7 +312,7 @@ class SAGEInstaller:
         env_vars = self.env_manager.activate_environment(env_name)
         package_installer = PackageInstaller(str(self.project_root), env_vars)
         
-        # 检查是否使用requirements文件
+        # Check if requirements file is used
         if "use_requirements" in profile.additional_config:
             requirements_file = profile.additional_config["use_requirements"]
             requirements_path = self.project_root / "scripts" / "requirements" / requirements_file
