@@ -1,11 +1,11 @@
 import time
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.remote_environment import RemoteEnvironment
-from sage.lib.io_utils.source import FileSource
-from sage.lib.io_utils.sink import TerminalSink
-from sage.lib.rag.generator import OpenAIGenerator
-from sage.lib.rag.promptor import QAPromptor
-from sage.lib.rag.retriever import DenseRetriever
+from sage.apps.libs.io_utils.source import FileSource
+from sage.apps.libs.io_utils.sink import TerminalSink
+from sage.apps.libs.rag.generator import OpenAIGenerator
+from sage.apps.libs.rag.promptor import QAPromptor
+from sage.apps.libs.rag.retriever import DenseRetriever
 from sage.common.utils.config.loader import load_config
 
 
@@ -20,7 +20,7 @@ def pipeline_run():
                     .from_source(FileSource, config["source"]) # 处理且处理一整个file 一次。
                     # .map(DenseRetriever, config["retriever"])
                     .map(QAPromptor, config["promptor"])
-                    .map(OpenAIGenerator, config["generator"])
+                    .map(OpenAIGenerator, config["generator"]["vllm"])
                     .sink(TerminalSink, config["sink"]) # TM (JVM) --> 会打印在某一台机器的console里
                     )
 
@@ -29,5 +29,5 @@ def pipeline_run():
 
 if __name__ == '__main__':
     # 加载配置
-    config = load_config("../../resources/config/config.yaml")
+    config = load_config("../config/config.yaml")
     pipeline_run()

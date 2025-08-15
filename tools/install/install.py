@@ -289,6 +289,7 @@ class SAGEInstaller:
                     return False
             else:
                 self.ui.show_info(f"环境 {env_name} 已存在，将使用现有环境")
+                self.progress.complete_step("create_env", f"使用现有环境: {env_name}")
                 return True
         
         # 创建新环境
@@ -367,7 +368,6 @@ class SAGEInstaller:
         self.progress.start_step("sage_packages", "安装SAGE本地包...")
         sage_packages_success = True
         
-        # 按依赖顺序安装本地包
         for package_name in ["sage-common", "sage-kernel", "sage-middleware", "sage"]:
             package_path = self.project_root / "packages" / package_name
             if package_path.exists():

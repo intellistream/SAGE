@@ -132,7 +132,7 @@ enterprise-dev = [
 
 # VLLM支持（可选，需要CUDA）
 vllm = [
-    "vllm>=0.6.0,<0.7.0",
+    "vllm>=0.10.0",
 ]
 
 # 基础数据库支持

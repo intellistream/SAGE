@@ -2,16 +2,17 @@ import logging
 import time
 from dotenv import load_dotenv
 import os
+from concurrent.futures import ThreadPoolExecutor
 from sage.core.api.function.map_function import MapFunction
 from sage.core.api.remote_environment import RemoteEnvironment
 from sage.middleware.services.memory.memory_service import MemoryService
 from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
-from sage.lib.io_utils.source import FileSource
-from sage.lib.io_utils.sink import FileSink
-from sage.lib.io_utils.sink import TerminalSink
-from sage.lib.rag.generator import OpenAIGenerator
-from sage.lib.rag.promptor import QAPromptor
-from sage.lib.rag.retriever import DenseRetriever
+from sage.apps.libs.io_utils.source import FileSource
+from sage.apps.libs.io_utils.sink import FileSink
+from sage.apps.libs.io_utils.sink import TerminalSink
+from sage.apps.libs.rag.generator import OpenAIGenerator
+from sage.apps.libs.rag.promptor import QAPromptor
+from sage.apps.libs.rag.retriever import DenseRetriever
 from sage.common.utils.config.loader import load_config
 
 class SafeBiologyRetriever(MapFunction):
@@ -118,7 +119,7 @@ def pipeline_run(config):
     query_stream = env.from_source(FileSource, config["source"])
     query_and_chunks_stream = query_stream.map(SafeBiologyRetriever, config["retriever"])  # 使用BiologyRetriever
     prompt_stream = query_and_chunks_stream.map(QAPromptor, config["promptor"])
-    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"]["remote"])
+    response_stream = prompt_stream.map(OpenAIGenerator, config["generator"]["vllm"])
     response_stream.sink(FileSink, config["sink"])
     # 提交管道并运行
     env.submit()
@@ -131,7 +132,7 @@ def pipeline_run(config):
 
 if __name__ == '__main__':
     # 加载配置并初始化日志
-    config = load_config('../../resources/config/config_ray.yaml')
+    config = load_config('../config/config_ray.yaml')
     # load_dotenv(override=False)
 
     # api_key = os.environ.get("ALIBABA_API_KEY")

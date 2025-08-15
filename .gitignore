@@ -36,7 +36,7 @@ logs/
 output/
 **/__pycache__/
 gitlogs.txt
-
+install.log
 
 .github/chatmodes/
 id_llm
@@ -113,6 +113,7 @@ build/
 **.testlogs
 **.ninja**
 
+install.log
 coverage.xml
 dev_reports/
 !/Makefile

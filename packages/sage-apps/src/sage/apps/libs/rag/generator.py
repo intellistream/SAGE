@@ -6,9 +6,8 @@ import time
 import json
 
 from sage.core.api.function.map_function import MapFunction
-from sage.lib.rag.generator import apply_generator_model
-from sage.lib.utils.openaiclient import OpenAIClient
-from sage.lib.utils.huggingface import HFClient
+from sage.apps.libs.utils.openaiclient import OpenAIClient
+from sage.apps.libs.utils.huggingface import HFClient
 
 
 class OpenAIGenerator(MapFunction):

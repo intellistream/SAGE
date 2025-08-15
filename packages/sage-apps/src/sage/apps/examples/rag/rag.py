@@ -5,8 +5,8 @@ from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.map_function import MapFunction
-from sage.lib.io_utils.sink import TerminalSink
-from sage.lib.rag.promptor import QAPromptor
+from sage.apps.libs.io_utils.sink import TerminalSink
+from sage.apps.libs.rag.promptor import QAPromptor
 from sage.common.utils.config.loader import load_config
 from sage.middleware.services.memory.memory_service import MemoryService
 
@@ -390,7 +390,7 @@ class PrivateMemoryService(MemoryService):
 def pipeline_run() -> None:
     """创建并运行数据处理管道"""
     
-    config = load_config("../../resources/config/config_batch.yaml")   
+    config = load_config("../config/config_batch.yaml")   
      
     # 创建本地环境
     env = RemoteEnvironment('rag_pipeline')
@@ -423,7 +423,7 @@ def pipeline_run() -> None:
         .from_batch(PrivateQABatch)
         .map(SafePrivateRetriever)
         .map(QAPromptor, config["promptor"])
-        .map(OpenAIGenerator, config["generator"]["remote"])
+        .map(OpenAIGenerator, config["generator"]["vllm"])
         .sink(TerminalSink, config["sink"])
     )
 

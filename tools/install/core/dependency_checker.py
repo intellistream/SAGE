@@ -38,7 +38,7 @@ class DependencyChecker:
             "python_executable": sys.executable
         }
     
-    def check_python_version(self, min_version: str = "3.8", max_version: str = "3.12") -> Tuple[bool, str]:
+    def check_python_version(self, min_version: str = "3.8", max_version: str = "3.14") -> Tuple[bool, str]:
         """
         检查Python版本
         
@@ -58,7 +58,7 @@ class DependencyChecker:
             current_parts = current_version.split('.')
             min_parts = min_version.split('.')
             max_parts = max_version.split('.')
-            
+
             # 简单的版本比较
             current_tuple = tuple(int(x) for x in current_parts[:2])
             min_tuple = tuple(int(x) for x in min_parts[:2])
@@ -71,7 +71,7 @@ class DependencyChecker:
             max_ver = version.parse(max_version)
             
             is_valid = min_ver <= current_ver <= max_ver
-        
+            
         if is_valid:
             return True, f"✅ Python版本 {current_version} 符合要求 ({min_version}-{max_version})"
         else:

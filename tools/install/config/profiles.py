@@ -19,7 +19,7 @@ class InstallationProfile:
     install_submodules: bool
     environment_suffix: str = ""
     additional_config: Dict[str, Any] = None
-    
+    local_packages = SAGE_PACKAGES
     def __post_init__(self):
         if self.additional_config is None:
             self.additional_config = {}
@@ -33,6 +33,7 @@ INSTALLATION_PROFILES = {
         python_version=DEFAULT_PYTHON_VERSION,
         packages=[],  # 使用requirements文件
         conda_packages=[],
+        
         install_submodules=False,
         environment_suffix="quick",
         additional_config={
@@ -96,7 +97,6 @@ INSTALLATION_PROFILES = {
         description="面向科研工作的安装配置，包含数据科学和机器学习工具",
         python_version=DEFAULT_PYTHON_VERSION,
         packages=[
-            *SAGE_PACKAGES,
             "numpy>=1.21.0",
             "pandas>=1.3.0",
             "matplotlib>=3.4.0",
@@ -116,6 +116,7 @@ INSTALLATION_PROFILES = {
             "numpy", "pandas", "matplotlib", "scipy", "scikit-learn",
             "seaborn", "jupyter", "jupyterlab", "statsmodels", "networkx"
         ],
+        
         install_submodules=True,
         environment_suffix="research",
         additional_config={
