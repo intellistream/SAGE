@@ -29,16 +29,16 @@ print_error() {
 # 检查Python是否可用
 check_python() {
     if ! command -v python3 &> /dev/null; then
-        print_error "Python3 未找到，请先安装 Python 3.8+"
+        print_error "Python3 未找到，请先安装 Python 3.11"
         exit 1
     fi
     
     # 检查Python版本
     python_version=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-    if python3 -c "import sys; exit(0 if sys.version_info >= (3, 8) else 1)"; then
+    if python3 -c "import sys; exit(0 if sys.version_info >= (3, 11) else 1)"; then
         print_info "Python版本: $python_version ✓"
     else
-        print_error "Python版本 $python_version 不满足要求，需要 3.8+"
+        print_error "Python版本 $python_version 不满足要求，需要 3.11"
         exit 1
     fi
 }

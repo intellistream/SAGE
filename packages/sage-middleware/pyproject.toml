@@ -100,7 +100,7 @@ enterprise = [
     "alembic>=1.13.0", 
     "asyncpg>=0.30.0",
     "pymongo[srv]>=4.8.0",
-    "redis>=5.2.0",
+    # "redis>=5.2.0",
     # Enterprise database drivers
     "psycopg2-binary>=2.9.0",
     "cx-Oracle>=8.3.0",      # Oracle support
