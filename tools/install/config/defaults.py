@@ -13,12 +13,13 @@ DEFAULT_CONDA_CHANNELS = [
     "defaults"
 ]
 
-# 核心SAGE包列表
+# 核心SAGE包列表（本地开发安装的包名）
 SAGE_PACKAGES = [
     "sage",
     "sage-common", 
     "sage-kernel",
-    "sage-middleware"
+    "sage-middleware",
+    "sage-apps"
 ]
 
 # 可选包列表

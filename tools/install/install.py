@@ -311,6 +311,27 @@ class SAGEInstaller:
         env_vars = self.env_manager.activate_environment(env_name)
         package_installer = PackageInstaller(str(self.project_root), env_vars)
         
+        # 检查是否使用requirements文件
+        if "use_requirements" in profile.additional_config:
+            requirements_file = profile.additional_config["use_requirements"]
+            requirements_path = self.project_root / "scripts" / "requirements" / requirements_file
+            
+            self.progress.start_step("requirements_install", f"安装requirements: {requirements_file}")
+            
+            if requirements_path.exists():
+                if package_installer.install_requirements_file(str(requirements_path)):
+                    self.progress.complete_step("requirements_install")
+                    # requirements文件已经包含了所有SAGE包的开发安装，直接返回成功
+                    return True
+                else:
+                    self.progress.fail_step("requirements_install", "Requirements安装失败")
+                    return False
+            else:
+                self.progress.fail_step("requirements_install", f"Requirements文件不存在: {requirements_path}")
+                return False
+        
+        # 如果没有使用requirements文件，则继续传统的安装方式
+        
         # 安装conda包
         if profile.conda_packages:
             self.progress.start_step("conda_packages", "安装conda包...")
@@ -325,23 +346,28 @@ class SAGEInstaller:
             else:
                 self.progress.fail_step("conda_packages", "部分conda包安装失败")
         
-        # 安装pip包
-        self.progress.start_step("pip_packages", "安装pip包...")
-        pip_packages = [pkg for pkg in profile.packages if pkg not in profile.conda_packages]
+        # 分离本地SAGE包和外部依赖包
+        local_sage_packages = {"sage", "sage-common", "sage-kernel", "sage-middleware"}
+        pip_packages = [pkg for pkg in profile.packages 
+                       if pkg not in profile.conda_packages and pkg not in local_sage_packages]
         
-        results = package_installer.install_packages(pip_packages, use_conda=False)
-        failed_packages = [pkg for pkg, success in results.items() if not success]
+        # 安装外部依赖包（pip）
+        if pip_packages:
+            self.progress.start_step("pip_packages", "安装外部依赖包...")
+            results = package_installer.install_packages(pip_packages, use_conda=False)
+            failed_packages = [pkg for pkg, success in results.items() if not success]
+            
+            if not failed_packages:
+                self.progress.complete_step("pip_packages")
+            else:
+                self.progress.fail_step("pip_packages", f"{len(failed_packages)} 个包安装失败")
+                self.ui.show_warning(f"失败的包: {', '.join(failed_packages)}")
         
-        if not failed_packages:
-            self.progress.complete_step("pip_packages")
-        else:
-            self.progress.fail_step("pip_packages", f"{len(failed_packages)} 个包安装失败")
-            self.ui.show_warning(f"失败的包: {', '.join(failed_packages)}")
-        
-        # 安装本地SAGE包
+        # 安装本地SAGE包（从源代码）
         self.progress.start_step("sage_packages", "安装SAGE本地包...")
         sage_packages_success = True
         
+        # 按依赖顺序安装本地包
         for package_name in ["sage-common", "sage-kernel", "sage-middleware", "sage"]:
             package_path = self.project_root / "packages" / package_name
             if package_path.exists():
@@ -458,9 +484,10 @@ class SAGEInstaller:
             steps = [
                 ("dependency_check", "系统依赖检查"),
                 ("create_env", "创建conda环境"),
+                ("requirements_install", "安装requirements文件"),
                 ("conda_packages", "安装conda包"),
-                ("pip_packages", "安装pip包"),
-                ("sage_packages", "安装SAGE包"),
+                ("pip_packages", "安装外部依赖"),
+                ("sage_packages", "安装SAGE源代码包"),
                 ("submodules", "设置Git子模块"),
                 ("validation", "验证安装")
             ]

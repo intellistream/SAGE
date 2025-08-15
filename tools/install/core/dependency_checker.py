@@ -166,26 +166,36 @@ class DependencyChecker:
         import urllib.request
         import socket
         
+        # 按重要性排序的测试URL
         test_urls = [
-            "https://pypi.org",
-            "https://anaconda.org",
-            "https://github.com"
+            ("https://pypi.org", "PyPI (Python包安装)", True),  # 最重要
+            ("https://anaconda.org", "Anaconda (conda包)", False),  # 可选
+            ("https://github.com", "GitHub (代码仓库)", False)  # 可选
         ]
         
         results = []
-        for url in test_urls:
+        critical_success = True
+        
+        for url, description, is_critical in test_urls:
             try:
-                urllib.request.urlopen(url, timeout=10)
-                results.append(f"✅ {url}")
+                # 设置User-Agent以避免403错误
+                req = urllib.request.Request(url)
+                req.add_header('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36')
+                urllib.request.urlopen(req, timeout=10)
+                results.append(f"✅ {description}")
             except Exception as e:
-                results.append(f"❌ {url}: {str(e)[:50]}")
+                error_msg = str(e)[:50]
+                results.append(f"❌ {description}: {error_msg}")
+                if is_critical:
+                    critical_success = False
         
         success_count = sum(1 for r in results if r.startswith("✅"))
         
-        if success_count >= 2:
-            return True, f"网络连接正常 ({success_count}/{len(test_urls)} 连接成功)"
+        # 只要关键连接(PyPI)成功，就认为网络检查通过
+        if critical_success:
+            return True, f"网络连接可用 ({success_count}/{len(test_urls)} 连接成功，PyPI可访问)"
         else:
-            return False, f"网络连接问题 ({success_count}/{len(test_urls)} 连接成功)"
+            return False, f"关键网络连接失败 ({success_count}/{len(test_urls)} 连接成功，PyPI不可访问)"
     
     def check_project_structure(self) -> Tuple[bool, str]:
         """
