@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """SAGE安装系统工具模块"""
 
 from .progress_tracker import ProgressTracker

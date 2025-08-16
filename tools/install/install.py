@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 SAGE模块化安装系统
 主入口点 - 替代复杂的quickstart.sh脚本

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 SAGE用户界面工具
 提供交互式菜单、用户输入处理和信息显示功能
@@ -22,31 +24,32 @@ class UserInterface:
         self.quiet_mode = quiet_mode
         self.terminal_width = self._get_terminal_width()
         
+        # 确保UTF-8编码输出
+        if hasattr(sys.stdout, 'reconfigure'):
+            try:
+                sys.stdout.reconfigure(encoding='utf-8')
+                sys.stderr.reconfigure(encoding='utf-8')
+            except:
+                pass
+        
     def _get_terminal_width(self) -> int:
-        """获取终端宽度"""
-        try:
-            return shutil.get_terminal_size().columns
-        except:
-            return 80
+        """获取终端宽度 - 为了兼容VS Code xterm.js，使用固定宽度"""
+        # VS Code的xterm.js环境下，shutil.get_terminal_size()可能返回不准确的值
+        # 统一使用固定宽度以确保一致的显示效果
+        return 80
             
-    def _center_text(self, text: str, width: Optional[int] = None) -> str:
-        """居中文本"""
-        if width is None:
-            width = self.terminal_width
-        lines = text.split('\n')
-        centered_lines = []
-        for line in lines:
-            if len(line) <= width:
-                centered_lines.append(line.center(width))
-            else:
-                centered_lines.append(line)
-        return '\n'.join(centered_lines)
+    def _left_align_text(self, text: str, width: Optional[int] = None) -> str:
+        """左对齐文本 - 替代居中对齐以兼容VS Code环境"""
+        # 简单返回原文本，不进行任何对齐处理
+        # 这样可以避免在VS Code xterm.js环境下的显示问题
+        return text
     
     def _create_box(self, content: str, style: str = "double") -> str:
-        """创建文本框"""
+        """创建文本框 - 左对齐版本，兼容VS Code环境"""
         lines = content.split('\n')
         max_width = max(len(line) for line in lines) if lines else 0
-        box_width = min(max_width + 4, self.terminal_width - 4)
+        # 使用固定的合理宽度，避免依赖终端宽度检测
+        box_width = min(max_width + 4, 76)  # 为边框预留4个字符，总宽度不超过76
         
         if style == "double":
             top = "╔" + "═" * (box_width - 2) + "╗"
@@ -59,8 +62,13 @@ class UserInterface:
         
         result = [top]
         for line in lines:
-            padding = (box_width - 2 - len(line)) // 2
-            padded_line = " " * padding + line + " " * (box_width - 2 - len(line) - padding)
+            # 左对齐内容，而不是居中
+            if len(line) > box_width - 2:
+                # 如果内容太长，截断处理
+                padded_line = line[:box_width - 2]
+            else:
+                # 左对齐，右侧填充空格
+                padded_line = line + " " * (box_width - 2 - len(line))
             result.append(f"{side}{padded_line}{side}")
         result.append(bottom)
         
@@ -73,7 +81,7 @@ class UserInterface:
     
     def show_welcome(self, title: str = "SAGE安装向导") -> None:
         """
-        显示欢迎信息
+        显示欢迎信息 - 左对齐版本
         
         Args:
             title: 标题
@@ -86,10 +94,9 @@ class UserInterface:
         # 创建美化的标题
         welcome_text = f"🚀 {title}"
         box = self._create_box(welcome_text, "double")
-        centered_box = self._center_text(box)
         
-        print("\n" * 3)
-        print(centered_box)
+        print("\n" * 2)
+        print(box)
         print("\n" * 2)
     
     def show_section(self, title: str, description: str = "") -> None:
@@ -104,7 +111,7 @@ class UserInterface:
             return
         
         print()
-        section_text = f"� {title}"
+        section_text = f"📋 {title}"
         if description:
             section_text += f"\n{description}"
         
@@ -114,7 +121,7 @@ class UserInterface:
     
     def show_progress_section(self, title: str, current_step: int, total_steps: int) -> None:
         """
-        显示进度章节
+        显示进度章节 - 左对齐版本
         
         Args:
             title: 章节标题  
@@ -126,9 +133,9 @@ class UserInterface:
         
         print()
         
-        # 创建进度条
+        # 创建进度条 - 使用固定宽度
         progress_percent = (current_step / total_steps) * 100
-        progress_width = min(50, self.terminal_width - 20)
+        progress_width = 40  # 固定进度条宽度
         filled = int(progress_width * current_step / total_steps)
         bar = "█" * filled + "░" * (progress_width - filled)
         
@@ -210,9 +217,8 @@ class UserInterface:
         
         content = '\n'.join(content_lines)
         box = self._create_box(content, "double")
-        centered_box = self._center_text(box)
         
-        print(centered_box)
+        print(box)
         print()
     
     def show_menu(self, 
