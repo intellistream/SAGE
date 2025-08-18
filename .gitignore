@@ -48,6 +48,7 @@ auto_env_setup.log
 __pycache__/
 *.py[cod]
 
+/data/neuromem_vdb
 /data/neuromem_datasets/locomo/locomo10.json
 /experiment/memorag/output.txt
 /experiment/memorag/output_prompt.txt
