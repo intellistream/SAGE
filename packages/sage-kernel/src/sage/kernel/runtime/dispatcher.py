@@ -115,12 +115,13 @@ class Dispatcher():
                 self.logger.error(f"Failed to start service task {service_name}: {e}", exc_info=True)
         
         # 第四步：提交所有节点开始运行
-        for node_name, task in self.tasks.items():
+        for node_name, task in list(self.tasks.items()):
             try:
                 task.start_running()
                 self.logger.debug(f"Started node: {node_name}")
             except Exception as e:
                 self.logger.error(f"Failed to start node {node_name}: {e}", exc_info=True)
+                
         self.logger.info(f"Job submission completed: {len(self.tasks)} nodes, {len(self.services)} service tasks")
         self.is_running = True
 
