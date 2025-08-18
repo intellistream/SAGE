@@ -155,7 +155,19 @@ stop_studio() {
             sleep 2
             
             # 强制杀死如果还在运行
+            # 等待进程退出，最多 10 秒
+            TIMEOUT=10
+            while [ $TIMEOUT -gt 0 ]; do
+                if ! ps -p $PID > /dev/null 2>&1; then
+                    break
+                fi
+                sleep 1
+                TIMEOUT=$((TIMEOUT - 1))
+            done
+            
+            # 强制杀死如果还在运行
             if ps -p $PID > /dev/null 2>&1; then
+                print_warning "进程未能在规定时间内退出，强制杀死 (SIGKILL)"
                 kill -9 $PID
             fi
             
