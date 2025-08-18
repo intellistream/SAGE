@@ -159,7 +159,11 @@ def pipeline_run(config: dict) -> None:
 
 
 if __name__ == '__main__':
+    import os
     CustomLogger.disable_global_console_debug()
     load_dotenv(override=False)
-    config = load_config("../config/config_batch.yaml")
+    
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_batch.yaml")
+    config = load_config(config_path)
+    
     pipeline_run(config)

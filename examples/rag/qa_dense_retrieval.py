@@ -28,6 +28,8 @@ def pipeline_run():
     time.sleep(5)
 
 if __name__ == '__main__':
+    import os
     # 加载配置
-    config = load_config("../config/config.yaml")
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config.yaml")
+    config = load_config(config_path)
     pipeline_run()

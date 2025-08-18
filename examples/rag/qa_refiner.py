@@ -68,5 +68,7 @@ def pipeline_run(config):
 
 # ==========================================================
 if __name__ == "__main__":
-    config = load_config("../config/config_refiner.yaml")
+    import os
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_refiner.yaml")
+    config = load_config(config_path)
     pipeline_run(config)

@@ -27,7 +27,9 @@ def pipeline_run():
     # time.sleep(100)  # 等待管道运行
 
 if __name__ == '__main__':
+    import os
     # 加载配置并初始化日志
-    config = load_config('../config/config_bm25s.yaml')
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_bm25s.yaml")
+    config = load_config(config_path)
     # 初始化内存并运行管道
     pipeline_run()

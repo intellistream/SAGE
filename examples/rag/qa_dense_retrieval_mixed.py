@@ -26,8 +26,10 @@ def pipeline_run():
 
 
 if __name__ == '__main__':
+    import os
     # 加载配置并初始化日志
-    config = load_config('config_mixed.yaml')
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_mixed.yaml")
+    config = load_config(config_path)
     load_dotenv(override=False)
 
     api_key = os.environ.get("ALIBABA_API_KEY")

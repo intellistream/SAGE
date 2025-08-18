@@ -389,8 +389,10 @@ class PrivateMemoryService(MemoryService):
 
 def pipeline_run() -> None:
     """创建并运行数据处理管道"""
+    import os
     
-    config = load_config("../config/config_batch.yaml")   
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_batch.yaml")
+    config = load_config(config_path)   
      
     # 创建本地环境
     env = RemoteEnvironment('rag_pipeline')

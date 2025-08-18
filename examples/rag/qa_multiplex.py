@@ -58,11 +58,13 @@ def pipeline_run(config):
 
 
 if __name__ == '__main__':
+    import os
     # Load environment variables from .env file
     load_dotenv(override=False)
 
     # Load configuration from the YAML file
-    config = load_config("../config/config_multiplex.yaml")
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_multiplex.yaml")
+    config = load_config(config_path)
 
     # Run the pipeline
     pipeline_run(config)

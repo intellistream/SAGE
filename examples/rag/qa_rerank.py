@@ -40,8 +40,10 @@ def pipeline_run():
 
 
 if __name__ == '__main__':
+    import os
     # 加载配置文件
-    config = load_config('../config/config_rerank.yaml')
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_rerank.yaml")
+    config = load_config(config_path)
     
     # 运行管道
     pipeline_run()

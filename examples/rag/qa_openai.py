@@ -35,6 +35,8 @@ def pipeline_run(config: dict) -> None:
 
 
 if __name__ == '__main__':
+    import os
     load_dotenv(override=False)
-    config = load_config("../config/config.yaml")
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config.yaml")
+    config = load_config(config_path)
     pipeline_run(config)
