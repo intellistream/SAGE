@@ -29,7 +29,18 @@ def get_sage_root() -> Path:
     sage_root = current_file
     for _ in range(8):
         sage_root = sage_root.parent
-    return sage_root
+SAGE_ROOT_MARKER = "pyproject.toml"  # 可根据实际情况修改为项目根目录下的标志文件
+
+def get_sage_root() -> Path:
+    """获取SAGE项目根目录（通过查找标志文件）"""
+    current_file = Path(__file__).resolve()
+    sage_root = current_file.parent
+    while sage_root != sage_root.parent:
+        marker = sage_root / SAGE_ROOT_MARKER
+        if marker.exists():
+            return sage_root
+        sage_root = sage_root.parent
+    raise FileNotFoundError(f"未找到SAGE项目根目录标志文件: {SAGE_ROOT_MARKER}")
 
 
 def get_studio_dir() -> Path:
