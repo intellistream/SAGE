@@ -75,9 +75,11 @@ class ConsoleSink(SinkFunction):
 
 def create_qa_pipeline():
     """创建QA处理管道"""
+    import os
     # 加载配置
     load_dotenv(override=False)
-    config = load_config("../config/config_source.yaml")
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_source.yaml")
+    config = load_config(config_path)
 
     # 创建本地环境
     env = LocalEnvironment()
