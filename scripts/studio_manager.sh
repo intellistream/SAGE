@@ -15,7 +15,14 @@ STUDIO_HOST="0.0.0.0"
 PID_FILE="/tmp/sage-studio.pid"
 LOG_FILE="/tmp/sage-studio.log"
 
-# 颜色定义
+LOG_DIR="$HOME/.sage/logs"
+LOG_FILE="$LOG_DIR/sage-studio.log"
+
+# Ensure log directory exists with proper permissions
+if [ ! -d "$LOG_DIR" ]; then
+    mkdir -p "$LOG_DIR"
+    chmod 700 "$LOG_DIR"
+fi
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
