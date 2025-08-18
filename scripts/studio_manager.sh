@@ -1,15 +1,15 @@
 #!/bin/bash
-"""
-SAGE Studio 启动脚本
-用于启动和管理 Studio 前端服务
-"""
+#
+# SAGE Studio 启动脚本
+# 用于启动和管理 Studio 前端服务
+#
 
-# 动态检测SAGE项目根目录
+# 动态获取脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-STUDIO_DIR="$SAGE_ROOT/packages/sage-common/src/sage/common/frontend/studio"
 
 # 脚本配置
+STUDIO_DIR="$SAGE_ROOT/packages/sage-common/src/sage/common/frontend/studio"
 STUDIO_PORT=4200
 STUDIO_HOST="0.0.0.0"
 PID_FILE="/tmp/sage-studio.pid"
