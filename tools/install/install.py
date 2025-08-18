@@ -672,9 +672,9 @@ def main():
                 height, width = test_scr.getmaxyx()
                 curses.endwin()
                 
-                # 检查最小尺寸要求
-                if height < 20 or width < 60:
-                    print(f"终端尺寸太小 ({width}x{height})，需要至少 60x20")
+                # 检查最小尺寸要求（与curses_interface.py保持一致）
+                if height < 15 or width < 60:
+                    print(f"终端尺寸太小 ({width}x{height})，需要至少 60x15")
                     print("正在使用传统界面...")
                     use_curses = False
                     
