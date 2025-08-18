@@ -73,7 +73,7 @@ class JobManagerController:
             return self.force_kill()
         
         # 查找进程
-        processes = find_processes_by_name(self.process_names)
+        processes = find_processes_by_name(self.process_names) or find_port_processes(self.port)
         if not processes:
             typer.echo("No JobManager processes found")
             return True

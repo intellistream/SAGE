@@ -1,4 +1,5 @@
 from typing import Type, Any, Tuple, TYPE_CHECKING
+from sage.kernel.runtime.context.context_injection import create_service_with_context
 
 if TYPE_CHECKING:
     from sage.kernel import ServiceContext
@@ -49,13 +50,13 @@ class ServiceFactory:
             raise ValueError(f"ServiceFactory for '{self.service_name}': service_class is None. "
                            "This may be due to serialization issues in distributed environments.")
         
-        # 创建服务实例
-        service = self.service_class(
-            *self.service_args, 
+        # 使用通用的上下文注入工具函数
+        service = create_service_with_context(
+            self.service_class,
+            ctx,
+            *self.service_args,
             **self.service_kwargs
         )
-        
-        service.ctx = ctx
         
         return service
     

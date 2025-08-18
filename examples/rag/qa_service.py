@@ -10,7 +10,7 @@ from sage.libs.io_utils.sink import TerminalSink
 from sage.libs.rag.generator import OpenAIGenerator
 from sage.libs.rag.promptor import QAPromptor
 from sage.common.utils.config.loader import load_config
-
+from sage.middleware.services.memory.memory_service import MemoryService
 
 class QABatch(BatchFunction):
     """
@@ -50,84 +50,13 @@ class SafeBiologyRetriever(MapFunction):
         self.collection_name = config.get("collection_name", "biology_rag_knowledge")
         self.index_name = config.get("index_name", "biology_index")
         self.topk = config.get("ltm", {}).get("topk", 3)
-        self.memory_service = None
-        self._init_memory_service()
-
-    def _init_memory_service(self):
-        """安全地初始化memory service"""
-        def init_service():
-            try:
-                from sage.middleware.services.memory.memory_service import MemoryService
-                from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
-                
-                embedding_model = apply_embedding_model("default")
-                memory_service = MemoryService()
-                
-                # 检查集合是否存在
-                collections = memory_service.list_collections()
-                if collections["status"] == "success":
-                    collection_names = [c["name"] for c in collections["collections"]]
-                    if self.collection_name in collection_names:
-                        return memory_service
-                return None
-            except Exception as e:
-                print(f"初始化memory service失败: {e}")
-                return None
-
-        try:
-            with ThreadPoolExecutor() as executor:
-                future = executor.submit(init_service)
-                self.memory_service = future.result(timeout=5)  # 5秒超时
-                if self.memory_service:
-                    print("Memory service初始化成功")
-                else:
-                    print("Memory service初始化失败")
-        except TimeoutError:
-            print("Memory service初始化超时")
-            self.memory_service = None
-        except Exception as e:
-            print(f"Memory service初始化异常: {e}")
-            self.memory_service = None
 
     def execute(self, data):
         if not data:
             return None
 
         query = data
-
-        if self.memory_service:
-            # 尝试真实检索
-            try:
-                with ThreadPoolExecutor() as executor:
-                    future = executor.submit(self._retrieve_real, query)
-                    result = future.result(timeout=3)  # 3秒超时
-                    return result
-            except TimeoutError:
-                print(f"检索超时: {query}")
-                return (query, [])
-            except Exception as e:
-                print(f"检索异常: {e}")
-                return (query, [])
-        else:
-            # Memory service 不可用，返回空结果
-            print(f"Memory service 不可用，返回空结果: {query}")
-            return (query, [])
-
-    def _retrieve_real(self, query):
-        """真实检索"""
-        result = self.memory_service.retrieve_data(
-            collection_name=self.collection_name,
-            query_text=query,
-            topk=self.topk,
-            index_name=self.index_name,
-            with_metadata=True
-        )
-
-        if result['status'] == 'success':
-            retrieved_texts = [item.get('text', '') for item in result['results']]
-            return (query, retrieved_texts)
-        else:
-            return (query, [])
+        return self.call_service["memory_service"].retrieve_data(query)
 
 
 def pipeline_run(config: dict) -> None:
@@ -138,6 +67,7 @@ def pipeline_run(config: dict) -> None:
         config (dict): 包含各模块配置的配置字典。
     """
     env = RemoteEnvironment()
+    env.register_service("memory_service", MemoryService)
 
     # 构建数据处理流程 - 使用安全的生物学检索器
     (env
