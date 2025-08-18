@@ -13,7 +13,9 @@ STUDIO_DIR="$SAGE_ROOT/packages/sage-common/src/sage/common/frontend/studio"
 STUDIO_PORT=4200
 STUDIO_HOST="0.0.0.0"
 PID_FILE="/tmp/sage-studio.pid"
-LOG_FILE="/tmp/sage-studio.log"
+RUN_DIR="$HOME/.sage/run"
+PID_FILE="$RUN_DIR/sage-studio.pid"
+LOG_FILE="$RUN_DIR/sage-studio.log"
 
 LOG_DIR="$HOME/.sage/logs"
 LOG_FILE="$LOG_DIR/sage-studio.log"
