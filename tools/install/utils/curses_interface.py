@@ -897,6 +897,13 @@ class CursesUserInterface:
                 self.info_window = None
                 self.progress_window = None
                 self.input_window = None
+        
+        # 清理终端屏幕，确保退出curses后终端干净
+        try:
+            # 使用ANSI转义序列清屏并将光标移到左上角
+            print("\033[2J\033[H", end="", flush=True)
+        except:
+            pass  # 忽略清屏时的错误
     
     def is_active(self) -> bool:
         """检查界面是否仍然活跃"""

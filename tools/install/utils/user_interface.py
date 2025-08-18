@@ -564,6 +564,14 @@ class UserInterface:
             self.show_success("🎉 安装成功完成！")
         else:
             self.show_warning(f"安装过程中有 {summary.get('failed', 0)} 个步骤失败")
+    
+    def cleanup(self):
+        """清理界面 - 与curses版本保持一致的接口"""
+        try:
+            # 在非curses模式下，清屏以保持一致的用户体验
+            self.clear_screen()
+        except:
+            pass  # 忽略清屏时的错误
 
 
 def create_simple_menu(title: str, options: List[str]) -> int:
