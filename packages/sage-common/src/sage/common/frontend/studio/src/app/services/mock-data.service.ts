@@ -66,7 +66,7 @@ class TerminalSink:
       }
     ];
 
-    return of(mockOperators).pipe(delay(500)); // 模拟网络延迟
+    return of(mockOperators).pipe(delay(MOCK_OPERATORS_DELAY_MS)); // 模拟网络延迟
   }
 
   /**
