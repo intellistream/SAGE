@@ -23,28 +23,38 @@ current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 
 from core import EnvironmentManager, PackageInstaller, DependencyChecker, SubmoduleManager
-from utils import ProgressTracker, UserInterface, Validator
+from utils import ProgressTracker, Validator
+from utils.curses_interface import CursesUserInterface
 from config import get_profile, list_profiles, get_profile_recommendations
 
 
 class SAGEInstaller:
     """SAGE安装系统主类"""
     
-    def __init__(self, project_root: str = None):
+    def __init__(self, project_root: str = None, use_curses: bool = True):
         """
         初始化安装器
         
         Args:
             project_root: 项目根目录
+            use_curses: 是否使用curses界面
         """
         self.project_root = Path(project_root or self._find_project_root())
-        self.ui = UserInterface()
-        self.progress = ProgressTracker()
+        self.use_curses = use_curses
         
-        # 初始化各种管理器
-        self.env_manager = EnvironmentManager(str(self.project_root))
-        self.dependency_checker = DependencyChecker(str(self.project_root))
-        self.submodule_manager = SubmoduleManager(str(self.project_root))
+        if use_curses:
+            self.ui = CursesUserInterface()
+        else:
+            # 对于非交互操作使用标准输出
+            from utils.user_interface import UserInterface
+            self.ui = UserInterface()
+            
+        self.progress = ProgressTracker(ui=self.ui)
+        
+        # 初始化各种管理器，传入UI对象用于详细信息输出
+        self.env_manager = EnvironmentManager(str(self.project_root), ui=self.ui)
+        self.dependency_checker = DependencyChecker(str(self.project_root), ui=self.ui)
+        self.submodule_manager = SubmoduleManager(str(self.project_root), ui=self.ui)
         
         # 安装配置
         self.config = {
@@ -74,13 +84,16 @@ class SAGEInstaller:
     
     def _setup_logging(self):
         """设置日志配置"""
+        handlers = [logging.FileHandler(self.project_root / "install.log")]
+        
+        # 在非curses模式下才输出到控制台
+        if not self.use_curses:
+            handlers.append(logging.StreamHandler())
+        
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.StreamHandler(),
-                logging.FileHandler(self.project_root / "install.log")
-            ]
+            handlers=handlers
         )
         self.logger = logging.getLogger(__name__)
     
@@ -230,7 +243,7 @@ class SAGEInstaller:
             default_name = f"sage-{profile_suffix}"
             
             self.config["env_name"] = self.ui.get_input(
-                "输入conda环境名称",
+                "请输入您希望创建的Sage环境名称",
                 default=default_name,
                 validator=lambda x: len(x.strip()) > 0,
                 error_message="环境名称不能为空"
@@ -283,6 +296,12 @@ class SAGEInstaller:
                                     self.progress.current_step, 
                                     self.progress.total_steps)
         
+        # 显示环境配置信息
+        self.ui.show_info("🔧 环境配置信息:")
+        self.ui.show_info(f"   环境名称: {env_name}")
+        self.ui.show_info(f"   Python版本: {python_version}")
+        self.ui.show_info(f"   强制重装: {'是' if self.config['force_reinstall'] else '否'}")
+        
         # 检查环境是否已存在
         if self.env_manager.environment_exists(env_name):
             if self.config["force_reinstall"]:
@@ -317,7 +336,7 @@ class SAGEInstaller:
         
         # 获取环境变量
         env_vars = self.env_manager.activate_environment(env_name)
-        package_installer = PackageInstaller(str(self.project_root), env_vars)
+        package_installer = PackageInstaller(str(self.project_root), env_vars, ui=self.ui)
         
         # Check if requirements file is used
         if "use_requirements" in profile.additional_config:
@@ -343,6 +362,10 @@ class SAGEInstaller:
         # 安装conda包
         if profile.conda_packages:
             self.progress.start_step("conda_packages", "安装conda包...")
+            self.ui.show_info(f"📦 开始安装 {len(profile.conda_packages)} 个Conda包:")
+            for pkg in profile.conda_packages:
+                self.ui.show_info(f"   - {pkg}")
+            
             conda_success = True
             for package in profile.conda_packages:
                 if not package_installer.install_package(package, use_conda=True):
@@ -359,9 +382,19 @@ class SAGEInstaller:
         pip_packages = [pkg for pkg in profile.packages 
                        if pkg not in profile.conda_packages and pkg not in local_sage_packages]
         
+        # 显示安装计划
+        self.ui.show_info("📋 安装计划分析完成:")
+        self.ui.show_info(f"   📦 Conda包: {len(profile.conda_packages) if profile.conda_packages else 0} 个")
+        self.ui.show_info(f"   🐍 Pip包: {len(pip_packages)} 个")
+        self.ui.show_info(f"   🏠 本地SAGE包: 4 个 (sage-common, sage-kernel, sage-middleware, sage)")
+        
         # 安装外部依赖包（pip）
         if pip_packages:
             self.progress.start_step("pip_packages", "安装外部依赖包...")
+            self.ui.show_info(f"📥 开始安装 {len(pip_packages)} 个外部依赖包:")
+            for pkg in pip_packages:
+                self.ui.show_info(f"   - {pkg}")
+            
             results = package_installer.install_packages(pip_packages, use_conda=False)
             failed_packages = [pkg for pkg, success in results.items() if not success]
             
@@ -375,11 +408,17 @@ class SAGEInstaller:
         self.progress.start_step("sage_packages", "安装SAGE本地包...")
         sage_packages_success = True
         
-        for package_name in ["sage-common", "sage-kernel", "sage-middleware", "sage"]:
+        self.ui.show_info("🏠 开始安装SAGE本地包 (开发模式):")
+        sage_package_order = ["sage-common", "sage-kernel", "sage-middleware", "sage"]
+        
+        for package_name in sage_package_order:
             package_path = self.project_root / "packages" / package_name
             if package_path.exists():
+                self.ui.show_info(f"📦 安装 {package_name}...")
                 if not package_installer.install_local_package(str(package_path)):
                     sage_packages_success = False
+            else:
+                self.ui.show_warning(f"⚠️ 跳过不存在的包: {package_name}")
         
         if sage_packages_success:
             self.progress.complete_step("sage_packages")
@@ -425,7 +464,7 @@ class SAGEInstaller:
         try:
             env_name = self.config["env_name"]
             env_vars = self.env_manager.activate_environment(env_name)
-            validator = Validator(str(self.project_root))
+            validator = Validator(str(self.project_root), ui=self.ui)
             
             validation_results = validator.run_comprehensive_validation(env_name, env_vars)
             
@@ -453,27 +492,56 @@ class SAGEInstaller:
         self.ui.show_progress_section("安装完成", 
                                     self.progress.total_steps, 
                                     self.progress.total_steps)
+        
+        # 显示成功标题
         self.ui.show_success("🎉 SAGE安装成功完成！")
+        self.ui.show_info("")
+        
+        # 显示详细的安装结果
+        self.ui.show_section("安装结果摘要")
         
         # 显示环境信息
         info_data = {
-            "conda环境": env_name,
-            "安装模式": profile.name,
-            "Python版本": self.config["python_version"],
-            "包数量": len(profile.packages),
-            "项目根目录": str(self.project_root)
+            "✅ Conda环境": env_name,
+            "✅ 安装模式": profile.name,
+            "✅ Python版本": self.config["python_version"],
+            "✅ 安装包数": f"{len(profile.packages)} 个",
+            "✅ 项目根目录": str(self.project_root)
         }
         
-        self.ui.show_key_value(info_data, "环境信息")
-        
-        # 显示使用说明
-        activation_cmd = f"conda activate {env_name}"
-        self.ui.show_info(f"激活环境: {activation_cmd}")
-        self.ui.show_info("测试安装: python -c 'import sage; print(\"SAGE安装成功!\")'")
+        self.ui.show_key_value(info_data, "🔧 环境配置")
         
         # 显示进度摘要
         summary = self.progress.get_summary()
-        self.ui.show_progress_summary(summary)
+        summary_data = {
+            "📊 总步骤数": summary.get('total_steps', 0),
+            "✅ 成功步骤": summary.get('completed', 0),
+            "❌ 失败步骤": summary.get('failed', 0),
+            "⏱️ 总耗时": f"{summary.get('total_time', 0):.1f}秒",
+            "📈 成功率": f"{summary.get('success_rate', 0):.1%}"
+        }
+        self.ui.show_key_value(summary_data, "📊 安装统计")
+        
+        # 显示使用说明
+        self.ui.show_section("使用指南")
+        activation_cmd = f"conda activate {env_name}"
+        self.ui.show_info(f"🔸 激活环境: {activation_cmd}")
+        self.ui.show_info(f"🔸 测试安装: python -c 'import sage; print(\"SAGE运行正常!\")'")
+        
+        # 根据安装模式显示特定提示
+        if "development" in self.config["profile"]:
+            self.ui.show_info("🔸 开发工具: 已安装完整的开发环境，包含调试和测试工具")
+            self.ui.show_info("🔸 代码编辑: 可以直接修改 packages/ 目录下的源代码")
+        elif "production" in self.config["profile"]:
+            self.ui.show_info("🔸 生产环境: 已优化性能配置，适合生产环境部署")
+        elif "research" in self.config["profile"]:
+            self.ui.show_info("🔸 科研工具: 已安装数据科学和机器学习相关库")
+        
+        self.ui.show_info("")
+        self.ui.show_success("🚀 您现在可以开始使用SAGE了！")
+        
+        # 最后提示用户按Enter结束
+        self.ui.pause("按 Enter 键结束安装程序...")
     
     def run(self, args: argparse.Namespace = None) -> bool:
         """运行安装流程"""
@@ -509,7 +577,7 @@ class SAGEInstaller:
                 if profile.conda_packages:
                     steps_to_execute.append(("conda_packages", "安装conda包"))
                 if profile.packages:
-                    steps_to_execute.append(("pip_packages", "安装外部依赖"))
+                    steps_to_execute.append(("pip_packages", "安装pip包"))
                 steps_to_execute.append(("sage_packages", "安装SAGE源代码包"))
             
             # 添加子模块步骤（如果需要）
@@ -550,21 +618,101 @@ class SAGEInstaller:
             return True
             
         except KeyboardInterrupt:
-            self.ui.show_warning("\n安装被用户取消")
+            try:
+                self.ui.show_warning("安装被用户取消")
+                self.ui.show_info("您可以稍后重新运行安装程序")
+            except:
+                # 如果UI已经被清理，使用标准输出
+                print("\n安装被用户取消")
+                print("您可以稍后重新运行安装程序")
+            # 不调用pause，直接返回
             return False
         except Exception as e:
             self.logger.error(f"安装过程中发生错误: {e}")
-            self.ui.show_error(f"安装失败: {e}")
+            try:
+                self.ui.show_error(f"安装失败: {e}")
+                self.ui.show_info("请检查错误信息并重试，或查看install.log获取详细日志")
+                if hasattr(self.ui, 'pause') and hasattr(self.ui, 'stdscr') and self.ui.stdscr is not None:
+                    self.ui.pause("按 Enter 键退出...")
+            except:
+                # 如果UI已经被清理，使用标准输出
+                print(f"\n安装失败: {e}")
+                print("请检查错误信息并重试，或查看install.log获取详细日志")
+                try:
+                    input("按 Enter 键退出...")
+                except KeyboardInterrupt:
+                    pass
             return False
         finally:
             self.progress.print_summary()
+            # 清理curses界面
+            if hasattr(self.ui, 'cleanup'):
+                self.ui.cleanup()
 
 
 def main():
     """主函数"""
-    installer = SAGEInstaller()
-    success = installer.run()
-    sys.exit(0 if success else 1)
+    installer = None
+    try:
+        # 预解析参数来决定是否使用curses
+        import sys
+        use_curses = True
+        if len(sys.argv) > 1:
+            # 对于某些非交互命令，不使用curses
+            non_interactive_flags = ['--list-profiles', '--help', '-h']
+            if any(flag in sys.argv for flag in non_interactive_flags):
+                use_curses = False
+        
+        # 检查终端环境
+        if use_curses:
+            try:
+                # 基本的curses可用性检查
+                import curses
+                test_scr = curses.initscr()
+                height, width = test_scr.getmaxyx()
+                curses.endwin()
+                
+                # 检查最小尺寸要求
+                if height < 20 or width < 60:
+                    print(f"终端尺寸太小 ({width}x{height})，需要至少 60x20")
+                    print("正在使用传统界面...")
+                    use_curses = False
+                    
+            except Exception as e:
+                print(f"Curses不可用: {e}")
+                print("正在使用传统界面...")
+                use_curses = False
+        
+        installer = SAGEInstaller(use_curses=use_curses)
+        success = installer.run()
+        sys.exit(0 if success else 1)
+        
+    except Exception as e:
+        if installer and hasattr(installer, 'ui') and hasattr(installer.ui, 'cleanup'):
+            try:
+                installer.ui.cleanup()
+            except:
+                pass  # 忽略清理时的错误
+        print(f"程序发生错误: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+        
+    except KeyboardInterrupt:
+        if installer and hasattr(installer, 'ui') and hasattr(installer.ui, 'cleanup'):
+            try:
+                installer.ui.cleanup()
+            except:
+                pass  # 忽略清理时的错误
+        print("\n程序被用户中断")
+        sys.exit(1)
+        
+    finally:
+        if installer and hasattr(installer, 'ui') and hasattr(installer.ui, 'cleanup'):
+            try:
+                installer.ui.cleanup()
+            except:
+                pass  # 忽略清理时的错误
 
 
 if __name__ == "__main__":

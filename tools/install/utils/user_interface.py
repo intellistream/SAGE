@@ -31,6 +31,27 @@ class UserInterface:
                 sys.stderr.reconfigure(encoding='utf-8')
             except:
                 pass
+    
+    def set_current_step(self, step_info: str):
+        """设置当前步骤信息（兼容curses接口）"""
+        if not self.quiet_mode:
+            print(f"🔄 {step_info}")
+    
+    def show_progress_info(self, message: str):
+        """显示进度信息（兼容curses接口）"""
+        if not self.quiet_mode:
+            print(f"  📋 {message}")
+    
+    def update_step_progress(self, step_name: str, message: str, step_type: str = "info"):
+        """更新步骤进度信息（兼容curses接口）"""
+        if step_type == "start":
+            self.show_info(f"🔄 开始: {message}")
+        elif step_type == "complete":
+            self.show_success(f"✅ 完成: {message}")
+        elif step_type == "error":
+            self.show_error(f"❌ 错误: {message}")
+        else:
+            self.show_info(message)
         
     def _get_terminal_width(self) -> int:
         """获取终端宽度 - 为了兼容VS Code xterm.js，使用固定宽度"""

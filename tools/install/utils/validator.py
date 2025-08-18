@@ -17,14 +17,40 @@ logger = logging.getLogger(__name__)
 class Validator:
     """安装验证器"""
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, ui=None):
         """
         初始化验证器
         
         Args:
             project_root: SAGE项目根目录
+            ui: 用户界面对象，用于显示详细验证信息
         """
         self.project_root = Path(project_root)
+        self.ui = ui
+        
+    def _show_info(self, message: str):
+        """显示信息到UI界面"""
+        if self.ui:
+            self.ui.show_info(message)
+        logger.info(message)
+        
+    def _show_success(self, message: str):
+        """显示成功信息到UI界面"""
+        if self.ui:
+            self.ui.show_success(message)
+        logger.info(message)
+        
+    def _show_error(self, message: str):
+        """显示错误信息到UI界面"""
+        if self.ui:
+            self.ui.show_error(message)
+        logger.error(message)
+        
+    def _show_warning(self, message: str):
+        """显示警告信息到UI界面"""
+        if self.ui:
+            self.ui.show_warning(message)
+        logger.warning(message)
         
     def validate_python_environment(self, env_vars: Dict[str, str] = None) -> Dict[str, Any]:
         """
@@ -36,6 +62,8 @@ class Validator:
         Returns:
             验证结果字典
         """
+        self._show_info("🐍 验证Python环境...")
+        
         results = {
             "python_executable": {"status": False, "message": "", "details": {}},
             "python_version": {"status": False, "message": "", "details": {}},
@@ -44,6 +72,7 @@ class Validator:
         
         try:
             # 检查Python可执行文件
+            self._show_info("   检查Python可执行文件...")
             result = subprocess.run(
                 ["python", "--version"],
                 capture_output=True,
@@ -53,24 +82,29 @@ class Validator:
             
             if result.returncode == 0:
                 python_version = result.stdout.strip()
+                self._show_success(f"   ✅ Python可用: {python_version}")
                 results["python_executable"]["status"] = True
                 results["python_executable"]["message"] = f"✅ Python可用: {python_version}"
                 results["python_executable"]["details"]["version"] = python_version
                 results["python_executable"]["details"]["executable"] = sys.executable
                 
                 # 检查Python版本
+                self._show_info("   检查Python版本兼容性...")
                 version_parts = python_version.replace("Python ", "").split('.')
                 major, minor = int(version_parts[0]), int(version_parts[1])
                 
                 if major == 3 and 8 <= minor <= 12:
+                    self._show_success(f"   ✅ Python版本兼容: {python_version}")
                     results["python_version"]["status"] = True
                     results["python_version"]["message"] = f"✅ Python版本兼容: {python_version}"
                 else:
+                    self._show_warning(f"   ⚠️ Python版本可能不兼容: {python_version}")
                     results["python_version"]["message"] = f"⚠️ Python版本可能不兼容: {python_version}"
                 
                 results["python_version"]["details"]["major"] = major
                 results["python_version"]["details"]["minor"] = minor
             else:
+                self._show_error("   ❌ Python不可用")
                 results["python_executable"]["message"] = "❌ Python不可用"
             
             # 检查pip
@@ -381,7 +415,8 @@ class Validator:
         Returns:
             完整验证结果
         """
-        logger.info("🔍 开始全面安装验证...")
+        self._show_info("🔍 开始SAGE安装全面验证...")
+        self._show_info("=" * 50)
         
         validation_results = {
             "python_environment": self.validate_python_environment(env_vars),
@@ -392,19 +427,41 @@ class Validator:
         
         # 计算总体状态
         overall_success = True
+        total_checks = 0
+        passed_checks = 0
+        
         for category, results in validation_results.items():
             if isinstance(results, dict):
                 if "overall_status" in results:
-                    overall_success &= results["overall_status"]
+                    total_checks += 1
+                    if results["overall_status"]:
+                        passed_checks += 1
+                    else:
+                        overall_success = False
                 else:
                     # 检查所有子项状态
                     for item in results.values():
                         if isinstance(item, dict) and "status" in item:
-                            overall_success &= item["status"]
+                            total_checks += 1
+                            if item["status"]:
+                                passed_checks += 1
+                            else:
+                                overall_success = False
         
         validation_results["overall_success"] = overall_success
         
-        logger.info(f"📊 验证完成: {'成功' if overall_success else '发现问题'}")
+        # 显示验证统计
+        self._show_info("")
+        self._show_info("📊 验证统计:")
+        self._show_info(f"   总验证项: {total_checks}")
+        self._show_info(f"   ✅ 通过: {passed_checks}")
+        self._show_info(f"   ❌ 失败: {total_checks - passed_checks}")
+        self._show_info(f"   📈 成功率: {passed_checks/total_checks*100:.1f}%" if total_checks > 0 else "   📈 成功率: 0%")
+        
+        if overall_success:
+            self._show_success("🎉 所有验证通过！SAGE安装成功且功能正常")
+        else:
+            self._show_warning(f"⚠️ {total_checks - passed_checks} 项验证失败，部分功能可能异常")
         
         return validation_results
     

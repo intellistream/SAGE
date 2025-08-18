@@ -24,18 +24,26 @@ class ProgressStep:
 class ProgressTracker:
     """安装进度跟踪器"""
     
-    def __init__(self, total_steps: int = 0, show_spinner: bool = True):
+    def __init__(self, total_steps: int = 0, show_spinner: bool = True, ui=None):
         """
         初始化进度跟踪器
         
         Args:
             total_steps: 总步骤数
             show_spinner: 是否显示加载动画
+            ui: 用户界面对象
         """
         self.total_steps = total_steps
         self.current_step = 0
         self.steps = []
-        self.show_spinner = show_spinner
+        self.ui = ui  # 添加UI引用
+        
+        # 如果是curses界面，禁用spinner，因为curses有自己的动画
+        if ui and hasattr(ui, 'update_step_progress'):
+            self.show_spinner = False
+        else:
+            self.show_spinner = show_spinner
+            
         self._spinner_thread = None
         self._spinner_stop = threading.Event()
         self._current_message = ""
@@ -70,9 +78,17 @@ class ProgressTracker:
             self.current_step = self._step_counter
         
         display_message = message or f"正在执行: {step_name}"
-        self._update_display(display_message)
         
-        if self.show_spinner:
+        # 只调用一次UI更新或传统显示
+        if self.ui and hasattr(self.ui, 'update_step_progress'):
+            # 使用curses界面的新方法
+            self.ui.update_step_progress(step_name, display_message, "start")
+        else:
+            # 使用传统显示
+            self._update_display(display_message)
+        
+        if self.show_spinner and not (self.ui and hasattr(self.ui, 'update_step_progress')):
+            # 只在非curses模式下启动spinner
             self._start_spinner(display_message)
     
     def complete_step(self, step_name: str, message: str = "") -> None:
@@ -90,8 +106,15 @@ class ProgressTracker:
             step.status = "completed"
             step.end_time = time.time()
         
-        success_message = message or f"✅ {step_name} 完成"
-        print(f"\r{' ' * 80}\r{success_message}")
+        display_message = message or f"✅ 完成: {step_name}"
+        
+        # 只调用一次UI更新或传统显示
+        if self.ui and hasattr(self.ui, 'update_step_progress'):
+            # 使用curses界面的新方法
+            self.ui.update_step_progress(step_name, display_message, "complete")
+        else:
+            # 使用传统显示
+            self._update_display(display_message)
     
     def fail_step(self, step_name: str, error_message: str = "") -> None:
         """
@@ -109,11 +132,17 @@ class ProgressTracker:
             step.end_time = time.time()
             step.error_message = error_message
         
-        fail_message = f"❌ {step_name} 失败"
+        display_message = f"❌ 失败: {step_name}"
         if error_message:
-            fail_message += f": {error_message}"
+            display_message += f" - {error_message}"
         
-        print(f"\r{' ' * 80}\r{fail_message}")
+        # 只调用一次UI更新或传统显示
+        if self.ui and hasattr(self.ui, 'update_step_progress'):
+            # 使用curses界面的新方法
+            self.ui.update_step_progress(step_name, display_message, "error")
+        else:
+            # 使用传统显示
+            self._update_display(display_message)
     
     def update_message(self, message: str) -> None:
         """
@@ -124,7 +153,13 @@ class ProgressTracker:
         """
         self._current_message = message
         if not self.show_spinner:
-            self._update_display(message)
+            # 只调用一次UI更新或传统显示
+            if self.ui and hasattr(self.ui, 'set_current_step_description'):
+                # 使用curses界面的新方法
+                self.ui.set_current_step_description(message)
+            else:
+                # 使用传统显示
+                self._update_display(message)
     
     def _find_step(self, step_name: str) -> Optional[ProgressStep]:
         """查找步骤"""
@@ -141,7 +176,12 @@ class ProgressTracker:
             progress = ""
         
         display_text = f"{progress}{message}"
-        print(f"\r{' ' * 80}\r{display_text}", end="", flush=True)
+        
+        # 如果有UI对象，使用UI更新，否则使用print
+        if self.ui and hasattr(self.ui, 'set_current_step_description'):
+            self.ui.set_current_step_description(display_text)
+        else:
+            print(f"\r{' ' * 80}\r{display_text}", end="", flush=True)
     
     def _start_spinner(self, message: str) -> None:
         """开始显示旋转动画"""
@@ -173,7 +213,13 @@ class ProgressTracker:
             
             spinner = spinner_chars[i % len(spinner_chars)]
             display_text = f"{progress}{spinner} {self._current_message}"
-            print(f"\r{' ' * 80}\r{display_text}", end="", flush=True)
+            
+            # 如果有UI对象，使用UI更新，否则使用print
+            if self.ui and hasattr(self.ui, 'update_step_progress'):
+                # 在curses模式下不需要输出，curses界面有自己的动画
+                pass
+            else:
+                print(f"\r{' ' * 80}\r{display_text}", end="", flush=True)
             
             i += 1
             time.sleep(0.1)
