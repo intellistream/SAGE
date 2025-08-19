@@ -133,3 +133,8 @@ dev_reports/
 .sage/
 .testlogs/
 .github_token
+
+
+
+./experiment/data
+./experiment/results
