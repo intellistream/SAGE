@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600994.9245987,
+    "query": {
+      "query": "Are both airports, Lamar County Airport and Barinas Airport, located in the same country?",
+      "references": [
+        "no"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are both airports, Lamar County Airport and Barinas Airport, located in the same country?', 'references': ['no']}"
+      }
+    ]
+  }
+]

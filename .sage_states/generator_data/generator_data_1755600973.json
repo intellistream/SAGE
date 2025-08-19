@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": 1755600973.9324605,
+    "query": {
+      "query": "When did the director of film An International Marriage die?",
+      "references": [
+        "10 August 1960"
+      ]
+    },
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'When did the director of film An International Marriage die?', 'references': ['10 August 1960']}"
+      }
+    ],
+    "response": "  The director of the film \"An International Marriage\" did not die. The film was released in 1960, but the director is still alive. The information you provided is incorrect.",
+    "model_name": "meta-llama/Llama-2-13b-chat-hf"
+  }
+]

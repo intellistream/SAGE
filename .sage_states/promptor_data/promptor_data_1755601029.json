@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601029.8914733,
+    "query": {
+      "query": "Which film came out first, Sluttish (Film) or The Straight Way?",
+      "references": [
+        "The Straight Way"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Which film came out first, Sluttish (Film) or The Straight Way?', 'references': ['The Straight Way']}"
+      }
+    ]
+  }
+]

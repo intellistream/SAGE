@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601008.9993834,
+    "query": {
+      "query": "Are Nomreh-Ye Do, Haftkel and Perekopskaya both located in the same country?",
+      "references": [
+        "no"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are Nomreh-Ye Do, Haftkel and Perekopskaya both located in the same country?', 'references': ['no']}"
+      }
+    ]
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600937.9067712,
+    "query": {
+      "query": "Are J. Lee and Pete Carril from the same country?",
+      "references": [
+        "yes"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are J. Lee and Pete Carril from the same country?', 'references': ['yes']}"
+      }
+    ]
+  }
+]

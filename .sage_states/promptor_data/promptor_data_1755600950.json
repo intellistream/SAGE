@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600950.9233487,
+    "query": {
+      "query": "Who is Hormizd I's paternal grandfather?",
+      "references": [
+        "Ardashir I"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': \"Who is Hormizd I's paternal grandfather?\", 'references': ['Ardashir I']}"
+      }
+    ]
+  }
+]

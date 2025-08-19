@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600964.956669,
+    "query": {
+      "query": "When did Juan Torena's wife die?",
+      "references": [
+        "October 6, 1992"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': \"When did Juan Torena's wife die?\", 'references': ['October 6, 1992']}"
+      }
+    ]
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600932.877616,
+    "query": {
+      "query": "Which film has the director who died later, Aaranya Kandam or One Hundred Nails?",
+      "references": [
+        "One Hundred Nails"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Which film has the director who died later, Aaranya Kandam or One Hundred Nails?', 'references': ['One Hundred Nails']}"
+      }
+    ]
+  }
+]

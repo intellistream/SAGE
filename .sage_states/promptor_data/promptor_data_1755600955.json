@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600955.9778986,
+    "query": {
+      "query": "Are director of film Desde Que Amanece Apetece and director of film The Last Survivors from the same country?",
+      "references": [
+        "no"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are director of film Desde Que Amanece Apetece and director of film The Last Survivors from the same country?', 'references': ['no']}"
+      }
+    ]
+  }
+]

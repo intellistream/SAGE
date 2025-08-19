@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": 1755600981.8007169,
+    "query": {
+      "query": "What is the date of birth of the director of film Just Like Heaven (Film)?",
+      "references": [
+        "June 30, 1964"
+      ]
+    },
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'What is the date of birth of the director of film Just Like Heaven (Film)?', 'references': ['June 30, 1964']}"
+      }
+    ],
+    "response": "  Sure, I'd be happy to help! The director of the film \"Just Like Heaven\" is Mark Waters, and his date of birth is June 30, 1964. Is there anything else I can help with?",
+    "model_name": "meta-llama/Llama-2-13b-chat-hf"
+  }
+]

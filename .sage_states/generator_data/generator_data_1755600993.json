@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": 1755600993.3034418,
+    "query": {
+      "query": "Are Malian, Hamadan and Chahar Taq, Markazi located in the same country?",
+      "references": [
+        "yes"
+      ]
+    },
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are Malian, Hamadan and Chahar Taq, Markazi located in the same country?', 'references': ['yes']}"
+      }
+    ],
+    "response": "  {'query': 'Are Malian, Hamadan and Chahar Taq, Markazi located in the same country?', 'answer': 'No, Malian, Hamadan, and Chahar Taq, Markazi are not located in the same country. Malian is located in Mali, a country in West Africa. Hamadan is located in Iran, and Chahar Taq, Markazi is located in Markazi Province, Iran. So, they are in different countries.']}",
+    "model_name": "meta-llama/Llama-2-13b-chat-hf"
+  }
+]

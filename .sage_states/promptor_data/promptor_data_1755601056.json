@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601056.9308586,
+    "query": {
+      "query": "Are the directors of films Afterwards and Grill Point both from the same country?",
+      "references": [
+        "no"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are the directors of films Afterwards and Grill Point both from the same country?', 'references': ['no']}"
+      }
+    ]
+  }
+]

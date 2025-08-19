@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601001.9142745,
+    "query": {
+      "query": "Which film has the director died first, What Price Glory (1952 Film) or An Old Sweetheart Of Mine?",
+      "references": [
+        "An Old Sweetheart Of Mine"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Which film has the director died first, What Price Glory (1952 Film) or An Old Sweetheart Of Mine?', 'references': ['An Old Sweetheart Of Mine']}"
+      }
+    ]
+  }
+]

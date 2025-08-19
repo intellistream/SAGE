@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601064.8864357,
+    "query": {
+      "query": "Which film came out first, Vanina or Antes Que O Mundo Acabe?",
+      "references": [
+        "Vanina"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Which film came out first, Vanina or Antes Que O Mundo Acabe?', 'references': ['Vanina']}"
+      }
+    ]
+  }
+]

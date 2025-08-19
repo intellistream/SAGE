@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601046.9289641,
+    "query": {
+      "query": "Where was the director of film It Happened On 5Th Avenue born?",
+      "references": [
+        "Delaware"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Where was the director of film It Happened On 5Th Avenue born?', 'references': ['Delaware']}"
+      }
+    ]
+  }
+]

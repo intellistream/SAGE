@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": 1755601052.8000116,
+    "query": {
+      "query": "Are Takamatsu Airport and Freehold Airport located in the same country?",
+      "references": [
+        "no"
+      ]
+    },
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are Takamatsu Airport and Freehold Airport located in the same country?', 'references': ['no']}"
+      }
+    ],
+    "response": "  Yes, Takamatsu Airport (TAK) and Freehold Airport (FHD) are located in the same country, Japan.",
+    "model_name": "meta-llama/Llama-2-13b-chat-hf"
+  }
+]

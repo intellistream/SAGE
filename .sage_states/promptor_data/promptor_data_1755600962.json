@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600962.997654,
+    "query": {
+      "query": "When did the director of film Trouble With Trixie die?",
+      "references": [
+        "23 July 2006"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'When did the director of film Trouble With Trixie die?', 'references': ['23 July 2006']}"
+      }
+    ]
+  }
+]

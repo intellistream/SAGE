@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600941.9104607,
+    "query": {
+      "query": "When did Prince Henry, Duke Of Cumberland And Strathearn's mother die?",
+      "references": [
+        "8 February 1772"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': \"When did Prince Henry, Duke Of Cumberland And Strathearn's mother die?\", 'references': ['8 February 1772']}"
+      }
+    ]
+  }
+]

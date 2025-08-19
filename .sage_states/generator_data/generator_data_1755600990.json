@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": 1755600990.174548,
+    "query": {
+      "query": "Where was the director of film Ich Für Dich, Du Für Mich born?",
+      "references": [
+        "Berlin"
+      ]
+    },
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Where was the director of film Ich Für Dich, Du Für Mich born?', 'references': ['Berlin']}"
+      }
+    ],
+    "response": "  {'query': 'Where was the director of film Ich Für Dich, Du Für Mich born?', 'references': ['Berlin']}\n\nThe director of the film \"Ich Für Dich, Du Für Mich\" (English title: \"I for You, You for Me\") is Wolfgang Becker, who was born in Berlin, Germany on July 29, 1954.",
+    "model_name": "meta-llama/Llama-2-13b-chat-hf"
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": 1755600958.3247643,
+    "query": {
+      "query": "When was the director of film Private Hell 36 born?",
+      "references": [
+        "October 26, 1912"
+      ]
+    },
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'When was the director of film Private Hell 36 born?', 'references': ['October 26, 1912']}"
+      }
+    ],
+    "response": "  Sure, I'd be happy to help! The director of the film Private Hell 36, Don Siegel, was born on October 26, 1912.",
+    "model_name": "meta-llama/Llama-2-13b-chat-hf"
+  }
+]

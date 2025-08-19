@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600944.891018,
+    "query": {
+      "query": "What is the date of birth of the director of film You'Re My Everything (Film)?",
+      "references": [
+        "August 10, 1896"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': \"What is the date of birth of the director of film You'Re My Everything (Film)?\", 'references': ['August 10, 1896']}"
+      }
+    ]
+  }
+]

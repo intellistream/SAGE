@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": 1755601012.815255,
+    "query": {
+      "query": "Are Sam Earle and Felix Luckeneder from the same country?",
+      "references": [
+        "no"
+      ]
+    },
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are Sam Earle and Felix Luckeneder from the same country?', 'references': ['no']}"
+      }
+    ],
+    "response": "  Sure, I'd be happy to help! Based on the information provided, Sam Earle and Felix Luckeneder are not from the same country.",
+    "model_name": "meta-llama/Llama-2-13b-chat-hf"
+  }
+]

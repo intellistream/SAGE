@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600938.9519567,
+    "query": {
+      "query": "What is the cause of death of director of film Road Kill (2010 Film)?",
+      "references": [
+        "cancer"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'What is the cause of death of director of film Road Kill (2010 Film)?', 'references': ['cancer']}"
+      }
+    ]
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601033.9385612,
+    "query": {
+      "query": "When is the director of film Robbery (1897 Film) 's birthday?",
+      "references": [
+        "3 October 1869"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': \"When is the director of film Robbery (1897 Film) 's birthday?\", 'references': ['3 October 1869']}"
+      }
+    ]
+  }
+]

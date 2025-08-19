@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": 1755600977.8376176,
+    "query": {
+      "query": "Which country the performer of song Miss Brown To You is from?",
+      "references": [
+        "American"
+      ]
+    },
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Which country the performer of song Miss Brown To You is from?', 'references': ['American']}"
+      }
+    ],
+    "response": "  Sure, I'd be happy to help! Based on the information provided, the performer of the song \"Miss Brown To You\" is not from the United States, but rather from the United Kingdom. The song was performed by the British singer-songwriter, Paloma Faith. So, the answer to your question is the United Kingdom.",
+    "model_name": "meta-llama/Llama-2-13b-chat-hf"
+  }
+]

@@ -42,49 +42,32 @@ dependencies = [
     "isage-kernel>=0.1.0",
     "isage-middleware>=0.1.0",
     "isage-common>=0.1.0",
-]
-
-[project.optional-dependencies]
-# RAG示例依赖
-rag = [
+    # RAG示例依赖（原可选依赖，现改为必需）
     "transformers>=4.54.1",  # 与sage-middleware保持一致
     "sentence-transformers>=2.2.0",
     "faiss-cpu>=1.7.0",
     "rank-bm25>=0.2.0",
-]
-
-# 智能体示例依赖
-agents = [
+    # 智能体示例依赖（原可选依赖，现改为必需）
     "openai>=1.0.0",
     "anthropic>=0.25.0",
-]
-
-# 流处理示例依赖
-streaming = [
+    # 流处理示例依赖（原可选依赖，现改为必需）
     "kafka-python>=2.0.0",
     "redis>=4.0.0",
-]
-
-# 评估工具依赖
-evaluation = [
+    # 评估工具依赖（原可选依赖，现改为必需）
     "datasets>=2.0.0",
     "evaluate>=0.4.0",
     "rouge>=1.0.0",
     "rouge-score>=0.1.0",
     "bleu>=0.3.0",
     "vllm>=0.9.2",
-]
-
-# 完整示例（包含所有依赖）
-full = [
-    "isage-apps[rag,agents,streaming,evaluation]",
+    # Jupyter支持（原full组中的依赖，现改为必需）
     "jupyter>=1.0.0",
     "notebook>=6.0.0",
 ]
 
-# 开发依赖
+[project.optional-dependencies]
+# 开发依赖（仅保留开发工具）
 dev = [
-    "isage-apps[full]",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",

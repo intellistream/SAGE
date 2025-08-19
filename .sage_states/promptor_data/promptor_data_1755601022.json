@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601022.8778734,
+    "query": {
+      "query": "What is the cause of death of director of film Tai-Pan (Film)?",
+      "references": [
+        "pulmonary fibrosis"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'What is the cause of death of director of film Tai-Pan (Film)?', 'references': ['pulmonary fibrosis']}"
+      }
+    ]
+  }
+]

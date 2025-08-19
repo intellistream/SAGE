@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600957.9453156,
+    "query": {
+      "query": "What is the date of death of the performer of song Duodenum (Song)?",
+      "references": [
+        "December 4, 1993"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'What is the date of death of the performer of song Duodenum (Song)?', 'references': ['December 4, 1993']}"
+      }
+    ]
+  }
+]

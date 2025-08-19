@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": 1755600987.838055,
+    "query": {
+      "query": "Who is the mother-in-law of Andrew Murray (Scottish Soldier)?",
+      "references": [
+        "Marjorie, Countess of Carrick"
+      ]
+    },
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Who is the mother-in-law of Andrew Murray (Scottish Soldier)?', 'references': ['Marjorie, Countess of Carrick']}"
+      }
+    ],
+    "response": "  Certainly! Based on the information provided, the mother-in-law of Andrew Murray (Scottish Soldier) was Marjorie, Countess of Carrick.",
+    "model_name": "meta-llama/Llama-2-13b-chat-hf"
+  }
+]

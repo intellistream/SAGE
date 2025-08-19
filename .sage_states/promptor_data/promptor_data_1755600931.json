@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600931.902788,
+    "query": {
+      "query": "Why did the founder of university University Of Birmingham die?",
+      "references": [
+        "stroke"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Why did the founder of university University Of Birmingham die?', 'references': ['stroke']}"
+      }
+    ]
+  }
+]

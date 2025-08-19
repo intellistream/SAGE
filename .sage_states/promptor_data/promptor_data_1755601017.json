@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601017.9757783,
+    "query": {
+      "query": "What is the date of death of the director of film That Sweet Word: Liberty!?",
+      "references": [
+        "12 November 1996"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'What is the date of death of the director of film That Sweet Word: Liberty!?', 'references': ['12 November 1996']}"
+      }
+    ]
+  }
+]

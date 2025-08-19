@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600961.928903,
+    "query": {
+      "query": "Do both directors of films The Mouth of the Wolf (2009 film) and Town Without Pity share the same nationality?",
+      "references": [
+        "no"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Do both directors of films The Mouth of the Wolf (2009 film) and Town Without Pity share the same nationality?', 'references': ['no']}"
+      }
+    ]
+  }
+]

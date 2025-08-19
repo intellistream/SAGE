@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600929.954154,
+    "query": {
+      "query": "Are Alison Skipper and Diane Gilliam Fisher from the same country?",
+      "references": [
+        "yes"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are Alison Skipper and Diane Gilliam Fisher from the same country?', 'references': ['yes']}"
+      }
+    ]
+  }
+]

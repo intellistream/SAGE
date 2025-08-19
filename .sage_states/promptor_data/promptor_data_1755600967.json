@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600967.9320326,
+    "query": {
+      "query": "Do Yaman Okay and Mike Fiers have the same nationality?",
+      "references": [
+        "no"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Do Yaman Okay and Mike Fiers have the same nationality?', 'references': ['no']}"
+      }
+    ]
+  }
+]

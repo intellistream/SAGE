@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600935.9623747,
+    "query": {
+      "query": "Where was the composer of film Avidathe Pole Ivideyum born?",
+      "references": [
+        "Kerala"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Where was the composer of film Avidathe Pole Ivideyum born?', 'references': ['Kerala']}"
+      }
+    ]
+  }
+]

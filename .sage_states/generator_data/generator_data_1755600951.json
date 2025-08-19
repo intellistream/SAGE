@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": 1755600951.7818978,
+    "query": {
+      "query": "What nationality is the director of film Borunbabur Bondhu?",
+      "references": [
+        "India"
+      ]
+    },
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'What nationality is the director of film Borunbabur Bondhu?', 'references': ['India']}"
+      }
+    ],
+    "response": "  {'answer': 'The director of the film Borunbabur Bondhu is an Indian director, Satyajit Ray.', 'references': ['1', '2']}",
+    "model_name": "meta-llama/Llama-2-13b-chat-hf"
+  }
+]

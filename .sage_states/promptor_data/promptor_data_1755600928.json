@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600928.9254851,
+    "query": {
+      "query": "What nationality is the director of film Wedding Night In Paradise (1950 Film)?",
+      "references": [
+        "Hungarian"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'What nationality is the director of film Wedding Night In Paradise (1950 Film)?', 'references': ['Hungarian']}"
+      }
+    ]
+  }
+]

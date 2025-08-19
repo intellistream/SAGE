@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600989.8943484,
+    "query": {
+      "query": "Where was the place of death of the director of film There Was A Castle With Forty Dogs?",
+      "references": [
+        "Rome"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Where was the place of death of the director of film There Was A Castle With Forty Dogs?', 'references': ['Rome']}"
+      }
+    ]
+  }
+]

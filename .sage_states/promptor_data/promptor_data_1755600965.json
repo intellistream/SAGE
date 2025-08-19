@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600965.8716714,
+    "query": {
+      "query": "Are both villages, Halvehhani and Aq Bolagh, Qazvin, located in the same country?",
+      "references": [
+        "yes"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are both villages, Halvehhani and Aq Bolagh, Qazvin, located in the same country?', 'references': ['yes']}"
+      }
+    ]
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": 1755600947.5439422,
+    "query": {
+      "query": "Are Alison Skipper and Diane Gilliam Fisher from the same country?",
+      "references": [
+        "yes"
+      ]
+    },
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are Alison Skipper and Diane Gilliam Fisher from the same country?', 'references': ['yes']}"
+      }
+    ],
+    "response": "  Yes, Alison Skipper and Diane Gilliam Fisher are from the same country, which is the United States.",
+    "model_name": "meta-llama/Llama-2-13b-chat-hf"
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601031.8758383,
+    "query": {
+      "query": "Who is older, Thomas Kennedy (Raf Officer) or Raoul Nordling?",
+      "references": [
+        "Raoul Nordling"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Who is older, Thomas Kennedy (Raf Officer) or Raoul Nordling?', 'references': ['Raoul Nordling']}"
+      }
+    ]
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": 1755601015.6036227,
+    "query": {
+      "query": "Where was the composer of film Avidathe Pole Ivideyum born?",
+      "references": [
+        "Kerala"
+      ]
+    },
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Where was the composer of film Avidathe Pole Ivideyum born?', 'references': ['Kerala']}"
+      }
+    ],
+    "response": "  Sure, I'd be happy to help! The composer of the film Avidathe Pole Ivideyum, Kailasam, was born in Kerala, India.",
+    "model_name": "meta-llama/Llama-2-13b-chat-hf"
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601010.996918,
+    "query": {
+      "query": "Do both directors of films Over The Edge (Film) and Code Of The Saddle share the same nationality?",
+      "references": [
+        "yes"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Do both directors of films Over The Edge (Film) and Code Of The Saddle share the same nationality?', 'references': ['yes']}"
+      }
+    ]
+  }
+]

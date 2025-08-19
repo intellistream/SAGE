@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600973.874084,
+    "query": {
+      "query": "Are Hugh Gough, 1St Viscount Gough and David Douglas (Wide Receiver) of the same nationality?",
+      "references": [
+        "no"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are Hugh Gough, 1St Viscount Gough and David Douglas (Wide Receiver) of the same nationality?', 'references': ['no']}"
+      }
+    ]
+  }
+]

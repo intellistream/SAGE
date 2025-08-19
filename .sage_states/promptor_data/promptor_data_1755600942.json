@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600942.942581,
+    "query": {
+      "query": "Do both directors of films Paper Bullets and Karakolda Ayna Var share the same nationality?",
+      "references": [
+        "no"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Do both directors of films Paper Bullets and Karakolda Ayna Var share the same nationality?', 'references': ['no']}"
+      }
+    ]
+  }
+]

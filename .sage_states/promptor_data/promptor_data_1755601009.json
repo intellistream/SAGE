@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601009.9080322,
+    "query": {
+      "query": "What nationality is the performer of song Wild In The Country (Elvis Presley Song)?",
+      "references": [
+        "American"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'What nationality is the performer of song Wild In The Country (Elvis Presley Song)?', 'references': ['American']}"
+      }
+    ]
+  }
+]

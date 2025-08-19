@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601030.981878,
+    "query": {
+      "query": "What is the date of birth of the director of film Zwemplaats Voor Jongelingen Te Amsterdam?",
+      "references": [
+        "5 November 1866"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'What is the date of birth of the director of film Zwemplaats Voor Jongelingen Te Amsterdam?', 'references': ['5 November 1866']}"
+      }
+    ]
+  }
+]

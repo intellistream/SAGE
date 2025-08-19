@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601045.9127285,
+    "query": {
+      "query": "Are both A Face in the Fog and Azonto Ghost from the same country?",
+      "references": [
+        "no"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are both A Face in the Fog and Azonto Ghost from the same country?', 'references': ['no']}"
+      }
+    ]
+  }
+]

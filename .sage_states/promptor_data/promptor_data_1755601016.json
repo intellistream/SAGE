@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601016.9956834,
+    "query": {
+      "query": "Are Whole Wheat Bread (band) and Dreamscape (band) both from the same country?",
+      "references": [
+        "no"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are Whole Wheat Bread (band) and Dreamscape (band) both from the same country?', 'references': ['no']}"
+      }
+    ]
+  }
+]

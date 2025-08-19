@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600952.9924712,
+    "query": {
+      "query": "What is the place of birth of the director of film The Crisis (1916 Film)?",
+      "references": [
+        "Scottish"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'What is the place of birth of the director of film The Crisis (1916 Film)?', 'references': ['Scottish']}"
+      }
+    ]
+  }
+]

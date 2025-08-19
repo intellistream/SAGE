@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601037.92036,
+    "query": {
+      "query": "Why did Pankaja Munde's father die?",
+      "references": [
+        "road accident"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': \"Why did Pankaja Munde's father die?\", 'references': ['road accident']}"
+      }
+    ]
+  }
+]

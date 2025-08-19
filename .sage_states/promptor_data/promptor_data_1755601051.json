@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601051.9706063,
+    "query": {
+      "query": "Were Anton Šoltis and Rolf Berggren from the same country?",
+      "references": [
+        "no"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Were Anton Šoltis and Rolf Berggren from the same country?', 'references': ['no']}"
+      }
+    ]
+  }
+]

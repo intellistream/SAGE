@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755600993.9576342,
+    "query": {
+      "query": "Are both Bal Tabarin (Film) and Tag Und Nacht (Film) from the same country?",
+      "references": [
+        "no"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are both Bal Tabarin (Film) and Tag Und Nacht (Film) from the same country?', 'references': ['no']}"
+      }
+    ]
+  }
+]

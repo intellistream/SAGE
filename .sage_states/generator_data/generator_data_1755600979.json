@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": 1755600979.375319,
+    "query": {
+      "query": "Which film has the director who died later, Aaranya Kandam or One Hundred Nails?",
+      "references": [
+        "One Hundred Nails"
+      ]
+    },
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Which film has the director who died later, Aaranya Kandam or One Hundred Nails?', 'references': ['One Hundred Nails']}"
+      }
+    ],
+    "response": "  {'answer': 'Aaranya Kandam', 'reason': 'The director of Aaranya Kandam, Selvaraghavan, passed away on December 23, 2020, whereas the director of One Hundred Nails, Mani Ratnam, is still alive. Therefore, the correct answer is Aaranya Kandam.'}",
+    "model_name": "meta-llama/Llama-2-13b-chat-hf"
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601062.9156013,
+    "query": {
+      "query": "What is the place of birth of the composer of film Missi (Film)?",
+      "references": [
+        "Paravoor"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'What is the place of birth of the composer of film Missi (Film)?', 'references': ['Paravoor']}"
+      }
+    ]
+  }
+]

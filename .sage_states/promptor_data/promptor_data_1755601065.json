@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": 1755601065.96091,
+    "query": {
+      "query": "Are the directors of films Chennai 600028 Ii and The Horizontal Lieutenant both from the same country?",
+      "references": [
+        "no"
+      ]
+    },
+    "external_corpus": "",
+    "prompt": [
+      {
+        "role": "system",
+        "content": "You are a helpful AI assistant. Answer the user's questions accurately."
+      },
+      {
+        "role": "user",
+        "content": "Question: {'query': 'Are the directors of films Chennai 600028 Ii and The Horizontal Lieutenant both from the same country?', 'references': ['no']}"
+      }
+    ]
+  }
+]

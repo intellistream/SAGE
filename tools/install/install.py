@@ -378,7 +378,7 @@ class SAGEInstaller:
                 self.progress.fail_step("conda_packages", "部分conda包安装失败")
         
         # 分离本地SAGE包和外部依赖包
-        local_sage_packages = {"sage", "sage-common", "sage-kernel", "sage-middleware"}
+        local_sage_packages = {"sage", "sage-common", "sage-kernel", "sage-middleware", "sage-apps"}
         pip_packages = [pkg for pkg in profile.packages 
                        if pkg not in profile.conda_packages and pkg not in local_sage_packages]
         
@@ -386,7 +386,7 @@ class SAGEInstaller:
         self.ui.show_info("📋 安装计划分析完成:")
         self.ui.show_info(f"   📦 Conda包: {len(profile.conda_packages) if profile.conda_packages else 0} 个")
         self.ui.show_info(f"   🐍 Pip包: {len(pip_packages)} 个")
-        self.ui.show_info(f"   🏠 本地SAGE包: 4 个 (sage-common, sage-kernel, sage-middleware, sage)")
+        self.ui.show_info(f"   🏠 本地SAGE包: 5 个 (sage-common, sage-kernel, sage-middleware, sage-apps, sage)")
         
         # 安装外部依赖包（pip）
         if pip_packages:
@@ -409,7 +409,7 @@ class SAGEInstaller:
         sage_packages_success = True
         
         self.ui.show_info("🏠 开始安装SAGE本地包 (开发模式):")
-        sage_package_order = ["sage-common", "sage-kernel", "sage-middleware", "sage"]
+        sage_package_order = ["sage-common", "sage-kernel", "sage-middleware", "sage-apps", "sage"]
         
         for package_name in sage_package_order:
             package_path = self.project_root / "packages" / package_name
