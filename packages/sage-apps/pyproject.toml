@@ -72,6 +72,7 @@ evaluation = [
     "rouge>=1.0.0",
     "rouge-score>=0.1.0",
     "bleu>=0.3.0",
+    "vllm>=0.9.2",
 ]
 
 # 完整示例（包含所有依赖）
