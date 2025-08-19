@@ -44,5 +44,8 @@
   "search.quickOpen.includeSymbols": true,
   "search.quickOpen.includeHistory": true,
   "search.followSymlinks": true,
-  "search.maxResults": 10000
+  "search.maxResults": 10000,
+  "python-envs.defaultEnvManager": "ms-python.python:conda",
+  "python-envs.defaultPackageManager": "ms-python.python:conda",
+  "python-envs.pythonProjects": []
 }
