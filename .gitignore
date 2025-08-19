@@ -80,7 +80,7 @@ recommended_tests.txt
 local_workflow_logs/
 .pytest_cache/
 archive/
-
+.sage_states
 # C/C++ compiled libraries and binaries
 *.so
 *.so.*
