@@ -7,7 +7,7 @@ import { Observable, of, delay } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { OperatorInfo } from '../model/OperatorInfo';
 import { Job } from '../model/Job';
-
+const MOCK_OPERATORS_DELAY_MS = 500; 
 @Injectable({
   providedIn: 'root'
 })
