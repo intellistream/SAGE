@@ -41,4 +41,4 @@ sink:
 reranker:
   platform: "local"
   model_name: "BAAI/bge-reranker-v2-m3"
-  top_k: 3
+  topk: 3

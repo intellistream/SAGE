@@ -7,8 +7,6 @@ from sage.libs.io_utils.sink import TerminalSink, FileSink
 from sage.libs.rag.generator import OpenAIGenerator
 from sage.libs.rag.promptor import QAPromptor
 from sage.libs.rag.retriever import DenseRetriever
-from sage.libs.dataflow.splitter import Splitter
-from sage.libs.dataflow.merger import Merger
 from sage.common.utils.config.loader import load_config
 
 
@@ -30,20 +28,16 @@ def pipeline_run(config):
             .map(OpenAIGenerator, config["generator"]["vllm"])
         )
 
-        # Split response into true/false streams
-        true_stream = response_stream.map(Splitter)
-        true_stream.sink(FileSink, config["sink_true"])
+        # Create separate streams for True and False responses using filter
+        true_stream = response_stream.filter(lambda data: str(data[1]).lower().strip().startswith('true'))
+        false_stream = response_stream.filter(lambda data: str(data[1]).lower().strip().startswith('false'))
 
-        # Process false stream separately
-        false_stream = true_stream.side_output("false")
-        false_stream.sink(FileSink, config["sink_false"])
+        # Send filtered streams to their respective files
+        true_stream.map(lambda data: f"TRUE: {data[0]} -> {data[1]}").sink(FileSink, config["sink_true"])
+        false_stream.map(lambda data: f"FALSE: {data[0]} -> {data[1]}").sink(FileSink, config["sink_false"])
 
-        # Connecting true and false streams for further processing
-        connected_streams = true_stream.connect(false_stream)
-
-        # Merge the streams before output
-        merged_stream = connected_streams.map(Merger)
-        merged_stream.sink(TerminalSink, config["sink_terminal"])
+        # Send all responses to terminal for monitoring
+        response_stream.map(lambda data: f"[RESULT] Q: {data[0]}\nA: {data[1]}\n").sink(TerminalSink, config["sink_terminal"])
 
         # Submit and run the pipeline
         env.submit()

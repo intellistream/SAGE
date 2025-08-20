@@ -69,7 +69,12 @@ class BGEReranker(MapFunction):
         """
         try:
             query, doc_set = data  # Unpack the input data
-            top_k = self.config["topk"]  # Get the top-k parameter for reranking
+            top_k = self.config.get("topk") or self.config.get("top_k", 3)  # Get the top-k parameter for reranking
+
+            # Handle empty document set case
+            if not doc_set:
+                print("BGEReranker received empty document set, returning empty results")
+                return query, []
 
             # Generate query-document pairs for scoring
             pairs = [(query, doc) for doc in doc_set]
