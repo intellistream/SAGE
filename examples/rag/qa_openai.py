@@ -57,7 +57,6 @@ if __name__ == '__main__':
     CustomLogger.disable_global_console_debug()
     load_dotenv(override=False)
     
-    # 默认使用 ChromaDB 专用配置
     config_file = os.environ.get('SAGE_CONFIG', 'config_chroma_only.yaml')
     config_path = os.path.join(os.path.dirname(__file__), "..", "config", config_file)
     
