@@ -63,6 +63,7 @@ dependencies = [
     # Jupyter支持（原full组中的依赖，现改为必需）
     "jupyter>=1.0.0",
     "notebook>=6.0.0",
+    "chromadb>=1.0.20",
 ]
 
 [project.optional-dependencies]

@@ -138,3 +138,25 @@ dev_reports/
 
 ./experiment/data
 ./experiment/results
+
+# ============================================
+# RAG系统数据文件
+# ============================================
+# ChromaDB数据库文件
+**/chroma_database/
+**/chroma_qa_database/
+**/chroma_*/
+
+# 知识库和向量数据
+data/queries.jsonl
+data/*_knowledge_base.txt
+data/neuromem_vdb/
+examples/data/
+examples/rag/chroma_*/
+
+# 临时和测试数据文件
+**/*.vector
+**/*.index
+**/*.db
+**/*.sqlite
+**/*.embeddings
