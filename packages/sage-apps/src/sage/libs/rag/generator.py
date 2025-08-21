@@ -113,85 +113,6 @@ class OpenAIGenerator(MapFunction):
             except:
                 pass
 
-
-# class OpenAIGeneratorWithHistory(StatefulFunction):
-#     """
-#     带滚动对话历史的生成节点。
-#     子配置格式与 OpenAIGenerator 相同，并可额外设置 ::
-
-#         {
-#           ...,
-#           "max_history_turns": 5
-#         }
-#     """
-
-#     def __init__(self, config: dict, **kwargs):
-#         super().__init__(**kwargs)
-
-#         # 子配置直接使用
-#         self.config = config
-#         self.model = apply_generator_model(
-#             method=self.config["method"],
-#             model_name=self.config["model_name"],
-#             base_url=self.config["base_url"],
-#             api_key=self.config["api_key"] or os.getenv("ALIBABA_API_KEY"),
-#             seed=self.config.get("seed", 42),
-#         )
-
-#         # 对话历史
-#         self.dialogue_history: List[dict] = []
-#         self.history_turns = self.config.get("max_history_turns", 5)
-#         self.num = 1
-
-#         # 设置检查点存储路径
-#         if hasattr(self.ctx, 'session_folder') and self.ctx.session_folder:
-#             base = os.path.join(self.ctx.session_folder, ".sage_checkpoints")
-#         else:
-#             # 使用默认路径
-#             base = os.path.join(os.getcwd(), ".sage_checkpoints")
-
-#         os.makedirs(base, exist_ok=True)
-
-#         if hasattr(self.ctx, 'name'):
-#             self.chkpt_path = os.path.join(base, f"{self.ctx.name}.chkpt")
-#         else:
-#             self.chkpt_path = os.path.join(base, "default.chkpt")
-
-#         load_function_state(self, self.chkpt_path)
-
-#     def execute(self, data: List[Any], **kwargs) -> Tuple[str, str]:
-#         """
-#         期望输入 : [user_query, prompt_list]
-#         prompt_list == [{"role": "user"/"system", "content": ...}, ...]
-#         """
-#         user_query = data[0] if len(data) > 1 else None
-#         prompt_info = data[1] if len(data) > 1 else data[0]
-
-#         new_turns = [e for e in prompt_info if e["role"] in ("user", "system")]
-#         history_to_use = self.dialogue_history[-2 * self.history_turns:]
-#         full_prompt = history_to_use + new_turns
-
-#         self.logger.debug(f"[Prompt with history]:\n{full_prompt}")
-#         response = self.model.generate(full_prompt, **kwargs)
-
-#         # 更新历史
-#         for entry in new_turns:
-#             if entry["role"] == "user":
-#                 self.dialogue_history.append(entry)
-#         self.dialogue_history.append({"role": "assistant", "content": response})
-#         self.dialogue_history = self.dialogue_history[-2 * self.history_turns:]
-
-#         self.logger.info(f"\033[32m[{self.__class__.__name__}] Response: {response}\033[0m")
-
-#         # 自动持久化
-#         save_function_state(self, self.chkpt_path)
-#         return user_query, response
-
-#     # 手动保存接口（可选）
-#     def save_state(self):
-#         save_function_state(self, self.chkpt_path)
-
-
 class HFGenerator(MapFunction):
     """
     HFGenerator is a generator rag that interfaces with a Hugging Face model
@@ -229,6 +150,8 @@ class HFGenerator(MapFunction):
 
         response = self.model.generate(prompt, **kwargs)
 
+        print(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
+        
         # Return the generated response as a Data object
         self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
 

@@ -81,7 +81,13 @@ class QAPromptor(MapFunction):
         """
         self.config = config  # Store the configuration for later use
         self.enable_profile = enable_profile
-        self.prompt_template = QA_prompt_template  # Load the QA prompt template
+        
+        # 使用配置文件中的模板，如果没有则使用默认模板
+        if 'template' in config:
+            from jinja2 import Template
+            self.prompt_template = Template(config['template'])
+        else:
+            self.prompt_template = QA_prompt_template  # Load the QA prompt template
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:

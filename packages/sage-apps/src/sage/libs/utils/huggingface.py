@@ -41,25 +41,58 @@ class HFClient:
         return model, tokenizer
 
     def generate(self, prompt, **kwargs):
+        # 设置生成参数
+        generation_kwargs = {
+            'max_new_tokens': kwargs.get('max_new_tokens', 128),  # 减少生成长度
+            'temperature': kwargs.get('temperature', 0.3),        # 降低temperature
+            'do_sample': True,
+            'pad_token_id': self.tokenizer.eos_token_id,
+            'eos_token_id': self.tokenizer.eos_token_id,
+        }
+        
         # Construct prompt text
-        input_prompt = ""
         if isinstance(prompt, list):
+            # 使用简单的格式化，避免复杂的chat template
+            input_prompt = ""
             for message in prompt:
-                input_prompt += f"<{message['role']}>{message['content']}</{message['role']}>\n"
+                role = message['role']
+                content = message['content']
+                if role == 'system':
+                    input_prompt += f"System: {content}\n\n"
+                elif role == 'user':
+                    input_prompt += f"User: {content}\n\nAssistant: "
         elif isinstance(prompt, str):
             input_prompt = prompt
 
+        print(f"Input prompt: {input_prompt[:200]}...")  # 调试信息
+        
         # Tokenize input
         input_ids = self.tokenizer(
-            input_prompt, return_tensors="pt", padding=True, truncation=True
+            input_prompt, 
+            return_tensors="pt", 
+            padding=True, 
+            truncation=True,
+            max_length=1024  # 限制输入长度
         ).to(self.device)
+        
+        print(f"Input token length: {input_ids['input_ids'].shape[1]}")  # 调试信息
 
         # Generate output
-        output = self.model.generate(**input_ids)
+        try:
+            with torch.no_grad():  # 节省内存
+                output = self.model.generate(
+                    **input_ids,
+                    **generation_kwargs
+                )
+        except Exception as e:
+            print(f"Generation error: {e}")
+            return "Generation failed due to an error."
 
         # Decode output
         response_text = self.tokenizer.decode(
-            output[0][input_ids["input_ids"].shape[1]:], skip_special_tokens=True
-        )
+            output[0][input_ids["input_ids"].shape[1]:], 
+            skip_special_tokens=True
+        ).strip()
 
+        print(f"Generated response: {response_text}")  # 调试信息
         return response_text
