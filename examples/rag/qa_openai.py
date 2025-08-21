@@ -1,7 +1,7 @@
 import time
 import os
 from dotenv import load_dotenv
-
+import yaml
 from sage.core.api.local_environment import LocalEnvironment
 from sage.libs.io_utils.sink import TerminalSink
 from sage.libs.io_utils.batch import JSONLBatch
@@ -10,6 +10,10 @@ from sage.libs.rag.promptor import QAPromptor
 from sage.libs.rag.retriever import ChromaRetriever
 from sage.common.utils.config.loader import load_config
 
+def load_config(path):
+    with open(path, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+    return config
 
 def pipeline_run(config: dict) -> None:
     """
@@ -46,7 +50,7 @@ def pipeline_run(config: dict) -> None:
 
     print("正在提交并运行管道...")
     env.submit()
-    time.sleep(5)  # 等待管道运行5秒
+    time.sleep(10)  # 等待管道运行5秒
     env.close()
     print("=== RAG 问答系统运行完成 ===")
 
@@ -56,24 +60,15 @@ if __name__ == '__main__':
     from sage.common.utils.logging.custom_logger import CustomLogger
     CustomLogger.disable_global_console_debug()
     load_dotenv(override=False)
-    
-    config_file = os.environ.get('SAGE_CONFIG', 'config_chroma_only.yaml')
-    config_path = os.path.join(os.path.dirname(__file__), "..", "config", config_file)
-    
+
+    config_path = './examples/config/config_qa_chroma.yaml'
     if not os.path.exists(config_path):
         print(f"配置文件不存在: {config_path}")
-        print("可用的 ChromaDB 配置文件：")
-        print("  - config_chroma_only.yaml ")
-        print()
-        print("使用方法:")
-        print("  SAGE_CONFIG=config_chroma_only.yaml python qa_openai.py")
-        exit(1)
     
     config = load_config(config_path)
-    
-    print(f"使用配置文件: {config_file}")
 
-    
+    print(config)
+
     # 检查知识库文件（如果配置了）
     knowledge_file = config["retriever"]["chroma"].get("knowledge_file")
     if knowledge_file:
