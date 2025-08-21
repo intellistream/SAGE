@@ -13,12 +13,27 @@ pytest_plugins = []
 try:
     from sage.libs.rag.evaluate import (
         F1Evaluate, RecallEvaluate, BertRecallEvaluate, 
-        RougeLEvaluate, BRSEvaluate, AccuracyEvaluate
+        RougeLEvaluate, BRSEvaluate, AccuracyEvaluate,
+        TokenCountEvaluate, LatencyEvaluate, ContextRecallEvaluate,
+        CompressionRateEvaluate
     )
     EVALUATE_AVAILABLE = True
 except ImportError as e:
     EVALUATE_AVAILABLE = False
     pytestmark = pytest.mark.skip(f"Evaluate module not available: {e}")
+
+
+@pytest.fixture
+def sample_evaluation_data():
+    """提供测试评估数据的fixture"""
+    return {
+        "question": "什么是机器学习？",
+        "generated": "机器学习是人工智能的一个分支，它使计算机能够自动学习。",
+        "references": [
+            "机器学习是人工智能的子领域，专注于算法的开发。",
+            "机器学习让计算机能够从数据中学习模式。"
+        ]
+    }
 
 
 @pytest.mark.unit
@@ -286,6 +301,130 @@ class TestAccuracyEvaluate:
             mock_print.assert_called_once()
             call_args = str(mock_print.call_args)
             assert "Acc" in call_args
+
+
+@pytest.mark.unit
+class TestTokenCountEvaluate:
+    """测试TokenCountEvaluate类"""
+    
+    def test_token_count_evaluate_initialization(self):
+        """测试TokenCountEvaluate初始化"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+        
+        evaluator = TokenCountEvaluate()
+        assert hasattr(evaluator, 'execute')
+    
+    def test_token_count_execute(self, sample_evaluation_data):
+        """测试TokenCountEvaluate执行"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+        
+        evaluator = TokenCountEvaluate()
+        
+        with patch('builtins.print') as mock_print:
+            result = evaluator.execute(sample_evaluation_data)
+            
+            assert result == sample_evaluation_data
+            mock_print.assert_called_once()
+            call_args = str(mock_print.call_args)
+            assert "Token Count" in call_args
+
+
+@pytest.mark.unit
+class TestLatencyEvaluate:
+    """测试LatencyEvaluate类"""
+    
+    def test_latency_evaluate_initialization(self):
+        """测试LatencyEvaluate初始化"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+        
+        evaluator = LatencyEvaluate()
+        assert hasattr(evaluator, 'execute')
+    
+    def test_latency_execute(self, sample_evaluation_data):
+        """测试LatencyEvaluate执行"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+        
+        evaluator = LatencyEvaluate()
+        
+        with patch('builtins.print') as mock_print:
+            result = evaluator.execute(sample_evaluation_data)
+            
+            assert result == sample_evaluation_data
+            mock_print.assert_called_once()
+            call_args = str(mock_print.call_args)
+            assert "Latency" in call_args
+
+
+@pytest.mark.unit
+class TestContextRecallEvaluate:
+    """测试ContextRecallEvaluate类"""
+    
+    def test_context_recall_evaluate_initialization(self):
+        """测试ContextRecallEvaluate初始化"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+        
+        evaluator = ContextRecallEvaluate()
+        assert hasattr(evaluator, 'execute')
+    
+    def test_context_recall_execute(self, sample_evaluation_data):
+        """测试ContextRecallEvaluate执行"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+        
+        evaluator = ContextRecallEvaluate()
+        
+        # ContextRecallEvaluate需要metadata字段
+        test_data = sample_evaluation_data.copy()
+        test_data["metadata"] = {
+            "supporting_facts": {
+                "sent_id": [0, 1]
+            },
+            "retrieved_contexts": [
+                {"content": "机器学习是人工智能的子领域", "sent_id": 0},
+                {"content": "它专注于算法的开发", "sent_id": 1}
+            ]
+        }
+        
+        with patch('builtins.print') as mock_print:
+            result = evaluator.execute(test_data)
+            
+            assert result == test_data
+            mock_print.assert_called_once()
+            call_args = str(mock_print.call_args)
+            assert "Context Recall" in call_args
+
+
+@pytest.mark.unit
+class TestCompressionRateEvaluate:
+    """测试CompressionRateEvaluate类"""
+    
+    def test_compression_rate_evaluate_initialization(self):
+        """测试CompressionRateEvaluate初始化"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+        
+        evaluator = CompressionRateEvaluate()
+        assert hasattr(evaluator, 'execute')
+    
+    def test_compression_rate_execute(self, sample_evaluation_data):
+        """测试CompressionRateEvaluate执行"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+        
+        evaluator = CompressionRateEvaluate()
+        
+        with patch('builtins.print') as mock_print:
+            result = evaluator.execute(sample_evaluation_data)
+            
+            assert result == sample_evaluation_data
+            mock_print.assert_called_once()
+            call_args = str(mock_print.call_args)
+            assert "Compression Rate" in call_args
 
 
 @pytest.mark.integration

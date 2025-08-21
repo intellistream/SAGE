@@ -17,6 +17,28 @@ except ImportError as e:
     pytestmark = pytest.mark.skip(f"Retriever module not available: {e}")
 
 
+@pytest.fixture
+def sample_config():
+    """提供测试配置的fixture"""
+    return {
+        "collection_name": "test_collection",
+        "model_name": "test_model",
+        "top_k": 5
+    }
+
+
+@pytest.fixture
+def sample_documents():
+    """提供测试文档的fixture"""
+    return [
+        {"content": "机器学习是人工智能的一个分支。", "score": 0.9},
+        {"content": "深度学习使用神经网络。", "score": 0.8},
+        {"content": "自然语言处理处理文本数据。", "score": 0.7},
+        {"content": "计算机视觉分析图像。", "score": 0.6},
+        {"content": "强化学习通过奖励机制学习。", "score": 0.5}
+    ]
+
+
 @pytest.mark.unit
 class TestDenseRetriever:
     """测试DenseRetriever类"""
