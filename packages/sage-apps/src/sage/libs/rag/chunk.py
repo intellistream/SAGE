@@ -34,11 +34,25 @@ class CharacterSplitter(MapFunction):
         tokens = list(text)  # character-level split
         chunks = []
         start = 0
+        
+        # Handle empty text
+        if not tokens:
+            return [""]
+        
         while start < len(tokens):
             end = start + self.chunk_size
             chunk = tokens[start:end]
             chunks.append("".join(chunk))
-            start += self.chunk_size - self.overlap  # move forward with overlap
+            
+            # Calculate next start position with overlap
+            next_start = start + self.chunk_size - self.overlap
+            
+            # Prevent infinite loop: ensure we always move forward by at least 1
+            if next_start <= start:
+                next_start = start + 1
+                
+            start = next_start
+            
         return chunks
 
     def execute(self,data:str) -> List[str]:
