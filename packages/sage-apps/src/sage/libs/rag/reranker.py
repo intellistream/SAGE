@@ -109,6 +109,8 @@ class BGEReranker(MapFunction):
             self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list }\033[0m ")
             self.logger.debug(f"Top score: {reranked_docs[0]['relevance_score'] if reranked_docs else 'N/A'}")
 
+            print(f"Rerank Results: {reranked_docs_list}")
+
         except Exception as e:
             raise RuntimeError(f"BGEReranker error: {str(e)}")
         

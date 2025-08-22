@@ -20,6 +20,15 @@ def pipeline_run(config: dict) -> None:
     Args:
         config (dict): 包含各个组件配置的字典。
     """
+    # 修改JobManager实例化以使用不同的端口
+    from sage.kernel import JobManager
+    # 先清理可能存在的实例
+    if hasattr(JobManager, 'instance') and JobManager.instance is not None:
+        if hasattr(JobManager.instance, 'server') and JobManager.instance.server:
+            JobManager.instance.server.shutdown()
+        JobManager.instance = None
+    
+
     env = LocalEnvironment()
     #env.set_memory(config=None)
 

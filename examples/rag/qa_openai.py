@@ -57,7 +57,7 @@ def pipeline_run(config: dict) -> None:
 
 if __name__ == '__main__':
     from sage.common.utils.logging.custom_logger import CustomLogger
-    CustomLogger.disable_global_console_debug()
+    # CustomLogger.disable_global_console_debug()
 
     config_path = './examples/config/config_qa_chroma.yaml'
     if not os.path.exists(config_path):
