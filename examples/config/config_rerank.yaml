@@ -1,23 +1,45 @@
-pipeline:
-  name: "sage-api-operator-operator_test"
-  description: "Test pipeline for Sage API Operator"
-  version: "1.0.0"
+# ChromaDB 专用 QA 配置文件
+# 适用于 qa_openai.py 的简化配置
+
 
 source:
-  data_path: "examples/data/sample/question.txt"
+  data_path: "./data/queries.jsonl"  # 修正相对路径
   platform: "local"
 
 retriever:
-  platform: "local"
-  ltm:
-    topk: 3
+  # ChromaDB 专用配置
+  dimension: 384    # 修改为与 HuggingFace all-MiniLM-L6-v2 匹配
+  top_k: 2
+  
+  chroma:
+    persistence_path: "./examples/rag/chroma_qa_database"
+    collection_name: "qa_knowledge_base"
+    use_embedding_query: true
+    
+    # 知识库已预加载，注释掉自动加载
+    # knowledge_file: "../../data/qa_knowledge_base.txt"
+    
+    # ChromaDB 元数据配置 (简化格式)
+    metadata:
+      hnsw:space: "cosine"           # 距离度量
+  
+  # 嵌入模型配置
+  embedding:
+    method: "hf"
+    model: "sentence-transformers/all-MiniLM-L6-v2"
+
+promptor:
+  template: |
+    基于以下检索到的相关文档，回答用户问题：
+    
+    相关文档：
+    {retrieved_documents}
+    
+    用户问题：{query}
+    
+    请提供准确、有用的回答：
 
 generator:
-  local:
-    method: "hf"
-    model_name: "meta-llama/Llama-2-13b-chat-hf"
-    seed: 42
-
   vllm:
     api_key: "token-abc123"
     method: "openai"
@@ -25,20 +47,10 @@ generator:
     base_url: "http://localhost:8000/v1"
     seed: 42
 
-  remote:
-    api_key: ""
-    method: "openai"
-    model_name: "qwen-turbo-0919"
-    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    seed: 42
-
-promptor:
-  platform: "local"
-
 sink:
-  platform: "local"
+  enable_log: true
 
 reranker:
   platform: "local"
   model_name: "BAAI/bge-reranker-v2-m3"
-  topk: 3
+  topk: 1

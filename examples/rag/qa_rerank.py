@@ -4,9 +4,9 @@ import time
 from sage.core.api.local_environment import LocalEnvironment
 from sage.libs.rag.generator import OpenAIGenerator
 from sage.libs.rag.promptor import QAPromptor
-from sage.libs.rag.retriever import DenseRetriever
+from sage.libs.rag.retriever import ChromaRetriever
 from sage.libs.rag.reranker import BGEReranker
-from sage.libs.io_utils.source import FileSource
+from sage.libs.io_utils.batch import JSONLBatch
 from sage.libs.io_utils.sink import TerminalSink
 from sage.common.utils.config.loader import load_config
 
@@ -21,8 +21,8 @@ def pipeline_run():
     #env.set_memory(config=None)  # 初始化内存配置
 
     # 构建数据处理流程
-    query_stream = (env.from_source(FileSource, config["source"])
-                    .map(DenseRetriever, config["retriever"])
+    query_stream = (env.from_source(JSONLBatch, config["source"])
+                    .map(ChromaRetriever, config["retriever"])
                     .map(BGEReranker, config["reranker"])  
                     .map(QAPromptor, config["promptor"])
                     .map(OpenAIGenerator, config["generator"]["vllm"])
@@ -33,7 +33,7 @@ def pipeline_run():
     env.submit()
 
     # 等待一段时间确保任务完成
-    time.sleep(5)
+    time.sleep(20)
     
     # 关闭环境
     env.close()
@@ -41,6 +41,8 @@ def pipeline_run():
 
 if __name__ == '__main__':
     import os
+    from sage.common.utils.logging.custom_logger import CustomLogger
+    # CustomLogger.disable_global_console_debug()
     # 加载配置文件
     config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_rerank.yaml")
     config = load_config(config_path)
