@@ -15,9 +15,26 @@ source:
   hf_split:          "train"
 
 retriever:
-  platform: "local"
-  ltm:
-    topk: 3
+  # ChromaDB 专用配置
+  dimension: 384    # 修改为与 HuggingFace all-MiniLM-L6-v2 匹配
+  top_k: 3
+  
+  chroma:
+    persistence_path: "./examples/rag/chroma_refiner_database"
+    collection_name: "refiner_knowledge_base"
+    use_embedding_query: true
+    
+    # 知识库已预加载，注释掉自动加载
+    # knowledge_file: "../../data/refiner_knowledge_base.txt"
+    
+    # ChromaDB 元数据配置 (简化格式)
+    metadata:
+      hnsw:space: "cosine"           # 距离度量
+  
+  # 嵌入模型配置
+  embedding:
+    method: "hf"
+    model: "sentence-transformers/all-MiniLM-L6-v2"
 
 generator:
   local:

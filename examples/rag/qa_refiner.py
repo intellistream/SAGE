@@ -7,7 +7,7 @@ from sage.common.utils.config.loader import load_config
 from sage.libs.io_utils.batch import HFDatasetBatch
 from sage.middleware.services.memory.memory_service import MemoryService
 
-from sage.libs.rag.retriever import DenseRetriever
+from sage.libs.rag.retriever import ChromaRetriever
 from sage.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
 from sage.libs.rag.promptor import QAPromptor
 from sage.libs.rag.generator import OpenAIGenerator
@@ -20,30 +20,12 @@ from sage.libs.rag.evaluate import (
 def pipeline_run(config):
     env = LocalEnvironment()
 
-    def memory_service_factory():
-        memory_service = MemoryService()
-
-        result = memory_service.create_collection(
-            name="qa_collection",
-            backend_type="VDB",
-            description="Collection for QA pipeline"
-        )
-
-        if result['status'] == 'success':
-            print("✅ Collection created successfully")
-        else:
-            print(f"❌ Failed to create collection: {result['message']}")
-
-        return memory_service
-
-    env.register_service("memory_service", memory_service_factory)
-
     enable_profile = True
 
     (
         env
         .from_batch(HFDatasetBatch, config["source"])
-        .map(DenseRetriever, config["retriever"], enable_profile=enable_profile)
+        .map(ChromaRetriever, config["retriever"], enable_profile=enable_profile)
         .map(LongRefinerAdapter, config["refiner"], enable_profile=enable_profile)
         .map(QAPromptor, config["promptor"], enable_profile=enable_profile)
         .map(OpenAIGenerator, config["generator"]["vllm"], enable_profile=enable_profile)
@@ -68,6 +50,9 @@ def pipeline_run(config):
 
 # ==========================================================
 if __name__ == "__main__":
+    from sage.common.utils.logging.custom_logger import CustomLogger
+    CustomLogger.disable_global_console_debug()
+    
     import os
     config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_refiner.yaml")
     config = load_config(config_path)
