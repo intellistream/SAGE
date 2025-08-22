@@ -132,7 +132,7 @@ class TeamBasedIssuesManager:
         
         if not analysis_files:
             print("⚠️ 未找到AI团队分配分析结果")
-            print("💡 建议先运行: python3 4_ai_unified_manager.py team-assignment")
+            print("💡 建议先运行: python3 ../ai_analyzer.py --mode=comprehensive")
             return {}
             
         print(f"✅ 找到 {len(analysis_files)} 个AI分析文件:")
@@ -245,7 +245,7 @@ class TeamBasedIssuesManager:
         
         if not suggestions:
             print("⚠️ 没有AI团队分配建议")
-            print("💡 建议运行: python3 4_ai_unified_manager.py team-assignment")
+            print("💡 建议运行: python3 ../ai_analyzer.py --mode=comprehensive")
             
         # 生成报告
         report_content = f"""# SAGE项目团队Issues分配分析报告
@@ -308,7 +308,7 @@ class TeamBasedIssuesManager:
 当前没有AI团队分配建议。建议运行以下命令生成AI分析：
 
 ```bash
-python3 4_ai_unified_manager.py team-assignment
+python3 ../ai_analyzer.py --mode=comprehensive
 ```
 
 AI将基于以下维度进行分析：
@@ -357,7 +357,7 @@ AI将基于以下维度进行分析：
 4. **专长评估**: 分析团队成员的技术专长领域
 5. **协作需求**: 识别需要跨团队协作的复杂issues
 
-使用命令 `python3 4_ai_unified_manager.py team-assignment` 生成AI分析结果。
+使用命令 `python3 ../ai_analyzer.py --mode=comprehensive` 生成AI分析结果。
 
 ---
 *本报告由SAGE团队Issues管理系统生成，基于AI分析结果*
@@ -384,7 +384,7 @@ AI将基于以下维度进行分析：
 - AI分配建议: {len(suggestions)} 个
 
 💡 提示: 
-  如需更多AI分配建议，请运行: python3 4_ai_unified_manager.py team-assignment
+  如需更多AI分配建议，请运行: python3 ../ai_analyzer.py --mode=comprehensive
 """)
         
         return {
@@ -622,7 +622,7 @@ if __name__ == "__main__":
                 for issue_num, suggestion in list(ai_suggestions.items())[:5]:
                     print(f"  Issue #{issue_num}: {suggestion['suggested_team']}")
             else:
-                print("\\n⚠️ 没有AI分配建议，请先运行: python3 4_ai_unified_manager.py team-assignment")
+                print("\\n⚠️ 没有AI分配建议，请先运行: python3 ../ai_analyzer.py --mode=comprehensive")
         elif command == "labels":
             # 创建团队标签
             manager.create_team_labels()

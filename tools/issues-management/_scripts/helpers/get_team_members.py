@@ -98,7 +98,7 @@ class TeamMembersCollector:
         teams_data = self.collect_all_members()
         
         # 创建输出目录
-        output_dir = Path("metadata")
+        output_dir = Path("../../output")
         output_dir.mkdir(exist_ok=True)
         
         # 1. 生成JSON格式的完整metadata
