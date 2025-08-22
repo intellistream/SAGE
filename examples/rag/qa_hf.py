@@ -21,7 +21,7 @@ def pipeline_run(config: dict) -> None:
         config (dict): 包含各个组件配置的字典。
     # """
 
-    env = LocalEnvironment()
+    env = LocalEnvironment(config={"engine_port":19002})
     #env.set_memory(config=None)
 
     # 构建数据处理流程
@@ -43,7 +43,8 @@ if __name__ == '__main__':
     import os
     from sage.common.utils.logging.custom_logger import CustomLogger
     # 临时启用控制台输出来调试
-    # CustomLogger.disable_global_console_debug()
+    # CustomLogger.disable_global_consol
+    # e_debug()
     config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_hf.yaml")
     config = load_config(config_path)
     pipeline_run(config)

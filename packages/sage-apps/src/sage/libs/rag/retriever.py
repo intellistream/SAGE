@@ -162,34 +162,45 @@ class ChromaRetriever(MapFunction):
         except Exception as e:
             self.logger.error(f"Failed to persist data records: {e}")
 
-    def execute(self, data: str) -> Tuple[str, List[str]]:
+    def execute(self, data: str) -> Dict[str, Any]:
         """
         执行检索
         Args:
-            data: 查询字符串或元组
+            data: 查询字符串、元组或字典
         Returns:
-            (查询, 检索结果列表)
+            dict: {"query": ..., "results": ..., "input": 原始输入, ...}
         """
-        input_query = data[0] if isinstance(data, tuple) and len(data) > 0 else data
-        
+        # 支持字典类型输入，优先取 question 字段
+        is_dict_input = isinstance(data, dict)
+        if is_dict_input:
+            input_query = data.get("question", "")
+        elif isinstance(data, tuple) and len(data) > 0:
+            input_query = data[0]
+        else:
+            input_query = data
+
         if not isinstance(input_query, str):
             self.logger.error(f"Invalid input query type: {type(input_query)}")
-            return (str(input_query), [])
-        
+            if is_dict_input:
+                data["results"] = []
+                return data
+            else:
+                return {"query": str(input_query), "results": [], "input": data}
+
         self.logger.info(f"[ {self.__class__.__name__}]: Starting {self.backend_type.upper()} retrieval for query: {input_query}")
         self.logger.info(f"[ {self.__class__.__name__}]: Using top_k = {self.top_k}")
-        
+
         try:
             # 生成查询向量
             query_embedding = self.embedding_model.embed(input_query)
             query_vector = np.array(query_embedding, dtype=np.float32)
-            
+
             # 使用 ChromaDB 执行检索
             retrieved_docs = self.chroma_backend.search(query_vector, input_query, self.top_k)
-            
+
             self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from ChromaDB\033[0m")
             self.logger.debug(f"Retrieved documents: {retrieved_docs[:3]}...")  # 只显示前3个文档的预览
-            
+
             print(f"Query: {input_query}")
             print(f"Configured top_k: {self.top_k}")
             print(f"Retrieved {len(retrieved_docs)} documents from ChromaDB")
@@ -198,12 +209,20 @@ class ChromaRetriever(MapFunction):
             # 保存数据记录（只有enable_profile=True时才保存）
             if self.enable_profile:
                 self._save_data_record(input_query, retrieved_docs)
-                
-            return (input_query, retrieved_docs)
-            
+
+            if is_dict_input:
+                data["results"] = retrieved_docs
+                return data
+            else:
+                return {"query": input_query, "results": retrieved_docs, "input": data}
+
         except Exception as e:
             self.logger.error(f"ChromaDB retrieval failed: {str(e)}")
-            return (input_query, [])
+            if is_dict_input:
+                data["results"] = []
+                return data
+            else:
+                return {"query": input_query, "results": [], "input": data}
     
     def save_index(self, save_path: str) -> bool:
         """
