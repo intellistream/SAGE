@@ -31,11 +31,54 @@ class GitHubIssuesExecutor:
         self.duplicate_groups = []
         self.label_recommendations = {}
         
-        # 加载AI分析结果
-        self.load_ai_analysis_results()
+        # 初始化标准化标签（不依赖AI分析结果）
+        self.init_standard_labels()
+        
+    def init_standard_labels(self):
+        """初始化标准化标签（不依赖AI分析结果）"""
+        # 标准化的标签映射
+        self.standard_labels = {
+            # 类型标签
+            "bug": {"color": "d73a4a", "description": "Bug report"},
+            "feature": {"color": "0075ca", "description": "New feature"},
+            "enhancement": {"color": "a2eeef", "description": "Enhancement to existing feature"},
+            "documentation": {"color": "0075ca", "description": "Documentation"},
+            "refactor": {"color": "d4c5f9", "description": "Code refactoring"},
+            "task": {"color": "e4e669", "description": "General task"},
+            "algorithm": {"color": "7057ff", "description": "Algorithm related"},
+            "dataset": {"color": "006b75", "description": "Dataset related"},
+            "literature-review": {"color": "fbca04", "description": "Literature review"},
+            
+            # 优先级标签
+            "priority:high": {"color": "d93f0b", "description": "High priority"},
+            "priority:medium": {"color": "fbca04", "description": "Medium priority"},
+            "priority:low": {"color": "0e8a16", "description": "Low priority"},
+            
+            # 组件标签
+            "component:core": {"color": "5319e7", "description": "Core component"},
+            "component:cli": {"color": "1d76db", "description": "CLI component"},
+            "component:frontend": {"color": "0052cc", "description": "Frontend component"},
+            "component:docs": {"color": "0075ca", "description": "Documentation component"},
+            "component:testing": {"color": "c2e0c6", "description": "Testing component"},
+            
+            # 功能标签
+            "rag": {"color": "ff6b6b", "description": "RAG related"},
+            "memory": {"color": "ffa500", "description": "Memory related"},
+            "retrieval": {"color": "9932cc", "description": "Retrieval related"},
+            "graph": {"color": "2e8b57", "description": "Graph related"},
+            "embedding": {"color": "4682b4", "description": "Embedding related"},
+            "distributed": {"color": "8b4513", "description": "Distributed system"},
+            "engine": {"color": "ff4500", "description": "Engine related"},
+            "operator": {"color": "dda0dd", "description": "Operator related"},
+            "pipeline": {"color": "20b2aa", "description": "Pipeline related"},
+            "job": {"color": "cd853f", "description": "Job related"},
+            "api": {"color": "32cd32", "description": "API related"},
+            "config": {"color": "ffd700", "description": "Configuration related"},
+            "testing": {"color": "98fb98", "description": "Testing related"}
+        }
         
     def load_ai_analysis_results(self):
-        """加载AI分析结果"""
+        """加载AI分析结果（可选）"""
         print("🔍 寻找AI分析结果...")
         
         # 查找最新的AI分析文件
@@ -60,9 +103,8 @@ class GitHubIssuesExecutor:
             analysis_files.append(("综合管理", latest_management))
         
         if not analysis_files:
-            print("❌ 未找到AI分析结果文件")
-            print("💡 请先运行选项2 (AI智能Issues管理) 生成分析结果")
-            sys.exit(1)
+            print("⚠️ 未找到AI分析结果文件，仅支持标签创建功能")
+            return
             
         print(f"✅ 找到 {len(analysis_files)} 个AI分析文件:")
         for analysis_type, file_path in analysis_files:
@@ -160,47 +202,6 @@ class GitHubIssuesExecutor:
         self.parse_duplicate_analysis(content)
         self.parse_label_analysis(content)
         
-        # 标准化的标签映射
-        self.standard_labels = {
-            # 类型标签
-            "bug": {"color": "d73a4a", "description": "Bug report"},
-            "feature": {"color": "0075ca", "description": "New feature"},
-            "enhancement": {"color": "a2eeef", "description": "Enhancement to existing feature"},
-            "documentation": {"color": "0075ca", "description": "Documentation"},
-            "refactor": {"color": "d4c5f9", "description": "Code refactoring"},
-            "task": {"color": "e4e669", "description": "General task"},
-            "algorithm": {"color": "7057ff", "description": "Algorithm related"},
-            "dataset": {"color": "006b75", "description": "Dataset related"},
-            "literature-review": {"color": "fbca04", "description": "Literature review"},
-            
-            # 优先级标签
-            "priority:high": {"color": "d93f0b", "description": "High priority"},
-            "priority:medium": {"color": "fbca04", "description": "Medium priority"},
-            "priority:low": {"color": "0e8a16", "description": "Low priority"},
-            
-            # 组件标签
-            "component:core": {"color": "5319e7", "description": "Core component"},
-            "component:cli": {"color": "1d76db", "description": "CLI component"},
-            "component:frontend": {"color": "0052cc", "description": "Frontend component"},
-            "component:docs": {"color": "0075ca", "description": "Documentation component"},
-            "component:testing": {"color": "c2e0c6", "description": "Testing component"},
-            
-            # 功能标签
-            "rag": {"color": "ff6b6b", "description": "RAG related"},
-            "memory": {"color": "ffa500", "description": "Memory related"},
-            "retrieval": {"color": "9932cc", "description": "Retrieval related"},
-            "graph": {"color": "2e8b57", "description": "Graph related"},
-            "embedding": {"color": "4682b4", "description": "Embedding related"},
-            "distributed": {"color": "8b4513", "description": "Distributed system"},
-            "engine": {"color": "ff4500", "description": "Engine related"},
-            "operator": {"color": "dda0dd", "description": "Operator related"},
-            "pipeline": {"color": "20b2aa", "description": "Pipeline related"},
-            "job": {"color": "cd853f", "description": "Job related"},
-            "api": {"color": "32cd32", "description": "API related"},
-            "config": {"color": "ffd700", "description": "Configuration related"},
-            "testing": {"color": "98fb98", "description": "Testing related"}
-        }
-        
     def create_standard_labels(self):
         """创建标准化标签"""
         print("🏷️ 创建标准化标签...")
@@ -210,7 +211,7 @@ class GitHubIssuesExecutor:
             time.sleep(0.1)  # 避免API限制
             
     def create_or_update_label(self, name, info):
-        """创建或更新标签"""
+        """创建或更新标签（智能合并现有标签）"""
         url = f"https://api.github.com/repos/{self.repo}/labels/{name}"
         
         # 检查标签是否存在
@@ -223,6 +224,15 @@ class GitHubIssuesExecutor:
         }
         
         if response.status_code == 200:
+            # 标签已存在，检查是否需要更新
+            existing_label = response.json()
+            
+            # 如果颜色和描述都相同，跳过更新
+            if (existing_label.get("color") == info["color"] and 
+                existing_label.get("description") == info["description"]):
+                print(f"  ⏭️ 标签已是最新: {name}")
+                return
+            
             # 更新标签
             response = requests.patch(url, headers=self.headers, json=data)
             if response.status_code == 200:
@@ -230,7 +240,7 @@ class GitHubIssuesExecutor:
             else:
                 print(f"  ❌ 更新失败: {name} - {response.text}")
         else:
-            # 创建标签
+            # 创建新标签
             create_url = f"https://api.github.com/repos/{self.repo}/labels"
             response = requests.post(create_url, headers=self.headers, json=data)
             if response.status_code == 201:
@@ -301,104 +311,118 @@ class GitHubIssuesExecutor:
             print(f"    ❌ 主issue更新失败: {response.text}")
             return False
             
-    def update_issue_labels(self, issue_number, labels):
-        """更新issue标签"""
-        url = f"https://api.github.com/repos/{self.repo}/issues/{issue_number}"
+    def update_issue_labels(self, issue_number, new_labels, replace=False):
+        """智能更新issue标签（默认追加，不替换现有标签）"""
+        # 首先获取当前issue的信息
+        issue = self.get_issue_details(issue_number)
+        if not issue:
+            return False
+            
+        # 检查issue是否已关闭
+        if issue.get("state") == "closed":
+            print(f"  ⏭️ 跳过已关闭的issue: #{issue_number}")
+            return False
+            
+        # 获取现有标签
+        existing_labels = [label["name"] for label in issue.get("labels", [])]
         
-        data = {
-            "labels": labels
-        }
+        if replace:
+            # 替换模式：完全替换现有标签
+            final_labels = new_labels
+        else:
+            # 追加模式：保留现有标签，添加新标签
+            final_labels = list(set(existing_labels + new_labels))
+        
+        # 如果标签没有变化，跳过更新
+        if set(final_labels) == set(existing_labels):
+            print(f"  ⏭️ 标签无需更新: #{issue_number}")
+            return True
+        
+        url = f"https://api.github.com/repos/{self.repo}/issues/{issue_number}"
+        data = {"labels": final_labels}
         
         response = requests.patch(url, headers=self.headers, json=data)
         if response.status_code == 200:
-            print(f"  ✅ 更新标签: #{issue_number} -> {', '.join(labels)}")
+            added_labels = set(final_labels) - set(existing_labels)
+            if added_labels:
+                print(f"  ✅ 添加标签: #{issue_number} -> {', '.join(added_labels)}")
             return True
         else:
             print(f"  ❌ 标签更新失败: #{issue_number} - {response.text}")
             return False
             
     def process_duplicates(self):
-        """处理重复issues"""
+        """处理重复issues（跳过已关闭的issues）"""
         print("🔄 处理重复issues...")
+        
+        if not self.duplicate_groups:
+            print("⚠️ 没有发现重复的issues")
+            return
         
         for group in self.duplicate_groups:
             main_issue = group["main"]
             duplicates = group["duplicates"]
             reason = group["reason"]
             
+            # 检查主issue是否已关闭
+            main_issue_details = self.get_issue_details(main_issue)
+            if main_issue_details and main_issue_details.get("state") == "closed":
+                print(f"⏭️ 跳过已关闭的主issue #{main_issue}")
+                continue
+            
             print(f"\\n📋 处理重复组: 主issue #{main_issue}")
             print(f"   重复issues: {', '.join([f'#{num}' for num in duplicates])}")
             print(f"   合并原因: {reason}")
             
+            # 检查重复issues是否已关闭
+            active_duplicates = []
+            for duplicate in duplicates:
+                duplicate_details = self.get_issue_details(duplicate)
+                if duplicate_details and duplicate_details.get("state") == "open":
+                    active_duplicates.append(duplicate)
+                else:
+                    print(f"   ⏭️ 跳过已关闭的重复issue #{duplicate}")
+            
+            if not active_duplicates:
+                print("   ⚠️ 所有重复issues都已关闭，跳过处理")
+                continue
+            
             # 更新主issue
-            if self.update_main_issue(main_issue, duplicates, reason):
+            if self.update_main_issue(main_issue, active_duplicates, reason):
                 # 关闭重复issues
-                for duplicate in duplicates:
+                for duplicate in active_duplicates:
                     self.close_duplicate_issue(duplicate, main_issue, reason)
                     time.sleep(1)  # 避免API限制
                     
         print("\\n✅ 重复issues处理完成!")
         
     def generate_labels_update_plan(self):
-        """生成标签更新计划"""
-        # 基于分析报告的标签建议
-        label_updates = {
-            # Documentation issues
-            120: ["documentation", "component:docs", "memory", "priority:medium"],
-            182: ["documentation", "component:docs", "rag", "retrieval", "priority:medium"],
-            208: ["documentation", "component:docs", "priority:medium"],
-            221: ["documentation", "component:docs", "priority:medium"],
-            
-            # Bug issues  
-            230: ["bug", "config", "cli", "priority:high"],
-            254: ["bug", "testing", "priority:medium"],
-            
-            # Feature issues
-            195: ["dataset", "rag", "pipeline", "priority:medium"],
-            188: ["feature", "component:core", "priority:medium"],
-            189: ["feature", "component:core", "priority:medium"],
-            
-            # Algorithm issues
-            202: ["algorithm", "memory", "rag", "priority:medium"],
-            
-            # Task issues - batch execution
-            347: ["task", "distributed", "job", "priority:high"],
-            348: ["task", "distributed", "job", "priority:high"],
-            
-            # Task issues - logging
-            357: ["task", "component:core", "config", "priority:medium"],
-            
-            # Task issues - parsing
-            356: ["task", "component:core", "priority:medium"],
-            
-            # Task issues - system design
-            291: ["task", "distributed", "engine", "priority:high"],
-            288: ["task", "refactor", "priority:medium"],
-            
-            # Enhancement issues
-            312: ["enhancement", "job", "priority:medium"],
-            311: ["enhancement", "job", "priority:medium"],
-            314: ["enhancement", "refactor", "priority:medium"],
-            315: ["enhancement", "memory", "priority:medium"],
-            
-            # Serialization tasks
-            361: ["task", "component:core", "priority:medium"],
-        }
+        """基于AI分析结果生成标签更新计划"""
+        # 如果有AI分析的标签建议，使用AI分析结果
+        if self.label_recommendations:
+            print(f"📋 使用AI分析的标签建议: {len(self.label_recommendations)} 个issues")
+            return self.label_recommendations
         
-        return label_updates
+        # 如果没有AI分析结果，返回空计划
+        print("⚠️ 没有AI分析的标签建议，跳过标签更新")
+        return {}
         
     def update_all_labels(self):
-        """批量更新所有标签"""
-        print("🏷️ 批量更新issues标签...")
+        """基于AI分析批量更新issues标签"""
+        print("🏷️ 基于AI分析批量更新issues标签...")
         
         label_updates = self.generate_labels_update_plan()
         
+        if not label_updates:
+            print("⚠️ 没有可用的标签更新计划")
+            return
+        
         for issue_number, labels in label_updates.items():
-            print(f"\\n📋 更新issue #{issue_number}")
-            if self.update_issue_labels(issue_number, labels):
+            print(f"\n📋 更新issue #{issue_number}")
+            if self.update_issue_labels(issue_number, labels, replace=False):
                 time.sleep(0.5)  # 避免API限制
                 
-        print("\\n✅ 标签更新完成!")
+        print("\n✅ 标签更新完成!")
         
     def generate_summary_report(self):
         """生成处理总结报告"""
@@ -490,29 +514,51 @@ class GitHubIssuesExecutor:
         return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
     def run_full_management(self):
-        """运行完整的issues管理流程"""
-        print("🚀 开始GitHub Issues整理管理...")
+        """运行完整的issues管理流程（基于AI分析）"""
+        print("🚀 开始基于AI分析的GitHub Issues管理...")
+        
+        # 加载AI分析结果
+        self.load_ai_analysis_results()
         
         try:
-            # 1. 创建标准化标签
+            actions_performed = []
+            
+            # 1. 创建标准化标签（总是执行）
+            print("\n🏷️ 创建/更新标准化标签...")
             self.create_standard_labels()
+            actions_performed.append("标准化标签")
             
-            # 2. 处理重复issues
-            self.process_duplicates()
+            # 2. 处理重复issues（仅在有AI分析结果时）
+            if self.duplicate_groups:
+                print("\n🔄 处理重复issues...")
+                self.process_duplicates()
+                actions_performed.append("重复issues处理")
+            else:
+                print("\n⚠️ 未发现重复issues，跳过合并操作")
             
-            # 3. 批量更新标签
-            self.update_all_labels()
+            # 3. 批量更新标签（仅在有AI分析结果时）
+            if self.label_recommendations:
+                print("\n🏷️ 批量更新issues标签...")
+                self.update_all_labels()
+                actions_performed.append("标签更新")
+            else:
+                print("\n⚠️ 没有AI标签建议，跳过标签更新")
             
             # 4. 生成处理报告
+            print("\n📋 生成处理报告...")
             report_path = self.generate_summary_report()
+            actions_performed.append("报告生成")
             
             print(f"""
-🎉 Issues整理管理完成！
+🎉 Issues管理完成！
 
-📈 处理结果:
+📈 执行的操作:
+{chr(10).join([f"- {action}" for action in actions_performed])}
+
+📊 处理统计:
 - 标准化标签: {len(self.standard_labels)} 个
 - 重复组处理: {len(self.duplicate_groups)} 组
-- 标签更新: {len(self.generate_labels_update_plan())} 个issues
+- 标签更新: {len(self.label_recommendations)} 个issues
 - 处理报告: {report_path}
 
 🔗 在GitHub上查看更新结果:
@@ -521,7 +567,7 @@ https://github.com/{self.repo}/issues
 ✨ 建议后续操作:
 1. 检查GitHub issues页面确认更新结果
 2. 使用新的标签体系来管理future issues
-3. 定期运行此脚本来维护issues质量
+3. 运行AI分析生成更多管理建议
 """)
             
         except Exception as e:
@@ -531,7 +577,7 @@ https://github.com/{self.repo}/issues
 
 
 if __name__ == "__main__":
-    manager = GitHubIssuesManager()
+    manager = GitHubIssuesExecutor()
     
     # 检查参数
     if len(sys.argv) > 1:

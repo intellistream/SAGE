@@ -78,7 +78,7 @@ class SAGEIssuesAI:
     def show_menu(self):
         """显示主菜单"""
         print("\n🎯 选择AI功能:")
-        print("  1. 🔍 Issues智能分析 (重复检测/标签优化/优先级评估)")
+        print("  1. 🔍 Issues智能分析 (重复检测/标签优化/优先级评估/团队分配)")
         print("  2. 💡 AI解决方案生成 (自动分析issues并生成实现方案)")
         print("  3. 🚀 Issues批量增强 (AI内容优化/格式化/分类)")
         print("  4. 📊 项目健康诊断 (全面分析项目状态和改进建议)")
@@ -100,9 +100,10 @@ class SAGEIssuesAI:
         print("1. 🔄 重复检测分析")
         print("2. 🏷️ 标签优化分析")
         print("3. 📈 优先级评估分析")
-        print("4. 🧠 综合智能分析")
+        print("4. 👥 团队分配分析")
+        print("5. 🧠 综合智能分析")
         
-        analysis_choice = input("请选择 (1-4): ").strip()
+        analysis_choice = input("请选择 (1-5): ").strip()
         
         if analysis_choice == "1":
             self.analyze_duplicates(issues)
@@ -111,6 +112,8 @@ class SAGEIssuesAI:
         elif analysis_choice == "3":
             self.analyze_priorities(issues)
         elif analysis_choice == "4":
+            self.analyze_team_assignments(issues)
+        elif analysis_choice == "5":
             self.comprehensive_analysis(issues)
         else:
             print("❌ 无效选择")
@@ -168,7 +171,21 @@ class SAGEIssuesAI:
         print("3. 📝 内容补充和完善")
         print("4. 🔧 全面内容增强")
         
-        enhancement_choice = input("请选择 (1-4): ").strip()
+        enhancement_choice = input("请选择 (1-4): ")
+
+
+        # 处理增强类型选择
+        if enhancement_choice == "1":
+            self.format_and_structure_issues(issues)
+        elif enhancement_choice == "2":
+            self.auto_label_suggestions(issues)
+        elif enhancement_choice == "3":
+            self.content_enrichment(issues)
+        elif enhancement_choice == "4":
+            self.comprehensive_enhancement(issues)
+        else:
+            print("❌ 无效选择")
+            return
         
         print(f"\n🔄 开始批量增强 {len(issues)} 个issues...")
         
@@ -535,13 +552,132 @@ class SAGEIssuesAI:
             score += 0.5
         
         return min(10, max(1, score))
+    
+    def analyze_team_assignments(self, issues):
+        """AI团队分配分析"""
+        print(f"👥 开始分析 {len(issues)} 个issues的团队分配...")
+        
+        # 加载团队配置
+        team_config_path = Path("metadata/team_config.py")
+        if not team_config_path.exists():
+            print("❌ 未找到团队配置文件，请先运行: python3 get_team_members.py")
+            return
+            
+        # 读取团队信息
+        try:
+            import sys
+            sys.path.append(str(Path("metadata")))
+            from team_config import TEAMS, get_all_usernames
+            
+            team_info = {
+                "sage-apps": {
+                    "name": "SAGE Apps Team",
+                    "description": "负责应用层开发、前端界面、用户体验、演示程序",
+                    "expertise": ["frontend", "ui", "visualization", "web", "app", "interface", "demo", "user"]
+                },
+                "sage-middleware": {
+                    "name": "SAGE Middleware Team", 
+                    "description": "负责中间件、服务架构、API设计、系统集成",
+                    "expertise": ["service", "api", "middleware", "backend", "server", "architecture", "integration"]
+                },
+                "sage-kernel": {
+                    "name": "SAGE Kernel Team",
+                    "description": "负责核心引擎、算法优化、分布式计算、性能调优",
+                    "expertise": ["engine", "core", "kernel", "algorithm", "distributed", "performance", "optimization"]
+                }
+            }
+            
+        except ImportError:
+            print("❌ 无法加载团队配置，请检查metadata目录")
+            return
+        
+        # 准备issues内容用于AI分析
+        issues_content = []
+        for issue_file in issues:
+            content = self.read_issue_file(issue_file)
+            if content:
+                # 提取issue编号
+                issue_num = re.search(r'#(\d+)', issue_file.name)
+                issue_number = issue_num.group(1) if issue_num else "unknown"
+                
+                issues_content.append({
+                    "number": issue_number,
+                    "file": issue_file.name,
+                    "title": content.get("title", ""),
+                    "body": content.get("body", ""),
+                    "labels": content.get("labels", []),
+                    "assignees": content.get("assignees", [])
+                })
+        
+        if not issues_content:
+            print("❌ 没有有效的issues内容")
+            return
+            
+        print(f"📊 准备AI分析 {len(issues_content)} 个issues...")
+        
+        # 构建AI分析prompt
+        team_analysis_prompt = f"""
+作为SAGE项目的智能团队分配助手，请基于以下信息为issues分配最合适的团队：
 
+## 团队信息：
+{json.dumps(team_info, indent=2, ensure_ascii=False)}
 
-if __name__ == "__main__":
-    try:
-        ai_manager = SAGEIssuesAI()
-        ai_manager.run()
-    except KeyboardInterrupt:
-        print("\n\n👋 程序已退出")
-    except Exception as e:
-        print(f"\n❌ 程序运行出错: {e}")
+## 分析Issues：
+{json.dumps(issues_content[:20], indent=2, ensure_ascii=False)}  # 限制数量避免token过多
+
+## 分析要求：
+1. 深度理解每个issue的技术内容和需求
+2. 基于团队专长进行智能匹配
+3. 考虑工作负载平衡
+4. 识别需要跨团队协作的复杂issues
+5. 为每个建议提供详细理由
+
+## 输出格式：
+为每个issue提供分配建议，格式如下：
+
+Issue #123: 建议团队: sage-apps
+理由: 该issue涉及前端界面优化，符合Apps团队的专长领域
+置信度: 高
+
+Issue #124: 建议团队: sage-middleware  
+理由: 涉及API设计和服务架构，适合Middleware团队处理
+置信度: 中
+
+请开始分析：
+"""
+
+        # 调用AI进行分析
+        ai_response = self.call_ai_api(team_analysis_prompt, task_type="team_assignment")
+        
+        if not ai_response:
+            print("❌ AI分析失败")
+            return
+            
+        # 保存分析结果
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        report_file = self.output_dir / f"team_assignment_analysis_{timestamp}.md"
+        
+        with open(report_file, 'w', encoding='utf-8') as f:
+            f.write(f"# AI团队分配分析报告\n\n")
+            f.write(f"**分析时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"**分析范围**: {len(issues_content)} 个issues\n")
+            f.write(f"**AI模型**: 智能团队分配助手\n\n")
+            
+            f.write(f"## 🏢 团队配置\n\n")
+            for team_slug, info in team_info.items():
+                f.write(f"### {info['name']} ({team_slug})\n")
+                f.write(f"- **职责**: {info['description']}\n")
+                f.write(f"- **专长**: {', '.join(info['expertise'])}\n")
+                f.write(f"- **成员**: {len(TEAMS[team_slug]['members'])} 人\n\n")
+            
+            f.write(f"## 🤖 AI分配建议\n\n")
+            f.write(ai_response)
+            
+            f.write(f"\n\n## 📝 使用说明\n\n")
+            f.write(f"1. 此分析结果由AI基于技术内容和团队专长生成\n")
+            f.write(f"2. 建议结合实际情况和团队负载进行调整\n")
+            f.write(f"3. 复杂issues可能需要跨团队协作\n")
+            f.write(f"4. 可使用 `python3 team_issues_manager.py` 查看详细分配报告\n")
+        
+        print(f"✅ AI团队分配分析完成，报告已保存: {report_file}")
+        print(f"💡 可运行 `python3 team_issues_manager.py` 查看基于此分析的详细报告")

@@ -25,22 +25,24 @@ show_menu() {
     echo -e "  2. 📥 下载GitHub Issues"
     echo -e "  3. 📊 查看统计信息"
     echo -e "  4. 🤖 AI智能Issues管理 (包含GitHub操作)"
-    echo -e "  5. 📖 查看帮助文档"
-    echo -e "  6. 🚪 退出"
+    echo -e "  5. 🔄 同步本地Issues到GitHub"
+    echo -e "  6. 📋 Issues项目管理"
+    echo -e "  7. 📖 查看帮助文档"
+    echo -e "  8. 🚪 退出"
     echo ""
 }
 
 download_issues() {
     echo "📥 启动GitHub Issues下载..."
     cd "$SCRIPT_DIR/.."
-    python3 scripts/_scripts/1_download_issues.py
+    python3 scripts/_scripts/2_download_issues.py
     read -p "按Enter键继续..."
 }
 
 create_new_issue() {
     echo "✨ 启动新Issue创建工具..."
     cd "$SCRIPT_DIR/.."
-    python3 scripts/_scripts/create_github_issue.py
+    python3 scripts/_scripts/1_create_github_issue.py
     read -p "按Enter键继续..."
 }
 
@@ -49,14 +51,53 @@ ai_management() {
     echo "整合重复分析、标签优化、优先级评估、错误修正等AI功能"
     echo "✨ AI分析完成后可直接执行GitHub操作"
     cd "$SCRIPT_DIR/.."
-    python3 scripts/_scripts/2_ai_unified_manager.py
+    python3 scripts/_scripts/4_ai_unified_manager.py
+    read -p "按Enter键继续..."
+}
+
+sync_issues_to_github() {
+    echo "🔄 启动Issues同步到GitHub..."
+    echo "将本地修改的issues数据同步回GitHub"
+    echo "支持更新标题、标签、状态、分配者等信息"
+    cd "$SCRIPT_DIR/.."
+    python3 scripts/_scripts/5_sync_issues_to_github.py
+    read -p "按Enter键继续..."
+}
+
+project_management() {
+    echo "📋 启动Issues项目管理..."
+    echo "管理GitHub项目看板中的issues"
+    echo ""
+    echo "选择操作:"
+    echo "1. 将特定用户的issues移动到项目"
+    echo "2. 批量管理项目中的issues"
+    echo "3. 查看项目统计信息"
+    echo ""
+    read -p "请选择 (1-3): " proj_choice
+    
+    case $proj_choice in
+        1)
+            echo "🔄 启动用户Issues项目移动工具..."
+            cd "$SCRIPT_DIR/.."
+            python3 scripts/_scripts/6_move_issues_to_project.py
+            ;;
+        2)
+            echo "⚠️ 批量管理功能开发中..."
+            ;;
+        3)
+            echo "⚠️ 项目统计功能开发中..."
+            ;;
+        *)
+            echo "❌ 无效选择"
+            ;;
+    esac
     read -p "按Enter键继续..."
 }
 
 show_statistics() {
     echo "📊 显示Issues统计信息..."
     cd "$SCRIPT_DIR/.."
-    python3 scripts/_scripts/4_show_statistics.py
+    python3 scripts/_scripts/3_show_statistics.py
     read -p "按Enter键继续..."
 }
 
@@ -84,7 +125,6 @@ show_help() {
     echo "   - 活跃度趋势分析"
     echo ""
     echo -e "${BLUE}4. 🤖 AI智能Issues管理 (包含GitHub操作)${NC}"
-    echo -e "${BLUE}4. 🤖 AI智能Issues管理 (包含GitHub操作)${NC}"
     echo "   - 🔍 AI重复检测分析 (深度语义理解)"
     echo "   - 🏷️ AI标签优化分析 (智能分类推荐)"
     echo "   - 📊 AI优先级评估 (多因素评估)"
@@ -97,7 +137,20 @@ show_help() {
     echo "     • 关闭/重新开放issues"
     echo "     • 其他优化操作"
     echo ""
-    echo -e "${BLUE}5. � 查看帮助文档${NC}"
+    echo -e "${BLUE}5. 🔄 同步本地Issues到GitHub${NC}"
+    echo "   - 比较本地和GitHub上的issues差异"
+    echo "   - 支持同步标题、标签、状态、分配者等信息"
+    echo "   - 支持同步issue内容和描述"
+    echo "   - 自动检测并显示待同步的更改"
+    echo "   - 确认后批量更新到GitHub"
+    echo ""
+    echo -e "${BLUE}6. 📋 Issues项目管理${NC}"
+    echo "   - 将特定用户的issues移动到指定项目"
+    echo "   - 批量管理GitHub项目看板中的issues"
+    echo "   - 查看项目统计和分析信息"
+    echo "   - 支持按用户、标签等条件筛选"
+    echo ""
+    echo -e "${BLUE}7. 📖 查看帮助文档${NC}"
     echo "   - 详细的工具使用说明"
     echo "   - AI特性介绍"
     echo "   - 环境变量配置指南"
@@ -134,7 +187,7 @@ show_help() {
 # 主循环
 while true; do
     show_menu
-    read -p "请选择功能 (1-6): " choice
+    read -p "请选择功能 (1-8): " choice
     echo ""
     
     # 清理输入，去除空格和特殊字符
@@ -145,8 +198,10 @@ while true; do
         2) download_issues ;;
         3) show_statistics ;;
         4) ai_management ;;
-        5) show_help ;;
-        6) 
+        5) sync_issues_to_github ;;
+        6) project_management ;;
+        7) show_help ;;
+        8) 
             echo -e "${GREEN}👋 感谢使用SAGE Issues管理工具集！${NC}"
             exit 0
             ;;
@@ -154,7 +209,7 @@ while true; do
             echo -e "${YELLOW}⚠️ 请输入一个选项${NC}"
             ;;
         *)
-            echo -e "${RED}❌ 无效选择 '${choice}'，请输入1-6${NC}"
+            echo -e "${RED}❌ 无效选择 '${choice}'，请输入1-8${NC}"
             ;;
     esac
     

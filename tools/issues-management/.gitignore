@@ -5,9 +5,12 @@
 issues/
 by_label/
 metadata/
+scripts/_scripts/downloaded_issues/
+scripts/_scripts/metadata/
 
 # 分析报告和输出文件 (统一放在output目录)
 output/
+scripts/_scripts/output/
 *.md
 !README.md
 !scripts/README.md
@@ -18,6 +21,16 @@ output/
 
 # Python缓存文件
 __pycache__/
+
+# 测试文件和敏感信息
+test_*.py
+*_test.py
+*.token
+*.key
+
+# 临时文件
+*.tmp
+*.log
 *.pyc
 *.pyo
 *.pyd
