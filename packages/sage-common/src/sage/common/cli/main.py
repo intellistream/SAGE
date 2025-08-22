@@ -30,6 +30,7 @@ from sage.common.cli.commands.version import app as version_app
 from sage.common.cli.commands.config import app as config_app
 from sage.common.cli.commands.doctor import app as doctor_app
 from sage.common.cli.commands.webui import app as webui_app
+from sage.common.cli.commands.studio import app as studio_app
 
 # 创建主应用
 app = typer.Typer(
@@ -43,6 +44,7 @@ app.add_typer(version_app, name="version", help="📋 版本信息")
 app.add_typer(config_app, name="config", help="⚙️ 配置管理")
 app.add_typer(doctor_app, name="doctor", help="🔍 系统诊断")
 app.add_typer(webui_app, name="web-ui", help="🌐 Web UI - Web管理界面和API文档")
+app.add_typer(studio_app, name="studio", help="🎨 Studio - 低代码可视化管道编辑器")
 app.add_typer(job_app, name="job", help="📋 作业管理 - 提交、监控、管理作业")
 app.add_typer(deploy_app, name="deploy", help="🎯 系统部署 - 启动、停止、监控系统")
 app.add_typer(jobmanager_app, name="jobmanager", help="🛠️ JobManager管理 - 启动、停止、重启JobManager")
