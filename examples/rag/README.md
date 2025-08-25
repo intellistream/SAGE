@@ -1,89 +1,151 @@
-# RAG示例 (Retrieval-Augmented Generation Examples)
 
-这个目录包含各种检索增强生成(RAG)的应用示例，展示不同的检索策略、生成方法和优化技术。
+# SAGE RAG 示例项目说明
 
-## 📁 文件分类
+本目录包含一系列与 RAG（Retrieval-Augmented Generation，检索增强生成）相关的 Python 示例脚本，涵盖了密集检索、稀疏检索、混合检索、知识预加载、重排序、Refiner、无检索等典型场景，便于开发者快速理解和测试 SAGE 框架下的 RAG 能力。
 
-### 🔍 检索器示例
-#### 稠密检索
-- `qa_dense_retrieval.py` - 基础稠密向量检索
-- `qa_dense_retrieval_mixed.py` - 混合检索策略
-- `qa_dense_retrieval_ray.py` - 使用Ray的分布式检索
+## 目录结构
 
-#### 稀疏检索  
-- `qa_bm25_retrieval.py` - BM25稀疏检索
-- `qa_bm25_retrieval_edit.py` - BM25检索的改进版本
+- `rag.py` / `rag_simple.py`：最基础的 RAG 流程示例，适合快速入门。
+- `preload_knowledge.py`：知识库预加载脚本，演示如何将知识数据导入 ChromaDB。
+- `qa_dense_retrieval.py`：密集向量检索示例，使用 embedding+ChromaDB 实现。
+- `qa_dense_retrieval_chroma.py`：专门演示 ChromaDB 密集检索。
+- `qa_dense_retrieval_mixed.py`：混合检索示例，结合密集和稀疏检索。
+- `qa_dense_retrieval_ray.py`：分布式密集检索示例，基于 Ray。
+- `qa_bm25_retrieval.py`：BM25 稀疏检索示例。
+- `qa_hf_model.py`：调用 HuggingFace 模型进行问答。
+- `qa_multiplex.py`：多路检索与融合示例。
+- `qa_refiner.py`：Refiner（答案精炼）流程示例。
+- `qa_rerank.py`：检索结果重排序示例。
+- `qa_without_retrieval.py`：无检索直接问答示例。
+- `README.md`：本说明文件。
+- `config/`：各脚本的配置文件目录。
+- `chroma_qa_database/`：ChromaDB 数据库文件及相关数据。
 
-### 🤖 生成器示例
-- `qa_openai.py` - OpenAI生成器使用
-- `qa_openai_chat_history.py` - 带对话历史的OpenAI生成
-- `qa_hf.py` - HuggingFace生成器使用
+## 快速开始
 
-### 🔄 完整RAG流水线
-- `rag_simple.py` - 简化版RAG应用（推荐入门）
-- `rag.py` - 完整的RAG系统
-- `qa_source.py` - 问题源处理
-- `qa_multiplex.py` - 多路复用RAG
+1. 安装依赖（建议使用 Python 3.11+，并提前安装好 chromadb、sentence-transformers 等依赖）：
+	 ```bash
+	 pip install -r requirements.txt
+	 ```
 
-### 🎯 高级优化
-- `qa_refiner.py` - 答案精炼和优化
-- `qa_rerank.py` - 检索结果重新排序
+2. 运行基础 RAG 示例：
+	 ```bash
+	 python rag_simple.py
+	 # 或
+	 python rag.py
+	 ```
 
-## 🚀 快速开始
+3. 运行其他脚本：
+	 ```bash
+	 python qa_dense_retrieval.py
+	 python qa_bm25_retrieval.py
+	 # ...
+	 ```
 
-### 1. 从简单RAG开始
-```bash
-python rag_simple.py
+## 典型脚本说明
+
+- **rag_simple.py / rag.py**：
+	- 演示最基础的检索增强生成流程，包括问题输入、知识检索、答案生成。
+
+- **preload_knowledge.py**：
+	- 用于将本地知识文本或 jsonl 文件批量导入 ChromaDB，便于后续检索。
+
+- **qa_dense_retrieval.py / qa_dense_retrieval_chroma.py**：
+	- 演示如何使用 embedding 模型和 ChromaDB 进行密集向量检索。
+
+- **qa_bm25_retrieval.py**：
+	- 演示 BM25 稀疏检索流程，适合文本检索场景。
+
+- **qa_dense_retrieval_mixed.py**：
+	- 演示密集与稀疏检索的混合使用。
+
+- **qa_dense_retrieval_ray.py**：
+	- 演示分布式密集检索，适合大规模知识库。
+
+- **qa_hf_model.py**：
+	- 演示如何调用 HuggingFace 的问答模型。
+
+- **qa_multiplex.py**：
+	- 演示多路检索与融合。
+
+- **qa_refiner.py**：
+	- 演示答案精炼流程。
+
+- **qa_rerank.py**：
+	- 演示检索结果重排序。
+
+- **qa_without_retrieval.py**：
+	- 演示无检索直接问答。
+
+## 数据与配置
+
+- `chroma_qa_database/` 目录下为 ChromaDB 的数据库文件和相关二进制数据。
+- `config/` 目录下为各脚本的配置文件（如模型、数据库路径、参数等）。
+
+
+## 如何创建和查询向量数据库（ChromaDB）
+
+向量数据库用于存储文本的 embedding 向量，并支持高效的相似度检索。SAGE 示例主要采用 ChromaDB，本地运行，无需额外服务。
+
+### 1. 数据加载与分块
+
+可参考 `preload_knowledge.py` 或 `qa_dense_retrieval.py`：
+
+```python
+from sage.libs.utils.chroma import ChromaBackend
+from sage.middleware.utils.embedding.embedding_model import EmbeddingModel
+
+# 加载文本数据
+with open('data/qa_knowledge_base.txt', 'r', encoding='utf-8') as f:
+	documents = [line.strip() for line in f if line.strip()]
+
+# 初始化 embedding 模型
+embedding_model = EmbeddingModel(method="default", model="sentence-transformers/all-MiniLM-L6-v2")
+
+# 生成 embedding 向量
+embeddings = [embedding_model.embed(doc) for doc in documents]
+
+# 初始化 ChromaDB 后端
+chroma_backend = ChromaBackend(chroma_config, logger=None)
+
+# 添加文档到向量库
+doc_ids = [f"doc_{i}" for i in range(len(documents))]
+chroma_backend.add_documents(documents, embeddings, doc_ids)
 ```
 
-### 2. 尝试不同检索方法
-```bash
-# 稠密检索
-python qa_dense_retrieval.py
+### 2. 相似度检索
 
-# BM25检索  
-python qa_bm25_retrieval.py
+可参考 `qa_dense_retrieval.py` 或 `qa_dense_retrieval_chroma.py`：
+
+```python
+query = "总统如何评价某某人物？"
+query_embedding = embedding_model.embed(query)
+query_vector = np.array(query_embedding, dtype=np.float32)
+
+# 检索最相似的文档
+top_k = 5
+retrieved_docs = chroma_backend.search(query_vector, query, top_k)
+for doc in retrieved_docs:
+	print(doc)
 ```
 
-### 3. 探索高级功能
-```bash
-# 答案精炼
-python qa_refiner.py
+### 3. 进阶用法
 
-# 结果重排
-python qa_rerank.py
-```
+- 支持通过 embedding 向量直接检索（如 search_by_vector）。
+- 支持异步检索（可用多线程/分布式 Ray 示例）。
+- 支持多路检索、重排序、答案精炼等高级流程。
 
-## ⚙️ 相关配置文件
+### 4. 相关脚本
 
-这些示例使用以下配置文件（在 `../../config/` 目录）：
-- `config.yaml` - 基础RAG配置
-- `config_bm25s.yaml` - BM25检索配置
-- `config_mixed.yaml` - 混合检索配置
-- `config_ray.yaml` - Ray分布式配置
-- `config_refiner.yaml` - 答案精炼配置
-- `config_rerank.yaml` - 重排序配置
+- `preload_knowledge.py`：批量导入知识到 ChromaDB。
+- `qa_dense_retrieval.py`：密集检索主流程。
+- `qa_dense_retrieval_chroma.py`：专用 ChromaDB 检索。
+- `qa_dense_retrieval_ray.py`：分布式检索。
 
-## 📋 运行要求
+### 5. 参考
 
-### 环境变量
-```bash
-export OPENAI_API_KEY="your-openai-key"
-```
+- SAGE 官方文档：https://intellistream.github.io/SAGE-Pub/
+- ChromaDB：https://www.trychroma.com/
+- HuggingFace：https://huggingface.co/
 
-### 配置文件
-确保在运行前检查并更新相应的配置文件中的参数。
-
-## 🎯 学习路径
-
-1. **入门** → `rag_simple.py`
-2. **检索探索** → `qa_dense_retrieval.py`, `qa_bm25_retrieval.py`  
-3. **生成优化** → `qa_openai.py`, `qa_hf.py`
-4. **系统优化** → `qa_refiner.py`, `qa_rerank.py`
-5. **分布式处理** → `qa_dense_retrieval_ray.py`
-
-## 🔗 相关资源
-
-- [RAG模块文档](../../packages/sage-userspace/src/sage/lib/rag/README.md)
-- [检索器API参考](../../packages/sage-userspace/src/sage/lib/rag/retriever.py)
-- [生成器API参考](../../packages/sage-userspace/src/sage/lib/rag/generator.py)
+如需进一步定制或有疑问，请查阅各脚本源码或联系项目维护者。
