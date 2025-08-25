@@ -59,7 +59,7 @@ dependencies = [
     "rouge>=1.0.0",
     "rouge-score>=0.1.0",
     "bleu>=0.3.0",
-    "vllm>=0.9.2",
+    # "vllm>=0.9.2",
     # Jupyter支持（原full组中的依赖，现改为必需）
     "jupyter>=1.0.0",
     "notebook>=6.0.0",
