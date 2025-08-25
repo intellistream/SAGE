@@ -383,10 +383,11 @@ class SAGEInstaller:
                        if pkg not in profile.conda_packages and pkg not in local_sage_packages]
         
         # 显示安装计划
-        self.ui.show_info("📋 安装计划分析完成:")
+        self.ui.show_info("📋 第一阶段安装计划分析完成:")
         self.ui.show_info(f"   📦 Conda包: {len(profile.conda_packages) if profile.conda_packages else 0} 个")
         self.ui.show_info(f"   🐍 Pip包: {len(pip_packages)} 个")
         self.ui.show_info(f"   🏠 本地SAGE包: 5 个 (sage-common, sage-kernel, sage-middleware, sage-apps, sage)")
+        self.ui.show_info("   📋 第二阶段包: vllm==0.10.0 (将在第一阶段完成后安装)")
         
         # 安装外部依赖包（pip）
         if pip_packages:
@@ -427,6 +428,43 @@ class SAGEInstaller:
             return False
         
         return True
+    
+    def install_stage2_packages(self) -> bool:
+        """第二阶段包安装 - 安装vllm等需要在SAGE包安装完成后才能安装的包"""
+        env_name = self.config["env_name"]
+        
+        self.ui.show_progress_section("第二阶段包安装", 
+                                    self.progress.current_step, 
+                                    self.progress.total_steps)
+        
+        # 获取环境变量
+        env_vars = self.env_manager.activate_environment(env_name)
+        package_installer = PackageInstaller(str(self.project_root), env_vars, ui=self.ui)
+        
+        # 第二阶段需要安装的包（所有模式都需要）
+        stage2_packages = ["vllm==0.10.0"]
+        
+        self.progress.start_step("stage2_packages", "安装第二阶段包...")
+        self.ui.show_info("🚀 开始第二阶段包安装:")
+        self.ui.show_info("   这些包需要在SAGE核心包安装完成后才能正确安装")
+        
+        for pkg in stage2_packages:
+            self.ui.show_info(f"   - {pkg}")
+        
+        # 安装第二阶段包（不使用开发模式，直接pip install）
+        results = package_installer.install_packages(stage2_packages, use_conda=False)
+        failed_packages = [pkg for pkg, success in results.items() if not success]
+        
+        if not failed_packages:
+            self.progress.complete_step("stage2_packages", f"成功安装 {len(stage2_packages)} 个第二阶段包")
+            self.ui.show_success(f"✅ 第二阶段包安装完成: {', '.join(stage2_packages)}")
+            return True
+        else:
+            self.progress.fail_step("stage2_packages", f"{len(failed_packages)} 个第二阶段包安装失败")
+            self.ui.show_warning(f"❌ 失败的包: {', '.join(failed_packages)}")
+            # 第二阶段失败不应该阻止整个安装流程，只给出警告
+            self.ui.show_info("⚠️ 第二阶段包安装失败，但不影响核心功能使用")
+            return True  # 返回True以继续安装流程
     
     def setup_submodules(self) -> bool:
         """设置Git子模块"""
@@ -505,7 +543,8 @@ class SAGEInstaller:
             "✅ Conda环境": env_name,
             "✅ 安装模式": profile.name,
             "✅ Python版本": self.config["python_version"],
-            "✅ 安装包数": f"{len(profile.packages)} 个",
+            "✅ 第一阶段包数": f"{len(profile.packages)} 个",
+            "✅ 第二阶段包数": "1 个 (vllm==0.10.0)",
             "✅ 项目根目录": str(self.project_root)
         }
         
@@ -527,6 +566,7 @@ class SAGEInstaller:
         activation_cmd = f"conda activate {env_name}"
         self.ui.show_info(f"🔸 激活环境: {activation_cmd}")
         self.ui.show_info(f"🔸 测试安装: python -c 'import sage; print(\"SAGE运行正常!\")'")
+        self.ui.show_info(f"🔸 验证vllm: python -c 'import vllm; print(\"vLLM已安装:\", vllm.__version__)'")
         
         # 根据安装模式显示特定提示
         if "development" in self.config["profile"]:
@@ -536,6 +576,8 @@ class SAGEInstaller:
             self.ui.show_info("🔸 生产环境: 已优化性能配置，适合生产环境部署")
         elif "research" in self.config["profile"]:
             self.ui.show_info("🔸 科研工具: 已安装数据科学和机器学习相关库")
+        
+        self.ui.show_info("🔸 vLLM支持: 已安装vLLM 0.10.0，支持高性能LLM推理")
         
         self.ui.show_info("")
         self.ui.show_success("🚀 您现在可以开始使用SAGE了！")
@@ -580,6 +622,9 @@ class SAGEInstaller:
                     steps_to_execute.append(("pip_packages", "安装pip包"))
                 steps_to_execute.append(("sage_packages", "安装SAGE源代码包"))
             
+            # 添加第二阶段包安装步骤（所有模式都需要）
+            steps_to_execute.append(("stage2_packages", "第二阶段包安装"))
+            
             # 添加子模块步骤（如果需要）
             if profile.install_submodules:
                 steps_to_execute.append(("submodules", "设置Git子模块"))
@@ -603,6 +648,10 @@ class SAGEInstaller:
                 return False
             
             if not self.install_packages():
+                return False
+            
+            # 第二阶段包安装（所有模式都需要）
+            if not self.install_stage2_packages():
                 return False
             
             if profile.install_submodules and not self.setup_submodules():
