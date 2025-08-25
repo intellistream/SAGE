@@ -23,45 +23,37 @@ class CharacterSplitter(MapFunction):
         self.config = config
         self.chunk_size = self.config.get("chunk_size", 512)
         self.overlap = self.config.get("overlap", 128)
+        self.separator = self.config.get("separator", None)
 
     def _split_text(self, text: str) -> List[str]:
         """
-        Splits text into chunks of length `chunk_size` with `overlap` between chunks.
-
-        :param text: The full text string to be split.
-        :return: A list of chunked text strings.
+        支持用户指定分割符分块，否则按字符分块。
         """
+        if self.separator:
+            return [chunk for chunk in text.split(self.separator) if chunk.strip()]
+        # ...existing code...
         tokens = list(text)  # character-level split
         chunks = []
         start = 0
-        
-        # Handle empty text
         if not tokens:
             return [""]
-        
         while start < len(tokens):
             end = start + self.chunk_size
             chunk = tokens[start:end]
             chunks.append("".join(chunk))
-            
-            # Calculate next start position with overlap
             next_start = start + self.chunk_size - self.overlap
-            
-            # Prevent infinite loop: ensure we always move forward by at least 1
             if next_start <= start:
                 next_start = start + 1
-                
             start = next_start
-            
         return chunks
 
-    def execute(self,data:str) -> List[str]:
+    def execute(self, document: dict) -> List[str]:
         """
-        Reads and splits the file into overlapping text chunks.
-
-        :return: A Data object containing a list of text chunks.
+        接收 document 对象，分割其 content 字段为 chunk。
+        :param document: {"content": ..., "metadata": ...}
+        :return: List[str] 分块后的文本列表
         """
-        content=data
+        content = document.get("content", "")
         try:
             chunks = self._split_text(content)
             return chunks
