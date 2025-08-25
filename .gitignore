@@ -160,3 +160,4 @@ examples/rag/chroma_*/
 **/*.db
 **/*.sqlite
 **/*.embeddings
+

@@ -216,13 +216,13 @@ class ChromaRetriever(MapFunction):
         else:
             return {"query": input_query, "results": retrieved_docs, "input": data}
 
-    # except Exception as e:
-        self.logger.error(f"ChromaDB retrieval failed: {str(e)}")
-        if is_dict_input:
-            data["results"] = []
-            return data
-        else:
-            return {"query": input_query, "results": [], "input": data}
+        except Exception as e:
+            self.logger.error(f"ChromaDB retrieval failed: {str(e)}")
+            if is_dict_input:
+                data["results"] = []
+                return data
+            else:
+                return {"query": input_query, "results": [], "input": data}
     
     def save_index(self, save_path: str) -> bool:
         """
