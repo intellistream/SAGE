@@ -161,3 +161,4 @@ examples/rag/chroma_*/
 **/*.sqlite
 **/*.embeddings
 
+/.vscode/
