@@ -29,6 +29,6 @@ class TextLoader:
         }
         return document
 
-loader = TextLoader('data/qa_knowledge_base.txt')
-doc = loader.load()
-print(doc["content"])
+# loader = TextLoader('data/qa_knowledge_base.txt')
+# doc = loader.load()
+# print(doc["content"])
