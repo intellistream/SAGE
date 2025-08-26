@@ -190,9 +190,12 @@ class TestCharacterSplitter:
         }
         splitter = CharacterSplitter(config=config)
         
-        # 测试输入文本
-        input_text = "This is a test document that needs to be split into chunks."
-        result = splitter.execute(input_text)
+        # 测试输入文档对象
+        input_document = {
+            "content": "This is a test document that needs to be split into chunks.",
+            "metadata": {}
+        }
+        result = splitter.execute(input_document)
         
         # 验证结果
         assert isinstance(result, list)
@@ -216,9 +219,12 @@ class TestCharacterSplitter:
         }
         splitter = CharacterSplitter(config=config)
         
-        # 中文文本
-        input_text = "这是一个测试文档需要分割成块"
-        result = splitter.execute(input_text)
+        # 中文文档对象
+        input_document = {
+            "content": "这是一个测试文档需要分割成块",
+            "metadata": {}
+        }
+        result = splitter.execute(input_document)
         
         # 验证结果
         assert isinstance(result, list)
@@ -239,9 +245,12 @@ class TestCharacterSplitter:
         }
         splitter = CharacterSplitter(config=config)
         
-        # 包含特殊字符的文本
-        input_text = "Hello!\n\tWorld@#$%^&*()"
-        result = splitter.execute(input_text)
+        # 包含特殊字符的文档对象
+        input_document = {
+            "content": "Hello!\n\tWorld@#$%^&*()",
+            "metadata": {}
+        }
+        result = splitter.execute(input_document)
         
         # 验证结果
         assert isinstance(result, list)
@@ -264,9 +273,12 @@ class TestCharacterSplitter:
         }
         splitter = CharacterSplitter(config=config)
         
-        # 生成长文本
-        long_text = "A" * 500  # 500个字符
-        result = splitter.execute(long_text)
+        # 生成长文档对象
+        input_document = {
+            "content": "A" * 500,  # 500个字符
+            "metadata": {}
+        }
+        result = splitter.execute(input_document)
         
         # 验证结果
         assert isinstance(result, list)
@@ -291,22 +303,25 @@ class TestCharacterSplitterConfiguration:
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
         
-        test_text = "The quick brown fox jumps over the lazy dog"
+        test_document = {
+            "content": "The quick brown fox jumps over the lazy dog",
+            "metadata": {}
+        }
         
         # 测试不同的chunk_size
         for chunk_size in [5, 10, 20, 50]:
             config = {"chunk_size": chunk_size, "overlap": 2}
             splitter = CharacterSplitter(config=config)
             
-            result = splitter.execute(test_text)
+            result = splitter.execute(test_document)
             
             # 验证结果
             assert isinstance(result, list)
-            if len(test_text) > chunk_size:
+            if len(test_document["content"]) > chunk_size:
                 assert len(result) > 1
             
             # 验证第一个chunk的大小应该等于chunk_size（如果文本足够长）
-            if len(test_text) >= chunk_size:
+            if len(test_document["content"]) >= chunk_size:
                 assert len(result[0]) == chunk_size
             
             # 验证所有chunks的长度都合理（不超过chunk_size）
@@ -319,7 +334,10 @@ class TestCharacterSplitterConfiguration:
         if not CHUNK_AVAILABLE:
             pytest.skip("Chunk module not available")
         
-        test_text = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        test_document = {
+            "content": "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            "metadata": {}
+        }
         chunk_size = 10
         
         # 测试不同的overlap
@@ -327,7 +345,7 @@ class TestCharacterSplitterConfiguration:
             config = {"chunk_size": chunk_size, "overlap": overlap}
             splitter = CharacterSplitter(config=config)
             
-            result = splitter.execute(test_text)
+            result = splitter.execute(test_document)
             
             # 验证结果
             assert isinstance(result, list)
@@ -355,7 +373,7 @@ class TestCharacterSplitterIntegration:
         splitter = CharacterSplitter(config=config)
         
         # 模拟来自文件读取的长文档
-        document = """
+        document_content = """
         This is a long document that contains multiple paragraphs and needs to be split into manageable chunks.
         
         Each chunk should have a reasonable size and some overlap to maintain context between chunks.
@@ -366,7 +384,12 @@ class TestCharacterSplitterIntegration:
         This test verifies that the character splitter can handle realistic document content properly.
         """
         
-        result = splitter.execute(document.strip())
+        document = {
+            "content": document_content.strip(),
+            "metadata": {}
+        }
+        
+        result = splitter.execute(document)
         
         # 验证集成结果
         assert isinstance(result, list)
@@ -374,14 +397,14 @@ class TestCharacterSplitterIntegration:
         
         # 验证chunks质量
         total_length = sum(len(chunk) for chunk in result)
-        original_length = len(document.strip())
+        original_length = len(document["content"])
         
         # 由于有重叠，总长度应该大于原始长度
         assert total_length > original_length
         
         # 验证第一个chunk包含文档开头，最后一个chunk包含文档结尾
-        assert result[0].startswith(document.strip()[:50])
-        assert result[-1].endswith(document.strip()[-30:])
+        assert result[0].startswith(document["content"][:50])
+        assert result[-1].endswith(document["content"][-30:])
         
         # 验证文档被完整覆盖（检查关键内容都被包含）
         combined_content = "".join(result)
