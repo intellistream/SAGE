@@ -59,13 +59,23 @@ class MemoryManager:
                 embedding_model = apply_embedding_model("default")
                 dim = embedding_model.get_dim()
 
-            new_collection = VDBMemoryCollection(name, embedding_model, dim)
+            # 使用新的config字典方式创建VDB集合
+            vdb_config = {
+                "name": name,
+                "default_embedding_model": embedding_model.method_name,
+                "default_dim": dim
+            }
+            new_collection = VDBMemoryCollection(vdb_config)
             metadata.update({
                 "embedding_model_method": embedding_model.method_name,
                 "embedding_dim": dim
             })
         elif backend_type == "KV":
-            new_collection = KVMemoryCollection(name)
+            # 使用新的config字典方式创建KV集合
+            kv_config = {
+                "name": name
+            }
+            new_collection = KVMemoryCollection(kv_config)
         elif backend_type == "GRAPH":
             new_collection = GraphMemoryCollection(name)
         else:
@@ -136,9 +146,11 @@ class MemoryManager:
             if embedding_model is None:
                 method_name = meta.get("embedding_model_method", "default")
                 embedding_model = apply_embedding_model(method_name)
-            collection = VDBMemoryCollection.load(name, embedding_model, vdb_path)
+            # 使用新的load方法，只传入name和路径
+            collection = VDBMemoryCollection.load(name, vdb_path)
         elif backend_type == "KV":
             kv_path = os.path.join(self.data_dir, "kv_collection", name)
+            # 使用新的load方法，只传入name和路径
             collection = KVMemoryCollection.load(name, kv_path)
         elif backend_type == "GRAPH":
             graph_path = os.path.join(self.data_dir, "graph_collection", name)
@@ -193,9 +205,11 @@ class MemoryManager:
             vdb_path = os.path.join(self.data_dir, "vdb_collection", name)
             method_name = meta.get("embedding_model_method", "default")
             embedding_model = apply_embedding_model(method_name)
-            collection = VDBMemoryCollection.load(name, embedding_model, vdb_path)
+            # 使用新的load方法，只传入name和路径
+            collection = VDBMemoryCollection.load(name, vdb_path)
         elif backend_type == "KV":
             kv_path = os.path.join(self.data_dir, "kv_collection", name)
+            # 使用新的load方法，只传入name和路径
             collection = KVMemoryCollection.load(name, kv_path)
         elif backend_type == "GRAPH":
             graph_path = os.path.join(self.data_dir, "graph_collection", name)

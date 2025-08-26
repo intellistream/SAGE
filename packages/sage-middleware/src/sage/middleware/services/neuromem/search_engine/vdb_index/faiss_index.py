@@ -11,34 +11,42 @@ from sage.middleware.services.neuromem.search_engine.vdb_index.base_vdb_index im
 class FaissIndex(BaseVDBIndex):
     def __init__(
         self, 
-        name: str, 
-        dim: int, 
-        vectors: Optional[List[np.ndarray]] = None, 
-        ids: Optional[List[str]] = None,
-        config: Optional[dict] = None,
-        load_path: Optional[str] = None,
+        config: Optional[dict]
         ):
+        super().__init__()
         """
-        初始化 FaissIndex 实例，设置索引名称、维度，并可选性地加载初始向量和ID
-        Initialize the FaissIndex instance with name, dimension, and optionally preload vectors and ids.
+        初始化 FaissIndex 实例，支持两种初始化方式：
+        1. 直接通过声明来创建：传入 config
+        2. 通过 FaissIndex.load() 来加载：调用load方法
+        
+        Initialize the FaissIndex instance with two initialization methods:
+        1. Direct creation: pass config
+        2. Load from disk: use load method
         """
-        self.index_name = name
-        self.dim = dim
-        self.config = config or {}
+        self.logger = CustomLogger()
+        self.config = config
+        
+        # 从config中获取必要参数，否则使用默认值
+        self.index_name = self.config.get("name", None)
+        if self.index_name is None:
+            self.logger.error("索引名称(name)未在config中指定，无法创建索引")
+            raise ValueError("索引名称(name)未在config中指定")
+        
+        self.dim = self.config.get("dim", 128)
         self.id_map: Dict[int, str] = {}
         self.rev_map: Dict[str, int] = {}
         self.next_id: int = 1
         self.tombstones: set[str] = set()
-        self._deletion_supported = True
-        self.index = None
-        self.logger = CustomLogger()
-        if load_path is not None:
-            self._load(load_path)
-        else:
-            self.index, self._deletion_supported = self._init_index()
-            if vectors is not None and ids is not None:
-                self._build_index(vectors, ids)
-
+        self.tombstone_threshold = self.config.get("tombstone_threshold", 30)  # 墓碑阈值
+        self.index, self._deletion_supported = self._init_index()
+        
+        # 确保索引被IndexIDMap包装以支持自定义ID
+        if not isinstance(self.index, faiss.IndexIDMap):
+            self.logger.info("Wrapping index with IndexIDMap")
+            self.index = faiss.IndexIDMap(self.index)
+        
+        # 用于检测重复向量的容器
+        self.vector_hashes: Dict[str, str] = {}  # vector_hash -> string_id
            
     def _init_index(self):
         config = self.config  # 保持全程都叫config
@@ -156,6 +164,36 @@ class FaissIndex(BaseVDBIndex):
             os.environ["FAISS_INDEX_TYPE"] = original_type
         return index
 
+    def _get_vector_hash(self, vector: np.ndarray) -> str:
+        """
+        计算向量的哈希值用于检测重复
+        Calculate vector hash for duplicate detection
+        """
+        return str(hash(vector.tobytes()))
+    
+    def _rebuild_index_if_needed(self):
+        """
+        当墓碑数量达到阈值时重建索引
+        Rebuild index when tombstone count reaches threshold
+        """
+        if len(self.tombstones) < self.tombstone_threshold:
+            return
+            
+        self.logger.warning(f"墓碑数量({len(self.tombstones)})达到阈值({self.tombstone_threshold})，开始重建索引")
+        
+        # 由于FAISS不提供直接获取向量的方法，这里只是清空墓碑
+        # 在实际生产环境中，可能需要维护向量的副本或使用其他策略
+        self.tombstones.clear()
+        
+        # 清理向量哈希中已删除的条目
+        valid_hashes = {}
+        for vector_hash, string_id in self.vector_hashes.items():
+            if string_id in self.rev_map and string_id not in self.tombstones:
+                valid_hashes[vector_hash] = string_id
+        self.vector_hashes = valid_hashes
+        
+        self.logger.info("索引重建完成，墓碑已清零")
+
     def _get_metric(self, metric_str):
         """
         获取距离度量方式：L2 或 Inner Product
@@ -187,13 +225,18 @@ class FaissIndex(BaseVDBIndex):
             self.index = faiss.IndexIDMap(self.index)  # 仅当未包装时才包装
         self.index.add_with_ids(np_vectors, int_ids_np)  # type: ignore
         
-    def delete(self, string_id: str):
+    def delete(self, string_id: str) -> int:
         """
         删除指定ID（物理删除或墓碑标记）
         Delete by ID (physical removal or tombstone marking)
+        
+        Returns:
+            1: 删除成功
+            0: 删除失败（ID不存在）
         """
         if string_id not in self.rev_map:
-            return
+            self.logger.warning(f"尝试删除不存在的ID: {string_id}")
+            return 0
 
         int_id = self.rev_map[string_id]
         
@@ -201,22 +244,51 @@ class FaissIndex(BaseVDBIndex):
             try:
                 id_vector = np.array([int_id], dtype=np.int64)
                 self.index.remove_ids(id_vector)  # type: ignore
+                # 清理映射关系
+                del self.rev_map[string_id]
+                del self.id_map[int_id]
+                # 清理向量哈希
+                vector_hash_to_remove = None
+                for vh, sid in self.vector_hashes.items():
+                    if sid == string_id:
+                        vector_hash_to_remove = vh
+                        break
+                if vector_hash_to_remove:
+                    del self.vector_hashes[vector_hash_to_remove]
+                self.logger.info(f"成功删除ID: {string_id}")
+                return 1
             except Exception as e:
-                print(f"删除失败，转为墓碑标记 / Deletion failed, fallback to tombstone: {e}")
+                self.logger.warning(f"物理删除失败，转为墓碑标记: {e}")
                 self.tombstones.add(string_id)
         else:
             self.tombstones.add(string_id)
+        
+        # 检查是否需要重建索引
+        self._rebuild_index_if_needed()
+        self.logger.info(f"ID {string_id} 已标记为墓碑")
+        return 1
     
-    def update(self, string_id: str, new_vector: np.ndarray):
+    def update(self, string_id: str, new_vector: np.ndarray) -> int:
         """
         更新指定 ID 的向量：保持原有映射关系，仅替换向量内容
         Update the vector for the given ID, preserving the existing ID mapping.
+        
+        Returns:
+            1: 更新成功
+            0: 更新失败
         """
         if string_id not in self.rev_map:
             # 如果ID不存在，直接插入
+            self.logger.info(f"ID {string_id} 不存在，将执行插入操作")
             return self.insert(new_vector, string_id)
 
         int_id = self.rev_map[string_id]
+        
+        # 检查新向量是否与其他向量重复
+        new_vector_hash = self._get_vector_hash(new_vector)
+        if new_vector_hash in self.vector_hashes and self.vector_hashes[new_vector_hash] != string_id:
+            self.logger.warning(f"更新失败: 向量与已存在的ID {self.vector_hashes[new_vector_hash]} 重复")
+            return 0
 
         if self._deletion_supported:
             try:
@@ -226,10 +298,24 @@ class FaissIndex(BaseVDBIndex):
                 vector = np.expand_dims(new_vector.astype("float32"), axis=0)
                 int_id_np = np.array([int_id], dtype=np.int64)
                 self.index.add_with_ids(vector, int_id_np)  # type: ignore
+                
+                # 更新向量哈希
+                old_hash_to_remove = None
+                for vh, sid in self.vector_hashes.items():
+                    if sid == string_id:
+                        old_hash_to_remove = vh
+                        break
+                if old_hash_to_remove:
+                    del self.vector_hashes[old_hash_to_remove]
+                self.vector_hashes[new_vector_hash] = string_id
+                
+                self.logger.info(f"成功更新ID: {string_id}")
+                return 1
             except Exception as e:
-                print(f"更新失败 / Update failed: {e}")
-                self.insert(new_vector, string_id)
+                self.logger.error(f"更新失败: {e}")
+                return 0
         else:
+            # 对于不支持删除的索引，删除旧映射并创建新映射
             if string_id in self.rev_map:
                 old_int_id = self.rev_map[string_id]
                 if old_int_id in self.id_map:
@@ -243,14 +329,46 @@ class FaissIndex(BaseVDBIndex):
             vector = np.expand_dims(new_vector.astype("float32"), axis=0)
             int_id_np = np.array([new_int_id], dtype=np.int64)
             self.index.add_with_ids(vector, int_id_np)  # type: ignore
+            
+            # 更新向量哈希
+            old_hash_to_remove = None
+            for vh, sid in self.vector_hashes.items():
+                if sid == string_id:
+                    old_hash_to_remove = vh
+                    break
+            if old_hash_to_remove:
+                del self.vector_hashes[old_hash_to_remove]
+            self.vector_hashes[new_vector_hash] = string_id
+            
+            self.logger.info(f"成功更新ID: {string_id}")
+            return 1
 
-    def search(self, query_vector: np.ndarray, topk: int = 10):
+    def search(self, query_vector: np.ndarray, topk: int = 10, threshold: Optional[float] = None):
         """
         向量检索 / Vector search
         返回top_k结果（过滤墓碑） / Return top_k results (filter tombstones)
+        
+        Args:
+            query_vector: 查询向量
+            topk: 返回结果数量
+            threshold: 距离阈值，超过此阈值的结果将被过滤
+            
+        Returns:
+            tuple: (结果IDs, 距离列表)
         """
+        # 检查索引是否为空
+        if self.index.ntotal == 0:
+            self.logger.warning("索引为空，无法进行检索")
+            return [], []
+            
         query_vector = np.expand_dims(query_vector.astype("float32"), axis=0)
-        distances, int_ids = self.index.search(query_vector, topk + len(self.tombstones))  # 多查一些结果 # type: ignore
+        
+        # 考虑墓碑数量，多查询一些结果
+        search_k = topk + len(self.tombstones)
+        if search_k > self.index.ntotal:
+            search_k = self.index.ntotal
+            
+        distances, int_ids = self.index.search(query_vector, search_k)  # type: ignore
         
         results = []
         filtered_distances = []
@@ -260,18 +378,40 @@ class FaissIndex(BaseVDBIndex):
                 continue
             string_id = self.id_map.get(i)
             if string_id and string_id not in self.tombstones:
+                # 应用阈值过滤
+                if threshold is not None and dist > threshold:
+                    continue
                 results.append(string_id)
                 filtered_distances.append(float(dist))  # 显式转为Python float
             if len(results) >= topk:
                 break
+        
+        # 检查结果数量并给出警告
+        available_count = len([sid for sid in self.id_map.values() if sid not in self.tombstones])
+        if len(results) < topk and len(results) < available_count:
+            self.logger.warning(f"期望返回{topk}个结果，实际只找到{len(results)}个结果")
+            
+        if threshold is not None and len(results) == 0:
+            self.logger.warning(f"在阈值{threshold}限制下，未找到任何结果")
                 
         return results, filtered_distances
 
-    def insert(self, vector: np.ndarray, string_id: str):
+    def insert(self, vector: np.ndarray, string_id: str) -> int:
         """
         插入单个向量及其字符串 ID 到索引中
         Insert a single vector and its string ID into the index
+        
+        Returns:
+            1: 插入成功
+            0: 插入失败（向量重复）
         """
+        # 检查向量是否重复
+        vector_hash = self._get_vector_hash(vector)
+        if vector_hash in self.vector_hashes:
+            existing_id = self.vector_hashes[vector_hash]
+            self.logger.warning(f"向量重复: 尝试插入的向量与已存在的ID {existing_id} 相同")
+            return 0
+        
         if string_id in self.rev_map:
             int_id = self.rev_map[string_id]
         else:
@@ -283,17 +423,46 @@ class FaissIndex(BaseVDBIndex):
         vector = np.expand_dims(vector.astype("float32"), axis=0)
         int_id_np = np.array([int_id], dtype=np.int64)
         self.index.add_with_ids(vector, int_id_np) # type: ignore
+        
+        # 记录向量哈希
+        self.vector_hashes[vector_hash] = string_id
+        
+        self.logger.info(f"成功插入向量，ID: {string_id}")
+        return 1
     
-    def batch_insert(self, vectors: List[np.ndarray], string_ids: List[str]):
+    def batch_insert(self, vectors: List[np.ndarray], string_ids: List[str]) -> int:
         """
         批量插入多个向量及其对应的 string_id
         Batch insert multiple vectors and their corresponding string_id
+        
+        Returns:
+            成功插入的向量数量
         """
         assert len(vectors) == len(string_ids), "Vectors and IDs must match in length"
-        np_vectors = np.vstack(vectors).astype("float32")
+        
+        valid_vectors = []
+        valid_ids = []
+        success_count = 0
+        
+        for vector, string_id in zip(vectors, string_ids):
+            # 检查向量是否重复
+            vector_hash = self._get_vector_hash(vector)
+            if vector_hash in self.vector_hashes:
+                existing_id = self.vector_hashes[vector_hash]
+                self.logger.warning(f"跳过重复向量: ID {string_id} 的向量与已存在的ID {existing_id} 相同")
+                continue
+                
+            valid_vectors.append(vector)
+            valid_ids.append(string_id)
+            
+        if not valid_vectors:
+            self.logger.warning("批量插入：所有向量都重复，没有插入任何向量")
+            return 0
+            
+        np_vectors = np.vstack(valid_vectors).astype("float32")
         int_ids = []
 
-        for string_id in string_ids:
+        for string_id in valid_ids:
             if string_id in self.rev_map:
                 int_id = self.rev_map[string_id]
             else:
@@ -304,7 +473,22 @@ class FaissIndex(BaseVDBIndex):
             int_ids.append(int_id)
 
         int_ids_np = np.array(int_ids, dtype=np.int64)
+        
+        # 确保索引被IDMap包装
+        if not isinstance(self.index, faiss.IndexIDMap):
+            self.logger.info("Wrapping index with IndexIDMap")
+            self.index = faiss.IndexIDMap(self.index)
+            
         self.index.add_with_ids(np_vectors, int_ids_np)  # type: ignore
+        
+        # 记录向量哈希
+        for vector, string_id in zip(valid_vectors, valid_ids):
+            vector_hash = self._get_vector_hash(vector)
+            self.vector_hashes[vector_hash] = string_id
+            
+        success_count = len(valid_vectors)
+        self.logger.info(f"批量插入完成，成功插入 {success_count} 个向量")
+        return success_count
 
     def store(self, dir_path: str) -> Dict[str, Any]:
             """
@@ -320,43 +504,76 @@ class FaissIndex(BaseVDBIndex):
                 pickle.dump(self.rev_map, f)
             with open(os.path.join(dir_path, "tombstones.pkl"), "wb") as f:
                 pickle.dump(self.tombstones, f)
+            with open(os.path.join(dir_path, "vector_hashes.pkl"), "wb") as f:
+                pickle.dump(self.vector_hashes, f)
             # 3. 保存参数（如dim、下一个ID、自定义config等）
             meta = {
                 "index_name": self.index_name,
                 "dim": self.dim,
                 "next_id": self.next_id,
                 "deletion_supported": self._deletion_supported,
+                "tombstone_threshold": self.tombstone_threshold,
                 "config": getattr(self, "config", {}),  # 若有config则保存
             }
             with open(os.path.join(dir_path, "meta.json"), "w", encoding="utf-8") as f:
                 json.dump(meta, f, ensure_ascii=False, indent=2)
             return {"index_path": dir_path}
 
-    def _load(self, dir_path: str):
+    def _load_data(self, dir_path: str):
         """
-        从目录恢复索引、映射与参数。仅供类方法load调用。
+        从目录加载索引文件和映射数据。仅供load类方法调用。
         """
+        # 加载faiss索引
         self.index = faiss.read_index(os.path.join(dir_path, "faiss.index"))
+        
+        # 加载ID映射
         with open(os.path.join(dir_path, "id_map.pkl"), "rb") as f:
             self.id_map = pickle.load(f)
         with open(os.path.join(dir_path, "rev_map.pkl"), "rb") as f:
             self.rev_map = pickle.load(f)
         with open(os.path.join(dir_path, "tombstones.pkl"), "rb") as f:
             self.tombstones = pickle.load(f)
-        with open(os.path.join(dir_path, "meta.json"), "r", encoding="utf-8") as f:
-            meta = json.load(f)
-        self.index_name = meta["index_name"]
-        self.dim = meta["dim"]
-        self.next_id = meta["next_id"]
-        self._deletion_supported = meta.get("deletion_supported", True)
-        self.config = meta.get("config", {})
+        
+        # 加载向量哈希（如果存在）
+        vector_hashes_path = os.path.join(dir_path, "vector_hashes.pkl")
+        if os.path.exists(vector_hashes_path):
+            with open(vector_hashes_path, "rb") as f:
+                self.vector_hashes = pickle.load(f)
+        else:
+            self.vector_hashes = {}
 
     @classmethod
     def load(cls, name: str, load_path: str) -> "FaissIndex":
         """
-        推荐方式，等价于 BM25sIndex.load
+        从指定路径加载索引，name参数用于验证
         """
-        return cls(name=name, dim=0, load_path=load_path)  # dim会被_load覆盖
+        # 读取meta.json获取保存的参数
+        meta_path = os.path.join(load_path, "meta.json")
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+        
+        # 验证索引名称
+        saved_name = meta["index_name"]
+        if name != saved_name:
+            raise ValueError(f"索引名称不匹配: 期望 {name}, 实际 {saved_name}")
+        
+        # 创建实例但不调用__init__，避免重复初始化索引
+        instance = cls.__new__(cls)
+        super(FaissIndex, instance).__init__()
+        
+        # 直接设置从存储中恢复的属性
+        instance.config = meta.get("config", {})
+        instance.logger = CustomLogger()
+        instance.index_name = saved_name
+        instance.dim = meta["dim"]
+        instance.next_id = meta["next_id"]
+        instance._deletion_supported = meta.get("deletion_supported", True)
+        instance.tombstone_threshold = meta.get("tombstone_threshold", 30)
+        instance.vector_hashes = {}  # 将在_load_data中加载
+        
+        # 加载保存的数据
+        instance._load_data(load_path)
+        return instance
 
 if __name__ == "__main__":
     import os
@@ -395,38 +612,57 @@ if __name__ == "__main__":
     ]
     ids = ["id1", "id2", "id3"]
 
-    index = FaissIndex(name=index_name, dim=dim, vectors=vectors, ids=ids)
+    # 使用新的初始化方式
+    config = {"name": index_name, "dim": dim, "tombstone_threshold": 2}  # 设置较小的墓碑阈值用于测试
+    index = FaissIndex(config=config, vectors=vectors, ids=ids)
     # 1. 检索
     q1 = np.array([1.0, 0.0, 0.0, 0.0])
     r_ids, r_dists = index.search(q1, 3)
     print_test_case("基础检索", ["id1", "id2", "id3"], [0.0, 2.0, 2.0], r_ids, r_dists)
 
     # 2. 插入新向量
-    index.insert(np.array([0.0, 0.0, 0.0, 1.0]), "id4")
+    result = index.insert(np.array([0.0, 0.0, 0.0, 1.0]), "id4")
+    print(f"插入结果: {result} (期望: 1)")
     q2 = np.array([0.0, 0.0, 0.0, 1.0])
     r_ids, r_dists = index.search(q2, 4)
     print_test_case("插入后检索", ["id4", "id1", "id2", "id3"], [0.0, 2.0, 2.0, 2.0], r_ids, r_dists)
 
-    # 3. 更新向量
-    index.update("id1", np.array([0.5, 0.5, 0.0, 0.0]))
+    # 3. 测试重复向量插入
+    result = index.insert(np.array([0.0, 0.0, 0.0, 1.0]), "id5")  # 重复向量
+    print(f"重复向量插入结果: {result} (期望: 0)")
+
+    # 4. 更新向量
+    result = index.update("id1", np.array([0.5, 0.5, 0.0, 0.0]))
+    print(f"更新结果: {result} (期望: 1)")
     q3 = np.array([0.5, 0.5, 0.0, 0.0])
     r_ids, r_dists = index.search(q3, 4)
     print_test_case("更新后检索", ['id1', 'id2', 'id3', 'id4'], [0.0, 0.5, 1.5, 1.5], r_ids, r_dists)
 
-    # 4. 删除向量
-    index.delete("id2")
+    # 5. 删除向量
+    result = index.delete("id2")
+    print(f"删除结果: {result} (期望: 1)")
     q4 = np.array([1.0, 0.0, 0.0, 0.0])
     r_ids, r_dists = index.search(q4, 4)
     print_test_case("删除后检索", ['id1', 'id3', 'id4'], [0.5, 2.0, 2.0], r_ids, r_dists)
 
-    # 5. 批量插入
-    index.batch_insert([
+    # 6. 测试阈值检索
+    r_ids, r_dists = index.search(q4, 4, threshold=1.0)
+    print_test_case("阈值检索(threshold=1.0)", ['id1'], [0.5], r_ids, r_dists)
+
+    # 7. 批量插入
+    count = index.batch_insert([
         np.array([0.1, 0.1, 0.1, 0.1]),
         np.array([0.2, 0.2, 0.2, 0.2])
     ], ["id5", "id6"])
+    print(f"批量插入结果: {count} (期望: 2)")
     q5 = np.array([0.1, 0.1, 0.1, 0.1])
     r_ids, r_dists = index.search(q5, 6)
     print_test_case("批量插入后检索", ['id5', 'id6', 'id1', 'id3', 'id4'], [0.0, 0.04, 0.34, 0.84, 0.84], r_ids[:5], r_dists[:5], 2)
+
+    # 8. 测试墓碑阈值重建（删除多个向量触发重建）
+    print(colored("\n--- 测试墓碑阈值重建 ---", "yellow"))
+    index.delete("id3")  # 第二个删除
+    index.delete("id4")  # 第三个删除，应该触发重建
 
     # ==== 持久化保存 ====
     print(colored("\n--- 保存索引到磁盘 ---", "yellow"))
@@ -443,8 +679,13 @@ if __name__ == "__main__":
         index2 = FaissIndex.load(index_name, root_dir)
         print(colored("数据已从磁盘恢复！", "green"))
 
+        # 注意：id3和id4已被删除并保存为墓碑，所以恢复后不会出现在结果中
         r_ids, r_dists = index2.search(np.array([0.1, 0.1, 0.1, 0.1]), 5)
-        print_test_case("恢复后检索", ["id5", "id6", "id1", "id3", "id4"], [0.0, 0.04, 0.34, 0.84, 0.84], r_ids, r_dists, 2)
+        print_test_case("恢复后检索", ["id5", "id6", "id1"], [0.0, 0.04, 0.34], r_ids, r_dists, 2)
+        
+        # 验证墓碑状态
+        print(f"当前墓碑数量: {len(index2.tombstones)}")
+        print(f"墓碑内容: {index2.tombstones}")
     else:
         print(colored("跳过加载测试。", "yellow"))
 

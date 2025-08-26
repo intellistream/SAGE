@@ -1,20 +1,21 @@
 # file sage/core/sage.middleware.services.neuromem./search_engine/kv_index/base_kv_index.py
 
 from abc import ABC, abstractmethod
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Optional
 
 class BaseKVIndex(ABC):
     def __init__(
         self,
-        name: str,
-        texts: List[str],
-        ids: List[str]
+        config: Optional[dict] = None,
+        texts: Optional[List[str]] = None,
+        ids: Optional[List[str]] = None
     ):
         """
         初始化索引基类。
         Initialize the base class for KV Index.
         """
-        self.name = name
+        self.config = config or {}
+        self.name = self.config.get("name", None)
 
     @abstractmethod
     def insert(self, text: str, id: str) -> None:
@@ -67,9 +68,9 @@ class BaseKVIndex(ABC):
 
     @staticmethod
     @abstractmethod
-    def clear(root_path: str, name: str) -> None:
+    def clear(dir_path: str) -> None:
         """
-        删除指定名称下的所有索引数据。
-        Remove all index data under the specified name.
+        删除指定目录下的所有索引数据。
+        Remove all index data under the specified directory.
         """
         pass
