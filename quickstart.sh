@@ -357,10 +357,15 @@ check_with_spinner() {
         return 1
     fi
 }
-
 # 系统信息检查
 check_system() {
-    local check_cmd='
+    local check_name="系统版本"
+    printf "%b🔧  正在检查 %s ...%b" "$BLUE" "$check_name" "$NC"
+
+    # 直接执行检查命令，不放入后台
+    local output
+    local exit_code=0
+    output=$(eval '
         # 获取系统信息
         if [[ "$OSTYPE" == "linux-gnu"* ]]; then
             if command -v lsb_release >/dev/null 2>&1; then
@@ -386,9 +391,27 @@ check_system() {
         ARCH=$(uname -m 2>/dev/null)
         
         echo "操作系统: $SYSTEM_NAME $SYSTEM_VERSION    CPU 架构: $ARCH"
-    '
-    
-    check_with_spinner "系统版本" "$check_cmd"
+    ' 2>&1) || exit_code=$? # 捕获命令输出和退出码
+
+    # 根据结果打印信息
+    printf "\r" # 回到行首，覆盖 "正在检查..."
+    if [ "$exit_code" -eq 0 ]; then
+        print_check_info "$check_name 检查完成"
+        if [ -n "$output" ]; then
+            while IFS= read -r line; do
+                [ -n "$line" ] && print_check_detail "$line"
+            done <<< "$output"
+        fi
+        return 0
+    else
+        print_check_error "$check_name 检查失败"
+        if [ -n "$output" ]; then
+            while IFS= read -r line; do
+                [ -n "$line" ] && print_check_detail "$line"
+            done <<< "$output"
+        fi
+        return 1
+    fi
 }
 
 # Python检查
