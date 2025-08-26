@@ -170,7 +170,6 @@ class ChromaRetriever(MapFunction):
         Returns:
             dict: {"query": ..., "results": ..., "input": 原始输入, ...}
         """
-        # 支持字典类型输入，优先取 question 字段
         is_dict_input = isinstance(data, dict)
         if is_dict_input:
             input_query = data.get("query", "")

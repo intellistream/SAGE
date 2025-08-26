@@ -50,8 +50,8 @@ def pipeline_run(config):
 
 # ==========================================================
 if __name__ == "__main__":
-    from sage.common.utils.logging.custom_logger import CustomLogger
-    CustomLogger.disable_global_console_debug()
+    # from sage.common.utils.logging.custom_logger import CustomLogger
+    # CustomLogger.disable_global_console_debug()
     
     import os
     config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_refiner.yaml")
