@@ -5,14 +5,9 @@ from typing import List, Tuple, Dict, Any
 import numpy as np
 
 class BaseVDBIndex(ABC):
-    def __init__(self, name: str, dim: int):
+    def __init__(self):
         """
-        基础索引类初始化
-        :param name: 索引名称
-        :param dim: 向量维度
         """
-        self.name = name
-        self.dim = dim
 
     @abstractmethod
     def insert(self, vector: np.ndarray, string_id: str) -> None:

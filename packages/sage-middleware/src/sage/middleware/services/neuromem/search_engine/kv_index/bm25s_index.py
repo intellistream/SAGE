@@ -13,56 +13,92 @@ from sage.middleware.services.neuromem.search_engine.kv_index.base_kv_index impo
 class BM25sIndex(BaseKVIndex):
     def __init__(
         self,
-        name: str,
-        texts: Optional[List[str]] = None,
-        ids: Optional[List[str]] = None,
-        load_path: Optional[str] = None,
+        config: Optional[dict] = None,
     ):
         """
         Initialize BM25sIndex.
-        支持两种初始化方式：传入文本和id新建索引，或从指定目录加载已有索引。
-        Supports two initialization modes: create a new index with texts and ids, or load an existing index from directory.
+        支持两种初始化方式：
+        1. 直接通过声明来创建：传入 config，然后使用 build_index() 方法来构建索引
+        2. 通过 BM25sIndex.load() 来加载：调用load方法
+        
+        Initialize the BM25sIndex instance with two initialization methods:
+        1. Direct creation: pass config, then use build_index() method to build the index
+        2. Load from disk: use load method
         """
-        self.name = name
+        self.config = config or {}
+        
+        # 从config中获取必要参数，否则使用默认值
+        self.name = self.config.get("name", None)
+        if self.name is None:
+            raise ValueError("索引名称(name)未在config中指定")
+        
+        # 初始化基本属性
         self.ids: List[str] = []
         self.texts: List[str] = []
         self.tokens: List[List[str]] = []
         self.tokenizer = None
         self.bm25 = None
-
-        if load_path is not None:
-            self._load(load_path)
-        elif texts is not None and ids is not None:
-            assert len(texts) == len(ids), "texts and ids must have the same length."
-            self.ids = list(ids)
-            self.texts = list(texts)
-            self.tokenizer = self._get_tokenizer(self.texts)
-            self.tokens = self.tokenizer.tokenize(self.texts) # type: ignore
-            self.bm25 = bm25s.BM25(corpus=self.texts, backend="numba")
-            self.bm25.index(self.tokens)
-        else:
-            raise ValueError("Must provide either texts+ids or load_path.")
+        
+        # BM25s 特定配置参数
+        self.backend = self.config.get("backend", "numba")
+        self.language = self.config.get("language", "auto")  # auto, zh, en
+        self.custom_stopwords = self.config.get("custom_stopwords", None)
 
     def _get_tokenizer(self, texts: List[str]):
         """
-        根据文本内容选择合适的分词器（中文或英文）。
-        Select appropriate tokenizer (Chinese or English) according to the content of texts.
+        根据文本内容和配置选择合适的分词器（中文或英文）。
+        Select appropriate tokenizer (Chinese or English) according to the content of texts and config.
         """
-        zh_flag = self._is_chinese(texts[0])
+        # 优先使用配置中指定的语言
+        if self.language == "zh":
+            zh_flag = True
+        elif self.language == "en":
+            zh_flag = False
+        else:  # auto
+            zh_flag = self._is_chinese(texts[0]) if texts else False
+        
         if zh_flag:
-            return bm25s.tokenization.Tokenizer(stopwords='zh')
+            return bm25s.tokenization.Tokenizer(
+                stopwords=self.custom_stopwords or 'zh'
+            )
         else:
             stemmer = Stemmer.Stemmer("english")
-            return bm25s.tokenization.Tokenizer(stopwords='en', stemmer=stemmer)
+            return bm25s.tokenization.Tokenizer(
+                stopwords=self.custom_stopwords or 'en', 
+                stemmer=stemmer
+            )
+
+    def _build_index(self, texts: List[str], ids: List[str]):
+        """
+        构建BM25索引
+        Build BM25 index
+        """
+        self.ids = list(ids)
+        self.texts = list(texts)
+        self.tokenizer = self._get_tokenizer(self.texts)
+        self.tokens = self.tokenizer.tokenize(self.texts) # type: ignore
+        self.bm25 = bm25s.BM25(corpus=self.texts, backend=self.backend)
+        self.bm25.index(self.tokens)
+
+    def build_index(self, texts: List[str], ids: List[str]):
+        """
+        构建BM25索引的公共方法。
+        Public method to build BM25 index.
+        """
+        if len(texts) != len(ids):
+            raise ValueError("texts and ids must have the same length.")
+        self._build_index(texts, ids)
 
     def _rebuild(self):
         """
         重新构建分词器、分词结果和BM25索引。
         Rebuild the tokenizer, tokens, and BM25 index.
         """
+        if not self.texts:
+            return
         self.tokenizer = self._get_tokenizer(self.texts)
         self.tokens = self.tokenizer.tokenize(self.texts) # type: ignore
-        self.bm25 = bm25s.BM25(corpus=self.texts, backend="numba")
+        self.bm25 = bm25s.BM25(corpus=self.texts, backend=self.backend)
         self.bm25.index(self.tokens)
 
     def _is_chinese(self, text: str):
@@ -123,11 +159,30 @@ class BM25sIndex(BaseKVIndex):
         Store the index info into the specified directory, including bm25 model, tokenizer, ids, and texts.
         """
         os.makedirs(dir_path, exist_ok=True)
-        self.bm25.vocab_dict = {str(k): v for k, v in self.bm25.vocab_dict.items()} # type: ignore
-
-        self.bm25.save(dir_path, corpus=None)# type: ignore
-        self.tokenizer.save_vocab(dir_path) # type: ignore
-        self.tokenizer.save_stopwords(dir_path) # type: ignore
+        
+        # 保存BM25模型
+        if self.bm25 is not None:
+            self.bm25.vocab_dict = {str(k): v for k, v in self.bm25.vocab_dict.items()} # type: ignore
+            self.bm25.save(dir_path, corpus=None)# type: ignore
+        
+        # 保存分词器
+        if self.tokenizer is not None:
+            self.tokenizer.save_vocab(dir_path) # type: ignore
+            self.tokenizer.save_stopwords(dir_path) # type: ignore
+        
+        # 保存配置信息
+        meta = {
+            "name": self.name,
+            "backend": self.backend,
+            "language": self.language,
+            "custom_stopwords": self.custom_stopwords,
+            "config": self.config
+        }
+        with open(os.path.join(dir_path, "meta.json"), "w", encoding="utf-8") as f:
+            import json
+            json.dump(meta, f, ensure_ascii=False, indent=2)
+        
+        # 保存ids和texts
         with open(os.path.join(dir_path, "ids.txt"), "w", encoding="utf-8") as f:
             for i in self.ids:
                 f.write(i + "\n")
@@ -136,21 +191,37 @@ class BM25sIndex(BaseKVIndex):
                 f.write(t.replace("\n", " ") + "\n")
         return {"index_path": dir_path}
 
-    def _load(self, dir_path: str):
+    def _load_data(self, dir_path: str):
         """
         从目录加载索引及相关内容，包括bm25模型、分词器、ids和texts。
         Load index and related data from directory, including bm25 model, tokenizer, ids, and texts.
         """
+        # 加载配置信息
+        meta_path = os.path.join(dir_path, "meta.json")
+        if os.path.exists(meta_path):
+            import json
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+            self.config = meta.get("config", {})
+            self.backend = meta.get("backend", "numba")
+            self.language = meta.get("language", "auto")
+            self.custom_stopwords = meta.get("custom_stopwords", None)
+        
+        # 加载BM25模型
         self.bm25 = bm25s.BM25.load(dir_path)
 
+        # 加载分词器
         self.tokenizer = bm25s.tokenization.Tokenizer()
         self.tokenizer.load_vocab(dir_path)
         self.tokenizer.load_stopwords(dir_path)
 
+        # 加载ids和texts
         with open(os.path.join(dir_path, "ids.txt"), "r", encoding="utf-8") as f:
             self.ids = [line.strip() for line in f.readlines()]
         with open(os.path.join(dir_path, "texts.txt"), "r", encoding="utf-8") as f:
             self.texts = [line.strip() for line in f.readlines()]
+            
+        # 重建tokens
         self.tokens = [self.tokenizer.tokenize([t], return_as="tuple")[0][0] for t in self.texts] # type: ignore
         self.bm25.index(self.tokens)
 
@@ -160,7 +231,11 @@ class BM25sIndex(BaseKVIndex):
         通过名称和根路径加载一个BM25sIndex实例。
         Load a BM25sIndex instance by name and root path.
         """
-        return cls(name=name, load_path=dir_path)
+        # 创建一个空的实例，然后加载数据
+        config = {"name": name}
+        instance = cls(config=config)
+        instance._load_data(dir_path)
+        return instance
 
     @staticmethod
     def clear(dir_path: str):
@@ -189,9 +264,16 @@ if __name__ == "__main__":
     index_dir = root_path
     index_name = "demo"
 
-    # 1. 初始化索引
+    # 1. 初始化索引 - 使用新的config方式
     print("\n== 初始化并首检 ==")
-    index = BM25sIndex(name=index_name, texts=texts, ids=ids)
+    config = {
+        "name": index_name,
+        "backend": "numba",
+        "language": "auto",  # 可以指定 "zh", "en" 或 "auto"
+        "custom_stopwords": None
+    }
+    index = BM25sIndex(config=config)
+    index.build_index(texts, ids)
     print("初始检索 'Python':", index.search("Python"))
     print("初始检索 'hello':", index.search("hello"))
     print("初始检索 'fox':", index.search("fox"))
