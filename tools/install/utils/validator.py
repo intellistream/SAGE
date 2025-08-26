@@ -425,10 +425,11 @@ class Validator:
             "project_structure": self.validate_project_structure()
         }
         
-        # 计算总体状态
+        # 计算总体状态并记录详细的失败信息
         overall_success = True
         total_checks = 0
         passed_checks = 0
+        failed_items = []  # 收集失败项目
         
         for category, results in validation_results.items():
             if isinstance(results, dict):
@@ -438,15 +439,69 @@ class Validator:
                         passed_checks += 1
                     else:
                         overall_success = False
+                        # 记录失败的类别和详细信息
+                        category_failures = []
+                        self._show_error(f"❌ {category} 验证失败:")
+                        
+                        # 收集该类别下的具体失败项
+                        for item_name, item_result in results.items():
+                            if isinstance(item_result, dict):
+                                if item_name == "overall_status":
+                                    continue
+                                    
+                                if isinstance(item_result, dict) and "status" in item_result:
+                                    if not item_result["status"]:
+                                        failure_msg = item_result.get("message", f"{item_name} 失败")
+                                        category_failures.append(failure_msg)
+                                        self._show_error(f"   {failure_msg}")
+                                        
+                                        # 如果是包冲突，显示详细的冲突信息
+                                        if item_name == "package_conflicts" and "conflicts" in item_result:
+                                            conflicts = item_result.get("conflicts", [])
+                                            if conflicts:
+                                                self._show_error(f"   📋 详细冲突信息:")
+                                                for conflict in conflicts:
+                                                    if conflict.strip():  # 跳过空行
+                                                        self._show_error(f"      {conflict.strip()}")
+                                                        category_failures.append(f"冲突详情: {conflict.strip()}")
+                                elif isinstance(item_result, dict):
+                                    # 嵌套字典，如import_tests等
+                                    for sub_key, sub_value in item_result.items():
+                                        if isinstance(sub_value, dict) and "status" in sub_value:
+                                            if not sub_value["status"]:
+                                                failure_msg = sub_value.get("message", f"{sub_key} 失败")
+                                                category_failures.append(failure_msg)
+                                                self._show_error(f"   {failure_msg}")
+                        
+                        if category_failures:
+                            failed_items.extend(category_failures)
                 else:
                     # 检查所有子项状态
-                    for item in results.values():
+                    category_failures = []
+                    for item_name, item in results.items():
                         if isinstance(item, dict) and "status" in item:
                             total_checks += 1
                             if item["status"]:
                                 passed_checks += 1
                             else:
                                 overall_success = False
+                                failure_msg = item.get("message", f"{item_name} 失败")
+                                category_failures.append(failure_msg)
+                                
+                                # 如果是包冲突，记录详细信息
+                                if item_name == "package_conflicts" and "conflicts" in item:
+                                    conflicts = item.get("conflicts", [])
+                                    if conflicts:
+                                        for conflict in conflicts:
+                                            if conflict.strip():  # 跳过空行
+                                                category_failures.append(f"冲突详情: {conflict.strip()}")
+                    
+                    # 如果有失败项，记录类别信息
+                    if category_failures:
+                        self._show_error(f"❌ {category} 验证失败:")
+                        for failure in category_failures:
+                            self._show_error(f"   {failure}")
+                        failed_items.extend(category_failures)
         
         validation_results["overall_success"] = overall_success
         
@@ -457,6 +512,19 @@ class Validator:
         self._show_info(f"   ✅ 通过: {passed_checks}")
         self._show_info(f"   ❌ 失败: {total_checks - passed_checks}")
         self._show_info(f"   📈 成功率: {passed_checks/total_checks*100:.1f}%" if total_checks > 0 else "   📈 成功率: 0%")
+        
+        # 记录失败项目的详细日志
+        if failed_items:
+            self._show_error("")
+            self._show_error("🔍 详细失败项目:")
+            for i, failure in enumerate(failed_items, 1):
+                self._show_error(f"   {i}. {failure}")
+            
+            # 将完整的验证报告也记录到日志
+            detailed_report = self.generate_validation_report(validation_results)
+            logger.error("完整验证报告:")
+            for line in detailed_report.split('\n'):
+                logger.error(line)
         
         if overall_success:
             self._show_success("🎉 所有验证通过！SAGE安装成功且功能正常")
@@ -477,6 +545,11 @@ class Validator:
         """
         report_lines = ["🔍 SAGE安装验证报告", "=" * 50, ""]
         
+        # 统计信息
+        total_checks = 0
+        passed_checks = 0
+        failed_checks = 0
+        
         for category, results in validation_results.items():
             if category == "overall_success":
                 continue
@@ -484,17 +557,90 @@ class Validator:
             report_lines.append(f"📋 {category.replace('_', ' ').title()}")
             report_lines.append("-" * 30)
             
-            if isinstance(results, dict):
-                for item_name, item_result in results.items():
-                    if isinstance(item_result, dict) and "message" in item_result:
-                        report_lines.append(f"  {item_result['message']}")
-                    elif isinstance(item_result, dict):
-                        report_lines.append(f"  {item_name}:")
-                        for sub_key, sub_value in item_result.items():
-                            if isinstance(sub_value, dict) and "message" in sub_value:
-                                report_lines.append(f"    {sub_value['message']}")
+            category_passed = 0
+            category_failed = 0
             
+            if isinstance(results, dict):
+                # 处理有overall_status的结果
+                if "overall_status" in results:
+                    overall_status = results["overall_status"]
+                    total_checks += 1
+                    if overall_status:
+                        passed_checks += 1
+                        category_passed += 1
+                        report_lines.append(f"  ✅ 整体状态: 通过")
+                    else:
+                        failed_checks += 1
+                        category_failed += 1
+                        report_lines.append(f"  ❌ 整体状态: 失败")
+                    
+                    # 显示详细的子项结果
+                    for item_name, item_result in results.items():
+                        if item_name == "overall_status":
+                            continue
+                            
+                        if isinstance(item_result, dict):
+                            # 处理嵌套的结果（如import_tests）
+                            if any("status" in v for v in item_result.values() if isinstance(v, dict)):
+                                report_lines.append(f"    📂 {item_name.replace('_', ' ').title()}:")
+                                for sub_key, sub_value in item_result.items():
+                                    if isinstance(sub_value, dict) and "status" in sub_value:
+                                        message = sub_value.get("message", f"{sub_key}: 未知状态")
+                                        report_lines.append(f"      {message}")
+                            elif "message" in item_result:
+                                # 直接的状态消息
+                                report_lines.append(f"    {item_result['message']}")
+                else:
+                    # 处理没有overall_status的结果
+                    for item_name, item_result in results.items():
+                        if isinstance(item_result, dict) and "message" in item_result:
+                            total_checks += 1
+                            if item_result.get("status", False):
+                                passed_checks += 1
+                                category_passed += 1
+                            else:
+                                failed_checks += 1
+                                category_failed += 1
+                            report_lines.append(f"  {item_result['message']}")
+                            
+                            # 如果是包冲突且有详细冲突信息，添加到报告中
+                            if (item_name == "package_conflicts" and 
+                                not item_result.get("status", False) and 
+                                "conflicts" in item_result):
+                                conflicts = item_result.get("conflicts", [])
+                                if conflicts:
+                                    report_lines.append(f"    📋 详细冲突信息:")
+                                    for conflict in conflicts:
+                                        if conflict.strip():  # 跳过空行
+                                            report_lines.append(f"      {conflict.strip()}")
+                                            
+                        elif isinstance(item_result, dict):
+                            report_lines.append(f"  {item_name}:")
+                            for sub_key, sub_value in item_result.items():
+                                if isinstance(sub_value, dict) and "message" in sub_value:
+                                    total_checks += 1
+                                    if sub_value.get("status", False):
+                                        passed_checks += 1
+                                        category_passed += 1
+                                    else:
+                                        failed_checks += 1
+                                        category_failed += 1
+                                    report_lines.append(f"    {sub_value['message']}")
+            
+            # 添加类别统计
+            report_lines.append(f"  📊 {category}统计: ✅{category_passed} ❌{category_failed}")
             report_lines.append("")
+        
+        # 总体统计
+        report_lines.append("📊 总体统计")
+        report_lines.append("-" * 30)
+        report_lines.append(f"  总验证项: {total_checks}")
+        report_lines.append(f"  ✅ 通过: {passed_checks}")
+        report_lines.append(f"  ❌ 失败: {failed_checks}")
+        if total_checks > 0:
+            success_rate = passed_checks / total_checks * 100
+            report_lines.append(f"  📈 成功率: {success_rate:.1f}%")
+        report_lines.append("")
         
         # 总结
         overall_success = validation_results.get("overall_success", False)
@@ -502,5 +648,11 @@ class Validator:
             report_lines.append("🎉 验证通过！SAGE安装成功完成。")
         else:
             report_lines.append("⚠️ 验证发现问题，请检查上述错误并修复。")
+            report_lines.append("")
+            report_lines.append("🔧 建议的修复步骤:")
+            report_lines.append("   1. 检查失败的包是否正确安装")
+            report_lines.append("   2. 验证conda环境是否正确激活") 
+            report_lines.append("   3. 检查Python版本兼容性")
+            report_lines.append("   4. 重新运行安装程序或手动安装失败的包")
         
         return "\n".join(report_lines)
