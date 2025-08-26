@@ -42,14 +42,12 @@ def main():
 
     try:
         print("Waiting for batch processing to complete...")
-        env.submit()
-
-        time.sleep(1) 
+        env.submit(autostop=True)
     except KeyboardInterrupt:
         print("停止运行")
     finally:
         print("Hello Service 批处理示例结束")
 
 if __name__ == "__main__":
-    CustomLogger.disable_global_console_debug()
+    CustomLogger.disable_global_console_debug()  # 禁用debug日志以获得更简洁的输出
     main()

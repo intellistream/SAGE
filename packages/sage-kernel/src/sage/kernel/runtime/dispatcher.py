@@ -81,9 +81,9 @@ class Dispatcher():
             self.logger.error(f"Error stopping node {node_name}: {e}", exc_info=True)
             return False
         
-        # 检查是否所有节点都已停止
-        if len(self.tasks) == 0 and len(self.services) == 0:
-            self.logger.info("All nodes and services stopped, dispatcher can be cleaned up")
+        # 检查是否所有节点都已停止（不包括服务，服务可以继续运行）
+        if len(self.tasks) == 0:
+            self.logger.info("All computation nodes stopped, batch processing completed")
             self.is_running = False
             return True
         else:

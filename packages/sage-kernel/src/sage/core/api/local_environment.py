@@ -14,9 +14,70 @@ class LocalEnvironment(BaseEnvironment):
         # 本地环境不需要客户端
         self._engine_client = None
 
-    def submit(self):
-        # 如果需要阻塞，就在用户程序里自己写个循环阻塞。
+    def submit(self, autostop: bool = False):
+        """
+        提交作业到JobManager执行
+        
+        Args:
+            autostop (bool): 如果为True，方法将阻塞直到所有批处理任务完成后自动停止
+                           如果为False，方法立即返回，需要手动管理任务生命周期
+        
+        Returns:
+            str: 任务的UUID
+        """
+        # 提交作业
         env_uuid = self.jobmanager.submit_job(self)
+        
+        if autostop:
+            self._wait_for_completion()
+            
+        return env_uuid
+    
+    def _wait_for_completion(self):
+        """
+        等待批处理任务完成
+        在本地环境中直接监控JobManager实例的状态
+        """
+        import time
+        
+        if not self.env_uuid:
+            self.logger.warning("No environment UUID found, cannot wait for completion")
+            return
+            
+        self.logger.info("Waiting for batch processing to complete...")
+        
+        try:
+            while True:
+                # 直接检查本地JobManager实例中的作业状态
+                job_info = self.jobmanager.jobs.get(self.env_uuid)
+                
+                if job_info is None:
+                    # 作业已被删除，说明完成了
+                    self.logger.info("Batch processing completed successfully")
+                    break
+                    
+                # 检查dispatcher状态
+                if not job_info.dispatcher.is_running:
+                    self.logger.info("Dispatcher stopped, batch processing completed")
+                    break
+                    
+                # 检查作业状态
+                if job_info.status in ["stopped", "failed"]:
+                    self.logger.info(f"Batch processing completed with status: {job_info.status}")
+                    break
+                    
+                # 短暂等待后再次检查
+                time.sleep(0.1)
+                
+        except KeyboardInterrupt:
+            self.logger.info("Received interrupt signal, stopping batch processing...")
+            self.stop()
+        except Exception as e:
+            self.logger.error(f"Error waiting for completion: {e}")
+            
+        finally:
+            # 确保清理资源
+            self.is_running = False
 
     @property
     def jobmanager(self) -> 'JobManager':
