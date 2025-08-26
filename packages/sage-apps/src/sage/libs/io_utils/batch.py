@@ -65,6 +65,7 @@ class HFDatasetBatch(BatchFunction):
             data = next(self._iter)
             self.logger.debug(f"Yielding batch data: {data}")
             return data
+            time.sleep(1)
         except StopIteration:
             self.logger.info(f"HF dataset batch processing completed for: {self.hf_name}")
             self._dataset_exhausted = True
