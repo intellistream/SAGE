@@ -22,6 +22,7 @@ class LongRefiner:
         score_model_name: str = "bge-reranker-v2-m3",
         score_model_path: str = "BAAI/bge-reranker-v2-m3",
         max_model_len: int = 25000,
+        gpu_device: int = 0,
     ):
         # load refine model
         self._load_trained_model(
@@ -30,8 +31,9 @@ class LongRefiner:
             doc_structuring_module_lora_path,
             global_selection_module_lora_path,
             max_model_len,
+            gpu_device,
         )
-        self._load_score_model(score_model_name, score_model_path)
+        self._load_score_model(score_model_name, score_model_path, gpu_device)
 
     def _load_trained_model(
         self,
@@ -40,8 +42,19 @@ class LongRefiner:
         doc_structuring_module_lora_path: str,
         global_selection_module_lora_path: str,
         max_model_len: int = 25000,
+        gpu_device: int = 0,
     ):
-        self.model = LLM(base_model_path, enable_lora=True, max_model_len=max_model_len, gpu_memory_utilization=0.7)
+        import os
+        # 设置 CUDA_VISIBLE_DEVICES 环境变量来指定GPU
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_device)
+        
+        self.model = LLM(
+            base_model_path, 
+            enable_lora=True, 
+            max_model_len=max_model_len, 
+            gpu_memory_utilization=0.7,
+            tensor_parallel_size=1  # 单GPU设置
+        )
         self.tokenizer = AutoTokenizer.from_pretrained(base_model_path)
         self.step_to_config = {
             "query_analysis": {
@@ -189,7 +202,13 @@ class LongRefiner:
             self.score_model = AutoModel.from_pretrained(score_model_path)
             self.score_tokenizer = AutoTokenizer.from_pretrained(score_model_path, use_fast=False)
             self.local_score_func = self._cal_score_sbert
-        self.score_model.cuda()
+        
+        # 指定GPU设备
+        if hasattr(self, 'gpu_device') and self.gpu_device is not None:
+            device = f"cuda:{self.gpu_device}"
+            self.score_model.to(device)
+        else:
+            self.score_model.cuda()
         self.score_model.eval()
         self.score_model.half()
 

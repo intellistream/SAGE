@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-SAGE Userspace 测试运行脚本
+SAGE Apps 测试运行脚本
 提供灵活的测试运行选项和报告生成
+
+使用示例:
+    python run_tests.py --rag              # 运行所有RAG测试
+    python run_tests.py --chunk --verbose  # 运行chunk测试并显示详细输出
+    python run_tests.py --unit --coverage  # 运行单元测试并生成覆盖率报告
+    python run_tests.py --lib --html-coverage  # 运行lib测试并生成HTML覆盖率报告
 """
 
 import argparse
@@ -39,7 +45,18 @@ def run_command(cmd, description=""):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SAGE Userspace 测试运行器")
+    parser = argparse.ArgumentParser(
+        description="SAGE Apps 测试运行器",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+使用示例:
+  %(prog)s --rag                    运行所有RAG模块测试
+  %(prog)s --chunk --verbose        运行chunk测试并显示详细输出
+  %(prog)s --unit --coverage        运行单元测试并生成覆盖率报告
+  %(prog)s --lib --html-coverage    运行lib测试并生成HTML覆盖率报告
+  %(prog)s --generator --failfast   运行generator测试，遇到失败立即停止
+        """
+    )
     
     # 测试类型选项
     parser.add_argument("--unit", action="store_true", help="只运行单元测试")
@@ -49,13 +66,23 @@ def main():
     
     # 测试范围选项
     parser.add_argument("--lib", action="store_true", help="只测试lib模块")
-    parser.add_argument("--plugins", action="store_true", help="只测试plugins模块")
     parser.add_argument("--userspace", action="store_true", help="只测试userspace模块")
     
     # 具体模块选项
     parser.add_argument("--agents", action="store_true", help="只测试agents模块")
     parser.add_argument("--rag", action="store_true", help="只测试rag模块")
     parser.add_argument("--io", action="store_true", help="只测试io模块")
+    parser.add_argument("--tools", action="store_true", help="只测试tools模块")
+    
+    # RAG子模块选项
+    parser.add_argument("--chunk", action="store_true", help="只测试chunk模块")
+    parser.add_argument("--evaluate", action="store_true", help="只测试evaluate模块")
+    parser.add_argument("--generator", action="store_true", help="只测试generator模块")
+    parser.add_argument("--promptor", action="store_true", help="只测试promptor模块")
+    parser.add_argument("--retriever", action="store_true", help="只测试retriever模块")
+    parser.add_argument("--reranker", action="store_true", help="只测试reranker模块")
+    parser.add_argument("--pipeline", action="store_true", help="只测试pipeline模块")
+    parser.add_argument("--longrefiner", action="store_true", help="只测试longrefiner模块")
     
     # 输出选项
     parser.add_argument("--coverage", action="store_true", help="生成覆盖率报告")
@@ -77,19 +104,37 @@ def main():
     # 设置测试路径
     test_paths = []
     if args.lib:
-        test_paths.append("tests/lib/")
-    elif args.plugins:
-        test_paths.append("tests/plugins/")
+        test_paths.append("lib/")
     elif args.userspace:
-        test_paths.append("tests/userspace/")
+        test_paths.append("userspace/")
     elif args.agents:
-        test_paths.extend(["tests/lib/agents/", "tests/userspace/"])
+        test_paths.append("lib/agents/")
     elif args.rag:
-        test_paths.append("tests/lib/rag/")
+        test_paths.append("lib/rag/")
     elif args.io:
-        test_paths.append("tests/lib/io/")
+        test_paths.append("lib/io/")
+    elif args.tools:
+        test_paths.append("lib/tools/")
+    # RAG子模块
+    elif args.chunk:
+        test_paths.append("lib/rag/test_chunk.py")
+    elif args.evaluate:
+        test_paths.append("lib/rag/test_evaluate.py")
+    elif args.generator:
+        test_paths.append("lib/rag/test_generator.py")
+    elif args.promptor:
+        test_paths.append("lib/rag/test_promptor.py")
+    elif args.retriever:
+        test_paths.append("lib/rag/test_retriever.py")
+    elif args.reranker:
+        test_paths.append("lib/rag/test_reranker.py")
+    elif args.pipeline:
+        test_paths.append("lib/rag/test_pipeline.py")
+    elif args.longrefiner:
+        test_paths.append("lib/rag/test_longrefiner_adapter.py")
     else:
-        test_paths.append("tests/")
+        # 默认运行所有测试
+        test_paths.append(".")
     
     cmd.extend(test_paths)
     
@@ -113,7 +158,6 @@ def main():
     if args.coverage or args.html_coverage:
         cmd.extend([
             "--cov=sage.libs",
-            "--cov=sage.plugins", 
             "--cov=sage.userspace",
             "--cov-report=term-missing"
         ])

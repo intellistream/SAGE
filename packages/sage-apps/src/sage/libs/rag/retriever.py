@@ -173,7 +173,7 @@ class ChromaRetriever(MapFunction):
         # 支持字典类型输入，优先取 question 字段
         is_dict_input = isinstance(data, dict)
         if is_dict_input:
-            input_query = data.get("question", "")
+            input_query = data.get("query", "")
         elif isinstance(data, tuple) and len(data) > 0:
             input_query = data[0]
         else:
@@ -191,7 +191,7 @@ class ChromaRetriever(MapFunction):
         self.logger.info(f"[ {self.__class__.__name__}]: Using top_k = {self.top_k}")
 
         try:
-            生成查询向量
+            # 生成查询向量
             query_embedding = self.embedding_model.embed(input_query)
             query_vector = np.array(query_embedding, dtype=np.float32)
 

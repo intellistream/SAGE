@@ -68,13 +68,31 @@ class BGEReranker(MapFunction):
         :return: A Data object containing a tuple (query, reranked_documents_with_scores).
         """
         try:
-            query, doc_set = data  # Unpack the input data
+            # 处理不同的输入格式
+            if isinstance(data, dict):
+                # 来自 ChromaRetriever 的字典格式: {"query": ..., "results": [...]}
+                query = data.get("query", "")
+                doc_set = data.get("results", [])
+                if not query:
+                    self.logger.error("Missing 'query' field in dictionary input")
+                    return {"query": "", "results": []}
+            elif isinstance(data, (tuple, list)) and len(data) == 2:
+                # 传统的元组格式: (query, doc_set)
+                query, doc_set = data
+            else:
+                self.logger.error(f"Unexpected input format for BGEReranker: {type(data)}")
+                return {"query": "", "results": []}
+            
             top_k = self.config.get("topk") or self.config.get("top_k", 3)  # Get the top-k parameter for reranking
 
             # Handle empty document set case
             if not doc_set:
                 print("BGEReranker received empty document set, returning empty results")
-                return query, []
+                # 返回与输入格式一致的输出
+                if isinstance(data, dict):
+                    return {"query": query, "results": []}
+                else:
+                    return query, []
 
             # Generate query-document pairs for scoring
             pairs = [(query, doc) for doc in doc_set]
@@ -114,7 +132,11 @@ class BGEReranker(MapFunction):
         except Exception as e:
             raise RuntimeError(f"BGEReranker error: {str(e)}")
         
-        return [query, reranked_docs_list]  # Return the reranked documents along with the original query
+        # 返回与输入格式一致的输出
+        if isinstance(data, dict):
+            return {"query": query, "results": reranked_docs_list}
+        else:
+            return [query, reranked_docs_list]  # Return the reranked documents along with the original query
 
 
 class LLMbased_Reranker(MapFunction):
@@ -227,7 +249,21 @@ class LLMbased_Reranker(MapFunction):
         :return: A Data object containing a tuple (query, reranked_documents_with_scores).
         """
         try:
-            query, doc_set = data  # Unpack the input data
+            # 处理不同的输入格式
+            if isinstance(data, dict):
+                # 来自 ChromaRetriever 的字典格式: {"query": ..., "results": [...]}
+                query = data.get("query", "")
+                doc_set = data.get("results", [])
+                if not query:
+                    self.logger.error("Missing 'query' field in dictionary input")
+                    return {"query": "", "results": []}
+            elif isinstance(data, (tuple, list)) and len(data) == 2:
+                # 传统的元组格式: (query, doc_set)
+                query, doc_set = data
+            else:
+                self.logger.error(f"Unexpected input format for LLMbased_Reranker: {type(data)}")
+                return {"query": "", "results": []}
+            
             doc_set = [doc_set]  # Wrap doc_set in a list for processing
             top_k = self.config["topk"]  # Get the top-k parameter for reranking
             emit_docs = []  # Initialize the list to store reranked documents
@@ -261,7 +297,12 @@ class LLMbased_Reranker(MapFunction):
             raise RuntimeError(f"Reranker error: {str(e)}")
         
         emit_docs = emit_docs[0]  # Only return the first set of reranked documents
-        return (query, emit_docs)  # Return the reranked documents along with the original query
+        
+        # 返回与输入格式一致的输出
+        if isinstance(data, dict):
+            return {"query": query, "results": emit_docs}
+        else:
+            return (query, emit_docs)  # Return the reranked documents along with the original query
 
 
 # if __name__ == '__main__':

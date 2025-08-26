@@ -68,6 +68,9 @@ class LongRefinerAdapter(MapFunction):
 
     def _init_refiner(self):
         if self.refiner is None:
+            # 从配置中获取 GPU 设备参数，默认为 0
+            gpu_device = self.cfg.get("gpu_device", 0)
+            
             self.refiner = LongRefiner(
                 base_model_path=self.cfg["base_model_path"],
                 query_analysis_module_lora_path=self.cfg["query_analysis_module_lora_path"],
@@ -76,10 +79,28 @@ class LongRefinerAdapter(MapFunction):
                 score_model_name=self.cfg["score_model_name"],
                 score_model_path=self.cfg["score_model_path"],
                 max_model_len=self.cfg["max_model_len"],
+                gpu_device=gpu_device,
             )
 
     def execute(self, data):
-        question, docs = data  # SAGE 通常传入 (query, docs_list)
+        # 处理不同的输入格式
+        if isinstance(data, dict):
+            # 来自 ChromaRetriever 的字典格式: {"query": ..., "results": [...]}
+            question = data.get("query", "")
+            docs = data.get("results", [])
+        elif isinstance(data, tuple) and len(data) == 2:
+            # 元组格式: (query, docs_list)
+            question, docs = data
+        else:
+            # 其他格式，尝试转换
+            self.logger.error(f"Unexpected input format for LongRefinerAdapter: {type(data)}")
+            if hasattr(data, 'get'):
+                question = data.get("query", str(data))
+                docs = data.get("results", [])
+            else:
+                question = str(data)
+                docs = []
+        
         self._init_refiner()
 
         # 按 LongRefiner 要求，把 docs 转为 [{"contents": str}, ...]
@@ -90,14 +111,20 @@ class LongRefinerAdapter(MapFunction):
                     texts.append(d["text"])
                 elif isinstance(d, str):
                     texts.append(d)
+                elif isinstance(d, dict) and "content" in d:
+                    texts.append(d["content"])
+                else:
+                    # 尝试将字典转为字符串
+                    texts.append(str(d))
         document_list = [{"contents": t} for t in texts]
 
         # 运行压缩
         try:
             refined_items = self.refiner.run(question, document_list, budget=self.cfg["budget"])
-        except Exception:
+        except Exception as e:
             # 避免索引越界或模型加载失败
-            return question, []
+            self.logger.error(f"LongRefiner execution failed: {str(e)}")
+            return {"query": question, "results": []}
 
         # 最终把每个 item["contents"] 拿出来
         refined_texts = [item["contents"] for item in refined_items]
@@ -106,7 +133,15 @@ class LongRefinerAdapter(MapFunction):
         if self.enable_profile:
             self._save_data_record(question, texts, refined_texts)
 
-        return question, refined_texts
+        # 返回与输入格式一致的结果
+        if isinstance(data, dict):
+            # 返回字典格式，保持管道兼容性
+            result = data.copy()
+            result["results"] = [{"text": text} for text in refined_texts]
+            return result
+        else:
+            # 返回元组格式
+            return question, refined_texts
 
     def __del__(self):
         """确保在对象销毁时保存所有未保存的记录"""
