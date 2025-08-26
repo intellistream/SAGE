@@ -592,9 +592,7 @@ main() {
     python3 tools/install/install.py --help
 
 EOF
-               read -p $'\033[1m\033[34m按 Enter 返回主菜单...\033[0m' -r
-               clear
-               main "$@" ;;
+               exit 0 ;;
             6) printf "%b您已成功退出安装程序%b\n" "$RED" "$NC"; exit 0 ;;
             *) print_warning "无效选择，启动交互式安装..."; exec python3 "$PROJECT_ROOT/tools/install/install.py" ;;
         esac
