@@ -566,7 +566,10 @@ main() {
                center_screen_text "ℹ️  启动最小安装中..." "$GREEN"
                sleep 1
                exec python3 "$PROJECT_ROOT/tools/install/install.py" --minimal ;;
-            4) exec python3 "$PROJECT_ROOT/tools/install/install.py" --list-profiles ;;
+            4) python3 "$PROJECT_ROOT/tools/install/install.py" --list-profiles
+               echo ""
+               clear
+               main "$@" ;;
             5) center_text "💡 使用方法:" "$CYAN" 4
                cat <<EOF
 
@@ -589,7 +592,9 @@ main() {
     python3 tools/install/install.py --help
 
 EOF
-                exit 0 ;;
+               read -p $'\033[1m\033[34m按 Enter 返回主菜单...\033[0m' -r
+               clear
+               main "$@" ;;
             6) printf "%b您已成功退出安装程序%b\n" "$RED" "$NC"; exit 0 ;;
             *) print_warning "无效选择，启动交互式安装..."; exec python3 "$PROJECT_ROOT/tools/install/install.py" ;;
         esac
