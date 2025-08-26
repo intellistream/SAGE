@@ -191,7 +191,7 @@ class ChromaRetriever(MapFunction):
         self.logger.info(f"[ {self.__class__.__name__}]: Using top_k = {self.top_k}")
 
         try:
-            生成查询向量
+            # 生成查询向量
             query_embedding = self.embedding_model.embed(input_query)
             query_vector = np.array(query_embedding, dtype=np.float32)
 
