@@ -512,14 +512,21 @@ class SAGEInstaller:
             else:
                 self.progress.fail_step("validation", "验证发现问题")
                 
+                # 生成验证报告并记录到日志（无论是否为quiet模式）
+                report = validator.generate_validation_report(validation_results)
+                self.logger.error("验证失败详细报告:")
+                for line in report.split('\n'):
+                    self.logger.error(line)
+                
+                # 在非quiet模式下也打印到控制台
                 if not self.config["quiet_mode"]:
-                    report = validator.generate_validation_report(validation_results)
                     print("\n" + report)
                 
                 return False
                 
         except Exception as e:
             self.progress.fail_step("validation", str(e))
+            self.logger.error(f"验证过程中发生异常: {e}")
             return False
     
     def show_completion_info(self):
