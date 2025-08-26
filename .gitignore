@@ -148,8 +148,6 @@ dev_reports/
 **/chroma_*/
 
 # 知识库和向量数据
-data/queries.jsonl
-data/*_knowledge_base.txt
 data/neuromem_vdb/
 examples/data/
 examples/rag/chroma_*/
