@@ -149,7 +149,6 @@ dev_reports/
 
 # 知识库和向量数据
 data/neuromem_vdb/
-examples/data/
 examples/rag/chroma_*/
 
 # 临时和测试数据文件
