@@ -6,7 +6,7 @@ from sage.libs.io_utils.source import FileSource
 from sage.libs.io_utils.sink import TerminalSink, FileSink
 from sage.libs.rag.generator import OpenAIGenerator
 from sage.libs.rag.promptor import QAPromptor
-from sage.libs.rag.retriever import DenseRetriever
+from sage.libs.rag.retriever import ChromaRetriever
 from sage.common.utils.config.loader import load_config
 
 
@@ -23,7 +23,7 @@ def pipeline_run(config):
         # Constructing the data processing pipeline
         response_stream = (
             env.from_source(FileSource, config["source"])
-            .map(DenseRetriever, config["retriever"])
+            .map(ChromaRetriever, config["retriever"])
             .map(QAPromptor, config["promptor"])
             .map(OpenAIGenerator, config["generator"]["vllm"])
         )

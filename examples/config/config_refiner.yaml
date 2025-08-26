@@ -20,8 +20,8 @@ retriever:
   top_k: 3
   
   chroma:
-    persistence_path: "./examples/rag/chroma_refiner_database"
-    collection_name: "refiner_knowledge_base"
+    persistence_path: "./examples/rag/chroma_qa_database"
+    collection_name: "qa_knowledge_base"
     use_embedding_query: true
     
     # 知识库已预加载，注释掉自动加载
@@ -71,6 +71,7 @@ refiner:
   score_model_path: "BAAI/bge-reranker-v2-m3"
   max_model_len: 25000
   budget: 2048
+  gpu_device: 0  # 指定将模型加载到 GPU 0 上
 
 evaluate:
   platform: "local"

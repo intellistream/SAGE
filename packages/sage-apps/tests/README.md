@@ -1,8 +1,8 @@
-# SAGE Userspace 测试架构文档
+# SAGE Apps 测试架构文档
 
 ## 概述
 
-本文档描述了 SAGE Userspace 包的完整测试组织架构，遵循了 [test-organization-planning-issue.md](../../../docs/issues/test-organization-planning-issue.md) 中制定的测试标准和最佳实践。
+本文档描述了 SAGE Apps 包的完整测试组织架构，遵循了 [test-organization-planning-issue.md](../../../docs/issues/test-organization-planning-issue.md) 中制定的测试标准和最佳实践。
 
 ## 测试结构
 
@@ -12,23 +12,25 @@
 tests/
 ├── conftest.py                    # 共享测试配置和fixtures
 ├── run_tests.py                   # 测试运行脚本
-├── generate_reports.py            # 测试报告生成器
 ├── README.md                      # 本文档
 ├── lib/                          # sage.libs 模块測试
 │   ├── agents/
-│   │   ├── test_agent.py         # Agent基础类测试
-│   │   └── test_bots.py          # 各种Bot组件测试
+│   │   └── test_*.py             # Agent相关测试
 │   ├── rag/
+│   │   ├── test_chunk.py         # 文本分块测试
 │   │   ├── test_evaluate.py      # 评估模块测试
-│   │   └── test_retriever.py     # 检索模块测试
+│   │   ├── test_generator.py     # 生成器测试
+│   │   ├── test_promptor.py      # 提示器测试
+│   │   ├── test_retriever.py     # 检索模块测试
+│   │   ├── test_reranker.py      # 重排序测试
+│   │   ├── test_pipeline.py      # 管道测试
+│   │   └── test_longrefiner_adapter.py # 长文档优化测试
 │   ├── io/
-│   │   └── test_source.py        # 数据源模块测试
-│   ├── context/                   # 上下文模块测试
-│   └── utils/                     # 工具模块测试
-├── plugins/                       # sage.plugins 模块测试
-│   └── test_longrefiner_adapter.py # LongRefiner插件测试
+│   │   └── test_*.py             # 输入输出模块测试
+│   └── tools/
+│       └── test_*.py             # 工具模块测试
 ├── userspace/                     # sage.userspace 模块测试
-│   └── test_agents.py            # Userspace Agent测试
+│   └── test_*.py                 # Userspace 相关测试
 └── reports/                       # 测试报告目录
     ├── coverage_report.md
     ├── compliance_report.md
@@ -80,74 +82,84 @@ def test_api_call():
 ### 基本用法
 
 ```bash
-# 进入项目目录
-cd /home/flecther/SAGE/packages/sage-userspace
+# 进入测试目录
+cd /path/to/SAGE/packages/sage-apps/tests
 
 # 运行所有测试
-python tests/run_tests.py
+python run_tests.py
 
 # 或使用 pytest 直接运行
-python -m pytest tests/
+python -m pytest .
 ```
 
 ### 高级选项
 
 ```bash
 # 只运行单元测试
-python tests/run_tests.py --unit
+python run_tests.py --unit
 
 # 只运行集成测试
-python tests/run_tests.py --integration
+python run_tests.py --integration
 
 # 包含耗时测试
-python tests/run_tests.py --slow
+python run_tests.py --slow
 
 # 生成覆盖率报告
-python tests/run_tests.py --coverage
+python run_tests.py --coverage
 
 # 生成HTML覆盖率报告
-python tests/run_tests.py --html-coverage
+python run_tests.py --html-coverage
 
 # 只测试特定模块
-python tests/run_tests.py --lib           # 只测试lib模块
-python tests/run_tests.py --plugins       # 只测试plugins模块
-python tests/run_tests.py --userspace     # 只测试userspace模块
+python run_tests.py --lib           # 只测试lib模块
+python run_tests.py --userspace     # 只测试userspace模块
 
 # 只测试特定功能
-python tests/run_tests.py --agents        # 只测试agents
-python tests/run_tests.py --rag           # 只测试rag
-python tests/run_tests.py --io            # 只测试io
+python run_tests.py --agents        # 只测试agents
+python run_tests.py --rag           # 只测试rag
+python run_tests.py --io            # 只测试io
+python run_tests.py --tools         # 只测试tools
 
-# 并行运行测试
-python tests/run_tests.py --parallel 4
+# 只测试RAG子模块
+python run_tests.py --chunk         # 文本分块测试
+python run_tests.py --evaluate      # 评估测试  
+python run_tests.py --generator     # 生成器测试
+python run_tests.py --promptor      # 提示器测试
+python run_tests.py --retriever     # 检索器测试
+python run_tests.py --reranker      # 重排序测试
+python run_tests.py --pipeline      # 管道测试
+python run_tests.py --longrefiner   # 长文档优化测试
 
-# 详细输出
-python tests/run_tests.py --verbose
+# 其他选项
+python run_tests.py --parallel 4    # 并行运行测试
+python run_tests.py --verbose       # 详细输出
+python run_tests.py --failfast      # 遇到失败立即停止
+python run_tests.py --lf            # 只运行上次失败的测试
+python run_tests.py --collect-only  # 只收集测试，不运行
 
-# 遇到失败立即停止
-python tests/run_tests.py --failfast
-
-# 只运行上次失败的测试
-python tests/run_tests.py --lf
+# 组合使用示例
+python run_tests.py --chunk --verbose --coverage
+python run_tests.py --rag --unit --failfast
+python run_tests.py --lib --html-coverage
 ```
 
 ### pytest 直接使用
 
 ```bash
 # 运行特定测试文件
-python -m pytest tests/lib/agents/test_agent.py -v
+python -m pytest lib/rag/test_chunk.py -v
 
 # 运行特定测试类
-python -m pytest tests/lib/agents/test_agent.py::TestTool -v
+python -m pytest lib/rag/test_chunk.py::TestCharacterSplitter -v
 
 # 运行特定测试方法
-python -m pytest tests/lib/agents/test_agent.py::TestTool::test_tool_initialization -v
+python -m pytest lib/rag/test_chunk.py::TestCharacterSplitter::test_execute_basic -v
 
 # 使用标记过滤
 python -m pytest -m "unit and not slow" -v
 
 # 生成覆盖率报告
-python -m pytest --cov=sage.libs --cov=sage.plugins --cov=sage.userspace --cov-report=html
+python -m pytest --cov=sage.libs --cov=sage.userspace --cov-report=html
 ```
 
 ## 生成测试报告
@@ -218,23 +230,27 @@ addopts = [
 ### lib 模块测试
 
 #### agents 模块
-- **test_agent.py**: Agent基础类、Tool类、BochaSearch类
-- **test_bots.py**: QuestionBot、AnswerBot、CriticBot、SearcherBot
+- **test_*.py**: Agent相关组件测试
 
 #### rag 模块  
+- **test_chunk.py**: 文本分块器 (CharacterSplitter)
 - **test_evaluate.py**: 各种评估器 (F1、Recall、BERT、ROUGE-L等)
-- **test_retriever.py**: 检索器 (Dense、BM25、Hybrid)
+- **test_generator.py**: 生成器 (OpenAI、HuggingFace)
+- **test_promptor.py**: 提示器 (QA、查询分析、摘要)
+- **test_retriever.py**: 检索器 (Dense、BM25、Hybrid)  
+- **test_reranker.py**: 重排序器 (BGE)
+- **test_pipeline.py**: RAG管道组件
+- **test_longrefiner_adapter.py**: 长文档优化适配器
 
 #### io 模块
-- **test_source.py**: 数据源 (文本、JSON、CSV、Kafka、数据库、API)
+- **test_*.py**: 输入输出模块测试
 
-### plugins 模块测试
-
-- **test_longrefiner_adapter.py**: LongRefiner插件适配器完整测试
+#### tools 模块
+- **test_*.py**: 工具模块测试
 
 ### userspace 模块测试
 
-- **test_agents.py**: BasicAgent、CommunityAgent测试
+- **test_*.py**: Userspace 相关组件测试
 
 ## 测试质量保证
 
@@ -269,10 +285,10 @@ addopts = [
 
 ```bash
 # 运行快速单元测试
-python tests/run_tests.py --unit --quiet
+python run_tests.py --unit --quiet
 
 # 代码格式检查
-black --check src/ tests/
+black --check src/ .
 
 # 类型检查  
 mypy src/
@@ -285,13 +301,10 @@ mypy src/
 ```yaml
 # 示例 GitHub Actions 配置
 - name: Run Unit Tests
-  run: python tests/run_tests.py --unit --coverage
+  run: python run_tests.py --unit --coverage
 
 - name: Run Integration Tests  
-  run: python tests/run_tests.py --integration
-
-- name: Generate Reports
-  run: python tests/generate_reports.py
+  run: python run_tests.py --integration
 
 - name: Upload Coverage
   uses: codecov/codecov-action@v3
@@ -302,7 +315,7 @@ mypy src/
 ### 新功能开发
 
 1. **创建源文件**: 在 `src/sage/` 下创建新模块
-2. **创建测试文件**: 在 `tests/` 下创建对应测试
+2. **创建测试文件**: 在相应的测试目录下创建对应测试
 3. **编写测试**: 先写测试，再实现功能 (TDD)
 4. **运行测试**: 确保所有测试通过
 5. **检查覆盖率**: 确保新代码有足够覆盖率

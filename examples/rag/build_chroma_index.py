@@ -12,7 +12,7 @@ from sage.libs.rag.chunk import CharacterSplitter
 
 def load_knowledge_to_chromadb():
     # 配置参数
-    knowledge_file = "../../data/qa_knowledge_base.txt"
+    knowledge_file = "../data/qa_knowledge_base.txt"
     persistence_path = "./chroma_qa_database"
     collection_name = "qa_knowledge_base"
 

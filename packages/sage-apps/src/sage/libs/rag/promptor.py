@@ -135,21 +135,78 @@ class QAPromptor(MapFunction):
         """
         生成 ChatGPT 风格的 prompt（system+user 两条消息）。
 
-        支持两种输入：
-        1. (query, external_corpus_list_or_str))
-        2. query_str)
+        支持多种输入格式：
+        1. (query, external_corpus_list_or_str)  # 元组格式
+        2. query_str  # 纯字符串
+        3. {"query": ..., "results": [...]}  # 字典格式（来自检索器）
+        4. {"question": ..., "context": [...]}  # 字典格式（来自测试）
         """
         self.logger.info(f"QAPromptor received data: {data}")
         try:
             # -------- 解析输入 --------
             raw = data
-            if isinstance(raw, tuple) and len(raw) == 2:
+            original_data = data  # 保存原始数据以便返回
+            
+            if isinstance(raw, dict):
+                # 字典格式输入 - 支持多种字段名
+                query = raw.get("query", raw.get("question", ""))
+                
+                # 处理不同的上下文字段名
+                external_corpus_list = []
+                
+                # 处理 results 字段（来自检索器）
+                if "results" in raw:
+                    results = raw.get("results", [])
+                    for result in results:
+                        if isinstance(result, dict) and "text" in result:
+                            external_corpus_list.append(result["text"])
+                        elif isinstance(result, str):
+                            external_corpus_list.append(result)
+                        else:
+                            external_corpus_list.append(str(result))
+                
+                # 处理 context 字段（来自测试）
+                elif "context" in raw:
+                    context = raw.get("context", [])
+                    if isinstance(context, list):
+                        external_corpus_list.extend([str(c) for c in context])
+                    else:
+                        external_corpus_list.append(str(context))
+                
+                # 处理 external_corpus 字段
+                elif "external_corpus" in raw:
+                    external_corpus = raw.get("external_corpus", "")
+                    if isinstance(external_corpus, list):
+                        external_corpus_list.extend([str(c) for c in external_corpus])
+                    else:
+                        external_corpus_list.append(str(external_corpus))
+                
+                # 处理 retrieved_docs 字段
+                elif "retrieved_docs" in raw:
+                    retrieved_docs = raw.get("retrieved_docs", [])
+                    for doc in retrieved_docs:
+                        if isinstance(doc, dict) and "content" in doc:
+                            external_corpus_list.append(doc["content"])
+                        elif isinstance(doc, str):
+                            external_corpus_list.append(doc)
+                        else:
+                            external_corpus_list.append(str(doc))
+                
+                external_corpus = "\n".join(external_corpus_list)
+                
+            elif isinstance(raw, tuple) and len(raw) == 2:
+                # 元组格式输入
                 query, external_corpus = raw
                 if isinstance(external_corpus, list):
                     external_corpus = "\n".join(external_corpus)
+                # 对于元组输入，保持原有行为，返回query而不是原始数据
+                original_data = query
             else:
-                query = raw
+                # 字符串格式输入
+                query = str(raw)
                 external_corpus = ""
+                # 对于字符串输入，保持原有行为，返回query而不是原始数据
+                original_data = query
 
             external_corpus = external_corpus or ""
 
@@ -182,7 +239,7 @@ class QAPromptor(MapFunction):
             if self.enable_profile:
                 self._save_data_record(query, external_corpus, prompt)
 
-            return [query, prompt]
+            return [original_data, prompt]
 
         except Exception as e:
             self.logger.error(
