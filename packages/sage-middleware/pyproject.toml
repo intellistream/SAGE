@@ -81,6 +81,9 @@ dependencies = [
     "uvicorn==0.34.3",
     "pydantic",
     "pyyaml==6.0.2",
+    # Documentation dependencies
+    "markdown>=3.4.4",
+    "pymdown-extensions>=10.2.1",
 ]
 
 [project.license]
