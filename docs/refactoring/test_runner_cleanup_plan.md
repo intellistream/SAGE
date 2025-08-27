@@ -79,7 +79,7 @@ runner.run_tests(mode='failed')
 ├── kernel/           # sage-kernel测试日志
 ├── middleware/       # sage-middleware测试日志
 ├── common/          # sage-common测试日志
-├── apps/            # sage-apps测试日志
+├── libs/            # sage-libs测试日志
 └── jobmanager/      # JobManager运行时日志
     ├── session_20250811_215641/
     └── session_20250811_220001/

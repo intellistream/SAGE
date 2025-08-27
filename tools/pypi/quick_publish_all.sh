@@ -95,7 +95,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # 获取包列表 - 更新为新的包结构
-packages=("sage" "sage-common" "sage-kernel" "sage-middleware" "sage-apps")
+packages=("sage" "sage-common" "sage-kernel" "sage-middleware" "sage-libs")
 
 echo "发现 ${#packages[@]} 个包:"
 for pkg in "${packages[@]}"; do

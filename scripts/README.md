@@ -84,7 +84,7 @@ setup_sage_environment
   - 📚 文档构建集成
   - 🧪 测试运行支持
   - 🔄 Git submodule自动化
-  - 🛠️ 完整包检查（sage, sage-kernel, sage-middleware, sage-apps, sage-dev-toolkit, sage-frontend）
+  - 🛠️ 完整包检查（sage, sage-kernel, sage-middleware, sage-libs, sage-dev-toolkit, sage-frontend）
 
 ## 🛠️ 构建脚本
 

@@ -115,13 +115,13 @@ sage deploy docker-push my-sage-app:latest --registry docker.io/myorg/
 
 ```bash
 # 生成K8s配置
-sage deploy k8s-manifest my_app/ --namespace sage-apps
+sage deploy k8s-manifest my_app/ --namespace sage-libs
 
 # 部署到K8s
 sage deploy k8s-deploy my_app.yaml --cluster production
 
 # 查看部署状态
-sage deploy k8s-status --namespace sage-apps
+sage deploy k8s-status --namespace sage-libs
 
 # 更新部署
 sage deploy k8s-update my_app/ --replicas 3

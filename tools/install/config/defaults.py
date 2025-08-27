@@ -19,7 +19,7 @@ SAGE_PACKAGES = [
     "sage-common", 
     "sage-kernel",
     "sage-middleware",
-    "sage-apps"
+    "sage-libs"
 ]
 
 # 可选包列表

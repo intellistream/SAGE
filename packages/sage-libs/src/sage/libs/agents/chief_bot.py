@@ -3,7 +3,7 @@ import json
 import re
 from ..context.model_context import ModelContext
 from sage.core.api.function.flatmap_function import FlatMapFunction
-from sage.lib.utils.OpenAIClient import OpenAIClient
+from sage.libs.utils.openaiclient import OpenAIClient
 
 class ChiefBot(FlatMapFunction):
     """

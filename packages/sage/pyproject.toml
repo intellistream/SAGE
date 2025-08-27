@@ -30,7 +30,7 @@ dependencies = [
     "isage-common>=0.1.0",  # 基础工具包 (不包含额外功能)
     "isage-kernel>=0.1.0", 
     "isage-middleware>=0.1.0",
-    "isage-apps>=0.1.0",  # 应用示例核心功能
+    "isage-libs>=0.1.0",  # 应用示例核心功能
 ]
 
 [project.optional-dependencies]
@@ -52,12 +52,12 @@ frontend = [
 # 完整功能 (包括所有额外功能)
 full = [
     "isage-common[full]>=0.1.0",
-    "isage-apps[full]>=0.1.0",
+    "isage-libs[full]>=0.1.0",
 ]
 
 # 企业版功能
 enterprise = [
-    "isage-apps[enterprise]>=0.1.0",
+    "isage-libs[enterprise]>=0.1.0",
 ]
 
 [project.urls]

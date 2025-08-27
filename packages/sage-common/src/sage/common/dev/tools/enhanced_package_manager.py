@@ -22,41 +22,35 @@ class EnhancedPackageManager:
         
         # Define packages and their dependencies
         self.packages = {
-            'sage-utils': {
-                'path': self.packages_dir / 'sage-utils',
-                'namespace': 'sage.common.utils',
-                'dependencies': [],  # Base package, no dependencies
-                'description': 'Common utilities and tools'
+            'sage-common': {
+                'path': self.packages_dir / 'sage-common',
+                'namespace': 'sage.common',
+                'dependencies': [],
+                'description': 'Common utilities and base framework'
             },
             'sage-kernel': {
                 'path': self.packages_dir / 'sage-kernel',
                 'namespace': 'sage.core',
-                'dependencies': ['sage-utils'],
+                'dependencies': ['sage-common'],
                 'description': 'Core framework components'
             },
-            'sage-lib': {
-                'path': self.packages_dir / 'sage-lib',
-                'namespace': 'sage.lib',
-                'dependencies': ['sage-utils'],
-                'description': 'Core library components'
+            'sage-middleware': {
+                'path': self.packages_dir / 'sage-middleware',
+                'namespace': 'sage.middleware',
+                'dependencies': ['sage-common', 'sage-kernel'],
+                'description': 'Middleware and API services'
             },
-            'sage-extensions': {
-                'path': self.packages_dir / 'sage-extensions',
-                'namespace': 'sage.extensions',
-                'dependencies': ['sage-kernel', 'sage-utils'],
-                'description': 'High-performance C++ extensions'
+            'sage-libs': {
+                'path': self.packages_dir / 'sage-libs',
+                'namespace': 'sage.libs',
+                'dependencies': ['sage-common'],
+                'description': 'Application libraries and examples'
             },
-            'sage-plugins': {
-                'path': self.packages_dir / 'sage-plugins',
-                'namespace': 'sage.plugins',
-                'dependencies': ['sage-kernel', 'sage-utils'],
-                'description': 'Plugin system'
-            },
-            'sage-service': {
-                'path': self.packages_dir / 'sage-service',
-                'namespace': 'sage.service',
-                'dependencies': ['sage-kernel', 'sage-lib', 'sage-utils'],
-                'description': 'Service layer components'
+            'sage': {
+                'path': self.packages_dir / 'sage',
+                'namespace': 'sage',
+                'dependencies': ['sage-common', 'sage-kernel', 'sage-middleware', 'sage-libs'],
+                'description': 'Meta package - all SAGE components'
             },
         }
     
@@ -322,8 +316,13 @@ class EnhancedPackageManager:
     def _is_package_installed(self, package_name: str) -> bool:
         """Check if a package is installed."""
         try:
+            # Convert sage-* package names to isage-* format for pip
+            pip_package_name = package_name.replace('sage-', 'isage-')
+            if package_name == 'sage':
+                pip_package_name = 'isage'
+            
             result = subprocess.run([
-                sys.executable, '-m', 'pip', 'show', package_name.replace('-', '_')
+                sys.executable, '-m', 'pip', 'show', pip_package_name
             ], capture_output=True)
             return result.returncode == 0
         except:

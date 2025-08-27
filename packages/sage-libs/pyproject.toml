@@ -6,9 +6,9 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "isage-apps"
+name = "isage-libs"
 version = "0.1.0"
-description = "SAGE Applications"
+description = "SAGE Libraries"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
