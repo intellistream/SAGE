@@ -24,7 +24,7 @@ show_main_menu() {
     echo -e "  1. 📥 下载远端Issues"
     echo -e "  2. 📋 Issues管理"
     echo -e "  3. 🤖 AI智能整理Issues" 
-    echo -e "  4. � 上传Issues到远端"
+    echo -e "  4. 📤 上传Issues到远端"
     echo -e "  5. 🚪 退出"
     echo ""
 }
@@ -123,7 +123,7 @@ issues_management_menu() {
 download_all_issues() {
     echo "📥 正在下载所有Issues..."
     cd "$SCRIPT_DIR"
-    python3 _scripts/download_issues.py --all
+    python3 _scripts/download_issues.py --state=all
     read -p "按Enter键继续..."
 }
 
@@ -249,28 +249,16 @@ while true; do
     
     case $choice in
         1) 
-            while true; do
-                download_menu
-                if [[ $? -eq 0 ]]; then break; fi
-            done
+            download_menu
             ;;
         2) 
-            while true; do
-                issues_management_menu
-                if [[ $? -eq 0 ]]; then break; fi
-            done
+            issues_management_menu
             ;;
         3) 
-            while true; do
-                ai_menu
-                if [[ $? -eq 0 ]]; then break; fi
-            done
+            ai_menu
             ;;
         4) 
-            while true; do
-                upload_menu
-                if [[ $? -eq 0 ]]; then break; fi
-            done
+            upload_menu
             ;;
         5) 
             echo -e "${GREEN}👋 感谢使用SAGE Issues管理工具！${NC}"
