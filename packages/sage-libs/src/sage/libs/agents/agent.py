@@ -5,7 +5,7 @@ import requests
 import json
 import re, time
 
-from sage.lib.utils.openaiclient import OpenAIClient
+from sage.libs.utils.openaiclient import OpenAIClient
 
 
 class Tool:

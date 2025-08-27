@@ -12,6 +12,7 @@ from .sage_home_manager import SAGEHomeManager
 from .commercial_package_manager import CommercialPackageManager
 from .test_failure_cache import TestFailureCache
 from .build_artifacts_manager import BuildArtifactsManager
+from .enhanced_test_runner import EnhancedTestRunner
 
 __all__ = [
     'DependencyAnalyzer',
@@ -22,4 +23,5 @@ __all__ = [
     'CommercialPackageManager',
     'TestFailureCache',
     'BuildArtifactsManager',
+    'EnhancedTestRunner',
 ]

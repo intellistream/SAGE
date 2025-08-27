@@ -40,7 +40,7 @@ def _show_installation_guide():
     print("  • isage (meta package) - 核心包管理")
     print("  • isage-kernel - 数据处理内核")
     print("  • isage-middleware - 中间件服务")
-    print("  • isage-apps - 应用示例")
+    print("  • isage-libs - 应用示例")
     
     print("\n🔧 可选功能包 (推荐安装):")
     print("  • CLI 工具:")

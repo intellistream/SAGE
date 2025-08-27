@@ -199,7 +199,7 @@ class Validator:
             "sage-common", 
             "sage-kernel",
             "sage-middleware",
-            "sage-apps"
+            "sage-libs"
         ]
         sage_locale_packages = [ ("i" + x) for x in sage_packages ]
         

@@ -83,7 +83,7 @@ def test_api_call():
 
 ```bash
 # 进入测试目录
-cd /path/to/SAGE/packages/sage-apps/tests
+cd /path/to/SAGE/packages/sage-libs/tests
 
 # 运行所有测试
 python run_tests.py

@@ -3,10 +3,10 @@ import re
 from typing import Dict, Any, Tuple
 from jinja2 import Template
 from sage.core.api.function.map_function import MapFunction
-from sage.lib.context.model_context import ModelContext
-from sage.lib.context.quality_label import QualityLabel
-from sage.lib.context.critic_evaluation import CriticEvaluation
-from sage.lib.utils.openaiclient import OpenAIClient
+from sage.libs.context.model_context import ModelContext
+from sage.libs.context.quality_label import QualityLabel
+from sage.libs.context.critic_evaluation import CriticEvaluation
+from sage.libs.utils.openaiclient import OpenAIClient
 
 
 

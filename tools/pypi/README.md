@@ -30,7 +30,7 @@
 1. `isage-common` - 基础工具包（utils + cli + dev + frontend）
 2. `isage-kernel` - 内核功能
 3. `isage-middleware` - 中间件
-4. `isage-apps` - 应用示例
+4. `isage-libs` - 应用示例
 5. `isage` - Meta 包（依赖所有其他包）
 
 ## 前置要求
@@ -89,6 +89,6 @@
 - **isage-common** (0.1.0) - 通用工具合集
 - **isage-kernel** (0.1.0) - 内核功能
 - **isage-middleware** (0.1.0) - 中间件
-- **isage-apps** (0.1.0) - 应用示例
+- **isage-libs** (0.1.0) - 应用示例
 
 所有包都使用 MIT 许可证。

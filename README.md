@@ -111,7 +111,7 @@ pip install isage-kernel
 pip install isage-middleware
 
 # 仅安装应用程序框架
-pip install isage-apps
+pip install isage-libs
 ```
 ```
 
