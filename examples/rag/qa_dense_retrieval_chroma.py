@@ -26,7 +26,6 @@ def pipeline_run(config: dict) -> None:
     print("=== 启动基于 ChromaDB 的 RAG 问答系统 ===")
     print("配置信息:")
     print(f"  - 源文件: {config['source']['data_path']}")
-    print(f"  - 检索器: DenseRetriever (ChromaDB 专用)")
     print(f"  - 向量维度: {config['retriever']['dimension']}")
     print(f"  - Top-K: {config['retriever']['top_k']}")
     print(f"  - 集合名称: {config['retriever']['chroma']['collection_name']}")
@@ -34,11 +33,6 @@ def pipeline_run(config: dict) -> None:
 
 
     env = LocalEnvironment()
-    #env.set_memory(config=None)
-
-    # 构建数据处理流程
-    # DenseRetriever 会在初始化时自动加载配置的知识库文件
-    print("正在构建数据处理管道...")
     
     (env
         .from_batch(JSONLBatch, config["source"])
@@ -49,8 +43,7 @@ def pipeline_run(config: dict) -> None:
     )
 
     print("正在提交并运行管道...")
-    env.submit()
-    time.sleep(10)  # 等待管道运行5秒
+    env.submit(autostop=True)
     env.close()
     print("=== RAG 问答系统运行完成 ===")
 
