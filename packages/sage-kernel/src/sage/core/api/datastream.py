@@ -197,7 +197,7 @@ class DataStream(Generic[T]):
             stream.print()  # 简单打印
             ```
         """
-        from sage.lib.io_utils.sink import PrintSink
+        from sage.libs.io_utils.sink import PrintSink
         return self.sink(PrintSink, prefix=prefix, separator=separator, colored=colored)
 
     # ---------------------------------------------------------------------
