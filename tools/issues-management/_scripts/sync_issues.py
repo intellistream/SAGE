@@ -99,14 +99,19 @@ class IssuesSyncer:
     def load_plan(self, path=None):
         if path:
             p = Path(path)
+            print(f"🔍 使用指定的计划文件: {p}")
         else:
             p = self.find_latest_plan()
+            if p:
+                print(f"🔍 使用最新的计划文件: {p}")
+            else:
+                print("🔍 未找到任何计划文件")
         if not p or not p.exists():
             print("❌ 未找到 plan 文件，请先运行 project_manage.py --stage-local")
             return []
         try:
             data = json.loads(p.read_text(encoding='utf-8'))
-            print(f"✅ 已加载计划: {p}，{len(data)} 项")
+            print(f"✅ 已加载计划: {p.name}，{len(data)} 项")
             return data
         except Exception as e:
             print(f"❌ 解析 plan 失败: {e}")
@@ -170,8 +175,15 @@ class IssuesSyncer:
                 print(f"  [dry-run] 会执行 deleteProjectV2Item(itemId={item_id})")
                 entry['deleted'] = 'dry-run'
             else:
-                mut_del = '''mutation($itemId: ID!) { deleteProjectV2Item(input: {itemId: $itemId}) { deletedItemId } }'''
-                ok3, resp3 = graphql_request(session, mut_del, { 'itemId': item_id }, retries=2)
+                # GitHub API now requires both projectId and itemId for deleteProjectV2Item
+                from_project_id = act.get('from_project_id')
+                if not from_project_id:
+                    print(f"  ❌ 缺少 from_project_id，无法删除原项目中的 item")
+                    entry['deleted'] = False
+                    entry['delete_response'] = {"error": "missing from_project_id"}
+                else:
+                    mut_del = '''mutation($projectId: ID!, $itemId: ID!) { deleteProjectV2Item(input: {projectId: $projectId, itemId: $itemId}) { deletedItemId } }'''
+                    ok3, resp3 = graphql_request(session, mut_del, { 'projectId': from_project_id, 'itemId': item_id }, retries=2)
                 if not ok3 or 'errors' in (resp3 or {}):
                     print(f"  ❌ delete 失败: {resp3}")
                     entry['deleted'] = False

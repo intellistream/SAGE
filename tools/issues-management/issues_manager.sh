@@ -112,29 +112,35 @@ show_main_menu() {
     clear
     echo -e "${CYAN}🎯 SAGE Issues 管理工具${NC}"
     echo "=============================="
-    
-    # 显示GitHub Token状态
-    if check_github_token; then
-        echo -e "${GREEN}✅ GitHub Token: 已配置${NC}"
-    else
-        echo -e "${YELLOW}⚠️ GitHub Token: 未配置 (功能受限)${NC}"
-    fi
-    
     echo ""
-    echo -e "${BLUE}核心功能:${NC}"
+    echo -e "${BLUE}📥 数据操作:${NC}"
+    echo "  1. 📥 下载远端Issues"
+    echo "  2. 📤 上传Issues到远端"
     echo ""
-    echo -e "  1. 📥 下载远端Issues"
-    echo -e "  2. 📝 手动管理Issues"
-    echo -e "  3. 🤖 AI智能整理Issues" 
-    echo -e "  4. 📤 上传Issues到远端"
+    echo -e "${BLUE}🔧 Issues管理:${NC}"
+    echo "  3. � 查看Issues统计"
+    echo "  4. 🏷️ 标签管理"
+    echo "  5. ✨ 创建新Issue"
     echo ""
-    if ! check_github_token; then
-        echo -e "${YELLOW}设置选项:${NC}"
-        echo ""
-        echo -e "  9. 🔑 配置GitHub Token"
-        echo ""
-    fi
-    echo -e "  5. 🚪 退出"
+    echo -e "${BLUE}🚀 项目移动:${NC}"
+    echo "  6. 🏷️ 暂存移动计划"
+    echo "  7. 👀 预览移动计划"
+    echo "  8. ✅ 执行移动计划"
+    echo ""
+    echo -e "${BLUE}👥 团队管理:${NC}"
+    echo "  9. 👥 团队成员分析"
+    echo "  10. 🔍 检查用户团队归属"
+    echo ""
+    echo -e "${BLUE}🔄 内容同步:${NC}"
+    echo "  11. � 预览内容差异"
+    echo "  12. ✅ 同步Issues内容"
+    echo ""
+    echo -e "${BLUE}🤖 AI功能:${NC}"
+    echo "  13. 🤖 AI智能整理Issues"
+    echo ""
+    echo -e "${BLUE}⚙️ 系统:${NC}"
+    echo "  14. ⚙️ 系统设置"
+    echo "  15. 🚪 退出"
     echo ""
 }
 
@@ -209,34 +215,6 @@ upload_menu() {
             *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
         esac
     done
-}
-
-issues_management_menu() {
-    echo -e "${BLUE}📋 Issues管理${NC}"
-    echo "================"
-    echo ""
-    echo "  1. 📊 查看Issues统计"
-    echo "  2. 🏷️ 标签管理"
-    echo "  3. 👥 团队分析"
-    echo "  4. ✨ 创建新Issue"
-    echo "  5. 📋 项目管理"
-    echo "  6. 🔍 搜索和过滤"
-    echo "  7. 📊 元数据管理"
-    echo "  8. 返回主菜单"
-    echo ""
-    read -p "请选择 (1-8): " choice
-    
-    case $choice in
-        1) show_issues_statistics ;;
-        2) label_management ;;
-        3) team_analysis ;;
-        4) create_new_issue ;;
-        5) project_management ;;
-        6) search_and_filter ;;
-        7) metadata_management ;;
-        8) return ;;
-        *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
-    esac
 }
 
 # 下载功能实现
@@ -472,30 +450,6 @@ create_new_issue() {
     read -p "按Enter键继续..."
 }
 
-project_management() {
-    echo -e "${BLUE}📋 项目管理${NC}"
-    echo "============="
-    echo ""
-    echo "  1. 🚀 项目移动管理"
-    echo "  2. 📈 项目统计分析"
-    echo "  3. 👥 获取团队成员信息"
-    echo "  4. 🔄 同步Issues内容"
-    echo "  5. 📋 查看项目移动计划"
-    echo "  6. 返回上级菜单"
-    echo ""
-    read -p "请选择 (1-6): " choice
-    
-    case $choice in
-        1) project_move_management ;;
-        2) project_statistics ;;
-        3) get_team_members ;;
-        4) sync_issues_content ;;
-        5) view_project_plans ;;
-        6) return ;;
-        *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
-    esac
-}
-
 search_and_filter() {
     echo "🔍 搜索和过滤..."
     echo "此功能正在开发中，建议使用VS Code的搜索功能"
@@ -503,79 +457,58 @@ search_and_filter() {
     read -p "按Enter键继续..."
 }
 
-# 新增功能: 元数据管理
-metadata_management() {
-    echo -e "${BLUE}📊 元数据管理${NC}"
-    echo "=============="
-    echo ""
-    echo "  1. 🔄 刷新团队成员缓存"
-    echo "  2. 📋 查看boards映射配置"
-    echo "  3. 👥 查看团队成员列表"
-    echo "  4. 🧹 清理缓存文件"
-    echo "  5. 📊 显示元数据统计"
-    echo "  6. 返回上级菜单"
-    echo ""
-    read -p "请选择 (1-6): " choice
-    
-    case $choice in
-        1) refresh_team_cache ;;
-        2) view_boards_config ;;
-        3) view_team_members ;;
-        4) clean_cache_files ;;
-        5) show_metadata_stats ;;
-        6) return ;;
-        *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
-    esac
-}
-
-# 新增功能: 项目移动管理
+# 项目移动管理
 project_move_management() {
-    echo -e "${BLUE}🚀 项目移动管理${NC}"
-    echo "================"
-    echo ""
-    echo "  1. 🏷️ 本地暂存移动计划 (推荐)"
-    echo "  2. 👀 预览移动计划"
-    echo "  3. ✅ 执行移动计划"
-    echo "  4. 🔍 检查特定用户的团队归属"
-    echo "  5. 📊 查看移动统计"
-    echo "  6. 返回上级菜单"
-    echo ""
-    read -p "请选择 (1-6): " choice
-    
-    case $choice in
-        1) stage_project_moves ;;
-        2) preview_project_moves ;;
-        3) apply_project_moves ;;
-        4) check_user_team ;;
-        5) show_move_statistics ;;
-        6) return ;;
-        *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
-    esac
+    while true; do
+        echo -e "${BLUE}🚀 项目移动管理${NC}"
+        echo "================"
+        echo ""
+        echo "  1. 🏷️ 本地暂存移动计划 (推荐)"
+        echo "  2. 👀 预览移动计划"
+        echo "  3. ✅ 执行移动计划"
+        echo "  4. 🔍 检查特定用户的团队归属"
+        echo "  5. 📊 查看移动统计"
+        echo "  6. 返回上级菜单"
+        echo ""
+        read -p "请选择 (1-6): " choice
+        
+        case $choice in
+            1) stage_project_moves ;;
+            2) preview_project_moves ;;
+            3) apply_project_moves ;;
+            4) check_user_team ;;
+            5) show_move_statistics ;;
+            6) return ;;
+            *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
+        esac
+    done
 }
 
 # 新增功能: 同步Issues内容
 sync_issues_content() {
-    echo -e "${BLUE}🔄 同步Issues内容${NC}"
-    echo "================="
-    echo ""
-    echo "  1. 🔍 预览内容差异"
-    echo "  2. 📝 同步标题和正文"
-    echo "  3. 🏷️ 同步标签"
-    echo "  4. 📋 查看同步计划"
-    echo "  5. ✅ 执行同步计划"
-    echo "  6. 返回上级菜单"
-    echo ""
-    read -p "请选择 (1-6): " choice
-    
-    case $choice in
-        1) preview_content_diff ;;
-        2) sync_content_changes ;;
-        3) sync_label_updates ;;
-        4) view_sync_plans ;;
-        5) apply_sync_plan ;;
-        6) return ;;
-        *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
-    esac
+    while true; do
+        echo -e "${BLUE}🔄 同步Issues内容${NC}"
+        echo "================="
+        echo ""
+        echo "  1. 🔍 预览内容差异"
+        echo "  2. 📝 同步标题和正文"
+        echo "  3. 🏷️ 同步标签"
+        echo "  4. 📋 查看同步计划"
+        echo "  5. ✅ 执行同步计划"
+        echo "  6. 返回上级菜单"
+        echo ""
+        read -p "请选择 (1-6): " choice
+        
+        case $choice in
+            1) preview_content_diff ;;
+            2) sync_content_changes ;;
+            3) sync_label_updates ;;
+            4) view_sync_plans ;;
+            5) apply_sync_plan ;;
+            6) return ;;
+            *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
+        esac
+    done
 }
 
 # 元数据管理功能实现
@@ -892,13 +825,7 @@ view_project_plans() {
 # 主循环
 while true; do
     show_main_menu
-    
-    # 根据是否有token调整提示
-    if check_github_token; then
-        read -p "请选择功能 (1-5): " choice
-    else
-        read -p "请选择功能 (1-5, 9): " choice
-    fi
+    read -p "请选择功能 (1-15): " choice
     echo ""
     
     case $choice in
@@ -906,42 +833,80 @@ while true; do
             download_menu
             ;;
         2) 
-            issues_management_menu
-            ;;
-        3) 
-            ai_menu
-            ;;
-        4) 
             upload_menu
             ;;
+        3) 
+            show_issues_statistics
+            ;;
+        4) 
+            label_management
+            ;;
         5) 
+            create_new_issue
+            ;;
+        6) 
+            stage_project_moves
+            ;;
+        7) 
+            preview_project_moves
+            ;;
+        8) 
+            apply_project_moves
+            ;;
+        9) 
+            team_analysis
+            ;;
+        10) 
+            check_user_team
+            ;;
+        11) 
+            preview_content_diff
+            ;;
+        12) 
+            sync_content_changes
+            ;;
+        13) 
+            ai_menu
+            ;;
+        14) 
+            system_settings
+            ;;
+        15) 
             echo -e "${GREEN}👋 感谢使用SAGE Issues管理工具！${NC}"
             exit 0
             ;;
-        9)
-            if ! check_github_token; then
-                echo -e "${CYAN}🔑 配置GitHub Token${NC}"
-                echo "===================="
-                echo ""
-                first_time_setup
-                echo ""
-                read -p "按回车键返回主菜单..." dummy
-            else
-                echo -e "${YELLOW}❌ Token已配置，无需重复设置${NC}"
-                sleep 1
-            fi
-            ;;
-        "")
-            # 空输入，重新显示菜单
-            continue
-            ;;
         *)
-            if check_github_token; then
-                echo -e "${RED}❌ 无效选择，请输入1-5${NC}"
-            else
-                echo -e "${RED}❌ 无效选择，请输入1-5或9${NC}"
-            fi
+            echo -e "${RED}❌ 无效选择，请输入1-15${NC}"
             sleep 1
             ;;
     esac
 done
+
+# 系统设置菜单
+system_settings() {
+    echo -e "${BLUE}⚙️ 系统设置${NC}"
+    echo "============"
+    echo ""
+    echo "  1. 🔄 刷新团队成员缓存"
+    echo "  2. 📋 查看boards映射配置"
+    echo "  3. 👥 查看团队成员列表"
+    echo "  4. 🧹 清理缓存文件"
+    echo "  5. 📊 显示元数据统计"
+    echo "  6. 📋 查看项目移动计划"
+    echo "  7. 📊 查看移动统计"
+    echo "  8. 返回主菜单"
+    echo ""
+    read -p "请选择 (1-8): " choice
+    
+    case $choice in
+        1) refresh_team_cache ;;
+        2) view_boards_config ;;
+        3) view_team_members ;;
+        4) clean_cache_files ;;
+        5) show_metadata_stats ;;
+        6) view_project_plans ;;
+        7) show_move_statistics ;;
+        8) return ;;
+        *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
+    esac
+}
