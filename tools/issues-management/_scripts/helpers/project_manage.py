@@ -91,18 +91,31 @@ class IssueProjectMover:
                     self.cached_team_members = json.load(f)
                 print(f'✅ Loaded cached team members from {team_file}')
             except Exception as e:
-                print(f'❌ Failed to load cached team members: {e}')
+                print(f"⚠️ 无法解析 cached team members: {e}")
 
-    def get_all_repository_issues(self):
-        """Get all issues from the SAGE repository"""
-        print("🔍 获取仓库中的所有Issues...")
-        
+        # Load boards metadata if available (team -> org project number)
         try:
-            # Import and use the existing config system
-            from config import github_client
-            issues = github_client.get_issues(state="all")
-            print(f"✅ 获取到 {len(issues)} 个Issues")
-            return issues
+            # look in multiple likely locations: meta-data/ first, then fallback locations
+            candidate_paths = [
+                self.meta_dir / 'boards_metadata.json',  # preferred location: meta-data/
+                Path(__file__).parent.parent / 'boards_metadata.json',
+                Path(__file__).parent.parent.parent / 'boards_metadata.json',
+                Path(__file__).parent.parent.parent.parent / 'boards_metadata.json',
+            ]
+            loaded = False
+            for meta_path in candidate_paths:
+                if meta_path and meta_path.exists():
+                    mj = json.loads(meta_path.read_text(encoding='utf-8'))
+                    mapping = mj.get('team_to_project', {})
+                    if mapping:
+                        # convert keys to expected dict
+                        self.target_teams = {k: int(v) for k, v in mapping.items()}
+                        print(f"✅ Loaded boards metadata from {meta_path}")
+                        loaded = True
+                        break
+            if not loaded:
+                print("❌ 未找到 boards_metadata.json 中的 team -> project 映射。请在 tools/issues-management/boards_metadata.json 中提供映射后重试。")
+                sys.exit(1)
         except Exception as e:
             print(f"❌ 获取Issues失败: {e}")
             return []
