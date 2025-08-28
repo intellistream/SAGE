@@ -132,6 +132,13 @@ ui = [
 
 basic = [
     "isage-common[cli]",
+    # 基础运行时依赖
+    "pygments>=2.0.0",     # ipython需要
+    "pyasn1>=0.4.8",      # python-jose需要
+    "wheel>=0.37.0",      # 构建工具
+    "setuptools>=45.0.0", # 构建工具
+    "packaging>=21.0",    # 版本解析
+    "certifi>=2021.0.0",  # SSL证书
 ]
 
 tools = [
