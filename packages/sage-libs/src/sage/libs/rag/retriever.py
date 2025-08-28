@@ -254,35 +254,3 @@ class ChromaRetriever(MapFunction):
                 self._persist_data_records()
             except:
                 pass
-
-class BM25sRetriever(MapFunction): # 目前runtime context还只支持ltm
-    def __init__(self, config, **kwargs):
-        super().__init__(**kwargs)
-        self.config = config
-        self.bm25s_collection = self.config.get("bm25s_collection")
-        self.bm25s_config = self.config.get("bm25s_config", {})
-
-
-    def execute(self, data: str) -> Tuple[str, List[str]]:
-        input_query = data
-        chunks = []
-        self.logger.debug(f"Starting BM25s retrieval for query: {input_query}")
-
-        if not self.bm25s_collection:
-            raise ValueError("BM25s collection is not configured.")
-
-        try:
-            # 使用BM25s配置和输入查询调用检索
-            bm25s_results = self.ctx.retrieve(
-                # self.bm25s_collection,
-                query=input_query,
-                collection_config=self.bm25s_config
-            )
-            chunks.extend(bm25s_results)
-            self.logger.info(f"\033[32m[ {self.__class__.__name__}]:Query: {input_query} Retrieved {len(bm25s_results)} from BM25s\033[0m ")
-            print(input_query)
-            print(bm25s_results)
-        except Exception as e:
-            self.logger.error(f"BM25s retrieval failed: {str(e)}")
-
-        return (input_query, chunks)

@@ -1,16 +1,18 @@
 """
-测试 sage.libs.rag.retriever 模块
+测试 sage.libs.rag.retriever 模块 - ChromaRetriever
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 import numpy as np
+import warnings
+from unittest.mock import Mock, patch
+
+# 抑制ascii_colors的日志错误
+warnings.filterwarnings("ignore", category=UserWarning, module="ascii_colors")
 
 # 尝试导入检索模块
-pytest_plugins = []
-
 try:
-    from sage.libs.rag.retriever import DenseRetriever, BM25Retriever, HybridRetriever
+    from sage.libs.rag.retriever import ChromaRetriever
     RETRIEVER_AVAILABLE = True
 except ImportError as e:
     RETRIEVER_AVAILABLE = False
@@ -18,370 +20,182 @@ except ImportError as e:
 
 
 @pytest.fixture
-def sample_config():
-    """提供测试配置的fixture"""
+def chroma_config():
+    """ChromaRetriever测试配置"""
     return {
-        "collection_name": "test_collection",
-        "model_name": "test_model",
-        "top_k": 5
+        "dimension": 384,
+        "top_k": 5,
+        "embedding": {"method": "mockembedder", "model": "test_model"},
+        "chroma": {"persist_path": "./test_vector_db", "collection_name": "test_collection"}
     }
 
 
 @pytest.fixture
 def sample_documents():
-    """提供测试文档的fixture"""
+    """测试文档"""
     return [
-        {"content": "机器学习是人工智能的一个分支。", "score": 0.9},
-        {"content": "深度学习使用神经网络。", "score": 0.8},
-        {"content": "自然语言处理处理文本数据。", "score": 0.7},
-        {"content": "计算机视觉分析图像。", "score": 0.6},
-        {"content": "强化学习通过奖励机制学习。", "score": 0.5}
+        {"content": "机器学习是人工智能的一个分支。", "score": 0.9, "id": "doc_1"},
+        {"content": "深度学习使用神经网络。", "score": 0.8, "id": "doc_2"},
+        {"content": "自然语言处理处理文本数据。", "score": 0.7, "id": "doc_3"}
     ]
 
 
 @pytest.mark.unit
-class TestDenseRetriever:
-    """测试DenseRetriever类"""
+class TestChromaRetriever:
+    """测试ChromaRetriever类"""
     
-    def test_dense_retriever_import(self):
-        """测试DenseRetriever导入"""
+    def test_import(self):
+        """测试导入"""
+        if not RETRIEVER_AVAILABLE:
+            pytest.skip("Retriever module not available")
+        assert ChromaRetriever is not None
+    
+    @patch('sage.libs.rag.retriever.ChromaUtils')
+    @patch('sage.libs.rag.retriever.ChromaBackend')
+    @patch('sage.middleware.utils.embedding.embedding_model.EmbeddingModel')
+    def test_initialization(self, mock_embedding_model, mock_chroma_backend, mock_chroma_utils, chroma_config):
+        """测试初始化"""
         if not RETRIEVER_AVAILABLE:
             pytest.skip("Retriever module not available")
         
-        from sage.libs.rag.retriever import DenseRetriever
-        assert DenseRetriever is not None
+        # 设置模拟
+        mock_chroma_utils.check_chromadb_availability.return_value = True
+        mock_chroma_utils.validate_chroma_config.return_value = True
+        mock_embedding = Mock()
+        mock_embedding.get_dim.return_value = 384
+        mock_embedding_model.return_value = mock_embedding
+        mock_chroma_backend.return_value = Mock()
+        
+        with patch('sage.libs.rag.retriever.MapFunction'):
+            retriever = ChromaRetriever(config=chroma_config)
+            assert retriever.config == chroma_config
+            assert retriever.backend_type == "chroma"
+            assert retriever.vector_dimension == 384
+            assert retriever.top_k == 5
     
-    def test_dense_retriever_initialization(self, sample_config):
-        """测试DenseRetriever初始化"""
+    @patch('sage.libs.rag.retriever.ChromaUtils')
+    @patch('sage.libs.rag.retriever.ChromaBackend')
+    @patch('sage.middleware.utils.embedding.embedding_model.EmbeddingModel')
+    def test_execute_string_input(self, mock_embedding_model, mock_chroma_backend, mock_chroma_utils, chroma_config):
+        """测试执行 - 字符串输入"""
         if not RETRIEVER_AVAILABLE:
             pytest.skip("Retriever module not available")
         
-        config = {
-            **sample_config,
-            "model_name": "sentence-transformers/all-MiniLM-L6-v2",
-            "top_k": 5
-        }
+        # 设置模拟
+        mock_chroma_utils.check_chromadb_availability.return_value = True
+        mock_chroma_utils.validate_chroma_config.return_value = True
         
-        try:
-            retriever = DenseRetriever(config=config)
-            assert hasattr(retriever, "config")
-            assert hasattr(retriever, "execute")
-        except Exception as e:
-            pytest.skip(f"DenseRetriever initialization failed: {e}")
-    
-    @patch('sage.libs.rag.retriever.SentenceTransformer')
-    def test_dense_retriever_execute(self, mock_transformer, sample_documents):
-        """测试DenseRetriever执行"""
-        if not RETRIEVER_AVAILABLE:
-            pytest.skip("Retriever module not available")
+        mock_embedding = Mock()
+        mock_embedding.get_dim.return_value = 384
+        mock_embedding.embed.return_value = np.random.rand(384).tolist()
+        mock_embedding_model.return_value = mock_embedding
         
-        # 模拟sentence transformer
-        mock_model = Mock()
-        mock_model.encode.return_value = np.array([
-            [0.1, 0.2, 0.3],  # query embedding
-            [0.2, 0.3, 0.4],  # doc1 embedding
-            [0.3, 0.4, 0.5],  # doc2 embedding
-            [0.1, 0.1, 0.9]   # doc3 embedding
-        ])
-        mock_transformer.return_value = mock_model
-        
-        config = {"model_name": "test_model", "top_k": 2}
-        retriever = DenseRetriever(config=config)
-        
-        query = "测试查询"
-        documents = sample_documents[:3]  # 使用前3个文档
-        
-        try:
-            result = retriever.execute((query, documents))
-            
-            # 验证返回格式
-            assert isinstance(result, (tuple, list))
-            
-            # 验证模型调用
-            mock_model.encode.assert_called()
-            
-        except Exception as e:
-            pytest.skip(f"DenseRetriever execution failed: {e}")
-
-
-@pytest.mark.unit
-class TestBM25Retriever:
-    """测试BM25Retriever类"""
-    
-    def test_bm25_retriever_import(self):
-        """测试BM25Retriever导入"""
-        if not RETRIEVER_AVAILABLE:
-            pytest.skip("Retriever module not available")
-        
-        from sage.libs.rag.retriever import BM25Retriever
-        assert BM25Retriever is not None
-    
-    def test_bm25_retriever_initialization(self, sample_config):
-        """测试BM25Retriever初始化"""
-        if not RETRIEVER_AVAILABLE:
-            pytest.skip("Retriever module not available")
-        
-        config = {**sample_config, "top_k": 3}
-        
-        try:
-            retriever = BM25Retriever(config=config)
-            assert hasattr(retriever, "config")
-            assert hasattr(retriever, "execute")
-        except Exception as e:
-            pytest.skip(f"BM25Retriever initialization failed: {e}")
-    
-    @patch('sage.libs.rag.retriever.BM25Okapi')
-    def test_bm25_retriever_execute(self, mock_bm25, sample_documents):
-        """测试BM25Retriever执行"""
-        if not RETRIEVER_AVAILABLE:
-            pytest.skip("Retriever module not available")
-        
-        # 模拟BM25
-        mock_bm25_instance = Mock()
-        mock_bm25_instance.get_scores.return_value = [0.9, 0.7, 0.5, 0.3]
-        mock_bm25.return_value = mock_bm25_instance
-        
-        config = {"top_k": 2}
-        retriever = BM25Retriever(config=config)
-        
-        query = "人工智能"
-        documents = sample_documents
-        
-        try:
-            result = retriever.execute((query, documents))
-            
-            # 验证返回格式
-            assert isinstance(result, (tuple, list))
-            
-        except Exception as e:
-            pytest.skip(f"BM25Retriever execution failed: {e}")
-
-
-@pytest.mark.unit
-class TestHybridRetriever:
-    """测试HybridRetriever类"""
-    
-    def test_hybrid_retriever_import(self):
-        """测试HybridRetriever导入"""
-        if not RETRIEVER_AVAILABLE:
-            pytest.skip("Retriever module not available")
-        
-        from sage.libs.rag.retriever import HybridRetriever
-        assert HybridRetriever is not None
-    
-    def test_hybrid_retriever_initialization(self, sample_config):
-        """测试HybridRetriever初始化"""
-        if not RETRIEVER_AVAILABLE:
-            pytest.skip("Retriever module not available")
-        
-        config = {
-            **sample_config,
-            "dense_weight": 0.7,
-            "bm25_weight": 0.3,
-            "top_k": 5
-        }
-        
-        try:
-            retriever = HybridRetriever(config=config)
-            assert hasattr(retriever, "config")
-            assert hasattr(retriever, "execute")
-        except Exception as e:
-            pytest.skip(f"HybridRetriever initialization failed: {e}")
-
-
-@pytest.mark.integration
-class TestRetrieverIntegration:
-    """检索器集成测试"""
-    
-    def test_retriever_pipeline(self, sample_documents):
-        """测试检索器管道"""
-        # 使用Mock对象模拟完整的检索管道
-        
-        # 模拟Dense检索器
-        dense_retriever = Mock()
-        dense_retriever.execute.return_value = (
-            "查询", 
-            sample_documents[:2]  # 返回前2个文档
-        )
-        
-        # 模拟BM25检索器
-        bm25_retriever = Mock()
-        bm25_retriever.execute.return_value = (
-            "查询",
-            sample_documents[1:3]  # 返回中间2个文档
-        )
-        
-        # 模拟混合检索器
-        hybrid_retriever = Mock()
-        hybrid_retriever.execute.return_value = (
-            "查询",
-            sample_documents[:3]  # 返回前3个文档
-        )
-        
-        query = "测试查询"
-        documents = sample_documents
-        
-        # 测试不同检索器
-        dense_result = dense_retriever.execute((query, documents))
-        bm25_result = bm25_retriever.execute((query, documents))
-        hybrid_result = hybrid_retriever.execute((query, documents))
-        
-        assert len(dense_result[1]) == 2
-        assert len(bm25_result[1]) == 2
-        assert len(hybrid_result[1]) == 3
-    
-    def test_retriever_comparison(self, sample_documents):
-        """测试检索器比较"""
-        # 创建模拟检索器进行比较
-        retrievers = {
-            "dense": Mock(),
-            "bm25": Mock(),
-            "hybrid": Mock()
-        }
-        
-        # 模拟不同的检索结果
-        retrievers["dense"].execute.return_value = ("query", sample_documents[:2])
-        retrievers["bm25"].execute.return_value = ("query", sample_documents[1:3])
-        retrievers["hybrid"].execute.return_value = ("query", sample_documents[:3])
-        
-        query = "人工智能是什么"
-        results = {}
-        
-        for name, retriever in retrievers.items():
-            results[name] = retriever.execute((query, sample_documents))
-        
-        # 验证所有检索器都返回了结果
-        assert len(results) == 3
-        for name, result in results.items():
-            assert len(result) == 2  # (query, documents)
-            assert isinstance(result[1], list)
-
-
-@pytest.mark.slow
-class TestRetrieverPerformance:
-    """检索器性能测试"""
-    
-    def test_large_corpus_retrieval(self):
-        """测试大语料库检索性能"""
-        # 创建模拟的大语料库
-        large_corpus = [
-            {"text": f"文档{i}的内容关于主题{i%10}", "id": f"doc_{i}"}
-            for i in range(1000)
+        mock_backend = Mock()
+        mock_backend.search.return_value = [
+            {"content": "相关文档1", "score": 0.95, "id": "doc_1"},
+            {"content": "相关文档2", "score": 0.85, "id": "doc_2"}
         ]
+        mock_chroma_backend.return_value = mock_backend
         
-        # 模拟检索器
-        mock_retriever = Mock()
-        mock_retriever.execute.return_value = ("query", large_corpus[:10])
-        
-        import time
-        start_time = time.time()
-        
-        result = mock_retriever.execute(("测试查询", large_corpus))
-        
-        end_time = time.time()
-        
-        # 验证结果
-        assert len(result[1]) == 10
-        
-        # 验证性能（模拟应该很快）
-        assert end_time - start_time < 1.0
-    
-    def test_retrieval_accuracy_simulation(self, sample_documents):
-        """测试检索准确率模拟"""
-        # 模拟不同检索器的准确率
-        accuracy_scores = {
-            "dense": 0.85,
-            "bm25": 0.75,
-            "hybrid": 0.90
-        }
-        
-        for retriever_name, expected_accuracy in accuracy_scores.items():
-            # 模拟准确率计算
-            relevant_docs = 3
-            retrieved_docs = 5
-            relevant_retrieved = int(retrieved_docs * expected_accuracy / 1.0)
+        with patch('sage.libs.rag.retriever.MapFunction'):
+            retriever = ChromaRetriever(config=chroma_config)
             
-            precision = relevant_retrieved / retrieved_docs
-            recall = relevant_retrieved / relevant_docs
+            query = "什么是人工智能？"
+            result = retriever.execute(query)
             
-            assert precision >= 0.5  # 精确率应该合理
-            assert recall >= 0.5     # 召回率应该合理
-
-
-@pytest.mark.external
-class TestRetrieverExternal:
-    """检索器外部依赖测试"""
+            # 验证结果格式
+            assert isinstance(result, dict)
+            assert "query" in result
+            assert "results" in result
+            assert result["query"] == query
+            assert len(result["results"]) == 2
     
-    def test_model_loading_failure(self):
-        """测试模型加载失败"""
+    @patch('sage.libs.rag.retriever.ChromaUtils')
+    @patch('sage.libs.rag.retriever.ChromaBackend')
+    @patch('sage.middleware.utils.embedding.embedding_model.EmbeddingModel')
+    def test_execute_dict_input(self, mock_embedding_model, mock_chroma_backend, mock_chroma_utils, chroma_config):
+        """测试执行 - 字典输入"""
         if not RETRIEVER_AVAILABLE:
             pytest.skip("Retriever module not available")
         
-        with patch('sage.libs.rag.retriever.SentenceTransformer') as mock_transformer:
-            # 模拟模型加载失败
-            mock_transformer.side_effect = Exception("模型加载失败")
+        # 设置模拟
+        mock_chroma_utils.check_chromadb_availability.return_value = True
+        mock_chroma_utils.validate_chroma_config.return_value = True
+        
+        mock_embedding = Mock()
+        mock_embedding.embed.return_value = np.random.rand(384).tolist()
+        mock_embedding_model.return_value = mock_embedding
+        
+        mock_backend = Mock()
+        mock_backend.search.return_value = [{"content": "相关文档", "score": 0.95, "id": "doc_1"}]
+        mock_chroma_backend.return_value = mock_backend
+        
+        with patch('sage.libs.rag.retriever.MapFunction'):
+            retriever = ChromaRetriever(config=chroma_config)
             
-            config = {"model_name": "invalid_model"}
+            input_data = {"query": "什么是机器学习？", "other_field": "value"}
+            result = retriever.execute(input_data)
             
-            with pytest.raises(Exception):
-                retriever = DenseRetriever(config=config)
+            # 验证结果格式
+            assert isinstance(result, dict)
+            assert "results" in result
+            assert result["query"] == "什么是机器学习？"
+            assert result["other_field"] == "value"
     
-    def test_network_timeout_handling(self):
-        """测试网络超时处理"""
-        # 模拟网络超时
-        mock_retriever = Mock()
-        mock_retriever.execute.side_effect = TimeoutError("网络超时")
+    @patch('sage.libs.rag.retriever.ChromaUtils')
+    @patch('sage.libs.rag.retriever.ChromaBackend')
+    @patch('sage.middleware.utils.embedding.embedding_model.EmbeddingModel')
+    def test_add_documents(self, mock_embedding_model, mock_chroma_backend, mock_chroma_utils, chroma_config):
+        """测试添加文档"""
+        if not RETRIEVER_AVAILABLE:
+            pytest.skip("Retriever module not available")
         
-        with pytest.raises(TimeoutError):
-            mock_retriever.execute(("query", []))
-
-
-@pytest.mark.unit
-class TestRetrieverFallback:
-    """检索器降级测试"""
-    
-    def test_retriever_fallback(self):
-        """测试检索器降级"""
-        # 模拟简单的检索器
-        class SimpleRetriever:
-            def __init__(self, config=None):
-                self.config = config or {}
+        # 设置模拟
+        mock_chroma_utils.check_chromadb_availability.return_value = True
+        mock_chroma_utils.validate_chroma_config.return_value = True
+        
+        mock_embedding = Mock()
+        mock_embedding.embed.return_value = np.random.rand(384).tolist()
+        mock_embedding_model.return_value = mock_embedding
+        
+        mock_backend = Mock()
+        mock_backend.add_documents.return_value = ["doc_1", "doc_2", "doc_3"]
+        mock_chroma_backend.return_value = mock_backend
+        
+        with patch('sage.libs.rag.retriever.MapFunction'):
+            retriever = ChromaRetriever(config=chroma_config)
             
-            def execute(self, data):
-                query, documents = data
-                # 简单的关键词匹配
-                results = []
-                query_words = query.lower().split()
-                
-                for doc in documents:
-                    doc_text = doc.get("text", "").lower()
-                    score = sum(1 for word in query_words if word in doc_text)
-                    if score > 0:
-                        doc_copy = doc.copy()
-                        doc_copy["score"] = score / len(query_words)
-                        results.append(doc_copy)
-                
-                # 按分数排序
-                results.sort(key=lambda x: x["score"], reverse=True)
-                return query, results[:self.config.get("top_k", 5)]
+            documents = ["文档1内容", "文档2内容", "文档3内容"]
+            doc_ids = retriever.add_documents(documents)
+            
+            assert doc_ids == ["doc_1", "doc_2", "doc_3"]
+            assert mock_embedding.embed.call_count == 3
+    
+    @patch('sage.libs.rag.retriever.ChromaUtils')
+    @patch('sage.libs.rag.retriever.ChromaBackend')
+    @patch('sage.middleware.utils.embedding.embedding_model.EmbeddingModel')
+    def test_error_handling(self, mock_embedding_model, mock_chroma_backend, mock_chroma_utils, chroma_config):
+        """测试错误处理"""
+        if not RETRIEVER_AVAILABLE:
+            pytest.skip("Retriever module not available")
         
-        retriever = SimpleRetriever({"top_k": 3})
+        # 设置模拟
+        mock_chroma_utils.check_chromadb_availability.return_value = True
+        mock_chroma_utils.validate_chroma_config.return_value = True
         
-        query = "人工智能"
-        documents = [
-            {"text": "人工智能是计算机科学分支", "id": "1"},
-            {"text": "人工智能在医疗领域应用", "id": "2"},
-            {"text": "机器学习是AI的子领域", "id": "3"},
-            {"text": "天气很好今天", "id": "4"}
-        ]
+        mock_embedding = Mock()
+        mock_embedding.embed.side_effect = Exception("Embedding failed")
+        mock_embedding_model.return_value = mock_embedding
         
-        result = retriever.execute((query, documents))
-        retrieved_query, retrieved_docs = result
+        mock_chroma_backend.return_value = Mock()
         
-        assert retrieved_query == query
-        assert len(retrieved_docs) <= 3
-        assert all("score" in doc for doc in retrieved_docs)
-        
-        # 验证相关文档排在前面
-        if retrieved_docs:
-            assert retrieved_docs[0]["score"] > 0
+        with patch('sage.libs.rag.retriever.MapFunction'):
+            retriever = ChromaRetriever(config=chroma_config)
+            
+            query = "测试查询"
+            result = retriever.execute(query)
+            
+            # 验证错误处理
+            assert isinstance(result, dict)
+            assert result["query"] == query
+            assert result["results"] == []
