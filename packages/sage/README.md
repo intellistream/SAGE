@@ -17,7 +17,7 @@ SAGE (Intelligent Stream Analytics Gateway Engine) 是一个强大的分布式�
 ### 可选组件
 - **sage-dev-toolkit**: 开发工具包 (`pip install isage[dev]`)
 - **sage-frontend**: Web 前端界面 (`pip install isage[full]`)
-- **sage-apps**: 企业级应用 (`pip install isage[enterprise]`)
+- **sage-libs**: 企业级应用 (`pip install isage[enterprise]`)
 
 ## 快速开始
 

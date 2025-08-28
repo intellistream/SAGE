@@ -51,17 +51,17 @@ def init_config(
                 print("🔄 覆盖现有配置文件...")
         
         # 创建默认配置
-        default_config = {
-            "log_level": "INFO",
-            "data_dir": "~/sage_data",
-            "work_dir": "~/sage_work",
-            "ray": {
-                "address": "auto",
-                "port": 10001
-            }
-        }
-        
-        config_manager.save_config(default_config)
+        # default_config = {
+        #     "log_level": "INFO",
+        #     "data_dir": "~/sage_data",
+        #     "work_dir": "~/sage_work",
+        #     "ray": {
+        #         "address": "auto",
+        #         "port": 10001
+        #     }
+        # }
+        config_manager.create_default_config()
+        # config_manager.save_config(default_config)
         print(f"✅ 配置文件已创建: {config_manager.config_path}")
         print("🔧 你可以编辑配置文件来自定义设置")
         

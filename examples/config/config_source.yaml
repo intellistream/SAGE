@@ -13,7 +13,7 @@ generator:
     api_key: "token-abc123"
     method: "openai"
     model_name: "meta-llama/Llama-2-13b-chat-hf"
-    base_url: "http://localhost:8000/v1"
+    base_url: "http://sage3:8000/v1"
     seed: 42
 
   remote:

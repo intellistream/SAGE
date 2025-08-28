@@ -162,7 +162,7 @@ publish_packages() {
         "sage-common"      # 基础工具包，其他包可能依赖
         "sage-kernel"      # 内核
         "sage-middleware"  # 中间件
-        "sage-apps"        # 应用
+        "sage-libs"        # 应用
         "sage"            # Meta 包，依赖所有其他包
     )
     

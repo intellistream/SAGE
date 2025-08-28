@@ -28,19 +28,13 @@ class PrintSink(SinkFunction):
         print(data)
 
 def main():
-    env = LocalEnvironment("hello_world")
+    env = LocalEnvironment("Hello_World")
     
     # 批处理源 -> map -> sink
     env.from_batch(HelloBatch).map(UpperCaseMap).sink(PrintSink)
-    
-    try:
-        print("Waiting for batch processing to complete...")
-        env.submit(autostop=True)
 
-    except KeyboardInterrupt:
-        print("停止运行")
-    finally:
-        print("Hello World 批处理示例结束")
+    env.submit(autostop=True)
+    print("Hello World 批处理示例结束")
 
 if __name__ == "__main__":
     # 关闭日志输出

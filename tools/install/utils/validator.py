@@ -17,16 +17,18 @@ logger = logging.getLogger(__name__)
 class Validator:
     """安装验证器"""
     
-    def __init__(self, project_root: str, ui=None):
+    def __init__(self, project_root: str, ui=None, env_vars: Dict[str, str] = None):
         """
         初始化验证器
         
         Args:
             project_root: SAGE项目根目录
             ui: 用户界面对象，用于显示详细验证信息
+            env_vars: 环境变量字典（用于获取conda环境信息）
         """
         self.project_root = Path(project_root)
         self.ui = ui
+        self.env_vars = env_vars or {}
         
     def _show_info(self, message: str):
         """显示信息到UI界面"""
@@ -51,6 +53,22 @@ class Validator:
         if self.ui:
             self.ui.show_warning(message)
         logger.warning(message)
+    
+    def _get_pip_executable(self) -> str:
+        """获取正确的pip可执行文件路径"""
+        # 如果设置了CONDA_PREFIX环境变量，优先使用conda环境中的pip
+        if "CONDA_PREFIX" in self.env_vars:
+            conda_prefix = self.env_vars["CONDA_PREFIX"]
+            if os.name == "nt":  # Windows
+                pip_path = Path(conda_prefix) / "Scripts" / "pip.exe"
+            else:  # Unix/Linux/macOS
+                pip_path = Path(conda_prefix) / "bin" / "pip"
+            
+            if pip_path.exists():
+                return str(pip_path)
+        
+        # 回退到系统pip
+        return "pip"
         
     def validate_python_environment(self, env_vars: Dict[str, str] = None) -> Dict[str, Any]:
         """
@@ -199,7 +217,7 @@ class Validator:
             "sage-common", 
             "sage-kernel",
             "sage-middleware",
-            "sage-apps"
+            "sage-libs"
         ]
         sage_locale_packages = [ ("i" + x) for x in sage_packages ]
         
@@ -315,9 +333,10 @@ class Validator:
             # else:
             #     results["python_path_correct"]["message"] = f"⚠️ Python路径可能不正确: {python_executable}"
             
-            # 检查包冲突（简化版）
+            # 检查包冲突（使用conda环境中的pip）
+            pip_executable = self._get_pip_executable()
             pip_result = subprocess.run(
-                ["pip", "check"],
+                [pip_executable, "check"],
                 capture_output=True,
                 text=True
             )

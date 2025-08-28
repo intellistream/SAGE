@@ -173,6 +173,12 @@ class SAGEInstaller:
             help="列出所有可用的安装配置文件"
         )
 
+        parser.add_argument(
+            "--remote-deploy",
+            action="store_true",
+            help="远程部署模式，跳过Git相关操作"
+        )
+
         return parser.parse_args()
 
     def show_profile_list(self):
@@ -209,7 +215,8 @@ class SAGEInstaller:
             "python_version": args.python_version,
             "force_reinstall": args.force,
             "quiet_mode": args.quiet,
-            "skip_validation": args.skip_validation
+            "skip_validation": args.skip_validation,
+            "remote_deploy": args.remote_deploy
         })
 
         # 更新UI静默模式
@@ -391,7 +398,7 @@ class SAGEInstaller:
 
         # 分离本地SAGE包和外部依赖包
         local_sage_packages = {"sage", "sage-common",
-                               "sage-kernel", "sage-middleware", "sage-apps"}
+                               "sage-kernel", "sage-middleware", "sage-libs"}
         pip_packages = [pkg for pkg in profile.packages
                         if pkg not in profile.conda_packages and pkg not in local_sage_packages]
 
@@ -401,7 +408,7 @@ class SAGEInstaller:
             f"   📦 Conda包: {len(profile.conda_packages) if profile.conda_packages else 0} 个")
         self.ui.show_info(f"   🐍 Pip包: {len(pip_packages)} 个")
         self.ui.show_info(
-            f"   🏠 本地SAGE包: 5 个 (sage-common, sage-kernel, sage-middleware, sage-apps, sage)")
+            f"   🏠 本地SAGE包: 5 个 (sage-common, sage-kernel, sage-middleware, sage-libs, sage)")
         self.ui.show_info("   📋 第二阶段包: vllm==0.10.0 (将在第一阶段完成后安装)")
 
         # 安装外部依赖包（pip）
@@ -429,7 +436,7 @@ class SAGEInstaller:
 
         self.ui.show_info("🏠 开始安装SAGE本地包 (开发模式):")
         sage_package_order = ["sage-common", "sage-kernel",
-                              "sage-middleware", "sage-apps", "sage"]
+                              "sage-middleware", "sage-libs", "sage"]
 
         for package_name in sage_package_order:
             package_path = self.project_root / "packages" / package_name
@@ -481,14 +488,37 @@ class SAGEInstaller:
             self.progress.complete_step(
                 "stage2_packages", f"成功安装 {len(stage2_packages)} 个第二阶段包")
             self.ui.show_success(f"✅ 第二阶段包安装完成: {', '.join(stage2_packages)}")
-            return True
         else:
             self.progress.fail_step(
                 "stage2_packages", f"{len(failed_packages)} 个第二阶段包安装失败")
             self.ui.show_warning(f"❌ 失败的包: {', '.join(failed_packages)}")
             # 第二阶段失败不应该阻止整个安装流程，只给出警告
             self.ui.show_info("⚠️ 第二阶段包安装失败，但不影响核心功能使用")
-            return True  # 返回True以继续安装流程
+
+        # 解析和修复依赖冲突
+        self.progress.start_step("dependency_resolution", "解析依赖冲突...")
+        self.ui.show_info("🔍 开始检查和解析包依赖冲突...")
+
+        try:
+            # 首先安装常见的缺失基础包
+            self.ui.show_info("📦 安装常见基础依赖包...")
+            if package_installer.install_common_missing_packages():
+                self.ui.show_success("✅ 基础依赖包检查完成")
+
+            # 然后解析具体的依赖冲突
+            self.ui.show_info("🔍 解析具体的依赖冲突...")
+            if package_installer.resolve_dependencies():
+                self.progress.complete_step("dependency_resolution", "依赖解析完成")
+                self.ui.show_success("✅ 所有依赖冲突已解决")
+            else:
+                self.progress.fail_step("dependency_resolution", "部分依赖问题仍然存在")
+                self.ui.show_warning("⚠️ 部分依赖问题仍然存在，但不影响基本功能")
+
+        except Exception as e:
+            self.progress.fail_step("dependency_resolution", f"依赖解析异常: {e}")
+            self.ui.show_warning(f"⚠️ 依赖解析过程中出现异常: {e}")
+
+        return True  # 返回True以继续安装流程
 
     def setup_submodules(self) -> bool:
         """设置Git子模块"""
@@ -526,7 +556,8 @@ class SAGEInstaller:
         try:
             env_name = self.config["env_name"]
             env_vars = self.env_manager.activate_environment(env_name)
-            validator = Validator(str(self.project_root), ui=self.ui)
+            validator = Validator(str(self.project_root),
+                                  ui=self.ui, env_vars=env_vars)
 
             validation_results = validator.run_comprehensive_validation(
                 env_name, env_vars)
@@ -662,8 +693,11 @@ class SAGEInstaller:
             # 添加第二阶段包安装步骤（所有模式都需要）
             steps_to_execute.append(("stage2_packages", "第二阶段包安装"))
 
-            # 添加子模块步骤（如果需要）
-            if profile.install_submodules:
+            # 添加依赖解析步骤（所有模式都需要）
+            steps_to_execute.append(("dependency_resolution", "解析依赖冲突"))
+
+            # 添加子模块步骤（如果需要且不是远程部署）
+            if profile.install_submodules and not self.config.get("remote_deploy", False):
                 steps_to_execute.append(("submodules", "设置Git子模块"))
 
             # 添加验证步骤（如果不跳过）
@@ -692,7 +726,7 @@ class SAGEInstaller:
             if not self.install_stage2_packages():
                 return False
 
-            if profile.install_submodules and not self.setup_submodules():
+            if profile.install_submodules and not self.config.get("remote_deploy", False) and not self.setup_submodules():
                 return False
 
             if not self.config["skip_validation"] and not self.run_validation():
