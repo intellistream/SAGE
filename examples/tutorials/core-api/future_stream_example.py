@@ -3,6 +3,7 @@ from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction
 from sage.core.api.function.comap_function import BaseCoMapFunction
 from sage.core.api.function.base_function import BaseFunction
+from sage.common.utils.logging.custom_logger import CustomLogger
 import time
 
 # 初始数据源：启动计数器
@@ -15,8 +16,9 @@ class CounterStartSource(SourceFunction):
         if not self.started:
             self.started = True
             print("🚀 Starting counter...")
+            # 只发送一次初始值，随后就返回None
             return {'count': 0, 'message': 'Counter initialized'}
-        return None  # 只发送一次初始值
+        return None  
 
 # 反馈处理器：接收计数器值和反馈值
 class CounterProcessor(BaseCoMapFunction):
@@ -79,16 +81,16 @@ class FeedbackDelayer(BaseFunction):
 class CounterSink(SinkFunction):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.name = kwargs.get('name', 'CounterSink')
+        self.custom_name = kwargs.get('name', 'CounterSink')
         
     def execute(self, data):
         if data is not None:
             count = data.get('count', 0)
             message = data.get('message', 'No message')
-            print(f"[{self.name}] 📊 {message}")
+            print(f"[{self.custom_name}] 📊 {message}")
             
             if count >= 10:
-                print(f"[{self.name}] 🎉 Counter completed! Final value: {count}")
+                print(f"[{self.custom_name}] 🎉 Counter completed! Final value: {count}")
         return data
 
 def main():
@@ -141,7 +143,7 @@ def main():
     print("\n🔄 Feedback loop structure:")
     print("   CounterSource → [Connected with Future] → CounterProcessor → Incrementer → ExitChecker → CounterSink")
     print("                           ↑                                                        ↓")
-    print("                           └────────────────── FeedbackDelayer ←──────────────────┘")
+    print("                           └────────────────── FeedbackDelayer ←────────────────────┘")
     print()
     
     print("✅ Pipeline validation:")
@@ -155,7 +157,7 @@ def main():
         # 运行流处理
         env.submit()
         
-        time.sleep(15)  # 运行15秒，足够计数到10
+        time.sleep(10)  # 运行15秒，足够计数到10
         
     except KeyboardInterrupt:
         print("\n\n🛑 Stopping Future Stream Example...")
@@ -177,4 +179,5 @@ def main():
         env.close()
 
 if __name__ == "__main__":
+    CustomLogger.disable_global_console_debug()
     main()

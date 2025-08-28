@@ -32,8 +32,6 @@ class MilvusBackend:
 
         self.collection_name: str = self.config.get("collection_name", "retriever_collection")
         self.dim: Optional[int] = self.config.get("dim", 1024) # 稠密向量维度
-        self.bm25_k1: float = self.config.get("bm25_k1", 1.2)  # BM25 参数 k1
-        self.bm25_b: float = self.config.get("bm25_b", 0.75)  # BM25 参数 b
         raw_metric_type = self.config.get("metric_type")
         if not raw_metric_type:
             # 未提供则默认 COSINE，不做校验
@@ -307,7 +305,7 @@ class MilvusBackend:
 
             hits = self.client.search(
                 collection_name=self.collection_name,
-                data=[query_vector],                 # 原始文本 -> 由 BM25 函数自动稀疏化
+                data=[query_vector],   
                 anns_field="dense",
                 search_params={"metric_type": self.metric_type, "params": {}},
                 limit=top_k,
