@@ -2,7 +2,7 @@ import os
 import sys
 from sage.libs.rag.chunk import CharacterSplitter
 from sage.libs.rag.document_loaders import TextLoader
-from sage.libs.rag.milvusRetriever import MilvusDenseRetriever
+from sage.libs.rag.retriever import MilvusSparseRetriever
 import yaml
 from sage.common.utils.config.loader import load_config
 
@@ -16,10 +16,10 @@ def load_knowledge_to_milvus(config):
     加载知识库到 Milvus
     """
     knowledge_file = config.get('preload_knowledge_file')
-    persistence_path = config.get('milvus_dense').get('persistence_path')
-    collection_name = config.get('milvus_dense').get('collection_name')
+    persistence_path = config.get('milvus_sparse').get('persistence_path')
+    collection_name = config.get('milvus_sparse').get('collection_name')
 
-    print(f"=== 预加载知识库到 ChromaDB ===")
+    print(f"=== 预加载知识库到 Milvus ===")
     print(f"文件: {knowledge_file} | DB: {persistence_path} | 集合: {collection_name}")
 
     loader = TextLoader(knowledge_file)
@@ -31,7 +31,7 @@ def load_knowledge_to_milvus(config):
     print(f"分块数: {len(chunks)}")
     
     print("初始化Milvus...")
-    milvus_backend = MilvusDenseRetriever(config)
+    milvus_backend = MilvusSparseRetriever(config)
     milvus_backend.add_documents(chunks)
     print(f"✓ 已添加 {len(chunks)} 个文本块")
     print(f"✓ 数据库信息: {milvus_backend.get_collection_info()}")
@@ -41,7 +41,7 @@ def load_knowledge_to_milvus(config):
     return True
 
 if __name__ == "__main__":
-    config_path = './examples/config/config_dense_milvus.yaml'
+    config_path = './examples/config/config_sparse_milvus.yaml'
     if not os.path.exists(config_path):
         print(f"配置文件不存在: {config_path}")
     

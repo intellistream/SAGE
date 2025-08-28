@@ -91,40 +91,36 @@ class MilvusBackend:
             except Exception:
                 # 集合不存在，需要创建新集合
                 self.logger.debug(f"Collection '{self.collection_name}' does not exist, creating new one")
-                # 创建集合 - 导入必要的数据类型和Schema类
+                # 创建集合 - 导入必要的数据类型
                 try:
-                    from pymilvus import DataType, Function, FunctionType
+                    from pymilvus import DataType
                 except Exception as e:
                     self.logger.error(f"Failed to import PyMilvus schema classes: {e}")
                     raise
             
                 try:
                     schema = self.client.create_schema(auto_id=False)
-                    schema.add_field("id", DataType.INT64, is_primary=True, auto_id=False)
-                    schema.add_field("text", DataType.VARCHAR, max_length=2000, enable_analyzer=True)  # 供 BM25 解析
-                    schema.add_field("sparse", DataType.SPARSE_FLOAT_VECTOR)                           # BM25 输出
-                    schema.add_field("dense", DataType.FLOAT_VECTOR, dim=self.dim)                     # 稠密向量
-
-                    bm25_fn = Function(
-                        name="bm25_text_to_sparse",
-                        input_field_names=["text"],
-                        output_field_names=["sparse"],
-                        function_type=FunctionType.BM25
-                    )
-                    schema.add_function(bm25_fn)
-
                     index_params = self.client.prepare_index_params()
-                    index_params.add_index(
-                        field_name="sparse",
-                        index_type="SPARSE_INVERTED_INDEX",
-                        metric_type="BM25",
-                        params={"inverted_index_algo": "DAAT_MAXSCORE", "bm25_k1": self.bm25_k1, "bm25_b": self.bm25_b}
-                    )
-                    index_params.add_index(
-                        field_name="dense",
-                        index_type="AUTOINDEX",
-                        metric_type=self.metric_type
-                    )
+                    schema.add_field("id", DataType.VARCHAR, max_length=2000, is_primary=True, auto_id=False)
+                    schema.add_field("text", DataType.VARCHAR, max_length=2000)  # 文本字段
+                    self.logger.info(self.search_type +"="*60)
+                    if self.search_type == "sparse":
+                        schema.add_field("sparse", DataType.SPARSE_FLOAT_VECTOR)   # 稀疏向量字段
+                        
+                        index_params.add_index(
+                            field_name="sparse",
+                            index_type="SPARSE_INVERTED_INDEX",
+                            metric_type="IP"
+                        )
+                    
+                    if self.search_type == "dense":               
+                        schema.add_field("dense", DataType.FLOAT_VECTOR, dim=self.dim)                     # 稠密向量
+
+                        index_params.add_index(
+                            field_name="dense",
+                            index_type="AUTOINDEX",
+                            metric_type=self.metric_type
+                        )
 
                     self.client.create_collection(
                         collection_name=self.collection_name,
@@ -132,7 +128,10 @@ class MilvusBackend:
                         index_params=index_params,
                     )
 
-                    self.logger.info(f"Created new Milvus collection {self.collection_name} successfully!")
+                    # 创建集合后，立即加载以确保可以使用
+                    self.client.load_collection(collection_name=self.collection_name)
+                    
+                    self.logger.info(f"Created and loaded new Milvus collection {self.collection_name} successfully!")
                 except Exception as e:
                     self.logger.error(f"Failed to create Milvus collection: {e}")
                     raise
@@ -155,15 +154,11 @@ class MilvusBackend:
             # 转换 embedding 格式（milvus 需要 list 格式）
             dense_embeddings_list = [embedding.tolist() for embedding in dense_embeddings]
             docs = []
-            base_timestamp_ms = int(time.time() * 1000)
+            # 生成文档ID
+            doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
             for i in range(len(documents)):
-                # 将 ID 统一为 int64；若提供的为非数字字符串，则使用时间戳自增生成
-                try:
-                    int_id = int(doc_ids[i])
-                except Exception:
-                    int_id = base_timestamp_ms + i
                 docs.append({
-                    "id": int_id,
+                    "id": doc_ids[i],
                     "text": documents[i],
                     "dense": dense_embeddings_list[i]
                 })
@@ -180,31 +175,49 @@ class MilvusBackend:
             self.logger.error(f"Error adding dense documents to Milvus: {e}")
             return []
 
-    def add_sparse_documents(self, documents: List[str], doc_ids: List[str]) -> List[str]:
+    def add_sparse_documents(self, documents: List[str], sparse_embeddings, doc_ids: List[str]) -> List[str]:
         """
         添加稀疏向量文档
 
         Args:
             documents: 文本列表
-            embeddings: 向量列表（list[float] 或可转 list）
+            sparse_embeddings: 稀疏向量列表（来自BGEM3EmbeddingFunction）
             doc_ids: 文档 ID 列表
         Returns:
             成功插入的文档 ID 列表
         """
         try:
             docs = []
-            base_timestamp_ms = int(time.time() * 1000)
             for i in range(len(documents)):
-                try:
-                    int_id = int(doc_ids[i])
-                except Exception:
-                    int_id = base_timestamp_ms + i
+                # 处理稀疏向量格式
+                sparse_vector = sparse_embeddings[i]
+                
+                # 如果是scipy稀疏矩阵（csr_array/csr_matrix），转换为字典格式
+                if hasattr(sparse_vector, 'tocoo'):
+                    # scipy sparse matrix to dict
+                    coo = sparse_vector.tocoo()
+                    sparse_dict = {int(idx): float(val) for idx, val in zip(coo.col, coo.data)}
+                elif hasattr(sparse_vector, 'indices') and hasattr(sparse_vector, 'data'):
+                    # 处理 csr_array 格式
+                    sparse_dict = {int(idx): float(val) for idx, val in zip(sparse_vector.indices, sparse_vector.data)}
+                elif isinstance(sparse_vector, dict):
+                    # 已经是字典格式
+                    sparse_dict = sparse_vector
+                else:
+                    # 尝试转换为字典
+                    self.logger.warning(f"Unknown sparse vector format: {type(sparse_vector)}")
+                    sparse_dict = dict(sparse_vector) if hasattr(sparse_vector, '__iter__') else {}
+                
                 docs.append({
-                    "id": int_id,
-                    "text": documents[i],
+                    "id": doc_ids[i],
+                    "text": documents[i],   
+                    "sparse": sparse_dict
                 })
+            
+            # 插入数据
             self.client.insert(collection_name=self.collection_name, data=docs)
             self.logger.info(f"Added {len(docs)} documents to Milvus collection {self.collection_name}")
+            
             return doc_ids
         except Exception as e:
             self.logger.error(f"Error adding sparse documents to Milvus: {e}")
@@ -222,25 +235,60 @@ class MilvusBackend:
             文本结果列表
         """
         try:
-            print(f"MilvusBackend.search: using top_k = {top_k}")
-
+            # 使用 BGEM3EmbeddingFunction 生成查询向量
+            try:
+                from pymilvus.model.hybrid import BGEM3EmbeddingFunction
+            except ImportError:
+                try:
+                    from pymilvus.model import BGEM3EmbeddingFunction
+                except ImportError:
+                    self.logger.error("Please install: pip install 'pymilvus[model]' or pip install pymilvus.model")
+                    return []
+            
+            embedding_model = BGEM3EmbeddingFunction(use_fp16=False, device="cpu")
+            query_embeddings = embedding_model.encode_queries([query_text])
+            
+            # 提取稀疏向量
+            if isinstance(query_embeddings, dict) and "sparse" in query_embeddings:
+                sparse_vector = query_embeddings["sparse"][0]
+            else:
+                sparse_vector = query_embeddings[0]
+            
+            # 处理稀疏向量格式转换为字典
+            if hasattr(sparse_vector, 'tocoo'):
+                # scipy sparse matrix to dict
+                coo = sparse_vector.tocoo()
+                query_vector = {int(idx): float(val) for idx, val in zip(coo.col, coo.data)}
+            elif hasattr(sparse_vector, 'indices') and hasattr(sparse_vector, 'data'):
+                # 处理 csr_array 格式
+                query_vector = {int(idx): float(val) for idx, val in zip(sparse_vector.indices, sparse_vector.data)}
+            elif isinstance(sparse_vector, dict):
+                # 已经是字典格式
+                query_vector = sparse_vector
+            else:
+                # 尝试转换为字典
+                self.logger.warning(f"Unknown sparse vector format: {type(sparse_vector)}")
+                query_vector = dict(sparse_vector) if hasattr(sparse_vector, '__iter__') else {}
+            
+            # 执行搜索
             hits = self.client.search(
                 collection_name=self.collection_name,
-                data=[query_text],                 # 原始文本 -> 由 BM25 函数自动稀疏化
+                data=[query_vector],
                 anns_field="sparse",
-                search_params={"params": {"drop_ratio_search": self.drop_ratio_search}},
+                search_params={"metric_type": "IP", "params": {}},
                 limit=top_k,
                 output_fields=["text"],
             )
-
+            
             results = hits[0]
             sparse_results = []
+            
             if results and len(results) > 0:
                 for r in results:
                     sparse_results.append(r.entity.get("text"))
             return sparse_results
         except Exception as e:
-            self.logger.error(f"Error executing Milvus search: {e}")
+            self.logger.error(f"Error executing Milvus sparse search: {e}")
             return []
 
     def dense_search(self, query_vector: np.ndarray, top_k: int) -> List[str]:
@@ -276,11 +324,11 @@ class MilvusBackend:
             self.logger.error(f"Error executing Milvus search: {e}")
             return []
 
-    def delete_collection(self) -> bool:
+    def delete_collection(self, collection_name: str) -> bool:
         """删除当前集合"""
         try:
-            self.client.drop_collection(self.collection_name)
-            self.logger.info(f"Deleted Milvus collection: {self.collection_name}")
+            self.client.drop_collection(collection_name)
+            self.logger.info(f"Deleted Milvus collection: {collection_name}")
             return True
         except Exception as e:
             self.logger.error(f"Error deleting Milvus collection: {e}")
@@ -335,7 +383,7 @@ class MilvusBackend:
             with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(config_info, f, ensure_ascii=False, indent=2)
             self.logger.info(f"Successfully saved Milvus config to: {save_path}")
-            self.logger.info(f"ChromaDB collection '{self.collection_name}' contains {config_info['collection_count']} documents")
+            self.logger.info(f"Milvus collection '{self.collection_name}' contains {config_info['collection_count']} documents")
             return True
         except Exception as e:
             self.logger.error(f"Failed to save Milvus config: {e}")
@@ -375,7 +423,7 @@ class MilvusBackend:
             self.logger.error(f"Failed to load Milvus config: {e}")
             return False
 
-    def load_knowledge_from_file(self, file_path: str, embedding_model) -> bool:
+    def load_knowledge_from_file_dense(self, file_path: str, embedding_model) -> bool:
         """
         从文件加载知识库到 Milvus
 
@@ -406,13 +454,65 @@ class MilvusBackend:
                 
                 # dense 向量添加到 Milvus
                 added_dense_ids = self.add_dense_documents(documents, embeddings, doc_ids)
-
-                # sparse 向量添加到 Milvus
-                added_sparse_ids = self.add_sparse_documents(documents, embeddings, doc_ids)
                 
                 if added_dense_ids:
                     self.logger.info(f"Loaded {len(added_dense_ids)} dense documents from {file_path}")
                     return True
+                else:
+                    self.logger.error(f"Failed to add documents from {file_path}")
+                    return False
+            else:
+                self.logger.warning(f"No valid documents found in {file_path}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Failed to load knowledge from file {file_path}: {e}")
+            return False
+
+    def load_knowledge_from_file_sparse(self, file_path: str) -> bool:
+        """
+        从文件加载知识库到 Milvus
+
+        Args:
+            file_path: 知识库文件路径
+
+        Returns:
+            是否加载成功
+        """
+        try:
+            self.logger.info(f"Loading knowledge from file: {file_path}")
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # 将知识库按段落分割
+            documents = [doc.strip() for doc in content.split('\n\n') if doc.strip()]
+            
+            if documents:
+                # 生成文档ID
+                doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
+                
+                try:
+                    from pymilvus.model.hybrid import BGEM3EmbeddingFunction
+                    
+                    embedding_model = BGEM3EmbeddingFunction(use_fp16=False, device="cpu")
+
+                    # 生成 sparse embedding
+                    sparse_embeddings = embedding_model.encode_documents(documents)
+                    
+                    # 提取稀疏向量部分
+                    if isinstance(sparse_embeddings, dict) and "sparse" in sparse_embeddings:
+                        embeddings = sparse_embeddings["sparse"]
+                    else:
+                        # 如果返回格式不同，直接使用
+                        embeddings = sparse_embeddings
+                    
+                except Exception as e:
+                    self.logger.error(f"Failed to import or use BGEM3EmbeddingFunction: {e}")
+                    raise
+                
+                # sparse 向量添加到 Milvus
+                added_sparse_ids = self.add_sparse_documents(documents, embeddings, doc_ids)
+                
                 if added_sparse_ids:
                     self.logger.info(f"Loaded {len(added_sparse_ids)} sparse documents from {file_path}")
                     return True
@@ -430,9 +530,10 @@ class MilvusBackend:
     def clear_collection(self) -> bool:
         """清空集合中的所有文档，保留集合结构与索引"""
         try:
-            # 通过过滤条件删除全部实体（匹配所有主键 id >= 0）
-            delete_ids = self.client.delete(collection_name=self.collection_name, filter="id >= 0")
-            self.logger.info(f"Cleared {len(delete_ids)} documents in Milvus collection '{self.collection_name}'")
+            # 通过过滤条件删除全部实体（匹配所有非空字符串id）
+            delete_result = self.client.delete(collection_name=self.collection_name, filter='id != ""')
+            self.logger.info(f"Cleared documents in Milvus collection '{self.collection_name}'")
+            return True
         except Exception as e:
             self.logger.error(f"Failed to clear Milvus collection: {e}")
             return False 
@@ -442,7 +543,7 @@ class MilvusBackend:
         更新指定文档
         """
         try:
-            self.client.update(collection_name=self.collection_name, data=[{"id": int(doc_id), "text": new_content, "dense": new_embedding.tolist()}])
+            self.client.update(collection_name=self.collection_name, data=[{"id": doc_id, "text": new_content, "dense": new_embedding.tolist()}])
             self.logger.info(f"Updated document {doc_id} in Milvus collection '{self.collection_name}'")
             return True
         except Exception as e:
@@ -454,7 +555,7 @@ class MilvusBackend:
         删除指定文档
         """
         try:
-            self.client.delete(collection_name=self.collection_name, filter=f"id == {int(doc_id)}")
+            self.client.delete(collection_name=self.collection_name, filter=f'id == "{doc_id}"')
             self.logger.info(f"Deleted document {doc_id} in Milvus collection '{self.collection_name}'")
             return True
         except Exception as e:

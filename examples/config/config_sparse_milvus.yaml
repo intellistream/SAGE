@@ -5,8 +5,10 @@ source:
   platform: "local"
 
 retriever:
+  preload_knowledge_file: "./examples/data/qa_knowledge_base.txt"
+
   # 通用参数
-  top_k: 10                 # 返回文档数量
+  top_k: 3                 # 返回文档数量
 
   # Milvus 后端（稠密检索）
   milvus_sparse:
@@ -21,7 +23,7 @@ retriever:
     collection_name: "qa_sparse_collection"
     search_type: "sparse"     # 稀疏检索
 
-    # 知识文件（可选）：提供后将自动按段落读取并入库
+    # # 知识文件（可选）：提供后将自动按段落读取并入库
     # knowledge_file: "./examples/data/qa_knowledge_base.txt"
 
 promptor:
@@ -39,8 +41,8 @@ generator:
   vllm:
     api_key: "token-abc123"
     method: "openai"
-    model_name: "meta-llama/Llama-2-13b-chat-hf"
-    base_url: "http://localhost:8000/v1"
+    model_name: "meta-llama/Llama-2-7b-chat-hf"
+    base_url: "http://sage3:8000/v1"
     seed: 42
 
 sink:
