@@ -47,11 +47,15 @@ class Config:
         try:
             current = Path(__file__).resolve()
             found = None
+            project_root = None
             while True:
                 candidate = current / ".github_token"
                 if candidate.exists():
                     found = candidate
                     break
+                # 记录项目根目录（包含.git的目录）
+                if (current / ".git").exists():
+                    project_root = current
                 if current.parent == current:
                     break
                 current = current.parent
@@ -79,8 +83,60 @@ class Config:
             except Exception as e:
                 print(f"⚠️ 读取token文件失败: {e}")
         
-        print("⚠️ 未找到GitHub Token，使用匿名访问（有限制）")
+        # 没有找到token，给出详细的创建指导
+        self._prompt_create_token_file(project_root)
         return None
+    
+    def _prompt_create_token_file(self, project_root: Optional[Path]):
+        """提示用户创建GitHub Token文件"""
+        print("\n" + "="*60)
+        print("❌ 未找到GitHub Token！")
+        print("="*60)
+        print("\n为了使用GitHub API，您需要创建一个包含GitHub Personal Access Token的文件。")
+        print("\n📋 请按以下步骤操作：")
+        print("\n1. 访问GitHub生成Personal Access Token:")
+        print("   https://github.com/settings/tokens")
+        print("\n2. 创建新的token，需要以下权限:")
+        print("   - repo (完整仓库访问权限)")
+        print("   - read:org (读取组织信息)")
+        print("\n3. 复制生成的token")
+        
+        # 确定推荐的token文件位置
+        if project_root:
+            recommended_path = project_root / ".github_token"
+        else:
+            recommended_path = Path.cwd() / ".github_token"
+        
+        print(f"\n4. 创建token文件:")
+        print(f"   文件路径: {recommended_path}")
+        print(f"   命令: echo 'your_token_here' > {recommended_path}")
+        
+        print("\n5. 确保文件权限安全:")
+        print(f"   chmod 600 {recommended_path}")
+        
+        print("\n⚠️ 注意: 请妥善保管您的token，不要将其提交到版本控制系统！")
+        print("="*60)
+        
+        # 询问用户是否要立即创建文件
+        try:
+            response = input("\n是否要现在创建token文件？(y/N): ").strip().lower()
+            if response in ['y', 'yes']:
+                token = input("请输入您的GitHub Token: ").strip()
+                if token:
+                    try:
+                        with open(recommended_path, 'w', encoding='utf-8') as f:
+                            f.write(token)
+                        os.chmod(recommended_path, 0o600)
+                        print(f"✅ Token文件已创建: {recommended_path}")
+                        print("请重新运行程序以使用新的token。")
+                    except Exception as e:
+                        print(f"❌ 创建token文件失败: {e}")
+                else:
+                    print("❌ 未输入token，跳过创建。")
+        except KeyboardInterrupt:
+            print("\n\n操作已取消。")
+        except EOFError:
+            pass
 
 
 class GitHubClient:
