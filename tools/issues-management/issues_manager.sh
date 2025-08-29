@@ -219,14 +219,18 @@ issues_management_menu() {
         echo ""
         echo "  1. 📊 查看Issues统计和分析"
         echo "  2. 📋 项目管理"
-        echo "  3. 返回主菜单"
+        echo "  3. 🏷️ 标签管理"
+        echo "  4. 🔍 搜索和过滤Issues"
+        echo "  5. 返回主菜单"
         echo ""
-        read -p "请选择 (1-3): " choice
+        read -p "请选择 (1-5): " choice
         
         case $choice in
             1) show_issues_statistics ;;
             2) project_management ;;
-            3) break ;;
+            3) label_management ;;
+            4) search_and_filter ;;
+            5) break ;;
             *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
         esac
     done
@@ -322,6 +326,9 @@ show_issues_statistics() {
 
 label_management() {
     echo "🏷️ 标签管理..."
+    
+    # 定义标签目录路径
+    local label_dir="$SCRIPT_DIR/issues_workspace/labels"
     
     # 显示标签统计 - 使用Python脚本获取准确统计
     echo ""
@@ -449,20 +456,6 @@ else:
         echo ""
         read -p "按Enter键继续..."
     fi
-}
-
-team_analysis() {
-    echo "👥 团队分析..."
-    cd "$SCRIPT_DIR"
-    python3 _scripts/issues_manager.py --action=team
-    read -p "按Enter键继续..."
-}
-
-create_new_issue() {
-    echo "✨ 创建新Issue..."
-    cd "$SCRIPT_DIR"
-    python3 _scripts/issues_manager.py --action=create
-    read -p "按Enter键继续..."
 }
 
 project_management() {
