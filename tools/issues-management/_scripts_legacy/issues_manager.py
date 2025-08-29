@@ -236,7 +236,7 @@ class IssuesManager:
                         labels_line = lines[idx + 1].strip()
                         if labels_line:
                             issue_data['labels'] = [{'name': label.strip()} for label in labels_line.split(',')]
-                elif line.startswith('## 分配者'):
+                elif line.startswith('## 分配给'):
                     idx = lines.index(line)
                     if idx + 1 < len(lines):
                         assignee_line = lines[idx + 1].strip()
@@ -265,7 +265,7 @@ class IssuesManager:
                 label_name = label if isinstance(label, str) else label.get('name', 'unknown')
                 stats['labels'][label_name] = stats['labels'].get(label_name, 0) + 1
         
-        # 统计分配者
+        # 统计分配给
         for issue in issues:
             assignee = issue.get('assignee')
             if assignee:

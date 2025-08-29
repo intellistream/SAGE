@@ -221,7 +221,7 @@ class AIIssuesAnalyzer:
                 label_name = label if isinstance(label, str) else label.get('name', 'unknown')
                 stats['labels'][label_name] = stats['labels'].get(label_name, 0) + 1
         
-        # 统计分配者
+        # 统计分配给
         for issue in issues:
             assignee = issue.get('assignee')
             if assignee:

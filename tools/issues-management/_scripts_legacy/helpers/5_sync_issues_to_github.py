@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 将本地issues数据的更改同步回GitHub的脚本
-支持更新标题、标签、状态、分配者等信息
+支持更新标题、标签、状态、分配给等信息
 """
 
 import os

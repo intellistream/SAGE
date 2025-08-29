@@ -219,7 +219,7 @@ class IssuesDownloader:
 ## 标签
 {', '.join([label['name'] for label in issue.get('labels', [])])}
 
-## 分配者
+## 分配给
 {issue.get('assignee', {}).get('login', '无') if issue.get('assignee') else '无'}
 
 ## 描述
