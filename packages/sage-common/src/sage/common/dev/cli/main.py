@@ -76,10 +76,10 @@ def callback():
     sage-dev test --mode diff           # Run tests on changed code
     sage-dev analyze --type circular    # Check for circular dependencies
     sage-dev package list               # List all SAGE packages
-    sage-dev compile packages/sage-apps # Compile package to ~/.sage/dist with symlink
-    sage-dev compile packages/sage-apps --no-create-symlink  # Compile without symlink
-    sage-dev compile packages/sage-apps --output /tmp/build  # Compile to custom directory
-    sage-dev compile packages/sage-apps --build --upload --no-dry-run  # Compile and upload
+    sage-dev compile packages/sage-libs # Compile package to ~/.sage/dist with symlink
+    sage-dev compile packages/sage-libs --no-create-symlink  # Compile without symlink
+    sage-dev compile packages/sage-libs --output /tmp/build  # Compile to custom directory
+    sage-dev compile packages/sage-libs --build --upload --no-dry-run  # Compile and upload
     sage-dev compile --info             # Show SAGE home directory information
     sage-dev pypi list                  # List all available packages for PyPI upload
     sage-dev pypi build                 # Build all open-source packages

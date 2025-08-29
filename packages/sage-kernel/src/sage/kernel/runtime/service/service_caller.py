@@ -101,10 +101,11 @@ class ServiceManager:
     def _get_response_queue(self):
         """从TaskContext获取响应队列"""
         if self._response_queue is None:
-            if self.context is not None:
+            if self.context:
                 # 从TaskContext的服务响应队列描述符获取队列
                 if hasattr(self.context, 'response_qd') and self.context.response_qd:
-                    self._response_queue = self.context.response_qd.queue_instance
+                    self._response_queue = self.context.response_qd.clone()
+                    self.logger.debug(f"Using response queue: {self._response_queue_name}")
                 else:
                     context_type = type(self.context).__name__
                     has_response_qd = hasattr(self.context, 'response_qd')

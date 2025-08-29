@@ -13,7 +13,20 @@ class BaseService(ABC):
     """
     
     def __init__(self, *args, **kwargs):
-        self.ctx: 'ServiceContext' = None  # 运行时注入
+        """
+        初始化基础服务
+        
+        Args:
+            *args: 位置参数
+            **kwargs: 关键字参数
+        
+        Note:
+            ctx 会在实例创建时由 ServiceFactory 自动注入，
+            服务类不需要在构造函数中声明 ctx 参数
+        """
+        # ctx 由 ServiceFactory 在 __init__ 调用前通过 __new__ 方法注入
+        if not hasattr(self, 'ctx'):
+            self.ctx: 'ServiceContext' = None
         self._logger = None
     
     @property

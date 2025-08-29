@@ -369,7 +369,7 @@ install_sage_packages() {
     # 如果是重新安装模式，先卸载现有包
     if [ "$INSTALL_MODE" = "reinstall" ]; then
         print_status "卸载现有SAGE包..."
-        conda run -n "$SELECTED_ENV_NAME" pip uninstall -y isage isage-kernel isage-middleware isage-apps isage-common 2>/dev/null || true
+        conda run -n "$SELECTED_ENV_NAME" pip uninstall -y isage isage-kernel isage-middleware isage-libs isage-common 2>/dev/null || true
         print_success "卸载完成"
     fi
     
@@ -387,7 +387,7 @@ install_sage_packages() {
     echo "  • sage-common: 通用工具库和CLI工具"
     echo "  • sage-kernel: 核心计算引擎"
     echo "  • sage-middleware: 中间件和API服务"
-    echo "  • sage-apps: 应用示例和模板"
+    echo "  • sage-libs: 应用示例和模板"
     echo "  • sage: 主包（元包）"
     if [ "$INSTALL_MODE" = "development" ] || [ "$INSTALL_MODE" = "reinstall" ]; then
         echo "  • 开发工具: 包含dev和frontend扩展"
@@ -396,7 +396,7 @@ install_sage_packages() {
     
     # 统计实际的包数量
     local packages=($(cat "$requirements_file" | grep -E "^-e" | wc -l))
-    local total=5  # sage-common, sage-kernel, sage-middleware, sage-apps, sage
+    local total=5  # sage-common, sage-kernel, sage-middleware, sage-libs, sage
     
     print_status "开始安装过程..."
     

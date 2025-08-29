@@ -221,16 +221,7 @@ class BaseRouter(ABC):
             self.logger.error(f"Router {self.name}: Failed to deliver packet to {connection.target_name}: {e}")
             traceback.print_exc()
             return False
-            self.logger.debug(
-                f"Sent {'keyed' if packet.is_keyed() else 'unkeyed'} packet "
-                f"to {connection.target_name} (strategy: {packet.partition_strategy or 'round-robin'})"
-            )
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Router {self.name}: Failed to deliver packet to {connection.target_name}: {e}")
-            traceback.print_exc()
-            return False
+
     
     def clear_all_connections(self):
         """清空所有连接"""

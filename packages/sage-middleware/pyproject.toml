@@ -59,8 +59,8 @@ dependencies = [
     "zhipuai==2.1.5.20250801",
     "cohere==5.16.1",
     "transformers>=4.54.1",
-    "tokenizers==0.21.4",
-    # "vllm>=0.6.0,<0.7.0",  # 移到可选依赖，避免CUDA问题
+    "tokenizers>=0.21.0",  # 放宽版本约束
+    # "vllm>=0.9.2",
     "faiss-cpu==1.9.0",
     "bm25s==0.2.13",
     "rank-bm25==0.2.2",
@@ -70,10 +70,10 @@ dependencies = [
     "httpx==0.28.1",
     "certifi==2025.8.3",
     "feedparser==6.0.11",
-    "accelerate==1.9.0",
-    "sentence-transformers==3.1.1",
+    "accelerate>=1.9.0",  # 放宽版本约束
+    "sentence-transformers>=3.1.0",  # 放宽版本约束
     "InstructorEmbedding==1.0.1",
-    "huggingface-hub==0.34.3",
+    "huggingface-hub>=0.34.0",  # 放宽版本约束
     "peft==0.17.0",
     "numpy>=1.25.0,<3.0.0",  # 兼容numpy 2.x版本
     "scipy==1.15.3",
@@ -81,6 +81,9 @@ dependencies = [
     "uvicorn==0.34.3",
     "pydantic",
     "pyyaml==6.0.2",
+    # Documentation dependencies
+    "markdown>=3.4.4",
+    "pymdown-extensions>=10.2.1",
 ]
 
 [project.license]
@@ -100,7 +103,7 @@ enterprise = [
     "alembic>=1.13.0", 
     "asyncpg>=0.30.0",
     "pymongo[srv]>=4.8.0",
-    "redis>=5.2.0",
+    # "redis>=5.2.0",
     # Enterprise database drivers
     "psycopg2-binary>=2.9.0",
     "cx-Oracle>=8.3.0",      # Oracle support
@@ -132,7 +135,7 @@ enterprise-dev = [
 
 # VLLM支持（可选，需要CUDA）
 vllm = [
-    "vllm>=0.6.0,<0.7.0",
+    "vllm>=0.9.2",
 ]
 
 # 基础数据库支持

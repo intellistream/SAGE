@@ -9,7 +9,7 @@ import logging
 import time
 import uuid
 
-from sage.kernel.runtime.service.base_service import BaseService
+from sage.core.api.service.base_service import BaseService
 
 if TYPE_CHECKING:
     from sage.core.factory.service_factory import ServiceFactory
@@ -36,17 +36,13 @@ class MemoryService(BaseService):
     在SAGE DAG中作为服务节点使用
     """
     
-    def __init__(self, service_factory: 'ServiceFactory', ctx: 'ServiceContext' = None):
-        super().__init__(service_factory, ctx)
-        
-        # 从service_factory获取配置
-        self.config: MemoryConfig = getattr(service_factory, 'config', MemoryConfig())
-        
-        self.logger.info(f"Memory Service '{self.service_name}' initialized")
-        self.logger.info(f"KV Service: {self.config.kv_service_name}")
-        self.logger.info(f"VDB Service: {self.config.vdb_service_name}")
-        self.logger.info(f"Graph Service: {self.config.graph_service_name}")
-    
+    def __init__(self, config = None):
+        self.config = config or {}
+
+        self.logger.info(f"KV Service: {self.config.get('kv_service_name', 'kv_service')}")
+        self.logger.info(f"VDB Service: {self.config.get('vdb_service_name','vdb_service')}")
+        self.logger.info(f"Graph Service: {self.config.get('graph_service_name','graph_service')}")
+
     def _start_service_instance(self):
         """启动Memory服务实例"""
         self.logger.info(f"Memory Service '{self.service_name}' started")

@@ -13,6 +13,7 @@ CMakeUserPresets.json
 # ============================================
 # 构建和安装目录
 # ============================================
+install.log
 /deps/CANDY/installation/dist/
 /deps/CANDY/installation/candy.egg-info/
 /deps/CANDY/installation/build/
@@ -35,7 +36,7 @@ logs/
 output/
 **/__pycache__/
 gitlogs.txt
-
+install.log
 
 .github/chatmodes/
 id_llm
@@ -47,6 +48,7 @@ auto_env_setup.log
 __pycache__/
 *.py[cod]
 
+/data/neuromem_vdb
 /data/neuromem_datasets/locomo/locomo10.json
 /experiment/memorag/output.txt
 /experiment/memorag/output_prompt.txt
@@ -78,7 +80,7 @@ recommended_tests.txt
 local_workflow_logs/
 .pytest_cache/
 archive/
-
+.sage_states
 # C/C++ compiled libraries and binaries
 *.so
 *.so.*
@@ -112,6 +114,7 @@ build/
 **.testlogs
 **.ninja**
 
+install.log
 coverage.xml
 dev_reports/
 !/Makefile
@@ -130,3 +133,29 @@ dev_reports/
 .sage/
 .testlogs/
 .github_token
+.pypirc
+
+
+./experiment/data
+./experiment/results
+
+# ============================================
+# RAG系统数据文件
+# ============================================
+# ChromaDB数据库文件
+**/chroma_database/
+**/chroma_qa_database/
+**/chroma_*/
+
+# 知识库和向量数据
+data/neuromem_vdb/
+examples/rag/chroma_*/
+
+# 临时和测试数据文件
+**/*.vector
+**/*.index
+**/*.db
+**/*.sqlite
+**/*.embeddings
+
+/.vscode/

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 SAGE用户界面工具
 提供交互式菜单、用户输入处理和信息显示功能
@@ -5,6 +7,7 @@ SAGE用户界面工具
 
 import os
 import sys
+import shutil
 from typing import List, Dict, Optional, Callable, Any
 
 
@@ -19,22 +22,103 @@ class UserInterface:
             quiet_mode: 静默模式，减少交互
         """
         self.quiet_mode = quiet_mode
+        self.terminal_width = self._get_terminal_width()
         
+        # 确保UTF-8编码输出
+        if hasattr(sys.stdout, 'reconfigure'):
+            try:
+                sys.stdout.reconfigure(encoding='utf-8')
+                sys.stderr.reconfigure(encoding='utf-8')
+            except:
+                pass
+    
+    def set_current_step(self, step_info: str):
+        """设置当前步骤信息（兼容curses接口）"""
+        if not self.quiet_mode:
+            print(f"🔄 {step_info}")
+    
+    def show_progress_info(self, message: str):
+        """显示进度信息（兼容curses接口）"""
+        if not self.quiet_mode:
+            print(f"  📋 {message}")
+    
+    def update_step_progress(self, step_name: str, message: str, step_type: str = "info"):
+        """更新步骤进度信息（兼容curses接口）"""
+        if step_type == "start":
+            self.show_info(f"🔄 开始: {message}")
+        elif step_type == "complete":
+            self.show_success(f"✅ 完成: {message}")
+        elif step_type == "error":
+            self.show_error(f"❌ 错误: {message}")
+        else:
+            self.show_info(message)
+        
+    def _get_terminal_width(self) -> int:
+        """获取终端宽度 - 为了兼容VS Code xterm.js，使用固定宽度"""
+        # VS Code的xterm.js环境下，shutil.get_terminal_size()可能返回不准确的值
+        # 统一使用固定宽度以确保一致的显示效果
+        return 80
+            
+    def _left_align_text(self, text: str, width: Optional[int] = None) -> str:
+        """左对齐文本 - 替代居中对齐以兼容VS Code环境"""
+        # 简单返回原文本，不进行任何对齐处理
+        # 这样可以避免在VS Code xterm.js环境下的显示问题
+        return text
+    
+    def _create_box(self, content: str, style: str = "double") -> str:
+        """创建文本框 - 左对齐版本，兼容VS Code环境"""
+        lines = content.split('\n')
+        max_width = max(len(line) for line in lines) if lines else 0
+        # 使用固定的合理宽度，避免依赖终端宽度检测
+        box_width = min(max_width + 4, 76)  # 为边框预留4个字符，总宽度不超过76
+        
+        if style == "double":
+            top = "╔" + "═" * (box_width - 2) + "╗"
+            bottom = "╚" + "═" * (box_width - 2) + "╝"
+            side = "║"
+        else:  # single
+            top = "┌" + "─" * (box_width - 2) + "┐"
+            bottom = "└" + "─" * (box_width - 2) + "┘"
+            side = "│"
+        
+        result = [top]
+        for line in lines:
+            # 左对齐内容，而不是居中
+            if len(line) > box_width - 2:
+                # 如果内容太长，截断处理
+                padded_line = line[:box_width - 2]
+            else:
+                # 左对齐，右侧填充空格
+                padded_line = line + " " * (box_width - 2 - len(line))
+            result.append(f"{side}{padded_line}{side}")
+        result.append(bottom)
+        
+        return '\n'.join(result)
+    
+    def clear_screen(self) -> None:
+        """清屏"""
+        if not self.quiet_mode:
+            os.system('clear' if os.name == 'posix' else 'cls')
+    
     def show_welcome(self, title: str = "SAGE安装向导") -> None:
         """
-        显示欢迎信息
+        显示欢迎信息 - 左对齐版本
         
         Args:
             title: 标题
         """
         if self.quiet_mode:
             return
-            
-        width = max(50, len(title) + 10)
-        print("=" * width)
-        print(f"🚀 {title}".center(width))
-        print("=" * width)
-        print()
+        
+        self.clear_screen()
+        
+        # 创建美化的标题
+        welcome_text = f"🚀 {title}"
+        box = self._create_box(welcome_text, "double")
+        
+        print("\n" * 2)
+        print(box)
+        print("\n" * 2)
     
     def show_section(self, title: str, description: str = "") -> None:
         """
@@ -46,11 +130,117 @@ class UserInterface:
         """
         if self.quiet_mode:
             return
-            
-        print(f"\n📋 {title}")
-        print("-" * (len(title) + 5))
+        
+        print()
+        section_text = f"📋 {title}"
         if description:
-            print(f"{description}\n")
+            section_text += f"\n{description}"
+        
+        box = self._create_box(section_text, "single")
+        print(box)
+        print()
+    
+    def show_progress_section(self, title: str, current_step: int, total_steps: int) -> None:
+        """
+        显示进度章节 - 左对齐版本
+        
+        Args:
+            title: 章节标题  
+            current_step: 当前步骤
+            total_steps: 总步骤数
+        """
+        if self.quiet_mode:
+            return
+        
+        print()
+        
+        # 创建进度条 - 使用固定宽度
+        progress_percent = (current_step / total_steps) * 100
+        progress_width = 40  # 固定进度条宽度
+        filled = int(progress_width * current_step / total_steps)
+        bar = "█" * filled + "░" * (progress_width - filled)
+        
+        section_text = f"📋 {title}"
+        progress_text = f"进度: [{bar}] {progress_percent:.1f}% ({current_step}/{total_steps})"
+        
+        full_text = f"{section_text}\n{progress_text}"
+        box = self._create_box(full_text, "single")
+        print(box)
+        print()
+    
+    def show_info(self, message: str) -> None:
+        """显示信息"""
+        print(f"ℹ️ {message}")
+    
+    def show_success(self, message: str) -> None:
+        """显示成功消息"""
+        print(f"✅ {message}")
+    
+    def show_warning(self, message: str) -> None:
+        """显示警告"""
+        print(f"⚠️ {message}")
+    
+    def show_error(self, message: str) -> None:
+        """显示错误"""
+        print(f"❌ {message}")
+    
+    def show_key_value(self, data: Dict[str, Any], title: str = "") -> None:
+        """
+        显示键值对信息
+        
+        Args:
+            data: 键值对数据
+            title: 可选标题
+        """
+        if self.quiet_mode:
+            return
+        
+        if title:
+            print(f"\n📋 {title}")
+        
+        # 计算最大键长度
+        max_key_length = max(len(str(key)) for key in data.keys()) if data else 0
+        
+        for key, value in data.items():
+            print(f"  {str(key):<{max_key_length}} | {value}")
+    
+    def show_progress_summary(self, summary: Dict[str, Any]) -> None:
+        """
+        显示进度摘要
+        
+        Args:
+            summary: 进度摘要数据
+        """
+        if self.quiet_mode:
+            return
+        
+        print("\n")
+        summary_text = "📊 安装总结"
+        
+        # 创建摘要内容
+        content_lines = [
+            summary_text,
+            "",
+            f"项目     | 数值    ",
+            "---------------",
+            f"总步骤数   | {summary.get('total_steps', 0):<5}",
+            f"✅ 成功   | {summary.get('completed', 0):<5}",
+            f"❌ 失败   | {summary.get('failed', 0):<5}",
+            f"⏱️ 总用时 | {summary.get('total_time', 0):.1f}秒",
+            f"📈 成功率  | {summary.get('success_rate', 0):.1%} ",
+            "",
+        ]
+        
+        if summary.get('completed', 0) == summary.get('total_steps', 0) and summary.get('failed', 0) == 0:
+            content_lines.append("✅ 🎉 安装成功完成！")
+        elif summary.get('failed', 0) > 0:
+            content_lines.append("❌ 安装过程中有失败项")
+        
+        content = '\n'.join(content_lines)
+        box = self._create_box(content, "double")
+        
+        print(box)
+        print()
     
     def show_menu(self, 
                   title: str, 
@@ -374,6 +564,14 @@ class UserInterface:
             self.show_success("🎉 安装成功完成！")
         else:
             self.show_warning(f"安装过程中有 {summary.get('failed', 0)} 个步骤失败")
+    
+    def cleanup(self):
+        """清理界面 - 与curses版本保持一致的接口"""
+        try:
+            # 在非curses模式下，清屏以保持一致的用户体验
+            self.clear_screen()
+        except:
+            pass  # 忽略清屏时的错误
 
 
 def create_simple_menu(title: str, options: List[str]) -> int:

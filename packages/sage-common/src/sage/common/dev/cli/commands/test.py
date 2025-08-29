@@ -48,7 +48,7 @@ class TestCommand(BaseCommand):
                         'sage-kernel': 'kernel',
                         'sage-middleware': 'middleware', 
                         'sage-common': 'common',
-                        'sage-apps': 'apps'
+                        'sage-libs': 'libs'
                     }
                     return package_mapping.get(package_part, 'common')
         except ValueError:

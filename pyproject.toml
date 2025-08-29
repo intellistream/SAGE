@@ -26,7 +26,7 @@ classifiers = [
 dependencies = [
     "isage-kernel",
     "isage-middleware", 
-    "isage-apps",
+    "isage-libs",
     "isage-common",
 ]
 
@@ -86,7 +86,7 @@ sage-cli = "sage.common.cli.main:app"
 # 核心工具由各自的包提供，这里只是确保环境正确
 # sage-core, sage-dev, sage-server, sage-install 由 sage-common 提供
 # sage-kernel 由 sage-kernel 包提供
-# sage-examples 由 sage-apps 包提供
+# sage-examples 由 sage-libs 包提供
 # sage-jobmanager 由 sage-common 提供
 
 # 企业版和许可证管理工具

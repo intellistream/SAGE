@@ -123,7 +123,7 @@ class BaseTcpClient(ABC):
                 ],
                 "help_url": "https://intellistream.github.io/SAGE-Pub/kernel/jobmanager/"
             },
-            "timestamp": self._get_timestamp()
+            "timestamp": time.time()
         }
     
     def send_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:

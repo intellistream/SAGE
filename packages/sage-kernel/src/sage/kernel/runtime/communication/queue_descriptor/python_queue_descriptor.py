@@ -53,7 +53,12 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
             base_metadata["queue_instance"] = self.queue_instance
         
         return base_metadata
-    
+
+    def clone(self, new_queue_id: Optional[str] = None) -> 'BaseQueueDescriptor':
+        """克隆描述符（不包含队列实例）"""
+        # 创建同类型的新实例
+        return self
+
     @property
     def queue_instance(self) -> Any:
         """获取队列实例，如果未初始化则创建"""
