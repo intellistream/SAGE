@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Issues manager (non-AI helpers) — new _scripts implementation.
-Uses unified `config` and `github_client` from `_scripts/config.py`.
+Issues manager (non-AI helpers)
+Lightweight manager that uses the centralized `_scripts/config.py` config
+and calls helper scripts from `_scripts/helpers/` when available.
 
-Supports actions: statistics, create (best-effort), team, project, update-team
+Supported actions: statistics, create, team, project, update-team
 """
 import sys
 import json
@@ -17,49 +18,142 @@ from config import config
 
 class IssuesManager:
     def __init__(self):
-        # use config paths
         self.workspace_dir = config.workspace_path
         self.output_dir = config.output_path
         self.scripts_dir = Path(__file__).parent
+        self.helpers_dir = self.scripts_dir / 'helpers'
         self.ensure_output_dir()
-
-        # load team info from generated team_config in output if present
         self.team_info = self._load_team_info()
 
+    def ensure_output_dir(self):
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
     def _load_team_info(self):
-        """Try to import generated team_config.py from output dir."""
+        """Try to import generated `team_config.py` from the output directory."""
         try:
             sys.path.insert(0, str(self.output_dir))
             import team_config
             TEAMS = getattr(team_config, 'TEAMS', None)
             get_all_usernames = getattr(team_config, 'get_all_usernames', None)
-            if TEAMS and get_all_usernames:
-                print(f"✅ 已加载团队信息: {len(get_all_usernames())} 位成员")
-                return {
-                    'teams': TEAMS,
-                    'all_usernames': get_all_usernames(),
-                    'team_count': len(TEAMS)
-                }
+            if TEAMS is not None:
+                all_usernames = []
+                if callable(get_all_usernames):
+                    try:
+                        all_usernames = get_all_usernames()
+                    except Exception:
+                        all_usernames = []
+                print(f"✅ 已加载团队信息: {len(all_usernames)} 位成员")
+                return {'teams': TEAMS, 'all_usernames': all_usernames}
         except Exception:
             pass
 
         print("⚠️ 团队信息未找到")
         print("💡 运行以下命令获取团队信息:")
-        print("   python3 _scripts/get_team_members.py")
+        print("   python3 _scripts/helpers/get_team_members.py")
         return None
 
-    def ensure_output_dir(self):
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+    def load_issues(self):
+        """Load issues from workspace directory."""
+        issues_dir = self.workspace_dir / 'issues'
+        if not issues_dir.exists():
+            print(f"❌ Issues目录不存在: {issues_dir}")
+            print("💡 请先运行下载Issues命令:")
+            print("   python3 _scripts/download_issues.py")
+            return []
+
+        issues = []
+        for issue_file in issues_dir.glob('*.md'):
+            try:
+                content = issue_file.read_text(encoding='utf-8')
+                # Parse frontmatter (simplified - no yaml dependency)
+                if content.startswith('---'):
+                    parts = content.split('---', 2)
+                    if len(parts) >= 3:
+                        # Simple frontmatter parsing
+                        frontmatter = parts[1].strip()
+                        body = parts[2].strip()
+                        
+                        # Parse basic fields
+                        metadata = {'body': body}
+                        for line in frontmatter.split('\n'):
+                            if ':' in line:
+                                key, value = line.split(':', 1)
+                                key = key.strip()
+                                value = value.strip()
+                                
+                                # Handle special cases
+                                if key in ['labels', 'assignees'] and value.startswith('['):
+                                    # Simple list parsing
+                                    try:
+                                        import ast
+                                        metadata[key] = ast.literal_eval(value)
+                                    except:
+                                        metadata[key] = []
+                                else:
+                                    metadata[key] = value
+                        
+                        issues.append(metadata)
+                    else:
+                        # No frontmatter
+                        issues.append({'title': issue_file.stem, 'body': content})
+                else:
+                    # No frontmatter
+                    issues.append({'title': issue_file.stem, 'body': content})
+            except Exception as e:
+                print(f"⚠️ 读取issue文件失败: {issue_file.name}: {e}")
+        
+        print(f"✅ 加载了 {len(issues)} 个Issues")
+        return issues
+
+    def _generate_statistics(self, issues):
+        """Generate statistics from issues data."""
+        stats = {
+            'total': len(issues),
+            'open': 0,
+            'closed': 0,
+            'labels': {},
+            'assignees': {},
+            'authors': {}
+        }
+
+        for issue in issues:
+            # Count by state
+            state = issue.get('state', 'open')
+            if state == 'open':
+                stats['open'] += 1
+            else:
+                stats['closed'] += 1
+
+            # Count labels
+            labels = issue.get('labels', [])
+            if isinstance(labels, list):
+                for label in labels:
+                    label_name = label if isinstance(label, str) else label.get('name', 'unknown')
+                    stats['labels'][label_name] = stats['labels'].get(label_name, 0) + 1
+
+            # Count assignees
+            assignees = issue.get('assignees', [])
+            if isinstance(assignees, list):
+                for assignee in assignees:
+                    assignee_name = assignee if isinstance(assignee, str) else assignee.get('login', 'unknown')
+                    stats['assignees'][assignee_name] = stats['assignees'].get(assignee_name, 0) + 1
+
+            # Count authors
+            author = issue.get('user', {})
+            author_name = author.get('login', 'unknown') if isinstance(author, dict) else str(author)
+            stats['authors'][author_name] = stats['authors'].get(author_name, 0) + 1
+
+        return stats
 
     def show_statistics(self):
+        """显示Issues统计信息"""
         print("📊 显示Issues统计信息...")
         issues = self.load_issues()
         if not issues:
-            print("❌ 未找到Issues数据")
             return False
 
         stats = self._generate_statistics(issues)
-
+        
         print(f"\n📈 Issues统计报告")
         print("=" * 40)
         print(f"总Issues数: {stats['total']}")
@@ -72,303 +166,123 @@ class IssuesManager:
                 print(f"  - {label}: {count}")
 
         if stats['assignees']:
-            print(f"\n👤 分配情况:")
+            print(f"\n👤 分配情况 (前10):")
             for assignee, count in sorted(stats['assignees'].items(), key=lambda x: x[1], reverse=True)[:10]:
                 print(f"  - {assignee}: {count}")
 
-        report_file = self.output_dir / f"statistics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
-        self._save_statistics_report(stats, report_file)
+        if stats['authors']:
+            print(f"\n✍️ 作者分布 (前10):")
+            for author, count in sorted(stats['authors'].items(), key=lambda x: x[1], reverse=True)[:10]:
+                print(f"  - {author}: {count}")
+
+        # Save detailed report
+        report_file = self.output_dir / f"statistics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        with open(report_file, 'w', encoding='utf-8') as f:
+            json.dump(stats, f, indent=2, ensure_ascii=False)
         print(f"\n📄 详细报告已保存到: {report_file}")
         return True
 
     def create_new_issue(self):
-        print("✨ 创建新Issue... (如果存在新实现，将调用 _scripts/create_issue.py)")
-        # prefer new script if exists
-        new_script = self.scripts_dir / 'create_issue.py'
-        if new_script.exists():
-            r = subprocess.run([sys.executable, str(new_script)], capture_output=True, text=True)
-            #!/usr/bin/env python3
-            """Issues manager (non-AI helpers)
+        """创建新Issue"""
+        print("✨ 创建新Issue...")
+        # Check if helper script exists
+        helper_script = self.helpers_dir / 'create_issue.py'
+        if helper_script.exists():
+            print("🔄 调用创建Issue助手...")
+            result = subprocess.run([sys.executable, str(helper_script)], 
+                                  capture_output=False, text=True)
+            return result.returncode == 0
+        else:
+            print("⚠️ 创建Issue助手不存在")
+            print("📝 请手动创建Issue或实现create_issue.py助手")
+            return True
 
-            Lightweight manager that uses the centralized `_scripts/config.py` config
-            and calls helper scripts from `_scripts/helpers/` when available.
+    def team_analysis(self):
+        """团队分析"""
+        print("👥 团队分析...")
+        if not self.team_info:
+            print("❌ 没有团队信息，无法进行分析")
+            return False
 
-            Supported actions: statistics, create, team, project, update-team
-            """
-            import sys
-            import json
-            import subprocess
-            import argparse
-            from datetime import datetime
-            from pathlib import Path
+        # Check if helper script exists
+        helper_script = self.helpers_dir / 'get_team_members.py'
+        if helper_script.exists():
+            print("🔄 调用团队分析助手...")
+            result = subprocess.run([sys.executable, str(helper_script)], 
+                                  capture_output=False, text=True)
+            return result.returncode == 0
+        else:
+            print("📊 基本团队信息:")
+            teams = self.team_info.get('teams', {})
+            for team_name, members in teams.items():
+                print(f"  - {team_name}: {len(members)} 成员")
+            return True
 
-            from config import config
+    def project_management(self):
+        """项目管理"""
+        print("📋 项目管理...")
+        # Check if helper script exists
+        helper_script = self.helpers_dir / 'project_manage.py'
+        if helper_script.exists():
+            print("🔄 调用项目管理助手...")
+            print("可用选项:")
+            print("  --scan-unassigned: 扫描未分配项目的Issues")
+            print("  --scan-all: 扫描所有Issues")
+            print("  --apply: 实际执行操作")
+            print("  --limit N: 限制处理数量")
+            
+            # Run with basic scan
+            result = subprocess.run([sys.executable, str(helper_script), '--scan-unassigned', '--limit', '5'], 
+                                  capture_output=False, text=True)
+            return result.returncode == 0
+        else:
+            print("⚠️ 项目管理助手不存在")
+            print("📝 请实现project_manage.py助手")
+            return True
 
-
-            class IssuesManager:
-                def __init__(self):
-                    self.workspace_dir = config.workspace_path
-                    self.output_dir = config.output_path
-                    self.scripts_dir = Path(__file__).parent
-                    self.helpers_dir = self.scripts_dir / 'helpers'
-                    self.ensure_output_dir()
-                    self.team_info = self._load_team_info()
-
-                def ensure_output_dir(self):
-                    self.output_dir.mkdir(parents=True, exist_ok=True)
-
-                def _load_team_info(self):
-                    """Try to import generated `team_config.py` from the output directory."""
-                    try:
-                        sys.path.insert(0, str(self.output_dir))
-                        import team_config
-                        TEAMS = getattr(team_config, 'TEAMS', None)
-                        get_all_usernames = getattr(team_config, 'get_all_usernames', None)
-                        get_team_usernames = getattr(team_config, 'get_team_usernames', None)
-                        if TEAMS is not None:
-                            all_usernames = []
-                            if callable(get_all_usernames):
-                                try:
-                                    all_usernames = get_all_usernames()
-                                except Exception:
-                                    all_usernames = []
-                            return {'teams': TEAMS, 'all_usernames': all_usernames}
-                    except Exception:
-                        pass
-
-                    # fallback: no team info
-                    return None
-
-                def show_statistics(self):
-                    issues = self.load_issues()
-                    if not issues:
-                        print("❌ 未找到Issues数据")
-                        return False
-
-                    stats = self._generate_statistics(issues)
-                    print("\n📈 Issues统计报告")
-                    print("=" * 40)
-                    print(f"总Issues数: {stats['total']}")
-                    print(f"开放Issues: {stats['open']}")
-                    print(f"已关闭Issues: {stats['closed']}")
-
-                    report_file = self.output_dir / f"statistics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
-                    self._save_statistics_report(stats, report_file)
-                    print(f"📄 详细报告已保存到: {report_file}")
-                    return True
-
-                def create_new_issue(self):
-                    # try helper first
-                    script = self.helpers_dir / 'create_issue.py'
-                    if script.exists():
-                        return self._run_script(script)
-
-                    # fallback to legacy helper if present
-                    legacy = Path(__file__).parent.parent / '_scripts_legacy' / 'helpers' / '1_create_github_issue.py'
-                    if legacy.exists():
-                        return self._run_script(legacy)
-
-                    print("❌ 创建Issue脚本未找到")
-                    return False
-
-                def project_management(self):
-                    script = self.helpers_dir / 'project_manage.py'
-                    if script.exists():
-                        return self._run_script(script)
-
-                    legacy = Path(__file__).parent.parent / '_scripts_legacy' / 'helpers' / '6_move_issues_to_project.py'
-                    if legacy.exists():
-                        return self._run_script(legacy)
-
-                    print("❌ 项目管理脚本未找到")
-                    return False
-
-                def update_team_info(self):
-                    script = self.helpers_dir / 'get_team_members.py'
-                    if script.exists():
-                        ok = self._run_script(script)
-                        # reload team info after run
-                        self.team_info = self._load_team_info()
-                        return ok
-
-                    # fallback message
-                    print("❌ 团队信息获取脚本未找到 (expected _scripts/helpers/get_team_members.py)")
-                    return False
-
-                def _run_script(self, path: Path):
-                    try:
-                        r = subprocess.run([sys.executable, str(path)], capture_output=True, text=True)
-                        if r.stdout:
-                            print(r.stdout)
-                        if r.stderr:
-                            print(f"⚠️ 脚本错误输出: {r.stderr}")
-                        return r.returncode == 0
-                    except Exception as e:
-                        print(f"❌ 无法执行脚本 {path}: {e}")
-                        return False
-
-                def team_analysis(self):
-                    if not self.team_info:
-                        print("❌ 团队信息未加载，请先运行 --action=update-team")
-                        return False
-
-                    issues = self.load_issues()
-                    if not issues:
-                        print("❌ 未找到Issues数据")
-                        return False
-
-                    team_stats = self._analyze_by_team(issues)
-                    report_file = self.output_dir / f"team_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
-                    self._save_team_report(team_stats, report_file)
-                    print(f"📄 团队分析报告已保存到: {report_file}")
-                    return True
-
-                def load_issues(self):
-                    issues_dir = self.workspace_dir / 'issues'
-                    if not issues_dir.exists():
-                        # try to fall back to any saved JSON
-                        alt = self.output_dir / 'github_issues.json'
-                        if alt.exists():
-                            try:
-                                return json.loads(alt.read_text(encoding='utf-8'))
-                            except Exception:
-                                return []
-                        return []
-
-                    issues = []
-                    for md in issues_dir.glob('*.md'):
-                        parsed = self._parse_issue_markdown(md)
-                        if parsed:
-                            issues.append(parsed)
-                    return issues
-
-                def _parse_issue_markdown(self, md_file: Path):
-                    try:
-                        text = md_file.read_text(encoding='utf-8')
-                        lines = text.splitlines()
-                        title = lines[0].lstrip('# ').strip() if lines else ''
-                        issue = {'title': title, 'filename': md_file.name, 'content': text, 'labels': [], 'assignee': None}
-                        for i, line in enumerate(lines):
-                            if line.startswith('## 标签') and i + 1 < len(lines):
-                                v = lines[i+1].strip()
-                                if v:
-                                    issue['labels'] = [{'name': s.strip()} for s in v.split(',')]
-                            if line.startswith('## 分配者') and i + 1 < len(lines):
-                                v = lines[i+1].strip()
-                                if v and v != '无':
-                                    issue['assignee'] = {'login': v}
-                        # very small heuristic for open/closed based on filename
-                        issue['state'] = 'open' if 'open_' in md_file.name or 'open' in md_file.name else 'closed'
-                        return issue
-                    except Exception as e:
-                        print(f"❌ 解析文件失败 {md_file}: {e}")
-                        return None
-
-                def _generate_statistics(self, issues):
-                    stats = {'total': len(issues), 'open': 0, 'closed': 0, 'labels': {}, 'assignees': {}}
-                    for issue in issues:
-                        state = issue.get('state')
-                        if state == 'open':
-                            stats['open'] += 1
-                        else:
-                            stats['closed'] += 1
-                        for label in issue.get('labels', []):
-                            name = label if isinstance(label, str) else label.get('name', 'unknown')
-                            stats['labels'][name] = stats['labels'].get(name, 0) + 1
-                        assignee = issue.get('assignee')
-                        if assignee:
-                            an = assignee if isinstance(assignee, str) else assignee.get('login', 'unknown')
-                            stats['assignees'][an] = stats['assignees'].get(an, 0) + 1
-                        else:
-                            stats['assignees']['未分配'] = stats['assignees'].get('未分配', 0) + 1
-                    return stats
-
-                def _analyze_by_team(self, issues):
-                    if not self.team_info:
-                        return {}
-                    team_stats = {}
-                    teams = self.team_info.get('teams', {})
-                    for slug, info in teams.items():
-                        members = [m.get('username') for m in info.get('members', [])]
-                        ts = {'total': 0, 'open': 0, 'closed': 0, 'members': members}
-                        for issue in issues:
-                            assignee = issue.get('assignee')
-                            if assignee:
-                                an = assignee if isinstance(assignee, str) else assignee.get('login')
-                                if an in members:
-                                    ts['total'] += 1
-                                    if issue.get('state') == 'open':
-                                        ts['open'] += 1
-                                    else:
-                                        ts['closed'] += 1
-                        team_stats[slug] = ts
-                    return team_stats
-
-                def _save_statistics_report(self, stats, report_file: Path):
-                    content = f"""# Issues统计报告
-
-            **生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-
-            ## 总体统计
-
-            - **总Issues数**: {stats['total']}
-            - **开放Issues**: {stats['open']}
-            - **已关闭Issues**: {stats['closed']}
-
-            ## 标签分布
-
-            """
-                    for label, count in sorted(stats['labels'].items(), key=lambda x: x[1], reverse=True):
-                        content += f"- **{label}**: {count} 次使用\n"
-                    content += "\n## 分配情况\n\n"
-                    for assignee, count in sorted(stats['assignees'].items(), key=lambda x: x[1], reverse=True):
-                        content += f"- **{assignee}**: {count} 个Issues\n"
-                    report_file.write_text(content, encoding='utf-8')
-
-                def _save_team_report(self, team_stats, report_file: Path):
-                    content = f"""# 团队Issues分析报告
-
-            **生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-
-            ## 团队概况
-
-            """
-                    for slug, stats in team_stats.items():
-                        team_data = self.team_info['teams'].get(slug, {})
-                        content += f"### {team_data.get('name', slug)}\n\n"
-                        content += f"- **描述**: {team_data.get('description', '无描述')}\n"
-                        content += f"- **成员数**: {len(stats.get('members', []))}\n"
-                        content += f"- **Issues总数**: {stats.get('total', 0)}\n"
-                        content += f"- **开放Issues**: {stats.get('open', 0)}\n"
-                        content += f"- **已关闭Issues**: {stats.get('closed', 0)}\n"
-                        content += f"- **成员**: {', '.join(stats.get('members', []))}\n\n"
-                    report_file.write_text(content, encoding='utf-8')
+    def update_team_info(self):
+        """更新团队信息"""
+        print("🔄 更新团队信息...")
+        helper_script = self.helpers_dir / 'get_team_members.py'
+        if helper_script.exists():
+            result = subprocess.run([sys.executable, str(helper_script)], 
+                                  capture_output=False, text=True)
+            if result.returncode == 0:
+                # Reload team info
+                self.team_info = self._load_team_info()
+                return True
+            return False
+        else:
+            print("❌ get_team_members.py助手不存在")
+            return False
 
 
-            def main():
-                parser = argparse.ArgumentParser(description="Issues管理工具 - 非AI功能")
-                parser.add_argument("--action", choices=["statistics", "create", "team", "project", "update-team"], required=True)
-                args = parser.parse_args()
+def main():
+    parser = argparse.ArgumentParser(description="Issues管理工具 - 非AI功能")
+    parser.add_argument("--action", choices=["statistics", "create", "team", "project", "update-team"], 
+                       required=True, help="要执行的操作")
+    args = parser.parse_args()
 
-                manager = IssuesManager()
-                success = False
-                if args.action == "statistics":
-                    success = manager.show_statistics()
-                elif args.action == "create":
-                    success = manager.create_new_issue()
-                elif args.action == "team":
-                    success = manager.team_analysis()
-                elif args.action == "project":
-                    success = manager.project_management()
-                elif args.action == "update-team":
-                    success = manager.update_team_info()
+    manager = IssuesManager()
+    success = False
+    
+    if args.action == "statistics":
+        success = manager.show_statistics()
+    elif args.action == "create":
+        success = manager.create_new_issue()
+    elif args.action == "team":
+        success = manager.team_analysis()
+    elif args.action == "project":
+        success = manager.project_management()
+    elif args.action == "update-team":
+        success = manager.update_team_info()
 
-                if success:
-                    print("🎉 操作完成！")
-                else:
-                    print("💥 操作失败！")
-                    sys.exit(1)
+    if success:
+        print("\n🎉 操作完成！")
+    else:
+        print("\n💥 操作失败！")
+        sys.exit(1)
 
 
-            if __name__ == '__main__':
-                main()
+if __name__ == '__main__':
+    main()
