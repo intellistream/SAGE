@@ -123,8 +123,8 @@ show_main_menu() {
     echo ""
     echo -e "${BLUE}核心功能:${NC}"
     echo ""
-    echo -e "  1. 📥 下载远端Issues"
-    echo -e "  2. 📝 手动管理Issues"
+    echo -e "  1. 📝 手动管理Issues"
+    echo -e "  2. 📥 下载远端Issues"
     echo -e "  3. 🤖 AI智能整理Issues" 
     echo -e "  4. 📤 上传Issues到远端"
     echo ""
@@ -288,17 +288,15 @@ issues_management_menu() {
         echo "=================="
         echo ""
         echo "  1. 📊 查看Issues统计和分析"
-        echo "  2. 📋 项目管理"
-        echo "  3. 🗂️ 自动归档已完成Issues"
-        echo "  4. 返回主菜单"
+        echo "  2. 🗂️ 自动归档已完成Issues"
+        echo "  3. 返回主菜单"
         echo ""
-        read -p "请选择 (1-4): " choice
+        read -p "请选择 (1-3): " choice
         
         case $choice in
             1) show_issues_statistics ;;
-            2) project_management ;;
-            3) archive_completed_issues ;;
-            4) break ;;
+            2) archive_completed_issues ;;
+            3) break ;;
             *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
         esac
     done
@@ -624,181 +622,6 @@ archive_completed_issues() {
     read -p "按Enter键继续..."
 }
 
-project_management() {
-    echo "📋 项目管理..."
-    echo ""
-    echo "🎯 项目移动选项:"
-    echo "=================="
-    echo "  1. 🔍 扫描所有仓库Issues (生成并可选执行移动计划)"
-    echo "  2. 📦 扫描组织项目#6 (清理项目中的Issues分配)"
-    echo "  3. 返回"
-    echo ""
-    
-    read -p "请选择操作 (1-2): " project_choice
-    
-    case $project_choice in
-        1)
-            echo ""
-            echo "🔍 扫描所有仓库Issues模式"
-            echo "=========================="
-            echo "此模式会扫描 https://github.com/intellistream/SAGE/issues 中的所有Issues"
-            echo "根据作者的团队归属来建议项目分配"
-            echo ""
-            
-            read -p "🔢 请输入要处理的Issues数量 (0表示全部处理): " limit_count
-            
-            # 验证输入
-            if ! [[ "$limit_count" =~ ^[0-9]+$ ]]; then
-                echo "❌ 请输入有效的数字"
-                return 1
-            fi
-            
-            echo ""
-            echo "🚀 开始扫描所有仓库Issues..."
-            echo "============================"
-            
-            cd "$SCRIPT_DIR/_scripts/helpers"
-            
-            # 构建命令 - 只扫描，不执行
-            if [ "$limit_count" = "0" ]; then
-                echo "📋 处理模式: 扫描全部Issues"
-                plan_output=$(python3 project_manage.py --scan-all)
-            else
-                echo "📋 处理模式: 扫描前 $limit_count 个Issues"
-                plan_output=$(python3 project_manage.py --scan-all --limit $limit_count)
-            fi
-            
-            scan_result=$?
-            echo "$plan_output"
-            
-            if [ $scan_result -eq 0 ]; then
-                # 提取计划文件路径
-                plan_file=$(echo "$plan_output" | grep "计划已写入:" | sed 's/.*计划已写入: \([^ ]*\).*/\1/')
-                
-                if [ -n "$plan_file" ] && [ -f "$plan_file" ]; then
-                    echo ""
-                    echo "✅ 仓库Issues扫描完成！移动计划已生成。"
-                    echo ""
-                    echo "🤔 是否要立即执行移动计划？"
-                    echo "   ⚠️  警告: 这将实际修改GitHub上的项目分配"
-                    echo ""
-                    read -p "确认执行？ (y/N): " confirm_apply
-                    
-                    if [[ "$confirm_apply" =~ ^[Yy]$ ]]; then
-                        echo ""
-                        echo "⚡ 执行移动计划..."
-                        echo "=================="
-                        
-                        # 使用保存的计划文件执行，避免重新扫描
-                        python3 project_manage.py --load-plan "$plan_file"
-                        
-                        apply_result=$?
-                        if [ $apply_result -eq 0 ]; then
-                            echo ""
-                            echo "🎉 移动计划执行完成！"
-                        else
-                            echo ""
-                            echo "❌ 移动计划执行失败，请检查错误信息"
-                        fi
-                    else
-                        echo ""
-                        echo "📋 移动计划已保存: $plan_file"
-                        echo "💡 稍后可运行: python3 project_manage.py --load-plan \"$plan_file\""
-                    fi
-                else
-                    echo "❌ 无法找到生成的计划文件"
-                fi
-            else
-                echo "❌ 扫描失败，请检查错误信息"
-            fi
-            ;;
-        2)
-            echo ""
-            echo "📦 扫描组织项目#6模式"
-            echo "===================="
-            echo "此模式只扫描已在组织项目#6中的Issues"
-            echo "主要用于清理 https://github.com/orgs/intellistream/projects/6"
-            echo ""
-            
-            read -p "🔢 请输入要处理的Issues数量 (0表示全部处理): " limit_count
-            
-            # 验证输入
-            if ! [[ "$limit_count" =~ ^[0-9]+$ ]]; then
-                echo "❌ 请输入有效的数字"
-                return 1
-            fi
-            
-            echo ""
-            echo "🚀 开始扫描组织项目#6..."
-            echo "======================"
-            
-            cd "$SCRIPT_DIR/_scripts/helpers"
-            
-            # 使用项目模式（默认）- 只扫描，不执行
-            if [ "$limit_count" = "0" ]; then
-                echo "📋 处理模式: 扫描项目中全部Issues"
-                plan_output=$(python3 project_manage.py --scan-project)
-            else
-                echo "📋 处理模式: 扫描项目中前 $limit_count 个Issues"
-                plan_output=$(python3 project_manage.py --scan-project --limit $limit_count)
-            fi
-            
-            scan_result=$?
-            echo "$plan_output"
-            
-            if [ $scan_result -eq 0 ]; then
-                # 提取计划文件路径
-                plan_file=$(echo "$plan_output" | grep "计划已写入:" | sed 's/.*计划已写入: \([^ ]*\).*/\1/')
-                
-                if [ -n "$plan_file" ] && [ -f "$plan_file" ]; then
-                    echo ""
-                    echo "✅ 项目Issues扫描完成！移动计划已生成。"
-                    echo ""
-                    echo "🤔 是否要立即执行移动计划？"
-                    echo "   ⚠️  警告: 这将实际修改GitHub上的项目分配"
-                    echo ""
-                    read -p "确认执行？ (y/N): " confirm_apply
-                    
-                    if [[ "$confirm_apply" =~ ^[Yy]$ ]]; then
-                        echo ""
-                        echo "⚡ 执行移动计划..."
-                        echo "=================="
-                        
-                        # 使用保存的计划文件执行，避免重新扫描
-                        python3 project_manage.py --load-plan "$plan_file"
-                        
-                        apply_result=$?
-                        if [ $apply_result -eq 0 ]; then
-                            echo ""
-                            echo "🎉 移动计划执行完成！"
-                        else
-                            echo ""
-                            echo "❌ 移动计划执行失败，请检查错误信息"
-                        fi
-                    else
-                        echo ""
-                        echo "📋 移动计划已保存: $plan_file"
-                        echo "💡 稍后可运行: python3 project_manage.py --load-plan \"$plan_file\""
-                    fi
-                else
-                    echo "❌ 无法找到生成的计划文件"
-                fi
-            else
-                echo "❌ 扫描失败，请检查错误信息"
-            fi
-            ;;
-        3)
-            return
-            ;;
-        *)
-            echo "❌ 无效选择，请输入1-2"
-            ;;
-    esac
-    
-    echo ""
-    read -p "按Enter键继续..."
-}
-
 # 启动时检查GitHub Token
 # 检查是否首次使用
 echo -e "${CYAN}正在初始化SAGE Issues管理工具...${NC}"
@@ -837,10 +660,10 @@ while true; do
     
     case $choice in
         1) 
-            download_menu
+            issues_management_menu
             ;;
         2) 
-            issues_management_menu
+            download_menu
             ;;
         3) 
             ai_menu
