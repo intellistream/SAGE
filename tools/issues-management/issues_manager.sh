@@ -162,26 +162,96 @@ download_menu() {
 }
 
 ai_menu() {
+    # 首先检查是否有本地数据
+    local has_local_data=false
+    if [ -d "$SCRIPT_DIR/issues_workspace/issues" ] && [ "$(ls -A $SCRIPT_DIR/issues_workspace/issues 2>/dev/null)" ]; then
+        has_local_data=true
+    fi
+    
     while true; do
         clear
-        echo -e "${BLUE}🤖 AI智能整理Issues${NC}"
-        echo "======================"
+        echo -e "${BLUE}🤖 Copilot Issues分析助手${NC}"
+        echo "============================="
         echo ""
-        echo "  1. AI分析重复Issues"
-        echo "  2. AI优化标签分类"
-        echo "  3. AI评估优先级"
-        echo "  4. AI综合分析报告"
-        echo "  5. 返回主菜单"
+        
+        if [ "$has_local_data" = true ]; then
+            echo -e "${GREEN}✅ 检测到本地Issues数据 - 可生成Copilot分析文档${NC}"
+        else
+            echo -e "${YELLOW}⚠️ 未检测到本地Issues数据，请先下载Issues${NC}"
+        fi
+        
         echo ""
-        read -p "请选择 (1-5): " choice
+        echo -e "${CYAN}⏰ 请选择时间范围:${NC}"
+        echo "  1. � 全部open issues"
+        echo "  2. � 近一周的open issues"  
+        echo "  3. �️ 近一个月的open issues"
+        echo ""
+        echo "  4. 📖 查看使用指南"
+        
+        if [ "$has_local_data" = false ]; then
+            echo ""
+            echo -e "${CYAN}  d. 📥 前往下载Issues数据${NC}"
+        fi
+        
+        echo "  9. 返回主菜单"
+        echo ""
+        
+        if [ "$has_local_data" = true ]; then
+            read -p "请选择时间范围 (1-4, 9): " choice
+        else
+            read -p "请选择 (1-4, d, 9): " choice
+        fi
         
         case $choice in
-            1) ai_analyze_duplicates ;;
-            2) ai_optimize_labels ;;
-            3) ai_evaluate_priority ;;
-            4) ai_comprehensive_analysis ;;
-            5) break ;;
-            *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
+            1) 
+                if [ "$has_local_data" = true ]; then
+                    copilot_time_range_menu "all"
+                else
+                    echo -e "${RED}❌ 需要先下载Issues数据${NC}"
+                    sleep 1
+                fi
+                ;;
+            2) 
+                if [ "$has_local_data" = true ]; then
+                    copilot_time_range_menu "week"
+                else
+                    echo -e "${RED}❌ 需要先下载Issues数据${NC}"
+                    sleep 1
+                fi
+                ;;
+            3) 
+                if [ "$has_local_data" = true ]; then
+                    copilot_time_range_menu "month"
+                else
+                    echo -e "${RED}❌ 需要先下载Issues数据${NC}"
+                    sleep 1
+                fi
+                ;;
+            4)
+                copilot_show_usage_guide
+                ;;
+            d|D)
+                if [ "$has_local_data" = false ]; then
+                    echo ""
+                    echo "🔄 跳转到下载菜单..."
+                    sleep 1
+                    download_menu
+                    # 重新检查数据状态
+                    if [ -d "$SCRIPT_DIR/issues_workspace/issues" ] && [ "$(ls -A $SCRIPT_DIR/issues_workspace/issues 2>/dev/null)" ]; then
+                        has_local_data=true
+                    fi
+                else
+                    echo -e "${RED}❌ 无效选择${NC}"
+                    sleep 1
+                fi
+                ;;
+            9) 
+                break 
+                ;;
+            *) 
+                echo -e "${RED}❌ 无效选择${NC}"
+                sleep 1 
+                ;;
         esac
     done
 }
@@ -219,18 +289,14 @@ issues_management_menu() {
         echo ""
         echo "  1. 📊 查看Issues统计和分析"
         echo "  2. 📋 项目管理"
-        echo "  3. 🏷️ 标签管理"
-        echo "  4. 🔍 搜索和过滤Issues"
-        echo "  5. 返回主菜单"
+        echo "  3. 返回主菜单"
         echo ""
-        read -p "请选择 (1-5): " choice
+        read -p "请选择 (1-3): " choice
         
         case $choice in
             1) show_issues_statistics ;;
             2) project_management ;;
-            3) label_management ;;
-            4) search_and_filter ;;
-            5) break ;;
+            3) break ;;
             *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
         esac
     done
@@ -258,32 +324,210 @@ download_closed_issues() {
     read -p "按Enter键继续..."
 }
 
-# AI功能实现
-ai_analyze_duplicates() {
-    echo "🤖 AI分析重复Issues..."
+# Copilot Issues分析功能实现
+copilot_time_range_menu() {
+    local time_filter="$1"
+    local time_desc=""
+    
+    case "$time_filter" in
+        "all") time_desc="全部" ;;
+        "week") time_desc="近一周" ;;
+        "month") time_desc="近一个月" ;;
+        *) time_desc="未知" ;;
+    esac
+    
+    while true; do
+        clear
+        echo -e "${BLUE}🤖 Copilot分析 - $time_desc 的Open Issues${NC}"
+        echo "==========================================="
+        echo ""
+        echo -e "${CYAN}📊 按团队分组生成分析文档:${NC}"
+        echo "  1. 🎯 生成综合分析文档 (所有团队概况)"
+        echo "  2. 👥 生成所有团队详细文档"
+        echo "  3. 📋 生成未分配Issues文档"
+        echo "  4. 🔄 生成完整分析包 (推荐)"
+        echo ""
+        echo -e "${CYAN}🏷️ 按单个团队生成:${NC}"
+        echo "  5. 📱 SAGE Apps团队文档"
+        echo "  6. ⚙️ SAGE Kernel团队文档"
+        echo "  7. 🔧 SAGE Middleware团队文档"
+        echo ""
+        echo "  8. 返回时间选择"
+        echo ""
+        read -p "请选择 (1-8): " choice
+        
+        case $choice in
+            1) copilot_generate_comprehensive "$time_filter" ;;
+            2) copilot_generate_teams "$time_filter" ;;
+            3) copilot_generate_unassigned "$time_filter" ;;
+            4) copilot_generate_all "$time_filter" ;;
+            5) copilot_generate_single_team "sage-apps" "$time_filter" ;;
+            6) copilot_generate_single_team "sage-kernel" "$time_filter" ;;
+            7) copilot_generate_single_team "sage-middleware" "$time_filter" ;;
+            8) break ;;
+            *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
+copilot_generate_comprehensive() {
+    local time_filter="${1:-all}"
+    local time_desc=""
+    
+    case "$time_filter" in
+        "all") time_desc="全部" ;;
+        "week") time_desc="近一周" ;;
+        "month") time_desc="近一个月" ;;
+    esac
+    
+    echo "🎯 生成综合分析文档 ($time_desc)..."
     cd "$SCRIPT_DIR"
-    python3 _scripts/ai_analyzer.py --mode=duplicates
+    python3 _scripts/copilot_issue_formatter.py --format=comprehensive --time="$time_filter"
+    echo ""
+    echo "✅ 综合分析文档已生成 (时间范围: $time_desc)"
+    echo "💡 请将生成的文档内容复制到Copilot聊天窗口进行分析"
     read -p "按Enter键继续..."
 }
 
-ai_optimize_labels() {
-    echo "🤖 AI优化标签分类..."
+copilot_generate_teams() {
+    local time_filter="${1:-all}"
+    local time_desc=""
+    
+    case "$time_filter" in
+        "all") time_desc="全部" ;;
+        "week") time_desc="近一周" ;;
+        "month") time_desc="近一个月" ;;
+    esac
+    
+    echo "👥 生成所有团队详细文档 ($time_desc)..."
     cd "$SCRIPT_DIR"
-    python3 _scripts/ai_analyzer.py --mode=labels
+    python3 _scripts/copilot_issue_formatter.py --format=teams --time="$time_filter"
+    echo ""
+    echo "✅ 团队详细文档已生成 (时间范围: $time_desc)"
+    echo "💡 可分别将各团队文档复制到Copilot进行针对性分析"
     read -p "按Enter键继续..."
 }
 
-ai_evaluate_priority() {
-    echo "🤖 AI评估优先级..."
+copilot_generate_unassigned() {
+    local time_filter="${1:-all}"
+    local time_desc=""
+    
+    case "$time_filter" in
+        "all") time_desc="全部" ;;
+        "week") time_desc="近一周" ;;
+        "month") time_desc="近一个月" ;;
+    esac
+    
+    echo "📋 生成未分配Issues文档 ($time_desc)..."
     cd "$SCRIPT_DIR"
-    python3 _scripts/ai_analyzer.py --mode=priority
+    python3 _scripts/copilot_issue_formatter.py --format=unassigned --time="$time_filter"
+    echo ""
+    echo "✅ 未分配Issues文档已生成 (时间范围: $time_desc)"
+    echo "💡 将文档内容给Copilot分析如何分配这些Issues"
     read -p "按Enter键继续..."
 }
 
-ai_comprehensive_analysis() {
-    echo "🤖 AI综合分析报告..."
+copilot_generate_all() {
+    local time_filter="${1:-all}"
+    local time_desc=""
+    
+    case "$time_filter" in
+        "all") time_desc="全部" ;;
+        "week") time_desc="近一周" ;;
+        "month") time_desc="近一个月" ;;
+    esac
+    
+    echo "🔄 生成完整分析包 ($time_desc)..."
     cd "$SCRIPT_DIR"
-    python3 _scripts/ai_analyzer.py --mode=comprehensive
+    python3 _scripts/copilot_issue_formatter.py --format=all --time="$time_filter"
+    echo ""
+    echo "✅ 完整分析包已生成，包括："
+    echo "   - 综合分析文档 (时间范围: $time_desc)"
+    echo "   - 各团队详细文档"
+    echo "   - 未分配Issues文档"
+    echo "   - 使用指南"
+    echo ""
+    echo "💡 建议先从综合分析文档开始，再深入到具体团队"
+    read -p "按Enter键继续..."
+}
+
+copilot_generate_single_team() {
+    local team_name="$1"
+    local time_filter="${2:-all}"
+    local team_display_name=""
+    local time_desc=""
+    
+    case "$team_name" in
+        "sage-apps") team_display_name="SAGE Apps" ;;
+        "sage-kernel") team_display_name="SAGE Kernel" ;;
+        "sage-middleware") team_display_name="SAGE Middleware" ;;
+        *) team_display_name="$team_name" ;;
+    esac
+    
+    case "$time_filter" in
+        "all") time_desc="全部" ;;
+        "week") time_desc="近一周" ;;
+        "month") time_desc="近一个月" ;;
+    esac
+    
+    echo "📱 生成 $team_display_name 团队文档 ($time_desc)..."
+    cd "$SCRIPT_DIR"
+    python3 _scripts/copilot_issue_formatter.py --team="$team_name" --time="$time_filter"
+    echo ""
+    echo "✅ $team_display_name 团队文档已生成 (时间范围: $time_desc)"
+    echo "💡 将文档内容给Copilot分析该团队的具体情况和建议"
+    read -p "按Enter键继续..."
+}
+
+copilot_show_usage_guide() {
+    echo "📖 Copilot使用指南"
+    echo "=================="
+    echo ""
+    echo "🎯 使用流程："
+    echo "1. 选择时间范围（全部/近一周/近一个月）"
+    echo "2. 生成分析文档（选择分析类型）"
+    echo "3. 打开VS Code Copilot聊天窗口"
+    echo "4. 复制生成的文档内容到聊天窗口"
+    echo "5. 向Copilot提出具体的分析问题"
+    echo ""
+    echo "⏰ 时间范围选项："
+    echo "   - 全部: 所有open状态的issues"
+    echo "   - 近一周: 最近7天创建的open issues"
+    echo "   - 近一个月: 最近30天创建的open issues"
+    echo ""
+    echo "🤖 推荐的Copilot分析问题："
+    echo ""
+    echo "优先级分析："
+    echo "   '请分析这些open issues，识别需要立即处理的高优先级问题'"
+    echo ""
+    echo "工作负载分析："
+    echo "   '分析各团队的工作负载分布，是否存在不均衡？'"
+    echo ""
+    echo "问题分类："
+    echo "   '将这些issues按类型分类并建议标签优化方案'"
+    echo ""
+    echo "重复性分析："
+    echo "   '识别是否存在重复或相似的issues，哪些可以合并？'"
+    echo ""
+    echo "依赖关系："
+    echo "   '分析issues之间的依赖关系，建议处理顺序'"
+    echo ""
+    echo "流程改进："
+    echo "   '基于这些issues状态，建议项目管理改进方案'"
+    echo ""
+    echo "时间趋势分析："
+    echo "   '分析近期issues的创建趋势和类型变化'"
+    echo ""
+    echo "📁 文档位置: $SCRIPT_DIR/output/"
+    echo "   查看最新生成的以 'copilot_' 开头的文档"
+    echo "   文档名包含时间范围标识: _week 或 _month"
+    echo ""
+    echo "💡 提示："
+    echo "   - 可以同时分析多个团队的文档"
+    echo "   - 根据Copilot建议制定具体行动计划"
+    echo "   - 定期重新生成文档跟踪进度"
+    echo "   - 使用时间过滤关注最新的问题"
+    echo ""
     read -p "按Enter键继续..."
 }
 
@@ -322,140 +566,6 @@ show_issues_statistics() {
     cd "$SCRIPT_DIR"
     python3 _scripts/issues_manager.py --action=statistics
     read -p "按Enter键继续..."
-}
-
-label_management() {
-    echo "🏷️ 标签管理..."
-    
-    # 定义标签目录路径
-    local label_dir="$SCRIPT_DIR/issues_workspace/labels"
-    
-    # 显示标签统计 - 使用Python脚本获取准确统计
-    echo ""
-    echo "📊 当前标签分布:"
-    echo "=================="
-    
-    # 调用Python脚本获取最新的标签统计
-    cd "$SCRIPT_DIR"
-    python3 -c "
-import sys
-sys.path.insert(0, '.')
-from issues_manager import SageIssuesManager
-
-manager = SageIssuesManager()
-manager._load_issues()
-stats = manager._generate_statistics()
-
-print('从Issues内容统计的标签分布:')
-if stats['labels']:
-    # 排序并显示所有标签
-    sorted_labels = sorted(stats['labels'].items(), key=lambda x: x[1], reverse=True)
-    for label, count in sorted_labels:
-        if label != '未分配':  # 跳过未分配
-            print(f'  {label:<25}: {count:>3d} issues')
-    
-    total_labeled = sum(count for label, count in stats['labels'].items() if label != '未分配')
-    unlabeled = stats['labels'].get('未分配', 0)
-    print(f'')
-    print(f'  📊 总计: {total_labeled} 个已标记, {unlabeled} 个未标记')
-else:
-    print('  ❌ 没有找到标签信息')
-" 2>/dev/null || {
-        echo "❌ 无法加载标签统计，请确保Issues数据已下载"
-    }
-    
-    echo ""
-    echo "🛠️ 标签管理选项:"
-    echo "=================="
-    echo "  1. 📁 打开标签目录 (文件浏览器)"
-    echo "  2. 🔍 查看特定标签的Issues"
-    echo "  3. 📝 编辑Issue标签"
-    echo "  4. 📊 导出标签报告"
-    echo "  5. 🔄 刷新标签分类"
-    echo "  6. 返回"
-    echo ""
-    
-    read -p "请选择操作 (1-6): " label_choice
-    
-    case $label_choice in
-        1)
-            if command -v xdg-open >/dev/null 2>&1; then
-                echo "📁 正在打开标签目录..."
-                xdg-open "$label_dir" 2>/dev/null &
-            elif command -v open >/dev/null 2>&1; then
-                echo "📁 正在打开标签目录..."
-                open "$label_dir" 2>/dev/null &
-            else
-                echo "📁 标签目录路径: $label_dir"
-                echo "请手动在文件浏览器中打开此目录"
-            fi
-            ;;
-        2)
-            echo ""
-            echo "可用标签:"
-            select label_name in $(ls "$label_dir" 2>/dev/null); do
-                if [ -n "$label_name" ]; then
-                    echo ""
-                    echo "🏷️ 标签 '$label_name' 下的Issues:"
-                    echo "====================================="
-                    find "$label_dir/$label_name" -name "*.md" 2>/dev/null | head -10 | while read issue_file; do
-                        issue_name=$(basename "$issue_file" .md)
-                        echo "  - $issue_name"
-                    done
-                    echo ""
-                    break
-                else
-                    echo "❌ 无效选择"
-                fi
-            done
-            ;;
-        3)
-            echo "📝 Issue标签编辑功能"
-            echo "💡 提示: 可以直接编辑 issues_workspace/issues/ 目录下的.md文件"
-            echo "      修改文件开头的标签字段，然后运行刷新命令"
-            ;;
-        4)
-            echo "📊 正在生成标签报告..."
-            report_file="$SCRIPT_DIR/output/label_report_$(date +%Y%m%d_%H%M%S).md"
-            mkdir -p "$SCRIPT_DIR/output"
-            
-            echo "# 标签分布报告" > "$report_file"
-            echo "" >> "$report_file"
-            echo "生成时间: $(date)" >> "$report_file"
-            echo "" >> "$report_file"
-            echo "## 标签统计" >> "$report_file"
-            echo "" >> "$report_file"
-            
-            for label_folder in "$label_dir"/*; do
-                if [ -d "$label_folder" ]; then
-                    label_name=$(basename "$label_folder")
-                    count=$(find "$label_folder" -name "*.md" 2>/dev/null | wc -l)
-                    echo "- **$label_name**: $count issues" >> "$report_file"
-                fi
-            done
-            
-            echo ""
-            echo "✅ 报告已生成: $report_file"
-            ;;
-        5)
-            echo "🔄 正在刷新标签分类..."
-            cd "$SCRIPT_DIR"
-            if [ -f "_scripts/download_issues.py" ]; then
-                python3 _scripts/download_issues.py --refresh-labels-only 2>/dev/null || \
-                echo "⚠️ 标签刷新需要实现 --refresh-labels-only 选项"
-            else
-                echo "⚠️ 需要重新运行下载脚本来刷新标签分类"
-            fi
-            ;;
-        6|*)
-            echo "返回上级菜单..."
-            ;;
-    esac
-    
-    if [ "$label_choice" != "6" ] && [ -n "$label_choice" ]; then
-        echo ""
-        read -p "按Enter键继续..."
-    fi
 }
 
 project_management() {
@@ -631,165 +741,6 @@ project_management() {
     
     echo ""
     read -p "按Enter键继续..."
-}
-
-search_and_filter() {
-    echo "🔍 搜索和过滤Issues..."
-    echo ""
-    echo "📁 Issues目录结构:"
-    echo "=================="
-    echo "  - issues_workspace/issues/     (所有issue文件)"
-    echo "  - issues_workspace/metadata/   (元数据信息)"
-    echo ""
-    echo "🛠️ 搜索选项:"
-    echo "============"
-    echo "  1. 🔤 按关键词搜索标题"
-    echo "  2. 🏷️ 按标签筛选"
-    echo "  3. 👤 按作者筛选"
-    echo "  4. 📅 按状态筛选"
-    echo "  5. 📊 显示搜索统计"
-    echo "  6. 💻 打开VS Code搜索"
-    echo "  7. 返回"
-    echo ""
-    
-    read -p "请选择搜索方式 (1-7): " search_choice
-    
-    case $search_choice in
-        1)
-            echo ""
-            read -p "🔤 请输入搜索关键词: " keyword
-            if [ -n "$keyword" ]; then
-                echo ""
-                echo "🔍 搜索结果 (标题包含 '$keyword'):"
-                echo "=================================="
-                grep -l -i "$keyword" "$SCRIPT_DIR/issues_workspace/issues/"*.md 2>/dev/null | head -20 | while read file; do
-                    filename=$(basename "$file" .md)
-                    echo "  - $filename"
-                done | head -20
-                echo ""
-                echo "💡 提示: 显示前20个结果，完整搜索请使用VS Code"
-            fi
-            ;;
-        2)
-            echo ""
-            echo "🏷️ 输入要查看的标签名称："
-            read -p "标签名: " label
-            if [ -n "$label" ]; then
-                echo ""
-                echo "🏷️ 包含标签 '$label' 的Issues:"
-                echo "=========================="
-                cd "$SCRIPT_DIR"
-                python3 -c "
-import sys
-sys.path.insert(0, '.')
-from issues_manager import SageIssuesManager
-
-manager = SageIssuesManager()
-manager._load_issues()
-
-label_query = '$label'.lower()
-found_issues = []
-
-for issue in manager.issues:
-    labels = issue.get('labels', [])
-    if any(label_query in label.lower() for label in labels):
-        found_issues.append(issue)
-
-if found_issues:
-    print(f'找到 {len(found_issues)} 个包含标签 \"$label\" 的Issues:')
-    for issue in found_issues[:10]:  # 限制显示前10个
-        print(f'  Issue #{issue.get(\"number\", \"N/A\")}: {issue.get(\"title\", \"无标题\")}')
-    if len(found_issues) > 10:
-        print(f'  ... 还有 {len(found_issues) - 10} 个Issues未显示')
-else:
-    print(f'未找到包含标签 \"$label\" 的Issues')
-" 2>/dev/null || echo "❌ 查询失败"
-            else
-                echo "❌ 请输入标签名称"
-            fi
-            ;;
-        3)
-            echo ""
-            read -p "👤 请输入作者用户名: " author
-            if [ -n "$author" ]; then
-                echo ""
-                echo "👤 作者 '$author' 的Issues:"
-                echo "========================"
-                grep -l "author.*$author" "$SCRIPT_DIR/issues_workspace/issues/"*.md 2>/dev/null | head -20 | while read file; do
-                    filename=$(basename "$file" .md)
-                    echo "  - $filename"
-                done
-            fi
-            ;;
-        4)
-            echo ""
-            echo "📅 按状态筛选:"
-            echo "  1. 开放状态 (open)"
-            echo "  2. 已关闭 (closed)"
-            echo ""
-            read -p "请选择状态 (1-2): " status_choice
-            
-            case $status_choice in
-                1) status="open" ;;
-                2) status="closed" ;;
-                *) echo "❌ 无效选择"; return ;;
-            esac
-            
-            echo ""
-            echo "📅 状态为 '$status' 的Issues:"
-            echo "=========================="
-            if [ "$status" = "open" ]; then
-                find "$SCRIPT_DIR/issues_workspace/issues/" -name "open_*.md" 2>/dev/null | head -20 | while read file; do
-                    filename=$(basename "$file" .md)
-                    echo "  - $filename"
-                done
-            else
-                find "$SCRIPT_DIR/issues_workspace/issues/" -name "closed_*.md" 2>/dev/null | head -20 | while read file; do
-                    filename=$(basename "$file" .md)
-                    echo "  - $filename"
-                done
-            fi
-            ;;
-        5)
-            echo ""
-            echo "📊 Issues统计信息:"
-            echo "=================="
-            total_issues=$(find "$SCRIPT_DIR/issues_workspace/issues/" -name "*.md" 2>/dev/null | wc -l)
-            open_issues=$(find "$SCRIPT_DIR/issues_workspace/issues/" -name "open_*.md" 2>/dev/null | wc -l)
-            closed_issues=$(find "$SCRIPT_DIR/issues_workspace/issues/" -name "closed_*.md" 2>/dev/null | wc -l)
-            
-            echo "  总Issues数量: $total_issues"
-            echo "  开放Issues: $open_issues"
-            echo "  已关闭Issues: $closed_issues"
-            echo ""
-            echo "📁 目录大小:"
-            if command -v du >/dev/null 2>&1; then
-                du -sh "$SCRIPT_DIR/issues_workspace" 2>/dev/null || echo "  无法计算目录大小"
-            fi
-            ;;
-        6)
-            echo ""
-            echo "💻 正在尝试打开VS Code..."
-            if command -v code >/dev/null 2>&1; then
-                echo "🚀 在VS Code中打开Issues工作区..."
-                code "$SCRIPT_DIR/issues_workspace" 2>/dev/null &
-                echo "✅ VS Code已启动，您可以使用 Ctrl+Shift+F 进行全局搜索"
-            else
-                echo "❌ VS Code未安装或不在PATH中"
-                echo "💡 建议安装VS Code进行高级搜索和编辑"
-                echo "📁 工作区目录: $SCRIPT_DIR/issues_workspace"
-            fi
-            ;;
-        7|*)
-            echo "返回上级菜单..."
-            return
-            ;;
-    esac
-    
-    if [ "$search_choice" != "7" ] && [ -n "$search_choice" ]; then
-        echo ""
-        read -p "按Enter键继续..."
-    fi
 }
 
 # 启动时检查GitHub Token
