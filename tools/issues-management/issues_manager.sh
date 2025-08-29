@@ -21,9 +21,14 @@ check_github_token() {
     
     # 检查环境变量
     if [ -n "$GITHUB_TOKEN" ]; then
-        return 0
-    fi
-    
+        return 0    echo "📋 项目管理..."
+    echo ""
+    echo "🎯 项目管理选项:"
+    echo "=================="
+    echo "  1. 🔍 扫描所有仓库Issues并生成移动计划"
+    echo "  2. 📦 扫描组织项目#6中的Issues并生成移动计划"
+    echo "  3. 返回"
+    echo ""   
     # 检查token文件
     if [ -f "$token_file" ]; then
         return 0
