@@ -21,9 +21,16 @@ check_github_token() {
     
     # 检查环境变量
     if [ -n "$GITHUB_TOKEN" ]; then
-        return 0
-    fi
+        return 0    echo "📋 项目管理..."
+    echo ""
+    echo "🎯 项目管理选项:"
+    echo "=================="
+    echo "  1. 🔍 扫描所有仓库Issues并生成移动计划"
+    echo "  2. 📦 扫描组织项目#6中的Issues并生成移动计划"
+    echo "  3. 返回"
+    echo ""
     
+    read -p "请选择操作 (1-3): " project_choice 
     # 检查token文件
     if [ -f "$token_file" ]; then
         return 0
@@ -217,24 +224,16 @@ issues_management_menu() {
         echo -e "${BLUE}📝 手动管理Issues${NC}"
         echo "=================="
         echo ""
-        echo "  1. 📊 查看Issues统计"
-        echo "  2. 🏷️ 标签管理"
-        echo "  3. 👥 团队分析"
-        echo "  4. ✨ 创建新Issue"
-        echo "  5. 📋 项目管理"
-        echo "  6. 🔍 搜索和过滤"
-        echo "  7. 返回主菜单"
+        echo "  1. 📊 查看Issues统计和分析"
+        echo "  2. 📋 项目管理"
+        echo "  3. 返回主菜单"
         echo ""
-        read -p "请选择 (1-7): " choice
+        read -p "请选择 (1-3): " choice
         
         case $choice in
             1) show_issues_statistics ;;
-            2) label_management ;;
-            3) team_analysis ;;
-            4) create_new_issue ;;
-            5) project_management ;;
-            6) search_and_filter ;;
-            7) break ;;
+            2) project_management ;;
+            3) break ;;
             *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
         esac
     done
@@ -484,12 +483,15 @@ project_management() {
     echo "  4. 返回"
     echo ""
     
-    read -p "请选择操作 (1-4): " project_choice
+    read -p "请选择操作 (1-3): " project_choice
     
     case $project_choice in
         1)
             echo ""
-            echo "⚙️ 配置扫描参数:"
+            echo "🔍 扫描所有仓库Issues模式"
+            echo "=========================="
+            echo "此模式会扫描 https://github.com/intellistream/SAGE/issues 中的所有Issues"
+            echo "根据作者的团队归属来建议项目分配"
             echo ""
             
             read -p "🔢 请输入要处理的Issues数量 (0表示全部处理): " limit_count
@@ -501,25 +503,25 @@ project_management() {
             fi
             
             echo ""
-            echo "🚀 开始生成移动计划..."
-            echo "=========================="
+            echo "🚀 开始扫描所有仓库Issues..."
+            echo "============================"
             
             cd "$SCRIPT_DIR/_scripts/helpers"
             
             # 构建命令
             if [ "$limit_count" = "0" ]; then
                 echo "📋 处理模式: 扫描全部Issues"
-                python3 project_manage.py
+                python3 project_manage.py --scan-all
             else
                 echo "📋 处理模式: 扫描前 $limit_count 个Issues"
-                python3 project_manage.py --limit $limit_count
+                python3 project_manage.py --scan-all --limit $limit_count
             fi
             
             scan_result=$?
             echo ""
             
             if [ $scan_result -eq 0 ]; then
-                echo "✅ 移动计划生成完成！"
+                echo "✅ 仓库Issues扫描完成！移动计划已生成。"
                 echo ""
                 echo "🤔 是否要立即执行移动计划？"
                 echo "   ⚠️  警告: 这将实际修改GitHub上的项目分配"
@@ -532,9 +534,9 @@ project_management() {
                     echo "=================="
                     
                     if [ "$limit_count" = "0" ]; then
-                        python3 project_manage.py --apply
+                        python3 project_manage.py --scan-all --apply
                     else
-                        python3 project_manage.py --apply --limit $limit_count
+                        python3 project_manage.py --scan-all --apply --limit $limit_count
                     fi
                     
                     apply_result=$?
@@ -547,79 +549,82 @@ project_management() {
                     fi
                 else
                     echo ""
-                    echo "📋 移动计划已保存，可稍后使用选项3手动执行"
+                    echo "📋 移动计划已保存，以供后续查看"
                 fi
             else
-                echo "❌ 计划生成失败，请检查错误信息"
+                echo "❌ 扫描失败，请检查错误信息"
             fi
             ;;
         2)
             echo ""
-            echo "📋 查看已有的移动计划..."
-            echo "=========================="
+            echo "📦 扫描组织项目#6模式"
+            echo "===================="
+            echo "此模式只扫描已在组织项目#6中的Issues"
+            echo "主要用于清理 https://github.com/orgs/intellistream/projects/6"
+            echo ""
             
-            plan_dir="$SCRIPT_DIR/output"
-            if [ -d "$plan_dir" ]; then
-                echo "📁 计划文件目录: $plan_dir"
+            read -p "🔢 请输入要处理的Issues数量 (0表示全部处理): " limit_count
+            
+            # 验证输入
+            if ! [[ "$limit_count" =~ ^[0-9]+$ ]]; then
+                echo "❌ 请输入有效的数字"
+                return 1
+            fi
+            
+            echo ""
+            echo "🚀 开始扫描组织项目#6..."
+            echo "======================"
+            
+            cd "$SCRIPT_DIR/_scripts/helpers"
+            
+            # 使用项目模式（默认）
+            if [ "$limit_count" = "0" ]; then
+                echo "📋 处理模式: 扫描项目中全部Issues"
+                python3 project_manage.py --scan-project
+            else
+                echo "📋 处理模式: 扫描项目中前 $limit_count 个Issues"
+                python3 project_manage.py --scan-project --limit $limit_count
+            fi
+            
+            scan_result=$?
+            echo ""
+            
+            if [ $scan_result -eq 0 ]; then
+                echo "✅ 项目Issues扫描完成！移动计划已生成。"
                 echo ""
+                echo "🤔 是否要立即执行移动计划？"
+                echo "   ⚠️  警告: 这将实际修改GitHub上的项目分配"
+                echo ""
+                read -p "确认执行？ (y/N): " confirm_apply
                 
-                # 查找最近的计划文件
-                latest_plan=$(find "$plan_dir" -name "project_move_plan_*.json" -type f -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -1 | cut -d' ' -f2-)
-                
-                if [ -n "$latest_plan" ]; then
-                    echo "📄 最新计划文件: $(basename "$latest_plan")"
-                    echo "🕒 修改时间: $(stat -c '%y' "$latest_plan" 2>/dev/null | cut -d'.' -f1)"
+                if [[ "$confirm_apply" =~ ^[Yy]$ ]]; then
                     echo ""
+                    echo "⚡ 执行移动计划..."
+                    echo "=================="
                     
-                    # 显示计划摘要
-                    if command -v jq >/dev/null 2>&1; then
-                        echo "📊 计划摘要:"
-                        echo "============"
-                        jq -r '.summary // "无摘要信息"' "$latest_plan" 2>/dev/null || echo "无法解析计划摘要"
+                    if [ "$limit_count" = "0" ]; then
+                        python3 project_manage.py --scan-project --apply
                     else
-                        echo "💡 安装 jq 工具可查看详细计划内容"
+                        python3 project_manage.py --scan-project --apply --limit $limit_count
                     fi
                     
-                    echo ""
-                    echo "📁 所有计划文件:"
-                    ls -la "$plan_dir"/project_move_plan_*.json 2>/dev/null | tail -5
+                    apply_result=$?
+                    if [ $apply_result -eq 0 ]; then
+                        echo ""
+                        echo "🎉 移动计划执行完成！"
+                    else
+                        echo ""
+                        echo "❌ 移动计划执行失败，请检查错误信息"
+                    fi
                 else
-                    echo "📭 没有找到移动计划文件"
+                    echo ""
+                    echo "📋 移动计划已保存，以供后续查看"
                 fi
             else
-                echo "📭 输出目录不存在，还没有生成过计划"
+                echo "❌ 扫描失败，请检查错误信息"
             fi
             ;;
         3)
-            echo ""
-            echo "⚡ 执行移动计划..."
-            echo "=================="
-            
-            echo "⚠️  警告: 这将实际修改GitHub上的项目分配"
-            echo ""
-            read -p "确认要执行最新的移动计划？ (y/N): " confirm_execute
-            
-            if [[ "$confirm_execute" =~ ^[Yy]$ ]]; then
-                echo ""
-                echo "🚀 正在执行最新计划..."
-                cd "$SCRIPT_DIR/_scripts/helpers"
-                
-                python3 project_manage.py --apply
-                
-                execute_result=$?
-                if [ $execute_result -eq 0 ]; then
-                    echo ""
-                    echo "🎉 移动计划执行完成！"
-                else
-                    echo ""
-                    echo "❌ 移动计划执行失败，请检查错误信息"
-                fi
-            else
-                echo ""
-                echo "📋 取消执行"
-            fi
-            ;;
-        4)
             return
             ;;
         *)
