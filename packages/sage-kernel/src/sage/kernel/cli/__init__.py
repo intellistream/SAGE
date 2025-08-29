@@ -1,3 +1,0 @@
-"""
-SAGE Kernel CLI Module
-"""

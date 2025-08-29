@@ -15,18 +15,50 @@ logger = logging.getLogger(__name__)
 class SubmoduleManager:
     """Git子模块管理器"""
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, ui=None):
         """
         初始化子模块管理器
         
         Args:
             project_root: SAGE项目根目录
+            ui: 用户界面对象，用于显示详细操作信息
         """
         self.project_root = Path(project_root)
-        self.git_executable = self._find_git_executable()
+        self.ui = ui
+        self.git_executable = None  # 延迟查找git可执行文件
         
-    def _find_git_executable(self) -> str:
-        """查找git可执行文件"""
+    def _show_info(self, message: str):
+        """显示信息到UI界面"""
+        if self.ui:
+            self.ui.show_info(message)
+        logger.info(message)
+        
+    def _show_success(self, message: str):
+        """显示成功信息到UI界面"""
+        if self.ui:
+            self.ui.show_success(message)
+        logger.info(message)
+        
+    def _show_error(self, message: str):
+        """显示错误信息到UI界面"""
+        if self.ui:
+            self.ui.show_error(message)
+        logger.error(message)
+        
+    def _show_warning(self, message: str):
+        """显示警告信息到UI界面"""
+        if self.ui:
+            self.ui.show_warning(message)
+        logger.warning(message)
+        
+    def _find_git_executable(self, show_search_info: bool = True) -> str:
+        """查找git可执行文件
+        
+        Args:
+            show_search_info: 是否显示搜索信息
+        """
+        if show_search_info:
+            self._show_info("🔍 检查Git可执行文件...")
         try:
             result = subprocess.run(
                 ["git", "--version"],
@@ -35,17 +67,38 @@ class SubmoduleManager:
                 timeout=10
             )
             if result.returncode == 0:
+                version_info = result.stdout.strip()
+                if show_search_info:
+                    self._show_success(f"✅ 找到Git: {version_info}")
                 return "git"
         except (subprocess.TimeoutExpired, FileNotFoundError):
+            if show_search_info:
+                self._show_error("❌ Git命令不可用")
             pass
         
+        if show_search_info:
+            self._show_error("❌ 未找到git命令，请先安装Git")
         raise RuntimeError("❌ 未找到git命令，请先安装Git")
+    
+    def _ensure_git_executable(self, show_search_info: bool = False) -> str:
+        """确保git可执行文件已找到
+        
+        Args:
+            show_search_info: 是否显示搜索信息
+            
+        Returns:
+            git可执行文件路径
+        """
+        if self.git_executable is None:
+            self.git_executable = self._find_git_executable(show_search_info)
+        return self.git_executable
     
     def is_git_repository(self) -> bool:
         """检查是否为Git仓库"""
         try:
+            git_cmd = self._ensure_git_executable()
             result = subprocess.run(
-                [self.git_executable, "rev-parse", "--git-dir"],
+                [git_cmd, "rev-parse", "--git-dir"],
                 cwd=self.project_root,
                 capture_output=True,
                 text=True
@@ -66,8 +119,9 @@ class SubmoduleManager:
             return {}
         
         try:
+            git_cmd = self._ensure_git_executable()
             result = subprocess.run(
-                [self.git_executable, "submodule", "status"],
+                [git_cmd, "submodule", "status"],
                 cwd=self.project_root,
                 capture_output=True,
                 text=True,

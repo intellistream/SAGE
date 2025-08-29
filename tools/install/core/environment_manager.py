@@ -15,19 +15,52 @@ logger = logging.getLogger(__name__)
 class EnvironmentManager:
     """Conda环境管理器"""
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, ui=None):
         """
         初始化环境管理器
         
         Args:
             project_root: SAGE项目根目录
+            ui: 用户界面对象，用于显示详细信息
         """
         self.project_root = Path(project_root)
-        self.conda_executable = self._find_conda_executable()
+        self.ui = ui
+        self.conda_executable = None  # 延迟查找conda可执行文件
         
-    def _find_conda_executable(self) -> str:
-        """查找conda可执行文件"""
+    def _show_info(self, message: str):
+        """显示信息到UI界面"""
+        if self.ui:
+            self.ui.show_info(message)
+        logger.info(message)
+        
+    def _show_success(self, message: str):
+        """显示成功信息到UI界面"""
+        if self.ui:
+            self.ui.show_success(message)
+        logger.info(message)
+        
+    def _show_error(self, message: str):
+        """显示错误信息到UI界面"""
+        if self.ui:
+            self.ui.show_error(message)
+        logger.error(message)
+        
+    def _show_warning(self, message: str):
+        """显示警告信息到UI界面"""
+        if self.ui:
+            self.ui.show_warning(message)
+        logger.warning(message)
+        
+    def _find_conda_executable(self, show_search_info: bool = True) -> str:
+        """查找conda可执行文件
+        
+        Args:
+            show_search_info: 是否显示搜索信息
+        """
         conda_paths = ["conda", "mamba", "micromamba"]
+        
+        if show_search_info:
+            self._show_info("🔍 搜索conda包管理器...")
         
         for conda_cmd in conda_paths:
             try:
@@ -38,18 +71,42 @@ class EnvironmentManager:
                     timeout=10
                 )
                 if result.returncode == 0:
-                    logger.info(f"Found conda executable: {conda_cmd}")
+                    version_info = result.stdout.strip()
+                    if show_search_info:
+                        self._show_success(f"✅ 找到 {conda_cmd}: {version_info}")
                     return conda_cmd
+                else:
+                    if show_search_info:
+                        self._show_info(f"❌ {conda_cmd} 不可用")
             except (subprocess.TimeoutExpired, FileNotFoundError):
+                if show_search_info:
+                    self._show_info(f"❌ {conda_cmd} 未找到")
                 continue
                 
+        if show_search_info:
+            self._show_error("❌ 未找到conda/mamba/micromamba，请先安装conda")
         raise RuntimeError("❌ 未找到conda/mamba/micromamba，请先安装conda")
+    
+    def _ensure_conda_executable(self, show_search_info: bool = False) -> str:
+        """确保conda可执行文件已找到
+        
+        Args:
+            show_search_info: 是否显示搜索信息
+            
+        Returns:
+            conda可执行文件路径
+        """
+        if self.conda_executable is None:
+            self.conda_executable = self._find_conda_executable(show_search_info)
+        return self.conda_executable
     
     def list_environments(self) -> List[str]:
         """列出所有conda环境"""
         try:
+            self._show_info("📋 获取conda环境列表...")
+            conda_cmd = self._ensure_conda_executable(show_search_info=False)  # 不显示搜索信息
             result = subprocess.run(
-                [self.conda_executable, "env", "list", "--json"],
+                [conda_cmd, "env", "list", "--json"],
                 capture_output=True,
                 text=True,
                 check=True
@@ -63,16 +120,23 @@ class EnvironmentManager:
                 env_name = Path(env_path).name
                 if env_name != "base":  # 排除base环境
                     env_names.append(env_name)
+                    self._show_info(f"   找到环境: {env_name}")
                     
+            self._show_info(f"   共发现 {len(env_names)} 个非base环境")
             return env_names
             
         except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to list environments: {e}")
+            self._show_error(f"❌ 获取环境列表失败: {e}")
             return []
     
     def environment_exists(self, env_name: str) -> bool:
         """检查环境是否存在"""
-        return env_name in self.list_environments()
+        exists = env_name in self.list_environments()
+        if exists:
+            self._show_info(f"✅ 环境 {env_name} 已存在")
+        else:
+            self._show_info(f"❌ 环境 {env_name} 不存在")
+        return exists
     
     def create_environment(self, env_name: str, python_version: str = "3.11") -> bool:
         """
@@ -86,28 +150,54 @@ class EnvironmentManager:
             创建是否成功
         """
         try:
-            logger.info(f"🚀 创建conda环境: {env_name} (Python {python_version})")
+            conda_cmd = self._ensure_conda_executable(show_search_info=True)  # 在创建环境时显示搜索信息
+            self._show_info(f"🚀 开始创建conda环境: {env_name}")
+            self._show_info(f"   📋 Python版本: {python_version}")
+            self._show_info(f"   🔧 使用工具: {conda_cmd}")
             
             cmd = [
-                self.conda_executable, "create",
+                conda_cmd, "create",
                 "-n", env_name,
                 f"python={python_version}",
-                "-y"
+                "-y", "-v"
             ]
             
-            result = subprocess.run(
+            self._show_info(f"   🔄 执行命令: {' '.join(cmd)}")
+            
+            # 实时显示conda输出
+            process = subprocess.Popen(
                 cmd,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True,
-                check=True
+                universal_newlines=True,
+                bufsize=1
             )
             
-            logger.info(f"✅ 环境 {env_name} 创建成功")
-            return True
+            while True:
+                output = process.stdout.readline()
+                if output == '' and process.poll() is not None:
+                    break
+                if output:
+                    line = output.strip()
+                    if line:
+                        # 过滤并显示有用的conda输出
+                        if any(keyword in line.lower() for keyword in ['collecting', 'downloading', 'extracting', 'preparing', 'executing', 'done']):
+                            self._show_info(f"   conda: {line}")
+                        elif 'error' in line.lower() or 'failed' in line.lower():
+                            self._show_error(f"   conda错误: {line}")
             
-        except subprocess.CalledProcessError as e:
-            logger.error(f"❌ 环境创建失败: {e}")
-            logger.error(f"错误输出: {e.stderr}")
+            return_code = process.poll()
+            
+            if return_code == 0:
+                self._show_success(f"✅ 环境 {env_name} 创建成功")
+                return True
+            else:
+                self._show_error(f"❌ 环境创建失败，退出码: {return_code}")
+                return False
+            
+        except Exception as e:
+            self._show_error(f"❌ 环境创建过程中发生异常: {e}")
             return False
     
     def activate_environment(self, env_name: str) -> Dict[str, str]:
@@ -122,8 +212,9 @@ class EnvironmentManager:
         """
         try:
             # 获取环境路径
+            conda_cmd = self._ensure_conda_executable(show_search_info=False)  # 不显示搜索信息
             result = subprocess.run(
-                [self.conda_executable, "info", "--envs", "--json"],
+                [conda_cmd, "info", "--envs", "--json"],
                 capture_output=True,
                 text=True,
                 check=True
@@ -170,8 +261,9 @@ class EnvironmentManager:
         try:
             logger.info(f"🗑️ 删除conda环境: {env_name}")
             
+            conda_cmd = self._ensure_conda_executable(show_search_info=False)  # 不显示搜索信息
             cmd = [
-                self.conda_executable, "env", "remove",
+                conda_cmd, "env", "remove",
                 "-n", env_name,
                 "-y"
             ]
@@ -219,8 +311,9 @@ class EnvironmentManager:
                 info["python_version"] = version_line.replace("Python ", "")
             
             # 获取已安装包列表
+            conda_cmd = self._ensure_conda_executable(show_search_info=False)  # 不显示搜索信息
             result = subprocess.run(
-                [self.conda_executable, "list", "-n", env_name, "--json"],
+                [conda_cmd, "list", "-n", env_name, "--json"],
                 capture_output=True,
                 text=True
             )

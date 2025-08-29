@@ -1,13 +1,14 @@
-from sage.core.factory.function_factory import FunctionFactory
+
 from sage.kernel import TaskContext
 from .base_operator import BaseOperator
 from sage.core.api.function.map_function import MapFunction
 import time
 import os
 import json
-from typing import Union, Any
+from typing import Union, Any, TYPE_CHECKING
 from sage.core.communication.packet import Packet
-
+if TYPE_CHECKING:
+    from sage.core.factory.function_factory import FunctionFactory
 
 class MapOperator(BaseOperator):
     def __init__(self, function_factory: 'FunctionFactory', ctx: 'TaskContext', enable_profile=False, *args, **kwargs):

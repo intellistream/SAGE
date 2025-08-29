@@ -15,7 +15,7 @@
 -e packages/sage-common[full]
 -e packages/sage-kernel[enterprise]
 -e packages/sage-middleware[enterprise] 
--e packages/sage-apps[enterprise]
+-e packages/sage-libs[enterprise]
 
 # === 验证 ===
 # python tools/license/sage_license.py status

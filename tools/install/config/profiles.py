@@ -19,7 +19,7 @@ class InstallationProfile:
     install_submodules: bool
     environment_suffix: str = ""
     additional_config: Dict[str, Any] = None
-    
+    local_packages = SAGE_PACKAGES
     def __post_init__(self):
         if self.additional_config is None:
             self.additional_config = {}
@@ -31,11 +31,13 @@ INSTALLATION_PROFILES = {
         name="快速安装",
         description="仅安装核心SAGE包，适合快速体验和测试",
         python_version=DEFAULT_PYTHON_VERSION,
-        packages=SAGE_PACKAGES,
+        packages=[],  # 使用requirements文件
         conda_packages=[],
+        
         install_submodules=False,
         environment_suffix="quick",
         additional_config={
+            "use_requirements": "requirements.txt",  # 快速安装使用精简的requirements
             "skip_optional_deps": True,
             "minimal_validation": True
         }
@@ -45,18 +47,12 @@ INSTALLATION_PROFILES = {
         name="标准安装",
         description="推荐的标准安装，包含SAGE核心包和常用科学计算库",
         python_version=DEFAULT_PYTHON_VERSION,
-        packages=[
-            *SAGE_PACKAGES,
-            "numpy>=1.21.0",
-            "pandas>=1.3.0", 
-            "matplotlib>=3.4.0",
-            "scipy>=1.7.0",
-            "jupyter>=1.0.0"
-        ],
-        conda_packages=["numpy", "pandas", "matplotlib", "scipy", "jupyter"],
+        packages=[],  # 使用requirements文件
+        conda_packages=[],  # 基础包由conda环境创建时安装
         install_submodules=True,
         environment_suffix="standard",
         additional_config={
+            "use_requirements": "requirements-dev.txt",  # 标准安装也使用开发环境，保证功能完整
             "install_jupyter_extensions": True,
             "setup_ipython_profile": True
         }
@@ -66,31 +62,12 @@ INSTALLATION_PROFILES = {
         name="开发环境",
         description="完整的开发环境，包含所有依赖、开发工具和测试框架",
         python_version=DEFAULT_PYTHON_VERSION,
-        packages=[
-            *SAGE_PACKAGES,
-            "numpy>=1.21.0",
-            "pandas>=1.3.0",
-            "matplotlib>=3.4.0", 
-            "scipy>=1.7.0",
-            "scikit-learn>=1.0.0",
-            "jupyter>=1.0.0",
-            "ipykernel>=6.0.0",
-            "pytest>=6.0.0",
-            "pytest-cov>=2.12.0",
-            "black>=21.0.0",
-            "flake8>=3.9.0",
-            "mypy>=0.910",
-            "pre-commit>=2.15.0",
-            "sphinx>=4.0.0",
-            "sphinx-rtd-theme>=0.5.0"
-        ],
-        conda_packages=[
-            "numpy", "pandas", "matplotlib", "scipy", "scikit-learn", 
-            "jupyter", "pytest", "black", "flake8"
-        ],
+        packages=[],  # 使用requirements文件
+        conda_packages=[],  # 基础包由conda环境创建时安装
         install_submodules=True,
         environment_suffix="dev",
         additional_config={
+            "use_requirements": "requirements-dev.txt",
             "install_dev_tools": True,
             "setup_pre_commit": True,
             "install_jupyter_extensions": True,
@@ -101,13 +78,14 @@ INSTALLATION_PROFILES = {
     
     "minimal": InstallationProfile(
         name="最小安装",
-        description="最小化安装，仅包含必需的核心组件",
+        description="只安装必需的核心包",
         python_version=DEFAULT_PYTHON_VERSION,
-        packages=["sage", "sage-common"],
+        packages=[],  # 使用requirements文件，不从PyPI安装
         conda_packages=[],
         install_submodules=False,
         environment_suffix="minimal",
         additional_config={
+            "use_requirements": "requirements.txt",
             "skip_optional_deps": True,
             "minimal_validation": True,
             "skip_jupyter": True
@@ -119,7 +97,6 @@ INSTALLATION_PROFILES = {
         description="面向科研工作的安装配置，包含数据科学和机器学习工具",
         python_version=DEFAULT_PYTHON_VERSION,
         packages=[
-            *SAGE_PACKAGES,
             "numpy>=1.21.0",
             "pandas>=1.3.0",
             "matplotlib>=3.4.0",
@@ -139,6 +116,7 @@ INSTALLATION_PROFILES = {
             "numpy", "pandas", "matplotlib", "scipy", "scikit-learn",
             "seaborn", "jupyter", "jupyterlab", "statsmodels", "networkx"
         ],
+        
         install_submodules=True,
         environment_suffix="research",
         additional_config={
@@ -152,20 +130,12 @@ INSTALLATION_PROFILES = {
         name="生产环境",
         description="生产环境安装，优化性能和稳定性",
         python_version=DEFAULT_PYTHON_VERSION,
-        packages=[
-            *SAGE_PACKAGES,
-            "numpy>=1.21.0",
-            "pandas>=1.3.0",
-            "fastapi>=0.70.0",
-            "uvicorn>=0.15.0",
-            "gunicorn>=20.1.0",
-            "redis>=3.5.0",
-            "psycopg2-binary>=2.9.0"
-        ],
-        conda_packages=["numpy", "pandas"],
+        packages=[],  # 使用requirements文件
+        conda_packages=[],
         install_submodules=True,
         environment_suffix="prod",
         additional_config={
+            "use_requirements": "requirements.txt",  # 生产环境使用精简的requirements
             "optimize_for_production": True,
             "skip_dev_tools": True,
             "skip_jupyter": True,

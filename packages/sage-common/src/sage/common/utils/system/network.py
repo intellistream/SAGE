@@ -5,7 +5,7 @@ System-level network operations independent of any specific class context.
 These utilities provide reusable functions for port management, network checks,
 and TCP communication operations.
 """
-
+import psutil
 import socket
 import subprocess
 import time
@@ -104,16 +104,16 @@ def wait_for_port_release(host: str, port: int, timeout: int = 10, check_interva
     return False
 
 
-def find_port_processes(port: int) -> List[int]:
+def find_port_processes(port: int) -> List[psutil.Process]:
     """
-    查找占用指定端口的进程ID列表
+    查找占用指定端口的进程列表
     使用多种方法确保找到所有相关进程
     
     Args:
         port: 要查询的端口号
         
     Returns:
-        List[int]: 占用该端口的进程ID列表
+        List[psutil.Process]: 占用该端口的进程列表
     """
     pids = set()
     
@@ -126,7 +126,19 @@ def find_port_processes(port: int) -> List[int]:
     # Method 3: fuser
     pids.update(_find_processes_with_fuser(port))
     
-    return list(pids)
+    # 将PID转换为psutil.Process对象
+    processes = []
+    for pid in pids:
+        try:
+            proc = psutil.Process(pid)
+            # 检查进程是否仍然存在
+            if proc.is_running():
+                processes.append(proc)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            # 进程不存在或无访问权限，跳过
+            continue
+    
+    return processes
 
 
 def _find_processes_with_lsof(port: int) -> List[int]:

@@ -47,6 +47,13 @@ class TaskContext(BaseRuntimeContext):
         self.jobmanager_host = getattr(env, 'jobmanager_host', '127.0.0.1')
         self.jobmanager_port = getattr(env, 'jobmanager_port', 19001)
         
+        # 为本地环境保存JobManager的弱引用
+        if hasattr(env, '_jobmanager') and env._jobmanager is not None:
+            import weakref
+            self._local_jobmanager_ref = weakref.ref(env._jobmanager)
+        else:
+            self._local_jobmanager_ref = None
+        
         # 这些属性将在task层初始化，避免序列化问题
         self._stop_event = None  # 延迟初始化
         self.received_stop_signals = None  # 延迟初始化
@@ -168,6 +175,16 @@ class TaskContext(BaseRuntimeContext):
         支持本地和远程(Ray Actor)环境
         """
         try:
+            # 检查是否为本地环境 - 如果jobmanager_host是localhost相关，尝试直接调用
+            if self.jobmanager_host in ['127.0.0.1', 'localhost'] and hasattr(self, '_local_jobmanager_ref'):
+                # 直接调用本地JobManager实例
+                self.logger.info(f"Task {node_name} sending stop signal directly to local JobManager")
+                local_jobmanager = self._local_jobmanager_ref()
+                if local_jobmanager:
+                    local_jobmanager.receive_node_stop_signal(self.env_uuid, node_name)
+                    self.logger.info(f"Successfully sent stop signal to local JobManager")
+                    return
+            
             # 导入JobManagerClient来发送网络请求
             from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
             

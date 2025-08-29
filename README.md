@@ -111,7 +111,7 @@ pip install isage-kernel
 pip install isage-middleware
 
 # 仅安装应用程序框架
-pip install isage-apps
+pip install isage-libs
 ```
 ```
 
@@ -218,7 +218,7 @@ SAGE provides a comprehensive memory management system with a lightweight in-mem
 
 ```python
 from sage.middleware.services.memory.memory_manager import MemoryManager
-from sage.utils.embedding_methods.embedding_api import apply_embedding_model
+from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
 
 # Create memory manager with default or custom data directory
 mgr = MemoryManager()
