@@ -107,7 +107,7 @@ class IssuesSyncer:
             else:
                 print("🔍 未找到任何计划文件")
         if not p or not p.exists():
-            print("❌ 未找到 plan 文件，请先运行 project_manage.py --stage-local")
+            print("❌ 未找到 plan 文件，请先运行 helpers/fix_misplaced_issues.py")
             return []
         try:
             data = json.loads(p.read_text(encoding='utf-8'))

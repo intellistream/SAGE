@@ -27,22 +27,30 @@ import json
 import time
 import sys
 from pathlib import Path
-from helpers.project_manage import IssueProjectMover
+from github_helper import GitHubProjectManager
 
-def execute_fix_plan(fix_plan_file: str, dry_run: bool = True):
+def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: bool = False):
     """
     执行修复计划
     
     Args:
-        fix_plan_file: 修复计划JSON文件路径
-        dry_run: 是否为dry-run模式 (True=预览, False=实际执行)
+        fix_plan_file_or_data: 修复计划JSON文件路径或修复计划数据字典
+        dry_run: 是否为dry-run模式 (True=预览, False=实际执行)  
+        live_mode: 是否直接执行而不询问确认
+    
+    Returns:
+        tuple: (success_count, error_count, errors)
     """
     
-    # 读取修复计划
-    with open(fix_plan_file, 'r', encoding='utf-8') as f:
-        fix_plan = json.load(f)
+    # 读取或接收修复计划
+    if isinstance(fix_plan_file_or_data, str):
+        with open(fix_plan_file_or_data, 'r', encoding='utf-8') as f:
+            fix_plan = json.load(f)
+        print(f"📋 加载修复计划: {fix_plan_file_or_data}")
+    else:
+        fix_plan = fix_plan_file_or_data
+        print(f"📋 接收修复计划数据")
     
-    print(f"📋 加载修复计划: {fix_plan_file}")
     print(f"📊 计划修复 {fix_plan['total_fixes_needed']} 个错误分配的issues")
     
     if dry_run:
@@ -50,12 +58,13 @@ def execute_fix_plan(fix_plan_file: str, dry_run: bool = True):
     else:
         print("⚠️  LIVE模式 - 将实际执行修复操作")
         
-        response = input("确认要执行实际修复吗？(yes/no): ")
-        if response.lower() != 'yes':
-            print("❌ 操作已取消")
-            return
+        if not live_mode:
+            response = input("确认要执行实际修复吗？(yes/no): ")
+            if response.lower() != 'yes':
+                print("❌ 操作已取消")
+                return 0, 0, []
     
-    pm = IssueProjectMover()
+    pm = GitHubProjectManager()
     
     # 预加载所有issues的ID映射
     if not dry_run:
@@ -175,24 +184,27 @@ def execute_fix_plan(fix_plan_file: str, dry_run: bool = True):
         for error in errors:
             print(f"  Issue #{error['issue_number']}: {error['error']}")
     
-    # 保存执行结果
-    result = {
-        'execution_time': time.time(),
-        'fix_plan_file': fix_plan_file,
-        'dry_run': dry_run,
-        'total_processed': len(fix_plan['fixes']),
-        'success_count': success_count,
-        'error_count': error_count,
-        'errors': errors
-    }
+    # 保存执行结果 (仅当有文件路径时)
+    if isinstance(fix_plan_file_or_data, str):
+        result = {
+            'execution_time': time.time(),
+            'fix_plan_file': fix_plan_file_or_data,
+            'dry_run': dry_run,
+            'total_processed': len(fix_plan['fixes']),
+            'success_count': success_count,
+            'error_count': error_count,
+            'errors': errors
+        }
+        
+        output_dir = Path(fix_plan_file_or_data).parent
+        result_file = output_dir / f"fix_execution_result_{int(time.time())}.json"
+        
+        with open(result_file, 'w', encoding='utf-8') as f:
+            json.dump(result, f, indent=2, ensure_ascii=False)
+        
+        print(f"\n📄 执行结果已保存到: {result_file}")
     
-    output_dir = Path(fix_plan_file).parent
-    result_file = output_dir / f"fix_execution_result_{int(time.time())}.json"
-    
-    with open(result_file, 'w', encoding='utf-8') as f:
-        json.dump(result, f, indent=2, ensure_ascii=False)
-    
-    print(f"\n📄 执行结果已保存到: {result_file}")
+    return success_count, error_count, errors
 
 def main():
     """主函数"""

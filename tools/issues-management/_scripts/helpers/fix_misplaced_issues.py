@@ -22,15 +22,20 @@ import json
 import time
 from pathlib import Path
 from datetime import datetime
-from helpers.project_manage import IssueProjectMover
+from github_helper import GitHubProjectManager
 
 def main():
     """
     主函数 - 扫描所有项目并生成修复计划
     """
+    import sys
+    
+    # 检查命令行参数
+    dry_run = '--dry-run' in sys.argv
+    
     print("🔧 开始修复错误分配的Issues...")
     
-    pm = IssueProjectMover()
+    pm = GitHubProjectManager()
     
     # 项目信息
     projects_to_check = [12, 13, 14]
@@ -42,13 +47,11 @@ def main():
         print(f'\n🔍 检查项目#{project_num} ({project_names[project_num]})...')
         
         # 设置项目编号
-        old_project_number = pm.ORG_PROJECT_NUMBER
-        pm.ORG_PROJECT_NUMBER = project_num
+        project_data = pm.get_project_items(project_num)
         
         try:
-            project_data = pm.get_org_project()
-            if project_data and 'items' in project_data:
-                items = project_data['items']['nodes']
+            if project_data:
+                items = project_data
                 
                 print(f'  总共有 {len(items)} 个items')
                 
@@ -94,8 +97,8 @@ def main():
             else:
                 print(f'  ❌ 无法获取项目#{project_num}的数据')
                 
-        finally:
-            pm.ORG_PROJECT_NUMBER = old_project_number
+        except Exception as e:
+            print(f'  ❌ 处理项目#{project_num}时出错: {e}')
     
     # 生成修复计划文件
     if all_fixes:
@@ -131,7 +134,7 @@ def main():
             fix_plan['summary']['by_project'][current_proj]['moving_to'][target_proj] += 1
         
         # 保存到文件
-        output_dir = Path(__file__).parent.parent / "output"
+        output_dir = Path(__file__).parent.parent.parent / "output"
         output_file = output_dir / f"issues_fix_plan_{int(time.time())}.json"
         
         with open(output_file, 'w', encoding='utf-8') as f:
@@ -149,10 +152,41 @@ def main():
                 target_name = project_names[target_proj]
                 print(f'    → 移动到项目#{target_proj} ({target_name}): {count} 个')
         
-        print(f'\n⚠️  请检查修复计划文件，确认无误后可以执行修复操作')
+        # 如果不是dry-run模式，询问是否立即执行修复
+        if not dry_run:
+            try:
+                response = input(f'\n🤔 是否立即执行这 {len(all_fixes)} 个issues的修复? (y/N): ').strip().lower()
+                if response in ['y', 'yes']:
+                    print(f'🚀 开始执行修复...')
+                    
+                    # 导入执行模块
+                    from execute_fix_plan import execute_fix_plan
+                    
+                    # 直接执行修复计划
+                    success_count, error_count, errors = execute_fix_plan(fix_plan, dry_run=False, live_mode=True)
+                    
+                    print(f'\n📊 修复执行结果:')
+                    print(f'  ✅ 成功: {success_count}')
+                    print(f'  ❌ 失败: {error_count}')
+                    
+                    if errors:
+                        print(f'\n❌ 错误详情:')
+                        for error in errors:
+                            print(f'  {error}')
+                    
+                    return success_count > 0
+                else:
+                    print(f'\n⚠️  修复计划已保存，可以稍后使用 execute_fix_plan.py 执行')
+                    return True
+            except KeyboardInterrupt:
+                print(f'\n✅ 操作被用户取消')
+                return True
+        else:
+            print(f'\n⚠️  请检查修复计划文件，确认无误后可以执行修复操作')
         
     else:
         print(f'\n✅ 没有发现需要修复的错误分配issues')
+        return True
 
 if __name__ == "__main__":
     main()

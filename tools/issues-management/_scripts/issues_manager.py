@@ -310,25 +310,58 @@ class IssuesManager:
             return True
 
     def project_management(self):
-        """项目管理"""
+        """项目管理 - 自动检测并修复错误分配的Issues"""
         print("📋 项目管理...")
-        # Check if helper script exists
-        helper_script = self.helpers_dir / 'project_manage.py'
-        if helper_script.exists():
-            print("🔄 调用项目管理助手...")
-            print("可用选项:")
-            print("  --scan-unassigned: 扫描未分配项目的Issues")
-            print("  --scan-all: 扫描所有Issues")
-            print("  --apply: 实际执行操作")
-            print("  --limit N: 限制处理数量")
+        
+        # Check if our fix script exists
+        fix_script = self.helpers_dir / 'fix_misplaced_issues.py'
+        execute_script = self.helpers_dir / 'execute_fix_plan.py'
+        
+        if fix_script.exists():
+            print("� 扫描错误分配的Issues...")
             
-            # Run with basic scan
-            result = subprocess.run([sys.executable, str(helper_script), '--scan-unassigned', '--limit', '5'], 
-                                  capture_output=False, text=True)
-            return result.returncode == 0
+            # First, run detection to generate fix plan
+            detection_result = subprocess.run([
+                sys.executable, str(fix_script), '--dry-run'
+            ], capture_output=True, text=True, cwd=str(self.scripts_dir))
+            
+            if detection_result.returncode != 0:
+                print(f"❌ 检测脚本执行失败: {detection_result.stderr}")
+                return False
+                
+            print(detection_result.stdout)
+            
+            # Check if there's a fix plan file generated
+            output_dir = self.scripts_dir.parent / 'output'
+            fix_plan_files = list(output_dir.glob('issues_fix_plan_*.json'))
+            
+            if fix_plan_files:
+                latest_plan = max(fix_plan_files, key=lambda x: x.stat().st_mtime)
+                print(f"📋 发现修复计划: {latest_plan.name}")
+                
+                # Ask user if they want to execute the fix
+                try:
+                    response = input("🤔 是否执行修复计划? (y/N): ").strip().lower()
+                    if response in ['y', 'yes']:
+                        print("🚀 执行修复计划...")
+                        execute_result = subprocess.run([
+                            sys.executable, str(execute_script), str(latest_plan), '--live'
+                        ], capture_output=False, text=True, cwd=str(self.scripts_dir))
+                        
+                        return execute_result.returncode == 0
+                    else:
+                        print("✅ 跳过执行，仅进行了检测")
+                        return True
+                except KeyboardInterrupt:
+                    print("\n✅ 操作被用户取消")
+                    return True
+            else:
+                print("✅ 没有发现需要修复的Issues")
+                return True
+                
         else:
-            print("⚠️ 项目管理助手不存在")
-            print("📝 请实现project_manage.py助手")
+            print("⚠️ Issues修复助手不存在")
+            print("📝 请检查 helpers/fix_misplaced_issues.py")
             return True
 
     def update_team_info(self):
