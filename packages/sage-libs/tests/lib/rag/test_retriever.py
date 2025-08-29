@@ -1,14 +1,9 @@
 """
-测试 sage.libs.rag.retriever 模块 - ChromaRetriever
+测试 sage.libs.rag.retriever 模块 - ChromaRetriever 和 BM25sRetriever
 """
 
 import pytest
-import numpy as np
-import warnings
 from unittest.mock import Mock, patch
-
-# 抑制ascii_colors的日志错误
-warnings.filterwarnings("ignore", category=UserWarning, module="ascii_colors")
 
 # 尝试导入检索模块
 try:
@@ -99,6 +94,7 @@ class TestChromaRetriever:
         
         with patch('sage.libs.rag.retriever.MapFunction'):
             retriever = ChromaRetriever(config=chroma_config)
+            retriever.logger = Mock()
             
             query = "什么是人工智能？"
             result = retriever.execute(query)
@@ -132,6 +128,7 @@ class TestChromaRetriever:
         
         with patch('sage.libs.rag.retriever.MapFunction'):
             retriever = ChromaRetriever(config=chroma_config)
+            retriever.logger = Mock()
             
             input_data = {"query": "什么是机器学习？", "other_field": "value"}
             result = retriever.execute(input_data)
@@ -191,6 +188,7 @@ class TestChromaRetriever:
         
         with patch('sage.libs.rag.retriever.MapFunction'):
             retriever = ChromaRetriever(config=chroma_config)
+            retriever.logger = Mock()
             
             query = "测试查询"
             result = retriever.execute(query)
