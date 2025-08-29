@@ -139,6 +139,11 @@ class GitHubProjectManager:
                             author {{
                                 login
                             }}
+                            assignees(first: 10) {{
+                                nodes {{
+                                    login
+                                }}
+                            }}
                         }}
                     }}
                 }}

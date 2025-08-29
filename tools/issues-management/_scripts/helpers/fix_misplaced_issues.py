@@ -65,11 +65,27 @@ def main():
                         author = content.get('author', {}).get('login', '') if content.get('author') else 'Unknown'
                         title = content.get('title', '')
                         
-                        if author and author != 'Unknown':
-                            # 获取作者应该分配到的团队和项目
-                            expected_team, expected_project = pm.get_target_project_for_user(author)
+                        # 获取assignees信息
+                        assignees = content.get('assignees', {}).get('nodes', [])
+                        assignee_logins = [assignee.get('login') for assignee in assignees if assignee.get('login')]
+                        
+                        # 确定应该负责这个issue的用户：优先考虑assignee，其次是author
+                        responsible_user = None
+                        decision_basis = None
+                        
+                        if assignee_logins:
+                            # 如果有多个assignee，取第一个作为主要负责人
+                            responsible_user = assignee_logins[0]
+                            decision_basis = f"assignee ({', '.join(assignee_logins)})"
+                        elif author and author != 'Unknown':
+                            responsible_user = author
+                            decision_basis = f"author ({author})"
+                        
+                        if responsible_user:
+                            # 获取负责用户应该分配到的团队和项目
+                            expected_team, expected_project = pm.get_target_project_for_user(responsible_user)
                             
-                            # 如果作者应该分配到不同的项目，则记录为需要修复
+                            # 如果应该分配到不同的项目，则记录为需要修复
                             if expected_project and expected_project != project_num:
                                 misplaced_count += 1
                                 
@@ -78,6 +94,9 @@ def main():
                                     'issue_number': issue_number,
                                     'issue_title': title,
                                     'author': author,
+                                    'assignees': assignee_logins,
+                                    'responsible_user': responsible_user,
+                                    'decision_basis': decision_basis,
                                     'current_project': project_num,
                                     'current_project_name': project_names[project_num],
                                     'target_project': expected_project,

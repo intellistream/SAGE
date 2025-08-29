@@ -87,6 +87,11 @@ def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: boo
         print(f"\n[{i}/{len(fix_plan['fixes'])}] 处理Issue #{issue_number}")
         print(f"  📝 {fix['issue_title']}")
         print(f"  👤 作者: {author}")
+        
+        # 显示决策依据
+        if 'responsible_user' in fix and 'decision_basis' in fix:
+            print(f"  🎯 负责人: {fix['responsible_user']} (基于: {fix['decision_basis']})")
+        
         print(f"  📦 从项目#{current_project} ({fix['current_project_name']}) → 项目#{target_project} ({fix['target_project_name']})")
         
         if dry_run:
