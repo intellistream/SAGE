@@ -147,15 +147,19 @@ download_menu() {
         echo "  1. 下载所有Issues"
         echo "  2. 下载开放的Issues"
         echo "  3. 下载已关闭的Issues"
-        echo "  4. 返回主菜单"
+        echo "  4. 🗑️ 清空本地Issues数据"
+        echo "  5. 返回主菜单"
         echo ""
-        read -p "请选择 (1-4): " choice
+        echo -e "${CYAN}💡 提示: 选项1-3会在下载前自动询问是否清空本地数据${NC}"
+        echo ""
+        read -p "请选择 (1-5): " choice
         
         case $choice in
             1) download_all_issues ;;
             2) download_open_issues ;;
             3) download_closed_issues ;;
-            4) break ;;
+            4) clear_local_issues; read -p "按Enter键继续..." ;;
+            5) break ;;
             *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
         esac
     done
@@ -303,7 +307,41 @@ issues_management_menu() {
 }
 
 # 下载功能实现
+clear_local_issues() {
+    local issues_dir="$SCRIPT_DIR/issues_workspace/issues"
+    
+    if [ -d "$issues_dir" ] && [ "$(ls -A "$issues_dir" 2>/dev/null)" ]; then
+        echo -e "${YELLOW}🗑️ 发现本地Issues数据${NC}"
+        echo "目录: $issues_dir"
+        echo ""
+        ls -la "$issues_dir" | head -10
+        if [ $(ls -1 "$issues_dir" | wc -l) -gt 10 ]; then
+            echo "... 以及更多文件"
+        fi
+        echo ""
+        echo -e "${RED}⚠️ 警告: 此操作将删除所有本地Issues数据${NC}"
+        echo ""
+        read -p "确认清空本地Issues目录？ (y/N): " confirm_clear
+        
+        if [[ "$confirm_clear" =~ ^[Yy]$ ]]; then
+            echo ""
+            echo "🗑️ 正在清空本地Issues目录..."
+            rm -rf "$issues_dir"/*
+            echo -e "${GREEN}✅ 本地Issues目录已清空${NC}"
+            echo ""
+        else
+            echo ""
+            echo "❌ 取消清空操作"
+            echo ""
+        fi
+    else
+        echo -e "${CYAN}ℹ️ 本地Issues目录为空或不存在，无需清空${NC}"
+        echo ""
+    fi
+}
+
 download_all_issues() {
+    clear_local_issues
     echo "📥 正在下载所有Issues..."
     cd "$SCRIPT_DIR"
     python3 _scripts/download_issues.py --state=all
@@ -311,6 +349,7 @@ download_all_issues() {
 }
 
 download_open_issues() {
+    clear_local_issues
     echo "📥 正在下载开放的Issues..."
     cd "$SCRIPT_DIR"
     python3 _scripts/download_issues.py --state=open
@@ -318,6 +357,7 @@ download_open_issues() {
 }
 
 download_closed_issues() {
+    clear_local_issues
     echo "📥 正在下载已关闭的Issues..."
     cd "$SCRIPT_DIR"
     python3 _scripts/download_issues.py --state=closed
