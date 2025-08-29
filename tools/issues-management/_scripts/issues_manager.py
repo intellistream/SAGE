@@ -120,45 +120,81 @@ class IssuesManager:
         for issue_file in issues_dir.glob('*.md'):
             try:
                 content = issue_file.read_text(encoding='utf-8')
-                # Parse frontmatter (simplified - no yaml dependency)
-                if content.startswith('---'):
-                    parts = content.split('---', 2)
-                    if len(parts) >= 3:
-                        # Simple frontmatter parsing
-                        frontmatter = parts[1].strip()
-                        body = parts[2].strip()
-                        
-                        # Parse basic fields
-                        metadata = {'body': body}
-                        for line in frontmatter.split('\n'):
-                            if ':' in line:
-                                key, value = line.split(':', 1)
-                                key = key.strip()
-                                value = value.strip()
-                                
-                                # Handle special cases
-                                if key in ['labels', 'assignees'] and value.startswith('['):
-                                    # Simple list parsing
-                                    try:
-                                        import ast
-                                        metadata[key] = ast.literal_eval(value)
-                                    except:
-                                        metadata[key] = []
-                                else:
-                                    metadata[key] = value
-                        
-                        issues.append(metadata)
-                    else:
-                        # No frontmatter
-                        issues.append({'title': issue_file.stem, 'body': content})
-                else:
-                    # No frontmatter
-                    issues.append({'title': issue_file.stem, 'body': content})
+                # Parse markdown format issues
+                issue_data = self._parse_markdown_issue(content, issue_file.name)
+                issues.append(issue_data)
             except Exception as e:
                 print(f"⚠️ 读取issue文件失败: {issue_file.name}: {e}")
         
         print(f"✅ 加载了 {len(issues)} 个Issues")
         return issues
+    
+    def _parse_markdown_issue(self, content: str, filename: str):
+        """Parse markdown format issue file"""
+        lines = content.split('\n')
+        
+        # Initialize issue data
+        issue_data = {
+            'title': '',
+            'body': content,
+            'state': 'open',  # default
+            'user': {'login': 'unknown'},
+            'labels': [],
+            'assignees': []
+        }
+        
+        # Extract title from first line (usually starts with #)
+        if lines and lines[0].startswith('#'):
+            issue_data['title'] = lines[0].strip('#').strip()
+        
+        # Extract state from filename
+        if filename.startswith('open_'):
+            issue_data['state'] = 'open'
+        elif filename.startswith('closed_'):
+            issue_data['state'] = 'closed'
+        
+        # Parse markdown content for metadata
+        for i, line in enumerate(lines):
+            line = line.strip()
+            
+            # Extract creator/author
+            if line.startswith('**创建者**:') or line.startswith('**作者**:') or line.startswith('**Creator**:'):
+                author = line.split(':', 1)[1].strip()
+                issue_data['user'] = {'login': author}
+            
+            # Extract state from content
+            elif line.startswith('**状态**:') or line.startswith('**State**:'):
+                state = line.split(':', 1)[1].strip()
+                issue_data['state'] = state
+            
+            # Extract labels (looking for label section)
+            elif line == '## 标签' or line == '## Labels':
+                # Check next few lines for labels
+                j = i + 1
+                while j < len(lines) and j < i + 5:  # Look ahead max 5 lines
+                    next_line = lines[j].strip()
+                    if next_line and not next_line.startswith('#') and not next_line.startswith('**'):
+                        # Found label content
+                        if next_line != '无' and next_line != 'None' and next_line:
+                            # Split by comma and clean up
+                            labels = [label.strip() for label in next_line.split(',') if label.strip()]
+                            issue_data['labels'] = [{'name': label} for label in labels]
+                        break
+                    j += 1
+            
+            # Extract assignees
+            elif line == '## 分配给' or line == '## Assigned to':
+                j = i + 1
+                while j < len(lines) and j < i + 5:
+                    next_line = lines[j].strip()
+                    if next_line and not next_line.startswith('#') and not next_line.startswith('**'):
+                        if next_line != '未分配' and next_line != 'Unassigned' and next_line:
+                            assignees = [assignee.strip() for assignee in next_line.split(',') if assignee.strip()]
+                            issue_data['assignees'] = [{'login': assignee} for assignee in assignees]
+                        break
+                    j += 1
+        
+        return issue_data
 
     def _generate_statistics(self, issues):
         """Generate statistics from issues data."""

@@ -331,23 +331,39 @@ show_issues_statistics() {
 label_management() {
     echo "🏷️ 标签管理..."
     
-    # 显示标签统计
+    # 显示标签统计 - 使用Python脚本获取准确统计
     echo ""
     echo "📊 当前标签分布:"
     echo "=================="
     
-    label_dir="$SCRIPT_DIR/issues_workspace/by_label"
-    if [ -d "$label_dir" ]; then
-        for label_folder in "$label_dir"/*; do
-            if [ -d "$label_folder" ]; then
-                label_name=$(basename "$label_folder")
-                count=$(find "$label_folder" -name "*.md" 2>/dev/null | wc -l)
-                printf "  %-25s: %3d issues\n" "$label_name" "$count"
-            fi
-        done
-    else
-        echo "❌ 标签目录不存在: $label_dir"
-    fi
+    # 调用Python脚本获取最新的标签统计
+    cd "$SCRIPT_DIR"
+    python3 -c "
+import sys
+sys.path.insert(0, '.')
+from issues_manager import SageIssuesManager
+
+manager = SageIssuesManager()
+manager._load_issues()
+stats = manager._generate_statistics()
+
+print('从Issues内容统计的标签分布:')
+if stats['labels']:
+    # 排序并显示所有标签
+    sorted_labels = sorted(stats['labels'].items(), key=lambda x: x[1], reverse=True)
+    for label, count in sorted_labels:
+        if label != '未分配':  # 跳过未分配
+            print(f'  {label:<25}: {count:>3d} issues')
+    
+    total_labeled = sum(count for label, count in stats['labels'].items() if label != '未分配')
+    unlabeled = stats['labels'].get('未分配', 0)
+    print(f'')
+    print(f'  📊 总计: {total_labeled} 个已标记, {unlabeled} 个未标记')
+else:
+    print('  ❌ 没有找到标签信息')
+" 2>/dev/null || {
+        echo "❌ 无法加载标签统计，请确保Issues数据已下载"
+    }
     
     echo ""
     echo "🛠️ 标签管理选项:"
@@ -459,8 +475,159 @@ create_new_issue() {
 
 project_management() {
     echo "📋 项目管理..."
-    cd "$SCRIPT_DIR"
-    python3 _scripts/issues_manager.py --action=project
+    echo ""
+    echo "🎯 项目管理选项:"
+    echo "=================="
+    echo "  1. � 生成移动计划 (仅扫描，不执行)"
+    echo "  2. � 查看已有的移动计划"
+    echo "  3. ✅ 执行移动计划"
+    echo "  4. 返回"
+    echo ""
+    
+    read -p "请选择操作 (1-4): " project_choice
+    
+    case $project_choice in
+        1)
+            echo ""
+            echo "⚙️ 配置扫描参数:"
+            echo ""
+            
+            read -p "🔢 请输入要处理的Issues数量 (0表示全部处理): " limit_count
+            
+            # 验证输入
+            if ! [[ "$limit_count" =~ ^[0-9]+$ ]]; then
+                echo "❌ 请输入有效的数字"
+                return 1
+            fi
+            
+            echo ""
+            echo "🚀 开始生成移动计划..."
+            echo "=========================="
+            
+            cd "$SCRIPT_DIR/_scripts/helpers"
+            
+            # 构建命令
+            if [ "$limit_count" = "0" ]; then
+                echo "📋 处理模式: 扫描全部Issues"
+                python3 project_manage.py
+            else
+                echo "📋 处理模式: 扫描前 $limit_count 个Issues"
+                python3 project_manage.py --limit $limit_count
+            fi
+            
+            scan_result=$?
+            echo ""
+            
+            if [ $scan_result -eq 0 ]; then
+                echo "✅ 移动计划生成完成！"
+                echo ""
+                echo "🤔 是否要立即执行移动计划？"
+                echo "   ⚠️  警告: 这将实际修改GitHub上的项目分配"
+                echo ""
+                read -p "确认执行？ (y/N): " confirm_apply
+                
+                if [[ "$confirm_apply" =~ ^[Yy]$ ]]; then
+                    echo ""
+                    echo "⚡ 执行移动计划..."
+                    echo "=================="
+                    
+                    if [ "$limit_count" = "0" ]; then
+                        python3 project_manage.py --apply
+                    else
+                        python3 project_manage.py --apply --limit $limit_count
+                    fi
+                    
+                    apply_result=$?
+                    if [ $apply_result -eq 0 ]; then
+                        echo ""
+                        echo "🎉 移动计划执行完成！"
+                    else
+                        echo ""
+                        echo "❌ 移动计划执行失败，请检查错误信息"
+                    fi
+                else
+                    echo ""
+                    echo "📋 移动计划已保存，可稍后使用选项3手动执行"
+                fi
+            else
+                echo "❌ 计划生成失败，请检查错误信息"
+            fi
+            ;;
+        2)
+            echo ""
+            echo "📋 查看已有的移动计划..."
+            echo "=========================="
+            
+            plan_dir="$SCRIPT_DIR/output"
+            if [ -d "$plan_dir" ]; then
+                echo "📁 计划文件目录: $plan_dir"
+                echo ""
+                
+                # 查找最近的计划文件
+                latest_plan=$(find "$plan_dir" -name "project_move_plan_*.json" -type f -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -1 | cut -d' ' -f2-)
+                
+                if [ -n "$latest_plan" ]; then
+                    echo "📄 最新计划文件: $(basename "$latest_plan")"
+                    echo "🕒 修改时间: $(stat -c '%y' "$latest_plan" 2>/dev/null | cut -d'.' -f1)"
+                    echo ""
+                    
+                    # 显示计划摘要
+                    if command -v jq >/dev/null 2>&1; then
+                        echo "📊 计划摘要:"
+                        echo "============"
+                        jq -r '.summary // "无摘要信息"' "$latest_plan" 2>/dev/null || echo "无法解析计划摘要"
+                    else
+                        echo "💡 安装 jq 工具可查看详细计划内容"
+                    fi
+                    
+                    echo ""
+                    echo "📁 所有计划文件:"
+                    ls -la "$plan_dir"/project_move_plan_*.json 2>/dev/null | tail -5
+                else
+                    echo "📭 没有找到移动计划文件"
+                fi
+            else
+                echo "📭 输出目录不存在，还没有生成过计划"
+            fi
+            ;;
+        3)
+            echo ""
+            echo "⚡ 执行移动计划..."
+            echo "=================="
+            
+            echo "⚠️  警告: 这将实际修改GitHub上的项目分配"
+            echo ""
+            read -p "确认要执行最新的移动计划？ (y/N): " confirm_execute
+            
+            if [[ "$confirm_execute" =~ ^[Yy]$ ]]; then
+                echo ""
+                echo "🚀 正在执行最新计划..."
+                cd "$SCRIPT_DIR/_scripts/helpers"
+                
+                python3 project_manage.py --apply
+                
+                execute_result=$?
+                if [ $execute_result -eq 0 ]; then
+                    echo ""
+                    echo "🎉 移动计划执行完成！"
+                else
+                    echo ""
+                    echo "❌ 移动计划执行失败，请检查错误信息"
+                fi
+            else
+                echo ""
+                echo "📋 取消执行"
+            fi
+            ;;
+        4)
+            return
+            ;;
+        *)
+            echo "❌ 无效选择"
+            ;;
+    esac
+    
+    echo ""
     read -p "按Enter键继续..."
 }
 
@@ -470,7 +637,6 @@ search_and_filter() {
     echo "📁 Issues目录结构:"
     echo "=================="
     echo "  - issues_workspace/issues/     (所有issue文件)"
-    echo "  - issues_workspace/by_label/   (按标签分类)"
     echo "  - issues_workspace/metadata/   (元数据信息)"
     echo ""
     echo "🛠️ 搜索选项:"
@@ -504,20 +670,40 @@ search_and_filter() {
             ;;
         2)
             echo ""
-            echo "🏷️ 可用标签:"
-            ls "$SCRIPT_DIR/issues_workspace/by_label/" 2>/dev/null | head -20
-            echo ""
-            read -p "请输入标签名: " label
-            if [ -n "$label" ] && [ -d "$SCRIPT_DIR/issues_workspace/by_label/$label" ]; then
+            echo "🏷️ 输入要查看的标签名称："
+            read -p "标签名: " label
+            if [ -n "$label" ]; then
                 echo ""
-                echo "🏷️ 标签 '$label' 下的Issues:"
+                echo "🏷️ 包含标签 '$label' 的Issues:"
                 echo "=========================="
-                ls "$SCRIPT_DIR/issues_workspace/by_label/$label/" 2>/dev/null | head -20 | while read file; do
-                    filename=$(basename "$file" .md)
-                    echo "  - $filename"
-                done
+                cd "$SCRIPT_DIR"
+                python3 -c "
+import sys
+sys.path.insert(0, '.')
+from issues_manager import SageIssuesManager
+
+manager = SageIssuesManager()
+manager._load_issues()
+
+label_query = '$label'.lower()
+found_issues = []
+
+for issue in manager.issues:
+    labels = issue.get('labels', [])
+    if any(label_query in label.lower() for label in labels):
+        found_issues.append(issue)
+
+if found_issues:
+    print(f'找到 {len(found_issues)} 个包含标签 \"$label\" 的Issues:')
+    for issue in found_issues[:10]:  # 限制显示前10个
+        print(f'  Issue #{issue.get(\"number\", \"N/A\")}: {issue.get(\"title\", \"无标题\")}')
+    if len(found_issues) > 10:
+        print(f'  ... 还有 {len(found_issues) - 10} 个Issues未显示')
+else:
+    print(f'未找到包含标签 \"$label\" 的Issues')
+" 2>/dev/null || echo "❌ 查询失败"
             else
-                echo "❌ 标签 '$label' 不存在"
+                echo "❌ 请输入标签名称"
             fi
             ;;
         3)
@@ -569,12 +755,10 @@ search_and_filter() {
             total_issues=$(find "$SCRIPT_DIR/issues_workspace/issues/" -name "*.md" 2>/dev/null | wc -l)
             open_issues=$(find "$SCRIPT_DIR/issues_workspace/issues/" -name "open_*.md" 2>/dev/null | wc -l)
             closed_issues=$(find "$SCRIPT_DIR/issues_workspace/issues/" -name "closed_*.md" 2>/dev/null | wc -l)
-            label_count=$(ls "$SCRIPT_DIR/issues_workspace/by_label/" 2>/dev/null | wc -l)
             
             echo "  总Issues数量: $total_issues"
             echo "  开放Issues: $open_issues"
             echo "  已关闭Issues: $closed_issues"
-            echo "  标签类别数: $label_count"
             echo ""
             echo "📁 目录大小:"
             if command -v du >/dev/null 2>&1; then

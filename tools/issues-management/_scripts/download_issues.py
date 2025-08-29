@@ -25,10 +25,9 @@ class IssuesDownloader:
         
         # 创建输出目录结构
         self.issues_dir = self.workspace / "issues"
-        self.by_label_dir = self.workspace / "by_label"
         self.metadata_dir = self.workspace / "metadata"
 
-        for d in (self.issues_dir, self.by_label_dir, self.metadata_dir):
+        for d in (self.issues_dir, self.metadata_dir):
             d.mkdir(parents=True, exist_ok=True)
     
     def sanitize_filename(self, text: str) -> str:
@@ -114,26 +113,6 @@ class IssuesDownloader:
         with open(self.metadata_dir / fname, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-    def organize_by_labels(self, issues: list):
-        """按标签创建引用文件（简化实现）"""
-        for issue in issues:
-            labels = issue.get('labels', []) or []
-            if not labels:
-                continue
-            for label in labels:
-                label_name = self.sanitize_filename(label.get('name', 'unknown'))
-                label_path = self.by_label_dir / label_name
-                label_path.mkdir(parents=True, exist_ok=True)
-
-                status_prefix = "open" if issue.get('state') == 'open' else 'closed'
-                ref_file = label_path / f"{status_prefix}_{issue['number']}.txt"
-                with open(ref_file, 'w', encoding='utf-8') as f:
-                    title = issue.get('title', '')
-                    f.write(f"Issue #{issue['number']}: {title}\n")
-                    f.write(f"状态: {issue.get('state')}\n")
-                    f.write(f"文件: ../issues/{status_prefix}_{issue['number']}_{self.sanitize_filename(title)}.md\n")
-                    f.write(f"链接: {issue.get('html_url')}\n")
-    
     def download_issues(self, state="all") -> bool:
         """下载Issues
         
@@ -220,7 +199,7 @@ class IssuesDownloader:
 ## 存储位置
 
 Issues保存在: `{self.issues_dir}`
-按标签分类存储在对应子目录中
+所有标签信息都包含在每个Issue的markdown文件中
 
 ## 文件命名规则
 
