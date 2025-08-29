@@ -65,6 +65,11 @@ def main():
                         author = content.get('author', {}).get('login', '') if content.get('author') else 'Unknown'
                         title = content.get('title', '')
                         
+                        # 获取仓库信息
+                        repository = content.get('repository', {})
+                        repo_name = repository.get('name', 'SAGE')  # 默认为SAGE
+                        repo_owner = repository.get('owner', {}).get('login', 'intellistream')
+                        
                         # 获取assignees信息
                         assignees = content.get('assignees', {}).get('nodes', [])
                         assignee_logins = [assignee.get('login') for assignee in assignees if assignee.get('login')]
@@ -97,6 +102,8 @@ def main():
                                     'assignees': assignee_logins,
                                     'responsible_user': responsible_user,
                                     'decision_basis': decision_basis,
+                                    'repository': repo_name,
+                                    'repository_owner': repo_owner,
                                     'current_project': project_num,
                                     'current_project_name': project_names[project_num],
                                     'target_project': expected_project,

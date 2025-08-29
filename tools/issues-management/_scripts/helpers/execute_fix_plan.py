@@ -70,7 +70,19 @@ def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: boo
     if not dry_run:
         print("📥 预加载issues的全局ID映射...")
         all_issues = pm.get_all_repository_issues()
-        issue_id_map = {issue['number']: issue.get('node_id') for issue in all_issues}
+        # 构建映射：repo_name/issue_number -> global_id
+        issue_id_map = {}
+        for issue in all_issues:
+            repo_info = issue.get('repository', {})
+            repo_name = repo_info.get('name', '')
+            issue_number = issue.get('number')
+            issue_id = issue.get('id')
+            if repo_name and issue_number and issue_id:
+                # 为SAGE仓库的issue保持原有格式（只用issue号作为key）
+                if repo_name == 'SAGE':
+                    issue_id_map[issue_number] = issue_id
+                # 为其他仓库使用 repo_name/issue_number 作为key
+                issue_id_map[f"{repo_name}/{issue_number}"] = issue_id
         print(f"✅ 已加载 {len(issue_id_map)} 个issues的ID映射")
     
     success_count = 0
@@ -92,6 +104,11 @@ def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: boo
         if 'responsible_user' in fix and 'decision_basis' in fix:
             print(f"  🎯 负责人: {fix['responsible_user']} (基于: {fix['decision_basis']})")
         
+        # 显示仓库信息
+        if 'repository' in fix:
+            repo_name = fix['repository']
+            print(f"  📁 仓库: {repo_name}")
+        
         print(f"  📦 从项目#{current_project} ({fix['current_project_name']}) → 项目#{target_project} ({fix['target_project_name']})")
         
         if dry_run:
@@ -107,9 +124,53 @@ def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: boo
                 target_project_id = target_project_data['id']
                 
                 # 获取issue的正确全局ID
-                issue_global_id = issue_id_map.get(issue_number)
+                repo_name = fix.get('repository', 'SAGE')
+                
+                # 尝试不同的ID映射方式
+                issue_global_id = None
+                if repo_name == 'SAGE':
+                    # SAGE仓库的issue直接用issue号
+                    issue_global_id = issue_id_map.get(issue_number)
+                else:
+                    # 其他仓库用 repo_name/issue_number
+                    issue_global_id = issue_id_map.get(f"{repo_name}/{issue_number}")
+                
                 if not issue_global_id:
-                    raise Exception(f"无法找到Issue #{issue_number}的全局ID")
+                    # 尝试直接删除无效的项目item，因为issue可能已经不存在了
+                    print(f"  ⚠️  Issue #{issue_number} (来自 {repo_name}) 可能已被删除，尝试清理项目板上的无效引用")
+                    
+                    # 直接删除源项目中的item
+                    current_project_data = pm.get_project_by_number(current_project)
+                    if current_project_data:
+                        current_project_id = current_project_data['id']
+                        item_id = fix.get('item_id')
+                        
+                        if item_id:
+                            success_delete, delete_result = pm.delete_project_item(current_project_id, item_id)
+                            if success_delete:
+                                print(f"  🗑️  已清理项目#{current_project}中的无效引用")
+                                success_count += 1
+                            else:
+                                print(f"  ❌ 清理失败: {delete_result}")
+                                error_count += 1
+                                errors.append({
+                                    'issue_number': issue_number,
+                                    'error': f"清理无效引用失败: {delete_result}"
+                                })
+                        else:
+                            print(f"  ❌ 缺少item_id，无法清理")
+                            error_count += 1
+                            errors.append({
+                                'issue_number': issue_number,
+                                'error': "缺少item_id，无法清理无效引用"
+                            })
+                    else:
+                        error_count += 1
+                        errors.append({
+                            'issue_number': issue_number,
+                            'error': f"无法找到Issue #{issue_number}的全局ID，且无法获取源项目数据"
+                        })
+                    continue
                 
                 # 先添加到目标项目
                 success_add, add_result = pm.add_issue_to_project(target_project_id, issue_global_id)
@@ -123,16 +184,11 @@ def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: boo
                         current_project_id = current_project_data['id']
                         
                         # 查找item_id （需要重新获取，因为可能已经变化）
-                        old_project_number = pm.ORG_PROJECT_NUMBER
-                        pm.ORG_PROJECT_NUMBER = current_project
-                        
                         try:
-                            current_project_items = pm.get_org_project()
-                            if current_project_items and 'items' in current_project_items:
-                                items = current_project_items['items']['nodes']
-                                
+                            current_project_items = pm.get_project_items(current_project)
+                            if current_project_items:
                                 item_id_to_delete = None
-                                for item in items:
+                                for item in current_project_items:
                                     content = item.get('content', {})
                                     if content.get('number') == issue_number:
                                         item_id_to_delete = item.get('id')
@@ -151,8 +207,12 @@ def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: boo
                                 else:
                                     print(f"  ⚠️  在项目#{current_project}中找不到item，可能已不在该项目中")
                                     success_count += 1  # 算作成功，因为已经添加到目标项目
-                        finally:
-                            pm.ORG_PROJECT_NUMBER = old_project_number
+                            else:
+                                print(f"  ⚠️  无法获取项目#{current_project}的items")
+                                success_count += 1  # 仍然算作成功，因为已经添加到目标项目
+                        except Exception as e:
+                            print(f"  ⚠️  删除操作异常: {e}")
+                            success_count += 1  # 仍然算作成功，因为已经添加到目标项目
                     else:
                         print(f"  ⚠️  无法获取源项目#{current_project}数据")
                         success_count += 1  # 仍然算作成功，因为已经添加到目标项目

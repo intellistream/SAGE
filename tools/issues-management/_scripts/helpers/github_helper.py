@@ -82,17 +82,113 @@ class GitHubProjectManager:
             self.team_members = {}
     
     def get_all_repository_issues(self):
-        """获取仓库所有issues"""
-        print("🔍 获取仓库中的所有Issues...")
+        """获取组织下所有仓库的issues，使用GraphQL确保获取node_id"""
+        print("🔍 获取组织中所有仓库的Issues...")
         
-        try:
-            from config import github_client
-            issues = github_client.get_issues(state="all")
-            print(f"✅ 获取到 {len(issues)} 个Issues")
-            return issues
-        except Exception as e:
-            print(f"❌ 获取Issues失败: {e}")
+        # 首先获取组织下的所有仓库
+        repos_query = f'''query {{
+    organization(login: "{self.ORG}") {{
+        repositories(first: 100) {{
+            nodes {{
+                name
+                owner {{
+                    login
+                }}
+            }}
+        }}
+    }}
+}}'''
+        
+        resp = requests.post(
+            "https://api.github.com/graphql",
+            json={"query": repos_query},
+            headers=self.headers
+        )
+        
+        if resp.status_code != 200:
+            print(f"❌ 获取仓库列表失败: HTTP {resp.status_code}")
             return []
+        
+        data = resp.json()
+        if "errors" in data:
+            print(f"❌ GraphQL错误: {data['errors']}")
+            return []
+        
+        repositories = data.get("data", {}).get("organization", {}).get("repositories", {}).get("nodes", [])
+        print(f"📁 发现 {len(repositories)} 个仓库")
+        
+        all_issues = []
+        
+        # 为每个仓库获取issues
+        for repo in repositories:
+            repo_name = repo['name']
+            owner = repo['owner']['login']
+            
+            print(f"🔍 获取仓库 {owner}/{repo_name} 的Issues...")
+            
+            query = f'''query($after: String) {{
+    repository(owner: "{owner}", name: "{repo_name}") {{
+        issues(first: 100, after: $after, states: [OPEN, CLOSED]) {{
+            pageInfo {{
+                hasNextPage
+                endCursor
+            }}
+            nodes {{
+                number
+                id
+                title
+                state
+                url
+                repository {{
+                    name
+                    owner {{
+                        login
+                    }}
+                }}
+            }}
+        }}
+    }}
+}}'''
+            
+            after = None
+            repo_issues = []
+            
+            while True:
+                variables = {"after": after} if after else {}
+                resp = requests.post(
+                    "https://api.github.com/graphql",
+                    json={"query": query, "variables": variables},
+                    headers=self.headers
+                )
+                
+                if resp.status_code != 200:
+                    print(f"  ❌ 获取 {repo_name} Issues失败: HTTP {resp.status_code}")
+                    break
+                
+                data = resp.json()
+                if "errors" in data:
+                    print(f"  ❌ GraphQL错误: {data['errors']}")
+                    break
+                
+                issues = data.get("data", {}).get("repository", {}).get("issues", {})
+                nodes = issues.get("nodes", [])
+                
+                if not nodes:
+                    break
+                    
+                repo_issues.extend(nodes)
+                
+                page_info = issues.get("pageInfo", {})
+                if not page_info.get("hasNextPage"):
+                    break
+                    
+                after = page_info.get("endCursor")
+            
+            print(f"  📥 {repo_name}: {len(repo_issues)} 个Issues")
+            all_issues.extend(repo_issues)
+        
+        print(f"✅ 总共获取到 {len(all_issues)} 个Issues")
+        return all_issues
     
     def get_project_by_number(self, project_number):
         """根据项目编号获取项目信息"""
@@ -136,6 +232,12 @@ class GitHubProjectManager:
                             title
                             state
                             url
+                            repository {{
+                                name
+                                owner {{
+                                    login
+                                }}
+                            }}
                             author {{
                                 login
                             }}
