@@ -133,7 +133,7 @@ dev_reports/
 .sage/
 .testlogs/
 .github_token
-
+.pypirc
 
 
 ./experiment/data
