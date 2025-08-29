@@ -91,31 +91,18 @@ class IssueProjectMover:
                     self.cached_team_members = json.load(f)
                 print(f'✅ Loaded cached team members from {team_file}')
             except Exception as e:
-                print(f"⚠️ 无法解析 cached team members: {e}")
+                print(f'❌ Failed to load cached team members: {e}')
 
-        # Load boards metadata if available (team -> org project number)
+    def get_all_repository_issues(self):
+        """Get all issues from the SAGE repository"""
+        print("🔍 获取仓库中的所有Issues...")
+        
         try:
-            # look in multiple likely locations: meta-data/ first, then fallback locations
-            candidate_paths = [
-                self.meta_dir / 'boards_metadata.json',  # preferred location: meta-data/
-                Path(__file__).parent.parent / 'boards_metadata.json',
-                Path(__file__).parent.parent.parent / 'boards_metadata.json',
-                Path(__file__).parent.parent.parent.parent / 'boards_metadata.json',
-            ]
-            loaded = False
-            for meta_path in candidate_paths:
-                if meta_path and meta_path.exists():
-                    mj = json.loads(meta_path.read_text(encoding='utf-8'))
-                    mapping = mj.get('team_to_project', {})
-                    if mapping:
-                        # convert keys to expected dict
-                        self.target_teams = {k: int(v) for k, v in mapping.items()}
-                        print(f"✅ Loaded boards metadata from {meta_path}")
-                        loaded = True
-                        break
-            if not loaded:
-                print("❌ 未找到 boards_metadata.json 中的 team -> project 映射。请在 tools/issues-management/boards_metadata.json 中提供映射后重试。")
-                sys.exit(1)
+            # Import and use the existing config system
+            from config import github_client
+            issues = github_client.get_issues(state="all")
+            print(f"✅ 获取到 {len(issues)} 个Issues")
+            return issues
         except Exception as e:
             print(f"❌ 获取Issues失败: {e}")
             return []
@@ -466,7 +453,6 @@ class IssueProjectMover:
             return []
 
         project_title = proj.get("title")
-        project_id = proj.get("id")  # Get the source project ID
         items = proj.get("items", {}).get("nodes", [])
         print(f"✅ 项目: {project_title}，条目数: {len(items)}")
 
@@ -834,47 +820,38 @@ class IssueProjectMover:
                         print(f"  ✅ 已添加到项目 {target_project.get('title')}")
                         success_count += 1
                     else:
-                        # no front-matter: create one
-                        new_text = '---\nproject_move:\n'
-                        for k, v in fm.items():
-                            new_text += f"  {k}: {v}\n"
-                        new_text += '---\n\n' + file_text
-
-                    matched.write_text(new_text, encoding='utf-8')
-                    print(f"  ✅ 已在本地 front-matter 中标注: {matched}")
-                else:
-                    print(f"  ⚠️ 未找到本地 markdown 文件来标注 issue #{issue_number}")
-
-                actions.append({
-                    "issue_number": issue_number,
-                    "issue_title": issue_title,
-                    "author": author,
-                    "from_project": project_title,
-                    "from_project_id": project_id,
-                    "to_team": matched_team,
-                    "to_project_number": target_project_number,
-                    "to_project_id": target_project.get('id'),
-                    "to_project": target_project.get('title'),
-                    "item_id": item_id,
-                    "issue_node_id": issue_id,
-                    "staged": True,
-                })
-                processed += 1
-            elif apply_changes:
-                # Add to repo project
-                ok, resp = self.add_issue_to_project(target_project.get('id'), issue_id)
-                if not ok:
-                    print(f"  ❌ 添加到目标项目失败: {resp}")
-                    continue
-                print(f"  ✅ 已添加到目标项目")
-
-                # Remove original item from org project
-                ok2, resp2 = self.delete_project_item(item_id)
-                if not ok2:
-                    print(f"  ❌ 从原组织项目删除失败: {resp2}")
-                else:
-                    print(f"  ✅ 已从组织项目移除 (item id: {item_id})")
-                # be gentle with the API
+                        print(f"  ❌ 添加到项目失败: {resp}")
+                
+                elif action.get('type') == 'move_from_org_project':
+                    # This is for moving from org project #6 to target project
+                    issue_node_id = action.get('issue_node_id')
+                    item_id = action.get('item_id')
+                    
+                    if not issue_node_id or not item_id:
+                        print(f"  ❌ 缺少必要的ID信息")
+                        continue
+                    
+                    # Add to target project
+                    ok, resp = self.add_issue_to_project(target_project.get('id'), issue_node_id)
+                    if not ok:
+                        print(f"  ❌ 添加到目标项目失败: {resp}")
+                        continue
+                    print(f"  ✅ 已添加到目标项目")
+                    
+                    # Remove from original org project
+                    org_project = self.get_project_by_number(self.ORG_PROJECT_NUMBER)
+                    if org_project:
+                        ok2, resp2 = self.delete_project_item(org_project.get('id'), item_id)
+                        if ok2:
+                            print(f"  ✅ 已从组织项目移除")
+                            success_count += 1
+                        else:
+                            print(f"  ❌ 从组织项目删除失败: {resp2}")
+                    else:
+                        print(f"  ⚠️ 无法获取组织项目信息，跳过删除步骤")
+                        success_count += 1  # 仍然算作成功，因为已添加到目标项目
+                
+                # Be gentle with the API
                 time.sleep(0.5)
                 
             except Exception as e:
@@ -915,45 +892,6 @@ class IssueProjectMover:
             else:
                 print("\n📭 没有找到需要移动的Issues")
                 return True
-        if scan_mode == "all":
-            actions = self.scan_all_issues(limit=limit)
-        else:
-            actions = self.scan_project_issues(limit=limit)
-        
-        if actions:
-            plan_file = self.save_plan(actions, scan_mode)
-            
-            if apply_changes:
-                print(f"\n⚡ 开始执行移动计划...")
-                return self.execute_actions(actions)
-            else:
-                actions.append({
-                    "issue_number": issue_number,
-                    "issue_title": issue_title,
-                    "author": author,
-                    "from_project": project_title,
-                    "from_project_id": project_id,
-                    "to_team": matched_team,
-                    "to_project_number": target_project_number,
-                    "to_project": target_project.get('title'),
-                    "item_id": item_id,
-                    "issue_node_id": issue_id,
-                })
-                processed += 1
-
-            if limit and processed >= limit:
-                print(f"已达到 limit={limit}，停止处理")
-                break
-
-        # Dry-run summary
-        if not apply_changes and not stage_local:
-            report_path = self.output_dir / f"project_move_plan_{int(time.time())}.json"
-            report_path.write_text(json.dumps(actions, ensure_ascii=False, indent=2), encoding='utf-8')
-            print(f"\n📋 计划已写入: {report_path} (未实际执行，传入 --apply 来执行移动)")
-        elif stage_local:
-            report_path = self.output_dir / f"project_move_plan_{int(time.time())}.json"
-            report_path.write_text(json.dumps(actions, ensure_ascii=False, indent=2), encoding='utf-8')
-            print(f"\n📋 本地阶段计划已写入: {report_path} (请审查并提交到仓库，随后使用 sync 脚本执行远端变更)")
 
 
 def parse_args(argv):

@@ -112,35 +112,29 @@ show_main_menu() {
     clear
     echo -e "${CYAN}🎯 SAGE Issues 管理工具${NC}"
     echo "=============================="
+    
+    # 显示GitHub Token状态
+    if check_github_token; then
+        echo -e "${GREEN}✅ GitHub Token: 已配置${NC}"
+    else
+        echo -e "${YELLOW}⚠️ GitHub Token: 未配置 (功能受限)${NC}"
+    fi
+    
     echo ""
-    echo -e "${BLUE}📥 数据操作:${NC}"
-    echo "  1. 📥 下载远端Issues"
-    echo "  2. 📤 上传Issues到远端"
+    echo -e "${BLUE}核心功能:${NC}"
     echo ""
-    echo -e "${BLUE}🔧 Issues管理:${NC}"
-    echo "  3. � 查看Issues统计"
-    echo "  4. 🏷️ 标签管理"
-    echo "  5. ✨ 创建新Issue"
+    echo -e "  1. 📥 下载远端Issues"
+    echo -e "  2. 📝 手动管理Issues"
+    echo -e "  3. 🤖 AI智能整理Issues" 
+    echo -e "  4. 📤 上传Issues到远端"
     echo ""
-    echo -e "${BLUE}🚀 项目移动:${NC}"
-    echo "  6. 🏷️ 暂存移动计划"
-    echo "  7. 👀 预览移动计划"
-    echo "  8. ✅ 执行移动计划"
-    echo ""
-    echo -e "${BLUE}👥 团队管理:${NC}"
-    echo "  9. 👥 团队成员分析"
-    echo "  10. 🔍 检查用户团队归属"
-    echo ""
-    echo -e "${BLUE}🔄 内容同步:${NC}"
-    echo "  11. � 预览内容差异"
-    echo "  12. ✅ 同步Issues内容"
-    echo ""
-    echo -e "${BLUE}🤖 AI功能:${NC}"
-    echo "  13. 🤖 AI智能整理Issues"
-    echo ""
-    echo -e "${BLUE}⚙️ 系统:${NC}"
-    echo "  14. ⚙️ 系统设置"
-    echo "  15. 🚪 退出"
+    if ! check_github_token; then
+        echo -e "${YELLOW}设置选项:${NC}"
+        echo ""
+        echo -e "  9. 🔑 配置GitHub Token"
+        echo ""
+    fi
+    echo -e "  5. 🚪 退出"
     echo ""
 }
 
@@ -212,6 +206,27 @@ upload_menu() {
             3) sync_status_changes ;;
             4) preview_changes ;;
             5) break ;;
+            *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
+issues_management_menu() {
+    while true; do
+        clear
+        echo -e "${BLUE}📝 手动管理Issues${NC}"
+        echo "=================="
+        echo ""
+        echo "  1. 📊 查看Issues统计和分析"
+        echo "  2. 📋 项目管理"
+        echo "  3. 返回主菜单"
+        echo ""
+        read -p "请选择 (1-3): " choice
+        
+        case $choice in
+            1) show_issues_statistics ;;
+            2) project_management ;;
+            3) break ;;
             *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
         esac
     done
@@ -625,207 +640,199 @@ project_management() {
     read -p "按Enter键继续..."
 }
 
-apply_project_moves() {
-    echo "✅ 执行移动计划..."
+search_and_filter() {
+    echo "🔍 搜索和过滤Issues..."
     echo ""
-    echo -e "${YELLOW}⚠️ 警告: 这将对GitHub进行实际修改${NC}"
+    echo "📁 Issues目录结构:"
+    echo "=================="
+    echo "  - issues_workspace/issues/     (所有issue文件)"
+    echo "  - issues_workspace/metadata/   (元数据信息)"
     echo ""
-    read -p "确认执行移动计划? (y/N): " confirm
+    echo "🛠️ 搜索选项:"
+    echo "============"
+    echo "  1. 🔤 按关键词搜索标题"
+    echo "  2. 🏷️ 按标签筛选"
+    echo "  3. 👤 按作者筛选"
+    echo "  4. 📅 按状态筛选"
+    echo "  5. 📊 显示搜索统计"
+    echo "  6. 💻 打开VS Code搜索"
+    echo "  7. 返回"
+    echo ""
     
-    if [[ $confirm =~ ^[Yy]$ ]]; then
-        cd "$SCRIPT_DIR"
-        python3 _scripts/sync_issues.py --apply-plan --confirm
-    else
-        echo "取消操作"
-    fi
-    read -p "按Enter键继续..."
-}
-
-check_user_team() {
-    echo "🔍 检查特定用户的团队归属..."
-    echo ""
-    read -p "输入GitHub用户名: " username
+    read -p "请选择搜索方式 (1-7): " search_choice
     
-    if [ -n "$username" ]; then
-        cd "$SCRIPT_DIR"
-        python3 - <<EOF
+    case $search_choice in
+        1)
+            echo ""
+            read -p "🔤 请输入搜索关键词: " keyword
+            if [ -n "$keyword" ]; then
+                echo ""
+                echo "🔍 搜索结果 (标题包含 '$keyword'):"
+                echo "=================================="
+                grep -l -i "$keyword" "$SCRIPT_DIR/issues_workspace/issues/"*.md 2>/dev/null | head -20 | while read file; do
+                    filename=$(basename "$file" .md)
+                    echo "  - $filename"
+                done | head -20
+                echo ""
+                echo "💡 提示: 显示前20个结果，完整搜索请使用VS Code"
+            fi
+            ;;
+        2)
+            echo ""
+            echo "🏷️ 输入要查看的标签名称："
+            read -p "标签名: " label
+            if [ -n "$label" ]; then
+                echo ""
+                echo "🏷️ 包含标签 '$label' 的Issues:"
+                echo "=========================="
+                cd "$SCRIPT_DIR"
+                python3 -c "
 import sys
-from pathlib import Path
-sys.path.insert(0, '_scripts/helpers')
+sys.path.insert(0, '.')
+from issues_manager import SageIssuesManager
 
-from project_manage import IssueProjectMover
+manager = SageIssuesManager()
+manager._load_issues()
 
-mover = IssueProjectMover()
-print(f"\n=== 用户 '$username' 的团队检查 ===")
+label_query = '$label'.lower()
+found_issues = []
 
-for team_slug in mover.target_teams.keys():
-    try:
-        is_member = mover.is_user_in_team('$username', team_slug)
-        project_num = mover.target_teams[team_slug]
-        status = "✅" if is_member else "❌"
-        print(f"{status} 团队 '{team_slug}' (项目{project_num}): {is_member}")
-    except Exception as e:
-        print(f"❌ 团队 '{team_slug}' 检查出错: {e}")
-EOF
-    else
-        echo "用户名不能为空"
-    fi
-    read -p "按Enter键继续..."
-}
+for issue in manager.issues:
+    labels = issue.get('labels', [])
+    if any(label_query in label.lower() for label in labels):
+        found_issues.append(issue)
 
-show_move_statistics() {
-    echo "📊 查看移动统计..."
-    cd "$SCRIPT_DIR"
-    if [ -d "output" ]; then
-        echo -e "${GREEN}=== 移动计划文件 ===${NC}"
-        ls -lah output/project_move_plan_*.json 2>/dev/null | tail -5 || echo "无移动计划文件"
-        
-        latest_plan=$(ls -t output/project_move_plan_*.json 2>/dev/null | head -1)
-        if [ -n "$latest_plan" ]; then
+if found_issues:
+    print(f'找到 {len(found_issues)} 个包含标签 \"$label\" 的Issues:')
+    for issue in found_issues[:10]:  # 限制显示前10个
+        print(f'  Issue #{issue.get(\"number\", \"N/A\")}: {issue.get(\"title\", \"无标题\")}')
+    if len(found_issues) > 10:
+        print(f'  ... 还有 {len(found_issues) - 10} 个Issues未显示')
+else:
+    print(f'未找到包含标签 \"$label\" 的Issues')
+" 2>/dev/null || echo "❌ 查询失败"
+            else
+                echo "❌ 请输入标签名称"
+            fi
+            ;;
+        3)
             echo ""
-            echo -e "${GREEN}=== 最新计划统计 ===${NC}"
-            python3 -c "
-import json
-with open('$latest_plan', 'r', encoding='utf-8') as f:
-    data = json.load(f)
-print(f'计划项目数: {len(data)}')
-teams = {}
-for item in data:
-    team = item.get('to_team', 'unknown')
-    teams[team] = teams.get(team, 0) + 1
-print('按团队分布:')
-for team, count in teams.items():
-    print(f'  {team}: {count}')
-"
-        fi
-    else
-        echo "无输出目录"
-    fi
-    read -p "按Enter键继续..."
-}
-
-# 内容同步功能实现
-preview_content_diff() {
-    echo "🔍 预览内容差异..."
-    echo ""
-    read -p "输入检查数量限制 (默认5): " limit
-    
-    if [ -z "$limit" ]; then
-        limit=5
-    fi
-    
-    cd "$SCRIPT_DIR"
-    python3 _scripts/sync_issues.py --content-preview --content-limit "$limit"
-    read -p "按Enter键继续..."
-}
-
-sync_content_changes() {
-    echo "📝 同步标题和正文..."
-    echo ""
-    echo -e "${YELLOW}⚠️ 警告: 这将修改GitHub上的Issues内容${NC}"
-    echo ""
-    read -p "确认同步内容更改? (y/N): " confirm
-    
-    if [[ $confirm =~ ^[Yy]$ ]]; then
-        cd "$SCRIPT_DIR"
-        python3 _scripts/sync_issues.py --apply-content --confirm
-    else
-        echo "取消操作"
-    fi
-    read -p "按Enter键继续..."
-}
-
-sync_label_updates() {
-    echo "🏷️ 同步标签..."
-    echo "此功能包含在内容同步中"
-    preview_content_diff
-}
-
-view_sync_plans() {
-    echo "📋 查看同步计划..."
-    cd "$SCRIPT_DIR"
-    if [ -d "output" ]; then
-        echo -e "${GREEN}=== 同步计划文件 ===${NC}"
-        ls -lah output/content_sync_plan_*.json 2>/dev/null | tail -5 || echo "无同步计划文件"
-        
-        latest_plan=$(ls -t output/content_sync_plan_*.json 2>/dev/null | head -1)
-        if [ -n "$latest_plan" ]; then
+            read -p "👤 请输入作者用户名: " author
+            if [ -n "$author" ]; then
+                echo ""
+                echo "👤 作者 '$author' 的Issues:"
+                echo "========================"
+                grep -l "author.*$author" "$SCRIPT_DIR/issues_workspace/issues/"*.md 2>/dev/null | head -20 | while read file; do
+                    filename=$(basename "$file" .md)
+                    echo "  - $filename"
+                done
+            fi
+            ;;
+        4)
             echo ""
-            echo -e "${GREEN}=== 最新同步计划统计 ===${NC}"
-            python3 -c "
-import json
-with open('$latest_plan', 'r', encoding='utf-8') as f:
-    data = json.load(f)
-print(f'待同步Issue数: {len(data)}')
-changes = {}
-for item in data:
-    for change in item.get('changes', []):
-        field = change.get('field', 'unknown')
-        changes[field] = changes.get(field, 0) + 1
-print('变更类型分布:')
-for field, count in changes.items():
-    print(f'  {field}: {count}')
-"
-        fi
-    else
-        echo "无输出目录"
-    fi
-    read -p "按Enter键继续..."
-}
-
-apply_sync_plan() {
-    echo "✅ 执行同步计划..."
-    echo ""
-    echo -e "${YELLOW}⚠️ 警告: 这将对GitHub进行实际修改${NC}"
-    echo ""
-    read -p "确认执行同步计划? (y/N): " confirm
+            echo "📅 按状态筛选:"
+            echo "  1. 开放状态 (open)"
+            echo "  2. 已关闭 (closed)"
+            echo ""
+            read -p "请选择状态 (1-2): " status_choice
+            
+            case $status_choice in
+                1) status="open" ;;
+                2) status="closed" ;;
+                *) echo "❌ 无效选择"; return ;;
+            esac
+            
+            echo ""
+            echo "📅 状态为 '$status' 的Issues:"
+            echo "=========================="
+            if [ "$status" = "open" ]; then
+                find "$SCRIPT_DIR/issues_workspace/issues/" -name "open_*.md" 2>/dev/null | head -20 | while read file; do
+                    filename=$(basename "$file" .md)
+                    echo "  - $filename"
+                done
+            else
+                find "$SCRIPT_DIR/issues_workspace/issues/" -name "closed_*.md" 2>/dev/null | head -20 | while read file; do
+                    filename=$(basename "$file" .md)
+                    echo "  - $filename"
+                done
+            fi
+            ;;
+        5)
+            echo ""
+            echo "📊 Issues统计信息:"
+            echo "=================="
+            total_issues=$(find "$SCRIPT_DIR/issues_workspace/issues/" -name "*.md" 2>/dev/null | wc -l)
+            open_issues=$(find "$SCRIPT_DIR/issues_workspace/issues/" -name "open_*.md" 2>/dev/null | wc -l)
+            closed_issues=$(find "$SCRIPT_DIR/issues_workspace/issues/" -name "closed_*.md" 2>/dev/null | wc -l)
+            
+            echo "  总Issues数量: $total_issues"
+            echo "  开放Issues: $open_issues"
+            echo "  已关闭Issues: $closed_issues"
+            echo ""
+            echo "📁 目录大小:"
+            if command -v du >/dev/null 2>&1; then
+                du -sh "$SCRIPT_DIR/issues_workspace" 2>/dev/null || echo "  无法计算目录大小"
+            fi
+            ;;
+        6)
+            echo ""
+            echo "💻 正在尝试打开VS Code..."
+            if command -v code >/dev/null 2>&1; then
+                echo "🚀 在VS Code中打开Issues工作区..."
+                code "$SCRIPT_DIR/issues_workspace" 2>/dev/null &
+                echo "✅ VS Code已启动，您可以使用 Ctrl+Shift+F 进行全局搜索"
+            else
+                echo "❌ VS Code未安装或不在PATH中"
+                echo "💡 建议安装VS Code进行高级搜索和编辑"
+                echo "📁 工作区目录: $SCRIPT_DIR/issues_workspace"
+            fi
+            ;;
+        7|*)
+            echo "返回上级菜单..."
+            return
+            ;;
+    esac
     
-    if [[ $confirm =~ ^[Yy]$ ]]; then
-        cd "$SCRIPT_DIR"
-        python3 _scripts/sync_issues.py --apply-content --confirm
-    else
-        echo "取消操作"
-    fi
-    read -p "按Enter键继续..."
-}
-
-# 项目统计功能
-project_statistics() {
-    echo "📈 项目统计分析..."
-    cd "$SCRIPT_DIR"
-    python3 _scripts/issues_manager.py --action=project
-    read -p "按Enter键继续..."
-}
-
-# 获取团队成员
-get_team_members() {
-    echo "👥 获取团队成员信息..."
-    cd "$SCRIPT_DIR"
-    python3 _scripts/helpers/get_team_members.py
-    read -p "按Enter键继续..."
-}
-
-# 查看项目计划
-view_project_plans() {
-    echo "📋 查看项目移动计划..."
-    cd "$SCRIPT_DIR"
-    if [ -d "output" ]; then
-        echo -e "${GREEN}=== 项目移动计划文件 ===${NC}"
-        ls -lah output/project_move_plan_*.json 2>/dev/null || echo "无项目移动计划文件"
-        
+    if [ "$search_choice" != "7" ] && [ -n "$search_choice" ]; then
         echo ""
-        echo -e "${GREEN}=== 内容同步计划文件 ===${NC}"
-        ls -lah output/content_sync_plan_*.json 2>/dev/null || echo "无内容同步计划文件"
-    else
-        echo "无输出目录"
+        read -p "按Enter键继续..."
     fi
-    read -p "按Enter键继续..."
 }
+
+# 启动时检查GitHub Token
+# 检查是否首次使用
+echo -e "${CYAN}正在初始化SAGE Issues管理工具...${NC}"
+
+if ! check_github_token; then
+    echo ""
+    echo -e "${YELLOW}⚠️ 检测到您是首次使用或未配置GitHub Token${NC}"
+    echo ""
+    read -p "是否要现在进行初始设置？(Y/n): " setup_now
+    case "$setup_now" in
+        [nN]|[nN][oO])
+            echo -e "${CYAN}💡 您可以稍后通过主菜单的选项9来配置Token${NC}"
+            ;;
+        *)
+            if first_time_setup; then
+                echo ""
+                echo -e "${GREEN}🎉 设置完成！正在重新检查Token状态...${NC}"
+            fi
+            ;;
+    esac
+fi
+
+echo ""
 
 # 主循环
 while true; do
     show_main_menu
-    read -p "请选择功能 (1-15): " choice
+    
+    # 根据是否有token调整提示
+    if check_github_token; then
+        read -p "请选择功能 (1-5): " choice
+    else
+        read -p "请选择功能 (1-5, 9): " choice
+    fi
     echo ""
     
     case $choice in
@@ -833,80 +840,42 @@ while true; do
             download_menu
             ;;
         2) 
-            upload_menu
+            issues_management_menu
             ;;
         3) 
-            show_issues_statistics
-            ;;
-        4) 
-            label_management
-            ;;
-        5) 
-            create_new_issue
-            ;;
-        6) 
-            stage_project_moves
-            ;;
-        7) 
-            preview_project_moves
-            ;;
-        8) 
-            apply_project_moves
-            ;;
-        9) 
-            team_analysis
-            ;;
-        10) 
-            check_user_team
-            ;;
-        11) 
-            preview_content_diff
-            ;;
-        12) 
-            sync_content_changes
-            ;;
-        13) 
             ai_menu
             ;;
-        14) 
-            system_settings
+        4) 
+            upload_menu
             ;;
-        15) 
+        5) 
             echo -e "${GREEN}👋 感谢使用SAGE Issues管理工具！${NC}"
             exit 0
             ;;
+        9)
+            if ! check_github_token; then
+                echo -e "${CYAN}🔑 配置GitHub Token${NC}"
+                echo "===================="
+                echo ""
+                first_time_setup
+                echo ""
+                read -p "按回车键返回主菜单..." dummy
+            else
+                echo -e "${YELLOW}❌ Token已配置，无需重复设置${NC}"
+                sleep 1
+            fi
+            ;;
+        "")
+            # 空输入，重新显示菜单
+            continue
+            ;;
         *)
-            echo -e "${RED}❌ 无效选择，请输入1-15${NC}"
+            if check_github_token; then
+                echo -e "${RED}❌ 无效选择，请输入1-5${NC}"
+            else
+                echo -e "${RED}❌ 无效选择，请输入1-5或9${NC}"
+            fi
             sleep 1
             ;;
     esac
 done
-
-# 系统设置菜单
-system_settings() {
-    echo -e "${BLUE}⚙️ 系统设置${NC}"
-    echo "============"
-    echo ""
-    echo "  1. 🔄 刷新团队成员缓存"
-    echo "  2. 📋 查看boards映射配置"
-    echo "  3. 👥 查看团队成员列表"
-    echo "  4. 🧹 清理缓存文件"
-    echo "  5. 📊 显示元数据统计"
-    echo "  6. 📋 查看项目移动计划"
-    echo "  7. 📊 查看移动统计"
-    echo "  8. 返回主菜单"
-    echo ""
-    read -p "请选择 (1-8): " choice
-    
-    case $choice in
-        1) refresh_team_cache ;;
-        2) view_boards_config ;;
-        3) view_team_members ;;
-        4) clean_cache_files ;;
-        5) show_metadata_stats ;;
-        6) view_project_plans ;;
-        7) show_move_statistics ;;
-        8) return ;;
-        *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
-    esac
-}
