@@ -35,6 +35,25 @@
 
 ## 🚀 快速开始
 
+### 首次使用
+当您第一次运行工具时，系统会自动检测GitHub Token状态并提供友好的设置向导：
+
+```bash
+./issues_manager.sh
+```
+
+#### 首次使用体验
+1. **自动检测**: 系统会检查环境变量`GITHUB_TOKEN`和项目根目录的`.github_token`文件
+2. **友好引导**: 如果未找到Token，会显示详细的设置指导
+3. **交互式配置**: 可选择立即配置或稍后通过主菜单的"🔑 配置GitHub Token"选项设置
+
+#### Token配置向导
+选择配置GitHub Token时，系统会：
+- 🔗 提供GitHub Token生成页面链接
+- ✅ 列出所需权限清单（repo, read:org, project）
+- 🔍 自动验证Token有效性
+- 🔐 安全保存到文件并设置正确权限（chmod 600）
+
 ### 启动主界面
 ```bash
 ./issues_manager.sh
@@ -106,11 +125,36 @@ issues-management/
 
 ## 🔧 环境配置
 
-### 必需配置
+### GitHub Token配置
+
+首次使用时，工具会自动引导您配置GitHub Token。您也可以通过以下方式手动配置：
+
+#### 方式1: 环境变量（推荐用于开发环境）
 ```bash
-# GitHub访问令牌（必需）
 export GITHUB_TOKEN="your_github_token"
 ```
+
+#### 方式2: 配置文件（推荐用于生产环境）
+```bash
+echo "your_github_token" > /home/shuhao/SAGE/.github_token
+chmod 600 /home/shuhao/SAGE/.github_token
+```
+
+#### 方式3: 使用工具的交互式配置
+运行 `./issues_manager.sh` 并选择"🔑 配置GitHub Token"选项
+
+### GitHub Token权限要求
+创建GitHub Personal Access Token时需要以下权限：
+- ✅ `repo` - 完整仓库访问权限
+- ✅ `read:org` - 读取组织信息  
+- ✅ `project` - 项目访问权限
+
+### 获取GitHub Token步骤
+1. 访问 [GitHub Personal Access Tokens](https://github.com/settings/tokens)
+2. 点击 "Generate new token" > "Generate new token (classic)"
+3. 设置权限（Scopes）：选择上述必需权限
+4. 点击 "Generate token" 并立即复制保存
+5. ⚠️ **重要**: Token只显示一次，请妥善保管
 
 ### 可选配置（AI功能）
 ```bash
@@ -119,19 +163,6 @@ export OPENAI_API_KEY="your_openai_key"
 
 # Anthropic API密钥（用于Claude分析）
 export ANTHROPIC_API_KEY="your_claude_key"
-```
-
-### 获取GitHub Token
-1. 访问 [GitHub Personal Access Tokens](https://github.com/settings/tokens)
-2. 创建新token，需要以下权限：
-   - `repo` (访问仓库)
-   - `read:org` (读取组织信息)
-   - `read:user` (读取用户信息)
-
-### 本地Token存储
-也可以将token存储在文件中：
-```bash
-echo "your_github_token" > /home/shuhao/SAGE/.github_token
 ```
 
 ## 📊 使用流程

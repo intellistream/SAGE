@@ -21,58 +21,88 @@ check_github_token() {
     
     # 检查环境变量
     if [ -n "$GITHUB_TOKEN" ]; then
-        echo -e "${GREEN}✅ 检测到GitHub Token (环境变量)${NC}"
         return 0
     fi
     
     # 检查token文件
     if [ -f "$token_file" ]; then
-        echo -e "${GREEN}✅ 检测到GitHub Token文件: $token_file${NC}"
         return 0
     fi
     
-    # 没有找到token，显示创建指导
-    echo -e "${RED}❌ 未找到GitHub Token！${NC}"
-    echo "=================================="
+    return 1
+}
+
+# 首次使用向导
+first_time_setup() {
+    local token_file="$PROJECT_ROOT/.github_token"
+    
+    echo -e "${YELLOW}🌟 欢迎首次使用SAGE Issues管理工具！${NC}"
+    echo "================================================"
     echo ""
-    echo "为了使用GitHub API，您需要创建一个包含GitHub Personal Access Token的文件。"
+    echo "为了正常使用所有功能，您需要配置GitHub Personal Access Token。"
     echo ""
-    echo "📋 请按以下步骤操作："
+    echo -e "${CYAN}📋 设置步骤：${NC}"
     echo ""
     echo "1. 访问GitHub生成Personal Access Token:"
-    echo "   https://github.com/settings/tokens"
+    echo -e "   ${BLUE}https://github.com/settings/tokens${NC}"
     echo ""
-    echo "2. 创建新的token，需要以下权限:"
-    echo "   - repo (完整仓库访问权限)"
-    echo "   - read:org (读取组织信息)"
+    echo "2. 点击 'Generate new token' > 'Generate new token (classic)'"
     echo ""
-    echo "3. 创建token文件:"
-    echo '   echo "your_token_here" > '"$token_file"
+    echo "3. 设置权限 (Scopes):"
+    echo "   ✅ repo (完整仓库访问权限)"
+    echo "   ✅ read:org (读取组织信息)"
+    echo "   ✅ project (项目访问权限)"
     echo ""
-    echo "4. 设置安全权限:"
-    echo '   chmod 600 '"$token_file"
+    echo "4. 点击 'Generate token' 并复制生成的token"
     echo ""
-    echo "WARNING: Please keep your token safe and do not commit it to version control!"
+    echo -e "${RED}⚠️ 重要提醒：${NC}"
+    echo "   - Token只会显示一次，请立即复制保存"
+    echo "   - 不要将token分享给他人或提交到版本控制系统"
     echo ""
     
-    read -p "是否要现在创建token文件？(y/N): " response
-    case "$response" in
+    read -p "您已经获得GitHub Token了吗？(y/N): " has_token
+    case "$has_token" in
         [yY]|[yY][eE][sS])
             echo ""
-            read -p "请输入您的GitHub Token: " token
+            echo "请粘贴您的GitHub Token:"
+            read -s token  # -s 隐藏输入
+            echo ""
+            
             if [ -n "$token" ]; then
-                echo "$token" > "$token_file"
-                chmod 600 "$token_file"
-                echo -e "${GREEN}✅ Token文件已创建: $token_file${NC}"
-                echo "Token设置完成，可以继续使用。"
-                return 0
+                # 验证token是否有效
+                echo "🔍 验证Token有效性..."
+                if curl -s -H "Authorization: token $token" \
+                   -H "Accept: application/vnd.github.v3+json" \
+                   https://api.github.com/user > /dev/null 2>&1; then
+                    
+                    echo "$token" > "$token_file"
+                    chmod 600 "$token_file"
+                    echo -e "${GREEN}✅ Token验证成功并已保存到: $token_file${NC}"
+                    echo ""
+                    echo -e "${GREEN}🎉 设置完成！现在您可以使用所有功能了。${NC}"
+                    echo ""
+                    read -p "按回车键继续..." dummy
+                    return 0
+                else
+                    echo -e "${RED}❌ Token验证失败，请检查Token是否正确${NC}"
+                    echo ""
+                    read -p "按回车键继续..." dummy
+                    return 1
+                fi
             else
-                echo -e "${RED}❌ 未输入token，将使用匿名访问（功能受限）${NC}"
+                echo -e "${RED}❌ 未输入token${NC}"
                 return 1
             fi
             ;;
         *)
-            echo -e "${YELLOW}⚠️ 将使用匿名访问GitHub API（功能受限）${NC}"
+            echo ""
+            echo -e "${YELLOW}📝 您也可以稍后手动创建token文件：${NC}"
+            echo "   echo 'your_token_here' > $token_file"
+            echo "   chmod 600 $token_file"
+            echo ""
+            echo -e "${CYAN}💡 提示：没有token时可以使用匿名模式，但功能会受到限制。${NC}"
+            echo ""
+            read -p "按回车键继续..." dummy
             return 1
             ;;
     esac
@@ -84,7 +114,7 @@ show_main_menu() {
     echo "=============================="
     
     # 显示GitHub Token状态
-    if [ -n "$GITHUB_TOKEN" ] || [ -f "$PROJECT_ROOT/.github_token" ]; then
+    if check_github_token; then
         echo -e "${GREEN}✅ GitHub Token: 已配置${NC}"
     else
         echo -e "${YELLOW}⚠️ GitHub Token: 未配置 (功能受限)${NC}"
@@ -97,6 +127,13 @@ show_main_menu() {
     echo -e "  2. 📝 手动管理Issues"
     echo -e "  3. 🤖 AI智能整理Issues" 
     echo -e "  4. 📤 上传Issues到远端"
+    echo ""
+    if ! check_github_token; then
+        echo -e "${YELLOW}设置选项:${NC}"
+        echo ""
+        echo -e "  9. 🔑 配置GitHub Token"
+        echo ""
+    fi
     echo -e "  5. 🚪 退出"
     echo ""
 }
@@ -292,10 +329,118 @@ show_issues_statistics() {
 }
 
 label_management() {
-    echo "🏷️ 手动标签管理..."
-    echo "可手动编辑标签文件: issues_workspace/by_label/"
-    echo "或直接修改单个issue的标签属性"
-    read -p "按Enter键继续..."
+    echo "🏷️ 标签管理..."
+    
+    # 显示标签统计
+    echo ""
+    echo "📊 当前标签分布:"
+    echo "=================="
+    
+    label_dir="$SCRIPT_DIR/issues_workspace/by_label"
+    if [ -d "$label_dir" ]; then
+        for label_folder in "$label_dir"/*; do
+            if [ -d "$label_folder" ]; then
+                label_name=$(basename "$label_folder")
+                count=$(find "$label_folder" -name "*.md" 2>/dev/null | wc -l)
+                printf "  %-25s: %3d issues\n" "$label_name" "$count"
+            fi
+        done
+    else
+        echo "❌ 标签目录不存在: $label_dir"
+    fi
+    
+    echo ""
+    echo "🛠️ 标签管理选项:"
+    echo "=================="
+    echo "  1. 📁 打开标签目录 (文件浏览器)"
+    echo "  2. 🔍 查看特定标签的Issues"
+    echo "  3. 📝 编辑Issue标签"
+    echo "  4. 📊 导出标签报告"
+    echo "  5. 🔄 刷新标签分类"
+    echo "  6. 返回"
+    echo ""
+    
+    read -p "请选择操作 (1-6): " label_choice
+    
+    case $label_choice in
+        1)
+            if command -v xdg-open >/dev/null 2>&1; then
+                echo "📁 正在打开标签目录..."
+                xdg-open "$label_dir" 2>/dev/null &
+            elif command -v open >/dev/null 2>&1; then
+                echo "📁 正在打开标签目录..."
+                open "$label_dir" 2>/dev/null &
+            else
+                echo "📁 标签目录路径: $label_dir"
+                echo "请手动在文件浏览器中打开此目录"
+            fi
+            ;;
+        2)
+            echo ""
+            echo "可用标签:"
+            select label_name in $(ls "$label_dir" 2>/dev/null); do
+                if [ -n "$label_name" ]; then
+                    echo ""
+                    echo "🏷️ 标签 '$label_name' 下的Issues:"
+                    echo "====================================="
+                    find "$label_dir/$label_name" -name "*.md" 2>/dev/null | head -10 | while read issue_file; do
+                        issue_name=$(basename "$issue_file" .md)
+                        echo "  - $issue_name"
+                    done
+                    echo ""
+                    break
+                else
+                    echo "❌ 无效选择"
+                fi
+            done
+            ;;
+        3)
+            echo "📝 Issue标签编辑功能"
+            echo "💡 提示: 可以直接编辑 issues_workspace/issues/ 目录下的.md文件"
+            echo "      修改文件开头的标签字段，然后运行刷新命令"
+            ;;
+        4)
+            echo "📊 正在生成标签报告..."
+            report_file="$SCRIPT_DIR/output/label_report_$(date +%Y%m%d_%H%M%S).md"
+            mkdir -p "$SCRIPT_DIR/output"
+            
+            echo "# 标签分布报告" > "$report_file"
+            echo "" >> "$report_file"
+            echo "生成时间: $(date)" >> "$report_file"
+            echo "" >> "$report_file"
+            echo "## 标签统计" >> "$report_file"
+            echo "" >> "$report_file"
+            
+            for label_folder in "$label_dir"/*; do
+                if [ -d "$label_folder" ]; then
+                    label_name=$(basename "$label_folder")
+                    count=$(find "$label_folder" -name "*.md" 2>/dev/null | wc -l)
+                    echo "- **$label_name**: $count issues" >> "$report_file"
+                fi
+            done
+            
+            echo ""
+            echo "✅ 报告已生成: $report_file"
+            ;;
+        5)
+            echo "🔄 正在刷新标签分类..."
+            cd "$SCRIPT_DIR"
+            if [ -f "_scripts/download_issues.py" ]; then
+                python3 _scripts/download_issues.py --refresh-labels-only 2>/dev/null || \
+                echo "⚠️ 标签刷新需要实现 --refresh-labels-only 选项"
+            else
+                echo "⚠️ 需要重新运行下载脚本来刷新标签分类"
+            fi
+            ;;
+        6|*)
+            echo "返回上级菜单..."
+            ;;
+    esac
+    
+    if [ "$label_choice" != "6" ] && [ -n "$label_choice" ]; then
+        echo ""
+        read -p "按Enter键继续..."
+    fi
 }
 
 team_analysis() {
@@ -320,23 +465,181 @@ project_management() {
 }
 
 search_and_filter() {
-    echo "🔍 手动搜索和过滤..."
-    echo "可手动浏览以下目录结构："
-    echo "- issues_workspace/issues/ (所有issue文件)"
-    echo "- issues_workspace/by_label/ (按标签分类)"
-    echo "建议使用VS Code的搜索功能进行精确搜索"
-    read -p "按Enter键继续..."
+    echo "🔍 搜索和过滤Issues..."
+    echo ""
+    echo "📁 Issues目录结构:"
+    echo "=================="
+    echo "  - issues_workspace/issues/     (所有issue文件)"
+    echo "  - issues_workspace/by_label/   (按标签分类)"
+    echo "  - issues_workspace/metadata/   (元数据信息)"
+    echo ""
+    echo "🛠️ 搜索选项:"
+    echo "============"
+    echo "  1. 🔤 按关键词搜索标题"
+    echo "  2. 🏷️ 按标签筛选"
+    echo "  3. 👤 按作者筛选"
+    echo "  4. 📅 按状态筛选"
+    echo "  5. 📊 显示搜索统计"
+    echo "  6. 💻 打开VS Code搜索"
+    echo "  7. 返回"
+    echo ""
+    
+    read -p "请选择搜索方式 (1-7): " search_choice
+    
+    case $search_choice in
+        1)
+            echo ""
+            read -p "🔤 请输入搜索关键词: " keyword
+            if [ -n "$keyword" ]; then
+                echo ""
+                echo "🔍 搜索结果 (标题包含 '$keyword'):"
+                echo "=================================="
+                grep -l -i "$keyword" "$SCRIPT_DIR/issues_workspace/issues/"*.md 2>/dev/null | head -20 | while read file; do
+                    filename=$(basename "$file" .md)
+                    echo "  - $filename"
+                done | head -20
+                echo ""
+                echo "💡 提示: 显示前20个结果，完整搜索请使用VS Code"
+            fi
+            ;;
+        2)
+            echo ""
+            echo "🏷️ 可用标签:"
+            ls "$SCRIPT_DIR/issues_workspace/by_label/" 2>/dev/null | head -20
+            echo ""
+            read -p "请输入标签名: " label
+            if [ -n "$label" ] && [ -d "$SCRIPT_DIR/issues_workspace/by_label/$label" ]; then
+                echo ""
+                echo "🏷️ 标签 '$label' 下的Issues:"
+                echo "=========================="
+                ls "$SCRIPT_DIR/issues_workspace/by_label/$label/" 2>/dev/null | head -20 | while read file; do
+                    filename=$(basename "$file" .md)
+                    echo "  - $filename"
+                done
+            else
+                echo "❌ 标签 '$label' 不存在"
+            fi
+            ;;
+        3)
+            echo ""
+            read -p "👤 请输入作者用户名: " author
+            if [ -n "$author" ]; then
+                echo ""
+                echo "👤 作者 '$author' 的Issues:"
+                echo "========================"
+                grep -l "author.*$author" "$SCRIPT_DIR/issues_workspace/issues/"*.md 2>/dev/null | head -20 | while read file; do
+                    filename=$(basename "$file" .md)
+                    echo "  - $filename"
+                done
+            fi
+            ;;
+        4)
+            echo ""
+            echo "📅 按状态筛选:"
+            echo "  1. 开放状态 (open)"
+            echo "  2. 已关闭 (closed)"
+            echo ""
+            read -p "请选择状态 (1-2): " status_choice
+            
+            case $status_choice in
+                1) status="open" ;;
+                2) status="closed" ;;
+                *) echo "❌ 无效选择"; return ;;
+            esac
+            
+            echo ""
+            echo "📅 状态为 '$status' 的Issues:"
+            echo "=========================="
+            if [ "$status" = "open" ]; then
+                find "$SCRIPT_DIR/issues_workspace/issues/" -name "open_*.md" 2>/dev/null | head -20 | while read file; do
+                    filename=$(basename "$file" .md)
+                    echo "  - $filename"
+                done
+            else
+                find "$SCRIPT_DIR/issues_workspace/issues/" -name "closed_*.md" 2>/dev/null | head -20 | while read file; do
+                    filename=$(basename "$file" .md)
+                    echo "  - $filename"
+                done
+            fi
+            ;;
+        5)
+            echo ""
+            echo "📊 Issues统计信息:"
+            echo "=================="
+            total_issues=$(find "$SCRIPT_DIR/issues_workspace/issues/" -name "*.md" 2>/dev/null | wc -l)
+            open_issues=$(find "$SCRIPT_DIR/issues_workspace/issues/" -name "open_*.md" 2>/dev/null | wc -l)
+            closed_issues=$(find "$SCRIPT_DIR/issues_workspace/issues/" -name "closed_*.md" 2>/dev/null | wc -l)
+            label_count=$(ls "$SCRIPT_DIR/issues_workspace/by_label/" 2>/dev/null | wc -l)
+            
+            echo "  总Issues数量: $total_issues"
+            echo "  开放Issues: $open_issues"
+            echo "  已关闭Issues: $closed_issues"
+            echo "  标签类别数: $label_count"
+            echo ""
+            echo "📁 目录大小:"
+            if command -v du >/dev/null 2>&1; then
+                du -sh "$SCRIPT_DIR/issues_workspace" 2>/dev/null || echo "  无法计算目录大小"
+            fi
+            ;;
+        6)
+            echo ""
+            echo "💻 正在尝试打开VS Code..."
+            if command -v code >/dev/null 2>&1; then
+                echo "🚀 在VS Code中打开Issues工作区..."
+                code "$SCRIPT_DIR/issues_workspace" 2>/dev/null &
+                echo "✅ VS Code已启动，您可以使用 Ctrl+Shift+F 进行全局搜索"
+            else
+                echo "❌ VS Code未安装或不在PATH中"
+                echo "💡 建议安装VS Code进行高级搜索和编辑"
+                echo "📁 工作区目录: $SCRIPT_DIR/issues_workspace"
+            fi
+            ;;
+        7|*)
+            echo "返回上级菜单..."
+            return
+            ;;
+    esac
+    
+    if [ "$search_choice" != "7" ] && [ -n "$search_choice" ]; then
+        echo ""
+        read -p "按Enter键继续..."
+    fi
 }
 
 # 启动时检查GitHub Token
+# 检查是否首次使用
 echo -e "${CYAN}正在初始化SAGE Issues管理工具...${NC}"
-check_github_token
+
+if ! check_github_token; then
+    echo ""
+    echo -e "${YELLOW}⚠️ 检测到您是首次使用或未配置GitHub Token${NC}"
+    echo ""
+    read -p "是否要现在进行初始设置？(Y/n): " setup_now
+    case "$setup_now" in
+        [nN]|[nN][oO])
+            echo -e "${CYAN}💡 您可以稍后通过主菜单的选项9来配置Token${NC}"
+            ;;
+        *)
+            if first_time_setup; then
+                echo ""
+                echo -e "${GREEN}🎉 设置完成！正在重新检查Token状态...${NC}"
+            fi
+            ;;
+    esac
+fi
+
 echo ""
 
 # 主循环
 while true; do
     show_main_menu
-    read -p "请选择功能 (1-5): " choice
+    
+    # 根据是否有token调整提示
+    if check_github_token; then
+        read -p "请选择功能 (1-5): " choice
+    else
+        read -p "请选择功能 (1-5, 9): " choice
+    fi
     echo ""
     
     case $choice in
@@ -356,8 +659,29 @@ while true; do
             echo -e "${GREEN}👋 感谢使用SAGE Issues管理工具！${NC}"
             exit 0
             ;;
+        9)
+            if ! check_github_token; then
+                echo -e "${CYAN}🔑 配置GitHub Token${NC}"
+                echo "===================="
+                echo ""
+                first_time_setup
+                echo ""
+                read -p "按回车键返回主菜单..." dummy
+            else
+                echo -e "${YELLOW}❌ Token已配置，无需重复设置${NC}"
+                sleep 1
+            fi
+            ;;
+        "")
+            # 空输入，重新显示菜单
+            continue
+            ;;
         *)
-            echo -e "${RED}❌ 无效选择，请输入1-5${NC}"
+            if check_github_token; then
+                echo -e "${RED}❌ 无效选择，请输入1-5${NC}"
+            else
+                echo -e "${RED}❌ 无效选择，请输入1-5或9${NC}"
+            fi
             sleep 1
             ;;
     esac

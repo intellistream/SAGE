@@ -29,12 +29,52 @@ class IssuesManager:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def _load_team_info(self):
-        """Try to import generated `team_config.py` from the output directory."""
+        """Try to import generated `team_config.py` from the meta-data directory."""
+        # 首先尝试从 meta-data 目录加载
+        meta_data_dir = self.workspace_dir / 'meta-data'
+        team_config_path = meta_data_dir / 'team_config.py'
+        
+        if team_config_path.exists():
+            try:
+                # 清理可能存在的模块缓存
+                if 'team_config' in sys.modules:
+                    del sys.modules['team_config']
+                
+                sys.path.insert(0, str(meta_data_dir))
+                import team_config
+                TEAMS = getattr(team_config, 'TEAMS', None)
+                if TEAMS is not None:
+                    # 手动收集所有用户名
+                    all_usernames = []
+                    for team_name, team_data in TEAMS.items():
+                        members = team_data.get('members', [])
+                        for member in members:
+                            username = member.get('username')
+                            if username and username not in all_usernames:
+                                all_usernames.append(username)
+                    
+                    # 清理sys.path
+                    if str(meta_data_dir) in sys.path:
+                        sys.path.remove(str(meta_data_dir))
+                    
+                    print(f"✅ 已加载团队信息: {len(all_usernames)} 位成员")
+                    return {'teams': TEAMS, 'all_usernames': all_usernames}
+            except Exception as e:
+                print(f"⚠️ 加载团队配置失败: {e}")
+                # 清理sys.path
+                if str(meta_data_dir) in sys.path:
+                    sys.path.remove(str(meta_data_dir))
+        
+        # 备用：尝试从 output_dir 加载
         try:
+            # 清理可能存在的模块缓存
+            if 'team_config' in sys.modules:
+                del sys.modules['team_config']
+                
             sys.path.insert(0, str(self.output_dir))
-            import team_config
-            TEAMS = getattr(team_config, 'TEAMS', None)
-            get_all_usernames = getattr(team_config, 'get_all_usernames', None)
+            import team_config as output_team_config
+            TEAMS = getattr(output_team_config, 'TEAMS', None)
+            get_all_usernames = getattr(output_team_config, 'get_all_usernames', None)
             if TEAMS is not None:
                 all_usernames = []
                 if callable(get_all_usernames):
@@ -42,10 +82,25 @@ class IssuesManager:
                         all_usernames = get_all_usernames()
                     except Exception:
                         all_usernames = []
+                else:
+                    # 手动收集所有用户名
+                    for team_name, team_data in TEAMS.items():
+                        members = team_data.get('members', [])
+                        for member in members:
+                            username = member.get('username')
+                            if username and username not in all_usernames:
+                                all_usernames.append(username)
+                
+                # 清理sys.path
+                if str(self.output_dir) in sys.path:
+                    sys.path.remove(str(self.output_dir))
+                
                 print(f"✅ 已加载团队信息: {len(all_usernames)} 位成员")
                 return {'teams': TEAMS, 'all_usernames': all_usernames}
         except Exception:
-            pass
+            # 清理sys.path
+            if str(self.output_dir) in sys.path:
+                sys.path.remove(str(self.output_dir))
 
         print("⚠️ 团队信息未找到")
         print("💡 运行以下命令获取团队信息:")
