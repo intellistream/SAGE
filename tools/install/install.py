@@ -478,8 +478,6 @@ class SAGEInstaller:
         try:
             # 首先安装常见的缺失基础包
             self.ui.show_info("📦 安装常见基础依赖包...")
-            if package_installer.install_common_missing_packages():
-                self.ui.show_success("✅ 基础依赖包检查完成")
             
             # 然后解析具体的依赖冲突
             self.ui.show_info("🔍 解析具体的依赖冲突...")
