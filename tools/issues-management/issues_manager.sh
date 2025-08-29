@@ -450,178 +450,178 @@ create_new_issue() {
     read -p "按Enter键继续..."
 }
 
-search_and_filter() {
-    echo "🔍 搜索和过滤..."
-    echo "此功能正在开发中，建议使用VS Code的搜索功能"
-    echo "搜索路径: issues_workspace/issues/"
-    read -p "按Enter键继续..."
-}
-
-# 项目移动管理
-project_move_management() {
-    while true; do
-        echo -e "${BLUE}🚀 项目移动管理${NC}"
-        echo "================"
-        echo ""
-        echo "  1. 🏷️ 本地暂存移动计划 (推荐)"
-        echo "  2. 👀 预览移动计划"
-        echo "  3. ✅ 执行移动计划"
-        echo "  4. 🔍 检查特定用户的团队归属"
-        echo "  5. 📊 查看移动统计"
-        echo "  6. 返回上级菜单"
-        echo ""
-        read -p "请选择 (1-6): " choice
-        
-        case $choice in
-            1) stage_project_moves ;;
-            2) preview_project_moves ;;
-            3) apply_project_moves ;;
-            4) check_user_team ;;
-            5) show_move_statistics ;;
-            6) return ;;
-            *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
-        esac
-    done
-}
-
-# 新增功能: 同步Issues内容
-sync_issues_content() {
-    while true; do
-        echo -e "${BLUE}🔄 同步Issues内容${NC}"
-        echo "================="
-        echo ""
-        echo "  1. 🔍 预览内容差异"
-        echo "  2. 📝 同步标题和正文"
-        echo "  3. 🏷️ 同步标签"
-        echo "  4. 📋 查看同步计划"
-        echo "  5. ✅ 执行同步计划"
-        echo "  6. 返回上级菜单"
-        echo ""
-        read -p "请选择 (1-6): " choice
-        
-        case $choice in
-            1) preview_content_diff ;;
-            2) sync_content_changes ;;
-            3) sync_label_updates ;;
-            4) view_sync_plans ;;
-            5) apply_sync_plan ;;
-            6) return ;;
-            *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
-        esac
-    done
-}
-
-# 元数据管理功能实现
-refresh_team_cache() {
-    echo "🔄 刷新团队成员缓存..."
-    cd "$SCRIPT_DIR"
-    python3 _scripts/helpers/get_team_members.py
-    read -p "按Enter键继续..."
-}
-
-view_boards_config() {
-    echo "📋 查看boards映射配置..."
-    cd "$SCRIPT_DIR"
-    if [ -f "meta-data/boards_metadata.json" ]; then
-        echo -e "${GREEN}当前配置:${NC}"
-        cat meta-data/boards_metadata.json | python3 -m json.tool
-    else
-        echo -e "${RED}❌ 配置文件不存在${NC}"
-    fi
-    read -p "按Enter键继续..."
-}
-
-view_team_members() {
-    echo "👥 查看团队成员列表..."
-    cd "$SCRIPT_DIR"
-    if [ -f "meta-data/team_usernames.txt" ]; then
-        echo -e "${GREEN}团队成员列表:${NC}"
-        cat meta-data/team_usernames.txt
-    else
-        echo -e "${YELLOW}⚠️ 团队成员缓存不存在，请先刷新缓存${NC}"
-    fi
-    read -p "按Enter键继续..."
-}
-
-clean_cache_files() {
-    echo "🧹 清理缓存文件..."
-    cd "$SCRIPT_DIR"
-    if [ -d "meta-data" ]; then
-        echo "删除以下缓存文件:"
-        ls -la meta-data/ | grep -E "\.(json|yaml|txt|py)$" || echo "无缓存文件"
-        read -p "确认删除缓存文件? (y/N): " confirm
-        if [[ $confirm =~ ^[Yy]$ ]]; then
-            rm -f meta-data/team_members.* meta-data/team_config.py
-            echo -e "${GREEN}✅ 缓存文件已清理${NC}"
-        else
-            echo "取消操作"
-        fi
-    else
-        echo "无缓存目录"
-    fi
-    read -p "按Enter键继续..."
-}
-
-show_metadata_stats() {
-    echo "📊 显示元数据统计..."
-    cd "$SCRIPT_DIR"
-    echo -e "${GREEN}=== 元数据统计信息 ===${NC}"
+project_management() {
+    echo "📋 项目管理..."
+    echo ""
+    echo "🎯 项目移动选项:"
+    echo "=================="
+    echo "  1. 🔍 扫描所有仓库Issues (生成并可选执行移动计划)"
+    echo "  2. 📦 扫描组织项目#6 (清理项目中的Issues分配)"
+    echo "  3. 返回"
     echo ""
     
-    if [ -f "meta-data/team_members.json" ]; then
-        echo "📋 团队成员统计:"
-        python3 -c "
-import json
-with open('meta-data/team_members.json', 'r', encoding='utf-8') as f:
-    data = json.load(f)
-for team, info in data.items():
-    print(f'  {team}: {len(info.get(\"members\", []))} 人')
-print(f'总计团队: {len(data)}')
-"
-    else
-        echo "❌ 团队成员数据不存在"
-    fi
+    read -p "请选择操作 (1-2): " project_choice
+    
+    case $project_choice in
+        1)
+            echo ""
+            echo "🔍 扫描所有仓库Issues模式"
+            echo "=========================="
+            echo "此模式会扫描 https://github.com/intellistream/SAGE/issues 中的所有Issues"
+            echo "根据作者的团队归属来建议项目分配"
+            echo ""
+            
+            read -p "🔢 请输入要处理的Issues数量 (0表示全部处理): " limit_count
+            
+            # 验证输入
+            if ! [[ "$limit_count" =~ ^[0-9]+$ ]]; then
+                echo "❌ 请输入有效的数字"
+                return 1
+            fi
+            
+            echo ""
+            echo "🚀 开始扫描所有仓库Issues..."
+            echo "============================"
+            
+            cd "$SCRIPT_DIR/_scripts/helpers"
+            
+            # 构建命令 - 只扫描，不执行
+            if [ "$limit_count" = "0" ]; then
+                echo "📋 处理模式: 扫描全部Issues"
+                plan_output=$(python3 project_manage.py --scan-all)
+            else
+                echo "📋 处理模式: 扫描前 $limit_count 个Issues"
+                plan_output=$(python3 project_manage.py --scan-all --limit $limit_count)
+            fi
+            
+            scan_result=$?
+            echo "$plan_output"
+            
+            if [ $scan_result -eq 0 ]; then
+                # 提取计划文件路径
+                plan_file=$(echo "$plan_output" | grep "计划已写入:" | sed 's/.*计划已写入: \([^ ]*\).*/\1/')
+                
+                if [ -n "$plan_file" ] && [ -f "$plan_file" ]; then
+                    echo ""
+                    echo "✅ 仓库Issues扫描完成！移动计划已生成。"
+                    echo ""
+                    echo "🤔 是否要立即执行移动计划？"
+                    echo "   ⚠️  警告: 这将实际修改GitHub上的项目分配"
+                    echo ""
+                    read -p "确认执行？ (y/N): " confirm_apply
+                    
+                    if [[ "$confirm_apply" =~ ^[Yy]$ ]]; then
+                        echo ""
+                        echo "⚡ 执行移动计划..."
+                        echo "=================="
+                        
+                        # 使用保存的计划文件执行，避免重新扫描
+                        python3 project_manage.py --load-plan "$plan_file"
+                        
+                        apply_result=$?
+                        if [ $apply_result -eq 0 ]; then
+                            echo ""
+                            echo "🎉 移动计划执行完成！"
+                        else
+                            echo ""
+                            echo "❌ 移动计划执行失败，请检查错误信息"
+                        fi
+                    else
+                        echo ""
+                        echo "📋 移动计划已保存: $plan_file"
+                        echo "💡 稍后可运行: python3 project_manage.py --load-plan \"$plan_file\""
+                    fi
+                else
+                    echo "❌ 无法找到生成的计划文件"
+                fi
+            else
+                echo "❌ 扫描失败，请检查错误信息"
+            fi
+            ;;
+        2)
+            echo ""
+            echo "📦 扫描组织项目#6模式"
+            echo "===================="
+            echo "此模式只扫描已在组织项目#6中的Issues"
+            echo "主要用于清理 https://github.com/orgs/intellistream/projects/6"
+            echo ""
+            
+            read -p "🔢 请输入要处理的Issues数量 (0表示全部处理): " limit_count
+            
+            # 验证输入
+            if ! [[ "$limit_count" =~ ^[0-9]+$ ]]; then
+                echo "❌ 请输入有效的数字"
+                return 1
+            fi
+            
+            echo ""
+            echo "🚀 开始扫描组织项目#6..."
+            echo "======================"
+            
+            cd "$SCRIPT_DIR/_scripts/helpers"
+            
+            # 使用项目模式（默认）- 只扫描，不执行
+            if [ "$limit_count" = "0" ]; then
+                echo "📋 处理模式: 扫描项目中全部Issues"
+                plan_output=$(python3 project_manage.py --scan-project)
+            else
+                echo "📋 处理模式: 扫描项目中前 $limit_count 个Issues"
+                plan_output=$(python3 project_manage.py --scan-project --limit $limit_count)
+            fi
+            
+            scan_result=$?
+            echo "$plan_output"
+            
+            if [ $scan_result -eq 0 ]; then
+                # 提取计划文件路径
+                plan_file=$(echo "$plan_output" | grep "计划已写入:" | sed 's/.*计划已写入: \([^ ]*\).*/\1/')
+                
+                if [ -n "$plan_file" ] && [ -f "$plan_file" ]; then
+                    echo ""
+                    echo "✅ 项目Issues扫描完成！移动计划已生成。"
+                    echo ""
+                    echo "🤔 是否要立即执行移动计划？"
+                    echo "   ⚠️  警告: 这将实际修改GitHub上的项目分配"
+                    echo ""
+                    read -p "确认执行？ (y/N): " confirm_apply
+                    
+                    if [[ "$confirm_apply" =~ ^[Yy]$ ]]; then
+                        echo ""
+                        echo "⚡ 执行移动计划..."
+                        echo "=================="
+                        
+                        # 使用保存的计划文件执行，避免重新扫描
+                        python3 project_manage.py --load-plan "$plan_file"
+                        
+                        apply_result=$?
+                        if [ $apply_result -eq 0 ]; then
+                            echo ""
+                            echo "🎉 移动计划执行完成！"
+                        else
+                            echo ""
+                            echo "❌ 移动计划执行失败，请检查错误信息"
+                        fi
+                    else
+                        echo ""
+                        echo "📋 移动计划已保存: $plan_file"
+                        echo "💡 稍后可运行: python3 project_manage.py --load-plan \"$plan_file\""
+                    fi
+                else
+                    echo "❌ 无法找到生成的计划文件"
+                fi
+            else
+                echo "❌ 扫描失败，请检查错误信息"
+            fi
+            ;;
+        3)
+            return
+            ;;
+        *)
+            echo "❌ 无效选择，请输入1-2"
+            ;;
+    esac
     
     echo ""
-    if [ -d "meta-data" ]; then
-        echo "📁 缓存文件:"
-        ls -lah meta-data/ 2>/dev/null || echo "  无文件"
-    fi
-    
-    echo ""
-    if [ -d "output" ]; then
-        echo "📤 输出文件:"
-        ls -lah output/*.json 2>/dev/null | tail -5 || echo "  无输出文件"
-    fi
-    
-    read -p "按Enter键继续..."
-}
-
-# 项目移动功能实现
-stage_project_moves() {
-    echo "🏷️ 本地暂存移动计划..."
-    echo ""
-    echo "这将分析组织项目中的Issues并在本地标注移动计划"
-    echo ""
-    read -p "输入处理数量限制 (默认10, 输入0表示全部): " limit
-    
-    if [ -z "$limit" ]; then
-        limit=10
-    fi
-    
-    cd "$SCRIPT_DIR"
-    if [ "$limit" = "0" ]; then
-        python3 _scripts/helpers/project_manage.py --stage-local
-    else
-        python3 _scripts/helpers/project_manage.py --stage-local --limit "$limit"
-    fi
-    read -p "按Enter键继续..."
-}
-
-preview_project_moves() {
-    echo "👀 预览移动计划..."
-    cd "$SCRIPT_DIR"
-    python3 _scripts/sync_issues.py --plan-preview
     read -p "按Enter键继续..."
 }
 
