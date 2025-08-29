@@ -102,7 +102,7 @@ class GitHubProjectManager:
         resp = requests.post(
             "https://api.github.com/graphql",
             json={"query": repos_query},
-            headers=self.headers
+            headers=self.graphql_headers
         )
         
         if resp.status_code != 200:
@@ -158,7 +158,7 @@ class GitHubProjectManager:
                 resp = requests.post(
                     "https://api.github.com/graphql",
                     json={"query": query, "variables": variables},
-                    headers=self.headers
+                    headers=self.graphql_headers
                 )
                 
                 if resp.status_code != 200:
@@ -228,6 +228,26 @@ class GitHubProjectManager:
                     content {{
                         __typename
                         ... on Issue {{
+                            number
+                            title
+                            state
+                            url
+                            repository {{
+                                name
+                                owner {{
+                                    login
+                                }}
+                            }}
+                            author {{
+                                login
+                            }}
+                            assignees(first: 10) {{
+                                nodes {{
+                                    login
+                                }}
+                            }}
+                        }}
+                        ... on PullRequest {{
                             number
                             title
                             state

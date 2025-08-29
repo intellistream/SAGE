@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Issues错误分配检测和修复计划生成脚本
+Issues和Pull Requests错误分配检测和修复计划生成脚本
 
 功能:
-- 扫描所有GitHub项目板 (sage-kernel #12, sage-middleware #13, sage-apps #14)
-- 检测错误分配的issues (基于作者的团队归属)
+- 扫描所有GitHub项目板 (intellistream #6, sage-kernel #12, sage-middleware #13, sage-apps #14)
+- 检测错误分配的issues和pull requests (基于assignee/author的团队归属)
 - 生成详细的修复计划JSON文件
 
 使用方法:
@@ -38,8 +38,8 @@ def main():
     pm = GitHubProjectManager()
     
     # 项目信息
-    projects_to_check = [12, 13, 14]
-    project_names = {12: 'sage-kernel', 13: 'sage-middleware', 14: 'sage-apps'}
+    projects_to_check = [6, 12, 13, 14]
+    project_names = {6: 'intellistream', 12: 'sage-kernel', 13: 'sage-middleware', 14: 'sage-apps'}
     
     all_fixes = []
     
@@ -60,7 +60,8 @@ def main():
                 
                 for item in items:
                     content = item.get('content', {})
-                    if content.get('__typename') == 'Issue':
+                    content_type = content.get('__typename')
+                    if content_type in ['Issue', 'PullRequest']:
                         issue_number = content.get('number')
                         author = content.get('author', {}).get('login', '') if content.get('author') else 'Unknown'
                         title = content.get('title', '')
