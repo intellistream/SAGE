@@ -289,14 +289,16 @@ issues_management_menu() {
         echo ""
         echo "  1. 📊 查看Issues统计和分析"
         echo "  2. 📋 项目管理"
-        echo "  3. 返回主菜单"
+        echo "  3. 🗂️ 自动归档已完成Issues"
+        echo "  4. 返回主菜单"
         echo ""
-        read -p "请选择 (1-3): " choice
+        read -p "请选择 (1-4): " choice
         
         case $choice in
             1) show_issues_statistics ;;
             2) project_management ;;
-            3) break ;;
+            3) archive_completed_issues ;;
+            4) break ;;
             *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
         esac
     done
@@ -565,6 +567,60 @@ show_issues_statistics() {
     echo "📊 显示Issues统计信息..."
     cd "$SCRIPT_DIR"
     python3 _scripts/issues_manager.py --action=statistics
+    read -p "按Enter键继续..."
+}
+
+# 自动归档已完成Issues
+archive_completed_issues() {
+    echo -e "${BLUE}🗂️ 自动归档已完成Issues${NC}"
+    echo "=============================="
+    echo ""
+    echo "此功能将根据Issues完成时间自动归档："
+    echo "  📋 一周内的已完成Issues → Done列"
+    echo "  📦 超过一周但不到一个月 → Archive列"
+    echo "  📚 超过一个月 → History列（如不存在将创建）"
+    echo ""
+    
+    read -p "🤔 是否要先预览归档计划？ (Y/n): " preview_choice
+    
+    case $preview_choice in
+        [nN]|[nN][oO])
+            preview_flag=""
+            ;;
+        *)
+            preview_flag="--preview"
+            ;;
+    esac
+    
+    echo ""
+    echo "🚀 开始处理已完成Issues归档..."
+    echo "============================"
+    
+    cd "$SCRIPT_DIR/_scripts/helpers"
+    
+    if [ -n "$preview_flag" ]; then
+        echo "🔍 预览归档计划："
+        python3 archive_completed_issues.py $preview_flag
+        
+        echo ""
+        read -p "是否执行归档操作？ (y/N): " confirm_execute
+        
+        case $confirm_execute in
+            [yY]|[yY][eE][sS])
+                echo ""
+                echo "⚡ 执行归档操作..."
+                python3 archive_completed_issues.py
+                ;;
+            *)
+                echo "📋 归档操作已取消"
+                ;;
+        esac
+    else
+        echo "⚡ 直接执行归档操作..."
+        python3 archive_completed_issues.py
+    fi
+    
+    echo ""
     read -p "按Enter键继续..."
 }
 
