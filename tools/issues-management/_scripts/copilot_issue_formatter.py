@@ -30,9 +30,11 @@ class CopilotIssueFormatter:
         """加载团队配置信息"""
         try:
             sys.path.insert(0, str(self.meta_data_dir))
-            import team_config
-            return team_config.TEAMS
-        except ImportError:
+            team_config_globals = {}
+            team_config_path = self.meta_data_dir / "team_config.py"
+            exec(open(team_config_path).read(), team_config_globals)
+            return team_config_globals['TEAMS']
+        except (ImportError, FileNotFoundError, KeyError):
             print("⚠️ 未找到团队配置文件，请先运行团队成员获取脚本")
             return {}
     
@@ -152,11 +154,15 @@ class CopilotIssueFormatter:
                         issue_data['number'] = int(line.split(':')[1].strip())
                     except:
                         pass
-                elif line.startswith('**创建时间**:') or line.startswith('**创建者**:'):
+                elif line.startswith('**创建时间**:') or line.startswith('**创建者**:') or line.startswith('**分配给**:'):
                     if '创建时间' in line:
                         issue_data['created_at'] = line.split(':', 1)[1].strip()
                     elif '创建者' in line:
                         issue_data['author'] = line.split(':', 1)[1].strip()
+                    elif '分配给' in line:
+                        assignee_value = line.split(':', 1)[1].strip()
+                        if assignee_value and assignee_value != '未分配' and assignee_value != 'null':
+                            issue_data['assignee'] = assignee_value
                 elif line.startswith('**状态**:'):
                     # 已经从文件名获取状态
                     pass
@@ -222,17 +228,15 @@ class CopilotIssueFormatter:
             assignee = issue.get('assignee')
             author = issue.get('author')
             
-            # 优先根据assignee分组
-            if assignee and assignee in user_to_team:
-                team_issues[user_to_team[assignee]].append(issue)
-            # 其次根据author分组
-            elif author and author in user_to_team:
-                team_issues[user_to_team[author]].append(issue)
-            # 检查是否是外部贡献者
-            elif assignee or author:
-                external_issues.append(issue)
-            # 完全未分配
+            # 如果有assignee，根据assignee分组
+            if assignee:
+                if assignee in user_to_team:
+                    team_issues[user_to_team[assignee]].append(issue)
+                else:
+                    # assignee存在但不在团队中，归为外部贡献者
+                    external_issues.append(issue)
             else:
+                # 没有assignee就是未分配，不管author是谁
                 unassigned_issues.append(issue)
         
         return dict(team_issues), unassigned_issues, external_issues
@@ -454,7 +458,7 @@ class CopilotIssueFormatter:
                     generated_files.append(str(team_file))
         
         # 生成未分配issues文档
-        if output_format in ['all', 'unassigned'] and (unassigned_issues or external_issues):
+        if output_format in ['all', 'unassigned']:
             unassigned_doc = self._generate_unassigned_document(unassigned_issues, external_issues, timestamp, time_filter)
             unassigned_file = self.output_dir / f"copilot_unassigned_issues{time_suffix}_{timestamp}.md"
             
@@ -497,46 +501,71 @@ class CopilotIssueFormatter:
 
 ## 📋 未分配Issues ({len(unassigned_issues)} 个)
 
-这些issues没有明确的负责人，需要安排团队处理：
-
 """
         
-        for i, issue in enumerate(unassigned_issues, 1):
-            title = issue.get('title', 'No Title')
-            number = issue.get('number', 'N/A')
-            author = issue.get('author', 'Unknown')
-            labels = issue.get('labels', [])
-            url = issue.get('url', '')
-            body = issue.get('body', '')[:200] + "..." if len(issue.get('body', '')) > 200 else issue.get('body', '')
+        if unassigned_issues:
+            doc += "这些Issues没有指定assignee，需要安排团队成员处理：\n\n"
             
-            doc += f"""### {i}. Issue #{number}: {title}
+            for i, issue in enumerate(unassigned_issues, 1):
+                title = issue.get('title', 'No Title')
+                number = issue.get('number', 'N/A')
+                author = issue.get('author', 'Unknown')
+                labels = issue.get('labels', [])
+                url = issue.get('url', '')
+                body = issue.get('body', '')[:200] + "..." if len(issue.get('body', '')) > 200 else issue.get('body', '')
+                
+                # 判断创建者是否为团队成员
+                user_to_team = {}
+                for team_name, team_data in self.teams.items():
+                    for member in team_data.get('members', []):
+                        username = member.get('username')
+                        if username:
+                            user_to_team[username] = team_name
+                
+                team_info = ""
+                if author in user_to_team:
+                    team_info = f" ({user_to_team[author]} 团队成员)"
+                
+                doc += f"""### {i}. Issue #{number}: {title}
 
 - **URL**: {url}
-- **创建者**: {author}
+- **创建者**: {author}{team_info}
 - **标签**: {', '.join(labels) if labels else '无'}
 - **描述**: {body}
 
 ---
 
 """
+        else:
+            doc += """🎉 **太好了！当前时间范围内没有未分配assignee的Issues**
+
+所有Issues都已经有明确的assignee，这表明：
+- 项目管理状况良好
+- Issues分配流程运转正常
+- 团队协作效率较高
+
+💡 **建议**：继续保持当前的Issues分配规范，确保新创建的Issues能及时分配给合适的团队成员。
+
+"""
         
         doc += f"""
 ## 🌍 外部贡献者Issues ({len(external_issues)} 个)
 
-这些issues由非团队成员创建或分配：
-
 """
         
-        for i, issue in enumerate(external_issues, 1):
-            title = issue.get('title', 'No Title')
-            number = issue.get('number', 'N/A')
-            assignee = issue.get('assignee', '未分配')
-            author = issue.get('author', 'Unknown')
-            labels = issue.get('labels', [])
-            url = issue.get('url', '')
-            body = issue.get('body', '')[:200] + "..." if len(issue.get('body', '')) > 200 else issue.get('body', '')
+        if external_issues:
+            doc += "这些issues由非团队成员创建或分配：\n\n"
             
-            doc += f"""### {i}. Issue #{number}: {title}
+            for i, issue in enumerate(external_issues, 1):
+                title = issue.get('title', 'No Title')
+                number = issue.get('number', 'N/A')
+                assignee = issue.get('assignee', '未分配')
+                author = issue.get('author', 'Unknown')
+                labels = issue.get('labels', [])
+                url = issue.get('url', '')
+                body = issue.get('body', '')[:200] + "..." if len(issue.get('body', '')) > 200 else issue.get('body', '')
+                
+                doc += f"""### {i}. Issue #{number}: {title}
 
 - **URL**: {url}
 - **分配给**: {assignee}
@@ -545,6 +574,20 @@ class CopilotIssueFormatter:
 - **描述**: {body}
 
 ---
+
+"""
+        else:
+            doc += """📋 **当前时间范围内没有外部贡献者的Issues**
+
+所有Issues都来自内部团队成员，这表明：
+- 项目主要由内部团队驱动
+- 外部贡献相对较少
+- 项目可能需要更多社区参与
+
+💡 **建议**：
+- 考虑增加社区友好的Issues标签（如 `good first issue`, `help wanted`）
+- 完善贡献者指南，降低外部参与门槛
+- 积极回应社区反馈和建议
 
 """
         

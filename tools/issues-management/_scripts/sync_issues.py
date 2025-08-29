@@ -48,9 +48,10 @@ class IssuesSyncer:
             print("✅ 没有检测到需要同步的更改")
             return True
 
-        print(f"� 检测到 {len(changes)} 个更改:")
+        print(f"🔍 检测到 {len(changes)} 个更改:")
         for change in changes:
-            print(f"  - {change['type']}: {change['description']}")
+            desc = change.get('description', f"{change.get('type', 'unknown')} change")
+            print(f"  - {change.get('type', 'unknown')}: {desc}")
 
         confirm = input("\n是否继续同步? (y/N): ").lower().strip()
         if confirm != 'y':
@@ -297,8 +298,19 @@ class IssuesSyncer:
             labels_changed = set(local_labels) != set(remote_labels)
 
             if title_changed or body_changed or labels_changed:
+                # 构建描述信息
+                desc_parts = []
+                if title_changed:
+                    desc_parts.append("标题")
+                if body_changed:
+                    desc_parts.append("内容")
+                if labels_changed:
+                    desc_parts.append("标签")
+                description = f"Issue #{issue_number} - 更新{'/'.join(desc_parts)}"
+                
                 changes.append({
                     'type': 'content',
+                    'description': description,
                     'issue_number': issue_number,
                     'file': str(f),
                     'local_title': local_title,

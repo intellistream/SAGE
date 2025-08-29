@@ -29,6 +29,107 @@ class IssuesDownloader:
 
         for d in (self.issues_dir, self.metadata_dir):
             d.mkdir(parents=True, exist_ok=True)
+        
+        # 加载project映射信息
+        self.project_mapping = self.load_project_mapping()
+    
+    def load_project_mapping(self):
+        """加载project映射信息"""
+        try:
+            boards_file = Path(__file__).parent.parent / "boards_metadata.json"
+            if boards_file.exists():
+                with open(boards_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return {
+                        12: 'sage-kernel',
+                        13: 'sage-middleware', 
+                        14: 'sage-apps'
+                    }
+            return {}
+        except Exception as e:
+            print(f"⚠️ 加载project映射失败: {e}")
+            return {}
+    
+    def get_issue_project_info(self, issue_number: int):
+        """获取issue的project归属信息"""
+        try:
+            # 使用organization查询来找到包含此issue的projects
+            query = """
+            {
+              organization(login: "intellistream") {
+                projectsV2(first: 20) {
+                  nodes {
+                    number
+                    title
+                    items(first: 100) {
+                      nodes {
+                        content {
+                          ... on Issue {
+                            number
+                            repository {
+                              name
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """
+            
+            response = self.github.session.post(
+                "https://api.github.com/graphql",
+                json={"query": query},
+                timeout=30
+            )
+            
+            if response.status_code != 200:
+                print(f"GraphQL API错误: {response.status_code}")
+                return []
+                
+            data = response.json()
+            
+            if 'errors' in data:
+                print(f"GraphQL查询错误: {data['errors']}")
+                return []
+                
+            if not data.get('data', {}).get('organization', {}).get('projectsV2', {}).get('nodes'):
+                print("未找到projects数据")
+                return []
+            
+            projects = []
+            for project in data['data']['organization']['projectsV2']['nodes']:
+                if not project.get('items', {}).get('nodes'):
+                    continue
+                    
+                # 检查这个project是否包含我们要找的issue
+                for item in project['items']['nodes']:
+                    content = item.get('content')
+                    if not content:
+                        continue
+                        
+                    if (content.get('number') == issue_number and
+                        content.get('repository', {}).get('name') == 'SAGE'):
+                        
+                        project_num = project['number']
+                        project_title = project['title']
+                        team_name = self.project_mapping.get(project_num, f"unknown-{project_num}")
+                        projects.append({
+                            'number': project_num,
+                            'title': project_title,
+                            'team': team_name
+                        })
+                        break
+                        
+            return projects
+            
+        except Exception as e:
+            print(f"⚠️ 获取Issue #{issue_number} project信息失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
     
     def sanitize_filename(self, text: str) -> str:
         """清理文件名，移除不合法字符"""
@@ -37,8 +138,18 @@ class IssuesDownloader:
         text = re.sub(r'\s+', '_', text)
         return text[:50]  # 限制长度
     
-    def format_issue_content(self, issue: dict) -> str:
+    def format_issue_content(self, issue: dict, project_info: list = None) -> str:
         """格式化Issue内容为Markdown"""
+        
+        # 格式化project信息
+        project_section = ""
+        if project_info:
+            project_section = "\n## Project归属\n"
+            for proj in project_info:
+                project_section += f"- **{proj['team']}** (Project #{proj['number']}: {proj['title']})\n"
+        else:
+            project_section = "\n## Project归属\n未归属到任何Project\n"
+        
         content = f"""# {issue['title']}
 
 **Issue #**: {issue['number']}
@@ -46,7 +157,7 @@ class IssuesDownloader:
 **创建时间**: {issue['created_at']}
 **更新时间**: {issue['updated_at']}
 **创建者**: {issue['user']['login']}
-
+{project_section}
 ## 标签
 {', '.join([label['name'] for label in issue.get('labels', [])])}
 
@@ -65,19 +176,22 @@ class IssuesDownloader:
     
     def save_issue(self, issue: dict):
         """保存单个Issue到文件"""
+        # 获取project信息
+        project_info = self.get_issue_project_info(issue['number'])
+        
         # 生成文件名
         safe_title = self.sanitize_filename(issue['title'])
         filename = f"{issue['state']}_{issue['number']}_{safe_title}.md"
         filepath = self.issues_dir / filename
 
         # 保存内容
-        content = self.format_issue_content(issue)
+        content = self.format_issue_content(issue, project_info)
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(content)
 
         # 保存简化的元数据
         try:
-            self.save_issue_metadata(issue)
+            self.save_issue_metadata(issue, project_info)
         except Exception:
             pass
 
@@ -95,7 +209,7 @@ class IssuesDownloader:
             print(f"⚠️ 获取 Issue #{issue_number} 评论失败: {e}")
             return []
 
-    def save_issue_metadata(self, issue: dict):
+    def save_issue_metadata(self, issue: dict, project_info: list = None):
         """保存简化元数据到 metadata 目录"""
         data = {
             'number': issue.get('number'),
@@ -107,7 +221,8 @@ class IssuesDownloader:
             'created_at': issue.get('created_at'),
             'updated_at': issue.get('updated_at'),
             'html_url': issue.get('html_url'),
-            'user': issue.get('user', {}).get('login')
+            'user': issue.get('user', {}).get('login'),
+            'projects': project_info or []
         }
         fname = f"issue_{data['number']}_metadata.json"
         with open(self.metadata_dir / fname, 'w', encoding='utf-8') as f:
