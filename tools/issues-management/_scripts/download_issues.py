@@ -32,11 +32,13 @@ class IssuesDownloader:
         
         # 加载project映射信息
         self.project_mapping = self.load_project_mapping()
+        # 添加issue到project的映射缓存
+        self.issue_project_cache = {}
     
     def load_project_mapping(self):
         """加载project映射信息"""
         try:
-            boards_file = Path(__file__).parent.parent / "boards_metadata.json"
+            boards_file = self.config.metadata_path / "boards_metadata.json"
             if boards_file.exists():
                 with open(boards_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
@@ -50,10 +52,15 @@ class IssuesDownloader:
             print(f"⚠️ 加载project映射失败: {e}")
             return {}
     
-    def get_issue_project_info(self, issue_number: int):
-        """获取issue的project归属信息"""
+    def bulk_get_project_info(self, issue_numbers: list):
+        """批量获取多个issues的project归属信息，提高性能"""
+        if not issue_numbers:
+            return
+            
+        print(f"📊 批量获取 {len(issue_numbers)} 个issues的项目信息...")
+        
         try:
-            # 使用organization查询来找到包含此issue的projects
+            # 使用organization查询来找到包含这些issues的projects
             query = """
             {
               organization(login: "intellistream") {
@@ -87,49 +94,62 @@ class IssuesDownloader:
             
             if response.status_code != 200:
                 print(f"GraphQL API错误: {response.status_code}")
-                return []
+                return
                 
             data = response.json()
             
             if 'errors' in data:
                 print(f"GraphQL查询错误: {data['errors']}")
-                return []
+                return
                 
             if not data.get('data', {}).get('organization', {}).get('projectsV2', {}).get('nodes'):
                 print("未找到projects数据")
-                return []
+                return
             
-            projects = []
+            # 构建issue到project的映射
+            found_count = 0
             for project in data['data']['organization']['projectsV2']['nodes']:
                 if not project.get('items', {}).get('nodes'):
                     continue
                     
-                # 检查这个project是否包含我们要找的issue
+                project_num = project['number']
+                project_title = project['title']
+                team_name = self.project_mapping.get(project_num, f"unknown-{project_num}")
+                
                 for item in project['items']['nodes']:
                     content = item.get('content')
                     if not content:
                         continue
                         
-                    if (content.get('number') == issue_number and
+                    issue_number = content.get('number')
+                    if (issue_number in issue_numbers and
                         content.get('repository', {}).get('name') == 'SAGE'):
                         
-                        project_num = project['number']
-                        project_title = project['title']
-                        team_name = self.project_mapping.get(project_num, f"unknown-{project_num}")
-                        projects.append({
+                        if issue_number not in self.issue_project_cache:
+                            self.issue_project_cache[issue_number] = []
+                        
+                        self.issue_project_cache[issue_number].append({
                             'number': project_num,
                             'title': project_title,
                             'team': team_name
                         })
-                        break
-                        
-            return projects
+                        found_count += 1
             
+            print(f"✅ 成功获取 {found_count} 个issues的项目信息")
+                        
         except Exception as e:
-            print(f"⚠️ 获取Issue #{issue_number} project信息失败: {e}")
+            print(f"⚠️ 批量获取项目信息失败: {e}")
             import traceback
             traceback.print_exc()
-            return []
+    
+    def get_issue_project_info(self, issue_number: int):
+        """获取issue的project归属信息（优先从缓存获取）"""
+        # 首先检查缓存
+        if issue_number in self.issue_project_cache:
+            return self.issue_project_cache[issue_number]
+        
+        # 如果缓存中没有，返回空列表（避免单独的API请求）
+        return []
     
     def sanitize_filename(self, text: str) -> str:
         """清理文件名，移除不合法字符"""
@@ -248,6 +268,10 @@ class IssuesDownloader:
                 return True
             
             print(f"📥 共找到 {len(issues)} 个Issues，开始下载...")
+            
+            # 批量获取所有issues的项目信息（优化性能）
+            issue_numbers = [issue['number'] for issue in issues]
+            self.bulk_get_project_info(issue_numbers)
             
             # 保存Issues
             saved_count = 0

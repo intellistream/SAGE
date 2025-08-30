@@ -69,7 +69,7 @@ class GitHubProjectManager:
         try:
             config = Config()
             # 加载项目映射配置
-            boards_file = config.project_root / "tools" / "issues-management" / "boards_metadata.json"
+            boards_file = config.metadata_path / "boards_metadata.json"
             with open(boards_file, 'r', encoding='utf-8') as f:
                 boards_data = json.load(f)
                 self.TARGET_TEAMS = boards_data.get('team_to_project', {})

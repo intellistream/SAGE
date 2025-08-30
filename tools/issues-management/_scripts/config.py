@@ -6,6 +6,7 @@ SAGE Issues管理工具 - 配置管理
 
 import os
 import sys
+import json
 import requests
 from pathlib import Path
 from typing import Optional
@@ -35,6 +36,9 @@ class Config:
         self.output_path.mkdir(parents=True, exist_ok=True)
         self.metadata_path.mkdir(parents=True, exist_ok=True)
         
+        # 确保默认metadata文件存在
+        self._ensure_default_metadata_files()
+        
         # GitHub Token
         self.github_token = self._load_github_token()
     
@@ -48,6 +52,56 @@ class Config:
                 # 如果找不到.git目录，返回当前文件的祖父目录（假设是项目根目录）
                 return Path(__file__).parent.parent.parent
             current = current.parent
+    
+    def _ensure_default_metadata_files(self):
+        """确保默认的metadata文件存在"""
+        self._create_boards_metadata_if_missing()
+    
+    def _create_boards_metadata_if_missing(self):
+        """如果boards_metadata.json不存在，则创建默认的"""
+        boards_file = self.metadata_path / "boards_metadata.json"
+        if not boards_file.exists():
+            default_boards_config = {
+                "description": "SAGE团队到GitHub项目板的映射配置",
+                "organization": "intellistream",
+                "repository": "SAGE",
+                "team_to_project": {
+                    "sage-apps": 14,
+                    "sage-middleware": 13,
+                    "sage-kernel": 12
+                },
+                "metadata": {
+                    "version": "1.0",
+                    "created": "2025-08-30",
+                    "description": "这个文件定义了SAGE团队到GitHub项目板的映射关系",
+                    "usage": "project_manage.py 脚本使用此文件来确定将Issues分配到哪个项目板"
+                },
+                "teams": {
+                    "sage-apps": {
+                        "name": "SAGE Apps Team",
+                        "description": "负责SAGE应用层开发和集成",
+                        "project_number": 14,
+                        "project_url": "https://github.com/orgs/intellistream/projects/14"
+                    },
+                    "sage-middleware": {
+                        "name": "SAGE Middleware Team", 
+                        "description": "负责SAGE中间件和服务层开发",
+                        "project_number": 13,
+                        "project_url": "https://github.com/orgs/intellistream/projects/13"
+                    },
+                    "sage-kernel": {
+                        "name": "SAGE Kernel Team",
+                        "description": "负责SAGE核心引擎和内核开发", 
+                        "project_number": 12,
+                        "project_url": "https://github.com/orgs/intellistream/projects/12"
+                    }
+                }
+            }
+            
+            import json
+            with open(boards_file, 'w', encoding='utf-8') as f:
+                json.dump(default_boards_config, f, indent=2, ensure_ascii=False)
+            print(f"✅ 创建默认项目板配置文件: {boards_file}")
     
     def _load_github_token(self) -> Optional[str]:
         """加载GitHub Token"""
