@@ -168,6 +168,41 @@ class IssuesDownloader:
         text = re.sub(r'\s+', '_', text)
         return text[:50]  # 限制长度
     
+    def clean_issue_body(self, body: str) -> str:
+        """清理issue body，移除重复的元数据"""
+        if not body:
+            return '无描述'
+            
+        lines = body.split('\n')
+        cleaned_lines = []
+        skip_metadata = False
+        
+        for line in lines:
+            # 如果遇到标题行，可能开始了重复的元数据
+            if line.startswith('# ') and ('Issue #' in body[body.find(line):body.find(line)+200] or 
+                                       '**状态**' in body[body.find(line):body.find(line)+200]):
+                skip_metadata = True
+                continue
+            
+            # 如果遇到了明确的描述开始标记，停止跳过
+            if line.strip() == '## 描述' and skip_metadata:
+                skip_metadata = False
+                continue
+                
+            # 如果遇到了原始内容的开始（通常是 ## 开头但不是我们的元数据字段）
+            if (line.startswith('## ') and 
+                not any(field in line for field in ['Project归属', '标签', '分配给', '描述']) and
+                skip_metadata):
+                skip_metadata = False
+                cleaned_lines.append(line)
+                continue
+            
+            if not skip_metadata:
+                cleaned_lines.append(line)
+        
+        cleaned_body = '\n'.join(cleaned_lines).strip()
+        return cleaned_body if cleaned_body else '无描述'
+    
     def format_issue_content(self, issue: dict, project_info: list = None) -> str:
         """格式化Issue内容为Markdown"""
         
@@ -176,9 +211,12 @@ class IssuesDownloader:
         if project_info:
             project_section = "\n## Project归属\n"
             for proj in project_info:
-                project_section += f"- **{proj['team']}** (Project #{proj['number']}: {proj['title']})\n"
+                project_section += f"- **{proj['team']}** (Project Board ID: {proj['number']}: {proj['title']})\n"
         else:
             project_section = "\n## Project归属\n未归属到任何Project\n"
+        
+        # 清理body内容
+        cleaned_body = self.clean_issue_body(issue.get('body', ''))
         
         content = f"""# {issue['title']}
 
@@ -196,7 +234,7 @@ class IssuesDownloader:
 
 ## 描述
 
-{issue.get('body', '无描述')}
+{cleaned_body}
 
 ---
 **GitHub链接**: {issue['html_url']}

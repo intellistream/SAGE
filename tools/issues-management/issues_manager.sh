@@ -19,7 +19,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 get_config_path() {
     local path_type="$1"
     # 使用tail获取最后一行，过滤掉token加载信息
-    python3 _scripts/get_paths.py "$path_type" 2>/dev/null | tail -1
+    python3 _scripts/helpers/get_paths.py "$path_type" 2>/dev/null | tail -1
 }
 
 # 从config获取实际路径
@@ -377,14 +377,16 @@ issues_management_menu() {
         echo ""
         echo "  1. 📊 查看Issues统计和分析"
         echo "  2. 🗂️ 自动归档已完成Issues"
-        echo "  3. 返回主菜单"
+        echo "  3. 🎯 基于Project智能分配Issues"
+        echo "  4. 返回主菜单"
         echo ""
-        read -p "请选择 (1-3): " choice
+        read -p "请选择 (1-4): " choice
         
         case $choice in
             1) show_issues_statistics ;;
             2) archive_completed_issues ;;
-            3) break ;;
+            3) project_based_assign_menu ;;
+            4) break ;;
             *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
         esac
     done
@@ -445,6 +447,313 @@ download_closed_issues() {
     echo "📥 正在下载已关闭的Issues..."
     cd "$SCRIPT_DIR"
     python3 _scripts/download_issues.py --state=closed
+    read -p "按Enter键继续..."
+}
+
+project_based_assign_menu() {
+    # 首先检查是否有本地数据
+    local has_local_data=false
+    if [ -d "$ISSUES_DIR" ] && [ "$(ls -A "$ISSUES_DIR" 2>/dev/null)" ]; then
+        has_local_data=true
+    fi
+    
+    while true; do
+        clear
+        echo -e "${BLUE}🎯 基于Project智能分配Issues${NC}"
+        echo "==============================="
+        echo ""
+        
+        if [ "$has_local_data" = true ]; then
+            echo -e "${GREEN}✅ 检测到本地Issues数据${NC}"
+            
+            # 统计当前分配情况
+            local total_issues=$(find "$ISSUES_DIR" -name "open_*.md" | wc -l)
+            local assigned_issues=$(find "$ISSUES_DIR" -name "open_*.md" -exec grep -l "^[^未].*$" {} \; 2>/dev/null | wc -l)
+            local unassigned_issues=$((total_issues - assigned_issues))
+            
+            echo "📊 当前状态:"
+            echo "  - 总Issues数: $total_issues"
+            echo "  - 已分配: $assigned_issues"
+            echo "  - 未分配: $unassigned_issues"
+        else
+            echo -e "${YELLOW}⚠️ 未检测到本地Issues数据，请先下载Issues${NC}"
+        fi
+        
+        echo ""
+        echo -e "${CYAN}🛠️ 分配选项:${NC}"
+        echo "  1. 🚀 执行智能分配 (基于Project归属)"
+        echo "  2. 📋 预览分配计划 (不实际修改文件)"
+        echo "  3. 📊 分析当前分配状态"
+        echo ""
+        
+        if [ "$has_local_data" = false ]; then
+            echo -e "${CYAN}  d. 📥 前往下载Issues数据${NC}"
+        fi
+        
+        echo "  9. 返回上级菜单"
+        echo ""
+        
+        if [ "$has_local_data" = true ]; then
+            read -p "请选择 (1-3, 9): " choice
+        else
+            read -p "请选择 (1-3, d, 9): " choice
+        fi
+        
+        case $choice in
+            1) 
+                if [ "$has_local_data" = true ]; then
+                    execute_project_based_assign
+                else
+                    echo -e "${RED}❌ 需要先下载Issues数据${NC}"
+                    sleep 2
+                fi
+                ;;
+            2) 
+                if [ "$has_local_data" = true ]; then
+                    preview_project_based_assign
+                else
+                    echo -e "${RED}❌ 需要先下载Issues数据${NC}"
+                    sleep 2
+                fi
+                ;;
+            3) 
+                if [ "$has_local_data" = true ]; then
+                    analyze_assignment_status
+                else
+                    echo -e "${RED}❌ 需要先下载Issues数据${NC}"
+                    sleep 2
+                fi
+                ;;
+            d|D)
+                if [ "$has_local_data" = false ]; then
+                    download_menu
+                else
+                    echo -e "${RED}❌ 无效选择${NC}"
+                    sleep 1
+                fi
+                ;;
+            9) break ;;
+            *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
+        esac
+    done
+}
+
+execute_project_based_assign() {
+    clear
+    echo -e "${CYAN}🚀 执行基于Project的智能分配${NC}"
+    echo "================================="
+    echo ""
+    echo -e "${YELLOW}⚠️ 此操作将修改Issues文件中的分配信息${NC}"
+    echo ""
+    read -p "确认执行智能分配？ (y/N): " confirm
+    
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        echo ""
+        echo "🎯 正在执行智能分配..."
+        cd "$SCRIPT_DIR"
+        
+        # 执行智能分配
+        if python3 _scripts/project_based_assign.py --assign; then
+            echo ""
+            echo -e "${GREEN}✅ 智能分配完成！${NC}"
+            echo ""
+            echo -e "${CYAN}📤 是否要将分配结果同步到GitHub远端？${NC}"
+            echo -e "${YELLOW}⚠️ 这将更新GitHub上的Issues分配信息${NC}"
+            echo ""
+            read -p "确认同步到远端？ (y/N): " sync_confirm
+            
+            if [[ "$sync_confirm" =~ ^[Yy]$ ]]; then
+                echo ""
+                echo "🚀 正在同步分配结果到远端..."
+                
+                # 首先预览更改
+                echo "🔍 预览待同步更改..."
+                python3 _scripts/sync_issues.py --preview
+                echo ""
+                
+                echo -e "${YELLOW}💡 检测到大量更改，建议进行小批量测试${NC}"
+                echo "选择同步方式："
+                echo "  1. 🧪 测试模式 (仅同步前5个issues)"
+                echo "  2. 🚀 完整同步 (同步所有更改)"
+                echo "  3. ❌ 取消同步"
+                echo ""
+                read -p "请选择 (1-3): " sync_choice
+                
+                case $sync_choice in
+                    1)
+                        echo ""
+                        echo "🧪 测试模式：同步前5个issues..."
+                        python3 _scripts/sync_issues.py --apply-content --content-limit 5 --confirm
+                        ;;
+                    2)
+                        echo ""
+                        read -p "确认同步所有132个issues？ (输入 'YES' 确认): " final_confirm
+                        if [ "$final_confirm" = "YES" ]; then
+                            echo ""
+                            echo "📡 正在同步所有issues到GitHub..."
+                            python3 _scripts/sync_issues.py --apply-content --confirm
+                        else
+                            echo ""
+                            echo "❌ 已取消完整同步"
+                        fi
+                        ;;
+                    3)
+                        echo ""
+                        echo "❌ 已取消同步"
+                        ;;
+                    *)
+                        echo ""
+                        echo "❌ 无效选择，已取消同步"
+                        ;;
+                esac
+                
+                echo ""
+                echo -e "${GREEN}🎉 分配和同步操作完成！${NC}"
+            else
+                echo ""
+                echo -e "${CYAN}ℹ️ 智能分配已完成，但未同步到远端${NC}"
+                echo "💡 您可以稍后通过上传菜单手动同步"
+            fi
+        else
+            echo ""
+            echo -e "${RED}❌ 智能分配失败${NC}"
+        fi
+        
+        echo ""
+        read -p "按Enter键继续..."
+    else
+        echo ""
+        echo "❌ 已取消智能分配操作"
+        sleep 1
+    fi
+}
+
+preview_project_based_assign() {
+    clear
+    echo -e "${CYAN}📋 预览基于Project的分配计划${NC}"
+    echo "==============================="
+    echo ""
+    echo "🔍 分析Issues并生成分配计划(不修改文件)..."
+    cd "$SCRIPT_DIR"
+    
+    # 创建临时预览脚本
+    cat > /tmp/preview_assign.py << 'EOF'
+import sys
+sys.path.insert(0, '_scripts')
+from project_based_assign import *
+
+def preview_assignment():
+    print("🚀 开始分析Issues...")
+    team_config = load_team_config()
+    config = Config()
+    issues_dir = config.workspace_path / "issues"
+    
+    if not issues_dir.exists():
+        print("❌ Issues目录不存在")
+        return
+    
+    files = sorted(list(issues_dir.glob("open_*.md")))
+    print(f"📋 分析 {len(files)} 个issues...")
+    
+    assignments = []
+    project_stats = {}
+    workload = {}
+    unassigned_issues = []
+    
+    for file_path in files[:10]:  # 只预览前10个
+        issue_info = parse_issue_file(file_path)
+        if not issue_info['number']:
+            continue
+        
+        project_team = issue_info['project_team']
+        if project_team:
+            project_stats[project_team] = project_stats.get(project_team, 0) + 1
+            assignee = select_assignee_by_expertise_and_workload(
+                team_config, project_team, issue_info, workload
+            )
+            
+            if assignee:
+                workload[assignee] = workload.get(assignee, 0) + 1
+                print(f"  Issue #{issue_info['number']}: {project_team} -> {assignee}")
+                if issue_info['current_assignee'] != assignee:
+                    print(f"    (从 {issue_info['current_assignee'] or '未分配'} 更改)")
+            else:
+                unassigned_issues.append(issue_info)
+        else:
+            unassigned_issues.append(issue_info)
+    
+    print(f"\n📊 项目分布预览:")
+    for team, count in sorted(project_stats.items()):
+        print(f"  {team}: {count} issues")
+    
+    if unassigned_issues:
+        print(f"\n⚠️ {len(unassigned_issues)} 个issues无法分配")
+
+if __name__ == "__main__":
+    preview_assignment()
+EOF
+    
+    python3 /tmp/preview_assign.py
+    rm -f /tmp/preview_assign.py
+    echo ""
+    read -p "按Enter键继续..."
+}
+
+analyze_assignment_status() {
+    clear
+    echo -e "${CYAN}📊 分析当前分配状态${NC}"
+    echo "======================"
+    echo ""
+    echo "🔍 正在分析当前Issues分配情况..."
+    
+    local total=0
+    local assigned=0
+    local unassigned=0
+    local by_team_kernel=0
+    local by_team_middleware=0
+    local by_team_apps=0
+    
+    for file in "$ISSUES_DIR"/open_*.md; do
+        if [ -f "$file" ]; then
+            ((total++))
+            
+            # 检查是否已分配
+            if grep -A 1 "## 分配给" "$file" | grep -v "## 分配给" | grep -v "^--$" | grep -q "^未分配$\|^$"; then
+                ((unassigned++))
+            else
+                ((assigned++))
+            fi
+            
+            # 统计按项目归属
+            if grep -q "sage-kernel" "$file"; then
+                ((by_team_kernel++))
+            elif grep -q "sage-middleware" "$file"; then
+                ((by_team_middleware++))
+            elif grep -q "sage-apps" "$file"; then
+                ((by_team_apps++))
+            fi
+        fi
+    done
+    
+    echo "📈 总体统计:"
+    echo "  - 总Issues数: $total"
+    echo "  - 已分配: $assigned"
+    echo "  - 未分配: $unassigned"
+    echo "  - 分配率: $(( assigned * 100 / total ))%"
+    echo ""
+    echo "📊 按项目归属统计:"
+    echo "  - sage-kernel: $by_team_kernel issues"
+    echo "  - sage-middleware: $by_team_middleware issues"
+    echo "  - sage-apps: $by_team_apps issues"
+    echo ""
+    
+    if [ $unassigned -gt 0 ]; then
+        echo -e "${YELLOW}💡 建议: 有 $unassigned 个未分配的Issues，可以使用智能分配功能${NC}"
+    else
+        echo -e "${GREEN}✅ 所有Issues都已分配！${NC}"
+    fi
+    
+    echo ""
     read -p "按Enter键继续..."
 }
 
