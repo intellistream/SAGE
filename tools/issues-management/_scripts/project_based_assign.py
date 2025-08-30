@@ -8,10 +8,12 @@ import json
 import re
 from pathlib import Path
 from datetime import datetime
+from config import Config
 
 def load_team_config():
     """Load team configuration"""
-    config_path = Path(__file__).parent.parent / "meta-data" / "team_config.py"
+    config = Config()
+    config_path = config.metadata_path / "team_config.py"
     
     team_config = {}
     exec(open(config_path).read(), team_config)
@@ -202,7 +204,8 @@ def assign_issues_by_project():
     team_config = load_team_config()
     
     # 扫描所有issues文件
-    issues_dir = Path(__file__).parent.parent / "issues_workspace" / "issues"
+    config = Config()
+    issues_dir = config.workspace_path / "issues"
     if not issues_dir.exists():
         print("❌ Issues目录不存在")
         return

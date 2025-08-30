@@ -11,8 +11,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from config import config
-from config import github_client
+from config import Config, GitHubClient
 import requests
 import time
 import glob
@@ -38,9 +37,10 @@ def graphql_request(session: requests.Session, query: str, variables: dict = Non
 
 class IssuesSyncer:
     def __init__(self):
-        self.workspace_dir = Path(__file__).parent.parent / "issues_workspace"
-        self.output_dir = Path(__file__).parent.parent / "output"
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.config = Config()
+        self.github_client = GitHubClient(self.config)
+        self.workspace_dir = self.config.workspace_path
+        self.output_dir = self.config.output_path
 
     def sync_all_changes(self):
         changes = self.detect_all_changes()

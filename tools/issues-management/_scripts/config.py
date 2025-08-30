@@ -20,18 +20,34 @@ class Config:
     # 工作目录配置
     WORKSPACE_DIR = "issues_workspace"
     OUTPUT_DIR = "output"
+    METADATA_DIR = "meta-data"
     
     def __init__(self):
         self.base_dir = Path(__file__).parent.parent
-        self.workspace_path = self.base_dir / self.WORKSPACE_DIR
-        self.output_path = self.base_dir / self.OUTPUT_DIR
+        # 将所有目录指向项目根目录的 output/ 下
+        self.project_root = self._find_project_root()
+        self.workspace_path = self.project_root / "output" / "issues-workspace"
+        self.output_path = self.project_root / "output" / "issues-output"
+        self.metadata_path = self.project_root / "output" / "issues-metadata"
         
         # 确保目录存在
-        self.workspace_path.mkdir(exist_ok=True)
-        self.output_path.mkdir(exist_ok=True)
+        self.workspace_path.mkdir(parents=True, exist_ok=True)
+        self.output_path.mkdir(parents=True, exist_ok=True)
+        self.metadata_path.mkdir(parents=True, exist_ok=True)
         
         # GitHub Token
         self.github_token = self._load_github_token()
+    
+    def _find_project_root(self) -> Path:
+        """查找项目根目录（包含.git的目录）"""
+        current = Path(__file__).resolve()
+        while True:
+            if (current / ".git").exists():
+                return current
+            if current.parent == current:
+                # 如果找不到.git目录，返回当前文件的祖父目录（假设是项目根目录）
+                return Path(__file__).parent.parent.parent
+            current = current.parent
     
     def _load_github_token(self) -> Optional[str]:
         """加载GitHub Token"""

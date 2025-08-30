@@ -11,12 +11,24 @@ Issues和Pull Requests错误分配检测和修复计划生成脚本
     python3 fix_misplaced_issues.py
 
 输出:
-- 修复计划文件: output/issues_fix_plan_<timestamp>.json
+- 修复计划文件: output/issues-output/issues_fix_plan_<timestamp>.json
 - 详细的错误分配统计报告
 
 作者: SAGE Team
 日期: 2025-08-30
 """
+
+import os
+import sys
+import json
+import requests
+import time
+from pathlib import Path
+from datetime import datetime
+
+# 添加上级目录到sys.path以导入config
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from config import Config
 
 import json
 import time
@@ -161,8 +173,8 @@ def main():
             fix_plan['summary']['by_project'][current_proj]['moving_to'][target_proj] += 1
         
         # 保存到文件
-        output_dir = Path(__file__).parent.parent.parent / "output"
-        output_file = output_dir / f"issues_fix_plan_{int(time.time())}.json"
+        config = Config()
+        output_file = config.output_path / f"issues_fix_plan_{int(time.time())}.json"
         
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(fix_plan, f, indent=2, ensure_ascii=False)

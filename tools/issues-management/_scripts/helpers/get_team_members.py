@@ -17,6 +17,10 @@ import requests
 from pathlib import Path
 from datetime import datetime
 
+# 添加上级目录到sys.path以导入config
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from config import Config
+
 
 def find_token():
     token = os.getenv('GITHUB_TOKEN')
@@ -50,25 +54,22 @@ class TeamMembersCollector:
             'Accept': 'application/vnd.github.v3+json'
         }
         self.teams = {
-            'sage-apps': {
-                'name': 'SAGE Apps Team',
-                'description': '负责SAGE应用层开发和集成',
+            'sage-kernel': {
+                'description': '负责SAGE核心算法和内核开发',
                 'members': []
             },
-            'sage-kernel': {
-                'name': 'SAGE Kernel Team',
-                'description': '负责SAGE核心引擎和内核开发',
+            'sage-apps': {
+                'description': '负责SAGE应用和前端开发',
                 'members': []
             },
             'sage-middleware': {
-                'name': 'SAGE Middleware Team',
                 'description': '负责SAGE中间件和服务层开发',
                 'members': []
             }
         }
-        # meta-data directory relative to repository tools/issues-management (up one level)
-        # __file__ -> .../_scripts/helpers, parent.parent.parent -> tools/issues-management
-        self.meta_dir = Path(__file__).parent.parent.parent / 'meta-data'
+        # 使用config获取meta-data目录路径
+        config = Config()
+        self.meta_dir = config.metadata_path
         self.meta_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_team_members(self, team_slug):

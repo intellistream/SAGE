@@ -13,13 +13,15 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
-from config import config
+from config import Config
 
 
 class IssuesManager:
     def __init__(self):
-        self.workspace_dir = config.workspace_path
-        self.output_dir = config.output_path
+        self.config = Config()
+        self.workspace_dir = self.config.workspace_path
+        self.output_dir = self.config.output_path
+        self.metadata_dir = self.config.metadata_path
         self.scripts_dir = Path(__file__).parent
         self.helpers_dir = self.scripts_dir / 'helpers'
         self.ensure_output_dir()
@@ -30,8 +32,8 @@ class IssuesManager:
 
     def _load_team_info(self):
         """Try to import generated `team_config.py` from the meta-data directory."""
-        # 首先尝试从 meta-data 目录加载
-        meta_data_dir = self.workspace_dir / 'meta-data'
+        # 使用新的meta-data目录位置
+        meta_data_dir = self.metadata_dir
         team_config_path = meta_data_dir / 'team_config.py'
         
         if team_config_path.exists():
@@ -332,8 +334,7 @@ class IssuesManager:
             print(detection_result.stdout)
             
             # Check if there's a fix plan file generated
-            output_dir = self.scripts_dir.parent / 'output'
-            fix_plan_files = list(output_dir.glob('issues_fix_plan_*.json'))
+            fix_plan_files = list(self.output_dir.glob('issues_fix_plan_*.json'))
             
             if fix_plan_files:
                 latest_plan = max(fix_plan_files, key=lambda x: x.stat().st_mtime)

@@ -558,7 +558,7 @@ copilot_show_usage_guide() {
     echo "时间趋势分析："
     echo "   '分析近期issues的创建趋势和类型变化'"
     echo ""
-    echo "📁 文档位置: $SCRIPT_DIR/output/"
+    echo "📁 文档位置: $PROJECT_ROOT/output/issues-output/"
     echo "   查看最新生成的以 'copilot_' 开头的文档"
     echo "   文档名包含时间范围标识: _week 或 _month"
     echo ""

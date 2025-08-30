@@ -11,21 +11,19 @@ import argparse
 from datetime import datetime, timedelta
 from pathlib import Path
 from collections import defaultdict
+from config import Config
 
 class CopilotIssueFormatter:
     def __init__(self):
-        self.script_dir = Path(__file__).parent
-        self.project_root = self.script_dir.parent
-        self.workspace_dir = self.project_root / "issues_workspace"
-        self.output_dir = self.project_root / "output"
-        self.meta_data_dir = self.project_root / "meta-data"
-        
-        # 确保输出目录存在
-        self.output_dir.mkdir(exist_ok=True)
+        self.config = Config()
+        self.workspace_dir = self.config.workspace_path
+        self.output_dir = self.config.output_path
+        self.meta_data_dir = self.config.metadata_path
+        self.meta_data_dir = self.config.metadata_path
         
         # 加载团队配置
         self.teams = self._load_team_config()
-        
+    
     def _load_team_config(self):
         """加载团队配置信息"""
         try:

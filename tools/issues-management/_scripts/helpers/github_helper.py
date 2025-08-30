@@ -11,6 +11,10 @@ import requests
 import time
 from pathlib import Path
 
+# 添加上级目录到sys.path以导入config
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from config import Config
+
 
 class GitHubProjectManager:
     """精简版GitHub项目管理器，只包含核心API功能"""
@@ -63,15 +67,16 @@ class GitHubProjectManager:
     def _load_configurations(self):
         """加载团队和项目配置"""
         try:
+            config = Config()
             # 加载项目映射配置
-            boards_file = Path(__file__).parent.parent.parent / "boards_metadata.json"
+            boards_file = config.project_root / "tools" / "issues-management" / "boards_metadata.json"
             with open(boards_file, 'r', encoding='utf-8') as f:
                 boards_data = json.load(f)
                 self.TARGET_TEAMS = boards_data.get('team_to_project', {})
                 print('✅ 加载项目映射配置')
             
             # 加载团队成员配置
-            team_file = Path(__file__).parent.parent / "meta-data" / "team_members.json"
+            team_file = config.metadata_path / "team_members.json"
             with open(team_file, 'r', encoding='utf-8') as f:
                 self.team_members = json.load(f)
                 print('✅ 加载团队成员配置')
