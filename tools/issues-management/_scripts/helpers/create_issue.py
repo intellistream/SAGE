@@ -9,12 +9,22 @@ import sys
 import requests
 import json
 import argparse
+from pathlib import Path
 from typing import List, Optional
+
+# Import main config from parent directory
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from config import config
 
 class GitHubIssueCreator:
     def __init__(self):
-        self.github_token = os.getenv('GITHUB_TOKEN')
-        self.repo = "intellistream/SAGE"
+        # Use unified config system
+        if not config.github_token:
+            print("❌ 未找到GitHub Token，请先配置")
+            sys.exit(1)
+            
+        self.github_token = config.github_token
+        self.repo = f"{config.GITHUB_OWNER}/{config.GITHUB_REPO}"
         self.headers = {
             "Authorization": f"token {self.github_token}",
             "Accept": "application/vnd.github.v3+json"
@@ -23,10 +33,22 @@ class GitHubIssueCreator:
     def validate_token(self) -> bool:
         """验证GitHub token是否有效"""
         if not self.github_token:
-            print("❌ 请设置GITHUB_TOKEN环境变量")
-            print("💡 提示: export GITHUB_TOKEN='your_token_here'")
+            print("❌ GitHub Token未配置")
             return False
-        return True
+        
+        # Test token by getting user info
+        try:
+            response = requests.get("https://api.github.com/user", headers=self.headers)
+            if response.status_code == 200:
+                user_info = response.json()
+                print(f"✅ GitHub Token有效，用户: {user_info.get('login', 'unknown')}")
+                return True
+            else:
+                print(f"❌ GitHub Token无效: {response.status_code}")
+                return False
+        except Exception as e:
+            print(f"❌ Token验证失败: {e}")
+            return False
     
     def get_available_labels(self) -> List[str]:
         """获取仓库可用的标签"""
@@ -41,53 +63,70 @@ class GitHubIssueCreator:
         return []
     
     def interactive_input(self) -> dict:
-        """交互式输入issue信息"""
+        """交互式输入Issue信息"""
         print("\n🎯 创建新的GitHub Issue")
         print("=" * 40)
         
-        # 标题
-        while True:
-            title = input("\n📝 请输入Issue标题: ").strip()
-            if title:
-                break
-            print("❌ 标题不能为空，请重新输入")
-        
-        # 描述
-        print("\n📄 请输入Issue描述 (输入空行结束):")
-        body_lines = []
-        while True:
-            line = input()
-            if line.strip() == "":
-                break
-            body_lines.append(line)
-        body = "\n".join(body_lines)
-        
-        if not body.strip():
-            body = "待补充详细描述..."
-        
-        # 标签
-        available_labels = self.get_available_labels()
-        if available_labels:
-            print(f"\n🏷️ 可用标签: {', '.join(available_labels[:10])}...")
-            labels_input = input("请输入标签 (用逗号分隔，留空跳过): ").strip()
-            labels = [label.strip() for label in labels_input.split(',') if label.strip()] if labels_input else []
-        else:
-            labels = []
-        
-        # 分配给某人 (可选)
-        assignee = input("\n👤 分配给 (GitHub用户名，留空跳过): ").strip() or None
-        
-        # 里程碑 (可选)
-        milestone = input("\n🎯 里程碑编号 (留空跳过): ").strip()
-        milestone = int(milestone) if milestone.isdigit() else None
-        
-        return {
-            "title": title,
-            "body": body,
-            "labels": labels,
-            "assignee": assignee,
-            "milestone": milestone
-        }
+        try:
+            # 标题 (必填)
+            title = ""
+            while not title.strip():
+                title = input("\n📝 请输入Issue标题: ").strip()
+                if not title:
+                    print("❌ 标题不能为空，请重新输入")
+            
+            # 描述 (可选)
+            print("\n📄 请输入Issue描述 (输入空行结束):")
+            body_lines = []
+            while True:
+                try:
+                    line = input()
+                    if not line:
+                        break
+                    body_lines.append(line)
+                except EOFError:
+                    break
+            body = '\n'.join(body_lines) if body_lines else ""
+            
+            # 标签
+            available_labels = self.get_available_labels()
+            if available_labels:
+                print(f"\n🏷️ 可用标签: {', '.join(available_labels[:10])}...")
+                try:
+                    labels_input = input("请输入标签 (用逗号分隔，留空跳过): ").strip()
+                    labels = [label.strip() for label in labels_input.split(',') if label.strip()] if labels_input else []
+                except EOFError:
+                    labels = []
+            else:
+                labels = []
+            
+            # 分配给某人 (可选)
+            try:
+                assignee = input("\n👤 分配给 (GitHub用户名，留空跳过): ").strip() or None
+            except EOFError:
+                assignee = None
+            
+            # 里程碑 (可选)
+            try:
+                milestone_input = input("\n🎯 里程碑编号 (留空跳过): ").strip()
+                milestone = int(milestone_input) if milestone_input.isdigit() else None
+            except (EOFError, ValueError):
+                milestone = None
+            
+            return {
+                "title": title,
+                "body": body,
+                "labels": labels,
+                "assignee": assignee,
+                "milestone": milestone
+            }
+            
+        except KeyboardInterrupt:
+            print("\n\n❌ 操作被用户取消")
+            sys.exit(0)
+        except Exception as e:
+            print(f"\n❌ 输入过程中出现错误: {e}")
+            sys.exit(1)
     
     def create_issue(self, issue_data: dict) -> bool:
         """创建GitHub Issue"""
