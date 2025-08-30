@@ -26,9 +26,10 @@ from pathlib import Path
 class CompletedIssuesArchiver:
     ORG = "intellistream"
     REPO = "SAGE"
-    # 处理多个项目: sage-kernel (#12), sage-middleware (#13), sage-app (#14)
-    PROJECT_NUMBERS = [12, 13, 14]
+    # 处理多个项目: intellistream (#6), sage-kernel (#12), sage-middleware (#13), sage-app (#14)
+    PROJECT_NUMBERS = [6, 12, 13, 14]
     PROJECT_NAMES = {
+        6: "intellistream",
         12: "sage-kernel",
         13: "sage-middleware", 
         14: "sage-app"
