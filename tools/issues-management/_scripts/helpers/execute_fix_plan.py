@@ -66,24 +66,23 @@ def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: boo
     
     pm = GitHubProjectManager()
     
-    # 预加载所有issues的ID映射
+    # 预加载SAGE仓库的issues ID映射 (优化：仅加载当前仓库)
+    issue_id_map = {}
     if not dry_run:
-        print("📥 预加载issues的全局ID映射...")
-        all_issues = pm.get_all_repository_issues()
-        # 构建映射：repo_name/issue_number -> global_id
-        issue_id_map = {}
-        for issue in all_issues:
-            repo_info = issue.get('repository', {})
-            repo_name = repo_info.get('name', '')
-            issue_number = issue.get('number')
-            issue_id = issue.get('id')
-            if repo_name and issue_number and issue_id:
-                # 为SAGE仓库的issue保持原有格式（只用issue号作为key）
-                if repo_name == 'SAGE':
+        print("📥 预加载SAGE仓库的issues ID映射...")
+        try:
+            # 只获取SAGE仓库的issues，避免扫描所有仓库
+            sage_issues = pm.get_repository_issues('intellistream', 'SAGE')
+            for issue in sage_issues:
+                issue_number = issue.get('number')
+                issue_id = issue.get('id')
+                if issue_number and issue_id:
                     issue_id_map[issue_number] = issue_id
-                # 为其他仓库使用 repo_name/issue_number 作为key
-                issue_id_map[f"{repo_name}/{issue_number}"] = issue_id
-        print(f"✅ 已加载 {len(issue_id_map)} 个issues的ID映射")
+            print(f"✅ 已加载 {len(issue_id_map)} 个SAGE issues的ID映射")
+        except Exception as e:
+            print(f"⚠️ 无法预加载issue ID映射: {e}")
+            print("📝 将在移动过程中动态获取issue ID")
+    
     
     success_count = 0
     error_count = 0
@@ -151,12 +150,24 @@ def execute_fix_plan(fix_plan_file_or_data, dry_run: bool = True, live_mode: boo
                                 print(f"  🗑️  已清理项目#{current_project}中的无效引用")
                                 success_count += 1
                             else:
-                                print(f"  ❌ 清理失败: {delete_result}")
-                                error_count += 1
-                                errors.append({
-                                    'issue_number': issue_number,
-                                    'error': f"清理无效引用失败: {delete_result}"
-                                })
+                                # 检查是否是NOT_FOUND错误，这表示引用已经不存在了
+                                is_not_found = False
+                                if isinstance(delete_result, list):
+                                    for error in delete_result:
+                                        if isinstance(error, dict) and error.get('type') == 'NOT_FOUND':
+                                            is_not_found = True
+                                            break
+                                
+                                if is_not_found:
+                                    print(f"  ✅ 项目#{current_project}中的引用已不存在（已自动清理）")
+                                    success_count += 1
+                                else:
+                                    print(f"  ❌ 清理失败: {delete_result}")
+                                    error_count += 1
+                                    errors.append({
+                                        'issue_number': issue_number,
+                                        'error': f"清理无效引用失败: {delete_result}"
+                                    })
                         else:
                             print(f"  ❌ 缺少item_id，无法清理")
                             error_count += 1

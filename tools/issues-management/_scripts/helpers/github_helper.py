@@ -73,6 +73,12 @@ class GitHubProjectManager:
             with open(boards_file, 'r', encoding='utf-8') as f:
                 boards_data = json.load(f)
                 self.TARGET_TEAMS = boards_data.get('team_to_project', {})
+                
+                # 补充intellistream团队映射（如果不存在）
+                if 'intellistream' not in self.TARGET_TEAMS:
+                    self.TARGET_TEAMS['intellistream'] = 6
+                    print('📝 补充intellistream团队映射到项目#6')
+                
                 print('✅ 加载项目映射配置')
             
             # 加载团队成员配置
@@ -86,6 +92,76 @@ class GitHubProjectManager:
             self.TARGET_TEAMS = {}
             self.team_members = {}
     
+    def get_repository_issues(self, owner=None, repo_name=None):
+        """获取指定仓库的issues，使用GraphQL确保获取node_id"""
+        if owner is None:
+            owner = self.ORG
+        if repo_name is None:
+            repo_name = self.REPO
+            
+        print(f"🔍 获取仓库 {owner}/{repo_name} 的Issues...")
+        
+        query = f'''query($after: String) {{
+    repository(owner: "{owner}", name: "{repo_name}") {{
+        issues(first: 100, after: $after, states: [OPEN, CLOSED]) {{
+            pageInfo {{
+                hasNextPage
+                endCursor
+            }}
+            nodes {{
+                number
+                id
+                title
+                state
+                url
+                repository {{
+                    name
+                    owner {{
+                        login
+                    }}
+                }}
+            }}
+        }}
+    }}
+}}'''
+        
+        after = None
+        all_issues = []
+        
+        while True:
+            variables = {"after": after} if after else {}
+            resp = requests.post(
+                "https://api.github.com/graphql",
+                json={"query": query, "variables": variables},
+                headers=self.graphql_headers
+            )
+            
+            if resp.status_code != 200:
+                print(f"  ❌ 获取 {repo_name} Issues失败: HTTP {resp.status_code}")
+                return []
+            
+            data = resp.json()
+            if "errors" in data:
+                print(f"  ❌ GraphQL错误: {data['errors']}")
+                return []
+            
+            issues = data.get("data", {}).get("repository", {}).get("issues", {})
+            nodes = issues.get("nodes", [])
+            
+            if not nodes:
+                break
+                
+            all_issues.extend(nodes)
+            
+            page_info = issues.get("pageInfo", {})
+            if not page_info.get("hasNextPage"):
+                break
+                
+            after = page_info.get("endCursor")
+        
+        print(f"  📥 {repo_name}: {len(all_issues)} 个Issues")
+        return all_issues
+
     def get_all_repository_issues(self):
         """获取组织下所有仓库的issues，使用GraphQL确保获取node_id"""
         print("🔍 获取组织中所有仓库的Issues...")
@@ -217,6 +293,28 @@ class GitHubProjectManager:
             return None
         
         return data.get("data", {}).get("organization", {}).get("projectV2")
+    
+    def get_project_id(self, project_number):
+        """根据项目编号获取项目ID"""
+        project_info = self.get_project_by_number(project_number)
+        if project_info:
+            return project_info.get("id")
+        return None
+    
+    def execute_graphql(self, query, variables=None):
+        """执行GraphQL查询或变更"""
+        payload = {"query": query}
+        if variables:
+            payload["variables"] = variables
+            
+        resp = requests.post("https://api.github.com/graphql",
+                           headers=self.graphql_headers,
+                           json=payload)
+        
+        if resp.status_code != 200:
+            return {"errors": [f"HTTP {resp.status_code}: {resp.text}"]}
+        
+        return resp.json()
     
     def get_project_items(self, project_number):
         """获取项目中的所有items"""

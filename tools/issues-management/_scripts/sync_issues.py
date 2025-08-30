@@ -66,6 +66,7 @@ class IssuesSyncer:
         
         # 团队到项目的映射
         self.team_to_project = {
+            'intellistream': 6,     # IntelliStream总体项目
             'sage-kernel': 12,
             'sage-middleware': 13, 
             'sage-apps': 14
@@ -95,18 +96,49 @@ class IssuesSyncer:
             if len(all_changes) > 20:
                 print(f"   ... 以及其他 {len(all_changes) - 20} 个更改")
         
-    def sync_all_changes(self):
+        return all_changes
+        
+    def sync_all_changes(self, apply_projects=False, auto_confirm=False):
         """统一同步所有类型的更改"""
         changes = self.detect_all_changes()
         if not changes:
             print("✅ 没有检测到需要同步的更改")
             return True
 
-        print(f"\n🚀 开始同步 {len(changes)} 个更改...")
-        
         # 分组处理不同类型的更改
         basic_changes = [c for c in changes if c['type'] == 'basic']
         project_changes = [c for c in changes if c['type'] == 'project']
+        
+        print(f"📋 检测到 {len(changes)} 个待同步更改:")
+        if basic_changes:
+            print(f"  🔧 基本属性更改: {len(basic_changes)} 个")
+        if project_changes:
+            print(f"  📋 项目板更改: {len(project_changes)} 个")
+        
+        # 如果没有apply_projects且有项目更改，只显示预览
+        if project_changes and not apply_projects:
+            print(f"\n💡 发现 {len(project_changes)} 个项目板更改:")
+            for change in project_changes[:10]:  # 显示前10个
+                print(f"   - {change['description']}")
+            if len(project_changes) > 10:
+                print(f"   ... 以及其他 {len(project_changes) - 10} 个项目板更改")
+            print(f"💡 使用 --apply-projects 参数来应用项目板更改")
+            
+            # 只处理基本属性更改
+            if basic_changes:
+                print(f"\n🚀 开始同步基本属性更改 ({len(basic_changes)} 个)...")
+                return self._sync_basic_changes_only(basic_changes)
+            else:
+                return True
+        
+        # 需要用户确认（除非auto_confirm为True）
+        if not auto_confirm:
+            confirm = input(f"\n是否同步这 {len(changes)} 个更改? (y/N): ").lower().strip()
+            if confirm != 'y':
+                print("❌ 同步已取消")
+                return False
+
+        print(f"\n🚀 开始同步 {len(changes)} 个更改...")
         
         success_count = 0
         
@@ -121,7 +153,7 @@ class IssuesSyncer:
                     print(f"❌ {change['description']}")
         
         # 处理项目板更改 (使用GraphQL API)
-        if project_changes:
+        if project_changes and apply_projects:
             print(f"\n📋 同步项目板更改 ({len(project_changes)} 个)...")
             success = self._apply_project_changes(project_changes)
             if success:
@@ -132,6 +164,19 @@ class IssuesSyncer:
         
         print(f"\n✨ 同步完成: {success_count}/{len(changes)} 个更改成功")
         return success_count == len(changes)
+    
+    def _sync_basic_changes_only(self, basic_changes):
+        """仅同步基本属性更改"""
+        success_count = 0
+        for change in basic_changes:
+            if self._apply_basic_change(change):
+                success_count += 1
+                print(f"✅ {change['description']}")
+            else:
+                print(f"❌ {change['description']}")
+        
+        print(f"\n✨ 基本属性同步完成: {success_count}/{len(basic_changes)} 个更改成功")
+        return success_count == len(basic_changes)
 
     def _apply_basic_change(self, change):
         """应用基本属性更改 (REST API)"""
@@ -180,28 +225,86 @@ class IssuesSyncer:
         if not project_changes:
             return True
         
+        success_count = 0
+        
         try:
-            # 使用existing project manager的GraphQL方法
             for change in project_changes:
                 issue_number = change['issue_number']
                 target_project_number = change['target_project_number']
+                target_project = change['target_project']
                 
-                # 这里需要调用project_manager的方法来移动issue到项目板
-                # 暂时使用简化的实现
-                success = self._move_issue_to_project(issue_number, target_project_number)
-                if not success:
-                    return False
+                print(f"   🔄 移动Issue #{issue_number}到项目{target_project} (#{target_project_number})...")
+                
+                # 获取issue的node_id
+                issue_data = self._get_remote_issue(issue_number)
+                if not issue_data:
+                    print(f"   ❌ 无法获取Issue #{issue_number}的数据")
+                    continue
+                
+                issue_node_id = issue_data.get('node_id')
+                if not issue_node_id:
+                    print(f"   ❌ 无法获取Issue #{issue_number}的node_id")
+                    continue
+                
+                # 获取项目的project_id  
+                project_id = self.project_manager.get_project_id(target_project_number)
+                if not project_id:
+                    print(f"   ❌ 无法获取项目#{target_project_number}的project_id")
+                    continue
+                
+                # 检查issue是否已在目标项目中
+                if target_project_number in change['current_projects']:
+                    print(f"   ⏭️ Issue #{issue_number}已在目标项目中，跳过")
+                    success_count += 1
+                    continue
+                
+                # 使用GraphQL添加issue到项目
+                success = self._add_issue_to_project(issue_node_id, project_id, target_project_number)
+                if success:
+                    success_count += 1
+                    print(f"   ✅ 成功移动Issue #{issue_number}到项目{target_project}")
+                else:
+                    print(f"   ❌ 移动Issue #{issue_number}失败")
             
-            return True
+            return success_count == len(project_changes)
+            
         except Exception as e:
             print(f"   ❌ 项目板更改失败: {e}")
             return False
 
-    def _move_issue_to_project(self, issue_number, project_number):
-        """移动issue到指定项目板"""
-        # 这里应该实现GraphQL调用来移动issue
-        # 可以参考fix_misplaced_issues.py的实现
-        return True  # 暂时返回True
+    def _add_issue_to_project(self, issue_node_id, project_id, project_number):
+        """使用GraphQL将issue添加到项目"""
+        try:
+            mutation = '''
+                mutation($projectId: ID!, $contentId: ID!) {
+                    addProjectV2ItemById(input: {
+                        projectId: $projectId,
+                        contentId: $contentId
+                    }) {
+                        item {
+                            id
+                        }
+                    }
+                }
+            '''
+            
+            variables = {
+                'projectId': project_id,
+                'contentId': issue_node_id
+            }
+            
+            # 使用project_manager的GraphQL客户端
+            response = self.project_manager.execute_graphql(mutation, variables)
+            
+            if response and 'data' in response and response['data']['addProjectV2ItemById']:
+                return True
+            else:
+                print(f"   ❌ GraphQL响应错误: {response}")
+                return False
+                
+        except Exception as e:
+            print(f"   ❌ GraphQL调用失败: {e}")
+            return False
 
     def _get_milestone_number(self, milestone_title):
         """获取milestone的编号"""
@@ -374,6 +477,21 @@ class IssuesSyncer:
         files = list(issues_dir.glob("open_*.md"))
         print(f"🔎 scanning {len(files)} files for project changes...")
         
+        # 批量获取所有项目数据，避免重复API调用
+        print("📥 预加载项目板数据...")
+        project_items_cache = {}
+        for project_num in [6, 12, 13, 14]:  # intellistream, sage-kernel, sage-middleware, sage-apps
+            try:
+                items = self.project_manager.get_project_items(project_num)
+                if items:
+                    project_items_cache[project_num] = items
+                    print(f"  ✅ 项目#{project_num}: {len(items)} 个items")
+                else:
+                    project_items_cache[project_num] = []
+            except Exception as e:
+                print(f"  ⚠️ 获取项目#{project_num}数据失败: {e}")
+                project_items_cache[project_num] = []
+        
         for i, f in enumerate(files):
             if i % 50 == 0:
                 print(f"🔎 scanning files... progress: {i}/{len(files)}")
@@ -390,8 +508,8 @@ class IssuesSyncer:
             local_project = self._parse_local_project(text)
             
             if local_project:
-                # 获取issue当前所在的项目
-                current_projects = self._get_issue_current_projects(issue_number)
+                # 使用缓存数据检查issue当前所在的项目
+                current_projects = self._get_issue_current_projects_from_cache(issue_number, project_items_cache)
                 
                 expected_project_num = self.team_to_project.get(local_project)
                 if expected_project_num and expected_project_num not in current_projects:
@@ -407,8 +525,16 @@ class IssuesSyncer:
         
         return changes
 
-    def _extract_original_body(self, text):
-        """从本地issue文件中提取原始的body内容，排除我们添加的元数据和更新记录"""
+    def _extract_original_body(self, text, include_update_history=None):
+        """从本地issue文件中提取原始的body内容，可选择是否包含更新记录
+        
+        Args:
+            text: issue文件的完整内容
+            include_update_history: 是否包含更新记录，None时使用配置文件设置
+        """
+        if include_update_history is None:
+            include_update_history = self.config.sync_update_history
+            
         lines = text.splitlines()
         
         # 跳过元数据部分，从第一个非元数据内容开始提取
@@ -445,19 +571,27 @@ class IssuesSyncer:
         if content_start == -1:
             return ""
         
-        # 提取内容，直到遇到更新记录部分、分隔线或文件结束
+        # 提取内容
         body_lines = []
         for i in range(content_start, len(lines)):
             line = lines[i]
             stripped = line.strip()
             
-            # 停止条件：遇到更新记录、分隔线或GitHub链接
-            if (stripped == "## 更新记录" or 
-                stripped == "---" or
-                stripped.startswith("**GitHub链接**:") or
-                stripped.startswith("**下载时间**:")):
-                break
-                
+            # 停止条件的判断
+            if include_update_history:
+                # 如果要包含更新记录，只在遇到分隔线或GitHub链接时停止
+                if (stripped == "---" or
+                    stripped.startswith("**GitHub链接**:") or
+                    stripped.startswith("**下载时间**:")):
+                    break
+            else:
+                # 如果不包含更新记录，遇到更新记录部分也要停止
+                if (stripped == "## 更新记录" or 
+                    stripped == "---" or
+                    stripped.startswith("**GitHub链接**:") or
+                    stripped.startswith("**下载时间**:")):
+                    break
+                    
             body_lines.append(line)
         
         # 去除末尾的空行
@@ -470,7 +604,7 @@ class IssuesSyncer:
         """解析本地issue文件的所有属性"""
         data = {
             'title': None,
-            'body': self._extract_original_body(text),  # 只提取原始body内容
+            'body': self._extract_original_body(text, include_update_history=False),  # 解析元数据时不包含更新记录
             'labels': [],
             'assignee': None,
             'milestone': None,
@@ -542,9 +676,38 @@ class IssuesSyncer:
 
     def _get_issue_current_projects(self, issue_number):
         """获取issue当前所在的项目板"""
-        # 这里需要实现GraphQL查询来获取issue所在的项目板
-        # 暂时返回空列表，后续可以通过project_manager实现
-        return []
+        current_projects = []
+        
+        # 检查所有相关项目板
+        projects_to_check = [6, 12, 13, 14]  # intellistream, sage-kernel, sage-middleware, sage-apps
+        
+        for project_num in projects_to_check:
+            try:
+                items = self.project_manager.get_project_items(project_num)
+                if items:
+                    # 检查这个issue是否在当前项目中
+                    for item in items:
+                        content = item.get('content', {})
+                        if content.get('number') == issue_number:
+                            current_projects.append(project_num)
+                            break
+            except Exception as e:
+                print(f"⚠️ 检查项目#{project_num}时出错: {e}")
+                
+        return current_projects
+
+    def _get_issue_current_projects_from_cache(self, issue_number, project_items_cache):
+        """从缓存数据中获取issue当前所在的项目板"""
+        current_projects = []
+        
+        for project_num, items in project_items_cache.items():
+            for item in items:
+                content = item.get('content', {})
+                if content.get('number') == issue_number:
+                    current_projects.append(project_num)
+                    break
+                
+        return current_projects
 
     def _compare_basic_attributes(self, local_data, remote_data, issue_number, file_path):
         """比较基本属性并生成更改列表"""
@@ -755,302 +918,6 @@ class IssuesSyncer:
         print(f"\n📝 日志已写入: {log_path}")
         return logs
 
-    def detect_all_changes(self):
-        changes = []
-        changes.extend(self.detect_label_changes())
-        changes.extend(self.detect_status_changes())
-        changes.extend(self.detect_content_changes())
-        return changes
-
-    def detect_label_changes(self):
-        # 简化：示例返回空或单条变更
-        return []
-
-    def detect_status_changes(self):
-        return []
-
-    def detect_content_changes(self, limit=None):
-        # Scan local markdown files and compare with remote issues for title/body/labels
-        changes = []
-        issues_dir = self.workspace_dir / 'issues'
-        if not issues_dir.exists():
-            return changes
-
-        files = sorted(issues_dir.glob('open_*.md'))
-        total_files = len(files)
-        for f in files:
-            if total_files and (files.index(f) % 50 == 0):
-                print(f"🔎 scanning files... progress: {files.index(f)+1}/{total_files}")
-            name = f.name
-            # extract issue number from filename
-            import re
-            m = re.match(r'open_(\d+)_', name)
-            if not m:
-                continue
-            issue_number = int(m.group(1))
-            text = f.read_text(encoding='utf-8')
-            # strip front-matter if present
-            body_text = text
-            if text.startswith('---'):
-                parts = text.split('---', 2)
-                if len(parts) == 3:
-                    body_text = parts[2]
-
-            # title: first line starting with '# '
-            local_title = None
-            for line in body_text.splitlines():
-                if line.strip().startswith('# '):
-                    local_title = line.strip().lstrip('# ').strip()
-                    break
-
-            # labels: parse '## 标签' section
-            local_labels = []
-            lines = body_text.splitlines()
-            for i, line in enumerate(lines):
-                if line.strip().startswith('## 标签'):
-                    # read following non-empty lines as labels until blank or next section
-                    for j in range(i+1, min(i+10, len(lines))):
-                        l = lines[j].strip()
-                        if not l or l.startswith('##'):
-                            break
-                        # labels may be comma-separated or single per line
-                        for part in l.split(','):
-                            lab = part.strip()
-                            if lab:
-                                local_labels.append(lab)
-                    break
-
-            # assignee: parse '## 分配给' section
-            local_assignee = None
-            for i, line in enumerate(lines):
-                if line.strip().startswith('## 分配给'):
-                    # read next non-empty line as assignee
-                    for j in range(i+1, min(i+5, len(lines))):
-                        l = lines[j].strip()
-                        if l and not l.startswith('##') and l != "未分配":
-                            local_assignee = l
-                            break
-                    break
-
-            # project: parse '## Project归属' section
-            local_project = None
-            local_project_number = None
-            for i, line in enumerate(lines):
-                if line.strip().startswith('## Project归属'):
-                    # read following lines for project info
-                    for j in range(i+1, min(i+5, len(lines))):
-                        l = lines[j].strip()
-                        if l and not l.startswith('##'):
-                            # Format: - **sage-apps** (Project #14: SAGE-Apps)
-                            import re
-                            project_match = re.search(r'\*\*(.+?)\*\*.*?Project #(\d+)', l)
-                            if project_match:
-                                local_project = project_match.group(1)
-                                local_project_number = int(project_match.group(2))
-                                break
-                    break
-
-            # milestone: parse from metadata if exists (we'll add this section later)
-            local_milestone = None
-            for i, line in enumerate(lines):
-                if line.strip().startswith('## Milestone'):
-                    for j in range(i+1, min(i+3, len(lines))):
-                        l = lines[j].strip()
-                        if l and not l.startswith('##') and l != "无":
-                            local_milestone = l
-                            break
-                    break
-
-            # local body: extract original body content only
-            local_body = self._extract_original_body(body_text)
-            # Get remote issue
-            owner = self.config.GITHUB_OWNER
-            repo = self.config.GITHUB_REPO
-            url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
-            try:
-                resp = self.github_client.session.get(url, timeout=20)
-                if resp.status_code != 200:
-                    # couldn't fetch remote issue; skip
-                    continue
-                remote = resp.json()
-            except Exception:
-                continue
-
-            remote_title = remote.get('title')
-            remote_body = remote.get('body') or ''
-            remote_labels = [l.get('name') for l in remote.get('labels', [])]
-            remote_assignee = None
-            if remote.get('assignee'):
-                remote_assignee = remote['assignee']['login']
-            
-            # Get remote milestone
-            remote_milestone = None
-            if remote.get('milestone'):
-                remote_milestone = remote['milestone']['title']
-            
-            # Get remote project (we'll need to query GraphQL for this)
-            remote_project = None
-            remote_project_number = None
-            # Note: Project info requires separate GraphQL query, will implement below
-            
-            remote_updated_at = remote.get('updated_at')
-
-            # normalize for comparison
-            def norm(s):
-                return (s or '').strip().replace('\r\n', '\n')
-
-            title_changed = local_title and norm(local_title) != norm(remote_title)
-            body_changed = local_body and norm(local_body) != norm(remote_body)
-            labels_changed = set(local_labels) != set(remote_labels)
-            assignee_changed = local_assignee != remote_assignee
-
-            if title_changed or body_changed or labels_changed or assignee_changed:
-                # 构建描述信息
-                desc_parts = []
-                if title_changed:
-                    desc_parts.append("标题")
-                if body_changed:
-                    desc_parts.append("内容")
-                if labels_changed:
-                    desc_parts.append("标签")
-                if assignee_changed:
-                    desc_parts.append("分配给")
-                description = f"Issue #{issue_number} - 更新{'/'.join(desc_parts)}"
-                
-                changes.append({
-                    'type': 'content',
-                    'description': description,
-                    'issue_number': issue_number,
-                    'file': str(f),
-                    'local_title': local_title,
-                    'local_body': local_body,
-                    'local_labels': local_labels,
-                    'local_assignee': local_assignee,
-                    'remote_title': remote_title,
-                    'remote_body': remote_body,
-                    'remote_labels': remote_labels,
-                    'remote_assignee': remote_assignee,
-                    'remote_updated_at': remote_updated_at,
-                })
-
-            if limit and len(changes) >= limit:
-                print(f"已达到 content-limit={limit}，停止扫描")
-                break
-
-        return changes
-
-    def execute_sync(self, changes):
-        print("🔄 正在执行同步操作...")
-        success_count = 0
-        for i, change in enumerate(changes, 1):
-            print(f"  [{i}/{len(changes)}] 同步: {change['description']}")
-            # TODO: 调用 GitHub API
-            success_count += 1
-        print(f"\n📊 同步完成: {success_count}/{len(changes)} 成功")
-        return True
-
-    # Content sync helpers
-    def save_content_plan(self, changes):
-        path = self.output_dir / f"content_sync_plan_{int(time.time())}.json"
-        path.write_text(json.dumps(changes, ensure_ascii=False, indent=2), encoding='utf-8')
-        print(f"📋 内容同步计划已写入: {path}")
-        return path
-
-    def apply_content_plan(self, plan, dry_run=True, force=False, limit=None):
-        logs = []
-        count = 0
-        for act in plan:
-            issue_number = act['issue_number']
-            entry = {'issue_number': issue_number}
-            # conflict detection: compare remote updated_at with local (from file)
-            local_mtime = None
-            try:
-                local_mtime = int(Path(act['file']).stat().st_mtime)
-            except Exception:
-                local_mtime = None
-
-            # fetch remote current updated_at
-            owner = self.config.GITHUB_OWNER
-            repo = self.config.GITHUB_REPO
-            url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
-            try:
-                resp = self.github_client.session.get(url, timeout=20)
-                resp.raise_for_status()
-                remote = resp.json()
-            except Exception as e:
-                entry['error'] = f"fetch failed: {e}"
-                logs.append(entry)
-                continue
-
-            remote_updated = remote.get('updated_at')
-            # If remote was updated after local file mtime and not forced, skip
-            if local_mtime and remote_updated:
-                # parse remote_updated to timestamp
-                from datetime import datetime
-                try:
-                    t_remote = int(datetime.fromisoformat(remote_updated.replace('Z', '+00:00')).timestamp())
-                except Exception:
-                    t_remote = None
-                if t_remote and local_mtime and t_remote > local_mtime and not force:
-                    entry['skipped'] = 'remote_newer'
-                    print(f"  ⚠️ Issue #{issue_number} 远端比本地更新，跳过（使用 --force-content 强制覆盖）")
-                    logs.append(entry)
-                    continue
-
-            # prepare update payload
-            payload = {}
-            if act.get('local_title') and act.get('local_title') != remote.get('title'):
-                payload['title'] = act.get('local_title')
-            # limit body size? just send
-            if act.get('local_body') and act.get('local_body') != remote.get('body'):
-                payload['body'] = act.get('local_body')
-            if set(act.get('local_labels', [])) != set(act.get('remote_labels', [])):
-                payload['labels'] = act.get('local_labels', [])
-            
-            # handle assignee changes
-            local_assignee = act.get('local_assignee')
-            remote_assignee = None
-            if remote.get('assignee'):
-                remote_assignee = remote['assignee']['login']
-            
-            if local_assignee != remote_assignee:
-                if local_assignee:
-                    payload['assignee'] = local_assignee
-                else:
-                    payload['assignee'] = ""  # unassign
-
-            if not payload:
-                entry['noop'] = True
-                logs.append(entry)
-                continue
-
-            if dry_run:
-                print(f"  [dry-run] Issue #{issue_number} 将被 PATCH 字段: {list(payload.keys())}")
-                entry['planned_update'] = payload
-            else:
-                # perform PATCH via github_client
-                res = self.github_client.update_issue(issue_number, **payload)
-                if res is None:
-                    entry['updated'] = False
-                    entry['error'] = 'update failed'
-                    print(f"  ❌ Issue #{issue_number} 更新失败")
-                else:
-                    entry['updated'] = True
-                    entry['update_response'] = res
-                    print(f"  ✅ Issue #{issue_number} 已更新")
-
-            logs.append(entry)
-            count += 1
-            if limit and count >= limit:
-                break
-            time.sleep(0.3)
-
-        # write log
-        log_path = self.output_dir / f"content_sync_log_{int(time.time())}.json"
-        log_path.write_text(json.dumps(logs, ensure_ascii=False, indent=2), encoding='utf-8')
-        print(f"📝 内容同步日志已写入: {log_path}")
-        return logs
-
     def log_sync_operation(self, changes, success, sync_type="all"):
         log_entry = {
             'timestamp': datetime.now().isoformat(),
@@ -1093,6 +960,12 @@ def main():
     parser.add_argument("issue_number", nargs="?", type=int, 
                        help="要同步的特定issue编号 (与sync命令一起使用)")
     
+    # 项目板同步优化参数
+    parser.add_argument("--apply-projects", action="store_true", 
+                       help="自动应用项目板更改而不预览")
+    parser.add_argument("--auto-confirm", action="store_true", 
+                       help="自动确认所有操作而无需用户输入")
+    
     # 保留旧的命令行选项以保持兼容性
     parser.add_argument("--all", action="store_true", help="同步所有更改")
     parser.add_argument("--labels-only", action="store_true", help="仅同步标签更改")
@@ -1119,8 +992,11 @@ def main():
             # 同步单个issue
             success = syncer.sync_one_issue(args.issue_number)
         else:
-            # 同步所有更改
-            success = syncer.sync_all_changes()
+            # 同步所有更改，传递新参数
+            success = syncer.sync_all_changes(
+                apply_projects=args.apply_projects,
+                auto_confirm=args.auto_confirm
+            )
     elif args.command == "status":
         # 显示同步状态
         syncer.show_sync_status()
@@ -1139,7 +1015,10 @@ def main():
         success = True
     # 处理旧的命令行选项 (保持兼容性)
     elif args.all:
-        success = syncer.sync_all_changes()
+        success = syncer.sync_all_changes(
+            apply_projects=args.apply_projects,
+            auto_confirm=args.auto_confirm
+        )
     elif args.labels_only:
         success = syncer.sync_label_changes()
     elif args.status_only:

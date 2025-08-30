@@ -209,15 +209,16 @@ show_main_menu() {
     echo ""
     echo -e "  1. 📝 手动管理Issues"
     echo -e "  2. 📥 下载远端Issues"
-    echo -e "  3. 🤖 AI智能整理Issues" 
+    echo -e "  3. 🤖 AI智能管理" 
     echo -e "  4. 📤 上传Issues到远端"
     echo ""
+    echo -e "${CYAN}设置选项:${NC}"
+    echo ""
+    echo -e "  6. ⚙️ 配置管理"
     if ! check_github_token; then
-        echo -e "${YELLOW}设置选项:${NC}"
-        echo ""
         echo -e "  9. 🔑 配置GitHub Token"
-        echo ""
     fi
+    echo ""
     echo -e "  5. 🚪 退出"
     echo ""
 }
@@ -288,9 +289,9 @@ ai_menu() {
         echo ""
         
         if [ "$has_local_data" = true ]; then
-            read -p "请选择 (1-5, 9): " choice
+            read -p "请选择 (1-3, 9): " choice
         else
-            read -p "请选择 (1-5, d, 9): " choice
+            read -p "请选择 (1-3, d, 9): " choice
         fi
         
         case $choice in
@@ -388,14 +389,16 @@ issues_management_menu() {
         echo ""
         echo "  1. 📊 查看Issues统计和分析"
         echo "  2. 🗂️ 自动归档已完成Issues"
-        echo "  3. 返回主菜单"
+        echo "  3. 📋 查看Issues更新记录"
+        echo "  4. 返回主菜单"
         echo ""
-        read -p "请选择 (1-3): " choice
+        read -p "请选择 (1-4): " choice
         
         case $choice in
             1) show_issues_statistics ;;
             2) archive_completed_issues ;;
-            3) break ;;
+            3) show_update_history_menu ;;
+            4) break ;;
             *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
         esac
     done
@@ -475,10 +478,23 @@ project_based_assign_menu() {
         if [ "$has_local_data" = true ]; then
             echo -e "${GREEN}✅ 检测到本地Issues数据${NC}"
             
-            # 统计当前分配情况
-            local total_issues=$(find "$ISSUES_DIR" -name "open_*.md" | wc -l)
-            local assigned_issues=$(find "$ISSUES_DIR" -name "open_*.md" -exec grep -l "^[^未].*$" {} \; 2>/dev/null | wc -l)
-            local unassigned_issues=$((total_issues - assigned_issues))
+            # 统计当前分配情况 (使用正确的统计逻辑)
+            local total_issues=0
+            local assigned_issues=0
+            local unassigned_issues=0
+            
+            for file in "$ISSUES_DIR"/open_*.md; do
+                if [ -f "$file" ]; then
+                    ((total_issues++))
+                    
+                    # 检查是否已分配 (与analyze_assignment_status使用相同逻辑)
+                    if grep -A 1 "## 分配给" "$file" | grep -v "## 分配给" | grep -v "^--$" | grep -q "^未分配$\|^$"; then
+                        ((unassigned_issues++))
+                    else
+                        ((assigned_issues++))
+                    fi
+                fi
+            done
             
             echo "📊 当前状态:"
             echo "  - 总Issues数: $total_issues"
@@ -490,7 +506,7 @@ project_based_assign_menu() {
         
         echo ""
         echo -e "${CYAN}🛠️ 分配选项:${NC}"
-        echo "  1. 🚀 执行智能分配 (基于Project归属)"
+        echo "  1. 🚀 执行完整智能分配 (包含错误检测与修复)"
         echo "  2. 📋 预览分配计划 (不实际修改文件)"
         echo "  3. 📊 分析当前分配状态"
         echo ""
@@ -503,9 +519,9 @@ project_based_assign_menu() {
         echo ""
         
         if [ "$has_local_data" = true ]; then
-            read -p "请选择 (1-3, 9): " choice
+            read -p "请选择 (1-4, 9): " choice
         else
-            read -p "请选择 (1-3, d, 9): " choice
+            read -p "请选择 (1-4, d, 9): " choice
         fi
         
         case $choice in
@@ -549,78 +565,123 @@ project_based_assign_menu() {
 
 execute_project_based_assign() {
     clear
-    echo -e "${CYAN}🚀 执行基于Project的智能分配${NC}"
-    echo "================================="
+    echo -e "${CYAN}🚀 执行完整智能分配 (包含错误检测与修复)${NC}"
+    echo "================================================="
+    echo ""
+    echo -e "${CYAN}此功能将自动执行以下操作：${NC}"
+    echo "  🔍 1. 检测错误分配的Issues (team与project不匹配)"
+    echo "  🔧 2. 自动修复检测到的分配问题"
+    echo "  🎯 3. 执行智能分配 (基于Project归属)"
+    echo "  � 4. 显示分配结果统计"
     echo ""
     echo -e "${YELLOW}⚠️ 此操作将修改Issues文件中的分配信息${NC}"
     echo ""
-    read -p "确认执行智能分配？ (y/N): " confirm
+    read -p "确认执行完整智能分配？ (y/N): " confirm
     
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         echo ""
-        echo "🎯 正在执行智能分配..."
+        echo -e "${CYAN}🔍 步骤1: 检测错误分配的Issues...${NC}"
         cd "$SCRIPT_DIR"
+        
+        # 首先运行错误检测
+        if python3 _scripts/helpers/fix_misplaced_issues.py --dry-run; then
+            echo -e "${GREEN}✅ 错误检测完成${NC}"
+            
+            # 检查是否有生成的修复计划文件
+            local fix_plan_files=($(ls -t "$ISSUES_OUTPUT_PATH"/issues_fix_plan_*.json 2>/dev/null))
+            
+            if [ ${#fix_plan_files[@]} -gt 0 ]; then
+                local latest_plan="${fix_plan_files[0]}"
+                echo -e "${YELLOW}⚠️ 发现需要修复的错误分配，自动执行修复...${NC}"
+                echo ""
+                echo -e "${CYAN}🔧 步骤2: 自动修复错误分配...${NC}"
+                if python3 _scripts/helpers/execute_fix_plan.py "$latest_plan" --live; then
+                    echo -e "${GREEN}✅ 错误分配修复完成${NC}"
+                else
+                    echo -e "${RED}❌ 错误分配修复失败${NC}"
+                fi
+            else
+                echo -e "${GREEN}✅ 未发现错误分配的Issues${NC}"
+                echo -e "${CYAN}📝 跳过步骤2: 无需修复${NC}"
+            fi
+        else
+            echo -e "${RED}❌ 错误检测失败，继续执行智能分配...${NC}"
+        fi
+        
+        echo ""
+        echo -e "${CYAN}🎯 步骤3: 执行智能分配...${NC}"
         
         # 执行智能分配
         if python3 _scripts/project_based_assign.py --assign; then
             echo ""
             echo -e "${GREEN}✅ 智能分配完成！${NC}"
             echo ""
-            echo -e "${CYAN}📤 是否要将分配结果同步到GitHub远端？${NC}"
-            echo -e "${YELLOW}⚠️ 这将更新GitHub上的Issues分配信息${NC}"
-            echo ""
-            read -p "确认同步到远端？ (y/N): " sync_confirm
+            echo -e "${CYAN}📊 步骤4: 显示分配结果统计...${NC}"
             
-            if [[ "$sync_confirm" =~ ^[Yy]$ ]]; then
-                echo ""
-                echo "🚀 正在同步分配结果到远端..."
-                
-                # 首先预览更改
-                echo "🔍 预览待同步更改..."
-                python3 _scripts/sync_issues.py --preview
-                echo ""
-                
-                echo -e "${YELLOW}💡 检测到大量更改，建议进行小批量测试${NC}"
-                echo "选择同步方式："
-                echo "  1. 🧪 测试模式 (仅同步前5个issues)"
-                echo "  2. 🚀 完整同步 (同步所有更改)"
-                echo "  3. ❌ 取消同步"
-                echo ""
-                read -p "请选择 (1-3): " sync_choice
-                
-                case $sync_choice in
-                    1)
-                        echo ""
-                        echo "🧪 测试模式：同步前5个issues..."
-                        python3 _scripts/sync_issues.py --apply-content --content-limit 5 --confirm
-                        ;;
-                    2)
-                        echo ""
-                        read -p "确认同步所有132个issues？ (输入 'YES' 确认): " final_confirm
-                        if [ "$final_confirm" = "YES" ]; then
-                            echo ""
-                            echo "📡 正在同步所有issues到GitHub..."
-                            python3 _scripts/sync_issues.py --apply-content --confirm
-                        else
-                            echo ""
-                            echo "❌ 已取消完整同步"
-                        fi
-                        ;;
-                    3)
-                        echo ""
-                        echo "❌ 已取消同步"
-                        ;;
-                    *)
-                        echo ""
-                        echo "❌ 无效选择，已取消同步"
-                        ;;
-                esac
-                
-                echo ""
-                echo -e "${GREEN}🎉 分配和同步操作完成！${NC}"
+            # 自动显示分配统计
+            local total=0
+            local assigned=0
+            local unassigned=0
+            local by_team_kernel=0
+            local by_team_middleware=0
+            local by_team_apps=0
+            local by_team_intellistream=0
+            
+            for file in "$ISSUES_DIR"/open_*.md; do
+                if [ -f "$file" ]; then
+                    ((total++))
+                    
+                    # 检查是否已分配
+                    if grep -A 1 "## 分配给" "$file" | grep -v "## 分配给" | grep -v "^--$" | grep -q "^未分配$\|^$"; then
+                        ((unassigned++))
+                    else
+                        ((assigned++))
+                    fi
+                    
+                    # 统计按项目归属
+                    if grep -q "sage-kernel" "$file"; then
+                        ((by_team_kernel++))
+                    elif grep -q "sage-middleware" "$file"; then
+                        ((by_team_middleware++))
+                    elif grep -q "sage-apps" "$file"; then
+                        ((by_team_apps++))
+                    elif grep -q "intellistream" "$file"; then
+                        ((by_team_intellistream++))
+                    fi
+                fi
+            done
+            
+            echo "📈 分配结果统计:"
+            echo "  - 总Issues数: $total"
+            echo "  - 已分配: $assigned"
+            echo "  - 未分配: $unassigned"
+            if [ $total -gt 0 ]; then
+                echo "  - 分配率: $(( assigned * 100 / total ))%"
+            fi
+            echo ""
+            echo "📊 按项目归属分布:"
+            echo "  - intellistream: $by_team_intellistream issues"
+            echo "  - sage-kernel: $by_team_kernel issues"
+            echo "  - sage-middleware: $by_team_middleware issues"
+            echo "  - sage-apps: $by_team_apps issues"
+            echo ""
+            
+            if [ $unassigned -eq 0 ]; then
+                echo -e "${GREEN}🎉 所有Issues都已成功分配！${NC}"
             else
-                echo ""
-                echo -e "${CYAN}ℹ️ 智能分配已完成，但未同步到远端${NC}"
+                echo -e "${YELLOW}💡 还有 $unassigned 个Issues未分配，可能需要手动处理${NC}"
+            fi
+            
+            echo ""
+            echo -e "${CYAN}📤 自动同步分配结果到GitHub远端...${NC}"
+            echo ""
+            
+            # 直接执行快速同步，避免多次确认
+            echo "🚀 正在智能同步分配结果..."
+            if python3 _scripts/sync_issues.py --apply-projects --auto-confirm; then
+                echo -e "${GREEN}✅ 分配结果已成功同步到GitHub！${NC}"
+            else
+                echo -e "${YELLOW}⚠️ 同步过程中遇到问题，但本地分配已完成${NC}"
                 echo "💡 您可以稍后通过上传菜单手动同步"
             fi
         else
@@ -1064,6 +1125,170 @@ archive_completed_issues() {
     read -p "按Enter键继续..."
 }
 
+# 查看Issues更新记录
+show_update_history_menu() {
+    while true; do
+        clear
+        echo -e "${BLUE}📋 Issues更新记录查看${NC}"
+        echo "========================"
+        echo ""
+        echo "  1. 📋 列出所有有更新记录的Issues"
+        echo "  2. 🔍 查看特定Issue的更新记录"
+        echo "  3. ℹ️ 关于更新记录的说明"
+        echo "  4. 返回上级菜单"
+        echo ""
+        read -p "请选择 (1-4): " choice
+        
+        case $choice in
+            1) 
+                echo -e "${CYAN}📋 正在扫描Issues更新记录...${NC}"
+                echo ""
+                cd "$SCRIPT_DIR"
+                python3 _scripts/show_update_history.py
+                echo ""
+                read -p "按Enter键继续..."
+                ;;
+            2)
+                echo ""
+                read -p "🔍 请输入要查看的Issue编号: " issue_id
+                if [[ "$issue_id" =~ ^[0-9]+$ ]]; then
+                    echo ""
+                    echo -e "${CYAN}📋 显示Issue #${issue_id}的更新记录...${NC}"
+                    echo ""
+                    cd "$SCRIPT_DIR"
+                    python3 _scripts/show_update_history.py --issue-id "$issue_id"
+                    echo ""
+                    read -p "按Enter键继续..."
+                else
+                    echo -e "${RED}❌ 请输入有效的Issue编号${NC}"
+                    sleep 1
+                fi
+                ;;
+            3)
+                clear
+                echo -e "${BLUE}ℹ️ 关于更新记录的说明${NC}"
+                echo "========================"
+                echo ""
+                echo -e "${CYAN}📝 更新记录的作用：${NC}"
+                echo "  • 记录我们对每个Issue的本地管理操作"
+                echo "  • 追踪Issue的下载、同步、修改历史"
+                echo "  • 提供本地管理的审计轨迹"
+                echo ""
+                echo -e "${CYAN}🔧 设计原则：${NC}"
+                echo "  • 更新记录是本地管理信息，不会同步到GitHub"
+                echo "  • GitHub本身有完整的活动历史记录"
+                echo "  • 这样避免污染GitHub上的原始Issue内容"
+                echo ""
+                echo -e "${CYAN}📊 查看GitHub活动历史：${NC}"
+                echo "  • 在GitHub网页上查看Issue可以看到完整的活动历史"
+                echo "  • 包括评论、标签变更、状态变更等所有操作"
+                echo ""
+                echo -e "${YELLOW}💡 如果需要在GitHub上记录管理操作，建议通过Issue评论的方式${NC}"
+                echo ""
+                read -p "按Enter键继续..."
+                ;;
+            4) 
+                break 
+                ;;
+            *) 
+                echo -e "${RED}❌ 无效选择${NC}"
+                sleep 1 
+                ;;
+        esac
+    done
+}
+
+# 配置管理菜单
+config_management_menu() {
+    while true; do
+        clear
+        echo -e "${BLUE}⚙️ 配置管理${NC}"
+        echo "==============="
+        echo ""
+        echo "  1. 📋 查看当前配置"
+        echo "  2. 🔄 交互式配置向导"
+        echo "  3. 📤 更新记录同步设置"
+        echo "  4. 💾 自动备份设置"
+        echo "  5. 返回主菜单"
+        echo ""
+        read -p "请选择 (1-5): " choice
+        
+        case $choice in
+            1)
+                echo -e "${CYAN}📋 当前配置状态${NC}"
+                echo ""
+                cd "$SCRIPT_DIR"
+                python3 _scripts/config_manager.py --show
+                echo ""
+                read -p "按Enter键继续..."
+                ;;
+            2)
+                echo -e "${CYAN}🔄 交互式配置向导${NC}"
+                echo ""
+                cd "$SCRIPT_DIR"
+                python3 _scripts/config_manager.py --interactive
+                echo ""
+                read -p "按Enter键继续..."
+                ;;
+            3)
+                echo -e "${CYAN}📤 更新记录同步设置${NC}"
+                echo "========================"
+                echo ""
+                echo "选择更新记录同步模式："
+                echo "  on  - 将更新记录同步到GitHub (推荐)"
+                echo "  off - 更新记录仅保存在本地"
+                echo ""
+                read -p "请选择 (on/off): " sync_choice
+                
+                case $sync_choice in
+                    on|ON|On)
+                        cd "$SCRIPT_DIR"
+                        python3 _scripts/config_manager.py --sync-history on
+                        ;;
+                    off|OFF|Off)
+                        cd "$SCRIPT_DIR"
+                        python3 _scripts/config_manager.py --sync-history off
+                        ;;
+                    *)
+                        echo -e "${RED}❌ 无效选择${NC}"
+                        ;;
+                esac
+                echo ""
+                read -p "按Enter键继续..."
+                ;;
+            4)
+                echo -e "${CYAN}💾 自动备份设置${NC}"
+                echo "=================="
+                echo ""
+                read -p "启用自动备份？ (on/off): " backup_choice
+                
+                case $backup_choice in
+                    on|ON|On)
+                        cd "$SCRIPT_DIR"
+                        python3 _scripts/config_manager.py --auto-backup on
+                        ;;
+                    off|OFF|Off)
+                        cd "$SCRIPT_DIR"
+                        python3 _scripts/config_manager.py --auto-backup off
+                        ;;
+                    *)
+                        echo -e "${RED}❌ 无效选择${NC}"
+                        ;;
+                esac
+                echo ""
+                read -p "按Enter键继续..."
+                ;;
+            5)
+                break
+                ;;
+            *)
+                echo -e "${RED}❌ 无效选择${NC}"
+                sleep 1
+                ;;
+        esac
+    done
+}
+
 # 启动时检查GitHub Token
 # 检查是否首次使用
 echo -e "${CYAN}正在初始化SAGE Issues管理工具...${NC}"
@@ -1119,6 +1344,9 @@ while true; do
         5) 
             echo -e "${GREEN}👋 感谢使用SAGE Issues管理工具！${NC}"
             exit 0
+            ;;
+        6)
+            config_management_menu
             ;;
         9)
             if ! check_github_token; then

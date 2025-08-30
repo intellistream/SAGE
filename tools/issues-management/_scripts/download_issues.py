@@ -34,6 +34,23 @@ class IssuesDownloader:
         self.project_mapping = self.load_project_mapping()
         # 添加issue到project的映射缓存
         self.issue_project_cache = {}
+        # 加载团队配置
+        self.team_config = self.load_team_config()
+    
+    def load_team_config(self):
+        """加载团队配置"""
+        try:
+            config_path = self.config.metadata_path / "team_config.py"
+            if config_path.exists():
+                team_config = {}
+                exec(open(config_path).read(), team_config)
+                return team_config.get('TEAMS', {})
+            else:
+                print("⚠️ 团队配置文件不存在，将不进行自动分配")
+                return {}
+        except Exception as e:
+            print(f"⚠️ 加载团队配置失败: {e}")
+            return {}
     
     def load_project_mapping(self):
         """加载project映射信息"""
@@ -49,6 +66,7 @@ class IssuesDownloader:
             else:
                 # 如果文件不存在，返回默认映射
                 return {
+                    6: 'intellistream',  # IntelliStream总体项目
                     12: 'sage-kernel',
                     13: 'sage-middleware', 
                     14: 'sage-apps'
@@ -57,6 +75,7 @@ class IssuesDownloader:
             print(f"⚠️ 加载project映射失败: {e}")
             # 返回默认映射作为备选
             return {
+                6: 'intellistream',  # IntelliStream总体项目
                 12: 'sage-kernel',
                 13: 'sage-middleware', 
                 14: 'sage-apps'
@@ -309,6 +328,26 @@ class IssuesDownloader:
         
         return '\n'.join(changes)
 
+    def _format_assignees(self, assignees):
+        """格式化assignees字段为字符串"""
+        if not assignees:
+            return '未分配'
+        
+        # 处理assignees可能是字符串列表或字典列表的情况
+        formatted_assignees = []
+        for assignee in assignees:
+            if isinstance(assignee, dict):
+                # 如果是字典，取login字段
+                formatted_assignees.append(assignee.get('login', str(assignee)))
+            elif isinstance(assignee, str):
+                # 如果已经是字符串，直接使用
+                formatted_assignees.append(assignee)
+            else:
+                # 其他情况转为字符串
+                formatted_assignees.append(str(assignee))
+        
+        return '\n'.join(formatted_assignees)
+
     def format_issue_content(self, issue: dict, project_info: list = None, existing_filepath = None) -> str:
         """格式化Issue内容为Markdown"""
         
@@ -355,7 +394,7 @@ class IssuesDownloader:
 {', '.join([label['name'] for label in issue.get('labels', [])])}
 
 ## 分配给
-{issue.get('assignee', {}).get('login', '未分配') if issue.get('assignee') else '未分配'}
+{self._format_assignees(issue.get('assignees', []))}
 
 ## 描述
 
@@ -367,10 +406,81 @@ class IssuesDownloader:
 """
         return content
     
+    def auto_assign_project_and_assignee(self, issue: dict, project_info: list):
+        """自动分配project和assignee（如果缺失）"""
+        if not self.team_config:
+            return issue, None  # 如果没有团队配置，直接返回原issue
+        
+        # 获取创建者信息
+        creator = issue.get('user', {}).get('login')
+        if not creator:
+            return issue, None
+        
+        # 检查是否已有project分配
+        has_project = project_info and len(project_info) > 0
+        
+        # 检查是否已有assignee
+        has_assignee = (
+            (issue.get('assignees') and len(issue.get('assignees', [])) > 0) or
+            issue.get('assignee')
+        )
+        
+        # 如果已有project和assignee，不需要自动分配
+        if has_project and has_assignee:
+            return issue, None
+        
+        # 确定创建者所属的团队
+        creator_team = None
+        for team_name, team_info in self.team_config.items():
+            team_members = [member['username'] for member in team_info.get('members', [])]
+            if creator in team_members:
+                creator_team = team_name
+                break
+        
+        if not creator_team:
+            # 创建者不在任何已知团队中，默认分配到intellistream
+            creator_team = 'intellistream'
+        
+        updated_project_info = project_info
+        
+        # 如果没有project分配，尝试自动分配
+        if not has_project:
+            # 根据团队名称确定project
+            project_assignments = {
+                'intellistream': {'number': 6, 'title': 'IntelliStream Project', 'team': 'intellistream'},
+                'sage-kernel': {'number': 12, 'title': 'SAGE Kernel Development', 'team': 'sage-kernel'},
+                'sage-middleware': {'number': 13, 'title': 'SAGE Middleware', 'team': 'sage-middleware'},
+                'sage-apps': {'number': 14, 'title': 'SAGE Applications', 'team': 'sage-apps'}
+            }
+            
+            if creator_team in project_assignments:
+                updated_project_info = [project_assignments[creator_team]]
+                print(f"🎯 Issue #{issue['number']} 自动分配到project: {creator_team} (基于创建者 {creator})")
+        
+        # 如果没有assignee，分配给创建者
+        if not has_assignee:
+            # 确保创建者在团队中
+            if creator_team and creator_team in self.team_config:
+                team_members = [member['username'] for member in self.team_config[creator_team].get('members', [])]
+                if creator in team_members:
+                    # 修改issue的assignee信息
+                    issue['assignees'] = [{'login': creator}]
+                    issue['assignee'] = {'login': creator}
+                    print(f"👤 Issue #{issue['number']} 自动分配给创建者: {creator}")
+        
+        return issue, updated_project_info
+
     def save_issue(self, issue: dict):
         """保存单个Issue到文件"""
         # 获取project信息
         project_info = self.get_issue_project_info(issue['number'])
+        
+        # 自动分配project和assignee (如果缺失)
+        issue, updated_project_info = self.auto_assign_project_and_assignee(issue, project_info)
+        
+        # 使用更新后的project信息
+        if updated_project_info is not None:
+            project_info = updated_project_info
         
         # 生成文件名
         safe_title = self.sanitize_filename(issue['title'])

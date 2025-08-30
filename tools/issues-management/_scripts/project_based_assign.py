@@ -21,6 +21,11 @@ def load_team_config():
 
 def parse_issue_file(file_path):
     """解析issue文件，提取关键信息"""
+    # 确保file_path是Path对象
+    if isinstance(file_path, str):
+        from pathlib import Path
+        file_path = Path(file_path)
+    
     content = file_path.read_text(encoding='utf-8')
     
     issue_info = {
@@ -55,7 +60,7 @@ def parse_issue_file(file_path):
     in_assignee_section = False
     in_description_section = False
     
-    for line in lines:
+    for i, line in enumerate(lines):
         line = line.strip()
         
         # 提取标题
@@ -80,7 +85,7 @@ def parse_issue_file(file_path):
                 team_match = re.search(r'\*\*(.+?)\*\*', line)
                 if team_match:
                     issue_info['project_team'] = team_match.group(1)
-                    break
+                    in_project_section = False  # 停止project section解析，但继续其他解析
         
         # 提取当前分配给
         elif line == "## 分配给":
@@ -90,8 +95,11 @@ def parse_issue_file(file_path):
             if line.startswith('##'):
                 in_assignee_section = False
             elif line and line != "未分配":
-                issue_info['current_assignee'] = line
-                break
+                # 如果已经有assignee，这表示有多个assignees
+                if issue_info['current_assignee']:
+                    issue_info['current_assignee'] += f", {line}"
+                else:
+                    issue_info['current_assignee'] = line
         
         # 提取描述
         elif line == "## 描述":
@@ -123,36 +131,10 @@ def select_assignee_by_expertise_and_workload(team_config, team_name, issue_info
     description = issue_info['description'].lower()
     content = f"{title} {description}"
     
-    # 专业领域匹配规则
-    expertise_rules = {
-        'sage-kernel': {
-            'CubeLander': ['ray', 'distributed', 'actor', 'performance', 'c++', 'optimization'],
-            'ShuhaoZhangTony': ['engine', 'compiler', 'architecture', 'system', 'design'],
-            'Yang-YJY': ['memory', 'serialization', 'state', 'storage', 'keyed'],
-            'peilin9990': ['streaming', 'execution', 'runtime', 'task'],
-            'iliujunn': ['optimization', 'scalability', 'efficiency', 'performance']
-        },
-        'sage-middleware': {
-            'KimmoZAG': ['rag', 'retrieval', 'dataset', 'data', 'management'],
-            'zslchase': ['embedding', 'vector', 'similarity', 'search', 'index'],
-            'hongrugao': ['knowledge graph', 'kg', 'graph', 'memory', 'collection'],
-            'LaughKing': ['context', 'compression', 'optimization', 'buffer'],
-            'ZeroJustMe': ['inference', 'vllm', 'model', 'serving', 'gpu'],
-            'wrp-wrp': ['document', 'parsing', 'storage', 'reranker']
-        },
-        'sage-apps': {
-            'leixy2004': ['ui', 'frontend', 'interface', 'demo', 'application'],
-            'MingqiWang-coder': ['example', 'tutorial', 'integration', 'app'],
-            'Pygone': ['documentation', 'guide', 'manual', 'docs'],
-            'LIXINYI33': ['dataset', 'management', 'integration', 'data'],
-            'Kwan-Yiu': ['literature', 'research', 'analysis', 'paper'],
-            'cybber695': ['code completion', 'suggestion', 'dag', 'operator'],
-            'kms12425-ctrl': ['testing', 'validation', 'quality'],
-            'Li-changwu': ['deployment', 'devops', 'infrastructure'],
-            'Jerry01020': ['mobile', 'android', 'ios'],
-            'huanghaonan1231': ['web', 'javascript', 'nodejs']
-        }
-    }
+    # 从配置中获取专业领域匹配规则
+    from config import Config
+    config = Config()
+    expertise_rules = config.EXPERTISE_RULES
     
     # 计算专业匹配分数
     member_scores = {}
@@ -351,11 +333,17 @@ def assign_issues_by_project():
         print("❌ Issues目录不存在")
         return
     
-    files = sorted(list(issues_dir.glob("open_*.md")))
-    print(f"📋 分析 {len(files)} 个issues...")
+    # 获取所有状态的issues文件（open、closed、merged等）
+    all_files = []
+    for pattern in ["open_*.md", "closed_*.md", "merged_*.md"]:
+        all_files.extend(issues_dir.glob(pattern))
+    
+    files = sorted(all_files)
+    print(f"📋 分析 {len(files)} 个issues (包含所有状态)...")
     
     assignments = []
     project_stats = {}
+    status_stats = {}  # 状态统计
     workload = {}  # 跟踪工作负载
     unassigned_issues = []
     
@@ -369,10 +357,60 @@ def assign_issues_by_project():
         if not issue_info['number']:
             continue
         
+        # 统计状态分布
+        status = issue_info.get('state', 'unknown')
+        status_stats[status] = status_stats.get(status, 0) + 1
+        
         # 统计project归属
         project_team = issue_info['project_team']
         if project_team:
             project_stats[project_team] = project_stats.get(project_team, 0) + 1
+            
+            # 获取团队成员列表
+            team_members = [member['username'] for member in team_config.get(project_team, {}).get('members', [])]
+            
+            # 检查创建者是否在团队中 - 创建者优先原则
+            creator = issue_info['creator']
+            if creator and creator in team_members:
+                # 如果创建者在团队中，且当前不是分配给创建者，需要重新分配
+                if current_assignee != creator:
+                    print(f"  🔄 Issue #{issue_info['number']} 重新分配给创建者 {creator} (属于 {project_team} 团队)")
+                    # 直接分配给创建者
+                    assignee = creator
+                    workload[assignee] = workload.get(assignee, 0) + 1
+                    
+                    assignments.append({
+                        'issue_number': issue_info['number'],
+                        'file_path': issue_info['file_path'],
+                        'title': issue_info['title'],
+                        'project_team': project_team,
+                        'assignee': assignee,
+                        'method': 'creator_priority',
+                        'current_assignee': issue_info['current_assignee']
+                    })
+                    continue
+                else:
+                    print(f"  ✅ Issue #{issue_info['number']} 已正确分配给创建者 {creator} (属于 {project_team} 团队)")
+                    workload[creator] = workload.get(creator, 0) + 1
+                    continue
+            
+            # 检查当前assignees是否已经在正确的团队中
+            current_assignee = issue_info['current_assignee']
+            
+            # 处理多个assignees的情况
+            if current_assignee and current_assignee != '未分配':
+                # 分割多个assignees
+                current_assignees = [a.strip() for a in current_assignee.split(',')]
+                
+                # 检查是否所有assignees都在正确团队中
+                all_in_team = all(assignee in team_members for assignee in current_assignees)
+                
+                if all_in_team:
+                    print(f"  ✅ Issue #{issue_info['number']} 已合理分配给 {current_assignee} (属于 {project_team} 团队)")
+                    # 更新工作负载统计
+                    for assignee in current_assignees:
+                        workload[assignee] = workload.get(assignee, 0) + 1
+                    continue
             
             # 基于project归属选择分配给
             assignee = select_assignee_by_expertise_and_workload(
@@ -398,6 +436,10 @@ def assign_issues_by_project():
             # 没有project归属的issues
             unassigned_issues.append(issue_info)
     
+    print(f"\n📊 状态分布统计:")
+    for status, count in sorted(status_stats.items()):
+        print(f"  {status}: {count} issues")
+    
     print(f"\n📊 Project归属统计:")
     for team, count in sorted(project_stats.items()):
         print(f"  {team}: {count} issues")
@@ -412,7 +454,7 @@ def assign_issues_by_project():
     apply_assignments(assignments)
     
     # 生成报告
-    generate_assignment_report(assignments, workload, project_stats, unassigned_issues)
+    generate_assignment_report(assignments, workload, project_stats, status_stats, unassigned_issues)
     
     print("✅ 基于Project归属的分配完成！")
 
@@ -545,7 +587,7 @@ def apply_assignments(assignments):
     
     print(f"  📄 实际更新了 {updated_count} 个文件")
 
-def generate_assignment_report(assignments, workload, project_stats, unassigned_issues):
+def generate_assignment_report(assignments, workload, project_stats, status_stats, unassigned_issues):
     """生成分配报告"""
     
     config = Config()
@@ -553,26 +595,37 @@ def generate_assignment_report(assignments, workload, project_stats, unassigned_
     report_path = output_dir / f"project_based_assignment_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
     
     # 计算统计信息
-    total_assigned = len(assignments)
+    total_issues_analyzed = sum(status_stats.values())  # 从状态统计中获取总数
+    total_project_assigned = sum(project_stats.values())  # 总的按项目分配数
+    new_assignments = len(assignments)  # 本次新分配的数量
     total_unassigned = len(unassigned_issues)
     
     # 生成报告内容
+    assignment_rate = (total_project_assigned / total_issues_analyzed * 100) if total_issues_analyzed > 0 else 0
+    
     report_content = f"""# 基于Project归属的分配报告
 
 ## 分配概览
 
-- **总issues数**: {total_assigned + total_unassigned}
-- **已分配**: {total_assigned} issues
+- **总分析issues数**: {total_issues_analyzed}
+- **已按项目分配**: {total_project_assigned} issues
+- **本次新分配**: {new_assignments} issues  
 - **未分配**: {total_unassigned} issues
-- **分配率**: {total_assigned/(total_assigned+total_unassigned)*100:.1f}%
+- **整体分配率**: {assignment_rate:.1f}%
 - **分配时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-## Project分布统计
+## 状态分布统计
 
 """
     
+    for status, count in sorted(status_stats.items()):
+        percentage = count / total_issues_analyzed * 100 if total_issues_analyzed > 0 else 0
+        report_content += f"- **{status}**: {count} issues ({percentage:.1f}%)\n"
+    
+    report_content += f"\n## Project分布统计\n\n"
+    
     for team, count in sorted(project_stats.items()):
-        percentage = count / total_assigned * 100 if total_assigned > 0 else 0
+        percentage = count / total_project_assigned * 100 if total_project_assigned > 0 else 0
         report_content += f"- **{team}**: {count} issues ({percentage:.1f}%)\n"
     
     report_content += f"\n## 个人工作负载统计\n\n"

@@ -18,6 +18,40 @@ class Config:
     GITHUB_OWNER = "intellistream"
     GITHUB_REPO = "SAGE"
     
+    # 专业领域匹配规则
+    EXPERTISE_RULES = {
+        'sage-kernel': {
+            'CubeLander': ['ray', 'distributed', 'actor', 'performance', 'c++', 'optimization'],
+            'ShuhaoZhangTony': ['engine', 'compiler', 'architecture', 'system', 'design'],
+            'Yang-YJY': ['memory', 'serialization', 'state', 'storage', 'keyed'],
+            'peilin9990': ['streaming', 'execution', 'runtime', 'task'],
+            'iliujunn': ['optimization', 'scalability', 'efficiency', 'performance']
+        },
+        'sage-middleware': {
+            'KimmoZAG': ['rag', 'retrieval', 'dataset', 'data', 'management'],
+            'zslchase': ['embedding', 'vector', 'similarity', 'search', 'index'],
+            'hongrugao': ['knowledge graph', 'kg', 'graph', 'memory', 'collection'],
+            'LaughKing': ['context', 'compression', 'optimization', 'buffer'],
+            'ZeroJustMe': ['inference', 'vllm', 'model', 'serving', 'gpu'],
+            'wrp-wrp': ['document', 'parsing', 'storage', 'reranker']
+        },
+        'sage-apps': {
+            'leixy2004': ['ui', 'frontend', 'interface', 'demo', 'application'],
+            'MingqiWang-coder': ['example', 'tutorial', 'integration', 'app'],
+            'Pygone': ['documentation', 'guide', 'manual', 'docs'],
+            'LIXINYI33': ['dataset', 'management', 'integration', 'data'],
+            'Kwan-Yiu': ['literature', 'research', 'analysis', 'paper'],
+            'cybber695': ['code completion', 'suggestion', 'dag', 'operator'],
+            'kms12425-ctrl': ['testing', 'validation', 'quality'],
+            'Li-changwu': ['deployment', 'devops', 'infrastructure'],
+            'Jerry01020': ['mobile', 'android', 'ios'],
+            'huanghaonan1231': ['web', 'javascript', 'nodejs']
+        },
+        'intellistream': {
+            'ShuhaoZhangTony': ['architecture', 'system', 'design', 'management', 'coordination', 'project', 'strategy', 'leadership']
+        }
+    }
+    
     # 工作目录配置
     WORKSPACE_DIR = "issues_workspace"
     OUTPUT_DIR = "output"
@@ -36,11 +70,37 @@ class Config:
         self.output_path.mkdir(parents=True, exist_ok=True)
         self.metadata_path.mkdir(parents=True, exist_ok=True)
         
+        # 加载用户设置
+        self._load_user_settings()
+        
         # 确保默认metadata文件存在
         self._ensure_default_metadata_files()
         
         # GitHub Token
         self.github_token = self._load_github_token()
+    
+    def _load_user_settings(self):
+        """加载用户设置"""
+        settings_file = self.metadata_path / "settings.json"
+        default_settings = {
+            "sync_update_history": True,  # 默认同步更新记录到GitHub
+            "auto_backup": True,
+            "verbose_output": False
+        }
+        
+        if settings_file.exists():
+            try:
+                with open(settings_file, 'r', encoding='utf-8') as f:
+                    user_settings = json.load(f)
+                # 合并默认设置和用户设置
+                default_settings.update(user_settings)
+            except Exception as e:
+                print(f"⚠️ 加载用户设置失败，使用默认设置: {e}")
+        
+        # 设置属性
+        self.sync_update_history = default_settings.get("sync_update_history", True)
+        self.auto_backup = default_settings.get("auto_backup", True)
+        self.verbose_output = default_settings.get("verbose_output", False)
     
     def _find_project_root(self) -> Path:
         """查找项目根目录（包含.git的目录）"""
