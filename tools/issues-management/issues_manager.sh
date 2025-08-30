@@ -18,8 +18,17 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # 从config.py获取路径的helper函数
 get_config_path() {
     local path_type="$1"
-    # 使用tail获取最后一行，过滤掉token加载信息
-    python3 _scripts/helpers/get_paths.py "$path_type" 2>/dev/null | tail -1
+    # 只允许已知的安全类型
+    case "$path_type" in
+        workspace|output|metadata|issues)
+            # 使用tail获取最后一行，过滤掉token加载信息
+            python3 _scripts/helpers/get_paths.py "$path_type" 2>/dev/null | tail -1
+            ;;
+        *)
+            echo -e "${RED}Error: Invalid path_type '$path_type'.${NC}" >&2
+            return 1
+            ;;
+    esac
 }
 
 # 从config获取实际路径
