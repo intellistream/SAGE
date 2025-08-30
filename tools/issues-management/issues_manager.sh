@@ -15,6 +15,33 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# 从config.py获取路径的helper函数
+get_config_path() {
+    local path_type="$1"
+    # 使用tail获取最后一行，过滤掉token加载信息
+    python3 _scripts/get_paths.py "$path_type" 2>/dev/null | tail -1
+}
+
+# 从config获取实际路径
+ISSUES_WORKSPACE_PATH="$(get_config_path "workspace")"
+ISSUES_OUTPUT_PATH="$(get_config_path "output")"
+ISSUES_METADATA_PATH="$(get_config_path "metadata")"
+ISSUES_DIR="$(get_config_path "issues")"
+
+# 如果无法从config获取路径，使用备用路径
+if [ -z "$ISSUES_WORKSPACE_PATH" ]; then
+    ISSUES_WORKSPACE_PATH="$PROJECT_ROOT/output/issues-workspace"
+fi
+if [ -z "$ISSUES_OUTPUT_PATH" ]; then
+    ISSUES_OUTPUT_PATH="$PROJECT_ROOT/output/issues-output"
+fi
+if [ -z "$ISSUES_METADATA_PATH" ]; then
+    ISSUES_METADATA_PATH="$PROJECT_ROOT/output/issues-metadata"
+fi
+if [ -z "$ISSUES_DIR" ]; then
+    ISSUES_DIR="$PROJECT_ROOT/output/issues-workspace/issues"
+fi
+
 # 检查GitHub Token
 check_github_token() {
     local token_file="$PROJECT_ROOT/.github_token"
@@ -30,6 +57,58 @@ check_github_token() {
     fi
     
     return 1
+}
+
+# 初始化metadata文件
+# 检查metadata文件是否存在
+check_metadata_files() {
+    local boards_file="$ISSUES_METADATA_PATH/boards_metadata.json"
+    local team_file="$ISSUES_METADATA_PATH/team_config.py"
+    
+    if [ ! -f "$boards_file" ] || [ ! -f "$team_file" ]; then
+        return 1  # metadata文件不完整
+    fi
+    return 0  # metadata文件存在
+}
+
+# 自动初始化metadata文件
+auto_initialize_metadata() {
+    echo -e "${CYAN}🔍 检查metadata文件状态...${NC}"
+    
+    if ! check_metadata_files; then
+        echo -e "${YELLOW}📋 检测到metadata文件缺失，正在自动初始化...${NC}"
+        echo ""
+        initialize_metadata_files
+        echo ""
+        
+        # 再次检查是否成功
+        if check_metadata_files; then
+            echo -e "${GREEN}🎉 metadata文件自动初始化成功！${NC}"
+        else
+            echo -e "${YELLOW}⚠️ metadata文件初始化可能不完整，请检查${NC}"
+        fi
+    else
+        echo -e "${GREEN}✅ metadata文件检查完成，所有文件正常${NC}"
+    fi
+}
+
+initialize_metadata_files() {
+    echo "  📋 初始化boards metadata..."
+    cd "$SCRIPT_DIR"
+    if python3 _scripts/helpers/get_boards.py > /dev/null 2>&1; then
+        echo -e "    ${GREEN}✅ boards metadata初始化完成${NC}"
+    else
+        echo -e "    ${YELLOW}⚠️ boards metadata初始化失败，请稍后手动运行${NC}"
+    fi
+    
+    echo "  👥 初始化team members metadata..."
+    if python3 _scripts/helpers/get_team_members.py > /dev/null 2>&1; then
+        echo -e "    ${GREEN}✅ team members metadata初始化完成${NC}"
+    else
+        echo -e "    ${YELLOW}⚠️ team members metadata初始化失败，请稍后手动运行${NC}"
+    fi
+    
+    echo -e "${GREEN}✅ 所有metadata文件初始化完成${NC}"
 }
 
 # 首次使用向导
@@ -79,6 +158,11 @@ first_time_setup() {
                     chmod 600 "$token_file"
                     echo -e "${GREEN}✅ Token验证成功并已保存到: $token_file${NC}"
                     echo ""
+                    
+                    # 初始化metadata文件
+                    echo "🔄 正在初始化metadata文件..."
+                    initialize_metadata_files
+                    
                     echo -e "${GREEN}🎉 设置完成！现在您可以使用所有功能了。${NC}"
                     echo ""
                     read -p "按回车键继续..." dummy
@@ -168,7 +252,7 @@ download_menu() {
 ai_menu() {
     # 首先检查是否有本地数据
     local has_local_data=false
-    if [ -d "$SCRIPT_DIR/issues_workspace/issues" ] && [ "$(ls -A $SCRIPT_DIR/issues_workspace/issues 2>/dev/null)" ]; then
+    if [ -d "$ISSUES_DIR" ] && [ "$(ls -A "$ISSUES_DIR" 2>/dev/null)" ]; then
         has_local_data=true
     fi
     
@@ -241,7 +325,7 @@ ai_menu() {
                     sleep 1
                     download_menu
                     # 重新检查数据状态
-                    if [ -d "$SCRIPT_DIR/issues_workspace/issues" ] && [ "$(ls -A $SCRIPT_DIR/issues_workspace/issues 2>/dev/null)" ]; then
+                    if [ -d "$ISSUES_DIR" ] && [ "$(ls -A "$ISSUES_DIR" 2>/dev/null)" ]; then
                         has_local_data=true
                     fi
                 else
@@ -308,7 +392,7 @@ issues_management_menu() {
 
 # 下载功能实现
 clear_local_issues() {
-    local issues_dir="$SCRIPT_DIR/issues_workspace/issues"
+    local issues_dir="$ISSUES_DIR"
     
     if [ -d "$issues_dir" ] && [ "$(ls -A "$issues_dir" 2>/dev/null)" ]; then
         echo -e "${YELLOW}🗑️ 发现本地Issues数据${NC}"
@@ -558,7 +642,7 @@ copilot_show_usage_guide() {
     echo "时间趋势分析："
     echo "   '分析近期issues的创建趋势和类型变化'"
     echo ""
-    echo "📁 文档位置: $PROJECT_ROOT/output/issues-output/"
+    echo "📁 文档位置: $ISSUES_OUTPUT_PATH/"
     echo "   查看最新生成的以 'copilot_' 开头的文档"
     echo "   文档名包含时间范围标识: _week 或 _month"
     echo ""
@@ -665,6 +749,9 @@ archive_completed_issues() {
 # 启动时检查GitHub Token
 # 检查是否首次使用
 echo -e "${CYAN}正在初始化SAGE Issues管理工具...${NC}"
+
+# 自动检查并初始化metadata文件
+auto_initialize_metadata
 
 if ! check_github_token; then
     echo ""

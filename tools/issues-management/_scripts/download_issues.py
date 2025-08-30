@@ -42,15 +42,25 @@ class IssuesDownloader:
             if boards_file.exists():
                 with open(boards_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    return {
-                        12: 'sage-kernel',
-                        13: 'sage-middleware', 
-                        14: 'sage-apps'
-                    }
-            return {}
+                    # 从boards_metadata.json读取实际的team_to_project映射
+                    team_to_project = data.get('team_to_project', {})
+                    # 反转映射：project_number -> team_name
+                    return {int(project_num): team_name for team_name, project_num in team_to_project.items()}
+            else:
+                # 如果文件不存在，返回默认映射
+                return {
+                    12: 'sage-kernel',
+                    13: 'sage-middleware', 
+                    14: 'sage-apps'
+                }
         except Exception as e:
             print(f"⚠️ 加载project映射失败: {e}")
-            return {}
+            # 返回默认映射作为备选
+            return {
+                12: 'sage-kernel',
+                13: 'sage-middleware', 
+                14: 'sage-apps'
+            }
     
     def bulk_get_project_info(self, issue_numbers: list):
         """批量获取多个issues的project归属信息，提高性能"""
