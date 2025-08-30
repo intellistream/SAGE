@@ -35,7 +35,7 @@ import glob
 import re
 
 
-def graphql_request(session: requests.Session, query: str, variables: dict = None, retries: int = 2):
+def graphql_request(session: requests.Session, query: str, variables: dict | None = None, retries: int = 2):
     payload = {"query": query}
     if variables is not None:
         payload["variables"] = variables
