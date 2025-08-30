@@ -187,8 +187,16 @@ class ConfigManager:
         self._cache.clear()
 
 
-# 全局配置管理器实例
-_global_config_manager = ConfigManager()
+# 全局配置管理器实例（延迟初始化）
+_global_config_manager = None
+
+
+def _get_global_config_manager():
+    """获取全局配置管理器实例（延迟初始化）"""
+    global _global_config_manager
+    if _global_config_manager is None:
+        _global_config_manager = ConfigManager()
+    return _global_config_manager
 
 
 def load_config(filename: str, config_dir: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
@@ -206,7 +214,7 @@ def load_config(filename: str, config_dir: Optional[Union[str, Path]] = None) ->
         manager = ConfigManager(config_dir)
         return manager.load(filename)
     
-    return _global_config_manager.load(filename)
+    return _get_global_config_manager().load(filename)
 
 
 def save_config(filename: str, config: Dict[str, Any], config_dir: Optional[Union[str, Path]] = None):
@@ -222,4 +230,4 @@ def save_config(filename: str, config: Dict[str, Any], config_dir: Optional[Unio
         manager = ConfigManager(config_dir)
         manager.save(filename, config)
     else:
-        _global_config_manager.save(filename, config)
+        _get_global_config_manager().save(filename, config)

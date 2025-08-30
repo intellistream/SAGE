@@ -237,10 +237,21 @@ class ExecutionGraph:
         self.logger.debug("Step 2: Creating compiler structure")
 
         for transformation in env.pipeline:
+            # 跳过已填充的future transformation（它们在step 1中已被跳过）
+            from sage.core.transformation.future_transformation import FutureTransformation
+            if isinstance(transformation, FutureTransformation):
+                if transformation.filled:
+                    continue
+            
             downstream_nodes = transformation_to_node[transformation.basename]
             for upstream_trans in transformation.upstreams:
+                # 如果上游是已填充的FutureTransformation，使用实际的transformation
+                actual_upstream_trans = upstream_trans
+                if isinstance(upstream_trans, FutureTransformation) and upstream_trans.filled:
+                    actual_upstream_trans = upstream_trans.actual_transformation
+                
                 downstream_input_index = upstream_trans.downstreams[transformation.basename]
-                upstream_nodes = transformation_to_node[upstream_trans.basename]
+                upstream_nodes = transformation_to_node[actual_upstream_trans.basename]
                 
                 # 创建m*n条物理边
                 for i, upstream_node_name in enumerate(upstream_nodes):

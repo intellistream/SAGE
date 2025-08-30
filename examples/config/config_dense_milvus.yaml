@@ -1,11 +1,11 @@
 # Milvus 稠密向量检索配置（适配 MilvusDenseRetriever）
 
 source:
-  data_path: "/home/lcw/SAGE/examples/data/queries.jsonl"
+  data_path: "./examples/data/queries.jsonl"
   platform: "local"
 
 retriever:
-  preload_knowledge_file: "examples/data/qa_knowledge_base.txt"
+  preload_knowledge_file: "./examples/data/qa_knowledge_base.txt"
 
   # 通用参数
   dimension: 384            # 向量维度，应与 embedding 模型一致
@@ -51,8 +51,8 @@ generator:
   vllm:
     api_key: "token-abc123"
     method: "openai"
-    model_name: "meta-llama/Llama-2-13b-chat-hf"
-    base_url: "http://localhost:8000/v1"
+    model_name: "meta-llama/Llama-2-7b-chat-hf"
+    base_url: "http://sage3:8000/v1"
     seed: 42
 
 sink:

@@ -254,6 +254,8 @@ typewriter() {
 # 显示 SAGE LOGO
 show_logo() {
     echo ""
+    
+    # SAGE LOGO (修正为正确的 SAGE)
     local logo_lines=(
         "   ███████╗ █████╗  ██████╗ ███████╗"
         "   ██╔════╝██╔══██╗██╔════╝ ██╔════╝"
@@ -263,10 +265,26 @@ show_logo() {
         "   ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝"
     )
     
-    # 使用 center_text 居中每一行 LOGO
-    for line in "${logo_lines[@]}"; do
-        center_text "$line" "$CYAN$BOLD"
+    # 计算第一行的居中位置
+    local width=$(get_terminal_width)
+    local first_line_len=$(text_length "${logo_lines[0]}")
+    local padding=0
+    
+    if [ "$first_line_len" -lt "$width" ]; then
+        padding=$(( (width - first_line_len) / 2 + 29))
+    fi
+    
+    # 生成左边距字符串
+    local spaces=""
+    for (( i=0; i<padding; i++ )); do
+        spaces+=" "
     done
+    
+    # 输出所有 LOGO 行，使用相同的左边距
+    for line in "${logo_lines[@]}"; do
+        printf "%s%b%s%b\n" "$spaces" "$CYAN$BOLD" "$line" "$NC"
+    done
+    
     echo ""
     center_text "https://intellistream.github.io/SAGE-Pub/" "$GRAY"
     center_text "intellistream 2025" "$GRAY"
@@ -486,7 +504,7 @@ show_welcome() {
     clear
     echo ""
     draw_line
-    center_text "🚀 欢迎使用 SAGE 快速部署脚本" "$BOLD$WHITE"
+    center_text "🚀 欢迎使用 SAGE 快速部署脚本" "$BOLD$WHITE" 6
     draw_line
     show_logo
     draw_line
@@ -518,59 +536,8 @@ run_all_checks() {
     draw_line
 }
 
-# 处理子模块更新
-handle_submodule_update() {
-    echo ""
-    center_text "🔧 处理子模块更新" "$BLUE"
-    draw_line
-    
-    # 检查是否是git仓库
-    if [ ! -d "$PROJECT_ROOT/.git" ]; then
-        print_error "错误：当前目录不是git仓库"
-        exit 1
-    fi
-    
-    # 检查是否有.gitmodules文件
-    if [ ! -f "$PROJECT_ROOT/.gitmodules" ]; then
-        print_warning "未找到.gitmodules文件，项目没有配置子模块"
-        exit 0
-    fi
-    
-    # 检查子模块是否已初始化
-    echo "正在检查子模块状态..."
-    if ! git submodule status >/dev/null 2>&1 || git submodule status | grep -q "^-"; then
-        echo ""
-        print_step "子模块未初始化，正在执行初始化..."
-        if "$PROJECT_ROOT/scripts/submodule_manager.sh" init; then
-            print_success "子模块初始化完成"
-        else
-            print_error "子模块初始化失败"
-            exit 1
-        fi
-    else
-        echo ""
-        print_step "子模块已初始化，正在更新..."
-        if "$PROJECT_ROOT/scripts/submodule_manager.sh" update; then
-            print_success "子模块更新完成"
-        else
-            print_error "子模块更新失败"
-            exit 1
-        fi
-    fi
-    echo ""
-    draw_line
-}
-
 # 主函数
 main() {
-    # 检查是否有 --update-submodules 参数
-    if [[ "$*" == *"--update-submodules"* ]]; then
-        show_welcome
-        handle_submodule_update
-        print_success "子模块操作完成！"
-        exit 0
-    fi
-    
     show_welcome
     run_all_checks
     
@@ -613,7 +580,6 @@ main() {
     ./quickstart.sh --env-name my-sage    # 自定义环境名
     ./quickstart.sh --quiet               # 静默模式
     ./quickstart.sh --force               # 强制重装
-    ./quickstart.sh --update-submodules   # 更新子模块
 
   📋 查看选项:
     ./quickstart.sh --list-profiles       # 查看所有安装模式

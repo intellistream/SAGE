@@ -2,10 +2,7 @@
 
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.source_function import SourceFunction
-from sage.core.api.function.map_function import MapFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
-
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.comap_function import BaseCoMapFunction
 
@@ -28,7 +25,7 @@ class SourceTwo(BatchFunction):
 
     def execute(self):
         self.counter += 1
-        if self.counter > 5:
+        if self.counter > 10:
             return None
         return {"msg": f"World! #{self.counter}"}
 

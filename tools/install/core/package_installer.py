@@ -7,6 +7,7 @@ import subprocess
 import logging
 import time
 import json
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Callable
 
@@ -52,6 +53,22 @@ class PackageInstaller:
         if self.ui:
             self.ui.show_warning(message)
         logger.warning(message)
+        
+    def _get_pip_executable(self) -> str:
+        """获取正确的pip可执行文件路径"""
+        # 如果设置了CONDA_PREFIX环境变量，优先使用conda环境中的pip
+        if "CONDA_PREFIX" in self.env_vars:
+            conda_prefix = self.env_vars["CONDA_PREFIX"]
+            if os.name == "nt":  # Windows
+                pip_path = Path(conda_prefix) / "Scripts" / "pip.exe"
+            else:  # Unix/Linux/macOS
+                pip_path = Path(conda_prefix) / "bin" / "pip"
+            
+            if pip_path.exists():
+                return str(pip_path)
+        
+        # 回退到系统pip
+        return "pip"
         
     def install_package(self, 
                        package: str, 
@@ -180,7 +197,9 @@ class PackageInstaller:
             except Exception as e:
                 self._show_warning(f"   ⚠️ 无法读取requirements内容: {e}")
             
-            cmd = ["pip", "install", "-r", str(req_path), "-v"]  # 添加-v获取详细输出
+            # 使用conda环境中的pip
+            pip_executable = self._get_pip_executable()
+            cmd = [pip_executable, "install", "-r", str(req_path), "-v"]  # 添加-v获取详细输出
             
             self._show_info(f"   🔄 执行命令: {' '.join(cmd)}")
             
@@ -250,7 +269,8 @@ class PackageInstaller:
             self._show_info(f"   📁 路径: {package_path}")
             self._show_info(f"   🔄 可编辑模式: {'是' if editable else '否'}")
             
-            cmd = ["pip", "install"]
+            pip_executable = self._get_pip_executable()
+            cmd = [pip_executable, "install"]
             if editable:
                 cmd.append("-e")
             cmd.append(str(pkg_path))
@@ -353,7 +373,8 @@ class PackageInstaller:
     def _try_pip_install(self, package: str) -> bool:
         """尝试使用pip安装包"""
         try:
-            cmd = ["pip", "install", package, "-v"]
+            pip_executable = self._get_pip_executable()
+            cmd = [pip_executable, "install", package, "-v"]
             
             self._show_info(f"   🔄 使用pip安装包: {package}")
             
@@ -396,8 +417,9 @@ class PackageInstaller:
             包信息列表 [{"name": "package_name", "version": "1.0.0"}, ...]
         """
         try:
+            pip_executable = self._get_pip_executable()
             result = subprocess.run(
-                ["pip", "list", "--format=json"],
+                [pip_executable, "list", "--format=json"],
                 capture_output=True,
                 text=True,
                 env=self.env_vars,
@@ -423,8 +445,9 @@ class PackageInstaller:
             是否已安装
         """
         try:
+            pip_executable = self._get_pip_executable()
             result = subprocess.run(
-                ["pip", "show", package_name],
+                [pip_executable, "show", package_name],
                 capture_output=True,
                 text=True,
                 env=self.env_vars
@@ -433,4 +456,101 @@ class PackageInstaller:
             return result.returncode == 0
             
         except Exception:
+            return False
+    
+    def resolve_dependencies(self, packages: List[str] = None) -> bool:
+        """
+        解析和安装缺失的依赖
+        
+        Args:
+            packages: 要检查的包列表，如果为None则检查所有已安装的包
+            
+        Returns:
+            解析是否成功
+        """
+        try:
+            self._show_info("🔍 开始解析包依赖...")
+            
+            # 获取当前环境中的包依赖冲突
+            pip_executable = self._get_pip_executable()
+            
+            # 使用pip check检查依赖冲突
+            result = subprocess.run(
+                [pip_executable, "check"],
+                capture_output=True,
+                text=True,
+                env=self.env_vars
+            )
+            
+            if result.returncode == 0:
+                self._show_success("✅ 所有依赖都已满足")
+                return True
+            
+            # 解析依赖冲突信息
+            conflicts = result.stdout.strip().split('\n') if result.stdout else []
+            conflicts.extend(result.stderr.strip().split('\n') if result.stderr else [])
+            
+            missing_packages = set()
+            
+            for conflict in conflicts:
+                if not conflict.strip():
+                    continue
+                    
+                self._show_warning(f"⚠️ 依赖冲突: {conflict}")
+                
+                # 解析缺失的包名
+                # 格式通常是: "package_name X.X.X requires missing_package, which is not installed."
+                if "requires" in conflict and "which is not installed" in conflict:
+                    # 提取缺失的包名
+                    parts = conflict.split("requires")
+                    if len(parts) > 1:
+                        missing_part = parts[1].split(",")[0].strip()
+                        # 移除版本约束，只保留包名
+                        missing_pkg = missing_part.split()[0].strip()
+                        if missing_pkg and missing_pkg not in ['which', 'is', 'not']:
+                            missing_packages.add(missing_pkg)
+            
+            if not missing_packages:
+                self._show_info("ℹ️ 未发现明确的缺失包，尝试升级pip和setuptools")
+                # 如果没有明确的缺失包，尝试升级基础包
+                base_packages = ["pip", "setuptools", "wheel"]
+                for pkg in base_packages:
+                    self._try_pip_install(f"{pkg} --upgrade")
+                return True
+            
+            # 安装缺失的包
+            self._show_info(f"📦 发现 {len(missing_packages)} 个缺失的依赖包: {', '.join(missing_packages)}")
+            
+            success_count = 0
+            for missing_pkg in missing_packages:
+                self._show_info(f"   🔄 安装缺失依赖: {missing_pkg}")
+                if self._try_pip_install(missing_pkg):
+                    self._show_success(f"   ✅ 成功安装: {missing_pkg}")
+                    success_count += 1
+                else:
+                    self._show_error(f"   ❌ 安装失败: {missing_pkg}")
+            
+            # 再次检查依赖
+            self._show_info("🔄 重新检查依赖...")
+            final_check = subprocess.run(
+                [pip_executable, "check"],
+                capture_output=True,
+                text=True,
+                env=self.env_vars
+            )
+            
+            if final_check.returncode == 0:
+                self._show_success(f"✅ 依赖解析完成，成功安装 {success_count} 个缺失包")
+                return True
+            else:
+                self._show_warning(f"⚠️ 部分依赖问题仍然存在，但已安装 {success_count} 个包")
+                # 显示剩余的冲突
+                remaining_conflicts = final_check.stdout.strip().split('\n') if final_check.stdout else []
+                for conflict in remaining_conflicts:
+                    if conflict.strip():
+                        self._show_warning(f"   剩余冲突: {conflict}")
+                return success_count > 0
+                
+        except Exception as e:
+            self._show_error(f"❌ 依赖解析过程中发生错误: {e}")
             return False
