@@ -762,20 +762,6 @@ class IssuesSyncer:
         
         return changes
 
-        print(f"🔍 检测到 {len(changes)} 个更改:")
-        for change in changes:
-            desc = change.get('description', f"{change.get('type', 'unknown')} change")
-            print(f"  - {change.get('type', 'unknown')}: {desc}")
-
-        confirm = input("\n是否继续同步? (y/N): ").lower().strip()
-        if confirm != 'y':
-            print("❌ 同步已取消")
-            return False
-
-        success = self.execute_sync(changes)
-        self.log_sync_operation(changes, success)
-        return success
-
     def sync_label_changes(self):
         label_changes = self.detect_label_changes()
         if not label_changes:
