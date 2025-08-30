@@ -407,11 +407,70 @@ class IssuesSyncer:
         
         return changes
 
+    def _extract_original_body(self, text):
+        """从本地issue文件中提取原始的body内容，排除我们添加的元数据和更新记录"""
+        lines = text.splitlines()
+        
+        # 跳过元数据部分，从第一个非元数据内容开始提取
+        content_start = -1
+        
+        # 查找内容开始位置，跳过标题和元数据部分
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            
+            # 跳过标题行（以 # 开头）
+            if stripped.startswith('# '):
+                continue
+                
+            # 跳过元数据部分（Issue #, 状态, 创建时间等）
+            if (stripped.startswith('**Issue #**:') or 
+                stripped.startswith('**状态**:') or
+                stripped.startswith('**创建时间**:') or
+                stripped.startswith('**更新时间**:') or
+                stripped.startswith('**创建者**:')):
+                continue
+                
+            # 跳过Project归属、标签、分配给等section标题和内容，以及我们添加的"## 描述"标题
+            if (stripped in ['## Project归属', '## 标签', '## 分配给', '## 描述'] or
+                stripped.startswith('- **') or
+                (stripped and not stripped.startswith('##') and 
+                 i > 0 and lines[i-1].strip() in ['## Project归属', '## 标签', '## 分配给'])):
+                continue
+                
+            # 找到第一个非元数据的内容行
+            if stripped and not stripped.startswith('**'):
+                content_start = i
+                break
+                
+        if content_start == -1:
+            return ""
+        
+        # 提取内容，直到遇到更新记录部分、分隔线或文件结束
+        body_lines = []
+        for i in range(content_start, len(lines)):
+            line = lines[i]
+            stripped = line.strip()
+            
+            # 停止条件：遇到更新记录、分隔线或GitHub链接
+            if (stripped == "## 更新记录" or 
+                stripped == "---" or
+                stripped.startswith("**GitHub链接**:") or
+                stripped.startswith("**下载时间**:")):
+                break
+                
+            body_lines.append(line)
+        
+        # 去除末尾的空行
+        while body_lines and not body_lines[-1].strip():
+            body_lines.pop()
+        
+        return '\n'.join(body_lines)
+
     def _parse_local_issue(self, text):
         """解析本地issue文件的所有属性"""
         data = {
             'title': None,
-            'body': text,
+            'body': self._extract_original_body(text),  # 只提取原始body内容
             'labels': [],
             'assignee': None,
             'milestone': None,
@@ -802,8 +861,8 @@ class IssuesSyncer:
                             break
                     break
 
-            # local body: everything after title and sections
-            local_body = body_text
+            # local body: extract original body content only
+            local_body = self._extract_original_body(body_text)
             # Get remote issue
             owner = self.config.GITHUB_OWNER
             repo = self.config.GITHUB_REPO

@@ -70,26 +70,14 @@ class IssuesDownloader:
         print(f"📊 批量获取 {len(issue_numbers)} 个issues的项目信息...")
         
         try:
-            # 使用organization查询来找到包含这些issues的projects
-            query = """
+            # 首先获取所有项目基本信息
+            projects_query = """
             {
               organization(login: "intellistream") {
                 projectsV2(first: 20) {
                   nodes {
                     number
                     title
-                    items(first: 100) {
-                      nodes {
-                        content {
-                          ... on Issue {
-                            number
-                            repository {
-                              name
-                            }
-                          }
-                        }
-                      }
-                    }
                   }
                 }
               }
@@ -98,7 +86,7 @@ class IssuesDownloader:
             
             response = self.github.session.post(
                 "https://api.github.com/graphql",
-                json={"query": query},
+                json={"query": projects_query},
                 timeout=30
             )
             
@@ -112,38 +100,98 @@ class IssuesDownloader:
                 print(f"GraphQL查询错误: {data['errors']}")
                 return
                 
-            if not data.get('data', {}).get('organization', {}).get('projectsV2', {}).get('nodes'):
+            projects = data.get('data', {}).get('organization', {}).get('projectsV2', {}).get('nodes', [])
+            if not projects:
                 print("未找到projects数据")
                 return
             
             # 构建issue到project的映射
             found_count = 0
-            for project in data['data']['organization']['projectsV2']['nodes']:
-                if not project.get('items', {}).get('nodes'):
-                    continue
-                    
+            
+            # 对每个项目，分页获取所有items
+            for project in projects:
                 project_num = project['number']
                 project_title = project['title']
                 team_name = self.project_mapping.get(project_num, f"unknown-{project_num}")
                 
-                for item in project['items']['nodes']:
-                    content = item.get('content')
-                    if not content:
-                        continue
+                # 分页获取项目中的所有items
+                has_next_page = True
+                after_cursor = None
+                
+                while has_next_page:
+                    # 构建分页查询，动态获取直到没有更多数据
+                    items_query = f"""
+                    {{
+                      organization(login: "intellistream") {{
+                        projectV2(number: {project_num}) {{
+                          items(first: 100{f', after: "{after_cursor}"' if after_cursor else ''}) {{
+                            pageInfo {{
+                              hasNextPage
+                              endCursor
+                            }}
+                            nodes {{
+                              content {{
+                                ... on Issue {{
+                                  number
+                                  repository {{
+                                    name
+                                  }}
+                                }}
+                              }}
+                            }}
+                          }}
+                        }}
+                      }}
+                    }}
+                    """
+                    
+                    items_response = self.github.session.post(
+                        "https://api.github.com/graphql",
+                        json={"query": items_query},
+                        timeout=30
+                    )
+                    
+                    if items_response.status_code != 200:
+                        print(f"获取项目 {project_num} items失败: {items_response.status_code}")
+                        break
+                    
+                    items_data = items_response.json()
+                    
+                    if 'errors' in items_data:
+                        print(f"获取项目 {project_num} items错误: {items_data['errors']}")
+                        break
+                    
+                    project_data = items_data.get('data', {}).get('organization', {}).get('projectV2', {})
+                    if not project_data:
+                        break
                         
-                    issue_number = content.get('number')
-                    if (issue_number in issue_numbers and
-                        content.get('repository', {}).get('name') == 'SAGE'):
-                        
-                        if issue_number not in self.issue_project_cache:
-                            self.issue_project_cache[issue_number] = []
-                        
-                        self.issue_project_cache[issue_number].append({
-                            'number': project_num,
-                            'title': project_title,
-                            'team': team_name
-                        })
-                        found_count += 1
+                    items_info = project_data.get('items', {})
+                    items = items_info.get('nodes', [])
+                    page_info = items_info.get('pageInfo', {})
+                    
+                    # 处理当前页的items
+                    for item in items:
+                        content = item.get('content')
+                        if not content:
+                            continue
+                            
+                        issue_number = content.get('number')
+                        if (issue_number in issue_numbers and
+                            content.get('repository', {}).get('name') == 'SAGE'):
+                            
+                            if issue_number not in self.issue_project_cache:
+                                self.issue_project_cache[issue_number] = []
+                            
+                            self.issue_project_cache[issue_number].append({
+                                'number': project_num,
+                                'title': project_title,
+                                'team': team_name
+                            })
+                            found_count += 1
+                    
+                    # 检查是否有下一页
+                    has_next_page = page_info.get('hasNextPage', False)
+                    after_cursor = page_info.get('endCursor')
             
             print(f"✅ 成功获取 {found_count} 个issues的项目信息")
                         
@@ -203,7 +251,65 @@ class IssuesDownloader:
         cleaned_body = '\n'.join(cleaned_lines).strip()
         return cleaned_body if cleaned_body else '无描述'
     
-    def format_issue_content(self, issue: dict, project_info: list = None) -> str:
+    def extract_update_history(self, filepath):
+        """从现有文件中提取更新记录"""
+        if not filepath.exists():
+            return ""
+        
+        try:
+            content = filepath.read_text(encoding='utf-8')
+            lines = content.split('\n')
+            
+            # 查找 "## 更新记录" 部分
+            update_history_start = -1
+            for i, line in enumerate(lines):
+                if line.strip() == "## 更新记录":
+                    update_history_start = i
+                    break
+            
+            if update_history_start == -1:
+                return ""
+            
+            # 提取更新记录部分，直到遇到 "---" 或文件结束
+            history_lines = []
+            for i in range(update_history_start, len(lines)):
+                line = lines[i]
+                if line.strip() == "---":
+                    break
+                history_lines.append(line)
+            
+            return '\n'.join(history_lines)
+        except Exception:
+            return ""
+
+    def generate_update_record(self, issue: dict, old_content: str = "") -> str:
+        """生成新的更新记录"""
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # 检查是否有变更
+        changes = []
+        
+        if old_content:
+            # 这里可以添加更详细的变更检测逻辑
+            # 简单起见，我们记录下载时间和基本信息
+            changes.append(f"- **{current_time}**: 内容同步更新")
+        else:
+            changes.append(f"- **{current_time}**: 初始下载")
+        
+        # 如果issue最近有更新，记录GitHub更新时间
+        github_updated = issue.get('updated_at', '')
+        if github_updated:
+            try:
+                from dateutil import parser
+                updated_dt = parser.parse(github_updated)
+                github_time = updated_dt.strftime('%Y-%m-%d %H:%M:%S')
+                changes.append(f"  - GitHub最后更新: {github_time}")
+            except:
+                pass
+        
+        return '\n'.join(changes)
+
+    def format_issue_content(self, issue: dict, project_info: list = None, existing_filepath = None) -> str:
         """格式化Issue内容为Markdown"""
         
         # 格式化project信息
@@ -217,6 +323,25 @@ class IssuesDownloader:
         
         # 清理body内容
         cleaned_body = self.clean_issue_body(issue.get('body', ''))
+        
+        # 提取现有的更新记录
+        existing_history = ""
+        old_content = ""
+        if existing_filepath and existing_filepath.exists():
+            existing_history = self.extract_update_history(existing_filepath)
+            old_content = existing_filepath.read_text(encoding='utf-8')
+        
+        # 生成新的更新记录
+        new_update_record = self.generate_update_record(issue, old_content)
+        
+        # 合并更新记录
+        update_history_section = ""
+        if existing_history:
+            # 保留现有记录并添加新记录
+            update_history_section = f"\n{existing_history}\n{new_update_record}\n"
+        else:
+            # 创建新的更新记录部分
+            update_history_section = f"\n## 更新记录\n\n{new_update_record}\n"
         
         content = f"""# {issue['title']}
 
@@ -235,7 +360,7 @@ class IssuesDownloader:
 ## 描述
 
 {cleaned_body}
-
+{update_history_section}
 ---
 **GitHub链接**: {issue['html_url']}
 **下载时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
@@ -252,8 +377,8 @@ class IssuesDownloader:
         filename = f"{issue['state']}_{issue['number']}_{safe_title}.md"
         filepath = self.issues_dir / filename
 
-        # 保存内容
-        content = self.format_issue_content(issue, project_info)
+        # 保存内容（传递现有文件路径以保留更新记录）
+        content = self.format_issue_content(issue, project_info, filepath)
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(content)
 

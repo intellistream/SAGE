@@ -258,23 +258,26 @@ ai_menu() {
     
     while true; do
         clear
-        echo -e "${BLUE}🤖 Copilot Issues分析助手${NC}"
-        echo "============================="
+        echo -e "${BLUE}🤖 AI智能管理${NC}"
+        echo "================"
         echo ""
         
         if [ "$has_local_data" = true ]; then
-            echo -e "${GREEN}✅ 检测到本地Issues数据 - 可生成Copilot分析文档${NC}"
+            echo -e "${GREEN}✅ 检测到本地Issues数据${NC}"
         else
             echo -e "${YELLOW}⚠️ 未检测到本地Issues数据，请先下载Issues${NC}"
         fi
         
         echo ""
-        echo -e "${CYAN}⏰ 请选择时间范围:${NC}"
-        echo "  1. � 全部open issues"
-        echo "  2. � 近一周的open issues"  
-        echo "  3. �️ 近一个月的open issues"
+        echo -e "${CYAN}📊 Copilot分析助手:${NC}"
+        echo "  1. 📈 全部open issues分析"
+        echo "  2. 📅 近一周的open issues分析"  
+        echo "  3. 📆 近一个月的open issues分析"
         echo ""
-        echo "  4. 📖 查看使用指南"
+        echo -e "${CYAN}🎯 AI智能操作:${NC}"
+        echo "  4. 🤖 基于Project智能分配Issues"
+        echo ""
+        echo "  5. 📖 查看使用指南"
         
         if [ "$has_local_data" = false ]; then
             echo ""
@@ -285,9 +288,9 @@ ai_menu() {
         echo ""
         
         if [ "$has_local_data" = true ]; then
-            read -p "请选择时间范围 (1-4, 9): " choice
+            read -p "请选择 (1-5, 9): " choice
         else
-            read -p "请选择 (1-4, d, 9): " choice
+            read -p "请选择 (1-5, d, 9): " choice
         fi
         
         case $choice in
@@ -316,6 +319,14 @@ ai_menu() {
                 fi
                 ;;
             4)
+                if [ "$has_local_data" = true ]; then
+                    project_based_assign_menu
+                else
+                    echo -e "${RED}❌ 需要先下载Issues数据${NC}"
+                    sleep 1
+                fi
+                ;;
+            5)
                 copilot_show_usage_guide
                 ;;
             d|D)
@@ -377,16 +388,14 @@ issues_management_menu() {
         echo ""
         echo "  1. 📊 查看Issues统计和分析"
         echo "  2. 🗂️ 自动归档已完成Issues"
-        echo "  3. 🎯 基于Project智能分配Issues"
-        echo "  4. 返回主菜单"
+        echo "  3. 返回主菜单"
         echo ""
-        read -p "请选择 (1-4): " choice
+        read -p "请选择 (1-3): " choice
         
         case $choice in
             1) show_issues_statistics ;;
             2) archive_completed_issues ;;
-            3) project_based_assign_menu ;;
-            4) break ;;
+            3) break ;;
             *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
         esac
     done
