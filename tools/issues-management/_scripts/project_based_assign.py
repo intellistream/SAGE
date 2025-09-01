@@ -13,10 +13,13 @@ from config import Config
 def load_team_config():
     """Load team configuration"""
     config = Config()
-    config_path = config.metadata_path / "team_config.py"
+    config_path = config.metadata_path / "team_config.json"
     
-    team_config = {}
-    exec(open(config_path).read(), team_config)
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            team_config = json.load(f)
+    except Exception as e:
+        raise RuntimeError(f"Failed to load team config: {e}")
     return team_config['TEAMS']
 
 def parse_issue_file(file_path):
