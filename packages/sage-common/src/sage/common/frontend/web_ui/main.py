@@ -5,6 +5,36 @@ This module provides the main entry point for the SAGE Frontend server.
 """
 
 
+def _load_version():
+    """从项目根目录动态加载版本信息"""
+    from pathlib import Path
+    
+    # 计算到项目根目录的路径 (common包位于: packages/sage-common/src/sage/common/frontend/web_ui/)
+    current_file = Path(__file__).resolve()
+    root_dir = current_file.parent.parent.parent.parent.parent.parent  # 向上6层到项目根目录
+    version_file = root_dir / "_version.py"
+    
+    if version_file.exists():
+        version_globals = {}
+        try:
+            with open(version_file, 'r', encoding='utf-8') as f:
+                exec(f.read(), version_globals)
+            return {
+                'version': version_globals.get('__version__', '0.1.4'),
+                'author': version_globals.get('__author__', 'SAGE Team'),
+                'repository': version_globals.get('__repository__', 'https://github.com/intellistream/SAGE')
+            }
+        except Exception:
+            pass
+    
+    # 默认值（找不到_version.py时使用）
+    return {
+        'version': '0.1.4',
+        'author': 'SAGE Team',
+        'repository': 'https://github.com/intellistream/SAGE'
+    }
+
+
 def main():
     """Main entry point for sage-frontend server"""
 
@@ -24,10 +54,11 @@ def main():
 
     # 处理版本命令
     if args.command == 'version' or args.version:
+        info = _load_version()
         print("🌐 SAGE Web UI")
-        print("Version: 0.1.0")
-        print("Author: IntelliStream Team")
-        print("Repository: https://github.com/intellistream/SAGE")
+        print(f"Version: {info['version']}")
+        print(f"Author: {info['author']}")
+        print(f"Repository: {info['repository']}")
         return 0
 
     # 处理help命令

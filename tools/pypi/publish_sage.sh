@@ -116,7 +116,19 @@ upload_package() {
     fi
     
     # 构建上传命令
-    local upload_cmd="twine upload dist/*"
+    local upload_cmd="twine upload"
+    
+    # 检查配置文件位置，优先使用项目根目录的配置
+    if [[ -f "$PROJECT_ROOT/.pypirc" ]]; then
+        upload_cmd="$upload_cmd --config-file $PROJECT_ROOT/.pypirc"
+        log_info "$package_name: 使用项目配置文件 .pypirc"
+    elif [[ -f "$HOME/.pypirc" ]]; then
+        log_info "$package_name: 使用用户配置文件 ~/.pypirc"
+    else
+        log_warning "$package_name: 未找到 .pypirc 配置文件，将使用交互式认证"
+    fi
+    
+    upload_cmd="$upload_cmd dist/*"
     
     if [[ "$dry_run" == "true" ]]; then
         upload_cmd="$upload_cmd --repository testpypi"

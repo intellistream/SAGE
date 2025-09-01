@@ -7,13 +7,34 @@ This module provides the main FastAPI application for the SAGE Web UI.
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import uvicorn
+from pathlib import Path
+
+
+def _load_version():
+    """从项目根目录动态加载版本信息"""
+    # 计算到项目根目录的路径 (当前文件位于: packages/sage-common/src/sage/common/frontend/web_ui/)
+    current_file = Path(__file__).resolve()
+    root_dir = current_file.parent.parent.parent.parent.parent.parent  # 向上6层到项目根目录
+    version_file = root_dir / "_version.py"
+    
+    if version_file.exists():
+        version_globals = {}
+        try:
+            with open(version_file, 'r', encoding='utf-8') as f:
+                exec(f.read(), version_globals)
+            return version_globals.get('__version__', '0.1.4')
+        except Exception:
+            pass
+    
+    # 默认值（找不到_version.py时使用）
+    return '0.1.4'
 
 
 # 创建 FastAPI 应用
 app = FastAPI(
     title="SAGE Web UI",
     description="SAGE Framework Web 管理界面，提供 API 文档、系统监控和基础管理功能",
-    version="0.1.3",
+    version=_load_version(),
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -106,7 +127,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "SAGE Web UI", 
-        "version": "0.1.3",
+        "version": _load_version(),
         "timestamp": "2025-08-11"
     }
 
@@ -116,7 +137,7 @@ async def api_info():
     """API 信息端点"""
     return {
         "name": "SAGE Web UI API",
-        "version": "0.1.3",
+        "version": _load_version(),
         "description": "SAGE Framework Web 管理界面 API",
         "author": "IntelliStream Team",
         "repository": "https://github.com/intellistream/SAGE"
