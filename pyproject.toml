@@ -1,36 +1,63 @@
+# SAGE Meta Package Configuration  
+# 这个文件用于：
+# 1. 开发者安装: pip install -e . (使用本地源码)
+# 2. PyPI发布: 需要临时修改dependencies为PyPI包名
+# 注意：quickstart.sh 不使用这个文件，而是直接安装各个子包
+
 [build-system]
 requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.dynamic]
+version = {attr = "sage._version.__version__"}
+
 [project]
 name = "isage"
-version = "0.1.0"
-description = "SAGE - Streaming Analytics and Graph Engine with Core API"
+dynamic = ["version"]
+description = "SAGE - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    {name = "SAGE Team", email = "team@sage.com"},
+    {name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn"},
 ]
-license = {text = "Apache-2.0"}
+license = {text = "MIT"}
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-]
+    "License :: OSI Approved :: MIT License",]
 
-# 核心依赖 - 安装本地包
+# 核心依赖 - 开发时使用本地路径
 dependencies = [
-    "isage-kernel",
-    "isage-middleware", 
-    "isage-libs",
-    "isage-common",
+    "isage-kernel @ file:./packages/sage-kernel",
+    "isage-middleware @ file:./packages/sage-middleware", 
+    "isage-libs @ file:./packages/sage-libs",
+    "isage-common @ file:./packages/sage-common",
 ]
 
 [project.optional-dependencies]
+# PyPI发布版本 - 使用PyPI包名（用于构建发布包时）
+pypi = [
+    "isage-kernel",
+    "isage-middleware", 
+    "isage-libs", 
+    "isage-common",
+]
+
+# 开发依赖 - 使用本地包
+dev-local = [
+    "isage-kernel @ file:./packages/sage-kernel",
+    "isage-middleware @ file:./packages/sage-middleware", 
+    "isage-libs @ file:./packages/sage-libs",
+    "isage-common @ file:./packages/sage-common",
+    # 开发工具
+    "pytest>=6.0",
+    "pytest-asyncio",
+    "pytest-cov",
+    "black",
+    "ruff",
+    "mypy",
+]
+
 # Commercial/Enterprise Edition (requires license)
 enterprise = [
     "isage-kernel[enterprise]",
@@ -106,3 +133,9 @@ include-package-data = true
 
 [tool.setuptools.package-dir]
 sage = "packages/sage/src/sage"
+
+
+# SAGE 项目自定义配置
+[tool.sage]
+# 如果将来需要项目特定的配置，可以在这里添加
+# 目前所有必要的配置都已经在标准的 [project] 区域中定义

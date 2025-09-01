@@ -7,8 +7,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "isage-common"
-version = "0.1.0"
-description = "SAGE Common Libraries (Unified Package)"
+dynamic = ["version"]
+description = "SAGE Common Components - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -28,12 +28,7 @@ keywords = [
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "Intended Audience :: System Administrators",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Intended Audience :: System Administrators",    "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: System :: Distributed Computing",
     "Topic :: Utilities",
@@ -84,6 +79,10 @@ dev = [
     "safety>=2.3.0",
     "pre-commit>=3.0.0",
     "httpx>=0.24.0",
+    # 发布工具
+    "twine>=4.0.0",
+    "build>=0.10.0",
+    "wheel>=0.40.0",
 ]
 
 # Frontend 依赖
@@ -203,11 +202,14 @@ profile = "black"
 line_length = 88
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = ["py310", "py311", "py312"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.common._version.__version__"}

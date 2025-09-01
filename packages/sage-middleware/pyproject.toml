@@ -5,10 +5,12 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
+
+
 [project]
 name = "isage-middleware"
-version = "0.1.0"
-description = "SAGE Middleware Module"
+dynamic = ["version"]
+description = "SAGE Middleware - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -33,10 +35,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: System :: Distributed Computing",
@@ -225,9 +223,7 @@ addopts = []
 
 [tool.black]
 line-length = 88
-target-version = [
-    "py311",
-]
+target-version = ["py310", "py311", "py312"]
 include = "\\.pyi?$"
 extend-exclude = "/(\n    \\.git\n    | \\.venv\n    | build\n    | dist\n)/\n"
 
@@ -250,3 +246,6 @@ overrides = [
     { module = "sage.service.*", ignore_missing_imports = false },
     { module = "fastapi.*", ignore_missing_imports = true },
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.middleware._version.__version__"}

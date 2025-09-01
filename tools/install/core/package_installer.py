@@ -234,6 +234,9 @@ class PackageInstaller:
                 return True
             else:
                 self._show_error(f"   ❌ Requirements安装失败，退出码: {return_code}")
+                self._show_error(f"   💡 这通常是由于包依赖问题或网络连接问题导致的")
+                self._show_error(f"   📋 详细错误信息已记录到install.log文件")
+                self._show_error(f"   🔧 建议检查网络连接或尝试手动安装依赖包")
                 return False
             
         except Exception as e:

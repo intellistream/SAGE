@@ -9,11 +9,22 @@ from fastapi.responses import HTMLResponse
 import uvicorn
 
 
+def _load_version():
+    """加载版本信息"""
+    try:
+        # 尝试从本地包的版本文件加载
+        from sage.common._version import __version__
+        return __version__
+    except ImportError:
+        # 如果本地版本文件不存在，返回默认值
+        return '0.1.3'
+
+
 # 创建 FastAPI 应用
 app = FastAPI(
     title="SAGE Web UI",
     description="SAGE Framework Web 管理界面，提供 API 文档、系统监控和基础管理功能",
-    version="0.1.0",
+    version=_load_version(),
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -28,71 +39,31 @@ async def root():
     <head>
         <title>SAGE Web UI</title>
         <style>
-            body {
-                font-family: Arial, sans-serif;
-                max-width: 800px;
-                margin: 50px auto;
-                padding: 20px;
-                background-color: #f5f5f5;
-            }
-            .container {
-                background: white;
-                padding: 30px;
-                border-radius: 10px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }
-            .header {
-                text-align: center;
-                color: #333;
-                margin-bottom: 30px;
-            }
-            .status {
-                background: #e8f5e8;
-                border: 1px solid #4caf50;
-                border-radius: 5px;
-                padding: 15px;
-                margin: 20px 0;
-            }
-            .links {
-                margin-top: 30px;
-            }
-            .links a {
-                display: inline-block;
-                margin: 10px 15px 10px 0;
-                padding: 10px 20px;
-                background: #007bff;
-                color: white;
-                text-decoration: none;
-                border-radius: 5px;
-            }
-            .links a:hover {
-                background: #0056b3;
-            }
+            body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; 
+                   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                   min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+            .container { background: white; padding: 2rem; border-radius: 10px;
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); text-align: center;
+                        max-width: 600px; width: 90%; }
+            h1 { color: #333; margin-bottom: 1rem; }
+            p { color: #666; line-height: 1.6; }
+            .nav-links { margin-top: 2rem; }
+            .nav-links a { display: inline-block; margin: 0 1rem; padding: 0.5rem 1rem;
+                          background: #667eea; color: white; text-decoration: none;
+                          border-radius: 5px; transition: background 0.3s; }
+            .nav-links a:hover { background: #764ba2; }
         </style>
     </head>
     <body>
         <div class="container">
-            <div class="header">
-                <h1>🌐 SAGE Web UI</h1>
-                <p>Web 管理界面和 API 文档</p>
-            </div>
-            
-            <div class="status">
-                <strong>✅ 服务器运行正常</strong>
-                <br>Version: 0.1.0
-                <br>Author: IntelliStream Team
-            </div>
-            
-            <div class="links">
-                <h3>快速链接:</h3>
-                <a href="/docs">📚 API 文档 (Swagger)</a>
-                <a href="/redoc">📖 API 文档 (ReDoc)</a>
-                <a href="/health">🔍 健康检查</a>
-            </div>
-            
-            <div style="margin-top: 30px; color: #666; text-align: center;">
-                <p>SAGE Framework - 数据处理管道管理和监控平台</p>
-                <p><a href="https://github.com/intellistream/SAGE">GitHub Repository</a></p>
+            <h1>🌟 欢迎使用 SAGE Web UI</h1>
+            <p>SAGE (Streaming-Augmented Generative Execution) Framework Web 管理界面</p>
+            <p>提供 API 文档、系统监控和基础管理功能</p>
+            <div class="nav-links">
+                <a href="/docs">📚 API 文档</a>
+                <a href="/redoc">📖 ReDoc</a>
+                <a href="/health">🏥 健康检查</a>
+                <a href="/api/info">ℹ️ API 信息</a>
             </div>
         </div>
     </body>
@@ -106,8 +77,8 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "SAGE Web UI", 
-        "version": "0.1.0",
-        "timestamp": "2025-08-11"
+        "version": _load_version(),
+        "timestamp": "2025-09-01"
     }
 
 
@@ -116,28 +87,24 @@ async def api_info():
     """API 信息端点"""
     return {
         "name": "SAGE Web UI API",
-        "version": "0.1.0",
+        "version": _load_version(),
         "description": "SAGE Framework Web 管理界面 API",
         "author": "IntelliStream Team",
         "repository": "https://github.com/intellistream/SAGE"
     }
 
 
-def start_server(host: str = "127.0.0.1", port: int = 8080, reload: bool = False):
-    """启动服务器"""
-    print(f"🚀 启动 SAGE Web UI...")
-    print(f"📍 地址: http://{host}:{port}")
-    print(f"📚 API文档: http://{host}:{port}/docs")
-    print(f"🔍 健康检查: http://{host}:{port}/health")
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="SAGE Web UI Server")
+    parser.add_argument("--host", default="127.0.0.1", help="Host to bind")
+    parser.add_argument("--port", type=int, default=8080, help="Port to bind")
+    parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
+    args = parser.parse_args()
     
     uvicorn.run(
-        app,
-        host=host,
-        port=port,
-        reload=reload,
-        log_level="info"
+        "sage.common.frontend.web_ui.app:app",
+        host=args.host,
+        port=args.port,
+        reload=args.reload
     )
-
-
-if __name__ == "__main__":
-    start_server()

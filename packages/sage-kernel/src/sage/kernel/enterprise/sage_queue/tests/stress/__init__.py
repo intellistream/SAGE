@@ -1,53 +1,56 @@
 """
-SAGE Queue 压力测试模块
-
-包含多进程、多线程、内存压力等各种极限场景的测试
+SAGE - Streaming-Augmented Generative Execution
 """
 
-# 压力测试配置
-STRESS_TEST_CONFIGS = {
-    "light_stress": {
-        "num_processes": 4,
-        "num_queues": 2,
-        "messages_per_process": 100,
-        "message_size": 512,
-        "test_duration": 10
-    },
-    "medium_stress": {
-        "num_processes": 8,
-        "num_queues": 4,
-        "messages_per_process": 500,
-        "message_size": 1024,
-        "test_duration": 30
-    },
-    "heavy_stress": {
-        "num_processes": 16,
-        "num_queues": 8,
-        "messages_per_process": 1000,
-        "message_size": 2048,
-        "test_duration": 60
-    },
-    "extreme_stress": {
-        "num_processes": 32,
-        "num_queues": 16,
-        "messages_per_process": 2000,
-        "message_size": 4096,
-        "test_duration": 120
+# 动态版本加载
+def _load_version():
+    """从 sage-common 包加载版本信息"""
+    try:
+        # 优先从 sage-common 包加载版本
+        from sage.kernel._version import __version__
+        return {
+            'version': __version__,
+            'author': 'SAGE Team',
+            'email': 'shuhao_zhang@hust.edu.cn'
+        }
+    except ImportError:
+        # 如果 sage-common 不可用，从项目根目录加载（开发环境）
+        try:
+            from pathlib import Path
+            current_file = Path(__file__).resolve()
+            # 根据当前文件位置计算到项目根目录的层数
+            parts = current_file.parts
+            sage_index = -1
+            for i, part in enumerate(parts):
+                if part == 'SAGE':
+                    sage_index = i
+                    break
+            
+            if sage_index >= 0:
+                root_dir = Path(*parts[:sage_index+1])
+                version_file = root_dir / "_version.py"
+                
+                if version_file.exists():
+                    version_globals = {}
+                    with open(version_file, 'r', encoding='utf-8') as f:
+                        exec(f.read(), version_globals)
+                    return {
+                        'version': version_globals.get('__version__', '0.1.3'),
+                        'author': version_globals.get('__author__', 'SAGE Team'),
+                        'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
+                    }
+        except Exception:
+            pass
+    
+    # 最后的默认值
+    return {
+        'version': '0.1.3',
+        'author': 'SAGE Team', 
+        'email': 'shuhao_zhang@hust.edu.cn'
     }
-}
 
-# 内存压力测试阈值
-MEMORY_THRESHOLDS = {
-    "light": 50,    # MB
-    "medium": 100,  # MB
-    "heavy": 200,   # MB
-    "extreme": 500  # MB
-}
-
-# 性能基准
-PERFORMANCE_BENCHMARKS_STRESS = {
-    "min_throughput_under_stress": 1000,  # messages/sec under stress
-    "max_memory_growth_per_hour": 10,     # MB/hour
-    "max_error_rate": 0.05,               # 5% error rate
-    "min_success_rate": 0.95              # 95% success rate
-}
+# 加载信息
+_info = _load_version()
+__version__ = _info['version']
+__author__ = _info['author']
+__email__ = _info['email']

@@ -1,70 +1,56 @@
 """
-Sage Runtime Communication Module
-
-统一的通信系统，提供队列描述符和各种通信方式的抽象。
+SAGE - Streaming-Augmented Generative Execution
 """
 
-# 基础抽象类
-from .base_queue_descriptor import BaseQueueDescriptor, QueueDescriptor
-
-# 专用队列描述符
-from .python_queue_descriptor import PythonQueueDescriptor
-from .ray_queue_descriptor import RayQueueDescriptor
-from .sage_queue_descriptor import SageQueueDescriptor
-from .rpc_queue_descriptor import RPCQueueDescriptor
-
-# 类型解析
-def resolve_descriptor(data):
-    """从序列化数据解析队列描述符"""
-    if isinstance(data, dict) and 'queue_type' in data:
-        queue_type = data['queue_type']
-        metadata = data.get('metadata', {})
-        queue_id = data.get('queue_id')
-        
-        if queue_type == 'python':
-            return PythonQueueDescriptor(
-                queue_id=queue_id,
-                maxsize=metadata.get('maxsize', 0),
-                use_multiprocessing=metadata.get('use_multiprocessing', False)
-            )
-        elif queue_type == 'ray_queue':
-            return RayQueueDescriptor(
-                queue_id=queue_id,
-                maxsize=metadata.get('maxsize', 0)
-            )
-        elif queue_type == 'sage_queue':
-            return SageQueueDescriptor(
-                queue_id=queue_id,
-                maxsize=metadata.get('maxsize', 1024*1024),
-                auto_cleanup=metadata.get('auto_cleanup', True),
-                namespace=metadata.get('namespace'),
-                enable_multi_tenant=metadata.get('enable_multi_tenant', True)
-            )
-        elif queue_type == 'rpc_queue':
-            return RPCQueueDescriptor(
-                queue_id=queue_id,
-                host=metadata.get('host', 'localhost'),
-                port=metadata.get('port', 8000),
-                connection_timeout=metadata.get('connection_timeout', 30.0),
-                retry_count=metadata.get('retry_count', 3),
-                enable_pooling=metadata.get('enable_pooling', True)
-            )
-        else:
-            raise ValueError(f"Unknown queue type: {queue_type}")
-    else:
-        raise ValueError("Invalid queue descriptor data")
-
-__all__ = [
-    # 抽象基类
-    'BaseQueueDescriptor',
-    'QueueDescriptor',  # 别名
+# 动态版本加载
+def _load_version():
+    """从 sage-common 包加载版本信息"""
+    try:
+        # 优先从 sage-common 包加载版本
+        from sage.kernel._version import __version__
+        return {
+            'version': __version__,
+            'author': 'SAGE Team',
+            'email': 'shuhao_zhang@hust.edu.cn'
+        }
+    except ImportError:
+        # 如果 sage-common 不可用，从项目根目录加载（开发环境）
+        try:
+            from pathlib import Path
+            current_file = Path(__file__).resolve()
+            # 根据当前文件位置计算到项目根目录的层数
+            parts = current_file.parts
+            sage_index = -1
+            for i, part in enumerate(parts):
+                if part == 'SAGE':
+                    sage_index = i
+                    break
+            
+            if sage_index >= 0:
+                root_dir = Path(*parts[:sage_index+1])
+                version_file = root_dir / "_version.py"
+                
+                if version_file.exists():
+                    version_globals = {}
+                    with open(version_file, 'r', encoding='utf-8') as f:
+                        exec(f.read(), version_globals)
+                    return {
+                        'version': version_globals.get('__version__', '0.1.3'),
+                        'author': version_globals.get('__author__', 'SAGE Team'),
+                        'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
+                    }
+        except Exception:
+            pass
     
-    # 专用描述符类
-    'PythonQueueDescriptor',
-    'RayQueueDescriptor', 
-    'SageQueueDescriptor',
-    'RPCQueueDescriptor',
-    
-    # 工具函数
-    'resolve_descriptor',
-]
+    # 最后的默认值
+    return {
+        'version': '0.1.3',
+        'author': 'SAGE Team', 
+        'email': 'shuhao_zhang@hust.edu.cn'
+    }
+
+# 加载信息
+_info = _load_version()
+__version__ = _info['version']
+__author__ = _info['author']
+__email__ = _info['email']
