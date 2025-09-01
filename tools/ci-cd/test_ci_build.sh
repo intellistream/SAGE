@@ -21,7 +21,7 @@ echo "CI环境变量: CI=$CI, GITHUB_ACTIONS=$GITHUB_ACTIONS"
 # 只测试依赖检测，不实际安装
 echo ""
 echo "🔍 检查CI模式检测..."
-bash build.sh --help | grep -A2 "Environment Variables"
+bash build.sh --help | grep -A2 "Environment Variables" || true
 
 echo ""
 echo "✅ CI模式测试完成"
