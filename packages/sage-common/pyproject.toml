@@ -5,9 +5,12 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.dynamic]
+version = {attr = "sage.common._version.__version__"}
+
 [project]
 name = "isage-common"
-version = "0.1.4"
+dynamic = ["version"]
 description = "SAGE Common Components - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
