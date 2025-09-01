@@ -8,7 +8,7 @@ version = {attr = "sage._version.__version__"}
 [project]
 name = "isage"
 dynamic = ["version"]
-description = "SAGE Sage - Streaming-Augmented Generative Execution"
+description = "SAGE - Streaming-Augmented Generative Execution"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
