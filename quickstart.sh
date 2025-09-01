@@ -566,10 +566,7 @@ main() {
                center_screen_text "ℹ️  启动最小安装中..." "$GREEN"
                sleep 1
                exec python3 "$PROJECT_ROOT/tools/install/install.py" --minimal ;;
-            4) python3 "$PROJECT_ROOT/tools/install/install.py" --list-profiles
-               echo ""
-               clear
-               main "$@" ;;
+            4) exec python3 "$PROJECT_ROOT/tools/install/install.py" --list-profiles ;;
             5) center_text "💡 使用方法:" "$CYAN" 4
                cat <<EOF
 
