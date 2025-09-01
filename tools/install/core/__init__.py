@@ -17,8 +17,8 @@ def _get_version_info():
     return 'unknown'
 
 __version__ = _get_version_info()
-\n"""SAGE安装系统核心模块"""
 
+"""SAGE安装系统核心模块"""
 
 __author__ = "SAGE Development Team"
 

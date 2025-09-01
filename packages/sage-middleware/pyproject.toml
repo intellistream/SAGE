@@ -5,8 +5,7 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.dynamic]
-version = {attr = "sage.middleware._version.__version__"}
+
 
 [project]
 name = "isage-middleware"
@@ -247,3 +246,6 @@ overrides = [
     { module = "sage.service.*", ignore_missing_imports = false },
     { module = "fastapi.*", ignore_missing_imports = true },
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.middleware._version.__version__"}

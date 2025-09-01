@@ -5,9 +5,6 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.dynamic]
-version = {attr = "sage.common._version.__version__"}
-
 [project]
 name = "isage-common"
 dynamic = ["version"]
@@ -213,3 +210,6 @@ disallow_untyped_defs = true
 [tool.ruff]
 line-length = 88
 target-version = ["py310", "py311", "py312"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.common._version.__version__"}

@@ -5,8 +5,7 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.dynamic]
-version = {attr = "sage._version.__version__"}
+
 
 [project]
 name = "isage-kernel"
@@ -300,3 +299,6 @@ module = [
     "sage.*",
 ]
 ignore_missing_imports = true
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.kernel._version.__version__"}
