@@ -159,8 +159,10 @@ first_time_setup() {
             if [ -n "$token" ]; then
                 # 验证token是否有效
                 echo "🔍 验证Token有效性..."
-                if curl -s -H "Authorization: token $token" \
+                if curl -s \
                    -H "Accept: application/vnd.github.v3+json" \
+                   -H "Authorization: token $(echo "$token")" \
+                   -H "$(echo "Authorization: token $token")" \
                    https://api.github.com/user > /dev/null 2>&1; then
                     
                     echo "$token" > "$token_file"
