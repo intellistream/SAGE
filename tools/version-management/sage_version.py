@@ -321,13 +321,13 @@ class SAGEVersionManager:
         """检查项目中仍存在的问题"""
         print("\n🔍 检查剩余问题...")
         
-        # 要检查的错误内容
-        issues_to_check = [
-            "Streaming-Augmented Generative Execution",
-            "Streaming-Augmented Generative Execution",
-            "shuhao_zhang@hust.edu.cn",
-            "shuhao_zhang@hust.edu.cn"
-        ]
+        # 要检查的错误内容（仅检查已知错误/过时信息）
+        incorrect_patterns = PROJECT_CONFIG.get("incorrect_patterns", {})
+        issues_to_check = []
+        for key in incorrect_patterns:
+            issues_to_check.extend(incorrect_patterns[key])
+        # 去重
+        issues_to_check = list(set(issues_to_check))
         
         file_patterns = ["**/*.py", "**/*.toml", "**/*.md", "**/*.yml", "**/*.yaml"]
         all_files = []
