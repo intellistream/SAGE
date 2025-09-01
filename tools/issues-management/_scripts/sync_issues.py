@@ -782,7 +782,7 @@ class IssuesSyncer:
             print("✅ 没有检测到需要同步的更改")
             return True
 
-        print(f"\n� 检测到 {len(all_changes)} 个待同步更改:\n")
+        print(f"\n⚡ 检测到 {len(all_changes)} 个待同步更改:\n")
         for change in all_changes:
             print(f" - [{change['type']}] {change['description']}")
 
