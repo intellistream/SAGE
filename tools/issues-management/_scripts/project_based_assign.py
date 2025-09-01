@@ -137,7 +137,7 @@ def select_assignee_by_expertise_and_workload(team_config, team_name, issue_info
     # 从配置中获取专业领域匹配规则
     from config import Config
     config = Config()
-    expertise_rules = config.EXPERTISE_RULES
+    expertise_rules = getattr(config, "EXPERTISE_RULES", {})
     
     # 计算专业匹配分数
     member_scores = {}
