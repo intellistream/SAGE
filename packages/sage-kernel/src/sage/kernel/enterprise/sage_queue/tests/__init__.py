@@ -1,56 +1,37 @@
 """
-SAGE Memory-Mapped Queue Test Suite
-Modern test suite for SAGE high-performance memory-mapped queue
-
-This test suite provides comprehensive testing with modern Python testing practices,
-including pytest integration, fixture management, and parallel execution.
-
-Architecture:
-- conftest.py: Shared fixtures and configuration
-- unit/: Unit tests for individual components
-- integration/: Integration tests for component interaction
-- performance/: Performance benchmarks and stress tests
-- utils/: Test utilities and helpers
-
-Usage:
-    # Run all tests
-    pytest
-
-    # Run specific test category
-    pytest unit/
-    pytest integration/
-    pytest performance/
-
-    # Run with coverage
-    pytest --cov=sage_queue
-
-    # Run with parallel execution
-    pytest -n auto
-
-    # Generate HTML report
-    pytest --html=report.html
+SAGE - Streaming-Augmented Generative Execution
 """
 
-__version__ = "2.0.0"
-__author__ = "SAGE Project"
+# 动态版本加载
+def _load_version():
+    """从项目根目录动态加载版本信息"""
+    from pathlib import Path
+    
+    # 获取项目根目录
+    current_file = Path(__file__).resolve()
+    root_dir = current_file.parent.parent.parent.parent.parent.parent.parent.parent
+    version_file = root_dir / "_version.py"
+    
+    # 加载版本信息
+    if version_file.exists():
+        version_globals = {}
+        with open(version_file, 'r', encoding='utf-8') as f:
+            exec(f.read(), version_globals)
+        return {
+            'version': version_globals.get('__version__', '0.1.4'),
+            'author': version_globals.get('__author__', 'SAGE Team'),
+            'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
+        }
+    
+    # 默认值
+    return {
+        'version': '0.1.4',
+        'author': 'SAGE Team', 
+        'email': 'shuhao_zhang@hust.edu.cn'
+    }
 
-# Test configuration
-TEST_CONFIG = {
-    "default_timeout": 30,
-    "performance_iterations": 1000,
-    "stress_test_duration": 60,
-    "concurrent_workers": 4,
-    "memory_limit_mb": 100,
-    "default_queue_size": 64 * 1024,  # 64KB
-    "multiprocess_method": "spawn",
-    "cleanup_on_exit": True,
-    "temp_queue_prefix": "sage_test_"
-}
-
-# Performance benchmarks
-PERFORMANCE_BENCHMARKS = {
-    "min_throughput_msg_per_sec": 30000,  # Minimum throughput requirement (lowered from 50000)
-    "max_latency_ms": 1.0,                # Maximum latency requirement
-    "min_memory_efficiency": 0.8,         # Minimum memory efficiency
-    "max_memory_usage_mb": 100             # Maximum memory usage
-}
+# 加载信息
+_info = _load_version()
+__version__ = _info['version']
+__author__ = _info['author']
+__email__ = _info['email']

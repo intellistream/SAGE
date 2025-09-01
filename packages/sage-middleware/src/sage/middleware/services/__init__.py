@@ -1,29 +1,37 @@
 """
-Middleware Services Aggregator
-统一导出KV、VDB、Memory、Graph服务与工厂函数，便于示例和外部调用。
+SAGE - Streaming-Augmented Generative Execution
 """
 
-# KV Service
-from .kv import KVService, create_kv_service_factory
+# 动态版本加载
+def _load_version():
+    """从项目根目录动态加载版本信息"""
+    from pathlib import Path
+    
+    # 获取项目根目录
+    current_file = Path(__file__).resolve()
+    root_dir = current_file.parent.parent.parent.parent.parent.parent
+    version_file = root_dir / "_version.py"
+    
+    # 加载版本信息
+    if version_file.exists():
+        version_globals = {}
+        with open(version_file, 'r', encoding='utf-8') as f:
+            exec(f.read(), version_globals)
+        return {
+            'version': version_globals.get('__version__', '0.1.4'),
+            'author': version_globals.get('__author__', 'SAGE Team'),
+            'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
+        }
+    
+    # 默认值
+    return {
+        'version': '0.1.4',
+        'author': 'SAGE Team', 
+        'email': 'shuhao_zhang@hust.edu.cn'
+    }
 
-# VDB Service
-from .vdb import VDBService, create_vdb_service_factory
-
-# Memory Orchestration Service
-from .memory import MemoryService, create_memory_service_factory
-
-# Graph Service
-from .graph import GraphService, create_graph_service_factory
-
-__all__ = [
-    # 服务类
-    "KVService",
-    "VDBService",
-    "MemoryService",
-    "GraphService",
-    # 工厂函数
-    "create_kv_service_factory",
-    "create_vdb_service_factory",
-    "create_memory_service_factory",
-    "create_graph_service_factory",
-]
+# 加载信息
+_info = _load_version()
+__version__ = _info['version']
+__author__ = _info['author']
+__email__ = _info['email']

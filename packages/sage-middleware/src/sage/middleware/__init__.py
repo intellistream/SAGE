@@ -1,40 +1,37 @@
 """
-SAGE Middleware Framework
-
-This module provides middleware components including API services, database
-integrations, and messaging infrastructure.
+SAGE - Streaming-Augmented Generative Execution
 """
 
-__version__ = "0.1.4"
+# 动态版本加载
+def _load_version():
+    """从项目根目录动态加载版本信息"""
+    from pathlib import Path
+    
+    # 获取项目根目录
+    current_file = Path(__file__).resolve()
+    root_dir = current_file.parent.parent.parent.parent.parent
+    version_file = root_dir / "_version.py"
+    
+    # 加载版本信息
+    if version_file.exists():
+        version_globals = {}
+        with open(version_file, 'r', encoding='utf-8') as f:
+            exec(f.read(), version_globals)
+        return {
+            'version': version_globals.get('__version__', '0.1.4'),
+            'author': version_globals.get('__author__', 'SAGE Team'),
+            'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
+        }
+    
+    # 默认值
+    return {
+        'version': '0.1.4',
+        'author': 'SAGE Team', 
+        'email': 'shuhao_zhang@hust.edu.cn'
+    }
 
-# 精简导出，避免 * 导入导致命名冲突
-from .services import (
-    KVService,
-    VDBService,
-    MemoryService,
-    GraphService,
-    create_kv_service_factory,
-    create_vdb_service_factory,
-    create_memory_service_factory,
-    create_graph_service_factory,
-)
-
-__all__ = [
-    "__version__",
-    # 服务类
-    "KVService",
-    "VDBService",
-    "MemoryService",
-    "GraphService",
-    # 工厂函数
-    "create_kv_service_factory",
-    "create_vdb_service_factory",
-    "create_memory_service_factory",
-    "create_graph_service_factory",
-]
-
-__author__ = "SAGE Team"
-__description__ = "SAGE Microservices as Service Tasks"
-
-# 兼容性别名（如需要保留历史别名）
-LegacyMemoryService = MemoryService
+# 加载信息
+_info = _load_version()
+__version__ = _info['version']
+__author__ = _info['author']
+__email__ = _info['email']

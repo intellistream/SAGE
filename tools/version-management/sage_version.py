@@ -1,22 +1,118 @@
 #!/usr/bin/env python3
 """
-SAGE 版本管理器 - 统一工具
-一个脚本解决所有版本管理需求
+SAGE版本管理工具
+统一管理项目中所有版本号和项目信息
 """
 
-import sys
-import os
 import re
 import argparse
+import yaml
 from pathlib import Path
-from datetime import datetime
+from typing import Dict, List, Any
+
+
+# 配置文件 - 可扩展的项目信息管理
+PROJECT_CONFIG = {
+    # 正确的项目信息
+    "correct_info": {
+        "project_name": "SAGE",
+        "project_full_name": "Streaming-Augmented Generative Execution",
+        "email": "shuhao_zhang@hust.edu.cn",
+        "author": "SAGE Team",
+        "homepage": "https://github.com/intellistream/SAGE",
+        "repository": "https://github.com/intellistream/SAGE",
+        "documentation": "https://intellistream.github.io/SAGE-Pub/"
+    },
+    
+    # 需要修复的错误信息 - 可以随时添加新的
+    "incorrect_patterns": {
+        "project_descriptions": [
+            "Intelligent Stream Analytics Gateway Engine",
+            "intelligent stream analytics gateway engine",
+            "Stream Analytics Gateway Engine",
+            "智能流分析网关引擎",
+        ],
+        "emails": [
+            "shuhaoz@student.unimelb.edu.au",
+            "sage@intellistream.com",
+            "admin@sage.com",
+        ],
+        "urls": [
+            "https://sage-docs.old.com",
+            "https://old-sage.github.io",
+        ]
+    },
+    
+    # 文件类型和搜索模式
+    "file_patterns": [
+        "**/*.py",
+        "**/*.toml", 
+        "**/*.md",
+        "**/*.yml",
+        "**/*.yaml",
+        "**/*.txt",
+        "**/*.rst"
+    ],
+    
+    # 排除的路径模式
+    "exclude_patterns": [
+        "**/.*",  # 隐藏文件
+        "**/node_modules/**",
+        "**/venv/**",
+        "**/env/**", 
+        "**/__pycache__/**",
+        "**/build/**",
+        "**/dist/**",
+        "**/logs/**",
+        "**/output/**"
+    ]
+}
+
 
 class SAGEVersionManager:
     """SAGE项目版本管理器"""
     
-    def __init__(self):
+    def __init__(self, config_file=None):
         self.root_dir = self._find_sage_root()
         self.version_file = self.root_dir / "_version.py"
+        self.config = self._load_config(config_file)
+    
+    def _load_config(self, config_file):
+        """加载配置，支持自定义配置文件"""
+        if config_file and Path(config_file).exists():
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    if config_file.endswith('.yaml') or config_file.endswith('.yml'):
+                        import yaml
+                        return yaml.safe_load(f)
+                    else:
+                        # 假设是Python配置文件
+                        config_globals = {}
+                        exec(f.read(), config_globals)
+                        return config_globals.get('PROJECT_CONFIG', PROJECT_CONFIG)
+            except Exception as e:
+                print(f"⚠️ 无法加载配置文件 {config_file}: {e}")
+                print("使用默认配置...")
+        
+        return PROJECT_CONFIG
+    
+    def _should_exclude_path(self, file_path):
+        """检查路径是否应该被排除"""
+        path_str = str(file_path)
+        for pattern in self.config.get("exclude_patterns", []):
+            if file_path.match(pattern):
+                return True
+        return False
+    
+    def _get_all_files(self):
+        """获取所有需要检查的文件"""
+        all_files = []
+        for pattern in self.config.get("file_patterns", ["**/*.py"]):
+            files = list(self.root_dir.glob(pattern))
+            for file_path in files:
+                if not self._should_exclude_path(file_path.relative_to(self.root_dir)):
+                    all_files.append(file_path)
+        return all_files
     
     def _find_sage_root(self):
         """查找SAGE项目根目录"""
@@ -185,8 +281,17 @@ class SAGEVersionManager:
                 print(f"  ❌ 更新失败 {file_path}: {e}")
     
     def update_project_info(self):
-        """更新项目信息（邮箱等）"""
+        """更新项目信息（邮箱、项目名称等）"""
         print("📧 更新项目信息...")
+        
+        # 获取当前正确的项目信息
+        try:
+            info = self.get_version_info()
+            correct_project_name = info['project_name']  # SAGE
+            correct_full_name = info['project_full_name']  # Streaming-Augmented Generative Execution
+        except:
+            correct_project_name = "SAGE"
+            correct_full_name = "Streaming-Augmented Generative Execution"
         
         # 统一的邮箱地址
         new_email = "shuhao_zhang@hust.edu.cn"
@@ -198,11 +303,16 @@ class SAGEVersionManager:
         for pattern in file_patterns:
             all_files.extend(self.root_dir.glob(pattern))
         
+        # 错误的项目名称描述
+        wrong_descriptions = [
+            "Streaming-Augmented Generative Execution",
+            "Streaming-Augmented Generative Execution",
+        ]
+        
         # 邮箱替换模式
         email_patterns = [
-            r'shuhao\.zhang@hust\.edu\.cn',
             r'shuhaoz@student\.unimelb\.edu\.au',
-            r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+            r'sage@intellistream\.com',
         ]
         
         updated_count = 0
@@ -213,7 +323,11 @@ class SAGEVersionManager:
                 
                 original_content = content
                 
-                # 替换邮箱
+                # 替换错误的项目描述
+                for wrong_desc in wrong_descriptions:
+                    content = content.replace(wrong_desc, correct_full_name)
+                
+                # 替换邮箱（但保留正确的邮箱）
                 for pattern in email_patterns:
                     content = re.sub(pattern, new_email, content, flags=re.IGNORECASE)
                 
@@ -227,6 +341,117 @@ class SAGEVersionManager:
                 continue  # 跳过无法处理的文件
         
         print(f"✅ 项目信息更新完成，共更新 {updated_count} 个文件")
+        
+        # 额外检查并报告仍存在问题的文件
+        self._check_remaining_issues()
+    
+    def _check_remaining_issues(self):
+        """检查项目中仍存在的问题"""
+        print("\n🔍 检查剩余问题...")
+        
+        # 要检查的错误内容
+        issues_to_check = [
+            "Streaming-Augmented Generative Execution",
+            "Streaming-Augmented Generative Execution",
+            "shuhao_zhang@hust.edu.cn",
+            "shuhao_zhang@hust.edu.cn"
+        ]
+        
+        file_patterns = ["**/*.py", "**/*.toml", "**/*.md", "**/*.yml", "**/*.yaml"]
+        all_files = []
+        
+        for pattern in file_patterns:
+            all_files.extend(self.root_dir.glob(pattern))
+        
+        issues_found = {}
+        
+        for file_path in all_files:
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                
+                for issue in issues_to_check:
+                    if issue in content:
+                        if issue not in issues_found:
+                            issues_found[issue] = []
+                        issues_found[issue].append(file_path.relative_to(self.root_dir))
+            
+            except Exception:
+                continue
+        
+        if issues_found:
+            print("⚠️  发现剩余问题:")
+            for issue, files in issues_found.items():
+                print(f"  📝 '{issue}' 在以下文件中:")
+                for file_path in files:
+                    print(f"    - {file_path}")
+        else:
+            print("✅ 未发现剩余问题")
+    
+    def check_project_consistency(self):
+        """检查项目一致性"""
+        print("🔍 检查项目信息一致性...")
+        
+        issues_found = []
+        
+        # 检查错误的项目名称描述
+        wrong_descriptions = [
+            "Streaming-Augmented Generative Execution",
+            "Streaming-Augmented Generative Execution",
+        ]
+        
+        # 检查错误的邮箱
+        wrong_emails = [
+            "shuhao_zhang@hust.edu.cn",
+            "shuhao_zhang@hust.edu.cn"
+        ]
+        
+        file_patterns = ["**/*.py", "**/*.toml", "**/*.md"]
+        all_files = []
+        
+        for pattern in file_patterns:
+            all_files.extend(self.root_dir.glob(pattern))
+        
+        for file_path in all_files:
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                
+                file_issues = []
+                
+                # 检查项目描述
+                for wrong_desc in wrong_descriptions:
+                    if wrong_desc in content:
+                        file_issues.append(f"错误的项目描述: '{wrong_desc}'")
+                
+                # 检查邮箱
+                for wrong_email in wrong_emails:
+                    if wrong_email in content:
+                        file_issues.append(f"错误的邮箱: '{wrong_email}'")
+                
+                if file_issues:
+                    issues_found.append({
+                        'file': file_path.relative_to(self.root_dir),
+                        'issues': file_issues
+                    })
+            
+            except Exception:
+                continue
+        
+        if issues_found:
+            print("⚠️  发现一致性问题:")
+            for item in issues_found:
+                print(f"📁 {item['file']}:")
+                for issue in item['issues']:
+                    print(f"  - {issue}")
+            return False
+        else:
+            print("✅ 项目信息一致性良好")
+            return True
+        
+        # 额外检查并报告仍存在问题的文件
+        self._check_remaining_issues()
+
 
 def sync_python_versions():
     """同步Python版本配置"""
@@ -240,6 +465,7 @@ def sync_python_versions():
     except Exception as e:
         print(f"❌ Python版本同步失败: {e}")
 
+
 def main():
     parser = argparse.ArgumentParser(description="SAGE 版本管理器 - 统一工具")
     subparsers = parser.add_subparsers(dest='command', help='可用命令')
@@ -252,7 +478,10 @@ def main():
     set_parser.add_argument('version', help='新版本号，如: 0.2.0')
     
     # update-info命令
-    subparsers.add_parser('update-info', help='更新项目信息（邮箱等）')
+    subparsers.add_parser('update-info', help='更新项目信息（邮箱、项目名称等）')
+    
+    # check命令
+    subparsers.add_parser('check', help='检查项目信息一致性')
     
     # sync-python命令
     subparsers.add_parser('sync-python', help='同步Python版本配置')
@@ -279,6 +508,9 @@ def main():
             manager.update_project_info()
             return 0
         
+        elif args.command == 'check':
+            return 0 if manager.check_project_consistency() else 1
+        
         elif args.command == 'sync-python':
             sync_python_versions()
             return 0
@@ -292,6 +524,7 @@ def main():
     except Exception as e:
         print(f"❌ 错误: {e}")
         return 1
+
 
 if __name__ == "__main__":
     exit(main())

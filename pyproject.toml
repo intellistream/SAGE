@@ -1,7 +1,7 @@
 # SAGE Meta Package Configuration  
-# 这个文件仅用于：
-# 1. PyPI发布时的meta包定义
-# 2. 用户直接 pip install isage 后的依赖管理
+# 这个文件用于：
+# 1. 开发者安装: pip install -e . (使用本地源码)
+# 2. PyPI发布: 需要临时修改dependencies为PyPI包名
 # 注意：quickstart.sh 不使用这个文件，而是直接安装各个子包
 
 [build-system]
@@ -23,21 +23,29 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",]
 
-# 核心依赖 - 发布版本使用PyPI包名
+# 核心依赖 - 开发时使用本地路径
 dependencies = [
-    "isage-kernel",
-    "isage-middleware", 
-    "isage-libs",
-    "isage-common",
+    "isage-kernel @ file:./packages/sage-kernel",
+    "isage-middleware @ file:./packages/sage-middleware", 
+    "isage-libs @ file:./packages/sage-libs",
+    "isage-common @ file:./packages/sage-common",
 ]
 
 [project.optional-dependencies]
+# PyPI发布版本 - 使用PyPI包名（用于构建发布包时）
+pypi = [
+    "isage-kernel",
+    "isage-middleware", 
+    "isage-libs", 
+    "isage-common",
+]
+
 # 开发依赖 - 使用本地包
 dev-local = [
-    "isage-kernel @ file://./packages/sage-kernel",
-    "isage-middleware @ file://./packages/sage-middleware", 
-    "isage-libs @ file://./packages/sage-libs",
-    "isage-common @ file://./packages/sage-common",
+    "isage-kernel @ file:./packages/sage-kernel",
+    "isage-middleware @ file:./packages/sage-middleware", 
+    "isage-libs @ file:./packages/sage-libs",
+    "isage-common @ file:./packages/sage-common",
     # 开发工具
     "pytest>=6.0",
     "pytest-asyncio",
