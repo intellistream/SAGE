@@ -716,7 +716,7 @@ class IssuesSyncer:
         # 获取远端数据
         remote_title = remote_data.get('title', '')
         remote_body = remote_data.get('body', '')
-        remote_labels = [l.get('name') for l in remote_data.get('labels', [])]
+        remote_labels = [label.get('name') for label in remote_data.get('labels', [])]
         remote_assignee = None
         if remote_data.get('assignee'):
             remote_assignee = remote_data['assignee']['login']
