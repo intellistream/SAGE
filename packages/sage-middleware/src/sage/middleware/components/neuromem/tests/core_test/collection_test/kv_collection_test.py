@@ -1,6 +1,6 @@
 import pytest
-from sage.middleware.services.neuromem.memory_collection.kv_collection import KVMemoryCollection
-from sage.middleware.services.neuromem.memory_collection.base_collection import get_default_data_dir
+from sage.middleware.components.neuromem.memory_collection.kv_collection import KVMemoryCollection
+from sage.middleware.components.neuromem.memory_collection.base_collection import get_default_data_dir
 
 @pytest.fixture
 def setup_kv_collection():

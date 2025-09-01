@@ -2,8 +2,8 @@ from logging import Manager
 import os
 from re import M
 from typing import Dict, List, Any, Optional, Union
-from sage.middleware.services.neuromem.memory_manager import MemoryManager
-from sage.middleware.services.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
+from sage.middleware.components.neuromem.memory_manager import MemoryManager
+from sage.middleware.components.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
 
 class NeuroMemVDB:
     def __init__(self):

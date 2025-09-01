@@ -2,8 +2,8 @@
 Memory Service: 将Memory Manager包装成服务进程形式的封装层
 """
 from typing import Dict, List, Any, Optional, Union
-from sage.middleware.services.neuromem.memory_manager import MemoryManager
-from sage.middleware.services.neuromem.memory_collection.base_collection import BaseMemoryCollection
+from sage.middleware.components.neuromem.memory_manager import MemoryManager
+from sage.middleware.components.neuromem.memory_collection.base_collection import BaseMemoryCollection
 from sage.common.utils.logging.custom_logger import CustomLogger
 
 class MemoryService:

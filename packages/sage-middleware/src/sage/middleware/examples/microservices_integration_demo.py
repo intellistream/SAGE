@@ -6,7 +6,7 @@ import time
 import numpy as np
 from typing import Dict, List, Any
 from sage.core.api.local_environment import LocalEnvironment
-from sage.middleware import (
+from sage.middleware.services import (
     create_kv_service_factory,
     create_vdb_service_factory,
     create_graph_service_factory, 
@@ -37,29 +37,27 @@ class SAGEMicroservicesDemo:
             max_size=100000,
             enable_text_index=True
         )
-        self.env.register_service("production_kv", kv_factory)
+    self.env.register_service_factory("production_kv", kv_factory)
         print("   ✅ KV Service ready - Key-Value storage + BM25 text search")
         
         # 2. VDB服务 - 向量数据库和语义搜索
         print("🔍 Setting up VDB Service...")
         vdb_factory = create_vdb_service_factory(
             service_name="production_vdb",
-            embedding_dimension=768,  # 常用的BERT embedding维度
+            embedding_dimension=768,
             index_type="IndexFlatL2",
-            metric="L2"
         )
-        self.env.register_service("production_vdb", vdb_factory)
+        self.env.register_service_factory("production_vdb", vdb_factory)
         print("   ✅ VDB Service ready - FAISS vector search")
         
         # 3. Graph服务 - 知识图谱和关系查询
         print("🕸️ Setting up Graph Service...")
         graph_factory = create_graph_service_factory(
             service_name="production_graph",
-            backend_type="memory",  # 生产环境可以用专门的图数据库
+            backend_type="memory",
             max_nodes=50000,
-            enable_inference=True
         )
-        self.env.register_service("production_graph", graph_factory)
+        self.env.register_service_factory("production_graph", graph_factory)
         print("   ✅ Graph Service ready - Knowledge graph + inference")
         
         # 4. Memory服务 - 智能记忆编排
@@ -67,12 +65,11 @@ class SAGEMicroservicesDemo:
         memory_factory = create_memory_service_factory(
             service_name="production_memory",
             kv_service_name="production_kv",
-            vdb_service_name="production_vdb", 
+            vdb_service_name="production_vdb",
             graph_service_name="production_graph",
             enable_knowledge_graph=True,
-            enable_cross_service_transactions=True
         )
-        self.env.register_service("production_memory", memory_factory)
+        self.env.register_service_factory("production_memory", memory_factory)
         print("   ✅ Memory Service ready - Intelligent memory orchestration")
         
         print("\n🎯 All microservices are now registered and ready!")

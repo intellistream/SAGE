@@ -7,7 +7,7 @@ import shutil
 import Stemmer
 from typing import List, Optional, Dict, Any
 
-from sage.middleware.services.neuromem.search_engine.kv_index.base_kv_index import BaseKVIndex
+from sage.middleware.components.neuromem.search_engine.kv_index.base_kv_index import BaseKVIndex
 
 
 class BM25sIndex(BaseKVIndex):
