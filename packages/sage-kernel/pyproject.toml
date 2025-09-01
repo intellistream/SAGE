@@ -7,8 +7,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "isage-kernel"
-version = "0.1.0"
-description = "SAGE Kernel Module"
+version = "0.1.4"
+description = "SAGE Kernel Module - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -32,12 +32,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Operating System :: OS Independent",    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: System :: Distributed Computing",
 ]
@@ -253,14 +248,12 @@ exclude_lines = [
 
 [tool.black]
 line-length = 88
-target-version = [
-    "py311",
-]
+target-version = ["py310", "py311", "py312"]
 include = "\\.pyi?$"
 extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.pytest_cache\n  | \\.ruff_cache\n  | \\.venv\n  | build\n  | dist\n)/\n"
 
 [tool.ruff]
-target-version = "py311"
+target-version = ["py310", "py311", "py312"]
 line-length = 88
 select = [
     "E",

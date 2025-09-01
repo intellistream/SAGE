@@ -7,8 +7,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "isage-libs"
-version = "0.1.0"
-description = "SAGE Libraries"
+version = "0.1.4"
+description = "SAGE Libraries - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -26,12 +26,7 @@ keywords = [
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Intended Audience :: Developers",    "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: System :: Distributed Computing",
 ]
@@ -114,7 +109,7 @@ profile = "black"
 line_length = 88
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

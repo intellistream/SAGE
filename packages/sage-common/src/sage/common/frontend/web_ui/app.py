@@ -13,7 +13,7 @@ import uvicorn
 app = FastAPI(
     title="SAGE Web UI",
     description="SAGE Framework Web 管理界面，提供 API 文档、系统监控和基础管理功能",
-    version="0.1.0",
+    version="0.1.3",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -79,7 +79,7 @@ async def root():
             
             <div class="status">
                 <strong>✅ 服务器运行正常</strong>
-                <br>Version: 0.1.0
+                <br>Version: 0.1.3
                 <br>Author: IntelliStream Team
             </div>
             
@@ -91,7 +91,7 @@ async def root():
             </div>
             
             <div style="margin-top: 30px; color: #666; text-align: center;">
-                <p>SAGE Framework - 数据处理管道管理和监控平台</p>
+                <p>SAGE Framework - Streaming-Augmented Generative Execution</p>
                 <p><a href="https://github.com/intellistream/SAGE">GitHub Repository</a></p>
             </div>
         </div>
@@ -106,7 +106,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "SAGE Web UI", 
-        "version": "0.1.0",
+        "version": "0.1.3",
         "timestamp": "2025-08-11"
     }
 
@@ -116,7 +116,7 @@ async def api_info():
     """API 信息端点"""
     return {
         "name": "SAGE Web UI API",
-        "version": "0.1.0",
+        "version": "0.1.3",
         "description": "SAGE Framework Web 管理界面 API",
         "author": "IntelliStream Team",
         "repository": "https://github.com/intellistream/SAGE"

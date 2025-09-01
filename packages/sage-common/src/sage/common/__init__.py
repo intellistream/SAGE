@@ -11,7 +11,7 @@ Modules:
     frontend: Web interface and dashboard components
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.4"
 __author__ = "IntelliStream Team"
 __email__ = "intellistream@outlook.com"
 

@@ -5,7 +5,7 @@ This module provides middleware components including API services, database
 integrations, and messaging infrastructure.
 """
 
-__version__ = "2.0.0"
+__version__ = "0.1.4"
 
 # 精简导出，避免 * 导入导致命名冲突
 from .services import (

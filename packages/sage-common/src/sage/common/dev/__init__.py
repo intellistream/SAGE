@@ -6,7 +6,7 @@ A unified development toolkit for the SAGE framework, providing integrated
 tools for testing, dependency analysis, package management, and reporting.
 """
 
-__version__ = "1.0.0"
+__version__ = "0.1.4"
 __author__ = "IntelliStream Team"
 __email__ = "intellistream@outlook.com"
 

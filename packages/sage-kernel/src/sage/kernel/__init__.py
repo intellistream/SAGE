@@ -3,7 +3,7 @@ SAGE Kernel Module
 
 Core kernel functionality for SAGE streaming system.
 """
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 # Import core interfaces
 from sage.kernel.jobmanager.jobmanager_client import JobManagerClient

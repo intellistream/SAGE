@@ -12,7 +12,7 @@ app = typer.Typer(name="version", help="📋 版本信息")
 def show():
     """显示版本信息"""
     print("🚀 SAGE - Streaming-Augmented Generative Execution")
-    print("Version: 0.1.0")
+    print("Version: 0.1.3")
     print("Author: IntelliStream")
     print("Repository: https://github.com/intellistream/SAGE")
     print("")
