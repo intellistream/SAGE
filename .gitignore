@@ -29,6 +29,7 @@ install.log
 /installation/candy/
 /sage.egg-info/
 /sage.egg-info/
+/examples/service/neuromem_vdb/data/
 /deps/CANDY/.github/
 test_logs/
 draft/

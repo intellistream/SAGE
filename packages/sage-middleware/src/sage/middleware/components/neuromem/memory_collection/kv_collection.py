@@ -8,9 +8,9 @@ import warnings
 from typing import Optional, Dict, Any, List, Callable
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.middleware.services.neuromem.memory_collection.base_collection import BaseMemoryCollection
-from sage.middleware.services.neuromem.search_engine.kv_index import KVIndexFactory
-from sage.middleware.services.neuromem.utils.path_utils import get_default_data_dir
+from sage.middleware.components.neuromem.memory_collection.base_collection import BaseMemoryCollection
+from sage.middleware.components.neuromem.search_engine.kv_index import KVIndexFactory
+from sage.middleware.components.neuromem.utils.path_utils import get_default_data_dir
 
 # 通过config文件指定默认索引，neuromem默认索引，用户指定索引
 

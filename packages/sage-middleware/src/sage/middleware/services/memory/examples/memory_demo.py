@@ -12,7 +12,7 @@ from sage.middleware.services import (
     create_graph_service_factory,
     create_memory_service_factory
 )
-from sage.middleware.services.api.memory_api import MemoryServiceAPI
+from sage.middleware.api.memory_api import MemoryServiceAPI
 
 
 def test_memory_service_api():
@@ -32,7 +32,7 @@ def test_memory_service_api():
         backend_type="memory",
         max_size=10000
     )
-    env.register_service("demo_kv", kv_factory)
+    env.register_service_factory("demo_kv", kv_factory)
     print("   ✅ KV Service registered")
     
     # VDB服务
@@ -41,7 +41,7 @@ def test_memory_service_api():
         embedding_dimension=384,
         index_type="IndexFlatL2"
     )
-    env.register_service("demo_vdb", vdb_factory)
+    env.register_service_factory("demo_vdb", vdb_factory)
     print("   ✅ VDB Service registered")
     
     # Graph服务
@@ -50,7 +50,7 @@ def test_memory_service_api():
         backend_type="memory",
         max_nodes=5000
     )
-    env.register_service("demo_graph", graph_factory)
+    env.register_service_factory("demo_graph", graph_factory)
     print("   ✅ Graph Service registered")
     
     # Memory编排服务

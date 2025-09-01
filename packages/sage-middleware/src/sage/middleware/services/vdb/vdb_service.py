@@ -55,22 +55,24 @@ class FaissVDBBackend:
         # 导入FaissIndex
         try:
             from sage.middleware.services.vdb.search_engine.faiss_index import FaissIndex
-            
-            # 初始化FAISS索引
+
+            # 初始化FAISS索引（使用我们内部的 FaissIndex 实现）
             self.faiss_index = FaissIndex(
                 name="vdb_index",
                 dim=embedding_dimension,
                 config={
                     "index_type": index_type,
-                    **self.faiss_config
-                }
+                    **self.faiss_config,
+                },
             )
-            
+
             # 文档存储 (id -> VectorDocument)
             self.documents: Dict[str, VectorDocument] = {}
-            
-            self.logger.info(f"FaissVDBBackend initialized with {index_type}, dim={embedding_dimension}")
-            
+
+            self.logger.info(
+                f"FaissVDBBackend initialized with {index_type}, dim={embedding_dimension}"
+            )
+
         except ImportError as e:
             self.logger.error(f"Failed to import FaissIndex: {e}")
             raise ImportError("FAISS dependencies not available. Install with: pip install faiss-cpu")
@@ -102,10 +104,9 @@ class FaissVDBBackend:
                 self.documents[doc.id] = doc
             
             if vector_arrays:
-                # 添加到FAISS索引
-                vectors_np = np.vstack(vector_arrays)
-                self.faiss_index.add(vectors_np, vector_ids)
-                
+                # 添加到FAISS索引（使用 batch_insert 接口）
+                self.faiss_index.batch_insert(vector_arrays, vector_ids)
+
                 self.logger.debug(f"Added {len(vector_ids)} vectors to FAISS index")
                 return vector_ids
             else:
@@ -120,27 +121,31 @@ class FaissVDBBackend:
         """搜索相似向量"""
         try:
             if len(query_vector) != self.embedding_dimension:
-                raise ValueError(f"Query vector dimension mismatch: expected {self.embedding_dimension}, got {len(query_vector)}")
-            
-            # 转换查询向量
-            query_np = np.array([query_vector], dtype=np.float32)
-            
-            # 在FAISS中搜索
-            distances, indices, ids = self.faiss_index.search(query_np, top_k)
-            
-            results = []
-            for i, (distance, doc_id) in enumerate(zip(distances[0], ids[0])):
+                raise ValueError(
+                    f"Query vector dimension mismatch: expected {self.embedding_dimension}, got {len(query_vector)}"
+                )
+
+            # 转换查询向量（FaissIndex.search 接受 1D np.ndarray）
+            query_np = np.array(query_vector, dtype=np.float32)
+
+            # 在FAISS中搜索（返回 string_ids 和 distances）
+            ids, distances = self.faiss_index.search(query_np, top_k)
+
+            results: List[Tuple[VectorDocument, float]] = []
+            for doc_id, distance in zip(ids, distances):
                 if doc_id in self.documents:
                     doc = self.documents[doc_id]
-                    
+
                     # 应用元数据过滤
                     if metadata_filter and not self._matches_filter(doc.metadata, metadata_filter):
                         continue
-                    
+
                     results.append((doc, float(distance)))
                 else:
-                    self.logger.warning(f"Document {doc_id} found in index but not in storage")
-            
+                    self.logger.warning(
+                        f"Document {doc_id} found in index but not in storage"
+                    )
+
             self.logger.debug(f"Search returned {len(results)} results")
             return results
             
@@ -156,17 +161,18 @@ class FaissVDBBackend:
         """删除向量文档"""
         try:
             deleted_count = 0
-            valid_ids = []
-            
+
             for doc_id in doc_ids:
                 if doc_id in self.documents:
                     del self.documents[doc_id]
-                    valid_ids.append(doc_id)
+                    try:
+                        # 从FAISS索引中删除（逐个删除）
+                        self.faiss_index.delete(doc_id)
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Error deleting id {doc_id} from FAISS: {e}"
+                        )
                     deleted_count += 1
-            
-            # 从FAISS索引中删除
-            if valid_ids:
-                self.faiss_index.delete(valid_ids)
             
             self.logger.debug(f"Deleted {deleted_count} vectors")
             return deleted_count
@@ -198,8 +204,8 @@ class FaissVDBBackend:
                 dim=self.embedding_dimension,
                 config={
                     "index_type": self.index_type,
-                    **self.faiss_config
-                }
+                    **self.faiss_config,
+                },
             )
         except Exception as e:
             self.logger.error(f"Error reinitializing FAISS index: {e}")
@@ -207,7 +213,7 @@ class FaissVDBBackend:
     def save_index(self, path: str) -> bool:
         """保存索引到磁盘"""
         try:
-            self.faiss_index.save(path)
+            self.faiss_index.store(path)
             return True
         except Exception as e:
             self.logger.error(f"Error saving index: {e}")
@@ -217,11 +223,8 @@ class FaissVDBBackend:
         """从磁盘加载索引"""
         try:
             from sage.middleware.services.vdb.search_engine.faiss_index import FaissIndex
-            self.faiss_index = FaissIndex(
-                name="vdb_index", 
-                dim=self.embedding_dimension,
-                load_path=path
-            )
+            # 使用类方法 load 恢复索引
+            self.faiss_index = FaissIndex.load(name="vdb_index", load_path=path)
             return True
         except Exception as e:
             self.logger.error(f"Error loading index: {e}")

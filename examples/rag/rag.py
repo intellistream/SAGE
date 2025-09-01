@@ -8,7 +8,7 @@ from sage.core.api.function.map_function import MapFunction
 from sage.libs.io_utils.sink import TerminalSink
 from sage.libs.rag.promptor import QAPromptor
 from sage.common.utils.config.loader import load_config
-from sage.middleware.services.memory.memory_service import MemoryService
+from sage.middleware.components.neuromem.memory_service import MemoryService
 
 import os
 import json

@@ -3,8 +3,8 @@
 
 from typing import Optional, List
 
-from sage.middleware.services.neuromem.storage_engine.kv_backend.base_kv_backend import BaseKVBackend
-from sage.middleware.services.neuromem.storage_engine.kv_backend.dict_kv_backend import DictKVBackend
+from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import BaseKVBackend
+from sage.middleware.components.neuromem.storage_engine.kv_backend.dict_kv_backend import DictKVBackend
 
 
 class TextStorage:
