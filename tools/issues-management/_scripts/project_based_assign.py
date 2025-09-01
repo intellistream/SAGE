@@ -373,7 +373,7 @@ def assign_issues_by_project():
             creator = issue_info['creator']
             if creator and creator in team_members:
                 # 如果创建者在团队中，且当前不是分配给创建者，需要重新分配
-                if current_assignee != creator:
+                if issue_info['current_assignee'] != creator:
                     print(f"  🔄 Issue #{issue_info['number']} 重新分配给创建者 {creator} (属于 {project_team} 团队)")
                     # 直接分配给创建者
                     assignee = creator

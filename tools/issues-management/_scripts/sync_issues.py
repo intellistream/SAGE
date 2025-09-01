@@ -782,7 +782,7 @@ class IssuesSyncer:
             print("✅ 没有检测到需要同步的更改")
             return True
 
-        print(f"\n� 检测到 {len(all_changes)} 个待同步更改:\n")
+        print(f"\n⚡ 检测到 {len(all_changes)} 个待同步更改:\n")
         for change in all_changes:
             print(f" - [{change['type']}] {change['description']}")
 
@@ -885,14 +885,14 @@ class IssuesSyncer:
                 else:
                     mut_del = '''mutation($projectId: ID!, $itemId: ID!) { deleteProjectV2Item(input: {projectId: $projectId, itemId: $itemId}) { deletedItemId } }'''
                     ok3, resp3 = graphql_request(session, mut_del, { 'projectId': from_project_id, 'itemId': item_id }, retries=2)
-                if not ok3 or 'errors' in (resp3 or {}):
-                    print(f"  ❌ delete 失败: {resp3}")
-                    entry['deleted'] = False
-                    entry['delete_response'] = resp3
-                else:
-                    print(f"  ✅ 已从原组织 project 删除 item")
-                    entry['deleted'] = True
-                    entry['delete_response'] = resp3
+                    if not ok3 or 'errors' in (resp3 or {}):
+                        print(f"  ❌ delete 失败: {resp3}")
+                        entry['deleted'] = False
+                        entry['delete_response'] = resp3
+                    else:
+                        print(f"  ✅ 已从原组织 project 删除 item")
+                        entry['deleted'] = True
+                        entry['delete_response'] = resp3
 
             logs.append(entry)
             # gentle rate limiting
