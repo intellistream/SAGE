@@ -24,7 +24,12 @@ class BuildCExtensions(build_ext):
     
     def build_sage_queue(self):
         """编译sage_queue C扩展"""
-        sage_queue_dir = Path(__file__).parent / "src/sage/kernel/enterprise/sage_queue"
+        # Allow override via environment variable, else use default relative path
+        sage_queue_dir = os.environ.get(
+            "SAGE_QUEUE_DIR",
+            str(Path(__file__).parent / "src/sage/kernel/enterprise/sage_queue")
+        )
+        sage_queue_dir = Path(sage_queue_dir)
         
         if not sage_queue_dir.exists():
             print("⚠️  sage_queue目录不存在，跳过编译")
