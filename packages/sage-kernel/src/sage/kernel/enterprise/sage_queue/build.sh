@@ -28,16 +28,61 @@ while [[ $# -gt 0 ]]; do
         --install-deps)
             echo "Installing dependencies..."
             # Install build dependencies if needed
+            # 检测是否在CI环境中
+            if [[ "$CI" == "true" || "$GITHUB_ACTIONS" == "true" ]]; then
+                echo "🔧 CI环境检测到，使用非交互式安装"
+                export DEBIAN_FRONTEND=noninteractive
+            fi
+            
             if command -v apt-get &> /dev/null; then
-                sudo apt-get update && sudo apt-get install -y cmake g++
+                echo "📦 使用apt-get安装依赖..."
+                if [[ "$CI" == "true" || "$GITHUB_ACTIONS" == "true" ]]; then
+                    # CI环境：假设已有sudo权限且非交互式
+                    apt-get update && apt-get install -y cmake g++ libboost-dev libboost-system-dev
+                else
+                    # 本地环境：需要sudo并可能需要交互
+                    sudo apt-get update && sudo apt-get install -y cmake g++ libboost-dev libboost-system-dev
+                fi
             elif command -v yum &> /dev/null; then
-                sudo yum install -y cmake gcc-c++
+                echo "📦 使用yum安装依赖..."
+                if [[ "$CI" == "true" || "$GITHUB_ACTIONS" == "true" ]]; then
+                    yum install -y cmake gcc-c++ boost-devel
+                else
+                    sudo yum install -y cmake gcc-c++ boost-devel
+                fi
+            else
+                echo "⚠️  未找到支持的包管理器 (apt-get/yum)"
+                echo "请手动安装以下依赖："
+                echo "  - cmake"
+                echo "  - g++ 或 gcc-c++"
+                echo "  - libboost-dev 或 boost-devel"
+                echo "  - libboost-system-dev"
             fi
             shift
             ;;
+        --help|-h)
+            echo "SAGE Queue Build Script"
+            echo "Usage: $0 [options]"
+            echo ""
+            echo "Options:"
+            echo "  --debug         Build in debug mode with AddressSanitizer"
+            echo "  --clean         Clean previous build artifacts"
+            echo "  --install-deps  Install build dependencies (cmake, g++, boost)"
+            echo "  --help, -h      Show this help message"
+            echo ""
+            echo "Environment Variables:"
+            echo "  CI=true         Enable CI mode (non-interactive)"
+            echo "  GITHUB_ACTIONS=true  Enable GitHub Actions mode"
+            echo ""
+            echo "Examples:"
+            echo "  $0                    # Normal build"
+            echo "  $0 --clean --debug   # Clean and debug build"
+            echo "  $0 --install-deps    # Install dependencies and build"
+            exit 0
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--debug|debug] [--clean|clean] [--install-deps]"
+            echo "Usage: $0 [--debug|debug] [--clean|clean] [--install-deps] [--help|-h]"
             exit 1
             ;;
     esac
