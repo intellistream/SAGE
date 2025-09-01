@@ -4,7 +4,7 @@ from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.batch_function import BatchFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.middleware.services.neuromem.micro_service.neuromem_vdb_service import NeuroMemVDBService
+from sage.middleware.components.neuromem.micro_service.neuromem_vdb_service import NeuroMemVDBService
 
 
 class HelloBatch(BatchFunction):

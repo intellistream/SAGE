@@ -5,9 +5,9 @@ import os
 import hashlib
 from dotenv import load_dotenv
 from typing import Dict, Optional, Callable, Any, List
-from sage.middleware.services.neuromem.utils.path_utils import get_default_data_dir
-from sage.middleware.services.neuromem.storage_engine.metadata_storage import MetadataStorage
-from sage.middleware.services.neuromem.storage_engine.text_storage import TextStorage
+from sage.middleware.components.neuromem.utils.path_utils import get_default_data_dir
+from sage.middleware.components.neuromem.storage_engine.metadata_storage import MetadataStorage
+from sage.middleware.components.neuromem.storage_engine.text_storage import TextStorage
 
 # from sage.middleware.services.neuromem..storage_engine.text_storage import TextStorage
 # from sage.middleware.services.neuromem..storage_engine.metadata_storage import MetadataStorage

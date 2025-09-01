@@ -4,7 +4,7 @@
 import os
 import shutil
 import traceback
-from sage.middleware.services.neuromem.memory_service import MemoryService
+from sage.middleware.components.neuromem.memory_service import MemoryService
 from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
 
 def test_memory_service():

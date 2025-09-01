@@ -36,12 +36,19 @@ class MemoryService(BaseService):
     在SAGE DAG中作为服务节点使用
     """
     
-    def __init__(self, config = None):
-        self.config = config or {}
+    def __init__(self, service_factory: 'ServiceFactory' = None, ctx: 'ServiceContext' = None, config: MemoryConfig | None = None):
+        # 兼容 ServiceFactory 注入与直接使用
+        super().__init__(service_factory, ctx)
+        if service_factory is not None and hasattr(service_factory, 'config') and service_factory.config is not None:
+            self.config: MemoryConfig = service_factory.config
+        else:
+            # 允许直接传入 config（便于单测或直接构造）
+            self.config: MemoryConfig = config or MemoryConfig()
 
-        self.logger.info(f"KV Service: {self.config.get('kv_service_name', 'kv_service')}")
-        self.logger.info(f"VDB Service: {self.config.get('vdb_service_name','vdb_service')}")
-        self.logger.info(f"Graph Service: {self.config.get('graph_service_name','graph_service')}")
+        # 日志配置预览
+        self.logger.info(f"KV Service: {getattr(self.config, 'kv_service_name', 'kv_service')}")
+        self.logger.info(f"VDB Service: {getattr(self.config, 'vdb_service_name', 'vdb_service')}")
+        self.logger.info(f"Graph Service: {getattr(self.config, 'graph_service_name', 'graph_service')}")
 
     def _start_service_instance(self):
         """启动Memory服务实例"""

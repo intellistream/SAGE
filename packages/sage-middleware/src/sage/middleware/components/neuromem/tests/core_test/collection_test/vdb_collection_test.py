@@ -3,9 +3,9 @@
 import os
 import time
 import pytest
-from sage.middleware.services.neuromem.memory_collection.base_collection import get_default_data_dir
+from sage.middleware.components.neuromem.memory_collection.base_collection import get_default_data_dir
 from sage.utils.embedding_methods.mockembedder import MockTextEmbedder
-from sage.middleware.services.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
+from sage.middleware.components.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
 
 
 def almost_equal_dict(d1, d2, float_tol=1e-3):

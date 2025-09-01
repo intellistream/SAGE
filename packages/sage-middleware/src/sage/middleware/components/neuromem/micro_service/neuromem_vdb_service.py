@@ -2,8 +2,8 @@ import os
 from typing import Dict, List, Any, Optional, Union
 from sage.core.api.service.base_service import BaseService
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.middleware.services.neuromem.memory_manager import MemoryManager
-from sage.middleware.services.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
+from sage.middleware.components.neuromem.memory_manager import MemoryManager
+from sage.middleware.components.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
 from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
 
 
