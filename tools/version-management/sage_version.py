@@ -367,15 +367,14 @@ class SAGEVersionManager:
         issues_found = []
         
         # 检查错误的项目名称描述
+        # 错误的项目描述（如有已知错误项可补充）
         wrong_descriptions = [
-            "Streaming-Augmented Generative Execution",
-            "Streaming-Augmented Generative Execution",
+            # 例如："Streaming-Augmented Generative Exection", "Stream-Augmented Generative Execution"
         ]
         
-        # 检查错误的邮箱
+        # 错误的邮箱（如有已知错误项可补充）
         wrong_emails = [
-            "shuhao_zhang@hust.edu.cn",
-            "shuhao_zhang@hust.edu.cn"
+            # 例如："shuhao_zhang@hust.edu.com", "shuhao_zhang@hust.edu.cn.com"
         ]
         
         file_patterns = ["**/*.py", "**/*.toml", "**/*.md"]
