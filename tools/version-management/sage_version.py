@@ -279,9 +279,6 @@ class SAGEVersionManager:
             all_files.extend(self.root_dir.glob(pattern))
         
         # 错误的项目名称描述
-        wrong_descriptions = [
-            "Streaming-Augmented Generative Execution",
-            "Streaming-Augmented Generative Execution",
         ]
         
         # 邮箱替换模式
