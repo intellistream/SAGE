@@ -23,11 +23,17 @@ class BuildCExtensions(build_ext):
         super().run()
     
     def build_sage_queue(self):
-        """编译sage_queue C扩展"""
+        """编译sage_queue C扩展（企业版功能）"""
         sage_queue_dir = Path(__file__).parent / "src/sage/kernel/enterprise/sage_queue"
         
         if not sage_queue_dir.exists():
             print("⚠️  sage_queue目录不存在，跳过编译")
+            return
+            
+        # 检查是否有C++源代码（简单的授权检查）
+        cpp_files = list(sage_queue_dir.glob("**/*.cpp")) + list(sage_queue_dir.glob("**/*.h"))
+        if not cpp_files:
+            print("⚠️  sage_queue C++源代码不可用（企业版功能）")
             return
             
         build_script = sage_queue_dir / "build.sh"
@@ -37,21 +43,13 @@ class BuildCExtensions(build_ext):
             
         print("🔧 编译sage_queue C扩展...")
         try:
-            # 在CI环境中设置环境变量
-            env = os.environ.copy()
-            if os.environ.get('CI') == 'true' or os.environ.get('GITHUB_ACTIONS') == 'true':
-                env['CI'] = 'true'
-                env['DEBIAN_FRONTEND'] = 'noninteractive'
-                print("📋 CI环境检测到，使用非交互式编译")
-            
             # 切换到sage_queue目录并运行build.sh
             result = subprocess.run(
                 ["bash", "build.sh", "--install-deps"],
                 cwd=sage_queue_dir,
                 check=True,
                 capture_output=True,
-                text=True,
-                env=env
+                text=True
             )
             print("✅ sage_queue C扩展编译成功")
             print(result.stdout)
