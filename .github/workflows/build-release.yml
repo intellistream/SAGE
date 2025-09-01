@@ -38,10 +38,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install build setuptools wheel tomli
         
-        # Install system dependencies for C extensions (if needed)
-        sudo apt-get update
-        sudo apt-get install -y cmake g++ libboost-dev libboost-system-dev libfaiss-dev
-        
         # Install SAGE packages in correct order (pip install will handle C extension compilation)
         echo "Installing SAGE packages with automatic C extension building..."
         pip install -e packages/sage-common
