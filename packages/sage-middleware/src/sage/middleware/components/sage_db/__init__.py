@@ -9,7 +9,7 @@ import sys
 import warnings
 from typing import List, Optional
 
-__version__ = "0.1.0"
+__version__ = "0.1.4"
 
 # 设置库路径以便找到依赖的 .so 文件
 _current_dir = os.path.dirname(os.path.abspath(__file__))

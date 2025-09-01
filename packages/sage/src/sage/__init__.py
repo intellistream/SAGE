@@ -7,7 +7,7 @@ SAGE - Intelligent Stream Analytics Gateway Engine
 # This is a namespace package
 __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
-__version__ = "0.1.0"
+__version__ = "0.1.4"
 __author__ = "SAGE Team"
 __email__ = "sage@intellistream.com"
 

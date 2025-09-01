@@ -10,7 +10,7 @@ Web前端和仪表板界面组件，提供可视化的数据处理管道管理�
 - Visualization: 数据可视化功能
 """
 
-__version__ = "1.0.0"
+__version__ = "0.1.4"
 __author__ = "IntelliStream Team"
 __email__ = "intellistream@outlook.com"
 

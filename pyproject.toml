@@ -4,23 +4,18 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "isage"
-version = "0.1.0"
-description = "SAGE - Streaming Analytics and Graph Engine with Core API"
+version = "0.1.4"
+description = "SAGE - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    {name = "SAGE Team", email = "team@sage.com"},
+    {name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn"},
 ]
-license = {text = "Apache-2.0"}
+license = {text = "MIT"}
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-]
+    "License :: OSI Approved :: MIT License",]
 
 # 核心依赖 - 安装本地包
 dependencies = [
@@ -106,3 +101,9 @@ include-package-data = true
 
 [tool.setuptools.package-dir]
 sage = "packages/sage/src/sage"
+
+
+# SAGE 项目自定义配置
+[tool.sage]
+# 如果将来需要项目特定的配置，可以在这里添加
+# 目前所有必要的配置都已经在标准的 [project] 区域中定义
