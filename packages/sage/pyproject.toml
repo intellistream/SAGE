@@ -2,9 +2,12 @@
 requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.dynamic]
+version = {attr = "sage._version.__version__"}
+
 [project]
 name = "isage"
-version = "0.1.4"
+dynamic = ["version"]
 description = "SAGE Sage - Streaming-Augmented Generative Execution"
 readme = "README.md"
 license = {text = "MIT"}
