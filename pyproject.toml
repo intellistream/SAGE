@@ -1,3 +1,9 @@
+# SAGE Meta Package Configuration  
+# 这个文件仅用于：
+# 1. PyPI发布时的meta包定义
+# 2. 用户直接 pip install isage 后的依赖管理
+# 注意：quickstart.sh 不使用这个文件，而是直接安装各个子包
+
 [build-system]
 requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
@@ -17,7 +23,7 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",]
 
-# 核心依赖 - 安装本地包
+# 核心依赖 - 发布版本使用PyPI包名
 dependencies = [
     "isage-kernel",
     "isage-middleware", 
@@ -26,6 +32,21 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# 开发依赖 - 使用本地包
+dev-local = [
+    "isage-kernel @ file://./packages/sage-kernel",
+    "isage-middleware @ file://./packages/sage-middleware", 
+    "isage-libs @ file://./packages/sage-libs",
+    "isage-common @ file://./packages/sage-common",
+    # 开发工具
+    "pytest>=6.0",
+    "pytest-asyncio",
+    "pytest-cov",
+    "black",
+    "ruff",
+    "mypy",
+]
+
 # Commercial/Enterprise Edition (requires license)
 enterprise = [
     "isage-kernel[enterprise]",

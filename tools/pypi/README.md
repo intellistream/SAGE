@@ -4,9 +4,7 @@
 
 ## 文件说明
 
-- `publish_sage.sh` - 主要的 PyPI 发布脚本（推荐使用）
-- `quick_publish_all.sh` - 快速发布脚本（已移动，需要更新）
-- `publish_all_proprietary.sh` - 企业版发布脚本（已移动，需要更新）
+- `publish_sage.sh` - 统一的 PyPI 发布脚本
 
 ## 使用方法
 
