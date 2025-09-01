@@ -5,10 +5,10 @@ SAGE 微服务集成示例
 import time
 from sage.core.api.local_environment import LocalEnvironment
 from sage.middleware.services import (
-    create_kv_service_factory, 
+    create_kv_service_factory,
     create_vdb_service_factory,
     create_graph_service_factory,
-    create_memory_service_factory
+    create_memory_service_factory,
 )
 
 
@@ -52,20 +52,16 @@ def test_microservices_registration():
         max_size=50000,
         ttl_seconds=3600
     )
-    env2.register_service("redis_kv_service", kv_factory)
+    env2.register_service_factory("redis_kv_service", kv_factory)
     print("   ✅ Registered redis_kv_service")
     
     # VDB服务 - 使用ChromaDB后端
     vdb_factory = create_vdb_service_factory(
-        service_name="chroma_vdb_service", 
-        backend_type="memory",  # 可以改为"chroma"
-        # chroma_host="localhost",
-        # chroma_port=8000,
-        collection_name="sage_knowledge_base",
+        service_name="chroma_vdb_service",
         embedding_dimension=768,
-        distance_metric="cosine"
+        index_type="IndexFlatL2",
     )
-    env2.register_service("chroma_vdb_service", vdb_factory)
+    env2.register_service_factory("chroma_vdb_service", vdb_factory)
     print("   ✅ Registered chroma_vdb_service")
     
     # Graph服务 - 支持知识图谱
@@ -78,7 +74,7 @@ def test_microservices_registration():
         max_nodes=500000,
         max_relationships=2000000
     )
-    env2.register_service("knowledge_graph_service", graph_factory)
+    env2.register_service_factory("knowledge_graph_service", graph_factory)
     print("   ✅ Registered knowledge_graph_service")
     
     # Memory服务 - 协调所有服务
@@ -92,7 +88,7 @@ def test_microservices_registration():
         enable_caching=True,
         enable_knowledge_graph=True
     )
-    env2.register_service("unified_memory_service", memory_factory)
+    env2.register_service_factory("unified_memory_service", memory_factory)
     print("   ✅ Registered unified_memory_service")
     
     print("\n🎯 Service registration completed successfully!")

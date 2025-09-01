@@ -371,6 +371,14 @@ class GraphService(BaseService):
     
     # Graph操作方法 - 这些方法可以通过服务调用机制被调用
     
+    # 兼容API：add_node(dict) 与 create_node(labels, properties, node_id)
+    def add_node(self, node: Dict[str, Any]) -> str:
+        """兼容 MemoryService 的 add_node 接口: {'id','labels','properties'}"""
+        labels = node.get("labels", []) or []
+        properties = node.get("properties", {}) or {}
+        node_id = node.get("id")
+        return self.create_node(labels=labels, properties=properties, node_id=node_id)
+
     def create_node(self, labels: List[str], properties: Dict[str, Any], 
                    node_id: Optional[str] = None) -> str:
         """创建节点"""
@@ -386,6 +394,17 @@ class GraphService(BaseService):
         self.logger.debug(f"Created node: {result}")
         return result
     
+    # 兼容API：add_relationship(dict) 与 create_relationship(from,to,type,...)
+    def add_relationship(self, rel: Dict[str, Any]) -> str:
+        """兼容 MemoryService 的 add_relationship 接口: {'from_node','to_node','rel_type','properties','id'}"""
+        return self.create_relationship(
+            from_node=rel.get("from_node"),
+            to_node=rel.get("to_node"),
+            rel_type=rel.get("rel_type"),
+            properties=rel.get("properties"),
+            rel_id=rel.get("id")
+        )
+
     def create_relationship(self, from_node: str, to_node: str, rel_type: str,
                           properties: Optional[Dict[str, Any]] = None,
                           rel_id: Optional[str] = None) -> str:
@@ -417,6 +436,55 @@ class GraphService(BaseService):
                 "created_at": node.created_at
             }
         return None
+
+    # 兼容 MemoryService 查询使用的便捷方法
+    def get_node_context(self, node_id: str, depth: int = 1) -> Dict[str, Any]:
+        """获取节点的邻域上下文（简单一层或多层展开）"""
+        context = {"node": self.get_node(node_id), "neighbors": [], "relationships": []}
+        if not context["node"]:
+            return context
+        rels = self.get_node_relationships(node_id, direction="both") if hasattr(self.backend, 'get_node_relationships') else []
+        context["relationships"] = rels
+        neighbor_ids = set()
+        for r in rels:
+            neighbor_ids.add(r.get("from_node") if isinstance(r, dict) else r.from_node)
+            neighbor_ids.add(r.get("to_node") if isinstance(r, dict) else r.to_node)
+        neighbor_ids.discard(node_id)
+        for nid in neighbor_ids:
+            n = self.get_node(nid)
+            if n:
+                context["neighbors"].append(n)
+        return context
+
+    def get_session_graph(self, session_id: str) -> Dict[str, Any]:
+        """根据会话ID返回简单的图统计（基于节点属性 session_id）"""
+        # 简单按属性筛选
+        try:
+            nodes = self.find_nodes(properties={"session_id": session_id})
+        except Exception:
+            nodes = []
+        node_ids = {n["id"] if isinstance(n, dict) else n.id for n in nodes}
+        # 关系筛选
+        relationships = []
+        if hasattr(self.backend, 'relationships'):
+            for rel in getattr(self.backend, 'relationships', {}).values():
+                src = rel.get("from_node") if isinstance(rel, dict) else rel.from_node
+                dst = rel.get("to_node") if isinstance(rel, dict) else rel.to_node
+                if src in node_ids or dst in node_ids:
+                    relationships.append({
+                        "id": rel.get("id") if isinstance(rel, dict) else rel.id,
+                        "from_node": src,
+                        "to_node": dst,
+                        "rel_type": rel.get("rel_type") if isinstance(rel, dict) else rel.rel_type,
+                        "properties": rel.get("properties") if isinstance(rel, dict) else rel.properties,
+                    })
+        return {
+            "session_id": session_id,
+            "node_count": len(nodes),
+            "relationship_count": len(relationships),
+            "nodes": nodes,
+            "relationships": relationships,
+        }
     
     def find_nodes(self, labels: Optional[List[str]] = None,
                   properties: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:

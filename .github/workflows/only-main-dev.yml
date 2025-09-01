@@ -1,0 +1,19 @@
+name: source-branch-guard
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  enforce-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Block PRs that are not from main-dev
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          echo "PR head: $HEAD_REF"
+          if [ "$HEAD_REF" != "main-dev" ]; then
+            echo "::error ::Only PRs from 'main-dev' to 'main' are allowed."
+            exit 1
+          fi
