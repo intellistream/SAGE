@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """
-SAGE版本管理工具
-统一管理项目中所有版本号和项目信息
+SAGE版本管理工具 - 动态版本加载时代的简化版本
+
+在动态版本加载系统下，这个工具的主要功能：
+1. 设置版本号：只需更新 _version.py，所有包会自动动态加载
+2. 显示版本信息：查看当前项目的版本和元数据
+3. 更新项目信息：统一更新邮箱、项目名称等元数据
+4. 一致性检查：确保项目信息在各文件中保持一致
+
+注意：不再需要手动更新 96 个 __init__.py 文件，动态加载会自动处理！
 """
 
 import re
@@ -171,20 +178,23 @@ class SAGEVersionManager:
             return False
     
     def set_version(self, new_version):
-        """设置新版本号并更新所有相关文件"""
-        print(f"🔄 设置版本号为: {new_version}")
-        
-        # 1. 更新_version.py
-        if not self._update_version_file(new_version):
+        """设置新版本号 - 现在只需要更新 _version.py，其他文件会动态加载"""
+        # 验证版本号格式
+        if not re.match(r'^\d+\.\d+\.\d+(-[a-zA-Z0-9-]+)?$', new_version):
+            print("❌ 版本号格式错误！应该类似: 1.0.0 或 1.0.0-alpha")
             return False
         
-        # 2. 更新所有pyproject.toml文件
+        print(f"🚀 设置新版本号: {new_version}")
+        
+        # 只需要更新 _version.py（主要版本文件）
+        # 所有其他文件会通过动态加载自动获取新版本
+        self._update_version_file(new_version)
+        
+        # 可选：更新 pyproject.toml 文件（如果需要的话）
         self._update_pyproject_files(new_version)
         
-        # 3. 更新所有Python __init__.py文件
-        self._update_python_files(new_version)
-        
-        print(f"🎉 版本号已统一更新为: {new_version}")
+        print(f"✅ 版本号已更新到 {new_version}")
+        print("💡 提示：所有 Python 包现在会动态加载这个版本号，无需手动更新")
         return True
     
     def _update_version_file(self, new_version):
@@ -242,41 +252,6 @@ class SAGEVersionManager:
                     f.write(content)
                 
                 print(f"  更新 {file_path.relative_to(self.root_dir)}")
-            except Exception as e:
-                print(f"  ❌ 更新失败 {file_path}: {e}")
-    
-    def _update_python_files(self, new_version):
-        """更新所有Python __init__.py文件中的__version__"""
-        print("🐍 更新所有 Python 文件...")
-        
-        # 查找所有__init__.py文件
-        init_files = list(self.root_dir.glob("**/__init__.py"))
-        
-        # 还要查找其他可能包含版本号的Python文件
-        other_python_files = [
-            "packages/sage-common/src/sage/common/cli/commands/version.py",
-            "packages/sage-common/src/sage/common/frontend/web_ui/app.py"
-        ]
-        
-        all_files = init_files + [self.root_dir / f for f in other_python_files if (self.root_dir / f).exists()]
-        
-        for file_path in all_files:
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
-                # 检查是否包含版本号定义，但不是Python版本或目标版本
-                if '__version__' in content and 'python_version' not in content and 'target-version' not in content:
-                    content = re.sub(
-                        r'__version__\s*=\s*["\'][^"\']*["\']',
-                        f'__version__ = "{new_version}"',
-                        content
-                    )
-                    
-                    with open(file_path, 'w', encoding='utf-8') as f:
-                        f.write(content)
-                    
-                    print(f"  更新 {file_path.relative_to(self.root_dir)}")
             except Exception as e:
                 print(f"  ❌ 更新失败 {file_path}: {e}")
     
@@ -453,28 +428,15 @@ class SAGEVersionManager:
         self._check_remaining_issues()
 
 
-def sync_python_versions():
-    """同步Python版本配置"""
-    print("🐍 同步Python版本配置...")
-    
-    try:
-        # 导入并运行Python版本同步工具
-        from sync_python_versions import PythonVersionSyncer
-        syncer = PythonVersionSyncer()
-        syncer.sync_all()
-    except Exception as e:
-        print(f"❌ Python版本同步失败: {e}")
-
-
 def main():
-    parser = argparse.ArgumentParser(description="SAGE 版本管理器 - 统一工具")
+    parser = argparse.ArgumentParser(description="SAGE 版本管理器 - 动态版本加载时代的简化工具")
     subparsers = parser.add_subparsers(dest='command', help='可用命令')
     
     # show命令
     subparsers.add_parser('show', help='显示当前版本信息')
     
     # set命令
-    set_parser = subparsers.add_parser('set', help='设置新版本号')
+    set_parser = subparsers.add_parser('set', help='设置新版本号（自动更新 _version.py）')
     set_parser.add_argument('version', help='新版本号，如: 0.2.0')
     
     # update-info命令
@@ -482,12 +444,6 @@ def main():
     
     # check命令
     subparsers.add_parser('check', help='检查项目信息一致性')
-    
-    # sync-python命令
-    subparsers.add_parser('sync-python', help='同步Python版本配置')
-    
-    # show-python命令
-    subparsers.add_parser('show-python', help='显示Python版本配置')
     
     args = parser.parse_args()
     
@@ -510,16 +466,6 @@ def main():
         
         elif args.command == 'check':
             return 0 if manager.check_project_consistency() else 1
-        
-        elif args.command == 'sync-python':
-            sync_python_versions()
-            return 0
-        
-        elif args.command == 'show-python':
-            from python_config import get_python_config
-            config = get_python_config()
-            config.show_config()
-            return 0
     
     except Exception as e:
         print(f"❌ 错误: {e}")
