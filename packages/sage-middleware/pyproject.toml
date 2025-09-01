@@ -166,7 +166,7 @@ llm = [
     "llama-index==0.11.33",
 ]
 full = [
-    "sage-middleware[database,messagequeue,monitoring,websocket,llm]",
+    "isage-middleware[database,messagequeue,monitoring,llm]",
 ]
 testing = [
     "isage-middleware[sage]",
