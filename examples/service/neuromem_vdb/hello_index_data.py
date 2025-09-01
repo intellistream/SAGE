@@ -1,5 +1,5 @@
 # 注入数据并建立一个全局索引以供 RAG 使用
-from sage.middleware.services.neuromem import NeuroMemVDB
+from sage.middleware.components.neuromem import NeuroMemVDB
 
 if __name__ == "__main__":
     # 创建NeuroMemVDB实例（用于载入数据）

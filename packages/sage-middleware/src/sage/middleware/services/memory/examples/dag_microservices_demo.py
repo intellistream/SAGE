@@ -35,16 +35,15 @@ class SampleApplication:
             max_size=1000,
             ttl_seconds=3600  # 1小时过期
         )
-        self.env.register_service("kv_service", kv_factory.service_class, kv_factory)
+    self.env.register_service_factory("kv_service", kv_factory)
         
         # 注册VDB服务
         vdb_factory = create_vdb_service_factory(
             service_name="vdb_service",
-            collection_name="demo_vectors",
-            dimension=384,
-            persist_directory="./demo_vectors"
+            embedding_dimension=384,
+            index_type="IndexFlatL2",
         )
-        self.env.register_service("vdb_service", vdb_factory.service_class, vdb_factory)
+        self.env.register_service_factory("vdb_service", vdb_factory)
         
         # 注册Memory编排服务
         memory_factory = create_memory_service_factory(
@@ -52,7 +51,7 @@ class SampleApplication:
             kv_service_name="kv_service",
             vdb_service_name="vdb_service"
         )
-        self.env.register_service("memory_service", memory_factory.service_class, memory_factory)
+    self.env.register_service_factory("memory_service", memory_factory)
         
         print("✅ 所有服务已注册")
     
@@ -174,9 +173,9 @@ def create_conversation_dag():
     env = LocalEnvironment("conversation_app", {})
     
     # 注册微服务
-    env.register_service("kv_service", KVService, create_kv_service_factory())
-    env.register_service("vdb_service", VDBService, create_vdb_service_factory())
-    env.register_service("memory_service", MemoryService, create_memory_service_factory())
+    env.register_service_factory("kv_service", create_kv_service_factory())
+    env.register_service_factory("vdb_service", create_vdb_service_factory())
+    env.register_service_factory("memory_service", create_memory_service_factory())
     
     # 创建数据流
     stream = env.from_kafka_source(...)

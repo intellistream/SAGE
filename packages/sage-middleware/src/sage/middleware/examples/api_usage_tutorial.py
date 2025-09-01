@@ -10,10 +10,10 @@ from typing import List, Dict, Any
 from sage.middleware.api import KVServiceAPI, VDBServiceAPI, MemoryServiceAPI, GraphServiceAPI
 
 # 导入具体服务实现和工厂函数
-from sage.middleware import (
+from sage.middleware.services import (
     KVService, VDBService, MemoryService, GraphService,
-    create_kv_service_factory, create_vdb_service_factory, 
-    create_memory_service_factory, create_graph_service_factory
+    create_kv_service_factory, create_vdb_service_factory,
+    create_memory_service_factory, create_graph_service_factory,
 )
 from sage.core.api.local_environment import LocalEnvironment
 
