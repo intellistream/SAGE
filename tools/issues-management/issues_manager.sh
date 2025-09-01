@@ -581,7 +581,7 @@ execute_project_based_assign() {
     echo "  🔍 1. 检测错误分配的Issues (team与project不匹配)"
     echo "  🔧 2. 自动修复检测到的分配问题"
     echo "  🎯 3. 执行智能分配 (基于Project归属)"
-    echo "  � 4. 显示分配结果统计"
+    echo "  📊 4. 显示分配结果统计"
     echo ""
     echo -e "${YELLOW}⚠️ 此操作将修改Issues文件中的分配信息${NC}"
     echo ""
