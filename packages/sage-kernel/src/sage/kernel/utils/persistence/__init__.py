@@ -7,7 +7,7 @@ def _load_version():
     """从 sage-common 包加载版本信息"""
     try:
         # 优先从 sage-common 包加载版本
-        from sage.common._version import __version__
+        from sage.kernel._version import __version__
         return {
             'version': __version__,
             'author': 'SAGE Team',
