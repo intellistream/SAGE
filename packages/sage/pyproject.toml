@@ -9,7 +9,7 @@ description = "SAGE Sage - Streaming-Augmented Generative Execution"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "SAGE Team", email = "sage@intellistream.com"}
+    {name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn"}
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

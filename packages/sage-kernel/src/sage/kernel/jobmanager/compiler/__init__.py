@@ -1,21 +1,37 @@
 """
-ExecutionGraph package - 图执行相关的核心组件
-
-包含以下主要组件：
-- TaskNode: 图节点，表示单个transformation实例
-- ServiceNode: 服务节点，表示服务实例
-- GraphEdge: 图边，表示节点间的连接
-- ExecutionGraph: 执行图，管理整个图的构建和运行时上下文
+SAGE - Streaming-Augmented Generative Execution
 """
 
-from .graph_node import TaskNode
-from .service_node import ServiceNode
-from .graph_edge import GraphEdge
-from .execution_graph import ExecutionGraph
+# 动态版本加载
+def _load_version():
+    """从项目根目录动态加载版本信息"""
+    from pathlib import Path
+    
+    # 获取项目根目录
+    current_file = Path(__file__).resolve()
+    root_dir = current_file.parent.parent.parent.parent.parent.parent.parent
+    version_file = root_dir / "_version.py"
+    
+    # 加载版本信息
+    if version_file.exists():
+        version_globals = {}
+        with open(version_file, 'r', encoding='utf-8') as f:
+            exec(f.read(), version_globals)
+        return {
+            'version': version_globals.get('__version__', '0.1.4'),
+            'author': version_globals.get('__author__', 'SAGE Team'),
+            'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
+        }
+    
+    # 默认值
+    return {
+        'version': '0.1.4',
+        'author': 'SAGE Team', 
+        'email': 'shuhao_zhang@hust.edu.cn'
+    }
 
-__all__ = [
-    'TaskNode',
-    'ServiceNode', 
-    'GraphEdge',
-    'ExecutionGraph'
-]
+# 加载信息
+_info = _load_version()
+__version__ = _info['version']
+__author__ = _info['author']
+__email__ = _info['email']

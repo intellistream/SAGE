@@ -18,11 +18,6 @@ __python_supported_versions__ = ["3.10", "3.11", "3.12"]
 __ruff_target_version__ = "py311"
 __mypy_python_version__ = "3.11"
 
-# 发布信息
-
-__version__ = "0.1.4"
-__version_info__ = (0, 1, 4)
-
 # Release information
 __release_date__ = "2025-09-01"
 __release_status__ = "beta"

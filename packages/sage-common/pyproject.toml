@@ -79,6 +79,10 @@ dev = [
     "safety>=2.3.0",
     "pre-commit>=3.0.0",
     "httpx>=0.24.0",
+    # 发布工具
+    "twine>=4.0.0",
+    "build>=0.10.0",
+    "wheel>=0.40.0",
 ]
 
 # Frontend 依赖
