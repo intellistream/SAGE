@@ -526,11 +526,23 @@ class IssuesSyncer:
         return changes
 
     def _extract_original_body(self, text, include_update_history=None):
-        """从本地issue文件中提取原始的body内容，可选择是否包含更新记录
-        
+        """
+        Extracts the main body content from a local issue file, with optional inclusion of the update history section.
+
+        This method processes the issue file text, skipping metadata and extracting the main body content.
+        The extraction logic handles several edge cases:
+        - Skips metadata and title at the top of the file to find the start of the body.
+        - If `include_update_history` is True, extraction stops at the first separator line (`---`), or at lines starting with
+          "**GitHub链接**:" or "**下载时间**:".
+        - If `include_update_history` is False, extraction also stops at the "## 更新记录" section in addition to the above markers.
+        - Trailing empty lines are removed from the extracted body.
+
         Args:
-            text: issue文件的完整内容
-            include_update_history: 是否包含更新记录，None时使用配置文件设置
+            text (str): The full content of the issue file.
+            include_update_history (bool or None): Whether to include the update history section. If None, uses the config setting.
+
+        Returns:
+            str: The extracted body content.
         """
         if include_update_history is None:
             include_update_history = self.config.sync_update_history
