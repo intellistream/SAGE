@@ -2,9 +2,9 @@ name: SAGE CI/CD
 
 on:
   push:
-    branches: [ main, develop, refactor/* ]
+    branches: [ main-dev, refactor/* ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]  # 只在PR到main分支时运行CI
   workflow_dispatch:
 
 jobs:

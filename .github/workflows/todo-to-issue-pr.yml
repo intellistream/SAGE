@@ -1,18 +1,9 @@
-# ========================================
-# 🚫 WORKFLOW DISABLED TO SAVE COSTS 🚫
-# ========================================
-# 此工作流已被禁用以避免自动触发，节省费用
-# 如需运行TODO转Issue功能，请手动触发工作流
-# This workflow has been disabled to avoid automatic triggers and save costs
-# To run TODO-to-Issue feature, please trigger the workflow manually
-# ========================================
-
-name: TODO-to-Issue (PR) (DISABLED)
+name: TODO-to-Issue (PR)
 
 on:
-  workflow_dispatch:  # 仅允许手动触发
-  # pull_request:     # 已禁用自动触发
-  #   types: [opened, synchronize, reopened]
+  workflow_dispatch:  # 允许手动触发
+  pull_request:       # 自动触发
+    types: [opened, synchronize, reopened]
 
 jobs:
   todo_to_issue:
@@ -27,10 +18,6 @@ jobs:
         uses: alstr/todo-to-issue-action@v5
         with:
           INSERT_ISSUE_URLS: "true"
-          # 修复：使用正确的JSON格式，去掉换行符
-          commits: '["${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"]'
-          # 或者更简单的方式，直接使用字符串：
-          # commits: '"${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"'
           DIFF_URL: ""
 
       - name: Set Git User
