@@ -5,7 +5,20 @@
 
 ## 文件说明
 
-### `test_actions_locally.sh` - GitHub Actions本地模拟测试
+### `final_verification.sh` - 🎯 最终验证脚本 
+全面验证SAGE构建系统的所有修复，确保GitHub Actions工作流能够正常运行。
+
+**功能：**
+- ✅ 验证关键文件存在
+- ✅ 检查版本读取机制
+- ✅ 验证子包结构完整性
+- ✅ 确认移除了不需要的文件
+- ✅ 检查pyproject.toml配置
+- ✅ 验证GitHub Actions工作流语法
+- ✅ 测试PyPI依赖替换逻辑
+- ✅ 快速构建系统测试
+
+### `test_actions_locally.sh` - 🧪 GitHub Actions本地模拟测试
 增强的CI/CD测试工具，全面模拟GitHub Actions环境。
 
 **功能：**
@@ -15,7 +28,7 @@
 - 📋 **语法检查**: 验证workflow YAML语法
 - 💡 **修复建议**: 提供具体的CI改进方案
 
-### `test_ci_install.sh` - 轻量级CI验证工具 🆕
+### `test_ci_install.sh` - ⚡ 轻量级CI验证工具
 快速验证CI配置正确性，不进行耗时的实际安装。
 
 **功能：**

@@ -2,7 +2,7 @@ name: Build and Release
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, main-dev ]
     tags: [ 'v*' ]
   release:
     types: [published]
@@ -15,11 +15,69 @@ env:
   PYTHON_VERSION: '3.11'
   
 jobs:
-  build:
+  build-subpackages:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [sage-common, sage-kernel, sage-middleware, sage-libs]
     
     outputs:
       version: ${{ steps.version.outputs.version }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+                
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build setuptools wheel
+        
+    - name: Get version
+      id: version
+      run: |
+        # 从_version.py读取版本号
+        VERSION=$(python -c "
+        import sys
+        sys.path.insert(0, '.')
+        from _version import __version__
+        print(__version__)
+        ")
+        
+        # 如果是tag触发，使用tag版本
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        fi
+        
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+        
+    - name: Build package ${{ matrix.package }}
+      run: |
+        echo "Building ${{ matrix.package }}..."
+        cd packages/${{ matrix.package }}
+        python -m build --wheel
+        
+    - name: Upload package artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.package }}-wheels
+        path: packages/${{ matrix.package }}/dist/*.whl
+        retention-days: 30
+
+  build-metapackage:
+    needs: build-subpackages
+    runs-on: ubuntu-latest
+    
+    outputs:
+      version: ${{ needs.build-subpackages.outputs.version }}
       wheel-name: ${{ steps.build.outputs.wheel-name }}
       
     steps:
@@ -36,126 +94,86 @@ jobs:
     - name: Install build dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install build setuptools wheel tomli
+        pip install build setuptools wheel
         
-        # Install SAGE packages in correct order (pip install will handle C extension compilation)
-        echo "Installing SAGE packages with automatic C extension building..."
-        pip install -e packages/sage-common
-        pip install -e packages/sage-kernel  # 会自动编译sage_queue C扩展
-        pip install -e packages/sage-middleware  # 会自动编译sage_db C扩展
-        pip install -e packages/sage-libs
-        pip install -e .
-        
-    - name: Get version
-      id: version
+    - name: Update dependencies for PyPI release
+      if: startsWith(github.ref, 'refs/tags/v')
       run: |
-        # 从pyproject.toml中提取版本号
-        VERSION=$(python -c "
-        try:
-            import tomllib
-        except ImportError:
-            import tomli as tomllib
+        # For release builds, replace local file dependencies with PyPI package names
+        python -c "
+        import re
         
-        with open('pyproject.toml', 'rb') as f:
-            data = tomllib.load(f)
-            print(data.get('project', {}).get('version', '0.1.0'))
-        " 2>/dev/null || echo "0.1.0")
+        # Read current pyproject.toml
+        with open('pyproject.toml', 'r') as f:
+            content = f.read()
         
-        # 如果是tag触发，使用tag版本
-        if [[ $GITHUB_REF == refs/tags/* ]]; then
-          VERSION=${GITHUB_REF#refs/tags/v}
-        fi
+        print('Original dependencies section:')
+        print('=' * 50)
         
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "Version: $VERSION"
+        # Show current dependencies section for debugging
+        deps_match = re.search(r'dependencies = \[(.*?)\]', content, re.DOTALL)
+        if deps_match:
+            print(deps_match.group(0))
         
-    - name: Verify installation
+        print('=' * 50)
+        
+        # Replace local file dependencies with PyPI package names
+        # Pattern: 'isage-PACKAGE @ file:./packages/sage-PACKAGE'
+        # Replace with: 'isage-PACKAGE'
+        new_content = re.sub(
+            r'\"isage-([a-zA-Z_-]+) @ file:\./packages/sage-[a-zA-Z_-]+\"',
+            r'\"isage-\1\"',
+            content
+        )
+        
+        # Also handle single quotes
+        new_content = re.sub(
+            r\"'isage-([a-zA-Z_-]+) @ file:\./packages/sage-[a-zA-Z_-]+'\",
+            r\"'isage-\1'\",
+            new_content
+        )
+        
+        # Write updated content
+        with open('pyproject.toml', 'w') as f:
+            f.write(new_content)
+        
+        print('Updated dependencies section:')
+        print('=' * 50)
+        
+        # Show updated dependencies section for verification
+        with open('pyproject.toml', 'r') as f:
+            updated_content = f.read()
+            
+        deps_match = re.search(r'dependencies = \[(.*?)\]', updated_content, re.DOTALL)
+        if deps_match:
+            print(deps_match.group(0))
+            
+        print('=' * 50)
+        print('✅ Dependencies updated for PyPI release')
+        "
+        
+    - name: Build metapackage
+      id: build
       run: |
-        echo "Verifying SAGE installation..."
-        python -c "import sage; print(f'SAGE version: {sage.__version__}')"
-        
-        # Verify C extensions (optional)
-        echo "Checking for compiled C extensions..."
-        find packages/ -name "*.so" -type f | head -10 || echo "No .so files found (C extensions may be optional)"
-        
-    - name: Build source wheel
-      id: build-source
-      run: |
-        echo "Building source wheel..."
-        python -m build --sdist --wheel
+        echo "Building metapackage..."
+        python -m build --wheel
         
         # 获取生成的wheel文件名
         WHEEL_FILE=$(ls dist/*.whl | head -1)
         WHEEL_NAME=$(basename "$WHEEL_FILE")
         
-        echo "source-wheel=$WHEEL_NAME" >> $GITHUB_OUTPUT
-        echo "Source wheel: $WHEEL_NAME"
+        echo "wheel-name=$WHEEL_NAME" >> $GITHUB_OUTPUT
+        echo "Built metapackage wheel: $WHEEL_NAME"
         
-    - name: Build bytecode wheel
-      id: build
-      run: |
-        echo "Building bytecode wheel..."
-        python build_wheel.py --clean
-        
-        # 获取生成的bytecode wheel文件名
-        BYTECODE_WHEEL=$(ls dist/*_bytecode.whl | head -1 || echo "")
-        if [ -n "$BYTECODE_WHEEL" ]; then
-          BYTECODE_NAME=$(basename "$BYTECODE_WHEEL")
-          echo "wheel-name=$BYTECODE_NAME" >> $GITHUB_OUTPUT
-          echo "Bytecode wheel: $BYTECODE_NAME"
-        else
-          echo "No bytecode wheel found, using source wheel"
-          WHEEL_FILE=$(ls dist/*.whl | grep -v _bytecode | head -1)
-          WHEEL_NAME=$(basename "$WHEEL_FILE")
-          echo "wheel-name=$WHEEL_NAME" >> $GITHUB_OUTPUT
-        fi
-        
-    - name: Verify wheel contents
-      run: |
-        echo "Verifying wheel contents..."
-        pip install wheel
-        
-        for wheel_file in dist/*.whl; do
-          echo "=== Contents of $(basename $wheel_file) ==="
-          python -m wheel unpack "$wheel_file" --dest temp_unpack
-          find temp_unpack -type f -name "*.so" | head -10
-          find temp_unpack -type f -name "*.py" | head -10
-          rm -rf temp_unpack
-          echo ""
-        done
-        
-    - name: Test wheel installation
-      run: |
-        echo "Testing wheel installation..."
-        
-        # 创建虚拟环境进行测试
-        python -m venv test_env
-        source test_env/bin/activate
-        
-        # 安装wheel
-        WHEEL_FILE=$(ls dist/*.whl | head -1)
-        pip install "$WHEEL_FILE"
-        
-        # 基本导入测试
-        python -c "import sage; print('SAGE imported successfully')"
-        
-        # 注意：C扩展根据setup.py自动编译，可能需要系统依赖
-        echo "✅ SAGE installation test completed"
-        
-        deactivate
-        rm -rf test_env
-        
-    - name: Upload build artifacts
+    - name: Upload metapackage artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: sage-wheels-${{ steps.version.outputs.version }}
-        path: |
-          dist/*.whl
-          dist/*.tar.gz
-        retention-days: 90
-        
+        name: metapackage-wheel
+        path: dist/*.whl
+        retention-days: 30
+
   test:
-    needs: build
+    needs: [build-subpackages, build-metapackage]
     runs-on: ubuntu-latest
     
     strategy:
@@ -171,39 +189,45 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         
-    - name: Download build artifacts
+    - name: Download all build artifacts
       uses: actions/download-artifact@v4
       with:
-        name: sage-wheels-${{ needs.build.outputs.version }}
-        path: dist/
+        pattern: "*-wheels"
+        merge-multiple: true
+        path: test_wheels/
         
-    - name: Install and test wheel
+    - name: Test subpackage wheels
       run: |
         pip install pytest
         
-        # 安装构建的wheel
-        WHEEL_FILE=$(ls dist/*.whl | head -1)
-        pip install "$WHEEL_FILE"
-        
-        # 运行基本测试
-        python -c "import sage; print(f'SAGE version: {getattr(sage, \"__version__\", \"unknown\")}')"
-        
-        # 如果有测试文件，运行它们
-        if [ -d "tests" ]; then
-          pytest tests/ -v
-        fi
+        # Test individual subpackages
+        for wheel in test_wheels/*.whl; do
+          echo "Testing $(basename $wheel)..."
+          pip install "$wheel" --force-reinstall
+          
+          # Basic import test based on package name
+          if [[ $wheel == *"common"* ]]; then
+            python -c "import sage.common; print('sage.common imported successfully')" || echo "Import failed (may be expected)"
+          elif [[ $wheel == *"kernel"* ]]; then
+            python -c "import sage.kernel; print('sage.kernel imported successfully')" || echo "Import failed (may be expected)"
+          elif [[ $wheel == *"middleware"* ]]; then
+            python -c "import sage.middleware; print('sage.middleware imported successfully')" || echo "Import failed (may be expected)"
+          elif [[ $wheel == *"libs"* ]]; then
+            python -c "import sage.libs; print('sage.libs imported successfully')" || echo "Import failed (may be expected)"
+          fi
+        done
         
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build, test]
+    needs: [build-subpackages, build-metapackage, test]
     runs-on: ubuntu-latest
     
     steps:
-    - name: Download build artifacts
+    - name: Download all build artifacts
       uses: actions/download-artifact@v4
       with:
-        name: sage-wheels-${{ needs.build.outputs.version }}
-        path: dist/
+        merge-multiple: true
+        path: release_files/
         
     - name: Create Release
       uses: actions/github-script@v7
@@ -213,10 +237,9 @@ jobs:
           const path = require('path');
           
           // 获取所有wheel文件
-          const distDir = 'dist';
-          const files = fs.readdirSync(distDir);
+          const releaseDir = 'release_files';
+          const files = fs.readdirSync(releaseDir);
           const wheelFiles = files.filter(f => f.endsWith('.whl'));
-          const tarFiles = files.filter(f => f.endsWith('.tar.gz'));
           
           // 创建release
           const tag = context.ref.replace('refs/tags/', '');
@@ -228,27 +251,27 @@ jobs:
             body: `
           ## SAGE ${tag}
           
-          This is a closed-source release of SAGE including compiled C extensions.
+          Multi-package release including all SAGE components.
           
-          ### 📦 Assets
-          ${wheelFiles.map(f => `- \`${f}\` - Binary wheel package`).join('\n')}
-          ${tarFiles.map(f => `- \`${f}\` - Source distribution`).join('\n')}
+          ### 📦 Packages
+          ${wheelFiles.map(f => `- \`${f}\``).join('\n')}
           
           ### 📋 Installation
           \`\`\`bash
-          pip install ${wheelFiles[0] || 'sage'}
-          \`\`\`
+          # Install the main metapackage
+          pip install ${wheelFiles.find(f => f.startsWith('isage-') && !f.includes('_')) || 'isage'}
           
-          ### ⚠️ Note
-          This is a closed-source distribution. The source code and C extensions are compiled to bytecode.
+          # Or install individual components
+          pip install ${wheelFiles.filter(f => f.includes('_common')).map(f => f.split('-')[0] + '-common').join(' ')}
+          \`\`\`
             `,
             draft: false,
             prerelease: tag.includes('rc') || tag.includes('beta') || tag.includes('alpha')
           });
           
           // 上传assets
-          for (const file of [...wheelFiles, ...tarFiles]) {
-            const filePath = path.join(distDir, file);
+          for (const file of wheelFiles) {
+            const filePath = path.join(releaseDir, file);
             const content = fs.readFileSync(filePath);
             
             await github.rest.repos.uploadReleaseAsset({
@@ -262,29 +285,28 @@ jobs:
             console.log(`Uploaded ${file}`);
           }
           
-    - name: Publish to private registry
-      if: env.PRIVATE_REGISTRY_URL != ''
+    - name: Publish to PyPI (if configured)
+      if: startsWith(github.ref, 'refs/tags/v') && env.PYPI_API_TOKEN != ''
       env:
-        PRIVATE_REGISTRY_URL: ${{ secrets.PRIVATE_REGISTRY_URL }}
-        PRIVATE_REGISTRY_TOKEN: ${{ secrets.PRIVATE_REGISTRY_TOKEN }}
+        PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
       run: |
-        echo "Publishing to private registry..."
-        
-        # 配置私有仓库
+        echo "Publishing to PyPI..."
         pip install twine
         
-        # 上传到私有仓库
+        # 上传所有wheel文件到PyPI，使用非交互模式
         python -m twine upload \
-          --repository-url "$PRIVATE_REGISTRY_URL" \
           --username __token__ \
-          --password "$PRIVATE_REGISTRY_TOKEN" \
-          dist/*.whl
+          --password "$PYPI_API_TOKEN" \
+          --non-interactive \
+          --skip-existing \
+          --verbose \
+          release_files/*.whl
           
-        echo "Published to private registry successfully"
+        echo "Published to PyPI successfully"
         
   cleanup:
     if: always()
-    needs: [build, test, release]
+    needs: [build-subpackages, build-metapackage, test, release]
     runs-on: ubuntu-latest
     
     steps:

@@ -43,13 +43,35 @@ class BuildCExtensions(build_ext):
             
         print("🔧 编译sage_queue C扩展...")
         try:
+            # 设置环境变量，确保在CI环境中正确检测
+            env = os.environ.copy()
+            
+            # 检测CI环境
+            is_ci = (
+                os.getenv('CI') == 'true' or 
+                os.getenv('GITHUB_ACTIONS') == 'true' or
+                os.getenv('GITLAB_CI') == 'true' or
+                os.getenv('JENKINS_URL') is not None
+            )
+            
+            if is_ci:
+                env['CI'] = 'true'
+                env['GITHUB_ACTIONS'] = 'true'
+                env['DEBIAN_FRONTEND'] = 'noninteractive'
+                print("🔍 CI环境检测到，使用非交互式构建")
+                build_args = ["bash", "build.sh", "--install-deps"]
+            else:
+                print("🏠 本地环境检测到，跳过依赖安装以避免密码输入")
+                build_args = ["bash", "build.sh"]  # 不加 --install-deps
+                
             # 切换到sage_queue目录并运行build.sh
             result = subprocess.run(
-                ["bash", "build.sh", "--install-deps"],
+                build_args,
                 cwd=sage_queue_dir,
                 check=True,
                 capture_output=True,
-                text=True
+                text=True,
+                env=env
             )
             print("✅ sage_queue C扩展编译成功")
             print(result.stdout)
