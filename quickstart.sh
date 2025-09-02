@@ -561,7 +561,10 @@ verify_installation() {
     
     if python3 -c "
 import sage
-import sage.common, sage.kernel, sage.libs, sage.middleware
+import sage.common
+import sage.kernel
+import sage.libs
+import sage.middleware
 print(f'${CHECK} SAGE v{sage.__version__} 安装成功！')
 print(f'${CHECK} 所有子包版本一致: {sage.common.__version__}')
 " 2>/dev/null; then
