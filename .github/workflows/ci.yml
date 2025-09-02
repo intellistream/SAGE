@@ -1,8 +1,10 @@
 name: ci
 
 on:
+  push:
+    branches: [ main ]  # 当代码推送到main分支时运行
   pull_request:
-    branches: [ main ]  # 专门用于PR检查
+    branches: [ main ]  # 当创建PR到main分支时运行
   workflow_dispatch:
 
 jobs:
