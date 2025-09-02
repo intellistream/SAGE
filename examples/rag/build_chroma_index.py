@@ -7,7 +7,7 @@ import os
 import sys
 import chromadb
 from sentence_transformers import SentenceTransformer
-from sage.libs.rag.document_loaders import LoaderFactory
+from sage.libs.rag.document_loaders import LoaderFactory,TextLoader,PDFLoader,MarkdownLoader,DocxLoader
 from sage.libs.rag.chunk import CharacterSplitter
 
 def build_and_load_collection(file_path: str, loader_cls, collection_name: str, persistence_path: str):
@@ -65,11 +65,14 @@ if __name__ == '__main__':
     print("\n加载嵌入模型...")
     model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
-    # 示例文件路径（你需要准备这些文件放到 ../data/ 下）
-    txt_file = "examples/data/qa_knowledge_base.txt"
-    pdf_file = "examples/data/qa_knowledge_base.pdf"
-    md_file = "examples/data/qa_knowledge_base.md"
-    docx_file = "examples/data/qa_knowledge_base.docx"
+    # 示例文件路径
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.normpath(os.path.join(script_dir, "../data"))
+
+    txt_file = os.path.join(data_dir, "qa_knowledge_base.txt")
+    pdf_file = os.path.join(data_dir, "qa_knowledge_base.pdf")
+    md_file = os.path.join(data_dir, "qa_knowledge_base.md")
+    docx_file = os.path.join(data_dir, "qa_knowledge_base.docx")
 
     # 依次处理不同格式的文件
     build_and_load_collection(txt_file, TextLoader, "txt_collection", persistence_path)
