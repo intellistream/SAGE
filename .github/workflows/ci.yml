@@ -7,6 +7,11 @@ on:
     branches: [ main ]  # 当创建PR到main分支时运行
   workflow_dispatch:
 
+# 并发控制：同一PR只运行最新的CI，取消之前的运行
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: test
