@@ -49,6 +49,7 @@ dev-local = [
     "isage-middleware @ file:./packages/sage-middleware", 
     "isage-libs @ file:./packages/sage-libs",
     "isage-common @ file:./packages/sage-common",
+    "isage-common @ file:./packages/sage-common",
     # 开发工具
     "pytest>=6.0",
     "pytest-asyncio",
@@ -127,12 +128,9 @@ Documentation = "https://sage.readthedocs.io/"
 "Bug Reports" = "https://github.com/intellistream/SAGE/issues"
 
 [tool.setuptools]
-# 元包配置 - 主要依赖于子包，同时提供统一入口点
-packages = ["sage"]
+# 元包配置 - 提供 sage 模块并依赖所有子包
+packages = {find = {where = ["packages/sage/src"]}}
 include-package-data = true
-
-[tool.setuptools.package-dir]
-sage = "packages/sage/src/sage"
 
 
 # SAGE 项目自定义配置

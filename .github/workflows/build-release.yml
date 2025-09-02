@@ -1,8 +1,31 @@
+# ===============================================
+# SAGE 构建和发布工作流 (Build and Release)
+# ===============================================
+# 目的：构建生产环境的 wheel 包并发布到 PyPI 和 GitHub Releases
+#
+# 触发条件：
+# - 推送到 main 分支（稳定版本）
+# - 推送 v* 标签（正式发布）
+# - 发布 GitHub Release
+#
+# 与 ci.yml 的区别：
+# - 此工作流专注于**打包和发布**
+# - 构建生产环境的 wheel 包
+# - 可以发布到 PyPI 和 GitHub Releases
+# - 不运行详细的测试套件
+#
+# 构建流程：
+# 1. 构建子包 (sage-common, sage-kernel, sage-middleware, sage-libs)
+# 2. 构建 meta 包 (isage) - 依赖所有子包
+# 3. 运行基本测试验证 wheel 包
+# 4. 发布到 GitHub Releases 和 PyPI (仅限标签触发)
+# ===============================================
+
 name: Build and Release
 
 on:
   push:
-    branches: [ main, main-dev ]
+    branches: [ main ]
     tags: [ 'v*' ]
   release:
     types: [published]
@@ -12,9 +35,15 @@ permissions:
   packages: write
 
 env:
-  PYTHON_VERSION: '3.11'
+  PYTHON_VERSION: '3.11'  # 统一使用的 Python 版本
   
 jobs:
+  # ===================
+  # 子包构建任务
+  # ===================
+  # 功能：并行构建所有 SAGE 子包的 wheel 文件
+  # 策略：使用 matrix 策略并行构建 4 个子包
+  # 输出：每个子包的 .whl 文件作为 artifacts
   build-subpackages:
     runs-on: ubuntu-latest
     strategy:
@@ -22,13 +51,13 @@ jobs:
         package: [sage-common, sage-kernel, sage-middleware, sage-libs]
     
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      version: ${{ steps.version.outputs.version }}  # 输出版本号供后续任务使用
       
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 0  # 获取完整历史，用于版本计算
         
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -40,6 +69,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install build setuptools wheel
         
+    # 从 _version.py 读取版本号，或使用 git tag
     - name: Get version
       id: version
       run: |
@@ -59,12 +89,14 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Version: $VERSION"
         
+    # 构建指定的子包
     - name: Build package ${{ matrix.package }}
       run: |
         echo "Building ${{ matrix.package }}..."
         cd packages/${{ matrix.package }}
         python -m build --wheel
         
+    # 上传构建的 wheel 文件作为 artifacts
     - name: Upload package artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -72,13 +104,19 @@ jobs:
         path: packages/${{ matrix.package }}/dist/*.whl
         retention-days: 30
 
+  # ===================
+  # Meta 包构建任务
+  # ===================
+  # 功能：构建主要的 SAGE meta 包 (isage)
+  # 依赖：必须等待所有子包构建完成
+  # 特殊处理：发布时替换本地依赖为 PyPI 包名
   build-metapackage:
-    needs: build-subpackages
+    needs: build-subpackages  # 等待所有子包构建完成
     runs-on: ubuntu-latest
     
     outputs:
-      version: ${{ needs.build-subpackages.outputs.version }}
-      wheel-name: ${{ steps.build.outputs.wheel-name }}
+      version: ${{ needs.build-subpackages.outputs.version }}     # 从子包任务获取版本号
+      wheel-name: ${{ steps.build.outputs.wheel-name }}           # 输出 wheel 文件名
       
     steps:
     - name: Checkout code
@@ -96,8 +134,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install build setuptools wheel
         
+    # 关键步骤：发布时替换本地文件依赖为 PyPI 包名
+    # 例如：'isage-common @ file:./packages/sage-common' → 'isage-common'
     - name: Update dependencies for PyPI release
-      if: startsWith(github.ref, 'refs/tags/v')
+      if: startsWith(github.ref, 'refs/tags/v')  # 仅在标签发布时执行
       run: |
         # For release builds, replace local file dependencies with PyPI package names
         python -c "
@@ -118,8 +158,7 @@ jobs:
         print('=' * 50)
         
         # Replace local file dependencies with PyPI package names
-        # Pattern: 'isage-PACKAGE @ file:./packages/sage-PACKAGE'
-        # Replace with: 'isage-PACKAGE'
+        # Pattern: 'isage-PACKAGE @ file:./packages/sage-PACKAGE' → 'isage-PACKAGE'
         new_content = re.sub(
             r'\"isage-([a-zA-Z_-]+) @ file:\./packages/sage-[a-zA-Z_-]+\"',
             r'\"isage-\1\"',
@@ -152,6 +191,7 @@ jobs:
         print('✅ Dependencies updated for PyPI release')
         "
         
+    # 构建 meta 包 wheel
     - name: Build metapackage
       id: build
       run: |
@@ -165,6 +205,7 @@ jobs:
         echo "wheel-name=$WHEEL_NAME" >> $GITHUB_OUTPUT
         echo "Built metapackage wheel: $WHEEL_NAME"
         
+    # 上传 meta 包 wheel 文件
     - name: Upload metapackage artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -172,13 +213,19 @@ jobs:
         path: dist/*.whl
         retention-days: 30
 
+  # ===============
+  # 基本测试任务
+  # ===============
+  # 功能：验证构建的 wheel 包可以正确安装和导入
+  # 策略：测试多个 Python 版本的兼容性
+  # 范围：基本的包导入测试，不运行完整的测试套件
   test:
-    needs: [build-subpackages, build-metapackage]
+    needs: [build-subpackages, build-metapackage]  # 等待所有包构建完成
     runs-on: ubuntu-latest
     
     strategy:
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11', '3.12']  # 测试多个 Python 版本
         
     steps:
     - name: Checkout code
@@ -189,6 +236,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         
+    # 下载所有构建的 wheel 文件
     - name: Download all build artifacts
       uses: actions/download-artifact@v4
       with:
@@ -196,6 +244,7 @@ jobs:
         merge-multiple: true
         path: test_wheels/
         
+    # 测试每个子包的基本导入功能
     - name: Test subpackage wheels
       run: |
         pip install pytest
@@ -217,18 +266,26 @@ jobs:
           fi
         done
         
+  # ================
+  # 发布任务
+  # ================
+  # 功能：发布到 GitHub Releases 和 PyPI
+  # 触发：仅在推送 v* 标签时执行
+  # 包含：所有构建的 wheel 文件
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-subpackages, build-metapackage, test]
+    if: startsWith(github.ref, 'refs/tags/v')  # 仅在标签发布时运行
+    needs: [build-subpackages, build-metapackage, test]  # 等待构建和测试完成
     runs-on: ubuntu-latest
     
     steps:
+    # 下载所有构建的 artifacts
     - name: Download all build artifacts
       uses: actions/download-artifact@v4
       with:
         merge-multiple: true
         path: release_files/
         
+    # 创建 GitHub Release 并上传所有 wheel 文件
     - name: Create Release
       uses: actions/github-script@v7
       with:
@@ -285,6 +342,7 @@ jobs:
             console.log(`Uploaded ${file}`);
           }
           
+    # 发布到 PyPI (如果配置了 API Token)
     - name: Publish to PyPI (if configured)
       if: startsWith(github.ref, 'refs/tags/v') && env.PYPI_API_TOKEN != ''
       env:
@@ -304,12 +362,19 @@ jobs:
           
         echo "Published to PyPI successfully"
         
+  # ==================
+  # 清理任务
+  # ==================
+  # 功能：清理旧的 artifacts，节省存储空间
+  # 执行：无论其他任务成功失败都会执行
+  # 策略：删除超过 30 天的 artifacts
   cleanup:
-    if: always()
+    if: always()  # 无论其他任务成功失败都执行
     needs: [build-subpackages, build-metapackage, test, release]
     runs-on: ubuntu-latest
     
     steps:
+    # 使用 GitHub API 清理超过 30 天的旧 artifacts
     - name: Clean up old artifacts
       uses: actions/github-script@v7
       with:
