@@ -116,6 +116,16 @@ class LoaderFactory:
         loader = loader_cls(filepath)
         return loader.load()
 
+__all__ = [
+    "TextLoader",
+    "PDFLoader",
+    "DocxLoader",
+    "DocLoader",
+    "MarkdownLoader",
+    "LoaderFactory",
+]
+
+
 
 """
 # 自动识别并加载
