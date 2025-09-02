@@ -9,15 +9,16 @@ SAGE (Streaming-Augmented Generative Execution) 是一个强大的分布式流�
 ## 包含的组件
 
 ### 核心组件 (默认安装)
-- **sage-utils**: 基础工具和实用程序
-- **sage-kernel**: 核心运行时和任务执行引擎  
-- **sage-middleware**: 中间件服务 (存储、队列、缓存等)
-- **sage-cli**: 命令行工具
+- **isage-common**: 基础工具和CLI命令
+- **isage-kernel**: 核心运行时和任务执行引擎  
+- **isage-middleware**: 中间件服务 (存储、队列、缓存等)
+- **isage-libs**: 应用示例和工具库
 
 ### 可选组件
-- **sage-dev-toolkit**: 开发工具包 (`pip install isage[dev]`)
-- **sage-frontend**: Web 前端界面 (`pip install isage[full]`)
-- **sage-libs**: 企业级应用 (`pip install isage[enterprise]`)
+- **开发工具**: 开发测试工具 (`pip install isage[dev]`)
+- **CLI工具**: 命令行增强 (`pip install isage[cli]`)
+- **前端界面**: Web 前端界面 (`pip install isage[frontend]`)
+- **完整功能**: 所有功能组件 (`pip install isage[full]`)
 
 ## 快速开始
 

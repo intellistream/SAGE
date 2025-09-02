@@ -39,6 +39,16 @@ output/
 gitlogs.txt
 install.log
 
+# C++ 构建产物
+**/build/
+**/install/
+**/cmake-build*/
+**/CMakeFiles/
+**/CMakeCache.txt
+**/cmake_install.cmake
+**/install_manifest.txt
+**/compile_commands.json
+
 .github/chatmodes/
 id_llm
 auto_env_setup.log
