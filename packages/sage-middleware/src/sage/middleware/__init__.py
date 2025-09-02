@@ -1,40 +1,56 @@
 """
-SAGE Middleware Framework
-
-This module provides middleware components including API services, database
-integrations, and messaging infrastructure.
+SAGE - Streaming-Augmented Generative Execution
 """
 
-__version__ = "2.0.0"
+# 动态版本加载
+def _load_version():
+    """从 sage-common 包加载版本信息"""
+    try:
+        # 优先从 sage-common 包加载版本
+        from sage.common._version import __version__
+        return {
+            'version': __version__,
+            'author': 'SAGE Team',
+            'email': 'shuhao_zhang@hust.edu.cn'
+        }
+    except ImportError:
+        # 如果 sage-common 不可用，从项目根目录加载（开发环境）
+        try:
+            from pathlib import Path
+            current_file = Path(__file__).resolve()
+            # 根据当前文件位置计算到项目根目录的层数
+            parts = current_file.parts
+            sage_index = -1
+            for i, part in enumerate(parts):
+                if part == 'SAGE':
+                    sage_index = i
+                    break
+            
+            if sage_index >= 0:
+                root_dir = Path(*parts[:sage_index+1])
+                version_file = root_dir / "_version.py"
+                
+                if version_file.exists():
+                    version_globals = {}
+                    with open(version_file, 'r', encoding='utf-8') as f:
+                        exec(f.read(), version_globals)
+                    return {
+                        'version': version_globals.get('__version__', '0.1.3'),
+                        'author': version_globals.get('__author__', 'SAGE Team'),
+                        'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
+                    }
+        except Exception:
+            pass
+    
+    # 最后的默认值
+    return {
+        'version': '0.1.3',
+        'author': 'SAGE Team', 
+        'email': 'shuhao_zhang@hust.edu.cn'
+    }
 
-# 精简导出，避免 * 导入导致命名冲突
-from .services import (
-    KVService,
-    VDBService,
-    MemoryService,
-    GraphService,
-    create_kv_service_factory,
-    create_vdb_service_factory,
-    create_memory_service_factory,
-    create_graph_service_factory,
-)
-
-__all__ = [
-    "__version__",
-    # 服务类
-    "KVService",
-    "VDBService",
-    "MemoryService",
-    "GraphService",
-    # 工厂函数
-    "create_kv_service_factory",
-    "create_vdb_service_factory",
-    "create_memory_service_factory",
-    "create_graph_service_factory",
-]
-
-__author__ = "SAGE Team"
-__description__ = "SAGE Microservices as Service Tasks"
-
-# 兼容性别名（如需要保留历史别名）
-LegacyMemoryService = MemoryService
+# 加载信息
+_info = _load_version()
+__version__ = _info['version']
+__author__ = _info['author']
+__email__ = _info['email']

@@ -4,9 +4,7 @@
 
 ## 文件说明
 
-- `publish_sage.sh` - 主要的 PyPI 发布脚本（推荐使用）
-- `quick_publish_all.sh` - 快速发布脚本（已移动，需要更新）
-- `publish_all_proprietary.sh` - 企业版发布脚本（已移动，需要更新）
+- `publish_sage.sh` - 统一的 PyPI 发布脚本
 
 ## 使用方法
 
@@ -85,10 +83,10 @@
 
 当前 SAGE 包结构：
 
-- **isage** (0.1.0) - Meta 包
-- **isage-common** (0.1.0) - 通用工具合集
-- **isage-kernel** (0.1.0) - 内核功能
-- **isage-middleware** (0.1.0) - 中间件
-- **isage-libs** (0.1.0) - 应用示例
+- **isage** (0.1.4) - Meta 包
+- **isage-common** (0.1.4) - 通用工具合集
+- **isage-kernel** (0.1.4) - 内核功能
+- **isage-middleware** (0.1.4) - 中间件
+- **isage-libs** (0.1.4) - 应用示例
 
 所有包都使用 MIT 许可证。

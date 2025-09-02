@@ -1,28 +1,56 @@
 """
-SAGE Memory-Mapped Queue Package
-
-高性能进程间通信队列，基于mmap和C实现
-支持与Python标准Queue兼容的接口，以及Ray Actor集成
+SAGE - Streaming-Augmented Generative Execution
 """
 
-# Import from python submodule
-try:
-    from .python.sage_queue import SageQueue
-    from .python.sage_queue_manager import SageQueueManager
-    exported_classes = ['SageQueue', 'SageQueueManager']
-except ImportError:
-    # Graceful fallback if python module not available
-    exported_classes = []
+# 动态版本加载
+def _load_version():
+    """从 sage-common 包加载版本信息"""
+    try:
+        # 优先从 sage-common 包加载版本
+        from sage.kernel._version import __version__
+        return {
+            'version': __version__,
+            'author': 'SAGE Team',
+            'email': 'shuhao_zhang@hust.edu.cn'
+        }
+    except ImportError:
+        # 如果 sage-common 不可用，从项目根目录加载（开发环境）
+        try:
+            from pathlib import Path
+            current_file = Path(__file__).resolve()
+            # 根据当前文件位置计算到项目根目录的层数
+            parts = current_file.parts
+            sage_index = -1
+            for i, part in enumerate(parts):
+                if part == 'SAGE':
+                    sage_index = i
+                    break
+            
+            if sage_index >= 0:
+                root_dir = Path(*parts[:sage_index+1])
+                version_file = root_dir / "_version.py"
+                
+                if version_file.exists():
+                    version_globals = {}
+                    with open(version_file, 'r', encoding='utf-8') as f:
+                        exec(f.read(), version_globals)
+                    return {
+                        'version': version_globals.get('__version__', '0.1.3'),
+                        'author': version_globals.get('__author__', 'SAGE Team'),
+                        'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
+                    }
+        except Exception:
+            pass
+    
+    # 最后的默认值
+    return {
+        'version': '0.1.3',
+        'author': 'SAGE Team', 
+        'email': 'shuhao_zhang@hust.edu.cn'
+    }
 
-# Import C++ bindings if available
-try:
-    from . import sage_queue_bindings
-    from .sage_queue_bindings import SimpleBoostQueue, RingBufferStats, RingBufferRef
-    exported_classes.extend(['sage_queue_bindings', 'SimpleBoostQueue', 'RingBufferStats', 'RingBufferRef'])
-except ImportError:
-    # C++ extension not available
-    sage_queue_bindings = None
-
-__all__ = exported_classes
-__version__ = "0.1.0"
-__author__ = "SAGE Team"
+# 加载信息
+_info = _load_version()
+__version__ = _info['version']
+__author__ = _info['author']
+__email__ = _info['email']

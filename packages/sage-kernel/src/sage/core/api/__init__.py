@@ -1,51 +1,56 @@
 """
-SAGE Kernel API Module
-
-Core streaming API interfaces for SAGE kernel.
-这个模块包含了所有外部模块需要的核心API接口。
+SAGE - Streaming-Augmented Generative Execution
 """
 
-# 核心环境接口
-from .base_environment import BaseEnvironment
-from .local_environment import LocalEnvironment
-from .remote_environment import RemoteEnvironment
-
-# 数据流接口
-from .datastream import DataStream
-from .connected_streams import ConnectedStreams
-
-
-# 核心函数基类
-from .function.base_function import BaseFunction
-from .function.batch_function import BatchFunction
-from .function.map_function import MapFunction
-from .function.filter_function import FilterFunction
-from .function.sink_function import SinkFunction
-from .function.source_function import SourceFunction
-from .function.keyby_function import KeyByFunction
-from .function.flatmap_function import FlatMapFunction
-from .function.comap_function import BaseCoMapFunction
-from .function.join_function import BaseJoinFunction
-
-__all__ = [
-    # 环境类
-    'BaseEnvironment',
-    'LocalEnvironment', 
-    'RemoteEnvironment',
+# 动态版本加载
+def _load_version():
+    """从 sage-common 包加载版本信息"""
+    try:
+        # 优先从 sage-common 包加载版本
+        from sage.kernel._version import __version__
+        return {
+            'version': __version__,
+            'author': 'SAGE Team',
+            'email': 'shuhao_zhang@hust.edu.cn'
+        }
+    except ImportError:
+        # 如果 sage-common 不可用，从项目根目录加载（开发环境）
+        try:
+            from pathlib import Path
+            current_file = Path(__file__).resolve()
+            # 根据当前文件位置计算到项目根目录的层数
+            parts = current_file.parts
+            sage_index = -1
+            for i, part in enumerate(parts):
+                if part == 'SAGE':
+                    sage_index = i
+                    break
+            
+            if sage_index >= 0:
+                root_dir = Path(*parts[:sage_index+1])
+                version_file = root_dir / "_version.py"
+                
+                if version_file.exists():
+                    version_globals = {}
+                    with open(version_file, 'r', encoding='utf-8') as f:
+                        exec(f.read(), version_globals)
+                    return {
+                        'version': version_globals.get('__version__', '0.1.3'),
+                        'author': version_globals.get('__author__', 'SAGE Team'),
+                        'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
+                    }
+        except Exception:
+            pass
     
-    # 数据流类
-    'DataStream',
-    'ConnectedStreams',
-    
-    # 函数类
-    'BaseFunction',
-    'BatchFunction',
-    'MapFunction',
-    'FilterFunction',
-    'SinkFunction',
-    'SourceFunction',
-    'KeyByFunction',
-    'FlatMapFunction',
-    'BaseCoMapFunction',
-    'BaseJoinFunction',
-]
+    # 最后的默认值
+    return {
+        'version': '0.1.3',
+        'author': 'SAGE Team', 
+        'email': 'shuhao_zhang@hust.edu.cn'
+    }
+
+# 加载信息
+_info = _load_version()
+__version__ = _info['version']
+__author__ = _info['author']
+__email__ = _info['email']

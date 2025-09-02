@@ -1,82 +1,56 @@
 """
-SAGE sage-kernel Enterprise Edition
-企业版功能需要有效的商业许可证
+SAGE - Streaming-Augmented Generative Execution
 """
 
-import os
-import sys
-from pathlib import Path
-
-# 添加license工具到路径
-_PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent.parent
-_LICENSE_TOOLS = _PROJECT_ROOT / "tools" / "license"
-
-if _LICENSE_TOOLS.exists():
-    sys.path.insert(0, str(_LICENSE_TOOLS))
-    sys.path.insert(0, str(_LICENSE_TOOLS / "shared"))
-
-
-def _check_enterprise_license():
-    """检查企业版license"""
+# 动态版本加载
+def _load_version():
+    """从 sage-common 包加载版本信息"""
     try:
-        from shared.validation import LicenseValidator
-        
-        validator = LicenseValidator()
-        if not validator.has_valid_license():
-            return False
-            
-        features = validator.get_license_features()
-        # 检查是否有企业版功能
-        required_features = ["enterprise", "high-performance", "enterprise-db", "advanced-analytics"]
-        return any(feature in features for feature in required_features)
-        
+        # 优先从 sage-common 包加载版本
+        from sage.kernel._version import __version__
+        return {
+            'version': __version__,
+            'author': 'SAGE Team',
+            'email': 'shuhao_zhang@hust.edu.cn'
+        }
     except ImportError:
-        # License工具不可用，检查环境变量
-        return os.getenv("SAGE_ENTERPRISE_ENABLED", "").lower() in ["true", "1", "yes"]
-    except Exception:
-        return False
+        # 如果 sage-common 不可用，从项目根目录加载（开发环境）
+        try:
+            from pathlib import Path
+            current_file = Path(__file__).resolve()
+            # 根据当前文件位置计算到项目根目录的层数
+            parts = current_file.parts
+            sage_index = -1
+            for i, part in enumerate(parts):
+                if part == 'SAGE':
+                    sage_index = i
+                    break
+            
+            if sage_index >= 0:
+                root_dir = Path(*parts[:sage_index+1])
+                version_file = root_dir / "_version.py"
+                
+                if version_file.exists():
+                    version_globals = {}
+                    with open(version_file, 'r', encoding='utf-8') as f:
+                        exec(f.read(), version_globals)
+                    return {
+                        'version': version_globals.get('__version__', '0.1.3'),
+                        'author': version_globals.get('__author__', 'SAGE Team'),
+                        'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
+                    }
+        except Exception:
+            pass
+    
+    # 最后的默认值
+    return {
+        'version': '0.1.3',
+        'author': 'SAGE Team', 
+        'email': 'shuhao_zhang@hust.edu.cn'
+    }
 
-
-# 企业版功能可用性检查
-_ENTERPRISE_AVAILABLE = _check_enterprise_license()
-
-if not _ENTERPRISE_AVAILABLE:
-    import warnings
-    warnings.warn(
-        f"SAGE sage-kernel Enterprise features require a valid commercial license. "
-        "Enterprise functionality will be disabled. "
-        "Please contact your SAGE vendor for licensing information.",
-        UserWarning,
-        stacklevel=2
-    )
-
-
-def require_enterprise_license(func):
-    """装饰器：要求企业版license"""
-    def wrapper(*args, **kwargs):
-        if not _ENTERPRISE_AVAILABLE:
-            raise RuntimeError(
-                f"SAGE sage-kernel Enterprise feature requires a valid commercial license. "
-                f"This functionality is not available with your current license."
-            )
-        return func(*args, **kwargs)
-    return wrapper
-
-
-# 根据license状态导入功能
-if _ENTERPRISE_AVAILABLE:
-    # 导入所有企业版功能
-    try:
-        # 这里会根据实际的企业版模块来调整
-        pass
-    except ImportError as e:
-        print(f"Warning: Failed to import some enterprise features: {e}")
-else:
-    # 企业版功能不可用时的占位符
-    pass
-
-
-__all__ = [
-    "_ENTERPRISE_AVAILABLE",
-    "require_enterprise_license"
-]
+# 加载信息
+_info = _load_version()
+__version__ = _info['version']
+__author__ = _info['author']
+__email__ = _info['email']

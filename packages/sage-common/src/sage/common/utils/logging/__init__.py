@@ -1,49 +1,37 @@
 """
-日志记录模块
-=========
-
-提供自定义日志记录功能。
-
-模块:
-----
-- custom_logger: 多输出目标的自定义日志记录器
-- custom_formatter: IDE友好的日志格式化器
-
-Examples:
---------
->>> from sage.common.utils.logging import CustomLogger, get_logger
->>> 
->>> # 创建多输出日志记录器
->>> logger = CustomLogger([
-...     ("console", "INFO"),
-...     ("app.log", "DEBUG")
-... ], name="MyApp", log_base_folder="./logs")
->>> 
->>> logger.info("应用启动")
->>> 
->>> # 或者使用简便的get_logger函数
->>> logger = get_logger("MyApp")
->>> logger.info("简单日志记录")
+SAGE - Streaming-Augmented Generative Execution
 """
 
-from .custom_logger import CustomLogger
-from .custom_formatter import CustomFormatter
-
-def get_logger(name: str = "SAGE", level: str = "INFO"):
-    """
-    获取一个简单的日志记录器
+# 动态版本加载
+def _load_version():
+    """从项目根目录动态加载版本信息"""
+    from pathlib import Path
     
-    Args:
-        name: 日志记录器名称
-        level: 日志级别
-        
-    Returns:
-        CustomLogger: 配置好的日志记录器
-    """
-    return CustomLogger([("console", level)], name=name)
+    # 获取项目根目录
+    current_file = Path(__file__).resolve()
+    root_dir = current_file.parent.parent.parent.parent.parent.parent.parent
+    version_file = root_dir / "_version.py"
+    
+    # 加载版本信息
+    if version_file.exists():
+        version_globals = {}
+        with open(version_file, 'r', encoding='utf-8') as f:
+            exec(f.read(), version_globals)
+        return {
+            'version': version_globals.get('__version__', '0.1.3'),
+            'author': version_globals.get('__author__', 'SAGE Team'),
+            'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
+        }
+    
+    # 默认值
+    return {
+        'version': '0.1.3',
+        'author': 'SAGE Team', 
+        'email': 'shuhao_zhang@hust.edu.cn'
+    }
 
-__all__ = [
-    "CustomLogger",
-    "CustomFormatter", 
-    "get_logger",
-]
+# 加载信息
+_info = _load_version()
+__version__ = _info['version']
+__author__ = _info['author']
+__email__ = _info['email']
