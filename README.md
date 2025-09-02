@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![PR Checks](https://github.com/intellistream/SAGE/actions/workflows/ci.yml/badge.svg?branch=main-dev)](https://github.com/intellistream/SAGE/actions/workflows/ci.yml)
+[![PR Checks](https://github.com/intellistream/SAGE/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci.yml)
 [![Development CI](https://github.com/intellistream/SAGE/actions/workflows/dev-ci.yml/badge.svg?branch=main-dev)](https://github.com/intellistream/SAGE/actions/workflows/dev-ci.yml)
 [![Branch Protection](https://github.com/intellistream/SAGE/actions/workflows/only-main-dev.yml/badge.svg)](https://github.com/intellistream/SAGE/actions/workflows/only-main-dev.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
