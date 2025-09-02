@@ -59,8 +59,13 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        cache: 'pip'
       timeout-minutes: 5
+      
+    # 创建pip缓存目录
+    - name: Create pip cache directory
+      run: |
+        mkdir -p /home/runner/.cache/pip
+        mkdir -p /tmp/pip-cache
       
     # 设置 Miniconda (quickstart.sh 需要conda可用)
     - name: Setup Miniconda for quickstart.sh
