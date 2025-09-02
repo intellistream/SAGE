@@ -141,6 +141,12 @@ jobs:
           echo "No tests directory found, skipping pytest"
         fi
       timeout-minutes: 20
+      
+    # 明确报告成功状态
+    - name: Report Success
+      run: |
+        echo "✅ All checks passed successfully"
+        echo "::notice ::PR Checks completed successfully"
         
   # Docker 集成测试提醒
   docker-integration-reminder:
