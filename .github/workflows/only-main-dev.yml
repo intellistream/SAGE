@@ -1,11 +1,12 @@
-name: source-branch-guard
+name: branch-guard
 
 on:
   pull_request:
     branches: [ main ]
 
 jobs:
-  enforce-source:
+  check:
+    name: check
     runs-on: ubuntu-latest
     steps:
       - name: Block PRs that are not from main-dev

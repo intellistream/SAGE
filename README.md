@@ -1,5 +1,17 @@
 # <div align="center">🧠 SAGE: A Dataflow-Native Framework for LLM Reasoning<div>
 
+<div align="center">
+
+[![PR Checks](https://github.com/intellistream/SAGE/actions/workflows/ci.yml/badge.svg?branch=main-dev)](https://github.com/intellistream/SAGE/actions/workflows/ci.yml)
+[![Development CI](https://github.com/intellistream/SAGE/actions/workflows/dev-ci.yml/badge.svg?branch=main-dev)](https://github.com/intellistream/SAGE/actions/workflows/dev-ci.yml)
+[![Branch Protection](https://github.com/intellistream/SAGE/actions/workflows/only-main-dev.yml/badge.svg)](https://github.com/intellistream/SAGE/actions/workflows/only-main-dev.yml)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
+[![GitHub Issues](https://img.shields.io/github/issues/intellistream/SAGE)](https://github.com/intellistream/SAGE/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/intellistream/SAGE?style=social)](https://github.com/intellistream/SAGE/stargazers)
+
+</div>
+
 
 SAGE is a dataflow-native reasoning framework built from the ground up to support modular, controllable, and transparent workflows over Large Language Models (LLMs). It addresses common problems in existing LLM-augmented systems (like RAG and Agents), such as hard-coded orchestration logic, opaque execution paths, and limited runtime control. SAGE introduces a dataflow-centric abstraction, modeling reasoning workflows as directed acyclic graphs (DAGs) composed of typed operators.
 

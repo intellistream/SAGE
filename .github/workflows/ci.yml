@@ -1,4 +1,4 @@
-name: PR Checks
+name: ci
 
 on:
   pull_request:
@@ -6,9 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build and Test
-    # runs-on: self-hosted  # 使用 self-hosted runner
+  test:
+    name: test
     runs-on: ubuntu-latest  # 使用 ubuntu-latest runner
     timeout-minutes: 60
     
@@ -144,9 +143,22 @@ jobs:
       
     # 明确报告成功状态
     - name: Report Success
+      if: success()
       run: |
         echo "✅ All checks passed successfully"
         echo "::notice ::PR Checks completed successfully"
+        
+    # 确保在任何情况下都报告最终状态
+    - name: Final Status Report
+      if: always()
+      run: |
+        if [ "${{ job.status }}" = "success" ]; then
+          echo "::notice ::Workflow completed successfully"
+          exit 0
+        else
+          echo "::error ::Workflow failed"
+          exit 1
+        fi
         
   # Docker 集成测试提醒
   docker-integration-reminder:
