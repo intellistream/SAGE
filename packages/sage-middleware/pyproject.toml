@@ -83,9 +83,7 @@ dependencies = [
     "markdown>=3.4.4",
     "pymdown-extensions>=10.2.1",
 ]
-
-[project.license]
-text = "MIT"
+license = "MIT"
 
 [project.optional-dependencies]
 # SAGE framework dependencies (for local development)  
