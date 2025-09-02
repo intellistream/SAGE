@@ -10,7 +10,7 @@ on:
 jobs:
   test:
     name: Test & Build
-    runs-on: self-hosted  # 使用 self-hosted runner
+    runs-on: ubuntu-latest  # 使用 ubuntu-latest runner
     timeout-minutes: 60
     
     env:
