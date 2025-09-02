@@ -1,17 +1,3 @@
-# ===========================================
-# 分支保护工作流 (Branch Protection)
-# ===========================================
-# 目的：确保只有来自 main-dev 分支的 PR 才能合并到 main 分支
-# 
-# 触发条件：
-# - 创建到 main 分支的 Pull Request
-#
-# 功能：
-# - 检查 PR 的源分支必须是 main-dev
-# - 阻止其他分支直接合并到 main
-# - 维护代码分支管理规范
-# ===========================================
-
 name: source-branch-guard
 
 on:
@@ -19,22 +5,15 @@ on:
     branches: [ main ]
 
 jobs:
-  # =================
-  # 分支来源检查任务
-  # =================
-  # 功能：验证 PR 来源分支必须是 main-dev
   enforce-source:
     runs-on: ubuntu-latest
     steps:
       - name: Block PRs that are not from main-dev
         env:
-          HEAD_REF: ${{ github.head_ref }}  # PR 的源分支
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           echo "PR head: $HEAD_REF"
           if [ "$HEAD_REF" != "main-dev" ]; then
             echo "::error ::Only PRs from 'main-dev' to 'main' are allowed."
-            echo "::error ::Current PR is from: $HEAD_REF"
-            echo "::error ::Please create PR from main-dev branch instead."
             exit 1
           fi
-          echo "✅ PR source branch validation passed: $HEAD_REF"

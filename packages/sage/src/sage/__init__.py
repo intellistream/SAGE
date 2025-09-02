@@ -35,3 +35,6 @@ _info = _load_version()
 __version__ = _info['version']
 __author__ = _info['author']
 __email__ = _info['email']
+
+# 扩展命名空间包路径以支持子包
+__path__ = __import__('pkgutil').extend_path(__path__, __name__)

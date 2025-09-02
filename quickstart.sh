@@ -272,13 +272,28 @@ install_sage() {
 # 安装核心包
 install_core_packages() {
     echo -e "${INFO} 安装核心 SAGE 包..."
-    if python3 -m pip install -e . --quiet; then
-        echo -e "${CHECK} SAGE 核心包安装成功！"
-        return 0
-    else
-        echo -e "${CROSS} SAGE 核心包安装失败！"
-        exit 1
-    fi
+    
+    # SAGE 包安装顺序：sage-common → sage-kernel → sage-middleware → sage-libs → sage
+    local sage_packages=("sage-common" "sage-kernel" "sage-middleware" "sage-libs" "sage")
+    
+    for package in "${sage_packages[@]}"; do
+        local package_path="packages/$package"
+        
+        if [ -d "$package_path" ]; then
+            echo -e "${DIM}  → 安装 $package (开发模式)${NC}"
+            if python3 -m pip install -e "$package_path" --quiet; then
+                echo -e "${CHECK} $package 安装成功"
+            else
+                echo -e "${CROSS} $package 安装失败！"
+                exit 1
+            fi
+        else
+            echo -e "${WARNING} 跳过不存在的包: $package"
+        fi
+    done
+    
+    echo -e "${CHECK} SAGE 核心包安装成功！"
+    return 0
 }
 
 # 安装科学计算包
@@ -328,15 +343,29 @@ install_dev_packages() {
 # 最小安装
 install_minimal_packages() {
     echo -e "${INFO} 最小化安装核心组件..."
-    # 先安装完整包，但提示是最小化
-    if python3 -m pip install -e . --quiet; then
-        echo -e "${CHECK} SAGE包安装成功！"
-        echo -e "${INFO} 跳过额外的科学计算库安装 (最小化模式)"
-        echo -e "${DIM}如需完整功能，建议使用 --standard 模式${NC}"
-    else
-        echo -e "${CROSS} 最小安装失败！"
-        exit 1
-    fi
+    
+    # SAGE 包安装顺序：sage-common → sage-kernel → sage-middleware → sage-libs → sage
+    local sage_packages=("sage-common" "sage-kernel" "sage-middleware" "sage-libs" "sage")
+    
+    for package in "${sage_packages[@]}"; do
+        local package_path="packages/$package"
+        
+        if [ -d "$package_path" ]; then
+            echo -e "${DIM}  → 最小安装 $package (开发模式)${NC}"
+            if python3 -m pip install -e "$package_path" --quiet; then
+                echo -e "${CHECK} $package 安装成功"
+            else
+                echo -e "${CROSS} $package 安装失败！"
+                exit 1
+            fi
+        else
+            echo -e "${WARNING} 跳过不存在的包: $package"
+        fi
+    done
+    
+    echo -e "${CHECK} SAGE包安装成功！"
+    echo -e "${INFO} 跳过额外的科学计算库安装 (最小化模式)"
+    echo -e "${DIM}如需完整功能，建议使用 --standard 模式${NC}"
 }
 
 # 检查企业版许可证
