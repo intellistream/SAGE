@@ -12,6 +12,14 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# 创建日志目录
+LOG_DIR="$PROJECT_ROOT/logs/pypi"
+mkdir -p "$LOG_DIR"
+
+# 生成日志文件名（包含时间戳）
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+LOG_FILE="$LOG_DIR/publish_${TIMESTAMP}.log"
+
 # 颜色配置
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -23,22 +31,38 @@ NC='\033[0m'
 # 日志函数
 log_info() {
     echo -e "${BLUE}ℹ️  $1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] INFO: $1" >> "$LOG_FILE"
 }
 
 log_success() {
     echo -e "${GREEN}✅ $1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] SUCCESS: $1" >> "$LOG_FILE"
 }
 
 log_warning() {
     echo -e "${YELLOW}⚠️  $1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] WARNING: $1" >> "$LOG_FILE"
 }
 
 log_error() {
     echo -e "${RED}❌ $1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $1" >> "$LOG_FILE"
 }
 
 log_header() {
     echo -e "${BOLD}${BLUE}$1${NC}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] HEADER: $1" >> "$LOG_FILE"
+}
+
+# 简化的控制台日志函数
+log_simple() {
+    echo -e "$1"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $2" >> "$LOG_FILE"
+}
+
+# 只写文件不显示控制台的日志函数
+log_file_only() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
 }
 
 # 检查依赖
@@ -80,7 +104,7 @@ build_package() {
     local package_path="$1"
     local package_name=$(basename "$package_path")
     
-    log_info "构建包: $package_name"
+    log_simple "${BLUE}📦 构建 $package_name${NC}" "INFO: 开始构建包 $package_name"
     
     cd "$package_path"
     
@@ -90,8 +114,9 @@ build_package() {
         return 1
     fi
     
-    # 构建包
-    if ! python -m build --wheel; then
+    # 构建包 (输出重定向到日志文件)
+    log_file_only "开始执行: python -m build --wheel"
+    if ! python -m build --wheel >> "$LOG_FILE" 2>&1; then
         log_error "$package_name: 构建失败"
         return 1
     fi
@@ -106,7 +131,7 @@ upload_package() {
     local package_name=$(basename "$package_path")
     local dry_run="$2"
     
-    log_info "上传包: $package_name"
+    log_simple "${YELLOW}⬆️  上传 $package_name${NC}" "INFO: 开始上传包 $package_name"
     
     cd "$package_path"
     
@@ -120,27 +145,41 @@ upload_package() {
     
     if [[ "$dry_run" == "true" ]]; then
         upload_cmd="$upload_cmd --repository testpypi"
-        log_info "$package_name: 上传到 TestPyPI (预演模式)"
+        log_file_only "$package_name: 上传到 TestPyPI (预演模式)"
     else
-        log_info "$package_name: 上传到 PyPI"
+        log_file_only "$package_name: 上传到 PyPI"
     fi
     
-    # 执行上传
+    # 执行上传 (输出重定向到日志文件)
+    log_file_only "开始执行: $upload_cmd"
     local upload_output
     upload_output=$(eval "$upload_cmd" 2>&1)
     local exit_code=$?
+    
+    # 将上传输出写入日志文件
+    echo "$upload_output" >> "$LOG_FILE"
     
     if [[ $exit_code -eq 0 ]]; then
         log_success "$package_name: 上传成功"
         return 0
     else
-        # 检查是否为文件已存在错误
-        if echo "$upload_output" | grep -q "File already exists\|already exists\|400 Bad Request"; then
+        # 只在控制台显示简化的错误信息，详细信息写入日志
+        log_error "$package_name: 上传失败"
+        log_file_only "完整错误信息 (退出码: $exit_code):"
+        log_file_only "$upload_output"
+        
+        # 更精确的文件已存在错误检测
+        if echo "$upload_output" | grep -q "File already exists"; then
             log_warning "$package_name: 文件已存在，跳过"
             return 0
+        elif echo "$upload_output" | grep -q "already exists"; then
+            log_warning "$package_name: 版本已存在，跳过"
+            return 0
+        elif echo "$upload_output" | grep -q "400.*filename.*already.*exists"; then
+            log_warning "$package_name: 文件名已存在，跳过"
+            return 0
         else
-            log_error "$package_name: 上传失败 (退出码: $exit_code)"
-            log_error "错误信息: $upload_output"
+            log_file_only "$package_name: 上传失败，非重复文件错误"
             return 1
         fi
     fi
@@ -237,6 +276,11 @@ show_help() {
 main() {
     local dry_run="false"
     local clean_only="false"
+    
+    # 初始化日志
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ======== SAGE PyPI 发布脚本开始 ========" > "$LOG_FILE"
+    echo "📝 详细日志: $LOG_FILE"
+    echo
     
     # 解析参数
     while [[ $# -gt 0 ]]; do

@@ -9,7 +9,7 @@ name = "isage"
 dynamic = ["version"]
 description = "SAGE - Streaming-Augmented Generative Execution"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn"}
 ]
