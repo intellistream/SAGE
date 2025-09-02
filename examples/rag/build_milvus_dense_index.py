@@ -2,7 +2,7 @@ import os
 import sys
 from sage.libs.rag.chunk import CharacterSplitter
 from sage.libs.rag.document_loaders import TextLoader
-from sage.libs.rag.retriever import MilvusDenseRetriever
+from sage.libs.rag.milvusRetriever import MilvusDenseRetriever
 import yaml
 from sage.common.utils.config.loader import load_config
 
