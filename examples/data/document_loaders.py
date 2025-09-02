@@ -117,7 +117,7 @@ class LoaderFactory:
         return loader.load()
 
 
-"""
+
 # 自动识别并加载
 doc =LoaderFactory.load("examples/data/qa_knowledge_base.txt")
 print(doc["content"])
@@ -131,4 +131,3 @@ print(doc["content"])
 
 doc = LoaderFactory.load("examples/data/qa_knowledge_base.md")
 print(doc["content"])
-"""
