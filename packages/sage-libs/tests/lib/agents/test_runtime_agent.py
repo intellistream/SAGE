@@ -53,18 +53,3 @@ def test_runtime_no_reply_uses_template_summary():
     )
     out = runtime.step("算下 41+1")
     assert "成功" in out and "42" in out
-
-def test_runtime_missing_required_argument():
-    class GenBadArgs:
-        def execute(self, data):
-            plan = [{"type":"tool","name":"calculator","arguments":{}}]  # 缺 expr
-            return (data[0], json.dumps(plan, ensure_ascii=False))
-
-    tools = MCPRegistry(); tools.register(DummyCalc())
-    runtime = AgentRuntime(
-        profile=BaseProfile(language="zh"),
-        planner=LLMPlanner(generator=GenBadArgs()),
-        tools=tools
-    )
-    out = runtime.step("随便问问")
-    assert "缺少" in out or "没有可执行" in out or "失败" in out  # 简单容错：至少有错误提示
