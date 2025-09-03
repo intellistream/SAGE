@@ -125,45 +125,6 @@ show_welcome() {
     draw_line
 }
 
-# 显示安装模式选择菜单
-show_install_modes() {
-    echo ""
-    center_text "${GEAR} 请选择安装模式 ${GEAR}" "$BOLD$CYAN"
-    echo ""
-    
-    echo -e "${BLUE}[1]${NC} ${BOLD}快速安装${NC} ${GREEN}(推荐新手)${NC}"
-    echo -e "    ${DIM}→ 完整SAGE包 + 所有依赖，30秒搞定${NC}"
-    echo -e "    ${DIM}→ 适合：想快速体验SAGE功能${NC}"
-    echo ""
-    
-    echo -e "${BLUE}[2]${NC} ${BOLD}标准安装${NC} ${GREEN}(推荐研究)${NC}"
-    echo -e "    ${DIM}→ 完整SAGE包 + 数据科学库 (numpy, pandas, jupyter)${NC}"
-    echo -e "    ${DIM}→ 适合：数据分析、科研、学习${NC}"
-    echo ""
-    
-    echo -e "${BLUE}[3]${NC} ${BOLD}SAGE项目开发${NC} ${YELLOW}(贡献代码)${NC}"
-    echo -e "    ${DIM}→ 包含测试工具、代码检查、文档生成${NC}"
-    echo -e "    ${DIM}→ 适合：想为SAGE项目贡献代码的开发者${NC}"
-    echo ""
-    
-    echo -e "${BLUE}[4]${NC} ${BOLD}应用开发模式${NC} ${CYAN}(使用SAGE)${NC}"
-    echo -e "    ${DIM}→ 核心包 + 开发调试配置${NC}"
-    echo -e "    ${DIM}→ 适合：用SAGE开发自己应用的开发者${NC}"
-    echo ""
-    
-    echo -e "${BLUE}[5]${NC} ${BOLD}最小安装${NC} ${GRAY}(容器部署)${NC}"
-    echo -e "    ${DIM}→ SAGE包但不安装额外的科学计算库${NC}"
-    echo -e "    ${DIM}→ 适合：容器环境、不需要数据科学功能${NC}"
-    echo ""
-    
-    echo -e "${BLUE}[6]${NC} ${BOLD}企业版安装${NC} ${PURPLE}(生产环境)${NC}"
-    echo -e "    ${DIM}→ 包含企业级功能和高级特性${NC}"
-    echo -e "    ${DIM}→ 适合：企业生产部署 (需要许可证)${NC}"
-    echo ""
-    
-    draw_line "─" "$GRAY"
-}
-
 # 检查是否已安装SAGE
 check_existing_sage() {
     echo -e "${INFO} 检查是否已安装 SAGE..."
@@ -674,41 +635,6 @@ show_help() {
     echo ""
 }
 
-# 确认安装模式
-confirm_install_mode() {
-    local mode="$1"
-    local description=""
-    
-    case "$mode" in
-        "quick") description="快速安装 - 仅核心包" ;;
-        "standard") description="标准安装 - 核心包 + 科学计算库" ;;
-        "development") description="SAGE项目开发 - 完整工具链 (贡献代码)" ;;
-        "app-dev") description="应用开发 - 使用SAGE开发应用" ;;
-        "minimal") description="最小安装 - 必需组件" ;;
-        "enterprise") description="企业版 - 高级功能" ;;
-    esac
-    
-    echo ""
-    draw_line "─" "$GREEN"
-    center_text "🎯 安装确认" "$GREEN$BOLD"
-    draw_line "─" "$GREEN"
-    echo ""
-    echo -e "${BLUE}安装模式：${NC} ${BOLD}$description${NC}"
-    echo ""
-    
-    echo -ne "${BLUE}确认开始安装? [Y/n]: ${NC}"
-    read -r confirm
-    case "$confirm" in
-        [nN]|[nN][oO])
-            echo -e "${YELLOW}安装已取消${NC}"
-            exit 0
-            ;;
-        *)
-            return 0
-            ;;
-    esac
-}
-
 # 显示使用提示
 show_usage_tips() {
     local mode="$1"
@@ -725,31 +651,28 @@ show_usage_tips() {
     echo ""
     
     case "$mode" in
-        "development")
-            echo -e "${BLUE}SAGE项目开发模式：${NC}"
-            echo -e "  # 代码更改会立即生效（editable install）"
-            echo -e "  source .env.sage-dev  # 加载SAGE开发配置"
-            echo -e "  pre-commit run --all-files  # 运行代码检查"
-            echo -e "  pytest tests/  # 运行测试"
+        "minimal")
+            echo -e "${BLUE}最小安装模式：${NC}"
+            echo -e "  # 只包含SAGE核心包，适合容器部署"
+            echo -e "  python3 -c 'import sage; print(sage.__version__)'"
+            echo -e "  # 如需科学计算功能，建议使用 --standard 模式"
             echo ""
             ;;
-        "app-dev")
-            echo -e "${BLUE}应用开发模式：${NC}"
-            echo -e "  source .env.app-dev  # 加载应用开发配置"
-            echo -e "  cd my_sage_app && python main.py  # 运行示例应用"
-            echo -e "  # 在my_sage_app/目录开发你的应用"
+        "standard")
+            echo -e "${BLUE}标准安装模式：${NC}"
+            echo -e "  # 包含SAGE核心包和科学计算库"
+            echo -e "  jupyter notebook  # 启动Jupyter笔记本"
+            echo -e "  jupyter lab       # 启动JupyterLab"
+            echo -e "  # 数据科学和研究的完整环境"
             echo ""
             ;;
-        "enterprise")
-            echo -e "${BLUE}企业版功能：${NC}"
-            echo -e "  # 访问高级企业级功能"
-            echo -e "  # 查看许可证状态"
-            echo ""
-            ;;
-        "standard"|"development"|"app-dev")
-            echo -e "${BLUE}Jupyter Notebook：${NC}"
-            echo -e "  jupyter notebook"
-            echo -e "  jupyter lab"
+        "dev")
+            echo -e "${BLUE}开发者安装模式：${NC}"
+            echo -e "  # 包含完整开发工具链"
+            echo -e "  pytest tests/                    # 运行测试"
+            echo -e "  black packages/                  # 代码格式化"
+            echo -e "  flake8 packages/                 # 代码检查"
+            echo -e "  pre-commit run --all-files       # 运行所有检查"
             echo ""
             ;;
     esac
@@ -826,7 +749,7 @@ main() {
     
     # 验证安装
     if verify_installation; then
-        show_usage_tips "$install_mode"
+        show_usage_tips "$mode"
         echo ""
         center_text "${ROCKET} 欢迎使用 SAGE！${ROCKET}" "$GREEN$BOLD"
         echo ""
