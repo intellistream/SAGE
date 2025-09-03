@@ -6,7 +6,7 @@ from sage.core.communication.stop_signal import StopSignal
 if TYPE_CHECKING:
     from sage.core.communication.packet import Packet
     from sage.core.api.function.base_function import BaseFunction
-    from sage.kernel import TaskContext
+    from sage.kernel.runtime.context.task_context import TaskContext
     from sage.core.factory.function_factory import FunctionFactory
     from sage.common.utils.logging.custom_logger import CustomLogger
 

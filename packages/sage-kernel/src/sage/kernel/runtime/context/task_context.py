@@ -10,7 +10,8 @@ from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 from sage.kernel.runtime.communication.router.router import BaseRouter
 from sage.kernel.runtime.communication.router.connection import Connection
 if TYPE_CHECKING:
-    from sage.kernel.jobmanager.compiler import ExecutionGraph, TaskNode
+    from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
+    from sage.kernel.jobmanager.compiler.graph_node import TaskNode
     from sage.core.transformation.base_transformation import BaseTransformation
     from sage.core.api.base_environment import BaseEnvironment 
     from sage.kernel.jobmanager.job_manager import JobManager

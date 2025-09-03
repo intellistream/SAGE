@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
     from sage.kernel.runtime.context.task_context import TaskContext
     from sage.kernel.runtime.factory.task_factory import TaskFactory
-    from .graph_edge import GraphEdge
+    from sage.kernel.jobmanager.compiler.graph_edge import GraphEdge
 
 
 def _create_queue_descriptor(env: 'BaseEnvironment', name: str, maxsize: int) -> 'BaseQueueDescriptor':

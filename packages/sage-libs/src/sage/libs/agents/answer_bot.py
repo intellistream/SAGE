@@ -5,8 +5,8 @@ from jinja2 import Template
 from sage.core.api.function.map_function import MapFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
 
-from ..utils.OpenAIClient import OpenAIClient
-from ..context.model_context import ModelContext
+from sage.libs.utils.openaiclient import OpenAIClient
+from sage.libs.context.model_context import ModelContext
 
 # 集成上下文的prompt模板
 CONTEXT_INTEGRATED_PROMPT = '''You are an intelligent AI assistant with comprehensive access to multiple information sources. Your task is to provide a complete, accurate, and well-reasoned answer to the user's question using all available context and information.
