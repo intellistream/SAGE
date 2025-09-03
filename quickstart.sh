@@ -294,6 +294,15 @@ ask_conda_environment() {
         return 1  # conda 不可用，跳过
     fi
     
+    # 在 CI 环境中自动使用当前环境
+    if [[ "${CI:-false}" == "true" ]]; then
+        echo ""
+        echo -e "${GEAR} ${BOLD}Conda 环境设置${NC}"
+        echo -e "${INFO} CI 环境检测：使用当前环境进行安装"
+        SAGE_ENV_NAME=""
+        return 0
+    fi
+    
     echo ""
     echo -e "${GEAR} ${BOLD}Conda 环境设置${NC}"
     echo ""
@@ -346,19 +355,26 @@ create_conda_environment() {
     # 检查环境是否已存在
     if conda env list | grep -q "^$env_name "; then
         echo -e "${WARNING} 环境 '$env_name' 已存在"
-        echo -ne "${BLUE}是否删除并重新创建? [y/N]: ${NC}"
-        read -r recreate
-        case "$recreate" in
-            [yY]|[yY][eE][sS])
-                echo -e "${INFO} 删除现有环境..."
-                conda env remove -n "$env_name" -y &>/dev/null || true
-                ;;
-            *)
-                echo -e "${INFO} 将在现有环境中安装"
-                activate_conda_environment "$env_name"
-                return 0
-                ;;
-        esac
+        
+        # 在 CI 环境中自动删除并重新创建
+        if [[ "${CI:-false}" == "true" ]]; then
+            echo -e "${INFO} CI 环境检测：自动删除并重新创建环境"
+            conda env remove -n "$env_name" -y &>/dev/null || true
+        else
+            echo -ne "${BLUE}是否删除并重新创建? [y/N]: ${NC}"
+            read -r recreate
+            case "$recreate" in
+                [yY]|[yY][eE][sS])
+                    echo -e "${INFO} 删除现有环境..."
+                    conda env remove -n "$env_name" -y &>/dev/null || true
+                    ;;
+                *)
+                    echo -e "${INFO} 将在现有环境中安装"
+                    activate_conda_environment "$env_name"
+                    return 0
+                    ;;
+            esac
+        fi
     fi
     
     # 创建环境
