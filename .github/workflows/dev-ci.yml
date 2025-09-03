@@ -3,23 +3,26 @@ name: Development CI
 on:
   push:
     branches: [ main-dev, refactor/* ]
+  pull_request:
+    branches: [ main-dev ]
   workflow_dispatch:
+
+# 公共环境变量（避免重复定义）
+env:
+  CI: true
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+  ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
+  VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+  HF_ENDPOINT: https://hf-mirror.com
 
 jobs:
   test:
     name: Development Test
     runs-on: self-hosted
-    timeout-minutes: 60
-    
-    env:
-      CI: true          
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
-      ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
-      VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
-      HF_ENDPOINT: https://hf-mirror.com
+    timeout-minutes: 30  # 减少超时时间，开发环境应该更快
     
     steps:
     - name: Checkout Repository
