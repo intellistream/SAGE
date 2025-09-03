@@ -79,6 +79,18 @@ dev = [
     "mypy>=1.0.0",
 ]
 
+# Documentation
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=1.3.0",
+    "myst-parser>=2.0.0",
+    # MkDocs 文档系统 (基础依赖来自sage-common)
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.6.0",
+    "markupsafe>=2.0.1",
+    "pymdown-extensions>=10.2.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Documentation = "https://intellistream.github.io/SAGE-Pub/"
