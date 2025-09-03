@@ -17,7 +17,7 @@ import threading
 from sage.common.utils.serialization.dill import deserialize_object
 from sage.common.utils.network.local_tcp_server import BaseTcpServer
 if TYPE_CHECKING:
-    from sage.kernel.jobmanager.compiler import ExecutionGraph
+    from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
     from sage.core.api.base_environment import BaseEnvironment
     from sage.kernel.jobmanager.job_manager import JobManager
 

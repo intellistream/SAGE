@@ -3,10 +3,11 @@ import json
 import requests
 import time
 from typing import Tuple, List, Any, Dict
-from ..context.model_context import ModelContext
-from ..context.search_result import SearchResult
-from ..context.search_query_results import SearchQueryResults
-from ..context.search_session import SearchSession
+from sage.libs.context.model_context import ModelContext
+from sage.libs.context.search_result import SearchResult
+from sage.libs.context.search_query_results import SearchQueryResults
+from sage.libs.context.search_session import SearchSession
+
 from sage.core.api.function.map_function import MapFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
 

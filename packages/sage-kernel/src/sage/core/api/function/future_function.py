@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Iterator
-from .base_function import BaseFunction
+from sage.core.api.function.base_function import BaseFunction
 
 
 class FutureFunction(BaseFunction):

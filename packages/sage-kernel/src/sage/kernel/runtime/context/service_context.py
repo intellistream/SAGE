@@ -10,7 +10,6 @@ from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 
 if TYPE_CHECKING:
     from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
-    from sage.kernel.jobmanager.compiler.graph_node import GraphNode
     from sage.kernel.jobmanager.compiler.service_node import ServiceNode
     from sage.core.transformation.base_transformation import BaseTransformation
     from sage.core.api.base_environment import BaseEnvironment 
