@@ -212,6 +212,15 @@ uninstall_sage() {
 
 # 询问是否卸载现有SAGE
 ask_uninstall_sage() {
+    # 在 CI 环境中自动选择卸载并重新安装
+    if [[ "${CI:-false}" == "true" ]]; then
+        echo ""
+        echo -e "${BOLD}${YELLOW}⚠️  发现已安装的 SAGE${NC}"
+        echo -e "${INFO} CI 环境检测：自动选择卸载现有版本并重新安装"
+        uninstall_sage
+        return 0
+    fi
+    
     echo ""
     echo -e "${BOLD}${YELLOW}⚠️  发现已安装的 SAGE${NC}"
     echo ""
