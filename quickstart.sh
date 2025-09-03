@@ -5,7 +5,7 @@
 export TERM=xterm-256color
 set -e
 
-# 颜色和样式定义
+# 颜色和样式
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
@@ -129,21 +129,29 @@ show_welcome() {
 check_existing_sage() {
     echo -e "${INFO} 检查是否已安装 SAGE..."
     
-    # 检查是否能导入sage
+    # 检查pip包列表中的所有SAGE相关包变体
+    local installed_packages=$(pip list 2>/dev/null | grep -E '^(sage|isage|intsage)(-|$)' || echo "")
+    if [ -n "$installed_packages" ]; then
+        # 获取第一个包的版本作为代表版本
+        local version=$(echo "$installed_packages" | head -n1 | awk '{print $2}')
+        echo -e "${WARNING} 检测到已安装的 SAGE v${version}"
+        echo
+        echo -e "${DIM}已安装的包：${NC}"
+        echo "$installed_packages" | while read line; do
+            echo -e "${DIM}  - $line${NC}"
+        done
+        echo
+        return 0
+    fi
+    
+    # 检查是否能导入sage（作为备用检查）
     if python3 -c "import sage" 2>/dev/null; then
         local sage_version=$(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
         echo -e "${WARNING} 检测到已安装的 SAGE v${sage_version}"
         return 0
     fi
     
-    # 检查pip包列表
-    local installed_packages=$(pip list 2>/dev/null | grep -E '^sage(-|$)' || echo "")
-    if [ -n "$installed_packages" ]; then
-        echo -e "${WARNING} 检测到已安装的 SAGE 相关包："
-        echo -e "${DIM}$installed_packages${NC}"
-        return 0
-    fi
-    
+    echo -e "${SUCCESS} 未检测到已安装的 SAGE"
     return 1
 }
 
@@ -151,32 +159,51 @@ check_existing_sage() {
 uninstall_sage() {
     echo -e "${INFO} 卸载现有 SAGE 安装..."
     
-    # 卸载所有SAGE相关包
-    local sage_packages=(
+    # 获取所有已安装的SAGE相关包（包括所有前缀变体）
+    local all_sage_packages=$(pip list 2>/dev/null | grep -E '^(sage|isage|intsage)(-|$)' | awk '{print $1}' || echo "")
+    
+    if [ -n "$all_sage_packages" ]; then
+        echo -e "${DIM}  → 发现已安装的包：${NC}"
+        echo "$all_sage_packages" | while read package; do
+            if [ -n "$package" ]; then
+                echo -e "${DIM}    - $package${NC}"
+            fi
+        done
+        
+        # 批量卸载所有SAGE相关包
+        echo -e "${DIM}  → 批量卸载所有 SAGE 相关包${NC}"
+        if echo "$all_sage_packages" | xargs $PIP_CMD uninstall -y --quiet 2>/dev/null; then
+            echo -e "${SUCCESS} SAGE 相关包卸载成功${NC}"
+        else
+            echo -e "${WARNING} 部分包卸载时出现警告，继续...${NC}"
+        fi
+    fi
+    
+    # 清理可能的开发模式安装链接
+    echo -e "${DIM}  → 清理开发模式链接${NC}"
+    local dev_packages=(
         "sage"
         "sage-libs" 
         "sage-middleware"
         "sage-kernel"
         "sage-common"
+        "sage-tools"
+        "isage"
+        "isage-libs" 
+        "isage-middleware"
+        "isage-kernel"
+        "isage-common"
+        "intsage"
+        "intsage-apps"
+        "intsage-dev-toolkit"
+        "intsage-frontend"
+        "intsage-kernel"
+        "intsage-middleware"
     )
     
-    for package in "${sage_packages[@]}"; do
-        if pip show "$package" >/dev/null 2>&1; then
-            echo -e "${DIM}  → 卸载 $package${NC}"
-            if ! $PIP_CMD uninstall "$package" -y --quiet 2>/dev/null; then
-                echo -e "${WARNING} 卸载 $package 时出现警告，继续..."
-            fi
-        fi
-    done
-    
-    # 清理可能的开发模式安装
-    echo -e "${DIM}  → 清理开发模式链接${NC}"
-    for package in "${sage_packages[@]}"; do
-        local package_path="packages/$package"
-        if [ -d "$package_path" ]; then
-            if $PIP_CMD uninstall "$package" -y --quiet 2>/dev/null; then
-                echo -e "${DIM}    清理 $package 开发链接${NC}"
-            fi
+    for package in "${dev_packages[@]}"; do
+        if $PIP_CMD uninstall "$package" -y --quiet 2>/dev/null; then
+            echo -e "${DIM}    清理 $package 开发链接${NC}"
         fi
     done
     
@@ -475,7 +502,8 @@ install_core_packages() {
         
         if [ -d "$package_path" ]; then
             echo -e "${DIM}  → 安装 $package (开发模式)${NC}"
-            if $PIP_CMD install -e "$package_path" --quiet; then
+            echo -e "${DIM}    运行命令: $PIP_CMD install -e $package_path${NC}"
+            if $PIP_CMD install -e "$package_path"; then
                 echo -e "${CHECK} $package 安装成功"
             else
                 echo -e "${CROSS} $package 安装失败！"
