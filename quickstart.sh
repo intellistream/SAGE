@@ -164,6 +164,102 @@ show_install_modes() {
     draw_line "─" "$GRAY"
 }
 
+# 检查是否已安装SAGE
+check_existing_sage() {
+    echo -e "${INFO} 检查是否已安装 SAGE..."
+    
+    # 检查是否能导入sage
+    if python3 -c "import sage" 2>/dev/null; then
+        local sage_version=$(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
+        echo -e "${WARNING} 检测到已安装的 SAGE v${sage_version}"
+        return 0
+    fi
+    
+    # 检查pip包列表
+    local installed_packages=$(pip list 2>/dev/null | grep -E '^sage(-|$)' || echo "")
+    if [ -n "$installed_packages" ]; then
+        echo -e "${WARNING} 检测到已安装的 SAGE 相关包："
+        echo -e "${DIM}$installed_packages${NC}"
+        return 0
+    fi
+    
+    return 1
+}
+
+# 卸载现有SAGE
+uninstall_sage() {
+    echo -e "${INFO} 卸载现有 SAGE 安装..."
+    
+    # 卸载所有SAGE相关包
+    local sage_packages=(
+        "sage"
+        "sage-libs" 
+        "sage-middleware"
+        "sage-kernel"
+        "sage-common"
+    )
+    
+    for package in "${sage_packages[@]}"; do
+        if pip show "$package" >/dev/null 2>&1; then
+            echo -e "${DIM}  → 卸载 $package${NC}"
+            if ! $PIP_CMD uninstall "$package" -y --quiet 2>/dev/null; then
+                echo -e "${WARNING} 卸载 $package 时出现警告，继续..."
+            fi
+        fi
+    done
+    
+    # 清理可能的开发模式安装
+    echo -e "${DIM}  → 清理开发模式链接${NC}"
+    for package in "${sage_packages[@]}"; do
+        local package_path="packages/$package"
+        if [ -d "$package_path" ]; then
+            if $PIP_CMD uninstall "$package" -y --quiet 2>/dev/null; then
+                echo -e "${DIM}    清理 $package 开发链接${NC}"
+            fi
+        fi
+    done
+    
+    echo -e "${CHECK} SAGE 卸载完成"
+}
+
+# 询问是否卸载现有SAGE
+ask_uninstall_sage() {
+    echo ""
+    echo -e "${BOLD}${YELLOW}⚠️  发现已安装的 SAGE${NC}"
+    echo ""
+    echo -e "${BLUE}为了确保安装的完整性，建议先卸载现有版本。${NC}"
+    echo ""
+    echo -e "${BLUE}选项：${NC}"
+    echo -e "  [1] 卸载现有版本，然后安装新版本 (推荐)"
+    echo -e "  [2] 跳过卸载，直接覆盖安装"
+    echo -e "  [3] 取消安装"
+    echo ""
+    
+    while true; do
+        echo -ne "${BLUE}请选择 [1-3]: ${NC}"
+        read -r choice
+        case $choice in
+            1)
+                echo -e "${INFO} 将先卸载现有 SAGE，然后安装新版本"
+                uninstall_sage
+                return 0
+                ;;
+            2)
+                echo -e "${WARNING} 跳过卸载，直接进行覆盖安装"
+                echo -e "${DIM}注意：这可能导致版本冲突或安装问题${NC}"
+                return 0
+                ;;
+            3)
+                echo -e "${INFO} 用户取消安装"
+                exit 0
+                ;;
+            *)
+                echo -e "${WARNING} 无效选择，请输入 1-3"
+                ;;
+        esac
+    done
+}
+
 # 系统检查函数
 check_python() {
     echo -e "${INFO} 检查 Python 环境..."
@@ -335,6 +431,11 @@ install_sage() {
     echo -e "${GEAR} 开始安装 SAGE 包 (${mode} 模式)..."
     echo ""
     
+    # 检查是否已安装SAGE
+    if check_existing_sage; then
+        ask_uninstall_sage
+    fi
+    
     # 检查系统环境
     if ! check_python; then
         echo -e "${CROSS} Python 环境检查失败，安装终止"
@@ -372,7 +473,7 @@ install_sage() {
     case "$mode" in
         "minimal")
             echo -e "${BLUE}最小安装模式：仅安装核心 SAGE 包${NC}"
-            install_minimal_packages
+            install_core_packages
             ;;
         "standard")
             echo -e "${BLUE}标准安装模式：核心包 + 科学计算库${NC}"
@@ -472,34 +573,6 @@ install_dev_packages() {
     done
 }
 
-# 最小安装
-install_minimal_packages() {
-    echo -e "${INFO} 最小化安装核心组件..."
-    
-    # SAGE 包安装顺序：sage-common → sage-kernel → sage-middleware → sage-libs → sage
-    local sage_packages=("sage-common" "sage-kernel" "sage-middleware" "sage-libs" "sage")
-    
-    for package in "${sage_packages[@]}"; do
-        local package_path="packages/$package"
-        
-        if [ -d "$package_path" ]; then
-            echo -e "${DIM}  → 最小安装 $package (开发模式)${NC}"
-            if $PIP_CMD install -e "$package_path" --quiet; then
-                echo -e "${CHECK} $package 安装成功"
-            else
-                echo -e "${CROSS} $package 安装失败！"
-                exit 1
-            fi
-        else
-            echo -e "${WARNING} 跳过不存在的包: $package"
-        fi
-    done
-    
-    echo -e "${CHECK} SAGE包安装成功！"
-    echo -e "${INFO} 跳过额外的科学计算库安装 (最小化模式)"
-    echo -e "${DIM}如需完整功能，建议使用 --standard 模式${NC}"
-}
-
 # 显示安装成功信息
 show_install_success() {
     local mode="$1"
@@ -560,55 +633,6 @@ print(f'${CHECK} 所有子包版本一致: {sage.common.__version__}')
     fi
 }
 
-# 获取用户输入的安装模式
-get_install_mode() {
-    local mode=""
-    local use_conda=""
-    
-    # 解析命令行参数
-    while [[ $# -gt 0 ]]; do
-        case "${1}" in
-            "--help"|"-h"|"help")
-                show_help
-                exit 0
-                ;;
-            "--minimal"|"-m"|"minimal")
-                mode="minimal"
-                ;;
-            "--standard"|"-s"|"standard")
-                mode="standard"
-                ;;
-            "--dev"|"-d"|"dev")
-                mode="dev"
-                ;;
-            "--conda")
-                use_conda="true"
-                ;;
-            "--pip")
-                use_conda="false"
-                ;;
-            *)
-                echo -e "${CROSS} 未知选项: $1"
-                show_help
-                exit 1
-                ;;
-        esac
-        shift
-    done
-    
-    # 如果没有指定模式，设置默认值
-    if [ -z "$mode" ]; then
-        mode="standard"
-    fi
-    
-    # 如果指定了环境选项，传递给主安装函数
-    if [ -n "$use_conda" ]; then
-        export SAGE_USE_CONDA="$use_conda"
-    fi
-    
-    echo "$mode"
-}
-
 # 显示帮助信息
 show_help() {
     echo ""
@@ -620,8 +644,8 @@ show_help() {
     echo -e "${BLUE}安装模式：${NC}"
     echo ""
     echo -e "  ${BOLD}--minimal, -m${NC}      ${GRAY}最小安装${NC}"
-    echo -e "    ${DIM}包含: SAGE核心包 (不含科学计算库)${NC}"
-    echo -e "    ${DIM}适合: 容器部署、不需要数据科学功能的场景${NC}"
+    echo -e "    ${DIM}包含: SAGE核心包 (sage-common, sage-kernel, sage-middleware, sage-libs, sage)${NC}"
+    echo -e "    ${DIM}适合: 容器部署、只需要SAGE核心功能的场景${NC}"
     echo ""
     echo -e "  ${BOLD}--standard, -s${NC}     ${GREEN}标准安装 (默认)${NC}"
     echo -e "    ${DIM}包含: SAGE核心包 + 科学计算库 (numpy, pandas, jupyter)${NC}"
@@ -746,18 +770,59 @@ main() {
         fi
     done
     
+    # 解析命令行参数
+    local mode=""
+    local use_conda=""
+    
+    while [[ $# -gt 0 ]]; do
+        case "${1}" in
+            "--help"|"-h"|"help")
+                show_help
+                exit 0
+                ;;
+            "--minimal"|"-m"|"minimal")
+                mode="minimal"
+                ;;
+            "--standard"|"-s"|"standard")
+                mode="standard"
+                ;;
+            "--dev"|"-d"|"dev")
+                mode="dev"
+                ;;
+            "--conda")
+                use_conda="true"
+                ;;
+            "--pip")
+                use_conda="false"
+                ;;
+            *)
+                echo -e "${CROSS} 未知选项: $1"
+                show_help
+                exit 1
+                ;;
+        esac
+        shift
+    done
+    
+    # 设置默认模式
+    if [ -z "$mode" ]; then
+        mode="standard"
+    fi
+    
+    # 设置环境变量
+    if [ -n "$use_conda" ]; then
+        export SAGE_USE_CONDA="$use_conda"
+    fi
+    
     # 显示欢迎界面
     show_welcome
-    
-    # 获取安装模式
-    local install_mode=$(get_install_mode "$@")
     
     # 获取脚本所在目录
     PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     cd "$PROJECT_ROOT"
     
     # 执行安装
-    install_sage "$install_mode"
+    install_sage "$mode"
     
     # 验证安装
     if verify_installation; then
