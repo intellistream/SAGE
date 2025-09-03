@@ -35,13 +35,19 @@ classifiers = [
 ]
 license = "MIT"
 
-# 核心依赖 - 仅包含 utils 必需的基础依赖
+# 核心依赖 - 包含 utils 必需的基础依赖和常用工具
 dependencies = [
     # 基础依赖 (utils 核心功能)
     "pyyaml>=6.0.0",
     "pydantic>=2.0.0",
     "platformdirs>=3.0.0",
     "typing-extensions>=4.0.0",
+    # 常用基础工具依赖 (解决mkdocs等依赖冲突)
+    "click>=7.0",
+    "jinja2>=2.11.1",
+    "markdown>=3.3.6",
+    "markupsafe>=2.0.1",
+    "packaging>=20.5",
 ]
 
 [project.optional-dependencies]
@@ -149,6 +155,10 @@ docs = [
     "sphinx>=7.0.0",
     "sphinx-rtd-theme>=1.3.0",
     "myst-parser>=2.0.0",
+    # MkDocs 文档系统 (基础依赖已在核心依赖中)
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.6.0",
+    "pymdown-extensions>=10.2.0",
 ]
 
 # 完整安装

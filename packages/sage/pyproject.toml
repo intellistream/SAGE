@@ -46,6 +46,14 @@ frontend = [
     "isage-common[frontend]>=0.1.0",
 ]
 
+# Documentation
+docs = [
+    "isage-common[docs]>=0.1.0",
+    "isage-kernel[docs]>=0.1.0",
+    "isage-middleware[docs]>=0.1.0",
+    "isage-libs[docs]>=0.1.0",
+]
+
 # 完整功能 (包括所有额外功能)
 full = [
     "isage-common[full]>=0.1.0",
