@@ -40,18 +40,34 @@ jobs:
       timeout-minutes: 5
       
     - name: Set up Python 3.11
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         cache: 'pip'
-      timeout-minutes: 5
+        cache-dependency-path: '**/requirements*.txt'
+      timeout-minutes: 10
+      continue-on-error: false
       
-    - name: Install Basic Dependencies
+    - name: Verify Python Installation
       run: |
-        pip install --upgrade pip
-        pip install flake8 black isort
-        pip install -e packages/sage-common/ --no-deps
-      timeout-minutes: 8
+        python --version
+        pip --version
+        which python
+        which pip
+      timeout-minutes: 2
+      
+    - name: Clear pip cache and install dependencies
+      run: |
+        echo "🧹 Clearing pip cache..."
+        pip cache purge || echo "No cache to clear"
+        echo "📦 Upgrading pip..."
+        pip install --upgrade pip --no-cache-dir
+        echo "📦 Installing basic dependencies..."
+        pip install flake8 black isort --no-cache-dir
+        echo "📦 Installing sage-common..."
+        pip install -e packages/sage-common/ --no-deps --no-cache-dir
+        echo "✅ Dependencies installed successfully"
+      timeout-minutes: 10
         
     - name: Code Quality Checks
       run: |
@@ -85,11 +101,19 @@ jobs:
       timeout-minutes: 8
       
     - name: Set up Python 3.11
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         cache: 'pip'
-      timeout-minutes: 5
+        cache-dependency-path: '**/requirements*.txt'
+      timeout-minutes: 10
+      continue-on-error: false
+      
+    - name: Verify Python Installation
+      run: |
+        python --version
+        pip --version
+      timeout-minutes: 2
       
     - name: Setup Miniconda
       uses: conda-incubator/setup-miniconda@v3
