@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 60
     
     env:
@@ -78,7 +78,7 @@ jobs:
         sage version
 
   branch-guard:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Check PR source branch
         env:
