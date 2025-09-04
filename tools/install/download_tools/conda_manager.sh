@@ -302,8 +302,10 @@ activate_conda_environment() {
         if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
             # CI环境：使用优化的pip命令和并行安装
             if command -v mamba >/dev/null 2>&1; then
-                export PIP_CMD="conda run -n $env_name mamba install -c conda-forge -y pip && conda run -n $env_name python -m pip"
-                echo -e "${INFO} CI环境：使用mamba优化的pip命令"
+                # 先用mamba安装pip，然后设置普通的pip命令
+                conda run -n $env_name mamba install -c conda-forge -y pip
+                export PIP_CMD="conda run -n $env_name python -m pip"
+                echo -e "${INFO} CI环境：使用mamba安装pip，然后使用标准pip命令"
             else
                 # 为CI环境优化的pip命令，简化参数避免重复
                 export PIP_CMD="conda run -n $env_name python -m pip"
