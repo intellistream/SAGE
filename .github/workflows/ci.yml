@@ -171,4 +171,9 @@ jobs:
     runs-on: self-hosted
     if: always()
     
+    steps:
+    - name: CI Complete
+      run: |
+        exit 0
+    
   
