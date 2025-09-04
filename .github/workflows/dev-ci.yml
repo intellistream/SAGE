@@ -82,11 +82,13 @@ jobs:
         PIP_CACHE_DIR: /tmp/pip-cache
         PIP_NO_INPUT: 1
         PIP_DISABLE_PIP_VERSION_CHECK: 1
+        SAGE_ENV_NAME: sage
+        CONDA_ALWAYS_YES: true
       run: |
-        echo "Installing SAGE using quickstart.sh --minimal --conda "
+        echo "Installing SAGE using quickstart.sh --minimal"
         conda --version
         chmod +x ./quickstart.sh
-        ./quickstart.sh --minimal --conda 
+        ./quickstart.sh --minimal
       timeout-minutes: 15
         
     - name: Basic Import Tests
@@ -94,10 +96,11 @@ jobs:
       env:
         PYTHONNOUSERSITE: 1
         PIP_NO_INPUT: 1
+        SAGE_ENV_NAME: sage
       run: |
         echo "=== Import Tests ==="
         # 激活conda环境进行测试
-        conda activate sage
+        conda activate $SAGE_ENV_NAME
         python -c "import sage; print('✅ SAGE core import successful, version:', sage.__version__)"
         python -c "import sage.common; print('✅ sage.common import successful')"
         python -c "import sage.kernel; print('✅ sage.kernel import successful')"
@@ -112,10 +115,11 @@ jobs:
       env:
         PYTHONNOUSERSITE: 1
         PIP_NO_INPUT: 1
+        SAGE_ENV_NAME: sage
       run: |
         echo "=== Configuration Test ==="
         # 激活conda环境进行测试
-        conda activate sage
+        conda activate $SAGE_ENV_NAME
         python -c "from sage.common.config import SageConfig; print('✅ Config system working')" || echo "❌ Config system failed"
         
         echo "=== Utilities Test ==="
@@ -135,10 +139,11 @@ jobs:
       env:
         PYTHONNOUSERSITE: 1
         PIP_NO_INPUT: 1
+        SAGE_ENV_NAME: sage
       run: |
         echo "=== Full Import Test ==="
         # 激活conda环境进行测试
-        conda activate sage
+        conda activate $SAGE_ENV_NAME
         python -c "
         import sys
         print('Python executable:', sys.executable)

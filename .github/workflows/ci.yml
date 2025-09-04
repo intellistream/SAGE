@@ -137,11 +137,13 @@ jobs:
         PYTHONNOUSERSITE: 1  # 禁用用户站点包，避免依赖冲突
         PIP_NO_INPUT: 1  # 禁用pip交互
         PIP_DISABLE_PIP_VERSION_CHECK: 1  # 禁用pip版本检查
+        SAGE_ENV_NAME: sage  # 设置默认环境名
+        CONDA_ALWAYS_YES: true  # 自动同意conda操作
       run: |
-        echo "Installing SAGE using quickstart.sh --minimal --conda sage"
+        echo "Installing SAGE using quickstart.sh --minimal"
         conda --version
         chmod +x ./quickstart.sh
-        ./quickstart.sh --minimal --conda sage
+        ./quickstart.sh --minimal
       timeout-minutes: 25
         
     - name: Run Test Suite
@@ -152,7 +154,7 @@ jobs:
       run: |
         echo "🧪 Running minimal test suite..."
         # 激活conda环境进行测试
-        conda activate sage_common
+        conda activate sage
         python -c "import sage; print('✅ SAGE import successful, version:', sage.__version__)"
         python -c "import sage.common; print('✅ sage.common import successful')"
         python -c "import sage.kernel; print('✅ sage.kernel import successful')"  

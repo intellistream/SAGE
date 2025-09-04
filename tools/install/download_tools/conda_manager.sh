@@ -47,26 +47,50 @@ ask_conda_environment() {
     # 记录到日志
     echo "$(date): 用户选择 Conda 环境配置" >> "$log_file"
     
-    while true; do
-        echo -ne "${BLUE}请选择 [1-3]: ${NC}"
-        read -r conda_choice
-        echo "$(date): 用户选择: $conda_choice" >> "$log_file"
-        
-        case $conda_choice in
-            1)
+    # 如果是CI环境，自动选择选项1
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        echo -e "${INFO} 检测到CI环境，自动选择选项1：创建新的 SAGE 环境"
+        echo "$(date): CI环境自动选择选项1" >> "$log_file"
+        conda_choice=1
+    else
+        # 交互模式，询问用户选择
+        while true; do
+            echo -ne "${BLUE}请选择 [1-3]: ${NC}"
+            read -r conda_choice
+            echo "$(date): 用户选择: $conda_choice" >> "$log_file"
+            
+            case $conda_choice in
+                1|2|3)
+                    break
+                    ;;
+                *)
+                    echo -e "${WARNING} 无效选择，请输入 1-3"
+                    ;;
+            esac
+        done
+    fi
+    
+    # 处理用户选择
+    case $conda_choice in
+        1)
+            SAGE_ENV_NAME="sage"
+            export SAGE_ENV_NAME  # 导出环境变量
+            create_conda_environment "$SAGE_ENV_NAME"
+            ;;
+        2)
+            echo -e "${INFO} 将在当前环境中安装 SAGE"
+            echo "$(date): 用户选择使用当前环境" >> "$log_file"
+            SAGE_ENV_NAME=""
+            export SAGE_ENV_NAME
+            ;;
+        3)
+            if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+                # CI环境不应该到达这里，但万一到了就默认使用sage
+                echo -e "${WARNING} CI环境中不应选择选项3，回退到选项1"
                 SAGE_ENV_NAME="sage"
-                export SAGE_ENV_NAME  # 导出环境变量
-                create_conda_environment "$SAGE_ENV_NAME"
-                break
-                ;;
-            2)
-                echo -e "${INFO} 将在当前环境中安装 SAGE"
-                echo "$(date): 用户选择使用当前环境" >> "$log_file"
-                SAGE_ENV_NAME=""
                 export SAGE_ENV_NAME
-                break
-                ;;
-            3)
+                create_conda_environment "$SAGE_ENV_NAME"
+            else
                 echo -ne "${BLUE}请输入环境名称: ${NC}"
                 read -r custom_env_name
                 echo "$(date): 用户输入自定义环境名: $custom_env_name" >> "$log_file"
@@ -74,16 +98,21 @@ ask_conda_environment() {
                     SAGE_ENV_NAME="$custom_env_name"
                     export SAGE_ENV_NAME  # 导出环境变量
                     create_conda_environment "$SAGE_ENV_NAME"
-                    break
                 else
-                    echo -e "${WARNING} 环境名不能为空"
+                    echo -e "${WARNING} 环境名不能为空，使用默认名称: sage"
+                    SAGE_ENV_NAME="sage"
+                    export SAGE_ENV_NAME
+                    create_conda_environment "$SAGE_ENV_NAME"
                 fi
-                ;;
-            *)
-                echo -e "${WARNING} 无效选择，请输入 1-3"
-                ;;
-        esac
-    done
+            fi
+            ;;
+        *)
+            echo -e "${WARNING} 无效选择，使用默认选项1"
+            SAGE_ENV_NAME="sage"
+            export SAGE_ENV_NAME
+            create_conda_environment "$SAGE_ENV_NAME"
+            ;;
+    esac
 }
 
 # 创建 conda 环境
@@ -101,9 +130,18 @@ create_conda_environment() {
     if conda env list | grep -q "^$env_name "; then
         echo -e "${WARNING} 环境 '$env_name' 已存在"
         echo "$(date): 环境 '$env_name' 已存在" >> "$log_file"
-        echo -ne "${BLUE}是否删除并重新创建? [y/N]: ${NC}"
-        read -r recreate
-        echo "$(date): 用户选择重新创建: $recreate" >> "$log_file"
+        
+        # 如果是CI环境，自动选择重新创建
+        if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+            echo -e "${INFO} CI环境检测到，自动删除并重新创建环境"
+            echo "$(date): CI环境自动选择重新创建环境" >> "$log_file"
+            recreate="y"
+        else
+            echo -ne "${BLUE}是否删除并重新创建? [y/N]: ${NC}"
+            read -r recreate
+            echo "$(date): 用户选择重新创建: $recreate" >> "$log_file"
+        fi
+        
         case "$recreate" in
             [yY]|[yY][eE][sS])
                 echo -e "${INFO} 删除现有环境..."
