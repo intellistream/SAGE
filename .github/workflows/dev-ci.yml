@@ -50,22 +50,14 @@ jobs:
         which pip
       timeout-minutes: 2
         
-    - name: Cache pip packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt', '**/setup.py') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-        
-    - name: Setup pip cache and prepare environment
+    - name: Setup pip and prepare environment
       run: |
-        echo "📦 设置pip缓存..."
-        mkdir -p ~/.cache/pip
-        echo "📦 升级pip (保留缓存)..."
-        pip install --upgrade pip
-        echo "📊 缓存状态:"
-        du -sh ~/.cache/pip 2>/dev/null || echo "缓存目录为空"
+        echo "📦 准备Python环境..."
+        echo "📦 升级pip..."
+        pip install --upgrade pip --no-cache-dir
+        echo "📊 环境状态:"
+        echo "- Python: $(python --version)"
+        echo "- Pip: $(pip --version)" 
         echo "✅ 环境准备完成"
       timeout-minutes: 5
         
@@ -108,42 +100,28 @@ jobs:
       env:
         CI: true
         DEBIAN_FRONTEND: noninteractive
-        # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
-        PIP_CACHE_DIR: ~/.cache/pip
         PIP_NO_INPUT: 1
         PIP_DISABLE_PIP_VERSION_CHECK: 1
         # 并行安装优化
         PIP_PARALLEL_BUILDS: 4
         MAKEFLAGS: "-j4"
       run: |
-        echo "🚀 CI模式：使用pip直接安装SAGE核心包"
-        echo "⏰ 预计安装时间: 5-10分钟（跳过conda环境创建）"
+        echo "🚀 CI模式：通过quickstart.sh --minimal安装SAGE"
+        echo "ℹ️ quickstart.sh将自动检测CI环境并使用pip模式"
+        echo "⏰ 预计安装时间: 5-10分钟"
         
         # 显示环境信息
         echo "📊 环境信息:"
         echo "- Python: $(python --version)"
         echo "- Python路径: $(which python)"
         echo "- Pip版本: $(pip --version)"
-        echo "- Pip cache: $PIP_CACHE_DIR"
         echo "- 网络状态: $(ping -c 1 pypi.org >/dev/null 2>&1 && echo "✅ 可达" || echo "❌ 不可达")"
-        echo "- 缓存大小: $(du -sh ~/.cache/pip 2>/dev/null || echo "缓存为空")"
         
-        echo "🎯 开始安装核心包..."
+        echo "🎯 开始通过quickstart.sh安装..."
+        chmod +x ./quickstart.sh
+        ./quickstart.sh --minimal
         
-        # 直接使用pip安装核心包（开发模式，速度更快）
-        echo "📦 安装 sage-common..."
-        pip install -e packages/sage-common/ --disable-pip-version-check --no-input --progress-bar on --cache-dir ~/.cache/pip
-        
-        echo "📦 安装 sage-kernel..."
-        pip install -e packages/sage-kernel/ --disable-pip-version-check --no-input --progress-bar on --cache-dir ~/.cache/pip
-        
-        echo "📦 安装 sage-libs..."
-        pip install -e packages/sage-libs/ --disable-pip-version-check --no-input --progress-bar on --cache-dir ~/.cache/pip
-        
-        echo "📦 安装 sage-middleware..."
-        pip install -e packages/sage-middleware/ --disable-pip-version-check --no-input --progress-bar on --cache-dir ~/.cache/pip
-        
-        echo "✅ 所有核心包安装完成"
+        echo "✅ quickstart.sh安装完成"
       timeout-minutes: 15
         
     - name: Basic Import Tests
