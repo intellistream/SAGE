@@ -138,10 +138,10 @@ jobs:
         PIP_NO_INPUT: 1  # 禁用pip交互
         PIP_DISABLE_PIP_VERSION_CHECK: 1  # 禁用pip版本检查
       run: |
-        echo "Installing SAGE using quickstart.sh --minimal --conda sage-test"
+        echo "Installing SAGE using quickstart.sh --minimal --conda sage"
         conda --version
         chmod +x ./quickstart.sh
-        ./quickstart.sh --minimal --conda sage-test
+        ./quickstart.sh --minimal --conda sage
       timeout-minutes: 25
         
     - name: Run Test Suite
@@ -152,7 +152,7 @@ jobs:
       run: |
         echo "🧪 Running minimal test suite..."
         # 激活conda环境进行测试
-        conda activate sage-test
+        conda activate sage_common
         python -c "import sage; print('✅ SAGE import successful, version:', sage.__version__)"
         python -c "import sage.common; print('✅ sage.common import successful')"
         python -c "import sage.kernel; print('✅ sage.kernel import successful')"  
@@ -177,8 +177,8 @@ jobs:
         echo ""
         echo "1. Docker Integration Test:"
         echo "   cd /home/shuhao/SAGE"
-        echo "   docker build -t sage-test ."
-        echo "   docker run --rm sage-test"
+        echo "   docker build -t sage ."
+        echo "   docker run --rm sage"
         echo ""
         echo "2. Full Installation Test:"
         echo "   ./quickstart.sh --standard --conda"
