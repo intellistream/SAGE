@@ -5,26 +5,28 @@
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
-# CI环境或远程部署检测 - 确保非交互模式
-if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+# CI环境检测 - 确保非交互模式
+if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
     export PIP_NO_INPUT=1
     export PIP_DISABLE_PIP_VERSION_CHECK=1
-    # 只在CI环境中注释掉PYTHONNOUSERSITE以提高测试速度，远程部署仍需要设置
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-        # export PYTHONNOUSERSITE=1  # CI环境中注释掉以提高runner测试速度
-        echo "# CI环境中跳过PYTHONNOUSERSITE设置"
-    else
-        export PYTHONNOUSERSITE=1  # 远程部署环境仍需要设置
-    fi
+    # CI环境中不设置PYTHONNOUSERSITE以提高测试速度
+    echo "# CI环境中跳过PYTHONNOUSERSITE设置"
+elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
+    # 远程部署环境设置
+    export PIP_NO_INPUT=1
+    export PIP_DISABLE_PIP_VERSION_CHECK=1
+    export PYTHONNOUSERSITE=1  # 远程部署环境需要设置
+    echo "# 远程部署环境已设置PYTHONNOUSERSITE=1"
 fi
 
 # 安装核心包
 install_core_packages() {
     local install_mode="${1:-dev}"  # 默认为开发模式，接受参数控制
     
-    # 只在真正的本地环境中设置PYTHONNOUSERSITE，CI和远程部署有各自的处理逻辑
+    # 只在真正的本地环境中设置PYTHONNOUSERSITE
     if [ "$CI" != "true" ] && [ "$SAGE_REMOTE_DEPLOY" != "true" ] && [ -z "$GITHUB_ACTIONS" ] && [ -z "$GITLAB_CI" ] && [ -z "$JENKINS_URL" ]; then
         export PYTHONNOUSERSITE=1
+        echo "# 本地开发环境已设置PYTHONNOUSERSITE=1"
     fi
     
     # 获取项目根目录并初始化日志文件
@@ -73,18 +75,10 @@ install_core_packages() {
                 fi
             else
                 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-                    echo -e "${BOLD}  📦 正在安装 $package (生产模式 - CI优化)${NC}"
-                    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                    echo -e "${DIM}运行命令: $PIP_CMD install $package_path (使用优化参数)${NC}"
-                    echo -e "${INFO} CI环境中使用优化参数加速安装"
-                    echo ""
-                else
-                    echo -e "${BOLD}  📦 正在安装 $package (生产模式)${NC}"
-                    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                    echo -e "${DIM}运行命令: $PIP_CMD install $package_path${NC}"
-                    echo ""
-                fi
+                echo -e "${BOLD}  📦 正在安装 $package (生产模式)${NC}"
+                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                echo -e "${DIM}运行命令: $PIP_CMD install $package_path${NC}"
+                echo ""
                 
                 # 使用生产模式安装
                 if install_package_with_output "$PIP_CMD" "$package_path" "$package" "prod"; then
@@ -129,19 +123,9 @@ install_package_with_output() {
     # 根据安装类型构建命令
     local install_cmd
     if [ "$install_type" = "dev" ]; then
-        if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-            # CI环境：添加优化选项
-            install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input --progress-bar=on --cache-dir ~/.cache/pip"
-        else
-            install_cmd="$pip_cmd install -e $package_path"
-        fi
+        install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
     else
-        if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-            # CI环境：添加更激进的优化选项
-            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input --progress-bar=on --cache-dir ~/.cache/pip --prefer-binary --no-build-isolation"
-        else
-            install_cmd="$pip_cmd install $package_path"
-        fi
+        install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
     fi
     
     # 记录安装开始信息到日志
@@ -153,13 +137,12 @@ install_package_with_output() {
     echo "包路径检查: $(ls -la $package_path 2>/dev/null || echo '路径不存在')" >> "$log_file"
     echo "=================================" >> "$log_file"
     
-    # 在CI环境中添加超时和更详细的调试
-    if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    # 在CI环境中添加超时和调试信息
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
         echo "🔍 CI环境调试信息:"
-        echo "- 当前环境: $(conda info --envs | grep '*' || echo '无活动环境')"
-        echo "- Python路径: $(conda run -n sage which python 2>/dev/null || echo '无法找到python')"
-        echo "- Pip版本: $(conda run -n sage python -m pip --version 2>/dev/null || echo '无法获取pip版本')"
-        echo "- 网络测试: $(conda run -n sage python -c 'import urllib.request; urllib.request.urlopen("https://pypi.org", timeout=5); print("✅ 网络正常")' 2>/dev/null || echo '❌ 网络异常')"
+        echo "- Python路径: $(which python3)"
+        echo "- Pip版本: $(python3 -m pip --version 2>/dev/null || echo '无法获取pip版本')"
+        echo "- 网络测试: $(python3 -c 'import urllib.request; urllib.request.urlopen("https://pypi.org", timeout=5); print("✅ 网络正常")' 2>/dev/null || echo '❌ 网络异常')"
         
         # 使用timeout命令防止卡死，CI环境设置10分钟超时
         timeout 600 $install_cmd 2>&1 | tee -a "$log_file"
@@ -171,7 +154,7 @@ install_package_with_output() {
             install_status=1
         fi
     else
-        # 普通环境：不设置超时
+        # 普通环境（包括远程部署）：不设置超时
         $install_cmd 2>&1 | tee -a "$log_file"
         local install_status=${PIPESTATUS[0]}
     fi
@@ -192,9 +175,10 @@ install_pypi_package_with_output() {
     local pip_cmd="$1"
     local package_name="$2"
     
-    # 只在真正的本地环境中设置PYTHONNOUSERSITE，CI和远程部署有各自的处理逻辑
+    # 只在真正的本地环境中设置PYTHONNOUSERSITE
     if [ "$CI" != "true" ] && [ "$SAGE_REMOTE_DEPLOY" != "true" ] && [ -z "$GITHUB_ACTIONS" ] && [ -z "$GITLAB_CI" ] && [ -z "$JENKINS_URL" ]; then
         export PYTHONNOUSERSITE=1
+        echo "# 本地开发环境已设置PYTHONNOUSERSITE=1"
     fi
     
     # 获取项目根目录
@@ -211,9 +195,12 @@ install_pypi_package_with_output() {
     # 对于PyPI包，直接执行安装命令并显示输出，同时记录到日志
     # 添加 --upgrade 参数确保安装最新版本
     local install_cmd
-    if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
         # CI环境：添加缓存和优化选项
         install_cmd="$pip_cmd install $package_name --upgrade --disable-pip-version-check --progress-bar=on --cache-dir ~/.cache/pip"
+    elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
+        # 远程部署环境：使用标准选项
+        install_cmd="$pip_cmd install $package_name --upgrade --disable-pip-version-check"
     else
         install_cmd="$pip_cmd install $package_name --upgrade --disable-pip-version-check"
     fi

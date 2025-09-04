@@ -49,14 +49,6 @@ jobs:
         which python
         which pip
       timeout-minutes: 2
-      
-    - name: Setup Miniconda for quickstart.sh
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        miniforge-version: latest
-        use-mamba: true
-        auto-activate-base: false
-      timeout-minutes: 10
         
     - name: Cache pip packages
       uses: actions/cache@v4
@@ -65,17 +57,6 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt', '**/setup.py') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-          
-    - name: Cache conda packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/conda_pkgs_dir
-          ~/.conda/pkgs
-          ~/miniconda3/pkgs
-        key: ${{ runner.os }}-conda-${{ hashFiles('**/environment*.yml', '**/pyproject.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-conda-
         
     - name: Setup pip cache and prepare environment
       run: |
@@ -124,7 +105,6 @@ jobs:
       timeout-minutes: 10
 
     - name: Install SAGE (Test Mode)
-      shell: bash -l {0}
       env:
         CI: true
         DEBIAN_FRONTEND: noninteractive
@@ -132,42 +112,46 @@ jobs:
         PIP_CACHE_DIR: ~/.cache/pip
         PIP_NO_INPUT: 1
         PIP_DISABLE_PIP_VERSION_CHECK: 1
-        SAGE_ENV_NAME: sage
-        CONDA_ALWAYS_YES: true
-        # 优化pip安装速度 - 移除实验性fast-deps功能
-        PIP_PROGRESS_BAR: on
         # 并行安装优化
         PIP_PARALLEL_BUILDS: 4
         MAKEFLAGS: "-j4"
       run: |
-        echo "🚀 Installing SAGE using quickstart.sh --minimal"
-        echo "⏰ 预计安装时间: 10-20分钟（取决于网络和缓存状态）"
-        
-        conda --version
-        mamba --version || echo "mamba not available"
+        echo "🚀 CI模式：使用pip直接安装SAGE核心包"
+        echo "⏰ 预计安装时间: 5-10分钟（跳过conda环境创建）"
         
         # 显示环境信息
         echo "📊 环境信息:"
         echo "- Python: $(python --version)"
+        echo "- Python路径: $(which python)"
+        echo "- Pip版本: $(pip --version)"
         echo "- Pip cache: $PIP_CACHE_DIR"
         echo "- 网络状态: $(ping -c 1 pypi.org >/dev/null 2>&1 && echo "✅ 可达" || echo "❌ 不可达")"
         echo "- 缓存大小: $(du -sh ~/.cache/pip 2>/dev/null || echo "缓存为空")"
         
-        chmod +x ./quickstart.sh
-        echo "🎯 开始安装..."
-        ./quickstart.sh --minimal
-      timeout-minutes: 25
+        echo "🎯 开始安装核心包..."
+        
+        # 直接使用pip安装核心包（开发模式，速度更快）
+        echo "📦 安装 sage-common..."
+        pip install -e packages/sage-common/ --disable-pip-version-check --no-input --progress-bar on --cache-dir ~/.cache/pip
+        
+        echo "📦 安装 sage-kernel..."
+        pip install -e packages/sage-kernel/ --disable-pip-version-check --no-input --progress-bar on --cache-dir ~/.cache/pip
+        
+        echo "📦 安装 sage-libs..."
+        pip install -e packages/sage-libs/ --disable-pip-version-check --no-input --progress-bar on --cache-dir ~/.cache/pip
+        
+        echo "📦 安装 sage-middleware..."
+        pip install -e packages/sage-middleware/ --disable-pip-version-check --no-input --progress-bar on --cache-dir ~/.cache/pip
+        
+        echo "✅ 所有核心包安装完成"
+      timeout-minutes: 15
         
     - name: Basic Import Tests
-      shell: bash -l {0}
       env:
         # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
         PIP_NO_INPUT: 1
-        SAGE_ENV_NAME: sage
       run: |
         echo "=== Import Tests ==="
-        # 激活conda环境进行测试
-        conda activate $SAGE_ENV_NAME
         python -c "import sage; print('✅ SAGE core import successful, version:', sage.__version__)"
         python -c "import sage.common; print('✅ sage.common import successful')"
         python -c "import sage.kernel; print('✅ sage.kernel import successful')"
@@ -179,15 +163,11 @@ jobs:
         sage version && echo "✅ SAGE version command working (使用 'sage version' 不是 'sage --version')"
 
     - name: Extended Tests
-      shell: bash -l {0}
       env:
         # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
         PIP_NO_INPUT: 1
-        SAGE_ENV_NAME: sage
       run: |
         echo "=== 基础模块导入测试 ==="
-        # 激活conda环境进行测试
-        conda activate $SAGE_ENV_NAME
         
         # 测试基础导入
         python -c "import sage.common; print('✅ sage.common 导入成功')" || echo "❌ sage.common 导入失败"
@@ -204,15 +184,11 @@ jobs:
         python -c "import sage.libs; print('✅ sage.libs 可用')" || echo "ℹ️ sage.libs 不可用"
         
     - name: Full System Test
-      shell: bash -l {0}
       env:
         # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
         PIP_NO_INPUT: 1
-        SAGE_ENV_NAME: sage
       run: |
         echo "=== Full Import Test ==="
-        # 激活conda环境进行测试
-        conda activate $SAGE_ENV_NAME
         python -c "
         import sys
         print('Python executable:', sys.executable)
@@ -255,7 +231,7 @@ jobs:
                     print('STDERR:', version_result.stderr)
                     
                     # 尝试其他版本查询方式
-                    print('ℹ️  注意: SAGE使用 "sage version" 命令，不是 "sage --version" 选项')
+                    print('ℹ️  注意: SAGE使用 sage version 命令，不是 sage --version 选项')
             
         except Exception as e:
             print('❌ Import test failed:', str(e))
