@@ -171,24 +171,4 @@ jobs:
     runs-on: self-hosted
     if: always()
     
-    steps:
-    - name: Docker Integration Test Instructions
-      run: |
-        echo "=========================================="
-        echo "📋 Additional Manual Tests Required:"
-        echo ""
-        echo "1. Docker Integration Test:"
-        echo "   cd /home/shuhao/SAGE"
-        echo "   docker build -t sage ."
-        echo "   docker run --rm sage"
-        echo ""
-        echo "2. Full Installation Test:"
-        echo "   ./quickstart.sh --standard --conda"
-        echo ""
-        echo "3. Development Installation Test:"
-        echo "   ./quickstart.sh --dev --conda"
-        echo ""
-        echo "📋 Required before merging:"
-        echo "   ✅ Docker integration tests pass"
-        echo "   ✅ Full installation works correctly"
-        echo "=========================================="
+  
