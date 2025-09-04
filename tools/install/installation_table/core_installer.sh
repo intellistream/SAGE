@@ -5,19 +5,25 @@
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
-# CI环境检测 - 确保非交互模式
-if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+# CI环境或远程部署检测 - 确保非交互模式
+if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
     export PIP_NO_INPUT=1
     export PIP_DISABLE_PIP_VERSION_CHECK=1
-    # export PYTHONNOUSERSITE=1  # 注释掉以提高runner测试速度
+    # 只在CI环境中注释掉PYTHONNOUSERSITE以提高测试速度，远程部署仍需要设置
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        # export PYTHONNOUSERSITE=1  # CI环境中注释掉以提高runner测试速度
+        echo "# CI环境中跳过PYTHONNOUSERSITE设置"
+    else
+        export PYTHONNOUSERSITE=1  # 远程部署环境仍需要设置
+    fi
 fi
 
 # 安装核心包
 install_core_packages() {
     local install_mode="${1:-dev}"  # 默认为开发模式，接受参数控制
     
-    # 在非CI环境中设置环境变量以避免用户站点包干扰
-    if [ "$CI" != "true" ]; then
+    # 只在真正的本地环境中设置PYTHONNOUSERSITE，CI和远程部署有各自的处理逻辑
+    if [ "$CI" != "true" ] && [ "$SAGE_REMOTE_DEPLOY" != "true" ] && [ -z "$GITHUB_ACTIONS" ] && [ -z "$GITLAB_CI" ] && [ -z "$JENKINS_URL" ]; then
         export PYTHONNOUSERSITE=1
     fi
     
@@ -147,8 +153,8 @@ install_pypi_package_with_output() {
     local pip_cmd="$1"
     local package_name="$2"
     
-    # 在非CI环境中设置环境变量以避免用户站点包干扰
-    if [ "$CI" != "true" ]; then
+    # 只在真正的本地环境中设置PYTHONNOUSERSITE，CI和远程部署有各自的处理逻辑
+    if [ "$CI" != "true" ] && [ "$SAGE_REMOTE_DEPLOY" != "true" ] && [ -z "$GITHUB_ACTIONS" ] && [ -z "$GITLAB_CI" ] && [ -z "$JENKINS_URL" ]; then
         export PYTHONNOUSERSITE=1
     fi
     

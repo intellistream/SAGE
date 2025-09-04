@@ -407,9 +407,9 @@ class DeploymentManager:
             if remote_config.get('force_reinstall'):
                 quickstart_args.append("--force")
             
-            # 添加远程部署标志，用于CI环境检测
+            # 添加远程部署标志，用于启用非交互模式
             quickstart_env_vars = [
-                "CI=true",
+                "SAGE_REMOTE_DEPLOY=true",  # 标识这是远程部署
                 "DEBIAN_FRONTEND=noninteractive", 
                 "CONDA_ALWAYS_YES=true",
                 f"SAGE_ENV_NAME={env_name}"

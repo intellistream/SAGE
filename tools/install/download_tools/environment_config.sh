@@ -15,12 +15,18 @@ configure_installation_environment() {
     local install_mode="${2:-dev}"
     local conda_env_name="${3:-}"  # 可选的conda环境名
     
-    # 在非CI环境中设置环境变量以避免用户站点包干扰虚拟环境
-    if [ "$CI" != "true" ]; then
+    # 环境变量设置逻辑：区分CI、远程部署和本地环境
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        # CI环境：不设置PYTHONNOUSERSITE以提高测试速度
+        echo -e "${INFO} CI环境中跳过PYTHONNOUSERSITE设置以提高测试速度"
+    elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
+        # 远程部署环境：设置PYTHONNOUSERSITE以避免包冲突
+        export PYTHONNOUSERSITE=1
+        echo -e "${INFO} 远程部署环境已设置 PYTHONNOUSERSITE=1 以避免用户包冲突"
+    else
+        # 本地开发环境：设置PYTHONNOUSERSITE以避免包冲突
         export PYTHONNOUSERSITE=1
         echo -e "${INFO} 已设置 PYTHONNOUSERSITE=1 以避免用户包冲突"
-    else
-        echo -e "${INFO} CI环境中跳过PYTHONNOUSERSITE设置以提高测试速度"
     fi
     
     # 运行综合系统检查（包含预检查、系统检查、SAGE检查）

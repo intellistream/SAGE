@@ -5,10 +5,16 @@
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
-# CI环境检测 - 确保非交互模式
-if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+# CI环境或远程部署检测 - 确保非交互模式
+if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
     export CONDA_ALWAYS_YES=true  # conda的非交互模式
-    # export PYTHONNOUSERSITE=1  # 注释掉以提高runner测试速度
+    # 只在CI环境中注释掉PYTHONNOUSERSITE以提高测试速度，远程部署仍需要设置
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        # export PYTHONNOUSERSITE=1  # CI环境中注释掉以提高runner测试速度
+        echo "# CI环境中跳过PYTHONNOUSERSITE设置"
+    else
+        export PYTHONNOUSERSITE=1  # 远程部署环境仍需要设置
+    fi
 fi
 
 # 询问用户是否创建新的 conda 环境
@@ -47,10 +53,10 @@ ask_conda_environment() {
     # 记录到日志
     echo "$(date): 用户选择 Conda 环境配置" >> "$log_file"
     
-    # 如果是CI环境，自动选择选项1
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-        echo -e "${INFO} 检测到CI环境，自动选择选项1：创建新的 SAGE 环境"
-        echo "$(date): CI环境自动选择选项1" >> "$log_file"
+    # 如果是CI环境或远程部署，自动选择选项1
+    if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        echo -e "${INFO} 检测到CI/远程部署环境，自动选择选项1：创建新的 SAGE 环境"
+        echo "$(date): CI/远程部署环境自动选择选项1" >> "$log_file"
         conda_choice=1
     else
         # 交互模式，询问用户选择
@@ -84,9 +90,9 @@ ask_conda_environment() {
             export SAGE_ENV_NAME
             ;;
         3)
-            if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-                # CI环境不应该到达这里，但万一到了就默认使用sage
-                echo -e "${WARNING} CI环境中不应选择选项3，回退到选项1"
+            if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+                # CI/远程部署环境不应该到达这里，但万一到了就默认使用sage
+                echo -e "${WARNING} CI/远程部署环境中不应选择选项3，回退到选项1"
                 SAGE_ENV_NAME="sage"
                 export SAGE_ENV_NAME
                 create_conda_environment "$SAGE_ENV_NAME"
@@ -131,10 +137,10 @@ create_conda_environment() {
         echo -e "${WARNING} 环境 '$env_name' 已存在"
         echo "$(date): 环境 '$env_name' 已存在" >> "$log_file"
         
-        # 如果是CI环境，自动选择重新创建
-        if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-            echo -e "${INFO} CI环境检测到，自动删除并重新创建环境"
-            echo "$(date): CI环境自动选择重新创建环境" >> "$log_file"
+        # 如果是CI环境或远程部署，自动选择重新创建
+        if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+            echo -e "${INFO} CI/远程部署环境检测到，自动删除并重新创建环境"
+            echo "$(date): CI/远程部署环境自动选择重新创建环境" >> "$log_file"
             recreate="y"
         else
             echo -ne "${BLUE}是否删除并重新创建? [y/N]: ${NC}"
