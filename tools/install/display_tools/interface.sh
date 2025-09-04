@@ -65,7 +65,7 @@ show_welcome() {
     if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
         draw_line_formatted
         # 使用图标偏移函数
-        echo_icon "🚀" "欢迎使用 SAGE 快速部署脚本" 55 2
+        echo_icon "🚀" "欢迎使用 SAGE 快速部署脚本" 65 2
         draw_line_formatted
     else
         draw_line
