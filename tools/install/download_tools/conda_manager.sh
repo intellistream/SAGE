@@ -8,7 +8,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 # CI环境检测 - 确保非交互模式
 if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
     export CONDA_ALWAYS_YES=true  # conda的非交互模式
-    export PYTHONNOUSERSITE=1
+    # export PYTHONNOUSERSITE=1  # 注释掉以提高runner测试速度
 fi
 
 # 询问用户是否创建新的 conda 环境

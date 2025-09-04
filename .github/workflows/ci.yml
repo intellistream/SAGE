@@ -134,7 +134,7 @@ jobs:
       env:
         CI: true
         DEBIAN_FRONTEND: noninteractive  # 避免apt交互
-        PYTHONNOUSERSITE: 1  # 禁用用户站点包，避免依赖冲突
+        # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
         PIP_NO_INPUT: 1  # 禁用pip交互
         PIP_DISABLE_PIP_VERSION_CHECK: 1  # 禁用pip版本检查
         SAGE_ENV_NAME: sage  # 设置默认环境名
@@ -149,7 +149,7 @@ jobs:
     - name: Run Test Suite
       shell: bash -l {0}
       env:
-        PYTHONNOUSERSITE: 1
+        # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
         PIP_NO_INPUT: 1
       run: |
         echo "🧪 Running minimal test suite..."

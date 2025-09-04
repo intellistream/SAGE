@@ -9,15 +9,17 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
     export PIP_NO_INPUT=1
     export PIP_DISABLE_PIP_VERSION_CHECK=1
-    export PYTHONNOUSERSITE=1
+    # export PYTHONNOUSERSITE=1  # 注释掉以提高runner测试速度
 fi
 
 # 安装核心包
 install_core_packages() {
     local install_mode="${1:-dev}"  # 默认为开发模式，接受参数控制
     
-    # 设置环境变量以避免用户站点包干扰
-    export PYTHONNOUSERSITE=1
+    # 在非CI环境中设置环境变量以避免用户站点包干扰
+    if [ "$CI" != "true" ]; then
+        export PYTHONNOUSERSITE=1
+    fi
     
     # 获取项目根目录并初始化日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
@@ -145,8 +147,10 @@ install_pypi_package_with_output() {
     local pip_cmd="$1"
     local package_name="$2"
     
-    # 设置环境变量以避免用户站点包干扰
-    export PYTHONNOUSERSITE=1
+    # 在非CI环境中设置环境变量以避免用户站点包干扰
+    if [ "$CI" != "true" ]; then
+        export PYTHONNOUSERSITE=1
+    fi
     
     # 获取项目根目录
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"

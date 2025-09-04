@@ -78,7 +78,7 @@ jobs:
       env:
         CI: true
         DEBIAN_FRONTEND: noninteractive
-        PYTHONNOUSERSITE: 1
+        # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
         PIP_CACHE_DIR: /tmp/pip-cache
         PIP_NO_INPUT: 1
         PIP_DISABLE_PIP_VERSION_CHECK: 1
@@ -94,7 +94,7 @@ jobs:
     - name: Basic Import Tests
       shell: bash -l {0}
       env:
-        PYTHONNOUSERSITE: 1
+        # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
         PIP_NO_INPUT: 1
         SAGE_ENV_NAME: sage
       run: |
@@ -113,7 +113,7 @@ jobs:
     - name: Extended Tests
       shell: bash -l {0}
       env:
-        PYTHONNOUSERSITE: 1
+        # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
         PIP_NO_INPUT: 1
         SAGE_ENV_NAME: sage
       run: |
@@ -137,7 +137,7 @@ jobs:
     - name: Full System Test
       shell: bash -l {0}
       env:
-        PYTHONNOUSERSITE: 1
+        # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
         PIP_NO_INPUT: 1
         SAGE_ENV_NAME: sage
       run: |

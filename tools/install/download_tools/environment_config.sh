@@ -15,9 +15,13 @@ configure_installation_environment() {
     local install_mode="${2:-dev}"
     local conda_env_name="${3:-}"  # 可选的conda环境名
     
-    # 设置环境变量以避免用户站点包干扰虚拟环境
-    export PYTHONNOUSERSITE=1
-    echo -e "${INFO} 已设置 PYTHONNOUSERSITE=1 以避免用户包冲突"
+    # 在非CI环境中设置环境变量以避免用户站点包干扰虚拟环境
+    if [ "$CI" != "true" ]; then
+        export PYTHONNOUSERSITE=1
+        echo -e "${INFO} 已设置 PYTHONNOUSERSITE=1 以避免用户包冲突"
+    else
+        echo -e "${INFO} CI环境中跳过PYTHONNOUSERSITE设置以提高测试速度"
+    fi
     
     # 运行综合系统检查（包含预检查、系统检查、SAGE检查）
     if ! comprehensive_system_check "$install_mode" "$install_environment"; then
