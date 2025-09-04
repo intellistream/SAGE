@@ -6,15 +6,6 @@
 export TERM=xterm-256color
 set -e
 
-# CI环境检测 - 设置非交互模式
-if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-    export DEBIAN_FRONTEND=noninteractive
-    export PIP_NO_INPUT=1
-    export PIP_DISABLE_PIP_VERSION_CHECK=1
-    export PYTHONNOUSERSITE=1
-    echo "🤖 CI环境检测到，启用非交互模式"
-fi
-
 # 获取脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOLS_DIR="$SCRIPT_DIR/tools/install"
@@ -42,7 +33,6 @@ main() {
     # 获取解析后的参数
     local mode=$(get_install_mode)
     local environment=$(get_install_environment)
-    local conda_env_name=$(get_conda_env_name)
     
     # 显示欢迎界面
     show_welcome
@@ -51,7 +41,7 @@ main() {
     cd "$SCRIPT_DIR"
     
     # 执行安装
-    install_sage "$mode" "$environment" "$conda_env_name"
+    install_sage "$mode" "$environment"
     
     # 验证安装
     if verify_installation; then

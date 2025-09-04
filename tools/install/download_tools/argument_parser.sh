@@ -8,7 +8,6 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 # 全局变量
 INSTALL_MODE=""
 INSTALL_ENVIRONMENT=""
-CONDA_ENV_NAME=""  # 新增：conda环境名
 SHOW_HELP=false
 
 # 显示参数帮助信息
@@ -85,23 +84,17 @@ parse_install_mode() {
 # 解析安装环境参数
 parse_install_environment() {
     local param="$1"
-    local next_param="$2"
     case "$param" in
         "--conda"|"-conda")
             INSTALL_ENVIRONMENT="conda"
-            # 检查下一个参数是否是环境名（不以--或-开头）
-            if [[ -n "$next_param" && ! "$next_param" =~ ^-{1,2} ]]; then
-                CONDA_ENV_NAME="$next_param"
-                return 2  # 返回2表示消费了两个参数
-            fi
-            return 1  # 返回1表示消费了一个参数
+            return 0
             ;;
         "--pip"|"-pip")
             INSTALL_ENVIRONMENT="pip"
-            return 1
+            return 0
             ;;
         *)
-            return 0  # 返回0表示没有匹配，不消费参数
+            return 1
             ;;
     esac
 }
@@ -135,22 +128,13 @@ parse_arguments() {
     # 解析其他参数
     while [[ $# -gt 0 ]]; do
         local param="$1"
-        local next_param="$2"
         
         if parse_install_mode "$param"; then
             # 安装模式参数
             shift
-        elif result=$(parse_install_environment "$param" "$next_param"); then
-            case $? in
-                1)
-                    # 消费了一个参数
-                    shift
-                    ;;
-                2)
-                    # 消费了两个参数
-                    shift 2
-                    ;;
-            esac
+        elif parse_install_environment "$param"; then
+            # 安装环境参数
+            shift
         else
             # 未知参数
             unknown_params+=("$param")
@@ -210,11 +194,7 @@ set_defaults_and_show_tips() {
     
     case "$INSTALL_ENVIRONMENT" in
         "conda")
-            if [ -n "$CONDA_ENV_NAME" ]; then
-                echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境 ($CONDA_ENV_NAME)${NC}"
-            else
-                echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境${NC}"
-            fi
+            echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境${NC}"
             ;;
         "pip")
             echo -e "  ${BLUE}安装环境:${NC} ${PURPLE}系统Python环境${NC}"
@@ -231,11 +211,6 @@ get_install_mode() {
 # 获取解析后的安装环境
 get_install_environment() {
     echo "$INSTALL_ENVIRONMENT"
-}
-
-# 获取解析后的conda环境名
-get_conda_env_name() {
-    echo "$CONDA_ENV_NAME"
 }
 
 # 检查是否需要显示帮助

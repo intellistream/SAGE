@@ -15,22 +15,17 @@ source "$(dirname "${BASH_SOURCE[0]}")/dev_installer.sh"
 install_sage() {
     local mode="${1:-dev}"
     local environment="${2:-conda}"
-    local conda_env_name="${3:-}"  # 可选的conda环境名
     
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
     local log_file="$project_root/install.log"
     
     echo ""
-    if [ -n "$conda_env_name" ]; then
-        echo -e "${GEAR} 开始安装 SAGE 包 (${mode} 模式, ${environment} 环境: $conda_env_name)..."
-    else
-        echo -e "${GEAR} 开始安装 SAGE 包 (${mode} 模式, ${environment} 环境)..."
-    fi
+    echo -e "${GEAR} 开始安装 SAGE 包 (${mode} 模式, ${environment} 环境)..."
     echo ""
     
     # 配置安装环境（包含所有检查）
-    configure_installation_environment "$environment" "$mode" "$conda_env_name"
+    configure_installation_environment "$environment" "$mode"
     
     # 记录安装开始到日志
     echo "" >> "$log_file"
