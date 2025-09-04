@@ -122,17 +122,17 @@ install_package_with_output() {
     local install_cmd
     if [ "$install_type" = "dev" ]; then
         if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-            # CI环境：添加更多优化选项
+            # CI环境：添加优化选项
             install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input --progress-bar=on --cache-dir ~/.cache/pip"
         else
-            install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
+            install_cmd="$pip_cmd install -e $package_path"
         fi
     else
         if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-            # CI环境：添加更多优化选项
+            # CI环境：添加优化选项
             install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input --progress-bar=on --cache-dir ~/.cache/pip"
         else
-            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
+            install_cmd="$pip_cmd install $package_path"
         fi
     fi
     

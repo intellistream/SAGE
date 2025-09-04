@@ -302,12 +302,12 @@ activate_conda_environment() {
         if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
             # CI环境：使用优化的pip命令和并行安装
             if command -v mamba >/dev/null 2>&1; then
-                export PIP_CMD="conda run -n $env_name mamba install -c conda-forge -y pip && conda run -n $env_name python -m pip --disable-pip-version-check --no-input --cache-dir ~/.cache/pip"
+                export PIP_CMD="conda run -n $env_name mamba install -c conda-forge -y pip && conda run -n $env_name python -m pip"
                 echo -e "${INFO} CI环境：使用mamba优化的pip命令"
             else
-                # 为CI环境优化的pip命令，包含并行构建和缓存
-                export PIP_CMD="conda run -n $env_name python -m pip --disable-pip-version-check --no-input --cache-dir ~/.cache/pip --progress-bar on"
-                echo -e "${INFO} CI环境：使用高度优化的pip命令"
+                # 为CI环境优化的pip命令，简化参数避免重复
+                export PIP_CMD="conda run -n $env_name python -m pip"
+                echo -e "${INFO} CI环境：使用优化的pip命令"
             fi
             
             # 设置并行构建环境变量
