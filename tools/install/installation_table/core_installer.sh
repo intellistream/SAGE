@@ -121,9 +121,19 @@ install_package_with_output() {
     # 根据安装类型构建命令
     local install_cmd
     if [ "$install_type" = "dev" ]; then
-        install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
+        if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+            # CI环境：添加更多优化选项
+            install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input --progress-bar=on --cache-dir ~/.cache/pip"
+        else
+            install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
+        fi
     else
-        install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
+        if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+            # CI环境：添加更多优化选项
+            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input --progress-bar=on --cache-dir ~/.cache/pip"
+        else
+            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
+        fi
     fi
     
     # 记录安装开始信息到日志
@@ -171,7 +181,16 @@ install_pypi_package_with_output() {
     
     # 对于PyPI包，直接执行安装命令并显示输出，同时记录到日志
     # 添加 --upgrade 参数确保安装最新版本
-    $pip_cmd install "$package_name" --upgrade --disable-pip-version-check 2>&1 | tee -a "$log_file"
+    local install_cmd
+    if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        # CI环境：添加缓存和优化选项
+        install_cmd="$pip_cmd install $package_name --upgrade --disable-pip-version-check --progress-bar=on --cache-dir ~/.cache/pip"
+    else
+        install_cmd="$pip_cmd install $package_name --upgrade --disable-pip-version-check"
+    fi
+    
+    echo "命令: $install_cmd" >> "$log_file"
+    $install_cmd 2>&1 | tee -a "$log_file"
     local install_status=${PIPESTATUS[0]}
     
     # 记录安装结果到日志
