@@ -5,10 +5,26 @@
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
+# CI环境检测 - 确保非交互模式
+if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    export CONDA_ALWAYS_YES=true  # conda的非交互模式
+    export PYTHONNOUSERSITE=1
+fi
+
 # 询问用户是否创建新的 conda 环境
 ask_conda_environment() {
     if ! command -v conda &> /dev/null; then
         return 1  # conda 不可用，跳过
+    fi
+    
+    # 如果已经指定了环境名，直接使用
+    if [ -n "$SAGE_ENV_NAME" ]; then
+        echo ""
+        echo -e "${GEAR} ${BOLD}Conda 环境设置${NC}"
+        echo ""
+        echo -e "${INFO} 使用指定的环境名: ${GREEN}$SAGE_ENV_NAME${NC}"
+        create_conda_environment "$SAGE_ENV_NAME"
+        return $?
     fi
     
     # 获取项目根目录和日志文件
@@ -39,6 +55,7 @@ ask_conda_environment() {
         case $conda_choice in
             1)
                 SAGE_ENV_NAME="sage"
+                export SAGE_ENV_NAME  # 导出环境变量
                 create_conda_environment "$SAGE_ENV_NAME"
                 break
                 ;;
@@ -46,6 +63,7 @@ ask_conda_environment() {
                 echo -e "${INFO} 将在当前环境中安装 SAGE"
                 echo "$(date): 用户选择使用当前环境" >> "$log_file"
                 SAGE_ENV_NAME=""
+                export SAGE_ENV_NAME
                 break
                 ;;
             3)
@@ -54,6 +72,7 @@ ask_conda_environment() {
                 echo "$(date): 用户输入自定义环境名: $custom_env_name" >> "$log_file"
                 if [[ -n "$custom_env_name" ]]; then
                     SAGE_ENV_NAME="$custom_env_name"
+                    export SAGE_ENV_NAME  # 导出环境变量
                     create_conda_environment "$SAGE_ENV_NAME"
                     break
                 else
@@ -206,7 +225,7 @@ activate_conda_environment() {
         echo -e "${INFO} 将使用当前环境"
         export PIP_CMD="python3 -m pip"
         export PYTHON_CMD="python3"
-        SAGE_ENV_NAME=""
+        export SAGE_ENV_NAME=""  # 确保导出空值
         return 1
     fi
     
@@ -220,9 +239,10 @@ activate_conda_environment() {
         
         # 设置环境变量，让子进程使用正确的 conda 环境
         export CONDA_DEFAULT_ENV="$env_name"
+        export SAGE_ENV_NAME="$env_name"  # 确保SAGE_ENV_NAME被正确设置和导出
         
-        # 更新 pip 命令以使用指定环境
-        export PIP_CMD="conda run -n $env_name pip"
+        # 更新 pip 命令以使用指定环境的 python -m pip 模式
+        export PIP_CMD="conda run -n $env_name python -m pip"
         export PYTHON_CMD="conda run -n $env_name python"
         
         echo -e "${CHECK} 环境已激活"
@@ -233,7 +253,7 @@ activate_conda_environment() {
         echo -e "${INFO} 环境可能损坏，将使用当前环境"
         export PIP_CMD="python3 -m pip"
         export PYTHON_CMD="python3"
-        SAGE_ENV_NAME=""
+        export SAGE_ENV_NAME=""  # 确保导出空值
         return 1
     fi
 }

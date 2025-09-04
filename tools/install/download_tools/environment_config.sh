@@ -13,6 +13,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/conda_manager.sh"
 configure_installation_environment() {
     local install_environment="${1:-conda}"
     local install_mode="${2:-dev}"
+    local conda_env_name="${3:-}"  # 可选的conda环境名
+    
+    # 设置环境变量以避免用户站点包干扰虚拟环境
+    export PYTHONNOUSERSITE=1
+    echo -e "${INFO} 已设置 PYTHONNOUSERSITE=1 以避免用户包冲突"
     
     # 运行综合系统检查（包含预检查、系统检查、SAGE检查）
     if ! comprehensive_system_check "$install_mode" "$install_environment"; then
@@ -24,6 +29,11 @@ configure_installation_environment() {
     case "$install_environment" in
         "conda")
             # conda 模式已在检查中验证过
+            if [ -n "$conda_env_name" ]; then
+                echo -e "${INFO} 将使用指定的conda环境: $conda_env_name"
+                # 导出环境名供其他脚本使用
+                export SAGE_ENV_NAME="$conda_env_name"
+            fi
             ask_conda_environment
             ;;
         "pip")

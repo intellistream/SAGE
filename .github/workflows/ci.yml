@@ -129,17 +129,38 @@ jobs:
         sudo apt-get install -y build-essential
       timeout-minutes: 10
         
-    - name: Install SAGE (Minimal Mode)
+    - name: Install SAGE (Test Mode)
+      shell: bash -l {0}
+      env:
+        CI: true
+        DEBIAN_FRONTEND: noninteractive  # 避免apt交互
+        PYTHONNOUSERSITE: 1  # 禁用用户站点包，避免依赖冲突
+        PIP_NO_INPUT: 1  # 禁用pip交互
+        PIP_DISABLE_PIP_VERSION_CHECK: 1  # 禁用pip版本检查
       run: |
-        chmod +x quickstart.sh
-        ./quickstart.sh --minimal
+        echo "Installing SAGE using quickstart.sh --minimal --conda sage-test"
+        conda --version
+        chmod +x ./quickstart.sh
+        ./quickstart.sh --minimal --conda sage-test
       timeout-minutes: 25
         
     - name: Run Test Suite
+      shell: bash -l {0}
+      env:
+        PYTHONNOUSERSITE: 1
+        PIP_NO_INPUT: 1
       run: |
         echo "🧪 Running minimal test suite..."
+        # 激活conda环境进行测试
+        conda activate sage-test
         python -c "import sage; print('✅ SAGE import successful, version:', sage.__version__)"
-        # 可以在这里添加更多测试
+        python -c "import sage.common; print('✅ sage.common import successful')"
+        python -c "import sage.kernel; print('✅ sage.kernel import successful')"  
+        python -c "import sage.libs; print('✅ sage.libs import successful')"
+        python -c "import sage.middleware; print('✅ sage.middleware import successful')"
+        # 测试CLI
+        sage --help > /dev/null && echo "✅ SAGE CLI working"
+        sage version && echo "✅ SAGE version command working"
       timeout-minutes: 10
 
   # 提醒信息（总是运行）
@@ -160,7 +181,10 @@ jobs:
         echo "   docker run --rm sage-test"
         echo ""
         echo "2. Full Installation Test:"
-        echo "   ./quickstart.sh --standard"
+        echo "   ./quickstart.sh --standard --conda"
+        echo ""
+        echo "3. Development Installation Test:"
+        echo "   ./quickstart.sh --dev --conda"
         echo ""
         echo "📋 Required before merging:"
         echo "   ✅ Docker integration tests pass"

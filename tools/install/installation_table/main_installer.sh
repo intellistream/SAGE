@@ -15,17 +15,22 @@ source "$(dirname "${BASH_SOURCE[0]}")/dev_installer.sh"
 install_sage() {
     local mode="${1:-dev}"
     local environment="${2:-conda}"
+    local conda_env_name="${3:-}"  # 可选的conda环境名
     
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
     local log_file="$project_root/install.log"
     
     echo ""
-    echo -e "${GEAR} 开始安装 SAGE 包 (${mode} 模式, ${environment} 环境)..."
+    if [ -n "$conda_env_name" ]; then
+        echo -e "${GEAR} 开始安装 SAGE 包 (${mode} 模式, ${environment} 环境: $conda_env_name)..."
+    else
+        echo -e "${GEAR} 开始安装 SAGE 包 (${mode} 模式, ${environment} 环境)..."
+    fi
     echo ""
     
     # 配置安装环境（包含所有检查）
-    configure_installation_environment "$environment" "$mode"
+    configure_installation_environment "$environment" "$mode" "$conda_env_name"
     
     # 记录安装开始到日志
     echo "" >> "$log_file"
@@ -42,27 +47,27 @@ install_sage() {
         "minimal")
             echo -e "${BLUE}最小安装模式：仅安装核心 SAGE 包${NC}"
             echo "$(date): 开始最小安装模式" >> "$log_file"
-            install_core_packages
+            install_core_packages "$mode"
             ;;
         "standard")
             echo -e "${BLUE}标准安装模式：核心包 + 科学计算库${NC}"
             echo -e "${DIM}包含: numpy, pandas, matplotlib, scipy, jupyter${NC}"
             echo "$(date): 开始标准安装模式" >> "$log_file"
-            install_core_packages
+            install_core_packages "$mode"
             install_scientific_packages
             ;;
         "dev")
             echo -e "${BLUE}开发者安装模式：标准包 + 开发工具${NC}"
             echo -e "${DIM}包含: 标准安装 + pytest, black, mypy, pre-commit${NC}"
             echo "$(date): 开始开发者安装模式" >> "$log_file"
-            install_core_packages
+            install_core_packages "$mode"
             install_scientific_packages
             install_dev_packages
             ;;
         *)
             echo -e "${WARNING} 未知安装模式: $mode，使用开发者模式"
             echo "$(date): 未知安装模式 $mode，使用开发者模式" >> "$log_file"
-            install_core_packages
+            install_core_packages "dev"
             install_scientific_packages
             install_dev_packages
             ;;

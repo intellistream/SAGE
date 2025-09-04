@@ -72,27 +72,96 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential cmake pkg-config
       timeout-minutes: 10
-        
-    - name: Install SAGE (Minimal Mode)
+
+    - name: Install SAGE (Test Mode)
       shell: bash -l {0}
       env:
         CI: true
+        DEBIAN_FRONTEND: noninteractive
+        PYTHONNOUSERSITE: 1
         PIP_CACHE_DIR: /tmp/pip-cache
+        PIP_NO_INPUT: 1
+        PIP_DISABLE_PIP_VERSION_CHECK: 1
       run: |
-        echo "Installing SAGE using quickstart.sh --minimal"
+        echo "Installing SAGE using quickstart.sh --minimal --conda sage-test"
         conda --version
         chmod +x ./quickstart.sh
-        ./quickstart.sh --minimal
+        ./quickstart.sh --minimal --conda sage-test
       timeout-minutes: 15
         
     - name: Basic Import Tests
+      shell: bash -l {0}
+      env:
+        PYTHONNOUSERSITE: 1
+        PIP_NO_INPUT: 1
       run: |
         echo "=== Import Tests ==="
+        # 激活conda环境进行测试
+        conda activate sage-test
         python -c "import sage; print('✅ SAGE core import successful, version:', sage.__version__)"
         python -c "import sage.common; print('✅ sage.common import successful')"
         python -c "import sage.kernel; print('✅ sage.kernel import successful')"
         python -c "import sage.libs; print('✅ sage.libs import successful')"
         python -c "import sage.middleware; print('✅ sage.middleware import successful')"
         echo "=== CLI Test ==="
-        sage --help
-        sage version
+        sage --help > /dev/null && echo "✅ SAGE CLI help working"
+        sage version && echo "✅ SAGE version command working"
+
+    - name: Extended Tests
+      shell: bash -l {0}
+      env:
+        PYTHONNOUSERSITE: 1
+        PIP_NO_INPUT: 1
+      run: |
+        echo "=== Configuration Test ==="
+        # 激活conda环境进行测试
+        conda activate sage-test
+        python -c "from sage.common.config import SageConfig; print('✅ Config system working')" || echo "❌ Config system failed"
+        
+        echo "=== Utilities Test ==="
+        python -c "from sage.common.utils import get_logger; logger = get_logger('test'); logger.info('Test log'); print('✅ Logger working')" || echo "❌ Logger failed"
+        
+        echo "=== Kernel Test ==="  
+        python -c "from sage.kernel.core import SageKernel; print('✅ Kernel core import successful')" || echo "❌ Kernel core failed"
+        
+        echo "=== Middleware Test ==="
+        python -c "from sage.middleware.core import MiddlewareManager; print('✅ Middleware core import successful')" || echo "❌ Middleware core failed"
+        
+        echo "=== Library Test ==="
+        python -c "from sage.libs.utilities import get_version; print('✅ Libs utilities working')" || echo "❌ Libs utilities failed"
+        
+    - name: Full System Test
+      shell: bash -l {0}
+      env:
+        PYTHONNOUSERSITE: 1
+        PIP_NO_INPUT: 1
+      run: |
+        echo "=== Full Import Test ==="
+        # 激活conda环境进行测试
+        conda activate sage-test
+        python -c "
+        import sys
+        print('Python executable:', sys.executable)
+        print('Python version:', sys.version)
+        
+        # 测试完整导入
+        try:
+            import sage
+            print('✅ sage:', sage.__version__)
+            
+            # 导入各个子模块
+            from sage import common, kernel, libs, middleware
+            print('✅ All SAGE modules imported successfully')
+            
+            # 测试CLI工具
+            import subprocess
+            result = subprocess.run(['sage', '--version'], capture_output=True, text=True)
+            if result.returncode == 0:
+                print('✅ CLI version check successful:', result.stdout.strip())
+            else:
+                print('❌ CLI version check failed:', result.stderr)
+            
+        except Exception as e:
+            print('❌ Import test failed:', str(e))
+            sys.exit(1)
+        "
