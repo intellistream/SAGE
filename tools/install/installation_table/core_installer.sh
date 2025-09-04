@@ -141,11 +141,32 @@ install_package_with_output() {
     echo "=================================" >> "$log_file"
     echo "$(date): 开始安装 $package_name ($install_type 模式)" >> "$log_file"
     echo "命令: $install_cmd" >> "$log_file"
+    echo "工作目录: $(pwd)" >> "$log_file"
+    echo "包路径检查: $(ls -la $package_path 2>/dev/null || echo '路径不存在')" >> "$log_file"
     echo "=================================" >> "$log_file"
     
-    # 使用管道实时显示输出并同时记录到日志
-    $install_cmd 2>&1 | tee -a "$log_file"
-    local install_status=${PIPESTATUS[0]}
+    # 在CI环境中添加超时和更详细的调试
+    if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        echo "🔍 CI环境调试信息:"
+        echo "- 当前环境: $(conda info --envs | grep '*' || echo '无活动环境')"
+        echo "- Python路径: $(conda run -n sage which python 2>/dev/null || echo '无法找到python')"
+        echo "- Pip版本: $(conda run -n sage python -m pip --version 2>/dev/null || echo '无法获取pip版本')"
+        echo "- 网络测试: $(conda run -n sage python -c 'import urllib.request; urllib.request.urlopen("https://pypi.org", timeout=5); print("✅ 网络正常")' 2>/dev/null || echo '❌ 网络异常')"
+        
+        # 使用timeout命令防止卡死，CI环境设置10分钟超时
+        timeout 600 $install_cmd 2>&1 | tee -a "$log_file"
+        local install_status=${PIPESTATUS[0]}
+        
+        # 检查是否超时
+        if [ $install_status -eq 124 ]; then
+            echo "❌ 安装超时 (10分钟)，可能是网络问题或依赖解析卡住" | tee -a "$log_file"
+            install_status=1
+        fi
+    else
+        # 普通环境：不设置超时
+        $install_cmd 2>&1 | tee -a "$log_file"
+        local install_status=${PIPESTATUS[0]}
+    fi
     
     # 记录安装结果到日志
     if [ $install_status -eq 0 ]; then

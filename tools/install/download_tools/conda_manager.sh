@@ -303,13 +303,18 @@ activate_conda_environment() {
             # CI环境：使用优化的pip命令和并行安装
             if command -v mamba >/dev/null 2>&1; then
                 # 先用mamba安装pip，然后设置普通的pip命令
-                conda run -n $env_name mamba install -c conda-forge -y pip
-                export PIP_CMD="conda run -n $env_name python -m pip"
-                echo -e "${INFO} CI环境：使用mamba安装pip，然后使用标准pip命令"
+                echo -e "${INFO} CI环境：使用mamba安装pip..."
+                if conda run -n $env_name mamba install -c conda-forge -y pip; then
+                    export PIP_CMD="conda run -n $env_name python -m pip"
+                    echo -e "${CHECK} mamba安装pip成功，使用标准pip命令"
+                else
+                    echo -e "${WARNING} mamba安装pip失败，回退到conda"
+                    export PIP_CMD="conda run -n $env_name python -m pip"
+                fi
             else
                 # 为CI环境优化的pip命令，简化参数避免重复
                 export PIP_CMD="conda run -n $env_name python -m pip"
-                echo -e "${INFO} CI环境：使用优化的pip命令"
+                echo -e "${INFO} CI环境：使用标准pip命令"
             fi
             
             # 设置并行构建环境变量
