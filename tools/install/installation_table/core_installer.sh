@@ -73,10 +73,18 @@ install_core_packages() {
                 fi
             else
                 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                echo -e "${BOLD}  📦 正在安装 $package (生产模式)${NC}"
-                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                echo -e "${DIM}运行命令: $PIP_CMD install $package_path${NC}"
-                echo ""
+                if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+                    echo -e "${BOLD}  📦 正在安装 $package (生产模式 - CI优化)${NC}"
+                    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                    echo -e "${DIM}运行命令: $PIP_CMD install $package_path (使用优化参数)${NC}"
+                    echo -e "${INFO} CI环境中使用优化参数加速安装"
+                    echo ""
+                else
+                    echo -e "${BOLD}  📦 正在安装 $package (生产模式)${NC}"
+                    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                    echo -e "${DIM}运行命令: $PIP_CMD install $package_path${NC}"
+                    echo ""
+                fi
                 
                 # 使用生产模式安装
                 if install_package_with_output "$PIP_CMD" "$package_path" "$package" "prod"; then
@@ -129,8 +137,8 @@ install_package_with_output() {
         fi
     else
         if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-            # CI环境：添加优化选项
-            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input --progress-bar=on --cache-dir ~/.cache/pip"
+            # CI环境：添加更激进的优化选项
+            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input --progress-bar=on --cache-dir ~/.cache/pip --prefer-binary --no-build-isolation"
         else
             install_cmd="$pip_cmd install $package_path"
         fi

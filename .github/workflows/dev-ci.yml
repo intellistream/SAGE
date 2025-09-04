@@ -134,8 +134,7 @@ jobs:
         PIP_DISABLE_PIP_VERSION_CHECK: 1
         SAGE_ENV_NAME: sage
         CONDA_ALWAYS_YES: true
-        # 优化pip安装速度
-        PIP_USE_FEATURE: fast-deps
+        # 优化pip安装速度 - 移除实验性fast-deps功能
         PIP_PROGRESS_BAR: on
         # 并行安装优化
         PIP_PARALLEL_BUILDS: 4
