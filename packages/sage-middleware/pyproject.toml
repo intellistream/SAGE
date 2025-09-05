@@ -73,8 +73,8 @@ dependencies = [
     "InstructorEmbedding==1.0.1",
     "huggingface-hub>=0.34.0",  # 放宽版本约束
     "peft==0.17.0",
-    "numpy>=1.25.0,<3.0.0",  # 兼容numpy 2.x版本
-    "scipy==1.15.3",
+    "numpy>=2.0.0,<3.0.0",  # 统一numpy版本范围，兼容numpy 2.x
+    "scipy>=1.15.0,<2.0.0",  # 统一scipy版本范围，与其他包兼容
     "fastapi==0.115.12",
     "uvicorn==0.34.3",
     "pydantic",

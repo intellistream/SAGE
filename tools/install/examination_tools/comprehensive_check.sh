@@ -434,7 +434,25 @@ verify_installation() {
     echo ""
     echo -e "${INFO} 验证 SAGE 安装..."
     
-    if python3 -c "
+    # 使用与安装时相同的Python命令和环境
+    local python_cmd="${PYTHON_CMD:-python3}"
+    
+    # 如果使用conda环境且环境变量存在，使用conda run
+    if [ -n "$SAGE_ENV_NAME" ] && command -v conda &> /dev/null; then
+        python_cmd="conda run -n $SAGE_ENV_NAME python"
+        echo -e "${DIM}在conda环境 $SAGE_ENV_NAME 中验证...${NC}"
+    elif [ -n "$PIP_CMD" ] && [[ "$PIP_CMD" == *"conda run"* ]]; then
+        # 从PIP_CMD中提取环境名
+        local env_name=$(echo "$PIP_CMD" | sed -n 's/.*conda run -n \([^ ]*\).*/\1/p')
+        if [ -n "$env_name" ]; then
+            python_cmd="conda run -n $env_name python"
+            echo -e "${DIM}在conda环境 $env_name 中验证...${NC}"
+        fi
+    else
+        echo -e "${DIM}在当前环境中验证...${NC}"
+    fi
+    
+    if $python_cmd -c "
 import sage
 import sage.common
 import sage.kernel
@@ -447,6 +465,8 @@ print(f'${CHECK} 所有子包版本一致: {sage.common.__version__}')
         return 0
     else
         echo -e "${WARNING} 验证出现问题，但安装可能成功了"
+        echo -e "${DIM}尝试使用以下命令手动验证：${NC}"
+        echo -e "${DIM}  $python_cmd -c \"import sage; print(sage.__version__)\"${NC}"
         return 1
     fi
 }

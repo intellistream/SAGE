@@ -5,8 +5,30 @@
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
+# CI环境检测 - 确保非交互模式
+if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+    export PIP_NO_INPUT=1
+    export PIP_DISABLE_PIP_VERSION_CHECK=1
+    # CI环境中不设置PYTHONNOUSERSITE以提高测试速度
+    echo "# CI环境中跳过PYTHONNOUSERSITE设置"
+elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
+    # 远程部署环境设置
+    export PIP_NO_INPUT=1
+    export PIP_DISABLE_PIP_VERSION_CHECK=1
+    export PYTHONNOUSERSITE=1  # 远程部署环境需要设置
+    echo "# 远程部署环境已设置PYTHONNOUSERSITE=1"
+fi
+
 # 安装核心包
 install_core_packages() {
+    local install_mode="${1:-dev}"  # 默认为开发模式，接受参数控制
+    
+    # 只在真正的本地环境中设置PYTHONNOUSERSITE
+    if [ "$CI" != "true" ] && [ "$SAGE_REMOTE_DEPLOY" != "true" ] && [ -z "$GITHUB_ACTIONS" ] && [ -z "$GITLAB_CI" ] && [ -z "$JENKINS_URL" ]; then
+        export PYTHONNOUSERSITE=1
+        echo "# 本地开发环境已设置PYTHONNOUSERSITE=1"
+    fi
+    
     # 获取项目根目录并初始化日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
     local log_file="$project_root/install.log"
@@ -31,23 +53,45 @@ install_core_packages() {
         local package_path="packages/$package"
         
         if [ -d "$package_path" ]; then
-            echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            echo -e "${BOLD}  📦 正在安装 $package (开发模式)${NC}"
-            echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            echo -e "${DIM}运行命令: $PIP_CMD install -e $package_path${NC}"
-            echo ""
-            
-            # 使用实时输出安装
-            if install_package_with_output "$PIP_CMD" "$package_path" "$package"; then
+            # 根据安装模式决定安装方式
+            if [ "$install_mode" = "dev" ]; then
+                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                echo -e "${BOLD}  📦 正在安装 $package (开发模式)${NC}"
+                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                echo -e "${DIM}运行命令: $PIP_CMD install -e $package_path${NC}"
                 echo ""
-                echo -e "${CHECK} $package 安装成功！"
-                echo ""
+                
+                # 使用开发模式安装
+                if install_package_with_output "$PIP_CMD" "$package_path" "$package" "dev"; then
+                    echo ""
+                    echo -e "${CHECK} $package 安装成功！"
+                    echo ""
+                else
+                    echo ""
+                    echo -e "${CROSS} $package 安装失败！"
+                    echo -e "${WARNING} 安装过程中断"
+                    echo "$(date): 核心包安装失败，安装中断" >> "$log_file"
+                    exit 1
+                fi
             else
+                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                echo -e "${BOLD}  📦 正在安装 $package (生产模式)${NC}"
+                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                echo -e "${DIM}运行命令: $PIP_CMD install $package_path${NC}"
                 echo ""
-                echo -e "${CROSS} $package 安装失败！"
-                echo -e "${WARNING} 安装过程中断"
-                echo "$(date): 核心包安装失败，安装中断" >> "$log_file"
-                exit 1
+                
+                # 使用生产模式安装
+                if install_package_with_output "$PIP_CMD" "$package_path" "$package" "prod"; then
+                    echo ""
+                    echo -e "${CHECK} $package 安装成功！"
+                    echo ""
+                else
+                    echo ""
+                    echo -e "${CROSS} $package 安装失败！"
+                    echo -e "${WARNING} 安装过程中断"
+                    echo "$(date): 核心包安装失败，安装中断" >> "$log_file"
+                    exit 1
+                fi
             fi
         else
             echo -e "${WARNING} ⚠️  跳过不存在的包: $package"
@@ -70,22 +114,50 @@ install_package_with_output() {
     local pip_cmd="$1"
     local package_path="$2"
     local package_name="$3"
+    local install_type="${4:-dev}"  # dev 或 prod，默认为 dev
     
     # 获取项目根目录
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
     local log_file="$project_root/install.log"
     
+    # 根据安装类型构建命令
+    local install_cmd
+    if [ "$install_type" = "dev" ]; then
+        install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
+    else
+        install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
+    fi
+    
     # 记录安装开始信息到日志
     echo "" >> "$log_file"
     echo "=================================" >> "$log_file"
-    echo "$(date): 开始安装 $package_name" >> "$log_file"
-    echo "命令: $pip_cmd install -e $package_path" >> "$log_file"
+    echo "$(date): 开始安装 $package_name ($install_type 模式)" >> "$log_file"
+    echo "命令: $install_cmd" >> "$log_file"
+    echo "工作目录: $(pwd)" >> "$log_file"
+    echo "包路径检查: $(ls -la $package_path 2>/dev/null || echo '路径不存在')" >> "$log_file"
     echo "=================================" >> "$log_file"
     
-    # 使用管道实时显示输出并同时记录到日志
-    # 添加参数减少不必要的警告和检查
-    $pip_cmd install -e "$package_path" --disable-pip-version-check 2>&1 | tee -a "$log_file"
-    local install_status=${PIPESTATUS[0]}
+    # 在CI环境中添加超时和调试信息
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        echo "🔍 CI环境调试信息:"
+        echo "- Python路径: $(which python3)"
+        echo "- Pip版本: $(python3 -m pip --version 2>/dev/null || echo '无法获取pip版本')"
+        echo "- 网络测试: $(python3 -c 'import urllib.request; urllib.request.urlopen("https://pypi.org", timeout=5); print("✅ 网络正常")' 2>/dev/null || echo '❌ 网络异常')"
+        
+        # 使用timeout命令防止卡死，CI环境设置10分钟超时
+        timeout 600 $install_cmd 2>&1 | tee -a "$log_file"
+        local install_status=${PIPESTATUS[0]}
+        
+        # 检查是否超时
+        if [ $install_status -eq 124 ]; then
+            echo "❌ 安装超时 (10分钟)，可能是网络问题或依赖解析卡住" | tee -a "$log_file"
+            install_status=1
+        fi
+    else
+        # 普通环境（包括远程部署）：不设置超时
+        $install_cmd 2>&1 | tee -a "$log_file"
+        local install_status=${PIPESTATUS[0]}
+    fi
     
     # 记录安装结果到日志
     if [ $install_status -eq 0 ]; then
@@ -103,6 +175,12 @@ install_pypi_package_with_output() {
     local pip_cmd="$1"
     local package_name="$2"
     
+    # 只在真正的本地环境中设置PYTHONNOUSERSITE
+    if [ "$CI" != "true" ] && [ "$SAGE_REMOTE_DEPLOY" != "true" ] && [ -z "$GITHUB_ACTIONS" ] && [ -z "$GITLAB_CI" ] && [ -z "$JENKINS_URL" ]; then
+        export PYTHONNOUSERSITE=1
+        echo "# 本地开发环境已设置PYTHONNOUSERSITE=1"
+    fi
+    
     # 获取项目根目录
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
     local log_file="$project_root/install.log"
@@ -111,12 +189,24 @@ install_pypi_package_with_output() {
     echo "" >> "$log_file"
     echo "=================================" >> "$log_file"
     echo "$(date): 开始安装 PyPI 包 $package_name" >> "$log_file"
-    echo "命令: $pip_cmd install $package_name" >> "$log_file"
+    echo "命令: $pip_cmd install $package_name --upgrade --disable-pip-version-check" >> "$log_file"
     echo "=================================" >> "$log_file"
     
     # 对于PyPI包，直接执行安装命令并显示输出，同时记录到日志
     # 添加 --upgrade 参数确保安装最新版本
-    $pip_cmd install "$package_name" --upgrade 2>&1 | tee -a "$log_file"
+    local install_cmd
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        # CI环境：添加缓存和优化选项
+        install_cmd="$pip_cmd install $package_name --upgrade --disable-pip-version-check --progress-bar=on --cache-dir ~/.cache/pip"
+    elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
+        # 远程部署环境：使用标准选项
+        install_cmd="$pip_cmd install $package_name --upgrade --disable-pip-version-check"
+    else
+        install_cmd="$pip_cmd install $package_name --upgrade --disable-pip-version-check"
+    fi
+    
+    echo "命令: $install_cmd" >> "$log_file"
+    $install_cmd 2>&1 | tee -a "$log_file"
     local install_status=${PIPESTATUS[0]}
     
     # 记录安装结果到日志
