@@ -23,7 +23,13 @@ class LongRefiner:
         score_model_path: str = "BAAI/bge-reranker-v2-m3",
         max_model_len: int = 25000,
         gpu_device: int = 0,
+        score_gpu_device: int = None,  # score模型专用GPU设备，如果None则使用gpu_device
+        gpu_memory_utilization: float = 0.7,  # GPU内存占比
     ):
+        # 保存GPU设备参数
+        self.gpu_device = gpu_device
+        self.score_gpu_device = score_gpu_device if score_gpu_device is not None else gpu_device
+        
         # load refine model
         self._load_trained_model(
             base_model_path,
@@ -32,8 +38,9 @@ class LongRefiner:
             global_selection_module_lora_path,
             max_model_len,
             gpu_device,
+            gpu_memory_utilization,
         )
-        self._load_score_model(score_model_name, score_model_path, gpu_device)
+        self._load_score_model(score_model_name, score_model_path, self.score_gpu_device)
 
     def _load_trained_model(
         self,
@@ -43,16 +50,14 @@ class LongRefiner:
         global_selection_module_lora_path: str,
         max_model_len: int = 25000,
         gpu_device: int = 0,
+        gpu_memory_utilization: float = 0.7,
     ):
-        import os
-        # 设置 CUDA_VISIBLE_DEVICES 环境变量来指定GPU
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_device)
-        
+        # 不设置CUDA_VISIBLE_DEVICES，让各个模型可以使用不同的GPU
         self.model = LLM(
             base_model_path, 
             enable_lora=True, 
             max_model_len=max_model_len, 
-            gpu_memory_utilization=0.7,
+            gpu_memory_utilization=gpu_memory_utilization,
             tensor_parallel_size=1  # 单GPU设置
         )
         self.tokenizer = AutoTokenizer.from_pretrained(base_model_path)
@@ -120,7 +125,8 @@ class LongRefiner:
                 inputs = self.score_tokenizer(
                     batch_pairs, padding=True, truncation=True, return_tensors="pt", max_length=512
                 )
-                inputs = {k: v.cuda() for k, v in inputs.items()}
+                device = f"cuda:{self.gpu_device}"
+                inputs = {k: v.to(device) for k, v in inputs.items()}
                 if "bce" in self.score_model_name or "jina" in self.score_model_name:
                     flatten_scores = (
                         self.score_model(**inputs, return_dict=True)
@@ -171,14 +177,15 @@ class LongRefiner:
                 inputs = self.score_tokenizer(
                     q_list, max_length=256, padding=True, truncation=True, return_tensors="pt"
                 )
-                inputs = {k: v.cuda() for k, v in inputs.items()}
+                device = f"cuda:{self.gpu_device}"
+                inputs = {k: v.to(device) for k, v in inputs.items()}
                 output = self.score_model(**inputs, return_dict=True)
                 q_emb = pooling(output.pooler_output, output.last_hidden_state, inputs["attention_mask"], "mean")
                 q_emb = torch.nn.functional.normalize(q_emb, dim=-1)
                 inputs = self.score_tokenizer(
                     d_list, max_length=512, padding=True, truncation=True, return_tensors="pt"
                 )
-                inputs = {k: v.cuda() for k, v in inputs.items()}
+                inputs = {k: v.to(device) for k, v in inputs.items()}
                 output = self.score_model(**inputs, return_dict=True)
                 d_emb = pooling(output.pooler_output, output.last_hidden_state, inputs["attention_mask"], "mean")
                 d_emb = torch.nn.functional.normalize(d_emb, dim=-1)
@@ -187,7 +194,7 @@ class LongRefiner:
                 all_scores.extend(score_list)
         return all_scores
 
-    def _load_score_model(self, score_model_name: str, score_model_path: str):
+    def _load_score_model(self, score_model_name: str, score_model_path: str, gpu_device: int = 0):
         self.score_model_name = score_model_name
         if score_model_name == "bm25":
             self.score_model = None
@@ -204,11 +211,8 @@ class LongRefiner:
             self.local_score_func = self._cal_score_sbert
         
         # 指定GPU设备
-        if hasattr(self, 'gpu_device') and self.gpu_device is not None:
-            device = f"cuda:{self.gpu_device}"
-            self.score_model.to(device)
-        else:
-            self.score_model.cuda()
+        device = f"cuda:{gpu_device}"
+        self.score_model.to(device)
         self.score_model.eval()
         self.score_model.half()
 
@@ -219,7 +223,15 @@ class LongRefiner:
         budget: int = 2048,
         ratio: float = None,
     ) -> List[str]:
-        return self.batch_run([question], [document_list], budget, ratio)[0]
+        print(f"DEBUG: LongRefiner.run called with question='{question}', doc_count={len(document_list)}, budget={budget}")
+        batch_result = self.batch_run([question], [document_list], budget, ratio)
+        print(f"DEBUG: batch_run returned: {batch_result} (type: {type(batch_result)}, length: {len(batch_result) if batch_result else 'None'})")
+        
+        if not batch_result:
+            print("ERROR: batch_run returned empty list!")
+            return []
+            
+        return batch_result[0]
 
     def batch_run(
         self,
@@ -238,25 +250,38 @@ class LongRefiner:
         Output:
             List[str], each string is a refiner output of the document in document_list
         """
+        print(f"DEBUG: batch_run called with {len(question_list)} questions, {len(document_list)} doc_lists")
+        
+        try:
+            # step1: query analysis
+            print("DEBUG: Starting query analysis...")
+            query_analysis_result = self.run_query_analysis(question_list)
+            print(f"DEBUG: Query analysis completed: {len(query_analysis_result)} results")
 
-        # step1: query analysis
-        query_analysis_result = self.run_query_analysis(question_list)
+            # step2: doc structuring
+            print("DEBUG: Starting doc structuring...")
+            doc_structuring_result = self.run_doc_structuring(document_list)
+            print(f"DEBUG: Doc structuring completed: {len(doc_structuring_result)} results")
 
-        # step2: doc structuring
-        doc_structuring_result = self.run_doc_structuring(document_list)
+            # step3: context selection (local + global)
+            print("DEBUG: Starting context selection...")
+            # refined_content_list: List[str]: each string is the refined content of the question
+            refined_content_list = self.run_all_search(
+                question_list=question_list,
+                document_list=document_list,
+                query_analysis_result=query_analysis_result,
+                doc_structuring_result=doc_structuring_result,
+                budget=budget,
+                ratio=ratio,
+            )
+            print(f"DEBUG: Context selection completed: {refined_content_list}")
 
-        # step3: context selection (local + global)
-        # refined_content_list: List[str]: each string is the refined content of the question
-        refined_content_list = self.run_all_search(
-            question_list=question_list,
-            document_list=document_list,
-            query_analysis_result=query_analysis_result,
-            doc_structuring_result=doc_structuring_result,
-            budget=budget,
-            ratio=ratio,
-        )
-
-        return refined_content_list
+            return refined_content_list
+        except Exception as e:
+            print(f"ERROR in batch_run: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
 
     def run_query_analysis(self, question_list: List[str]) -> List[dict]:
         """
@@ -858,15 +883,15 @@ class LongRefiner:
                         pass
                     else:
                         if isinstance(section_dict["content"], list):
-                            chunk_content += "\n".join(section_dict["content"])
+                            node_content += "\n".join(section_dict["content"])
                         else:
-                            node_content = section_dict["content"]
+                            node_content += section_dict["content"]
                         node_content += "\n"
                     if section_dict["subsections"] != {}:
                         sub_idx = 1
                         for subsection, subsection_content in section_dict["subsections"].items():
                             if subsection_content != "":
-                                chunk_content += f"Subsection {sub_idx}: {subsection}: \n{subsection_content}"
+                                node_content += f"Subsection {sub_idx}: {subsection}: \n{subsection_content}"
                                 sub_idx += 1
                 elif node["type"] == "subsection":
                     section_title = node["parent"]

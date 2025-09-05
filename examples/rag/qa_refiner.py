@@ -1,13 +1,12 @@
 import os
-import time
 import json
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.local_environment import LocalEnvironment
 from sage.common.utils.config.loader import load_config
 from sage.libs.io_utils.batch import HFDatasetBatch
-from sage.middleware.components.neuromem.memory_service import MemoryService
+from sage.middleware.services.memory.memory_service import MemoryService
 
-from sage.libs.rag.retriever import ChromaRetriever
+from sage.libs.rag.retriever import Wiki18FAISSRetriever
 from sage.libs.rag.longrefiner.longrefiner_adapter import LongRefinerAdapter
 from sage.libs.rag.promptor import QAPromptor
 from sage.libs.rag.generator import OpenAIGenerator
@@ -25,7 +24,7 @@ def pipeline_run(config):
     (
         env
         .from_batch(HFDatasetBatch, config["source"])
-        .map(ChromaRetriever, config["retriever"], enable_profile=enable_profile)
+        .map(Wiki18FAISSRetriever, config["retriever"], enable_profile=enable_profile)
         .map(LongRefinerAdapter, config["refiner"], enable_profile=enable_profile)
         .map(QAPromptor, config["promptor"], enable_profile=enable_profile)
         .map(OpenAIGenerator, config["generator"]["vllm"], enable_profile=enable_profile)
@@ -41,8 +40,7 @@ def pipeline_run(config):
     )
 
     try:
-        env.submit()
-        time.sleep(200)
+        env.submit(autostop=True)
     except KeyboardInterrupt:
         print("停止运行")
     finally:
@@ -50,8 +48,8 @@ def pipeline_run(config):
 
 # ==========================================================
 if __name__ == "__main__":
-    # from sage.common.utils.logging.custom_logger import CustomLogger
-    # CustomLogger.disable_global_console_debug()
+    from sage.common.utils.logging.custom_logger import CustomLogger
+    CustomLogger.disable_global_console_debug()
     
     import os
     config_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_refiner.yaml")
