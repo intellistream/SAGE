@@ -171,3 +171,4 @@ examples/rag/chroma_*/
 **/*.embeddings
 
 /.vscode/
+.cache/

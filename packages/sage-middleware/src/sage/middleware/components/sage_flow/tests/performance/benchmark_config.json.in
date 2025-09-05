@@ -1,0 +1,89 @@
+{
+    "benchmark_info": {
+        "name": "SAGE Flow Performance Benchmark",
+        "version": "@PROJECT_VERSION@",
+        "timestamp": "@CONFIG_TIMESTAMP@",
+        "build_type": "@CMAKE_BUILD_TYPE@",
+        "compiler": "@CMAKE_CXX_COMPILER_ID@ @CMAKE_CXX_COMPILER_VERSION@",
+        "system": "@CMAKE_SYSTEM_NAME@ @CMAKE_SYSTEM_VERSION@"
+    },
+    "test_config": {
+        "output_directory": "@SAGE_FLOW_BENCHMARK_OUTPUT_DIR@",
+        "report_format": "json",
+        "warmup_iterations": 5,
+        "measurement_iterations": 100,
+        "timeout_seconds": 300
+    },
+    "message_system": {
+        "test_enabled": true,
+        "message_sizes": [64, 256, 1024, 4096, 16384],
+        "batch_sizes": [1, 10, 100, 1000],
+        "vector_dimensions": [64, 128, 256, 512],
+        "target_throughput": 10000,
+        "max_latency_ms": 10
+    },
+    "stream_processing": {
+        "test_enabled": true,
+        "stream_sizes": [1000, 10000, 100000],
+        "operator_chains": [1, 5, 10, 20],
+        "parallel_streams": [1, 4, 8, 16],
+        "buffer_sizes": [1024, 4096, 16384],
+        "target_throughput": 50000,
+        "max_latency_ms": 5
+    },
+    "indexing": {
+        "test_enabled": true,
+        "index_types": ["HNSW", "IVF", "BruteForce"],
+        "vector_counts": [1000, 10000, 100000],
+        "dimensions": [64, 128, 256, 512],
+        "query_batches": [1, 10, 100],
+        "k_values": [1, 10, 100],
+        "target_qps": 1000,
+        "max_query_latency_ms": 50
+    },
+    "memory": {
+        "test_enabled": true,
+        "allocation_sizes": [1024, 4096, 16384, 65536],
+        "allocation_counts": [100, 1000, 10000],
+        "pool_sizes": [1048576, 16777216, 134217728],
+        "max_memory_usage_mb": 2048,
+        "memory_leak_threshold_bytes": 1024
+    },
+    "concurrency": {
+        "test_enabled": true,
+        "thread_counts": [1, 2, 4, 8, 16],
+        "concurrent_operations": [10, 100, 1000],
+        "lock_contention_tests": true,
+        "atomic_operation_tests": true,
+        "target_concurrent_throughput": 100000
+    },
+    "integration": {
+        "test_enabled": true,
+        "sage_framework_tests": true,
+        "candyflow_tests": true,
+        "python_api_tests": true,
+        "end_to_end_scenarios": [
+            "rag_pipeline",
+            "streaming_analytics",
+            "real_time_search",
+            "agent_workflow"
+        ]
+    },
+    "reporting": {
+        "generate_charts": true,
+        "include_system_info": true,
+        "compare_with_baseline": false,
+        "baseline_file": "",
+        "percentiles": [50, 90, 95, 99],
+        "export_formats": ["json", "csv", "html"]
+    },
+    "thresholds": {
+        "performance_regression": {
+            "throughput_decrease_percent": 10,
+            "latency_increase_percent": 20,
+            "memory_increase_percent": 15
+        },
+        "fail_on_regression": false,
+        "warn_on_regression": true
+    }
+}

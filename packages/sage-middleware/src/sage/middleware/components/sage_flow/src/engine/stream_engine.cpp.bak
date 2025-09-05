@@ -1,0 +1,751 @@
+#include "../../include/engine/stream_engine.hpp"
+
+#include <iostream>
+
+#include "../../include/engine/execution_graph.hpp"
+#include "../../include/operator/operator_types.hpp"
+#include "../../include/operator/base_operator.hpp"
+#include "../../include/operator/source_operator.hpp"
+#include "../../include/operator/response.hpp"
+#include "../../include/message/multimodal_message.hpp"
+
+namespace sage_flow {
+
+// Constructor implementations
+StreamEngine::StreamEngine()
+    : execution_mode_(ExecutionMode::SINGLE_THREADED),
+      is_running_(false),
+      is_paused_(false),
+      next_graph_id_(0) {}
+
+StreamEngine::StreamEngine(ExecutionMode mode)
+    : execution_mode_(mode),
+      is_running_(false),
+      is_paused_(false),
+      next_graph_id_(0) {}
+
+StreamEngine::StreamEngine(const EngineConfig& config)
+    : config_(config),
+      execution_mode_(ExecutionMode::SINGLE_THREADED),
+      is_running_(false),
+      is_paused_(false),
+      next_graph_id_(0) {}
+
+StreamEngine::~StreamEngine() { stop(); }
+
+// Core execution methods
+auto StreamEngine::execute(std::shared_ptr<ExecutionGraph> graph) -> void {
+  if (!graph) return;
+
+  auto graph_id = submitGraph(graph);
+  executeGraph(graph_id);
+}
+
+auto StreamEngine::start() -> void {
+  if (!is_running_) {
+    is_running_ = true;
+    // Start worker threads if needed
+  }
+}
+
+auto StreamEngine::stop() -> void {
+  if (is_running_) {
+    is_running_ = false;
+    is_paused_ = false;
+    // Stop all worker threads
+  }
+}
+
+auto StreamEngine::pause() -> void { is_paused_ = true; }
+
+auto StreamEngine::resume() -> void { is_paused_ = false; }
+
+auto StreamEngine::isRunning() const -> bool { return is_running_; }
+
+auto StreamEngine::isPaused() const -> bool { return is_paused_; }
+
+// Graph management
+auto StreamEngine::createGraph() -> std::shared_ptr<ExecutionGraph> {
+  return std::make_shared<ExecutionGraph>();
+}
+
+auto StreamEngine::submitGraph(const std::shared_ptr<ExecutionGraph>& graph)
+    -> GraphId {
+  if (!graph) return static_cast<GraphId>(-1);
+
+  std::lock_guard<std::mutex> lock(graphs_mutex_);
+  auto graph_id = next_graph_id_++;
+  submitted_graphs_[graph_id] = graph;
+  graph_states_[graph_id] = GraphState::SUBMITTED;
+  return graph_id;
+}
+
+auto StreamEngine::executeGraph(GraphId graph_id) -> void {
+  auto graph = getGraphForExecution(graph_id);
+  if (!graph) {
+    std::string error_msg = "Graph " + std::to_string(graph_id) + " not found or not in executable state";
+    fprintf(stderr, "[StreamEngine] %s\n", error_msg.c_str());
+    handleError(graph_id, error_msg);
+    return;
+  }
+
+  // Validate graph state transition
+  {
+    std::lock_guard<std::mutex> lock(graphs_mutex_);
+    auto current_state = graph_states_[graph_id];
+    if (current_state != GraphState::SUBMITTED && current_state != GraphState::PAUSED) {
+      std::string error_msg = "Graph " + std::to_string(graph_id) + " is in invalid state for execution: " +
+                             std::to_string(static_cast<int>(current_state));
+      fprintf(stderr, "[StreamEngine] %s\n", error_msg.c_str());
+      handleError(graph_id, error_msg);
+      return;
+    }
+  }
+
+  fprintf(stderr, "[StreamEngine] Starting execution of graph %zu\n", static_cast<size_t>(graph_id));
+
+  // Set execution start time
+  {
+    std::lock_guard<std::mutex> lock(graphs_mutex_);
+    graph_states_[graph_id] = GraphState::RUNNING;
+    graph_start_times_[graph_id] = std::chrono::steady_clock::now();
+  }
+
+  try {
+    // Execute based on current execution mode
+    switch (execution_mode_) {
+      case ExecutionMode::SINGLE_THREADED:
+        executeSingleThreaded(graph);
+        break;
+      case ExecutionMode::MULTI_THREADED:
+        executeMultiThreaded(graph);
+        break;
+      case ExecutionMode::ASYNC:
+        executeAsync(graph);
+        break;
+      case ExecutionMode::DISTRIBUTED:
+        executeDistributed(graph);
+        break;
+      case ExecutionMode::HYBRID:
+        executeHybrid(graph);
+        break;
+      default:
+        throw std::runtime_error("Unsupported execution mode: " +
+                               std::to_string(static_cast<int>(execution_mode_)));
+    }
+
+    // Check for timeout
+    {
+      std::lock_guard<std::mutex> lock(graphs_mutex_);
+      auto start_time_it = graph_start_times_.find(graph_id);
+      if (start_time_it != graph_start_times_.end()) {
+        auto elapsed = std::chrono::steady_clock::now() - start_time_it->second;
+        if (elapsed > config_.timeout) {
+          std::string timeout_msg = "Graph " + std::to_string(graph_id) + " execution timed out after " +
+                                   std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count()) + "ms";
+          fprintf(stderr, "[StreamEngine] %s\n", timeout_msg.c_str());
+          handleError(graph_id, timeout_msg);
+          return;
+        }
+      }
+    }
+
+    // Mark as completed
+    {
+      std::lock_guard<std::mutex> lock(graphs_mutex_);
+      graph_states_[graph_id] = GraphState::COMPLETED;
+    }
+
+    fprintf(stderr, "[StreamEngine] Completed execution of graph %zu\n", static_cast<size_t>(graph_id));
+
+    // Notify completion
+    notifyCompletion(graph_id);
+
+  } catch (const std::exception& e) {
+    std::string error_msg = "Graph " + std::to_string(graph_id) + " execution failed: " + e.what();
+    fprintf(stderr, "[StreamEngine] %s\n", error_msg.c_str());
+    handleError(graph_id, error_msg);
+  } catch (...) {
+    std::string error_msg = "Graph " + std::to_string(graph_id) + " execution failed with unknown error";
+    fprintf(stderr, "[StreamEngine] %s\n", error_msg.c_str());
+    handleError(graph_id, error_msg);
+  }
+}
+
+auto StreamEngine::executeGraphAsync(GraphId graph_id) -> std::future<void> {
+  return std::async(std::launch::async,
+                    [this, graph_id]() { executeGraph(graph_id); });
+}
+
+auto StreamEngine::executeGraphWithStrategy(
+    GraphId graph_id, ExecutionStrategy strategy) -> void {
+  // Simplified - just execute normally
+  executeGraph(graph_id);
+}
+
+auto StreamEngine::stopGraph(GraphId graph_id) -> void {
+  if (!updateGraphState(graph_id, GraphState::STOPPED)) {
+    fprintf(stderr, "[StreamEngine] Failed to stop graph %zu: invalid state transition\n",
+            static_cast<size_t>(graph_id));
+  } else {
+    fprintf(stderr, "[StreamEngine] Graph %zu stopped\n", static_cast<size_t>(graph_id));
+  }
+}
+
+auto StreamEngine::pauseGraph(GraphId graph_id) -> void {
+  if (!updateGraphState(graph_id, GraphState::PAUSED)) {
+    fprintf(stderr, "[StreamEngine] Failed to pause graph %zu: invalid state transition\n",
+            static_cast<size_t>(graph_id));
+  } else {
+    fprintf(stderr, "[StreamEngine] Graph %zu paused\n", static_cast<size_t>(graph_id));
+  }
+}
+
+auto StreamEngine::resumeGraph(GraphId graph_id) -> void {
+  if (!updateGraphState(graph_id, GraphState::RUNNING)) {
+    fprintf(stderr, "[StreamEngine] Failed to resume graph %zu: invalid state transition\n",
+            static_cast<size_t>(graph_id));
+  } else {
+    fprintf(stderr, "[StreamEngine] Graph %zu resumed\n", static_cast<size_t>(graph_id));
+  }
+}
+
+auto StreamEngine::restartGraph(GraphId graph_id) -> void {
+  // First check if graph exists and can be restarted
+  {
+    std::lock_guard<std::mutex> lock(graphs_mutex_);
+    auto it = graph_states_.find(graph_id);
+    if (it == graph_states_.end()) {
+      fprintf(stderr, "[StreamEngine] Cannot restart graph %zu: graph not found\n",
+              static_cast<size_t>(graph_id));
+      return;
+    }
+
+    GraphState current_state = it->second;
+    if (current_state != GraphState::COMPLETED && current_state != GraphState::STOPPED &&
+        current_state != GraphState::ERROR) {
+      fprintf(stderr, "[StreamEngine] Cannot restart graph %zu: invalid state %d\n",
+              static_cast<size_t>(graph_id), static_cast<int>(current_state));
+      return;
+    }
+  }
+
+  // Reset to submitted state first, then to running
+  if (updateGraphState(graph_id, GraphState::SUBMITTED)) {
+    updateGraphState(graph_id, GraphState::RUNNING);
+    fprintf(stderr, "[StreamEngine] Graph %zu restarted\n", static_cast<size_t>(graph_id));
+  } else {
+    fprintf(stderr, "[StreamEngine] Failed to restart graph %zu\n", static_cast<size_t>(graph_id));
+  }
+}
+
+// SAGE compatible execution methods
+auto StreamEngine::submit(std::shared_ptr<ExecutionGraph> graph) -> GraphId {
+  return submitGraph(graph);
+}
+
+auto StreamEngine::executeWithCallback(GraphId graph_id,
+                                       CompletionCallback callback) -> void {
+  executeGraph(graph_id);
+  if (callback) {
+    callback(graph_id);
+  }
+}
+
+auto StreamEngine::executeStream(
+    GraphId graph_id,
+    const std::vector<std::unique_ptr<class MultiModalMessage>>& input_messages)
+    -> void {
+  // Simplified implementation
+  executeGraph(graph_id);
+}
+
+// Configuration
+auto StreamEngine::setExecutionMode(ExecutionMode mode) -> void {
+  execution_mode_ = mode;
+}
+
+auto StreamEngine::getExecutionMode() const -> ExecutionMode {
+  return execution_mode_;
+}
+
+auto StreamEngine::setExecutionStrategy(ExecutionStrategy strategy) -> void {
+  // Implementation would set strategy
+}
+
+auto StreamEngine::getExecutionStrategy() const -> ExecutionStrategy {
+  return ExecutionStrategy::EAGER;
+}
+
+auto StreamEngine::setThreadCount(size_t thread_count) -> void {
+  // Implementation would set thread count
+}
+
+auto StreamEngine::getThreadCount() const -> size_t { return 1; }
+
+auto StreamEngine::updateConfig(const EngineConfig& config) -> void {
+  config_ = config;
+}
+
+auto StreamEngine::getConfig() const -> const EngineConfig& { return config_; }
+
+// Performance monitoring
+auto StreamEngine::getTotalProcessedMessages() const -> uint64_t {
+  return metrics_.total_processed_messages;
+}
+
+auto StreamEngine::getThroughput() const -> double {
+  return metrics_.current_throughput.load();
+}
+
+auto StreamEngine::getMetrics() const -> PerformanceMetrics { return metrics_; }
+
+auto StreamEngine::resetMetrics() -> void { metrics_ = PerformanceMetrics{}; }
+
+// Graph state management
+auto StreamEngine::getGraphState(GraphId graph_id) const -> GraphState {
+  auto it = graph_states_.find(graph_id);
+  return (it != graph_states_.end()) ? it->second : GraphState::UNKNOWN;
+}
+
+auto StreamEngine::isGraphRunning(GraphId graph_id) const -> bool {
+  return getGraphState(graph_id) == GraphState::RUNNING;
+}
+
+auto StreamEngine::isGraphPaused(GraphId graph_id) const -> bool {
+  return getGraphState(graph_id) == GraphState::PAUSED;
+}
+
+auto StreamEngine::removeGraph(GraphId graph_id) -> void {
+  std::lock_guard<std::mutex> lock(graphs_mutex_);
+  submitted_graphs_.erase(graph_id);
+  graph_states_.erase(graph_id);
+  graph_errors_.erase(graph_id);
+}
+
+auto StreamEngine::getSubmittedGraphs() const -> std::vector<GraphId> {
+  std::vector<GraphId> result;
+  for (const auto& pair : submitted_graphs_) {
+    result.push_back(pair.first);
+  }
+  return result;
+}
+
+auto StreamEngine::getRunningGraphs() const -> std::vector<GraphId> {
+  std::vector<GraphId> result;
+  for (const auto& pair : graph_states_) {
+    if (pair.second == GraphState::RUNNING) {
+      result.push_back(pair.first);
+    }
+  }
+  return result;
+}
+
+auto StreamEngine::getCompletedGraphs() const -> std::vector<GraphId> {
+  std::vector<GraphId> result;
+  for (const auto& pair : graph_states_) {
+    if (pair.second == GraphState::COMPLETED) {
+      result.push_back(pair.first);
+    }
+  }
+  return result;
+}
+
+// Callback management
+auto StreamEngine::setMessageCallback(MessageCallback callback) -> void {
+  std::lock_guard<std::mutex> lock(callback_mutex_);
+  message_callback_ = callback;
+}
+
+auto StreamEngine::setErrorCallback(ErrorCallback callback) -> void {
+  std::lock_guard<std::mutex> lock(callback_mutex_);
+  error_callback_ = callback;
+}
+
+auto StreamEngine::setCompletionCallback(CompletionCallback callback) -> void {
+  std::lock_guard<std::mutex> lock(callback_mutex_);
+  completion_callback_ = callback;
+}
+
+// Error handling
+auto StreamEngine::getLastError(GraphId graph_id) const -> std::string {
+  auto it = graph_errors_.find(graph_id);
+  return (it != graph_errors_.end()) ? it->second : "";
+}
+
+auto StreamEngine::enableFaultTolerance(bool enable) -> void {
+  // Implementation would enable/disable fault tolerance
+}
+
+auto StreamEngine::createCheckpoint(GraphId graph_id) -> std::string {
+  // Simplified checkpoint creation
+  return "checkpoint_" + std::to_string(graph_id);
+}
+
+auto StreamEngine::restoreFromCheckpoint(
+    GraphId graph_id, const std::string& checkpoint_id) -> bool {
+  // Simplified checkpoint restoration
+  return true;
+}
+
+// SAGE integration
+auto StreamEngine::enableSageCompatibility(bool enable) -> void {
+  sage_compatibility_enabled_ = enable;
+}
+
+auto StreamEngine::isSageCompatibilityEnabled() const -> bool {
+  return sage_compatibility_enabled_;
+}
+
+auto StreamEngine::getMessageBridge() -> integration::MessageBridge& {
+  // Simplified implementation - return a dummy bridge
+  // In practice, this would return a proper MessageBridge instance
+  throw std::runtime_error("MessageBridge not implemented");
+}
+
+auto StreamEngine::setMessageBridge(
+    std::unique_ptr<integration::MessageBridge> bridge) -> void {
+  // Implementation would set the bridge
+}
+
+// Resource management
+auto StreamEngine::getResourceUsage() const
+    -> std::unordered_map<std::string, double> {
+  return {{"cpu", 0.0}, {"memory", 0.0}};
+}
+
+auto StreamEngine::optimizeResourceAllocation() -> void {
+  // Implementation would optimize resources
+}
+
+auto StreamEngine::cleanupResources() -> void {
+  // Implementation would cleanup resources
+}
+
+// Private methods
+// Private methods
+auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
+    -> void {
+  // Execute operators in topological order with proper error handling and limits
+  if (!graph || graph->empty()) {
+    return;
+  }
+
+  fprintf(stderr, "[StreamEngine] Executing graph with %zu operators\n", graph->size());
+  auto operators = graph->getTopologicalOrder();
+
+  // Map to store intermediate results between operators
+  std::unordered_map<ExecutionGraph::OperatorId, std::vector<std::unique_ptr<MultiModalMessage>>> intermediate_results;
+
+  // Get configuration limits
+  size_t max_messages_per_operator = config_.max_queue_size > 0 ? config_.max_queue_size : 1000;
+  auto timeout_duration = config_.timeout;
+
+  for (auto op_id : operators) {
+    try {
+      auto op = graph->getOperator(op_id);
+      if (!op) {
+        fprintf(stderr, "[StreamEngine] Warning: Operator %zu not found, skipping\n", static_cast<size_t>(op_id));
+        continue;
+      }
+
+      // Open the operator with timeout
+      auto start_time = std::chrono::steady_clock::now();
+      op->open();
+
+      if (op->getType() == OperatorType::kSource) {
+        // For source operators, generate messages with limits
+        auto source_op = std::dynamic_pointer_cast<SourceOperator>(op);
+        if (source_op) {
+          std::vector<std::unique_ptr<MultiModalMessage>> messages;
+
+          // Generate messages from source with configurable limit
+          size_t message_count = 0;
+          while (source_op->hasNext() && message_count < max_messages_per_operator) {
+            // Check timeout
+            auto current_time = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time) > timeout_duration) {
+              fprintf(stderr, "[StreamEngine] Timeout reached for operator %zu\n", static_cast<size_t>(op_id));
+              break;
+            }
+
+            auto msg = source_op->next();
+            if (msg) {
+              messages.push_back(std::move(msg));
+              message_count++;
+
+              // Update metrics
+              metrics_.total_processed_messages++;
+            } else {
+              break; // No more messages
+            }
+          }
+
+          if (message_count >= max_messages_per_operator) {
+            fprintf(stderr, "[StreamEngine] Message limit (%zu) reached for operator %zu\n",
+                    max_messages_per_operator, static_cast<size_t>(op_id));
+          }
+
+          intermediate_results[op_id] = std::move(messages);
+        }
+      } else if (op->getType() == OperatorType::kSink) {
+        // For sink operators, process messages from predecessors
+        auto predecessors = graph->getPredecessors(op_id);
+        std::vector<std::unique_ptr<MultiModalMessage>> input_messages;
+
+        // Collect messages from all predecessors with size limit
+        size_t total_messages = 0;
+        for (auto pred_id : predecessors) {
+          auto it = intermediate_results.find(pred_id);
+          if (it != intermediate_results.end()) {
+            for (auto& msg : it->second) {
+              if (msg && total_messages < max_messages_per_operator) {
+                input_messages.push_back(std::move(msg));
+                total_messages++;
+              }
+            }
+          }
+        }
+
+        // Process each message with the sink
+        for (auto& msg : input_messages) {
+          if (msg) {
+            // Check timeout
+            auto current_time = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time) > timeout_duration) {
+              fprintf(stderr, "[StreamEngine] Timeout reached while processing messages for operator %zu\n",
+                      static_cast<size_t>(op_id));
+              break;
+            }
+
+            // Create a Response wrapper for the message
+            Response response(std::move(msg));
+
+            // Process the message (sink will consume it)
+            bool success = op->process(response, 0);
+            if (!success) {
+              fprintf(stderr, "[StreamEngine] Failed to process message in sink operator %zu\n",
+                      static_cast<size_t>(op_id));
+            }
+          }
+        }
+
+        // Sink operators don't produce output
+        intermediate_results[op_id] = std::vector<std::unique_ptr<MultiModalMessage>>{};
+      } else {
+        // For other operators, process messages from predecessors
+        auto predecessors = graph->getPredecessors(op_id);
+        std::vector<std::unique_ptr<MultiModalMessage>> input_messages;
+
+        // Collect messages from all predecessors with size limit
+        size_t total_messages = 0;
+        for (auto pred_id : predecessors) {
+          auto it = intermediate_results.find(pred_id);
+          if (it != intermediate_results.end()) {
+            for (auto& msg : it->second) {
+              if (msg && total_messages < max_messages_per_operator) {
+                input_messages.push_back(std::move(msg));
+                total_messages++;
+              }
+            }
+          }
+        }
+
+        // Process each message
+        std::vector<std::unique_ptr<MultiModalMessage>> output_messages;
+        for (auto& msg : input_messages) {
+          if (msg) {
+            // Check timeout
+            auto current_time = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time) > timeout_duration) {
+              fprintf(stderr, "[StreamEngine] Timeout reached while processing messages for operator %zu\n",
+                      static_cast<size_t>(op_id));
+              break;
+            }
+
+            // Create a Response wrapper for the message
+            Response response(std::move(msg));
+
+            // Process the message
+            bool success = op->process(response, 0);
+
+            if (success && response.hasMessage()) {
+              // Get the processed message back
+              auto processed_msg = response.getMessage();
+              if (processed_msg) {
+                output_messages.push_back(std::move(processed_msg));
+                metrics_.total_processed_messages++;
+              }
+            } else if (!success) {
+              fprintf(stderr, "[StreamEngine] Failed to process message in operator %zu\n",
+                      static_cast<size_t>(op_id));
+            }
+          }
+        }
+
+        intermediate_results[op_id] = std::move(output_messages);
+      }
+
+      // Close the operator
+      op->close();
+
+      // Update processing time metrics
+      auto end_time = std::chrono::steady_clock::now();
+      auto processing_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+      updateMetrics(metrics_.total_processed_messages.load(), processing_time.count());
+
+    } catch (const std::exception& e) {
+      fprintf(stderr, "[StreamEngine] Error processing operator %zu: %s\n",
+              static_cast<size_t>(op_id), e.what());
+      // Continue with next operator instead of failing completely
+    } catch (...) {
+      fprintf(stderr, "[StreamEngine] Unknown error processing operator %zu\n",
+              static_cast<size_t>(op_id));
+      // Continue with next operator
+    }
+  }
+}
+
+auto StreamEngine::executeMultiThreaded(std::shared_ptr<ExecutionGraph> graph)
+    -> void {
+  // Simplified - just call single-threaded for now
+  executeSingleThreaded(graph);
+}
+
+auto StreamEngine::executeAsync(std::shared_ptr<ExecutionGraph> graph) -> void {
+  // Simplified async execution
+  executeSingleThreaded(graph);
+}
+
+auto StreamEngine::executeDistributed(std::shared_ptr<ExecutionGraph> graph)
+    -> void {
+  // Simplified - just call single-threaded for now
+  executeSingleThreaded(graph);
+}
+
+auto StreamEngine::executeHybrid(std::shared_ptr<ExecutionGraph> graph)
+    -> void {
+  // Simplified - just call single-threaded for now
+  executeSingleThreaded(graph);
+}
+
+auto StreamEngine::executeWithStrategy(std::shared_ptr<ExecutionGraph> graph,
+                                       ExecutionStrategy strategy) -> void {
+  // Simplified - just call single-threaded for now
+  executeSingleThreaded(graph);
+}
+
+auto StreamEngine::getGraphForExecution(GraphId graph_id)
+    -> std::shared_ptr<ExecutionGraph> {
+  std::lock_guard<std::mutex> lock(graphs_mutex_);
+  auto it = submitted_graphs_.find(graph_id);
+  return (it != submitted_graphs_.end()) ? it->second : nullptr;
+}
+
+auto StreamEngine::workerThreadFunc(std::shared_ptr<ExecutionGraph> graph,
+                                    size_t thread_id) -> void {
+  // Simplified worker thread function
+}
+
+auto StreamEngine::taskProcessorLoop() -> void {
+  // Simplified task processor
+}
+
+auto StreamEngine::processTaskQueue() -> void {
+  // Simplified task queue processing
+}
+
+auto StreamEngine::updateMetrics(uint64_t processed_messages,
+                                 double processing_time_ms) -> void {
+  metrics_.total_processed_messages += processed_messages;
+  // Update other metrics
+}
+
+auto StreamEngine::handleError(GraphId graph_id,
+                               const std::string& error_message) -> void {
+  std::lock_guard<std::mutex> lock(graphs_mutex_);
+  graph_errors_[graph_id] = error_message;
+  graph_states_[graph_id] = GraphState::ERROR;
+
+  // Call error callback if set
+  std::lock_guard<std::mutex> callback_lock(callback_mutex_);
+  if (error_callback_) {
+    error_callback_(error_message, graph_id);
+  }
+}
+
+auto StreamEngine::notifyCompletion(GraphId graph_id) -> void {
+  if (completion_callback_) {
+    completion_callback_(graph_id);
+  }
+}
+
+auto StreamEngine::initializeThreadPool() -> void {
+  // Implementation would initialize thread pool
+}
+
+auto StreamEngine::cleanupThreadPool() -> void {
+  // Implementation would cleanup thread pool
+}
+
+auto StreamEngine::validateGraph(const std::shared_ptr<ExecutionGraph>& graph)
+    -> bool {
+  return graph && graph->isValid();
+}
+
+// Validate state transition for a graph
+auto StreamEngine::validateStateTransition(GraphId graph_id, GraphState new_state) const -> bool {
+  std::lock_guard<std::mutex> lock(graphs_mutex_);
+  auto it = graph_states_.find(graph_id);
+  if (it == graph_states_.end()) {
+    return false; // Graph doesn't exist
+  }
+
+  GraphState current_state = it->second;
+
+  // Define valid state transitions
+  switch (current_state) {
+    case GraphState::UNKNOWN:
+      return new_state == GraphState::SUBMITTED;
+    case GraphState::SUBMITTED:
+      return new_state == GraphState::RUNNING || new_state == GraphState::STOPPED;
+    case GraphState::RUNNING:
+      return new_state == GraphState::COMPLETED || new_state == GraphState::ERROR ||
+             new_state == GraphState::STOPPED || new_state == GraphState::PAUSED;
+    case GraphState::COMPLETED:
+      return new_state == GraphState::SUBMITTED; // Allow restart
+    case GraphState::STOPPED:
+      return new_state == GraphState::SUBMITTED; // Allow restart
+    case GraphState::ERROR:
+      return new_state == GraphState::SUBMITTED; // Allow retry
+    case GraphState::PAUSED:
+      return new_state == GraphState::RUNNING || new_state == GraphState::STOPPED;
+    case GraphState::RECOVERING:
+      return new_state == GraphState::RUNNING || new_state == GraphState::ERROR;
+    default:
+      return false;
+  }
+}
+
+// Safely update graph state with validation
+auto StreamEngine::updateGraphState(GraphId graph_id, GraphState new_state) -> bool {
+  if (!validateStateTransition(graph_id, new_state)) {
+    fprintf(stderr, "[StreamEngine] Invalid state transition for graph %zu\n", static_cast<size_t>(graph_id));
+    return false;
+  }
+
+  std::lock_guard<std::mutex> lock(graphs_mutex_);
+  graph_states_[graph_id] = new_state;
+  return true;
+}
+
+auto StreamEngine::createGraphCheckpoint(GraphId graph_id) -> std::string {
+  return createCheckpoint(graph_id);
+}
+
+auto StreamEngine::loadGraphFromCheckpoint(
+    GraphId graph_id, const std::string& checkpoint_id) -> bool {
+  return restoreFromCheckpoint(graph_id, checkpoint_id);
+}
+
+}  // namespace sage_flow
