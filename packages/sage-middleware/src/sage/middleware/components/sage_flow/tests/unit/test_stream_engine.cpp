@@ -1,7 +1,7 @@
 /**
  * @file test_stream_engine.cpp
  * @brief 流引擎单元测试
- * 
+ *
  * 测试 StreamEngine, ExecutionGraph 等流处理核心组件
  */
 
@@ -12,394 +12,656 @@
 #include <string>
 #include <chrono>
 #include <thread>
+#include <iostream>
 
-// 简化的流引擎测试实现
+// Engine 组件头文件
+#include "engine/stream_engine.hpp"
+#include "engine/execution_graph.hpp"
+#include "engine/stream_engine_config.hpp"
+#include "engine/stream_engine_enums.hpp"
+#include "engine/stream_engine_metrics.hpp"
+
+// Operator 组件头文件
+#include "operator/base_operator.hpp"
+#include "operator/source_operator.hpp"
+#include "operator/response.hpp"
+
+// Message 组件头文件
+#include "message/multimodal_message.hpp"
+#include "message/content_type.hpp"
+
 namespace sage_flow {
 
-class StreamEngine {
+// =============================================================================
+// 测试用例类定义
+// =============================================================================
+
+// Mock Source Operator for testing
+class MockSourceOperator : public SourceOperator {
 public:
-    StreamEngine() : running_(false) {}
-    
-    bool start() {
-        if (running_) return false;
-        running_ = true;
-        return true;
+    explicit MockSourceOperator(std::string name, std::vector<std::string> messages)
+        : SourceOperator(std::move(name)), messages_(std::move(messages)), index_(0) {}
+
+    auto hasNext() -> bool override {
+        return index_ < messages_.size();
     }
-    
-    bool stop() {
-        if (!running_) return false;
-        running_ = false;
-        return true;
+
+    auto next() -> std::unique_ptr<MultiModalMessage> override {
+        if (!hasNext()) return nullptr;
+
+        auto message = std::make_unique<MultiModalMessage>(
+            static_cast<uint64_t>(index_), ContentType::kText, messages_[index_]);
+        index_++;
+        return message;
     }
-    
-    bool is_running() const { return running_; }
-    
-    void process_batch(const std::vector<std::string>& messages) {
-        processed_count_ += messages.size();
+
+    auto reset() -> void override {
+        index_ = 0;
     }
-    
-    size_t get_processed_count() const { return processed_count_; }
 
 private:
-    bool running_;
-    size_t processed_count_ = 0;
+    std::vector<std::string> messages_;
+    size_t index_;
 };
 
-class ExecutionGraph {
+// Mock Sink Operator for testing
+class MockSinkOperator : public BaseOperator {
 public:
-    struct Node {
-        std::string id;
-        std::string type;
-        std::vector<std::string> inputs;
-        std::vector<std::string> outputs;
-    };
-    
-    bool add_node(const Node& node) {
-        if (nodes_.find(node.id) != nodes_.end()) {
-            return false; // 节点已存在
+    explicit MockSinkOperator(std::string name)
+        : BaseOperator(OperatorType::kSink, std::move(name)) {}
+
+    auto process(Response& input_record, int slot) -> bool override {
+        if (input_record.hasMessage()) {
+            auto message = input_record.getMessage();
+            if (message) {
+                received_messages_.push_back(message->getContentAsString());
+                return true;
+            }
         }
-        nodes_[node.id] = node;
-        return true;
+        return false;
     }
-    
-    bool remove_node(const std::string& node_id) {
-        return nodes_.erase(node_id) > 0;
+
+    const std::vector<std::string>& getReceivedMessages() const {
+        return received_messages_;
     }
-    
-    std::vector<std::string> get_node_ids() const {
-        std::vector<std::string> ids;
-        for (const auto& pair : nodes_) {
-            ids.push_back(pair.first);
-        }
-        return ids;
+
+    void clearMessages() {
+        received_messages_.clear();
     }
-    
-    bool validate() const {
-        // 简化的验证逻辑
-        for (const auto& pair : nodes_) {
-            const auto& node = pair.second;
-            // 检查输入输出连接
-            for (const auto& input : node.inputs) {
-                if (nodes_.find(input) == nodes_.end()) {
-                    return false;
+
+private:
+    std::vector<std::string> received_messages_;
+};
+
+// Mock Filter Operator for testing
+class MockFilterOperator : public BaseOperator {
+public:
+    explicit MockFilterOperator(std::string name, std::string filter_keyword)
+        : BaseOperator(OperatorType::kFilter, std::move(name)),
+          filter_keyword_(std::move(filter_keyword)) {}
+
+    auto process(Response& input_record, int slot) -> bool override {
+        if (input_record.hasMessage()) {
+            auto message = input_record.getMessage();
+            if (message) {
+                std::string content = message->getContentAsString();
+                if (content.find(filter_keyword_) != std::string::npos) {
+                    // Create new response with filtered message
+                    Response output_response(std::move(message));
+                    emit(0, output_response);
+                    return true;
                 }
             }
         }
-        return true;
-    }
-    
-    std::vector<std::string> topological_sort() const {
-        // 简化的拓扑排序
-        std::vector<std::string> sorted;
-        for (const auto& pair : nodes_) {
-            sorted.push_back(pair.first);
-        }
-        return sorted;
+        return false;
     }
 
 private:
-    std::unordered_map<std::string, Node> nodes_;
+    std::string filter_keyword_;
 };
 
-} // namespace sage_flow
+// =============================================================================
+// ExecutionGraph 测试
+// =============================================================================
 
-using namespace sage_flow;
-
-// StreamEngine 测试套件
-class StreamEngineTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        engine_ = std::make_unique<StreamEngine>();
-    }
-
-    void TearDown() override {
-        if (engine_ && engine_->is_running()) {
-            engine_->stop();
-        }
-    }
-
-    std::unique_ptr<StreamEngine> engine_;
-};
-
-TEST_F(StreamEngineTest, StartStop) {
-    // 测试初始状态
-    EXPECT_FALSE(engine_->is_running());
-    
-    // 测试启动
-    EXPECT_TRUE(engine_->start());
-    EXPECT_TRUE(engine_->is_running());
-    
-    // 测试重复启动失败
-    EXPECT_FALSE(engine_->start());
-    
-    // 测试停止
-    EXPECT_TRUE(engine_->stop());
-    EXPECT_FALSE(engine_->is_running());
-    
-    // 测试重复停止失败
-    EXPECT_FALSE(engine_->stop());
+TEST(ExecutionGraphTest, Constructor) {
+    auto graph = std::make_shared<ExecutionGraph>();
+    EXPECT_TRUE(graph->empty());
+    EXPECT_EQ(graph->size(), 0);
+    EXPECT_TRUE(graph->isValid());
 }
 
-TEST_F(StreamEngineTest, MessageProcessing) {
-    engine_->start();
-    
-    // 测试批量处理
-    std::vector<std::string> batch1 = {"msg1", "msg2", "msg3"};
-    std::vector<std::string> batch2 = {"msg4", "msg5"};
-    
-    engine_->process_batch(batch1);
-    EXPECT_EQ(engine_->get_processed_count(), 3);
-    
-    engine_->process_batch(batch2);
-    EXPECT_EQ(engine_->get_processed_count(), 5);
+TEST(ExecutionGraphTest, AddOperator) {
+    auto graph = std::make_shared<ExecutionGraph>();
+    auto op = std::make_shared<MockSourceOperator>("test_source", std::vector<std::string>{"msg1"});
+
+    auto op_id = graph->addOperator(op);
+    EXPECT_EQ(op_id, 0);
+    EXPECT_EQ(graph->size(), 1);
+    EXPECT_FALSE(graph->empty());
 }
 
-TEST_F(StreamEngineTest, ConcurrentProcessing) {
-    engine_->start();
-    
-    const int num_threads = 4;
-    const int messages_per_thread = 100;
-    std::vector<std::thread> threads;
-    
-    // 并发处理消息
-    for (int i = 0; i < num_threads; ++i) {
-        threads.emplace_back([this, messages_per_thread, i]() {
-            for (int j = 0; j < messages_per_thread; ++j) {
-                std::vector<std::string> batch = {
-                    "thread_" + std::to_string(i) + "_msg_" + std::to_string(j)
-                };
-                engine_->process_batch(batch);
-            }
-        });
-    }
-    
-    // 等待所有线程完成
-    for (auto& thread : threads) {
-        thread.join();
-    }
-    
-    // 验证处理计数
-    EXPECT_EQ(engine_->get_processed_count(), num_threads * messages_per_thread);
+TEST(ExecutionGraphTest, ConnectOperators) {
+    auto graph = std::make_shared<ExecutionGraph>();
+    auto source_op = std::make_shared<MockSourceOperator>("source", std::vector<std::string>{"msg1"});
+    auto sink_op = std::make_shared<MockSinkOperator>("sink");
+
+    auto source_id = graph->addOperator(source_op);
+    auto sink_id = graph->addOperator(sink_op);
+
+    graph->connectOperators(source_id, sink_id);
+
+    auto successors = graph->getSuccessors(source_id);
+    auto predecessors = graph->getPredecessors(sink_id);
+
+    EXPECT_EQ(successors.size(), 1);
+    EXPECT_EQ(successors[0], sink_id);
+    EXPECT_EQ(predecessors.size(), 1);
+    EXPECT_EQ(predecessors[0], source_id);
 }
 
-// ExecutionGraph 测试套件
-class ExecutionGraphTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        graph_ = std::make_unique<ExecutionGraph>();
-    }
+TEST(ExecutionGraphTest, TopologicalOrder) {
+    auto graph = std::make_shared<ExecutionGraph>();
+    auto source_op = std::make_shared<MockSourceOperator>("source", std::vector<std::string>{"msg1"});
+    auto filter_op = std::make_shared<MockFilterOperator>("filter", "msg");
+    auto sink_op = std::make_shared<MockSinkOperator>("sink");
 
-    std::unique_ptr<ExecutionGraph> graph_;
-};
+    auto source_id = graph->addOperator(source_op);
+    auto filter_id = graph->addOperator(filter_op);
+    auto sink_id = graph->addOperator(sink_op);
 
-TEST_F(ExecutionGraphTest, NodeManagement) {
-    // 测试添加节点
-    ExecutionGraph::Node node1{"node1", "source", {}, {"output1"}};
-    ExecutionGraph::Node node2{"node2", "transform", {"output1"}, {"output2"}};
-    ExecutionGraph::Node node3{"node3", "sink", {"output2"}, {}};
-    
-    EXPECT_TRUE(graph_->add_node(node1));
-    EXPECT_TRUE(graph_->add_node(node2));
-    EXPECT_TRUE(graph_->add_node(node3));
-    
-    // 测试重复添加失败
-    EXPECT_FALSE(graph_->add_node(node1));
-    
-    // 测试节点列表
-    auto node_ids = graph_->get_node_ids();
-    EXPECT_EQ(node_ids.size(), 3);
-    EXPECT_THAT(node_ids, testing::Contains("node1"));
-    EXPECT_THAT(node_ids, testing::Contains("node2"));
-    EXPECT_THAT(node_ids, testing::Contains("node3"));
+    graph->connectOperators(source_id, filter_id);
+    graph->connectOperators(filter_id, sink_id);
+
+    auto topo_order = graph->getTopologicalOrder();
+    EXPECT_EQ(topo_order.size(), 3);
+    EXPECT_EQ(topo_order[0], source_id);
+    EXPECT_EQ(topo_order[1], filter_id);
+    EXPECT_EQ(topo_order[2], sink_id);
 }
 
-TEST_F(ExecutionGraphTest, GraphValidation) {
-    // 添加有效的图结构
-    ExecutionGraph::Node source{"source", "source", {}, {"data"}};
-    ExecutionGraph::Node processor{"processor", "transform", {"data"}, {"result"}};
-    ExecutionGraph::Node sink{"sink", "sink", {"result"}, {}};
-    
-    graph_->add_node(source);
-    graph_->add_node(processor);
-    graph_->add_node(sink);
-    
-    // 测试图验证
-    EXPECT_TRUE(graph_->validate());
-    
-    // 添加无效连接的节点
-    ExecutionGraph::Node invalid{"invalid", "transform", {"nonexistent"}, {"output"}};
-    graph_->add_node(invalid);
-    
-    // 验证应该失败
-    EXPECT_FALSE(graph_->validate());
+TEST(ExecutionGraphTest, SourceAndSinkOperators) {
+    auto graph = std::make_shared<ExecutionGraph>();
+    auto source_op = std::make_shared<MockSourceOperator>("source", std::vector<std::string>{"msg1"});
+    auto filter_op = std::make_shared<MockFilterOperator>("filter", "msg");
+    auto sink_op = std::make_shared<MockSinkOperator>("sink");
+
+    auto source_id = graph->addOperator(source_op);
+    auto filter_id = graph->addOperator(filter_op);
+    auto sink_id = graph->addOperator(sink_op);
+
+    graph->connectOperators(source_id, filter_id);
+    graph->connectOperators(filter_id, sink_id);
+
+    auto sources = graph->getSourceOperators();
+    auto sinks = graph->getSinkOperators();
+
+    EXPECT_EQ(sources.size(), 1);
+    EXPECT_EQ(sources[0], source_id);
+    EXPECT_EQ(sinks.size(), 1);
+    EXPECT_EQ(sinks[0], sink_id);
 }
 
-TEST_F(ExecutionGraphTest, TopologicalSort) {
-    // 构建简单的线性图
-    ExecutionGraph::Node node1{"1", "source", {}, {"out1"}};
-    ExecutionGraph::Node node2{"2", "transform", {"out1"}, {"out2"}};
-    ExecutionGraph::Node node3{"3", "sink", {"out2"}, {}};
-    
-    graph_->add_node(node1);
-    graph_->add_node(node2);
-    graph_->add_node(node3);
-    
-    auto sorted = graph_->topological_sort();
-    EXPECT_EQ(sorted.size(), 3);
-    
-    // 验证排序结果包含所有节点
-    EXPECT_THAT(sorted, testing::Contains("1"));
-    EXPECT_THAT(sorted, testing::Contains("2"));
-    EXPECT_THAT(sorted, testing::Contains("3"));
+TEST(ExecutionGraphTest, RemoveOperator) {
+    auto graph = std::make_shared<ExecutionGraph>();
+    auto op = std::make_shared<MockSourceOperator>("test", std::vector<std::string>{"msg1"});
+
+    auto op_id = graph->addOperator(op);
+    EXPECT_EQ(graph->size(), 1);
+
+    graph->removeOperator(op_id);
+    EXPECT_EQ(graph->size(), 0);
+    EXPECT_TRUE(graph->empty());
 }
 
-TEST_F(ExecutionGraphTest, NodeRemoval) {
-    // 添加节点
-    ExecutionGraph::Node node1{"node1", "source", {}, {"output1"}};
-    ExecutionGraph::Node node2{"node2", "sink", {"output1"}, {}};
-    
-    graph_->add_node(node1);
-    graph_->add_node(node2);
-    
-    EXPECT_EQ(graph_->get_node_ids().size(), 2);
-    
-    // 移除节点
-    EXPECT_TRUE(graph_->remove_node("node1"));
-    EXPECT_EQ(graph_->get_node_ids().size(), 1);
-    
-    // 重复移除失败
-    EXPECT_FALSE(graph_->remove_node("node1"));
-    
-    // 移除不存在的节点失败
-    EXPECT_FALSE(graph_->remove_node("nonexistent"));
+TEST(ExecutionGraphTest, Validation) {
+    auto graph = std::make_shared<ExecutionGraph>();
+    EXPECT_TRUE(graph->isValid());
+    EXPECT_TRUE(graph->validate());
+
+    // Add operators and connections
+    auto source_op = std::make_shared<MockSourceOperator>("source", std::vector<std::string>{"msg1"});
+    auto sink_op = std::make_shared<MockSinkOperator>("sink");
+
+    auto source_id = graph->addOperator(source_op);
+    auto sink_id = graph->addOperator(sink_op);
+    graph->connectOperators(source_id, sink_id);
+
+    EXPECT_TRUE(graph->isValid());
 }
 
-// 性能测试
-class StreamEnginePerformanceTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        engine_ = std::make_unique<StreamEngine>();
-        engine_->start();
-    }
+// =============================================================================
+// StreamEngine 基本功能测试
+// =============================================================================
 
-    void TearDown() override {
-        engine_->stop();
-    }
-
-    std::unique_ptr<StreamEngine> engine_;
-};
-
-TEST_F(StreamEnginePerformanceTest, LargeBatchProcessing) {
-    const size_t batch_size = 10000;
-    std::vector<std::string> large_batch;
-    large_batch.reserve(batch_size);
-    
-    for (size_t i = 0; i < batch_size; ++i) {
-        large_batch.push_back("message_" + std::to_string(i));
-    }
-    
-    auto start = std::chrono::high_resolution_clock::now();
-    engine_->process_batch(large_batch);
-    auto end = std::chrono::high_resolution_clock::now();
-    
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    
-    // 性能基准：10000条消息应该在100ms内处理完成
-    EXPECT_LT(duration.count(), 100);
-    EXPECT_EQ(engine_->get_processed_count(), batch_size);
+TEST(StreamEngineTest, Constructor) {
+    StreamEngine engine;
+    EXPECT_FALSE(engine.isRunning());
+    EXPECT_FALSE(engine.isPaused());
 }
 
-TEST_F(StreamEnginePerformanceTest, HighThroughputProcessing) {
-    const int num_batches = 100;
-    const int batch_size = 100;
-    
-    auto start = std::chrono::high_resolution_clock::now();
-    
-    for (int i = 0; i < num_batches; ++i) {
-        std::vector<std::string> batch;
-        batch.reserve(batch_size);
-        
-        for (int j = 0; j < batch_size; ++j) {
-            batch.push_back("batch_" + std::to_string(i) + "_msg_" + std::to_string(j));
-        }
-        
-        engine_->process_batch(batch);
-    }
-    
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    
-    // 性能基准：10000条消息分100批处理应该在200ms内完成
-    EXPECT_LT(duration.count(), 200);
-    EXPECT_EQ(engine_->get_processed_count(), num_batches * batch_size);
+TEST(StreamEngineTest, ConstructorWithMode) {
+    StreamEngine engine(ExecutionMode::MULTI_THREADED);
+    EXPECT_EQ(engine.getExecutionMode(), ExecutionMode::MULTI_THREADED);
 }
 
-// 错误处理测试
-class StreamEngineErrorTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        engine_ = std::make_unique<StreamEngine>();
-    }
+TEST(StreamEngineTest, ConstructorWithConfig) {
+    EngineConfig config;
+    config.execution_mode = ExecutionMode::ASYNC;
+    config.thread_pool_size = 8;
 
-    std::unique_ptr<StreamEngine> engine_;
-};
-
-TEST_F(StreamEngineErrorTest, InvalidOperations) {
-    // 测试在未启动状态下的操作
-    EXPECT_FALSE(engine_->stop()); // 停止未启动的引擎应该失败
-    
-    // 启动后的正常操作
-    EXPECT_TRUE(engine_->start());
-    EXPECT_FALSE(engine_->start()); // 重复启动应该失败
-    
-    // 停止后的操作
-    EXPECT_TRUE(engine_->stop());
-    EXPECT_FALSE(engine_->stop()); // 重复停止应该失败
+    StreamEngine engine(config);
+    EXPECT_EQ(engine.getExecutionMode(), ExecutionMode::ASYNC);
+    EXPECT_EQ(engine.getThreadCount(), 8);
 }
 
+TEST(StreamEngineTest, CreateGraph) {
+    StreamEngine engine;
+    auto graph = engine.createGraph();
+    EXPECT_TRUE(graph != nullptr);
+    EXPECT_TRUE(graph->empty());
+}
+
+TEST(StreamEngineTest, SubmitGraph) {
+    StreamEngine engine;
+    auto graph = engine.createGraph();
+    auto source_op = std::make_shared<MockSourceOperator>("source", std::vector<std::string>{"test"});
+    graph->addOperator(source_op);
+
+    auto graph_id = engine.submitGraph(graph);
+    EXPECT_EQ(graph_id, 0);
+
+    auto submitted_graphs = engine.getSubmittedGraphs();
+    EXPECT_EQ(submitted_graphs.size(), 1);
+    EXPECT_EQ(submitted_graphs[0], graph_id);
+}
+
+TEST(StreamEngineTest, ExecuteSimpleGraph) {
+    StreamEngine engine;
+    auto graph = engine.createGraph();
+
+    // Create source and sink operators
+    auto source_op = std::make_shared<MockSourceOperator>("source",
+        std::vector<std::string>{"message1", "message2"});
+    auto sink_op = std::make_shared<MockSinkOperator>("sink");
+
+    auto source_id = graph->addOperator(source_op);
+    auto sink_id = graph->addOperator(sink_op);
+    graph->connectOperators(source_id, sink_id);
+
+    // Submit and execute
+    auto graph_id = engine.submitGraph(graph);
+    engine.executeGraph(graph_id);
+
+    // Check results
+    auto sink_op_ptr = std::dynamic_pointer_cast<MockSinkOperator>(
+        graph->getOperator(sink_id));
+    ASSERT_TRUE(sink_op_ptr != nullptr);
+
+    const auto& received = sink_op_ptr->getReceivedMessages();
+    EXPECT_EQ(received.size(), 2);
+    EXPECT_EQ(received[0], "message1");
+    EXPECT_EQ(received[1], "message2");
+}
+
+TEST(StreamEngineTest, ExecuteGraphWithFilter) {
+    StreamEngine engine;
+    auto graph = engine.createGraph();
+
+    // Create operators
+    auto source_op = std::make_shared<MockSourceOperator>("source",
+        std::vector<std::string>{"important: msg1", "normal: msg2", "important: msg3"});
+    auto filter_op = std::make_shared<MockFilterOperator>("filter", "important");
+    auto sink_op = std::make_shared<MockSinkOperator>("sink");
+
+    auto source_id = graph->addOperator(source_op);
+    auto filter_id = graph->addOperator(filter_op);
+    auto sink_id = graph->addOperator(sink_op);
+
+    graph->connectOperators(source_id, filter_id);
+    graph->connectOperators(filter_id, sink_id);
+
+    // Submit and execute
+    auto graph_id = engine.submitGraph(graph);
+    engine.executeGraph(graph_id);
+
+    // Check results
+    auto sink_op_ptr = std::dynamic_pointer_cast<MockSinkOperator>(
+        graph->getOperator(sink_id));
+    ASSERT_TRUE(sink_op_ptr != nullptr);
+
+    const auto& received = sink_op_ptr->getReceivedMessages();
+    EXPECT_EQ(received.size(), 2);
+    EXPECT_EQ(received[0], "important: msg1");
+    EXPECT_EQ(received[1], "important: msg3");
+}
+
+// =============================================================================
+// StreamEngine 状态管理测试
+// =============================================================================
+
+TEST(StreamEngineTest, GraphStateTransitions) {
+    StreamEngine engine;
+    auto graph = engine.createGraph();
+    auto source_op = std::make_shared<MockSourceOperator>("source", std::vector<std::string>{"test"});
+    graph->addOperator(source_op);
+
+    auto graph_id = engine.submitGraph(graph);
+
+    // Initial state should be SUBMITTED
+    EXPECT_EQ(engine.getGraphState(graph_id), GraphState::SUBMITTED);
+
+    // Execute graph
+    engine.executeGraph(graph_id);
+
+    // After execution, should be COMPLETED
+    EXPECT_EQ(engine.getGraphState(graph_id), GraphState::COMPLETED);
+}
+
+TEST(StreamEngineTest, GraphControlOperations) {
+    StreamEngine engine;
+    auto graph = engine.createGraph();
+    auto source_op = std::make_shared<MockSourceOperator>("source", std::vector<std::string>{"test"});
+    graph->addOperator(source_op);
+
+    auto graph_id = engine.submitGraph(graph);
+
+    // Execute first to change state to RUNNING
+    engine.executeGraph(graph_id);
+    EXPECT_EQ(engine.getGraphState(graph_id), GraphState::COMPLETED);
+
+    // Test restart and then pause
+    engine.restartGraph(graph_id);
+    EXPECT_EQ(engine.getGraphState(graph_id), GraphState::RUNNING);
+
+    // Test pause/resume on running graph
+    engine.pauseGraph(graph_id);
+    EXPECT_EQ(engine.getGraphState(graph_id), GraphState::PAUSED);
+
+    engine.resumeGraph(graph_id);
+    EXPECT_EQ(engine.getGraphState(graph_id), GraphState::RUNNING);
+
+    // Test stop
+    engine.stopGraph(graph_id);
+    EXPECT_EQ(engine.getGraphState(graph_id), GraphState::STOPPED);
+}
+
+TEST(StreamEngineTest, RestartGraph) {
+    StreamEngine engine;
+    auto graph = engine.createGraph();
+    auto source_op = std::make_shared<MockSourceOperator>("source", std::vector<std::string>{"test"});
+    graph->addOperator(source_op);
+
+    auto graph_id = engine.submitGraph(graph);
+
+    // Execute first time
+    engine.executeGraph(graph_id);
+    EXPECT_EQ(engine.getGraphState(graph_id), GraphState::COMPLETED);
+
+    // Restart
+    engine.restartGraph(graph_id);
+    EXPECT_EQ(engine.getGraphState(graph_id), GraphState::RUNNING);
+}
+
+// =============================================================================
+// StreamEngine 配置测试
+// =============================================================================
+
+TEST(StreamEngineTest, ExecutionModeConfiguration) {
+    StreamEngine engine;
+
+    engine.setExecutionMode(ExecutionMode::MULTI_THREADED);
+    EXPECT_EQ(engine.getExecutionMode(), ExecutionMode::MULTI_THREADED);
+
+    engine.setExecutionMode(ExecutionMode::ASYNC);
+    EXPECT_EQ(engine.getExecutionMode(), ExecutionMode::ASYNC);
+}
+
+TEST(StreamEngineTest, ExecutionStrategyConfiguration) {
+    StreamEngine engine;
+
+    engine.setExecutionStrategy(ExecutionStrategy::STREAMING);
+    EXPECT_EQ(engine.getExecutionStrategy(), ExecutionStrategy::STREAMING);
+
+    engine.setExecutionStrategy(ExecutionStrategy::BATCH);
+    EXPECT_EQ(engine.getExecutionStrategy(), ExecutionStrategy::BATCH);
+}
+
+TEST(StreamEngineTest, ThreadCountConfiguration) {
+    StreamEngine engine;
+
+    engine.setThreadCount(8);
+    EXPECT_EQ(engine.getThreadCount(), 8);
+
+    engine.setThreadCount(16);
+    EXPECT_EQ(engine.getThreadCount(), 16);
+}
+
+TEST(StreamEngineTest, ConfigUpdate) {
+    StreamEngine engine;
+    EngineConfig config;
+    config.execution_mode = ExecutionMode::DISTRIBUTED;
+    config.thread_pool_size = 12;
+    config.execution_strategy = ExecutionStrategy::ADAPTIVE;
+
+    engine.updateConfig(config);
+
+    EXPECT_EQ(engine.getExecutionMode(), ExecutionMode::DISTRIBUTED);
+    EXPECT_EQ(engine.getThreadCount(), 12);
+    EXPECT_EQ(engine.getExecutionStrategy(), ExecutionStrategy::ADAPTIVE);
+}
+
+// =============================================================================
+// StreamEngine 性能监控测试
+// =============================================================================
+
+TEST(StreamEngineTest, MetricsTracking) {
+    StreamEngine engine;
+    auto graph = engine.createGraph();
+
+    auto source_op = std::make_shared<MockSourceOperator>("source",
+        std::vector<std::string>{"msg1", "msg2", "msg3"});
+    auto sink_op = std::make_shared<MockSinkOperator>("sink");
+
+    auto source_id = graph->addOperator(source_op);
+    auto sink_id = graph->addOperator(sink_op);
+    graph->connectOperators(source_id, sink_id);
+
+    auto graph_id = engine.submitGraph(graph);
+    engine.executeGraph(graph_id);
+
+    // Check metrics
+    EXPECT_GE(engine.getTotalProcessedMessages(), 3);
+    EXPECT_GE(engine.getMetrics().total_processed_messages.load(), 3);
+}
+
+TEST(StreamEngineTest, MetricsReset) {
+    StreamEngine engine;
+
+    // Execute some work first
+    auto graph = engine.createGraph();
+    auto source_op = std::make_shared<MockSourceOperator>("source", std::vector<std::string>{"test"});
+    graph->addOperator(source_op);
+    auto graph_id = engine.submitGraph(graph);
+    engine.executeGraph(graph_id);
+
+    // Reset metrics
+    engine.resetMetrics();
+
+    EXPECT_EQ(engine.getTotalProcessedMessages(), 0);
+    EXPECT_EQ(engine.getMetrics().total_processed_messages.load(), 0);
+}
+
+// =============================================================================
+// StreamEngine 错误处理测试
+// =============================================================================
+
+TEST(StreamEngineTest, InvalidGraphSubmission) {
+    StreamEngine engine;
+
+    // Submit null graph - should throw exception
+    EXPECT_THROW(engine.submitGraph(nullptr), std::runtime_error);
+}
+
+TEST(StreamEngineTest, ExecuteNonExistentGraph) {
+    StreamEngine engine;
+
+    // Try to execute non-existent graph - should handle gracefully without throwing
+    EXPECT_NO_THROW(engine.executeGraph(999));
+    // The graph state becomes ERROR for non-existent graphs
+    EXPECT_EQ(engine.getGraphState(999), GraphState::ERROR);
+}
+
+TEST(StreamEngineTest, GraphStateValidation) {
+    StreamEngine engine;
+    auto graph = engine.createGraph();
+    auto source_op = std::make_shared<MockSourceOperator>("source", std::vector<std::string>{"test"});
+    graph->addOperator(source_op);
+
+    auto graph_id = engine.submitGraph(graph);
+
+    // Execute first time
+    engine.executeGraph(graph_id);
+    EXPECT_EQ(engine.getGraphState(graph_id), GraphState::COMPLETED);
+
+    // Should not be able to execute again - handled gracefully
+    EXPECT_NO_THROW(engine.executeGraph(graph_id));
+    // State becomes ERROR when trying to execute completed graph
+    EXPECT_EQ(engine.getGraphState(graph_id), GraphState::ERROR);
+}
+
+// =============================================================================
+// StreamEngine 生命周期测试
+// =============================================================================
+
+TEST(StreamEngineTest, EngineLifecycle) {
+    StreamEngine engine;
+
+    // Start engine
+    engine.start();
+    EXPECT_TRUE(engine.isRunning());
+    EXPECT_FALSE(engine.isPaused());
+
+    // Pause engine
+    engine.pause();
+    EXPECT_TRUE(engine.isPaused());
+
+    // Resume engine
+    engine.resume();
+    EXPECT_FALSE(engine.isPaused());
+
+    // Stop engine
+    engine.stop();
+    EXPECT_FALSE(engine.isRunning());
+    EXPECT_FALSE(engine.isPaused());
+}
+
+// =============================================================================
+// StreamEngine 高级功能测试
+// =============================================================================
+
+TEST(StreamEngineTest, ExecuteWithCallback) {
+    StreamEngine engine;
+    auto graph = engine.createGraph();
+    auto source_op = std::make_shared<MockSourceOperator>("source", std::vector<std::string>{"test"});
+    graph->addOperator(source_op);
+
+    auto graph_id = engine.submitGraph(graph);
+
+    bool callback_called = false;
+    engine.executeWithCallback(graph_id, [&callback_called](size_t id) {
+        callback_called = true;
+        EXPECT_EQ(id, 0);
+    });
+
+    EXPECT_TRUE(callback_called);
+}
+
+TEST(StreamEngineTest, ExecuteGraphAsync) {
+    StreamEngine engine;
+    auto graph = engine.createGraph();
+    auto source_op = std::make_shared<MockSourceOperator>("source", std::vector<std::string>{"test"});
+    graph->addOperator(source_op);
+
+    auto graph_id = engine.submitGraph(graph);
+
+    auto future = engine.executeGraphAsync(graph_id);
+    future.wait();
+
+    EXPECT_EQ(engine.getGraphState(graph_id), GraphState::COMPLETED);
+}
+
+TEST(StreamEngineTest, ExecuteWithStrategy) {
+    StreamEngine engine;
+    auto graph = engine.createGraph();
+    auto source_op = std::make_shared<MockSourceOperator>("source", std::vector<std::string>{"test"});
+    graph->addOperator(source_op);
+
+    auto graph_id = engine.submitGraph(graph);
+
+    engine.executeGraphWithStrategy(graph_id, ExecutionStrategy::EAGER);
+    EXPECT_EQ(engine.getGraphState(graph_id), GraphState::COMPLETED);
+}
+
+// =============================================================================
 // 集成测试
-class StreamEngineIntegrationTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        engine_ = std::make_unique<StreamEngine>();
-        graph_ = std::make_unique<ExecutionGraph>();
-    }
+// =============================================================================
 
-    std::unique_ptr<StreamEngine> engine_;
-    std::unique_ptr<ExecutionGraph> graph_;
-};
+TEST(StreamEngineIntegrationTest, ComplexGraphExecution) {
+    StreamEngine engine;
+    auto graph = engine.createGraph();
 
-TEST_F(StreamEngineIntegrationTest, EngineWithGraph) {
-    // 构建执行图
-    ExecutionGraph::Node source{"source", "kafka_source", {}, {"raw_data"}};
-    ExecutionGraph::Node transformer{"transformer", "json_parser", {"raw_data"}, {"parsed_data"}};
-    ExecutionGraph::Node sink{"sink", "elasticsearch_sink", {"parsed_data"}, {}};
-    
-    EXPECT_TRUE(graph_->add_node(source));
-    EXPECT_TRUE(graph_->add_node(transformer));
-    EXPECT_TRUE(graph_->add_node(sink));
-    
-    // 验证图结构
-    EXPECT_TRUE(graph_->validate());
-    
-    // 启动引擎并处理数据
-    EXPECT_TRUE(engine_->start());
-    
-    // 模拟数据流处理
-    auto execution_order = graph_->topological_sort();
-    EXPECT_EQ(execution_order.size(), 3);
-    
-    // 处理一批消息
-    std::vector<std::string> messages = {"msg1", "msg2", "msg3"};
-    engine_->process_batch(messages);
-    
-    EXPECT_EQ(engine_->get_processed_count(), 3);
-    
-    engine_->stop();
+    // Create a more complex graph
+    auto source1 = std::make_shared<MockSourceOperator>("source1",
+        std::vector<std::string>{"data1", "data2"});
+    auto source2 = std::make_shared<MockSourceOperator>("source2",
+        std::vector<std::string>{"data3", "data4"});
+
+    auto filter1 = std::make_shared<MockFilterOperator>("filter1", "data1");
+    auto filter2 = std::make_shared<MockFilterOperator>("filter2", "data3");
+
+    auto sink1 = std::make_shared<MockSinkOperator>("sink1");
+    auto sink2 = std::make_shared<MockSinkOperator>("sink2");
+
+    auto source1_id = graph->addOperator(source1);
+    auto source2_id = graph->addOperator(source2);
+    auto filter1_id = graph->addOperator(filter1);
+    auto filter2_id = graph->addOperator(filter2);
+    auto sink1_id = graph->addOperator(sink1);
+    auto sink2_id = graph->addOperator(sink2);
+
+    // Connect the graph
+    graph->connectOperators(source1_id, filter1_id);
+    graph->connectOperators(source2_id, filter2_id);
+    graph->connectOperators(filter1_id, sink1_id);
+    graph->connectOperators(filter2_id, sink2_id);
+
+    // Execute
+    auto graph_id = engine.submitGraph(graph);
+    engine.executeGraph(graph_id);
+
+    // Verify results
+    auto sink1_ptr = std::dynamic_pointer_cast<MockSinkOperator>(
+        graph->getOperator(sink1_id));
+    auto sink2_ptr = std::dynamic_pointer_cast<MockSinkOperator>(
+        graph->getOperator(sink2_id));
+
+    ASSERT_TRUE(sink1_ptr != nullptr);
+    ASSERT_TRUE(sink2_ptr != nullptr);
+
+    EXPECT_EQ(sink1_ptr->getReceivedMessages().size(), 1);
+    EXPECT_EQ(sink2_ptr->getReceivedMessages().size(), 1);
+    EXPECT_EQ(sink1_ptr->getReceivedMessages()[0], "data1");
+    EXPECT_EQ(sink2_ptr->getReceivedMessages()[0], "data3");
 }
 
+// =============================================================================
 // 主函数
+// =============================================================================
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
+
+}  // namespace sage_flow

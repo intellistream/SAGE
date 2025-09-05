@@ -1,7 +1,7 @@
 /**
  * @file test_operators.cpp
  * @brief 操作符单元测试
- * 
+ *
  * 测试 Map, Filter, Aggregate, Source, Sink 等核心操作符
  */
 
@@ -14,538 +14,430 @@
 #include <algorithm>
 #include <chrono>
 
-// 简化的操作符测试实现
-namespace sage_flow {
+// Operator headers
+#include "../../include/operator/base_operator.hpp"
+#include "../../include/operator/map_operator.hpp"
+#include "../../include/operator/filter_operator.hpp"
+#include "../../include/operator/source_operator.hpp"
+#include "../../include/operator/sink_operator.hpp"
 
-// 基础操作符接口
-class BaseOperator {
+// Function headers
+#include "../../include/function/map_function.hpp"
+#include "../../include/function/filter_function.hpp"
+#include "../../include/function/sink_function.hpp"
+
+// Message and response headers
+#include "../../include/message/multimodal_message.hpp"
+#include "../../include/message/content_type.hpp"
+#include "../../include/operator/response.hpp"
+#include "../../include/function/function_response.hpp"
+
+// Operator types
+#include "../../include/operator/operator_types.hpp"
+
+// Mock classes for testing
+class MockSinkFunction : public sage_flow::SinkFunction {
 public:
-    virtual ~BaseOperator() = default;
-    virtual bool process(const std::vector<std::string>& input, 
-                        std::vector<std::string>& output) = 0;
-    virtual std::string get_type() const = 0;
+    explicit MockSinkFunction(const std::string& name)
+        : sage_flow::SinkFunction(name) {}
+
+    void init() override {}
+    void close() override {}
+
+    // Note: Mocking virtual functions with different signatures requires special handling
+    // For this test, we'll use a simple implementation
+    sage_flow::FunctionResponse execute(sage_flow::FunctionResponse& response) override {
+        mockExecute(response);
+        return sage_flow::FunctionResponse{};
+    }
+
+    MOCK_METHOD(void, mockExecute, (sage_flow::FunctionResponse& response), ());
 };
 
-// Map 操作符
-class MapOperator : public BaseOperator {
+class TestSourceOperator : public sage_flow::SourceOperator {
 public:
-    using MapFunction = std::function<std::string(const std::string&)>;
-    
-    explicit MapOperator(MapFunction func) : map_func_(func) {}
-    
-    bool process(const std::vector<std::string>& input, 
-                std::vector<std::string>& output) override {
-        output.clear();
-        output.reserve(input.size());
-        
-        for (const auto& item : input) {
-            output.push_back(map_func_(item));
-        }
-        return true;
+    explicit TestSourceOperator(std::string name)
+        : sage_flow::SourceOperator(std::move(name)) {}
+
+    auto hasNext() -> bool override {
+        return message_count_ < 3; // Generate 3 messages
     }
-    
-    std::string get_type() const override { return "map"; }
+
+    auto next() -> std::unique_ptr<sage_flow::MultiModalMessage> override {
+        if (message_count_ >= 3) return nullptr;
+
+        auto message = std::make_unique<sage_flow::MultiModalMessage>(
+            static_cast<uint64_t>(message_count_ + 1),
+            sage_flow::ContentType::kText,
+            std::string("Test message ") + std::to_string(message_count_ + 1)
+        );
+        message_count_++;
+        return message;
+    }
+
+    auto reset() -> void override {
+        message_count_ = 0;
+    }
 
 private:
-    MapFunction map_func_;
+    int message_count_ = 0;
 };
 
-// Filter 操作符
-class FilterOperator : public BaseOperator {
-public:
-    using FilterFunction = std::function<bool(const std::string&)>;
-    
-    explicit FilterOperator(FilterFunction func) : filter_func_(func) {}
-    
-    bool process(const std::vector<std::string>& input, 
-                std::vector<std::string>& output) override {
-        output.clear();
-        
-        for (const auto& item : input) {
-            if (filter_func_(item)) {
-                output.push_back(item);
-            }
+// Test fixtures
+class OperatorTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Create test messages
+        test_message1_ = std::make_unique<sage_flow::MultiModalMessage>(
+            1, sage_flow::ContentType::kText, std::string("Hello World")
+        );
+        test_message2_ = std::make_unique<sage_flow::MultiModalMessage>(
+            2, sage_flow::ContentType::kText, std::string("Test Message")
+        );
+    }
+
+    std::unique_ptr<sage_flow::MultiModalMessage> test_message1_;
+    std::unique_ptr<sage_flow::MultiModalMessage> test_message2_;
+};
+
+// BaseOperator functionality is tested through derived classes
+
+// MapOperator Tests
+TEST_F(OperatorTest, MapOperatorConstruction) {
+    sage_flow::MapOperator op("test_map");
+    EXPECT_EQ(op.getType(), sage_flow::OperatorType::kMap);
+    EXPECT_EQ(op.getName(), "test_map");
+}
+
+TEST_F(OperatorTest, MapOperatorWithFunction) {
+    auto map_func = std::make_unique<sage_flow::MapFunction>("test_map_func");
+    map_func->setMapFunc([](std::unique_ptr<sage_flow::MultiModalMessage>& msg) {
+        if (msg) {
+            std::string content = msg->getContentAsString();
+            msg->setContent(content + " mapped");
         }
-        return true;
-    }
-    
-    std::string get_type() const override { return "filter"; }
+    });
 
-private:
-    FilterFunction filter_func_;
-};
+    sage_flow::MapOperator op("test_map", std::move(map_func));
 
-// Aggregate 操作符
-class AggregateOperator : public BaseOperator {
-public:
-    using AggregateFunction = std::function<std::string(const std::vector<std::string>&)>;
-    
-    explicit AggregateOperator(AggregateFunction func) : agg_func_(func) {}
-    
-    bool process(const std::vector<std::string>& input, 
-                std::vector<std::string>& output) override {
-        output.clear();
-        if (!input.empty()) {
-            output.push_back(agg_func_(input));
+    // Create input response
+    sage_flow::Response input_response(test_message1_->clone());
+    bool result = op.process(input_response, 0);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(op.getProcessedCount(), 1u);
+    EXPECT_EQ(op.getOutputCount(), 1u);
+}
+
+TEST_F(OperatorTest, MapOperatorWithoutFunction) {
+    sage_flow::MapOperator op("test_map");
+
+    sage_flow::Response input_response(test_message1_->clone());
+    EXPECT_THROW(op.process(input_response, 0), std::runtime_error);
+}
+
+TEST_F(OperatorTest, MapOperatorEmptyInput) {
+    auto map_func = std::make_unique<sage_flow::MapFunction>("test_map_func");
+    map_func->setMapFunc([](std::unique_ptr<sage_flow::MultiModalMessage>& msg) {
+        if (msg) {
+            std::string content = msg->getContentAsString();
+            msg->setContent(content + " mapped");
         }
-        return true;
+    });
+
+    sage_flow::MapOperator op("test_map", std::move(map_func));
+
+    sage_flow::Response empty_response(std::vector<std::unique_ptr<sage_flow::MultiModalMessage>>{});
+    bool result = op.process(empty_response, 0);
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(op.getProcessedCount(), 0u);
+}
+
+// FilterOperator Tests
+TEST_F(OperatorTest, FilterOperatorConstruction) {
+    sage_flow::FilterOperator op("test_filter");
+    EXPECT_EQ(op.getType(), sage_flow::OperatorType::kFilter);
+    EXPECT_EQ(op.getName(), "test_filter");
+}
+
+TEST_F(OperatorTest, FilterOperatorWithFunction) {
+    auto filter_func = std::make_unique<sage_flow::FilterFunction>("test_filter_func");
+    filter_func->setFilterFunc([](const sage_flow::MultiModalMessage& msg) {
+        return msg.getContentAsString().find("Hello") != std::string::npos;
+    });
+
+    sage_flow::FilterOperator op("test_filter", std::move(filter_func));
+
+    // Test message that passes filter
+    sage_flow::Response input_response1(test_message1_->clone()); // "Hello World"
+    bool result1 = op.process(input_response1, 0);
+    EXPECT_TRUE(result1);
+
+    // Test message that doesn't pass filter
+    sage_flow::Response input_response2(test_message2_->clone()); // "Test Message"
+    bool result2 = op.process(input_response2, 0);
+    EXPECT_FALSE(result2);
+
+    EXPECT_EQ(op.getProcessedCount(), 2u);
+}
+
+TEST_F(OperatorTest, FilterOperatorWithoutFunction) {
+    sage_flow::FilterOperator op("test_filter");
+
+    sage_flow::Response input_response(test_message1_->clone());
+    EXPECT_THROW(op.process(input_response, 0), std::runtime_error);
+}
+
+TEST_F(OperatorTest, FilterOperatorEmptyInput) {
+    auto filter_func = std::make_unique<sage_flow::FilterFunction>("test_filter_func");
+    filter_func->setFilterFunc([](const sage_flow::MultiModalMessage& msg) {
+        return true; // Accept all
+    });
+
+    sage_flow::FilterOperator op("test_filter", std::move(filter_func));
+
+    sage_flow::Response empty_response(std::vector<std::unique_ptr<sage_flow::MultiModalMessage>>{});
+    bool result = op.process(empty_response, 0);
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(op.getProcessedCount(), 0u);
+}
+
+// SourceOperator Tests
+TEST_F(OperatorTest, SourceOperatorConstruction) {
+    TestSourceOperator op("test_source");
+    EXPECT_EQ(op.getType(), sage_flow::OperatorType::kSource);
+    EXPECT_EQ(op.getName(), "test_source");
+}
+
+TEST_F(OperatorTest, SourceOperatorHasNext) {
+    TestSourceOperator op("test_source");
+
+    // Initially should have next
+    EXPECT_TRUE(op.hasNext());
+
+    // Generate messages
+    for (int i = 0; i < 3; ++i) {
+        EXPECT_TRUE(op.hasNext());
+        auto msg = op.next();
+        ASSERT_TRUE(msg);
     }
-    
-    std::string get_type() const override { return "aggregate"; }
 
-private:
-    AggregateFunction agg_func_;
-};
+    // Should not have next after 3 messages
+    EXPECT_FALSE(op.hasNext());
+}
 
-// Source 操作符
-class SourceOperator : public BaseOperator {
-public:
-    explicit SourceOperator(std::vector<std::string> data) 
-        : data_(std::move(data)), current_index_(0) {}
-    
-    bool process(const std::vector<std::string>& input, 
-                std::vector<std::string>& output) override {
-        output.clear();
-        
-        if (current_index_ < data_.size()) {
-            output.push_back(data_[current_index_++]);
-            return true;
+TEST_F(OperatorTest, SourceOperatorNext) {
+    TestSourceOperator op("test_source");
+
+    for (int i = 0; i < 3; ++i) {
+        auto msg = op.next();
+        ASSERT_TRUE(msg);
+        EXPECT_EQ(msg->getContentAsString(), "Test message " + std::to_string(i + 1));
+    }
+
+    // Should return nullptr after 3 messages
+    auto null_msg = op.next();
+    EXPECT_FALSE(null_msg);
+}
+
+TEST_F(OperatorTest, SourceOperatorReset) {
+    TestSourceOperator op("test_source");
+
+    // Generate some messages
+    op.next();
+    op.next();
+
+    // Reset
+    op.reset();
+
+    // Should start from beginning again
+    auto msg = op.next();
+    ASSERT_TRUE(msg);
+    EXPECT_EQ(msg->getContentAsString(), "Test message 1");
+}
+
+TEST_F(OperatorTest, SourceOperatorProcess) {
+    TestSourceOperator op("test_source");
+
+    sage_flow::Response dummy_input(std::vector<std::unique_ptr<sage_flow::MultiModalMessage>>{});
+    bool result = op.process(dummy_input, 0);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(op.getProcessedCount(), 1u);
+    EXPECT_EQ(op.getOutputCount(), 1u);
+}
+
+// SinkOperator Tests
+TEST_F(OperatorTest, SinkOperatorConstruction) {
+    sage_flow::SinkOperator op("test_sink");
+    EXPECT_EQ(op.getType(), sage_flow::OperatorType::kSink);
+    EXPECT_EQ(op.getName(), "test_sink");
+}
+
+TEST_F(OperatorTest, SinkOperatorWithFunction) {
+    auto sink_func = std::make_unique<MockSinkFunction>("test_sink_func");
+    EXPECT_CALL(*sink_func, mockExecute(::testing::_))
+        .Times(1);
+
+    sage_flow::SinkOperator op("test_sink", std::move(sink_func));
+
+    sage_flow::Response input_response(test_message1_->clone());
+    bool result = op.process(input_response, 0);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(op.getProcessedCount(), 1u);
+    EXPECT_EQ(op.getOutputCount(), 0u); // Sinks don't produce output
+}
+
+TEST_F(OperatorTest, SinkOperatorWithoutFunction) {
+    sage_flow::SinkOperator op("test_sink");
+
+    sage_flow::Response input_response(test_message1_->clone());
+    EXPECT_THROW(op.process(input_response, 0), std::runtime_error);
+}
+
+TEST_F(OperatorTest, SinkOperatorEmptyInput) {
+    auto sink_func = std::make_unique<MockSinkFunction>("test_sink_func");
+    EXPECT_CALL(*sink_func, mockExecute(::testing::_))
+        .Times(0); // Should not be called for empty input
+
+    sage_flow::SinkOperator op("test_sink", std::move(sink_func));
+
+    sage_flow::Response empty_response(std::vector<std::unique_ptr<sage_flow::MultiModalMessage>>{});
+    bool result = op.process(empty_response, 0);
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(op.getProcessedCount(), 0u);
+}
+
+TEST_F(OperatorTest, SinkOperatorFlush) {
+    auto sink_func = std::make_unique<MockSinkFunction>("test_sink_func");
+    sage_flow::SinkOperator op("test_sink", std::move(sink_func));
+
+    // Flush should not throw
+    EXPECT_NO_THROW(op.flush());
+}
+
+// Integration Tests
+TEST_F(OperatorTest, OperatorChain) {
+    // Create a simple processing chain: Source -> Map -> Filter -> Sink
+
+    // Source
+    TestSourceOperator source("source");
+
+    // Map function
+    auto map_func = std::make_unique<sage_flow::MapFunction>("map_func");
+    map_func->setMapFunc([](std::unique_ptr<sage_flow::MultiModalMessage>& msg) {
+        if (msg) {
+            std::string content = msg->getContentAsString();
+            msg->setContent(content + " processed");
+            std::cout << "[TEST] MapOperator processed message: " << content << " -> " << msg->getContentAsString() << std::endl;
         }
-        return false; // 没有更多数据
+    });
+    sage_flow::MapOperator mapper("mapper", std::move(map_func));
+
+    // Filter function
+    auto filter_func = std::make_unique<sage_flow::FilterFunction>("filter_func");
+    filter_func->setFilterFunc([](const sage_flow::MultiModalMessage& msg) {
+        bool result = msg.getContentAsString().find("processed") != std::string::npos;
+        std::cout << "[TEST] FilterOperator checking message: " << msg.getContentAsString() << " -> " << (result ? "PASS" : "FAIL") << std::endl;
+        return result;
+    });
+    sage_flow::FilterOperator filter("filter", std::move(filter_func));
+
+    // Sink
+    auto sink_func = std::make_unique<MockSinkFunction>("sink_func");
+    EXPECT_CALL(*sink_func, mockExecute(::testing::_))
+        .Times(3); // All messages should pass through
+    sage_flow::SinkOperator sink("sink", std::move(sink_func));
+
+    // Add logging to check emit callbacks
+    std::cout << "[TEST] Source emit callback set: " << (source.getEmitCallback() ? "YES" : "NO") << std::endl;
+    std::cout << "[TEST] Mapper emit callback set: " << (mapper.getEmitCallback() ? "YES" : "NO") << std::endl;
+    std::cout << "[TEST] Filter emit callback set: " << (filter.getEmitCallback() ? "YES" : "NO") << std::endl;
+    std::cout << "[TEST] Sink emit callback set: " << (sink.getEmitCallback() ? "YES" : "NO") << std::endl;
+
+    // Connect operators with proper message passing through emit callbacks
+    // Source -> Map -> Filter -> Sink
+
+    // Connect Source to Map
+    source.setEmitCallback([&mapper](int output_id, sage_flow::Response& response) {
+        std::cout << "[TEST] Source emitting to Mapper" << std::endl;
+        mapper.process(response, 0);
+    });
+
+    // Connect Map to Filter
+    mapper.setEmitCallback([&filter](int output_id, sage_flow::Response& response) {
+        std::cout << "[TEST] Mapper emitting to Filter" << std::endl;
+        filter.process(response, 0);
+    });
+
+    // Connect Filter to Sink
+    filter.setEmitCallback([&sink](int output_id, sage_flow::Response& response) {
+        std::cout << "[TEST] Filter emitting to Sink" << std::endl;
+        sink.process(response, 0);
+    });
+
+    // Process messages through the chain - only call source, messages will flow through the chain
+    for (int i = 0; i < 3; ++i) {
+        sage_flow::Response dummy(std::vector<std::unique_ptr<sage_flow::MultiModalMessage>>{});
+        bool source_result = source.process(dummy, 0);
+        EXPECT_TRUE(source_result);
+        std::cout << "[TEST] Processed message " << i << " through chain" << std::endl;
     }
-    
-    std::string get_type() const override { return "source"; }
-    
-    bool has_more_data() const { return current_index_ < data_.size(); }
-    void reset() { current_index_ = 0; }
 
-private:
-    std::vector<std::string> data_;
-    size_t current_index_;
-};
+    // Verify all operators processed the messages
+    EXPECT_EQ(source.getProcessedCount(), 3u);
+    EXPECT_EQ(source.getOutputCount(), 3u);
+    EXPECT_EQ(mapper.getProcessedCount(), 3u);
+    EXPECT_EQ(mapper.getOutputCount(), 3u);
+    EXPECT_EQ(filter.getProcessedCount(), 3u);
+    EXPECT_EQ(filter.getOutputCount(), 3u);
+    EXPECT_EQ(sink.getProcessedCount(), 3u);
+    EXPECT_EQ(sink.getOutputCount(), 0u); // Sink doesn't produce output
 
-// Sink 操作符
-class SinkOperator : public BaseOperator {
-public:
-    bool process(const std::vector<std::string>& input, 
-                std::vector<std::string>& output) override {
-        // Sink 操作符收集数据但不产生输出
-        for (const auto& item : input) {
-            collected_data_.push_back(item);
+    std::cout << "[TEST] Final counts - Source processed: " << source.getProcessedCount()
+              << ", output: " << source.getOutputCount() << std::endl;
+    std::cout << "[TEST] Final counts - Mapper processed: " << mapper.getProcessedCount()
+              << ", output: " << mapper.getOutputCount() << std::endl;
+    std::cout << "[TEST] Final counts - Filter processed: " << filter.getProcessedCount()
+              << ", output: " << filter.getOutputCount() << std::endl;
+    std::cout << "[TEST] Final counts - Sink processed: " << sink.getProcessedCount()
+              << ", output: " << sink.getOutputCount() << std::endl;
+}
+
+// Performance Tests
+TEST_F(OperatorTest, OperatorPerformance) {
+    auto map_func = std::make_unique<sage_flow::MapFunction>("perf_map_func");
+    map_func->setMapFunc([](std::unique_ptr<sage_flow::MultiModalMessage>& msg) {
+        if (msg) {
+            msg->addProcessingStep("performance_test");
         }
-        output.clear();
-        return true;
-    }
-    
-    std::string get_type() const override { return "sink"; }
-    
-    const std::vector<std::string>& get_collected_data() const { 
-        return collected_data_; 
-    }
-    
-    void clear() { collected_data_.clear(); }
+    });
 
-private:
-    std::vector<std::string> collected_data_;
-};
+    sage_flow::MapOperator op("perf_test", std::move(map_func));
 
-// Join 操作符
-class JoinOperator : public BaseOperator {
-public:
-    using KeyExtractor = std::function<std::string(const std::string&)>;
-    
-    JoinOperator(KeyExtractor left_key, KeyExtractor right_key)
-        : left_key_extractor_(left_key), right_key_extractor_(right_key) {}
-    
-    void set_left_data(const std::vector<std::string>& data) {
-        left_data_ = data;
-    }
-    
-    void set_right_data(const std::vector<std::string>& data) {
-        right_data_ = data;
-    }
-    
-    bool process(const std::vector<std::string>& input, 
-                std::vector<std::string>& output) override {
-        output.clear();
-        
-        // 简化的 inner join 实现
-        for (const auto& left_item : left_data_) {
-            std::string left_key = left_key_extractor_(left_item);
-            
-            for (const auto& right_item : right_data_) {
-                std::string right_key = right_key_extractor_(right_item);
-                
-                if (left_key == right_key) {
-                    output.push_back(left_item + "+" + right_item);
-                }
-            }
-        }
-        
-        return true;
-    }
-    
-    std::string get_type() const override { return "join"; }
+    const int num_iterations = 1000;
+    auto start_time = std::chrono::high_resolution_clock::now();
 
-private:
-    KeyExtractor left_key_extractor_;
-    KeyExtractor right_key_extractor_;
-    std::vector<std::string> left_data_;
-    std::vector<std::string> right_data_;
-};
-
-} // namespace sage_flow
-
-using namespace sage_flow;
-
-// MapOperator 测试套件
-class MapOperatorTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        // 创建一个简单的大写转换函数
-        auto uppercase_func = [](const std::string& input) {
-            std::string result = input;
-            std::transform(result.begin(), result.end(), result.begin(), ::toupper);
-            return result;
-        };
-        
-        map_op_ = std::make_unique<MapOperator>(uppercase_func);
-        test_input_ = {"hello", "world", "test"};
+    for (int i = 0; i < num_iterations; ++i) {
+        auto msg = std::make_unique<sage_flow::MultiModalMessage>(
+            static_cast<uint64_t>(i), sage_flow::ContentType::kText, std::string("perf_test")
+        );
+        sage_flow::Response response(std::move(msg));
+        op.process(response, 0);
     }
 
-    std::unique_ptr<MapOperator> map_op_;
-    std::vector<std::string> test_input_;
-};
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
-TEST_F(MapOperatorTest, BasicTransformation) {
-    std::vector<std::string> output;
-    
-    EXPECT_TRUE(map_op_->process(test_input_, output));
-    EXPECT_EQ(output.size(), test_input_.size());
-    
-    // 验证转换结果
-    EXPECT_EQ(output[0], "HELLO");
-    EXPECT_EQ(output[1], "WORLD");
-    EXPECT_EQ(output[2], "TEST");
-}
+    EXPECT_EQ(op.getProcessedCount(), static_cast<uint64_t>(num_iterations));
+    EXPECT_EQ(op.getOutputCount(), static_cast<uint64_t>(num_iterations));
 
-TEST_F(MapOperatorTest, EmptyInput) {
-    std::vector<std::string> empty_input;
-    std::vector<std::string> output;
-    
-    EXPECT_TRUE(map_op_->process(empty_input, output));
-    EXPECT_TRUE(output.empty());
-}
-
-TEST_F(MapOperatorTest, TypeCheck) {
-    EXPECT_EQ(map_op_->get_type(), "map");
-}
-
-// FilterOperator 测试套件
-class FilterOperatorTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        // 创建一个过滤长度大于3的字符串的函数
-        auto length_filter = [](const std::string& input) {
-            return input.length() > 3;
-        };
-        
-        filter_op_ = std::make_unique<FilterOperator>(length_filter);
-        test_input_ = {"hi", "hello", "test", "a", "world"};
-    }
-
-    std::unique_ptr<FilterOperator> filter_op_;
-    std::vector<std::string> test_input_;
-};
-
-TEST_F(FilterOperatorTest, BasicFiltering) {
-    std::vector<std::string> output;
-    
-    EXPECT_TRUE(filter_op_->process(test_input_, output));
-    
-    // 应该过滤出长度大于3的字符串
-    EXPECT_EQ(output.size(), 3);
-    EXPECT_THAT(output, testing::Contains("hello"));
-    EXPECT_THAT(output, testing::Contains("test"));
-    EXPECT_THAT(output, testing::Contains("world"));
-    EXPECT_THAT(output, testing::Not(testing::Contains("hi")));
-    EXPECT_THAT(output, testing::Not(testing::Contains("a")));
-}
-
-TEST_F(FilterOperatorTest, NoMatchesFilter) {
-    // 创建一个永远返回false的过滤器
-    auto reject_all = [](const std::string&) { return false; };
-    FilterOperator reject_filter(reject_all);
-    
-    std::vector<std::string> output;
-    EXPECT_TRUE(reject_filter.process(test_input_, output));
-    EXPECT_TRUE(output.empty());
-}
-
-// AggregateOperator 测试套件
-class AggregateOperatorTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        // 创建一个连接所有字符串的聚合函数
-        auto concat_func = [](const std::vector<std::string>& input) {
-            std::string result;
-            for (size_t i = 0; i < input.size(); ++i) {
-                if (i > 0) result += ",";
-                result += input[i];
-            }
-            return result;
-        };
-        
-        agg_op_ = std::make_unique<AggregateOperator>(concat_func);
-        test_input_ = {"apple", "banana", "cherry"};
-    }
-
-    std::unique_ptr<AggregateOperator> agg_op_;
-    std::vector<std::string> test_input_;
-};
-
-TEST_F(AggregateOperatorTest, BasicAggregation) {
-    std::vector<std::string> output;
-    
-    EXPECT_TRUE(agg_op_->process(test_input_, output));
-    EXPECT_EQ(output.size(), 1);
-    EXPECT_EQ(output[0], "apple,banana,cherry");
-}
-
-TEST_F(AggregateOperatorTest, EmptyInput) {
-    std::vector<std::string> empty_input;
-    std::vector<std::string> output;
-    
-    EXPECT_TRUE(agg_op_->process(empty_input, output));
-    EXPECT_TRUE(output.empty());
-}
-
-// SourceOperator 测试套件
-class SourceOperatorTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        source_data_ = {"item1", "item2", "item3"};
-        source_op_ = std::make_unique<SourceOperator>(source_data_);
-    }
-
-    std::vector<std::string> source_data_;
-    std::unique_ptr<SourceOperator> source_op_;
-};
-
-TEST_F(SourceOperatorTest, DataGeneration) {
-    std::vector<std::string> dummy_input;
-    std::vector<std::string> output;
-    
-    // 读取所有数据
-    for (size_t i = 0; i < source_data_.size(); ++i) {
-        EXPECT_TRUE(source_op_->has_more_data());
-        EXPECT_TRUE(source_op_->process(dummy_input, output));
-        EXPECT_EQ(output.size(), 1);
-        EXPECT_EQ(output[0], source_data_[i]);
-    }
-    
-    // 数据耗尽后应该返回false
-    EXPECT_FALSE(source_op_->has_more_data());
-    EXPECT_FALSE(source_op_->process(dummy_input, output));
-}
-
-TEST_F(SourceOperatorTest, Reset) {
-    std::vector<std::string> dummy_input;
-    std::vector<std::string> output;
-    
-    // 读取一些数据
-    source_op_->process(dummy_input, output);
-    source_op_->process(dummy_input, output);
-    
-    // 重置并验证可以重新读取
-    source_op_->reset();
-    EXPECT_TRUE(source_op_->has_more_data());
-    
-    EXPECT_TRUE(source_op_->process(dummy_input, output));
-    EXPECT_EQ(output[0], source_data_[0]);
-}
-
-// SinkOperator 测试套件
-class SinkOperatorTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        sink_op_ = std::make_unique<SinkOperator>();
-        test_input_ = {"data1", "data2", "data3"};
-    }
-
-    std::unique_ptr<SinkOperator> sink_op_;
-    std::vector<std::string> test_input_;
-};
-
-TEST_F(SinkOperatorTest, DataCollection) {
-    std::vector<std::string> output;
-    
-    EXPECT_TRUE(sink_op_->process(test_input_, output));
-    EXPECT_TRUE(output.empty()); // Sink 不产生输出
-    
-    // 验证数据被收集
-    const auto& collected = sink_op_->get_collected_data();
-    EXPECT_EQ(collected.size(), test_input_.size());
-    EXPECT_EQ(collected, test_input_);
-}
-
-TEST_F(SinkOperatorTest, MultipleBatches) {
-    std::vector<std::string> output;
-    std::vector<std::string> batch1 = {"a", "b"};
-    std::vector<std::string> batch2 = {"c", "d"};
-    
-    sink_op_->process(batch1, output);
-    sink_op_->process(batch2, output);
-    
-    const auto& collected = sink_op_->get_collected_data();
-    EXPECT_EQ(collected.size(), 4);
-    EXPECT_EQ(collected[0], "a");
-    EXPECT_EQ(collected[1], "b");
-    EXPECT_EQ(collected[2], "c");
-    EXPECT_EQ(collected[3], "d");
-}
-
-// JoinOperator 测试套件
-class JoinOperatorTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        // 创建键提取函数（假设数据格式为 "key:value"）
-        auto key_extractor = [](const std::string& data) {
-            size_t pos = data.find(':');
-            return (pos != std::string::npos) ? data.substr(0, pos) : data;
-        };
-        
-        join_op_ = std::make_unique<JoinOperator>(key_extractor, key_extractor);
-        
-        left_data_ = {"1:apple", "2:banana", "3:cherry"};
-        right_data_ = {"1:red", "2:yellow", "4:purple"};
-        
-        join_op_->set_left_data(left_data_);
-        join_op_->set_right_data(right_data_);
-    }
-
-    std::unique_ptr<JoinOperator> join_op_;
-    std::vector<std::string> left_data_;
-    std::vector<std::string> right_data_;
-};
-
-TEST_F(JoinOperatorTest, InnerJoin) {
-    std::vector<std::string> dummy_input;
-    std::vector<std::string> output;
-    
-    EXPECT_TRUE(join_op_->process(dummy_input, output));
-    
-    // 应该有两个匹配的连接结果
-    EXPECT_EQ(output.size(), 2);
-    EXPECT_THAT(output, testing::Contains("1:apple+1:red"));
-    EXPECT_THAT(output, testing::Contains("2:banana+2:yellow"));
-    EXPECT_THAT(output, testing::Not(testing::Contains("3:cherry")));
-    EXPECT_THAT(output, testing::Not(testing::Contains("4:purple")));
-}
-
-// 操作符链测试
-class OperatorChainTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        // 设置测试数据
-        source_data_ = {"hello world", "test data", "a", "example text"};
-        
-        // 创建操作符链: Source -> Filter -> Map -> Sink
-        source_op_ = std::make_unique<SourceOperator>(source_data_);
-        
-        // 过滤长度大于5的字符串
-        auto length_filter = [](const std::string& s) { return s.length() > 5; };
-        filter_op_ = std::make_unique<FilterOperator>(length_filter);
-        
-        // 转换为大写
-        auto uppercase_map = [](const std::string& s) {
-            std::string result = s;
-            std::transform(result.begin(), result.end(), result.begin(), ::toupper);
-            return result;
-        };
-        map_op_ = std::make_unique<MapOperator>(uppercase_map);
-        
-        sink_op_ = std::make_unique<SinkOperator>();
-    }
-
-    std::vector<std::string> source_data_;
-    std::unique_ptr<SourceOperator> source_op_;
-    std::unique_ptr<FilterOperator> filter_op_;
-    std::unique_ptr<MapOperator> map_op_;
-    std::unique_ptr<SinkOperator> sink_op_;
-};
-
-TEST_F(OperatorChainTest, FullPipeline) {
-    std::vector<std::string> temp_output;
-    std::vector<std::string> dummy_input;
-    
-    // 处理所有源数据
-    while (source_op_->has_more_data()) {
-        // Source -> 临时输出
-        source_op_->process(dummy_input, temp_output);
-        
-        // Filter -> 临时输出
-        std::vector<std::string> filtered_output;
-        filter_op_->process(temp_output, filtered_output);
-        
-        // Map -> 临时输出
-        std::vector<std::string> mapped_output;
-        map_op_->process(filtered_output, mapped_output);
-        
-        // Sink
-        sink_op_->process(mapped_output, temp_output);
-    }
-    
-    // 验证最终结果
-    const auto& final_result = sink_op_->get_collected_data();
-    
-    // 应该有3个结果（过滤掉了"a"）
-    EXPECT_EQ(final_result.size(), 3);
-    EXPECT_THAT(final_result, testing::Contains("HELLO WORLD"));
-    EXPECT_THAT(final_result, testing::Contains("TEST DATA"));
-    EXPECT_THAT(final_result, testing::Contains("EXAMPLE TEXT"));
-    EXPECT_THAT(final_result, testing::Not(testing::Contains("A")));
-}
-
-// 性能测试
-class OperatorPerformanceTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        // 创建大量测试数据
-        large_dataset_.reserve(10000);
-        for (int i = 0; i < 10000; ++i) {
-            large_dataset_.push_back("item_" + std::to_string(i));
-        }
-    }
-
-    std::vector<std::string> large_dataset_;
-};
-
-TEST_F(OperatorPerformanceTest, LargeDatasetProcessing) {
-    // 创建操作符
-    auto passthrough_map = [](const std::string& s) { return s; };
-    MapOperator map_op(passthrough_map);
-    
-    auto accept_all = [](const std::string&) { return true; };
-    FilterOperator filter_op(accept_all);
-    
-    SinkOperator sink_op;
-    
-    auto start = std::chrono::high_resolution_clock::now();
-    
-    // 处理大数据集
-    std::vector<std::string> temp_output;
-    
-    map_op.process(large_dataset_, temp_output);
-    filter_op.process(temp_output, temp_output);
-    sink_op.process(temp_output, temp_output);
-    
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    
-    // 性能基准：10000个项目应该在100ms内处理完成
-    EXPECT_LT(duration.count(), 100);
-    EXPECT_EQ(sink_op.get_collected_data().size(), large_dataset_.size());
+    // Performance should be reasonable (less than 1 second for 1000 operations)
+    EXPECT_LT(duration.count(), 1000);
 }
 
 // 主函数

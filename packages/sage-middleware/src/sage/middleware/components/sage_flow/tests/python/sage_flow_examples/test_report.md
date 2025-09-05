@@ -1,45 +1,59 @@
 # SAGE Flow 示例测试报告
 
-生成时间: 2025-09-04T20:45:01.323381
+生成时间: 2025-09-05T20:36:10.806499
 
 ## 测试概览
 
 - 总示例数: 5
-- 成功示例: 5
-- 失败示例: 0
+- 成功示例: 0
+- 失败示例: 5
 .1f
 ## 详细结果
 
 ### advanced_stream_processing.py
 
-- 状态: ✅ 成功
-.2f- 退出代码: 0
+- 状态: ❌ 失败
+.2f- 退出代码: 1
+
+**错误:**
+- Traceback (most recent call last):
+- ImportError: /home/xinyan/0904backup/SAGE/packages/sage-middleware/src/sage/middleware/components/sage_flow/tests/python/sage_flow_examples/../../packages/sage-middleware/src/sage/middleware/components/sage_flow/python/sage_flow_datastream.cpython-313-x86_64-linux-gnu.so: cannot open shared object file: No such file or directory
 
 ### basic_stream_processing.py
 
-- 状态: ✅ 成功
-.2f- 退出代码: 0
+- 状态: ❌ 失败
+.2f- 退出代码: 1
+
+**错误:**
+- Traceback (most recent call last):
+- ImportError: /home/xinyan/0904backup/SAGE/packages/sage-middleware/src/sage/middleware/components/sage_flow/tests/python/sage_flow_examples/../../packages/sage-middleware/src/sage/middleware/components/sage_flow/python/sage_flow_datastream.cpython-313-x86_64-linux-gnu.so: cannot open shared object file: No such file or directory
 
 ### data_source_examples.py
 
-- 状态: ✅ 成功
-.2f- 退出代码: 0
+- 状态: ❌ 失败
+.2f- 退出代码: 1
+
+**错误:**
+- Traceback (most recent call last):
+- ImportError: /home/xinyan/0904backup/SAGE/packages/sage-middleware/src/sage/middleware/components/sage_flow/tests/python/sage_flow_examples/../../packages/sage-middleware/src/sage/middleware/components/sage_flow/python/sage_flow_datastream.cpython-313-x86_64-linux-gnu.so: cannot open shared object file: No such file or directory
 
 ### function_operator_examples.py
 
-- 状态: ✅ 成功
-.2f- 退出代码: 0
+- 状态: ❌ 失败
+.2f- 退出代码: 1
 
-**警告:**
-- 2025-09-04 20:44:35,201 - WARNING - 处理数据时出错: 随机模拟错误
-- 2025-09-04 20:44:35,203 - WARNING - 缺少必需字段: category
-- 2025-09-04 20:44:35,203 - WARNING - 缺少必需字段: category
-- 2025-09-04 20:44:35,203 - WARNING - 缺少必需字段: id
+**错误:**
+- Traceback (most recent call last):
+- ImportError: /home/xinyan/0904backup/SAGE/packages/sage-middleware/src/sage/middleware/components/sage_flow/tests/python/sage_flow_examples/../../packages/sage-middleware/src/sage/middleware/components/sage_flow/python/sage_flow_datastream.cpython-313-x86_64-linux-gnu.so: cannot open shared object file: No such file or directory
 
 ### performance_monitoring.py
 
-- 状态: ✅ 成功
-.2f- 退出代码: 0
+- 状态: ❌ 失败
+.2f- 退出代码: 1
+
+**错误:**
+- Traceback (most recent call last):
+- ImportError: /home/xinyan/0904backup/SAGE/packages/sage-middleware/src/sage/middleware/components/sage_flow/tests/python/sage_flow_examples/../../packages/sage-middleware/src/sage/middleware/components/sage_flow/python/sage_flow_datastream.cpython-313-x86_64-linux-gnu.so: cannot open shared object file: No such file or directory
 
 ## 建议
 

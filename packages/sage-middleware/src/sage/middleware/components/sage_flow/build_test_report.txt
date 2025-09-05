@@ -1,0 +1,228 @@
+SAGE Flow 构建验证报告
+===================
+生成时间: Sat Sep  6 01:10:58 CST 2025
+操作系统: Linux XYLeiROGFlow13 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+项目根目录: /home/xinyan/0904backup/SAGE/packages/sage-middleware/src/sage/middleware/components/sage_flow
+构建类型: Release
+构建目录: /home/xinyan/0904backup/SAGE/packages/sage-middleware/src/sage/middleware/components/sage_flow/build
+
+WARNING: 不在 sage 环境中，当前环境: base
+Conda 环境信息:
+
+     active environment : base
+    active env location : /home/xinyan/miniconda3
+            shell level : 1
+       user config file : /home/xinyan/.condarc
+ populated config files : /home/xinyan/miniconda3/.condarc
+                          /home/xinyan/.condarc
+          conda version : 25.5.1
+    conda-build version : not installed
+         python version : 3.13.5.final.0
+                 solver : libmamba (default)
+       virtual packages : __archspec=1=x86_64_v4
+                          __conda=25.5.1=0
+                          __cuda=12.8=0
+                          __glibc=2.39=0
+                          __linux=6.6.87.2=0
+                          __unix=0=0
+       base environment : /home/xinyan/miniconda3  (writable)
+      conda av data dir : /home/xinyan/miniconda3/etc/conda
+  conda av metadata url : None
+           channel URLs : https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/linux-64
+                          https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/noarch
+                          https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/linux-64
+                          https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/noarch
+                          https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/linux-64
+                          https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/noarch
+                          https://repo.anaconda.com/pkgs/main/linux-64
+                          https://repo.anaconda.com/pkgs/main/noarch
+                          https://repo.anaconda.com/pkgs/r/linux-64
+                          https://repo.anaconda.com/pkgs/r/noarch
+          package cache : /home/xinyan/miniconda3/pkgs
+                          /home/xinyan/.conda/pkgs
+       envs directories : /home/xinyan/miniconda3/envs
+                          /home/xinyan/.conda/envs
+               platform : linux-64
+             user-agent : conda/25.5.1 requests/2.32.3 CPython/3.13.5 Linux/6.6.87.2-microsoft-standard-WSL2 ubuntu/24.04.2 glibc/2.39 solver/libmamba conda-libmamba-solver/25.4.0 libmambapy/2.0.5 aau/0.7.1 c/. s/. e/.
+                UID:GID : 1000:1000
+             netrc file : None
+           offline mode : False
+
+
+系统依赖检查:
+  ✓ CMake 构建系统: cmake version 3.28.3
+  ✓ Make 构建工具: GNU Make 4.3
+  ✓ GNU C++ 编译器: g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0
+  ✓ Python 3 解释器: Python 3.13.5
+  ✓ Python 包管理器: pip 25.1 from /home/xinyan/miniconda3/lib/python3.13/site-packages/pip (python 3.13)
+
+Python 依赖检查:
+  ✓ NumPy 数值计算库: 2.3.2
+  ✓ Python C++ 绑定库: 3.0.0
+
+构建目录已清理并重新创建
+
+CMake 配置:
+参数: -DCMAKE_BUILD_TYPE=Release -DSAGE_FLOW_BUILD_TESTS=ON -DSAGE_FLOW_BUILD_EXAMPLES=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- No API source files found, skipping sage_flow_api library
+CMake Warning (dev) at /usr/lib/cmake/pybind11/FindPythonLibsNew.cmake:98 (find_package):
+  Policy CMP0148 is not set: The FindPythonInterp and FindPythonLibs modules
+  are removed.  Run "cmake --help-policy CMP0148" for policy details.  Use
+  the cmake_policy command to set the policy and suppress this warning.
+
+Call Stack (most recent call first):
+  /usr/lib/cmake/pybind11/pybind11Tools.cmake:50 (find_package)
+  /usr/lib/cmake/pybind11/pybind11Common.cmake:188 (include)
+  /usr/lib/cmake/pybind11/pybind11Config.cmake:250 (include)
+  src/python/CMakeLists.txt:2 (find_package)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Found PythonLibs: /home/xinyan/miniconda3/lib/libpython3.13.so
+-- Performing Test HAS_FLTO
+-- Performing Test HAS_FLTO - Success
+-- Found pybind11 - building Python bindings
+-- Found Python3: /home/xinyan/miniconda3/bin/python3 (found version "3.13.5") found components: Interpreter 
+-- 未找到C++集成测试文件，跳过C++集成测试
+-- 未找到C++性能测试文件，跳过C++性能测试
+-- 未找到Python性能测试文件，跳过Python性能测试
+-- 未找到性能测试文件，跳过性能测试目标创建
+-- Cpplint integration enabled
+-- Found clang-format: /usr/bin/clang-format (Ubuntu clang-format version 18.1.3 (1ubuntu1))
+-- ClangFormat integration enabled
+-- Available targets:
+--   format        - Format all source files
+--   format-check  - Check formatting without modifying files
+--   format-check-ci - Check formatting for CI/CD (fails on issues)
+-- Configuring done (4.1s)
+-- Generating done (0.1s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    SAGE_FLOW_BUILD_EXAMPLES
+    SAGE_FLOW_BUILD_TESTS
+
+
+-- Build files have been written to: /home/xinyan/0904backup/SAGE/packages/sage-middleware/src/sage/middleware/components/sage_flow/build
+SUCCESS: CMake 配置成功
+
+构建执行:
+CPU 核心数: 16
+并行任务数: 15
+开始时间: Sat Sep  6 01:11:04 CST 2025
+[  2%] Building CXX object src/function/CMakeFiles/sage_flow_function.dir/function.cpp.o
+[  4%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/aggregate_operator.cpp.o
+[  2%] Building CXX object src/data_stream/CMakeFiles/sage_flow_datastream_lib.dir/datastream.cpp.o
+[  5%] Building CXX object src/memory/CMakeFiles/sage_flow_memory.dir/memory_pool.cpp.o
+[  8%] Building CXX object src/engine/CMakeFiles/sage_flow_engine.dir/execution_graph.cpp.o
+[ 10%] Building CXX object src/function/CMakeFiles/sage_flow_function.dir/filter_function.cpp.o
+[ 13%] Building CXX object src/message/CMakeFiles/sage_flow_message.dir/message_bridge.cpp.o
+[ 13%] Building CXX object src/engine/CMakeFiles/sage_flow_engine.dir/stream_engine.cpp.o
+[ 17%] Building CXX object src/function/CMakeFiles/sage_flow_function.dir/document_parser_function.cpp.o
+[ 17%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/base_operator.cpp.o
+[ 17%] Building CXX object src/message/CMakeFiles/sage_flow_message.dir/multimodal_message.cpp.o
+[  7%] Building CXX object src/index/CMakeFiles/sage_flow_index.dir/hnsw.cpp.o
+[ 18%] Building CXX object src/sources/CMakeFiles/sage_flow_sources.dir/data_source_factory.cpp.o
+[ 20%] Building CXX object src/environment/CMakeFiles/sage_flow_environment.dir/sage_flow_environment.cpp.o
+[ 21%] Building CXX object src/index/CMakeFiles/sage_flow_index.dir/brute_force_index.cpp.o
+[ 23%] Building CXX object src/index/CMakeFiles/sage_flow_index.dir/index_factory.cpp.o
+[ 24%] Linking CXX static library libsage_flow_memory.a
+[ 24%] Built target sage_flow_memory
+[ 26%] Building CXX object src/message/CMakeFiles/sage_flow_message.dir/retrieval_context.cpp.o
+[ 27%] Building CXX object src/index/CMakeFiles/sage_flow_index.dir/index_operators.cpp.o
+[ 28%] Building CXX object src/index/CMakeFiles/sage_flow_index.dir/ivf.cpp.o
+[ 30%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/file_sink_operator.cpp.o
+[ 31%] Building CXX object src/index/CMakeFiles/sage_flow_index.dir/knn_operator.cpp.o
+[ 33%] Building CXX object src/function/CMakeFiles/sage_flow_function.dir/map_function.cpp.o
+[ 36%] Building CXX object src/sources/CMakeFiles/sage_flow_sources.dir/file_data_source.cpp.o
+[ 34%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/filter_operator.cpp.o
+[ 37%] Building CXX object src/sources/CMakeFiles/sage_flow_sources.dir/kafka_data_source.cpp.o
+[ 39%] Building CXX object src/sources/CMakeFiles/sage_flow_sources.dir/stream_data_source.cpp.o
+[ 40%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/join_operator.cpp.o
+[ 42%] Building CXX object src/message/CMakeFiles/sage_flow_message.dir/sage_packet_adapter.cpp.o
+[ 43%] Building CXX object src/function/CMakeFiles/sage_flow_function.dir/quality_assessor_function.cpp.o
+[ 44%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/map_operator.cpp.o
+[ 46%] Linking CXX static library libsage_flow_environment.a
+[ 47%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/response.cpp.o
+[ 49%] Building CXX object src/function/CMakeFiles/sage_flow_function.dir/sink_function.cpp.o
+[ 50%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/sink_operator.cpp.o
+[ 50%] Built target sage_flow_environment
+[ 52%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/source_operator.cpp.o
+[ 53%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/terminal_sink_operator.cpp.o
+[ 55%] Building CXX object src/message/CMakeFiles/sage_flow_message.dir/vector_data.cpp.o
+[ 56%] Linking CXX static library libsage_flow_datastream_lib.a
+[ 57%] Building CXX object src/function/CMakeFiles/sage_flow_function.dir/text_cleaner_function.cpp.o
+[ 59%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/topk_operator.cpp.o
+[ 59%] Built target sage_flow_datastream_lib
+[ 60%] Building CXX object src/function/CMakeFiles/sage_flow_function.dir/text_embedding_function.cpp.o
+[ 62%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/vector_store_sink_operator.cpp.o
+[ 63%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/window/sliding_window_operator.cpp.o
+[ 65%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/window/tumbling_window_operator.cpp.o
+[ 66%] Building CXX object src/operator/CMakeFiles/sage_flow_operator.dir/window_operator.cpp.o
+[ 68%] Linking CXX static library libsage_flow_index.a
+[ 68%] Built target sage_flow_index
+[ 69%] Linking CXX static library libsage_flow_engine.a
+[ 69%] Built target sage_flow_engine
+[ 71%] Linking CXX static library libsage_flow_sources.a
+[ 71%] Built target sage_flow_sources
+[ 72%] Linking CXX static library libsage_flow_message.a
+[ 72%] Built target sage_flow_message
+[ 73%] Linking CXX static library libsage_flow_function.a
+[ 73%] Built target sage_flow_function
+[ 75%] Linking CXX static library libsage_flow_operator.a
+[ 75%] Built target sage_flow_operator
+[ 89%] Building CXX object tests/unit/CMakeFiles/test_indices.dir/test_indices.cpp.o
+[ 89%] Building CXX object tests/unit/CMakeFiles/test_stream_engine.dir/test_stream_engine.cpp.o
+[ 89%] Building CXX object src/python/CMakeFiles/sage_flow_datastream.dir/operators/file_sink_operator_bindings.cpp.o
+[ 89%] Building CXX object src/python/CMakeFiles/sage_flow_datastream.dir/datastream_bindings.cpp.o
+[ 89%] Building CXX object tests/unit/CMakeFiles/test_functions.dir/test_functions.cpp.o
+[ 89%] Building CXX object src/python/CMakeFiles/sage_flow_datastream.dir/operators/terminal_sink_operator_bindings.cpp.o
+[ 89%] Building CXX object tests/unit/CMakeFiles/test_operators.dir/test_operators.cpp.o
+[ 89%] Building CXX object tests/unit/CMakeFiles/test_message_system.dir/test_message_system.cpp.o
+[ 89%] Building CXX object src/python/CMakeFiles/sage_flow_datastream.dir/operators/vector_store_sink_operator_bindings.cpp.o
+[ 89%] Building CXX object tests/unit/CMakeFiles/test_datastream.dir/test_datastream.cpp.o
+[ 91%] Linking CXX executable test_message_system
+[ 92%] Linking CXX executable test_indices
+[ 92%] Built target test_message_system
+[ 92%] Built target test_indices
+[ 94%] Linking CXX executable test_functions
+[ 94%] Built target test_functions
+[ 95%] Linking CXX executable test_operators
+[ 97%] Linking CXX executable test_datastream
+[ 97%] Built target test_operators
+[ 97%] Built target test_datastream
+[ 98%] Linking CXX executable test_stream_engine
+[ 98%] Built target test_stream_engine
+[100%] Linking CXX shared module sage_flow_datastream.cpython-313-x86_64-linux-gnu.so
+lto-wrapper: warning: using serial compilation of 7 LTRANS jobs
+lto-wrapper: note: see the '-flto' option documentation for more information
+[100%] Built target sage_flow_datastream
+SUCCESS: 构建成功，耗时: 34秒
+
+构建产物验证:
+  ✗ 缺少: 核心库 (模式: libsage_flow_core.so)
+  ✗ 缺少: Python 绑定模块 (模式: sage_flow_datastream*.so)
+
+代码风格检查:
+SUCCESS: 代码风格检查通过
+
+基础测试:
+SUCCESS: Python 模块导入成功
+SUCCESS: Python 模块导入测试通过
+Test project /home/xinyan/0904backup/SAGE/packages/sage-middleware/src/sage/middleware/components/sage_flow/build
+No tests were found!!!
+SUCCESS: CTest 运行成功
+
+构建总结:
+========
+完成时间: Sat Sep  6 01:11:42 CST 2025
+构建目录大小: 22M
+编译单元数量: 53
+
+总耗时: 44秒
+构建验证完成！
