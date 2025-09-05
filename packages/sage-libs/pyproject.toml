@@ -40,8 +40,8 @@ dependencies = [
     "isage-middleware>=0.1.0",
     "isage-common>=0.1.0",
     # 数值计算基础依赖
-    "numpy>=1.21.0",
-    "scipy>=1.7.0",  # 稀疏矩阵支持（MilvusSparseRetriever需要）
+    "numpy>=2.0.0,<3.0.0",  # 统一numpy版本范围，兼容numpy 2.x
+    "scipy>=1.15.0,<2.0.0",  # 统一scipy版本范围，兼容稀疏矩阵支持
     # RAG示例依赖（原可选依赖，现改为必需）
     "transformers>=4.54.1",  # 与sage-middleware保持一致
     "sentence-transformers>=2.2.0",

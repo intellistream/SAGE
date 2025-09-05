@@ -115,7 +115,7 @@ class DeploymentManager:
             with tarfile.open(package_path, "w:gz") as tar:
                 # 只添加必要的目录和文件，避免大文件
                 
-                # 1. 添加核心工具目录（install.py 等）
+                # 1. 添加核心工具目录（quickstart.sh 等）
                 tools_dir = self.project_root / "tools"
                 if tools_dir.exists():
                     typer.echo("📦 添加 tools 目录...")
@@ -397,29 +397,26 @@ class DeploymentManager:
             remote_config = self.config_manager.get_remote_config()
             sage_home = remote_config.get('sage_home', '/home/sage')
             
-            # 构建 install.py 参数
-            install_args = []
-            if remote_config.get('profile'):
-                install_args.append(f"--profile {remote_config['profile']}")
-            else:
-                install_args.append("--profile production")  # 默认使用 production 模式
+            # 构建 quickstart 参数
+            quickstart_args = ["--standard"]
             
             # 使用配置中的环境名，如果没有配置则使用 'sage'
             env_name = remote_config.get('conda_env', 'sage')
-            install_args.append(f"--env-name {env_name}")
+            # quickstart.sh 会通过环境变量获取环境名
             
-            if remote_config.get('python_version'):
-                install_args.append(f"--python-version {remote_config['python_version']}")
             if remote_config.get('force_reinstall'):
-                install_args.append("--force")
-            if remote_config.get('quiet_mode', True):  # 默认静默模式
-                install_args.append("--quiet")
-            if remote_config.get('skip_validation'):
-                install_args.append("--skip-validation")
+                quickstart_args.append("--force")
             
-            # 添加远程部署标志，跳过Git相关操作
-            install_args.append("--remote-deploy")
-            install_args_str = " ".join(install_args)
+            # 添加远程部署标志，用于启用非交互模式
+            quickstart_env_vars = [
+                "SAGE_REMOTE_DEPLOY=true",  # 标识这是远程部署
+                "DEBIAN_FRONTEND=noninteractive", 
+                "CONDA_ALWAYS_YES=true",
+                f"SAGE_ENV_NAME={env_name}"
+            ]
+            
+            quickstart_args_str = " ".join(quickstart_args)
+            quickstart_env_str = " ".join(quickstart_env_vars)
 
             # 分步执行安装，显示详细进度
             typer.echo(f"\n🚀 开始部署SAGE到 {host}:{port}")
@@ -546,14 +543,14 @@ class DeploymentManager:
             
             # 步骤3: 执行安装（增加超时时间）
             typer.echo(f"\n3️⃣ 执行SAGE安装...")
-            typer.echo(f"📦 安装命令: python3 tools/install/install.py {install_args_str}")
+            typer.echo(f"📦 安装命令: {quickstart_env_str} ./quickstart.sh {quickstart_args_str}")
             typer.echo("⏰ 注意: 这一步可能需要5-10分钟，请耐心等待...")
             
             install_command = (
                 f"set -e\n"
                 f"cd {sage_home}/SAGE\n"
                 f"echo '📦 开始执行SAGE安装...'\n"
-                f"echo '命令: python3 tools/install/install.py {install_args_str}'\n"
+                f"echo '命令: {quickstart_env_str} ./quickstart.sh {quickstart_args_str}'\n"
                 f"# 设置conda环境\n"
                 f"for conda_path in \\\n"
                 f"    '$HOME/miniconda3/etc/profile.d/conda.sh' \\\n"
@@ -566,7 +563,10 @@ class DeploymentManager:
                 f"        break\n"
                 f"    fi\n"
                 f"done\n"
-                f"python3 tools/install/install.py {install_args_str}\n"
+                f"# 设置环境变量并执行quickstart脚本\n"
+                f"export {quickstart_env_str.replace(' ', ' export ')}\n"
+                f"chmod +x ./quickstart.sh\n"
+                f"./quickstart.sh {quickstart_args_str}\n"
                 f"echo '✅ SAGE安装完成'\n"
             )
             
