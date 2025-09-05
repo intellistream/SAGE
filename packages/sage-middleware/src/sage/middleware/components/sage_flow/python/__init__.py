@@ -31,6 +31,9 @@ from sage_flow_datastream import (
     # 工厂函数
     create_text_message,
     create_binary_message,
+
+    # DataStream工厂函数
+    from_list,
 )
 
 # 导入Python实用工具
@@ -66,7 +69,10 @@ __all__ = [
     # 工厂函数
     "create_text_message",
     "create_binary_message",
-    
+
+    # DataStream工厂函数
+    "from_list",
+
     # 实用工具
     "configure_logging",
     "get_version_info",

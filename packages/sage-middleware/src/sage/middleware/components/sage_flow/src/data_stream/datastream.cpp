@@ -15,6 +15,68 @@
 
 namespace sage_flow {
 
+// Static factory method to create DataStream from list
+auto DataStream::from_list(const std::vector<std::unordered_map<std::string, std::variant<std::string, int64_t, double, bool>>>& data,
+                           std::shared_ptr<StreamEngine> engine) -> DataStream {
+  // Create default engine if not provided
+  if (!engine) {
+    engine = std::make_shared<StreamEngine>();
+  }
+  // Create default engine if not provided
+  if (!engine) {
+    engine = std::make_shared<StreamEngine>();
+  }
+
+  // Create execution graph
+  auto graph = std::make_shared<ExecutionGraph>();
+
+  // Create DataStream instance
+  DataStream stream(engine, graph, static_cast<ExecutionGraph::OperatorId>(-1));
+
+  // Create a source function that yields messages from the data list
+  size_t index = 0;
+  auto source_func = [&data, &index]() -> std::unique_ptr<MultiModalMessage> {
+    if (index < data.size()) {
+      // Convert data item to JSON-like string for the message content
+      std::string content = "{";
+      bool first = true;
+      for (const auto& [key, value] : data[index]) {
+        if (!first) content += ",";
+        content += "\"" + key + "\":";
+        // Simple conversion to string - in practice you'd want proper JSON serialization
+        if (std::holds_alternative<std::string>(value)) {
+          content += "\"" + std::get<std::string>(value) + "\"";
+        } else if (std::holds_alternative<int64_t>(value)) {
+          content += std::to_string(std::get<int64_t>(value));
+        } else if (std::holds_alternative<double>(value)) {
+          content += std::to_string(std::get<double>(value));
+        } else if (std::holds_alternative<bool>(value)) {
+          content += std::get<bool>(value) ? "true" : "false";
+        } else {
+          content += "\"unknown\"";
+        }
+        first = false;
+      }
+      content += "}";
+
+      auto msg = std::make_unique<MultiModalMessage>(
+          static_cast<uint64_t>(index),
+          ContentType::kText,
+          MultiModalMessage::ContentVariant(content)
+      );
+
+      index++;
+      return msg;
+    }
+    return nullptr;
+  };
+
+  // Add the source to the stream
+  stream.from_source(source_func);
+
+  return stream;
+}
+
 // Constructor
 DataStream::DataStream(std::shared_ptr<StreamEngine> engine,
                        std::shared_ptr<ExecutionGraph> graph,

@@ -153,6 +153,7 @@ PYBIND11_MODULE(sage_flow_datastream, m) {
            py::arg("last_operator_id") =
                static_cast<sage_flow::ExecutionGraph::OperatorId>(-1))
 
+
       // Core DataStream operations - simplified for pybind11 compatibility
       .def("execute", &sage_flow::DataStream::execute,
            "Execute the stream pipeline")
@@ -228,6 +229,47 @@ PYBIND11_MODULE(sage_flow_datastream, m) {
             sage_flow::MultiModalMessage::ContentVariant(data));
       },
       "Create a binary message");
+
+  // Standalone from_list function for Python API compatibility
+  m.def("from_list",
+        [](py::list data) {
+          // Convert Python list of dicts to C++ vector of maps
+          std::vector<std::unordered_map<std::string, std::variant<std::string, int64_t, double, bool>>> cpp_data;
+
+          for (auto item : data) {
+            if (!py::isinstance<py::dict>(item)) {
+              throw std::runtime_error("All items in the list must be dictionaries");
+            }
+
+            py::dict py_dict = item.cast<py::dict>();
+            std::unordered_map<std::string, std::variant<std::string, int64_t, double, bool>> cpp_dict;
+
+            for (auto pair : py_dict) {
+              std::string key = pair.first.cast<std::string>();
+
+              // Convert Python values to C++ variants
+              if (py::isinstance<py::str>(pair.second)) {
+                cpp_dict[key] = pair.second.cast<std::string>();
+              } else if (py::isinstance<py::int_>(pair.second)) {
+                cpp_dict[key] = static_cast<int64_t>(pair.second.cast<long>());
+              } else if (py::isinstance<py::float_>(pair.second)) {
+                cpp_dict[key] = pair.second.cast<double>();
+              } else if (py::isinstance<py::bool_>(pair.second)) {
+                cpp_dict[key] = pair.second.cast<bool>();
+              } else {
+                throw std::runtime_error("Unsupported value type for key '" + key + "'");
+              }
+            }
+
+            cpp_data.push_back(std::move(cpp_dict));
+          }
+
+          // Call the C++ method
+          return sage_flow::DataStream::from_list(cpp_data, nullptr);
+        },
+        "Create DataStream from a list of data",
+        py::arg("data"));
+
 
   // Bind base Operator class
   py::enum_<sage_flow::OperatorType>(m, "OperatorType")

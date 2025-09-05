@@ -53,11 +53,24 @@ public:
   // ===============================
 
   /**
-   * @brief Create a source from function - starting point for data pipeline
-   *
-   * Equivalent to sage_core's .from_source(SourceClass, config) pattern
-   * Supports both class-based sources and lambda functions
-   */
+    * @brief Create DataStream from a list of data
+    *
+    * Static factory method to create a DataStream from a vector of data items.
+    * Each item in the list will be converted to a MultiModalMessage.
+    *
+    * @param data Vector of data items to create messages from
+    * @param engine StreamEngine instance (optional, will create default if not provided)
+    * @return DataStream instance
+    */
+   static auto from_list(const std::vector<std::unordered_map<std::string, std::variant<std::string, int64_t, double, bool>>>& data,
+                         std::shared_ptr<StreamEngine> engine = nullptr) -> DataStream;
+
+  /**
+    * @brief Create a source from function - starting point for data pipeline
+    *
+    * Equivalent to sage_core's .from_source(SourceClass, config) pattern
+    * Supports both class-based sources and lambda functions
+    */
   template <typename SourceType>
   auto from_source(const std::unordered_map<std::string, std::any>& config = {})
       -> DataStream;

@@ -8,9 +8,9 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate sage
 
 # 设置环境变量
-export SAGE_FLOW_ROOT="/home/xinyan/SAGE/packages/sage-middleware/src/sage/middleware/enterprise/sage_flow"
+export SAGE_FLOW_ROOT="/home/xinyan/0904backup/SAGE/packages/sage-middleware/src/sage/middleware/components/sage_flow"
 export SAGE_FLOW_BUILD_DIR="$SAGE_FLOW_ROOT/build"
-export PYTHONPATH="$SAGE_FLOW_BUILD_DIR:$PYTHONPATH"
+export PYTHONPATH="$SAGE_FLOW_ROOT:$PYTHONPATH"
 
 # 显示环境信息
 echo "SAGE Flow 测试环境已激活"
