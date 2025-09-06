@@ -42,6 +42,7 @@ install.log
 # C++ 构建产物
 **/build/
 **/install/
+!tools/install/
 **/cmake-build*/
 **/CMakeFiles/
 **/CMakeCache.txt

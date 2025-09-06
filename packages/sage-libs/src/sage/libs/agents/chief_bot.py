@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict, Any
 import json
 import re
-from ..context.model_context import ModelContext
+from sage.libs.context.model_context import ModelContext
 from sage.core.api.function.flatmap_function import FlatMapFunction
 from sage.libs.utils.openaiclient import OpenAIClient
 

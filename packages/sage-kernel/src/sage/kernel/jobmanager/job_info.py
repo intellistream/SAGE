@@ -4,7 +4,7 @@ import time
 
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
-    from sage.kernel.jobmanager.compiler import ExecutionGraph
+    from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph
     from sage.kernel.runtime.dispatcher import Dispatcher
 
 class JobInfo:
