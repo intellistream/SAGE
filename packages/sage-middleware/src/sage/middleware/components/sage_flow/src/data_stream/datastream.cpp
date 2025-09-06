@@ -381,15 +381,17 @@ auto DataStream::canExecute() const -> bool {
 auto DataStream::collect() -> std::vector<std::unique_ptr<MultiModalMessage>> {
     std::vector<std::unique_ptr<MultiModalMessage>> results;
 
-    // For now, create a simple collection mechanism
-    // This would need to be enhanced with proper execution and result collection
     if (canExecute()) {
-        // Execute the stream and collect results
-        // This is a simplified implementation
-        execute();
+        // Create a collection sink that captures all messages
+        auto collect_sink = [&results](const MultiModalMessage& msg) {
+            results.push_back(msg.clone());
+        };
 
-        // In a real implementation, we would collect results from the sink operators
-        // For now, return empty vector as placeholder
+        // Add the collection sink to the stream
+        sink(collect_sink);
+
+        // Execute the stream to collect results
+        execute();
     }
 
     return results;

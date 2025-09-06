@@ -40,6 +40,8 @@ set(TEST_LIBRARIES
     sage_flow_message
     sage_flow_operator
     sage_flow_function
+    sage_flow_index
+    sage_flow_memory
     GTest::gtest
     GTest::gtest_main
     GTest::gmock

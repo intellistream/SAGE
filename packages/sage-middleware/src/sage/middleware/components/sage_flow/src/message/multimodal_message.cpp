@@ -8,7 +8,9 @@ namespace sage_flow {
 
 // Constructor implementations
 MultiModalMessage::MultiModalMessage(uint64_t uid)
-    : uid_(uid), timestamp_(getCurrentTimestamp()) {}
+    : uid_(uid), timestamp_(getCurrentTimestamp()) {
+  sage_uid_ = generateSageUid();
+}
 
 MultiModalMessage::MultiModalMessage(uint64_t uid, ContentType content_type,
                                      ContentVariant content)
@@ -16,6 +18,7 @@ MultiModalMessage::MultiModalMessage(uint64_t uid, ContentType content_type,
       timestamp_(getCurrentTimestamp()),
       content_type_(content_type),
       content_(std::move(content)) {
+  sage_uid_ = generateSageUid();
   validateContent();
 }
 

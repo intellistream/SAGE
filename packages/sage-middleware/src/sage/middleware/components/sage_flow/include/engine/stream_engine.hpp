@@ -13,6 +13,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <memory>  // For std::enable_shared_from_this
+
 #include "execution_graph.hpp"
 #include "stream_engine_config.hpp"
 #include "stream_engine_enums.hpp"
@@ -36,7 +38,7 @@ class ExecutionGraph;
  * Manages the execution of stream processing operators and provides
  * different execution modes for optimal performance.
  */
-class StreamEngine {
+class StreamEngine : public std::enable_shared_from_this<StreamEngine> {
 public:
   using GraphId = size_t;
   using TaskId = size_t;

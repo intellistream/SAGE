@@ -769,8 +769,39 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
       OperatorType op_type = op->getType();
 
       // Set up emit callback for this operator to collect output messages
-      op->setEmitCallback([this, op_id](int output_id, Response& output_record) {
+      // Use weak_ptr to avoid dangling reference and potential segfaults
+      std::weak_ptr<StreamEngine> weak_self;
+      try {
+        auto self = shared_from_this();
+        weak_self = self;
+      } catch (const std::bad_weak_ptr&) {
+        // Object not managed by shared_ptr, use raw this pointer with caution
+        // This is a fallback for cases where StreamEngine is not created with shared_ptr
+        std::cout << "[StreamEngine] Warning: StreamEngine not managed by shared_ptr, using raw pointer" << std::endl;
+      }
+
+      op->setEmitCallback([weak_self, op_id, this](int output_id, Response& output_record) {
+        // Try to get shared_ptr first
+        std::shared_ptr<StreamEngine> self;
+        if (!weak_self.expired()) {
+          self = weak_self.lock();
+        }
+
+        // If weak_ptr failed, check if 'this' is still valid (fallback for non-shared_ptr usage)
+        if (!self) {
+          if (!intermediate_results_) {
+            std::cout << "[StreamEngine] Lambda: StreamEngine has been destroyed or intermediate_results_ is null, skipping callback" << std::endl;
+            return;
+          }
+          // Use raw this pointer as fallback (less safe but better than crash)
+          std::cout << "[StreamEngine] Lambda: Using raw pointer fallback" << std::endl;
+        }
+
         std::cout << "[StreamEngine] Lambda callback executed for operator " << op_id << ", intermediate_results_ address: " << intermediate_results_.get() << std::endl;
+        if (!intermediate_results_) {
+          std::cout << "[StreamEngine] Lambda: intermediate_results_ is null, skipping" << std::endl;
+          return;
+        }
         if (output_record.hasMessage()) {
           std::cout << "[StreamEngine] Lambda: output_record has message" << std::endl;
           auto output_msg = output_record.getMessage();
@@ -828,7 +859,11 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
             std::cout << "[StreamEngine] Message limit (" << max_messages_per_operator << ") reached for operator " << static_cast<size_t>(op_id) << std::endl;
           }
 
-          std::cout << "[StreamEngine] Source operator " << static_cast<size_t>(op_id) << " produced " << (*intermediate_results_)[op_id].size() << " messages" << std::endl;
+          if (intermediate_results_ && intermediate_results_->find(op_id) != intermediate_results_->end()) {
+            std::cout << "[StreamEngine] Source operator " << static_cast<size_t>(op_id) << " produced " << (*intermediate_results_)[op_id].size() << " messages" << std::endl;
+          } else {
+            std::cout << "[StreamEngine] Source operator " << static_cast<size_t>(op_id) << " produced messages (count unavailable)" << std::endl;
+          }
         }
       } else if (op->getType() == OperatorType::kSink) {
         // For sink operators, process messages from predecessors
@@ -837,19 +872,23 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
 
         // Collect messages from all predecessors with size limit
         size_t total_messages = 0;
-        for (auto pred_id : predecessors) {
-          auto it = intermediate_results_->find(pred_id);
-          if (it != intermediate_results_->end()) {
-            std::cout << "[StreamEngine] Sink operator " << static_cast<size_t>(op_id) << " found " << it->second.size() << " messages from predecessor " << static_cast<size_t>(pred_id) << std::endl;
-            for (auto& msg : it->second) {
-              if (msg && total_messages < max_messages_per_operator) {
-                input_messages.push_back(std::move(msg));
-                total_messages++;
+        if (intermediate_results_) {
+          for (auto pred_id : predecessors) {
+            auto it = intermediate_results_->find(pred_id);
+            if (it != intermediate_results_->end()) {
+              std::cout << "[StreamEngine] Sink operator " << static_cast<size_t>(op_id) << " found " << it->second.size() << " messages from predecessor " << static_cast<size_t>(pred_id) << std::endl;
+              for (auto& msg : it->second) {
+                if (msg && total_messages < max_messages_per_operator) {
+                  input_messages.push_back(std::move(msg));
+                  total_messages++;
+                }
               }
+            } else {
+              std::cout << "[StreamEngine] Sink operator " << static_cast<size_t>(op_id) << " found no messages from predecessor " << static_cast<size_t>(pred_id) << std::endl;
             }
-          } else {
-            std::cout << "[StreamEngine] Sink operator " << static_cast<size_t>(op_id) << " found no messages from predecessor " << static_cast<size_t>(pred_id) << std::endl;
           }
+        } else {
+          std::cout << "[StreamEngine] Sink operator " << static_cast<size_t>(op_id) << " cannot access intermediate results (null)" << std::endl;
         }
         std::cout << "[StreamEngine] Sink operator " << static_cast<size_t>(op_id) << " collected " << total_messages << " messages to process" << std::endl;
 
@@ -890,32 +929,36 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
         std::cout << std::endl;
 
         size_t total_messages = 0;
-        for (auto pred_id : predecessors) {
-          auto it = intermediate_results_->find(pred_id);
-          if (it != intermediate_results_->end()) {
-            std::cout << "[StreamEngine] Operator " << static_cast<size_t>(op_id) << " found " << it->second.size() << " messages from predecessor " << static_cast<size_t>(pred_id) << std::endl;
-            for (auto& msg : it->second) {
-              if (msg && total_messages < max_messages_per_operator) {
-                input_messages.push_back(std::move(msg));
-                total_messages++;
+        if (intermediate_results_) {
+          for (auto pred_id : predecessors) {
+            auto it = intermediate_results_->find(pred_id);
+            if (it != intermediate_results_->end()) {
+              std::cout << "[StreamEngine] Operator " << static_cast<size_t>(op_id) << " found " << it->second.size() << " messages from predecessor " << static_cast<size_t>(pred_id) << std::endl;
+              for (auto& msg : it->second) {
+                if (msg && total_messages < max_messages_per_operator) {
+                  input_messages.push_back(std::move(msg));
+                  total_messages++;
+                }
+              }
+            } else {
+              std::cout << "[StreamEngine] Operator " << static_cast<size_t>(op_id) << " found no messages from predecessor " << static_cast<size_t>(pred_id) << std::endl;
+              // Debug: print all available intermediate results
+              std::cout << "[StreamEngine] Available intermediate results: ";
+              for (const auto& pair : *intermediate_results_) {
+                std::cout << pair.first << "(" << pair.second.size() << ") ";
+              }
+              std::cout << std::endl;
+              std::cout << "[StreamEngine] Looking for predecessor " << static_cast<size_t>(pred_id) << " in intermediate_results_" << std::endl;
+              auto search_it = intermediate_results_->find(pred_id);
+              if (search_it != intermediate_results_->end()) {
+                std::cout << "[StreamEngine] Found predecessor " << static_cast<size_t>(pred_id) << " with " << search_it->second.size() << " messages" << std::endl;
+              } else {
+                std::cout << "[StreamEngine] Predecessor " << static_cast<size_t>(pred_id) << " NOT found in intermediate_results_" << std::endl;
               }
             }
-          } else {
-            std::cout << "[StreamEngine] Operator " << static_cast<size_t>(op_id) << " found no messages from predecessor " << static_cast<size_t>(pred_id) << std::endl;
-            // Debug: print all available intermediate results
-            std::cout << "[StreamEngine] Available intermediate results: ";
-            for (const auto& pair : *intermediate_results_) {
-              std::cout << pair.first << "(" << pair.second.size() << ") ";
-            }
-            std::cout << std::endl;
-            std::cout << "[StreamEngine] Looking for predecessor " << static_cast<size_t>(pred_id) << " in intermediate_results_" << std::endl;
-            auto search_it = intermediate_results_->find(pred_id);
-            if (search_it != intermediate_results_->end()) {
-              std::cout << "[StreamEngine] Found predecessor " << static_cast<size_t>(pred_id) << " with " << search_it->second.size() << " messages" << std::endl;
-            } else {
-              std::cout << "[StreamEngine] Predecessor " << static_cast<size_t>(pred_id) << " NOT found in intermediate_results_" << std::endl;
-            }
           }
+        } else {
+          std::cout << "[StreamEngine] Operator " << static_cast<size_t>(op_id) << " cannot access intermediate results (null)" << std::endl;
         }
         std::cout << "[StreamEngine] Operator " << static_cast<size_t>(op_id) << " collected " << total_messages << " messages to process" << std::endl;
 

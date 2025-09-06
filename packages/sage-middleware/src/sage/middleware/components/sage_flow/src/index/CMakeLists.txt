@@ -7,5 +7,8 @@ target_include_directories(sage_flow_index PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
+# Link to memory library for memory pool functionality
+target_link_libraries(sage_flow_index PUBLIC sage_flow_memory)
+
 # Add -fPIC for shared library compatibility
 set_target_properties(sage_flow_index PROPERTIES POSITION_INDEPENDENT_CODE ON)
