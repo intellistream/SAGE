@@ -3,13 +3,14 @@
 #include <memory>
 #include <string>
 
-#include "base_operator.hpp"
+#include "operator/response.hpp"
+#include "operator/base_operator.hpp"
 #include "function/sink_function.hpp"
 
 namespace sage_flow {
 
 class MultiModalMessage;
-class Response;
+// class Response; // Already defined in response.hpp
 
 /**
  * @brief Sink operator for data output
@@ -18,7 +19,7 @@ class Response;
  * writing to files, databases, or external systems. Uses composition pattern
  * with SinkFunction.
  */
-class SinkOperator final : public BaseOperator {
+class SinkOperator final : public BaseOperator<MultiModalMessage, MultiModalMessage> {
 public:
   explicit SinkOperator(std::string name);
 
@@ -37,7 +38,7 @@ public:
   SinkOperator(SinkOperator&&) = default;
   auto operator=(SinkOperator&&) -> SinkOperator& = default;
 
-  auto process(Response& input_record, int slot) -> bool override;
+  auto process(const std::vector<std::shared_ptr<MultiModalMessage>>& input) -> std::optional<Response<MultiModalMessage>>;
 
   /**
    * @brief Set the sink function

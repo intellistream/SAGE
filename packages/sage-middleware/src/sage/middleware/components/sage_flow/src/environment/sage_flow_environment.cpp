@@ -3,9 +3,12 @@
 #include <iostream>
 
 #include "data_stream/data_stream.hpp"
+#include "../../include/message/multimodal_message.hpp"
 #include "engine/execution_graph.hpp"
 #include "engine/stream_engine.hpp"
 #include "memory/memory_pool.hpp"
+#include "message/multimodal_message.hpp"
+#include "message/multimodal_message.hpp"
 
 namespace sage_flow {
 
@@ -168,7 +171,7 @@ void SageFlowEnvironment::run_batch() {
   }
 }
 
-auto SageFlowEnvironment::create_datastream() -> DataStream {
+auto SageFlowEnvironment::create_datastream() -> DataStream<MultiModalMessage> {
    // Create a new execution graph for this datastream
    auto graph = std::make_shared<ExecutionGraph>();
    return {stream_engine_, graph, static_cast<ExecutionGraph::OperatorId>(-1)};

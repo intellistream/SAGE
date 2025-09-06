@@ -7,7 +7,7 @@ namespace sage_flow {
 // Constructor and destructor are defined in header file
 
 // Graph construction
-auto ExecutionGraph::addOperator(std::shared_ptr<BaseOperator> op)
+auto ExecutionGraph::addOperator(std::shared_ptr<BaseOperator<MultiModalMessage, MultiModalMessage>> op)
     -> OperatorId {
   if (!op) return static_cast<OperatorId>(-1);
 
@@ -112,13 +112,13 @@ auto ExecutionGraph::getSinkOperators() const -> std::vector<OperatorId> {
 
 // Operator access
 auto ExecutionGraph::getOperator(OperatorId id)
-    -> std::shared_ptr<BaseOperator> {
+    -> std::shared_ptr<BaseOperator<MultiModalMessage, MultiModalMessage>> {
   auto it = operators_.find(id);
   return (it != operators_.end()) ? it->second : nullptr;
 }
 
 auto ExecutionGraph::getOperators() const
-    -> const std::unordered_map<OperatorId, std::shared_ptr<BaseOperator>>& {
+    -> const std::unordered_map<OperatorId, std::shared_ptr<BaseOperator<MultiModalMessage, MultiModalMessage>>>& {
   return operators_;
 }
 

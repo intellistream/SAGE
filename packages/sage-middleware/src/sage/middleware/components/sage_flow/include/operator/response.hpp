@@ -2,36 +2,40 @@
 
 #include <memory>
 #include <vector>
-
-#include "message/multimodal_message.hpp"
+#include "../message/multimodal_message.hpp"
 
 namespace sage_flow {
 
-/**
- * @brief Response container for operator processing results
- */
-class Response final {
+template <typename T>
+class Response {
 public:
-  explicit Response(std::unique_ptr<MultiModalMessage> message);
-  explicit Response(std::vector<std::unique_ptr<MultiModalMessage>> messages);
-
-  // Move semantics
-  Response(Response&& other) noexcept;
-  auto operator=(Response&& other) noexcept -> Response&;
-
-  // Disable copy operations for performance
-  Response(const Response&) = delete;
-  auto operator=(const Response&) -> Response& = delete;
-
-  // Accessors
-  auto hasMessage() const -> bool;
-  auto hasMessages() const -> bool;
-  auto getMessage() -> std::unique_ptr<MultiModalMessage>;
-  auto getMessages() -> std::vector<std::unique_ptr<MultiModalMessage>>;
-  auto size() const -> size_t;
-
+  Response() = default;
+  
+  explicit Response(std::vector<std::shared_ptr<T>> messages) : messages_(std::move(messages)) {}
+  
+  bool hasMessages() const { return !messages_.empty(); }
+  
+  std::shared_ptr<T> getMessage() const {
+    if (!messages_.empty()) {
+      return messages_[0];
+    }
+    return nullptr;
+  }
+  
+  const std::vector<std::shared_ptr<T>>& getMessages() const {
+    return messages_;
+  }
+  
+  std::vector<std::shared_ptr<T>>& getMessages() {
+    return messages_;
+  }
+  
+  size_t size() const { return messages_.size(); }
+  
 private:
-  std::vector<std::unique_ptr<MultiModalMessage>> messages_;
+  std::vector<std::shared_ptr<T>> messages_;
 };
+
+// No extern template - instantiate in cpp
 
 }  // namespace sage_flow

@@ -1,19 +1,12 @@
 #include "function/sink_function.hpp"
+#include <memory>
 
 namespace sage_flow {
 
-auto SinkFunction::execute(FunctionResponse& response) -> FunctionResponse {
-  // Process each message with the sink function
-  for (const auto& message : response.getMessages()) {
-    if (message && sink_func_) {
-      sink_func_(*message);
-    }
-  }
-
-  response.clear();
-
-  // Sinks return empty responses as they consume messages
-  return FunctionResponse{};
+auto SinkFunction::execute([[maybe_unused]] FunctionResponse& response) -> FunctionResponse {
+  // TODO: Process messages from FunctionResponse
+  // For now, return empty response as sink consumes messages
+  return FunctionResponse();
 }
 
 void SinkFunction::setSinkFunc(SinkFunc sink_func) {

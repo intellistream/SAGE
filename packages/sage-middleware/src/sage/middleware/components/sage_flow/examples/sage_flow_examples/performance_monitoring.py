@@ -480,6 +480,49 @@ class PerformanceBenchmark:
                 print(".3f")
                 print(".1f")
 
+    def parallelism_config_test(self):
+        """并行度配置测试"""
+        print("\n=== 并行度配置测试 ===")
+        
+        test_sizes = [1000]
+        parallelism_levels = [1, 2, 4, 8]
+        
+        for size in test_sizes:
+            print(f"\n测试数据大小: {size}")
+            
+            test_data = self.create_test_data(size)
+            
+            for parallelism in parallelism_levels:
+                self.monitor.start_monitoring()
+                
+                start_time = time.time()
+                
+                # 使用 Stream with config
+                from sageflow import Stream
+                
+                stream = Stream.from_list(test_data).config(parallelism=parallelism) \
+                               .map(lambda item: {**item, 'processed': True}) \
+                               .execute()
+                
+                end_time = time.time()
+                processing_time = end_time - start_time
+                
+                self.monitor.stop_monitoring()
+                
+                throughput = size / processing_time if processing_time > 0 else 0
+                
+                result = {
+                    "test_name": "parallelism_config",
+                    "data_size": size,
+                    "parallelism": parallelism,
+                    "processing_time": processing_time,
+                    "throughput": throughput,
+                    "results_count": len(stream)
+                }
+                self.test_results.append(result)
+                
+                print(f"  并行度 {parallelism}: {throughput:.1f} items/s, 耗时 {processing_time:.3f}s")
+
     def generate_performance_report(self):
         """生成性能报告"""
         print("\n=== 性能测试汇总报告 ===")
@@ -529,6 +572,7 @@ def main():
     benchmark.memory_usage_benchmark()
     benchmark.latency_analysis_benchmark()
     benchmark.concurrent_processing_benchmark()
+    benchmark.parallelism_config_test()
 
     # 生成性能报告
     benchmark.generate_performance_report()

@@ -5,11 +5,11 @@ SAGE Flow 基础流处理示例
 展示 sage_flow 的基础流处理功能：
 - 创建数据流
 - 基本的 map/filter/sink 操作
-- 消息处理
-- 环境配置
+- 链式 fluent API
+- execute() 触发懒惰执行
 
 作者: Kilo Code
-日期: 2025-09-04
+日期: 2025-09-06
 """
 
 import sys
@@ -18,18 +18,10 @@ import time
 import json
 from typing import List, Dict, Any
 
-# 添加项目路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../packages/sage-middleware/src'))
+# 添加包路径以正确导入sageflow
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
-# 直接导入 C++ 扩展模块
-import importlib.util
-spec = importlib.util.spec_from_file_location(
-    "sage_flow_datastream",
-    os.path.join(os.path.dirname(__file__), '../../packages/sage-middleware/src/sage/middleware/components/sage_flow/python/sage_flow_datastream.cpython-313-x86_64-linux-gnu.so')
-)
-sfd = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(sfd)
-print("✓ SAGE Flow C++ 模块导入成功")
+from sageflow import Stream
 
 class BasicStreamProcessor:
     """基础流处理器"""
@@ -51,81 +43,46 @@ class BasicStreamProcessor:
             {"id": 8, "name": "Henry", "age": 33, "score": 82.4, "active": False},
         ]
 
-    def create_text_message(self, uid: int, data: Dict[str, Any]) -> Any:
-        """创建文本消息"""
-        content = json.dumps(data)
-        return sfd.create_text_message(uid, content)
-
     def process_data(self):
-        """使用真实 API 处理数据"""
-        print("\n=== 使用真实 SAGE Flow API ===")
-
-        # 创建环境
-        env = sfd.Environment("basic_stream_example")
-        print("✓ 环境创建成功")
-
-        # 创建数据流
-        stream = env.create_datastream()
-        print("✓ 数据流创建成功")
+        """使用Stream DSL处理数据"""
+        print("\n=== 使用 SAGE Flow Python DSL ===")
 
         # 准备数据
         sample_data = self.create_sample_data()
 
-        # 设置数据源
-        def data_source():
-            for i, item in enumerate(sample_data):
-                msg = self.create_text_message(i + 1, item)
-                yield msg
+        # 使用链式API：filter active users, map添加处理信息和grade
+        def is_active(item: Dict[str, Any]) -> bool:
+            return item.get('active', False)
 
-        # 配置流处理管道
-        results = []
+        def add_processing_info(item: Dict[str, Any]) -> Dict[str, Any]:
+            return {
+                **item,
+                'processed_at': time.time(),
+                'grade': self.calculate_grade(item['score'])
+            }
 
-        def collect_result(msg):
-            """收集处理结果"""
-            content = msg.get_content_as_string()
-            data = json.loads(content)
-            results.append(data)
+        # 创建Stream并链式操作
+        stream = Stream.from_list(sample_data)
+        processed_stream = (stream
+                            .filter(is_active)
+                            .map(add_processing_info)
+                            .sink("print://"))  # 打印输出
 
-        # 由于 pybind11 兼容性限制，暂时使用简化版本
-        # 直接处理数据而不使用流管道
-        print("  注意: 使用简化处理模式（pybind11 兼容性限制）")
-
-        for i, item in enumerate(sample_data):
-            msg = self.create_text_message(i + 1, item)
-
-            # 应用过滤
-            if self.filter_active_users(msg):
-                # 应用转换
-                transformed_msg = self.transform_user_data(msg)
-
-                # 收集结果
-                collect_result(transformed_msg)
-
+        # 执行并收集结果
+        results = processed_stream.execute()
         print(f"✓ 流处理完成，处理了 {len(results)} 条记录")
 
+        # 应用文件sink示例
+        print("\n=== 文件 Sink 示例 ===")
+        file_stream = Stream.from_list(sample_data)
+        file_processed = (file_stream
+                          .filter(is_active)
+                          .map(add_processing_info)
+                          .sink("file://basic_output.txt"))  # 写入文件
+        file_results = file_processed.execute()
+        print(f"✓ 文件sink完成，结果写入 basic_output.txt，{len(file_results)} 条记录")
+
         return results
-
-
-    def filter_active_users(self, msg) -> bool:
-        """过滤活跃用户"""
-        content = msg.get_content_as_string()
-        data = json.loads(content)
-        return data.get("active", False)
-
-
-    def transform_user_data(self, msg) -> Any:
-        """转换用户数据"""
-        content = msg.get_content_as_string()
-        data = json.loads(content)
-
-        # 添加处理信息
-        data["processed_at"] = time.time()
-        data["grade"] = self.calculate_grade(data["score"])
-
-        # 创建新消息
-        new_content = json.dumps(data)
-        return sfd.create_text_message(msg.get_uid(), new_content)
-
 
     def calculate_grade(self, score: float) -> str:
         """根据分数计算等级"""
@@ -138,22 +95,16 @@ class BasicStreamProcessor:
         else:
             return "D"
 
-
-    def demonstrate_message_creation(self):
-        """演示消息创建"""
-        print("\n=== 消息创建演示 ===")
-
-        sample_data = self.create_sample_data()[0]  # 使用第一条数据
-
-        # 创建文本消息
-        text_msg = self.create_text_message(1001, sample_data)
-        print(f"✓ 文本消息创建成功: UID={text_msg.get_uid()}")
-
-        # 创建二进制消息
-        binary_data = json.dumps(sample_data).encode('utf-8')
-        binary_msg = sfd.create_binary_message(1002, list(binary_data))
-        print(f"✓ 二进制消息创建成功: UID={binary_msg.get_uid()}")
-        return [text_msg, binary_msg]
+    def demonstrate_simple_pipeline(self):
+        """演示简单管道"""
+        print("\n=== 简单管道演示 ===")
+        simple_data = [{"value": 1}, {"value": 2}, {"value": 3}]
+        result = (Stream.from_list(simple_data)
+                  .map(lambda x: {"doubled": x["value"] * 2})
+                  .filter(lambda x: x["doubled"] > 2)
+                  .sink("print://")
+                  .execute())
+        print(f"简单管道结果: {result}")
 
 def main():
     """主函数"""
@@ -162,8 +113,8 @@ def main():
 
     processor = BasicStreamProcessor()
 
-    # 演示消息创建
-    messages = processor.demonstrate_message_creation()
+    # 演示简单管道
+    processor.demonstrate_simple_pipeline()
 
     # 执行流处理
     results = processor.process_data()
@@ -172,29 +123,19 @@ def main():
     print("\n=== 处理结果 ===")
     print(f"总共处理了 {len(results)} 条记录:")
     for i, result in enumerate(results[:5], 1):  # 只显示前5条
-        if hasattr(result, 'get_content_as_string'):
-            content = result.get_content_as_string()
-            data = json.loads(content)
-        else:
-            data = result
-
-        print(f"{i}. {data['name']}: 分数={data['score']}, 等级={data['grade']}")
+        print(f"{i}. {result['name']}: 分数={result['score']}, 等级={result['grade']}")
 
     if len(results) > 5:
         print(f"... 还有 {len(results) - 5} 条记录")
 
-    # 性能统计
-    print("\n=== 性能统计 ===")
-    print("处理模式: SAGE Flow C++ 引擎")
-    print(f"处理记录数: {len(results)}")
-    print(".2f")
     print("\n✓ 基础流处理示例完成")
 
     # 使用建议
     print("\n=== 使用建议 ===")
-    print("1. 示例成功运行，说明 SAGE Flow 模块工作正常")
-    print("2. 可以尝试更高级的流处理功能")
-    print("3. 查看其他示例了解更多用法")
+    print("1. 使用 from sageflow import Stream 创建流")
+    print("2. 链式调用 .map() .filter() .sink()")
+    print("3. 调用 .execute() 触发执行")
+    print("4. sink支持 'print://' 和 'file://path.txt'")
 
 if __name__ == "__main__":
     main()

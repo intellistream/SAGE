@@ -1,0 +1,5 @@
+[
+  {"id": 1, "content": {"text": "Message 1", "vector": [0.1, 0.2, 0.3]}, "type": "text"},
+  {"id": 2, "content": {"text": "Message 2", "vector": [0.4, 0.5, 0.6]}, "type": "text"},
+  {"id": 3, "content": {"text": "Message 3", "vector": [0.7, 0.8, 0.9]}, "type": "text"}
+]

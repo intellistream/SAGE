@@ -18,7 +18,7 @@ using SinkFunction = std::function<void(const MultiModalMessage&)>;
  * This operator outputs messages to the terminal/console.
  * Follows the SAGE framework design patterns for sink operators.
  */
-class TerminalSinkOperator final : public BaseOperator {
+class TerminalSinkOperator final : public BaseOperator<MultiModalMessage, MultiModalMessage> {
 public:
   explicit TerminalSinkOperator(SinkFunction sink_func);
   ~TerminalSinkOperator() override = default;
@@ -29,12 +29,11 @@ public:
 
   // Allow moving
   TerminalSinkOperator(TerminalSinkOperator&&) noexcept = default;
-  auto operator=(TerminalSinkOperator&&) noexcept -> TerminalSinkOperator& =
-                                                         default;
+  auto operator=(TerminalSinkOperator&&) noexcept -> TerminalSinkOperator& = default;
 
-  auto process(Response& input_record, int slot) -> bool override;
-  auto open() -> void override;
-  auto close() -> void override;
+  auto process(const std::vector<std::shared_ptr<MultiModalMessage>>& input) -> std::optional<Response<MultiModalMessage>> override;
+  void open() override;
+  void close() override;
 
 private:
   SinkFunction sink_func_;

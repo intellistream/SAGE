@@ -7,8 +7,9 @@
 
 namespace sage_flow {
 
-class MultiModalMessage;
-class Response;
+#include "message/multimodal_message.hpp"
+
+using ResponseType = Response<MultiModalMessage>;
 
 /**
  * @brief Source operator for data ingestion
@@ -16,7 +17,7 @@ class Response;
  * Generates data from various sources (files, streams, etc.) and emits
  * MultiModalMessage objects into the processing pipeline.
  */
-class SourceOperator : public BaseOperator {
+class SourceOperator : public BaseOperator<MultiModalMessage, MultiModalMessage> {
 public:
   explicit SourceOperator(std::string name);
 
@@ -28,7 +29,7 @@ public:
   SourceOperator(SourceOperator&&) = default;
   auto operator=(SourceOperator&&) -> SourceOperator& = default;
 
-  auto process(Response& input_record, int slot) -> bool override;
+  auto process(const std::vector<std::shared_ptr<MultiModalMessage>>& input) -> std::optional<ResponseType> override;
 
   // Source-specific interface
   virtual auto hasNext() -> bool = 0;

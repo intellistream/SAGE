@@ -8,36 +8,25 @@
 namespace sage_flow {
 
 TerminalSinkOperator::TerminalSinkOperator(SinkFunction sink_func)
-    : BaseOperator(OperatorType::kSink, "TerminalSink"),
+    : BaseOperator<MultiModalMessage, MultiModalMessage>(OperatorType::kSink, "TerminalSink"),
       sink_func_(std::move(sink_func)) {
   if (!sink_func_) {
     throw std::invalid_argument("SinkFunction cannot be null");
   }
 }
 
-auto TerminalSinkOperator::process(Response& input_record, int slot) -> bool {
-  incrementProcessedCount();
-
-  try {
-    const auto& messages = input_record.getMessages();
-    for (const auto& message_ptr : messages) {
-      if (message_ptr) {
-        sink_func_(*message_ptr);
-      }
-    }
-
-    incrementOutputCount();
-    return true;
-  } catch (const std::exception& e) {
-    // Log error and continue processing
-    std::cerr << "TerminalSinkOperator error: " << e.what() << '\n';
-    return false;
-  }
+auto TerminalSinkOperator::process(const std::vector<std::shared_ptr<MultiModalMessage>>& input) -> std::optional<Response<MultiModalMessage>> override {
+  for (const auto& message : input) {
+    if (message) {
+      this->incrementProcessedCount();
+      sink_func_(*message);
+  this->incrementOutputCount();
+  return std::nullopt;
 }
 
-auto TerminalSinkOperator::open() -> void { BaseOperator::open(); }
+void TerminalSinkOperator::open() { BaseOperator::open(); }
 
-auto TerminalSinkOperator::close() -> void { BaseOperator::close(); }
+void TerminalSinkOperator::close() { BaseOperator::close(); }
 
 // Factory function implementation
 auto CreateTerminalSink(

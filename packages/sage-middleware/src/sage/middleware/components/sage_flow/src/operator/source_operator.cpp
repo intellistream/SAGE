@@ -12,9 +12,8 @@ namespace sage_flow {
 SourceOperator::SourceOperator(std::string name)
     : BaseOperator(OperatorType::kSource, std::move(name)) {}
 
-auto SourceOperator::process(Response& input_record, int slot) -> bool {
-  static_cast<void>(input_record);  // Suppress unused parameter warning
-  static_cast<void>(slot);          // Suppress unused parameter warning
+auto SourceOperator::process(const std::vector<std::shared_ptr<MultiModalMessage>>& input) -> std::optional<Response<MultiModalMessage>> {
+  static_cast<void>(input);  // Source operators ignore input
 
   std::cout << "[SourceOperator] Processing, hasNext: " << hasNext() << std::endl;
 
@@ -22,21 +21,21 @@ auto SourceOperator::process(Response& input_record, int slot) -> bool {
     auto message = next();
     std::cout << "[SourceOperator] Generated message: " << (message ? "yes" : "no") << std::endl;
     if (message) {
-      Response output_response(std::move(message));
+      auto output_response = Response<MultiModalMessage>(std::vector<std::shared_ptr<MultiModalMessage>>{std::move(message)});
       std::cout << "[SourceOperator] Emitting message" << std::endl;
       emit(0, output_response);
       incrementProcessedCount();
       incrementOutputCount();
-      return true;
+      return output_response;
     }
   }
-  return false;
+  return std::nullopt;
 }
 
 auto SourceOperator::runSource() -> void {
   while (hasNext()) {
-    Response dummy_input(std::vector<std::unique_ptr<MultiModalMessage>>{});
-    if (!process(dummy_input, 0)) {
+    auto result = process(std::vector<std::shared_ptr<MultiModalMessage>>{});
+    if (!result.has_value()) {
       break;
     }
   }

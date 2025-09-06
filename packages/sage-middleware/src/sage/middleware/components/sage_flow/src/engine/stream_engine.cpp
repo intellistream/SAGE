@@ -55,8 +55,8 @@ public:
 
   template <class F, class... Args>
   auto enqueue(F&& f, Args&&... args)
-      -> std::future<typename std::result_of<F(Args...)>::type> {
-    using return_type = typename std::result_of<F(Args...)>::type;
+      -> std::future<typename std::invoke_result<F(Args...)>::type> {
+    using return_type = typename std::invoke_result<F(Args...)>::type;
 
     auto task = std::make_shared<std::packaged_task<return_type()>>(
         std::bind(std::forward<F>(f), std::forward<Args>(args)...));
@@ -733,7 +733,7 @@ auto StreamEngine::notifyCompletion(GraphId graph_id) -> void {
 }
 
 auto StreamEngine::updateMetrics(uint64_t processed_messages,
-                                double processing_time_ms) -> void {
+                                [[maybe_unused]] double processing_time_ms) -> void {
   metrics_.total_processed_messages += processed_messages;
   // Update other metrics as needed
 }
@@ -750,7 +750,7 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
   auto operators = graph->getTopologicalOrder();
 
   // Initialize intermediate results storage
-  intermediate_results_ = std::make_shared<std::unordered_map<ExecutionGraph::OperatorId, std::vector<std::unique_ptr<MultiModalMessage>>>>();
+  intermediate_results_ = std::make_shared<std::unordered_map<ExecutionGraph::OperatorId, std::vector<std::shared_ptr<MultiModalMessage>>>>();
   std::cout << "[StreamEngine] executeSingleThreaded: intermediate_results_ address: " << intermediate_results_.get() << std::endl;
 
   // Get configuration limits
@@ -765,8 +765,8 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
         continue;
       }
 
-      // Save operator type for error handling
-      OperatorType op_type = op->getType();
+      // Save operator type for error handling (unused but kept for future debugging)
+      [[maybe_unused]] OperatorType op_type = op->getType();
 
       // Set up emit callback for this operator to collect output messages
       // Use weak_ptr to avoid dangling reference and potential segfaults
@@ -779,8 +779,10 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
         // This is a fallback for cases where StreamEngine is not created with shared_ptr
         std::cout << "[StreamEngine] Warning: StreamEngine not managed by shared_ptr, using raw pointer" << std::endl;
       }
-
-      op->setEmitCallback([weak_self, op_id, this](int output_id, Response& output_record) {
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wunused-parameter"
+    op->setEmitCallback([&](int output_id, Response<MultiModalMessage>& output_record) {
+        (void)output_id;
         // Try to get shared_ptr first
         std::shared_ptr<StreamEngine> self;
         if (!weak_self.expired()) {
@@ -802,17 +804,17 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
           std::cout << "[StreamEngine] Lambda: intermediate_results_ is null, skipping" << std::endl;
           return;
         }
-        if (output_record.hasMessage()) {
+        if (output_record.hasMessages()) {
           std::cout << "[StreamEngine] Lambda: output_record has message" << std::endl;
           auto output_msg = output_record.getMessage();
           if (output_msg) {
             std::cout << "[StreamEngine] Lambda: output_msg is valid, storing in intermediate_results_[" << op_id << "]" << std::endl;
             // Ensure the intermediate_results_ entry exists
             if (intermediate_results_->find(op_id) == intermediate_results_->end()) {
-              (*intermediate_results_)[op_id] = std::vector<std::unique_ptr<MultiModalMessage>>();
+              (*intermediate_results_)[op_id] = std::vector<std::shared_ptr<MultiModalMessage>>();
               std::cout << "[StreamEngine] Lambda: Created new entry for operator " << op_id << std::endl;
             }
-            (*intermediate_results_)[op_id].push_back(std::move(output_msg));
+            (*intermediate_results_)[op_id].push_back(output_msg);
             metrics_.total_processed_messages++;
             std::cout << "[StreamEngine] Lambda: Stored message, intermediate_results_[" << op_id << "] now has " << (*intermediate_results_)[op_id].size() << " messages" << std::endl;
           } else {
@@ -822,6 +824,8 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
           std::cout << "[StreamEngine] Lambda: output_record has no message" << std::endl;
         }
       });
+
+    #pragma GCC diagnostic pop
 
       // Open the operator with timeout
       auto start_time = std::chrono::steady_clock::now();
@@ -843,12 +847,13 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
               break;
             }
 
-            // Create a dummy input response for source operators
-            Response dummy_input(std::vector<std::unique_ptr<MultiModalMessage>>{});
-
+            // Create input vector for source operators
+            std::vector<std::shared_ptr<MultiModalMessage>> input;
+            
             // Process through the standard process method to trigger emit callback
-            bool success = source_op->process(dummy_input, 0);
-            if (!success) {
+            if (auto result = source_op->process(input); result) {
+              // Success, continue processing
+            } else {
               break; // No more messages or processing failed
             }
 
@@ -868,7 +873,7 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
       } else if (op->getType() == OperatorType::kSink) {
         // For sink operators, process messages from predecessors
         auto predecessors = graph->getPredecessors(op_id);
-        std::vector<std::unique_ptr<MultiModalMessage>> input_messages;
+        std::vector<std::shared_ptr<MultiModalMessage>> input_messages;
 
         // Collect messages from all predecessors with size limit
         size_t total_messages = 0;
@@ -879,7 +884,7 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
               std::cout << "[StreamEngine] Sink operator " << static_cast<size_t>(op_id) << " found " << it->second.size() << " messages from predecessor " << static_cast<size_t>(pred_id) << std::endl;
               for (auto& msg : it->second) {
                 if (msg && total_messages < max_messages_per_operator) {
-                  input_messages.push_back(std::move(msg));
+                  input_messages.push_back(msg);
                   total_messages++;
                 }
               }
@@ -902,12 +907,12 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
               break;
             }
 
-            // Create a Response wrapper for the message
-            Response response(std::move(msg));
-
+            // Create input vector for the message
+            std::vector<std::shared_ptr<MultiModalMessage>> input;
+            input.push_back(msg);
+            
             // Process the message (sink will consume it)
-            bool success = op->process(response, 0);
-            if (!success) {
+            if (auto result = op->process(input); !result) {
               std::cout << "[StreamEngine] Failed to process message in sink operator " << static_cast<size_t>(op_id) << std::endl;
             }
           }
@@ -919,7 +924,7 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
       } else {
         // For other operators (filter, map, etc.), process messages from predecessors
         auto predecessors = graph->getPredecessors(op_id);
-        std::vector<std::unique_ptr<MultiModalMessage>> input_messages;
+        std::vector<std::shared_ptr<MultiModalMessage>> input_messages;
 
         // Collect messages from all predecessors with size limit
         std::cout << "[StreamEngine] Operator " << static_cast<size_t>(op_id) << " has " << predecessors.size() << " predecessors: ";
@@ -936,7 +941,7 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
               std::cout << "[StreamEngine] Operator " << static_cast<size_t>(op_id) << " found " << it->second.size() << " messages from predecessor " << static_cast<size_t>(pred_id) << std::endl;
               for (auto& msg : it->second) {
                 if (msg && total_messages < max_messages_per_operator) {
-                  input_messages.push_back(std::move(msg));
+                  input_messages.push_back(msg);
                   total_messages++;
                 }
               }
@@ -972,13 +977,12 @@ auto StreamEngine::executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph)
               break;
             }
 
-            // Create a Response wrapper for the message
-            Response response(std::move(msg));
-
+            // Create input vector for the message
+            std::vector<std::shared_ptr<MultiModalMessage>> input;
+            input.push_back(std::move(msg));
+            
             // Process the message - operator will emit outputs via callback
-            bool success = op->process(response, 0);
-
-            if (!success) {
+            if (auto result = op->process(input); !result) {
               std::cout << "[StreamEngine] Failed to process message in operator " << static_cast<size_t>(op_id) << std::endl;
             }
           }

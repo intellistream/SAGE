@@ -1,32 +1,23 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
+#include <vector>
+#include <optional>
 
 #include "base_operator.hpp"
-#include "../function/map_function.hpp"
+#include "operator/response.hpp"
+#include "message/multimodal_message.hpp"
 
 namespace sage_flow {
 
-class MultiModalMessage;
-class Response;
-
-/**
- * @brief Map operator for one-to-one transformations
- *
- * Applies a transformation function to each input message and produces
- * exactly one output message. Uses composition pattern with MapFunction.
- */
-class MapOperator final : public BaseOperator {
+class MapOperator : public BaseOperator<MultiModalMessage, MultiModalMessage> {
 public:
-  explicit MapOperator(std::string name);
+  using MapFunc = std::function<std::shared_ptr<MultiModalMessage>(const std::shared_ptr<MultiModalMessage>&)>;
 
-  /**
-   * @brief Constructor with MapFunction
-   * @param name Operator name
-   * @param map_function MapFunction instance to handle processing logic
-   */
-  MapOperator(std::string name, std::unique_ptr<MapFunction> map_function);
+  explicit MapOperator(std::string name, MapFunc f);
+  MapOperator(std::string name, MapFunc f, std::string description);
 
   // Prevent copying
   MapOperator(const MapOperator&) = delete;
@@ -36,22 +27,10 @@ public:
   MapOperator(MapOperator&&) = default;
   auto operator=(MapOperator&&) -> MapOperator& = default;
 
-  auto process(Response& input_record, int slot) -> bool override;
-
-  /**
-   * @brief Set the map function
-   * @param map_function MapFunction instance to handle processing logic
-   */
-  void setMapFunction(std::unique_ptr<MapFunction> map_function);
-
-  /**
-   * @brief Get the map function
-   * @return Reference to the contained MapFunction
-   */
-  auto getMapFunction() -> MapFunction&;
+  auto process(const std::vector<std::shared_ptr<MultiModalMessage>>& input) -> std::optional<Response<MultiModalMessage>> override;
 
 private:
-  std::unique_ptr<MapFunction> map_function_;
+  MapFunc map_func_;
 };
 
 }  // namespace sage_flow

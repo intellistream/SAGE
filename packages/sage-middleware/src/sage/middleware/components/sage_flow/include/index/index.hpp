@@ -17,6 +17,7 @@ class MemoryPool;
  */
 class Index {
 public:
+  Index() = default;
   explicit Index(std::shared_ptr<MemoryPool> memory_pool)
       : memory_pool_(std::move(memory_pool)) {}
 

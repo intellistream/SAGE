@@ -15,6 +15,7 @@
 
 #include <memory>  // For std::enable_shared_from_this
 
+#include "operator/base_operator.hpp"
 #include "execution_graph.hpp"
 #include "stream_engine_config.hpp"
 #include "stream_engine_enums.hpp"
@@ -29,7 +30,6 @@ class MessageBridge;
 
 namespace sage_flow {
 
-class BaseOperator;
 class ExecutionGraph;
 
 /**
@@ -186,7 +186,7 @@ private:
   std::mutex checkpoint_mutex_;
 
   // 中间结果存储（用于操作符链消息传递）
-  std::shared_ptr<std::unordered_map<ExecutionGraph::OperatorId, std::vector<std::unique_ptr<class MultiModalMessage>>>> intermediate_results_;
+  std::shared_ptr<std::unordered_map<ExecutionGraph::OperatorId, std::vector<std::shared_ptr<MultiModalMessage>>>> intermediate_results_;
 
   // Internal execution methods
   auto executeSingleThreaded(std::shared_ptr<ExecutionGraph> graph) -> void;

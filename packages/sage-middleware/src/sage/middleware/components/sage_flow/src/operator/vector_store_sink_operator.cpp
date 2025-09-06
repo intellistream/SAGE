@@ -5,12 +5,12 @@
 namespace sage_flow {
 
 VectorStoreSinkOperator::VectorStoreSinkOperator(VectorStoreConfig config)
-    : BaseOperator(OperatorType::kSink, "VectorStoreSink"),
+    : BaseOperator<MultiModalMessage, bool>(OperatorType::kSink, "VectorStoreSink"),
       config_(std::move(config)) {
   batch_messages_.reserve(config_.batch_size_);
 }
 
-auto VectorStoreSinkOperator::process(Response& input_record,
+auto VectorStoreSinkOperator::process(const Response<MultiModalMessage>& input_record,
                                       int slot) -> bool {
   incrementProcessedCount();
 

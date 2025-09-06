@@ -4,12 +4,13 @@ requires = [
     "pybind11>=2.10.0",
     "cmake>=3.16",
     "ninja",
-    "scikit-build-core>=0.10.0"
+    "scikit-build-core>=0.10.0",
+    "numpy>=1.21.0"
 ]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "sage-flow"
+name = "sageflow"
 version = "1.0.0"
 description = "SAGE Flow - High-Performance Stream Processing Framework with C++ Extensions"
 readme = "README.md"
@@ -47,7 +48,7 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 
-# 核心运行时依赖
+# 核心运行时依赖（支持DSL类型提示和NumPy集成）
 dependencies = [
     "numpy>=1.21.0",
     "pybind11>=2.10.0",
@@ -62,7 +63,7 @@ dev = [
     "pytest-xdist>=3.0",
     "black>=22.0",
     "isort>=5.10",
-    "mypy>=1.0",
+    "mypy>=1.5.1",  # 更新mypy支持新DSL类型提示
     "flake8>=5.0",
     "pre-commit>=2.20",
     "build>=0.8",
@@ -230,7 +231,9 @@ cmake.args = [
     "-DCMAKE_BUILD_TYPE=Release",
     "-DPython_EXECUTABLE={python}",
     "-DPython_ROOT_DIR={python}",
-    "-DPython_FIND_STRATEGY=LOCATION"
+    "-DPython_FIND_STRATEGY=LOCATION",
+    "-DENABLE_DEV_TOOLS=OFF",
+    "-DBUILD_TESTING=OFF"
 ]
 
 # 构建配置
@@ -238,7 +241,7 @@ build-dir = "build/{wheel_tag}"
 build.verbose = false
 
 # 轮子配置
-wheel.packages = ["python"]
+wheel.packages = ["sageflow"]
 wheel.py-api = "py3"
 wheel.expand-macos-universal-tags = true
 
@@ -250,9 +253,9 @@ logging.level = "INFO"
 
 # 元数据配置
 metadata.version.provider = "scikit_build_core.metadata.regex"
-metadata.version.input = "src/sage/middleware/components/sage_flow/__init__.py"
+metadata.version.input = "sageflow/__init__.py"
 
-# 可编辑安装支持
+# 可编辑安装支持（支持开发时热重载DSL变化）
 editable.mode = "redirect"
 editable.rebuild = true
 
@@ -263,7 +266,7 @@ build = ["cp39-*", "cp310-*", "cp311-*", "cp312-*"]
 skip = ["*-win32", "*-manylinux_i686"]
 
 # 测试命令
-test-command = "pytest {project}/tests"
+test-command = "pytest tests"
 test-requires = ["pytest", "numpy"]
 
 # Linux 特定配置

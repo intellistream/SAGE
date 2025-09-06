@@ -45,6 +45,7 @@ namespace sage_flow {
  * It maintains compatibility with sage_core Packet protocol and provides
  * efficient data handling for C++ runtime performance.
  */
+template <typename T> class Response;
 class MultiModalMessage final {
 public:
   using ContentVariant = std::variant<std::string, std::vector<uint8_t>>;
@@ -112,12 +113,20 @@ public:
   auto addRetrievalContext(std::unique_ptr<RetrievalContext> context) -> void;
   auto getRetrievalContexts() const -> const RetrievalContextList&;
 
+  // Composite message support
+  auto add_message(const std::shared_ptr<MultiModalMessage>& message) -> void;
+  auto get_sub_messages() const -> const std::vector<std::shared_ptr<MultiModalMessage>>&;
+
   // Utility methods
   auto hasEmbedding() const -> bool;
   auto isTextContent() const -> bool;
   auto isBinaryContent() const -> bool;
   auto getContentAsString() const -> std::string;
   auto getContentAsBinary() const -> const std::vector<uint8_t>&;
+
+  // Compatibility methods for tests
+  auto set_content_as_string(const std::string& content) -> void;
+  auto get_content_as_string() const -> std::string;
 
   // Serialization support (for Protocol Buffers integration)
   auto serialize() const -> std::vector<uint8_t>;
@@ -155,6 +164,7 @@ private:
   CustomFieldMap custom_fields_;
   bool processed_ = false;
   std::optional<int64_t> processed_timestamp_;
+  std::vector<std::shared_ptr<MultiModalMessage>> sub_messages_;
 
   // Helper methods
   auto getCurrentTimestamp() const -> int64_t;

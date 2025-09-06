@@ -3,41 +3,44 @@
 #include <ctime>
 #include <iostream>
 #include <stdexcept>
+#include <optional>
 
 #include "operator/operator_types.hpp"
 
 namespace sage_flow {
 
 FileSinkOperator::FileSinkOperator(std::string file_path, FileSinkConfig config)
-    : BaseOperator(OperatorType::kSink, "FileSink"),
+    : BaseOperator<MultiModalMessage, bool>(OperatorType::kSink, "FileSink"),
       file_path_(std::move(file_path)),
       config_(std::move(config)) {}
 
-auto FileSinkOperator::process(Response& input_record, int slot) -> bool {
+auto FileSinkOperator::process(const std::vector<std::shared_ptr<MultiModalMessage>>& input_record) -> std::optional<Response<bool>> {
   incrementProcessedCount();
 
   if (!output_file_.is_open()) {
-    return false;  // Error: file not open
+    return std::make_optional(Response<bool>(std::vector<std::shared_ptr<bool>>{std::make_shared<bool>(false)}));
   }
 
-  if (input_record.hasMessages()) {
-    const auto messages = input_record.getMessages();
-    for (const auto& message : messages) {
-      if (message) {
-        writeMessage(*message);
-        message_count_++;
+  bool all_success = true;
+  for (const auto& message : input_record) {
+    if (message) {
+      if (!writeMessage(*message)) {
+        all_success = false;
+      }
+      message_count_++;
 
-        // Flush periodically based on batch size
-        if (config_.batch_size_ > 0 &&
-            message_count_ % config_.batch_size_ == 0) {
-          output_file_.flush();
-        }
+      // Flush periodically based on batch size
+      if (config_.batch_size_ > 0 &&
+          message_count_ % config_.batch_size_ == 0) {
+        output_file_.flush();
       }
     }
   }
 
   incrementOutputCount();
-  return true;
+  auto result = std::make_shared<bool>(all_success);
+  std::vector<std::shared_ptr<bool>> results{result};
+  return std::make_optional(Response<bool>(std::move(results)));
 }
 
 auto FileSinkOperator::open() -> void {
@@ -65,27 +68,33 @@ auto FileSinkOperator::close() -> void {
   }
 }
 
-auto FileSinkOperator::writeMessage(const MultiModalMessage& message) -> void {
+auto FileSinkOperator::writeMessage(const MultiModalMessage& message) -> bool {
+  bool success = true;
   switch (config_.format_) {
     case FileFormat::TEXT:
-      writeAsText(message);
+      success = writeAsText(message);
       break;
     case FileFormat::JSON:
-      writeAsJson(message);
+      success = writeAsJson(message);
       break;
     case FileFormat::CSV:
-      writeAsCsv(message);
+      success = writeAsCsv(message);
       break;
+    default:
+      success = false;
   }
+  return success;
 }
 
-auto FileSinkOperator::writeAsText(const MultiModalMessage& message) -> void {
+auto FileSinkOperator::writeAsText(const MultiModalMessage& message) -> bool {
   if (message.isTextContent()) {
     output_file_ << message.getContentAsString() << '\n';
+    return output_file_.good();
   }
+  return false;
 }
 
-auto FileSinkOperator::writeAsJson(const MultiModalMessage& message) -> void {
+auto FileSinkOperator::writeAsJson(const MultiModalMessage& message) -> bool {
   output_file_ << "{\n";
   output_file_ << "  \"uid\": " << message.getUid() << ",\n";
   output_file_ << "  \"type\": " << static_cast<int>(message.getContentType())
@@ -102,9 +111,10 @@ auto FileSinkOperator::writeAsJson(const MultiModalMessage& message) -> void {
 
   output_file_ << "  \"processed_at\": " << std::time(nullptr) << "\n";
   output_file_ << "},\n";
+  return output_file_.good();
 }
 
-auto FileSinkOperator::writeAsCsv(const MultiModalMessage& message) -> void {
+auto FileSinkOperator::writeAsCsv(const MultiModalMessage& message) -> bool {
   output_file_ << message.getUid() << ",";
   output_file_ << static_cast<int>(message.getContentType()) << ",";
   output_file_ << message.getTimestamp() << ",";
@@ -117,6 +127,7 @@ auto FileSinkOperator::writeAsCsv(const MultiModalMessage& message) -> void {
   }
 
   output_file_ << "\n";
+  return output_file_.good();
 }
 
 auto FileSinkOperator::escapeJsonString(const std::string& str) -> std::string {

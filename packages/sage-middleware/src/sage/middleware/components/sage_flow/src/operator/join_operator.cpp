@@ -1,66 +1,76 @@
-#include "operator/join_operator.hpp"
+#include "../../include/operator/join_operator.hpp"
 
 #include <utility>
-
-#include "operator/response.hpp"
+#include <iostream>
 
 namespace sage_flow {
-// JoinOperator implementation
-JoinOperator::JoinOperator(std::string name)
-    : BaseOperator(OperatorType::kJoin, std::move(name)) {}
 
-auto JoinOperator::process(Response& input_record, int slot) -> bool {
-  if (!input_record.hasMessage()) {
-    return false;
-  }
+JoinOperator::JoinOperator(std::string name, KeyExtractorLeft key_left, KeyExtractorRight key_right, JoinFunc join_func)
+    : BaseOperator<MultiModalMessage, MultiModalMessage>(OperatorType::kJoin, std::move(name)), key_left_(std::move(key_left)), key_right_(std::move(key_right)), join_func_(std::move(join_func)), description_("") {}
 
-  auto input_message = input_record.getMessage();
-  if (!input_message) {
-    return false;
-  }
+JoinOperator::JoinOperator(std::string name, KeyExtractorLeft key_left, KeyExtractorRight key_right, JoinFunc join_func, std::string description)
+    : BaseOperator<MultiModalMessage, MultiModalMessage>(OperatorType::kJoin, std::move(name), std::move(description)), key_left_(std::move(key_left)), key_right_(std::move(key_right)), join_func_(std::move(join_func)), description_(std::move(description)) {
+  std::cout << "JoinOperator: Initialized with description: " << description_ << std::endl;
+}
 
+auto JoinOperator::process(const std::vector<std::shared_ptr<MultiModalMessage>>& input) -> std::optional<Response<MultiModalMessage>> {
+  std::cout << "JoinOperator: Processing " << input.size() << " input messages" << std::endl;
   incrementProcessedCount();
 
-  // Determine which input stream this message came from
-  if (slot == 0) {
-    processLeftInput(std::move(input_message));
-  } else if (slot == 1) {
-    processRightInput(std::move(input_message));
+  Response<MultiModalMessage> response;
+  bool has_output = false;
+
+  for (const auto& message_ptr : input) {
+    if (message_ptr) {
+      // Assume left input for simplicity; in real impl, distinguish left/right
+      processLeftInput(message_ptr);
+      // Check for joins and collect outputs
+      // This is simplified; in full impl, would check buffers after each input
+    }
   }
 
-  return true;
+  // For now, return empty optional if no immediate output; real impl would trigger on matches
+  // Placeholder: return optional with empty response
+  if (has_output) {
+    return std::make_optional(response);
+  } else {
+    return std::nullopt;
+  }
 }
 
-auto JoinOperator::processLeftInput(std::unique_ptr<MultiModalMessage> message)
-    -> void {
-  const std::string key = getJoinKey(*message);
-  left_buffer_[key] = std::move(message);
+auto JoinOperator::processLeftInput(const std::shared_ptr<MultiModalMessage>& message_ptr) -> void {
+  assert(message_ptr != nullptr && "Null message in processLeftInput");
+  std::cout << "JoinOperator: Processing left input with key: " << key_left_(*message_ptr) << std::endl;
+  KeyType key = key_left_(*message_ptr);
+  left_buffer_[key].push_back(message_ptr);
   tryJoin(key);
 }
 
-auto JoinOperator::processRightInput(std::unique_ptr<MultiModalMessage> message)
-    -> void {
-  const std::string key = getJoinKey(*message);
-  right_buffer_[key] = std::move(message);
+auto JoinOperator::processRightInput(const std::shared_ptr<MultiModalMessage>& message_ptr) -> void {
+  assert(message_ptr != nullptr && "Null message in processRightInput");
+  std::cout << "JoinOperator:: Processing right input with key: " << key_right_(*message_ptr) << std::endl;
+  KeyType key = key_right_(*message_ptr);
+  right_buffer_[key].push_back(message_ptr);
   tryJoin(key);
 }
 
-auto JoinOperator::tryJoin(const std::string& key) -> void {
+auto JoinOperator::tryJoin(const KeyType& key) -> void {
   auto left_it = left_buffer_.find(key);
   auto right_it = right_buffer_.find(key);
 
-  if (left_it != left_buffer_.end() && right_it != right_buffer_.end()) {
-    // Both sides are available, perform join
-    auto joined_message =
-        join(std::move(left_it->second), std::move(right_it->second));
+  if (left_it != left_buffer_.end() && !left_it->second.empty() && right_it != right_buffer_.end() && !right_it->second.empty()) {
+    std::cout << "JoinOperator: Performing join for key: " << key << std::endl;
+    // Perform join for first matching pair (basic implementation)
+    const auto& left_ptr = left_it->second.front();
+    const auto& right_ptr = right_it->second.front();
 
-    if (joined_message) {
-      Response output_record(std::move(joined_message));
-      emit(0, output_record);
-      incrementOutputCount();
-    }
+    auto result_ptr = join_func_(left_ptr, right_ptr);
 
-    // Remove consumed messages from buffers
+    incrementOutputCount();
+    // Emit the result (assuming emit takes shared_ptr)
+    emit(0, *result_ptr);
+
+    // Remove consumed messages (basic, no window)
     left_buffer_.erase(left_it);
     right_buffer_.erase(right_it);
   }

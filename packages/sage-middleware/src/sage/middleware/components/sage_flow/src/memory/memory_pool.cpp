@@ -1,6 +1,8 @@
 #include "memory/memory_pool.hpp"
 
 #include <cstdlib>
+#include <stdexcept>
+#include <string>
 
 namespace sage_flow {
 

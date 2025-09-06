@@ -1,5 +1,7 @@
 #include "../../include/message/multimodal_message.hpp"
 
+#include <iostream>
+
 #include <algorithm>
 #include <chrono>
 #include <stdexcept>
@@ -226,6 +228,16 @@ auto MultiModalMessage::getContentAsBinary() const
   return empty_vector;
 }
 
+// Compatibility methods for tests
+void MultiModalMessage::set_content_as_string(const std::string& content) {
+  setContentType(ContentType::kText);
+  setContent(std::string(content));
+}
+
+std::string MultiModalMessage::get_content_as_string() const {
+  return getContentAsString();
+}
+
 // Retrieval context management
 auto MultiModalMessage::addRetrievalContext(
     std::unique_ptr<RetrievalContext> context) -> void {
@@ -336,5 +348,19 @@ auto MultiModalMessage::generateSageUid() const -> std::string {
 auto MultiModalMessage::updateProcessedTimestamp() -> void {
   processed_timestamp_ = getCurrentTimestamp();
 }
+
+  // Composite message support implementation
+  auto MultiModalMessage::add_message(const std::shared_ptr<MultiModalMessage>& message) -> void {
+    if (!message) {
+      std::cerr << "Warning: Attempt to add null message to MultiModalMessage" << std::endl;
+      return;
+    }
+    std::cout << "Message added to MultiModalMessage, UID: " << message->getUid() << std::endl;
+    sub_messages_.push_back(message);
+  }
+
+  auto MultiModalMessage::get_sub_messages() const -> const std::vector<std::shared_ptr<MultiModalMessage>>& {
+    return sub_messages_;
+  }
 
 }  // namespace sage_flow

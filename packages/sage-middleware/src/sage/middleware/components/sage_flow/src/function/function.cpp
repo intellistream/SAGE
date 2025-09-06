@@ -27,6 +27,8 @@ auto BaseFunction::execute(FunctionResponse& response) -> FunctionResponse {
 
 auto BaseFunction::execute(FunctionResponse& left,
                            FunctionResponse& right) -> FunctionResponse {
+  (void)left;
+  (void)right;
   // Default implementation for dual-input functions
   throw std::runtime_error("Dual-input execute not implemented for function: " +
                            name_);

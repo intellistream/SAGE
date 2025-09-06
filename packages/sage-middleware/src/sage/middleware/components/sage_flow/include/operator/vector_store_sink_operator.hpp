@@ -24,7 +24,7 @@ struct VectorStoreConfig {
  * This operator outputs messages to vector databases for embedding storage.
  * Follows the SAGE framework design patterns for sink operators.
  */
-class VectorStoreSinkOperator final : public BaseOperator {
+class VectorStoreSinkOperator final : public BaseOperator<MultiModalMessage, bool> {
 public:
   explicit VectorStoreSinkOperator(VectorStoreConfig config);
   ~VectorStoreSinkOperator() override = default;
@@ -40,7 +40,7 @@ public:
       -> VectorStoreSinkOperator& = default;
 
   // Operator interface
-  auto process(Response& input_record, int slot) -> bool override;
+  auto process(const Response<MultiModalMessage>& input_record, int slot) -> bool override;
   auto open() -> void override;
   auto close() -> void override;
 

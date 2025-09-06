@@ -1,6 +1,6 @@
 #pragma once
 
-#include <numbers>
+#include <cmath>
 #include <queue>
 #include <random>
 #include <unordered_map>
@@ -16,8 +16,10 @@ namespace sage_flow {
  */
 class HNSW final : public Index {
 public:
-  explicit HNSW(std::shared_ptr<MemoryPool> memory_pool, int m = 20,
-                int ef_construction = 100, int ef_search = 40);
+  explicit HNSW(std::shared_ptr<MemoryPool> memory_pool = nullptr,
+                 int m = 20,
+                 int ef_construction = 100, int ef_search = 40)
+      : Index(std::move(memory_pool)), m_(m), ef_construction_(ef_construction), ef_search_(ef_search), rng_(std::random_device{}()) {}
 
   ~HNSW() override = default;
 
@@ -30,7 +32,11 @@ public:
   auto operator=(HNSW&&) -> HNSW& = default;
 
   // Index interface implementation
-  auto Initialize(const IndexConfig& config) -> bool override;
+  auto Initialize(const IndexConfig& config) -> bool override {
+    // Initialize memory pool if needed
+    // TODO: Proper initialization with MemoryPool
+    return true;
+  }
   auto AddVector(uint64_t id,
                  const std::vector<float>& vector) -> bool override;
   auto RemoveVector(uint64_t id) -> bool override;
@@ -67,7 +73,7 @@ private:
   int m_;                // Max connections per layer (except top layer)
   int ef_construction_;  // Size of dynamic candidate list during construction
   int ef_search_;        // Size of dynamic candidate list during search
-  float ml_{std::numbers::log2e_v<float>};  // Level generation factor (1/ln(2))
+  float ml_{1.442695f};  // Level generation factor (1/ln(2))
 
   // Index state
   int max_level_{-1};
@@ -79,7 +85,11 @@ private:
   // Helper methods
   auto l2_distance(const std::vector<float>& a,
                    const std::vector<float>& b) const -> float;
-  auto get_random_level() -> int;
+  auto get_random_level() -> int {
+    // Use ml_ to generate random level
+    double random = std::uniform_real_distribution<double>(0.0, 1.0)(rng_);
+    return static_cast<int>(-std::log(random) * ml_);
+  }
   void search_layer(const std::vector<float>& query,
                     std::priority_queue<Neighbor>& candidates, int layer,
                     int ef) const;

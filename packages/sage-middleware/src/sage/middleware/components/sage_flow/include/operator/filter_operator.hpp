@@ -1,34 +1,23 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
+#include <vector>
+#include <optional>
 
 #include "base_operator.hpp"
-#include "../function/filter_function.hpp"
+#include "operator/response.hpp"
+#include "message/multimodal_message.hpp"
 
 namespace sage_flow {
 
-class MultiModalMessage;
-class Response;
-
-/**
- * @brief Filter operator for selective data processing
- *
- * Evaluates a predicate function on each input message and only passes
- * messages that satisfy the condition. Uses composition pattern with
- * FilterFunction.
- */
-class FilterOperator final : public BaseOperator {
+class FilterOperator : public BaseOperator<MultiModalMessage, MultiModalMessage> {
 public:
-  explicit FilterOperator(std::string name);
+  using PredicateFunc = std::function<bool(const std::shared_ptr<MultiModalMessage>&)>;
 
-  /**
-   * @brief Constructor with FilterFunction
-   * @param name Operator name
-   * @param filter_function FilterFunction instance to handle processing logic
-   */
-  FilterOperator(std::string name,
-                 std::unique_ptr<FilterFunction> filter_function);
+  explicit FilterOperator(std::string name, PredicateFunc pred);
+  FilterOperator(std::string name, PredicateFunc pred, std::string description);
 
   // Prevent copying
   FilterOperator(const FilterOperator&) = delete;
@@ -38,22 +27,10 @@ public:
   FilterOperator(FilterOperator&&) = default;
   auto operator=(FilterOperator&&) -> FilterOperator& = default;
 
-  auto process(Response& input_record, int slot) -> bool override;
-
-  /**
-   * @brief Set the filter function
-   * @param filter_function FilterFunction instance to handle processing logic
-   */
-  void setFilterFunction(std::unique_ptr<FilterFunction> filter_function);
-
-  /**
-   * @brief Get the filter function
-   * @return Reference to the contained FilterFunction
-   */
-  auto getFilterFunction() -> FilterFunction&;
+  auto process(const std::vector<std::shared_ptr<MultiModalMessage>>& input) -> std::optional<Response<MultiModalMessage>> override;
 
 private:
-  std::unique_ptr<FilterFunction> filter_function_;
+  PredicateFunc predicate_func_;
 };
 
 }  // namespace sage_flow

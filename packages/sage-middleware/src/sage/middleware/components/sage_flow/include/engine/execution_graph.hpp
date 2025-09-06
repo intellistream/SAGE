@@ -4,10 +4,10 @@
 #include <queue>
 #include <unordered_map>
 #include <vector>
+#include "message/multimodal_message.hpp"
+#include "operator/base_operator.hpp"
 
 namespace sage_flow {
-
-class BaseOperator;
 
 /**
  * @brief Execution graph for stream processing operators
@@ -31,7 +31,7 @@ public:
   auto operator=(ExecutionGraph&&) -> ExecutionGraph& = default;
 
   // Graph construction
-  auto addOperator(std::shared_ptr<BaseOperator> op) -> OperatorId;
+  auto addOperator(std::shared_ptr<BaseOperator<MultiModalMessage, MultiModalMessage>> op) -> OperatorId;
   auto connectOperators(OperatorId source, OperatorId target) -> void;
   auto removeOperator(OperatorId id) -> void;
 
@@ -41,9 +41,9 @@ public:
   auto getSinkOperators() const -> std::vector<OperatorId>;
 
   // Operator access
-  auto getOperator(OperatorId id) -> std::shared_ptr<BaseOperator>;
+  auto getOperator(OperatorId id) -> std::shared_ptr<BaseOperator<MultiModalMessage, MultiModalMessage>>;
   auto getOperators() const
-      -> const std::unordered_map<OperatorId, std::shared_ptr<BaseOperator>>&;
+      -> const std::unordered_map<OperatorId, std::shared_ptr<BaseOperator<MultiModalMessage, MultiModalMessage>>>&;
   auto getSuccessors(OperatorId id) const -> std::vector<OperatorId>;
   auto getPredecessors(OperatorId id) const -> std::vector<OperatorId>;
 
@@ -61,7 +61,7 @@ public:
   auto reset() -> void;
 
 private:
-  std::unordered_map<OperatorId, std::shared_ptr<BaseOperator>> operators_;
+  std::unordered_map<OperatorId, std::shared_ptr<BaseOperator<MultiModalMessage, MultiModalMessage>>> operators_;
   std::unordered_map<OperatorId, std::vector<OperatorId>> adjacency_list_;
   std::unordered_map<OperatorId, std::vector<OperatorId>>
       reverse_adjacency_list_;

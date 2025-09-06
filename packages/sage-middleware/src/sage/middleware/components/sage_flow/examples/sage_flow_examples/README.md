@@ -13,6 +13,52 @@ SAGE Flow Python 示例套件
 
 这是一个全面的 Python 示例套件，用于测试和演示 SAGE Flow 的各种功能。所有示例都必须使用真实的 SAGE Flow C++ 引擎运行。
 
+## 示例描述
+
+### 1. basic_stream_processing.py
+基础流处理示例，演示 Stream.from_list, map, filter, execute 的链式操作。
+
+示例代码片段:
+```python
+from sageflow import Stream
+
+stream = Stream.from_list([1, 2, 3, 4, 5])
+processed = stream.map(lambda x: x * 2).filter(lambda x: x > 5)
+result = processed.execute()
+print(result)  # [6, 8, 10]
+```
+
+### 2. advanced_stream_processing.py
+高级流处理示例，演示 join, aggregate, 状态管理, NumPy数组处理。
+
+示例代码片段:
+```python
+from sageflow import Stream
+import numpy as np
+
+main_stream = Stream.from_list(data_list)
+lookup_stream = Stream.from_list(lookup_data)
+joined = main_stream.join(lookup_stream, key_func=lambda item: item['id'])
+agg = joined.aggregate(lambda lst: sum(item['score'] for item in lst))
+numpy_stream = Stream.from_numpy(np.array(scores))
+numpy_result = numpy_stream.map(lambda row: np.sum(row)).execute()
+```
+
+### 3. performance_monitoring.py
+性能监控示例，演示 config parallelism 的测试。
+
+示例代码片段:
+```python
+from sageflow import Stream
+
+stream = Stream.from_list(test_data).config(parallelism=4) \
+               .map(lambda item: {**item, 'processed': True}) \
+               .execute()
+```
+
+### 4. run_all_examples.py
+批量运行所有示例并报告结果的脚本。
+
 ## 📁 示例文件结构
 
 ```

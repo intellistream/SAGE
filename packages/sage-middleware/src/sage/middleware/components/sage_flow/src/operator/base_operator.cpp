@@ -1,72 +1,90 @@
 #include "../../include/operator/base_operator.hpp"
 
 #include "../../include/operator/operator_types.hpp"
-
-#include <iostream>
+#include "../../include/message/multimodal_message.hpp"
+#include "../../include/operator/response.hpp"
 
 namespace sage_flow {
 
-// Constructors
-BaseOperator::BaseOperator(OperatorType type) : type_(type) {}
+// Template implementations
+template <typename InputType, typename OutputType>
+BaseOperator<InputType, OutputType>::BaseOperator(OperatorType type) : type_(type) {}
 
-BaseOperator::BaseOperator(OperatorType type, std::string name)
+template <typename InputType, typename OutputType>
+BaseOperator<InputType, OutputType>::BaseOperator(OperatorType type, std::string name)
     : type_(type), name_(std::move(name)) {}
 
-// Virtual destructor is defined in header file
-
-// Core operator interface - default implementations
-auto BaseOperator::open() -> void {
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::open() -> void {
   // Default implementation - do nothing
 }
 
-auto BaseOperator::close() -> void {
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::close() -> void {
   // Default implementation - do nothing
 }
 
-auto BaseOperator::emit(int output_id, Response& output_record) const -> void {
-  // If emit callback is set, use it to forward the message
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::emit(int output_id, Response<OutputType>& output_record) const -> void {
   if (emit_callback_) {
-    std::cout << "[BaseOperator] Emitting message with callback for operator " << name_ << std::endl;
     emit_callback_(output_id, output_record);
-  } else {
-    std::cout << "[BaseOperator] No emit callback set for operator " << name_ << std::endl;
   }
-  // Otherwise, do nothing (backward compatibility)
 }
 
-// Accessors
-auto BaseOperator::getType() const -> OperatorType { return type_; }
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::getType() const -> OperatorType { 
+  return type_; 
+}
 
-auto BaseOperator::getName() const -> const std::string& { return name_; }
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::getName() const -> const std::string& { 
+  return name_; 
+}
 
-auto BaseOperator::setName(std::string name) -> void {
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::setName(std::string name) -> void {
   name_ = std::move(name);
 }
 
-// Performance monitoring
-auto BaseOperator::getProcessedCount() const -> uint64_t {
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::getProcessedCount() const -> uint64_t {
   return processed_count_;
 }
 
-auto BaseOperator::getOutputCount() const -> uint64_t { return output_count_; }
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::getOutputCount() const -> uint64_t { 
+  return output_count_; 
+}
 
-auto BaseOperator::resetCounters() -> void {
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::resetCounters() -> void {
   processed_count_ = 0;
   output_count_ = 0;
 }
 
-// Utility methods
-auto BaseOperator::incrementProcessedCount() -> void { ++processed_count_; }
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::incrementProcessedCount() -> void { 
+  ++processed_count_; 
+}
 
-auto BaseOperator::incrementOutputCount() -> void { ++output_count_; }
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::incrementOutputCount() -> void { 
+  ++output_count_; 
+}
 
-// Emit callback management
-auto BaseOperator::setEmitCallback(EmitCallback callback) -> void {
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::setEmitCallback(EmitCallback callback) -> void {
   emit_callback_ = std::move(callback);
 }
 
-auto BaseOperator::getEmitCallback() const -> const EmitCallback& {
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::getEmitCallback() const -> const EmitCallback& {
   return emit_callback_;
+}
+
+template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::createEmptyResponse() -> std::optional<Response<OutputType>> {
+  return std::make_optional(Response<OutputType>());
 }
 
 }  // namespace sage_flow

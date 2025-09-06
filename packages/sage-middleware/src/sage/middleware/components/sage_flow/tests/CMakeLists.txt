@@ -31,7 +31,9 @@ endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
 # 包含 Sanitizer 配置模块
-include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/SanitizersConfig.cmake)
+if(ENABLE_DEV_TOOLS)
+    include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/SanitizersConfig.cmake)
+endif()
 
 # 创建测试库目标
 set(TEST_LIBRARIES

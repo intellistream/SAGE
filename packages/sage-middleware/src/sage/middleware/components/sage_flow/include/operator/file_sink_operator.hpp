@@ -33,7 +33,7 @@ struct FileSinkConfig {
  * It supports text, JSON, and CSV output formats with configurable
  * batch processing and append modes.
  */
-class FileSinkOperator final : public BaseOperator {
+class FileSinkOperator final : public BaseOperator<MultiModalMessage, bool> {
 public:
   explicit FileSinkOperator(std::string file_path, FileSinkConfig config);
 
@@ -45,7 +45,7 @@ public:
   auto operator=(FileSinkOperator&&) noexcept -> FileSinkOperator& = default;
 
   // Operator interface
-  auto process(Response& input_record, int slot) -> bool override;
+  auto process(const std::vector<std::shared_ptr<MultiModalMessage>>& input_record) -> std::optional<Response<bool>> override;
   auto open() -> void override;
   auto close() -> void override;
 
@@ -53,10 +53,10 @@ public:
   auto getMessageCount() const -> size_t { return message_count_; }
 
 private:
-  auto writeMessage(const MultiModalMessage& message) -> void;
-  auto writeAsText(const MultiModalMessage& message) -> void;
-  auto writeAsJson(const MultiModalMessage& message) -> void;
-  auto writeAsCsv(const MultiModalMessage& message) -> void;
+  auto writeMessage(const MultiModalMessage& message) -> bool;
+  auto writeAsText(const MultiModalMessage& message) -> bool;
+  auto writeAsJson(const MultiModalMessage& message) -> bool;
+  auto writeAsCsv(const MultiModalMessage& message) -> bool;
 
   static auto escapeJsonString(const std::string& str) -> std::string;
   static auto escapeCsvString(const std::string& str) -> std::string;

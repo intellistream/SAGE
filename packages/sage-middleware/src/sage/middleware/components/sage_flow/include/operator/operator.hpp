@@ -40,7 +40,7 @@ namespace sage_flow {
  * @return Unique pointer to created operator
  */
 auto CreateOperator(OperatorType type,
-                    const std::string& name) -> std::unique_ptr<BaseOperator>;
+                    const std::string& name) -> std::unique_ptr<BaseOperator<MultiModalMessage, MultiModalMessage>>;
 
 /**
  * @brief Factory function to create TopK operator
@@ -58,7 +58,7 @@ auto CreateTopKOperator(const std::string& name,
  * @return Unique pointer to Window operator
  */
 auto CreateWindowOperator(const std::string& name,
-                          WindowOperator::WindowType window_type)
-    -> std::unique_ptr<WindowOperator>;
+                          WindowOperator<MultiModalMessage, MultiModalMessage>::WindowType window_type)
+    -> std::unique_ptr<WindowOperator<MultiModalMessage, MultiModalMessage>>;
 
 }  // namespace sage_flow

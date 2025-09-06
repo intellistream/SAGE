@@ -15,7 +15,7 @@ auto CreateIndex(IndexType type, std::shared_ptr<MemoryPool> memory_pool)
     case IndexType::kBruteForce:
       return std::make_unique<BruteForceIndex>(std::move(memory_pool));
     case IndexType::kHnsw:
-      return std::make_unique<HNSW>(std::move(memory_pool));
+      return std::make_unique<HNSW>();
     case IndexType::kIvf:
       return std::make_unique<IVF>(std::move(memory_pool));
     case IndexType::kAdaIvf:

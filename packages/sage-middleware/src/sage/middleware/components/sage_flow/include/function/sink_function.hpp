@@ -40,13 +40,22 @@ public:
    * @param response Input response containing messages to sink
    * @return Empty response (sinks consume messages)
    */
-  using BaseFunction::execute;  // Bring base class overloads into scope
   auto execute(FunctionResponse& response) -> FunctionResponse override;
 
   /**
    * @brief Close the sink and cleanup resources
    */
   virtual void close() = 0;
+
+  /**
+   * @brief Sink a single message
+   * @param message Message to process
+   */
+  void sink(const MultiModalMessage& message) {
+    if (sink_func_) {
+      sink_func_(message);
+    }
+  }
 
   /**
    * @brief Set the sink function

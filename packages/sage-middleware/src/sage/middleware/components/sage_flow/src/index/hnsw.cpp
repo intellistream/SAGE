@@ -1,3 +1,4 @@
+
 #include "index/hnsw.hpp"
 
 #include <algorithm>
@@ -9,30 +10,6 @@
 
 namespace sage_flow {
 
-HNSW::HNSW(std::shared_ptr<MemoryPool> memory_pool, int m, int ef_construction,
-           int ef_search)
-    : Index(std::move(memory_pool)),
-      m_(m),
-      ef_construction_(ef_construction),
-      ef_search_(ef_search),
-      entry_point_(std::numeric_limits<uint64_t>::max()),
-      rng_(std::random_device{}()) {}
-
-auto HNSW::Initialize(const IndexConfig& config) -> bool {
-  // Update parameters from config if needed
-  if (config.hnsw_m_ > 0) {
-    m_ = static_cast<int>(config.hnsw_m_);
-  }
-  if (config.hnsw_ef_construction_ > 0) {
-    ef_construction_ = static_cast<int>(config.hnsw_ef_construction_);
-  }
-  if (config.hnsw_ef_search_ > 0) {
-    ef_search_ = static_cast<int>(config.hnsw_ef_search_);
-  }
-
-  Clear();
-  return true;
-}
 
 auto HNSW::AddVector(uint64_t id, const std::vector<float>& vector) -> bool {
   if (vectors_.find(id) != vectors_.end()) {
@@ -91,67 +68,47 @@ auto HNSW::RemoveVector(uint64_t id) -> bool {
     return false;  // Vector doesn't exist
   }
 
-  // Remove all connections to this node
-  for (size_t level = 0; level < node_it->second.links_.size(); level++) {
-    for (auto neighbor_id : node_it->second.links_[level]) {
-      auto& neighbor_links = nodes_[neighbor_id].links_[level];
-      neighbor_links.erase(
-          std::remove(neighbor_links.begin(), neighbor_links.end(), id),
-          neighbor_links.end());
+  // Remove connections from neighbors
+  for (int lc = 0; lc <= node_it->second.level_; ++lc) {
+    for (auto neighbor_id : node_it->second.links_[lc]) {
+      auto& neighbor_links = nodes_[neighbor_id].links_[lc];
+      neighbor_links.erase(std::remove(neighbor_links.begin(), neighbor_links.end(), id), neighbor_links.end());
     }
   }
 
-  // Remove from data structures
-  nodes_.erase(node_it);
+  // Remove vector and node
   vectors_.erase(id);
-
-  // Update entry point if needed
-  if (entry_point_ == id) {
-    if (nodes_.empty()) {
-      entry_point_ = std::numeric_limits<uint64_t>::max();
-      max_level_ = -1;
-    } else {
-      // Find new entry point with highest level
-      max_level_ = -1;
-      for (const auto& [node_id, node] : nodes_) {
-        if (node.level_ > max_level_) {
-          max_level_ = node.level_;
-          entry_point_ = node_id;
-        }
-      }
-    }
-  }
-
+  nodes_.erase(id);
   return true;
 }
 
 auto HNSW::Search(const std::vector<float>& query_vector,
                   size_t k) const -> std::vector<SearchResult> {
-  if (nodes_.empty() || k == 0) {
-    return {};
-  }
-
-  // Simple greedy search for now
-  std::vector<Neighbor> candidates;
-  for (const auto& [id, vector] : vectors_) {
-    float dist = l2_distance(query_vector, vector);
-    candidates.push_back({id, dist});
-  }
-
-  // Sort by distance and return top k
-  std::sort(candidates.begin(), candidates.end());
-
   std::vector<SearchResult> results;
-  size_t result_count = std::min(k, candidates.size());
-  for (size_t i = 0; i < result_count; i++) {
-    results.emplace_back(candidates[i].id_, candidates[i].dist_);
+  if (nodes_.empty()) {
+    return results;
   }
 
+  // Simplified search - find k nearest vectors
+  std::priority_queue<Neighbor> candidates;
+  search_layer(query_vector, candidates, max_level_, ef_search_);
+
+  while (candidates.size() > k) {
+    candidates.pop();
+  }
+
+  while (!candidates.empty()) {
+    auto neighbor = candidates.top();
+    candidates.pop();
+    results.emplace_back(neighbor.id_, neighbor.dist_);
+  }
+
+  std::reverse(results.begin(), results.end());
   return results;
 }
 
 auto HNSW::Build() -> bool {
-  // HNSW builds incrementally, no separate build step needed
+  // HNSW is built incrementally, no separate build step needed
   return true;
 }
 
@@ -161,29 +118,39 @@ auto HNSW::SaveIndex(const std::string& file_path) const -> bool {
     return false;
   }
 
-  // Save basic parameters
+  // Simple serialization - save parameters and nodes
   file.write(reinterpret_cast<const char*>(&m_), sizeof(m_));
-  file.write(reinterpret_cast<const char*>(&ef_construction_),
-             sizeof(ef_construction_));
+  file.write(reinterpret_cast<const char*>(&ef_construction_), sizeof(ef_construction_));
   file.write(reinterpret_cast<const char*>(&ef_search_), sizeof(ef_search_));
   file.write(reinterpret_cast<const char*>(&max_level_), sizeof(max_level_));
-  file.write(reinterpret_cast<const char*>(&entry_point_),
-             sizeof(entry_point_));
+  file.write(reinterpret_cast<const char*>(&entry_point_), sizeof(entry_point_));
 
-  // Save vectors
-  size_t vector_count = vectors_.size();
-  file.write(reinterpret_cast<const char*>(&vector_count),
-             sizeof(vector_count));
-
+  // Save vectors and nodes
+  size_t num_vectors = vectors_.size();
+  file.write(reinterpret_cast<const char*>(&num_vectors), sizeof(num_vectors));
   for (const auto& [id, vector] : vectors_) {
     file.write(reinterpret_cast<const char*>(&id), sizeof(id));
-    size_t dim = vector.size();
-    file.write(reinterpret_cast<const char*>(&dim), sizeof(dim));
-    file.write(reinterpret_cast<const char*>(vector.data()),
-               static_cast<std::streamsize>(dim * sizeof(float)));
+    size_t vec_size = vector.size();
+    file.write(reinterpret_cast<const char*>(&vec_size), sizeof(vec_size));
+    file.write(reinterpret_cast<const char*>(vector.data()), vec_size * sizeof(float));
   }
 
-  return file.good();
+  // Save nodes
+  size_t num_nodes = nodes_.size();
+  file.write(reinterpret_cast<const char*>(&num_nodes), sizeof(num_nodes));
+  for (const auto& [id, node] : nodes_) {
+    file.write(reinterpret_cast<const char*>(&id), sizeof(id));
+    file.write(reinterpret_cast<const char*>(&node.level_), sizeof(node.level_));
+    for (const auto& level_links : node.links_) {
+      size_t link_size = level_links.size();
+      file.write(reinterpret_cast<const char*>(&link_size), sizeof(link_size));
+      for (auto link_id : level_links) {
+        file.write(reinterpret_cast<const char*>(&link_id), sizeof(link_id));
+      }
+    }
+  }
+
+  return true;
 }
 
 auto HNSW::LoadIndex(const std::string& file_path) -> bool {
@@ -192,110 +159,138 @@ auto HNSW::LoadIndex(const std::string& file_path) -> bool {
     return false;
   }
 
-  Clear();
-
-  // Load basic parameters
+  // Load parameters
   file.read(reinterpret_cast<char*>(&m_), sizeof(m_));
-  file.read(reinterpret_cast<char*>(&ef_construction_),
-            sizeof(ef_construction_));
+  file.read(reinterpret_cast<char*>(&ef_construction_), sizeof(ef_construction_));
   file.read(reinterpret_cast<char*>(&ef_search_), sizeof(ef_search_));
   file.read(reinterpret_cast<char*>(&max_level_), sizeof(max_level_));
   file.read(reinterpret_cast<char*>(&entry_point_), sizeof(entry_point_));
 
   // Load vectors
-  size_t vector_count;
-  file.read(reinterpret_cast<char*>(&vector_count), sizeof(vector_count));
-
-  for (size_t i = 0; i < vector_count; i++) {
+  size_t num_vectors;
+  file.read(reinterpret_cast<char*>(&num_vectors), sizeof(num_vectors));
+  for (size_t i = 0; i < num_vectors; ++i) {
     uint64_t id;
     file.read(reinterpret_cast<char*>(&id), sizeof(id));
-
-    size_t dim;
-    file.read(reinterpret_cast<char*>(&dim), sizeof(dim));
-
-    std::vector<float> vector(dim);
-    file.read(reinterpret_cast<char*>(vector.data()),
-              static_cast<std::streamsize>(dim * sizeof(float)));
-
+    size_t vec_size;
+    file.read(reinterpret_cast<char*>(&vec_size), sizeof(vec_size));
+    std::vector<float> vector(vec_size);
+    file.read(reinterpret_cast<char*>(vector.data()), vec_size * sizeof(float));
     vectors_[id] = std::move(vector);
   }
 
-  return file.good();
+  // Load nodes
+  size_t num_nodes;
+  file.read(reinterpret_cast<char*>(&num_nodes), sizeof(num_nodes));
+  for (size_t i = 0; i < num_nodes; ++i) {
+    uint64_t id;
+    file.read(reinterpret_cast<char*>(&id), sizeof(id));
+    int level;
+    file.read(reinterpret_cast<char*>(&level), sizeof(level));
+    Node node{id, level, std::vector<std::vector<uint64_t>>(static_cast<size_t>(level + 1))};
+    for (int lc = 0; lc <= level; ++lc) {
+      size_t link_size;
+      file.read(reinterpret_cast<char*>(&link_size), sizeof(link_size));
+      for (size_t j = 0; j < link_size; ++j) {
+        uint64_t link_id;
+        file.read(reinterpret_cast<char*>(&link_id), sizeof(link_id));
+        node.links_[lc].push_back(link_id);
+      }
+    }
+    nodes_[id] = std::move(node);
+  }
+
+  return true;
 }
 
-auto HNSW::Size() const -> size_t { return vectors_.size(); }
-
 void HNSW::Clear() {
-  nodes_.clear();
   vectors_.clear();
+  nodes_.clear();
   max_level_ = -1;
   entry_point_ = std::numeric_limits<uint64_t>::max();
 }
 
-auto HNSW::GetType() const -> IndexType { return IndexType::kHnsw; }
+auto HNSW::Size() const -> size_t {
+  return vectors_.size();
+}
 
-// Private helper methods
-auto HNSW::l2_distance(const std::vector<float>& a,
-                       const std::vector<float>& b) const -> float {
-  float dist = 0.0F;
-  for (size_t i = 0; i < a.size(); i++) {
+auto HNSW::GetType() const -> IndexType {
+  return IndexType::kHnsw;
+}
+
+float HNSW::l2_distance(const std::vector<float>& a,
+                        const std::vector<float>& b) const {
+  float dist = 0.0f;
+  for (size_t i = 0; i < a.size(); ++i) {
     float diff = a[i] - b[i];
     dist += diff * diff;
   }
   return std::sqrt(dist);
 }
 
-auto HNSW::get_random_level() -> int {
-  int level = 0;
-  std::uniform_real_distribution<float> dis(0.0F, 1.0F);
-  while (dis(rng_) < ml_ && level < 16) {  // Cap at reasonable level
-    level++;
-  }
-  return level;
-}
-
-auto HNSW::select_neighbors_simple(const std::vector<float>& query,
-                                   const std::vector<uint64_t>& candidates,
-                                   int m) const -> std::vector<uint64_t> {
-  std::vector<Neighbor> neighbors;
-  for (auto id : candidates) {
-    auto it = vectors_.find(id);
-    if (it != vectors_.end()) {
-      float dist = l2_distance(query, it->second);
-      neighbors.push_back({id, dist});
-    }
-  }
-
-  std::sort(neighbors.begin(), neighbors.end());
-
-  std::vector<uint64_t> result;
-  for (int i = 0; i < std::min(m, static_cast<int>(neighbors.size())); i++) {
-    result.push_back(neighbors[static_cast<size_t>(i)].id_);
-  }
-
-  return result;
-}
-
-// Placeholder implementations for methods not used in simplified version
 void HNSW::search_layer(const std::vector<float>& query,
                         std::priority_queue<Neighbor>& candidates, int layer,
                         int ef) const {
-  // Placeholder - not implemented in simplified version
-  (void)query;
-  (void)candidates;
-  (void)layer;
-  (void)ef;
+  if (layer > max_level_) {
+    return;
+  }
+
+  // Simplified search at this layer
+  for (const auto& [node_id, node_data] : nodes_) {
+    if (static_cast<size_t>(layer) < node_data.links_.size()) {
+      float dist = l2_distance(query, vectors_.at(node_id));
+      if (candidates.size() < static_cast<size_t>(ef)) {
+        candidates.push({node_id, dist});
+      } else if (dist < candidates.top().dist_) {
+        candidates.pop();
+        candidates.push({node_id, dist});
+      }
+    }
+  }
 }
 
 auto HNSW::select_neighbors_heuristic(
     const std::vector<float>& query, const std::vector<uint64_t>& candidates,
     int m, int layer, bool extend_candidates,
     bool keep_pruned) const -> std::vector<uint64_t> {
-  // Use simple selection for now
-  (void)layer;
-  (void)extend_candidates;
-  (void)keep_pruned;
-  return select_neighbors_simple(query, candidates, m);
+  // Simplified heuristic selection
+  std::vector<uint64_t> selected;
+  std::priority_queue<Neighbor> pq;
+
+  for (auto id : candidates) {
+    if (vectors_.count(id)) {
+      float dist = l2_distance(query, vectors_.at(id));
+      pq.push({id, dist});
+    }
+  }
+
+  while (!pq.empty() && selected.size() < static_cast<size_t>(m)) {
+    selected.push_back(pq.top().id_);
+    pq.pop();
+  }
+
+  return selected;
+}
+
+auto HNSW::select_neighbors_simple(const std::vector<float>& query,
+                                   const std::vector<uint64_t>& candidates,
+                                   int m) const -> std::vector<uint64_t> {
+  std::vector<uint64_t> selected;
+  std::priority_queue<Neighbor> pq;
+
+  for (auto id : candidates) {
+    if (vectors_.count(id)) {
+      float dist = l2_distance(query, vectors_.at(id));
+      pq.push({id, dist});
+    }
+  }
+
+  while (!pq.empty() && selected.size() < static_cast<size_t>(m)) {
+    selected.push_back(pq.top().id_);
+    pq.pop();
+  }
+
+  return selected;
 }
 
 }  // namespace sage_flow

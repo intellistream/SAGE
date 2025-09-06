@@ -17,33 +17,20 @@ SinkOperator::SinkOperator(std::string name,
     : BaseOperator(OperatorType::kSink, std::move(name)),
       sink_function_(std::move(sink_function)) {}
 
-auto SinkOperator::process(Response& input_record, int slot) -> bool {
-  (void)slot;  // Suppress unused parameter warning
-
+auto SinkOperator::process(const std::vector<std::shared_ptr<MultiModalMessage>>& input) -> std::optional<Response<MultiModalMessage>> {
   if (!sink_function_) {
     throw std::runtime_error("SinkOperator: No SinkFunction set");
   }
 
-  if (!input_record.hasMessage()) {
-    return false;
+  for (const auto& message : input) {
+    if (message) {
+      sink_function_->sink(*message);
+    }
   }
-
-  auto input_message = input_record.getMessage();
-  if (!input_message) {
-    return false;
-  }
-
-  // Create FunctionResponse from input
-  FunctionResponse function_input;
-  function_input.addMessage(std::move(input_message));
-
-  // Execute the sink function (sink functions typically return empty response)
-  sink_function_->execute(function_input);
 
   incrementProcessedCount();
-  // Sink operators don't produce output, so no need to increment output count
-
-  return true;
+  // Sink operators don't produce output
+  return std::nullopt;
 }
 
 void SinkOperator::setSinkFunction(

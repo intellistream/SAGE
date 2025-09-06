@@ -1,0 +1,2 @@
+{'user_id': 'alice', 'total_value': 58, 'action_count': 3}
+{'user_id': 'bob', 'total_value': 187, 'action_count': 7}
