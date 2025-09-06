@@ -24,12 +24,12 @@ class ChromaRetriever(MapFunction):
         self.top_k = config.get("top_k", 10)
         self.embedding_config = config.get("embedding", {})
         
-        # 初始化 ChromaDB 后端
+        # 先初始化 embedding 模型
+        self._init_embedding_model()
+        
+        # 再初始化 ChromaDB 后端（这样知识库加载时embedding模型已可用）
         self.chroma_config = config.get("chroma", {})
         self._init_chroma_backend()
-        
-        # 初始化 embedding 模型
-        self._init_embedding_model()
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
@@ -58,8 +58,30 @@ class ChromaRetriever(MapFunction):
             
             # 自动加载知识库文件
             knowledge_file = self.chroma_config.get("knowledge_file")
-            if knowledge_file and os.path.exists(knowledge_file):
-                self._load_knowledge_from_file(knowledge_file)
+            if knowledge_file:
+                # 如果是相对路径，尝试从当前工作目录和项目根目录解析
+                if not os.path.isabs(knowledge_file):
+                    # 尝试从当前目录
+                    if os.path.exists(knowledge_file):
+                        resolved_path = knowledge_file
+                    else:
+                        # 尝试从项目根目录解析
+                        project_root = os.getcwd()
+                        while project_root != '/' and not os.path.exists(os.path.join(project_root, 'pyproject.toml')):
+                            project_root = os.path.dirname(project_root)
+                        
+                        potential_path = os.path.join(project_root, knowledge_file)
+                        if os.path.exists(potential_path):
+                            resolved_path = potential_path
+                        else:
+                            resolved_path = knowledge_file
+                else:
+                    resolved_path = knowledge_file
+                
+                if os.path.exists(resolved_path):
+                    self._load_knowledge_from_file(resolved_path)
+                else:
+                    self.logger.warning(f"Knowledge file not found: {resolved_path}")
             
         except Exception as e:
             self.logger.error(f"Failed to initialize ChromaDB: {e}")
@@ -124,7 +146,7 @@ class ChromaRetriever(MapFunction):
         embeddings = []
         for doc in documents:
             embedding = self.embedding_model.embed(doc)
-            print(embedding)
+            # print(embedding)
             embeddings.append(np.array(embedding, dtype=np.float32))
         
         # 使用 ChromaDB 后端添加文档
@@ -200,20 +222,32 @@ class ChromaRetriever(MapFunction):
             self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from ChromaDB\033[0m")
             self.logger.debug(f"Retrieved documents: {retrieved_docs[:3]}...")  # 只显示前3个文档的预览
 
-            print(f"Query: {input_query}")
-            print(f"Configured top_k: {self.top_k}")
-            print(f"Retrieved {len(retrieved_docs)} documents from ChromaDB")
-            print(retrieved_docs)
+            # 将字符串列表转换为标准化的字典格式，以便后续组件使用
+            standardized_docs = []
+            for doc in retrieved_docs:
+                if isinstance(doc, str):
+                    standardized_docs.append({"text": doc})
+                elif isinstance(doc, dict):
+                    # 如果已经是字典，确保有text字段
+                    if "text" not in doc and "content" in doc:
+                        doc["text"] = doc["content"]
+                    elif "text" not in doc:
+                        # 将整个字典内容作为text
+                        doc["text"] = str(doc)
+                    standardized_docs.append(doc)
+                else:
+                    # 其他类型转为字符串
+                    standardized_docs.append({"text": str(doc)})
 
             # 保存数据记录（只有enable_profile=True时才保存）
             if self.enable_profile:
-                self._save_data_record(input_query, retrieved_docs)
+                self._save_data_record(input_query, standardized_docs)
 
             if is_dict_input:
-                data["results"] = retrieved_docs
+                data["results"] = standardized_docs
                 return data
             else:
-                return {"query": input_query, "results": retrieved_docs, "input": data}
+                return {"query": input_query, "results": standardized_docs, "input": data}
 
         except Exception as e:
             self.logger.error(f"ChromaDB retrieval failed: {str(e)}")
@@ -758,6 +792,388 @@ class MilvusSparseRetriever(MapFunction):
         """
         return self.milvus_backend.get_collection_info()
 
+    def __del__(self):
+        """确保在对象销毁时保存所有未保存的记录"""
+        if hasattr(self, 'enable_profile') and self.enable_profile:
+            try:
+                self._persist_data_records()
+            except:
+                pass
+
+
+# Wiki18 FAISS 检索器
+class Wiki18FAISSRetriever(MapFunction):
+    """
+    基于FAISS的Wiki18数据集检索器，使用BGE-M3模型进行嵌入
+    """
+    
+    def __init__(self, config, enable_profile=False, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config
+        self.enable_profile = enable_profile
+        
+        # 配置参数
+        self.top_k = config.get("top_k", 5)
+        self.embedding_config = config.get("embedding", {})
+        self.faiss_config = config.get("faiss", {})
+        
+        # 初始化BGE-M3模型
+        self._init_bge_m3_model()
+        
+        # 初始化FAISS索引
+        self._init_faiss_index()
+        
+        # Profile数据存储
+        if self.enable_profile:
+            if hasattr(self.ctx, 'env_base_dir') and self.ctx.env_base_dir:
+                self.data_base_path = os.path.join(self.ctx.env_base_dir, ".sage_states", "retriever_data")
+            else:
+                self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "retriever_data")
+            
+            os.makedirs(self.data_base_path, exist_ok=True)
+            self.data_records = []
+    
+    def _init_bge_m3_model(self):
+        """初始化BGE-M3嵌入模型（使用sentence-transformers）"""
+        try:
+            from sentence_transformers import SentenceTransformer
+            import torch
+            
+            # 从配置获取模型路径，默认使用BGE-M3
+            model_path = self.embedding_config.get("model", "BAAI/bge-m3")
+            
+            # 从配置获取GPU设备，默认使用GPU 0
+            gpu_device = self.embedding_config.get("gpu_device", 0)
+            
+            # 明确指定GPU设备
+            if torch.cuda.is_available():
+                device = f'cuda:{gpu_device}'
+                self.logger.info(f"BGE-M3模型将使用GPU {gpu_device}")
+            else:
+                device = 'cpu'
+                self.logger.info("BGE-M3模型将使用CPU")
+            
+            # 初始化BGE-M3模型
+            self.embedding_model = SentenceTransformer(
+                model_path,
+                device=device
+            )
+            
+            self.logger.info(f"BGE-M3模型初始化成功: {model_path} 在设备 {device}")
+            
+        except ImportError as e:
+            self.logger.error(f"无法导入sentence-transformers: {e}")
+            self.logger.error("请安装: pip install sentence-transformers")
+            raise
+        except Exception as e:
+            self.logger.error(f"BGE-M3模型初始化失败: {e}")
+            raise
+    
+    def _init_faiss_index(self):
+        """初始化FAISS索引"""
+        try:
+            import faiss
+            
+            # FAISS配置
+            index_path = self.faiss_config.get("index_path", "./data/wiki18_faiss_index")
+            documents_path = self.faiss_config.get("documents_path", "./data/wiki18_documents.json")
+            
+            # 尝试加载已有索引
+            if os.path.exists(index_path) and os.path.exists(documents_path):
+                self.logger.info(f"加载已有FAISS索引: {index_path}")
+                self.faiss_index = faiss.read_index(index_path)
+                
+                # 加载JSONL格式的文档数据
+                self.documents = []
+                try:
+                    with open(documents_path, 'r', encoding='utf-8') as f:
+                        for line in f:
+                            line = line.strip()
+                            if line:
+                                try:
+                                    doc = json.loads(line)
+                                    self.documents.append(doc)
+                                except json.JSONDecodeError as e:
+                                    self.logger.warning(f"跳过无效的JSON行: {line[:100]}... 错误: {e}")
+                            
+                except Exception as e:
+                    self.logger.error(f"加载文档文件失败: {e}")
+                    self.documents = []
+                    
+                self.logger.info(f"加载了 {len(self.documents)} 个文档")
+                
+            else:
+                # 如果没有预构建索引，需要从Wiki18数据构建
+                self.logger.warning(f"未找到预构建的FAISS索引: {index_path}")
+                self.logger.warning("需要先构建Wiki18 FAISS索引")
+                
+                # 创建空索引和文档列表作为占位符
+                dimension = 1024  # BGE-M3的维度
+                self.faiss_index = faiss.IndexFlatIP(dimension)  # 内积相似度
+                self.documents = []
+                
+        except ImportError as e:
+            self.logger.error(f"无法导入FAISS: {e}")
+            self.logger.error("请安装FAISS: pip install faiss-cpu 或 pip install faiss-gpu")
+            raise
+        except Exception as e:
+            self.logger.error(f"FAISS索引初始化失败: {e}")
+            raise
+    
+    def _encode_query(self, query: str) -> np.ndarray:
+        """
+        使用BGE-M3模型编码查询
+        
+        Args:
+            query: 查询文本
+            
+        Returns:
+            查询的向量表示
+        """
+        try:
+            # 使用sentence-transformers的encode方法
+            embeddings = self.embedding_model.encode([query])
+            return embeddings[0]  # 返回第一个查询的向量
+            
+        except Exception as e:
+            self.logger.error(f"查询编码失败: {e}")
+            raise
+    
+    def _search_faiss(self, query_vector: np.ndarray, top_k: int) -> Tuple[List[float], List[int]]:
+        """
+        在FAISS索引中搜索
+        
+        Args:
+            query_vector: 查询向量
+            top_k: 返回top k个结果
+            
+        Returns:
+            (scores, indices): 相似度分数和文档索引
+        """
+        try:
+            if self.faiss_index.ntotal == 0:
+                self.logger.warning("FAISS索引为空，无法检索")
+                return [], []
+            
+            # FAISS搜索
+            query_vector = query_vector.reshape(1, -1).astype('float32')
+            scores, indices = self.faiss_index.search(query_vector, top_k)
+            
+            return scores[0].tolist(), indices[0].tolist()
+            
+        except Exception as e:
+            self.logger.error(f"FAISS搜索失败: {e}")
+            return [], []
+    
+    def _format_retrieved_documents(self, scores: List[float], indices: List[int]) -> List[Dict[str, Any]]:
+        """
+        格式化检索到的文档
+        
+        Args:
+            scores: 相似度分数列表
+            indices: 文档索引列表
+            
+        Returns:
+            格式化后的文档列表
+        """
+        retrieved_docs = []
+        
+        for score, idx in zip(scores, indices):
+            if idx >= 0 and idx < len(self.documents):
+                original_doc = self.documents[idx]
+                
+                # 创建标准化的文档格式，与ChromaRetriever保持一致
+                standardized_doc = {
+                    "text": original_doc.get("contents", str(original_doc)),  # 将contents字段映射为text
+                    "similarity_score": float(score),
+                    "document_index": int(idx)
+                }
+                
+                # 保留其他有用的元数据
+                if "title" in original_doc:
+                    standardized_doc["title"] = original_doc["title"]
+                if "id" in original_doc:
+                    standardized_doc["id"] = original_doc["id"]
+                if "doc_size" in original_doc:
+                    standardized_doc["doc_size"] = original_doc["doc_size"]
+                
+                retrieved_docs.append(standardized_doc)
+        
+        return retrieved_docs
+    
+    def _save_data_record(self, query: str, retrieved_docs: List[Dict[str, Any]]):
+        """保存检索记录用于分析"""
+        if not self.enable_profile:
+            return
+            
+        record = {
+            "timestamp": time.time(),
+            "query": query,
+            "retrieved_count": len(retrieved_docs),
+            "documents": retrieved_docs
+        }
+        
+        self.data_records.append(record)
+        
+        # 每100条记录持久化一次
+        if len(self.data_records) >= 100:
+            self._persist_data_records()
+    
+    def _persist_data_records(self):
+        """持久化数据记录"""
+        if not self.enable_profile or not self.data_records:
+            return
+            
+        try:
+            timestamp = int(time.time())
+            filename = f"wiki18_faiss_retrieval_records_{timestamp}.json"
+            filepath = os.path.join(self.data_base_path, filename)
+            
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(self.data_records, f, ensure_ascii=False, indent=2)
+            
+            self.logger.info(f"保存了 {len(self.data_records)} 条检索记录到 {filepath}")
+            self.data_records = []  # 清空缓存
+            
+        except Exception as e:
+            self.logger.error(f"保存检索记录失败: {e}")
+    
+    def execute(self, data: str) -> Dict[str, Any]:
+        """
+        执行检索
+        Args:
+            data: 查询字符串、元组或字典
+        Returns:
+            dict: {"query": ..., "results": ..., "input": 原始输入, ...}
+        """
+        start_time = time.time()
+        
+        # 支持字典类型输入，优先取 question 字段
+        is_dict_input = isinstance(data, dict)
+        if is_dict_input:
+            if "query" in data:
+                input_query = data["query"]
+            elif "question" in data:
+                input_query = data["question"]
+            else:
+                self.logger.error("输入字典必须包含 'query' 或 'question' 字段")
+                data["results"] = []
+                return data
+        elif isinstance(data, tuple) and len(data) > 0:
+            input_query = data[0]
+        else:
+            input_query = data
+
+        if not isinstance(input_query, str):
+            self.logger.error(f"Invalid input query type: {type(input_query)}")
+            if is_dict_input:
+                data["results"] = []
+                return data
+            else:
+                return {"query": str(input_query), "results": [], "input": data}
+
+        if not input_query or not input_query.strip():
+            self.logger.error("查询不能为空")
+            if is_dict_input:
+                data["results"] = []
+                return data
+            else:
+                return {"query": "", "results": [], "input": data}
+
+        input_query = input_query.strip()
+        self.logger.info(f"[ {self.__class__.__name__}]: Starting FAISS retrieval for query: {input_query}")
+        self.logger.info(f"[ {self.__class__.__name__}]: Using top_k = {self.top_k}")
+
+        try:
+            # 编码查询
+            query_vector = self._encode_query(input_query)
+            
+            # FAISS搜索
+            scores, indices = self._search_faiss(query_vector, self.top_k)
+            
+            # 格式化结果
+            retrieved_docs = self._format_retrieved_documents(scores, indices)
+            
+            # 记录检索时间
+            retrieval_time = time.time() - start_time
+            self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from FAISS\033[0m")
+            self.logger.debug(f"Retrieved documents: {retrieved_docs[:3]}...")  # 只显示前3个文档的预览
+            
+            # 保存数据记录（只有enable_profile=True时才保存）
+            if self.enable_profile:
+                self._save_data_record(input_query, retrieved_docs)
+            
+            if is_dict_input:
+                data["results"] = retrieved_docs
+                return data
+            else:
+                return {"query": input_query, "results": retrieved_docs, "input": data}
+                
+        except Exception as e:
+            self.logger.error(f"FAISS retrieval failed: {str(e)}")
+            if is_dict_input:
+                data["results"] = []
+                return data
+            else:
+                return {"query": input_query, "results": [], "input": data}
+    
+    def build_index_from_wiki18(self, wiki18_data_path: str, save_path: str = None):
+        """
+        从Wiki18数据集构建FAISS索引
+        
+        Args:
+            wiki18_data_path: Wiki18数据集路径
+            save_path: 索引保存路径
+        """
+        try:
+            import faiss
+            
+            self.logger.info(f"开始从Wiki18数据构建FAISS索引: {wiki18_data_path}")
+            
+            # 加载Wiki18数据
+            documents = []
+            with open(wiki18_data_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    doc = json.loads(line.strip())
+                    documents.append(doc)
+            
+            self.logger.info(f"加载了 {len(documents)} 个文档")
+            
+            # 提取文档文本并编码
+            doc_texts = [doc.get('text', '') for doc in documents]
+            
+            # 批量编码所有文档
+            self.logger.info("开始编码文档...")
+            embeddings = self.embedding_model.encode(doc_texts)
+            doc_vectors = embeddings['dense_vecs']  # 获取dense向量
+            
+            # 创建FAISS索引
+            dimension = doc_vectors.shape[1]
+            self.faiss_index = faiss.IndexFlatIP(dimension)  # 内积相似度
+            
+            # 添加向量到索引
+            self.faiss_index.add(doc_vectors.astype('float32'))
+            self.documents = documents
+            
+            self.logger.info(f"FAISS索引构建完成，包含 {self.faiss_index.ntotal} 个向量")
+            
+            # 保存索引和文档
+            if save_path:
+                index_save_path = save_path + "_index"
+                docs_save_path = save_path + "_documents.json"
+                
+                faiss.write_index(self.faiss_index, index_save_path)
+                
+                with open(docs_save_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.documents, f, ensure_ascii=False, indent=2)
+                
+                self.logger.info(f"索引已保存到: {index_save_path}")
+                self.logger.info(f"文档已保存到: {docs_save_path}")
+            
+        except Exception as e:
+            self.logger.error(f"构建FAISS索引失败: {e}")
+            raise
+    
     def __del__(self):
         """确保在对象销毁时保存所有未保存的记录"""
         if hasattr(self, 'enable_profile') and self.enable_profile:
