@@ -103,7 +103,7 @@ function(generate_code_quality_report)
     set(COMMANDS
         COMMAND ${CMAKE_COMMAND} -E echo "Generating code quality report..."
         COMMAND ${CMAKE_COMMAND} -E echo "Code Quality Report - ${CMAKE_PROJECT_NAME}" > ${REPORT_FILE}
-        COMMAND ${CMAKE_COMMAND} -E echo "Generated: $(date)" >> ${REPORT_FILE}
+        COMMAND ${CMAKE_COMMAND} -E echo "Generated: ${CMAKE_SYSTEM_DATE}" >> ${REPORT_FILE}
         COMMAND ${CMAKE_COMMAND} -E echo "" >> ${REPORT_FILE}
 
         # Run comprehensive checks

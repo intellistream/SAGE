@@ -48,7 +48,6 @@ if(CLANG_FORMAT_EXE)
     add_custom_target(format-check-ci
         COMMAND ${CLANG_FORMAT_EXE} --dry-run -Werror ${CPP_FILES} > /dev/null 2>&1 || (echo "Code formatting issues found. Run 'make format' to fix." && exit 1)
         COMMENT "Checking code formatting for CI/CD"
-        VERBATIM
     )
 
     # 将格式化目标设置为可选依赖

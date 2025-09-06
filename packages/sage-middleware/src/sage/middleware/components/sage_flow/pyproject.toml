@@ -1,11 +1,10 @@
 [build-system]
 requires = [
-    "setuptools>=65",
     "wheel",
     "pybind11>=2.10.0",
     "cmake>=3.16",
     "ninja",
-    "scikit-build-core>=0.5.0"
+    "scikit-build-core>=0.10.0"
 ]
 build-backend = "scikit_build_core.build"
 
@@ -106,13 +105,7 @@ Changelog = "https://github.com/intellistream/SAGE/blob/main/packages/sage-middl
 [project.scripts]
 sage-flow = "sage_flow.cli:main"
 
-# setuptools 配置
-[tool.setuptools]
-packages = ["sage_flow"]
-package-dir = {"sage_flow" = "python"}
-
-[tool.setuptools.package-data]
-sage_flow = ["*.so", "py.typed"]
+# scikit-build-core 配置
 
 # Black 代码格式化配置
 [tool.black]
@@ -229,12 +222,39 @@ skips = ["B101", "B601"]
 
 # scikit-build-core 配置
 [tool.scikit-build]
-cmake.minimum-version = "3.16"
-cmake.args = ["-DCMAKE_BUILD_TYPE=Release"]
+# CMake 配置
+cmake.version = ">=3.16"
+cmake.source-dir = "."
 cmake.build-type = "Release"
+cmake.args = [
+    "-DCMAKE_BUILD_TYPE=Release",
+    "-DPython_EXECUTABLE={python}",
+    "-DPython_ROOT_DIR={python}",
+    "-DPython_FIND_STRATEGY=LOCATION"
+]
+
+# 构建配置
 build-dir = "build/{wheel_tag}"
+build.verbose = false
+
+# 轮子配置
 wheel.packages = ["python"]
 wheel.py-api = "py3"
+wheel.expand-macos-universal-tags = true
+
+# 安装配置
+install.strip = true
+
+# 日志配置
+logging.level = "INFO"
+
+# 元数据配置
+metadata.version.provider = "scikit_build_core.metadata.regex"
+metadata.version.input = "src/sage/middleware/components/sage_flow/__init__.py"
+
+# 可编辑安装支持
+editable.mode = "redirect"
+editable.rebuild = true
 
 # 构建配置
 [tool.cibuildwheel]
