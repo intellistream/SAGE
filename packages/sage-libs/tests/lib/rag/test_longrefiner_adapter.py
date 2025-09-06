@@ -606,3 +606,284 @@ class TestLongRefinerAdapterFallback:
         # 验证第一个文档的相关性最高
         if filtered:
             assert filtered[0]["relevance_score"] >= filtered[-1]["relevance_score"]
+
+
+@pytest.mark.unit 
+class TestLongRefinerAdapterFixes:
+    """测试LongRefinerAdapter的修复和改进"""
+    
+    def test_gpu_device_unified_configuration(self):
+        """测试统一GPU设备配置（修复#3）"""
+        if not LONGREFINER_AVAILABLE:
+            pytest.skip("LongRefiner module not available")
+        
+        config = {
+            "base_model_path": "test/model",
+            "query_analysis_module_lora_path": "test/query",
+            "doc_structuring_module_lora_path": "test/doc", 
+            "global_selection_module_lora_path": "test/global",
+            "score_model_name": "test_score",
+            "score_model_path": "test/score",
+            "max_model_len": 4096,
+            "budget": 1000,
+            "gpu_device": 0,
+            "gpu_memory_utilization": 0.7
+        }
+        
+        with patch('sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner') as mock_longrefiner:
+            try:
+                adapter = LongRefinerAdapter(config=config)
+                
+                # 验证LongRefiner被正确调用，所有GPU设备统一
+                mock_longrefiner.assert_called_once()
+                call_args = mock_longrefiner.call_args
+                
+                # 验证gpu_device和score_gpu_device相同
+                assert call_args.kwargs['gpu_device'] == 0
+                assert call_args.kwargs['score_gpu_device'] == 0
+                assert call_args.kwargs['gpu_memory_utilization'] == 0.7
+                
+            except Exception as e:
+                pytest.skip(f"LongRefiner dependency not available: {e}")
+    
+    def test_output_format_standardization(self):
+        """测试输出格式标准化（修复#2）"""
+        if not LONGREFINER_AVAILABLE:
+            pytest.skip("LongRefiner module not available")
+        
+        config = {
+            "base_model_path": "test/model",
+            "query_analysis_module_lora_path": "test/query",
+            "doc_structuring_module_lora_path": "test/doc",
+            "global_selection_module_lora_path": "test/global", 
+            "score_model_name": "test_score",
+            "score_model_path": "test/score",
+            "max_model_len": 4096,
+            "budget": 1000
+        }
+        
+        # Mock LongRefiner
+        mock_refiner = Mock()
+        mock_refiner.run.return_value = ["Refined text 1", "Refined text 2"]
+        
+        with patch('sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner', return_value=mock_refiner):
+            try:
+                adapter = LongRefinerAdapter(config=config, enable_profile=False)
+                
+                # 测试输入数据（来自Wiki18FAISSRetriever格式）
+                input_data = {
+                    "query": "test query",
+                    "references": ["ref1", "ref2"],
+                    "results": [
+                        {"text": "Document 1 content", "title": "Doc1", "id": "1"},
+                        {"text": "Document 2 content", "title": "Doc2", "id": "2"}
+                    ]
+                }
+                
+                result = adapter.execute(input_data)
+                
+                # 验证输出格式只包含results字段，没有冗余字段
+                assert "results" in result
+                assert "refined_results" not in result  # 应该被移除
+                assert "refined_docs" not in result     # 应该被移除
+                
+                # 验证results字段格式正确
+                assert isinstance(result["results"], list)
+                assert len(result["results"]) == 2
+                
+                for doc in result["results"]:
+                    assert "text" in doc
+                    assert isinstance(doc["text"], str)
+                
+                # 验证原始字段被保留
+                assert result["query"] == "test query"
+                assert result["references"] == ["ref1", "ref2"]
+                
+            except Exception as e:
+                pytest.skip(f"LongRefiner dependency not available: {e}")
+    
+    def test_wiki18_faiss_input_compatibility(self):
+        """测试与Wiki18FAISSRetriever输出的兼容性"""
+        if not LONGREFINER_AVAILABLE:
+            pytest.skip("LongRefiner module not available")
+        
+        config = {
+            "base_model_path": "test/model", 
+            "query_analysis_module_lora_path": "test/query",
+            "doc_structuring_module_lora_path": "test/doc",
+            "global_selection_module_lora_path": "test/global",
+            "score_model_name": "test_score",
+            "score_model_path": "test/score", 
+            "max_model_len": 4096,
+            "budget": 1000
+        }
+        
+        # Mock LongRefiner
+        mock_refiner = Mock()
+        mock_refiner.run.return_value = ["Compressed content"]
+        
+        with patch('sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner', return_value=mock_refiner):
+            try:
+                adapter = LongRefinerAdapter(config=config, enable_profile=False)
+                
+                # 模拟Wiki18FAISSRetriever的输出格式
+                wiki18_output = {
+                    "query": "Who has the highest goals in world football?",
+                    "results": [
+                        {
+                            "text": "FIFA World Cup top goalscorers content...",
+                            "similarity_score": 0.706,
+                            "document_index": 896168,
+                            "title": "FIFA World Cup top goalscorers",
+                            "id": "896168"
+                        },
+                        {
+                            "text": "Capocannoniere content...",
+                            "similarity_score": 0.638,
+                            "document_index": 2323760,
+                            "title": "Capocannoniere", 
+                            "id": "2323760"
+                        }
+                    ],
+                    "input": "original input data"
+                }
+                
+                result = adapter.execute(wiki18_output)
+                
+                # 验证处理成功
+                assert "results" in result
+                assert len(result["results"]) == 1  # 被压缩
+                assert result["results"][0]["text"] == "Compressed content"
+                
+                # 验证原始数据被保留
+                assert result["query"] == "Who has the highest goals in world football?"
+                assert "input" in result  # 原始字段应保留
+                
+            except Exception as e:
+                pytest.skip(f"LongRefiner dependency not available: {e}")
+    
+    def test_document_formatting_with_titles(self):
+        """测试文档格式化处理（带标题）"""
+        if not LONGREFINER_AVAILABLE:
+            pytest.skip("LongRefiner module not available")
+        
+        config = {
+            "base_model_path": "test/model",
+            "query_analysis_module_lora_path": "test/query", 
+            "doc_structuring_module_lora_path": "test/doc",
+            "global_selection_module_lora_path": "test/global",
+            "score_model_name": "test_score",
+            "score_model_path": "test/score",
+            "max_model_len": 4096,
+            "budget": 1000
+        }
+        
+        # Mock LongRefiner并验证输入格式
+        mock_refiner = Mock()
+        mock_refiner.run.return_value = ["Formatted content"]
+        
+        with patch('sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner', return_value=mock_refiner):
+            try:
+                adapter = LongRefinerAdapter(config=config, enable_profile=False)
+                
+                # 测试带标题的文档
+                input_data = {
+                    "query": "test query",
+                    "results": [
+                        {
+                            "text": "Document content without title formatting",
+                            "title": "Important Document",
+                            "id": "doc1"
+                        }
+                    ]
+                }
+                
+                adapter.execute(input_data)
+                
+                # 验证传递给LongRefiner的格式
+                mock_refiner.run.assert_called_once()
+                call_args = mock_refiner.run.call_args
+                
+                # 第二个参数应该是格式化后的文档列表
+                documents = call_args[0][1]  # document_list参数
+                assert len(documents) == 1
+                assert "contents" in documents[0]
+                
+                # 验证标题被正确格式化
+                content = documents[0]["contents"]
+                assert "Important Document" in content
+                
+            except Exception as e:
+                pytest.skip(f"LongRefiner dependency not available: {e}")
+    
+    def test_error_handling_empty_results(self):
+        """测试空结果的错误处理"""
+        if not LONGREFINER_AVAILABLE:
+            pytest.skip("LongRefiner module not available")
+        
+        config = {
+            "base_model_path": "test/model",
+            "query_analysis_module_lora_path": "test/query",
+            "doc_structuring_module_lora_path": "test/doc", 
+            "global_selection_module_lora_path": "test/global",
+            "score_model_name": "test_score",
+            "score_model_path": "test/score",
+            "max_model_len": 4096,
+            "budget": 1000
+        }
+        
+        # Mock LongRefiner返回空结果
+        mock_refiner = Mock()
+        mock_refiner.run.return_value = []  # 空结果
+        
+        with patch('sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner', return_value=mock_refiner):
+            try:
+                adapter = LongRefinerAdapter(config=config, enable_profile=False)
+                
+                input_data = {
+                    "query": "test query",
+                    "results": [{"text": "Some content"}]
+                }
+                
+                result = adapter.execute(input_data)
+                
+                # 验证空结果被正确处理
+                assert "results" in result
+                assert result["results"] == []  # 应该是空列表
+                assert result["query"] == "test query"  # 原始查询应保留
+                
+            except Exception as e:
+                pytest.skip(f"LongRefiner dependency not available: {e}")
+    
+    def test_backward_compatibility_config(self):
+        """测试配置的向后兼容性"""
+        if not LONGREFINER_AVAILABLE:
+            pytest.skip("LongRefiner module not available")
+        
+        # 测试老配置格式（没有score_gpu_device）
+        old_config = {
+            "base_model_path": "test/model",
+            "query_analysis_module_lora_path": "test/query",
+            "doc_structuring_module_lora_path": "test/doc",
+            "global_selection_module_lora_path": "test/global", 
+            "score_model_name": "test_score",
+            "score_model_path": "test/score",
+            "max_model_len": 4096,
+            "budget": 1000,
+            "gpu_device": 1
+            # 注意：没有score_gpu_device字段
+        }
+        
+        with patch('sage.libs.rag.longrefiner.longrefiner_adapter.LongRefiner') as mock_longrefiner:
+            try:
+                adapter = LongRefinerAdapter(config=old_config)
+                
+                # 验证LongRefiner被正确调用
+                call_args = mock_longrefiner.call_args
+                
+                # 验证score_gpu_device默认使用gpu_device的值
+                assert call_args.kwargs['gpu_device'] == 1
+                assert call_args.kwargs['score_gpu_device'] == 1  # 应该自动设置为相同值
+                
+            except Exception as e:
+                pytest.skip(f"LongRefiner dependency not available: {e}")

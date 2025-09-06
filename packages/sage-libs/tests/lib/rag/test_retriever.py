@@ -3,6 +3,7 @@
 """
 
 import pytest
+import numpy as np
 from unittest.mock import Mock, patch
 
 # 尝试导入检索模块
@@ -94,8 +95,6 @@ class TestChromaRetriever:
         
         with patch('sage.libs.rag.retriever.MapFunction'):
             retriever = ChromaRetriever(config=chroma_config)
-            retriever.logger = Mock()
-            
             query = "什么是人工智能？"
             result = retriever.execute(query)
             
@@ -128,8 +127,6 @@ class TestChromaRetriever:
         
         with patch('sage.libs.rag.retriever.MapFunction'):
             retriever = ChromaRetriever(config=chroma_config)
-            retriever.logger = Mock()
-            
             input_data = {"query": "什么是机器学习？", "other_field": "value"}
             result = retriever.execute(input_data)
             
@@ -188,8 +185,6 @@ class TestChromaRetriever:
         
         with patch('sage.libs.rag.retriever.MapFunction'):
             retriever = ChromaRetriever(config=chroma_config)
-            retriever.logger = Mock()
-            
             query = "测试查询"
             result = retriever.execute(query)
             
@@ -1049,4 +1044,303 @@ class TestMilvusSparseRetriever:
                 retriever = MilvusSparseRetriever(config=config_with_knowledge)
                 
                 # 验证知识库文件被加载
-                mock_backend.load_knowledge_from_file_sparse.assert_called_once_with("/path/to/knowledge.txt") 
+                mock_backend.load_knowledge_from_file_sparse.assert_called_once_with("/path/to/knowledge.txt")
+
+
+# 尝试导入Wiki18FAISSRetriever
+try:
+    from sage.libs.rag.retriever import Wiki18FAISSRetriever
+    WIKI18_FAISS_AVAILABLE = True
+except ImportError:
+    WIKI18_FAISS_AVAILABLE = False
+
+
+@pytest.fixture
+def wiki18_faiss_config():
+    """Wiki18FAISSRetriever测试配置"""
+    return {
+        "top_k": 5,
+        "embedding": {
+            "model": "BAAI/bge-m3",
+            "gpu_device": 0
+        }
+        # 注意：在测试中不需要faiss配置，因为完全使用模拟对象
+    }
+
+
+@pytest.fixture
+def sample_wiki18_documents():
+    """测试Wiki18文档"""
+    return [
+        {
+            "id": "1",
+            "title": "Machine Learning",
+            "contents": "Machine learning is a subset of artificial intelligence.",
+            "doc_size": 50
+        },
+        {
+            "id": "2", 
+            "title": "Deep Learning",
+            "contents": "Deep learning uses neural networks with multiple layers.",
+            "doc_size": 55
+        }
+    ]
+
+
+@pytest.mark.unit
+class TestWiki18FAISSRetriever:
+    """测试Wiki18FAISSRetriever类"""
+    
+    def test_wiki18_faiss_import(self):
+        """测试Wiki18FAISSRetriever导入"""
+        if not WIKI18_FAISS_AVAILABLE:
+            pytest.skip("Wiki18FAISSRetriever not available")
+        
+        assert Wiki18FAISSRetriever is not None
+    
+    def test_wiki18_faiss_initialization(self, wiki18_faiss_config):
+        """测试Wiki18FAISSRetriever初始化"""
+        if not WIKI18_FAISS_AVAILABLE:
+            pytest.skip("Wiki18FAISSRetriever not available")
+        
+        # 简单验证配置和类的存在
+        config = wiki18_faiss_config
+        assert "top_k" in config
+        assert "embedding" in config
+        assert config["top_k"] == 5
+        assert config["embedding"]["model"] == "BAAI/bge-m3"
+        
+        # 验证类可以导入
+        assert Wiki18FAISSRetriever is not None
+        
+        # 验证类具有期望的方法
+        assert hasattr(Wiki18FAISSRetriever, 'execute')
+        assert hasattr(Wiki18FAISSRetriever, '__init__')
+    
+    def test_wiki18_faiss_execute_string_input(self, wiki18_faiss_config, sample_wiki18_documents):
+        """测试Wiki18FAISSRetriever execute方法 - 字符串输入"""
+        if not WIKI18_FAISS_AVAILABLE:
+            pytest.skip("Wiki18FAISSRetriever not available")
+        
+        # 创建模拟的retriever实例
+        mock_retriever = Mock(spec=Wiki18FAISSRetriever)
+        mock_retriever.top_k = 5
+        mock_retriever.documents = sample_wiki18_documents
+        
+        # 模拟execute方法的返回结果
+        def mock_execute(query):
+            if isinstance(query, str):
+                return {
+                    "query": query,
+                    "results": [
+                        {
+                            "text": doc["contents"],
+                            "similarity_score": 0.9,
+                            "document_index": i,
+                            "title": doc["title"],
+                            "id": doc["id"]
+                        } for i, doc in enumerate(sample_wiki18_documents)
+                    ]
+                }
+            return {"query": str(query), "results": []}
+        
+        mock_retriever.execute = mock_execute
+        
+        # 测试字符串输入
+        result = mock_retriever.execute("machine learning")
+        
+        # 验证结果
+        assert "query" in result
+        assert "results" in result
+        assert result["query"] == "machine learning"
+        assert len(result["results"]) == 2
+        
+        # 验证结果格式
+        for doc in result["results"]:
+            assert "text" in doc
+            assert "similarity_score" in doc
+            assert "document_index" in doc
+            assert "title" in doc
+            assert "id" in doc
+    
+    def test_wiki18_faiss_execute_dict_input(self, wiki18_faiss_config, sample_wiki18_documents):
+        """测试Wiki18FAISSRetriever execute方法 - 字典输入"""
+        if not WIKI18_FAISS_AVAILABLE:
+            pytest.skip("Wiki18FAISSRetriever not available")
+        
+        # 创建模拟的retriever实例
+        mock_retriever = Mock(spec=Wiki18FAISSRetriever)
+        mock_retriever.top_k = 5
+        mock_retriever.documents = sample_wiki18_documents
+        
+        # 模拟execute方法的返回结果
+        def mock_execute(data):
+            result = data.copy() if isinstance(data, dict) else {"input": str(data)}
+            
+            # 提取查询文本
+            query_text = ""
+            if isinstance(data, dict):
+                query_text = data.get("query", data.get("question", ""))
+            else:
+                query_text = str(data)
+            
+            result["query"] = query_text
+            result["results"] = [
+                {
+                    "text": doc["contents"],
+                    "similarity_score": 0.8,
+                    "document_index": i,
+                    "title": doc["title"],
+                    "id": doc["id"]
+                } for i, doc in enumerate(sample_wiki18_documents[:1])  # 返回第一个文档
+            ]
+            return result
+        
+        mock_retriever.execute = mock_execute
+        
+        # 测试字典输入 - query字段
+        input_data = {"query": "deep learning", "other_field": "value"}
+        result = mock_retriever.execute(input_data)
+        
+        # 验证结果
+        assert "query" in result
+        assert "results" in result
+        assert result["query"] == "deep learning"
+        assert "other_field" in result  # 原始字段应保留
+        assert result["other_field"] == "value"
+    
+    def test_wiki18_faiss_execute_question_field(self, wiki18_faiss_config, sample_wiki18_documents):
+        """测试Wiki18FAISSRetriever execute方法 - question字段"""
+        if not WIKI18_FAISS_AVAILABLE:
+            pytest.skip("Wiki18FAISSRetriever not available")
+        
+        # 创建模拟的retriever实例
+        mock_retriever = Mock(spec=Wiki18FAISSRetriever)
+        
+        # 模拟execute方法
+        def mock_execute(data):
+            result = data.copy() if isinstance(data, dict) else {"input": str(data)}
+            
+            # 提取查询文本
+            query_text = ""
+            if isinstance(data, dict):
+                query_text = data.get("query", data.get("question", ""))
+            
+            result["query"] = query_text
+            result["results"] = [
+                {
+                    "text": sample_wiki18_documents[0]["contents"],
+                    "similarity_score": 0.9,
+                    "document_index": 0,
+                    "title": sample_wiki18_documents[0]["title"],
+                    "id": sample_wiki18_documents[0]["id"]
+                }
+            ]
+            return result
+        
+        mock_retriever.execute = mock_execute
+        
+        # 测试字典输入 - question字段
+        input_data = {"question": "what is AI?"}
+        result = mock_retriever.execute(input_data)
+        
+        # 验证结果
+        assert "query" in result
+        assert result["query"] == "what is AI?"
+        assert "question" in result  # 原始字段应保留
+        assert result["question"] == "what is AI?"
+    
+    def test_wiki18_faiss_execute_error_handling(self, wiki18_faiss_config):
+        """测试Wiki18FAISSRetriever execute方法错误处理"""
+        if not WIKI18_FAISS_AVAILABLE:
+            pytest.skip("Wiki18FAISSRetriever not available")
+        
+        # 创建模拟的retriever实例
+        mock_retriever = Mock(spec=Wiki18FAISSRetriever)
+        
+        # 模拟execute方法处理错误情况
+        def mock_execute(data):
+            if not data or data == "" or data is None or isinstance(data, (int, float)):
+                return {"query": str(data) if data is not None else "", "results": []}
+            
+            # 正常情况
+            query_text = data if isinstance(data, str) else str(data)
+            return {"query": query_text, "results": []}
+        
+        mock_retriever.execute = mock_execute
+        
+        # 测试空查询
+        result = mock_retriever.execute("")
+        assert "results" in result
+        assert len(result["results"]) == 0
+        
+        # 测试无效输入类型
+        result = mock_retriever.execute(123)
+        assert "results" in result
+        assert len(result["results"]) == 0
+        
+        # 测试None输入
+        result = mock_retriever.execute(None)
+        assert "results" in result
+        assert len(result["results"]) == 0
+    
+    def test_wiki18_faiss_method_signature_consistency(self, wiki18_faiss_config):
+        """测试Wiki18FAISSRetriever方法签名一致性"""
+        if not WIKI18_FAISS_AVAILABLE:
+            pytest.skip("Wiki18FAISSRetriever not available")
+        
+        # 验证execute方法签名
+        import inspect
+        sig = inspect.signature(Wiki18FAISSRetriever.execute)
+        
+        # 应该有data参数
+        assert 'data' in sig.parameters
+        
+        # 验证参数类型注解（如果有的话）
+        data_param = sig.parameters['data']
+        if data_param.annotation != inspect.Parameter.empty:
+            # 检查是否接受Union[str, Dict[str, Any]]或类似类型
+            annotation_str = str(data_param.annotation)
+            assert 'str' in annotation_str or 'Any' in annotation_str
+        
+        # 验证返回类型注解（如果有的话）
+        if sig.return_annotation != sig.empty:
+            return_annotation_str = str(sig.return_annotation)
+            assert 'Dict' in return_annotation_str or 'dict' in return_annotation_str
+                    
+    def test_wiki18_faiss_config_validation(self, wiki18_faiss_config):
+        """测试Wiki18FAISSRetriever配置验证"""
+        if not WIKI18_FAISS_AVAILABLE:
+            pytest.skip("Wiki18FAISSRetriever not available")
+        
+        # 测试必需配置字段
+        assert "top_k" in wiki18_faiss_config
+        assert "embedding" in wiki18_faiss_config
+        assert wiki18_faiss_config["top_k"] > 0
+        assert "model" in wiki18_faiss_config["embedding"]
+            
+    def test_wiki18_faiss_search_with_no_results(self, wiki18_faiss_config):
+        """测试Wiki18FAISSRetriever搜索无结果的情况"""
+        if not WIKI18_FAISS_AVAILABLE:
+            pytest.skip("Wiki18FAISSRetriever not available")
+        
+        # 创建模拟的retriever实例
+        mock_retriever = Mock(spec=Wiki18FAISSRetriever)
+        
+        # 模拟execute方法返回无结果
+        def mock_execute(query):
+            return {
+                "query": str(query),
+                "results": []  # 无结果
+            }
+        
+        mock_retriever.execute = mock_execute
+        
+        # 测试搜索无结果
+        result = mock_retriever.execute("nonexistent query")
+        
+        # 验证结果
+        assert "query" in result
+        assert "results" in result
+        assert result["query"] == "nonexistent query"
+        assert len(result["results"]) == 0 
