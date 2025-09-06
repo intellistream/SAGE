@@ -169,9 +169,51 @@ void SageFlowEnvironment::run_batch() {
 }
 
 auto SageFlowEnvironment::create_datastream() -> DataStream {
-  // Create a new execution graph for this datastream
-  auto graph = std::make_shared<ExecutionGraph>();
-  return {stream_engine_, graph, static_cast<ExecutionGraph::OperatorId>(-1)};
+   // Create a new execution graph for this datastream
+   auto graph = std::make_shared<ExecutionGraph>();
+   return {stream_engine_, graph, static_cast<ExecutionGraph::OperatorId>(-1)};
+}
+
+// ===============================
+// Python-friendly method implementations
+// ===============================
+
+auto SageFlowEnvironment::get_config() const -> std::unordered_map<std::string, std::string> {
+    std::unordered_map<std::string, std::string> config_map;
+
+    // Add basic configuration
+    config_map["job_name"] = config_.job_name_;
+
+    // Add memory configuration
+    for (const auto& [key, value] : config_.memory_config_) {
+        config_map["memory_" + key] = value;
+    }
+
+    // Add properties
+    for (const auto& [key, value] : config_.properties_) {
+        config_map["property_" + key] = value;
+    }
+
+    return config_map;
+}
+
+auto SageFlowEnvironment::is_ready() const -> bool {
+    return !is_closed_ &&
+           stream_engine_ != nullptr &&
+           execution_graph_ != nullptr &&
+           !config_.job_name_.empty();
+}
+
+auto SageFlowEnvironment::get_status() const -> std::unordered_map<std::string, std::string> {
+    std::unordered_map<std::string, std::string> status;
+
+    status["job_name"] = config_.job_name_;
+    status["is_closed"] = is_closed_ ? "true" : "false";
+    status["has_stream_engine"] = (stream_engine_ != nullptr) ? "true" : "false";
+    status["has_execution_graph"] = (execution_graph_ != nullptr) ? "true" : "false";
+    status["has_memory_pool"] = (memory_pool_ != nullptr) ? "true" : "false";
+
+    return status;
 }
 
 }  // namespace sage_flow

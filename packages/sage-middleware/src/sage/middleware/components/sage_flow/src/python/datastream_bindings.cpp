@@ -14,6 +14,7 @@
 #include <pybind11/stl.h>
 
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <string>
 
@@ -144,39 +145,167 @@ PYBIND11_MODULE(sage_flow_datastream, m) {
 
   // Bind DataStream - using lambdas to handle move semantics properly
   py::class_<sage_flow::DataStream>(m, "DataStream")
-      // Add constructor binding to fix segmentation fault
-      .def(py::init<std::shared_ptr<sage_flow::StreamEngine>,
-                    std::shared_ptr<sage_flow::ExecutionGraph>,
-                    sage_flow::ExecutionGraph::OperatorId>(),
-           "Create DataStream with engine, graph and last operator ID",
-           py::arg("engine"), py::arg("graph"),
-           py::arg("last_operator_id") =
-               static_cast<sage_flow::ExecutionGraph::OperatorId>(-1))
+       // Add constructor binding to fix segmentation fault
+       .def(py::init<std::shared_ptr<sage_flow::StreamEngine>,
+                     std::shared_ptr<sage_flow::ExecutionGraph>,
+                     sage_flow::ExecutionGraph::OperatorId>(),
+            "Create DataStream with engine, graph and last operator ID",
+            py::arg("engine"), py::arg("graph"),
+            py::arg("last_operator_id") =
+                static_cast<sage_flow::ExecutionGraph::OperatorId>(-1))
 
+       // Core DataStream operations - simplified for pybind11 compatibility
+       .def("execute", &sage_flow::DataStream::execute,
+            "Execute the stream pipeline")
+       .def("stop", &sage_flow::DataStream::stop, "Stop stream execution")
+       .def("get_operator_count", &sage_flow::DataStream::getOperatorCount,
+            "Get number of operators in the stream")
+       .def("is_executing", &sage_flow::DataStream::isExecuting,
+            "Check if stream is executing")
 
-      // Core DataStream operations - simplified for pybind11 compatibility
-      .def("execute", &sage_flow::DataStream::execute,
-           "Execute the stream pipeline")
-      .def("stop", &sage_flow::DataStream::stop, "Stop stream execution")
-      .def("get_operator_count", &sage_flow::DataStream::getOperatorCount,
-           "Get number of operators in the stream")
-      .def("is_executing", &sage_flow::DataStream::isExecuting,
-           "Check if stream is executing")
+       // Execution control
+       .def("execute_async", &sage_flow::DataStream::executeAsync,
+            "Execute the stream pipeline asynchronously")
+       .def("stop", &sage_flow::DataStream::stop, "Stop stream execution")
 
-      // Execution control
-      .def("execute_async", &sage_flow::DataStream::executeAsync,
-           "Execute the stream pipeline asynchronously")
-      .def("stop", &sage_flow::DataStream::stop, "Stop stream execution")
+       // Pipeline information
+       .def("get_operator_count", &sage_flow::DataStream::getOperatorCount,
+            "Get number of operators in the stream")
+       .def("is_executing", &sage_flow::DataStream::isExecuting,
+            "Check if stream is executing")
+       .def("get_last_operator_id", &sage_flow::DataStream::getLastOperatorId,
+            "Get last operator ID")
+       .def("set_last_operator_id", &sage_flow::DataStream::setLastOperatorId,
+            "Set last operator ID")
 
-      // Pipeline information
-      .def("get_operator_count", &sage_flow::DataStream::getOperatorCount,
-           "Get number of operators in the stream")
-      .def("is_executing", &sage_flow::DataStream::isExecuting,
-           "Check if stream is executing")
-      .def("get_last_operator_id", &sage_flow::DataStream::getLastOperatorId,
-           "Get last operator ID")
-      .def("set_last_operator_id", &sage_flow::DataStream::setLastOperatorId,
-           "Set last operator ID");
+       // Python-friendly methods
+       .def("collect", &sage_flow::DataStream::collect,
+            "Collect all results into a list",
+            py::return_value_policy::move)
+       .def("take", &sage_flow::DataStream::take,
+            "Take first N messages from stream",
+            py::arg("n"))
+       .def("count", &sage_flow::DataStream::count,
+            "Count total messages in stream")
+       .def("empty", &sage_flow::DataStream::empty,
+            "Check if stream is empty")
+
+       // Stream processing operations with lambda support
+       .def("map",
+            [](sage_flow::DataStream& self, py::function func) -> sage_flow::DataStream& {
+              // Convert Python function to C++ lambda with proper message handling
+              auto cpp_func = [func](std::unique_ptr<sage_flow::MultiModalMessage> msg) -> std::unique_ptr<sage_flow::MultiModalMessage> {
+                if (!msg) return nullptr;
+
+                py::gil_scoped_acquire acquire;
+                try {
+                  // Convert C++ message to Python dict for easier manipulation
+                  py::dict py_msg;
+                  py_msg["uid"] = msg->getUid();
+                  py_msg["content_type"] = static_cast<int>(msg->getContentType());
+
+                  // Convert content based on type
+                  if (msg->getContentType() == sage_flow::ContentType::kText) {
+                    py_msg["content"] = msg->getContentAsString();
+                  } else {
+                    // For binary content, convert to bytes
+                    auto binary_data = msg->getContentAsBinary();
+                    py_msg["content"] = py::bytes(std::string(binary_data.begin(), binary_data.end()));
+                  }
+
+                  // Add metadata
+                  py_msg["metadata"] = msg->getMetadata();
+
+                  // Call Python function
+                  py::object result = func(py_msg);
+
+                  // Convert result back to C++ message
+                  if (py::isinstance<py::dict>(result)) {
+                    py::dict result_dict = result.cast<py::dict>();
+
+                    uint64_t uid = result_dict["uid"].cast<uint64_t>();
+                    auto content_type = static_cast<sage_flow::ContentType>(result_dict["content_type"].cast<int>());
+
+                    std::string content_str;
+                    if (result_dict.contains("content")) {
+                      if (py::isinstance<py::str>(result_dict["content"])) {
+                        content_str = result_dict["content"].cast<std::string>();
+                      } else if (py::isinstance<py::bytes>(result_dict["content"])) {
+                        content_str = result_dict["content"].cast<std::string>();
+                      }
+                    }
+
+                    auto new_msg = std::make_unique<sage_flow::MultiModalMessage>(
+                        uid, content_type,
+                        sage_flow::MultiModalMessage::ContentVariant(content_str)
+                    );
+
+                    // Copy metadata if present
+                    if (result_dict.contains("metadata")) {
+                      py::dict metadata = result_dict["metadata"].cast<py::dict>();
+                      for (auto item : metadata) {
+                        std::string key = item.first.cast<std::string>();
+                        std::string value = item.second.cast<std::string>();
+                        new_msg->setMetadata(key, value);
+                      }
+                    }
+
+                    return new_msg;
+                  } else {
+                    // If Python function doesn't return dict, return original message
+                    return std::move(msg);
+                  }
+                } catch (const py::error_already_set& e) {
+                  // Log error and return original message
+                  std::cerr << "Python map function error: " << e.what() << std::endl;
+                  return std::move(msg);
+                }
+              };
+              return self.map(cpp_func);
+            },
+            py::arg("func"),
+            "Apply map transformation with Python function",
+            py::return_value_policy::reference_internal)
+
+       .def("filter",
+            [](sage_flow::DataStream& self, py::function predicate) -> sage_flow::DataStream& {
+              // Convert Python function to C++ lambda
+              auto cpp_predicate = [predicate](const sage_flow::MultiModalMessage& msg) -> bool {
+                py::gil_scoped_acquire acquire;
+                try {
+                  // Convert C++ message to Python object
+                  py::object py_msg = py::cast(&msg, py::return_value_policy::reference);
+                  // Call Python function
+                  py::object result = predicate(py_msg);
+                  return result.cast<bool>();
+                } catch (const py::error_already_set& e) {
+                  throw std::runtime_error("Python filter function error: " + std::string(e.what()));
+                }
+              };
+              return self.filter(cpp_predicate);
+            },
+            py::arg("predicate"),
+            "Apply filter transformation with Python function",
+            py::return_value_policy::reference_internal)
+
+       .def("sink",
+            [](sage_flow::DataStream& self, py::function sink_func) {
+              // Convert Python function to C++ lambda
+              auto cpp_sink = [sink_func](const sage_flow::MultiModalMessage& msg) {
+                py::gil_scoped_acquire acquire;
+                try {
+                  // Convert C++ message to Python object
+                  py::object py_msg = py::cast(&msg, py::return_value_policy::reference);
+                  // Call Python function
+                  sink_func(py_msg);
+                } catch (const py::error_already_set& e) {
+                  throw std::runtime_error("Python sink function error: " + std::string(e.what()));
+                }
+              };
+              self.sink(cpp_sink);
+            },
+            py::arg("sink_func"),
+            "Apply sink operation with Python function");
 
   // Bind SageFlowEnvironment - the factory for DataStreams
   py::class_<sage_flow::SageFlowEnvironment>(m, "Environment")
@@ -200,7 +329,15 @@ PYBIND11_MODULE(sage_flow_datastream, m) {
       .def("submit", &sage_flow::SageFlowEnvironment::submit,
            "Submit job for execution")
       .def("close", &sage_flow::SageFlowEnvironment::close,
-           "Close environment and cleanup");
+           "Close environment and cleanup")
+
+      // Python-friendly methods
+      .def("get_config", &sage_flow::SageFlowEnvironment::get_config,
+           "Get environment configuration")
+      .def("is_ready", &sage_flow::SageFlowEnvironment::is_ready,
+           "Check if environment is ready")
+      .def("get_status", &sage_flow::SageFlowEnvironment::get_status,
+           "Get environment status information");
 
   // Bind EnvironmentConfig
   py::class_<sage_flow::EnvironmentConfig>(m, "EnvironmentConfig")

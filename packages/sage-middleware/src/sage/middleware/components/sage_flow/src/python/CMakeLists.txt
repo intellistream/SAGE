@@ -11,8 +11,6 @@ if(pybind11_FOUND)
     target_link_libraries(sage_flow_datastream PRIVATE -static-libstdc++ -static-libgcc)
 
     target_link_libraries(sage_flow_datastream PRIVATE
-        sage_flow_core
-        sage_flow_common
         sage_flow_datastream_lib
         sage_flow_engine
         sage_flow_environment

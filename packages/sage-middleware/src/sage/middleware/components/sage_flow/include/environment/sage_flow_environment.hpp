@@ -127,6 +127,28 @@ public:
    */
   auto create_datastream() -> DataStream;
 
+  // ===============================
+  // Python-friendly methods
+  // ===============================
+
+  /**
+   * @brief Get environment configuration as a map (Python-friendly)
+   * @return Configuration properties
+   */
+  auto get_config() const -> std::unordered_map<std::string, std::string>;
+
+  /**
+   * @brief Check if environment is ready for use (Python-friendly)
+   * @return True if environment is properly initialized
+   */
+  auto is_ready() const -> bool;
+
+  /**
+   * @brief Get environment status information (Python-friendly)
+   * @return Status information map
+   */
+  auto get_status() const -> std::unordered_map<std::string, std::string>;
+
 private:
   EnvironmentConfig config_;
   std::shared_ptr<MemoryPool> memory_pool_;

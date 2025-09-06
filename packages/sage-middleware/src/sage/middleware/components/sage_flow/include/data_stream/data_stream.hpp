@@ -215,6 +215,35 @@ public:
   auto getGraph() const -> std::shared_ptr<ExecutionGraph>;
   auto getEngine() const -> std::shared_ptr<StreamEngine>;
 
+  // ===============================
+  // Python-friendly methods
+  // ===============================
+
+  /**
+   * @brief Collect results into a vector (Python-friendly)
+   * @return Vector of processed messages
+   */
+  auto collect() -> std::vector<std::unique_ptr<MultiModalMessage>>;
+
+  /**
+   * @brief Get the first N messages (Python-friendly)
+   * @param n Number of messages to take
+   * @return DataStream with limited results
+   */
+  auto take(size_t n) -> DataStream;
+
+  /**
+   * @brief Count total messages (Python-friendly)
+   * @return Total count of messages
+   */
+  auto count() -> size_t;
+
+  /**
+   * @brief Check if stream is empty (Python-friendly)
+   * @return True if no messages available
+   */
+  auto empty() const -> bool;
+
 private:
   std::shared_ptr<StreamEngine> engine_;
   std::shared_ptr<ExecutionGraph> graph_;

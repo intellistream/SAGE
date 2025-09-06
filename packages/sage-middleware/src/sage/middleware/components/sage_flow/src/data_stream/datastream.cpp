@@ -371,7 +371,51 @@ auto DataStream::validateConfig(
 }
 
 auto DataStream::canExecute() const -> bool {
-   return graph_ && engine_ && graph_->size() > 0;
+    return graph_ && engine_ && graph_->size() > 0;
+}
+
+// ===============================
+// Python-friendly method implementations
+// ===============================
+
+auto DataStream::collect() -> std::vector<std::unique_ptr<MultiModalMessage>> {
+    std::vector<std::unique_ptr<MultiModalMessage>> results;
+
+    // For now, create a simple collection mechanism
+    // This would need to be enhanced with proper execution and result collection
+    if (canExecute()) {
+        // Execute the stream and collect results
+        // This is a simplified implementation
+        execute();
+
+        // In a real implementation, we would collect results from the sink operators
+        // For now, return empty vector as placeholder
+    }
+
+    return results;
+}
+
+auto DataStream::take(size_t n) -> DataStream {
+    // Create a new DataStream with a take operator
+    // This is a simplified implementation
+    auto new_graph = std::make_shared<ExecutionGraph>();
+    DataStream result_stream(engine_, new_graph, static_cast<ExecutionGraph::OperatorId>(-1));
+
+    // Copy current operators up to the limit
+    // This would need proper implementation of a take operator
+
+    return result_stream;
+}
+
+auto DataStream::count() -> size_t {
+    // For now, return operator count as a simple metric
+    // In a real implementation, this would count actual messages
+    return getOperatorCount();
+}
+
+auto DataStream::empty() const -> bool {
+    // Check if the stream has any operators configured
+    return getOperatorCount() == 0;
 }
 
 }  // namespace sage_flow

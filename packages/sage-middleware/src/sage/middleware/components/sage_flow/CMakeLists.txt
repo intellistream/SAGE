@@ -16,6 +16,13 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # ============================================================================
+# Compiler and Linker Settings
+# ============================================================================
+# Use static linking for libstdc++ to avoid GLIBC version issues
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+
+# ============================================================================
 # Subdirectories
 # ============================================================================
 add_subdirectory(src)
