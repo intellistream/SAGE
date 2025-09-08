@@ -1,23 +1,21 @@
-# sage/service/memory/memory_manager.py
-# python -m sage.middleware.services.neuromem.memory_manager
 import os
 import json
 import shutil
 from typing import Any, Dict, List, Optional, Union
-
 from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
 from sage.middleware.components.neuromem.utils.path_utils import get_default_data_dir
 from sage.middleware.components.neuromem.memory_collection.base_collection import BaseMemoryCollection
 from sage.middleware.components.neuromem.memory_collection.graph_collection import GraphMemoryCollection
 from sage.middleware.components.neuromem.memory_collection.kv_collection import KVMemoryCollection
 from sage.middleware.components.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
-from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
+
+
 
 class MemoryManager:
     """
     内存管理器，管理不同类型的 MemoryCollection 实例
     """
-
     def __init__(self, data_dir: Optional[str] = None):
         self.logger = CustomLogger()
         
@@ -32,34 +30,45 @@ class MemoryManager:
 
     def create_collection(
             self,
-            name: str,
-            backend_type: str,
-            description: str = "",
-            embedding_model: Optional[Any] = None,
-            dim: Optional[int] = None,
-    ) -> BaseMemoryCollection:
+            config: Dict[str, Any] = {}
+        ):
         """
-        创建新的集合
-        直接返回collection
+        创建新的collection并返回
         """
-        
+
+        # 检查 name 参数，必须存在
+        name = config.get("name")
+        if not name:
+            self.logger.warning("`name` is required in config but not provided.")
+            return None
         if name in self.collection_metadata:
             self.logger.warning(f"Collection with name '{name}' already exists.")
             return None
 
         metadata = {
-        "description": description,
-        "backend_type": backend_type
+            "description": config.get("description", ""),
+            "backend_type": config.get("backend_type").lower()
         }
 
-        # 创建基础集合
-        if backend_type == "VDB":
-            if embedding_model is None or dim is None:
-                self.logger.warning(f"VDB requires parameter 'embedding_model' and 'dim', use default values.")
-                embedding_model = apply_embedding_model("default")
-                dim = embedding_model.get_dim()
+        # 进入创建流程
+        backend_type = config.get("backend_type").lower()
+        if "vdb" in backend_type:
+            # VDB 参数检查
+            dim = config.get("dim")
+            embedding_model = config.get("embedding_model")
+            if not isinstance(dim, int) or dim <= 0:
+                self.logger.warning(
+                    f"Invalid dim: {dim}. It must be a positive integer."
+                )
+                return None
 
-            # 使用新的config字典方式创建VDB集合
+            if not isinstance(embedding_model, str) or not embedding_model.strip():
+                self.logger.warning(
+                    f"Invalid embedding_model: {embedding_model}. It must be a non-empty string."
+                )
+                return None
+
+            # 使用config字典方式创建VDB集合
             vdb_config = {
                 "name": name,
                 "default_embedding_model": embedding_model.method_name,
@@ -70,22 +79,31 @@ class MemoryManager:
                 "embedding_model_method": embedding_model.method_name,
                 "embedding_dim": dim
             })
-        elif backend_type == "KV":
-            # 使用新的config字典方式创建KV集合
+
+        elif "kv" in backend_type:
+            # 使用config字典方式创建KV集合
             kv_config = {
                 "name": name
             }
             new_collection = KVMemoryCollection(kv_config)
-        elif backend_type == "GRAPH":
+
+        elif "graph" in backend_type:
+            # TODO: Graph Collection
             new_collection = GraphMemoryCollection(name)
+
         else:
-            self.logger.error(f"Unsupported backend_type: {backend_type}")
+            self.logger.warning(f"Unsupported backend_type: {backend_type}")
+            return None 
 
         # 存储到 collections
         self.collections[name] = new_collection
         self.collection_metadata[name] = metadata
         self.collection_status[name] = "loaded"
         return new_collection
+
+    def has_collection(self, name: str) -> bool:
+        """检查collection是否存在（内存或磁盘）"""
+        return name in self.collections
 
     def get_collection(self, name: str) -> Optional[BaseMemoryCollection]:
         """优先返回内存collection，不在内存则尝试磁盘懒加载并发警告"""

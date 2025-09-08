@@ -3,7 +3,6 @@ Metronome - 全局同步锁机制
 用于控制Pipeline中数据的逐个处理节奏
 """
 import threading
-import time
 from typing import Optional
 from sage.common.utils.logging.custom_logger import CustomLogger
 

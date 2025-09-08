@@ -12,32 +12,35 @@ class FaissIndex(BaseVDBIndex):
     def __init__(
         self, 
         config: Optional[dict]
-        ):
+    ):
         super().__init__()
         """
         初始化 FaissIndex 实例，支持两种初始化方式：
-        1. 直接通过声明来创建：传入 config
+        1. 通过声明来创建：传入 config
         2. 通过 FaissIndex.load() 来加载：调用load方法
         
         Initialize the FaissIndex instance with two initialization methods:
-        1. Direct creation: pass config
+        1. Creation: by config and new
         2. Load from disk: use load method
         """
         self.logger = CustomLogger()
+        
+        if config is None:
+            raise ValueError("Config cannot be None for FaissIndex initialization")
         self.config = config
         
-        # 从config中获取必要参数，否则使用默认值
+        # 从config中获取必要参数
         self.index_name = self.config.get("name", None)
         if self.index_name is None:
-            self.logger.error("索引名称(name)未在config中指定，无法创建索引")
-            raise ValueError("索引名称(name)未在config中指定")
+            self.logger.error("The index name is not specified in the config, so the index cannot be created.")
+            raise ValueError("The index name is not specified in the config, so the index cannot be created.")
         
         self.dim = self.config.get("dim", 128)
         self.id_map: Dict[int, str] = {}
         self.rev_map: Dict[str, int] = {}
         self.next_id: int = 1
         self.tombstones: set[str] = set()
-        self.tombstone_threshold = self.config.get("tombstone_threshold", 30)  # 墓碑阈值
+        self.tombstone_threshold = self.config.get("tombstone_threshold", 30) 
         self.index, self._deletion_supported = self._init_index()
         
         # 确保索引被IndexIDMap包装以支持自定义ID
@@ -47,6 +50,9 @@ class FaissIndex(BaseVDBIndex):
         
         # 用于检测重复向量的容器
         self.vector_hashes: Dict[str, str] = {}  # vector_hash -> string_id
+        
+        # 存储向量副本用于重建索引
+        self.vector_store: Dict[str, np.ndarray] = {}  # string_id -> vector
            
     def _init_index(self):
         config = self.config  # 保持全程都叫config
@@ -169,7 +175,8 @@ class FaissIndex(BaseVDBIndex):
         计算向量的哈希值用于检测重复
         Calculate vector hash for duplicate detection
         """
-        return str(hash(vector.tobytes()))
+        import hashlib
+        return hashlib.md5(vector.tobytes()).hexdigest()
     
     def _rebuild_index_if_needed(self):
         """
@@ -181,18 +188,54 @@ class FaissIndex(BaseVDBIndex):
             
         self.logger.warning(f"墓碑数量({len(self.tombstones)})达到阈值({self.tombstone_threshold})，开始重建索引")
         
-        # 由于FAISS不提供直接获取向量的方法，这里只是清空墓碑
-        # 在实际生产环境中，可能需要维护向量的副本或使用其他策略
+        # 收集有效的向量和ID
+        valid_vectors = []
+        valid_ids = []
+        new_id_map = {}
+        new_rev_map = {}
+        new_vector_hashes = {}
+        new_vector_store = {}
+        
+        next_id = 1
+        for string_id, vector in self.vector_store.items():
+            if string_id not in self.tombstones:
+                valid_vectors.append(vector)
+                valid_ids.append(string_id)
+                
+                new_rev_map[string_id] = next_id
+                new_id_map[next_id] = string_id
+                new_vector_store[string_id] = vector
+                
+                vector_hash = self._get_vector_hash(vector)
+                new_vector_hashes[vector_hash] = string_id
+                
+                next_id += 1
+        
+        if valid_vectors:
+            # 重新创建索引
+            self.index, self._deletion_supported = self._init_index()
+            if not isinstance(self.index, faiss.IndexIDMap):
+                self.index = faiss.IndexIDMap(self.index)
+            
+            # 批量添加有效向量
+            np_vectors = np.vstack(valid_vectors).astype("float32")
+            int_ids_np = np.array([new_rev_map[sid] for sid in valid_ids], dtype=np.int64)
+            self.index.add_with_ids(np_vectors, int_ids_np)
+        else:
+            # 如果没有有效向量，创建空索引
+            self.index, self._deletion_supported = self._init_index()
+            if not isinstance(self.index, faiss.IndexIDMap):
+                self.index = faiss.IndexIDMap(self.index)
+        
+        # 更新映射关系
+        self.id_map = new_id_map
+        self.rev_map = new_rev_map
+        self.vector_hashes = new_vector_hashes
+        self.vector_store = new_vector_store
+        self.next_id = next_id
         self.tombstones.clear()
         
-        # 清理向量哈希中已删除的条目
-        valid_hashes = {}
-        for vector_hash, string_id in self.vector_hashes.items():
-            if string_id in self.rev_map and string_id not in self.tombstones:
-                valid_hashes[vector_hash] = string_id
-        self.vector_hashes = valid_hashes
-        
-        self.logger.info("索引重建完成，墓碑已清零")
+        self.logger.info(f"索引重建完成，保留{len(valid_ids)}个有效向量，墓碑已清零")
 
     def _get_metric(self, metric_str):
         """
@@ -225,6 +268,12 @@ class FaissIndex(BaseVDBIndex):
             self.index = faiss.IndexIDMap(self.index)  # 仅当未包装时才包装
         self.index.add_with_ids(np_vectors, int_ids_np)  # type: ignore
         
+        # 存储向量副本和哈希
+        for vector, string_id in zip(vectors, ids):
+            self.vector_store[string_id] = vector.astype("float32").flatten()
+            vector_hash = self._get_vector_hash(vector)
+            self.vector_hashes[vector_hash] = string_id
+        
     def delete(self, string_id: str) -> int:
         """
         删除指定ID（物理删除或墓碑标记）
@@ -247,7 +296,7 @@ class FaissIndex(BaseVDBIndex):
                 # 清理映射关系
                 del self.rev_map[string_id]
                 del self.id_map[int_id]
-                # 清理向量哈希
+                # 清理向量哈希和存储
                 vector_hash_to_remove = None
                 for vh, sid in self.vector_hashes.items():
                     if sid == string_id:
@@ -255,6 +304,8 @@ class FaissIndex(BaseVDBIndex):
                         break
                 if vector_hash_to_remove:
                     del self.vector_hashes[vector_hash_to_remove]
+                if string_id in self.vector_store:
+                    del self.vector_store[string_id]
                 self.logger.info(f"成功删除ID: {string_id}")
                 return 1
             except Exception as e:
@@ -299,7 +350,7 @@ class FaissIndex(BaseVDBIndex):
                 int_id_np = np.array([int_id], dtype=np.int64)
                 self.index.add_with_ids(vector, int_id_np)  # type: ignore
                 
-                # 更新向量哈希
+                # 更新向量哈希和存储
                 old_hash_to_remove = None
                 for vh, sid in self.vector_hashes.items():
                     if sid == string_id:
@@ -308,6 +359,7 @@ class FaissIndex(BaseVDBIndex):
                 if old_hash_to_remove:
                     del self.vector_hashes[old_hash_to_remove]
                 self.vector_hashes[new_vector_hash] = string_id
+                self.vector_store[string_id] = new_vector.astype("float32").flatten()
                 
                 self.logger.info(f"成功更新ID: {string_id}")
                 return 1
@@ -330,7 +382,7 @@ class FaissIndex(BaseVDBIndex):
             int_id_np = np.array([new_int_id], dtype=np.int64)
             self.index.add_with_ids(vector, int_id_np)  # type: ignore
             
-            # 更新向量哈希
+            # 更新向量哈希和存储
             old_hash_to_remove = None
             for vh, sid in self.vector_hashes.items():
                 if sid == string_id:
@@ -339,6 +391,7 @@ class FaissIndex(BaseVDBIndex):
             if old_hash_to_remove:
                 del self.vector_hashes[old_hash_to_remove]
             self.vector_hashes[new_vector_hash] = string_id
+            self.vector_store[string_id] = new_vector.astype("float32").flatten()
             
             self.logger.info(f"成功更新ID: {string_id}")
             return 1
@@ -403,17 +456,25 @@ class FaissIndex(BaseVDBIndex):
         
         Returns:
             1: 插入成功
-            0: 插入失败（向量重复）
+            0: 插入失败（向量重复或ID已存在）
         """
+        # 检查ID是否已存在且不在墓碑中
+        if string_id in self.rev_map and string_id not in self.tombstones:
+            self.logger.warning(f"ID {string_id} 已存在，无法插入")
+            return 0
+            
         # 检查向量是否重复
         vector_hash = self._get_vector_hash(vector)
         if vector_hash in self.vector_hashes:
             existing_id = self.vector_hashes[vector_hash]
-            self.logger.warning(f"向量重复: 尝试插入的向量与已存在的ID {existing_id} 相同")
-            return 0
+            if existing_id not in self.tombstones:  # 确保现有ID未被删除
+                self.logger.warning(f"向量重复: 尝试插入的向量与已存在的ID {existing_id} 相同")
+                return 0
         
-        if string_id in self.rev_map:
+        # 如果是墓碑状态的ID，复用其int_id
+        if string_id in self.rev_map and string_id in self.tombstones:
             int_id = self.rev_map[string_id]
+            self.tombstones.remove(string_id)  # 移除墓碑标记
         else:
             int_id = self.next_id
             self.next_id += 1
@@ -424,8 +485,9 @@ class FaissIndex(BaseVDBIndex):
         int_id_np = np.array([int_id], dtype=np.int64)
         self.index.add_with_ids(vector, int_id_np) # type: ignore
         
-        # 记录向量哈希
+        # 记录向量哈希和存储向量副本
         self.vector_hashes[vector_hash] = string_id
+        self.vector_store[string_id] = vector.astype("float32").flatten()  # 存储1D副本
         
         self.logger.info(f"成功插入向量，ID: {string_id}")
         return 1
@@ -481,10 +543,11 @@ class FaissIndex(BaseVDBIndex):
             
         self.index.add_with_ids(np_vectors, int_ids_np)  # type: ignore
         
-        # 记录向量哈希
+        # 记录向量哈希和存储
         for vector, string_id in zip(valid_vectors, valid_ids):
             vector_hash = self._get_vector_hash(vector)
             self.vector_hashes[vector_hash] = string_id
+            self.vector_store[string_id] = vector.astype("float32").flatten()
             
         success_count = len(valid_vectors)
         self.logger.info(f"批量插入完成，成功插入 {success_count} 个向量")
@@ -506,6 +569,8 @@ class FaissIndex(BaseVDBIndex):
                 pickle.dump(self.tombstones, f)
             with open(os.path.join(dir_path, "vector_hashes.pkl"), "wb") as f:
                 pickle.dump(self.vector_hashes, f)
+            with open(os.path.join(dir_path, "vector_store.pkl"), "wb") as f:
+                pickle.dump(self.vector_store, f)
             # 3. 保存参数（如dim、下一个ID、自定义config等）
             meta = {
                 "index_name": self.index_name,
@@ -541,6 +606,14 @@ class FaissIndex(BaseVDBIndex):
                 self.vector_hashes = pickle.load(f)
         else:
             self.vector_hashes = {}
+            
+        # 加载向量存储（如果存在）
+        vector_store_path = os.path.join(dir_path, "vector_store.pkl")
+        if os.path.exists(vector_store_path):
+            with open(vector_store_path, "rb") as f:
+                self.vector_store = pickle.load(f)
+        else:
+            self.vector_store = {}
 
     @classmethod
     def load(cls, name: str, load_path: str) -> "FaissIndex":
@@ -570,6 +643,7 @@ class FaissIndex(BaseVDBIndex):
         instance._deletion_supported = meta.get("deletion_supported", True)
         instance.tombstone_threshold = meta.get("tombstone_threshold", 30)
         instance.vector_hashes = {}  # 将在_load_data中加载
+        instance.vector_store = {}   # 将在_load_data中加载
         
         # 加载保存的数据
         instance._load_data(load_path)
@@ -614,7 +688,14 @@ if __name__ == "__main__":
 
     # 使用新的初始化方式
     config = {"name": index_name, "dim": dim, "tombstone_threshold": 2}  # 设置较小的墓碑阈值用于测试
-    index = FaissIndex(config=config, vectors=vectors, ids=ids)
+    index = FaissIndex(config=config)
+    
+    # 先插入初始数据
+    for vector, vector_id in zip(vectors, ids):
+        result = index.insert(vector, vector_id)
+        if result != 1:
+            print(f"初始插入失败: {vector_id}")
+    
     # 1. 检索
     q1 = np.array([1.0, 0.0, 0.0, 0.0])
     r_ids, r_dists = index.search(q1, 3)
