@@ -35,7 +35,7 @@ class FilterOperator(BaseOperator):
             self.logger.info(f"FilterOperator {self.name}: Processing packet with payload: {packet.payload}")
             
             # 执行过滤逻辑
-            should_pass = self.function.execute(packet.payload)
+            should_pass = self.function(packet.payload)
             
             self.logger.info(f"FilterOperator {self.name}: Filter result: {should_pass}")
             

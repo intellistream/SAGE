@@ -25,8 +25,9 @@ class KeyByOperator(BaseOperator):
                 return
             
             # 提取分区键
-            extracted_key = self.process(packet.payload)
-            
+            extracted_key = self.function(packet.payload)
+            self.logger.debug(f"KeyByOperator '{self.name}' extracted key: {extracted_key}")
+
             # 创建带有新分区信息的packet
             keyed_packet = packet.update_key(extracted_key, self.partition_strategy)
             
@@ -40,15 +41,3 @@ class KeyByOperator(BaseOperator):
             # 回退：发送原始packet
             if packet:
                 self.router.send(packet)
-
-
-    def process(self, raw_data: Any, input_index: int = 0) -> Any:
-        """提取键，返回原始数据（分区信息将在packet级别处理）"""
-        try:
-            extracted_key = self.function.execute(raw_data)
-            self.logger.debug(f"KeyByOperator '{self.name}' extracted key: {extracted_key}")
-            return extracted_key
-            
-        except Exception as e:
-            self.logger.error(f"Error extracting key in {self.name}: {e}", exc_info=True)
-            return raw_data

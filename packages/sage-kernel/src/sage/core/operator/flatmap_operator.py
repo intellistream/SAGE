@@ -52,7 +52,7 @@ class FlatMapOperator(BaseOperator):
             self.out.clear()
             
             # 执行flatmap function
-            result = self.function.execute(packet.payload)
+            result = self.function(packet.payload)
             
             # 处理function的返回值（如果有）
             if result is not None:

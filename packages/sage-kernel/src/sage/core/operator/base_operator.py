@@ -14,15 +14,6 @@ class BaseOperator(ABC):
 
         self.ctx: "TaskContext" = ctx
         self.function: "BaseFunction" = function
-        try:
-            self.function = function
-            self.logger.debug(
-                f"Created function instance with {function.__class__.__name__}"
-            )
-
-        except Exception as e:
-            self.logger.error(f"Failed to create function instance: {e}", exc_info=True)
-            raise
 
     def send_packet(self, packet: "Packet") -> bool:
         """

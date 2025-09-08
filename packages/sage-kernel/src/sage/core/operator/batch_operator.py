@@ -13,14 +13,6 @@ class BatchOperator(BaseOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # 检查function是否启用metronome
-        self._metronome = None
-        if hasattr(self.function, 'use_metronome') and self.function.use_metronome:
-            if hasattr(self.function, 'metronome') and self.function.metronome is not None:
-                self._metronome = self.function.metronome
-                self.logger.info(f"BatchOperator {self.name} using metronome: {self._metronome.name}")
-            else:
-                self.logger.warning(f"BatchOperator {self.name} use_metronome=True but no metronome provided")
 
     def receive_packet(self, packet: 'Packet'):
         self.process_packet(packet)
@@ -28,7 +20,7 @@ class BatchOperator(BaseOperator):
     def process_packet(self, packet: 'Packet' = None):
         try:
             
-            result = self.function.execute()
+            result = self.function()
             self.logger.debug(f"Operator {self.name} processed data with result: {result}")
             
             # 如果结果是None，表示批处理完成，发送停止信号
@@ -51,15 +43,11 @@ class BatchOperator(BaseOperator):
             if result is not None:
                 success = self.router.send(Packet(result))
                 # If sending failed (e.g., queue is closed), stop the task
+                # TODO: 把这里改成try-catch
                 if not success:
                     self.logger.warning(f"Batch Operator {self.name} failed to send packet, stopping task")
                     self.ctx.set_stop_signal()
                     return
-                
-                # 如果启用了metronome，发送数据后立即锁定，等待Sink处理完成
-                if self._metronome is not None:
-                    self.logger.debug(f"BatchOperator {self.name} locking metronome after sending data")
-                    self._metronome.lock_after_send()
-                    
+
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)

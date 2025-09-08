@@ -14,40 +14,14 @@ class CoMapOperator(BaseOperator):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # 验证函数类型（在运行时初始化后进行）
-        self._validate_function()
         self._validated = True
-
-    
-    def _validate_function(self) -> None:
-        """
-        验证函数是否为CoMap函数
-        
-        Raises:
-            TypeError: 如果函数不是CoMap函数
-        """
-        if not hasattr(self.function, 'is_comap') or not self.function.is_comap:
-            raise TypeError(
-                f"{self.__class__.__name__} requires CoMap function with is_comap=True, "
-                f"got {type(self.function).__name__}"
-            )
-        
-        # 验证必需的map0和map1方法
-        required_methods = ['map0', 'map1']
-        for method_name in required_methods:
-            if not hasattr(self.function, method_name):
-                raise TypeError(
-                    f"CoMap function {type(self.function).__name__} must implement {method_name} method"
-                )
-        
-        self.logger.debug(f"Validated CoMap function {type(self.function).__name__}")
     
     def process_packet(self, packet: 'Packet' = None):
         """CoMap处理多输入，保持分区信息"""
         try:
             if packet is None or packet.payload is None:
                 return
-            
+            # TODO: 重新设计comap协议，直接用index去call callable的function，让function自己在里边处理
             # 根据输入索引调用对应的mapN方法
             input_index = packet.input_index
             map_method = getattr(self.function, f'map{input_index}')

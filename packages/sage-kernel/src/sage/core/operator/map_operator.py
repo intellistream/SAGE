@@ -15,6 +15,7 @@ class MapOperator(BaseOperator):
         if self.enable_profile:
             self._setup_time_tracking()
 
+    # TODO: 这些tracking逻辑应该在task层面去做
     def _setup_time_tracking(self):
         """设置时间统计的存储路径"""
         if hasattr(self.ctx, 'env_base_dir') and self.ctx.env_base_dir:
@@ -65,7 +66,7 @@ class MapOperator(BaseOperator):
                 start_time = time.time()
 
                 # 执行function
-                result = self.function.execute(packet.payload)
+                result = self.function(packet.payload)
 
                 # 执行后记录时间
                 end_time = time.time()

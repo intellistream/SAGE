@@ -15,7 +15,7 @@ class SourceOperator(BaseOperator):
     def process_packet(self, packet: 'Packet' = None):
         try:
             
-            result = self.function.execute()
+            result = self.function()
             self.logger.debug(f"Operator {self.name} processed data with result: {result}")
             if result is not None:
                 self.logger.info(f"SourceOperator {self.name}: Sending packet with payload: {result}")

@@ -6,7 +6,7 @@ from sage.core.communication.packet import Packet
 class JoinOperator(BaseOperator):
     """
     Join操作符 - 处理多输入流的关联操作
-    
+    # TODO: 
     JoinOperator专门用于处理Join函数，它会提取packet的payload、key和tag信息，
     然后调用join function的execute方法进行关联处理。
     """
@@ -14,41 +14,11 @@ class JoinOperator(BaseOperator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # 验证函数类型（在运行时初始化后进行）
-        self._validate_function()
         self._validated = True
         
         # 统计信息
         self.processed_count = 0
         self.emitted_count = 0
-
-    def _validate_function(self) -> None:
-        """
-        验证函数是否为Join函数
-        
-        Raises:
-            TypeError: 如果函数不是Join函数
-        """
-        if not hasattr(self.function, 'is_join') or not self.function.is_join:
-            raise TypeError(
-                f"{self.__class__.__name__} requires Join function with is_join=True, "
-                f"got {type(self.function).__name__}"
-            )
-        
-        # 验证必需的execute方法
-        if not hasattr(self.function, 'execute'):
-            raise TypeError(
-                f"Join function {type(self.function).__name__} must implement execute method"
-            )
-        
-        # 验证execute方法不是抽象方法
-        execute_method = getattr(self.function, 'execute')
-        if getattr(execute_method, '__isabstractmethod__', False):
-            raise TypeError(
-                f"Join function {type(self.function).__name__} must implement execute method "
-                f"(currently abstract)"
-            )
-        
-        self.logger.debug(f"Validated Join function {type(self.function).__name__}")
     
     def process_packet(self, packet: 'Packet' = None):
         """Join处理，将packet信息传递给join function"""
@@ -78,7 +48,7 @@ class JoinOperator(BaseOperator):
             )
             
             # 调用join function的execute方法
-            join_results = self.function.execute(payload, join_key, stream_tag)
+            join_results = self.function(payload, join_key, stream_tag)
             
             # 处理返回结果
             if join_results is not None:

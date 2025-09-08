@@ -17,7 +17,7 @@ class SinkOperator(BaseOperator):
             if packet is None or packet.payload is None:
                 self.logger.warning(f"Operator {self.name} received empty data")
             else:
-                result = self.function.execute(packet.payload)
+                result = self.function(packet.payload)
                 self.logger.debug(f"Operator {self.name} processed data with result: {result}")
                     
         except Exception as e:
