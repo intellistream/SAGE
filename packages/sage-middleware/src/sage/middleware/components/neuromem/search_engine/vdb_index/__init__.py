@@ -1,56 +1,80 @@
-"""
-SAGE - Streaming-Augmented Generative Execution
-"""
+# file sage/middleware/services/neuromem/search_engine/vdb_index/__init__.py
 
-# 动态版本加载
-def _load_version():
-    """从 sage-common 包加载版本信息"""
-    try:
-        # 优先从 sage-common 包加载版本
-        from sage.common._version import __version__
-        return {
-            'version': __version__,
-            'author': 'SAGE Team',
-            'email': 'shuhao_zhang@hust.edu.cn'
-        }
-    except ImportError:
-        # 如果 sage-common 不可用，从项目根目录加载（开发环境）
-        try:
-            from pathlib import Path
-            current_file = Path(__file__).resolve()
-            # 根据当前文件位置计算到项目根目录的层数
-            parts = current_file.parts
-            sage_index = -1
-            for i, part in enumerate(parts):
-                if part == 'SAGE':
-                    sage_index = i
-                    break
-            
-            if sage_index >= 0:
-                root_dir = Path(*parts[:sage_index+1])
-                version_file = root_dir / "_version.py"
-                
-                if version_file.exists():
-                    version_globals = {}
-                    with open(version_file, 'r', encoding='utf-8') as f:
-                        exec(f.read(), version_globals)
-                    return {
-                        'version': version_globals.get('__version__', '0.1.3'),
-                        'author': version_globals.get('__author__', 'SAGE Team'),
-                        'email': version_globals.get('__email__', 'shuhao_zhang@hust.edu.cn')
-                    }
-        except Exception:
-            pass
+from typing import Dict, Type, Optional, Any
+from .base_vdb_index import BaseVDBIndex
+
+
+class VDBIndexFactory:
+    """向量数据库索引工厂类 - 简化版本"""
     
-    # 最后的默认值
-    return {
-        'version': '0.1.3',
-        'author': 'SAGE Team', 
-        'email': 'shuhao_zhang@hust.edu.cn'
-    }
+    # 注册的索引类型映射
+    _index_registry: Dict[str, Type[BaseVDBIndex]] = {}
+    
+    @classmethod
+    def register_index(cls, index_type: str, index_class: Type[BaseVDBIndex]):
+        """注册新的索引类型"""
+        if not issubclass(index_class, BaseVDBIndex):
+            raise TypeError(f"Index class {index_class} must inherit from BaseVDBIndex")
+        cls._index_registry[index_type.upper()] = index_class
+    
+    def create_index(self, config: Dict[str, Any]) -> BaseVDBIndex:
+        """
+        创建索引 - 简化版本，只支持config方式创建
+        
+        Args:
+            config: 配置字典，必须包含 name, dim, backend_type
+            
+        Returns:
+            创建的索引实例
+        """
+        # 检查必要字段
+        required_fields = ["name", "dim"]
+        for field in required_fields:
+            if field not in config:
+                raise ValueError(f"配置中缺少必要字段: {field}")
+        
+        backend_type = config.get("backend_type", "FAISS").upper()
+        
+        if backend_type not in self._index_registry:
+            raise ValueError(f"不支持的索引类型: {backend_type}")
+        
+        index_class = self._index_registry[backend_type]
+        return index_class(config=config)
 
-# 加载信息
-_info = _load_version()
-__version__ = _info['version']
-__author__ = _info['author']
-__email__ = _info['email']
+
+# 全局工厂实例
+index_factory = VDBIndexFactory()
+
+
+def register_index_type(index_type: str, index_class: Type[BaseVDBIndex]):
+    """注册新的索引类型"""
+    VDBIndexFactory.register_index(index_type, index_class)
+
+
+def create_index(config: Dict[str, Any]) -> BaseVDBIndex:
+    """创建索引"""
+    return index_factory.create_index(config)
+
+
+# 自动注册FAISS索引
+def _auto_register_indexes():
+    """自动注册已知的索引类型"""
+    try:
+        from .faiss_index import FaissIndex
+        register_index_type("FAISS", FaissIndex)
+    except ImportError:
+        pass
+
+
+# 执行自动注册
+_auto_register_indexes()
+
+
+# 导出公共接口
+__all__ = [
+    "VDBIndexFactory",
+    "BaseVDBIndex", 
+    "index_factory",
+    "register_index_type",
+    "create_index"
+]
