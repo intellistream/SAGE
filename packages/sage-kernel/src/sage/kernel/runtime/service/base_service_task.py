@@ -134,7 +134,6 @@ class BaseServiceTask(ABC):
         self._queue_listener_running = True
         self._queue_listener_thread = threading.Thread(
             target=self._queue_listener_loop,
-            daemon=True,
             name=f"QueueListener_{self.service_name}"
         )
         self._queue_listener_thread.start()

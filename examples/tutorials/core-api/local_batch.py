@@ -1,3 +1,4 @@
+from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.remote_environment import RemoteEnvironment
 from sage.core.api.function.sink_function import SinkFunction
@@ -6,7 +7,7 @@ from sage.kernel.runtime.communication.router.packet import StopSignal
 import time
 import random
 
-class NumberSequenceSource(SourceFunction):
+class NumberSequenceBatch(SourceFunction):
     """
     数字序列源 - 生成有限数量的数字，然后发送停止信号
     """
@@ -18,14 +19,14 @@ class NumberSequenceSource(SourceFunction):
     def execute(self):
         if self.counter >= self.max_count:
             # 数据耗尽，发送停止信号
-            return StopSignal(f"NumberSequence_{self.counter}")
+            return None
         
         self.counter += 1
         number = self.counter * 10 + random.randint(1, 9)
         self.logger.debug(f"[Source] Generating number {self.counter}/{self.max_count}: {number}")
         return number
 
-class FileLineSource(SourceFunction):
+class FileLineSource(BatchFunction):
     """
     文件行源 - 逐行读取文件，读完后发送停止信号
     """
@@ -44,11 +45,13 @@ class FileLineSource(SourceFunction):
     def execute(self):
         if self.current_index >= len(self.lines):
             # 文件读完，发送停止信号
-            return StopSignal(f"FileReader_EOF")
-        
+            print(f"[FileSource] All lines read, sending StopSignal")
+            return None
         line = self.lines[self.current_index]
-        self.current_index += 1
+        print(f"self.lines.length: {len(self.lines)}")
         print(f"[FileSource] Reading line {self.current_index}/{len(self.lines)}: {line}")
+        self.current_index += 1
+        # print(f"[FileSource] Reading line {self.current_index}/{len(self.lines)}: {line}")
         return line
 
 class CountdownSource(SourceFunction):
@@ -90,7 +93,7 @@ def run_simple_batch_test():
     env = LocalEnvironment("simple_batch_test")
     
     # 创建有限数据源
-    source_stream = env.from_source(NumberSequenceSource, max_count=5, delay=0.5)
+    source_stream = env.from_batch(NumberSequenceBatch, max_count=5, delay=0.5)
     
     # 处理管道
     result = (source_stream
@@ -124,7 +127,7 @@ def run_file_processing_test():
         "Python Implementation"
     ]
     
-    source_stream = env.from_source(FileLineSource, lines_data=file_data, delay=0.8)
+    source_stream = env.from_batch(FileLineSource, lines_data=file_data, delay=0.8)
     
     # 文本处理管道
     result = (source_stream
@@ -150,7 +153,7 @@ def run_multi_source_batch_test():
     env = LocalEnvironment("multi_source_batch_test")
     
     # 创建多个不同速度的数据源
-    numbers_stream = env.from_source(NumberSequenceSource, max_count=3, delay=0.5)
+    numbers_stream = env.from_source(NumberSequenceBatch, max_count=3, delay=0.5)
     countdown_stream = env.from_source(CountdownSource, start_from=2, delay=0.7)
     
     # 合并流处理
@@ -176,7 +179,7 @@ def run_processing_chain_test():
     
     env = LocalEnvironment("complex_batch_test")  # 使用远程环境测试分布式批处理
     
-    source_stream = env.from_source(NumberSequenceSource, max_count=8, delay=0.3)
+    source_stream = env.from_source(NumberSequenceBatch, max_count=8, delay=0.3)
     
     # 复杂的处理链
     result = (source_stream
@@ -206,16 +209,17 @@ def main():
     
     try:
         # 运行所有测试
-        run_simple_batch_test()
-        time.sleep(2)
+        # run_simple_batch_test()
+        # time.sleep(2)
         
         run_file_processing_test() 
-        time.sleep(2)
+        time.sleep(5)
+        # time.sleep(5)
         
-        run_multi_source_batch_test()
-        time.sleep(2)
+        # run_multi_source_batch_test()
+        # time.sleep(2)
         
-        run_processing_chain_test()
+        # run_processing_chain_test()
         
     except KeyboardInterrupt:
         print("\n\n🛑 Tests interrupted by user")

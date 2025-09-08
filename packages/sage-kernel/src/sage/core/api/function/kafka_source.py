@@ -83,8 +83,7 @@ class KafkaSourceFunction(SourceFunction):
             # 启动后台消费线程
             self._running = True
             self._consumer_thread = threading.Thread(
-                target=self._consume_loop, 
-                daemon=True
+                target=self._consume_loop
             )
             self._consumer_thread.start()
             

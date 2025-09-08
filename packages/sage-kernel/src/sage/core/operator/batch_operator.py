@@ -27,14 +27,6 @@ class BatchOperator(BaseOperator):
 
     def process_packet(self, packet: 'Packet' = None):
         try:
-            # 如果启用了metronome，在执行前等待锁释放
-            if self._metronome is not None:
-                self.logger.debug(f"BatchOperator {self.name} waiting for metronome release")
-                if not self._metronome.wait_for_release(timeout=30.0):  # 30秒超时
-                    self.logger.error(f"BatchOperator {self.name} metronome wait timeout")
-                    self.ctx.set_stop_signal()
-                    return
-                self.logger.debug(f"BatchOperator {self.name} got metronome release, executing function")
             
             result = self.function.execute()
             self.logger.debug(f"Operator {self.name} processed data with result: {result}")
@@ -43,9 +35,6 @@ class BatchOperator(BaseOperator):
             if result is None:
                 self.logger.info(f"Batch Operator {self.name} completed, sending stop signal")
                 
-                # 如果使用metronome，强制释放以避免死锁
-                if self._metronome is not None:
-                    self._metronome.force_release()
                 
                 # 源节点完成时，先通知JobManager该节点完成
                 self.ctx.send_stop_signal_back(self.name)

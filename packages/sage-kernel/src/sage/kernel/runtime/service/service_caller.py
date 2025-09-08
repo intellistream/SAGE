@@ -81,7 +81,6 @@ class ServiceManager:
         # 启动响应监听线程
         self._listener_thread = threading.Thread(
             target=self._response_listener,
-            daemon=True,
             name="ServiceResponseListener"
         )
         self._listener_thread.start()

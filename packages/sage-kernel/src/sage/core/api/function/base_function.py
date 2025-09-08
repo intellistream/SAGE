@@ -21,7 +21,7 @@ class BaseFunction(ABC):
     def logger(self):
         if not hasattr(self, "_logger") or self._logger is None:
             if self.ctx is None:
-                self._logger = logging.getLogger("")
+                raise RuntimeError("Runtime context not initialized. Cannot create logger.")
             else:
                 self._logger = self.ctx.logger
         return self._logger

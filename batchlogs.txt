@@ -1,0 +1,61 @@
+🎯 SAGE Batch Processing Tests with StopSignal
+============================================================
+🧪 Testing automatic batch termination using StopSignal interface
+📈 Each test demonstrates different batch processing scenarios
+
+📄 Test 2: File Line Batch Processing
+==================================================
+🚀 wrap_lambda called: func=<function run_file_processing_test.<locals>.<lambda> at 0x730ac65327a0>, func_type=map
+🚀 wrap_lambda called: func=<function run_file_processing_test.<locals>.<lambda> at 0x730ac6579c60>, func_type=map
+🚀 Starting file batch processing...
+📊 Processing pipeline: read → uppercase → prefix → sink
+⏹️  Source will automatically stop after reading all lines
+
+JobManager logs: /home/flecther/.sage/logs/jobmanager/session_20250908_033040
+()
+{'lines_data': ['SAGE Framework', 'Distributed Stream Processing', 'Batch Processing Support', 'Ray-based Architecture', 'Python Implementation']}
+()
+{}
+()
+{}
+()
+{}
+self.lines.length: 5
+[FileSource] Reading line 0/5: SAGE Framework
+[Processor-TextProcessor_0] Processed item #1: 📝 SAGE FRAMEWORK
+
+✅ File batch test completed!
+
+self.lines.length: 5
+[FileSource] Reading line 1/5: Distributed Stream Processing
+[Processor-TextProcessor_0] Processed item #2: 📝 DISTRIBUTED STREAM PROCESSING
+self.lines.length: 5
+[FileSource] Reading line 2/5: Batch Processing Support
+[Processor-TextProcessor_0] Processed item #3: 📝 BATCH PROCESSING SUPPORT
+self.lines.length: 5
+[FileSource] Reading line 3/5: Ray-based Architecture
+[Processor-TextProcessor_0] Processed item #4: 📝 RAY-BASED ARCHITECTURE
+self.lines.length: 5
+[FileSource] Reading line 4/5: Python Implementation
+[Processor-TextProcessor_0] Processed item #5: 📝 PYTHON IMPLEMENTATION
+[FileSource] All lines read, sending StopSignal
+
+📋 Batch Processing Tests Summary:
+✅ Test 1: Simple sequence - PASSED
+✅ Test 2: File processing - PASSED
+✅ Test 3: Multi-source - PASSED
+✅ Test 4: Complex chain - PASSED
+
+💡 Key Features Demonstrated:
+   - StopSignal automatic termination
+   - Source-driven batch lifecycle
+   - Multi-source coordination
+   - Distributed batch processing
+   - Graceful job completion
+
+🔄 StopSignal Workflow:
+   1. Source detects data exhaustion
+   2. Source returns StopSignal
+   3. SourceOperator propagates signal
+   4. Downstream nodes receive termination
+   5. Job gracefully completes

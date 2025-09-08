@@ -3,7 +3,7 @@ from typing import List, Type, Union, TYPE_CHECKING, Any
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.factory.operator_factory import OperatorFactory
 from sage.core.factory.function_factory import FunctionFactory
-from ray.actor import ActorHandle
+from sage.kernel.jobmanager.utils.name_server import get_name
 if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator
     from sage.core.api.function.base_function import BaseFunction
@@ -29,7 +29,7 @@ class BaseTransformation:
         self.function_args = args
         self.function_kwargs = kwargs
 
-        self.basename =  name or self.function_class.__name__
+        self.basename =  get_name(name) if name else get_name(self.function_class.__name__)
             
 
         self.logger = CustomLogger()
