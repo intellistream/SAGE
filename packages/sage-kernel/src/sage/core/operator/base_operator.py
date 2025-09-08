@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Dict, Optional, TYPE_CHECKING, Type, Tuple
+from typing import Any, List, Dict, Optional, TYPE_CHECKING, Type, Tuple, Callable
 from sage.core.communication.stop_signal import StopSignal
 
 if TYPE_CHECKING:
@@ -13,7 +13,7 @@ class BaseOperator(ABC):
     def __init__(self, function: callable, ctx: "TaskContext", *args, **kwargs):
 
         self.ctx: "TaskContext" = ctx
-        self.function: "BaseFunction" = function
+        self.function: Callable = function
 
     def send_packet(self, packet: "Packet") -> bool:
         """
