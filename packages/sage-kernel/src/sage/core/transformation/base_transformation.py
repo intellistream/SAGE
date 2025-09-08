@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import List, Type, Union, TYPE_CHECKING, Any
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.factory.operator_factory import OperatorFactory
-from sage.core.factory.function_factory import FunctionFactory
 from sage.kernel.jobmanager.utils.name_server import get_name
 if TYPE_CHECKING:
     from sage.core.operator.base_operator import BaseOperator
@@ -14,27 +13,24 @@ class BaseTransformation:
     def __init__(
         self,
         env:'BaseEnvironment',
-        function: Type['BaseFunction'],
+        function: callable,
         *args,
         name:str = None,
         parallelism: int = 1,
         **kwargs
     ):
         self.operator_class:Type[BaseOperator]  # 由子类设置
-
         self.remote = (env.platform == "remote")
         self.env_name = env.name
         self.env = env
-        self.function_class = function
-        self.function_args = args
-        self.function_kwargs = kwargs
+        self.function = function
 
-        self.basename =  get_name(name) if name else get_name(self.function_class.__name__)
-            
+        self.basename =  get_name(name) if name else get_name(self.function.__class__.__name__)
+
 
         self.logger = CustomLogger()
 
-        self.logger.debug(f"Creating BaseTransformation of type {type} with rag {self.function_class.__name__}")
+        self.logger.debug(f"Creating BaseTransformation of type {type} with rag {self.function.__class__.__name__}")
 
         self.upstreams: List[BaseTransformation] = []
         self.downstreams: dict[str, int] = {} 
@@ -43,7 +39,6 @@ class BaseTransformation:
         
         # 懒加载工厂
         self._operator_factory: OperatorFactory = None
-        self._function_factory: FunctionFactory = None
         # 生成的平行节点名字：f"{transformation.function_class.__name__}_{i}"
 
     # 增强的连接方法
@@ -69,23 +64,12 @@ class BaseTransformation:
     ########################################################
 
     @property
-    def function_factory(self) -> FunctionFactory:
-        """懒加载创建函数工厂"""
-        if self._function_factory is None:
-            self._function_factory = FunctionFactory(
-                function_class=self.function_class,
-                function_args=self.function_args,
-                function_kwargs=self.function_kwargs
-            )
-        return self._function_factory
-
-    @property
     def operator_factory(self) -> OperatorFactory:
         """懒加载创建操作符工厂"""
         if self._operator_factory is None:
             self._operator_factory = OperatorFactory(
                 operator_class=self.operator_class,
-                function_factory=self.function_factory,
+                function=self.function,
                 basename=self.basename,
                 env_name=self.env_name,
                 remote=self.remote

@@ -5,14 +5,12 @@ from typing import Union, Any, TYPE_CHECKING
 from sage.core.communication.packet import Packet
 from sage.core.operator.base_operator import BaseOperator
 from sage.kernel.runtime.context.task_context import TaskContext
-if TYPE_CHECKING:
-    from sage.core.factory.function_factory import FunctionFactory
 
 class MapOperator(BaseOperator):
-    def __init__(self, function_factory: 'FunctionFactory', ctx: 'TaskContext', enable_profile=False, *args, **kwargs):
+    def __init__(self, function: callable, ctx: 'TaskContext', enable_profile=False, *args, **kwargs):
         # 从 kwargs 中移除 enable_profile，避免传递给 BaseOperator
         kwargs.pop('enable_profile', None)
-        super().__init__(function_factory, ctx, *args, **kwargs)
+        super().__init__(function, ctx, *args, **kwargs)
         self.enable_profile = enable_profile
         if self.enable_profile:
             self._setup_time_tracking()

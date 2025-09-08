@@ -1,13 +1,8 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from datetime import datetime
-import os
-from pathlib import Path
-from typing import List, Optional, TYPE_CHECKING, Type, Union, Any
-from sage.core.api.function.lambda_function import wrap_lambda
+from typing import Iterable, List, Optional, TYPE_CHECKING, Type, Union, Any
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
-from sage.core.factory.service_factory import ServiceFactory
 from sage.core.transformation.base_transformation import BaseTransformation
 from sage.core.transformation.source_transformation import SourceTransformation
 from sage.core.transformation.batch_transformation import BatchTransformation
@@ -78,91 +73,11 @@ class BaseEnvironment(ABC):
         self.pipeline.append(transformation)
         return DataStream(self, transformation)
 
-    def from_collection(
-        self, function: Union[Type["BaseFunction"], callable], *args, **kwargs
-    ) -> "DataStream":
-        if callable(function) and not isinstance(function, type):
-            # 这是一个 lambda 函数或普通函数
-            function = wrap_lambda(function, "flatmap")
-
-        transformation = BatchTransformation(
-            self, function, *args, **kwargs
-        )  # TODO: add a new transformation 去告诉engine这个input source是有界的，当执行完毕之后，会发送一个endofinput信号来停止所有进程。
-        # Issue URL: https://github.com/intellistream/SAGE/issues/387
-
-        self.pipeline.append(transformation)
-        return DataStream(self, transformation)
-
-    def from_batch(
-        self, source: Union[Type["BaseFunction"], Any], *args, **kwargs
-    ) -> "DataStream":
-        """
-        统一的批处理数据源创建方法，支持多种输入类型
-
-        Args:
-            source: 可以是以下类型之一：
-                   - BaseFunction 子类：自定义批处理函数类
-                   - list/tuple：数据列表或元组
-                   - 任何可迭代对象：实现了 __iter__ 的对象
-            *args: 传递给批处理函数的位置参数（仅当 source 为函数类时有效）
-            **kwargs: 传递给批处理函数的关键字参数，以及 transformation 的配置参数
-
-        Returns:
-            DataStream: 包含 BatchTransformation 的数据流
-
-        Example:
-            # 1. 使用自定义批处理函数类
-            class MyBatchFunction(BaseFunction):
-                def get_data_iterator(self):
-                    return iter(range(50))
-
-                def get_total_count(self):
-                    return 50
-
-            batch_stream = env.from_batch(MyBatchFunction, custom_param="value")
-
-            # 2. 使用数据列表
-            data = ["item1", "item2", "item3", "item4", "item5"]
-            batch_stream = env.from_batch(data)
-
-            # 3. 使用任何可迭代对象
-            batch_stream = env.from_batch({1, 2, 3, 4, 5})
-            batch_stream = env.from_batch("hello")  # 逐字符迭代
-            batch_stream = env.from_batch(range(100))
-
-            # 4. 配置额外参数
-            batch_stream = env.from_batch(data, progress_log_interval=10)
-        """
-
-        # 检查 source 的类型并相应处理
-        if isinstance(source, type) and hasattr(source, "__bases__"):
-            # source 是一个类，检查是否是 BaseFunction 的子类
-            from sage.core.api.function.base_function import BaseFunction
-
-            if issubclass(source, BaseFunction):
-                # 使用自定义批处理函数类
-                return self._from_batch_function_class(source, *args, **kwargs)
-
-        # source 是数据对象，需要检查其类型
-        if isinstance(source, (list, tuple)):
-            # 处理列表或元组
-            return self._from_batch_collection(source, **kwargs)
-        elif hasattr(source, "__iter__") and not isinstance(source, (str, bytes)):
-            # 处理其他可迭代对象（排除字符串和字节）
-            return self._from_batch_iterable(source, **kwargs)
-        elif isinstance(source, (str, bytes)):
-            # 特殊处理字符串和字节，按字符/字节迭代
-            return self._from_batch_iterable(source, **kwargs)
-        else:
-            # 尝试将其作为可迭代对象处理
-            try:
-                iter(source)
-                return self._from_batch_iterable(source, **kwargs)
-            except TypeError:
-                raise TypeError(
-                    f"Unsupported source type: {type(source)}. "
-                    f"Expected BaseFunction subclass, list, tuple, or any iterable object."
-                )
+    def from_batch(self, data: Union[callable, Iterable]) -> "DataStream":
+        if isinstance(data, Iterable):
+            return self._from_batch_iterable(data)
+        elif isinstance(data, callable):
+            return self._from_batch_function_class(data)
 
     ########################################################
     #                jobmanager interface                  #
@@ -202,51 +117,15 @@ class BaseEnvironment(ABC):
         return DataStream(self, transformation)
 
     def _from_batch_function_class(
-        self, batch_function_class: Type["BaseFunction"], *args, **kwargs
+        self, batch_function_class: Type["BaseFunction"]
     ) -> "DataStream":
-        """
-        从自定义批处理函数类创建批处理数据源
-        """
-        # 分离transformation配置和function参数
-        transform_kwargs = {}
-        function_kwargs = {}
 
-        # transformation相关的参数
-        transform_config_keys = {"delay", "progress_log_interval"}
-
-        for key, value in kwargs.items():
-            if key in transform_config_keys:
-                transform_kwargs[key] = value
-            else:
-                function_kwargs[key] = value
-
-        transformation = BatchTransformation(
-            self, batch_function_class, *args, **function_kwargs, **transform_kwargs
-        )
+        transformation = BatchTransformation(self, batch_function_class)
 
         self.pipeline.append(transformation)
         self.logger.info(
             f"Custom batch source created with {batch_function_class.__name__}"
         )
-
-        return DataStream(self, transformation)
-
-    def _from_batch_collection(
-        self, data: Union[list, tuple], **kwargs
-    ) -> "DataStream":
-        """
-        从数据集合创建批处理数据源
-        """
-        from sage.core.api.function.simple_batch_function import (
-            SimpleBatchIteratorFunction,
-        )
-
-        transformation = BatchTransformation(
-            self, SimpleBatchIteratorFunction, data=data, **kwargs
-        )
-
-        self.pipeline.append(transformation)
-        self.logger.info(f"Batch collection source created with {len(data)} items")
 
         return DataStream(self, transformation)
 

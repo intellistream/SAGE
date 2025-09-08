@@ -28,7 +28,7 @@ class KeyByTransformation(BaseTransformation):
         if self._operator_factory is None:
             self._operator_factory = OperatorFactory(
             operator_class=self.operator_class,
-            function_factory=self.function_factory,
+            function=self.function,
             basename=self.basename,
             env_name=self.env_name,
             remote=self.remote,
