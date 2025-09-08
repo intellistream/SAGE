@@ -114,6 +114,9 @@ activate_sage.sh
 sage_ext/sage_db/build/
 build/
 .coverage
+.ipynb_checkpoints
+.virtual*
+*mp4
 
 # CMake FetchContent 构建目录
 **/pybind11-subbuild/
