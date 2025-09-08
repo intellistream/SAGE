@@ -4,17 +4,16 @@ from sage.core.api.function.base_function import BaseFunction
 from sage.core.api.function.lambda_function import wrap_lambda, detect_lambda_type
 from .connected_streams import ConnectedStreams
 from sage.common.utils.logging.custom_logger import CustomLogger
-
+from sage.core.transformation.base_transformation import BaseTransformation
+from sage.core.transformation.filter_transformation import FilterTransformation
+from sage.core.transformation.flatmap_transformation import FlatMapTransformation
+from sage.core.transformation.map_transformation import MapTransformation
+from sage.core.transformation.sink_transformation import SinkTransformation
+from sage.core.transformation.keyby_transformation import KeyByTransformation
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
     from .datastream import DataStream
-    from sage.core.transformation.base_transformation import BaseTransformation
-    from sage.core.transformation.filter_transformation import FilterTransformation
-    from sage.core.transformation.flatmap_transformation import FlatMapTransformation
-    from sage.core.transformation.map_transformation import MapTransformation
-    from sage.core.transformation.sink_transformation import SinkTransformation
-    from sage.core.transformation.source_transformation import SourceTransformation
-    from sage.core.transformation.keyby_transformation import KeyByTransformation
+
 
 T = TypeVar("T")
 
@@ -31,28 +30,6 @@ class DataStream(Generic[T]):
         self.logger.debug(
             f"DataStream created with transformation: {transformation.function_class.__name__}, type_param: {self._type_param}")
 
-    def _get_transformation_classes(self):
-        """动态导入transformation类以避免循环导入"""
-        if not hasattr(self, '_transformation_classes'):
-            from sage.core.transformation.base_transformation import BaseTransformation
-            from sage.core.transformation.filter_transformation import FilterTransformation
-            from sage.core.transformation.flatmap_transformation import FlatMapTransformation
-            from sage.core.transformation.map_transformation import MapTransformation
-            from sage.core.transformation.sink_transformation import SinkTransformation
-            from sage.core.transformation.source_transformation import SourceTransformation
-            from sage.core.transformation.keyby_transformation import KeyByTransformation
-            
-            self._transformation_classes = {
-                'BaseTransformation': BaseTransformation,
-                'FilterTransformation': FilterTransformation,
-                'FlatMapTransformation': FlatMapTransformation,
-                'MapTransformation': MapTransformation,
-                'SinkTransformation': SinkTransformation,
-                'SourceTransformation': SourceTransformation,
-                'KeyByTransformation': KeyByTransformation
-            }
-        return self._transformation_classes
-
     # ---------------------------------------------------------------------
     # general datastream api
     # ---------------------------------------------------------------------
@@ -61,7 +38,6 @@ class DataStream(Generic[T]):
             function = wrap_lambda(function, 'map')
         
         # 获取MapTransformation类
-        MapTransformation = self._get_transformation_classes()['MapTransformation']
         tr = MapTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
 
@@ -70,7 +46,6 @@ class DataStream(Generic[T]):
             function = wrap_lambda(function, 'filter')
         
         # 获取FilterTransformation类
-        FilterTransformation = self._get_transformation_classes()['FilterTransformation']
         tr = FilterTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
 
@@ -79,7 +54,6 @@ class DataStream(Generic[T]):
             function = wrap_lambda(function, 'flatmap')
         
         # 获取FlatMapTransformation类
-        FlatMapTransformation = self._get_transformation_classes()['FlatMapTransformation']
         tr = FlatMapTransformation(self._environment, function, *args, **kwargs)
         return self._apply(tr)
 
@@ -88,7 +62,6 @@ class DataStream(Generic[T]):
             function = wrap_lambda(function, 'sink')
         
         # 获取SinkTransformation类
-        SinkTransformation = self._get_transformation_classes()['SinkTransformation']
         tr = SinkTransformation(self._environment, function, *args, **kwargs)
         self._apply(tr)
         return self  # sink不返回新的DataStream，因为它是终端操作
@@ -99,7 +72,6 @@ class DataStream(Generic[T]):
             function = wrap_lambda(function, 'keyby')
 
         # 获取KeyByTransformation类
-        KeyByTransformation = self._get_transformation_classes()['KeyByTransformation']
         tr = KeyByTransformation(
             self._environment,
             function,
