@@ -1,3 +1,5 @@
+import os
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 from sage.middleware.utils.embedding.embedding_model import EmbeddingModel
 
 

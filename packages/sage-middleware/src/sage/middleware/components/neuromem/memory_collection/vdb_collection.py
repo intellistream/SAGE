@@ -4,6 +4,8 @@ import shutil
 import inspect
 import numpy as np
 from typing import Optional, Dict, Any, List, Callable
+import json
+import hashlib
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.neuromem.memory_collection.base_collection import BaseMemoryCollection
 from sage.middleware.components.neuromem.search_engine.vdb_index import index_factory
@@ -223,6 +225,11 @@ class VDBMemoryCollection(BaseMemoryCollection):
             # 确保数据类型是float32
             embedding = embedding.astype(np.float32)
             
+            # 对向量进行L2归一化，使相似度在[0,1]之间
+            norm = np.linalg.norm(embedding)
+            if norm > 0:
+                embedding = embedding / norm
+            
             # 检查embedding维度是否与索引要求一致
             if embedding.shape[-1] != expected_dim:
                 self.logger.warning(f"Index '{index_name}' requires dimension {expected_dim}, but embedding dimension is {embedding.shape[-1]}, skipping this item")
@@ -251,11 +258,14 @@ class VDBMemoryCollection(BaseMemoryCollection):
             raise ValueError("metadatas length must match data length")
         
         for i, item in enumerate(data):
-            stable_id = self._get_stable_id(item)
+            metadata = metadatas[i] if metadatas else None
+            key = item
+            if metadata:
+                key += json.dumps(metadata, sort_keys=True)
+            stable_id = hashlib.sha256(key.encode("utf-8")).hexdigest()
             self.text_storage.store(stable_id, item)
             
-            if metadatas and metadatas[i]:
-                metadata = metadatas[i]
+            if metadata:
                 # 自动注册所有未知的元数据字段
                 for field_name in metadata.keys():
                     if not self.metadata_storage.has_field(field_name):
@@ -277,7 +287,10 @@ class VDBMemoryCollection(BaseMemoryCollection):
         embedding_model = self.embedding_model_factory.get(self.index_info.get(index_name).get("embedding_model_name"))
 
         # 首先存储数据到storage
-        stable_id = self._get_stable_id(raw_data)
+        key = raw_data
+        if metadata:
+            key += json.dumps(metadata, sort_keys=True)
+        stable_id = hashlib.sha256(key.encode("utf-8")).hexdigest()
         self.text_storage.store(stable_id, raw_data)
 
         # 自动注册所有未知的元数据字段
@@ -301,6 +314,11 @@ class VDBMemoryCollection(BaseMemoryCollection):
             embedding = np.array(embedding)
         # 确保数据类型是float32
         embedding = embedding.astype(np.float32)
+
+        # 对向量进行L2归一化，使相似度在[0,1]之间
+        norm = np.linalg.norm(embedding)
+        if norm > 0:
+            embedding = embedding / norm
 
         # 检查embedding维度是否与索引要求一致
         expected_dim = self.index_info[index_name]["dim"]
@@ -338,7 +356,7 @@ class VDBMemoryCollection(BaseMemoryCollection):
         if topk is None:
             topk = 5
         if threshold is None:
-            threshold = 0.0
+            threshold = 0.7  # 默认相似度阈值0.7，适用于归一化向量和Inner Product
 
         query_embedding = embedding_model.encode(raw_data)
 
@@ -354,6 +372,11 @@ class VDBMemoryCollection(BaseMemoryCollection):
             query_embedding = np.array(query_embedding)
         # 确保数据类型是float32
         query_embedding = query_embedding.astype(np.float32)
+
+        # 对查询向量进行L2归一化，使相似度在[0,1]之间
+        norm = np.linalg.norm(query_embedding)
+        if norm > 0:
+            query_embedding = query_embedding / norm
             
         index = index = self.index_info.get(index_name).get("index")
 

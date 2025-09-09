@@ -56,7 +56,7 @@ class FaissIndex(BaseVDBIndex):
            
     def _init_index(self):
         config = self.config  # 保持全程都叫config
-        index_type = config.get("index_type", "IndexFlatL2")
+        index_type = config.get("index_type", "IndexFlatIP")  # 默认使用Inner Product以支持归一化向量
 
         # 基础索引
         if index_type == "IndexFlatL2":
@@ -404,10 +404,10 @@ class FaissIndex(BaseVDBIndex):
         Args:
             query_vector: 查询向量
             topk: 返回结果数量
-            threshold: 距离阈值，超过此阈值的结果将被过滤
+            threshold: 相似度阈值，低于此阈值的结果将被过滤（适用于归一化向量）
             
         Returns:
-            tuple: (结果IDs, 距离列表)
+            tuple: (结果IDs, 相似度列表)
         """
         # 检查索引是否为空
         if self.index.ntotal == 0:
@@ -431,11 +431,21 @@ class FaissIndex(BaseVDBIndex):
                 continue
             string_id = self.id_map.get(i)
             if string_id and string_id not in self.tombstones:
-                # 应用阈值过滤
-                if threshold is not None and dist > threshold:
-                    continue
-                results.append(string_id)
-                filtered_distances.append(float(dist))  # 显式转为Python float
+                # 应用阈值过滤：根据索引类型决定过滤逻辑
+                should_filter = False
+                if threshold is not None:
+                    # 对于IndexFlatIP（内积），距离越大表示越相似，应该保留距离大于阈值的结果
+                    # 对于IndexFlatL2（L2距离），距离越小表示越相似，应该保留距离小于阈值的结果
+                    index_type = self.config.get("index_type", "IndexFlatIP")
+                    if "IP" in index_type:  # Inner Product类型索引
+                        if dist < threshold:  # 内积小于阈值，相似度低，过滤
+                            should_filter = True
+                    else:  # L2距离类型索引
+                        if dist > threshold:  # L2距离大于阈值，相似度低，过滤
+                            should_filter = True
+                if not should_filter:
+                    results.append(string_id)
+                    filtered_distances.append(float(dist))  # 显式转为Python float
             if len(results) >= topk:
                 break
         
