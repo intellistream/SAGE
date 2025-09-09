@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-SAGE Issues下载工具
-根据issues_manager.sh的调用需求重新设计
+SAGE Issues下载工具 - 新架构版本
+使用统一数据管理器和视图分离架构
 """
 
 import os
@@ -10,25 +10,21 @@ import json
 import argparse
 from datetime import datetime
 from pathlib import Path
-import re
 
-# 导入配置
+# 导入配置和新的数据管理器
 from config import config, github_client
+from issue_data_manager import IssueDataManager
 
-class IssuesDownloader:
-    """Issues下载器"""
+class IssuesDownloaderV2:
+    """Issues下载器 - 新架构版本"""
     
     def __init__(self):
         self.config = config
         self.github = github_client
         self.workspace = self.config.workspace_path
         
-        # 创建输出目录结构
-        self.issues_dir = self.workspace / "issues"
-        self.metadata_dir = self.workspace / "metadata"
-
-        for d in (self.issues_dir, self.metadata_dir):
-            d.mkdir(parents=True, exist_ok=True)
+        # 使用新的数据管理器
+        self.data_manager = IssueDataManager(self.workspace)
         
         # 加载project映射信息
         self.project_mapping = self.load_project_mapping()
@@ -228,228 +224,40 @@ class IssuesDownloader:
         # 如果缓存中没有，返回空列表（避免单独的API请求）
         return []
     
-    def sanitize_filename(self, text: str) -> str:
-        """清理文件名，移除不合法字符"""
-        # 移除或替换不合法的文件名字符
-        text = re.sub(r'[<>:"/\\|?*]', '', text)
-        text = re.sub(r'\s+', '_', text)
-        return text[:50]  # 限制长度
-    
-    def clean_issue_body(self, body: str) -> str:
-        """清理issue body，移除重复的元数据"""
-        if not body:
-            return '无描述'
-            
-        lines = body.split('\n')
-        cleaned_lines = []
-        skip_metadata = False
-        
-        for line in lines:
-            # 如果遇到标题行，可能开始了重复的元数据
-            if line.startswith('# ') and ('Issue #' in body[body.find(line):body.find(line)+200] or 
-                                       '**状态**' in body[body.find(line):body.find(line)+200]):
-                skip_metadata = True
-                continue
-            
-            # 如果遇到了明确的描述开始标记，停止跳过
-            if line.strip() == '## 描述' and skip_metadata:
-                skip_metadata = False
-                continue
-                
-            # 如果遇到了原始内容的开始（通常是 ## 开头但不是我们的元数据字段）
-            if (line.startswith('## ') and 
-                not any(field in line for field in ['Project归属', '标签', '分配给', '描述']) and
-                skip_metadata):
-                skip_metadata = False
-                cleaned_lines.append(line)
-                continue
-            
-            if not skip_metadata:
-                cleaned_lines.append(line)
-        
-        cleaned_body = '\n'.join(cleaned_lines).strip()
-        return cleaned_body if cleaned_body else '无描述'
-    
-    def extract_update_history(self, filepath):
-        """从现有文件中提取更新记录"""
-        if not filepath.exists():
-            return ""
-        
+    def get_issue_comments(self, issue_number: int):
+        """获取issue评论"""
         try:
-            content = filepath.read_text(encoding='utf-8')
-            lines = content.split('\n')
+            base = f"https://api.github.com/repos/{self.config.GITHUB_OWNER}/{self.config.GITHUB_REPO}"
+            url = f"{base}/issues/{issue_number}/comments"
+            resp = self.github.session.get(url)
+            resp.raise_for_status()
             
-            # 查找 "## 更新记录" 部分
-            update_history_start = -1
-            for i, line in enumerate(lines):
-                if line.strip() == "## 更新记录":
-                    update_history_start = i
-                    break
+            comments = resp.json()
+            # 简化评论数据
+            simplified_comments = []
+            for comment in comments:
+                simplified_comments.append({
+                    'id': comment.get('id'),
+                    'user': comment.get('user', {}).get('login'),
+                    'created_at': comment.get('created_at'),
+                    'updated_at': comment.get('updated_at'),
+                    'body': comment.get('body', '')
+                })
             
-            if update_history_start == -1:
-                return ""
-            
-            # 提取更新记录部分，直到遇到 "---" 或文件结束
-            history_lines = []
-            for i in range(update_history_start, len(lines)):
-                line = lines[i]
-                if line.strip() == "---":
-                    break
-                history_lines.append(line)
-            
-            return '\n'.join(history_lines)
-        except Exception:
-            return ""
-
-    def generate_update_record(self, issue: dict, old_content: str = "") -> str:
-        """生成新的更新记录"""
-        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        # 检查是否有变更
-        changes = []
-        
-        if old_content:
-            # 这里可以添加更详细的变更检测逻辑
-            # 简单起见，我们记录下载时间和基本信息
-            changes.append(f"- **{current_time}**: 内容同步更新")
-        else:
-            changes.append(f"- **{current_time}**: 初始下载")
-        
-        # 如果issue最近有更新，记录GitHub更新时间
-        github_updated = issue.get('updated_at', '')
-        if github_updated:
-            try:
-                from dateutil import parser
-                updated_dt = parser.parse(github_updated)
-                github_time = updated_dt.strftime('%Y-%m-%d %H:%M:%S')
-                changes.append(f"  - GitHub最后更新: {github_time}")
-            except:
-                pass
-        
-        return '\n'.join(changes)
-
-    def _format_assignees(self, assignees):
-        """格式化assignees字段为字符串"""
-        if not assignees:
-            return '未分配'
-        
-        # 处理assignees可能是字符串列表或字典列表的情况
-        formatted_assignees = []
-        for assignee in assignees:
-            if isinstance(assignee, dict):
-                # 如果是字典，取login字段
-                formatted_assignees.append(assignee.get('login', str(assignee)))
-            elif isinstance(assignee, str):
-                # 如果已经是字符串，直接使用
-                formatted_assignees.append(assignee)
-            else:
-                # 其他情况转为字符串
-                formatted_assignees.append(str(assignee))
-        
-        return '\n'.join(formatted_assignees)
-
-    def format_issue_content(self, issue: dict, project_info: list = None, existing_filepath = None) -> str:
-        """格式化Issue内容为Markdown"""
-        
-        # 格式化project信息
-        project_section = ""
-        if project_info:
-            project_section = "\n## Project归属\n"
-            for proj in project_info:
-                project_section += f"- **{proj['team']}** (Project Board ID: {proj['number']}: {proj['title']})\n"
-        else:
-            project_section = "\n## Project归属\n未归属到任何Project\n"
-        
-        # 清理body内容
-        cleaned_body = self.clean_issue_body(issue.get('body', ''))
-        
-        # 提取现有的更新记录
-        existing_history = ""
-        old_content = ""
-        if existing_filepath and existing_filepath.exists():
-            existing_history = self.extract_update_history(existing_filepath)
-            old_content = existing_filepath.read_text(encoding='utf-8')
-        
-        # 生成新的更新记录
-        new_update_record = self.generate_update_record(issue, old_content)
-        
-        # 合并更新记录
-        update_history_section = ""
-        if existing_history:
-            # 保留现有记录并添加新记录
-            update_history_section = f"\n{existing_history}\n{new_update_record}\n"
-        else:
-            # 创建新的更新记录部分
-            update_history_section = f"\n## 更新记录\n\n{new_update_record}\n"
-        
-        # 处理milestone信息
-        milestone_section = ""
-        if issue.get('milestone'):
-            milestone = issue['milestone']
-            milestone_section = f"""
-## Milestone
-**{milestone.get('title', 'N/A')}** ({milestone.get('state', 'unknown')})
-- 描述: {milestone.get('description', '无描述')}
-- 截止日期: {milestone.get('due_on', '未设定')}
-- [查看详情]({milestone.get('html_url', '#')})
-"""
-
-        # 处理统计信息
-        stats_section = ""
-        comments_count = issue.get('comments', 0)
-        reactions = issue.get('reactions', {})
-        total_reactions = reactions.get('total_count', 0) if reactions else 0
-        is_locked = issue.get('locked', False)
-        
-        if comments_count > 0 or total_reactions > 0 or is_locked:
-            stats_section = "\n## 统计信息\n"
-            if comments_count > 0:
-                stats_section += f"- 评论数: {comments_count}\n"
-            if total_reactions > 0:
-                stats_section += f"- 反应数: {total_reactions}\n"
-                if reactions:
-                    reaction_details = []
-                    for emoji, count in reactions.items():
-                        if emoji != 'total_count' and emoji != 'url' and count > 0:
-                            reaction_details.append(f"{emoji}: {count}")
-                    if reaction_details:
-                        stats_section += f"  - 详情: {', '.join(reaction_details)}\n"
-            if is_locked:
-                stats_section += "- 状态: 已锁定\n"
-
-        content = f"""# {issue['title']}
-
-**Issue #**: {issue['number']}
-**状态**: {issue['state']}
-**创建时间**: {issue['created_at']}
-**更新时间**: {issue['updated_at']}
-**创建者**: {issue['user']['login']}
-{project_section}{milestone_section}{stats_section}
-## 标签
-{', '.join([label['name'] for label in issue.get('labels', [])])}
-
-## 分配给
-{self._format_assignees(issue.get('assignees', []))}
-
-## 描述
-
-{cleaned_body}
-{update_history_section}
----
-**GitHub链接**: {issue['html_url']}
-**下载时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-"""
-        return content
+            return simplified_comments
+        except Exception as e:
+            print(f"⚠️ 获取 Issue #{issue_number} 评论失败: {e}")
+            return []
     
     def auto_assign_project_and_assignee(self, issue: dict, project_info: list):
         """自动分配project和assignee（如果缺失）"""
         if not self.team_config:
-            return issue, None  # 如果没有团队配置，直接返回原issue
+            return issue, project_info  # 如果没有团队配置，直接返回原issue
         
         # 获取创建者信息
-        creator = issue.get('user', {}).get('login')
+        creator = issue.get('user', {}).get('login') if isinstance(issue.get('user'), dict) else issue.get('user')
         if not creator:
-            return issue, None
+            return issue, project_info
         
         # 检查是否已有project分配
         has_project = project_info and len(project_info) > 0
@@ -462,7 +270,7 @@ class IssuesDownloader:
         
         # 如果已有project和assignee，不需要自动分配
         if has_project and has_assignee:
-            return issue, None
+            return issue, project_info
         
         # 确定创建者所属的团队
         creator_team = None
@@ -504,111 +312,48 @@ class IssuesDownloader:
                     print(f"👤 Issue #{issue['number']} 自动分配给创建者: {creator}")
         
         return issue, updated_project_info
-
-    def save_issue(self, issue: dict):
-        """保存单个Issue到文件"""
-        # 获取project信息
-        project_info = self.get_issue_project_info(issue['number'])
-        
-        # 自动分配project和assignee (如果缺失)
-        issue, updated_project_info = self.auto_assign_project_and_assignee(issue, project_info)
-        
-        # 使用更新后的project信息
-        if updated_project_info is not None:
-            project_info = updated_project_info
-        
-        # 生成文件名
-        safe_title = self.sanitize_filename(issue['title'])
-        filename = f"{issue['state']}_{issue['number']}_{safe_title}.md"
-        filepath = self.issues_dir / filename
-
-        # 保存内容（传递现有文件路径以保留更新记录）
-        content = self.format_issue_content(issue, project_info, filepath)
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(content)
-
-        # 保存简化的元数据
+    
+    def save_issue(self, issue: dict, skip_comments=False):
+        """保存单个Issue"""
         try:
-            self.save_issue_metadata(issue, project_info)
-        except Exception:
-            pass
-
-        return filepath
-
-    def get_issue_comments(self, issue_number: int):
-        """通过 GitHubClient 的 session 获取 issue 评论（简化实现）"""
-        try:
-            base = f"https://api.github.com/repos/{self.config.GITHUB_OWNER}/{self.config.GITHUB_REPO}"
-            url = f"{base}/issues/{issue_number}/comments"
-            resp = self.github.session.get(url)
-            resp.raise_for_status()
-            return resp.json()
+            # 获取project信息
+            project_info = self.get_issue_project_info(issue['number'])
+            
+            # 添加project信息到issue数据中（不进行自动分配）
+            issue['projects'] = project_info
+            
+            # 获取评论（可选）
+            comments = []
+            if not skip_comments:
+                comments = self.get_issue_comments(issue['number'])
+            
+            # 使用数据管理器保存
+            success = self.data_manager.save_issue(issue, comments)
+            
+            if success:
+                print(f"✅ Issue #{issue['number']} 保存成功")
+            else:
+                print(f"❌ Issue #{issue['number']} 保存失败")
+            
+            return success
+            
         except Exception as e:
-            print(f"⚠️ 获取 Issue #{issue_number} 评论失败: {e}")
-            return []
-
-    def save_issue_metadata(self, issue: dict, project_info: list = None):
-        """保存简化元数据到 metadata 目录"""
-        # 处理milestone信息
-        milestone_info = None
-        if issue.get('milestone'):
-            milestone_info = {
-                'number': issue['milestone'].get('number'),
-                'title': issue['milestone'].get('title'),
-                'description': issue['milestone'].get('description'),
-                'state': issue['milestone'].get('state'),
-                'due_on': issue['milestone'].get('due_on'),
-                'html_url': issue['milestone'].get('html_url')
-            }
-        
-        # 处理reactions信息
-        reactions_info = None
-        if issue.get('reactions'):
-            reactions = issue['reactions']
-            reactions_info = {
-                'total_count': reactions.get('total_count', 0),
-                '+1': reactions.get('+1', 0),
-                '-1': reactions.get('-1', 0),
-                'laugh': reactions.get('laugh', 0),
-                'hooray': reactions.get('hooray', 0),
-                'confused': reactions.get('confused', 0),
-                'heart': reactions.get('heart', 0),
-                'rocket': reactions.get('rocket', 0),
-                'eyes': reactions.get('eyes', 0)
-            }
-        
-        data = {
-            'number': issue.get('number'),
-            'title': issue.get('title'),
-            'state': issue.get('state'),
-            'labels': [l.get('name') for l in issue.get('labels', [])],
-            'assignees': [a.get('login') for a in issue.get('assignees', [])] if issue.get('assignees') else (
-                [issue.get('assignee', {}).get('login')] if issue.get('assignee') else []),
-            'milestone': milestone_info,
-            'reactions': reactions_info,
-            'comments_count': issue.get('comments', 0),
-            'locked': issue.get('locked', False),
-            'created_at': issue.get('created_at'),
-            'updated_at': issue.get('updated_at'),
-            'closed_at': issue.get('closed_at'),
-            'html_url': issue.get('html_url'),
-            'user': issue.get('user', {}).get('login'),
-            'projects': project_info or []
-        }
-        fname = f"issue_{data['number']}_metadata.json"
-        with open(self.metadata_dir / fname, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-
-    def download_issues(self, state="all") -> bool:
+            print(f"❌ 保存Issue #{issue['number']} 失败: {e}")
+            return False
+    
+    def download_issues(self, state="all", skip_comments=False) -> bool:
         """下载Issues
         
         Args:
             state: Issues状态 ("open", "closed", "all")
+            skip_comments: 是否跳过评论获取以加快速度
         
         Returns:
             bool: 下载是否成功
         """
         print(f"🚀 开始下载 {state} 状态的Issues...")
+        if skip_comments:
+            print("⚡ 快速模式：跳过评论下载")
         
         try:
             # 获取Issues
@@ -628,29 +373,41 @@ class IssuesDownloader:
             saved_count = 0
             for issue in issues:
                 try:
-                    filepath = self.save_issue(issue)
-                    saved_count += 1
+                    if self.save_issue(issue, skip_comments=skip_comments):
+                        saved_count += 1
+                    
                     if saved_count % 10 == 0:
                         print(f"✅ 已保存 {saved_count}/{len(issues)} 个Issues")
                 except Exception as e:
                     print(f"❌ 保存Issue #{issue['number']} 失败: {e}")
             
-            # 生成下载报告
-            self.generate_download_report(issues, saved_count, state)
+            print(f"📊 数据下载完成！成功保存 {saved_count}/{len(issues)} 个Issues到数据源")
             
-            print(f"🎉 下载完成！成功保存 {saved_count}/{len(issues)} 个Issues")
-            print(f"📁 保存位置: {self.issues_dir}")
+            # 生成所有视图
+            print("🔄 生成视图文件...")
+            view_results = self.data_manager.generate_all_views()
+            print(f"📊 视图生成完成: {view_results}")
+            
+            # 生成下载报告
+            self.generate_download_report(issues, saved_count, state, view_results)
+            
+            print(f"🎉 下载和视图生成完成！")
+            print(f"📁 数据源位置: {self.data_manager.data_dir}")
+            print(f"📁 Markdown视图: {self.data_manager.markdown_dir}")
+            print(f"📁 元数据视图: {self.data_manager.metadata_dir}")
             
             return True
             
         except Exception as e:
             print(f"💥 下载失败: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
-    def generate_download_report(self, issues: list, saved_count: int, state: str):
+    def generate_download_report(self, issues: list, saved_count: int, state: str, view_results: dict):
         """生成下载报告"""
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        report_file = self.config.output_path / f"download_report_{state}_{timestamp}.md"
+        report_file = self.config.output_path / f"download_report_v2_{state}_{timestamp}.md"
         
         # 统计信息
         total_issues = len(issues)
@@ -659,13 +416,29 @@ class IssuesDownloader:
         
         # 标签统计
         label_stats = {}
+        milestone_stats = {}
+        team_stats = {}
+        
         for issue in issues:
+            # 标签统计
             for label in issue.get('labels', []):
-                label_name = label['name']
+                label_name = label['name'] if isinstance(label, dict) else label
                 label_stats[label_name] = label_stats.get(label_name, 0) + 1
+            
+            # Milestone统计
+            milestone = issue.get('milestone')
+            if milestone:
+                milestone_title = milestone.get('title', 'unknown')
+                milestone_stats[milestone_title] = milestone_stats.get(milestone_title, 0) + 1
+            
+            # 团队统计
+            projects = issue.get('projects', [])
+            for project in projects:
+                team = project.get('team', 'unknown')
+                team_stats[team] = team_stats.get(team, 0) + 1
         
         # 生成报告内容
-        report_content = f"""# Issues下载报告
+        report_content = f"""# Issues下载报告 (新架构)
 
 **下载时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 **请求状态**: {state}
@@ -677,24 +450,60 @@ class IssuesDownloader:
 - 已关闭Issues: {closed_count}
 - 总计: {total_issues}
 
-## 标签分布
+## 新架构优势
+
+✅ **单一数据源**: 所有数据存储在 `data/` 目录的JSON文件中
+✅ **视图分离**: 自动生成markdown和元数据视图
+✅ **完整信息**: 包含milestone、reactions、comments等完整信息
+✅ **向后兼容**: 保持原有的目录结构和API
+
+## 视图生成结果
+
+- Markdown视图: {view_results.get('markdown_success', 0)}/{view_results.get('total', 0)} 成功
+- 元数据视图: {view_results.get('metadata_success', 0)}/{view_results.get('total', 0)} 成功
+- 失败: {view_results.get('failed', 0)}
+
+## 按团队分布
 
 """
         
-        # 添加标签统计
-        for label, count in sorted(label_stats.items(), key=lambda x: x[1], reverse=True):
+        # 添加团队统计
+        for team, count in sorted(team_stats.items(), key=lambda x: x[1], reverse=True):
+            report_content += f"- {team}: {count}\n"
+        
+        report_content += "\n## 按Milestone分布\n\n"
+        
+        # 添加milestone统计
+        for milestone, count in sorted(milestone_stats.items(), key=lambda x: x[1], reverse=True):
+            report_content += f"- {milestone}: {count}\n"
+        
+        report_content += "\n## 标签分布\n\n"
+        
+        # 添加标签统计（显示前20个）
+        for label, count in sorted(label_stats.items(), key=lambda x: x[1], reverse=True)[:20]:
             report_content += f"- {label}: {count}\n"
         
         report_content += f"""
-## 存储位置
 
-Issues保存在: `{self.issues_dir}`
-所有标签信息都包含在每个Issue的markdown文件中
+## 存储架构
+
+### 数据源 (单一真实来源)
+`{self.data_manager.data_dir}/`
+- issue_XXX.json: 完整的issue数据，包含元数据、内容和追踪信息
+
+### 视图文件 (自动生成)
+`{self.data_manager.markdown_dir}/`: 人类可读的markdown文件
+`{self.data_manager.metadata_dir}/`: 向后兼容的元数据JSON文件
+`{self.data_manager.summaries_dir}/`: 汇总统计信息
+
+### 向后兼容
+原有的 `issues/` 和 `metadata/` 目录现在是指向视图目录的符号链接
 
 ## 文件命名规则
 
-格式: `{{状态}}_{{编号}}_{{标题}}.md`
-例如: `open_123_Fix_bug_in_parser.md`
+数据源: `issue_{{编号}}.json`
+Markdown视图: `{{状态}}_{{编号}}_{{标题}}.md`
+元数据视图: `issue_{{编号}}_metadata.json`
 """
         
         # 保存报告
@@ -706,7 +515,7 @@ Issues保存在: `{self.issues_dir}`
 
 def main():
     """主函数"""
-    parser = argparse.ArgumentParser(description="下载GitHub Issues")
+    parser = argparse.ArgumentParser(description="下载GitHub Issues (新架构)")
     parser.add_argument("--state", 
                        choices=["open", "closed", "all"], 
                        default="all",
@@ -714,6 +523,12 @@ def main():
     parser.add_argument("--verbose", "-v", 
                        action="store_true",
                        help="显示详细输出")
+    parser.add_argument("--migrate-only", 
+                       action="store_true",
+                       help="仅执行数据迁移，不下载新数据")
+    parser.add_argument("--skip-comments", 
+                       action="store_true",
+                       help="跳过评论下载以加快速度")
     
     args = parser.parse_args()
     
@@ -724,12 +539,30 @@ def main():
         print(f"   Token状态: {'✅' if config.github_token else '❌'}")
         print()
     
+    downloader = IssuesDownloaderV2()
+    
+    if args.migrate_only:
+        print("🔄 执行数据迁移...")
+        migrate_results = downloader.data_manager.migrate_from_old_format()
+        print(f"📊 迁移结果: {migrate_results}")
+        
+        print("🔄 生成所有视图...")
+        view_results = downloader.data_manager.generate_all_views()
+        print(f"📊 视图生成结果: {view_results}")
+        
+        print("✅ 迁移完成！")
+        sys.exit(0)
+    
     # 执行下载
-    downloader = IssuesDownloader()
-    success = downloader.download_issues(state=args.state)
+    success = downloader.download_issues(state=args.state, skip_comments=args.skip_comments)
     
     if success:
         print("\n🎉 下载完成！")
+        print("\n💡 新架构特点:")
+        print("   - 所有数据存储在单一JSON文件中")
+        print("   - 包含完整的milestone、reactions等信息")
+        print("   - 自动生成markdown和元数据视图")
+        print("   - 保持向后兼容性")
         sys.exit(0)
     else:
         print("\n💥 下载失败！")

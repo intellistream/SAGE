@@ -417,59 +417,111 @@ issues_management_menu() {
 
 # 下载功能实现
 clear_local_issues() {
-    local issues_dir="$ISSUES_DIR"
+    # 新架构的数据目录
+    local data_dir="$ISSUES_WORKSPACE_PATH/data"
+    local views_dir="$ISSUES_WORKSPACE_PATH/views"
+    local cache_dir="$ISSUES_WORKSPACE_PATH/cache"
     
-    if [ -d "$issues_dir" ] && [ "$(ls -A "$issues_dir" 2>/dev/null)" ]; then
-        echo -e "${YELLOW}🗑️ 发现本地Issues数据${NC}"
-        echo "目录: $issues_dir"
+    # 旧架构目录（保留兼容性检查）
+    local old_issues_dir="$ISSUES_DIR"
+    local old_metadata_dir="$ISSUES_METADATA_PATH"
+    
+    echo -e "${YELLOW}🗑️ 检查本地Issues数据...${NC}"
+    
+    # 检查新架构数据
+    local has_new_data=false
+    if [ -d "$data_dir" ] && [ "$(ls -A "$data_dir" 2>/dev/null)" ]; then
+        has_new_data=true
+        echo "� 发现新架构数据目录: $data_dir"
+        echo "   数据文件数: $(ls -1 "$data_dir"/issue_*.json 2>/dev/null | wc -l)"
+    fi
+    
+    # 检查旧架构数据
+    local has_old_data=false
+    if [ -d "$old_issues_dir" ] && [ "$(ls -A "$old_issues_dir" 2>/dev/null)" ]; then
+        has_old_data=true
+        echo "📁 发现旧架构Issues目录: $old_issues_dir"
+        echo "   Issues文件数: $(ls -1 "$old_issues_dir"/*.md 2>/dev/null | wc -l)"
+    fi
+    
+    if [ "$has_new_data" = false ] && [ "$has_old_data" = false ]; then
+        echo -e "${CYAN}ℹ️ 本地无Issues数据，无需清空${NC}"
         echo ""
-        ls -la "$issues_dir" | head -10
-        if [ $(ls -1 "$issues_dir" | wc -l) -gt 10 ]; then
-            echo "... 以及更多文件"
-        fi
+        return
+    fi
+    
+    echo ""
+    echo -e "${RED}⚠️ 警告: 此操作将删除所有本地Issues数据${NC}"
+    echo ""
+    
+    if [ "$has_new_data" = true ]; then
+        echo "将清理的新架构目录:"
+        echo "  - 数据源: $data_dir"
+        echo "  - 视图: $views_dir"
+        echo "  - 缓存: $cache_dir"
+    fi
+    
+    if [ "$has_old_data" = true ]; then
+        echo "将清理的旧架构目录:"
+        echo "  - Issues: $old_issues_dir"
+        echo "  - Metadata: $old_metadata_dir"
+    fi
+    
+    echo ""
+    read -p "确认清空本地Issues数据？ (y/N): " confirm_clear
+    
+    if [[ "$confirm_clear" =~ ^[Yy]$ ]]; then
         echo ""
-        echo -e "${RED}⚠️ 警告: 此操作将删除所有本地Issues数据${NC}"
-        echo ""
-        read -p "确认清空本地Issues目录？ (y/N): " confirm_clear
+        echo "🗑️ 正在清空本地Issues数据..."
         
-        if [[ "$confirm_clear" =~ ^[Yy]$ ]]; then
-            echo ""
-            echo "🗑️ 正在清空本地Issues目录..."
-            rm -rf "$issues_dir"/*
-            echo -e "${GREEN}✅ 本地Issues目录已清空${NC}"
-            echo ""
-        else
-            echo ""
-            echo "❌ 取消清空操作"
-            echo ""
+        # 清理新架构数据
+        if [ "$has_new_data" = true ]; then
+            echo "  清理数据源..."
+            rm -rf "$data_dir"/* 2>/dev/null || true
+            echo "  清理视图..."
+            rm -rf "$views_dir"/* 2>/dev/null || true
+            echo "  清理缓存..."
+            rm -rf "$cache_dir"/* 2>/dev/null || true
         fi
+        
+        # 清理旧架构数据
+        if [ "$has_old_data" = true ]; then
+            echo "  清理旧Issues目录..."
+            rm -rf "$old_issues_dir"/* 2>/dev/null || true
+            echo "  清理旧Metadata目录..."
+            rm -rf "$old_metadata_dir"/* 2>/dev/null || true
+        fi
+        
+        echo -e "${GREEN}✅ 本地Issues数据已清空${NC}"
+        echo ""
     else
-        echo -e "${CYAN}ℹ️ 本地Issues目录为空或不存在，无需清空${NC}"
+        echo ""
+        echo "❌ 取消清空操作"
         echo ""
     fi
 }
 
 download_all_issues() {
     clear_local_issues
-    echo "📥 正在下载所有Issues..."
+    echo "📥 正在下载所有Issues (使用新架构，快速模式)..."
     cd "$SCRIPT_DIR"
-    python3 _scripts/download_issues.py --state=all
+    python3 _scripts/download_issues_v2.py --state=all --skip-comments
     read -p "按Enter键继续..."
 }
 
 download_open_issues() {
     clear_local_issues
-    echo "📥 正在下载开放的Issues..."
+    echo "📥 正在下载开放的Issues (使用新架构，快速模式)..."
     cd "$SCRIPT_DIR"
-    python3 _scripts/download_issues.py --state=open
+    python3 _scripts/download_issues_v2.py --state=open --skip-comments
     read -p "按Enter键继续..."
 }
 
 download_closed_issues() {
     clear_local_issues
-    echo "📥 正在下载已关闭的Issues..."
+    echo "📥 正在下载已关闭的Issues (使用新架构，快速模式)..."
     cd "$SCRIPT_DIR"
-    python3 _scripts/download_issues.py --state=closed
+    python3 _scripts/download_issues_v2.py --state=closed --skip-comments
     read -p "按Enter键继续..."
 }
 
