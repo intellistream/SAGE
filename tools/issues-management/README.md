@@ -2,7 +2,14 @@
 
 一个功能完整的GitHub Issues管理工具，提供下载、分析、管理和同步功能，支持AI智能分析和团队协作管理。
 
-## 🎯 核心功能
+## �️ 新架构 (2025-09)
+
+**单一数据源 + 视图分离架构**：所有issues数据统一存储在`data/`目录的JSON文件中，其他目录(`issues/`, `metadata/`, `summaries/`)都是自动生成的视图。
+
+- 📋 **本地修改指南**: 参见 [README_LOCAL_EDIT_SYNC.md](./README_LOCAL_EDIT_SYNC.md)
+- ⚡ **同步优化指南**: 参见 [README_SYNC_OPTIMIZATION.md](./README_SYNC_OPTIMIZATION.md)
+
+## �🎯 核心功能
 
 ### 1. 📥 下载远端Issues
 - 下载所有Issues
