@@ -8,10 +8,11 @@ class PipelineBuilder(DataStream):
         self.env = LocalEnvironment("pipeline_env", config=None)
         self.initialized = False
         
-    def _apply(self, transformation) -> DataStream:
+    def _apply(self, transformation:BaseTransformation) -> DataStream:
         if(self.initialized is False):
             self.initialized = True
         else:
             raise RuntimeError("Pipeline can only have one source")
+        transformation.is_spout = True
         self.env.pipeline.append(transformation)
         return DataStream(self.env, transformation)

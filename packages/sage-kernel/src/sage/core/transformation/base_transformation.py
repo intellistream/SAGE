@@ -24,6 +24,8 @@ class BaseTransformation:
         self.env_name = env.name
         self.env = env
         self.function = function
+        self.is_spout = False
+        self.is_sink = False
 
         self.basename =  get_name(name) if name else get_name(self.function.__class__.__name__)
 
@@ -79,24 +81,6 @@ class BaseTransformation:
     @property
     def delay(self) -> float:
         return 0.1  # 固定的内部事件监听循环延迟
-    
-    @property
-    def is_spout(self) -> bool:
-        return False
-
-    @property
-    def is_sink(self) -> bool:
-        return False
-
-    @property
-    def is_merge_operation(self) -> bool:
-        """
-        判断是否为合并操作
-        对于大多数transformation，多个上游输入会被合并到input_index=0
-        只有特殊的comap等操作会分别处理多个输入到不同的input_index
-        """
-        return not hasattr(self.function_class, 'is_comap') or not self.function_class.is_comap
-
 
     # ---------------- 工具函数 ----------------
 

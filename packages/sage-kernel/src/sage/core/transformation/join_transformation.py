@@ -223,16 +223,7 @@ class JoinTransformation(BaseTransformation):
                 break
         
         return False
-    
-    @property
-    def is_merge_operation(self) -> bool:
-        """
-        Join是特殊的合并操作，需要区分输入流
-        
-        Returns:
-            bool: False，表示不是普通的合并操作
-        """
-        return False  # Join需要区分不同的输入流
+
     
     def get_join_configuration(self) -> Dict[str, Any]:
         """

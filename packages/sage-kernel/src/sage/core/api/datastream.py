@@ -127,9 +127,6 @@ class DataStream(Generic[T]):
         from sage.libs.io_utils.sink import PrintSink
         return self.sink(PrintSink, prefix=prefix, separator=separator, colored=colored)
 
-    def set_as_output(self):
-        self.transformation.is_output = True
-
     # ---------------------------------------------------------------------
     # internel methods
     # ---------------------------------------------------------------------

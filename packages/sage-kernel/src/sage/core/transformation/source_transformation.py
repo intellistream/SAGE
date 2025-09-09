@@ -25,7 +25,4 @@ class SourceTransformation(BaseTransformation):
     @property
     def delay(self) -> float:
         return self._delay
-    
-    @property
-    def is_spout(self) -> bool:
-        return True
+

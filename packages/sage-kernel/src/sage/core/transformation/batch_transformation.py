@@ -31,10 +31,7 @@ class BatchTransformation(BaseTransformation):
     @property 
     def progress_log_interval(self) -> int:
         return self._progress_log_interval
-    
-    @property
-    def is_spout(self) -> bool:
-        return True
+
 
     def get_operator_kwargs(self) -> dict:
         """获取创建算子时需要的额外参数"""

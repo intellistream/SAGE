@@ -22,7 +22,7 @@ class PipelineTemplate:
         self.namespace = namespace
         self.builder = PipelineBuilder(remote = (self.namespace == "remote"))
         end_stream = self.fn(self.builder)
-        end_stream.set_as_output()
+        end_stream.transformation.is_sink = True
         self.handle = self.builder.env.submit()
     def __call__(self, *args, **kwargs):
         return self.handle(*args, **kwargs)

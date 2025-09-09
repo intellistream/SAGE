@@ -22,7 +22,7 @@ class TaskFactory:
         self.is_spout = transformation.is_spout
 
         # 这些参数在创建节点时注入
-        # self.parallel_index: int  # 来自图编译
+        # self.parallel_index: int # 来自图编译
         # self.parallelism: int     # 来自图编译
         # self.node_name: str       # 来自图编译
 
@@ -31,11 +31,15 @@ class TaskFactory:
         name: str,
         runtime_context: 'TaskContext' = None,
     ) -> 'BaseTask':
-        if self.remote:
-            node = RayTask.options(lifetime="detached").remote(runtime_context,  self.operator_factory)
-            node = ActorWrapper(node)
-        else:
-            node = LocalTask(runtime_context, self.operator_factory)
+        try:
+            if self.remote:
+                node = RayTask.options(lifetime="detached").remote(runtime_context,  self.operator_factory)
+                node = ActorWrapper(node)
+            else:
+                node = LocalTask(runtime_context, self.operator_factory)
+        except Exception as e:
+            self.logger.error(f"Failed to create task: {e}", exc_info=True)
+            raise e
         return node
     
     def __repr__(self) -> str:

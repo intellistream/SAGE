@@ -157,6 +157,7 @@ class JobManager: #Job Manager
         """提交到调度器"""
         try:
             job_info.dispatcher.submit()
+            job_info.dispatcher.start()
             job_info.update_status("running")
             return True
         except Exception as e:
