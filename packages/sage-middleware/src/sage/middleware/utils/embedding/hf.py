@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import os
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 from functools import lru_cache
 import asyncio
 import pipmaster as pm  # Pipmaster for dynamic library install
