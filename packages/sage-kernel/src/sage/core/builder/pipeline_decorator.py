@@ -23,7 +23,9 @@ class PipelineTemplate:
         self.builder = PipelineBuilder(remote = (self.namespace == "remote"))
         end_stream = self.fn(self.builder)
         end_stream.transformation.is_sink = True
-        self.handle = self.builder.env.submit()
+        self.builder.env.submit()
+        # TODO: 每一个进程都会有一个handle，但是env有可能是remote和唯一的
+        self.handle = self.builder.env.get_handle()
     def __call__(self, *args, **kwargs):
         return self.handle(*args, **kwargs)
 

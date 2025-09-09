@@ -37,9 +37,6 @@ service_task = LocalServiceTask(service_factory, runtime_context)
 
 # 启动服务
 service_task.start_service()
-
-# 检查服务状态
-status = service_task.get_service_status()
 ```
 
 ### 2. 服务调用

@@ -6,14 +6,10 @@ from sage.kernel.runtime.task.base_task import BaseTask
 from sage.kernel.utils.ray.actor import ActorWrapper
 from sage.kernel.utils.ray.ray import ensure_ray_initialized
 from sage.common.utils.logging.custom_logger import CustomLogger
-import ray
-from ray.actor import ActorHandle
-
 
 if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
     from sage.kernel.jobmanager.compiler.execution_graph import ExecutionGraph, TaskNode
-    from sage.kernel.runtime.context.service_context import ServiceContext
     from sage.kernel.runtime.context.task_context import TaskContext
 
 
@@ -126,50 +122,16 @@ class Dispatcher:
         self.logger.info(f"Job submission completed: {len(self.tasks)} nodes, {len(self.services)} service tasks")
         self.is_running = True
 
-    def _create_service_context(self, service_name: str) -> 'ServiceContext':
-        """
-        获取service task的ServiceContext（从execution graph中已创建的service node获取）
-
-        Args:
-            service_name: 服务名称
-
-        Returns:
-            从execution graph中获取的ServiceContext
-        """
-        try:
-            # 从execution graph的service_nodes中查找对应的service_node
-            service_node = None
-            for node_name, node in self.graph.service_nodes.items():
-                # 通过service_factory的名称匹配
-                if (
-                    hasattr(node, 'service_factory')
-                    and node.service_factory
-                    and node.service_factory.service_name == service_name
-                ):
-                    service_node = node
-                    break
-
-            if service_node is None:
-                self.logger.error(f"Service node for service '{service_name}' not found in execution graph")
-                return None
-
-            # 直接返回已经创建好的ServiceContext
-            if not hasattr(service_node, 'ctx') or service_node.ctx is None:
-                self.logger.error(f"ServiceContext not found in service node for service '{service_name}'")
-                return None
-
-            self.logger.debug(f"Retrieved ServiceContext for service '{service_name}' from execution graph")
-            return service_node.ctx
-
-        except Exception as e:
-            self.logger.error(f"Failed to retrieve ServiceContext for service {service_name}: {e}", exc_info=True)
-            return None
-
     # Dispatcher will submit the job to LocalEngine or Ray Server.
     def submit(self):
         """编译图结构，创建节点并建立连接"""
         self.logger.info(f"Compiling Job for graph: {self.name}")
         for node_name, graph_node in self.graph.nodes.items():
+            # TODO: 支持分布式的调用和返回handle，支持节点平行
+            if(graph_node.is_spout):
+                self.env.input_qd = graph_node.ctx.input_qd
+            if(graph_node.is_sink):
+                self.env.sink_qd = graph_node.ctx.input_qd
             # 使用TaskNode中的task_factory创建任务，而不是从transformation获取
             task = graph_node.task_factory.create_task(graph_node.name, graph_node.ctx)
             self.tasks[node_name] = task
@@ -239,8 +201,6 @@ class Dispatcher:
             if self.remote:
                 # 清理 Ray Actors
                 self._cleanup_ray_actors()
-                # 清理 Ray Services
-                self._cleanup_ray_services()
             else:
                 # 清理本地任务
                 for node_name, task in self.tasks.items():
@@ -312,49 +272,6 @@ class Dispatcher:
                 f"Cleanup completed: {successful_cleanups}/{len(self.tasks)} cleanups, {successful_kills}/{len(self.tasks)} kills successful"
             )
 
-    def _cleanup_ray_services(self):
-        """清理所有Ray服务任务"""
-        if not self.services:
-            return
-
-        self.logger.info(f"Cleaning up {len(self.services)} service tasks...")
-
-        # 清理服务任务 - 现在统一使用相同的接口
-        cleanup_results = []
-        for service_name, service_task in self.services.items():
-            try:
-                if hasattr(service_task, 'cleanup_and_kill'):
-                    # 这是一个ActorWrapper包装的Ray服务任务
-                    cleanup_success, kill_success = service_task.cleanup_and_kill(cleanup_timeout=5.0, no_restart=True)
-                    cleanup_results.append((service_name, kill_success))
-
-                    if kill_success:
-                        self.logger.debug(f"Successfully killed Ray service actor {service_name}")
-                    else:
-                        self.logger.warning(f"Failed to kill Ray service actor {service_name}")
-
-                elif hasattr(service_task, 'cleanup'):
-                    # 这是一个本地服务任务
-                    service_task.cleanup()
-                    cleanup_results.append((service_name, True))
-                    self.logger.debug(f"Successfully cleaned up local service task {service_name}")
-                else:
-                    self.logger.warning(f"Service task {service_name} does not support cleanup")
-                    cleanup_results.append((service_name, False))
-
-            except Exception as e:
-                self.logger.warning(f"Error during cleanup for service task {service_name}: {e}")
-                cleanup_results.append((service_name, False))
-
-        # 报告清理结果
-        successful_cleanups = sum(1 for _, success in cleanup_results if success)
-
-        if successful_cleanups == len(self.services):
-            self.logger.info(f"Successfully cleaned up all {len(self.services)} service tasks")
-        else:
-            self.logger.warning(
-                f"Service task cleanup completed: {successful_cleanups}/{len(self.services)} successful"
-            )
 
     def _wait_for_cleanup_completion(self, cleanup_futures: List[Tuple[Any, Any]], timeout: float = 5.0):
         """
@@ -381,30 +298,7 @@ class Dispatcher:
                 status[node_name] = {"name": node_name, "error": str(e)}
 
         return status
-
-    def get_service_status(self) -> Dict[str, Any]:
-        """获取所有服务任务的状态"""
-        status = {}
-
-        for service_name, service_task in self.services.items():
-            try:
-                if hasattr(service_task, 'get_statistics'):
-                    service_status = service_task.get_statistics()
-                elif hasattr(service_task, '_actor') and hasattr(service_task._actor, 'get_statistics'):
-                    # ActorWrapper包装的服务
-                    service_status = service_task._actor.get_statistics()
-                else:
-                    service_status = {
-                        "service_name": service_name,
-                        "type": service_task.__class__.__name__,
-                        "status": "unknown",
-                    }
-                status[service_name] = service_status
-            except Exception as e:
-                status[service_name] = {"service_name": service_name, "error": str(e)}
-
-        return status
-
+    
     def get_statistics(self) -> Dict[str, Any]:
         """获取dispatcher统计信息"""
         return {
@@ -413,5 +307,4 @@ class Dispatcher:
             "task_count": len(self.tasks),
             "service_count": len(self.services),
             "task_status": self.get_task_status(),
-            "service_status": self.get_service_status(),
         }

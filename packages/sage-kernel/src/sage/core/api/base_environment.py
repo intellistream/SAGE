@@ -6,6 +6,7 @@ from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
 from sage.core.transformation.base_transformation import BaseTransformation
 from sage.core.transformation.source_transformation import SourceTransformation
 from sage.core.transformation.batch_transformation import BatchTransformation
+from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
 
 if TYPE_CHECKING:
     from sage.core.api.function.base_function import BaseFunction
@@ -37,6 +38,9 @@ class BaseEnvironment(ABC):
 
         # 日志配置
         self.console_log_level: str = "INFO"  # 默认console日志等级
+        
+        self.input_qd: BaseQueueDescriptor = None  # 输入队列描述符
+        self.sink_qd: BaseQueueDescriptor = None  # 输出队列描述符
 
     ########################################################
     #                  user interface                      #
@@ -162,3 +166,6 @@ class BaseEnvironment(ABC):
         self.logger.info(f"Batch iterable source created from {type_name}{count_info}")
 
         return DataStream(self, transformation)
+
+    def get_handle(self):
+        
