@@ -76,7 +76,7 @@ class ServiceManager:
         self._executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="ServiceCall")
         
         # 添加停止标志
-        self._shutdown = False
+        self._shutdown = threading.Event()
         
         # 启动响应监听线程
         self._listener_thread = threading.Thread(

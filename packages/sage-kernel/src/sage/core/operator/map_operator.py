@@ -64,9 +64,10 @@ class MapOperator(BaseOperator):
             else:
                 # 执行前记录时间
                 start_time = time.time()
-
+                # print(packet.payload)
                 # 执行function
-                result = self.function(packet.payload)
+                args, kwargs = packet.payload
+                result = self.function(*args, **kwargs)
 
                 # 执行后记录时间
                 end_time = time.time()
@@ -80,7 +81,7 @@ class MapOperator(BaseOperator):
                 result_packet = packet.inherit_partition_info(result) if (result is not None) else None
                 if result_packet is not None:
                     self.router.send(result_packet)
-
+                return result
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)
 

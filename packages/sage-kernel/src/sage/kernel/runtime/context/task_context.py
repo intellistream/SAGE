@@ -17,9 +17,9 @@ if TYPE_CHECKING:
     from sage.core.api.base_environment import BaseEnvironment
     from sage.kernel.jobmanager.job_manager import JobManager
     from sage.kernel.runtime.service.service_caller import ServiceManager
-    from sage.kernel.runtime.communication.router.packet import StopSignal
+    from sage.core.communication.packet import StopSignal
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor
-    from sage.kernel.runtime.communication.router.packet import Packet
+    from sage.core.communication.packet import Packet
 # task, operator和function "形式上共享"的运行上下文
 
 
@@ -49,7 +49,7 @@ class TaskContext(BaseRuntimeContext):
         self._logger: Optional[CustomLogger] = None
 
         self.is_spout = transformation.is_spout
-
+        self.is_sink = transformation.is_sink
         self.delay = 0.01
         self.stop_signal_num = graph_node.stop_signal_num
 
@@ -69,9 +69,9 @@ class TaskContext(BaseRuntimeContext):
         self._stop_event = None  # 延迟初始化
         self.received_stop_signals = None  # 延迟初始化
         self.stop_signal_count = 0
+        self.input_qd = graph_node.input_qd
 
-        # 服务相关 - service_manager已在BaseRuntimeContext中定义
-        self._service_names: Optional[Dict[str, str]] = None  # 只保存服务名称映射而不是实例
+
 
         # 下游连接组管理 - 从execution_graph构建downstream_groups
         self.downstream_groups: Dict[int, Dict[int, 'Connection']] = {}
@@ -159,12 +159,6 @@ class TaskContext(BaseRuntimeContext):
         if self._stop_event is None:
             self._stop_event = threading.Event()
         return self._stop_event
-
-    def set_stop_signal(self):
-        self.stop_event.set()
-
-    def is_stop_requested(self) -> bool:
-        return self.stop_event.is_set()
 
     def clear_stop_signal(self):
         self.stop_event.clear()

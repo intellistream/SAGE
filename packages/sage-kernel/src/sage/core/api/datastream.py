@@ -28,14 +28,14 @@ class DataStream(Generic[T]):
         self._type_param = self._resolve_type_param()
 
         self.logger.debug(
-            f"DataStream created with transformation: {transformation.function_class.__name__}, type_param: {self._type_param}")
+            f"DataStream created with transformation: {transformation.function.__class__.__name__}, type_param: {self._type_param}")
 
     # ---------------------------------------------------------------------
     # general datastream api
     # ---------------------------------------------------------------------
     def map(self, function: Union[Type[BaseFunction], callable], *args, **kwargs) -> "DataStream":
-        if callable(function) and not isinstance(function, type):
-            function = wrap_lambda(function, 'map')
+        if not callable(function):
+            raise TypeError("The 'function' argument must be callable.")
         
         # 获取MapTransformation类
         tr = MapTransformation(self._environment, function, *args, **kwargs)

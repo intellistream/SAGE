@@ -53,7 +53,7 @@ class BaseOperator(ABC):
             return
         self.logger.debug(f"Operator {self.name} received packet: {packet}")
         # 处理数据包
-        self.process_packet(packet)
+        return self.process_packet(packet)
 
     @abstractmethod
     def process_packet(self, packet: "Packet" = None):

@@ -5,7 +5,7 @@ from sage.core.transformation.base_transformation import BaseTransformation
 
 class PipelineBuilder(DataStream):
     def __init__(self, remote: bool = False):
-        self.env = LocalEnvironment("pipeline_env", config=None)
+        self._environment = LocalEnvironment("pipeline_env", config=None)
         self.initialized = False
         
     def _apply(self, transformation:BaseTransformation) -> DataStream:
@@ -14,5 +14,5 @@ class PipelineBuilder(DataStream):
         else:
             raise RuntimeError("Pipeline can only have one source")
         transformation.is_spout = True
-        self.env.pipeline.append(transformation)
-        return DataStream(self.env, transformation)
+        self._environment.pipeline.append(transformation)
+        return DataStream(self._environment, transformation)

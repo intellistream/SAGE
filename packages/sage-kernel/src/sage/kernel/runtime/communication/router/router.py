@@ -3,7 +3,7 @@ import traceback
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, TYPE_CHECKING
-from sage.kernel.runtime.communication.router.packet import Packet
+from sage.core.communication.packet import Packet
 
 # 添加 Ray 相关导入以检测 Actor
 try:
@@ -15,7 +15,7 @@ except ImportError:
     ActorHandle = None
 
 if TYPE_CHECKING:
-    from sage.kernel.runtime.communication.router.packet import StopSignal
+    from sage.core.communication.packet import StopSignal
     from sage.kernel.runtime.communication.router.connection import Connection
     from sage.kernel.runtime.context.task_context import TaskContext
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import BaseQueueDescriptor

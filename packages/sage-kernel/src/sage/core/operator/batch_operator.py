@@ -36,7 +36,7 @@ class BatchOperator(BaseOperator):
                 self.router.send_stop_signal(stop_signal)
                 
                 # 通过ctx停止task
-                self.ctx.set_stop_signal()
+                self.ctx.stop_event.set()
                 return
             
             # 发送正常数据包
@@ -46,7 +46,7 @@ class BatchOperator(BaseOperator):
                 # TODO: 把这里改成try-catch
                 if not success:
                     self.logger.warning(f"Batch Operator {self.name} failed to send packet, stopping task")
-                    self.ctx.set_stop_signal()
+                    self.ctx.stop_event.set()
                     return
 
         except Exception as e:

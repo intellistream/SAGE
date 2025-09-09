@@ -19,7 +19,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
+# TODO: queue descriptor应该把内容的序列化和反序列化封装在里边
 class BaseQueueDescriptor(ABC):
     """
     统一的多态队列描述符基类
@@ -235,7 +235,3 @@ class BaseQueueDescriptor(ABC):
     
     def __hash__(self) -> int:
         return hash((self.queue_id, self.queue_type))
-
-
-# 为了向后兼容性，提供 QueueDescriptor 别名
-QueueDescriptor = BaseQueueDescriptor

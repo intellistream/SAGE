@@ -72,14 +72,11 @@ class TaskNode:
     def _create_queue_descriptors(self, env: 'BaseEnvironment'):
         """在节点构造时创建队列描述符"""
         # 为每个节点创建单一的输入队列描述符（被所有上游复用）
-        if not self.is_spout:  # 源节点不需要输入队列
-            self.input_qd = _create_queue_descriptor(
-                env=env,
-                name=f"input_{self.name}",
-                maxsize=10000
-            )
-        else:
-            self.input_qd = None
+        self.input_qd = _create_queue_descriptor(
+            env=env,
+            name=f"input_{self.name}",
+            maxsize=10000
+        )
         
         # 为每个graph node创建service response queue descriptor
         self.service_response_qd = _create_queue_descriptor(

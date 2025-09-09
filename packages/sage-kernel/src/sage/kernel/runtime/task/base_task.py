@@ -3,8 +3,9 @@ from queue import Empty
 import threading, copy, time, os
 from typing import Any, TYPE_CHECKING, Union, Optional
 from sage.kernel.runtime.context.task_context import TaskContext
-from sage.kernel.runtime.communication.router.packet import Packet
+from sage.core.communication.packet import Packet
 from ray.util.queue import Empty
+from sage.core.communication.stop_signal import StopSignal
 
 from sage.kernel.runtime.communication.router.router import BaseRouter
 from sage.common.utils.logging.custom_logger import CustomLogger
@@ -20,11 +21,9 @@ class BaseTask(ABC):
 
         # 使用从上下文传入的队列描述符，而不是直接创建队列
         self.input_qd = self.ctx.input_qd
-
+        self.queue_cache = {}
         if self.input_qd:
-            self.logger.info(
-                f"🎯 Task: Using queue descriptor for input buffer: {self.input_qd.queue_id}"
-            )
+            self.logger.info(f"🎯 Task: Using queue descriptor for input buffer: {self.input_qd.queue_id}")
         else:
             self.logger.info(f"🎯 Task: No input queue (source/spout node)")
 
@@ -40,9 +39,7 @@ class BaseTask(ABC):
             # 不再需要inject_router，operator通过ctx.send_packet()进行路由
             # self.operator.inject_router(self.router)
         except Exception as e:
-            self.logger.error(
-                f"Failed to initialize node {self.name}: {e}", exc_info=True
-            )
+            self.logger.error(f"Failed to initialize node {self.name}: {e}", exc_info=True)
             raise
 
     @property
@@ -62,9 +59,7 @@ class BaseTask(ABC):
         self.ctx.clear_stop_signal()
 
         # 启动工作线程
-        self._worker_thread = threading.Thread(
-            target=self._worker_loop, name=f"{self.name}_worker"
-        )
+        self._worker_thread = threading.Thread(target=self._worker_loop, name=f"{self.name}_worker")
         self._worker_thread.start()
 
         self.logger.info(f"Task {self.name} started with worker thread")
@@ -76,15 +71,13 @@ class BaseTask(ABC):
             self.logger.debug(f"Received data in node {self.name}, channel {input_tag}")
             self.operator.process_packet(packet)
         except Exception as e:
-            self.logger.error(
-                f"Error processing data in node {self.name}: {e}", exc_info=True
-            )
+            self.logger.error(f"Error processing data in node {self.name}: {e}", exc_info=True)
             raise
 
     def stop(self) -> None:
         """Signal the worker loop to stop."""
-        if not self.ctx.is_stop_requested():
-            self.ctx.set_stop_signal()
+        if not self.ctx.stop_event.is_set():
+            self.ctx.stop_event.set()
             self.logger.info(f"Node '{self.name}' received stop signal.")
 
     def get_object(self):
@@ -103,67 +96,50 @@ class BaseTask(ABC):
         Main worker loop that executes continuously until stop is signaled.
         """
         # Main execution loop
-        while not self.ctx.is_stop_requested():
+        while not self.ctx.stop_event.is_set():
+            # For non-spout nodes, fetch input and process
+            # input_result = self.fetch_input()
             try:
-                if self.is_spout:
+                input_packet:Union[Packet, StopSignal] = self.input_qd.get(timeout=5.0)
+            except Exception as e:
+                if self.delay > 0.002:
+                    time.sleep(self.delay)
+                continue
+                
+            self.logger.debug(f"Node '{self.name}' received data packet: {input_packet}, type: {type(input_packet)}")
+            if input_packet is None:
+                self.logger.info(f"Task {self.name}: Received None packet, continuing loop")
+                if self.delay > 0.002:
+                    time.sleep(self.delay)
+                continue
 
-                    self.logger.debug(f"Running spout node '{self.name}'")
-                    self.operator.receive_packet(None)
-                    self.logger.debug(f"self.delay: {self.delay}")
-                    if self.delay > 0.002:
-                        time.sleep(self.delay)
-                else:
+            # Check if received packet is a StopSignal
 
-                    # For non-spout nodes, fetch input and process
-                    # input_result = self.fetch_input()
-                    try:
-                        data_packet = self.input_qd.get(timeout=5.0)
-                    except Exception as e:
-                        if self.delay > 0.002:
-                            time.sleep(self.delay)
-                        continue
-                    self.logger.debug(
-                        f"Node '{self.name}' received data packet: {data_packet}, type: {type(data_packet)}"
-                    )
-                    if data_packet is None:
-                        self.logger.info(
-                            f"Task {self.name}: Received None packet, continuing loop"
-                        )
-                        if self.delay > 0.002:
-                            time.sleep(self.delay)
-                        continue
+            if isinstance(input_packet, StopSignal):
+                self.logger.info(f"Node '{self.name}' received stop signal: {input_packet}")
 
-                    # Check if received packet is a StopSignal
-                    from sage.core.communication.stop_signal import StopSignal
+                # 在task层统一处理停止信号计数
+                should_stop_pipeline = self.ctx.handle_stop_signal(input_packet)
 
-                    if isinstance(data_packet, StopSignal):
-                        self.logger.info(
-                            f"Node '{self.name}' received stop signal: {data_packet}"
-                        )
+                # 向下游转发停止信号
+                self.router.send_stop_signal(input_packet)
 
-                        # 在task层统一处理停止信号计数
-                        should_stop_pipeline = self.ctx.handle_stop_signal(data_packet)
-
-                        # 向下游转发停止信号
-                        self.router.send_stop_signal(data_packet)
-
-                        # 停止当前task的worker loop
-                        if should_stop_pipeline:
-                            self.ctx.set_stop_signal()
-                            break
-
-                        continue
-
-                    self.operator.receive_packet(data_packet)
+                # 停止当前task的worker loop
+                if should_stop_pipeline:
+                    self.ctx.stop_event.set()
+                    break
+            try:
+                if(input_packet.payload is None):
+                    self.queue_cache[input_packet.client_uuid] = input_packet.client_queue
+                    continue
+                result = self.operator.receive_packet(input_packet)
+                if self.ctx.is_sink:
+                    return_packet = Packet(payload=result, client_uuid=input_packet.client_uuid, request_id=input_packet.request_id)
+                client_queue = self.queue_cache[input_packet.client_uuid]
+                client_queue.put(return_packet)
             except Exception as e:
                 self.logger.error(f"Critical error in node '{self.name}': {str(e)}")
-            finally:
-                self._running = False
 
-    @property
-    def is_spout(self) -> bool:
-        """检查是否为 spout 节点"""
-        return self.ctx.is_spout
 
     @property
     def delay(self) -> float:
