@@ -82,7 +82,7 @@ class MemoryManager:
 
     def has_collection(self, name: str) -> bool:
         """检查collection是否存在（内存或磁盘）"""
-        return name in self.collections
+        return name in self.collections or name in self.collection_metadata
 
     def get_collection(self, name: str) -> Optional[BaseMemoryCollection]:
         """优先返回内存collection，不在内存则尝试磁盘懒加载并发警告"""
