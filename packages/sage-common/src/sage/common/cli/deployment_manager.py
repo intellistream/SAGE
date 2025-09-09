@@ -120,7 +120,10 @@ class DeploymentManager:
                 if tools_dir.exists():
                     typer.echo("📦 添加 tools 目录...")
                     tar.add(tools_dir, arcname="tools")
-                
+                experiment_dir = self.project_root / "experiments"
+                if experiment_dir.exists():
+                    typer.echo("📦 添加 experiments 目录...")
+                    tar.add(experiment_dir, arcname="experiments")
                 # 2. 添加包源代码（不包含构建产物）
                 packages_dir = self.project_root / "packages"
                 if packages_dir.exists():
