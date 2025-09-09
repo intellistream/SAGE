@@ -94,26 +94,66 @@ class IssueDataManager:
             # 处理项目信息（这里假设已经通过其他方式获取）
             projects_info = issue_data.get('projects', [])
             
-            # 构建统一数据结构
+            # 构建统一的数据结构
             unified_data = {
                 'metadata': {
                     'number': issue_number,
                     'title': issue_data.get('title', ''),
                     'state': issue_data.get('state', 'open'),
+                    'state_reason': issue_data.get('state_reason'),
                     'labels': [l.get('name') if isinstance(l, dict) else l 
                               for l in issue_data.get('labels', [])],
                     'assignees': [a.get('login') if isinstance(a, dict) else a 
                                  for a in issue_data.get('assignees', [])],
+                    'assignee': issue_data.get('assignee', {}).get('login') if issue_data.get('assignee') else None,
                     'milestone': milestone_info,
                     'reactions': reactions_info,
                     'comments_count': issue_data.get('comments', 0),
                     'locked': issue_data.get('locked', False),
+                    'active_lock_reason': issue_data.get('active_lock_reason'),
                     'created_at': issue_data.get('created_at'),
                     'updated_at': issue_data.get('updated_at'),
                     'closed_at': issue_data.get('closed_at'),
+                    'closed_by': issue_data.get('closed_by', {}).get('login') if issue_data.get('closed_by') else None,
                     'html_url': issue_data.get('html_url'),
+                    'url': issue_data.get('url'),
+                    'comments_url': issue_data.get('comments_url'),
+                    'events_url': issue_data.get('events_url'),
+                    'labels_url': issue_data.get('labels_url'),
+                    'repository_url': issue_data.get('repository_url'),
+                    'timeline_url': issue_data.get('timeline_url'),
+                    'node_id': issue_data.get('node_id'),
+                    'id': issue_data.get('id'),
                     'user': issue_data.get('user', {}).get('login') if isinstance(issue_data.get('user'), dict) else issue_data.get('user'),
-                    'projects': projects_info
+                    'user_info': {
+                        'login': issue_data.get('user', {}).get('login'),
+                        'id': issue_data.get('user', {}).get('id'),
+                        'node_id': issue_data.get('user', {}).get('node_id'),
+                        'avatar_url': issue_data.get('user', {}).get('avatar_url'),
+                        'html_url': issue_data.get('user', {}).get('html_url'),
+                        'type': issue_data.get('user', {}).get('type'),
+                        'site_admin': issue_data.get('user', {}).get('site_admin')
+                    } if isinstance(issue_data.get('user'), dict) else None,
+                    'author_association': issue_data.get('author_association'),
+                    'performed_via_github_app': issue_data.get('performed_via_github_app'),
+                    'type': issue_data.get('type'),
+                    'projects': projects_info,
+                    # 新增：关系和依赖信息
+                    'issue_dependencies_summary': issue_data.get('issue_dependencies_summary', {
+                        'blocked_by': 0,
+                        'total_blocked_by': 0,
+                        'blocking': 0,
+                        'total_blocking': 0
+                    }),
+                    'sub_issues_summary': issue_data.get('sub_issues_summary', {
+                        'total': 0,
+                        'completed': 0,
+                        'percent_completed': 0
+                    }),
+                    # 新增：父子关系信息
+                    'parent_issue_url': issue_data.get('parent_issue_url'),
+                    # 新增：issue类型信息
+                    'type': issue_data.get('type')
                 },
                 'content': {
                     'body': issue_data.get('body', ''),
