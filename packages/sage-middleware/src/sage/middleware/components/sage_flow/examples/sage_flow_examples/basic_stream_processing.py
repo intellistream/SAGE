@@ -21,7 +21,7 @@ from typing import List, Dict, Any
 # 添加包路径以正确导入sageflow
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
-from sageflow import Stream
+from sageflow import Environment, DataStream
 
 class BasicStreamProcessor:
     """基础流处理器"""
@@ -58,28 +58,30 @@ class BasicStreamProcessor:
             return {
                 **item,
                 'processed_at': time.time(),
-                'grade': self.calculate_grade(item['score'])
+                'grade': self.calculate_grade(item['score']),
+                'embeddings': [1.0, 2.0]
             }
 
-        # 创建Stream并链式操作
-        stream = Stream.from_list(sample_data)
-        processed_stream = (stream
+        env = Environment()
+        ds = env.create_datastream().from_list(sample_data)
+        processed_stream = (ds
                             .filter(is_active)
                             .map(add_processing_info)
-                            .sink("print://"))  # 打印输出
+                            .filter(lambda item: len(item.get("embeddings", [])) > 0)
+                            .sink("print://"))
 
-        # 执行并收集结果
-        results = processed_stream.execute()
+        results = processed_stream.collect()
         print(f"✓ 流处理完成，处理了 {len(results)} 条记录")
 
         # 应用文件sink示例
         print("\n=== 文件 Sink 示例 ===")
-        file_stream = Stream.from_list(sample_data)
-        file_processed = (file_stream
+        file_ds = env.create_datastream().from_list(sample_data)
+        file_processed = (file_ds
                           .filter(is_active)
                           .map(add_processing_info)
-                          .sink("file://basic_output.txt"))  # 写入文件
-        file_results = file_processed.execute()
+                          .filter(lambda item: len(item.get("embeddings", [])) > 0)
+                          .sink("file://basic_output.txt"))
+        file_results = file_processed.collect()
         print(f"✓ 文件sink完成，结果写入 basic_output.txt，{len(file_results)} 条记录")
 
         return results
@@ -96,15 +98,15 @@ class BasicStreamProcessor:
             return "D"
 
     def demonstrate_simple_pipeline(self):
-        """演示简单管道"""
-        print("\n=== 简单管道演示 ===")
-        simple_data = [{"value": 1}, {"value": 2}, {"value": 3}]
-        result = (Stream.from_list(simple_data)
-                  .map(lambda x: {"doubled": x["value"] * 2})
-                  .filter(lambda x: x["doubled"] > 2)
-                  .sink("print://")
-                  .execute())
-        print(f"简单管道结果: {result}")
+        """演示Fluent API"""
+        print("\n=== Fluent API 演示 ===")
+        env = Environment()
+        ds = env.create_datastream().from_list([{"text": "test"}])
+        result = (ds
+                  .map(lambda msg: {**msg, "embeddings": [1.0, 2.0]})
+                  .filter(lambda msg: len(msg["embeddings"]) > 0)
+                  .collect())
+        print(f"Fluent结果: {result}")
 
 def main():
     """主函数"""

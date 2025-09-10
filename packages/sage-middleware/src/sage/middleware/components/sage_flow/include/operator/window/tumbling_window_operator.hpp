@@ -25,7 +25,7 @@ class MultiModalMessage;
  *
  * Based on candyFlow's TumblingWindowOperator design with SAGE integration.
  */
-class TumblingWindowOperator : public WindowOperator {
+class TumblingWindowOperator : public WindowOperator<MultiModalMessage, MultiModalMessage> {
 public:
   /**
    * @brief Construct a tumbling window operator
@@ -48,8 +48,8 @@ public:
 
   // WindowOperator interface implementation
   auto processWindow(
-      std::vector<std::unique_ptr<MultiModalMessage>> window_messages)
-      -> std::vector<std::unique_ptr<MultiModalMessage>> override;
+      const std::vector<std::shared_ptr<MultiModalMessage>>& window_messages)
+      -> std::vector<std::shared_ptr<MultiModalMessage>> override;
 
   // TumblingWindow-specific interface
   auto setWatermarkDelay(std::chrono::milliseconds delay) -> void;
@@ -66,7 +66,7 @@ protected:
   auto shouldCreateNewWindow(uint64_t message_timestamp) -> bool;
   auto getWindowIdForTimestamp(uint64_t timestamp) -> uint64_t;
   auto isLateData(uint64_t message_timestamp) -> bool;
-  auto processLateData(std::unique_ptr<MultiModalMessage> message) -> bool;
+  auto processLateData(const std::shared_ptr<MultiModalMessage>& message) -> bool;
 
 private:
   // Window configuration
@@ -84,7 +84,7 @@ private:
     uint64_t window_id;
     uint64_t start_time;
     uint64_t end_time;
-    std::vector<std::unique_ptr<MultiModalMessage>> messages;
+    std::vector<std::shared_ptr<MultiModalMessage>> messages;
     bool triggered;
 
     WindowState(uint64_t id, uint64_t start, uint64_t end)

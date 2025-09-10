@@ -5,31 +5,27 @@
 namespace sage_flow {
 
 VectorStoreSinkOperator::VectorStoreSinkOperator(VectorStoreConfig config)
-    : BaseOperator<MultiModalMessage, bool>(OperatorType::kSink, "VectorStoreSink"),
+    : BaseOperator<MultiModalMessage, MultiModalMessage>(OperatorType::kSink, "VectorStoreSink"),
       config_(std::move(config)) {
   batch_messages_.reserve(config_.batch_size_);
 }
 
-auto VectorStoreSinkOperator::process(const Response<MultiModalMessage>& input_record,
-                                      int slot) -> bool {
-  incrementProcessedCount();
+auto VectorStoreSinkOperator::process(const std::vector<std::shared_ptr<MultiModalMessage>>& input) -> std::optional<Response<MultiModalMessage>> {
+   incrementProcessedCount();
 
-  if (input_record.hasMessages()) {
-    const auto messages = input_record.getMessages();
-    for (const auto& message : messages) {
-      if (message && message->hasEmbedding()) {
-        batch_messages_.push_back(message.get());
+   for (const auto& message : input) {
+     if (message && message->hasEmbedding()) {
+       batch_messages_.push_back(message.get());
 
-        // Process batch when it reaches the configured size
-        if (batch_messages_.size() >= config_.batch_size_) {
-          processBatch();
-        }
-      }
-    }
-  }
+       // Process batch when it reaches the configured size
+       if (batch_messages_.size() >= config_.batch_size_) {
+         processBatch();
+       }
+     }
+   }
 
-  incrementOutputCount();
-  return true;
+   incrementOutputCount();
+   return std::nullopt;
 }
 
 auto VectorStoreSinkOperator::open() -> void {

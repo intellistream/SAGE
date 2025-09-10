@@ -1,16 +1,80 @@
-#include "../../include/message/multimodal_message.hpp"
+#include "message/multimodal_message.hpp"
+
+#include <cstring>
 
 #include <iostream>
 
 #include <algorithm>
 #include <chrono>
-#include <stdexcept>
+#include <memory>
 
 namespace sage_flow {
 
+MultiModalMessage::MultiModalMessage(const MultiModalMessage& other)
+    : uid_(other.uid_),
+      sage_uid_(other.sage_uid_),
+      timestamp_(other.timestamp_),
+      content_type_(other.content_type_),
+      content_(other.content_),
+      embedding_(other.embedding_),
+      embeddings_(other.embeddings_),
+      metadata_(other.metadata_),
+      retrieval_contexts_(),
+      processing_trace_(other.processing_trace_),
+      quality_score_(other.quality_score_),
+      source_(other.source_),
+      tags_(other.tags_),
+      custom_fields_(other.custom_fields_),
+      processed_(other.processed_),
+      processed_timestamp_(other.processed_timestamp_),
+      sub_messages_() {
+  for (const auto& ctx : other.retrieval_contexts_) {
+    retrieval_contexts_.push_back(ctx->clone());
+  }
+  for (const auto& msg : other.sub_messages_) {
+    sub_messages_.push_back(std::shared_ptr<MultiModalMessage>(msg->clone().release()));
+  }
+}
+
+auto MultiModalMessage::operator=(const MultiModalMessage& other) -> MultiModalMessage& {
+  if (this == &other) {
+    return *this;
+  }
+  uid_ = other.uid_;
+  sage_uid_ = other.sage_uid_;
+  timestamp_ = other.timestamp_;
+  content_type_ = other.content_type_;
+  content_ = other.content_;
+  embedding_ = other.embedding_;
+  embeddings_ = other.embeddings_;
+  metadata_ = other.metadata_;
+  retrieval_contexts_.clear();
+  for (const auto& ctx : other.retrieval_contexts_) {
+    retrieval_contexts_.push_back(ctx->clone());
+  }
+  processing_trace_ = other.processing_trace_;
+  quality_score_ = other.quality_score_;
+  source_ = other.source_;
+  tags_ = other.tags_;
+  custom_fields_ = other.custom_fields_;
+  processed_ = other.processed_;
+  processed_timestamp_ = other.processed_timestamp_;
+  sub_messages_.clear();
+  for (const auto& msg : other.sub_messages_) {
+    sub_messages_.push_back(std::shared_ptr<MultiModalMessage>(msg->clone().release()));
+  }
+  return *this;
+}
+
+
 // Constructor implementations
 MultiModalMessage::MultiModalMessage(uint64_t uid)
-    : uid_(uid), timestamp_(getCurrentTimestamp()) {
+    : uid_(uid), timestamp_(getCurrentTimestamp()), embeddings_() {
+  sage_uid_ = generateSageUid();
+}
+
+MultiModalMessage::MultiModalMessage(uint64_t uid, std::vector<double> embeddings)
+    : uid_(uid), timestamp_(getCurrentTimestamp()), embeddings_(std::move(embeddings)) {
   sage_uid_ = generateSageUid();
 }
 
@@ -19,7 +83,19 @@ MultiModalMessage::MultiModalMessage(uint64_t uid, ContentType content_type,
     : uid_(uid),
       timestamp_(getCurrentTimestamp()),
       content_type_(content_type),
-      content_(std::move(content)) {
+      content_(std::move(content)),
+      embeddings_() {
+  sage_uid_ = generateSageUid();
+  validateContent();
+}
+
+MultiModalMessage::MultiModalMessage(uint64_t uid, ContentType content_type,
+                                     ContentVariant content, std::vector<double> embeddings)
+    : uid_(uid),
+      timestamp_(getCurrentTimestamp()),
+      content_type_(content_type),
+      content_(std::move(content)),
+      embeddings_(std::move(embeddings)) {
   sage_uid_ = generateSageUid();
   validateContent();
 }
@@ -36,46 +112,7 @@ MultiModalMessage::MultiModalMessage(const std::string& sage_uid,
   validateContent();
 }
 
-// Move constructor
-MultiModalMessage::MultiModalMessage(MultiModalMessage&& other) noexcept
-    : uid_(other.uid_),
-      sage_uid_(std::move(other.sage_uid_)),
-      timestamp_(other.timestamp_),
-      content_type_(other.content_type_),
-      content_(std::move(other.content_)),
-      embedding_(std::move(other.embedding_)),
-      metadata_(std::move(other.metadata_)),
-      retrieval_contexts_(std::move(other.retrieval_contexts_)),
-      processing_trace_(std::move(other.processing_trace_)),
-      quality_score_(other.quality_score_),
-      source_(std::move(other.source_)),
-      tags_(std::move(other.tags_)),
-      custom_fields_(std::move(other.custom_fields_)),
-      processed_(other.processed_),
-      processed_timestamp_(other.processed_timestamp_) {}
 
-// Move assignment operator
-auto MultiModalMessage::operator=(MultiModalMessage&& other) noexcept
-    -> MultiModalMessage& {
-  if (this != &other) {
-    uid_ = other.uid_;
-    sage_uid_ = std::move(other.sage_uid_);
-    timestamp_ = other.timestamp_;
-    content_type_ = other.content_type_;
-    content_ = std::move(other.content_);
-    embedding_ = std::move(other.embedding_);
-    metadata_ = std::move(other.metadata_);
-    retrieval_contexts_ = std::move(other.retrieval_contexts_);
-    processing_trace_ = std::move(other.processing_trace_);
-    quality_score_ = other.quality_score_;
-    source_ = std::move(other.source_);
-    tags_ = std::move(other.tags_);
-    custom_fields_ = std::move(other.custom_fields_);
-    processed_ = other.processed_;
-    processed_timestamp_ = other.processed_timestamp_;
-  }
-  return *this;
-}
 
 // Core accessors
 auto MultiModalMessage::getUid() const -> uint64_t { return uid_; }
@@ -109,6 +146,10 @@ auto MultiModalMessage::getProcessingTrace() const -> const ProcessingTrace& {
 
 auto MultiModalMessage::getQualityScore() const -> std::optional<float> {
   return quality_score_;
+}
+
+auto MultiModalMessage::getEmbeddings() const -> const std::vector<double>& {
+  return embeddings_;
 }
 
 // SAGE compatible accessors
@@ -154,6 +195,10 @@ auto MultiModalMessage::addProcessingStep(std::string step) -> void {
 
 auto MultiModalMessage::setQualityScore(float score) -> void {
   quality_score_ = score;
+}
+
+auto MultiModalMessage::setEmbeddings(std::vector<double> embeddings) -> void {
+  embeddings_ = std::move(embeddings);
 }
 
 // SAGE compatible mutators
@@ -251,17 +296,32 @@ auto MultiModalMessage::getRetrievalContexts() const
 
 // Serialization support (simplified implementations)
 auto MultiModalMessage::serialize() const -> std::vector<uint8_t> {
-  // Simplified serialization - in practice, you'd use Protocol Buffers or
-  // similar
+  // Simplified serialization extended for new ContentVariant and embeddings
   std::vector<uint8_t> data;
-  // Implementation would serialize all member variables
+  // Serialize uid, timestamp, content_type, content (variant), embedding, embeddings_, etc.
+  // Placeholder: serialize embeddings_ as binary
+  size_t embeddings_size = embeddings_.size();
+  data.insert(data.end(), reinterpret_cast<const uint8_t*>(&embeddings_size), reinterpret_cast<const uint8_t*>(&embeddings_size) + sizeof(size_t));
+  data.insert(data.end(), reinterpret_cast<const uint8_t*>(embeddings_.data()), reinterpret_cast<const uint8_t*>(embeddings_.data()) + embeddings_.size() * sizeof(double));
+  // Add other fields...
   return data;
 }
 
 auto MultiModalMessage::deserialize(const std::vector<uint8_t>& data)
     -> std::unique_ptr<MultiModalMessage> {
-  // Simplified deserialization
-  return std::make_unique<MultiModalMessage>(0);
+  // Simplified deserialization extended for embeddings
+  auto msg = std::make_unique<MultiModalMessage>(0);
+  // Deserialize embeddings_ from binary
+  if (data.size() >= sizeof(size_t)) {
+    size_t embeddings_size;
+    std::memcpy(&embeddings_size, data.data(), sizeof(size_t));
+    msg->embeddings_.resize(embeddings_size);
+    if (data.size() >= sizeof(size_t) + embeddings_size * sizeof(double)) {
+      std::memcpy(msg->embeddings_.data(), data.data() + sizeof(size_t), embeddings_size * sizeof(double));
+    }
+  }
+  // Add other fields...
+  return msg;
 }
 
 auto MultiModalMessage::serializeToProtobuf() const -> std::vector<uint8_t> {
@@ -299,22 +359,30 @@ auto MultiModalMessage::clone() const -> std::unique_ptr<MultiModalMessage> {
   cloned->custom_fields_ = custom_fields_;
   cloned->processed_ = processed_;
   cloned->processed_timestamp_ = processed_timestamp_;
+  cloned->embeddings_ = embeddings_;
 
-  // Clone retrieval contexts (simplified - just copy pointers for now)
+  // Clone retrieval contexts
   for (const auto& context : retrieval_contexts_) {
     if (context) {
-      // For now, we'll create a new context with the same data
-      auto new_context = std::make_unique<RetrievalContext>(
-          context->getSource(), context->getSimilarityScore());
-      // Copy metadata
-      for (const auto& [key, value] : context->getMetadata()) {
-        new_context->setMetadata(key, value);
-      }
-      cloned->retrieval_contexts_.push_back(std::move(new_context));
+      cloned->retrieval_contexts_.push_back(context->clone());
     }
   }
 
+  // Clone sub_messages (shared_ptr copy)
+  for (const auto& msg : sub_messages_) {
+    cloned->sub_messages_.push_back(msg);
+  }
+
   return cloned;
+}
+
+// Embeddings serialization for pybind compatibility
+auto MultiModalMessage::serializeEmbeddings() const -> std::vector<double> {
+  return embeddings_;
+}
+
+auto MultiModalMessage::deserializeEmbeddings(const std::vector<double>& data) -> std::vector<double> {
+  return data;
 }
 
 // SageMessage conversion methods removed to avoid compilation issues

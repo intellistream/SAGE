@@ -5,6 +5,9 @@
 #include <string>
 #include <unordered_map>
 
+#include "data_stream/data_stream.hpp"
+#include "message/multimodal_message.hpp"
+
 namespace sage_flow {
 
 // Forward declarations
@@ -125,7 +128,7 @@ public:
    *
    * @return DataStream instance for pipeline construction
    */
-  auto create_datastream() -> DataStream;
+  auto create_datastream() -> Stream;
 
   // ===============================
   // Python-friendly methods

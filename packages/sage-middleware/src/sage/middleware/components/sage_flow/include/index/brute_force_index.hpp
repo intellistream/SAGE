@@ -4,17 +4,16 @@
 #include <vector>
 
 #include "index.hpp"
+#include "../function/base_function.hpp"
+#include "../operator/response.hpp"
+#include "../message/multimodal_message.hpp"
 
 namespace sage_flow {
 
-/**
- * @brief Brute force index implementation for exact search
- * Reference: flow_old/include/index/index.h
- */
-class BruteForceIndex : public Index {
+class BruteForceIndex : public Index, public BaseFunction {
 public:
   explicit BruteForceIndex(std::shared_ptr<MemoryPool> memory_pool)
-      : Index(std::move(memory_pool)) {}
+      : Index(std::move(memory_pool)), BaseFunction("brute_force_index", FunctionType::Index) {}
 
   ~BruteForceIndex() override = default;
 
@@ -35,12 +34,18 @@ public:
 
   /**
    * @brief Add vector to the index
-   * @param id Unique identifier for the vector
-   * @param vector Vector data
-   * @return true if addition successful
+   * @param vec Vector data
+   * @return index of added vector
    */
-  auto AddVector(uint64_t id,
-                 const std::vector<float>& vector) -> bool override;
+  auto add_vector(const std::vector<double>& vec) -> int;
+
+  /**
+   * @brief Search for k nearest neighbors using brute force
+   * @param query Query vector
+   * @param k Number of nearest neighbors to return
+   * @return Vector of index/distance pairs using Euclidean distance
+   */
+  auto search_kNN(const std::vector<double>& query, size_t k) const -> std::vector<std::pair<int, double>>;
 
   /**
    * @brief Remove vector from the index
@@ -48,6 +53,14 @@ public:
    * @return true if removal successful
    */
   auto RemoveVector(uint64_t id) -> bool override;
+
+  /**
+   * @brief Add vector to the index
+   * @param id Unique identifier for the vector
+   * @param vector Vector data
+   * @return true if addition successful
+   */
+  auto AddVector(uint64_t id, const std::vector<float>& vector) -> bool override;
 
   /**
    * @brief Search for k nearest neighbors using brute force
@@ -95,18 +108,12 @@ public:
    */
   auto GetType() const -> IndexType override;
 
+  // Function interface for IndexFunction
+  auto execute(FunctionResponse& response) -> FunctionResponse override;
+
 private:
   IndexConfig config_;
-  std::unordered_map<uint64_t, std::vector<float>> vectors_;
-
-  /**
-   * @brief Calculate cosine similarity between two vectors
-   * @param vec1 First vector
-   * @param vec2 Second vector
-   * @return Cosine similarity score
-   */
-  auto CalculateCosineSimilarity(const std::vector<float>& vec1,
-                                 const std::vector<float>& vec2) const -> float;
+  std::vector<std::vector<double>> vectors_;
 
   /**
    * @brief Calculate Euclidean distance between two vectors
@@ -114,9 +121,8 @@ private:
    * @param vec2 Second vector
    * @return Euclidean distance
    */
-  auto CalculateEuclideanDistance(const std::vector<float>& vec1,
-                                  const std::vector<float>& vec2) const
-      -> float;
+  auto calculate_euclidean_distance(const std::vector<double>& vec1,
+                                    const std::vector<double>& vec2) const -> double;
 };
 
 }  // namespace sage_flow

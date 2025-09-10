@@ -21,7 +21,8 @@ enum class FunctionType : std::uint8_t {
   TopK,
   ITopK,  // Inverted TopK
   FlatMap,
-  KeyBy
+  KeyBy,
+  Index
 };
 
 }  // namespace sage_flow

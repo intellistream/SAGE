@@ -37,6 +37,8 @@ public:
   virtual auto open() -> void;
   virtual auto close() -> void;
   virtual auto process(const std::vector<std::shared_ptr<InputType>>& input) -> std::optional<Response<OutputType>> = 0;
+  // For Function integration
+  virtual auto process(const InputType& input, Response<OutputType>& output) -> void;
   virtual auto emit(int output_id, Response<OutputType>& output_record) const -> void;
 
   // Emit callback management

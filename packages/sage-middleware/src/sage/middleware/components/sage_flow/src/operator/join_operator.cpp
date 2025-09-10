@@ -1,7 +1,7 @@
-#include "../../include/operator/join_operator.hpp"
-
+#include "operator/join_operator.hpp"
 #include <utility>
 #include <iostream>
+#include <cassert>
 
 namespace sage_flow {
 
@@ -40,16 +40,16 @@ auto JoinOperator::process(const std::vector<std::shared_ptr<MultiModalMessage>>
 
 auto JoinOperator::processLeftInput(const std::shared_ptr<MultiModalMessage>& message_ptr) -> void {
   assert(message_ptr != nullptr && "Null message in processLeftInput");
-  std::cout << "JoinOperator: Processing left input with key: " << key_left_(*message_ptr) << std::endl;
-  KeyType key = key_left_(*message_ptr);
+  std::cout << "JoinOperator: Processing left input with key: " << key_left_(message_ptr) << std::endl;
+  KeyType key = key_left_(message_ptr);
   left_buffer_[key].push_back(message_ptr);
   tryJoin(key);
 }
 
 auto JoinOperator::processRightInput(const std::shared_ptr<MultiModalMessage>& message_ptr) -> void {
   assert(message_ptr != nullptr && "Null message in processRightInput");
-  std::cout << "JoinOperator:: Processing right input with key: " << key_right_(*message_ptr) << std::endl;
-  KeyType key = key_right_(*message_ptr);
+  std::cout << "JoinOperator:: Processing right input with key: " << key_right_(message_ptr) << std::endl;
+  KeyType key = key_right_(message_ptr);
   right_buffer_[key].push_back(message_ptr);
   tryJoin(key);
 }
@@ -66,9 +66,9 @@ auto JoinOperator::tryJoin(const KeyType& key) -> void {
 
     auto result_ptr = join_func_(left_ptr, right_ptr);
 
-    incrementOutputCount();
-    // Emit the result (assuming emit takes shared_ptr)
-    emit(0, *result_ptr);
+    this->incrementOutputCount();
+    Response<MultiModalMessage> response(std::vector<std::shared_ptr<MultiModalMessage>>{result_ptr});
+    emit(0, response);
 
     // Remove consumed messages (basic, no window)
     left_buffer_.erase(left_it);

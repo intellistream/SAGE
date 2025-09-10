@@ -48,7 +48,7 @@ namespace sage_flow {
 template <typename T> class Response;
 class MultiModalMessage final {
 public:
-  using ContentVariant = std::variant<std::string, std::vector<uint8_t>>;
+  using ContentVariant = std::variant<std::string, std::vector<uint8_t>, std::vector<double>>;
   using MetadataMap = std::unordered_map<std::string, std::string>;
   using ProcessingTrace = std::vector<std::string>;
   using RetrievalContextList = std::vector<std::unique_ptr<RetrievalContext>>;
@@ -57,20 +57,23 @@ public:
 
   // Constructors
   explicit MultiModalMessage(uint64_t uid);
+  explicit MultiModalMessage(uint64_t uid, std::vector<double> embeddings);
   MultiModalMessage(uint64_t uid, ContentType content_type,
                     ContentVariant content);
+  MultiModalMessage(uint64_t uid, ContentType content_type,
+                    ContentVariant content, std::vector<double> embeddings);
 
   // SAGE 兼容构造函数
   MultiModalMessage(const std::string& sage_uid, ContentType content_type,
                     ContentVariant content);
 
-  // Prevent copying
-  MultiModalMessage(const MultiModalMessage&) = delete;
-  auto operator=(const MultiModalMessage&) -> MultiModalMessage& = delete;
+  // Allow copying
+  MultiModalMessage(const MultiModalMessage& other);
+  auto operator=(const MultiModalMessage& other) -> MultiModalMessage&;
 
   // Move semantics
-  MultiModalMessage(MultiModalMessage&& other) noexcept;
-  auto operator=(MultiModalMessage&& other) noexcept -> MultiModalMessage&;
+  MultiModalMessage(MultiModalMessage&& other) noexcept = default;
+  auto operator=(MultiModalMessage&& other) noexcept -> MultiModalMessage& = default;
 
   // Core accessors
   auto getUid() const -> uint64_t;
@@ -79,6 +82,7 @@ public:
   auto getContentType() const -> ContentType;
   auto getContent() const -> const ContentVariant&;
   auto getEmbedding() const -> const std::optional<VectorData>&;
+  auto getEmbeddings() const -> const std::vector<double>&;
   auto getMetadata() const -> const MetadataMap&;
   auto getProcessingTrace() const -> const ProcessingTrace&;
   auto getQualityScore() const -> std::optional<float>;
@@ -92,6 +96,7 @@ public:
 
   // Core mutators
   auto setContent(ContentVariant content) -> void;
+  auto setEmbeddings(std::vector<double> embeddings) -> void;
   auto setContentType(ContentType content_type) -> void;
   auto setEmbedding(VectorData&& embedding) -> void;
   auto setMetadata(std::string key, std::string value) -> void;
@@ -132,10 +137,12 @@ public:
   auto serialize() const -> std::vector<uint8_t>;
   static auto deserialize(const std::vector<uint8_t>& data)
       -> std::unique_ptr<MultiModalMessage>;
+  // Embeddings serialization for pybind compatibility
+  auto serializeEmbeddings() const -> std::vector<double>;
+  static auto deserializeEmbeddings(const std::vector<double>& data) -> std::vector<double>;
 
   // SAGE 兼容性方法
   auto clone() const -> std::unique_ptr<MultiModalMessage>;
-  // Note: SageMessage conversion methods removed to avoid compilation issues
 
   // 高级序列化支持
   auto serializeToProtobuf() const -> std::vector<uint8_t>;
@@ -153,6 +160,7 @@ private:
   ContentType content_type_ = ContentType::kText;
   ContentVariant content_;
   std::optional<VectorData> embedding_;
+  std::vector<double> embeddings_;
   MetadataMap metadata_;
   RetrievalContextList retrieval_contexts_;
   ProcessingTrace processing_trace_;

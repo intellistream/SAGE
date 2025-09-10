@@ -13,7 +13,7 @@ namespace sage_flow {
 TumblingWindowOperator::TumblingWindowOperator(
     std::string name, std::chrono::milliseconds window_size,
     bool allow_late_data)
-    : WindowOperator(std::move(name), WindowType::kTumbling),
+    : WindowOperator<MultiModalMessage, MultiModalMessage>(std::move(name), WindowType::kTumbling),
       window_size_(window_size),
       allow_late_data_(allow_late_data),
       event_time_processing_(true),
@@ -28,15 +28,16 @@ TumblingWindowOperator::TumblingWindowOperator(
 }
 
 auto TumblingWindowOperator::processWindow(
-    std::vector<std::unique_ptr<MultiModalMessage>> window_messages)
-    -> std::vector<std::unique_ptr<MultiModalMessage>> {
-  std::vector<std::unique_ptr<MultiModalMessage>> results;
+    const std::vector<std::shared_ptr<MultiModalMessage>>& window_messages)
+    -> std::vector<std::shared_ptr<MultiModalMessage>> {
+  std::vector<std::shared_ptr<MultiModalMessage>> results;
 
   // For tumbling windows, we typically aggregate or transform the messages
   // For this base implementation, we'll create a single output message
   // containing information about the window
   if (!window_messages.empty()) {
-    auto first_message = std::move(window_messages[0]);
+    auto first_message_clone = window_messages[0]->clone();
+    auto first_message = std::shared_ptr<MultiModalMessage>(std::move(first_message_clone));
 
     // Create metadata about the window
     first_message->setMetadata("window_type", "tumbling");
@@ -50,7 +51,7 @@ auto TumblingWindowOperator::processWindow(
     first_message->addProcessingStep("tumbling_window_" +
                                      std::to_string(window_count_));
 
-    results.push_back(std::move(first_message));
+    results.push_back(first_message);
     ++window_count_;
   }
 
@@ -109,7 +110,7 @@ auto TumblingWindowOperator::isLateData(uint64_t message_timestamp) -> bool {
 }
 
 auto TumblingWindowOperator::processLateData(
-    std::unique_ptr<MultiModalMessage> message) -> bool {
+    const std::shared_ptr<MultiModalMessage>& message) -> bool {
   if (!allow_late_data_) {
     ++dropped_data_count_;
     return false;
@@ -125,7 +126,7 @@ auto TumblingWindowOperator::processLateData(
   // Try to find existing window for late data
   WindowState* target_window = findWindowForTimestamp(message_timestamp);
   if (target_window != nullptr && !target_window->triggered) {
-    target_window->messages.push_back(std::move(message));
+    target_window->messages.push_back(message);
     ++late_data_count_;
     return true;
   }
@@ -177,11 +178,11 @@ auto TumblingWindowOperator::emitWindow(WindowState& window) -> void {
     return;
   }
 
-  auto window_results = processWindow(std::move(window.messages));
+  auto window_results = processWindow(window.messages);
 
   for (auto& result : window_results) {
     if (result) {
-      Response output_record(std::move(result));
+      Response<MultiModalMessage> output_record(std::vector<std::shared_ptr<MultiModalMessage>>{result});
       emit(0, output_record);
       incrementOutputCount();
     }

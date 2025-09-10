@@ -59,6 +59,8 @@ public:
   auto initialize() -> void;
   auto finalize() -> void;
   auto reset() -> void;
+  // Single-threaded execution for DAG
+  auto run() -> void;
 
 private:
   std::unordered_map<OperatorId, std::shared_ptr<BaseOperator<MultiModalMessage, MultiModalMessage>>> operators_;

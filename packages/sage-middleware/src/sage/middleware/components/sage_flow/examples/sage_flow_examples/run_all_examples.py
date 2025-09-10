@@ -16,7 +16,8 @@ EXAMPLES = [
     "basic_stream_processing.py",
     "advanced_stream_processing.py",
     "performance_monitoring.py",
-    # 添加更多示例
+    "data_source_examples.py",
+    "function_operator_examples.py",
 ]
 
 def run_example(example_file: str) -> Dict[str, Any]:

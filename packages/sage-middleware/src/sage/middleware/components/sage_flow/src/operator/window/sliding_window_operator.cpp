@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 
+#include "operator/window_operator.hpp"
 #include "message/multimodal_message.hpp"
 #include "operator/response.hpp"
 
@@ -13,7 +14,7 @@ namespace sage_flow {
 SlidingWindowOperator::SlidingWindowOperator(
     std::string name, std::chrono::milliseconds window_size,
     std::chrono::milliseconds slide_interval, bool allow_late_data)
-    : WindowOperator(std::move(name), WindowType::kSliding),
+    : WindowOperator<MultiModalMessage, MultiModalMessage>(std::move(name), WindowOperator<MultiModalMessage, MultiModalMessage>::WindowType::kSliding),
       window_size_(window_size),
       slide_interval_(slide_interval),
       allow_late_data_(allow_late_data),
@@ -26,18 +27,19 @@ SlidingWindowOperator::SlidingWindowOperator(
       total_window_count_(0),
       late_data_count_(0),
       dropped_data_count_(0) {
-  setWindowSize(window_size);
-  setSlideInterval(slide_interval);
+  this->setWindowSize(window_size);
+  // setSlideInterval(slide_interval);
 }
 
 auto SlidingWindowOperator::processWindow(
-    std::vector<std::unique_ptr<MultiModalMessage>> window_messages)
-    -> std::vector<std::unique_ptr<MultiModalMessage>> {
-  std::vector<std::unique_ptr<MultiModalMessage>> results;
+    const std::vector<std::shared_ptr<MultiModalMessage>>& window_messages)
+    -> std::vector<std::shared_ptr<MultiModalMessage>> {
+  std::vector<std::shared_ptr<MultiModalMessage>> results;
 
   // For sliding windows, we create an aggregated result per window
   if (!window_messages.empty()) {
-    auto first_message = std::move(window_messages[0]);
+    auto first_message_clone = window_messages[0]->clone();
+    auto first_message = std::shared_ptr<MultiModalMessage>(std::move(first_message_clone));
 
     // Create metadata about the sliding window
     first_message->setMetadata("window_type", "sliding");
@@ -54,7 +56,7 @@ auto SlidingWindowOperator::processWindow(
     first_message->addProcessingStep("sliding_window_" +
                                      std::to_string(total_window_count_));
 
-    results.push_back(std::move(first_message));
+    results.push_back(first_message);
   }
 
   return results;
@@ -146,7 +148,7 @@ auto SlidingWindowOperator::isLateData(uint64_t message_timestamp) -> bool {
 }
 
 auto SlidingWindowOperator::processLateData(
-    std::unique_ptr<MultiModalMessage> message) -> bool {
+    const std::shared_ptr<MultiModalMessage>& message) -> bool {
   if (!allow_late_data_) {
     ++dropped_data_count_;
     return false;
@@ -165,8 +167,7 @@ auto SlidingWindowOperator::processLateData(
 
   for (auto* window : overlapping_windows) {
     if (!window->triggered) {
-      window->messages.push_back(
-          std::unique_ptr<MultiModalMessage>(message->clone().release()));
+      window->messages.push_back(message);
       added = true;
     }
   }
@@ -229,9 +230,9 @@ auto SlidingWindowOperator::emitWindow(SlidingWindowState& window) -> void {
 
   for (auto& result : window_results) {
     if (result) {
-      Response output_record(std::move(result));
+      Response<MultiModalMessage> output_record(std::vector<std::shared_ptr<MultiModalMessage>>{result});
       emit(0, output_record);
-      incrementOutputCount();
+      this->incrementOutputCount();
     }
   }
 }

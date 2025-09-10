@@ -10,8 +10,8 @@
 
 namespace sage_flow {
 
-class MultiModalMessage;
-template <typename T> class Response;
+#include "message/multimodal_message.hpp"
+#include "operator/response.hpp"
 
 /**
  * @brief Window operator for time-based or count-based windowing

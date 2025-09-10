@@ -28,7 +28,7 @@ import numpy as np  # type: ignore
 # 添加包路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
-from sageflow import Stream
+from sageflow import Stream, Environment, IndexFunction
 
 class AdvancedStreamProcessor:
     """高级流处理器"""
@@ -220,13 +220,32 @@ class AdvancedStreamProcessor:
         """演示完整fluent API"""
         print("\n=== Fluent API 演示 ===")
         data = [{"id": 1, "val": 10}, {"id": 2, "val": 5}, {"id": 3, "val": 15}]
-        result = (Stream.from_list(data)
-                  .config(parallelism=2)  # 配置
+        env = Environment()
+        ds = env.create_datastream().from_list(data)
+        result = (ds
+                  .config(parallelism=2)
                   .map(lambda x: {**x, "doubled": x["val"] * 2})
                   .filter(lambda x: x["doubled"] > 10)
                   .sink("print://")
-                  .execute())
+                  .collect())
         print(f"Fluent结果: {result}")
+    
+    def demonstrate_rag_index(self):
+        """演示Index RAG示例"""
+        print("\n=== Index RAG 示例 ===")
+        from sageflow import IndexFunction
+        env = Environment()
+        # 创建示例数据
+        sample_vectors = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [1.5, 2.5]]
+        ds = env.create_datastream().from_list(sample_vectors)
+        index = IndexFunction()
+        # 添加向量到index
+        ds.sink(index.add_vector).execute()
+        # 搜索kNN
+        query = [1.0, 2.0]
+        results = index.search_kNN(query, k=3)
+        print(f"RAG搜索结果: {results}")
+        print(f"✓ 找到了 {len(results)} 个最近邻")
 
 def main():
     """主函数"""
@@ -241,6 +260,7 @@ def main():
     processor.stream_joining_example()
     processor.complex_transformation_example()
     processor.demonstrate_fluent_api()
+    processor.demonstrate_rag_index()
 
     # 结果摘要
     print("\n=== 结果摘要 ===")

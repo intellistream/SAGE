@@ -20,6 +20,12 @@ auto BaseOperator<InputType, OutputType>::open() -> void {
 }
 
 template <typename InputType, typename OutputType>
+auto BaseOperator<InputType, OutputType>::process(const InputType& input, Response<OutputType>& output) -> void {
+  // Default implementation for Function integration - pass through
+  output.addMessage(std::make_shared<OutputType>(input));
+}
+
+template <typename InputType, typename OutputType>
 auto BaseOperator<InputType, OutputType>::close() -> void {
   // Default implementation - do nothing
 }

@@ -1,16 +1,16 @@
 #pragma once
 
+#include "../window_operator.hpp"
+
 #include <chrono>
 #include <deque>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "../window_operator.hpp"
+#include "message/multimodal_message.hpp"
 
 namespace sage_flow {
-
-class MultiModalMessage;
 
 /**
  * @brief Sliding window operator for candyFlow integration
@@ -24,7 +24,7 @@ class MultiModalMessage;
  *
  * Based on candyFlow's SlidingWindowOperator design with SAGE integration.
  */
-class SlidingWindowOperator : public WindowOperator {
+class SlidingWindowOperator : public WindowOperator<MultiModalMessage, MultiModalMessage> {
 public:
   /**
    * @brief Construct a sliding window operator
@@ -49,8 +49,8 @@ public:
 
   // WindowOperator interface implementation
   auto processWindow(
-      std::vector<std::unique_ptr<MultiModalMessage>> window_messages)
-      -> std::vector<std::unique_ptr<MultiModalMessage>> override;
+      const std::vector<std::shared_ptr<MultiModalMessage>>& window_messages)
+      -> std::vector<std::shared_ptr<MultiModalMessage>> override;
 
   // SlidingWindow-specific interface
   auto setWatermarkDelay(std::chrono::milliseconds delay) -> void;
@@ -70,7 +70,7 @@ protected:
   auto shouldCreateNewWindow(uint64_t message_timestamp) -> bool;
   auto getWindowStartsForTimestamp(uint64_t timestamp) -> std::vector<uint64_t>;
   auto isLateData(uint64_t message_timestamp) -> bool;
-  auto processLateData(std::unique_ptr<MultiModalMessage> message) -> bool;
+  auto processLateData(const std::shared_ptr<MultiModalMessage>& message) -> bool;
 
 private:
   // Window configuration
@@ -89,7 +89,7 @@ private:
   struct SlidingWindowState {
     uint64_t window_start;
     uint64_t window_end;
-    std::vector<std::unique_ptr<MultiModalMessage>> messages;
+    std::vector<std::shared_ptr<MultiModalMessage>> messages;
     bool triggered;
     uint64_t creation_time;
 

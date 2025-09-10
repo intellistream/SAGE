@@ -8,7 +8,7 @@ if(pybind11_FOUND)
     pybind11_add_module(sageflow ${PYTHON_SOURCES})
 
     target_include_directories(sageflow PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>
         $<INSTALL_INTERFACE:include>
     )
 

@@ -29,9 +29,25 @@ public:
     messages_.push_back(std::move(message));
   }
 
+  void addMessage(const std::shared_ptr<MultiModalMessage>& message) {
+    messages_.push_back(std::make_unique<MultiModalMessage>(message->getUid(), message->getContentType(), message->getContent(), message->getEmbeddings()));
+  }
+
+  void addMessage(std::shared_ptr<MultiModalMessage> message) {
+    messages_.push_back(std::make_unique<MultiModalMessage>(*message));
+  }
+
   // Get all messages
   auto getMessages() -> std::vector<std::unique_ptr<MultiModalMessage>>& {
     return messages_;
+  }
+
+  auto getSharedMessages() const -> std::vector<std::shared_ptr<MultiModalMessage>> {
+    std::vector<std::shared_ptr<MultiModalMessage>> shared_messages;
+    for (const auto& msg : messages_) {
+      shared_messages.push_back(std::make_shared<MultiModalMessage>(*msg));
+    }
+    return shared_messages;
   }
 
   // Get messages (const)

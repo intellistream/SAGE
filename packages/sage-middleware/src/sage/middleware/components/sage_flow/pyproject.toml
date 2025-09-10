@@ -167,12 +167,12 @@ addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
-    "--cov=sage_flow",
+    "--cov=sageflow",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
 ]
-testpaths = ["tests"]
+testpaths = "tests/python"
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -185,7 +185,8 @@ markers = [
 
 # Coverage 配置
 [tool.coverage.run]
-source = ["sage_flow"]
+source = "sageflow"
+branch = true
 omit = [
     "*/tests/*",
     "*/test_*",

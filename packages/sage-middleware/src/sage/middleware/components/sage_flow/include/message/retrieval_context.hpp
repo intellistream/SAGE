@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -12,19 +13,21 @@ class RetrievalContext final {
 public:
   explicit RetrievalContext(std::string source, float similarity_score);
 
-  // Prevent copying
-  RetrievalContext(const RetrievalContext&) = delete;
-  auto operator=(const RetrievalContext&) -> RetrievalContext& = delete;
+// Allow copying
+RetrievalContext(const RetrievalContext& other);
+auto operator=(const RetrievalContext& other) -> RetrievalContext&;
 
-  // Allow moving
-  RetrievalContext(RetrievalContext&&) = default;
-  auto operator=(RetrievalContext&&) -> RetrievalContext& = default;
+// Allow moving
+RetrievalContext(RetrievalContext&&) = default;
+auto operator=(RetrievalContext&&) -> RetrievalContext& = default;
 
-  auto getSource() const -> const std::string&;
-  auto getSimilarityScore() const -> float;
-  auto getMetadata() const
-      -> const std::unordered_map<std::string, std::string>&;
-  auto setMetadata(std::string key, std::string value) -> void;
+auto clone() const -> std::unique_ptr<RetrievalContext>;
+
+auto getSource() const -> const std::string&;
+auto getSimilarityScore() const -> float;
+auto getMetadata() const
+    -> const std::unordered_map<std::string, std::string>&;
+auto setMetadata(std::string key, std::string value) -> void;
 
 private:
   std::string source_;
