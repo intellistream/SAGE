@@ -82,5 +82,5 @@ def main():
     env.submit(autostop=True)
 
 if __name__ == "__main__":
-    # CustomLogger.disable_global_console_debug()
+    CustomLogger.disable_global_console_debug()
     main()
