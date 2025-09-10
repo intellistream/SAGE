@@ -4,7 +4,6 @@ import shutil
 import inspect
 import numpy as np
 from typing import Optional, Dict, Any, List, Callable
-import json
 import hashlib
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.neuromem.memory_collection.base_collection import BaseMemoryCollection
