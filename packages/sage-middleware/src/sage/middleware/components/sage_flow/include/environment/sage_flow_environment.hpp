@@ -13,10 +13,7 @@ namespace sage_flow {
 // Forward declarations
 class DataSource;
 class DataSink;
-class ProcessingFunction;
-class DataStream;
 class StreamEngine;
-class ExecutionGraph;
 class MultiModalMessage;
 class MemoryPool;
 
