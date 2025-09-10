@@ -9,9 +9,7 @@
 
 namespace sage_flow {
 
-using StateKey = std::string;
-using StateValue = std::any;
-
+template <typename StateKey = std::string, typename StateValue = std::any>
 class StateManager {
 public:
   StateManager();

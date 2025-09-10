@@ -86,21 +86,6 @@ public:
     return Stream(engine_, new_graph, new_id);
   }
 
-  class LambdaSinkFunction : public SinkFunction {
-  public:
-    using SinkFunc = std::function<void(const MultiModalMessage&)>;
-    explicit LambdaSinkFunction(SinkFunc snk) : SinkFunction("lambda_sink"), snk_(std::move(snk)) {}
-
-    void init() override { /* no-op */ }
-
-    void close() override { /* no-op */ }
-
-    void setSinkFunc(SinkFunc snk) { snk_ = std::move(snk); }
-
-  private:
-    SinkFunc snk_;
-  };
-
   void sink(const std::function<void(const T&)>& snk) {
     auto new_graph = std::make_shared<ExecutionGraph>();
     auto sink_func = std::make_unique<LambdaSinkFunction>(snk);

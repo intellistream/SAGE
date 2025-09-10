@@ -14,6 +14,7 @@ namespace sage_flow {
  * Functions are independent processing units that do NOT inherit from
  * operators. They are used BY operators to perform actual data processing.
  */
+template <typename InType, typename OutType>
 class BaseFunction {
 public:
   explicit BaseFunction(std::string name, FunctionType type);
