@@ -15,11 +15,9 @@ configure_installation_environment() {
     local install_mode="${2:-dev}"
     local conda_env_name="${3:-}"  # 可选的conda环境名
     
-    # 检测CI环境并强制使用pip模式
+    # CI环境和远程部署的特殊处理
     if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-        echo -e "${INFO} 检测到CI环境，强制使用pip安装模式以提高速度"
-        install_environment="pip"
-        # CI环境：不设置PYTHONNOUSERSITE以提高测试速度
+        # CI环境：不设置PYTHONNOUSERSITE以提高测试速度，但仍保持用户选择的安装环境
         echo -e "${INFO} CI环境中跳过PYTHONNOUSERSITE设置以提高测试速度"
     elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
         # 远程部署环境：设置PYTHONNOUSERSITE以避免包冲突
