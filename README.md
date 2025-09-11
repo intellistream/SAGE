@@ -1,38 +1,27 @@
-# SAGE: A Dataflow-Native Framework for LLM Reasoning
-
+# SAGE - Streaming-Augmented Generative Execution
 > A declarative, composable framework for building transparent LLM-powered systems through dataflow abstractions.
-
 [![CI](https://github.com/intellistream/SAGE/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
+[![PyPI version](https://badge.fury.io/py/isage.svg)](https://badge.fury.io/py/isage)
 [![GitHub Issues](https://img.shields.io/github/issues/intellistream/SAGE)](https://github.com/intellistream/SAGE/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/intellistream/SAGE?style=social)](https://github.com/intellistream/SAGE/stargazers)
 
+**SAGE** is a high-performance streaming framework for building AI-powered data processing pipelines. Transform complex LLM reasoning workflows into transparent, scalable, and maintainable systems through declarative dataflow abstractions.
 
-## What is SAGE?
+## Why Choose SAGE?
 
-SAGE transforms how we build and deploy Large Language Model reasoning systems by introducing declarative, composable, and transparent AI workflows through dataflow abstractions.
+**Production-Ready**: Built for enterprise-scale applications with distributed processing, fault tolerance, and comprehensive monitoring out of the box.
 
-## Overview
+**Developer Experience**: Write complex AI pipelines in just a few lines of code with intuitive declarative APIs that eliminate boilerplate.
 
-Existing LLM-augmented systems suffer from rigid orchestration logic, opaque execution paths, and limited runtime control. SAGE addresses these limitations by introducing a dataflow-centric abstraction that models reasoning workflows as directed acyclic graphs (DAGs) composed of typed operators.
+**Performance**: Optimized for high-throughput streaming workloads with intelligent memory management and parallel execution capabilities.
 
-**Key Features:**
-- Modular composition of complex reasoning pipelines
-- Unified control and data flow management
-- Native support for stateful operators
-- Built-in observability for transparent execution monitoring
-- Seamless scaling from development to production
+**Transparency**: Built-in observability and debugging tools provide complete visibility into execution paths and performance characteristics.
 
-## The SAGE Approach
+## Quick Start
 
-The proliferation of Large Language Models has ushered in a new era of AI applications, from Retrieval-Augmented Generation (RAG) systems to autonomous agents. However, as these systems grow in complexity, developers face challenging issues: hardcoded orchestration logic, opaque execution paths, and limited runtime control.
-
-SAGE addresses these challenges through a principled dataflow-native approach. Unlike traditional frameworks that treat LLM interactions as sequential function calls, SAGE models reasoning workflows as **Directed Acyclic Graphs (DAGs)** composed of **typed operators**.
-
-### Declarative vs Imperative
-
-Traditional LLM applications often suffer from rigid, imperative control flow:
+Transform rigid LLM applications into flexible, observable workflows. Traditional imperative approaches create brittle systems:
 
 ```python
 # Traditional approach - rigid and hard to modify
@@ -45,77 +34,21 @@ def traditional_rag(query):
     return response
 ```
 
-SAGE transforms this into a declarative, composable workflow:
+SAGE transforms this into a **declarative, composable workflow**:
 
 ```python
-# SAGE approach - declarative and modular
-pipeline = (env
-    .from_source(QuerySource)
-    .map(DenseRetriever, config["retriever"])
-    .map(FallbackRetriever, condition="insufficient_results")
-    .map(QAPromptor, config["promptor"])
-    .map(OpenAIGenerator, config["generator"])
-    .sink(ResponseSink)
-)
-```
+from sage.core.api.local_environment import LocalEnvironment
+from sage.libs.io_utils.source import FileSource
+from sage.libs.rag.retriever import DenseRetriever
+from sage.libs.rag.promptor import QAPromptor
+from sage.libs.rag.generator import OpenAIGenerator
+from sage.libs.io_utils.sink import TerminalSink
 
-This declarative approach separates what to compute from how to compute it, enabling automatic optimization, parallelization, and fault tolerance.
-
-### Built-in Observability
-
-SAGE provides comprehensive observability with automatic instrumentation, operator-level metrics, and real-time debugging capabilities. The integrated dashboard enables developers to visualize execution graphs, monitor resource utilization, and analyze data flow patterns.
-
-### Seamless Scaling
-
-SAGE abstracts away the complexity of distributed execution. The same pipeline code works seamlessly from local development to distributed production:
-
-```python
-# Development - local execution
-env = LocalEnvironment("development")
-
-# Production - distributed execution  
-env = RemoteEnvironment("production")
-
-# Same pipeline code works in both environments
-pipeline = build_reasoning_pipeline(env)
-env.submit(pipeline)
-```
-
-## Quick Start
-
-### Installation
-
-**One-Click Setup (Recommended)**
-```bash
-git clone https://github.com/intellistream/SAGE.git
-cd SAGE
-./quickstart.sh
-```
-
-**PyPI Installation**
-```bash
-# Install core framework
-pip install isage
-
-# Install with guided setup
-pip install isage && sage-install
-```
-
-### Your First Pipeline
-
-```python
-from sage.api.local_environment import LocalEnvironment
-from sage.lib.io.source import FileSource
-from sage.lib.rag.retriever import DenseRetriever
-from sage.lib.rag.promptor import QAPromptor
-from sage.lib.rag.generator import OpenAIGenerator
-from sage.lib.io.sink import TerminalSink
-
-# Create execution environment
-env = LocalEnvironment("first_pipeline")
+# Create execution environment  
+env = LocalEnvironment("rag_pipeline")
 
 # Build declarative pipeline
-pipeline = (env
+(env
     .from_source(FileSource, {"file_path": "questions.txt"})
     .map(DenseRetriever, {"model": "sentence-transformers/all-MiniLM-L6-v2"})
     .map(QAPromptor, {"template": "Answer based on context: {context}\nQ: {query}\nA:"})
@@ -126,6 +59,63 @@ pipeline = (env
 # Execute pipeline
 env.submit()
 ```
+
+### Why This Matters
+
+**Flexibility**: Modify pipeline structure without touching execution logic. Swap components, add monitoring, or change deployment targets effortlessly.
+
+**Transparency**: See exactly what's happening at each step with built-in observability and debugging tools.
+
+**Performance**: Automatic optimization, parallelization, and resource management based on dataflow analysis.
+
+**Reliability**: Built-in fault tolerance, checkpointing, and error recovery mechanisms.
+
+## Architecture Excellence
+
+### Modular Design
+SAGE follows a clean separation of concerns with pluggable components that work together seamlessly:
+
+- **Core**: Stream processing engine with execution environments
+- **Libraries**: Rich operators for AI, I/O, transformations, and utilities  
+- **Kernel**: Distributed computing primitives and communication
+- **Middleware**: Service discovery, monitoring, and management
+- **Common**: Shared utilities, configuration, and logging
+
+### Production-Ready Features
+Built for real-world deployments with enterprise requirements:
+
+- **Distributed Execution**: Scale across multiple nodes with automatic load balancing
+- **Fault Tolerance**: Comprehensive error handling and recovery mechanisms
+- **Observability**: Detailed metrics, logging, and performance monitoring
+- **Security**: Authentication, authorization, and data encryption support
+- **Integration**: Native connectors for popular databases, message queues, and AI services
+
+## Installation
+
+**Quick Setup:**
+```bash
+# Install with guided setup
+pip install isage && sage doctor
+```
+
+**From Source:**
+```bash
+git clone https://github.com/intellistream/SAGE.git
+cd SAGE
+./quickstart.sh
+```
+
+## Use Cases
+
+**RAG Applications**: Build production-ready retrieval-augmented generation systems with multi-modal support and advanced reasoning capabilities.
+
+**Real-Time Analytics**: Process streaming data with AI-powered insights, anomaly detection, and automated decision making.
+
+**Data Pipeline Orchestration**: Coordinate complex ETL workflows that seamlessly integrate AI components with traditional data processing.
+
+**Multi-Modal Processing**: Handle text, images, audio, and structured data in unified pipelines with consistent APIs.
+
+**Distributed AI Inference**: Scale AI model serving across multiple nodes with automatic load balancing and fault tolerance.
 
 ## Documentation & Resources
 
