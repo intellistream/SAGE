@@ -39,3 +39,15 @@ class SinkOperator(BaseOperator):
                     
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)
+    
+    def handle_stop_signal(self):
+        """
+        处理停止信号，调用function.execute(None)来触发最终处理
+        这个方法会被BaseTask在收到StopSignal时调用
+        """
+        try:
+            self.logger.info(f"SinkOperator {self.name} handling stop signal, calling execute(None)")
+            result = self.function.execute(None)
+            self.logger.debug(f"SinkOperator {self.name} final processing result: {result}")
+        except Exception as e:
+            self.logger.error(f"Error in {self.name}.handle_stop_signal(): {e}", exc_info=True)

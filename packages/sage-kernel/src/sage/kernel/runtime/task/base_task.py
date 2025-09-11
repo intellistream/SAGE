@@ -128,6 +128,12 @@ class BaseTask(ABC):
                     if isinstance(data_packet, StopSignal):
                         self.logger.info(f"Node '{self.name}' received stop signal: {data_packet}")
                         
+                        # 如果是SinkOperator，在转发停止信号前先调用handle_stop_signal
+                        from sage.core.operator.sink_operator import SinkOperator
+                        if isinstance(self.operator, SinkOperator):
+                            self.logger.info(f"Calling handle_stop_signal for SinkOperator {self.name}")
+                            self.operator.handle_stop_signal()
+                        
                         # 在task层统一处理停止信号计数
                         should_stop_pipeline = self.ctx.handle_stop_signal(data_packet)
                         
