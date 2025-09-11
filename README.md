@@ -92,18 +92,33 @@ Built for real-world deployments with enterprise requirements:
 
 ## Installation
 
+**Interactive Setup (Recommended):**
+```bash
+git clone https://github.com/intellistream/SAGE.git
+cd SAGE
+./quickstart.sh  # Interactive menu guides you through installation options
+```
+
 **Quick Setup:**
 ```bash
 # Install with guided setup
 pip install isage && sage doctor
 ```
 
-**From Source:**
+**Advanced Options:**
 ```bash
-git clone https://github.com/intellistream/SAGE.git
-cd SAGE
-./quickstart.sh
+# Command-line installation examples
+./quickstart.sh --standard          # Standard installation with scientific libraries
+./quickstart.sh --dev --vllm        # Developer mode + vLLM for local AI models
+./quickstart.sh --minimal --pip     # Minimal installation using system Python
+./quickstart.sh --help              # See all available options
 ```
+
+**Features:**
+- 🎯 **Interactive Menu**: User-friendly installation wizard for new users
+- 🤖 **vLLM Integration**: One-click setup for local large language model inference
+- 🐍 **Flexible Environments**: Support for both Conda and system Python environments
+- ⚡ **Multiple Modes**: Minimal, standard, and developer installation options
 
 ## Use Cases
 

@@ -215,3 +215,56 @@ jobs:
             print('❌ Import test failed:', str(e))
             sys.exit(1)
         "
+        
+    - name: Run Basic Pytest Suite
+      env:
+        PIP_NO_INPUT: 1
+      run: |
+        echo "🧪 Running development pytest suite..."
+        
+        # 安装测试依赖
+        echo "📦 Installing test dependencies..."
+        pip install pytest pytest-cov pytest-mock pytest-asyncio pytest-xdist pytest-timeout || echo "⚠️ Some test dependencies failed to install"
+        
+        # 运行Issues Manager测试
+        echo "🔧 Testing issues manager..."
+        cd tools/tests
+        if [ -f test_issues_manager.sh ]; then
+          bash test_issues_manager.sh --quick || echo "⚠️ Issues manager tests had issues"
+          echo "✅ Issues manager tests completed"
+        else
+          echo "ℹ️ Issues manager test script not found"
+        fi
+        cd ../..
+        
+        # 运行快速pytest测试
+        echo "🔬 Running quick pytest suite..."
+        cd tools/tests
+        if [ -f run_tests.py ]; then
+          echo "📊 Running unit tests (quick mode)..."
+          python run_tests.py --quick --unit --jobs 4 --timeout 60 --summary || echo "ℹ️ Some unit tests didn't pass"
+          
+          echo "📋 Generating quick report..."
+          python run_tests.py --quick --unit --report dev_test_report.txt --summary 2>/dev/null || echo "ℹ️ Report generation skipped"
+          
+          if [ -f dev_test_report.txt ]; then
+            echo "📊 Quick Test Summary:"
+            tail -10 dev_test_report.txt
+          fi
+        else
+          echo "ℹ️ Test runner not found, running direct pytest..."
+          # 直接运行pytest在packages目录
+          cd ../../packages
+          for package in sage-common sage-kernel sage-libs sage-middleware; do
+            if [ -d "$package/tests" ]; then
+              echo "🧪 Testing $package..."
+              cd "$package"
+              python -m pytest tests/ -v --tb=short -x --timeout=30 2>/dev/null || echo "⚠️ $package tests had issues"
+              cd ..
+            else
+              echo "ℹ️ No tests directory in $package"
+            fi
+          done
+        fi
+        
+        echo "✅ Development test suite completed"

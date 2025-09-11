@@ -8,7 +8,85 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 # 全局变量
 INSTALL_MODE=""
 INSTALL_ENVIRONMENT=""
+INSTALL_VLLM=false
+AUTO_CONFIRM=false
 SHOW_HELP=false
+
+# 交互式安装菜单
+show_installation_menu() {
+    echo ""
+    echo -e "${BLUE}🔧 请选择安装配置${NC}"
+    echo ""
+    
+    # 选择安装模式
+    while true; do
+        echo -e "${BOLD}1. 选择安装模式：${NC}"
+        echo -e "  ${GREEN}1)${NC} 标准安装    - SAGE核心包 + 科学计算库"
+        echo -e "  ${GRAY}2)${NC} 最小安装    - 仅SAGE核心包"
+        echo -e "  ${YELLOW}3)${NC} 开发者安装  - 标准安装 + 开发工具 ${DIM}(推荐)${NC}"
+        echo ""
+        read -p "请选择安装模式 [1-3，默认3]: " mode_choice
+        
+        case "${mode_choice:-3}" in
+            1)
+                INSTALL_MODE="standard"
+                break
+                ;;
+            2)
+                INSTALL_MODE="minimal"
+                break
+                ;;
+            3)
+                INSTALL_MODE="dev"
+                break
+                ;;
+            *)
+                echo -e "${RED}无效选择，请输入 1、2 或 3${NC}"
+                echo ""
+                ;;
+        esac
+    done
+    
+    echo ""
+    
+    # 选择安装环境
+    while true; do
+        echo -e "${BOLD}2. 选择安装环境：${NC}"
+        echo -e "  ${GREEN}1)${NC} Conda 环境  - 独立环境，推荐 ${DIM}(推荐)${NC}"
+        echo -e "  ${PURPLE}2)${NC} 系统 Python - 使用当前Python环境"
+        echo ""
+        read -p "请选择安装环境 [1-2，默认1]: " env_choice
+        
+        case "${env_choice:-1}" in
+            1)
+                INSTALL_ENVIRONMENT="conda"
+                break
+                ;;
+            2)
+                INSTALL_ENVIRONMENT="pip"
+                break
+                ;;
+            *)
+                echo -e "${RED}无效选择，请输入 1 或 2${NC}"
+                echo ""
+                ;;
+        esac
+    done
+    
+    echo ""
+    
+    # 选择是否安装 VLLM
+    echo -e "${BOLD}3. AI 模型支持：${NC}"
+    echo -e "  是否准备 VLLM 环境？${DIM}(用于本地大语言模型推理)${NC}"
+    echo ""
+    read -p "准备 VLLM 环境？[y/N]: " vllm_choice
+    
+    if [[ $vllm_choice =~ ^[Yy]$ ]]; then
+        INSTALL_VLLM=true
+    else
+        INSTALL_VLLM=false
+    fi
+}
 
 # 显示参数帮助信息
 show_parameter_help() {
@@ -16,7 +94,10 @@ show_parameter_help() {
     echo -e "${BOLD}SAGE 快速安装脚本${NC}"
     echo ""
     echo -e "${BLUE}用法：${NC}"
-    echo -e "  ./quickstart_refactored.sh [安装模式] [安装环境]"
+    echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装（推荐新用户）${NC}"
+    echo -e "  ./quickstart.sh [安装模式] [安装环境] [AI模型支持] [选项]"
+    echo ""
+    echo -e "${PURPLE}💡 无参数运行时将显示交互式菜单，引导您完成安装配置${NC}"
     echo ""
     
     echo -e "${BLUE}📦 安装模式 (默认: 开发者模式)：${NC}"
@@ -47,12 +128,29 @@ show_parameter_help() {
     echo -e "    ${DIM}在当前环境中直接使用pip安装${NC}"
     echo ""
     
+    echo -e "${BLUE}🤖 AI 模型支持：${NC}"
+    echo ""
+    echo -e "  ${BOLD}--vllm${NC}                                       ${PURPLE}准备 VLLM 环境${NC}"
+    echo -e "    ${DIM}准备 VLLM 使用环境和启动脚本${NC}"
+    echo -e "    ${DIM}VLLM 将在首次使用时自动安装（通过 vllm_local_serve.sh）${NC}"
+    echo -e "    ${DIM}包含使用指南和推荐模型信息${NC}"
+    echo ""
+    
+    echo -e "${BLUE}⚡ 其他选项：${NC}"
+    echo ""
+    echo -e "  ${BOLD}--yes, --y, -yes, -y${NC}                        ${CYAN}跳过确认提示${NC}"
+    echo -e "    ${DIM}自动确认所有安装选项，适合自动化脚本${NC}"
+    echo ""
+    
     echo -e "${BLUE}💡 使用示例：${NC}"
-    echo -e "  ./quickstart_refactored.sh                          ${DIM}# 使用默认设置 (开发者模式 + conda环境)${NC}"
-    echo -e "  ./quickstart_refactored.sh --standard               ${DIM}# 标准安装 + conda环境${NC}"
-    echo -e "  ./quickstart_refactored.sh --minimal --pip          ${DIM}# 最小安装 + 系统Python环境${NC}"
-    echo -e "  ./quickstart_refactored.sh --dev --conda            ${DIM}# 开发者安装 + conda环境${NC}"
-    echo -e "  ./quickstart_refactored.sh --s --pip                ${DIM}# 标准安装 + 系统Python环境${NC}"
+    echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装（推荐新用户）${NC}"
+    echo -e "  ./quickstart.sh --standard                       ${DIM}# 标准安装 + conda环境${NC}"
+    echo -e "  ./quickstart.sh --minimal --pip                  ${DIM}# 最小安装 + 系统Python环境${NC}"
+    echo -e "  ./quickstart.sh --dev --conda                    ${DIM}# 开发者安装 + conda环境${NC}"
+    echo -e "  ./quickstart.sh --s --pip                        ${DIM}# 标准安装 + 系统Python环境${NC}"
+    echo -e "  ./quickstart.sh --vllm                           ${DIM}# 开发者安装 + 准备 VLLM 环境${NC}"
+    echo -e "  ./quickstart.sh --standard --vllm                ${DIM}# 标准安装 + 准备 VLLM 环境${NC}"
+    echo -e "  ./quickstart.sh --minimal --yes                  ${DIM}# 最小安装 + 跳过确认${NC}"
     echo ""
 }
 
@@ -99,6 +197,34 @@ parse_install_environment() {
     esac
 }
 
+# 解析 VLLM 参数
+parse_vllm_option() {
+    local param="$1"
+    case "$param" in
+        "--vllm"|"-vllm")
+            INSTALL_VLLM=true
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# 解析自动确认参数
+parse_auto_confirm() {
+    local param="$1"
+    case "$param" in
+        "--yes"|"--y"|"-yes"|"-y")
+            AUTO_CONFIRM=true
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 解析帮助参数
 parse_help_option() {
     local param="$1"
@@ -135,6 +261,12 @@ parse_arguments() {
         elif parse_install_environment "$param"; then
             # 安装环境参数
             shift
+        elif parse_vllm_option "$param"; then
+            # VLLM 安装参数
+            shift
+        elif parse_auto_confirm "$param"; then
+            # 自动确认参数
+            shift
         else
             # 未知参数
             unknown_params+=("$param")
@@ -157,6 +289,13 @@ parse_arguments() {
 # 设置默认值并显示提示
 set_defaults_and_show_tips() {
     local has_defaults=false
+    
+    # 检测 CI 环境并自动设置为确认模式
+    if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
+        AUTO_CONFIRM=true
+        echo -e "${INFO} 检测到 CI 环境，自动启用确认模式"
+        has_defaults=true
+    fi
     
     # 设置安装模式默认值
     if [ -z "$INSTALL_MODE" ]; then
@@ -200,6 +339,10 @@ set_defaults_and_show_tips() {
             echo -e "  ${BLUE}安装环境:${NC} ${PURPLE}系统Python环境${NC}"
             ;;
     esac
+    
+    if [ "$INSTALL_VLLM" = true ]; then
+        echo -e "  ${BLUE}AI 模型支持:${NC} ${PURPLE}VLLM${NC}"
+    fi
     echo ""
 }
 
@@ -211,6 +354,16 @@ get_install_mode() {
 # 获取解析后的安装环境
 get_install_environment() {
     echo "$INSTALL_ENVIRONMENT"
+}
+
+# 获取是否安装 VLLM
+get_install_vllm() {
+    echo "$INSTALL_VLLM"
+}
+
+# 获取是否自动确认
+get_auto_confirm() {
+    echo "$AUTO_CONFIRM"
 }
 
 # 检查是否需要显示帮助
