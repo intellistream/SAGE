@@ -69,6 +69,7 @@ class MemoryManager:
 
         elif "graph" in backend_type:
             # TODO: Graph Collection
+            # Issue URL: https://github.com/intellistream/SAGE/issues/648
             new_collection = GraphMemoryCollection(name)
 
         else:
