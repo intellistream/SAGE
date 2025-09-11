@@ -1,18 +1,19 @@
+import inspect
+import io
 import os
 import pickle
-import inspect
 import threading
-import io
 import types
 from collections.abc import Mapping, Sequence, Set
 
 # TODO: state 的持久化管理不应该由 function来定义，而是应该交给系统自动在operator / task里面生成。
 # 不可序列化类型黑名单
 _BLACKLIST = (
-    io.IOBase,                    # 文件句柄基类（包括所有文件类型）
-    threading.Thread,             # 线程
-    types.BuiltinFunctionType,    # 内置函数（如 open, len 等）
+    io.IOBase,  # 文件句柄基类（包括所有文件类型）
+    threading.Thread,  # 线程
+    types.BuiltinFunctionType,  # 内置函数（如 open, len 等）
 )
+
 
 def _gather_attrs(obj):
     """枚举实例 __dict__ 和 @property 属性。"""
@@ -24,11 +25,13 @@ def _gather_attrs(obj):
             pass
     return attrs
 
+
 def _filter_attrs(attrs, include, exclude):
     """根据 include/exclude 过滤字段字典。"""
     if include:
         return {k: attrs[k] for k in include if k in attrs}
     return {k: v for k, v in attrs.items() if k not in exclude}
+
 
 def _is_serializable(v):
     """判断对象能否通过 pickle 序列化，且不在黑名单中。"""
@@ -40,25 +43,26 @@ def _is_serializable(v):
     except Exception:
         return False
 
+
 def _prepare(v, _visited=None):
     """递归清洗容器类型，过滤不可序列化元素。"""
     if _visited is None:
         _visited = set()
-    
+
     # 基本类型直接返回
     if isinstance(v, (int, float, str, bool, type(None))):
         return v
-    
+
     # 循环引用检测：使用id()来跟踪对象
     obj_id = id(v)
     if obj_id in _visited:
         # 发现循环引用，返回占位符或None
         return None
-    
+
     # 只对容器类型进行循环引用跟踪
     if isinstance(v, (Mapping, Sequence, Set)) and not isinstance(v, str):
         _visited.add(obj_id)
-    
+
     try:
         if isinstance(v, Mapping):
             result = {
@@ -80,6 +84,7 @@ def _prepare(v, _visited=None):
         if isinstance(v, (Mapping, Sequence, Set)) and not isinstance(v, str):
             _visited.discard(obj_id)
 
+
 def save_function_state(func, path):
     """
     将 func 的可序列化字段保存到 path 文件中。
@@ -94,6 +99,7 @@ def save_function_state(func, path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "wb") as f:
         pickle.dump(prepared, f)
+
 
 def load_function_state(func, path):
     """

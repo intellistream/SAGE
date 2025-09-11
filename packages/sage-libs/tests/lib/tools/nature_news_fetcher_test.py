@@ -6,15 +6,16 @@
 # pip install pytest-mock
 # ================================
 
-import pytest
-import requests
 from unittest.mock import MagicMock
 
+import pytest
+import requests
 # ================================
 # 关键修改：根据您的项目结构更新 import 语句
 # 假设您的源文件位于 sage.apps.lib/tools/nature_news_fetcher.py
 # ================================
 from sage.libs.tools.nature_news_fetcher import Nature_News_Fetcher_Tool
+
 
 # ================================
 # 1. Fixture: 创建可复用的工具实例
@@ -25,6 +26,7 @@ def news_fetcher_tool():
     这是一个 Fixture，为每个测试提供一个干净的 Nature_News_Fetcher_Tool 实例。
     """
     return Nature_News_Fetcher_Tool()
+
 
 # ================================
 # 2. 辅助数据和函数
@@ -37,7 +39,7 @@ def create_fake_html_page(num_articles):
         return """
         <html><body><section id='new-article-list'></section></body></html>
         """
-    
+
     article_template = """
     <article class="c-card">
       <h3 class="c-card__title">
@@ -49,15 +51,19 @@ def create_fake_html_page(num_articles):
       <img src="https://fake.url/image{i}.jpg" />
     </article>
     """
-    articles_html = "".join([article_template.format(i=i) for i in range(1, num_articles + 1)])
-    
+    articles_html = "".join(
+        [article_template.format(i=i) for i in range(1, num_articles + 1)]
+    )
+
     return f"""
     <html><body><section id='new-article-list'>{articles_html}</section></body></html>
     """
 
+
 # ================================
 # 3. 核心功能测试（使用 Mocking）
 # ================================
+
 
 def test_initialization(news_fetcher_tool):
     """
@@ -65,6 +71,7 @@ def test_initialization(news_fetcher_tool):
     """
     assert news_fetcher_tool.tool_name == "Nature_News_Fetcher_Tool"
     assert "num_articles" in news_fetcher_tool.input_types
+
 
 def test_parse_articles(news_fetcher_tool):
     """
@@ -78,9 +85,10 @@ def test_parse_articles(news_fetcher_tool):
 
     # --- 断言 (Assert) ---
     assert len(articles) == 2
-    assert articles[0]['title'] == "Fake Article Title 1"
-    assert articles[0]['url'] == "https://www.nature.com/articles/d41586-024-0001-5"
-    assert articles[1]['title'] == "Fake Article Title 2"
+    assert articles[0]["title"] == "Fake Article Title 1"
+    assert articles[0]["url"] == "https://www.nature.com/articles/d41586-024-0001-5"
+    assert articles[1]["title"] == "Fake Article Title 2"
+
 
 # def test_execute_success_multiple_pages(news_fetcher_tool, mocker):
 #     """
@@ -90,10 +98,10 @@ def test_parse_articles(news_fetcher_tool):
 #     # 模拟两次网络请求，第一次返回2篇文章，第二次返回1篇
 #     page1_html = create_fake_html_page(2)
 #     page2_html = create_fake_html_page(1)
-    
+
 #     mock_response_page1 = MagicMock()
 #     mock_response_page1.text = page1_html
-    
+
 #     mock_response_page2 = MagicMock()
 #     mock_response_page2.text = page2_html
 
@@ -132,14 +140,18 @@ def test_parse_articles(news_fetcher_tool):
 #     assert len(results) == 2 # 只应包含第一页的结果
 #     assert mock_get.call_count == 2 # 尝试了第一页和第二页
 #     # [修正] sleep 只在成功抓取到文章的循环末尾调用，因此只调用1次
-#     assert mock_sleep.call_count == 1 
+#     assert mock_sleep.call_count == 1
+
 
 def test_execute_handles_network_error(news_fetcher_tool, mocker):
     """
     测试：当 requests.get 抛出网络异常时，execute 是否能正确处理。
     """
     # --- 准备 (Arrange) ---
-    mocker.patch('requests.get', side_effect=requests.exceptions.RequestException("Fake network error"))
+    mocker.patch(
+        "requests.get",
+        side_effect=requests.exceptions.RequestException("Fake network error"),
+    )
 
     # --- 执行 (Act) ---
     results = news_fetcher_tool.execute()
@@ -148,6 +160,7 @@ def test_execute_handles_network_error(news_fetcher_tool, mocker):
     assert len(results) == 1
     assert "error" in results[0]
     assert "Network error" in results[0]["error"]
+
 
 # def test_execute_respects_num_articles_limit(news_fetcher_tool, mocker):
 #     """

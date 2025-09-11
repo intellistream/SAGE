@@ -1,22 +1,28 @@
 # sage/sage.common.utils/config_loader.py
 
-from pathlib import Path
-import os
-import yaml
-from platformdirs import user_config_dir, site_config_dir
 import inspect
+import os
+from pathlib import Path
+
+import yaml
+from platformdirs import site_config_dir, user_config_dir
+
+
 def load_config(path: str | Path | None = None) -> dict:
     # locate project root (…/SAGE/)
     # root = Path(__file__).resolve().parents[2]
     # 获取调用者的文件路径作为项目根目录的参考点
     caller_frame = inspect.currentframe().f_back
-    caller_file = caller_frame.f_globals.get('__file__')
+    caller_file = caller_frame.f_globals.get("__file__")
     if caller_file:
         # 假设调用者在项目根目录或其子目录中
         root = Path(caller_file).resolve().parent
         # 向上查找直到找到包含常见项目标识的目录
         while root.parent != root:
-            if any((root / marker).exists() for marker in ['setup.py', 'pyproject.toml', '.git', 'config']):
+            if any(
+                (root / marker).exists()
+                for marker in ["setup.py", "pyproject.toml", ".git", "config"]
+            ):
                 break
             root = root.parent
     else:
@@ -29,9 +35,9 @@ def load_config(path: str | Path | None = None) -> dict:
         raw = Path(path)
         if raw.is_absolute():
             p = raw
-        elif not raw.parent.parts:            # bare filename
+        elif not raw.parent.parts:  # bare filename
             p = root / "config" / raw
-        else:                                 # e.g. "config/foo.yaml"
+        else:  # e.g. "config/foo.yaml"
             p = root / raw
         candidates.append(p)
 

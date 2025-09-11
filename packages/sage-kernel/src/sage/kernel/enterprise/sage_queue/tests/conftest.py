@@ -2,16 +2,17 @@
 pytest fixtures and configuration for SAGE Queue tests
 """
 
+import multiprocessing
 import os
-import sys
-import pytest
-import tempfile
 import shutil
+import sys
+import tempfile
 import threading
 import time
-import multiprocessing
 from pathlib import Path
-from typing import Generator, Optional, List, Dict, Any
+from typing import Any, Dict, Generator, List, Optional
+
+import pytest
 
 # Add parent directory to path
 current_dir = Path(__file__).parent
@@ -20,24 +21,36 @@ sys.path.insert(0, str(sage_queue_dir))
 
 
 from sage.extensions.sage_queue import SageQueue
+
 print("✓ Using real SageQueue implementation")
+
+# Try to import SageQueueManager, if not available create a mock
+try:
+    from sage.extensions.sage_queue.python.sage_queue_manager import \
+        SageQueueManager
+except ImportError:
+    # Create a simple mock for SageQueueManager
+    class SageQueueManager:
+        def cleanup_all(self):
+            pass
+
 
 from . import TEST_CONFIG
 
 
 class QueueContext:
     """Context manager for SageQueue instances"""
-    
+
     def __init__(self, name: str, **kwargs):
         self.name = name
         self.kwargs = kwargs
         self.queue = None
         self._closed = False
-    
+
     def __enter__(self):
         self.queue = SageQueue(self.name, **self.kwargs)
         return self.queue
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.queue and not self._closed:
             try:
@@ -63,6 +76,7 @@ def temp_dir():
 def queue_name():
     """Generate unique queue name for each test"""
     import uuid
+
     return f"{TEST_CONFIG['temp_queue_prefix']}{uuid.uuid4().hex[:8]}_{int(time.time() * 1000)}"
 
 
@@ -99,7 +113,7 @@ def queue_manager():
         pass
 
 
-@pytest.fixture(params=[1024, 64*1024, 256*1024])
+@pytest.fixture(params=[1024, 64 * 1024, 256 * 1024])
 def queue_with_various_sizes(request, queue_name):
     """Parametrized fixture for queues with different sizes"""
     with QueueContext(queue_name, maxsize=request.param) as queue:
@@ -109,49 +123,44 @@ def queue_with_various_sizes(request, queue_name):
 @pytest.fixture
 def performance_data():
     """Storage for performance metrics during tests"""
-    return {
-        "throughput": [],
-        "latency": [],
-        "memory_usage": [],
-        "cpu_usage": []
-    }
+    return {"throughput": [], "latency": [], "memory_usage": [], "cpu_usage": []}
 
 
 class ProcessHelper:
     """Helper class for multiprocess testing"""
-    
+
     def __init__(self, method="spawn"):
         self.method = method
         self.processes: List[multiprocessing.Process] = []
-    
+
     def start_process(self, target, args=(), kwargs=None):
         """Start a new process"""
         if kwargs is None:
             kwargs = {}
-        
+
         ctx = multiprocessing.get_context(self.method)
         process = ctx.Process(target=target, args=args, kwargs=kwargs)
         process.start()
         self.processes.append(process)
         return process
-    
+
     def wait_all(self, timeout=None):
         """Wait for all processes to complete"""
         for process in self.processes:
             process.join(timeout=timeout)
-    
+
     def terminate_all(self):
         """Terminate all processes"""
         for process in self.processes:
             if process.is_alive():
                 process.terminate()
         self.wait_all(timeout=5)
-        
+
         # Force kill if needed
         for process in self.processes:
             if process.is_alive():
                 process.kill()
-    
+
     def cleanup(self):
         """Cleanup all processes"""
         self.terminate_all()
@@ -171,7 +180,7 @@ def process_helper():
 def thread_helper():
     """Helper for multithreading tests"""
     threads = []
-    
+
     def start_thread(target, args=(), kwargs=None):
         if kwargs is None:
             kwargs = {}
@@ -179,13 +188,13 @@ def thread_helper():
         thread.start()
         threads.append(thread)
         return thread
-    
+
     def wait_all(timeout=None):
         for thread in threads:
             thread.join(timeout=timeout)
-    
+
     yield start_thread, wait_all
-    
+
     # Cleanup
     for thread in threads:
         if thread.is_alive():
@@ -199,7 +208,7 @@ def performance_monitor():
         import psutil
     except ImportError:
         pytest.skip("psutil required for performance monitoring")
-    
+
     class PerformanceMonitor:
         def __init__(self):
             self.start_time = None
@@ -209,65 +218,53 @@ def performance_monitor():
             self.start_cpu = None
             self.end_cpu = None
             self.process = psutil.Process()
-        
+
         def start(self):
             self.start_time = time.time()
             self.start_memory = self.process.memory_info().rss
             self.start_cpu = self.process.cpu_percent()
-        
+
         def stop(self):
             self.end_time = time.time()
             self.end_memory = self.process.memory_info().rss
             self.end_cpu = self.process.cpu_percent()
-        
+
         @property
         def duration(self):
             if self.start_time and self.end_time:
                 return self.end_time - self.start_time
             return None
-        
+
         @property
         def memory_delta(self):
             if self.start_memory and self.end_memory:
                 return self.end_memory - self.start_memory
             return None
-        
+
         @property
         def avg_cpu(self):
             if self.start_cpu and self.end_cpu:
                 return (self.start_cpu + self.end_cpu) / 2
             return None
-    
+
     return PerformanceMonitor()
 
 
 # Test markers
 def pytest_configure(config):
     """Configure pytest markers"""
-    config.addinivalue_line(
-        "markers", "unit: Unit tests for individual components"
-    )
+    config.addinivalue_line("markers", "unit: Unit tests for individual components")
     config.addinivalue_line(
         "markers", "integration: Integration tests for component interaction"
     )
-    config.addinivalue_line(
-        "markers", "performance: Performance and benchmark tests"
-    )
-    config.addinivalue_line(
-        "markers", "stress: Stress tests with high load"
-    )
+    config.addinivalue_line("markers", "performance: Performance and benchmark tests")
+    config.addinivalue_line("markers", "stress: Stress tests with high load")
     config.addinivalue_line(
         "markers", "multiprocess: Tests requiring multiple processes"
     )
-    config.addinivalue_line(
-        "markers", "threading: Tests with multiple threads"
-    )
-    config.addinivalue_line(
-        "markers", "slow: Tests that take a long time to run"
-    )
-    config.addinivalue_line(
-        "markers", "ray: Tests requiring Ray framework"
-    )
+    config.addinivalue_line("markers", "threading: Tests with multiple threads")
+    config.addinivalue_line("markers", "slow: Tests that take a long time to run")
+    config.addinivalue_line("markers", "ray: Tests requiring Ray framework")
 
 
 # Custom pytest hooks
@@ -281,7 +278,7 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "ray" in item.keywords:
                 item.add_marker(ray_skip)
-    
+
     # Add slow marker to performance tests
     slow_marker = pytest.mark.slow
     for item in items:
@@ -295,8 +292,8 @@ def setup_test_environment():
     """Setup test environment"""
     # Set environment variables for testing
     os.environ["SAGE_TEST_MODE"] = "1"
-    
+
     yield
-    
+
     # Cleanup
     os.environ.pop("SAGE_TEST_MODE", None)

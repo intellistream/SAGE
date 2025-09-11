@@ -1,16 +1,18 @@
 import asyncio
 import copy
 import os
+
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-from functools import lru_cache
 import asyncio
+from functools import lru_cache
+
 import pipmaster as pm  # Pipmaster for dynamic library install
 
 # Dependencies should be installed via requirements.txt
 # transformers, torch, tenacity, and numpy are required for this module
 
 try:
-    from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModel
+    from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
 except ImportError:
     raise ImportError(
         "transformers package is required for HuggingFace embedding functionality. "
@@ -43,6 +45,7 @@ except ImportError:
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+
 @lru_cache(maxsize=1)
 def initialize_hf_model(model_name):
     hf_tokenizer = AutoTokenizer.from_pretrained(
@@ -58,6 +61,7 @@ def initialize_hf_model(model_name):
 
 
 import torch
+
 
 def hf_embed_sync(text: str, tokenizer, embed_model) -> list[float]:
     """
@@ -87,5 +91,3 @@ def hf_embed_sync(text: str, tokenizer, embed_model) -> list[float]:
         return embeddings.detach().to(torch.float32).cpu()[0].tolist()
     else:
         return embeddings.detach().cpu()[0].tolist()
-
-

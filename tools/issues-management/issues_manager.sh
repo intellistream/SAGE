@@ -399,17 +399,15 @@ issues_management_menu() {
         echo "=================="
         echo ""
         echo "  1. 📊 查看Issues统计和分析"
-        echo "  2. 🗂️ 自动归档已完成Issues"
-        echo "  3. 📋 查看Issues更新记录"
-        echo "  4. 返回主菜单"
+        echo "  2.  查看Issues更新记录"
+        echo "  3. 返回主菜单"
         echo ""
-        read -p "请选择 (1-4): " choice
+        read -p "请选择 (1-3): " choice
         
         case $choice in
             1) show_issues_statistics ;;
-            2) archive_completed_issues ;;
-            3) show_update_history_menu ;;
-            4) break ;;
+            2) show_update_history_menu ;;
+            3) break ;;
             *) echo -e "${RED}❌ 无效选择${NC}"; sleep 1 ;;
         esac
     done
@@ -417,59 +415,111 @@ issues_management_menu() {
 
 # 下载功能实现
 clear_local_issues() {
-    local issues_dir="$ISSUES_DIR"
+    # 新架构的数据目录
+    local data_dir="$ISSUES_WORKSPACE_PATH/data"
+    local views_dir="$ISSUES_WORKSPACE_PATH/views"
+    local cache_dir="$ISSUES_WORKSPACE_PATH/cache"
     
-    if [ -d "$issues_dir" ] && [ "$(ls -A "$issues_dir" 2>/dev/null)" ]; then
-        echo -e "${YELLOW}🗑️ 发现本地Issues数据${NC}"
-        echo "目录: $issues_dir"
+    # 旧架构目录（保留兼容性检查）
+    local old_issues_dir="$ISSUES_DIR"
+    local old_metadata_dir="$ISSUES_METADATA_PATH"
+    
+    echo -e "${YELLOW}🗑️ 检查本地Issues数据...${NC}"
+    
+    # 检查新架构数据
+    local has_new_data=false
+    if [ -d "$data_dir" ] && [ "$(ls -A "$data_dir" 2>/dev/null)" ]; then
+        has_new_data=true
+        echo "📂 发现新架构数据目录: $data_dir"
+        echo "   数据文件数: $(ls -1 "$data_dir"/issue_*.json 2>/dev/null | wc -l)"
+    fi
+    
+    # 检查旧架构数据
+    local has_old_data=false
+    if [ -d "$old_issues_dir" ] && [ "$(ls -A "$old_issues_dir" 2>/dev/null)" ]; then
+        has_old_data=true
+        echo "📁 发现旧架构Issues目录: $old_issues_dir"
+        echo "   Issues文件数: $(ls -1 "$old_issues_dir"/*.md 2>/dev/null | wc -l)"
+    fi
+    
+    if [ "$has_new_data" = false ] && [ "$has_old_data" = false ]; then
+        echo -e "${CYAN}ℹ️ 本地无Issues数据，无需清空${NC}"
         echo ""
-        ls -la "$issues_dir" | head -10
-        if [ $(ls -1 "$issues_dir" | wc -l) -gt 10 ]; then
-            echo "... 以及更多文件"
-        fi
+        return
+    fi
+    
+    echo ""
+    echo -e "${RED}⚠️ 警告: 此操作将删除所有本地Issues数据${NC}"
+    echo ""
+    
+    if [ "$has_new_data" = true ]; then
+        echo "将清理的新架构目录:"
+        echo "  - 数据源: $data_dir"
+        echo "  - 视图: $views_dir"
+        echo "  - 缓存: $cache_dir"
+    fi
+    
+    if [ "$has_old_data" = true ]; then
+        echo "将清理的旧架构目录:"
+        echo "  - Issues: $old_issues_dir"
+        echo "  - Metadata: $old_metadata_dir"
+    fi
+    
+    echo ""
+    read -p "确认清空本地Issues数据？ (y/N): " confirm_clear
+    
+    if [[ "$confirm_clear" =~ ^[Yy]$ ]]; then
         echo ""
-        echo -e "${RED}⚠️ 警告: 此操作将删除所有本地Issues数据${NC}"
-        echo ""
-        read -p "确认清空本地Issues目录？ (y/N): " confirm_clear
+        echo "🗑️ 正在清空本地Issues数据..."
         
-        if [[ "$confirm_clear" =~ ^[Yy]$ ]]; then
-            echo ""
-            echo "🗑️ 正在清空本地Issues目录..."
-            rm -rf "$issues_dir"/*
-            echo -e "${GREEN}✅ 本地Issues目录已清空${NC}"
-            echo ""
-        else
-            echo ""
-            echo "❌ 取消清空操作"
-            echo ""
+        # 清理新架构数据
+        if [ "$has_new_data" = true ]; then
+            echo "  清理数据源..."
+            rm -rf "$data_dir"/* 2>/dev/null || true
+            echo "  清理视图..."
+            rm -rf "$views_dir"/* 2>/dev/null || true
+            echo "  清理缓存..."
+            rm -rf "$cache_dir"/* 2>/dev/null || true
         fi
+        
+        # 清理旧架构数据
+        if [ "$has_old_data" = true ]; then
+            echo "  清理旧Issues目录..."
+            rm -rf "$old_issues_dir"/* 2>/dev/null || true
+            echo "  清理旧Metadata目录..."
+            rm -rf "$old_metadata_dir"/* 2>/dev/null || true
+        fi
+        
+        echo -e "${GREEN}✅ 本地Issues数据已清空${NC}"
+        echo ""
     else
-        echo -e "${CYAN}ℹ️ 本地Issues目录为空或不存在，无需清空${NC}"
+        echo ""
+        echo "❌ 取消清空操作"
         echo ""
     fi
 }
 
 download_all_issues() {
     clear_local_issues
-    echo "📥 正在下载所有Issues..."
+    echo "📥 正在下载所有Issues (使用新架构，快速模式)..."
     cd "$SCRIPT_DIR"
-    python3 _scripts/download_issues.py --state=all
+    python3 _scripts/download_issues_v2.py --state=all --skip-comments
     read -p "按Enter键继续..."
 }
 
 download_open_issues() {
     clear_local_issues
-    echo "📥 正在下载开放的Issues..."
+    echo "📥 正在下载开放的Issues (使用新架构，快速模式)..."
     cd "$SCRIPT_DIR"
-    python3 _scripts/download_issues.py --state=open
+    python3 _scripts/download_issues_v2.py --state=open --skip-comments
     read -p "按Enter键继续..."
 }
 
 download_closed_issues() {
     clear_local_issues
-    echo "📥 正在下载已关闭的Issues..."
+    echo "📥 正在下载已关闭的Issues (使用新架构，快速模式)..."
     cd "$SCRIPT_DIR"
-    python3 _scripts/download_issues.py --state=closed
+    python3 _scripts/download_issues_v2.py --state=closed --skip-comments
     read -p "按Enter键继续..."
 }
 
@@ -576,58 +626,27 @@ project_based_assign_menu() {
 
 execute_project_based_assign() {
     clear
-    echo -e "${CYAN}🚀 执行完整智能分配 (包含错误检测与修复)${NC}"
-    echo "================================================="
+    echo -e "${CYAN}🚀 执行智能分配${NC}"
+    echo "==================="
     echo ""
     echo -e "${CYAN}此功能将自动执行以下操作：${NC}"
-    echo "  🔍 1. 检测错误分配的Issues (team与project不匹配)"
-    echo "  🔧 2. 自动修复检测到的分配问题"
-    echo "  🎯 3. 执行智能分配 (基于Project归属)"
-    echo "  📊 4. 显示分配结果统计"
+    echo "  🎯 1. 执行智能分配 (基于Project归属)"
+    echo "  📊 2. 显示分配结果统计"
     echo ""
     echo -e "${YELLOW}⚠️ 此操作将修改Issues文件中的分配信息${NC}"
     echo ""
-    read -p "确认执行完整智能分配？ (y/N): " confirm
+    read -p "确认执行智能分配？ (y/N): " confirm
     
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         echo ""
-        echo -e "${CYAN}🔍 步骤1: 检测错误分配的Issues...${NC}"
-        cd "$SCRIPT_DIR"
-        
-        # 首先运行错误检测
-        if python3 _scripts/helpers/fix_misplaced_issues.py --dry-run; then
-            echo -e "${GREEN}✅ 错误检测完成${NC}"
-            
-            # 检查是否有生成的修复计划文件
-            local fix_plan_files=($(ls -t "$ISSUES_OUTPUT_PATH"/issues_fix_plan_*.json 2>/dev/null))
-            
-            if [ ${#fix_plan_files[@]} -gt 0 ]; then
-                local latest_plan="${fix_plan_files[0]}"
-                echo -e "${YELLOW}⚠️ 发现需要修复的错误分配，自动执行修复...${NC}"
-                echo ""
-                echo -e "${CYAN}🔧 步骤2: 自动修复错误分配...${NC}"
-                if python3 _scripts/helpers/execute_fix_plan.py "$latest_plan" --live; then
-                    echo -e "${GREEN}✅ 错误分配修复完成${NC}"
-                else
-                    echo -e "${RED}❌ 错误分配修复失败${NC}"
-                fi
-            else
-                echo -e "${GREEN}✅ 未发现错误分配的Issues${NC}"
-                echo -e "${CYAN}📝 跳过步骤2: 无需修复${NC}"
-            fi
-        else
-            echo -e "${RED}❌ 错误检测失败，继续执行智能分配...${NC}"
-        fi
-        
-        echo ""
-        echo -e "${CYAN}🎯 步骤3: 执行智能分配...${NC}"
+        echo -e "${CYAN}🎯 步骤1: 执行智能分配...${NC}"
         
         # 执行智能分配
         if python3 _scripts/project_based_assign.py --assign; then
             echo ""
             echo -e "${GREEN}✅ 智能分配完成！${NC}"
             echo ""
-            echo -e "${CYAN}📊 步骤4: 显示分配结果统计...${NC}"
+            echo -e "${CYAN}📊 步骤2: 显示分配结果统计...${NC}"
             
             # 自动显示分配统计
             local total=0
@@ -1079,60 +1098,6 @@ show_issues_statistics() {
     echo "📊 显示Issues统计信息..."
     cd "$SCRIPT_DIR"
     python3 _scripts/issues_manager.py --action=statistics
-    read -p "按Enter键继续..."
-}
-
-# 自动归档已完成Issues
-archive_completed_issues() {
-    echo -e "${BLUE}🗂️ 自动归档已完成Issues${NC}"
-    echo "=============================="
-    echo ""
-    echo "此功能将根据Issues完成时间自动归档："
-    echo "  📋 一周内的已完成Issues → Done列"
-    echo "  📦 超过一周但不到一个月 → Archive列"
-    echo "  📚 超过一个月 → History列（如不存在将创建）"
-    echo ""
-    
-    read -p "🤔 是否要先预览归档计划？ (Y/n): " preview_choice
-    
-    case $preview_choice in
-        [nN]|[nN][oO])
-            preview_flag=""
-            ;;
-        *)
-            preview_flag="--preview"
-            ;;
-    esac
-    
-    echo ""
-    echo "🚀 开始处理已完成Issues归档..."
-    echo "============================"
-    
-    cd "$SCRIPT_DIR/_scripts/helpers"
-    
-    if [ -n "$preview_flag" ]; then
-        echo "🔍 预览归档计划："
-        python3 archive_completed_issues.py $preview_flag
-        
-        echo ""
-        read -p "是否执行归档操作？ (y/N): " confirm_execute
-        
-        case $confirm_execute in
-            [yY]|[yY][eE][sS])
-                echo ""
-                echo "⚡ 执行归档操作..."
-                python3 archive_completed_issues.py
-                ;;
-            *)
-                echo "📋 归档操作已取消"
-                ;;
-        esac
-    else
-        echo "⚡ 直接执行归档操作..."
-        python3 archive_completed_issues.py
-    fi
-    
-    echo ""
     read -p "按Enter键继续..."
 }
 

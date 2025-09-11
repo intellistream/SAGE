@@ -1,7 +1,9 @@
-from sage.core.api.function.source_function import SourceFunction
+import time
 from pathlib import Path
 from time import sleep
-import time
+
+from sage.core.api.function.source_function import SourceFunction
+
 
 class FileSource(SourceFunction):
     """
@@ -24,9 +26,13 @@ class FileSource(SourceFunction):
         :param config: Configuration dictionary containing source settings, including `data_path`.
         """
         self.config = config
-        self.data_path = self.resolve_data_path(config["data_path"])  # → project_root/data/sample/question.txt
+        self.data_path = self.resolve_data_path(
+            config["data_path"]
+        )  # → project_root/data/sample/question.txt
         self.file_pos = 0  # Track the file read position
-        self.loop_reading = config.get("loop_reading", False)  # Whether to restart from beginning when EOF reached
+        self.loop_reading = config.get(
+            "loop_reading", False
+        )  # Whether to restart from beginning when EOF reached
 
     def resolve_data_path(self, path: str | Path) -> Path:
         """
@@ -34,6 +40,7 @@ class FileSource(SourceFunction):
         传入绝对路径则直接返回。
         """
         import os
+
         p = Path(path)
         if p.is_absolute():
             return p
@@ -49,25 +56,29 @@ class FileSource(SourceFunction):
         """
         try:
             while True:
-                with open(self.data_path, 'r', encoding='utf-8') as f:
+                with open(self.data_path, "r", encoding="utf-8") as f:
                     f.seek(self.file_pos)  # Move to the last read position
                     line = f.readline()
                     self.file_pos = f.tell()  # Update the new position
                     if line:
-                        self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Read query: {line.strip()}\033[0m ")
+                        self.logger.info(
+                            f"\033[32m[ {self.__class__.__name__}]: Read query: {line.strip()}\033[0m "
+                        )
                         return line.strip()  # Return non-empty lines
                     else:
                         if self.loop_reading:
                             self.logger.info(
-                                f"\033[33m[ {self.__class__.__name__}]: Reached end of file, restarting from beginning.\033[0m ")
+                                f"\033[33m[ {self.__class__.__name__}]: Reached end of file, restarting from beginning.\033[0m "
+                            )
                             self.file_pos = 0  # Reset to beginning of file
                             continue
                         else:
                             self.logger.info(
-                                f"\033[33m[ {self.__class__.__name__}]: Reached end of file, maintaining position.\033[0m ")
+                                f"\033[33m[ {self.__class__.__name__}]: Reached end of file, maintaining position.\033[0m "
+                            )
                             # Reset position if end of file is reached (optional)
+                            time.sleep(2)
                             continue
-                time.sleep(2)
         except FileNotFoundError:
             self.logger.error(f"File not found: {self.data_path}")
         except Exception as e:
