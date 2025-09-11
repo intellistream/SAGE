@@ -1,8 +1,7 @@
 #pragma once
 
 #include "base_function.hpp"
-#include "function_response.hpp"
-#include "function_type.hpp"
+#include "function/dummy_input.hpp"
 
 namespace sage_flow {
 
@@ -12,12 +11,12 @@ namespace sage_flow {
  * Abstract base class for data source functions.
  * Based on candyFlow's SourceFunction design.
  */
-class SourceFunction : public BaseFunction {
+template <typename OutType>
+class SourceFunction : public BaseFunction<DummyInput, OutType> {
 public:
-  explicit SourceFunction(const std::string& name)
-      : BaseFunction(name, FunctionType::Source) {}
-
-  ~SourceFunction() override = default;
+  explicit SourceFunction(std::string name);
+  
+  virtual ~SourceFunction() override = default;
 
   /**
    * @brief Initialize the source (e.g., open files, connect to streams)
@@ -25,12 +24,10 @@ public:
   virtual void init() = 0;
 
   /**
-   * @brief Execute returns a batch of messages. Empty response means no more
-   * data.
-   * @param response Input response (typically empty for sources)
-   * @return Response containing generated messages
+   * @brief Generate next batch of messages
+   * @return Batch of generated messages
    */
-  auto execute(FunctionResponse& response) -> FunctionResponse override = 0;
+  virtual std::vector<OutType> generate_batch() = 0;
 
   /**
    * @brief Close the source and cleanup resources
@@ -42,6 +39,13 @@ public:
    * @return true if more data is available
    */
   virtual auto hasNext() -> bool = 0;
+
+  // BaseFunction interface implementation - dummy input for sources
+  std::optional<OutType> execute(const DummyInput& input) override;
+  void execute_batch(const std::vector<DummyInput>& inputs, std::vector<OutType>& outputs) override;
+
+private:
+  bool has_more_data_ = true;
 };
 
 }  // namespace sage_flow

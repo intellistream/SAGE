@@ -15,16 +15,13 @@
 #include "operator_types.hpp"
 
 // Response container
-#include "response.hpp"
+#include "data_stream/response.hpp"
 
 // Base operator class
 #include "base_operator.hpp"
 
 // Specific operator implementations
-#include "aggregate_operator.hpp"
-#include "base_operator.hpp"
 #include "filter_operator.hpp"
-#include "join_operator.hpp"
 #include "map_operator.hpp"
 #include "sink_operator.hpp"
 #include "source_operator.hpp"  // NOLINT
@@ -49,7 +46,7 @@ auto CreateOperator(OperatorType type,
  * @return Unique pointer to TopK operator
  */
 auto CreateTopKOperator(const std::string& name,
-                        size_t k) -> std::unique_ptr<TopKOperator>;
+                        size_t k) -> std::unique_ptr<TopKOperator<MultiModalMessage>>;
 
 /**
  * @brief Factory function to create Window operator

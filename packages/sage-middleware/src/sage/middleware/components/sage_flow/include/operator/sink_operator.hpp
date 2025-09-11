@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "operator/response.hpp"
+#include "data_stream/response.hpp"
 #include "operator/base_operator.hpp"
 #include "function/sink_function.hpp"
 
@@ -19,7 +19,8 @@ class MultiModalMessage;
  * writing to files, databases, or external systems. Uses composition pattern
  * with SinkFunction.
  */
-class SinkOperator final : public BaseOperator<MultiModalMessage, MultiModalMessage> {
+template <typename InputType>
+class SinkOperator final : public BaseOperator<InputType, InputType> {
 public:
   explicit SinkOperator(std::string name);
 
@@ -28,7 +29,7 @@ public:
    * @param name Operator name
    * @param sink_function SinkFunction instance to handle processing logic
    */
-  SinkOperator(std::string name, std::unique_ptr<SinkFunction> sink_function);
+  SinkOperator(std::string name, std::unique_ptr<SinkFunction<InputType>> sink_function);
 
   // Prevent copying
   SinkOperator(const SinkOperator&) = delete;
@@ -38,19 +39,19 @@ public:
   SinkOperator(SinkOperator&&) = default;
   auto operator=(SinkOperator&&) -> SinkOperator& = default;
 
-  auto process(const std::vector<std::shared_ptr<MultiModalMessage>>& input) -> std::optional<Response<MultiModalMessage>>;
+  auto process(const std::vector<std::shared_ptr<InputType>>& input) -> std::optional<Response<InputType>>;
 
   /**
    * @brief Set the sink function
    * @param sink_function SinkFunction instance to handle processing logic
    */
-  void setSinkFunction(std::unique_ptr<SinkFunction> sink_function);
+  void setSinkFunction(std::unique_ptr<SinkFunction<InputType>> sink_function);
 
   /**
    * @brief Get the sink function
    * @return Reference to the contained SinkFunction
    */
-  auto getSinkFunction() -> SinkFunction&;
+  auto getSinkFunction() -> SinkFunction<InputType>&;
 
   /**
    * @brief Flush any buffered data
@@ -58,7 +59,7 @@ public:
   void flush();
 
 private:
-  std::unique_ptr<SinkFunction> sink_function_;
+  std::unique_ptr<SinkFunction<InputType>> sink_function_;
 };
 
 }  // namespace sage_flow

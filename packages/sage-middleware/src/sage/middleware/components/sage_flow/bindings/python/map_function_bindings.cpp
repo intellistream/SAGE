@@ -23,30 +23,30 @@ void bind_map_function(py::module& m) {
     using MapFunc = std::function<void(std::unique_ptr<sage_flow::MultiModalMessage>&)>;
     using MapFunction = sage_flow::MapFunction;
 
-    // Bind FunctionResponse first
-    py::class_<sage_flow::FunctionResponse>(m, "FunctionResponse")
+    // Bind Response first
+    py::class_<sage_flow::Response>(m, "Response")
         .def(py::init<>())
-        .def("addMessage", [](sage_flow::FunctionResponse& self, std::shared_ptr<sage_flow::MultiModalMessage> message) {
+        .def("addMessage", [](sage_flow::Response& self, std::shared_ptr<sage_flow::MultiModalMessage> message) {
             self.addMessage(message);
         })
-        .def("getMessages", [](const sage_flow::FunctionResponse& self) -> py::list {
+        .def("getMessages", [](const sage_flow::Response& self) -> py::list {
             py::list result;
             for (const auto& msg : self.getMessages()) {
                 result.append(py::cast(msg));
             }
             return result;
         })
-        .def("isEmpty", &sage_flow::FunctionResponse::isEmpty)
-        .def("clear", &sage_flow::FunctionResponse::clear)
-        .def("size", &sage_flow::FunctionResponse::size);
+        .def("isEmpty", &sage_flow::Response::isEmpty)
+        .def("clear", &sage_flow::Response::clear)
+        .def("size", &sage_flow::Response::size);
 
     py::class_<MapFunction>(m, "MapFunction")
         .def(py::init<std::string>(), py::arg("name"))
         .def(py::init<std::string, MapFunc>(), py::arg("name"), py::arg("map_func"))
         .def("setMapFunc", &MapFunction::setMapFunc, py::arg("map_func"))
         .def("execute", [](MapFunction& self, py::object py_response) -> py::object {
-            // Convert py_response to FunctionResponse
-            sage_flow::FunctionResponse response;
+            // Convert py_response to Response
+            sage_flow::Response response;
             // Placeholder for conversion
             return py::cast(self.execute(response));
         }, py::arg("response"))

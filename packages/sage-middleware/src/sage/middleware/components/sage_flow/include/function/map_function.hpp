@@ -3,40 +3,31 @@
 #include <functional>
 
 #include "base_function.hpp"
+#include "data_stream/response.hpp"
 
 namespace sage_flow {
 
-/**
- * @brief Map function type definition
- *
- * Based on candyFlow's MapFunc pattern, adapted for MultiModalMessage
- */
-using MapFunc = std::function<void(std::unique_ptr<MultiModalMessage>&)>;
-
-/**
- * @brief Map Function class
- *
- * Performs one-to-one transformations on messages.
- * Based on candyFlow's MapFunction design.
- */
-class MapFunction final : public BaseFunction {
+template <typename InType, typename OutType>
+class MapFunction final : public BaseFunction<InType, OutType> {
 public:
+  using MapFunc = std::function<OutType(const InType&)>;
+  
   explicit MapFunction(std::string name);
   MapFunction(std::string name, MapFunc map_func);
 
-  ~MapFunction() override = default;
+  virtual ~MapFunction() = default;
 
   /**
-   * @brief Execute the map function on input messages
-   * @param response Input response containing messages to transform
-   * @return Response with transformed messages
+   * @brief Execute the map function on input
+   * @param input Input to transform
+   * @return Transformed output or nullopt if no transformation
    */
-  using BaseFunction::execute;  // Bring base class overloads into scope
-  auto execute(FunctionResponse& response) -> FunctionResponse override;
+  std::optional<OutType> execute(const InType& input) override;
+  void execute_batch(const std::vector<InType>& inputs, std::vector<OutType>& outputs) override;
 
   /**
    * @brief Set the map function
-   * @param map_func Function to apply to each message
+   * @param map_func Function to apply to each message (no memory management)
    */
   void setMapFunc(MapFunc map_func);
 

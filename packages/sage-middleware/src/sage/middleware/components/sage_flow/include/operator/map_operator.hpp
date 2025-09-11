@@ -7,14 +7,14 @@
 #include <optional>
 
 #include "base_operator.hpp"
-#include "operator/response.hpp"
-#include "message/multimodal_message.hpp"
+#include "data_stream/response.hpp"
 
 namespace sage_flow {
 
-class MapOperator : public BaseOperator<MultiModalMessage, MultiModalMessage> {
+template <typename InputType, typename OutputType>
+class MapOperator : public BaseOperator<InputType, OutputType> {
 public:
-  using MapFunc = std::function<std::shared_ptr<MultiModalMessage>(const std::shared_ptr<MultiModalMessage>&)>;
+  using MapFunc = std::function<std::shared_ptr<OutputType>(const std::shared_ptr<InputType>&)>;
 
   explicit MapOperator(std::string name, MapFunc f);
   MapOperator(std::string name, MapFunc f, std::string description);
@@ -27,7 +27,7 @@ public:
   MapOperator(MapOperator&&) = default;
   auto operator=(MapOperator&&) -> MapOperator& = default;
 
-  auto process(const std::vector<std::shared_ptr<MultiModalMessage>>& input) -> std::optional<Response<MultiModalMessage>> override;
+  auto process(const std::vector<std::unique_ptr<InputType>>& input) -> std::optional<Response<OutputType>> override;
 
 private:
   MapFunc map_func_;

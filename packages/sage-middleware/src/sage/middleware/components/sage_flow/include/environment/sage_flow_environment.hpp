@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "data_stream/data_stream.hpp"
+#include "data_stream/stream.hpp"
 #include "message/multimodal_message.hpp"
 
 namespace sage_flow {

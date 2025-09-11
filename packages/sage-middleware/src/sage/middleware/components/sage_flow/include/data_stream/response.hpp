@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <vector>
-#include "../message/multimodal_message.hpp"
 
 namespace sage_flow {
 
@@ -11,31 +11,21 @@ class Response {
 public:
   Response() = default;
   
-  explicit Response(std::vector<std::shared_ptr<T>> messages) : messages_(std::move(messages)) {}
+  explicit Response(std::vector<std::unique_ptr<T>> messages);
+  Response(std::vector<std::unique_ptr<T>> messages, std::string metadata);
   
-  bool hasMessages() const { return !messages_.empty(); }
-  
-  std::shared_ptr<T> getMessage() const {
-    if (!messages_.empty()) {
-      return messages_[0];
-    }
-    return nullptr;
-  }
-  
-  const std::vector<std::shared_ptr<T>>& getMessages() const {
-    return messages_;
-  }
-  
-  std::vector<std::shared_ptr<T>>& getMessages() {
-    return messages_;
-  }
-  
-  size_t size() const { return messages_.size(); }
-  
-private:
-  std::vector<std::shared_ptr<T>> messages_;
-};
+  void addMessage(std::unique_ptr<T> message);
+  const std::vector<std::unique_ptr<T>>& getMessages() const;
+  std::vector<std::unique_ptr<T>>& getMessages();
+  std::string getMetadata() const;
+  void setMetadata(std::string metadata);
+  void clear();
+  size_t size() const;
+  bool empty() const;
 
-// No extern template - instantiate in cpp
+private:
+  std::vector<std::unique_ptr<T>> messages_;
+  std::string metadata_;
+};
 
 }  // namespace sage_flow

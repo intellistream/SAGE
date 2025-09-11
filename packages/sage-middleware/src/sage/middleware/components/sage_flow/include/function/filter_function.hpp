@@ -11,7 +11,6 @@ namespace sage_flow {
  *
  * Based on candyFlow's filter pattern, adapted for MultiModalMessage
  */
-using FilterFunc = std::function<bool(const MultiModalMessage&)>;
 
 /**
  * @brief Filter Function class
@@ -19,20 +18,19 @@ using FilterFunc = std::function<bool(const MultiModalMessage&)>;
  * Filters messages based on a predicate function.
  * Based on candyFlow's FilterFunction design.
  */
-class FilterFunction final : public BaseFunction {
+template <typename InType, typename OutType>
+class FilterFunction final : public BaseFunction<InType, OutType> {
 public:
+  using FilterFunc = std::function<bool(const InType&)>;
+
   explicit FilterFunction(std::string name);
   FilterFunction(std::string name, FilterFunc filter_func);
 
   ~FilterFunction() override = default;
 
-  /**
-   * @brief Execute the filter function on input messages
-   * @param response Input response containing messages to filter
-   * @return Response with filtered messages
-   */
-  using BaseFunction::execute;  // Bring base class overloads into scope
-  auto execute(FunctionResponse& response) -> FunctionResponse override;
+  // Pure function interface - no Response dependency
+  std::optional<OutType> execute(const InType& input) override;
+  void execute_batch(const std::vector<InType>& inputs, std::vector<OutType>& outputs) override;
 
   /**
    * @brief Set the filter function

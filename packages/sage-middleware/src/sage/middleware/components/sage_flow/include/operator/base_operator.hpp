@@ -8,12 +8,11 @@
 #include <optional>
 
 #include "operator_types.hpp"
-#include "operator/response.hpp"
-#include "message/multimodal_message.hpp"
+#include "data_stream/response.hpp"
 
 namespace sage_flow {
 
-template <typename InputType = MultiModalMessage, typename OutputType = MultiModalMessage>
+template <typename InputType, typename OutputType>
 class BaseOperator {
 public:
   virtual ~BaseOperator() = default;
@@ -36,7 +35,7 @@ public:
   // Core operator interface
   virtual auto open() -> void;
   virtual auto close() -> void;
-  virtual auto process(const std::vector<std::shared_ptr<InputType>>& input) -> std::optional<Response<OutputType>> = 0;
+  virtual auto process(const std::vector<std::unique_ptr<InputType>>& input) -> std::optional<Response<OutputType>> = 0;
   // For Function integration
   virtual auto process(const InputType& input, Response<OutputType>& output) -> void;
   virtual auto emit(int output_id, Response<OutputType>& output_record) const -> void;
@@ -70,11 +69,19 @@ protected:
   uint64_t output_count_ = 0;
   EmitCallback emit_callback_;
 
-  // Utility methods for derived classes
-  auto incrementProcessedCount() -> void;
-  auto incrementOutputCount() -> void;
+  // Protected counter methods for derived classes
+  void incrementProcessedCount() {
+    ++processed_count_;
+  }
+  
+  void incrementOutputCount() {
+    ++output_count_;
+  }
+
+private:
 
   // Optional support for empty responses
+  protected:
   static auto createEmptyResponse() -> std::optional<Response<OutputType>>;
 };
 

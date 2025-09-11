@@ -1,19 +1,21 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
-
-#include "function_response.hpp"
-#include "function_type.hpp"
+#include <vector>
+#include <optional>
+#include "data_stream/response.hpp"
 
 namespace sage_flow {
 
-/**
- * @brief Base Function class
- *
- * Based on candyFlow's Function design, adapted for SAGE Flow.
- * Functions are independent processing units that do NOT inherit from
- * operators. They are used BY operators to perform actual data processing.
- */
+enum class FunctionType : std::uint8_t {
+  none,
+  source,
+  map,
+  filter,
+  sink,
+};
+
 template <typename InType, typename OutType>
 class BaseFunction {
 public:
@@ -26,27 +28,14 @@ public:
   void setName(const std::string& name);
   void setType(FunctionType type);
 
-  // Main execution methods (based on candyFlow pattern)
-
-  /**
-   * @brief Execute function with single input
-   * @param response Input response containing messages to process
-   * @return Processed response
-   */
-  virtual auto execute(FunctionResponse& response) -> FunctionResponse;
-
-  /**
-   * @brief Execute function with two inputs (for join operations)
-   * @param left Left input response
-   * @param right Right input response
-   * @return Processed response
-   */
-  virtual auto execute(FunctionResponse& left,
-                       FunctionResponse& right) -> FunctionResponse;
+  // Main execution methods - using references for Function (no memory management)
+  virtual std::optional<OutType> execute(const InType& input) = 0;
+  virtual void execute_batch(const std::vector<InType>& inputs, std::vector<OutType>& outputs) = 0;
 
 protected:
+private:
   std::string name_;
-  FunctionType type_ = FunctionType::None;
+  FunctionType type_ = FunctionType::none;
 };
 
 }  // namespace sage_flow
