@@ -17,6 +17,7 @@ class AsyncPipelineCallProxy:
 
     def __init__(self, env: 'BaseEnvironment'):
         # 请求结果管理
+        # 这些不可序列化对象都要__post_init__去初始化
         self._result_lock = threading.RLock()
         self._request_results: Dict[str, Packet] = {}
         self._pending_requests: Dict[str, threading.Event] = {}

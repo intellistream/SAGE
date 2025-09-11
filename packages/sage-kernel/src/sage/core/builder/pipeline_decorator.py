@@ -24,6 +24,7 @@ class PipelineTemplate:
         self.namespace = namespace
         self.builder = PipelineBuilder(remote=(self.namespace == "remote"))
         end_stream = self.fn(self.builder)
+        # 其中的fn就是dataflow model的变换，self.builder就代表初始的datastream
         end_stream.transformation.is_sink = True
         self.builder._environment.submit()
         # TODO: 每一个进程都会有一个handle，但是env有可能是remote和唯一的
