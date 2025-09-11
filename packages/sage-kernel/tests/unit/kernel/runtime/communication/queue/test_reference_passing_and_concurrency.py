@@ -25,7 +25,7 @@ sys.path.insert(0, "/api-rework")
 try:
     from sage.kernel.runtime.communication.queue_descriptor import (
         BaseQueueDescriptor, PythonQueueDescriptor, RayQueueDescriptor,
-        SageQueueDescriptor, resolve_descriptor)
+        resolve_descriptor)
     from sage.kernel.utils.ray.ray import ensure_ray_initialized
 
     print("✓ 成功导入队列描述符")
@@ -294,65 +294,6 @@ class TestReferencePassingAndConcurrency:
         assert len(results) == num_workers, "所有工作线程应该完成"
 
         print("✓ Python队列混合操作测试通过")
-
-    def test_sage_queue_multithreading(self):
-        """测试SAGE队列的多线程并发"""
-        print("\n=== 测试SAGE队列多线程并发 ===")
-
-        try:
-            # 创建SAGE队列描述符
-            queue_desc = SageQueueDescriptor(
-                queue_id="test_sage_mt", maxsize=1024 * 1024
-            )
-
-            num_producers = 2
-            num_consumers = 2
-            items_per_producer = 5
-            total_items = num_producers * items_per_producer
-
-            print(
-                f"配置: {num_producers}个生产者, {num_consumers}个消费者, 总共{total_items}个项目"
-            )
-
-            with ThreadPoolExecutor(
-                max_workers=num_producers + num_consumers
-            ) as executor:
-                # 生产者任务
-                producer_futures = []
-                for i in range(num_producers):
-                    future = executor.submit(
-                        worker_producer, queue_desc, i, items_per_producer, "sage_item"
-                    )
-                    producer_futures.append(future)
-
-                # 等待生产者完成
-                for future in as_completed(producer_futures):
-                    result = future.result()
-                    print(f"SAGE生产者结果: {result}")
-
-                # 消费者任务
-                consumer_futures = []
-                expected_per_consumer = total_items // num_consumers
-                for i in range(num_consumers):
-                    future = executor.submit(
-                        worker_consumer, queue_desc, i, expected_per_consumer
-                    )
-                    consumer_futures.append(future)
-
-                # 等待消费者完成
-                consumer_results = []
-                for future in as_completed(consumer_futures):
-                    result = future.result()
-                    consumer_results.append(result)
-                    print(f"SAGE消费者结果: 消费了{len(result)}个项目")
-
-            total_consumed = sum(len(items) for items in consumer_results)
-            print(f"SAGE队列总共消费: {total_consumed}/{total_items}")
-
-            print("✓ SAGE队列多线程测试通过")
-
-        except Exception as e:
-            print(f"⚠️ SAGE队列测试跳过 (可能未安装SAGE扩展): {e}")
 
     def test_serializable_queue_multiprocessing(self):
         """测试可序列化队列的多进程操作（跳过，因为Python multiprocessing.Queue引用传递困难）"""
