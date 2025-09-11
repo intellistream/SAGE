@@ -8,30 +8,36 @@ import typer
 
 app = typer.Typer(name="version", help="📋 版本信息")
 
+
 def _load_version():
     """加载版本信息"""
     try:
         # 尝试从本地包的版本文件加载
         from sage.common._version import __version__
+
         return __version__
     except ImportError:
         # 如果本地版本文件不存在，尝试从项目根目录加载（开发环境）
         try:
             from pathlib import Path
+
             current_file = Path(__file__).resolve()
-            root_dir = current_file.parent.parent.parent.parent.parent.parent.parent  # 向上7层到项目根目录
+            root_dir = (
+                current_file.parent.parent.parent.parent.parent.parent.parent
+            )  # 向上7层到项目根目录
             version_file = root_dir / "_version.py"
-            
+
             if version_file.exists():
                 version_globals = {}
-                with open(version_file, 'r', encoding='utf-8') as f:
+                with open(version_file, "r", encoding="utf-8") as f:
                     exec(f.read(), version_globals)
-                return version_globals.get('__version__', '0.1.3')
+                return version_globals.get("__version__", "0.1.3")
         except Exception:
             pass
-    
+
     # 最后的默认值
-    return '0.1.3'
+    return "0.1.3"
+
 
 @app.command()
 def show():
@@ -48,6 +54,7 @@ def show():
     print("   sage extensions       # 查看可用扩展")
     print("   sage-dev --help       # 开发工具")
     print("   sage-server start     # 启动Web界面")
+
 
 # 为了向后兼容，也提供一个直接的version命令
 @app.callback(invoke_without_command=True)
