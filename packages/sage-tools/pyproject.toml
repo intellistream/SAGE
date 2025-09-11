@@ -45,6 +45,8 @@ dependencies = [
     "requests>=2.32.0",
     "gitpython>=3.1.0",
     "subprocess32>=3.2.7",
+    "tomli>=2.0.1",
+    "tomli-w>=1.0.0",
 ]
 license = {text = "MIT"}
 
@@ -61,6 +63,23 @@ sage-module-refactor = "sage_tools.module_refactor_tool:main"
 sage-update-config = "sage_tools.update_project_config:main"
 sage-sync-docs = "sage_tools.docs.sync_docs:main"
 sage-vllm-serve = "sage_tools.docs.vllm_serve:main"
+sage-config = "sage_tools.utils.config:main"
+sage-test-ci-install = "sage_tools.ci_cd.test_ci_install:main"
+sage-final-verification = "sage_tools.ci_cd.final_verification:main"
+sage-test-actions-locally = "sage_tools.ci_cd.test_actions_locally:main"
+sage-issues-manager = "sage_tools.issues_management.issues_manager:main"
+sage-studio-manager = "sage_tools.cli.studio_manager:main"
+sage-jobmanager = "sage_tools.cli.sage_jobmanager:main"
+sage-conda = "sage_tools.cli.sage_conda:main"
+sage-test-all-packages = "sage_tools.tests.test_all_packages:main"
+sage-check-packages-status = "sage_tools.tests.check_packages_status:main"
+sage-quick-test = "sage_tools.tests.quick_test:main"
+sage-studio-demo = "sage_tools.docs.studio_demo:main"
+sage-version-manager = "sage_tools.maintenance.version_manager:main"
+sage-submodule-manager = "sage_tools.maintenance.submodule_manager:main"
+sage-quick-cleanup = "sage_tools.maintenance.quick_cleanup:main"
+sage-update-sage-packages = "sage_tools.pypi.update_sage_packages:main"
+sage-publish-sage = "sage_tools.pypi.publish_sage:main"
 
 [tool.setuptools.package-dir]
 "" = "src"
