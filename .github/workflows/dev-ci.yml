@@ -64,21 +64,23 @@ jobs:
     - name: Cache System Dependencies
       uses: actions/cache@v4
       with:
-        path: /var/cache/apt
-        key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/dev-ci.yml') }}
+        path: |
+          ~/.cache/pip
+          /tmp/apt-cache
+        key: ${{ runner.os }}-system-deps-${{ hashFiles('.github/workflows/dev-ci.yml') }}
         restore-keys: |
-          ${{ runner.os }}-apt-
+          ${{ runner.os }}-system-deps-
           
     - name: Install System Dependencies
       run: |
         echo "📦 安装系统依赖..."
-        # 检查缓存状态
-        if [ -f /var/cache/apt/pkgcache.bin ] && [ $(find /var/cache/apt -name "*.bin" -mtime -1 | wc -l) -gt 0 ]; then
-          echo "✅ 使用缓存的包列表"
-        else
-          echo "📥 更新包列表..."
-          sudo apt-get update
-        fi
+        
+        # 创建用户可写的缓存目录
+        mkdir -p /tmp/apt-cache
+        
+        # 更新包列表（优化CI性能）
+        echo "📥 更新包列表..."
+        sudo apt-get update -qq
         
         # 检查包是否已安装
         missing_packages=""
