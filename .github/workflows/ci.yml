@@ -80,7 +80,7 @@ jobs:
     - name: Basic Import Tests
       run: |
         echo "🧪 Testing basic imports..."
-        python -c "import sage_common; print('✅ sage-common import successful')"
+        python -c "import sage.common; print('✅ sage.common import successful')"
       timeout-minutes: 2
 
   # 完整测试（仅在快速检查通过后运行）
