@@ -430,7 +430,7 @@ clear_local_issues() {
     local has_new_data=false
     if [ -d "$data_dir" ] && [ "$(ls -A "$data_dir" 2>/dev/null)" ]; then
         has_new_data=true
-        echo "� 发现新架构数据目录: $data_dir"
+        echo "📂 发现新架构数据目录: $data_dir"
         echo "   数据文件数: $(ls -1 "$data_dir"/issue_*.json 2>/dev/null | wc -l)"
     fi
     
