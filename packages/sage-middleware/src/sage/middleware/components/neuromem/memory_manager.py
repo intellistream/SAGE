@@ -1,17 +1,21 @@
-# sage/service/memory/memory_manager.py
-# python -m sage.middleware.services.neuromem.memory_manager
-import os
 import json
+import os
 import shutil
 from typing import Any, Dict, List, Optional, Union
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.middleware.components.neuromem.utils.path_utils import get_default_data_dir
-from sage.middleware.components.neuromem.memory_collection.base_collection import BaseMemoryCollection
-from sage.middleware.components.neuromem.memory_collection.graph_collection import GraphMemoryCollection
-from sage.middleware.components.neuromem.memory_collection.kv_collection import KVMemoryCollection
-from sage.middleware.components.neuromem.memory_collection.vdb_collection import VDBMemoryCollection
+from sage.middleware.components.neuromem.memory_collection.base_collection import \
+    BaseMemoryCollection
+from sage.middleware.components.neuromem.memory_collection.graph_collection import \
+    GraphMemoryCollection
+from sage.middleware.components.neuromem.memory_collection.kv_collection import \
+    KVMemoryCollection
+from sage.middleware.components.neuromem.memory_collection.vdb_collection import \
+    VDBMemoryCollection
+from sage.middleware.components.neuromem.utils.path_utils import \
+    get_default_data_dir
 from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
+
 
 class MemoryManager:
     """
@@ -20,66 +24,56 @@ class MemoryManager:
 
     def __init__(self, data_dir: Optional[str] = None):
         self.logger = CustomLogger()
-        
+
         self.collections: Dict[str, BaseMemoryCollection] = {}
         self.collection_metadata: Dict[str, Dict[str, Any]] = {}
         self.collection_status: Dict[str, str] = {}  # 状态表: "loaded" or "on_disk"
-        
+
         # 从默认目录data/sage_memory获取disk中的manager(如果有)
         self.data_dir = data_dir or get_default_data_dir()
         self.manager_path = os.path.join(self.data_dir, "manager.json")
-        self._load_manager()  
+        self._load_manager()
 
-    def create_collection(
-            self,
-            name: str,
-            backend_type: str,
-            description: str = "",
-            embedding_model: Optional[Any] = None,
-            dim: Optional[int] = None,
-    ) -> BaseMemoryCollection:
+    def create_collection(self, config: Dict[str, Any] = {}):
         """
-        创建新的集合
-        直接返回collection
+        创建新的collection并返回
         """
-        
+
+        # 检查 name 参数，必须存在
+        name = config.get("name")
+        if not name:
+            self.logger.warning("`name` is required in config but not provided.")
+            return None
         if name in self.collection_metadata:
             self.logger.warning(f"Collection with name '{name}' already exists.")
             return None
 
         metadata = {
-        "description": description,
-        "backend_type": backend_type
+            "description": config.get("description", ""),
+            "backend_type": config.get("backend_type").lower(),
         }
 
-        # 创建基础集合
-        if backend_type == "VDB":
-            if embedding_model is None or dim is None:
-                self.logger.warning(f"VDB requires parameter 'embedding_model' and 'dim', use default values.")
-                embedding_model = apply_embedding_model("default")
-                dim = embedding_model.get_dim()
-
-            # 使用新的config字典方式创建VDB集合
+        # 进入创建流程
+        backend_type = config.get("backend_type").lower()
+        if "vdb" in backend_type:
+            # 使用config字典方式创建VDB集合
             vdb_config = {
                 "name": name,
-                "default_embedding_model": embedding_model.method_name,
-                "default_dim": dim
             }
             new_collection = VDBMemoryCollection(vdb_config)
-            metadata.update({
-                "embedding_model_method": embedding_model.method_name,
-                "embedding_dim": dim
-            })
-        elif backend_type == "KV":
-            # 使用新的config字典方式创建KV集合
-            kv_config = {
-                "name": name
-            }
+
+        elif "kv" in backend_type:
+            # 使用config字典方式创建KV集合
+            kv_config = {"name": name}
             new_collection = KVMemoryCollection(kv_config)
-        elif backend_type == "GRAPH":
+
+        elif "graph" in backend_type:
+            # TODO: Graph Collection
             new_collection = GraphMemoryCollection(name)
+
         else:
-            self.logger.error(f"Unsupported backend_type: {backend_type}")
+            self.logger.warning(f"Unsupported backend_type: {backend_type}")
+            return None
 
         # 存储到 collections
         self.collections[name] = new_collection
@@ -87,12 +81,18 @@ class MemoryManager:
         self.collection_status[name] = "loaded"
         return new_collection
 
+    def has_collection(self, name: str) -> bool:
+        """检查collection是否存在（内存或磁盘）"""
+        return name in self.collections or name in self.collection_metadata
+
     def get_collection(self, name: str) -> Optional[BaseMemoryCollection]:
         """优先返回内存collection，不在内存则尝试磁盘懒加载并发警告"""
         if name in self.collections:
             return self.collections[name]
         elif name in self.collection_metadata:
-            self.logger.warning(f"Collection '{name}' not in memory, loading from disk.")
+            self.logger.warning(
+                f"Collection '{name}' not in memory, loading from disk."
+            )
             return self._load_collection(name)
         else:
             self.logger.warning(f"Collection '{name}' not found.")
@@ -101,75 +101,69 @@ class MemoryManager:
     def delete_collection(self, name: str):
         """删除collection：内存、元数据、磁盘三处都要删"""
         existed = False
-        # 内存
+        backend_type = None
+
+        # 1. 从内存中删除
         if name in self.collections:
             del self.collections[name]
             existed = True
-        # 元信息
+
+        # 2. 获取backend_type并从元信息中删除
         if name in self.collection_metadata:
             backend_type = self.collection_metadata[name].get("backend_type")
             del self.collection_metadata[name]
             self.collection_status.pop(name, None)
             existed = True
-            # 磁盘
-            if backend_type == "VDB":
+
+        # 3. 删除磁盘文件（无论元信息是否存在都尝试删除）
+        # 如果没有backend_type，尝试所有可能的类型
+        possible_types = [backend_type] if backend_type else ["vdb", "kv", "graph"]
+
+        for btype in possible_types:
+            if btype and btype.lower() in ["vdb"]:
                 path = os.path.join(self.data_dir, "vdb_collection", name)
-            elif backend_type == "KV":
+            elif btype and btype.lower() in ["kv"]:
                 path = os.path.join(self.data_dir, "kv_collection", name)
-            elif backend_type == "GRAPH":
+            elif btype and btype.lower() in ["graph"]:
                 path = os.path.join(self.data_dir, "graph_collection", name)
             else:
-                path = None
+                continue
+
             if path and os.path.exists(path):
                 try:
                     if os.path.isdir(path):
                         shutil.rmtree(path)
+                        self.logger.info(
+                            f"Successfully deleted disk collection directory: {path}"
+                        )
                     else:
                         os.remove(path)
+                        self.logger.info(
+                            f"Successfully deleted disk collection file: {path}"
+                        )
+                    existed = True
                 except Exception as e:
-                    self.logger.warning(f"Failed to delete disk collection '{name}': {e}")
+                    self.logger.warning(
+                        f"Failed to delete disk collection '{name}' at {path}: {e}"
+                    )
+
         if not existed:
             self.logger.warning(f"Collection '{name}' not found.")
+
         self._save_manager()
-        
-    def connect_collection(self, name: str, embedding_model=None) -> Optional[BaseMemoryCollection]:
-        """类似get_collection，但支持外部embedding_model"""
-        if name in self.collections:
-            return self.collections[name]
-        if name not in self.collection_metadata:
-            self.logger.warning(f"Collection '{name}' not found in metadata.")
-            return None
-        meta = self.collection_metadata[name]
-        backend_type = meta.get("backend_type")
-        if backend_type == "VDB":
-            vdb_path = os.path.join(self.data_dir, "vdb_collection", name)
-            if embedding_model is None:
-                method_name = meta.get("embedding_model_method", "default")
-                embedding_model = apply_embedding_model(method_name)
-            # 使用新的load方法，只传入name和路径
-            collection = VDBMemoryCollection.load(name, vdb_path)
-        elif backend_type == "KV":
-            kv_path = os.path.join(self.data_dir, "kv_collection", name)
-            # 使用新的load方法，只传入name和路径
-            collection = KVMemoryCollection.load(name, kv_path)
-        elif backend_type == "GRAPH":
-            graph_path = os.path.join(self.data_dir, "graph_collection", name)
-            collection = GraphMemoryCollection.load(name, graph_path)
-        else:
-            self.logger.warning(f"Unknown backend_type: {backend_type}")
-            return None
-        self.collections[name] = collection
-        self.collection_status[name] = "loaded"
-        return collection
 
     def store_collection(self, name: Optional[str] = None):
         """
         只保存已加载（即被用过的）的collection及manager信息
         """
         # 指定name只存一个，否则只存所有已加载collection
-        collections_to_save = [name] if name else [
-            n for n, status in self.collection_status.items() if status == "loaded"
-        ]
+        collections_to_save = (
+            [name]
+            if name
+            else [
+                n for n, status in self.collection_status.items() if status == "loaded"
+            ]
+        )
         for cname in collections_to_save:
             if cname not in self.collections:
                 continue
@@ -178,12 +172,12 @@ class MemoryManager:
                 # 传递MemoryManager的数据目录，让collection使用统一的目录结构
                 collection.store(self.data_dir)
         self._save_manager()
-        
+
     def _save_manager(self):
         with open(self.manager_path, "w", encoding="utf-8") as f:
             json.dump(self.collection_metadata, f, ensure_ascii=False, indent=2)
-        self.logger.info(f"Manager info saved to {self.manager_path}")  
-          
+        self.logger.info(f"Manager info saved to {self.manager_path}")
+
     def _load_manager(self):
         """只加载collection_metadata和状态，不加载任何collection本体"""
         if not os.path.exists(self.manager_path):
@@ -192,7 +186,7 @@ class MemoryManager:
             self.collection_metadata = json.load(f)
         for name in self.collection_metadata:
             self.collection_status[name] = "on_disk"
-    
+
     def _load_collection(self, name: str) -> Optional[BaseMemoryCollection]:
         """懒加载collection进内存"""
         if name not in self.collection_metadata:
@@ -201,17 +195,13 @@ class MemoryManager:
 
         meta = self.collection_metadata[name]
         backend_type = meta.get("backend_type")
-        if backend_type == "VDB":
+        if "vdb" in backend_type:
             vdb_path = os.path.join(self.data_dir, "vdb_collection", name)
-            method_name = meta.get("embedding_model_method", "default")
-            embedding_model = apply_embedding_model(method_name)
-            # 使用新的load方法，只传入name和路径
             collection = VDBMemoryCollection.load(name, vdb_path)
-        elif backend_type == "KV":
+        elif "kv" in backend_type:
             kv_path = os.path.join(self.data_dir, "kv_collection", name)
-            # 使用新的load方法，只传入name和路径
             collection = KVMemoryCollection.load(name, kv_path)
-        elif backend_type == "GRAPH":
+        elif "graph" in backend_type:
             graph_path = os.path.join(self.data_dir, "graph_collection", name)
             collection = GraphMemoryCollection.load(name, graph_path)
         else:
@@ -221,9 +211,10 @@ class MemoryManager:
         self.collections[name] = collection
         self.collection_status[name] = "loaded"
         return collection
-    
-            
-    def list_collection(self, name: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+
+    def list_collection(
+        self, name: Optional[str] = None
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """
         列出一个或所有 collection 的基本信息。
         List basic info of one or all collections.
@@ -232,14 +223,20 @@ class MemoryManager:
             if name not in self.collection_metadata:
                 self.logger.warning(f"Collection '{name}' not found.")
                 return None
-            return {"name": name, "status": self.collection_status.get(name, "unknown"), **self.collection_metadata[name]}
+            return {
+                "name": name,
+                "status": self.collection_status.get(name, "unknown"),
+                **self.collection_metadata[name],
+            }
         else:
             return [
                 {"name": n, "status": self.collection_status.get(n, "unknown"), **meta}
                 for n, meta in self.collection_metadata.items()
             ]
 
-    def rename(self, former_name: str, new_name: str, new_description: Optional[str] = None):
+    def rename(
+        self, former_name: str, new_name: str, new_description: Optional[str] = None
+    ):
         """重命名 collection 并更新描述"""
         if former_name not in self.collection_metadata:
             self.logger.warning(f"Collection '{former_name}' not found.")
@@ -265,6 +262,7 @@ class MemoryManager:
 
         # 重命名磁盘目录/文件
         backend_type = metadata.get("backend_type")
+
         def get_path(n):
             if backend_type == "VDB":
                 return os.path.join(self.data_dir, "vdb_collection", n)
@@ -272,6 +270,7 @@ class MemoryManager:
                 return os.path.join(self.data_dir, "kv_collection", n)
             elif backend_type == "GRAPH":
                 return os.path.join(self.data_dir, "graph_collection", n)
+
         old_path = get_path(former_name)
         new_path = get_path(new_name)
         if os.path.exists(old_path):
@@ -280,20 +279,19 @@ class MemoryManager:
         return True
 
 
-
 if __name__ == "__main__":
     import os
     import shutil
 
     def print_result(expect, actual, passed):
-        green = '\033[92m'
-        red = '\033[91m'
-        endc = '\033[0m'
+        green = "\033[92m"
+        red = "\033[91m"
+        endc = "\033[0m"
         print(f"预期结果：{expect}")
         print(f"实际结果：{actual}")
         print("是否通过测试：", end="")
         print(f"{green}是{endc}" if passed else f"{red}否{endc}")
-        print("="*50)
+        print("=" * 50)
 
     def clear_all_data(manager):
         # 删除data_dir下所有collection目录和manager.json
@@ -309,7 +307,11 @@ if __name__ == "__main__":
     manager = MemoryManager()
     c1 = manager.create_collection(name="test_vdb", backend_type="VDB")
     passed = c1 is not None and "test_vdb" in manager.collections
-    print_result("新建test_vdb后能在collections中查到", str("test_vdb" in manager.collections), passed)
+    print_result(
+        "新建test_vdb后能在collections中查到",
+        str("test_vdb" in manager.collections),
+        passed,
+    )
 
     # 测试2: 再次新建同名collection应警告并返回None
     c2 = manager.create_collection(name="test_vdb", backend_type="VDB")
@@ -318,7 +320,7 @@ if __name__ == "__main__":
 
     # 测试3: list_collection返回正确，状态为loaded
     info = manager.list_collection("test_vdb")
-    passed = info is not None and info['status'] == "loaded"
+    passed = info is not None and info["status"] == "loaded"
     print_result("list_collection显示状态为loaded", f"{info}", passed)
 
     # 测试4: get_collection取已存在的
@@ -330,17 +332,25 @@ if __name__ == "__main__":
     manager.store_collection()
     path = os.path.join(manager.data_dir, "vdb_collection", "test_vdb")
     passed = os.path.exists(path)
-    print_result("store_collection后磁盘应有数据目录", str(os.path.exists(path)), passed)
+    print_result(
+        "store_collection后磁盘应有数据目录", str(os.path.exists(path)), passed
+    )
 
     # 测试6: 模拟“只在磁盘不在内存”的懒加载
     del manager.collections["test_vdb"]
     manager.collection_status["test_vdb"] = "on_disk"
-    passed = "test_vdb" not in manager.collections and os.path.exists(os.path.join(manager.data_dir, "vdb_collection", "test_vdb"))
+    passed = "test_vdb" not in manager.collections and os.path.exists(
+        os.path.join(manager.data_dir, "vdb_collection", "test_vdb")
+    )
     print_result("未加载collection不会在collections", str(passed), passed)
 
     # 测试7: get_collection能从磁盘懒加载
     c4 = manager.get_collection("test_vdb")
-    passed = c4 is not None and "test_vdb" in manager.collections and manager.collection_status["test_vdb"] == "loaded"
+    passed = (
+        c4 is not None
+        and "test_vdb" in manager.collections
+        and manager.collection_status["test_vdb"] == "loaded"
+    )
     print_result("get_collection能懒加载on_disk collection", str(passed), passed)
 
     # 测试8: rename
@@ -362,8 +372,13 @@ if __name__ == "__main__":
 
     # 测试9: 用新manager对象从磁盘懒加载
     manager2 = MemoryManager(manager.data_dir)
-    loaded = "renamed_vdb" in manager2.collection_metadata and manager2.collection_status.get("renamed_vdb") == "on_disk"
-    print_result("新manager能从磁盘加载管理信息（collection未自动加载）", str(loaded), loaded)
+    loaded = (
+        "renamed_vdb" in manager2.collection_metadata
+        and manager2.collection_status.get("renamed_vdb") == "on_disk"
+    )
+    print_result(
+        "新manager能从磁盘加载管理信息（collection未自动加载）", str(loaded), loaded
+    )
 
     # 测试10: list_collection（全部）
     all_info = manager.list_collection()
@@ -381,8 +396,13 @@ if __name__ == "__main__":
 
     # 测试11: 用新manager对象从磁盘懒加载
     manager2 = MemoryManager(manager.data_dir)
-    loaded = "test_vdb" in manager2.collection_metadata or "renamed_vdb" in manager2.collection_metadata
-    print_result("新manager能从磁盘加载管理信息（collection未自动加载）", str(loaded), loaded)
+    loaded = (
+        "test_vdb" in manager2.collection_metadata
+        or "renamed_vdb" in manager2.collection_metadata
+    )
+    print_result(
+        "新manager能从磁盘加载管理信息（collection未自动加载）", str(loaded), loaded
+    )
 
     # 如果上面已重命名并删除，理论上只有空的或剩余collection
     # 为了测试懒加载，再新建并保存一次
@@ -392,10 +412,10 @@ if __name__ == "__main__":
     manager2.collection_status["lazy_test"] = "on_disk"
     c5 = manager2.get_collection("lazy_test")
     passed = c5 is not None and manager2.collection_status["lazy_test"] == "loaded"
-    print_result("新manager懒加载on_disk collection后状态变为loaded", str(passed), passed)
+    print_result(
+        "新manager懒加载on_disk collection后状态变为loaded", str(passed), passed
+    )
 
     # 清理所有
     clear_all_data(manager)
     print("\n所有测试完成，已清理测试数据！")
-
-

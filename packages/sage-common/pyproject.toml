@@ -35,13 +35,19 @@ classifiers = [
 ]
 license = "MIT"
 
-# 核心依赖 - 仅包含 utils 必需的基础依赖
+# 核心依赖 - 包含 utils 必需的基础依赖和常用工具
 dependencies = [
     # 基础依赖 (utils 核心功能)
     "pyyaml>=6.0.0",
     "pydantic>=2.0.0",
     "platformdirs>=3.0.0",
     "typing-extensions>=4.0.0",
+    # 常用基础工具依赖 (解决mkdocs等依赖冲突)
+    "click>=7.0",
+    "jinja2>=2.11.1",
+    "markdown>=3.3.6",
+    "markupsafe>=2.0.1",
+    "packaging>=20.5",
 ]
 
 [project.optional-dependencies]
@@ -59,6 +65,8 @@ cli = [
 
 # 开发工具依赖
 dev = [
+    "virtualenv>=20.31.2",
+    "filelock>=3.12.2,<4",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
@@ -87,9 +95,14 @@ dev = [
 
 # Frontend 依赖
 frontend = [
-    "pydantic[email]>=2.0.0",  # 升级 pydantic 以支持 email
-    "fastapi>=0.100.0",
-    "uvicorn[standard]>=0.23.0",
+    "pydantic[email]>=2.0.0",
+    # FastAPI 0.115.x 依赖 starlette >=0.40,<0.47
+    "fastapi>=0.115,<0.116",
+    "starlette>=0.40,<0.47",
+    # Uvicorn 需要 h11
+    "uvicorn[standard]>=0.34.0",
+    "h11>=0.8",
+
     "websockets>=11.0",
     "python-multipart>=0.0.6",
     "aiofiles>=23.0.0",
@@ -99,13 +112,14 @@ frontend = [
     "pydantic-settings>=2.0.0",
     "configparser>=5.3.0",
     "pandas>=2.0.0",
-    "numpy>=1.24.0",
+    "numpy>=2.0.0,<3.0.0",
     "plotly>=5.15.0",
     "dash>=2.11.0",
     "streamlit>=1.25.0",
     "matplotlib>=3.7.0",
     "seaborn>=0.12.0",
-    "cryptography>=41.0.0",
+    # 与 pyopenssl 25.1.0 对齐：<46
+    "cryptography>=41.0.5,<46",
     "bcrypt>=4.0.0",
     "authlib>=1.2.0",
     "prometheus-client>=0.17.0",
@@ -149,6 +163,10 @@ docs = [
     "sphinx>=7.0.0",
     "sphinx-rtd-theme>=1.3.0",
     "myst-parser>=2.0.0",
+    # MkDocs 文档系统 (基础依赖已在核心依赖中)
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.6.0",
+    "pymdown-extensions>=10.2.0",
 ]
 
 # 完整安装

@@ -42,6 +42,7 @@ install.log
 # C++ 构建产物
 **/build/
 **/install/
+!tools/install/
 **/cmake-build*/
 **/CMakeFiles/
 **/CMakeCache.txt
@@ -81,6 +82,7 @@ sage_examples/logs/**
 dist/
 data/template_data
 data/neuromem_data
+examples/memory/data
 drafts/
 run.sh
 third_party/
@@ -113,6 +115,9 @@ activate_sage.sh
 sage_ext/sage_db/build/
 build/
 .coverage
+.ipynb_checkpoints
+.virtual*
+*mp4
 
 # CMake FetchContent 构建目录
 **/pybind11-subbuild/

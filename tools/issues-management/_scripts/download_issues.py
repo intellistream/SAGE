@@ -382,6 +382,41 @@ class IssuesDownloader:
             # 创建新的更新记录部分
             update_history_section = f"\n## 更新记录\n\n{new_update_record}\n"
         
+        # 处理milestone信息
+        milestone_section = ""
+        if issue.get('milestone'):
+            milestone = issue['milestone']
+            milestone_section = f"""
+## Milestone
+**{milestone.get('title', 'N/A')}** ({milestone.get('state', 'unknown')})
+- 描述: {milestone.get('description', '无描述')}
+- 截止日期: {milestone.get('due_on', '未设定')}
+- [查看详情]({milestone.get('html_url', '#')})
+"""
+
+        # 处理统计信息
+        stats_section = ""
+        comments_count = issue.get('comments', 0)
+        reactions = issue.get('reactions', {})
+        total_reactions = reactions.get('total_count', 0) if reactions else 0
+        is_locked = issue.get('locked', False)
+        
+        if comments_count > 0 or total_reactions > 0 or is_locked:
+            stats_section = "\n## 统计信息\n"
+            if comments_count > 0:
+                stats_section += f"- 评论数: {comments_count}\n"
+            if total_reactions > 0:
+                stats_section += f"- 反应数: {total_reactions}\n"
+                if reactions:
+                    reaction_details = []
+                    for emoji, count in reactions.items():
+                        if emoji != 'total_count' and emoji != 'url' and count > 0:
+                            reaction_details.append(f"{emoji}: {count}")
+                    if reaction_details:
+                        stats_section += f"  - 详情: {', '.join(reaction_details)}\n"
+            if is_locked:
+                stats_section += "- 状态: 已锁定\n"
+
         content = f"""# {issue['title']}
 
 **Issue #**: {issue['number']}
@@ -389,7 +424,7 @@ class IssuesDownloader:
 **创建时间**: {issue['created_at']}
 **更新时间**: {issue['updated_at']}
 **创建者**: {issue['user']['login']}
-{project_section}
+{project_section}{milestone_section}{stats_section}
 ## 标签
 {', '.join([label['name'] for label in issue.get('labels', [])])}
 
@@ -514,6 +549,34 @@ class IssuesDownloader:
 
     def save_issue_metadata(self, issue: dict, project_info: list = None):
         """保存简化元数据到 metadata 目录"""
+        # 处理milestone信息
+        milestone_info = None
+        if issue.get('milestone'):
+            milestone_info = {
+                'number': issue['milestone'].get('number'),
+                'title': issue['milestone'].get('title'),
+                'description': issue['milestone'].get('description'),
+                'state': issue['milestone'].get('state'),
+                'due_on': issue['milestone'].get('due_on'),
+                'html_url': issue['milestone'].get('html_url')
+            }
+        
+        # 处理reactions信息
+        reactions_info = None
+        if issue.get('reactions'):
+            reactions = issue['reactions']
+            reactions_info = {
+                'total_count': reactions.get('total_count', 0),
+                '+1': reactions.get('+1', 0),
+                '-1': reactions.get('-1', 0),
+                'laugh': reactions.get('laugh', 0),
+                'hooray': reactions.get('hooray', 0),
+                'confused': reactions.get('confused', 0),
+                'heart': reactions.get('heart', 0),
+                'rocket': reactions.get('rocket', 0),
+                'eyes': reactions.get('eyes', 0)
+            }
+        
         data = {
             'number': issue.get('number'),
             'title': issue.get('title'),
@@ -521,8 +584,13 @@ class IssuesDownloader:
             'labels': [l.get('name') for l in issue.get('labels', [])],
             'assignees': [a.get('login') for a in issue.get('assignees', [])] if issue.get('assignees') else (
                 [issue.get('assignee', {}).get('login')] if issue.get('assignee') else []),
+            'milestone': milestone_info,
+            'reactions': reactions_info,
+            'comments_count': issue.get('comments', 0),
+            'locked': issue.get('locked', False),
             'created_at': issue.get('created_at'),
             'updated_at': issue.get('updated_at'),
+            'closed_at': issue.get('closed_at'),
             'html_url': issue.get('html_url'),
             'user': issue.get('user', {}).get('login'),
             'projects': project_info or []

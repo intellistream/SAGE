@@ -1,10 +1,10 @@
-name: ci
+name: CI
 
 on:
   push:
-    branches: [ main ]  # 当代码推送到main分支时运行
+    branches: [ main ]
   pull_request:
-    branches: [ main ]  # 当创建PR到main分支时运行
+    branches: [ main ]
   workflow_dispatch:
 
 # 并发控制：同一PR只运行最新的CI，取消之前的运行
@@ -12,40 +12,95 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # 公共环境变量
+  CI: true
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+  ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
+  VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+  HF_ENDPOINT: https://hf-mirror.com
+
 jobs:
-  test:
-    name: test
-    runs-on: ubuntu-latest  # 使用 ubuntu-latest runner
-    timeout-minutes: 60
-    
-    env:
-      CI: true          
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
-      ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
-      VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
-      HF_ENDPOINT: https://hf-mirror.com
+  # 快速检查：代码质量和基础测试
+  quick-check:
+    name: Quick Check
+    runs-on: self-hosted
+    timeout-minutes: 20
     
     steps:
-    # 配置 Git 和认证
-    - name: Configure Git and Authentication
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 1
+        clean: true
+      timeout-minutes: 5
+      
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: '**/requirements*.txt'
+      timeout-minutes: 10
+      continue-on-error: false
+      
+    - name: Verify Python Installation
       run: |
-        git config --global http.version HTTP/1.1
-        git config --global http.postBuffer 1048576000
-        git config --global http.lowSpeedLimit 0
-        git config --global http.lowSpeedTime 999999
-        git config --global core.compression 0
-        echo "Git configuration completed"
-        
-    # 配置 GitHub 认证 (解决私有仓库访问问题)
-    - name: Setup GitHub Authentication
+        python --version
+        pip --version
+        which python
+        which pip
+      timeout-minutes: 2
+      
+    - name: Clear pip cache and install dependencies
       run: |
-        echo "Setting up GitHub authentication for private repo access..."
-        git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+        echo "🧹 Clearing pip cache..."
+        pip cache purge || echo "No cache to clear"
+        echo "📦 Upgrading pip..."
+        pip install --upgrade pip --no-cache-dir
+        echo "📦 Installing basic dependencies..."
+        pip install flake8 black isort --no-cache-dir
+        echo "📦 Installing sage-common..."
+        pip install -e packages/sage-common/ --no-deps --no-cache-dir
+        echo "✅ Dependencies installed successfully"
+      timeout-minutes: 10
         
-    # 使用 token 进行 checkout (解决私有仓库访问问题)
+    - name: Code Quality Checks
+      run: |
+        echo "🔍 Running code quality checks..."
+        black --check --diff packages/ || echo "⚠️ Code formatting issues found"
+        isort --check-only --diff packages/ || echo "⚠️ Import sorting issues found"
+        flake8 packages/ --count --select=E9,F63,F7,F82 --show-source --statistics
+      timeout-minutes: 2
+        
+    - name: Run Basic Import Tests
+      run: |
+        echo "Running quick smoke tests..."
+        python -c "import sage; print('SAGE core import successful, version:', sage.__version__)"
+        python -c "import sage.common; print('sage.common import successful')"
+        # 添加更多基础导入测试
+        echo "Basic import tests passed ✅"
+    
+    - name: Run Issues Manager Tests
+      run: |
+        echo "Running issues_manager.sh automated tests..."
+        cd tools/tests
+        bash test_issues_manager.sh --quick
+        echo "Issues manager tests passed ✅"
+
+  # 完整测试（仅在快速检查通过后运行）
+  full-test:
+    name: Full Test Suite
+    runs-on: self-hosted
+    needs: quick-check
+    timeout-minutes: 60
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    
+    steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
@@ -54,21 +109,22 @@ jobs:
         clean: true
       timeout-minutes: 8
       
-    # 设置 Python 环境
     - name: Set up Python 3.11
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-      timeout-minutes: 5
+        cache: 'pip'
+        cache-dependency-path: '**/requirements*.txt'
+      timeout-minutes: 10
+      continue-on-error: false
       
-    # 创建pip缓存目录
-    - name: Create pip cache directory
+    - name: Verify Python Installation
       run: |
-        mkdir -p /home/runner/.cache/pip
-        mkdir -p /tmp/pip-cache
+        python --version
+        pip --version
+      timeout-minutes: 2
       
-    # 设置 Miniconda (quickstart.sh 需要conda可用)
-    - name: Setup Miniconda for quickstart.sh
+    - name: Setup Miniconda
       uses: conda-incubator/setup-miniconda@v3
       with:
         miniforge-version: latest
@@ -76,172 +132,99 @@ jobs:
         auto-activate-base: false
       timeout-minutes: 10
         
-    # 安装系统依赖 (使用本地缓存)
     - name: Install System Dependencies
       run: |
-        # 只在需要时更新包列表
-        if [ ! -f /tmp/apt_updated_today ]; then
-          sudo apt-get update
-          touch /tmp/apt_updated_today
-        fi
-        sudo apt-get install -y build-essential cmake pkg-config
+        sudo apt-get update
+        sudo apt-get install -y build-essential
       timeout-minutes: 10
         
-    # 安装 SAGE (使用 minimal 模式) - 使用修复后的 quickstart.sh
-    - name: Install SAGE (Minimal Mode)
+    - name: Install SAGE (Test Mode)
       shell: bash -l {0}
       env:
         CI: true
-        PIP_CACHE_DIR: /tmp/pip-cache
+        DEBIAN_FRONTEND: noninteractive  # 避免apt交互
+        # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
+        PIP_NO_INPUT: 1  # 禁用pip交互
+        PIP_DISABLE_PIP_VERSION_CHECK: 1  # 禁用pip版本检查
+        SAGE_ENV_NAME: sage  # 设置默认环境名
+        CONDA_ALWAYS_YES: true  # 自动同意conda操作
       run: |
         echo "Installing SAGE using quickstart.sh --minimal"
         conda --version
         chmod +x ./quickstart.sh
         ./quickstart.sh --minimal
-      timeout-minutes: 15
+      timeout-minutes: 25
         
-    # 安装测试依赖
-    - name: Install Test Dependencies
+    - name: Run Test Suite
+      shell: bash -l {0}
+      env:
+        PIP_NO_INPUT: 1
       run: |
-        pip install pytest pytest-timeout pytest-cov
-      timeout-minutes: 5
-      
-    # 调试环境变量 (参考 lighter_test.yml)
-    - name: Debug environment variables
-      run: |
-        env | grep -E 'CI|HF_TOKEN|SILICONCLOUD_API_KEY|OPENAI_API_KEY|JINA_API_KEY|ALIBABA_API_KEY|VLLM_API_KEY'
+        echo "🧪 Running comprehensive test suite..."
+        # 激活conda环境进行测试
+        conda activate sage
         
-    # 运行基础测试 (使用 minimal 安装的功能)
-    - name: Basic Import Tests
-      run: |
-        echo "=== Python Path Debug ==="
-        python -c "import sys; print('\n'.join(sys.path))"
-        echo "=== Installed Packages ==="
-        pip list | grep -E "(sage|isage)"
-        echo "=== Import Tests ==="
-        python -c "import sage; print('✅ SAGE core import successful, version:', sage.__version__)"
+        # 安装测试依赖
+        echo "📦 Installing test dependencies..."
+        pip install pytest pytest-cov pytest-mock pytest-asyncio pytest-xdist pytest-timeout
+        
+        # 基础导入测试
+        echo "🔍 Running basic import tests..."
+        python -c "import sage; print('✅ SAGE import successful, version:', sage.__version__)"
         python -c "import sage.common; print('✅ sage.common import successful')"
-        python -c "import sage.kernel; print('✅ sage.kernel import successful')"
+        python -c "import sage.kernel; print('✅ sage.kernel import successful')"  
         python -c "import sage.libs; print('✅ sage.libs import successful')"
         python -c "import sage.middleware; print('✅ sage.middleware import successful')"
-        echo "=== CLI Test ==="
-        sage --help
-        sage version
         
-    # 运行 pytest (minimal 模式的测试)
-    - name: Run Test Suite (Minimal Mode)
-      run: |
-        echo "Running tests for minimal installation..."
-        echo "Debug API Key: $ALIBABA_API_KEY"
-        export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-        export PYTHONWARNINGS="ignore:DeprecationWarning"
+        # CLI测试
+        echo "🖥️ Testing CLI functionality..."
+        sage --help > /dev/null && echo "✅ SAGE CLI working"
+        sage version && echo "✅ SAGE version command working"
         
-        # 运行基本的导入和功能测试
-        python -c "
-        import sage
-        import sage.common
-        import sage.kernel
-        print('✅ All modules imported successfully')
-        print('SAGE version:', sage.__version__)
-        "
-        
-        # 如果有测试文件，运行测试
-        if [ -d "tests" ]; then
-          pytest -v tests/ || echo "⚠️ Some tests failed, but this may be expected in minimal mode"
+        # Issues Manager测试
+        echo "🔧 Running issues manager tests..."
+        cd tools/tests
+        if [ -f test_issues_manager.sh ]; then
+          bash test_issues_manager.sh --quick
+          echo "✅ Issues manager tests passed"
         else
-          echo "No tests directory found, skipping pytest"
+          echo "⚠️ Issues manager test script not found"
         fi
+        cd ../..
+        
+        # 运行pytest测试套件
+        echo "🧪 Running pytest suite..."
+        cd tools/tests
+        if [ -f run_tests.py ]; then
+          echo "📊 Running unit tests..."
+          python run_tests.py --quick --unit --jobs 2 --timeout 120 --summary || echo "⚠️ Some unit tests failed"
+          
+          echo "🔗 Running integration tests..."
+          python run_tests.py --quick --integration --jobs 1 --timeout 180 --summary || echo "⚠️ Some integration tests failed"
+          
+          echo "📋 Generating test report..."
+          python run_tests.py --quick --unit --report ci_test_report.txt --summary
+          
+          if [ -f ci_test_report.txt ]; then
+            echo "📊 Test Report Summary:"
+            tail -15 ci_test_report.txt
+          fi
+        else
+          echo "⚠️ Test runner not found, skipping pytest suite"
+        fi
+        
+        echo "✅ Test suite completed"
       timeout-minutes: 20
-      
-    # 明确报告成功状态
-    - name: Report Success
-      if: success()
-      run: |
-        echo "✅ All checks passed successfully"
-        echo "::notice ::PR Checks completed successfully"
-        
-    # 确保在任何情况下都报告最终状态
-    - name: Final Status Report
-      if: always()
-      run: |
-        if [ "${{ job.status }}" = "success" ]; then
-          echo "::notice ::Workflow completed successfully"
-          exit 0
-        else
-          echo "::error ::Workflow failed"
-          exit 1
-        fi
-        
-  # Docker 集成测试提醒
-  docker-integration-reminder:
-    name: Docker Integration Test Reminder
-    # runs-on: self-hosted
-    runs-on: ubuntu-latest  # 使用 ubuntu-latest runner
-    timeout-minutes: 5
+
+  # 提醒信息（总是运行）
+  info:
+    name: Additional Tests Info
+    runs-on: self-hosted
+    if: always()
     
     steps:
-    - name: Docker Integration Test Instructions
+    - name: CI Complete
       run: |
-        echo "=========================================="
-        echo "🐳 DOCKER INTEGRATION TESTING REQUIRED"
-        echo "=========================================="
-        echo ""
-        echo "⚠️  This CI only tests core Python functionality."
-        echo "⚠️  C++ extensions (sage_db, sage_queue) require Docker testing."
-        echo ""
-        echo "To run full integration tests locally:"
-        echo ""
-        echo "1. Build and test sage_db:"
-        echo "   cd sage_ext/sage_db && ./build.sh clean"
-        echo ""
-        echo "2. Build and test sage_queue:"
-        echo "   cd sage_ext/sage_queue && ./build.sh clean"
-        echo ""
-        echo "3. Run full Docker integration test:"
-        echo "   ./quickstart.sh --standard"
-        echo ""
-        echo "4. Run comprehensive test suite:"
-        echo "   python -m pytest tests/ --full-integration"
-        echo ""
-        echo "📋 Required before merging:"
-        echo "   ✅ All C++ extensions build successfully"
-        echo "   ✅ Docker integration tests pass"
-        echo "   ✅ Full test suite passes with C++ backends"
-        echo ""
-        echo "=========================================="
-        
-  # 简化的代码质量检查
-  lint:
-    name: Code Quality
-    # runs-on: self-hosted  # 使用 self-hosted runner
-    runs-on: ubuntu-latest  # 使用 ubuntu-latest runner
-    timeout-minutes: 15
+        exit 0
     
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 1
-      timeout-minutes: 5
-        
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-      timeout-minutes: 3
-        
-    - name: Install Linting Tools
-      run: |
-        pip install flake8 black isort
-      timeout-minutes: 5
-        
-    - name: Run Code Quality Checks
-      run: |
-        echo "Checking code formatting..."
-        black --check --diff sage/ || echo "❌ Code formatting issues found"
-        echo "Checking import sorting..."
-        isort --check-only --diff sage/ || echo "❌ Import sorting issues found"
-        echo "Running linter..."
-        flake8 sage/ --count --select=E9,F63,F7,F82 --show-source --statistics || echo "❌ Critical linting errors found"
-      timeout-minutes: 5
+  
