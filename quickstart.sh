@@ -8,7 +8,7 @@ set -e
 
 # 获取脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOOLS_DIR="$SCRIPT_DIR/tools/install"
+TOOLS_DIR="$SCRIPT_DIR/installer"
 
 # 导入所有模块
 source "$TOOLS_DIR/display_tools/colors.sh"
