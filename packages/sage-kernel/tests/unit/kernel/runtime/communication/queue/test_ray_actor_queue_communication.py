@@ -243,6 +243,7 @@ class QueueCoordinatorActor:
 # ============ 测试类 ============
 
 
+@pytest.mark.ray
 class TestRayQueueActorCommunication:
     """Ray队列Actor通信测试"""
 

@@ -19,6 +19,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional
 
+import pytest
+
 # 添加项目路径
 sys.path.insert(0, "/api-rework")
 
@@ -196,6 +198,7 @@ except ImportError:
 # ============ 测试类 ============
 
 
+@pytest.mark.ray
 class TestReferencePassingAndConcurrency:
     """引用传递和并发测试"""
 
