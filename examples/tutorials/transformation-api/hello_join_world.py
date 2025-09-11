@@ -83,24 +83,22 @@ class HelloWorldJoin(BaseJoinFunction):
         }
 
 def main():
-    env = LocalEnvironment("Hello_Join_World")
+    env = LocalEnvironment("hello_join_world")
 
-    source1 = env.from_batch(SourceOne).keyby(IdKeyBy)
-    source2 = env.from_batch(SourceTwo).keyby(IdKeyBy)
+    source1 = env.from_batch(SourceOne)
+    source2 = env.from_batch(SourceTwo)
 
-    # connect + join
-    source1.connect(source2).join(HelloWorldJoin).sink(PrintSink)
+    source1.keyby(IdKeyBy).connect(source2.keyby(IdKeyBy)).join(HelloWorldJoin).sink(PrintSink)
 
-    # 提交但不使用 autostop，而是手动控制
-    env.submit()
-    
-    # 等待一段时间让批处理完成
-    import time
-    time.sleep(2)  # 给足够时间让所有数据处理完成
+    # 使用 autostop=True 让框架自动检测处理完成
+    env.submit(autostop=True)
     
     print("Hello Join World 示例结束")
 
 
 if __name__ == "__main__":
-    CustomLogger.disable_global_console_debug()
+    # 启用调试日志来查看数据流
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+    # CustomLogger.disable_global_console_debug()
     main()

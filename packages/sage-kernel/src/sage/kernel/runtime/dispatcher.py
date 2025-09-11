@@ -53,10 +53,10 @@ class Dispatcher:
 
     def receive_node_stop_signal(self, node_name: str) -> bool:
         """
-        接收来自单个节点的停止信号并处理该节点
+        接收单个节点的停止信号
 
         Args:
-            node_name: 要停止的节点名称
+            node_name: 停止的节点名称
 
         Returns:
             bool: 如果所有节点都已停止返回True，否则返回False
@@ -67,6 +67,9 @@ class Dispatcher:
         if node_name not in self.tasks:
             self.logger.warning(f"Node {node_name} not found in tasks")
             return False
+
+        # 如果这是一个源节点，直接通知所有相关的 JoinOperator
+        self._notify_join_operators_on_source_stop(node_name)
 
         # 停止并清理指定节点
         try:
@@ -95,6 +98,29 @@ class Dispatcher:
                 f"Remaining nodes: {len(self.tasks)}, services: {len(self.services)}"
             )
             return False
+
+    def _notify_join_operators_on_source_stop(self, source_node_name: str):
+        """当源节点停止时，直接通知相关的 JoinOperator"""
+        # 检查是否是源节点（以 "Source" 开头）
+        if not source_node_name.startswith("Source"):
+            return
+
+        # 查找所有的 JoinOperator
+        for task_name, task in self.tasks.items():
+            if (hasattr(task, 'operator') and 
+                hasattr(task.operator, 'handle_stop_signal') and
+                hasattr(task.operator, '__class__') and
+                'JoinOperator' in task.operator.__class__.__name__):
+                # 这是一个 JoinOperator，创建一个停止信号并直接发送
+                from sage.core.communication.stop_signal import StopSignal
+                stop_signal = StopSignal(source_node_name)
+                
+                try:
+                    # 直接调用 JoinOperator 的 handle_stop_signal 方法
+                    task.operator.handle_stop_signal(stop_signal)
+                    self.logger.info(f"Notified JoinOperator {task_name} about source {source_node_name} stopping")
+                except Exception as e:
+                    self.logger.error(f"Failed to notify JoinOperator {task_name}: {e}")
 
     def setup_logging_system(self):
         self.logger = CustomLogger(
