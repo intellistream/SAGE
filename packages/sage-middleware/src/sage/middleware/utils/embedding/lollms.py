@@ -26,7 +26,6 @@ except ImportError:
     )
 
 
-
 async def lollms_embed(
     text: str,
     embed_model=None,
@@ -62,7 +61,9 @@ async def lollms_embed(
             result = await response.json()
             return result["vector"]
 
+
 import requests
+
 
 def lollms_embed_sync(
     text: str,
@@ -92,7 +93,9 @@ def lollms_embed_sync(
     request_data = {"text": text}
 
     try:
-        response = requests.post(f"{base_url}/lollms_embed", json=request_data, headers=headers)
+        response = requests.post(
+            f"{base_url}/lollms_embed", json=request_data, headers=headers
+        )
         response.raise_for_status()
         result = response.json()
         return result["vector"]

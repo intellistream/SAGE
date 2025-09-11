@@ -2,7 +2,6 @@
 
 import pytest
 import requests
-
 # ================================
 # 关键修改：根据您的项目结构更新 import 语句
 # 假设您的项目根目录是 /home/wxh/refactor_wxh/MemoRAG/
@@ -33,13 +32,17 @@ def test_tool_initialization(searcher_tool):
     """
     assert searcher_tool.tool_name == "_Searcher_Tool"
     assert "query" in searcher_tool.input_types
-    assert searcher_tool.output_type == "list - A list of dictionaries containing paper information."
+    assert (
+        searcher_tool.output_type
+        == "list - A list of dictionaries containing paper information."
+    )
     assert isinstance(searcher_tool.get_metadata(), dict)
 
 
 # ================================
 # 3. 核心功能测试（使用 Mocking）
 # ================================
+
 
 def test_execute_success_with_mock(searcher_tool, mocker):
     """
@@ -74,8 +77,8 @@ def test_execute_success_with_mock(searcher_tool, mocker):
     # b. 使用 mocker 来“拦截”所有 `requests.get` 的调用。
     # 我们不让它真的去访问网络，而是让它返回我们上面伪造的 HTML 数据。
     mock_response = mocker.Mock()
-    mock_response.content = fake_html_content.encode('utf-8') # 响应内容需要是 bytes
-    mocker.patch('requests.get', return_value=mock_response)
+    mock_response.content = fake_html_content.encode("utf-8")  # 响应内容需要是 bytes
+    mocker.patch("requests.get", return_value=mock_response)
 
     # --- 执行 (Act) ---
     results = searcher_tool.execute(query="any query", max_results=2)
@@ -87,14 +90,14 @@ def test_execute_success_with_mock(searcher_tool, mocker):
 
     # 验证第一个解析结果的每个字段是否都正确
     first_paper = results[0]
-    assert first_paper['title'] == "Fake Paper Title 1"
-    assert first_paper['authors'] == "Dr. Fake Author One"
-    assert first_paper['abstract'] == "This is a fake abstract."
-    assert first_paper['link'] == "https://arxiv.org/abs/1111.1111"
+    assert first_paper["title"] == "Fake Paper Title 1"
+    assert first_paper["authors"] == "Dr. Fake Author One"
+    assert first_paper["abstract"] == "This is a fake abstract."
+    assert first_paper["link"] == "https://arxiv.org/abs/1111.1111"
 
     # 验证第二个解析结果的标题
     second_paper = results[1]
-    assert second_paper['title'] == "Fake Paper Title 2"
+    assert second_paper["title"] == "Fake Paper Title 2"
 
 
 def test_execute_handles_network_error(searcher_tool, mocker):
@@ -103,7 +106,10 @@ def test_execute_handles_network_error(searcher_tool, mocker):
     """
     # --- 准备 (Arrange) ---
     # 模拟 requests.get 在被调用时，直接抛出一个网络异常
-    mocker.patch('requests.get', side_effect=requests.exceptions.RequestException("Fake Network Error"))
+    mocker.patch(
+        "requests.get",
+        side_effect=requests.exceptions.RequestException("Fake Network Error"),
+    )
 
     # --- 执行 (Act) ---
     results = searcher_tool.execute(query="any query")
@@ -112,6 +118,7 @@ def test_execute_handles_network_error(searcher_tool, mocker):
     # 根据您代码中的 try/except 逻辑，遇到异常时应该返回一个空列表
     assert results == []
 
+
 def test_execute_parameter_handling(searcher_tool, mocker):
     """
     测试：execute 方法对输入参数的处理逻辑是否正确。
@@ -119,7 +126,7 @@ def test_execute_parameter_handling(searcher_tool, mocker):
     """
     # --- 准备 (Arrange) ---
     # 我们只需要一个能让循环退出的空响应即可，内容不重要
-    mocker.patch('requests.get', return_value=mocker.Mock(content=b''))
+    mocker.patch("requests.get", return_value=mocker.Mock(content=b""))
 
     # --- 执行 (Act) ---
     # 提供一个无效的 size=60 (有效值为25, 50, 100, 200)
@@ -130,7 +137,7 @@ def test_execute_parameter_handling(searcher_tool, mocker):
     # size=60 应该被修正为最接近的有效值 50。
     # .call_args 可以获取到最后一次调用 mock 对象的参数
     called_args, called_kwargs = requests.get.call_args
-    assert called_kwargs['params']['size'] == '50'
+    assert called_kwargs["params"]["size"] == "50"
 
 
 def test_execute_no_results_found(searcher_tool, mocker):
@@ -139,8 +146,13 @@ def test_execute_no_results_found(searcher_tool, mocker):
     """
     # --- 准备 (Arrange) ---
     # 模拟一个没有任何 <li class="arxiv-result"> 的HTML响应
-    empty_html_content = "<html><body><h3>Show Results</h3><p>No results found.</p></body></html>"
-    mocker.patch('requests.get', return_value=mocker.Mock(content=empty_html_content.encode('utf-8')))
+    empty_html_content = (
+        "<html><body><h3>Show Results</h3><p>No results found.</p></body></html>"
+    )
+    mocker.patch(
+        "requests.get",
+        return_value=mocker.Mock(content=empty_html_content.encode("utf-8")),
+    )
 
     # --- 执行 (Act) ---
     results = searcher_tool.execute(query="a query that finds nothing")
