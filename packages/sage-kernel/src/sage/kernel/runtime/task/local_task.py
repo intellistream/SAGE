@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 class LocalTask(BaseTask):
     """
-    本地任务节点，使用SageQueue高性能共享队列作为输入缓冲区
+    本地任务节点，使用高性能队列作为输入缓冲区
     内部运行独立的工作线程，处理数据流
     """
 

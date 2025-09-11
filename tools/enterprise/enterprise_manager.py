@@ -167,11 +167,6 @@ class SAGEEnterpriseInstaller:
         """Validate that enterprise features are properly installed."""
         validation_tests = [
             {
-                "name": "sage.kernel.enterprise",
-                "test": "from sage.kernel.enterprise import sage_queue",
-                "description": "High-performance queue system"
-            },
-            {
                 "name": "sage.middleware.enterprise", 
                 "test": "from sage.middleware.enterprise import sage_db",
                 "description": "Enterprise database middleware"

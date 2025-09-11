@@ -18,7 +18,7 @@ sys.path.insert(0, "/api-rework")
 try:
     from sage.kernel.runtime.communication.queue_descriptor import (
         PythonQueueDescriptor, RayQueueDescriptor, RPCQueueDescriptor,
-        SageQueueDescriptor, resolve_descriptor)
+        resolve_descriptor)
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import \
         QueueDescriptor
 
@@ -79,7 +79,7 @@ def test_serialization():
     print("\n=== 测试序列化功能 ===")
 
     # 创建可序列化的描述符
-    desc = SageQueueDescriptor(queue_id="test_sage", maxsize=100)
+    desc = PythonQueueDescriptor(queue_id="test_python", maxsize=100)
     print(f"描述符: {desc}")
     print(f"可序列化: {desc.can_serialize}")
 
@@ -107,7 +107,7 @@ def test_factory_functions():
     print("\n=== 测试直接构造函数 ===")
 
     # 测试各种描述符类型的直接构造
-    descriptors = {"python": PythonQueueDescriptor(), "sage": SageQueueDescriptor()}
+    descriptors = {"python": PythonQueueDescriptor(), "ray": RayQueueDescriptor()}
 
     for queue_type, desc in descriptors.items():
         print(f"{queue_type}: {desc}")
@@ -120,7 +120,7 @@ def test_descriptor_package_functionality():
     print("\n=== 测试描述符包功能 ===")
 
     # 测试支持的队列类型
-    supported_types = ["python_queue", "sage_queue"]
+    supported_types = ["python_queue", "ray_queue"]
     print(f"支持的队列类型: {supported_types}")
 
     # 测试描述符信息
@@ -129,7 +129,7 @@ def test_descriptor_package_functionality():
 
     # 测试直接构造函数
     desc1 = PythonQueueDescriptor(queue_id="package_test")
-    desc2 = SageQueueDescriptor(queue_id="package_sage")
+    desc2 = RayQueueDescriptor(queue_id="package_ray")
 
     print(f"直接构造创建的描述符1: {desc1}")
     print(f"直接构造创建的描述符2: {desc2}")

@@ -51,7 +51,7 @@ class Connection:
                 else:
                     load_ratio = 0.0
             elif hasattr(target_queue, "get_buffer_stats"):
-                # 如果是SageQueue类型，使用统计信息
+                # 如果是高性能队列类型，使用统计信息
                 stats = target_queue.get_buffer_stats()
                 load_ratio = stats.get("utilization", 0.0)
             else:
