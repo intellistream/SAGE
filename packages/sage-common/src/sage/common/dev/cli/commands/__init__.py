@@ -37,3 +37,33 @@ _info = _load_version()
 __version__ = _info["version"]
 __author__ = _info["author"]
 __email__ = _info["email"]
+
+
+def get_apps():
+    """动态获取所有命令应用"""
+    import importlib
+    import pkgutil
+    from pathlib import Path
+    
+    apps = {}
+    
+    # 获取当前包的路径
+    package_path = Path(__file__).parent
+    
+    # 遍历当前包中的所有模块
+    for _, module_name, is_pkg in pkgutil.iter_modules([str(package_path)]):
+        if not is_pkg and module_name != '__init__' and module_name != 'common':
+            try:
+                # 动态导入模块
+                module = importlib.import_module(f'.{module_name}', package=__name__)
+                
+                # 检查模块是否有 app 属性
+                if hasattr(module, 'app'):
+                    apps[module_name] = module.app
+                    
+            except ImportError as e:
+                # 忽略导入错误，继续处理其他模块
+                print(f"Warning: Could not import {module_name}: {e}")
+                continue
+    
+    return apps
