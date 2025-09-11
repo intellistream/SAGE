@@ -5,18 +5,16 @@
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
-# CI环境检测 - 确保非交互模式
+# CI环境检测 - 确保非交互模式（静默设置，避免重复输出）
 if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
     export PIP_NO_INPUT=1
     export PIP_DISABLE_PIP_VERSION_CHECK=1
-    # CI环境中不设置PYTHONNOUSERSITE以提高测试速度
-    echo "# CI环境中跳过PYTHONNOUSERSITE设置"
+    # CI环境中不设置PYTHONNOUSERSITE以提高测试速度（静默设置）
 elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
     # 远程部署环境设置
     export PIP_NO_INPUT=1
     export PIP_DISABLE_PIP_VERSION_CHECK=1
     export PYTHONNOUSERSITE=1  # 远程部署环境需要设置
-    echo "# 远程部署环境已设置PYTHONNOUSERSITE=1"
 fi
 
 # 安装核心包
@@ -142,7 +140,23 @@ install_package_with_output() {
         echo "🔍 CI环境调试信息:"
         echo "- Python路径: $(which python3)"
         echo "- Pip版本: $(python3 -m pip --version 2>/dev/null || echo '无法获取pip版本')"
-        echo "- 网络测试: $(python3 -c 'import urllib.request; urllib.request.urlopen("https://pypi.org", timeout=5); print("✅ 网络正常")' 2>/dev/null || echo '❌ 网络异常')"
+        # 修复网络检测逻辑 - 增加超时时间并改进错误处理
+        local network_status
+        network_status=$(python3 -c "
+import urllib.request
+import socket
+try:
+    urllib.request.urlopen('https://pypi.org', timeout=10)
+    print('✅ 可达')
+except (urllib.error.URLError, socket.timeout, socket.error):
+    try:
+        # 尝试备用地址
+        urllib.request.urlopen('https://pypi.python.org', timeout=10)
+        print('✅ 可达')
+    except:
+        print('❌ 不可达')
+" 2>/dev/null || echo '❌ 不可达')
+        echo "- 网络状态: $network_status"
         
         # 使用timeout命令防止卡死，CI环境设置10分钟超时
         timeout 600 $install_cmd 2>&1 | tee -a "$log_file"
