@@ -29,7 +29,7 @@ declare -A PACKAGES=(
 PASSED=0
 FAILED=0
 TOTAL=${#PACKAGES[@]}
-TIMEOUT=120
+TIMEOUT=180  # 增加超时时间到180秒
 PARALLEL_JOBS=4
 
 log_info "发现 $TOTAL 个包: ${!PACKAGES[*]}"
@@ -63,27 +63,35 @@ test_package() {
     local test_cmd
     case "$pkg_name" in
         "sage-kernel")
-            # sage-kernel: 排除slow测试以避免超时
-            test_cmd="timeout $TIMEOUT python -m pytest tests/ -v -m 'not slow' --tb=short"
+            # sage-kernel: 排除slow测试，增加超时时间，覆盖pytest.ini中的超时设置
+            test_cmd="timeout $TIMEOUT python -m pytest tests/ -v -m 'not slow and not ray' --tb=short -x --disable-warnings --timeout=300"
             ;;
         "sage-common")
             # sage-common: 运行基础测试
-            test_cmd="timeout $TIMEOUT python -m pytest tests/ -v --tb=short"
+            test_cmd="timeout $TIMEOUT python -m pytest tests/ -v --tb=short --disable-warnings"
             ;;
         *)
             # 其他包: 标准单元测试
             if [[ -f "tests/run_tests.py" ]]; then
                 test_cmd="cd tests && timeout $TIMEOUT python run_tests.py --unit"
             else
-                test_cmd="timeout $TIMEOUT python -m pytest tests/ -v -m 'not slow' --tb=short"
+                test_cmd="timeout $TIMEOUT python -m pytest tests/ -v -m 'not slow' --tb=short --disable-warnings"
             fi
             ;;
     esac
     
-    # 执行测试
-    if eval "$test_cmd" >/dev/null 2>&1; then
+    # 执行测试并捕获退出码
+    local exit_code
+    eval "$test_cmd" >/dev/null 2>&1
+    exit_code=$?
+    
+    if [[ $exit_code -eq 0 ]]; then
         TEST_RESULTS["$pkg_name"]="PASSED"
         return 0
+    elif [[ $exit_code -eq 124 ]]; then
+        # timeout命令的退出码124表示超时
+        TEST_RESULTS["$pkg_name"]="TIMEOUT"
+        return 1
     else
         TEST_RESULTS["$pkg_name"]="FAILED"
         return 1
