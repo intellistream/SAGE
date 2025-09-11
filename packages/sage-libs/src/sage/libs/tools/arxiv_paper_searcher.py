@@ -1,9 +1,11 @@
+import logging
 import re
+
 import requests
 from bs4 import BeautifulSoup
 from bs4.element import Tag
+
 from .base.base_tool import BaseTool
-import logging
 
 
 class _Searcher_Tool(BaseTool):
@@ -15,27 +17,27 @@ class _Searcher_Tool(BaseTool):
             input_types={
                 "query": "str - The search query for arXiv papers.",
                 "size": "int - The number of results per page (25, 50, 100, or 200). If None, use 25.",
-                "max_results": "int - The maximum number of papers to return (default: 25). Should be less than or equal to 100."
+                "max_results": "int - The maximum number of papers to return (default: 25). Should be less than or equal to 100.",
             },
             output_type="list - A list of dictionaries containing paper information.",
             demo_commands=[
                 {
                     "command": 'execution = tool.execute(query="tool agents with large language models")',
-                    "description": "Search for papers about tool agents with large language models."
+                    "description": "Search for papers about tool agents with large language models.",
                 },
                 {
                     "command": 'execution = tool.execute(query="quantum computing", size=100, max_results=50)',
-                    "description": "Search for quantum computing papers, with 100 results per page, returning a maximum of 50 papers."
+                    "description": "Search for quantum computing papers, with 100 results per page, returning a maximum of 50 papers.",
                 },
                 {
                     "command": 'execution = tool.execute(query="machine learning", max_results=75)',
-                    "description": "Search for machine learning papers, returning a maximum of 75 papers."
+                    "description": "Search for machine learning papers, returning a maximum of 75 papers.",
                 },
             ],
             user_metadata={
                 "valid_sizes": [25, 50, 100, 200],
-                "base_url": "https://arxiv.org/search/"
-            }
+                "base_url": "https://arxiv.org/search/",
+            },
         )
 
     def build_tool(self):
@@ -68,7 +70,9 @@ class _Searcher_Tool(BaseTool):
         results = []
         start = 0
 
-        max_results = min(max_results, 100) # NOTE: For traffic reasons, limit to 100 results
+        max_results = min(
+            max_results, 100
+        )  # NOTE: For traffic reasons, limit to 100 results
 
         while len(results) < max_results:
             params = {
@@ -77,12 +81,12 @@ class _Searcher_Tool(BaseTool):
                 "abstracts": "show",
                 "order": "",
                 "size": str(size),
-                "start": str(start)
+                "start": str(start),
             }
 
             try:
                 response = requests.get(base_url, params=params)
-                soup = BeautifulSoup(response.content, 'html.parser')
+                soup = BeautifulSoup(response.content, "html.parser")
 
                 papers = soup.find_all("li", class_="arxiv-result")  # type: ignore
                 if not papers:
@@ -96,24 +100,38 @@ class _Searcher_Tool(BaseTool):
                     title = title_elem.text.strip() if title_elem else "No title found"
 
                     authors_elem = paper.find("p", class_="authors")  # type: ignore
-                    authors = authors_elem.text.strip() if authors_elem else "No authors found"
-                    authors = re.sub(r'^Authors:\s*', '', authors)
-                    authors = re.sub(r'\s+', ' ', authors).strip()
+                    authors = (
+                        authors_elem.text.strip()
+                        if authors_elem
+                        else "No authors found"
+                    )
+                    authors = re.sub(r"^Authors:\s*", "", authors)
+                    authors = re.sub(r"\s+", " ", authors).strip()
 
                     abstract_elem = paper.find("span", class_="abstract-full")  # type: ignore
-                    abstract = abstract_elem.text.strip() if abstract_elem else "No abstract available"
+                    abstract = (
+                        abstract_elem.text.strip()
+                        if abstract_elem
+                        else "No abstract available"
+                    )
                     abstract = abstract.replace("△ Less", "").strip()
 
                     link_elem = paper.find("p", class_="list-title")  # type: ignore
                     link_tag = link_elem.find("a") if isinstance(link_elem, Tag) else None  # type: ignore
-                    link = link_tag["href"] if isinstance(link_tag, Tag) and link_tag.has_attr("href") else "No link found"
+                    link = (
+                        link_tag["href"]
+                        if isinstance(link_tag, Tag) and link_tag.has_attr("href")
+                        else "No link found"
+                    )
 
-                    results.append({
-                        "title": title,
-                        "authors": authors,
-                        "abstract": abstract,
-                        "link": link
-                    })
+                    results.append(
+                        {
+                            "title": title,
+                            "authors": authors,
+                            "abstract": abstract,
+                            "link": link,
+                        }
+                    )
 
                 start += size
 
@@ -132,6 +150,7 @@ class _Searcher_Tool(BaseTool):
         """
         metadata = super().get_metadata()
         return metadata
+
 
 if __name__ == "__main__":
 

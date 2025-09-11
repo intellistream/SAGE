@@ -10,11 +10,11 @@ from typing import Optional
 
 import typer
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
+from rich.table import Table
 
-from ...core.toolkit import SAGEDevToolkit
 from ...core.exceptions import SAGEDevToolkitError
+from ...core.toolkit import SAGEDevToolkit
 
 # 创建控制台对象用于富文本输出
 console = Console()
@@ -26,17 +26,17 @@ _toolkit: Optional[SAGEDevToolkit] = None
 def get_toolkit(
     project_root: Optional[str] = None,
     config_file: Optional[str] = None,
-    environment: Optional[str] = None
+    environment: Optional[str] = None,
 ) -> SAGEDevToolkit:
     """获取或创建toolkit实例"""
     global _toolkit
-    
+
     if _toolkit is None:
         try:
             _toolkit = SAGEDevToolkit(
                 project_root=project_root,
                 config_file=config_file,
-                environment=environment
+                environment=environment,
             )
         except SAGEDevToolkitError as e:
             console.print(f"❌ Error initializing toolkit: {e}", style="red")
@@ -44,7 +44,7 @@ def get_toolkit(
         except Exception as e:
             console.print(f"❌ Unexpected error: {e}", style="red")
             raise typer.Exit(1)
-    
+
     return _toolkit
 
 
@@ -61,7 +61,7 @@ def handle_command_error(e: Exception, operation: str, verbose: bool = False):
 
 def format_size(size):
     """格式化文件大小"""
-    for unit in ['B', 'KB', 'MB', 'GB']:
+    for unit in ["B", "KB", "MB", "GB"]:
         if size < 1024:
             return f"{size:.1f} {unit}"
         size /= 1024

@@ -4,8 +4,8 @@ sage-kernel测试配置
 设置正确的Python路径和共享的测试fixtures
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # 获取项目根目录
@@ -27,13 +27,14 @@ os.environ.setdefault("SAGE_LOG_LEVEL", "INFO")
 # 确保Ray在测试环境中正确初始化（如果需要且有足够内存）
 try:
     import ray
+
     if not ray.is_initialized():
         # 尝试更宽松的Ray配置
         ray.init(
-            ignore_reinit_error=True, 
+            ignore_reinit_error=True,
             local_mode=True,
             object_store_memory=50000000,  # 50MB
-            num_cpus=1
+            num_cpus=1,
         )
 except (ImportError, ValueError, RuntimeError) as e:
     # Ray不是必需的，或者内存不足时跳过
@@ -42,14 +43,16 @@ except (ImportError, ValueError, RuntimeError) as e:
 
 import pytest
 
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment():
     """自动设置测试环境"""
     # 验证关键模块可以导入
     try:
-        import sage.kernel
-        import sage.core
         import sage.common
+        import sage.core
+        import sage.kernel
+
         print(f"✓ 测试环境设置成功")
         print(f"✓ sage.kernel: {sage.kernel.__path__}")
         print(f"✓ sage.core: {sage.core.__path__}")
@@ -63,6 +66,7 @@ def setup_test_environment():
     # 清理
     try:
         import ray
+
         if ray.is_initialized():
             ray.shutdown()
     except ImportError:

@@ -1,9 +1,13 @@
 import os
+
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
 import sys
+
 # 添加项目根目录到Python路径
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../..")))
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.."))
+)
 
 import time
 
@@ -11,8 +15,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from sage.middleware.utils.embedding import hf, ollama, siliconcloud, openai, bedrock, zhipu, mockembedder  # , instructor
-from sage.middleware.utils.embedding import _cohere, nvidia_openai, lollms, jina
+from sage.middleware.utils.embedding import bedrock  # , instructor
+from sage.middleware.utils.embedding import (_cohere, hf, jina, lollms,
+                                             mockembedder, nvidia_openai,
+                                             ollama, openai, siliconcloud,
+                                             zhipu)
 from transformers import AutoModel, AutoTokenizer
 
 
@@ -29,13 +36,13 @@ class EmbeddingModel:
         if method == "default":
             method = "hf"
             kwargs["model"] = "sentence-transformers/all-MiniLM-L6-v2"
-            
+
         if method == "mockembedder":
             kwargs["model"] = "mockembedder"  # 确保 model 参数存在
             if "fixed_dim" not in kwargs:
                 kwargs["fixed_dim"] = 128  # 默认维度
-                
-        self.set_dim(kwargs["model"] )
+
+        self.set_dim(kwargs["model"])
         self.method = method
 
         # self.kwargs = {}
@@ -45,13 +52,14 @@ class EmbeddingModel:
                 raise ValueError("hf method need model")
             model_name = kwargs["model"]
             self.kwargs["tokenizer"] = AutoTokenizer.from_pretrained(model_name)
-            self.kwargs["embed_model"] = AutoModel.from_pretrained(model_name, trust_remote_code=True)
+            self.kwargs["embed_model"] = AutoModel.from_pretrained(
+                model_name, trust_remote_code=True
+            )
             self.kwargs.pop("model")
         elif method == "mockembedder":
             # 初始化 mockembedder
             self.kwargs["embed_model"] = mockembedder.MockTextEmbedder(
-                model_name="mock-model",
-                fixed_dim=kwargs.get("fixed_dim", 128)
+                model_name="mock-model", fixed_dim=kwargs.get("fixed_dim", 128)
             )
         self.embed_fn = self._get_embed_function(method)
 
@@ -62,17 +70,17 @@ class EmbeddingModel:
         """
         dimension_mapping = {
             "mistral_embed": 1024,
-            "embed-multilingual-v3.0":1024,
+            "embed-multilingual-v3.0": 1024,
             "embed-english-v3.0": 1024,
             "embed-english-light-v3.0": 384,
             "embed-multilingual-light-v3.0": 384,
             "embed-english-v2.0": 4096,
             "embed-english-light-v2.0": 1024,
             "embed-multilingual-v2.0": 768,
-            "jina-embeddings-v3":1024,
-            "BAAI/bge-m3":1024,
-            "sentence-transformers/all-MiniLM-L6-v2":384,
-            "mockembedder": 128
+            "jina-embeddings-v3": 1024,
+            "BAAI/bge-m3": 1024,
+            "sentence-transformers/all-MiniLM-L6-v2": 384,
+            "mockembedder": 128,
         }
         if model_name in dimension_mapping:
             self.dim = dimension_mapping[model_name]
@@ -96,7 +104,9 @@ class EmbeddingModel:
             "ollama": ollama.ollama_embed_sync,
             "siliconcloud": siliconcloud.siliconcloud_embedding_sync,
             "cohere": _cohere.cohere_embed_sync,
-            "mockembedder": lambda text, **kwargs: kwargs["embed_model"].encode(text).tolist(),
+            "mockembedder": lambda text, **kwargs: kwargs["embed_model"]
+            .encode(text)
+            .tolist(),
             # "instructor": instructor.instructor_embed
         }
         if method not in mapping:
@@ -117,17 +127,17 @@ class EmbeddingModel:
 
     def embed(self, text: str) -> list[float]:
         return self._embed(text)
-    
+
     def encode(self, text: str) -> list[float]:
         return self._embed(text)
-    
+
     @property
     def method_name(self) -> str:
         """当前embedding方法名"""
         return self.init_method
 
 
-def apply_embedding_model(name: str = "default",**kwargs) -> EmbeddingModel:
+def apply_embedding_model(name: str = "default", **kwargs) -> EmbeddingModel:
     """
     usage  参见sage/api/model/operator_test.py
     while name(method) = "hf", please set the param:model;
@@ -135,16 +145,20 @@ def apply_embedding_model(name: str = "default",**kwargs) -> EmbeddingModel:
     while name(method) = "jina/siliconcloud/cohere",please set the params:api_key,model;
     Example:operator_test.py
     """
-    return EmbeddingModel(method=name,**kwargs)
+    return EmbeddingModel(method=name, **kwargs)
+
 
 def main():
-    embedding_model = EmbeddingModel(method="hf",model = "sentence-transformers/all-MiniLM-L6-v2")
+    embedding_model = EmbeddingModel(
+        method="hf", model="sentence-transformers/all-MiniLM-L6-v2"
+    )
     for i in range(10):
         start = time.time()
         v = embedding_model.embed(f"{i} times ")
         print(v)
         end = time.time()
         print(f"embedding time :{end-start}")
-        
-if __name__ =="__main__":
+
+
+if __name__ == "__main__":
     main()
