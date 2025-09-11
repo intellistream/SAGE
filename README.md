@@ -141,9 +141,28 @@ pip install isage && sage doctor
 
 ## Contributing
 
-**Bug Reports & Feature Requests**: [GitHub Issues](https://github.com/intellistream/SAGE/issues)  
-**Code Contributions**: Submit pull requests  
-**Community Support**: [GitHub Discussions](https://github.com/intellistream/SAGE/discussions)
+We welcome contributions! Please check our guides before getting started:
+
+- **🚀 Quick Start**: [QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md) - 5-minute guide for new contributors
+- **📚 Detailed Guide**: [CONTRIBUTING.md](docs/CONTRIBUTING.md) - Complete contribution workflow
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/intellistream/SAGE/issues)
+- **💡 Feature Requests**: [GitHub Issues](https://github.com/intellistream/SAGE/issues)
+- **💬 Community Support**: [GitHub Discussions](https://github.com/intellistream/SAGE/discussions)
+
+### For New Contributors
+
+```bash
+# Quick start for new contributors
+git checkout main-dev
+git pull origin main-dev
+git checkout -b fix/your-issue-name
+# Make your changes...
+./quickstart.sh --minimal  # Test your changes
+git add .
+git commit -m "fix(scope): describe your fix"
+git push -u origin fix/your-issue-name
+# Create PR on GitHub
+```
 
 ## License
 
