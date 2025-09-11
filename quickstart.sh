@@ -30,13 +30,64 @@ main() {
     # 解析命令行参数（包括帮助检查）
     parse_arguments "$@"
     
+    # 显示欢迎界面
+    show_welcome
+    
+    # 如果没有指定任何参数，显示交互式菜单
+    if [ $# -eq 0 ]; then
+        show_installation_menu
+    fi
+    
     # 获取解析后的参数
     local mode=$(get_install_mode)
     local environment=$(get_install_environment)
     local install_vllm=$(get_install_vllm)
+    local auto_confirm=$(get_auto_confirm)
     
-    # 显示欢迎界面
-    show_welcome
+    # 如果不是自动确认模式，显示最终确认
+    if [ "$auto_confirm" != "true" ]; then
+        echo ""
+        echo -e "${BLUE}📋 最终安装配置：${NC}"
+        case "$mode" in
+            "standard")
+                echo -e "  ${BLUE}安装模式:${NC} ${GREEN}标准安装${NC}"
+                ;;
+            "minimal")
+                echo -e "  ${BLUE}安装模式:${NC} ${GRAY}最小安装${NC}"
+                ;;
+            "dev")
+                echo -e "  ${BLUE}安装模式:${NC} ${YELLOW}开发者安装${NC}"
+                ;;
+        esac
+        
+        case "$environment" in
+            "conda")
+                echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境${NC}"
+                ;;
+            "pip")
+                echo -e "  ${BLUE}安装环境:${NC} ${PURPLE}系统Python环境${NC}"
+                ;;
+        esac
+        
+        if [ "$install_vllm" = "true" ]; then
+            echo -e "  ${BLUE}AI 模型支持:${NC} ${PURPLE}VLLM 环境准备${NC}"
+        fi
+        
+        echo ""
+        echo -e "${YELLOW}确认开始安装吗？${NC} [${GREEN}Y${NC}/${RED}n${NC}]"
+        read -p "请输入选择: " -r continue_choice
+        
+        if [[ ! "$continue_choice" =~ ^[Yy]$ ]] && [[ ! -z "$continue_choice" ]]; then
+            echo ""
+            echo -e "${INFO} 安装已取消。"
+            echo -e "${DIM}提示: 可使用 ./quickstart.sh --help 查看所有选项${NC}"
+            echo -e "${DIM}提示: 使用 --yes 参数可跳过此确认步骤${NC}"
+            exit 0
+        fi
+    else
+        echo ""
+        echo -e "${INFO} 使用自动确认模式，直接开始安装..."
+    fi
     
     # 切换到项目根目录
     cd "$SCRIPT_DIR"
