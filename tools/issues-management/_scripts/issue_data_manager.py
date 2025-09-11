@@ -208,12 +208,12 @@ class IssueDataManager:
         """获取所有issue编号列表"""
         issue_numbers = []
         for data_file in self.data_dir.glob("issue_*.json"):
-            try:
-                # 从文件名提取issue编号
-                name = data_file.stem  # issue_123
-                number = int(name.split('_')[1])
+            # 使用正则表达式从文件名中提取issue编号
+            match = re.match(r"issue_(\d+)$", data_file.stem)
+            if match:
+                number = int(match.group(1))
                 issue_numbers.append(number)
-            except (ValueError, IndexError):
+            else:
                 continue
         return sorted(issue_numbers)
     
