@@ -4,18 +4,21 @@ SAGE Head Manager CLI
 Ray Head节点管理相关命令
 """
 
-import typer
-import subprocess
 import os
+import subprocess
 import time
 from pathlib import Path
+
+import typer
+
 from ..config_manager import get_config_manager
 
 app = typer.Typer(name="head", help="Ray Head节点管理")
 
+
 def get_conda_init_code(conda_env: str = "sage") -> str:
     """获取Conda环境初始化代码"""
-    return f'''
+    return f"""
 # 检查是否已经在目标环境中
 if [[ "$CONDA_DEFAULT_ENV" == "{conda_env}" ]]; then
     echo "[INFO] 已在conda环境: {conda_env}"
@@ -47,35 +50,36 @@ else
         fi
     fi
 fi
-'''
+"""
+
 
 @app.command("start")
 def start_head():
     """启动Ray Head节点"""
     typer.echo("🚀 启动Ray Head节点...")
-    
+
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
     remote_config = config_manager.get_remote_config()
-    
-    head_host = head_config.get('host', 'localhost')
-    head_port = head_config.get('head_port', 6379)
-    dashboard_port = head_config.get('dashboard_port', 8265)
-    dashboard_host = head_config.get('dashboard_host', '0.0.0.0')
-    head_temp_dir = head_config.get('temp_dir', '/tmp/ray_head')
-    head_log_dir = head_config.get('log_dir', '/tmp/sage_head_logs')
-    
-    ray_command = head_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
-    conda_env = head_config.get('conda_env', 'sage')
-    
+
+    head_host = head_config.get("host", "localhost")
+    head_port = head_config.get("head_port", 6379)
+    dashboard_port = head_config.get("dashboard_port", 8265)
+    dashboard_host = head_config.get("dashboard_host", "0.0.0.0")
+    head_temp_dir = head_config.get("temp_dir", "/tmp/ray_head")
+    head_log_dir = head_config.get("log_dir", "/tmp/sage_head_logs")
+
+    ray_command = head_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
+    conda_env = head_config.get("conda_env", "sage")
+
     typer.echo(f"📋 配置信息:")
     typer.echo(f"   Head主机: {head_host}")
     typer.echo(f"   Head端口: {head_port}")
     typer.echo(f"   Dashboard: {dashboard_host}:{dashboard_port}")
     typer.echo(f"   临时目录: {head_temp_dir}")
     typer.echo(f"   日志目录: {head_log_dir}")
-    
-    start_command = f'''
+
+    start_command = f"""
 export PYTHONUNBUFFERED=1
 
 # 创建必要目录
@@ -129,28 +133,27 @@ if [ $RAY_EXIT_CODE -eq 0 ]; then
 else
     echo "[ERROR] Ray Head启动失败，退出码: $RAY_EXIT_CODE" | tee -a "$LOG_DIR/head.log"
     exit 1
-fi'''
-    
+fi"""
+
     try:
         result = subprocess.run(
-            ['bash', '-c', start_command],
-            capture_output=True,
-            text=True,
-            timeout=120
+            ["bash", "-c", start_command], capture_output=True, text=True, timeout=120
         )
-        
+
         if result.stdout:
             typer.echo(result.stdout)
         if result.stderr:
             typer.echo(result.stderr, err=True)
-        
+
         if result.returncode == 0:
             typer.echo("✅ Ray Head节点启动成功")
-            typer.echo(f"🌐 Dashboard访问地址: http://{dashboard_host}:{dashboard_port}")
+            typer.echo(
+                f"🌐 Dashboard访问地址: http://{dashboard_host}:{dashboard_port}"
+            )
         else:
             typer.echo("❌ Ray Head节点启动失败")
             raise typer.Exit(1)
-            
+
     except subprocess.TimeoutExpired:
         typer.echo("❌ Ray Head启动超时")
         raise typer.Exit(1)
@@ -158,20 +161,21 @@ fi'''
         typer.echo(f"❌ Ray Head启动失败: {e}")
         raise typer.Exit(1)
 
+
 @app.command("stop")
 def stop_head():
     """停止Ray Head节点"""
     typer.echo("🛑 停止Ray Head节点...")
-    
+
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
     remote_config = config_manager.get_remote_config()
-    
-    head_temp_dir = head_config.get('temp_dir', '/tmp/ray_head')
-    head_log_dir = head_config.get('log_dir', '/tmp/sage_head_logs')
-    ray_command = remote_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
-    conda_env = remote_config.get('conda_env', 'sage')
-    
+
+    head_temp_dir = head_config.get("temp_dir", "/tmp/ray_head")
+    head_log_dir = head_config.get("log_dir", "/tmp/sage_head_logs")
+    ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
+    conda_env = remote_config.get("conda_env", "sage")
+
     stop_command = f'''set +e
 export PYTHONUNBUFFERED=1
 
@@ -211,22 +215,19 @@ if [[ -d "$HEAD_TEMP_DIR" ]]; then
 fi
 
 echo "[SUCCESS] Ray Head已停止 ($(date '+%Y-%m-%d %H:%M:%S'))" | tee -a "$LOG_DIR/head.log"'''
-    
+
     try:
         result = subprocess.run(
-            ['bash', '-c', stop_command],
-            capture_output=True,
-            text=True,
-            timeout=60
+            ["bash", "-c", stop_command], capture_output=True, text=True, timeout=60
         )
-        
+
         if result.stdout:
             typer.echo(result.stdout)
         if result.stderr:
             typer.echo(result.stderr, err=True)
-        
+
         typer.echo("✅ Ray Head节点停止完成")
-        
+
     except subprocess.TimeoutExpired:
         typer.echo("❌ Ray Head停止超时")
         raise typer.Exit(1)
@@ -234,22 +235,23 @@ echo "[SUCCESS] Ray Head已停止 ($(date '+%Y-%m-%d %H:%M:%S'))" | tee -a "$LOG
         typer.echo(f"❌ Ray Head停止失败: {e}")
         raise typer.Exit(1)
 
+
 @app.command("status")
 def status_head():
     """检查Ray Head节点状态"""
     typer.echo("📊 检查Ray Head节点状态...")
-    
+
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
     remote_config = config_manager.get_remote_config()
-    
-    head_host = head_config.get('host', 'localhost')
-    head_port = head_config.get('head_port', 6379)
-    dashboard_port = head_config.get('dashboard_port', 8265)
-    head_log_dir = head_config.get('log_dir', '/tmp/sage_head_logs')
-    ray_command = remote_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
-    conda_env = remote_config.get('conda_env', 'sage')
-    
+
+    head_host = head_config.get("host", "localhost")
+    head_port = head_config.get("head_port", 6379)
+    dashboard_port = head_config.get("dashboard_port", 8265)
+    head_log_dir = head_config.get("log_dir", "/tmp/sage_head_logs")
+    ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
+    conda_env = remote_config.get("conda_env", "sage")
+
     status_command = f'''set +e
 export PYTHONUNBUFFERED=1
 
@@ -297,78 +299,76 @@ if [[ -f "$LOG_DIR/head.log" ]]; then
 fi
 
 echo "==============================================="'''
-    
+
     try:
         result = subprocess.run(
-            ['bash', '-c', status_command],
-            capture_output=True,
-            text=True,
-            timeout=30
+            ["bash", "-c", status_command], capture_output=True, text=True, timeout=30
         )
-        
+
         if result.stdout:
             typer.echo(result.stdout)
         if result.stderr:
             typer.echo(result.stderr, err=True)
-        
+
         if result.returncode == 0:
             typer.echo("✅ Ray Head节点正在运行")
             typer.echo(f"🌐 Dashboard访问地址: http://{head_host}:{dashboard_port}")
         else:
             typer.echo("❌ Ray Head节点未运行")
-        
+
     except subprocess.TimeoutExpired:
         typer.echo("❌ Ray Head状态检查超时")
     except Exception as e:
         typer.echo(f"❌ Ray Head状态检查失败: {e}")
 
+
 @app.command("restart")
 def restart_head():
     """重启Ray Head节点"""
     typer.echo("🔄 重启Ray Head节点...")
-    
+
     # 先停止
     typer.echo("第1步: 停止Head节点")
     stop_head()
-    
+
     # 等待
     typer.echo("⏳ 等待3秒后重新启动...")
     time.sleep(3)
-    
+
     # 再启动
     typer.echo("第2步: 启动Head节点")
     start_head()
-    
+
     typer.echo("✅ Head节点重启完成！")
+
 
 @app.command("logs")
 def show_logs(lines: int = typer.Option(20, "--lines", "-n", help="显示日志行数")):
     """显示Head节点日志"""
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
-    head_log_dir = head_config.get('log_dir', '/tmp/sage_head_logs')
+    head_log_dir = head_config.get("log_dir", "/tmp/sage_head_logs")
     log_file = Path(head_log_dir) / "head.log"
-    
+
     if not log_file.exists():
         typer.echo("❌ 日志文件不存在")
         return
-    
+
     try:
         result = subprocess.run(
-            ['tail', '-n', str(lines), str(log_file)],
-            capture_output=True,
-            text=True
+            ["tail", "-n", str(lines), str(log_file)], capture_output=True, text=True
         )
-        
+
         if result.stdout:
             typer.echo(f"📋 Ray Head日志 (最后{lines}行):")
             typer.echo("=" * 50)
             typer.echo(result.stdout)
         else:
             typer.echo("📋 日志文件为空")
-            
+
     except Exception as e:
         typer.echo(f"❌ 读取日志失败: {e}")
+
 
 @app.command("version")
 def version_command():
@@ -377,6 +377,7 @@ def version_command():
     typer.echo("Version: 1.0.1")
     typer.echo("Author: IntelliStream Team")
     typer.echo("Repository: https://github.com/intellistream/SAGE")
+
 
 if __name__ == "__main__":
     app()

@@ -1,10 +1,10 @@
-import torch
-from typing import List, Tuple
-from transformers import AutoModelForSequenceClassification, AutoTokenizer,AutoModelForCausalLM
 import logging
+from typing import List, Tuple
 
+import torch
 from sage.core.api.function.map_function import MapFunction
-
+from transformers import (AutoModelForCausalLM,
+                          AutoModelForSequenceClassification, AutoTokenizer)
 
 
 class BGEReranker(MapFunction):
@@ -31,8 +31,10 @@ class BGEReranker(MapFunction):
         :param config: Dictionary containing configuration options, including model name and device settings.
         """
         self.config = config
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"  # Set device to GPU if available, otherwise CPU
-        
+        self.device = (
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )  # Set device to GPU if available, otherwise CPU
+
         # Load tokenizer and model using the provided model name
         self.tokenizer, self.model = self._load_model(self.config["model_name"])
         self.model = self.model.to(self.device)
@@ -48,12 +50,14 @@ class BGEReranker(MapFunction):
         try:
             self.logger.info(f"Loading reranker: {model_name}")
             tokenizer = AutoTokenizer.from_pretrained(model_name)  # Load the tokenizer
-            model = AutoModelForSequenceClassification.from_pretrained(model_name)  # Load the model
+            model = AutoModelForSequenceClassification.from_pretrained(
+                model_name
+            )  # Load the model
             return tokenizer, model
         except Exception as e:
             self.logger.error(f"Failed to load model {model_name}: {str(e)}")
             raise RuntimeError(f"Model loading failed: {str(e)}")
-        
+
     def execute(self, data: Tuple[str, List[str]]):
         """
         Executes the reranking process:
@@ -80,14 +84,20 @@ class BGEReranker(MapFunction):
                 # 传统的元组格式: (query, doc_set)
                 query, doc_set = data
             else:
-                self.logger.error(f"Unexpected input format for BGEReranker: {type(data)}")
+                self.logger.error(
+                    f"Unexpected input format for BGEReranker: {type(data)}"
+                )
                 return {"query": "", "results": []}
-            
-            top_k = self.config.get("topk") or self.config.get("top_k", 3)  # Get the top-k parameter for reranking
+
+            top_k = self.config.get("topk") or self.config.get(
+                "top_k", 3
+            )  # Get the top-k parameter for reranking
 
             # Handle empty document set case
             if not doc_set:
-                print("BGEReranker received empty document set, returning empty results")
+                print(
+                    "BGEReranker received empty document set, returning empty results"
+                )
                 # 返回与输入格式一致的输出
                 if isinstance(data, dict):
                     return {"query": query, "results": []}
@@ -99,19 +109,17 @@ class BGEReranker(MapFunction):
 
             # Tokenize the pairs and move inputs to the appropriate device
             raw_inputs = self.tokenizer(
-                            pairs,
-                            padding=True,
-                            truncation=True,
-                            max_length=512,
-                            return_tensors="pt"
-                        )
+                pairs,
+                padding=True,
+                truncation=True,
+                max_length=512,
+                return_tensors="pt",
+            )
             inputs = {
                 k: v.to(self.device) if isinstance(v, torch.Tensor) else v
                 for k, v in raw_inputs.items()
             }
 
-
-            
             # Perform inference and calculate scores
             scores = self.model(**inputs).logits.view(-1).float()
 
@@ -120,23 +128,32 @@ class BGEReranker(MapFunction):
                 {"retrieved_docs": doc, "relevance_score": score}
                 for doc, score in zip(doc_set, scores)
             ]
-            
+
             # Sort the documents by relevance score in descending order
-            reranked_docs = sorted(scored_docs, key=lambda x: x["relevance_score"], reverse=True)[:top_k]
+            reranked_docs = sorted(
+                scored_docs, key=lambda x: x["relevance_score"], reverse=True
+            )[:top_k]
             reranked_docs_list = [doc["retrieved_docs"] for doc in reranked_docs]
-            self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list }\033[0m ")
-            self.logger.debug(f"Top score: {reranked_docs[0]['relevance_score'] if reranked_docs else 'N/A'}")
+            self.logger.info(
+                f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list }\033[0m "
+            )
+            self.logger.debug(
+                f"Top score: {reranked_docs[0]['relevance_score'] if reranked_docs else 'N/A'}"
+            )
 
             print(f"Rerank Results: {reranked_docs_list}")
 
         except Exception as e:
             raise RuntimeError(f"BGEReranker error: {str(e)}")
-        
+
         # 返回与输入格式一致的输出
         if isinstance(data, dict):
             return {"query": query, "results": reranked_docs_list}
         else:
-            return [query, reranked_docs_list]  # Return the reranked documents along with the original query
+            return [
+                query,
+                reranked_docs_list,
+            ]  # Return the reranked documents along with the original query
 
 
 class LLMbased_Reranker(MapFunction):
@@ -165,14 +182,16 @@ class LLMbased_Reranker(MapFunction):
         """
         super().__init__()
         self.config = config
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"  # Set device to GPU if available, otherwise CPU
+        self.device = (
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )  # Set device to GPU if available, otherwise CPU
 
         # Load tokenizer and model using the provided model name
         self.tokenizer, self.model = self._load_model(model_name)
         self.model = self.model.to(self.device)
-        
+
         # Get the token ID for the 'Yes' token (used for classification)
-        self.yes_loc = self.tokenizer('Yes', add_special_tokens=False)['input_ids'][0]
+        self.yes_loc = self.tokenizer("Yes", add_special_tokens=False)["input_ids"][0]
 
     def _load_model(self, model_name: str):
         """
@@ -202,36 +221,52 @@ class LLMbased_Reranker(MapFunction):
         """
         if prompt is None:
             prompt = "Given a query A and a passage B, determine whether the passage contains an answer to the query by providing a prediction of either 'Yes' or 'No'."
-        
+
         sep = "\n"
-        prompt_inputs = tokenizer(prompt, return_tensors=None, add_special_tokens=False)['input_ids']
-        sep_inputs = tokenizer(sep, return_tensors=None, add_special_tokens=False)['input_ids']
-        
+        prompt_inputs = tokenizer(
+            prompt, return_tensors=None, add_special_tokens=False
+        )["input_ids"]
+        sep_inputs = tokenizer(sep, return_tensors=None, add_special_tokens=False)[
+            "input_ids"
+        ]
+
         inputs = []
         for query, passage in pairs:
-            query_inputs = tokenizer(f'A: {query}', return_tensors=None, add_special_tokens=False, max_length=max_length * 3 // 4, truncation=True)
-            passage_inputs = tokenizer(f'B: {passage}', return_tensors=None, add_special_tokens=False, max_length=max_length, truncation=True)
-            
+            query_inputs = tokenizer(
+                f"A: {query}",
+                return_tensors=None,
+                add_special_tokens=False,
+                max_length=max_length * 3 // 4,
+                truncation=True,
+            )
+            passage_inputs = tokenizer(
+                f"B: {passage}",
+                return_tensors=None,
+                add_special_tokens=False,
+                max_length=max_length,
+                truncation=True,
+            )
+
             item = tokenizer.prepare_for_model(
-                [tokenizer.bos_token_id] + query_inputs['input_ids'],
-                sep_inputs + passage_inputs['input_ids'],
-                truncation='only_second',
+                [tokenizer.bos_token_id] + query_inputs["input_ids"],
+                sep_inputs + passage_inputs["input_ids"],
+                truncation="only_second",
                 max_length=max_length,
                 padding=False,
                 return_attention_mask=False,
                 return_token_type_ids=False,
-                add_special_tokens=False
+                add_special_tokens=False,
             )
-            item['input_ids'] = item['input_ids'] + sep_inputs + prompt_inputs
-            item['attention_mask'] = [1] * len(item['input_ids'])
+            item["input_ids"] = item["input_ids"] + sep_inputs + prompt_inputs
+            item["attention_mask"] = [1] * len(item["input_ids"])
             inputs.append(item)
-        
+
         return tokenizer.pad(
             inputs,
             padding=True,
             max_length=max_length + len(sep_inputs) + len(prompt_inputs),
             pad_to_multiple_of=8,
-            return_tensors='pt',
+            return_tensors="pt",
         )
 
     # @torch.inference_mode()
@@ -261,9 +296,11 @@ class LLMbased_Reranker(MapFunction):
                 # 传统的元组格式: (query, doc_set)
                 query, doc_set = data
             else:
-                self.logger.error(f"Unexpected input format for LLMbased_Reranker: {type(data)}")
+                self.logger.error(
+                    f"Unexpected input format for LLMbased_Reranker: {type(data)}"
+                )
                 return {"query": "", "results": []}
-            
+
             doc_set = [doc_set]  # Wrap doc_set in a list for processing
             top_k = self.config["topk"]  # Get the top-k parameter for reranking
             emit_docs = []  # Initialize the list to store reranked documents
@@ -271,38 +308,52 @@ class LLMbased_Reranker(MapFunction):
             for retrieved_docs in doc_set:
                 # Generate query-document pairs for classification
                 pairs = [[query, doc] for doc in retrieved_docs]
-                
+
                 # Tokenize the pairs and move inputs to the appropriate device
                 with torch.no_grad():
                     raw_inputs = self.get_inputs(pairs, self.tokenizer)
                     inputs = {k: v.to(self.device) for k, v in raw_inputs.items()}
 
-                    scores = self.model(**inputs, return_dict=True).logits[:, -1, self.yes_loc].view(-1).float()
+                    scores = (
+                        self.model(**inputs, return_dict=True)
+                        .logits[:, -1, self.yes_loc]
+                        .view(-1)
+                        .float()
+                    )
 
                 # Create a list of scored documents
                 scored_docs = [
                     {"retrieved_docs": doc, "relevance_score": score}
                     for doc, score in zip(retrieved_docs, scores)
                 ]
-                
+
                 # Sort the documents by relevance score in descending order
-                reranked_docs = sorted(scored_docs, key=lambda x: x["relevance_score"], reverse=True)[:top_k]
+                reranked_docs = sorted(
+                    scored_docs, key=lambda x: x["relevance_score"], reverse=True
+                )[:top_k]
                 reranked_docs_list = [doc["retrieved_docs"] for doc in reranked_docs]
                 emit_docs.append(reranked_docs_list)
-                self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list }\033[0m ")
-                self.logger.debug(f"Top score: {reranked_docs[0]['relevance_score'] if reranked_docs else 'N/A'}")
+                self.logger.info(
+                    f"\033[32m[ {self.__class__.__name__}]: Rerank Results: {reranked_docs_list }\033[0m "
+                )
+                self.logger.debug(
+                    f"Top score: {reranked_docs[0]['relevance_score'] if reranked_docs else 'N/A'}"
+                )
 
         except Exception as e:
             self.logger.error(f"{str(e)} when RerankerFuncton")
             raise RuntimeError(f"Reranker error: {str(e)}")
-        
+
         emit_docs = emit_docs[0]  # Only return the first set of reranked documents
-        
+
         # 返回与输入格式一致的输出
         if isinstance(data, dict):
             return {"query": query, "results": emit_docs}
         else:
-            return (query, emit_docs)  # Return the reranked documents along with the original query
+            return (
+                query,
+                emit_docs,
+            )  # Return the reranked documents along with the original query
 
 
 # if __name__ == '__main__':

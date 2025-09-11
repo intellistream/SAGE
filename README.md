@@ -1,5 +1,5 @@
 # SAGE - Streaming-Augmented Generative Execution
-
+> A declarative, composable framework for building transparent LLM-powered systems through dataflow abstractions.
 [![CI](https://github.com/intellistream/SAGE/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)

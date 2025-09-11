@@ -1,8 +1,10 @@
 # file sage/core/sage.service.memory./search_engine/vdb_index/base_vdb_index.py
 
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Dict, Any
+from typing import Any, Dict, List, Tuple
+
 import numpy as np
+
 
 class BaseVDBIndex(ABC):
     def __init__(self, name: str, dim: int):
@@ -35,10 +37,12 @@ class BaseVDBIndex(ABC):
         pass
 
     @abstractmethod
-    def search(self, query_vector: np.ndarray, topk: int = 10) -> Tuple[List[str], List[float]]:
+    def search(
+        self, query_vector: np.ndarray, topk: int = 10
+    ) -> Tuple[List[str], List[float]]:
         """向量检索，返回 (string_id, 距离) 列表"""
         pass
-    
+
     @classmethod
     @abstractmethod
     def load(cls, name: str, root_path: str) -> "BaseVDBIndex":
@@ -55,4 +59,3 @@ class BaseVDBIndex(ABC):
         Store the index data to the specified directory.
         """
         pass
-
