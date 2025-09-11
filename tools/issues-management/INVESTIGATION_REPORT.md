@@ -82,5 +82,5 @@ Field 'createIssueRelationship' doesn't exist on type 'Mutation'
 - `/output/issues-workspace/data/` - 本地issue数据缓存
 
 ---
-*调查完成时间: $(date)*
+*调查完成时间: 2024-06-13 10:30:00*
 *结论: GitHub native issue relationships功能无法通过公共API自动化*
