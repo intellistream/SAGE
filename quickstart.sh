@@ -33,6 +33,7 @@ main() {
     # 获取解析后的参数
     local mode=$(get_install_mode)
     local environment=$(get_install_environment)
+    local install_vllm=$(get_install_vllm)
     
     # 显示欢迎界面
     show_welcome
@@ -41,11 +42,16 @@ main() {
     cd "$SCRIPT_DIR"
     
     # 执行安装
-    install_sage "$mode" "$environment"
+    install_sage "$mode" "$environment" "$install_vllm"
     
     # 验证安装
     if verify_installation; then
         show_usage_tips "$mode"
+        # 如果安装了 VLLM，验证 VLLM 安装
+        if [ "$install_vllm" = "true" ]; then
+            echo ""
+            verify_vllm_installation
+        fi
         echo ""
         center_text "${ROCKET} 欢迎使用 SAGE！${ROCKET}" "$GREEN$BOLD"
         echo ""
@@ -53,6 +59,9 @@ main() {
         echo ""
         echo -e "${YELLOW}安装可能成功，请手动验证：${NC}"
         echo -e "  python3 -c \"import sage; print(sage.__version__)\""
+        if [ "$install_vllm" = "true" ]; then
+            echo -e "  python3 -c \"import vllm; print(vllm.__version__)\""
+        fi
     fi
 }
 

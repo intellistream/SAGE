@@ -8,6 +8,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 # 全局变量
 INSTALL_MODE=""
 INSTALL_ENVIRONMENT=""
+INSTALL_VLLM=false
 SHOW_HELP=false
 
 # 显示参数帮助信息
@@ -16,7 +17,7 @@ show_parameter_help() {
     echo -e "${BOLD}SAGE 快速安装脚本${NC}"
     echo ""
     echo -e "${BLUE}用法：${NC}"
-    echo -e "  ./quickstart_refactored.sh [安装模式] [安装环境]"
+    echo -e "  ./quickstart.sh [安装模式] [安装环境] [AI模型支持]"
     echo ""
     
     echo -e "${BLUE}📦 安装模式 (默认: 开发者模式)：${NC}"
@@ -47,12 +48,22 @@ show_parameter_help() {
     echo -e "    ${DIM}在当前环境中直接使用pip安装${NC}"
     echo ""
     
+    echo -e "${BLUE}🤖 AI 模型支持：${NC}"
+    echo ""
+    echo -e "  ${BOLD}--vllm${NC}                                       ${PURPLE}准备 VLLM 环境${NC}"
+    echo -e "    ${DIM}准备 VLLM 使用环境和启动脚本${NC}"
+    echo -e "    ${DIM}VLLM 将在首次使用时自动安装（通过 vllm_local_serve.sh）${NC}"
+    echo -e "    ${DIM}包含使用指南和推荐模型信息${NC}"
+    echo ""
+    
     echo -e "${BLUE}💡 使用示例：${NC}"
-    echo -e "  ./quickstart_refactored.sh                          ${DIM}# 使用默认设置 (开发者模式 + conda环境)${NC}"
-    echo -e "  ./quickstart_refactored.sh --standard               ${DIM}# 标准安装 + conda环境${NC}"
-    echo -e "  ./quickstart_refactored.sh --minimal --pip          ${DIM}# 最小安装 + 系统Python环境${NC}"
-    echo -e "  ./quickstart_refactored.sh --dev --conda            ${DIM}# 开发者安装 + conda环境${NC}"
-    echo -e "  ./quickstart_refactored.sh --s --pip                ${DIM}# 标准安装 + 系统Python环境${NC}"
+    echo -e "  ./quickstart.sh                                  ${DIM}# 使用默认设置 (开发者模式 + conda环境)${NC}"
+    echo -e "  ./quickstart.sh --standard                       ${DIM}# 标准安装 + conda环境${NC}"
+    echo -e "  ./quickstart.sh --minimal --pip                  ${DIM}# 最小安装 + 系统Python环境${NC}"
+    echo -e "  ./quickstart.sh --dev --conda                    ${DIM}# 开发者安装 + conda环境${NC}"
+    echo -e "  ./quickstart.sh --s --pip                        ${DIM}# 标准安装 + 系统Python环境${NC}"
+    echo -e "  ./quickstart.sh --vllm                           ${DIM}# 开发者安装 + 准备 VLLM 环境${NC}"
+    echo -e "  ./quickstart.sh --standard --vllm                ${DIM}# 标准安装 + 准备 VLLM 环境${NC}"
     echo ""
 }
 
@@ -99,6 +110,20 @@ parse_install_environment() {
     esac
 }
 
+# 解析 VLLM 参数
+parse_vllm_option() {
+    local param="$1"
+    case "$param" in
+        "--vllm"|"-vllm")
+            INSTALL_VLLM=true
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 解析帮助参数
 parse_help_option() {
     local param="$1"
@@ -134,6 +159,9 @@ parse_arguments() {
             shift
         elif parse_install_environment "$param"; then
             # 安装环境参数
+            shift
+        elif parse_vllm_option "$param"; then
+            # VLLM 安装参数
             shift
         else
             # 未知参数
@@ -200,6 +228,10 @@ set_defaults_and_show_tips() {
             echo -e "  ${BLUE}安装环境:${NC} ${PURPLE}系统Python环境${NC}"
             ;;
     esac
+    
+    if [ "$INSTALL_VLLM" = true ]; then
+        echo -e "  ${BLUE}AI 模型支持:${NC} ${PURPLE}VLLM${NC}"
+    fi
     echo ""
 }
 
@@ -211,6 +243,11 @@ get_install_mode() {
 # 获取解析后的安装环境
 get_install_environment() {
     echo "$INSTALL_ENVIRONMENT"
+}
+
+# 获取是否安装 VLLM
+get_install_vllm() {
+    echo "$INSTALL_VLLM"
 }
 
 # 检查是否需要显示帮助
