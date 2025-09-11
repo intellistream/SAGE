@@ -192,7 +192,7 @@ class IssuesDownloaderV2:
                             
                         issue_number = content.get('number')
                         if (issue_number in issue_numbers and
-                            content.get('repository', {}).get('name') == 'SAGE'):
+                            content.get('repository', {}).get('name') == self.config.repository_name):
                             
                             if issue_number not in self.issue_project_cache:
                                 self.issue_project_cache[issue_number] = []
