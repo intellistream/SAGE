@@ -1,14 +1,28 @@
 # sage.lib/tools/base/base_tool.py
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
+
 
 class BaseTool:
     """
     A base class for building tool classes that perform specific tasks, such as image processing or text detection.
     """
 
-    require_llm_engine = False  # Default is False, tools that need LLM should set this to True
+    require_llm_engine = (
+        False  # Default is False, tools that need LLM should set this to True
+    )
 
-    def __init__(self, tool_name=None, tool_description=None, tool_version=None, input_types=None, output_type=None, demo_commands=None, output_dir=None, user_metadata=None, model_name=None):
+    def __init__(
+        self,
+        tool_name=None,
+        tool_description=None,
+        tool_version=None,
+        input_types=None,
+        output_type=None,
+        demo_commands=None,
+        output_dir=None,
+        user_metadata=None,
+        model_name=None,
+    ):
         """
         Initialize the base tool with optional metadata.
 
@@ -22,7 +36,7 @@ class BaseTool:
             output_dir (str): The directory where the tool should save its output (optional).
             user_metadata (dict): Additional metadata specific to user needs (optional).
             model_name (str): The name of the model to use for the tool.
-            """
+        """
         self.tool_name = tool_name
         self.tool_description = tool_description
         self.tool_version = tool_version
@@ -33,7 +47,16 @@ class BaseTool:
         self.user_metadata = user_metadata
         self.model_name = model_name
 
-    def set_metadata(self, tool_name, tool_description, tool_version, input_types, output_type, demo_commands, user_metadata=None):
+    def set_metadata(
+        self,
+        tool_name,
+        tool_description,
+        tool_version,
+        input_types,
+        output_type,
+        demo_commands,
+        user_metadata=None,
+    ):
         """
         Set the metadata for the tool.
 
@@ -92,7 +115,6 @@ class BaseTool:
         """
         self.model_name = model_name
 
-
     def execute(self, *args, **kwargs) -> Any:
         """
         Execute the tool's main functionality. This method should be overridden by subclasses.
@@ -101,5 +123,3 @@ class BaseTool:
             NotImplementedError: If the subclass does not implement this method.
         """
         raise NotImplementedError("Subclasses must implement the execute method.")
-
-

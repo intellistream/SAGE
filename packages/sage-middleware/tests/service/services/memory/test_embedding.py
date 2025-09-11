@@ -1,17 +1,15 @@
-import sys
 import os
+import sys
 import unittest
 from urllib import response
 
 # 添加正确的项目路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
-sage_middleware_src = os.path.join(current_dir, '../../../../src')
+sage_middleware_src = os.path.join(current_dir, "../../../../src")
 sys.path.insert(0, os.path.abspath(sage_middleware_src))
 
 from httpx import stream
 from sage.middleware.utils.embedding.embedding_api import apply_embedding_model
-
-
 
 
 class EmbeddingTestCase(unittest.TestCase):
@@ -27,9 +25,10 @@ class EmbeddingTestCase(unittest.TestCase):
         self.assertTrue(all(isinstance(x, float) for x in e))
         self.assertIsInstance(embedding_model.get_dim(), int)
 
-
     def test_hf(self):
-        model = apply_embedding_model("hf", model="sentence-transformers/all-MiniLM-L6-v2")
+        model = apply_embedding_model(
+            "hf", model="sentence-transformers/all-MiniLM-L6-v2"
+        )
         e = model.embed("This is huggingface.")
         self.assertIsInstance(e, list)
         self.assertTrue(all(isinstance(x, float) for x in e))
@@ -61,8 +60,5 @@ class EmbeddingTestCase(unittest.TestCase):
     #     self.assertIsInstance(model.get_dim(), int)
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
-
-
