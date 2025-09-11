@@ -5,8 +5,10 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 import ray
 from ray.actor import ActorHandle
 from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.core.communication.stop_signal import StopSignal
 from sage.kernel.runtime.communication.router.connection import Connection
 from sage.kernel.runtime.communication.router.router import BaseRouter
+from sage.kernel.runtime.communication.router.packet import StopSignal
 from sage.kernel.runtime.context.base_context import BaseRuntimeContext
 from sage.kernel.utils.ray.actor import ActorWrapper
 
@@ -18,8 +20,7 @@ if TYPE_CHECKING:
     from sage.kernel.jobmanager.job_manager import JobManager
     from sage.kernel.runtime.communication.queue_descriptor.base_queue_descriptor import \
         BaseQueueDescriptor
-    from sage.kernel.runtime.communication.router.packet import (Packet,
-                                                                 StopSignal)
+    from sage.kernel.runtime.communication.router.packet import Packet
     from sage.kernel.runtime.service.service_caller import ServiceManager
 # task, operator和function "形式上共享"的运行上下文
 
@@ -243,41 +244,44 @@ class TaskContext(BaseRuntimeContext):
                 exc_info=True,
             )
 
-    def handle_stop_signal(self, stop_signal: "StopSignal") -> bool:
-        """
-        在task层处理停止信号计数
-        返回True表示收到了所有预期的停止信号
-        """
-        # 确保received_stop_signals已初始化
-        if self.received_stop_signals is None:
-            self.received_stop_signals = set()
-
-        if stop_signal.name in self.received_stop_signals:
-            self.logger.debug(f"Already received stop signal from {stop_signal.name}")
-            return False
-
-        self.received_stop_signals.add(stop_signal.name)
-        self.logger.info(
-            f"Task {self.name} received stop signal from {stop_signal.name}"
-        )
-
-        self.stop_signal_count += 1
-        if self.stop_signal_count >= self.stop_signal_num:
-            self.logger.info(
-                f"Task {self.name} received all expected stop signals ({self.stop_signal_count}/{self.stop_signal_num})"
-            )
-
-            # 只有非源节点在收到所有预期的停止信号时才通知JobManager
-            # 源节点应该在自己完成时直接通知JobManager
-            if not self.is_spout:
-                self.send_stop_signal_back(self.name)
-
-            return True
+    def handle_stop_signal(self, signal: StopSignal):
+        """Handle the received stop signal."""
+        source_node = signal.name
+        self.logger.info(f"Task {self.name} received stop signal from {source_node}")
+        
+        # Check if this is a JoinOperator that should handle stop signals specially
+        if hasattr(self, 'operator') and hasattr(self.operator, 'handle_stop_signal'):
+            # Let the operator handle the stop signal itself
+            self.operator.handle_stop_signal(signal=signal)
+            return
+        
+        # Initialize stop signal tracking attributes if they don't exist
+        if not hasattr(self, 'num_expected_stop_signals'):
+            self.num_expected_stop_signals = 0
+        if not hasattr(self, 'stop_signals_received'):
+            self.stop_signals_received = set()
+        
+        if self.num_expected_stop_signals > 0:
+            self.stop_signals_received.add(source_node)
+            self.logger.info(f"Task {self.name} received all expected stop signals ({len(self.stop_signals_received)}/{self.num_expected_stop_signals})")
+            
+            if len(self.stop_signals_received) >= self.num_expected_stop_signals:
+                # Send stop signal to job manager
+                self.request_stop()
+                
+                # Forward the signal to downstream nodes
+                if hasattr(self, 'router') and self.router:
+                    self.router.send_stop_signal(signal)
         else:
-            self.logger.info(
-                f"Task {self.name} stop signal count: {self.stop_signal_count}/{self.stop_signal_num}"
-            )
-            return False
+            # No specific number expected, just forward the signal
+            self.logger.info(f"Task {self.name} forwarding stop signal from {source_node}")
+            
+            # Send stop signal to job manager
+            self.request_stop()
+            
+            # Forward the signal to downstream nodes
+            if hasattr(self, 'router') and self.router:
+                self.router.send_stop_signal(signal)
 
     def __del__(self):
         """析构函数 - 确保资源被正确清理"""
