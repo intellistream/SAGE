@@ -1,6 +1,6 @@
-# <div align="center">🧠 SAGE: A Dataflow-Native Framework for LLM Reasoning</div>
+# SAGE: A Dataflow-Native Framework for LLM Reasoning
 
-<div align="center">
+> A declarative, composable framework for building transparent LLM-powered systems through dataflow abstractions.
 
 [![CI](https://github.com/intellistream/SAGE/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -8,29 +8,29 @@
 [![GitHub Issues](https://img.shields.io/github/issues/intellistream/SAGE)](https://github.com/intellistream/SAGE/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/intellistream/SAGE?style=social)](https://github.com/intellistream/SAGE/stargazers)
 
-</div>
-
----
 
 ## What is SAGE?
 
-**SAGE** is a dataflow-native framework that transforms how we build and deploy Large Language Model (LLM) reasoning systems by introducing declarative, composable, and transparent AI workflows.
+SAGE transforms how we build and deploy Large Language Model reasoning systems by introducing declarative, composable, and transparent AI workflows through dataflow abstractions.
 
----
+## Overview
 
-## Abstract
+Existing LLM-augmented systems suffer from rigid orchestration logic, opaque execution paths, and limited runtime control. SAGE addresses these limitations by introducing a dataflow-centric abstraction that models reasoning workflows as directed acyclic graphs (DAGs) composed of typed operators.
 
-Existing LLM-augmented systems suffer from rigid orchestration logic, opaque execution paths, and limited runtime control. SAGE addresses these limitations by introducing a dataflow-centric abstraction that models reasoning workflows as directed acyclic graphs (DAGs) composed of typed operators. This framework enables modular composition of complex reasoning pipelines, unified control and data flow management, native support for stateful operators, and built-in observability for transparent execution monitoring. SAGE bridges the gap between declarative AI application development and efficient distributed execution, providing developers with a systematic approach to building scalable, maintainable, and transparent LLM-powered systems.
+**Key Features:**
+- Modular composition of complex reasoning pipelines
+- Unified control and data flow management
+- Native support for stateful operators
+- Built-in observability for transparent execution monitoring
+- Seamless scaling from development to production
 
----
+## The SAGE Approach
 
-## The SAGE Framework: Rethinking LLM Application Development
+The proliferation of Large Language Models has ushered in a new era of AI applications, from Retrieval-Augmented Generation (RAG) systems to autonomous agents. However, as these systems grow in complexity, developers face challenging issues: hardcoded orchestration logic, opaque execution paths, and limited runtime control.
 
-The proliferation of Large Language Models has ushered in a new era of AI applications, from Retrieval-Augmented Generation (RAG) systems to autonomous agents. However, as these systems grow in complexity, developers face increasingly challenging issues: hardcoded orchestration logic that resists modification, opaque execution paths that hinder debugging, and limited runtime control that complicates optimization and scaling.
+SAGE addresses these challenges through a principled dataflow-native approach. Unlike traditional frameworks that treat LLM interactions as sequential function calls, SAGE models reasoning workflows as **Directed Acyclic Graphs (DAGs)** composed of **typed operators**.
 
-SAGE addresses these fundamental challenges through a principled dataflow-native approach. Unlike traditional frameworks that treat LLM interactions as sequential function calls, SAGE models reasoning workflows as **Directed Acyclic Graphs (DAGs)** composed of **typed operators**. This paradigm shift enables several key innovations:
-
-### Declarative Composition Over Imperative Orchestration
+### Declarative vs Imperative
 
 Traditional LLM applications often suffer from rigid, imperative control flow:
 
@@ -59,29 +59,21 @@ pipeline = (env
 )
 ```
 
-This declarative approach separates **what** to compute from **how** to compute it, enabling automatic optimization, parallelization, and fault tolerance.
+This declarative approach separates what to compute from how to compute it, enabling automatic optimization, parallelization, and fault tolerance.
 
-### Transparent Execution and Observability
+### Built-in Observability
 
-SAGE provides built-in observability at every level. The framework automatically instruments execution graphs, tracks operator-level metrics, and provides real-time debugging capabilities:
+SAGE provides comprehensive observability with automatic instrumentation, operator-level metrics, and real-time debugging capabilities. The integrated dashboard enables developers to visualize execution graphs, monitor resource utilization, and analyze data flow patterns.
 
-![SAGE Dashboard](./.github/asset/framework.png)
+### Seamless Scaling
 
-The integrated dashboard enables developers to:
-- **Visualize execution graphs** in real-time with live status updates
-- **Monitor resource utilization** across distributed components
-- **Debug pipeline behavior** with operator-level profiling
-- **Analyze data flow patterns** and identify bottlenecks
-
-### From Local Development to Distributed Deployment
-
-SAGE abstracts away the complexity of distributed execution. The same pipeline code seamlessly transitions from local development to distributed production:
+SAGE abstracts away the complexity of distributed execution. The same pipeline code works seamlessly from local development to distributed production:
 
 ```python
 # Development - local execution
 env = LocalEnvironment("development")
 
-# Production - distributed execution with Ray
+# Production - distributed execution  
 env = RemoteEnvironment("production")
 
 # Same pipeline code works in both environments
@@ -89,22 +81,18 @@ pipeline = build_reasoning_pipeline(env)
 env.submit(pipeline)
 ```
 
----
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
-Choose your preferred installation method:
-
-#### Option 1: One-Click Setup (Recommended)
+**One-Click Setup (Recommended)**
 ```bash
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 ./quickstart.sh
 ```
 
-#### Option 2: PyPI Installation
+**PyPI Installation**
 ```bash
 # Install core framework
 pip install isage
@@ -113,7 +101,7 @@ pip install isage
 pip install isage && sage-install
 ```
 
-### Your First SAGE Pipeline
+### Your First Pipeline
 
 ```python
 from sage.api.local_environment import LocalEnvironment
@@ -139,38 +127,19 @@ pipeline = (env
 env.submit()
 ```
 
-## 📚 Documentation & Resources
+## Documentation & Resources
 
-- **📖 Documentation**: [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
-- **🚀 Examples**: [examples/](./examples/) directory with tutorials and use cases
-- **⚙️ Configuration**: [config/](./config/) directory with sample configurations
-- **🔧 Installation Guide**: [INSTALL_GUIDE.md](INSTALL_GUIDE.md)
+- **Documentation**: [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
+- **Examples**: [examples/](./examples/) directory with tutorials and use cases
+- **Configuration**: [config/](./config/) directory with sample configurations
+- **Installation Guide**: [INSTALL_GUIDE.md](INSTALL_GUIDE.md)
 
----
+## Contributing
 
-## 🤝 Contributing & Support
+**Bug Reports & Feature Requests**: [GitHub Issues](https://github.com/intellistream/SAGE/issues)  
+**Code Contributions**: Submit pull requests  
+**Community Support**: [GitHub Discussions](https://github.com/intellistream/SAGE/discussions)
 
-**Contributing**:
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/intellistream/SAGE/issues)
-- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/intellistream/SAGE/discussions)
-- 🚀 **Code Contributions**: Submit pull requests
-
-**Getting Help**:
-- 📖 [Troubleshooting Guide](docs/troubleshooting/)
-- 💬 [Community Support](https://github.com/intellistream/SAGE/discussions)
-
----
-
-## 📄 License
+## License
 
 SAGE is licensed under the [MIT License](./LICENSE).
-
----
-
-<div align="center">
-
-**Built with ❤️ by the SAGE Team**
-
-*Transforming AI Application Development*
-
-</div>
