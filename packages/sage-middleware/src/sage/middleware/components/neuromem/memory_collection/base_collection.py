@@ -1,23 +1,26 @@
 # file: sage.middleware.services.neuromem./memory_collection/base_collection.py
 # python -m sage.core.sage.middleware.services.neuromem.memory_collection.base_collection
 
-import os
 import hashlib
+import os
+from typing import Any, Callable, Dict, List, Optional
+
 from dotenv import load_dotenv
-from typing import Dict, Optional, Callable, Any, List
-from sage.middleware.components.neuromem.utils.path_utils import get_default_data_dir
-from sage.middleware.components.neuromem.storage_engine.metadata_storage import MetadataStorage
-from sage.middleware.components.neuromem.storage_engine.text_storage import TextStorage
+from sage.middleware.components.neuromem.storage_engine.metadata_storage import \
+    MetadataStorage
+from sage.middleware.components.neuromem.storage_engine.text_storage import \
+    TextStorage
+from sage.middleware.components.neuromem.utils.path_utils import \
+    get_default_data_dir
 
 # from sage.middleware.services.neuromem..storage_engine.text_storage import TextStorage
 # from sage.middleware.services.neuromem..storage_engine.metadata_storage import MetadataStorage
 
 
-
-
 # 加载工程根目录下 sage/.env 配置
 # Load configuration from .env file under the sage directory
 # load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../../.env'))
+
 
 class BaseMemoryCollection:
     """
@@ -41,7 +44,7 @@ class BaseMemoryCollection:
         self,
         ids: List[str],
         metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
-        **metadata_conditions
+        **metadata_conditions,
     ) -> List[str]:
         """
         Filter given IDs based on metadata filter rag or exact match conditions.
@@ -89,29 +92,37 @@ class BaseMemoryCollection:
             for field_name in metadata.keys():
                 if not self.metadata_storage.has_field(field_name):
                     self.metadata_storage.add_field(field_name)
-            
+
             self.metadata_storage.store(stable_id, metadata)
 
         return stable_id
-    
+
     def retrieve(
         self,
         with_metadata: bool = False,
         metadata_filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
-        **metadata_conditions
+        **metadata_conditions,
     ):
         """
         Retrieve raw texts optionally filtered by metadata.
         根据元数据（条件或函数）检索原始文本。
         """
         all_ids = self.get_all_ids()
-        matched_ids = self.filter_ids(all_ids, metadata_filter_func, **metadata_conditions)
+        matched_ids = self.filter_ids(
+            all_ids, metadata_filter_func, **metadata_conditions
+        )
         # return [self.text_storage.get(i) for i in matched_ids]
         if with_metadata:
-            return [{"text": self.text_storage.get(i), "metadata": self.metadata_storage.get(i)} for i in matched_ids]
+            return [
+                {
+                    "text": self.text_storage.get(i),
+                    "metadata": self.metadata_storage.get(i),
+                }
+                for i in matched_ids
+            ]
         else:
             return [self.text_storage.get(i) for i in matched_ids]
-        
+
     def clear(self):
         """
         Clear all stored text and metadata.
@@ -119,12 +130,14 @@ class BaseMemoryCollection:
         """
         self.text_storage.clear()
         self.metadata_storage.clear()
-    
+
+
 if __name__ == "__main__":
 
     def basetest():
         import time
         from datetime import datetime
+
         col = BaseMemoryCollection("demo")
         col.add_metadata_field("source")
         col.add_metadata_field("lang")
@@ -132,9 +145,18 @@ if __name__ == "__main__":
 
         # 添加带时间戳的数据
         current_time = time.time()
-        col.insert("hello world", {"source": "user", "lang": "en", "timestamp": current_time - 3600})  # 1小时前
-        col.insert("你好，世界", {"source": "user", "lang": "zh", "timestamp": current_time - 1800})  # 30分钟前
-        col.insert("bonjour le monde", {"source": "web", "lang": "fr", "timestamp": current_time})  # 现在
+        col.insert(
+            "hello world",
+            {"source": "user", "lang": "en", "timestamp": current_time - 3600},
+        )  # 1小时前
+        col.insert(
+            "你好，世界",
+            {"source": "user", "lang": "zh", "timestamp": current_time - 1800},
+        )  # 30分钟前
+        col.insert(
+            "bonjour le monde",
+            {"source": "web", "lang": "fr", "timestamp": current_time},
+        )  # 现在
 
         print("=== Filter by keyword ===")
         res1 = col.retrieve(source="user")
@@ -142,26 +164,39 @@ if __name__ == "__main__":
             print(r)
 
         print("\n=== Filter by custom rag (language) ===")
-        res2 = col.retrieve(metadata_filter_func=lambda m: m.get("lang") in {"zh", "fr"})
+        res2 = col.retrieve(
+            metadata_filter_func=lambda m: m.get("lang") in {"zh", "fr"}
+        )
         for r in res2:
             print(r)
 
         print(f"\nCurrent time: {datetime.fromtimestamp(current_time)}")
-        
+
         print("\n=== Filter by timestamp (last 45 minutes) ===")
         time_threshold = current_time - 2700  # 45分钟前
-        matched_ids = col.filter_ids(col.get_all_ids(), metadata_filter_func=lambda m: m.get("timestamp", 0) > time_threshold)
+        matched_ids = col.filter_ids(
+            col.get_all_ids(),
+            metadata_filter_func=lambda m: m.get("timestamp", 0) > time_threshold,
+        )
         for item_id in matched_ids:
             text = col.text_storage.get(item_id)
             metadata = col.metadata_storage.get(item_id)
-            print(f"{text} (timestamp: {datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')})")
+            print(
+                f"{text} (timestamp: {datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')})"
+            )
 
         print("\n=== Filter by timestamp range (30-60 minutes ago) ===")
         start_time = current_time - 3600  # 1小时前
-        end_time = current_time - 1800    # 30分钟前
-        matched_ids = col.filter_ids(col.get_all_ids(), metadata_filter_func=lambda m: start_time <= m.get("timestamp", 0) <= end_time)
+        end_time = current_time - 1800  # 30分钟前
+        matched_ids = col.filter_ids(
+            col.get_all_ids(),
+            metadata_filter_func=lambda m: start_time
+            <= m.get("timestamp", 0)
+            <= end_time,
+        )
         for item_id in matched_ids:
             text = col.text_storage.get(item_id)
             metadata = col.metadata_storage.get(item_id)
-            print(f"{text} (timestamp: {datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')})")
-
+            print(
+                f"{text} (timestamp: {datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')})"
+            )

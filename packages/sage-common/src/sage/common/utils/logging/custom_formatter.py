@@ -1,12 +1,11 @@
+import inspect
 import logging
 import os
 import sys
+import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Union, Optional
-import threading
-import inspect
-
+from typing import Optional, Union
 
 
 class CustomFormatter(logging.Formatter):
@@ -16,13 +15,13 @@ class CustomFormatter(logging.Formatter):
     第二行：	→ 日志消息
     第三行： 留空
     """
+
     COLOR_RESET = "\033[0m"
     COLOR_DEBUG = "\033[36m"  # 青色
-    COLOR_INFO = "\033[32m"   # 绿色
-    COLOR_WARNING = "\033[33m" # 黄色
+    COLOR_INFO = "\033[32m"  # 绿色
+    COLOR_WARNING = "\033[33m"  # 黄色
     COLOR_ERROR = "\033[31m"  # 红色
-    COLOR_CRITICAL = "\033[35m" # 紫色
-
+    COLOR_CRITICAL = "\033[35m"  # 紫色
 
     def format(self, record):
 
@@ -40,7 +39,7 @@ class CustomFormatter(logging.Formatter):
             color = self.COLOR_RESET
 
         # 第一行：时间 | 级别 | 对象名 | 文件路径:行号
-        timestamp = self.formatTime(record, '%Y-%m-%d %H:%M:%S')
+        timestamp = self.formatTime(record, "%Y-%m-%d %H:%M:%S")
         level = record.levelname
         name = record.name
         pathname = record.pathname
@@ -54,9 +53,9 @@ class CustomFormatter(logging.Formatter):
             if not record.exc_text:
                 record.exc_text = self.formatException(record.exc_info)
         if record.exc_text:
-            message = message + '\n' + record.exc_text
+            message = message + "\n" + record.exc_text
         if record.stack_info:
-            message = message + '\n' + self.formatStack(record.stack_info)
+            message = message + "\n" + self.formatStack(record.stack_info)
 
         # 组合格式：既美观又支持IDE点击
         formatted_message = f"{timestamp} | {level:<5} | {name} | {pathname}:{lineno} →\n\t {color}{message}{self.COLOR_RESET}\n"

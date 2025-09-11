@@ -1,19 +1,20 @@
 import json
 import os
-from dataclasses import dataclass, field, asdict
-from typing import Any, List, Dict, Tuple, Optional
-from enum import Enum
-from uuid import uuid4
 import time
+from dataclasses import asdict, dataclass, field
+from enum import Enum
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+from uuid import uuid4
 
-from .search_result import SearchResult
 from .search_query_results import SearchQueryResults
+from .search_result import SearchResult
 
 
 @dataclass
 class SearchSession:
     """整个搜索会话的结果集合"""
+
     session_id: str = field(default_factory=lambda: str(uuid4()))
     query_results: List[SearchQueryResults] = field(default_factory=list)
     session_timestamp: int = field(default_factory=lambda: int(time.time() * 1000))
@@ -65,18 +66,20 @@ class SearchSession:
             "query_results": [qr.to_dict() for qr in self.query_results],
             "session_timestamp": self.session_timestamp,
             "original_question": self.original_question,
-            "session_metadata": self.session_metadata.copy()
+            "session_metadata": self.session_metadata.copy(),
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'SearchSession':
+    def from_dict(cls, data: Dict[str, Any]) -> "SearchSession":
         """从字典创建SearchSession"""
-        query_results = [SearchQueryResults.from_dict(qr) for qr in data.get("query_results", [])]
-        
+        query_results = [
+            SearchQueryResults.from_dict(qr) for qr in data.get("query_results", [])
+        ]
+
         return cls(
             session_id=data.get("session_id", str(uuid4())),
             query_results=query_results,
             session_timestamp=data.get("session_timestamp", int(time.time() * 1000)),
             original_question=data.get("original_question", ""),
-            session_metadata=data.get("session_metadata", {})
+            session_metadata=data.get("session_metadata", {}),
         )

@@ -1,7 +1,6 @@
-import sys
-import re
 import json
-
+import re
+import sys
 
 if sys.version_info < (3, 9):
     pass
@@ -22,10 +21,7 @@ except ImportError:
 
 
 async def zhipu_embedding(
-    text: str,
-    model: str = "embedding-3",
-    api_key: str = None,
-    **kwargs
+    text: str, model: str = "embedding-3", api_key: str = None, **kwargs
 ) -> list:
     """
     Generate embedding for a single text using ZhipuAI.
@@ -51,12 +47,10 @@ async def zhipu_embedding(
         return response.data[0].embedding
     except Exception as e:
         raise Exception(f"Error calling ChatGLM Embedding API: {str(e)}")
-    
+
+
 def zhipu_embedding_sync(
-    text: str,
-    model: str = "embedding-3",
-    api_key: str = None,
-    **kwargs
+    text: str, model: str = "embedding-3", api_key: str = None, **kwargs
 ) -> list[float]:
     """
     同步调用 ZhipuAI 生成 embedding 向量。
@@ -82,4 +76,3 @@ def zhipu_embedding_sync(
         return response.data[0].embedding
     except Exception as e:
         raise Exception(f"Error calling ChatGLM Embedding API: {str(e)}")
-
