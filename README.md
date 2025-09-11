@@ -82,33 +82,12 @@ SAGE abstracts away the complexity of distributed execution. The same pipeline c
 env = LocalEnvironment("development")
 
 # Production - distributed execution with Ray
-env = RemoteEnvironment("production", cluster_address="ray://head:10001")
+env = RemoteEnvironment("production")
 
 # Same pipeline code works in both environments
 pipeline = build_reasoning_pipeline(env)
 env.submit(pipeline)
 ```
-
-### Advanced Architectural Innovations
-
-**Asynchronous, Event-Driven Execution**: SAGE's runtime executes DAGs asynchronously with built-in backpressure, stream-aware queues, and event-driven scheduling, ensuring robust handling of complex workloads.
-
-**Intelligent Optimization**: The execution engine performs automatic parallelization, operator fusion, and resource optimization based on graph analysis and runtime characteristics.
-
-**Service-Oriented Integration**: Native support for microservices architecture with automatic service discovery, load balancing, and health monitoring.
-
-**Fault Tolerance and Recovery**: Built-in checkpoint mechanisms, automatic retry policies, and graceful degradation ensure system reliability.
-
-### The Broader Impact
-
-SAGE represents more than a new framework—it introduces a new paradigm for AI application development. By treating reasoning workflows as data, SAGE enables:
-
-- **Compositional AI**: Build complex systems by composing simple, reusable components
-- **Transparent AI**: Understand and debug AI system behavior through comprehensive observability
-- **Scalable AI**: Seamlessly scale from prototypes to production-grade systems
-- **Maintainable AI**: Evolve and modify AI applications without architectural rewrites
-
-As LLM-powered systems become increasingly central to software infrastructure, SAGE provides the foundational abstractions needed to build them systematically, transparently, and at scale. The framework bridges the gap between the declarative nature of AI application logic and the imperative requirements of efficient execution, offering developers a principled approach to the next generation of intelligent systems.
 
 ---
 
@@ -160,49 +139,6 @@ pipeline = (env
 env.submit()
 ```
 
----
-
-## 🏗️ Architecture & Components
-
-### Core Components
-
-#### 🧩 **Operators & Functions**
-SAGE follows a Flink-style pipeline architecture with composable, typed operators:
-
-| Operator | Description |
-|----------|-------------|
-| `from_source()` | Read input data from external systems |
-| `map()` | Apply stateless transformations (1:1) |
-| `flatmap()` | Apply transformations with variable output (1:N) |
-| `sink()` | Write output to terminal destinations |
-
-#### 🔧 **Function Types**
-| Function Type | Purpose | Examples |
-|---------------|---------|----------|
-| `SourceFunction` | Data ingestion | `FileSource`, `KafkaSource` |
-| `RetrievalFunction` | Document retrieval | `DenseRetriever`, `BM25Retriever` |
-| `PromptFunction` | Prompt engineering | `QAPromptor`, `ChatPromptor` |
-| `GenerationFunction` | LLM inference | `OpenAIGenerator`, `VLLMGenerator` |
-| `AgentFunction` | Multi-step reasoning | `AnswerBot`, `SearcherBot` |
-
-#### 💾 **Memory System**
-- **Multi-Backend Support**: Vector databases, key-value stores, graph databases
-- **Advanced Indexing**: Multi-index support with metadata filtering
-- **Persistent Storage**: Automatic serialization and recovery
-- **Service Integration**: Memory-as-a-Service with REST API
-
-### 🚀 Execution Environments
-
-#### **LocalEnvironment**
-- Multi-threaded parallel processing
-- Direct JobManager integration
-- Optimized for development and testing
-
-#### **RemoteEnvironment** 
-- Ray-based distributed execution
-- Horizontal scaling across nodes
-- Production-grade fault tolerance
-
 ## 📚 Documentation & Resources
 
 - **📖 Documentation**: [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
@@ -222,7 +158,6 @@ SAGE follows a Flink-style pipeline architecture with composable, typed operator
 **Getting Help**:
 - 📖 [Troubleshooting Guide](docs/troubleshooting/)
 - 💬 [Community Support](https://github.com/intellistream/SAGE/discussions)
-- 📧 **Enterprise Support**: enterprise@sage-ai.com
 
 ---
 

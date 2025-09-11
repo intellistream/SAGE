@@ -92,14 +92,7 @@ issues-management/
 │   ├── ai_analyzer.py          # AI智能分析
 │   ├── sync_issues.py          # 同步到GitHub
 │   └── helpers/                # 辅助工具和GitHub操作
-│       ├── _github_operations.py      # GitHub API操作
-│       ├── team_issues_manager.py     # 团队Issues管理
-│       ├── get_team_members.py        # 团队成员信息
-│       ├── generate_team_analysis.py  # 团队分析报告
-│       ├── 1_create_github_issue.py   # 创建GitHub Issue
-│       ├── 2_download_issues.py       # Issues下载实现
-│       ├── 5_sync_issues_to_github.py # Issues同步实现
-│       └── 6_move_issues_to_project.py # Issues项目移动
+│       ├── ...
 ├── issues_workspace/           # Issues数据存储
 ├── output/                     # AI分析报告和统计结果
 └── README.md                   # 本文档
