@@ -33,8 +33,8 @@ main() {
     # 显示欢迎界面
     show_welcome
     
-    # 如果没有指定任何参数，显示交互式菜单
-    if [ $# -eq 0 ]; then
+    # 如果没有指定任何参数且不在 CI 环境中，显示交互式菜单
+    if [ $# -eq 0 ] && [[ -z "$CI" && -z "$GITHUB_ACTIONS" && -z "$GITLAB_CI" && -z "$JENKINS_URL" && -z "$BUILDKITE" ]]; then
         show_installation_menu
     fi
     
