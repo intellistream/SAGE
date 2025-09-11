@@ -1,8 +1,10 @@
 import os
+
 import requests
 from bs4 import BeautifulSoup
 
 from .base.base_tool import BaseTool
+
 
 class URL_Text_Extractor_Tool(BaseTool):
     def __init__(self):
@@ -17,11 +19,11 @@ class URL_Text_Extractor_Tool(BaseTool):
             demo_commands=[
                 {
                     "command": 'execution = tool.execute(url="https://example.com")',
-                    "description": "Extract all text from the example.com website."
+                    "description": "Extract all text from the example.com website.",
                 },
                 {
                     "command": 'execution = tool.execute(url="https://en.wikipedia.org/wiki/Python_(programming_language)")',
-                    "description": "Extract all text from the Wikipedia page about Python programming language."
+                    "description": "Extract all text from the Wikipedia page about Python programming language.",
                 },
             ],
         )
@@ -41,9 +43,9 @@ class URL_Text_Extractor_Tool(BaseTool):
         try:
             response = requests.get(url)
             response.raise_for_status()
-            soup = BeautifulSoup(response.content, 'html.parser')
-            text = soup.get_text(separator='\n', strip=True)
-            text = text[:10000] # Limit the text to 10000 characters
+            soup = BeautifulSoup(response.content, "html.parser")
+            text = soup.get_text(separator="\n", strip=True)
+            text = text[:10000]  # Limit the text to 10000 characters
             return text
         except requests.RequestException as e:
             return f"Error fetching URL: {str(e)}"
@@ -52,11 +54,8 @@ class URL_Text_Extractor_Tool(BaseTool):
 
     def execute(self, url):
         extracted_text = self.extract_text_from_url(url)
-        return {
-            "url": url,
-            "extracted_text": extracted_text
-        }
-    
+        return {"url": url, "extracted_text": extracted_text}
+
     def get_metadata(self):
         """
         Returns the metadata for the URL_Text_Extractor_Tool.

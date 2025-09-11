@@ -29,6 +29,7 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from config import Config, GitHubClient
 from helpers.github_helper import GitHubProjectManager
+from issue_data_manager import IssueDataManager
 import requests
 import time
 import glob
@@ -60,6 +61,9 @@ class IssuesSyncer:
         self.project_manager = GitHubProjectManager()
         self.workspace_dir = self.config.workspace_path
         self.output_dir = self.config.output_path
+        
+        # 初始化数据管理器
+        self.data_manager = IssueDataManager(self.workspace_dir)
         
         # 默认启用强制更新
         self.force_update = True
@@ -97,6 +101,69 @@ class IssuesSyncer:
                 print(f"   ... 以及其他 {len(all_changes) - 20} 个更改")
         
         return all_changes
+
+    def detect_changes_limited(self, limit=50, recent_only=False):
+        """检测有限数量的更改（用于快速预览）"""
+        from datetime import datetime, timedelta
+        
+        changes = []
+        
+        # 使用新架构：读取data目录下的JSON文件
+        data_dir = self.workspace_dir / "data"
+        if not data_dir.exists():
+            print("❌ data目录不存在，请先下载issues数据")
+            return changes
+        
+        files = list(data_dir.glob("issue_*.json"))
+        
+        # 如果只检查最近更新的issues
+        if recent_only:
+            cutoff_date = datetime.now() - timedelta(days=7)
+            filtered_files = []
+            
+            for f in files:
+                try:
+                    issue_data = self.data_manager.get_issue(int(f.stem.split('_')[1]))
+                    if issue_data:
+                        updated_str = issue_data['metadata'].get('updated_at', '')
+                        if updated_str:
+                            updated_date = datetime.fromisoformat(updated_str.replace('Z', '+00:00'))
+                            if updated_date.replace(tzinfo=None) > cutoff_date:
+                                filtered_files.append(f)
+                except:
+                    continue
+            
+            files = filtered_files
+            print(f"🔍 过滤到最近7天更新的issues: {len(files)} 个")
+        
+        # 限制检查数量
+        files = files[:limit]
+        print(f"🔎 检查 {len(files)} 个JSON文件...")
+        
+        for i, f in enumerate(files):
+            print(f"🔎 进度: {i+1}/{len(files)} - Issue #{f.stem.split('_')[1]}")
+            
+            try:
+                # 使用数据管理器读取issue
+                issue_number = int(f.stem.split('_')[1])
+                local_data = self.data_manager.get_issue(issue_number)
+                if not local_data:
+                    continue
+                
+                # 获取远端数据
+                remote_data = self._get_remote_issue(issue_number)
+                if not remote_data:
+                    continue
+                
+                # 比较并检测更改
+                changes_detected = self._compare_basic_attributes_json(local_data, remote_data, issue_number, str(f))
+                changes.extend(changes_detected)
+                
+            except Exception as e:
+                print(f"❌ 处理文件 {f} 时出错: {e}")
+                continue
+        
+        return changes
         
     def sync_all_changes(self, apply_projects=False, auto_confirm=False):
         """统一同步所有类型的更改"""
@@ -163,7 +230,60 @@ class IssuesSyncer:
                 print(f"❌ 项目板更改处理失败")
         
         print(f"\n✨ 同步完成: {success_count}/{len(changes)} 个更改成功")
+        
+        # 如果有成功的更改，重新生成视图
+        if success_count > 0:
+            print(f"\n🔄 重新生成视图...")
+            try:
+                # 重新下载并更新本地数据
+                self._update_local_data_after_sync(basic_changes[:success_count])
+                
+                # 重新生成所有视图
+                self.data_manager.generate_all_views()
+                print(f"✅ 视图重新生成完成")
+            except Exception as e:
+                print(f"⚠️ 视图重新生成失败: {e}")
+        
         return success_count == len(changes)
+
+    def _update_local_data_after_sync(self, successful_changes):
+        """同步成功后更新本地数据"""
+        for change in successful_changes:
+            if change['type'] == 'basic':
+                issue_number = change['issue_number']
+                try:
+                    # 重新从GitHub获取最新数据
+                    remote_data = self._get_remote_issue(issue_number)
+                    if remote_data:
+                        # 获取现有的本地数据
+                        local_data = self.data_manager.get_issue(issue_number)
+                        if local_data:
+                            # 更新metadata部分
+                            local_data['metadata'].update({
+                                'title': remote_data.get('title', ''),
+                                'labels': [label.get('name') for label in remote_data.get('labels', [])],
+                                'assignees': [remote_data['assignee']['login']] if remote_data.get('assignee') else [],
+                                'milestone': remote_data.get('milestone'),
+                                'updated_at': remote_data.get('updated_at')
+                            })
+                            
+                            # 更新content部分
+                            local_data['content']['body'] = remote_data.get('body', '')
+                            
+                            # 更新tracking信息
+                            local_data['tracking']['last_synced'] = datetime.now().isoformat()
+                            local_data['tracking']['update_history'].append({
+                                'timestamp': datetime.now().isoformat(),
+                                'action': 'sync_update',
+                                'github_updated': remote_data.get('updated_at')
+                            })
+                            
+                            # 保存更新后的数据
+                            self.data_manager.save_issue(issue_number, local_data)
+                            print(f"  ✅ 已更新本地数据: Issue #{issue_number}")
+                        
+                except Exception as e:
+                    print(f"  ⚠️ 更新本地数据失败 Issue #{issue_number}: {e}")
     
     def _sync_basic_changes_only(self, basic_changes):
         """仅同步基本属性更改"""
@@ -433,49 +553,130 @@ class IssuesSyncer:
         """检测基本属性更改 (assignee, labels, title, body, milestone)"""
         changes = []
         
-        issues_dir = self.workspace_dir / "issues"
-        if not issues_dir.exists():
+        # 使用新架构：读取data目录下的JSON文件
+        data_dir = self.workspace_dir / "data"
+        if not data_dir.exists():
+            print("❌ data目录不存在，请先下载issues数据")
             return changes
         
-        files = list(issues_dir.glob("open_*.md"))
-        print(f"🔎 scanning {len(files)} files for basic changes...")
+        files = list(data_dir.glob("issue_*.json"))
+        print(f"🔎 scanning {len(files)} JSON files for basic changes...")
         
         for i, f in enumerate(files):
             if i % 50 == 0:
                 print(f"🔎 scanning files... progress: {i}/{len(files)}")
             
-            # 解析issue号
-            issue_match = re.search(r'open_(\d+)_', f.name)
-            if not issue_match:
+            try:
+                # 使用数据管理器读取issue
+                issue_number = int(f.stem.split('_')[1])
+                local_data = self.data_manager.get_issue(issue_number)
+                if not local_data:
+                    continue
+                
+                # 获取远端数据
+                remote_data = self._get_remote_issue(issue_number)
+                if not remote_data:
+                    continue
+                
+                # 比较并检测更改
+                changes_detected = self._compare_basic_attributes_json(local_data, remote_data, issue_number, str(f))
+                changes.extend(changes_detected)
+                
+            except Exception as e:
+                print(f"❌ 处理文件 {f} 时出错: {e}")
                 continue
-            
-            issue_number = int(issue_match.group(1))
-            
-            # 读取本地文件内容
-            text = f.read_text(encoding='utf-8')
-            local_data = self._parse_local_issue(text)
-            
-            # 获取远端数据
-            remote_data = self._get_remote_issue(issue_number)
-            if not remote_data:
-                continue
-            
-            # 比较并检测更改
-            changes_detected = self._compare_basic_attributes(local_data, remote_data, issue_number, str(f))
-            changes.extend(changes_detected)
         
         return changes
+
+    def check_outdated_timestamps(self, limit=50, recent_only=False):
+        """超快速检查：只比较时间戳，不调用GitHub API获取详细数据"""
+        from datetime import datetime, timedelta
+        
+        outdated_issues = []
+        
+        # 使用新架构：读取data目录下的JSON文件
+        data_dir = self.workspace_dir / "data"
+        if not data_dir.exists():
+            print("❌ data目录不存在，请先下载issues数据")
+            return outdated_issues
+        
+        files = list(data_dir.glob("issue_*.json"))
+        
+        # 如果只检查最近更新的issues
+        if recent_only:
+            cutoff_date = datetime.now() - timedelta(days=7)
+            filtered_files = []
+            
+            for f in files:
+                try:
+                    issue_data = self.data_manager.get_issue(int(f.stem.split('_')[1]))
+                    if issue_data:
+                        updated_str = issue_data['metadata'].get('updated_at', '')
+                        if updated_str:
+                            updated_date = datetime.fromisoformat(updated_str.replace('Z', '+00:00'))
+                            if updated_date.replace(tzinfo=None) > cutoff_date:
+                                filtered_files.append(f)
+                except:
+                    continue
+            
+            files = filtered_files
+            print(f"🔍 过滤到最近7天更新的issues: {len(files)} 个")
+        
+        # 限制检查数量
+        files = files[:limit]
+        print(f"🔎 检查 {len(files)} 个JSON文件的时间戳...")
+        
+        for i, f in enumerate(files):
+            if i % 10 == 0:
+                print(f"🔎 进度: {i+1}/{len(files)}")
+            
+            try:
+                # 读取本地数据
+                issue_number = int(f.stem.split('_')[1])
+                local_data = self.data_manager.get_issue(issue_number)
+                if not local_data:
+                    continue
+                
+                # 获取本地记录的GitHub更新时间
+                local_github_time = local_data['metadata'].get('updated_at', '')
+                local_sync_time = local_data['tracking'].get('last_synced', '')
+                
+                if not local_github_time:
+                    continue
+                
+                # 简单的启发式检查：如果本地有未同步的修改时间晚于GitHub时间，可能需要同步
+                try:
+                    github_time = datetime.fromisoformat(local_github_time.replace('Z', '+00:00'))
+                    sync_time = datetime.fromisoformat(local_sync_time) if local_sync_time else github_time
+                    
+                    # 如果同步时间早于GitHub时间，说明GitHub上有新的更新
+                    if sync_time < github_time:
+                        outdated_issues.append({
+                            'number': issue_number,
+                            'local_time': sync_time.strftime('%Y-%m-%d %H:%M:%S'),
+                            'github_time': github_time.strftime('%Y-%m-%d %H:%M:%S')
+                        })
+                        
+                except Exception as e:
+                    continue
+                    
+            except Exception as e:
+                continue
+        
+        return outdated_issues
 
     def detect_project_changes(self):
         """检测项目板更改"""
         changes = []
         
-        issues_dir = self.workspace_dir / "issues"
-        if not issues_dir.exists():
+        # 使用新架构：读取data目录下的JSON文件
+        data_dir = self.workspace_dir / "data"
+        if not data_dir.exists():
+            print("❌ data目录不存在，请先下载issues数据")
             return changes
         
-        files = list(issues_dir.glob("open_*.md"))
-        print(f"🔎 scanning {len(files)} files for project changes...")
+        files = list(data_dir.glob("issue_*.json"))
+        print(f"🔎 scanning {len(files)} JSON files for project changes...")
         
         # 批量获取所有项目数据，避免重复API调用
         print("📥 预加载项目板数据...")
@@ -496,32 +697,38 @@ class IssuesSyncer:
             if i % 50 == 0:
                 print(f"🔎 scanning files... progress: {i}/{len(files)}")
             
-            # 解析issue号
-            issue_match = re.search(r'open_(\d+)_', f.name)
-            if not issue_match:
-                continue
-            
-            issue_number = int(issue_match.group(1))
-            
-            # 读取本地文件内容
-            text = f.read_text(encoding='utf-8')
-            local_project = self._parse_local_project(text)
-            
-            if local_project:
-                # 使用缓存数据检查issue当前所在的项目
-                current_projects = self._get_issue_current_projects_from_cache(issue_number, project_items_cache)
+            try:
+                # 使用数据管理器读取issue
+                issue_number = int(f.stem.split('_')[1])
+                local_data = self.data_manager.get_issue(issue_number)
+                if not local_data:
+                    continue
                 
-                expected_project_num = self.team_to_project.get(local_project)
-                if expected_project_num and expected_project_num not in current_projects:
-                    changes.append({
-                        'type': 'project',
-                        'description': f"Issue #{issue_number} - 移动到项目 {local_project}",
-                        'issue_number': issue_number,
-                        'current_projects': current_projects,
-                        'target_project': local_project,
-                        'target_project_number': expected_project_num,
-                        'file': str(f)
-                    })
+                # 从JSON数据中获取项目信息
+                local_projects = local_data.get('metadata', {}).get('projects', [])
+                if local_projects:
+                    # 取第一个项目的team信息
+                    local_project_team = local_projects[0].get('team')
+                    
+                    if local_project_team:
+                        # 使用缓存数据检查issue当前所在的项目
+                        current_projects = self._get_issue_current_projects_from_cache(issue_number, project_items_cache)
+                        
+                        expected_project_num = self.team_to_project.get(local_project_team)
+                        if expected_project_num and expected_project_num not in current_projects:
+                            changes.append({
+                                'type': 'project',
+                                'description': f"Issue #{issue_number} - 移动到项目 {local_project_team}",
+                                'issue_number': issue_number,
+                                'current_projects': current_projects,
+                                'target_project': local_project_team,
+                                'target_project_number': expected_project_num,
+                                'file': str(f)
+                            })
+                            
+            except Exception as e:
+                print(f"❌ 处理文件 {f} 时出错: {e}")
+                continue
         
         return changes
 
@@ -774,6 +981,77 @@ class IssuesSyncer:
         
         return changes
 
+    def _compare_basic_attributes_json(self, local_data, remote_data, issue_number, file_path):
+        """比较基本属性并生成更改列表 - JSON格式版本"""
+        changes = []
+        
+        # 从JSON数据中提取信息
+        local_metadata = local_data.get('metadata', {})
+        local_content = local_data.get('content', {})
+        
+        local_title = local_metadata.get('title', '')
+        local_body = local_content.get('body', '')
+        local_labels = local_metadata.get('labels', [])
+        local_assignees = local_metadata.get('assignees', [])
+        local_assignee = local_assignees[0] if local_assignees else None
+        local_milestone = local_metadata.get('milestone', {})
+        local_milestone_title = local_milestone.get('title') if local_milestone else None
+        
+        # 获取远端数据
+        remote_title = remote_data.get('title', '')
+        remote_body = remote_data.get('body', '')
+        remote_labels = [label.get('name') for label in remote_data.get('labels', [])]
+        remote_assignee = None
+        if remote_data.get('assignee'):
+            remote_assignee = remote_data['assignee']['login']
+        remote_milestone = None
+        if remote_data.get('milestone'):
+            remote_milestone = remote_data['milestone']['title']
+        
+        # 比较各个属性
+        changed_attrs = []
+        
+        if local_title and local_title != remote_title:
+            changed_attrs.append('标题')
+        
+        if local_body and local_body != remote_body:
+            changed_attrs.append('内容')
+        
+        if set(local_labels) != set(remote_labels):
+            changed_attrs.append('标签')
+        
+        if local_assignee != remote_assignee:
+            changed_attrs.append('分配给')
+        
+        if local_milestone_title != remote_milestone:
+            changed_attrs.append('里程碑')
+        
+        if changed_attrs:
+            changes.append({
+                'type': 'basic',
+                'description': f"Issue #{issue_number} - 更新{'/'.join(changed_attrs)}",
+                'issue_number': issue_number,
+                'file': file_path,
+                'local_data': {
+                    'title': local_title,
+                    'body': local_body,
+                    'labels': local_labels,
+                    'assignee': local_assignee,
+                    'milestone': local_milestone_title
+                },
+                'remote_data': {
+                    'title': remote_title,
+                    'body': remote_body,
+                    'labels': remote_labels,
+                    'assignee': remote_assignee,
+                    'milestone': remote_milestone
+                },
+                'remote_updated_at': remote_data.get('updated_at'),
+                'changed_attributes': changed_attrs
+            })
+        
+        return changes
+
     def sync_label_changes(self):
         label_changes = self.detect_label_changes()
         if not label_changes:
@@ -953,10 +1231,16 @@ def main():
     parser = argparse.ArgumentParser(description="统一的Issues同步工具")
     
     # 添加新的统一命令
-    parser.add_argument("command", nargs="?", choices=["sync", "status", "preview"], 
-                       help="操作命令: sync (同步), status (状态), preview (预览)")
+    parser.add_argument("command", nargs="?", choices=["sync", "status", "preview", "quick-preview", "timestamp-check"], 
+                       help="操作命令: sync (同步), status (状态), preview (预览), quick-preview (快速预览), timestamp-check (时间戳检查)")
     parser.add_argument("issue_number", nargs="?", type=int, 
                        help="要同步的特定issue编号 (与sync命令一起使用)")
+    
+    # 预览优化参数
+    parser.add_argument("--limit", type=int, default=50, 
+                       help="限制检查的issues数量 (默认50)")
+    parser.add_argument("--recent-only", action="store_true", 
+                       help="只检查最近7天更新的issues")
     
     # 项目板同步优化参数
     parser.add_argument("--apply-projects", action="store_true", 
@@ -1010,6 +1294,34 @@ def main():
                 print(f"   - {change['description']}")
             if len(changes) > 50:
                 print(f"   ... 以及其他 {len(changes) - 50} 个更改")
+        success = True
+    elif args.command == "quick-preview":
+        # 快速预览（只检查少量issues）
+        print(f"🚀 快速预览模式（最多检查 {args.limit} 个issues）")
+        changes = syncer.detect_changes_limited(
+            limit=args.limit, 
+            recent_only=args.recent_only
+        )
+        if not changes:
+            print("✅ 没有检测到需要同步的更改")
+        else:
+            print(f"📋 检测到 {len(changes)} 个待同步更改:")
+            for change in changes:
+                print(f"   - {change['description']}")
+        success = True
+    elif args.command == "timestamp-check":
+        # 超快速检查（只比较时间戳）
+        print(f"⚡ 超快速时间戳检查（最多检查 {args.limit} 个issues）")
+        outdated_issues = syncer.check_outdated_timestamps(
+            limit=args.limit, 
+            recent_only=args.recent_only
+        )
+        if not outdated_issues:
+            print("✅ 所有issues的时间戳都是最新的")
+        else:
+            print(f"⚠️ 发现 {len(outdated_issues)} 个可能需要同步的issues:")
+            for issue_info in outdated_issues:
+                print(f"   - Issue #{issue_info['number']}: 本地={issue_info['local_time']}, GitHub={issue_info['github_time']}")
         success = True
     # 处理旧的命令行选项 (保持兼容性)
     elif args.all:

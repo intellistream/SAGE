@@ -1,9 +1,10 @@
 import os
+
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 from sage.middleware.utils.embedding.embedding_model import EmbeddingModel
 
 
-def apply_embedding_model(name: str = "default",**kwargs) -> EmbeddingModel:
+def apply_embedding_model(name: str = "default", **kwargs) -> EmbeddingModel:
     """
     usage  参见sage/api/model/operator_test.py
     while name(method) = "hf", please set the param:model;
@@ -11,4 +12,4 @@ def apply_embedding_model(name: str = "default",**kwargs) -> EmbeddingModel:
     while name(method) = "jina/siliconcloud/cohere",please set the params:api_key,model;
     Example:operator_test.py
     """
-    return EmbeddingModel(method=name,**kwargs)
+    return EmbeddingModel(method=name, **kwargs)

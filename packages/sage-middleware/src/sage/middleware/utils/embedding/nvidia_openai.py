@@ -1,6 +1,6 @@
 import asyncio
-import sys
 import os
+import sys
 
 if sys.version_info < (3, 9):
     pass
@@ -19,6 +19,7 @@ except ImportError:
         "openai package is required for NVIDIA OpenAI embedding functionality. "
         "Please install it via: pip install openai"
     )
+
 
 async def nvidia_openai_embed(
     text: str,
@@ -53,7 +54,9 @@ async def nvidia_openai_embed(
 
 
 import os
+
 from openai import OpenAI  # 同步 client
+
 
 def nvidia_openai_embed_sync(
     text: str,
@@ -61,8 +64,8 @@ def nvidia_openai_embed_sync(
     base_url: str = "https://integrate.api.nvidia.com/v1",
     api_key: str = None,
     input_type: str = "passage",  # query for retrieval, passage for embedding
-    trunc: str = "NONE",          # NONE or START or END
-    encode: str = "float",        # float or base64
+    trunc: str = "NONE",  # NONE or START or END
+    encode: str = "float",  # float or base64
 ) -> list[float]:
     """
     同步版本：使用 NVIDIA NIM 接口生成文本 embedding。
@@ -88,10 +91,7 @@ def nvidia_openai_embed_sync(
         model=model,
         input=text,
         encoding_format=encode,
-        extra_body={
-            "input_type": input_type,
-            "truncate": trunc
-        },
+        extra_body={"input_type": input_type, "truncate": trunc},
     )
 
     return response.data[0].embedding

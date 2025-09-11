@@ -5,11 +5,14 @@ import json
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+PlanStep = Dict[
+    str, Any
+]  # MCP风格：{"type":"tool","name":"...","arguments":{...}} | {"type":"reply","text":"..."}
 
-PlanStep = Dict[str, Any]  # MCP风格：{"type":"tool","name":"...","arguments":{...}} | {"type":"reply","text":"..."}
 
-
-def _top_k_tools(user_query: str, tools: Dict[str, Dict[str, Any]], k: int = 6) -> Dict[str, Dict[str, Any]]:
+def _top_k_tools(
+    user_query: str, tools: Dict[str, Dict[str, Any]], k: int = 6
+) -> Dict[str, Dict[str, Any]]:
     """基于 name/description 的匹配."""
     uq = user_query.lower()
     scored: List[Tuple[str, float]] = []
@@ -23,11 +26,15 @@ def _top_k_tools(user_query: str, tools: Dict[str, Dict[str, Any]], k: int = 6) 
             score += 1.5
         scored.append((name, score))
     scored.sort(key=lambda x: x[1], reverse=True)
-    keep = [n for n, s in scored[:k] if s > 0] or list(tools.keys())[: min(k, len(tools))]
+    keep = [n for n, s in scored[:k] if s > 0] or list(tools.keys())[
+        : min(k, len(tools))
+    ]
     return {n: tools[n] for n in keep}
 
 
-def _build_prompt(profile_system_prompt: str, user_query: str, tools_subset: Dict[str, Dict[str, Any]]) -> str:
+def _build_prompt(
+    profile_system_prompt: str, user_query: str, tools_subset: Dict[str, Dict[str, Any]]
+) -> str:
     """
     把 Profile + 用户问题 + 工具清单 拼成一个强约束提示词，只允许输出 JSON。
     工具清单需包含 MCP 三要素：name/description/input_schema
@@ -109,7 +116,9 @@ def _coerce_json_array(text: str) -> Optional[List[Any]]:
     return None
 
 
-def _validate_steps(steps: List[Dict[str, Any]], tools: Dict[str, Dict[str, Any]]) -> List[PlanStep]:
+def _validate_steps(
+    steps: List[Dict[str, Any]], tools: Dict[str, Dict[str, Any]]
+) -> List[PlanStep]:
     """
     轻量校验：结构正确性 + 工具是否存在 + 必填参数是否齐全（基于 schema.required）。
     不通过时，直接过滤掉错误步；
@@ -127,7 +136,11 @@ def _validate_steps(steps: List[Dict[str, Any]], tools: Dict[str, Dict[str, Any]
         if step["type"] == "tool":
             name = step.get("name")
             args = step.get("arguments", {})
-            if not isinstance(name, str) or name not in tools or not isinstance(args, dict):
+            if (
+                not isinstance(name, str)
+                or name not in tools
+                or not isinstance(args, dict)
+            ):
                 continue
 
             # 基于 MCP input_schema 的必填项检查
@@ -149,7 +162,13 @@ class LLMPlanner:
     统一接口：plan(profile_prompt, user_query, tools) -> List[PlanStep]
     """
 
-    def __init__(self, generator, max_steps: int = 6, enable_repair: bool = True, topk_tools: int = 6):
+    def __init__(
+        self,
+        generator,
+        max_steps: int = 6,
+        enable_repair: bool = True,
+        topk_tools: int = 6,
+    ):
         """
         :param generator: 你的 OpenAIGenerator 或 HFGenerator 实例（具备 .execute([user_query, prompt])）
         :param max_steps: 返回的最大步骤数
@@ -166,7 +185,12 @@ class LLMPlanner:
         _, out = self.generator.execute([user_query, prompt])
         return out
 
-    def plan(self, profile_system_prompt: str, user_query: str, tools: Dict[str, Dict[str, Any]]) -> List[PlanStep]:
+    def plan(
+        self,
+        profile_system_prompt: str,
+        user_query: str,
+        tools: Dict[str, Dict[str, Any]],
+    ) -> List[PlanStep]:
         # 1) 缩小工具集合，减少上下文
         tools_subset = _top_k_tools(user_query, tools, k=self.topk_tools)
 
@@ -181,7 +205,9 @@ class LLMPlanner:
                 "Your output was invalid. Return ONLY a JSON array of steps. No prose, no fences.\n"
                 'Example: [{"type":"tool","name":"...","arguments":{...}}, {"type":"reply","text":"..."}]'
             )
-            _, out2 = self.generator.execute([user_query, repair_prompt + "\n\nPrevious output:\n" + out])
+            _, out2 = self.generator.execute(
+                [user_query, repair_prompt + "\n\nPrevious output:\n" + out]
+            )
             steps = _coerce_json_array(out2)
 
         # 4) 兜底：若仍无法解析，直接把原文作为 reply

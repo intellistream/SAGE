@@ -6,35 +6,23 @@ if sys.version_info < (3, 9):
     pass
 else:
     pass
-import pipmaster as pm  # Pipmaster for dynamic library install
-
-
-from openai import (
-    APIConnectionError,
-    RateLimitError,
-    APITimeoutError,
-)
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-)
-
-import numpy as np
-import aiohttp
 import base64
 import struct
 
-
+import aiohttp
+import numpy as np
+import pipmaster as pm  # Pipmaster for dynamic library install
+from openai import APIConnectionError, APITimeoutError, RateLimitError
+from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
+                      wait_exponential)
 
 
 async def siliconcloud_embedding(
-        text: str,
-        model: str = "netease-youdao/bce-embedding-base_v1",
-        base_url: str = "https://api.siliconflow.cn/v1/embeddings",
-        max_token_size: int = 512,
-        api_key: str = None,
+    text: str,
+    model: str = "netease-youdao/bce-embedding-base_v1",
+    base_url: str = "https://api.siliconflow.cn/v1/embeddings",
+    max_token_size: int = 512,
+    api_key: str = None,
 ) -> list:
     """
     Generate embedding for a single text using SiliconCloud (NetEase Youdao).
@@ -76,9 +64,12 @@ async def siliconcloud_embedding(
     float_array = struct.unpack("<" + "f" * n, decode_bytes)
     return list(float_array)
 
-import requests
+
 import base64
 import struct
+
+import requests
+
 
 def siliconcloud_embedding_sync(
     text: str,
