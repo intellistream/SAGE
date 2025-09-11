@@ -11,7 +11,7 @@ import tomli_w
 from pathlib import Path
 from typing import Dict, List, Any
 
-def load_project_config(config_path: str = "project_config.toml") -> Dict[str, Any]:
+def load_project_config(config_path: str = os.path.join(os.path.dirname(__file__), '../../../project_config.toml')) -> Dict[str, Any]:
     """加载项目配置文件"""
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"配置文件不存在: {config_path}")

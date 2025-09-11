@@ -1,0 +1,88 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sage-tools"
+version = "0.1.0"
+description = "SAGE Tools Package - Utility tools for SAGE project management, CI/CD, and development"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
+]
+keywords = [
+    "tools",
+    "ci-cd",
+    "cli",
+    "devops",
+    "license",
+    "maintenance",
+    "pypi",
+    "testing",
+    "utils",
+    "versioning",
+    "sage",
+    "intellistream",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Testing",
+    "Topic :: System :: Archiving :: Packaging",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "pyyaml>=6.0",
+    "click>=8.0.0",
+    "typer>=0.15.0",
+    "rich>=13.0.0",
+    "requests>=2.32.0",
+    "gitpython>=3.1.0",
+    "subprocess32>=3.2.7",
+]
+license = {text = "MIT"}
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+sage-generate-readme = "sage_tools.generate_readme:main"
+sage-module-refactor = "sage_tools.module_refactor_tool:main"
+sage-update-config = "sage_tools.update_project_config:main"
+sage-sync-docs = "sage_tools.docs.sync_docs:main"
+sage-vllm-serve = "sage_tools.docs.vllm_serve:main"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sage_tools*"]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+sage_tools = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = ["--strict-markers", "--strict-config", "--verbose"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 88
+select = ["E", "W", "F", "I", "B", "C4"]
+ignore = ["E501"]
