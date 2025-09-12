@@ -54,23 +54,33 @@ uninstall_sage() {
         echo -e "${DIM}  → 卸载所有 SAGE 相关包${NC}"
         
         # 逐个卸载包，提供更详细的反馈
-        local uninstall_success=true
+        local uninstall_count=0
+        local total_packages=0
         while IFS= read -r package; do
             if [ -n "$package" ]; then
-                if $PIP_CMD uninstall "$package" -y --quiet 2>/dev/null; then
-                    echo -e "${DIM}    ✓ 已卸载 $package${NC}"
+                total_packages=$((total_packages + 1))
+                # 先检查包是否真的存在
+                if pip show "$package" >/dev/null 2>&1; then
+                    # 检查是否是editable安装
+                    local package_info=$(pip show "$package" 2>/dev/null)
+                    if echo "$package_info" | grep -q "Editable project location:"; then
+                        echo -e "${DIM}    ○ $package 开发模式安装，重新安装时会自动更新${NC}"
+                        uninstall_count=$((uninstall_count + 1))  # 算作处理成功
+                    else
+                        if $PIP_CMD uninstall "$package" -y --quiet 2>/dev/null; then
+                            echo -e "${DIM}    ✓ 已卸载 $package${NC}"
+                            uninstall_count=$((uninstall_count + 1))
+                        else
+                            echo -e "${DIM}    ⚠ $package 卸载失败${NC}"
+                        fi
+                    fi
                 else
-                    echo -e "${DIM}    ⚠ $package 卸载时有警告（可能不影响功能）${NC}"
-                    uninstall_success=false
+                    echo -e "${DIM}    - $package 未安装，跳过${NC}"
                 fi
             fi
         done <<< "$all_sage_packages"
         
-        if [ "$uninstall_success" = true ]; then
-            echo -e "${SUCCESS} SAGE 相关包卸载成功${NC}"
-        else
-            echo -e "${WARNING} 部分包卸载有警告，但已尝试清理所有包${NC}"
-        fi
+        echo -e "${SUCCESS} 已清理 $uninstall_count/$total_packages 个SAGE包${NC}"
     fi
     
     # 清理可能的开发模式安装链接

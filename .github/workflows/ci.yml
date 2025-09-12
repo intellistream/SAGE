@@ -148,6 +148,10 @@ jobs:
         # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
         PIP_NO_INPUT: 1  # 禁用pip交互
         PIP_DISABLE_PIP_VERSION_CHECK: 1  # 禁用pip版本检查
+        PIP_DEFAULT_TIMEOUT: 600  # pip安装超时设置为10分钟  
+        PIP_CACHE_DIR: /tmp/pip-cache  # 设置pip缓存目录
+        PIP_PREFER_BINARY: 1  # 优先使用二进制包
+        PIP_NO_BUILD_ISOLATION: 1  # 禁用构建隔离以加速安装
         SAGE_ENV_NAME: sage  # 设置默认环境名
         CONDA_ALWAYS_YES: true  # 自动同意conda操作
       run: |
@@ -155,7 +159,7 @@ jobs:
         conda --version
         chmod +x ./quickstart.sh
         ./quickstart.sh --minimal --conda --yes
-      timeout-minutes: 25
+      timeout-minutes: 45  # 增加到45分钟以处理大型依赖
         
     - name: Run Test Suite
       shell: bash -l {0}
