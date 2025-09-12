@@ -13,7 +13,7 @@ app = typer.Typer(help="SAGE 开发工具集")
 @app.command()
 def analyze(
     analysis_type: str = typer.Option("all", help="分析类型: all, health, report"),
-    output_format: str = typer.Option("summary", help="输出格式: summary, json"),
+    output_format: str = typer.Option("summary", help="输出格式: summary, json, markdown"),
     project_root: str = typer.Option(".", help="项目根目录")
 ):
     """分析项目依赖和结构"""
@@ -47,6 +47,10 @@ def analyze(
             
             serializable_result = serialize_sets(result)
             console.print(json.dumps(serializable_result, indent=2, ensure_ascii=False))
+        elif output_format == "markdown":
+            # Markdown格式输出
+            markdown_output = _generate_markdown_output(result, analysis_type)
+            console.print(markdown_output)
         else:
             # 简要输出
             if isinstance(result, dict):
@@ -161,7 +165,7 @@ def clean(
 def status(
     project_root: str = typer.Option(".", help="项目根目录"),
     verbose: bool = typer.Option(False, help="详细输出"),
-    output_format: str = typer.Option("summary", help="输出格式: summary, json, full")
+    output_format: str = typer.Option("summary", help="输出格式: summary, json, full, markdown")
 ):
     """显示项目状态"""
     try:
@@ -180,6 +184,11 @@ def status(
             console.print("\n" + "="*60)
             console.print(checker.generate_status_summary(status_data))
             console.print("="*60)
+        elif output_format == "markdown":
+            # Markdown格式输出
+            status_data = checker.check_all(verbose=verbose)
+            markdown_output = _generate_status_markdown_output(status_data)
+            console.print(markdown_output)
         else:
             # 简要摘要输出 (默认)
             console.print("🔍 检查项目状态...")
@@ -314,6 +323,302 @@ def home(
         import traceback
         console.print(f"[red]详细错误:\n{traceback.format_exc()}[/red]")
         raise typer.Exit(1)
+
+def _generate_status_markdown_output(status_data):
+    """生成Markdown格式的状态输出"""
+    import datetime
+    
+    markdown_lines = []
+    
+    # 添加标题和时间戳
+    markdown_lines.append("# SAGE 项目状态报告")
+    markdown_lines.append("")
+    markdown_lines.append(f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    markdown_lines.append("")
+    
+    if isinstance(status_data, dict):
+        # 添加总体状态
+        overall_status = status_data.get("overall_status", "unknown")
+        status_emoji = {
+            "success": "✅",
+            "warning": "⚠️", 
+            "error": "❌",
+            "unknown": "❓"
+        }.get(overall_status, "❓")
+        
+        markdown_lines.append("## 📊 总体状态")
+        markdown_lines.append("")
+        markdown_lines.append(f"**状态**: {status_emoji} {overall_status.upper()}")
+        markdown_lines.append("")
+        
+        # 处理检查结果
+        if "checks" in status_data:
+            checks = status_data["checks"]
+            markdown_lines.append("## 🔍 详细检查结果")
+            markdown_lines.append("")
+            
+            # 创建状态表格
+            markdown_lines.append("| 检查项目 | 状态 | 说明 |")
+            markdown_lines.append("|----------|------|------|")
+            
+            for check_name, check_data in checks.items():
+                if isinstance(check_data, dict):
+                    status = check_data.get("status", "unknown")
+                    status_emoji = {
+                        "success": "✅",
+                        "warning": "⚠️",
+                        "error": "❌",
+                        "unknown": "❓"
+                    }.get(status, "❓")
+                    
+                    message = check_data.get("message", "")
+                    # 清理消息中的markdown特殊字符
+                    message = message.replace("|", "\\|").replace("\n", " ")
+                    
+                    markdown_lines.append(f"| {check_name.replace('_', ' ').title()} | {status_emoji} {status} | {message} |")
+            
+            markdown_lines.append("")
+            
+            # 详细信息部分
+            for check_name, check_data in checks.items():
+                if isinstance(check_data, dict) and "data" in check_data:
+                    data = check_data["data"]
+                    if data:  # 只显示有数据的检查项目
+                        markdown_lines.append(f"### {check_name.replace('_', ' ').title()}")
+                        markdown_lines.append("")
+                        
+                        if check_name == "environment":
+                            if isinstance(data, dict):
+                                markdown_lines.append("**环境变量**:")
+                                for key, value in data.items():
+                                    markdown_lines.append(f"- **{key}**: {value}")
+                        
+                        elif check_name == "packages":
+                            if isinstance(data, dict):
+                                summary = data.get("summary", {})
+                                if summary:
+                                    markdown_lines.append("**包安装摘要**:")
+                                    markdown_lines.append(f"- 已安装: {summary.get('installed', 0)}")
+                                    markdown_lines.append(f"- 总计: {summary.get('total', 0)}")
+                                
+                                packages = data.get("packages", [])
+                                if packages:
+                                    markdown_lines.append("")
+                                    markdown_lines.append("**已安装的包**:")
+                                    for pkg in packages[:10]:  # 限制显示数量
+                                        markdown_lines.append(f"- {pkg}")
+                                    if len(packages) > 10:
+                                        markdown_lines.append(f"- ... 还有 {len(packages) - 10} 个包")
+                        
+                        elif check_name == "dependencies":
+                            if isinstance(data, dict):
+                                import_tests = data.get("import_tests", {})
+                                if import_tests:
+                                    markdown_lines.append("**导入测试结果**:")
+                                    for dep, result in import_tests.items():
+                                        status_icon = "✅" if result == "success" else "❌"
+                                        markdown_lines.append(f"- {status_icon} {dep}: {result}")
+                        
+                        elif check_name == "services":
+                            if isinstance(data, dict):
+                                markdown_lines.append("**服务状态**:")
+                                for service, info in data.items():
+                                    if isinstance(info, dict):
+                                        running = info.get("running", False)
+                                        status_icon = "✅" if running else "❌"
+                                        markdown_lines.append(f"- {status_icon} {service}: {'运行中' if running else '未运行'}")
+                                        if "details" in info and info["details"]:
+                                            markdown_lines.append(f"  - 详情: {info['details']}")
+                        
+                        else:
+                            # 通用数据显示
+                            if isinstance(data, dict):
+                                for key, value in data.items():
+                                    markdown_lines.append(f"- **{key}**: {value}")
+                            elif isinstance(data, list):
+                                for item in data[:5]:  # 限制显示数量
+                                    markdown_lines.append(f"- {item}")
+                                if len(data) > 5:
+                                    markdown_lines.append(f"- ... 还有 {len(data) - 5} 项")
+                            else:
+                                markdown_lines.append(f"数据: {data}")
+                        
+                        markdown_lines.append("")
+        
+        # 添加摘要信息
+        if "summary" in status_data:
+            summary = status_data["summary"]
+            markdown_lines.append("## 📋 状态摘要")
+            markdown_lines.append("")
+            markdown_lines.append(f"```")
+            markdown_lines.append(summary)
+            markdown_lines.append(f"```")
+            markdown_lines.append("")
+    else:
+        # 处理非字典状态数据
+        markdown_lines.append("## 状态数据")
+        markdown_lines.append("")
+        markdown_lines.append(f"```")
+        markdown_lines.append(str(status_data))
+        markdown_lines.append(f"```")
+    
+    # 添加底部信息
+    markdown_lines.append("---")
+    markdown_lines.append("*由 SAGE 开发工具自动生成*")
+    
+    return "\n".join(markdown_lines)
+
+def _generate_markdown_output(result, analysis_type):
+    """生成Markdown格式的分析输出"""
+    import datetime
+    
+    markdown_lines = []
+    
+    # 添加标题和时间戳
+    markdown_lines.append(f"# SAGE 项目依赖分析报告")
+    markdown_lines.append(f"")
+    markdown_lines.append(f"**分析类型**: {analysis_type}")
+    markdown_lines.append(f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    markdown_lines.append(f"")
+    
+    if isinstance(result, dict):
+        # 处理包含summary的结果
+        if "summary" in result:
+            summary = result["summary"]
+            markdown_lines.append("## 📊 分析摘要")
+            markdown_lines.append("")
+            markdown_lines.append(f"- **总包数**: {summary.get('total_packages', 0)}")
+            markdown_lines.append(f"- **总依赖**: {summary.get('total_dependencies', 0)}")
+            
+            if "dependency_conflicts" in summary:
+                conflicts = summary["dependency_conflicts"]
+                conflict_count = len(conflicts) if isinstance(conflicts, list) else 0
+                markdown_lines.append(f"- **依赖冲突**: {conflict_count}")
+                
+                if conflict_count > 0 and isinstance(conflicts, list):
+                    markdown_lines.append("")
+                    markdown_lines.append("### ⚠️ 依赖冲突详情")
+                    markdown_lines.append("")
+                    for i, conflict in enumerate(conflicts, 1):
+                        if isinstance(conflict, dict):
+                            markdown_lines.append(f"{i}. **{conflict.get('package', 'Unknown')}**")
+                            markdown_lines.append(f"   - 冲突类型: {conflict.get('type', 'Unknown')}")
+                            markdown_lines.append(f"   - 描述: {conflict.get('description', 'No description')}")
+                        else:
+                            markdown_lines.append(f"{i}. {str(conflict)}")
+            
+            markdown_lines.append("")
+        
+        # 处理健康评分结果
+        if "health_score" in result:
+            markdown_lines.append("## 💯 项目健康评分")
+            markdown_lines.append("")
+            health_score = result.get('health_score', 'N/A')
+            grade = result.get('grade', 'N/A')
+            markdown_lines.append(f"- **健康评分**: {health_score}")
+            markdown_lines.append(f"- **等级**: {grade}")
+            
+            # 添加评分说明
+            if isinstance(health_score, (int, float)):
+                if health_score >= 90:
+                    status = "🟢 优秀"
+                elif health_score >= 70:
+                    status = "🟡 良好"
+                elif health_score >= 50:
+                    status = "🟠 一般"
+                else:
+                    status = "🔴 需要改进"
+                markdown_lines.append(f"- **状态**: {status}")
+            
+            markdown_lines.append("")
+        
+        # 处理详细依赖信息
+        if "dependencies" in result:
+            deps = result["dependencies"]
+            markdown_lines.append("## 📚 依赖详情")
+            markdown_lines.append("")
+            
+            if isinstance(deps, dict):
+                for package, package_deps in deps.items():
+                    markdown_lines.append(f"### 📦 {package}")
+                    markdown_lines.append("")
+                    if isinstance(package_deps, list):
+                        if package_deps:
+                            markdown_lines.append("**依赖列表**:")
+                            for dep in package_deps:
+                                markdown_lines.append(f"- {dep}")
+                        else:
+                            markdown_lines.append("- 无外部依赖")
+                    elif isinstance(package_deps, dict):
+                        for key, value in package_deps.items():
+                            markdown_lines.append(f"- **{key}**: {value}")
+                    else:
+                        markdown_lines.append(f"- {package_deps}")
+                    markdown_lines.append("")
+        
+        # 处理包信息
+        if "packages" in result:
+            packages = result["packages"]
+            markdown_lines.append("## 📦 包信息")
+            markdown_lines.append("")
+            
+            if isinstance(packages, dict):
+                markdown_lines.append("| 包名 | 版本 | 状态 |")
+                markdown_lines.append("|------|------|------|")
+                for package, info in packages.items():
+                    if isinstance(info, dict):
+                        version = info.get('version', 'Unknown')
+                        status = info.get('status', 'Unknown')
+                        markdown_lines.append(f"| {package} | {version} | {status} |")
+                    else:
+                        markdown_lines.append(f"| {package} | - | {info} |")
+            elif isinstance(packages, list):
+                markdown_lines.append("**已安装的包**:")
+                for package in packages:
+                    markdown_lines.append(f"- {package}")
+            
+            markdown_lines.append("")
+        
+        # 处理其他字段
+        for key, value in result.items():
+            if key not in ["summary", "health_score", "grade", "dependencies", "packages"]:
+                markdown_lines.append(f"## {key.replace('_', ' ').title()}")
+                markdown_lines.append("")
+                if isinstance(value, (list, dict)):
+                    markdown_lines.append(f"```json")
+                    import json
+                    try:
+                        # 处理set对象
+                        def serialize_sets(obj):
+                            if isinstance(obj, set):
+                                return list(obj)
+                            elif isinstance(obj, dict):
+                                return {k: serialize_sets(v) for k, v in obj.items()}
+                            elif isinstance(obj, list):
+                                return [serialize_sets(item) for item in obj]
+                            return obj
+                        
+                        serializable_value = serialize_sets(value)
+                        markdown_lines.append(json.dumps(serializable_value, indent=2, ensure_ascii=False))
+                    except Exception:
+                        markdown_lines.append(str(value))
+                    markdown_lines.append(f"```")
+                else:
+                    markdown_lines.append(f"{value}")
+                markdown_lines.append("")
+    else:
+        # 处理非字典结果
+        markdown_lines.append("## 分析结果")
+        markdown_lines.append("")
+        markdown_lines.append(f"```")
+        markdown_lines.append(str(result))
+        markdown_lines.append(f"```")
+    
+    # 添加底部信息
+    markdown_lines.append("---")
+    markdown_lines.append("*由 SAGE 开发工具自动生成*")
+    
+    return "\n".join(markdown_lines)
 
 if __name__ == "__main__":
     app()
