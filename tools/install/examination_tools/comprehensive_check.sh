@@ -353,6 +353,19 @@ check_existing_sage() {
             echo -e "${DIM}  - $line${NC}"
         done
         echo
+        
+        # 在CI环境中自动卸载重装
+        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
+            echo -e "${INFO} CI环境检测到已安装包，执行强制重装..."
+            # 导入卸载函数
+            source "$(dirname "${BASH_SOURCE[0]}")/sage_check.sh"
+            uninstall_sage
+            echo -e "${CHECK} CI环境强制重装准备完成"
+        else
+            echo -e "${WARNING} 检测到已安装 请强制重装"
+            echo -e "${DIM}提示: 建议先卸载现有版本以避免冲突${NC}"
+        fi
+        
         return 0
     fi
     
@@ -360,6 +373,16 @@ check_existing_sage() {
     if python3 -c "import sage" 2>/dev/null; then
         local sage_version=$(python3 -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
         echo -e "${WARNING} 检测到已安装的 SAGE v${sage_version}"
+        
+        # 在CI环境中自动卸载重装
+        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
+            echo -e "${INFO} CI环境检测到已安装包，执行强制重装..."
+            # 导入卸载函数
+            source "$(dirname "${BASH_SOURCE[0]}")/sage_check.sh"
+            uninstall_sage
+            echo -e "${CHECK} CI环境强制重装准备完成"
+        fi
+        
         return 0
     fi
     
