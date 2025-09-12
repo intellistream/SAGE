@@ -89,6 +89,7 @@ license = "MIT"
 # SAGE framework dependencies (for local development)  
 sage = [
     "isage-common>=0.1.0",
+    "isage-tools>=0.1.0",
 ]
 
 # Commercial/Enterprise features (requires license)

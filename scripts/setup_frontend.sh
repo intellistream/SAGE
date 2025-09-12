@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # 前端相关路径
-FRONTEND_DIR="$PROJECT_ROOT/packages/sage-common/src/sage/common/frontend"
+FRONTEND_DIR="$PROJECT_ROOT/packages/sage-tools/src/sage/tools/frontend"
 STUDIO_DIR="$FRONTEND_DIR/studio"
 
 echo -e "${BOLD}${BLUE}🌐 SAGE Frontend Setup${NC}"
@@ -151,7 +151,7 @@ create_startup_scripts() {
     # 创建 web_ui 启动脚本
     cat > "$PROJECT_ROOT/start_web_ui.sh" << 'EOF'
 #!/bin/bash
-cd "$(dirname "$0")/packages/sage-common/src/sage/common/frontend/web_ui"
+cd "$(dirname "$0")/packages/sage-tools/src/sage/tools/frontend/web_ui"
 python main.py start "$@"
 EOF
     chmod +x "$PROJECT_ROOT/start_web_ui.sh"
@@ -159,7 +159,7 @@ EOF
     # 创建 studio 启动脚本
     cat > "$PROJECT_ROOT/start_studio.sh" << 'EOF'
 #!/bin/bash
-cd "$(dirname "$0")/packages/sage-common/src/sage/common/frontend/studio"
+cd "$(dirname "$0")/packages/sage-tools/src/sage/tools/frontend/studio"
 npm start
 EOF
     chmod +x "$PROJECT_ROOT/start_studio.sh"
@@ -181,21 +181,21 @@ show_usage() {
     echo -e "   ${BLUE}或${NC}"
     echo -e "   ${GREEN}sage web-ui start${NC}"
     echo -e "   ${BLUE}或${NC}"
-    echo -e "   ${GREEN}cd packages/sage-common/src/sage/common/frontend/web_ui${NC}"
+    echo -e "   ${GREEN}cd packages/sage-tools/src/sage/tools/frontend/web_ui${NC}"
     echo -e "   ${GREEN}python main.py start${NC}"
     echo -e "   ${YELLOW}访问: http://localhost:8080${NC}"
     echo ""
     echo -e "${BLUE}2. 启动 Studio (Angular 低代码界面):${NC}"
     echo -e "   ${GREEN}./start_studio.sh${NC}"
     echo -e "   ${BLUE}或${NC}"
-    echo -e "   ${GREEN}cd packages/sage-common/src/sage/common/frontend/studio${NC}"
+    echo -e "   ${GREEN}cd packages/sage-tools/src/sage/tools/frontend/studio${NC}"
     echo -e "   ${GREEN}npm start${NC}"
     echo -e "   ${YELLOW}访问: http://localhost:4200${NC}"
     echo ""
     echo -e "${BOLD}📦 Python 依赖安装：${NC}"
-    echo -e "   ${GREEN}pip install isage-common[frontend]    # 基础前端依赖${NC}"
-    echo -e "   ${GREEN}pip install isage-common[studio]      # Studio 依赖${NC}"
-    echo -e "   ${GREEN}pip install isage-common[ui]          # 完整 UI 套件${NC}"
+    echo -e "   ${GREEN}pip install isage-tools    # 基础前端依赖${NC}"
+    echo -e "   ${GREEN}pip install isage-tools      # Studio 依赖${NC}"
+    echo -e "   ${GREEN}pip install isage-tools          # 完整 UI 套件${NC}"
     echo ""
 }
 
