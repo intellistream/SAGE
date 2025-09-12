@@ -1,5 +1,11 @@
 # SAGE Framework 测试工具集
 
+> ⚠️ **重要通知**: 本目录下的测试脚本正在逐步迁移到统一的 `sage dev test` 命令。
+> 
+> **推荐使用**: `sage dev test --test-type unit` 或 `sage dev test --test-type integration`
+> 
+> **详细信息**: 请查看 [MIGRATION.md](MIGRATION.md) 了解迁移指南和功能对比
+
 本目录包含 SAGE Framework 的统一测试工具集，提供多种测试方式和配置选项。
 
 ## 📁 文件说明

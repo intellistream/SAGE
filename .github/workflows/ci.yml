@@ -332,60 +332,12 @@ jobs:
       env:
         PIP_NO_INPUT: 1
       run: |
-        echo "🧪 Running comprehensive test suite..."
-        # 激活conda环境进行测试
-        conda activate sage
+        echo "🧪 Running Tests:"
+        echo "Running unit tests..."
+        sage dev test --test-type unit --verbose || echo "⚠️ Some unit tests failed"
         
-        # 安装测试依赖
-        echo "📦 Installing test dependencies..."
-        pip install pytest pytest-cov pytest-mock pytest-asyncio pytest-xdist pytest-timeout
-        
-        # 基础导入测试
-        echo "🔍 Running basic import tests..."
-        python -c "import sage; print('✅ SAGE import successful, version:', sage.__version__)"
-        python -c "import sage.common; print('✅ sage.common import successful')"
-        python -c "import sage.kernel; print('✅ sage.kernel import successful')"  
-        python -c "import sage.libs; print('✅ sage.libs import successful')"
-        python -c "import sage.middleware; print('✅ sage.middleware import successful')"
-        
-        # CLI测试
-        echo "🖥️ Testing CLI functionality..."
-        sage --help > /dev/null && echo "✅ SAGE CLI working"
-        sage version && echo "✅ SAGE version command working"
-        
-        # Issues Manager测试
-        echo "🔧 Running issues manager tests..."
-        cd tools/tests
-        if [ -f test_issues_manager.sh ]; then
-          bash test_issues_manager.sh --quick
-          echo "✅ Issues manager tests passed"
-        else
-          echo "⚠️ Issues manager test script not found"
-        fi
-        cd ../..
-        
-        # 运行pytest测试套件
-        echo "🧪 Running pytest suite..."
-        cd tools/tests
-        if [ -f run_tests.py ]; then
-          echo "📊 Running unit tests..."
-          python run_tests.py --quick --unit --jobs 2 --timeout 120 --summary || echo "⚠️ Some unit tests failed"
-          
-          echo "🔗 Running integration tests..."
-          python run_tests.py --quick --integration --jobs 1 --timeout 180 --summary || echo "⚠️ Some integration tests failed"
-          
-          echo "📋 Generating test report..."
-          python run_tests.py --quick --unit --report ci_test_report.txt --summary
-          
-          if [ -f ci_test_report.txt ]; then
-            echo "📊 Test Report Summary:"
-            tail -15 ci_test_report.txt
-          fi
-        else
-          echo "⚠️ Test runner not found, skipping pytest suite"
-        fi
-        
-        echo "✅ Test suite completed"
+        echo "Running integration tests..."
+        sage dev test --test-type integration --verbose || echo "⚠️ Some integration tests failed"
       timeout-minutes: 20
       
     - name: Report Test Failure

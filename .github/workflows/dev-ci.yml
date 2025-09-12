@@ -273,13 +273,8 @@ jobs:
         echo "🔬 Running quick pytest suite..."
         cd tools/tests
         if [ -f run_tests.py ]; then
-          echo "📊 Running unit tests (quick mode)..."
-          python run_tests.py --quick --unit --jobs 4 --timeout 60 --summary || echo "ℹ️ Some unit tests didn't pass"
-          
-          echo "📋 Generating quick report..."
-          python run_tests.py --quick --unit --report dev_test_report.txt --summary 2>/dev/null || echo "ℹ️ Report generation skipped"
-          
-          if [ -f dev_test_report.txt ]; then
+        echo "🧪 Running Development Tests:"
+        sage dev test --test-type unit --verbose || echo "ℹ️ Some unit tests didn't pass"          if [ -f dev_test_report.txt ]; then
             echo "📊 Quick Test Summary:"
             tail -10 dev_test_report.txt
           fi
