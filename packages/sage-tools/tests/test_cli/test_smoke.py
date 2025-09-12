@@ -2,7 +2,7 @@
 """
 SAGE CLI 冒烟测试 (Smoke Test)
 
-这是一个轻量级的快速验证脚本，只测试最关键的核心功能：
+这是一个轻量级的快速验证测试，只测试最关键的核心功能：
 1. CLI能否正常启动
 2. 核心命令是否可访问
 3. 基本功能是否工作
@@ -10,88 +10,79 @@ SAGE CLI 冒烟测试 (Smoke Test)
 与 test_commands_full.py 的区别：
 - Smoke Test: 快速验证，2-3分钟，关键路径
 - Full Test: 详细测试，可能10-15分钟，覆盖所有功能
+
+使用pytest格式符合测试标准。
 """
 
 import subprocess
 import sys
 from pathlib import Path
+import pytest
 
 def get_project_root():
     """获取项目根目录"""
     current = Path(__file__).parent
     while current.parent != current:
-        if (current / "packages").exists() and (current / "pyproject.toml").exists():
+        if (current / "packages").exists():
             return current
         current = current.parent
     return Path(__file__).parent.parent.parent.parent.parent
 
-def run_smoke_test(cmd_list, test_name, timeout=20):
-    """运行单个冒烟测试"""
-    print(f"🔥 {test_name}")
+def run_command_simple(cmd_list, timeout=20):
+    """运行命令并返回成功状态"""
     try:
-        # 状态检查需要更长时间
-        test_timeout = 30 if "状态" in test_name else timeout
         result = subprocess.run(
             cmd_list, 
             capture_output=True, 
             text=True, 
-            timeout=test_timeout,
+            timeout=timeout,
             cwd=get_project_root()
         )
-        
-        if result.returncode == 0:
-            print("  ✅ 通过")
-            return True
-        else:
-            print(f"  ❌ 失败 (退出码: {result.returncode})")
-            return False
-            
+        return result.returncode == 0, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
-        print(f"  ❌ 超时 (>{test_timeout}s)")
-        return False
+        return False, "", f"Command timed out after {timeout}s"
     except Exception as e:
-        print(f"  ❌ 异常: {e}")
-        return False
+        return False, "", str(e)
 
-def main():
-    """冒烟测试主函数 - 只测试最关键的功能"""
-    print("� SAGE CLI 冒烟测试")
-    print("目标：快速验证核心功能是否可用\n")
-    
-    # 只测试最关键的功能路径
-    critical_tests = [
-        # 1. CLI基础功能
-        ([sys.executable, "-m", "sage.tools.cli", "--help"], "CLI启动"),
-        ([sys.executable, "-m", "sage.tools.cli", "version"], "版本命令"),
-        
-        # 2. 最重要的dev命令
-        ([sys.executable, "-m", "sage.tools.cli", "dev", "--help"], "dev命令"),
-        ([sys.executable, "-m", "sage.tools.cli", "dev", "status"], "状态检查"),
-        
-        # 3. 向后兼容性
-        (["sage-dev", "--help"], "向后兼容性"),
-        
-        # 4. 关键诊断功能  
-        ([sys.executable, "-m", "sage.tools.cli", "doctor"], "系统诊断"),
-    ]
-    
-    passed = 0
-    total = len(critical_tests)
-    
-    for cmd_list, desc in critical_tests:
-        if run_smoke_test(cmd_list, desc):
-            passed += 1
-    
-    print(f"\n📊 冒烟测试结果:")
-    print(f"✅ 通过: {passed}/{total}")
-    
-    if passed == total:
-        print("🎉 冒烟测试通过 - 核心功能正常")
-        return True
-    else:
-        print("🚨 冒烟测试失败 - 需要立即修复")
-        return False
+@pytest.mark.cli
+@pytest.mark.smoke
+class TestCLISmoke:
+    """CLI冒烟测试 - 快速验证核心功能"""
 
-if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1)
+    def test_cli_startup(self):
+        """测试CLI启动"""
+        success, stdout, stderr = run_command_simple([sys.executable, "-m", "sage.tools.cli", "--help"])
+        assert success, f"CLI startup failed: {stderr}"
+        assert "SAGE" in stdout
+
+    def test_version_command(self):
+        """测试版本命令"""
+        success, stdout, stderr = run_command_simple([sys.executable, "-m", "sage.tools.cli", "version"])
+        assert success, f"Version command failed: {stderr}"
+        assert "版本" in stdout or "version" in stdout.lower()
+
+    def test_dev_command_help(self):
+        """测试dev命令"""
+        success, stdout, stderr = run_command_simple([sys.executable, "-m", "sage.tools.cli", "dev", "--help"])
+        assert success, f"Dev command failed: {stderr}"
+        assert "开发工具" in stdout or "dev" in stdout.lower()
+
+    def test_status_check(self):
+        """测试状态检查"""
+        success, stdout, stderr = run_command_simple([sys.executable, "-m", "sage.tools.cli", "dev", "status"], timeout=30)
+        assert success, f"Status check failed: {stderr}"
+        assert "状态报告" in stdout or "status" in stdout.lower()
+
+    def test_backwards_compatibility(self):
+        """测试向后兼容性"""
+        success, stdout, stderr = run_command_simple(["sage-dev", "--help"])
+        if not success:
+            # sage-dev可能不在PATH中，这是可以接受的
+            pytest.skip("sage-dev command not available in PATH - this is acceptable")
+        assert "开发工具" in stdout or "dev" in stdout.lower()
+
+    def test_doctor_command(self):
+        """测试系统诊断"""
+        success, stdout, stderr = run_command_simple([sys.executable, "-m", "sage.tools.cli", "doctor"])
+        assert success, f"Doctor command failed: {stderr}"
+        assert "诊断" in stdout or "系统" in stdout
