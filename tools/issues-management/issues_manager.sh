@@ -2,6 +2,7 @@
 
 # SAGE Issues 管理工具 - 简化版主入口
 # 专注于核心的三大功能：下载、AI整理、上传
+# Version: v1.2.0
 
 # 颜色定义
 RED='\033[0;31m'
@@ -10,6 +11,183 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
+
+# 脚本配置
+SCRIPT_VERSION="v1.2.0"
+NON_INTERACTIVE_MODE=false
+
+# 显示帮助信息
+show_help() {
+    cat << EOF
+SAGE Issues 管理工具 - 简化版主入口
+
+用法: $0 [选项]
+
+选项:
+  -h, --help          显示此帮助信息
+  -v, --version       显示版本信息
+  -t, --test          运行测试模式（非交互式）
+  --check-deps        检查依赖项
+  --validate-config   验证配置文件
+
+描述:
+  这是SAGE项目的Issues管理工具，提供以下核心功能：
+  1. Issues数据下载和同步
+  2. AI驱动的Issues智能整理和分析
+  3. 处理结果的上传和发布
+  4. 配置管理和团队协作设置
+
+示例:
+  $0              # 启动交互式界面
+  $0 --test       # 运行测试检查
+  $0 --help       # 显示帮助信息
+
+项目地址: https://github.com/intellistream/SAGE
+EOF
+}
+
+# 显示版本信息
+show_version() {
+    echo "SAGE Issues Manager $SCRIPT_VERSION"
+    echo "Copyright (c) 2024 SAGE Project"
+}
+
+# 测试模式函数
+run_test_mode() {
+    echo -e "${CYAN}🧪 运行测试模式...${NC}"
+    
+    # 检查脚本语法
+    if bash -n "$0"; then
+        echo -e "${GREEN}✅ 脚本语法检查通过${NC}"
+    else
+        echo -e "${RED}❌ 脚本语法错误${NC}"
+        return 1
+    fi
+    
+    # 检查Python脚本目录
+    if [[ -d "$SCRIPT_DIR/_scripts" ]]; then
+        echo -e "${GREEN}✅ Python脚本目录存在${NC}"
+    else
+        echo -e "${YELLOW}⚠️ Python脚本目录不存在: $SCRIPT_DIR/_scripts${NC}"
+    fi
+    
+    # 检查配置文件
+    if [[ -f "$SCRIPT_DIR/_scripts/config.py" ]]; then
+        echo -e "${GREEN}✅ 配置文件存在${NC}"
+        
+        # 测试配置加载
+        if python3 -c "import sys; sys.path.append('$SCRIPT_DIR/_scripts'); import config" 2>/dev/null; then
+            echo -e "${GREEN}✅ 配置文件可以正常加载${NC}"
+        else
+            echo -e "${YELLOW}⚠️ 配置文件加载有问题${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠️ 配置文件不存在${NC}"
+    fi
+    
+    # 检查GitHub Token
+    if check_github_token; then
+        echo -e "${GREEN}✅ GitHub Token已配置${NC}"
+    else
+        echo -e "${YELLOW}⚠️ GitHub Token未配置（在CI环境中这是正常的）${NC}"
+    fi
+    
+    echo -e "${GREEN}🎉 测试模式完成${NC}"
+    return 0
+}
+
+# 检查依赖项
+check_dependencies() {
+    echo -e "${CYAN}📋 检查依赖项...${NC}"
+    
+    local missing_deps=()
+    local required_tools=("python3" "git" "curl")
+    
+    for tool in "${required_tools[@]}"; do
+        if command -v "$tool" &> /dev/null; then
+            echo -e "${GREEN}✅ $tool: $(command -v $tool)${NC}"
+        else
+            echo -e "${RED}❌ $tool: 未找到${NC}"
+            missing_deps+=("$tool")
+        fi
+    done
+    
+    # 检查Python模块
+    local python_modules=("requests" "json")
+    for module in "${python_modules[@]}"; do
+        if python3 -c "import $module" 2>/dev/null; then
+            echo -e "${GREEN}✅ Python模块 $module: 可用${NC}"
+        else
+            echo -e "${YELLOW}⚠️ Python模块 $module: 不可用${NC}"
+        fi
+    done
+    
+    if [[ ${#missing_deps[@]} -eq 0 ]]; then
+        echo -e "${GREEN}🎉 所有必要依赖项都已安装${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ 缺少依赖项: ${missing_deps[*]}${NC}"
+        return 1
+    fi
+}
+
+# 验证配置
+validate_config() {
+    echo -e "${CYAN}🔧 验证配置文件...${NC}"
+    
+    # 检查配置文件存在性
+    local config_files=(
+        "$SCRIPT_DIR/_scripts/config.py"
+        "$PROJECT_ROOT/.env"
+    )
+    
+    for config_file in "${config_files[@]}"; do
+        if [[ -f "$config_file" ]]; then
+            echo -e "${GREEN}✅ 配置文件存在: $(basename "$config_file")${NC}"
+        else
+            echo -e "${YELLOW}⚠️ 配置文件不存在: $(basename "$config_file")${NC}"
+        fi
+    done
+    
+    echo -e "${GREEN}🎉 配置验证完成${NC}"
+}
+
+# 命令行参数处理
+parse_arguments() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            -v|--version)
+                show_version
+                exit 0
+                ;;
+            -t|--test)
+                NON_INTERACTIVE_MODE=true
+                run_test_mode
+                exit $?
+                ;;
+            --check-deps)
+                NON_INTERACTIVE_MODE=true
+                check_dependencies
+                exit $?
+                ;;
+            --validate-config)
+                NON_INTERACTIVE_MODE=true
+                validate_config
+                exit $?
+                ;;
+            *)
+                echo -e "${RED}❌ 未知选项: $1${NC}"
+                echo "使用 $0 --help 查看帮助信息"
+                exit 1
+                ;;
+        esac
+        shift
+    done
+}
 
 # 获取脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -1265,89 +1443,106 @@ config_management_menu() {
     done
 }
 
-# 启动时检查GitHub Token
-# 检查是否首次使用
-echo -e "${CYAN}正在初始化SAGE Issues管理工具...${NC}"
+# 主程序函数
+run_interactive_mode() {
+    # 启动时检查GitHub Token
+    # 检查是否首次使用
+    echo -e "${CYAN}正在初始化SAGE Issues管理工具...${NC}"
 
-# 自动检查并初始化metadata文件
-auto_initialize_metadata
+    # 自动检查并初始化metadata文件
+    auto_initialize_metadata
 
-if ! check_github_token; then
-    echo ""
-    echo -e "${YELLOW}⚠️ 检测到您是首次使用或未配置GitHub Token${NC}"
-    echo ""
-    read -p "是否要现在进行初始设置？(Y/n): " setup_now
-    case "$setup_now" in
-        [nN]|[nN][oO])
-            echo -e "${CYAN}💡 您可以稍后通过主菜单的选项9来配置Token${NC}"
-            ;;
-        *)
-            if first_time_setup; then
-                echo ""
-                echo -e "${GREEN}🎉 设置完成！正在重新检查Token状态...${NC}"
-            fi
-            ;;
-    esac
-fi
-
-echo ""
-
-# 主循环
-while true; do
-    show_main_menu
-    
-    # 根据是否有token调整提示
-    if check_github_token; then
-        read -p "请选择功能 (1-5): " choice
-    else
-        read -p "请选择功能 (1-5, 9): " choice
+    if ! check_github_token; then
+        echo ""
+        echo -e "${YELLOW}⚠️ 检测到您是首次使用或未配置GitHub Token${NC}"
+        echo ""
+        read -p "是否要现在进行初始设置？(Y/n): " setup_now
+        case "$setup_now" in
+            [nN]|[nN][oO])
+                echo -e "${CYAN}💡 您可以稍后通过主菜单的选项9来配置Token${NC}"
+                ;;
+            *)
+                if first_time_setup; then
+                    echo ""
+                    echo -e "${GREEN}🎉 设置完成！正在重新检查Token状态...${NC}"
+                fi
+                ;;
+        esac
     fi
+
     echo ""
-    
-    case $choice in
-        1) 
-            issues_management_menu
-            ;;
-        2) 
-            download_menu
-            ;;
-        3) 
-            ai_menu
-            ;;
-        4) 
-            upload_menu
-            ;;
-        5) 
-            echo -e "${GREEN}👋 感谢使用SAGE Issues管理工具！${NC}"
-            exit 0
-            ;;
-        6)
-            config_management_menu
-            ;;
-        9)
-            if ! check_github_token; then
-                echo -e "${CYAN}🔑 配置GitHub Token${NC}"
-                echo "===================="
-                echo ""
-                first_time_setup
-                echo ""
-                read -p "按回车键返回主菜单..." dummy
-            else
-                echo -e "${YELLOW}❌ Token已配置，无需重复设置${NC}"
+
+    # 主循环
+    while true; do
+        show_main_menu
+        
+        # 根据是否有token调整提示
+        if check_github_token; then
+            read -p "请选择功能 (1-5): " choice
+        else
+            read -p "请选择功能 (1-5, 9): " choice
+        fi
+        echo ""
+        
+        case $choice in
+            1) 
+                issues_management_menu
+                ;;
+            2) 
+                download_menu
+                ;;
+            3) 
+                ai_menu
+                ;;
+            4) 
+                upload_menu
+                ;;
+            5) 
+                echo -e "${GREEN}👋 感谢使用SAGE Issues管理工具！${NC}"
+                exit 0
+                ;;
+            6)
+                config_management_menu
+                ;;
+            9)
+                if ! check_github_token; then
+                    echo -e "${CYAN}🔑 配置GitHub Token${NC}"
+                    echo "===================="
+                    echo ""
+                    first_time_setup
+                    echo ""
+                    read -p "按回车键返回主菜单..." dummy
+                else
+                    echo -e "${YELLOW}❌ Token已配置，无需重复设置${NC}"
+                    sleep 1
+                fi
+                ;;
+            "")
+                # 空输入，重新显示菜单
+                continue
+                ;;
+            *)
+                if check_github_token; then
+                    echo -e "${RED}❌ 无效选择，请输入1-5${NC}"
+                else
+                    echo -e "${RED}❌ 无效选择，请输入1-5或9${NC}"
+                fi
                 sleep 1
-            fi
-            ;;
-        "")
-            # 空输入，重新显示菜单
-            continue
-            ;;
-        *)
-            if check_github_token; then
-                echo -e "${RED}❌ 无效选择，请输入1-5${NC}"
-            else
-                echo -e "${RED}❌ 无效选择，请输入1-5或9${NC}"
-            fi
-            sleep 1
-            ;;
-    esac
-done
+                ;;
+        esac
+    done
+}
+
+# =================================================================
+# 脚本入口点
+# =================================================================
+
+# 解析命令行参数（只有在脚本直接执行时才处理）
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    parse_arguments "$@"
+    
+    # 如果不是非交互模式，启动交互式程序
+    if [[ "$NON_INTERACTIVE_MODE" != true ]]; then
+        run_interactive_mode
+    fi
+fi
