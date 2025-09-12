@@ -1,1 +1,1 @@
-/home/shuhao/.sage
+/home/shuhao/.sage/projects
