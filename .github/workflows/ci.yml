@@ -149,10 +149,10 @@ jobs:
         SAGE_ENV_NAME: sage  # 设置默认环境名
         CONDA_ALWAYS_YES: true  # 自动同意conda操作
       run: |
-        echo "Installing SAGE using quickstart.sh --minimal"
+        echo "Installing SAGE using quickstart.sh --minimal --conda"
         conda --version
         chmod +x ./quickstart.sh
-        ./quickstart.sh --minimal
+        ./quickstart.sh --minimal --conda --yes
       timeout-minutes: 25
         
     - name: Run Test Suite
