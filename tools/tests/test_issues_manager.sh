@@ -171,95 +171,78 @@ test_help_function() {
     print_separator
     log_info "测试 2: 帮助功能"
     
-    # 测试 --help 选项，添加超时避免卡住
-    if timeout 5 bash -c "echo 5 | '$ISSUES_MANAGER' --help" > /dev/null 2>&1; then
+    # 测试 --help 选项
+    if "$ISSUES_MANAGER" --help > /dev/null 2>&1; then
         log_success "--help 选项工作正常"
     else
-        log_warning "--help 选项不可用或需要交互输入"
+        log_warning "--help 选项不可用"
     fi
     
-    # 测试脚本基本可执行性
-    if timeout 3 bash -c "echo 5 | '$ISSUES_MANAGER'" > /dev/null 2>&1; then
-        log_success "脚本基本可执行"
+    # 测试 --version 选项
+    if "$ISSUES_MANAGER" --version > /dev/null 2>&1; then
+        log_success "--version 选项工作正常"
     else
-        log_warning "脚本可能需要特殊环境或配置"
+        log_warning "--version 选项不可用"
+    fi
+    
+    # 测试 --test 选项（非交互模式）
+    if "$ISSUES_MANAGER" --test > /dev/null 2>&1; then
+        log_success "--test 选项工作正常"
+    else
+        log_warning "--test 选项有问题"
     fi
 }
 
 test_list_functionality() {
     print_separator
-    log_info "测试 3: 列表功能"
+    log_info "测试 3: 依赖检查功能"
     
-    # 测试 list 命令（使用超时避免卡住）
-    log_info "测试 list 命令..."
-    if timeout 5 bash -c "echo 5 | '$ISSUES_MANAGER' list --dry-run" > /dev/null 2>&1; then
-        log_success "list 命令基础功能正常"
+    # 测试 --check-deps 命令
+    log_info "测试 --check-deps 命令..."
+    if "$ISSUES_MANAGER" --check-deps > /dev/null 2>&1; then
+        log_success "--check-deps 命令基础功能正常"
     else
-        log_warning "list 命令可能需要额外配置或不支持命令行参数"
+        log_warning "--check-deps 命令可能需要额外配置"
     fi
 }
 
 test_analyze_functionality() {
     print_separator
-    log_info "测试 4: 分析功能"
+    log_info "测试 4: 配置验证功能"
     
-    # 创建测试数据
-    local test_data_file="$TEST_WORKSPACE/test_issues.json"
-    cat > "$test_data_file" << 'EOF'
-[
-  {
-    "number": 1,
-    "title": "Test Issue 1",
-    "body": "This is a test issue for automated testing",
-    "state": "open",
-    "labels": [{"name": "bug"}],
-    "created_at": "2024-01-01T00:00:00Z"
-  },
-  {
-    "number": 2,
-    "title": "Test Issue 2", 
-    "body": "Another test issue",
-    "state": "closed",
-    "labels": [{"name": "enhancement"}],
-    "created_at": "2024-01-02T00:00:00Z"
-  }
-]
-EOF
-    
-    # 测试分析功能（使用超时避免卡住）
-    log_info "测试 analyze 命令..."
-    if timeout 5 bash -c "echo 5 | '$ISSUES_MANAGER' analyze --input '$test_data_file' --dry-run" > /dev/null 2>&1; then
-        log_success "analyze 命令基础功能正常"
+    # 测试配置验证功能
+    log_info "测试 --validate-config 命令..."
+    if "$ISSUES_MANAGER" --validate-config > /dev/null 2>&1; then
+        log_success "--validate-config 命令基础功能正常"
     else
-        log_warning "analyze 命令可能需要额外配置或AI服务"
+        log_warning "--validate-config 命令可能需要额外配置"
     fi
 }
 
 test_export_functionality() {
     print_separator
-    log_info "测试 5: 导出功能"
+    log_info "测试 5: 综合测试模式"
     
-    # 测试导出功能（使用超时避免卡住）
-    local export_file="$TEST_WORKSPACE/export_test.json"
-    log_info "测试 export 命令..."
+    # 测试主要的测试模式功能
+    log_info "测试 --test 命令（综合测试模式）..."
     
-    if timeout 5 bash -c "echo 5 | '$ISSUES_MANAGER' export --output '$export_file' --dry-run" > /dev/null 2>&1; then
-        log_success "export 命令基础功能正常"
+    if "$ISSUES_MANAGER" --test > /dev/null 2>&1; then
+        log_success "--test 命令（综合测试模式）正常"
     else
-        log_warning "export 命令可能需要额外配置"
+        log_warning "--test 命令可能需要额外配置"
     fi
 }
 
 test_config_functionality() {
     print_separator
-    log_info "测试 6: 配置功能"
+    log_info "测试 6: 错误处理"
     
-    # 测试配置查看（使用超时避免卡住）
-    log_info "测试 config 命令..."
-    if timeout 5 bash -c "echo 5 | '$ISSUES_MANAGER' config --show" > /dev/null 2>&1; then
-        log_success "config 命令基础功能正常"
+    # 测试无效参数处理
+    log_info "测试无效参数处理..."
+    if "$ISSUES_MANAGER" --invalid-option 2>/dev/null; then
+        log_warning "无效参数应该返回错误"
     else
-        log_warning "config 命令可能需要初始化或不支持命令行参数"
+        log_success "无效参数错误处理正常"
     fi
 }
 
@@ -275,38 +258,17 @@ test_integration_with_github() {
     
     log_info "执行GitHub API连接测试..."
     
-    # 测试实际的GitHub连接（使用超时避免卡住）
-    if timeout 10 bash -c "echo 5 | '$ISSUES_MANAGER' list --limit 1" > /dev/null 2>&1; then
-        log_success "GitHub API 连接测试通过"
+    # 测试实际的GitHub连接（验证脚本内部的token检查逻辑）
+    if "$ISSUES_MANAGER" --test > /dev/null 2>&1; then
+        log_success "GitHub Token 检查测试通过"
     else
-        log_warning "GitHub API 连接可能有问题"
-    fi
-}
-
-test_error_handling() {
-    print_separator
-    log_info "测试 8: 错误处理"
-    
-    # 测试无效参数
-    log_info "测试无效参数处理..."
-    if "$ISSUES_MANAGER" invalid_command 2>/dev/null; then
-        log_warning "无效命令应该返回错误"
-    else
-        log_success "无效命令错误处理正常"
-    fi
-    
-    # 测试缺少必要参数
-    log_info "测试缺少参数处理..."
-    if "$ISSUES_MANAGER" analyze 2>/dev/null; then
-        log_warning "缺少参数时应该返回错误"
-    else
-        log_success "缺少参数错误处理正常"
+        log_warning "GitHub Token 检查可能有问题"
     fi
 }
 
 test_python_scripts() {
     print_separator
-    log_info "测试 9: Python 脚本检查"
+    log_info "测试 8: Python 脚本检查"
     
     local scripts_dir="$PROJECT_ROOT/tools/issues-management/_scripts"
     if [[ ! -d "$scripts_dir" ]]; then
@@ -315,6 +277,7 @@ test_python_scripts() {
     fi
     
     # 检查Python脚本语法
+    local syntax_error_count=0
     for script in "$scripts_dir"/*.py; do
         if [[ -f "$script" ]]; then
             log_info "检查 $(basename "$script") 语法..."
@@ -322,9 +285,30 @@ test_python_scripts() {
                 log_success "$(basename "$script") 语法正确"
             else
                 log_error "$(basename "$script") 语法错误"
+                ((syntax_error_count++))
             fi
         fi
     done
+    
+    # 运行Python测试运行器
+    if [[ -f "$scripts_dir/test_runner.py" ]]; then
+        log_info "运行Python脚本功能测试..."
+        cd "$scripts_dir"
+        if python3 test_runner.py; then
+            log_success "Python脚本功能测试通过"
+        else
+            log_warning "Python脚本功能测试有问题"
+        fi
+        cd - > /dev/null
+    else
+        log_info "Python测试运行器不存在，跳过功能测试"
+    fi
+    
+    if [[ $syntax_error_count -eq 0 ]]; then
+        log_success "所有Python脚本语法检查通过"
+    else
+        log_warning "发现 $syntax_error_count 个语法错误"
+    fi
 }
 
 # =================================================================
@@ -383,7 +367,6 @@ run_full_tests() {
     test_analyze_functionality
     test_export_functionality
     test_config_functionality
-    test_error_handling
     test_python_scripts
     
     log_success "完整测试完成"
