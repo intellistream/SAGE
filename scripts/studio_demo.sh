@@ -9,11 +9,11 @@ echo "================================"
 
 echo ""
 echo "📋 1. 显示 Studio 信息"
-python -m sage.common.cli.main studio info
+python -m sage.tools.cli.main studio info
 
 echo ""
 echo "📋 2. 检查当前状态"
-python -m sage.common.cli.main studio status
+python -m sage.tools.cli.main studio status
 
 echo ""
 echo "📋 3. 安装依赖 (如果需要)"

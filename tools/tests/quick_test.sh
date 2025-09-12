@@ -22,7 +22,7 @@ source "$PROJECT_ROOT/scripts/logging.sh" 2>/dev/null || {
 }
 
 # 快速测试配置
-QUICK_PACKAGES=("sage-common" "sage-kernel" "sage-libs" "sage-middleware")
+QUICK_PACKAGES=("sage-common" "sage-tools" "sage-kernel" "sage-libs" "sage-middleware")
 QUICK_TIMEOUT=120
 QUICK_JOBS=3
 

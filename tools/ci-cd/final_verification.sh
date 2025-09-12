@@ -96,7 +96,7 @@ echo ""
 
 # 检查3: 子包结构
 print_step "检查3: 子包结构完整性"
-packages=("sage-common" "sage-kernel" "sage-middleware" "sage-libs")
+packages=("sage-common" "sage-tools" "sage-kernel" "sage-middleware" "sage-libs")
 missing_packages=0
 
 for pkg in "${packages[@]}"; do

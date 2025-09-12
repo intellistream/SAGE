@@ -33,22 +33,22 @@ dependencies = [
 [project.optional-dependencies]
 # 开发工具
 dev = [
-    "isage-common[dev]>=0.1.0",
+    "isage-tools>=0.1.0",
 ]
 
 # CLI工具
 cli = [
-    "isage-common[cli]>=0.1.0", 
+    "isage-tools>=0.1.0", 
 ]
 
 # 前端组件
 frontend = [
-    "isage-common[frontend]>=0.1.0",
+    "isage-tools>=0.1.0",
 ]
 
 # Documentation
 docs = [
-    "isage-common[docs]>=0.1.0",
+    "isage-tools>=0.1.0",
     "isage-kernel[docs]>=0.1.0",
     "isage-middleware[docs]>=0.1.0",
     "isage-libs[docs]>=0.1.0",
@@ -56,7 +56,7 @@ docs = [
 
 # 完整功能 (包括所有额外功能)
 full = [
-    "isage-common[full]>=0.1.0",
+    "isage-tools>=0.1.0",
     "isage-libs[full]>=0.1.0",
 ]
 
@@ -72,7 +72,7 @@ Repository = "https://github.com/intellistream/SAGE.git"
 "Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
 
 [project.scripts]
-sage = "sage.common.cli.main:app"
+sage = "sage.tools.cli.main:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]

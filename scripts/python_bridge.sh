@@ -4,7 +4,7 @@
 # 为bash脚本提供Python工具的接口函数
 
 # 获取Python helper的路径 (内部工具，不对用户直接暴露)
-PYTHON_HELPER="$PROJECT_ROOT/packages/sage-common/src/sage/common/internal/_quickstart_helper.py"
+PYTHON_HELPER="$PROJECT_ROOT/packages/sage-tools/src/sage/tools/internal/_quickstart_helper.py"
 
 # 检查Python helper是否存在
 check_python_helper() {

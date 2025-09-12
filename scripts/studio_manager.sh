@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # 脚本配置
-STUDIO_DIR="$SAGE_ROOT/packages/sage-common/src/sage/common/frontend/studio"
+STUDIO_DIR="$SAGE_ROOT/packages/sage-tools/src/sage/tools/frontend/studio"
 STUDIO_PORT=4200
 STUDIO_HOST="0.0.0.0"
 PID_FILE="/tmp/sage-studio.pid"

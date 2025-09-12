@@ -45,7 +45,7 @@ install_core_packages() {
     echo "$(date): 开始安装核心 SAGE 包" >> "$log_file"
     
     # SAGE 包安装顺序：sage-common → sage-kernel → sage-middleware → sage-libs → sage
-    local sage_packages=("sage-common" "sage-kernel" "sage-middleware" "sage-libs" "sage")
+    local sage_packages=("sage-common" "sage-tools" "sage-kernel" "sage-middleware" "sage-libs" "sage")
     
     for package in "${sage_packages[@]}"; do
         local package_path="packages/$package"
