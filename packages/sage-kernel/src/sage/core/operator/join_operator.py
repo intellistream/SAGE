@@ -148,7 +148,8 @@ class JoinOperator(BaseOperator):
             self.received_stop_signals.add(signal_name)
             self.logger.info(
                 f"JoinOperator '{self.name}' received stop signal from '{signal_name}', "
-                f"total received: {len(self.received_stop_signals)}"
+                f"total received: {len(self.received_stop_signals)} "
+                f"(all signals: {list(self.received_stop_signals)})"
             )
             
             # 检查是否所有输入流都已停止
@@ -157,20 +158,26 @@ class JoinOperator(BaseOperator):
             # 所以我们需要特殊处理这种情况
             
             # 检查是否收到了所有原始源的停止信号
-            # 这些应该是以 "Source" 开头的节点
+            # 这些应该是以 "Source" 开头的节点，或者包含 "Source" 的节点
             source_signals = set()
             for sig in self.received_stop_signals:
                 if isinstance(sig, str):
-                    # String signal name
-                    if sig.startswith('Source'):
+                    # String signal name - 检查是否包含 "Source" 或者以 "Source" 开头
+                    if 'Source' in sig or sig.startswith('Source'):
                         source_signals.add(sig)
                 else:
                     # StopSignal object
                     from sage.core.communication.stop_signal import StopSignal
-                    if isinstance(sig, StopSignal) and sig.name.startswith('Source'):
+                    if isinstance(sig, StopSignal) and ('Source' in sig.name or sig.name.startswith('Source')):
                         source_signals.add(sig.name)
             
-            expected_sources = 2  # 对于双流Join，期望2个源
+            # 动态确定期望的源数量，基于当前接收到的不同源信号
+            # 如果至少有一个源信号，我们期望至少有2个源（因为这是Join操作）
+            # 但如果我们从配置或其他地方能得到准确的数量，应该使用那个数量
+            if len(source_signals) > 0:
+                expected_sources = max(2, len(source_signals))  # 至少期望2个源
+            else:
+                expected_sources = 2  # 默认对于双流Join，期望2个源
             
             self.logger.debug(
                 f"JoinOperator '{self.name}' stop signal status: "

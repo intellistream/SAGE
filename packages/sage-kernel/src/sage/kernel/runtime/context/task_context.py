@@ -197,6 +197,12 @@ class TaskContext(BaseRuntimeContext):
     def clear_stop_signal(self):
         self.stop_event.clear()
 
+    def request_stop(self):
+        """
+        请求停止当前任务，向JobManager发送停止信号
+        """
+        self.send_stop_signal_back(self.name)
+
     def send_stop_signal_back(self, node_name: str):
         """
         通过网络向JobManager发送节点停止信号
@@ -257,21 +263,34 @@ class TaskContext(BaseRuntimeContext):
         
         # Initialize stop signal tracking attributes if they don't exist
         if not hasattr(self, 'num_expected_stop_signals'):
-            self.num_expected_stop_signals = 0
+            # 对于某些类型的操作符，我们需要等待多个停止信号
+            # 特别是对于那些可能有多个上游输入的操作符
+            operator_name = getattr(self, 'name', '')
+            if 'KeyBy' in operator_name and '_1' in operator_name:
+                # 这是一个合并了多个输入的KeyBy节点，等待2个停止信号
+                self.num_expected_stop_signals = 2
+                self.logger.info(f"Task {self.name} (KeyBy merge node) expecting 2 stop signals")
+            else:
+                self.num_expected_stop_signals = 0
         if not hasattr(self, 'stop_signals_received'):
             self.stop_signals_received = set()
         
         if self.num_expected_stop_signals > 0:
             self.stop_signals_received.add(source_node)
-            self.logger.info(f"Task {self.name} received all expected stop signals ({len(self.stop_signals_received)}/{self.num_expected_stop_signals})")
+            self.logger.info(f"Task {self.name} received stop signals ({len(self.stop_signals_received)}/{self.num_expected_stop_signals}) from: {list(self.stop_signals_received)}")
             
             if len(self.stop_signals_received) >= self.num_expected_stop_signals:
+                self.logger.info(f"Task {self.name} received all expected stop signals, requesting stop and forwarding signal")
                 # Send stop signal to job manager
                 self.request_stop()
                 
                 # Forward the signal to downstream nodes
                 if hasattr(self, 'router') and self.router:
                     self.router.send_stop_signal(signal)
+            else:
+                self.logger.info(f"Task {self.name} waiting for more stop signals")
+                # 不要停止或转发信号，继续等待
+                return
         else:
             # No specific number expected, just forward the signal
             self.logger.info(f"Task {self.name} forwarding stop signal from {source_node}")
