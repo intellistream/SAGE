@@ -311,8 +311,14 @@ class TestFindPortProcesses:
                     "sage.common.utils.system.network._find_processes_with_fuser",
                     return_value=[],
                 ):
-                    result = find_port_processes(8080)
-                    assert result == [1234]
+                    with patch("psutil.Process") as mock_process:
+                        mock_proc = MagicMock()
+                        mock_proc.is_running.return_value = True
+                        mock_proc.pid = 1234
+                        mock_process.return_value = mock_proc
+                        result = find_port_processes(8080)
+                        assert len(result) == 1
+                        assert result[0].pid == 1234
 
     @pytest.mark.unit
     def test_find_processes_fallback_to_netstat(self):
@@ -329,12 +335,18 @@ class TestFindPortProcesses:
                     "sage.common.utils.system.network._find_processes_with_fuser",
                     return_value=[],
                 ):
-                    result = find_port_processes(8080)
-                    assert result == [5678]
+                    with patch("psutil.Process") as mock_process:
+                        mock_proc = MagicMock()
+                        mock_proc.is_running.return_value = True
+                        mock_proc.pid = 5678
+                        mock_process.return_value = mock_proc
+                        result = find_port_processes(8080)
+                        assert len(result) == 1
+                        assert result[0].pid == 5678
 
     @pytest.mark.unit
     def test_find_processes_fallback_to_fuser(self):
-        """Test fallback to fuser when others fail"""
+        """Test fallback to fuser when lsof and netstat fail"""
         with patch(
             "sage.common.utils.system.network._find_processes_with_lsof",
             return_value=[],
@@ -347,8 +359,14 @@ class TestFindPortProcesses:
                     "sage.common.utils.system.network._find_processes_with_fuser",
                     return_value=[9999],
                 ):
-                    result = find_port_processes(8080)
-                    assert result == [9999]
+                    with patch("psutil.Process") as mock_process:
+                        mock_proc = MagicMock()
+                        mock_proc.is_running.return_value = True
+                        mock_proc.pid = 9999
+                        mock_process.return_value = mock_proc
+                        result = find_port_processes(8080)
+                        assert len(result) == 1
+                        assert result[0].pid == 9999
 
     @pytest.mark.unit
     def test_find_processes_combine_results(self):
@@ -365,9 +383,18 @@ class TestFindPortProcesses:
                     "sage.common.utils.system.network._find_processes_with_fuser",
                     return_value=[1234, 9999],
                 ):
-                    result = find_port_processes(8080)
-                    # Should combine and deduplicate
-                    assert set(result) == {1234, 5678, 9999}
+                    with patch("psutil.Process") as mock_process:
+                        def create_mock_proc(pid):
+                            mock_proc = MagicMock()
+                            mock_proc.is_running.return_value = True
+                            mock_proc.pid = pid
+                            return mock_proc
+                        
+                        mock_process.side_effect = create_mock_proc
+                        result = find_port_processes(8080)
+                        # Should combine and deduplicate
+                        result_pids = {proc.pid for proc in result}
+                        assert result_pids == {1234, 5678, 9999}
 
     @pytest.mark.unit
     def test_find_processes_no_results(self):
@@ -885,10 +912,19 @@ class TestIntegrationScenarios:
                     "sage.common.utils.system.network._find_processes_with_fuser",
                     return_value=[1003, 1004],
                 ):
-                    processes = find_port_processes(8080)
+                    with patch("psutil.Process") as mock_process:
+                        def create_mock_proc(pid):
+                            mock_proc = MagicMock()
+                            mock_proc.is_running.return_value = True
+                            mock_proc.pid = pid
+                            return mock_proc
+                        
+                        mock_process.side_effect = create_mock_proc
+                        processes = find_port_processes(8080)
 
-                    # Should combine and deduplicate all results
-                    assert set(processes) == {1001, 1002, 1003, 1004}
+                        # Should combine and deduplicate all results
+                        process_pids = {proc.pid for proc in processes}
+                        assert process_pids == {1001, 1002, 1003, 1004}
 
 
 class TestPerformanceScenarios:
