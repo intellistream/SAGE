@@ -117,20 +117,28 @@ def find_sage_root() -> Optional[Path]:
     """查找SAGE项目根目录"""
     current = Path.cwd()
 
-    # 向上查找包含sage_ext目录的路径
+    # 向上查找包含packages目录的SAGE项目根目录
     for parent in [current] + list(current.parents):
-        sage_ext_dir = parent / "sage_ext"
-        if sage_ext_dir.exists() and sage_ext_dir.is_dir():
-            return parent
+        packages_dir = parent / "packages"
+        # 检查是否包含SAGE项目的典型结构
+        if packages_dir.exists() and packages_dir.is_dir():
+            sage_middleware_dir = packages_dir / "sage-middleware"
+            sage_common_dir = packages_dir / "sage-common"
+            if sage_middleware_dir.exists() and sage_common_dir.exists():
+                return parent
 
     # 检查当前Python环境中的sage包位置
     try:
         import sage
 
         sage_path = Path(sage.__file__).parent.parent
-        sage_ext_dir = sage_path / "sage_ext"
-        if sage_ext_dir.exists():
-            return sage_path
+        # 如果从安装的包中找到，尝试找到项目根目录
+        for parent in sage_path.parents:
+            packages_dir = parent / "packages"
+            if packages_dir.exists():
+                sage_middleware_dir = packages_dir / "sage-middleware"
+                if sage_middleware_dir.exists():
+                    return parent
     except ImportError:
         pass
 
@@ -179,10 +187,18 @@ def install(
     print_info(f"SAGE项目根目录: {sage_root}")
 
     # 确定要安装的扩展
+    extensions_mapping = {
+        "sage_db": "packages/sage-middleware/src/sage/middleware/components/sage_db",
+    }
+    
     extensions_to_install = []
     if extension is None or extension == "all":
         extensions_to_install = ["sage_db"]  # 只保留实际存在的扩展
     else:
+        if extension not in extensions_mapping:
+            print_error(f"未知扩展: {extension}")
+            typer.echo(f"可用扩展: {', '.join(extensions_mapping.keys())}")
+            raise typer.Exit(1)
         extensions_to_install = [extension]
 
     success_count = 0
@@ -191,7 +207,7 @@ def install(
     for ext_name in extensions_to_install:
         typer.echo(f"\n{Colors.YELLOW}━━━ 安装 {ext_name} ━━━{Colors.RESET}")
 
-        ext_dir = sage_root / "sage_ext" / ext_name
+        ext_dir = sage_root / extensions_mapping[ext_name]
         if not ext_dir.exists():
             print_warning(f"扩展目录不存在: {ext_dir}")
             continue
@@ -214,7 +230,14 @@ def install(
 
             # 执行构建
             print_info(f"构建 {ext_name}...")
-            result = run_command(["bash", str(build_script)], check=False)
+            # 切换到扩展目录运行构建脚本
+            import os
+            original_cwd = os.getcwd()
+            os.chdir(ext_dir)
+            try:
+                result = run_command(["bash", "build.sh", "--install-deps"], check=False)
+            finally:
+                os.chdir(original_cwd)
 
             if result.returncode == 0:
                 print_success(f"{ext_name} 构建成功 ✓")
