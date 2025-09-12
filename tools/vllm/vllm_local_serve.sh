@@ -4,24 +4,59 @@ set -euo pipefail
 # VLLM 本地服务启动脚本
 # 
 # 使用方法:
-#   ./vllm_local_serve.sh                          # 使用默认模型
-#   ./vllm_local_serve.sh <model_name>             # 使用指定模型
+#   ./vllm_local_serve.sh                          # 使用默认模型（交互式确认）
+#   ./vllm_local_serve.sh <model_name>             # 使用指定模型（交互式确认）
+#   ./vllm_local_serve.sh --yes                    # 使用默认模型（自动确认）
+#   ./vllm_local_serve.sh --yes <model_name>       # 使用指定模型（自动确认）
 #
 # 示例:
 #   ./vllm_local_serve.sh microsoft/DialoGPT-small   # 更小的模型 (~500MB)
 #   ./vllm_local_serve.sh microsoft/DialoGPT-medium  # 中等模型 (~1.5GB) 
 #   ./vllm_local_serve.sh microsoft/DialoGPT-large   # 较大模型 (~3GB)
-#   ./vllm_local_serve.sh meta-llama/Llama-2-7b-chat-hf  # 大模型 (~14GB)
+#   ./vllm_local_serve.sh --yes meta-llama/Llama-2-7b-chat-hf  # 大模型，自动确认
 #
 # 功能:
 #   - 自动检测和安装 vllm
 #   - 检查模型是否存在，提示下载信息
 #   - 自动设置 HuggingFace 镜像（当无法访问官网时）
-#   - 友好的用户交互提示
+#   - 友好的用户交互提示（可通过 --yes 跳过）
 
 # 默认模型 (使用较小的模型便于快速启动和测试)
 DEFAULT_MODEL="microsoft/DialoGPT-small"
-MODEL=${1:-$DEFAULT_MODEL}
+
+# 解析命令行参数
+AUTO_YES=false
+MODEL=""
+
+for arg in "$@"; do
+    case $arg in
+        --yes|-y)
+            AUTO_YES=true
+            shift
+            ;;
+        --help|-h)
+            echo "用法: $0 [选项] [模型名称]"
+            echo ""
+            echo "选项:"
+            echo "  --yes, -y       自动确认所有提示"
+            echo "  --help, -h      显示此帮助信息"
+            echo ""
+            echo "示例:"
+            echo "  $0                                    # 使用默认模型"
+            echo "  $0 microsoft/DialoGPT-medium          # 使用指定模型"
+            echo "  $0 --yes microsoft/DialoGPT-small     # 自动确认并使用指定模型"
+            exit 0
+            ;;
+        *)
+            if [[ -z "$MODEL" ]]; then
+                MODEL="$arg"
+            fi
+            ;;
+    esac
+done
+
+# 如果没有指定模型，使用默认模型
+MODEL=${MODEL:-$DEFAULT_MODEL}
 
 # 颜色输出函数
 print_info() {
@@ -97,12 +132,19 @@ prompt_model_download() {
     print_info "  3. 如果下载失败，请检查网络或考虑使用其他模型"
     
     echo
+    
+    if [[ "$AUTO_YES" == "true" ]]; then
+        print_info "自动确认模式：继续启动服务..."
+        return 0
+    fi
+    
     read -p "是否继续启动服务？模型将在启动时自动下载 [y/N]: " -r
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         print_info "取消启动。您可以："
         print_info "  1. 使用其他已下载的模型: $0 <model_name>"
         print_info "  2. 手动下载模型: huggingface-cli download $model_name"
         print_info "  3. 使用更小的模型: $0 microsoft/DialoGPT-small"
+        print_info "  4. 使用自动确认: $0 --yes $model_name"
         exit 0
     fi
 }
