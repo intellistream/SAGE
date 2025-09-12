@@ -16,6 +16,27 @@ import typer
 app = typer.Typer(name="extensions", help="🧩 扩展管理 - 安装和管理C++扩展")
 
 
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context):
+    """
+    🧩 SAGE 扩展管理系统
+    
+    管理SAGE框架的C++扩展安装和检查
+    """
+    if ctx.invoked_subcommand is None:
+        # 如果没有子命令，显示帮助信息
+        typer.echo(f"{Colors.BOLD}{Colors.BLUE}🧩 SAGE 扩展管理{Colors.RESET}")
+        typer.echo("=" * 40)
+        typer.echo()
+        typer.echo("可用命令:")
+        typer.echo("  install   - 安装C++扩展")
+        typer.echo("  status    - 检查扩展状态")
+        typer.echo("  clean     - 清理构建文件")
+        typer.echo("  info      - 显示扩展信息")
+        typer.echo()
+        typer.echo("使用 'sage extensions COMMAND --help' 查看具体命令的帮助")
+
+
 class Colors:
     """终端颜色"""
 
@@ -119,7 +140,7 @@ def find_sage_root() -> Optional[Path]:
 @app.command()
 def install(
     extension: Optional[str] = typer.Argument(
-        None, help="要安装的扩展名 (sage_queue, sage_db, 或 all)"
+        None, help="要安装的扩展名 (sage_db, 或 all)"
     ),
     force: bool = typer.Option(False, "--force", "-f", help="强制重新构建"),
 ):
@@ -128,7 +149,6 @@ def install(
 
     Examples:
         sage extensions install                # 安装所有扩展
-        sage extensions install sage_queue    # 只安装队列扩展
         sage extensions install sage_db       # 只安装数据库扩展
         sage extensions install all --force   # 强制重新安装所有扩展
     """
@@ -161,7 +181,7 @@ def install(
     # 确定要安装的扩展
     extensions_to_install = []
     if extension is None or extension == "all":
-        extensions_to_install = ["sage_queue", "sage_db"]
+        extensions_to_install = ["sage_db"]  # 只保留实际存在的扩展
     else:
         extensions_to_install = [extension]
 
@@ -225,9 +245,7 @@ def status():
     typer.echo("=" * 40)
 
     extensions = {
-        "sage_ext": "扩展包基础模块",
-        "sage_ext.sage_queue": "队列扩展 (C++)",
-        "sage_ext.sage_db": "数据库扩展 (C++)",
+        "sage.middleware.components.sage_db": "数据库扩展 (C++)",
     }
 
     available_count = 0
@@ -294,11 +312,6 @@ def info():
     typer.echo("=" * 50)
 
     extensions_info = {
-        "sage_queue": {
-            "description": "高性能队列实现",
-            "features": ["Ring Buffer", "无锁队列", "内存映射"],
-            "status": "stable",
-        },
         "sage_db": {
             "description": "数据库接口扩展",
             "features": ["原生C++接口", "高性能查询", "内存优化"],
@@ -314,7 +327,10 @@ def info():
 
         # 检查是否已安装
         try:
-            __import__(f"sage_ext.{ext_name}")
+            if ext_name == "sage_db":
+                __import__("sage.middleware.components.sage_db")
+            else:
+                __import__(f"sage_ext.{ext_name}")
             typer.echo(f"  安装: {Colors.GREEN}✓ 已安装{Colors.RESET}")
         except ImportError:
             typer.echo(f"  安装: {Colors.RED}✗ 未安装{Colors.RESET}")

@@ -28,14 +28,17 @@ def check():
     except ImportError:
         print("❌ SAGE未安装")
 
-    # 检查扩展
-    extensions = ["sage_ext", "sage_ext.sage_queue", "sage_ext.sage_db"]
-    for ext in extensions:
+    # 检查扩展 - 只检查实际存在的模块
+    extensions = [
+        ("sage_db", "sage.middleware.components.sage_db")
+    ]
+    
+    for ext_name, ext_path in extensions:
         try:
-            __import__(ext)
-            print(f"✅ {ext}")
+            __import__(ext_path)
+            print(f"✅ {ext_name}")
         except ImportError:
-            print(f"⚠️ {ext} 不可用")
+            print(f"⚠️ {ext_name} 不可用")
 
     # 检查Ray
     try:
