@@ -12,11 +12,11 @@ def project_root():
     current = Path(__file__).parent
     # 从 test_dev/ 向上找到项目根目录
     while current.parent != current:
-        if (current / "packages").exists() and any(current.glob("*.toml")):
+        if (current / "packages").exists() and (current / "pyproject.toml").exists():
             return current
         current = current.parent
-    # 如果找不到，使用相对路径估计
-    return Path(__file__).parent.parent.parent.parent
+    # 如果找不到，使用相对路径估计 - 需要向上5级才能到达SAGE根目录
+    return Path(__file__).parent.parent.parent.parent.parent
 
 @pytest.mark.unit
 class TestDependencyAnalyzer:

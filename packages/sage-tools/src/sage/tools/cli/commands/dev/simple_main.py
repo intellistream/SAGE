@@ -264,17 +264,21 @@ def test(
         
         console.print(f"🧪 运行{test_type}测试...")
         
+        # Use the run_tests method with appropriate mode
         if test_type == "all":
-            result = runner.run_all_tests(verbose=verbose)
+            result = runner.run_tests(mode="all", verbose=verbose)
         elif test_type == "unit":
-            result = runner.run_unit_tests(verbose=verbose)
+            # For now, treat unit tests as all tests - can be refined later
+            result = runner.run_tests(mode="all", verbose=verbose)
         elif test_type == "integration":
-            result = runner.run_integration_tests(verbose=verbose)
+            # For now, treat integration tests as all tests - can be refined later  
+            result = runner.run_tests(mode="all", verbose=verbose)
         else:
             console.print(f"[red]不支持的测试类型: {test_type}[/red]")
             raise typer.Exit(1)
             
-        if result:
+        # Check if result indicates success
+        if result and result.get("status") == "success":
             console.print("[green]✅ 所有测试通过[/green]")
         else:
             console.print("[red]❌ 测试失败[/red]")
@@ -373,7 +377,10 @@ def _generate_status_markdown_output(status_data):
                     
                     message = check_data.get("message", "")
                     # 清理消息中的markdown特殊字符
-                    message = message.replace("|", "\\|").replace("\n", " ")
+                    if isinstance(message, str):
+                        message = message.replace("|", "\\|").replace("\n", " ")
+                    else:
+                        message = str(message)
                     
                     markdown_lines.append(f"| {check_name.replace('_', ' ').title()} | {status_emoji} {status} | {message} |")
             
@@ -391,7 +398,9 @@ def _generate_status_markdown_output(status_data):
                             if isinstance(data, dict):
                                 markdown_lines.append("**环境变量**:")
                                 for key, value in data.items():
-                                    markdown_lines.append(f"- **{key}**: {value}")
+                                    # Safely convert value to string
+                                    value_str = str(value) if value is not None else "None"
+                                    markdown_lines.append(f"- **{key}**: {value_str}")
                         
                         elif check_name == "packages":
                             if isinstance(data, dict):
@@ -402,13 +411,25 @@ def _generate_status_markdown_output(status_data):
                                     markdown_lines.append(f"- 总计: {summary.get('total', 0)}")
                                 
                                 packages = data.get("packages", [])
-                                if packages:
+                                if packages and isinstance(packages, (list, dict)):
                                     markdown_lines.append("")
                                     markdown_lines.append("**已安装的包**:")
-                                    for pkg in packages[:10]:  # 限制显示数量
-                                        markdown_lines.append(f"- {pkg}")
-                                    if len(packages) > 10:
-                                        markdown_lines.append(f"- ... 还有 {len(packages) - 10} 个包")
+                                    if isinstance(packages, list):
+                                        # Safely slice the list
+                                        display_packages = packages[:10] if len(packages) > 10 else packages
+                                        for pkg in display_packages:
+                                            markdown_lines.append(f"- {str(pkg)}")
+                                        if len(packages) > 10:
+                                            markdown_lines.append(f"- ... 还有 {len(packages) - 10} 个包")
+                                    elif isinstance(packages, dict):
+                                        count = 0
+                                        for pkg_name, pkg_info in packages.items():
+                                            if count >= 10:
+                                                break
+                                            markdown_lines.append(f"- {pkg_name}: {str(pkg_info)}")
+                                            count += 1
+                                        if len(packages) > 10:
+                                            markdown_lines.append(f"- ... 还有 {len(packages) - 10} 个包")
                         
                         elif check_name == "dependencies":
                             if isinstance(data, dict):
@@ -432,16 +453,22 @@ def _generate_status_markdown_output(status_data):
                         
                         else:
                             # 通用数据显示
-                            if isinstance(data, dict):
-                                for key, value in data.items():
-                                    markdown_lines.append(f"- **{key}**: {value}")
-                            elif isinstance(data, list):
-                                for item in data[:5]:  # 限制显示数量
-                                    markdown_lines.append(f"- {item}")
-                                if len(data) > 5:
-                                    markdown_lines.append(f"- ... 还有 {len(data) - 5} 项")
-                            else:
-                                markdown_lines.append(f"数据: {data}")
+                            try:
+                                if isinstance(data, dict):
+                                    for key, value in data.items():
+                                        value_str = str(value) if value is not None else "None"
+                                        markdown_lines.append(f"- **{key}**: {value_str}")
+                                elif isinstance(data, list):
+                                    # Safely handle list slicing
+                                    display_items = data[:5] if len(data) > 5 else data
+                                    for item in display_items:
+                                        markdown_lines.append(f"- {str(item)}")
+                                    if len(data) > 5:
+                                        markdown_lines.append(f"- ... 还有 {len(data) - 5} 项")
+                                else:
+                                    markdown_lines.append(f"数据: {str(data)}")
+                            except Exception as e:
+                                markdown_lines.append(f"数据显示错误: {str(e)}")
                         
                         markdown_lines.append("")
         
