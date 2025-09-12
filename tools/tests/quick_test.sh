@@ -3,6 +3,12 @@
 # SAGE Framework 快速测试脚本
 # Quick Test Script for SAGE Framework
 #
+# ⚠️  DEPRECATION WARNING ⚠️
+# 本脚本已被弃用，请使用新的统一测试命令：
+#   sage dev test --test-type unit      # 单元测试（推荐用于快速测试）
+#   sage dev test --verbose            # 详细输出
+# 详情请查看 tools/tests/MIGRATION.md 文档
+#
 # 快速测试主要包，适用于日常开发验证
 # Quick test for main packages, suitable for daily development verification
 
@@ -91,6 +97,13 @@ fi
 ARGS+=("${QUICK_PACKAGES[@]}")
 
 # 调用主测试脚本
+echo -e "\033[1;33m⚠️  DEPRECATION WARNING ⚠️\033[0m"
+echo -e "\033[1;33m本脚本已被弃用，请使用新的统一测试命令：\033[0m"
+echo -e "  \033[0;36msage dev test --test-type unit\033[0m      # 单元测试（推荐用于快速测试）"
+echo -e "  \033[0;36msage dev test --verbose\033[0m            # 详细输出"
+echo -e "\033[1;33m详情请查看 tools/tests/MIGRATION.md 文档\033[0m"
+echo
+
 log_info "🚀 启动 SAGE Framework 快速测试"
 log_info "测试包: ${QUICK_PACKAGES[*]}"
 echo ""

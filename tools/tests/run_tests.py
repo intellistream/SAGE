@@ -3,6 +3,14 @@
 SAGE Framework 集成测试运行器
 Integrated Test Runner for SAGE Framework
 
+⚠️  DEPRECATION WARNING ⚠️
+本脚本已被弃用，请使用新的统一测试命令：
+  sage dev test --test-type unit      # 单元测试
+  sage dev test --test-type integration  # 集成测试  
+  sage dev test --verbose            # 详细输出
+
+详情请查看 MIGRATION.md 文档
+
 统一的测试入口点，支持各种测试模式和配置
 Unified test entry point with support for various test modes and configurations
 """
@@ -48,6 +56,15 @@ class SAGETestRunner:
     """SAGE测试运行器"""
     
     def __init__(self):
+        # 显示弃用警告
+        print(f"{Colors.YELLOW}⚠️  DEPRECATION WARNING ⚠️{Colors.NC}")
+        print(f"{Colors.YELLOW}本脚本已被弃用，请使用新的统一测试命令：{Colors.NC}")
+        print(f"  {Colors.CYAN}sage dev test --test-type unit{Colors.NC}      # 单元测试")
+        print(f"  {Colors.CYAN}sage dev test --test-type integration{Colors.NC}  # 集成测试")
+        print(f"  {Colors.CYAN}sage dev test --verbose{Colors.NC}            # 详细输出")
+        print(f"{Colors.YELLOW}详情请查看 tools/tests/MIGRATION.md 文档{Colors.NC}")
+        print()
+        
         self.project_root = PROJECT_ROOT
         self.packages_dir = PACKAGES_DIR
         self.test_results = {}

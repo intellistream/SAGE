@@ -3,6 +3,13 @@
 # SAGE Framework 一键测试所有包脚本
 # Test All Packages Script for SAGE Framework
 #
+# ⚠️  DEPRECATION WARNING ⚠️
+# 本脚本已被弃用，请使用新的统一测试命令：
+#   sage dev test --test-type unit      # 单元测试
+#   sage dev test --test-type integration  # 集成测试  
+#   sage dev test --verbose            # 详细输出
+# 详情请查看 tools/tests/MIGRATION.md 文档
+#
 # 自动发现并测试所有SAGE包，支持并行执行和详细配置
 # Automatically discover and test all SAGE packages with parallel execution and detailed configuration
 
@@ -30,6 +37,17 @@ DEFAULT_QUIET=false
 DEFAULT_SUMMARY=false
 DEFAULT_CONTINUE_ON_ERROR=true
 DEFAULT_FAILED_ONLY=false
+
+# 显示弃用警告
+show_deprecation_warning() {
+    echo -e "\033[1;33m⚠️  DEPRECATION WARNING ⚠️\033[0m"
+    echo -e "\033[1;33m本脚本已被弃用，请使用新的统一测试命令：\033[0m"
+    echo -e "  \033[0;36msage dev test --test-type unit\033[0m      # 单元测试"
+    echo -e "  \033[0;36msage dev test --test-type integration\033[0m  # 集成测试"
+    echo -e "  \033[0;36msage dev test --verbose\033[0m            # 详细输出"
+    echo -e "\033[1;33m详情请查看 tools/tests/MIGRATION.md 文档\033[0m"
+    echo
+}
 
 # 解析命令行参数
 show_help() {
@@ -331,6 +349,9 @@ generate_report() {
 
 # 主函数
 main() {
+    # 显示弃用警告
+    show_deprecation_warning
+    
     if [[ $QUIET == false ]]; then
         log_info "SAGE Framework 包测试工具启动"
         log_info "项目根目录: $PROJECT_ROOT"
