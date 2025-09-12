@@ -66,6 +66,8 @@ jobs:
         pip install flake8 black isort --no-cache-dir
         echo "📦 Installing sage-common..."
         pip install -e packages/sage-common/ --no-deps --no-cache-dir
+        echo "📦 Installing sage core package..."
+        pip install -e packages/sage/ --no-deps --no-cache-dir
         echo "✅ Dependencies installed successfully"
       timeout-minutes: 10
         
