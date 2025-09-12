@@ -60,10 +60,15 @@ class SinkOperator(BaseOperator):
             self.logger.info(
                 f"SinkOperator {self.name} handling stop signal, calling execute(None)"
             )
-            result = self.function.execute(None)
-            self.logger.debug(
-                f"SinkOperator {self.name} final processing result: {result}"
-            )
+            if hasattr(self.function, "close") and callable(self.function.close):
+                result = self.function.close()
+                self.logger.debug(
+                    f"SinkOperator {self.name} final processing result: {result}"
+                )
+            else:
+                self.logger.debug(
+                    f"SinkOperator {self.name} has no close() method, skipping."
+                )
         except Exception as e:
             self.logger.error(
                 f"Error in {self.name}.handle_stop_signal(): {e}", exc_info=True

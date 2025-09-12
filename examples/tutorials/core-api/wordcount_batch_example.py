@@ -44,15 +44,13 @@ class PrintResult(SinkFunction):
         self.counts = {}
 
     def execute(self, data):
-        if data is None:
-            # 🔔 上游结束时输出结果
-            print("WordCount 结果：")
-            for word, count in self.counts.items():
-                print(f"{word}: {count}")
-            return
-
         word, cnt = data
         self.counts[word] = self.counts.get(word, 0) + cnt
+    
+    def close(self):
+        print("WordCount 结果：")
+        for word, count in self.counts.items():
+            print(f"{word}: {count}")
 
 def main():
     env = LocalEnvironment("WordCount")
