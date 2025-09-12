@@ -77,9 +77,9 @@ show_installation_menu() {
     
     # 选择是否安装 VLLM
     echo -e "${BOLD}3. AI 模型支持：${NC}"
-    echo -e "  是否准备 VLLM 环境？${DIM}(用于本地大语言模型推理)${NC}"
+    echo -e "  是否安装 VLLM 环境？${DIM}(用于本地大语言模型推理)${NC}"
     echo ""
-    read -p "准备 VLLM 环境？[y/N]: " vllm_choice
+    read -p "安装 VLLM 环境？[y/N]: " vllm_choice
     
     if [[ $vllm_choice =~ ^[Yy]$ ]]; then
         INSTALL_VLLM=true
@@ -130,9 +130,9 @@ show_parameter_help() {
     
     echo -e "${BLUE}🤖 AI 模型支持：${NC}"
     echo ""
-    echo -e "  ${BOLD}--vllm${NC}                                       ${PURPLE}准备 VLLM 环境${NC}"
-    echo -e "    ${DIM}准备 VLLM 使用环境和启动脚本${NC}"
-    echo -e "    ${DIM}VLLM 将在首次使用时自动安装（通过 vllm_local_serve.sh）${NC}"
+    echo -e "  ${BOLD}--vllm${NC}                                       ${PURPLE}安装并配置 VLLM 环境${NC}"
+    echo -e "    ${DIM}自动安装 VLLM 包和配置启动脚本${NC}"
+    echo -e "    ${DIM}如果安装失败，VLLM 将在首次使用时重试安装${NC}"
     echo -e "    ${DIM}包含使用指南和推荐模型信息${NC}"
     echo ""
     
@@ -148,8 +148,8 @@ show_parameter_help() {
     echo -e "  ./quickstart.sh --minimal --pip                  ${DIM}# 最小安装 + 系统Python环境${NC}"
     echo -e "  ./quickstart.sh --dev --conda                    ${DIM}# 开发者安装 + conda环境${NC}"
     echo -e "  ./quickstart.sh --s --pip                        ${DIM}# 标准安装 + 系统Python环境${NC}"
-    echo -e "  ./quickstart.sh --vllm                           ${DIM}# 开发者安装 + 准备 VLLM 环境${NC}"
-    echo -e "  ./quickstart.sh --standard --vllm                ${DIM}# 标准安装 + 准备 VLLM 环境${NC}"
+    echo -e "  ./quickstart.sh --vllm                           ${DIM}# 开发者安装 + 安装 VLLM 环境${NC}"
+    echo -e "  ./quickstart.sh --standard --vllm                ${DIM}# 标准安装 + 安装 VLLM 环境${NC}"
     echo -e "  ./quickstart.sh --minimal --yes                  ${DIM}# 最小安装 + 跳过确认${NC}"
     echo ""
 }
