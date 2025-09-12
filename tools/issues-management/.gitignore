@@ -27,8 +27,6 @@ __pycache__/
 __pycache__/
 
 # 测试文件和敏感信息
-test_*.py
-*_test.py
 *.token
 *.key
 

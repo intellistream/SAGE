@@ -27,7 +27,6 @@ sage extensions status
 sage extensions install
 
 # 安装特定扩展
-sage extensions install sage_queue
 sage extensions install sage_db
 
 # 查看扩展详细信息
@@ -38,12 +37,6 @@ sage extensions clean
 ```
 
 ## 🔧 支持的扩展
-
-### sage_queue
-- **描述**: 高性能队列实现
-- **特性**: Ring Buffer, 无锁队列, 内存映射
-- **状态**: stable
-- **用途**: 提升数据流处理性能
 
 ### sage_db  
 - **描述**: 数据库接口扩展
