@@ -1,8 +1,9 @@
 from openai import OpenAI
 
-class OpenAIClient():
+
+class OpenAIClient:
     """
-    Operator for generating natural language responses 
+    Operator for generating natural language responses
 
     Alibaba Could API:
         model_name="qwen-max"
@@ -11,17 +12,17 @@ class OpenAIClient():
 
     Ollama API:
         model_name="llama3.1:8b"
-        base_url="http://222.20.77.1:11434/v1"   
+        base_url="http://222.20.77.1:11434/v1"
         api_key="empty"
 
     vllm API
         model_name="meta-llama/Llama-2-13b-chat-hf"
-        base_url="http://localhost:8000/v1"   
+        base_url="http://localhost:8000/v1"
         api_key="empty"
-    
+
     """
 
-    def __init__(self,model_name="qwen-max",**kwargs):
+    def __init__(self, model_name="qwen-max", **kwargs):
         """
         Initialize the generator with a specified model and base_url.
         :param model_name: The Hugging Face model to use for generation.
@@ -29,15 +30,15 @@ class OpenAIClient():
         :param api_key: Api key to validate.
         :param seed: Seed for reproducibility.
         """
-        self.model_name=model_name
+        self.model_name = model_name
         self.base_url = kwargs.get("base_url")
         self.api_key = kwargs.get("api_key")
-        
+
         self.client = OpenAI(
-            base_url= self.base_url, 
+            base_url=self.base_url,
             api_key=self.api_key,
         )
-        self.seed=kwargs["seed"]
+        self.seed = kwargs["seed"]
 
     def generate(self, messages, **kwargs):
         """
@@ -100,4 +101,3 @@ class OpenAIClient():
         except Exception as e:
             # 统一封装异常
             raise RuntimeError(f"Response generation failed: {e}") from e
-

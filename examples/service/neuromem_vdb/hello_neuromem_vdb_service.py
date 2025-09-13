@@ -1,10 +1,12 @@
 import time
-from sage.core.api.service.base_service import BaseService
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.batch_function import BatchFunction
+
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.middleware.components.neuromem.micro_service.neuromem_vdb_service import NeuroMemVDBService
+from sage.core.api.function.batch_function import BatchFunction
+from sage.core.api.function.sink_function import SinkFunction
+from sage.core.api.local_environment import LocalEnvironment
+from sage.core.api.service.base_service import BaseService
+from sage.middleware.components.neuromem.micro_service.neuromem_vdb_service import \
+    NeuroMemVDBService
 
 
 class HelloBatch(BatchFunction):
@@ -38,7 +40,7 @@ def main():
     env.register_service(
         "hello_neuromem_vdb_service",
         NeuroMemVDBService,
-        collection_name="demo_collection"
+        collection_name="demo_collection",
     )
 
     env.from_batch(HelloBatch).sink(PrintSink)

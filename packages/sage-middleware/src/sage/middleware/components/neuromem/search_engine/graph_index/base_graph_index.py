@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, List
 
+
 class BaseGraphIndex(ABC):
     def __init__(self, name: str):
         """

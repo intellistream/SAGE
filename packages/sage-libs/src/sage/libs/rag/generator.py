@@ -1,13 +1,13 @@
-import os
-import yaml
-from typing import Tuple, List, Any
-from collections import deque
-import time
 import json
+import os
+import time
+from collections import deque
+from typing import Any, List, Tuple
 
+import yaml
 from sage.core.api.function.map_function import MapFunction
-from sage.libs.utils.openaiclient import OpenAIClient
 from sage.libs.utils.huggingface import HFClient
+from sage.libs.utils.openaiclient import OpenAIClient
 
 
 class OpenAIGenerator(MapFunction):
@@ -47,11 +47,15 @@ class OpenAIGenerator(MapFunction):
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, 'env_base_dir') and self.ctx.env_base_dir:
-                self.data_base_path = os.path.join(self.ctx.env_base_dir, ".sage_states", "generator_data")
+            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
+                self.data_base_path = os.path.join(
+                    self.ctx.env_base_dir, ".sage_states", "generator_data"
+                )
             else:
                 # 使用默认路径
-                self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "generator_data")
+                self.data_base_path = os.path.join(
+                    os.getcwd(), ".sage_states", "generator_data"
+                )
 
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
@@ -62,11 +66,11 @@ class OpenAIGenerator(MapFunction):
             return
 
         record = {
-            'timestamp': time.time(),
-            'query': query,
-            'prompt': prompt,
-            'response': response,
-            'model_name': self.config["model_name"]
+            "timestamp": time.time(),
+            "query": query,
+            "prompt": prompt,
+            "response": response,
+            "model_name": self.config["model_name"],
         }
         self.data_records.append(record)
         self._persist_data_records()
@@ -81,7 +85,7 @@ class OpenAIGenerator(MapFunction):
         path = os.path.join(self.data_base_path, filename)
 
         try:
-            with open(path, 'w', encoding='utf-8') as f:
+            with open(path, "w", encoding="utf-8") as f:
                 json.dump(self.data_records, f, ensure_ascii=False, indent=2)
             self.data_records = []
         except Exception as e:
@@ -107,11 +111,12 @@ class OpenAIGenerator(MapFunction):
 
     def __del__(self):
         """确保在对象销毁时保存所有未保存的记录"""
-        if hasattr(self, 'enable_profile') and self.enable_profile:
+        if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
             except:
                 pass
+
 
 class HFGenerator(MapFunction):
     """
@@ -129,9 +134,7 @@ class HFGenerator(MapFunction):
         super().__init__(**kwargs)
         self.config = config
         # Apply the generator model with the provided configuration
-        self.model = HFClient(
-            model_name=self.config["model_name"]
-        )
+        self.model = HFClient(model_name=self.config["model_name"])
 
     def execute(self, data: list, **kwargs) -> Tuple[str, str]:
         """
@@ -151,8 +154,10 @@ class HFGenerator(MapFunction):
         response = self.model.generate(prompt, **kwargs)
 
         print(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
-        
+
         # Return the generated response as a Data object
-        self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
+        self.logger.info(
+            f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m "
+        )
 
         return (user_query, response)

@@ -2,12 +2,13 @@
 # python -m sage.core.sage.middleware.services.neuromem..search_engine.kv_index.bm25s_index
 
 import os
-import bm25s
 import shutil
-import Stemmer
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
-from sage.middleware.components.neuromem.search_engine.kv_index.base_kv_index import BaseKVIndex
+import bm25s
+import Stemmer
+from sage.middleware.components.neuromem.search_engine.kv_index.base_kv_index import \
+    BaseKVIndex
 
 
 class BM25sIndex(BaseKVIndex):
@@ -20,25 +21,25 @@ class BM25sIndex(BaseKVIndex):
         支持两种初始化方式：
         1. 直接通过声明来创建：传入 config，然后使用 build_index() 方法来构建索引
         2. 通过 BM25sIndex.load() 来加载：调用load方法
-        
+
         Initialize the BM25sIndex instance with two initialization methods:
         1. Direct creation: pass config, then use build_index() method to build the index
         2. Load from disk: use load method
         """
         self.config = config or {}
-        
+
         # 从config中获取必要参数，否则使用默认值
         self.name = self.config.get("name", None)
         if self.name is None:
             raise ValueError("索引名称(name)未在config中指定")
-        
+
         # 初始化基本属性
         self.ids: List[str] = []
         self.texts: List[str] = []
         self.tokens: List[List[str]] = []
         self.tokenizer = None
         self.bm25 = None
-        
+
         # BM25s 特定配置参数
         self.backend = self.config.get("backend", "numba")
         self.language = self.config.get("language", "auto")  # auto, zh, en
@@ -56,16 +57,13 @@ class BM25sIndex(BaseKVIndex):
             zh_flag = False
         else:  # auto
             zh_flag = self._is_chinese(texts[0]) if texts else False
-        
+
         if zh_flag:
-            return bm25s.tokenization.Tokenizer(
-                stopwords=self.custom_stopwords or 'zh'
-            )
+            return bm25s.tokenization.Tokenizer(stopwords=self.custom_stopwords or "zh")
         else:
             stemmer = Stemmer.Stemmer("english")
             return bm25s.tokenization.Tokenizer(
-                stopwords=self.custom_stopwords or 'en', 
-                stemmer=stemmer
+                stopwords=self.custom_stopwords or "en", stemmer=stemmer
             )
 
     def _build_index(self, texts: List[str], ids: List[str]):
@@ -76,7 +74,7 @@ class BM25sIndex(BaseKVIndex):
         self.ids = list(ids)
         self.texts = list(texts)
         self.tokenizer = self._get_tokenizer(self.texts)
-        self.tokens = self.tokenizer.tokenize(self.texts) # type: ignore
+        self.tokens = self.tokenizer.tokenize(self.texts)  # type: ignore
         self.bm25 = bm25s.BM25(corpus=self.texts, backend=self.backend)
         self.bm25.index(self.tokens)
 
@@ -97,7 +95,7 @@ class BM25sIndex(BaseKVIndex):
         if not self.texts:
             return
         self.tokenizer = self._get_tokenizer(self.texts)
-        self.tokens = self.tokenizer.tokenize(self.texts) # type: ignore
+        self.tokens = self.tokenizer.tokenize(self.texts)  # type: ignore
         self.bm25 = bm25s.BM25(corpus=self.texts, backend=self.backend)
         self.bm25.index(self.tokens)
 
@@ -106,7 +104,7 @@ class BM25sIndex(BaseKVIndex):
         判断字符串中是否包含中文字符。
         Detect whether the text contains Chinese characters.
         """
-        return any('\u4e00' <= ch <= '\u9fff' for ch in text)
+        return any("\u4e00" <= ch <= "\u9fff" for ch in text)
 
     def insert(self, text, doc_id):
         """
@@ -147,11 +145,10 @@ class BM25sIndex(BaseKVIndex):
         """
         if self.bm25 is None or len(self.ids) == 0:
             return []
-        query_token = self.tokenizer.tokenize([text])[0] # type: ignore
-        scores = self.bm25.get_scores(query_token) # type: ignore
+        query_token = self.tokenizer.tokenize([text])[0]  # type: ignore
+        scores = self.bm25.get_scores(query_token)  # type: ignore
         topk_idx = sorted(range(len(scores)), key=lambda i: -scores[i])[:topk]
         return [self.ids[i] for i in topk_idx]
-
 
     def store(self, dir_path: str) -> Dict[str, Any]:
         """
@@ -159,29 +156,30 @@ class BM25sIndex(BaseKVIndex):
         Store the index info into the specified directory, including bm25 model, tokenizer, ids, and texts.
         """
         os.makedirs(dir_path, exist_ok=True)
-        
+
         # 保存BM25模型
         if self.bm25 is not None:
-            self.bm25.vocab_dict = {str(k): v for k, v in self.bm25.vocab_dict.items()} # type: ignore
-            self.bm25.save(dir_path, corpus=None)# type: ignore
-        
+            self.bm25.vocab_dict = {str(k): v for k, v in self.bm25.vocab_dict.items()}  # type: ignore
+            self.bm25.save(dir_path, corpus=None)  # type: ignore
+
         # 保存分词器
         if self.tokenizer is not None:
-            self.tokenizer.save_vocab(dir_path) # type: ignore
-            self.tokenizer.save_stopwords(dir_path) # type: ignore
-        
+            self.tokenizer.save_vocab(dir_path)  # type: ignore
+            self.tokenizer.save_stopwords(dir_path)  # type: ignore
+
         # 保存配置信息
         meta = {
             "name": self.name,
             "backend": self.backend,
             "language": self.language,
             "custom_stopwords": self.custom_stopwords,
-            "config": self.config
+            "config": self.config,
         }
         with open(os.path.join(dir_path, "meta.json"), "w", encoding="utf-8") as f:
             import json
+
             json.dump(meta, f, ensure_ascii=False, indent=2)
-        
+
         # 保存ids和texts
         with open(os.path.join(dir_path, "ids.txt"), "w", encoding="utf-8") as f:
             for i in self.ids:
@@ -200,13 +198,14 @@ class BM25sIndex(BaseKVIndex):
         meta_path = os.path.join(dir_path, "meta.json")
         if os.path.exists(meta_path):
             import json
+
             with open(meta_path, "r", encoding="utf-8") as f:
                 meta = json.load(f)
             self.config = meta.get("config", {})
             self.backend = meta.get("backend", "numba")
             self.language = meta.get("language", "auto")
             self.custom_stopwords = meta.get("custom_stopwords", None)
-        
+
         # 加载BM25模型
         self.bm25 = bm25s.BM25.load(dir_path)
 
@@ -220,9 +219,9 @@ class BM25sIndex(BaseKVIndex):
             self.ids = [line.strip() for line in f.readlines()]
         with open(os.path.join(dir_path, "texts.txt"), "r", encoding="utf-8") as f:
             self.texts = [line.strip() for line in f.readlines()]
-            
+
         # 重建tokens
-        self.tokens = [self.tokenizer.tokenize([t], return_as="tuple")[0][0] for t in self.texts] # type: ignore
+        self.tokens = [self.tokenizer.tokenize([t], return_as="tuple")[0][0] for t in self.texts]  # type: ignore
         self.bm25.index(self.tokens)
 
     @classmethod
@@ -258,7 +257,7 @@ if __name__ == "__main__":
     texts = [
         "The quick brown fox jumps over the lazy dog.",
         "Hello world! This is a operator_test document.",
-        "Python is a great programming language."
+        "Python is a great programming language.",
     ]
     root_path = "./tmp_bm25_test"  # 用临时目录避免误删业务数据
     index_dir = root_path
@@ -270,7 +269,7 @@ if __name__ == "__main__":
         "name": index_name,
         "backend": "numba",
         "language": "auto",  # 可以指定 "zh", "en" 或 "auto"
-        "custom_stopwords": None
+        "custom_stopwords": None,
     }
     index = BM25sIndex(config=config)
     index.build_index(texts, ids)
@@ -317,4 +316,3 @@ if __name__ == "__main__":
     # 7. 清理测试目录
     print("\n== 清理测试目录 ==")
     BM25sIndex.clear(index_dir)
-

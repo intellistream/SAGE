@@ -1,4 +1,5 @@
-from typing import Optional, List, Any, Dict, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
 
 class Collector:
     """
@@ -8,11 +9,11 @@ class Collector:
 
     def __init__(self, *args, **kwargs):
         self._collected_data: List[Any] = []
-        
+
     def collect(self, data: Any):
         """
         Collect data. Behavior depends on batch_mode setting.
-        
+
         Args:
             data: The data to collect
             tag: Optional output tag
@@ -24,7 +25,7 @@ class Collector:
     def get_collected_data(self) -> List[Any]:
         """
         Get all collected data.
-        
+
         Returns:
             List[Any]: List of data tuples
         """
@@ -33,7 +34,7 @@ class Collector:
     def get_collected_count(self) -> int:
         """
         Get the number of collected items.
-        
+
         Returns:
             int: Number of collected items
         """

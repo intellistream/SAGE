@@ -1,5 +1,6 @@
 import asyncio
 import os
+
 import pipmaster as pm  # Pipmaster for dynamic library install
 
 # Dependencies should be installed via requirements.txt
@@ -38,7 +39,7 @@ async def jina_embed(
     late_chunking: bool = False,
     base_url: str = None,
     api_key: str = None,
-    model:str="jina-embeddings-v3"
+    model: str = "jina-embeddings-v3",
 ) -> list[float]:
     if api_key:
         os.environ["JINA_API_KEY"] = api_key
@@ -57,10 +58,13 @@ async def jina_embed(
     }
     data_list = await fetch_data(url, headers, data)
     print(data_list)
-    return data_list[0]['embedding']
+    return data_list[0]["embedding"]
+
 
 import os
+
 import requests
+
 
 def jina_embed_sync(
     text: str,
@@ -68,7 +72,7 @@ def jina_embed_sync(
     late_chunking: bool = False,
     base_url: str = None,
     api_key: str = None,
-    model: str = "jina-embeddings-v3"
+    model: str = "jina-embeddings-v3",
 ) -> list[float]:
     """
     同步版本：调用 Jina AI embedding API 获取嵌入向量
@@ -108,8 +112,3 @@ def jina_embed_sync(
         return data["data"][0]["embedding"]
     except Exception as e:
         raise RuntimeError(f"Jina API call failed: {str(e)}")
-
-
-
-
-

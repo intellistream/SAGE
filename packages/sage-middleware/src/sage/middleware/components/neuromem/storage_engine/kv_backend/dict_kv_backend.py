@@ -1,9 +1,12 @@
 # file: sage/core/sage.middleware.services.neuromem./storage_engine/kv_backend/dict_kv_backend.py
 
-import os
 import json
+import os
 from typing import Any, Dict
-from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import BaseKVBackend
+
+from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import \
+    BaseKVBackend
+
 
 class DictKVBackend(BaseKVBackend):
     """
@@ -37,7 +40,7 @@ class DictKVBackend(BaseKVBackend):
 
     def store_data_to_disk(self, path: str):
         """将当前内存数据存储为 JSON 文件"""
-        with open(path, 'w', encoding='utf-8') as f:
+        with open(path, "w", encoding="utf-8") as f:
             # 用 ensure_ascii=False 保证 utf-8 兼容中文，indent=2 可读性高
             json.dump(self._store, f, ensure_ascii=False, indent=2)
 
@@ -45,7 +48,7 @@ class DictKVBackend(BaseKVBackend):
         """从指定 JSON 文件加载数据到内存（覆盖当前 _store）"""
         if not os.path.exists(path):
             raise FileNotFoundError(f"File '{path}' does not exist.")
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, "r", encoding="utf-8") as f:
             self._store = json.load(f)
 
     def clear_disk_data(self, path: str):

@@ -1,15 +1,11 @@
 # file sage/core/sage.service.memory./search_engine/kv_index/base_kv_index.py
 
 from abc import ABC, abstractmethod
-from typing import List, Any, Dict
+from typing import Any, Dict, List
+
 
 class BaseKVIndex(ABC):
-    def __init__(
-        self,
-        name: str,
-        texts: List[str],
-        ids: List[str]
-    ):
+    def __init__(self, name: str, texts: List[str], ids: List[str]):
         """
         初始化索引基类。
         Initialize the base class for KV Index.

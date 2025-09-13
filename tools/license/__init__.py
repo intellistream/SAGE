@@ -20,16 +20,21 @@ def _check_enterprise_license():
     """检查企业版license"""
     try:
         from shared.validation import LicenseValidator
-        
+
         validator = LicenseValidator()
         if not validator.has_valid_license():
             return False
-            
+
         features = validator.get_license_features()
         # 检查是否有企业版功能
-        required_features = ["enterprise", "high-performance", "enterprise-db", "advanced-analytics"]
+        required_features = [
+            "enterprise",
+            "high-performance",
+            "enterprise-db",
+            "advanced-analytics",
+        ]
         return any(feature in features for feature in required_features)
-        
+
     except ImportError:
         # License工具不可用，检查环境变量
         return os.getenv("SAGE_ENTERPRISE_ENABLED", "").lower() in ["true", "1", "yes"]
@@ -42,17 +47,19 @@ _ENTERPRISE_AVAILABLE = _check_enterprise_license()
 
 if not _ENTERPRISE_AVAILABLE:
     import warnings
+
     warnings.warn(
         f"SAGE sage-kernel Enterprise features require a valid commercial license. "
         "Enterprise functionality will be disabled. "
         "Please contact your SAGE vendor for licensing information.",
         UserWarning,
-        stacklevel=2
+        stacklevel=2,
     )
 
 
 def require_enterprise_license(func):
     """装饰器：要求企业版license"""
+
     def wrapper(*args, **kwargs):
         if not _ENTERPRISE_AVAILABLE:
             raise RuntimeError(
@@ -60,6 +67,7 @@ def require_enterprise_license(func):
                 f"This functionality is not available with your current license."
             )
         return func(*args, **kwargs)
+
     return wrapper
 
 
@@ -76,7 +84,4 @@ else:
     pass
 
 
-__all__ = [
-    "_ENTERPRISE_AVAILABLE",
-    "require_enterprise_license"
-]
+__all__ = ["_ENTERPRISE_AVAILABLE", "require_enterprise_license"]

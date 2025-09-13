@@ -1,14 +1,15 @@
 # file sage/core/sage.middleware.services.neuromem./search_engine/kv_index/base_kv_index.py
 
 from abc import ABC, abstractmethod
-from typing import List, Any, Dict, Optional
+from typing import Any, Dict, List, Optional
+
 
 class BaseKVIndex(ABC):
     def __init__(
         self,
         config: Optional[dict] = None,
         texts: Optional[List[str]] = None,
-        ids: Optional[List[str]] = None
+        ids: Optional[List[str]] = None,
     ):
         """
         初始化索引基类。

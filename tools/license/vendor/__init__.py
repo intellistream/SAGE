@@ -5,4 +5,4 @@ Tools for SAGE vendors to generate and manage licenses
 
 from .license_vendor import LicenseVendor
 
-__all__ = ['LicenseVendor']
+__all__ = ["LicenseVendor"]

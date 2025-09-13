@@ -1,9 +1,9 @@
 from typing import Any, List, Literal, Optional, Union
-from sage.core.api.function.map_function import MapFunction
 
-from typing import Any, List, Optional
+from sage.core.api.function.map_function import MapFunction
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer
+
 
 class CharacterSplitter(MapFunction):
     """
@@ -77,7 +77,9 @@ class SentenceTransformersTokenTextSplitter(MapFunction):
     def __init__(self, config: dict) -> None:
         super().__init__()
         self.config = config.get("chunk", {})
-        self.model_name = self.config.get("model_name", "sentence-transformers/all-mpnet-base-v2")
+        self.model_name = self.config.get(
+            "model_name", "sentence-transformers/all-mpnet-base-v2"
+        )
         self.chunk_size = self.config.get("chunk_size", 512)
         self.chunk_overlap = self.config.get("chunk_overlap", 50)
 
@@ -94,7 +96,7 @@ class SentenceTransformersTokenTextSplitter(MapFunction):
         except Exception as e:
             self.logger.error(f"Error while loading model or tokenizer: {e}")
             raise e
-        
+
         if self.chunk_overlap >= self.chunk_size:
             raise ValueError("Chunk overlap must be less than chunk size.")
         if self.chunk_size <= 0:
@@ -124,7 +126,7 @@ class SentenceTransformersTokenTextSplitter(MapFunction):
 
             # Decode the chunk and add it to the list of splits
             splits.append(self.tokenizer.decode(chunk_ids, skip_special_tokens=True))
-            
+
             # Move the starting index forward with the overlap
             start_idx = cur_idx - self.chunk_overlap
 
@@ -147,7 +149,10 @@ class SentenceTransformersTokenTextSplitter(MapFunction):
             chunks = self.split_text_on_tokens(content)
             return chunks
         except Exception as e:
-            self.logger.error(f"SentenceTransformersTokenTextSplitter error: {e}", exc_info=True)
+            self.logger.error(
+                f"SentenceTransformersTokenTextSplitter error: {e}", exc_info=True
+            )
+
 
 # config={
 #     "chunk": {
@@ -159,5 +164,3 @@ class SentenceTransformersTokenTextSplitter(MapFunction):
 
 # split=SentenceTransformersTokenTextSplitter(config)
 # print(split.execute(Data("This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.")))
-
-

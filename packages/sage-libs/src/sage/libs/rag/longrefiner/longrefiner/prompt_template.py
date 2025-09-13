@@ -1,6 +1,7 @@
-from transformers import AutoTokenizer, AutoConfig
-import tiktoken
 import warnings
+
+import tiktoken
+from transformers import AutoConfig, AutoTokenizer
 
 
 class PromptTemplate:
@@ -58,7 +59,9 @@ class PromptTemplate:
                         f"The input text length is greater than the maximum length ({total_tokens + len(encoded_message)} > {self.max_input_len}) and has been truncated!"
                     )
                     remaining_tokens = self.max_input_len - total_tokens
-                    truncated_message = self.encoding.decode(encoded_message[:remaining_tokens])
+                    truncated_message = self.encoding.decode(
+                        encoded_message[:remaining_tokens]
+                    )
                     message["content"] = truncated_message
                     truncated_messages.append(message)
                     break
@@ -67,7 +70,9 @@ class PromptTemplate:
 
         else:
             assert isinstance(prompt, str)
-            tokenized_prompt = self.tokenizer(prompt, truncation=False, return_tensors="pt").input_ids[0]
+            tokenized_prompt = self.tokenizer(
+                prompt, truncation=False, return_tensors="pt"
+            ).input_ids[0]
 
             if len(tokenized_prompt) > self.max_input_len:
                 print(
@@ -76,11 +81,19 @@ class PromptTemplate:
                 half = int(self.max_input_len / 2)
                 prompt = self.tokenizer.decode(
                     tokenized_prompt[:half], skip_special_tokens=True
-                ) + self.tokenizer.decode(tokenized_prompt[-half:], skip_special_tokens=True)
+                ) + self.tokenizer.decode(
+                    tokenized_prompt[-half:], skip_special_tokens=True
+                )
             return prompt
 
     def get_prompt(
-        self, question=None, retrieval_result=None, formatted_reference=None, previous_gen=None, messages=None, **params
+        self,
+        question=None,
+        retrieval_result=None,
+        formatted_reference=None,
+        previous_gen=None,
+        messages=None,
+        **params,
     ):
         if messages is not None:
             if isinstance(messages, str):
@@ -89,10 +102,14 @@ class PromptTemplate:
                 if self.is_openai:
                     self.truncate_prompt(messages)
                 else:
-                    prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+                    prompt = self.tokenizer.apply_chat_template(
+                        messages, tokenize=False, add_generation_prompt=True
+                    )
                     return self.truncate_prompt(prompt)
             else:
-                prompt = "\n\n".join([message["content"] for message in messages if message["content"]])
+                prompt = "\n\n".join(
+                    [message["content"] for message in messages if message["content"]]
+                )
                 return self.truncate_prompt(prompt)
 
         if formatted_reference is None:
@@ -114,11 +131,19 @@ class PromptTemplate:
             if user_prompt != "":
                 input.append({"role": "user", "content": user_prompt})
             if not self.is_openai:
-                input = self.tokenizer.apply_chat_template(input, tokenize=False, add_generation_prompt=True)
+                input = self.tokenizer.apply_chat_template(
+                    input, tokenize=False, add_generation_prompt=True
+                )
         else:
-            input = "\n\n".join([prompt for prompt in [system_prompt, user_prompt] if prompt != ""])
+            input = "\n\n".join(
+                [prompt for prompt in [system_prompt, user_prompt] if prompt != ""]
+            )
 
-        if previous_gen is not None and previous_gen not in ["", " "] and self.is_openai is False:
+        if (
+            previous_gen is not None
+            and previous_gen not in ["", " "]
+            and self.is_openai is False
+        ):
             input += previous_gen
 
         return self.truncate_prompt(input)
@@ -130,7 +155,9 @@ class PromptTemplate:
             title = content.split("\n")[0]
             text = "\n".join(content.split("\n")[1:])
             if self.reference_template is not None:
-                format_reference += self.reference_template.format(idx=idx, title=title, text=text)
+                format_reference += self.reference_template.format(
+                    idx=idx, title=title, text=text
+                )
             else:
                 format_reference += f"Doc {idx+1}(Title: {title}) {text}\n"
 

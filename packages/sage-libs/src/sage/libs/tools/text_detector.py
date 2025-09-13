@@ -1,10 +1,12 @@
 import os
 import time
+import warnings
+from typing import Any, Dict
 
 import torch
-from.base.base_tool import BaseTool
-from typing import Dict, Any
-import warnings
+
+from .base.base_tool import BaseTool
+
 
 class text_detector(BaseTool):
     def __init__(self):
@@ -15,21 +17,21 @@ class text_detector(BaseTool):
             input_types={
                 "image": "str - The path to the image file.",
                 "languages": "list - A list of language codes for the OCR model.",
-                "detail": "int - The level of detail in the output. Set to 0 for simpler output, 1 for detailed output."
+                "detail": "int - The level of detail in the output. Set to 0 for simpler output, 1 for detailed output.",
             },
             output_type="list - A list of detected text blocks.",
             demo_commands=[
                 {
                     "command": 'execution = tool.execute(image="path/to/image.png", languages=["en"])',
-                    "description": "Detect text in an image using the default language (English)."
+                    "description": "Detect text in an image using the default language (English).",
                 },
                 {
                     "command": 'execution = tool.execute(image="path/to/image.png", languages=["en", "de"])',
-                    "description": "Detect text in an image using multiple languages (English and German)."
+                    "description": "Detect text in an image using multiple languages (English and German).",
                 },
                 {
                     "command": 'execution = tool.execute(image="path/to/image.png", languages=["en"], detail=0)',
-                    "description": "Detect text in an image with simpler output (text without coordinates and scores)."
+                    "description": "Detect text in an image with simpler output (text without coordinates and scores).",
                 },
             ],
             user_metadata={
@@ -43,7 +45,7 @@ class text_detector(BaseTool):
                     "hi": "Hindi",
                     "ja": "Japanese",
                 }
-            }
+            },
         )
 
     def build_tool(self, languages=None):
@@ -59,15 +61,26 @@ class text_detector(BaseTool):
         languages = languages or ["en"]  # Default to English if no languages provided
         try:
             import easyocr
+
             reader = easyocr.Reader(languages)
             return reader
         except ImportError:
-            raise ImportError("Please install the EasyOCR package using 'pip install easyocr'.")
+            raise ImportError(
+                "Please install the EasyOCR package using 'pip install easyocr'."
+            )
         except Exception as e:
             print(f"Error building the OCR tool: {e}")
             return None
-    
-    def execute(self, image, languages=None, max_retries=10, retry_delay=5, clear_cuda_cache=False, **kwargs):
+
+    def execute(
+        self,
+        image,
+        languages=None,
+        max_retries=10,
+        retry_delay=5,
+        clear_cuda_cache=False,
+        **kwargs,
+    ):
         """
         Executes the OCR tool to detect text in the provided image.
 
@@ -89,12 +102,16 @@ class text_detector(BaseTool):
                 reader = self.build_tool(languages)
                 if reader is None:
                     raise ValueError("Failed to build the OCR tool.")
-                
+
                 result = reader.readtext(image, **kwargs)
                 try:
                     # detail = 1: Convert numpy types to standard Python types
                     cleaned_result = [
-                        ([[int(coord[0]), int(coord[1])] for coord in item[0]], item[1], round(float(item[2]), 2))
+                        (
+                            [[int(coord[0]), int(coord[1])] for coord in item[0]],
+                            item[1],
+                            round(float(item[2]), 2),
+                        )
                         for item in result
                     ]
                     return cleaned_result
@@ -118,7 +135,7 @@ class text_detector(BaseTool):
             except Exception as e:
                 print(f"Error detecting text: {e}")
                 break
-        
+
         print(f"Failed to detect text after {max_retries} attempts.")
         return []
 
@@ -132,8 +149,9 @@ class text_detector(BaseTool):
         metadata = super().get_metadata()
         return metadata
 
+
 if __name__ == "__main__":
-    
+
     import json
 
     # Get the directory of the current script
@@ -170,4 +188,3 @@ if __name__ == "__main__":
         print(f"Execution failed: {e}")
 
     print("Done!")
-

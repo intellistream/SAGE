@@ -5,7 +5,7 @@ Core Function模块测试包
 
 测试文件映射:
 - test_base_function.py     -> sage.core.api.function.base_function
-- test_comap_function.py    -> sage.core.api.function.comap_function  
+- test_comap_function.py    -> sage.core.api.function.comap_function
 - test_sink_function.py     -> sage.core.api.function.sink_function
 - test_source_function.py   -> sage.core.api.function.source_function
 """
@@ -20,9 +20,9 @@ FUNCTION_TEST_CONFIG = {
 # 测试覆盖的功能点
 COVERED_MODULES = [
     "base_function",
-    "comap_function", 
+    "comap_function",
     "sink_function",
-    "source_function"
+    "source_function",
 ]
 
 # 待扩展的测试模块
@@ -33,8 +33,8 @@ PENDING_MODULES = [
     "future_function",
     "join_function",
     "kafka_source",
-    "keyby_function", 
+    "keyby_function",
     "lambda_function",
     "map_function",
-    "simple_batch_function"
+    "simple_batch_function",
 ]

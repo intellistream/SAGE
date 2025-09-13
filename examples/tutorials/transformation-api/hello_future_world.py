@@ -1,10 +1,12 @@
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.api.function.comap_function import BaseCoMapFunction
+from time import sleep
+
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.base_function import BaseFunction
 from sage.core.api.function.batch_function import BatchFunction
+from sage.core.api.function.comap_function import BaseCoMapFunction
 from sage.core.api.function.sink_function import SinkFunction
-from sage.common.utils.logging.custom_logger import CustomLogger
-from time import sleep
+from sage.core.api.local_environment import LocalEnvironment
+
 
 # 启动信号源（只发一次启动信号）
 class StartSource(BatchFunction):
@@ -40,7 +42,7 @@ class SentenceProvider(BatchFunction):
             "这是第一句。",
             "这是第二句。",
             "这是第三句。",
-            "所有语句已完成！"
+            "所有语句已完成！",
         ]
         self.index = 0
 
@@ -101,13 +103,15 @@ def main():
     # 7. 把延迟后的结果反馈到 future stream
     delayed.fill_future(feedback_stream)
 
-
+    # 对于循环流，仍然需要手动控制，因为autostop无法处理循环
     env.submit()
 
     from time import sleep
+
     sleep(6)  # 给足够时间让所有数据处理完成
 
     print("Hello Future World 示例结束")
+
 
 if __name__ == "__main__":
     CustomLogger.disable_global_console_debug()

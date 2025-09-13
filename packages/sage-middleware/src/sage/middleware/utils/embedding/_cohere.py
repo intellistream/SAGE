@@ -1,13 +1,16 @@
-import os
-import cohere
 import asyncio
+import os
 
+import cohere
 import numpy as np
 
 
 async def cohere_embed(
-        texts: list[str], api_key: str, model: str = "embed-multilingual-v3.0", input_type: str = "classification",
-        embedding_types: list[str] = ["float"]
+    texts: list[str],
+    api_key: str,
+    model: str = "embed-multilingual-v3.0",
+    input_type: str = "classification",
+    embedding_types: list[str] = ["float"],
 ) -> list[float]:
     if api_key is None:
         api_key = os.environ.get("COHERE_API_KEY")
@@ -22,15 +25,18 @@ async def cohere_embed(
     )
     return response.embeddings
 
+
 import os
+
 import cohere
+
 
 def cohere_embed_sync(
     texts: list[str],
     api_key: str = None,
     model: str = "embed-multilingual-v3.0",
     input_type: str = "classification",
-    embedding_types: list[str] = ["float"]
+    embedding_types: list[str] = ["float"],
 ) -> list[list[float]]:
     """
     同步版本：使用 Cohere 同步客户端生成文本 embeddings。
@@ -59,10 +65,3 @@ def cohere_embed_sync(
         embedding_types=embedding_types,
     )
     return response.embeddings
-
-
-
-
-
-
-

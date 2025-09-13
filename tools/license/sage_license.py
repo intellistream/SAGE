@@ -11,13 +11,14 @@ from pathlib import Path
 # Add the current directory to Python path for imports
 current_dir = Path(__file__).parent.absolute()
 sys.path.insert(0, str(current_dir))
-sys.path.insert(0, str(current_dir / 'shared'))
-sys.path.insert(0, str(current_dir / 'client'))
-sys.path.insert(0, str(current_dir / 'vendor'))
+sys.path.insert(0, str(current_dir / "shared"))
+sys.path.insert(0, str(current_dir / "client"))
+sys.path.insert(0, str(current_dir / "vendor"))
 
 # Make scripts executable
-os.chmod(current_dir / 'client' / 'license_client.py', 0o755)
-os.chmod(current_dir / 'vendor' / 'license_vendor.py', 0o755)
+os.chmod(current_dir / "client" / "license_client.py", 0o755)
+os.chmod(current_dir / "vendor" / "license_vendor.py", 0o755)
+
 
 def show_help():
     """Show help information"""
@@ -51,10 +52,10 @@ def show_help():
 def run_client_command(command, args):
     """Run customer-facing license command"""
     import subprocess
-    
-    client_script = current_dir / 'client' / 'license_client.py'
+
+    client_script = current_dir / "client" / "license_client.py"
     cmd = [sys.executable, str(client_script), command] + args
-    
+
     try:
         result = subprocess.run(cmd)
         return result.returncode
@@ -66,10 +67,10 @@ def run_client_command(command, args):
 def run_vendor_command(command, args):
     """Run vendor license command"""
     import subprocess
-    
-    vendor_script = current_dir / 'vendor' / 'license_vendor.py'
+
+    vendor_script = current_dir / "vendor" / "license_vendor.py"
     cmd = [sys.executable, str(vendor_script), command] + args
-    
+
     try:
         result = subprocess.run(cmd)
         return result.returncode
@@ -83,23 +84,23 @@ def main():
     if len(sys.argv) < 2:
         show_help()
         return 0
-    
+
     command = sys.argv[1]
     args = sys.argv[2:]
-    
+
     # Customer commands
-    if command in ['install', 'status', 'remove']:
+    if command in ["install", "status", "remove"]:
         return run_client_command(command, args)
-    
+
     # Vendor commands
-    elif command in ['generate', 'list', 'revoke']:
+    elif command in ["generate", "list", "revoke"]:
         return run_vendor_command(command, args)
-    
+
     # Help command
-    elif command in ['help', '--help', '-h']:
+    elif command in ["help", "--help", "-h"]:
         show_help()
         return 0
-    
+
     else:
         print(f"❌ Unknown command: {command}")
         print("")
@@ -107,5 +108,5 @@ def main():
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

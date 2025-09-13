@@ -1,9 +1,10 @@
-from sage.core.api.function.map_function import MapFunction
-
-from typing import Dict, Any
-import requests
 import json
 import logging
+from typing import Any, Dict
+
+import requests
+from sage.core.api.function.map_function import MapFunction
+
 
 class BochaWebSearch(MapFunction):
 
@@ -20,15 +21,12 @@ class BochaWebSearch(MapFunction):
 
     def execute(self, data: str) -> Dict[str, Any]:
         query = data
-        headers = {
-            'Authorization': self.api_key,
-            'Content-Type': 'application/json'
-        }
+        headers = {"Authorization": self.api_key, "Content-Type": "application/json"}
         payload = {
             "query": query,
             "summary": self.summary,
             "count": self.count,
-            "page": self.page
+            "page": self.page,
         }
 
         try:

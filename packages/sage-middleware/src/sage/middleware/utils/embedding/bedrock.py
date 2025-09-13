@@ -1,6 +1,6 @@
 import copy
-import os
 import json
+import os
 
 import pipmaster as pm  # Pipmaster for dynamic library install
 
@@ -16,12 +16,8 @@ except ImportError:
     )
 
 try:
-    from tenacity import (
-        retry,
-        stop_after_attempt,
-        wait_exponential,
-        retry_if_exception_type,
-    )
+    from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
+                          wait_exponential)
 except ImportError:
     raise ImportError(
         "tenacity package is required for AWS Bedrock embedding functionality. "
@@ -31,10 +27,8 @@ except ImportError:
 import numpy as np
 
 
-
 class BedrockError(Exception):
     """Generic error for issues related to Amazon Bedrock"""
-
 
 
 async def bedrock_embed(
@@ -60,10 +54,12 @@ async def bedrock_embed(
 
         if model_provider == "amazon":
             if "v2" in model:
-                body = json.dumps({
-                    "inputText": text,
-                    "embeddingTypes": ["float"],
-                })
+                body = json.dumps(
+                    {
+                        "inputText": text,
+                        "embeddingTypes": ["float"],
+                    }
+                )
             elif "v1" in model:
                 body = json.dumps({"inputText": text})
             else:
@@ -80,11 +76,13 @@ async def bedrock_embed(
             return response_body["embedding"]
 
         elif model_provider == "cohere":
-            body = json.dumps({
-                "texts": [text],
-                "input_type": "search_document",
-                "truncate": "NONE",
-            })
+            body = json.dumps(
+                {
+                    "texts": [text],
+                    "input_type": "search_document",
+                    "truncate": "NONE",
+                }
+            )
 
             response = await bedrock_async_client.invoke_model(
                 model=model,
@@ -100,9 +98,11 @@ async def bedrock_embed(
             raise ValueError(f"Model provider '{model_provider}' is not supported!")
 
 
-import os
 import json
+import os
+
 import boto3
+
 
 def bedrock_embed_sync(
     text: str,
@@ -136,10 +136,12 @@ def bedrock_embed_sync(
 
     if model_provider == "amazon":
         if "v2" in model:
-            body = json.dumps({
-                "inputText": text,
-                "embeddingTypes": ["float"],
-            })
+            body = json.dumps(
+                {
+                    "inputText": text,
+                    "embeddingTypes": ["float"],
+                }
+            )
         elif "v1" in model:
             body = json.dumps({"inputText": text})
         else:
@@ -155,11 +157,13 @@ def bedrock_embed_sync(
         return response_body["embedding"]
 
     elif model_provider == "cohere":
-        body = json.dumps({
-            "texts": [text],
-            "input_type": "search_document",
-            "truncate": "NONE",
-        })
+        body = json.dumps(
+            {
+                "texts": [text],
+                "input_type": "search_document",
+                "truncate": "NONE",
+            }
+        )
 
         response = bedrock_client.invoke_model(
             modelId=model,

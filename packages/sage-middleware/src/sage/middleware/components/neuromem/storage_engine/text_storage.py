@@ -1,10 +1,12 @@
 # file sage/core/sage.middleware.services.neuromem./storage_engine/text_storage.py
 # python -m sage.core.sage.middleware.services.neuromem..storage_engine.text_storage
 
-from typing import Optional, List
+from typing import List, Optional
 
-from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import BaseKVBackend
-from sage.middleware.components.neuromem.storage_engine.kv_backend.dict_kv_backend import DictKVBackend
+from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import \
+    BaseKVBackend
+from sage.middleware.components.neuromem.storage_engine.kv_backend.dict_kv_backend import \
+    DictKVBackend
 
 
 class TextStorage:
@@ -17,7 +19,7 @@ class TextStorage:
     def __init__(self, backend: Optional[BaseKVBackend] = None):
         # 支持自定义后端，默认用内存字典
         self.backend = backend or DictKVBackend()
-        
+
     def get_all_ids(self) -> List[str]:
         return self.backend.get_all_keys()
 
@@ -26,7 +28,7 @@ class TextStorage:
 
     def delete(self, item_id: str):
         self.backend.delete(item_id)
-        
+
     def store(self, item_id: str, text: str):
         """
         Store text under a given item_id.
@@ -70,6 +72,7 @@ class TextStorage:
             raise NotImplementedError("Backend does not support clear_disk_data")
         self.backend.clear_disk_data(path)
 
+
 """测试预期输出
 Retrieved: hello world
 After clear: 
@@ -95,7 +98,7 @@ if __name__ == "__main__":
 
     # 3. 等待用户输入 yes 再读取
     user_input = input("Step 3 | Enter 'yes' to load data from disk: ")
-    if user_input.strip().lower() == 'yes':
+    if user_input.strip().lower() == "yes":
         ts.load_from_disk(disk_path)
         print("Step 3 | After reload, Retrieved:", ts.get(text_id))
     else:

@@ -1,9 +1,12 @@
 import json
 import os
+import time
+
 from sage.core.api.function.batch_function import BatchFunction
 
 try:
     from datasets import load_dataset
+
     HAS_DATASETS = True
 except ImportError:
     HAS_DATASETS = False
@@ -30,7 +33,9 @@ class HFDatasetBatch(BatchFunction):
     def __init__(self, config: dict = None, **kwargs):
         super().__init__(**kwargs)
         if not HAS_DATASETS:
-            raise ImportError("datasets library is required for HFDatasetBatch. Install with: pip install datasets")
+            raise ImportError(
+                "datasets library is required for HFDatasetBatch. Install with: pip install datasets"
+            )
         self.config = config
         self.hf_name = config["hf_dataset_name"]
         self.hf_config = config.get("hf_dataset_config")
@@ -40,11 +45,13 @@ class HFDatasetBatch(BatchFunction):
 
     def _build_iter(self):
         """构建数据集迭代器"""
-        ds = load_dataset(self.hf_name, self.hf_config, split=self.hf_split, streaming=True)
+        ds = load_dataset(
+            self.hf_name, self.hf_config, split=self.hf_split, streaming=True
+        )
         for ex in ds:
             yield {
                 "query": ex.get("question", ""),
-                "references": ex.get("golden_answers") or []
+                "references": ex.get("golden_answers") or [],
             }
 
     def execute(self):
@@ -65,9 +72,10 @@ class HFDatasetBatch(BatchFunction):
             data = next(self._iter)
             self.logger.debug(f"Yielding batch data: {data}")
             return data
-            time.sleep(1)
         except StopIteration:
-            self.logger.info(f"HF dataset batch processing completed for: {self.hf_name}")
+            self.logger.info(
+                f"HF dataset batch processing completed for: {self.hf_name}"
+            )
             self._dataset_exhausted = True
             return None
 
@@ -100,8 +108,8 @@ class JSONLBatch(BatchFunction):
         """打开JSONL文件"""
         if not os.path.exists(self.file_path):
             raise FileNotFoundError(f"JSONL file not found: {self.file_path}")
-        
-        self._file_handle = open(self.file_path, 'r', encoding='utf-8')
+
+        self._file_handle = open(self.file_path, "r", encoding="utf-8")
         self.logger.debug(f"Opened JSONL file: {self.file_path}")
 
     def execute(self):
@@ -122,18 +130,20 @@ class JSONLBatch(BatchFunction):
             line = self._file_handle.readline()
             if not line:
                 # 文件读取完毕
-                self.logger.info(f"JSONL file batch processing completed for: {self.file_path}")
+                self.logger.info(
+                    f"JSONL file batch processing completed for: {self.file_path}"
+                )
                 self._file_handle.close()
                 self._file_exhausted = True
                 return None
-            
+
             # 解析JSON行
             line = line.strip()
             if line:
                 data = json.loads(line)
                 # 如果data包含query字段，直接返回query字符串
-                if 'query' in data:
-                    query_text = data['query']
+                if "query" in data:
+                    query_text = data["query"]
                     self.logger.debug(f"Yielding JSONL query: {query_text}")
                     return query_text
                 else:
@@ -143,7 +153,7 @@ class JSONLBatch(BatchFunction):
             else:
                 # 空行，继续读取下一行
                 return self.execute()
-                
+
         except json.JSONDecodeError as e:
             self.logger.error(f"Failed to parse JSON line: {line}, error: {e}")
             # 跳过错误行，继续处理
@@ -157,5 +167,5 @@ class JSONLBatch(BatchFunction):
 
     def __del__(self):
         """析构函数，确保文件句柄被正确关闭"""
-        if hasattr(self, '_file_handle') and self._file_handle:
+        if hasattr(self, "_file_handle") and self._file_handle:
             self._file_handle.close()

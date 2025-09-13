@@ -2,11 +2,11 @@
 # python -m sage.core.sage.service.memory..search_engine.kv_index.bm25s_index
 
 import os
-import bm25s
 import shutil
-import Stemmer
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
+import bm25s
+import Stemmer
 from sage.middleware.services.kv.search_engine.base_kv_index import BaseKVIndex
 
 
@@ -37,7 +37,7 @@ class BM25sIndex(BaseKVIndex):
             self.ids = list(ids)
             self.texts = list(texts)
             self.tokenizer = self._get_tokenizer(self.texts)
-            self.tokens = self.tokenizer.tokenize(self.texts) # type: ignore
+            self.tokens = self.tokenizer.tokenize(self.texts)  # type: ignore
             self.bm25 = bm25s.BM25(corpus=self.texts, backend="numba")
             self.bm25.index(self.tokens)
         else:
@@ -50,10 +50,10 @@ class BM25sIndex(BaseKVIndex):
         """
         zh_flag = self._is_chinese(texts[0])
         if zh_flag:
-            return bm25s.tokenization.Tokenizer(stopwords='zh')
+            return bm25s.tokenization.Tokenizer(stopwords="zh")
         else:
             stemmer = Stemmer.Stemmer("english")
-            return bm25s.tokenization.Tokenizer(stopwords='en', stemmer=stemmer)
+            return bm25s.tokenization.Tokenizer(stopwords="en", stemmer=stemmer)
 
     def _rebuild(self):
         """
@@ -61,7 +61,7 @@ class BM25sIndex(BaseKVIndex):
         Rebuild the tokenizer, tokens, and BM25 index.
         """
         self.tokenizer = self._get_tokenizer(self.texts)
-        self.tokens = self.tokenizer.tokenize(self.texts) # type: ignore
+        self.tokens = self.tokenizer.tokenize(self.texts)  # type: ignore
         self.bm25 = bm25s.BM25(corpus=self.texts, backend="numba")
         self.bm25.index(self.tokens)
 
@@ -70,7 +70,7 @@ class BM25sIndex(BaseKVIndex):
         判断字符串中是否包含中文字符。
         Detect whether the text contains Chinese characters.
         """
-        return any('\u4e00' <= ch <= '\u9fff' for ch in text)
+        return any("\u4e00" <= ch <= "\u9fff" for ch in text)
 
     def insert(self, text, doc_id):
         """
@@ -111,11 +111,10 @@ class BM25sIndex(BaseKVIndex):
         """
         if self.bm25 is None or len(self.ids) == 0:
             return []
-        query_token = self.tokenizer.tokenize([text])[0] # type: ignore
-        scores = self.bm25.get_scores(query_token) # type: ignore
+        query_token = self.tokenizer.tokenize([text])[0]  # type: ignore
+        scores = self.bm25.get_scores(query_token)  # type: ignore
         topk_idx = sorted(range(len(scores)), key=lambda i: -scores[i])[:topk]
         return [self.ids[i] for i in topk_idx]
-
 
     def store(self, dir_path: str) -> Dict[str, Any]:
         """
@@ -123,11 +122,11 @@ class BM25sIndex(BaseKVIndex):
         Store the index info into the specified directory, including bm25 model, tokenizer, ids, and texts.
         """
         os.makedirs(dir_path, exist_ok=True)
-        self.bm25.vocab_dict = {str(k): v for k, v in self.bm25.vocab_dict.items()} # type: ignore
+        self.bm25.vocab_dict = {str(k): v for k, v in self.bm25.vocab_dict.items()}  # type: ignore
 
-        self.bm25.save(dir_path, corpus=None)# type: ignore
-        self.tokenizer.save_vocab(dir_path) # type: ignore
-        self.tokenizer.save_stopwords(dir_path) # type: ignore
+        self.bm25.save(dir_path, corpus=None)  # type: ignore
+        self.tokenizer.save_vocab(dir_path)  # type: ignore
+        self.tokenizer.save_stopwords(dir_path)  # type: ignore
         with open(os.path.join(dir_path, "ids.txt"), "w", encoding="utf-8") as f:
             for i in self.ids:
                 f.write(i + "\n")
@@ -151,7 +150,7 @@ class BM25sIndex(BaseKVIndex):
             self.ids = [line.strip() for line in f.readlines()]
         with open(os.path.join(dir_path, "texts.txt"), "r", encoding="utf-8") as f:
             self.texts = [line.strip() for line in f.readlines()]
-        self.tokens = [self.tokenizer.tokenize([t], return_as="tuple")[0][0] for t in self.texts] # type: ignore
+        self.tokens = [self.tokenizer.tokenize([t], return_as="tuple")[0][0] for t in self.texts]  # type: ignore
         self.bm25.index(self.tokens)
 
     @classmethod
@@ -183,7 +182,7 @@ if __name__ == "__main__":
     texts = [
         "The quick brown fox jumps over the lazy dog.",
         "Hello world! This is a operator_test document.",
-        "Python is a great programming language."
+        "Python is a great programming language.",
     ]
     root_path = "./tmp_bm25_test"  # 用临时目录避免误删业务数据
     index_dir = root_path
@@ -235,4 +234,3 @@ if __name__ == "__main__":
     # 7. 清理测试目录
     print("\n== 清理测试目录 ==")
     BM25sIndex.clear(index_dir)
-

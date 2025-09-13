@@ -27,18 +27,12 @@ except ImportError:
     )
 
 
-
-import numpy as np
 from typing import Union
 
+import numpy as np
 
 
-
-async def ollama_embed(
-    text: str,
-    embed_model,
-    **kwargs
-) -> list:
+async def ollama_embed(text: str, embed_model, **kwargs) -> list:
     """
     Generate embedding for a single text using Ollama.
 
@@ -65,11 +59,8 @@ async def ollama_embed(
     data = ollama_client.embed(model=embed_model, input=text)
     return data["embedding"]
 
-def ollama_embed_sync(
-    text: str,
-    embed_model,
-    **kwargs
-) -> list[float]:
+
+def ollama_embed_sync(text: str, embed_model, **kwargs) -> list[float]:
     """
     同步版本：使用 Ollama 客户端生成 embedding 向量。
 
