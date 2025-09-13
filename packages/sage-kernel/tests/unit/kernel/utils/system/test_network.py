@@ -384,12 +384,13 @@ class TestFindPortProcesses:
                     return_value=[1234, 9999],
                 ):
                     with patch("psutil.Process") as mock_process:
+
                         def create_mock_proc(pid):
                             mock_proc = MagicMock()
                             mock_proc.is_running.return_value = True
                             mock_proc.pid = pid
                             return mock_proc
-                        
+
                         mock_process.side_effect = create_mock_proc
                         result = find_port_processes(8080)
                         # Should combine and deduplicate
@@ -913,12 +914,13 @@ class TestIntegrationScenarios:
                     return_value=[1003, 1004],
                 ):
                     with patch("psutil.Process") as mock_process:
+
                         def create_mock_proc(pid):
                             mock_proc = MagicMock()
                             mock_proc.is_running.return_value = True
                             mock_proc.pid = pid
                             return mock_proc
-                        
+
                         mock_process.side_effect = create_mock_proc
                         processes = find_port_processes(8080)
 
@@ -963,16 +965,16 @@ class TestPerformanceScenarios:
         ) as mock_fuser, patch(
             "psutil.Process"
         ) as mock_process:
-            
+
             # Mock psutil.Process to return mock processes
             mock_processes = []
             for pid in large_pid_list:
                 mock_proc = MagicMock()
                 mock_proc.is_running.return_value = True
                 mock_processes.append(mock_proc)
-            
+
             mock_process.side_effect = mock_processes
-            
+
             result = find_port_processes(8080)
             assert len(result) == 1000
 

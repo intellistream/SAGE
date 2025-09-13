@@ -20,7 +20,7 @@ app = typer.Typer(name="extensions", help="🧩 扩展管理 - 安装和管理C+
 def main(ctx: typer.Context):
     """
     🧩 SAGE 扩展管理系统
-    
+
     管理SAGE框架的C++扩展安装和检查
     """
     if ctx.invoked_subcommand is None:
@@ -190,7 +190,7 @@ def install(
     extensions_mapping = {
         "sage_db": "packages/sage-middleware/src/sage/middleware/components/sage_db",
     }
-    
+
     extensions_to_install = []
     if extension is None or extension == "all":
         extensions_to_install = ["sage_db"]  # 只保留实际存在的扩展
@@ -232,10 +232,13 @@ def install(
             print_info(f"构建 {ext_name}...")
             # 切换到扩展目录运行构建脚本
             import os
+
             original_cwd = os.getcwd()
             os.chdir(ext_dir)
             try:
-                result = run_command(["bash", "build.sh", "--install-deps"], check=False)
+                result = run_command(
+                    ["bash", "build.sh", "--install-deps"], check=False
+                )
             finally:
                 os.chdir(original_cwd)
 

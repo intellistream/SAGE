@@ -6,24 +6,27 @@ SAGE README 模板生成工具
 
 import os
 import sys
-import tomli
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
+import tomli
+
 
 def load_project_config(config_path: str = "project_config.toml") -> Dict[str, Any]:
     """加载项目配置文件"""
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"配置文件不存在: {config_path}")
-    
-    with open(config_path, 'rb') as f:
+
+    with open(config_path, "rb") as f:
         return tomli.load(f)
+
 
 def generate_main_package_readme(package_key: str, config: Dict[str, Any]) -> str:
     """为主包生成 README 内容"""
-    project_info = config['project']
-    urls = config['urls']
-    package_descriptions = config['package_descriptions']
-    
+    project_info = config["project"]
+    urls = config["urls"]
+    package_descriptions = config["package_descriptions"]
+
     template = f"""# SAGE Framework Meta Package
 
 SAGE Framework是一个统一的AI推理和数据流处理框架，提供完整的端到端解决方案。
@@ -71,19 +74,22 @@ print(result)  # [2, 4, 6, 8, 10]
 """
     return template
 
+
 def generate_installation_guide(config: Dict[str, Any]) -> str:
     """生成安装指南"""
-    project_info = config['project']
-    urls = config['urls']
-    packages = config['packages']
-    
+    project_info = config["project"]
+    urls = config["urls"]
+    packages = config["packages"]
+
     # 生成包名列表
     package_list = ""
     for new_name, path in packages.items():
-        if new_name == 'intellistream':  # 跳过抢注包
+        if new_name == "intellistream":  # 跳过抢注包
             continue
-        package_list += f"| `{new_name}` | {config['package_descriptions'][new_name]} |\\n"
-    
+        package_list += (
+            f"| `{new_name}` | {config['package_descriptions'][new_name]} |\\n"
+        )
+
     template = f"""# SAGE 安装指南
 
 ## 📦 快速安装
@@ -218,6 +224,7 @@ pip install {project_info['package_prefix']}
 """
     return template
 
+
 def main():
     """主函数"""
     if len(sys.argv) < 2:
@@ -226,37 +233,38 @@ def main():
         print("  main-package <package-name>  为主包生成README")
         print("  installation                 生成安装指南")
         sys.exit(1)
-    
+
     command = sys.argv[1]
-    
+
     # 加载项目配置
     try:
         config = load_project_config()
     except FileNotFoundError as e:
         print(f"错误: {e}")
         sys.exit(1)
-    
+
     if command == "main-package":
         if len(sys.argv) < 3:
             print("错误: 请指定包名")
             sys.exit(1)
-        
+
         package_key = sys.argv[2]
-        if package_key not in config['packages']:
+        if package_key not in config["packages"]:
             print(f"错误: 未知包名 {package_key}")
             print(f"可用包: {', '.join(config['packages'].keys())}")
             sys.exit(1)
-        
+
         readme_content = generate_main_package_readme(package_key, config)
         print(readme_content)
-        
+
     elif command == "installation":
         installation_content = generate_installation_guide(config)
         print(installation_content)
-    
+
     else:
         print(f"错误: 未知命令 {command}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

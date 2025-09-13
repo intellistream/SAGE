@@ -22,7 +22,7 @@ class JoinOperator(BaseOperator):
         # 统计信息
         self.processed_count = 0
         self.emitted_count = 0
-        
+
         # 跟踪接收到的停止信号
         self.received_stop_signals = set()  # 记录哪些stream已经发送了停止信号
 
@@ -118,10 +118,12 @@ class JoinOperator(BaseOperator):
             )
             # 不重新抛出异常，避免中断整个流处理
 
-    def handle_stop_signal(self, stop_signal_name: str = None, input_index: int = None, signal: Any = None):
+    def handle_stop_signal(
+        self, stop_signal_name: str = None, input_index: int = None, signal: Any = None
+    ):
         """
         处理停止信号的传播
-        
+
         Join操作需要特殊处理停止信号：
         - 记录哪个stream发送了停止信号
         - 当所有输入流都停止时，才向下游传播停止信号
@@ -131,6 +133,7 @@ class JoinOperator(BaseOperator):
             if signal is not None:
                 # 来自 task_context 的调用，signal 是 StopSignal 对象
                 from sage.core.communication.stop_signal import StopSignal
+
                 if isinstance(signal, StopSignal):
                     signal_name = signal.name
                 else:
@@ -143,7 +146,7 @@ class JoinOperator(BaseOperator):
                     f"JoinOperator '{self.name}' received stop signal with no name"
                 )
                 return
-            
+
             # 记录收到的停止信号，使用信号名称作为唯一标识
             self.received_stop_signals.add(signal_name)
             self.logger.info(
@@ -151,26 +154,29 @@ class JoinOperator(BaseOperator):
                 f"total received: {len(self.received_stop_signals)} "
                 f"(all signals: {list(self.received_stop_signals)})"
             )
-            
+
             # 检查是否所有输入流都已停止
             # 对于 Join 操作符，我们需要等待来自不同源节点的停止信号
             # 在当前的拓扑中，两个源可能通过同一个KeyBy节点连接到Join
             # 所以我们需要特殊处理这种情况
-            
+
             # 检查是否收到了所有原始源的停止信号
             # 这些应该是以 "Source" 开头的节点，或者包含 "Source" 的节点
             source_signals = set()
             for sig in self.received_stop_signals:
                 if isinstance(sig, str):
                     # String signal name - 检查是否包含 "Source" 或者以 "Source" 开头
-                    if 'Source' in sig or sig.startswith('Source'):
+                    if "Source" in sig or sig.startswith("Source"):
                         source_signals.add(sig)
                 else:
                     # StopSignal object
                     from sage.core.communication.stop_signal import StopSignal
-                    if isinstance(sig, StopSignal) and ('Source' in sig.name or sig.name.startswith('Source')):
+
+                    if isinstance(sig, StopSignal) and (
+                        "Source" in sig.name or sig.name.startswith("Source")
+                    ):
                         source_signals.add(sig.name)
-            
+
             # 动态确定期望的源数量，基于当前接收到的不同源信号
             # 如果至少有一个源信号，我们期望至少有2个源（因为这是Join操作）
             # 但如果我们从配置或其他地方能得到准确的数量，应该使用那个数量
@@ -178,24 +184,25 @@ class JoinOperator(BaseOperator):
                 expected_sources = max(2, len(source_signals))  # 至少期望2个源
             else:
                 expected_sources = 2  # 默认对于双流Join，期望2个源
-            
+
             self.logger.debug(
                 f"JoinOperator '{self.name}' stop signal status: "
                 f"{len(source_signals)}/{expected_sources} source signals "
                 f"(source signals: {list(source_signals)}, all signals: {list(self.received_stop_signals)})"
             )
-            
+
             if len(source_signals) >= expected_sources:
                 self.logger.info(
                     f"JoinOperator '{self.name}' all {expected_sources} source streams stopped, "
                     f"propagating stop signal downstream"
                 )
-                
+
                 # 所有源流都停止了，向下游传播停止信号
                 from sage.core.communication.stop_signal import StopSignal
+
                 stop_signal = StopSignal(self.name)
                 self.router.send_stop_signal(stop_signal)
-                
+
                 # 通知context停止
                 self.ctx.set_stop_signal()
             else:
@@ -204,14 +211,14 @@ class JoinOperator(BaseOperator):
                     f"{len(source_signals)}/{expected_sources} "
                     f"(source signals received: {list(source_signals)})"
                 )
-                
+
                 # 重要：不要向下游传播停止信号，也不要停止context
                 # 只是记录收到的停止信号，继续等待其他源流
-                
+
         except Exception as e:
             self.logger.error(
-                f"Error in JoinOperator '{self.name}' handle_stop_signal: {e}", 
-                exc_info=True
+                f"Error in JoinOperator '{self.name}' handle_stop_signal: {e}",
+                exc_info=True,
             )
 
     def _emit_join_result(
