@@ -22,7 +22,9 @@ from typing import Any, Dict, List, Optional
 import pytest
 
 # 添加项目路径
-sys.path.insert(0, "/api-rework")
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sage_kernel_src = os.path.join(current_dir, "../../../../../src")
+sys.path.insert(0, os.path.abspath(sage_kernel_src))
 
 try:
     from sage.kernel.runtime.communication.queue_descriptor import (

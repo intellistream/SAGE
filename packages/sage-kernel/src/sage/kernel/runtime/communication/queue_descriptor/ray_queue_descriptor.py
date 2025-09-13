@@ -146,8 +146,16 @@ class RayQueueDescriptor(BaseQueueDescriptor):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "RayQueueDescriptor":
         """从字典反序列化"""
+        # 确保maxsize是整数
+        maxsize = data["metadata"].get("maxsize", 1024 * 1024)
+        if isinstance(maxsize, str):
+            try:
+                maxsize = int(maxsize)
+            except ValueError:
+                maxsize = 1024 * 1024  # 默认值
+        
         instance = cls(
-            maxsize=data["metadata"].get("maxsize", 1024 * 1024),
+            maxsize=maxsize,
             queue_id=data["queue_id"],
         )
         instance.created_timestamp = data.get(
