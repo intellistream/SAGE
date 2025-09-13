@@ -25,8 +25,8 @@ class TestFailureCache:
         self.cache_dir = sage_dir / "test_logs"
         self.cache_file = self.cache_dir / "failed_tests.json"
 
-        # Ensure directory exists
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        # Ensure directory exists with robust error handling
+        self._ensure_cache_dir_exists()
 
         # Initialize cache data structure
         self._cache_data = {
@@ -45,8 +45,44 @@ class TestFailureCache:
         # Load existing cache
         self._load_cache()
 
+    def _ensure_cache_dir_exists(self) -> None:
+        """Ensure cache directory exists with robust error handling."""
+        try:
+            # First, handle the .sage directory
+            sage_dir = self.project_root / ".sage"
+            
+            # If .sage exists but is not a directory, we need to handle it
+            if sage_dir.exists() and not sage_dir.is_dir():
+                # If it's a file or symlink to a file, we can't proceed
+                # Log the issue and use a fallback location
+                print(f"Warning: {sage_dir} exists but is not a directory. Using fallback cache location.")
+                sage_dir = self.project_root / ".sage_cache"
+                self.cache_dir = sage_dir / "test_logs"
+                self.cache_file = self.cache_dir / "failed_tests.json"
+            
+            # Create the cache directory
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            
+        except (OSError, PermissionError) as e:
+            # If we still can't create the directory, use a temporary fallback
+            print(f"Warning: Could not create cache directory {self.cache_dir}: {e}")
+            fallback_dir = self.project_root / "temp_sage_cache" / "test_logs"
+            self.cache_dir = fallback_dir
+            self.cache_file = self.cache_dir / "failed_tests.json"
+            try:
+                self.cache_dir.mkdir(parents=True, exist_ok=True)
+            except (OSError, PermissionError) as fallback_error:
+                print(f"Error: Could not create fallback cache directory: {fallback_error}")
+                # Use in-memory cache only
+                self.cache_dir = None
+                self.cache_file = None
+
     def _load_cache(self) -> None:
         """Load cache from file if it exists."""
+        if self.cache_file is None:
+            # Cache file not available, use in-memory cache only
+            return
+            
         try:
             if self.cache_file.exists():
                 with open(self.cache_file, "r", encoding="utf-8") as f:
@@ -59,6 +95,10 @@ class TestFailureCache:
 
     def _save_cache(self) -> None:
         """Save cache to file."""
+        if self.cache_file is None:
+            # Cache file not available, skip saving
+            return
+            
         try:
             # Update timestamp
             self._cache_data["last_updated"] = datetime.now().isoformat()
@@ -150,12 +190,12 @@ class TestFailureCache:
         last_summary = self._cache_data.get("last_run_summary", {})
 
         return {
-            "cache_file": str(self.cache_file),
+            "cache_file": str(self.cache_file) if self.cache_file else "None (in-memory only)",
             "failed_tests_count": failed_count,
             "last_updated": last_updated,
             "last_run_summary": last_summary,
             "has_failed_tests": failed_count > 0,
-            "cache_exists": self.cache_file.exists(),
+            "cache_exists": self.cache_file.exists() if self.cache_file else False,
         }
 
     def get_history(self, limit: int = 5) -> List[Dict]:
