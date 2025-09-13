@@ -4,10 +4,45 @@ BatchOperator vs SourceOperator 对比示例
 展示新的批处理设计相对于原始设计的优势
 """
 
-from typing import Any
+from typing import Any, Iterator
 from sage.core.api.function.source_function import SourceFunction
 from sage.kernel.runtime.communication.router.packet import StopSignal
-from sage.core.api.function.batch_function import SimpleBatchFunction
+from sage.core.api.function.batch_function import BatchFunction
+
+
+class SimpleBatchFunction(BatchFunction):
+    """
+    简单的批处理函数实现
+    直接处理提供的数据列表
+    """
+    
+    def __init__(self, data, ctx=None, **kwargs):
+        super().__init__(ctx, **kwargs)
+        self.data = data
+        self.index = 0
+    
+    def get_total_count(self) -> int:
+        return len(self.data)
+    
+    def get_data_source(self) -> Iterator[Any]:
+        return iter(self.data)
+    
+    def execute(self) -> Any:
+        if self.index >= len(self.data):
+            return None
+        
+        result = self.data[self.index]
+        self.index += 1
+        return result
+    
+    def get_progress(self):
+        return self.index, len(self.data)
+    
+    def get_completion_rate(self) -> float:
+        return self.index / len(self.data) if self.data else 1.0
+    
+    def is_finished(self) -> bool:
+        return self.index >= len(self.data)
 
 
 class OldStyleSourceFunction(SourceFunction):

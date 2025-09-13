@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.function.source_function import SourceFunction
+from sage.core.api.function.comap_function import BaseCoMapFunction
 
 
 class ListSource(SourceFunction):
@@ -37,55 +38,73 @@ class ListSource(SourceFunction):
 def main():
     """Demonstrate different lambda/callable usage patterns for CoMap operations"""
     
-    print("🚀 CoMap Lambda/Callable Support Examples")
+    print("🚀 CoMap Function Examples")
     print("=" * 60)
     
     # Create environment
     env1 = LocalEnvironment()
     
-    # Example 1: Lambda List Approach
-    print("\n📋 Example 1: Lambda List Approach")
+    # Example 1: Sensor Data Processing
+    print("\n📋 Example 1: Sensor Data Processing")
     print("-" * 40)
     
+    # Create a CoMap function to process sensor data
+    class SensorCoMapFunction(BaseCoMapFunction):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+        
+        def map0(self, temp):
+            """Process temperature data"""
+            status = 'Hot' if temp > 23 else 'Normal'
+            return f"🌡️ Temperature: {temp}°C ({status})"
+        
+        def map1(self, humid):
+            """Process humidity data"""
+            status = 'High' if humid > 60 else 'Normal'
+            return f"💧 Humidity: {humid}% ({status})"
+        
+        def map2(self, press):
+            """Process pressure data"""
+            status = 'High' if press > 1015 else 'Normal'
+            return f"🔘 Pressure: {press} hPa ({status})"
     
     # Create streams
     temp_stream = env1.from_source(ListSource, [20.5, 22.1, 19.8, 25.3, 21.7])
     humidity_stream = env1.from_source(ListSource, [45, 52, 38, 67, 41])
     pressure_stream = env1.from_source(ListSource, [1013.2, 1015.8, 1012.1, 1018.5, 1014.3])
     
-    # Apply lambda list CoMap
+    # Apply CoMap function
     result1 = (temp_stream
         .connect(humidity_stream)
         .connect(pressure_stream)
-        .comap([
-            lambda temp: f"🌡️ Temperature: {temp}°C ({'Hot' if temp > 23 else 'Normal'})",
-            lambda humid: f"💧 Humidity: {humid}% ({'High' if humid > 60 else 'Normal'})",
-            lambda press: f"🔘 Pressure: {press} hPa ({'High' if press > 1015 else 'Normal'})"
-        ])
+        .comap(SensorCoMapFunction)
         .print("Sensor Data"))
     
     # Execute example 1
-    print("Processing with lambda list...")
-    env1.submit()
-    env1.run_streaming()
-    time.sleep(10)
-    env1.stop()
-    # Example 2: Multiple Function Arguments
-    print("\n📋 Example 2: Multiple Function Arguments")
+    print("Processing sensor data...")
+    env1.submit(autostop=True)
+    # Example 2: Weather Data Processing
+    print("\n📋 Example 2: Weather Data Processing")
     print("-" * 40)
     
     # Reset environment for new example
     env2 = LocalEnvironment()
     
-    # Define named functions
-    def format_temperature(data: float) -> str:
-        celsius = data
-        fahrenheit = data * 9/5 + 32
-        return f"🌡️ {celsius}°C / {fahrenheit:.1f}°F"
-    
-    def format_humidity(data: int) -> str:
-        level = "Low" if data < 40 else "High" if data > 70 else "Normal"
-        return f"💧 {data}% ({level})"
+    # Create weather data CoMap function
+    class WeatherCoMapFunction(BaseCoMapFunction):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+        
+        def map0(self, temp: float) -> str:
+            """Format temperature data"""
+            celsius = temp
+            fahrenheit = temp * 9/5 + 32
+            return f"🌡️ {celsius}°C / {fahrenheit:.1f}°F"
+        
+        def map1(self, humidity: int) -> str:
+            """Format humidity data"""
+            level = "Low" if humidity < 40 else "High" if humidity > 70 else "Normal"
+            return f"💧 {humidity}% ({level})"
     
     # Create new sources
     temp_source2 = env2.from_source(ListSource, [18.5, 26.2, 23.1, 29.8])
@@ -95,38 +114,44 @@ def main():
     temp_stream2 = temp_source2
     humidity_stream2 = humidity_source2
     
-    # Apply multiple function arguments CoMap
+    # Apply weather CoMap function
     result2 = (temp_stream2
         .connect(humidity_stream2)
-        .comap(
-            format_temperature,
-            format_humidity
-        )
+        .comap(WeatherCoMapFunction)
         .print("Weather Data"))
     
     # Execute example 2
-    print("Processing with function arguments...")
-    env2.submit()
-    env2.run_streaming()
-    time.sleep(10)
-    env2.stop()
+    print("Processing weather data...")
+    env2.submit(autostop=True)
     
-    # Example 3: Mixed Lambda and Named Functions
-    print("\n📋 Example 3: Mixed Lambda and Named Functions")
+    # Example 3: Mixed Data Processing
+    print("\n📋 Example 3: Mixed Data Processing")
     print("-" * 40)
     
     # Reset environment for new example
     env3 = LocalEnvironment()
     
-    # Define a complex processing function
-    def process_numeric_data(data: float) -> str:
-        """Complex processing with validation"""
-        if data < 0:
-            return f"⚠️ Negative value: {data}"
-        elif data > 100:
-            return f"🔥 High value: {data}"
-        else:
-            return f"✅ Normal: {data:.2f}"
+    # Create mixed data CoMap function
+    class MixedDataCoMapFunction(BaseCoMapFunction):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+        
+        def map0(self, data: float) -> str:
+            """Complex numeric processing with validation"""
+            if data < 0:
+                return f"⚠️ Negative value: {data}"
+            elif data > 100:
+                return f"🔥 High value: {data}"
+            else:
+                return f"✅ Normal: {data:.2f}"
+        
+        def map1(self, text: str) -> str:
+            """Text processing"""
+            return f"📝 Text: '{text}' (len={len(text)})"
+        
+        def map2(self, flag: bool) -> str:
+            """Boolean processing"""
+            return f"🏁 Flag: {flag} ({'ON' if flag else 'OFF'})"
     
     # Create diverse data sources
     numeric_source = env3.from_source(ListSource, [15.5, -2.3, 105.7, 42.1, 0.0])
@@ -138,23 +163,16 @@ def main():
     text_stream = text_source
     boolean_stream = boolean_source
     
-    # Apply mixed function types CoMap
+    # Apply mixed data CoMap function
     result3 = (numeric_stream
         .connect(text_stream)
         .connect(boolean_stream)
-        .comap([
-            process_numeric_data,  # Named function
-            lambda text: f"📝 Text: '{text.upper()}'",  # Lambda function
-            lambda flag: f"🚩 Status: {'✅ Enabled' if flag else '❌ Disabled'}"  # Another lambda
-        ])
+        .comap(MixedDataCoMapFunction)
         .print("Mixed Data"))
     
     # Execute example 3
-    print("Processing with mixed function types...")
-    env3.submit()
-    env3.run_streaming()
-    time.sleep(10)
-    env3.stop()
+    print("Processing mixed data types...")
+    env3.submit(autostop=True)
     
     # Example 4: Mathematical Operations
     print("\n📋 Example 4: Mathematical Operations")
@@ -162,6 +180,26 @@ def main():
     
     # Reset environment for new example
     env4 = LocalEnvironment()
+    
+    # Create mathematical CoMap function
+    class MathCoMapFunction(BaseCoMapFunction):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+        
+        def map0(self, x: int) -> str:
+            """Square first stream"""
+            result = x ** 2
+            return f"🔢 {x}² = {result}"
+        
+        def map1(self, x: int) -> str:
+            """Divide second stream by 10"""
+            result = x / 10
+            return f"➗ {x}/10 = {result}"
+        
+        def map2(self, x: float) -> str:
+            """Multiply third stream by 100 and round"""
+            result = round(x * 100, 1)
+            return f"✖️ {x}×100 = {result}"
     
     # Create numeric data sources
     input1_source = env4.from_source(ListSource, [1, 2, 3, 4, 5])
@@ -177,19 +215,12 @@ def main():
     result4 = (input1
         .connect(input2)
         .connect(input3)
-        .comap(
-            lambda x: x ** 2,           # Square first stream
-            lambda x: x / 10,           # Divide second stream by 10
-            lambda x: round(x * 100, 1) # Multiply third stream by 100 and round
-        )
+        .comap(MathCoMapFunction)
         .print("Math Results"))
     
     # Execute example 4
     print("Processing mathematical operations...")
-    env4.submit()
-    env4.run_streaming()
-    time.sleep(10)
-    env4.stop()
+    env4.submit(autostop=True)
     
     # Example 5: Error Handling and Validation
     print("\n📋 Example 5: Error Handling and Validation")
@@ -197,6 +228,25 @@ def main():
     
     # Reset environment for new example
     env5 = LocalEnvironment()
+    
+    # Create validation CoMap function
+    class ValidationCoMapFunction(BaseCoMapFunction):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+        
+        def map0(self, x) -> str:
+            """Clamp negative numbers"""
+            result = max(0, x) if x is not None else 0
+            status = "⬆️ clamped" if x is not None and x < 0 else "✅ valid"
+            return f"🔢 {x} → {result} ({status})"
+        
+        def map1(self, s) -> str:
+            """Handle empty/None strings"""
+            if s and isinstance(s, str) and s.strip():
+                result = s.strip()
+                return f"📝 '{s}' → '{result}' (✅ valid)"
+            else:
+                return f"📝 '{s}' → 'EMPTY' (⚠️ fixed)"
     
     # Create data with potential issues
     mixed_data1 = env5.from_source(ListSource, [5, -3, 0, 12, -1])
@@ -209,25 +259,19 @@ def main():
     # Apply validation and error handling
     result5 = (data1
         .connect(data2)
-        .comap([
-            lambda x: max(0, x) if x is not None else 0,  # Clamp negative numbers
-            lambda s: s.strip() if s and isinstance(s, str) and s.strip() else "EMPTY"  # Handle empty strings
-        ])
+        .comap(ValidationCoMapFunction)
         .print("Validated Data"))
     
     # Execute example 5
     print("Processing with validation...")
-    env5.submit()
-    env5.run_streaming()
-    time.sleep(10)
-    env5.stop()
+    env5.submit(autostop=True)
     
-    print("\n✅ All CoMap lambda/callable examples completed successfully!")
-    print("\n💡 Summary of supported CoMap formats:")
-    print("   1. Lambda list: comap([lambda x: ..., lambda y: ...])")
-    print("   2. Function arguments: comap(func1, func2, func3)")
-    print("   3. Mixed types: comap([named_func, lambda x: ...])")
-    print("   4. Class-based (existing): comap(MyCoMapClass)")
+    print("\n✅ All CoMap function examples completed successfully!")
+    print("\n💡 Summary of CoMap usage patterns:")
+    print("   1. Class-based CoMap functions (recommended)")
+    print("   2. process_stream_N methods for each connected stream")
+    print("   3. Built-in error handling and validation")
+    print("   4. Type safety and documentation support")
     
     # Clean up all environments
     print("\n🧹 Cleaning up environments...")

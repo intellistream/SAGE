@@ -1,13 +1,92 @@
 """
 批处理算子和函数使用示例
 
-这个文件展示了如何使用新的BatchOperator和BatchFunction来创建
+这个文件展示了如何使用BatchFunction来创建
 用户友好的批处理任务。
 """
 
 from typing import List, Any, Iterator
-from sage.core.api.function.batch_function import BatchFunction, SimpleBatchFunction, FileBatchFunction
-from sage.core.operator.batch_operator import BatchOperator, BatchSourceOperator
+from sage.core.api.function.batch_function import BatchFunction
+from sage.core.api.local_environment import LocalEnvironment
+from sage.core.api.function.sink_function import SinkFunction
+
+
+class SimpleBatchFunction(BatchFunction):
+    """简单的列表数据批处理函数"""
+    
+    def __init__(self, data_list: List[Any], ctx=None, **kwargs):
+        super().__init__(**kwargs)
+        self.data_list = data_list
+        self.current_index = 0
+        self.ctx = ctx
+    
+    def execute(self) -> Any:
+        if self.current_index >= len(self.data_list):
+            return None
+        result = self.data_list[self.current_index]
+        self.current_index += 1
+        return result
+    
+    def get_total_count(self) -> int:
+        return len(self.data_list)
+    
+    def get_progress(self) -> tuple:
+        return self.current_index, len(self.data_list)
+    
+    def get_completion_rate(self) -> float:
+        if len(self.data_list) == 0:
+            return 1.0
+        return self.current_index / len(self.data_list)
+    
+    def is_finished(self) -> bool:
+        return self.current_index >= len(self.data_list)
+
+
+class FileBatchFunction(BatchFunction):
+    """文件行读取批处理函数"""
+    
+    def __init__(self, file_path: str, **kwargs):
+        super().__init__(**kwargs)
+        self.file_path = file_path
+        self.file_handle = None
+        self.line_count = 0
+        self.finished = False
+    
+    def execute(self) -> Any:
+        if self.finished:
+            return None
+            
+        if self.file_handle is None:
+            try:
+                self.file_handle = open(self.file_path, 'r', encoding='utf-8')
+            except FileNotFoundError:
+                print(f"文件 {self.file_path} 不存在，返回模拟数据")
+                self.finished = True
+                return f"模拟文件行 {self.line_count}"
+        
+        try:
+            line = self.file_handle.readline()
+            if not line:
+                self.finished = True
+                if self.file_handle:
+                    self.file_handle.close()
+                return None
+            
+            self.line_count += 1
+            return line.strip()
+        except Exception as e:
+            print(f"读取文件错误: {e}")
+            self.finished = True
+            if self.file_handle:
+                self.file_handle.close()
+            return None
+
+
+class MockContext:
+    """模拟上下文类"""
+    
+    def __init__(self, name: str):
+        self.name = name
 
 
 class NumberRangeBatchFunction(BatchFunction):
@@ -18,13 +97,34 @@ class NumberRangeBatchFunction(BatchFunction):
     """
     
     def __init__(self, start: int, end: int, step: int = 1, ctx=None, **kwargs):
-        super().__init__(ctx, **kwargs)
+        super().__init__(**kwargs)
         self.start = start
         self.end = end
         self.step = step
+        self.current = start
+        self.ctx = ctx
     
     def get_total_count(self) -> int:
         return max(0, (self.end - self.start + self.step - 1) // self.step)
+    
+    def execute(self) -> Any:
+        if self.current >= self.end:
+            return None
+        result = self.current
+        self.current += self.step
+        return result
+    
+    def is_finished(self) -> bool:
+        return self.current >= self.end
+    
+    def get_progress(self) -> tuple:
+        completed = max(0, (self.current - self.start) // self.step)
+        total = self.get_total_count()
+        return completed, total
+    
+    def get_completion_rate(self) -> float:
+        completed, total = self.get_progress()
+        return completed / total if total > 0 else 1.0
     
     def get_data_source(self) -> Iterator[Any]:
         return iter(range(self.start, self.end, self.step))
