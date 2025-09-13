@@ -7,7 +7,7 @@ name = "isage-common"
 dynamic = ["version"]
 description = "SAGE Core Common Utilities"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = {text = "MIT"}
 authors = [
     {name = "SAGE Team", email = "info@sage-ai.org"}
 ]
@@ -15,7 +15,7 @@ keywords = ["ai", "sage", "machine learning", "artificial intelligence", "core",
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",

@@ -123,16 +123,16 @@ install_package_with_output() {
     if [ "$install_type" = "dev" ]; then
         if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
             # CI环境：添加优化选项，使用缓存和并行安装
-            install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input --prefer-binary --find-links https://download.pytorch.org/whl/torch_stable.html"
-            echo "🔧 CI环境检测: 使用优化安装选项 (prefer-binary, torch镜像)"
+            install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
+            echo "🔧 CI环境检测: 使用优化安装选项"
         else
             install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
         fi
     else
         if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
             # CI环境：添加优化选项
-            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input --prefer-binary --find-links https://download.pytorch.org/whl/torch_stable.html"
-            echo "🔧 CI环境检测: 使用优化安装选项 (prefer-binary, torch镜像)"
+            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
+            echo "🔧 CI环境检测: 使用优化安装选项"
         else
             install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
         fi
@@ -177,8 +177,8 @@ except (urllib.error.URLError, socket.timeout, socket.error):
 " 2>/dev/null || echo '❌ 不可达')
         echo "- 网络状态: $network_status"
         
-        # CI环境优化：增加超时时间并优化pip参数
-        local ci_pip_cmd="$install_cmd --verbose --no-build-isolation"
+        # CI环境优化：增加超时时间并使用verbose输出
+        local ci_pip_cmd="$install_cmd --verbose"
         
         # 为大型包增加更长超时时间（30分钟）
         timeout 1800 $ci_pip_cmd 2>&1 | tee -a "$log_file"
