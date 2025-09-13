@@ -40,9 +40,9 @@ dependencies = [
     # 依赖新的核心sage-common包
     "isage-common",
     # 开发工具专用依赖
-    "click>=7.0",
+    "click>=8.0.0",
     "jinja2>=2.11.1",
-    "markdown>=3.3.6",
+    "markdown>=3.4.4",
     "markupsafe>=2.0.1",
     "packaging>=20.5",
 ]

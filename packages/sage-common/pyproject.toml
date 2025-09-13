@@ -27,9 +27,9 @@ classifiers = [
 requires-python = ">=3.8"
 dependencies = [
     "pyyaml>=6.0",
-    "colorama>=0.4.4",
-    "psutil>=5.9.0",
-    "dill>=0.3.0",
+    "colorama>=0.4.6",
+    "psutil>=6.1.0",
+    "dill>=0.3.8",
 ]
 
 [project.urls]
