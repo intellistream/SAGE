@@ -17,21 +17,17 @@ from .download_issues import IssuesDownloader
 
 # 如果需要使用其他helper，可以尝试导入
 try:
-    from . import get_team_members
-    from . import create_issue
-    from . import sync_issues
-    from . import ai_analyzer
-    from . import github_helper
-    from . import execute_fix_plan
-    
+    from . import (ai_analyzer, create_issue, execute_fix_plan,
+                   get_team_members, github_helper, sync_issues)
+
     __all__ = [
         "IssuesDownloader",
-        "get_team_members", 
+        "get_team_members",
         "create_issue",
         "sync_issues",
-        "ai_analyzer", 
+        "ai_analyzer",
         "github_helper",
-        "execute_fix_plan"
+        "execute_fix_plan",
     ]
 except ImportError:
     # 如果导入失败，只导出基础的下载器

@@ -48,18 +48,21 @@ app.add_typer(worker_app, name="worker", help="🔧 Worker - 工作节点管理"
 app.add_typer(cluster_app, name="cluster", help="🌐 Cluster - 集群管理和状态监控")
 app.add_typer(head_app, name="head", help="🎯 Head - 集群头节点管理")
 
+
 @app.callback()
 def main(
-    version: Optional[bool] = typer.Option(None, "--version", "-v", help="显示版本信息"),
+    version: Optional[bool] = typer.Option(
+        None, "--version", "-v", help="显示版本信息"
+    ),
 ):
     """
     🚀 SAGE - Streaming-Augmented Generative Execution
-    
+
     统一的AI研究和流式计算平台命令行工具
-    
+
     � 使用示例:
     sage dev status                 # 查看开发环境状态
-    sage studio start               # 启动可视化界面  
+    sage studio start               # 启动可视化界面
     sage job list                   # 列出所有作业
     sage deploy start              # 启动SAGE系统
     sage cluster status            # 查看集群状态
@@ -68,6 +71,7 @@ def main(
     """
     if version:
         from sage.common._version import __version__
+
         typer.echo(f"SAGE CLI version {__version__}")
         raise typer.Exit()
 

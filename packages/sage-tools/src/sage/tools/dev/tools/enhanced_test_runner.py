@@ -457,7 +457,9 @@ class EnhancedTestRunner:
                     status = "✅" if result["passed"] else "❌"
                     duration = result.get("duration", 0)
                     simplified_path = self._simplify_test_path(test_file)
-                    print(f"[{completed}/{total_tests}] {simplified_path} {status} ({duration:.1f}s)")
+                    print(
+                        f"[{completed}/{total_tests}] {simplified_path} {status} ({duration:.1f}s)"
+                    )
                     results.append(result)
                 except Exception as e:
                     simplified_path = self._simplify_test_path(test_file)
@@ -496,7 +498,9 @@ class EnhancedTestRunner:
 
         return "common"  # Default fallback
 
-    def _run_single_test_file(self, test_file: Path, timeout: int, quick: bool, skip_markers: str = None) -> Dict:
+    def _run_single_test_file(
+        self, test_file: Path, timeout: int, quick: bool, skip_markers: str = None
+    ) -> Dict:
         """Run a single test file."""
         try:
             # Prepare command

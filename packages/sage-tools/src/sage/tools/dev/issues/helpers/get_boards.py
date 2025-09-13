@@ -11,27 +11,29 @@
 日期: 2025-08-30
 """
 
+import json
 import os
 import sys
-import json
-import requests
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
+import requests
 
 # 添加上级目录到sys.path以导入config
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import Config
 
+
 class BoardsMetadataGenerator:
     """项目板metadata生成器"""
-    
+
     def __init__(self):
         self.config = Config()
-        
+
     def generate_boards_metadata(self):
         """生成boards_metadata.json文件"""
         boards_file = self.config.metadata_path / "boards_metadata.json"
-        
+
         # 默认的项目板配置
         default_boards_config = {
             "description": "SAGE团队到GitHub项目板的映射配置",
@@ -40,36 +42,36 @@ class BoardsMetadataGenerator:
             "team_to_project": {
                 "sage-apps": 14,
                 "sage-middleware": 13,
-                "sage-kernel": 12
+                "sage-kernel": 12,
             },
             "metadata": {
                 "version": "1.0",
-                "created": datetime.now().strftime('%Y-%m-%d'),
+                "created": datetime.now().strftime("%Y-%m-%d"),
                 "description": "这个文件定义了SAGE团队到GitHub项目板的映射关系",
-                "usage": "project_manage.py 脚本使用此文件来确定将Issues分配到哪个项目板"
+                "usage": "project_manage.py 脚本使用此文件来确定将Issues分配到哪个项目板",
             },
             "teams": {
                 "sage-apps": {
                     "name": "SAGE Apps Team",
                     "description": "负责SAGE应用层开发和集成",
                     "project_number": 14,
-                    "project_url": "https://github.com/orgs/intellistream/projects/14"
+                    "project_url": "https://github.com/orgs/intellistream/projects/14",
                 },
                 "sage-middleware": {
-                    "name": "SAGE Middleware Team", 
+                    "name": "SAGE Middleware Team",
                     "description": "负责SAGE中间件和服务层开发",
                     "project_number": 13,
-                    "project_url": "https://github.com/orgs/intellistream/projects/13"
+                    "project_url": "https://github.com/orgs/intellistream/projects/13",
                 },
                 "sage-kernel": {
                     "name": "SAGE Kernel Team",
-                    "description": "负责SAGE核心引擎和内核开发", 
+                    "description": "负责SAGE核心引擎和内核开发",
                     "project_number": 12,
-                    "project_url": "https://github.com/orgs/intellistream/projects/12"
-                }
-            }
+                    "project_url": "https://github.com/orgs/intellistream/projects/12",
+                },
+            },
         }
-        
+
         try:
             # 如果有GitHub Token，尝试从API获取实际的项目板信息
             if self.config.github_token:
@@ -85,18 +87,18 @@ class BoardsMetadataGenerator:
                     print("⚠️ 无法从API获取项目板信息，使用默认配置")
             else:
                 print("ℹ️ 未配置GitHub Token，使用默认项目板配置")
-            
+
             # 保存配置文件
-            with open(boards_file, 'w', encoding='utf-8') as f:
+            with open(boards_file, "w", encoding="utf-8") as f:
                 json.dump(default_boards_config, f, indent=2, ensure_ascii=False)
-            
+
             print(f"✅ 项目板配置文件已生成: {boards_file}")
             return True
-            
+
         except Exception as e:
             print(f"❌ 生成项目板配置失败: {e}")
             return False
-    
+
     def _fetch_boards_from_api(self):
         """从GitHub API获取项目板信息"""
         try:
@@ -115,52 +117,57 @@ class BoardsMetadataGenerator:
               }
             }
             """
-            
+
             headers = {
-                'Authorization': f'token {self.config.github_token}',
-                'Content-Type': 'application/json'
+                "Authorization": f"token {self.config.github_token}",
+                "Content-Type": "application/json",
             }
-            
+
             response = requests.post(
-                'https://api.github.com/graphql',
-                json={'query': query},
+                "https://api.github.com/graphql",
+                json={"query": query},
                 headers=headers,
-                timeout=30
+                timeout=30,
             )
-            
+
             if response.status_code != 200:
                 print(f"API请求失败: {response.status_code}")
                 return None
-            
+
             data = response.json()
-            
-            if 'errors' in data:
+
+            if "errors" in data:
                 print(f"GraphQL查询错误: {data['errors']}")
                 return None
-            
-            projects = data.get('data', {}).get('organization', {}).get('projectsV2', {}).get('nodes', [])
-            
+
+            projects = (
+                data.get("data", {})
+                .get("organization", {})
+                .get("projectsV2", {})
+                .get("nodes", [])
+            )
+
             # 映射项目编号到团队名称
             project_to_team = {
-                12: 'sage-kernel',
-                13: 'sage-middleware',
-                14: 'sage-apps'
+                12: "sage-kernel",
+                13: "sage-middleware",
+                14: "sage-apps",
             }
-            
+
             boards_info = {}
             for project in projects:
-                project_num = project.get('number')
+                project_num = project.get("number")
                 if project_num in project_to_team:
                     team_name = project_to_team[project_num]
                     boards_info[team_name] = {
-                        'project_number': project_num,
-                        'project_url': project.get('url', ''),
-                        'title': project.get('title', ''),
-                        'description': project.get('shortDescription', '')
+                        "project_number": project_num,
+                        "project_url": project.get("url", ""),
+                        "title": project.get("title", ""),
+                        "description": project.get("shortDescription", ""),
                     }
-            
+
             return boards_info
-            
+
         except Exception as e:
             print(f"从API获取项目板信息失败: {e}")
             return None
@@ -170,7 +177,7 @@ def main():
     """主函数"""
     generator = BoardsMetadataGenerator()
     success = generator.generate_boards_metadata()
-    
+
     if success:
         print("\n🎉 项目板metadata生成完成！")
         sys.exit(0)

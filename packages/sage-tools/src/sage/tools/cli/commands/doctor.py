@@ -23,15 +23,14 @@ def check():
     # 检查SAGE安装
     try:
         import sage.common
+
         print(f"✅ SAGE安装: v{sage.common.__version__}")
     except ImportError as e:
         print(f"❌ SAGE未安装: {e}")
 
     # 检查扩展 - 只检查实际存在的模块
-    extensions = [
-        ("sage_db", "sage.middleware.components.sage_db")
-    ]
-    
+    extensions = [("sage_db", "sage.middleware.components.sage_db")]
+
     for ext_name, ext_path in extensions:
         try:
             __import__(ext_path)
@@ -42,6 +41,7 @@ def check():
     # 检查Ray
     try:
         import ray
+
         print(f"✅ Ray: v{ray.__version__}")
     except ImportError:
         print("❌ Ray未安装")

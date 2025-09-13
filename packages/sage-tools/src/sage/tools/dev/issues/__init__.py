@@ -10,17 +10,18 @@ SAGE Issues管理工具 - sage-tools集成版本
 
 Usage:
     from sage.tools.dev.issues import IssuesManager
-    
+
     manager = IssuesManager()
     manager.show_statistics()
 """
 
-from .manager import IssuesManager
 from .config import IssuesConfig
+from .manager import IssuesManager
 
 # 如果在CLI环境中，也导出CLI应用
 try:
     from .cli import app as cli_app
+
     __all__ = ["IssuesManager", "IssuesConfig", "cli_app"]
 except ImportError:
     __all__ = ["IssuesManager", "IssuesConfig"]

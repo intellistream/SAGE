@@ -26,14 +26,15 @@ try:
     from sage.kernel.runtime.communication.queue_descriptor import \
         RayQueueDescriptor
     from sage.kernel.utils.ray.ray import ensure_ray_initialized
-    from sage.kernel.utils.test_log_manager import get_test_log_manager, setup_quiet_ray_logging
+    from sage.kernel.utils.test_log_manager import (get_test_log_manager,
+                                                    setup_quiet_ray_logging)
 
     # 设置安静的日志记录
     setup_quiet_ray_logging()
-    
+
     # 获取日志管理器
     log_manager = get_test_log_manager()
-    
+
     print("✓ 成功导入Ray队列描述符")
 except ImportError as e:
     print(f"✗ 导入失败: {e}")
@@ -70,7 +71,9 @@ class PersistentQueueActor:
             self.queue = self.queue_desc.queue_instance  # 获取实际的队列对象
             self.operations_count = 0
             self.last_operation_time = time.time()
-            print(f"Actor {actor_name} initialized with queue {self.queue_desc.queue_id}")
+            print(
+                f"Actor {actor_name} initialized with queue {self.queue_desc.queue_id}"
+            )
         except ImportError as e:
             # 如果导入失败，记录错误但继续初始化
             print(f"导入失败: {e}")
@@ -91,7 +94,7 @@ class PersistentQueueActor:
                 "is_initialized": False,
                 "last_operation_time": self.last_operation_time,
             }
-        
+
         return {
             "actor_name": self.actor_name,
             "queue_id": self.queue_desc.queue_id,
@@ -105,7 +108,7 @@ class PersistentQueueActor:
         """向队列放入多个项目"""
         if self.queue is None:
             return [f"put_error:{item}:Queue not initialized" for item in items]
-            
+
         results = []
         for item in items:
             try:
@@ -127,7 +130,7 @@ class PersistentQueueActor:
         """从队列获取多个项目"""
         if self.queue is None:
             return [f"get_error:Queue not initialized"]
-            
+
         results = []
         for i in range(max_items):
             try:
@@ -145,7 +148,7 @@ class PersistentQueueActor:
         """检查队列状态"""
         if self.queue is None:
             return {"error": "Queue not initialized"}
-            
+
         try:
             size = self.queue.qsize()
             empty = self.queue.empty()
@@ -162,7 +165,7 @@ class PersistentQueueActor:
         """压力测试操作"""
         if self.queue is None:
             return {"error": "Queue not initialized", "completed_operations": 0}
-            
+
         start_time = time.time()
         completed_ops = 0
 
@@ -227,10 +230,10 @@ class QueueCoordinatorActor:
 
         queue_info = self.managed_queues[queue_name]
         queue_desc = queue_info["queue_desc"]
-        
+
         if queue_desc is None:
             return f"Queue {queue_name} not properly initialized"
-            
+
         queue = queue_desc.queue_instance
         results = []
 
@@ -307,7 +310,7 @@ class TestRayQueueActorCommunication:
         """测试基础Actor队列操作"""
         log_manager.log_test_start("test_basic_actor_queue_operations")
         start_time = time.time()
-        
+
         # 创建两个Actor
         producer_actor = PersistentQueueActor.remote(self.queue_dict, "producer")
         consumer_actor = PersistentQueueActor.remote(self.queue_dict, "consumer")
@@ -322,7 +325,9 @@ class TestRayQueueActorCommunication:
 
         # 检查队列状态
         producer_status = ray.get(producer_actor.check_queue_status.remote())
-        log_manager.log_ray_operation("check_status", f"queue_size={producer_status.get('size', 'unknown')}")
+        log_manager.log_ray_operation(
+            "check_status", f"queue_size={producer_status.get('size', 'unknown')}"
+        )
 
         # 消费者获取数据（减少超时时间）
         consume_result = ray.get(
@@ -337,7 +342,10 @@ class TestRayQueueActorCommunication:
         producer_info = ray.get(producer_actor.get_queue_info.remote())
         consumer_info = ray.get(consumer_actor.get_queue_info.remote())
 
-        log_manager.log_ray_operation("final_status", f"producer_ops={producer_info['operations_count']}, consumer_ops={consumer_info['operations_count']}")
+        log_manager.log_ray_operation(
+            "final_status",
+            f"producer_ops={producer_info['operations_count']}, consumer_ops={consumer_info['operations_count']}",
+        )
 
         # 验证断言
         assert producer_info["operations_count"] == len(

@@ -5,4 +5,4 @@ Tools for end customers to manage their licenses
 
 from .license_client import LicenseClient
 
-__all__ = ['LicenseClient']
+__all__ = ["LicenseClient"]

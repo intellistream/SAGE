@@ -386,10 +386,11 @@ class TestPythonQueueConcurrency:
 
         print("✓ 并发压力测试通过")
 
+
 @pytest.mark.ray
 class TestRayQueueConcurrency:
     """Ray队列并发测试 - 需要Ray环境"""
-    
+
     def test_ray_queue_actor_communication(self):
         """测试Ray队列Actor通信"""
         print("\n=== 测试Ray队列Actor通信 ===")
@@ -411,10 +412,10 @@ class TestRayQueueConcurrency:
 
             # 创建生产者和消费者Actor
             producer_actors = [
-                RayProducerActor.remote() for _ in range(num_producer_actors)
+                QueueProducerActor.remote() for _ in range(num_producer_actors)
             ]
             consumer_actors = [
-                RayConsumerActor.remote() for _ in range(num_consumer_actors)
+                QueueConsumerActor.remote() for _ in range(num_consumer_actors)
             ]
 
             # 获取队列字典用于Actor通信
@@ -483,7 +484,7 @@ def run_all_tests():
         test_suite.test_concurrent_stress_test()
 
         print("\n🎉 Python队列测试通过！")
-        
+
         # Ray测试需要单独运行（被pytest标记过滤）
         print("\n注意: Ray队列测试需要使用 pytest -m ray 单独运行")
 
