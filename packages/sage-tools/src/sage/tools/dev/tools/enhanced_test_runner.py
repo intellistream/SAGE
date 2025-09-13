@@ -95,6 +95,8 @@ class EnhancedTestRunner:
             print(
                 f"   Status: {'SUCCESS' if result.get('status') == 'success' else 'FAILED'}"
             )
+            print(f"   Logs: {self.test_logs_dir}")
+            print(f"   Reports: {self.reports_dir}")
 
             # Update failure cache with results (except for failed mode to avoid recursion)
             if mode != "failed":
@@ -406,13 +408,14 @@ class EnhancedTestRunner:
         print(f"\n🧪 Running {total_tests} test files sequentially...")
 
         for i, test_file in enumerate(test_files, 1):
-            print(f"[{i}/{total_tests}] Running: {self._simplify_test_path(test_file)}")
+            simplified_path = self._simplify_test_path(test_file)
+            print(f"[{i}/{total_tests}] {simplified_path}...", end="", flush=True)
             result = self._run_single_test_file(test_file, timeout, quick)
 
-            # Show immediate result
-            status = "✅ PASSED" if result["passed"] else "❌ FAILED"
+            # Show immediate result on same line
+            status = "✅" if result["passed"] else "❌"
             duration = result.get("duration", 0)
-            print(f"  {status} ({duration:.2f}s)")
+            print(f" {status} ({duration:.1f}s)")
 
             results.append(result)
 
@@ -451,19 +454,17 @@ class EnhancedTestRunner:
 
                 try:
                     result = future.result()
-                    status = "✅ PASSED" if result["passed"] else "❌ FAILED"
+                    status = "✅" if result["passed"] else "❌"
                     duration = result.get("duration", 0)
-                    print(
-                        f"[{completed}/{total_tests}] {self._simplify_test_path(test_file)}: {status} ({duration:.2f}s)"
-                    )
+                    simplified_path = self._simplify_test_path(test_file)
+                    print(f"[{completed}/{total_tests}] {simplified_path} {status} ({duration:.1f}s)")
                     results.append(result)
                 except Exception as e:
-                    print(
-                        f"[{completed}/{total_tests}] {self._simplify_test_path(test_file)}: ❌ ERROR ({e})"
-                    )
+                    simplified_path = self._simplify_test_path(test_file)
+                    print(f"[{completed}/{total_tests}] {simplified_path} ❌ ERROR")
                     results.append(
                         {
-                            "test_file": self._simplify_test_path(test_file),
+                            "test_file": simplified_path,
                             "passed": False,
                             "duration": 0,
                             "output": "",
@@ -495,7 +496,7 @@ class EnhancedTestRunner:
 
         return "common"  # Default fallback
 
-    def _run_single_test_file(self, test_file: Path, timeout: int, quick: bool) -> Dict:
+    def _run_single_test_file(self, test_file: Path, timeout: int, quick: bool, skip_markers: str = None) -> Dict:
         """Run a single test file."""
         try:
             # Prepare command
@@ -503,6 +504,10 @@ class EnhancedTestRunner:
 
             if quick:
                 cmd.extend(["-x"])  # Stop on first failure
+
+            # Add marker filtering if specified
+            if skip_markers:
+                cmd.extend(["-m", skip_markers])
 
             # If coverage is disabled, override any pyproject.toml coverage settings
             if not self.enable_coverage:
