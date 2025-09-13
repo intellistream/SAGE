@@ -945,29 +945,18 @@ def _run_diagnose_mode(project_root: str):
 def _run_issues_manager_test(project_root: str, verbose: bool):
     """运行 Issues Manager 测试"""
     try:
-        import subprocess
-        from pathlib import Path
-        
-        script_path = Path(project_root) / "tools" / "tests" / "test_issues_manager.sh"
-        
-        if not script_path.exists():
-            console.print("[yellow]⚠️ Issues Manager 测试脚本不存在[/yellow]")
-            return
-        
         console.print("🔧 运行 Issues Manager 测试...")
         
-        cmd = ["bash", str(script_path), "--quick"]
-        if verbose:
-            cmd.append("--verbose")
+        # 导入并运行新的Python测试模块
+        from sage.tools.dev.issues.tests import IssuesTestSuite
         
-        result = subprocess.run(cmd, cwd=project_root, capture_output=not verbose, text=True)
+        test_suite = IssuesTestSuite()
+        success = test_suite.run_all_tests()
         
-        if result.returncode == 0:
+        if success:
             console.print("✅ Issues Manager 测试通过")
         else:
             console.print("❌ Issues Manager 测试失败")
-            if not verbose and result.stderr:
-                console.print(f"错误: {result.stderr}")
     
     except Exception as e:
         console.print(f"[red]Issues Manager 测试失败: {e}[/red]")

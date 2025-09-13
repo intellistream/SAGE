@@ -91,9 +91,8 @@ jobs:
     
     - name: Run Issues Manager Tests
       run: |
-        echo "Running issues_manager.sh automated tests..."
-        cd tools/tests
-        bash test_issues_manager.sh --quick
+        echo "Running issues manager automated tests..."
+        sage dev test --issues-manager
         echo "Issues manager tests passed ✅"
         
     - name: Report Quick Check Failure
