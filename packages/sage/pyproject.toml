@@ -41,11 +41,6 @@ cli = [
     "isage-tools>=0.1.0", 
 ]
 
-# 前端组件
-frontend = [
-    "isage-tools>=0.1.0",
-]
-
 # Documentation
 docs = [
     "isage-tools>=0.1.0",
@@ -70,9 +65,6 @@ Homepage = "https://github.com/intellistream/SAGE"
 Documentation = "https://intellistream.github.io/SAGE-Pub/"
 Repository = "https://github.com/intellistream/SAGE.git"
 "Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
-
-[project.scripts]
-sage = "sage.tools.cli.main:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]

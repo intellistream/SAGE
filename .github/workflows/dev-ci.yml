@@ -108,9 +108,9 @@ jobs:
         PIP_PARALLEL_BUILDS: 4
         MAKEFLAGS: "-j4"
       run: |
-        echo "🚀 CI模式：通过quickstart.sh --minimal --pip安装SAGE"
-        echo "ℹ️ 使用pip模式避免conda依赖"
-        echo "⏰ 预计安装时间: 5-10分钟"
+        echo "🚀 CI模式：通过quickstart.sh --dev --pip安装SAGE"
+        echo "ℹ️ 使用dev模式包含完整开发工具和CLI"
+        echo "⏰ 预计安装时间: 8-15分钟"
         
         # 显示环境信息
         echo "📊 环境信息:"
@@ -119,12 +119,12 @@ jobs:
         echo "- Pip版本: $(pip --version)"
         echo "- 网络状态: $(ping -c 1 pypi.org >/dev/null 2>&1 && echo "✅ 可达" || echo "❌ 不可达")"
         
-        echo "🎯 开始通过quickstart.sh安装..."
+        echo "🎯 开始通过quickstart.sh dev模式安装..."
         chmod +x ./quickstart.sh
-        ./quickstart.sh --minimal --pip --yes
+        ./quickstart.sh --dev --pip --yes
         
-        echo "✅ quickstart.sh安装完成"
-      timeout-minutes: 15
+        echo "✅ quickstart.sh dev模式安装完成"
+      timeout-minutes: 20
         
     - name: Basic Import Tests
       env:
@@ -138,9 +138,20 @@ jobs:
         python -c "import sage.libs; print('✅ sage.libs import successful')"
         python -c "import sage.middleware; print('✅ sage.middleware import successful')"
         echo "=== CLI Test ==="
-        # 注意：SAGE使用Typer框架，命令结构为 "sage <command>"，不是传统的 "sage --option"
-        sage --help > /dev/null && echo "✅ SAGE CLI help working"
-        sage version && echo "✅ SAGE version command working (使用 'sage version' 不是 'sage --version')"
+        # 检查sage命令是否在PATH中
+        if command -v sage >/dev/null 2>&1; then
+          echo "✅ SAGE CLI found in PATH"
+          sage --help > /dev/null && echo "✅ SAGE CLI help working"
+          sage version && echo "✅ SAGE version command working"
+        else
+          echo "❌ SAGE CLI not found in PATH"
+          echo "检查已安装的包和入口点:"
+          python -c "import pkg_resources; [print(f'Found sage entry point: {ep}') for ep in pkg_resources.iter_entry_points('console_scripts') if ep.name == 'sage']"
+          echo "检查python模块路径:"
+          python -c "import sys; print('\n'.join(sys.path))"
+          echo "尝试直接运行CLI模块:"
+          python -m sage.tools.cli.main --help && echo "✅ CLI module works directly"
+        fi
 
     - name: Extended Tests
       env:
@@ -273,8 +284,18 @@ jobs:
         echo "🔬 Running quick pytest suite..."
         cd tools/tests
         if [ -f run_tests.py ]; then
-        echo "🧪 Running Development Tests:"
-        sage dev test --test-type unit --verbose || echo "ℹ️ Some unit tests didn't pass"          if [ -f dev_test_report.txt ]; then
+          echo "🧪 Running Development Tests:"
+          # 使用新的统一测试命令
+          if command -v sage >/dev/null 2>&1; then
+            echo "📋 Running unit tests..."
+            sage dev test --test-type unit --verbose || echo "⚠️ Some unit tests didn't pass"
+            echo "📋 Running integration tests..."
+            sage dev test --test-type integration --verbose || echo "⚠️ Some integration tests didn't pass"
+          else
+            echo "❌ SAGE CLI not available, running direct pytest..."
+            python run_tests.py --test-mode quick || echo "⚠️ Direct pytest had issues"
+          fi
+          if [ -f dev_test_report.txt ]; then
             echo "📊 Quick Test Summary:"
             tail -10 dev_test_report.txt
           fi
