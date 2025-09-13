@@ -332,13 +332,25 @@ jobs:
       env:
         PIP_NO_INPUT: 1
       run: |
-        echo "🧪 Running Tests:"
-        echo "Running unit tests..."
-        sage dev test --test-type unit --verbose || echo "⚠️ Some unit tests failed"
+        echo "🧪 运行完整测试套件 (使用增强的 sage dev test 命令):"
         
-        echo "Running integration tests..."
-        sage dev test --test-type integration --verbose || echo "⚠️ Some integration tests failed"
-      timeout-minutes: 20
+        # 运行诊断
+        echo "🔍 系统诊断..."
+        sage dev test --diagnose
+        
+        # 运行完整测试套件
+        echo "🧪 运行单元测试..."
+        sage dev test --test-type unit --verbose --jobs 4 --timeout 300 --report "/tmp/unit_test_report.md"
+        
+        echo "🔗 运行集成测试..."
+        sage dev test --test-type integration --verbose --jobs 2 --timeout 600 --report "/tmp/integration_test_report.md"
+        
+        # 运行 Issues Manager 测试
+        echo "🔧 运行 Issues Manager 测试..."
+        sage dev test --issues-manager --verbose
+        
+        echo "✅ 完整测试套件完成"
+      timeout-minutes: 30
       
     - name: Report Test Failure
       if: failure() && (steps.run-tests.outcome == 'failure' || steps.run-tests.conclusion == 'failure')

@@ -153,166 +153,55 @@ jobs:
           python -m sage.tools.cli.main --help && echo "✅ CLI module works directly"
         fi
 
-    - name: Extended Tests
+    - name: Extended Import & CLI Tests
       env:
-        # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
         PIP_NO_INPUT: 1
       run: |
-        echo "=== 基础模块导入测试 ==="
+        echo "=== 扩展导入和CLI测试 ==="
         
-        # 测试基础导入
-        python -c "import sage.common; print('✅ sage.common 导入成功')" || echo "❌ sage.common 导入失败"
-        python -c "import sage.common.utils; print('✅ sage.common.utils 导入成功')" || echo "❌ sage.common.utils 导入失败"
+        # 使用新的诊断功能进行完整导入测试
+        sage dev test --diagnose
         
-        # 测试可用的功能模块
-        echo "=== 功能模块测试 ==="
-        python -c "from sage.common.utils.logging.custom_logger import CustomLogger;  print('✅ Logger working') "
-        python -c "import sage.common.utils.system; print('✅ System utils working')" || echo "ℹ️ System utils module structure different"
+        # CLI功能测试
+        echo "=== CLI功能测试 ==="
+        if command -v sage >/dev/null 2>&1; then
+          echo "✅ SAGE CLI found in PATH"
+          sage --help > /dev/null && echo "✅ SAGE CLI help working"
+          sage version && echo "✅ SAGE version command working"
+        else
+          echo "❌ SAGE CLI not found in PATH"
+        fi
         
-        # 测试其他已安装的包
-        python -c "import sage.kernel; print('✅ sage.kernel 可用')" || echo "ℹ️ sage.kernel 不可用"
-        python -c "import sage.middleware; print('✅ sage.middleware 可用')" || echo "ℹ️ sage.middleware 不可用"
-        python -c "import sage.libs; print('✅ sage.libs 可用')" || echo "ℹ️ sage.libs 不可用"
+        echo "✅ 扩展测试完成"
 
-    - name: Run Pytest Suite
+    - name: Run Enhanced SAGE Tests
       env:
         PIP_NO_INPUT: 1
       run: |
-        echo "=== Pytest 测试套件 ==="
+        echo "🧪 运行增强版 SAGE 测试套件..."
         
-        # 安装 pytest 相关依赖
-        pip install pytest pytest-cov pytest-mock pytest-asyncio --no-cache-dir
+        # 运行诊断检查
+        echo "🔍 系统诊断..."
+        sage dev test --diagnose
         
-        # 查找并运行可用的测试
-        if [ -d "packages/sage-common/tests" ]; then
-          echo "🧪 运行 sage-common 测试..."
-          python -m pytest packages/sage-common/tests/ -v --tb=short --timeout=60 || echo "⚠️ sage-common 测试有问题"
-        fi
+        # 运行快速测试 (替代之前的多轮测试)
+        echo "🚀 快速测试模式..."
+        sage dev test --test-type quick --verbose --jobs 3 --timeout 120 --continue-on-error
         
-        if [ -d "tools/tests" ]; then
-          echo "🧪 运行工具测试..."
-          python -m pytest tools/tests/ -v --tb=short --timeout=60 || echo "⚠️ 工具测试有问题"
-        fi
+        # 运行 Issues Manager 测试
+        echo "� Issues Manager 测试..."
+        sage dev test --issues-manager --verbose
         
-        # 运行快速集成测试
-        echo "🔗 运行集成测试..."
-        cd tools/tests
-        if [ -f "test_issues_manager.sh" ]; then
-          bash test_issues_manager.sh --quick || echo "⚠️ Issues manager 测试有问题"
-        fi
+        echo "✅ 增强版测试套件完成"
+      timeout-minutes: 15
         
-        echo "✅ Pytest 测试套件完成"
-      timeout-minutes: 10
-        
-    - name: Full System Test
-      env:
-        # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度
-        PIP_NO_INPUT: 1
-      run: |
-        echo "=== Full Import Test ==="
-        python -c "
-        import sys
-        print('Python executable:', sys.executable)
-        print('Python version:', sys.version)
-        
-        # 测试完整导入
-        try:
-            import sage
-            print('✅ sage:', sage.__version__)
-            
-            # 导入各个子模块（使用容错机制）
-            modules_status = []
-            for module_name in ['common', 'kernel', 'libs', 'middleware']:
-                try:
-                    module = __import__(f'sage.{module_name}', fromlist=[module_name])
-                    modules_status.append(f'✅ sage.{module_name}')
-                except ImportError as e:
-                    modules_status.append(f'⚠️  sage.{module_name} (未安装或不可用)')
-            
-            print('模块状态:', ', '.join(modules_status))
-            
-            # 测试CLI工具 - SAGE使用Typer框架，命令结构不同
-            import subprocess
-            
-            # 先测试基本的help命令
-            help_result = subprocess.run(['sage', '--help'], capture_output=True, text=True)
-            if help_result.returncode != 0:
-                print('❌ SAGE CLI not installed or not working')
-                print('Error:', help_result.stderr)
-            else:
-                print('✅ SAGE CLI installed and working')
-                
-                # 测试version子命令（注意：不是--version选项）
-                version_result = subprocess.run(['sage', 'version'], capture_output=True, text=True)
-                if version_result.returncode == 0:
-                    print('✅ SAGE version command successful:', version_result.stdout.strip())
-                else:
-                    print('⚠️  SAGE version command failed:')
-                    print('STDOUT:', version_result.stdout)
-                    print('STDERR:', version_result.stderr)
-                    
-                    # 尝试其他版本查询方式
-                    print('ℹ️  注意: SAGE使用 sage version 命令，不是 sage --version 选项')
-            
-        except Exception as e:
-            print('❌ Import test failed:', str(e))
-            sys.exit(1)
-        "
-        
-    - name: Run Basic Pytest Suite
+    - name: Final Integration Test
       env:
         PIP_NO_INPUT: 1
       run: |
-        echo "🧪 Running development pytest suite..."
+        echo "=== 最终集成测试 ==="
         
-        # 安装测试依赖
-        echo "📦 Installing test dependencies..."
-        pip install pytest pytest-cov pytest-mock pytest-asyncio pytest-xdist pytest-timeout || echo "⚠️ Some test dependencies failed to install"
+        # 运行完整的集成测试
+        sage dev test --test-type integration --verbose --summary --jobs 2 --timeout 180
         
-        # 运行Issues Manager测试
-        echo "🔧 Testing issues manager..."
-        cd tools/tests
-        if [ -f test_issues_manager.sh ]; then
-          bash test_issues_manager.sh --quick || echo "⚠️ Issues manager tests had issues"
-          echo "✅ Issues manager tests completed"
-        else
-          echo "ℹ️ Issues manager test script not found"
-        fi
-        cd ../..
-        
-        # 运行快速pytest测试
-        echo "🔬 Running quick pytest suite..."
-        cd tools/tests
-        if [ -f run_tests.py ]; then
-          echo "🧪 Running Development Tests:"
-          # 使用新的统一测试命令
-          if command -v sage >/dev/null 2>&1; then
-            echo "📋 Running unit tests..."
-            sage dev test --test-type unit --verbose || echo "⚠️ Some unit tests didn't pass"
-            echo "📋 Running integration tests..."
-            sage dev test --test-type integration --verbose || echo "⚠️ Some integration tests didn't pass"
-          else
-            echo "❌ SAGE CLI not available, running direct pytest..."
-            python run_tests.py --test-mode quick || echo "⚠️ Direct pytest had issues"
-          fi
-          if [ -f dev_test_report.txt ]; then
-            echo "📊 Quick Test Summary:"
-            tail -10 dev_test_report.txt
-          fi
-        else
-          echo "ℹ️ Test runner not found, running direct pytest..."
-          # 直接运行pytest在packages目录
-          cd ../../packages
-          for package in sage-common sage-kernel sage-libs sage-middleware; do
-            if [ -d "$package/tests" ]; then
-              echo "🧪 Testing $package..."
-              cd "$package"
-              python -m pytest tests/ -v --tb=short -x --timeout=30 2>/dev/null || echo "⚠️ $package tests had issues"
-              cd ..
-            else
-              echo "ℹ️ No tests directory in $package"
-            fi
-          done
-        fi
-        
-        echo "✅ Development test suite completed"
+        echo "✅ 开发环境CI测试全部完成"
