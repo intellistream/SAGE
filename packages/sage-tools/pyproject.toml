@@ -178,7 +178,8 @@ Repository = "https://github.com/intellistream/SAGE.git"
 "Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
 
 [project.scripts]
-# 简化的命令结构 - 只保留必要的独立命令
+# 主要CLI命令
+sage = "sage.tools.cli.main:app"
 
 # 开发工具 - 独立功能，开发者专用
 sage-dev = "sage.tools.dev.cli:cli"
