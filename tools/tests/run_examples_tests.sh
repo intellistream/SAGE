@@ -111,14 +111,18 @@ check_environment() {
     # 检查必要的包
     echo "检查依赖包..."
     python3 -c "import typer, rich" 2>/dev/null || {
-        echo -e "${YELLOW}⚠️  安装缺失的依赖包...${NC}"
-        pip install typer rich
+        echo -e "${RED}❌ typer 或 rich 未安装。请运行: pip install -e packages/sage-tools[cli]${NC}"
+        exit 1
     }
     
     if $USE_PYTEST; then
         python3 -c "import pytest" 2>/dev/null || {
-            echo -e "${YELLOW}⚠️  安装 pytest...${NC}"
-            pip install pytest pytest-timeout
+            echo -e "${RED}❌ pytest 未安装。请运行: pip install -e packages/sage-tools[dev]${NC}"
+            exit 1
+        }
+        python3 -c "import pytest_timeout" 2>/dev/null || {
+            echo -e "${RED}❌ pytest-timeout 未安装。请运行: pip install -e packages/sage-tools[dev]${NC}"
+            exit 1
         }
     fi
     
