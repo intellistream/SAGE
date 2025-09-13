@@ -94,8 +94,8 @@ def run_simple_batch_test():
     
     # 处理管道
     result = (source_stream
-        .map(lambda x: x * 2)  # 数字翻倍
-        .filter(lambda x: x > 50)  # 过滤大于50的数字
+        .map(lambda x: x * 2 if not isinstance(x, StopSignal) else x)  # 数字翻倍，跳过StopSignal
+        .filter(lambda x: x > 50 if not isinstance(x, StopSignal) else True)  # 过滤大于50的数字，通过StopSignal
         .sink(BatchProcessor, name="NumberProcessor")
     )
     
@@ -128,8 +128,8 @@ def run_file_processing_test():
     
     # 文本处理管道
     result = (source_stream
-        .map(lambda line: line.upper())  # 转大写
-        .map(lambda line: f"📝 {line}")   # 添加前缀
+        .map(lambda line: line.upper() if not isinstance(line, StopSignal) else line)  # 转大写，跳过StopSignal
+        .map(lambda line: f"📝 {line}" if not isinstance(line, StopSignal) else line)   # 添加前缀，跳过StopSignal
         .sink(BatchProcessor, name="TextProcessor")
     )
     
@@ -156,7 +156,7 @@ def run_multi_source_batch_test():
     # 合并流处理
     combined_result = (numbers_stream
         .connect(countdown_stream)  # 合并两个流
-        .map(lambda x: f"Combined: {x}")
+        .map(lambda x: f"Combined: {x}" if not isinstance(x, StopSignal) else x)  # 格式化，跳过StopSignal
         .sink(BatchProcessor, name="MultiSourceProcessor")
     )
     
@@ -180,10 +180,10 @@ def run_processing_chain_test():
     
     # 复杂的处理链
     result = (source_stream
-        .map(lambda x: x + 100)           # +100
-        .filter(lambda x: x % 2 == 0)     # 只保留偶数
-        .map(lambda x: x / 2)             # 除以2
-        .map(lambda x: f"Result: {int(x)}")  # 格式化
+        .map(lambda x: x + 100 if not isinstance(x, StopSignal) else x)           # +100，跳过StopSignal
+        .filter(lambda x: x % 2 == 0 if not isinstance(x, (StopSignal, str)) else True)     # 只保留偶数，跳过StopSignal和字符串
+        .map(lambda x: x / 2 if not isinstance(x, StopSignal) else x)             # 除以2，跳过StopSignal
+        .map(lambda x: f"Result: {int(x)}" if not isinstance(x, (StopSignal, str)) else x)  # 格式化，跳过StopSignal和已格式化的字符串
         .sink(BatchProcessor, name="ChainProcessor")
     )
     

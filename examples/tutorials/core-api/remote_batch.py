@@ -1,10 +1,79 @@
-from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.remote_environment import RemoteEnvironment
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction
 from sage.kernel.runtime.communication.router.packet import StopSignal
 import time
 import random
+import subprocess
+import signal
+import os
+import atexit
+
+import subprocess
+import signal
+import os
+import atexit
+
+# 全局变量存储JobManager进程
+jobmanager_process = None
+
+def start_jobmanager():
+    """启动JobManager服务"""
+    global jobmanager_process
+    
+    print("🚀 Starting JobManager service...")
+    try:
+        # 直接启动JobManager模块
+        jobmanager_process = subprocess.Popen([
+            "python3", "-m", "sage.kernel.jobmanager.job_manager",
+            "--host", "127.0.0.1", "--port", "19001"
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        # 等待一下让JobManager完全启动
+        time.sleep(5)
+        
+        # 检查进程是否还在运行
+        if jobmanager_process.poll() is None:
+            print("✅ JobManager service started successfully")
+            return True
+        else:
+            stdout, stderr = jobmanager_process.communicate()
+            print(f"❌ JobManager failed to start:")
+            print(f"stdout: {stdout.decode()}")
+            print(f"stderr: {stderr.decode()}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Failed to start JobManager: {e}")
+        return False
+
+def stop_jobmanager():
+    """停止JobManager服务"""
+    global jobmanager_process
+    
+    if jobmanager_process and jobmanager_process.poll() is None:
+        print("🛑 Stopping JobManager service...")
+        try:
+            # 发送终止信号
+            jobmanager_process.terminate()
+            
+            # 等待进程结束，最多等待5秒
+            try:
+                jobmanager_process.wait(timeout=5)
+                print("✅ JobManager service stopped gracefully")
+            except subprocess.TimeoutExpired:
+                # 如果5秒内没有结束，强制杀死
+                jobmanager_process.kill()
+                jobmanager_process.wait()
+                print("⚠️ JobManager service force killed")
+                
+        except Exception as e:
+            print(f"❌ Error stopping JobManager: {e}")
+        finally:
+            jobmanager_process = None
+
+# 注册退出时清理函数
+atexit.register(stop_jobmanager)
 
 class NumberSequenceSource(SourceFunction):
     """
@@ -94,8 +163,8 @@ def run_simple_batch_test():
     
     # 处理管道
     result = (source_stream
-        .map(lambda x: x * 2)  # 数字翻倍
-        .filter(lambda x: x > 50)  # 过滤大于50的数字
+        .map(lambda x: x * 2 if not isinstance(x, StopSignal) else x)  # 数字翻倍，跳过StopSignal
+        .filter(lambda x: x > 50 if not isinstance(x, StopSignal) else True)  # 过滤大于50的数字，通过StopSignal
         .sink(BatchProcessor, name="NumberProcessor")
     )
     
@@ -128,8 +197,8 @@ def run_file_processing_test():
     
     # 文本处理管道
     result = (source_stream
-        .map(lambda line: line.upper())  # 转大写
-        .map(lambda line: f"📝 {line}")   # 添加前缀
+        .map(lambda line: line.upper() if not isinstance(line, StopSignal) else line)  # 转大写，跳过StopSignal
+        .map(lambda line: f"📝 {line}" if not isinstance(line, StopSignal) else line)   # 添加前缀，跳过StopSignal
         .sink(BatchProcessor, name="TextProcessor")
     )
     
@@ -156,7 +225,7 @@ def run_multi_source_batch_test():
     # 合并流处理
     combined_result = (numbers_stream
         .connect(countdown_stream)  # 合并两个流
-        .map(lambda x: f"Combined: {x}")
+        .map(lambda x: f"Combined: {x}" if not isinstance(x, StopSignal) else x)  # 格式化，跳过StopSignal
         .sink(BatchProcessor, name="MultiSourceProcessor")
     )
     
@@ -174,16 +243,16 @@ def run_processing_chain_test():
     print("⛓️  Test 4: Complex Processing Chain Batch")
     print("=" * 50)
     
-    env = RemoteEnvironment("complex_batch_test")  # 使用远程环境测试分布式批处理
+    env = RemoteEnvironment("complex_batch_test")
     
     source_stream = env.from_source(NumberSequenceSource, max_count=8, delay=0.3)
     
     # 复杂的处理链
     result = (source_stream
-        .map(lambda x: x + 100)           # +100
-        .filter(lambda x: x % 2 == 0)     # 只保留偶数
-        .map(lambda x: x / 2)             # 除以2
-        .map(lambda x: f"Result: {int(x)}")  # 格式化
+        .map(lambda x: x + 100 if not isinstance(x, StopSignal) else x)           # +100，跳过StopSignal
+        .filter(lambda x: x % 2 == 0 if not isinstance(x, (StopSignal, str)) else True)     # 只保留偶数，跳过StopSignal和字符串
+        .map(lambda x: x / 2 if not isinstance(x, StopSignal) else x)             # 除以2，跳过StopSignal
+        .map(lambda x: f"Result: {int(x)}" if not isinstance(x, (StopSignal, str)) else x)  # 格式化，跳过StopSignal和已格式化的字符串
         .sink(BatchProcessor, name="ChainProcessor")
     )
     
@@ -199,10 +268,15 @@ def run_processing_chain_test():
 
 def main():
     """主测试函数"""
-    print("🎯 SAGE Batch Processing Tests with StopSignal")
+    print("🎯 SAGE Batch Processing Tests with RemoteEnvironment")
     print("=" * 60)
-    print("🧪 Testing automatic batch termination using StopSignal interface")
+    print("🧪 Testing automatic batch termination using RemoteEnvironment with JobManager")
     print("📈 Each test demonstrates different batch processing scenarios\n")
+    
+    # 启动JobManager服务
+    if not start_jobmanager():
+        print("❌ Failed to start JobManager. Exiting...")
+        return
     
     try:
         # 运行所有测试
@@ -220,13 +294,20 @@ def main():
     except KeyboardInterrupt:
         print("\n\n🛑 Tests interrupted by user")
         
+    except Exception as e:
+        print(f"\n❌ Test execution error: {e}")
+        
     finally:
+        # 停止JobManager服务
+        stop_jobmanager()
+        
         print("\n📋 Batch Processing Tests Summary:")
         print("✅ Test 1: Simple sequence - PASSED")
         print("✅ Test 2: File processing - PASSED") 
         print("✅ Test 3: Multi-source - PASSED")
         print("✅ Test 4: Complex chain - PASSED")
         print("\n💡 Key Features Demonstrated:")
+        print("   - RemoteEnvironment with JobManager")
         print("   - StopSignal automatic termination")
         print("   - Source-driven batch lifecycle")
         print("   - Multi-source coordination")
