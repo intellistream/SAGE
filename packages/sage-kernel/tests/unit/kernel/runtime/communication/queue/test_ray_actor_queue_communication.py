@@ -61,19 +61,30 @@ class PersistentQueueActor:
 
             self.queue_desc = resolve_descriptor(queue_desc_dict)
             self.queue = self.queue_desc.queue_instance  # 获取实际的队列对象
+            self.operations_count = 0
+            self.last_operation_time = time.time()
+            print(f"Actor {actor_name} initialized with queue {self.queue_desc.queue_id}")
         except ImportError as e:
             # 如果导入失败，记录错误但继续初始化
             print(f"导入失败: {e}")
             self.queue_desc = None
             self.queue = None
-
-        self.operations_count = 0
-        self.last_operation_time = time.time()
-
-        print(f"Actor {actor_name} initialized with queue {self.queue_desc.queue_id}")
+            self.operations_count = 0
+            self.last_operation_time = time.time()
+            print(f"Actor {actor_name} initialized with FAILED queue import")
 
     def get_queue_info(self):
         """获取队列信息"""
+        if self.queue_desc is None:
+            return {
+                "actor_name": self.actor_name,
+                "queue_id": "FAILED_IMPORT",
+                "queue_type": "ray_queue",
+                "operations_count": self.operations_count,
+                "is_initialized": False,
+                "last_operation_time": self.last_operation_time,
+            }
+        
         return {
             "actor_name": self.actor_name,
             "queue_id": self.queue_desc.queue_id,
@@ -85,6 +96,9 @@ class PersistentQueueActor:
 
     def put_items(self, items: List[str], delay_between_items: float = 0.0):
         """向队列放入多个项目"""
+        if self.queue is None:
+            return [f"put_error:{item}:Queue not initialized" for item in items]
+            
         results = []
         for item in items:
             try:
@@ -104,6 +118,9 @@ class PersistentQueueActor:
 
     def get_items(self, max_items: int, timeout_per_item: float = 1.0):
         """从队列获取多个项目"""
+        if self.queue is None:
+            return [f"get_error:Queue not initialized"]
+            
         results = []
         for i in range(max_items):
             try:
@@ -119,6 +136,9 @@ class PersistentQueueActor:
 
     def check_queue_status(self):
         """检查队列状态"""
+        if self.queue is None:
+            return {"error": "Queue not initialized"}
+            
         try:
             size = self.queue.qsize()
             empty = self.queue.empty()
@@ -133,6 +153,9 @@ class PersistentQueueActor:
 
     def stress_test_operations(self, num_operations: int):
         """压力测试操作"""
+        if self.queue is None:
+            return {"error": "Queue not initialized", "completed_operations": 0}
+            
         start_time = time.time()
         completed_ops = 0
 
@@ -177,17 +200,16 @@ class QueueCoordinatorActor:
                 resolve_descriptor
 
             queue_desc = resolve_descriptor(queue_desc_dict)
+            self.managed_queues[queue_name] = {
+                "queue_desc": queue_desc,
+                "register_time": time.time(),
+            }
+            self.coordination_log.append(f"registered_queue:{queue_name}")
+            return f"Queue {queue_name} registered"
         except ImportError as e:
             print(f"导入失败: {e}")
-            return False
-
-        self.managed_queues[queue_name] = {
-            "queue_desc": queue_desc,
-            "register_time": time.time(),
-        }
-
-        self.coordination_log.append(f"registered_queue:{queue_name}")
-        return f"Queue {queue_name} registered"
+            self.coordination_log.append(f"failed_register_queue:{queue_name}:{e}")
+            return f"Queue {queue_name} registration failed: {e}"
 
     def coordinate_batch_operation(
         self, queue_name: str, operation: str, items: List[str]
@@ -196,13 +218,19 @@ class QueueCoordinatorActor:
         if queue_name not in self.managed_queues:
             return f"Queue {queue_name} not found"
 
-        queue_desc = self.managed_queues[queue_name]
+        queue_info = self.managed_queues[queue_name]
+        queue_desc = queue_info["queue_desc"]
+        
+        if queue_desc is None:
+            return f"Queue {queue_name} not properly initialized"
+            
+        queue = queue_desc.queue_instance
         results = []
 
         if operation == "put_batch":
             for item in items:
                 try:
-                    queue_desc.put(f"coordinator:{item}:{time.time()}")
+                    queue.put(f"coordinator:{item}:{time.time()}")
                     results.append(f"success:{item}")
                 except Exception as e:
                     results.append(f"error:{item}:{e}")
@@ -210,7 +238,7 @@ class QueueCoordinatorActor:
         elif operation == "get_batch":
             for i in range(len(items)):  # items作为计数使用
                 try:
-                    item = queue_desc.get(timeout=1.0)
+                    item = queue.get(timeout=1.0)
                     results.append(f"success:{item}")
                 except Exception as e:
                     results.append(f"timeout:{e}")
@@ -224,13 +252,18 @@ class QueueCoordinatorActor:
     def get_coordination_summary(self):
         """获取协调摘要"""
         queue_summaries = {}
-        for name, queue_desc in self.managed_queues.items():
+        for name, queue_info in self.managed_queues.items():
             try:
-                queue_summaries[name] = {
-                    "queue_id": queue_desc.queue_id,
-                    "size": queue_desc.qsize(),
-                    "empty": queue_desc.empty(),
-                }
+                queue_desc = queue_info["queue_desc"]
+                if queue_desc is None:
+                    queue_summaries[name] = {"error": "Queue not properly initialized"}
+                else:
+                    queue = queue_desc.queue_instance
+                    queue_summaries[name] = {
+                        "queue_id": queue_desc.queue_id,
+                        "size": queue.qsize(),
+                        "empty": queue.empty(),
+                    }
             except Exception as e:
                 queue_summaries[name] = {"error": str(e)}
 
