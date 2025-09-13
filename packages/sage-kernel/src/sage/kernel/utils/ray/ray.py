@@ -56,7 +56,7 @@ def get_sage_kernel_runtime_env():
 
 def ensure_ray_initialized(runtime_env=None):
     """
-    确保Ray已经初始化，如果未初始化则进行初始化。
+    确保Ray已经初始化，如果没有则初始化Ray。
 
     Args:
         runtime_env: Ray运行环境配置，如果为None则使用默认的sage配置
@@ -65,14 +65,17 @@ def ensure_ray_initialized(runtime_env=None):
         raise ImportError("Ray is not available")
 
     if not ray.is_initialized():
-        # 如果没有提供runtime_env，使用默认的sage配置
-        if runtime_env is None:
-            runtime_env = get_sage_kernel_runtime_env()
-
         try:
-            # 直接启动本地Ray实例，避免连接超时问题
-            ray.init(ignore_reinit_error=True, runtime_env=runtime_env)
-            print(f"Ray initialized locally with runtime_env")
+            # 使用标准模式但限制资源，支持async actors和队列
+            # 设置较少的CPU数量避免过度资源消耗
+            ray.init(
+                ignore_reinit_error=True, 
+                num_cpus=2,  # 限制CPU使用
+                num_gpus=0,  # 不使用GPU
+                object_store_memory=200000000,  # 200MB object store
+                log_to_driver=False  # 减少日志输出
+            )
+            print(f"Ray initialized in standard mode with limited resources")
         except Exception as e:
             print(f"Failed to initialize Ray: {e}")
             raise

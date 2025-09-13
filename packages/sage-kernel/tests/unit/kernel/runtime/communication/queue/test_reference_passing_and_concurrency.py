@@ -200,9 +200,8 @@ except ImportError:
 # ============ 测试类 ============
 
 
-@pytest.mark.ray
-class TestReferencePassingAndConcurrency:
-    """引用传递和并发测试"""
+class TestPythonQueueConcurrency:
+    """Python队列并发测试 - 不需要Ray"""
 
     def test_python_queue_multithreading(self):
         """测试Python队列的多线程并发"""
@@ -309,83 +308,6 @@ class TestReferencePassingAndConcurrency:
         print("✓ 多进程测试跳过")
         return True
 
-    def test_ray_queue_actor_communication(self):
-        """测试Ray队列在Actor之间的通信"""
-        print("\n=== 测试Ray队列Actor间通信 ===")
-
-        if not RAY_AVAILABLE:
-            print("⚠️ Ray不可用，跳过Ray Actor测试")
-            return
-
-        try:
-            # 初始化Ray
-            ensure_ray_initialized()
-
-            # 创建Ray队列描述符
-            queue_desc = RayQueueDescriptor(queue_id="test_ray_actor", maxsize=100)
-            queue_dict = queue_desc.to_dict()
-
-            num_producer_actors = 2
-            num_consumer_actors = 2
-            items_per_actor = 5
-
-            print(
-                f"配置: {num_producer_actors}个生产者Actor, {num_consumer_actors}个消费者Actor"
-            )
-
-            # 创建生产者Actor
-            producer_actors = []
-            for i in range(num_producer_actors):
-                actor = QueueProducerActor.remote()
-                producer_actors.append(actor)
-
-            # 创建消费者Actor
-            consumer_actors = []
-            for i in range(num_consumer_actors):
-                actor = QueueConsumerActor.remote()
-                consumer_actors.append(actor)
-
-            # 启动生产者
-            producer_futures = []
-            for i, actor in enumerate(producer_actors):
-                future = actor.produce_items.remote(queue_dict, i, items_per_actor)
-                producer_futures.append(future)
-
-            # 等待生产者完成
-            producer_results = ray.get(producer_futures)
-            for result in producer_results:
-                print(f"Ray生产者Actor结果: {result}")
-
-            # 启动消费者
-            consumer_futures = []
-            expected_per_consumer = (
-                num_producer_actors * items_per_actor
-            ) // num_consumer_actors
-            for i, actor in enumerate(consumer_actors):
-                future = actor.consume_items.remote(
-                    queue_dict, i, expected_per_consumer
-                )
-                consumer_futures.append(future)
-
-            # 等待消费者完成
-            consumer_results = ray.get(consumer_futures)
-            total_consumed = sum(
-                len(items) for items in consumer_results if isinstance(items, list)
-            )
-
-            print(f"Ray Actor总共消费: {total_consumed}")
-            for i, result in enumerate(consumer_results):
-                if isinstance(result, list):
-                    print(f"消费者Actor {i}: 消费了{len(result)}个项目")
-
-            print("✓ Ray队列Actor通信测试通过")
-
-        except Exception as e:
-            print(f"⚠️ Ray Actor测试失败: {e}")
-            import traceback
-
-            traceback.print_exc()
-
     def test_queue_reference_integrity(self):
         """测试队列引用的完整性"""
         print("\n=== 测试队列引用完整性 ===")
@@ -464,12 +386,87 @@ class TestReferencePassingAndConcurrency:
 
         print("✓ 并发压力测试通过")
 
+@pytest.mark.ray
+class TestRayQueueConcurrency:
+    """Ray队列并发测试 - 需要Ray环境"""
+    
+    def test_ray_queue_actor_communication(self):
+        """测试Ray队列Actor通信"""
+        print("\n=== 测试Ray队列Actor通信 ===")
+
+        if not ray.is_initialized():
+            ray.init(ignore_reinit_error=True)
+
+        try:
+            # 创建Ray队列描述符
+            ray_desc = RayQueueDescriptor(queue_id="ray_actor_comm_test", maxsize=100)
+
+            num_producer_actors = 2
+            num_consumer_actors = 2
+            items_per_actor = 5
+
+            print(
+                f"Ray Actor配置: {num_producer_actors}个生产者, {num_consumer_actors}个消费者"
+            )
+
+            # 创建生产者和消费者Actor
+            producer_actors = [
+                RayProducerActor.remote() for _ in range(num_producer_actors)
+            ]
+            consumer_actors = [
+                RayConsumerActor.remote() for _ in range(num_consumer_actors)
+            ]
+
+            # 获取队列字典用于Actor通信
+            queue_dict = ray_desc.to_dict()
+
+            # 启动生产者
+            producer_futures = []
+            for i, actor in enumerate(producer_actors):
+                future = actor.produce_items.remote(queue_dict, i, items_per_actor)
+                producer_futures.append(future)
+
+            # 等待生产者完成
+            producer_results = ray.get(producer_futures)
+            for result in producer_results:
+                print(f"Ray生产者Actor结果: {result}")
+
+            # 启动消费者
+            consumer_futures = []
+            expected_per_consumer = (
+                num_producer_actors * items_per_actor
+            ) // num_consumer_actors
+            for i, actor in enumerate(consumer_actors):
+                future = actor.consume_items.remote(
+                    queue_dict, i, expected_per_consumer
+                )
+                consumer_futures.append(future)
+
+            # 等待消费者完成
+            consumer_results = ray.get(consumer_futures)
+            total_consumed = sum(
+                len(items) for items in consumer_results if isinstance(items, list)
+            )
+
+            print(f"Ray Actor总共消费: {total_consumed}")
+            for i, result in enumerate(consumer_results):
+                if isinstance(result, list):
+                    print(f"消费者Actor {i}: 消费了{len(result)}个项目")
+
+            print("✓ Ray队列Actor通信测试通过")
+
+        except Exception as e:
+            print(f"⚠️ Ray Actor测试失败: {e}")
+            import traceback
+
+            traceback.print_exc()
+
 
 def run_all_tests():
     """运行所有测试"""
     print("开始运行引用传递和并发测试...")
 
-    test_suite = TestReferencePassingAndConcurrency()
+    test_suite = TestPythonQueueConcurrency()
 
     try:
         # 基础多线程测试
@@ -479,16 +476,16 @@ def run_all_tests():
         # 多进程测试
         test_suite.test_serializable_queue_multiprocessing()
 
-        # Ray Actor测试
-        test_suite.test_ray_queue_actor_communication()
-
         # 引用完整性测试
         test_suite.test_queue_reference_integrity()
 
         # 压力测试
         test_suite.test_concurrent_stress_test()
 
-        print("\n🎉 所有引用传递和并发测试通过！")
+        print("\n🎉 Python队列测试通过！")
+        
+        # Ray测试需要单独运行（被pytest标记过滤）
+        print("\n注意: Ray队列测试需要使用 pytest -m ray 单独运行")
 
     except Exception as e:
         print(f"\n❌ 测试失败: {e}")

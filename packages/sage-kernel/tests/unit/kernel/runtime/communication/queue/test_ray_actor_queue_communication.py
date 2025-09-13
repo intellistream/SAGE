@@ -26,7 +26,14 @@ try:
     from sage.kernel.runtime.communication.queue_descriptor import \
         RayQueueDescriptor
     from sage.kernel.utils.ray.ray import ensure_ray_initialized
+    from sage.kernel.utils.test_log_manager import get_test_log_manager, setup_quiet_ray_logging
 
+    # 设置安静的日志记录
+    setup_quiet_ray_logging()
+    
+    # 获取日志管理器
+    log_manager = get_test_log_manager()
+    
     print("✓ 成功导入Ray队列描述符")
 except ImportError as e:
     print(f"✗ 导入失败: {e}")
@@ -298,8 +305,9 @@ class TestRayQueueActorCommunication:
 
     def test_basic_actor_queue_operations(self):
         """测试基础Actor队列操作"""
-        print("\n=== 测试基础Actor队列操作 ===")
-
+        log_manager.log_test_start("test_basic_actor_queue_operations")
+        start_time = time.time()
+        
         # 创建两个Actor
         producer_actor = PersistentQueueActor.remote(self.queue_dict, "producer")
         consumer_actor = PersistentQueueActor.remote(self.queue_dict, "consumer")
@@ -307,31 +315,29 @@ class TestRayQueueActorCommunication:
         # 生产者放入数据
         items_to_produce = ["item1", "item2", "item3", "item4", "item5"]
         produce_result = ray.get(producer_actor.put_items.remote(items_to_produce))
-        print(f"生产结果: {len(produce_result)} 项目")
+        log_manager.log_ray_operation("producer_put", f"{len(produce_result)} items")
 
         # 添加小延迟确保数据已写入
         time.sleep(0.1)
 
         # 检查队列状态
         producer_status = ray.get(producer_actor.check_queue_status.remote())
-        print(f"生产后队列状态: {producer_status}")
+        log_manager.log_ray_operation("check_status", f"queue_size={producer_status.get('size', 'unknown')}")
 
-        # 消费者获取数据
+        # 消费者获取数据（减少超时时间）
         consume_result = ray.get(
-            consumer_actor.get_items.remote(len(items_to_produce), timeout_per_item=2.0)
+            consumer_actor.get_items.remote(len(items_to_produce), timeout_per_item=0.5)
         )
-        print(f"消费结果: {len(consume_result)} 项目")
+        log_manager.log_ray_operation("consumer_get", f"{len(consume_result)} items")
 
         # 统计成功获取的项目数
         successful_gets = [r for r in consume_result if r.startswith("get_success")]
-        print(f"成功获取的项目数: {len(successful_gets)}")
 
         # 检查Actor状态
         producer_info = ray.get(producer_actor.get_queue_info.remote())
         consumer_info = ray.get(consumer_actor.get_queue_info.remote())
 
-        print(f"生产者状态: {producer_info}")
-        print(f"消费者状态: {consumer_info}")
+        log_manager.log_ray_operation("final_status", f"producer_ops={producer_info['operations_count']}, consumer_ops={consumer_info['operations_count']}")
 
         # 验证断言
         assert producer_info["operations_count"] == len(
@@ -341,10 +347,8 @@ class TestRayQueueActorCommunication:
             len(successful_gets) > 0
         ), f"消费者应该成功获取了一些项目，但实际获取了{len(successful_gets)}个"
 
-        # 打印成功获取的项目
-        for item in successful_gets:
-            print(f"  成功获取: {item}")
-
+        duration = time.time() - start_time
+        log_manager.log_test_end("test_basic_actor_queue_operations", duration, True)
         print("✓ 基础Actor队列操作测试通过")
 
     def test_multiple_actors_concurrent_access(self):
@@ -379,8 +383,8 @@ class TestRayQueueActorCommunication:
                 future = producer.put_items.remote(items, delay_between_items=0.01)
                 producer_futures.append(future)
 
-            # 等待生产完成，设置超时
-            producer_results = ray.get(producer_futures, timeout=15)
+            # 等待生产完成，减少超时时间
+            producer_results = ray.get(producer_futures, timeout=8)
             total_produced = sum(len(result) for result in producer_results)
             print(f"总共生产: {total_produced} 项目")
 
@@ -396,8 +400,8 @@ class TestRayQueueActorCommunication:
                 )
                 consumer_futures.append(future)
 
-            # 等待消费完成，设置超时
-            consumer_results = ray.get(consumer_futures, timeout=10)
+            # 等待消费完成，减少超时时间
+            consumer_results = ray.get(consumer_futures, timeout=6)
             total_consumed = sum(
                 len([r for r in result if r.startswith("get_success")])
                 for result in consumer_results
