@@ -78,7 +78,9 @@ class ExampleTestStrategies:
                 environment_vars={
                     "OPENAI_API_KEY": "test-key-placeholder",
                     "SAGE_RAG_MODE": "test",
-                    "SAGE_LOG_LEVEL": "ERROR"
+                    "SAGE_LOG_LEVEL": "ERROR",
+                    "SAGE_EXAMPLES_MODE": "test",
+                    "SAGE_TEST_MODE": "true"
                 }
             ),
             

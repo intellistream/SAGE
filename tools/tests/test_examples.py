@@ -295,10 +295,18 @@ class ExampleRunner:
     
     def _check_dependencies(self, dependencies: List[str]) -> bool:
         """检查依赖是否满足"""
+        # 包名到导入名的映射
+        import_name_map = {
+            'pyyaml': 'yaml',
+            'python-dotenv': 'dotenv',
+            'kafka-python': 'kafka'
+        }
+        
         for dep in dependencies:
+            import_name = import_name_map.get(dep, dep)
             try:
                 subprocess.run(
-                    [sys.executable, "-c", f"import {dep}"],
+                    [sys.executable, "-c", f"import {import_name}"],
                     check=True,
                     capture_output=True
                 )
