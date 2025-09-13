@@ -91,23 +91,58 @@ class IssuesManager:
         return None
 
     def load_issues(self) -> List[Dict[str, Any]]:
-        """Load issues from workspace directory."""
-        issues_dir = self.workspace_dir / 'issues'
-        if not issues_dir.exists():
-            print(f"❌ Issues目录不存在: {issues_dir}")
+        """Load issues from workspace data directory."""
+        data_dir = self.workspace_dir / 'data'
+        if not data_dir.exists():
+            print(f"❌ Issues数据目录不存在: {data_dir}")
             print("💡 请先运行下载Issues命令:")
             print("   sage dev issues download")
             return []
 
         issues = []
-        for issue_file in issues_dir.glob('*.md'):
+        
+        # 加载单个issue JSON文件
+        for issue_file in data_dir.glob('issue_*.json'):
             try:
-                content = issue_file.read_text(encoding='utf-8')
-                # Parse markdown format issues
-                issue_data = self._parse_markdown_issue(content, issue_file.name)
-                issues.append(issue_data)
+                with open(issue_file, 'r', encoding='utf-8') as f:
+                    issue_data = json.load(f)
+                
+                # 适配从JSON格式到统计需要的格式
+                if 'metadata' in issue_data:
+                    # 使用新格式的JSON数据
+                    metadata = issue_data['metadata']
+                    adapted_issue = {
+                        'number': metadata.get('number'),
+                        'title': metadata.get('title', ''),
+                        'body': issue_data.get('body', ''),
+                        'state': metadata.get('state', 'open'),
+                        'user': {'login': metadata.get('author', 'unknown')},
+                        'labels': [{'name': label} for label in metadata.get('labels', [])],
+                        'assignees': [{'login': assignee} for assignee in metadata.get('assignees', [])]
+                    }
+                else:
+                    # 兼容旧格式的JSON数据
+                    adapted_issue = issue_data
+                
+                issues.append(adapted_issue)
+                
             except Exception as e:
                 print(f"⚠️ 读取issue文件失败: {issue_file.name}: {e}")
+        
+        # 如果单个文件没找到，尝试加载批量文件
+        if not issues:
+            latest_file = data_dir / "issues_open_latest.json"
+            if latest_file.exists():
+                try:
+                    with open(latest_file, 'r', encoding='utf-8') as f:
+                        batch_issues = json.load(f)
+                    
+                    # 批量文件应该是标准GitHub API格式
+                    for issue in batch_issues:
+                        issues.append(issue)
+                        
+                except Exception as e:
+                    print(f"⚠️ 读取批量Issues文件失败: {e}")
         
         print(f"✅ 加载了 {len(issues)} 个Issues")
         return issues
