@@ -230,7 +230,7 @@ jobs:
         chmod +x ./quickstart.sh
         
         echo "🎯 Starting SAGE installation with detailed logging..."
-        if ! ./quickstart.sh --minimal --conda --yes; then
+        if ! ./quickstart.sh --dev --conda --yes; then
           echo "❌ SAGE installation failed!"
           exit 1
         fi
