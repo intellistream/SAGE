@@ -10,6 +10,13 @@ from rich.console import Console
 console = Console()
 app = typer.Typer(help="SAGE 开发工具集")
 
+# 添加Issues管理子命令
+try:
+    from sage.tools.dev.issues.cli import app as issues_app
+    app.add_typer(issues_app, name="issues", help="🐛 Issues管理 - GitHub Issues下载、分析和管理")
+except ImportError as e:
+    console.print(f"[yellow]警告: Issues管理功能不可用: {e}[/yellow]")
+
 @app.command()
 def analyze(
     analysis_type: str = typer.Option("all", help="分析类型: all, health, report"),

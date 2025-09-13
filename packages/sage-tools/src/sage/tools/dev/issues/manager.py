@@ -1,24 +1,26 @@
 #!/usr/bin/env python3
 """
-Issues manager (non-AI helpers)
-Lightweight manager that uses the centralized `_scripts/config.py` config
-and calls helper scripts from `_scripts/helpers/` when available.
-
-Supported actions: statistics, create, team, project, update-team
+SAGE Issues管理工具 - 核心管理器 (适配sage-tools版本)
+Lightweight manager that uses the centralized config
+and calls helper scripts from helpers/ when available.
 """
+import os
 import sys
 import json
 import subprocess
 import argparse
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List, Optional, Any
 
-from config import Config
+from .config import IssuesConfig
 
 
 class IssuesManager:
-    def __init__(self):
-        self.config = Config()
+    """Issues管理器 - 适配sage-tools版本"""
+    
+    def __init__(self, project_root: Optional[Path] = None):
+        self.config = IssuesConfig(project_root)
         self.workspace_dir = self.config.workspace_path
         self.output_dir = self.config.output_path
         self.metadata_dir = self.config.metadata_path
@@ -28,6 +30,7 @@ class IssuesManager:
         self.team_info = self._load_team_info()
 
     def ensure_output_dir(self):
+        """确保输出目录存在"""
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def _load_team_info(self):
@@ -46,76 +49,54 @@ class IssuesManager:
                 import team_config
                 TEAMS = getattr(team_config, 'TEAMS', None)
                 if TEAMS is not None:
-                    # 手动收集所有用户名
+                    # 处理两种格式的团队配置
                     all_usernames = []
-                    for team_name, team_data in TEAMS.items():
-                        members = team_data.get('members', [])
-                        for member in members:
-                            username = member.get('username')
-                            if username and username not in all_usernames:
-                                all_usernames.append(username)
+                    processed_teams = {}
                     
-                    # 清理sys.path
-                    if str(meta_data_dir) in sys.path:
-                        sys.path.remove(str(meta_data_dir))
+                    for team_name, team_data in TEAMS.items():
+                        if isinstance(team_data, dict) and 'members' in team_data:
+                            # 新格式：包含详细成员信息
+                            members = []
+                            for member in team_data['members']:
+                                if isinstance(member, dict) and 'username' in member:
+                                    username = member['username']
+                                    members.append(username)
+                                    all_usernames.append(username)
+                                elif isinstance(member, str):
+                                    members.append(member)
+                                    all_usernames.append(member)
+                            processed_teams[team_name] = members
+                        elif isinstance(team_data, dict):
+                            # 旧格式：简单的用户名映射
+                            members = list(team_data.keys())
+                            processed_teams[team_name] = members
+                            all_usernames.extend(members)
+                        elif isinstance(team_data, list):
+                            # 列表格式
+                            processed_teams[team_name] = team_data
+                            all_usernames.extend(team_data)
                     
                     print(f"✅ 已加载团队信息: {len(all_usernames)} 位成员")
-                    return {'teams': TEAMS, 'all_usernames': all_usernames}
+                    return {'teams': processed_teams, 'all_usernames': all_usernames}
             except Exception as e:
-                print(f"⚠️ 加载团队配置失败: {e}")
+                print(f"⚠️ 加载团队信息失败: {e}")
+            finally:
                 # 清理sys.path
                 if str(meta_data_dir) in sys.path:
                     sys.path.remove(str(meta_data_dir))
-        
-        # 备用：尝试从 output_dir 加载
-        try:
-            # 清理可能存在的模块缓存
-            if 'team_config' in sys.modules:
-                del sys.modules['team_config']
-                
-            sys.path.insert(0, str(self.output_dir))
-            import team_config as output_team_config
-            TEAMS = getattr(output_team_config, 'TEAMS', None)
-            get_all_usernames = getattr(output_team_config, 'get_all_usernames', None)
-            if TEAMS is not None:
-                all_usernames = []
-                if callable(get_all_usernames):
-                    try:
-                        all_usernames = get_all_usernames()
-                    except Exception:
-                        all_usernames = []
-                else:
-                    # 手动收集所有用户名
-                    for team_name, team_data in TEAMS.items():
-                        members = team_data.get('members', [])
-                        for member in members:
-                            username = member.get('username')
-                            if username and username not in all_usernames:
-                                all_usernames.append(username)
-                
-                # 清理sys.path
-                if str(self.output_dir) in sys.path:
-                    sys.path.remove(str(self.output_dir))
-                
-                print(f"✅ 已加载团队信息: {len(all_usernames)} 位成员")
-                return {'teams': TEAMS, 'all_usernames': all_usernames}
-        except Exception:
-            # 清理sys.path
-            if str(self.output_dir) in sys.path:
-                sys.path.remove(str(self.output_dir))
 
         print("⚠️ 团队信息未找到")
         print("💡 运行以下命令获取团队信息:")
-        print("   python3 _scripts/helpers/get_team_members.py")
+        print("   sage dev issues team --update")
         return None
 
-    def load_issues(self):
+    def load_issues(self) -> List[Dict[str, Any]]:
         """Load issues from workspace directory."""
         issues_dir = self.workspace_dir / 'issues'
         if not issues_dir.exists():
             print(f"❌ Issues目录不存在: {issues_dir}")
             print("💡 请先运行下载Issues命令:")
-            print("   python3 _scripts/download_issues.py")
+            print("   sage dev issues download")
             return []
 
         issues = []
@@ -131,7 +112,7 @@ class IssuesManager:
         print(f"✅ 加载了 {len(issues)} 个Issues")
         return issues
     
-    def _parse_markdown_issue(self, content: str, filename: str):
+    def _parse_markdown_issue(self, content: str, filename: str) -> Dict[str, Any]:
         """Parse markdown format issue file"""
         lines = content.split('\n')
         
@@ -198,7 +179,7 @@ class IssuesManager:
         
         return issue_data
 
-    def _generate_statistics(self, issues):
+    def _generate_statistics(self, issues: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Generate statistics from issues data."""
         stats = {
             'total': len(issues),
@@ -238,7 +219,7 @@ class IssuesManager:
 
         return stats
 
-    def show_statistics(self):
+    def show_statistics(self) -> bool:
         """显示Issues统计信息"""
         print("📊 显示Issues统计信息...")
         issues = self.load_issues()
@@ -275,7 +256,7 @@ class IssuesManager:
         print(f"\n📄 详细报告已保存到: {report_file}")
         return True
 
-    def create_new_issue(self):
+    def create_new_issue(self) -> bool:
         """创建新Issue"""
         print("✨ 创建新Issue...")
         # Check if helper script exists
@@ -290,28 +271,38 @@ class IssuesManager:
             print("📝 请手动创建Issue或实现create_issue.py助手")
             return True
 
-    def team_analysis(self):
+    def team_analysis(self) -> bool:
         """团队分析"""
         print("👥 团队分析...")
         if not self.team_info:
             print("❌ 没有团队信息，无法进行分析")
             return False
 
-        # Check if helper script exists
-        helper_script = self.helpers_dir / 'get_team_members.py'
-        if helper_script.exists():
-            print("🔄 调用团队分析助手...")
-            result = subprocess.run([sys.executable, str(helper_script)], 
-                                  capture_output=False, text=True)
-            return result.returncode == 0
+        # 直接显示基本团队信息，不依赖外部脚本
+        print("📊 基本团队信息:")
+        teams = self.team_info.get('teams', {})
+        total_members = 0
+        
+        for team_name, members in teams.items():
+            member_count = len(members) if isinstance(members, list) else 0
+            total_members += member_count
+            print(f"  - {team_name}: {member_count} 成员")
+        
+        print(f"\n📈 团队总览:")
+        print(f"  - 团队总数: {len(teams)}")
+        print(f"  - 成员总数: {total_members}")
+        
+        # 如果有GitHub Token，可以尝试获取更详细信息
+        if self.config.github_token:
+            print("\n� GitHub连接正常，可以获取详细团队信息")
+            print("💡 如需更新团队信息，请运行: sage dev issues team --update")
         else:
-            print("📊 基本团队信息:")
-            teams = self.team_info.get('teams', {})
-            for team_name, members in teams.items():
-                print(f"  - {team_name}: {len(members)} 成员")
-            return True
+            print("\n⚠️ 未配置GitHub Token，无法获取最新团队信息")
+            print("💡 配置Token后可获取更多详细信息")
+        
+        return True
 
-    def project_management(self):
+    def project_management(self) -> bool:
         """项目管理 - 自动检测并修复错误分配的Issues"""
         print("📋 项目管理...")
         
@@ -320,7 +311,7 @@ class IssuesManager:
         execute_script = self.helpers_dir / 'execute_fix_plan.py'
         
         if fix_script.exists():
-            print("� 扫描错误分配的Issues...")
+            print("🔍 扫描错误分配的Issues...")
             
             # First, run detection to generate fix plan
             detection_result = subprocess.run([
@@ -365,49 +356,55 @@ class IssuesManager:
             print("📝 请检查 helpers/fix_misplaced_issues.py")
             return True
 
-    def update_team_info(self):
+    def update_team_info(self) -> bool:
         """更新团队信息"""
         print("🔄 更新团队信息...")
+        
+        # 检查GitHub Token
+        if not self.config.github_token:
+            print("❌ GitHub Token未配置，无法更新团队信息")
+            print("💡 请设置GitHub Token:")
+            print("   export GITHUB_TOKEN=your_token")
+            print("   或创建 ~/.github_token 文件")
+            return False
+        
+        # 使用配置系统来调用团队获取脚本
         helper_script = self.helpers_dir / 'get_team_members.py'
         if helper_script.exists():
-            result = subprocess.run([sys.executable, str(helper_script)], 
-                                  capture_output=False, text=True)
+            print("🔄 正在从GitHub API获取最新团队信息...")
+            
+            # 设置环境变量确保脚本能获取到token
+            env = os.environ.copy()
+            env['GITHUB_TOKEN'] = self.config.github_token
+            
+            result = subprocess.run([
+                sys.executable, str(helper_script)
+            ], capture_output=True, text=True, env=env, cwd=str(self.scripts_dir))
+            
             if result.returncode == 0:
+                print("✅ 团队信息更新成功")
+                print(result.stdout)
                 # Reload team info
                 self.team_info = self._load_team_info()
                 return True
-            return False
+            else:
+                print("❌ 团队信息更新失败")
+                print(f"错误信息: {result.stderr}")
+                return False
         else:
             print("❌ get_team_members.py助手不存在")
             return False
 
-
-def main():
-    parser = argparse.ArgumentParser(description="Issues管理工具 - 非AI功能")
-    parser.add_argument("--action", choices=["statistics", "create", "team", "project", "update-team"], 
-                       required=True, help="要执行的操作")
-    args = parser.parse_args()
-
-    manager = IssuesManager()
-    success = False
-    
-    if args.action == "statistics":
-        success = manager.show_statistics()
-    elif args.action == "create":
-        success = manager.create_new_issue()
-    elif args.action == "team":
-        success = manager.team_analysis()
-    elif args.action == "project":
-        success = manager.project_management()
-    elif args.action == "update-team":
-        success = manager.update_team_info()
-
-    if success:
-        print("\n🎉 操作完成！")
-    else:
-        print("\n💥 操作失败！")
-        sys.exit(1)
-
-
-if __name__ == '__main__':
-    main()
+    def test_github_connection(self) -> bool:
+        """测试GitHub连接"""
+        print("🔍 测试GitHub连接...")
+        try:
+            if self.config.test_github_connection():
+                print("✅ GitHub连接正常")
+                return True
+            else:
+                print("❌ GitHub连接失败")
+                return False
+        except Exception as e:
+            print(f"❌ GitHub连接错误: {e}")
+            return False
