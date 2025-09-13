@@ -121,8 +121,23 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
         self.processed_events += 1
 
         user_id = event_data["user_id"]
-        item_id = event_data["item_id"]
-        interaction_type = event_data["type"]
+        
+        # Check if this is an event or recommendation request
+        if "item_id" in event_data:
+            # This is an actual event
+            item_id = event_data["item_id"]
+            interaction_type = event_data["type"]
+        else:
+            # This is a recommendation request, handle it differently
+            print(f"[DEBUG] CoMap.map0: Received recommendation request, skipping event processing")
+            return {
+                "type": "recommendation_request_received",
+                "user_id": user_id,
+                "message": "Recommendation request received in event stream, no action taken",
+                "processed_sequence": self.processed_events,
+                "source_stream": 0,
+                "processor": "EventProcessor",
+            }
 
         # 使用服务调用语法糖 - 同步调用用户画像服务（增加容错处理）
         activity_description = f"{interaction_type}_{item_id}"
@@ -443,12 +458,14 @@ def test_comap_service_integration():
     try:
         test_instance.test_comap_service_integration()
         print("\n🎉 All tests passed! CoMap service integration is working correctly.")
+        return True
     except Exception as e:
         print(f"\n💥 Test failed: {e}")
         import traceback
 
         traceback.print_exc()
         pytest.fail(f"CoMap service integration test failed: {e}")
+        return False
 
 
 if __name__ == "__main__":
