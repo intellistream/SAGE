@@ -98,6 +98,34 @@ jobs:
         fi
       timeout-minutes: 10
 
+    - name: Install SAGE (Test Mode)
+      env:
+        CI: true
+        DEBIAN_FRONTEND: noninteractive
+        PIP_NO_INPUT: 1
+        PIP_DISABLE_PIP_VERSION_CHECK: 1
+        # 并行安装优化
+        PIP_PARALLEL_BUILDS: 4
+        MAKEFLAGS: "-j4"
+      run: |
+        echo "🚀 CI模式：通过quickstart.sh --dev --pip安装SAGE"
+        echo "ℹ️ 使用dev模式包含完整开发工具和CLI"
+        echo "⏰ 预计安装时间: 8-15分钟"
+        
+        # 显示环境信息
+        echo "📊 环境信息:"
+        echo "- Python: $(python --version)"
+        echo "- Python路径: $(which python)"
+        echo "- Pip版本: $(pip --version)"
+        echo "- 网络状态: $(ping -c 1 pypi.org >/dev/null 2>&1 && echo "✅ 可达" || echo "❌ 不可达")"
+        
+        echo "🎯 开始通过quickstart.sh dev模式安装..."
+        chmod +x ./quickstart.sh
+        ./quickstart.sh --dev --pip --yes
+        
+        echo "✅ quickstart.sh dev模式安装完成"
+      timeout-minutes: 20
+
     - name: Code Quality Checks
       run: |
         echo "🔍 Running code quality checks..."
@@ -144,34 +172,6 @@ jobs:
           exit $exit_code
         fi
 
-    - name: Install SAGE (Test Mode)
-      env:
-        CI: true
-        DEBIAN_FRONTEND: noninteractive
-        PIP_NO_INPUT: 1
-        PIP_DISABLE_PIP_VERSION_CHECK: 1
-        # 并行安装优化
-        PIP_PARALLEL_BUILDS: 4
-        MAKEFLAGS: "-j4"
-      run: |
-        echo "🚀 CI模式：通过quickstart.sh --dev --pip安装SAGE"
-        echo "ℹ️ 使用dev模式包含完整开发工具和CLI"
-        echo "⏰ 预计安装时间: 8-15分钟"
-        
-        # 显示环境信息
-        echo "📊 环境信息:"
-        echo "- Python: $(python --version)"
-        echo "- Python路径: $(which python)"
-        echo "- Pip版本: $(pip --version)"
-        echo "- 网络状态: $(ping -c 1 pypi.org >/dev/null 2>&1 && echo "✅ 可达" || echo "❌ 不可达")"
-        
-        echo "🎯 开始通过quickstart.sh dev模式安装..."
-        chmod +x ./quickstart.sh
-        ./quickstart.sh --dev --pip --yes
-        
-        echo "✅ quickstart.sh dev模式安装完成"
-      timeout-minutes: 20
-        
     - name: Basic Import Tests
       env:
         # PYTHONNOUSERSITE: 1  # 注释掉以提高runner测试速度

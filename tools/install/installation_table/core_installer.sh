@@ -56,20 +56,41 @@ install_core_packages() {
                 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
                 echo -e "${BOLD}  📦 正在安装 $package (开发模式)${NC}"
                 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                echo -e "${DIM}运行命令: $PIP_CMD install -e $package_path${NC}"
-                echo ""
                 
-                # 使用开发模式安装
-                if install_package_with_output "$PIP_CMD" "$package_path" "$package" "dev"; then
+                # 对于 sage-tools，在开发模式下安装完整的 dev 依赖
+                if [ "$package" = "sage-tools" ]; then
+                    echo -e "${DIM}运行命令: $PIP_CMD install -e $package_path[dev]${NC}"
+                    echo -e "${DIM}包含开发工具: black, isort, flake8, pytest, pytest-timeout 等${NC}"
                     echo ""
-                    echo -e "${CHECK} $package 安装成功！"
-                    echo ""
+                    
+                    # 使用开发模式安装，包含 [dev] 依赖
+                    if install_package_with_output "$PIP_CMD" "$package_path[dev]" "$package" "dev"; then
+                        echo ""
+                        echo -e "${CHECK} $package [dev] 安装成功！"
+                        echo ""
+                    else
+                        echo ""
+                        echo -e "${CROSS} $package [dev] 安装失败！"
+                        echo -e "${WARNING} 安装过程中断"
+                        echo "$(date): 核心包安装失败，安装中断" >> "$log_file"
+                        exit 1
+                    fi
                 else
+                    echo -e "${DIM}运行命令: $PIP_CMD install -e $package_path${NC}"
                     echo ""
-                    echo -e "${CROSS} $package 安装失败！"
-                    echo -e "${WARNING} 安装过程中断"
-                    echo "$(date): 核心包安装失败，安装中断" >> "$log_file"
-                    exit 1
+                    
+                    # 使用开发模式安装
+                    if install_package_with_output "$PIP_CMD" "$package_path" "$package" "dev"; then
+                        echo ""
+                        echo -e "${CHECK} $package 安装成功！"
+                        echo ""
+                    else
+                        echo ""
+                        echo -e "${CROSS} $package 安装失败！"
+                        echo -e "${WARNING} 安装过程中断"
+                        echo "$(date): 核心包安装失败，安装中断" >> "$log_file"
+                        exit 1
+                    fi
                 fi
             else
                 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
