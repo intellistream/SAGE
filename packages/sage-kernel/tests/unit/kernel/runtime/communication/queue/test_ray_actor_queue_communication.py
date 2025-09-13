@@ -258,7 +258,7 @@ class TestRayQueueActorCommunication:
         )
         self.queue_dict = self.test_queue.to_dict()
 
-    def tearDown(self):
+    def teardown_method(self):
         """测试清理"""
         # Ray会自动清理Actor，但我们可以显式关闭
         pass
@@ -514,7 +514,7 @@ def run_ray_actor_tests():
 
     try:
         # 设置测试环境
-        test_suite.setUp()
+        test_suite.setup_method()
 
         # 运行所有测试
         test_suite.test_basic_actor_queue_operations()
@@ -524,7 +524,7 @@ def run_ray_actor_tests():
         test_suite.test_concurrent_stress_with_actors()
 
         # 清理测试环境
-        test_suite.tearDown()
+        test_suite.teardown_method()
 
         print("\n🎉 所有Ray Actor测试通过！")
         return True

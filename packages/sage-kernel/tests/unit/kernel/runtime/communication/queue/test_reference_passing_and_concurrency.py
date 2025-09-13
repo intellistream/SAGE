@@ -474,9 +474,6 @@ def run_all_tests():
         test_suite.test_python_queue_multithreading()
         test_suite.test_python_queue_mixed_operations()
 
-        # SAGE队列测试
-        test_suite.test_sage_queue_multithreading()
-
         # 多进程测试
         test_suite.test_serializable_queue_multiprocessing()
 
