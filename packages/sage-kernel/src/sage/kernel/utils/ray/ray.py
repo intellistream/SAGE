@@ -66,15 +66,26 @@ def ensure_ray_initialized(runtime_env=None):
 
     if not ray.is_initialized():
         try:
+            # 准备初始化参数
+            init_kwargs = {
+                "ignore_reinit_error": True, 
+                "num_cpus": 2,  # 限制CPU使用
+                "num_gpus": 0,  # 不使用GPU
+                "object_store_memory": 200000000,  # 200MB object store
+                "log_to_driver": False  # 减少日志输出
+            }
+            
+            # 如果提供了runtime_env，使用它；否则使用默认的sage配置
+            if runtime_env is not None:
+                init_kwargs["runtime_env"] = runtime_env
+            else:
+                # 使用默认的sage配置
+                sage_runtime_env = get_sage_kernel_runtime_env()
+                if sage_runtime_env:
+                    init_kwargs["runtime_env"] = sage_runtime_env
+            
             # 使用标准模式但限制资源，支持async actors和队列
-            # 设置较少的CPU数量避免过度资源消耗
-            ray.init(
-                ignore_reinit_error=True, 
-                num_cpus=2,  # 限制CPU使用
-                num_gpus=0,  # 不使用GPU
-                object_store_memory=200000000,  # 200MB object store
-                log_to_driver=False  # 减少日志输出
-            )
+            ray.init(**init_kwargs)
             print(f"Ray initialized in standard mode with limited resources")
         except Exception as e:
             print(f"Failed to initialize Ray: {e}")

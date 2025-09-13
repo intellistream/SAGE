@@ -1070,10 +1070,13 @@ def _display_test_results(result: dict, summary_only: bool, quiet: bool, executi
             console.print("❌ 状态: 失败")
         
         console.print(f"⏱️ 执行时间: {execution_time:.2f}秒")
-        console.print(f"📊 总测试数: {result.get('total', 0)}")
-        console.print(f"✅ 通过: {result.get('passed', 0)}")
-        console.print(f"❌ 失败: {result.get('failed', 0)}")
-        console.print(f"💥 错误: {result.get('errors', 0)}")
+        
+        # Get summary data from either top level or summary sub-dict
+        summary = result.get('summary', result)
+        console.print(f"📊 总测试数: {summary.get('total', 0)}")
+        console.print(f"✅ 通过: {summary.get('passed', 0)}")
+        console.print(f"❌ 失败: {summary.get('failed', 0)}")
+        console.print(f"💥 错误: {summary.get('errors', 0)}")
         
         if not summary_only and result.get('failed_tests'):
             console.print("\n❌ 失败的测试:")
