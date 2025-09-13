@@ -114,43 +114,11 @@ class IssuesTestSuite:
     def test_stats_generation(self) -> bool:
         """测试统计生成"""
         try:
-            # 在CI环境中，如果没有Issues数据，创建一些模拟数据进行测试
-            if os.environ.get('CI') == 'true':
-                issues_dir = self.config.workspace_path / "issues"
-                if not issues_dir.exists():
-                    console.print("ℹ️ CI环境中创建模拟Issues数据进行测试")
-                    issues_dir.mkdir(parents=True, exist_ok=True)
-                    
-                    # 创建一个简单的测试文件
-                    test_issue = issues_dir / "open_test_issue.md"
-                    test_issue.write_text("""# Test Issue #1
-
-**Issue Number:** 1
-**State:** open
-**Title:** Test Issue for CI
-**Body:** This is a test issue created for CI testing.
-**Created:** 2025-01-01T00:00:00Z
-**Updated:** 2025-01-01T00:00:00Z
-**Labels:** test, ci
-**Assignees:** 
-**Project:** sage-common
-""")
-            
             # 使用manager的统计功能
             success = self.manager.show_statistics()
-            
-            # 清理CI环境中创建的测试数据
-            if os.environ.get('CI') == 'true' and issues_dir.exists():
-                import shutil
-                shutil.rmtree(issues_dir, ignore_errors=True)
-                
             return success
         except Exception as e:
             console.print(f"❌ 统计生成测试失败: {e}")
-            # 在CI环境中，如果是因为缺少数据导致的失败，我们认为这是可以接受的
-            if os.environ.get('CI') == 'true' and "Issues目录不存在" in str(e):
-                console.print("ℹ️ CI环境中Issues数据缺失是可以接受的")
-                return True
             return False
     
     def test_team_analysis(self) -> bool:
