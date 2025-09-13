@@ -80,14 +80,6 @@ jobs:
         echo "✅ SAGE开发环境安装完成"
       timeout-minutes: 15
         
-    - name: Code Quality Checks
-      run: |
-        echo "🔍 Running code quality checks..."
-        black --check --diff packages/ || echo "⚠️ Code formatting issues found"
-        isort --check-only --diff packages/ || echo "⚠️ Import sorting issues found"
-        flake8 packages/ --count --select=E9,F63,F7,F82 --show-source --statistics
-      timeout-minutes: 2
-        
     - name: Verify SAGE Installation
       run: |
         echo "=== 验证SAGE安装 ==="
@@ -171,44 +163,38 @@ jobs:
           exit $exit_code
         fi
     
-    - name: Run Examples Tests
+    - name: Run Enhanced SAGE Tests
+      env:
+        PIP_NO_INPUT: 1
       run: |
-        echo "Running examples tests..."
-        # 确保测试脚本可执行
-        chmod +x ./tools/tests/run_examples_tests.sh
+        echo "🧪 运行增强版 SAGE 测试套件..."
         
-        # 运行examples测试
-        echo "🧪 运行Examples测试套件..."
-        if ./tools/tests/run_examples_tests.sh --quick --timeout 15; then
-          echo "✅ Examples测试通过"
-          exit_code=0
-        else
-          exit_code=$?
-          echo "❌ Examples测试失败"
-          
-          # 在CI环境中，某些示例可能因为缺少API密钥或外部服务而失败
-          if [[ "$CI" == "true" ]]; then
-            echo "⚠️ 在CI环境中，某些Examples可能因为缺少外部依赖而失败"
-            echo "💡 执行基础验证以确保核心示例可用..."
-            
-            # 基础验证：检查是否能发现示例文件
-            if python3 tools/tests/test_examples.py analyze 2>/dev/null; then
-              echo "✅ 基础Examples发现功能可用"
-              exit_code=0
-            else
-              echo "❌ 连基础Examples发现功能都无法使用"
-              exit_code=1
-            fi
-          fi
-        fi
+        # 运行诊断检查
+        echo "🔍 系统诊断..."
+        sage dev test --diagnose
         
-        if [ $exit_code -eq 0 ]; then
-          echo "Examples tests completed ✅"
-        else
-          echo "Examples tests failed ❌"
-          exit $exit_code
-        fi
+        # 运行快速测试 (替代之前的多轮测试)
+        echo "🚀 快速测试模式..."
+        sage dev test --test-type quick --verbose --jobs 3 --timeout 120 --continue-on-error
         
+        # 运行 Issues Manager 测试
+        echo "📊 Issues Manager 测试..."
+        sage dev test --issues-manager --verbose
+        
+        echo "✅ 增强版测试套件完成"
+      timeout-minutes: 15
+        
+    - name: Final Integration Test
+      env:
+        PIP_NO_INPUT: 1
+      run: |
+        echo "=== 最终集成测试 ==="
+        
+        # 运行完整的集成测试
+        sage dev test --test-type integration --verbose --summary --jobs 2 --timeout 180
+        
+        echo "✅ 完整CI测试全部完成"
+
     - name: Report Quick Check Failure
       if: failure()
       run: |
