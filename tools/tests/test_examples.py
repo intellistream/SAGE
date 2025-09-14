@@ -27,6 +27,28 @@ from rich.table import Table
 console = Console()
 
 
+def find_project_root() -> Path:
+    """查找项目根目录（包含examples文件夹的目录）"""
+    # 从当前文件开始向上查找
+    current = Path(__file__).parent
+    while current != current.parent:
+        examples_path = current / "examples"
+        if examples_path.exists() and examples_path.is_dir():
+            return current
+        current = current.parent
+    
+    # 如果没找到，尝试从当前工作目录查找
+    current = Path.cwd()
+    while current != current.parent:
+        examples_path = current / "examples"
+        if examples_path.exists() and examples_path.is_dir():
+            return current
+        current = current.parent
+    
+    # 最后的备用方案
+    raise FileNotFoundError("Cannot find project root with examples directory")
+
+
 @dataclass
 class ExampleTestResult:
     """示例测试结果"""
@@ -59,7 +81,12 @@ class ExampleAnalyzer:
     """示例代码分析器"""
 
     def __init__(self):
-        self.examples_root = Path("/home/shuhao/SAGE/examples")
+        try:
+            project_root = find_project_root()
+            self.examples_root = project_root / "examples"
+        except FileNotFoundError:
+            # 保留硬编码路径作为备用
+            self.examples_root = Path("/home/shuhao/SAGE/examples")
 
     def analyze_file(self, file_path: Path) -> ExampleInfo:
         """分析单个示例文件"""
@@ -236,9 +263,17 @@ class ExampleAnalyzer:
 class ExampleRunner:
     """示例执行器"""
 
-    def __init__(self, timeout: int = 60):
+    def __init__(self, timeout: int = None):
+        # 优先使用环境变量，然后是传入参数，最后是默认值
+        if timeout is None:
+            timeout = int(os.environ.get("SAGE_EXAMPLE_TIMEOUT", "60"))
         self.timeout = timeout
-        self.examples_root = Path("/home/shuhao/SAGE/examples")
+        try:
+            project_root = find_project_root()
+            self.examples_root = project_root / "examples"
+        except FileNotFoundError:
+            # 保留硬编码路径作为备用
+            self.examples_root = Path("/home/shuhao/SAGE/examples")
 
     def run_example(self, example_info: ExampleInfo) -> ExampleTestResult:
         """运行单个示例"""
@@ -392,6 +427,9 @@ class ExampleTestSuite:
         self, categories: Optional[List[str]] = None, quick_only: bool = False
     ) -> Dict[str, int]:
         """运行所有测试"""
+        # 清理之前的测试结果
+        self.results.clear()
+        
         console.print("🔍 [bold blue]发现示例文件...[/bold blue]")
         examples = self.analyzer.discover_examples()
 
