@@ -60,7 +60,7 @@ class TestExamplesIntegration:
     @pytest.mark.parametrize("category", ["tutorials", "rag", "memory"])
     def test_category_examples(self, example_suite, category):
         """测试特定类别的示例"""
-        stats = example_suite.run_all_tests(categories=[category], quick_only=True)
+        stats = example_suite.run_all_tests(categories=[category])
 
         # 至少应该有一些测试结果
         assert stats["total"] > 0, f"类别 {category} 应该有示例文件"
@@ -177,8 +177,8 @@ class TestExamplesIntegration:
         issues_suite = IssuesTestSuite()
         example_suite = ExampleTestSuite()
 
-        # 运行快速示例测试
-        example_stats = example_suite.run_all_tests(quick_only=True)
+        # 运行示例测试
+        example_stats = example_suite.run_all_tests()
 
         # 模拟创建与示例测试相关的问题报告
         if example_stats["failed"] > 0:
