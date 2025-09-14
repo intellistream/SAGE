@@ -135,8 +135,33 @@ jobs:
       timeout-minutes: 2
 
     - name: Run Examples Tests
+      working-directory: ${{ github.workspace }}
       run: |
         echo "Running examples tests..."
+        echo "🗂️ Current working directory: $(pwd)"
+        echo "📁 Examples directory exists: $([ -d "examples" ] && echo "✅ Yes" || echo "❌ No")"
+        if [ -d "examples" ]; then
+          echo "📊 Examples directory contents:"
+          ls -la examples/ | head -10
+          echo "📊 Total example files found:"
+          find examples/ -name "*.py" | wc -l
+        fi
+        
+        echo "🧪 Testing path discovery from Python:"
+        python3 -c "
+        from tools.tests.test_examples import find_project_root, ExampleAnalyzer
+        try:
+            root = find_project_root()
+            print(f'✅ Project root found: {root}')
+            analyzer = ExampleAnalyzer()
+            examples = analyzer.discover_examples()
+            print(f'📋 Found {len(examples)} examples')
+        except Exception as e:
+            print(f'❌ Error: {e}')
+            import traceback
+            traceback.print_exc()
+        "
+        
         # 确保测试脚本可执行
         chmod +x ./tools/tests/run_examples_tests.sh
         

@@ -177,15 +177,20 @@ class TestExamplesIntegration:
         issues_suite = IssuesTestSuite()
         example_suite = ExampleTestSuite()
 
-        # 运行示例测试
-        example_stats = example_suite.run_all_tests()
-
-        # 模拟创建与示例测试相关的问题报告
-        if example_stats["failed"] > 0:
-            # 这里可以集成到问题管理系统
-            assert (
-                example_stats["failed"] < example_stats["total"]
-            ), "不应该所有示例都失败"
+        # 只运行分析，不实际执行所有测试（避免重复）
+        analyzer = ExampleAnalyzer()
+        examples = analyzer.discover_examples()
+        
+        # 验证基础功能
+        assert len(examples) > 0, "应该能够发现示例文件"
+        
+        # 测试一个简单的示例（不是全部）
+        quick_examples = [e for e in examples if "hello_world" in e.file_path]
+        if quick_examples:
+            result = example_suite.runner.run_example(quick_examples[0])
+            # 验证结果格式正确
+            assert hasattr(result, 'status'), "结果应该有status属性"
+            assert hasattr(result, 'execution_time'), "结果应该有execution_time属性"
 
 
 # 单独的测试标记
