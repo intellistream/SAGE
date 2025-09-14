@@ -26,7 +26,7 @@ from test_examples import ExampleAnalyzer, ExampleTestSuite
 class TestExamplesIntegration:
     """Examples 测试集成到 pytest"""
 
-    @pytest.fixture(scope="class")
+    @pytest.fixture(scope="function")
     def example_suite(self):
         """创建示例测试套件"""
         return ExampleTestSuite()
@@ -43,6 +43,7 @@ class TestExamplesIntegration:
         yield manager
         manager.cleanup()
 
+    @pytest.mark.quick_examples
     def test_examples_discovery(self, analyzer):
         """测试示例发现功能"""
         examples = analyzer.discover_examples()
@@ -55,6 +56,7 @@ class TestExamplesIntegration:
             categories
         ), f"应该包含基本类别: {expected_categories}"
 
+    @pytest.mark.quick_examples
     @pytest.mark.parametrize("category", ["tutorials", "rag", "memory"])
     def test_category_examples(self, example_suite, category):
         """测试特定类别的示例"""
@@ -78,6 +80,7 @@ class TestExamplesIntegration:
             success_rate >= expected_rate
         ), f"类别 {category} 成功率应该至少 {expected_rate*100}%"
 
+    @pytest.mark.quick_examples
     def test_tutorials_hello_world(self, example_suite):
         """测试基础的 hello_world 示例"""
         # 专门测试最基础的示例
@@ -113,6 +116,7 @@ class TestExamplesIntegration:
             success_rate >= 0.6
         ), f"快速示例整体成功率应该至少60%，实际: {success_rate*100:.1f}%"
 
+    @pytest.mark.quick_examples
     def test_example_categorization(self, analyzer):
         """测试示例分类的正确性"""
         examples = analyzer.discover_examples()
@@ -128,6 +132,7 @@ class TestExamplesIntegration:
                 example.category in path_parts
             ), f"类别 {example.category} 应该在路径中: {example.file_path}"
 
+    @pytest.mark.quick_examples  
     def test_dependency_analysis(self, analyzer):
         """测试依赖分析的准确性"""
         examples = analyzer.discover_examples()
@@ -162,6 +167,7 @@ class TestExamplesIntegration:
                 for key in strategy.environment_vars:
                     assert key in env, f"类别 {category} 应该包含环境变量 {key}"
 
+    @pytest.mark.quick_examples
     def test_skip_filters(self):
         """测试跳过过滤器"""
         test_cases = [

@@ -236,7 +236,10 @@ class ExampleAnalyzer:
 class ExampleRunner:
     """示例执行器"""
 
-    def __init__(self, timeout: int = 60):
+    def __init__(self, timeout: int = None):
+        # 优先使用环境变量，然后是传入参数，最后是默认值
+        if timeout is None:
+            timeout = int(os.environ.get("SAGE_EXAMPLE_TIMEOUT", "60"))
         self.timeout = timeout
         self.examples_root = Path("/home/shuhao/SAGE/examples")
 
@@ -392,6 +395,9 @@ class ExampleTestSuite:
         self, categories: Optional[List[str]] = None, quick_only: bool = False
     ) -> Dict[str, int]:
         """运行所有测试"""
+        # 清理之前的测试结果
+        self.results.clear()
+        
         console.print("🔍 [bold blue]发现示例文件...[/bold blue]")
         examples = self.analyzer.discover_examples()
 
