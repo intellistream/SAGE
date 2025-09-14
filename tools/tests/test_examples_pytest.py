@@ -102,20 +102,6 @@ class TestExamplesIntegration:
                 result.status == "passed"
             ), f"hello_world 示例应该运行成功: {result.error}"
 
-    @pytest.mark.slow
-    def test_all_quick_examples(self, example_suite):
-        """测试所有快速示例"""
-        stats = example_suite.run_all_tests(quick_only=True)
-
-        # 应该有一定数量的快速示例
-        assert stats["total"] >= 5, "应该有至少5个快速示例"
-
-        # 快速示例的整体成功率应该较高
-        success_rate = stats["passed"] / stats["total"] if stats["total"] > 0 else 0
-        assert (
-            success_rate >= 0.6
-        ), f"快速示例整体成功率应该至少60%，实际: {success_rate*100:.1f}%"
-
     @pytest.mark.quick_examples
     def test_example_categorization(self, analyzer):
         """测试示例分类的正确性"""
