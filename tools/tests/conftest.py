@@ -145,9 +145,16 @@ def pytest_generate_tests(metafunc):
             if metafunc.config.getoption("--examples-quick-only"):
                 examples = [e for e in examples if e.estimated_runtime == "quick"]
 
-            metafunc.parametrize(
-                "example_file", examples, ids=[Path(e.file_path).name for e in examples]
-            )
-        except ImportError:
-            # 如果无法导入，跳过动态生成
-            pass
+            # 只有当有示例文件时才进行参数化
+            if examples:
+                metafunc.parametrize(
+                    "example_file", examples, ids=[Path(e.file_path).name for e in examples]
+                )
+            else:
+                # 如果没有示例文件，跳过测试
+                metafunc.parametrize("example_file", [], ids=[])
+                
+        except Exception as e:
+            # 如果无法导入或发生其他错误，跳过动态生成
+            print(f"⚠️ 无法生成示例测试: {e}")
+            metafunc.parametrize("example_file", [], ids=[])
