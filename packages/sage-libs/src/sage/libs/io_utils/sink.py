@@ -2,6 +2,7 @@ import os
 from typing import Any, List, Tuple, Type, Union
 
 from sage.core.api.function.sink_function import SinkFunction
+from sage.common.config.output_paths import get_output_file
 
 
 class TerminalSink(SinkFunction):
@@ -52,9 +53,8 @@ class FileSink(SinkFunction):
             # 确保目录存在
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
         else:
-            # 相对路径：添加output前缀
-            os.makedirs("output", exist_ok=True)
-            self.file_path = os.path.join("output", file_path)
+            # 相对路径：使用统一的.sage/output目录
+            self.file_path = str(get_output_file(file_path))
 
         # 创建或清空文件
         with open(self.file_path, "w", encoding="utf-8") as f:
@@ -100,7 +100,14 @@ class MemWriteSink(SinkFunction):
         super().__init__(**kwargs)
         self.config = config
         # 从配置获取文件路径，默认为 'mem_output.txt'
-        self.file_path = self.config.get("file_path", "mem_output.txt")
+        file_path = self.config.get("file_path", "mem_output.txt") if config else "mem_output.txt"
+        
+        # 使用统一的.sage/output目录
+        if os.path.isabs(file_path):
+            self.file_path = file_path
+        else:
+            self.file_path = str(get_output_file(file_path))
+        
         self.counter = 0  # 全局字符串计数器
 
         # 初始化文件并写入标题

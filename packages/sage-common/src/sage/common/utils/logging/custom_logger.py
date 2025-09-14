@@ -10,6 +10,24 @@ from typing import List, Optional, Tuple, Union
 from .custom_formatter import CustomFormatter  # 假设有一个自定义格式化器
 
 
+def get_default_log_base_folder(project_root: Optional[Union[str, Path]] = None) -> str:
+    """
+    获取默认的日志基础文件夹，使用统一的.sage/logs目录。
+    
+    Args:
+        project_root: 项目根目录，如果为None，会自动检测
+        
+    Returns:
+        str: 日志基础文件夹路径
+    """
+    try:
+        from sage.common.config.output_paths import get_logs_dir
+        return str(get_logs_dir(project_root))
+    except ImportError:
+        # Fallback to default behavior if output_paths not available
+        return "/tmp/sage/logs"
+
+
 class CustomLogger:
     """
     简化的自定义Logger类
@@ -54,12 +72,12 @@ class CustomLogger:
             log_base_folder: 日志基础文件夹，用于解析相对路径。如果为None，则不支持相对路径
 
         Examples:
-            # JobManager示例 - 必须提供log_base_folder才能使用相对路径
+            # JobManager示例 - 自动使用.sage/logs目录
             logger = CustomLogger([
                 ("console", "INFO"),
                 ("jobmanager.log", "DEBUG"),           # 相对路径
                 ("error.log", "ERROR"),               # 相对路径
-            ], name="JobManager", log_base_folder="/tmp/sage/logs")
+            ], name="JobManager", log_base_folder=get_default_log_base_folder())
 
             # 仅使用绝对路径示例 - 无需log_base_folder
             logger = CustomLogger([
@@ -68,12 +86,12 @@ class CustomLogger:
                 ("/var/log/error.log", "ERROR")        # 绝对路径
             ], name="MyApp")
 
-            # 混合路径示例 - 需要log_base_folder支持相对路径
+            # 混合路径示例 - 使用.sage/logs作为基础目录
             logger = CustomLogger([
                 ("console", "INFO"),
                 ("app.log", "DEBUG"),                 # 相对于log_base_folder
                 ("/var/log/system.log", "ERROR")      # 绝对路径
-            ], name="MyApp", log_base_folder="./logs")
+            ], name="MyApp", log_base_folder=get_default_log_base_folder())
         """
         self.name = name or "Logger"
         self.log_base_folder = log_base_folder

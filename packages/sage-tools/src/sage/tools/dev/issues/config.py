@@ -83,10 +83,13 @@ class IssuesConfig:
         else:
             self.project_root = Path(project_root)
 
-        # 工作目录配置 - 统一放在项目根目录的output下
-        self.workspace_path = self.project_root / "output" / "issues-workspace"
-        self.output_path = self.project_root / "output" / "issues-output"
-        self.metadata_path = self.project_root / "output" / "issues-metadata"
+        # 工作目录配置 - 统一放在.sage/issues下
+        from sage.common.config.output_paths import get_sage_paths
+        sage_paths = get_sage_paths(self.project_root)
+        
+        self.workspace_path = sage_paths.issues_dir / "workspace"
+        self.output_path = sage_paths.issues_dir / "output"
+        self.metadata_path = sage_paths.issues_dir / "metadata"
 
         # 确保目录存在
         self.workspace_path.mkdir(parents=True, exist_ok=True)
