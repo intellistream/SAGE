@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from ..action.mcp_registry import MCPRegistry
 from ..planning.llm_planner import LLMPlanner, PlanStep
 from ..profile.profile import BaseProfile
+from sage.libs.agents.memory import memory_service_adapter
+
 
 
 def _missing_required(
@@ -23,8 +25,7 @@ class AgentRuntime:
     - 输入：user_query
     - 流程：Planner 产出 JSON 计划 -> 逐步执行 -> 可选用 LLM 汇总 -> 返回
     TODO:
-    1.Memory
-    2.Safety
+    1.Safety
     """
 
     def __init__(
@@ -33,11 +34,13 @@ class AgentRuntime:
         planner: LLMPlanner,
         tools: MCPRegistry,
         summarizer=None,
+        memory: Optional[memory_service_adapter.MemoryServiceAdapter] = None,
         max_steps: int = 6,
     ):
         self.profile = profile
         self.planner = planner
         self.tools = tools
+        self.memory = memory
         self.summarizer = summarizer  # 复用你的 generator 也行：execute([None, prompt]) -> (None, text)
         self.max_steps = max_steps
 
