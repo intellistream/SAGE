@@ -194,18 +194,24 @@ class JoinOperator(BaseOperator):
                 )
 
                 # 所有源流都停止了，先通知JobManager该节点完成
-                self.logger.info(f"JoinOperator '{self.name}' notifying JobManager of completion")
+                self.logger.info(
+                    f"JoinOperator '{self.name}' notifying JobManager of completion"
+                )
                 self.ctx.send_stop_signal_back(self.name)
 
                 # 然后向下游传播停止信号
                 from sage.core.communication.stop_signal import StopSignal
 
                 stop_signal = StopSignal(self.name)
-                self.logger.info(f"JoinOperator '{self.name}' sending stop signal to downstream")
+                self.logger.info(
+                    f"JoinOperator '{self.name}' sending stop signal to downstream"
+                )
                 self.router.send_stop_signal(stop_signal)
 
                 # 通知context停止
-                self.logger.info(f"JoinOperator '{self.name}' setting context stop signal")
+                self.logger.info(
+                    f"JoinOperator '{self.name}' setting context stop signal"
+                )
                 self.ctx.set_stop_signal()
             else:
                 self.logger.info(

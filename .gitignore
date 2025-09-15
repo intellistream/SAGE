@@ -106,6 +106,7 @@ archive/
 activate_sage.sh
 .venv/
 # Benchmark and test reports
+.benchmarks/
 **/benchmark_report_*.json
 **/test_results_*.json
 **/sage_queue_test_report_*.json

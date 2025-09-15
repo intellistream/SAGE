@@ -17,8 +17,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set
 
 from ..core.exceptions import SAGEDevToolkitError
-from ..utils.sage_home import (get_logs_dir, get_reports_dir,
-                               setup_project_symlinks)
+from ..utils.intermediate_results_checker import IntermediateResultsChecker
+from sage.common.config.output_paths import get_sage_paths, get_logs_dir, get_reports_dir
 from .test_failure_cache import TestFailureCache
 
 
@@ -33,16 +33,24 @@ class EnhancedTestRunner:
         # Initialize test failure cache
         self.failure_cache = TestFailureCache(str(self.project_root))
 
+        # Initialize intermediate results checker
+        self.intermediate_checker = IntermediateResultsChecker(str(self.project_root))
+
         # Get project name from path
         project_name = self.project_root.name
 
-        # Set up symlink to SAGE home
-        setup_project_symlinks(self.project_root, project_name)
-
-        # Use .sage subdirectories for all output
-        sage_link = self.project_root / ".sage"
-        self.test_logs_dir = sage_link / "logs"
-        self.reports_dir = sage_link / "reports"
+        # 设置SAGE环境并获取目录路径
+        try:
+            sage_paths = get_sage_paths(str(self.project_root))
+            sage_paths.setup_environment_variables()
+            self.test_logs_dir = sage_paths.logs_dir
+            self.reports_dir = sage_paths.reports_dir
+        except Exception as e:
+            print(f"Warning: Failed to setup SAGE environment: {e}")
+            # 回退到本地目录
+            sage_dir = self.project_root / ".sage"
+            self.test_logs_dir = sage_dir / "logs"
+            self.reports_dir = sage_dir / "reports"
 
         # Check if pytest-benchmark is available
         self.has_benchmark = self._check_pytest_benchmark_available()
@@ -97,6 +105,11 @@ class EnhancedTestRunner:
             )
             print(f"   Logs: {self.test_logs_dir}")
             print(f"   Reports: {self.reports_dir}")
+
+            # 检查中间结果放置
+            print("\n" + "="*50)
+            self.intermediate_checker.print_check_result()
+            print("="*50)
 
             # Update failure cache with results (except for failed mode to avoid recursion)
             if mode != "failed":

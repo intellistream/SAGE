@@ -259,7 +259,7 @@ fix(tests): 修复测试套件中的卡住和超时问题
 3. **集成测试**
    ```bash
    # 完整安装测试
-   ./quickstart.sh --dev
+   ./quickstart.sh
    
    # 验证安装
    python -c "import sage; print(sage.__version__)"
