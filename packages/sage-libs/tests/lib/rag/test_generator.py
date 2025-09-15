@@ -222,7 +222,7 @@ class TestOpenAIGenerator:
             mock_ctx = Mock()
             mock_ctx.env_base_dir = "/tmp/test_env"
             generator.ctx = mock_ctx
-            generator.data_base_path = "/tmp/test_env/.sage_states/generator_data"
+            generator.data_base_path = "/tmp/test_env/.sage/states/generator_data"
             generator.data_records = []
 
             input_data = ["Test prompt"]
