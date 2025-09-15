@@ -7,10 +7,11 @@ Provides organized test execution with multiple test categories and detailed rep
 """
 
 import argparse
-import sys
 import subprocess
+import sys
 from pathlib import Path
 from typing import List, Optional
+
 
 def run_pytest(
     test_pattern: str = ".",
@@ -19,11 +20,11 @@ def run_pytest(
     capture: str = "no",
     coverage: bool = False,
     output_file: Optional[str] = None,
-    exitfirst: bool = False
+    exitfirst: bool = False,
 ) -> int:
     """
     Run pytest with specified parameters.
-    
+
     Args:
         test_pattern: Test pattern or directory to run
         markers: pytest markers to filter tests
@@ -32,41 +33,42 @@ def run_pytest(
         coverage: Enable coverage reporting
         output_file: Output file for results
         exitfirst: Exit on first failure
-        
+
     Returns:
         Exit code from pytest
     """
     cmd = ["python", "-m", "pytest"]
-    
+
     # Add test pattern
     cmd.append(test_pattern)
-    
+
     # Add verbosity
     if verbose:
         cmd.append("-v")
-    
+
     # Add capture mode
     cmd.extend(["-s" if capture == "no" else f"--capture={capture}"])
-    
+
     # Add markers
     if markers:
         for marker in markers:
             cmd.extend(["-m", marker])
-    
+
     # Add coverage
     if coverage:
         cmd.extend(["--cov=sage.tools", "--cov-report=term-missing"])
-    
+
     # Add output file
     if output_file:
         cmd.extend(["--junitxml", output_file])
-    
+
     # Exit on first failure
     if exitfirst:
         cmd.append("-x")
-    
+
     print(f"Running: {' '.join(cmd)}")
     return subprocess.run(cmd).returncode
+
 
 def main():
     """Main test runner function."""
@@ -87,37 +89,50 @@ Examples:
   python run_pytest.py --cli --verbose    # Run CLI tests with verbose output
   python run_pytest.py --pattern test_dev # Run tests in test_dev directory
   python run_pytest.py --coverage         # Run with coverage reporting
-        """
+        """,
     )
-    
+
     # Test selection
     parser.add_argument(
-        "--pattern", "-p",
+        "--pattern",
+        "-p",
         default=".",
-        help="Test pattern or directory to run (default: all tests)"
+        help="Test pattern or directory to run (default: all tests)",
     )
-    
+
     # Test categories
     parser.add_argument("--unit", action="store_true", help="Run unit tests")
-    parser.add_argument("--integration", action="store_true", help="Run integration tests") 
+    parser.add_argument(
+        "--integration", action="store_true", help="Run integration tests"
+    )
     parser.add_argument("--cli", action="store_true", help="Run CLI tests")
     parser.add_argument("--slow", action="store_true", help="Run slow tests")
     parser.add_argument("--quick", action="store_true", help="Run quick tests")
-    
+
     # Output options
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     parser.add_argument("--quiet", "-q", action="store_true", help="Quiet output")
-    parser.add_argument("--capture", choices=["no", "sys", "fd"], default="no", 
-                       help="Capture mode for output")
-    parser.add_argument("--coverage", action="store_true", help="Enable coverage reporting")
+    parser.add_argument(
+        "--capture",
+        choices=["no", "sys", "fd"],
+        default="no",
+        help="Capture mode for output",
+    )
+    parser.add_argument(
+        "--coverage", action="store_true", help="Enable coverage reporting"
+    )
     parser.add_argument("--output", "-o", help="Output file for results (JUnit XML)")
-    
+
     # Special test runs
-    parser.add_argument("--failed", action="store_true", help="Run only failed tests from last run")
-    parser.add_argument("--exitfirst", "-x", action="store_true", help="Exit on first failure")
-    
+    parser.add_argument(
+        "--failed", action="store_true", help="Run only failed tests from last run"
+    )
+    parser.add_argument(
+        "--exitfirst", "-x", action="store_true", help="Exit on first failure"
+    )
+
     args = parser.parse_args()
-    
+
     # Build markers list
     markers = []
     if args.unit:
@@ -130,7 +145,7 @@ Examples:
         markers.append("slow")
     if args.quick:
         markers.append("quick")
-    
+
     # Special handling for failed tests
     if args.failed:
         cmd = ["python", "-m", "pytest", "--lf"]
@@ -138,7 +153,7 @@ Examples:
             cmd.append("-v")
         print(f"Running: {' '.join(cmd)}")
         return subprocess.run(cmd).returncode
-    
+
     # Run pytest
     exit_code = run_pytest(
         test_pattern=args.pattern,
@@ -147,10 +162,11 @@ Examples:
         capture=args.capture,
         coverage=args.coverage,
         output_file=args.output,
-        exitfirst=args.exitfirst
+        exitfirst=args.exitfirst,
     )
-    
+
     return exit_code
+
 
 if __name__ == "__main__":
     sys.exit(main())

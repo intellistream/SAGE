@@ -66,7 +66,7 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
         return PythonQueueDescriptor(
             maxsize=0,  # 使用默认值，正如测试所期望的
             use_multiprocessing=self.use_multiprocessing,
-            queue_id=new_queue_id
+            queue_id=new_queue_id,
         )
 
     @property
@@ -80,11 +80,13 @@ class PythonQueueDescriptor(BaseQueueDescriptor):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PythonQueueDescriptor":
         """从字典创建实例"""
-        metadata = data.get('metadata', {})
+        metadata = data.get("metadata", {})
         instance = cls(
-            maxsize=metadata.get('maxsize', 0),
-            use_multiprocessing=metadata.get('use_multiprocessing', False),
-            queue_id=data['queue_id']
+            maxsize=metadata.get("maxsize", 0),
+            use_multiprocessing=metadata.get("use_multiprocessing", False),
+            queue_id=data["queue_id"],
         )
-        instance.created_timestamp = data.get('created_timestamp', instance.created_timestamp)
+        instance.created_timestamp = data.get(
+            "created_timestamp", instance.created_timestamp
+        )
         return instance

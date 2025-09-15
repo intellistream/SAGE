@@ -5,5 +5,5 @@ SAGE Studio - Web 界面管理工具
 """
 
 __all__ = [
-    'cli',
+    "cli",
 ]

@@ -12,17 +12,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
     from config import Config
-    
+
     def main():
         config = Config()
-        
+
         if len(sys.argv) < 2:
             print("用法: python3 get_paths.py <path_type>")
             print("path_type: workspace | output | metadata | project_root")
             sys.exit(1)
-        
+
         path_type = sys.argv[1].lower()
-        
+
         if path_type == "workspace":
             print(config.workspace_path)
         elif path_type == "output":

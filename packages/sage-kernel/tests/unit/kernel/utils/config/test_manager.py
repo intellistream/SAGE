@@ -156,11 +156,14 @@ class TestConfigManager:
             # 检查是否有tomli可以加载
             try:
                 import tomli
+
                 loaded_config = self.manager.load("test.toml")
                 assert loaded_config["app_name"] == "SAGE"
             except ImportError:
                 # 如果tomli也不存在，测试ImportError
-                with pytest.raises(ImportError, match="需要安装 tomli 库来支持 TOML 格式"):
+                with pytest.raises(
+                    ImportError, match="需要安装 tomli 库来支持 TOML 格式"
+                ):
                     self.manager.load("test.toml")
 
     def test_load_unsupported_format(self):

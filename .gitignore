@@ -82,7 +82,6 @@ sage_examples/logs/**
 dist/
 data/template_data
 data/neuromem_data
-examples/memory/data
 drafts/
 run.sh
 third_party/
@@ -166,6 +165,7 @@ temp_ci_test_env
 # 知识库和向量数据
 data/neuromem_vdb/
 examples/rag/chroma_*/
+examples/data/neuromem_vdb/
 
 # 临时和测试数据文件
 **/*.vector
@@ -175,3 +175,8 @@ examples/rag/chroma_*/
 **/*.embeddings
 
 /.vscode/
+
+# ============================================
+# 一些测试文件
+# ============================================
+!examples/memory/data/neuromem/vdb_collection/RAGMemoryCollection/indexes/test_index/faiss.index

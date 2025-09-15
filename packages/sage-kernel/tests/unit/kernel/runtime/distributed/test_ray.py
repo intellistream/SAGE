@@ -38,12 +38,16 @@ class TestRayIntegration:
         mock_ray.is_initialized.assert_called_once()
         mock_ray.init.assert_called_once()
 
-        # Check that init was called with ignore_reinit_error and runtime_env
+        # Check that init was called with ignore_reinit_error and expected parameters
         call_args = mock_ray.init.call_args
         assert call_args is not None
         assert "ignore_reinit_error" in call_args.kwargs
         assert call_args.kwargs["ignore_reinit_error"] is True
-        assert "runtime_env" in call_args.kwargs
+        assert "num_cpus" in call_args.kwargs
+        assert call_args.kwargs["num_cpus"] == 2
+        assert "log_to_driver" in call_args.kwargs
+        assert call_args.kwargs["log_to_driver"] is False
+        # runtime_env should be included with default sage config
 
     @pytest.mark.unit
     @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
@@ -70,11 +74,13 @@ class TestRayIntegration:
 
         ensure_ray_initialized()
 
-        # Should call init with runtime_env and ignore_reinit_error
+        # Should call init with expected parameters
         mock_ray.init.assert_called_once()
         call_args = mock_ray.init.call_args
         assert "ignore_reinit_error" in call_args.kwargs
-        assert "runtime_env" in call_args.kwargs
+        assert "num_cpus" in call_args.kwargs
+        assert "log_to_driver" in call_args.kwargs
+        # runtime_env should be included with default sage config
 
     @pytest.mark.unit
     @patch("sage.kernel.utils.ray.ray.RAY_AVAILABLE", True)
@@ -91,12 +97,14 @@ class TestRayIntegration:
 
         # Should call init once and fail
         assert mock_ray.init.call_count == 1
-        # The actual implementation calls ray.init with ignore_reinit_error=True and runtime_env
+        # The actual implementation calls ray.init with expected parameters
         calls = mock_ray.init.call_args_list
         call_kwargs = calls[0][1]
         assert "ignore_reinit_error" in call_kwargs
         assert call_kwargs["ignore_reinit_error"] is True
-        assert "runtime_env" in call_kwargs
+        assert "num_cpus" in call_kwargs
+        assert "log_to_driver" in call_kwargs
+        # runtime_env should be included with default sage config
 
     @needs_mock_update
     @pytest.mark.unit

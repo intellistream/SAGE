@@ -60,3 +60,8 @@ _info = _load_version()
 __version__ = _info["version"]
 __author__ = _info["author"]
 __email__ = _info["email"]
+
+# 导入主要组件
+from sage.middleware.components.neuromem.micro_service.neuromem_vdb import NeuroMemVDB
+
+__all__ = ["NeuroMemVDB"]

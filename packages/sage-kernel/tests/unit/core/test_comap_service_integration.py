@@ -121,7 +121,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
         self.processed_events += 1
 
         user_id = event_data["user_id"]
-        
+
         # Check if this is an event or recommendation request
         if "item_id" in event_data:
             # This is an actual event
@@ -129,7 +129,9 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
             interaction_type = event_data["type"]
         else:
             # This is a recommendation request, handle it differently
-            print(f"[DEBUG] CoMap.map0: Received recommendation request, skipping event processing")
+            print(
+                f"[DEBUG] CoMap.map0: Received recommendation request, skipping event processing"
+            )
             return {
                 "type": "recommendation_request_received",
                 "user_id": user_id,

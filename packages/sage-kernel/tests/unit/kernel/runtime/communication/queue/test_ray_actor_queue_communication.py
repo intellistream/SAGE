@@ -26,6 +26,14 @@ try:
     from sage.kernel.runtime.communication.queue_descriptor import \
         RayQueueDescriptor
     from sage.kernel.utils.ray.ray import ensure_ray_initialized
+    from sage.kernel.utils.test_log_manager import (get_test_log_manager,
+                                                    setup_quiet_ray_logging)
+
+    # 设置安静的日志记录
+    setup_quiet_ray_logging()
+
+    # 获取日志管理器
+    log_manager = get_test_log_manager()
 
     print("✓ 成功导入Ray队列描述符")
 except ImportError as e:
@@ -61,19 +69,32 @@ class PersistentQueueActor:
 
             self.queue_desc = resolve_descriptor(queue_desc_dict)
             self.queue = self.queue_desc.queue_instance  # 获取实际的队列对象
+            self.operations_count = 0
+            self.last_operation_time = time.time()
+            print(
+                f"Actor {actor_name} initialized with queue {self.queue_desc.queue_id}"
+            )
         except ImportError as e:
             # 如果导入失败，记录错误但继续初始化
             print(f"导入失败: {e}")
             self.queue_desc = None
             self.queue = None
-
-        self.operations_count = 0
-        self.last_operation_time = time.time()
-
-        print(f"Actor {actor_name} initialized with queue {self.queue_desc.queue_id}")
+            self.operations_count = 0
+            self.last_operation_time = time.time()
+            print(f"Actor {actor_name} initialized with FAILED queue import")
 
     def get_queue_info(self):
         """获取队列信息"""
+        if self.queue_desc is None:
+            return {
+                "actor_name": self.actor_name,
+                "queue_id": "FAILED_IMPORT",
+                "queue_type": "ray_queue",
+                "operations_count": self.operations_count,
+                "is_initialized": False,
+                "last_operation_time": self.last_operation_time,
+            }
+
         return {
             "actor_name": self.actor_name,
             "queue_id": self.queue_desc.queue_id,
@@ -85,6 +106,9 @@ class PersistentQueueActor:
 
     def put_items(self, items: List[str], delay_between_items: float = 0.0):
         """向队列放入多个项目"""
+        if self.queue is None:
+            return [f"put_error:{item}:Queue not initialized" for item in items]
+
         results = []
         for item in items:
             try:
@@ -104,6 +128,9 @@ class PersistentQueueActor:
 
     def get_items(self, max_items: int, timeout_per_item: float = 1.0):
         """从队列获取多个项目"""
+        if self.queue is None:
+            return [f"get_error:Queue not initialized"]
+
         results = []
         for i in range(max_items):
             try:
@@ -119,6 +146,9 @@ class PersistentQueueActor:
 
     def check_queue_status(self):
         """检查队列状态"""
+        if self.queue is None:
+            return {"error": "Queue not initialized"}
+
         try:
             size = self.queue.qsize()
             empty = self.queue.empty()
@@ -133,6 +163,9 @@ class PersistentQueueActor:
 
     def stress_test_operations(self, num_operations: int):
         """压力测试操作"""
+        if self.queue is None:
+            return {"error": "Queue not initialized", "completed_operations": 0}
+
         start_time = time.time()
         completed_ops = 0
 
@@ -177,17 +210,16 @@ class QueueCoordinatorActor:
                 resolve_descriptor
 
             queue_desc = resolve_descriptor(queue_desc_dict)
+            self.managed_queues[queue_name] = {
+                "queue_desc": queue_desc,
+                "register_time": time.time(),
+            }
+            self.coordination_log.append(f"registered_queue:{queue_name}")
+            return f"Queue {queue_name} registered"
         except ImportError as e:
             print(f"导入失败: {e}")
-            return False
-
-        self.managed_queues[queue_name] = {
-            "queue_desc": queue_desc,
-            "register_time": time.time(),
-        }
-
-        self.coordination_log.append(f"registered_queue:{queue_name}")
-        return f"Queue {queue_name} registered"
+            self.coordination_log.append(f"failed_register_queue:{queue_name}:{e}")
+            return f"Queue {queue_name} registration failed: {e}"
 
     def coordinate_batch_operation(
         self, queue_name: str, operation: str, items: List[str]
@@ -196,13 +228,19 @@ class QueueCoordinatorActor:
         if queue_name not in self.managed_queues:
             return f"Queue {queue_name} not found"
 
-        queue_desc = self.managed_queues[queue_name]
+        queue_info = self.managed_queues[queue_name]
+        queue_desc = queue_info["queue_desc"]
+
+        if queue_desc is None:
+            return f"Queue {queue_name} not properly initialized"
+
+        queue = queue_desc.queue_instance
         results = []
 
         if operation == "put_batch":
             for item in items:
                 try:
-                    queue_desc.put(f"coordinator:{item}:{time.time()}")
+                    queue.put(f"coordinator:{item}:{time.time()}")
                     results.append(f"success:{item}")
                 except Exception as e:
                     results.append(f"error:{item}:{e}")
@@ -210,7 +248,7 @@ class QueueCoordinatorActor:
         elif operation == "get_batch":
             for i in range(len(items)):  # items作为计数使用
                 try:
-                    item = queue_desc.get(timeout=1.0)
+                    item = queue.get(timeout=1.0)
                     results.append(f"success:{item}")
                 except Exception as e:
                     results.append(f"timeout:{e}")
@@ -224,13 +262,18 @@ class QueueCoordinatorActor:
     def get_coordination_summary(self):
         """获取协调摘要"""
         queue_summaries = {}
-        for name, queue_desc in self.managed_queues.items():
+        for name, queue_info in self.managed_queues.items():
             try:
-                queue_summaries[name] = {
-                    "queue_id": queue_desc.queue_id,
-                    "size": queue_desc.qsize(),
-                    "empty": queue_desc.empty(),
-                }
+                queue_desc = queue_info["queue_desc"]
+                if queue_desc is None:
+                    queue_summaries[name] = {"error": "Queue not properly initialized"}
+                else:
+                    queue = queue_desc.queue_instance
+                    queue_summaries[name] = {
+                        "queue_id": queue_desc.queue_id,
+                        "size": queue.qsize(),
+                        "empty": queue.empty(),
+                    }
             except Exception as e:
                 queue_summaries[name] = {"error": str(e)}
 
@@ -265,7 +308,8 @@ class TestRayQueueActorCommunication:
 
     def test_basic_actor_queue_operations(self):
         """测试基础Actor队列操作"""
-        print("\n=== 测试基础Actor队列操作 ===")
+        log_manager.log_test_start("test_basic_actor_queue_operations")
+        start_time = time.time()
 
         # 创建两个Actor
         producer_actor = PersistentQueueActor.remote(self.queue_dict, "producer")
@@ -274,31 +318,34 @@ class TestRayQueueActorCommunication:
         # 生产者放入数据
         items_to_produce = ["item1", "item2", "item3", "item4", "item5"]
         produce_result = ray.get(producer_actor.put_items.remote(items_to_produce))
-        print(f"生产结果: {len(produce_result)} 项目")
+        log_manager.log_ray_operation("producer_put", f"{len(produce_result)} items")
 
         # 添加小延迟确保数据已写入
         time.sleep(0.1)
 
         # 检查队列状态
         producer_status = ray.get(producer_actor.check_queue_status.remote())
-        print(f"生产后队列状态: {producer_status}")
-
-        # 消费者获取数据
-        consume_result = ray.get(
-            consumer_actor.get_items.remote(len(items_to_produce), timeout_per_item=2.0)
+        log_manager.log_ray_operation(
+            "check_status", f"queue_size={producer_status.get('size', 'unknown')}"
         )
-        print(f"消费结果: {len(consume_result)} 项目")
+
+        # 消费者获取数据（减少超时时间）
+        consume_result = ray.get(
+            consumer_actor.get_items.remote(len(items_to_produce), timeout_per_item=0.5)
+        )
+        log_manager.log_ray_operation("consumer_get", f"{len(consume_result)} items")
 
         # 统计成功获取的项目数
         successful_gets = [r for r in consume_result if r.startswith("get_success")]
-        print(f"成功获取的项目数: {len(successful_gets)}")
 
         # 检查Actor状态
         producer_info = ray.get(producer_actor.get_queue_info.remote())
         consumer_info = ray.get(consumer_actor.get_queue_info.remote())
 
-        print(f"生产者状态: {producer_info}")
-        print(f"消费者状态: {consumer_info}")
+        log_manager.log_ray_operation(
+            "final_status",
+            f"producer_ops={producer_info['operations_count']}, consumer_ops={consumer_info['operations_count']}",
+        )
 
         # 验证断言
         assert producer_info["operations_count"] == len(
@@ -308,10 +355,8 @@ class TestRayQueueActorCommunication:
             len(successful_gets) > 0
         ), f"消费者应该成功获取了一些项目，但实际获取了{len(successful_gets)}个"
 
-        # 打印成功获取的项目
-        for item in successful_gets:
-            print(f"  成功获取: {item}")
-
+        duration = time.time() - start_time
+        log_manager.log_test_end("test_basic_actor_queue_operations", duration, True)
         print("✓ 基础Actor队列操作测试通过")
 
     def test_multiple_actors_concurrent_access(self):
@@ -346,8 +391,8 @@ class TestRayQueueActorCommunication:
                 future = producer.put_items.remote(items, delay_between_items=0.01)
                 producer_futures.append(future)
 
-            # 等待生产完成，设置超时
-            producer_results = ray.get(producer_futures, timeout=15)
+            # 等待生产完成，减少超时时间
+            producer_results = ray.get(producer_futures, timeout=8)
             total_produced = sum(len(result) for result in producer_results)
             print(f"总共生产: {total_produced} 项目")
 
@@ -363,8 +408,8 @@ class TestRayQueueActorCommunication:
                 )
                 consumer_futures.append(future)
 
-            # 等待消费完成，设置超时
-            consumer_results = ray.get(consumer_futures, timeout=10)
+            # 等待消费完成，减少超时时间
+            consumer_results = ray.get(consumer_futures, timeout=6)
             total_consumed = sum(
                 len([r for r in result if r.startswith("get_success")])
                 for result in consumer_results

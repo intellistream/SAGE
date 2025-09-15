@@ -17,7 +17,9 @@ SAGE CLI 冒烟测试 (Smoke Test)
 import subprocess
 import sys
 from pathlib import Path
+
 import pytest
+
 
 def get_project_root():
     """获取项目根目录"""
@@ -28,21 +30,23 @@ def get_project_root():
         current = current.parent
     return Path(__file__).parent.parent.parent.parent.parent
 
+
 def run_command_simple(cmd_list, timeout=20):
     """运行命令并返回成功状态"""
     try:
         result = subprocess.run(
-            cmd_list, 
-            capture_output=True, 
-            text=True, 
+            cmd_list,
+            capture_output=True,
+            text=True,
             timeout=timeout,
-            cwd=get_project_root()
+            cwd=get_project_root(),
         )
         return result.returncode == 0, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
         return False, "", f"Command timed out after {timeout}s"
     except Exception as e:
         return False, "", str(e)
+
 
 @pytest.mark.cli
 @pytest.mark.smoke
@@ -51,25 +55,33 @@ class TestCLISmoke:
 
     def test_cli_startup(self):
         """测试CLI启动"""
-        success, stdout, stderr = run_command_simple([sys.executable, "-m", "sage.tools.cli", "--help"])
+        success, stdout, stderr = run_command_simple(
+            [sys.executable, "-m", "sage.tools.cli", "--help"]
+        )
         assert success, f"CLI startup failed: {stderr}"
         assert "SAGE" in stdout
 
     def test_version_command(self):
         """测试版本命令"""
-        success, stdout, stderr = run_command_simple([sys.executable, "-m", "sage.tools.cli", "version"])
+        success, stdout, stderr = run_command_simple(
+            [sys.executable, "-m", "sage.tools.cli", "version"]
+        )
         assert success, f"Version command failed: {stderr}"
         assert "版本" in stdout or "version" in stdout.lower()
 
     def test_dev_command_help(self):
         """测试dev命令"""
-        success, stdout, stderr = run_command_simple([sys.executable, "-m", "sage.tools.cli", "dev", "--help"])
+        success, stdout, stderr = run_command_simple(
+            [sys.executable, "-m", "sage.tools.cli", "dev", "--help"]
+        )
         assert success, f"Dev command failed: {stderr}"
         assert "开发工具" in stdout or "dev" in stdout.lower()
 
     def test_status_check(self):
         """测试状态检查"""
-        success, stdout, stderr = run_command_simple([sys.executable, "-m", "sage.tools.cli", "dev", "status"], timeout=30)
+        success, stdout, stderr = run_command_simple(
+            [sys.executable, "-m", "sage.tools.cli", "dev", "status"], timeout=30
+        )
         assert success, f"Status check failed: {stderr}"
         assert "状态报告" in stdout or "status" in stdout.lower()
 
@@ -83,6 +95,8 @@ class TestCLISmoke:
 
     def test_doctor_command(self):
         """测试系统诊断"""
-        success, stdout, stderr = run_command_simple([sys.executable, "-m", "sage.tools.cli", "doctor"])
+        success, stdout, stderr = run_command_simple(
+            [sys.executable, "-m", "sage.tools.cli", "doctor"]
+        )
         assert success, f"Doctor command failed: {stderr}"
         assert "诊断" in stdout or "系统" in stdout

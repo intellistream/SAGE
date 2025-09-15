@@ -17,7 +17,7 @@ CLI测试模块
 # 快速冒烟测试 (2-3分钟)
 python test_cli/test_smoke.py
 
-# 完整功能测试 (10-15分钟)  
+# 完整功能测试 (10-15分钟)
 python test_cli/test_commands_full.py
 
 # pytest单元测试
