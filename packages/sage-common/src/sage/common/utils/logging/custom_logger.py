@@ -13,15 +13,16 @@ from .custom_formatter import CustomFormatter  # 假设有一个自定义格式�
 def get_default_log_base_folder(project_root: Optional[Union[str, Path]] = None) -> str:
     """
     获取默认的日志基础文件夹，使用统一的.sage/logs目录。
-    
+
     Args:
         project_root: 项目根目录，如果为None，会自动检测
-        
+
     Returns:
         str: 日志基础文件夹路径
     """
     try:
         from sage.common.config.output_paths import get_logs_dir
+
         return str(get_logs_dir(project_root))
     except ImportError:
         # Fallback to default behavior if output_paths not available

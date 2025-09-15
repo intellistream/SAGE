@@ -30,10 +30,11 @@ class GitHubIssuesExecutor:
 
         # 使用统一的.sage/issues目录
         from sage.common.config.output_paths import get_sage_paths
+
         sage_paths = get_sage_paths()
         self.output_dir = sage_paths.issues_dir / "github_ops"
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         self.duplicate_groups = []
         self.label_recommendations = {}
 

@@ -36,7 +36,7 @@ def find_project_root() -> Path:
         if examples_path.exists() and examples_path.is_dir():
             return current
         current = current.parent
-    
+
     # 如果没找到，尝试从当前工作目录查找
     current = Path.cwd()
     while current != current.parent:
@@ -44,16 +44,17 @@ def find_project_root() -> Path:
         if examples_path.exists() and examples_path.is_dir():
             return current
         current = current.parent
-    
+
     # 尝试通过环境变量获取SAGE根目录
-    sage_root = os.environ.get('SAGE_ROOT')
+    sage_root = os.environ.get("SAGE_ROOT")
     if sage_root:
         sage_root_path = Path(sage_root)
         if (sage_root_path / "examples").exists():
             return sage_root_path
-    
+
     # 最后的备用方案 - 尝试从sys.path中找到sage包的位置
     import sys
+
     for path in sys.path:
         path_obj = Path(path)
         # 查找包含sage包的目录
@@ -62,7 +63,7 @@ def find_project_root() -> Path:
             potential_root = path_obj.parent.parent.parent
             if (potential_root / "examples").exists():
                 return potential_root
-    
+
     # 如果都找不到，抛出详细的错误信息
     raise FileNotFoundError(
         "Cannot find SAGE project root directory. "
@@ -462,7 +463,7 @@ class ExampleTestSuite:
         """运行所有测试"""
         # 清理之前的测试结果
         self.results.clear()
-        
+
         console.print("🔍 [bold blue]发现示例文件...[/bold blue]")
         examples = self.analyzer.discover_examples()
 

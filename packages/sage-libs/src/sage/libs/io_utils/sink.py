@@ -1,8 +1,8 @@
 import os
 from typing import Any, List, Tuple, Type, Union
 
-from sage.core.api.function.sink_function import SinkFunction
 from sage.common.config.output_paths import get_output_file
+from sage.core.api.function.sink_function import SinkFunction
 
 
 class TerminalSink(SinkFunction):
@@ -100,14 +100,18 @@ class MemWriteSink(SinkFunction):
         super().__init__(**kwargs)
         self.config = config
         # 从配置获取文件路径，默认为 'mem_output.txt'
-        file_path = self.config.get("file_path", "mem_output.txt") if config else "mem_output.txt"
-        
+        file_path = (
+            self.config.get("file_path", "mem_output.txt")
+            if config
+            else "mem_output.txt"
+        )
+
         # 使用统一的.sage/output目录
         if os.path.isabs(file_path):
             self.file_path = file_path
         else:
             self.file_path = str(get_output_file(file_path))
-        
+
         self.counter = 0  # 全局字符串计数器
 
         # 初始化文件并写入标题

@@ -496,14 +496,12 @@ class JobManager:  # Job Manager
         # 2. 确定日志基础目录
         # 使用统一的.sage/logs/jobmanager目录
         from sage.common.config.output_paths import get_sage_paths
-        
+
         project_root = os.environ.get("SAGE_PROJECT_ROOT")
         sage_paths = get_sage_paths(project_root)
-        
+
         self.log_base_dir = (
-            sage_paths.logs_dir
-            / "jobmanager"
-            / f"session_{self.session_id}"
+            sage_paths.logs_dir / "jobmanager" / f"session_{self.session_id}"
         )
 
         print(f"JobManager logs: {self.log_base_dir}")

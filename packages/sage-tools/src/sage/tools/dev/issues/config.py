@@ -85,8 +85,9 @@ class IssuesConfig:
 
         # 工作目录配置 - 统一放在.sage/issues下
         from sage.common.config.output_paths import get_sage_paths
+
         sage_paths = get_sage_paths(self.project_root)
-        
+
         self.workspace_path = sage_paths.issues_dir / "workspace"
         self.output_path = sage_paths.issues_dir / "output"
         self.metadata_path = sage_paths.issues_dir / "metadata"

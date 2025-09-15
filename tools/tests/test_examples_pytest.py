@@ -112,7 +112,7 @@ class TestExamplesIntegration:
                 example.category in path_parts
             ), f"类别 {example.category} 应该在路径中: {example.file_path}"
 
-    @pytest.mark.quick_examples  
+    @pytest.mark.quick_examples
     def test_dependency_analysis(self, analyzer):
         """测试依赖分析的准确性"""
         examples = analyzer.discover_examples()
@@ -152,11 +152,11 @@ class TestExamplesIntegration:
         """测试跳过过滤器"""
         # 使用真实的示例文件路径进行测试
         examples = analyzer.discover_examples()
-        
+
         # 找到一些真实的示例用于测试
         hello_world_examples = [e for e in examples if "hello_world" in e.file_path]
         rag_examples = [e for e in examples if e.category == "rag"]
-        
+
         # 测试 hello_world 示例不应该被跳过
         if hello_world_examples:
             example = hello_world_examples[0]
@@ -164,14 +164,14 @@ class TestExamplesIntegration:
                 Path(example.file_path), example.category
             )
             assert not skip, f"文件 {example.file_path} 不应该被跳过: {reason}"
-        
+
         # 测试一般的过滤逻辑
         test_cases = [
             # 使用相对路径进行逻辑测试
             (Path("examples/rag/interactive_demo.py"), "rag", True),
             (Path("examples/service/long_running_server.py"), "service", True),
         ]
-        
+
         for file_path, category, should_skip in test_cases:
             skip, reason = ExampleTestFilters.should_skip_file(file_path, category)
             if should_skip:
@@ -188,17 +188,17 @@ class TestExamplesIntegration:
         # 只运行分析，不实际执行所有测试（避免重复）
         analyzer = ExampleAnalyzer()
         examples = analyzer.discover_examples()
-        
+
         # 验证基础功能
         assert len(examples) > 0, "应该能够发现示例文件"
-        
+
         # 测试一个简单的示例（不是全部）
         quick_examples = [e for e in examples if "hello_world" in e.file_path]
         if quick_examples:
             result = example_suite.runner.run_example(quick_examples[0])
             # 验证结果格式正确
-            assert hasattr(result, 'status'), "结果应该有status属性"
-            assert hasattr(result, 'execution_time'), "结果应该有execution_time属性"
+            assert hasattr(result, "status"), "结果应该有status属性"
+            assert hasattr(result, "execution_time"), "结果应该有execution_time属性"
 
 
 # 单独的测试标记
