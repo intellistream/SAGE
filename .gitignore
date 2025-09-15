@@ -166,6 +166,7 @@ temp_ci_test_env
 # 知识库和向量数据
 data/neuromem_vdb/
 examples/rag/chroma_*/
+examples/data/neuromem_vdb/
 
 # 临时和测试数据文件
 **/*.vector
