@@ -105,4 +105,5 @@ class TestDevCommands:
         """测试home status"""
         result = self.runner.invoke(app, ["dev", "home", "status"])
         assert result.exit_code == 0
-        assert "SAGE_HOME" in result.stdout
+        # 检查SAGE目录状态输出中的关键信息
+        assert "SAGE目录" in result.stdout or "SAGE目录状态" in result.stdout

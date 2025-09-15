@@ -165,4 +165,5 @@ markers = [
     "core: marks tests as core functionality tests",
     "smoke: marks tests as smoke tests (quick validation)",
     "cli: marks tests as CLI tests",
+    "external: marks tests requiring external services/APIs",
 ]
