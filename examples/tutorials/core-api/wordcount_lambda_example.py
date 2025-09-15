@@ -1,5 +1,17 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+SAGE WordCount Lambda 示例
+@test:timeout=120
+@test:category=streaming
+"""
+
+import os
 import time
 from collections import Counter
+
+# 设置日志级别为ERROR减少输出
+os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
 
 from sage.core.api.function.source_function import SourceFunction
 from sage.core.api.local_environment import LocalEnvironment
@@ -71,7 +83,12 @@ def main():
         # 运行流处理
         env.submit()
 
-        time.sleep(60)  # 运行60秒以观察输出
+        # 在测试模式下运行更短时间
+        test_mode = os.environ.get("SAGE_EXAMPLES_MODE") == "test"
+        runtime = 10 if test_mode else 60
+        
+        print(f"⏰ Running for {runtime} seconds...")
+        time.sleep(runtime)  # 测试模式运行10秒，正常模式60秒
     except KeyboardInterrupt:
         print("\n\n🛑 Stopping WordCount Example...")
         print("\n📊 Final Word Count Results:")

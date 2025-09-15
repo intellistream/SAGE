@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 CoMap Lambda/Callable Support Example
+@test:timeout=120
+@test:category=streaming
 
 This example demonstrates the new lambda and callable support for CoMap operations,
 showing different ways to define multi-stream processing without requiring class definitions.
@@ -10,6 +13,9 @@ import os
 import sys
 import time
 from typing import Any, List
+
+# 设置日志级别为ERROR减少输出
+os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
 
 # Add the project root to Python path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
