@@ -962,7 +962,7 @@ class Wiki18FAISSRetriever(MapFunction):
             # FAISS配置 - 从配置文件读取路径
             index_path = self.faiss_config.get("index_path")
             documents_path = self.faiss_config.get("documents_path")
-            
+
             # 检查必需的配置项
             if not index_path:
                 raise ValueError("faiss.index_path 配置项是必需的")

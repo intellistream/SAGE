@@ -276,7 +276,7 @@ class ExampleAnalyzer:
 
     def _extract_test_tags(self, content: str) -> List[str]:
         """从文件内容中提取测试标记
-        
+
         支持的标记格式:
         # @test:skip - 跳过测试
         # @test:slow - 标记为慢速测试
@@ -286,11 +286,11 @@ class ExampleAnalyzer:
         # @test:gpu - 需要GPU
         """
         import re
-        
+
         # 查找所有 @test: 标记
-        pattern = r'#\s*@test:(\w+)'
+        pattern = r"#\s*@test:(\w+)"
         matches = re.findall(pattern, content, re.IGNORECASE)
-        
+
         return list(set(matches))
 
     def _get_category(self, file_path: Path) -> str:

@@ -1,0 +1,174 @@
+"""
+SAGE Home Directory Management
+
+This module provides utilities for managing SAGE directories.
+Supports both development environments and pip-installed environments.
+
+Development environment: Uses project local .sage/ directory
+Pip-installed environment: Uses ~/.sage/ directory
+"""
+
+import os
+from pathlib import Path
+from typing import Optional
+
+
+def get_sage_home_dir() -> Path:
+    """Get the SAGE home directory (~/.sage), creating it if necessary."""
+    home_dir = Path.home() / ".sage"
+    home_dir.mkdir(exist_ok=True)
+    return home_dir
+
+
+def find_project_root(start_path: Path = None) -> Optional[Path]:
+    """
+    Find SAGE project root directory by looking for characteristic files/directories.
+    
+    Args:
+        start_path: Starting path for search. If None, uses current working directory.
+        
+    Returns:
+        Optional[Path]: Project root path if found, None otherwise
+    """
+    if start_path is None:
+        start_path = Path.cwd()
+    
+    current = start_path.resolve()
+    
+    # Search up to 5 levels
+    for _ in range(5):
+        # Check for SAGE project markers
+        if (current / "packages").is_dir() and (current / "_version.py").is_file():
+            return current
+        
+        parent = current.parent
+        if parent == current:  # Reached filesystem root
+            break
+        current = parent
+    
+    return None
+
+
+def get_appropriate_sage_dir(project_name: str = "SAGE") -> Path:
+    """
+    Get the appropriate SAGE directory based on environment.
+    
+    For development: Uses project_root/.sage/
+    For pip install: Uses ~/.sage/
+    
+    Args:
+        project_name: Project name (used for organization)
+        
+    Returns:
+        Path: SAGE directory path
+    """
+    # Check if we're in a development environment
+    project_root = find_project_root()
+    
+    if project_root:
+        # Development environment: use local .sage directory
+        sage_dir = project_root / ".sage"
+    else:
+        # Pip-installed or other environment: use home directory
+        if project_name and project_name.upper() == "SAGE":
+            sage_dir = get_sage_home_dir()
+        else:
+            sage_dir = get_sage_home_dir() / "projects" / project_name
+    
+    # Ensure directory and subdirectories exist
+    sage_dir.mkdir(parents=True, exist_ok=True)
+    subdirs = ["logs", "reports", "cache", "temp", "coverage", "benchmarks"]
+    for subdir in subdirs:
+        (sage_dir / subdir).mkdir(exist_ok=True)
+    
+    return sage_dir
+
+
+def get_logs_dir(project_name: str = "SAGE") -> Path:
+    """Get the logs directory."""
+    return get_appropriate_sage_dir(project_name) / "logs"
+
+
+def get_reports_dir(project_name: str = "SAGE") -> Path:
+    """Get the reports directory."""
+    return get_appropriate_sage_dir(project_name) / "reports"
+
+
+def get_cache_dir(project_name: str = "SAGE") -> Path:
+    """Get the cache directory."""
+    return get_appropriate_sage_dir(project_name) / "cache"
+
+
+def get_temp_dir(project_name: str = "SAGE") -> Path:
+    """Get the temporary files directory."""
+    return get_appropriate_sage_dir(project_name) / "temp"
+
+
+def get_coverage_dir(project_name: str = "SAGE") -> Path:
+    """Get the coverage reports directory."""
+    return get_appropriate_sage_dir(project_name) / "coverage"
+
+
+def get_benchmarks_dir(project_name: str = "SAGE") -> Path:
+    """Get the benchmarks directory."""
+    return get_appropriate_sage_dir(project_name) / "benchmarks"
+
+
+def get_ray_temp_dir(project_name: str = "SAGE") -> Path:
+    """Get Ray temporary files directory."""
+    ray_dir = get_temp_dir(project_name) / "ray"
+    ray_dir.mkdir(parents=True, exist_ok=True)
+    return ray_dir
+
+
+def setup_sage_environment(project_name: str = "SAGE") -> dict:
+    """
+    Set up SAGE environment variables and directories.
+    
+    Returns:
+        dict: Dictionary with created directory paths
+    """
+    sage_dir = get_appropriate_sage_dir(project_name)
+    
+    # Set environment variables for other tools
+    os.environ["SAGE_HOME"] = str(sage_dir)
+    os.environ["SAGE_LOGS_DIR"] = str(get_logs_dir(project_name))
+    os.environ["SAGE_TEMP_DIR"] = str(get_temp_dir(project_name))
+    
+    # Ray-specific environment
+    ray_temp_dir = get_ray_temp_dir(project_name)
+    os.environ["RAY_TMPDIR"] = str(ray_temp_dir)
+    
+    return {
+        "sage_dir": sage_dir,
+        "logs_dir": get_logs_dir(project_name),
+        "reports_dir": get_reports_dir(project_name),
+        "cache_dir": get_cache_dir(project_name),
+        "temp_dir": get_temp_dir(project_name),
+        "coverage_dir": get_coverage_dir(project_name),
+        "benchmarks_dir": get_benchmarks_dir(project_name),
+        "ray_temp_dir": ray_temp_dir,
+    }
+
+
+# Deprecated functions - kept for backward compatibility
+def get_project_sage_dir(project_name: str = "SAGE") -> Path:
+    """Deprecated: Use get_appropriate_sage_dir() instead."""
+    import warnings
+    warnings.warn(
+        "get_project_sage_dir() is deprecated. Use get_appropriate_sage_dir() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    return get_appropriate_sage_dir(project_name)
+
+
+def _get_sage_dir_for_project(project_name: str = "SAGE") -> Path:
+    """Deprecated: Use get_appropriate_sage_dir() instead."""
+    import warnings
+    warnings.warn(
+        "_get_sage_dir_for_project() is deprecated. Use get_appropriate_sage_dir() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    return get_appropriate_sage_dir(project_name)

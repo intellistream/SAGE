@@ -173,7 +173,9 @@ class TestExamplesIntegration:
         ]
 
         for file_path, category, should_skip in test_cases:
-            skip, reason = ExampleTestFilters.should_skip_file(file_path, category, None)
+            skip, reason = ExampleTestFilters.should_skip_file(
+                file_path, category, None
+            )
             if should_skip:
                 # 这些文件不存在，应该被跳过
                 assert skip, f"文件 {file_path} 应该被跳过: {reason}"

@@ -100,7 +100,8 @@ def main():
 
     print("Hello Join World 示例结束")
 
+
 if __name__ == "__main__":
-    
+
     CustomLogger.disable_global_console_debug()
     main()
