@@ -161,7 +161,7 @@ class TestExamplesIntegration:
         if hello_world_examples:
             example = hello_world_examples[0]
             skip, reason = ExampleTestFilters.should_skip_file(
-                Path(example.file_path), example.category
+                Path(example.file_path), example.category, example
             )
             assert not skip, f"文件 {example.file_path} 不应该被跳过: {reason}"
         
@@ -173,7 +173,7 @@ class TestExamplesIntegration:
         ]
         
         for file_path, category, should_skip in test_cases:
-            skip, reason = ExampleTestFilters.should_skip_file(file_path, category)
+            skip, reason = ExampleTestFilters.should_skip_file(file_path, category, None)
             if should_skip:
                 # 这些文件不存在，应该被跳过
                 assert skip, f"文件 {file_path} 应该被跳过: {reason}"
@@ -215,7 +215,7 @@ class TestIndividualExamples:
 
         # 检查是否应该跳过
         skip, reason = ExampleTestFilters.should_skip_file(
-            Path(example_file.file_path), example_file.category
+            Path(example_file.file_path), example_file.category, example_file
         )
         if skip:
             pytest.skip(reason)
