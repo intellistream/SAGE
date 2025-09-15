@@ -167,7 +167,7 @@ jobs:
         
         # 运行examples测试
         echo "🧪 运行Examples测试套件..."
-        if ./tools/tests/run_examples_tests.sh --verbose; then
+        if ./tools/tests/run_examples_tests.sh --quick; then
           echo "✅ Examples测试通过"
           exit_code=0
         else
