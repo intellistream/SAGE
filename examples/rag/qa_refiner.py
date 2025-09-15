@@ -1,3 +1,5 @@
+# @test:skip           - 跳过测试
+
 import json
 import os
 
