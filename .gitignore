@@ -82,7 +82,6 @@ sage_examples/logs/**
 dist/
 data/template_data
 data/neuromem_data
-examples/memory/data
 drafts/
 run.sh
 third_party/
