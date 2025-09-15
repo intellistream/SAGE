@@ -175,3 +175,8 @@ examples/data/neuromem_vdb/
 **/*.embeddings
 
 /.vscode/
+
+# ============================================
+# 一些测试文件
+# ============================================
+!examples/memory/data/neuromem/vdb_collection/RAGMemoryCollection/indexes/test_index/faiss.index
