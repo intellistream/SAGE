@@ -4,7 +4,7 @@
 """
 
 import ray
-from src.sage.kernel.utils.ray.ray import ensure_ray_initialized
+from sage.kernel.utils.ray.ray import ensure_ray_initialized
 
 
 @ray.remote
