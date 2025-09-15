@@ -1,3 +1,5 @@
+# @test:skip           - 跳过测试
+
 # file data/neuromem_datasets/locomo_dataloader.py
 # python data/neuromem_datasets/locomo_dataloader.py
 
