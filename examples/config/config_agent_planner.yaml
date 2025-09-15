@@ -1,0 +1,65 @@
+# examples/config/agent_planner_mcp.yaml
+
+pipeline:
+  name: "agent-planner-mcp"
+  description: "Planner + MCP tool execution without memory"
+  version: "1.0.0"
+
+# 数据源：每行 JSON 必须至少包含一个字段：{"query": "...用户问题..."}
+source:
+  type: "local"
+  data_path: "examples/data/agent_queries.jsonl"  # 例如：
+  # {"query": "在 arXiv 搜 2 篇 LLM agents survey，最后中文总结"}
+
+profile:
+  name: "ResearchOrchestrator"
+  role: "planner"
+  language: "zh"
+  goals:
+    - "以最少步骤完成用户意图"
+    - "优先使用提供的 MCP 工具"
+  constraints:
+    - "工具参数必须符合 JSONSchema"
+    - "计划步数不超过 6"
+  persona:
+    style: "concise"
+
+planner:
+  llm:
+    method: "openai"
+    model_name: "gpt-4o-mini"
+    base_url: "http://localhost:8000/v1"
+    api_key: "${OPENAI_API_KEY}"
+    temperature: 0.2
+  max_steps: 6
+  enable_repair: true
+  topk_tools: 6
+
+mcp:
+  # 本地示例工具（在脚本里实现并注册）
+  local_tools:
+    - name: "calculator"
+      enable: true
+    - name: "arxiv_search"
+      enable: true
+  # 可选：远程 MCP Server（若有）
+  remotes: []
+  # remotes:
+  #   - adapter_id: "t1"
+  #     base_url: "http://localhost:9000"
+  #     prefix: "up_"
+
+generator:
+  vllm:
+    method: "openai"
+    model_name: "gpt-4o-mini"
+    base_url: "http://localhost:8000/v1"
+    api_key: "${OPENAI_API_KEY}"
+    temperature: 0.5
+    max_tokens: 600
+
+sink:
+  platform: "local"
+  format: "json"
+  show_metadata: true
+  save_to_file: "results/agent_planner_mcp_output.jsonl"

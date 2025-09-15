@@ -60,7 +60,7 @@ def validate_required_args(tool_name: str, arguments: Dict[str, Any]) -> Optiona
 # ---------------------------
 # Remote MCP Adapter
 # ---------------------------
-class RemoteMCPAdapter:
+class RemoteMCPAdapter():
     """
     把远程 MCP Server 聚合为可调用接口：
       - list_tools() -> {name: {description, input_schema}}

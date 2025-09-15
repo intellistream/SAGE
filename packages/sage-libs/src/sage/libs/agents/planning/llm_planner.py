@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 import re
 from typing import Any, Dict, List, Optional, Tuple
+from sage.core.api.function.map_function import MapFunction
+
 
 PlanStep = Dict[
     str, Any
@@ -156,7 +158,7 @@ def _validate_steps(
     return valid
 
 
-class LLMPlanner:
+class LLMPlanner(MapFunction):
     """
     用.rag.generator 中的 Generator（OpenAIGenerator / HFGenerator）产出 MCP 风格计划。
     统一接口：plan(profile_prompt, user_query, tools) -> List[PlanStep]
@@ -219,3 +221,71 @@ class LLMPlanner:
 
         # 6) 截断并返回
         return steps[: self.max_steps]
+    
+    def _tools_to_manifest(self, tools_like: Any) -> Dict[str, Dict[str, Any]]:
+        """
+        支持：
+        - 直接传工具清单 dict[str, {description,input_schema}]
+        - 传 MCPRegistry 实例（具备 .describe()）
+        """
+        if isinstance(tools_like, dict):
+            return tools_like
+        if hasattr(tools_like, "describe") and callable(getattr(tools_like, "describe")):
+            return tools_like.describe()
+        raise TypeError(
+            "LLMPlanner expects `tools` as a dict manifest or an object with .describe()."
+        )
+
+    def execute(self, data: Any) -> List[PlanStep]:
+        """
+        统一入口，支持以下输入形态（任选其一）：
+        1) dict：
+           {
+             "profile_prompt" | "profile_system_prompt": str,
+             "user_query" | "query": str,
+             "tools" | "registry": dict 或 具备 .describe() 的对象,
+             # 可选： "topk": int    # 仅本次调用的临时 top-k 覆写
+           }
+
+        2) 三元组：(profile_prompt: str, user_query: str, tools_or_registry)
+
+        返回：List[PlanStep]
+        """
+        # --- 形态 1：dict ---
+        if isinstance(data, dict):
+            profile_prompt = data.get("profile_prompt") or data.get("profile_system_prompt")
+            user_query = data.get("user_query") or data.get("query")
+            tools_like = data.get("tools") or data.get("registry")
+            if not isinstance(profile_prompt, str) or not isinstance(user_query, str) or tools_like is None:
+                raise ValueError(
+                    "LLMPlanner.execute(dict) requires 'profile_prompt' (or 'profile_system_prompt'), "
+                    "'user_query' (or 'query'), and 'tools' (or 'registry')."
+                )
+
+            # 临时 top-k 覆写（不修改实例字段）
+            original_topk = self.topk_tools
+            if "topk" in data:
+                if not isinstance(data["topk"], int) or data["topk"] <= 0:
+                    raise ValueError("'topk' must be a positive int.")
+                self.topk_tools = data["topk"]
+
+            try:
+                tools_manifest = self._tools_to_manifest(tools_like)
+                return self.plan(profile_prompt, user_query, tools_manifest)
+            finally:
+                # 还原
+                self.topk_tools = original_topk
+
+        # --- 形态 2：三元组 ---
+        if isinstance(data, tuple) and len(data) == 3:
+            profile_prompt, user_query, tools_like = data
+            if not isinstance(profile_prompt, str) or not isinstance(user_query, str):
+                raise TypeError("Tuple form must be (str, str, tools_or_registry).")
+            tools_manifest = self._tools_to_manifest(tools_like)
+            return self.plan(profile_prompt, user_query, tools_manifest)
+
+        raise TypeError(
+            "LLMPlanner.execute expects either a dict with keys "
+            "('profile_prompt'/'profile_system_prompt', 'user_query'/'query', 'tools'/'registry') "
+            "or a tuple (profile_prompt, user_query, tools_or_registry)."
+        )
