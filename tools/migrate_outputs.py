@@ -144,23 +144,6 @@ def main():
     
     print(f"\n🎉 Migration complete! Successfully migrated {success_count}/{len(found_migrations)} items.")
     
-    # Create symlinks for backward compatibility
-    if success_count > 0:
-        print("\n🔗 Creating backward compatibility symlinks...")
-        
-        compat_links = [
-            (project_root / "logs", sage_paths.logs_dir),
-            (project_root / "output", sage_paths.output_dir),
-        ]
-        
-        for link_path, target in compat_links:
-            if not link_path.exists():
-                try:
-                    link_path.symlink_to(target, target_is_directory=True)
-                    print(f"   🔗 Created symlink: {link_path} -> {target}")
-                except Exception as e:
-                    print(f"   ⚠️  Could not create symlink {link_path}: {e}")
-    
     print(f"\n✨ All outputs are now unified under: {sage_paths.sage_dir}")
     print("🔧 Update your configurations to use the new sage.common.config.output_paths module!")
 
