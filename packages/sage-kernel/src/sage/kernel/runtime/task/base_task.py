@@ -145,8 +145,8 @@ class BaseTask(ABC):
                         )
 
                         # 如果是SinkOperator，在转发停止信号前先调用handle_stop_signal
-                        from sage.core.operator.comap_operator import \
-                            CoMapOperator
+                        # from sage.core.operator.comap_operator import \
+                        #     CoMapOperator
                         from sage.core.operator.join_operator import \
                             JoinOperator
                         from sage.core.operator.sink_operator import \
@@ -157,7 +157,7 @@ class BaseTask(ABC):
                                 f"Calling handle_stop_signal for SinkOperator {self.name}"
                             )
                             self.operator.handle_stop_signal()
-                        elif isinstance(self.operator, (JoinOperator, CoMapOperator)):
+                        elif isinstance(self.operator, (JoinOperator)):
                             self.logger.info(
                                 f"Calling handle_stop_signal for {type(self.operator).__name__} {self.name}"
                             )
@@ -191,13 +191,16 @@ class BaseTask(ABC):
                         if isinstance(
                             self.operator, (KeyByOperator, MapOperator, FilterOperator)
                         ):
-                            # 中间操作符应该在收到足够的停止信号后才停止
-                            # 但是由于图构建可能有问题，我们使用更保守的策略
-                            # 只有当真正需要停止时才停止（通过 JobManager 强制停止）
-                            self.logger.debug(
-                                f"Intermediate operator {self.name} received stop signal but continuing to process"
+                            # 中间操作符应该在收到停止信号后立即停止并转发信号
+                            # 这样确保停止信号能够正确传播到下游
+                            self.logger.info(
+                                f"Intermediate operator {self.name} received stop signal, stopping and forwarding"
                             )
-                            # 不要停止 - 让 JobManager 来决定何时强制停止
+                            # 先通知JobManager该节点完成
+                            self.ctx.send_stop_signal_back(self.name)
+                            # 然后让中间操作符停止，确保停止信号能传播
+                            self.ctx.set_stop_signal()
+                            break
                         elif should_stop_pipeline:
                             self.ctx.set_stop_signal()
                             break
