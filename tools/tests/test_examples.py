@@ -45,8 +45,32 @@ def find_project_root() -> Path:
             return current
         current = current.parent
     
-    # 最后的备用方案
-    raise FileNotFoundError("Cannot find project root with examples directory")
+    # 尝试通过环境变量获取SAGE根目录
+    sage_root = os.environ.get('SAGE_ROOT')
+    if sage_root:
+        sage_root_path = Path(sage_root)
+        if (sage_root_path / "examples").exists():
+            return sage_root_path
+    
+    # 最后的备用方案 - 尝试从sys.path中找到sage包的位置
+    import sys
+    for path in sys.path:
+        path_obj = Path(path)
+        # 查找包含sage包的目录
+        if path_obj.name == "src" and "sage" in str(path_obj):
+            # 从packages/sage/src向上找到项目根目录
+            potential_root = path_obj.parent.parent.parent
+            if (potential_root / "examples").exists():
+                return potential_root
+    
+    # 如果都找不到，抛出详细的错误信息
+    raise FileNotFoundError(
+        "Cannot find SAGE project root directory. "
+        "Please ensure you are running tests from within the SAGE project directory, "
+        "or set the SAGE_ROOT environment variable to point to your SAGE installation directory. "
+        f"Current working directory: {Path.cwd()}, "
+        f"Script directory: {Path(__file__).parent}"
+    )
 
 
 @dataclass
@@ -85,8 +109,12 @@ class ExampleAnalyzer:
             project_root = find_project_root()
             self.examples_root = project_root / "examples"
         except FileNotFoundError:
-            # 保留硬编码路径作为备用
-            self.examples_root = Path("/home/shuhao/SAGE/examples")
+            # 如果找不到项目根目录，抛出更有用的错误信息
+            raise FileNotFoundError(
+                "Cannot find SAGE project root directory. "
+                "Please ensure you are running tests from within the SAGE project directory "
+                "or that the examples/ directory exists in your current or parent directories."
+            )
 
     def analyze_file(self, file_path: Path) -> ExampleInfo:
         """分析单个示例文件"""
@@ -271,9 +299,14 @@ class ExampleRunner:
         try:
             project_root = find_project_root()
             self.examples_root = project_root / "examples"
+            self.project_root = project_root
         except FileNotFoundError:
-            # 保留硬编码路径作为备用
-            self.examples_root = Path("/home/shuhao/SAGE/examples")
+            # 如果找不到项目根目录，抛出更有用的错误信息
+            raise FileNotFoundError(
+                "Cannot find SAGE project root directory. "
+                "Please ensure you are running tests from within the SAGE project directory "
+                "or that the examples/ directory exists in your current or parent directories."
+            )
 
     def run_example(self, example_info: ExampleInfo) -> ExampleTestResult:
         """运行单个示例"""
@@ -392,15 +425,15 @@ class ExampleRunner:
         """准备执行环境"""
         env = os.environ.copy()
 
-        # 设置 Python 路径
+        # 设置 Python 路径 - 使用动态路径而不是硬编码
         python_path = env.get("PYTHONPATH", "")
         sage_paths = [
-            "/home/shuhao/SAGE/packages/sage/src",
-            "/home/shuhao/SAGE/packages/sage-common/src",
-            "/home/shuhao/SAGE/packages/sage-kernel/src",
-            "/home/shuhao/SAGE/packages/sage-libs/src",
-            "/home/shuhao/SAGE/packages/sage-middleware/src",
-            "/home/shuhao/SAGE/packages/sage-tools/src",
+            str(self.project_root / "packages" / "sage" / "src"),
+            str(self.project_root / "packages" / "sage-common" / "src"),
+            str(self.project_root / "packages" / "sage-kernel" / "src"),
+            str(self.project_root / "packages" / "sage-libs" / "src"),
+            str(self.project_root / "packages" / "sage-middleware" / "src"),
+            str(self.project_root / "packages" / "sage-tools" / "src"),
         ]
 
         if python_path:
