@@ -4,6 +4,7 @@
 pytest 配置文件
 """
 
+import os
 import time
 from pathlib import Path
 
@@ -50,6 +51,12 @@ def pytest_collection_modifyitems(config, items):
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_setup(item):
     """测试开始前的hook"""
+    # 在CI环境中减少输出
+    if os.environ.get("CI") == "true":
+        # CI环境：只记录时间，不输出开始信息
+        item._example_start_time = time.time()
+        return
+    
     example_name = "unknown"
     test_type = "测试"
     
@@ -74,18 +81,16 @@ def pytest_runtest_teardown(item, nextitem):
     if hasattr(item, '_example_start_time'):
         duration = time.time() - item._example_start_time
         
-        example_name = "unknown"
-        test_type = "测试"
+        # 在CI环境中减少输出
+        if os.environ.get("CI") == "true":
+            # CI环境：只在测试失败或超过10秒时输出
+            if duration > 10.0:
+                example_name = _get_example_name(item)
+                print(f"🐌 {example_name} 耗时较长 ({duration:.2f}s)")
+            return
         
-        if "test_individual_example" in item.nodeid:
-            test_type = "示例"
-            if hasattr(item, 'callspec') and 'example_file' in item.callspec.params:
-                example_file = item.callspec.params['example_file']
-                if hasattr(example_file, 'file_path'):
-                    example_name = Path(example_file.file_path).name
-        else:
-            test_type = "集成测试"
-            example_name = item.name
+        example_name = _get_example_name(item)
+        test_type = _get_test_type(item)
         
         # 根据时间长短显示不同的状态图标
         if duration < 0.5:
@@ -104,26 +109,55 @@ def pytest_runtest_teardown(item, nextitem):
         print(f"{status_icon} {example_name} 完成 ({duration:.2f}s) - {time_desc}")
 
 
+def _get_example_name(item):
+    """获取示例名称"""
+    if "test_individual_example" in item.nodeid:
+        if hasattr(item, 'callspec') and 'example_file' in item.callspec.params:
+            example_file = item.callspec.params['example_file']
+            if hasattr(example_file, 'file_path'):
+                return Path(example_file.file_path).name
+    return item.name
+
+
+def _get_test_type(item):
+    """获取测试类型"""
+    if "test_individual_example" in item.nodeid:
+        return "示例"
+    return "集成测试"
+
+
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_logreport(report):
     """测试报告hook - 处理失败的情况"""
     if report.when == "call":
-        example_name = "unknown"
-        test_type = "测试"
+        # 在CI环境中只显示失败和跳过的测试
+        if os.environ.get("CI") == "true":
+            if not (report.failed or report.skipped):
+                return
         
-        if "test_individual_example" in report.nodeid:
-            test_type = "示例"
-            # 尝试从nodeid中提取example名称
-            if "[" in report.nodeid and "]" in report.nodeid:
-                example_name = report.nodeid.split("[")[1].split("]")[0]
-        else:
-            test_type = "集成测试"
-            example_name = report.nodeid.split("::")[-1]
+        example_name = _get_example_name_from_report(report)
+        test_type = _get_test_type_from_report(report)
         
         if report.failed:
             print(f"❌ {example_name} {test_type}失败")
         elif report.skipped:
             print(f"⏭️  {example_name} {test_type}已跳过")
+
+
+def _get_example_name_from_report(report):
+    """从报告中获取示例名称"""
+    if "test_individual_example" in report.nodeid:
+        # 尝试从nodeid中提取example名称
+        if "[" in report.nodeid and "]" in report.nodeid:
+            return report.nodeid.split("[")[1].split("]")[0]
+    return report.nodeid.split("::")[-1]
+
+
+def _get_test_type_from_report(report):
+    """从报告中获取测试类型"""
+    if "test_individual_example" in report.nodeid:
+        return "示例"
+    return "集成测试"
 
 
 def pytest_generate_tests(metafunc):

@@ -188,19 +188,29 @@ run_pytest_tests() {
     
     # 添加详细输出和时间显示
     pytest_args+=("--tb=short")  # 简短的错误回溯
-    pytest_args+=("--durations=10")  # 显示最慢的10个测试的时间
-    pytest_args+=("--durations-min=1.0")  # 只显示超过1秒的测试时间
     
     if $VERBOSE; then
         pytest_args+=("-s")  # 显示print输出
         pytest_args+=("-vv")  # 非常详细的输出
         pytest_args+=("--capture=no")  # 不捕获输出
         pytest_args+=("--showlocals")  # 在错误时显示局部变量
+        pytest_args+=("--durations=10")  # 显示最慢的10个测试的时间
+        pytest_args+=("--durations-min=1.0")  # 只显示超过1秒的测试时间
     else
-        # 默认显示详细的测试名称和状态，但仍然捕获输出以保持实时进度显示清晰
-        pytest_args+=("-v")
-        pytest_args+=("-s")  # 允许我们的hooks输出显示
-        pytest_args+=("--tb=line")  # 简化错误输出
+        # CI环境：简化输出，减少噪音
+        if [[ "$CI" == "true" ]]; then
+            pytest_args+=("--tb=line")  # 最简化错误输出
+            pytest_args+=("-q")  # 安静模式
+            pytest_args+=("--durations=5")  # 只显示最慢的5个测试
+            pytest_args+=("--durations-min=5.0")  # 只显示超过5秒的测试
+        else
+            # 本地环境：适中的输出
+            pytest_args+=("-v")
+            pytest_args+=("-s")  # 允许我们的hooks输出显示
+            pytest_args+=("--tb=line")  # 简化错误输出
+            pytest_args+=("--durations=10")  # 显示最慢的10个测试的时间
+            pytest_args+=("--durations-min=1.0")  # 只显示超过1秒的测试时间
+        fi
     fi
     
     # 添加实时进度显示
@@ -216,18 +226,25 @@ run_pytest_tests() {
     
     # 运行测试
     cd tools/tests
-    echo "开始运行测试，将显示每个example的详细信息和运行时间..."
-    echo "📊 测试配置:"
-    echo "  - 快速模式: $(if $QUICK_ONLY; then echo "是"; else echo "否"; fi)"
-    echo "  - 类别过滤: ${CATEGORY:-"无"}"
-    echo "  - 详细输出: $(if $VERBOSE; then echo "是"; else echo "否"; fi)"
-    echo "  - 测试套件超时: 无限制"
-    echo "  - 单个Example超时: 60秒"
-    echo ""
     
     # 设置example运行的超时环境变量 - 统一设置为60秒
     export SAGE_EXAMPLE_TIMEOUT="60"
-    echo "  - Example超时: 60秒 (统一配置)"
+    
+    if [[ "$CI" == "true" ]]; then
+        echo "🧪 运行Examples测试 (CI模式)"
+        echo "  - 快速模式: $(if $QUICK_ONLY; then echo "是"; else echo "否"; fi)"
+        echo "  - 类别过滤: ${CATEGORY:-"无"}"
+        echo "  - Example超时: 60秒"
+    else
+        echo "开始运行测试，将显示每个example的详细信息和运行时间..."
+        echo "📊 测试配置:"
+        echo "  - 快速模式: $(if $QUICK_ONLY; then echo "是"; else echo "否"; fi)"
+        echo "  - 类别过滤: ${CATEGORY:-"无"}"
+        echo "  - 详细输出: $(if $VERBOSE; then echo "是"; else echo "否"; fi)"
+        echo "  - 测试套件超时: 无限制"
+        echo "  - 单个Example超时: 60秒"
+    fi
+    echo ""
     
     # 运行pytest并处理输出
     if [[ -n "$OUTPUT_FILE" ]]; then
@@ -267,13 +284,20 @@ run_standalone_tests() {
         cmd_args+=("--verbose")
     fi
     
-    echo "开始运行独立测试脚本..."
-    echo "📊 测试配置:"
-    echo "  - 快速模式: $(if $QUICK_ONLY; then echo "是"; else echo "否"; fi)"
-    echo "  - 类别过滤: ${CATEGORY:-"无"}"
-    echo "  - 详细输出: $(if $VERBOSE; then echo "是"; else echo "否"; fi)"
-    echo "  - 测试套件超时: 无限制"
-    echo "  - 单个Example超时: 60秒"
+    if [[ "$CI" == "true" ]]; then
+        echo "🧪 运行独立测试脚本 (CI模式)"
+        echo "  - 快速模式: $(if $QUICK_ONLY; then echo "是"; else echo "否"; fi)"
+        echo "  - 类别过滤: ${CATEGORY:-"无"}"
+        echo "  - Example超时: 60秒"
+    else
+        echo "开始运行独立测试脚本..."
+        echo "📊 测试配置:"
+        echo "  - 快速模式: $(if $QUICK_ONLY; then echo "是"; else echo "否"; fi)"
+        echo "  - 类别过滤: ${CATEGORY:-"无"}"
+        echo "  - 详细输出: $(if $VERBOSE; then echo "是"; else echo "否"; fi)"
+        echo "  - 测试套件超时: 无限制"
+        echo "  - 单个Example超时: 60秒"
+    fi
     echo ""
     
     python3 tools/tests/test_examples.py test "${cmd_args[@]}"

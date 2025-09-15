@@ -1,0 +1,6 @@
+{
+  "RAGMemoryCollection": {
+    "description": "rag memory collection",
+    "backend_type": "vdb"
+  }
+}
