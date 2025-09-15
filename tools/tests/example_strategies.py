@@ -394,3 +394,67 @@ class ExampleEnvironmentManager:
 
         self.temp_files.clear()
         self.temp_dirs.clear()
+
+
+class ExampleTestFilters:
+    """示例测试过滤器"""
+
+    @staticmethod
+    def should_skip_file(file_path: Path, category: str, example_info=None) -> tuple[bool, str]:
+        """判断是否应该跳过某个文件的测试
+        
+        Args:
+            file_path: 文件路径
+            category: 文件类别
+            example_info: 示例信息对象（包含test_tags）
+        
+        Returns:
+            (should_skip, reason): 是否跳过和跳过原因
+        """
+        # 检查文件内的测试标记
+        if example_info and hasattr(example_info, 'test_tags'):
+            # 检查跳过标记
+            if 'skip' in example_info.test_tags:
+                return True, "文件包含 @test:skip 标记"
+            
+            # 检查需要API密钥的标记
+            if 'require-api' in example_info.test_tags:
+                return True, "需要API密钥，在测试环境中跳过"
+            
+            # 检查需要用户交互的标记
+            if 'interactive' in example_info.test_tags:
+                return True, "需要用户交互，自动测试中跳过"
+            
+            # 检查不稳定测试标记
+            if 'unstable' in example_info.test_tags:
+                return True, "标记为不稳定测试，跳过"
+            
+            # 检查需要GPU的标记
+            if 'gpu' in example_info.test_tags:
+                return True, "需要GPU支持，在测试环境中跳过"
+        
+        # 基于文件名的传统过滤逻辑
+        filename = file_path.name.lower()
+        
+        # 跳过明显的交互式或长时间运行的文件
+        skip_patterns = [
+            'interactive',
+            'demo',
+            'gui',
+            'server', 
+            'long_running',
+            'benchmark',
+            'stress_test',
+        ]
+        
+        for pattern in skip_patterns:
+            if pattern in filename:
+                return True, f"文件名包含 '{pattern}'，通常需要交互或长时间运行"
+        
+        # 类别特定的过滤规则
+        if category == "service":
+            # 服务类例子通常需要长时间运行
+            if "service" in filename or "server" in filename:
+                return True, "服务类示例通常需要长时间运行"
+        
+        return False, ""
