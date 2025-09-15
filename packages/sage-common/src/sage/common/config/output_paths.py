@@ -64,14 +64,13 @@ class SageOutputPaths:
             "coverage",
             "test_logs",
             "experiments",
-            "issues"
+            "issues",
+            "states"  # For .sage_states data (rag components state)
         ]
         
-        # Create .sage symlink if it doesn't exist
+        # Create .sage directory if it doesn't exist
         if not self.sage_dir.exists():
-            home_sage = Path.home() / ".sage"
-            home_sage.mkdir(exist_ok=True)
-            self.sage_dir.symlink_to(home_sage)
+            self.sage_dir.mkdir(exist_ok=True)
         
         # Ensure subdirectories exist
         for subdir in subdirs:
@@ -121,6 +120,11 @@ class SageOutputPaths:
     def issues_dir(self) -> Path:
         """Get the issues directory."""
         return self.sage_dir / "issues"
+    
+    @property
+    def states_dir(self) -> Path:
+        """Get the states directory (for .sage_states data)."""
+        return self.sage_dir / "states"
     
     def get_log_file(self, name: str, subdir: Optional[str] = None) -> Path:
         """
@@ -267,6 +271,22 @@ def get_output_file(name: str, subdir: Optional[str] = None,
                     project_root: Optional[Union[str, Path]] = None) -> Path:
     """Get an output file path."""
     return get_sage_paths(project_root).get_output_file(name, subdir)
+
+
+def get_states_dir(project_root: Optional[Union[str, Path]] = None) -> Path:
+    """Get the states directory."""
+    return get_sage_paths(project_root).states_dir
+
+
+def get_states_file(name: str, subdir: Optional[str] = None,
+                    project_root: Optional[Union[str, Path]] = None) -> Path:
+    """Get a states file path."""
+    sage_paths = get_sage_paths(project_root)
+    if subdir:
+        states_dir = sage_paths.states_dir / subdir
+        states_dir.mkdir(parents=True, exist_ok=True)
+        return states_dir / name
+    return sage_paths.states_dir / name
 
 
 def migrate_existing_outputs(project_root: Optional[Union[str, Path]] = None):

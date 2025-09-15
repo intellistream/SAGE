@@ -7,6 +7,7 @@ import numpy as np
 from sage.core.api.function.map_function import MapFunction
 from sage.libs.utils.chroma import ChromaBackend, ChromaUtils
 from sage.libs.utils.milvus import MilvusBackend, MilvusUtils
+from sage.common.config.output_paths import get_states_file
 
 
 # ChromaDB 密集检索器
@@ -33,16 +34,8 @@ class ChromaRetriever(MapFunction):
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
-                self.data_base_path = os.path.join(
-                    self.ctx.env_base_dir, ".sage_states", "retriever_data"
-                )
-            else:
-                # 使用默认路径
-                self.data_base_path = os.path.join(
-                    os.getcwd(), ".sage_states", "retriever_data"
-                )
-
+            # Use unified output path system
+            self.data_base_path = str(get_states_file("dummy", "retriever_data").parent)
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
 

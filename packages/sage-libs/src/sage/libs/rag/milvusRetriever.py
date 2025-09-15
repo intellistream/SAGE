@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 from sage.core.api.function.map_function import MapFunction
 from sage.libs.utils.milvus import MilvusBackend, MilvusUtils
+from sage.common.config.output_paths import get_states_file
 
 
 # Milvus稠密向量检索
