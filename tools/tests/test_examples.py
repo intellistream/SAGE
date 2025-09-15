@@ -99,6 +99,7 @@ class ExampleInfo:
     requires_data: bool
     estimated_runtime: str  # "quick", "medium", "slow"
     dependencies: List[str]
+    test_tags: List[str]  # 测试标记，从文件注释中提取
 
 
 class ExampleAnalyzer:
@@ -143,6 +144,9 @@ class ExampleAnalyzer:
             # 提取依赖
             dependencies = self._extract_dependencies(imports)
 
+            # 提取测试标记
+            test_tags = self._extract_test_tags(content)
+
             category = self._get_category(file_path)
 
             return ExampleInfo(
@@ -154,6 +158,7 @@ class ExampleAnalyzer:
                 requires_data=requires_data,
                 estimated_runtime=estimated_runtime,
                 dependencies=dependencies,
+                test_tags=test_tags,
             )
 
         except Exception as e:
@@ -268,6 +273,25 @@ class ExampleAnalyzer:
 
         return list(set(external_deps))
 
+    def _extract_test_tags(self, content: str) -> List[str]:
+        """从文件内容中提取测试标记
+        
+        支持的标记格式:
+        # @test:skip - 跳过测试
+        # @test:slow - 标记为慢速测试
+        # @test:require-api - 需要API密钥
+        # @test:interactive - 需要用户交互
+        # @test:unstable - 不稳定的测试
+        # @test:gpu - 需要GPU
+        """
+        import re
+        
+        # 查找所有 @test: 标记
+        pattern = r'#\s*@test:(\w+)'
+        matches = re.findall(pattern, content, re.IGNORECASE)
+        
+        return list(set(matches))
+
     def _get_category(self, file_path: Path) -> str:
         """获取示例类别"""
         relative_path = file_path.relative_to(self.examples_root)
@@ -346,7 +370,7 @@ class ExampleRunner:
                 capture_output=True,
                 text=True,
                 timeout=self.timeout,
-                cwd=self.examples_root,
+                cwd=self.project_root,
                 env=env,
             )
 
