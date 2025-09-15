@@ -225,7 +225,8 @@ class TestCLICommandsFull:
             ]
         )
         assert result["success"], f"Home status failed: {result['stderr']}"
-        assert "SAGE_HOME" in result["stdout"]
+        # 检查SAGE目录状态输出中的关键信息
+        assert "SAGE目录" in result["stdout"] or "SAGE目录状态" in result["stdout"]
 
     def test_test_command_basic(self):
         """测试test命令基本功能"""

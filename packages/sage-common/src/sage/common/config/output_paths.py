@@ -222,6 +222,20 @@ class SageOutputPaths:
         test_dir = self.temp_dir / test_name
         test_dir.mkdir(parents=True, exist_ok=True)
         return test_dir
+
+    def get_test_context_dir(self, context_name: str = "test_context") -> Path:
+        """
+        Get a test context directory path.
+        
+        Args:
+            context_name: Name of the test context
+            
+        Returns:
+            Path to test context directory in .sage/temp/
+        """
+        context_dir = self.temp_dir / context_name
+        context_dir.mkdir(parents=True, exist_ok=True)
+        return context_dir
         
     def get_ray_temp_dir(self) -> Path:
         """Get Ray temporary files directory."""
