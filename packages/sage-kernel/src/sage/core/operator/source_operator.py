@@ -22,11 +22,11 @@ class SourceOperator(BaseOperator):
                 f"Operator {self.name} processed data with result: {result}"
             )
             if result is not None:
-                self.logger.info(
+                self.logger.debug(
                     f"SourceOperator {self.name}: Sending packet with payload: {result}"
                 )
                 success = self.router.send(Packet(result))
-                self.logger.info(f"SourceOperator {self.name}: Send result: {success}")
+                self.logger.debug(f"SourceOperator {self.name}: Send result: {success}")
                 # If sending failed (e.g., queue is closed), stop the task
         except Exception as e:
             self.logger.error(f"Error in {self.name}.process(): {e}", exc_info=True)

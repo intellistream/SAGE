@@ -28,7 +28,27 @@ console = Console()
 
 
 def find_project_root() -> Path:
-    """查找项目根目录（包含examples文件夹的目录）"""
+    """查找项目根目录，使用统一的路径管理"""
+    try:
+        # 尝试导入统一的路径管理
+        import sys
+        import os
+        
+        # 添加sage-common到路径
+        current_dir = Path(__file__).parent
+        sage_common_path = current_dir.parent.parent / "packages" / "sage-common" / "src"
+        if sage_common_path.exists():
+            sys.path.insert(0, str(sage_common_path))
+        
+        from sage.common.config.output_paths import find_project_root as find_sage_root
+        return find_sage_root()
+    except ImportError:
+        # 回退到原来的查找逻辑
+        return _fallback_find_project_root()
+
+
+def _fallback_find_project_root() -> Path:
+    """备用的项目根目录查找逻辑"""
     # 从当前文件开始向上查找
     current = Path(__file__).parent
     while current != current.parent:
@@ -284,14 +304,25 @@ class ExampleAnalyzer:
         # @test:interactive - 需要用户交互
         # @test:unstable - 不稳定的测试
         # @test:gpu - 需要GPU
+        # @test:timeout=120 - 自定义超时时间
+        # @test:category=batch - 自定义类别
         """
         import re
 
         # 查找所有 @test: 标记
-        pattern = r"#\s*@test:(\w+)"
+        pattern = r"#\s*@test:(\w+)(?:=(\w+))?"
         matches = re.findall(pattern, content, re.IGNORECASE)
 
-        return list(set(matches))
+        tags = []
+        for match in matches:
+            if len(match) == 2 and match[1]:
+                # 带值的标记，如 timeout=120
+                tags.append(f"{match[0]}={match[1]}")
+            else:
+                # 简单标记，如 skip
+                tags.append(match[0])
+
+        return list(set(tags))
 
     def _get_category(self, file_path: Path) -> str:
         """获取示例类别"""
@@ -364,13 +395,16 @@ class ExampleRunner:
         # 准备环境
         env = self._prepare_environment(example_info)
 
+        # 确定超时时间
+        test_timeout = self._get_test_timeout(example_info)
+
         try:
             # 执行示例
             result = subprocess.run(
                 [sys.executable, example_info.file_path],
                 capture_output=True,
                 text=True,
-                timeout=self.timeout,
+                timeout=test_timeout,
                 cwd=self.project_root,
                 env=env,
             )
@@ -401,7 +435,7 @@ class ExampleRunner:
                 status="timeout",
                 execution_time=execution_time,
                 output="",
-                error=f"Execution timed out after {self.timeout}s",
+                error=f"Execution timed out after {test_timeout}s",
             )
         except Exception as e:
             execution_time = time.time() - start_time
@@ -413,6 +447,41 @@ class ExampleRunner:
                 output="",
                 error=str(e),
             )
+
+    def _get_test_timeout(self, example_info: ExampleInfo) -> int:
+        """从测试标记中确定超时时间"""
+        # 检查是否有自定义超时标记
+        for tag in example_info.test_tags:
+            if tag.startswith("timeout="):
+                try:
+                    return int(tag.split("=")[1])
+                except (ValueError, IndexError):
+                    pass
+        
+        # 从类别策略中获取超时
+        category = self._get_category_from_tags(example_info.test_tags) or example_info.category
+        
+        # 导入策略类
+        try:
+            from example_strategies import ExampleTestStrategies
+            strategies = ExampleTestStrategies.get_strategies()
+            if category in strategies:
+                return strategies[category].timeout
+        except ImportError:
+            pass
+        
+        # 默认超时
+        return self.timeout
+
+    def _get_category_from_tags(self, test_tags: List[str]) -> Optional[str]:
+        """从测试标记中提取类别"""
+        for tag in test_tags:
+            if tag.startswith("category="):
+                try:
+                    return tag.split("=")[1]
+                except IndexError:
+                    pass
+        return None
 
     def _check_dependencies(self, dependencies: List[str]) -> bool:
         """检查依赖是否满足"""

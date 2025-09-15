@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Any, List, Tuple, Type, Union
 
@@ -158,7 +159,9 @@ class PrintSink(SinkFunction):
         self.prefix = prefix
         self.separator = separator
         self.colored = colored
-
+        self._print_logger = logging.getLogger(__name__)
+        self.first_output = True
+        
     def execute(self, data: Any) -> None:
         """
         智能打印数据，支持多种数据格式
@@ -173,10 +176,13 @@ class PrintSink(SinkFunction):
         else:
             output = formatted_output
 
-        print(output)
+        if self.first_output:
+            print(f"First output: {output}")
+            print("Streaming started! Further outputs are logged. Check logs for detailed stream processing results.")
+            self.first_output = False
 
-        # 记录日志
-        self.logger.info(f"PrintSink output: {formatted_output}")
+        # 输出到日志而不是控制台
+        self._print_logger.debug(f"PrintSink output: {output}")
 
     def _format_data(self, data: Any) -> str:
         """格式化数据为可读字符串"""

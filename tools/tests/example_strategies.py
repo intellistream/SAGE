@@ -143,6 +143,51 @@ class ExampleTestStrategies:
                 ],
                 environment_vars={"SAGE_VIDEO_MODE": "test", "SAGE_LOG_LEVEL": "ERROR"},
             ),
+            "batch": TestStrategy(
+                name="batch",
+                timeout=180,
+                requires_config=False,
+                requires_data=False,
+                success_patterns=[
+                    "batch test completed",
+                    "Batch Processing Tests Summary",
+                    "✅",
+                    "Processing completed",
+                ],
+                failure_patterns=[
+                    "Failed to start",
+                    "Connection refused",
+                    "Timeout",
+                    "Error:",
+                    "Exception:",
+                ],
+                environment_vars={
+                    "SAGE_BATCH_MODE": "test",
+                    "SAGE_LOG_LEVEL": "ERROR",
+                    "SAGE_EXAMPLES_MODE": "test",
+                },
+            ),
+            "streaming": TestStrategy(
+                name="streaming",
+                timeout=120,
+                requires_config=False,
+                requires_data=False,
+                success_patterns=[
+                    "Stream completed",
+                    "Processing finished",
+                    "✅",
+                    "Test completed",
+                ],
+                failure_patterns=[
+                    "Stream failed",
+                    "Connection error",
+                    "Timeout",
+                ],
+                environment_vars={
+                    "SAGE_STREAM_MODE": "test",
+                    "SAGE_LOG_LEVEL": "ERROR",
+                },
+            ),
         }
 
     @staticmethod
@@ -442,9 +487,7 @@ class ExampleTestFilters:
         skip_patterns = [
             "interactive",
             "demo",
-            "gui",
-            "server",
-            "long_running",
+            "gui", 
             "benchmark",
             "stress_test",
         ]
