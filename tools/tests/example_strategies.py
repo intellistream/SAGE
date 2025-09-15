@@ -9,6 +9,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
+# 导入项目根目录查找函数
+from test_examples import find_project_root
+
 
 @dataclass
 class TestStrategy:
@@ -301,15 +304,22 @@ class ExampleEnvironmentManager:
 
     def _get_sage_python_path(self) -> str:
         """获取SAGE的Python路径"""
-        sage_paths = [
-            "/home/shuhao/SAGE/packages/sage/src",
-            "/home/shuhao/SAGE/packages/sage-common/src",
-            "/home/shuhao/SAGE/packages/sage-kernel/src",
-            "/home/shuhao/SAGE/packages/sage-libs/src",
-            "/home/shuhao/SAGE/packages/sage-middleware/src",
-            "/home/shuhao/SAGE/packages/sage-tools/src",
-        ]
-        return ":".join(sage_paths)
+        try:
+            project_root = find_project_root()
+            sage_paths = [
+                str(project_root / "packages" / "sage" / "src"),
+                str(project_root / "packages" / "sage-common" / "src"),
+                str(project_root / "packages" / "sage-kernel" / "src"),
+                str(project_root / "packages" / "sage-libs" / "src"),
+                str(project_root / "packages" / "sage-middleware" / "src"),
+                str(project_root / "packages" / "sage-tools" / "src"),
+            ]
+            return ":".join(sage_paths)
+        except FileNotFoundError:
+            # 如果找不到项目根目录，返回空字符串或抛出错误
+            raise FileNotFoundError(
+                "Cannot find SAGE project root directory for Python path setup"
+            )
 
     def _create_temp_config(self, category: str) -> Path:
         """创建临时配置文件"""
