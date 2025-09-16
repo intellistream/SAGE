@@ -18,6 +18,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
+import pytest
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -28,7 +29,27 @@ console = Console()
 
 
 def find_project_root() -> Path:
-    """查找项目根目录（包含examples文件夹的目录）"""
+    """查找项目根目录，使用统一的路径管理"""
+    try:
+        # 尝试导入统一的路径管理
+        import sys
+        import os
+        
+        # 添加sage-common到路径
+        current_dir = Path(__file__).parent
+        sage_common_path = current_dir.parent.parent / "packages" / "sage-common" / "src"
+        if sage_common_path.exists():
+            sys.path.insert(0, str(sage_common_path))
+        
+        from sage.common.config.output_paths import find_project_root as find_sage_root
+        return find_sage_root()
+    except ImportError:
+        # 回退到原来的查找逻辑
+        return _fallback_find_project_root()
+
+
+def _fallback_find_project_root() -> Path:
+    """备用的项目根目录查找逻辑"""
     # 从当前文件开始向上查找
     current = Path(__file__).parent
     while current != current.parent:
@@ -36,7 +57,7 @@ def find_project_root() -> Path:
         if examples_path.exists() and examples_path.is_dir():
             return current
         current = current.parent
-    
+
     # 如果没找到，尝试从当前工作目录查找
     current = Path.cwd()
     while current != current.parent:
@@ -44,16 +65,17 @@ def find_project_root() -> Path:
         if examples_path.exists() and examples_path.is_dir():
             return current
         current = current.parent
-    
+
     # 尝试通过环境变量获取SAGE根目录
-    sage_root = os.environ.get('SAGE_ROOT')
+    sage_root = os.environ.get("SAGE_ROOT")
     if sage_root:
         sage_root_path = Path(sage_root)
         if (sage_root_path / "examples").exists():
             return sage_root_path
-    
+
     # 最后的备用方案 - 尝试从sys.path中找到sage包的位置
     import sys
+
     for path in sys.path:
         path_obj = Path(path)
         # 查找包含sage包的目录
@@ -62,7 +84,7 @@ def find_project_root() -> Path:
             potential_root = path_obj.parent.parent.parent
             if (potential_root / "examples").exists():
                 return potential_root
-    
+
     # 如果都找不到，抛出详细的错误信息
     raise FileNotFoundError(
         "Cannot find SAGE project root directory. "
@@ -275,7 +297,7 @@ class ExampleAnalyzer:
 
     def _extract_test_tags(self, content: str) -> List[str]:
         """从文件内容中提取测试标记
-        
+
         支持的标记格式:
         # @test:skip - 跳过测试
         # @test:slow - 标记为慢速测试
@@ -283,14 +305,26 @@ class ExampleAnalyzer:
         # @test:interactive - 需要用户交互
         # @test:unstable - 不稳定的测试
         # @test:gpu - 需要GPU
+        # @test:timeout=120 - 自定义超时时间
+        # @test:category=batch - 自定义类别
         """
         import re
-        
-        # 查找所有 @test: 标记
-        pattern = r'#\s*@test:(\w+)'
+
+        # 查找所有 @test: 标记，支持注释和文档字符串中的标记
+        # 匹配 # @test: 或 @test: (可能在文档字符串中)
+        pattern = r"(?:#\s*)?@test:(\w+)(?:=(\w+))?"
         matches = re.findall(pattern, content, re.IGNORECASE)
-        
-        return list(set(matches))
+
+        tags = []
+        for match in matches:
+            if len(match) == 2 and match[1]:
+                # 带值的标记，如 timeout=120
+                tags.append(f"{match[0]}={match[1]}")
+            else:
+                # 简单标记，如 skip
+                tags.append(match[0])
+
+        return list(set(tags))
 
     def _get_category(self, file_path: Path) -> str:
         """获取示例类别"""
@@ -363,13 +397,16 @@ class ExampleRunner:
         # 准备环境
         env = self._prepare_environment(example_info)
 
+        # 确定超时时间
+        test_timeout = self._get_test_timeout(example_info)
+
         try:
             # 执行示例
             result = subprocess.run(
                 [sys.executable, example_info.file_path],
                 capture_output=True,
                 text=True,
-                timeout=self.timeout,
+                timeout=test_timeout,
                 cwd=self.project_root,
                 env=env,
             )
@@ -400,7 +437,7 @@ class ExampleRunner:
                 status="timeout",
                 execution_time=execution_time,
                 output="",
-                error=f"Execution timed out after {self.timeout}s",
+                error=f"Execution timed out after {test_timeout}s",
             )
         except Exception as e:
             execution_time = time.time() - start_time
@@ -412,6 +449,41 @@ class ExampleRunner:
                 output="",
                 error=str(e),
             )
+
+    def _get_test_timeout(self, example_info: ExampleInfo) -> int:
+        """从测试标记中确定超时时间"""
+        # 检查是否有自定义超时标记
+        for tag in example_info.test_tags:
+            if tag.startswith("timeout="):
+                try:
+                    return int(tag.split("=")[1])
+                except (ValueError, IndexError):
+                    pass
+        
+        # 从类别策略中获取超时
+        category = self._get_category_from_tags(example_info.test_tags) or example_info.category
+        
+        # 导入策略类
+        try:
+            from example_strategies import ExampleTestStrategies
+            strategies = ExampleTestStrategies.get_strategies()
+            if category in strategies:
+                return strategies[category].timeout
+        except ImportError:
+            pass
+        
+        # 默认超时
+        return self.timeout
+
+    def _get_category_from_tags(self, test_tags: List[str]) -> Optional[str]:
+        """从测试标记中提取类别"""
+        for tag in test_tags:
+            if tag.startswith("category="):
+                try:
+                    return tag.split("=")[1]
+                except IndexError:
+                    pass
+        return None
 
     def _check_dependencies(self, dependencies: List[str]) -> bool:
         """检查依赖是否满足"""
@@ -486,7 +558,7 @@ class ExampleTestSuite:
         """运行所有测试"""
         # 清理之前的测试结果
         self.results.clear()
-        
+
         console.print("🔍 [bold blue]发现示例文件...[/bold blue]")
         examples = self.analyzer.discover_examples()
 
@@ -625,8 +697,8 @@ class ExampleTestSuite:
 app = typer.Typer(help="SAGE Examples 测试工具")
 
 
-@app.command()
-def test(
+@app.command("test")
+def test_cmd(
     categories: Optional[List[str]] = typer.Option(
         None, "--category", "-c", help="指定测试类别"
     ),
@@ -646,6 +718,27 @@ def test(
     # 设置退出码
     if stats["failed"] > 0 or stats["timeout"] > 0:
         sys.exit(1)
+
+
+def test():
+    """pytest 测试函数 - 轻量级测试，只验证框架能正常工作"""
+    suite = ExampleTestSuite()
+    
+    # 只测试框架的基本功能，不运行所有示例
+    analyzer = suite.analyzer
+    examples = analyzer.discover_examples()
+    
+    # 验证能够发现示例
+    assert len(examples) > 0, "应该能发现至少一个示例文件"
+    
+    # 验证 run_all_tests 方法能正常调用（但不实际运行测试）
+    # 通过传入空的类别列表来避免运行任何测试
+    stats = suite.run_all_tests(categories=["non_existent_category"], quick_only=False)
+    
+    # 验证返回的统计信息格式正确
+    assert isinstance(stats, dict), "统计信息应该是字典格式"
+    expected_keys = {"total", "passed", "failed", "timeout", "skipped"}
+    assert expected_keys.issubset(stats.keys()), f"统计信息应该包含键: {expected_keys}"
 
 
 @app.command()

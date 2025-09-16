@@ -4,6 +4,7 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+from sage.common.config.output_paths import get_states_file
 from sage.core.api.function.map_function import MapFunction
 from sage.libs.utils.chroma import ChromaBackend, ChromaUtils
 from sage.libs.utils.milvus import MilvusBackend, MilvusUtils
@@ -33,16 +34,8 @@ class ChromaRetriever(MapFunction):
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
-                self.data_base_path = os.path.join(
-                    self.ctx.env_base_dir, ".sage_states", "retriever_data"
-                )
-            else:
-                # 使用默认路径
-                self.data_base_path = os.path.join(
-                    os.getcwd(), ".sage_states", "retriever_data"
-                )
-
+            # Use unified output path system
+            self.data_base_path = str(get_states_file("dummy", "retriever_data").parent)
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
 
@@ -966,13 +959,15 @@ class Wiki18FAISSRetriever(MapFunction):
         try:
             import faiss
 
-            # FAISS配置
-            index_path = self.faiss_config.get(
-                "index_path", "./data/wiki18_faiss_index"
-            )
-            documents_path = self.faiss_config.get(
-                "documents_path", "./data/wiki18_documents.json"
-            )
+            # FAISS配置 - 从配置文件读取路径
+            index_path = self.faiss_config.get("index_path")
+            documents_path = self.faiss_config.get("documents_path")
+
+            # 检查必需的配置项
+            if not index_path:
+                raise ValueError("faiss.index_path 配置项是必需的")
+            if not documents_path:
+                raise ValueError("faiss.documents_path 配置项是必需的")
 
             # 尝试加载已有索引
             if os.path.exists(index_path) and os.path.exists(documents_path):

@@ -1,4 +1,5 @@
 import inspect
+import logging
 from typing import Any, Callable, Hashable, List, Optional, Tuple, Type
 
 from sage.core.api.function.base_function import BaseFunction
@@ -8,6 +9,8 @@ from sage.core.api.function.keyby_function import KeyByFunction
 from sage.core.api.function.map_function import MapFunction
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction
+
+logger = logging.getLogger(__name__)
 
 
 class LambdaMapFunction(MapFunction):
@@ -32,12 +35,12 @@ class LambdaFilterFunction(FilterFunction):
     def execute(self, data: Any) -> bool:
         try:
             result = self.lambda_func(data)
-            print(
+            logger.debug(
                 f"🔍 LambdaFilterFunction: lambda_func={self.lambda_func}, data={data}, result={result}"
             )
             return result
         except Exception as e:
-            print(f"❌ LambdaFilterFunction error: {e}, data={data}")
+            logger.error(f"❌ LambdaFilterFunction error: {e}, data={data}")
             return False
 
 

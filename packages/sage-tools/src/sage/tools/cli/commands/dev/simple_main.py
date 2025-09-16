@@ -835,47 +835,79 @@ def test(
 @app.command()
 def home(
     action: str = typer.Argument(..., help="操作: init, clean, status"),
-    path: str = typer.Option("", help="SAGE_HOME路径"),
+    path: str = typer.Option("", help="SAGE目录路径"),
 ):
-    """管理SAGE_HOME目录"""
+    """管理SAGE目录"""
     try:
-        from sage.tools.dev.utils.sage_home_manager import SAGEHomeManager
+        from sage.common.config.output_paths import get_sage_paths, initialize_sage_paths
 
-        manager = SAGEHomeManager()
+        # 使用统一的路径系统
+        if path:
+            sage_paths = get_sage_paths(path)
+        else:
+            sage_paths = get_sage_paths()
 
         if action == "init":
-            from pathlib import Path
-
-            result = manager.setup_sage_home("." if not path else path)
-            if result.get("status") == "success":
-                console.print("[green]✅ SAGE_HOME 初始化完成[/green]")
-            else:
-                console.print(
-                    f"[yellow]⚠️ SAGE_HOME 初始化: {result.get('message', 'Unknown result')}[/yellow]"
-                )
+            # 初始化SAGE路径和环境
+            initialize_sage_paths(path if path else None)
+            console.print("[green]✅ SAGE目录初始化完成[/green]")
+            console.print(f"  📁 SAGE目录: {sage_paths.sage_dir}")
+            console.print(f"  📊 项目根目录: {sage_paths.project_root}")
+            console.print(f"  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}")
+            
         elif action == "clean":
-            result = manager.clean_logs()
-            console.print(
-                f"[green]✅ SAGE_HOME 清理完成: 删除了 {result.get('files_removed', 0)} 个文件[/green]"
-            )
+            # 清理旧日志文件
+            import time
+            from pathlib import Path
+            
+            logs_dir = sage_paths.logs_dir
+            if not logs_dir.exists():
+                console.print("[yellow]⚠️ 日志目录不存在[/yellow]")
+                return
+                
+            current_time = time.time()
+            cutoff_time = current_time - (7 * 24 * 60 * 60)  # 7天前
+            
+            files_removed = 0
+            for log_file in logs_dir.glob("*.log"):
+                if log_file.stat().st_mtime < cutoff_time:
+                    log_file.unlink()
+                    files_removed += 1
+                    
+            console.print(f"[green]✅ 清理完成: 删除了 {files_removed} 个旧日志文件[/green]")
+            
         elif action == "status":
-            status = manager.check_sage_home()
-            console.print("🏠 SAGE_HOME 状态:")
-            console.print(f"  📁 路径: {status['sage_home_path']}")
-            console.print(f"  ✅ 存在: {'是' if status['sage_home_exists'] else '否'}")
-            console.print(
-                f"  📂 日志目录: {'存在' if status['logs_dir_exists'] else '不存在'}"
-            )
-            if status["logs_dir_exists"]:
-                console.print(f"  📊 日志大小: {status['logs_dir_size']} 字节")
-                console.print(f"  📄 日志文件数: {status['log_files_count']}")
+            console.print("🏠 SAGE目录状态:")
+            console.print(f"  📁 SAGE目录: {sage_paths.sage_dir}")
+            console.print(f"  ✅ 存在: {'是' if sage_paths.sage_dir.exists() else '否'}")
+            console.print(f"  📊 项目根目录: {sage_paths.project_root}")
+            console.print(f"  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}")
+            
+            # 显示各个子目录状态
+            subdirs = [
+                ("logs", sage_paths.logs_dir),
+                ("output", sage_paths.output_dir), 
+                ("temp", sage_paths.temp_dir),
+                ("cache", sage_paths.cache_dir),
+                ("reports", sage_paths.reports_dir),
+            ]
+            
+            for name, path in subdirs:
+                status = "存在" if path.exists() else "不存在"
+                if path.exists():
+                    size = sum(f.stat().st_size for f in path.rglob('*') if f.is_file())
+                    file_count = len(list(path.rglob('*')))
+                    console.print(f"  � {name}: {status} ({file_count} 个文件, {size} 字节)")
+                else:
+                    console.print(f"  � {name}: {status}")
+                    
         else:
             console.print(f"[red]不支持的操作: {action}[/red]")
             console.print("支持的操作: init, clean, status")
             raise typer.Exit(1)
 
     except Exception as e:
-        console.print(f"[red]SAGE_HOME操作失败: {e}[/red]")
+        console.print(f"[red]SAGE目录操作失败: {e}[/red]")
         import traceback
 
         console.print(f"[red]详细错误:\n{traceback.format_exc()}[/red]")

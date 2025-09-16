@@ -132,7 +132,7 @@ class JoinOperator(BaseOperator):
             # 处理来自不同调用方式的参数
             if signal is not None:
                 # 来自 task_context 的调用，signal 是 StopSignal 对象
-                from sage.core.communication.stop_signal import StopSignal
+                from sage.kernel.runtime.communication.router.packet import StopSignal
 
                 if isinstance(signal, StopSignal):
                     signal_name = signal.name
@@ -170,22 +170,18 @@ class JoinOperator(BaseOperator):
                         source_signals.add(sig)
                 else:
                     # StopSignal object
-                    from sage.core.communication.stop_signal import StopSignal
+                    from sage.kernel.runtime.communication.router.packet import StopSignal
 
                     if isinstance(sig, StopSignal) and (
                         "Source" in sig.name or sig.name.startswith("Source")
                     ):
                         source_signals.add(sig.name)
 
-            # 动态确定期望的源数量，基于当前接收到的不同源信号
-            # 如果至少有一个源信号，我们期望至少有2个源（因为这是Join操作）
-            # 但如果我们从配置或其他地方能得到准确的数量，应该使用那个数量
-            if len(source_signals) > 0:
-                expected_sources = max(2, len(source_signals))  # 至少期望2个源
-            else:
-                expected_sources = 2  # 默认对于双流Join，期望2个源
+            # 对于双流Join，固定期望2个源的停止信号
+            # 这里不使用动态判断，避免循环依赖问题
+            expected_sources = 2  # Join操作固定期望2个源
 
-            self.logger.debug(
+            self.logger.info(
                 f"JoinOperator '{self.name}' stop signal status: "
                 f"{len(source_signals)}/{expected_sources} source signals "
                 f"(source signals: {list(source_signals)}, all signals: {list(self.received_stop_signals)})"
@@ -197,13 +193,25 @@ class JoinOperator(BaseOperator):
                     f"propagating stop signal downstream"
                 )
 
-                # 所有源流都停止了，向下游传播停止信号
-                from sage.core.communication.stop_signal import StopSignal
+                # 所有源流都停止了，先通知JobManager该节点完成
+                self.logger.info(
+                    f"JoinOperator '{self.name}' notifying JobManager of completion"
+                )
+                self.ctx.send_stop_signal_back(self.name)
+
+                # 然后向下游传播停止信号
+                from sage.kernel.runtime.communication.router.packet import StopSignal
 
                 stop_signal = StopSignal(self.name)
+                self.logger.info(
+                    f"JoinOperator '{self.name}' sending stop signal to downstream"
+                )
                 self.router.send_stop_signal(stop_signal)
 
                 # 通知context停止
+                self.logger.info(
+                    f"JoinOperator '{self.name}' setting context stop signal"
+                )
                 self.ctx.set_stop_signal()
             else:
                 self.logger.info(

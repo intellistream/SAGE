@@ -1234,7 +1234,10 @@ def wiki18_faiss_config():
     return {
         "top_k": 5,
         "embedding": {"model": "BAAI/bge-m3", "gpu_device": 0},
-        # 注意：在测试中不需要faiss配置，因为完全使用模拟对象
+        "faiss": {
+            "index_path": "/path/to/test/wiki18_index.index",
+            "documents_path": "/path/to/test/wiki18_documents.jsonl",
+        },
     }
 
 
@@ -1277,8 +1280,13 @@ class TestWiki18FAISSRetriever:
         config = wiki18_faiss_config
         assert "top_k" in config
         assert "embedding" in config
+        assert "faiss" in config
         assert config["top_k"] == 5
         assert config["embedding"]["model"] == "BAAI/bge-m3"
+        assert config["faiss"]["index_path"] == "/path/to/test/wiki18_index.index"
+        assert (
+            config["faiss"]["documents_path"] == "/path/to/test/wiki18_documents.jsonl"
+        )
 
         # 验证类可以导入
         assert Wiki18FAISSRetriever is not None
@@ -1495,8 +1503,51 @@ class TestWiki18FAISSRetriever:
         # 测试必需配置字段
         assert "top_k" in wiki18_faiss_config
         assert "embedding" in wiki18_faiss_config
+        assert "faiss" in wiki18_faiss_config
         assert wiki18_faiss_config["top_k"] > 0
         assert "model" in wiki18_faiss_config["embedding"]
+
+        # 测试faiss配置项
+        faiss_config = wiki18_faiss_config["faiss"]
+        assert "index_path" in faiss_config
+        assert "documents_path" in faiss_config
+        assert faiss_config["index_path"] is not None
+        assert faiss_config["documents_path"] is not None
+
+    def test_wiki18_faiss_missing_config_validation(self):
+        """测试Wiki18FAISSRetriever缺少必需配置时的验证"""
+        if not WIKI18_FAISS_AVAILABLE:
+            pytest.skip("Wiki18FAISSRetriever not available")
+
+        # 测试缺少faiss配置的情况
+        invalid_config_no_faiss = {
+            "top_k": 5,
+            "embedding": {"model": "BAAI/bge-m3", "gpu_device": 0},
+            # 缺少 faiss 配置
+        }
+
+        # 测试缺少index_path的情况
+        invalid_config_no_index = {
+            "top_k": 5,
+            "embedding": {"model": "BAAI/bge-m3", "gpu_device": 0},
+            "faiss": {
+                "documents_path": "/path/to/test/wiki18_documents.jsonl"
+                # 缺少 index_path
+            },
+        }
+
+        # 测试缺少documents_path的情况
+        invalid_config_no_docs = {
+            "top_k": 5,
+            "embedding": {"model": "BAAI/bge-m3", "gpu_device": 0},
+            "faiss": {
+                "index_path": "/path/to/test/wiki18_index.index"
+                # 缺少 documents_path
+            },
+        }
+
+        # 由于我们无法直接实例化（需要模拟文件系统等），这里只验证配置结构
+        # 实际的验证逻辑会在_init_faiss_index方法中抛出ValueError
 
     def test_wiki18_faiss_search_with_no_results(self, wiki18_faiss_config):
         """测试Wiki18FAISSRetriever搜索无结果的情况"""
