@@ -7,11 +7,11 @@ set -e
 
 # 获取脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # 引入工具模块
-source "$SCRIPT_DIR/logging.sh"
-source "$SCRIPT_DIR/common_utils.sh"
+source "../utils/logging.sh"
+source "../utils/common_utils.sh"
 
 # 显示使用说明
 show_usage() {
