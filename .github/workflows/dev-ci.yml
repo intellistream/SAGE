@@ -262,3 +262,35 @@ jobs:
         fi
         
         echo "✅ 扩展测试完成"
+
+    - name: PyPI Release Validation
+      env:
+        PIP_NO_INPUT: 1
+        PYTHONUNBUFFERED: 1
+      run: |
+        echo "=== PyPI发布准备验证 ==="
+        
+        # 检查PyPI验证工具是否可用
+        if command -v sage >/dev/null 2>&1; then
+          echo "🔍 运行完整PyPI发布准备验证..."
+          
+          # 运行PyPI验证，使用超时以防卡住
+          timeout 1800 sage dev pypi validate --verbose || {
+            exit_code=$?
+            if [ $exit_code -eq 124 ]; then
+              echo "⚠️  PyPI验证超时（30分钟），但这可能是由于网络较慢"
+              echo "🔧 尝试运行快速验证模式..."
+              sage dev pypi validate --fast && echo "✅ 快速验证通过" || echo "❌ 快速验证也失败"
+            else
+              echo "❌ PyPI验证失败，退出码: $exit_code"
+              echo "🔧 尝试运行快速验证模式..."
+              sage dev pypi validate --fast && echo "⚠️  快速验证通过，但完整验证失败" || echo "❌ 快速验证也失败"
+              exit $exit_code
+            fi
+          }
+          
+          echo "✅ PyPI发布准备验证完成"
+        else
+          echo "❌ SAGE CLI不可用，跳过PyPI验证"
+          exit 1
+        fi

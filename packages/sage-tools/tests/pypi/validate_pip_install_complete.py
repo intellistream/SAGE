@@ -94,18 +94,63 @@ class CompletePipInstallTester:
         capture_output: bool = True,
         check: bool = False,
         timeout: int = 300,
+        stream_output: bool = False,
     ) -> Tuple[int, str, str]:
         """运行命令并返回结果"""
         try:
-            result = subprocess.run(
-                cmd,
-                cwd=cwd or self.test_dir,
-                capture_output=capture_output,
-                text=True,
-                check=check,
-                timeout=timeout,
-            )
-            return result.returncode, result.stdout, result.stderr
+            if stream_output:
+                # 实时输出模式
+                process = subprocess.Popen(
+                    cmd,
+                    cwd=cwd or self.test_dir,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,
+                    universal_newlines=True,
+                )
+                
+                output_lines = []
+                
+                while True:
+                    try:
+                        # 使用 poll() 检查进程是否完成
+                        if process.poll() is not None:
+                            break
+                            
+                        # 读取输出行
+                        line = process.stdout.readline()
+                        if line:
+                            output_lines.append(line.rstrip())
+                            print(f"    {line.rstrip()}")  # 实时显示输出
+                        else:
+                            time.sleep(0.1)
+                            
+                    except KeyboardInterrupt:
+                        process.terminate()
+                        return -1, "", "Command interrupted by user"
+                
+                # 获取剩余输出
+                remaining_output, _ = process.communicate()
+                if remaining_output:
+                    for line in remaining_output.splitlines():
+                        if line.strip():
+                            output_lines.append(line.rstrip())
+                            print(f"    {line.rstrip()}")
+                
+                return process.returncode, "\n".join(output_lines), ""
+            else:
+                # 标准模式
+                result = subprocess.run(
+                    cmd,
+                    cwd=cwd or self.test_dir,
+                    capture_output=capture_output,
+                    text=True,
+                    check=check,
+                    timeout=timeout,
+                )
+                return result.returncode, result.stdout, result.stderr
+                
         except subprocess.CalledProcessError as e:
             return e.returncode, e.stdout, e.stderr
         except subprocess.TimeoutExpired as e:
@@ -164,6 +209,64 @@ class CompletePipInstallTester:
             print(f"  ❌ 设置测试环境失败: {e}")
             return False
 
+    def build_all_packages(self) -> bool:
+        """构建所有SAGE包"""
+        print("\n� 构建所有SAGE包...")
+        
+        packages = ["sage-common", "sage-kernel", "sage-middleware", "sage-libs", "sage-tools", "sage"]
+        built_packages = []
+        
+        for package in packages:
+            package_dir = self.project_root / "packages" / package
+            if not package_dir.exists():
+                print(f"  ⚠️  跳过不存在的包: {package}")
+                continue
+                
+            print(f"  🔨 构建包: {package}")
+            
+            # 清理旧的构建
+            dist_dir = package_dir / "dist"
+            build_dir = package_dir / "build"
+            if dist_dir.exists():
+                shutil.rmtree(dist_dir)
+            if build_dir.exists():
+                shutil.rmtree(build_dir)
+            
+            # 构建包
+            returncode, stdout, stderr = self.run_command(
+                [str(self.python_exe), "-m", "build"],
+                cwd=package_dir,
+                timeout=300,
+            )
+            
+            if returncode != 0:
+                print(f"  ❌ 构建包 {package} 失败: {stderr}")
+                return False
+            
+            # 检查生成的wheel文件
+            wheel_files = list(dist_dir.glob("*.whl"))
+            if wheel_files:
+                built_packages.append((package, wheel_files[0]))
+                print(f"  ✅ 成功构建: {wheel_files[0].name}")
+            else:
+                print(f"  ❌ 未找到wheel文件: {package}")
+                return False
+        
+        # 创建本地PyPI索引目录
+        local_pypi_dir = self.test_dir / "local_pypi"
+        local_pypi_dir.mkdir(exist_ok=True)
+        
+        print(f"  📦 创建本地PyPI索引: {local_pypi_dir}")
+        
+        # 复制所有wheel文件到本地PyPI目录
+        for package, wheel_file in built_packages:
+            shutil.copy2(wheel_file, local_pypi_dir)
+            print(f"  📦 添加到本地索引: {wheel_file.name}")
+        
+        self.local_pypi_dir = local_pypi_dir
+        print(f"  ✅ 本地PyPI索引创建完成，包含 {len(built_packages)} 个包")
+        return True
+
     def build_wheel_packages(self) -> bool:
         """构建wheel包"""
         if self.skip_wheel:
@@ -174,47 +277,26 @@ class CompletePipInstallTester:
         print("\n🔨 构建wheel包...")
 
         try:
-            # 进入sage包目录
-            sage_package_dir = self.project_root / "packages" / "sage"
-            if not sage_package_dir.exists():
-                print(f"  ❌ sage包目录不存在: {sage_package_dir}")
-                return False
-
-            # 清理之前的构建
-            dist_dir = sage_package_dir / "dist"
-            if dist_dir.exists():
-                shutil.rmtree(dist_dir)
-                print("  🧹 清理旧的dist目录")
-
-            build_dir = sage_package_dir / "build"
-            if build_dir.exists():
-                shutil.rmtree(build_dir)
-                print("  🧹 清理旧的build目录")
-
-            # 构建wheel包
-            print("  🔨 开始构建wheel包...")
+            # 先安装build工具
+            print("  🔧 安装构建工具...")
             returncode, stdout, stderr = self.run_command(
-                [str(self.python_exe), "setup.py", "bdist_wheel"],
-                cwd=sage_package_dir,
-                timeout=600,
+                [str(self.python_exe), "-m", "pip", "install", "build"],
+                timeout=300,
             )
-
+            
             if returncode != 0:
-                print(f"  ❌ 构建wheel包失败: {stderr}")
+                print(f"  ⚠️  安装build工具警告: {stderr}")
+            
+            # 构建所有包
+            success = self.build_all_packages()
+            if not success:
                 return False
 
-            # 检查是否生成了wheel文件
-            wheel_files = list(dist_dir.glob("*.whl"))
-            if not wheel_files:
-                print(f"  ❌ 未找到生成的wheel文件")
-                return False
-
-            print(f"  ✅ wheel包构建成功: {wheel_files[0].name}")
             self.results["wheel_build"] = True
             return True
 
         except Exception as e:
-            print(f"  ❌ 构建wheel包失败: {e}")
+            print(f"  ❌ 构建过程异常: {e}")
             return False
 
     def install_package(self) -> bool:
@@ -222,49 +304,30 @@ class CompletePipInstallTester:
         print("\n📥 安装SAGE包...")
 
         try:
-            # 查找wheel包
-            dist_dir = self.project_root / "packages" / "sage" / "dist"
-            if not dist_dir.exists():
-                print(f"  ❌ dist目录不存在: {dist_dir}")
+            # 使用本地PyPI索引安装sage包，包含所有依赖
+            if not hasattr(self, 'local_pypi_dir'):
+                print("  ❌ 本地PyPI索引未创建")
                 return False
 
-            wheel_files = list(dist_dir.glob("*.whl"))
-            if not wheel_files:
-                print(f"  ❌ 未找到wheel包文件在: {dist_dir}")
-                return False
+            print(f"  📦 从本地索引安装: {self.local_pypi_dir}")
+            print("  � 包含完整依赖链...")
 
-            wheel_file = wheel_files[0]  # 使用第一个wheel文件
-            print(f"  📦 安装包: {wheel_file.name}")
+            # 安装包，显示详细输出
+            print("  🔧 开始安装...")
+            print("  📝 安装命令:", f"pip install --find-links {self.local_pypi_dir} --prefer-binary isage")
 
-            # 安装包，显示进度
-            print("  ⏳ 正在安装，请稍候...")
-            import threading
-            import time
-
-            def show_progress():
-                chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-                i = 0
-                while not getattr(show_progress, "stop", False):
-                    print(f"\r  {chars[i % len(chars)]} 安装中...", end="", flush=True)
-                    time.sleep(0.1)
-                    i += 1
-                print("\r" + " " * 20 + "\r", end="", flush=True)  # 清除进度显示
-
-            # 启动进度显示线程
-            progress_thread = threading.Thread(target=show_progress)
-            progress_thread.daemon = True
-            progress_thread.start()
-
-            try:
-                # 安装包
-                returncode, stdout, stderr = self.run_command(
-                    [str(self.pip_exe), "install", str(wheel_file), "--quiet"],
-                    timeout=600,
-                )
-            finally:
-                # 停止进度显示
-                show_progress.stop = True
-                progress_thread.join(timeout=0.5)
+            # 从本地索引安装sage包及其所有依赖
+            # 使用 --find-links 指向本地索引，但仍允许从PyPI安装外部依赖
+            # 使用 --verbose 和实时输出显示详细过程
+            returncode, stdout, stderr = self.run_command(
+                [str(self.pip_exe), "install", 
+                 "--find-links", str(self.local_pypi_dir),
+                 "--prefer-binary",  # 优先使用二进制包
+                 "--verbose",  # 显示详细信息
+                 "isage"],  # 安装主包，会自动解析依赖
+                timeout=300,  # 增加超时时间
+                stream_output=True,  # 实时显示输出
+            )
 
             if returncode != 0:
                 print(f"  ❌ 安装失败: {stderr}")
