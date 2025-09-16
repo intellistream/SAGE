@@ -183,7 +183,7 @@ Repository = "https://github.com/intellistream/SAGE.git"
 sage = "sage.tools.cli.main:app"
 
 # 开发工具 - 独立功能，开发者专用
-sage-dev = "sage.tools.dev.cli:cli"
+sage-dev = "sage.tools.cli.commands.dev:app"
 
 # 移除的命令（功能已合并到sage主命令）:
 # - sage-cli: 与sage重复
