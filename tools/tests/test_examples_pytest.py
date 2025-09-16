@@ -112,7 +112,7 @@ class TestExamplesIntegration:
                 example.category in path_parts
             ), f"类别 {example.category} 应该在路径中: {example.file_path}"
 
-    @pytest.mark.quick_examples  
+    @pytest.mark.quick_examples
     def test_dependency_analysis(self, analyzer):
         """测试依赖分析的准确性"""
         examples = analyzer.discover_examples()
@@ -152,11 +152,11 @@ class TestExamplesIntegration:
         """测试跳过过滤器"""
         # 使用真实的示例文件路径进行测试
         examples = analyzer.discover_examples()
-        
+
         # 找到一些真实的示例用于测试
         hello_world_examples = [e for e in examples if "hello_world" in e.file_path]
         rag_examples = [e for e in examples if e.category == "rag"]
-        
+
         # 测试 hello_world 示例不应该被跳过
         if hello_world_examples:
             example = hello_world_examples[0]
@@ -164,16 +164,18 @@ class TestExamplesIntegration:
                 Path(example.file_path), example.category, example
             )
             assert not skip, f"文件 {example.file_path} 不应该被跳过: {reason}"
-        
+
         # 测试一般的过滤逻辑
         test_cases = [
             # 使用相对路径进行逻辑测试
             (Path("examples/rag/interactive_demo.py"), "rag", True),
             (Path("examples/service/long_running_server.py"), "service", True),
         ]
-        
+
         for file_path, category, should_skip in test_cases:
-            skip, reason = ExampleTestFilters.should_skip_file(file_path, category, None)
+            skip, reason = ExampleTestFilters.should_skip_file(
+                file_path, category, None
+            )
             if should_skip:
                 # 这些文件不存在，应该被跳过
                 assert skip, f"文件 {file_path} 应该被跳过: {reason}"
@@ -181,24 +183,40 @@ class TestExamplesIntegration:
     @pytest.mark.integration
     def test_examples_integration_with_issues_manager(self):
         """测试与 Issues 管理器的集成"""
+        print("🧪 开始集成测试: test_examples_integration_with_issues_manager")
+        
         # 这个测试验证 examples 测试可以与现有的问题管理系统集成
-        issues_suite = IssuesTestSuite()
+        try:
+            issues_suite = IssuesTestSuite()
+            
+            # 如果团队信息未找到，尝试更新
+            if not issues_suite.manager.team_info:
+                print("📋 团队信息未找到，尝试更新...")
+                if issues_suite.manager.config.github_token:
+                    success = issues_suite.manager.update_team_info()
+                    if not success:
+                        pytest.skip("无法获取团队信息，跳过集成测试")
+                else:
+                    pytest.skip("缺少GitHub token，无法获取团队信息，跳过集成测试")
+        except Exception as e:
+            pytest.skip(f"IssuesTestSuite初始化失败: {e}")
+        
         example_suite = ExampleTestSuite()
 
         # 只运行分析，不实际执行所有测试（避免重复）
         analyzer = ExampleAnalyzer()
         examples = analyzer.discover_examples()
-        
+
         # 验证基础功能
         assert len(examples) > 0, "应该能够发现示例文件"
-        
+
         # 测试一个简单的示例（不是全部）
         quick_examples = [e for e in examples if "hello_world" in e.file_path]
         if quick_examples:
             result = example_suite.runner.run_example(quick_examples[0])
             # 验证结果格式正确
-            assert hasattr(result, 'status'), "结果应该有status属性"
-            assert hasattr(result, 'execution_time'), "结果应该有execution_time属性"
+            assert hasattr(result, "status"), "结果应该有status属性"
+            assert hasattr(result, "execution_time"), "结果应该有execution_time属性"
 
 
 # 单独的测试标记

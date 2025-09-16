@@ -1,5 +1,26 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+SAGE 本地批处理测试示例
+@test:timeout=120
+@test:category=batch
+"""
+
+import os
 import random
 import time
+import logging
+
+# 设置日志级别为ERROR减少输出
+os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
+
+# 配置 Python 日志系统
+logging.basicConfig(level=logging.ERROR)
+for logger_name in ["sage", "JobManager", "ray", "asyncio", "urllib3"]:
+    logging.getLogger(logger_name).setLevel(logging.ERROR)
+
+# 禁用所有INFO级别的日志
+logging.getLogger().setLevel(logging.ERROR)
 
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction

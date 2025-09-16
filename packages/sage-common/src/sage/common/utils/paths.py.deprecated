@@ -1,0 +1,181 @@
+"""
+SAGE 路径管理 - 支持pip安装和开发环境
+
+这个模块提供智能的路径管理，自动适应不同的使用场景：
+1. 开发环境：使用项目根目录的 .sage/
+2. pip安装：使用用户home目录的 ~/.sage/
+3. 测试环境：可以通过环境变量覆盖
+"""
+
+import os
+from pathlib import Path
+from typing import Optional
+
+
+def get_sage_output_dir() -> Path:
+    """
+    获取SAGE输出目录，自动适应不同环境
+    
+    优先级：
+    1. 环境变量 SAGE_OUTPUT_DIR
+    2. 如果在开发环境（存在packages/目录），使用 project_root/.sage/
+    3. 否则使用 ~/.sage/
+    
+    Returns:
+        Path: SAGE输出目录路径
+    """
+    # 1. 检查环境变量
+    env_dir = os.environ.get("SAGE_OUTPUT_DIR")
+    if env_dir:
+        sage_dir = Path(env_dir)
+        sage_dir.mkdir(parents=True, exist_ok=True)
+        return sage_dir
+    
+    # 2. 检查是否在开发环境中
+    current_dir = Path.cwd()
+    project_root = find_project_root(current_dir)
+    
+    if project_root:
+        # 开发环境：使用项目本地的 .sage/ 目录
+        sage_dir = project_root / ".sage"
+    else:
+        # pip安装环境：使用用户home目录
+        sage_dir = Path.home() / ".sage"
+    
+    # 确保目录存在
+    sage_dir.mkdir(parents=True, exist_ok=True)
+    
+    # 创建必要的子目录
+    for subdir in ["logs", "reports", "temp", "cache", "coverage", "benchmarks"]:
+        (sage_dir / subdir).mkdir(exist_ok=True)
+    
+    return sage_dir
+
+
+def find_project_root(start_path: Path) -> Optional[Path]:
+    """
+    从给定路径向上查找SAGE项目根目录
+    
+    通过查找特征目录/文件来识别SAGE项目根目录：
+    - packages/ 目录存在
+    - _version.py 文件存在
+    - pyproject.toml 中包含 sage 相关内容
+    
+    Args:
+        start_path: 开始查找的路径
+        
+    Returns:
+        Optional[Path]: 项目根目录路径，如果未找到则返回None
+    """
+    current = start_path.resolve()
+    
+    # 向上查找，最多查找5层
+    for _ in range(5):
+        # 检查是否是SAGE项目根目录
+        if is_sage_project_root(current):
+            return current
+        
+        parent = current.parent
+        if parent == current:  # 达到文件系统根目录
+            break
+        current = parent
+    
+    return None
+
+
+def is_sage_project_root(path: Path) -> bool:
+    """
+    检查给定路径是否是SAGE项目根目录
+    
+    Args:
+        path: 要检查的路径
+        
+    Returns:
+        bool: 是否是SAGE项目根目录
+    """
+    # 检查packages目录
+    if not (path / "packages").is_dir():
+        return False
+    
+    # 检查_version.py文件
+    if not (path / "_version.py").is_file():
+        return False
+    
+    # 可选：检查pyproject.toml中的项目信息
+    pyproject_file = path / "pyproject.toml"
+    if pyproject_file.is_file():
+        try:
+            content = pyproject_file.read_text(encoding='utf-8')
+            if "sage" in content.lower():
+                return True
+        except Exception:
+            pass
+    
+    return True
+
+
+def get_sage_logs_dir() -> Path:
+    """获取SAGE日志目录"""
+    return get_sage_output_dir() / "logs"
+
+
+def get_sage_reports_dir() -> Path:
+    """获取SAGE报告目录"""
+    return get_sage_output_dir() / "reports"
+
+
+def get_sage_temp_dir() -> Path:
+    """获取SAGE临时文件目录"""
+    return get_sage_output_dir() / "temp"
+
+
+def get_sage_cache_dir() -> Path:
+    """获取SAGE缓存目录"""
+    return get_sage_output_dir() / "cache"
+
+
+def get_sage_coverage_dir() -> Path:
+    """获取SAGE覆盖率报告目录"""
+    return get_sage_output_dir() / "coverage"
+
+
+def get_sage_benchmarks_dir() -> Path:
+    """获取SAGE基准测试结果目录"""
+    return get_sage_output_dir() / "benchmarks"
+
+
+def get_ray_temp_dir() -> Path:
+    """获取Ray临时文件目录"""
+    ray_dir = get_sage_temp_dir() / "ray"
+    ray_dir.mkdir(parents=True, exist_ok=True)
+    return ray_dir
+
+
+def setup_environment_for_sage():
+    """
+    为SAGE设置环境变量
+    
+    这个函数会设置必要的环境变量，确保各种工具使用正确的路径
+    """
+    sage_output_dir = get_sage_output_dir()
+    
+    # 设置环境变量
+    os.environ["SAGE_OUTPUT_DIR"] = str(sage_output_dir)
+    os.environ["SAGE_LOGS_DIR"] = str(get_sage_logs_dir())
+    os.environ["SAGE_TEMP_DIR"] = str(get_sage_temp_dir())
+    
+    # 为Ray设置临时目录
+    ray_temp_dir = get_ray_temp_dir()
+    os.environ["RAY_TMPDIR"] = str(ray_temp_dir)
+    
+    return {
+        "sage_output_dir": sage_output_dir,
+        "logs_dir": get_sage_logs_dir(),
+        "temp_dir": get_sage_temp_dir(),
+        "ray_temp_dir": ray_temp_dir,
+    }
+
+
+# 自动设置环境
+if not os.environ.get("SAGE_OUTPUT_DIR"):
+    setup_environment_for_sage()

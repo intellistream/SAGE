@@ -37,6 +37,18 @@ install_core_packages() {
     echo "安装模式: 核心包安装" >> "$log_file"
     echo "========================================" >> "$log_file"
     
+    # 清理 pip 缓存以避免安装问题
+    echo -e "${INFO} 清理 pip 缓存..."
+    echo "$(date): 开始清理 pip 缓存" >> "$log_file"
+    if command -v python3 &> /dev/null; then
+        python3 -m pip cache purge 2>&1 | tee -a "$log_file" || echo "清理缓存失败，继续安装..." | tee -a "$log_file"
+        echo "$(date): pip 缓存清理完成" >> "$log_file"
+    else
+        echo -e "${WARNING} 未找到 python3，跳过 pip 缓存清理"
+        echo "$(date): 未找到 python3，跳过 pip 缓存清理" >> "$log_file"
+    fi
+    echo "" >> "$log_file"
+    
     echo -e "${INFO} 安装核心 SAGE 包..."
     echo -e "${DIM}安装日志将保存到: $log_file${NC}"
     echo ""

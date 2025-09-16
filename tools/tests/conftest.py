@@ -56,31 +56,31 @@ def pytest_runtest_setup(item):
         # CI环境：只记录时间，不输出开始信息
         item._example_start_time = time.time()
         return
-    
+
     example_name = "unknown"
     test_type = "测试"
-    
+
     if "test_individual_example" in item.nodeid:
         test_type = "示例"
-        if hasattr(item, 'callspec') and 'example_file' in item.callspec.params:
-            example_file = item.callspec.params['example_file']
-            if hasattr(example_file, 'file_path'):
+        if hasattr(item, "callspec") and "example_file" in item.callspec.params:
+            example_file = item.callspec.params["example_file"]
+            if hasattr(example_file, "file_path"):
                 example_name = Path(example_file.file_path).name
     else:
         # 其他类型的测试
         test_type = "集成测试"
         example_name = item.name
-    
+
     print(f"\n🧪 开始{test_type}: {example_name}")
     item._example_start_time = time.time()
 
 
-@pytest.hookimpl(trylast=True)  
+@pytest.hookimpl(trylast=True)
 def pytest_runtest_teardown(item, nextitem):
     """测试结束后的hook"""
-    if hasattr(item, '_example_start_time'):
+    if hasattr(item, "_example_start_time"):
         duration = time.time() - item._example_start_time
-        
+
         # 在CI环境中减少输出
         if os.environ.get("CI") == "true":
             # CI环境：只在测试失败或超过10秒时输出
@@ -88,10 +88,10 @@ def pytest_runtest_teardown(item, nextitem):
                 example_name = _get_example_name(item)
                 print(f"🐌 {example_name} 耗时较长 ({duration:.2f}s)")
             return
-        
+
         example_name = _get_example_name(item)
         test_type = _get_test_type(item)
-        
+
         # 根据时间长短显示不同的状态图标
         if duration < 0.5:
             status_icon = "⚡"  # 非常快
@@ -100,21 +100,21 @@ def pytest_runtest_teardown(item, nextitem):
             status_icon = "✅"  # 正常
             time_desc = "正常"
         elif duration < 10.0:
-            status_icon = "⏱️"   # 较慢
+            status_icon = "⏱️"  # 较慢
             time_desc = "较慢"
         else:
             status_icon = "🐌"  # 很慢
             time_desc = "很慢"
-            
+
         print(f"{status_icon} {example_name} 完成 ({duration:.2f}s) - {time_desc}")
 
 
 def _get_example_name(item):
     """获取示例名称"""
     if "test_individual_example" in item.nodeid:
-        if hasattr(item, 'callspec') and 'example_file' in item.callspec.params:
-            example_file = item.callspec.params['example_file']
-            if hasattr(example_file, 'file_path'):
+        if hasattr(item, "callspec") and "example_file" in item.callspec.params:
+            example_file = item.callspec.params["example_file"]
+            if hasattr(example_file, "file_path"):
                 return Path(example_file.file_path).name
     return item.name
 
@@ -134,10 +134,10 @@ def pytest_runtest_logreport(report):
         if os.environ.get("CI") == "true":
             if not (report.failed or report.skipped):
                 return
-        
+
         example_name = _get_example_name_from_report(report)
         test_type = _get_test_type_from_report(report)
-        
+
         if report.failed:
             print(f"❌ {example_name} {test_type}失败")
         elif report.skipped:
@@ -182,12 +182,14 @@ def pytest_generate_tests(metafunc):
             # 只有当有示例文件时才进行参数化
             if examples:
                 metafunc.parametrize(
-                    "example_file", examples, ids=[Path(e.file_path).name for e in examples]
+                    "example_file",
+                    examples,
+                    ids=[Path(e.file_path).name for e in examples],
                 )
             else:
                 # 如果没有示例文件，跳过测试
                 metafunc.parametrize("example_file", [], ids=[])
-                
+
         except Exception as e:
             # 如果无法导入或发生其他错误，跳过动态生成
             print(f"⚠️ 无法生成示例测试: {e}")

@@ -32,25 +32,25 @@ class FilterOperator(BaseOperator):
                 return
 
             # 添加调试日志
-            self.logger.info(
+            self.logger.debug(
                 f"FilterOperator {self.name}: Processing packet with payload: {packet.payload}"
             )
 
             # 执行过滤逻辑
             should_pass = self.function.execute(packet.payload)
 
-            self.logger.info(
+            self.logger.debug(
                 f"FilterOperator {self.name}: Filter result: {should_pass}"
             )
 
             if should_pass:
                 # 通过过滤，继承分区信息
-                self.logger.info(
+                self.logger.debug(
                     f"FilterOperator {self.name}: Sending packet downstream"
                 )
                 self.router.send(packet)
             else:
-                self.logger.info(f"FilterOperator {self.name}: Packet filtered out")
+                self.logger.debug(f"FilterOperator {self.name}: Packet filtered out")
             # 不通过过滤：不发送任何packet
 
         except Exception as e:

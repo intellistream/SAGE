@@ -28,7 +28,13 @@ class GitHubIssuesExecutor:
             "Accept": "application/vnd.github.v3+json",
         }
 
-        self.output_dir = Path("output")
+        # 使用统一的.sage/issues目录
+        from sage.common.config.output_paths import get_sage_paths
+
+        sage_paths = get_sage_paths()
+        self.output_dir = sage_paths.issues_dir / "github_ops"
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
         self.duplicate_groups = []
         self.label_recommendations = {}
 
@@ -524,10 +530,11 @@ class GitHubIssuesExecutor:
 所有处理都已同步到GitHub仓库，可以在项目issues页面查看更新结果。
 """
 
-        # 统一输出到output目录
-        from pathlib import Path
+        # 统一输出到.sage/issues目录
+        from sage.common.config.output_paths import get_sage_paths
 
-        output_dir = Path("output")
+        sage_paths = get_sage_paths()
+        output_dir = sage_paths.issues_dir
         output_dir.mkdir(exist_ok=True)
         report_path = output_dir / "processing_report.md"
         with open(report_path, "w", encoding="utf-8") as f:

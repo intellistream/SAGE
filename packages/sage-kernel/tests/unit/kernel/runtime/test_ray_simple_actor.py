@@ -3,8 +3,14 @@
 简化的Ray Actor测试，避免使用ray.util.queue
 """
 
+import os
+import warnings
 import ray
-from src.sage.kernel.utils.ray.ray import ensure_ray_initialized
+from sage.kernel.utils.ray.ray import ensure_ray_initialized
+
+# 抑制Ray的ResourceWarning
+warnings.filterwarnings("ignore", category=ResourceWarning)
+os.environ["PYTHONWARNINGS"] = "ignore::ResourceWarning"
 
 
 @ray.remote
@@ -27,6 +33,11 @@ def test_simple_actor():
     """测试简单的Ray Actor通信"""
     print("Testing simple Ray Actor communication...")
 
+    # 强制关闭现有Ray会话并重新初始化以确保使用正确的输出目录
+    import ray
+    if ray.is_initialized():
+        ray.shutdown()
+    
     # 确保Ray初始化
     ensure_ray_initialized()
 
