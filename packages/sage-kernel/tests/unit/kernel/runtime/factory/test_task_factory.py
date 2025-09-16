@@ -19,7 +19,7 @@ class MockTransformation:
     def __init__(self, basename="test_transform", remote=False, is_spout=True):
         self.basename = basename
         # 使用统一的测试环境名称，实际路径通过其他方式控制
-        self.env_name = "test_env"  
+        self.env_name = "test_env"
         self.operator_factory = Mock()
         self.delay = 0.01
         self.remote = remote
@@ -39,12 +39,12 @@ class MockTaskContext:
         self.service_qds = {}
         self.downstream_groups = {}
         self.env_name = "test_env"
-        
+
         # 使用统一的SAGE路径管理
         from sage.common.config.output_paths import get_test_context_dir
-        
+
         self.env_base_dir = str(get_test_context_dir("test_context"))
-        
+
         self.env_uuid = "test-uuid"
         self.env_console_log_level = "INFO"
         self.is_spout = True

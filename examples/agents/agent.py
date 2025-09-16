@@ -1,13 +1,18 @@
 from __future__ import annotations
-import os, sys, json, importlib
+
+import importlib
+import json
+import os
+import sys
 from typing import Any, Dict, Iterable
 
 from sage.common.utils.config.loader import load_config
-from sage.libs.agents.profile.profile import BaseProfile
 from sage.libs.agents.action.mcp_registry import MCPRegistry
 from sage.libs.agents.planning.llm_planner import LLMPlanner
+from sage.libs.agents.profile.profile import BaseProfile
 from sage.libs.agents.runtime.agent import AgentRuntime
 from sage.libs.rag.generator import OpenAIGenerator
+
 
 # ====== 读取 source ======
 def iter_queries(source_cfg: Dict[str, Any]) -> Iterable[str]:
@@ -26,6 +31,7 @@ def iter_queries(source_cfg: Dict[str, Any]) -> Iterable[str]:
                     yield q
     elif stype == "hf":
         from datasets import load_dataset
+
         name = source_cfg["hf_dataset_name"]
         config = source_cfg.get("hf_dataset_config")
         split = source_cfg.get("hf_split", "dev")
@@ -38,9 +44,12 @@ def iter_queries(source_cfg: Dict[str, Any]) -> Iterable[str]:
     else:
         raise ValueError(f"Unsupported source.type: {stype}")
 
+
 def main():
     # ====== 读取配置 ======
-    cfg_path = os.path.join(os.path.dirname(__file__), "..", "config", "config_agent_min.yaml")
+    cfg_path = os.path.join(
+        os.path.dirname(__file__), "..", "config", "config_agent_min.yaml"
+    )
     if not os.path.exists(cfg_path):
         print(f"❌ Configuration file not found: {cfg_path}")
         sys.exit(1)
@@ -76,7 +85,9 @@ def main():
         profile=profile,
         planner=planner,
         tools=registry,
-        summarizer=generator if runtime_cfg.get("summarizer") == "reuse_generator" else None,
+        summarizer=(
+            generator if runtime_cfg.get("summarizer") == "reuse_generator" else None
+        ),
         # memory=None,  # 如需接入 MemoryServiceAdapter，再按配置打开
         max_steps=runtime_cfg.get("max_steps", 6),
     )
@@ -88,9 +99,13 @@ def main():
         ans = agent.execute({"query": q})
         print(f"🤖 Agent:\n{ans}")
 
+
 if __name__ == "__main__":
     # 和 RAG 示例一致的“测试模式”友好输出
-    if os.getenv("SAGE_EXAMPLES_MODE") == "test" or os.getenv("SAGE_TEST_MODE") == "true":
+    if (
+        os.getenv("SAGE_EXAMPLES_MODE") == "test"
+        or os.getenv("SAGE_TEST_MODE") == "true"
+    ):
         try:
             main()
             print("\n✅ Test passed: Agent pipeline structure validated")

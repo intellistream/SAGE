@@ -859,7 +859,8 @@ def home(
 ):
     """管理SAGE目录"""
     try:
-        from sage.common.config.output_paths import get_sage_paths, initialize_sage_paths
+        from sage.common.config.output_paths import (get_sage_paths,
+                                                     initialize_sage_paths)
 
         # 使用统一的路径系统
         if path:
@@ -873,54 +874,64 @@ def home(
             console.print("[green]✅ SAGE目录初始化完成[/green]")
             console.print(f"  📁 SAGE目录: {sage_paths.sage_dir}")
             console.print(f"  📊 项目根目录: {sage_paths.project_root}")
-            console.print(f"  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}")
-            
+            console.print(
+                f"  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}"
+            )
+
         elif action == "clean":
             # 清理旧日志文件
             import time
             from pathlib import Path
-            
+
             logs_dir = sage_paths.logs_dir
             if not logs_dir.exists():
                 console.print("[yellow]⚠️ 日志目录不存在[/yellow]")
                 return
-                
+
             current_time = time.time()
             cutoff_time = current_time - (7 * 24 * 60 * 60)  # 7天前
-            
+
             files_removed = 0
             for log_file in logs_dir.glob("*.log"):
                 if log_file.stat().st_mtime < cutoff_time:
                     log_file.unlink()
                     files_removed += 1
-                    
-            console.print(f"[green]✅ 清理完成: 删除了 {files_removed} 个旧日志文件[/green]")
-            
+
+            console.print(
+                f"[green]✅ 清理完成: 删除了 {files_removed} 个旧日志文件[/green]"
+            )
+
         elif action == "status":
             console.print("🏠 SAGE目录状态:")
             console.print(f"  📁 SAGE目录: {sage_paths.sage_dir}")
-            console.print(f"  ✅ 存在: {'是' if sage_paths.sage_dir.exists() else '否'}")
+            console.print(
+                f"  ✅ 存在: {'是' if sage_paths.sage_dir.exists() else '否'}"
+            )
             console.print(f"  📊 项目根目录: {sage_paths.project_root}")
-            console.print(f"  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}")
-            
+            console.print(
+                f"  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}"
+            )
+
             # 显示各个子目录状态
             subdirs = [
                 ("logs", sage_paths.logs_dir),
-                ("output", sage_paths.output_dir), 
+                ("output", sage_paths.output_dir),
                 ("temp", sage_paths.temp_dir),
                 ("cache", sage_paths.cache_dir),
                 ("reports", sage_paths.reports_dir),
             ]
-            
+
             for name, path in subdirs:
                 status = "存在" if path.exists() else "不存在"
                 if path.exists():
-                    size = sum(f.stat().st_size for f in path.rglob('*') if f.is_file())
-                    file_count = len(list(path.rglob('*')))
-                    console.print(f"  � {name}: {status} ({file_count} 个文件, {size} 字节)")
+                    size = sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
+                    file_count = len(list(path.rglob("*")))
+                    console.print(
+                        f"  � {name}: {status} ({file_count} 个文件, {size} 字节)"
+                    )
                 else:
                     console.print(f"  � {name}: {status}")
-                    
+
         else:
             console.print(f"[red]不支持的操作: {action}[/red]")
             console.print("支持的操作: init, clean, status")

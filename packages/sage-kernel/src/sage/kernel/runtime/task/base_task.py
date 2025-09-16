@@ -137,7 +137,8 @@ class BaseTask(ABC):
                         continue
 
                     # Check if received packet is a StopSignal
-                    from sage.kernel.runtime.communication.router.packet import StopSignal
+                    from sage.kernel.runtime.communication.router.packet import \
+                        StopSignal
 
                     if isinstance(data_packet, StopSignal):
                         self.logger.info(
