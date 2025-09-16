@@ -18,11 +18,13 @@ class TestFailureCache:
     """Manages caching of failed test paths for quick re-execution."""
 
     def __init__(self, project_root: str):
+        from sage.common.config.output_paths import get_sage_paths
+
         self.project_root = Path(project_root)
 
-        # Use .sage/test_logs directory for cache storage
-        sage_dir = self.project_root / ".sage"
-        self.cache_dir = sage_dir / "test_logs"
+        # Use unified SAGE path management system
+        sage_paths = get_sage_paths(self.project_root)
+        self.cache_dir = sage_paths.test_logs_dir
         self.cache_file = self.cache_dir / "failed_tests.json"
 
         # Ensure directory exists with robust error handling
@@ -48,21 +50,8 @@ class TestFailureCache:
     def _ensure_cache_dir_exists(self) -> None:
         """Ensure cache directory exists with robust error handling."""
         try:
-            # First, handle the .sage directory
-            sage_dir = self.project_root / ".sage"
-
-            # If .sage exists but is not a directory, we need to handle it
-            if sage_dir.exists() and not sage_dir.is_dir():
-                # If it's a file or symlink to a file, we can't proceed
-                # Log the issue and use a fallback location
-                print(
-                    f"Warning: {sage_dir} exists but is not a directory. Using fallback cache location."
-                )
-                sage_dir = self.project_root / ".sage_cache"
-                self.cache_dir = sage_dir / "test_logs"
-                self.cache_file = self.cache_dir / "failed_tests.json"
-
-            # Create the cache directory
+            # The directory should already be created by SageOutputPaths
+            # But we double-check and create if needed
             self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         except (OSError, PermissionError) as e:
