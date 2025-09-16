@@ -38,12 +38,20 @@ class CompletePipInstallTester:
     """完整的PyPI发布准备验证器"""
 
     def __init__(self, test_dir: Optional[str] = None, skip_wheel: bool = False):
-        self.test_dir = Path(test_dir) if test_dir else Path(tempfile.mkdtemp(prefix="sage_pip_complete_test_"))
-        self.venv_dir = self.test_dir / "test_env"
-        
         # 查找SAGE项目根目录
         current_file = Path(__file__).resolve()
-        self.project_root = current_file.parent.parent.parent  # tools/pypi -> tools -> project_root
+        # 从 packages/sage-tools/tests/pypi/test_pip_install_complete.py 找到项目根目录
+        self.project_root = current_file.parent.parent.parent.parent.parent  # pypi -> tests -> sage-tools -> packages -> SAGE
+        
+        # 如果没有指定test_dir，则在.sage目录下创建
+        if test_dir:
+            self.test_dir = Path(test_dir)
+        else:
+            sage_config_dir = self.project_root / ".sage" / "temp"
+            sage_config_dir.mkdir(parents=True, exist_ok=True)
+            self.test_dir = sage_config_dir / f"pip_complete_test_{int(time.time())}"
+        
+        self.venv_dir = self.test_dir / "test_env"
         
         # 验证项目根目录
         if not (self.project_root / "packages" / "sage").exists():
