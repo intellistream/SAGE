@@ -21,13 +21,13 @@ if TYPE_CHECKING:
 class ConnectedStreams:
     """
     表示多个数据流的连接，类似于Flink的ConnectedStreams
-    
+
     这个类建模了多个数据流之间的逻辑连接关系，保持每个流的独立性，
     直到应用CoMap等多流操作时才进行实际的数据合并处理。
-    
+
     设计原则：
     1. 保持流的边界信息，直到真正需要合并时
-    2. 每个连接的流保持其独立的transformation身份  
+    2. 每个连接的流保持其独立的transformation身份
     3. 只有在应用多流操作（如comap）时才创建多输入的transformation
     """
 
@@ -37,15 +37,17 @@ class ConnectedStreams:
         self._environment = env
         self.transformations = transformations
         self._parallelism_hint = 1  # 默认并行度为1
-        
+
         # 验证输入
         if len(transformations) < 2:
             raise ValueError("ConnectedStreams requires at least 2 transformations")
-            
+
         # 确保所有transformation都来自同一个环境
         for trans in transformations:
             if trans.env != env:
-                raise ValueError("All transformations must be from the same environment")
+                raise ValueError(
+                    "All transformations must be from the same environment"
+                )
 
     def _get_transformation_classes(self):
         """动态导入transformation类以避免循环导入"""
@@ -72,13 +74,13 @@ class ConnectedStreams:
     # ---------------------------------------------------------------------
     def set_parallelism(self, parallelism: int) -> "ConnectedStreams":
         """设置下一个操作的并行度提示
-        
+
         Args:
             parallelism: 并行度，必须大于0
-            
+
         Returns:
             self，支持链式调用
-            
+
         Example:
             >>> connected_streams.set_parallelism(4).comap(MyCoMapFunction())
         """
@@ -88,31 +90,47 @@ class ConnectedStreams:
         return self
 
     def map(
-        self, function: Union[Type[BaseFunction], callable], *args, parallelism: int = None, **kwargs
+        self,
+        function: Union[Type[BaseFunction], callable],
+        *args,
+        parallelism: int = None,
+        **kwargs,
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "map")
 
         # 使用传入的parallelism或者之前设置的hint
-        actual_parallelism = parallelism if parallelism is not None else self._parallelism_hint
+        actual_parallelism = (
+            parallelism if parallelism is not None else self._parallelism_hint
+        )
 
         # 获取MapTransformation类
         MapTransformation = self._get_transformation_classes()["MapTransformation"]
-        tr = MapTransformation(self._environment, function, *args, parallelism=actual_parallelism, **kwargs)
+        tr = MapTransformation(
+            self._environment, function, *args, parallelism=actual_parallelism, **kwargs
+        )
         return self._apply(tr)
 
     def sink(
-        self, function: Union[Type[BaseFunction], callable], *args, parallelism: int = None, **kwargs
+        self,
+        function: Union[Type[BaseFunction], callable],
+        *args,
+        parallelism: int = None,
+        **kwargs,
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "sink")
 
         # 使用传入的parallelism或者之前设置的hint
-        actual_parallelism = parallelism if parallelism is not None else self._parallelism_hint
+        actual_parallelism = (
+            parallelism if parallelism is not None else self._parallelism_hint
+        )
 
         # 获取SinkTransformation类
         SinkTransformation = self._get_transformation_classes()["SinkTransformation"]
-        tr = SinkTransformation(self._environment, function, *args, parallelism=actual_parallelism, **kwargs)
+        tr = SinkTransformation(
+            self._environment, function, *args, parallelism=actual_parallelism, **kwargs
+        )
         return self._apply(tr)
 
     def print(
@@ -154,7 +172,11 @@ class ConnectedStreams:
         return ConnectedStreams(self._environment, new_transformations)
 
     def comap(
-        self, function: Union[Type[BaseFunction], callable], *args, parallelism: int = None, **kwargs
+        self,
+        function: Union[Type[BaseFunction], callable],
+        *args,
+        parallelism: int = None,
+        **kwargs,
     ) -> "DataStream":
         """
         Apply a CoMap function that processes each connected stream separately
@@ -257,10 +279,14 @@ class ConnectedStreams:
             CoMapTransformation
 
         # 使用传入的parallelism或者之前设置的hint
-        actual_parallelism = parallelism if parallelism is not None else self._parallelism_hint
+        actual_parallelism = (
+            parallelism if parallelism is not None else self._parallelism_hint
+        )
 
         # Create CoMapTransformation
-        tr = CoMapTransformation(self._environment, function, *args, parallelism=actual_parallelism, **kwargs)
+        tr = CoMapTransformation(
+            self._environment, function, *args, parallelism=actual_parallelism, **kwargs
+        )
 
         # Additional validation at transformation level
         tr.validate_input_streams(input_stream_count)
@@ -269,7 +295,11 @@ class ConnectedStreams:
 
     # 在 connected_streams.py 中添加简化的join方法
     def join(
-        self, function: Union[Type[BaseJoinFunction], callable], *args, parallelism: int = None, **kwargs
+        self,
+        function: Union[Type[BaseJoinFunction], callable],
+        *args,
+        parallelism: int = None,
+        **kwargs,
     ) -> "DataStream":
         """
         Join two keyed streams using a join function.
@@ -312,8 +342,12 @@ class ConnectedStreams:
 
         # 创建transformation
         # 使用传入的parallelism或者之前设置的hint
-        actual_parallelism = parallelism if parallelism is not None else self._parallelism_hint
-        join_tr = JoinTransformation(self._environment, function, *args, parallelism=actual_parallelism, **kwargs)
+        actual_parallelism = (
+            parallelism if parallelism is not None else self._parallelism_hint
+        )
+        join_tr = JoinTransformation(
+            self._environment, function, *args, parallelism=actual_parallelism, **kwargs
+        )
         return self._apply(join_tr)
 
     def keyby(
@@ -641,7 +675,7 @@ class ConnectedStreams:
     def _apply(self, tr: BaseTransformation) -> "DataStream":
         """
         将多输入transformation应用到连接的流上
-        
+
         这是Flink风格的实现：
         1. 新的transformation是一个多输入操作符
         2. 每个上游流连接到操作符的特定输入索引

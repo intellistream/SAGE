@@ -1,6 +1,7 @@
 # agent/profile/profile.py
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
+
 from sage.core.api.function.map_function import MapFunction
 
 
@@ -69,13 +70,13 @@ class BaseProfile(MapFunction):
         d = self.to_dict()
         d.update({k: v for k, v in overrides.items() if v is not None})
         return BaseProfile.from_dict(d)
-    
+
     def execute(self, data: Any = None) -> str:
-            """
-            将 Profile 映射为 Prompt。
-            data 允许传入轻量覆写（可选）：如 {"tone": "detailed"}。
-            """
-            if isinstance(data, dict) and data:
-                # 支持在 execute 调用时做一次性覆写
-                return self.merged(**data).render_system_prompt()
-            return self.render_system_prompt()
+        """
+        将 Profile 映射为 Prompt。
+        data 允许传入轻量覆写（可选）：如 {"tone": "detailed"}。
+        """
+        if isinstance(data, dict) and data:
+            # 支持在 execute 调用时做一次性覆写
+            return self.merged(**data).render_system_prompt()
+        return self.render_system_prompt()

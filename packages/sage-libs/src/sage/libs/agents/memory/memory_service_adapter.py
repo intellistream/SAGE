@@ -1,20 +1,26 @@
 # sage/libs/agents/memory/memory_service_adapter.py
 from __future__ import annotations
-from typing import Any, Dict, List, Optional, Callable, Literal
+
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Literal, Optional
+
+from sage.core.api.function.map_function import MapFunction
+from sage.middleware.services.memory.memory_service import MemoryService
 
 from .base import BaseMemory, MemoryRecord  # 你前面定义的统一接口
-from sage.middleware.services.memory.memory_service import MemoryService
-from sage.core.api.function.map_function import MapFunction
 
 MemoryKind = Literal["working", "episodic", "semantic"]
 
+
 @dataclass
 class MemoryServiceAdapterConfig:
-    session_id: Optional[str] = None              # 会话维度隔离
-    similarity_threshold: Optional[float] = None  # 相似度阈值（越小越相近，取决于你的 VDB metric）
-    include_graph_context: bool = False           # 是否返回图上下文
-    create_knowledge_graph: bool = False          # 写入时是否建图
+    session_id: Optional[str] = None  # 会话维度隔离
+    similarity_threshold: Optional[float] = (
+        None  # 相似度阈值（越小越相近，取决于你的 VDB metric）
+    )
+    include_graph_context: bool = False  # 是否返回图上下文
+    create_knowledge_graph: bool = False  # 写入时是否建图
+
 
 class MemoryServiceAdapter(BaseMemory, MapFunction):
     """
@@ -28,7 +34,9 @@ class MemoryServiceAdapter(BaseMemory, MapFunction):
     """
 
     # === 可选：给 MCP/Registry 使用的三要素 ===
-    description = "Memory service adapter that adds/searches memories and builds context."
+    description = (
+        "Memory service adapter that adds/searches memories and builds context."
+    )
     # 这里给一个简化的一体化 schema：通过 op 区分子操作
     input_schema = {
         "type": "object",
@@ -45,7 +53,7 @@ class MemoryServiceAdapter(BaseMemory, MapFunction):
             "last_n": {"type": "integer", "minimum": 1},
             "limit_chars": {"type": "integer", "minimum": 1},
         },
-        "required": ["op"]
+        "required": ["op"],
     }
 
     def __init__(
@@ -64,7 +72,7 @@ class MemoryServiceAdapter(BaseMemory, MapFunction):
 
     def add(self, rec: MemoryRecord) -> str:
         kind_map = {
-            "working": "conversation",   # 你们的 service 中 memory_type 可以自定义
+            "working": "conversation",  # 你们的 service 中 memory_type 可以自定义
             "episodic": "event",
             "semantic": "knowledge",
         }
@@ -97,7 +105,7 @@ class MemoryServiceAdapter(BaseMemory, MapFunction):
             "working": "conversation",
             "episodic": "event",
             "semantic": "knowledge",
-            None: None
+            None: None,
         }
         memory_type = type_map.get(kind, None)
 
@@ -111,7 +119,11 @@ class MemoryServiceAdapter(BaseMemory, MapFunction):
         )
 
         out: List[MemoryRecord] = []
-        rev_type = {"conversation": "working", "event": "episodic", "knowledge": "semantic"}
+        rev_type = {
+            "conversation": "working",
+            "event": "episodic",
+            "knowledge": "semantic",
+        }
         for r in results:
             raw_type = r.get("memory_type")
             mkind: MemoryKind = rev_type.get(raw_type, "episodic")  # type: ignore # 默认回落 episodic
@@ -154,10 +166,12 @@ class MemoryServiceAdapter(BaseMemory, MapFunction):
         # 简写：直接字符串当 search
         if isinstance(data, str):
             recs = self.search(query=data)
-            return [ {"text": r.text, "kind": r.kind, "meta": r.meta} for r in recs ]
+            return [{"text": r.text, "kind": r.kind, "meta": r.meta} for r in recs]
 
         if not isinstance(data, dict):
-            raise TypeError("MemoryServiceAdapter.execute expects str or dict with an 'op' key.")
+            raise TypeError(
+                "MemoryServiceAdapter.execute expects str or dict with an 'op' key."
+            )
 
         op = data.get("op")
         if op == "add":
@@ -167,7 +181,9 @@ class MemoryServiceAdapter(BaseMemory, MapFunction):
             if not isinstance(text, str) or not text.strip():
                 raise ValueError("add: 'text' must be a non-empty string.")
             if kind not in ("working", "episodic", "semantic"):
-                raise ValueError("add: 'kind' must be one of {'working','episodic','semantic'}.")
+                raise ValueError(
+                    "add: 'kind' must be one of {'working','episodic','semantic'}."
+                )
             mid = self.add(MemoryRecord(text=text, kind=kind, meta=meta))  # type: ignore[arg-type]
             return {"memory_id": mid}
 
@@ -178,7 +194,7 @@ class MemoryServiceAdapter(BaseMemory, MapFunction):
             top_k = int(data.get("top_k", 5))
             kind = data.get("kind")
             recs = self.search(query=query, top_k=top_k, kind=kind)
-            return [ {"text": r.text, "kind": r.kind, "meta": r.meta} for r in recs ]
+            return [{"text": r.text, "kind": r.kind, "meta": r.meta} for r in recs]
 
         if op == "working":
             last_n = int(data.get("last_n", 8))
@@ -188,4 +204,6 @@ class MemoryServiceAdapter(BaseMemory, MapFunction):
             limit_chars = int(data.get("limit_chars", 1200))
             return self.as_context(limit_chars=limit_chars)
 
-        raise ValueError(f"Unsupported op: {op!r}. Expected one of: add, search, working, context.")
+        raise ValueError(
+            f"Unsupported op: {op!r}. Expected one of: add, search, working, context."
+        )

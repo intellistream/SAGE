@@ -4,8 +4,8 @@ from __future__ import annotations
 import json
 import re
 from typing import Any, Dict, List, Optional, Tuple
-from sage.core.api.function.map_function import MapFunction
 
+from sage.core.api.function.map_function import MapFunction
 
 PlanStep = Dict[
     str, Any
@@ -192,7 +192,6 @@ class LLMPlanner(MapFunction):
         _, out = self.generator.execute([user_query, messages])
         return out
 
-
     def plan(
         self,
         profile_system_prompt: str,
@@ -227,7 +226,7 @@ class LLMPlanner(MapFunction):
 
         # 6) 截断并返回
         return steps[: self.max_steps]
-    
+
     def _tools_to_manifest(self, tools_like: Any) -> Dict[str, Dict[str, Any]]:
         """
         支持：
@@ -236,7 +235,9 @@ class LLMPlanner(MapFunction):
         """
         if isinstance(tools_like, dict):
             return tools_like
-        if hasattr(tools_like, "describe") and callable(getattr(tools_like, "describe")):
+        if hasattr(tools_like, "describe") and callable(
+            getattr(tools_like, "describe")
+        ):
             return tools_like.describe()
         raise TypeError(
             "LLMPlanner expects `tools` as a dict manifest or an object with .describe()."
@@ -259,10 +260,16 @@ class LLMPlanner(MapFunction):
         """
         # --- 形态 1：dict ---
         if isinstance(data, dict):
-            profile_prompt = data.get("profile_prompt") or data.get("profile_system_prompt")
+            profile_prompt = data.get("profile_prompt") or data.get(
+                "profile_system_prompt"
+            )
             user_query = data.get("user_query") or data.get("query")
             tools_like = data.get("tools") or data.get("registry")
-            if not isinstance(profile_prompt, str) or not isinstance(user_query, str) or tools_like is None:
+            if (
+                not isinstance(profile_prompt, str)
+                or not isinstance(user_query, str)
+                or tools_like is None
+            ):
                 raise ValueError(
                     "LLMPlanner.execute(dict) requires 'profile_prompt' (or 'profile_system_prompt'), "
                     "'user_query' (or 'query'), and 'tools' (or 'registry')."

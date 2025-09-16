@@ -5,11 +5,11 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List
 
+from sage.common.config.output_paths import get_sage_paths
 from sage.core.api.function.keyby_function import KeyByFunction
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction
 from sage.core.api.local_environment import LocalEnvironment
-from sage.common.config.output_paths import get_sage_paths
 
 
 class KeyByTestDataSource(SourceFunction):

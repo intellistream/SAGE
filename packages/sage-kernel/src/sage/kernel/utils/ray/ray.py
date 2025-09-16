@@ -13,6 +13,7 @@ except ImportError:
 
 try:
     from sage.common.config.output_paths import get_sage_paths
+
     SAGE_OUTPUT_PATHS_AVAILABLE = True
 except ImportError:
     SAGE_OUTPUT_PATHS_AVAILABLE = False
@@ -84,7 +85,7 @@ def ensure_ray_initialized(runtime_env=None):
 
             # 设置Ray临时目录到SAGE的temp目录
             ray_temp_dir = None
-            
+
             # 使用统一的output_paths系统
             if SAGE_OUTPUT_PATHS_AVAILABLE:
                 try:
@@ -95,14 +96,20 @@ def ensure_ray_initialized(runtime_env=None):
                     init_kwargs["_temp_dir"] = str(ray_temp_dir)
                     print(f"Ray will use SAGE temp directory: {ray_temp_dir}")
                 except Exception as e:
-                    print(f"Warning: Failed to set Ray temp directory via output_paths: {e}")
-            
-            # 如果没有成功设置，使用默认行为
+                    print(
+                        f"Warning: Failed to set Ray temp directory via output_paths: {e}"
+                    )
+
+                    # 如果没有成功设置，使用默认行为
                     init_kwargs["_temp_dir"] = str(ray_temp_dir)
-                    print(f"Ray will use SAGE temp directory (fallback): {ray_temp_dir}")
+                    print(
+                        f"Ray will use SAGE temp directory (fallback): {ray_temp_dir}"
+                    )
                 except Exception as e:
-                    print(f"Warning: Failed to set Ray temp directory via fallback: {e}")
-            
+                    print(
+                        f"Warning: Failed to set Ray temp directory via fallback: {e}"
+                    )
+
             if ray_temp_dir is None:
                 print("SAGE paths not available, Ray will use default temp directory")
 

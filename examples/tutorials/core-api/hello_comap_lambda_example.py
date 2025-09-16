@@ -39,7 +39,7 @@ class ListSource(SourceFunction):
         if self.index >= len(self.data_list):
             # Data exhausted, send stop signal
             return StopSignal(f"ListSource_{self.index}")
-            
+
         result = self.data_list[self.index]
         self.index += 1
         return result
@@ -94,15 +94,16 @@ def main():
     # Execute example 1
     print("Processing sensor data...")
     env1.submit(autostop=True)
-    
+
     # Wait for processing to complete
     import time
+
     test_mode = os.environ.get("SAGE_EXAMPLES_MODE") == "test"
     wait_time = 2 if test_mode else 5
     time.sleep(wait_time)
-    
+
     print("✅ Example 1 completed!")
-    
+
     # Example 2: Weather Data Processing
     print("\n📋 Example 2: Weather Data Processing")
     print("-" * 40)
@@ -133,7 +134,7 @@ def main():
     # Create and connect streams
     temp_stream2 = temp_source2
     humidity_stream2 = humidity_source2
-    
+
     connected_weather = temp_stream2.connect(humidity_stream2)
 
     # Apply weather CoMap function
@@ -142,7 +143,7 @@ def main():
     # Execute example 2
     print("Processing weather data...")
     env2.submit(autostop=True)
-    
+
     # Wait for processing to complete
     time.sleep(wait_time)
     print("✅ Example 2 completed!")
@@ -196,7 +197,7 @@ def main():
     # Execute example 3
     print("Processing mixed data types...")
     env3.submit(autostop=True)
-    
+
     # Wait for processing to complete
     time.sleep(wait_time)
     print("✅ Example 3 completed!")
@@ -246,7 +247,7 @@ def main():
     # Execute example 4
     print("Processing mathematical operations...")
     env4.submit(autostop=True)
-    
+
     # Wait for processing to complete
     time.sleep(wait_time)
     print("✅ Example 4 completed!")
@@ -288,12 +289,14 @@ def main():
     connected_validation = data1.connect(data2)
 
     # Apply validation and error handling
-    result5 = connected_validation.comap(ValidationCoMapFunction).print("Validated Data")
+    result5 = connected_validation.comap(ValidationCoMapFunction).print(
+        "Validated Data"
+    )
 
     # Execute example 5
     print("Processing with validation...")
     env5.submit(autostop=True)
-    
+
     # Wait for processing to complete
     time.sleep(wait_time)
     print("✅ Example 5 completed!")

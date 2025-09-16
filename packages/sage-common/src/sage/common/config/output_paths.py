@@ -17,13 +17,15 @@ from pathlib import Path
 from typing import Optional, Union
 
 
-def find_sage_project_root(start_path: Optional[Union[str, Path]] = None) -> Optional[Path]:
+def find_sage_project_root(
+    start_path: Optional[Union[str, Path]] = None,
+) -> Optional[Path]:
     """
     Find SAGE project root directory by looking for characteristic files/directories.
-    
+
     Args:
         start_path: Starting path for search. If None, uses current working directory.
-        
+
     Returns:
         Optional[Path]: Project root path if found, None otherwise
     """
@@ -31,45 +33,50 @@ def find_sage_project_root(start_path: Optional[Union[str, Path]] = None) -> Opt
         start_path = Path.cwd()
     else:
         start_path = Path(start_path)
-    
+
     current = start_path.resolve()
-    
+
     # Look for SAGE project markers
     while True:
         # Check for specific SAGE project markers
-        if any((current / marker).exists() for marker in [
-            "packages/sage-kernel",
-            "packages/sage-common", 
-            "_version.py",
-            "quickstart.sh",
-            "packages",
-            "scripts", 
-            "examples"
-        ]):
+        if any(
+            (current / marker).exists()
+            for marker in [
+                "packages/sage-kernel",
+                "packages/sage-common",
+                "_version.py",
+                "quickstart.sh",
+                "packages",
+                "scripts",
+                "examples",
+            ]
+        ):
             # Additional check for packages/sage structure
-            if (current / "packages" / "sage").exists() or (current / "packages" / "sage-common").exists():
+            if (current / "packages" / "sage").exists() or (
+                current / "packages" / "sage-common"
+            ).exists():
                 return current
-        
+
         parent = current.parent
         if parent == current:  # Reached filesystem root
             break
         current = parent
-    
+
     return None
 
 
 def get_appropriate_sage_dir(project_root: Optional[Union[str, Path]] = None) -> Path:
     """
     Get the appropriate SAGE directory based on environment.
-    
+
     Priority:
     1. Environment variable SAGE_OUTPUT_DIR
     2. If in development environment: project_root/.sage/
     3. Otherwise: ~/.sage/
-    
+
     Args:
         project_root: Explicit project root. If None, auto-detect.
-        
+
     Returns:
         Path: SAGE directory path
     """
@@ -79,7 +86,7 @@ def get_appropriate_sage_dir(project_root: Optional[Union[str, Path]] = None) ->
         sage_dir = Path(env_dir)
         sage_dir.mkdir(parents=True, exist_ok=True)
         return sage_dir
-    
+
     # 2. Use explicit project root if provided
     if project_root:
         project_root = Path(project_root).resolve()
@@ -93,7 +100,7 @@ def get_appropriate_sage_dir(project_root: Optional[Union[str, Path]] = None) ->
         else:
             # Pip-installed or other environment
             sage_dir = Path.home() / ".sage"
-    
+
     # Ensure directory exists
     sage_dir.mkdir(parents=True, exist_ok=True)
     return sage_dir
@@ -111,19 +118,23 @@ class SageOutputPaths:
         """
         # Use the new intelligent path detection
         self.sage_dir = get_appropriate_sage_dir(project_root)
-        
+
         # Set project root and environment type
         if project_root:
             self.project_root = Path(project_root).resolve()
-            self.is_pip_environment = False  # Explicit project root means dev environment
+            self.is_pip_environment = (
+                False  # Explicit project root means dev environment
+            )
         else:
             detected_root = find_sage_project_root()
             if detected_root:
                 self.project_root = detected_root
-                self.is_pip_environment = False  # Found project root means dev environment
+                self.is_pip_environment = (
+                    False  # Found project root means dev environment
+                )
             else:
                 self.project_root = None
-                self.is_pip_environment = True   # No project root means pip-installed
+                self.is_pip_environment = True  # No project root means pip-installed
         if project_root:
             self.project_root = Path(project_root).resolve()
         else:
@@ -138,7 +149,7 @@ class SageOutputPaths:
         # Standard subdirectories in .sage
         subdirs = [
             "logs",
-            "output", 
+            "output",
             "temp",
             "cache",
             "reports",
@@ -212,10 +223,10 @@ class SageOutputPaths:
     def get_test_env_dir(self, test_name: str = "test_env") -> Path:
         """
         Get a test environment directory path.
-        
+
         Args:
             test_name: Name of the test environment
-            
+
         Returns:
             Path to test environment directory in .sage/temp/
         """
@@ -226,17 +237,17 @@ class SageOutputPaths:
     def get_test_context_dir(self, context_name: str = "test_context") -> Path:
         """
         Get a test context directory path.
-        
+
         Args:
             context_name: Name of the test context
-            
+
         Returns:
             Path to test context directory in .sage/temp/
         """
         context_dir = self.temp_dir / context_name
         context_dir.mkdir(parents=True, exist_ok=True)
         return context_dir
-        
+
     def get_ray_temp_dir(self) -> Path:
         """Get Ray temporary files directory."""
         ray_dir = self.temp_dir / "ray"
@@ -250,11 +261,11 @@ class SageOutputPaths:
         os.environ["SAGE_HOME"] = str(self.sage_dir)
         os.environ["SAGE_LOGS_DIR"] = str(self.logs_dir)
         os.environ["SAGE_TEMP_DIR"] = str(self.temp_dir)
-        
+
         # Ray-specific environment
         ray_temp_dir = self.get_ray_temp_dir()
         os.environ["RAY_TMPDIR"] = str(ray_temp_dir)
-        
+
         return {
             "sage_dir": self.sage_dir,
             "logs_dir": self.logs_dir,
@@ -428,16 +439,18 @@ def setup_sage_environment(project_root: Optional[Union[str, Path]] = None) -> d
 
 
 # Main initialization function
-def initialize_sage_paths(project_root: Optional[Union[str, Path]] = None) -> "SageOutputPaths":
+def initialize_sage_paths(
+    project_root: Optional[Union[str, Path]] = None,
+) -> "SageOutputPaths":
     """
     Initialize SAGE paths and set up environment.
-    
+
     This is the main entry point for path initialization.
     It creates all necessary directories and sets up environment variables.
-    
+
     Args:
         project_root: Optional project root path. If None, auto-detected.
-        
+
     Returns:
         SageOutputPaths instance with all paths configured.
     """
@@ -490,24 +503,21 @@ def migrate_existing_outputs(project_root: Optional[Union[str, Path]] = None):
 
 # Testing utilities
 def get_test_env_dir(
-    test_name: str = "test_env", 
-    project_root: Optional[Union[str, Path]] = None
+    test_name: str = "test_env", project_root: Optional[Union[str, Path]] = None
 ) -> Path:
     """Get a test environment directory path in .sage/temp/."""
     return get_sage_paths(project_root).get_test_env_dir(test_name)
 
 
 def get_test_context_dir(
-    context_name: str = "test_context",
-    project_root: Optional[Union[str, Path]] = None
+    context_name: str = "test_context", project_root: Optional[Union[str, Path]] = None
 ) -> Path:
     """Get a test context directory path in .sage/temp/."""
     return get_sage_paths(project_root).get_test_context_dir(context_name)
 
 
 def get_test_temp_dir(
-    temp_name: str,
-    project_root: Optional[Union[str, Path]] = None
+    temp_name: str, project_root: Optional[Union[str, Path]] = None
 ) -> Path:
     """Get a temporary directory for testing in .sage/temp/."""
     sage_paths = get_sage_paths(project_root)

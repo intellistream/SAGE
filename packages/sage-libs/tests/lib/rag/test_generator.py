@@ -89,7 +89,7 @@ class TestOpenAIGenerator:
         # Mock context with env_base_dir - 使用统一的SAGE路径管理
         mock_ctx = Mock()
         from sage.common.config.output_paths import get_test_temp_dir
-        
+
         test_dir = get_test_temp_dir("test_generator")
         mock_ctx.env_base_dir = str(test_dir)
 
@@ -224,11 +224,13 @@ class TestOpenAIGenerator:
             # Mock context - 使用统一的SAGE路径管理
             mock_ctx = Mock()
             from sage.common.config.output_paths import get_test_temp_dir
-            
+
             test_dir = get_test_temp_dir("test_generator")
             mock_ctx.env_base_dir = str(test_dir)
             generator.ctx = mock_ctx
-            generator.data_base_path = str(test_dir / ".sage" / "states" / "generator_data")
+            generator.data_base_path = str(
+                test_dir / ".sage" / "states" / "generator_data"
+            )
             generator.data_records = []
 
             input_data = ["Test prompt"]
