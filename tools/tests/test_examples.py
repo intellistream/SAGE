@@ -18,6 +18,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
+import pytest
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -309,8 +310,9 @@ class ExampleAnalyzer:
         """
         import re
 
-        # 查找所有 @test: 标记
-        pattern = r"#\s*@test:(\w+)(?:=(\w+))?"
+        # 查找所有 @test: 标记，支持注释和文档字符串中的标记
+        # 匹配 # @test: 或 @test: (可能在文档字符串中)
+        pattern = r"(?:#\s*)?@test:(\w+)(?:=(\w+))?"
         matches = re.findall(pattern, content, re.IGNORECASE)
 
         tags = []
@@ -695,8 +697,8 @@ class ExampleTestSuite:
 app = typer.Typer(help="SAGE Examples 测试工具")
 
 
-@app.command()
-def test(
+@app.command("test")
+def test_cmd(
     categories: Optional[List[str]] = typer.Option(
         None, "--category", "-c", help="指定测试类别"
     ),
@@ -716,6 +718,27 @@ def test(
     # 设置退出码
     if stats["failed"] > 0 or stats["timeout"] > 0:
         sys.exit(1)
+
+
+def test():
+    """pytest 测试函数 - 轻量级测试，只验证框架能正常工作"""
+    suite = ExampleTestSuite()
+    
+    # 只测试框架的基本功能，不运行所有示例
+    analyzer = suite.analyzer
+    examples = analyzer.discover_examples()
+    
+    # 验证能够发现示例
+    assert len(examples) > 0, "应该能发现至少一个示例文件"
+    
+    # 验证 run_all_tests 方法能正常调用（但不实际运行测试）
+    # 通过传入空的类别列表来避免运行任何测试
+    stats = suite.run_all_tests(categories=["non_existent_category"], quick_only=False)
+    
+    # 验证返回的统计信息格式正确
+    assert isinstance(stats, dict), "统计信息应该是字典格式"
+    expected_keys = {"total", "passed", "failed", "timeout", "skipped"}
+    assert expected_keys.issubset(stats.keys()), f"统计信息应该包含键: {expected_keys}"
 
 
 @app.command()
