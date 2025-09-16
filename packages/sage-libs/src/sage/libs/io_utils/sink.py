@@ -153,15 +153,21 @@ class PrintSink(SinkFunction):
     """
 
     def __init__(
-        self, prefix: str = "", separator: str = " | ", colored: bool = True, **kwargs
+        self,
+        prefix: str = "",
+        separator: str = " | ",
+        colored: bool = True,
+        quiet: bool = False,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.prefix = prefix
         self.separator = separator
         self.colored = colored
+        self.quiet = quiet
         self._print_logger = logging.getLogger(__name__)
         self.first_output = True
-        
+
     def execute(self, data: Any) -> None:
         """
         智能打印数据，支持多种数据格式
@@ -176,13 +182,22 @@ class PrintSink(SinkFunction):
         else:
             output = formatted_output
 
-        if self.first_output:
+        if self.first_output and not self.quiet:
             print(f"First output: {output}")
-            print("Streaming started! Further outputs are logged. Check logs for detailed stream processing results.")
-            self.first_output = False
+            print(
+                "Streaming started! Further outputs are logged. Check logs for detailed stream processing results."
+            )
+        elif not self.first_output and not self.quiet:
+            # 后续输出只记录到日志
+            pass
+        else:
+            # quiet模式或第一次输出时正常打印
+            print(output)
 
-        # 输出到日志而不是控制台
+        # 输出到日志
         self._print_logger.debug(f"PrintSink output: {output}")
+
+        self.first_output = False
 
     def _format_data(self, data: Any) -> str:
         """格式化数据为可读字符串"""

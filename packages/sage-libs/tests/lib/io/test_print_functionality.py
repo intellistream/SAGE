@@ -19,8 +19,10 @@ class TestPrintSink(unittest.TestCase):
 
     def setUp(self):
         """测试前准备"""
-        self.print_sink = PrintSink()
-        self.print_sink_with_prefix = PrintSink(prefix="TEST", separator=" -> ")
+        self.print_sink = PrintSink(quiet=True)
+        self.print_sink_with_prefix = PrintSink(
+            prefix="TEST", separator=" -> ", quiet=True
+        )
 
     def test_simple_string(self):
         """测试简单字符串输出"""
@@ -44,7 +46,7 @@ class TestPrintSink(unittest.TestCase):
 
     def test_qa_tuple_no_color(self):
         """测试问答对元组输出（无彩色）"""
-        print_sink_no_color = PrintSink(colored=False)
+        print_sink_no_color = PrintSink(colored=False, quiet=True)
         qa_data = ("什么是AI?", "AI是人工智能")
 
         with patch("sys.stdout", new=StringIO()) as fake_out:
