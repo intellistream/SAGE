@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 import ray
 from ray.actor import ActorHandle
 from sage.common.utils.logging.custom_logger import CustomLogger
-from sage.core.communication.stop_signal import StopSignal
 from sage.kernel.runtime.communication.router.connection import Connection
 from sage.kernel.runtime.communication.router.packet import StopSignal
 from sage.kernel.runtime.communication.router.router import BaseRouter
