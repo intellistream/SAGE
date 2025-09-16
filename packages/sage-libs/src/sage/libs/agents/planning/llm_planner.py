@@ -57,10 +57,12 @@ Each step is EITHER:
   2) A final reply: {{"type":"reply","text":"..."}}
 
 Rules:
+- Always call at least one tool before replying when tools are provided.
 - Use ONLY the provided tools (names & schemas below).
 - Arguments MUST follow the JSON Schema of the selected tool.
 - Return ONLY the JSON array. Do NOT include extra text, code fences, or explanations.
 - Keep steps concise. Conclude with a reply step once done.
+
 </SYSTEM>
 
 <PROFILE>
@@ -183,9 +185,13 @@ class LLMPlanner(MapFunction):
         self.topk_tools = topk_tools
 
     def _ask_llm(self, prompt: str, user_query: str) -> str:
-        # 你的生成器统一接口：返回 (user_query, generated_text)
-        _, out = self.generator.execute([user_query, prompt])
+        messages = [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": user_query},
+        ]
+        _, out = self.generator.execute([user_query, messages])
         return out
+
 
     def plan(
         self,

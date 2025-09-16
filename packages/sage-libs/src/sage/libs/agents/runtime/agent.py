@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from ..action.mcp_registry import MCPRegistry
 from ..planning.llm_planner import LLMPlanner, PlanStep
 from ..profile.profile import BaseProfile
-from sage.libs.agents.memory import memory_service_adapter
+# from sage.libs.agents.memory import memory_service_adapter
 from sage.core.api.function.map_function import MapFunction
 
 
@@ -34,13 +34,13 @@ class AgentRuntime(MapFunction):
         planner: LLMPlanner,
         tools: MCPRegistry,
         summarizer=None,
-        memory: Optional[memory_service_adapter.MemoryServiceAdapter] = None,
+        # memory: Optional[memory_service_adapter.MemoryServiceAdapter] = None,
         max_steps: int = 6,
     ):
         self.profile = profile
         self.planner = planner
         self.tools = tools
-        self.memory = memory
+        # self.memory = memory
         self.summarizer = summarizer  # 复用你的 generator 也行：execute([None, prompt]) -> (None, text)
         self.max_steps = max_steps
 
@@ -126,7 +126,11 @@ class AgentRuntime(MapFunction):
 {observations}
 
 只输出给用户的总结文本。"""
-            _, summary = self.summarizer.execute([None, prompt])
+            messages = [
+        {"role": "system", "content": "你是一个严谨的助理。只输出中文总结，不要额外解释。"},
+        {"role": "user", "content": prompt},
+    ]
+            _, summary = self.summarizer.execute([None, messages])
             return summary.strip()
 
         # 简单模板
