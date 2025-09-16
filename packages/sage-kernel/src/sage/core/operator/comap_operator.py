@@ -22,6 +22,9 @@ class CoMapOperator(BaseOperator):
 
         # 跟踪接收到的停止信号
         self.received_stop_signals = set()  # 记录哪些stream已经发送了停止信号
+        
+        # 记录输入流的数量，用于判断是否所有流都已停止
+        self.expected_input_count = None
 
     def _validate_function(self) -> None:
         """
@@ -92,7 +95,7 @@ class CoMapOperator(BaseOperator):
 
         CoMap操作需要特殊处理停止信号：
         - 记录哪个stream发送了停止信号
-        - 当任意一个输入流停止时，就向下游传播停止信号（因为CoMap通常是竞争处理）
+        - 只有当所有输入流都停止时，才向下游传播停止信号（修复关键bug）
         """
         try:
             if input_index is not None:
@@ -101,10 +104,29 @@ class CoMapOperator(BaseOperator):
                     f"CoMapOperator '{self.name}' received stop signal from stream {input_index}"
                 )
 
-            # CoMap通常在任意流停止时就停止（不像Join需要等待所有流）
-            if len(self.received_stop_signals) >= 1:
+            # 如果还没有初始化期望的输入流数量，尝试从路由器获取
+            if self.expected_input_count is None:
+                try:
+                    # 从operator的transformation中获取预期的输入数量
+                    if hasattr(self, 'transformation') and hasattr(self.transformation, 'input_transformation_count'):
+                        self.expected_input_count = self.transformation.input_transformation_count
+                    else:
+                        # 从路由器的入站连接数推断（备用方案）
+                        self.expected_input_count = getattr(self.router, 'input_count', 2)
+                    
+                    self.logger.debug(
+                        f"CoMapOperator '{self.name}' expecting {self.expected_input_count} input streams"
+                    )
+                except Exception as e:
+                    self.logger.warning(
+                        f"CoMapOperator '{self.name}' failed to determine input count: {e}, defaulting to 2"
+                    )
+                    self.expected_input_count = 2
+
+            # 修复关键bug：只有当所有输入流都停止时，才向下游传播停止信号
+            if len(self.received_stop_signals) >= self.expected_input_count:
                 self.logger.info(
-                    f"CoMapOperator '{self.name}' received stop signal, "
+                    f"CoMapOperator '{self.name}' received stop signals from all {self.expected_input_count} input streams, "
                     f"propagating stop signal downstream"
                 )
 
@@ -116,6 +138,11 @@ class CoMapOperator(BaseOperator):
 
                 # 通知context停止
                 self.ctx.set_stop_signal()
+            else:
+                self.logger.debug(
+                    f"CoMapOperator '{self.name}' waiting for more stop signals: "
+                    f"received {len(self.received_stop_signals)}/{self.expected_input_count}"
+                )
 
         except Exception as e:
             self.logger.error(
