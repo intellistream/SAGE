@@ -99,12 +99,12 @@ def validate(
     # 根据模式选择测试器
     if fast:
         console.print("\n⚡ [yellow]使用快速验证模式（核心功能验证）[/yellow]")
-        script_name = "test_pip_validate_fast.py"
+        script_name = "validate_pip_fast.py"
         class_name = "FastPipValidator"
         run_method = "run_fast_validation"
     else:
         console.print("\n🔬 [blue]使用完整验证模式（全面发布准备验证）[/blue]")
-        script_name = "test_pip_install_complete.py"
+        script_name = "validate_pip_install_complete.py"
         class_name = "CompletePipInstallTester"
         run_method = "run_all_tests"
 
