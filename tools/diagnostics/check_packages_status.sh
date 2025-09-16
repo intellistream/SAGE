@@ -10,7 +10,7 @@ set -euo pipefail
 
 # 脚本目录和项目根目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PACKAGES_DIR="$PROJECT_ROOT/packages"
 
 # 颜色配置
