@@ -33,12 +33,20 @@ class FastPipValidator:
     """快速PyPI发布准备验证器"""
 
     def __init__(self, test_dir: Optional[str] = None, skip_wheel: bool = False):
-        self.test_dir = Path(test_dir) if test_dir else Path(tempfile.mkdtemp(prefix="sage_fast_pip_test_"))
-        self.venv_dir = self.test_dir / "test_env"
-        
         # 查找SAGE项目根目录
         current_file = Path(__file__).resolve()
-        self.project_root = current_file.parent.parent.parent  # tools/pypi -> tools -> project_root
+        # 从 packages/sage-tools/tests/pypi/test_pip_validate_fast.py 找到项目根目录
+        self.project_root = current_file.parent.parent.parent.parent.parent  # pypi -> tests -> sage-tools -> packages -> SAGE
+        
+        # 如果没有指定test_dir，则在.sage目录下创建
+        if test_dir:
+            self.test_dir = Path(test_dir)
+        else:
+            sage_config_dir = self.project_root / ".sage" / "temp"
+            sage_config_dir.mkdir(parents=True, exist_ok=True)
+            self.test_dir = sage_config_dir / f"pip_test_{int(time.time())}"
+        
+        self.venv_dir = self.test_dir / "test_env"
         
         # 验证项目根目录
         if not (self.project_root / "packages" / "sage").exists():
@@ -66,15 +74,21 @@ class FastPipValidator:
         }
 
     def run_command(self, cmd: List[str], cwd: Optional[Path] = None,
-                   capture_output: bool = True, timeout: int = 300) -> Tuple[int, str, str]:
+                   capture_output: bool = True, timeout: int = 300, 
+                   env: Optional[dict] = None) -> Tuple[int, str, str]:
         """运行命令并返回结果"""
         try:
+            # 如果没有指定环境变量，使用当前环境
+            if env is None:
+                env = os.environ.copy()
+                
             result = subprocess.run(
                 cmd,
                 cwd=cwd or self.test_dir,
                 capture_output=capture_output,
                 text=True,
-                timeout=timeout
+                timeout=timeout,
+                env=env
             )
             return result.returncode, result.stdout, result.stderr
         except subprocess.TimeoutExpired:
@@ -229,12 +243,33 @@ class FastPipValidator:
                 return False
 
             # 快速验证安装
-            returncode, stdout, stderr = self.run_command([
-                str(self.python_exe), "-c", "import sage; print(f'SAGE {sage.__version__} 安装成功')"
-            ])
+            print(f"  🔍 使用Python路径: {self.python_exe}")
+            test_cmd = [str(self.python_exe), "-c", "import sage; print(f'SAGE {sage.__version__} 安装成功')"]
+            print(f"  🔍 执行命令: {' '.join(test_cmd)}")
+            
+            # 创建干净的环境变量，移除PYTHONPATH避免导入冲突
+            clean_env = os.environ.copy()
+            clean_env.pop('PYTHONPATH', None)  # 移除PYTHONPATH
+            
+            returncode, stdout, stderr = self.run_command(test_cmd, env=clean_env)
+            
+            print(f"  🔍 返回码: {returncode}")
+            print(f"  🔍 标准输出: {stdout}")
+            print(f"  🔍 标准错误: {stderr}")
 
             if returncode != 0:
                 print(f"  ❌ 验证安装失败: {stderr}")
+                
+                # 添加额外的诊断信息
+                print("  🔧 运行诊断...")
+                diag_returncode, diag_stdout, diag_stderr = self.run_command([
+                    str(self.python_exe), "-c", 
+                    "import sys, os; print(f'工作目录: {os.getcwd()}'); print('Python路径:'); [print(f'  {p}') for p in sys.path]; import sage; print(f'sage文件: {sage.__file__}'); print(f'sage属性: {dir(sage)}')"
+                ], env=clean_env)
+                print(f"  🔍 诊断输出: {diag_stdout}")
+                if diag_stderr.strip():
+                    print(f"  🔍 诊断错误: {diag_stderr}")
+                
                 return False
 
             print(f"  ✅ {stdout.strip()}")
@@ -461,6 +496,17 @@ else:
             print("\n⚠️  快速发布准备验证失败")
             print("🔧 建议运行完整验证以获取详细信息")
             return False
+
+    def cleanup(self):
+        """清理测试环境"""
+        if self.test_dir.exists():
+            print(f"\n🧹 清理测试环境: {self.test_dir}")
+            try:
+                shutil.rmtree(self.test_dir)
+                print("✅ 清理完成")
+            except Exception as e:
+                print(f"⚠️  清理失败: {e}")
+                print("💡 请手动删除测试目录")
 
 
 def main():
