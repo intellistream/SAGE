@@ -145,6 +145,7 @@ class BaseTask(ABC):
                         )
 
                         # 如果是SinkOperator，在转发停止信号前先调用handle_stop_signal
+                        # Comap不能直接套用Join的逻辑，否则会出问题
                         from sage.core.operator.comap_operator import \
                             CoMapOperator
                         from sage.core.operator.join_operator import \
@@ -157,7 +158,7 @@ class BaseTask(ABC):
                                 f"Calling handle_stop_signal for SinkOperator {self.name}"
                             )
                             self.operator.handle_stop_signal()
-                        elif isinstance(self.operator, (JoinOperator, CoMapOperator)):
+                        elif isinstance(self.operator, (JoinOperator)):
                             self.logger.info(
                                 f"Calling handle_stop_signal for {type(self.operator).__name__} {self.name}"
                             )
