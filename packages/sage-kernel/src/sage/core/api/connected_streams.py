@@ -19,13 +19,32 @@ if TYPE_CHECKING:
 
 
 class ConnectedStreams:
-    """表示多个transformation连接后的流结果"""
+    """
+    表示多个数据流的连接，类似于Flink的ConnectedStreams
+    
+    这个类建模了多个数据流之间的逻辑连接关系，保持每个流的独立性，
+    直到应用CoMap等多流操作时才进行实际的数据合并处理。
+    
+    设计原则：
+    1. 保持流的边界信息，直到真正需要合并时
+    2. 每个连接的流保持其独立的transformation身份  
+    3. 只有在应用多流操作（如comap）时才创建多输入的transformation
+    """
 
     def __init__(
         self, env: "BaseEnvironment", transformations: List["BaseTransformation"]
     ):
         self._environment = env
         self.transformations = transformations
+        
+        # 验证输入
+        if len(transformations) < 2:
+            raise ValueError("ConnectedStreams requires at least 2 transformations")
+            
+        # 确保所有transformation都来自同一个环境
+        for trans in transformations:
+            if trans.env != env:
+                raise ValueError("All transformations must be from the same environment")
 
     def _get_transformation_classes(self):
         """动态导入transformation类以避免循环导入"""
@@ -591,12 +610,21 @@ class ConnectedStreams:
     # internal methods
     # ---------------------------------------------------------------------
     def _apply(self, tr: BaseTransformation) -> "DataStream":
-        """将新 BaseTransformation 接入管线"""
+        """
+        将多输入transformation应用到连接的流上
+        
+        这是Flink风格的实现：
+        1. 新的transformation是一个多输入操作符
+        2. 每个上游流连接到操作符的特定输入索引
+        3. 操作符知道如何根据input_index路由数据到对应的处理方法
+        """
         from .datastream import DataStream
 
-        # 由于常规的transformation不关心input_index,所以说我们可以直接把所有对于connected_stream的上游索引都编号。
+        # 为多输入transformation设置上游连接
+        # 每个上游transformation连接到特定的input_index
         for input_index, upstream_trans in enumerate(self.transformations):
             tr.add_upstream(upstream_trans, input_index=input_index)
 
+        # 将新transformation添加到pipeline
         self._environment.pipeline.append(tr)
         return DataStream(self._environment, tr)
