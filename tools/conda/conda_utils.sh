@@ -5,11 +5,11 @@
 
 # 引入日志模块
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/logging.sh"
+source "../utils/logging.sh"
 
 # 加载配置（如果存在）
-if [ -f "$SCRIPT_DIR/config.sh" ]; then
-    source "$SCRIPT_DIR/config.sh"
+if [ -f "../utils/config.sh" ]; then
+    source "../utils/config.sh"
 fi
 
 # 默认配置值
@@ -179,41 +179,152 @@ conda_env_exists() {
 
 # 接受 Conda 频道的服务条款
 accept_conda_tos() {
-    print_status "自动接受 Conda 服务条款..."
+    print_header "🔧 Conda 服务条款修复工具"
     
-    # 主要频道列表
+    # 检查 conda 是否可用
+    if ! command -v conda &> /dev/null; then
+        print_error "conda 命令不可用"
+        print_status "请先确保 Conda 已正确安装并初始化"
+        print_status "运行: source ~/.bashrc 或重新打开终端"
+        return 1
+    fi
+    
+    print_status "当前 Conda 版本: $(conda --version)"
+    
+    # 显示当前频道配置
+    print_header "📋 当前 Conda 配置"
+    print_status "当前配置的频道:"
+    conda config --show channels 2>/dev/null || echo "  (无自定义频道配置)"
+    
+    echo
+    print_status "检查服务条款状态..."
+    
+    # 检查是否有服务条款问题
+    if ! conda info 2>&1 | grep -q "Terms of Service have not been accepted"; then
+        print_success "✓ 所有服务条款都已接受，无需修复"
+        verify_tos_fix
+        return 0
+    fi
+    
+    print_warning "发现未接受的服务条款"
+    
+    # 显示需要接受的频道
+    echo "需要接受服务条款的频道:"
+    local tos_channels=$(conda info 2>&1 | grep -A 10 "Terms of Service have not been accepted" | grep "https://" | sed 's/^[[:space:]]*/  • /' | head -10)
+    echo "$tos_channels"
+    
+    # 原有主要频道列表
     local main_channels=(
         "https://repo.anaconda.com/pkgs/main"
         "https://repo.anaconda.com/pkgs/r"
     )
     
-    local success_count=0
-    
-    for channel in "${main_channels[@]}"; do
-        print_status "接受频道服务条款: $channel"
-        
-        # 使用更详细的错误处理
-        if conda tos accept --override-channels --channel "$channel" 2>&1; then
-            print_success "✓ 已接受: $channel"
-            ((success_count++))
-        else
-            # 检查错误原因
-            local exit_code=$?
-            if [ $exit_code -eq 1 ]; then
-                print_debug "频道 $channel 的服务条款可能已经接受过"
-            else
-                print_warning "✗ 接受失败 (退出代码: $exit_code): $channel"
-            fi
+    # 获取所有潜在频道：主要 + 从 info 提取的
+    local channels=("${main_channels[@]}")
+    local additional=$(conda info 2>&1 | grep -oP 'https?://\S+' | sort -u)
+    for ch in $additional; do
+        if [[ ! " ${channels[*]} " =~ " ${ch} " ]]; then
+            channels+=("$ch")
         fi
     done
     
-    print_debug "处理了 ${#main_channels[@]} 个频道，成功处理 $success_count 个"
+    echo
+    echo "选择解决方案:"
+    echo "1) 🏃 快速修复 - 自动接受所有频道的服务条款"
+    echo "2) 🔄 使用 conda-forge - 配置使用 conda-forge 频道 (推荐)"
+    echo "3) 🛠️  手动修复 - 显示手动修复命令"
+    echo "4) ❌ 退出"
     
-    # 验证是否还有未接受的服务条款
+    read -p "请输入选择 (1-4): " choice
+    
+    case $choice in
+        1)
+            print_status "自动接受服务条款..."
+            
+            local success_count=0
+            
+            for channel in "${channels[@]}"; do
+                print_status "接受频道: $channel"
+                if conda tos accept --override-channels --channel "$channel" 2>&1; then
+                    print_success "✓ 已接受: $channel"
+                    ((success_count++))
+                else
+                    local exit_code=$?
+                    if [ $exit_code -eq 1 ]; then
+                        print_debug "频道 $channel 的服务条款可能已经接受过"
+                    else
+                        print_warning "✗ 接受失败 (退出代码: $exit_code): $channel"
+                    fi
+                fi
+            done
+            
+            print_debug "处理了 ${#channels[@]} 个频道，成功处理 $success_count 个"
+            ;;
+            
+        2)
+            print_status "配置 conda-forge 频道..."
+            
+            conda config --add channels conda-forge
+            conda config --set channel_priority strict
+            
+            print_success "✓ 已配置 conda-forge 频道为默认"
+            print_status "新的频道配置:"
+            conda config --show channels
+            ;;
+            
+        3)
+            print_header "🛠️ 手动修复命令"
+            echo "请根据频道列表，手动运行以下命令:"
+            echo
+            for channel in "${channels[@]}"; do
+                echo "conda tos accept --override-channels --channel $channel"
+            done
+            echo
+            echo "或者使用 conda-forge:"
+            echo "conda config --add channels conda-forge"
+            echo "conda config --set channel_priority strict"
+            ;;
+            
+        4)
+            print_status "用户选择退出"
+            return 0
+            ;;
+            
+        *)
+            print_error "无效选择"
+            return 1
+            ;;
+    esac
+    
+    # 验证修复结果（对于选项3，也运行验证以检查当前状态）
+    verify_tos_fix
+}
+
+verify_tos_fix() {
+    print_header "🧪 验证修复结果"
+    print_status "重新检查服务条款状态..."
+    
     if conda info 2>&1 | grep -q "Terms of Service have not been accepted"; then
-        print_debug "仍有其他频道的服务条款未接受，但主要频道已处理"
+        print_warning "仍有未接受的服务条款，可能需要手动处理"
+        print_status "剩余的问题:"
+        conda info 2>&1 | grep -A 10 "Terms of Service have not been accepted"
+        return 1
     else
-        print_success "所有必要的服务条款已接受"
+        print_success "✅ 所有服务条款问题已解决！"
+        
+        # 测试创建临时环境
+        print_status "测试环境创建功能..."
+        local test_env_name="sage_test_$$"
+        
+        if conda create -n "$test_env_name" python=3.11 -y &>/dev/null; then
+            print_success "✓ 环境创建测试通过"
+            conda env remove -n "$test_env_name" -y &>/dev/null
+            print_debug "已清理测试环境"
+            return 0
+        else
+            print_warning "环境创建测试失败，可能还有其他问题"
+            return 1
+        fi
     fi
 }
 
