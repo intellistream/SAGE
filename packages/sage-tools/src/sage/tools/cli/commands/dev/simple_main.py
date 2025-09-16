@@ -30,6 +30,16 @@ try:
 except ImportError as e:
     console.print(f"[yellow]警告: PyPI发布管理功能不可用: {e}[/yellow]")
 
+# 添加版本管理子命令
+try:
+    from .version import app as version_app
+
+    app.add_typer(
+        version_app, name="version", help="🏷️ 版本管理 - 管理各个子包的版本信息"
+    )
+except ImportError as e:
+    console.print(f"[yellow]警告: 版本管理功能不可用: {e}[/yellow]")
+
 
 @app.command()
 def quality(
