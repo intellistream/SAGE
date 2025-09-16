@@ -36,6 +36,7 @@ class ConnectedStreams:
     ):
         self._environment = env
         self.transformations = transformations
+        self._parallelism_hint = 1  # 默认并行度为1
         
         # 验证输入
         if len(transformations) < 2:
@@ -69,26 +70,49 @@ class ConnectedStreams:
     # ---------------------------------------------------------------------
     # general datastream api
     # ---------------------------------------------------------------------
+    def set_parallelism(self, parallelism: int) -> "ConnectedStreams":
+        """设置下一个操作的并行度提示
+        
+        Args:
+            parallelism: 并行度，必须大于0
+            
+        Returns:
+            self，支持链式调用
+            
+        Example:
+            >>> connected_streams.set_parallelism(4).comap(MyCoMapFunction())
+        """
+        if parallelism <= 0:
+            raise ValueError("Parallelism must be greater than 0")
+        self._parallelism_hint = parallelism
+        return self
+
     def map(
-        self, function: Union[Type[BaseFunction], callable], *args, **kwargs
+        self, function: Union[Type[BaseFunction], callable], *args, parallelism: int = None, **kwargs
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "map")
 
+        # 使用传入的parallelism或者之前设置的hint
+        actual_parallelism = parallelism if parallelism is not None else self._parallelism_hint
+
         # 获取MapTransformation类
         MapTransformation = self._get_transformation_classes()["MapTransformation"]
-        tr = MapTransformation(self._environment, function, *args, **kwargs)
+        tr = MapTransformation(self._environment, function, *args, parallelism=actual_parallelism, **kwargs)
         return self._apply(tr)
 
     def sink(
-        self, function: Union[Type[BaseFunction], callable], *args, **kwargs
+        self, function: Union[Type[BaseFunction], callable], *args, parallelism: int = None, **kwargs
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "sink")
 
+        # 使用传入的parallelism或者之前设置的hint
+        actual_parallelism = parallelism if parallelism is not None else self._parallelism_hint
+
         # 获取SinkTransformation类
         SinkTransformation = self._get_transformation_classes()["SinkTransformation"]
-        tr = SinkTransformation(self._environment, function, *args, **kwargs)
+        tr = SinkTransformation(self._environment, function, *args, parallelism=actual_parallelism, **kwargs)
         return self._apply(tr)
 
     def print(
@@ -130,7 +154,7 @@ class ConnectedStreams:
         return ConnectedStreams(self._environment, new_transformations)
 
     def comap(
-        self, function: Union[Type[BaseFunction], callable], *args, **kwargs
+        self, function: Union[Type[BaseFunction], callable], *args, parallelism: int = None, **kwargs
     ) -> "DataStream":
         """
         Apply a CoMap function that processes each connected stream separately
@@ -232,8 +256,11 @@ class ConnectedStreams:
         from sage.core.transformation.comap_transformation import \
             CoMapTransformation
 
+        # 使用传入的parallelism或者之前设置的hint
+        actual_parallelism = parallelism if parallelism is not None else self._parallelism_hint
+
         # Create CoMapTransformation
-        tr = CoMapTransformation(self._environment, function, *args, **kwargs)
+        tr = CoMapTransformation(self._environment, function, *args, parallelism=actual_parallelism, **kwargs)
 
         # Additional validation at transformation level
         tr.validate_input_streams(input_stream_count)
@@ -242,7 +269,7 @@ class ConnectedStreams:
 
     # 在 connected_streams.py 中添加简化的join方法
     def join(
-        self, function: Union[Type[BaseJoinFunction], callable], *args, **kwargs
+        self, function: Union[Type[BaseJoinFunction], callable], *args, parallelism: int = None, **kwargs
     ) -> "DataStream":
         """
         Join two keyed streams using a join function.
@@ -284,7 +311,9 @@ class ConnectedStreams:
         # self._validate_keyed_streams()
 
         # 创建transformation
-        join_tr = JoinTransformation(self._environment, function, *args, **kwargs)
+        # 使用传入的parallelism或者之前设置的hint
+        actual_parallelism = parallelism if parallelism is not None else self._parallelism_hint
+        join_tr = JoinTransformation(self._environment, function, *args, parallelism=actual_parallelism, **kwargs)
         return self._apply(join_tr)
 
     def keyby(
