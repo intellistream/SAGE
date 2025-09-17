@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "../../../../../../../../.sage/studio/dist",
+            "outputPath": "../dist",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": [
@@ -115,7 +115,7 @@
     "analytics": false,
     "cache": {
       "enabled": true,
-      "path": "../../../../../../../../.sage/studio/.angular/cache",
+      "path": "/home/shuhao/.sage/studio/.angular/cache",
       "environment": "all"
     }
   }

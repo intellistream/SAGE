@@ -26,24 +26,21 @@ class StudioManager:
     def __init__(self):
         self.studio_dir = Path(__file__).parent.parent.parent / "studio"
         self.frontend_dir = self.studio_dir / "frontend"
-        self.backend_dir = self.studio_dir / "config" / "backend"
-
+        
         # 统一的 .sage 目录管理
         self.sage_dir = Path.home() / ".sage"
         self.studio_sage_dir = self.sage_dir / "studio"
-
+        
         self.pid_file = self.sage_dir / "studio.pid"
-        self.backend_pid_file = self.sage_dir / "studio_backend.pid"
         self.log_file = self.sage_dir / "studio.log"
-        self.backend_log_file = self.sage_dir / "studio_backend.log"
         self.config_file = self.sage_dir / "studio.config.json"
-
+        
         # 缓存和构建目录
         self.node_modules_dir = self.studio_sage_dir / "node_modules"
         self.angular_cache_dir = self.studio_sage_dir / ".angular" / "cache"
         self.npm_cache_dir = self.studio_sage_dir / "cache" / "npm"
         self.dist_dir = self.studio_sage_dir / "dist"
-
+        
         self.default_port = 4200
         self.backend_port = 8080
         self.default_host = "localhost"
@@ -60,7 +57,7 @@ class StudioManager:
             self.npm_cache_dir,
             self.dist_dir,
         ]
-
+        
         for directory in directories:
             directory.mkdir(parents=True, exist_ok=True)
 
@@ -165,20 +162,19 @@ class StudioManager:
     def clean_scattered_files(self) -> bool:
         """清理散乱的临时文件和缓存"""
         console.print("[blue]清理散乱的临时文件...[/blue]")
-
+        
         # 清理项目目录中的临时文件
         cleanup_patterns = [
             self.studio_dir / ".angular",
-            self.studio_dir / "dist",
+            self.studio_dir / "dist", 
             self.frontend_dir / ".angular",
             self.frontend_dir / "dist",
         ]
-
+        
         cleaned = False
         for pattern in cleanup_patterns:
             if pattern.exists():
                 import shutil
-
                 if pattern.is_dir():
                     shutil.rmtree(pattern)
                     console.print(f"[green]✓ 已清理: {pattern}[/green]")
@@ -187,23 +183,22 @@ class StudioManager:
                     pattern.unlink()
                     console.print(f"[green]✓ 已清理: {pattern}[/green]")
                     cleaned = True
-
+        
         if not cleaned:
             console.print("[green]✓ 无需清理散乱文件[/green]")
-
+        
         return True
 
     def ensure_node_modules_link(self) -> bool:
         """确保 node_modules 符号链接正确设置"""
         project_modules = self.frontend_dir / "node_modules"
-
+        
         # 如果项目目录中有实际的 node_modules，删除它
         if project_modules.exists() and not project_modules.is_symlink():
             console.print("[blue]清理项目目录中的 node_modules...[/blue]")
             import shutil
-
             shutil.rmtree(project_modules)
-
+        
         # 如果已经是符号链接，检查是否指向正确位置
         if project_modules.is_symlink():
             if project_modules.resolve() == self.node_modules_dir:
@@ -212,7 +207,7 @@ class StudioManager:
             else:
                 console.print("[blue]更新 node_modules 符号链接...[/blue]")
                 project_modules.unlink()
-
+        
         # 创建符号链接
         if self.node_modules_dir.exists():
             project_modules.symlink_to(self.node_modules_dir)
@@ -226,43 +221,40 @@ class StudioManager:
         """确保所有必要的 Angular 依赖都已安装"""
         required_packages = [
             "@angular/cdk",
-            "@angular/animations",
+            "@angular/animations", 
             "@angular/common",
             "@angular/core",
             "@angular/forms",
             "@angular/platform-browser",
             "@angular/platform-browser-dynamic",
-            "@angular/router",
+            "@angular/router"
         ]
-
+        
         console.print("[blue]检查 Angular 依赖...[/blue]")
-
+        
         # 检查 package.json 中是否已有这些依赖
         package_json = self.frontend_dir / "package.json"
         try:
             import json
-
-            with open(package_json, "r") as f:
+            with open(package_json, 'r') as f:
                 package_data = json.load(f)
-
-            dependencies = package_data.get("dependencies", {})
+            
+            dependencies = package_data.get('dependencies', {})
             missing_packages = []
-
+            
             for package in required_packages:
                 if package not in dependencies:
                     missing_packages.append(package)
-
+            
             if missing_packages:
-                console.print(
-                    f"[yellow]检测到缺失的依赖: {', '.join(missing_packages)}[/yellow]"
-                )
+                console.print(f"[yellow]检测到缺失的依赖: {', '.join(missing_packages)}[/yellow]")
                 console.print("[blue]正在安装缺失的依赖...[/blue]")
-
+                
                 # 安装缺失的包
                 env = os.environ.copy()
                 cache_dir = Path.home() / ".sage" / "studio" / "cache" / "npm"
                 env["npm_config_cache"] = str(cache_dir)
-
+                
                 for package in missing_packages:
                     result = subprocess.run(
                         ["npm", "install", package, "--save"],
@@ -277,9 +269,9 @@ class StudioManager:
                     console.print(f"[green]✓ {package} 安装成功[/green]")
             else:
                 console.print("[green]✓ 所有 Angular 依赖已就绪[/green]")
-
+            
             return True
-
+            
         except Exception as e:
             console.print(f"[red]检查依赖时出错: {e}[/red]")
             return False
@@ -319,7 +311,6 @@ class StudioManager:
                 # 如果目标目录已存在，先删除
                 if self.node_modules_dir.exists():
                     import shutil
-
                     shutil.rmtree(self.node_modules_dir)
 
                 # 移动 node_modules
@@ -332,9 +323,7 @@ class StudioManager:
                     project_modules.symlink_to(self.node_modules_dir)
                     console.print("[green]已创建 node_modules 符号链接[/green]")
                 else:
-                    console.print(
-                        "[yellow]警告: 目标 node_modules 不存在，无法创建符号链接[/yellow]"
-                    )
+                    console.print("[yellow]警告: 目标 node_modules 不存在，无法创建符号链接[/yellow]")
 
             console.print("[green]依赖安装成功[/green]")
             return True
@@ -350,6 +339,210 @@ class StudioManager:
         """安装依赖"""
         if not self.frontend_dir.exists():
             console.print(f"[red]前端目录不存在: {self.frontend_dir}[/red]")
+            return False
+
+        package_json = self.frontend_dir / "package.json"
+        if not package_json.exists():
+            console.print(f"[red]package.json 不存在: {package_json}[/red]")
+            return False
+
+        console.print("[blue]正在安装 npm 依赖...[/blue]")
+
+        try:
+            # 设置 npm 缓存目录
+            env = os.environ.copy()
+            env["npm_config_cache"] = str(self.npm_cache_dir)
+
+            # 安装依赖到项目目录
+            result = subprocess.run(
+                ["npm", "install"],
+                cwd=self.frontend_dir,
+                check=True,
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+
+            # 处理 node_modules 的位置
+            project_modules = self.frontend_dir / "node_modules"
+
+            if project_modules.exists():
+                console.print("[blue]移动 node_modules 到 .sage 目录...[/blue]")
+
+                # 如果目标目录已存在，先删除
+                if self.node_modules_dir.exists():
+                    import shutil
+                    shutil.rmtree(self.node_modules_dir)
+
+                # 移动 node_modules
+                project_modules.rename(self.node_modules_dir)
+                console.print("[green]node_modules 已移动到 .sage/studio/[/green]")
+
+            # 无论如何都要创建符号链接（如果不存在的话）
+            if not project_modules.exists():
+                if self.node_modules_dir.exists():
+                    project_modules.symlink_to(self.node_modules_dir)
+                    console.print("[green]已创建 node_modules 符号链接[/green]")
+                else:
+                    console.print("[yellow]警告: 目标 node_modules 不存在，无法创建符号链接[/yellow]")
+
+            console.print("[green]依赖安装成功[/green]")
+            return True
+        except subprocess.CalledProcessError as e:
+            console.print(f"[red]依赖安装失败: {e}[/red]")
+            if e.stdout:
+                console.print(f"stdout: {e.stdout}")
+            if e.stderr:
+                console.print(f"stderr: {e.stderr}")
+            return False
+
+    def install(self) -> bool:
+        """安装 Studio 依赖"""
+        console.print("[blue]📦 安装 SAGE Studio 依赖...[/blue]")
+
+        # 清理散乱的临时文件
+        self.clean_scattered_files()
+
+        # 检查基础依赖
+        if not self.check_dependencies():
+            console.print("[red]❌ 依赖检查失败[/red]")
+            return False
+
+        # 确保 Angular 依赖完整
+        if not self.ensure_angular_dependencies():
+            console.print("[red]❌ Angular 依赖检查失败[/red]")
+            return False
+
+        # 安装所有依赖
+        if not self.install_dependencies():
+            console.print("[red]❌ 依赖安装失败[/red]")
+            return False
+
+        # 检查 TypeScript 编译
+        self.check_typescript_compilation()
+
+        # 确保 node_modules 符号链接正确
+        self.ensure_node_modules_link()
+
+        # 设置配置
+        if not self.setup_studio_config():
+            console.print("[red]❌ 配置设置失败[/red]")
+            return False
+
+        console.print("[green]✅ Studio 安装完成[/green]")
+        return True
+
+    def setup_studio_config(self) -> bool:
+        """设置 Studio 配置"""
+        console.print("[blue]配置 Studio 输出路径...[/blue]")
+
+        try:
+            # 运行配置脚本
+            setup_script = self.studio_dir / "tools" / "setup_config.py"
+            if setup_script.exists():
+                result = subprocess.run(
+                    [sys.executable, str(setup_script)],
+                    cwd=self.studio_dir,
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode == 0:
+                    console.print("[green]Studio 配置成功[/green]")
+                    return True
+                else:
+                    console.print(f"[red]Studio 配置失败: {result.stderr}[/red]")
+                    return False
+            else:
+                console.print("[yellow]配置脚本不存在，跳过配置[/yellow]")
+                return True
+        except Exception as e:
+            console.print(f"[red]配置失败: {e}[/red]")
+            return False
+
+    def check_typescript_compilation(self) -> bool:
+        """检查 TypeScript 编译是否正常"""
+        console.print("[blue]检查 TypeScript 编译...[/blue]")
+        
+        try:
+            # 运行 TypeScript 编译检查
+            result = subprocess.run(
+                ["npx", "tsc", "--noEmit"],
+                cwd=self.frontend_dir,
+                capture_output=True,
+                text=True,
+            )
+            
+            if result.returncode == 0:
+                console.print("[green]✓ TypeScript 编译检查通过[/green]")
+                return True
+            else:
+                console.print("[yellow]⚠️ TypeScript 编译警告/错误:[/yellow]")
+                if result.stdout:
+                    console.print(result.stdout)
+                if result.stderr:
+                    console.print(result.stderr)
+                # 编译错误不阻止安装，只是警告
+                return True
+                
+        except Exception as e:
+            console.print(f"[yellow]TypeScript 检查跳过: {e}[/yellow]")
+            return True
+
+    def build(self) -> bool:
+        """构建 Studio"""
+        if not self.frontend_dir.exists():
+            console.print(f"[red]前端目录不存在: {self.frontend_dir}[/red]")
+            return False
+
+        package_json = self.frontend_dir / "package.json"
+        if not package_json.exists():
+            console.print(f"[red]package.json 不存在: {package_json}[/red]")
+            return False
+
+        console.print("[blue]正在构建 Studio...[/blue]")
+
+        try:
+            # 设置构建环境变量
+            env = os.environ.copy()
+            env["npm_config_cache"] = str(self.npm_cache_dir)
+
+            # 运行构建命令，使用 .sage 目录作为输出
+            result = subprocess.run(
+                ["npm", "run", "build", "--", f"--output-path={self.dist_dir}"],
+                cwd=self.frontend_dir,
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+
+            if result.returncode == 0:
+                console.print("[green]Studio 构建成功[/green]")
+                
+                # 检查构建输出
+                if self.dist_dir.exists():
+                    console.print(f"[blue]构建输出位置: {self.dist_dir}[/blue]")
+                else:
+                    console.print(f"[yellow]警告: 构建输出目录不存在: {self.dist_dir}[/yellow]")
+                
+                return True
+            else:
+                console.print(f"[red]Studio 构建失败[/red]")
+                if result.stdout:
+                    console.print("构建输出:")
+                    console.print(result.stdout)
+                if result.stderr:
+                    console.print("错误信息:")
+                    console.print(result.stderr)
+                return False
+                
+        except Exception as e:
+            console.print(f"[red]构建过程出错: {e}[/red]")
+            return False
+
+    def start(self, port: int = None, host: str = None, dev: bool = False) -> bool:
+        """启动 Studio"""
+        if self.is_running():
+            console.print("[yellow]Studio 已经在运行中[/yellow]")
             return False
 
         package_json = self.frontend_dir / "package.json"
@@ -832,15 +1025,11 @@ if __name__ == "__main__":
                 # 开发模式：使用 ng serve
                 console.print("[blue]启动开发模式...[/blue]")
                 cmd = [
-                    "npx",
-                    "ng",
-                    "serve",
-                    "--host",
-                    host,
-                    "--port",
-                    str(port),
+                    "npx", "ng", "serve",
+                    "--host", host,
+                    "--port", str(port),
                     "--disable-host-check",
-                    "--configuration=development",
+                    "--configuration=development"
                 ]
             else:
                 # 生产模式：确保有构建输出，然后启动静态服务器
@@ -848,47 +1037,17 @@ if __name__ == "__main__":
                     console.print("[blue]检测到无构建输出，开始构建...[/blue]")
                     if not self.build():
                         console.print("[red]构建失败，无法启动生产模式[/red]")
-                        # 如果前端启动失败，也停止后端
-                        self.stop_backend()
                         return False
 
                 console.print("[blue]启动生产服务器...[/blue]")
-
-                # 优先使用 serve 包（专为 SPA 设计）
-                use_custom_server = False
-                try:
-                    # 检查 serve 是否可用
-                    result = subprocess.run(
-                        ["npx", "--yes", "serve", "--version"],
-                        capture_output=True,
-                        text=True,
-                        timeout=10,
-                    )
-
-                    if result.returncode == 0:
-                        console.print("[green]使用 serve 启动生产服务器...[/green]")
-                        cmd = [
-                            "npx",
-                            "--yes",
-                            "serve",
-                            str(self.dist_dir),
-                            "-l",
-                            str(port),
-                            "-n",  # 不打开浏览器
-                            "--cors",  # 启用 CORS
-                            "--single",  # 单页应用模式，所有路由都重定向到 index.html
-                        ]
-                    else:
-                        use_custom_server = True
-
-                except Exception:
-                    use_custom_server = True
-
-                if use_custom_server:
-                    console.print("[yellow]serve 不可用，使用自定义服务器...[/yellow]")
-                    # 创建自定义的 Python 服务器来处理 SPA 路由
-                    server_script = self.create_spa_server_script(port, host)
-                    cmd = [sys.executable, str(server_script)]
+                cmd = [
+                    "npx", "--yes", "http-server",
+                    str(self.dist_dir),
+                    "-p", str(port),
+                    "-a", host,
+                    "-c-1",  # 禁用缓存
+                    "--cors"  # 启用 CORS
+                ]
 
             # 启动进程
             process = subprocess.Popen(

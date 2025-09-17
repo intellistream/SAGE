@@ -20,7 +20,6 @@ def _load_version():
     try:
         # 尝试从本地包的版本文件加载
         from sage.common._version import __version__
-
         return __version__
     except ImportError:
         # 如果本地版本文件不存在，返回默认值
@@ -90,7 +89,11 @@ app = FastAPI(
 def _read_sage_data_from_files():
     """从 .sage 目录的文件中读取实际的 SAGE 数据"""
     sage_dir = _get_sage_dir()
-    data = {"jobs": [], "operators": [], "pipelines": []}
+    data = {
+        "jobs": [],
+        "operators": [],
+        "pipelines": []
+    }
 
     try:
         # 读取作业信息
@@ -98,7 +101,7 @@ def _read_sage_data_from_files():
         if states_dir.exists():
             for job_file in states_dir.glob("*.json"):
                 try:
-                    with open(job_file, "r") as f:
+                    with open(job_file, 'r') as f:
                         job_data = json.load(f)
                         data["jobs"].append(job_data)
                 except Exception as e:
@@ -108,7 +111,7 @@ def _read_sage_data_from_files():
         operators_file = sage_dir / "output" / "operators.json"
         if operators_file.exists():
             try:
-                with open(operators_file, "r") as f:
+                with open(operators_file, 'r') as f:
                     operators_data = json.load(f)
                     data["operators"] = operators_data
             except Exception as e:
@@ -118,7 +121,7 @@ def _read_sage_data_from_files():
         pipelines_file = sage_dir / "output" / "pipelines.json"
         if pipelines_file.exists():
             try:
-                with open(pipelines_file, "r") as f:
+                with open(pipelines_file, 'r') as f:
                     pipelines_data = json.load(f)
                     data["pipelines"] = pipelines_data
             except Exception as e:
@@ -128,7 +131,6 @@ def _read_sage_data_from_files():
         print(f"Error reading SAGE data: {e}")
 
     return data
-
 
 import json
 import os
@@ -198,7 +200,11 @@ app = FastAPI(
 def _read_sage_data_from_files():
     """从 .sage 目录的文件中读取实际的 SAGE 数据"""
     sage_dir = _get_sage_dir()
-    data = {"jobs": [], "operators": [], "pipelines": []}
+    data = {
+        "jobs": [],
+        "operators": [],
+        "pipelines": []
+    }
 
     try:
         # 读取作业信息
@@ -206,7 +212,7 @@ def _read_sage_data_from_files():
         if states_dir.exists():
             for job_file in states_dir.glob("*.json"):
                 try:
-                    with open(job_file, "r") as f:
+                    with open(job_file, 'r') as f:
                         job_data = json.load(f)
                         data["jobs"].append(job_data)
                 except Exception as e:
@@ -216,7 +222,7 @@ def _read_sage_data_from_files():
         operators_file = sage_dir / "output" / "operators.json"
         if operators_file.exists():
             try:
-                with open(operators_file, "r") as f:
+                with open(operators_file, 'r') as f:
                     operators_data = json.load(f)
                     data["operators"] = operators_data
             except Exception as e:
@@ -226,7 +232,7 @@ def _read_sage_data_from_files():
         pipelines_file = sage_dir / "output" / "pipelines.json"
         if pipelines_file.exists():
             try:
-                with open(pipelines_file, "r") as f:
+                with open(pipelines_file, 'r') as f:
                     pipelines_data = json.load(f)
                     data["pipelines"] = pipelines_data
             except Exception as e:
@@ -335,13 +341,13 @@ async def get_all_jobs():
                         "serializeTime": 50000,
                         "persistTime": 100000,
                         "streamProcessTime": 2500000,
-                        "overheadTime": 62000,
+                        "overheadTime": 62000
                     },
                     "schedulerTimeBreakdown": {
                         "overheadTime": 50000,
                         "streamTime": 2600000,
                         "totalTime": 2712000,
-                        "txnTime": 62000,
+                        "txnTime": 62000
                     },
                     "operators": [
                         {
@@ -357,9 +363,9 @@ async def get_all_jobs():
                             "numOfLD": 5,
                             "numOfPD": 2,
                             "lastBatch": 999,
-                            "downstream": [2],
+                            "downstream": [2]
                         }
-                    ],
+                    ]
                 }
             ]
 
@@ -383,15 +389,15 @@ async def get_operators():
                     "name": "FileSource",
                     "description": "从文件读取数据的源操作符",
                     "code": "class FileSource:\n    def __init__(self, file_path):\n        self.file_path = file_path\n    \n    def read_data(self):\n        with open(self.file_path, 'r') as f:\n            return f.read()",
-                    "isCustom": True,
+                    "isCustom": True
                 },
                 {
                     "id": 2,
                     "name": "SimpleRetriever",
                     "description": "简单的检索操作符",
                     "code": "class SimpleRetriever:\n    def __init__(self, top_k=5):\n        self.top_k = top_k\n    \n    def retrieve(self, query):\n        return query[:self.top_k]",
-                    "isCustom": True,
-                },
+                    "isCustom": True
+                }
             ]
 
         return operators
@@ -415,26 +421,14 @@ async def get_pipelines():
                     "description": "演示RAG问答系统的数据处理管道",
                     "status": "running",
                     "operators": [
-                        {
-                            "id": "source1",
-                            "type": "FileSource",
-                            "config": {"file_path": "/data/documents.txt"},
-                        },
-                        {
-                            "id": "retriever1",
-                            "type": "SimpleRetriever",
-                            "config": {"top_k": 5},
-                        },
-                        {
-                            "id": "sink1",
-                            "type": "TerminalSink",
-                            "config": {"format": "json"},
-                        },
+                        {"id": "source1", "type": "FileSource", "config": {"file_path": "/data/documents.txt"}},
+                        {"id": "retriever1", "type": "SimpleRetriever", "config": {"top_k": 5}},
+                        {"id": "sink1", "type": "TerminalSink", "config": {"format": "json"}}
                     ],
                     "connections": [
                         {"from": "source1", "to": "retriever1"},
-                        {"from": "retriever1", "to": "sink1"},
-                    ],
+                        {"from": "retriever1", "to": "sink1"}
+                    ]
                 }
             ]
 
