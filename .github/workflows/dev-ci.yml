@@ -138,8 +138,16 @@ jobs:
         echo "- 网络状态: $(ping -c 1 pypi.org >/dev/null 2>&1 && echo "✅ 可达" || echo "❌ 不可达")"
         
         echo "🎯 开始通过quickstart.sh dev模式安装..."
+        
+        # 设置错误捕获
+        set -e
+        trap 'exit_code=$?; echo "❌ SAGE installation failed with exit code $exit_code"; exit $exit_code' ERR
+        
         chmod +x ./quickstart.sh
-        ./quickstart.sh --dev --pip --yes
+        if ! ./quickstart.sh --dev --pip --yes; then
+          echo "❌ SAGE installation failed!"
+          exit 1
+        fi
         
         echo "✅ quickstart.sh dev模式安装完成"
       timeout-minutes: 20
