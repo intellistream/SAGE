@@ -43,6 +43,21 @@ install_dev_packages() {
         fi
     done
     
+    # 验证关键CLI包是否可导入（这些包对Examples测试很重要）
+    echo ""
+    echo -e "${BOLD}  🔍 验证CLI依赖包可用性...${NC}"
+    echo ""
+    
+    local cli_packages_to_check=("typer" "rich")
+    for package in "${cli_packages_to_check[@]}"; do
+        if python3 -c "import $package" 2>/dev/null; then
+            echo -e "${CHECK} $package 可导入"
+        else
+            echo -e "${WARNING} $package 无法导入"
+            missing_tools+=("$package")
+        fi
+    done
+    
     if [ ${#missing_tools[@]} -eq 0 ]; then
         echo ""
         echo -e "${CHECK} 所有开发工具验证成功！"

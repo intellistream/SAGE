@@ -502,6 +502,16 @@ jobs:
         
         # 运行 Examples 测试
         echo "📚 运行 Examples 测试..."
+        
+        # 检查并安装 Examples 测试所需的 CLI 依赖
+        echo "🔍 检查 Examples 测试依赖..."
+        if ! python -c "import typer, rich" 2>/dev/null; then
+          echo "📦 安装 Examples 测试所需的 CLI 依赖..."
+          pip install -e packages/sage-tools[cli] || echo "⚠️ CLI 依赖安装失败，将跳过 Examples 测试"
+        else
+          echo "✅ Examples 测试依赖已满足"
+        fi
+        
         chmod +x ./tools/tests/run_examples_tests.sh
         if ./tools/tests/run_examples_tests.sh --category tutorials --timeout 30; then
           echo "✅ Examples 测试通过"
