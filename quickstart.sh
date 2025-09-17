@@ -46,6 +46,7 @@ main() {
     local environment=$(get_install_environment)
     local install_vllm=$(get_install_vllm)
     local auto_confirm=$(get_auto_confirm)
+    local clean_cache=$(get_clean_pip_cache)
     
     # 如果不是自动确认模式，显示最终确认
     if [ "$auto_confirm" != "true" ]; then
@@ -73,7 +74,7 @@ main() {
     cd "$SCRIPT_DIR"
     
     # 执行安装
-    install_sage "$mode" "$environment" "$install_vllm"
+    install_sage "$mode" "$environment" "$install_vllm" "$clean_cache"
     
     # 验证安装
     if verify_installation; then
