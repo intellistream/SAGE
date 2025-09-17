@@ -153,22 +153,27 @@ install_package_with_output() {
     
     # 根据安装类型构建命令
     local install_cmd
-    if [ "$install_type" = "dev" ]; then
-        if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-            # CI环境：添加优化选项，使用缓存和并行安装
-            install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
-            echo "🔧 CI环境检测: 使用优化安装选项"
-        else
-            install_cmd="$pip_cmd install -e $package_path --disable-pip-version-check --no-input"
+    local ci_flags=""
+    
+    # CI环境检测和特殊处理
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        ci_flags="--disable-pip-version-check --no-input"
+        echo "🔧 CI环境检测: 使用优化安装选项"
+        
+        # 检查是否需要 --break-system-packages（对于受管理的Python环境）
+        if python3 -c "import sys; print(sys.prefix)" 2>/dev/null | grep -q "^/usr$" || \
+           python3 -c "import sysconfig; print(sysconfig.get_path('purelib'))" 2>/dev/null | grep -qE "^/usr/(local/)?lib/python"; then
+            ci_flags="$ci_flags --break-system-packages"
+            echo "🔧 检测到受管理的Python环境，添加--break-system-packages标志"
         fi
     else
-        if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-            # CI环境：添加优化选项
-            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
-            echo "🔧 CI环境检测: 使用优化安装选项"
-        else
-            install_cmd="$pip_cmd install $package_path --disable-pip-version-check --no-input"
-        fi
+        ci_flags="--disable-pip-version-check --no-input"
+    fi
+    
+    if [ "$install_type" = "dev" ]; then
+        install_cmd="$pip_cmd install -e $package_path $ci_flags"
+    else
+        install_cmd="$pip_cmd install $package_path $ci_flags"
     fi
     
     # 记录安装开始信息到日志

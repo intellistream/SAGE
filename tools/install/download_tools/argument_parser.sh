@@ -12,6 +12,57 @@ INSTALL_VLLM=false
 AUTO_CONFIRM=false
 SHOW_HELP=false
 
+# 检测当前Python环境
+detect_current_environment() {
+    local env_type="system"
+    local env_name=""
+    local in_conda=false
+    local in_venv=false
+    
+    # 检测conda环境
+    if [ -n "$CONDA_DEFAULT_ENV" ] && [ "$CONDA_DEFAULT_ENV" != "base" ]; then
+        env_type="conda"
+        env_name="$CONDA_DEFAULT_ENV"
+        in_conda=true
+    elif [ -n "$CONDA_PREFIX" ] && [[ "$CONDA_PREFIX" != *"/base" ]]; then
+        env_type="conda"
+        env_name=$(basename "$CONDA_PREFIX")
+        in_conda=true
+    fi
+    
+    # 检测虚拟环境
+    if [ -n "$VIRTUAL_ENV" ]; then
+        if [ "$in_conda" = false ]; then
+            env_type="venv"
+            env_name=$(basename "$VIRTUAL_ENV")
+            in_venv=true
+        fi
+    fi
+    
+    echo "$env_type|$env_name|$in_conda|$in_venv"
+}
+
+# 根据当前环境智能推荐安装方式
+get_smart_environment_recommendation() {
+    local env_info=$(detect_current_environment)
+    local env_type=$(echo "$env_info" | cut -d'|' -f1)
+    local env_name=$(echo "$env_info" | cut -d'|' -f2)
+    local in_conda=$(echo "$env_info" | cut -d'|' -f3)
+    local in_venv=$(echo "$env_info" | cut -d'|' -f4)
+    
+    if [ "$in_conda" = true ] || [ "$in_venv" = true ]; then
+        # 用户已经在虚拟环境中，推荐直接使用
+        echo "pip|$env_type|$env_name"
+    else
+        # 用户在系统环境中，推荐创建conda环境（如果conda可用）
+        if command -v conda &> /dev/null; then
+            echo "conda|system|"
+        else
+            echo "pip|system|"
+        fi
+    fi
+}
+
 # 交互式安装菜单
 show_installation_menu() {
     echo ""
@@ -49,21 +100,57 @@ show_installation_menu() {
     
     echo ""
     
+    # 检测当前环境并智能推荐
+    local recommendation=$(get_smart_environment_recommendation)
+    local recommended_env=$(echo "$recommendation" | cut -d'|' -f1)
+    local current_env_type=$(echo "$recommendation" | cut -d'|' -f2)
+    local current_env_name=$(echo "$recommendation" | cut -d'|' -f3)
+    
+    # 显示当前环境信息
+    if [ "$current_env_type" = "conda" ] && [ -n "$current_env_name" ]; then
+        echo -e "${INFO} 检测到您当前在 conda 环境中: ${GREEN}$current_env_name${NC}"
+    elif [ "$current_env_type" = "venv" ] && [ -n "$current_env_name" ]; then
+        echo -e "${INFO} 检测到您当前在虚拟环境中: ${GREEN}$current_env_name${NC}"
+    elif [ "$current_env_type" = "system" ]; then
+        echo -e "${INFO} 检测到您当前在系统 Python 环境中"
+    fi
+    
+    echo ""
+    
     # 选择安装环境
     while true; do
         echo -e "${BOLD}2. 选择安装环境：${NC}"
-        echo -e "  ${GREEN}1)${NC} Conda 环境  - 独立环境，推荐 ${DIM}(推荐)${NC}"
-        echo -e "  ${PURPLE}2)${NC} 系统 Python - 使用当前Python环境"
-        echo ""
-        read -p "请选择安装环境 [1-2，默认1]: " env_choice
         
-        case "${env_choice:-1}" in
+        if [ "$recommended_env" = "pip" ]; then
+            # 推荐使用当前环境
+            echo -e "  ${PURPLE}1)${NC} 使用当前环境 ${DIM}(推荐，已在虚拟环境中)${NC}"
+            echo -e "  ${GREEN}2)${NC} 创建新的 Conda 环境"
+            local default_choice=1
+        else
+            # 推荐创建conda环境
+            echo -e "  ${GREEN}1)${NC} 创建新的 Conda 环境 ${DIM}(推荐)${NC}"
+            echo -e "  ${PURPLE}2)${NC} 使用当前系统环境"
+            local default_choice=1
+        fi
+        
+        echo ""
+        read -p "请选择安装环境 [1-2，默认$default_choice]: " env_choice
+        
+        case "${env_choice:-$default_choice}" in
             1)
-                INSTALL_ENVIRONMENT="conda"
+                if [ "$recommended_env" = "pip" ]; then
+                    INSTALL_ENVIRONMENT="pip"
+                else
+                    INSTALL_ENVIRONMENT="conda"
+                fi
                 break
                 ;;
             2)
-                INSTALL_ENVIRONMENT="pip"
+                if [ "$recommended_env" = "pip" ]; then
+                    INSTALL_ENVIRONMENT="conda"
+                else
+                    INSTALL_ENVIRONMENT="pip"
+                fi
                 break
                 ;;
             *)
@@ -118,14 +205,12 @@ show_parameter_help() {
     echo -e "    ${DIM}适合: 为SAGE项目贡献代码的开发者${NC}"
     echo ""
     
-    echo -e "${BLUE}🔧 安装环境 (默认: conda环境)：${NC}"
+    echo -e "${BLUE}🔧 安装环境：${NC}"
     echo ""
-    echo -e "  ${BOLD}--conda, -conda${NC}                              ${GREEN}使用 conda 环境 (默认)${NC}"
-    echo -e "    ${DIM}创建独立的conda环境进行安装${NC}"
-    echo -e "    ${DIM}提供最佳的环境隔离和依赖管理${NC}"
+    echo -e "  ${BOLD}--pip, -pip${NC}                                  ${PURPLE}使用当前环境${NC}"
+    echo -e "  ${BOLD}--conda, -conda${NC}                              ${GREEN}创建conda环境${NC}"
     echo ""
-    echo -e "  ${BOLD}--pip, -pip${NC}                                  仅使用系统 Python 环境"
-    echo -e "    ${DIM}在当前环境中直接使用pip安装${NC}"
+    echo -e "  ${DIM}💡 不指定时自动智能选择: 虚拟环境→pip，系统环境→conda${NC}"
     echo ""
     
     echo -e "${BLUE}🤖 AI 模型支持：${NC}"
@@ -143,14 +228,10 @@ show_parameter_help() {
     echo ""
     
     echo -e "${BLUE}💡 使用示例：${NC}"
-    echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装（推荐新用户）${NC}"
-    echo -e "  ./quickstart.sh --standard                       ${DIM}# 标准安装 + conda环境${NC}"
-    echo -e "  ./quickstart.sh --minimal --pip                  ${DIM}# 最小安装 + 系统Python环境${NC}"
-    echo -e "  ./quickstart.sh --dev --conda                    ${DIM}# 开发者安装 + conda环境${NC}"
-    echo -e "  ./quickstart.sh --s --pip                        ${DIM}# 标准安装 + 系统Python环境${NC}"
-    echo -e "  ./quickstart.sh --vllm                           ${DIM}# 开发者安装 + 安装 VLLM 环境${NC}"
-    echo -e "  ./quickstart.sh --standard --vllm                ${DIM}# 标准安装 + 安装 VLLM 环境${NC}"
-    echo -e "  ./quickstart.sh --minimal --yes                  ${DIM}# 最小安装 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装${NC}"
+    echo -e "  ./quickstart.sh --dev                            ${DIM}# 开发者安装 + 智能环境选择${NC}"
+    echo -e "  ./quickstart.sh --standard --conda               ${DIM}# 标准安装 + conda环境${NC}"
+    echo -e "  ./quickstart.sh --minimal --pip --yes            ${DIM}# 最小安装 + 当前环境 + 跳过确认${NC}"
     echo ""
 }
 
@@ -296,12 +377,24 @@ set_defaults_and_show_tips() {
         echo -e "${INFO} 检测到 CI 环境，自动启用确认模式"
         has_defaults=true
         
-        # 如果在CI环境中且没有明确指定安装环境，检查conda是否可用
-        if [ -z "$INSTALL_ENVIRONMENT" ]; then
-            if ! command -v conda &> /dev/null; then
-                INSTALL_ENVIRONMENT="pip"
-                echo -e "${INFO} CI环境中未找到conda，自动使用pip模式"
-                has_defaults=true
+        # CI 环境中的环境选择逻辑
+        if [ "$INSTALL_ENVIRONMENT" = "conda" ] && ! command -v conda &> /dev/null; then
+            # CI 环境中强制使用 conda 但 conda 不可用时，自动降级到 pip
+            echo -e "${WARNING} CI环境中指定了conda但未找到conda，自动降级为pip模式"
+            INSTALL_ENVIRONMENT="pip"
+            has_defaults=true
+        elif [ -z "$INSTALL_ENVIRONMENT" ] && ! command -v conda &> /dev/null; then
+            # CI 环境中没有指定环境且没有 conda 时，使用 pip
+            INSTALL_ENVIRONMENT="pip"
+            echo -e "${INFO} CI环境中未找到conda，自动使用pip模式"
+            has_defaults=true
+        fi
+        
+        # 检查是否在受管理的Python环境中（如Ubuntu 24.04+）
+        if [ "$INSTALL_ENVIRONMENT" = "pip" ] || [ -z "$INSTALL_ENVIRONMENT" ]; then
+            if python3 -c "import sysconfig; print(sysconfig.get_path('purelib'))" 2>/dev/null | grep -q "/usr/lib/python"; then
+                echo -e "${WARNING} 检测到受管理的Python环境，在CI中推荐使用--break-system-packages"
+                echo -e "${INFO} 这在CI环境中是安全的，因为CI环境是临时的"
             fi
         fi
     fi
@@ -313,10 +406,22 @@ set_defaults_and_show_tips() {
         has_defaults=true
     fi
     
-    # 设置安装环境默认值
+    # 设置安装环境默认值（基于当前环境智能选择）
     if [ -z "$INSTALL_ENVIRONMENT" ]; then
-        INSTALL_ENVIRONMENT="conda"
-        echo -e "${INFO} 未指定安装环境，使用默认: ${GREEN}conda环境${NC}"
+        local recommendation=$(get_smart_environment_recommendation)
+        local recommended_env=$(echo "$recommendation" | cut -d'|' -f1)
+        local current_env_type=$(echo "$recommendation" | cut -d'|' -f2)
+        local current_env_name=$(echo "$recommendation" | cut -d'|' -f3)
+        
+        INSTALL_ENVIRONMENT="$recommended_env"
+        
+        if [ "$recommended_env" = "pip" ] && [ "$current_env_type" != "system" ]; then
+            echo -e "${INFO} 检测到虚拟环境，使用默认: ${PURPLE}当前环境 ($current_env_type: $current_env_name)${NC}"
+        elif [ "$recommended_env" = "conda" ]; then
+            echo -e "${INFO} 检测到系统环境，推荐默认: ${GREEN}创建conda环境${NC}"
+        else
+            echo -e "${INFO} 未指定安装环境，使用默认: ${PURPLE}系统Python环境${NC}"
+        fi
         has_defaults=true
     fi
     
@@ -325,8 +430,10 @@ set_defaults_and_show_tips() {
         echo -e "${DIM}提示: 可使用 --help 查看所有可用选项${NC}"
         echo ""
     fi
-    
-    # 显示最终配置
+}
+
+# 显示安装配置信息
+show_install_configuration() {
     echo -e "${BLUE}📋 安装配置：${NC}"
     case "$INSTALL_MODE" in
         "standard")
@@ -345,7 +452,16 @@ set_defaults_and_show_tips() {
             echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境${NC}"
             ;;
         "pip")
-            echo -e "  ${BLUE}安装环境:${NC} ${PURPLE}系统Python环境${NC}"
+            # 检查是否在虚拟环境中
+            local current_env_info=$(detect_current_environment)
+            local env_type=$(echo "$current_env_info" | cut -d'|' -f1)
+            local env_name=$(echo "$current_env_info" | cut -d'|' -f2)
+            
+            if [ "$env_type" != "system" ]; then
+                echo -e "  ${BLUE}安装环境:${NC} ${PURPLE}当前环境 ($env_type: $env_name)${NC}"
+            else
+                echo -e "  ${BLUE}安装环境:${NC} ${PURPLE}系统Python环境${NC}"
+            fi
             ;;
     esac
     

@@ -30,6 +30,9 @@ main() {
     # 解析命令行参数（包括帮助检查）
     parse_arguments "$@"
     
+    # 设置智能默认值并显示提示
+    set_defaults_and_show_tips
+    
     # 显示欢迎界面
     show_welcome
     
@@ -48,32 +51,8 @@ main() {
     if [ "$auto_confirm" != "true" ]; then
         echo ""
         echo -e "${BLUE}📋 最终安装配置：${NC}"
-        case "$mode" in
-            "standard")
-                echo -e "  ${BLUE}安装模式:${NC} ${GREEN}标准安装${NC}"
-                ;;
-            "minimal")
-                echo -e "  ${BLUE}安装模式:${NC} ${GRAY}最小安装${NC}"
-                ;;
-            "dev")
-                echo -e "  ${BLUE}安装模式:${NC} ${YELLOW}开发者安装${NC}"
-                ;;
-        esac
+        show_install_configuration
         
-        case "$environment" in
-            "conda")
-                echo -e "  ${BLUE}安装环境:${NC} ${GREEN}conda环境${NC}"
-                ;;
-            "pip")
-                echo -e "  ${BLUE}安装环境:${NC} ${PURPLE}系统Python环境${NC}"
-                ;;
-        esac
-        
-        if [ "$install_vllm" = "true" ]; then
-            echo -e "  ${BLUE}AI 模型支持:${NC} ${PURPLE}VLLM 环境准备${NC}"
-        fi
-        
-        echo ""
         echo -e "${YELLOW}确认开始安装吗？${NC} [${GREEN}Y${NC}/${RED}n${NC}]"
         read -p "请输入选择: " -r continue_choice
         
@@ -87,6 +66,7 @@ main() {
     else
         echo ""
         echo -e "${INFO} 使用自动确认模式，直接开始安装..."
+        show_install_configuration
     fi
     
     # 切换到项目根目录
