@@ -107,8 +107,6 @@ activate_sage.sh
 .benchmarks/
 **/benchmark_report_*.json
 **/test_results_*.json
-**/sage_queue_test_report_*.json
-**/sage_queue_test_report_*.md
 **.egg-info
 sage_ext/sage_db/build/
 build/

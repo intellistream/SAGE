@@ -36,11 +36,6 @@ try:
     except ImportError:
         RayQueueDescriptor = None
 
-    try:
-        from sage.kernel.runtime.communication.queue_descriptor.sage_queue_descriptor import \
-            SageQueueDescriptor
-    except ImportError:
-        SageQueueDescriptor = None
 
     try:
         from sage.kernel.runtime.communication.queue_descriptor.rpc_queue_descriptor import \
