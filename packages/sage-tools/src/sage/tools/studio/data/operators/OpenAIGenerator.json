@@ -1,8 +1,9 @@
 {
-    "id":1,
-    "name":"OpenAIGenerator",
-    "description":"A generator that uses OpenAI's  API to generate responses.",
-    "code":"",
-    "isCustom":false
+    "id": 1,
+    "name": "OpenAIGenerator",
+    "description": "A generator that uses OpenAI's API to generate responses.",
+    "module_path": "sage.libs.rag.generator",
+    "class_name": "OpenAIGenerator",
+    "isCustom": false
 }
 

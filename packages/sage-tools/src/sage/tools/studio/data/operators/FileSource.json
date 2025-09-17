@@ -1,7 +1,8 @@
 {
-    "id":9,
-    "name":"FileSource",
-    "description":"Read queries from a file",
-    "code":"",
-    "isCustom":false
+    "id": 9,
+    "name": "FileSource",
+    "description": "Read queries from a file",
+    "module_path": "examples.rag.rag_simple",
+    "class_name": "FileSource",
+    "isCustom": false
 }

@@ -33,6 +33,9 @@ export class PipelineService {
 
   // 修改 addNode 方法，添加 operatorId 参数
   addNode(type: string, name: string, fullName: string, id: string, description: string, position: { x: number; y: number }, operatorId?: string | number) {
+    // 检查位置是否与现有节点太接近
+    const adjustedPosition = this.findValidPosition(position);
+    
     const newNode: PipelineNode = {
       id: id, // 使用传入的唯一ID
       type: type,
@@ -40,13 +43,36 @@ export class PipelineService {
       fullName: fullName || name,
       description: description,
       operatorId: operatorId, // 保存原始操作符ID
-      x: position.x,
-      y: position.y,
+      x: adjustedPosition.x,
+      y: adjustedPosition.y,
       isSource: false,
       isSink: false
     };
     const currentNodes = this._nodes.getValue();
     this._nodes.next([...currentNodes, newNode]); // Emit new array to subscribers
+  }
+
+  // 新增方法：查找有效位置，避免节点重叠
+  private findValidPosition(desiredPosition: { x: number; y: number }): { x: number; y: number } {
+    const currentNodes = this._nodes.getValue();
+    const minDistance = 100; // 最小距离，可以调整这个值
+    let adjustedPosition = { ...desiredPosition };
+    
+    // 检查是否与现有节点太接近
+    for (const node of currentNodes) {
+      const distance = Math.sqrt(
+        Math.pow(adjustedPosition.x - node.x, 2) + 
+        Math.pow(adjustedPosition.y - node.y, 2)
+      );
+      
+      if (distance < minDistance) {
+        // 如果太接近，调整位置
+        adjustedPosition.x = node.x + minDistance + Math.random() * 50; // 添加一些随机偏移
+        adjustedPosition.y = node.y + Math.random() * 50;
+      }
+    }
+    
+    return adjustedPosition;
   }
 
   updateNodePosition(nodeId: string, position: { x: number; y: number}) {

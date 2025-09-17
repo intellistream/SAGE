@@ -75,7 +75,7 @@ jobs:
         ./quickstart.sh --dev --pip --yes
         
         echo "✅ SAGE开发环境安装完成"
-      timeout-minutes: 15
+      timeout-minutes: 60
         
     - name: Verify SAGE Installation
       run: |

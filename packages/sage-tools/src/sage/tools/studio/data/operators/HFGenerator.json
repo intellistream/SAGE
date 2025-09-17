@@ -1,7 +1,8 @@
 {
-    "id":2,
-    "name":"HFGenerator",
-    "description":"HuggingFace Generator",
-    "code":"",
-    "isCustom":false
+    "id": 2,
+    "name": "HFGenerator",
+    "description": "HuggingFace Generator",
+    "module_path": "sage.libs.rag.generator",
+    "class_name": "HFGenerator",
+    "isCustom": false
 }

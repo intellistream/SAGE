@@ -94,12 +94,15 @@ def status():
 
 
 @app.command()
-def logs(follow: bool = typer.Option(False, "--follow", "-f", help="跟踪日志")):
+def logs(
+    follow: bool = typer.Option(False, "--follow", "-f", help="跟踪日志"),
+    backend: bool = typer.Option(False, "--backend", "-b", help="查看后端API日志")
+):
     """查看 SAGE Studio 日志"""
     console.print("[blue]📋 查看 Studio 日志...[/blue]")
 
     try:
-        studio_manager.logs(follow=follow)
+        studio_manager.logs(follow=follow, backend=backend)
     except Exception as e:
         console.print(f"[red]❌ 查看日志失败: {e}[/red]")
 
@@ -153,6 +156,21 @@ def open():
             console.print("使用命令: [bold]sage studio start[/bold]")
     except Exception as e:
         console.print(f"[red]❌ 打开失败: {e}[/red]")
+
+
+@app.command()
+def clean():
+    """清理 Studio 缓存和临时文件"""
+    console.print("[blue]🧹 清理 Studio 缓存...[/blue]")
+
+    try:
+        success = studio_manager.clean()
+        if success:
+            console.print("[green]✅ 清理完成[/green]")
+        else:
+            console.print("[red]❌ 清理失败[/red]")
+    except Exception as e:
+        console.print(f"[red]❌ 清理失败: {e}[/red]")
 
 
 if __name__ == "__main__":

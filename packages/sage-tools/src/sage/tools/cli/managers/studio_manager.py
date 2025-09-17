@@ -26,13 +26,16 @@ class StudioManager:
     def __init__(self):
         self.studio_dir = Path(__file__).parent.parent.parent / "studio"
         self.frontend_dir = self.studio_dir / "frontend"
+        self.backend_dir = self.studio_dir / "config" / "backend"
         
         # 统一的 .sage 目录管理
         self.sage_dir = Path.home() / ".sage"
         self.studio_sage_dir = self.sage_dir / "studio"
         
         self.pid_file = self.sage_dir / "studio.pid"
+        self.backend_pid_file = self.sage_dir / "studio_backend.pid"
         self.log_file = self.sage_dir / "studio.log"
+        self.backend_log_file = self.sage_dir / "studio_backend.log"
         self.config_file = self.sage_dir / "studio.config.json"
         
         # 缓存和构建目录
@@ -42,6 +45,7 @@ class StudioManager:
         self.dist_dir = self.studio_sage_dir / "dist"
         
         self.default_port = 4200
+        self.backend_port = 8080
         self.default_host = "localhost"
 
         # 确保所有目录存在
@@ -68,7 +72,12 @@ class StudioManager:
                     return json.load(f)
             except Exception:
                 pass
-        return {"port": self.default_port, "host": self.default_host, "dev_mode": False}
+        return {
+            "port": self.default_port, 
+            "backend_port": self.backend_port,
+            "host": self.default_host, 
+            "dev_mode": False
+        }
 
     def save_config(self, config: dict):
         """保存配置"""
@@ -79,7 +88,7 @@ class StudioManager:
             console.print(f"[red]保存配置失败: {e}[/red]")
 
     def is_running(self) -> Optional[int]:
-        """检查 Studio 是否运行中"""
+        """检查 Studio 前端是否运行中"""
         if not self.pid_file.exists():
             return None
 
@@ -93,6 +102,27 @@ class StudioManager:
                 # PID 文件存在但进程不存在，清理文件
                 self.pid_file.unlink()
                 return None
+        except Exception:
+            return None
+
+    def is_backend_running(self) -> Optional[int]:
+        """检查 Studio 后端API是否运行中"""
+        if not self.backend_pid_file.exists():
+            return None
+
+        try:
+            with open(self.backend_pid_file, "r") as f:
+                pid = int(f.read().strip())
+
+            if psutil.pid_exists(pid):
+                proc = psutil.Process(pid)
+                # 检查是否是Python进程且包含api.py
+                if "python" in proc.name().lower() and "api.py" in " ".join(proc.cmdline()):
+                    return pid
+
+            # PID 文件存在但进程不存在，清理文件
+            self.backend_pid_file.unlink()
+            return None
         except Exception:
             return None
 
@@ -408,24 +438,51 @@ class StudioManager:
         console.print("[blue]配置 Studio 输出路径...[/blue]")
 
         try:
-            # 运行配置脚本
-            setup_script = self.studio_dir / "tools" / "setup_config.py"
-            if setup_script.exists():
-                result = subprocess.run(
-                    [sys.executable, str(setup_script)],
-                    cwd=self.studio_dir,
-                    capture_output=True,
-                    text=True
-                )
-                if result.returncode == 0:
-                    console.print("[green]Studio 配置成功[/green]")
-                    return True
-                else:
-                    console.print(f"[red]Studio 配置失败: {result.stderr}[/red]")
-                    return False
-            else:
-                console.print("[yellow]配置脚本不存在，跳过配置[/yellow]")
+            # 直接在这里实现配置逻辑，而不是调用外部脚本
+            angular_json_path = self.frontend_dir / "angular.json"
+            
+            if not angular_json_path.exists():
+                console.print("[yellow]angular.json 不存在，跳过配置[/yellow]")
                 return True
+                
+            # 读取angular.json
+            with open(angular_json_path, 'r') as f:
+                config = json.load(f)
+            
+            # 计算相对路径
+            relative_dist_path = os.path.relpath(self.dist_dir, self.frontend_dir)
+            relative_cache_path = os.path.relpath(self.angular_cache_dir, self.frontend_dir)
+            
+            # 更新输出路径
+            if ('projects' in config and 'dashboard' in config['projects'] and
+                'architect' in config['projects']['dashboard'] and
+                'build' in config['projects']['dashboard']['architect'] and
+                'options' in config['projects']['dashboard']['architect']['build']):
+                
+                config['projects']['dashboard']['architect']['build']['options']['outputPath'] = relative_dist_path
+                
+                # 更新缓存配置
+                if 'cli' not in config:
+                    config['cli'] = {}
+                if 'cache' not in config['cli']:
+                    config['cli']['cache'] = {}
+                    
+                config['cli']['cache']['path'] = relative_cache_path
+                config['cli']['cache']['enabled'] = True
+                config['cli']['cache']['environment'] = "all"
+                config['cli']['analytics'] = False
+                
+                # 写回文件
+                with open(angular_json_path, 'w') as f:
+                    json.dump(config, f, indent=2)
+                    
+                console.print(f"[green]✅ 已更新 angular.json 输出路径: {relative_dist_path}[/green]")
+                console.print(f"[green]✅ 已更新 angular.json 缓存路径: {relative_cache_path}[/green]")
+                return True
+            else:
+                console.print("[yellow]angular.json 结构不匹配，跳过配置[/yellow]")
+                return True
+                
         except Exception as e:
             console.print(f"[red]配置失败: {e}[/red]")
             return False
@@ -510,11 +567,114 @@ class StudioManager:
             console.print(f"[red]构建过程出错: {e}[/red]")
             return False
 
-    def start(self, port: int = None, host: str = None, dev: bool = False) -> bool:
-        """启动 Studio"""
-        if self.is_running():
-            console.print("[yellow]Studio 已经在运行中[/yellow]")
+    def start_backend(self, port: int = None) -> bool:
+        """启动后端API服务"""
+        # 检查是否已运行
+        running_pid = self.is_backend_running()
+        if running_pid:
+            console.print(f"[yellow]后端API已经在运行 (PID: {running_pid})[/yellow]")
+            return True
+
+        # 检查后端文件是否存在
+        api_file = self.backend_dir / "api.py"
+        if not api_file.exists():
+            console.print(f"[red]后端API文件不存在: {api_file}[/red]")
             return False
+
+        # 配置参数
+        config = self.load_config()
+        backend_port = port or config.get("backend_port", self.backend_port)
+        
+        # 更新配置
+        config["backend_port"] = backend_port
+        self.save_config(config)
+
+        console.print(f"[blue]正在启动后端API (端口: {backend_port})...[/blue]")
+
+        try:
+            # 启动后端进程
+            cmd = [sys.executable, str(api_file)]
+            with open(self.backend_log_file, "w") as log:
+                process = subprocess.Popen(
+                    cmd,
+                    cwd=self.backend_dir,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    preexec_fn=os.setsid if os.name != "nt" else None,
+                )
+
+            # 保存 PID
+            with open(self.backend_pid_file, "w") as f:
+                f.write(str(process.pid))
+
+            # 等待后端启动
+            console.print("[blue]等待后端API启动...[/blue]")
+            for i in range(15):  # 最多等待15秒
+                try:
+                    response = requests.get(
+                        f"http://{config['host']}:{backend_port}/health", timeout=1
+                    )
+                    if response.status_code == 200:
+                        break
+                except requests.RequestException:
+                    pass
+                time.sleep(1)
+            else:
+                console.print("[yellow]后端API可能仍在启动中，请稍后检查[/yellow]")
+
+            console.print("[green]✅ 后端API启动成功[/green]")
+            return True
+
+        except Exception as e:
+            console.print(f"[red]后端API启动失败: {e}[/red]")
+            return False
+
+    def stop_backend(self) -> bool:
+        """停止后端API服务"""
+        running_pid = self.is_backend_running()
+        if not running_pid:
+            console.print("[yellow]后端API未运行[/yellow]")
+            return True
+
+        try:
+            # 优雅停止
+            if os.name == "nt":
+                subprocess.run(["taskkill", "/F", "/PID", str(running_pid)], check=True)
+            else:
+                os.killpg(os.getpgid(running_pid), signal.SIGTERM)
+
+                # 等待进程结束
+                for _ in range(10):
+                    if not psutil.pid_exists(running_pid):
+                        break
+                    time.sleep(1)
+
+                # 强制停止
+                if psutil.pid_exists(running_pid):
+                    os.killpg(os.getpgid(running_pid), signal.SIGKILL)
+
+            # 清理 PID 文件
+            if self.backend_pid_file.exists():
+                self.backend_pid_file.unlink()
+
+            console.print("[green]✅ 后端API已停止[/green]")
+            return True
+
+        except Exception as e:
+            console.print(f"[red]后端API停止失败: {e}[/red]")
+            return False
+
+    def start(self, port: int = None, host: str = None, dev: bool = False) -> bool:
+        """启动 Studio（前端和后端）"""
+        # 首先启动后端API
+        if not self.start_backend():
+            console.print("[red]后端API启动失败，无法启动Studio[/red]")
+            return False
+
+        # 检查前端是否已运行
+        if self.is_running():
+            console.print("[yellow]Studio前端已经在运行中[/yellow]")
+            return True
 
         if not self.check_dependencies():
             console.print("[red]依赖检查失败[/red]")
@@ -542,7 +702,7 @@ class StudioManager:
         config.update({"port": port, "host": host, "dev_mode": dev})
         self.save_config(config)
 
-        console.print(f"[blue]启动 Studio 在 {host}:{port}[/blue]")
+        console.print(f"[blue]启动 Studio前端 在 {host}:{port}[/blue]")
 
         try:
             # 根据模式选择启动命令
@@ -562,6 +722,8 @@ class StudioManager:
                     console.print("[blue]检测到无构建输出，开始构建...[/blue]")
                     if not self.build():
                         console.print("[red]构建失败，无法启动生产模式[/red]")
+                        # 如果前端启动失败，也停止后端
+                        self.stop_backend()
                         return False
 
                 console.print("[blue]启动生产服务器...[/blue]")
@@ -598,77 +760,105 @@ class StudioManager:
             return False
 
     def stop(self) -> bool:
-        """停止 Studio"""
-        pid = self.is_running()
-        if not pid:
-            console.print("[yellow]Studio 未运行[/yellow]")
-            return False
+        """停止 Studio（前端和后端）"""
+        frontend_pid = self.is_running()
+        backend_running = self.is_backend_running()
+        
+        stopped_services = []
+        
+        # 停止前端
+        if frontend_pid:
+            try:
+                # 发送终止信号
+                os.killpg(os.getpgid(frontend_pid), signal.SIGTERM)
 
-        try:
-            # 发送终止信号
-            os.killpg(os.getpgid(pid), signal.SIGTERM)
+                # 等待进程结束
+                for i in range(10):
+                    if not psutil.pid_exists(frontend_pid):
+                        break
+                    time.sleep(1)
 
-            # 等待进程结束
-            for i in range(10):
-                if not psutil.pid_exists(pid):
-                    break
-                time.sleep(1)
+                # 如果进程仍然存在，强制杀死
+                if psutil.pid_exists(frontend_pid):
+                    os.killpg(os.getpgid(frontend_pid), signal.SIGKILL)
 
-            # 如果进程仍然存在，强制杀死
-            if psutil.pid_exists(pid):
-                os.killpg(os.getpgid(pid), signal.SIGKILL)
+                # 清理 PID 文件
+                if self.pid_file.exists():
+                    self.pid_file.unlink()
 
-            # 清理 PID 文件
-            if self.pid_file.exists():
-                self.pid_file.unlink()
-
-            console.print("[green]Studio 已停止[/green]")
+                stopped_services.append("前端")
+            except Exception as e:
+                console.print(f"[red]前端停止失败: {e}[/red]")
+        
+        # 停止后端
+        if backend_running:
+            if self.stop_backend():
+                stopped_services.append("后端API")
+        
+        if stopped_services:
+            console.print(f"[green]Studio {' 和 '.join(stopped_services)} 已停止[/green]")
             return True
-
-        except Exception as e:
-            console.print(f"[red]停止失败: {e}[/red]")
+        else:
+            console.print("[yellow]Studio 未运行[/yellow]")
             return False
 
     def status(self):
         """显示状态"""
-        pid = self.is_running()
+        frontend_pid = self.is_running()
+        backend_running = self.is_backend_running()
         config = self.load_config()
 
-        # 创建状态表格
-        table = Table(title="SAGE Studio 状态")
-        table.add_column("属性", style="cyan", width=12)
-        table.add_column("值", style="white")
+        # 创建前端状态表格
+        frontend_table = Table(title="SAGE Studio 前端状态")
+        frontend_table.add_column("属性", style="cyan", width=12)
+        frontend_table.add_column("值", style="white")
 
-        if pid:
+        if frontend_pid:
             try:
-                process = psutil.Process(pid)
-                table.add_row("状态", "[green]运行中[/green]")
-                table.add_row("PID", str(pid))
-                table.add_row(
+                process = psutil.Process(frontend_pid)
+                frontend_table.add_row("状态", "[green]运行中[/green]")
+                frontend_table.add_row("PID", str(frontend_pid))
+                frontend_table.add_row(
                     "启动时间",
                     time.strftime(
                         "%Y-%m-%d %H:%M:%S", time.localtime(process.create_time())
                     ),
                 )
-                table.add_row("CPU %", f"{process.cpu_percent():.1f}%")
-                table.add_row(
+                frontend_table.add_row("CPU %", f"{process.cpu_percent():.1f}%")
+                frontend_table.add_row(
                     "内存", f"{process.memory_info().rss / 1024 / 1024:.1f} MB"
                 )
             except psutil.NoSuchProcess:
-                table.add_row("状态", "[red]进程不存在[/red]")
+                frontend_table.add_row("状态", "[red]进程不存在[/red]")
         else:
-            table.add_row("状态", "[red]未运行[/red]")
+            frontend_table.add_row("状态", "[red]未运行[/red]")
 
-        table.add_row("端口", str(config.get("port", self.default_port)))
-        table.add_row("主机", config.get("host", self.default_host))
-        table.add_row("开发模式", "是" if config.get("dev_mode") else "否")
-        table.add_row("配置文件", str(self.config_file))
-        table.add_row("日志文件", str(self.log_file))
+        frontend_table.add_row("端口", str(config.get("port", self.default_port)))
+        frontend_table.add_row("主机", config.get("host", self.default_host))
+        frontend_table.add_row("开发模式", "是" if config.get("dev_mode") else "否")
+        frontend_table.add_row("配置文件", str(self.config_file))
+        frontend_table.add_row("日志文件", str(self.log_file))
 
-        console.print(table)
+        console.print(frontend_table)
+
+        # 创建后端状态表格
+        backend_table = Table(title="SAGE Studio 后端API状态")
+        backend_table.add_column("属性", style="cyan", width=12)
+        backend_table.add_column("值", style="white")
+
+        if backend_running:
+            backend_table.add_row("状态", "[green]运行中[/green]")
+            backend_table.add_row("端口", str(self.backend_port))
+            backend_table.add_row("PID文件", str(self.backend_pid_file))
+            backend_table.add_row("日志文件", str(self.backend_log_file))
+        else:
+            backend_table.add_row("状态", "[red]未运行[/red]")
+            backend_table.add_row("端口", str(self.backend_port))
+
+        console.print(backend_table)
 
         # 检查端口是否可访问
-        if pid:
+        if frontend_pid:
             try:
                 url = f"http://{config.get('host', self.default_host)}:{config.get('port', self.default_port)}"
                 response = requests.get(url, timeout=5)
@@ -681,28 +871,36 @@ class StudioManager:
             except requests.RequestException:
                 console.print("[red]❌ 服务不可访问[/red]")
 
-    def logs(self, follow: bool = False):
+    def logs(self, follow: bool = False, backend: bool = False):
         """显示日志"""
-        if not self.log_file.exists():
-            console.print("[yellow]日志文件不存在[/yellow]")
+        # 选择要查看的日志文件
+        if backend:
+            log_file = self.backend_log_file
+            service_name = "后端API"
+        else:
+            log_file = self.log_file
+            service_name = "前端"
+
+        if not log_file.exists():
+            console.print(f"[yellow]{service_name}日志文件不存在[/yellow]")
             return
 
         if follow:
-            console.print(f"[blue]跟踪日志 (按 Ctrl+C 退出): {self.log_file}[/blue]")
+            console.print(f"[blue]跟踪{service_name}日志 (按 Ctrl+C 退出): {log_file}[/blue]")
             try:
-                subprocess.run(["tail", "-f", str(self.log_file)])
+                subprocess.run(["tail", "-f", str(log_file)])
             except KeyboardInterrupt:
-                console.print("\n[blue]停止跟踪日志[/blue]")
+                console.print(f"\n[blue]停止跟踪{service_name}日志[/blue]")
         else:
-            console.print(f"[blue]显示日志: {self.log_file}[/blue]")
+            console.print(f"[blue]显示{service_name}日志: {log_file}[/blue]")
             try:
-                with open(self.log_file, "r") as f:
+                with open(log_file, "r") as f:
                     lines = f.readlines()
                     # 显示最后50行
                     for line in lines[-50:]:
                         print(line.rstrip())
             except Exception as e:
-                console.print(f"[red]读取日志失败: {e}[/red]")
+                console.print(f"[red]读取{service_name}日志失败: {e}[/red]")
 
     def open_browser(self):
         """在浏览器中打开 Studio"""
