@@ -60,8 +60,6 @@ ray_logs
 /output
 /logs
 /logs/**
-frontend/web_ui/logs
-frontend/web_ui/logs/**
 sage_examples/logs
 sage_examples/logs/**
 /.env

@@ -141,7 +141,7 @@ src/sage/
 │   ├── packaging/   # Package management
 │   └── docs/        # Documentation tools
 └── frontend/        # Web frontend and dashboard
-    ├── web_ui/ # FastAPI server implementation
+    ├── studio/      # Angular Studio implementation
     ├── static/      # Static web assets
     └── templates/   # HTML templates
 ```

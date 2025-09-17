@@ -27,6 +27,15 @@ def start(
     console.print("[blue]🚀 启动 SAGE Studio...[/blue]")
 
     try:
+        # 先检查是否已经在运行
+        running_pid = studio_manager.is_running()
+        if running_pid:
+            config = studio_manager.load_config()
+            url = f"http://{config['host']}:{config['port']}"
+            console.print(f"[green]✅ Studio 已经在运行中 (PID: {running_pid})[/green]")
+            console.print(f"[blue]🌐 访问地址: {url}[/blue]")
+            return
+
         success = studio_manager.start(port=port, host=host, dev=dev)
         if success:
             console.print("[green]✅ Studio 启动成功[/green]")
@@ -97,17 +106,32 @@ def logs(follow: bool = typer.Option(False, "--follow", "-f", help="跟踪日志
 
 @app.command()
 def install():
-    """安装 Studio 依赖"""
-    console.print("[blue]📦 安装 Studio 依赖...[/blue]")
+    """安装 SAGE Studio 依赖"""
+    console.print("[blue]📦 安装 SAGE Studio...[/blue]")
 
     try:
-        success = studio_manager.install_dependencies()
+        success = studio_manager.install()
         if success:
-            console.print("[green]✅ 依赖安装成功[/green]")
+            console.print("[green]✅ Studio 安装成功[/green]")
         else:
-            console.print("[red]❌ 依赖安装失败[/red]")
+            console.print("[red]❌ Studio 安装失败[/red]")
     except Exception as e:
         console.print(f"[red]❌ 安装失败: {e}[/red]")
+
+
+@app.command()
+def build():
+    """构建 SAGE Studio"""
+    console.print("[blue]� 构建 SAGE Studio...[/blue]")
+
+    try:
+        success = studio_manager.build()
+        if success:
+            console.print("[green]✅ Studio 构建成功[/green]")
+        else:
+            console.print("[red]❌ Studio 构建失败[/red]")
+    except Exception as e:
+        console.print(f"[red]❌ 构建失败: {e}[/red]")
 
 
 @app.command()
