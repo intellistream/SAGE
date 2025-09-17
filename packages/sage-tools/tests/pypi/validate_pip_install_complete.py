@@ -922,15 +922,25 @@ if __name__ == "__main__":
                 [str(self.python_exe), str(test_file)], timeout=60
             )
 
-            print(stdout)
+            # unittest的输出可能在stdout或stderr中
+            full_output = stdout + stderr
+            print(full_output)
 
-            success = returncode == 0 and "OK" in stdout
+            # 修复判断逻辑：检查返回码和输出（包括stderr）
+            success = returncode == 0 and ("OK" in full_output or "Ran 4 tests" in full_output)
             self.results["unit_tests"] = success
 
             if success:
                 print("  ✅ 单元测试通过")
             else:
-                print(f"  ❌ 单元测试失败: {stderr}")
+                print(f"  ❌ 单元测试失败 (返回码: {returncode})")
+                if stderr:
+                    print(f"      错误输出: {stderr[:200]}")
+                if stdout:
+                    print(f"      标准输出: {stdout[:200]}")
+                if returncode == 0:
+                    print(f"      调试信息: 返回码为0但未找到成功标识")
+                    print(f"      完整输出: {repr(full_output[:300])}")
 
             return success
 
