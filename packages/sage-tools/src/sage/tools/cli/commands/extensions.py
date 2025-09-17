@@ -306,7 +306,7 @@ def clean():
 
     cleaned_count = 0
 
-    for ext_name in ["sage_queue", "sage_db"]:
+    for ext_name in ["sage_db"]:
         ext_dir = sage_root / "sage_ext" / ext_name
         if not ext_dir.exists():
             continue

@@ -25,9 +25,9 @@ env:
 
 jobs:
   test:
-    name: Development Test
+    name: SAGE Test
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # 减少超时时间，开发环境应该更快
+    timeout-minutes: 30  # 30分钟超时时间
     
     steps:
     - name: Checkout Repository
@@ -81,7 +81,6 @@ jobs:
         if [ "$SAGE_SKIP_CPP_EXTENSIONS" = "true" ]; then
           echo "🚀 跳过C++扩展编译依赖安装（加速CI模式）"
           echo "📋 在此模式下，以下模块将使用Python回退实现："
-          echo "   • sage-kernel/enterprise/sage_queue → Python队列实现"
           echo "   • sage-middleware/components/sage_db → 纯Python向量数据库"
           exit 0
         fi
@@ -92,8 +91,7 @@ jobs:
         needs_cpp=false
         
         # 检查是否有需要编译的C++模块
-        if [ -f "packages/sage-kernel/src/sage/kernel/enterprise/sage_queue/CMakeLists.txt" ] || \
-           [ -f "packages/sage-middleware/src/sage/middleware/components/sage_db/CMakeLists.txt" ]; then
+        if [ -f "packages/sage-middleware/src/sage/middleware/components/sage_db/CMakeLists.txt" ]; then
           needs_cpp=true
           echo "🔍 检测到C++扩展模块，需要安装编译工具"
         fi
@@ -119,7 +117,7 @@ jobs:
       timeout-minutes: 15
       continue-on-error: true  # 允许此步骤失败，继续执行后续步骤
 
-    - name: Install SAGE (Test Mode)
+    - name: Install SAGE
       env:
         CI: true
         DEBIAN_FRONTEND: noninteractive
