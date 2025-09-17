@@ -53,7 +53,7 @@ def check_sage_installation():
 
         # 尝试导入 JobManagerClient
         try:
-            from sage.kernel import JobManagerClient
+            from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
 
             print(f"✅ JobManagerClient 导入成功: {JobManagerClient}")
         except ImportError as e:
