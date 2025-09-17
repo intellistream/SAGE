@@ -15,7 +15,7 @@ def get_logger(name=None):
     Returns:
         CustomLogger实例
     """
-    return CustomLogger(name or __name__)
+    return CustomLogger(outputs=[("console", "INFO")], name=name or __name__)
 
 
 __all__ = ["CustomLogger", "CustomFormatter", "get_logger"]

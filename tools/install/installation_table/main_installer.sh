@@ -12,11 +12,48 @@ source "$(dirname "${BASH_SOURCE[0]}")/scientific_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/dev_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/vllm_installer.sh"
 
+# pip 缓存清理函数
+clean_pip_cache() {
+    local log_file="${1:-install.log}"
+    
+    echo -e "${BLUE}🧹 清理 pip 缓存...${NC}"
+    echo "$(date): 开始清理 pip 缓存" >> "$log_file"
+    
+    # 检查是否支持 pip cache 命令
+    if $PIP_CMD cache --help &>/dev/null; then
+        echo -e "${DIM}使用 pip cache purge 清理缓存${NC}"
+        
+        # 显示缓存大小（如果支持）
+        if $PIP_CMD cache info &>/dev/null; then
+            local cache_info=$($PIP_CMD cache info 2>/dev/null | grep -E "(Location|Size)" || true)
+            if [ -n "$cache_info" ]; then
+                echo -e "${DIM}缓存信息:${NC}"
+                echo "$cache_info" | sed 's/^/  /'
+            fi
+        fi
+        
+        # 执行缓存清理
+        if $PIP_CMD cache purge >> "$log_file" 2>&1; then
+            echo -e "${CHECK} pip 缓存清理完成"
+            echo "$(date): pip 缓存清理成功" >> "$log_file"
+        else
+            echo -e "${WARNING} pip 缓存清理失败，但继续安装"
+            echo "$(date): pip 缓存清理失败" >> "$log_file"
+        fi
+    else
+        echo -e "${DIM}当前 pip 版本不支持 cache 命令，跳过缓存清理${NC}"
+        echo "$(date): pip 版本不支持 cache 命令，跳过缓存清理" >> "$log_file"
+    fi
+    
+    echo ""
+}
+
 # 主安装函数
 install_sage() {
     local mode="${1:-dev}"
     local environment="${2:-conda}"
     local install_vllm="${3:-false}"
+    local clean_cache="${4:-true}"
     
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
@@ -31,6 +68,15 @@ install_sage() {
     
     # 配置安装环境（包含所有检查）
     configure_installation_environment "$environment" "$mode"
+    
+    # 清理 pip 缓存（如果启用）
+    if [ "$clean_cache" = "true" ]; then
+        clean_pip_cache "$log_file"
+    else
+        echo -e "${DIM}跳过 pip 缓存清理（使用 --no-cache-clean 选项）${NC}"
+        echo "$(date): 跳过 pip 缓存清理（用户指定）" >> "$log_file"
+        echo ""
+    fi
     
     # 记录安装开始到日志
     echo "" >> "$log_file"

@@ -23,8 +23,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import time
 import threading
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -36,8 +36,10 @@ class FastPipValidator:
         # 查找SAGE项目根目录
         current_file = Path(__file__).resolve()
         # 从 packages/sage-tools/tests/pypi/test_pip_validate_fast.py 找到项目根目录
-        self.project_root = current_file.parent.parent.parent.parent.parent  # pypi -> tests -> sage-tools -> packages -> SAGE
-        
+        self.project_root = (
+            current_file.parent.parent.parent.parent.parent
+        )  # pypi -> tests -> sage-tools -> packages -> SAGE
+
         # 如果没有指定test_dir，则在.sage目录下创建
         if test_dir:
             self.test_dir = Path(test_dir)
@@ -45,9 +47,9 @@ class FastPipValidator:
             sage_config_dir = self.project_root / ".sage" / "temp"
             sage_config_dir.mkdir(parents=True, exist_ok=True)
             self.test_dir = sage_config_dir / f"pip_test_{int(time.time())}"
-        
+
         self.venv_dir = self.test_dir / "test_env"
-        
+
         # 验证项目根目录
         if not (self.project_root / "packages" / "sage").exists():
             # 如果不在标准位置，向上查找
@@ -57,7 +59,7 @@ class FastPipValidator:
                     self.project_root = check_dir
                     break
                 check_dir = check_dir.parent
-        
+
         self.python_exe = None
         self.pip_exe = None
         self.skip_wheel = skip_wheel
@@ -70,25 +72,30 @@ class FastPipValidator:
             "basic_imports": False,
             "core_functionality": False,
             "cli_availability": False,
-            "cleanup": False
+            "cleanup": False,
         }
 
-    def run_command(self, cmd: List[str], cwd: Optional[Path] = None,
-                   capture_output: bool = True, timeout: int = 300, 
-                   env: Optional[dict] = None) -> Tuple[int, str, str]:
+    def run_command(
+        self,
+        cmd: List[str],
+        cwd: Optional[Path] = None,
+        capture_output: bool = True,
+        timeout: int = 300,
+        env: Optional[dict] = None,
+    ) -> Tuple[int, str, str]:
         """运行命令并返回结果"""
         try:
             # 如果没有指定环境变量，使用当前环境
             if env is None:
                 env = os.environ.copy()
-                
+
             result = subprocess.run(
                 cmd,
                 cwd=cwd or self.test_dir,
                 capture_output=capture_output,
                 text=True,
                 timeout=timeout,
-                env=env
+                env=env,
             )
             return result.returncode, result.stdout, result.stderr
         except subprocess.TimeoutExpired:
@@ -101,16 +108,16 @@ class FastPipValidator:
         if duration <= 0:
             print(f"  {message}")
             return
-            
+
         chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         start_time = time.time()
         i = 0
-        
+
         while time.time() - start_time < duration:
-            print(f"\r  {chars[i % len(chars)]} {message}", end='', flush=True)
+            print(f"\r  {chars[i % len(chars)]} {message}", end="", flush=True)
             time.sleep(0.1)
             i += 1
-        
+
         print(f"\r  ✅ {message}")
 
     def setup_test_environment(self) -> bool:
@@ -120,12 +127,19 @@ class FastPipValidator:
         try:
             # 创建测试目录
             self.test_dir.mkdir(parents=True, exist_ok=True)
-            
+
             # 创建虚拟环境（使用--system-site-packages加速）
             print("  📦 创建虚拟环境...")
-            returncode, stdout, stderr = self.run_command([
-                sys.executable, "-m", "venv", str(self.venv_dir), "--system-site-packages"
-            ], timeout=60)
+            returncode, stdout, stderr = self.run_command(
+                [
+                    sys.executable,
+                    "-m",
+                    "venv",
+                    str(self.venv_dir),
+                    "--system-site-packages",
+                ],
+                timeout=60,
+            )
 
             if returncode != 0:
                 print(f"  ❌ 创建虚拟环境失败: {stderr}")
@@ -141,9 +155,18 @@ class FastPipValidator:
 
             # 快速升级pip（只升级必要组件）
             print("  📦 配置pip...")
-            returncode, stdout, stderr = self.run_command([
-                str(self.python_exe), "-m", "pip", "install", "--upgrade", "pip", "--quiet"
-            ], timeout=60)
+            returncode, stdout, stderr = self.run_command(
+                [
+                    str(self.python_exe),
+                    "-m",
+                    "pip",
+                    "install",
+                    "--upgrade",
+                    "pip",
+                    "--quiet",
+                ],
+                timeout=60,
+            )
 
             print("  ✅ 虚拟环境设置完成")
             self.results["environment_setup"] = True
@@ -175,9 +198,11 @@ class FastPipValidator:
                     shutil.rmtree(dist_dir)
 
                 print("  🔨 执行快速构建...")
-                returncode, stdout, stderr = self.run_command([
-                    sys.executable, "setup.py", "bdist_wheel", "--quiet"
-                ], cwd=sage_package_dir, timeout=300)
+                returncode, stdout, stderr = self.run_command(
+                    [sys.executable, "setup.py", "bdist_wheel", "--quiet"],
+                    cwd=sage_package_dir,
+                    timeout=300,
+                )
 
                 if returncode != 0:
                     print(f"  ❌ 构建wheel包失败: {stderr}")
@@ -211,13 +236,20 @@ class FastPipValidator:
 
             # 显示安装进度
             def install_with_progress():
-                return self.run_command([
-                    str(self.pip_exe), "install", str(wheel_file), "--quiet", "--no-deps"
-                ], timeout=300)
+                return self.run_command(
+                    [
+                        str(self.pip_exe),
+                        "install",
+                        str(wheel_file),
+                        "--quiet",
+                        "--no-deps",
+                    ],
+                    timeout=300,
+                )
 
             # 使用进度显示
             result_container = [None]
-            
+
             def run_install():
                 result_container[0] = install_with_progress()
 
@@ -229,12 +261,12 @@ class FastPipValidator:
             chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
             i = 0
             while install_thread.is_alive():
-                print(f"\r  {chars[i % len(chars)]} 安装中...", end='', flush=True)
+                print(f"\r  {chars[i % len(chars)]} 安装中...", end="", flush=True)
                 time.sleep(0.1)
                 i += 1
-                
+
             install_thread.join()
-            print("\r" + " " * 20 + "\r", end='', flush=True)
+            print("\r" + " " * 20 + "\r", end="", flush=True)
 
             returncode, stdout, stderr = result_container[0]
 
@@ -244,32 +276,40 @@ class FastPipValidator:
 
             # 快速验证安装
             print(f"  🔍 使用Python路径: {self.python_exe}")
-            test_cmd = [str(self.python_exe), "-c", "import sage; print(f'SAGE {sage.__version__} 安装成功')"]
+            test_cmd = [
+                str(self.python_exe),
+                "-c",
+                "import sage; print(f'SAGE {sage.__version__} 安装成功')",
+            ]
             print(f"  🔍 执行命令: {' '.join(test_cmd)}")
-            
+
             # 创建干净的环境变量，移除PYTHONPATH避免导入冲突
             clean_env = os.environ.copy()
-            clean_env.pop('PYTHONPATH', None)  # 移除PYTHONPATH
-            
+            clean_env.pop("PYTHONPATH", None)  # 移除PYTHONPATH
+
             returncode, stdout, stderr = self.run_command(test_cmd, env=clean_env)
-            
+
             print(f"  🔍 返回码: {returncode}")
             print(f"  🔍 标准输出: {stdout}")
             print(f"  🔍 标准错误: {stderr}")
 
             if returncode != 0:
                 print(f"  ❌ 验证安装失败: {stderr}")
-                
+
                 # 添加额外的诊断信息
                 print("  🔧 运行诊断...")
-                diag_returncode, diag_stdout, diag_stderr = self.run_command([
-                    str(self.python_exe), "-c", 
-                    "import sys, os; print(f'工作目录: {os.getcwd()}'); print('Python路径:'); [print(f'  {p}') for p in sys.path]; import sage; print(f'sage文件: {sage.__file__}'); print(f'sage属性: {dir(sage)}')"
-                ], env=clean_env)
+                diag_returncode, diag_stdout, diag_stderr = self.run_command(
+                    [
+                        str(self.python_exe),
+                        "-c",
+                        "import sys, os; print(f'工作目录: {os.getcwd()}'); print('Python路径:'); [print(f'  {p}') for p in sys.path]; import sage; print(f'sage文件: {sage.__file__}'); print(f'sage属性: {dir(sage)}')",
+                    ],
+                    env=clean_env,
+                )
                 print(f"  🔍 诊断输出: {diag_stdout}")
                 if diag_stderr.strip():
                     print(f"  🔍 诊断错误: {diag_stderr}")
-                
+
                 return False
 
             print(f"  ✅ {stdout.strip()}")
@@ -285,7 +325,7 @@ class FastPipValidator:
         print("\n🔍 测试核心导入...")
 
         # 核心导入测试（简化版）
-        test_script = '''
+        test_script = """
 import sys
 try:
     import sage
@@ -298,7 +338,7 @@ try:
 except ImportError as e:
     print(f"❌ 导入失败: {e}")
     sys.exit(1)
-'''
+"""
 
         try:
             # 创建测试脚本
@@ -307,9 +347,9 @@ except ImportError as e:
                 f.write(test_script)
 
             # 运行测试
-            returncode, stdout, stderr = self.run_command([
-                str(self.python_exe), str(test_file)
-            ], timeout=30)
+            returncode, stdout, stderr = self.run_command(
+                [str(self.python_exe), str(test_file)], timeout=30
+            )
 
             if returncode == 0:
                 print(f"  {stdout.strip()}")
@@ -328,7 +368,7 @@ except ImportError as e:
         print("\n⚙️ 测试核心功能...")
 
         # 核心功能测试（简化版）
-        test_script = '''
+        test_script = """
 from sage.core.api.local_environment import LocalEnvironment
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.sink_function import SinkFunction
@@ -373,7 +413,7 @@ if len(sink.received) == 2:
 else:
     print(f"❌ 数据流测试失败: 预期2条，实际{len(sink.received)}条")
     exit(1)
-'''
+"""
 
         try:
             # 创建测试脚本
@@ -382,9 +422,9 @@ else:
                 f.write(test_script)
 
             # 运行测试
-            returncode, stdout, stderr = self.run_command([
-                str(self.python_exe), str(test_file)
-            ], timeout=30)
+            returncode, stdout, stderr = self.run_command(
+                [str(self.python_exe), str(test_file)], timeout=30
+            )
 
             if returncode == 0:
                 print(f"  {stdout.strip()}")
@@ -404,10 +444,14 @@ else:
 
         try:
             # 测试sage模块是否支持命令行调用
-            returncode, stdout, stderr = self.run_command([
-                str(self.python_exe), "-c", 
-                "import sage; print('✅ SAGE模块CLI支持正常')"
-            ], timeout=10)
+            returncode, stdout, stderr = self.run_command(
+                [
+                    str(self.python_exe),
+                    "-c",
+                    "import sage; print('✅ SAGE模块CLI支持正常')",
+                ],
+                timeout=10,
+            )
 
             if returncode == 0:
                 print(f"  {stdout.strip()}")
@@ -511,21 +555,12 @@ else:
 
 def main():
     parser = argparse.ArgumentParser(description="SAGE PyPI发布准备快速验证脚本")
+    parser.add_argument("--test-dir", type=str, help="指定测试目录（可选）")
     parser.add_argument(
-        "--test-dir",
-        type=str,
-        help="指定测试目录（可选）"
+        "--skip-wheel", action="store_true", help="跳过wheel构建，使用现有的wheel包"
     )
     parser.add_argument(
-        "--skip-wheel",
-        action="store_true",
-        help="跳过wheel构建，使用现有的wheel包"
-    )
-    parser.add_argument(
-        "--cleanup",
-        action="store_true",
-        default=True,
-        help="测试完成后清理临时文件"
+        "--cleanup", action="store_true", default=True, help="测试完成后清理临时文件"
     )
 
     args = parser.parse_args()
@@ -535,7 +570,7 @@ def main():
 
     try:
         success = validator.run_fast_validation()
-        
+
         # 清理
         if args.cleanup:
             validator.cleanup()

@@ -40,11 +40,11 @@ ask_conda_environment() {
     echo ""
     echo -e "${GEAR} ${BOLD}Conda 环境设置${NC}"
     echo ""
-    echo -e "${BLUE}检测到 Conda 已安装，建议为 SAGE 创建独立环境${NC}"
+    echo -e "${BLUE}检测到 Conda 已安装，您可以选择为 SAGE 创建独立的conda环境${NC}"
     echo ""
     echo -e "选项："
-    echo -e "  ${GREEN}[1] 创建新的 SAGE 环境 (环境名：sage) ${BOLD}[推荐]${NC}"
-    echo -e "  [2] 使用当前环境"
+    echo -e "  [1] 创建新的 SAGE 环境 (环境名：sage)"
+    echo -e "  ${GREEN}[2] 使用当前环境 ${BOLD}[推荐]${NC}"
     echo -e "  [3] 手动指定环境名"
     echo ""
     echo -e "${DIM}注意: 如果选择创建新环境但失败，将自动回退到当前环境${NC}"
@@ -53,11 +53,11 @@ ask_conda_environment() {
     # 记录到日志
     echo "$(date): 用户选择 Conda 环境配置" >> "$log_file"
     
-    # 如果是CI环境或远程部署，自动选择选项1
+    # 如果是CI环境或远程部署，自动选择选项2（使用当前环境）
     if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-        echo -e "${INFO} 检测到CI/远程部署环境，自动选择选项1：创建新的 SAGE 环境"
-        echo "$(date): CI/远程部署环境自动选择选项1" >> "$log_file"
-        conda_choice=1
+        echo -e "${INFO} 检测到CI/远程部署环境，自动选择选项2：使用当前环境"
+        echo "$(date): CI/远程部署环境自动选择选项2" >> "$log_file"
+        conda_choice=2
     else
         # 交互模式，询问用户选择
         while true; do
@@ -91,11 +91,10 @@ ask_conda_environment() {
             ;;
         3)
             if [ "$CI" = "true" ] || [ "$SAGE_REMOTE_DEPLOY" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-                # CI/远程部署环境不应该到达这里，但万一到了就默认使用sage
-                echo -e "${WARNING} CI/远程部署环境中不应选择选项3，回退到选项1"
-                SAGE_ENV_NAME="sage"
+                # CI/远程部署环境不应该到达这里，但万一到了就默认使用当前环境
+                echo -e "${WARNING} CI/远程部署环境中不应选择选项3，回退到选项2"
+                SAGE_ENV_NAME=""
                 export SAGE_ENV_NAME
-                create_conda_environment "$SAGE_ENV_NAME"
             else
                 echo -ne "${BLUE}请输入环境名称: ${NC}"
                 read -r custom_env_name
@@ -113,10 +112,9 @@ ask_conda_environment() {
             fi
             ;;
         *)
-            echo -e "${WARNING} 无效选择，使用默认选项1"
-            SAGE_ENV_NAME="sage"
+            echo -e "${WARNING} 无效选择，使用默认选项2（当前环境）"
+            SAGE_ENV_NAME=""
             export SAGE_ENV_NAME
-            create_conda_environment "$SAGE_ENV_NAME"
             ;;
     esac
 }

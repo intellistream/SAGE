@@ -32,16 +32,20 @@ def find_project_root() -> Path:
     """查找项目根目录，使用统一的路径管理"""
     try:
         # 尝试导入统一的路径管理
-        import sys
         import os
-        
+        import sys
+
         # 添加sage-common到路径
         current_dir = Path(__file__).parent
-        sage_common_path = current_dir.parent.parent / "packages" / "sage-common" / "src"
+        sage_common_path = (
+            current_dir.parent.parent / "packages" / "sage-common" / "src"
+        )
         if sage_common_path.exists():
             sys.path.insert(0, str(sage_common_path))
-        
-        from sage.common.config.output_paths import find_project_root as find_sage_root
+
+        from sage.common.config.output_paths import \
+            find_project_root as find_sage_root
+
         return find_sage_root()
     except ImportError:
         # 回退到原来的查找逻辑
@@ -459,19 +463,23 @@ class ExampleRunner:
                     return int(tag.split("=")[1])
                 except (ValueError, IndexError):
                     pass
-        
+
         # 从类别策略中获取超时
-        category = self._get_category_from_tags(example_info.test_tags) or example_info.category
-        
+        category = (
+            self._get_category_from_tags(example_info.test_tags)
+            or example_info.category
+        )
+
         # 导入策略类
         try:
             from example_strategies import ExampleTestStrategies
+
             strategies = ExampleTestStrategies.get_strategies()
             if category in strategies:
                 return strategies[category].timeout
         except ImportError:
             pass
-        
+
         # 默认超时
         return self.timeout
 
@@ -540,6 +548,10 @@ class ExampleRunner:
         # 设置示例特定的环境变量
         env["SAGE_EXAMPLES_MODE"] = "test"
         env["SAGE_LOG_LEVEL"] = "WARNING"  # 减少日志输出
+        
+        # 检查是否需要使用真实API (通过环境变量传递)
+        if os.environ.get("SAGE_USE_REAL_API") == "true":
+            env["SAGE_USE_REAL_API"] = "true"
 
         return env
 
@@ -723,18 +735,18 @@ def test_cmd(
 def test():
     """pytest 测试函数 - 轻量级测试，只验证框架能正常工作"""
     suite = ExampleTestSuite()
-    
+
     # 只测试框架的基本功能，不运行所有示例
     analyzer = suite.analyzer
     examples = analyzer.discover_examples()
-    
+
     # 验证能够发现示例
     assert len(examples) > 0, "应该能发现至少一个示例文件"
-    
+
     # 验证 run_all_tests 方法能正常调用（但不实际运行测试）
     # 通过传入空的类别列表来避免运行任何测试
     stats = suite.run_all_tests(categories=["non_existent_category"], quick_only=False)
-    
+
     # 验证返回的统计信息格式正确
     assert isinstance(stats, dict), "统计信息应该是字典格式"
     expected_keys = {"total", "passed", "failed", "timeout", "skipped"}

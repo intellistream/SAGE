@@ -291,13 +291,16 @@ check_pip_mode_requirements() {
     
     echo -e "${CHECK} Python 版本: $python_version"
     
-    # 检查是否为 Python 3.11
-    if [ "$python_major" = "3" ] && [ "$python_minor" = "11" ]; then
-        echo -e "${CHECK} 运行在推荐的 Python 3.11 环境"
+    # 检查是否为支持的 Python 版本（3.8+）
+    if [ "$python_major" = "3" ] && [ "$python_minor" -ge "8" ]; then
+        if [ "$python_minor" = "11" ]; then
+            echo -e "${CHECK} 运行在推荐的 Python 3.11 环境"
+        else
+            echo -e "${INFO} 运行在 Python $python_version 环境 (支持，推荐 3.11)"
+        fi
     else
-        echo -e "${CROSS} pip 模式需要 Python 3.11，当前版本: $python_version"
-        echo -e "${CROSS} 请安装 Python 3.11 或使用 conda 模式"
-        echo -e "${DIM}建议: sudo apt install python3.11 python3.11-pip${NC}"
+        echo -e "${CROSS} SAGE 需要 Python 3.8 或更高版本，当前版本: $python_version"
+        echo -e "${DIM}建议: 升级到 Python 3.8+ 或使用 conda 模式${NC}"
         return 1
     fi
     

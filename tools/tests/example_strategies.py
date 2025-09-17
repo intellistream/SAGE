@@ -487,7 +487,7 @@ class ExampleTestFilters:
         skip_patterns = [
             "interactive",
             "demo",
-            "gui", 
+            "gui",
             "benchmark",
             "stress_test",
         ]

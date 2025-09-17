@@ -19,7 +19,7 @@ from sage.core.api.local_environment import LocalEnvironment
 
 class SimpleDataSource(BatchFunction):
     """简单的批量数据源"""
-    
+
     def __init__(self, data):
         super().__init__()
         self.data = data
@@ -36,13 +36,13 @@ class SimpleDataSource(BatchFunction):
 class ThreeStreamCoMapFunction(BaseCoMapFunction):
     """
     三输入流CoMap函数
-    
+
     演示如何处理三个不同的输入流：
     - map0: 处理第一个流的数据
-    - map1: 处理第二个流的数据  
+    - map1: 处理第二个流的数据
     - map2: 处理第三个流的数据
     """
-    
+
     def map0(self, data):
         """处理第一个输入流的数据"""
         return f"🔴 Stream-0: {data}"
@@ -58,51 +58,52 @@ class ThreeStreamCoMapFunction(BaseCoMapFunction):
 
 class ConsoleSink(SinkFunction):
     """控制台输出Sink"""
-    
+
     def execute(self, data):
         print(data)
 
 
 def main():
     """主函数：演示三输入流CoMap操作"""
-    
+
     # 创建本地环境
     env = LocalEnvironment("ThreeInputCoMapExample")
-    
+
     print("🚀 Starting Three Input CoMap Example...")
     print("=" * 50)
-    
+
     # 创建三个数据源
     stream1 = env.from_batch(SimpleDataSource, ["Apple", "Banana"])
-    stream2 = env.from_batch(SimpleDataSource, ["Cat", "Dog"]) 
+    stream2 = env.from_batch(SimpleDataSource, ["Cat", "Dog"])
     stream3 = env.from_batch(SimpleDataSource, ["Red", "Blue"])
-    
+
     print("📊 Data sources created:")
     print("  Stream 1 (Fruits): [Apple, Banana]")
     print("  Stream 2 (Animals): [Cat, Dog]")
     print("  Stream 3 (Colors): [Red, Blue]")
     print()
-    
+
     # 连接三个流并应用CoMap
     print("🔗 Connecting streams and applying CoMap...")
-    result = (stream1
-              .connect(stream2)
-              .connect(stream3)
-              .comap(ThreeStreamCoMapFunction)
-              .sink(ConsoleSink))
-    
+    result = (
+        stream1.connect(stream2)
+        .connect(stream3)
+        .comap(ThreeStreamCoMapFunction)
+        .sink(ConsoleSink)
+    )
+
     print("⚙️ Processing data...")
     print()
-    
+
     # 执行流处理
     env.submit(autostop=True)
-    
+
     print()
     print("✅ Three Input CoMap Example completed!")
     print("=" * 50)
     print("📝 Each input stream was processed by its corresponding mapN method:")
     print("  - Stream 1 data → map0() → 🔴 Stream-0: ...")
-    print("  - Stream 2 data → map1() → 🟡 Stream-1: ...")  
+    print("  - Stream 2 data → map1() → 🟡 Stream-1: ...")
     print("  - Stream 3 data → map2() → 🔵 Stream-2: ...")
 
 

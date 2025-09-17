@@ -77,13 +77,13 @@ class DataStream(Generic[T]):
     # ---------------------------------------------------------------------
     def set_parallelism(self, parallelism: int) -> "DataStream":
         """设置下一个操作的并行度提示
-        
+
         Args:
             parallelism: 并行度，必须大于0
-            
+
         Returns:
             self，支持链式调用
-            
+
         Example:
             >>> stream.set_parallelism(4).map(MyMapFunction())
         """
@@ -93,75 +93,107 @@ class DataStream(Generic[T]):
         return self
 
     def map(
-        self, function: Union[Type[BaseFunction], callable], *args, parallelism: int = None, **kwargs
+        self,
+        function: Union[Type[BaseFunction], callable],
+        *args,
+        parallelism: int = None,
+        **kwargs,
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "map")
 
         # 使用传入的parallelism或者之前设置的hint
-        actual_parallelism = parallelism if parallelism is not None else self._parallelism_hint
+        actual_parallelism = (
+            parallelism if parallelism is not None else self._parallelism_hint
+        )
 
         # 获取MapTransformation类
         MapTransformation = self._get_transformation_classes()["MapTransformation"]
-        tr = MapTransformation(self._environment, function, *args, parallelism=actual_parallelism, **kwargs)
-        
+        tr = MapTransformation(
+            self._environment, function, *args, parallelism=actual_parallelism, **kwargs
+        )
+
         # 重置parallelism hint为默认值
         result = self._apply(tr)
         result._parallelism_hint = 1
         return result
 
     def filter(
-        self, function: Union[Type[BaseFunction], callable], *args, parallelism: int = None, **kwargs
+        self,
+        function: Union[Type[BaseFunction], callable],
+        *args,
+        parallelism: int = None,
+        **kwargs,
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "filter")
 
         # 使用传入的parallelism或者之前设置的hint
-        actual_parallelism = parallelism if parallelism is not None else self._parallelism_hint
+        actual_parallelism = (
+            parallelism if parallelism is not None else self._parallelism_hint
+        )
 
         # 获取FilterTransformation类
         FilterTransformation = self._get_transformation_classes()[
             "FilterTransformation"
         ]
-        tr = FilterTransformation(self._environment, function, *args, parallelism=actual_parallelism, **kwargs)
-        
+        tr = FilterTransformation(
+            self._environment, function, *args, parallelism=actual_parallelism, **kwargs
+        )
+
         # 重置parallelism hint为默认值
         result = self._apply(tr)
         result._parallelism_hint = 1
         return result
 
     def flatmap(
-        self, function: Union[Type[BaseFunction], callable], *args, parallelism: int = None, **kwargs
+        self,
+        function: Union[Type[BaseFunction], callable],
+        *args,
+        parallelism: int = None,
+        **kwargs,
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "flatmap")
 
         # 使用传入的parallelism或者之前设置的hint
-        actual_parallelism = parallelism if parallelism is not None else self._parallelism_hint
+        actual_parallelism = (
+            parallelism if parallelism is not None else self._parallelism_hint
+        )
 
         # 获取FlatMapTransformation类
         FlatMapTransformation = self._get_transformation_classes()[
             "FlatMapTransformation"
         ]
-        tr = FlatMapTransformation(self._environment, function, *args, parallelism=actual_parallelism, **kwargs)
-        
+        tr = FlatMapTransformation(
+            self._environment, function, *args, parallelism=actual_parallelism, **kwargs
+        )
+
         # 重置parallelism hint为默认值
         result = self._apply(tr)
         result._parallelism_hint = 1
         return result
 
     def sink(
-        self, function: Union[Type[BaseFunction], callable], *args, parallelism: int = None, **kwargs
+        self,
+        function: Union[Type[BaseFunction], callable],
+        *args,
+        parallelism: int = None,
+        **kwargs,
     ) -> "DataStream":
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "sink")
 
         # 使用传入的parallelism或者之前设置的hint
-        actual_parallelism = parallelism if parallelism is not None else self._parallelism_hint
+        actual_parallelism = (
+            parallelism if parallelism is not None else self._parallelism_hint
+        )
 
         # 获取SinkTransformation类
         SinkTransformation = self._get_transformation_classes()["SinkTransformation"]
-        tr = SinkTransformation(self._environment, function, *args, parallelism=actual_parallelism, **kwargs)
+        tr = SinkTransformation(
+            self._environment, function, *args, parallelism=actual_parallelism, **kwargs
+        )
         self._apply(tr)
         return self  # sink不返回新的DataStream，因为它是终端操作
 
@@ -177,14 +209,21 @@ class DataStream(Generic[T]):
             function = wrap_lambda(function, "keyby")
 
         # 使用传入的parallelism或者之前设置的hint
-        actual_parallelism = parallelism if parallelism is not None else self._parallelism_hint
+        actual_parallelism = (
+            parallelism if parallelism is not None else self._parallelism_hint
+        )
 
         # 获取KeyByTransformation类
         KeyByTransformation = self._get_transformation_classes()["KeyByTransformation"]
         tr = KeyByTransformation(
-            self._environment, function, strategy=strategy, *args, parallelism=actual_parallelism, **kwargs
+            self._environment,
+            function,
+            strategy=strategy,
+            *args,
+            parallelism=actual_parallelism,
+            **kwargs,
         )
-        
+
         # 重置parallelism hint为默认值
         result = self._apply(tr)
         result._parallelism_hint = 1
