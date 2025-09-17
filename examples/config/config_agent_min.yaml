@@ -64,7 +64,7 @@ generator:
     seed: 42
 
   remote:
-    api_key: ""
+    api_key: "${OPENAI_API_KEY:-test-key-for-testing}"
     method: "openai"
     model_name: "qwen-turbo-0919"
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
@@ -78,7 +78,7 @@ memory:
   create_knowledge_graph: false
 
 tools:
-  - module: "examples.agents.tools.arxiv_tool"
+  - module: "examples.agents.tools.arxiv_search_tool"
     class:  "ArxivSearchTool"
     init_kwargs: {}
 

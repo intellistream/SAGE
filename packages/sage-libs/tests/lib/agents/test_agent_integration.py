@@ -14,7 +14,7 @@ import pytest
 
 # Test imports with fallbacks
 try:
-    from examples.agents.tools.arxiv_tool import ArxivSearchTool
+    from examples.agents.tools.arxiv_search_tool import ArxivSearchTool
 
     ARXIV_TOOL_AVAILABLE = True
 except ImportError:
@@ -59,7 +59,7 @@ class TestAgentWorkflowIntegration:
             "planner": {"max_steps": 5, "enable_repair": True, "topk_tools": 3},
             "tools": [
                 {
-                    "module": "examples.agents.tools.arxiv_tool",
+                    "module": "examples.agents.tools.arxiv_search_tool",
                     "class": "ArxivSearchTool",
                     "init_kwargs": {},
                 }

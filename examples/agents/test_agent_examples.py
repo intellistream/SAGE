@@ -164,7 +164,7 @@ def example_configuration_usage():
         },
         "tools": [
             {
-                "module": "examples.agents.tools.arxiv_tool",
+                "module": "examples.agents.tools.arxiv_search_tool",
                 "class": "ArxivSearchTool",
                 "init_kwargs": {},
             }
