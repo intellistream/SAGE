@@ -498,7 +498,7 @@ import os
 
 with tempfile.TemporaryDirectory() as temp_dir:
     log_file = os.path.join(temp_dir, "test.log")
-    logger = CustomLogger('test_logger', log_file=log_file)
+    logger = CustomLogger(outputs=[("console", "INFO"), (log_file, "DEBUG")], name='test_logger')
     logger.info("测试日志消息")
     print(f"  日志系统创建: {logger.name}")
 """):
@@ -630,12 +630,12 @@ except Exception as e:
             dev_test = """
 try:
     # 测试开发工具导入
-    from sage.tools.dev.core.toolkit import SageDeveloperToolkit
-    print("✅ SageDeveloperToolkit 导入成功")
+    from sage.tools.dev.core.toolkit import SAGEDevToolkit
+    print("✅ SAGEDevToolkit 导入成功")
     
     # 创建工具包实例
-    toolkit = SageDeveloperToolkit("./test_project")
-    print("✅ SageDeveloperToolkit 实例创建成功")
+    toolkit = SAGEDevToolkit("./test_project")
+    print("✅ SAGEDevToolkit 实例创建成功")
     
     # 测试项目分析功能
     result = toolkit.analyze_project()
@@ -649,7 +649,7 @@ except Exception as e:
 # 测试基本开发相关功能
 try:
     from sage.common.utils.logging.custom_logger import CustomLogger
-    logger = CustomLogger("dev_test")
+    logger = CustomLogger(outputs=[("console", "INFO")], name="dev_test")
     logger.info("开发工具日志测试")
     print("✅ 开发日志功能正常")
 except Exception as e:
@@ -703,7 +703,7 @@ import tempfile
 import os
 
 # 设置日志
-logger = CustomLogger("example_test")
+logger = CustomLogger(outputs=[("console", "INFO")], name="example_test")
 
 class DataSource(BatchFunction):
     """数据源：生成测试数据"""
@@ -888,7 +888,7 @@ class TestSageCore(unittest.TestCase):
         
     def test_custom_logger_creation(self):
         """测试CustomLogger创建"""
-        logger = CustomLogger("test_logger")
+        logger = CustomLogger(outputs=[("console", "INFO")], name="test_logger")
         self.assertIsNotNone(logger)
         self.assertEqual(logger.name, "test_logger")
 

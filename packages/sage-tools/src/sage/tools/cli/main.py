@@ -21,6 +21,18 @@ from sage.tools.cli.commands.version import app as version_app
 from sage.tools.cli.commands.webui import app as webui_app
 from sage.tools.cli.commands.worker import app as worker_app
 
+
+def version_callback(value: bool):
+    """Show version information"""
+    if value:
+        try:
+            from sage.common._version import __version__
+            typer.echo(f"SAGE version {__version__}")
+        except ImportError:
+            typer.echo("SAGE version unknown")
+        raise typer.Exit()
+
+
 # 创建主应用
 app = typer.Typer(
     name="sage",
@@ -52,7 +64,7 @@ app.add_typer(head_app, name="head", help="🎯 Head - 集群头节点管理")
 @app.callback()
 def main(
     version: Optional[bool] = typer.Option(
-        None, "--version", "-v", help="显示版本信息"
+        None, "--version", "-v", help="显示版本信息", callback=version_callback
     ),
 ):
     """
@@ -60,7 +72,7 @@ def main(
 
     统一的AI研究和流式计算平台命令行工具
 
-    � 使用示例:
+    💡 使用示例:
     sage dev status                 # 查看开发环境状态
     sage studio start               # 启动可视化界面
     sage job list                   # 列出所有作业
