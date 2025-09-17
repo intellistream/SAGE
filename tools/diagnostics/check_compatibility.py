@@ -66,7 +66,8 @@ def check_dependency_versions():
         # 尝试验证模块导入
         print("\n尝试验证关键模块导入:")
         try:
-            from sage.kernel.jobmanager.jobmanager_client import JobManagerClient
+            from sage.kernel.jobmanager.jobmanager_client import \
+                JobManagerClient
 
             print("✅ JobManagerClient 导入成功")
         except ImportError as e:
