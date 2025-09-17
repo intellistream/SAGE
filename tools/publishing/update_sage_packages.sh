@@ -165,7 +165,7 @@ verify_installation() {
     
     # 尝试导入关键模块
     print_info "尝试导入 sage.kernel.JobManagerClient..."
-    if python3 -c "from sage.kernel import JobManagerClient; print('导入成功: JobManagerClient 版本', getattr(JobManagerClient, '__version__', 'Unknown'))" 2>/dev/null; then
+    if python3 -c "from sage.kernel.jobmanager.jobmanager_client import JobManagerClient; print('导入成功: JobManagerClient 版本', getattr(JobManagerClient, '__version__', 'Unknown'))" 2>/dev/null; then
         print_success "JobManagerClient 导入成功"
     else
         print_error "JobManagerClient 导入失败"
