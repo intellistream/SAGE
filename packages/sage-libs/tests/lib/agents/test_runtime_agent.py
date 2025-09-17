@@ -24,7 +24,7 @@ class DummyGeneratorWithMessages:
         # Accept both old format [user_query, prompt] and new format [user_query, messages]
         user_query = data[0]
         second_param = data[1]
-        
+
         if isinstance(second_param, list):
             # New message format
             messages = second_param
@@ -32,7 +32,7 @@ class DummyGeneratorWithMessages:
             if len(messages) == 2:
                 assert messages[0]["role"] == "system"
                 assert messages[1]["role"] == "user"
-        
+
         plan = [
             {"type": "tool", "name": "calculator", "arguments": {"expr": "21*2+5"}},
             {"type": "reply", "text": "完成。"},
@@ -93,8 +93,10 @@ def test_runtime_no_reply_uses_template_summary():
 
 # New tests for the message format changes in commit 12aec700c63407e1f5d79455b2d64a60a6688e96
 
+
 def test_runtime_with_message_format_summarizer():
     """Test AgentRuntime with summarizer using new message format."""
+
     class SummarizerWithMessages:
         def execute(self, data):
             # data should be [None, messages] for summarizer
@@ -104,9 +106,9 @@ def test_runtime_with_message_format_summarizer():
             assert len(messages) == 2
             assert messages[0]["role"] == "system"
             assert messages[1]["role"] == "user"
-            
+
             return (None, "总结: 计算结果是47")
-    
+
     class GenNoReply:
         def execute(self, data):
             plan = [
@@ -116,14 +118,14 @@ def test_runtime_with_message_format_summarizer():
 
     tools = MCPRegistry()
     tools.register(DummyCalc())
-    
+
     runtime = AgentRuntime(
         profile=BaseProfile(language="zh"),
         planner=LLMPlanner(generator=GenNoReply()),
         tools=tools,
         summarizer=SummarizerWithMessages(),
     )
-    
+
     out = runtime.step("计算 45+2")
     assert "总结: 计算结果是47" in out
 
@@ -138,14 +140,11 @@ def test_runtime_memory_disabled():
 
     # The memory parameter should be commented out/disabled
     runtime = AgentRuntime(
-        profile=profile,
-        planner=planner, 
-        tools=tools,
-        summarizer=None
+        profile=profile, planner=planner, tools=tools, summarizer=None
     )
-    
+
     # Verify memory is not set (should be None or not exist)
-    assert not hasattr(runtime, 'memory') or runtime.memory is None
+    assert not hasattr(runtime, "memory") or runtime.memory is None
 
 
 def test_runtime_with_new_planner_message_format():
@@ -157,12 +156,9 @@ def test_runtime_with_new_planner_message_format():
     profile = BaseProfile(language="zh")
 
     runtime = AgentRuntime(
-        profile=profile,
-        planner=planner,
-        tools=tools,
-        summarizer=None
+        profile=profile, planner=planner, tools=tools, summarizer=None
     )
-    
+
     out = runtime.step("计算 21*2+5")
     # Should work with the new message format in planner
     assert "完成" in out

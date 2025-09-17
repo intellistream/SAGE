@@ -70,20 +70,21 @@ def test_llm_planner_repair():
 
 # New tests for the message format changes in commit 12aec700c63407e1f5d79455b2d64a60a6688e96
 
+
 class DummyGeneratorWithMessages:
     """Generator that expects new message format."""
-    
+
     def execute(self, data):
         # data = [user_query, messages] where messages is a list of dicts
         user_query, messages = data
-        
+
         # Verify message format
         assert isinstance(messages, list)
         assert len(messages) == 2
         assert messages[0]["role"] == "system"
         assert messages[1]["role"] == "user"
         assert messages[1]["content"] == user_query
-        
+
         plan = [
             {"type": "tool", "name": "calculator", "arguments": {"expr": "2+2"}},
             {"type": "reply", "text": "计算完成。"},
@@ -103,10 +104,10 @@ def test_llm_planner_message_format():
             },
         }
     }
-    
+
     planner = LLMPlanner(generator=DummyGeneratorWithMessages(), max_steps=3)
     plan = planner.plan("System prompt here", "计算 2+2", tools)
-    
+
     assert len(plan) == 2
     assert plan[0]["type"] == "tool" and plan[0]["name"] == "calculator"
     assert plan[1]["type"] == "reply"
@@ -114,10 +115,11 @@ def test_llm_planner_message_format():
 
 def test_llm_planner_prompt_includes_tool_requirement():
     """Test that the system prompt includes the new tool requirement rule."""
+
     class MessageCapturingGenerator:
         def __init__(self):
             self.captured_messages = None
-        
+
         def execute(self, data):
             self.captured_messages = data[1]  # Store the messages
             plan = [
@@ -125,11 +127,11 @@ def test_llm_planner_prompt_includes_tool_requirement():
                 {"type": "reply", "text": "完成"},
             ]
             return (data[0], json.dumps(plan, ensure_ascii=False))
-    
+
     generator = MessageCapturingGenerator()
     tools = {
         "calculator": {
-            "description": "Do math", 
+            "description": "Do math",
             "input_schema": {
                 "type": "object",
                 "properties": {"expr": {"type": "string"}},
@@ -137,10 +139,13 @@ def test_llm_planner_prompt_includes_tool_requirement():
             },
         }
     }
-    
+
     planner = LLMPlanner(generator=generator, max_steps=3)
     planner.plan("Profile prompt", "test query", tools)
-    
+
     # Check that the system prompt includes the new rule
     system_content = generator.captured_messages[0]["content"]
-    assert "Always call at least one tool before replying when tools are provided" in system_content
+    assert (
+        "Always call at least one tool before replying when tools are provided"
+        in system_content
+    )
