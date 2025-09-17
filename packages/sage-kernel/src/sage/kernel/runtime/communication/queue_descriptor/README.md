@@ -39,20 +39,7 @@ queue = QueueDescriptor.create_shm_queue(
 )
 ```
 
-### 3. SAGE Queue
-High-performance queue with advanced features.
-
-```python
-queue = QueueDescriptor.create_sage_queue(
-    queue_id="my_sage_queue",
-    maxsize=1024 * 1024,
-    auto_cleanup=True,
-    namespace="my_namespace",
-    enable_multi_tenant=True
-)
-```
-
-### 4. Ray Queue
+### 3. Ray Queue
 Distributed queue using Ray's infrastructure.
 
 ```python
@@ -62,7 +49,7 @@ queue = QueueDescriptor.create_ray_queue(
 )
 ```
 
-### 5. Ray Actor Queue
+### 4. Ray Actor Queue
 Queue backed by a Ray Actor.
 
 ```python
@@ -72,7 +59,7 @@ queue = QueueDescriptor.create_ray_actor_queue(
 )
 ```
 
-### 6. RPC Queue
+### 5. RPC Queue
 Queue accessed via RPC calls.
 
 ```python
@@ -127,7 +114,7 @@ queue3 = QueueDescriptor.from_json(json_str)
 # Batch operations
 queue_pool = {
     "q1": QueueDescriptor.create_local_queue(),
-    "q2": QueueDescriptor.create_sage_queue()
+    "q2": QueueDescriptor.create_ray_queue()
 }
 
 # Serialize entire pool
@@ -142,7 +129,7 @@ restored_pool = deserialize_queue_pool(json_data)
 Queue instances are created only when first accessed:
 
 ```python
-queue = QueueDescriptor.create_sage_queue(queue_id="lazy")
+queue = QueueDescriptor.create_ray_queue(queue_id="lazy")
 # No actual queue created yet
 
 queue.put("item")  # Now the underlying queue is created
@@ -206,7 +193,6 @@ Thread safety depends on the underlying queue implementation:
 ## Dependencies
 
 - **Local/Shared Memory**: Built-in Python modules
-- **SAGE Queue**: Requires `sage_ext.sage_queue`
 - **Ray Queue**: Requires `ray` package
 - **RPC Queue**: Implementation-dependent
 
