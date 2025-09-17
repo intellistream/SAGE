@@ -183,37 +183,113 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 1
-          clean: true
-        timeout-minutes: 5
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-          cache-dependency-path: '**/requirements*.txt'
-        timeout-minutes: 10
-
-      - name: Restore SAGE Installation
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.pythonLocation }}
-            ~/.local
-            ./install.log
-          key: ${{ needs.build-sage.outputs.cache-key }}
-          fail-on-cache-miss: true
-
-      - name: Verify SAGE Installation
-        run: |
-          echo "🔍 验证SAGE安装状态..."
-          python -c "import sage; print('✅ SAGE imported successfully')"
-          python -c "import sage.common; print('✅ sage.common imported')"
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 1
+        clean: true
+      timeout-minutes: 5
+      
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: '**/requirements*.txt'
+      timeout-minutes: 10
+      continue-on-error: false
+      
+    - name: Verify Python Installation
+      run: |
+        python --version
+        pip --version
+        which python
+        which pip
+      timeout-minutes: 2
+      
+    - name: Install SAGE (Development Mode)
+      id: install-deps
+      env:
+        CI: true
+        DEBIAN_FRONTEND: noninteractive
+        PIP_NO_INPUT: 1
+        PIP_DISABLE_PIP_VERSION_CHECK: 1
+      run: |
+        echo "🚀 使用quickstart.sh --dev模式安装SAGE..."
+        echo "ℹ️ 这将安装完整的开发工具和CLI"
+        
+        # 显示环境信息
+        echo "� 环境信息:"
+        echo "- Python: $(python --version)"
+        echo "- Python路径: $(which python)"
+        echo "- Pip版本: $(pip --version)"
+        
+        # 使用quickstart.sh dev模式安装
+        chmod +x ./quickstart.sh
+        ./quickstart.sh --dev --pip --yes
+        
+        echo "✅ SAGE开发环境安装完成"
+      timeout-minutes: 60
+        
+    - name: Verify SAGE Installation
+      run: |
+        echo "=== 验证SAGE安装 ==="
+        echo "=== Import Tests ==="
+        python -c "import sage; print('✅ SAGE core import successful, version:', sage.__version__)"
+        python -c "import sage.common; print('✅ sage.common import successful')"
+        python -c "import sage.kernel; print('✅ sage.kernel import successful')"
+        python -c "import sage.middleware; print('✅ sage.middleware import successful')"
+        python -c "import sage.libs; print('✅ sage.libs import successful')"
+        
+        echo "=== CLI Test ==="
+        # 刷新shell环境以确保新安装的入口点可用
+        hash -r
+        
+        # 检查sage命令是否在PATH中
+        if command -v sage >/dev/null 2>&1; then
+          echo "✅ SAGE CLI found in PATH: $(which sage)"
+          sage --help > /dev/null && echo "✅ SAGE CLI help working"
+          sage version && echo "✅ SAGE version command working"
+        else
+          echo "❌ SAGE CLI not found in PATH"
+          echo "🔍 诊断信息:"
+          echo "- PATH: $PATH"
+          echo "- 检查已安装的包和入口点:"
+          python -c "import pkg_resources; [print(f'Found sage entry point: {ep}') for ep in pkg_resources.iter_entry_points('console_scripts') if ep.name == 'sage']"
+          echo "- 尝试直接运行CLI模块:"
+          python -m sage.tools.cli.main --help && echo "✅ CLI module works directly"
+        fi
+    
+    - name: Run Basic Import Tests
+      id: basic-tests
+      run: |
+        echo "Running quick smoke tests..."
+        python -c "import sage; print('SAGE core import successful, version:', sage.__version__)"
+        python -c "import sage.common; print('sage.common import successful')"
+        # 添加更多基础导入测试
+        echo "Basic import tests passed ✅"
+    
+    - name: Run Issues Manager Tests
+      run: |
+        echo "Running issues manager automated tests..."
+        # 检查sage命令是否可用，如果不可用则使用python模块方式
+        if command -v sage >/dev/null 2>&1; then
+          SAGE_CMD="sage"
+          echo "✅ 使用PATH中的sage命令"
+        else
+          SAGE_CMD="python -m sage.tools.cli.main"
+          echo "⚠️ sage命令不在PATH中，使用模块方式: $SAGE_CMD"
+        fi
+        
+        # 运行Issues Manager测试，并正确处理退出码
+        echo "🔧 运行 Issues Manager 测试..."
+        if $SAGE_CMD dev test --issues-manager; then
+          echo "✅ Issues Manager 测试通过"
+          exit_code=0
+        else
+          exit_code=$?
+          echo "❌ Issues Manager 测试失败"
           
           if command -v sage >/dev/null 2>&1; then
             SAGE_CMD="sage"

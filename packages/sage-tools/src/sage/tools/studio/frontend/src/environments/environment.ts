@@ -21,7 +21,7 @@ export const environment = {
 
   // 开发配置
   dev: {
-    enableMockData: true,  // 启用Mock数据，便于开发测试
+    enableMockData: false,  // 禁用Mock数据，使用真实API
     enableDebugLogs: true, // 是否启用调试日志
   },
 
