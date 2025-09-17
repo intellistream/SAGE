@@ -109,15 +109,15 @@ class CompletePipInstallTester:
                     bufsize=1,
                     universal_newlines=True,
                 )
-                
+
                 output_lines = []
-                
+
                 while True:
                     try:
                         # 使用 poll() 检查进程是否完成
                         if process.poll() is not None:
                             break
-                            
+
                         # 读取输出行
                         line = process.stdout.readline()
                         if line:
@@ -125,11 +125,11 @@ class CompletePipInstallTester:
                             print(f"    {line.rstrip()}")  # 实时显示输出
                         else:
                             time.sleep(0.1)
-                            
+
                     except KeyboardInterrupt:
                         process.terminate()
                         return -1, "", "Command interrupted by user"
-                
+
                 # 获取剩余输出
                 remaining_output, _ = process.communicate()
                 if remaining_output:
@@ -137,7 +137,7 @@ class CompletePipInstallTester:
                         if line.strip():
                             output_lines.append(line.rstrip())
                             print(f"    {line.rstrip()}")
-                
+
                 return process.returncode, "\n".join(output_lines), ""
             else:
                 # 标准模式
@@ -150,7 +150,7 @@ class CompletePipInstallTester:
                     timeout=timeout,
                 )
                 return result.returncode, result.stdout, result.stderr
-                
+
         except subprocess.CalledProcessError as e:
             return e.returncode, e.stdout, e.stderr
         except subprocess.TimeoutExpired as e:
@@ -212,18 +212,25 @@ class CompletePipInstallTester:
     def build_all_packages(self) -> bool:
         """构建所有SAGE包"""
         print("\n� 构建所有SAGE包...")
-        
-        packages = ["sage-common", "sage-kernel", "sage-middleware", "sage-libs", "sage-tools", "sage"]
+
+        packages = [
+            "sage-common",
+            "sage-kernel",
+            "sage-middleware",
+            "sage-libs",
+            "sage-tools",
+            "sage",
+        ]
         built_packages = []
-        
+
         for package in packages:
             package_dir = self.project_root / "packages" / package
             if not package_dir.exists():
                 print(f"  ⚠️  跳过不存在的包: {package}")
                 continue
-                
+
             print(f"  🔨 构建包: {package}")
-            
+
             # 清理旧的构建
             dist_dir = package_dir / "dist"
             build_dir = package_dir / "build"
@@ -231,18 +238,18 @@ class CompletePipInstallTester:
                 shutil.rmtree(dist_dir)
             if build_dir.exists():
                 shutil.rmtree(build_dir)
-            
+
             # 构建包
             returncode, stdout, stderr = self.run_command(
                 [str(self.python_exe), "-m", "build"],
                 cwd=package_dir,
                 timeout=300,
             )
-            
+
             if returncode != 0:
                 print(f"  ❌ 构建包 {package} 失败: {stderr}")
                 return False
-            
+
             # 检查生成的wheel文件
             wheel_files = list(dist_dir.glob("*.whl"))
             if wheel_files:
@@ -251,18 +258,18 @@ class CompletePipInstallTester:
             else:
                 print(f"  ❌ 未找到wheel文件: {package}")
                 return False
-        
+
         # 创建本地PyPI索引目录
         local_pypi_dir = self.test_dir / "local_pypi"
         local_pypi_dir.mkdir(exist_ok=True)
-        
+
         print(f"  📦 创建本地PyPI索引: {local_pypi_dir}")
-        
+
         # 复制所有wheel文件到本地PyPI目录
         for package, wheel_file in built_packages:
             shutil.copy2(wheel_file, local_pypi_dir)
             print(f"  📦 添加到本地索引: {wheel_file.name}")
-        
+
         self.local_pypi_dir = local_pypi_dir
         print(f"  ✅ 本地PyPI索引创建完成，包含 {len(built_packages)} 个包")
         return True
@@ -283,10 +290,10 @@ class CompletePipInstallTester:
                 [str(self.python_exe), "-m", "pip", "install", "build"],
                 timeout=300,
             )
-            
+
             if returncode != 0:
                 print(f"  ⚠️  安装build工具警告: {stderr}")
-            
+
             # 构建所有包
             success = self.build_all_packages()
             if not success:
@@ -305,7 +312,7 @@ class CompletePipInstallTester:
 
         try:
             # 使用本地PyPI索引安装sage包，包含所有依赖
-            if not hasattr(self, 'local_pypi_dir'):
+            if not hasattr(self, "local_pypi_dir"):
                 print("  ❌ 本地PyPI索引未创建")
                 return False
 
@@ -314,17 +321,24 @@ class CompletePipInstallTester:
 
             # 安装包，显示详细输出
             print("  🔧 开始安装...")
-            print("  📝 安装命令:", f"pip install --find-links {self.local_pypi_dir} --prefer-binary isage")
+            print(
+                "  📝 安装命令:",
+                f"pip install --find-links {self.local_pypi_dir} --prefer-binary isage",
+            )
 
             # 从本地索引安装sage包及其所有依赖
             # 使用 --find-links 指向本地索引，但仍允许从PyPI安装外部依赖
             # 使用 --verbose 和实时输出显示详细过程
             returncode, stdout, stderr = self.run_command(
-                [str(self.pip_exe), "install", 
-                 "--find-links", str(self.local_pypi_dir),
-                 "--prefer-binary",  # 优先使用二进制包
-                 "--verbose",  # 显示详细信息
-                 "isage"],  # 安装主包，会自动解析依赖
+                [
+                    str(self.pip_exe),
+                    "install",
+                    "--find-links",
+                    str(self.local_pypi_dir),
+                    "--prefer-binary",  # 优先使用二进制包
+                    "--verbose",  # 显示详细信息
+                    "isage",
+                ],  # 安装主包，会自动解析依赖
                 timeout=300,  # 增加超时时间
                 stream_output=True,  # 实时显示输出
             )

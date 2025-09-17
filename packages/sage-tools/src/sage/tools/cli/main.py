@@ -27,6 +27,7 @@ def version_callback(value: bool):
     if value:
         try:
             from sage.common._version import __version__
+
             typer.echo(f"SAGE version {__version__}")
         except ImportError:
             typer.echo("SAGE version unknown")
