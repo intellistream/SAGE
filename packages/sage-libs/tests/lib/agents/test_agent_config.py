@@ -159,7 +159,7 @@ class TestAgentConfigValidation:
         assert "class" in arxiv_tool
         assert "init_kwargs" in arxiv_tool
 
-        assert arxiv_tool["module"] == "examples.agents.tools.arxiv_tool"
+        assert arxiv_tool["module"] == "examples.agents.tools.arxiv_search_tool"
         assert arxiv_tool["class"] == "ArxivSearchTool"
         assert isinstance(arxiv_tool["init_kwargs"], dict)
 

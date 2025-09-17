@@ -255,9 +255,9 @@ def check(
 
     console.print(f"✅ [green]找到 {len(wheel_files)} 个wheel文件:[/green]")
     for wheel_file in wheel_files:
-        file_size = wheel_file.stat().st_size / 1024 / 1024  # MB
+        file_size = wheel_file.stat().st_size / 1024 # KB
         file_time = time.ctime(wheel_file.stat().st_mtime)
-        console.print(f"  📦 {wheel_file.name} ({file_size:.1f}MB, {file_time})")
+        console.print(f"  📦 {wheel_file.name} ({file_size:.1f}KB, {file_time})")
 
         if verbose:
             # 显示wheel内容概览
@@ -369,8 +369,8 @@ def build(
                         f"📦 [green]生成了 {len(wheel_files)} 个wheel文件:[/green]"
                     )
                     for wheel_file in wheel_files:
-                        file_size = wheel_file.stat().st_size / 1024 / 1024  # MB
-                        console.print(f"  • {wheel_file.name} ({file_size:.1f}MB)")
+                        file_size = wheel_file.stat().st_size / 1024  # KB
+                        console.print(f"  • {wheel_file.name} ({file_size:.1f}KB)")
 
             return True
         else:

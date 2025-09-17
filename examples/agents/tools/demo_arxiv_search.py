@@ -1,15 +1,25 @@
 """
-Example and demonstration tests for ArxivSearchTool.
+Demo: ArxivSearchTool Usage Examples
 
-This file shows how to use and test the ArxivSearchTool.
-These are examples for developers and users, not formal unit tests.
+This demo file shows practical examples of how to use the ArxivSearchTool
+in different scenarios. These are educational demonstrations for developers 
+and users, not formal unit tests.
+
+For the actual tool implementation, see: arxiv_search_tool.py
+For formal unit tests, see: packages/sage-libs/tests/lib/agents/test_arxiv_tool.py
+
+Examples included:
+- Basic usage with different parameters
+- Error handling and offline fallback
+- Integration with MCP Registry
+- Parameter variations and configurations
 """
 
 import json
 from unittest.mock import Mock, patch
 
 import pytest
-from arxiv_tool import ArxivSearchTool
+from arxiv_search_tool import ArxivSearchTool
 
 
 def example_basic_usage():
@@ -163,6 +173,6 @@ if __name__ == "__main__":
         print("3. Integrate with MCP Registry")
         print("4. Process and display results")
 
-        print("\nFor more details, see the tool implementation in arxiv_tool.py")
+        print("\nFor more details, see the tool implementation in arxiv_search_tool.py")
     else:
         print("\nSome examples failed. Check the implementation and dependencies.")
