@@ -197,14 +197,14 @@ def quality(
                 "[yellow]⚠️ 已自动修复部分质量问题，可能还有其他问题需要手动处理[/yellow]"
             )
             console.print(
-                "[yellow]💡 建议运行: sage dev quality --check-only 查看剩余问题[/yellow]"
+                "[yellow]💡 建议运行: sage-dev quality --check-only 查看剩余问题[/yellow]"
             )
         else:
             console.print(
                 "[yellow]⚠️ 发现代码质量问题，自动修复功能可以处理格式化和导入排序问题[/yellow]"
             )
             console.print(
-                "[yellow]💡 建议运行: sage dev quality (默认自动修复)[/yellow]"
+                "[yellow]💡 建议运行: sage-dev quality (默认自动修复)[/yellow]"
             )
 
         # 如果设置了warn_only，只警告不中断
@@ -351,12 +351,12 @@ def _run_quality_check(
                 console.print(
                     "[yellow]⚠️ 已自动修复部分质量问题，可能还有其他问题需要手动处理[/yellow]"
                 )
-                console.print("[yellow]💡 建议运行: sage dev quality --fix[/yellow]")
+                console.print("[yellow]💡 建议运行: sage-dev quality --fix[/yellow]")
             else:
                 console.print(
                     "[yellow]⚠️ 发现代码质量问题，使用 --fix 自动修复格式化和导入排序问题[/yellow]"
                 )
-                console.print("[yellow]💡 建议运行: sage dev quality --fix[/yellow]")
+                console.print("[yellow]💡 建议运行: sage-dev quality --fix[/yellow]")
 
         # 如果设置了warn_only，只警告不中断
         if not warn_only:
