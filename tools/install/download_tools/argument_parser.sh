@@ -11,6 +11,7 @@ INSTALL_ENVIRONMENT=""
 INSTALL_VLLM=false
 AUTO_CONFIRM=false
 SHOW_HELP=false
+CLEAN_PIP_CACHE=true
 
 # 检测当前Python环境
 detect_current_environment() {
@@ -226,6 +227,10 @@ show_parameter_help() {
     echo -e "  ${BOLD}--yes, --y, -yes, -y${NC}                        ${CYAN}跳过确认提示${NC}"
     echo -e "    ${DIM}自动确认所有安装选项，适合自动化脚本${NC}"
     echo ""
+    echo -e "  ${BOLD}--no-cache-clean, --skip-cache-clean${NC}        ${YELLOW}跳过 pip 缓存清理${NC}"
+    echo -e "    ${DIM}默认安装前会清理 pip 缓存，此选项可跳过${NC}"
+    echo -e "    ${DIM}适用于网络受限或缓存清理可能出错的环境${NC}"
+    echo ""
     
     echo -e "${BLUE}💡 使用示例：${NC}"
     echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装${NC}"
@@ -306,6 +311,20 @@ parse_auto_confirm() {
     esac
 }
 
+# 解析 pip 缓存清理参数
+parse_cache_option() {
+    local param="$1"
+    case "$param" in
+        "--no-cache-clean"|"--skip-cache-clean"|"-no-cache"|"-skip-cache")
+            CLEAN_PIP_CACHE=false
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 解析帮助参数
 parse_help_option() {
     local param="$1"
@@ -347,6 +366,9 @@ parse_arguments() {
             shift
         elif parse_auto_confirm "$param"; then
             # 自动确认参数
+            shift
+        elif parse_cache_option "$param"; then
+            # pip 缓存清理参数
             shift
         else
             # 未知参数
@@ -468,6 +490,10 @@ show_install_configuration() {
     if [ "$INSTALL_VLLM" = true ]; then
         echo -e "  ${BLUE}AI 模型支持:${NC} ${PURPLE}VLLM${NC}"
     fi
+    
+    if [ "$CLEAN_PIP_CACHE" = false ]; then
+        echo -e "  ${BLUE}特殊选项:${NC} ${YELLOW}跳过 pip 缓存清理${NC}"
+    fi
     echo ""
 }
 
@@ -489,6 +515,11 @@ get_install_vllm() {
 # 获取是否自动确认
 get_auto_confirm() {
     echo "$AUTO_CONFIRM"
+}
+
+# 获取是否清理 pip 缓存
+get_clean_pip_cache() {
+    echo "$CLEAN_PIP_CACHE"
 }
 
 # 检查是否需要显示帮助
