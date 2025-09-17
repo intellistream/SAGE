@@ -132,6 +132,42 @@ sage doctor   # Basic environment diagnostics (if CLI installed)
 - 🐍 Supports conda (default) or system Python via `--pip`
 - ⚡ Three modes: minimal / standard / dev
 
+## Environment Configuration
+
+After installation, configure your API keys and environment settings:
+
+**Quick Setup**
+```bash
+# Run the interactive environment setup
+./tools/setup_env.sh
+```
+
+**Manual Setup**
+```bash
+# Copy the environment template
+cp .env.template .env
+
+# Edit .env and add your API keys
+# Required for most examples:
+OPENAI_API_KEY=your_openai_api_key_here
+HF_TOKEN=your_huggingface_token_here
+```
+
+**Environment Variables**
+- `OPENAI_API_KEY`: Required for GPT models and most LLM examples
+- `HF_TOKEN`: Required for Hugging Face model downloads
+- `SILICONCLOUD_API_KEY`: For alternative LLM services
+- `JINA_API_KEY`: For embedding services
+- `ALIBABA_API_KEY`: For DashScope models
+- `SAGE_LOG_LEVEL`: Set logging level (DEBUG, INFO, WARNING, ERROR)
+- `SAGE_TEST_MODE`: Enable test mode for examples
+
+**API Key Sources**
+- Get OpenAI API key: https://platform.openai.com/api-keys
+- Get Hugging Face token: https://huggingface.co/settings/tokens
+
+The `.env` file is automatically ignored by git to keep your keys secure.
+
 ## Use Cases
 
 **RAG Applications**: Build production-ready retrieval-augmented generation systems with multi-modal support and advanced reasoning capabilities.

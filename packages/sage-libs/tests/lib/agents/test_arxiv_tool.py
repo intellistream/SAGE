@@ -2,7 +2,7 @@
 Core unit tests for the ArxivSearchTool.
 
 This covers essential functionality and integration with SAGE components.
-For usage examples, see examples/agents/tools/test_arxiv_examples.py
+For usage examples, see examples/agents/tools/demo_arxiv_search.py
 """
 
 import json
@@ -13,7 +13,7 @@ import pytest
 
 # Import the tool from examples since it's an example tool
 try:
-    from examples.agents.tools.arxiv_tool import ArxivSearchTool
+    from examples.agents.tools.arxiv_search_tool import ArxivSearchTool
 
     ARXIV_TOOL_AVAILABLE = True
 except ImportError:

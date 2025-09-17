@@ -184,7 +184,7 @@ class TestMainFunction:
             "planner": {"max_steps": 5, "enable_repair": True, "topk_tools": 3},
             "tools": [
                 {
-                    "module": "examples.agents.tools.arxiv_tool",
+                    "module": "examples.agents.tools.arxiv_search_tool",
                     "class": "ArxivSearchTool",
                     "init_kwargs": {},
                 }
@@ -409,7 +409,7 @@ if __name__ == "__main__":
                         },
                         "tools": [
                             {
-                                "module": "examples.agents.tools.arxiv_tool",
+                                "module": "examples.agents.tools.arxiv_search_tool",
                                 "class": "ArxivSearchTool",
                                 "init_kwargs": {},
                             }
