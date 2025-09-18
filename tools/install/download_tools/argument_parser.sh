@@ -12,6 +12,9 @@ INSTALL_VLLM=false
 AUTO_CONFIRM=false
 SHOW_HELP=false
 CLEAN_PIP_CACHE=true
+RUN_DOCTOR=false
+DOCTOR_ONLY=false
+FIX_ENVIRONMENT=false
 
 # 检测当前Python环境
 detect_current_environment() {
@@ -229,6 +232,18 @@ show_parameter_help() {
     echo -e "  ${BOLD}--yes, --y, -yes, -y${NC}                        ${CYAN}跳过确认提示${NC}"
     echo -e "    ${DIM}自动确认所有安装选项，适合自动化脚本${NC}"
     echo ""
+    echo -e "  ${BOLD}--doctor, --diagnose, --check-env${NC}           ${GREEN}环境诊断${NC}"
+    echo -e "    ${DIM}全面检查 Python 环境、包管理器、依赖等问题${NC}"
+    echo -e "    ${DIM}识别并报告常见的环境配置问题${NC}"
+    echo ""
+    echo -e "  ${BOLD}--doctor-fix, --diagnose-fix, --fix-env${NC}     ${YELLOW}诊断并修复${NC}"
+    echo -e "    ${DIM}在诊断的基础上自动修复检测到的问题${NC}"
+    echo -e "    ${DIM}安全的自动修复常见环境冲突${NC}"
+    echo ""
+    echo -e "  ${BOLD}--pre-check, --env-check${NC}                    ${BLUE}安装前检查${NC}"
+    echo -e "    ${DIM}在正常安装前进行环境预检查${NC}"
+    echo -e "    ${DIM}与其他安装选项结合使用${NC}"
+    echo ""
     echo -e "  ${BOLD}--no-cache-clean, --skip-cache-clean${NC}        ${YELLOW}跳过 pip 缓存清理${NC}"
     echo -e "    ${DIM}默认安装前会清理 pip 缓存，此选项可跳过${NC}"
     echo -e "    ${DIM}适用于网络受限或缓存清理可能出错的环境${NC}"
@@ -342,6 +357,32 @@ parse_help_option() {
     esac
 }
 
+# 解析环境医生参数
+parse_doctor_option() {
+    local param="$1"
+    case "$param" in
+        "--doctor"|"--diagnose"|"--check-env")
+            RUN_DOCTOR=true
+            DOCTOR_ONLY=true
+            return 0
+            ;;
+        "--doctor-fix"|"--diagnose-fix"|"--fix-env")
+            RUN_DOCTOR=true
+            FIX_ENVIRONMENT=true
+            DOCTOR_ONLY=true
+            return 0
+            ;;
+        "--pre-check"|"--env-check")
+            RUN_DOCTOR=true
+            DOCTOR_ONLY=false
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 主参数解析函数
 parse_arguments() {
     local unknown_params=()
@@ -372,6 +413,9 @@ parse_arguments() {
             shift
         elif parse_cache_option "$param"; then
             # pip 缓存清理参数
+            shift
+        elif parse_doctor_option "$param"; then
+            # 环境医生参数
             shift
         else
             # 未知参数
@@ -528,4 +572,19 @@ get_clean_pip_cache() {
 # 检查是否需要显示帮助
 should_show_help() {
     [ "$SHOW_HELP" = true ]
+}
+
+# 获取是否运行环境医生
+get_run_doctor() {
+    echo "$RUN_DOCTOR"
+}
+
+# 获取是否仅运行医生模式
+get_doctor_only() {
+    echo "$DOCTOR_ONLY"
+}
+
+# 获取是否修复环境
+get_fix_environment() {
+    echo "$FIX_ENVIRONMENT"
 }

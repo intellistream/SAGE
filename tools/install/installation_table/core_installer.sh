@@ -5,6 +5,11 @@
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
 
+# 导入友好错误处理
+if [ -f "$(dirname "${BASH_SOURCE[0]}")/../fixes/friendly_error_handler.sh" ]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/../fixes/friendly_error_handler.sh"
+fi
+
 # CI环境检测 - 确保非交互模式（静默设置，避免重复输出）
 if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
     export PIP_NO_INPUT=1
@@ -29,7 +34,12 @@ install_core_packages() {
     
     # 获取项目根目录并初始化日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/install.log"
+    local log_file="$project_root/.sage/logs/install.log"
+    
+    # 确保.sage目录结构存在
+    mkdir -p "$project_root/.sage/logs"
+    mkdir -p "$project_root/.sage/tmp"
+    mkdir -p "$project_root/.sage/cache"
     
     # 初始化日志文件
     echo "SAGE 安装日志 - $(date)" > "$log_file"
@@ -39,6 +49,7 @@ install_core_packages() {
     
     echo -e "${INFO} 安装核心 SAGE 包..."
     echo -e "${DIM}安装日志将保存到: $log_file${NC}"
+    echo -e "${DIM}临时文件将保存到: $project_root/.sage/tmp${NC}"
     echo ""
     
     # 记录核心包安装开始
@@ -164,7 +175,10 @@ install_package_with_output() {
     
     # 获取项目根目录
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/install.log"
+    local log_file="$project_root/.sage/logs/install.log"
+    
+    # 确保日志目录存在
+    mkdir -p "$(dirname "$log_file")"
     
     # 根据安装类型构建命令
     local install_cmd
@@ -253,9 +267,20 @@ except (urllib.error.URLError, socket.timeout, socket.error):
             fi
         fi
     else
-        # 普通环境（包括远程部署）：不设置超时
-        $install_cmd 2>&1 | tee -a "$log_file"
-        local install_status=${PIPESTATUS[0]}
+        # 普通环境（包括远程部署）：使用友好错误处理
+        if command -v execute_with_friendly_error >/dev/null 2>&1; then
+            execute_with_friendly_error "$install_cmd" "$package_name 安装"
+            local install_status=$?
+        else
+            $install_cmd 2>&1 | tee -a "$log_file"
+            local install_status=${PIPESTATUS[0]}
+            
+            # 如果安装失败，尝试显示友好错误信息
+            if [ $install_status -ne 0 ] && command -v show_friendly_error >/dev/null 2>&1; then
+                local error_output=$(tail -50 "$log_file")
+                show_friendly_error "$error_output" "unknown" "$package_name 安装"
+            fi
+        fi
     fi
     
     # 记录安装结果到日志
@@ -282,7 +307,10 @@ install_pypi_package_with_output() {
     
     # 获取项目根目录
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/install.log"
+    local log_file="$project_root/.sage/logs/install.log"
+    
+    # 确保日志目录存在
+    mkdir -p "$(dirname "$log_file")"
     
     # 记录安装开始信息到日志
     echo "" >> "$log_file"
@@ -305,8 +333,21 @@ install_pypi_package_with_output() {
     fi
     
     echo "命令: $install_cmd" >> "$log_file"
-    $install_cmd 2>&1 | tee -a "$log_file"
-    local install_status=${PIPESTATUS[0]}
+    
+    # 使用友好错误处理
+    if command -v execute_with_friendly_error >/dev/null 2>&1; then
+        execute_with_friendly_error "$install_cmd" "$package_name PyPI包安装"
+        local install_status=$?
+    else
+        $install_cmd 2>&1 | tee -a "$log_file"
+        local install_status=${PIPESTATUS[0]}
+        
+        # 如果安装失败，尝试显示友好错误信息
+        if [ $install_status -ne 0 ] && command -v show_friendly_error >/dev/null 2>&1; then
+            local error_output=$(tail -50 "$log_file")
+            show_friendly_error "$error_output" "unknown" "$package_name PyPI包安装"
+        fi
+    fi
     
     # 记录安装结果到日志
     if [ $install_status -eq 0 ]; then

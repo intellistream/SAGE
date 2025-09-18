@@ -38,6 +38,9 @@ license = "MIT"
 dependencies = [
     "isage-middleware>=0.1.0",  # 继承kernel和common的所有依赖
     
+    # 明确指定numpy版本以避免冲突
+    "numpy>=2.0.0,<3.0.0",
+    
     # Libs-specific dependencies
     # Vector databases
     "chromadb>=1.0.20",
