@@ -123,7 +123,7 @@ def quality(
                 quality_issues = True
         else:
             # 检查模式
-            cmd = ["black", "--check"] + (["--di"] if check_only else []) + target_paths
+            cmd = ["black", "--check"] + (["--diff"] if check_only else []) + target_paths
             if excluded_dirs:
                 cmd.extend(excluded_dirs)
             result = subprocess.run(
