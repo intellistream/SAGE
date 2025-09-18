@@ -157,7 +157,7 @@ def quality(
             # 检查模式
             cmd = (
                 ["isort", "--check-only"]
-                + (["--di"] if check_only else [])
+                + (["--diff"] if check_only else [])
                 + target_paths
             )
             result = subprocess.run(
