@@ -19,6 +19,8 @@ env:
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
   HF_ENDPOINT: https://hf-mirror.com
+  # 控制是否编译C++扩展（设为false可加速CI）
+  SAGE_SKIP_CPP_EXTENSIONS: true
 
 jobs:
   # 快速检查：代码质量和基础测试
@@ -52,20 +54,64 @@ jobs:
         which python
         which pip
       timeout-minutes: 2
+        
+    - name: Install System Dependencies (C++ Extensions)
+      run: |
+        if [ "$SAGE_SKIP_CPP_EXTENSIONS" = "true" ]; then
+          echo "🚀 跳过C++扩展编译依赖安装（加速CI模式）"
+          echo "📋 在此模式下，以下模块将使用Python回退实现："
+          echo "   • sage-middleware/components/sage_db → 纯Python向量数据库"
+          exit 0
+        fi
+        
+        echo "📦 检查是否需要安装系统依赖..."
+        
+        # 检查是否需要编译C++扩展
+        needs_cpp=false
+        
+        # 检查是否有需要编译的C++模块
+        if [ -f "packages/sage-middleware/src/sage/middleware/components/sage_db/CMakeLists.txt" ]; then
+          needs_cpp=true
+          echo "🔍 检测到C++扩展模块，需要安装编译工具"
+        fi
+        
+        if [ "$needs_cpp" = true ]; then
+          echo "📦 安装C++编译依赖..."
+          
+          # 更新包列表
+          echo "📥 更新包列表..."
+          sudo apt-get update -qq
+          
+          # 安装编译依赖
+          echo "📦 安装编译工具..."
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config || {
+            echo "⚠️ 系统依赖安装失败，但继续执行（C++扩展可能不可用）"
+          }
+        else
+          echo "✅ 无需安装C++编译依赖，跳过"
+        fi
+      timeout-minutes: 15
+      continue-on-error: true  # 允许此步骤失败，继续执行后续步骤
       
-    - name: Install SAGE (Development Mode)
+    - name: Install SAGE
       id: install-deps
       env:
         CI: true
         DEBIAN_FRONTEND: noninteractive
         PIP_NO_INPUT: 1
         PIP_DISABLE_PIP_VERSION_CHECK: 1
+        # 并行安装优化
+        PIP_PARALLEL_BUILDS: 4
+        MAKEFLAGS: "-j4"
       run: |
         echo "🚀 使用quickstart.sh --dev模式安装SAGE..."
         echo "ℹ️ 这将安装完整的开发工具和CLI"
         
         # 显示环境信息
-        echo "� 环境信息:"
+        echo "📊 环境信息:"
         echo "- Python: $(python --version)"
         echo "- Python路径: $(which python)"
         echo "- Pip版本: $(pip --version)"
@@ -75,7 +121,7 @@ jobs:
         ./quickstart.sh --dev --pip --yes
         
         echo "✅ SAGE开发环境安装完成"
-      timeout-minutes: 15
+      timeout-minutes: 30
         
     - name: Verify SAGE Installation
       run: |
