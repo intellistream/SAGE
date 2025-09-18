@@ -38,7 +38,7 @@ try:
         version_app, name="version", help="🏷️ 版本管理 - 管理各个子包的版本信息"
     )
 except ImportError as e:
-    console.print("[yellow]警告: 版本管理功能不可用: {e}[/yellow]")
+    console.print(f"[yellow]警告: 版本管理功能不可用: {e}[/yellow]")
 
 
 @app.command()
