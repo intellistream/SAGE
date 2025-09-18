@@ -71,7 +71,7 @@ def quality(
         console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
         raise typer.Exit(1)
 
-    console.print("📁 项目根目录: {project_path}")
+    console.print(f"📁 项目根目录: {project_path}")
 
     # 确定要检查的目录 - 只检查项目代码，避免第三方库
     target_paths = []
