@@ -18,7 +18,7 @@ try:
         issues_app, name="issues", help="🐛 Issues管理 - GitHub Issues下载、分析和管理"
     )
 except ImportError as e:
-    console.print("[yellow]警告: Issues管理功能不可用: {e}[/yellow]")
+    console.print(f"[yellow]警告: Issues管理功能不可用: {e}[/yellow]")
 
 # 添加PyPI管理子命令
 try:
