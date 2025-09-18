@@ -22,7 +22,9 @@ class BuildCExtensions(build_ext):
         """编译C扩展"""
         # 检查是否在开发者模式下，如果是则跳过C扩展编译
         if self.is_develop_mode():
-            print("🔧 开发者模式：跳过C扩展编译（使用 sage extensions install 手动安装）")
+            print(
+                "🔧 开发者模式：跳过C扩展编译（使用 sage extensions install 手动安装）"
+            )
         else:
             self.build_sage_db()
         super().run()
@@ -30,15 +32,16 @@ class BuildCExtensions(build_ext):
     def is_develop_mode(self):
         """检查是否在开发者模式下"""
         # 检查环境变量
-        if os.environ.get('SAGE_SKIP_C_EXTENSIONS') == '1':
+        if os.environ.get("SAGE_SKIP_C_EXTENSIONS") == "1":
             return True
-        
+
         # 检查命令行参数（通过父命令判断）
         import sys
+
         for arg in sys.argv:
-            if arg in ['develop', 'editable', '-e', '--editable']:
+            if arg in ["develop", "editable", "-e", "--editable"]:
                 return True
-        
+
         return False
 
     def build_sage_db(self):

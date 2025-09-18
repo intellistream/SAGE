@@ -927,7 +927,9 @@ if __name__ == "__main__":
             print(full_output)
 
             # 修复判断逻辑：检查返回码和输出（包括stderr）
-            success = returncode == 0 and ("OK" in full_output or "Ran 4 tests" in full_output)
+            success = returncode == 0 and (
+                "OK" in full_output or "Ran 4 tests" in full_output
+            )
             self.results["unit_tests"] = success
 
             if success:
