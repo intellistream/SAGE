@@ -1,6 +1,6 @@
 #!/bin/bash
-# SAGE 安装脚本 - 核心包安装器
-# 负责安装 SAGE 核心包（sage-common, sage-kernel, sage-middleware, sage-libs, sage）
+# SAGE 安装脚本 - 核心包安装器 (重构版本)
+# 负责通过主sage包统一安装所有依赖
 
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
@@ -10,27 +10,23 @@ if [ -f "$(dirname "${BASH_SOURCE[0]}")/../fixes/friendly_error_handler.sh" ]; t
     source "$(dirname "${BASH_SOURCE[0]}")/../fixes/friendly_error_handler.sh"
 fi
 
-# CI环境检测 - 确保非交互模式（静默设置，避免重复输出）
+# CI环境检测
 if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
     export PIP_NO_INPUT=1
     export PIP_DISABLE_PIP_VERSION_CHECK=1
-    # CI环境中不设置PYTHONNOUSERSITE以提高测试速度（静默设置）
 elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
-    # 远程部署环境设置
     export PIP_NO_INPUT=1
     export PIP_DISABLE_PIP_VERSION_CHECK=1
-    export PYTHONNOUSERSITE=1  # 远程部署环境需要设置
+else
+    export PYTHONNOUSERSITE=1
 fi
 
-# 安装核心包
+# 设置pip命令
+PIP_CMD="${PIP_CMD:-pip3}"
+
+# 安装核心包 - 新的简化版本
 install_core_packages() {
-    local install_mode="${1:-dev}"  # 默认为开发模式，接受参数控制
-    
-    # 只在真正的本地环境中设置PYTHONNOUSERSITE
-    if [ "$CI" != "true" ] && [ "$SAGE_REMOTE_DEPLOY" != "true" ] && [ -z "$GITHUB_ACTIONS" ] && [ -z "$GITLAB_CI" ] && [ -z "$JENKINS_URL" ]; then
-        export PYTHONNOUSERSITE=1
-        echo "# 本地开发环境已设置PYTHONNOUSERSITE=1"
-    fi
+    local install_mode="${1:-dev}"  # 默认为开发模式
     
     # 获取项目根目录并初始化日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
@@ -43,319 +39,113 @@ install_core_packages() {
     
     # 初始化日志文件
     echo "SAGE 安装日志 - $(date)" > "$log_file"
-    echo "安装开始时间: $(date)" >> "$log_file"
-    echo "安装模式: 核心包安装" >> "$log_file"
+    echo "安装模式: $install_mode" >> "$log_file"
     echo "========================================" >> "$log_file"
     
-    echo -e "${INFO} 安装核心 SAGE 包..."
-    echo -e "${DIM}安装日志将保存到: $log_file${NC}"
-    echo -e "${DIM}临时文件将保存到: $project_root/.sage/tmp${NC}"
+    echo -e "${INFO} 安装 SAGE ($install_mode 模式)..."
+    echo -e "${DIM}安装日志: $log_file${NC}"
     echo ""
     
-    # 记录核心包安装开始
-    echo "$(date): 开始安装核心 SAGE 包" >> "$log_file"
-    
-    # 根据安装模式确定要安装的包列表
-    local packages_to_install=()
+    # 准备安装目标
+    local sage_package_path="packages/sage"
+    local install_target=""
     
     case "$install_mode" in
         "minimal")
-            # minimal: 只安装基础包
-            packages_to_install=("sage-common" "sage-kernel")
-            echo -e "${GRAY}最小安装模式：仅安装基础 SAGE 包 (common + kernel)${NC}"
+            install_target="$sage_package_path[minimal]"
+            echo -e "${GRAY}最小安装：基础功能 + CLI${NC}"
+            echo -e "${DIM}包含: sage命令, 基础API, 核心组件${NC}"
             ;;
-        "standard")
-            # standard: 基础包 + 中间件 + 应用包
-            packages_to_install=("sage-common" "sage-kernel" "sage-middleware" "sage-libs")
-            echo -e "${GREEN}标准安装模式：基础包 + 中间件 + 应用包 (common + kernel + middleware + libs)${NC}"
+        "standard") 
+            install_target="$sage_package_path[standard]"
+            echo -e "${GREEN}标准安装：完整功能 + 科学计算库${NC}"
+            echo -e "${DIM}包含: 完整功能 + numpy, pandas, matplotlib, jupyter${NC}"
             ;;
         "dev")
-            # dev: 标准安装 + 开发工具 + 主sage包
-            packages_to_install=("sage-common" "sage-kernel" "sage-middleware" "sage-libs" "sage-tools" "sage")
-            echo -e "${YELLOW}开发者安装模式：标准安装 + 开发工具 + CLI (standard + tools + sage)${NC}"
+            install_target="$sage_package_path[dev]"
+            echo -e "${YELLOW}开发者安装：标准安装 + 开发工具${NC}"
+            echo -e "${DIM}包含: 完整功能 + pytest, black, mypy, pre-commit${NC}"
             ;;
         *)
-            # 默认使用开发者模式
-            packages_to_install=("sage-common" "sage-kernel" "sage-middleware" "sage-libs" "sage-tools" "sage")
-            echo -e "${YELLOW}未知模式，使用开发者安装模式${NC}"
+            install_target="$sage_package_path[dev]"
+            echo -e "${YELLOW}未知模式，使用开发者模式${NC}"
             ;;
     esac
     
-    echo -e "${DIM}将安装以下包: ${packages_to_install[*]}${NC}"
     echo ""
     
-    # 安装选定的包
-    for package in "${packages_to_install[@]}"; do
-        local package_path="packages/$package"
-        
-        if [ -d "$package_path" ]; then
-            # 根据安装模式决定安装方式
-            if [ "$install_mode" = "dev" ]; then
-                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                echo -e "${BOLD}  📦 正在安装 $package (开发模式)${NC}"
-                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                
-                # 对于 sage-tools，在开发模式下安装完整的 dev 依赖
-                if [ "$package" = "sage-tools" ]; then
-                    echo -e "${DIM}运行命令: $PIP_CMD install -e $package_path[dev]${NC}"
-                    echo -e "${DIM}包含开发工具: black, isort, flake8, pytest, pytest-timeout 等${NC}"
-                    echo ""
-                    
-                    # 使用开发模式安装，包含 [dev] 依赖
-                    if install_package_with_output "$PIP_CMD" "$package_path[dev]" "$package" "dev"; then
-                        echo ""
-                        echo -e "${CHECK} $package [dev] 安装成功！"
-                        echo ""
-                    else
-                        echo ""
-                        echo -e "${CROSS} $package [dev] 安装失败！"
-                        echo -e "${WARNING} 安装过程中断"
-                        echo "$(date): 核心包安装失败，安装中断" >> "$log_file"
-                        exit 1
-                    fi
-                else
-                    echo -e "${DIM}运行命令: $PIP_CMD install -e $package_path${NC}"
-                    echo ""
-                    
-                    # 使用开发模式安装
-                    if install_package_with_output "$PIP_CMD" "$package_path" "$package" "dev"; then
-                        echo ""
-                        echo -e "${CHECK} $package 安装成功！"
-                        echo ""
-                    else
-                        echo ""
-                        echo -e "${CROSS} $package 安装失败！"
-                        echo -e "${WARNING} 安装过程中断"
-                        echo "$(date): 核心包安装失败，安装中断" >> "$log_file"
-                        exit 1
-                    fi
-                fi
-            else
-                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                echo -e "${BOLD}  📦 正在安装 $package (生产模式)${NC}"
-                echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                echo -e "${DIM}运行命令: $PIP_CMD install $package_path${NC}"
-                echo ""
-                
-                # 使用生产模式安装
-                if install_package_with_output "$PIP_CMD" "$package_path" "$package" "prod"; then
-                    echo ""
-                    echo -e "${CHECK} $package 安装成功！"
-                    echo ""
-                else
-                    echo ""
-                    echo -e "${CROSS} $package 安装失败！"
-                    echo -e "${WARNING} 安装过程中断"
-                    echo "$(date): 核心包安装失败，安装中断" >> "$log_file"
-                    exit 1
-                fi
-            fi
-        else
-            echo -e "${WARNING} ⚠️  跳过不存在的包: $package"
-            echo "$(date): 跳过不存在的包: $package" >> "$log_file"
-            echo ""
+    # 检查sage包是否存在
+    if [ ! -d "$sage_package_path" ]; then
+        echo -e "${CROSS} 错误：找不到SAGE主包目录 ($sage_package_path)"
+        echo "$(date): 错误：SAGE主包目录不存在" >> "$log_file"
+        return 1
+    fi
+    
+    # 执行安装
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}  📦 安装 SAGE ($install_mode 模式)${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    
+    echo -e "${DIM}执行: $PIP_CMD install -e $install_target${NC}"
+    echo ""
+    
+    # 记录安装开始
+    echo "$(date): 开始安装 $install_target" >> "$log_file"
+    
+    # 准备pip安装参数
+    local pip_args="--disable-pip-version-check --no-input"
+    
+    # CI环境额外处理
+    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
+        # 检查是否需要 --break-system-packages
+        if python3 -c "import sys; exit(0 if '/usr' in sys.prefix else 1)" 2>/dev/null; then
+            pip_args="$pip_args --break-system-packages"
+            echo -e "${DIM}CI环境: 添加 --break-system-packages${NC}"
         fi
-    done
+    fi
     
-    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${GREEN}${BOLD}  🎉 SAGE 核心包安装完成！${NC}"
-    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    
-    # 记录核心包安装完成
-    echo "$(date): 核心 SAGE 包安装完成" >> "$log_file"
+    # 执行安装命令
+    if $PIP_CMD install -e "$install_target" $pip_args 2>&1 | tee -a "$log_file"; then
+        echo ""
+        echo -e "${CHECK} SAGE ($install_mode 模式) 安装成功！"
+        echo ""
+        
+        # 验证sage命令
+        echo -e "${DIM}验证 sage 命令...${NC}"
+        if command -v sage >/dev/null 2>&1; then
+            echo -e "${CHECK} sage 命令已可用"
+            echo "$(date): sage 命令验证成功" >> "$log_file"
+        else
+            echo -e "${WARN} sage 命令不可用，可能需要重启终端"
+            echo "$(date): sage 命令验证失败" >> "$log_file"
+        fi
+        
+        echo "$(date): SAGE ($install_mode 模式) 安装成功" >> "$log_file"
+        return 0
+        
+    else
+        echo ""
+        echo -e "${CROSS} SAGE ($install_mode 模式) 安装失败！"
+        echo -e "${DIM}检查日志: $log_file${NC}"
+        echo ""
+        echo "$(date): SAGE ($install_mode 模式) 安装失败" >> "$log_file"
+        return 1
+    fi
+}
+
+# 安装科学计算包（保持向后兼容）
+install_scientific_packages() {
+    echo -e "${DIM}科学计算包已包含在标准/开发模式中，跳过单独安装${NC}"
     return 0
 }
 
-# 安装单个包并显示实时输出
-install_package_with_output() {
-    local pip_cmd="$1"
-    local package_path="$2"
-    local package_name="$3"
-    local install_type="${4:-dev}"  # dev 或 prod，默认为 dev
-    
-    # 获取项目根目录
-    local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/.sage/logs/install.log"
-    
-    # 确保日志目录存在
-    mkdir -p "$(dirname "$log_file")"
-    
-    # 根据安装类型构建命令
-    local install_cmd
-    local ci_flags=""
-    
-    # CI环境检测和特殊处理
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-        ci_flags="--disable-pip-version-check --no-input"
-        echo "🔧 CI环境检测: 使用优化安装选项"
-        
-        # 检查是否需要 --break-system-packages（对于受管理的Python环境）
-        if python3 -c "import sys; print(sys.prefix)" 2>/dev/null | grep -q "^/usr$" || \
-           python3 -c "import sysconfig; print(sysconfig.get_path('purelib'))" 2>/dev/null | grep -qE "^/usr/(local/)?lib/python"; then
-            ci_flags="$ci_flags --break-system-packages"
-            echo "🔧 检测到受管理的Python环境，添加--break-system-packages标志"
-        fi
-    else
-        ci_flags="--disable-pip-version-check --no-input"
-    fi
-    
-    if [ "$install_type" = "dev" ]; then
-        install_cmd="$pip_cmd install -e $package_path $ci_flags"
-    else
-        install_cmd="$pip_cmd install $package_path $ci_flags"
-    fi
-    
-    # 记录安装开始信息到日志
-    echo "" >> "$log_file"
-    echo "=================================" >> "$log_file"
-    echo "$(date): 开始安装 $package_name ($install_type 模式)" >> "$log_file"
-    echo "命令: $install_cmd" >> "$log_file"
-    echo "工作目录: $(pwd)" >> "$log_file"
-    echo "包路径检查: $(ls -la $package_path 2>/dev/null || echo '路径不存在')" >> "$log_file"
-    echo "=================================" >> "$log_file"
-    
-    # 在CI环境中添加超时和调试信息
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-        echo "🔍 CI环境调试信息:"
-        echo "- Python路径: $(which python3)"
-        echo "- Pip版本: $(python3 -m pip --version 2>/dev/null || echo '无法获取pip版本')"
-        
-        # 预先安装大型依赖以加速后续安装
-        if [[ "$package_name" == "sage-kernel" ]]; then
-            echo "🚀 CI环境预安装大型依赖..."
-            python3 -m pip install --prefer-binary --no-cache-dir torch torchvision numpy || echo "预安装依赖失败，继续主安装"
-        fi
-        
-        # 修复网络检测逻辑 - 增加超时时间并改进错误处理
-        local network_status
-        network_status=$(python3 -c "
-import urllib.request
-import socket
-try:
-    urllib.request.urlopen('https://pypi.org', timeout=10)
-    print('✅ 可达')
-except (urllib.error.URLError, socket.timeout, socket.error):
-    try:
-        # 尝试备用地址
-        urllib.request.urlopen('https://pypi.python.org', timeout=10)
-        print('✅ 可达')
-    except:
-        print('❌ 不可达')
-" 2>/dev/null || echo '❌ 不可达')
-        echo "- 网络状态: $network_status"
-        
-        # CI环境优化：增加超时时间并使用verbose输出
-        local ci_pip_cmd="$install_cmd --verbose"
-        
-        # 为大型包增加更长超时时间（30分钟）
-        timeout 1800 $ci_pip_cmd 2>&1 | tee -a "$log_file"
-        local install_status=${PIPESTATUS[0]}
-        
-        # 检查是否超时
-        if [ $install_status -eq 124 ]; then
-            echo "❌ 安装超时 (30分钟)，可能是网络问题或依赖解析卡住" | tee -a "$log_file"
-            echo "💡 建议: 检查网络连接或尝试使用国内镜像源" | tee -a "$log_file"
-            
-            # 尝试重试一次，使用更保守的参数
-            echo "🔄 尝试重新安装（保守模式）..." | tee -a "$log_file"
-            timeout 1800 $install_cmd --no-cache-dir --prefer-binary 2>&1 | tee -a "$log_file"
-            install_status=${PIPESTATUS[0]}
-            
-            if [ $install_status -eq 124 ]; then
-                echo "❌ 重试仍然超时" | tee -a "$log_file"
-                install_status=1
-            fi
-        fi
-    else
-        # 普通环境（包括远程部署）：使用友好错误处理
-        if command -v execute_with_friendly_error >/dev/null 2>&1; then
-            execute_with_friendly_error "$install_cmd" "$package_name 安装"
-            local install_status=$?
-        else
-            $install_cmd 2>&1 | tee -a "$log_file"
-            local install_status=${PIPESTATUS[0]}
-            
-            # 如果安装失败，尝试显示友好错误信息
-            if [ $install_status -ne 0 ] && command -v show_friendly_error >/dev/null 2>&1; then
-                local error_output=$(tail -50 "$log_file")
-                show_friendly_error "$error_output" "unknown" "$package_name 安装"
-            fi
-        fi
-    fi
-    
-    # 记录安装结果到日志
-    if [ $install_status -eq 0 ]; then
-        echo "$(date): $package_name 安装成功" >> "$log_file"
-    else
-        echo "$(date): $package_name 安装失败，退出代码: $install_status" >> "$log_file"
-    fi
-    echo "=================================" >> "$log_file"
-    
-    return $install_status
+# 安装开发工具（保持向后兼容）
+install_dev_tools() {
+    echo -e "${DIM}开发工具已包含在开发模式中，跳过单独安装${NC}"
+    return 0
 }
 
-# 安装PyPI包并显示实时输出
-install_pypi_package_with_output() {
-    local pip_cmd="$1"
-    local package_name="$2"
-    
-    # 只在真正的本地环境中设置PYTHONNOUSERSITE
-    if [ "$CI" != "true" ] && [ "$SAGE_REMOTE_DEPLOY" != "true" ] && [ -z "$GITHUB_ACTIONS" ] && [ -z "$GITLAB_CI" ] && [ -z "$JENKINS_URL" ]; then
-        export PYTHONNOUSERSITE=1
-        echo "# 本地开发环境已设置PYTHONNOUSERSITE=1"
-    fi
-    
-    # 获取项目根目录
-    local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-    local log_file="$project_root/.sage/logs/install.log"
-    
-    # 确保日志目录存在
-    mkdir -p "$(dirname "$log_file")"
-    
-    # 记录安装开始信息到日志
-    echo "" >> "$log_file"
-    echo "=================================" >> "$log_file"
-    echo "$(date): 开始安装 PyPI 包 $package_name" >> "$log_file"
-    echo "命令: $pip_cmd install $package_name --upgrade --disable-pip-version-check" >> "$log_file"
-    echo "=================================" >> "$log_file"
-    
-    # 对于PyPI包，直接执行安装命令并显示输出，同时记录到日志
-    # 添加 --upgrade 参数确保安装最新版本
-    local install_cmd
-    if [ "$CI" = "true" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ] || [ -n "$JENKINS_URL" ]; then
-        # CI环境：添加缓存和优化选项
-        install_cmd="$pip_cmd install $package_name --upgrade --disable-pip-version-check --progress-bar=on --cache-dir ~/.cache/pip"
-    elif [ "$SAGE_REMOTE_DEPLOY" = "true" ]; then
-        # 远程部署环境：使用标准选项
-        install_cmd="$pip_cmd install $package_name --upgrade --disable-pip-version-check"
-    else
-        install_cmd="$pip_cmd install $package_name --upgrade --disable-pip-version-check"
-    fi
-    
-    echo "命令: $install_cmd" >> "$log_file"
-    
-    # 使用友好错误处理
-    if command -v execute_with_friendly_error >/dev/null 2>&1; then
-        execute_with_friendly_error "$install_cmd" "$package_name PyPI包安装"
-        local install_status=$?
-    else
-        $install_cmd 2>&1 | tee -a "$log_file"
-        local install_status=${PIPESTATUS[0]}
-        
-        # 如果安装失败，尝试显示友好错误信息
-        if [ $install_status -ne 0 ] && command -v show_friendly_error >/dev/null 2>&1; then
-            local error_output=$(tail -50 "$log_file")
-            show_friendly_error "$error_output" "unknown" "$package_name PyPI包安装"
-        fi
-    fi
-    
-    # 记录安装结果到日志
-    if [ $install_status -eq 0 ]; then
-        echo "$(date): $package_name 安装成功" >> "$log_file"
-    else
-        echo "$(date): $package_name 安装失败，退出代码: $install_status" >> "$log_file"
-    fi
-    echo "=================================" >> "$log_file"
-    
-    return $install_status
-}
+# 导出函数
+export -f install_core_packages
+export -f install_scientific_packages  
+export -f install_dev_tools

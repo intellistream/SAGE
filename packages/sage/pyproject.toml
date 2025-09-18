@@ -29,16 +29,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# 最小安装 - 只包含核心功能 (common + kernel)
+# 最小安装 - 核心功能 + 基础CLI (common + kernel + tools基础功能)
 minimal = [
     "isage-common>=0.1.0",
-    "isage-kernel>=0.1.0",
+    "isage-kernel>=0.1.0", 
+    "isage-tools>=0.1.0",  # 包含基础CLI功能，确保sage命令可用
 ]
 
-# 标准安装 - 基础包 + 中间件 + 应用包 (common + kernel + middleware + libs)
+# 标准安装 - 最小安装 + 中间件 + 应用包 + 科学计算库
 standard = [
-    "isage-middleware>=0.1.0",  # 包含 sage-common + sage-kernel 依赖
-    "isage-libs>=0.1.0",       # 包含 sage-middleware + sage-kernel + sage-common 依赖
+    "isage[minimal]",           # 包含最小安装的所有功能
+    "isage-middleware>=0.1.0",  # 中间件组件
+    "isage-libs>=0.1.0",       # 应用包组件
     # 数据科学基础库
     "numpy>=2.0.0,<3.0.0",
     "pandas>=1.3.0",
@@ -48,11 +50,10 @@ standard = [
     "ipykernel>=6.0.0",
 ]
 
-# 开发者安装 - 标准安装 + 开发工具 (standard + tools)
+# 开发者安装 - 标准安装 + 完整开发工具套件
 dev = [
     "isage[standard]",  # 包含标准安装的所有功能
-    "isage-tools>=0.1.0",
-    # 开发工具
+    # 开发和测试工具
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
