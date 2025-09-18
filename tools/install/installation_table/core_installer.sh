@@ -70,13 +70,13 @@ install_core_packages() {
             echo -e "${GREEN}标准安装模式：基础包 + 中间件 + 应用包 (common + kernel + middleware + libs)${NC}"
             ;;
         "dev")
-            # dev: 标准安装 + 开发工具
-            packages_to_install=("sage-common" "sage-kernel" "sage-middleware" "sage-libs" "sage-tools")
-            echo -e "${YELLOW}开发者安装模式：标准安装 + 开发工具 (standard + tools)${NC}"
+            # dev: 标准安装 + 开发工具 + 主sage包
+            packages_to_install=("sage-common" "sage-kernel" "sage-middleware" "sage-libs" "sage-tools" "sage")
+            echo -e "${YELLOW}开发者安装模式：标准安装 + 开发工具 + CLI (standard + tools + sage)${NC}"
             ;;
         *)
             # 默认使用开发者模式
-            packages_to_install=("sage-common" "sage-kernel" "sage-middleware" "sage-libs" "sage-tools")
+            packages_to_install=("sage-common" "sage-kernel" "sage-middleware" "sage-libs" "sage-tools" "sage")
             echo -e "${YELLOW}未知模式，使用开发者安装模式${NC}"
             ;;
     esac
