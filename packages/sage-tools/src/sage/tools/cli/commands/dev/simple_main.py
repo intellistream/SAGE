@@ -28,7 +28,7 @@ try:
         pypi_app, name="pypi", help="📦 PyPI发布管理 - 发布准备验证、构建和管理"
     )
 except ImportError as e:
-    console.print("[yellow]警告: PyPI发布管理功能不可用: {e}[/yellow]")
+    console.print(f"[yellow]警告: PyPI发布管理功能不可用: {e}[/yellow]")
 
 # 添加版本管理子命令
 try:
