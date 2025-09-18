@@ -5,10 +5,10 @@ echo "🔍 检查所有模块的语法..."
 
 # 检查主脚本
 echo "检查主脚本..."
-if bash -n quickstart_refactored.sh; then
-    echo "✅ quickstart_refactored.sh 语法正确"
+if bash -n quickstart.sh; then
+    echo "✅ quickstart.sh 语法正确"
 else
-    echo "❌ quickstart_refactored.sh 语法错误"
+    echo "❌ quickstart.sh 语法错误"
     exit 1
 fi
 
