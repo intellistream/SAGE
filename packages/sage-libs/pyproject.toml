@@ -67,6 +67,9 @@ dependencies = [
     # Jupyter支持（原full组中的依赖，现改为必需）
     "jupyter>=1.0.0",
     "notebook>=6.0.0",
+    #loaders依赖
+    "PyPDF2>=3.0.0",
+    "python-docx>=0.8.11",
 ]
 
 [project.optional-dependencies]
