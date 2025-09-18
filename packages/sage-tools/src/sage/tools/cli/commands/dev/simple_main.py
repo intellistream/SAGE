@@ -68,7 +68,7 @@ def quality(
     project_path = Path(project_root).resolve()
 
     if not project_path.exists():
-        console.print("[red]❌ 项目根目录不存在: {project_path}[/red]")
+        console.print(f"[red]❌ 项目根目录不存在: {project_path}[/red]")
         raise typer.Exit(1)
 
     console.print("📁 项目根目录: {project_path}")
