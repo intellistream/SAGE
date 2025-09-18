@@ -44,10 +44,37 @@ install_core_packages() {
     # 记录核心包安装开始
     echo "$(date): 开始安装核心 SAGE 包" >> "$log_file"
     
-    # SAGE 包安装顺序：sage-common → sage-kernel → sage-middleware → sage-libs → sage
-    local sage_packages=("sage-common" "sage-tools" "sage-kernel" "sage-middleware" "sage-libs" "sage")
+    # 根据安装模式确定要安装的包列表
+    local packages_to_install=()
     
-    for package in "${sage_packages[@]}"; do
+    case "$install_mode" in
+        "minimal")
+            # minimal: 只安装基础包
+            packages_to_install=("sage-common" "sage-kernel")
+            echo -e "${GRAY}最小安装模式：仅安装基础 SAGE 包 (common + kernel)${NC}"
+            ;;
+        "standard")
+            # standard: 基础包 + 中间件 + 应用包
+            packages_to_install=("sage-common" "sage-kernel" "sage-middleware" "sage-libs")
+            echo -e "${GREEN}标准安装模式：基础包 + 中间件 + 应用包 (common + kernel + middleware + libs)${NC}"
+            ;;
+        "dev")
+            # dev: 标准安装 + 开发工具
+            packages_to_install=("sage-common" "sage-kernel" "sage-middleware" "sage-libs" "sage-tools")
+            echo -e "${YELLOW}开发者安装模式：标准安装 + 开发工具 (standard + tools)${NC}"
+            ;;
+        *)
+            # 默认使用开发者模式
+            packages_to_install=("sage-common" "sage-kernel" "sage-middleware" "sage-libs" "sage-tools")
+            echo -e "${YELLOW}未知模式，使用开发者安装模式${NC}"
+            ;;
+    esac
+    
+    echo -e "${DIM}将安装以下包: ${packages_to_install[*]}${NC}"
+    echo ""
+    
+    # 安装选定的包
+    for package in "${packages_to_install[@]}"; do
         local package_path="packages/$package"
         
         if [ -d "$package_path" ]; then

@@ -277,20 +277,18 @@ install_sage() {
     echo ""
     case "$mode" in
         "minimal")
-            echo -e "${BLUE}最小安装模式：仅安装核心 SAGE 包${NC}"
+            echo -e "${BLUE}最小安装模式：仅安装基础 SAGE 包${NC}"
             echo "$(date): 开始最小安装模式" >> "$log_file"
             install_core_packages "$mode"
             ;;
         "standard")
-            echo -e "${BLUE}标准安装模式：核心包 + 科学计算库${NC}"
-            echo -e "${DIM}包含: numpy, pandas, matplotlib, scipy, jupyter${NC}"
+            echo -e "${BLUE}标准安装模式：基础包 + 中间件 + 应用包${NC}"
             echo "$(date): 开始标准安装模式" >> "$log_file"
             install_core_packages "$mode"
             install_scientific_packages
             ;;
         "dev")
-            echo -e "${BLUE}开发者安装模式：标准包 + 开发工具${NC}"
-            echo -e "${DIM}包含: 标准安装 + pytest, black, mypy, pre-commit${NC}"
+            echo -e "${BLUE}开发者安装模式：标准安装 + 开发工具${NC}"
             echo "$(date): 开始开发者安装模式" >> "$log_file"
             install_core_packages "$mode"
             install_scientific_packages

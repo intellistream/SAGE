@@ -20,8 +20,26 @@ class BuildCExtensions(build_ext):
 
     def run(self):
         """编译C扩展"""
-        self.build_sage_db()
+        # 检查是否在开发者模式下，如果是则跳过C扩展编译
+        if self.is_develop_mode():
+            print("🔧 开发者模式：跳过C扩展编译（使用 sage extensions install 手动安装）")
+        else:
+            self.build_sage_db()
         super().run()
+
+    def is_develop_mode(self):
+        """检查是否在开发者模式下"""
+        # 检查环境变量
+        if os.environ.get('SAGE_SKIP_C_EXTENSIONS') == '1':
+            return True
+        
+        # 检查命令行参数（通过父命令判断）
+        import sys
+        for arg in sys.argv:
+            if arg in ['develop', 'editable', '-e', '--editable']:
+                return True
+        
+        return False
 
     def build_sage_db(self):
         """编译sage_db C扩展"""
@@ -62,7 +80,8 @@ class CustomInstall(install):
     """自定义安装命令"""
 
     def run(self):
-        # 先编译C扩展
+        # 在生产安装模式下编译C扩展
+        print("🔧 生产安装模式：编译C扩展...")
         self.run_command("build_ext")
         # 然后安装
         super().run()
@@ -72,9 +91,9 @@ class CustomDevelop(develop):
     """自定义开发安装命令"""
 
     def run(self):
-        # 先编译C扩展
-        self.run_command("build_ext")
-        # 然后开发安装
+        # 在开发者模式下跳过C扩展编译
+        print("🔧 开发者模式：跳过C扩展编译（使用 sage extensions install 手动安装）")
+        # 直接运行开发安装，不调用build_ext
         super().run()
 
 
