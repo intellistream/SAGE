@@ -516,6 +516,102 @@ class StudioManager:
             console.print(f"[yellow]TypeScript 检查跳过: {e}[/yellow]")
             return True
 
+    def create_spa_server_script(self, port: int, host: str) -> Path:
+        """创建用于 SPA 的自定义服务器脚本"""
+        server_script = self.studio_sage_dir / "spa_server.py"
+        
+        server_code = f'''#!/usr/bin/env python3
+"""
+SAGE Studio SPA 服务器
+支持 Angular 单页应用的路由重定向
+"""
+
+import http.server
+import socketserver
+import os
+import sys
+from pathlib import Path
+
+class SPAHandler(http.server.SimpleHTTPRequestHandler):
+    """支持 SPA 路由的 HTTP 处理器"""
+    
+    def __init__(self, *args, directory=None, **kwargs):
+        self.directory = directory
+        super().__init__(*args, **kwargs)
+    
+    def do_GET(self):
+        """处理 GET 请求，支持 SPA 路由回退"""
+        # 获取请求的文件路径
+        file_path = Path(self.directory) / self.path.lstrip('/')
+        
+        # 如果是文件且存在，直接返回
+        if file_path.is_file():
+            super().do_GET()
+            return
+            
+        # 如果是目录且包含 index.html，返回 index.html
+        if file_path.is_dir():
+            index_file = file_path / "index.html"
+            if index_file.exists():
+                self.path = str(index_file.relative_to(Path(self.directory)))
+                super().do_GET()
+                return
+        
+        # 对于 SPA 路由（不存在的路径），返回根目录的 index.html
+        root_index = Path(self.directory) / "index.html"
+        if root_index.exists():
+            self.path = "/index.html"
+            super().do_GET()
+        else:
+            # 如果连 index.html 都不存在，返回 404
+            self.send_error(404, "File not found")
+    
+    def end_headers(self):
+        """添加 CORS 头"""
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        super().end_headers()
+
+def main():
+    PORT = {port}
+    HOST = "{host}"
+    DIRECTORY = "{str(self.dist_dir)}"
+    
+    print(f"启动 SAGE Studio SPA 服务器...")
+    print(f"地址: http://{{HOST}}:{{PORT}}")
+    print(f"目录: {{DIRECTORY}}")
+    print("按 Ctrl+C 停止服务器")
+    
+    # 更改工作目录
+    os.chdir(DIRECTORY)
+    
+    # 创建处理器，传入目录参数
+    handler = lambda *args, **kwargs: SPAHandler(*args, directory=DIRECTORY, **kwargs)
+    
+    try:
+        with socketserver.TCPServer((HOST, PORT), handler) as httpd:
+            httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\\n服务器已停止")
+    except Exception as e:
+        print(f"服务器错误: {{e}}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+'''
+        
+        # 写入服务器脚本
+        with open(server_script, 'w') as f:
+            f.write(server_code)
+        
+        # 设置执行权限
+        server_script.chmod(0o755)
+        
+        console.print(f"[blue]已创建自定义 SPA 服务器: {server_script}[/blue]")
+        return server_script
+
     def build(self) -> bool:
         """构建 Studio"""
         if not self.frontend_dir.exists():
@@ -727,14 +823,39 @@ class StudioManager:
                         return False
 
                 console.print("[blue]启动生产服务器...[/blue]")
-                cmd = [
-                    "npx", "--yes", "http-server",
-                    str(self.dist_dir),
-                    "-p", str(port),
-                    "-a", host,
-                    "-c-1",  # 禁用缓存
-                    "--cors"  # 启用 CORS
-                ]
+                
+                # 优先使用 serve 包（专为 SPA 设计）
+                use_custom_server = False
+                try:
+                    # 检查 serve 是否可用
+                    result = subprocess.run(
+                        ["npx", "--yes", "serve", "--version"],
+                        capture_output=True,
+                        text=True,
+                        timeout=10
+                    )
+                    
+                    if result.returncode == 0:
+                        console.print("[green]使用 serve 启动生产服务器...[/green]")
+                        cmd = [
+                            "npx", "--yes", "serve",
+                            str(self.dist_dir),
+                            "-l", str(port),
+                            "-n",  # 不打开浏览器
+                            "--cors",  # 启用 CORS
+                            "--single"  # 单页应用模式，所有路由都重定向到 index.html
+                        ]
+                    else:
+                        use_custom_server = True
+                        
+                except Exception:
+                    use_custom_server = True
+                    
+                if use_custom_server:
+                    console.print("[yellow]serve 不可用，使用自定义服务器...[/yellow]")
+                    # 创建自定义的 Python 服务器来处理 SPA 路由
+                    server_script = self.create_spa_server_script(port, host)
+                    cmd = [sys.executable, str(server_script)]
 
             # 启动进程
             process = subprocess.Popen(
@@ -785,6 +906,11 @@ class StudioManager:
                 # 清理 PID 文件
                 if self.pid_file.exists():
                     self.pid_file.unlink()
+
+                # 清理临时服务器脚本
+                spa_server_script = self.studio_sage_dir / "spa_server.py"
+                if spa_server_script.exists():
+                    spa_server_script.unlink()
 
                 stopped_services.append("前端")
             except Exception as e:
