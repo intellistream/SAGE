@@ -73,9 +73,9 @@ show_installation_menu() {
     # 选择安装模式
     while true; do
         echo -e "${BOLD}1. 选择安装模式：${NC}"
-        echo -e "  ${GREEN}1)${NC} 标准安装    - SAGE核心包 + 科学计算库"
-        echo -e "  ${GRAY}2)${NC} 最小安装    - 仅SAGE核心包"
-        echo -e "  ${YELLOW}3)${NC} 开发者安装  - 标准安装 + 开发工具 ${DIM}(推荐)${NC}"
+        echo -e "  ${GREEN}1)${NC} 标准安装    - common + kernel + middleware + libs + 数据科学库"
+        echo -e "  ${GRAY}2)${NC} 最小安装    - common + kernel (仅核心功能)"
+        echo -e "  ${YELLOW}3)${NC} 开发者安装  - 标准安装 + tools + 开发工具 ${DIM}(推荐)${NC}"
         echo ""
         read -p "请选择安装模式 [1-3，默认3]: " mode_choice
         
@@ -165,9 +165,10 @@ show_installation_menu() {
     
     # 选择是否安装 VLLM
     echo -e "${BOLD}3. AI 模型支持：${NC}"
-    echo -e "  是否安装 VLLM 环境？${DIM}(用于本地大语言模型推理)${NC}"
+    echo -e "  是否配置 VLLM 运行环境？${DIM}(用于本地大语言模型推理，配置系统依赖)${NC}"
+    echo -e "  ${DIM}注意: VLLM Python包已包含在标准/开发者安装中${NC}"
     echo ""
-    read -p "安装 VLLM 环境？[y/N]: " vllm_choice
+    read -p "配置 VLLM 环境？[y/N]: " vllm_choice
     
     if [[ $vllm_choice =~ ^[Yy]$ ]]; then
         INSTALL_VLLM=true
@@ -191,17 +192,17 @@ show_parameter_help() {
     echo -e "${BLUE}📦 安装模式 (默认: 开发者模式)：${NC}"
     echo ""
     echo -e "  ${BOLD}--standard, --s, -standard, -s${NC}               ${GREEN}标准安装${NC}"
-    echo -e "    ${DIM}包含: SAGE核心包 + 科学计算库 (numpy, pandas, jupyter)${NC}"
+    echo -e "    ${DIM}包含: common + kernel + middleware + libs + 数据科学库${NC}"
     echo -e "    ${DIM}安装方式: 生产模式安装 (pip install)${NC}"
     echo -e "    ${DIM}适合: 数据科学、研究、学习${NC}"
     echo ""
     echo -e "  ${BOLD}--mini, --minimal, --m, -mini, -minimal, -m${NC}  ${GRAY}最小安装${NC}"
-    echo -e "    ${DIM}包含: SAGE核心包 (sage-common, sage-kernel, sage-middleware, sage-libs, sage)${NC}"
+    echo -e "    ${DIM}包含: common + kernel (仅核心功能)${NC}"
     echo -e "    ${DIM}安装方式: 生产模式安装 (pip install)${NC}"
     echo -e "    ${DIM}适合: 容器部署、只需要SAGE核心功能的场景${NC}"
     echo ""
     echo -e "  ${BOLD}--dev, --d, -dev, -d${NC}                         ${YELLOW}开发者安装 (默认)${NC}"
-    echo -e "    ${DIM}包含: 标准安装 + 开发工具 (pytest, black, mypy, pre-commit)${NC}"
+    echo -e "    ${DIM}包含: 标准安装 + tools + 开发工具 (pytest, black, mypy, pre-commit)${NC}"
     echo -e "    ${DIM}安装方式: 开发模式安装 (pip install -e)${NC}"
     echo -e "    ${DIM}适合: 为SAGE项目贡献代码的开发者${NC}"
     echo ""
@@ -216,9 +217,10 @@ show_parameter_help() {
     
     echo -e "${BLUE}🤖 AI 模型支持：${NC}"
     echo ""
-    echo -e "  ${BOLD}--vllm${NC}                                       ${PURPLE}安装并配置 VLLM 环境${NC}"
-    echo -e "    ${DIM}自动安装 VLLM 包和配置启动脚本${NC}"
-    echo -e "    ${DIM}如果安装失败，VLLM 将在首次使用时重试安装${NC}"
+    echo -e "  ${BOLD}--vllm${NC}                                       ${PURPLE}配置 VLLM 运行环境${NC}"
+    echo -e "    ${DIM}与其他模式组合使用，例如: --dev --vllm${NC}"
+    echo -e "    ${DIM}配置 CUDA、系统依赖和启动脚本${NC}"
+    echo -e "    ${DIM}注意: Python包已包含在标准安装中${NC}"
     echo -e "    ${DIM}包含使用指南和推荐模型信息${NC}"
     echo ""
     
@@ -237,6 +239,7 @@ show_parameter_help() {
     echo -e "  ./quickstart.sh --dev                            ${DIM}# 开发者安装 + 智能环境选择${NC}"
     echo -e "  ./quickstart.sh --standard --conda               ${DIM}# 标准安装 + conda环境${NC}"
     echo -e "  ./quickstart.sh --minimal --pip --yes            ${DIM}# 最小安装 + 当前环境 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --dev --vllm --yes               ${DIM}# 开发者安装 + VLLM支持 + 跳过确认${NC}"
     echo ""
 }
 
