@@ -19,6 +19,7 @@ source "$TOOLS_DIR/examination_tools/comprehensive_check.sh"
 source "$TOOLS_DIR/download_tools/argument_parser.sh"
 source "$TOOLS_DIR/installation_table/main_installer.sh"
 source "$TOOLS_DIR/fixes/environment_doctor.sh"
+source "$TOOLS_DIR/fixes/numpy_fix.sh"
 source "$TOOLS_DIR/fixes/friendly_error_handler.sh"
 
 # 在脚本开始时立即进行偏移探测
