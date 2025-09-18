@@ -266,7 +266,7 @@ def _run_quality_check(
             console.print("🎨 运行代码格式化检查 (black)...")
 
         if check_only:
-            cmd = ["black", "--check", "--di"] + target_paths
+            cmd = ["black", "--check", "--diff"] + target_paths
             if excluded_dirs:
                 cmd.extend(excluded_dirs)
             result = subprocess.run(
