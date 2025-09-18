@@ -96,7 +96,7 @@ def quality(
     else:
         excluded_dirs = []
 
-    console.print("🎯 检查目录: {', '.join(target_paths)}")
+    console.print(f"🎯 检查目录: {', '.join(target_paths)}")
 
     quality_issues = False
 
