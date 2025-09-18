@@ -78,8 +78,6 @@ ray_logs
 /output
 /logs
 /logs/**
-frontend/web_ui/logs
-frontend/web_ui/logs/**
 sage_examples/logs
 sage_examples/logs/**
 /.env
@@ -183,3 +181,5 @@ examples/data/neuromem_vdb/
 # 一些测试文件
 # ============================================
 !examples/memory/data/neuromem/vdb_collection/RAGMemoryCollection/indexes/test_index/faiss.index
+packages/sage-tools/src/sage/tools/studio/node_modules/*
+packages/sage-tools/src/sage/tools/studio/.angular/*

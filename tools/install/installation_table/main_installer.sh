@@ -12,45 +12,6 @@ source "$(dirname "${BASH_SOURCE[0]}")/scientific_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/dev_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/vllm_installer.sh"
 
-# NVM 自配置函数
-self_configure_nvm() {
-    local log_file="${1:-install.log}"
-    
-    echo -e "${DIM}配置 NVM 环境...${NC}"
-    echo "$(date): 配置 NVM 环境" >> "$log_file"
-    
-    # 检查 shell 配置文件
-    local shell_rc=""
-    if [ -n "$ZSH_VERSION" ]; then
-        shell_rc="$HOME/.zshrc"
-    elif [ -n "$BASH_VERSION" ]; then
-        shell_rc="$HOME/.bashrc"
-    else
-        shell_rc="$HOME/.profile"
-    fi
-    
-    # 添加 nvm 配置到 shell 配置文件
-    if [ -f "$shell_rc" ]; then
-        # 检查是否已经配置
-        if ! grep -q "export NVM_DIR" "$shell_rc"; then
-            echo "" >> "$shell_rc"
-            echo "# NVM configuration" >> "$shell_rc"
-            echo "export NVM_DIR=\"\$HOME/.nvm\"" >> "$shell_rc"
-            echo "[ -s \"\$NVM_DIR/nvm.sh\" ] && \. \"\$NVM_DIR/nvm.sh\"" >> "$shell_rc"
-            echo "[ -s \"\$NVM_DIR/bash_completion\" ] && \. \"\$NVM_DIR/bash_completion\"" >> "$shell_rc"
-            echo "$(date): NVM 配置已添加到 $shell_rc" >> "$log_file"
-        fi
-    fi
-    
-    # 立即加载 nvm 到当前会话
-    export NVM_DIR="$HOME/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-    
-    echo -e "${CHECK} NVM 环境配置完成"
-    echo "$(date): NVM 环境配置完成" >> "$log_file"
-}
-
 # pip 缓存清理函数
 clean_pip_cache() {
     local log_file="${1:-install.log}"
@@ -87,149 +48,6 @@ clean_pip_cache() {
     echo ""
 }
 
-# 系统依赖安装函数
-install_system_dependencies() {
-    local log_file="${1:-install.log}"
-    
-    echo -e "${BLUE}🔧 检查并安装系统依赖...${NC}"
-    echo "$(date): 开始检查系统依赖" >> "$log_file"
-    
-    # 检查操作系统
-    if command -v apt &> /dev/null; then
-        echo -e "${DIM}检测到 Debian/Ubuntu 系统${NC}"
-        
-        # 检查 Node.js
-        if ! command -v node &> /dev/null; then
-            echo -e "${INFO} 安装 Node.js..."
-            echo "$(date): 安装 Node.js" >> "$log_file"
-            
-            # 首先尝试使用 nvm 安装（不需要sudo）
-            if [ ! -d "$HOME/.nvm" ]; then
-                echo -e "${DIM}安装 NVM...${NC}"
-                if curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash; then
-                    echo -e "${CHECK} NVM 安装成功"
-                    echo "$(date): NVM 安装成功" >> "$log_file"
-                else
-                    echo -e "${WARNING} NVM 安装失败，尝试系统包管理器"
-                    echo "$(date): NVM 安装失败" >> "$log_file"
-                fi
-            fi
-            
-            # 加载 nvm 并安装 Node.js
-            if [ -d "$HOME/.nvm" ]; then
-                echo -e "${DIM}加载 NVM 并安装 Node.js...${NC}"
-                export NVM_DIR="$HOME/.nvm"
-                [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-                [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-                
-                # 安装 Node.js 18
-                if nvm install 18 && nvm use 18 && nvm alias default 18; then
-                    echo -e "${CHECK} Node.js 18 安装成功 (使用nvm)"
-                    echo "$(date): Node.js 18 安装成功 (nvm)" >> "$log_file"
-                    
-                    # 验证安装
-                    local node_version=$(node --version 2>/dev/null)
-                    local npm_version=$(npm --version 2>/dev/null)
-                    echo -e "${CHECK} Node.js 版本: $node_version"
-                    echo -e "${CHECK} npm 版本: $npm_version"
-                    
-                    # 将 nvm 配置添加到 shell 配置文件
-                    self_configure_nvm "$log_file"
-                else
-                    echo -e "${WARNING} NVM Node.js 安装失败，尝试系统包管理器"
-                    echo "$(date): NVM Node.js 安装失败" >> "$log_file"
-                fi
-            fi
-            
-            # 如果 nvm 安装失败，尝试系统包管理器
-            if ! command -v node &> /dev/null; then
-                echo -e "${DIM}尝试系统包管理器安装 Node.js...${NC}"
-                if apt update && apt install -y nodejs npm; then
-                    echo -e "${CHECK} Node.js 安装成功 (apt)"
-                    echo "$(date): Node.js 安装成功 (apt)" >> "$log_file"
-                elif sudo apt update && sudo apt install -y nodejs npm; then
-                    echo -e "${CHECK} Node.js 安装成功 (apt, sudo)"
-                    echo "$(date): Node.js 安装成功 (apt, sudo)" >> "$log_file"
-                else
-                    echo -e "${WARNING} Node.js 安装失败，但继续安装过程"
-                    echo "$(date): Node.js 安装失败" >> "$log_file"
-                fi
-            fi
-        else
-            local node_version=$(node --version 2>/dev/null)
-            echo -e "${CHECK} Node.js 已安装: $node_version"
-            echo "$(date): Node.js 已安装 ($node_version)" >> "$log_file"
-        fi
-        
-    elif command -v yum &> /dev/null; then
-        echo -e "${DIM}检测到 RHEL/CentOS 系统${NC}"
-        
-        # 检查 Node.js
-        if ! command -v node &> /dev/null; then
-            echo -e "${INFO} 安装 Node.js..."
-            echo "$(date): 安装 Node.js (yum)" >> "$log_file"
-            
-            # 首先尝试使用 nvm 安装（不需要sudo）
-            if [ ! -d "$HOME/.nvm" ]; then
-                echo -e "${DIM}安装 NVM...${NC}"
-                if curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash; then
-                    echo -e "${CHECK} NVM 安装成功"
-                    echo "$(date): NVM 安装成功 (yum)" >> "$log_file"
-                else
-                    echo -e "${WARNING} NVM 安装失败，尝试系统包管理器"
-                    echo "$(date): NVM 安装失败 (yum)" >> "$log_file"
-                fi
-            fi
-            
-            # 加载 nvm 并安装 Node.js
-            if [ -d "$HOME/.nvm" ]; then
-                echo -e "${DIM}加载 NVM 并安装 Node.js...${NC}"
-                export NVM_DIR="$HOME/.nvm"
-                [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-                [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-                
-                # 安装 Node.js 18
-                if nvm install 18 && nvm use 18 && nvm alias default 18; then
-                    echo -e "${CHECK} Node.js 18 安装成功 (使用nvm)"
-                    echo "$(date): Node.js 18 安装成功 (nvm, yum)" >> "$log_file"
-                    
-                    # 将 nvm 配置添加到 shell 配置文件
-                    self_configure_nvm "$log_file"
-                else
-                    echo -e "${WARNING} NVM Node.js 安装失败，尝试系统包管理器"
-                    echo "$(date): NVM Node.js 安装失败 (yum)" >> "$log_file"
-                fi
-            fi
-            
-            # 如果 nvm 安装失败，尝试系统包管理器
-            if ! command -v node &> /dev/null; then
-                echo -e "${DIM}尝试系统包管理器安装 Node.js...${NC}"
-                if yum install -y nodejs npm; then
-                    echo -e "${CHECK} Node.js 安装成功 (yum)"
-                    echo "$(date): Node.js 安装成功 (yum)" >> "$log_file"
-                elif sudo yum install -y nodejs npm; then
-                    echo -e "${CHECK} Node.js 安装成功 (yum, sudo)"
-                    echo "$(date): Node.js 安装成功 (yum, sudo)" >> "$log_file"
-                else
-                    echo -e "${WARNING} Node.js 安装失败，但继续安装过程"
-                    echo "$(date): Node.js 安装失败 (yum)" >> "$log_file"
-                fi
-            fi
-        else
-            local node_version=$(node --version 2>/dev/null)
-            echo -e "${CHECK} Node.js 已安装: $node_version"
-            echo "$(date): Node.js 已安装 ($node_version)" >> "$log_file"
-        fi
-        
-    else
-        echo -e "${WARNING} 未检测到支持的包管理器 (apt/yum)"
-        echo -e "${DIM}请手动安装 Node.js 18+ 以使用 Studio 功能${NC}"
-        echo "$(date): 未检测到包管理器，跳过系统依赖安装" >> "$log_file"
-    fi
-    
-    echo ""
-}
-
 # 主安装函数
 install_sage() {
     local mode="${1:-dev}"
@@ -250,9 +68,6 @@ install_sage() {
     
     # 配置安装环境（包含所有检查）
     configure_installation_environment "$environment" "$mode"
-    
-    # 安装系统依赖
-    install_system_dependencies "$log_file"
     
     # 清理 pip 缓存（如果启用）
     if [ "$clean_cache" = "true" ]; then

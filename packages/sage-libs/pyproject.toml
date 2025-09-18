@@ -60,9 +60,10 @@ dependencies = [
     # Jupyter support
     "jupyter>=1.0.0",
     "notebook>=6.0.0",
-    
-    # VLLM支持 - Python依赖
-    "vllm>=0.9.2",
+
+    #loaders依赖
+    "PyPDF2>=3.0.0",
+    "python-docx>=0.8.11",
 ]
 
 [project.optional-dependencies]

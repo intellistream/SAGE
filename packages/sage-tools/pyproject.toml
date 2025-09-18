@@ -131,6 +131,7 @@ web = [
 ]
 
 # Studio 低代码界面 (需要额外的 Node.js 环境)
+# 注意：Studio 的 npm 依赖通过 sage studio install 命令按需安装
 studio = [
     "isage-tools[frontend]",
     # Note: Studio requires Node.js 18+ and npm
@@ -207,7 +208,6 @@ where = ["src"]
 "sage.tools.cli" = ["py.typed", "templates/*.yaml"]  
 "sage.tools.dev" = ["py.typed", "templates/*.py", "config/*.toml"]
 "sage.tools.studio" = ["py.typed", "*.pyi", "templates/*.html", "static/*"]
-"sage.tools.web_ui" = ["py.typed", "templates/*.html", "static/*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "sage.tools._version.__version__"}
@@ -266,4 +266,7 @@ markers = [
     "smoke: marks tests as smoke tests (quick validation)",
     "cli: marks tests as CLI tests",
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.tools._version.__version__"}
 
