@@ -300,7 +300,7 @@ def _run_quality_check(
             console.print("📦 运行导入排序检查 (isort)...")
 
         if check_only:
-            cmd = ["isort", "--check-only", "--di"] + target_paths
+            cmd = ["isort", "--check-only", "--diff"] + target_paths
             result = subprocess.run(
                 cmd, capture_output=True, text=True, cwd=str(project_path)
             )
