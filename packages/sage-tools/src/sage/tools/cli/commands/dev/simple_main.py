@@ -423,7 +423,7 @@ def analyze(
                     if "dependency_conflicts" in summary:
                         conflicts = summary["dependency_conflicts"]
                         console.print(
-                            "  ⚠️ 冲突: {len(conflicts) if isinstance(conflicts, list) else 0}"
+                            f"  ⚠️ 冲突: {len(conflicts) if isinstance(conflicts, list) else 0}"
                         )
                 elif "health_score" in result:
                     console.print(f"  💯 健康评分: {result.get('health_score', 'N/A')}")
@@ -505,7 +505,7 @@ def clean(
         # 报告结果
         if cleaned_items:
             console.print(
-                "[green]{'预览' if dry_run else '已清理'} {len(cleaned_items)} 个项目:[/green]"
+                f"[green]{'预览' if dry_run else '已清理'} {len(cleaned_items)} 个项目:[/green]"
             )
             for item in cleaned_items[:10]:  # 限制显示数量
                 console.print(f"  📁 {item}")
@@ -620,7 +620,7 @@ def status(
                 if test != "success"
             ]
             if failed_imports:
-                issues.append("⚠️  缺少依赖: {', '.join(failed_imports)}")
+                issues.append(f"⚠️  缺少依赖: {', '.join(failed_imports)}")
 
             # 检查服务问题
             svc_data = status_data["checks"].get("services", {}).get("data", {})
@@ -804,7 +804,7 @@ def test(
         if not quiet:
             console.print(f"🧪 运行 {test_type} 测试...")
             console.print(
-                "⚙️ 配置: {jobs}并发, {timeout}s超时, {'继续执行' if continue_on_error else '遇错停止'}"
+                f"⚙️ 配置: {jobs}并发, {timeout}s超时, {'继续执行' if continue_on_error else '遇错停止'}"
             )
 
         start_time = time.time()
@@ -875,7 +875,7 @@ def home(
             console.print(f"  📁 SAGE目录: {sage_paths.sage_dir}")
             console.print(f"  📊 项目根目录: {sage_paths.project_root}")
             console.print(
-                "  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}"
+                f"  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}"
             )
 
         elif action == "clean":
@@ -898,7 +898,7 @@ def home(
                     files_removed += 1
 
             console.print(
-                "[green]✅ 清理完成: 删除了 {files_removed} 个旧日志文件[/green]"
+                f"[green]✅ 清理完成: 删除了 {files_removed} 个旧日志文件[/green]"
             )
 
         elif action == "status":
@@ -909,7 +909,7 @@ def home(
             )
             console.print(f"  📊 项目根目录: {sage_paths.project_root}")
             console.print(
-                "  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}"
+                f"  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}"
             )
 
             # 显示各个子目录状态
@@ -927,7 +927,7 @@ def home(
                     size = sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
                     file_count = len(list(path.rglob("*")))
                     console.print(
-                        "  � {name}: {status} ({file_count} 个文件, {size} 字节)"
+                        f"  � {name}: {status} ({file_count} 个文件, {size} 字节)"
                     )
                 else:
                     console.print(f"  � {name}: {status}")
@@ -955,7 +955,7 @@ def _generate_status_markdown_output(status_data):
     markdown_lines.append("# SAGE 项目状态报告")
     markdown_lines.append("")
     markdown_lines.append(
-        "**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     )
     markdown_lines.append("")
 
@@ -971,7 +971,7 @@ def _generate_status_markdown_output(status_data):
 
         markdown_lines.append("## 📊 总体状态")
         markdown_lines.append("")
-        markdown_lines.append("**状态**: {status_emoji} {overall_status.upper()}")
+        markdown_lines.append(f"**状态**: {status_emoji} {overall_status.upper()}")
         markdown_lines.append("")
 
         # 处理检查结果
@@ -1002,7 +1002,7 @@ def _generate_status_markdown_output(status_data):
                         message = str(message)
 
                     markdown_lines.append(
-                        "| {check_name.replace('_', ' ').title()} | {status_emoji} {status} | {message} |"
+                        f"| {check_name.replace('_', ' ').title()} | {status_emoji} {status} | {message} |"
                     )
 
             markdown_lines.append("")
@@ -1013,7 +1013,7 @@ def _generate_status_markdown_output(status_data):
                     data = check_data["data"]
                     if data:  # 只显示有数据的检查项目
                         markdown_lines.append(
-                            "### {check_name.replace('_', ' ').title()}"
+                            f"### {check_name.replace('_', ' ').title()}"
                         )
                         markdown_lines.append("")
 
@@ -1025,7 +1025,7 @@ def _generate_status_markdown_output(status_data):
                                     value_str = (
                                         str(value) if value is not None else "None"
                                     )
-                                    markdown_lines.append("- **{key}**: {value_str}")
+                                    markdown_lines.append(f"- **{key}**: {value_str}")
 
                         elif check_name == "packages":
                             if isinstance(data, dict):
@@ -1033,10 +1033,10 @@ def _generate_status_markdown_output(status_data):
                                 if summary:
                                     markdown_lines.append("**包安装摘要**:")
                                     markdown_lines.append(
-                                        "- 已安装: {summary.get('installed', 0)}"
+                                        f"- 已安装: {summary.get('installed', 0)}"
                                     )
                                     markdown_lines.append(
-                                        "- 总计: {summary.get('total', 0)}"
+                                        f"- 总计: {summary.get('total', 0)}"
                                     )
 
                                 packages = data.get("packages", [])
@@ -1051,10 +1051,10 @@ def _generate_status_markdown_output(status_data):
                                             else packages
                                         )
                                         for pkg in display_packages:
-                                            markdown_lines.append("- {str(pkg)}")
+                                            markdown_lines.append(f"- {str(pkg)}")
                                         if len(packages) > 10:
                                             markdown_lines.append(
-                                                "- ... 还有 {len(packages) - 10} 个包"
+                                                f"- ... 还有 {len(packages) - 10} 个包"
                                             )
                                     elif isinstance(packages, dict):
                                         count = 0
@@ -1062,12 +1062,12 @@ def _generate_status_markdown_output(status_data):
                                             if count >= 10:
                                                 break
                                             markdown_lines.append(
-                                                "- {pkg_name}: {str(pkg_info)}"
+                                                f"- {pkg_name}: {str(pkg_info)}"
                                             )
                                             count += 1
                                         if len(packages) > 10:
                                             markdown_lines.append(
-                                                "- ... 还有 {len(packages) - 10} 个包"
+                                                f"- ... 还有 {len(packages) - 10} 个包"
                                             )
 
                         elif check_name == "dependencies":
@@ -1080,7 +1080,7 @@ def _generate_status_markdown_output(status_data):
                                             "✅" if result == "success" else "❌"
                                         )
                                         markdown_lines.append(
-                                            "- {status_icon} {dep}: {result}"
+                                            f"- {status_icon} {dep}: {result}"
                                         )
 
                         elif check_name == "services":
@@ -1091,11 +1091,11 @@ def _generate_status_markdown_output(status_data):
                                         running = info.get("running", False)
                                         status_icon = "✅" if running else "❌"
                                         markdown_lines.append(
-                                            "- {status_icon} {service}: {'运行中' if running else '未运行'}"
+                                            f"- {status_icon} {service}: {'运行中' if running else '未运行'}"
                                         )
                                         if "details" in info and info["details"]:
                                             markdown_lines.append(
-                                                "  - 详情: {info['details']}"
+                                                f"  - 详情: {info['details']}"
                                             )
 
                         else:
@@ -1107,21 +1107,21 @@ def _generate_status_markdown_output(status_data):
                                             str(value) if value is not None else "None"
                                         )
                                         markdown_lines.append(
-                                            "- **{key}**: {value_str}"
+                                            f"- **{key}**: {value_str}"
                                         )
                                 elif isinstance(data, list):
                                     # Safely handle list slicing
                                     display_items = data[:5] if len(data) > 5 else data
                                     for item in display_items:
-                                        markdown_lines.append("- {str(item)}")
+                                        markdown_lines.append(f"- {str(item)}")
                                     if len(data) > 5:
                                         markdown_lines.append(
-                                            "- ... 还有 {len(data) - 5} 项"
+                                            f"- ... 还有 {len(data) - 5} 项"
                                         )
                                 else:
-                                    markdown_lines.append("数据: {str(data)}")
+                                    markdown_lines.append(f"数据: {str(data)}")
                             except Exception as e:
-                                markdown_lines.append("数据显示错误: {str(e)}")
+                                markdown_lines.append(f"数据显示错误: {str(e)}")
 
                         markdown_lines.append("")
 
@@ -1158,9 +1158,9 @@ def _generate_markdown_output(result, analysis_type):
     # 添加标题和时间戳
     markdown_lines.append("# SAGE 项目依赖分析报告")
     markdown_lines.append("")
-    markdown_lines.append("**分析类型**: {analysis_type}")
+    markdown_lines.append(f"**分析类型**: {analysis_type}")
     markdown_lines.append(
-        "**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     )
     markdown_lines.append("")
 
@@ -1170,15 +1170,15 @@ def _generate_markdown_output(result, analysis_type):
             summary = result["summary"]
             markdown_lines.append("## 📊 分析摘要")
             markdown_lines.append("")
-            markdown_lines.append("- **总包数**: {summary.get('total_packages', 0)}")
+            markdown_lines.append(f"- **总包数**: {summary.get('total_packages', 0)}")
             markdown_lines.append(
-                "- **总依赖**: {summary.get('total_dependencies', 0)}"
+                f"- **总依赖**: {summary.get('total_dependencies', 0)}"
             )
 
             if "dependency_conflicts" in summary:
                 conflicts = summary["dependency_conflicts"]
                 conflict_count = len(conflicts) if isinstance(conflicts, list) else 0
-                markdown_lines.append("- **依赖冲突**: {conflict_count}")
+                markdown_lines.append(f"- **依赖冲突**: {conflict_count}")
 
                 if conflict_count > 0 and isinstance(conflicts, list):
                     markdown_lines.append("")
@@ -1187,16 +1187,16 @@ def _generate_markdown_output(result, analysis_type):
                     for i, conflict in enumerate(conflicts, 1):
                         if isinstance(conflict, dict):
                             markdown_lines.append(
-                                "{i}. **{conflict.get('package', 'Unknown')}**"
+                                f"{i}. **{conflict.get('package', 'Unknown')}**"
                             )
                             markdown_lines.append(
-                                "   - 冲突类型: {conflict.get('type', 'Unknown')}"
+                                f"   - 冲突类型: {conflict.get('type', 'Unknown')}"
                             )
                             markdown_lines.append(
-                                "   - 描述: {conflict.get('description', 'No description')}"
+                                f"   - 描述: {conflict.get('description', 'No description')}"
                             )
                         else:
-                            markdown_lines.append("{i}. {str(conflict)}")
+                            markdown_lines.append(f"{i}. {str(conflict)}")
 
             markdown_lines.append("")
 
@@ -1206,8 +1206,8 @@ def _generate_markdown_output(result, analysis_type):
             markdown_lines.append("")
             health_score = result.get("health_score", "N/A")
             grade = result.get("grade", "N/A")
-            markdown_lines.append("- **健康评分**: {health_score}")
-            markdown_lines.append("- **等级**: {grade}")
+            markdown_lines.append(f"- **健康评分**: {health_score}")
+            markdown_lines.append(f"- **等级**: {grade}")
 
             # 添加评分说明
             if isinstance(health_score, (int, float)):
@@ -1219,7 +1219,7 @@ def _generate_markdown_output(result, analysis_type):
                     status = "🟠 一般"
                 else:
                     status = "🔴 需要改进"
-                markdown_lines.append("- **状态**: {status}")
+                markdown_lines.append(f"- **状态**: {status}")
 
             markdown_lines.append("")
 
@@ -1231,20 +1231,20 @@ def _generate_markdown_output(result, analysis_type):
 
             if isinstance(deps, dict):
                 for package, package_deps in deps.items():
-                    markdown_lines.append("### 📦 {package}")
+                    markdown_lines.append(f"### 📦 {package}")
                     markdown_lines.append("")
                     if isinstance(package_deps, list):
                         if package_deps:
                             markdown_lines.append("**依赖列表**:")
                             for dep in package_deps:
-                                markdown_lines.append("- {dep}")
+                                markdown_lines.append(f"- {dep}")
                         else:
                             markdown_lines.append("- 无外部依赖")
                     elif isinstance(package_deps, dict):
                         for key, value in package_deps.items():
-                            markdown_lines.append("- **{key}**: {value}")
+                            markdown_lines.append(f"- **{key}**: {value}")
                     else:
-                        markdown_lines.append("- {package_deps}")
+                        markdown_lines.append(f"- {package_deps}")
                     markdown_lines.append("")
 
         # 处理包信息
@@ -1260,13 +1260,13 @@ def _generate_markdown_output(result, analysis_type):
                     if isinstance(info, dict):
                         version = info.get("version", "Unknown")
                         status = info.get("status", "Unknown")
-                        markdown_lines.append("| {package} | {version} | {status} |")
+                        markdown_lines.append(f"| {package} | {version} | {status} |")
                     else:
-                        markdown_lines.append("| {package} | - | {info} |")
+                        markdown_lines.append(f"| {package} | - | {info} |")
             elif isinstance(packages, list):
                 markdown_lines.append("**已安装的包**:")
                 for package in packages:
-                    markdown_lines.append("- {package}")
+                    markdown_lines.append(f"- {package}")
 
             markdown_lines.append("")
 
@@ -1279,7 +1279,7 @@ def _generate_markdown_output(result, analysis_type):
                 "dependencies",
                 "packages",
             ]:
-                markdown_lines.append("## {key.replace('_', ' ').title()}")
+                markdown_lines.append(f"## {key.replace('_', ' ').title()}")
                 markdown_lines.append("")
                 if isinstance(value, (list, dict)):
                     markdown_lines.append(f"```json")
@@ -1304,7 +1304,7 @@ def _generate_markdown_output(result, analysis_type):
                         markdown_lines.append(str(value))
                     markdown_lines.append("```")
                 else:
-                    markdown_lines.append("{value}")
+                    markdown_lines.append(f"{value}")
                 markdown_lines.append("")
     else:
         # 处理非字典结果
@@ -1627,7 +1627,7 @@ def _generate_test_report(
                 if result.get("failed_tests"):
                     f.write("## 失败的测试\n\n")
                     for test in result["failed_tests"]:
-                        f.write("- {test}\n")
+                        f.write(f"- {test}\n")
 
         console.print(f"📊 测试报告已保存到: {report_path}")
 
@@ -1708,7 +1708,7 @@ def _get_packages_status_data(project_path) -> dict:
                         [
                             "python",
                             "-c",
-                            "import {package_name.replace('-', '.')}; print(getattr({package_name.replace('-', '.')}, '__version__', 'unknown'))",
+                            f"import {package_name.replace('-', '.')}; print(getattr({package_name.replace('-', '.')}, '__version__', 'unknown'))",
                         ],
                         capture_output=True,
                         text=True,
