@@ -33,7 +33,7 @@ dependencies = [
 minimal = [
     "isage-common>=0.1.0",
     "isage-kernel>=0.1.0", 
-    "isage-tools>=0.1.0",  # 包含基础CLI功能，确保sage命令可用
+    "isage-tools[cli]>=0.1.0",  # 包含基础CLI功能，确保sage命令可用
 ]
 
 # 标准安装 - 最小安装 + 中间件 + 应用包 + 科学计算库
@@ -53,7 +53,9 @@ standard = [
 # 开发者安装 - 标准安装 + 完整开发工具套件
 dev = [
     "isage[standard]",  # 包含标准安装的所有功能
-    # 开发和测试工具
+    # 确保包含sage-tools的开发依赖（包含flake8等）
+    "isage-tools[dev]>=0.1.0",
+    # 额外的开发和测试工具（补充sage-tools[dev]中没有的）
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
