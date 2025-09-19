@@ -3,9 +3,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main]  # 只在推送到main分支时运行
   pull_request:
-    branches: [main]
+    branches: [main]  # 只处理PR到main分支
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
