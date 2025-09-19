@@ -35,11 +35,12 @@ classifiers = [
 ]
 license = "MIT"
 
-# 核心依赖 - 包含 utils 必需的基础依赖和常用工具
+# 核心依赖 - 只包含tools特有的依赖
 dependencies = [
-    # 依赖新的核心sage-common包
-    "isage-common",
-    # 开发工具专用依赖
+    # SAGE framework dependencies  
+    "isage-common>=0.1.0",  # 只依赖common，不重复其他包的依赖
+    
+    # Tools-specific dependencies
     "click>=8.0.0",
     "jinja2>=2.11.1",
     "markdown>=3.4.4",
@@ -126,22 +127,24 @@ frontend = [
 
 # 组合安装选项
 web = [
-    "isage-common[frontend]",
+    "isage-tools[frontend]",
 ]
 
 # Studio 低代码界面 (需要额外的 Node.js 环境)
 # 注意：Studio 的 npm 依赖通过 sage studio install 命令按需安装
 studio = [
-    # 仅包含必要的 Python 依赖，npm 依赖由安装命令处理
+    "isage-tools[frontend]",
+    # Note: Studio requires Node.js 18+ and npm
+    # Auto-setup script will be provided
 ]
 
 # 完整UI套件 (包含所有前端功能)
 ui = [
-    "isage-common[frontend,studio]",
+    "isage-tools[frontend]",
 ]
 
 basic = [
-    "isage-common[cli]",
+    "isage-tools[cli]",
     # 基础运行时依赖
     "pygments>=2.0.0",     # ipython需要
     "pyasn1>=0.4.8",      # python-jose需要
@@ -152,7 +155,7 @@ basic = [
 ]
 
 tools = [
-    "isage-common[cli,dev]", 
+    "isage-tools[cli,dev]", 
 ]
 
 # 文档生成
@@ -168,7 +171,7 @@ docs = [
 
 # 完整安装
 full = [
-    "isage-common[cli,dev,frontend,docs]",
+    "isage-tools[cli,dev,frontend,docs]",
 ]
 
 [project.urls]
@@ -205,6 +208,9 @@ where = ["src"]
 "sage.tools.cli" = ["py.typed", "templates/*.yaml"]  
 "sage.tools.dev" = ["py.typed", "templates/*.py", "config/*.toml"]
 "sage.tools.studio" = ["py.typed", "*.pyi", "templates/*.html", "static/*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.tools._version.__version__"}
 
 # Development tools configuration
 [tool.black]
@@ -260,7 +266,3 @@ markers = [
     "smoke: marks tests as smoke tests (quick validation)",
     "cli: marks tests as CLI tests",
 ]
-
-[tool.setuptools.dynamic]
-version = {attr = "sage.tools._version.__version__"}
-

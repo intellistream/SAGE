@@ -75,7 +75,7 @@ def main(
     sage dev status                 # 查看开发环境状态
     sage studio start               # 启动可视化界面
     sage job list                   # 列出所有作业
-    sage deploy start              # 启动SAGE系统
+    sage jobmanager start          # 启动作业管理器服务
     sage cluster status            # 查看集群状态
 
     🔗 更多信息: https://github.com/intellistream/SAGE

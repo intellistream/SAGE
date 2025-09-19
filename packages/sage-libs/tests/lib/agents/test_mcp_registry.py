@@ -1,12 +1,12 @@
 # tests/test_mcp_registry.py
 import pytest
-
 # 尽量直接导入；如果你的工程路径未就绪，可在运行pytest时用 PYTHONPATH 指向项目根
 from sage.libs.agents.action.mcp_registry import MCPRegistry
 
 
 class EchoTool:
     """一个最小可用的Tool：原样返回arguments，并带有可选的描述与schema。"""
+
     name = "echo"
     description = "echo back arguments"
     input_schema = {"type": "object", "properties": {"x": {"type": "number"}}}
@@ -17,6 +17,7 @@ class EchoTool:
 
 class AddTool:
     """简单计算用的Tool。"""
+
     name = "add"
     description = "sum a and b"
     input_schema = {
@@ -57,11 +58,15 @@ def test_register_requires_name_and_call():
 def test_register_overwrite_same_name():
     class T1:
         name = "same"
-        def call(self, arguments): return 1
+
+        def call(self, arguments):
+            return 1
 
     class T2:
         name = "same"
-        def call(self, arguments): return 2
+
+        def call(self, arguments):
+            return 2
 
     reg = MCPRegistry()
     reg.register(T1())
@@ -89,7 +94,10 @@ def test_describe_contains_description_and_schema():
         None,
         "describe",
         {"op": "describe"},
-        {"op": "describe", "foo": 1},   # 即便有其它键，只要op是describe且没有name，也应走describe分支
+        {
+            "op": "describe",
+            "foo": 1,
+        },  # 即便有其它键，只要op是describe且没有name，也应走describe分支
     ],
 )
 def test_execute_describe_variants(payload):

@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+
 import yaml
 from sage.common.utils.config.loader import load_config
 from sage.libs.rag.chunk import CharacterSplitter
@@ -46,7 +47,6 @@ def load_knowledge_to_milvus(config):
         splitter = CharacterSplitter({"separator": "\n\n"})
         chunks = splitter.execute(document)
         print(f"分块数: {len(chunks)}")
-
 
         all_chunks.extend(chunks)
         print(f"✓ 已准备 {len(chunks)} 个文本块")
