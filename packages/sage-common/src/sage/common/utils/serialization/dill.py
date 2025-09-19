@@ -19,12 +19,23 @@ class SerializationError(Exception):
 # 不可序列化类型黑名单
 _BLACKLIST = [
     threading.Thread,  # 线程
-    type(open),  # 文件句柄
-    type(threading.Lock),  # 锁
-    type(threading.RLock),  # 递归锁
     threading.Event,  # 事件
     threading.Condition,  # 条件变量
 ]
+
+# 在运行时添加锁类型，因为它们不能直接引用类
+try:
+    import tempfile
+    with tempfile.NamedTemporaryFile() as tmp_file:
+        _BLACKLIST.append(type(tmp_file))  # 文件句柄
+except:
+    pass
+
+try:
+    _BLACKLIST.append(type(threading.Lock()))  # 锁
+    _BLACKLIST.append(type(threading.RLock()))  # 递归锁
+except:
+    pass
 
 # 序列化时需要排除的属性名
 _ATTRIBUTE_BLACKLIST = {
@@ -84,13 +95,14 @@ def _should_skip(v):
     return False
 
 
-def _preprocess_for_dill(obj, _seen=None):
+def _preprocess_for_dill(obj, _seen=None, _object_map=None):
     """
     递归预处理对象，清理不可序列化的内容，为dill序列化做准备。
 
     Args:
         obj: 要预处理的对象
         _seen: 已处理对象的集合，用于处理循环引用
+        _object_map: 对象映射表，保持引用完整性 {original_obj_id: new_obj}
 
     Returns:
         预处理后的对象，可以安全地交给dill序列化
@@ -98,11 +110,21 @@ def _preprocess_for_dill(obj, _seen=None):
     # print(f"_preprocess_for_dill called for object: {obj}")
     if _seen is None:
         _seen = set()
+    if _object_map is None:
+        _object_map = {}
 
-    # 防止循环引用
+    # 防止循环引用 + 对象引用去重
     obj_id = id(obj)
+    
+    # 检查是否已经处理过这个对象（引用去重）
+    if obj_id in _object_map:
+        # print(f"Reusing existing mapped object for id {obj_id}: {obj}")
+        return _object_map[obj_id]
+    
     if obj_id in _seen:
-        # print(f"Skipping already seen object: {obj}")
+        # 这是一个循环引用，但我们还没有创建映射
+        # 对于循环引用，我们需要继续处理，但要小心避免无限递归
+        # print(f"Circular reference detected for object: {obj}")
         return _SKIP_VALUE
 
     # 基本类型直接返回
@@ -130,8 +152,8 @@ def _preprocess_for_dill(obj, _seen=None):
             cleaned = {}
             for k, v in obj.items():
                 if not _should_skip(k) and not _should_skip(v):
-                    cleaned_k = _preprocess_for_dill(k, _seen)
-                    cleaned_v = _preprocess_for_dill(v, _seen)
+                    cleaned_k = _preprocess_for_dill(k, _seen, _object_map)
+                    cleaned_v = _preprocess_for_dill(v, _seen, _object_map)
                     if cleaned_k is not _SKIP_VALUE and (
                         (cleaned_v is not _SKIP_VALUE) or (cleaned_v is None)
                     ):
@@ -147,7 +169,7 @@ def _preprocess_for_dill(obj, _seen=None):
             cleaned = []
             for item in obj:
                 if not _should_skip(item):
-                    cleaned_item = _preprocess_for_dill(item, _seen)
+                    cleaned_item = _preprocess_for_dill(item, _seen, _object_map)
                     if cleaned_item is not _SKIP_VALUE:
                         cleaned.append(cleaned_item)
             return type(obj)(cleaned) if cleaned else []
@@ -161,7 +183,7 @@ def _preprocess_for_dill(obj, _seen=None):
             cleaned = set()
             for item in obj:
                 if not _should_skip(item):
-                    cleaned_item = _preprocess_for_dill(item, _seen)
+                    cleaned_item = _preprocess_for_dill(item, _seen, _object_map)
                     if cleaned_item is not _SKIP_VALUE:
                         cleaned.add(cleaned_item)
             return type(obj)(cleaned) if cleaned else set()
@@ -184,6 +206,9 @@ def _preprocess_for_dill(obj, _seen=None):
                 # 如果无法创建空实例，返回原对象让dill处理
                 return obj
 
+            # 将新创建的对象加入映射表，确保引用完整性
+            _object_map[obj_id] = cleaned_obj
+
             # 获取和过滤属性
             custom_include = getattr(obj.__class__, "__state_include__", [])
             custom_exclude = getattr(obj.__class__, "__state_exclude__", [])
@@ -204,7 +229,7 @@ def _preprocess_for_dill(obj, _seen=None):
                 # print(f"Processing attribute: {attr_name} = {attr_value}")
                 if not _should_skip(attr_value):
                     # print(f"Cleaning attribute: {attr_name}")
-                    cleaned_value = _preprocess_for_dill(attr_value, _seen)
+                    cleaned_value = _preprocess_for_dill(attr_value, _seen, _object_map)
                     if cleaned_value is not _SKIP_VALUE:
                         try:
                             setattr(cleaned_obj, attr_name, cleaned_value)
