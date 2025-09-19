@@ -119,11 +119,13 @@ def quality(
                 if result.stdout.strip():
                     console.print(result.stdout)
             else:
-                console.print("[red]❌ 代码格式化失败: {result.stderr}[/red]")
+                console.print(f"[red]❌ 代码格式化失败: {result.stderr}[/red]")
                 quality_issues = True
         else:
             # 检查模式
-            cmd = ["black", "--check"] + (["--diff"] if check_only else []) + target_paths
+            cmd = (
+                ["black", "--check"] + (["--diff"] if check_only else []) + target_paths
+            )
             if excluded_dirs:
                 cmd.extend(excluded_dirs)
             result = subprocess.run(
@@ -151,7 +153,7 @@ def quality(
                 if result.stdout.strip():
                     console.print(result.stdout)
             else:
-                console.print("[red]❌ 导入排序失败: {result.stderr}[/red]")
+                console.print(f"[red]❌ 导入排序失败: {result.stderr}[/red]")
                 quality_issues = True
         else:
             # 检查模式
@@ -256,7 +258,7 @@ def _run_quality_check(
         excluded_dirs = []
 
     if not quiet:
-        console.print("🎯 检查目录: {', '.join(target_paths)}")
+        console.print(f"🎯 检查目录: {', '.join(str(p) for p in target_paths)}")
 
     quality_issues = False
 
@@ -291,7 +293,7 @@ def _run_quality_check(
                     console.print("[green]✅ 代码格式化完成[/green]")
             else:
                 if not quiet:
-                    console.print("[red]❌ 代码格式化失败: {result.stderr}[/red]")
+                    console.print(f"[red]❌ 代码格式化失败: {result.stderr}[/red]")
                 quality_issues = True
 
     # 导入排序检查和修复
@@ -321,7 +323,7 @@ def _run_quality_check(
                     console.print("[green]✅ 导入排序完成[/green]")
             else:
                 if not quiet:
-                    console.print("[red]❌ 导入排序失败: {result.stderr}[/red]")
+                    console.print(f"[red]❌ 导入排序失败: {result.stderr}[/red]")
                 quality_issues = True
 
     # 代码检查 (flake8)
@@ -384,7 +386,7 @@ def analyze(
         elif analysis_type == "report":
             result = analyzer.generate_dependency_report(output_format="dict")
         else:
-            console.print("[red]不支持的分析类型: {analysis_type}[/red]")
+            console.print(f"[red]不支持的分析类型: {analysis_type}[/red]")
             console.print("支持的类型: all, health, report")
             raise typer.Exit(1)
 
@@ -414,25 +416,27 @@ def analyze(
                 console.print("📊 分析结果:")
                 if "summary" in result:
                     summary = result["summary"]
-                    console.print("  📦 总包数: {summary.get('total_packages', 0)}")
-                    console.print("  📚 总依赖: {summary.get('total_dependencies', 0)}")
+                    console.print(f"  📦 总包数: {summary.get('total_packages', 0)}")
+                    console.print(
+                        f"  📚 总依赖: {summary.get('total_dependencies', 0)}"
+                    )
                     if "dependency_conflicts" in summary:
                         conflicts = summary["dependency_conflicts"]
                         console.print(
                             "  ⚠️ 冲突: {len(conflicts) if isinstance(conflicts, list) else 0}"
                         )
                 elif "health_score" in result:
-                    console.print("  💯 健康评分: {result.get('health_score', 'N/A')}")
-                    console.print("  📊 等级: {result.get('grade', 'N/A')}")
+                    console.print(f"  💯 健康评分: {result.get('health_score', 'N/A')}")
+                    console.print(f"  📊 等级: {result.get('grade', 'N/A')}")
                 else:
                     console.print("  📋 分析完成")
             console.print("[green]✅ 分析完成[/green]")
 
     except Exception as e:
-        console.print("[red]分析失败: {e}[/red]")
+        console.print(f"[red]分析失败: {e}[/red]")
         import traceback
 
-        console.print("[red]详细错误:\n{traceback.format_exc()}[/red]")
+        console.print(f"[red]详细错误:\n{traceback.format_exc()}[/red]")
         raise typer.Exit(1)
 
 
@@ -475,7 +479,7 @@ def clean(
         elif target in clean_targets:
             targets_to_clean = clean_targets[target]
         else:
-            console.print("[red]不支持的清理目标: {target}[/red]")
+            console.print(f"[red]不支持的清理目标: {target}[/red]")
             console.print("支持的目标: all, cache, build, logs")
             raise typer.Exit(1)
 
@@ -504,19 +508,19 @@ def clean(
                 "[green]{'预览' if dry_run else '已清理'} {len(cleaned_items)} 个项目:[/green]"
             )
             for item in cleaned_items[:10]:  # 限制显示数量
-                console.print("  📁 {item}")
+                console.print(f"  📁 {item}")
             if len(cleaned_items) > 10:
-                console.print("  ... 还有 {len(cleaned_items) - 10} 个项目")
+                console.print(f"  ... 还有 {len(cleaned_items) - 10} 个项目")
         else:
             console.print("[blue]没有找到需要清理的项目[/blue]")
 
         console.print("[green]✅ 清理完成[/green]")
 
     except Exception as e:
-        console.print("[red]清理失败: {e}[/red]")
+        console.print(f"[red]清理失败: {e}[/red]")
         import traceback
 
-        console.print("[red]详细错误:\n{traceback.format_exc()}[/red]")
+        console.print(f"[red]详细错误:\n{traceback.format_exc()}[/red]")
         raise typer.Exit(1)
 
 
@@ -590,7 +594,7 @@ def status(
 
             # 显示摘要
             summary = checker.generate_status_summary(status_data)
-            console.print("\n{summary}")
+            console.print(f"\n{summary}")
 
             # 显示包状态摘要
             _show_packages_status_summary(project_path)
@@ -633,10 +637,10 @@ def status(
             if issues:
                 console.print("\n📋 需要注意的问题:")
                 for issue in issues[:5]:  # 限制显示数量
-                    console.print("  {issue}")
+                    console.print(f"  {issue}")
 
             if failed_checks:
-                console.print("\n❌ 失败的检查项目: {', '.join(failed_checks)}")
+                console.print(f"\n❌ 失败的检查项目: {', '.join(failed_checks)}")
                 console.print("💡 使用 --output-format full 查看详细信息")
             elif not issues:
                 console.print("\n[green]✅ 所有检查项目都通过了![/green]")
@@ -644,11 +648,11 @@ def status(
                 console.print("\n💡 使用 --output-format full 查看详细信息")
 
     except Exception as e:
-        console.print("[red]状态检查失败: {e}[/red]")
+        console.print(f"[red]状态检查失败: {e}[/red]")
         if verbose:
             import traceback
 
-            console.print("[red]详细错误信息:\n{traceback.format_exc()}[/red]")
+            console.print(f"[red]详细错误信息:\n{traceback.format_exc()}[/red]")
         raise typer.Exit(1)
 
 
@@ -733,15 +737,15 @@ def test(
 
                 if not found_root:
                     console.print("[red]❌ 无法找到 SAGE 项目根目录[/red]")
-                    console.print("当前目录: {Path.cwd()}")
-                    console.print("指定目录: {project_root}")
+                    console.print(f"当前目录: {Path.cwd()}")
+                    console.print(f"指定目录: {project_root}")
                     console.print(
                         "请确保在 SAGE 项目目录中运行，或使用 --project-root 指定正确的路径"
                     )
                     raise typer.Exit(1)
 
         if not quiet:
-            console.print("📁 项目根目录: {project_path}")
+            console.print(f"📁 项目根目录: {project_path}")
 
         # 代码质量检查和修复 (在测试前运行)
         if not skip_quality_check:
@@ -798,7 +802,7 @@ def test(
         }
 
         if not quiet:
-            console.print("🧪 运行 {test_type} 测试...")
+            console.print(f"🧪 运行 {test_type} 测试...")
             console.print(
                 "⚙️ 配置: {jobs}并发, {timeout}s超时, {'继续执行' if continue_on_error else '遇错停止'}"
             )
@@ -815,7 +819,7 @@ def test(
         elif test_type == "integration":
             result = _run_integration_tests(runner, test_config, quiet)
         else:
-            console.print("[red]不支持的测试类型: {test_type}[/red]")
+            console.print(f"[red]不支持的测试类型: {test_type}[/red]")
             console.print("支持的类型: all, unit, integration, quick")
             raise typer.Exit(1)
 
@@ -840,11 +844,11 @@ def test(
             raise typer.Exit(1)
 
     except Exception as e:
-        console.print("[red]测试运行失败: {e}[/red]")
+        console.print(f"[red]测试运行失败: {e}[/red]")
         if verbose:
             import traceback
 
-            console.print("[red]详细错误:\n{traceback.format_exc()}[/red]")
+            console.print(f"[red]详细错误:\n{traceback.format_exc()}[/red]")
         raise typer.Exit(1)
 
 
@@ -868,8 +872,8 @@ def home(
             # 初始化SAGE路径和环境
             initialize_sage_paths(path if path else None)
             console.print("[green]✅ SAGE目录初始化完成[/green]")
-            console.print("  📁 SAGE目录: {sage_paths.sage_dir}")
-            console.print("  📊 项目根目录: {sage_paths.project_root}")
+            console.print(f"  📁 SAGE目录: {sage_paths.sage_dir}")
+            console.print(f"  📊 项目根目录: {sage_paths.project_root}")
             console.print(
                 "  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}"
             )
@@ -899,9 +903,11 @@ def home(
 
         elif action == "status":
             console.print("🏠 SAGE目录状态:")
-            console.print("  📁 SAGE目录: {sage_paths.sage_dir}")
-            console.print("  ✅ 存在: {'是' if sage_paths.sage_dir.exists() else '否'}")
-            console.print("  📊 项目根目录: {sage_paths.project_root}")
+            console.print(f"  📁 SAGE目录: {sage_paths.sage_dir}")
+            console.print(
+                f"  ✅ 存在: {'是' if sage_paths.sage_dir.exists() else '否'}"
+            )
+            console.print(f"  📊 项目根目录: {sage_paths.project_root}")
             console.print(
                 "  🌍 环境类型: {'pip安装' if sage_paths.is_pip_environment else '开发环境'}"
             )
@@ -924,18 +930,18 @@ def home(
                         "  � {name}: {status} ({file_count} 个文件, {size} 字节)"
                     )
                 else:
-                    console.print("  � {name}: {status}")
+                    console.print(f"  � {name}: {status}")
 
         else:
-            console.print("[red]不支持的操作: {action}[/red]")
+            console.print(f"[red]不支持的操作: {action}[/red]")
             console.print("支持的操作: init, clean, status")
             raise typer.Exit(1)
 
     except Exception as e:
-        console.print("[red]SAGE目录操作失败: {e}[/red]")
+        console.print(f"[red]SAGE目录操作失败: {e}[/red]")
         import traceback
 
-        console.print("[red]详细错误:\n{traceback.format_exc()}[/red]")
+        console.print(f"[red]详细错误:\n{traceback.format_exc()}[/red]")
         raise typer.Exit(1)
 
 
@@ -1363,7 +1369,7 @@ def _run_diagnose_mode(project_root: str):
                 console.print(f"  ❌ {module}: {str(e)}")
             except Exception as e:
                 import_results[module] = {"status": "error", "error": str(e)}
-                console.print("  ❌ {module}: {str(e)}")
+                console.print(f"  ❌ {module}: {str(e)}")
 
         # 2. 命名空间包检查
         console.print("\n🔗 命名空间包检查...")
@@ -1371,7 +1377,7 @@ def _run_diagnose_mode(project_root: str):
             import sage
 
             if hasattr(sage, "__path__"):
-                console.print("  ✅ sage 命名空间路径: {sage.__path__}")
+                console.print(f"  ✅ sage 命名空间路径: {sage.__path__}")
 
                 # 检查子包
                 for finder, name, ispkg in pkgutil.iter_modules(
@@ -1384,11 +1390,11 @@ def _run_diagnose_mode(project_root: str):
                         "middleware",
                         "tools",
                     ]:
-                        console.print("    📦 发现子包: {name}")
+                        console.print(f"    📦 发现子包: {name}")
             else:
                 console.print("  ⚠️  sage 不是命名空间包")
         except Exception as e:
-            console.print("  ❌ 命名空间检查失败: {e}")
+            console.print(f"  ❌ 命名空间检查失败: {e}")
 
         # 3. 包结构检查
         console.print("\n🏗️ 包结构检查...")
@@ -1406,7 +1412,7 @@ def _run_diagnose_mode(project_root: str):
                     }
                     structure_status[package_name] = structure_info
 
-                    console.print("  📦 {package_name}")
+                    console.print(f"  📦 {package_name}")
                     console.print(
                         "    ✅ pyproject.toml"
                         if structure_info["pyproject"]
@@ -1430,10 +1436,10 @@ def _run_diagnose_mode(project_root: str):
             value = os.environ.get(var)
             if value:
                 console.print(
-                    "  ✅ {var}: {value[:100]}{'...' if len(value) > 100 else ''}"
+                    f"  ✅ {var}: {value[:100]}{'...' if len(value) > 100 else ''}"
                 )
             else:
-                console.print("  ⚠️  {var}: 未设置")
+                console.print(f"  ⚠️  {var}: 未设置")
 
         # 5. CLI 工具检查
         console.print("\n🖥️ CLI 工具检查...")
@@ -1444,15 +1450,15 @@ def _run_diagnose_mode(project_root: str):
                     [cmd, "--help"], capture_output=True, text=True, timeout=10
                 )
                 if result.returncode == 0:
-                    console.print("  ✅ {cmd} 可用")
+                    console.print(f"  ✅ {cmd} 可用")
                 else:
-                    console.print("  ❌ {cmd} 返回错误码: {result.returncode}")
+                    console.print(f"  ❌ {cmd} 返回错误码: {result.returncode}")
             except subprocess.TimeoutExpired:
-                console.print("  ⚠️  {cmd} 超时")
+                console.print(f"  ⚠️  {cmd} 超时")
             except FileNotFoundError:
-                console.print("  ❌ {cmd} 未找到")
+                console.print(f"  ❌ {cmd} 未找到")
             except Exception as e:
-                console.print("  ❌ {cmd} 检查失败: {e}")
+                console.print(f"  ❌ {cmd} 检查失败: {e}")
 
         # 6. 依赖包检查
         console.print("\n📚 关键依赖检查...")
@@ -1470,11 +1476,11 @@ def _run_diagnose_mode(project_root: str):
             try:
                 imported = importlib.import_module(dep)
                 version = getattr(imported, "__version__", "Unknown")
-                console.print("  ✅ {dep} (版本: {version})")
+                console.print(f"  ✅ {dep} (版本: {version})")
             except ImportError:
-                console.print("  ⚠️  {dep} 未安装")
+                console.print(f"  ⚠️  {dep} 未安装")
             except Exception as e:
-                console.print("  ❌ {dep} 检查失败: {e}")
+                console.print(f"  ❌ {dep} 检查失败: {e}")
 
         # 7. 生成总结
         console.print("\n📋 诊断总结:")
@@ -1483,7 +1489,7 @@ def _run_diagnose_mode(project_root: str):
         )
         total_imports = len(import_results)
 
-        console.print("  📊 导入成功率: {successful_imports}/{total_imports}")
+        console.print(f"  📊 导入成功率: {successful_imports}/{total_imports}")
 
         if successful_imports == total_imports:
             console.print("  🎉 SAGE 安装完整，所有模块可正常导入")
@@ -1495,10 +1501,10 @@ def _run_diagnose_mode(project_root: str):
         console.print("\n✅ 完整诊断完成")
 
     except Exception as e:
-        console.print("[red]诊断失败: {e}[/red]")
+        console.print(f"[red]诊断失败: {e}[/red]")
         import traceback
 
-        console.print("[red]详细错误:\n{traceback.format_exc()}[/red]")
+        console.print(f"[red]详细错误:\n{traceback.format_exc()}[/red]")
 
 
 def _run_issues_manager_test(project_root: str, verbose: bool):
@@ -1518,7 +1524,7 @@ def _run_issues_manager_test(project_root: str, verbose: bool):
             console.print("❌ Issues Manager 测试失败")
 
     except Exception as e:
-        console.print("[red]Issues Manager 测试失败: {e}[/red]")
+        console.print(f"[red]Issues Manager 测试失败: {e}[/red]")
 
 
 def _run_quick_tests(runner, config: dict, quiet: bool):
@@ -1623,10 +1629,10 @@ def _generate_test_report(
                     for test in result["failed_tests"]:
                         f.write("- {test}\n")
 
-        console.print("📊 测试报告已保存到: {report_path}")
+        console.print(f"📊 测试报告已保存到: {report_path}")
 
     except Exception as e:
-        console.print("[red]生成测试报告失败: {e}[/red]")
+        console.print(f"[red]生成测试报告失败: {e}[/red]")
 
 
 def _display_test_results(
@@ -1646,19 +1652,19 @@ def _display_test_results(
         else:
             console.print("❌ 状态: 失败")
 
-        console.print("⏱️ 执行时间: {execution_time:.2f}秒")
+        console.print(f"⏱️ 执行时间: {execution_time:.2f}秒")
 
         # Get summary data from either top level or summary sub-dict
         summary = result.get("summary", result)
-        console.print("📊 总测试数: {summary.get('total', 0)}")
-        console.print("✅ 通过: {summary.get('passed', 0)}")
-        console.print("❌ 失败: {summary.get('failed', 0)}")
-        console.print("💥 错误: {summary.get('errors', 0)}")
+        console.print(f"📊 总测试数: {summary.get('total', 0)}")
+        console.print(f"✅ 通过: {summary.get('passed', 0)}")
+        console.print(f"❌ 失败: {summary.get('failed', 0)}")
+        console.print(f"💥 错误: {summary.get('errors', 0)}")
 
         if not summary_only and result.get("failed_tests"):
             console.print("\n❌ 失败的测试:")
             for test in result["failed_tests"]:
-                console.print("  - {test}")
+                console.print(f"  - {test}")
     else:
         console.print("❓ 无法获取测试结果")
 
@@ -1733,7 +1739,7 @@ def _show_packages_status_summary(project_path):
 
     data = _get_packages_status_data(project_path)
     if "error" in data:
-        console.print("[red]❌ {data['error']}[/red]")
+        console.print(f"[red]❌ {data['error']}[/red]")
         return
 
     total = data["total_packages"]
@@ -1744,9 +1750,9 @@ def _show_packages_status_summary(project_path):
     )
     has_tests = sum(1 for pkg in packages.values() if pkg.get("has_tests", False))
 
-    console.print("  📊 总包数: {total}")
-    console.print("  ✅ 可导入: {importable}/{total}")
-    console.print("  🧪 有测试: {has_tests}/{total}")
+    console.print(f"  📊 总包数: {total}")
+    console.print(f"  ✅ 可导入: {importable}/{total}")
+    console.print(f"  🧪 有测试: {has_tests}/{total}")
 
 
 def _show_packages_status(
@@ -1758,13 +1764,13 @@ def _show_packages_status(
 
     data = _get_packages_status_data(project_path)
     if "error" in data:
-        console.print("[red]❌ {data['error']}[/red]")
+        console.print(f"[red]❌ {data['error']}[/red]")
         return
 
     packages = data["packages"]
 
     for package_name, info in packages.items():
-        console.print("\n📦 {package_name}")
+        console.print(f"\n📦 {package_name}")
 
         # 基础信息
         if info.get("has_pyproject"):
@@ -1780,15 +1786,15 @@ def _show_packages_status(
         # 导入状态
         if info.get("import_status") == "success":
             version = info.get("version", "unknown")
-            console.print("  ✅ 导入成功 (版本: {version})")
+            console.print(f"  ✅ 导入成功 (版本: {version})")
         else:
             console.print("  ❌ 导入失败")
             if verbose and info.get("import_error"):
-                console.print("     错误: {info['import_error']}")
+                console.print(f"     错误: {info['import_error']}")
 
         # 详细版本信息
         if check_versions and verbose:
-            console.print("  📍 路径: {info.get('path', 'unknown')}")
+            console.print(f"  📍 路径: {info.get('path', 'unknown')}")
 
         # 依赖检查
         if check_dependencies:
@@ -1802,7 +1808,7 @@ def _check_package_dependencies(package_name: str, verbose: bool):
         from pathlib import Path
 
         # 尝试读取 pyproject.toml 依赖
-        console.print("    🔗 检查 {package_name} 依赖...")
+        console.print(f"    🔗 检查 {package_name} 依赖...")
 
         # 这里可以添加更详细的依赖检查逻辑
         # 暂时简化处理
@@ -1810,7 +1816,7 @@ def _check_package_dependencies(package_name: str, verbose: bool):
 
     except Exception as e:
         if verbose:
-            console.print("    ❌ 依赖检查失败: {e}")
+            console.print(f"    ❌ 依赖检查失败: {e}")
 
 
 @app.command()
@@ -1834,7 +1840,7 @@ def tools(
     elif command == "status":
         _show_packages_status(verbose)
     else:
-        console.print("[red]未知命令: {command}[/red]")
+        console.print(f"[red]未知命令: {command}[/red]")
         _show_tools_help()
 
 
@@ -1896,7 +1902,7 @@ def _run_tools_test(test_type: str, verbose: bool, packages: str):
                 "failed_only": False,
             }
 
-            console.print("🧪 运行 {test_type} 测试...")
+            console.print(f"🧪 运行 {test_type} 测试...")
 
             start_time = time.time()
 
@@ -1906,7 +1912,7 @@ def _run_tools_test(test_type: str, verbose: bool, packages: str):
             elif test_type == "all":
                 results = runner.run_all_tests(**test_config)
             else:
-                console.print("[red]未知测试类型: {test_type}[/red]")
+                console.print(f"[red]未知测试类型: {test_type}[/red]")
                 return
 
             duration = time.time() - start_time
@@ -1915,7 +1921,7 @@ def _run_tools_test(test_type: str, verbose: bool, packages: str):
             _display_test_results(results, duration, False)
 
         except Exception as e:
-            console.print("[red]测试运行失败: {e}[/red]")
+            console.print(f"[red]测试运行失败: {e}[/red]")
 
 
 if __name__ == "__main__":
