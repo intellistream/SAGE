@@ -148,18 +148,18 @@ jobs:
           echo "- PATH: $PATH"
           echo "- 检查已安装的包和入口点:"
           python -c "
-try:
-    import pkg_resources
-    found = False
-    for ep in pkg_resources.iter_entry_points('console_scripts'):
-        if ep.name == 'sage':
-            print(f'Found sage entry point: {ep}')
-            found = True
-    if not found:
-        print('❌ No sage entry point found')
-except Exception as e:
-    print(f'Error checking entry points: {e}')
-"
+          try:
+              import pkg_resources
+              found = False
+              for ep in pkg_resources.iter_entry_points('console_scripts'):
+                  if ep.name == 'sage':
+                      print(f'Found sage entry point: {ep}')
+                      found = True
+              if not found:
+                  print('❌ No sage entry point found')
+          except Exception as e:
+              print(f'Error checking entry points: {e}')
+          "
           echo "- 尝试直接运行CLI模块:"
           timeout 30s python -m sage.tools.cli.main --help >/dev/null && echo "✅ CLI module works directly" || echo "❌ CLI module failed or timeout"
           
