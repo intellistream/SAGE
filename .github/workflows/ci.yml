@@ -6,6 +6,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 # 并发控制：同一PR只运行最新的CI，取消之前的运行

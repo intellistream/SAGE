@@ -3,9 +3,10 @@ name: Development CI
 
 on:
   push:
-    branches: [main-dev, refactor/*]
+    branches: [main-dev]  # 只在推送到主开发分支时运行，避免与PR重复
   pull_request:
     branches: [main-dev]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 # 并发控制：同一PR或分支只运行最新的CI，取消之前的运行
