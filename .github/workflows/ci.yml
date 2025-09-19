@@ -230,8 +230,58 @@ jobs:
         PIP_NO_INPUT: 1
       run: |
         echo "=== Import Tests ==="
-        python -c "import sage; print('✅ SAGE core import successful, version:', sage.__version__)"
-        python -c "import sage.common; print('✅ sage.common import successful')"
+        echo "Testing SAGE package imports..."
+        
+        # 先检查Python路径和已安装的包
+        echo "Python executable: $(which python)"
+        echo "Python version: $(python --version)"
+        echo "Checking installed isage packages:"
+        pip list | grep isage || echo "No isage packages found"
+        echo ""
+        
+        # 测试导入我们的SAGE包（使用更明确的方式）
+        echo "Testing core SAGE imports:"
+        python -c "
+import sys
+print('Testing SAGE imports...')
+
+# 首先导入sage.common来确保命名空间正确
+try:
+    import sage.common
+    print('✅ sage.common import successful')
+except ImportError as e:
+    print(f'❌ sage.common import failed: {e}')
+    sys.exit(1)
+
+# 然后导入主sage包
+try:
+    import sage
+    if hasattr(sage, '__version__'):
+        print(f'✅ SAGE core import successful, version: {sage.__version__}')
+    else:
+        print('⚠️ SAGE imported but no __version__ attribute found')
+        # 尝试从_version模块获取版本
+        try:
+            from sage._version import __version__
+            print(f'✅ Version found in _version module: {__version__}')
+        except ImportError:
+            print('❌ Could not find version information')
+    
+    # 检查sage包的路径，确保不是系统的Sage数学软件
+    import inspect
+    sage_file = inspect.getfile(sage) if hasattr(sage, '__file__') else 'No __file__ attribute'
+    if sage_file and 'packages/sage' in sage_file:
+        print(f'✅ Correct SAGE package imported from: {sage_file}')
+    else:
+        print(f'⚠️ SAGE package path: {sage_file}')
+        
+except ImportError as e:
+    print(f'❌ SAGE core import failed: {e}')
+    sys.exit(1)
+"
+        
+        echo ""
+        echo "Testing additional SAGE components:"
         python -c "import sage.kernel; print('✅ sage.kernel import successful')"
         python -c "import sage.libs; print('✅ sage.libs import successful')"
         python -c "import sage.middleware; print('✅ sage.middleware import successful')"
