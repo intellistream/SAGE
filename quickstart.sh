@@ -126,7 +126,12 @@ main() {
             verify_vllm_installation
         fi
         echo ""
-        center_text "${ROCKET} 欢迎使用 SAGE！${ROCKET}" "$GREEN$BOLD"
+        # 使用适配的居中显示函数，确保在所有环境下都能正确居中
+        if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
+            center_text_formatted "${ROCKET} 欢迎使用 SAGE！${ROCKET}" "$GREEN$BOLD"
+        else
+            center_text "${ROCKET} 欢迎使用 SAGE！${ROCKET}" "$GREEN$BOLD"
+        fi
         echo ""
     else
         echo ""
