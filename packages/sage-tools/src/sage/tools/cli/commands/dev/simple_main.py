@@ -177,17 +177,23 @@ def quality(
     if lint_code:
         console.print("\n🔍 运行代码检查 (flake8)...")
 
-        # flake8配置通过项目根目录的.flake8文件控制
-        cmd = ["flake8"] + target_paths
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, cwd=str(project_path)
-        )
-        if result.returncode != 0:
-            console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
-            console.print(result.stdout)
-            quality_issues = True
-        else:
-            console.print("[green]✅ 代码质量检查通过[/green]")
+        try:
+            # flake8配置通过项目根目录的.flake8文件控制
+            cmd = ["flake8"] + target_paths
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_path)
+            )
+            if result.returncode != 0:
+                console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
+                console.print(result.stdout)
+                quality_issues = True
+            else:
+                console.print("[green]✅ 代码质量检查通过[/green]")
+        except FileNotFoundError:
+            console.print("[yellow]⚠️ flake8 未安装，跳过代码质量检查[/yellow]")
+            console.print("[yellow]💡 建议安装: pip install flake8[/yellow]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️ flake8 检查失败: {e}[/yellow]")
 
     # 总结
     console.print("\n" + "=" * 50)
@@ -331,18 +337,25 @@ def _run_quality_check(
         if not quiet:
             console.print("🔍 运行代码检查 (flake8)...")
 
-        # flake8配置通过项目根目录的.flake8文件控制
-        cmd = ["flake8"] + target_paths
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, cwd=str(project_path)
-        )
-        if result.returncode != 0:
+        try:
+            # flake8配置通过项目根目录的.flake8文件控制
+            cmd = ["flake8"] + target_paths
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_path)
+            )
+            if result.returncode != 0:
+                if not quiet:
+                    console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
+                quality_issues = True
+            else:
+                if not quiet:
+                    console.print("[green]✅ 代码质量检查通过[/green]")
+        except FileNotFoundError:
             if not quiet:
-                console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
-            quality_issues = True
-        else:
+                console.print("[yellow]⚠️ flake8 未安装，跳过代码质量检查[/yellow]")
+        except Exception as e:
             if not quiet:
-                console.print("[green]✅ 代码质量检查通过[/green]")
+                console.print(f"[yellow]⚠️ flake8 检查失败: {e}[/yellow]")
 
     # 处理质量问题的结果
     if quality_issues:
