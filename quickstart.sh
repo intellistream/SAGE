@@ -18,6 +18,9 @@ source "$TOOLS_DIR/examination_tools/system_check.sh"
 source "$TOOLS_DIR/examination_tools/comprehensive_check.sh"
 source "$TOOLS_DIR/download_tools/argument_parser.sh"
 source "$TOOLS_DIR/installation_table/main_installer.sh"
+source "$TOOLS_DIR/fixes/environment_doctor.sh"
+source "$TOOLS_DIR/fixes/numpy_fix.sh"
+source "$TOOLS_DIR/fixes/friendly_error_handler.sh"
 
 # 在脚本开始时立即进行偏移探测
 pre_check_system_environment
@@ -30,11 +33,49 @@ main() {
     # 解析命令行参数（包括帮助检查）
     parse_arguments "$@"
     
+    # 检查环境医生模式
+    local run_doctor=$(get_run_doctor)
+    local doctor_only=$(get_doctor_only)
+    local fix_environment=$(get_fix_environment)
+    
+    if [ "$run_doctor" = "true" ]; then
+        # 导入环境医生功能
+        if [ -f "$TOOLS_DIR/fixes/environment_doctor.sh" ]; then
+            source "$TOOLS_DIR/fixes/environment_doctor.sh"
+            
+            if [ "$fix_environment" = "true" ]; then
+                run_full_diagnosis
+                run_auto_fixes
+            else
+                run_full_diagnosis
+            fi
+            
+            if [ "$doctor_only" = "true" ]; then
+                exit $?
+            fi
+        else
+            echo -e "${RED}错误：环境医生模块未找到${NC}"
+            exit 1
+        fi
+    fi
+    
     # 设置智能默认值并显示提示
     set_defaults_and_show_tips
     
     # 显示欢迎界面
     show_welcome
+    
+    # 环境预检查（除非在医生模式中）
+    if [ "$run_doctor" != "true" ]; then
+        echo -e "\n${BLUE}🔍 安装前环境检查${NC}"
+        
+        # 确保.sage目录存在
+        mkdir -p .sage/logs
+        
+        if ! precheck_numpy_environment ".sage/logs/install.log"; then
+            echo -e "${YELLOW}⚠️  检测到潜在环境问题，但将继续尝试安装${NC}"
+        fi
+    fi
     
     # 如果没有指定任何参数且不在 CI 环境中，显示交互式菜单
     if [ $# -eq 0 ] && [[ -z "$CI" && -z "$GITHUB_ACTIONS" && -z "$GITLAB_CI" && -z "$JENKINS_URL" && -z "$BUILDKITE" ]]; then

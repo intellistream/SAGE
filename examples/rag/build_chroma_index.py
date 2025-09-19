@@ -7,10 +7,11 @@
 """
 import os
 import sys
+
 import chromadb
-from sentence_transformers import SentenceTransformer
-from sage.libs.rag.document_loaders import LoaderFactory
 from sage.libs.rag.chunk import CharacterSplitter
+from sage.libs.rag.document_loaders import LoaderFactory
+from sentence_transformers import SentenceTransformer
 
 
 def load_knowledge_to_chromadb():
@@ -31,7 +32,7 @@ def load_knowledge_to_chromadb():
 
     # 初始化嵌入模型
     print("\n加载嵌入模型...")
-    model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
     # 初始化 ChromaDB
     print("初始化ChromaDB...")
@@ -63,7 +64,9 @@ def load_knowledge_to_chromadb():
         except:
             pass
         index_type = "flat"  # 可选: "flat", "hnsw"
-        collection = client.create_collection(name=collection_name, metadata={"index_type": index_type})
+        collection = client.create_collection(
+            name=collection_name, metadata={"index_type": index_type}
+        )
         print(f"集合已创建，索引类型: {index_type}")
 
         # 嵌入与写入
@@ -72,10 +75,7 @@ def load_knowledge_to_chromadb():
         ids = [f"{collection_name}_chunk_{i}" for i in range(len(chunk_docs))]
         metadatas = [c["metadata"] for c in chunk_docs]
         collection.add(
-            embeddings=embeddings,
-            documents=texts,
-            metadatas=metadatas,
-            ids=ids
+            embeddings=embeddings, documents=texts, metadatas=metadatas, ids=ids
         )
         print(f"✓ 已添加 {len(chunk_docs)} 个文本块")
         print(f"✓ 数据库文档数: {collection.count()}")
@@ -85,7 +85,7 @@ def load_knowledge_to_chromadb():
         query_embedding = model.encode([test_query]).tolist()
         results = collection.query(query_embeddings=query_embedding, n_results=3)
         print(f"检索: {test_query}")
-        for i, doc in enumerate(results['documents'][0]):
+        for i, doc in enumerate(results["documents"][0]):
             print(f"  {i + 1}. {doc[:100]}...")
         print("=== 完成 ===")
 
@@ -93,7 +93,7 @@ def load_knowledge_to_chromadb():
     return True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     if load_knowledge_to_chromadb():
         print("知识库已成功加载，可运行检索/问答脚本")

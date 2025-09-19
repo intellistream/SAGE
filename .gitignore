@@ -14,6 +14,10 @@ CMakeUserPresets.json
 # 构建和安装目录
 # ============================================
 install.log
+# SAGE 工作目录
+.sage/logs/
+.sage/tmp/
+.sage/cache/
 /deps/CANDY/installation/dist/
 /deps/CANDY/installation/candy.egg-info/
 /deps/CANDY/installation/build/

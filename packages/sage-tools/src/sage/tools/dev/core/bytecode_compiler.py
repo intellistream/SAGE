@@ -444,7 +444,7 @@ setup(
                     raise SAGEDevToolkitError("构建完成但未找到wheel文件")
 
                 wheel_file = dist_files[0]  # 通常只有一个wheel文件
-                file_size = wheel_file.stat().st_size / 1024   # KB
+                file_size = wheel_file.stat().st_size / 1024  # KB
                 console.print(f"    📄 {wheel_file.name} ({file_size:.2f} KB)")
 
                 # 验证wheel内容

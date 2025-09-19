@@ -177,17 +177,23 @@ def quality(
     if lint_code:
         console.print("\n🔍 运行代码检查 (flake8)...")
 
-        # flake8配置通过项目根目录的.flake8文件控制
-        cmd = ["flake8"] + target_paths
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, cwd=str(project_path)
-        )
-        if result.returncode != 0:
-            console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
-            console.print(result.stdout)
-            quality_issues = True
-        else:
-            console.print("[green]✅ 代码质量检查通过[/green]")
+        try:
+            # flake8配置通过项目根目录的.flake8文件控制
+            cmd = ["flake8"] + target_paths
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_path)
+            )
+            if result.returncode != 0:
+                console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
+                console.print(result.stdout)
+                quality_issues = True
+            else:
+                console.print("[green]✅ 代码质量检查通过[/green]")
+        except FileNotFoundError:
+            console.print("[yellow]⚠️ flake8 未安装，跳过代码质量检查[/yellow]")
+            console.print("[yellow]💡 建议安装: pip install flake8[/yellow]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️ flake8 检查失败: {e}[/yellow]")
 
     # 总结
     console.print("\n" + "=" * 50)
@@ -258,7 +264,7 @@ def _run_quality_check(
         excluded_dirs = []
 
     if not quiet:
-        console.print(f"🎯 检查目录: {', '.join(target_paths)}")
+        console.print(f"🎯 检查目录: {', '.join(str(p) for p in target_paths)}")
 
     quality_issues = False
 
@@ -331,18 +337,25 @@ def _run_quality_check(
         if not quiet:
             console.print("🔍 运行代码检查 (flake8)...")
 
-        # flake8配置通过项目根目录的.flake8文件控制
-        cmd = ["flake8"] + target_paths
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, cwd=str(project_path)
-        )
-        if result.returncode != 0:
+        try:
+            # flake8配置通过项目根目录的.flake8文件控制
+            cmd = ["flake8"] + target_paths
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=str(project_path)
+            )
+            if result.returncode != 0:
+                if not quiet:
+                    console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
+                quality_issues = True
+            else:
+                if not quiet:
+                    console.print("[green]✅ 代码质量检查通过[/green]")
+        except FileNotFoundError:
             if not quiet:
-                console.print("[yellow]⚠️ 发现代码质量问题[/yellow]")
-            quality_issues = True
-        else:
+                console.print("[yellow]⚠️ flake8 未安装，跳过代码质量检查[/yellow]")
+        except Exception as e:
             if not quiet:
-                console.print("[green]✅ 代码质量检查通过[/green]")
+                console.print(f"[yellow]⚠️ flake8 检查失败: {e}[/yellow]")
 
     # 处理质量问题的结果
     if quality_issues:
@@ -736,7 +749,7 @@ def test(
                         break
 
                 if not found_root:
-                    console.print(f"[red]❌ 无法找到 SAGE 项目根目录[/red]")
+                    console.print("[red]❌ 无法找到 SAGE 项目根目录[/red]")
                     console.print(f"当前目录: {Path.cwd()}")
                     console.print(f"指定目录: {project_root}")
                     console.print(
@@ -1130,17 +1143,17 @@ def _generate_status_markdown_output(status_data):
             summary = status_data["summary"]
             markdown_lines.append("## 📋 状态摘要")
             markdown_lines.append("")
-            markdown_lines.append(f"```")
+            markdown_lines.append("```")
             markdown_lines.append(summary)
-            markdown_lines.append(f"```")
+            markdown_lines.append("```")
             markdown_lines.append("")
     else:
         # 处理非字典状态数据
         markdown_lines.append("## 状态数据")
         markdown_lines.append("")
-        markdown_lines.append(f"```")
+        markdown_lines.append("```")
         markdown_lines.append(str(status_data))
-        markdown_lines.append(f"```")
+        markdown_lines.append("```")
 
     # 添加底部信息
     markdown_lines.append("---")
@@ -1156,13 +1169,13 @@ def _generate_markdown_output(result, analysis_type):
     markdown_lines = []
 
     # 添加标题和时间戳
-    markdown_lines.append(f"# SAGE 项目依赖分析报告")
-    markdown_lines.append(f"")
+    markdown_lines.append("# SAGE 项目依赖分析报告")
+    markdown_lines.append("")
     markdown_lines.append(f"**分析类型**: {analysis_type}")
     markdown_lines.append(
         f"**生成时间**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     )
-    markdown_lines.append(f"")
+    markdown_lines.append("")
 
     if isinstance(result, dict):
         # 处理包含summary的结果
@@ -1302,7 +1315,7 @@ def _generate_markdown_output(result, analysis_type):
                         )
                     except Exception:
                         markdown_lines.append(str(value))
-                    markdown_lines.append(f"```")
+                    markdown_lines.append("```")
                 else:
                     markdown_lines.append(f"{value}")
                 markdown_lines.append("")
@@ -1310,9 +1323,9 @@ def _generate_markdown_output(result, analysis_type):
         # 处理非字典结果
         markdown_lines.append("## 分析结果")
         markdown_lines.append("")
-        markdown_lines.append(f"```")
+        markdown_lines.append("```")
         markdown_lines.append(str(result))
-        markdown_lines.append(f"```")
+        markdown_lines.append("```")
 
     # 添加底部信息
     markdown_lines.append("---")
@@ -1414,16 +1427,16 @@ def _run_diagnose_mode(project_root: str):
 
                     console.print(f"  📦 {package_name}")
                     console.print(
-                        f"    ✅ pyproject.toml"
+                        "    ✅ pyproject.toml"
                         if structure_info["pyproject"]
                         else "    ❌ pyproject.toml 缺失"
                     )
                     if structure_info["src"]:
-                        console.print(f"    ✅ src/ 目录")
+                        console.print("    ✅ src/ 目录")
                     if structure_info["tests"]:
-                        console.print(f"    ✅ tests/ 目录")
+                        console.print("    ✅ tests/ 目录")
                     else:
-                        console.print(f"    ⚠️  tests/ 目录缺失")
+                        console.print("    ⚠️  tests/ 目录缺失")
         else:
             console.print("  ❌ packages 目录不存在")
 
@@ -1613,19 +1626,19 @@ def _generate_test_report(
         else:
             # 生成 Markdown 格式报告
             with open(report_path, "w", encoding="utf-8") as f:
-                f.write(f"# SAGE 测试报告\n\n")
-                f.write(f"**测试类型**: {test_type}\n")
-                f.write(f"**生成时间**: {report_data['timestamp']}\n")
-                f.write(f"**执行时间**: {execution_time:.2f}秒\n\n")
-                f.write(f"## 测试结果\n\n")
-                f.write(f"- 状态: {result.get('status', '未知')}\n")
-                f.write(f"- 总测试数: {result.get('total', 0)}\n")
-                f.write(f"- 通过: {result.get('passed', 0)}\n")
-                f.write(f"- 失败: {result.get('failed', 0)}\n")
-                f.write(f"- 错误: {result.get('errors', 0)}\n\n")
+                f.write("# SAGE 测试报告\n\n")
+                f.write("**测试类型**: {test_type}\n")
+                f.write("**生成时间**: {report_data['timestamp']}\n")
+                f.write("**执行时间**: {execution_time:.2f}秒\n\n")
+                f.write("## 测试结果\n\n")
+                f.write("- 状态: {result.get('status', '未知')}\n")
+                f.write("- 总测试数: {result.get('total', 0)}\n")
+                f.write("- 通过: {result.get('passed', 0)}\n")
+                f.write("- 失败: {result.get('failed', 0)}\n")
+                f.write("- 错误: {result.get('errors', 0)}\n\n")
 
                 if result.get("failed_tests"):
-                    f.write(f"## 失败的测试\n\n")
+                    f.write("## 失败的测试\n\n")
                     for test in result["failed_tests"]:
                         f.write(f"- {test}\n")
 
@@ -1788,7 +1801,7 @@ def _show_packages_status(
             version = info.get("version", "unknown")
             console.print(f"  ✅ 导入成功 (版本: {version})")
         else:
-            console.print(f"  ❌ 导入失败")
+            console.print("  ❌ 导入失败")
             if verbose and info.get("import_error"):
                 console.print(f"     错误: {info['import_error']}")
 
@@ -1812,7 +1825,7 @@ def _check_package_dependencies(package_name: str, verbose: bool):
 
         # 这里可以添加更详细的依赖检查逻辑
         # 暂时简化处理
-        console.print(f"    ℹ️  依赖检查功能待完善")
+        console.print("    ℹ️  依赖检查功能待完善")
 
     except Exception as e:
         if verbose:

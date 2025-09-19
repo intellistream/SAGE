@@ -2,7 +2,7 @@
 Demo: ArxivSearchTool Usage Examples
 
 This demo file shows practical examples of how to use the ArxivSearchTool
-in different scenarios. These are educational demonstrations for developers 
+in different scenarios. These are educational demonstrations for developers
 and users, not formal unit tests.
 
 For the actual tool implementation, see: arxiv_search_tool.py
