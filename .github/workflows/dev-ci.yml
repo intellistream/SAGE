@@ -318,7 +318,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: quick-check
     timeout-minutes: 60
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    if: >
+      needs.quick-check.result == 'success' &&
+      (
+        (github.event_name == 'pull_request' && github.base_ref == 'main-dev') ||
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/refactor/')) ||
+        github.event_name == 'workflow_dispatch'
+      )
     
     steps:
     - name: Checkout Repository
