@@ -266,7 +266,3 @@ markers = [
     "smoke: marks tests as smoke tests (quick validation)",
     "cli: marks tests as CLI tests",
 ]
-
-[tool.setuptools.dynamic]
-version = {attr = "sage.tools._version.__version__"}
-
