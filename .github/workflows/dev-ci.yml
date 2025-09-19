@@ -153,7 +153,7 @@ jobs:
           python -c "import sage; print('✅ SAGE imported')"
           python -c "import sage; print('Version check:'); print('Has __version__:', hasattr(sage, '__version__'))"
           python -c "import sage; v = getattr(sage, '__version__', None); print('Version:', v if v else 'Not found')"
-          python -c "try: from sage._version import __version__; print('_version module version:', __version__); except: print('No _version module found')"
+          python -c "try: from sage._version import __version__; print('_version module version:', __version__) except: print('No _version module found')"
 
           echo "Step 3: Verifying SAGE package path..."
           python -c "import sage, inspect; print('SAGE file:', getattr(sage, '__file__', 'No __file__'))"
@@ -216,7 +216,7 @@ jobs:
           echo "Step 2: Testing main sage package import..."
           python -c "import sage; print('✅ SAGE imported')"
           python -c "import sage; v = getattr(sage, '__version__', None); print('Version:', v if v else 'Not found')"
-          python -c "try: from sage._version import __version__; print('_version module version:', __version__); except: print('No _version module found')"
+          python -c "try: from sage._version import __version__; print('_version module version:', __version__) except: print('No _version module found')"
           echo "Basic import tests passed ✅"
 
       - name: Run Issues Manager Tests
