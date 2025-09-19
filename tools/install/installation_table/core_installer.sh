@@ -46,51 +46,46 @@ install_core_packages() {
     echo -e "${DIM}安装日志: $log_file${NC}"
     echo ""
     
-    # 准备安装目标
-    local sage_package_path="packages/sage"
-    local install_target=""
-    
     case "$install_mode" in
         "minimal")
-            install_target="$sage_package_path[minimal]"
             echo -e "${GRAY}最小安装：基础功能 + CLI${NC}"
             echo -e "${DIM}包含: sage命令, 基础API, 核心组件${NC}"
             ;;
         "standard") 
-            install_target="$sage_package_path[standard]"
             echo -e "${GREEN}标准安装：完整功能 + 科学计算库${NC}"
             echo -e "${DIM}包含: 完整功能 + numpy, pandas, matplotlib, jupyter${NC}"
             ;;
         "dev")
-            install_target="$sage_package_path[dev]"
             echo -e "${YELLOW}开发者安装：标准安装 + 开发工具${NC}"
             echo -e "${DIM}包含: 完整功能 + pytest, black, mypy, pre-commit${NC}"
             ;;
         *)
-            install_target="$sage_package_path[dev]"
             echo -e "${YELLOW}未知模式，使用开发者模式${NC}"
+            install_mode="dev"
             ;;
     esac
     
     echo ""
     
-    # 检查sage包是否存在
-    if [ ! -d "$sage_package_path" ]; then
-        echo -e "${CROSS} 错误：找不到SAGE主包目录 ($sage_package_path)"
-        echo "$(date): 错误：SAGE主包目录不存在" >> "$log_file"
-        return 1
+    # 检查所有必要的包目录是否存在
+    local required_packages=("packages/sage-common" "packages/sage-kernel" "packages/sage-tools")
+    if [ "$install_mode" != "minimal" ]; then
+        required_packages+=("packages/sage-middleware" "packages/sage-libs")
     fi
+    required_packages+=("packages/sage")
+    
+    for package_dir in "${required_packages[@]}"; do
+        if [ ! -d "$package_dir" ]; then
+            echo -e "${CROSS} 错误：找不到包目录 ($package_dir)"
+            echo "$(date): 错误：包目录 $package_dir 不存在" >> "$log_file"
+            return 1
+        fi
+    done
     
     # 执行安装
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BOLD}  📦 安装 SAGE ($install_mode 模式)${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    
-    echo -e "${DIM}执行: $PIP_CMD install -e $install_target${NC}"
-    echo ""
-    
-    # 记录安装开始
-    echo "$(date): 开始安装 $install_target" >> "$log_file"
     
     # 准备pip安装参数
     local pip_args="--disable-pip-version-check --no-input"
@@ -104,7 +99,48 @@ install_core_packages() {
         fi
     fi
     
-    # 执行安装命令
+    echo "$(date): 开始安装本地依赖包" >> "$log_file"
+    
+    # 第一步：安装核心依赖包（避免PyPI依赖解析问题）
+    echo -e "${DIM}步骤 1/2: 安装本地依赖包...${NC}"
+    local core_packages=("packages/sage-common" "packages/sage-kernel" "packages/sage-tools")
+    
+    for package_dir in "${core_packages[@]}"; do
+        echo -e "${DIM}  正在安装: $package_dir${NC}"
+        echo "$(date): 安装 $package_dir" >> "$log_file"
+        
+        if ! $PIP_CMD install -e "$package_dir" $pip_args >> "$log_file" 2>&1; then
+            echo -e "${CROSS} 安装 $package_dir 失败！"
+            echo "$(date): 安装 $package_dir 失败" >> "$log_file"
+            return 1
+        fi
+    done
+    
+    # 安装中间件和应用包（对于非minimal模式）
+    if [ "$install_mode" != "minimal" ]; then
+        local extended_packages=("packages/sage-middleware" "packages/sage-libs")
+        for package_dir in "${extended_packages[@]}"; do
+            echo -e "${DIM}  正在安装: $package_dir${NC}"
+            echo "$(date): 安装 $package_dir" >> "$log_file"
+            
+            if ! $PIP_CMD install -e "$package_dir" $pip_args >> "$log_file" 2>&1; then
+                echo -e "${CROSS} 安装 $package_dir 失败！"
+                echo "$(date): 安装 $package_dir 失败" >> "$log_file"
+                return 1
+            fi
+        done
+    fi
+    
+    echo -e "${CHECK} 本地依赖包安装完成"
+    echo ""
+    
+    # 第二步：安装主SAGE包（现在所有依赖都已本地可用）
+    echo -e "${DIM}步骤 2/2: 安装主SAGE包 (${install_mode}模式)...${NC}"
+    echo "$(date): 安装主SAGE包 ($install_mode模式)" >> "$log_file"
+    
+    local install_target="packages/sage[$install_mode]"
+    echo -e "${DIM}执行: $PIP_CMD install -e $install_target${NC}"
+    
     if $PIP_CMD install -e "$install_target" $pip_args 2>&1 | tee -a "$log_file"; then
         echo ""
         echo -e "${CHECK} SAGE ($install_mode 模式) 安装成功！"
