@@ -416,7 +416,7 @@ jobs:
     name: Examples Test Suite
     runs-on: ubuntu-latest
     needs: build-sage
-    timeout-minutes: 45
+    timeout-minutes: 60  # 增加超时时间，支持更多examples
     if: >
       needs.build-sage.result == 'success' &&
       (
@@ -471,27 +471,51 @@ jobs:
           echo "📊 分析Examples目录结构..."
           python tools/tests/test_examples.py analyze
 
-      - name: Run Quick Examples Tests
+      - name: Run Complete Examples Test Suite
         run: |
-          echo "🚀 运行快速Examples测试..."
+          echo "🌟 运行完整Examples测试套件（开发CI - 全覆盖）..."
           chmod +x ./tools/tests/run_examples_tests.sh
-          ./tools/tests/run_examples_tests.sh --quick --timeout 60
-
-      - name: Run Category-Specific Examples Tests
-        run: |
-          echo "📚 运行分类Examples测试..."
           
-          # 测试tutorials类别
-          echo "🎓 测试tutorials类别..."
+          # 开发CI应该测试所有examples，不跳过任何
+          echo "📚 测试所有56个examples，包括所有类别："
+          echo "  - tutorials (25个)"
+          echo "  - rag (20个)" 
+          echo "  - memory (3个)"
+          echo "  - agents (4个)"
+          echo "  - service (2个)"
+          echo "  - data (2个)"
+          echo ""
+          
+          # 运行完整测试套件，包括慢速examples
+          # 设置较长的超时时间以支持所有examples
+          ./tools/tests/run_examples_tests.sh --verbose --timeout 180
+          
+          echo "✅ 所有Examples测试完成"
+
+
+
+      - name: Run Category-Specific Examples Tests (验证)
+        run: |
+          echo "� 按类别验证Examples测试结果..."
+          
+          # 这一步主要用于验证和调试，可以提供更详细的分类信息
+          echo "🎓 验证tutorials类别..."
           ./tools/tests/run_examples_tests.sh --category tutorials --timeout 45
           
-          # 测试rag类别（部分）
-          echo "🔍 测试rag类别（快速示例）..."
-          ./tools/tests/run_examples_tests.sh --category rag --quick --timeout 30
+          echo "🔍 验证rag类别..."
+          ./tools/tests/run_examples_tests.sh --category rag --timeout 60
           
-          # 测试memory类别
-          echo "💾 测试memory类别..."
+          echo "💾 验证memory类别..."
           ./tools/tests/run_examples_tests.sh --category memory --timeout 30
+          
+          echo "🤖 验证agents类别..."
+          ./tools/tests/run_examples_tests.sh --category agents --timeout 45
+          
+          echo "📊 验证data类别..."
+          ./tools/tests/run_examples_tests.sh --category data --timeout 30
+          
+          echo "� 验证service类别..."
+          ./tools/tests/run_examples_tests.sh --category service --timeout 60
 
       - name: Run Complete Examples Test (if not PR)
         if: github.event_name != 'pull_request'
