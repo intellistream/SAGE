@@ -240,18 +240,29 @@ jobs:
           pip list | grep isage || echo "No isage packages found"
           echo ""
 
-          # 测试导入我们的SAGE包（分步测试以避免YAML语法问题）
+          # 测试导入我们的SAGE包（增强调试信息）
           echo "Testing core SAGE imports:"
           echo "Step 1: Testing sage.common import..."
           python -c "import sage.common; print('✅ sage.common import successful')"
 
           echo "Step 2: Testing main sage package import..."
           python -c "import sage; print('✅ SAGE imported')"
-          python -c "import sage; print('Version check:'); print('Has __version__:', hasattr(sage, '__version__'))"
-          python -c "import sage; v = getattr(sage, '__version__', None); print('Version:', v if v else 'Not found')"
-          python -c "try: from sage._version import __version__; print('_version module version:', __version__); except ImportError: print('No _version module found')"
-
-          echo "Step 3: Verifying SAGE package path..."
+          
+          # 详细的版本检查和调试信息
+          echo "=== 详细版本检查 ==="
+          python -c "import sage; print('SAGE模块路径:', sage.__file__); print('SAGE模块目录:', sage.__file__.rsplit('/', 1)[0] if hasattr(sage, '__file__') else 'No __file__'); print('Has __version__:', hasattr(sage, '__version__')); print('Version:', sage.__version__) if hasattr(sage, '__version__') else print('Version: Not found') or print('Available attributes:', [attr for attr in dir(sage) if not attr.startswith('__')])"
+          
+          # _version模块检查
+          echo "=== _version模块检查 ==="
+          python -c "try:\n    from sage._version import __version__\n    print('_version module version:', __version__)\nexcept ImportError as e:\n    print('_version模块导入失败:', e)\n    import sage, os\n    sage_dir = os.path.dirname(sage.__file__)\n    print('SAGE目录内容:', os.listdir(sage_dir))\n    version_file = os.path.join(sage_dir, '_version.py')\n    print('_version.py存在:', os.path.exists(version_file))\n    if os.path.exists(version_file):\n        with open(version_file, 'r') as f:\n            print('_version.py内容:', f.read()[:300])"
+          
+          # 强制重新安装主包以确保版本同步
+          echo "=== 强制重新安装主SAGE包确保版本同步 ==="
+          pip install -e packages/sage --force-reinstall --no-deps
+          
+          # 重新验证版本
+          echo "=== 重新验证版本信息 ==="
+          python -c "import importlib; import sys; modules_to_remove = [name for name in sys.modules if name.startswith('sage')]; [sys.modules.pop(name, None) for name in modules_to_remove]; print('已清除', len(modules_to_remove), '个sage模块缓存'); import sage; print('重新导入后:'); print('Has __version__:', hasattr(sage, '__version__')); print('Version:', getattr(sage, '__version__', 'Not found'))"          echo "Step 3: Verifying SAGE package path..."
           python -c "import sage, inspect; print('SAGE file:', getattr(sage, '__file__', 'No __file__'))"
           python -c "import sage; f = getattr(sage, '__file__', ''); print('Is correct package:', 'packages/sage' in f)"
 
