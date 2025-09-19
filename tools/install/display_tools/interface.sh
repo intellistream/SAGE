@@ -61,15 +61,16 @@ show_welcome() {
     clear
     echo ""
     
-    # 为欢迎标题添加偏移支持
+    # 使用与 LOGO 对齐的显示方式，确保 🚀 图标与下面的 S 字母对齐
     if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
         draw_line_formatted
-        # 使用图标偏移函数
-        echo_icon "🚀" "欢迎使用 SAGE 快速部署脚本" 65 2
+        # 在偏移环境中也使用 LOGO 对齐
+        align_with_logo "🚀 欢迎使用 SAGE 快速部署脚本" "$BOLD$WHITE"
         draw_line_formatted
     else
         draw_line
-        center_text "${ROCKET} 欢迎使用 SAGE 快速部署脚本" "$BOLD$WHITE"
+        # 使用 LOGO 对齐而不是居中对齐
+        align_with_logo "🚀 欢迎使用 SAGE 快速部署脚本" "$BOLD$WHITE"
         draw_line
     fi
     
