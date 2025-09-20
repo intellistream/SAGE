@@ -31,6 +31,10 @@ class SourceOperator(BaseOperator):
                 self.router.send_stop_signal(result)
                 if hasattr(self, "task") and hasattr(self.task, "stop"):
                     self.task.stop()
+                    # 对于source operator，收到停止信号后立即标记任务为已停止
+                    # 这样dispatcher就能正确检测到任务已停止
+                    if hasattr(self.task, "is_running"):
+                        self.task.is_running = False
                 return
 
             if result is not None:

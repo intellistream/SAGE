@@ -89,6 +89,8 @@ class BaseTask(ABC):
         if not self.ctx.is_stop_requested():
             self.ctx.set_stop_signal()
             self.logger.info(f"Node '{self.name}' received stop signal.")
+            # 立即标记任务为已停止，这样dispatcher就能正确检测到
+            self.is_running = False
 
     def get_object(self):
         return self
@@ -213,7 +215,7 @@ class BaseTask(ABC):
             except Exception as e:
                 self.logger.error(f"Critical error in node '{self.name}': {str(e)}")
             finally:
-                self._running = False
+                self.is_running = False
 
     @property
     def is_spout(self) -> bool:

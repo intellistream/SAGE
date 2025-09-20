@@ -354,10 +354,17 @@ class ExampleRunner:
     """示例执行器"""
 
     def __init__(self, timeout: int = None):
-        # 优先使用环境变量，然后是传入参数，最后是默认值
-        if timeout is None:
-            timeout = int(os.environ.get("SAGE_EXAMPLE_TIMEOUT", "60"))
-        self.timeout = timeout
+        # 优先级：传入参数 > 环境变量 > 默认值（让策略决定）
+        if timeout is not None:
+            self.timeout = timeout
+        else:
+            # 如果没有传入timeout，检查环境变量，否则使用默认值让策略决定
+            env_timeout = os.environ.get("SAGE_EXAMPLE_TIMEOUT")
+            if env_timeout:
+                self.timeout = int(env_timeout)
+            else:
+                # 不设置默认超时，让_get_test_timeout方法从策略中获取
+                self.timeout = None
         try:
             project_root = find_project_root()
             self.examples_root = project_root / "examples"
@@ -480,8 +487,12 @@ class ExampleRunner:
         except ImportError:
             pass
 
-        # 默认超时
-        return self.timeout
+        # 如果策略不可用，使用默认超时
+        if self.timeout is not None:
+            return self.timeout
+        
+        # 最后的默认值
+        return 60
 
     def _get_category_from_tags(self, test_tags: List[str]) -> Optional[str]:
         """从测试标记中提取类别"""

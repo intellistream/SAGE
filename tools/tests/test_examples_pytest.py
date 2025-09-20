@@ -245,13 +245,30 @@ class TestIndividualExamples:
         if result.status == "skipped":
             pytest.skip(result.error or "Example was skipped")
         elif result.status == "timeout":
-            pytest.fail(f"Example timed out: {result.error}")
+            # 在CI环境中提供更详细的超时信息
+            if os.environ.get("CI") == "true":
+                pytest.fail(f"Example timed out after {suite.runner._get_test_timeout(example_file)}s: {result.error}\n"
+                           f"File: {example_file.file_path}\n"
+                           f"Category: {example_file.category}\n"
+                           f"Estimated runtime: {example_file.estimated_runtime}\n"
+                           f"Output: {result.output[:500] if result.output else 'No output'}")
+            else:
+                pytest.fail(f"Example timed out: {result.error}")
         elif result.status == "failed":
             # 对于某些类型的失败，我们可能想要更宽松的处理
             if example_file.category == "rag" and "API key" in (result.error or ""):
                 pytest.skip("Missing API key for RAG example")
             else:
-                pytest.fail(f"Example failed: {result.error}")
+                # 在CI环境中提供更详细的失败信息
+                if os.environ.get("CI") == "true":
+                    pytest.fail(f"Example failed: {result.error}\n"
+                               f"File: {example_file.file_path}\n"
+                               f"Category: {example_file.category}\n"
+                               f"Execution time: {result.execution_time:.2f}s\n"
+                               f"Output: {result.output[:1000] if result.output else 'No output'}\n"
+                               f"Error: {result.error}")
+                else:
+                    pytest.fail(f"Example failed: {result.error}")
         else:
             # 成功的情况
             assert result.status == "passed", f"Unexpected status: {result.status}"

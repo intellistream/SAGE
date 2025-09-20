@@ -228,8 +228,11 @@ run_pytest_tests() {
     # 运行测试
     cd tools/tests
     
-    # 设置example运行的超时环境变量 - 统一设置为60秒
-    export SAGE_EXAMPLE_TIMEOUT="60"
+    # 设置example运行的环境变量 - 让策略决定超时时间
+    # 不在CI环境中设置固定的SAGE_EXAMPLE_TIMEOUT，让每个类别使用自己的策略超时
+    if [[ "$CI" != "true" ]]; then
+        export SAGE_EXAMPLE_TIMEOUT="${TIMEOUT}"
+    fi
     
     if [[ "$CI" == "true" ]]; then
         echo "🧪 运行Examples测试 (CI模式)"
@@ -256,6 +259,30 @@ run_pytest_tests() {
         # 直接输出到控制台
         python3 -m pytest "${pytest_args[@]}" test_examples_pytest.py
         local exit_code=$?
+    fi
+    
+    # 如果测试失败，在CI环境中打印详细的失败信息
+    if [[ $exit_code -ne 0 && "$CI" == "true" ]]; then
+        echo ""
+        echo "❌ Examples测试失败，打印详细失败信息..."
+        echo "=========================================="
+        
+        # 重新运行失败的测试，只显示失败的测试和详细输出
+        echo "📋 失败的测试详情:"
+        python3 -m pytest "${pytest_args[@]}" test_examples_pytest.py \
+            --tb=long \
+            --lf \
+            --maxfail=5 \
+            -v \
+            -s \
+            --capture=no 2>&1 || true
+            
+        echo "=========================================="
+        echo "💡 可能的解决方案:"
+        echo "  - 检查API密钥是否正确配置"
+        echo "  - 确认外部服务（如数据库、API）是否可访问"
+        echo "  - 查看详细日志了解具体的错误原因"
+        echo "  - 某些examples可能需要特定的环境配置"
     fi
     
     return $exit_code
