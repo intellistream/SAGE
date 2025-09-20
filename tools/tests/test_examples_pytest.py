@@ -247,14 +247,16 @@ class TestIndividualExamples:
         elif result.status == "timeout":
             # 在CI环境中提供更详细的超时信息
             if os.environ.get("CI") == "true":
-                pytest.fail(f"Example timed out after {suite.runner._get_test_timeout(example_file)}s: {result.error}\n"
-                           f"File: {example_file.file_path}\n"
-                           f"Category: {example_file.category}\n"
-                           f"Estimated runtime: {example_file.estimated_runtime}\n"
-                           f"Test tags: {example_file.test_tags}\n"
-                           f"Execution time: {result.execution_time:.2f}s\n"
-                           f"Output: {result.output[:2000] if result.output else 'No output captured'}\n"
-                           f"Error: {result.error}")
+                pytest.fail(
+                    f"Example timed out after {suite.runner._get_test_timeout(example_file)}s: {result.error}\n"
+                    f"File: {example_file.file_path}\n"
+                    f"Category: {example_file.category}\n"
+                    f"Estimated runtime: {example_file.estimated_runtime}\n"
+                    f"Test tags: {example_file.test_tags}\n"
+                    f"Execution time: {result.execution_time:.2f}s\n"
+                    f"Output: {result.output[:2000] if result.output else 'No output captured'}\n"
+                    f"Error: {result.error}"
+                )
             else:
                 pytest.fail(f"Example timed out: {result.error}")
         elif result.status == "failed":
@@ -264,13 +266,15 @@ class TestIndividualExamples:
             else:
                 # 在CI环境中提供更详细的失败信息
                 if os.environ.get("CI") == "true":
-                    pytest.fail(f"Example failed: {result.error}\n"
-                               f"File: {example_file.file_path}\n"
-                               f"Category: {example_file.category}\n"
-                               f"Execution time: {result.execution_time:.2f}s\n"
-                               f"Test tags: {example_file.test_tags}\n"
-                               f"Output: {result.output[:2000] if result.output else 'No output captured'}\n"
-                               f"Error: {result.error}")
+                    pytest.fail(
+                        f"Example failed: {result.error}\n"
+                        f"File: {example_file.file_path}\n"
+                        f"Category: {example_file.category}\n"
+                        f"Execution time: {result.execution_time:.2f}s\n"
+                        f"Test tags: {example_file.test_tags}\n"
+                        f"Output: {result.output[:2000] if result.output else 'No output captured'}\n"
+                        f"Error: {result.error}"
+                    )
                 else:
                     pytest.fail(f"Example failed: {result.error}")
         else:
