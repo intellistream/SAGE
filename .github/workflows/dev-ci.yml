@@ -473,6 +473,8 @@ jobs:
           python tools/tests/test_examples.py analyze
 
       - name: Run Complete Examples Test Suite
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🌟 运行完整Examples测试套件（开发CI - 全覆盖）..."
           chmod +x ./tools/tests/run_examples_tests.sh
