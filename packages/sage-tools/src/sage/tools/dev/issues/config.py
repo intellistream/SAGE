@@ -184,14 +184,17 @@ class IssuesConfig:
         if token:
             return token
 
-        # 2. 从配置文件加载 (项目根目录)
-        token_file = self.project_root / ".github_token"
-        if token_file.exists():
-            try:
-                with open(token_file, "r") as f:
-                    return f.read().strip()
-            except Exception:
-                pass
+        # 2. 从配置文件加载 (项目根目录及其上级目录)
+        current = self.project_root
+        while current.parent != current:
+            token_file = current / ".github_token"
+            if token_file.exists():
+                try:
+                    with open(token_file, "r") as f:
+                        return f.read().strip()
+                except Exception:
+                    pass
+            current = current.parent
 
         # 3. 从用户主目录加载
         home_token_file = Path.home() / ".github_token"
