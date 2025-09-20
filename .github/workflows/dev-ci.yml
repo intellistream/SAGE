@@ -328,7 +328,7 @@ jobs:
       needs.quick-check.result == 'success' &&
       (
         (github.event_name == 'pull_request' && github.base_ref == 'main-dev') ||
-        (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/refactor/')) ||
+        (github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/refactor/') || github.ref == 'refs/heads/main-dev')) ||
         github.event_name == 'workflow_dispatch'
       )
 
