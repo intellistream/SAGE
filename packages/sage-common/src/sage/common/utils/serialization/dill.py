@@ -26,6 +26,7 @@ _BLACKLIST = [
 # 在运行时添加锁类型，因为它们不能直接引用类
 try:
     import tempfile
+
     with tempfile.NamedTemporaryFile() as tmp_file:
         _BLACKLIST.append(type(tmp_file))  # 文件句柄
 except:
@@ -115,12 +116,12 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
 
     # 防止循环引用 + 对象引用去重
     obj_id = id(obj)
-    
+
     # 检查是否已经处理过这个对象（引用去重）
     if obj_id in _object_map:
         # print(f"Reusing existing mapped object for id {obj_id}: {obj}")
         return _object_map[obj_id]
-    
+
     if obj_id in _seen:
         # 这是一个循环引用，但我们还没有创建映射
         # 对于循环引用，我们需要继续处理，但要小心避免无限递归

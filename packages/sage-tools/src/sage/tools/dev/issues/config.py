@@ -106,18 +106,27 @@ class IssuesConfig:
         # GitHub Token
         self.github_token = self._load_github_token()
 
+        # 仓库名称（兼容性属性）
+        self.repository_name = self.GITHUB_REPO
+
     def _find_project_root(self) -> Path:
         """找到SAGE项目根目录"""
         current = Path(__file__).resolve()
 
         # 从当前文件向上查找，直到找到包含特定标记文件的目录
         while current.parent != current:
-            # 检查是否是SAGE根目录的标记
-            if (current / "_version.py").exists() or (current / "packages").exists():
+            # 优先检查.git目录（开发环境的项目根目录标记）
+            if (current / ".git").exists():
                 return current
             current = current.parent
 
-        # 如果没找到，使用当前工作目录
+        # 如果没找到.git目录（可能是已安装的包），尝试其他策略
+        # 检查是否在site-packages中，如果是，使用当前工作目录
+        if "site-packages" in str(current) or "dist-packages" in str(current):
+            # 对于已安装的包，使用当前工作目录作为项目根目录
+            return Path.cwd()
+
+        # 最后回退到当前工作目录
         return Path.cwd()
 
     def _load_user_settings(self):

@@ -494,7 +494,7 @@ class ExampleRunner:
         # 如果策略不可用，使用默认超时
         if self.timeout is not None:
             return self.timeout
-        
+
         # 最后的默认值
         return 60
 
