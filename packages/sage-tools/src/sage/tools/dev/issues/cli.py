@@ -49,15 +49,23 @@ def status():
         console.print(f"  ❌ [red]连接错误: {e}[/red]")
 
     # 显示本地数据状态
-    downloader = IssuesDownloader(config)
-    download_status = downloader.get_download_status()
+    if config.github_token:
+        try:
+            downloader = IssuesDownloader(config)
+            download_status = downloader.get_download_status()
 
-    console.print(f"\n📂 本地数据:")
-    console.print(f"  • Issues数量: {download_status['issues_count']}")
-    console.print(f"  • 最后更新: {download_status['last_update'] or '未知'}")
+            console.print(f"\n📂 本地数据:")
+            console.print(f"  • Issues数量: {download_status['issues_count']}")
+            console.print(f"  • 最后更新: {download_status['last_update'] or '未知'}")
 
-    if download_status["available_files"]:
-        console.print(f"  • 数据文件: {len(download_status['available_files'])} 个")
+            if download_status["available_files"]:
+                console.print(
+                    f"  • 数据文件: {len(download_status['available_files'])} 个"
+                )
+        except Exception as e:
+            console.print(f"\n📂 [red]本地数据状态获取失败: {e}[/red]")
+    else:
+        console.print(f"\n📂 本地数据: [yellow]需要GitHub Token才能查看[/yellow]")
 
 
 @app.command("download")
@@ -85,7 +93,7 @@ def download(
         task = progress.add_task("下载中...", total=None)
 
         downloader = IssuesDownloader(config)
-        success = downloader.download_all_issues(state)
+        success = downloader.download_issues(state=state)
 
         progress.update(task, completed=True)
 
@@ -370,6 +378,93 @@ def sync_issues(
         console.print("❌ [red]同步失败[/red]")
         if result.stderr:
             console.print(f"[red]错误信息: {result.stderr}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command("organize")
+def organize_issues(
+    preview: bool = typer.Option(False, "--preview", "-p", help="预览整理计划"),
+    apply: bool = typer.Option(False, "--apply", "-a", help="执行整理"),
+    confirm: bool = typer.Option(
+        False, "--confirm", "-c", help="确认执行（与--apply一起使用）"
+    ),
+):
+    """整理Issues - 根据关闭时间移动到不同状态列
+
+    根据issues的关闭时间自动整理到相应的状态列：
+    - 最近一周完成的issues -> "Done" 列
+    - 超过一周但一个月以内的 -> "Archive" 列
+    - 超过一个月的 -> "History" 列
+
+    示例:
+      sage dev issues organize --preview          # 预览整理计划
+      sage dev issues organize --apply --confirm  # 执行整理
+    """
+    if not preview and not apply:
+        console.print("❌ [red]请指定 --preview 或 --apply 参数[/red]")
+        console.print("\n💡 使用方法:")
+        console.print("  sage dev issues organize --preview          # 预览整理计划")
+        console.print("  sage dev issues organize --apply --confirm  # 执行整理")
+        raise typer.Exit(1)
+
+    if apply and not confirm:
+        console.print("❌ [red]执行整理需要 --confirm 参数确认[/red]")
+        console.print("💡 使用: sage dev issues organize --apply --confirm")
+        raise typer.Exit(1)
+
+    console.print("🗂️ [bold blue]Issues整理工具[/bold blue]")
+
+    config = IssuesConfig()
+    if not config.github_token:
+        console.print("❌ [red]GitHub Token未配置[/red]")
+        console.print("💡 整理功能需要GitHub Token来访问Projects API")
+        raise typer.Exit(1)
+
+    # 检查整理脚本
+    organize_script = Path(__file__).parent / "helpers" / "organize_issues.py"
+    if not organize_script.exists():
+        console.print("❌ [red]整理脚本不存在[/red]")
+        console.print(f"💡 请确保文件存在: {organize_script}")
+        raise typer.Exit(1)
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("整理中...", total=None)
+
+        # 设置环境变量
+        env = os.environ.copy()
+        env["GITHUB_TOKEN"] = config.github_token
+
+        # 构建命令参数
+        cmd_args = [sys.executable, str(organize_script)]
+        if preview:
+            cmd_args.append("--preview")
+        if apply:
+            cmd_args.append("--apply")
+            cmd_args.append("--confirm")
+
+        # 执行整理
+        result = subprocess.run(
+            cmd_args,
+            capture_output=True,
+            text=True,
+            env=env,
+            cwd=str(config.workspace_path),
+        )
+
+        progress.update(task, completed=True)
+
+    if result.returncode == 0:
+        console.print("✅ [green]整理完成![/green]")
+        if result.stdout:
+            console.print(result.stdout)
+    else:
+        console.print("❌ [red]整理失败[/red]")
+        if result.stderr:
+            console.print(f"错误信息: {result.stderr}")
         raise typer.Exit(1)
 
 
