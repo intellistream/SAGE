@@ -14,7 +14,7 @@ import requests
 
 # 添加上级目录到sys.path以导入config
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import Config
+from ..config import IssuesConfig as Config
 
 
 class GitHubProjectManager:
@@ -34,35 +34,11 @@ class GitHubProjectManager:
 
     def _get_github_token(self):
         """获取GitHub token"""
-        # 尝试从config.py获取
-        try:
-            sys.path.insert(0, str(Path(__file__).parent.parent))
-            from config import config as project_config
-
-            token = getattr(project_config, "github_token", None)
-            if token:
-                print("✅ 从 _scripts/config.py 获取到 GitHub Token")
-                return token
-        except Exception:
-            pass
-
-        # 尝试从环境变量获取
-        token = os.getenv("GITHUB_TOKEN")
+        config = Config()
+        token = config.github_token
         if token:
-            print("✅ 从环境变量获取到 GitHub Token")
+            print("✅ 从 IssuesConfig 获取到 GitHub Token")
             return token
-
-        # 尝试从.github_token文件获取
-        current_dir = Path(__file__).parent
-        for _ in range(5):  # 向上搜索5层
-            token_file = current_dir / ".github_token"
-            if token_file.exists():
-                with open(token_file, "r", encoding="utf-8") as f:
-                    token = f.read().strip()
-                if token:
-                    print(f"✅ 从文件加载GitHub Token: {token_file}")
-                    return token
-            current_dir = current_dir.parent
 
         raise Exception(
             "未找到GitHub Token，请设置GITHUB_TOKEN环境变量或创建.github_token文件"
