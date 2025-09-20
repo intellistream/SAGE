@@ -69,12 +69,20 @@ dependencies = [
 [project.optional-dependencies]
 # 完整功能 - 包含所有可选依赖
 full = [
+    "isage-libs[llm]",
     # 企业级数据库
     "sqlalchemy>=2.0.0",
     "alembic>=1.13.0",
     # 企业级监控
     "prometheus-client>=0.19.0",
     "structlog>=23.0.0",
+]
+
+# LLM-specific dependencies
+llm = [
+    "vllm==0.9.2",
+    "transformers==4.56.1",
+    "tokenizers==0.22.0",
 ]
 
 # 开发依赖
