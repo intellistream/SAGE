@@ -254,7 +254,23 @@ jobs:
           
           # _version模块检查
           echo "=== _version模块检查 ==="
-          python -c "try: from sage._version import __version__; print('_version module version:', __version__); except ImportError as e: print('_version模块导入失败:', e); import sage, os; sage_dir = os.path.dirname(sage.__file__); print('SAGE目录内容:', os.listdir(sage_dir)); version_file = os.path.join(sage_dir, '_version.py'); print('_version.py存在:', os.path.exists(version_file)); if os.path.exists(version_file): with open(version_file, 'r') as f: print('_version.py内容:', f.read()[:300])"
+          python -c "
+          try:
+              from sage._version import __version__
+              print('_version module version:', __version__)
+          except ImportError as e:
+              print('_version模块导入失败:', e)
+              import sage
+              import os
+              sage_dir = os.path.dirname(sage.__file__)
+              print('SAGE目录内容:', os.listdir(sage_dir))
+              version_file = os.path.join(sage_dir, '_version.py')
+              print('_version.py存在:', os.path.exists(version_file))
+              if os.path.exists(version_file):
+                  with open(version_file, 'r') as f:
+                      content = f.read()[:300]
+                      print('_version.py内容:', content)
+          "
           
           # 强制重新安装主包以确保版本同步
           echo "=== 强制重新安装主SAGE包确保版本同步 ==="
