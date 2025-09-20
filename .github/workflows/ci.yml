@@ -254,7 +254,7 @@ jobs:
           
           # _version模块检查
           echo "=== _version模块检查 ==="
-          python -c "try:\n    from sage._version import __version__\n    print('_version module version:', __version__)\nexcept ImportError as e:\n    print('_version模块导入失败:', e)\n    import sage, os\n    sage_dir = os.path.dirname(sage.__file__)\n    print('SAGE目录内容:', os.listdir(sage_dir))\n    version_file = os.path.join(sage_dir, '_version.py')\n    print('_version.py存在:', os.path.exists(version_file))\n    if os.path.exists(version_file):\n        with open(version_file, 'r') as f:\n            print('_version.py内容:', f.read()[:300])"
+          python -c "try: from sage._version import __version__; print('_version module version:', __version__); except ImportError as e: print('_version模块导入失败:', e); import sage, os; sage_dir = os.path.dirname(sage.__file__); print('SAGE目录内容:', os.listdir(sage_dir)); version_file = os.path.join(sage_dir, '_version.py'); print('_version.py存在:', os.path.exists(version_file)); if os.path.exists(version_file): with open(version_file, 'r') as f: print('_version.py内容:', f.read()[:300])"
           
           # 强制重新安装主包以确保版本同步
           echo "=== 强制重新安装主SAGE包确保版本同步 ==="
@@ -262,7 +262,8 @@ jobs:
           
           # 重新验证版本
           echo "=== 重新验证版本信息 ==="
-          python -c "import importlib; import sys; modules_to_remove = [name for name in sys.modules if name.startswith('sage')]; [sys.modules.pop(name, None) for name in modules_to_remove]; print('已清除', len(modules_to_remove), '个sage模块缓存'); import sage; print('重新导入后:'); print('Has __version__:', hasattr(sage, '__version__')); print('Version:', getattr(sage, '__version__', 'Not found'))"          echo "Step 3: Verifying SAGE package path..."
+          python -c "import importlib; import sys; modules_to_remove = [name for name in sys.modules if name.startswith('sage')]; [sys.modules.pop(name, None) for name in modules_to_remove]; print('已清除', len(modules_to_remove), '个sage模块缓存'); import sage; print('重新导入后:'); print('Has __version__:', hasattr(sage, '__version__')); print('Version:', getattr(sage, '__version__', 'Not found'))"
+          echo "Step 3: Verifying SAGE package path..."
           python -c "import sage, inspect; print('SAGE file:', getattr(sage, '__file__', 'No __file__'))"
           python -c "import sage; f = getattr(sage, '__file__', ''); print('Is correct package:', 'packages/sage' in f)"
 
@@ -281,9 +282,7 @@ jobs:
           else
             echo "❌ SAGE CLI not found in PATH"
             echo "检查已安装的包和入口点:"
-            python -c "import pkg_resources; [print(f'Found sage entry point: {ep}') \
-              for ep in pkg_resources.iter_entry_points('console_scripts') \
-              if ep.name == 'sage']"
+            python -c "import pkg_resources; [print(f'Found sage entry point: {ep}') for ep in pkg_resources.iter_entry_points('console_scripts') if ep.name == 'sage']"
             echo "检查python模块路径:"
             python -c "import sys; print('\n'.join(sys.path))"
             echo "尝试直接运行CLI模块:"
