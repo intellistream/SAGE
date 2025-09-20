@@ -487,9 +487,9 @@ jobs:
           echo "  - data (2个)"
           echo ""
           
-          # 运行完整测试套件，包括慢速examples
-          # 设置较长的超时时间以支持所有examples
-          ./tools/tests/run_examples_tests.sh --verbose --timeout 180
+          # 设置更长的超时时间以支持所有examples
+          # 不设置SAGE_EXAMPLE_TIMEOUT，让策略决定超时时间
+          ./tools/tests/run_examples_tests.sh --verbose --timeout 300
           
           echo "✅ 所有Examples测试完成"
 

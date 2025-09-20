@@ -49,8 +49,13 @@ class LocalEnvironment(BaseEnvironment):
 
         self.logger.info("Waiting for batch processing to complete...")
 
+        # 设置最大等待时间，避免无限等待
+        max_wait_time = 300.0  # 5分钟
+        start_time = time.time()
+        check_interval = 0.1
+
         try:
-            while True:
+            while time.time() - start_time < max_wait_time:
                 # 直接检查本地JobManager实例中的作业状态
                 job_info = self.jobmanager.jobs.get(self.env_uuid)
 
@@ -59,26 +64,43 @@ class LocalEnvironment(BaseEnvironment):
                     self.logger.info("Batch processing completed successfully")
                     break
 
-                # 检查dispatcher状态
-                if not job_info.dispatcher.is_running:
-                    self.logger.info("Dispatcher stopped, batch processing completed")
-                    break
-
-                # 检查作业状态
+                # 检查作业状态（优先检查这个，因为它更可靠）
                 if job_info.status in ["stopped", "failed"]:
                     self.logger.info(
                         f"Batch processing completed with status: {job_info.status}"
                     )
                     break
 
-                # 短暂等待后再次检查
-                time.sleep(0.1)
+                # 检查dispatcher状态
+                # 注意：dispatcher.is_running 可能在stop()方法执行期间仍然为True
+                # 所以我们也检查dispatcher是否已经开始停止过程
+                dispatcher_stopped = not job_info.dispatcher.is_running
+                if dispatcher_stopped:
+                    self.logger.info("Dispatcher stopped, batch processing completed")
+                    break
+
+                # 如果dispatcher正在停止过程中，等待更短的时间
+                # 这样可以避免在dispatcher停止过程中的race condition
+                time.sleep(check_interval)
+
+            else:
+                # 超时了，强制停止作业
+                self.logger.warning(f"Timeout waiting for batch processing to complete after {max_wait_time}s")
+                try:
+                    self.stop()
+                except Exception as stop_error:
+                    self.logger.error(f"Error stopping timed out job: {stop_error}")
 
         except KeyboardInterrupt:
             self.logger.info("Received interrupt signal, stopping batch processing...")
             self.stop()
         except Exception as e:
             self.logger.error(f"Error waiting for completion: {e}")
+            # 在出错时尝试停止作业
+            try:
+                self.stop()
+            except Exception as stop_error:
+                self.logger.error(f"Error stopping job after wait error: {stop_error}")
 
         finally:
             # 确保清理资源
