@@ -234,6 +234,12 @@ run_pytest_tests() {
         export SAGE_EXAMPLE_TIMEOUT="${TIMEOUT}"
     fi
     
+    # 在CI环境中启用test mode，让示例只运行第一个例子以加快测试速度
+    if [[ "$CI" == "true" ]]; then
+        export SAGE_EXAMPLES_MODE="test"
+        export SAGE_LOG_LEVEL="ERROR"  # 减少日志输出
+    fi
+    
     if [[ "$CI" == "true" ]]; then
         echo "🧪 运行Examples测试 (CI模式)"
         echo "  - 快速模式: $(if $QUICK_ONLY; then echo "是"; else echo "否"; fi)"

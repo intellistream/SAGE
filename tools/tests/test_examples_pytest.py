@@ -251,7 +251,10 @@ class TestIndividualExamples:
                            f"File: {example_file.file_path}\n"
                            f"Category: {example_file.category}\n"
                            f"Estimated runtime: {example_file.estimated_runtime}\n"
-                           f"Output: {result.output[:500] if result.output else 'No output'}")
+                           f"Test tags: {example_file.test_tags}\n"
+                           f"Execution time: {result.execution_time:.2f}s\n"
+                           f"Output: {result.output[:2000] if result.output else 'No output captured'}\n"
+                           f"Error: {result.error}")
             else:
                 pytest.fail(f"Example timed out: {result.error}")
         elif result.status == "failed":
@@ -265,7 +268,8 @@ class TestIndividualExamples:
                                f"File: {example_file.file_path}\n"
                                f"Category: {example_file.category}\n"
                                f"Execution time: {result.execution_time:.2f}s\n"
-                               f"Output: {result.output[:1000] if result.output else 'No output'}\n"
+                               f"Test tags: {example_file.test_tags}\n"
+                               f"Output: {result.output[:2000] if result.output else 'No output captured'}\n"
                                f"Error: {result.error}")
                 else:
                     pytest.fail(f"Example failed: {result.error}")

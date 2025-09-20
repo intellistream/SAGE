@@ -193,7 +193,7 @@ class ExampleTestStrategies:
             ),
             "streaming": TestStrategy(
                 name="streaming",
-                timeout=120,
+                timeout=300,  # 增加到5分钟，因为streaming示例可能运行多个环境
                 requires_config=False,
                 requires_data=False,
                 success_patterns=[

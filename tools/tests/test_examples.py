@@ -442,13 +442,17 @@ class ExampleRunner:
 
         except subprocess.TimeoutExpired:
             execution_time = time.time() - start_time
+            # 在超时情况下，尝试获取可能的输出
+            error_msg = f"Execution timed out after {test_timeout}s"
+            if os.environ.get("CI") == "true":
+                error_msg += f"\nFile: {example_info.file_path}\nCategory: {example_info.category}\nEstimated runtime: {example_info.estimated_runtime}"
             return ExampleTestResult(
                 file_path=example_info.file_path,
                 test_name=Path(example_info.file_path).name,
                 status="timeout",
                 execution_time=execution_time,
-                output="",
-                error=f"Execution timed out after {test_timeout}s",
+                output="",  # 超时情况下没有输出
+                error=error_msg,
             )
         except Exception as e:
             execution_time = time.time() - start_time
