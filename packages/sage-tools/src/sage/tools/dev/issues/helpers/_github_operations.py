@@ -17,9 +17,15 @@ import requests
 
 class GitHubIssuesExecutor:
     def __init__(self):
-        self.github_token = os.getenv("GITHUB_TOKEN")
+        # 使用IssuesConfig获取token
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from ..config import IssuesConfig
+
+        config = IssuesConfig()
+        self.github_token = config.github_token
+
         if not self.github_token:
-            print("❌ 请设置GITHUB_TOKEN环境变量")
+            print("❌ 请设置GITHUB_TOKEN环境变量或配置IssuesConfig")
             sys.exit(1)
 
         self.repo = "intellistream/SAGE"

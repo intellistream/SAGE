@@ -20,30 +20,12 @@ import requests
 
 # 添加上级目录到sys.path以导入config
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import Config
+from ..config import IssuesConfig as Config
 
 
 def find_token():
-    token = os.getenv("GITHUB_TOKEN")
-    if token:
-        return token
-
-    # search upward from this script
-    p = Path(__file__).resolve()
-    for parent in [p.parent, p.parent.parent, p.parent.parent.parent]:
-        candidate = parent / ".github_token"
-        if candidate.exists():
-            t = candidate.read_text().strip()
-            if t:
-                return t
-
-    home_candidate = Path.home() / ".github_token"
-    if home_candidate.exists():
-        t = home_candidate.read_text().strip()
-        if t:
-            return t
-
-    return None
+    config = Config()
+    return config.github_token
 
 
 class TeamMembersCollector:
@@ -178,20 +160,13 @@ class TeamMembersCollector:
 
 
 def main():
-    # 优先使用项目统一配置中的 token（_scripts/config.py）
-    token = None
-    try:
-        # 添加 _scripts 目录到 sys.path，便于导入 config
-        # helpers is one level deeper, so insert parent.parent
-        sys.path.insert(0, str(Path(__file__).parent.parent))
-        from config import config as project_config
-
-        token = getattr(project_config, "github_token", None)
-        if token:
-            print("✅ 从 _scripts/config.py 获取到 GitHub Token")
-    except Exception:
-        # 如果导入失败，则回退到本地查找
-        token = None
+    # 使用统一的token查找方法
+    token = find_token()
+    if token:
+        print("✅ 获取到 GitHub Token")
+    else:
+        print("❌ 未找到 GitHub Token")
+        return
 
     if not token:
         token = find_token()
