@@ -4,7 +4,7 @@
 CoMap Lambda/Callable Support Example
 @test:tim    # Execute example 1
     print("Processing sensor data...")
-    
+
     test_mode = os.environ.get("SAGE_EXAMPLES_MODE") == "test"
     if test_mode:
         # In test mode, skip actual execution for faster testing
@@ -68,7 +68,7 @@ def main():
     test_mode = os.environ.get("SAGE_EXAMPLES_MODE") == "test"
     if test_mode:
         print("🧪 Running in test mode - executing only first example")
-    
+
     # Create environment
     env1 = LocalEnvironment()
 
@@ -111,7 +111,7 @@ def main():
 
     # Execute example 1
     print("Processing sensor data...")
-    
+
     test_mode = os.environ.get("SAGE_EXAMPLES_MODE") == "test"
     if test_mode:
         # In test mode, skip actual execution for faster testing
@@ -120,6 +120,7 @@ def main():
         env1.submit(autostop=True)
         # Wait for processing to complete
         import time
+
         time.sleep(5)
 
     print("✅ Example 1 completed!")
@@ -133,7 +134,7 @@ def main():
         print("   2. process_stream_N methods for each connected stream")
         print("   3. Built-in error handling and validation")
         print("   4. Type safety and documentation support")
-        
+
         # Clean up environment
         print("\n🧹 Cleaning up environment...")
         env1.close()

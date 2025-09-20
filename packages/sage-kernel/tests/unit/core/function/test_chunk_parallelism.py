@@ -3,7 +3,6 @@ import time
 from typing import Any, Dict, List
 
 import pytest
-
 from sage.core.api.function.base_function import BaseFunction
 from sage.core.api.function.sink_function import SinkFunction
 from sage.core.api.function.source_function import SourceFunction
@@ -17,11 +16,23 @@ class DocumentSource(SourceFunction):
         super().__init__(**kwargs)
         self.counter = 0
         self.documents = documents or [
-            {"content": "This is a sample document with some text content.", "id": "doc1"},
-            {"content": "Another document containing different information and data.", "id": "doc2"},
-            {"content": "Large document with extensive content that needs chunking for processing.", "id": "doc3"},
+            {
+                "content": "This is a sample document with some text content.",
+                "id": "doc1",
+            },
+            {
+                "content": "Another document containing different information and data.",
+                "id": "doc2",
+            },
+            {
+                "content": "Large document with extensive content that needs chunking for processing.",
+                "id": "doc3",
+            },
             {"content": "Short text document.", "id": "doc4"},
-            {"content": "Medium sized document with reasonable content length.", "id": "doc5"},
+            {
+                "content": "Medium sized document with reasonable content length.",
+                "id": "doc5",
+            },
         ]
 
     def execute(self):
@@ -43,7 +54,9 @@ class CharacterSplitter(BaseFunction):
         self.overlap = overlap
         self.instance_id = id(self)
         self.thread_id = threading.get_ident()
-        print(f"🔧 CharacterSplitter instance {self.instance_id} created in thread {self.thread_id}")
+        print(
+            f"🔧 CharacterSplitter instance {self.instance_id} created in thread {self.thread_id}"
+        )
 
     def execute(self, document):
         """单文档处理逻辑，框架会自动并行化"""
@@ -54,23 +67,29 @@ class CharacterSplitter(BaseFunction):
         current_thread = threading.get_ident()
         instance_id = id(self)
 
-        print(f"⚙️ CharacterSplitter[{instance_id}]: Processing {doc_id} (thread: {current_thread})")
+        print(
+            f"⚙️ CharacterSplitter[{instance_id}]: Processing {doc_id} (thread: {current_thread})"
+        )
 
         # 模拟处理时间
         time.sleep(0.01)
 
         for i in range(0, len(content), self.chunk_size - self.overlap):
-            chunk_text = content[i:i + self.chunk_size]
+            chunk_text = content[i : i + self.chunk_size]
             if chunk_text.strip():  # 过滤空块
-                chunks.append({
-                    "content": chunk_text,
-                    "doc_id": doc_id,
-                    "start_idx": i,
-                    "end_idx": min(i + self.chunk_size, len(content)),
-                    "chunk_id": f"{doc_id}_chunk_{len(chunks)}"
-                })
+                chunks.append(
+                    {
+                        "content": chunk_text,
+                        "doc_id": doc_id,
+                        "start_idx": i,
+                        "end_idx": min(i + self.chunk_size, len(content)),
+                        "chunk_id": f"{doc_id}_chunk_{len(chunks)}",
+                    }
+                )
 
-        print(f"✅ CharacterSplitter[{instance_id}]: Generated {len(chunks)} chunks for {doc_id}")
+        print(
+            f"✅ CharacterSplitter[{instance_id}]: Generated {len(chunks)} chunks for {doc_id}"
+        )
         return chunks
 
 
@@ -84,7 +103,9 @@ class ChunkCollector(SinkFunction):
         super().__init__(**kwargs)
         self.instance_id = id(self)
         self.thread_id = threading.get_ident()
-        print(f"🔧 ChunkCollector instance {self.instance_id} created in thread {self.thread_id}")
+        print(
+            f"🔧 ChunkCollector instance {self.instance_id} created in thread {self.thread_id}"
+        )
 
     def execute(self, chunks):
         current_thread = threading.get_ident()
@@ -93,10 +114,14 @@ class ChunkCollector(SinkFunction):
         with self._lock:
             if isinstance(chunks, list):
                 self._collected_chunks.extend(chunks)
-                print(f"🎯 ChunkCollector[{instance_id}]: Collected {len(chunks)} chunks (thread: {current_thread})")
+                print(
+                    f"🎯 ChunkCollector[{instance_id}]: Collected {len(chunks)} chunks (thread: {current_thread})"
+                )
             else:
                 self._collected_chunks.append(chunks)
-                print(f"🎯 ChunkCollector[{instance_id}]: Collected 1 chunk (thread: {current_thread})")
+                print(
+                    f"🎯 ChunkCollector[{instance_id}]: Collected 1 chunk (thread: {current_thread})"
+                )
 
     @classmethod
     def get_collected_chunks(cls):
@@ -156,7 +181,9 @@ class TestChunkParallelism:
         expected_doc_ids = set(doc["id"] for doc in documents)
         assert processed_doc_ids == expected_doc_ids
 
-        print(f"✅ Collected {len(collected_chunks)} chunks from {len(processed_doc_ids)} documents")
+        print(
+            f"✅ Collected {len(collected_chunks)} chunks from {len(processed_doc_ids)} documents"
+        )
 
     def test_chunk_parallelism_hints_multiple_levels(self):
         """测试多级并行度设置"""
@@ -202,7 +229,9 @@ class TestChunkParallelism:
             assert "chunk_id" in chunk
             assert len(chunk["content"]) > 0
 
-        print(f"✅ Multi-level parallelism test completed with {len(collected_chunks)} chunks")
+        print(
+            f"✅ Multi-level parallelism test completed with {len(collected_chunks)} chunks"
+        )
 
     def test_chunk_parallelism_hints_large_documents(self):
         """测试大文档的chunk并行处理"""

@@ -85,7 +85,9 @@ class LocalEnvironment(BaseEnvironment):
 
             else:
                 # 超时了，强制停止作业
-                self.logger.warning(f"Timeout waiting for batch processing to complete after {max_wait_time}s")
+                self.logger.warning(
+                    f"Timeout waiting for batch processing to complete after {max_wait_time}s"
+                )
                 try:
                     self.stop()
                 except Exception as stop_error:
