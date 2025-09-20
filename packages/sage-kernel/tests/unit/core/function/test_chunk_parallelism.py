@@ -77,9 +77,11 @@ class CharacterSplitter(BaseFunction):
 class ChunkCollector(SinkFunction):
     """收集分块结果的sink算子"""
 
+    _collected_chunks: List[Dict] = []
+    _lock = threading.Lock()
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.collected_chunks = []
         self.instance_id = id(self)
         self.thread_id = threading.get_ident()
         print(f"🔧 ChunkCollector instance {self.instance_id} created in thread {self.thread_id}")
@@ -88,12 +90,23 @@ class ChunkCollector(SinkFunction):
         current_thread = threading.get_ident()
         instance_id = id(self)
 
-        if isinstance(chunks, list):
-            self.collected_chunks.extend(chunks)
-            print(f"🎯 ChunkCollector[{instance_id}]: Collected {len(chunks)} chunks (thread: {current_thread})")
-        else:
-            self.collected_chunks.append(chunks)
-            print(f"🎯 ChunkCollector[{instance_id}]: Collected 1 chunk (thread: {current_thread})")
+        with self._lock:
+            if isinstance(chunks, list):
+                self._collected_chunks.extend(chunks)
+                print(f"🎯 ChunkCollector[{instance_id}]: Collected {len(chunks)} chunks (thread: {current_thread})")
+            else:
+                self._collected_chunks.append(chunks)
+                print(f"🎯 ChunkCollector[{instance_id}]: Collected 1 chunk (thread: {current_thread})")
+
+    @classmethod
+    def get_collected_chunks(cls):
+        """获取收集到的所有chunks"""
+        return cls._collected_chunks.copy()
+
+    @classmethod
+    def clear_collected_chunks(cls):
+        """清空收集到的chunks"""
+        cls._collected_chunks.clear()
 
 
 class TestChunkParallelism:
@@ -105,6 +118,9 @@ class TestChunkParallelism:
         print("TEST: Basic Chunk Parallelism Hints")
         print("=" * 70)
 
+        # 清空之前的数据
+        ChunkCollector.clear_collected_chunks()
+
         env = LocalEnvironment(name="chunk_parallelism_test")
 
         # 测试文档
@@ -115,34 +131,41 @@ class TestChunkParallelism:
         ]
 
         # 使用parallelism hints设置2个并行chunk实例
-        collector = ChunkCollector()
         result_stream = (
             env.from_collection(DocumentSource, documents)
             .set_parallelism(2)  # 设置2个并行CharacterSplitter实例
             .map(CharacterSplitter, chunk_size=20, overlap=5)
             .set_parallelism(1)  # sink使用1个实例
-            .sink(collector)
+            .sink(ChunkCollector)
         )
 
         # 执行
-        env.execute()
+        env.submit()
+
+        # 等待处理完成
+        time.sleep(2)
+        env.close()
 
         # 验证结果
-        assert len(collector.collected_chunks) > 0
-        assert all(chunk.get("chunk_id") for chunk in collector.collected_chunks)
+        collected_chunks = ChunkCollector.get_collected_chunks()
+        assert len(collected_chunks) > 0
+        assert all(chunk.get("chunk_id") for chunk in collected_chunks)
 
         # 验证所有文档都被处理
-        processed_doc_ids = set(chunk["doc_id"] for chunk in collector.collected_chunks)
+        processed_doc_ids = set(chunk["doc_id"] for chunk in collected_chunks)
         expected_doc_ids = set(doc["id"] for doc in documents)
         assert processed_doc_ids == expected_doc_ids
 
-        print(f"✅ Collected {len(collector.collected_chunks)} chunks from {len(processed_doc_ids)} documents")
+        print(f"✅ Collected {len(collected_chunks)} chunks from {len(processed_doc_ids)} documents")
 
     def test_chunk_parallelism_hints_multiple_levels(self):
         """测试多级并行度设置"""
         print("\n" + "=" * 70)
         print("TEST: Multi-level Chunk Parallelism Hints")
         print("=" * 70)
+
+        # 清空之前的数据
+        ChunkCollector.clear_collected_chunks()
 
         env = LocalEnvironment(name="multi_level_parallelism_test")
 
@@ -155,24 +178,23 @@ class TestChunkParallelism:
             {"content": "Document five content here.", "id": "doc5"},
         ]
 
-        collector = ChunkCollector()
-
         # 测试不同的并行度设置
         result_stream = (
             env.from_collection(DocumentSource, documents)
             .set_parallelism(3)  # 3个并行source->splitter
             .map(CharacterSplitter, chunk_size=15, overlap=3)
             .set_parallelism(2)  # 2个并行splitter->sink
-            .sink(collector)
+            .sink(ChunkCollector)
         )
 
-        env.execute()
+        env.submit()
 
         # 验证结果
-        assert len(collector.collected_chunks) > 0
+        collected_chunks = ChunkCollector.get_collected_chunks()
+        assert len(collected_chunks) > 0
 
         # 验证chunk结构
-        for chunk in collector.collected_chunks:
+        for chunk in collected_chunks:
             assert "content" in chunk
             assert "doc_id" in chunk
             assert "start_idx" in chunk
@@ -180,13 +202,16 @@ class TestChunkParallelism:
             assert "chunk_id" in chunk
             assert len(chunk["content"]) > 0
 
-        print(f"✅ Multi-level parallelism test completed with {len(collector.collected_chunks)} chunks")
+        print(f"✅ Multi-level parallelism test completed with {len(collected_chunks)} chunks")
 
     def test_chunk_parallelism_hints_large_documents(self):
         """测试大文档的chunk并行处理"""
         print("\n" + "=" * 70)
         print("TEST: Large Document Chunk Parallelism")
         print("=" * 70)
+
+        # 清空之前的数据
+        ChunkCollector.clear_collected_chunks()
 
         env = LocalEnvironment(name="large_doc_test")
 
@@ -197,24 +222,23 @@ class TestChunkParallelism:
             {"content": large_content, "id": "large_doc2"},
         ]
 
-        collector = ChunkCollector()
-
         # 使用更高的并行度处理大文档
         result_stream = (
             env.from_collection(DocumentSource, documents)
             .set_parallelism(4)  # 4个并行实例处理大文档
             .map(CharacterSplitter, chunk_size=100, overlap=20)
             .set_parallelism(1)
-            .sink(collector)
+            .sink(ChunkCollector)
         )
 
-        env.execute()
+        env.submit()
 
         # 验证大文档被正确分块
-        assert len(collector.collected_chunks) > 0
+        collected_chunks = ChunkCollector.get_collected_chunks()
+        assert len(collected_chunks) > 0
 
         # 检查大文档产生了多个chunk
-        large_doc_chunks = [c for c in collector.collected_chunks if c["doc_id"] == "large_doc1"]
+        large_doc_chunks = [c for c in collected_chunks if c["doc_id"] == "large_doc1"]
         assert len(large_doc_chunks) > 1  # 大文档应该被分成多个chunk
 
         print(f"✅ Large document test: {len(large_doc_chunks)} chunks from large_doc1")
@@ -225,6 +249,9 @@ class TestChunkParallelism:
         print("TEST: Parallelism Hints vs Manual Parallelization")
         print("=" * 70)
 
+        # 清空之前的数据
+        ChunkCollector.clear_collected_chunks()
+
         # 使用parallelism hints的方式
         env1 = LocalEnvironment(name="hints_test")
         documents = [
@@ -232,20 +259,17 @@ class TestChunkParallelism:
             {"content": "Test document two.", "id": "test2"},
         ]
 
-        collector1 = ChunkCollector()
         result1 = (
             env1.from_collection(DocumentSource, documents)
             .set_parallelism(2)  # 声明式并行
             .map(CharacterSplitter, chunk_size=10, overlap=2)
-            .sink(collector1)
+            .sink(ChunkCollector)
         )
-        env1.execute()
-
-        # 手动并行化（错误方式 - 仅用于对比说明）
-        # 注意：这里不实现手动并行化，因为SAGE的设计理念是避免这种做法
+        env1.submit()
 
         # 验证hints方式工作正常
-        assert len(collector1.collected_chunks) > 0
+        collected_chunks = ChunkCollector.get_collected_chunks()
+        assert len(collected_chunks) > 0
 
         print("✅ Parallelism hints approach works correctly")
         print("💡 Key advantage: Framework manages parallelism, code stays simple")
