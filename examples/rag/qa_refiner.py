@@ -44,7 +44,7 @@ def pipeline_run(config):
     )
 
     try:
-        env.submit(autostop=True)
+        env.submit()
     except KeyboardInterrupt:
         print("停止运行")
     finally:
