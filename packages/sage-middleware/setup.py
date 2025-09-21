@@ -27,6 +27,7 @@ class BuildCExtensions(build_ext):
             )
         else:
             self.build_sage_db()
+            self.build_sage_flow()
         super().run()
 
     def is_develop_mode(self):
@@ -77,6 +78,55 @@ class BuildCExtensions(build_ext):
         except Exception as e:
             print(f"❌ 编译过程出错: {e}")
             print("⚠️  继续安装Python部分（C扩展将不可用）")
+
+    def build_sage_flow(self):
+        """编译sage_flow C扩展"""
+        sage_flow_dir = Path(__file__).parent / "src/sage/middleware/components/sage_flow"
+
+        if not sage_flow_dir.exists():
+            print("⚠️  sage_flow目录不存在，跳过编译")
+            return
+
+        build_script = sage_flow_dir / "build.sh"
+        if build_script.exists():
+            # 如果有build.sh，使用它
+            print("🔧 编译sage_flow C扩展...")
+            try:
+                result = subprocess.run(
+                    ["bash", "build.sh"],
+                    cwd=sage_flow_dir,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                print("✅ sage_flow C扩展编译成功")
+                print(result.stdout)
+            except subprocess.CalledProcessError as e:
+                print(f"❌ sage_flow C扩展编译失败: {e}")
+                print(f"错误输出: {e.stderr}")
+                print("⚠️  继续安装Python部分（C扩展将不可用）")
+            except Exception as e:
+                print(f"❌ 编译过程出错: {e}")
+                print("⚠️  继续安装Python部分（C扩展将不可用）")
+        else:
+            # 如果没有build.sh，直接使用cmake
+            print("🔧 使用CMake编译sage_flow C扩展...")
+            try:
+                # 创建build目录
+                build_dir = sage_flow_dir / "build"
+                build_dir.mkdir(exist_ok=True)
+
+                # 运行cmake和make
+                subprocess.run(["cmake", ".."], cwd=build_dir, check=True)
+                subprocess.run(["make", "-j", str(os.cpu_count() or 4)], cwd=build_dir, check=True)
+
+                print("✅ sage_flow C扩展编译成功")
+            except subprocess.CalledProcessError as e:
+                print(f"❌ sage_flow C扩展编译失败: {e}")
+                print("⚠️  继续安装Python部分（C扩展将不可用）")
+            except Exception as e:
+                print(f"❌ 编译过程出错: {e}")
+                print("⚠️  继续安装Python部分（C扩展将不可用）")
 
 
 class CustomInstall(install):
