@@ -10,3 +10,14 @@ except ImportError:
     __version__ = "0.1.3.1"
     __author__ = "IntelliStream Team"
     __email__ = "shuhao_zhang@hust.edu.cn"
+
+# 导出开发工具类
+from .enhanced_package_manager import EnhancedPackageManager
+from .enhanced_test_runner import EnhancedTestRunner
+from .vscode_path_manager import VSCodePathManager
+
+__all__ = [
+    "EnhancedPackageManager",
+    "EnhancedTestRunner",
+    "VSCodePathManager",
+]
