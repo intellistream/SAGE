@@ -7,7 +7,7 @@ if __name__ == "__main__":
 
     # 创建一个collection
     vdb.register_collection("demo_collection")
-    
+
     # 插入数据（50条示例）
     dataset = [
         ("Python是一种流行的编程语言", {"type": "tech", "priority": "high"}),
@@ -20,7 +20,10 @@ if __name__ == "__main__":
         ("向量数据库用于存储和检索高维向量", {"type": "db", "priority": "high"}),
         ("传统关系数据库使用SQL进行查询", {"type": "db", "priority": "medium"}),
         ("NoSQL数据库适合处理非结构化数据", {"type": "db", "priority": "low"}),
-        ("自然语言处理涉及分词、命名实体识别等任务", {"type": "nlp", "priority": "high"}),
+        (
+            "自然语言处理涉及分词、命名实体识别等任务",
+            {"type": "nlp", "priority": "high"},
+        ),
         ("文本分类可以应用在垃圾邮件检测中", {"type": "nlp", "priority": "medium"}),
         ("情感分析帮助理解用户态度", {"type": "nlp", "priority": "medium"}),
         ("知识图谱用于语义搜索和推荐系统", {"type": "nlp", "priority": "low"}),
@@ -59,21 +62,19 @@ if __name__ == "__main__":
         ("医疗AI帮助医生诊断疾病", {"type": "app", "priority": "high"}),
         ("金融风控依赖机器学习算法", {"type": "app", "priority": "medium"}),
         ("供应链优化借助大数据分析", {"type": "app", "priority": "low"}),
-        ("教育推荐系统个性化学习路径", {"type": "edu", "priority": "medium"})
+        ("教育推荐系统个性化学习路径", {"type": "edu", "priority": "medium"}),
     ]
-    
+
     for text, meta in dataset:
         vdb.insert(text, meta)
-    
+
     # 创建索引（默认是全局索引）
     vdb.build_index()
-    
+
     # 检索数据-测试会直接输出全部内容
     vdb.retrieve("人工智能应用", topk=5)
     vdb.retrieve("数据库技术", topk=5)
     vdb.retrieve("教育相关", topk=5)
-    
+
     # 保存到磁盘 ！！！最重要的一步，否则无法调用
     vdb.store_to_disk()
-
-

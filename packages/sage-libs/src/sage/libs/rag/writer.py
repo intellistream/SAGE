@@ -1,6 +1,6 @@
-from typing import Union, List, Tuple, Optional, Dict
-from sage.core.api.function.map_function import MapFunction
+from typing import Dict, List, Optional, Tuple, Union
 
+from sage.core.api.function.map_function import MapFunction
 
 
 class MemoryWriter(MapFunction):
@@ -17,7 +17,7 @@ class MemoryWriter(MapFunction):
             stm_config = self.config.get("stm_config", {})
             self.collections["stm"] = {
                 "collection": self.config.get("stm_collection"),
-                "config": stm_config
+                "config": stm_config,
             }
 
         # 配置LTM
@@ -25,7 +25,7 @@ class MemoryWriter(MapFunction):
             ltm_config = self.config.get("ltm_config", {})
             self.collections["ltm"] = {
                 "collection": self.config.get("ltm_collection"),
-                "config": ltm_config
+                "config": ltm_config,
             }
 
         # 配置DCM
@@ -33,11 +33,10 @@ class MemoryWriter(MapFunction):
             dcm_config = self.config.get("dcm_config", {})
             self.collections["dcm"] = {
                 "collection": self.config.get("dcm_collection"),
-                "config": dcm_config
+                "config": dcm_config,
             }
         # TODO: 在runtime_context中增加状态管理
         # Issue URL: https://github.com/intellistream/SAGE/issues/235
-
 
     def execute(self, data: Union[str, List[str], Tuple[str, str]]):
         input_data = data
@@ -70,9 +69,11 @@ class MemoryWriter(MapFunction):
                 self.state.store(
                     collection=collection,
                     documents=processed_data,
-                    collection_config=config
+                    collection_config=config,
                 )
-                self.logger.debug(f"Stored {len(processed_data)} chunks to {mem_type.upper()}")
+                self.logger.debug(
+                    f"Stored {len(processed_data)} chunks to {mem_type.upper()}"
+                )
             except Exception as e:
                 self.logger.error(f"Failed to store to {mem_type.upper()}: {str(e)}")
 

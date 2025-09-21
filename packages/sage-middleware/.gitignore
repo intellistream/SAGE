@@ -60,8 +60,6 @@ ray_logs
 /output
 /logs
 /logs/**
-frontend/web_ui/logs
-frontend/web_ui/logs/**
 sage_examples/logs
 sage_examples/logs/**
 /.env
@@ -94,8 +92,6 @@ activate_sage.sh
 # Benchmark and test reports
 **/benchmark_report_*.json
 **/test_results_*.json
-**/sage_queue_test_report_*.json
-**/sage_queue_test_report_*.md
 **.egg-info
 sage_ext/sage_db/build/
 build/

@@ -1,0 +1,268 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isage-tools"
+dynamic = ["version"]
+description = "SAGE Development Tools - CLI, Web UI, and Development Utilities"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "IntelliStream Team", email = "intellistream@outlook.com" },
+]
+keywords = [
+    "sage",
+    "tools",
+    "cli",
+    "development",
+    "web-ui",
+    "studio",
+    "devtools",
+    "frontend",
+    "intellistream",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: System :: Distributed Computing",
+    "Topic :: Utilities",
+]
+license = "MIT"
+
+# 核心依赖 - 只包含tools特有的依赖
+dependencies = [
+    # SAGE framework dependencies  
+    "isage-common>=0.1.0",  # 只依赖common，不重复其他包的依赖
+    
+    # Tools-specific dependencies
+    "click>=8.0.0",
+    "jinja2>=2.11.1",
+    "markdown>=3.4.4",
+    "markupsafe>=2.0.1",
+    "packaging>=20.5",
+]
+
+[project.optional-dependencies]
+# CLI 工具依赖
+cli = [
+    "typer>=0.15.0",
+    "rich>=13.0.0",
+    "click>=8.0.0",
+    "questionary>=1.10.0",
+    "prompt_toolkit>=3.0.50",
+    "tabulate>=0.9.0",
+    "colorama>=0.4.6",
+    "shellingham>=1.5.4",
+]
+
+# 开发工具依赖
+dev = [
+    "virtualenv>=20.31.2",
+    "filelock>=3.12.2,<4",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.10.0",
+    "pytest-timeout>=2.1.0",
+    "black>=23.0.0",
+    "isort>=5.10.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+    "requests>=2.31.0",
+    "tomli>=2.0.0",
+    "packaging>=23.0",
+    "pytest-benchmark>=4.0.0",
+    "memory-profiler>=0.60.0",
+    "line-profiler>=4.0.0",
+    "coverage>=7.0.0",
+    "flake8>=5.0.0",
+    "bandit>=1.7.0",
+    "safety>=2.3.0",
+    "pre-commit>=3.0.0",
+    "httpx>=0.24.0",
+    # 发布工具
+    "twine>=4.0.0",
+    "build>=0.10.0",
+    "wheel>=0.40.0",
+]
+
+# Frontend 依赖
+frontend = [
+    "pydantic[email]>=2.0.0",
+    # FastAPI 0.115.x 依赖 starlette >=0.40,<0.47
+    "fastapi>=0.115,<0.116",
+    "starlette>=0.40,<0.47",
+    # Uvicorn 需要 h11
+    "uvicorn[standard]>=0.34.0",
+    "h11>=0.8",
+
+    "websockets>=11.0",
+    "python-multipart>=0.0.6",
+    "aiofiles>=23.0.0",
+    "structlog>=23.0.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "pydantic-settings>=2.0.0",
+    "configparser>=5.3.0",
+    "pandas>=2.0.0",
+    "numpy>=2.0.0,<3.0.0",
+    "plotly>=5.15.0",
+    "dash>=2.11.0",
+    "streamlit>=1.25.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    # 与 pyopenssl 25.1.0 对齐：<46
+    "cryptography>=41.0.5,<46",
+    "bcrypt>=4.0.0",
+    "authlib>=1.2.0",
+    "prometheus-client>=0.17.0",
+    "psutil>=5.9.0",
+]
+
+# 组合安装选项
+web = [
+    "isage-tools[frontend]",
+]
+
+# Studio 低代码界面 (需要额外的 Node.js 环境)
+# 注意：Studio 的 npm 依赖通过 sage studio install 命令按需安装
+studio = [
+    "isage-tools[frontend]",
+    # Note: Studio requires Node.js 18+ and npm
+    # Auto-setup script will be provided
+]
+
+# 完整UI套件 (包含所有前端功能)
+ui = [
+    "isage-tools[frontend]",
+]
+
+basic = [
+    "isage-tools[cli]",
+    # 基础运行时依赖
+    "pygments>=2.0.0",     # ipython需要
+    "pyasn1>=0.4.8",      # python-jose需要
+    "wheel>=0.37.0",      # 构建工具
+    "setuptools>=45.0.0", # 构建工具
+    "packaging>=21.0",    # 版本解析
+    "certifi>=2021.0.0",  # SSL证书
+]
+
+tools = [
+    "isage-tools[cli,dev]", 
+]
+
+# 文档生成
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=1.3.0",
+    "myst-parser>=2.0.0",
+    # MkDocs 文档系统 (基础依赖已在核心依赖中)
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.6.0",
+    "pymdown-extensions>=10.2.0",
+]
+
+# 完整安装
+full = [
+    "isage-tools[cli,dev,frontend,docs]",
+]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
+Repository = "https://github.com/intellistream/SAGE.git"
+"Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
+
+[project.scripts]
+# 主要CLI命令
+sage = "sage.tools.cli.main:app"
+
+# 开发工具 - 独立功能，开发者专用
+sage-dev = "sage.tools.cli.commands.dev:app"
+
+# 移除的命令（功能已合并到sage主命令）:
+# - sage-cli: 与sage重复
+# - sage-core: 与sage重复  
+# - sage-jobmanager: 合并到 sage jobmanager
+# - sage-install: 合并到 sage doctor 或 sage version
+# - web-ui: 合并到 sage web-ui
+
+# 注意：如果将来需要添加额外的控制台脚本入口点，可以在这里添加
+# [project.entry-points."console_scripts"]
+# example-tool = "sage.tools.dev.tools.example:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.package-data]
+"sage.tools.cli" = ["py.typed", "templates/*.yaml"]  
+"sage.tools.dev" = ["py.typed", "templates/*.py", "config/*.toml"]
+"sage.tools.studio" = ["py.typed", "*.pyi", "templates/*.html", "static/*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.tools._version.__version__"}
+
+# Development tools configuration
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311", "py312"]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.ruff]
+line-length = 88
+target-version = ["py310", "py311", "py312"]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+    "src",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+addopts = [
+    "--benchmark-storage=../../.sage/benchmarks",
+    "-o",
+    "cache_dir=../../.sage/cache/pytest",
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "-ra",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "network: marks tests as network tests",
+    "system: marks tests as system tests",
+    "core: marks tests as core functionality tests",
+    "smoke: marks tests as smoke tests (quick validation)",
+    "cli: marks tests as CLI tests",
+]

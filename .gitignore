@@ -14,6 +14,10 @@ CMakeUserPresets.json
 # 构建和安装目录
 # ============================================
 install.log
+# SAGE 工作目录
+.sage/logs/
+.sage/tmp/
+.sage/cache/
 /deps/CANDY/installation/dist/
 /deps/CANDY/installation/candy.egg-info/
 /deps/CANDY/installation/build/
@@ -42,6 +46,7 @@ install.log
 # C++ 构建产物
 **/build/
 **/install/
+!tools/install/
 **/cmake-build*/
 **/CMakeFiles/
 **/CMakeCache.txt
@@ -73,8 +78,6 @@ ray_logs
 /output
 /logs
 /logs/**
-frontend/web_ui/logs
-frontend/web_ui/logs/**
 sage_examples/logs
 sage_examples/logs/**
 /.env
@@ -91,7 +94,7 @@ recommended_tests.txt
 local_workflow_logs/
 .pytest_cache/
 archive/
-.sage_states
+.sage/
 # C/C++ compiled libraries and binaries
 *.so
 *.so.*
@@ -105,14 +108,16 @@ archive/
 activate_sage.sh
 .venv/
 # Benchmark and test reports
+.benchmarks/
 **/benchmark_report_*.json
 **/test_results_*.json
-**/sage_queue_test_report_*.json
-**/sage_queue_test_report_*.md
 **.egg-info
 sage_ext/sage_db/build/
 build/
 .coverage
+.ipynb_checkpoints
+.virtual*
+*mp4
 
 # CMake FetchContent 构建目录
 **/pybind11-subbuild/
@@ -161,6 +166,7 @@ temp_ci_test_env
 # 知识库和向量数据
 data/neuromem_vdb/
 examples/rag/chroma_*/
+examples/data/neuromem_vdb/
 
 # 临时和测试数据文件
 **/*.vector
@@ -170,3 +176,10 @@ examples/rag/chroma_*/
 **/*.embeddings
 
 /.vscode/
+
+# ============================================
+# 一些测试文件
+# ============================================
+!examples/memory/data/neuromem/vdb_collection/RAGMemoryCollection/indexes/test_index/faiss.index
+packages/sage-tools/src/sage/tools/studio/node_modules/*
+packages/sage-tools/src/sage/tools/studio/.angular/*

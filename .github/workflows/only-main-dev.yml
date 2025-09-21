@@ -3,11 +3,17 @@ name: branch-guard
 on:
   pull_request:
     branches: [ main ]
+    types: [opened, synchronize, reopened]
+
+# 并发控制：同一PR只运行最新的分支检查
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
     name: check
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Block PRs that are not from main-dev
         env:

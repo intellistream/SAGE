@@ -1,13 +1,14 @@
-import os
-import yaml
-from typing import Tuple, List, Any
-from collections import deque
-import time
 import json
+import os
+import time
+from collections import deque
+from typing import Any, List, Tuple
 
+import yaml
+from sage.common.config.output_paths import get_states_file
 from sage.core.api.function.map_function import MapFunction
-from sage.libs.utils.openaiclient import OpenAIClient
 from sage.libs.utils.huggingface import HFClient
+from sage.libs.utils.openaiclient import OpenAIClient
 
 
 class OpenAIGenerator(MapFunction):
@@ -47,12 +48,8 @@ class OpenAIGenerator(MapFunction):
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, 'env_base_dir') and self.ctx.env_base_dir:
-                self.data_base_path = os.path.join(self.ctx.env_base_dir, ".sage_states", "generator_data")
-            else:
-                # 使用默认路径
-                self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "generator_data")
-
+            # Use unified output path system
+            self.data_base_path = str(get_states_file("dummy", "generator_data").parent)
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
 
@@ -62,11 +59,11 @@ class OpenAIGenerator(MapFunction):
             return
 
         record = {
-            'timestamp': time.time(),
-            'query': query,
-            'prompt': prompt,
-            'response': response,
-            'model_name': self.config["model_name"]
+            "timestamp": time.time(),
+            "query": query,
+            "prompt": prompt,
+            "response": response,
+            "model_name": self.config["model_name"],
         }
         self.data_records.append(record)
         self._persist_data_records()
@@ -81,7 +78,7 @@ class OpenAIGenerator(MapFunction):
         path = os.path.join(self.data_base_path, filename)
 
         try:
-            with open(path, 'w', encoding='utf-8') as f:
+            with open(path, "w", encoding="utf-8") as f:
                 json.dump(self.data_records, f, ensure_ascii=False, indent=2)
             self.data_records = []
         except Exception as e:
@@ -91,11 +88,27 @@ class OpenAIGenerator(MapFunction):
         """
         输入 : [user_query, prompt]  *或*  [prompt]
         输出 : (user_query | None, generated_text)
+
+        prompt 可以是:
+        - str: 普通字符串，将转换为 [{"role": "user", "content": prompt}]
+        - list[dict]: 已格式化的消息列表，直接传递给 OpenAI API
         """
         user_query = data[0] if len(data) > 1 else None
         prompt = data[1] if len(data) > 1 else data[0]
 
-        response = self.model.generate(prompt)
+        # 如果 prompt 是字符串，转换为标准消息格式
+        if isinstance(prompt, str):
+            messages = [{"role": "user", "content": prompt}]
+        elif isinstance(prompt, list) and all(
+            isinstance(item, dict) for item in prompt
+        ):
+            # 如果已经是消息列表格式，直接使用
+            messages = prompt
+        else:
+            # 兜底处理：转换为字符串再构造消息
+            messages = [{"role": "user", "content": str(prompt)}]
+
+        response = self.model.generate(messages)
         self.num += 1
 
         # 保存数据记录（只有enable_profile=True时才保存）
@@ -107,11 +120,12 @@ class OpenAIGenerator(MapFunction):
 
     def __del__(self):
         """确保在对象销毁时保存所有未保存的记录"""
-        if hasattr(self, 'enable_profile') and self.enable_profile:
+        if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
             except:
                 pass
+
 
 class HFGenerator(MapFunction):
     """
@@ -129,9 +143,7 @@ class HFGenerator(MapFunction):
         super().__init__(**kwargs)
         self.config = config
         # Apply the generator model with the provided configuration
-        self.model = HFClient(
-            model_name=self.config["model_name"]
-        )
+        self.model = HFClient(model_name=self.config["model_name"])
 
     def execute(self, data: list, **kwargs) -> Tuple[str, str]:
         """
@@ -151,8 +163,10 @@ class HFGenerator(MapFunction):
         response = self.model.generate(prompt, **kwargs)
 
         print(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
-        
+
         # Return the generated response as a Data object
-        self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
+        self.logger.info(
+            f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m "
+        )
 
         return (user_query, response)
