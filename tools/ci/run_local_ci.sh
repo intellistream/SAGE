@@ -8,7 +8,7 @@
 #
 # Tunables (env vars):
 #   PYTHON_BIN           Python executable (default: python3)
-#   BUILD_CPP_DEPS       1 to install build-essential/cmake/pkg-config if needed (default: 1)
+#   BUILD_CPP_DEPS       1 to install build-essential/cmake/pkg-config if needed (default: 0)
 #   RUN_EXAMPLES         1 to run examples test suite (default: 1)
 #   RUN_CODE_QUALITY     1 to run black/isort/flake8 checks if available (default: 1)
 #   RUN_IMPORT_TESTS     1 to run basic import/CLI checks (default: 1)
@@ -27,7 +27,9 @@ cd "$ROOT_DIR"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 PIP_BIN="${PIP_BIN:-pip3}"
 
-BUILD_CPP_DEPS="${BUILD_CPP_DEPS:-1}"
+# By default, DO NOT attempt system package installation locally to avoid sudo prompts.
+# CI runners have passwordless sudo; local machines typically don't.
+BUILD_CPP_DEPS="${BUILD_CPP_DEPS:-0}"
 RUN_EXAMPLES="${RUN_EXAMPLES:-1}"
 RUN_CODE_QUALITY="${RUN_CODE_QUALITY:-1}"
 RUN_IMPORT_TESTS="${RUN_IMPORT_TESTS:-1}"
@@ -52,18 +54,33 @@ if [[ "$BUILD_CPP_DEPS" == "1" ]]; then
   fi
   if [[ "$NEEDS_CPP" == "1" ]]; then
     if command -v apt-get >/dev/null 2>&1; then
-      echo "Installing: build-essential cmake pkg-config"
+  echo "Installing: build-essential cmake pkg-config"
       set +e
-      sudo apt-get update -qq && \
-      sudo apt-get install -y --no-install-recommends \
-        build-essential cmake pkg-config
-      RET=$?
-      set -e
-      if [[ $RET -ne 0 ]]; then
-        echo "⚠️ System deps installation failed; continuing (C++ extensions may be unavailable)"
+      SUDO_CMD=""
+      if [[ $EUID -ne 0 ]]; then
+  # Try passwordless sudo; if not available, skip to avoid interactive prompt
+        if sudo -n true 2>/dev/null; then
+          SUDO_CMD="sudo"
+        else
+          echo "[skip] Skipping system deps: sudo password required (non-interactive)."
+          echo "      - Either preinstall deps manually (build-essential cmake pkg-config)"
+          echo "      - Or rerun with BUILD_CPP_DEPS=0 (default)"
+          set -e
+          NEEDS_CPP=0
+        fi
+      fi
+      if [[ "$NEEDS_CPP" == "1" ]]; then
+        $SUDO_CMD apt-get update -qq && \
+        $SUDO_CMD apt-get install -y --no-install-recommends \
+          build-essential cmake pkg-config
+        RET=$?
+        set -e
+        if [[ $RET -ne 0 ]]; then
+          echo "[warn] System deps installation failed; continuing (C++ extensions may be unavailable)"
+        fi
       fi
     else
-      echo "Skipping system deps: apt-get not available on this system"
+  echo "Skipping system deps: apt-get not available on this system"
     fi
   else
     echo "C++ components not detected; skipping system deps"
