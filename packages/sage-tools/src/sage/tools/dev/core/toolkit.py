@@ -589,3 +589,61 @@ class SAGEDevToolkit:
                 "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
                 "python_requires": ">=3.10",
             }
+
+    def analyze_project(self) -> Dict[str, Any]:
+        """
+        Analyze the current project structure and dependencies.
+
+        Returns:
+            Project analysis results dictionary
+        """
+        self.logger.info("🔍 Analyzing project structure and dependencies")
+        start_time = time.time()
+
+        analysis = {
+            "project_info": {},
+            "structure": {},
+            "dependencies": {},
+            "tools": {},
+        }
+
+        try:
+            # Project info
+            version_info = self.get_version_info()
+            analysis["project_info"] = {
+                "name": version_info.get("project_name", "SAGE"),
+                "version": version_info.get("version", "unknown"),
+                "root": str(self.config.project_root),
+                "environment": self.config.environment,
+            }
+
+            # Project structure
+            analysis["structure"] = {
+                "packages_dir": str(self.config.packages_dir),
+                "scripts_dir": str(self.config.scripts_dir),
+                "output_dir": str(self.config.output_dir),
+                "logs_dir": str(self.config.logs_dir),
+            }
+
+            # Dependencies
+            try:
+                dep_analysis = self.analyze_dependencies("summary")
+                analysis["dependencies"] = dep_analysis
+            except Exception as e:
+                self.logger.warning(f"Dependency analysis failed: {e}")
+                analysis["dependencies"] = {"error": str(e)}
+
+            # Tools status
+            analysis["tools"] = self.get_tool_status()
+
+            # Add metadata
+            execution_time = time.time() - start_time
+            analysis["execution_time"] = execution_time
+            analysis["timestamp"] = datetime.now().isoformat()
+
+            self.logger.info(f"📄 Project analysis completed in {execution_time:.2f}s")
+            return analysis
+
+        except Exception as e:
+            self.logger.error(f"Project analysis failed: {e}")
+            raise AnalysisError(f"Project analysis failed: {e}") from e
