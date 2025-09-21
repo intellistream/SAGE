@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 Fetch GitHub organization team members for SAGE teams and write metadata files.
 
 Creates in `output/`:
@@ -56,7 +57,7 @@ class TeamMembersCollector:
         while url:
             resp = requests.get(url, headers=self.headers, params=params)
             if resp.status_code != 200:
-                print(
+                self.logger.info(
                     f"❌ 获取团队 {team_slug} 成员失败: {resp.status_code} {resp.text}"
                 )
                 return []
@@ -86,10 +87,10 @@ class TeamMembersCollector:
 
     def collect(self):
         for slug in self.teams.keys():
-            print(f"📋 获取团队 {slug} 成员...")
+            self.logger.info(f"📋 获取团队 {slug} 成员...")
             members = self._get_team_members(slug)
             self.teams[slug]["members"] = members
-            print(f"✅ {slug}: {len(members)} 人")
+            self.logger.info(f"✅ {slug}: {len(members)} 人")
         return self.teams
 
     def write_outputs(self, teams_data):
@@ -97,7 +98,7 @@ class TeamMembersCollector:
         json_file = self.meta_dir / "team_members.json"
         with open(json_file, "w", encoding="utf-8") as f:
             json.dump(teams_data, f, indent=2, ensure_ascii=False)
-        print(f"✅ JSON metadata: {json_file}")
+        self.logger.info(f"✅ JSON metadata: {json_file}")
 
         # YAML (simple)
         yaml_file = self.meta_dir / "team_members.yaml"
@@ -114,7 +115,7 @@ class TeamMembersCollector:
                 yaml_lines.append(f'      - username: {m.get("username")}')
                 yaml_lines.append(f'        profile: {m.get("profile_url")}')
         yaml_file.write_text("\n".join(yaml_lines), encoding="utf-8")
-        print(f"✅ YAML metadata: {yaml_file}")
+        self.logger.info(f"✅ YAML metadata: {yaml_file}")
 
         # usernames
         usernames_file = self.meta_dir / "team_usernames.txt"
@@ -131,7 +132,7 @@ class TeamMembersCollector:
         lines.append(f"total_unique: {len(all_usernames)}")
         lines.append("members: " + ", ".join(sorted(all_usernames)))
         usernames_file.write_text("\n".join(lines), encoding="utf-8")
-        print(f"✅ 用户名列表: {usernames_file}")
+        self.logger.info(f"✅ 用户名列表: {usernames_file}")
 
         # python config
         py_file = self.meta_dir / "team_config.py"
@@ -156,23 +157,23 @@ class TeamMembersCollector:
                 f.write("        ]\n")
                 f.write("    },\n")
             f.write("}\n")
-        print(f"✅ Python config: {py_file}")
+        self.logger.info(f"✅ Python config: {py_file}")
 
 
 def main():
     # 使用统一的token查找方法
     token = find_token()
     if token:
-        print("✅ 获取到 GitHub Token")
+        self.logger.info("✅ 获取到 GitHub Token")
     else:
-        print("❌ 未找到 GitHub Token")
+        self.logger.info("❌ 未找到 GitHub Token")
         return
 
     if not token:
         token = find_token()
 
     if not token:
-        print(
+        self.logger.info(
             "❌ 未找到 GitHub Token。请设置 GITHUB_TOKEN 环境变量或在仓库根目录创建 .github_token 文件"
         )
         sys.exit(1)
@@ -180,7 +181,7 @@ def main():
     collector = TeamMembersCollector(token)
     teams = collector.collect()
     collector.write_outputs(teams)
-    print("\n🎉 metadata 文件生成完成")
+    self.logger.info("\n🎉 metadata 文件生成完成")
 
 
 if __name__ == "__main__":

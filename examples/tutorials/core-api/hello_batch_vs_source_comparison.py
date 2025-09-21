@@ -1,4 +1,5 @@
 """
+import logging
 BatchOperator vs SourceOperator 对比示例
 
 展示新的批处理设计相对于原始设计的优势
@@ -80,46 +81,46 @@ def compare_implementations():
 
     class MockLogger:
         def info(self, msg):
-            print(f"INFO: {msg}")
+            logging.info(f"INFO: {msg}")
 
         def debug(self, msg):
-            print(f"DEBUG: {msg}")
+            logging.info(f"DEBUG: {msg}")
 
     data = ["item1", "item2", "item3", "item4", "item5"]
 
-    print("=" * 60)
-    print("批处理设计对比示例")
-    print("=" * 60)
+    logging.info("=" * 60)
+    logging.info("批处理设计对比示例")
+    logging.info("=" * 60)
 
     # 1. 旧式实现
-    print("\n1. 旧式 SourceFunction 实现:")
-    print("   - 用户需要手动管理停止逻辑")
-    print("   - 无内置进度跟踪")
-    print("   - 停止信号在函数中发送")
+    logging.info("\n1. 旧式 SourceFunction 实现:")
+    logging.info("   - 用户需要手动管理停止逻辑")
+    logging.info("   - 无内置进度跟踪")
+    logging.info("   - 停止信号在函数中发送")
 
     ctx1 = MockContext("old_style")
     old_func = OldStyleSourceFunction(data, ctx1)
 
-    print(f"\n   处理数据 ({len(data)} 条记录):")
+    logging.info(f"\n   处理数据 ({len(data)} 条记录):")
     for i in range(len(data) + 2):  # 多执行几次展示停止逻辑
         result = old_func.execute()
         if isinstance(result, StopSignal):
-            print(f"   第{i+1}次执行: 收到停止信号 {result}")
+            logging.info(f"   第{i+1}次执行: 收到停止信号 {result}")
             break
         else:
-            print(f"   第{i+1}次执行: 处理数据 {result}")
+            logging.info(f"   第{i+1}次执行: 处理数据 {result}")
 
     # 2. 新式实现
-    print("\n" + "=" * 60)
-    print("2. 新式 BatchFunction 实现:")
-    print("   - 用户只需声明数据，不管停止逻辑")
-    print("   - 内置进度跟踪和状态管理")
-    print("   - 停止信号由算子自动发送")
+    logging.info("\n" + "=" * 60)
+    logging.info("2. 新式 BatchFunction 实现:")
+    logging.info("   - 用户只需声明数据，不管停止逻辑")
+    logging.info("   - 内置进度跟踪和状态管理")
+    logging.info("   - 停止信号由算子自动发送")
 
     ctx2 = MockContext("new_style")
     new_func = SimpleBatchFunction(data, ctx2)
 
-    print(f"\n   处理数据 ({new_func.get_total_count()} 条记录):")
+    logging.info(f"\n   处理数据 ({new_func.get_total_count()} 条记录):")
     i = 0
     while not new_func.is_finished():
         result = new_func.execute()
@@ -127,18 +128,18 @@ def compare_implementations():
         completion = new_func.get_completion_rate()
 
         if result is not None:
-            print(
+            logging.info(
                 f"   第{i+1}次执行: 处理数据 {result} - 进度 {current}/{total} ({completion:.0%})"
             )
         i += 1
 
-    print(f"   批处理完成状态: {new_func.is_finished()}")
-    print(f"   最终完成率: {new_func.get_completion_rate():.0%}")
+    logging.info(f"   批处理完成状态: {new_func.is_finished()}")
+    logging.info(f"   最终完成率: {new_func.get_completion_rate():.0%}")
 
     # 3. 功能对比表
-    print("\n" + "=" * 60)
-    print("功能对比:")
-    print("=" * 60)
+    logging.info("\n" + "=" * 60)
+    logging.info("功能对比:")
+    logging.info("=" * 60)
 
     comparison_table = [
         ["功能", "旧式 SourceFunction", "新式 BatchFunction"],
@@ -153,15 +154,15 @@ def compare_implementations():
     ]
 
     for row in comparison_table:
-        print(f"{row[0]:<20} | {row[1]:<23} | {row[2]}")
+        logging.info(f"{row[0]:<20} | {row[1]:<23} | {row[2]}")
 
     # 4. 代码量对比
-    print("\n" + "=" * 60)
-    print("代码实现对比:")
-    print("=" * 60)
+    logging.info("\n" + "=" * 60)
+    logging.info("代码实现对比:")
+    logging.info("=" * 60)
 
-    print("\n旧式实现 - 用户需要写的代码:")
-    print(
+    logging.info("\n旧式实现 - 用户需要写的代码:")
+    logging.info(
         """
     class MySourceFunction(SourceFunction):
         def __init__(self, data, ctx=None, **kwargs):
@@ -179,8 +180,8 @@ def compare_implementations():
     """
     )
 
-    print("\n新式实现 - 用户只需要声明:")
-    print(
+    logging.info("\n新式实现 - 用户只需要声明:")
+    logging.info(
         """
     # 直接使用内置实现
     batch_func = SimpleBatchFunction(data, ctx)
@@ -195,13 +196,13 @@ def compare_implementations():
     """
     )
 
-    print("\n" + "=" * 60)
-    print("总结:")
-    print("- 新设计大大简化了用户接口")
-    print("- 提供了更好的进度可见性")
-    print("- 将复杂的停止逻辑从用户代码中抽象出来")
-    print("- 支持更好的错误处理和监控")
-    print("=" * 60)
+    logging.info("\n" + "=" * 60)
+    logging.info("总结:")
+    logging.info("- 新设计大大简化了用户接口")
+    logging.info("- 提供了更好的进度可见性")
+    logging.info("- 将复杂的停止逻辑从用户代码中抽象出来")
+    logging.info("- 支持更好的错误处理和监控")
+    logging.info("=" * 60)
 
 
 if __name__ == "__main__":

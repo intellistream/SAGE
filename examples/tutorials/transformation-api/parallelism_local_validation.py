@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 Local Environment Parallelism Validation Example
 
 This example demonstrates and validates parallelism hints functionality
@@ -43,7 +44,7 @@ class ParallelProcessor(BaseFunction):
         self.processor_name = processor_name
         self.instance_id = id(self)
         self.thread_id = threading.get_ident()
-        print(
+        logging.info(
             f"🔧 {self.processor_name} instance {self.instance_id} created in thread {self.thread_id}"
         )
 
@@ -51,7 +52,7 @@ class ParallelProcessor(BaseFunction):
         current_thread = threading.get_ident()
         instance_id = id(self)
         result = f"{self.processor_name}[{instance_id}]: {data}"
-        print(f"⚙️  {result} (thread: {current_thread})")
+        logging.info(f"⚙️  {result} (thread: {current_thread})")
         time.sleep(0.05)  # Simulate processing time
         return result
 
@@ -63,7 +64,7 @@ class ParallelFilter(BaseFunction):
         super().__init__()
         self.instance_id = id(self)
         self.thread_id = threading.get_ident()
-        print(
+        logging.info(
             f"🔧 ParallelFilter instance {self.instance_id} created in thread {self.thread_id}"
         )
 
@@ -73,9 +74,9 @@ class ParallelFilter(BaseFunction):
         # Only pass even numbers
         is_even = isinstance(data, int) and data % 2 == 0
         if is_even:
-            print(f"✅ Filter[{instance_id}]: {data} PASSED (thread: {current_thread})")
+            logging.info(f"✅ Filter[{instance_id}]: {data} PASSED (thread: {current_thread})")
         else:
-            print(
+            logging.info(
                 f"❌ Filter[{instance_id}]: {data} BLOCKED (thread: {current_thread})"
             )
         return is_even
@@ -87,7 +88,7 @@ class MultiStreamCoMapProcessor(BaseCoMapFunction):
     def __init__(self):
         super().__init__()
         self.instance_id = id(self)
-        print(
+        logging.info(
             f"🔧 CoMapProcessor instance {self.instance_id} created in thread {threading.get_ident()}"
         )
 
@@ -95,14 +96,14 @@ class MultiStreamCoMapProcessor(BaseCoMapFunction):
         current_thread = threading.get_ident()
         instance_id = id(self)
         result = f"CoMap0[{instance_id}]: {data}"
-        print(f"🔀 {result} (thread: {current_thread})")
+        logging.info(f"🔀 {result} (thread: {current_thread})")
         return result
 
     def map1(self, data):
         current_thread = threading.get_ident()
         instance_id = id(self)
         result = f"CoMap1[{instance_id}]: {data * 10}"
-        print(f"🔀 {result} (thread: {current_thread})")
+        logging.info(f"🔀 {result} (thread: {current_thread})")
         return result
 
 
@@ -113,21 +114,21 @@ class ValidationSink(BaseFunction):
         super().__init__()
         self.instance_id = id(self)
         self.results = []
-        print(f"🔧 ValidationSink instance {self.instance_id} created")
+        logging.info(f"🔧 ValidationSink instance {self.instance_id} created")
 
     def execute(self, data):
         current_thread = threading.get_ident()
         instance_id = id(self)
         self.results.append(data)
-        print(f"🎯 SINK[{instance_id}]: {data} (thread: {current_thread})")
+        logging.info(f"🎯 SINK[{instance_id}]: {data} (thread: {current_thread})")
         return data
 
 
 def validate_single_stream_parallelism():
     """Validate parallelism for single stream operations"""
-    print("\n" + "=" * 70)
-    print("LOCAL ENVIRONMENT - SINGLE STREAM PARALLELISM VALIDATION")
-    print("=" * 70)
+    logging.info("\n" + "=" * 70)
+    logging.info("LOCAL ENVIRONMENT - SINGLE STREAM PARALLELISM VALIDATION")
+    logging.info("=" * 70)
 
     env = LocalEnvironment(name="local_single_stream_test")
 
@@ -135,10 +136,10 @@ def validate_single_stream_parallelism():
     numbers = list(range(1, 21))  # 1 to 20
     source_stream = env.from_collection(NumberListSource, numbers)
 
-    print(f"\n📊 Testing with {len(numbers)} input numbers: {numbers}")
+    logging.info(f"\n📊 Testing with {len(numbers)} input numbers: {numbers}")
 
     # Test different parallelism levels
-    print("\n--- Test 1: Direct parallelism parameters ---")
+    logging.info("\n--- Test 1: Direct parallelism parameters ---")
     result1 = (
         source_stream.map(
             ParallelProcessor, "Mapper", parallelism=3
@@ -147,7 +148,7 @@ def validate_single_stream_parallelism():
         .sink(ValidationSink, parallelism=1)
     )  # 1 sink
 
-    print("\n--- Test 2: Using direct parallelism ---")
+    logging.info("\n--- Test 2: Using direct parallelism ---")
     result2 = (
         source_stream
         .map(ParallelProcessor, "SetMapper", parallelism=4)  # 4 parallel mappers
@@ -156,10 +157,10 @@ def validate_single_stream_parallelism():
     )  # 1 sink
 
     # Analyze pipeline
-    print(f"\n📋 PIPELINE ANALYSIS:")
-    print(f"Total transformations: {len(env.pipeline)}")
+    logging.info(f"\n📋 PIPELINE ANALYSIS:")
+    logging.info(f"Total transformations: {len(env.pipeline)}")
     for i, transformation in enumerate(env.pipeline):
-        print(
+        logging.info(
             f"  {i+1:2d}. {transformation.function_class.__name__:20s} | "
             f"Parallelism: {transformation.parallelism:2d} | "
             f"Basename: {transformation.basename}"
@@ -170,9 +171,9 @@ def validate_single_stream_parallelism():
 
 def validate_multi_stream_parallelism():
     """Validate parallelism for multi-stream operations"""
-    print("\n" + "=" * 70)
-    print("LOCAL ENVIRONMENT - MULTI-STREAM PARALLELISM VALIDATION")
-    print("=" * 70)
+    logging.info("\n" + "=" * 70)
+    logging.info("LOCAL ENVIRONMENT - MULTI-STREAM PARALLELISM VALIDATION")
+    logging.info("=" * 70)
 
     env = LocalEnvironment(name="local_multi_stream_test")
 
@@ -183,17 +184,17 @@ def validate_multi_stream_parallelism():
     stream1 = env.from_collection(NumberListSource, stream1_data)
     stream2 = env.from_collection(NumberListSource, stream2_data)
 
-    print(f"\n📊 Stream1 data: {stream1_data}")
-    print(f"📊 Stream2 data: {stream2_data}")
+    logging.info(f"\n📊 Stream1 data: {stream1_data}")
+    logging.info(f"📊 Stream2 data: {stream2_data}")
 
-    print("\n--- Test 1: CoMap with direct parallelism ---")
+    logging.info("\n--- Test 1: CoMap with direct parallelism ---")
     result1 = (
         stream1.connect(stream2)
         .comap(MultiStreamCoMapProcessor, parallelism=2)  # 2 parallel CoMap processors
         .sink(ValidationSink, parallelism=1)
     )
 
-    print("\n--- Test 2: CoMap with direct parallelism ---")
+    logging.info("\n--- Test 2: CoMap with direct parallelism ---")
     result2 = (
         stream1.connect(stream2)
         .comap(MultiStreamCoMapProcessor, parallelism=3)  # 3 parallel CoMap processors
@@ -201,10 +202,10 @@ def validate_multi_stream_parallelism():
     )  # 2 sinks
 
     # Analyze pipeline
-    print(f"\n📋 PIPELINE ANALYSIS:")
-    print(f"Total transformations: {len(env.pipeline)}")
+    logging.info(f"\n📋 PIPELINE ANALYSIS:")
+    logging.info(f"Total transformations: {len(env.pipeline)}")
     for i, transformation in enumerate(env.pipeline):
-        print(
+        logging.info(
             f"  {i+1:2d}. {transformation.function_class.__name__:20s} | "
             f"Parallelism: {transformation.parallelism:2d} | "
             f"Basename: {transformation.basename}"
@@ -215,9 +216,9 @@ def validate_multi_stream_parallelism():
 
 def validate_execution_graph_nodes():
     """Validate that ExecutionGraph creates correct number of parallel nodes"""
-    print("\n" + "=" * 70)
-    print("EXECUTION GRAPH NODE VALIDATION")
-    print("=" * 70)
+    logging.info("\n" + "=" * 70)
+    logging.info("EXECUTION GRAPH NODE VALIDATION")
+    logging.info("=" * 70)
 
     env = LocalEnvironment(name="node_validation_test")
 
@@ -230,62 +231,62 @@ def validate_execution_graph_nodes():
         .sink(ValidationSink, parallelism=1)
     )  # Should create 1 node
 
-    print(f"\n📋 Expected execution nodes:")
-    print(f"  - ListSource: 1 node (source)")
-    print(f"  - NodeTest (map): 2 nodes (parallelism=2)")
-    print(f"  - ParallelFilter: 3 nodes (parallelism=3)")
-    print(f"  - ValidationSink: 1 node (parallelism=1)")
-    print(f"  - Total expected: 7 nodes")
+    logging.info(f"\n📋 Expected execution nodes:")
+    logging.info(f"  - ListSource: 1 node (source)")
+    logging.info(f"  - NodeTest (map): 2 nodes (parallelism=2)")
+    logging.info(f"  - ParallelFilter: 3 nodes (parallelism=3)")
+    logging.info(f"  - ValidationSink: 1 node (parallelism=1)")
+    logging.info(f"  - Total expected: 7 nodes")
 
     # Get execution graph
     try:
         # Try to access execution graph information
-        print(f"\n🔍 Pipeline transformations:")
+        logging.info(f"\n🔍 Pipeline transformations:")
         for i, transformation in enumerate(env.pipeline):
-            print(
+            logging.info(
                 f"  {i+1}. {transformation.basename} (parallelism: {transformation.parallelism})"
             )
 
         # Note: ExecutionGraph node creation happens during execution
-        print(f"\n💡 Note: Actual node creation occurs during pipeline execution.")
-        print(
+        logging.info(f"\n💡 Note: Actual node creation occurs during pipeline execution.")
+        logging.info(
             f"    Each transformation with parallelism=N will create N parallel operator nodes."
         )
 
     except Exception as e:
-        print(f"⚠️  Could not access execution graph details: {e}")
+        logging.info(f"⚠️  Could not access execution graph details: {e}")
 
     return env
 
 
 def main():
     """Main function to run all validation tests"""
-    print("🚀 SAGE Local Environment Parallelism Validation")
-    print("This example validates parallelism hints in LocalEnvironment")
+    logging.info("🚀 SAGE Local Environment Parallelism Validation")
+    logging.info("This example validates parallelism hints in LocalEnvironment")
 
     # Run all validation tests
     env1 = validate_single_stream_parallelism()
     env2 = validate_multi_stream_parallelism()
     env3 = validate_execution_graph_nodes()
 
-    print("\n" + "=" * 70)
-    print("VALIDATION SUMMARY")
-    print("=" * 70)
-    print("✅ Single stream parallelism: Tested with various parallelism levels")
-    print("✅ Multi-stream parallelism: Tested CoMap operations")
-    print("✅ Execution graph validation: Verified transformation parallelism settings")
-    print("✅ LocalEnvironment parallelism hints: WORKING CORRECTLY")
+    logging.info("\n" + "=" * 70)
+    logging.info("VALIDATION SUMMARY")
+    logging.info("=" * 70)
+    logging.info("✅ Single stream parallelism: Tested with various parallelism levels")
+    logging.info("✅ Multi-stream parallelism: Tested CoMap operations")
+    logging.info("✅ Execution graph validation: Verified transformation parallelism settings")
+    logging.info("✅ LocalEnvironment parallelism hints: WORKING CORRECTLY")
 
-    print(f"\n📊 Total environments created: 3")
-    print(
+    logging.info(f"\n📊 Total environments created: 3")
+    logging.info(
         f"📊 Total transformations tested: {len(env1.pipeline) + len(env2.pipeline) + len(env3.pipeline)}"
     )
 
-    print(f"\n💡 Key validations:")
-    print(f"   - Parallelism parameters correctly passed to transformations")
-    print(f"   - Direct parallelism specification works as expected")
-    print(f"   - Both single and multi-stream operations support parallelism")
-    print(
+    logging.info(f"\n💡 Key validations:")
+    logging.info(f"   - Parallelism parameters correctly passed to transformations")
+    logging.info(f"   - Direct parallelism specification works as expected")
+    logging.info(f"   - Both single and multi-stream operations support parallelism")
+    logging.info(
         f"   - ExecutionGraph will create corresponding parallel nodes during execution"
     )
 

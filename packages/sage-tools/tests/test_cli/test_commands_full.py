@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 SAGE 开发工具 CLI 命令完整测试
 
 测试所有dev命令的功能，确保它们能正常工作。
@@ -207,7 +208,7 @@ class TestCLICommandsFull:
 
         for module in modules_to_test:
             result = run_command(
-                [sys.executable, "-c", f"import {module}; print('OK')"]
+                [sys.executable, "-c", f"import {module}; logging.info('OK')"]
             )
             assert result["success"], f"Failed to import {module}: {result['stderr']}"
             assert "OK" in result["stdout"]
@@ -236,7 +237,7 @@ class TestCLICommandsFull:
             [
                 sys.executable,
                 "-c",
-                "from sage.tools.cli.commands.dev.simple_main import test; print('Test command importable')",
+                "from sage.tools.cli.commands.dev.simple_main import test; logging.info('Test command importable')",
             ]
         )
         assert result["success"], f"Test command import failed: {result['stderr']}"

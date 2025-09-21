@@ -1,4 +1,5 @@
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 对象预处理器 - 处理序列化前的对象清理
 """
 
@@ -49,7 +50,7 @@ def should_skip(obj: Any) -> bool:
     for blacklisted_type in BLACKLIST:
         try:
             if isinstance(obj, blacklisted_type):
-                # print(f"Skipping blacklisted instance: {type(obj)}, {obj}")
+                # self.logger.info(f"Skipping blacklisted instance: {type(obj)}, {obj}")
                 return True
         except (TypeError, AttributeError):
             # 某些类型检查可能失败，继续检查其他类型
@@ -57,7 +58,7 @@ def should_skip(obj: Any) -> bool:
 
     # 检查是否是模块（通常不应该序列化）
     if inspect.ismodule(obj):
-        # print(f"Skipping module: {obj}")
+        # self.logger.info(f"Skipping module: {obj}")
         return True
 
     # 额外检查：特定类型名称匹配（用于处理类型检查失败的情况）
@@ -130,7 +131,7 @@ def preprocess_for_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> Any
     Returns:
         预处理后的对象，可以安全地交给dill序列化
     """
-    # print(f"preprocess_for_dill called for object: {obj}")
+    # self.logger.info(f"preprocess_for_dill called for object: {obj}")
     if _seen is None:
         _seen = set()
 
@@ -150,12 +151,12 @@ def preprocess_for_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> Any
 
     # 类对象可以直接被dill序列化，不需要预处理
     if inspect.isclass(obj):
-        # print(f"Processing class object: {obj}")
+        # self.logger.info(f"Processing class object: {obj}")
         return obj
 
     # 函数对象也可以直接被dill序列化
     if inspect.isfunction(obj) or inspect.ismethod(obj):
-        # print(f"Processing function object: {obj}")
+        # self.logger.info(f"Processing function object: {obj}")
         return obj
 
     # 检查是否应该跳过
@@ -213,8 +214,8 @@ def preprocess_for_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> Any
 
     # 处理复杂对象
     if hasattr(obj, "__dict__"):
-        # print(f"Processing complex object: {obj}")
-        # print(f"dict is {obj.__dict__}")
+        # self.logger.info(f"Processing complex object: {obj}")
+        # self.logger.info(f"dict is {obj.__dict__}")
         _seen.add(obj_id)
         try:
             # 创建一个新的对象实例
@@ -231,22 +232,22 @@ def preprocess_for_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> Any
             custom_include = getattr(obj.__class__, "__state_include__", [])
             custom_exclude = getattr(obj.__class__, "__state_exclude__", [])
             # if len(custom_exclude) is not 0:
-            #     print(f"custom_exclude is {custom_exclude}")
+            #     self.logger.info(f"custom_exclude is {custom_exclude}")
             # 一般不用include字段，只用exclude字段就行了
 
             attrs = gather_attrs(obj)
             # if len(custom_exclude) is not 0:
-            #     print(f"attrs is {attrs}")
+            #     self.logger.info(f"attrs is {attrs}")
 
             filtered_attrs = filter_attrs(attrs, custom_include, custom_exclude)
             # if len(custom_exclude) is not 0:
-            #     print(f"filtered_attrs is {filtered_attrs}")
+            #     self.logger.info(f"filtered_attrs is {filtered_attrs}")
 
             # 递归清理属性
             for attr_name, attr_value in filtered_attrs.items():
-                # print(f"Processing attribute: {attr_name} = {attr_value}")
+                # self.logger.info(f"Processing attribute: {attr_name} = {attr_value}")
                 if not should_skip(attr_value):
-                    # print(f"Cleaning attribute: {attr_name}")
+                    # self.logger.info(f"Cleaning attribute: {attr_name}")
                     cleaned_value = preprocess_for_dill(attr_value, _seen)
                     if cleaned_value is not SKIP_VALUE:
                         try:
@@ -265,7 +266,7 @@ def preprocess_for_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> Any
 
 def postprocess_from_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> Any:
     """递归后处理从dill反序列化的对象，清理哨兵值。"""
-    # print(f"postprocess_from_dill called for object: {obj}")
+    # self.logger.info(f"postprocess_from_dill called for object: {obj}")
     if _seen is None:
         _seen = set()
 
@@ -288,14 +289,14 @@ def postprocess_from_dill(obj: Any, _seen: Optional[TypingSet[int]] = None) -> A
         try:
             cleaned = {}
             for k, v in obj.items():
-                # print(f"Processing dict item: {k} = {v}")
+                # self.logger.info(f"Processing dict item: {k} = {v}")
                 # 修复：只过滤掉哨兵值，保留所有合法值（包括None、False、0等）
                 if k is not SKIP_VALUE and v is not SKIP_VALUE:
                     cleaned_k = postprocess_from_dill(k, _seen)
                     cleaned_v = postprocess_from_dill(v, _seen)
                     # 保留所有值，包括None、False、0、空字典等
                     cleaned[cleaned_k] = cleaned_v
-                    # print(f"Cleaned dict item: {cleaned_k} = {cleaned_v}")
+                    # self.logger.info(f"Cleaned dict item: {cleaned_k} = {cleaned_v}")
             return cleaned
         finally:
             _seen.remove(obj_id)

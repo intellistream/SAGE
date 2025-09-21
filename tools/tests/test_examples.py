@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+import logging
 SAGE Examples 测试框架
 用于自动化测试 examples 目录下的所有示例代码
 """
@@ -188,7 +189,7 @@ class ExampleAnalyzer:
             )
 
         except Exception as e:
-            console.print(f"[red]分析文件失败 {file_path}: {e}[/red]")
+            console.logging.info(f"[red]分析文件失败 {file_path}: {e}[/red]")
             return None
 
     def _extract_imports(self, tree: ast.AST) -> List[str]:
@@ -586,7 +587,7 @@ class ExampleTestSuite:
         # 清理之前的测试结果
         self.results.clear()
 
-        console.print("🔍 [bold blue]发现示例文件...[/bold blue]")
+        console.logging.info("🔍 [bold blue]发现示例文件...[/bold blue]")
         examples = self.analyzer.discover_examples()
 
         # 过滤示例
@@ -596,19 +597,19 @@ class ExampleTestSuite:
         if quick_only:
             examples = [e for e in examples if e.estimated_runtime == "quick"]
 
-        console.print(f"📋 找到 {len(examples)} 个示例文件")
+        console.logging.info(f"📋 找到 {len(examples)} 个示例文件")
 
         # 按类别分组显示
         self._show_examples_summary(examples)
 
         # 运行测试
-        console.print("🚀 [bold blue]开始运行测试...[/bold blue]")
+        console.logging.info("🚀 [bold blue]开始运行测试...[/bold blue]")
 
         with Progress() as progress:
             task = progress.add_task("运行示例测试", total=len(examples))
 
             for example in examples:
-                console.print(f"  测试: {example.file_path}")
+                console.logging.info(f"  测试: {example.file_path}")
                 result = self.runner.run_example(example)
                 self.results.append(result)
                 progress.update(task, advance=1)
@@ -645,7 +646,7 @@ class ExampleTestSuite:
 
             table.add_row(category, str(count), runtime_summary, deps_summary)
 
-        console.print(table)
+        console.logging.info(table)
 
     def _show_results(self):
         """显示测试结果"""
@@ -676,7 +677,7 @@ class ExampleTestSuite:
                 error_msg,
             )
 
-        console.print(table)
+        console.logging.info(table)
 
     def _get_statistics(self) -> Dict[str, int]:
         """获取统计信息"""
@@ -688,7 +689,7 @@ class ExampleTestSuite:
             "timeout": sum(1 for r in self.results if r.status == "timeout"),
         }
 
-        console.print(
+        console.logging.info(
             Panel(
                 f"总计: {stats['total']} | "
                 f"[green]通过: {stats['passed']}[/green] | "
@@ -717,7 +718,7 @@ class ExampleTestSuite:
                 ensure_ascii=False,
             )
 
-        console.print(f"📄 测试结果已保存到: {output_file}")
+        console.logging.info(f"📄 测试结果已保存到: {output_file}")
 
 
 # CLI 接口
@@ -774,8 +775,8 @@ def analyze():
     analyzer = ExampleAnalyzer()
     examples = analyzer.discover_examples()
 
-    console.print(f"📊 [bold blue]Examples 分析报告[/bold blue]")
-    console.print(f"总计发现 {len(examples)} 个示例文件\n")
+    console.logging.info(f"📊 [bold blue]Examples 分析报告[/bold blue]")
+    console.logging.info(f"总计发现 {len(examples)} 个示例文件\n")
 
     # 按类别统计
     categories = {}
@@ -785,15 +786,15 @@ def analyze():
         categories[example.category].append(example)
 
     for category, cat_examples in categories.items():
-        console.print(
+        console.logging.info(
             f"📁 [bold cyan]{category}[/bold cyan] ({len(cat_examples)} 个文件)"
         )
         for example in cat_examples:
             deps = ", ".join(example.dependencies) if example.dependencies else "无"
-            console.print(
+            console.logging.info(
                 f"  • {Path(example.file_path).name} - {example.estimated_runtime} - 依赖: {deps}"
             )
-        console.print()
+        console.logging.info()
 
 
 if __name__ == "__main__":

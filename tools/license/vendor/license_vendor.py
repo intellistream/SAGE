@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 SAGE License Vendor
 Internal tool for SAGE team to generate and manage licenses
 """
@@ -83,7 +84,7 @@ class LicenseVendor:
         info_file = self.config.GENERATED_LICENSES_FILE
 
         if not info_file.exists():
-            print("📝 No licenses have been generated yet")
+            logging.info("📝 No licenses have been generated yet")
             return
 
         try:
@@ -91,33 +92,33 @@ class LicenseVendor:
                 records = json.load(f)
 
             if not records:
-                print("📝 No licenses have been generated yet")
+                logging.info("📝 No licenses have been generated yet")
                 return
 
-            print("🔑 Generated Licenses:")
-            print("")
+            logging.info("🔑 Generated Licenses:")
+            logging.info("")
             for i, record in enumerate(records, 1):
                 generated = datetime.fromisoformat(record["generated_at"])
                 expires = datetime.fromisoformat(record["expires_at"])
 
                 status = "✅ Valid" if datetime.now() < expires else "❌ Expired"
 
-                print(f"{i}. Customer: {record['customer']}")
-                print(f"   Key: {record['license_key']}")
-                print(f"   Generated: {generated.strftime('%Y-%m-%d %H:%M:%S')}")
-                print(f"   Expires: {expires.strftime('%Y-%m-%d %H:%M:%S')}")
-                print(f"   Status: {status}")
-                print("")
+                logging.info(f"{i}. Customer: {record['customer']}")
+                logging.info(f"   Key: {record['license_key']}")
+                logging.info(f"   Generated: {generated.strftime('%Y-%m-%d %H:%M:%S')}")
+                logging.info(f"   Expires: {expires.strftime('%Y-%m-%d %H:%M:%S')}")
+                logging.info(f"   Status: {status}")
+                logging.info("")
 
         except Exception as e:
-            print(f"❌ Failed to read license records: {e}")
+            logging.info(f"❌ Failed to read license records: {e}")
 
     def revoke_license(self, license_key: str):
         """Revoke a specific license (mark as revoked)"""
         info_file = self.config.GENERATED_LICENSES_FILE
 
         if not info_file.exists():
-            print("❌ No license records found")
+            logging.info("❌ No license records found")
             return False
 
         try:
@@ -134,14 +135,14 @@ class LicenseVendor:
                     with open(info_file, "w") as f:
                         json.dump(records, f, indent=2, ensure_ascii=False)
 
-                    print(f"✅ License {license_key} has been revoked")
+                    logging.info(f"✅ License {license_key} has been revoked")
                     return True
 
-            print(f"❌ License {license_key} not found")
+            logging.info(f"❌ License {license_key} not found")
             return False
 
         except Exception as e:
-            print(f"❌ Failed to revoke license: {e}")
+            logging.info(f"❌ Failed to revoke license: {e}")
             return False
 
 
@@ -150,30 +151,30 @@ def main():
     vendor = LicenseVendor()
 
     if len(sys.argv) < 2:
-        print("SAGE License Vendor Tool")
-        print("")
-        print("Usage:")
-        print(
+        logging.info("SAGE License Vendor Tool")
+        logging.info("")
+        logging.info("Usage:")
+        logging.info(
             "  sage-license-vendor generate <customer> [days]  # Generate license (default 365 days)"
         )
-        print(
+        logging.info(
             "  sage-license-vendor list                        # List all generated licenses"
         )
-        print("  sage-license-vendor revoke <license-key>        # Revoke a license")
-        print("")
-        print("Examples:")
-        print("  sage-license-vendor generate 'Company ABC' 365")
-        print("  sage-license-vendor generate 'Customer XYZ'     # Default 365 days")
-        print("  sage-license-vendor revoke SAGE-COMM-2024-ABCD-EFGH-1234")
+        logging.info("  sage-license-vendor revoke <license-key>        # Revoke a license")
+        logging.info("")
+        logging.info("Examples:")
+        logging.info("  sage-license-vendor generate 'Company ABC' 365")
+        logging.info("  sage-license-vendor generate 'Customer XYZ'     # Default 365 days")
+        logging.info("  sage-license-vendor revoke SAGE-COMM-2024-ABCD-EFGH-1234")
         return
 
     command = sys.argv[1]
 
     if command == "generate":
         if len(sys.argv) < 3:
-            print("❌ Please provide customer name")
-            print("Usage: sage-license-vendor generate <customer> [days]")
-            print("Example: sage-license-vendor generate 'Company ABC' 365")
+            logging.info("❌ Please provide customer name")
+            logging.info("Usage: sage-license-vendor generate <customer> [days]")
+            logging.info("Example: sage-license-vendor generate 'Company ABC' 365")
             return
 
         customer = sys.argv[2]
@@ -182,29 +183,29 @@ def main():
         license_key = vendor.generate_license_key(customer, days)
         vendor.save_generated_license(license_key, customer, days)
 
-        print(f"🎉 License generated successfully!")
-        print(f"📧 Customer: {customer}")
-        print(f"⏰ Valid for: {days} days")
-        print(f"🔑 License Key: {license_key}")
-        print("")
-        print("💡 Customer can install with:")
-        print(f"   sage-license-client install {license_key}")
+        logging.info(f"🎉 License generated successfully!")
+        logging.info(f"📧 Customer: {customer}")
+        logging.info(f"⏰ Valid for: {days} days")
+        logging.info(f"🔑 License Key: {license_key}")
+        logging.info("")
+        logging.info("💡 Customer can install with:")
+        logging.info(f"   sage-license-client install {license_key}")
 
     elif command == "list":
         vendor.list_generated_licenses()
 
     elif command == "revoke":
         if len(sys.argv) < 3:
-            print("❌ Please provide license key")
-            print("Usage: sage-license-vendor revoke <license-key>")
+            logging.info("❌ Please provide license key")
+            logging.info("Usage: sage-license-vendor revoke <license-key>")
             return
 
         license_key = sys.argv[2]
         vendor.revoke_license(license_key)
 
     else:
-        print(f"❌ Unknown command: {command}")
-        print("Available commands: generate, list, revoke")
+        logging.info(f"❌ Unknown command: {command}")
+        logging.info("Available commands: generate, list, revoke")
 
 
 if __name__ == "__main__":

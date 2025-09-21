@@ -208,7 +208,7 @@ class FaissIndex(BaseVDBIndex):
                 id_vector = np.array([int_id], dtype=np.int64)
                 self.index.remove_ids(id_vector)  # type: ignore
             except Exception as e:
-                print(
+                logging.info(
                     f"删除失败，转为墓碑标记 / Deletion failed, fallback to tombstone: {e}"
                 )
                 self.tombstones.add(string_id)
@@ -235,7 +235,7 @@ class FaissIndex(BaseVDBIndex):
                 int_id_np = np.array([int_id], dtype=np.int64)
                 self.index.add_with_ids(vector, int_id_np)  # type: ignore
             except Exception as e:
-                print(f"更新失败 / Update failed: {e}")
+                logging.info(f"更新失败 / Update failed: {e}")
                 self.insert(new_vector, string_id)
         else:
             if string_id in self.rev_map:
@@ -394,12 +394,12 @@ if __name__ == "__main__":
         )
         status = "通过" if ids_pass and dists_pass else "不通过"
         color = "green" if status == "通过" else "red"
-        print(f"【{desc}】")
-        print(f"预期IDs：{expected_ids}")
-        print(f"实际IDs：{actual_ids}")
-        print(f"预期距离：{expected_dists}")
-        print(f"实际距离：{[round(x, digits) for x in actual_dists]}")
-        print(f"测试情况：{colored(status, color)}\n")
+        logging.info(f"【{desc}】")
+        logging.info(f"预期IDs：{expected_ids}")
+        logging.info(f"实际IDs：{actual_ids}")
+        logging.info(f"预期距离：{expected_dists}")
+        logging.info(f"实际距离：{[round(x, digits) for x in actual_dists]}")
+        logging.info(f"测试情况：{colored(status, color)}\n")
 
     # ==== 基础数据 ====
     dim = 4
@@ -462,19 +462,19 @@ if __name__ == "__main__":
     )
 
     # ==== 持久化保存 ====
-    print(colored("\n--- 保存索引到磁盘 ---", "yellow"))
+    logging.info(colored("\n--- 保存索引到磁盘 ---", "yellow"))
     index.store(root_dir)
-    print(colored(f"数据已保存到目录: {root_dir}", "yellow"))
+    logging.info(colored(f"数据已保存到目录: {root_dir}", "yellow"))
 
     # ==== 内存对象清空 ====
     del index
-    print(colored("内存对象已清除。", "yellow"))
+    logging.info(colored("内存对象已清除。", "yellow"))
 
     # ==== 读取并检索 ====
     user_input = input(colored("输入 yes 加载刚才保存的数据: ", "yellow"))
     if user_input.strip().lower() == "yes":
         index2 = FaissIndex.load(index_name, root_dir)
-        print(colored("数据已从磁盘恢复！", "green"))
+        logging.info(colored("数据已从磁盘恢复！", "green"))
 
         r_ids, r_dists = index2.search(np.array([0.1, 0.1, 0.1, 0.1]), 5)
         print_test_case(
@@ -486,12 +486,12 @@ if __name__ == "__main__":
             2,
         )
     else:
-        print(colored("跳过加载测试。", "yellow"))
+        logging.info(colored("跳过加载测试。", "yellow"))
 
     # ==== 清除磁盘数据 ====
     user_input = input(colored("输入 yes 删除磁盘所有数据: ", "yellow"))
     if user_input.strip().lower() == "yes":
         shutil.rmtree(root_dir)
-        print(colored("所有数据已删除！", "green"))
+        logging.info(colored("所有数据已删除！", "green"))
     else:
-        print(colored("未执行删除。", "yellow"))
+        logging.info(colored("未执行删除。", "yellow"))

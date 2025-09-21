@@ -1,3 +1,4 @@
+import logging
 import time
 
 from sage.common.utils.logging.custom_logger import CustomLogger
@@ -24,13 +25,13 @@ class SyncBatch(BatchFunction):
             return None
         self.counter += 1
         data = f"hello, No. {str(self.counter)} one by one world~"
-        print(f" ⚡ {data}")
+        logging.info(f" ⚡ {data}")
         return data
 
 
 class UpperMap(MapFunction):
     def execute(self, data):
-        print(f" 🔔 uppering word!!!")
+        logging.info(f" 🔔 uppering word!!!")
         time.sleep(1)
         return data.upper()
 
@@ -43,7 +44,7 @@ class SyncSink(SinkFunction):
         self.metronome = metronome
 
     def execute(self, data):
-        print(f" ✅ {data}")
+        logging.info(f" ✅ {data}")
         time.sleep(1)
 
 
@@ -52,7 +53,7 @@ def main():
     env = LocalEnvironment("Test_Sync")
     env.from_batch(SyncBatch).map(UpperMap).sink(SyncSink)
     env.submit(autostop=True)
-    print("Hello one by one World 批处理示例结束")
+    logging.info("Hello one by one World 批处理示例结束")
 
 
 if __name__ == "__main__":

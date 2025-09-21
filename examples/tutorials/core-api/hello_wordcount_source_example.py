@@ -1,3 +1,4 @@
+import logging
 import time
 
 from sage.common.utils.logging.custom_logger import CustomLogger
@@ -53,10 +54,10 @@ class PrintResult(SinkFunction):
         self.counts[word] = self.counts.get(word, 0) + cnt
 
         # 每次接收到新数据时，输出当前统计结果
-        print("当前单词计数：")
+        logging.info("当前单词计数：")
         for word, count in self.counts.items():
-            print(f"{word}: {count}")
-        print("------")
+            logging.info(f"{word}: {count}")
+        logging.info("------")
 
 
 def main():
@@ -71,7 +72,7 @@ def main():
 
     # 模拟流式数据源持续运行一段时间（这里设定为 10 秒）
     time.sleep(10)
-    print("WordCount 流式示例结束")
+    logging.info("WordCount 流式示例结束")
 
 
 if __name__ == "__main__":

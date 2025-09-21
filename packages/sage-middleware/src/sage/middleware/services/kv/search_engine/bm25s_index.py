@@ -1,6 +1,7 @@
 # file sage/core/sage.service.memory./search_engine/kv_index/bm25s_index.py
 # python -m sage.core.sage.service.memory..search_engine.kv_index.bm25s_index
 
+from sage.common.utils.logging.custom_logger import CustomLogger
 import os
 import shutil
 from typing import Any, Dict, List, Optional
@@ -169,11 +170,11 @@ class BM25sIndex(BaseKVIndex):
         """
         try:
             shutil.rmtree(dir_path)
-            print(f"Cleared: {dir_path}")
+            self.logger.info(f"Cleared: {dir_path}")
         except FileNotFoundError:
-            print(f"Directory does not exist, nothing to clear: {dir_path}")
+            self.logger.info(f"Directory does not exist, nothing to clear: {dir_path}")
         except Exception as e:
-            print(f"Failed to clear: {e}")
+            self.logger.info(f"Failed to clear: {e}")
 
 
 if __name__ == "__main__":
@@ -189,48 +190,48 @@ if __name__ == "__main__":
     index_name = "demo"
 
     # 1. 初始化索引
-    print("\n== 初始化并首检 ==")
+    self.logger.info("\n== 初始化并首检 ==")
     index = BM25sIndex(name=index_name, texts=texts, ids=ids)
-    print("初始检索 'Python':", index.search("Python"))
-    print("初始检索 'hello':", index.search("hello"))
-    print("初始检索 'fox':", index.search("fox"))
+    self.logger.info("初始检索 'Python':", index.search("Python"))
+    self.logger.info("初始检索 'hello':", index.search("hello"))
+    self.logger.info("初始检索 'fox':", index.search("fox"))
 
     # 2. 插入新文档后检索
-    print("\n== 插入新文档 ==")
+    self.logger.info("\n== 插入新文档 ==")
     index.insert("This document mentions python and fox together.", "d")
-    print("插入后检索 'python':", index.search("python"))
-    print("插入后检索 'fox':", index.search("fox"))
+    self.logger.info("插入后检索 'python':", index.search("python"))
+    self.logger.info("插入后检索 'fox':", index.search("fox"))
 
     # 3. 删除文档后检索
-    print("\n== 删除文档 ==")
+    self.logger.info("\n== 删除文档 ==")
     index.delete("b")
-    print("删除 'b' 后检索 'hello':", index.search("hello"))
-    print("删除 'b' 后检索 'operator_test':", index.search("operator_test"))
-    print("删除 'b' 后检索 'python':", index.search("python"))
+    self.logger.info("删除 'b' 后检索 'hello':", index.search("hello"))
+    self.logger.info("删除 'b' 后检索 'operator_test':", index.search("operator_test"))
+    self.logger.info("删除 'b' 后检索 'python':", index.search("python"))
 
     # 4. 更新文档后检索
-    print("\n== 更新文档 ==")
+    self.logger.info("\n== 更新文档 ==")
     index.update("c", "Hello world! Now c document talks about foxes.")
-    print("更新 'c' 后检索 'fox':", index.search("fox"))
-    print("更新 'c' 后检索 'python':", index.search("python"))
+    self.logger.info("更新 'c' 后检索 'fox':", index.search("fox"))
+    self.logger.info("更新 'c' 后检索 'python':", index.search("python"))
 
     # 5. 保存索引
-    print("\n== 保存索引到磁盘 ==")
+    self.logger.info("\n== 保存索引到磁盘 ==")
     store_info = index.store(index_dir)
-    print("索引保存路径:", store_info["index_path"])
+    self.logger.info("索引保存路径:", store_info["index_path"])
 
     # 6. 等待用户输入 'yes' 后加载索引并检索
-    print("\n== 测试持久化（请手动输入 yes 继续）==")
+    self.logger.info("\n== 测试持久化（请手动输入 yes 继续）==")
     user_input = input("输入 'yes' 以继续测试 load 并检索：")
     if user_input.strip().lower() == "yes":
         index_loaded = BM25sIndex.load(name=index_name, dir_path=index_dir)
-        print("持久化load后检索 'fox':", index_loaded.search("fox"))
-        print("持久化load后检索 'python':", index_loaded.search("python"))
-        print("持久化load后检索 'hello':", index_loaded.search("hello"))
-        print("ids序列:", index_loaded.ids)
+        self.logger.info("持久化load后检索 'fox':", index_loaded.search("fox"))
+        self.logger.info("持久化load后检索 'python':", index_loaded.search("python"))
+        self.logger.info("持久化load后检索 'hello':", index_loaded.search("hello"))
+        self.logger.info("ids序列:", index_loaded.ids)
     else:
-        print("用户未输入 'yes'，测试提前结束。")
+        self.logger.info("用户未输入 'yes'，测试提前结束。")
 
     # 7. 清理测试目录
-    print("\n== 清理测试目录 ==")
+    self.logger.info("\n== 清理测试目录 ==")
     BM25sIndex.clear(index_dir)

@@ -1,5 +1,6 @@
 """
-测试 datastream.print() 方法和 PrintSink 功能
+import logging
+测试 datastream.logging.info() 方法和 PrintSink 功能
 """
 
 import os

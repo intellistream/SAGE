@@ -1,6 +1,7 @@
 # file: sage.middleware.services.neuromem./memory_collection/base_collection.py
 # python -m sage.core.sage.middleware.services.neuromem.memory_collection.base_collection
 
+from sage.common.utils.logging.custom_logger import CustomLogger
 import hashlib
 import os
 from typing import Any, Callable, Dict, List, Optional
@@ -158,21 +159,21 @@ if __name__ == "__main__":
             {"source": "web", "lang": "fr", "timestamp": current_time},
         )  # 现在
 
-        print("=== Filter by keyword ===")
+        self.logger.info("=== Filter by keyword ===")
         res1 = col.retrieve(source="user")
         for r in res1:
-            print(r)
+            self.logger.info(r)
 
-        print("\n=== Filter by custom rag (language) ===")
+        self.logger.info("\n=== Filter by custom rag (language) ===")
         res2 = col.retrieve(
             metadata_filter_func=lambda m: m.get("lang") in {"zh", "fr"}
         )
         for r in res2:
-            print(r)
+            self.logger.info(r)
 
-        print(f"\nCurrent time: {datetime.fromtimestamp(current_time)}")
+        self.logger.info(f"\nCurrent time: {datetime.fromtimestamp(current_time)}")
 
-        print("\n=== Filter by timestamp (last 45 minutes) ===")
+        self.logger.info("\n=== Filter by timestamp (last 45 minutes) ===")
         time_threshold = current_time - 2700  # 45分钟前
         matched_ids = col.filter_ids(
             col.get_all_ids(),
@@ -181,11 +182,11 @@ if __name__ == "__main__":
         for item_id in matched_ids:
             text = col.text_storage.get(item_id)
             metadata = col.metadata_storage.get(item_id)
-            print(
+            self.logger.info(
                 f"{text} (timestamp: {datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')})"
             )
 
-        print("\n=== Filter by timestamp range (30-60 minutes ago) ===")
+        self.logger.info("\n=== Filter by timestamp range (30-60 minutes ago) ===")
         start_time = current_time - 3600  # 1小时前
         end_time = current_time - 1800  # 30分钟前
         matched_ids = col.filter_ids(
@@ -197,6 +198,6 @@ if __name__ == "__main__":
         for item_id in matched_ids:
             text = col.text_storage.get(item_id)
             metadata = col.metadata_storage.get(item_id)
-            print(
+            self.logger.info(
                 f"{text} (timestamp: {datetime.fromtimestamp(metadata['timestamp']).strftime('%Y-%m-%d %H:%M:%S')})"
             )

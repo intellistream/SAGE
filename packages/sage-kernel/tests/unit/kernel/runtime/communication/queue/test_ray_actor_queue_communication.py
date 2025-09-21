@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 Ray Queue Actor 引用传递和并发测试
 
 专门测试：
@@ -35,19 +36,19 @@ try:
     # 获取日志管理器
     log_manager = get_test_log_manager()
 
-    print("✓ 成功导入Ray队列描述符")
+    logging.info("✓ 成功导入Ray队列描述符")
 except ImportError as e:
-    print(f"✗ 导入失败: {e}")
+    logging.info(f"✗ 导入失败: {e}")
     sys.exit(1)
 
 try:
     import ray
 
     RAY_AVAILABLE = True
-    print("✓ Ray 可用")
+    logging.info("✓ Ray 可用")
 except ImportError:
     RAY_AVAILABLE = False
-    print("✗ Ray 不可用")
+    logging.info("✗ Ray 不可用")
     sys.exit(1)
 
 
@@ -71,17 +72,17 @@ class PersistentQueueActor:
             self.queue = self.queue_desc.queue_instance  # 获取实际的队列对象
             self.operations_count = 0
             self.last_operation_time = time.time()
-            print(
+            logging.info(
                 f"Actor {actor_name} initialized with queue {self.queue_desc.queue_id}"
             )
         except ImportError as e:
             # 如果导入失败，记录错误但继续初始化
-            print(f"导入失败: {e}")
+            logging.info(f"导入失败: {e}")
             self.queue_desc = None
             self.queue = None
             self.operations_count = 0
             self.last_operation_time = time.time()
-            print(f"Actor {actor_name} initialized with FAILED queue import")
+            logging.info(f"Actor {actor_name} initialized with FAILED queue import")
 
     def get_queue_info(self):
         """获取队列信息"""
@@ -217,7 +218,7 @@ class QueueCoordinatorActor:
             self.coordination_log.append(f"registered_queue:{queue_name}")
             return f"Queue {queue_name} registered"
         except ImportError as e:
-            print(f"导入失败: {e}")
+            logging.info(f"导入失败: {e}")
             self.coordination_log.append(f"failed_register_queue:{queue_name}:{e}")
             return f"Queue {queue_name} registration failed: {e}"
 
@@ -357,11 +358,11 @@ class TestRayQueueActorCommunication:
 
         duration = time.time() - start_time
         log_manager.log_test_end("test_basic_actor_queue_operations", duration, True)
-        print("✓ 基础Actor队列操作测试通过")
+        logging.info("✓ 基础Actor队列操作测试通过")
 
     def test_multiple_actors_concurrent_access(self):
         """测试多个Actor并发访问同一队列 - 简化版本"""
-        print("\n=== 测试多Actor并发访问 ===")
+        logging.info("\n=== 测试多Actor并发访问 ===")
 
         # 减少Actor数量和操作数量避免死锁
         num_producers = 2  # 减少生产者数量
@@ -381,7 +382,7 @@ class TestRayQueueActorCommunication:
             actor = PersistentQueueActor.remote(self.queue_dict, f"consumer_{i}")
             consumers.append(actor)
 
-        print(f"创建了 {num_producers} 个生产者Actor和 {num_consumers} 个消费者Actor")
+        logging.info(f"创建了 {num_producers} 个生产者Actor和 {num_consumers} 个消费者Actor")
 
         # 并发生产，添加超时保护
         try:
@@ -394,7 +395,7 @@ class TestRayQueueActorCommunication:
             # 等待生产完成，减少超时时间
             producer_results = ray.get(producer_futures, timeout=8)
             total_produced = sum(len(result) for result in producer_results)
-            print(f"总共生产: {total_produced} 项目")
+            logging.info(f"总共生产: {total_produced} 项目")
 
             # 短暂等待
             time.sleep(0.2)
@@ -414,13 +415,13 @@ class TestRayQueueActorCommunication:
                 len([r for r in result if r.startswith("get_success")])
                 for result in consumer_results
             )
-            print(f"总共消费: {total_consumed} 项目")
+            logging.info(f"总共消费: {total_consumed} 项目")
 
             assert total_consumed > 0, "应该有成功的消费操作"
-            print("✓ 多Actor并发访问测试通过")
+            logging.info("✓ 多Actor并发访问测试通过")
 
         except ray.exceptions.GetTimeoutError:
-            print("⚠️ 多Actor测试超时，可能存在竞争条件")
+            logging.info("⚠️ 多Actor测试超时，可能存在竞争条件")
             # 清理资源
             for actor in producers + consumers:
                 try:
@@ -431,11 +432,11 @@ class TestRayQueueActorCommunication:
         assert total_produced > 0, "应该生产了一些项目"
         assert total_consumed > 0, "应该消费了一些项目"
 
-        print("✓ 多Actor并发访问测试通过")
+        logging.info("✓ 多Actor并发访问测试通过")
 
     def test_queue_coordinator_pattern(self):
         """测试队列协调器模式"""
-        print("\n=== 测试队列协调器模式 ===")
+        logging.info("\n=== 测试队列协调器模式 ===")
 
         # 创建协调器
         coordinator = QueueCoordinatorActor.remote()
@@ -444,7 +445,7 @@ class TestRayQueueActorCommunication:
         register_result = ray.get(
             coordinator.register_queue.remote("main_queue", self.queue_dict)
         )
-        print(f"队列注册结果: {register_result}")
+        logging.info(f"队列注册结果: {register_result}")
 
         # 通过协调器进行批量写入
         items_to_write = ["coord_item1", "coord_item2", "coord_item3", "coord_item4"]
@@ -453,7 +454,7 @@ class TestRayQueueActorCommunication:
                 "main_queue", "put_batch", items_to_write
             )
         )
-        print(f"批量写入结果: {len(batch_put_result)} 项目")
+        logging.info(f"批量写入结果: {len(batch_put_result)} 项目")
 
         # 通过协调器进行批量读取
         batch_get_result = ray.get(
@@ -461,50 +462,50 @@ class TestRayQueueActorCommunication:
                 "main_queue", "get_batch", [""] * len(items_to_write)  # 占位符
             )
         )
-        print(f"批量读取结果: {len(batch_get_result)} 项目")
+        logging.info(f"批量读取结果: {len(batch_get_result)} 项目")
 
         # 获取协调摘要
         summary = ray.get(coordinator.get_coordination_summary.remote())
-        print(f"协调摘要: {summary}")
+        logging.info(f"协调摘要: {summary}")
 
         assert len(batch_put_result) == len(items_to_write), "所有项目应该被写入"
         assert len(batch_get_result) > 0, "应该读取了一些项目"
 
-        print("✓ 队列协调器模式测试通过")
+        logging.info("✓ 队列协调器模式测试通过")
 
     def test_actor_lifecycle_and_queue_persistence(self):
         """测试Actor生命周期和队列持久性"""
-        print("\n=== 测试Actor生命周期和队列持久性 ===")
+        logging.info("\n=== 测试Actor生命周期和队列持久性 ===")
 
         # 第一阶段：创建Actor并写入数据
         phase1_actor = PersistentQueueActor.remote(self.queue_dict, "phase1_actor")
         phase1_items = ["persistent_item1", "persistent_item2", "persistent_item3"]
 
         put_result = ray.get(phase1_actor.put_items.remote(phase1_items))
-        print(f"阶段1写入结果: {len(put_result)} 项目")
+        logging.info(f"阶段1写入结果: {len(put_result)} 项目")
 
         # 获取Actor信息
         phase1_info = ray.get(phase1_actor.get_queue_info.remote())
-        print(f"阶段1 Actor信息: {phase1_info}")
+        logging.info(f"阶段1 Actor信息: {phase1_info}")
 
         # 第二阶段：创建新Actor并读取数据（模拟Actor重启）
         phase2_actor = PersistentQueueActor.remote(self.queue_dict, "phase2_actor")
 
         get_result = ray.get(phase2_actor.get_items.remote(len(phase1_items)))
         successful_gets = [r for r in get_result if r.startswith("get_success")]
-        print(f"阶段2读取结果: {len(successful_gets)} 项目")
+        logging.info(f"阶段2读取结果: {len(successful_gets)} 项目")
 
         # 验证数据持久性
         for item in successful_gets:
-            print(f"  读取到: {item}")
+            logging.info(f"  读取到: {item}")
 
         assert len(successful_gets) > 0, "新Actor应该能读取到之前写入的数据"
 
-        print("✓ Actor生命周期和队列持久性测试通过")
+        logging.info("✓ Actor生命周期和队列持久性测试通过")
 
     def test_concurrent_stress_with_actors(self):
         """Actor并发压力测试 - 简化版本避免死锁"""
-        print("\n=== Actor并发压力测试 ===")
+        logging.info("\n=== Actor并发压力测试 ===")
 
         num_actors = 3  # 减少Actor数量
         operations_per_actor = 10  # 减少操作数量
@@ -515,7 +516,7 @@ class TestRayQueueActorCommunication:
             actor = PersistentQueueActor.remote(self.queue_dict, f"stress_actor_{i}")
             stress_actors.append(actor)
 
-        print(f"创建 {num_actors} 个Actor，每个执行 {operations_per_actor} 个操作")
+        logging.info(f"创建 {num_actors} 个Actor，每个执行 {operations_per_actor} 个操作")
 
         # 并发执行操作，添加超时
         stress_futures = []
@@ -528,17 +529,17 @@ class TestRayQueueActorCommunication:
         # 获取结果，设置较短超时避免死锁
         try:
             stress_results = ray.get(stress_futures, timeout=30)  # 30秒超时
-            print(f"✓ 压力测试完成，{len(stress_results)}个Actor全部成功")
+            logging.info(f"✓ 压力测试完成，{len(stress_results)}个Actor全部成功")
 
             # 验证结果
             total_operations = sum(len(result) for result in stress_results)
             expected_operations = num_actors * operations_per_actor * 2  # put + get
 
-            print(f"总操作数: {total_operations}, 预期: {expected_operations}")
+            logging.info(f"总操作数: {total_operations}, 预期: {expected_operations}")
             assert total_operations > 0, "应该有成功的操作"
 
         except ray.exceptions.GetTimeoutError:
-            print("⚠️ 压力测试超时，可能存在死锁，跳过验证")
+            logging.info("⚠️ 压力测试超时，可能存在死锁，跳过验证")
             # 清理Actor避免资源泄露
             for actor in stress_actors:
                 try:
@@ -550,10 +551,10 @@ class TestRayQueueActorCommunication:
 def run_ray_actor_tests():
     """运行Ray Actor测试"""
     if not RAY_AVAILABLE:
-        print("Ray不可用，跳过Ray Actor测试")
+        logging.info("Ray不可用，跳过Ray Actor测试")
         return False
 
-    print("开始运行Ray队列Actor通信测试...")
+    logging.info("开始运行Ray队列Actor通信测试...")
 
     test_suite = TestRayQueueActorCommunication()
 
@@ -571,11 +572,11 @@ def run_ray_actor_tests():
         # 清理测试环境
         test_suite.teardown_method()
 
-        print("\n🎉 所有Ray Actor测试通过！")
+        logging.info("\n🎉 所有Ray Actor测试通过！")
         return True
 
     except Exception as e:
-        print(f"\n❌ Ray Actor测试失败: {e}")
+        logging.info(f"\n❌ Ray Actor测试失败: {e}")
         import traceback
 
         traceback.print_exc()

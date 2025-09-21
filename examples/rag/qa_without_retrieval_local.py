@@ -1,4 +1,5 @@
 """
+import logging
 终端交互式QA无界流处理 - 本地版本
 支持终端输入问题，使用本地大模型生成回答的无界流处理示例
 """
@@ -72,9 +73,9 @@ class ConsoleSink(SinkFunction):
             return None
 
         if isinstance(data, dict):
-            print(f"\n🤖 {data.get('answer', 'N/A')}\n")
+            logging.info(f"\n🤖 {data.get('answer', 'N/A')}\n")
         else:
-            print(f"\n🤖 {data}\n")
+            logging.info(f"\n🤖 {data}\n")
 
         return data
 
@@ -91,7 +92,7 @@ def create_qa_pipeline():
 
     # 检查配置文件是否存在
     if not os.path.exists(config_path):
-        print(f"❌ 配置文件不存在: {config_path}")
+        logging.info(f"❌ 配置文件不存在: {config_path}")
         return
 
     config = load_config(config_path)
@@ -100,7 +101,7 @@ def create_qa_pipeline():
     env = LocalEnvironment()
 
     # 启动欢迎提示
-    print("💬 QA助手已启动（本地模式）！输入问题后按回车")
+    logging.info("💬 QA助手已启动（本地模式）！输入问题后按回车")
 
     try:
         # 构建无界流处理管道 - 使用本地生成器
@@ -120,11 +121,11 @@ def create_qa_pipeline():
             time.sleep(1)
 
     except Exception as e:
-        print(f"❌ 管道运行出错: {str(e)}")
+        logging.info(f"❌ 管道运行出错: {str(e)}")
     finally:
         try:
             env.close()
-            print("✅ QA流处理管道已关闭")
+            logging.info("✅ QA流处理管道已关闭")
         except:
             pass
 
@@ -138,8 +139,8 @@ if __name__ == "__main__":
         os.getenv("SAGE_EXAMPLES_MODE") == "test"
         or os.getenv("SAGE_TEST_MODE") == "true"
     ):
-        print("🧪 Test mode detected - qa_without_retrieval_local is interactive")
-        print("✅ Test passed: Interactive example structure validated")
+        logging.info("🧪 Test mode detected - qa_without_retrieval_local is interactive")
+        logging.info("✅ Test passed: Interactive example structure validated")
         sys.exit(0)
 
     CustomLogger.disable_global_console_debug()

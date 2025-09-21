@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import asyncio
 import concurrent.futures
 import logging
@@ -111,7 +112,7 @@ class ActorWrapper:
             return True
         except Exception as e:
             # 记录错误但不抛出异常，让调用者决定如何处理
-            print(f"Warning: Failed to kill Ray actor {self._obj}: {e}")
+            self.logger.info(f"Warning: Failed to kill Ray actor {self._obj}: {e}")
             return False
 
     def cleanup_and_kill(self, cleanup_timeout: float = 5.0, no_restart: bool = True):
@@ -141,7 +142,7 @@ class ActorWrapper:
                 ray.get(cleanup_ref, timeout=cleanup_timeout)
                 cleanup_success = True
             except Exception as e:
-                print(f"Warning: Cleanup failed for {self._obj}: {e}")
+                self.logger.info(f"Warning: Cleanup failed for {self._obj}: {e}")
 
         # 无论cleanup是否成功，都尝试kill actor
         kill_success = self.kill_actor(no_restart=no_restart)

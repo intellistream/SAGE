@@ -1,3 +1,4 @@
+import logging
 import threading
 import time
 from typing import Any, Dict, List
@@ -127,7 +128,7 @@ class FilterDebugSink(SinkFunction):
         )
 
         # 打印调试信息
-        print(
+        logging.info(
             f"🔍 [Instance {self.parallel_index}] Filtered data: {value}, Full: {data}"
         )
 
@@ -228,7 +229,7 @@ class TestFilterFunctionality:
 
     def test_basic_positive_filter(self):
         """测试基本的正数过滤"""
-        print("\n🚀 Testing Basic Positive Number Filter")
+        logging.info("\n🚀 Testing Basic Positive Number Filter")
 
         env = LocalEnvironment("positive_filter_test")
 
@@ -238,10 +239,10 @@ class TestFilterFunctionality:
             .sink(FilterDebugSink, parallelism=2)
         )
 
-        print(
+        logging.info(
             "📊 Pipeline: NumberSource -> filter(PositiveNumberFilter) -> Sink(parallelism=2)"
         )
-        print("🎯 Expected: Only positive numbers should pass through\n")
+        logging.info("🎯 Expected: Only positive numbers should pass through\n")
 
         try:
             env.submit()
@@ -254,7 +255,7 @@ class TestFilterFunctionality:
 
     def test_chained_filters(self):
         """测试链式过滤器"""
-        print("\n🚀 Testing Chained Filters")
+        logging.info("\n🚀 Testing Chained Filters")
 
         env = LocalEnvironment("chained_filter_test")
 
@@ -265,8 +266,8 @@ class TestFilterFunctionality:
             .sink(FilterDebugSink, parallelism=1)
         )
 
-        print("📊 Pipeline: NumberSource -> filter(Positive) -> filter(Even) -> Sink")
-        print("🎯 Expected: Only positive even numbers should pass through\n")
+        logging.info("📊 Pipeline: NumberSource -> filter(Positive) -> filter(Even) -> Sink")
+        logging.info("🎯 Expected: Only positive even numbers should pass through\n")
 
         try:
             env.submit()
@@ -279,7 +280,7 @@ class TestFilterFunctionality:
 
     def test_user_filters(self):
         """测试用户数据过滤"""
-        print("\n🚀 Testing User Data Filters")
+        logging.info("\n🚀 Testing User Data Filters")
 
         env = LocalEnvironment("user_filter_test")
 
@@ -290,8 +291,8 @@ class TestFilterFunctionality:
             .sink(FilterDebugSink, parallelism=2)
         )
 
-        print("📊 Pipeline: UserSource -> filter(Active) -> filter(Adult) -> Sink")
-        print("🎯 Expected: Only active adult users should pass through\n")
+        logging.info("📊 Pipeline: UserSource -> filter(Active) -> filter(Adult) -> Sink")
+        logging.info("🎯 Expected: Only active adult users should pass through\n")
 
         try:
             env.submit()
@@ -304,7 +305,7 @@ class TestFilterFunctionality:
 
     def test_lambda_filter(self):
         """测试Lambda函数过滤"""
-        print("\n🚀 Testing Lambda Function Filter")
+        logging.info("\n🚀 Testing Lambda Function Filter")
 
         env = LocalEnvironment("lambda_filter_test")
 
@@ -314,8 +315,8 @@ class TestFilterFunctionality:
             .sink(FilterDebugSink, parallelism=1)
         )
 
-        print("📊 Pipeline: NumberSource -> filter(lambda: 0 < value < 5) -> Sink")
-        print("🎯 Expected: Only numbers between 1-4 should pass through\n")
+        logging.info("📊 Pipeline: NumberSource -> filter(lambda: 0 < value < 5) -> Sink")
+        logging.info("🎯 Expected: Only numbers between 1-4 should pass through\n")
 
         try:
             env.submit()
@@ -328,7 +329,7 @@ class TestFilterFunctionality:
 
     def test_extreme_filters(self):
         """测试极端情况的过滤器"""
-        print("\n🚀 Testing Extreme Filter Cases")
+        logging.info("\n🚀 Testing Extreme Filter Cases")
 
         env = LocalEnvironment("extreme_filter_test")
 
@@ -339,7 +340,7 @@ class TestFilterFunctionality:
             .sink(FilterDebugSink, parallelism=1)
         )
 
-        print("📊 Test 1: AlwaysTrueFilter - All data should pass")
+        logging.info("📊 Test 1: AlwaysTrueFilter - All data should pass")
 
         try:
             env.submit()
@@ -360,7 +361,7 @@ class TestFilterFunctionality:
             .sink(FilterDebugSink, parallelism=1)
         )
 
-        print("📊 Test 2: AlwaysFalseFilter - No data should pass")
+        logging.info("📊 Test 2: AlwaysFalseFilter - No data should pass")
 
         try:
             env2.submit()
@@ -374,7 +375,7 @@ class TestFilterFunctionality:
 
     def test_filter_with_map_integration(self):
         """测试Filter与Map的集成"""
-        print("\n🚀 Testing Filter + Map Integration")
+        logging.info("\n🚀 Testing Filter + Map Integration")
 
         env = LocalEnvironment("filter_map_integration_test")
 
@@ -392,10 +393,10 @@ class TestFilterFunctionality:
             .sink(FilterDebugSink, parallelism=1)
         )
 
-        print(
+        logging.info(
             "📊 Pipeline: UserSource -> filter(Active) -> map(Transform) -> filter(Age>=25) -> Sink"
         )
-        print("🎯 Expected: Active users aged 25+ with transformed format\n")
+        logging.info("🎯 Expected: Active users aged 25+ with transformed format\n")
 
         try:
             env.submit()
@@ -408,7 +409,7 @@ class TestFilterFunctionality:
 
     def test_filter_error_handling(self):
         """测试Filter的错误处理"""
-        print("\n🚀 Testing Filter Error Handling")
+        logging.info("\n🚀 Testing Filter Error Handling")
 
         env = LocalEnvironment("filter_error_test")
 
@@ -419,8 +420,8 @@ class TestFilterFunctionality:
             .sink(FilterDebugSink, parallelism=1)
         )
 
-        print("📊 Pipeline: NumberSource -> filter(ErrorFilter) -> Sink")
-        print(
+        logging.info("📊 Pipeline: NumberSource -> filter(ErrorFilter) -> Sink")
+        logging.info(
             "🎯 Expected: Errors should be handled gracefully, minimal data should pass\n"
         )
 
@@ -437,20 +438,20 @@ class TestFilterFunctionality:
         """验证正数过滤结果"""
         received_data = FilterDebugSink.get_received_data()
 
-        print("\n📋 Positive Filter Results:")
-        print("=" * 40)
+        logging.info("\n📋 Positive Filter Results:")
+        logging.info("=" * 40)
 
         all_filtered_data = []
         for instance_id, data_list in received_data.items():
-            print(f"\n🔹 Parallel Instance {instance_id}:")
+            logging.info(f"\n🔹 Parallel Instance {instance_id}:")
             for data in data_list:
                 all_filtered_data.append(data)
                 value = data.get("value")
                 positive = data.get("positive")
-                print(f"   - Value: {value}, Positive: {positive}")
+                logging.info(f"   - Value: {value}, Positive: {positive}")
 
-        print(f"\n🎯 Filter Summary:")
-        print(f"   - Total filtered data: {len(all_filtered_data)}")
+        logging.info(f"\n🎯 Filter Summary:")
+        logging.info(f"   - Total filtered data: {len(all_filtered_data)}")
 
         # 验证：所有通过的数据都应该是正数
         for data in all_filtered_data:
@@ -461,14 +462,14 @@ class TestFilterFunctionality:
         # 验证：应该有正数通过（基于测试数据）
         assert len(all_filtered_data) > 0, "❌ No data passed positive filter"
 
-        print("✅ Positive filter test passed: Only positive numbers passed through")
+        logging.info("✅ Positive filter test passed: Only positive numbers passed through")
 
     def _verify_chained_filter_results(self):
         """验证链式过滤结果"""
         received_data = FilterDebugSink.get_received_data()
 
-        print("\n📋 Chained Filter Results:")
-        print("=" * 40)
+        logging.info("\n📋 Chained Filter Results:")
+        logging.info("=" * 40)
 
         all_filtered_data = []
         for instance_id, data_list in received_data.items():
@@ -477,12 +478,12 @@ class TestFilterFunctionality:
                 value = data.get("value")
                 positive = data.get("positive")
                 category = data.get("category")
-                print(
+                logging.info(
                     f"   - Value: {value}, Positive: {positive}, Category: {category}"
                 )
 
-        print(f"\n🎯 Chained Filter Summary:")
-        print(f"   - Total data after both filters: {len(all_filtered_data)}")
+        logging.info(f"\n🎯 Chained Filter Summary:")
+        logging.info(f"   - Total data after both filters: {len(all_filtered_data)}")
 
         # 验证：所有数据都应该是正偶数
         for data in all_filtered_data:
@@ -491,14 +492,14 @@ class TestFilterFunctionality:
             assert data.get("value") > 0, f"❌ Non-positive value: {data}"
             assert data.get("value") % 2 == 0, f"❌ Non-even value: {data}"
 
-        print("✅ Chained filter test passed: Only positive even numbers passed")
+        logging.info("✅ Chained filter test passed: Only positive even numbers passed")
 
     def _verify_user_filter_results(self):
         """验证用户过滤结果"""
         received_data = FilterDebugSink.get_received_data()
 
-        print("\n📋 User Filter Results:")
-        print("=" * 40)
+        logging.info("\n📋 User Filter Results:")
+        logging.info("=" * 40)
 
         all_filtered_users = []
         for instance_id, data_list in received_data.items():
@@ -507,56 +508,56 @@ class TestFilterFunctionality:
                 name = user.get("name")
                 age = user.get("age")
                 status = user.get("status")
-                print(f"   - User: {name}, Age: {age}, Status: {status}")
+                logging.info(f"   - User: {name}, Age: {age}, Status: {status}")
 
-        print(f"\n🎯 User Filter Summary:")
-        print(f"   - Total filtered users: {len(all_filtered_users)}")
+        logging.info(f"\n🎯 User Filter Summary:")
+        logging.info(f"   - Total filtered users: {len(all_filtered_users)}")
 
         # 验证：所有用户都应该是活跃且成年的
         for user in all_filtered_users:
             assert user.get("status") == "active", f"❌ Non-active user: {user}"
             assert user.get("age") >= 18, f"❌ Minor user: {user}"
 
-        print("✅ User filter test passed: Only active adult users passed")
+        logging.info("✅ User filter test passed: Only active adult users passed")
 
     def _verify_lambda_filter_results(self):
         """验证Lambda过滤结果"""
         received_data = FilterDebugSink.get_received_data()
 
-        print("\n📋 Lambda Filter Results:")
-        print("=" * 40)
+        logging.info("\n📋 Lambda Filter Results:")
+        logging.info("=" * 40)
 
         all_filtered_data = []
         for instance_id, data_list in received_data.items():
             for data in data_list:
                 all_filtered_data.append(data)
                 value = data.get("value")
-                print(f"   - Value: {value}")
+                logging.info(f"   - Value: {value}")
 
-        print(f"\n🎯 Lambda Filter Summary:")
-        print(f"   - Total data in range (0,5): {len(all_filtered_data)}")
+        logging.info(f"\n🎯 Lambda Filter Summary:")
+        logging.info(f"   - Total data in range (0,5): {len(all_filtered_data)}")
 
         # 验证：所有数据的值都应该在0到5之间（不包括0和5）
         for data in all_filtered_data:
             value = data.get("value")
             assert 0 < value < 5, f"❌ Value {value} not in range (0,5): {data}"
 
-        print("✅ Lambda filter test passed: Only values in range (0,5) passed")
+        logging.info("✅ Lambda filter test passed: Only values in range (0,5) passed")
 
     def _verify_extreme_filter_results(self, all_pass_results, none_pass_results):
         """验证极端过滤结果"""
-        print("\n📋 Extreme Filter Results:")
-        print("=" * 40)
+        logging.info("\n📋 Extreme Filter Results:")
+        logging.info("=" * 40)
 
         # 验证AlwaysTrueFilter结果
         all_pass_count = sum(len(data_list) for data_list in all_pass_results.values())
-        print(f"🔹 AlwaysTrueFilter: {all_pass_count} items passed")
+        logging.info(f"🔹 AlwaysTrueFilter: {all_pass_count} items passed")
 
         # 验证AlwaysFalseFilter结果
         none_pass_count = sum(
             len(data_list) for data_list in none_pass_results.values()
         )
-        print(f"🔹 AlwaysFalseFilter: {none_pass_count} items passed")
+        logging.info(f"🔹 AlwaysFalseFilter: {none_pass_count} items passed")
 
         # 基于测试数据，AlwaysTrueFilter应该有数据通过
         assert all_pass_count > 0, "❌ AlwaysTrueFilter should pass all data"
@@ -564,7 +565,7 @@ class TestFilterFunctionality:
         # AlwaysFalseFilter应该没有数据通过
         assert none_pass_count == 0, "❌ AlwaysFalseFilter should pass no data"
 
-        print(
+        logging.info(
             "✅ Extreme filter tests passed: True filter passes all, False filter passes none"
         )
 
@@ -572,8 +573,8 @@ class TestFilterFunctionality:
         """验证Filter+Map集成结果"""
         received_data = FilterDebugSink.get_received_data()
 
-        print("\n📋 Filter + Map Integration Results:")
-        print("=" * 40)
+        logging.info("\n📋 Filter + Map Integration Results:")
+        logging.info("=" * 40)
 
         all_results = []
         for instance_id, data_list in received_data.items():
@@ -582,10 +583,10 @@ class TestFilterFunctionality:
                 username = data.get("username")
                 age = data.get("user_age")
                 premium = data.get("is_premium")
-                print(f"   - User: {username}, Age: {age}, Premium: {premium}")
+                logging.info(f"   - User: {username}, Age: {age}, Premium: {premium}")
 
-        print(f"\n🎯 Integration Summary:")
-        print(f"   - Total processed users: {len(all_results)}")
+        logging.info(f"\n🎯 Integration Summary:")
+        logging.info(f"   - Total processed users: {len(all_results)}")
 
         # 验证：所有用户都应该满足条件且格式正确
         for user in all_results:
@@ -601,7 +602,7 @@ class TestFilterFunctionality:
             username = user.get("username", "")
             assert username.isupper(), f"❌ Username not uppercase: {user}"
 
-        print(
+        logging.info(
             "✅ Filter + Map integration test passed: Correct filtering and transformation"
         )
 
@@ -609,21 +610,21 @@ class TestFilterFunctionality:
         """验证错误处理结果"""
         received_data = FilterDebugSink.get_received_data()
 
-        print("\n📋 Error Handling Results:")
-        print("=" * 40)
+        logging.info("\n📋 Error Handling Results:")
+        logging.info("=" * 40)
 
         all_results = []
         for instance_id, data_list in received_data.items():
             all_results.extend(data_list)
 
-        print(f"🔹 Data that passed through error filter: {len(all_results)}")
+        logging.info(f"🔹 Data that passed through error filter: {len(all_results)}")
 
         # 由于ErrorFilter总是抛出异常，正常情况下应该没有数据通过
         # 但根据错误处理策略，可能会有一些数据以原始形式传递
-        print(f"   - Items that somehow passed: {len(all_results)}")
+        logging.info(f"   - Items that somehow passed: {len(all_results)}")
 
         # 这个测试主要验证系统不会因为Filter异常而崩溃
-        print("✅ Error handling test passed: System handled filter errors gracefully")
+        logging.info("✅ Error handling test passed: System handled filter errors gracefully")
 
 
 if __name__ == "__main__":

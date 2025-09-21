@@ -228,7 +228,7 @@ class CustomLogger:
                 return handler
 
         except Exception as e:
-            print(f"Failed to create handler for {config['target']}: {e}")
+            logging.error(f"Failed to create handler for {config['target']}: {e}")
             return None
 
     def get_output_configs(self) -> List[dict]:
@@ -250,21 +250,21 @@ class CustomLogger:
     def print_current_configs(self):
         """打印当前输出配置"""
         configs = self.get_output_configs()
-        print(f"\n=== Logger '{self.name}' Output Configurations ===")
+        logging.info(f"\n=== Logger '{self.name}' Output Configurations ===")
         if self.log_base_folder:
-            print(f"Log base folder: {self.log_base_folder}")
+            logging.info(f"Log base folder: {self.log_base_folder}")
         else:
-            print("Log base folder: Not set (relative paths not supported)")
+            logging.info("Log base folder: Not set (relative paths not supported)")
         for i, config in enumerate(configs, 1):
             status = "ACTIVE" if config["handler_active"] else "INACTIVE"
-            print(f"{i}. Target: {config['target']}")
+            logging.info(f"{i}. Target: {config['target']}")
             if config["target"] != "console":
-                print(f"   Resolved Path: {config['resolved_path']}")
-            print(f"   Level: {config['level']} ({config['level_num']}) - {status}")
-        print(
+                logging.info(f"   Resolved Path: {config['resolved_path']}")
+            logging.info(f"   Level: {config['level']} ({config['level_num']}) - {status}")
+        logging.info(
             f"Logger minimum level: {logging.getLevelName(self.logger.level)} ({self.logger.level})"
         )
-        print("=" * 60)
+        logging.info("=" * 60)
 
     def update_output_level(
         self, target_index_or_name: Union[int, str], new_level: Union[str, int]
@@ -306,7 +306,7 @@ class CustomLogger:
         min_level = min(enabled_levels) if enabled_levels else logging.INFO
         self.logger.setLevel(min_level)
 
-        print(
+        logging.info(
             f"Updated {target_config['target']} level to {target_config['level_str']}"
         )
 
@@ -346,7 +346,7 @@ class CustomLogger:
         min_level = min(enabled_levels) if enabled_levels else logging.INFO
         self.logger.setLevel(min_level)
 
-        print(
+        logging.info(
             f"Added output: {output_target} -> {new_config['resolved_path']} with level {new_config['level_str']}"
         )
 
@@ -389,7 +389,7 @@ class CustomLogger:
         min_level = min(enabled_levels) if enabled_levels else logging.INFO
         self.logger.setLevel(min_level)
 
-        print(f"Removed output: {target_config['target']}")
+        logging.info(f"Removed output: {target_config['target']}")
 
     def _log_with_caller_info(self, level: int, message: str, exc_info: bool = False):
         """

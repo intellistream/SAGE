@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import os
 import time
 import warnings
@@ -69,7 +70,7 @@ class text_detector(BaseTool):
                 "Please install the EasyOCR package using 'pip install easyocr'."
             )
         except Exception as e:
-            print(f"Error building the OCR tool: {e}")
+            self.logger.info(f"Error building the OCR tool: {e}")
             return None
 
     def execute(
@@ -121,22 +122,22 @@ class text_detector(BaseTool):
 
             except RuntimeError as e:
                 if "CUDA out of memory" in str(e):
-                    print(f"CUDA out of memory error on attempt {attempt + 1}.")
+                    self.logger.info(f"CUDA out of memory error on attempt {attempt + 1}.")
                     if clear_cuda_cache:
-                        print("Clearing CUDA cache and retrying...")
+                        self.logger.info("Clearing CUDA cache and retrying...")
                         torch.cuda.empty_cache()
                     else:
-                        print(f"Retrying in {retry_delay} seconds...")
+                        self.logger.info(f"Retrying in {retry_delay} seconds...")
                     time.sleep(retry_delay)
                     continue
                 else:
-                    print(f"Runtime error: {e}")
+                    self.logger.info(f"Runtime error: {e}")
                     break
             except Exception as e:
-                print(f"Error detecting text: {e}")
+                self.logger.info(f"Error detecting text: {e}")
                 break
 
-        print(f"Failed to detect text after {max_retries} attempts.")
+        self.logger.info(f"Failed to detect text after {max_retries} attempts.")
         return []
 
     def get_metadata(self):
@@ -162,7 +163,7 @@ if __name__ == "__main__":
 
     # Get tool metadata
     metadata = tool.get_metadata()
-    print(metadata)
+    self.logger.info(metadata)
 
     # Construct the full path to the image using the script's directory
     # relative_image_path = "examples/chinese_tra.jpg"
@@ -172,8 +173,8 @@ if __name__ == "__main__":
 
     # Check if the image file exists
     if not os.path.exists(image_path):
-        print(f"Image file not found: {image_path}")
-        print("Please provide a valid image file in the 'examples/' directory.")
+        self.logger.info(f"Image file not found: {image_path}")
+        self.logger.info("Please provide a valid image file in the 'examples/' directory.")
         exit(1)
 
     # Execute the tool
@@ -181,10 +182,10 @@ if __name__ == "__main__":
         # execution = tool.execute(image=image_path, languages=["en", "ch_sim"])
         # execution = tool.execute(image=image_path, languages=["en", "ch_tra"])
         execution = tool.execute(image=image_path, languages=["en"])
-        print(json.dumps(execution))
+        self.logger.info(json.dumps(execution))
 
-        print("Detected Text:", execution)
+        self.logger.info("Detected Text:", execution)
     except ValueError as e:
-        print(f"Execution failed: {e}")
+        self.logger.info(f"Execution failed: {e}")
 
-    print("Done!")
+    self.logger.info("Done!")

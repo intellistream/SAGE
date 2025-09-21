@@ -1,4 +1,5 @@
 # 此例用到了keyby和join操作符，展示如何将两个数据流按key进行关联。
+import logging
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.join_function import BaseJoinFunction
@@ -38,7 +39,7 @@ class IdKeyBy(KeyByFunction):
 
 class PrintSink(SinkFunction):
     def execute(self, data):
-        print(f"🔗 Joined Streaming: {data}")
+        logging.info(f"🔗 Joined Streaming: {data}")
 
 
 class HelloWorldJoin(BaseJoinFunction):
@@ -98,7 +99,7 @@ def main():
     # 使用 autostop=True 让框架自动检测处理完成
     env.submit(autostop=True)
 
-    print("Hello Join World 示例结束")
+    logging.info("Hello Join World 示例结束")
 
 
 if __name__ == "__main__":

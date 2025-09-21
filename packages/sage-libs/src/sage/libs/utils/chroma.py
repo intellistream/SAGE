@@ -11,6 +11,8 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
+from sage.common.utils.logging.custom_logger import CustomLogger
+
 
 class ChromaBackend:
     """ChromaDB 后端管理器"""
@@ -24,7 +26,10 @@ class ChromaBackend:
             logger: 日志记录器
         """
         self.config = config
-        self.logger = logger or logging.getLogger(__name__)
+        if logger:
+            self.logger = logger
+        else:
+            self.logger = CustomLogger([("console", "INFO")], name="ChromaBackend")
 
         # ChromaDB 基本配置
         self.host = config.get("host", "localhost")
@@ -163,7 +168,7 @@ class ChromaBackend:
             检索到的文档内容列表
         """
         try:
-            print(f"ChromaBackend.search: using top_k = {top_k}")
+            self.logger.debug(f"ChromaBackend.search: using top_k = {top_k}")
 
             if self.use_embedding_query:
                 # 使用向量查询
@@ -183,7 +188,7 @@ class ChromaBackend:
             # 提取文档内容
             if results["documents"] and len(results["documents"]) > 0:
                 documents = results["documents"][0]  # 返回第一个查询的结果
-                print(f"ChromaBackend.search: returned {len(documents)} documents")
+                self.logger.debug(f"ChromaBackend.search: returned {len(documents)} documents")
                 return documents
             else:
                 return []

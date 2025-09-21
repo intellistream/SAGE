@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 from typing import Any, List, Literal, Optional, Union
 
 from sage.core.api.function.map_function import MapFunction
@@ -109,17 +110,17 @@ class SentenceTransformersTokenTextSplitter(MapFunction):
         :param text: The full text string to be split.
         :return: A list of token-based text chunks.
         """
-        print(text)
+        self.logger.info(text)
         _max_length_equal_32_bit_integer: int = 2**32
         splits: List[str] = []
         input_ids = self.tokenizer.encode(text, truncation=True, padding=False)
         start_idx = 0
 
-        print(f"Input IDs: {input_ids}")
+        self.logger.info(f"Input IDs: {input_ids}")
 
         # Iterate through the text and split it into chunks
         while start_idx < len(input_ids):
-            print(f"Start Index: {start_idx}")
+            self.logger.info(f"Start Index: {start_idx}")
             # Define the end of the current chunk
             cur_idx = min(start_idx + self.chunk_size, len(input_ids))
             chunk_ids = input_ids[start_idx:cur_idx]
@@ -144,7 +145,7 @@ class SentenceTransformersTokenTextSplitter(MapFunction):
         :return: A Data object containing a list of token-based text chunks.
         """
         content = data
-        # print(f"Content: {content}")
+        # self.logger.info(f"Content: {content}")
         try:
             chunks = self.split_text_on_tokens(content)
             return chunks
@@ -163,4 +164,4 @@ class SentenceTransformersTokenTextSplitter(MapFunction):
 # }
 
 # split=SentenceTransformersTokenTextSplitter(config)
-# print(split.execute(Data("This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.")))
+# self.logger.info(split.execute(Data("This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.This is a operator_test sentence to be split into smaller chunks.")))

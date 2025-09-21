@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import time
@@ -6,7 +7,7 @@ from dotenv import load_dotenv
 
 # 测试模式检测
 if os.getenv("SAGE_EXAMPLES_MODE") == "test":
-    print("🧪 Test mode detected - skipping complex RAG service example")
+    logging.info("🧪 Test mode detected - skipping complex RAG service example")
     sys.exit(0)
 
 import json
@@ -123,7 +124,7 @@ class OpenAIGenerator(MapFunction):
             self._save_data_record(user_query, prompt, response)
 
         # 只在调试模式下打印详细信息
-        # print(f"[{self.__class__.__name__}] Response: {response}")
+        # logging.info(f"[{self.__class__.__name__}] Response: {response}")
         return user_query, response
 
     def __del__(self):
@@ -161,7 +162,7 @@ class UIHelper:
 ║              基于私密知识库的检索增强生成                      ║
 ╚══════════════════════════════════════════════════════════════╝
 {UIHelper.COLORS['END']}"""
-        print(header)
+        logging.info(header)
 
     @staticmethod
     def print_pipeline_diagram():
@@ -185,7 +186,7 @@ class UIHelper:
            ▼                           ▼
     {UIHelper.COLORS['RED']}🖥️  答案终端显示{UIHelper.COLORS['END']}        {UIHelper.COLORS['YELLOW']}🧠 LLM智能推理{UIHelper.COLORS['END']}
 """
-        print(diagram)
+        logging.info(diagram)
 
     @staticmethod
     def print_config_info(config):
@@ -200,7 +201,7 @@ class UIHelper:
   🔍 检索TopK: {UIHelper.COLORS['HEADER']}{retriever_info.get('ltm', {}).get('topk', 3)}{UIHelper.COLORS['END']}
   📖 管道描述: 基于私密知识库的RAG智能问答系统
 """
-        print(info)
+        logging.info(info)
 
     @staticmethod
     def print_knowledge_base_info(sentences_count):
@@ -212,17 +213,17 @@ class UIHelper:
   🔍 检索方式: {UIHelper.COLORS['BLUE']}向量相似度 + 关键词匹配{UIHelper.COLORS['END']}
   💾 存储后端: {UIHelper.COLORS['HEADER']}VectorDB{UIHelper.COLORS['END']}
 """
-        print(info)
+        logging.info(info)
 
     @staticmethod
     def print_test_questions(questions):
         """打印测试问题列表"""
         info = f"""
 {UIHelper.COLORS['YELLOW']}{UIHelper.COLORS['BOLD']}❓ 预设测试问题:{UIHelper.COLORS['END']}"""
-        print(info)
+        logging.info(info)
         for i, question in enumerate(questions, 1):
-            print(f"  {UIHelper.COLORS['CYAN']}{i}.{UIHelper.COLORS['END']} {question}")
-        print()
+            logging.info(f"  {UIHelper.COLORS['CYAN']}{i}.{UIHelper.COLORS['END']} {question}")
+        logging.info()
 
     @staticmethod
     def format_success(msg):
@@ -459,15 +460,15 @@ def pipeline_run() -> None:
     )
 
     try:
-        print("🚀 开始RAG问答处理...")
-        print(f"📊 处理流程: 问题源 → 知识检索 → Prompt构建 → AI生成 → 结果输出")
-        print("=" * 60)
+        logging.info("🚀 开始RAG问答处理...")
+        logging.info(f"📊 处理流程: 问题源 → 知识检索 → Prompt构建 → AI生成 → 结果输出")
+        logging.info("=" * 60)
 
         # 启动管道
         job = env.submit()
 
         # 等待所有问题处理完成
-        print("⏳ 等待管道处理完成...")
+        logging.info("⏳ 等待管道处理完成...")
         max_wait_time = 60  # 增加等待时间到60秒
         start_time = time.time()
         question_count = 5  # 预期处理5个问题
@@ -481,27 +482,27 @@ def pipeline_run() -> None:
             # 估算是否应该完成了（每个问题预计需要8-10秒）
             expected_time = question_count * 12  # 给memory service更多时间
             if elapsed > expected_time:
-                print(f"⏰ 已等待 {elapsed:.1f}s，预期完成时间已到")
+                logging.info(f"⏰ 已等待 {elapsed:.1f}s，预期完成时间已到")
                 completed = True
 
         if completed or (time.time() - start_time) >= max_wait_time:
-            print(UIHelper.format_success("等待时间结束，管道应已处理完成"))
+            logging.info(UIHelper.format_success("等待时间结束，管道应已处理完成"))
 
     except KeyboardInterrupt:
-        print("⚠️  测试中断")
+        logging.info("⚠️  测试中断")
     except Exception as e:
-        print(UIHelper.format_error(f"执行过程中出现错误: {e}"))
+        logging.info(UIHelper.format_error(f"执行过程中出现错误: {e}"))
         import traceback
 
         traceback.print_exc()
     finally:
-        print("=" * 60)
-        print("🏁 测试结束，正在关闭环境...")
+        logging.info("=" * 60)
+        logging.info("🏁 测试结束，正在关闭环境...")
         try:
             env.close()
         except Exception as e:
-            print(f"关闭环境时出现错误: {e}")
-        print("🔚 程序结束")
+            logging.info(f"关闭环境时出现错误: {e}")
+        logging.info("🔚 程序结束")
 
 
 if __name__ == "__main__":
@@ -510,8 +511,8 @@ if __name__ == "__main__":
         os.getenv("SAGE_EXAMPLES_MODE") == "test"
         or os.getenv("SAGE_TEST_MODE") == "true"
     ):
-        print("🧪 Test mode detected - rag example")
-        print("✅ Test passed: Example structure validated (requires complex setup)")
+        logging.info("🧪 Test mode detected - rag example")
+        logging.info("✅ Test passed: Example structure validated (requires complex setup)")
         sys.exit(0)
 
     CustomLogger.disable_global_console_debug()

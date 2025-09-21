@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 SAGE Meta Package Setup Script
 提供安装后的用户友好提示
 """
@@ -35,36 +36,36 @@ class PostDevelopCommand(develop):
 
 def _show_installation_guide():
     """显示安装指南"""
-    print("\n" + "=" * 60)
-    print("🎉 SAGE 安装完成！")
-    print("=" * 60)
+    logging.info("\n" + "=" * 60)
+    logging.info("🎉 SAGE 安装完成！")
+    logging.info("=" * 60)
 
-    print("\n📦 当前已安装:")
-    print("  • isage (meta package) - 核心包管理")
-    print("  • isage-kernel - 数据处理内核")
-    print("  • isage-middleware - 中间件服务")
-    print("  • isage-libs - 应用示例")
+    logging.info("\n📦 当前已安装:")
+    logging.info("  • isage (meta package) - 核心包管理")
+    logging.info("  • isage-kernel - 数据处理内核")
+    logging.info("  • isage-middleware - 中间件服务")
+    logging.info("  • isage-libs - 应用示例")
 
-    print("\n🔧 可选功能包 (推荐安装):")
-    print("  • CLI 工具:")
-    print("    pip install isage-common[basic]")
-    print("  • 开发工具:")
-    print("    pip install isage-tools")
-    print("  • Web 前端:")
-    print("    pip install isage-tools")
-    print("  • 完整功能:")
-    print("    pip install isage-common[full]")
+    logging.info("\n🔧 可选功能包 (推荐安装):")
+    logging.info("  • CLI 工具:")
+    logging.info("    pip install isage-common[basic]")
+    logging.info("  • 开发工具:")
+    logging.info("    pip install isage-tools")
+    logging.info("  • Web 前端:")
+    logging.info("    pip install isage-tools")
+    logging.info("  • 完整功能:")
+    logging.info("    pip install isage-common[full]")
 
-    print("\n🚀 快速开始:")
-    print('  • 查看帮助: python -c "import sage; help(sage)"')
-    print('  • 运行示例: python -c "from sage.apps.examples import hello_world"')
+    logging.info("\n🚀 快速开始:")
+    logging.info('  • 查看帮助: python -c "import sage; help(sage)"')
+    logging.info('  • 运行示例: python -c "from sage.apps.examples import hello_world"')
 
-    print("\n📚 更多信息:")
-    print("  • 文档: https://intellistream.github.io/SAGE-Pub/")
-    print("  • GitHub: https://github.com/intellistream/SAGE")
+    logging.info("\n📚 更多信息:")
+    logging.info("  • 文档: https://intellistream.github.io/SAGE-Pub/")
+    logging.info("  • GitHub: https://github.com/intellistream/SAGE")
 
-    print("\n💡 提示: 根据使用需求选择安装对应的功能包")
-    print("=" * 60 + "\n")
+    logging.info("\n💡 提示: 根据使用需求选择安装对应的功能包")
+    logging.info("=" * 60 + "\n")
 
 
 # 使用 pyproject.toml 作为主要配置，这里只处理 post-install hooks

@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 from __future__ import annotations
 
 from typing import (TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Type,
@@ -274,17 +275,17 @@ class JoinTransformation(BaseTransformation):
     def debug_print_join_info(self) -> None:
         """打印Join配置调试信息"""
         config = self.get_join_configuration()
-        print(f"\n🔗 JoinTransformation '{self.basename}' Configuration:")
-        print(f"   Function: {config['function_class']}")
-        print(f"   Supported inputs: {config['supported_inputs']}")
-        print(f"   Max inputs: {config['max_inputs']}")
-        print(f"   Requires keyed streams: {config['is_keyed_required']}")
-        print(f"   Join type: {config['join_type']}")
+        self.logger.info(f"\n🔗 JoinTransformation '{self.basename}' Configuration:")
+        self.logger.info(f"   Function: {config['function_class']}")
+        self.logger.info(f"   Supported inputs: {config['supported_inputs']}")
+        self.logger.info(f"   Max inputs: {config['max_inputs']}")
+        self.logger.info(f"   Requires keyed streams: {config['is_keyed_required']}")
+        self.logger.info(f"   Join type: {config['join_type']}")
         if config["function_args"]:
-            print(f"   Function args: {config['function_args']}")
+            self.logger.info(f"   Function args: {config['function_args']}")
         if config["function_kwargs"]:
-            print(f"   Function kwargs: {config['function_kwargs']}")
-        print(f"   Upstreams: {[up.basename for up in self.upstreams]}")
+            self.logger.info(f"   Function kwargs: {config['function_kwargs']}")
+        self.logger.info(f"   Upstreams: {[up.basename for up in self.upstreams]}")
 
     def __repr__(self) -> str:
         cls_name = self.function_class.__name__

@@ -1,5 +1,6 @@
 # 此例意在说明如何将两个流通过comap合为一个流
 
+import logging
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.comap_function import BaseCoMapFunction
@@ -42,7 +43,7 @@ class HelloCoMapProcessor(BaseCoMapFunction):
 
 class PrintSink(SinkFunction):
     def execute(self, data):
-        print(data)
+        logging.info(data)
 
 
 def main():
@@ -57,7 +58,7 @@ def main():
 
     env.submit(autostop=True)
 
-    print("Hello Comap World 示例结束")
+    logging.info("Hello Comap World 示例结束")
 
 
 if __name__ == "__main__":

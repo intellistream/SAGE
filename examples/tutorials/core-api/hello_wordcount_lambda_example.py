@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+import logging
 SAGE WordCount Lambda 示例
 @test:timeout=120
 @test:category=streaming
@@ -54,10 +55,10 @@ def main():
 
         # 每处理10个词就打印一次统计结果
         if total_processed % 10 == 0:
-            print(f"\n=== Word Count Statistics (Total: {total_processed}) ===")
+            logging.info(f"\n=== Word Count Statistics (Total: {total_processed}) ===")
             for word, count in word_counts.most_common(10):
-                print(f"{word:20}: {count:3d}")
-            print("=" * 50)
+                logging.info(f"{word:20}: {count:3d}")
+            logging.info("=" * 50)
 
     # 构建流处理管道
     result = (
@@ -72,12 +73,12 @@ def main():
         .map(lambda word: word.replace(",", "").replace(".", ""))  # 去除标点
         # 词汇统计
         .map(lambda word: (word, 1))  # 转换为 (word, count) 格式
-        .print()  # 更新计数器
+        .logging.info()  # 更新计数器
     )
 
-    print("🚀 Starting WordCount Example with Lambda Functions")
-    print("📝 Processing sentences and counting words...")
-    print("⏹️  Press Ctrl+C to stop")
+    logging.info("🚀 Starting WordCount Example with Lambda Functions")
+    logging.info("📝 Processing sentences and counting words...")
+    logging.info("⏹️  Press Ctrl+C to stop")
 
     try:
         # 运行流处理
@@ -87,16 +88,16 @@ def main():
         test_mode = os.environ.get("SAGE_EXAMPLES_MODE") == "test"
         runtime = 10 if test_mode else 60
 
-        print(f"⏰ Running for {runtime} seconds...")
+        logging.info(f"⏰ Running for {runtime} seconds...")
         time.sleep(runtime)  # 测试模式运行10秒，正常模式60秒
     except KeyboardInterrupt:
-        print("\n\n🛑 Stopping WordCount Example...")
-        print("\n📊 Final Word Count Results:")
-        print("=" * 60)
+        logging.info("\n\n🛑 Stopping WordCount Example...")
+        logging.info("\n📊 Final Word Count Results:")
+        logging.info("=" * 60)
         for word, count in word_counts.most_common():
-            print(f"{word:20}: {count:3d}")
-        print("=" * 60)
-        print(f"Total words processed: {total_processed}")
+            logging.info(f"{word:20}: {count:3d}")
+        logging.info("=" * 60)
+        logging.info(f"Total words processed: {total_processed}")
     finally:
         env.close()
 

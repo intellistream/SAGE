@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import logging
 import re
 
@@ -156,31 +157,31 @@ if __name__ == "__main__":
 
     import json
 
-    print("ArXiv Search Tool Test")
+    self.logger.info("ArXiv Search Tool Test")
 
     # Example usage of the _Searcher_Tool
     tool = _Searcher_Tool()
 
     # Get tool metadata
     metadata = tool.get_metadata()
-    print("Tool Metadata:")
-    print(metadata)
+    self.logger.info("Tool Metadata:")
+    self.logger.info(metadata)
 
     # Sample query for searching arXiv
     query = ""
     # Execute the tool
     try:
         execution = tool.execute(query=query, size=50, max_results=10)
-        print("\n==>> Execution:")
-        print(json.dumps(execution, indent=4))  # Pretty print JSON
-        print("\n==>> Search Results:")
+        self.logger.info("\n==>> Execution:")
+        self.logger.info(json.dumps(execution, indent=4))  # Pretty print JSON
+        self.logger.info("\n==>> Search Results:")
         for i, paper in enumerate(execution, 1):
-            print(f"{i}. {paper['title']}")
-            print(f"   Authors: {paper['authors']}")
-            print(f"   Abstract: {paper['abstract'][:2000]}")
-            print(f"   Link: {paper['link']}")
-            print()
+            self.logger.info(f"{i}. {paper['title']}")
+            self.logger.info(f"   Authors: {paper['authors']}")
+            self.logger.info(f"   Abstract: {paper['abstract'][:2000]}")
+            self.logger.info(f"   Link: {paper['link']}")
+            self.logger.info()
     except Exception as e:
-        print(f"Execution failed: {e}")
+        self.logger.info(f"Execution failed: {e}")
 
-    print("Done!")
+    self.logger.info("Done!")

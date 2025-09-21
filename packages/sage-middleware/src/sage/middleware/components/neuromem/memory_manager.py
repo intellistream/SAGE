@@ -288,11 +288,11 @@ if __name__ == "__main__":
         green = "\033[92m"
         red = "\033[91m"
         endc = "\033[0m"
-        print(f"预期结果：{expect}")
-        print(f"实际结果：{actual}")
-        print("是否通过测试：", end="")
-        print(f"{green}是{endc}" if passed else f"{red}否{endc}")
-        print("=" * 50)
+        logging.info(f"预期结果：{expect}")
+        logging.info(f"实际结果：{actual}")
+        logging.info("是否通过测试：", end="")
+        logging.info(f"{green}是{endc}" if passed else f"{red}否{endc}")
+        logging.info("=" * 50)
 
     def clear_all_data(manager):
         # 删除data_dir下所有collection目录和manager.json
@@ -362,12 +362,12 @@ if __name__ == "__main__":
     # store 一下，保证磁盘有数据
     manager.store_collection("renamed_vdb")
 
-    print("\n==中间测试==")
-    print("请确认manager.json、collection磁盘文件已经存在。")
-    print("输入yes继续从磁盘加载测试，否则中止（将自动清理）:")
+    logging.info("\n==中间测试==")
+    logging.info("请确认manager.json、collection磁盘文件已经存在。")
+    logging.info("输入yes继续从磁盘加载测试，否则中止（将自动清理）:")
     ans = input().strip().lower()
     if ans != "yes":
-        print("用户中止，已清理所有测试数据。")
+        logging.info("用户中止，已清理所有测试数据。")
         clear_all_data(manager)
         exit(0)
 
@@ -386,12 +386,12 @@ if __name__ == "__main__":
     passed = isinstance(all_info, list)
     print_result("list_collection()能返回所有collection列表", str(passed), passed)
 
-    print("\n==中间测试==")
-    print("请确认manager.json、collection磁盘文件已经存在。")
-    print("输入yes继续从磁盘加载测试，否则中止（将自动清理）:")
+    logging.info("\n==中间测试==")
+    logging.info("请确认manager.json、collection磁盘文件已经存在。")
+    logging.info("输入yes继续从磁盘加载测试，否则中止（将自动清理）:")
     ans = input().strip().lower()
     if ans != "yes":
-        print("用户中止，已清理所有测试数据。")
+        logging.info("用户中止，已清理所有测试数据。")
         clear_all_data(manager)
         exit(0)
 
@@ -419,4 +419,4 @@ if __name__ == "__main__":
 
     # 清理所有
     clear_all_data(manager)
-    print("\n所有测试完成，已清理测试数据！")
+    logging.info("\n所有测试完成，已清理测试数据！")

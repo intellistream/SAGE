@@ -1,3 +1,4 @@
+import logging
 import json
 import tempfile
 import threading
@@ -302,7 +303,7 @@ class PremiumUserFilter(FilterFunction):
     """只保留高级用户"""
 
     def execute(self, data: Any) -> bool:
-        print(f"🔍 PremiumUserFilter.execute called with data: {data}")
+        logging.info(f"🔍 PremiumUserFilter.execute called with data: {data}")
         self.logger.info(f"🔍 PremiumUserFilter.execute called with data: {data}")
 
         if data.get("type") == "preference_info":
@@ -311,7 +312,7 @@ class PremiumUserFilter(FilterFunction):
                 self.logger.info(
                     f"✅ PremiumUserFilter: accepted premium user {data.get('user_id')}"
                 )
-                print(
+                logging.info(
                     f"✅ PremiumUserFilter: accepted premium user {data.get('user_id')}"
                 )
                 return True
@@ -319,7 +320,7 @@ class PremiumUserFilter(FilterFunction):
                 self.logger.info(
                     f"❌ PremiumUserFilter: rejected non-premium user {data.get('user_id')}"
                 )
-                print(
+                logging.info(
                     f"❌ PremiumUserFilter: rejected non-premium user {data.get('user_id')}"
                 )
                 return False
@@ -328,7 +329,7 @@ class PremiumUserFilter(FilterFunction):
         self.logger.info(
             f"✅ PremiumUserFilter: passed non-preference data {data.get('type')}"
         )
-        print(f"✅ PremiumUserFilter: passed non-preference data {data.get('type')}")
+        logging.info(f"✅ PremiumUserFilter: passed non-preference data {data.get('type')}")
         return data.get("type") != "preference_info"
 
 
@@ -668,7 +669,7 @@ class JoinResultSink(SinkFunction):
             )
 
         # 打印调试信息
-        print(
+        logging.info(
             f"🔗 [Instance {self.parallel_index}] Join: {join_type} | {key_field}={key_value}"
         )
 
@@ -707,7 +708,7 @@ class JoinResultSink(SinkFunction):
         results = {}
 
         if not output_file.exists():
-            print(f"📂 No results file found: {output_file}")
+            logging.info(f"📂 No results file found: {output_file}")
             return results
 
         try:
@@ -728,13 +729,13 @@ class JoinResultSink(SinkFunction):
                         results[parallel_index].append(data)
 
                     except json.JSONDecodeError as e:
-                        print(f"⚠️ Failed to parse line {line_num}: {e}")
+                        logging.info(f"⚠️ Failed to parse line {line_num}: {e}")
                         continue
 
         except Exception as e:
-            print(f"❌ Failed to read results file: {e}")
+            logging.info(f"❌ Failed to read results file: {e}")
 
-        print(
+        logging.info(
             f"📂 Read {sum(len(data_list) for data_list in results.values())} records from {len(results)} parallel instances"
         )
         return results
@@ -749,7 +750,7 @@ class JoinResultSink(SinkFunction):
 
         if output_file.exists():
             output_file.unlink()
-            print(f"🗑️ Cleared results file: {output_file}")
+            logging.info(f"🗑️ Cleared results file: {output_file}")
 
     @classmethod
     def get_received_data(cls, output_file=None):
@@ -770,7 +771,7 @@ class TestJoinFunctionality:
 
     # def test_flatmap_filter_join_pipeline(self):
     #     """测试完整的FlatMap -> Filter -> Join管道"""
-    #     print("\n🚀 Testing Complete FlatMap -> Filter -> Join Pipeline")
+    #     logging.info("\n🚀 Testing Complete FlatMap -> Filter -> Join Pipeline")
 
     #     env = LocalEnvironment("flatmap_filter_join_test")
 
@@ -798,10 +799,10 @@ class TestJoinFunctionality:
     #         .sink(JoinResultSink, parallelism=1)
     #     )
 
-    #     print("📊 Pipeline: OrderSource -> flatmap -> filter -> keyby")
-    #     print("           UserSource -> flatmap -> filter -> keyby")
-    #     print("           user_stream.connect(order_stream).join(UserOrderJoin)")
-    #     print("🎯 Expected: User and order data joined on user_id\n")
+    #     logging.info("📊 Pipeline: OrderSource -> flatmap -> filter -> keyby")
+    #     logging.info("           UserSource -> flatmap -> filter -> keyby")
+    #     logging.info("           user_stream.connect(order_stream).join(UserOrderJoin)")
+    #     logging.info("🎯 Expected: User and order data joined on user_id\n")
 
     #     try:
     #         env.submit()
@@ -816,7 +817,7 @@ class TestJoinFunctionality:
 
     def test_multi_stage_join_pipeline(self):
         """测试多阶段Join管道"""
-        print("\n🚀 Testing Multi-Stage Join Pipeline")
+        logging.info("\n🚀 Testing Multi-Stage Join Pipeline")
 
         env = LocalEnvironment("multi_stage_join_test")
 
@@ -855,12 +856,12 @@ class TestJoinFunctionality:
             .sink(JoinResultSink, parallelism=1)
         )
 
-        print("📊 Multi-Stage Pipeline:")
-        print("   OrderSource -> flatmap -> filter(order_info) -> keyby")
-        print("   OrderSource -> flatmap -> filter(payment_info) -> keyby")
-        print("   UserSource -> flatmap -> filter(premium) -> keyby")
-        print("   premium_user.connect(payment).join(UserPaymentJoin)")
-        print("🎯 Expected: Premium users with their payment information\n")
+        logging.info("📊 Multi-Stage Pipeline:")
+        logging.info("   OrderSource -> flatmap -> filter(order_info) -> keyby")
+        logging.info("   OrderSource -> flatmap -> filter(payment_info) -> keyby")
+        logging.info("   UserSource -> flatmap -> filter(premium) -> keyby")
+        logging.info("   premium_user.connect(payment).join(UserPaymentJoin)")
+        logging.info("🎯 Expected: Premium users with their payment information\n")
 
         try:
             env.submit()
@@ -875,7 +876,7 @@ class TestJoinFunctionality:
 
     def test_windowed_join_pipeline(self):
         """测试基于时间窗口的Join"""
-        print("\n🚀 Testing Windowed Join Pipeline")
+        logging.info("\n🚀 Testing Windowed Join Pipeline")
 
         env = LocalEnvironment("windowed_join_test")
 
@@ -901,11 +902,11 @@ class TestJoinFunctionality:
             .sink(JoinResultSink, parallelism=1)
         )
 
-        print("📊 Windowed Join Pipeline:")
-        print("   OrderSource -> flatmap -> filter(order_info) -> keyby(order_id)")
-        print("   OrderSource -> flatmap -> filter(event_info) -> keyby(order_id)")
-        print("   order_info.connect(event_info).join(OrderEventJoin, window=2s)")
-        print("🎯 Expected: Orders matched with their events within time window\n")
+        logging.info("📊 Windowed Join Pipeline:")
+        logging.info("   OrderSource -> flatmap -> filter(order_info) -> keyby(order_id)")
+        logging.info("   OrderSource -> flatmap -> filter(event_info) -> keyby(order_id)")
+        logging.info("   order_info.connect(event_info).join(OrderEventJoin, window=2s)")
+        logging.info("🎯 Expected: Orders matched with their events within time window\n")
 
         try:
             env.submit()
@@ -920,7 +921,7 @@ class TestJoinFunctionality:
 
     def test_complex_pipeline_with_multiple_joins(self):
         """测试包含多个Join的复杂管道"""
-        print("\n🚀 Testing Complex Pipeline with Multiple Joins")
+        logging.info("\n🚀 Testing Complex Pipeline with Multiple Joins")
 
         env = LocalEnvironment("complex_multi_join_test")
 
@@ -962,12 +963,12 @@ class TestJoinFunctionality:
         user_payment.sink(JoinResultSink, parallelism=1)
         user_order.sink(JoinResultSink, parallelism=1)
 
-        print("📊 Complex Multi-Join Pipeline:")
-        print("   UserSource -> flatmap -> filter(user_info) -> keyby")
-        print("   OrderSource -> flatmap -> filter(payment_info) -> keyby")
-        print("   OrderSource -> flatmap -> filter(order_info) -> keyby")
-        print("   user.connect(payment).join() + user.connect(order).join()")
-        print("🎯 Expected: Both user-payment and user-order joins\n")
+        logging.info("📊 Complex Multi-Join Pipeline:")
+        logging.info("   UserSource -> flatmap -> filter(user_info) -> keyby")
+        logging.info("   OrderSource -> flatmap -> filter(payment_info) -> keyby")
+        logging.info("   OrderSource -> flatmap -> filter(order_info) -> keyby")
+        logging.info("   user.connect(payment).join() + user.connect(order).join()")
+        logging.info("🎯 Expected: Both user-payment and user-order joins\n")
 
         try:
             env.submit()
@@ -982,7 +983,7 @@ class TestJoinFunctionality:
 
     def test_join_with_empty_streams(self):
         """测试空流的Join处理"""
-        print("\n🚀 Testing Join with Empty/Filtered Streams")
+        logging.info("\n🚀 Testing Join with Empty/Filtered Streams")
 
         env = LocalEnvironment("empty_stream_join_test")
 
@@ -1009,11 +1010,11 @@ class TestJoinFunctionality:
             .sink(JoinResultSink, parallelism=1)
         )
 
-        print("📊 Empty Stream Join Pipeline:")
-        print("   UserSource -> flatmap -> filter(False) -> keyby")
-        print("   OrderSource -> flatmap -> filter(order_info) -> keyby")
-        print("   empty_user.connect(order).join()")
-        print("🎯 Expected: No join results due to empty user stream\n")
+        logging.info("📊 Empty Stream Join Pipeline:")
+        logging.info("   UserSource -> flatmap -> filter(False) -> keyby")
+        logging.info("   OrderSource -> flatmap -> filter(order_info) -> keyby")
+        logging.info("   empty_user.connect(order).join()")
+        logging.info("🎯 Expected: No join results due to empty user stream\n")
 
         try:
             env.submit()
@@ -1028,7 +1029,7 @@ class TestJoinFunctionality:
 
     def test_windowed_join_pipeline(self):
         """测试基于时间窗口的Join"""
-        print("\n🚀 Testing Windowed Join Pipeline")
+        logging.info("\n🚀 Testing Windowed Join Pipeline")
 
         env = LocalEnvironment("windowed_join_test")
 
@@ -1054,11 +1055,11 @@ class TestJoinFunctionality:
             .sink(JoinResultSink, parallelism=1)
         )
 
-        print("📊 Windowed Join Pipeline:")
-        print("   OrderSource -> flatmap -> filter(order_info) -> keyby(order_id)")
-        print("   OrderSource -> flatmap -> filter(event_info) -> keyby(order_id)")
-        print("   order_info.connect(event_info).join(OrderEventJoin, window=2s)")
-        print("🎯 Expected: Orders matched with their events within time window\n")
+        logging.info("📊 Windowed Join Pipeline:")
+        logging.info("   OrderSource -> flatmap -> filter(order_info) -> keyby(order_id)")
+        logging.info("   OrderSource -> flatmap -> filter(event_info) -> keyby(order_id)")
+        logging.info("   order_info.connect(event_info).join(OrderEventJoin, window=2s)")
+        logging.info("🎯 Expected: Orders matched with their events within time window\n")
 
         try:
             env.submit()
@@ -1071,7 +1072,7 @@ class TestJoinFunctionality:
 
     def test_complex_pipeline_with_multiple_joins(self):
         """测试包含多个Join的复杂管道"""
-        print("\n🚀 Testing Complex Pipeline with Multiple Joins")
+        logging.info("\n🚀 Testing Complex Pipeline with Multiple Joins")
 
         env = LocalEnvironment("complex_multi_join_test")
 
@@ -1113,12 +1114,12 @@ class TestJoinFunctionality:
         user_payment.sink(JoinResultSink, parallelism=1)
         user_order.sink(JoinResultSink, parallelism=1)
 
-        print("📊 Complex Multi-Join Pipeline:")
-        print("   UserSource -> flatmap -> filter(user_info) -> keyby")
-        print("   OrderSource -> flatmap -> filter(payment_info) -> keyby")
-        print("   OrderSource -> flatmap -> filter(order_info) -> keyby")
-        print("   user.connect(payment).join() + user.connect(order).join()")
-        print("🎯 Expected: Both user-payment and user-order joins\n")
+        logging.info("📊 Complex Multi-Join Pipeline:")
+        logging.info("   UserSource -> flatmap -> filter(user_info) -> keyby")
+        logging.info("   OrderSource -> flatmap -> filter(payment_info) -> keyby")
+        logging.info("   OrderSource -> flatmap -> filter(order_info) -> keyby")
+        logging.info("   user.connect(payment).join() + user.connect(order).join()")
+        logging.info("🎯 Expected: Both user-payment and user-order joins\n")
 
         try:
             env.submit()
@@ -1131,7 +1132,7 @@ class TestJoinFunctionality:
 
     def test_join_with_empty_streams(self):
         """测试空流的Join处理"""
-        print("\n🚀 Testing Join with Empty/Filtered Streams")
+        logging.info("\n🚀 Testing Join with Empty/Filtered Streams")
 
         env = LocalEnvironment("empty_stream_join_test")
 
@@ -1158,11 +1159,11 @@ class TestJoinFunctionality:
             .sink(JoinResultSink, parallelism=1)
         )
 
-        print("📊 Empty Stream Join Pipeline:")
-        print("   UserSource -> flatmap -> filter(False) -> keyby")
-        print("   OrderSource -> flatmap -> filter(order_info) -> keyby")
-        print("   empty_user.connect(order).join()")
-        print("🎯 Expected: No join results due to empty user stream\n")
+        logging.info("📊 Empty Stream Join Pipeline:")
+        logging.info("   UserSource -> flatmap -> filter(False) -> keyby")
+        logging.info("   OrderSource -> flatmap -> filter(order_info) -> keyby")
+        logging.info("   empty_user.connect(order).join()")
+        logging.info("🎯 Expected: No join results due to empty user stream\n")
 
         try:
             env.submit()
@@ -1181,8 +1182,8 @@ class TestJoinFunctionality:
         """验证用户-订单Join结果"""
         received_data = JoinResultSink.get_received_data()
 
-        print("\n📋 User-Order Join Results:")
-        print("=" * 50)
+        logging.info("\n📋 User-Order Join Results:")
+        logging.info("=" * 50)
 
         all_joins = []
         for instance_id, data_list in received_data.items():
@@ -1193,12 +1194,12 @@ class TestJoinFunctionality:
                     user_name = data.get("user_name")
                     order_id = data.get("order_id")
                     amount = data.get("order_amount")
-                    print(
+                    logging.info(
                         f"   - User: {user_name} ({user_id}) -> Order: {order_id} (${amount})"
                     )
 
-        print(f"\n🎯 User-Order Join Summary:")
-        print(f"   - Total user-order joins: {len(all_joins)}")
+        logging.info(f"\n🎯 User-Order Join Summary:")
+        logging.info(f"   - Total user-order joins: {len(all_joins)}")
 
         # 验证Join结果
         assert len(all_joins) > 0, "❌ No user-order joins found"
@@ -1211,14 +1212,14 @@ class TestJoinFunctionality:
                 join_data.get("source") == "user_order_join"
             ), f"❌ Wrong source: {join_data}"
 
-        print("✅ User-Order join test passed: Users successfully joined with orders")
+        logging.info("✅ User-Order join test passed: Users successfully joined with orders")
 
     def _verify_user_payment_join_results(self):
         """验证用户-支付Join结果"""
         received_data = JoinResultSink.get_received_data()
 
-        print("\n📋 User-Payment Join Results:")
-        print("=" * 50)
+        logging.info("\n📋 User-Payment Join Results:")
+        logging.info("=" * 50)
 
         all_joins = []
         with_payment = 0
@@ -1234,27 +1235,27 @@ class TestJoinFunctionality:
 
                     if has_payment:
                         with_payment += 1
-                        print(f"   - User: {user_name} -> Payment: ${payment_amount}")
+                        logging.info(f"   - User: {user_name} -> Payment: ${payment_amount}")
                     else:
                         without_payment += 1
-                        print(f"   - User: {user_name} -> No payment")
+                        logging.info(f"   - User: {user_name} -> No payment")
 
-        print(f"\n🎯 User-Payment Join Summary:")
-        print(f"   - Total user-payment joins: {len(all_joins)}")
-        print(f"   - With payments: {with_payment}")
-        print(f"   - Without payments: {without_payment}")
+        logging.info(f"\n🎯 User-Payment Join Summary:")
+        logging.info(f"   - Total user-payment joins: {len(all_joins)}")
+        logging.info(f"   - With payments: {with_payment}")
+        logging.info(f"   - Without payments: {without_payment}")
 
         # 验证Join结果
         assert len(all_joins) > 0, "❌ No user-payment joins found"
 
-        print("✅ User-Payment join test passed: Users joined with payment status")
+        logging.info("✅ User-Payment join test passed: Users joined with payment status")
 
     def _verify_order_event_join_results(self):
         """验证订单-事件Join结果"""
         received_data = JoinResultSink.get_received_data()
 
-        print("\n📋 Order-Event Join Results:")
-        print("=" * 50)
+        logging.info("\n📋 Order-Event Join Results:")
+        logging.info("=" * 50)
 
         all_joins = []
         for instance_id, data_list in received_data.items():
@@ -1264,12 +1265,12 @@ class TestJoinFunctionality:
                     order_id = data.get("order_id")
                     event_type = data.get("event_type")
                     time_diff = data.get("time_diff", 0)
-                    print(
+                    logging.info(
                         f"   - Order: {order_id} -> Event: {event_type} (time_diff: {time_diff}ms)"
                     )
 
-        print(f"\n🎯 Order-Event Join Summary:")
-        print(f"   - Total order-event joins: {len(all_joins)}")
+        logging.info(f"\n🎯 Order-Event Join Summary:")
+        logging.info(f"   - Total order-event joins: {len(all_joins)}")
 
         # 验证窗口Join结果
         assert len(all_joins) > 0, "❌ No order-event joins found"
@@ -1279,7 +1280,7 @@ class TestJoinFunctionality:
             time_diff = join_data.get("time_diff", 0)
             assert time_diff >= 0, f"❌ Invalid time diff: {time_diff}"
 
-        print(
+        logging.info(
             "✅ Order-Event join test passed: Orders joined with events in time window"
         )
 
@@ -1287,8 +1288,8 @@ class TestJoinFunctionality:
         """验证复杂多Join结果"""
         received_data = JoinResultSink.get_received_data()
 
-        print("\n📋 Complex Multi-Join Results:")
-        print("=" * 50)
+        logging.info("\n📋 Complex Multi-Join Results:")
+        logging.info("=" * 50)
 
         user_payment_joins = []
         user_order_joins = []
@@ -1302,36 +1303,36 @@ class TestJoinFunctionality:
                     user_order_joins.append(data)
 
                 user_id = data.get("user_id", "unknown")
-                print(f"   - {join_type}: user {user_id}")
+                logging.info(f"   - {join_type}: user {user_id}")
 
-        print(f"\n🎯 Complex Multi-Join Summary:")
-        print(f"   - User-payment joins: {len(user_payment_joins)}")
-        print(f"   - User-order joins: {len(user_order_joins)}")
-        print(f"   - Total joins: {len(user_payment_joins) + len(user_order_joins)}")
+        logging.info(f"\n🎯 Complex Multi-Join Summary:")
+        logging.info(f"   - User-payment joins: {len(user_payment_joins)}")
+        logging.info(f"   - User-order joins: {len(user_order_joins)}")
+        logging.info(f"   - Total joins: {len(user_payment_joins) + len(user_order_joins)}")
 
         # 验证两种Join都有结果
         assert (
             len(user_payment_joins) > 0 or len(user_order_joins) > 0
         ), "❌ No joins found"
 
-        print("✅ Complex multi-join test passed: Multiple join types working")
+        logging.info("✅ Complex multi-join test passed: Multiple join types working")
 
     def _verify_empty_stream_join_results(self):
         """验证空流Join结果"""
         received_data = JoinResultSink.get_received_data()
 
-        print("\n📋 Empty Stream Join Results:")
-        print("=" * 50)
+        logging.info("\n📋 Empty Stream Join Results:")
+        logging.info("=" * 50)
 
         total_joins = sum(len(data_list) for data_list in received_data.values())
-        print(f"🔹 Total join results: {total_joins}")
+        logging.info(f"🔹 Total join results: {total_joins}")
 
         # 空流Join应该没有结果
         assert (
             total_joins == 0
         ), f"❌ Expected no joins with empty stream, got {total_joins}"
 
-        print("✅ Empty stream join test passed: No results as expected")
+        logging.info("✅ Empty stream join test passed: No results as expected")
 
 
 if __name__ == "__main__":

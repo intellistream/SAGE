@@ -1,4 +1,5 @@
 """
+import logging
 真实SAGE工作流测试
 
 使用SAGE的完整流水线机制，展示服务在真实算子中的使用
@@ -35,20 +36,20 @@ class FeatureStoreService:
 
     def start_running(self):
         self.is_running = True
-        print("Feature store service started")
+        logging.info("Feature store service started")
 
     def terminate(self):
         self.is_running = False
-        print("Feature store service terminated")
+        logging.info("Feature store service terminated")
 
     def get_user_features(self, user_id: str):
         features = self.features["user_features"].get(user_id, {})
-        print(f"Retrieved user features for {user_id}: {features}")
+        logging.info(f"Retrieved user features for {user_id}: {features}")
         return features
 
     def get_item_features(self, item_id: str):
         features = self.features["item_features"].get(item_id, {})
-        print(f"Retrieved item features for {item_id}: {features}")
+        logging.info(f"Retrieved item features for {item_id}: {features}")
         return features
 
     def batch_get_features(self, entity_type: str, entity_ids: list):
@@ -56,7 +57,7 @@ class FeatureStoreService:
         results = {}
         for entity_id in entity_ids:
             results[entity_id] = feature_table.get(entity_id, {})
-        print(f"Batch retrieved {len(results)} {entity_type} features")
+        logging.info(f"Batch retrieved {len(results)} {entity_type} features")
         return results
 
 
@@ -71,11 +72,11 @@ class ModelService:
 
     def start_running(self):
         self.is_running = True
-        print(f"Model service started: {self.model_name}")
+        logging.info(f"Model service started: {self.model_name}")
 
     def terminate(self):
         self.is_running = False
-        print(f"Model service terminated: {self.model_name}")
+        logging.info(f"Model service terminated: {self.model_name}")
 
     def predict(self, features: dict):
         if not self.is_running:
@@ -90,7 +91,7 @@ class ModelService:
             "features_used": list(features.keys()),
         }
 
-        print(f"Model prediction {self.prediction_count}: score={result['score']}")
+        logging.info(f"Model prediction {self.prediction_count}: score={result['score']}")
         return result
 
     def batch_predict(self, features_list: list):
@@ -102,7 +103,7 @@ class ModelService:
             prediction = self.predict(features)
             results.append(prediction)
 
-        print(f"Batch prediction completed: {len(results)} predictions")
+        logging.info(f"Batch prediction completed: {len(results)} predictions")
         return results
 
 
@@ -115,11 +116,11 @@ class CacheService:
 
     def start_running(self):
         self.is_running = True
-        print(f"Cache service started with max_size={self.max_size}")
+        logging.info(f"Cache service started with max_size={self.max_size}")
 
     def terminate(self):
         self.is_running = False
-        print("Cache service terminated")
+        logging.info("Cache service terminated")
 
     def get(self, key: str):
         result = self.cache.get(key, None)
@@ -145,11 +146,11 @@ class LogService:
 
     def start_running(self):
         self.is_running = True
-        print(f"Log service started with level {self.log_level}")
+        logging.info(f"Log service started with level {self.log_level}")
 
     def terminate(self):
         self.is_running = False
-        print("Log service terminated")
+        logging.info("Log service terminated")
 
     def log(self, level: str, message: str, context: dict = None):
         if not self.is_running:
@@ -162,7 +163,7 @@ class LogService:
             "context": context or {},
         }
         self.logs.append(log_entry)
-        print(f"[{log_entry['timestamp']}] {level}: {message}")
+        logging.info(f"[{log_entry['timestamp']}] {level}: {message}")
         return True
 
     def info(self, message: str, context: dict = None):
@@ -433,39 +434,39 @@ class ResultSinkFunction(BaseFunction):
         )
 
         # 打印结果
-        print(f"\n=== 推荐结果 #{self.processed_count} ===")
-        print(f"请求ID: {output['request_id']}")
-        print(f"用户ID: {output['user_id']}")
-        print(f"缓存命中: {output['from_cache']}")
-        print("推荐列表:")
+        logging.info(f"\n=== 推荐结果 #{self.processed_count} ===")
+        logging.info(f"请求ID: {output['request_id']}")
+        logging.info(f"用户ID: {output['user_id']}")
+        logging.info(f"缓存命中: {output['from_cache']}")
+        logging.info("推荐列表:")
         for rec in output["recommendations"]:
-            print(f"  {rec['rank']}. {rec['item_id']} (分数: {rec['score']})")
-        print(f"处理时间: {output['processed_at']}")
-        print("=" * 40)
+            logging.info(f"  {rec['rank']}. {rec['item_id']} (分数: {rec['score']})")
+        logging.info(f"处理时间: {output['processed_at']}")
+        logging.info("=" * 40)
 
         return output
 
 
 def test_realistic_sage_workflow():
     """测试真实的SAGE工作流"""
-    print("=== 真实SAGE工作流测试 ===")
+    logging.info("=== 真实SAGE工作流测试 ===")
 
     try:
         # 1. 创建环境
-        print("\n1. 创建环境:")
+        logging.info("\n1. 创建环境:")
         env = LocalEnvironment("realistic_workflow_test")
 
         # 2. 注册服务
-        print("\n2. 注册服务:")
+        logging.info("\n2. 注册服务:")
         env.register_service("feature_store", FeatureStoreService)
         env.register_service("model", ModelService, model_name="workflow_model_v1")
         env.register_service("cache", CacheService, max_size=500)
         env.register_service("log", LogService, log_level="INFO")
 
-        print("所有服务注册完成")
+        logging.info("所有服务注册完成")
 
         # 3. 构建流处理管道
-        print("\n3. 构建流处理管道:")
+        logging.info("\n3. 构建流处理管道:")
 
         # 使用流式API构建处理管道
         stream = (
@@ -475,24 +476,24 @@ def test_realistic_sage_workflow():
             .map(ResultSinkFunction)
         )
 
-        print("流处理管道构建完成")
+        logging.info("流处理管道构建完成")
 
         # 4. 提交并运行流处理管道
-        print("\n4. 提交流处理管道:")
+        logging.info("\n4. 提交流处理管道:")
         env.submit()
 
         # 5. 等待处理完成
-        print("\n5. 等待处理完成...")
+        logging.info("\n5. 等待处理完成...")
         time.sleep(15)  # 给足够时间让流处理完成
 
         # 6. 检查服务状态
-        print("\n6. 检查服务状态:")
-        print("流水线执行完成！")
+        logging.info("\n6. 检查服务状态:")
+        logging.info("流水线执行完成！")
 
-        print("\n=== 真实工作流测试完成 ===")
+        logging.info("\n=== 真实工作流测试完成 ===")
 
     except Exception as e:
-        print(f"测试失败: {e}")
+        logging.info(f"测试失败: {e}")
         import traceback
 
         traceback.print_exc()
@@ -500,7 +501,7 @@ def test_realistic_sage_workflow():
         # 清理环境
         try:
             env.stop()
-            print("环境已清理")
+            logging.info("环境已清理")
         except:
             pass
 

@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import json
 import re
 from typing import List, Tuple
@@ -278,16 +279,16 @@ class LongRefiner:
         budget: int = 2048,
         ratio: float = None,
     ) -> List[str]:
-        print(
+        self.logger.info(
             f"DEBUG: LongRefiner.run called with question='{question}', doc_count={len(document_list)}, budget={budget}"
         )
         batch_result = self.batch_run([question], [document_list], budget, ratio)
-        print(
+        self.logger.info(
             f"DEBUG: batch_run returned: {batch_result} (type: {type(batch_result)}, length: {len(batch_result) if batch_result else 'None'})"
         )
 
         if not batch_result:
-            print("ERROR: batch_run returned empty list!")
+            self.logger.info("ERROR: batch_run returned empty list!")
             return []
 
         return batch_result[0]
@@ -309,27 +310,27 @@ class LongRefiner:
         Output:
             List[str], each string is a refiner output of the document in document_list
         """
-        print(
+        self.logger.info(
             f"DEBUG: batch_run called with {len(question_list)} questions, {len(document_list)} doc_lists"
         )
 
         try:
             # step1: query analysis
-            print("DEBUG: Starting query analysis...")
+            self.logger.info("DEBUG: Starting query analysis...")
             query_analysis_result = self.run_query_analysis(question_list)
-            print(
+            self.logger.info(
                 f"DEBUG: Query analysis completed: {len(query_analysis_result)} results"
             )
 
             # step2: doc structuring
-            print("DEBUG: Starting doc structuring...")
+            self.logger.info("DEBUG: Starting doc structuring...")
             doc_structuring_result = self.run_doc_structuring(document_list)
-            print(
+            self.logger.info(
                 f"DEBUG: Doc structuring completed: {len(doc_structuring_result)} results"
             )
 
             # step3: context selection (local + global)
-            print("DEBUG: Starting context selection...")
+            self.logger.info("DEBUG: Starting context selection...")
             # refined_content_list: List[str]: each string is the refined content of the question
             refined_content_list = self.run_all_search(
                 question_list=question_list,
@@ -339,11 +340,11 @@ class LongRefiner:
                 budget=budget,
                 ratio=ratio,
             )
-            print(f"DEBUG: Context selection completed: {refined_content_list}")
+            self.logger.info(f"DEBUG: Context selection completed: {refined_content_list}")
 
             return refined_content_list
         except Exception as e:
-            print(f"ERROR in batch_run: {e}")
+            self.logger.info(f"ERROR in batch_run: {e}")
             import traceback
 
             traceback.print_exc()
@@ -821,7 +822,7 @@ class LongRefiner:
             List[str], each string is a refiner output of the document in document_list
         """
         # collect hierarchical nodes
-        # print(doc_structuring_result[0][0])
+        # self.logger.info(doc_structuring_result[0][0])
         # assert False
         all_nodes = self._collect_hierarchical_nodes(
             question_list, doc_structuring_result
@@ -984,8 +985,8 @@ class LongRefiner:
         )
         for item_node_list in refined_node_list:
             for node in item_node_list:
-                print(node)
-                print("-----")
+                self.logger.info(node)
+                self.logger.info("-----")
 
         final_contents_list = [
             [node["contents"] for node in item_node_list]
