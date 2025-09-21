@@ -1,4 +1,5 @@
 """
+import logging
 End-to-end integration tests for the agent workflow.
 
 These tests verify the complete agent pipeline added in commit 12aec700c63407e1f5d79455b2d64a60a6688e96,
@@ -388,10 +389,10 @@ class TestAgentWorkflowIntegration:
                     # This should call main() and then print success message
                     try:
                         agent.main()
-                        print("\n✅ Test passed: Agent pipeline structure validated")
+                        logging.info("\n✅ Test passed: Agent pipeline structure validated")
                         test_passed = True
                     except Exception as e:
-                        print(f"❌ Test failed: {e}")
+                        logging.info(f"❌ Test failed: {e}")
                         test_passed = False
 
                 # Verify main was called

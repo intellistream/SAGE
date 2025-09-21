@@ -1,4 +1,5 @@
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 VDB Service API 使用示例
 展示如何正确使用VDB微服务的API接口进行向量存储和相似性搜索
 """
@@ -11,8 +12,8 @@ from sage.middleware.services.vdb import create_vdb_service_factory
 
 def test_vdb_service_api():
     """测试VDB服务API的正确使用方式"""
-    print("🚀 VDB Service API Demo")
-    print("=" * 50)
+    self.logger.info("🚀 VDB Service API Demo")
+    self.logger.info("=" * 50)
 
     # 创建环境
     env = LocalEnvironment("vdb_service_demo")
@@ -27,11 +28,11 @@ def test_vdb_service_api():
     )
     env.register_service_factory("demo_vdb_service", vdb_factory)
 
-    print("✅ VDB Service registered with FAISS backend")
-    print("   - Index: IndexFlatL2 (精确L2距离)")
-    print("   - Dimension: 384")
-    print("   - Max vectors: 100,000")
-    print("   - Similarity threshold: 0.8")
+    self.logger.info("✅ VDB Service registered with FAISS backend")
+    self.logger.info("   - Index: IndexFlatL2 (精确L2距离)")
+    self.logger.info("   - Dimension: 384")
+    self.logger.info("   - Max vectors: 100,000")
+    self.logger.info("   - Similarity threshold: 0.8")
 
     # 在实际应用中，你需要启动环境并获取服务代理
     # env.submit()  # 启动环境
@@ -43,22 +44,22 @@ def test_vdb_service_api():
 
 def demonstrate_vdb_api_usage():
     """演示VDB服务API的标准使用模式"""
-    print("\n📝 VDB Service API Usage Patterns:")
-    print("-" * 40)
+    self.logger.info("\n📝 VDB Service API Usage Patterns:")
+    self.logger.info("-" * 40)
 
     # 展示API接口
-    print("💡 VDB Service API Interface:")
-    print("   class VDBServiceAPI:")
-    print("     - add_vectors(documents: List[Dict]) -> List[str]")
-    print("     - search(query_vector, top_k, threshold) -> List[Dict]")
-    print("     - get_vector(doc_id: str) -> Optional[Dict]")
-    print("     - delete_vectors(doc_ids: List[str]) -> bool")
-    print("     - update_vector(doc_id: str, document: Dict) -> bool")
-    print("     - count() -> int")
-    print("     - save_index(path: str) -> bool")
-    print("     - load_index(path: str) -> bool")
+    self.logger.info("💡 VDB Service API Interface:")
+    self.logger.info("   class VDBServiceAPI:")
+    self.logger.info("     - add_vectors(documents: List[Dict]) -> List[str]")
+    self.logger.info("     - search(query_vector, top_k, threshold) -> List[Dict]")
+    self.logger.info("     - get_vector(doc_id: str) -> Optional[Dict]")
+    self.logger.info("     - delete_vectors(doc_ids: List[str]) -> bool")
+    self.logger.info("     - update_vector(doc_id: str, document: Dict) -> bool")
+    self.logger.info("     - count() -> int")
+    self.logger.info("     - save_index(path: str) -> bool")
+    self.logger.info("     - load_index(path: str) -> bool")
 
-    print("\n📋 Standard Usage Example:")
+    self.logger.info("\n📋 Standard Usage Example:")
     usage_code = """
 # 1. 获取服务代理
 vdb_service = env.get_service_proxy("demo_vdb_service")
@@ -88,7 +89,7 @@ documents = [
 
 # 3. 添加向量到数据库
 doc_ids = vdb_service.add_vectors(documents)
-print(f"Added documents: {doc_ids}")
+self.logger.info(f"Added documents: {doc_ids}")
 
 # 4. 向量相似性搜索
 query_vector = np.random.random(384).tolist()
@@ -114,10 +115,10 @@ success = vdb_service.update_vector("doc_001", updated_doc)
 total_count = vdb_service.count()
 saved = vdb_service.save_index("/path/to/index")
 """
-    print(usage_code)
+    self.logger.info(usage_code)
 
     # 模拟执行结果
-    print("🎯 Expected Results:")
+    self.logger.info("🎯 Expected Results:")
     operations = [
         ("add_vectors(documents)", "['doc_001', 'doc_002']"),
         ("search(query_vector, top_k=5)", "[{'id': 'doc_001', 'score': 0.92, ...}]"),
@@ -128,13 +129,13 @@ saved = vdb_service.save_index("/path/to/index")
     ]
 
     for operation, result in operations:
-        print(f"   {operation:<35} -> {result}")
+        self.logger.info(f"   {operation:<35} -> {result}")
 
 
 def demonstrate_semantic_search_patterns():
     """演示语义搜索的高级模式"""
-    print("\n🔍 Semantic Search Patterns:")
-    print("-" * 40)
+    self.logger.info("\n🔍 Semantic Search Patterns:")
+    self.logger.info("-" * 40)
 
     search_patterns = '''
 # 1. 多模态文档搜索
@@ -225,13 +226,13 @@ class RealTimeIndex:
         
         self.pending_updates.clear()
 '''
-    print(search_patterns)
+    self.logger.info(search_patterns)
 
 
 def demonstrate_vector_management():
     """演示向量管理的最佳实践"""
-    print("\n🗂️ Vector Management Best Practices:")
-    print("-" * 40)
+    self.logger.info("\n🗂️ Vector Management Best Practices:")
+    self.logger.info("-" * 40)
 
     management_patterns = '''
 # 1. 向量版本管理
@@ -281,7 +282,7 @@ class IndexOptimizer:
         # 重建索引（如果支持）
         # self.vdb.rebuild_index()
         
-        print(f"Index optimized, backup saved to {backup_path}")
+        self.logger.info(f"Index optimized, backup saved to {backup_path}")
     
     def cleanup_old_vectors(self, retention_days: int = 30):
         """清理旧向量"""
@@ -305,10 +306,10 @@ class VDBMonitor:
             "memory_usage": "内存使用情况"
         }
 '''
-    print(management_patterns)
+    self.logger.info(management_patterns)
 
     # 模拟向量数据
-    print("\n📝 VDB Operations Demo:")
+    self.logger.info("\n📝 VDB Operations Demo:")
 
     # 生成示例向量
     vectors = []
@@ -323,32 +324,32 @@ class VDBMonitor:
             }
         )
 
-    print(f"  add_vectors({len(vectors)} docs) -> ✅ Added 5 vectors")
+    self.logger.info(f"  add_vectors({len(vectors)} docs) -> ✅ Added 5 vectors")
 
     # 搜索示例
     query_vector = np.random.random(384).tolist()
-    print(f"  search_vectors(query, top_k=3) -> 📖 Found 3 similar documents")
-    print(f"    - doc_2 (distance: 0.89)")
-    print(f"    - doc_1 (distance: 0.91)")
-    print(f"    - doc_4 (distance: 0.93)")
+    self.logger.info(f"  search_vectors(query, top_k=3) -> 📖 Found 3 similar documents")
+    self.logger.info(f"    - doc_2 (distance: 0.89)")
+    self.logger.info(f"    - doc_1 (distance: 0.91)")
+    self.logger.info(f"    - doc_4 (distance: 0.93)")
 
     # 其他操作
-    print(f"  get_vector('doc_1') -> 📖 Retrieved document")
-    print(f"  count() -> 📊 5 vectors")
-    print(f"  delete_vectors(['doc_0']) -> 🗑️  Deleted 1 vector")
-    print(f"  list_vectors(filter={{'type': 'document'}}) -> 📋 4 documents")
+    self.logger.info(f"  get_vector('doc_1') -> 📖 Retrieved document")
+    self.logger.info(f"  count() -> 📊 5 vectors")
+    self.logger.info(f"  delete_vectors(['doc_0']) -> 🗑️  Deleted 1 vector")
+    self.logger.info(f"  list_vectors(filter={{'type': 'document'}}) -> 📋 4 documents")
 
-    print("\n💡 VDB Service Features:")
-    print("   - FAISS高性能向量检索")
-    print("   - 多种索引类型 (Flat, HNSW, IVF, PQ)")
-    print("   - 元数据过滤")
-    print("   - 向量持久化")
-    print("   - 相似度搜索")
+    self.logger.info("\n💡 VDB Service Features:")
+    self.logger.info("   - FAISS高性能向量检索")
+    self.logger.info("   - 多种索引类型 (Flat, HNSW, IVF, PQ)")
+    self.logger.info("   - 元数据过滤")
+    self.logger.info("   - 向量持久化")
+    self.logger.info("   - 相似度搜索")
 
 
 def test_vdb_index_types():
     """演示不同的FAISS索引类型"""
-    print("\n🔧 FAISS Index Types:")
+    self.logger.info("\n🔧 FAISS Index Types:")
 
     index_configs = {
         "IndexFlatL2": {"description": "精确L2距离搜索，适合小数据集", "config": {}},
@@ -373,12 +374,12 @@ def test_vdb_index_types():
             index_type=index_type,
             faiss_config=info["config"],
         )
-        print(f"✅ {index_type}: {info['description']}")
+        self.logger.info(f"✅ {index_type}: {info['description']}")
 
 
 def test_vdb_applications():
     """演示VDB服务的应用场景"""
-    print("\n🎯 VDB Service Applications:")
+    self.logger.info("\n🎯 VDB Service Applications:")
 
     applications = [
         {
@@ -416,13 +417,13 @@ def test_vdb_applications():
     ]
 
     for app in applications:
-        print(f"  📚 {app['name']}: {app['description']}")
-        print(f"      配置: {app['config']}")
+        self.logger.info(f"  📚 {app['name']}: {app['description']}")
+        self.logger.info(f"      配置: {app['config']}")
 
 
 if __name__ == "__main__":
     test_vdb_service_api()
     demonstrate_semantic_search_patterns()
     demonstrate_vector_management()
-    print("\n🎯 VDB Service API demo completed!")
-    print("\n📚 Next: Check Memory service API examples")
+    self.logger.info("\n🎯 VDB Service API demo completed!")
+    self.logger.info("\n📚 Next: Check Memory service API examples")

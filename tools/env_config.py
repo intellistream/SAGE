@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+import logging
 SAGE Environment Configuration Utilities
 
 This module provides utilities for loading and managing environment variables
@@ -49,7 +50,7 @@ def load_sage_env(env_file: Optional[str] = None, override: bool = False) -> boo
         True if .env file was found and loaded, False otherwise.
     """
     if not DOTENV_AVAILABLE:
-        print(
+        logging.info(
             "Warning: python-dotenv not available. Install with: pip install python-dotenv"
         )
         return False
@@ -62,17 +63,17 @@ def load_sage_env(env_file: Optional[str] = None, override: bool = False) -> boo
 
     if env_file.exists():
         load_dotenv(env_file, override=override)
-        print(f"✅ Loaded environment from: {env_file}")
+        logging.info(f"✅ Loaded environment from: {env_file}")
         return True
     else:
         # Look for .env in current directory as fallback
         fallback_env = Path(".env")
         if fallback_env.exists():
             load_dotenv(fallback_env, override=override)
-            print(f"✅ Loaded environment from: {fallback_env}")
+            logging.info(f"✅ Loaded environment from: {fallback_env}")
             return True
         else:
-            print(f"ℹ️  No .env file found at {env_file}")
+            logging.info(f"ℹ️  No .env file found at {env_file}")
             return False
 
 
@@ -180,30 +181,30 @@ def check_environment() -> dict:
 
 def setup_env_interactive():
     """Interactive setup for environment configuration."""
-    print("🔧 SAGE Environment Setup")
-    print("=" * 50)
+    logging.info("🔧 SAGE Environment Setup")
+    logging.info("=" * 50)
 
     status = check_environment()
     project_root = status["project_root"]
 
-    print(f"Project root: {project_root}")
-    print(f"python-dotenv available: {status['dotenv_available']}")
-    print(f".env file exists: {status['env_file_exists']}")
-    print(f".env.template exists: {status['env_template_exists']}")
+    logging.info(f"Project root: {project_root}")
+    logging.info(f"python-dotenv available: {status['dotenv_available']}")
+    logging.info(f".env file exists: {status['env_file_exists']}")
+    logging.info(f".env.template exists: {status['env_template_exists']}")
 
     if not status["env_file_exists"]:
         if status["env_template_exists"]:
-            print(f"\n📋 Copy {project_root}/.env.template to {project_root}/.env")
-            print("   and fill in your API keys.")
+            logging.info(f"\n📋 Copy {project_root}/.env.template to {project_root}/.env")
+            logging.info("   and fill in your API keys.")
         else:
-            print(f"\n📋 Create a .env file at {project_root}/.env")
-            print("   with your API keys.")
+            logging.info(f"\n📋 Create a .env file at {project_root}/.env")
+            logging.info("   with your API keys.")
 
-    print("\n🔑 API Key Status:")
+    logging.info("\n🔑 API Key Status:")
     for key, info in status["api_keys"].items():
         status_icon = "✅" if info["set"] else "❌"
         length_info = f"({info['length']} chars)" if info["set"] else ""
-        print(f"  {status_icon} {key} {length_info}")
+        logging.info(f"  {status_icon} {key} {length_info}")
 
     return status
 
@@ -217,5 +218,5 @@ if __name__ == "__main__":
         status = check_environment()
 
         if not any(info["set"] for info in status["api_keys"].values()):
-            print("\n⚠️  No API keys detected!")
-            print("Run: python tools/env_config.py setup")
+            logging.info("\n⚠️  No API keys detected!")
+            logging.info("Run: python tools/env_config.py setup")

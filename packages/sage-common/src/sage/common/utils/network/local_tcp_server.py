@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import json
 import os
 import pickle
@@ -146,7 +147,7 @@ class BaseTcpServer(ABC):
         try:
             self.logger.debug(f"{self.server_name} loop started")
         except:
-            print(f"{self.server_name} loop started")
+            self.logger.info(f"{self.server_name} loop started")
 
         while self.running:
             try:
@@ -167,7 +168,7 @@ class BaseTcpServer(ABC):
                 try:
                     self.logger.debug(f"New TCP client connected from {address}")
                 except:
-                    print(f"New TCP client connected from {address}")
+                    self.logger.info(f"New TCP client connected from {address}")
 
                 # 在新线程中处理客户端
                 client_thread = threading.Thread(
@@ -184,18 +185,18 @@ class BaseTcpServer(ABC):
                     try:
                         self.logger.error(f"Error accepting TCP connection: {e}")
                     except:
-                        print(f"Error accepting TCP connection: {e}")
+                        self.logger.info(f"Error accepting TCP connection: {e}")
                 break
             except Exception as e:
                 if self.running:
                     # 使用print而不是logger来避免I/O错误
-                    print(f"Unexpected error in server loop: {e}")
+                    self.logger.info(f"Unexpected error in server loop: {e}")
                 break
 
         try:
             self.logger.debug(f"{self.server_name} loop stopped")
         except:
-            print(f"{self.server_name} loop stopped")
+            self.logger.info(f"{self.server_name} loop stopped")
 
     def _handle_client(self, client_socket: socket.socket, address: tuple):
         """处理客户端连接和消息"""
@@ -233,7 +234,7 @@ class BaseTcpServer(ABC):
                             f"Error processing message from {address}: {e}"
                         )
                     except:
-                        print(f"Error processing message from {address}: {e}")
+                        self.logger.info(f"Error processing message from {address}: {e}")
                     # 发送错误响应
                     error_response = self._create_error_response(
                         {"request_id": None},
@@ -247,7 +248,7 @@ class BaseTcpServer(ABC):
             try:
                 self.logger.error(f"Error handling TCP client {address}: {e}")
             except:
-                print(f"Error handling TCP client {address}: {e}")
+                self.logger.info(f"Error handling TCP client {address}: {e}")
         finally:
             try:
                 client_socket.close()
@@ -270,7 +271,7 @@ class BaseTcpServer(ABC):
                 try:
                     self.logger.warning("Connection closed while receiving message")
                 except:
-                    print("Connection closed while receiving message")
+                    self.logger.info("Connection closed while receiving message")
                 return None
             message_data += chunk
 
@@ -607,7 +608,7 @@ if __name__ == "__main__":
     def handle_status_message(
         message: Dict[str, Any], client_address: tuple
     ) -> Dict[str, Any]:
-        print(f"Status message from {client_address}: {message}")
+        self.logger.info(f"Status message from {client_address}: {message}")
         return {
             "type": "status_response",
             "status": "success",
@@ -617,7 +618,7 @@ if __name__ == "__main__":
     def handle_data_message(
         message: Dict[str, Any], client_address: tuple
     ) -> Dict[str, Any]:
-        print(f"Data message from {client_address}: {message}")
+        self.logger.info(f"Data message from {client_address}: {message}")
         return {
             "type": "data_response",
             "status": "success",
@@ -627,7 +628,7 @@ if __name__ == "__main__":
     def handle_unknown_message(
         message: Dict[str, Any], client_address: tuple
     ) -> Dict[str, Any]:
-        print(f"Unknown message from {client_address}: {message}")
+        self.logger.info(f"Unknown message from {client_address}: {message}")
         return {
             "type": "unknown_response",
             "status": "success",
@@ -644,12 +645,12 @@ if __name__ == "__main__":
     # 启动服务器
     server.start()
 
-    print(f"Server info: {server.get_server_info()}")
+    self.logger.info(f"Server info: {server.get_server_info()}")
 
     try:
         # 保持服务器运行
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("Stopping server...")
+        self.logger.info("Stopping server...")
         server.stop()

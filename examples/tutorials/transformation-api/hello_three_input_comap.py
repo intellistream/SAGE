@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+import logging
 Hello Three Input CoMap World
 
 这个例子演示了如何使用CoMap操作处理三个输入流，每个流的数据
@@ -60,7 +61,7 @@ class ConsoleSink(SinkFunction):
     """控制台输出Sink"""
 
     def execute(self, data):
-        print(data)
+        logging.info(data)
 
 
 def main():
@@ -69,22 +70,22 @@ def main():
     # 创建本地环境
     env = LocalEnvironment("ThreeInputCoMapExample")
 
-    print("🚀 Starting Three Input CoMap Example...")
-    print("=" * 50)
+    logging.info("🚀 Starting Three Input CoMap Example...")
+    logging.info("=" * 50)
 
     # 创建三个数据源
     stream1 = env.from_batch(SimpleDataSource, ["Apple", "Banana"])
     stream2 = env.from_batch(SimpleDataSource, ["Cat", "Dog"])
     stream3 = env.from_batch(SimpleDataSource, ["Red", "Blue"])
 
-    print("📊 Data sources created:")
-    print("  Stream 1 (Fruits): [Apple, Banana]")
-    print("  Stream 2 (Animals): [Cat, Dog]")
-    print("  Stream 3 (Colors): [Red, Blue]")
-    print()
+    logging.info("📊 Data sources created:")
+    logging.info("  Stream 1 (Fruits): [Apple, Banana]")
+    logging.info("  Stream 2 (Animals): [Cat, Dog]")
+    logging.info("  Stream 3 (Colors): [Red, Blue]")
+    logging.info()
 
     # 连接三个流并应用CoMap
-    print("🔗 Connecting streams and applying CoMap...")
+    logging.info("🔗 Connecting streams and applying CoMap...")
     result = (
         stream1.connect(stream2)
         .connect(stream3)
@@ -92,19 +93,19 @@ def main():
         .sink(ConsoleSink)
     )
 
-    print("⚙️ Processing data...")
-    print()
+    logging.info("⚙️ Processing data...")
+    logging.info()
 
     # 执行流处理
     env.submit(autostop=True)
 
-    print()
-    print("✅ Three Input CoMap Example completed!")
-    print("=" * 50)
-    print("📝 Each input stream was processed by its corresponding mapN method:")
-    print("  - Stream 1 data → map0() → 🔴 Stream-0: ...")
-    print("  - Stream 2 data → map1() → 🟡 Stream-1: ...")
-    print("  - Stream 3 data → map2() → 🔵 Stream-2: ...")
+    logging.info()
+    logging.info("✅ Three Input CoMap Example completed!")
+    logging.info("=" * 50)
+    logging.info("📝 Each input stream was processed by its corresponding mapN method:")
+    logging.info("  - Stream 1 data → map0() → 🔴 Stream-0: ...")
+    logging.info("  - Stream 2 data → map1() → 🟡 Stream-1: ...")
+    logging.info("  - Stream 3 data → map2() → 🔵 Stream-2: ...")
 
 
 if __name__ == "__main__":

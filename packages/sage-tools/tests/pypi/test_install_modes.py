@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 测试本地包安装模式的脚本
 """
 import os
@@ -20,7 +21,7 @@ import pytest
 )
 def test_install_mode(mode, description):
     """测试单个安装模式 - 简化版本，只测试包的可用性"""
-    print(f"\n=== 测试 {mode} 模式: {description} ===")
+    logging.info(f"\n=== 测试 {mode} 模式: {description} ===")
 
     # 获取项目根目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -44,7 +45,7 @@ def test_install_mode(mode, description):
         assert os.path.exists(package_path), f"包目录不存在: {package}"
         assert os.path.exists(pyproject_path), f"pyproject.toml 不存在: {package}"
 
-        print(f"✅ 检查通过: {package}")
+        logging.info(f"✅ 检查通过: {package}")
 
     # 检查主包
     main_package_path = os.path.join(project_root, "packages/sage")
@@ -53,15 +54,15 @@ def test_install_mode(mode, description):
     assert os.path.exists(main_package_path), "主包目录不存在: packages/sage"
     assert os.path.exists(main_pyproject_path), "主包 pyproject.toml 不存在"
 
-    print("✅ 检查通过: packages/sage")
+    logging.info("✅ 检查通过: packages/sage")
 
     # 检查主包的pyproject.toml中是否包含对应的安装模式
     with open(main_pyproject_path, "r", encoding="utf-8") as f:
         content = f.read()
         assert f"{mode} = [" in content, f"{mode} 安装模式未在pyproject.toml中定义"
 
-    print(f"✅ {mode} 安装模式已定义")
-    print(f"✅ {mode} 模式配置检查成功")
+    logging.info(f"✅ {mode} 安装模式已定义")
+    logging.info(f"✅ {mode} 模式配置检查成功")
 
 
 def main():
@@ -79,16 +80,16 @@ def main():
             test_install_mode(mode, desc)
             results[mode] = True
         except AssertionError as e:
-            print(f"❌ {mode} 模式测试失败: {e}")
+            logging.info(f"❌ {mode} 模式测试失败: {e}")
             results[mode] = False
         except Exception as e:
-            print(f"❌ {mode} 模式测试过程中出现异常: {e}")
+            logging.info(f"❌ {mode} 模式测试过程中出现异常: {e}")
             results[mode] = False
 
-    print("\n=== 测试结果汇总 ===")
+    logging.info("\n=== 测试结果汇总 ===")
     for mode, success in results.items():
         status = "✅ 成功" if success else "❌ 失败"
-        print(f"{mode}: {status}")
+        logging.info(f"{mode}: {status}")
 
     # 如果有失败的测试，退出码为1
     if not all(results.values()):

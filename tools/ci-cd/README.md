@@ -1,10 +1,9 @@
 ````markdown
-# CI/CD 工具和测试脚本
+⚠️ 目录已弃用（Deprecated）
 
-这个目录包含用于持续集成和持续部署的工具和测试脚本。
+本目录原先存放一些 CI/CD 诊断脚本，现已整合到统一入口：
 
-## 文件说明
-
+This file has been deprecated. Please use tools/ci/ci.sh instead.
 ### `final_verification.sh` - 🎯 最终验证脚本 
 全面验证SAGE构建系统的所有修复，确保GitHub Actions工作流能够正常运行。
 

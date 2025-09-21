@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 AI 分析器（简化实现）
 接受 --mode 参数：duplicates | labels | priority | comprehensive
 参考 legacy 实现，提供本地 issues 的简单分析功能并输出到 output/ 目录
@@ -22,7 +23,7 @@ def load_local_issues():
     issues_dir = config.workspace_path / "issues"
     issues = []
     if not issues_dir.exists():
-        print(f"⚠️ 未找到本地 issues 目录: {issues_dir}")
+        self.logger.info(f"⚠️ 未找到本地 issues 目录: {issues_dir}")
         return issues
 
     for f in issues_dir.rglob("*.md"):
@@ -129,14 +130,14 @@ def main():
 
     issues = load_local_issues()
     if not issues:
-        print("⚠️ 未找到本地Issues，先运行下载功能")
+        self.logger.info("⚠️ 未找到本地Issues，先运行下载功能")
         return
 
     if args.mode == "duplicates":
         dups = detect_duplicates(issues)
-        print(f"找到 {len(dups)} 组可能的重复Items")
+        self.logger.info(f"找到 {len(dups)} 组可能的重复Items")
         for a, b, reason in dups:
-            print(
+            self.logger.info(
                 f" - #{a.get('number')} {a.get('title')[:80]} <-> #{b.get('number')} {b.get('title')[:80]} ({reason})"
             )
         # 写入报告
@@ -150,11 +151,11 @@ def main():
                 f.write(
                     f"- #{a.get('number')} {a.get('title')} <-> #{b.get('number')} {b.get('title')} ({reason})\n"
                 )
-        print(f"报告已保存: {out}")
+        self.logger.info(f"报告已保存: {out}")
 
     elif args.mode == "labels":
         suggestions = suggest_label_optimizations(issues)
-        print(f"为 {len(suggestions)} 个Issues 推荐标签")
+        self.logger.info(f"为 {len(suggestions)} 个Issues 推荐标签")
         out = (
             config.output_path
             / f"label_suggestions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
@@ -165,7 +166,7 @@ def main():
                 f.write(
                     f"- #{s.get('number')}: {s.get('title')} -> {', '.join(s.get('recommend', []))}\n"
                 )
-        print(f"报告已保存: {out}")
+        self.logger.info(f"报告已保存: {out}")
 
     elif args.mode == "priority":
         res = assess_priority(issues)
@@ -179,10 +180,10 @@ def main():
                 f.write(
                     f"- #{r.get('number')}: {r.get('title')} -> {r.get('priority')}\n"
                 )
-        print(f"报告已保存: {out}")
+        self.logger.info(f"报告已保存: {out}")
 
     elif args.mode == "comprehensive":
-        print("执行综合分析: 调用 duplicates + labels + priority")
+        self.logger.info("执行综合分析: 调用 duplicates + labels + priority")
         # 逐个运行并合并报告
         # 为简单起见，分别生成三个报告
         for m in ("duplicates", "labels", "priority"):

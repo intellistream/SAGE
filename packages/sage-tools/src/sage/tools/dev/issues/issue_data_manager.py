@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 SAGE Issues 数据管理器
 实现单一数据源 + 视图分离的新架构
 """
@@ -64,7 +65,7 @@ class IssueDataManager:
         try:
             issue_number = issue_data.get("number")
             if not issue_number:
-                print(f"❌ Issue数据缺少编号")
+                self.logger.info(f"❌ Issue数据缺少编号")
                 return False
 
             # 处理milestone信息
@@ -208,11 +209,11 @@ class IssueDataManager:
             with open(data_file, "w", encoding="utf-8") as f:
                 json.dump(unified_data, f, ensure_ascii=False, indent=2)
 
-            print(f"✅ Issue #{issue_number} 数据已保存")
+            self.logger.info(f"✅ Issue #{issue_number} 数据已保存")
             return True
 
         except Exception as e:
-            print(f"❌ 保存Issue数据失败: {e}")
+            self.logger.info(f"❌ 保存Issue数据失败: {e}")
             return False
 
     def get_issue(self, issue_number: int) -> Optional[Dict[str, Any]]:
@@ -232,7 +233,7 @@ class IssueDataManager:
             with open(data_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            print(f"❌ 读取Issue #{issue_number} 数据失败: {e}")
+            self.logger.info(f"❌ 读取Issue #{issue_number} 数据失败: {e}")
             return None
 
     def list_all_issues(self) -> List[int]:
@@ -260,7 +261,7 @@ class IssueDataManager:
         try:
             issue_data = self.get_issue(issue_number)
             if not issue_data:
-                print(f"❌ Issue #{issue_number} 数据不存在")
+                self.logger.info(f"❌ Issue #{issue_number} 数据不存在")
                 return False
 
             metadata = issue_data["metadata"]
@@ -386,7 +387,7 @@ class IssueDataManager:
             return True
 
         except Exception as e:
-            print(f"❌ 生成Issue #{issue_number} markdown视图失败: {e}")
+            self.logger.info(f"❌ 生成Issue #{issue_number} markdown视图失败: {e}")
             return False
 
     def generate_metadata_view(self, issue_number: int) -> bool:
@@ -432,7 +433,7 @@ class IssueDataManager:
             return True
 
         except Exception as e:
-            print(f"❌ 生成Issue #{issue_number} 元数据视图失败: {e}")
+            self.logger.info(f"❌ 生成Issue #{issue_number} 元数据视图失败: {e}")
             return False
 
     def generate_all_views(self) -> Dict[str, int]:
@@ -450,7 +451,7 @@ class IssueDataManager:
             "failed": 0,
         }
 
-        print(f"🚀 开始生成 {results['total']} 个Issue的视图...")
+        self.logger.info(f"🚀 开始生成 {results['total']} 个Issue的视图...")
 
         for issue_number in issue_numbers:
             try:
@@ -465,12 +466,12 @@ class IssueDataManager:
                     results["failed"] += 1
 
                 if (results["markdown_success"] + results["failed"]) % 10 == 0:
-                    print(
+                    self.logger.info(
                         f"📊 已处理 {results['markdown_success'] + results['failed']}/{results['total']} 个Issue"
                     )
 
             except Exception as e:
-                print(f"❌ 处理Issue #{issue_number} 失败: {e}")
+                self.logger.info(f"❌ 处理Issue #{issue_number} 失败: {e}")
                 results["failed"] += 1
 
         # 生成汇总视图
@@ -481,7 +482,7 @@ class IssueDataManager:
     def generate_summary_views(self):
         """生成汇总视图"""
         try:
-            print("📊 生成汇总视图...")
+            self.logger.info("📊 生成汇总视图...")
 
             # 按团队汇总
             issues_by_team = {}
@@ -545,10 +546,10 @@ class IssueDataManager:
             ) as f:
                 json.dump(issues_by_state, f, ensure_ascii=False, indent=2)
 
-            print("✅ 汇总视图生成完成")
+            self.logger.info("✅ 汇总视图生成完成")
 
         except Exception as e:
-            print(f"❌ 生成汇总视图失败: {e}")
+            self.logger.info(f"❌ 生成汇总视图失败: {e}")
 
     def migrate_from_old_format(self) -> Dict[str, int]:
         """从旧格式迁移数据
@@ -556,7 +557,7 @@ class IssueDataManager:
         Returns:
             Dict: 迁移结果统计
         """
-        print("🔄 开始从旧格式迁移数据...")
+        self.logger.info("🔄 开始从旧格式迁移数据...")
 
         results = {
             "markdown_processed": 0,
@@ -590,11 +591,11 @@ class IssueDataManager:
                             results["data_created"] += 1
 
                 except Exception as e:
-                    print(f"❌ 迁移文件 {md_file} 失败: {e}")
+                    self.logger.info(f"❌ 迁移文件 {md_file} 失败: {e}")
                     results["failed"] += 1
 
-        print(f"📊 迁移完成: 处理了 {results['markdown_processed']} 个markdown文件")
-        print(f"📊 创建了 {results['data_created']} 个数据文件")
+        self.logger.info(f"📊 迁移完成: 处理了 {results['markdown_processed']} 个markdown文件")
+        self.logger.info(f"📊 创建了 {results['data_created']} 个数据文件")
 
         return results
 
@@ -655,7 +656,7 @@ class IssueDataManager:
             return issue_data
 
         except Exception as e:
-            print(f"❌ 解析文件 {md_file} 失败: {e}")
+            self.logger.info(f"❌ 解析文件 {md_file} 失败: {e}")
             return None
 
     def _sanitize_filename(self, text: str) -> str:
@@ -671,16 +672,16 @@ class IssueDataManager:
             issues_link = self.workspace_path / "issues"
             if not issues_link.exists():
                 issues_link.symlink_to(self.markdown_dir, target_is_directory=True)
-                print("✅ 创建issues目录的向后兼容链接")
+                self.logger.info("✅ 创建issues目录的向后兼容链接")
 
             # 创建指向metadata视图的符号链接
             metadata_link = self.workspace_path / "metadata"
             if not metadata_link.exists():
                 metadata_link.symlink_to(self.metadata_dir, target_is_directory=True)
-                print("✅ 创建metadata目录的向后兼容链接")
+                self.logger.info("✅ 创建metadata目录的向后兼容链接")
 
         except Exception as e:
-            print(f"⚠️ 创建向后兼容链接失败: {e}")
+            self.logger.info(f"⚠️ 创建向后兼容链接失败: {e}")
 
 
 def main():
@@ -703,11 +704,11 @@ def main():
 
     if args.migrate:
         results = manager.migrate_from_old_format()
-        print(f"📊 迁移结果: {results}")
+        self.logger.info(f"📊 迁移结果: {results}")
 
     if args.generate_views:
         results = manager.generate_all_views()
-        print(f"📊 视图生成结果: {results}")
+        self.logger.info(f"📊 视图生成结果: {results}")
 
     if args.create_links:
         manager.create_backward_compatibility_links()

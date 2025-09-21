@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import logging
 import os
 import random
@@ -208,27 +209,27 @@ if __name__ == "__main__":
 
     # Get tool metadata
     metadata = tool.get_metadata()
-    print(metadata)
+    self.logger.info(metadata)
 
     import json
 
     # Execute the tool to fetch the latest 10 articles (for demonstration purposes)
     try:
         execution = tool.execute(num_articles=10, max_pages=1)
-        print(json.dumps(execution, indent=4))
-        print("\nExecution Result:")
-        print(f"Number of articles fetched: {len(execution)}")
-        print("\nSample articles:")
+        self.logger.info(json.dumps(execution, indent=4))
+        self.logger.info("\nExecution Result:")
+        self.logger.info(f"Number of articles fetched: {len(execution)}")
+        self.logger.info("\nSample articles:")
         for i, article in enumerate(execution[:10], 1):
-            print(f"\n{i}. Title: {article['title']}")
-            print(f"   URL: {article['url']}")
-            print(
+            self.logger.info(f"\n{i}. Title: {article['title']}")
+            self.logger.info(f"   URL: {article['url']}")
+            self.logger.info(
                 f"   Description: {article['description'][:100]}..."
             )  # Show first 100 characters
-            print(f"   Authors: {', '.join(article['authors'])}")
-            print(f"   Date: {article['date']}")
-            print(f"   Image URL: {article['image_url']}")
+            self.logger.info(f"   Authors: {', '.join(article['authors'])}")
+            self.logger.info(f"   Date: {article['date']}")
+            self.logger.info(f"   Image URL: {article['image_url']}")
     except Exception as e:
-        print(f"Execution failed: {e}")
+        self.logger.info(f"Execution failed: {e}")
 
-    print("Done!")
+    self.logger.info("Done!")

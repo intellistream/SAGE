@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+import logging
 pytest 配置文件
 """
 
@@ -81,7 +82,7 @@ def pytest_runtest_setup(item):
         test_type = "集成测试"
         example_name = item.name
 
-    print(f"\n🧪 开始{test_type}: {example_name}")
+    logging.info(f"\n🧪 开始{test_type}: {example_name}")
     item._example_start_time = time.time()
 
 
@@ -96,7 +97,7 @@ def pytest_runtest_teardown(item, nextitem):
             # CI环境：只在测试失败或超过10秒时输出
             if duration > 10.0:
                 example_name = _get_example_name(item)
-                print(f"🐌 {example_name} 耗时较长 ({duration:.2f}s)")
+                logging.info(f"🐌 {example_name} 耗时较长 ({duration:.2f}s)")
             return
 
         example_name = _get_example_name(item)
@@ -116,7 +117,7 @@ def pytest_runtest_teardown(item, nextitem):
             status_icon = "🐌"  # 很慢
             time_desc = "很慢"
 
-        print(f"{status_icon} {example_name} 完成 ({duration:.2f}s) - {time_desc}")
+        logging.info(f"{status_icon} {example_name} 完成 ({duration:.2f}s) - {time_desc}")
 
 
 def _get_example_name(item):
@@ -149,9 +150,9 @@ def pytest_runtest_logreport(report):
         test_type = _get_test_type_from_report(report)
 
         if report.failed:
-            print(f"❌ {example_name} {test_type}失败")
+            logging.info(f"❌ {example_name} {test_type}失败")
         elif report.skipped:
-            print(f"⏭️  {example_name} {test_type}已跳过")
+            logging.info(f"⏭️  {example_name} {test_type}已跳过")
 
 
 def _get_example_name_from_report(report):
@@ -202,5 +203,5 @@ def pytest_generate_tests(metafunc):
 
         except Exception as e:
             # 如果无法导入或发生其他错误，跳过动态生成
-            print(f"⚠️ 无法生成示例测试: {e}")
+            logging.info(f"⚠️ 无法生成示例测试: {e}")
             metafunc.parametrize("example_file", [], ids=[])

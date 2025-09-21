@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+import logging
 SAGE Examples 测试的 pytest 集成
 将 examples 测试集成到现有的 pytest 测试框架中
 """
@@ -183,7 +184,7 @@ class TestExamplesIntegration:
     @pytest.mark.integration
     def test_examples_integration_with_issues_manager(self):
         """测试与 Issues 管理器的集成"""
-        print("🧪 开始集成测试: test_examples_integration_with_issues_manager")
+        logging.info("🧪 开始集成测试: test_examples_integration_with_issues_manager")
 
         # 这个测试验证 examples 测试可以与现有的问题管理系统集成
         try:
@@ -191,7 +192,7 @@ class TestExamplesIntegration:
 
             # 如果团队信息未找到，尝试更新
             if not issues_suite.manager.team_info:
-                print("📋 团队信息未找到，尝试更新...")
+                logging.info("📋 团队信息未找到，尝试更新...")
                 if issues_suite.manager.config.github_token:
                     success = issues_suite.manager.update_team_info()
                     if not success:

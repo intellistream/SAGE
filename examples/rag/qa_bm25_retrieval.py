@@ -20,8 +20,8 @@ def pipeline_run():
         os.getenv("SAGE_EXAMPLES_MODE") == "test"
         or os.getenv("SAGE_TEST_MODE") == "true"
     ):
-        print("🧪 Test mode detected - qa_bm25_retrieval example")
-        print(
+        logging.info("🧪 Test mode detected - qa_bm25_retrieval example")
+        logging.info(
             "✅ Test passed: Example structure validated (BM25sRetriever not available)"
         )
         return
@@ -50,8 +50,8 @@ if __name__ == "__main__":
         os.getenv("SAGE_EXAMPLES_MODE") == "test"
         or os.getenv("SAGE_TEST_MODE") == "true"
     ):
-        print("🧪 Test mode detected - qa_bm25_retrieval example")
-        print(
+        logging.info("🧪 Test mode detected - qa_bm25_retrieval example")
+        logging.info(
             "✅ Test passed: Example structure validated (BM25sRetriever not available)"
         )
         sys.exit(0)
@@ -61,8 +61,8 @@ if __name__ == "__main__":
         os.path.dirname(__file__), "..", "config", "config_bm25s.yaml"
     )
     if not os.path.exists(config_path):
-        print(f"❌ Configuration file not found: {config_path}")
-        print("Please create the configuration file first.")
+        logging.info(f"❌ Configuration file not found: {config_path}")
+        logging.info("Please create the configuration file first.")
         sys.exit(1)
 
     config = load_config(config_path)

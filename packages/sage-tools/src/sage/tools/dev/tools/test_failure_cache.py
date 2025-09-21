@@ -1,4 +1,5 @@
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 Test Failure Cache Manager
 
 This module provides functionality to cache failed test paths and enable
@@ -56,14 +57,14 @@ class TestFailureCache:
 
         except (OSError, PermissionError) as e:
             # If we still can't create the directory, use a temporary fallback
-            print(f"Warning: Could not create cache directory {self.cache_dir}: {e}")
+            self.logger.info(f"Warning: Could not create cache directory {self.cache_dir}: {e}")
             fallback_dir = self.project_root / "temp_sage_cache" / "test_logs"
             self.cache_dir = fallback_dir
             self.cache_file = self.cache_dir / "failed_tests.json"
             try:
                 self.cache_dir.mkdir(parents=True, exist_ok=True)
             except (OSError, PermissionError) as fallback_error:
-                print(
+                self.logger.info(
                     f"Error: Could not create fallback cache directory: {fallback_error}"
                 )
                 # Use in-memory cache only
@@ -83,7 +84,7 @@ class TestFailureCache:
                     # Merge with default structure to handle schema changes
                     self._cache_data.update(data)
         except (json.JSONDecodeError, IOError) as e:
-            print(f"Warning: Could not load test failure cache: {e}")
+            self.logger.info(f"Warning: Could not load test failure cache: {e}")
             # Keep default cache data
 
     def _save_cache(self) -> None:
@@ -99,7 +100,7 @@ class TestFailureCache:
             with open(self.cache_file, "w", encoding="utf-8") as f:
                 json.dump(self._cache_data, f, indent=2, ensure_ascii=False)
         except IOError as e:
-            print(f"Warning: Could not save test failure cache: {e}")
+            self.logger.info(f"Warning: Could not save test failure cache: {e}")
 
     def update_from_test_results(self, test_results: Dict) -> None:
         """Update cache with results from a test run."""
@@ -151,12 +152,12 @@ class TestFailureCache:
             # Save to file
             self._save_cache()
 
-            print(
+            self.logger.info(
                 f"✅ Updated test failure cache: {len(failed_tests)} failed tests recorded"
             )
 
         except Exception as e:
-            print(f"Warning: Failed to update test failure cache: {e}")
+            self.logger.info(f"Warning: Failed to update test failure cache: {e}")
 
     def get_failed_test_paths(self) -> List[str]:
         """Get list of test files that failed in the last run."""
@@ -174,7 +175,7 @@ class TestFailureCache:
         """Clear the failed tests cache."""
         self._cache_data["failed_tests"] = []
         self._save_cache()
-        print("✅ Cleared test failure cache")
+        self.logger.info("✅ Cleared test failure cache")
 
     def get_cache_info(self) -> Dict:
         """Get information about the current cache state."""
@@ -213,7 +214,7 @@ class TestFailureCache:
             if resolved_path:
                 resolved_paths.append(resolved_path)
             else:
-                print(f"Warning: Could not resolve cached test path: {test_path}")
+                self.logger.info(f"Warning: Could not resolve cached test path: {test_path}")
 
         return resolved_paths
 
@@ -264,22 +265,22 @@ class TestFailureCache:
         """Print current cache status in a user-friendly format."""
         info = self.get_cache_info()
 
-        print(f"📊 Test Failure Cache Status")
-        print(f"   Cache file: {info['cache_file']}")
-        print(f"   Failed tests: {info['failed_tests_count']}")
+        self.logger.info(f"📊 Test Failure Cache Status")
+        self.logger.info(f"   Cache file: {info['cache_file']}")
+        self.logger.info(f"   Failed tests: {info['failed_tests_count']}")
 
         if info["last_updated"]:
-            print(f"   Last updated: {info['last_updated']}")
+            self.logger.info(f"   Last updated: {info['last_updated']}")
 
         last_summary = info.get("last_run_summary", {})
         if last_summary.get("timestamp"):
-            print(
+            self.logger.info(
                 f"   Last run: {last_summary['total']} tests, "
                 f"{last_summary['passed']} passed, {last_summary['failed']} failed"
             )
-            print(f"   Execution time: {last_summary.get('execution_time', 0):.2f}s")
+            self.logger.info(f"   Execution time: {last_summary.get('execution_time', 0):.2f}s")
 
         if info["has_failed_tests"]:
-            print(f"\n   Use 'sage-dev test --failed' to re-run failed tests")
+            self.logger.info(f"\n   Use 'sage-dev test --failed' to re-run failed tests")
         else:
-            print(f"\n   No failed tests cached")
+            self.logger.info(f"\n   No failed tests cached")

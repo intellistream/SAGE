@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 SAGE Issues管理工具 - 配置管理 (适配sage-tools版本)
 统一的配置管理和GitHub API客户端
 """
@@ -145,7 +146,7 @@ class IssuesConfig:
                 # 合并默认设置和用户设置
                 default_settings.update(user_settings)
             except Exception as e:
-                print(f"⚠️ 加载用户设置失败，使用默认设置: {e}")
+                self.logger.info(f"⚠️ 加载用户设置失败，使用默认设置: {e}")
 
         # 设置属性
         for key, value in default_settings.items():

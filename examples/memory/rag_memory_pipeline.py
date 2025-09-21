@@ -1,5 +1,6 @@
 # @test:skip           - 跳过测试
 
+import logging
 import time
 
 import yaml
@@ -68,7 +69,7 @@ class PrintSink(SinkFunction):
         self.metronome = metronome
 
     def execute(self, data):
-        print(f"Q: {data.get('question')}\nA: {data.get('answer')}\n")
+        logging.info(f"Q: {data.get('question')}\nA: {data.get('answer')}\n")
 
 
 def main():

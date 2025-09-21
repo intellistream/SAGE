@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import importlib
 import inspect
 import os
@@ -85,12 +86,12 @@ def _should_skip(v):
     # 检查黑名单 - 修改为更精确的检查
     for i, blacklisted_type in enumerate(_BLACKLIST):
         if isinstance(v, blacklisted_type):
-            # print(f"Skipping blacklisted instance {i}: {type(v)}, {v}")
+            # self.logger.info(f"Skipping blacklisted instance {i}: {type(v)}, {v}")
             return True
 
     # 检查是否是模块（通常不应该序列化）
     if inspect.ismodule(v):
-        # print(f"Skipping module: {v}")
+        # self.logger.info(f"Skipping module: {v}")
         return True
 
     return False
@@ -108,7 +109,7 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
     Returns:
         预处理后的对象，可以安全地交给dill序列化
     """
-    # print(f"_preprocess_for_dill called for object: {obj}")
+    # self.logger.info(f"_preprocess_for_dill called for object: {obj}")
     if _seen is None:
         _seen = set()
     if _object_map is None:
@@ -119,13 +120,13 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
 
     # 检查是否已经处理过这个对象（引用去重）
     if obj_id in _object_map:
-        # print(f"Reusing existing mapped object for id {obj_id}: {obj}")
+        # self.logger.info(f"Reusing existing mapped object for id {obj_id}: {obj}")
         return _object_map[obj_id]
 
     if obj_id in _seen:
         # 这是一个循环引用，但我们还没有创建映射
         # 对于循环引用，我们需要继续处理，但要小心避免无限递归
-        # print(f"Circular reference detected for object: {obj}")
+        # self.logger.info(f"Circular reference detected for object: {obj}")
         return _SKIP_VALUE
 
     # 基本类型直接返回
@@ -134,12 +135,12 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
 
     # 类对象可以直接被dill序列化，不需要预处理
     if inspect.isclass(obj):
-        # print(f"Processing class object: {obj}")
+        # self.logger.info(f"Processing class object: {obj}")
         return obj
 
     # 函数对象也可以直接被dill序列化
     if inspect.isfunction(obj) or inspect.ismethod(obj):
-        # print(f"Processing function object: {obj}")
+        # self.logger.info(f"Processing function object: {obj}")
         return obj
 
     # 检查是否应该跳过
@@ -193,8 +194,8 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
 
     # 处理复杂对象
     if hasattr(obj, "__dict__"):
-        # print(f"Processing complex object: {obj}")
-        # print(f"dict is {obj.__dict__}")
+        # self.logger.info(f"Processing complex object: {obj}")
+        # self.logger.info(f"dict is {obj.__dict__}")
         _seen.add(obj_id)
         try:
             # 创建一个新的对象实例
@@ -214,22 +215,22 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
             custom_include = getattr(obj.__class__, "__state_include__", [])
             custom_exclude = getattr(obj.__class__, "__state_exclude__", [])
             # if len(custom_exclude) is not 0:
-            #     print(f"custom_exclude is {custom_exclude}")
+            #     self.logger.info(f"custom_exclude is {custom_exclude}")
             # 一般不用include字段，只用exclude字段就行了
 
             attrs = _gather_attrs(obj)
             # if len(custom_exclude) is not 0:
-            #     print(f"attrs is {attrs}")
+            #     self.logger.info(f"attrs is {attrs}")
 
             filtered_attrs = _filter_attrs(attrs, custom_include, custom_exclude)
             # if len(custom_exclude) is not 0:
-            #     print(f"filtered_attrs is {filtered_attrs}")
+            #     self.logger.info(f"filtered_attrs is {filtered_attrs}")
 
             # 递归清理属性
             for attr_name, attr_value in filtered_attrs.items():
-                # print(f"Processing attribute: {attr_name} = {attr_value}")
+                # self.logger.info(f"Processing attribute: {attr_name} = {attr_value}")
                 if not _should_skip(attr_value):
-                    # print(f"Cleaning attribute: {attr_name}")
+                    # self.logger.info(f"Cleaning attribute: {attr_name}")
                     cleaned_value = _preprocess_for_dill(attr_value, _seen, _object_map)
                     if cleaned_value is not _SKIP_VALUE:
                         try:
@@ -248,7 +249,7 @@ def _preprocess_for_dill(obj, _seen=None, _object_map=None):
 
 def _postprocess_from_dill(obj, _seen=None):
     """递归后处理从dill反序列化的对象，清理哨兵值。"""
-    # print(f"_postprocess_from_dill called for object: {obj}")
+    # self.logger.info(f"_postprocess_from_dill called for object: {obj}")
     if _seen is None:
         _seen = set()
 
@@ -271,14 +272,14 @@ def _postprocess_from_dill(obj, _seen=None):
         try:
             cleaned = {}
             for k, v in obj.items():
-                # print(f"Processing dict item: {k} = {v}")
+                # self.logger.info(f"Processing dict item: {k} = {v}")
                 # 修复：只过滤掉哨兵值，保留所有合法值（包括None、False、0等）
                 if k is not _SKIP_VALUE and v is not _SKIP_VALUE:
                     cleaned_k = _postprocess_from_dill(k, _seen)
                     cleaned_v = _postprocess_from_dill(v, _seen)
                     # 保留所有值，包括None、False、0、空字典等
                     cleaned[cleaned_k] = cleaned_v
-                    # print(f"Cleaned dict item: {cleaned_k} = {cleaned_v}")
+                    # self.logger.info(f"Cleaned dict item: {cleaned_k} = {cleaned_v}")
             return cleaned
         finally:
             _seen.remove(obj_id)

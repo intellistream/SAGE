@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 GitHub Issues操作执行脚本
 基于AI分析结果执行GitHub操作
 """
@@ -25,7 +26,7 @@ class GitHubIssuesExecutor:
         self.github_token = config.github_token
 
         if not self.github_token:
-            print("❌ 请设置GITHUB_TOKEN环境变量或配置IssuesConfig")
+            self.logger.info("❌ 请设置GITHUB_TOKEN环境变量或配置IssuesConfig")
             sys.exit(1)
 
         self.repo = "intellistream/SAGE"
@@ -104,7 +105,7 @@ class GitHubIssuesExecutor:
 
     def load_ai_analysis_results(self):
         """加载AI分析结果（可选）"""
-        print("🔍 寻找AI分析结果...")
+        self.logger.info("🔍 寻找AI分析结果...")
 
         # 查找最新的AI分析文件
         analysis_files = []
@@ -128,19 +129,19 @@ class GitHubIssuesExecutor:
             analysis_files.append(("综合管理", latest_management))
 
         if not analysis_files:
-            print("⚠️ 未找到AI分析结果文件，仅支持标签创建功能")
+            self.logger.info("⚠️ 未找到AI分析结果文件，仅支持标签创建功能")
             return
 
-        print(f"✅ 找到 {len(analysis_files)} 个AI分析文件:")
+        self.logger.info(f"✅ 找到 {len(analysis_files)} 个AI分析文件:")
         for analysis_type, file_path in analysis_files:
-            print(f"   📄 {analysis_type}: {file_path.name}")
+            self.logger.info(f"   📄 {analysis_type}: {file_path.name}")
 
         # 解析分析结果
         self.parse_analysis_files(analysis_files)
 
     def parse_analysis_files(self, analysis_files):
         """解析AI分析文件"""
-        print("\n📖 解析AI分析结果...")
+        self.logger.info("\n📖 解析AI分析结果...")
 
         for analysis_type, file_path in analysis_files:
             try:
@@ -154,9 +155,9 @@ class GitHubIssuesExecutor:
                     self.parse_management_analysis(content)
 
             except Exception as e:
-                print(f"❌ 解析 {analysis_type} 文件失败: {e}")
+                self.logger.info(f"❌ 解析 {analysis_type} 文件失败: {e}")
 
-        print(
+        self.logger.info(
             f"✅ 解析完成: 找到 {len(self.duplicate_groups)} 个重复组, {len(self.label_recommendations)} 个标签建议"
         )
 
@@ -238,7 +239,7 @@ class GitHubIssuesExecutor:
 
     def create_standard_labels(self):
         """创建标准化标签"""
-        print("🏷️ 创建标准化标签...")
+        self.logger.info("🏷️ 创建标准化标签...")
 
         for label_name, label_info in self.standard_labels.items():
             self.create_or_update_label(label_name, label_info)
@@ -266,23 +267,23 @@ class GitHubIssuesExecutor:
                 existing_label.get("color") == info["color"]
                 and existing_label.get("description") == info["description"]
             ):
-                print(f"  ⏭️ 标签已是最新: {name}")
+                self.logger.info(f"  ⏭️ 标签已是最新: {name}")
                 return
 
             # 更新标签
             response = requests.patch(url, headers=self.headers, json=data)
             if response.status_code == 200:
-                print(f"  ✅ 更新标签: {name}")
+                self.logger.info(f"  ✅ 更新标签: {name}")
             else:
-                print(f"  ❌ 更新失败: {name} - {response.text}")
+                self.logger.info(f"  ❌ 更新失败: {name} - {response.text}")
         else:
             # 创建新标签
             create_url = f"https://api.github.com/repos/{self.repo}/labels"
             response = requests.post(create_url, headers=self.headers, json=data)
             if response.status_code == 201:
-                print(f"  ✅ 创建标签: {name}")
+                self.logger.info(f"  ✅ 创建标签: {name}")
             else:
-                print(f"  ❌ 创建失败: {name} - {response.text}")
+                self.logger.info(f"  ❌ 创建失败: {name} - {response.text}")
 
     def get_issue_details(self, issue_number):
         """获取issue详情"""
@@ -292,12 +293,12 @@ class GitHubIssuesExecutor:
         if response.status_code == 200:
             return response.json()
         else:
-            print(f"❌ 获取issue #{issue_number}失败: {response.text}")
+            self.logger.info(f"❌ 获取issue #{issue_number}失败: {response.text}")
             return None
 
     def close_duplicate_issue(self, issue_number, main_issue_number, reason):
         """关闭重复issue"""
-        print(f"  🔄 关闭重复issue #{issue_number} (合并到 #{main_issue_number})")
+        self.logger.info(f"  🔄 关闭重复issue #{issue_number} (合并到 #{main_issue_number})")
 
         # 添加评论说明合并原因
         comment_url = (
@@ -311,9 +312,9 @@ class GitHubIssuesExecutor:
             comment_url, headers=self.headers, json=comment_data
         )
         if comment_response.status_code == 201:
-            print(f"    ✅ 添加合并说明评论")
+            self.logger.info(f"    ✅ 添加合并说明评论")
         else:
-            print(f"    ❌ 添加评论失败: {comment_response.text}")
+            self.logger.info(f"    ❌ 添加评论失败: {comment_response.text}")
 
         # 关闭issue
         url = f"https://api.github.com/repos/{self.repo}/issues/{issue_number}"
@@ -321,10 +322,10 @@ class GitHubIssuesExecutor:
 
         response = requests.patch(url, headers=self.headers, json=close_data)
         if response.status_code == 200:
-            print(f"    ✅ 成功关闭issue #{issue_number}")
+            self.logger.info(f"    ✅ 成功关闭issue #{issue_number}")
             return True
         else:
-            print(f"    ❌ 关闭失败: {response.text}")
+            self.logger.info(f"    ❌ 关闭失败: {response.text}")
             return False
 
     def update_main_issue(self, main_issue_number, duplicates, reason):
@@ -342,10 +343,10 @@ class GitHubIssuesExecutor:
 
         response = requests.post(comment_url, headers=self.headers, json=comment_data)
         if response.status_code == 201:
-            print(f"    ✅ 主issue #{main_issue_number} 添加合并说明")
+            self.logger.info(f"    ✅ 主issue #{main_issue_number} 添加合并说明")
             return True
         else:
-            print(f"    ❌ 主issue更新失败: {response.text}")
+            self.logger.info(f"    ❌ 主issue更新失败: {response.text}")
             return False
 
     def update_issue_labels(self, issue_number, new_labels, replace=False):
@@ -357,7 +358,7 @@ class GitHubIssuesExecutor:
 
         # 检查issue是否已关闭
         if issue.get("state") == "closed":
-            print(f"  ⏭️ 跳过已关闭的issue: #{issue_number}")
+            self.logger.info(f"  ⏭️ 跳过已关闭的issue: #{issue_number}")
             return False
 
         # 获取现有标签
@@ -372,7 +373,7 @@ class GitHubIssuesExecutor:
 
         # 如果标签没有变化，跳过更新
         if set(final_labels) == set(existing_labels):
-            print(f"  ⏭️ 标签无需更新: #{issue_number}")
+            self.logger.info(f"  ⏭️ 标签无需更新: #{issue_number}")
             return True
 
         url = f"https://api.github.com/repos/{self.repo}/issues/{issue_number}"
@@ -382,18 +383,18 @@ class GitHubIssuesExecutor:
         if response.status_code == 200:
             added_labels = set(final_labels) - set(existing_labels)
             if added_labels:
-                print(f"  ✅ 添加标签: #{issue_number} -> {', '.join(added_labels)}")
+                self.logger.info(f"  ✅ 添加标签: #{issue_number} -> {', '.join(added_labels)}")
             return True
         else:
-            print(f"  ❌ 标签更新失败: #{issue_number} - {response.text}")
+            self.logger.info(f"  ❌ 标签更新失败: #{issue_number} - {response.text}")
             return False
 
     def process_duplicates(self):
         """处理重复issues（跳过已关闭的issues）"""
-        print("🔄 处理重复issues...")
+        self.logger.info("🔄 处理重复issues...")
 
         if not self.duplicate_groups:
-            print("⚠️ 没有发现重复的issues")
+            self.logger.info("⚠️ 没有发现重复的issues")
             return
 
         for group in self.duplicate_groups:
@@ -404,12 +405,12 @@ class GitHubIssuesExecutor:
             # 检查主issue是否已关闭
             main_issue_details = self.get_issue_details(main_issue)
             if main_issue_details and main_issue_details.get("state") == "closed":
-                print(f"⏭️ 跳过已关闭的主issue #{main_issue}")
+                self.logger.info(f"⏭️ 跳过已关闭的主issue #{main_issue}")
                 continue
 
-            print(f"\\n📋 处理重复组: 主issue #{main_issue}")
-            print(f"   重复issues: {', '.join([f'#{num}' for num in duplicates])}")
-            print(f"   合并原因: {reason}")
+            self.logger.info(f"\\n📋 处理重复组: 主issue #{main_issue}")
+            self.logger.info(f"   重复issues: {', '.join([f'#{num}' for num in duplicates])}")
+            self.logger.info(f"   合并原因: {reason}")
 
             # 检查重复issues是否已关闭
             active_duplicates = []
@@ -418,10 +419,10 @@ class GitHubIssuesExecutor:
                 if duplicate_details and duplicate_details.get("state") == "open":
                     active_duplicates.append(duplicate)
                 else:
-                    print(f"   ⏭️ 跳过已关闭的重复issue #{duplicate}")
+                    self.logger.info(f"   ⏭️ 跳过已关闭的重复issue #{duplicate}")
 
             if not active_duplicates:
-                print("   ⚠️ 所有重复issues都已关闭，跳过处理")
+                self.logger.info("   ⚠️ 所有重复issues都已关闭，跳过处理")
                 continue
 
             # 更新主issue
@@ -431,37 +432,37 @@ class GitHubIssuesExecutor:
                     self.close_duplicate_issue(duplicate, main_issue, reason)
                     time.sleep(1)  # 避免API限制
 
-        print("\\n✅ 重复issues处理完成!")
+        self.logger.info("\\n✅ 重复issues处理完成!")
 
     def generate_labels_update_plan(self):
         """基于AI分析结果生成标签更新计划"""
         # 如果有AI分析的标签建议，使用AI分析结果
         if self.label_recommendations:
-            print(
+            self.logger.info(
                 f"📋 使用AI分析的标签建议: {len(self.label_recommendations)} 个issues"
             )
             return self.label_recommendations
 
         # 如果没有AI分析结果，返回空计划
-        print("⚠️ 没有AI分析的标签建议，跳过标签更新")
+        self.logger.info("⚠️ 没有AI分析的标签建议，跳过标签更新")
         return {}
 
     def update_all_labels(self):
         """基于AI分析批量更新issues标签"""
-        print("🏷️ 基于AI分析批量更新issues标签...")
+        self.logger.info("🏷️ 基于AI分析批量更新issues标签...")
 
         label_updates = self.generate_labels_update_plan()
 
         if not label_updates:
-            print("⚠️ 没有可用的标签更新计划")
+            self.logger.info("⚠️ 没有可用的标签更新计划")
             return
 
         for issue_number, labels in label_updates.items():
-            print(f"\n📋 更新issue #{issue_number}")
+            self.logger.info(f"\n📋 更新issue #{issue_number}")
             if self.update_issue_labels(issue_number, labels, replace=False):
                 time.sleep(0.5)  # 避免API限制
 
-        print("\n✅ 标签更新完成!")
+        self.logger.info("\n✅ 标签更新完成!")
 
     def generate_summary_report(self):
         """生成处理总结报告"""
@@ -546,7 +547,7 @@ class GitHubIssuesExecutor:
         with open(report_path, "w", encoding="utf-8") as f:
             f.write(report_content)
 
-        print(f"✅ 处理报告已生成: {report_path}")
+        self.logger.info(f"✅ 处理报告已生成: {report_path}")
         return report_path
 
     def get_current_time(self):
@@ -557,7 +558,7 @@ class GitHubIssuesExecutor:
 
     def run_full_management(self):
         """运行完整的issues管理流程（基于AI分析）"""
-        print("🚀 开始基于AI分析的GitHub Issues管理...")
+        self.logger.info("🚀 开始基于AI分析的GitHub Issues管理...")
 
         # 加载AI分析结果
         self.load_ai_analysis_results()
@@ -566,32 +567,32 @@ class GitHubIssuesExecutor:
             actions_performed = []
 
             # 1. 创建标准化标签（总是执行）
-            print("\n🏷️ 创建/更新标准化标签...")
+            self.logger.info("\n🏷️ 创建/更新标准化标签...")
             self.create_standard_labels()
             actions_performed.append("标准化标签")
 
             # 2. 处理重复issues（仅在有AI分析结果时）
             if self.duplicate_groups:
-                print("\n🔄 处理重复issues...")
+                self.logger.info("\n🔄 处理重复issues...")
                 self.process_duplicates()
                 actions_performed.append("重复issues处理")
             else:
-                print("\n⚠️ 未发现重复issues，跳过合并操作")
+                self.logger.info("\n⚠️ 未发现重复issues，跳过合并操作")
 
             # 3. 批量更新标签（仅在有AI分析结果时）
             if self.label_recommendations:
-                print("\n🏷️ 批量更新issues标签...")
+                self.logger.info("\n🏷️ 批量更新issues标签...")
                 self.update_all_labels()
                 actions_performed.append("标签更新")
             else:
-                print("\n⚠️ 没有AI标签建议，跳过标签更新")
+                self.logger.info("\n⚠️ 没有AI标签建议，跳过标签更新")
 
             # 4. 生成处理报告
-            print("\n📋 生成处理报告...")
+            self.logger.info("\n📋 生成处理报告...")
             report_path = self.generate_summary_report()
             actions_performed.append("报告生成")
 
-            print(
+            self.logger.info(
                 f"""
 🎉 Issues管理完成！
 
@@ -615,7 +616,7 @@ https://github.com/{self.repo}/issues
             )
 
         except Exception as e:
-            print(f"❌ 处理过程中出现错误: {e}")
+            self.logger.info(f"❌ 处理过程中出现错误: {e}")
             import traceback
 
             traceback.print_exc()
@@ -636,7 +637,7 @@ if __name__ == "__main__":
         elif command == "report":
             manager.generate_summary_report()
         else:
-            print(
+            self.logger.info(
                 "用法: python3 manage_github_issues.py [labels|duplicates|update-labels|report]"
             )
     else:

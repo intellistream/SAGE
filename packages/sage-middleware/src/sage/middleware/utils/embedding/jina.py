@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import asyncio
 import os
 
@@ -57,7 +58,7 @@ async def jina_embed(
         "input": text,
     }
     data_list = await fetch_data(url, headers, data)
-    print(data_list)
+    self.logger.info(data_list)
     return data_list[0]["embedding"]
 
 

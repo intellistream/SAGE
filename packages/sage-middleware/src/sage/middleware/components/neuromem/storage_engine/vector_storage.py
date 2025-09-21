@@ -1,6 +1,7 @@
 # file sage/core/sage.middleware.services.neuromem./storage_engine/vector_storage.py
 # python -m sage.core.sage.middleware.services.neuromem..storage_engine.vector_storage
 
+from sage.common.utils.logging.custom_logger import CustomLogger
 import json
 from typing import Any, List, Optional
 
@@ -67,22 +68,22 @@ if __name__ == "__main__":
 
     # 存储并保存到磁盘
     vs.store(vector_id, vector)
-    print("Step 1 | Retrieved:", vs.get(vector_id))
+    self.logger.info("Step 1 | Retrieved:", vs.get(vector_id))
     vs.store_to_disk(disk_path)
-    print(f"Step 2 | Data has been saved to {disk_path}")
+    self.logger.info(f"Step 2 | Data has been saved to {disk_path}")
 
     # 清空内存
     vs.clear()
-    print("Step 3 | After clear (should be None):", vs.get(vector_id))
+    self.logger.info("Step 3 | After clear (should be None):", vs.get(vector_id))
 
     # 等待用户输入 yes 再读取
     user_input = input("Step 4 | Enter 'yes' to load data from disk: ")
     if user_input.strip().lower() == "yes":
         vs.load_from_disk(disk_path)
-        print("Step 5 | After reload, Retrieved:", vs.get(vector_id))
+        self.logger.info("Step 5 | After reload, Retrieved:", vs.get(vector_id))
     else:
-        print("Step 5 | Skipped loading from disk.")
+        self.logger.info("Step 5 | Skipped loading from disk.")
 
     # 删除磁盘文件
     vs.clear_disk_data(disk_path)
-    print(f"Step 6 | Disk file {disk_path} has been deleted.")
+    self.logger.info(f"Step 6 | Disk file {disk_path} has been deleted.")

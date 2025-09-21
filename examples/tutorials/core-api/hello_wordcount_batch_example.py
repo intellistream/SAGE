@@ -1,3 +1,4 @@
+import logging
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.flatmap_function import FlatMapFunction
@@ -49,9 +50,9 @@ class PrintResult(SinkFunction):
         self.counts[word] = self.counts.get(word, 0) + cnt
 
     def close(self):
-        print("WordCount 结果：")
+        logging.info("WordCount 结果：")
         for word, count in self.counts.items():
-            print(f"{word}: {count}")
+            logging.info(f"{word}: {count}")
 
 
 def main():
@@ -61,7 +62,7 @@ def main():
     env.from_batch(SentenceBatch).flatmap(SplitWords).map(WordToPair).sink(PrintResult)
 
     env.submit(autostop=True)
-    print("WordCount 批处理示例结束")
+    logging.info("WordCount 批处理示例结束")
 
 
 if __name__ == "__main__":

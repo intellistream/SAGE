@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 # """
 # Memory Service API 使用示例
 # 展示如何正确使用Memory微服务的API接口进行高级记忆管理
@@ -17,14 +18,14 @@
 
 # def test_memory_service_api():
 #     """测试Memory服务API的正确使用方式"""
-#     print("🚀 Memory Service API Demo")
-#     print("=" * 60)
+#     self.logger.info("🚀 Memory Service API Demo")
+#     self.logger.info("=" * 60)
 
 #     # 创建环境
 #     env = LocalEnvironment("memory_service_demo")
 
 #     # 注册所有依赖的微服务
-#     print("📋 Registering microservices...")
+#     self.logger.info("📋 Registering microservices...")
 
 #     # KV服务
 #     kv_factory = create_kv_service_factory(
@@ -33,7 +34,7 @@
 #         max_size=10000
 #     )
 #     env.register_service_factory("demo_kv", kv_factory)
-#     print("   ✅ KV Service registered")
+#     self.logger.info("   ✅ KV Service registered")
 
 #     # VDB服务
 #     vdb_factory = create_vdb_service_factory(
@@ -42,7 +43,7 @@
 #         index_type="IndexFlatL2"
 #     )
 #     env.register_service_factory("demo_vdb", vdb_factory)
-#     print("   ✅ VDB Service registered")
+#     self.logger.info("   ✅ VDB Service registered")
 
 #     # Graph服务
 #     graph_factory = create_graph_service_factory(
@@ -51,7 +52,7 @@
 #         max_nodes=5000
 #     )
 #     env.register_service_factory("demo_graph", graph_factory)
-#     print("   ✅ Graph Service registered")
+#     self.logger.info("   ✅ Graph Service registered")
 
 #     # Memory编排服务
 #     memory_factory = create_memory_service_factory(
@@ -61,7 +62,7 @@
 #         graph_service_name="demo_graph",
 #         enable_knowledge_graph=True
 #     )
-#     print("✅ All microservices registered successfully")
+#     self.logger.info("✅ All microservices registered successfully")
 
 #     # 在实际应用中，你需要启动环境并获取服务代理
 #     # env.submit()  # 启动环境
@@ -73,21 +74,21 @@
 
 # def demonstrate_memory_api_usage():
 #     """演示Memory服务API的标准使用模式"""
-#     print("\n📝 Memory Service API Usage Patterns:")
-#     print("-" * 50)
+#     self.logger.info("\n📝 Memory Service API Usage Patterns:")
+#     self.logger.info("-" * 50)
 
 #     # 展示API接口
-#     print("💡 Memory Service API Interface (High-level Orchestration):")
-#     print("   class MemoryServiceAPI:")
-#     print("     - store_memory(content, vector, session_id, ...) -> str")
-#     print("     - retrieve_memories(query_vector, session_id, ...) -> List[Dict]")
-#     print("     - get_memory(memory_id) -> Optional[Dict]")
-#     print("     - delete_memory(memory_id) -> bool")
-#     print("     - search_memories(query, session_id, ...) -> List[Dict]")
-#     print("     - get_session_memories(session_id) -> List[Dict]")
-#     print("     - clear_session_memories(session_id) -> bool")
+#     self.logger.info("💡 Memory Service API Interface (High-level Orchestration):")
+#     self.logger.info("   class MemoryServiceAPI:")
+#     self.logger.info("     - store_memory(content, vector, session_id, ...) -> str")
+#     self.logger.info("     - retrieve_memories(query_vector, session_id, ...) -> List[Dict]")
+#     self.logger.info("     - get_memory(memory_id) -> Optional[Dict]")
+#     self.logger.info("     - delete_memory(memory_id) -> bool")
+#     self.logger.info("     - search_memories(query, session_id, ...) -> List[Dict]")
+#     self.logger.info("     - get_session_memories(session_id) -> List[Dict]")
+#     self.logger.info("     - clear_session_memories(session_id) -> bool")
 
-#     print("\n📋 Standard Usage Example:")
+#     self.logger.info("\n📋 Standard Usage Example:")
 #     usage_code = '''
 # # 1. 获取Memory服务代理（高级编排服务）
 # memory_service = env.get_service_proxy("demo_memory")
@@ -144,10 +145,10 @@
 # # 6. 获取特定记忆的详细信息
 # memory_detail = memory_service.get_memory(question_memory_id)
 # '''
-#     print(usage_code)
+#     self.logger.info(usage_code)
 
 #     # 模拟执行结果
-#     print("🎯 Expected Results:")
+#     self.logger.info("🎯 Expected Results:")
 #     operations = [
 #         ("store_memory(question)", "'mem_q_uuid_123'"),
 #         ("store_memory(answer)", "'mem_a_uuid_456'"),
@@ -158,13 +159,13 @@
 #     ]
 
 #     for operation, result in operations:
-#         print(f"   {operation:<30} -> {result}")
+#         self.logger.info(f"   {operation:<30} -> {result}")
 
 
 # def demonstrate_advanced_memory_patterns():
 #     """演示Memory服务的高级使用模式"""
-#     print("\n🧠 Advanced Memory Management Patterns:")
-#     print("-" * 50)
+#     self.logger.info("\n🧠 Advanced Memory Management Patterns:")
+#     self.logger.info("-" * 50)
 
 #     advanced_patterns = '''
 # # 1. 智能对话上下文管理
@@ -304,7 +305,7 @@
 
 #         return turn_id, user_memory_id, ai_memory_id
 # '''
-#     # print(advanced_patterns)
+#     # self.logger.info(advanced_patterns)
 #     #         "vector": np.random.random(384).tolist(),
 #     #         "memory_type": "answer",
 #     #         "metadata": {"topic": "programming", "language": "python", "complexity": "basic"}
@@ -317,7 +318,7 @@
 #     #     }
 #     # ]
 
-#     print(f"\n🧠 Storing memories for session {session_id}:")
+#     self.logger.info(f"\n🧠 Storing memories for session {session_id}:")
 #     memory_ids = []
 #     for i, memory in enumerate(memories):
 #         # memory_id = memory_service.store_memory(
@@ -330,10 +331,10 @@
 #         # )
 #         memory_id = f"mem_{i+1}"  # 模拟返回的ID
 #         memory_ids.append(memory_id)
-#         print(f"   ✅ Stored {memory['memory_type']}: {memory_id}")
+#         self.logger.info(f"   ✅ Stored {memory['memory_type']}: {memory_id}")
 
 #     # 模拟记忆搜索
-#     print(f"\n🔍 Searching memories:")
+#     self.logger.info(f"\n🔍 Searching memories:")
 #     query_vector = np.random.random(384).tolist()
 
 #     # search_results = memory_service.search_memories(
@@ -367,14 +368,14 @@
 #         }
 #     ]
 
-#     print(f"   📖 Found {len(search_results)} relevant memories:")
+#     self.logger.info(f"   📖 Found {len(search_results)} relevant memories:")
 #     for result in search_results:
-#         print(f"      - {result['memory_type']}: {result['content'][:50]}...")
-#         print(f"        相似度: {result['similarity_score']:.3f}")
-#         print(f"        图上下文: {len(result['graph_context']['related_nodes'])} 相关节点")
+#         self.logger.info(f"      - {result['memory_type']}: {result['content'][:50]}...")
+#         self.logger.info(f"        相似度: {result['similarity_score']:.3f}")
+#         self.logger.info(f"        图上下文: {len(result['graph_context']['related_nodes'])} 相关节点")
 
 #     # 模拟会话记忆分析
-#     print(f"\n📊 Session Analysis:")
+#     self.logger.info(f"\n📊 Session Analysis:")
 
 #     # session_analysis = memory_service.get_session_memories(
 #     #     session_id=session_id,
@@ -393,25 +394,25 @@
 #         }
 #     }
 
-#     print(f"   📈 Session Statistics:")
-#     print(f"      - 总记忆数: {session_analysis['memory_count']}")
-#     print(f"      - 记忆类型: {session_analysis['memory_types']}")
-#     print(f"      - 讨论主题: {', '.join(session_analysis['graph_analysis']['topics_discussed'])}")
-#     print(f"      - 对话流程: {session_analysis['graph_analysis']['conversation_flow']}")
-#     print(f"      - 情感趋势: {session_analysis['graph_analysis']['sentiment_trend']}")
+#     self.logger.info(f"   📈 Session Statistics:")
+#     self.logger.info(f"      - 总记忆数: {session_analysis['memory_count']}")
+#     self.logger.info(f"      - 记忆类型: {session_analysis['memory_types']}")
+#     self.logger.info(f"      - 讨论主题: {', '.join(session_analysis['graph_analysis']['topics_discussed'])}")
+#     self.logger.info(f"      - 对话流程: {session_analysis['graph_analysis']['conversation_flow']}")
+#     self.logger.info(f"      - 情感趋势: {session_analysis['graph_analysis']['sentiment_trend']}")
 
-#     print("\n💡 Memory Service Features:")
-#     print("   - 统一记忆管理接口")
-#     print("   - 自动知识图谱构建")
-#     print("   - 语义搜索和过滤")
-#     print("   - 会话上下文分析")
-#     print("   - 跨服务事务一致性")
-#     print("   - 图增强的记忆检索")
+#     self.logger.info("\n💡 Memory Service Features:")
+#     self.logger.info("   - 统一记忆管理接口")
+#     self.logger.info("   - 自动知识图谱构建")
+#     self.logger.info("   - 语义搜索和过滤")
+#     self.logger.info("   - 会话上下文分析")
+#     self.logger.info("   - 跨服务事务一致性")
+#     self.logger.info("   - 图增强的记忆检索")
 
 
 # def test_memory_use_cases():
 #     """演示Memory服务的应用场景"""
-#     print("\n🎯 Memory Service Use Cases:")
+#     self.logger.info("\n🎯 Memory Service Use Cases:")
 
 #     use_cases = [
 #         {
@@ -441,14 +442,14 @@
 #     ]
 
 #     for case in use_cases:
-#         print(f"  📚 {case['name']}: {case['scenario']}")
-#         print(f"      记忆类型: {', '.join(case['memory_types'])}")
-#         print(f"      核心功能: {', '.join(case['features'])}")
+#         self.logger.info(f"  📚 {case['name']}: {case['scenario']}")
+#         self.logger.info(f"      记忆类型: {', '.join(case['memory_types'])}")
+#         self.logger.info(f"      核心功能: {', '.join(case['features'])}")
 
 
 # def test_memory_advantages():
 #     """展示Memory服务相比单一服务的优势"""
-#     print("\n🌟 Memory Service Advantages:")
+#     self.logger.info("\n🌟 Memory Service Advantages:")
 
 #     advantages = [
 #         {
@@ -479,12 +480,12 @@
 #     ]
 
 #     for adv in advantages:
-#         print(f"  ⭐ {adv['aspect']}: {adv['description']}")
-#         print(f"      价值: {adv['benefit']}")
+#         self.logger.info(f"  ⭐ {adv['aspect']}: {adv['description']}")
+#         self.logger.info(f"      价值: {adv['benefit']}")
 
 
 # if __name__ == "__main__":
 #     test_memory_service_api()
 #     demonstrate_advanced_memory_patterns()
-#     print("\n🎯 Memory Service API demo completed!")
-#     print("\n📚 Next: Check the complete API tutorial for integration examples")
+#     self.logger.info("\n🎯 Memory Service API demo completed!")
+#     self.logger.info("\n📚 Next: Check the complete API tutorial for integration examples")

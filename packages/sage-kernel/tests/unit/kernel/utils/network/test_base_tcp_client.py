@@ -1,4 +1,5 @@
 """
+import logging
 Tests for sage.common.utils.network.base_tcp_client module
 ==================================================
 
@@ -546,7 +547,7 @@ class MockTcpClientIntegration:
 
             except Exception as e:
                 server_error = e
-                print(f"Mock server error: {e}")
+                logging.info(f"Mock server error: {e}")
             finally:
                 server_socket.close()
 
@@ -932,7 +933,7 @@ class TestTcpClientIntegration:
 
             except Exception as e:
                 server_error = e
-                print(f"Mock server error: {e}")
+                logging.info(f"Mock server error: {e}")
             finally:
                 server_socket.close()
 

@@ -1,3 +1,4 @@
+import logging
 import json
 import time
 from typing import Any, Dict, List
@@ -228,7 +229,7 @@ class Sink(MapFunction):
         # 添加到总结果中
         self.all_results.extend(batch_results)
 
-        print(
+        logging.info(
             f"✅ 已处理批次 {batch_id + 1}/{total_batches}，当前总结果数: {len(self.all_results)}"
         )
 
@@ -258,7 +259,7 @@ class Sink(MapFunction):
         with open(self.output_path, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
 
-        print(f"📁 结果已保存到: {self.output_path}")
+        logging.info(f"📁 结果已保存到: {self.output_path}")
 
 
 def pipeline_run(config: dict) -> None:
@@ -305,9 +306,9 @@ if __name__ == "__main__":
     config_path = "./experiments/config/experiment_config.yaml"
     config = load_config(config_path)
 
-    print("🚀 开始运行实验管道...")
-    print(f"📊 数据文件: {config['source']['data_path']}")
-    print(f"🔄 使用上下文: {config['generator']['use_context']}")
-    print(f"💾 输出路径: {config['sink']['output_path']}")
+    logging.info("🚀 开始运行实验管道...")
+    logging.info(f"📊 数据文件: {config['source']['data_path']}")
+    logging.info(f"🔄 使用上下文: {config['generator']['use_context']}")
+    logging.info(f"💾 输出路径: {config['sink']['output_path']}")
 
     pipeline_run(config)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 Queue Descriptor Comprehensive Test Suite
 
 测试队列描述符系统的核心功能：
@@ -409,18 +410,18 @@ def test_integration_scenario():
 
 if __name__ == "__main__":
     # 运行测试
-    print("Queue Descriptor Test Suite")
-    print("=" * 50)
-    print("测试覆盖功能：")
-    print("✓ 基础队列操作 (put, get, empty, qsize)")
-    print("✓ 懒加载和初始化管理")
-    print("✓ 序列化和反序列化功能")
-    print("✓ 缓存管理和清理")
-    print("✓ 克隆和trim功能")
-    print("✓ 相等性和哈希")
-    print("✓ 字符串表示")
-    print("✓ Python队列描述符具体实现")
-    print("✓ 向后兼容性")
-    print("✓ 集成场景测试")
-    print("=" * 50)
+    logging.info("Queue Descriptor Test Suite")
+    logging.info("=" * 50)
+    logging.info("测试覆盖功能：")
+    logging.info("✓ 基础队列操作 (put, get, empty, qsize)")
+    logging.info("✓ 懒加载和初始化管理")
+    logging.info("✓ 序列化和反序列化功能")
+    logging.info("✓ 缓存管理和清理")
+    logging.info("✓ 克隆和trim功能")
+    logging.info("✓ 相等性和哈希")
+    logging.info("✓ 字符串表示")
+    logging.info("✓ Python队列描述符具体实现")
+    logging.info("✓ 向后兼容性")
+    logging.info("✓ 集成场景测试")
+    logging.info("=" * 50)
     pytest.main([__file__, "-v", "-s"])

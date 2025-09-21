@@ -1,3 +1,4 @@
+import logging
 import time
 
 from sage.core.api.function.sink_function import SinkFunction
@@ -22,7 +23,7 @@ class StatsSink(SinkFunction):
         super().__init__(**kwargs)
 
     def execute(self, data):
-        print(f"[{self.name}] Received: {data}")
+        logging.info(f"[{self.name}] Received: {data}")
         return data
 
 
@@ -33,9 +34,9 @@ def main():
     # 设置日志级别为WARNING以减少调试输出
     env.set_console_log_level("WARNING")
 
-    print("🚀 Starting Simple Connected Streams Example")
-    print("📊 Demonstrating multiple stream processing and connection")
-    print("⏹️  Press Ctrl+C to stop\n")
+    logging.info("🚀 Starting Simple Connected Streams Example")
+    logging.info("📊 Demonstrating multiple stream processing and connection")
+    logging.info("⏹️  Press Ctrl+C to stop\n")
 
     # 创建主数据源
     main_stream = env.from_source(NumberSource, delay=1.0)
@@ -43,29 +44,29 @@ def main():
     # 分支1：偶数流
     even_stream = (
         main_stream.filter(lambda x: x % 2 == 0).map(lambda x: ("EVEN", x))
-        # .print("🔵 Even Stream")
+        # .logging.info("🔵 Even Stream")
     )
 
     # 分支2：奇数流
     odd_stream = (
         main_stream.filter(lambda x: x % 2 == 1).map(lambda x: ("ODD", x))
-        # .print("🔴 Odd Stream")
+        # .logging.info("🔴 Odd Stream")
     )
 
     # 分支3：倍数流（3的倍数）
     multiple_stream = (
         main_stream.filter(lambda x: x % 3 == 0).map(lambda x: ("MULTIPLE_3", x))
-        # .print("🟡 Multiple-3 Stream")
+        # .logging.info("🟡 Multiple-3 Stream")
     )
 
     # 分支4：大数流（大于5）
     large_stream = (
         main_stream.filter(lambda x: x > 5).map(lambda x: ("LARGE", x))
-        # .print("🟢 Large Stream")
+        # .logging.info("🟢 Large Stream")
     )
 
     # 使用 ConnectedStreams 将所有分支连接起来
-    print("\n🔗 Connecting all streams...")
+    logging.info("\n🔗 Connecting all streams...")
     connected_streams = (
         even_stream.connect(odd_stream).connect(multiple_stream).connect(large_stream)
     )
@@ -73,11 +74,11 @@ def main():
     # 对连接的流进行统一处理
     final_result = (
         connected_streams.map(lambda data: f"Processed: {data[0]} -> {data[1]}")
-        .print("🎯 Final Result")
+        .logging.info("🎯 Final Result")
         .sink(StatsSink, name="FinalSink")
     )
 
-    print("📈 All streams connected and processing...\n")
+    logging.info("📈 All streams connected and processing...\n")
 
     try:
         # 运行流处理
@@ -86,15 +87,15 @@ def main():
         time.sleep(5)  # 运行5秒
 
     except KeyboardInterrupt:
-        print("\n\n🛑 Stopping Simple Connected Streams Example...")
+        logging.info("\n\n🛑 Stopping Simple Connected Streams Example...")
 
     finally:
-        print("\n📋 Example completed!")
-        print("💡 This example demonstrated:")
-        print("   - Multiple stream branches from single source")
-        print("   - Independent filtering and processing")
-        print("   - ConnectedStreams merging multiple flows")
-        print("   - Unified final processing of merged streams")
+        logging.info("\n📋 Example completed!")
+        logging.info("💡 This example demonstrated:")
+        logging.info("   - Multiple stream branches from single source")
+        logging.info("   - Independent filtering and processing")
+        logging.info("   - ConnectedStreams merging multiple flows")
+        logging.info("   - Unified final processing of merged streams")
         env.close()
 
 

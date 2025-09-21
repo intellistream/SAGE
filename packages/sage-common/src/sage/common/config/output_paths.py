@@ -1,4 +1,5 @@
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 SAGE Output Path Configuration
 
 This module provides a centralized configuration system for all output paths in SAGE.
@@ -367,7 +368,7 @@ class SageOutputPaths:
 
         for src, dst in migrations:
             if src.exists() and src != dst:
-                print(f"Migrating {src} -> {dst}")
+                self.logger.info(f"Migrating {src} -> {dst}")
 
                 # Ensure destination directory exists
                 dst.mkdir(parents=True, exist_ok=True)
@@ -393,7 +394,7 @@ class SageOutputPaths:
                 try:
                     src.rmdir()
                 except OSError:
-                    print(f"Warning: Could not remove {src} (not empty)")
+                    self.logger.info(f"Warning: Could not remove {src} (not empty)")
 
 
 # Global instance for easy access

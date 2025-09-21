@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 Remote Environment Parallelism Validation Example
 
 This example demonstrates and validates parallelism hints functionality
@@ -46,7 +47,7 @@ class DistributedProcessor(BaseFunction):
         self.instance_id = id(self)
         self.process_id = os.getpid()
         self.thread_id = threading.get_ident()
-        print(
+        logging.info(
             f"🔧 {self.processor_name} instance {self.instance_id} created "
             f"(PID: {self.process_id}, Thread: {self.thread_id})"
         )
@@ -56,7 +57,7 @@ class DistributedProcessor(BaseFunction):
         current_process = os.getpid()
         instance_id = id(self)
         result = f"{self.processor_name}[{instance_id}@{current_process}]: {data}"
-        print(f"⚙️  {result} (Thread: {current_thread})")
+        logging.info(f"⚙️  {result} (Thread: {current_thread})")
         time.sleep(0.1)  # Simulate processing time
         return result
 
@@ -68,7 +69,7 @@ class DistributedFilter(BaseFunction):
         super().__init__()
         self.instance_id = id(self)
         self.process_id = os.getpid()
-        print(
+        logging.info(
             f"🔧 DistributedFilter instance {self.instance_id} created (PID: {self.process_id})"
         )
 
@@ -80,7 +81,7 @@ class DistributedFilter(BaseFunction):
         # Filter logic: pass if data is divisible by 3
         passes = isinstance(data, int) and data % 3 == 0
         status = "PASSED" if passes else "BLOCKED"
-        print(
+        logging.info(
             f"{'✅' if passes else '❌'} Filter[{instance_id}@{current_process}]: {data} {status} "
             f"(Thread: {current_thread})"
         )
@@ -94,7 +95,7 @@ class DistributedCoMapProcessor(BaseCoMapFunction):
         super().__init__()
         self.instance_id = id(self)
         self.process_id = os.getpid()
-        print(
+        logging.info(
             f"🔧 DistributedCoMapProcessor instance {self.instance_id} created (PID: {self.process_id})"
         )
 
@@ -103,7 +104,7 @@ class DistributedCoMapProcessor(BaseCoMapFunction):
         current_thread = threading.get_ident()
         instance_id = id(self)
         result = f"DistCoMap0[{instance_id}@{current_process}]: {data}"
-        print(f"🔀 {result} (Thread: {current_thread})")
+        logging.info(f"🔀 {result} (Thread: {current_thread})")
         time.sleep(0.05)
         return result
 
@@ -112,7 +113,7 @@ class DistributedCoMapProcessor(BaseCoMapFunction):
         current_thread = threading.get_ident()
         instance_id = id(self)
         result = f"DistCoMap1[{instance_id}@{current_process}]: {data * 100}"
-        print(f"🔀 {result} (Thread: {current_thread})")
+        logging.info(f"🔀 {result} (Thread: {current_thread})")
         time.sleep(0.05)
         return result
 
@@ -125,7 +126,7 @@ class DistributedSink(BaseFunction):
         self.instance_id = id(self)
         self.process_id = os.getpid()
         self.results = []
-        print(
+        logging.info(
             f"🔧 DistributedSink instance {self.instance_id} created (PID: {self.process_id})"
         )
 
@@ -134,7 +135,7 @@ class DistributedSink(BaseFunction):
         current_process = os.getpid()
         instance_id = id(self)
         self.results.append(data)
-        print(
+        logging.info(
             f"🎯 SINK[{instance_id}@{current_process}]: {data} (Thread: {current_thread})"
         )
         return data
@@ -142,9 +143,9 @@ class DistributedSink(BaseFunction):
 
 def validate_remote_single_stream_parallelism():
     """Validate parallelism for single stream operations in remote environment"""
-    print("\n" + "=" * 70)
-    print("REMOTE ENVIRONMENT - SINGLE STREAM PARALLELISM VALIDATION")
-    print("=" * 70)
+    logging.info("\n" + "=" * 70)
+    logging.info("REMOTE ENVIRONMENT - SINGLE STREAM PARALLELISM VALIDATION")
+    logging.info("=" * 70)
 
     # Initialize Ray cluster for distributed processing
     # Note: Ray configuration is currently handled at the JobManager level,
@@ -152,20 +153,20 @@ def validate_remote_single_stream_parallelism():
     # improvement area for SAGE architecture.
     try:
         env = RemoteEnvironment(name="remote_single_stream_test")
-        print("✅ RemoteEnvironment initialized successfully")
+        logging.info("✅ RemoteEnvironment initialized successfully")
     except Exception as e:
-        print(f"⚠️  RemoteEnvironment initialization warning: {e}")
+        logging.info(f"⚠️  RemoteEnvironment initialization warning: {e}")
         env = RemoteEnvironment(name="remote_single_stream_test")
 
     # Test data - larger dataset for distributed processing
     numbers = list(range(1, 31))  # 1 to 30
     source_stream = env.from_collection(NumberListSource, numbers)
 
-    print(f"\n📊 Testing with {len(numbers)} input numbers")
-    print(f"📊 Numbers: {numbers[:10]}...{numbers[-5:]} (showing first 10 and last 5)")
+    logging.info(f"\n📊 Testing with {len(numbers)} input numbers")
+    logging.info(f"📊 Numbers: {numbers[:10]}...{numbers[-5:]} (showing first 10 and last 5)")
 
     # Test distributed parallelism
-    print("\n--- Test 1: Distributed processing with direct parallelism parameters ---")
+    logging.info("\n--- Test 1: Distributed processing with direct parallelism parameters ---")
     result1 = (
         source_stream.map(
             DistributedProcessor, "DistMapper", parallelism=4
@@ -174,7 +175,7 @@ def validate_remote_single_stream_parallelism():
         .sink(DistributedSink, parallelism=2)
     )  # 2 sinks across workers
 
-    print("\n--- Test 2: Distributed processing with direct parallelism ---")
+    logging.info("\n--- Test 2: Distributed processing with direct parallelism ---")
     result2 = (
         source_stream
         .map(DistributedProcessor, "SetDistMapper", parallelism=3)  # 3 parallel mappers
@@ -183,11 +184,11 @@ def validate_remote_single_stream_parallelism():
     )  # 1 sink
 
     # Analyze pipeline
-    print(f"\n📋 DISTRIBUTED PIPELINE ANALYSIS:")
-    print(f"Total transformations: {len(env.pipeline)}")
-    print(f"Ray workers available: {env.platform} (distributed execution)")
+    logging.info(f"\n📋 DISTRIBUTED PIPELINE ANALYSIS:")
+    logging.info(f"Total transformations: {len(env.pipeline)}")
+    logging.info(f"Ray workers available: {env.platform} (distributed execution)")
     for i, transformation in enumerate(env.pipeline):
-        print(
+        logging.info(
             f"  {i+1:2d}. {transformation.function_class.__name__:25s} | "
             f"Parallelism: {transformation.parallelism:2d} | "
             f"Basename: {transformation.basename}"
@@ -198,14 +199,14 @@ def validate_remote_single_stream_parallelism():
 
 def validate_remote_multi_stream_parallelism():
     """Validate parallelism for multi-stream operations in remote environment"""
-    print("\n" + "=" * 70)
-    print("REMOTE ENVIRONMENT - MULTI-STREAM PARALLELISM VALIDATION")
-    print("=" * 70)
+    logging.info("\n" + "=" * 70)
+    logging.info("REMOTE ENVIRONMENT - MULTI-STREAM PARALLELISM VALIDATION")
+    logging.info("=" * 70)
 
     try:
         env = RemoteEnvironment(name="remote_multi_stream_test")
     except Exception as e:
-        print(f"⚠️  RemoteEnvironment initialization warning: {e}")
+        logging.info(f"⚠️  RemoteEnvironment initialization warning: {e}")
         env = RemoteEnvironment(name="remote_multi_stream_test")
 
     # Create streams with more data for distributed processing
@@ -215,17 +216,17 @@ def validate_remote_multi_stream_parallelism():
     stream1 = env.from_collection(NumberListSource, stream1_data)
     stream2 = env.from_collection(NumberListSource, stream2_data)
 
-    print(f"\n📊 Stream1 data (odd numbers): {stream1_data}")
-    print(f"📊 Stream2 data (even numbers): {stream2_data}")
+    logging.info(f"\n📊 Stream1 data (odd numbers): {stream1_data}")
+    logging.info(f"📊 Stream2 data (even numbers): {stream2_data}")
 
-    print("\n--- Test 1: Distributed CoMap with direct parallelism ---")
+    logging.info("\n--- Test 1: Distributed CoMap with direct parallelism ---")
     result1 = (
         stream1.connect(stream2)
         .comap(DistributedCoMapProcessor, parallelism=3)  # 3 parallel CoMap processors
         .sink(DistributedSink, parallelism=2)
     )  # 2 sinks
 
-    print("\n--- Test 2: Distributed CoMap with direct parallelism ---")
+    logging.info("\n--- Test 2: Distributed CoMap with direct parallelism ---")
     result2 = (
         stream1.connect(stream2)
         .comap(DistributedCoMapProcessor, parallelism=4)  # 4 parallel CoMap processors
@@ -233,11 +234,11 @@ def validate_remote_multi_stream_parallelism():
     )  # 1 sink
 
     # Analyze pipeline
-    print(f"\n📋 DISTRIBUTED PIPELINE ANALYSIS:")
-    print(f"Total transformations: {len(env.pipeline)}")
-    print(f"Environment platform: {env.platform}")
+    logging.info(f"\n📋 DISTRIBUTED PIPELINE ANALYSIS:")
+    logging.info(f"Total transformations: {len(env.pipeline)}")
+    logging.info(f"Environment platform: {env.platform}")
     for i, transformation in enumerate(env.pipeline):
-        print(
+        logging.info(
             f"  {i+1:2d}. {transformation.function_class.__name__:25s} | "
             f"Parallelism: {transformation.parallelism:2d} | "
             f"Basename: {transformation.basename}"
@@ -248,15 +249,15 @@ def validate_remote_multi_stream_parallelism():
 
 def validate_ray_distributed_execution():
     """Validate that Ray properly distributes parallel operations"""
-    print("\n" + "=" * 70)
-    print("RAY DISTRIBUTED EXECUTION VALIDATION")
-    print("=" * 70)
+    logging.info("\n" + "=" * 70)
+    logging.info("RAY DISTRIBUTED EXECUTION VALIDATION")
+    logging.info("=" * 70)
 
     try:
         env = RemoteEnvironment(name="ray_distribution_test")
-        print("✅ RemoteEnvironment initialized")
+        logging.info("✅ RemoteEnvironment initialized")
     except Exception as e:
-        print(f"⚠️  RemoteEnvironment initialization warning: {e}")
+        logging.info(f"⚠️  RemoteEnvironment initialization warning: {e}")
         env = RemoteEnvironment(name="ray_distribution_test")
 
     # Create a pipeline designed to show distributed execution
@@ -269,35 +270,35 @@ def validate_ray_distributed_execution():
         .sink(DistributedSink, parallelism=2)
     )  # 2 sinks
 
-    print(f"\n📋 Remote Distribution Test Pipeline:")
-    print(f"  - Dataset size: {len(large_dataset)} items")
-    print(
+    logging.info(f"\n📋 Remote Distribution Test Pipeline:")
+    logging.info(f"  - Dataset size: {len(large_dataset)} items")
+    logging.info(
         f"  - Expected parallel processors: 5 (will distribute based on available workers)"
     )
-    print(
+    logging.info(
         f"  - Expected parallel filters: 3 (will distribute based on available workers)"
     )
-    print(f"  - Expected sinks: 2 (will distribute based on available workers)")
+    logging.info(f"  - Expected sinks: 2 (will distribute based on available workers)")
 
-    print(f"\n🔍 Pipeline transformations:")
+    logging.info(f"\n🔍 Pipeline transformations:")
     for i, transformation in enumerate(env.pipeline):
-        print(
+        logging.info(
             f"  {i+1}. {transformation.basename} (parallelism: {transformation.parallelism})"
         )
 
-    print(f"\n💡 Key aspects of remote distributed execution:")
-    print(f"   - Each parallel instance may run on different remote workers")
-    print(f"   - Process IDs will differ across workers")
-    print(f"   - Work is distributed based on available resources")
-    print(f"   - RemoteEnvironment handles load balancing and coordination")
+    logging.info(f"\n💡 Key aspects of remote distributed execution:")
+    logging.info(f"   - Each parallel instance may run on different remote workers")
+    logging.info(f"   - Process IDs will differ across workers")
+    logging.info(f"   - Work is distributed based on available resources")
+    logging.info(f"   - RemoteEnvironment handles load balancing and coordination")
 
     return env
 
 
 def main():
     """Main function to run all remote validation tests"""
-    print("🚀 SAGE Remote Environment Parallelism Validation")
-    print("This example validates parallelism hints in RemoteEnvironment (Ray)")
+    logging.info("🚀 SAGE Remote Environment Parallelism Validation")
+    logging.info("This example validates parallelism hints in RemoteEnvironment (Ray)")
 
     try:
         # Run all validation tests
@@ -305,34 +306,34 @@ def main():
         env2 = validate_remote_multi_stream_parallelism()
         env3 = validate_ray_distributed_execution()
 
-        print("\n" + "=" * 70)
-        print("REMOTE VALIDATION SUMMARY")
-        print("=" * 70)
-        print("✅ Remote single stream parallelism: Tested with remote workers")
-        print("✅ Remote multi-stream parallelism: Tested distributed CoMap")
-        print("✅ Remote distributed execution: Verified parallel worker distribution")
-        print("✅ RemoteEnvironment direct parallelism: WORKING CORRECTLY")
+        logging.info("\n" + "=" * 70)
+        logging.info("REMOTE VALIDATION SUMMARY")
+        logging.info("=" * 70)
+        logging.info("✅ Remote single stream parallelism: Tested with remote workers")
+        logging.info("✅ Remote multi-stream parallelism: Tested distributed CoMap")
+        logging.info("✅ Remote distributed execution: Verified parallel worker distribution")
+        logging.info("✅ RemoteEnvironment direct parallelism: WORKING CORRECTLY")
 
-        print(f"\n📊 Total remote environments created: 3")
-        print(
+        logging.info(f"\n📊 Total remote environments created: 3")
+        logging.info(
             f"📊 Total distributed transformations: {len(env1.pipeline) + len(env2.pipeline) + len(env3.pipeline)}"
         )
 
-        print(f"\n💡 Key remote validations:")
-        print(f"   - Parallelism settings work in distributed remote environment")
-        print(f"   - Direct parallelism specification distributes work across remote workers")
-        print(f"   - Multi-stream operations (CoMap) support distributed parallelism")
-        print(
+        logging.info(f"\n💡 Key remote validations:")
+        logging.info(f"   - Parallelism settings work in distributed remote environment")
+        logging.info(f"   - Direct parallelism specification distributes work across remote workers")
+        logging.info(f"   - Multi-stream operations (CoMap) support distributed parallelism")
+        logging.info(
             f"   - RemoteEnvironment automatically handles worker assignment and coordination"
         )
 
     except Exception as e:
-        print(f"\n❌ Remote validation encountered an error: {e}")
-        print(
+        logging.info(f"\n❌ Remote validation encountered an error: {e}")
+        logging.info(
             f"💡 This might be due to RemoteEnvironment not being available or configured properly"
         )
-        print(f"   Please ensure the JobManager service is running and accessible")
-        print(f"   And that your system supports remote distributed execution")
+        logging.info(f"   Please ensure the JobManager service is running and accessible")
+        logging.info(f"   And that your system supports remote distributed execution")
 
 
 if __name__ == "__main__":

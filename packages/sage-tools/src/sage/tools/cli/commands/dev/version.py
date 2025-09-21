@@ -1,4 +1,5 @@
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 SAGE Dev Version Management Command
 
 This module provides commands to manage version.py files across all SAGE subpackages.
@@ -23,7 +24,7 @@ def find_version_files(root_path: Path) -> Dict[str, Path]:
     packages_dir = root_path / "packages"
 
     if not packages_dir.exists():
-        console.print(f"[red]❌ packages目录不存在: {packages_dir}[/red]")
+        console.self.logger.info(f"[red]❌ packages目录不存在: {packages_dir}[/red]")
         return version_files
 
     for package_dir in packages_dir.iterdir():
@@ -83,7 +84,7 @@ def read_version_info(version_file: Path) -> Dict[str, str]:
             "email": email_match.group(1) if email_match else "unknown",
         }
     except Exception as e:
-        console.print(f"[red]❌ 读取版本文件失败 {version_file}: {e}[/red]")
+        console.self.logger.info(f"[red]❌ 读取版本文件失败 {version_file}: {e}[/red]")
         return {"version": "error", "author": "error", "email": "error"}
 
 
@@ -120,7 +121,7 @@ def update_version_file(
         version_file.write_text(content, encoding="utf-8")
         return True
     except Exception as e:
-        console.print(f"[red]❌ 更新版本文件失败 {version_file}: {e}[/red]")
+        console.self.logger.info(f"[red]❌ 更新版本文件失败 {version_file}: {e}[/red]")
         return False
 
 
@@ -182,7 +183,7 @@ def list_versions(root: str = typer.Option(".", "--root", "-r", help="项目根�
     """📋 列出所有包的版本信息"""
     root_path = Path(root).resolve()
 
-    console.print(
+    console.self.logger.info(
         Panel.fit(
             f"🔍 扫描项目版本信息\n📁 项目路径: {root_path}",
             title="Version Scanner",
@@ -193,7 +194,7 @@ def list_versions(root: str = typer.Option(".", "--root", "-r", help="项目根�
     version_files = find_version_files(root_path)
 
     if not version_files:
-        console.print("[yellow]⚠️  未找到任何版本文件[/yellow]")
+        console.self.logger.info("[yellow]⚠️  未找到任何版本文件[/yellow]")
         return
 
     table = Table(
@@ -215,7 +216,7 @@ def list_versions(root: str = typer.Option(".", "--root", "-r", help="项目根�
             str(version_file.relative_to(root_path)),
         )
 
-    console.print(table)
+    console.self.logger.info(table)
 
 
 @app.command("set")
@@ -230,7 +231,7 @@ def set_version(
     """🏷️ 设置指定包的版本号"""
     root_path = Path(root).resolve()
 
-    console.print(
+    console.self.logger.info(
         Panel.fit(
             f"🏷️ 设置版本号: {new_version}\n📁 项目路径: {root_path}",
             title="Set Version",
@@ -241,7 +242,7 @@ def set_version(
     version_files = find_version_files(root_path)
 
     if not version_files:
-        console.print("[yellow]⚠️  未找到任何版本文件[/yellow]")
+        console.self.logger.info("[yellow]⚠️  未找到任何版本文件[/yellow]")
         return
 
     # 如果指定了包名，只更新指定的包
@@ -250,8 +251,8 @@ def set_version(
             name: path for name, path in version_files.items() if name in packages
         }
         if not filtered_files:
-            console.print(f"[red]❌ 未找到指定的包: {', '.join(packages)}[/red]")
-            console.print(f"可用的包: {', '.join(version_files.keys())}")
+            console.self.logger.info(f"[red]❌ 未找到指定的包: {', '.join(packages)}[/red]")
+            console.self.logger.info(f"可用的包: {', '.join(version_files.keys())}")
             return
         version_files = filtered_files
 
@@ -260,20 +261,20 @@ def set_version(
         current_info = read_version_info(version_file)
 
         if dry_run:
-            console.print(
+            console.self.logger.info(
                 f"[blue]🔍 预览[/blue] {package_name}: {current_info['version']} -> {new_version}"
             )
         else:
             if update_version_file(version_file, new_version):
-                console.print(
+                console.self.logger.info(
                     f"[green]✅ 更新[/green] {package_name}: {current_info['version']} -> {new_version}"
                 )
                 updated_count += 1
             else:
-                console.print(f"[red]❌ 失败[/red] {package_name}: 无法更新版本文件")
+                console.self.logger.info(f"[red]❌ 失败[/red] {package_name}: 无法更新版本文件")
 
     if not dry_run:
-        console.print(f"\n🎉 成功更新 {updated_count} 个包的版本")
+        console.self.logger.info(f"\n🎉 成功更新 {updated_count} 个包的版本")
 
 
 @app.command("bump")
@@ -289,12 +290,12 @@ def bump_version(
 ):
     """⬆️ 增加版本号（major, minor, patch, build）"""
     if increment_type not in ["major", "minor", "patch", "build"]:
-        console.print("[red]❌ 无效的增量类型，支持: major, minor, patch, build[/red]")
+        console.self.logger.info("[red]❌ 无效的增量类型，支持: major, minor, patch, build[/red]")
         raise typer.Exit(1)
 
     root_path = Path(root).resolve()
 
-    console.print(
+    console.self.logger.info(
         Panel.fit(
             f"⬆️ 增加版本号: {increment_type}\n📁 项目路径: {root_path}",
             title="Bump Version",
@@ -305,7 +306,7 @@ def bump_version(
     version_files = find_version_files(root_path)
 
     if not version_files:
-        console.print("[yellow]⚠️  未找到任何版本文件[/yellow]")
+        console.self.logger.info("[yellow]⚠️  未找到任何版本文件[/yellow]")
         return
 
     # 如果指定了包名，只更新指定的包
@@ -314,8 +315,8 @@ def bump_version(
             name: path for name, path in version_files.items() if name in packages
         }
         if not filtered_files:
-            console.print(f"[red]❌ 未找到指定的包: {', '.join(packages)}[/red]")
-            console.print(f"可用的包: {', '.join(version_files.keys())}")
+            console.self.logger.info(f"[red]❌ 未找到指定的包: {', '.join(packages)}[/red]")
+            console.self.logger.info(f"可用的包: {', '.join(version_files.keys())}")
             return
         version_files = filtered_files
 
@@ -326,20 +327,20 @@ def bump_version(
         new_version = increment_version(current_version, increment_type)
 
         if dry_run:
-            console.print(
+            console.self.logger.info(
                 f"[blue]🔍 预览[/blue] {package_name}: {current_version} -> {new_version}"
             )
         else:
             if update_version_file(version_file, new_version):
-                console.print(
+                console.self.logger.info(
                     f"[green]✅ 更新[/green] {package_name}: {current_version} -> {new_version}"
                 )
                 updated_count += 1
             else:
-                console.print(f"[red]❌ 失败[/red] {package_name}: 无法更新版本文件")
+                console.self.logger.info(f"[red]❌ 失败[/red] {package_name}: 无法更新版本文件")
 
     if not dry_run:
-        console.print(f"\n🎉 成功更新 {updated_count} 个包的版本")
+        console.self.logger.info(f"\n🎉 成功更新 {updated_count} 个包的版本")
 
 
 @app.command("sync")
@@ -353,7 +354,7 @@ def sync_versions(
     """🔄 同步所有包的版本到指定包的版本"""
     root_path = Path(root).resolve()
 
-    console.print(
+    console.self.logger.info(
         Panel.fit(
             f"🔄 同步版本到 {source_package}\n📁 项目路径: {root_path}",
             title="Sync Versions",
@@ -364,19 +365,19 @@ def sync_versions(
     version_files = find_version_files(root_path)
 
     if not version_files:
-        console.print("[yellow]⚠️  未找到任何版本文件[/yellow]")
+        console.self.logger.info("[yellow]⚠️  未找到任何版本文件[/yellow]")
         return
 
     # 获取源包的版本
     if source_package not in version_files:
-        console.print(f"[red]❌ 未找到源包: {source_package}[/red]")
-        console.print(f"可用的包: {', '.join(version_files.keys())}")
+        console.self.logger.info(f"[red]❌ 未找到源包: {source_package}[/red]")
+        console.self.logger.info(f"可用的包: {', '.join(version_files.keys())}")
         return
 
     source_version_info = read_version_info(version_files[source_package])
     source_version = source_version_info["version"]
 
-    console.print(f"📌 源版本: {source_package} = {source_version}")
+    console.self.logger.info(f"📌 源版本: {source_package} = {source_version}")
 
     updated_count = 0
     for package_name, version_file in version_files.items():
@@ -387,26 +388,26 @@ def sync_versions(
         current_version = current_info["version"]
 
         if current_version == source_version:
-            console.print(
+            console.self.logger.info(
                 f"[dim]⏭️  跳过[/dim] {package_name}: 版本已一致 ({current_version})"
             )
             continue
 
         if dry_run:
-            console.print(
+            console.self.logger.info(
                 f"[blue]🔍 预览[/blue] {package_name}: {current_version} -> {source_version}"
             )
         else:
             if update_version_file(version_file, source_version):
-                console.print(
+                console.self.logger.info(
                     f"[green]✅ 同步[/green] {package_name}: {current_version} -> {source_version}"
                 )
                 updated_count += 1
             else:
-                console.print(f"[red]❌ 失败[/red] {package_name}: 无法更新版本文件")
+                console.self.logger.info(f"[red]❌ 失败[/red] {package_name}: 无法更新版本文件")
 
     if not dry_run:
-        console.print(f"\n🎉 成功同步 {updated_count} 个包的版本")
+        console.self.logger.info(f"\n🎉 成功同步 {updated_count} 个包的版本")
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import logging
 import json
 import os
 
@@ -75,14 +76,14 @@ def init_history_memory():
         memory.init(texts, metadatas)
 
         memory.store()
-        print("RAG memory has been initialized")
+        logging.info("RAG memory has been initialized")
     else:
-        print("RAG memory has already been initialized")
+        logging.info("RAG memory has already been initialized")
 
 
 def test_retrieve():
     memory = RAGMemoryManager(config)
-    print(memory.retrieve("我刚刚喝了很多奶茶，会不会有问题？"))
+    logging.info(memory.retrieve("我刚刚喝了很多奶茶，会不会有问题？"))
 
 
 if __name__ == "__main__":

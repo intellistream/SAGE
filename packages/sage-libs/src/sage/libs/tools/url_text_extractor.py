@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import os
 
 import requests
@@ -84,7 +85,7 @@ if __name__ == "__main__":
 
     # Get tool metadata
     metadata = tool.get_metadata()
-    print(metadata)
+    self.logger.info(metadata)
 
     # Sample URL for extracting text
     url = "https://intellistream.github.io/SAGE-Pub/get_start/install/"
@@ -94,11 +95,11 @@ if __name__ == "__main__":
     # Execute the tool with the sample URL
     try:
         execution = tool.execute(url=url)
-        print("Execution Result:")
-        print(json.dumps(execution, indent=4))
+        self.logger.info("Execution Result:")
+        self.logger.info(json.dumps(execution, indent=4))
         for key, value in execution.items():
-            print(f"{key}:\n{value}\n")
+            self.logger.info(f"{key}:\n{value}\n")
     except ValueError as e:
-        print(f"Execution failed: {e}")
+        self.logger.info(f"Execution failed: {e}")
 
-    print("Done!")
+    self.logger.info("Done!")

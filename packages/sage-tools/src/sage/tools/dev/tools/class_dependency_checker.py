@@ -1,4 +1,5 @@
 """
+from sage.common.utils.logging.custom_logger import CustomLogger
 Class Dependency Checker - Integrated from scripts/quick_class_dependency_check.py
 
 This tool analyzes class-level dependencies and relationships in the codebase.
@@ -84,7 +85,7 @@ class ClassDependencyChecker:
                     )
 
                 except Exception as e:
-                    print(f"Warning: Could not analyze {py_file}: {e}")
+                    self.logger.info(f"Warning: Could not analyze {py_file}: {e}")
 
             # Analyze relationships
             analysis["summary"]["inheritance_chains"] = self._find_inheritance_chains(
@@ -151,7 +152,7 @@ class ClassDependencyChecker:
                             usage_info["summary"]["total_usages"] += 1
 
                 except Exception as e:
-                    print(f"Warning: Could not search {py_file}: {e}")
+                    self.logger.info(f"Warning: Could not search {py_file}: {e}")
 
             usage_info["summary"]["files_with_usage"] = len(files_with_usage)
 
@@ -447,7 +448,7 @@ class ClassDependencyChecker:
             return usages
 
         except Exception as e:
-            print(f"Warning: Could not analyze {file_path} for class {class_name}: {e}")
+            self.logger.info(f"Warning: Could not analyze {file_path} for class {class_name}: {e}")
             return []
 
     def _find_inheritance_chains(self, analysis: Dict) -> List[List[str]]:

@@ -1,3 +1,4 @@
+import logging
 from __future__ import annotations
 
 import importlib
@@ -76,7 +77,7 @@ def main():
         os.path.dirname(__file__), "..", "config", "config_agent_min.yaml"
     )
     if not os.path.exists(cfg_path):
-        print(f"❌ Configuration file not found: {cfg_path}")
+        logging.info(f"❌ Configuration file not found: {cfg_path}")
         sys.exit(1)
     config: Dict[str, Any] = load_config(cfg_path)
 
@@ -102,50 +103,50 @@ def main():
         api_key = get_api_key("openai", required=True)
         gen_cfg["api_key"] = api_key
         if use_real_api:
-            print("🌐 Real API mode: API key configuration validated")
+            logging.info("🌐 Real API mode: API key configuration validated")
         else:
-            print("✅ API key configuration validated")
+            logging.info("✅ API key configuration validated")
     except ValueError as e:
         if test_mode:
-            print(f"⚠️ Test mode: {e}")
-            print("💡 Tip: Copy .env.template to .env and fill in your API keys")
-            print(
+            logging.info(f"⚠️ Test mode: {e}")
+            logging.info("💡 Tip: Copy .env.template to .env and fill in your API keys")
+            logging.info(
                 "✅ Test mode: API key validation completed (missing key is OK in test)"
             )
         else:
-            print(f"❌ {e}")
-            print("💡 Tip: Copy .env.template to .env and fill in your API keys")
+            logging.info(f"❌ {e}")
+            logging.info("💡 Tip: Copy .env.template to .env and fill in your API keys")
             sys.exit(1)
 
     if test_mode:
         # 在测试模式下，验证配置加载和模块导入，但不实际初始化组件
-        print(
+        logging.info(
             "🧪 Test mode: Configuration loaded successfully (add --use-real-api to use real API)"
         )
-        print("✅ Test mode: Profile created successfully")
+        logging.info("✅ Test mode: Profile created successfully")
 
         # 验证配置文件结构
         required_sections = ["generator", "planner", "tools", "runtime"]
         for section in required_sections:
             if section in config:
-                print(f"✅ Test mode: {section} config found")
+                logging.info(f"✅ Test mode: {section} config found")
             else:
-                print(f"❌ Test mode: {section} config missing")
+                logging.info(f"❌ Test mode: {section} config missing")
 
         # 验证工具模块可以导入（但不实际初始化）
         try:
             for item in config.get("tools", []):
                 mod = importlib.import_module(item["module"])
                 cls = getattr(mod, item["class"])
-                print(f"✅ Test mode: Tool {item['class']} import successful")
+                logging.info(f"✅ Test mode: Tool {item['class']} import successful")
         except Exception as e:
-            print(f"⚠️ Test mode: Tool import failed (this is OK in test): {e}")
+            logging.info(f"⚠️ Test mode: Tool import failed (this is OK in test): {e}")
 
-        print("✅ Test mode: Agent pipeline structure validated")
+        logging.info("✅ Test mode: Agent pipeline structure validated")
         return
 
     if use_real_api:
-        print("🌐 Real API mode: Will make actual API calls with qwen-turbo")
+        logging.info("🌐 Real API mode: Will make actual API calls with qwen-turbo")
 
     generator = OpenAIGenerator(gen_cfg)  # ====== Planner ======
     planner_cfg = config["planner"]
@@ -179,10 +180,10 @@ def main():
 
     # ====== 跑一遍 queries======
     for q in iter_queries(config["source"]):
-        print("\n==========================")
-        print(f"🧑‍💻 User: {q}")
+        logging.info("\n==========================")
+        logging.info(f"🧑‍💻 User: {q}")
         ans = agent.execute({"query": q})
-        print(f"🤖 Agent:\n{ans}")
+        logging.info(f"🤖 Agent:\n{ans}")
 
 
 if __name__ == "__main__":
@@ -193,9 +194,9 @@ if __name__ == "__main__":
     ):
         try:
             main()
-            print("\n✅ Test passed: Agent pipeline structure validated")
+            logging.info("\n✅ Test passed: Agent pipeline structure validated")
         except Exception as e:
-            print(f"❌ Test failed: {e}")
+            logging.info(f"❌ Test failed: {e}")
             sys.exit(1)
     else:
         main()

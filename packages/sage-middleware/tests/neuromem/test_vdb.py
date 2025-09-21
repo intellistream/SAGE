@@ -1,3 +1,4 @@
+import logging
 import json
 import os
 
@@ -44,17 +45,17 @@ def test_vdb_collection():
         threshold=0.5,  # 使用较低的阈值
         with_metadata=True,
     )
-    print("搜索结果:")
+    logging.info("搜索结果:")
     for i, result in enumerate(results):
-        print(f"  {i+1}. {result['text']}")
-        print(f"     元数据: {result['metadata']}")
+        logging.info(f"  {i+1}. {result['text']}")
+        logging.info(f"     元数据: {result['metadata']}")
 
     # 验证结果
     assert len(results) > 0, "应该找到搜索结果"
     assert any(
         "数据库事务可确保操作的原子性与一致性" in r["text"] for r in results
     ), "应该找到完全匹配的文本"
-    print(f"\n✅ 测试通过！找到了 {len(results)} 个相关结果")
+    logging.info(f"\n✅ 测试通过！找到了 {len(results)} 个相关结果")
 
 
 if __name__ == "__main__":

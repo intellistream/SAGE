@@ -1,3 +1,4 @@
+from sage.common.utils.logging.custom_logger import CustomLogger
 import asyncio
 import os
 
@@ -14,7 +15,7 @@ async def cohere_embed(
 ) -> list[float]:
     if api_key is None:
         api_key = os.environ.get("COHERE_API_KEY")
-    # print(api_key)
+    # self.logger.info(api_key)
     co = cohere.AsyncClient(api_key=api_key)
 
     response = await co.embed(

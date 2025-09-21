@@ -1,3 +1,4 @@
+import logging
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.map_function import MapFunction
@@ -28,7 +29,7 @@ class UpperCaseMap(MapFunction):
 # 简单 SinkFunction，直接打印结果
 class PrintSink(SinkFunction):
     def execute(self, data):
-        print(data)
+        logging.info(data)
 
 
 def main():
@@ -38,7 +39,7 @@ def main():
     env.from_batch(HelloBatch).map(UpperCaseMap).sink(PrintSink)
 
     env.submit(autostop=True)
-    print("Hello World 批处理示例结束")
+    logging.info("Hello World 批处理示例结束")
 
 
 if __name__ == "__main__":

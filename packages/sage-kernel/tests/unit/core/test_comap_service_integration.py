@@ -1,4 +1,5 @@
 """
+import logging
 CoMap函数中服务调用集成测试
 测试dataflow model算子内部调用环境中注册的service
 参考算子内的service call语法糖和dataflow comap test
@@ -117,7 +118,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
 
     def map0(self, event_data):
         """处理用户事件流 (stream 0) - 使用服务调用"""
-        print(f"[DEBUG] CoMap.map0 called with event_data: {event_data}")
+        logging.info(f"[DEBUG] CoMap.map0 called with event_data: {event_data}")
         self.processed_events += 1
 
         user_id = event_data["user_id"]
@@ -129,7 +130,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
             interaction_type = event_data["type"]
         else:
             # This is a recommendation request, handle it differently
-            print(
+            logging.info(
                 f"[DEBUG] CoMap.map0: Received recommendation request, skipping event processing"
             )
             return {
@@ -145,7 +146,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
         activity_description = f"{interaction_type}_{item_id}"
 
         try:
-            print(
+            logging.info(
                 f"[DEBUG] CoMap.map0: Calling user_profile.update_activity with timeout=10.0"
             )
             update_result = self.call_service["user_profile"].update_activity(
@@ -206,7 +207,7 @@ class UserRecommendationCoMapFunction(BaseCoMapFunction):
 
     def map1(self, request_data):
         """处理推荐请求流 (stream 1) - 使用服务调用"""
-        print(f"[DEBUG] CoMap.map1 called with request_data: {request_data}")
+        logging.info(f"[DEBUG] CoMap.map1 called with request_data: {request_data}")
         self.processed_requests += 1
 
         user_id = request_data["user_id"]
@@ -307,12 +308,12 @@ class ServiceTestSink(SinkFunction):
         self.results = []  # 实例级别的结果存储
 
     def execute(self, data):
-        print(f"[DEBUG] ServiceTestSink.execute called with data: {data}")
+        logging.info(f"[DEBUG] ServiceTestSink.execute called with data: {data}")
 
         self.processed_count += 1
         self.results.append(data)
 
-        print(f"[DEBUG] Total results in this sink instance: {len(self.results)}")
+        logging.info(f"[DEBUG] Total results in this sink instance: {len(self.results)}")
 
         # 打印处理结果
         result_type = data.get("type", "unknown")
@@ -323,38 +324,38 @@ class ServiceTestSink(SinkFunction):
             activity_update = data.get("activity_update", "No update")
             interaction_tracked = data.get("interaction_tracked", {})
             cache_invalidation = data.get("cache_invalidation_started", False)
-            print(f"📱 Event (Stream {source_stream}): User {user_id}")
-            print(f"      Activity Update: {activity_update}")
-            print(
+            logging.info(f"📱 Event (Stream {source_stream}): User {user_id}")
+            logging.info(f"      Activity Update: {activity_update}")
+            logging.info(
                 f"      Interaction Tracked: {interaction_tracked.get('tracked', False)}"
             )
-            print(
+            logging.info(
                 f"      Cache Invalidation: {'Started' if cache_invalidation else 'No cache result'}"
             )
         elif result_type == "cached_recommendations":
             context = data.get("context", "unknown")
             recommendations = data.get("recommendations", [])
-            print(f"🎯 Recommendation (Stream {source_stream}): User {user_id}")
-            print(f"      Context: {context} | 🔥 Cache Hit")
-            print(f"      Recommendations: {len(recommendations)} items")
+            logging.info(f"🎯 Recommendation (Stream {source_stream}): User {user_id}")
+            logging.info(f"      Context: {context} | 🔥 Cache Hit")
+            logging.info(f"      Recommendations: {len(recommendations)} items")
         elif result_type == "fresh_recommendations":
             context = data.get("context", "unknown")
             recommendations = data.get("recommendations", [])
             user_profile = data.get("user_profile", {})
-            print(f"🎯 Recommendation (Stream {source_stream}): User {user_id}")
-            print(f"      Context: {context} | 🆕 Fresh")
-            print(f"      Recommendations: {len(recommendations)} items")
+            logging.info(f"🎯 Recommendation (Stream {source_stream}): User {user_id}")
+            logging.info(f"      Context: {context} | 🆕 Fresh")
+            logging.info(f"      Recommendations: {len(recommendations)} items")
             if user_profile:
                 interests = user_profile.get("interests", ["general"])
-                print(
+                logging.info(
                     f"      User Profile: {user_profile.get('name', 'None')} (interests: {interests})"
                 )
         elif result_type == "recommendation_error":
-            print(
+            logging.info(
                 f"❌ Recommendation Error: User {user_id} | Stream {source_stream} | Error: {data.get('error')}"
             )
         else:
-            print(f"📊 Result: {result_type} | Stream {source_stream} | User {user_id}")
+            logging.info(f"📊 Result: {result_type} | Stream {source_stream} | User {user_id}")
 
         return data
 
@@ -372,8 +373,8 @@ class TestCoMapServiceIntegration:
     @pytest.mark.slow
     def test_comap_service_integration(self):
         """测试CoMap函数中的servive调用集成"""
-        print("\n🚀 Testing CoMap Service Integration")
-        print("=" * 60)
+        logging.info("\n🚀 Testing CoMap Service Integration")
+        logging.info("=" * 60)
 
         # 创建环境
         env = LocalEnvironment("comap_service_test")
@@ -383,10 +384,10 @@ class TestCoMapServiceIntegration:
         env.register_service("recommendation", RecommendationService)
         env.register_service("cache", CacheService)
 
-        print("✅ Services registered:")
-        print("   - user_profile: UserProfileService")
-        print("   - recommendation: RecommendationService")
-        print("   - cache: CacheService")
+        logging.info("✅ Services registered:")
+        logging.info("   - user_profile: UserProfileService")
+        logging.info("   - recommendation: RecommendationService")
+        logging.info("   - cache: CacheService")
 
         # 创建批处理数据源 - 使用 from_batch 接口避免无限循环
         event_data = [
@@ -443,26 +444,26 @@ class TestCoMapServiceIntegration:
 
         env.submit()
 
-        print("\n🏃 Pipeline running...")
+        logging.info("\n🏃 Pipeline running...")
         time.sleep(3)  # 减少等待时间以避免测试超时
 
 
 @pytest.mark.slow
 def test_comap_service_integration():
     """独立运行的测试函数"""
-    print("=" * 70)
-    print("SAGE CoMap Service Integration Test")
-    print("=" * 70)
+    logging.info("=" * 70)
+    logging.info("SAGE CoMap Service Integration Test")
+    logging.info("=" * 70)
 
     test_instance = TestCoMapServiceIntegration()
     test_instance.setup_method()
 
     try:
         test_instance.test_comap_service_integration()
-        print("\n🎉 All tests passed! CoMap service integration is working correctly.")
+        logging.info("\n🎉 All tests passed! CoMap service integration is working correctly.")
         return True
     except Exception as e:
-        print(f"\n💥 Test failed: {e}")
+        logging.info(f"\n💥 Test failed: {e}")
         import traceback
 
         traceback.print_exc()

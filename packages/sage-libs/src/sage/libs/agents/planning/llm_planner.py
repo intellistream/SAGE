@@ -6,6 +6,7 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from sage.core.api.function.map_function import MapFunction
+from sage.common.utils.logging.custom_logger import CustomLogger
 
 PlanStep = Dict[
     str, Any
@@ -202,6 +203,7 @@ class LLMPlanner(MapFunction):
         self.max_steps = max_steps
         self.enable_repair = enable_repair
         self.topk_tools = topk_tools
+        self.logger = CustomLogger([("console", "INFO")], name="LLMPlanner")
 
     def _ask_llm(self, prompt: str, user_query: str) -> str:
         messages = [
@@ -227,7 +229,7 @@ class LLMPlanner(MapFunction):
 
         # 调试信息：记录原始输出
         if steps is None:
-            print(f"🐛 Debug: 无法解析计划 JSON。原始输出:\n{out[:500]}...")
+            self.logger.debug(f"🐛 Debug: 无法解析计划 JSON。原始输出:\n{out[:500]}...")
 
         # 3) 自动修复（仅一次）
         if steps is None and self.enable_repair:
@@ -242,11 +244,11 @@ class LLMPlanner(MapFunction):
 
             # 调试信息：记录修复后的输出
             if steps is None:
-                print(f"🐛 Debug: 修复后仍无法解析 JSON。修复输出:\n{out2[:500]}...")
+                self.logger.debug(f"🐛 Debug: 修复后仍无法解析 JSON。修复输出:\n{out2[:500]}...")
 
         # 4) 兜底：若仍无法解析，直接把原文作为 reply
         if steps is None:
-            print(f"🐛 Debug: 使用兜底策略，返回原文作为回复")
+            self.logger.debug(f"🐛 Debug: 使用兜底策略，返回原文作为回复")
             return [{"type": "reply", "text": out.strip()[:2000]}][: self.max_steps]
 
         # 5) 轻量合法化（结构+必填参数）

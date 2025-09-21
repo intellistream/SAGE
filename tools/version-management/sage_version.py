@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 SAGE版本管理工具 - 动态版本加载时代的简化版本
 
 在动态版本加载系统下，这个工具的主要功能：
@@ -95,8 +96,8 @@ class SAGEVersionManager:
                         exec(f.read(), config_globals)
                         return config_globals.get("PROJECT_CONFIG", PROJECT_CONFIG)
             except Exception as e:
-                print(f"⚠️ 无法加载配置文件 {config_file}: {e}")
-                print("使用默认配置...")
+                logging.info(f"⚠️ 无法加载配置文件 {config_file}: {e}")
+                logging.info("使用默认配置...")
 
         return PROJECT_CONFIG
 
@@ -159,31 +160,31 @@ class SAGEVersionManager:
         """显示版本信息"""
         try:
             info = self.get_version_info()
-            print("📋 SAGE 项目信息")
-            print("=" * 50)
-            print(f"项目名称: {info['project_name']}")
-            print(f"完整名称: {info['project_full_name']}")
-            print(f"版本号: {info['version']}")
-            print(f"发布日期: {info['release_date']}")
-            print(f"状态: {info['release_status']}")
-            print(f"作者: {info['author']}")
-            print(f"邮箱: {info['email']}")
-            print(f"主页: {info['homepage']}")
-            print(f"仓库: {info['repository']}")
-            print(f"文档: {info['documentation']}")
+            logging.info("📋 SAGE 项目信息")
+            logging.info("=" * 50)
+            logging.info(f"项目名称: {info['project_name']}")
+            logging.info(f"完整名称: {info['project_full_name']}")
+            logging.info(f"版本号: {info['version']}")
+            logging.info(f"发布日期: {info['release_date']}")
+            logging.info(f"状态: {info['release_status']}")
+            logging.info(f"作者: {info['author']}")
+            logging.info(f"邮箱: {info['email']}")
+            logging.info(f"主页: {info['homepage']}")
+            logging.info(f"仓库: {info['repository']}")
+            logging.info(f"文档: {info['documentation']}")
             return True
         except Exception as e:
-            print(f"❌ 获取版本信息失败: {e}")
+            logging.info(f"❌ 获取版本信息失败: {e}")
             return False
 
     def set_version(self, new_version):
         """设置新版本号 - 现在只需要更新 _version.py，其他文件会动态加载"""
         # 验证版本号格式
         if not re.match(r"^\d+\.\d+\.\d+(-[a-zA-Z0-9-]+)?$", new_version):
-            print("❌ 版本号格式错误！应该类似: 1.0.0 或 1.0.0-alpha")
+            logging.info("❌ 版本号格式错误！应该类似: 1.0.0 或 1.0.0-alpha")
             return False
 
-        print(f"🚀 设置新版本号: {new_version}")
+        logging.info(f"🚀 设置新版本号: {new_version}")
 
         # 只需要更新 _version.py（主要版本文件）
         # 所有其他文件会通过动态加载自动获取新版本
@@ -192,8 +193,8 @@ class SAGEVersionManager:
         # 可选：更新 pyproject.toml 文件（如果需要的话）
         self._update_pyproject_files(new_version)
 
-        print(f"✅ 版本号已更新到 {new_version}")
-        print("💡 提示：所有 Python 包现在会动态加载这个版本号，无需手动更新")
+        logging.info(f"✅ 版本号已更新到 {new_version}")
+        logging.info("💡 提示：所有 Python 包现在会动态加载这个版本号，无需手动更新")
         return True
 
     def _update_version_file(self, new_version):
@@ -222,15 +223,15 @@ class SAGEVersionManager:
             with open(self.version_file, "w", encoding="utf-8") as f:
                 f.write(content)
 
-            print(f"✅ 已更新版本文件: {self.version_file}")
+            logging.info(f"✅ 已更新版本文件: {self.version_file}")
             return True
         except Exception as e:
-            print(f"❌ 更新版本文件失败: {e}")
+            logging.info(f"❌ 更新版本文件失败: {e}")
             return False
 
     def _update_pyproject_files(self, new_version):
         """更新所有pyproject.toml文件"""
-        print("📦 更新所有 pyproject.toml 文件...")
+        logging.info("📦 更新所有 pyproject.toml 文件...")
 
         pyproject_files = list(self.root_dir.glob("**/pyproject.toml"))
 
@@ -250,13 +251,13 @@ class SAGEVersionManager:
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)
 
-                print(f"  更新 {file_path.relative_to(self.root_dir)}")
+                logging.info(f"  更新 {file_path.relative_to(self.root_dir)}")
             except Exception as e:
-                print(f"  ❌ 更新失败 {file_path}: {e}")
+                logging.info(f"  ❌ 更新失败 {file_path}: {e}")
 
     def update_project_info(self):
         """更新项目信息（邮箱、项目名称等）"""
-        print("📧 更新项目信息...")
+        logging.info("📧 更新项目信息...")
 
         # 获取当前正确的项目信息
         try:
@@ -307,19 +308,19 @@ class SAGEVersionManager:
                     with open(file_path, "w", encoding="utf-8") as f:
                         f.write(content)
                     updated_count += 1
-                    print(f"  更新 {file_path.relative_to(self.root_dir)}")
+                    logging.info(f"  更新 {file_path.relative_to(self.root_dir)}")
 
             except Exception:
                 continue  # 跳过无法处理的文件
 
-        print(f"✅ 项目信息更新完成，共更新 {updated_count} 个文件")
+        logging.info(f"✅ 项目信息更新完成，共更新 {updated_count} 个文件")
 
         # 额外检查并报告仍存在问题的文件
         self._check_remaining_issues()
 
     def _check_remaining_issues(self):
         """检查项目中仍存在的问题"""
-        print("\n🔍 检查剩余问题...")
+        logging.info("\n🔍 检查剩余问题...")
 
         # 要检查的错误内容（仅检查已知错误/过时信息）
         incorrect_patterns = PROJECT_CONFIG.get("incorrect_patterns", {})
@@ -352,17 +353,17 @@ class SAGEVersionManager:
                 continue
 
         if issues_found:
-            print("⚠️  发现剩余问题:")
+            logging.info("⚠️  发现剩余问题:")
             for issue, files in issues_found.items():
-                print(f"  📝 '{issue}' 在以下文件中:")
+                logging.info(f"  📝 '{issue}' 在以下文件中:")
                 for file_path in files:
-                    print(f"    - {file_path}")
+                    logging.info(f"    - {file_path}")
         else:
-            print("✅ 未发现剩余问题")
+            logging.info("✅ 未发现剩余问题")
 
     def check_project_consistency(self):
         """检查项目一致性"""
-        print("🔍 检查项目信息一致性...")
+        logging.info("🔍 检查项目信息一致性...")
 
         issues_found = []
 
@@ -412,14 +413,14 @@ class SAGEVersionManager:
                 continue
 
         if issues_found:
-            print("⚠️  发现一致性问题:")
+            logging.info("⚠️  发现一致性问题:")
             for item in issues_found:
-                print(f"📁 {item['file']}:")
+                logging.info(f"📁 {item['file']}:")
                 for issue in item["issues"]:
-                    print(f"  - {issue}")
+                    logging.info(f"  - {issue}")
             return False
         else:
-            print("✅ 项目信息一致性良好")
+            logging.info("✅ 项目信息一致性良好")
             return True
 
         # 额外检查并报告仍存在问题的文件
@@ -470,7 +471,7 @@ def main():
             return 0 if manager.check_project_consistency() else 1
 
     except Exception as e:
-        print(f"❌ 错误: {e}")
+        logging.info(f"❌ 错误: {e}")
         return 1
 
 

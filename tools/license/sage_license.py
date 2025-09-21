@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+import logging
 SAGE License Manager
 Unified executable for license operations
 """
@@ -22,31 +23,31 @@ os.chmod(current_dir / "vendor" / "license_vendor.py", 0o755)
 
 def show_help():
     """Show help information"""
-    print("SAGE License Manager")
-    print("=" * 50)
-    print("")
-    print("🏢 Customer Commands:")
-    print("  install <license-key>     Install a commercial license")
-    print("  status                    Check current license status")
-    print("  remove                    Remove current license")
-    print("")
-    print("🏭 Vendor Commands (SAGE Team Only):")
-    print("  generate <customer> [days] Generate new license (default: 365 days)")
-    print("  list                      List all generated licenses")
-    print("  revoke <license-key>      Revoke a specific license")
-    print("")
-    print("📝 Examples:")
-    print("  # Customer operations")
-    print("  python sage_license.py install SAGE-COMM-2024-ABCD-EFGH-1234")
-    print("  python sage_license.py status")
-    print("")
-    print("  # Vendor operations")
-    print("  python sage_license.py generate 'Company ABC' 365")
-    print("  python sage_license.py list")
-    print("")
-    print("🔗 Legacy Compatibility:")
-    print("  Old scripts/sage-license.py is deprecated.")
-    print("  Use this tool instead for all license operations.")
+    logging.info("SAGE License Manager")
+    logging.info("=" * 50)
+    logging.info("")
+    logging.info("🏢 Customer Commands:")
+    logging.info("  install <license-key>     Install a commercial license")
+    logging.info("  status                    Check current license status")
+    logging.info("  remove                    Remove current license")
+    logging.info("")
+    logging.info("🏭 Vendor Commands (SAGE Team Only):")
+    logging.info("  generate <customer> [days] Generate new license (default: 365 days)")
+    logging.info("  list                      List all generated licenses")
+    logging.info("  revoke <license-key>      Revoke a specific license")
+    logging.info("")
+    logging.info("📝 Examples:")
+    logging.info("  # Customer operations")
+    logging.info("  python sage_license.py install SAGE-COMM-2024-ABCD-EFGH-1234")
+    logging.info("  python sage_license.py status")
+    logging.info("")
+    logging.info("  # Vendor operations")
+    logging.info("  python sage_license.py generate 'Company ABC' 365")
+    logging.info("  python sage_license.py list")
+    logging.info("")
+    logging.info("🔗 Legacy Compatibility:")
+    logging.info("  Old scripts/sage-license.py is deprecated.")
+    logging.info("  Use this tool instead for all license operations.")
 
 
 def run_client_command(command, args):
@@ -60,7 +61,7 @@ def run_client_command(command, args):
         result = subprocess.run(cmd)
         return result.returncode
     except Exception as e:
-        print(f"❌ Error running client command: {e}")
+        logging.info(f"❌ Error running client command: {e}")
         return 1
 
 
@@ -75,7 +76,7 @@ def run_vendor_command(command, args):
         result = subprocess.run(cmd)
         return result.returncode
     except Exception as e:
-        print(f"❌ Error running vendor command: {e}")
+        logging.info(f"❌ Error running vendor command: {e}")
         return 1
 
 
@@ -102,8 +103,8 @@ def main():
         return 0
 
     else:
-        print(f"❌ Unknown command: {command}")
-        print("")
+        logging.info(f"❌ Unknown command: {command}")
+        logging.info("")
         show_help()
         return 1
 

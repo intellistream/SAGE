@@ -153,11 +153,11 @@ class SensorSink(SinkFunction):
     def execute(self, data):
         if isinstance(data, dict) and "alert" in data:
             prefix = "🚨 ALERT" if data["alert"] else "📊 DATA"
-            print(
+            logging.info(
                 f"[{self.name}] {prefix}: {data['stream']} = {data['processed_value']} ({data['status']})"
             )
         else:
-            print(f"[{self.name}] {data}")
+            logging.info(f"[{self.name}] {data}")
         return data
 
 
@@ -165,20 +165,20 @@ def main():
     # 创建环境
     env = LocalEnvironment("comap_function_example")
 
-    print("🚀 Starting CoMap Function Example")
-    print("🌡️  Demonstrating multi-sensor data processing with CoMap")
-    print("📊 Each sensor type is processed independently")
-    print("⏹️  Press Ctrl+C to stop\n")
+    logging.info("🚀 Starting CoMap Function Example")
+    logging.info("🌡️  Demonstrating multi-sensor data processing with CoMap")
+    logging.info("📊 Each sensor type is processed independently")
+    logging.info("⏹️  Press Ctrl+C to stop\n")
 
     # 创建不同类型的传感器数据源
     temp_stream = env.from_source(TemperatureSource, delay=1.5)
     humidity_stream = env.from_source(HumiditySource, delay=2.0)
     pressure_stream = env.from_source(PressureSource, delay=2.5)
 
-    print("🔗 Creating connected streams...")
+    logging.info("🔗 Creating connected streams...")
 
     # 示例1：使用CoMap进行复杂的传感器数据处理
-    print("\n📈 Example 1: Advanced Sensor Processing with CoMap")
+    logging.info("\n📈 Example 1: Advanced Sensor Processing with CoMap")
     connected_sensors = temp_stream.connect(humidity_stream).connect(pressure_stream)
 
     # 使用CoMap分别处理每种传感器数据
@@ -187,18 +187,18 @@ def main():
     )
 
     # 示例2：简单的类型特定格式化
-    print("📝 Example 2: Simple Type-Specific Formatting")
-    simple_result = connected_sensors.comap(TypeSpecificProcessor).print(
+    logging.info("📝 Example 2: Simple Type-Specific Formatting")
+    simple_result = connected_sensors.comap(TypeSpecificProcessor).logging.info(
         "🎯 Formatted Output"
     )
 
-    print("\n📈 All sensors connected and processing with CoMap...\n")
-    print("💡 CoMap Features Demonstrated:")
-    print("   - map0() processes temperature data independently")
-    print("   - map1() processes humidity data independently")
-    print("   - map2() processes pressure data independently")
-    print("   - Each stream maintains its own processing logic")
-    print("   - No data merging - streams are processed separately\n")
+    logging.info("\n📈 All sensors connected and processing with CoMap...\n")
+    logging.info("💡 CoMap Features Demonstrated:")
+    logging.info("   - map0() processes temperature data independently")
+    logging.info("   - map1() processes humidity data independently")
+    logging.info("   - map2() processes pressure data independently")
+    logging.info("   - Each stream maintains its own processing logic")
+    logging.info("   - No data merging - streams are processed separately\n")
 
     try:
         # 运行流处理
@@ -208,23 +208,23 @@ def main():
         test_mode = os.environ.get("SAGE_EXAMPLES_MODE") == "test"
         runtime = 8 if test_mode else 40
 
-        print(f"⏰ Running for {runtime} seconds...")
+        logging.info(f"⏰ Running for {runtime} seconds...")
         time.sleep(runtime)  # 测试模式运行8秒，正常模式40秒
 
     except KeyboardInterrupt:
-        print("\n\n🛑 Stopping CoMap Function Example...")
+        logging.info("\n\n🛑 Stopping CoMap Function Example...")
 
     finally:
-        print("\n📋 Example completed!")
-        print("💡 This example demonstrated:")
-        print("   - Multiple independent sensor data sources")
-        print("   - CoMap function with map0, map1, map2 methods")
-        print("   - Stream-specific processing logic")
-        print("   - Alert detection based on sensor type")
-        print("   - Independent processing without data merging")
-        print("\n🔄 Comparison with regular map():")
-        print("   - Regular map(): All inputs merged → single execute() method")
-        print("   - CoMap: Each input stream → dedicated mapN() method")
+        logging.info("\n📋 Example completed!")
+        logging.info("💡 This example demonstrated:")
+        logging.info("   - Multiple independent sensor data sources")
+        logging.info("   - CoMap function with map0, map1, map2 methods")
+        logging.info("   - Stream-specific processing logic")
+        logging.info("   - Alert detection based on sensor type")
+        logging.info("   - Independent processing without data merging")
+        logging.info("\n🔄 Comparison with regular map():")
+        logging.info("   - Regular map(): All inputs merged → single execute() method")
+        logging.info("   - CoMap: Each input stream → dedicated mapN() method")
 
 
 if __name__ == "__main__":
