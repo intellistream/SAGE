@@ -1,11 +1,12 @@
-from dataclasses import dataclass, field, asdict
-from typing import Any, List, Dict, Tuple, Optional
 import time
+from dataclasses import asdict, dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
 
 
 @dataclass
 class SearchResult:
     """单个搜索结果的数据结构"""
+
     title: str
     content: str
     source: str
@@ -25,11 +26,11 @@ class SearchResult:
             "source": self.source,
             "rank": self.rank,
             "relevance_score": self.relevance_score,
-            "timestamp": self.timestamp
+            "timestamp": self.timestamp,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'SearchResult':
+    def from_dict(cls, data: Dict[str, Any]) -> "SearchResult":
         """从字典创建SearchResult"""
         return cls(
             title=data.get("title", ""),
@@ -37,5 +38,5 @@ class SearchResult:
             source=data.get("source", ""),
             rank=data.get("rank", 1),
             relevance_score=data.get("relevance_score", 0.0),
-            timestamp=data.get("timestamp", int(time.time() * 1000))
+            timestamp=data.get("timestamp", int(time.time() * 1000)),
         )

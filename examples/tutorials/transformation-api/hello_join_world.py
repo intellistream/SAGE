@@ -1,10 +1,11 @@
 # 此例用到了keyby和join操作符，展示如何将两个数据流按key进行关联。
-from sage.core.api.local_environment import LocalEnvironment
-from sage.core.api.function.sink_function import SinkFunction
-from sage.core.api.function.batch_function import BatchFunction
-from sage.core.api.function.keyby_function import KeyByFunction
-from sage.core.api.function.join_function import BaseJoinFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.core.api.function.batch_function import BatchFunction
+from sage.core.api.function.join_function import BaseJoinFunction
+from sage.core.api.function.keyby_function import KeyByFunction
+from sage.core.api.function.sink_function import SinkFunction
+from sage.core.api.local_environment import LocalEnvironment
+
 
 class SourceOne(BatchFunction):
     def __init__(self):
@@ -29,13 +30,16 @@ class SourceTwo(BatchFunction):
             return None
         return {"id": self.counter, "msg": f"World-{self.counter}", "type": "world"}
 
+
 class IdKeyBy(KeyByFunction):
     def execute(self, data):
         return data.get("id")
 
+
 class PrintSink(SinkFunction):
     def execute(self, data):
         print(f"🔗 Joined Streaming: {data}")
+
 
 class HelloWorldJoin(BaseJoinFunction):
     """
@@ -45,10 +49,11 @@ class HelloWorldJoin(BaseJoinFunction):
       - key: 由 keyby 算子提取出来的分区键 (比如这里的 id)
       - tag: 数据来源标识 (0=左流 / 第一个流, 1=右流 / 第二个流)
     """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.hello_cache = {}   # {key: [payloads]}
-        self.world_cache = {}   # {key: [payloads]}
+        self.hello_cache = {}  # {key: [payloads]}
+        self.world_cache = {}  # {key: [payloads]}
 
     def execute(self, payload, key, tag):
         results = []
@@ -58,7 +63,7 @@ class HelloWorldJoin(BaseJoinFunction):
             if data_type == "hello":
                 # 缓存 Hello 数据
                 self.hello_cache.setdefault(key, []).append(payload)
-                
+
                 # 检查是否有匹配的 World 数据
                 if key in self.world_cache:
                     for world_data in self.world_cache[key]:
@@ -68,7 +73,7 @@ class HelloWorldJoin(BaseJoinFunction):
             if data_type == "world":
                 # 缓存 World 数据
                 self.world_cache.setdefault(key, []).append(payload)
-                
+
                 # 检查是否有匹配的 Hello 数据
                 if key in self.hello_cache:
                     for hello_data in self.hello_cache[key]:
@@ -77,30 +82,26 @@ class HelloWorldJoin(BaseJoinFunction):
         return results
 
     def _merge(self, hello_data, world_data, key):
-        return {
-            "id": key,
-            "msg": f"{hello_data['msg']} + {world_data['msg']}"
-        }
+        return {"id": key, "msg": f"{hello_data['msg']} + {world_data['msg']}"}
+
 
 def main():
-    env = LocalEnvironment("Hello_Join_World")
+    env = LocalEnvironment("hello_join_world")
 
-    source1 = env.from_batch(SourceOne).keyby(IdKeyBy)
-    source2 = env.from_batch(SourceTwo).keyby(IdKeyBy)
+    source1 = env.from_batch(SourceOne)
+    source2 = env.from_batch(SourceTwo)
 
-    # connect + join
-    source1.connect(source2).join(HelloWorldJoin).sink(PrintSink)
+    source1.keyby(IdKeyBy).connect(source2.keyby(IdKeyBy)).join(HelloWorldJoin).sink(
+        PrintSink
+    )
 
-    # 提交但不使用 autostop，而是手动控制
-    env.submit()
-    
-    # 等待一段时间让批处理完成
-    import time
-    time.sleep(2)  # 给足够时间让所有数据处理完成
-    
+    # 使用 autostop=True 让框架自动检测处理完成
+    env.submit(autostop=True)
+
     print("Hello Join World 示例结束")
 
 
 if __name__ == "__main__":
+
     CustomLogger.disable_global_console_debug()
     main()

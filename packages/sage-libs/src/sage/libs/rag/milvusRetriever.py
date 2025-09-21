@@ -1,17 +1,20 @@
 import json
-from typing import Tuple, List, Optional, Any, Dict
 import os
 import time
-import numpy as np
+from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
+from sage.common.config.output_paths import get_states_file
 from sage.core.api.function.map_function import MapFunction
 from sage.libs.utils.milvus import MilvusBackend, MilvusUtils
+
 
 # Milvus稠密向量检索
 class MilvusDenseRetriever(MapFunction):
     """
     使用 Milvus 后端进行稠密向量检索。
     """
+
     def __init__(self, config, enable_profile=False, **kwargs):
         super().__init__(**kwargs)
         self.config = config
@@ -31,31 +34,39 @@ class MilvusDenseRetriever(MapFunction):
 
         # 初始化 embedding 模型
         self._init_embedding_model()
-        
+
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, 'env_base_dir') and self.ctx.env_base_dir:
-                self.data_base_path = os.path.join(self.ctx.env_base_dir, ".sage_states", "retriever_data")
+            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
+                self.data_base_path = os.path.join(
+                    self.ctx.env_base_dir, ".sage_states", "retriever_data"
+                )
             else:
                 # 使用默认路径
-                self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "retriever_data")
+                self.data_base_path = os.path.join(
+                    os.getcwd(), ".sage_states", "retriever_data"
+                )
 
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
 
     def _init_milvus_backend(self):
-        """ 初始化milvus后端"""
+        """初始化milvus后端"""
         try:
             # 检查 milvus 是否可用
             if not MilvusUtils.check_milvus_available():
-                raise ImportError("Milvus dependencies not available. Install with: pip install pymilvus")
-            
+                raise ImportError(
+                    "Milvus dependencies not available. Install with: pip install pymilvus"
+                )
+
             # 验证配置
             if not MilvusUtils.validate_milvus_config(self.milvus_config):
                 raise ValueError("Invalid Milvus configuration")
-            
+
             # 初始化后端
-            self.milvus_backend = MilvusBackend(config=self.milvus_config, logger=self.logger)
+            self.milvus_backend = MilvusBackend(
+                config=self.milvus_config, logger=self.logger
+            )
 
             # 自动加载知识库文件
             knowledge_file = self.milvus_config.get("knowledge_file")
@@ -67,44 +78,51 @@ class MilvusDenseRetriever(MapFunction):
             raise
 
     def _load_knowledge_from_file(self, file_path: str):
-        """ 从文件中加载知识库 """
+        """从文件中加载知识库"""
         try:
             # 使用Milvus后端加载
-            success = self.milvus_backend.load_knowledge_from_file(file_path, self.embedding_model)
+            success = self.milvus_backend.load_knowledge_from_file(
+                file_path, self.embedding_model
+            )
             if not success:
                 self.logger.error(f"Failed to load knowledge from file: {file_path}")
         except Exception as e:
             self.logger.error(f"Failed to load knowledge from file: {e}")
 
-
     def _init_embedding_model(self):
-        """ 初始化embedding模型"""
+        """初始化embedding模型"""
         try:
-            from sage.middleware.utils.embedding.embedding_model import EmbeddingModel
-            
-            embedding_method = self.embedding_config.get("method", "default")
-            model = self.embedding_config.get("model", "sentence-transformers/all-MiniLM-L6-v2")
+            from sage.middleware.utils.embedding.embedding_model import \
+                EmbeddingModel
 
-            self.logger.info(f"Initializing embedding model with method: {embedding_method}")
-            self.embedding_model = EmbeddingModel(
-                method=embedding_method,
-                model=model
+            embedding_method = self.embedding_config.get("method", "default")
+            model = self.embedding_config.get(
+                "model", "sentence-transformers/all-MiniLM-L6-v2"
             )
 
+            self.logger.info(
+                f"Initializing embedding model with method: {embedding_method}"
+            )
+            self.embedding_model = EmbeddingModel(method=embedding_method, model=model)
+
             # 验证向量维度
-            if hasattr(self.embedding_model, 'get_dim'):
+            if hasattr(self.embedding_model, "get_dim"):
                 model_dim = self.embedding_model.get_dim()
                 if model_dim != self.vector_dimension:
-                    self.logger.warning(f"Embedding model dimension ({model_dim}) != configured dimension ({self.vector_dimension})")
+                    self.logger.warning(
+                        f"Embedding model dimension ({model_dim}) != configured dimension ({self.vector_dimension})"
+                    )
                     # 更新向量维度以匹配模型
                     self.vector_dimension = model_dim
         except ImportError as e:
             self.logger.error(f"Failed to import EmbeddingModel: {e}")
             raise ImportError("Embedding model dependencies not available")
 
-    def add_documents(self, documents: List[str], doc_ids: Optional[List[str]] = None) -> List[str]:
-        """ 
-        添加文档到milvus 
+    def add_documents(
+        self, documents: List[str], doc_ids: Optional[List[str]] = None
+    ) -> List[str]:
+        """
+        添加文档到milvus
         Args:
             documents: 文档内容列表
             doc_ids: 文档ID列表，如果为None则自动生成
@@ -116,7 +134,9 @@ class MilvusDenseRetriever(MapFunction):
             return []
 
         if doc_ids is None:
-            doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
+            doc_ids = [
+                f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))
+            ]
         elif len(doc_ids) != len(documents):
             raise ValueError("doc_ids length must match documents length")
 
@@ -136,16 +156,16 @@ class MilvusDenseRetriever(MapFunction):
         """
         if not self.enable_profile:
             return
-        
+
         record = {
-            'timestamp': time.time(),
-            'query': query,
-            'retrieved_docs': retrieved_docs,
-            'backend_type': self.backend_type,
-            'backend_config': getattr(self, f"{self.backend_type}_config", {}),
-            'embedding_config': self.embedding_config,
+            "timestamp": time.time(),
+            "query": query,
+            "retrieved_docs": retrieved_docs,
+            "backend_type": self.backend_type,
+            "backend_config": getattr(self, f"{self.backend_type}_config", {}),
+            "embedding_config": self.embedding_config,
         }
-        
+
         self.data_records.append(record)
         self._persist_data_records()
 
@@ -155,13 +175,13 @@ class MilvusDenseRetriever(MapFunction):
         """
         if not self.enable_profile or not self.data_records:
             return
-        
+
         timestamp = int(time.time())
         filename = f"milvus_dense_retriever_data_{timestamp}.json"
         path = os.path.join(self.data_base_path, filename)
 
         try:
-            with open(path, 'w', encoding='utf-8') as f:
+            with open(path, "w", encoding="utf-8") as f:
                 json.dump(self.data_records, f, ensure_ascii=False, indent=2)
             self.data_records = []
         except Exception as e:
@@ -175,7 +195,7 @@ class MilvusDenseRetriever(MapFunction):
         Returns:
             dict: {"query": ..., "results": ..., "input": 原始输入, ...}
         """
-                # 支持字典类型输入，优先取 question 字段
+        # 支持字典类型输入，优先取 question 字段
         is_dict_input = isinstance(data, dict)
         if is_dict_input:
             input_query = data.get("question", "")
@@ -192,7 +212,9 @@ class MilvusDenseRetriever(MapFunction):
             else:
                 return {"query": str(input_query), "results": [], "input": data}
 
-        self.logger.info(f"[ {self.__class__.__name__}]: Starting {self.backend_type.upper()} retrieval for query: {input_query}")
+        self.logger.info(
+            f"[ {self.__class__.__name__}]: Starting {self.backend_type.upper()} retrieval for query: {input_query}"
+        )
         self.logger.info(f"[ {self.__class__.__name__}]: Using top_k = {self.top_k}")
 
         try:
@@ -206,8 +228,12 @@ class MilvusDenseRetriever(MapFunction):
                 top_k=self.top_k,
             )
 
-            self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from Milvus\033[0m")
-            self.logger.debug(f"Retrieved documents: {retrieved_docs[:3]}...")  # 只显示前3个文档的预览
+            self.logger.info(
+                f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from Milvus\033[0m"
+            )
+            self.logger.debug(
+                f"Retrieved documents: {retrieved_docs[:3]}..."
+            )  # 只显示前3个文档的预览
 
             print(f"Query: {input_query}")
             print(f"Configured top_k: {self.top_k}")
@@ -266,7 +292,7 @@ class MilvusDenseRetriever(MapFunction):
 
     def __del__(self):
         """确保在对象销毁时保存所有未保存的记录"""
-        if hasattr(self, 'enable_profile') and self.enable_profile:
+        if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
             except:
@@ -278,6 +304,7 @@ class MilvusSparseRetriever(MapFunction):
     """
     使用 Milvus 后端进行稀疏向量检索。
     """
+
     def __init__(self, config, enable_profile=False, **kwargs):
         super().__init__(**kwargs)
         self.config = config
@@ -292,31 +319,39 @@ class MilvusSparseRetriever(MapFunction):
         # 初始化Milvus后端
         self.milvus_config = config.get("milvus_sparse", {})
         self._init_milvus_backend()
-        
+
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, 'env_base_dir') and self.ctx.env_base_dir:
-                self.data_base_path = os.path.join(self.ctx.env_base_dir, ".sage_states", "retriever_data")
+            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
+                self.data_base_path = os.path.join(
+                    self.ctx.env_base_dir, ".sage_states", "retriever_data"
+                )
             else:
                 # 使用默认路径
-                self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "retriever_data")
+                self.data_base_path = os.path.join(
+                    os.getcwd(), ".sage_states", "retriever_data"
+                )
 
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
 
     def _init_milvus_backend(self):
-        """ 初始化milvus后端"""
+        """初始化milvus后端"""
         try:
             # 检查 milvus 是否可用
             if not MilvusUtils.check_vilvusdb_availability():
-                raise ImportError("Milvus dependencies not available. Install with: pip install pymilvus")
-            
+                raise ImportError(
+                    "Milvus dependencies not available. Install with: pip install pymilvus"
+                )
+
             # 验证配置
             if not MilvusUtils.validate_milvus_config(self.milvus_config):
                 raise ValueError("Invalid Milvus configuration")
-            
+
             # 初始化后端
-            self.milvus_backend = MilvusBackend(config=self.milvus_config, logger=self.logger)
+            self.milvus_backend = MilvusBackend(
+                config=self.milvus_config, logger=self.logger
+            )
 
             # 自动加载知识库文件
             knowledge_file = self.milvus_config.get("knowledge_file")
@@ -328,18 +363,22 @@ class MilvusSparseRetriever(MapFunction):
             raise
 
     def _load_knowledge_from_file(self, file_path: str):
-        """ 从文件中加载知识库 """
+        """从文件中加载知识库"""
         try:
             # 使用Milvus后端加载
-            success = self.milvus_backend.load_knowledge_from_file(file_path, self.embedding_model)
+            success = self.milvus_backend.load_knowledge_from_file(
+                file_path, self.embedding_model
+            )
             if not success:
                 self.logger.error(f"Failed to load knowledge from file: {file_path}")
         except Exception as e:
             self.logger.error(f"Failed to load knowledge from file: {e}")
 
-    def add_documents(self, documents: List[str], doc_ids: Optional[List[str]] = None) -> List[str]:
-        """ 
-        添加文档到milvus 
+    def add_documents(
+        self, documents: List[str], doc_ids: Optional[List[str]] = None
+    ) -> List[str]:
+        """
+        添加文档到milvus
         Args:
             documents: 文档内容列表
             doc_ids: 文档ID列表，如果为None则自动生成
@@ -351,7 +390,9 @@ class MilvusSparseRetriever(MapFunction):
             return []
 
         if doc_ids is None:
-            doc_ids = [f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))]
+            doc_ids = [
+                f"doc_{int(time.time() * 1000)}_{i}" for i in range(len(documents))
+            ]
         elif len(doc_ids) != len(documents):
             raise ValueError("doc_ids length must match documents length")
 
@@ -364,15 +405,15 @@ class MilvusSparseRetriever(MapFunction):
         """
         if not self.enable_profile:
             return
-        
+
         record = {
-            'timestamp': time.time(),
-            'query': query,
-            'retrieved_docs': retrieved_docs,
-            'backend_type': self.backend_type,
-            'backend_config': getattr(self, f"{self.backend_type}_config", {}),
+            "timestamp": time.time(),
+            "query": query,
+            "retrieved_docs": retrieved_docs,
+            "backend_type": self.backend_type,
+            "backend_config": getattr(self, f"{self.backend_type}_config", {}),
         }
-        
+
         self.data_records.append(record)
         self._persist_data_records()
 
@@ -382,13 +423,13 @@ class MilvusSparseRetriever(MapFunction):
         """
         if not self.enable_profile or not self.data_records:
             return
-        
+
         timestamp = int(time.time())
         filename = f"milvus_dense_retriever_data_{timestamp}.json"
         path = os.path.join(self.data_base_path, filename)
 
         try:
-            with open(path, 'w', encoding='utf-8') as f:
+            with open(path, "w", encoding="utf-8") as f:
                 json.dump(self.data_records, f, ensure_ascii=False, indent=2)
             self.data_records = []
         except Exception as e:
@@ -402,7 +443,7 @@ class MilvusSparseRetriever(MapFunction):
         Returns:
             dict: {"query": ..., "results": ..., "input": 原始输入, ...}
         """
-                # 支持字典类型输入，优先取 question 字段
+        # 支持字典类型输入，优先取 question 字段
         is_dict_input = isinstance(data, dict)
         if is_dict_input:
             input_query = data.get("question", "")
@@ -419,7 +460,9 @@ class MilvusSparseRetriever(MapFunction):
             else:
                 return {"query": str(input_query), "results": [], "input": data}
 
-        self.logger.info(f"[ {self.__class__.__name__}]: Starting {self.backend_type.upper()} retrieval for query: {input_query}")
+        self.logger.info(
+            f"[ {self.__class__.__name__}]: Starting {self.backend_type.upper()} retrieval for query: {input_query}"
+        )
         self.logger.info(f"[ {self.__class__.__name__}]: Using top_k = {self.top_k}")
 
         try:
@@ -429,8 +472,12 @@ class MilvusSparseRetriever(MapFunction):
                 top_k=self.top_k,
             )
 
-            self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from Milvus\033[0m")
-            self.logger.debug(f"Retrieved documents: {retrieved_docs[:3]}...")  # 只显示前3个文档的预览
+            self.logger.info(
+                f"\033[32m[ {self.__class__.__name__}]: Retrieved {len(retrieved_docs)} documents from Milvus\033[0m"
+            )
+            self.logger.debug(
+                f"Retrieved documents: {retrieved_docs[:3]}..."
+            )  # 只显示前3个文档的预览
 
             print(f"Query: {input_query}")
             print(f"Configured top_k: {self.top_k}")
@@ -483,7 +530,7 @@ class MilvusSparseRetriever(MapFunction):
 
     def __del__(self):
         """确保在对象销毁时保存所有未保存的记录"""
-        if hasattr(self, 'enable_profile') and self.enable_profile:
+        if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
             except:

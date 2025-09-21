@@ -1,8 +1,10 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Type, List, Tuple, Any, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, List, Tuple, Type, Union
+
 if TYPE_CHECKING:
-    from sage.kernel import TaskContext
+    from sage.kernel.runtime.context.task_context import TaskContext
+
 import logging
 
 
@@ -12,8 +14,9 @@ class BaseFunction(ABC):
     BaseFunction is the abstract base class for all operator functions in SAGE.
     It defines the core interface and initializes a logger.
     """
+
     def __init__(self, *args, **kwargs):
-        self.ctx: 'TaskContext' = None # 运行时注入
+        self.ctx: "TaskContext" = None  # 运行时注入
         self._logger = None
         # 服务代理缓存已移至ServiceCallMixin处理
 
@@ -25,47 +28,51 @@ class BaseFunction(ABC):
             else:
                 self._logger = self.ctx.logger
         return self._logger
-    
+
     @property
     def name(self):
         if self.ctx is None:
             return self.__class__.__name__
         return self.ctx.name
-    
+
     @property
     def call_service(self):
         """
         同步服务调用语法糖
-        
+
         用法:
             result = self.call_service["cache_service"].get("key1")
             data = self.call_service["db_service"].query("SELECT * FROM users")
         """
         if self.ctx is None:
-            raise RuntimeError("Runtime context not initialized. Cannot access services.")
-        
+            raise RuntimeError(
+                "Runtime context not initialized. Cannot access services."
+            )
+
         return self.ctx.call_service()
-    
-    @property 
+
+    @property
     def call_service_async(self):
         """
         异步服务调用语法糖
-        
+
         用法:
             future = self.call_service_async["cache_service"].get("key1")
             result = future.result()  # 阻塞等待结果
-            
+
             # 或者非阻塞检查
             if future.done():
                 result = future.result()
         """
         if self.ctx is None:
-            raise RuntimeError("Runtime context not initialized. Cannot access services.")
-        
+            raise RuntimeError(
+                "Runtime context not initialized. Cannot access services."
+            )
+
         return self.ctx.call_service_async()
 
     @abstractmethod
-    def execute(self, data:any):
+    def execute(self, data: any):
         """
         Abstract method to be implemented by subclasses.
 

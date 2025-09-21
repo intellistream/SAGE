@@ -1,0 +1,31 @@
+[flake8]
+# 忽略的错误代码
+# E501: line too long (handled by black)
+# W503: line break before binary operator (conflicts with W504)
+ignore = E501,W503
+
+# 最大行长度（与black保持一致）
+max-line-length = 88
+
+# 排除的目录
+exclude = 
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    env,
+    test_env,
+    build,
+    dist,
+    .eggs,
+    *.egg-info,
+    .tox,
+    .pytest_cache,
+    node_modules
+
+# 每个文件的最大复杂度
+max-complexity = 10
+
+# 导入检查
+import-order-style = google
+application-import-names = sage

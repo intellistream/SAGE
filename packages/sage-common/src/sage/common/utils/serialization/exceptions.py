@@ -5,4 +5,5 @@
 
 class SerializationError(Exception):
     """序列化相关错误"""
+
     pass

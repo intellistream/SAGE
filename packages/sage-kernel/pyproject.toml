@@ -39,11 +39,12 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 dependencies = [
-    # External dependencies
-    "pyyaml==6.0.2",
+    # SAGE framework dependencies
+    "isage-common>=0.1.0",
+    
+    # Kernel-specific dependencies
     "python-dotenv==1.1.1",
     "python_multipart==0.0.20",
-    "dill>=0.3.8",
     "ray==2.48.0",
     "grpcio>=1.74.0",
     "protobuf>=6.32.0",
@@ -52,8 +53,7 @@ dependencies = [
     "torchvision==0.22.1",
     "httpx==0.28.1",
     "socksio==1.0.0",
-    "psutil>=6.1.0",
-    "numpy==2.2.6,<3.0.0",  # 与vllm兼容的numpy版本
+    "numpy>=2.0.0,<3.0.0",  # 统一numpy版本范围，兼容numpy 2.x
     "Cython==3.1.2",
     "pybind11==3.0.0",
     "aioboto3==14.1.0",
@@ -64,18 +64,12 @@ dependencies = [
     "aiohappyeyeballs>=2.6.0",
     "aiosignal>=1.4.0",
     "pydantic>=2.10.0",
-    "PyYAML==6.0.2",
-    "python-dotenv==1.1.1",
     "Jinja2==3.1.6",
-    "shellingham==1.5.4",
+    "shellingham>=1.5.0",
     "tabulate>=0.9.0",
-    "colorama>=0.4.6",
     "typer>=0.15.0",
     "rich>=13.0.0",
     "click>=8.0.0",
-    "pydantic>=2.10.0",
-    "PyYAML>=6.0",
-    "shellingham>=1.5.0",
     "questionary>=1.10.0",
     "prompt_toolkit>=3.0.50",
     "filelock>=3.16.1",  # vllm兼容版本
@@ -83,49 +77,8 @@ dependencies = [
 license = "MIT"
 
 [project.optional-dependencies]
-# SAGE framework dependencies (for local development)
-sage = [
-    "isage-common>=0.1.0",
-]
-
-# Commercial/Enterprise features (requires license)
-enterprise = [
-    "isage-kernel[sage]",
-    # High-performance computing dependencies
-    "numpy==2.2.6",        # 与vllm兼容
-    "scipy==1.16.1",       # 与vllm兼容 
-    "scikit-learn>=1.3.0",
-    "numba>=0.58.0",
-    "cython>=3.0.0",
-    "joblib>=1.3.0",
-    "tqdm>=4.65.0",
-    # Memory optimization
-    "psutil>=5.9.0",
-    # Performance monitoring
-    "py-spy>=0.3.14",
-    # Advanced queue implementations
-    "pyzmq>=25.0.0",
-    "redis>=4.5.0",
-]
-
-# Development dependencies for enterprise
-enterprise-dev = [
-    "isage-kernel[enterprise]",
-    "pytest-benchmark>=4.0.0",
-    "memory-profiler>=0.60.0",
-    "line-profiler>=4.0.0",
-]
-
-# Enhanced development features
-enhanced = [
-    "ipython>=8.0.0",
-    "colorama>=0.4.6",
-    "pygments>=2.15.0",
-]
-
-# Development dependencies
+# 开发依赖
 dev = [
-    "isage-kernel[sage]",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
@@ -137,23 +90,24 @@ dev = [
     "ruff>=0.1.0",
 ]
 
-# Web/API features
+# Web/API功能
 web = [
     "fastapi>=0.100.0",
     "uvicorn>=0.23.0",
     "websockets>=11.0",
 ]
 
-# Documentation
+# 文档生成
 docs = [
     "sphinx>=7.0.0",
     "sphinx-rtd-theme>=1.3.0",
     "myst-parser>=2.0.0",
-]
-
-# All commercial features combined
-commercial = [
-    "isage-kernel[enterprise]",
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.6.0",
+    "markdown>=3.3.6",
+    "markupsafe>=2.0.1",
+    "packaging>=20.5",
+    "pymdown-extensions>=10.2.0",
 ]
 
 [project.urls]
@@ -207,6 +161,9 @@ python_functions = [
     "test_*",
 ]
 addopts = [
+    "--benchmark-storage=../../.sage/benchmarks",
+    "-o",
+    "cache_dir=../../.sage/cache/pytest",
     "--strict-markers",
     "--strict-config",
     "--verbose",
@@ -224,6 +181,10 @@ markers = [
     "network: marks tests as network tests",
     "system: marks tests as system tests",
     "core: marks tests as core functionality tests",
+    "smoke: marks tests as smoke tests (quick validation)",
+    "cli: marks tests as CLI tests",
+    "ray: marks tests requiring Ray framework (may be slow)",
+    "distributed: marks tests requiring distributed setup",
 ]
 
 [tool.coverage.run]
