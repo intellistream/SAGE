@@ -1,7 +1,7 @@
 """
 Base Service Task - 服务任务基类
 
-提供统一的服务任务接口，集成高性能mmap队列监听和消息处理功能
+提供统一的服务任务接口
 """
 
 import queue
@@ -12,9 +12,6 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from sage.common.utils.logging.custom_logger import CustomLogger
-
-# SageQueue has been removed
-SAGE_QUEUE_AVAILABLE = False
 
 if TYPE_CHECKING:
     from sage.core.factory.service_factory import ServiceFactory
@@ -515,12 +512,8 @@ class BaseServiceTask(ABC):
             self.logger.debug(
                 f"[SERVICE_TASK] Creating queue instance for: '{response_queue_name}'"
             )
-            if SAGE_QUEUE_AVAILABLE:
-                # SageQueue is no longer available
-                response_queue = queue.Queue()
-            else:
-                # Fallback to using regular queue (this is a simplified fallback)
-                response_queue = queue.Queue()
+            # 使用标准Python队列
+            response_queue = queue.Queue()
             self.logger.info(
                 f"[SERVICE_TASK] Created response queue instance type: {type(response_queue).__name__}"
             )

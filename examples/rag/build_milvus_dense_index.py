@@ -1,11 +1,11 @@
 import os
 import sys
-
 import yaml
+
 from sage.common.utils.config.loader import load_config
 from sage.libs.rag.chunk import CharacterSplitter
-from sage.libs.rag.document_loaders import TextLoader
-from sage.libs.rag.retriever import MilvusDenseRetriever
+from sage.libs.rag.document_loaders import LoaderFactory
+from sage.libs.rag.milvusRetriever import MilvusDenseRetriever
 
 
 def load_config(path):
@@ -16,36 +16,67 @@ def load_config(path):
 
 def load_knowledge_to_milvus(config):
     """
-    加载知识库到 Milvus
+    加载多格式知识库到 Milvus（单集合版本，不保留来源信息）
     """
-    knowledge_file = config.get("preload_knowledge_file")
+    knowledge_files = config.get("preload_knowledge_file")
+    if not isinstance(knowledge_files, list):
+        knowledge_files = [knowledge_files]
+
     persistence_path = config.get("milvus_dense").get("persistence_path")
-    collection_name = config.get("milvus_dense").get("collection_name")
+    collection_name = "qa_dense_collection"  # 单集合
 
-    print(f"=== 预加载知识库到 Milvus ===")
-    print(f"文件: {knowledge_file} | DB: {persistence_path} | 集合: {collection_name}")
-
-    loader = TextLoader(knowledge_file)
-    document = loader.load()
-    print(f"已加载文本，长度: {len(document['content'])}")
-
-    splitter = CharacterSplitter({"separator": "\n\n"})
-    chunks = splitter.execute(document)
-    print(f"分块数: {len(chunks)}")
+    print(f"=== 预加载多格式知识库到 Milvus ===")
+    print(f"DB: {persistence_path}")
+    print(f"统一集合: {collection_name}")
 
     print("初始化Milvus...")
-    milvus_backend = MilvusDenseRetriever(config)
-    milvus_backend.add_documents(chunks)
-    print(f"✓ 已添加 {len(chunks)} 个文本块")
-    print(f"✓ 数据库信息: {milvus_backend.get_collection_info()}")
-    text_query = "什么是ChromaDB？"
-    results = milvus_backend.execute(text_query)
-    print(f"检索结果: {results}")
+    milvus_backend = MilvusDenseRetriever(config, collection_name=collection_name)
+
+    all_chunks = []
+
+    for file_path in knowledge_files:
+        if not os.path.exists(file_path):
+            print(f"⚠ 文件不存在，跳过: {file_path}")
+            continue
+
+        print(f"\n=== 处理文件: {file_path} ===")
+
+        document = LoaderFactory.load(file_path)
+        print(f"已加载文档，长度: {len(document['content'])}")
+
+        splitter = CharacterSplitter({"separator": "\n\n"})
+        chunks = splitter.execute(document)
+        print(f"分块数: {len(chunks)}")
+
+        all_chunks.extend(chunks)
+        print(f"✓ 已准备 {len(chunks)} 个文本块")
+
+    if all_chunks:
+        milvus_backend.add_documents(all_chunks)
+        print(f"\n✓ 已写入 {len(all_chunks)} 个文本块到集合 {collection_name}")
+        print(f"✓ 数据库信息: {milvus_backend.get_collection_info()}")
+
+        # 测试检索
+        text_query = "什么是ChromaDB？"
+        results = milvus_backend.execute(text_query)
+        print(f"检索结果: {results}")
+
+        # 测试检索
+        text_query = "RAG 系统的主要优势是什么？"
+        results = milvus_backend.execute(text_query)
+        print(f"检索结果: {results}")
+    else:
+        print("⚠ 没有有效的知识文件，未写入任何数据")
+
+
+
+
+
+    print("=== 完成 ===")
     return True
 
 
 if __name__ == "__main__":
-    # 检查是否在测试模式下运行
     if (
         os.getenv("SAGE_EXAMPLES_MODE") == "test"
         or os.getenv("SAGE_TEST_MODE") == "true"

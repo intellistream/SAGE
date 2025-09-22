@@ -5,7 +5,9 @@ source:
   platform: "local"
 
 retriever:
-  preload_knowledge_file: "./examples/data/qa_knowledge_base.txt"
+  preload_knowledge_file:
+    - "./examples/data/qa_knowledge_chromaDB.txt"
+    - "./examples/data/qa_knowledge_rag.md"
 
   # 通用参数
   dimension: 384            # 向量维度，应与 embedding 模型一致
