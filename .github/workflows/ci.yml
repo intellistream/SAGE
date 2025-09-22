@@ -1,9 +1,16 @@
 name: ci
 
 on:
+  push:
+    branches: [ main ]  # 当代码推送到main分支时运行
   pull_request:
-    branches: [ main ]  # 专门用于PR检查
+    branches: [ main ]  # 当创建PR到main分支时运行
   workflow_dispatch:
+
+# 并发控制：同一PR只运行最新的CI，取消之前的运行
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -52,8 +59,13 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        cache: 'pip'
       timeout-minutes: 5
+      
+    # 创建pip缓存目录
+    - name: Create pip cache directory
+      run: |
+        mkdir -p /home/runner/.cache/pip
+        mkdir -p /tmp/pip-cache
       
     # 设置 Miniconda (quickstart.sh 需要conda可用)
     - name: Setup Miniconda for quickstart.sh

@@ -15,7 +15,6 @@ import re
 import argparse
 import yaml
 from pathlib import Path
-from typing import Dict, List, Any
 
 
 # 配置文件 - 可扩展的项目信息管理
