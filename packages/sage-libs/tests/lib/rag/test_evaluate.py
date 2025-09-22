@@ -65,9 +65,9 @@ class TestNormalizeData:
 
         input_data = ()
         result = _normalize_data(input_data)
-        
+
         expected = {
-            "question": None,
+            "question": {},
             "generated": "",
             "references": []
         }
@@ -257,6 +257,110 @@ class TestNormalizeData:
         
         # 所有字段都应该被保留
         assert result == input_data
+
+    def test_normalize_data_with_question_references(self):
+        """测试从question.references中提取参考答案（实际pipeline数据格式）"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        # 模拟实际pipeline中的数据结构
+        input_data = {
+            'question': {
+                'query': 'Who has the highest goals in world football?', 
+                'references': [
+                    "Ali Dael has the highest goals in men's world international football with 109 goals.",
+                    "The players with the highest all-time goals differ."
+                ]
+            }, 
+            'results': [{'text': 'some retrieval result'}],
+            'generated': 'The highest goalscorer in FIFA World Cup history is Gerd Müller with 10 goals.', 
+            'references': []  # 空的顶级references
+        }
+        result = _normalize_data(input_data)
+        
+        expected = {
+            'question': {
+                'query': 'Who has the highest goals in world football?', 
+                'references': [
+                    "Ali Dael has the highest goals in men's world international football with 109 goals.",
+                    "The players with the highest all-time goals differ."
+                ]
+            }, 
+            'results': [{'text': 'some retrieval result'}],
+            'generated': 'The highest goalscorer in FIFA World Cup history is Gerd Müller with 10 goals.', 
+            'references': [
+                "Ali Dael has the highest goals in men's world international football with 109 goals.",
+                "The players with the highest all-time goals differ."
+            ]
+        }
+        assert result == expected
+
+    def test_normalize_data_with_openai_generator_tuple(self):
+        """测试OpenAIGenerator输出的tuple格式（实际pipeline数据格式）"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        # 模拟OpenAIGenerator的实际输出格式
+        input_data = (
+            {
+                'query': 'Who has the highest goals in world football?', 
+                'references': [
+                    "Ali Dael has the highest goals in men's world international football with 109 goals.",
+                    "Josef Bican has the highest goals all-time in men's football with 805 goals."
+                ]
+            }, 
+            '  Gerd Müller'
+        )
+        result = _normalize_data(input_data)
+        
+        expected = {
+            'question': {
+                'query': 'Who has the highest goals in world football?', 
+                'references': [
+                    "Ali Dael has the highest goals in men's world international football with 109 goals.",
+                    "Josef Bican has the highest goals all-time in men's football with 805 goals."
+                ]
+            },
+            'generated': '  Gerd Müller',
+            'references': [
+                "Ali Dael has the highest goals in men's world international football with 109 goals.",
+                "Josef Bican has the highest goals all-time in men's football with 805 goals."
+            ]
+        }
+        assert result == expected
+
+    def test_normalize_data_references_priority(self):
+        """测试references提取的优先级：顶级references > golds > question.references"""
+        if not EVALUATE_AVAILABLE:
+            pytest.skip("Evaluate module not available")
+
+        # 测试顶级references优先
+        input_data1 = {
+            'question': {'references': ['question ref']},
+            'golds': ['golds ref'],
+            'references': ['top level ref'],
+            'generated': 'answer'
+        }
+        result1 = _normalize_data(input_data1)
+        assert result1['references'] == ['top level ref']
+
+        # 测试golds其次
+        input_data2 = {
+            'question': {'references': ['question ref']},
+            'golds': ['golds ref'],
+            'references': [],  # 空的顶级references
+            'generated': 'answer'
+        }
+        result2 = _normalize_data(input_data2)
+        assert result2['references'] == ['golds ref']
+
+        # 测试question.references最后
+        input_data3 = {
+            'question': {'references': ['question ref']},
+            'generated': 'answer'
+        }
+        result3 = _normalize_data(input_data3)
+        assert result3['references'] == ['question ref']
 
 
 @pytest.mark.unit

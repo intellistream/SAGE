@@ -2,7 +2,7 @@ import json
 import os
 import time
 from collections import deque
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import yaml
 from sage.common.config.output_paths import get_states_file
@@ -84,17 +84,30 @@ class OpenAIGenerator(MapFunction):
         except Exception as e:
             self.logger.error(f"Failed to persist data records: {e}")
 
-    def execute(self, data: List[Any]) -> Tuple[str, str]:
+    def execute(self, data: List[Any]) -> Dict[str, Any]:
         """
-        输入 : [user_query, prompt]  *或*  [prompt]
-        输出 : (user_query | None, generated_text)
+        输入 : [original_data, prompt]  *或*  [prompt]
+        输出 : 完整的数据字典，包含 generated 字段
 
         prompt 可以是:
         - str: 普通字符串，将转换为 [{"role": "user", "content": prompt}]
         - list[dict]: 已格式化的消息列表，直接传递给 OpenAI API
         """
-        user_query = data[0] if len(data) > 1 else None
-        prompt = data[1] if len(data) > 1 else data[0]
+        # 解析输入数据
+        if len(data) > 1:
+            # 来自QAPromptor: [original_data, prompt]
+            original_data = data[0]
+            prompt = data[1]
+        else:
+            # 直接prompt输入: [prompt]
+            original_data = {}
+            prompt = data[0]
+        
+        # 提取user_query
+        if isinstance(original_data, dict):
+            user_query = original_data.get("query", original_data.get("question", ""))
+        else:
+            user_query = None
 
         # 如果 prompt 是字符串，转换为标准消息格式
         if isinstance(prompt, str):
@@ -108,7 +121,12 @@ class OpenAIGenerator(MapFunction):
             # 兜底处理：转换为字符串再构造消息
             messages = [{"role": "user", "content": str(prompt)}]
 
+        # 记录生成时间
+        generate_start_time = time.time()
         response = self.model.generate(messages)
+        generate_end_time = time.time()
+        generate_time = generate_end_time - generate_start_time
+        
         self.num += 1
 
         # 保存数据记录（只有enable_profile=True时才保存）
@@ -116,7 +134,18 @@ class OpenAIGenerator(MapFunction):
             self._save_data_record(user_query, prompt, response)
 
         self.logger.info(f"[{self.__class__.__name__}] Response: {response}")
-        return user_query, response
+        
+        # 构建完整的输出数据，保持上游数据
+        if isinstance(original_data, dict):
+            # 保持原始数据结构，添加generated字段
+            result = dict(original_data)
+            result["generated"] = response
+            result["generate_time"] = generate_time  # 添加生成时间
+            result["question"] = result.get("question", {"query": user_query, "references": result.get("references", [])})
+            return result
+        else:
+            # 兼容原有tuple格式输出
+            return user_query, response
 
     def __del__(self):
         """确保在对象销毁时保存所有未保存的记录"""
