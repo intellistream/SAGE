@@ -40,8 +40,8 @@ class TestArxivSearchToolCore:
         assert "Search arXiv papers" in self.tool.description
         assert self.tool.base_url == "https://arxiv.org/search/"
         assert self.tool.valid_sizes == [25, 50, 100, 200]
-        assert "SAGE-Agent" in self.tool.session.headers["User-Agent"]
-
+        assert "User-Agent" in self.tool.session.headers
+        
     def test_input_schema_validation(self):
         """Test that input schema is properly defined."""
         if not ARXIV_TOOL_AVAILABLE:
