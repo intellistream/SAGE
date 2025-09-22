@@ -1,0 +1,68 @@
+question_bot:
+  method: "openai"
+  model_name: "qwen-turbo"
+  api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+question_bot_sink:
+  stage_directory: "question_bot"
+
+
+chief_bot:
+  llm:
+    method: "openai"
+    model_name: "qwen-turbo"
+    api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+chief_bot_sink:
+  stage_directory: "chief_bot"
+
+
+searcher_filter:
+  tools: ["web_search"]
+
+
+searcher_bot:
+  method: "openai"
+  model_name: "qwen-turbo"
+  api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+searcher_bot_sink:
+  stage_directory: "chief_bot"
+
+
+
+searcher_tool:
+  url: "https://api.bochaai.com/v1/web-search"
+  api_key: "sk-455d6a2c79464dd2959197477a908e53"
+
+
+searcher_tool_sink:
+  stage_directory: "searcher_tool"
+
+
+answer_bot:
+  method: "openai"
+  model_name: "qwen-turbo"
+  api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+answer_bot_sink:
+  stage_directory: "answer_bot"
+
+
+critic_bot:
+  method: "openai"
+  model_name: "qwen-turbo"
+  api_key: "sk-700a53a2a85344e09a82afa96ae072a8"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+critic_bot_sink:
+  stage_directory: "critic_bot"
+
+
+direct_response_filter:
+  tools: ["direct_response"]
+

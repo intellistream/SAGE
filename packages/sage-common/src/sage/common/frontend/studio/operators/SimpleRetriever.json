@@ -1,0 +1,7 @@
+{
+    "id":3,
+    "name":"SimpleRetriever",
+    "code":"",
+    "description":"Retrieves the most relevant documents from the index",
+    "isCustom":false
+}

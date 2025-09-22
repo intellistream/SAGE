@@ -1,0 +1,212 @@
+import pytest
+from unittest.mock import Mock, patch
+
+# 尝试导入评估模块，处理依赖不可用的情况
+try:
+    from sage.libs.rag.evaluate import (
+        F1Evaluate, BertRecallEvaluate, RougeLEvaluate, BRSEvaluate
+    )
+    EVALUATE_AVAILABLE = True
+except ImportError as e:
+    EVALUATE_AVAILABLE = False
+    pytestmark = pytest.mark.skip(f"Evaluate module not available: {e}")
+
+@pytest.fixture
+def test_data():
+    if not EVALUATE_AVAILABLE:
+        pytest.skip("Evaluate module not available")
+
+    """准备测试数据，格式与实际使用的格式匹配"""
+    return {
+        "references": ["The cat sits on the mat."],
+        "generated": "A cat is sitting on a mat."
+    }
+
+@pytest.fixture
+def config():
+    return {}
+
+def test_f1_evaluate(config, test_data):
+    if not EVALUATE_AVAILABLE:
+        pytest.skip("Evaluate module not available")
+
+    if not EVALUATE_AVAILABLE:
+        pytest.skip("Evaluate module not available")
+    
+    evaluator = F1Evaluate(config)
+    
+    # 测试内部的 _f1_score 方法
+    score = evaluator._f1_score(test_data["generated"], test_data["references"][0])
+    assert 0 <= score <= 1
+    
+    # 测试 execute 方法
+    result = evaluator.execute(test_data)
+    assert result == test_data  # execute 方法应该返回原始数据
+
+@patch('sage.libs.rag.evaluate.AutoTokenizer.from_pretrained')
+@patch('sage.libs.rag.evaluate.AutoModel.from_pretrained')
+def test_bert_recall(mock_model, mock_tokenizer, config, test_data):
+    if not EVALUATE_AVAILABLE:
+        pytest.skip("Evaluate module not available")
+
+    """测试BertRecallEvaluate，使用mock避免下载模型"""
+    # Mock tokenizer
+    mock_tokenizer_instance = Mock()
+    mock_tokenizer_instance.return_value = {
+        'input_ids': [[1, 2, 3], [4, 5, 6]], 
+        'attention_mask': [[1, 1, 1], [1, 1, 1]]
+    }
+    mock_tokenizer.return_value = mock_tokenizer_instance
+    
+    # Mock model
+    mock_model_instance = Mock()
+    mock_output = Mock()
+    # Mock embeddings: create 2D numpy arrays that simulate averaged model output
+    import numpy as np
+    mock_embeddings = np.array([[0.1, 0.2, 0.3], [0.2, 0.3, 0.4]])  # 2D array: [2, 3]
+    mock_output.last_hidden_state.mean.return_value.detach.return_value.numpy.return_value = mock_embeddings
+    mock_model_instance.return_value = mock_output
+    mock_model.return_value = mock_model_instance
+    
+    evaluator = BertRecallEvaluate(config)
+    
+    # 测试 execute 方法
+    result = evaluator.execute(test_data)
+    assert result == test_data  # execute 方法应该返回原始数据
+
+@patch('sage.libs.rag.evaluate.Rouge')
+def test_rouge_l(mock_rouge_class, config, test_data):
+    if not EVALUATE_AVAILABLE:
+        pytest.skip("Evaluate module not available")
+
+    """测试RougeLEvaluate，使用mock避免依赖问题"""
+    # Mock Rouge instance
+    mock_rouge_instance = Mock()
+    mock_rouge_instance.get_scores.return_value = [{"rouge-l": {"f": 0.75}}]
+    mock_rouge_class.return_value = mock_rouge_instance
+    
+    evaluator = RougeLEvaluate(config)
+    
+    # 测试 execute 方法
+    result = evaluator.execute(test_data)
+    assert result == test_data  # execute 方法应该返回原始数据
+
+def test_brs(config, test_data):
+    if not EVALUATE_AVAILABLE:
+        pytest.skip("Evaluate module not available")
+
+    evaluator = BRSEvaluate(config)
+    
+    # 测试 execute 方法
+    result = evaluator.execute(test_data)
+    assert result == test_data  # execute 方法应该返回原始数据
+
+def test_f1_evaluate_with_multiple_references():
+    if not EVALUATE_AVAILABLE:
+        pytest.skip("Evaluate module not available")
+
+    """测试多个参考答案的情况"""
+    evaluator = F1Evaluate({})
+    test_data = {
+        "references": [
+            "The cat sits on the mat.",
+            "A cat is on the mat.",
+            "The feline sits on the rug."
+        ],
+        "generated": "A cat is sitting on a mat."
+    }
+    
+    result = evaluator.execute(test_data)
+    assert result == test_data
+
+def test_f1_evaluate_empty_references():
+    if not EVALUATE_AVAILABLE:
+        pytest.skip("Evaluate module not available")
+
+    """测试空参考答案的情况"""
+    evaluator = F1Evaluate({})
+    test_data = {
+        "references": [],
+        "generated": "A cat is sitting on a mat."
+    }
+    
+    result = evaluator.execute(test_data)
+    assert result == test_data
+
+def test_f1_evaluate_no_generated():
+    if not EVALUATE_AVAILABLE:
+        pytest.skip("Evaluate module not available")
+
+    """测试没有生成文本的情况"""
+    evaluator = F1Evaluate({})
+    test_data = {
+        "references": ["The cat sits on the mat."],
+        "generated": ""
+    }
+    
+    result = evaluator.execute(test_data)
+    assert result == test_data
+
+def test_f1_score_calculation():
+    if not EVALUATE_AVAILABLE:
+        pytest.skip("Evaluate module not available")
+
+    """测试F1分数计算的正确性"""
+    evaluator = F1Evaluate({})
+    
+    # 完全匹配
+    score = evaluator._f1_score("hello world", "hello world")
+    assert score == 1.0
+    
+    # 完全不匹配
+    score = evaluator._f1_score("hello world", "foo bar")
+    assert score == 0.0
+    
+    # 部分匹配
+    score = evaluator._f1_score("hello world", "hello")
+    assert 0 < score < 1
+
+def test_recall_calculation():
+    if not EVALUATE_AVAILABLE:
+        pytest.skip("Evaluate module not available")
+
+    """测试RecallEvaluate类"""
+    from sage.libs.rag.evaluate import RecallEvaluate
+    
+    evaluator = RecallEvaluate({})
+    test_data = {
+        "references": ["The cat sits on the mat."],
+        "generated": "A cat is sitting on a mat."
+    }
+    
+    result = evaluator.execute(test_data)
+    assert result == test_data
+    
+    # 测试内部方法
+    score = evaluator._recall("hello world", "hello")
+    assert score == 1.0  # 所有参考词汇都在预测中
+
+def test_accuracy_evaluate():
+    if not EVALUATE_AVAILABLE:
+        pytest.skip("Evaluate module not available")
+
+    """测试AccuracyEvaluate类"""
+    from sage.libs.rag.evaluate import AccuracyEvaluate
+    
+    evaluator = AccuracyEvaluate({})
+    
+    # 完全匹配
+    test_data = {
+        "references": ["The cat sits on the mat."],
+        "generated": "The cat sits on the mat."
+    }
+    result = evaluator.execute(test_data)
+    assert result == test_data
+    
+    # 不匹配
+    test_data = {
+        "references": ["The cat sits on the mat."],
+        "generated": "A dog runs in the park."
+    }
+    result = evaluator.execute(test_data)
+    assert result == test_data

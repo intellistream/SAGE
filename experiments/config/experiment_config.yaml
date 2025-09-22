@@ -1,0 +1,35 @@
+pipeline:
+  name: "experiment-pipeline"
+  description: "Experimental pipeline for batch processing and result generation"
+  version: "1.0.0"
+
+source:
+  # data_path: "/home/zsl/workspace/SAGE/eval_data/popqa_longtail.jsonl"  # 测试数据文件路径
+  data_path: "/path/to/your_dataset.jsonl"  # 测试数据文件路径
+  # batch_size: 10  # 批次大小，控制一次性发送多少个问题，默认为整个数据集大小
+  max_samples: 1000  # 最大样本数，null表示使用全部数据
+
+generator:
+  model_name: "mistralai/Mistral-7B-Instruct-v0.1"
+  use_context: true  # 是否加上检索上下文
+  top_k: 5  # 使用的检索文档数量
+  method: "vllm"  # 生成方法：vllm 或 openai
+  
+  # 如果使用VLLM
+  vllm:
+    gpu_memory_utilization: 0.8
+    temperature: 0
+    max_tokens: 100
+
+post_processor:
+  extract_prediction: true  # 是否提取预测答案
+
+sink:
+  output_path: "./experiment/results/experiment_results.json"  # 输出文件路径
+  save_mode: "incremental"  # 保存模式：incremental（增量保存）或 final（最终保存）"
+  
+  # # 这些配置用于结果文件的元数据
+  # model_name: "meta-llama/Llama-2-7b-chat-hf"
+  # use_context: true
+  # top_k: 3
+  # batch_size: 10

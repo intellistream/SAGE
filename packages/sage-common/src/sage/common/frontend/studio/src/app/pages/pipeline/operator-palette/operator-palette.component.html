@@ -1,0 +1,16 @@
+<div class="palette-container">
+    <h3>Operators</h3>
+    <div cdkDropList 
+         id="operatorsList"
+         [cdkDropListData]="operators" 
+         [cdkDropListConnectedTo]="['pipelineCanvasList']">
+      <div
+        class="operator-item"
+        *ngFor="let operator of operators"
+        cdkDrag
+        [cdkDragData]="operator"
+        [cdkDragDisabled]="false">
+        {{ operator.name }}
+      </div>
+    </div>
+</div>

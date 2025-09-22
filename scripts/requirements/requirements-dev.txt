@@ -1,0 +1,26 @@
+# SAGE开发环境安装 - 包含开发工具和前端功能
+# 这会安装SAGE的所有核心组件以及开发工具
+
+# 核心组件（开发模式安装）
+-r requirements.txt
+
+# 增强的common包（包含开发工具和前端功能）
+-e packages/sage-common[dev,frontend]
+
+# 安装后可用的主要命令：
+# Core Commands:
+#   sage: 主CLI工具
+#   sage-cli: CLI工具别名
+#   sage-core: 核心功能CLI
+# 
+# Service Management:
+#   sage-jobmanager: JobManager管理工具
+#   sage-server: Web前端服务器
+#   sage-dev: 开发工具包
+#
+# Application Tools:
+#   sage-examples: 应用示例管理
+#   sage-kernel: 内核管理工具
+#   sage-install: 安装验证工具
+
+# 注意：ipython和jupyter在conda环境中已预装，这里不重复安装
