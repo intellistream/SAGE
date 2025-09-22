@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """
-import logging
 Real SAGE MemoryService pipeline demo (no mocks)
 
 This example builds a SAGE pipeline that uses the real KV, VDB (FAISS), and Graph services,
@@ -130,7 +129,7 @@ class StoreMemories(BaseFunction):
 
 class PrintStoreResult(BaseFunction):
     def execute(self, data: Dict[str, Any]):
-        logging.info(
+        print(
             f"🗄️ Stored {len(data.get('stored_ids', []))} memories for session {data['session_id']} (topic={data.get('topic')})"
         )
         return data
@@ -162,31 +161,31 @@ class SearchMemories(BaseFunction):
 
 class PrintSearchResult(BaseFunction):
     def execute(self, data: Dict[str, Any]):
-        logging.info(f"\n🔍 查询: {data['query']}")
+        print(f"\n🔍 查询: {data['query']}")
         for i, r in enumerate(data.get("results", []), 1):
-            logging.info(
+            print(
                 f"  {i}. [{r['type']}] {r['preview']}... (相似度: {r['score']:.4f})"
             )
         return data
 
 
 def run_memory_service_pipeline():
-    logging.info("🚀 SAGE MemoryService Pipeline Demo")
-    logging.info("=" * 60)
+    print("🚀 SAGE MemoryService Pipeline Demo")
+    print("=" * 60)
 
     # Skip in test mode (CI)
     if os.getenv("SAGE_EXAMPLES_MODE") == "test":
-        logging.info("🧪 测试模式：跳过 MemoryService 示例（需要FAISS依赖）")
+        print("🧪 测试模式：跳过 MemoryService 示例（需要FAISS依赖）")
         return
 
     # Verify FAISS availability early to avoid runtime failure inside service
     try:
         import faiss  # noqa: F401
     except Exception:
-        logging.info("❌ FAISS not installed. Please run: pip install faiss-cpu")
+        print("❌ FAISS not installed. Please run: pip install faiss-cpu")
         return
 
-    logging.info("📋 初始化SAGE环境和服务注册...")
+    print("📋 初始化SAGE环境和服务注册...")
     env = LocalEnvironment("memory_service_pipeline")
 
     # Register services (KV, VDB, Graph, Memory)
@@ -235,9 +234,9 @@ def run_memory_service_pipeline():
     )
 
     # Submit and wait for completion
-    logging.info("\n▶️  提交管道...")
+    print("\n▶️  提交管道...")
     env.submit(autostop=True)
-    logging.info("✅ 管道执行完成")
+    print("✅ 管道执行完成")
 
 
 if __name__ == "__main__":
@@ -245,8 +244,8 @@ if __name__ == "__main__":
     try:
         run_memory_service_pipeline()
     except KeyboardInterrupt:
-        logging.info("\n👋 已中断")
+        print("\n👋 已中断")
     except Exception as e:
-        logging.info(f"\n❌ 运行出错: {e}")
+        print(f"\n❌ 运行出错: {e}")
         import traceback
         traceback.print_exc()

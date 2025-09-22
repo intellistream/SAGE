@@ -1,48 +1,11 @@
-import logging
 import time
 import numpy as np
 
-# Try direct imports; if running from repo without installation, add local package paths
-try:
-    try:
-        from sage.common.utils.logging.custom_logger import CustomLogger
-        from sage.core.api.local_environment import LocalEnvironment
-        from sage.middleware.components.sage_flow.micro_service.sage_flow_service import (
-            SageFlowService,
-        )
-    except ImportError:
-        # Extension or dependency missing; do not soft-skip — propagate for visibility
-        raise
-except ModuleNotFoundError:
-    import os
-    import sys
-    from pathlib import Path
-
-    here = Path(__file__).resolve()
-    repo_root = None
-    for p in here.parents:
-        if (p / "packages").exists():
-            repo_root = p
-            break
-    if repo_root is None:
-        repo_root = here.parents[3]
-
-    src_paths = [
-        repo_root / "packages" / "sage" / "src",
-        repo_root / "packages" / "sage-common" / "src",
-        repo_root / "packages" / "sage-kernel" / "src",
-        repo_root / "packages" / "sage-middleware" / "src",
-        repo_root / "packages" / "sage-libs" / "src",
-        repo_root / "packages" / "sage-tools" / "src",
-    ]
-    for p in src_paths:
-        sys.path.insert(0, str(p))
-
-    from sage.common.utils.logging.custom_logger import CustomLogger
-    from sage.core.api.local_environment import LocalEnvironment
-    from sage.middleware.components.sage_flow.micro_service.sage_flow_service import (
-        SageFlowService,
-    )
+from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.core.api.local_environment import LocalEnvironment
+from sage.middleware.components.sage_flow.micro_service.sage_flow_service import (
+    SageFlowService,
+)
 
 
 def main():
@@ -68,7 +31,7 @@ def main():
     # 运行一次，将队列中的数据消费（内部会执行 env.execute()）
     svc.run()
 
-    logging.info("Service demo done")
+    print("Service demo done")
 
 
 if __name__ == "__main__":

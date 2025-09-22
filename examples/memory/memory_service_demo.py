@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 """
-import logging
 MemoryService 使用示例
 展示如何在SAGE中设置和使用MemoryService进行高级记忆管理
 
 MemoryService 是 SAGE middleware 中的高级编排服务，
 它协调 KV、VDB 和 Graph 微服务，提供统一的记忆管理接口。
-
-# @test:allow-demo  该示例为安全、快速的 demo，允许在测试中运行
 """
 
 import os
@@ -189,39 +186,39 @@ class ResultPrinter(SinkFunction):
 
     def execute(self, data: Dict[str, Any]):
         """打印处理结果"""
-        logging.info("\n" + "="*60)
-        logging.info("🧠 MemoryService 处理结果")
-        logging.info("="*60)
+        print("\n" + "="*60)
+        print("🧠 MemoryService 处理结果")
+        print("="*60)
 
         if "error" in data:
-            logging.info(f"❌ 错误: {data['error']}")
+            print(f"❌ 错误: {data['error']}")
             return
 
         if "processed" in data:
             # 存储结果
-            logging.info("✅ 记忆存储成功")
-            logging.info(f"   会话ID: {data['session_id']}")
-            logging.info(f"   用户记忆ID: {data['user_memory_id']}")
-            logging.info(f"   AI记忆ID: {data['ai_memory_id']}")
-            logging.info(f"   主题: {data['topic']}")
+            print("✅ 记忆存储成功")
+            print(f"   会话ID: {data['session_id']}")
+            print(f"   用户记忆ID: {data['user_memory_id']}")
+            print(f"   AI记忆ID: {data['ai_memory_id']}")
+            print(f"   主题: {data['topic']}")
 
         elif "query" in data:
             # 检索结果
-            logging.info(f"🔍 查询: {data['query']}")
-            logging.info(f"   会话ID: {data['session_id']}")
+            print(f"🔍 查询: {data['query']}")
+            print(f"   会话ID: {data['session_id']}")
 
-            logging.info(f"\n📚 相关记忆 ({len(data['relevant_memories'])} 条):")
+            print(f"\n📚 相关记忆 ({len(data['relevant_memories'])} 条):")
             for i, mem in enumerate(data['relevant_memories'], 1):
-                logging.info(f"   {i}. [{mem['type']}] {mem['text'][:60]}...")
+                print(f"   {i}. [{mem['type']}] {mem['text'][:60]}...")
                 if mem['meta']:
-                    logging.info(f"      元数据: {mem['meta']}")
+                    print(f"      元数据: {mem['meta']}")
 
-            logging.info(f"\n� 会话统计:")
-            logging.info(f"   总记忆数: {data.get('session_memories_count', 0)}")
+            print(f"\n� 会话统计:")
+            print(f"   总记忆数: {data.get('session_memories_count', 0)}")
 
-            logging.info(f"\n📝 生成的上下文:")
+            print(f"\n📝 生成的上下文:")
             context = data.get('context', '')
-            logging.info(f"   {context[:200]}{'...' if len(context) > 200 else ''}")
+            print(f"   {context[:200]}{'...' if len(context) > 200 else ''}")
 
 
 def create_sample_conversations() -> List[Dict[str, Any]]:
@@ -237,7 +234,7 @@ def create_sample_conversations() -> List[Dict[str, Any]]:
                 config = yaml.safe_load(f)
             return config["demo_data"]["conversations"]
     except Exception as e:
-        logging.info(f"⚠️  无法加载配置文件: {e}，使用内置数据")
+        print(f"⚠️  无法加载配置文件: {e}，使用内置数据")
 
     # 默认的内置对话数据
     return [
@@ -383,112 +380,112 @@ class MockMemoryService:
 
 def demonstrate_api_usage():
     """演示MemoryService的API使用方式（不依赖实际服务）"""
-    logging.info("\n📖 MemoryService API 使用演示")
-    logging.info("-"*50)
+    print("\n📖 MemoryService API 使用演示")
+    print("-"*50)
 
-    logging.info("\n🔧 核心API方法:")
-    logging.info("   1. store_memory(content, vector, session_id, memory_type, metadata)")
-    logging.info("      - 存储记忆内容到记忆系统")
-    logging.info("      - 参数:")
-    logging.info("        * content: 记忆内容文本")
-    logging.info("        * vector: 内容的向量表示（用于语义搜索）")
-    logging.info("        * session_id: 会话标识符")
-    logging.info("        * memory_type: 记忆类型 ('conversation', 'knowledge', 'working')")
-    logging.info("        * metadata: 附加元数据字典")
+    print("\n🔧 核心API方法:")
+    print("   1. store_memory(content, vector, session_id, memory_type, metadata)")
+    print("      - 存储记忆内容到记忆系统")
+    print("      - 参数:")
+    print("        * content: 记忆内容文本")
+    print("        * vector: 内容的向量表示（用于语义搜索）")
+    print("        * session_id: 会话标识符")
+    print("        * memory_type: 记忆类型 ('conversation', 'knowledge', 'working')")
+    print("        * metadata: 附加元数据字典")
 
-    logging.info("\n   2. search_memories(query_vector, session_id, limit, memory_type)")
-    logging.info("      - 基于向量相似度搜索相关记忆")
-    logging.info("      - 参数:")
-    logging.info("        * query_vector: 查询的向量表示")
-    logging.info("        * session_id: 会话标识符（可选）")
-    logging.info("        * limit: 返回结果数量限制")
-    logging.info("        * memory_type: 记忆类型过滤器（可选）")
+    print("\n   2. search_memories(query_vector, session_id, limit, memory_type)")
+    print("      - 基于向量相似度搜索相关记忆")
+    print("      - 参数:")
+    print("        * query_vector: 查询的向量表示")
+    print("        * session_id: 会话标识符（可选）")
+    print("        * limit: 返回结果数量限制")
+    print("        * memory_type: 记忆类型过滤器（可选）")
 
-    logging.info("\n   3. get_session_memories(session_id, memory_type)")
-    logging.info("      - 获取指定会话的所有记忆")
-    logging.info("      - 参数:")
-    logging.info("        * session_id: 会话标识符")
-    logging.info("        * memory_type: 记忆类型过滤器（可选）")
+    print("\n   3. get_session_memories(session_id, memory_type)")
+    print("      - 获取指定会话的所有记忆")
+    print("      - 参数:")
+    print("        * session_id: 会话标识符")
+    print("        * memory_type: 记忆类型过滤器（可选）")
 
-    logging.info("\n   4. generate_context(query, session_id, max_tokens)")
-    logging.info("      - 生成相关上下文信息")
-    logging.info("      - 参数:")
-    logging.info("        * query: 查询文本")
-    logging.info("        * session_id: 会话标识符")
-    logging.info("        * max_tokens: 上下文最大长度")
+    print("\n   4. generate_context(query, session_id, max_tokens)")
+    print("      - 生成相关上下文信息")
+    print("      - 参数:")
+    print("        * query: 查询文本")
+    print("        * session_id: 会话标识符")
+    print("        * max_tokens: 上下文最大长度")
 
-    logging.info("\n   5. update_memory(memory_id, content, vector, metadata)")
-    logging.info("      - 更新现有记忆")
-    logging.info("      - 参数:")
-    logging.info("        * memory_id: 记忆ID")
-    logging.info("        * content: 新内容（可选）")
-    logging.info("        * vector: 新向量（可选）")
-    logging.info("        * metadata: 新元数据（可选）")
+    print("\n   5. update_memory(memory_id, content, vector, metadata)")
+    print("      - 更新现有记忆")
+    print("      - 参数:")
+    print("        * memory_id: 记忆ID")
+    print("        * content: 新内容（可选）")
+    print("        * vector: 新向量（可选）")
+    print("        * metadata: 新元数据（可选）")
 
-    logging.info("\n   6. delete_memory(memory_id)")
-    logging.info("      - 删除指定记忆")
-    logging.info("      - 参数:")
-    logging.info("        * memory_id: 要删除的记忆ID")
+    print("\n   6. delete_memory(memory_id)")
+    print("      - 删除指定记忆")
+    print("      - 参数:")
+    print("        * memory_id: 要删除的记忆ID")
 
-    logging.info("\n🔄 典型使用流程:")
-    logging.info("   1. 初始化 MemoryService 实例")
-    logging.info("   2. 为每个对话轮次调用 store_memory() 存储记忆")
-    logging.info("   3. 使用 search_memories() 检索相关历史信息")
-    logging.info("   4. 调用 generate_context() 获取上下文摘要")
-    logging.info("   5. 根据需要更新或删除记忆")
+    print("\n🔄 典型使用流程:")
+    print("   1. 初始化 MemoryService 实例")
+    print("   2. 为每个对话轮次调用 store_memory() 存储记忆")
+    print("   3. 使用 search_memories() 检索相关历史信息")
+    print("   4. 调用 generate_context() 获取上下文摘要")
+    print("   5. 根据需要更新或删除记忆")
 
-    logging.info("\n📊 记忆类型说明:")
-    logging.info("   • conversation: 对话历史记录")
-    logging.info("   • knowledge: 事实性知识和学习内容")
-    logging.info("   • working: 临时工作记忆（短期存储）")
+    print("\n📊 记忆类型说明:")
+    print("   • conversation: 对话历史记录")
+    print("   • knowledge: 事实性知识和学习内容")
+    print("   • working: 临时工作记忆（短期存储）")
 
-    logging.info("\n⚙️ 配置参数:")
-    logging.info("   • kv_service_name: KV存储服务名称")
-    logging.info("   • vdb_service_name: 向量数据库服务名称")
-    logging.info("   • graph_service_name: 图数据库服务名称")
-    logging.info("   • default_vector_dimension: 默认向量维度")
-    logging.info("   • max_search_results: 最大搜索结果数")
-    logging.info("   • enable_caching: 是否启用缓存")
-    logging.info("   • enable_knowledge_graph: 是否启用知识图谱")
+    print("\n⚙️ 配置参数:")
+    print("   • kv_service_name: KV存储服务名称")
+    print("   • vdb_service_name: 向量数据库服务名称")
+    print("   • graph_service_name: 图数据库服务名称")
+    print("   • default_vector_dimension: 默认向量维度")
+    print("   • max_search_results: 最大搜索结果数")
+    print("   • enable_caching: 是否启用缓存")
+    print("   • enable_knowledge_graph: 是否启用知识图谱")
 
-    logging.info("\n💡 最佳实践:")
-    logging.info("   • 为每个用户会话使用唯一的 session_id")
-    logging.info("   • 选择合适的向量嵌入模型（推荐384维）")
-    logging.info("   • 为重要记忆添加丰富的元数据")
-    logging.info("   • 定期清理过期的工作记忆")
-    logging.info("   • 监控向量搜索的性能和准确性")
+    print("\n💡 最佳实践:")
+    print("   • 为每个用户会话使用唯一的 session_id")
+    print("   • 选择合适的向量嵌入模型（推荐384维）")
+    print("   • 为重要记忆添加丰富的元数据")
+    print("   • 定期清理过期的工作记忆")
+    print("   • 监控向量搜索的性能和准确性")
 
 
 def main():
     """主函数：演示MemoryService的使用"""
-    logging.info("🚀 MemoryService 使用示例")
-    logging.info("="*60)
+    print("🚀 MemoryService 使用示例")
+    print("="*60)
 
     # 检查是否在测试模式
     if os.getenv("SAGE_EXAMPLES_MODE") == "test":
-        # 在测试模式下也继续运行，本示例使用 Mock 服务不会依赖外部基础设施
-        logging.info("🧪 测试模式：仍然运行 MemoryService 示例（使用 Mock 服务）")
+        print("🧪 测试模式：跳过 MemoryService 示例（需要完整服务设置）")
+        return
 
-    logging.info("📋 初始化 MemoryService...")
+    print("📋 初始化 MemoryService...")
 
     # 强制使用MockMemoryService进行演示（避免依赖复杂的SAGE服务基础设施）
     try:
         memory_service = MockMemoryService()
-        logging.info("✅ MockMemoryService 初始化成功")
-        logging.info("   💡 使用模拟服务展示MemoryService功能")
+        print("✅ MockMemoryService 初始化成功")
+        print("   💡 使用模拟服务展示MemoryService功能")
     except Exception as e:
-        logging.info(f"❌ 模拟服务初始化失败: {e}")
+        print(f"❌ 模拟服务初始化失败: {e}")
         return
 
     # 创建示例对话数据
     conversations = create_sample_conversations()
 
     # 演示记忆存储
-    logging.info("\n🔄 阶段1: 存储对话记忆")
+    print("\n🔄 阶段1: 存储对话记忆")
     session_id = "demo_session_001"
 
     for i, conversation in enumerate(conversations, 1):
-        logging.info(f"\n   处理对话 {i}/{len(conversations)}...")
+        print(f"\n   处理对话 {i}/{len(conversations)}...")
 
         user_message = conversation["user_message"]
         ai_response = conversation["ai_response"]
@@ -507,7 +504,7 @@ def main():
                     "timestamp": time.time()
                 }
             )
-            logging.info(f"     ✅ 用户消息已存储: {user_memory_id}")
+            print(f"     ✅ 用户消息已存储: {user_memory_id}")
 
             # 存储AI回复
             ai_memory_id = memory_service.store_memory(
@@ -521,7 +518,7 @@ def main():
                     "timestamp": time.time()
                 }
             )
-            logging.info(f"     ✅ AI回复已存储: {ai_memory_id}")
+            print(f"     ✅ AI回复已存储: {ai_memory_id}")
 
             # 如果是编程相关，存储语义记忆
             if "python" in user_message.lower() or "编程" in user_message:
@@ -537,13 +534,13 @@ def main():
                         "timestamp": time.time()
                     }
                 )
-                logging.info(f"     ✅ 语义记忆已存储: {semantic_id}")
+                print(f"     ✅ 语义记忆已存储: {semantic_id}")
 
         except Exception as e:
-            logging.info(f"     ❌ 存储失败: {str(e)}")
+            print(f"     ❌ 存储失败: {str(e)}")
 
     # 演示记忆检索
-    logging.info("\n🔄 阶段2: 记忆检索演示")
+    print("\n🔄 阶段2: 记忆检索演示")
 
     # 创建检索查询
     retrieval_queries = [
@@ -553,7 +550,7 @@ def main():
     ]
 
     for query in retrieval_queries:
-        logging.info(f"\n   🔍 查询: {query}")
+        print(f"\n   🔍 查询: {query}")
 
         try:
             # 搜索相关记忆
@@ -564,33 +561,33 @@ def main():
                 limit=3
             )
 
-            logging.info(f"     📚 找到 {len(relevant_memories)} 条相关记忆:")
+            print(f"     📚 找到 {len(relevant_memories)} 条相关记忆:")
             for i, mem in enumerate(relevant_memories, 1):
                 content = mem.get("content", "")[:60]
                 mem_type = mem.get("memory_type", "unknown")
-                logging.info(f"       {i}. [{mem_type}] {content}...")
+                print(f"       {i}. [{mem_type}] {content}...")
 
             # 获取会话记忆统计
             session_memories = memory_service.get_session_memories(session_id)
-            logging.info(f"     📊 会话总记忆数: {len(session_memories)}")
+            print(f"     📊 会话总记忆数: {len(session_memories)}")
 
         except Exception as e:
-            logging.info(f"     ❌ 查询失败: {str(e)}")
+            print(f"     ❌ 查询失败: {str(e)}")
 
-    logging.info("\n" + "="*60)
-    logging.info("🎉 MemoryService 示例完成！")
-    logging.info("="*60)
-    logging.info("\n📚 关键特性展示:")
-    logging.info("   ✅ 记忆存储和检索")
-    logging.info("   ✅ 会话管理和隔离")
-    logging.info("   ✅ 语义搜索功能")
-    logging.info("   ✅ 工作记忆和上下文生成")
-    logging.info("   ✅ 知识图谱集成")
-    logging.info("\n💡 实际使用建议:")
-    logging.info("   1. 确保已启动 KV、VDB、Graph 底层服务")
-    logging.info("   2. 配置合适的向量维度和嵌入模型")
-    logging.info("   3. 根据应用场景调整记忆类型和元数据")
-    logging.info("   4. 监控记忆系统的性能和存储使用情况")
+    print("\n" + "="*60)
+    print("🎉 MemoryService 示例完成！")
+    print("="*60)
+    print("\n📚 关键特性展示:")
+    print("   ✅ 记忆存储和检索")
+    print("   ✅ 会话管理和隔离")
+    print("   ✅ 语义搜索功能")
+    print("   ✅ 工作记忆和上下文生成")
+    print("   ✅ 知识图谱集成")
+    print("\n💡 实际使用建议:")
+    print("   1. 确保已启动 KV、VDB、Graph 底层服务")
+    print("   2. 配置合适的向量维度和嵌入模型")
+    print("   3. 根据应用场景调整记忆类型和元数据")
+    print("   4. 监控记忆系统的性能和存储使用情况")
 
 
 if __name__ == "__main__":
@@ -600,8 +597,8 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        logging.info("\n👋 示例被用户中断")
+        print("\n👋 示例被用户中断")
     except Exception as e:
-        logging.info(f"\n❌ 示例执行出错: {e}")
+        print(f"\n❌ 示例执行出错: {e}")
         import traceback
         traceback.print_exc()

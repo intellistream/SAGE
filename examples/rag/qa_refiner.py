@@ -3,7 +3,7 @@
 import logging
 import json
 import os
-
+import time
 from sage.common.utils.config.loader import load_config
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.local_environment import LocalEnvironment
@@ -46,6 +46,7 @@ def pipeline_run(config):
 
     try:
         env.submit()
+        time.sleep(600)
     except KeyboardInterrupt:
         logging.info("停止运行")
     finally:
