@@ -3,23 +3,26 @@ name: Development CI
 on:
   push:
     branches: [ main-dev, refactor/* ]
+  pull_request:
+    branches: [ main-dev ]
   workflow_dispatch:
+
+# 公共环境变量（避免重复定义）
+env:
+  CI: true
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
+  ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
+  VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+  HF_ENDPOINT: https://hf-mirror.com
 
 jobs:
   test:
     name: Development Test
-    runs-on: self-hosted
-    timeout-minutes: 60
-    
-    env:
-      CI: true          
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      SILICONCLOUD_API_KEY: ${{ secrets.SILICONCLOUD_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
-      ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
-      VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
-      HF_ENDPOINT: https://hf-mirror.com
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # 减少超时时间，开发环境应该更快
     
     steps:
     - name: Checkout Repository
@@ -31,11 +34,21 @@ jobs:
       timeout-minutes: 8
       
     - name: Set up Python 3.11
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         cache: 'pip'
-      timeout-minutes: 5
+        cache-dependency-path: '**/requirements*.txt'
+      timeout-minutes: 10
+      continue-on-error: false
+      
+    - name: Verify Python Installation
+      run: |
+        python --version
+        pip --version
+        which python
+        which pip
+      timeout-minutes: 2
       
     - name: Setup Miniconda for quickstart.sh
       uses: conda-incubator/setup-miniconda@v3
@@ -44,6 +57,15 @@ jobs:
         use-mamba: true
         auto-activate-base: false
       timeout-minutes: 10
+        
+    - name: Clear pip cache and prepare environment
+      run: |
+        echo "🧹 Clearing pip cache..."
+        pip cache purge || echo "No cache to clear"
+        echo "📦 Upgrading pip..."
+        pip install --upgrade pip --no-cache-dir
+        echo "✅ Environment prepared"
+      timeout-minutes: 5
         
     - name: Install System Dependencies
       run: |
