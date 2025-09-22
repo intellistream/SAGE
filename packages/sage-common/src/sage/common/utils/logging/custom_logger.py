@@ -3,7 +3,6 @@ import logging
 import os
 import sys
 import threading
-from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
@@ -260,7 +259,9 @@ class CustomLogger:
             logging.info(f"{i}. Target: {config['target']}")
             if config["target"] != "console":
                 logging.info(f"   Resolved Path: {config['resolved_path']}")
-            logging.info(f"   Level: {config['level']} ({config['level_num']}) - {status}")
+            logging.info(
+                f"   Level: {config['level']} ({config['level_num']}) - {status}"
+            )
         logging.info(
             f"Logger minimum level: {logging.getLevelName(self.logger.level)} ({self.logger.level})"
         )

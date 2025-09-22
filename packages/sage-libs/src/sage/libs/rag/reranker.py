@@ -1,8 +1,8 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 import logging
 from typing import List, Tuple
 
 import torch
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.map_function import MapFunction
 from transformers import (AutoModelForCausalLM,
                           AutoModelForSequenceClassification, AutoTokenizer)

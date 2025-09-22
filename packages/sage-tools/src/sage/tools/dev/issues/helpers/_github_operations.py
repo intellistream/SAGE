@@ -298,7 +298,9 @@ class GitHubIssuesExecutor:
 
     def close_duplicate_issue(self, issue_number, main_issue_number, reason):
         """关闭重复issue"""
-        self.logger.info(f"  🔄 关闭重复issue #{issue_number} (合并到 #{main_issue_number})")
+        self.logger.info(
+            f"  🔄 关闭重复issue #{issue_number} (合并到 #{main_issue_number})"
+        )
 
         # 添加评论说明合并原因
         comment_url = (
@@ -383,7 +385,9 @@ class GitHubIssuesExecutor:
         if response.status_code == 200:
             added_labels = set(final_labels) - set(existing_labels)
             if added_labels:
-                self.logger.info(f"  ✅ 添加标签: #{issue_number} -> {', '.join(added_labels)}")
+                self.logger.info(
+                    f"  ✅ 添加标签: #{issue_number} -> {', '.join(added_labels)}"
+                )
             return True
         else:
             self.logger.info(f"  ❌ 标签更新失败: #{issue_number} - {response.text}")
@@ -409,7 +413,9 @@ class GitHubIssuesExecutor:
                 continue
 
             self.logger.info(f"\\n📋 处理重复组: 主issue #{main_issue}")
-            self.logger.info(f"   重复issues: {', '.join([f'#{num}' for num in duplicates])}")
+            self.logger.info(
+                f"   重复issues: {', '.join([f'#{num}' for num in duplicates])}"
+            )
             self.logger.info(f"   合并原因: {reason}")
 
             # 检查重复issues是否已关闭

@@ -39,7 +39,9 @@ def check_dependency_versions():
             ) >= pkg_resources.parse_version(min_version)
 
             if is_compatible:
-                logging.info(f"✅ {package} 版本兼容: {installed_version} >= {min_version}")
+                logging.info(
+                    f"✅ {package} 版本兼容: {installed_version} >= {min_version}"
+                )
             else:
                 logging.info(
                     f"❌ {package} 版本过低: {installed_version} < {min_version} (需要升级)"

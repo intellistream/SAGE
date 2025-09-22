@@ -1,4 +1,3 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 import json
 import os
 import re
@@ -11,6 +10,7 @@ import feedparser
 import fitz
 import requests
 from PIL import Image
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.map_function import MapFunction
 
 

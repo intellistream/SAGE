@@ -174,7 +174,9 @@ class EnterpriseValidator:
                 if "modules" in result:
                     for mod, mod_result in result["modules"].items():
                         if mod_result["status"] != "success":
-                            logging.info(f"   {mod}: {mod_result.get('error', '未知错误')}")
+                            logging.info(
+                                f"   {mod}: {mod_result.get('error', '未知错误')}"
+                            )
 
 
 def main():

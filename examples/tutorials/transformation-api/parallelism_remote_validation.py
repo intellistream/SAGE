@@ -163,10 +163,14 @@ def validate_remote_single_stream_parallelism():
     source_stream = env.from_collection(NumberListSource, numbers)
 
     logging.info(f"\n📊 Testing with {len(numbers)} input numbers")
-    logging.info(f"📊 Numbers: {numbers[:10]}...{numbers[-5:]} (showing first 10 and last 5)")
+    logging.info(
+        f"📊 Numbers: {numbers[:10]}...{numbers[-5:]} (showing first 10 and last 5)"
+    )
 
     # Test distributed parallelism
-    logging.info("\n--- Test 1: Distributed processing with direct parallelism parameters ---")
+    logging.info(
+        "\n--- Test 1: Distributed processing with direct parallelism parameters ---"
+    )
     result1 = (
         source_stream.map(
             DistributedProcessor, "DistMapper", parallelism=4
@@ -177,8 +181,9 @@ def validate_remote_single_stream_parallelism():
 
     logging.info("\n--- Test 2: Distributed processing with direct parallelism ---")
     result2 = (
-        source_stream
-        .map(DistributedProcessor, "SetDistMapper", parallelism=3)  # 3 parallel mappers
+        source_stream.map(
+            DistributedProcessor, "SetDistMapper", parallelism=3
+        )  # 3 parallel mappers
         .filter(DistributedFilter, parallelism=2)  # 2 parallel filters
         .sink(DistributedSink, parallelism=1)
     )  # 1 sink
@@ -311,7 +316,9 @@ def main():
         logging.info("=" * 70)
         logging.info("✅ Remote single stream parallelism: Tested with remote workers")
         logging.info("✅ Remote multi-stream parallelism: Tested distributed CoMap")
-        logging.info("✅ Remote distributed execution: Verified parallel worker distribution")
+        logging.info(
+            "✅ Remote distributed execution: Verified parallel worker distribution"
+        )
         logging.info("✅ RemoteEnvironment direct parallelism: WORKING CORRECTLY")
 
         logging.info(f"\n📊 Total remote environments created: 3")
@@ -320,9 +327,15 @@ def main():
         )
 
         logging.info(f"\n💡 Key remote validations:")
-        logging.info(f"   - Parallelism settings work in distributed remote environment")
-        logging.info(f"   - Direct parallelism specification distributes work across remote workers")
-        logging.info(f"   - Multi-stream operations (CoMap) support distributed parallelism")
+        logging.info(
+            f"   - Parallelism settings work in distributed remote environment"
+        )
+        logging.info(
+            f"   - Direct parallelism specification distributes work across remote workers"
+        )
+        logging.info(
+            f"   - Multi-stream operations (CoMap) support distributed parallelism"
+        )
         logging.info(
             f"   - RemoteEnvironment automatically handles worker assignment and coordination"
         )
@@ -332,7 +345,9 @@ def main():
         logging.info(
             f"💡 This might be due to RemoteEnvironment not being available or configured properly"
         )
-        logging.info(f"   Please ensure the JobManager service is running and accessible")
+        logging.info(
+            f"   Please ensure the JobManager service is running and accessible"
+        )
         logging.info(f"   And that your system supports remote distributed execution")
 
 

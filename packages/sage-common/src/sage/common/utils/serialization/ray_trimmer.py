@@ -69,7 +69,7 @@ class RayObjectTrimmer:
     """专门用于Ray远程调用的对象预处理器"""
 
     @staticmethod
-    def trim_for_remote_call(
+    def trim_for_remote_call(  # noqa: C901
         obj: Any,
         include: Optional[List[str]] = None,
         exclude: Optional[List[str]] = None,

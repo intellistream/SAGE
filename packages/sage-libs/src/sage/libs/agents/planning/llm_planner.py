@@ -5,8 +5,8 @@ import json
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
-from sage.core.api.function.map_function import MapFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.core.api.function.map_function import MapFunction
 
 PlanStep = Dict[
     str, Any
@@ -244,7 +244,9 @@ class LLMPlanner(MapFunction):
 
             # 调试信息：记录修复后的输出
             if steps is None:
-                self.logger.debug(f"🐛 Debug: 修复后仍无法解析 JSON。修复输出:\n{out2[:500]}...")
+                self.logger.debug(
+                    f"🐛 Debug: 修复后仍无法解析 JSON。修复输出:\n{out2[:500]}..."
+                )
 
         # 4) 兜底：若仍无法解析，直接把原文作为 reply
         if steps is None:

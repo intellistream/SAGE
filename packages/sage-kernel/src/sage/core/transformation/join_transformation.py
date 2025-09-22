@@ -1,9 +1,9 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 from __future__ import annotations
 
 from typing import (TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Type,
                     Union)
 
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.transformation.base_transformation import BaseTransformation
 
 if TYPE_CHECKING:

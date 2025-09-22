@@ -1,9 +1,9 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 import asyncio
 import os
 
 import cohere
 import numpy as np
+from sage.common.utils.logging.custom_logger import CustomLogger
 
 
 async def cohere_embed(

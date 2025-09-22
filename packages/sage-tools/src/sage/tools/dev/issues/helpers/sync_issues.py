@@ -152,7 +152,9 @@ class IssuesSyncer:
         self.logger.info(f"🔎 检查 {len(files)} 个JSON文件...")
 
         for i, f in enumerate(files):
-            self.logger.info(f"🔎 进度: {i+1}/{len(files)} - Issue #{f.stem.split('_')[1]}")
+            self.logger.info(
+                f"🔎 进度: {i+1}/{len(files)} - Issue #{f.stem.split('_')[1]}"
+            )
 
             try:
                 # 使用数据管理器读取issue
@@ -201,12 +203,16 @@ class IssuesSyncer:
             for change in project_changes[:10]:  # 显示前10个
                 self.logger.info(f"   - {change['description']}")
             if len(project_changes) > 10:
-                self.logger.info(f"   ... 以及其他 {len(project_changes) - 10} 个项目板更改")
+                self.logger.info(
+                    f"   ... 以及其他 {len(project_changes) - 10} 个项目板更改"
+                )
             self.logger.info(f"💡 使用 --apply-projects 参数来应用项目板更改")
 
             # 只处理基本属性更改
             if basic_changes:
-                self.logger.info(f"\n🚀 开始同步基本属性更改 ({len(basic_changes)} 个)...")
+                self.logger.info(
+                    f"\n🚀 开始同步基本属性更改 ({len(basic_changes)} 个)..."
+                )
                 return self._sync_basic_changes_only(basic_changes)
             else:
                 return True
@@ -308,7 +314,9 @@ class IssuesSyncer:
 
                             # 保存更新后的数据
                             self.data_manager.save_issue(issue_number, local_data)
-                            self.logger.info(f"  ✅ 已更新本地数据: Issue #{issue_number}")
+                            self.logger.info(
+                                f"  ✅ 已更新本地数据: Issue #{issue_number}"
+                            )
 
                 except Exception as e:
                     self.logger.info(f"  ⚠️ 更新本地数据失败 Issue #{issue_number}: {e}")
@@ -323,7 +331,9 @@ class IssuesSyncer:
             else:
                 self.logger.info(f"❌ {change['description']}")
 
-        self.logger.info(f"\n✨ 基本属性同步完成: {success_count}/{len(basic_changes)} 个更改成功")
+        self.logger.info(
+            f"\n✨ 基本属性同步完成: {success_count}/{len(basic_changes)} 个更改成功"
+        )
         return success_count == len(basic_changes)
 
     def _apply_basic_change(self, change):
@@ -401,7 +411,9 @@ class IssuesSyncer:
                 # 获取项目的project_id
                 project_id = self.project_manager.get_project_id(target_project_number)
                 if not project_id:
-                    self.logger.info(f"   ❌ 无法获取项目#{target_project_number}的project_id")
+                    self.logger.info(
+                        f"   ❌ 无法获取项目#{target_project_number}的project_id"
+                    )
                     continue
 
                 # 检查issue是否已在目标项目中
@@ -416,7 +428,9 @@ class IssuesSyncer:
                 )
                 if success:
                     success_count += 1
-                    self.logger.info(f"   ✅ 成功移动Issue #{issue_number}到项目{target_project}")
+                    self.logger.info(
+                        f"   ✅ 成功移动Issue #{issue_number}到项目{target_project}"
+                    )
                 else:
                     self.logger.info(f"   ❌ 移动Issue #{issue_number}失败")
 
@@ -589,7 +603,9 @@ class IssuesSyncer:
                 self.logger.info(f"      - {project}: {count} 个")
 
         self.logger.info(f"\n💡 运行 'sync_issues.py sync' 来同步所有更改")
-        self.logger.info(f"💡 运行 'sync_issues.py sync <issue_number>' 来同步单个issue")
+        self.logger.info(
+            f"💡 运行 'sync_issues.py sync <issue_number>' 来同步单个issue"
+        )
 
     def detect_basic_changes(self):
         """检测基本属性更改 (assignee, labels, title, body, milestone)"""
@@ -1210,7 +1226,9 @@ class IssuesSyncer:
             else:
                 self.logger.info("🔍 未找到任何计划文件")
         if not p or not p.exists():
-            self.logger.info("❌ 未找到 plan 文件，请先运行 helpers/fix_misplaced_issues.py")
+            self.logger.info(
+                "❌ 未找到 plan 文件，请先运行 helpers/fix_misplaced_issues.py"
+            )
             return []
         try:
             data = json.loads(p.read_text(encoding="utf-8"))
@@ -1293,13 +1311,17 @@ class IssuesSyncer:
 
             # If we added (or existed), we should remove the original org project item
             if dry_run:
-                self.logger.info(f"  [dry-run] 会执行 deleteProjectV2Item(itemId={item_id})")
+                self.logger.info(
+                    f"  [dry-run] 会执行 deleteProjectV2Item(itemId={item_id})"
+                )
                 entry["deleted"] = "dry-run"
             else:
                 # GitHub API now requires both projectId and itemId for deleteProjectV2Item
                 from_project_id = act.get("from_project_id")
                 if not from_project_id:
-                    self.logger.info(f"  ❌ 缺少 from_project_id，无法删除原项目中的 item")
+                    self.logger.info(
+                        f"  ❌ 缺少 from_project_id，无法删除原项目中的 item"
+                    )
                     entry["deleted"] = False
                     entry["delete_response"] = {"error": "missing from_project_id"}
                 else:

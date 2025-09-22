@@ -1,4 +1,3 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 import importlib
 import inspect
 import os
@@ -9,6 +8,7 @@ from collections.abc import Set as AbstractSet
 from typing import Any, Dict, List, Optional, Set, Type, Union
 
 import dill
+from sage.common.utils.logging.custom_logger import CustomLogger
 
 
 class SerializationError(Exception):

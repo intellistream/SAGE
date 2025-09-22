@@ -361,7 +361,9 @@ def main():
         for src_file in compliance["uncovered_source_files"][:5]:  # 只显示前5个
             logging.info(f"  - {src_file}")
         if len(compliance["uncovered_source_files"]) > 5:
-            logging.info(f"  ... 还有{len(compliance['uncovered_source_files']) - 5}个文件")
+            logging.info(
+                f"  ... 还有{len(compliance['uncovered_source_files']) - 5}个文件"
+            )
 
 
 if __name__ == "__main__":

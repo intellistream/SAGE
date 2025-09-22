@@ -451,7 +451,9 @@ class SudoManager:
                 self.logger.info("✅ Sudo password verified successfully")
                 return password
             else:
-                self.logger.info("❌ Invalid sudo password, will continue without sudo privileges")
+                self.logger.info(
+                    "❌ Invalid sudo password, will continue without sudo privileges"
+                )
                 self._cached_password = ""
                 return ""
         else:

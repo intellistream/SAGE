@@ -91,7 +91,9 @@ class ModelService:
             "features_used": list(features.keys()),
         }
 
-        logging.info(f"Model prediction {self.prediction_count}: score={result['score']}")
+        logging.info(
+            f"Model prediction {self.prediction_count}: score={result['score']}"
+        )
         return result
 
     def batch_predict(self, features_list: list):

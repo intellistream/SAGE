@@ -1,4 +1,3 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 import logging
 import os
 import random
@@ -7,6 +6,7 @@ from typing import Any, Dict
 
 import requests
 from bs4 import BeautifulSoup, Tag
+from sage.common.utils.logging.custom_logger import CustomLogger
 
 from .base.base_tool import BaseTool
 

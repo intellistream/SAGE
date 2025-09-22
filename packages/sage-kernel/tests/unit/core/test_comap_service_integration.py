@@ -313,7 +313,9 @@ class ServiceTestSink(SinkFunction):
         self.processed_count += 1
         self.results.append(data)
 
-        logging.info(f"[DEBUG] Total results in this sink instance: {len(self.results)}")
+        logging.info(
+            f"[DEBUG] Total results in this sink instance: {len(self.results)}"
+        )
 
         # 打印处理结果
         result_type = data.get("type", "unknown")
@@ -355,7 +357,9 @@ class ServiceTestSink(SinkFunction):
                 f"❌ Recommendation Error: User {user_id} | Stream {source_stream} | Error: {data.get('error')}"
             )
         else:
-            logging.info(f"📊 Result: {result_type} | Stream {source_stream} | User {user_id}")
+            logging.info(
+                f"📊 Result: {result_type} | Stream {source_stream} | User {user_id}"
+            )
 
         return data
 
@@ -460,7 +464,9 @@ def test_comap_service_integration():
 
     try:
         test_instance.test_comap_service_integration()
-        logging.info("\n🎉 All tests passed! CoMap service integration is working correctly.")
+        logging.info(
+            "\n🎉 All tests passed! CoMap service integration is working correctly."
+        )
         return True
     except Exception as e:
         logging.info(f"\n💥 Test failed: {e}")

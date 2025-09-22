@@ -1,6 +1,6 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 from typing import Any, List, Literal, Optional, Union
 
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.map_function import MapFunction
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer

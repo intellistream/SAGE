@@ -1,5 +1,5 @@
-import logging
 import json
+import logging
 import os
 
 from sage.middleware.components.neuromem.memory_manager import MemoryManager

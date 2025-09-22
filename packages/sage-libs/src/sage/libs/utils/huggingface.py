@@ -1,9 +1,8 @@
 import os
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
 from sage.common.utils.logging.custom_logger import CustomLogger
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # DEFAULT_MODELS = {
 #     "llama": "meta-llama/Llama-2-7b-chat-hf",
@@ -78,7 +77,9 @@ class HFClient:
             max_length=1024,  # 限制输入长度
         ).to(self.device)
 
-        self.logger.debug(f"Input token length: {input_ids['input_ids'].shape[1]}")  # 调试信息
+        self.logger.debug(
+            f"Input token length: {input_ids['input_ids'].shape[1]}"
+        )  # 调试信息
 
         # Generate output
         try:

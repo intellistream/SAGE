@@ -139,7 +139,9 @@ if __name__ == "__main__":
         os.getenv("SAGE_EXAMPLES_MODE") == "test"
         or os.getenv("SAGE_TEST_MODE") == "true"
     ):
-        logging.info("🧪 Test mode detected - qa_without_retrieval_local is interactive")
+        logging.info(
+            "🧪 Test mode detected - qa_without_retrieval_local is interactive"
+        )
         logging.info("✅ Test passed: Interactive example structure validated")
         sys.exit(0)
 

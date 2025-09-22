@@ -1,8 +1,8 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 import os
 
 import requests
 from bs4 import BeautifulSoup
+from sage.common.utils.logging.custom_logger import CustomLogger
 
 from .base.base_tool import BaseTool
 

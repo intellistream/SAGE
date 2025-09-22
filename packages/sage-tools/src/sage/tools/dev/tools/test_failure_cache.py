@@ -57,7 +57,9 @@ class TestFailureCache:
 
         except (OSError, PermissionError) as e:
             # If we still can't create the directory, use a temporary fallback
-            self.logger.info(f"Warning: Could not create cache directory {self.cache_dir}: {e}")
+            self.logger.info(
+                f"Warning: Could not create cache directory {self.cache_dir}: {e}"
+            )
             fallback_dir = self.project_root / "temp_sage_cache" / "test_logs"
             self.cache_dir = fallback_dir
             self.cache_file = self.cache_dir / "failed_tests.json"
@@ -214,7 +216,9 @@ class TestFailureCache:
             if resolved_path:
                 resolved_paths.append(resolved_path)
             else:
-                self.logger.info(f"Warning: Could not resolve cached test path: {test_path}")
+                self.logger.info(
+                    f"Warning: Could not resolve cached test path: {test_path}"
+                )
 
         return resolved_paths
 
@@ -278,9 +282,13 @@ class TestFailureCache:
                 f"   Last run: {last_summary['total']} tests, "
                 f"{last_summary['passed']} passed, {last_summary['failed']} failed"
             )
-            self.logger.info(f"   Execution time: {last_summary.get('execution_time', 0):.2f}s")
+            self.logger.info(
+                f"   Execution time: {last_summary.get('execution_time', 0):.2f}s"
+            )
 
         if info["has_failed_tests"]:
-            self.logger.info(f"\n   Use 'sage-dev test --failed' to re-run failed tests")
+            self.logger.info(
+                f"\n   Use 'sage-dev test --failed' to re-run failed tests"
+            )
         else:
             self.logger.info(f"\n   No failed tests cached")

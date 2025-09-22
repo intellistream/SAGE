@@ -1,9 +1,9 @@
 # file sage/core/sage.middleware.services.neuromem./storage_engine/text_storage.py
 # python -m sage.core.sage.middleware.services.neuromem..storage_engine.text_storage
 
-from sage.common.utils.logging.custom_logger import CustomLogger
 from typing import List, Optional
 
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import \
     BaseKVBackend
 from sage.middleware.components.neuromem.storage_engine.kv_backend.dict_kv_backend import \

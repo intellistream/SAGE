@@ -387,7 +387,9 @@ class IssuesManager:
         # 如果有GitHub Token，可以尝试获取更详细信息
         if self.config.github_token:
             self.logger.info("\n� GitHub连接正常，可以获取详细团队信息")
-            self.logger.info("💡 如需更新团队信息，请运行: sage dev issues team --update")
+            self.logger.info(
+                "💡 如需更新团队信息，请运行: sage dev issues team --update"
+            )
         else:
             self.logger.info("\n⚠️ 未配置GitHub Token，无法获取最新团队信息")
             self.logger.info("💡 配置Token后可获取更多详细信息")

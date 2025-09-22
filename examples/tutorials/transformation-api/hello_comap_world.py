@@ -1,6 +1,7 @@
 # 此例意在说明如何将两个流通过comap合为一个流
 
 import logging
+
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.batch_function import BatchFunction
 from sage.core.api.function.comap_function import BaseCoMapFunction

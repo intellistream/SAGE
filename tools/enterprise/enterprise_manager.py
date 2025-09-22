@@ -300,7 +300,9 @@ def main():
             f"Enterprise Enabled: {'✅ Yes' if status['license']['commercial_enabled'] else '❌ No'}"
         )
         logging.info(f"Available Features: {', '.join(status['license']['features'])}")
-        logging.info(f"Components Available: {status['summary']['components_available']}")
+        logging.info(
+            f"Components Available: {status['summary']['components_available']}"
+        )
 
     elif args.command == "install":
         result = installer.install_enterprise_features(args.license_key)
@@ -318,7 +320,9 @@ def main():
         logging.info("=" * 45)
         for component in validation["components"]:
             status_icon = "✅" if component["status"] == "available" else "❌"
-            logging.info(f"{status_icon} {component['component']}: {component['description']}")
+            logging.info(
+                f"{status_icon} {component['component']}: {component['description']}"
+            )
 
     elif args.command == "commands":
         cmd = installer.get_installation_command(args.mode)

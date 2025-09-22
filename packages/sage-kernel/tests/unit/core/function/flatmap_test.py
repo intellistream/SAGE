@@ -266,7 +266,9 @@ class TestFilterFunctionality:
             .sink(FilterDebugSink, parallelism=1)
         )
 
-        logging.info("📊 Pipeline: NumberSource -> filter(Positive) -> filter(Even) -> Sink")
+        logging.info(
+            "📊 Pipeline: NumberSource -> filter(Positive) -> filter(Even) -> Sink"
+        )
         logging.info("🎯 Expected: Only positive even numbers should pass through\n")
 
         try:
@@ -291,7 +293,9 @@ class TestFilterFunctionality:
             .sink(FilterDebugSink, parallelism=2)
         )
 
-        logging.info("📊 Pipeline: UserSource -> filter(Active) -> filter(Adult) -> Sink")
+        logging.info(
+            "📊 Pipeline: UserSource -> filter(Active) -> filter(Adult) -> Sink"
+        )
         logging.info("🎯 Expected: Only active adult users should pass through\n")
 
         try:
@@ -315,7 +319,9 @@ class TestFilterFunctionality:
             .sink(FilterDebugSink, parallelism=1)
         )
 
-        logging.info("📊 Pipeline: NumberSource -> filter(lambda: 0 < value < 5) -> Sink")
+        logging.info(
+            "📊 Pipeline: NumberSource -> filter(lambda: 0 < value < 5) -> Sink"
+        )
         logging.info("🎯 Expected: Only numbers between 1-4 should pass through\n")
 
         try:
@@ -462,7 +468,9 @@ class TestFilterFunctionality:
         # 验证：应该有正数通过（基于测试数据）
         assert len(all_filtered_data) > 0, "❌ No data passed positive filter"
 
-        logging.info("✅ Positive filter test passed: Only positive numbers passed through")
+        logging.info(
+            "✅ Positive filter test passed: Only positive numbers passed through"
+        )
 
     def _verify_chained_filter_results(self):
         """验证链式过滤结果"""
@@ -624,7 +632,9 @@ class TestFilterFunctionality:
         logging.info(f"   - Items that somehow passed: {len(all_results)}")
 
         # 这个测试主要验证系统不会因为Filter异常而崩溃
-        logging.info("✅ Error handling test passed: System handled filter errors gracefully")
+        logging.info(
+            "✅ Error handling test passed: System handled filter errors gracefully"
+        )
 
 
 if __name__ == "__main__":

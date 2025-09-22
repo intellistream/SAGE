@@ -382,7 +382,9 @@ class TestRayQueueActorCommunication:
             actor = PersistentQueueActor.remote(self.queue_dict, f"consumer_{i}")
             consumers.append(actor)
 
-        logging.info(f"创建了 {num_producers} 个生产者Actor和 {num_consumers} 个消费者Actor")
+        logging.info(
+            f"创建了 {num_producers} 个生产者Actor和 {num_consumers} 个消费者Actor"
+        )
 
         # 并发生产，添加超时保护
         try:
@@ -516,7 +518,9 @@ class TestRayQueueActorCommunication:
             actor = PersistentQueueActor.remote(self.queue_dict, f"stress_actor_{i}")
             stress_actors.append(actor)
 
-        logging.info(f"创建 {num_actors} 个Actor，每个执行 {operations_per_actor} 个操作")
+        logging.info(
+            f"创建 {num_actors} 个Actor，每个执行 {operations_per_actor} 个操作"
+        )
 
         # 并发执行操作，添加超时
         stress_futures = []

@@ -1,4 +1,3 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 import json
 import os
 import time
@@ -7,6 +6,7 @@ from typing import Any, List, Tuple
 
 import yaml
 from sage.common.config.output_paths import get_states_file
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.map_function import MapFunction
 from sage.libs.utils.huggingface import HFClient
 from sage.libs.utils.openaiclient import OpenAIClient
@@ -163,7 +163,9 @@ class HFGenerator(MapFunction):
 
         response = self.model.generate(prompt, **kwargs)
 
-        self.logger.info(f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m ")
+        self.logger.info(
+            f"\033[32m[ {self.__class__.__name__}]: Response: {response}\033[0m "
+        )
 
         # Return the generated response as a Data object
         self.logger.info(

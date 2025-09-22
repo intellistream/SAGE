@@ -1,9 +1,9 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 import logging
 import os
 from typing import Any, List, Tuple, Type, Union
 
 from sage.common.config.output_paths import get_output_file
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.sink_function import SinkFunction
 
 
@@ -20,9 +20,13 @@ class TerminalSink(SinkFunction):
             f"Executing {self.__class__.__name__} [Q] Question :{question}"
         )
         self.logger.info(f"Executing {self.__class__.__name__} [A] Answer :{answer}")
-        self.logger.info(f"[{self.__class__.__name__}]: \033[96m[Q] Question :{question}\033[0m")
+        self.logger.info(
+            f"[{self.__class__.__name__}]: \033[96m[Q] Question :{question}\033[0m"
+        )
 
-        self.logger.info(f"[{self.__class__.__name__}]: \033[92m[A] Answer :{answer}\033[0m")
+        self.logger.info(
+            f"[{self.__class__.__name__}]: \033[92m[A] Answer :{answer}\033[0m"
+        )
 
 
 class RetriveSink(SinkFunction):

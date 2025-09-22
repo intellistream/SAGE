@@ -118,7 +118,9 @@ class GitHubProjectManager:
             )
 
             if resp.status_code != 200:
-                self.logger.info(f"  ❌ 获取 {repo_name} Issues失败: HTTP {resp.status_code}")
+                self.logger.info(
+                    f"  ❌ 获取 {repo_name} Issues失败: HTTP {resp.status_code}"
+                )
                 return []
 
             data = resp.json()
@@ -229,7 +231,9 @@ class GitHubProjectManager:
                 )
 
                 if resp.status_code != 200:
-                    self.logger.info(f"  ❌ 获取 {repo_name} Issues失败: HTTP {resp.status_code}")
+                    self.logger.info(
+                        f"  ❌ 获取 {repo_name} Issues失败: HTTP {resp.status_code}"
+                    )
                     break
 
                 data = resp.json()

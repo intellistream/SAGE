@@ -328,7 +328,9 @@ class VDBMonitor:
 
     # 搜索示例
     query_vector = np.random.random(384).tolist()
-    self.logger.info(f"  search_vectors(query, top_k=3) -> 📖 Found 3 similar documents")
+    self.logger.info(
+        f"  search_vectors(query, top_k=3) -> 📖 Found 3 similar documents"
+    )
     self.logger.info(f"    - doc_2 (distance: 0.89)")
     self.logger.info(f"    - doc_1 (distance: 0.91)")
     self.logger.info(f"    - doc_4 (distance: 0.93)")

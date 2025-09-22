@@ -194,7 +194,9 @@ def setup_env_interactive():
 
     if not status["env_file_exists"]:
         if status["env_template_exists"]:
-            logging.info(f"\n📋 Copy {project_root}/.env.template to {project_root}/.env")
+            logging.info(
+                f"\n📋 Copy {project_root}/.env.template to {project_root}/.env"
+            )
             logging.info("   and fill in your API keys.")
         else:
             logging.info(f"\n📋 Create a .env file at {project_root}/.env")

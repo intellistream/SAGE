@@ -234,7 +234,9 @@ def test_data_loss_without_storage():
         )
 
         # 释放当前service实例
-        logging.info("\n🔄 Phase 3: Creating new service instance to simulate restart...")
+        logging.info(
+            "\n🔄 Phase 3: Creating new service instance to simulate restart..."
+        )
         del memory_service
 
         # 重新创建服务实例 (模拟重启后从磁盘加载)
@@ -316,7 +318,9 @@ if __name__ == "__main__":
         loss_test_success = test_data_loss_without_storage()
 
         if loss_test_success:
-            logging.info("\n🎉 All tests passed! Memory service system is working correctly.")
+            logging.info(
+                "\n🎉 All tests passed! Memory service system is working correctly."
+            )
             logging.info(
                 "✨ Storage functionality verified - data persistence works as expected."
             )

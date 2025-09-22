@@ -1,9 +1,9 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 from __future__ import annotations
 
 from typing import (TYPE_CHECKING, Any, Callable, Generic, List, Type, TypeVar,
                     Union, get_args, get_origin)
 
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.base_environment import BaseEnvironment
 from sage.core.api.function.base_function import BaseFunction
 from sage.core.api.function.comap_function import BaseCoMapFunction

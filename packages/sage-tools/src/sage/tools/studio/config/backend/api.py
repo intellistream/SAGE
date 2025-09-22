@@ -235,7 +235,9 @@ def _load_operator_class_source(module_path: str, class_name: str) -> str:
         return source_code
 
     except Exception as e:
-        self.logger.info(f"Error loading operator class {module_path}.{class_name}: {e}")
+        self.logger.info(
+            f"Error loading operator class {module_path}.{class_name}: {e}"
+        )
         return f"# Error loading source code for {class_name}\n# {str(e)}"
 
 
@@ -371,7 +373,9 @@ async def get_operators_list(page: int = 1, size: int = 10, search: str = ""):
 
         result = {"items": items, "total": total}
 
-        self.logger.info(f"Returning page {page} with {len(items)} operators (total: {total})")
+        self.logger.info(
+            f"Returning page {page} with {len(items)} operators (total: {total})"
+        )
         return result
 
     except Exception as e:

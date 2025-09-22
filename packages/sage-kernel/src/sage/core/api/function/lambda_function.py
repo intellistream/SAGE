@@ -1,8 +1,8 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 import inspect
 import logging
 from typing import Any, Callable, Hashable, List, Optional, Tuple, Type
 
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.core.api.function.base_function import BaseFunction
 from sage.core.api.function.filter_function import FilterFunction
 from sage.core.api.function.flatmap_function import FlatMapFunction

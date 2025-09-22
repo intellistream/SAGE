@@ -579,7 +579,9 @@ def main():
     )
 
     if not args.no_daemon:
-        logging.info(f"Starting SAGE JobManager with TCP daemon on {args.host}:{args.port}")
+        logging.info(
+            f"Starting SAGE JobManager with TCP daemon on {args.host}:{args.port}"
+        )
         logging.info("Press Ctrl+C to stop...")
         jobmanager.run_forever()
     else:

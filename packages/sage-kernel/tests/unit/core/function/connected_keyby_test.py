@@ -442,7 +442,9 @@ class TestConnectedStreamsKeyBy:
 
                 if result_type == "user_update":
                     user_updates.append(data)
-                    logging.info(f"   - User Update: {user_id} from stream {source_stream}")
+                    logging.info(
+                        f"   - User Update: {user_id} from stream {source_stream}"
+                    )
                 elif result_type == "enriched_event":
                     enriched_events.append(data)
                     event_name = data.get("event_info", {}).get("event", "unknown")

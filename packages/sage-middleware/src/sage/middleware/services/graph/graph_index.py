@@ -1,9 +1,9 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 import collections
 import uuid
 
 import matplotlib.pyplot as plt
 import networkx as nx
+from sage.common.utils.logging.custom_logger import CustomLogger
 
 # from sage_memory.search_engine.graph_index.base_graph_index import BaseGraphIndex
 
@@ -102,7 +102,9 @@ class KnowledgeGraphIndex:
                 self.logger.info(f"Edge ({head}, {relation}, {tail}) does not exist.")
                 return
         else:
-            self.logger.info(f"Relation ({head}, {relation}) does not exist in the graph.")
+            self.logger.info(
+                f"Relation ({head}, {relation}) does not exist in the graph."
+            )
 
     def clear_relation(self, head, relation):
         head_id = uuid.uuid5(uuid.NAMESPACE_DNS, head)

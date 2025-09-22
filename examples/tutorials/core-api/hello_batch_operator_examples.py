@@ -251,7 +251,9 @@ class BatchTaskExample:
             current, total = number_batch.get_progress()
             completion = number_batch.get_completion_rate()
 
-            logging.info(f"处理结果: {result}, 进度: {current}/{total} ({completion:.1%})")
+            logging.info(
+                f"处理结果: {result}, 进度: {current}/{total} ({completion:.1%})"
+            )
 
         logging.info("\n=== 示例完成 ===")
 

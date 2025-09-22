@@ -1,4 +1,3 @@
-from sage.common.utils.logging.custom_logger import CustomLogger
 import asyncio
 import concurrent.futures
 import logging
@@ -6,6 +5,7 @@ from typing import Any, Union
 
 import ray
 from ray.actor import ActorHandle
+from sage.common.utils.logging.custom_logger import CustomLogger
 
 
 # 目前的actor wrapper的远程方法调用都是同步阻塞调用。

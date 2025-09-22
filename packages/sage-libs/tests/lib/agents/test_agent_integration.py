@@ -389,7 +389,9 @@ class TestAgentWorkflowIntegration:
                     # This should call main() and then print success message
                     try:
                         agent.main()
-                        logging.info("\n✅ Test passed: Agent pipeline structure validated")
+                        logging.info(
+                            "\n✅ Test passed: Agent pipeline structure validated"
+                        )
                         test_passed = True
                     except Exception as e:
                         logging.info(f"❌ Test failed: {e}")

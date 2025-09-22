@@ -1,7 +1,7 @@
 # @test:skip           - 跳过测试
 
-import logging
 import json
+import logging
 import os
 
 from sage.common.utils.config.loader import load_config
@@ -79,7 +79,9 @@ if __name__ == "__main__":
     # 检查配置文件是否存在
     if not os.path.exists(config_path):
         logging.info(f"❌ Configuration file not found: {config_path}")
-        logging.info("Please ensure the config file exists before running this example.")
+        logging.info(
+            "Please ensure the config file exists before running this example."
+        )
         sys.exit(1)
 
     config = load_config(config_path)

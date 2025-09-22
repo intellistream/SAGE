@@ -117,7 +117,9 @@ def pytest_runtest_teardown(item, nextitem):
             status_icon = "🐌"  # 很慢
             time_desc = "很慢"
 
-        logging.info(f"{status_icon} {example_name} 完成 ({duration:.2f}s) - {time_desc}")
+        logging.info(
+            f"{status_icon} {example_name} 完成 ({duration:.2f}s) - {time_desc}"
+        )
 
 
 def _get_example_name(item):

@@ -83,7 +83,9 @@ class BuildCExtensions(build_ext):
 
     def build_sage_flow(self):
         """编译sage_flow C扩展"""
-        sage_flow_dir = Path(__file__).parent / "src/sage/middleware/components/sage_flow"
+        sage_flow_dir = (
+            Path(__file__).parent / "src/sage/middleware/components/sage_flow"
+        )
 
         if not sage_flow_dir.exists():
             self.logger.info("⚠️  sage_flow目录不存在，跳过编译")
@@ -120,7 +122,9 @@ class BuildCExtensions(build_ext):
 
                 # 运行cmake和make
                 subprocess.run(["cmake", ".."], cwd=build_dir, check=True)
-                subprocess.run(["make", "-j", str(os.cpu_count() or 4)], cwd=build_dir, check=True)
+                subprocess.run(
+                    ["make", "-j", str(os.cpu_count() or 4)], cwd=build_dir, check=True
+                )
 
                 self.logger.info("✅ sage_flow C扩展编译成功")
             except subprocess.CalledProcessError as e:
@@ -129,6 +133,7 @@ class BuildCExtensions(build_ext):
             except Exception as e:
                 self.logger.info(f"❌ 编译过程出错: {e}")
                 self.logger.info("⚠️  继续安装Python部分（C扩展将不可用）")
+
 
 class CustomInstall(install):
     """自定义安装命令"""
@@ -146,7 +151,9 @@ class CustomDevelop(develop):
 
     def run(self):
         # 在开发者模式下跳过C扩展编译
-        self.logger.info("🔧 开发者模式：跳过C扩展编译（使用 sage extensions install 手动安装）")
+        self.logger.info(
+            "🔧 开发者模式：跳过C扩展编译（使用 sage extensions install 手动安装）"
+        )
         # 直接运行开发安装，不调用build_ext
         super().run()
 

@@ -24,8 +24,8 @@ console = Console()
 @app.command()
 def version():
     """显示版本信息"""
-    console.self.logger.info("[bold blue]SAGE Framework v0.1.0[/bold blue]")
-    console.self.logger.info("统一内核 (Core + Runtime + Utils + CLI)")
+    console.print("[bold blue]SAGE Framework v0.1.0[/bold blue]")
+    console.print("统一内核 (Core + Runtime + Utils + CLI)")
 
 
 @app.command()
@@ -40,7 +40,7 @@ def info():
     table.add_row("Apps", "✓ Active")
     table.add_row("CLI", "✓ Active")
 
-    console.self.logger.info(table)
+    console.print(table)
 
 
 # 尝试动态加载子命令，但不因缺失而失败

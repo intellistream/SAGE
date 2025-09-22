@@ -1,11 +1,11 @@
 # file sage/core/sage.middleware.services.neuromem./storage_engine/vector_storage.py
 # python -m sage.core.sage.middleware.services.neuromem..storage_engine.vector_storage
 
-from sage.common.utils.logging.custom_logger import CustomLogger
 import json
 from typing import Any, List, Optional
 
 import numpy as np
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import \
     BaseKVBackend
 from sage.middleware.components.neuromem.storage_engine.kv_backend.dict_kv_backend import \

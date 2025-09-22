@@ -878,7 +878,9 @@ if __name__ == "__main__":
             corpus_results = collection_with_corpus.retrieve(
                 "第一条文本", "corpus_index", topk=3
             )
-            logging.info(f"从batch_insert_data的集合检索结果数量: {len(corpus_results)}")
+            logging.info(
+                f"从batch_insert_data的集合检索结果数量: {len(corpus_results)}"
+            )
 
             # 如果有结果，说明batch_insert_data功能正常
             if len(corpus_results) > 0:
@@ -897,7 +899,9 @@ if __name__ == "__main__":
                         )
                     )
                 else:
-                    logging.info(colored("⚠ batch_insert_data功能需要进一步调试", "yellow"))
+                    logging.info(
+                        colored("⚠ batch_insert_data功能需要进一步调试", "yellow")
+                    )
 
             logging.info(colored("\n=== 主要功能测试通过! ===", "green"))
             logging.info("✓ 1. 初始化功能正常")

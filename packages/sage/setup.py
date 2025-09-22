@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-import logging
 SAGE Meta Package Setup Script
 提供安装后的用户友好提示
 """
 
-import sys
+import logging
 
 from setuptools import setup
 from setuptools.command.develop import develop

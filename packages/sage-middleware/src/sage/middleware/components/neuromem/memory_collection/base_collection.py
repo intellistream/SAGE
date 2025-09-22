@@ -1,12 +1,12 @@
 # file: sage.middleware.services.neuromem./memory_collection/base_collection.py
 # python -m sage.core.sage.middleware.services.neuromem.memory_collection.base_collection
 
-from sage.common.utils.logging.custom_logger import CustomLogger
 import hashlib
 import os
 from typing import Any, Callable, Dict, List, Optional
 
 from dotenv import load_dotenv
+from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.middleware.components.neuromem.storage_engine.metadata_storage import \
     MetadataStorage
 from sage.middleware.components.neuromem.storage_engine.text_storage import \

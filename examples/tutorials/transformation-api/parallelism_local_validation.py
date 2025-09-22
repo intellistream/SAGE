@@ -74,7 +74,9 @@ class ParallelFilter(BaseFunction):
         # Only pass even numbers
         is_even = isinstance(data, int) and data % 2 == 0
         if is_even:
-            logging.info(f"✅ Filter[{instance_id}]: {data} PASSED (thread: {current_thread})")
+            logging.info(
+                f"✅ Filter[{instance_id}]: {data} PASSED (thread: {current_thread})"
+            )
         else:
             logging.info(
                 f"❌ Filter[{instance_id}]: {data} BLOCKED (thread: {current_thread})"
@@ -150,8 +152,9 @@ def validate_single_stream_parallelism():
 
     logging.info("\n--- Test 2: Using direct parallelism ---")
     result2 = (
-        source_stream
-        .map(ParallelProcessor, "SetMapper", parallelism=4)  # 4 parallel mappers
+        source_stream.map(
+            ParallelProcessor, "SetMapper", parallelism=4
+        )  # 4 parallel mappers
         .filter(ParallelFilter, parallelism=3)  # 3 parallel filters
         .sink(ValidationSink, parallelism=1)
     )  # 1 sink
@@ -248,7 +251,9 @@ def validate_execution_graph_nodes():
             )
 
         # Note: ExecutionGraph node creation happens during execution
-        logging.info(f"\n💡 Note: Actual node creation occurs during pipeline execution.")
+        logging.info(
+            f"\n💡 Note: Actual node creation occurs during pipeline execution."
+        )
         logging.info(
             f"    Each transformation with parallelism=N will create N parallel operator nodes."
         )
@@ -274,7 +279,9 @@ def main():
     logging.info("=" * 70)
     logging.info("✅ Single stream parallelism: Tested with various parallelism levels")
     logging.info("✅ Multi-stream parallelism: Tested CoMap operations")
-    logging.info("✅ Execution graph validation: Verified transformation parallelism settings")
+    logging.info(
+        "✅ Execution graph validation: Verified transformation parallelism settings"
+    )
     logging.info("✅ LocalEnvironment parallelism hints: WORKING CORRECTLY")
 
     logging.info(f"\n📊 Total environments created: 3")

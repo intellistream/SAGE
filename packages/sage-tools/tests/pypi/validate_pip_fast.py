@@ -262,7 +262,9 @@ class FastPipValidator:
             chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
             i = 0
             while install_thread.is_alive():
-                logging.info(f"\r  {chars[i % len(chars)]} 安装中...", end="", flush=True)
+                logging.info(
+                    f"\r  {chars[i % len(chars)]} 安装中...", end="", flush=True
+                )
                 time.sleep(0.1)
                 i += 1
 

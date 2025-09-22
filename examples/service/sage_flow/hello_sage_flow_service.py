@@ -1,5 +1,6 @@
 import logging
 import time
+
 import numpy as np
 
 # Try direct imports; if running from repo without installation, add local package paths
@@ -7,9 +8,8 @@ try:
     try:
         from sage.common.utils.logging.custom_logger import CustomLogger
         from sage.core.api.local_environment import LocalEnvironment
-        from sage.middleware.components.sage_flow.micro_service.sage_flow_service import (
-            SageFlowService,
-        )
+        from sage.middleware.components.sage_flow.micro_service.sage_flow_service import \
+            SageFlowService
     except ImportError:
         # Extension or dependency missing; do not soft-skip — propagate for visibility
         raise
@@ -40,9 +40,8 @@ except ModuleNotFoundError:
 
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.core.api.local_environment import LocalEnvironment
-    from sage.middleware.components.sage_flow.micro_service.sage_flow_service import (
-        SageFlowService,
-    )
+    from sage.middleware.components.sage_flow.micro_service.sage_flow_service import \
+        SageFlowService
 
 
 def main():
