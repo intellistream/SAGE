@@ -1,14 +1,13 @@
 import asyncio
-import sys
-import os
 import logging
-
-
+import os
+import sys
 
 if sys.version_info < (3, 9):
     from typing import AsyncIterator
 else:
     from collections.abc import AsyncIterator
+
 import pipmaster as pm  # Pipmaster for dynamic library install
 
 # Dependencies should be installed via requirements.txt
@@ -21,6 +20,7 @@ except ImportError:
         "openai package is required for OpenAI embedding functionality. "
         "Please install it via: pip install openai"
     )
+
 
 async def openai_embed(
     text: str,
@@ -57,17 +57,17 @@ async def openai_embed(
     )
 
     response = await openai_async_client.embeddings.create(
-        model=model,
-        input=text,
-        encoding_format="float"
+        model=model, input=text, encoding_format="float"
     )
 
     return response.data[0].embedding
 
 
 import os
+
 from openai import OpenAI  # 同步版 client
 from openai.types import CreateEmbeddingResponse
+
 
 def openai_embed_sync(
     text: str,
@@ -98,15 +98,11 @@ def openai_embed_sync(
     openai_sync_client = (
         OpenAI(default_headers=default_headers, api_key=api_key)
         if base_url is None
-        else OpenAI(
-            base_url=base_url, default_headers=default_headers, api_key=api_key
-        )
+        else OpenAI(base_url=base_url, default_headers=default_headers, api_key=api_key)
     )
 
     response: CreateEmbeddingResponse = openai_sync_client.embeddings.create(
-        model=model,
-        input=text,
-        encoding_format="float"
+        model=model, input=text, encoding_format="float"
     )
 
     return response.data[0].embedding

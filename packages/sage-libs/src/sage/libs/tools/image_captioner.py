@@ -1,11 +1,14 @@
 import os
 import time
-from .base.base_tool import BaseTool
+
 from ..utils.openaiclient import OpenAIClient
+from .base.base_tool import BaseTool
+
 
 class ImageCaptioner(BaseTool):
 
     require_llm_engine = True
+
     def __init__(self, model_name="meta-llama/Llama-2-13b-chat-hf"):
         super().__init__(
             tool_name="image_captioner",
@@ -16,15 +19,18 @@ class ImageCaptioner(BaseTool):
                 "prompt": "The prompt to generate the caption",
             },
             demo_commands=[
-                {"command": 'execution = tool.execute(image="path/to/image.png")',
-                    "description": "Generate a caption for an image using the default prompt and model."},
-                {"command": 'execution = tool.execute(image="path/to/image.png", prompt="A beautiful landscape")',
-                    "description": "Generate a caption for an image using a custom prompt and model."}
+                {
+                    "command": 'execution = tool.execute(image="path/to/image.png")',
+                    "description": "Generate a caption for an image using the default prompt and model.",
+                },
+                {
+                    "command": 'execution = tool.execute(image="path/to/image.png", prompt="A beautiful landscape")',
+                    "description": "Generate a caption for an image using a custom prompt and model.",
+                },
             ],
             user_metadata={
                 "limitation": "The Image_Captioner_Tool provides general image descriptions but has limitations: 1) May make mistakes in complex scenes, counting, attribute detection, and understanding object relationships. 2) Might not generate comprehensive captions, especially for images with multiple objects or abstract concepts. 3) Performance varies with image complexity. 4) Struggles with culturally specific or domain-specific content. 5) May overlook details or misinterpret object relationships. For precise descriptions, consider: using it with other tools for context/verification, as an initial step before refinement, or in multi-step processes for ambiguity resolution. Verify critical information with specialized tools or human expertise when necessary."
-            }
-
+            },
         )
         print(f"ImageCaptioner initialized with model: {model_name}")
         self.set_model_name(model_name)
@@ -32,12 +38,17 @@ class ImageCaptioner(BaseTool):
     def execute(self, image_path: str):
         try:
             if not self.model_name:
-                raise ValueError("Model name is not set. Please set the model name using set_model_name() before executing the tool.")
+                raise ValueError(
+                    "Model name is not set. Please set the model name using set_model_name() before executing the tool."
+                )
 
             # Construct the messages parameter for the OpenAIClient
             messages = [
                 {"role": "system", "content": "You are an image captioning assistant."},
-                {"role": "user", "content": f"Generate a caption for the image at path: {image_path}"}
+                {
+                    "role": "user",
+                    "content": f"Generate a caption for the image at path: {image_path}",
+                },
             ]
 
             client = OpenAIClient(model_name=self.model_name, seed=42)
@@ -60,6 +71,7 @@ class ImageCaptioner(BaseTool):
         except Exception as e:
             print(f"Error in ImageCaptioner: {e}")
             return None
+
 
 if __name__ == "__main__":
 
@@ -84,8 +96,8 @@ if __name__ == "__main__":
     try:
         execution = tool.execute(image_path=image_path)
         print("Generated Caption:")
-        print(json.dumps(execution, indent=4)) 
-    except Exception as e: 
+        print(json.dumps(execution, indent=4))
+    except Exception as e:
         print(f"Execution failed: {e}")
 
     print("Done!")

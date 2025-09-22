@@ -7,8 +7,8 @@
 import sys
 from pathlib import Path
 
-# 添加当前目录到sys.path以导入config
-sys.path.insert(0, str(Path(__file__).parent))
+# 添加父目录到sys.path以导入config
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
     from config import Config

@@ -1,0 +1,471 @@
+[
+  {
+    "id": "doc_1",
+    "text": "用户在重置密码时，系统会发送一封带有验证码的邮件到注册邮箱。",
+    "metadata": {
+      "priority": "low",
+      "tags": "faq",
+      "category": "business"
+    }
+  },
+  {
+    "id": "doc_2",
+    "text": "2023 年度财报显示，公司 AI 产品线的收入同比增长 45%。",
+    "metadata": {
+      "tags": "faq"
+    }
+  },
+  {
+    "id": "doc_3",
+    "text": "员工入职手册规定试用期为三个月，期间享有基本福利。",
+    "metadata": {
+      "tags": "log"
+    }
+  },
+  {
+    "id": "doc_4",
+    "text": "搜索引擎的倒排索引能够加速关键词检索。",
+    "metadata": {
+      "author": "Bob",
+      "category": "user-guide",
+      "priority": "medium",
+      "date": "2021-01-01"
+    }
+  },
+  {
+    "id": "doc_5",
+    "text": "在深度学习中，梯度消失是训练 RNN 模型的常见问题。",
+    "metadata": {
+      "category": "business",
+      "priority": "high",
+      "type": "doc",
+      "tags": "ml"
+    }
+  },
+  {
+    "id": "doc_6",
+    "text": "FAQ：如何查看订单详情？答：进入个人中心，点击订单即可查看。",
+    "metadata": {
+      "category": "nlp"
+    }
+  },
+  {
+    "id": "doc_7",
+    "text": "日志：2023-05-01 服务启动成功，端口号 9000。",
+    "metadata": {
+      "date": "2021-01-01",
+      "category": "nlp",
+      "type": "doc"
+    }
+  },
+  {
+    "id": "doc_8",
+    "text": "Python 的生成器可以通过 yield 实现惰性计算。",
+    "metadata": {
+      "type": "report",
+      "tags": "doc",
+      "priority": "medium",
+      "author": "Alice"
+    }
+  },
+  {
+    "id": "doc_9",
+    "text": "在 Transformer 中，多头注意力机制提升了模型表达能力。",
+    "metadata": {
+      "priority": "high"
+    }
+  },
+  {
+    "id": "doc_10",
+    "text": "公告：公司将于 2024-01-01 进行系统维护，预计停机 2 小时。",
+    "metadata": {
+      "author": "Admin"
+    }
+  },
+  {
+    "id": "doc_11",
+    "text": "用户反馈：页面加载速度较慢，希望优化性能。",
+    "metadata": {
+      "type": "report",
+      "date": "2021-01-01",
+      "tags": "faq",
+      "author": "Bob"
+    }
+  },
+  {
+    "id": "doc_12",
+    "text": "常见报错：KeyError 出现在访问不存在的字典键时。",
+    "metadata": {
+      "type": "faq",
+      "priority": "medium"
+    }
+  },
+  {
+    "id": "doc_13",
+    "text": "知识点：卷积神经网络常用于图像分类任务。",
+    "metadata": {
+      "priority": "low",
+      "date": "2022-06-15",
+      "type": "report",
+      "author": "Admin"
+    }
+  },
+  {
+    "id": "doc_14",
+    "text": "接口 /api/v1/register 请求耗时 320ms。",
+    "metadata": {
+      "priority": "medium",
+      "tags": "faq",
+      "type": "faq",
+      "author": "Alice"
+    }
+  },
+  {
+    "id": "doc_15",
+    "text": "业务规则：退款申请需在下单 7 天内提交。",
+    "metadata": {
+      "priority": "medium",
+      "author": "Alice"
+    }
+  },
+  {
+    "id": "doc_16",
+    "text": "员工福利包括年度体检与节日礼品。",
+    "metadata": {
+      "date": "2024-09-10",
+      "type": "doc"
+    }
+  },
+  {
+    "id": "doc_17",
+    "text": "日志：磁盘剩余空间不足 10%，请及时清理。",
+    "metadata": {
+      "priority": "medium",
+      "tags": "system",
+      "author": "Bob",
+      "date": "2024-09-10"
+    }
+  },
+  {
+    "id": "doc_18",
+    "text": "A/B 测试结果表明，版本 B 提升了 12% 的转化率。",
+    "metadata": {
+      "date": "2022-06-15",
+      "category": "ml",
+      "priority": "low",
+      "type": "report"
+    }
+  },
+  {
+    "id": "doc_19",
+    "text": "提示：修改密码时应包含大小写字母和特殊字符。",
+    "metadata": {
+      "tags": "ai",
+      "priority": "medium"
+    }
+  },
+  {
+    "id": "doc_20",
+    "text": "公司于 2022 年成立了新的自然语言处理研究部门。",
+    "metadata": {
+      "category": "tech",
+      "type": "article",
+      "priority": "low",
+      "author": "Bob"
+    }
+  },
+  {
+    "id": "doc_21",
+    "text": "知识点：BERT 模型基于双向 Transformer 编码器。",
+    "metadata": {
+      "tags": "faq",
+      "author": "Admin"
+    }
+  },
+  {
+    "id": "doc_22",
+    "text": "日志：检测到异常流量，触发防火墙策略。",
+    "metadata": {
+      "tags": "system",
+      "date": "2022-06-15",
+      "type": "report",
+      "author": "Bob"
+    }
+  },
+  {
+    "id": "doc_23",
+    "text": "常见问题：登录时提示账号不存在，可能是输入错误。",
+    "metadata": {
+      "priority": "high",
+      "category": "nlp",
+      "tags": "system"
+    }
+  },
+  {
+    "id": "doc_24",
+    "text": "公告：即日起启用新的客户工单系统。",
+    "metadata": {
+      "type": "note"
+    }
+  },
+  {
+    "id": "doc_25",
+    "text": "数据库事务可确保操作的原子性与一致性。",
+    "metadata": {
+      "author": "Charlie",
+      "priority": "low"
+    }
+  },
+  {
+    "id": "doc_26",
+    "text": "员工培训内容包括数据安全与合规要求。",
+    "metadata": {
+      "tags": "log",
+      "type": "note",
+      "category": "nlp"
+    }
+  },
+  {
+    "id": "doc_27",
+    "text": "FAQ：如何联系人工客服？答：拨打 400 热线或在线咨询。",
+    "metadata": {
+      "category": "ml",
+      "author": "Alice"
+    }
+  },
+  {
+    "id": "doc_28",
+    "text": "技术文档：安装依赖时推荐使用虚拟环境。",
+    "metadata": {
+      "type": "doc",
+      "tags": "nlp",
+      "author": "Alice"
+    }
+  },
+  {
+    "id": "doc_29",
+    "text": "知识点：强化学习通过奖励信号指导智能体学习策略。",
+    "metadata": {
+      "tags": "doc",
+      "author": "Admin"
+    }
+  },
+  {
+    "id": "doc_30",
+    "text": "日志：GPU 使用率达到 95%，可能导致任务排队。",
+    "metadata": {
+      "priority": "high",
+      "tags": "nlp",
+      "category": "policy"
+    }
+  },
+  {
+    "id": "doc_31",
+    "text": "用户反馈：搜索结果相关性不高，希望改进推荐算法。",
+    "metadata": {
+      "type": "report"
+    }
+  },
+  {
+    "id": "doc_32",
+    "text": "系统提示：您的会话已过期，请重新登录。",
+    "metadata": {
+      "category": "ml"
+    }
+  },
+  {
+    "id": "doc_33",
+    "text": "公告：新版 APP 支持指纹与人脸识别登录。",
+    "metadata": {
+      "author": "Alice"
+    }
+  },
+  {
+    "id": "doc_34",
+    "text": "知识点：K-Means 聚类是一种无监督学习方法。",
+    "metadata": {
+      "category": "nlp",
+      "priority": "medium",
+      "tags": "faq"
+    }
+  },
+  {
+    "id": "doc_35",
+    "text": "常见报错：ImportError 出现在缺少依赖包时。",
+    "metadata": {
+      "tags": "faq",
+      "type": "log"
+    }
+  },
+  {
+    "id": "doc_36",
+    "text": "FAQ：如何修改绑定手机号？答：进入安全设置进行更换。",
+    "metadata": {
+      "author": "Alice",
+      "date": "2024-09-10"
+    }
+  },
+  {
+    "id": "doc_37",
+    "text": "日志：Kafka 队列积压超过 10000 条消息。",
+    "metadata": {
+      "date": "2023-03-22",
+      "type": "log"
+    }
+  },
+  {
+    "id": "doc_38",
+    "text": "业务规则：优惠券不可与满减活动同时使用。",
+    "metadata": {
+      "date": "2022-06-15",
+      "category": "user-guide",
+      "type": "faq",
+      "tags": "nlp"
+    }
+  },
+  {
+    "id": "doc_39",
+    "text": "提示：请勿在公共场所登录公司系统。",
+    "metadata": {
+      "author": "Alice",
+      "category": "tech",
+      "type": "log",
+      "tags": "ai"
+    }
+  },
+  {
+    "id": "doc_40",
+    "text": "知识点：自注意力机制可以捕捉长距离依赖关系。",
+    "metadata": {
+      "type": "log",
+      "author": "Alice"
+    }
+  },
+  {
+    "id": "doc_41",
+    "text": "公告：公司将举办 2024 年技术创新大赛。",
+    "metadata": {
+      "type": "article",
+      "date": "2023-03-22"
+    }
+  },
+  {
+    "id": "doc_42",
+    "text": "用户反馈：APP 经常闪退，严重影响使用体验。",
+    "metadata": {
+      "date": "2022-06-15",
+      "tags": "rag",
+      "priority": "medium",
+      "author": "Admin"
+    }
+  },
+  {
+    "id": "doc_43",
+    "text": "技术文档：推荐使用 Docker 部署微服务。",
+    "metadata": {
+      "type": "doc"
+    }
+  },
+  {
+    "id": "doc_44",
+    "text": "日志：内存占用率超过 80%，建议优化应用。",
+    "metadata": {
+      "date": "2022-06-15",
+      "tags": "rag"
+    }
+  },
+  {
+    "id": "doc_45",
+    "text": "FAQ：如何删除账号？答：联系客服申请注销。",
+    "metadata": {
+      "author": "Admin"
+    }
+  },
+  {
+    "id": "doc_46",
+    "text": "常见问题：支付失败怎么办？答：检查余额或更换支付方式。",
+    "metadata": {
+      "tags": "log"
+    }
+  },
+  {
+    "id": "doc_47",
+    "text": "知识点：迁移学习能够减少模型训练所需的数据量。",
+    "metadata": {
+      "category": "nlp",
+      "tags": "rag"
+    }
+  },
+  {
+    "id": "doc_48",
+    "text": "系统提示：检测到新版本，请及时更新。",
+    "metadata": {
+      "tags": "log",
+      "date": "2024-09-10",
+      "priority": "low"
+    }
+  },
+  {
+    "id": "doc_49",
+    "text": "公告：春节期间快递配送将有所延迟。",
+    "metadata": {
+      "type": "article",
+      "category": "nlp",
+      "priority": "high",
+      "author": "Alice"
+    }
+  },
+  {
+    "id": "doc_50",
+    "text": "日志：Redis 连接超时，正在进行重试。",
+    "metadata": {
+      "tags": "policy",
+      "category": "nlp",
+      "priority": "medium",
+      "author": "Charlie"
+    }
+  },
+  {
+    "id": "doc_51",
+    "text": "用户反馈：界面设计简洁明了，体验良好。",
+    "metadata": {
+      "priority": "medium",
+      "author": "Charlie",
+      "tags": "doc",
+      "type": "article"
+    }
+  },
+  {
+    "id": "doc_52",
+    "text": "知识点：长短期记忆网络（LSTM）改进了 RNN 的长期依赖问题。",
+    "metadata": {
+      "date": "2022-06-15",
+      "category": "business",
+      "type": "article"
+    }
+  },
+  {
+    "id": "doc_53",
+    "text": "提示：为确保安全，定期更换密码。",
+    "metadata": {
+      "tags": "system"
+    }
+  },
+  {
+    "id": "doc_54",
+    "text": "常见报错：ValueError 通常出现在参数取值不合法时。",
+    "metadata": {
+      "type": "article"
+    }
+  },
+  {
+    "id": "doc_55",
+    "text": "技术文档：前端与后端通信采用 RESTful API。",
+    "metadata": {
+      "category": "policy",
+      "priority": "low",
+      "date": "2023-03-22",
+      "tags": "faq"
+    }
+  }
+]

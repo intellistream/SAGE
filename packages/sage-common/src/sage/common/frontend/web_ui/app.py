@@ -4,9 +4,9 @@ SAGE Frontend FastAPI Application
 This module provides the main FastAPI application for the SAGE Web UI.
 """
 
+import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
-import uvicorn
 
 
 def _load_version():
@@ -14,10 +14,11 @@ def _load_version():
     try:
         # 尝试从本地包的版本文件加载
         from sage.common._version import __version__
+
         return __version__
     except ImportError:
         # 如果本地版本文件不存在，返回默认值
-        return '0.1.3'
+        return "0.1.3"
 
 
 # 创建 FastAPI 应用
@@ -26,7 +27,7 @@ app = FastAPI(
     description="SAGE Framework Web 管理界面，提供 API 文档、系统监控和基础管理功能",
     version=_load_version(),
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 
@@ -76,9 +77,9 @@ async def health_check():
     """健康检查端点"""
     return {
         "status": "healthy",
-        "service": "SAGE Web UI", 
+        "service": "SAGE Web UI",
         "version": _load_version(),
-        "timestamp": "2025-09-01"
+        "timestamp": "2025-09-01",
     }
 
 
@@ -90,21 +91,22 @@ async def api_info():
         "version": _load_version(),
         "description": "SAGE Framework Web 管理界面 API",
         "author": "IntelliStream Team",
-        "repository": "https://github.com/intellistream/SAGE"
+        "repository": "https://github.com/intellistream/SAGE",
     }
 
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="SAGE Web UI Server")
     parser.add_argument("--host", default="127.0.0.1", help="Host to bind")
     parser.add_argument("--port", type=int, default=8080, help="Port to bind")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
     args = parser.parse_args()
-    
+
     uvicorn.run(
         "sage.common.frontend.web_ui.app:app",
         host=args.host,
         port=args.port,
-        reload=args.reload
+        reload=args.reload,
     )

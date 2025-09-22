@@ -1,7 +1,6 @@
 # refactor_wxh/MemoRAG/packages/sage-libs/tests/lib/agents/test_profile.py
 
 import pytest
-
 # 如果你已经配置好了 pythonpath（见第2节），下面这行导入能直接成功：
 from sage.libs.agents.profile.profile import BaseProfile
 
@@ -108,8 +107,14 @@ def test_prompt_is_reasonably_structured():
 
 
 def test_non_ascii_and_english_language_toggle():
-    p = BaseProfile(name="测试Agent", role="teacher", language="en", tone="detailed",
-                    goals=["讲清关键概念"], tasks=["举例说明"])
+    p = BaseProfile(
+        name="测试Agent",
+        role="teacher",
+        language="en",
+        tone="detailed",
+        goals=["讲清关键概念"],
+        tasks=["举例说明"],
+    )
     s = p.render_system_prompt()
     assert "Language: en" in s
     assert "Tone: detailed" in s

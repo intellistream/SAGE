@@ -1,10 +1,13 @@
 import collections
 import uuid
-import networkx as nx
-import matplotlib.pyplot as plt
-#from sage_memory.search_engine.graph_index.base_graph_index import BaseGraphIndex
 
-class KnowledgeGraphIndex():
+import matplotlib.pyplot as plt
+import networkx as nx
+
+# from sage_memory.search_engine.graph_index.base_graph_index import BaseGraphIndex
+
+
+class KnowledgeGraphIndex:
     """
     Simple knowledge graph storage.
     基于图的知识存储器。
@@ -13,7 +16,9 @@ class KnowledgeGraphIndex():
     def __init__(self):
         # 初始化成员变量
         self.qid2name = collections.defaultdict(str)  # QID ---> entity name
-        self.triples = collections.defaultdict(set)  # (head, rel) ---> set(tail, sentence)
+        self.triples = collections.defaultdict(
+            set
+        )  # (head, rel) ---> set(tail, sentence)
         self.qid_relations = collections.defaultdict(set)  # QID ---> set(rel)
 
     def construct_graph(self, batch):
@@ -31,9 +36,9 @@ class KnowledgeGraphIndex():
         """
         插入一条新的边 (head, relation, tail)
         """
-        head_id=uuid.uuid5(uuid.NAMESPACE_DNS, head)
-        tail_id=uuid.uuid5(uuid.NAMESPACE_DNS, tail)
-        
+        head_id = uuid.uuid5(uuid.NAMESPACE_DNS, head)
+        tail_id = uuid.uuid5(uuid.NAMESPACE_DNS, tail)
+
         # 添加 head 和 tail 的名称映射
         if head_id not in self.qid2name:
             self.qid2name[head_id] = head
@@ -48,7 +53,6 @@ class KnowledgeGraphIndex():
         if relation not in self.qid_relations[head_id]:
             self.qid_relations[head_id].add(relation)
 
-    
     def delete_edge(self, head, relation, tail):
         """
         删除知识图谱中的一条边 (head, relation, tail)
@@ -65,7 +69,7 @@ class KnowledgeGraphIndex():
             if not self.triples[(head_id, relation)]:
                 del self.triples[(head_id, relation)]
                 self.qid_relations[head_id].remove(relation)
-    
+
     def modify_edge(self, head, relation, tail, new_tail):
         """
         修改知识图谱中的一条边 (head, relation, tail) 为 (head, relation, new_tail)
@@ -79,7 +83,6 @@ class KnowledgeGraphIndex():
         if (head_id, relation) in self.triples:
             # 获取当前关系中的所有尾节点
             current_tails = self.triples[(head_id, relation)]
-            
 
             # 检查是否存在指定的尾节点
             tail_exists = False
@@ -100,7 +103,6 @@ class KnowledgeGraphIndex():
         else:
             print(f"Relation ({head}, {relation}) does not exist in the graph.")
 
-
     def clear_relation(self, head, relation):
         head_id = uuid.uuid5(uuid.NAMESPACE_DNS, head)
         if (head_id, relation) in self.triples:
@@ -116,7 +118,6 @@ class KnowledgeGraphIndex():
         for relation, tail in neighbors:
             print(f"Relation: {relation}, Tail: {self.qid2name[tail]}")
         return neighbors
-    
 
     def print_graph(self):
         """
@@ -125,8 +126,9 @@ class KnowledgeGraphIndex():
         print("Knowledge Graph:")
         for (head_id, relation), tails in self.triples.items():
             for tail_id, sentence in tails:
-                print(f"{self.qid2name[head_id]} --[{relation}]--> {self.qid2name[tail_id]}")
-
+                print(
+                    f"{self.qid2name[head_id]} --[{relation}]--> {self.qid2name[tail_id]}"
+                )
 
     def visualize_knowledge_graph(self):
         """
@@ -136,7 +138,10 @@ class KnowledgeGraphIndex():
         G = nx.DiGraph()
 
         # 添加节点和边
-        for (head_id, relation), tails in self.triples.items():  # 使用 self 访问成员变量
+        for (
+            head_id,
+            relation,
+        ), tails in self.triples.items():  # 使用 self 访问成员变量
             head_name = self.qid2name[head_id]
             for tail_id, sentence in tails:
                 tail_name = self.qid2name[tail_id]
@@ -147,15 +152,24 @@ class KnowledgeGraphIndex():
         plt.figure(figsize=(12, 8))
 
         # 绘制节点和边
-        nx.draw(G, pos, with_labels=True, node_size=3000, node_color="lightblue", font_size=10, font_weight="bold")
-        
+        nx.draw(
+            G,
+            pos,
+            with_labels=True,
+            node_size=3000,
+            node_color="lightblue",
+            font_size=10,
+            font_weight="bold",
+        )
+
         # 绘制边上的标签
-        edge_labels = nx.get_edge_attributes(G, 'label')
+        edge_labels = nx.get_edge_attributes(G, "label")
         nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
 
         # 显示图形
         plt.title("Knowledge Graph Visualization", fontsize=16)
         plt.savefig("knowledge_graph.png")  # 保存图形到文件
+
 
 if __name__ == "__main__":
     # 创建 KnowledgeGraphStorage 实例

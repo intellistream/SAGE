@@ -13,22 +13,18 @@ class SyncBatch(BatchFunction):
         
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.counter = 0
-        self.max_count = 5
+
         self.metronome = metronome
 
     def execute(self):
-        if self.counter >= self.max_count:
+        data = input("Please enter a word (or type 'exit' to quit): ")
+        if data.lower() == 'exit':
             return None
-        self.counter += 1
-        data = f"hello, No. {str(self.counter)} one by one world~"
-        print(f" ⚡ {data}")
+        
         return data
 
 class UpperMap(MapFunction):
     def execute(self, data):
-        print(f" 🔔 uppering word!!!")
-        time.sleep(1)  
         return data.upper()
 
 class SyncSink(SinkFunction):
@@ -40,7 +36,7 @@ class SyncSink(SinkFunction):
         
     def execute(self, data):
         print(f" ✅ {data}")
-        time.sleep(1)  
+        
 
 def main():   
     metronome.release_once()

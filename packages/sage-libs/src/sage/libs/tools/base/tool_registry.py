@@ -1,5 +1,7 @@
-from typing import Dict, Type, Optional
+from typing import Dict, Optional, Type
+
 from .base_tool import BaseTool
+
 
 class ToolRegistry:
     def __init__(self):

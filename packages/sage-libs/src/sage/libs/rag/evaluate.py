@@ -1,10 +1,9 @@
 from collections import Counter
-from transformers import AutoTokenizer, AutoModel
-from sklearn.metrics.pairwise import cosine_similarity
+
 from rouge import Rouge
-
 from sage.core.api.function.map_function import MapFunction
-
+from sklearn.metrics.pairwise import cosine_similarity
+from transformers import AutoModel, AutoTokenizer
 
 
 class F1Evaluate(MapFunction):
@@ -21,13 +20,13 @@ class F1Evaluate(MapFunction):
         if num_common == 0:
             return 0.0
         prec = num_common / sum(p.values())
-        rec  = num_common / sum(r.values())
+        rec = num_common / sum(r.values())
         return 2 * prec * rec / (prec + rec)
 
     def execute(self, data: dict):
-        golds = data["references"]        # 始终是列表
-        pred  = data.get("generated", "")
-        best  = max(self._f1_score(pred, g) for g in golds) if golds else 0.0
+        golds = data["references"]  # 始终是列表
+        pred = data.get("generated", "")
+        best = max(self._f1_score(pred, g) for g in golds) if golds else 0.0
         print(f"\033[93m[F1] : {best:.4f}\033[0m")
         return data
 
@@ -46,8 +45,8 @@ class RecallEvaluate(MapFunction):
 
     def execute(self, data: dict):
         golds = data["references"]
-        pred  = data.get("generated", "")
-        best  = max(self._recall(pred, g) for g in golds) if golds else 0.0
+        pred = data.get("generated", "")
+        best = max(self._recall(pred, g) for g in golds) if golds else 0.0
         print(f"\033[93m[Recall] : {best:.4f}\033[0m")
         return data
 
@@ -56,15 +55,15 @@ class BertRecallEvaluate(MapFunction):
     def __init__(self, config=None, **kwargs):
         super().__init__(**kwargs)
         self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-        self.model     = AutoModel.from_pretrained("bert-base-uncased")
+        self.model = AutoModel.from_pretrained("bert-base-uncased")
 
     def execute(self, data: dict):
         golds = data["references"]
-        pred  = data.get("generated", "")
+        pred = data.get("generated", "")
         scores = []
         for g in golds:
-            encs   = self.tokenizer([pred, g], return_tensors="pt", padding=True)
-            embs   = self.model(**encs).last_hidden_state.mean(dim=1).detach().numpy()
+            encs = self.tokenizer([pred, g], return_tensors="pt", padding=True)
+            embs = self.model(**encs).last_hidden_state.mean(dim=1).detach().numpy()
             scores.append(float(cosine_similarity([embs[0]], [embs[1]])[0][0]))
         best = max(scores) if scores else 0.0
         print(f"\033[93m[BertRecall] : {best:.4f}\033[0m")
@@ -78,9 +77,9 @@ class RougeLEvaluate(MapFunction):
 
     def execute(self, data: dict):
         golds = data["references"]
-        pred  = data.get("generated", "")
+        pred = data.get("generated", "")
         scores = [self.rouge.get_scores(pred, g)[0]["rouge-l"]["f"] for g in golds]
-        best   = max(scores) if scores else 0.0
+        best = max(scores) if scores else 0.0
         print(f"\033[93m[ROUGE-L] : {best:.4f}\033[0m")
         return data
 
@@ -88,17 +87,17 @@ class RougeLEvaluate(MapFunction):
 class BRSEvaluate(MapFunction):
     def execute(self, data: dict):
         golds = data["references"]
-        pred  = data.get("generated", "")
+        pred = data.get("generated", "")
         scores = [(len(set(pred) & set(g)) / len(set(g))) if g else 0.0 for g in golds]
-        best   = max(scores) if scores else 0.0
+        best = max(scores) if scores else 0.0
         print(f"\033[93m[BRS] : {best:.4f}\033[0m")
         return data
 
 
 class AccuracyEvaluate(MapFunction):
     def execute(self, data: dict):
-        golds   = data["references"]
-        pred    = data.get("generated", "")
+        golds = data["references"]
+        pred = data.get("generated", "")
         correct = any(pred.strip() == g.strip() for g in golds)
         print(f"\033[93m[Acc] : {float(correct):.4f}\033[0m")
         return data
@@ -121,7 +120,7 @@ class LatencyEvaluate(MapFunction):
 class ContextRecallEvaluate(MapFunction):
     def execute(self, data: dict):
         gold_ids = set(data["metadata"]["supporting_facts"]["sent_id"])
-        ret_ids  = set(data.get("retrieved_sent_ids", []))
+        ret_ids = set(data.get("retrieved_sent_ids", []))
         rec = float(len(gold_ids & ret_ids) / len(gold_ids)) if gold_ids else 0.0
         print(f"\033[93m[Context Recall] : {rec:.4f}\033[0m")
         return data

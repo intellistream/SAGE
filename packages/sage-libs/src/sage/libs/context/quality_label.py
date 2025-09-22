@@ -3,6 +3,7 @@ from enum import Enum
 
 class QualityLabel(Enum):
     """质量评估标签"""
+
     COMPLETE_EXCELLENT = "complete_excellent"
     COMPLETE_GOOD = "complete_good"
     PARTIAL_NEEDS_IMPROVEMENT = "partial_needs_improvement"

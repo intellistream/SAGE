@@ -1,34 +1,32 @@
-from jinja2 import Template
-
-from sage.core.api.function.map_function import MapFunction
-
-from sage.common.utils.logging.custom_logger import CustomLogger
-
+import json
 import os
 import time
-import json
 
-QA_prompt_template = '''Instruction:
+from jinja2 import Template
+from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.core.api.function.map_function import MapFunction
+
+QA_prompt_template = """Instruction:
 You are an intelligent assistant with access to a knowledge base. Answer the question below with reference to the provided context.
 Only give me the answer and do not output any other words.
 {%- if external_corpus %}
 Relevant corpus for the current question:
 {{ external_corpus }}
 {%- endif %}
-'''
+"""
 
-summarization_prompt_template = '''Instruction:
+summarization_prompt_template = """Instruction:
 You are an intelligent assistant. Summarize the content provided below in a concise and clear manner.
 Only provide the summary and do not include any additional information.
 {%- if external_corpus %}
 Content to summarize:
 {{ external_corpus }}
 {%- endif %}
-'''
+"""
 QA_prompt_template = Template(QA_prompt_template)
 summarization_prompt_template = Template(summarization_prompt_template)
 
-query_profiler_prompt_template = '''
+query_profiler_prompt_template = """
 For the given query = how Trump earn his first 1 million dollars?: Analyze the language and internal structure of the query and provide the following information:
 
 1. Does it need joint reasoning across multiple documents?
@@ -56,7 +54,7 @@ Your output must be:
   "summarization_length": integer (30-200),
   "n_info_items": integer (1-6)
 }
-'''
+"""
 query_profiler_prompt_template = Template(query_profiler_prompt_template)
 
 
@@ -81,21 +79,26 @@ class QAPromptor(MapFunction):
         """
         self.config = config  # Store the configuration for later use
         self.enable_profile = enable_profile
-        
+
         # 使用配置文件中的模板，如果没有则使用默认模板
-        if 'template' in config:
+        if "template" in config:
             from jinja2 import Template
-            self.prompt_template = Template(config['template'])
+
+            self.prompt_template = Template(config["template"])
         else:
             self.prompt_template = QA_prompt_template  # Load the QA prompt template
 
         # 只有启用profile时才设置数据存储路径
         if self.enable_profile:
-            if hasattr(self.ctx, 'env_base_dir') and self.ctx.env_base_dir:
-                self.data_base_path = os.path.join(self.ctx.env_base_dir, ".sage_states", "promptor_data")
+            if hasattr(self.ctx, "env_base_dir") and self.ctx.env_base_dir:
+                self.data_base_path = os.path.join(
+                    self.ctx.env_base_dir, ".sage_states", "promptor_data"
+                )
             else:
                 # 使用默认路径
-                self.data_base_path = os.path.join(os.getcwd(), ".sage_states", "promptor_data")
+                self.data_base_path = os.path.join(
+                    os.getcwd(), ".sage_states", "promptor_data"
+                )
 
             os.makedirs(self.data_base_path, exist_ok=True)
             self.data_records = []
@@ -106,10 +109,10 @@ class QAPromptor(MapFunction):
             return
 
         record = {
-            'timestamp': time.time(),
-            'query': query,
-            'external_corpus': external_corpus,
-            'prompt': prompt
+            "timestamp": time.time(),
+            "query": query,
+            "external_corpus": external_corpus,
+            "prompt": prompt,
         }
         self.data_records.append(record)
         self._persist_data_records()
@@ -124,7 +127,7 @@ class QAPromptor(MapFunction):
         path = os.path.join(self.data_base_path, filename)
 
         try:
-            with open(path, 'w', encoding='utf-8') as f:
+            with open(path, "w", encoding="utf-8") as f:
                 json.dump(self.data_records, f, ensure_ascii=False, indent=2)
             self.data_records = []
         except Exception as e:
@@ -146,14 +149,14 @@ class QAPromptor(MapFunction):
             # -------- 解析输入 --------
             raw = data
             original_data = data  # 保存原始数据以便返回
-            
+
             if isinstance(raw, dict):
                 # 字典格式输入 - 支持多种字段名
                 query = raw.get("query", raw.get("question", ""))
-                
+
                 # 处理不同的上下文字段名
                 external_corpus_list = []
-                
+
                 # 处理 results 字段（来自检索器）
                 if "results" in raw:
                     results = raw.get("results", [])
@@ -164,7 +167,7 @@ class QAPromptor(MapFunction):
                             external_corpus_list.append(result)
                         else:
                             external_corpus_list.append(str(result))
-                
+
                 # 处理 context 字段（来自测试）
                 elif "context" in raw:
                     context = raw.get("context", [])
@@ -172,7 +175,7 @@ class QAPromptor(MapFunction):
                         external_corpus_list.extend([str(c) for c in context])
                     else:
                         external_corpus_list.append(str(context))
-                
+
                 # 处理 external_corpus 字段
                 elif "external_corpus" in raw:
                     external_corpus = raw.get("external_corpus", "")
@@ -180,7 +183,7 @@ class QAPromptor(MapFunction):
                         external_corpus_list.extend([str(c) for c in external_corpus])
                     else:
                         external_corpus_list.append(str(external_corpus))
-                
+
                 # 处理 retrieved_docs 字段
                 elif "retrieved_docs" in raw:
                     retrieved_docs = raw.get("retrieved_docs", [])
@@ -191,9 +194,9 @@ class QAPromptor(MapFunction):
                             external_corpus_list.append(doc)
                         else:
                             external_corpus_list.append(str(doc))
-                
+
                 external_corpus = "\n".join(external_corpus_list)
-                
+
             elif isinstance(raw, tuple) and len(raw) == 2:
                 # 元组格式输入
                 query, external_corpus = raw
@@ -214,7 +217,9 @@ class QAPromptor(MapFunction):
             if external_corpus:
                 system_prompt = {
                     "role": "system",
-                    "content": self.prompt_template.render(external_corpus=external_corpus),
+                    "content": self.prompt_template.render(
+                        external_corpus=external_corpus
+                    ),
                 }
             else:
                 system_prompt = {
@@ -259,7 +264,7 @@ class QAPromptor(MapFunction):
 
     def __del__(self):
         """确保在对象销毁时保存所有未保存的记录"""
-        if hasattr(self, 'enable_profile') and self.enable_profile:
+        if hasattr(self, "enable_profile") and self.enable_profile:
             try:
                 self._persist_data_records()
             except:
@@ -285,7 +290,9 @@ class SummarizationPromptor(MapFunction):
         """
         super().__init__()
         self.config = config  # Store the configuration for later use
-        self.prompt_template = summarization_prompt_template  # Load the summarization prompt template
+        self.prompt_template = (
+            summarization_prompt_template  # Load the summarization prompt template
+        )
 
     def execute(self, data) -> list:
         """
@@ -309,25 +316,20 @@ class SummarizationPromptor(MapFunction):
         external_corpus = "".join(external_corpus)
 
         # Prepare the base data for the system prompt, which includes the external corpus
-        base_system_prompt_data = {
-            "external_corpus": external_corpus
-        }
+        base_system_prompt_data = {"external_corpus": external_corpus}
 
         # query = data
         # Create the system prompt using the template and the external corpus data
         system_prompt = {
             "role": "system",
-            "content": self.prompt_template.render(**base_system_prompt_data)
+            "content": self.prompt_template.render(**base_system_prompt_data),
         }
         # system_prompt = {
         #     "role": "system",
         #     "content": ""
         # }
         # Create the user prompt using the query
-        user_prompt = {
-            "role": "user",
-            "content": f"Question: {query}"
-        }
+        user_prompt = {"role": "user", "content": f"Question: {query}"}
 
         # Combine the system and user prompts into one list
         prompt = [system_prompt, user_prompt]
@@ -350,7 +352,9 @@ class QueryProfilerPromptor(MapFunction):
         """
         super().__init__()
         self.config = config  # Store the configuration for later use
-        self.prompt_template = query_profiler_prompt_template  # Load the query profiler prompt template
+        self.prompt_template = (
+            query_profiler_prompt_template  # Load the query profiler prompt template
+        )
 
     def execute(self, data) -> list:
         """
@@ -363,7 +367,10 @@ class QueryProfilerPromptor(MapFunction):
         query = data
         prompt = {
             "role": "user",
-            "content": self.prompt_template.render(query=query, metadata=self.config.get("metadata", {}),
-                                                   chunk_size=self.config.get("chunk_size", 1024))
+            "content": self.prompt_template.render(
+                query=query,
+                metadata=self.config.get("metadata", {}),
+                chunk_size=self.config.get("chunk_size", 1024),
+            ),
         }
         return [prompt]

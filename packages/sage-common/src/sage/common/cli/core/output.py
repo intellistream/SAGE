@@ -9,24 +9,28 @@ SAGE CLI Output Formatter
 import json
 import sys
 from datetime import datetime
-from typing import List, Dict, Any, Optional, Union
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 try:
+    from colorama import Back, Fore, Style, init
     from tabulate import tabulate
-    from colorama import Fore, Back, Style, init
+
     init(autoreset=True)
     COLORAMA_AVAILABLE = True
 except ImportError:
     COLORAMA_AVAILABLE = False
+
     # 提供基础的颜色类
     class _ForeColors:
         GREEN = RED = YELLOW = BLUE = CYAN = MAGENTA = WHITE = ""
+
     class _BackColors:
         GREEN = RED = YELLOW = BLUE = CYAN = MAGENTA = WHITE = ""
+
     class _StyleColors:
         BRIGHT = DIM = NORMAL = RESET_ALL = ""
-    
+
     Fore = _ForeColors()
     Back = _BackColors()
     Style = _StyleColors()
@@ -34,6 +38,7 @@ except ImportError:
 
 class Colors:
     """终端颜色常量"""
+
     if COLORAMA_AVAILABLE:
         GREEN = Fore.GREEN
         RED = Fore.RED
@@ -51,15 +56,15 @@ class Colors:
 
 class OutputFormatter:
     """统一的输出格式化器"""
-    
+
     def __init__(self, colors: bool = True, format_type: str = "table"):
         self.colors = colors and COLORAMA_AVAILABLE
         self.format_type = format_type
-    
+
     def print_message(self, message: str, msg_type: str = "info", prefix: str = None):
         """
         打印格式化消息
-        
+
         Args:
             message: 消息内容
             msg_type: 消息类型 (info, success, error, warning)
@@ -71,68 +76,65 @@ class OutputFormatter:
             else:
                 print(message)
             return
-        
+
         color_map = {
             "info": Colors.BLUE,
             "success": Colors.GREEN,
             "error": Colors.RED,
-            "warning": Colors.YELLOW
+            "warning": Colors.YELLOW,
         }
-        
-        icon_map = {
-            "info": "ℹ️",
-            "success": "✅",
-            "error": "❌",
-            "warning": "⚠️"
-        }
-        
+
+        icon_map = {"info": "ℹ️", "success": "✅", "error": "❌", "warning": "⚠️"}
+
         color = color_map.get(msg_type, Colors.WHITE)
         icon = icon_map.get(msg_type, "")
-        
+
         if prefix:
             print(f"{color}{icon} {prefix} {message}{Colors.RESET}")
         else:
             print(f"{color}{icon} {message}{Colors.RESET}")
-    
+
     def print_info(self, message: str, prefix: str = None):
         """打印信息消息"""
         self.print_message(message, "info", prefix)
-    
+
     def print_success(self, message: str, prefix: str = None):
         """打印成功消息"""
         self.print_message(message, "success", prefix)
-    
+
     def print_error(self, message: str, prefix: str = None):
         """打印错误消息"""
         self.print_message(message, "error", prefix)
-    
+
     def print_warning(self, message: str, prefix: str = None):
         """打印警告消息"""
         self.print_message(message, "warning", prefix)
-    
-    def format_data(self, data: Union[List[Dict], Dict], headers: Optional[List[str]] = None) -> str:
+
+    def format_data(
+        self, data: Union[List[Dict], Dict], headers: Optional[List[str]] = None
+    ) -> str:
         """
         格式化数据输出
-        
+
         Args:
             data: 要格式化的数据
             headers: 表格头部（仅在table格式下使用）
-            
+
         Returns:
             格式化后的字符串
         """
         if self.format_type == "json":
             return json.dumps(data, indent=2, ensure_ascii=False)
-        
+
         elif self.format_type == "table":
             if not data:
                 return "No data available"
-            
+
             if isinstance(data, dict):
                 # 单个对象转换为键值对表格
                 table_data = [[k, v] for k, v in data.items()]
                 return tabulate(table_data, headers=["Key", "Value"], tablefmt="grid")
-            
+
             elif isinstance(data, list) and data:
                 if isinstance(data[0], dict):
                     # 字典列表转换为表格
@@ -143,14 +145,16 @@ class OutputFormatter:
                 else:
                     # 简单列表
                     return "\n".join(str(item) for item in data)
-        
+
         return str(data)
-    
-    def print_data(self, data: Union[List[Dict], Dict], headers: Optional[List[str]] = None):
+
+    def print_data(
+        self, data: Union[List[Dict], Dict], headers: Optional[List[str]] = None
+    ):
         """打印格式化数据"""
         formatted = self.format_data(data, headers)
         print(formatted)
-    
+
     def print_section(self, title: str, content: str = None):
         """打印章节标题"""
         if self.colors:
@@ -159,30 +163,33 @@ class OutputFormatter:
         else:
             print(f"\n{title}")
             print("=" * len(title))
-        
+
         if content:
             print(content)
 
 
-def format_table(data: List[Dict[str, Any]], headers: Optional[List[str]] = None, 
-                tablefmt: str = "grid") -> str:
+def format_table(
+    data: List[Dict[str, Any]],
+    headers: Optional[List[str]] = None,
+    tablefmt: str = "grid",
+) -> str:
     """
     格式化数据为表格
-    
+
     Args:
         data: 数据列表
         headers: 表头列表
         tablefmt: 表格格式
-        
+
     Returns:
         格式化的表格字符串
     """
     if not data:
         return "No data available"
-    
+
     if not headers:
         headers = list(data[0].keys()) if data else []
-    
+
     table_data = []
     for item in data:
         row = []
@@ -193,7 +200,7 @@ def format_table(data: List[Dict[str, Any]], headers: Optional[List[str]] = None
                 value = value[:47] + "..."
             row.append(value)
         table_data.append(row)
-    
+
     try:
         return tabulate(table_data, headers=headers, tablefmt=tablefmt)
     except:
@@ -202,24 +209,24 @@ def format_table(data: List[Dict[str, Any]], headers: Optional[List[str]] = None
         if headers:
             result.append(" | ".join(headers))
             result.append("-" * len(" | ".join(headers)))
-        
+
         for row in table_data:
             result.append(" | ".join(str(cell) for cell in row))
-        
+
         return "\n".join(result)
 
 
 def print_status(status: str, message: str, colors: bool = True):
     """
     打印状态消息
-    
+
     Args:
         status: 状态类型 (success, error, warning, info)
         message: 消息内容
         colors: 是否使用颜色
     """
     formatter = OutputFormatter(colors=colors)
-    
+
     if status == "success":
         formatter.print_success(message)
     elif status == "error":
@@ -244,7 +251,7 @@ def format_duration(seconds: float) -> str:
 
 def format_size(bytes_size: int) -> str:
     """格式化文件大小"""
-    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
         if bytes_size < 1024.0:
             return f"{bytes_size:.1f}{unit}"
         bytes_size /= 1024.0
@@ -261,7 +268,7 @@ def format_timestamp(timestamp: Union[float, str, datetime]) -> str:
         dt = timestamp
     else:
         return str(timestamp)
-    
+
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 

@@ -1,10 +1,12 @@
 # file sage/core/sage.middleware.services.neuromem./storage_engine/metadata_storage.py
 # python -m sage.core.sage.middleware.services.neuromem..storage_engine.metadata_storage
 
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
 
-from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import BaseKVBackend
-from sage.middleware.components.neuromem.storage_engine.kv_backend.dict_kv_backend import DictKVBackend
+from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import \
+    BaseKVBackend
+from sage.middleware.components.neuromem.storage_engine.kv_backend.dict_kv_backend import \
+    DictKVBackend
 
 
 class MetadataStorage:
@@ -26,13 +28,13 @@ class MetadataStorage:
 
     def add_field(self, field_name: str) -> None:
         """
-        Register a new metadata field. If the field is already registered, 
+        Register a new metadata field. If the field is already registered,
         this operation is ignored.
         注册新的元数据字段。如果字段已存在，则忽略此操作。
 
         Args:
             field_name: Name of the field to register
-            
+
         Raises:
             ValueError: If field_name is None or empty
         """
@@ -66,7 +68,7 @@ class MetadataStorage:
         """
         if not isinstance(metadata, dict):
             raise ValueError("Metadata must be a dictionary")
-            
+
         unregistered = set(metadata.keys()) - self.fields
         if unregistered:
             raise ValueError(f"Unregistered metadata fields: {unregistered}")
@@ -92,7 +94,7 @@ class MetadataStorage:
 
         self.validate_fields(metadata)
         self.backend.set(item_id, metadata.copy())
-        
+
     def get_all_ids(self) -> List[str]:
         """
         Get all stored item IDs.
@@ -113,7 +115,7 @@ class MetadataStorage:
 
         Returns:
             Metadata dictionary, empty dict if item doesn't exist
-            
+
         Raises:
             ValueError: If item_id is invalid
         """
@@ -128,10 +130,10 @@ class MetadataStorage:
 
         Args:
             item_id: ID of the item to check
-            
+
         Returns:
             bool: True if item has metadata, False otherwise
-            
+
         Raises:
             ValueError: If item_id is invalid
         """
@@ -146,7 +148,7 @@ class MetadataStorage:
 
         Args:
             item_id: ID of the item to delete
-            
+
         Raises:
             ValueError: If item_id is invalid
         """
@@ -158,7 +160,7 @@ class MetadataStorage:
         """Clear all metadata and registered fields."""
         self.fields.clear()
         self.backend.clear()
-        
+
     def store_to_disk(self, path: str) -> None:
         """
         Store all data to disk as JSON file.
@@ -166,7 +168,7 @@ class MetadataStorage:
 
         Args:
             path: Path to the JSON file
-            
+
         Raises:
             NotImplementedError: If backend doesn't support disk operations
             ValueError: If path is invalid
@@ -184,7 +186,7 @@ class MetadataStorage:
 
         Args:
             path: Path to the JSON file
-            
+
         Raises:
             NotImplementedError: If backend doesn't support disk operations
             ValueError: If path is invalid
@@ -203,7 +205,7 @@ class MetadataStorage:
 
         Args:
             path: Path to the JSON file
-            
+
         Raises:
             NotImplementedError: If backend doesn't support disk operations
             ValueError: If path is invalid
@@ -213,6 +215,7 @@ class MetadataStorage:
         if not hasattr(self.backend, "clear_disk_data"):
             raise NotImplementedError("Backend does not support clear_disk_data")
         self.backend.clear_disk_data(path)
+
 
 if __name__ == "__main__":
     import os
@@ -226,10 +229,7 @@ if __name__ == "__main__":
 
     # 构造示例数据
     item_id = "abc123"
-    metadata = {
-        "author": "Alice",
-        "topic": "AI"
-    }
+    metadata = {"author": "Alice", "topic": "AI"}
 
     # 存储元数据
     metadata_store.store(item_id, metadata)
@@ -245,7 +245,7 @@ if __name__ == "__main__":
 
     # 等待用户输入 yes 再加载
     user_input = input("Step 4 | Enter 'yes' to load metadata from disk: ")
-    if user_input.strip().lower() == 'yes':
+    if user_input.strip().lower() == "yes":
         metadata_store.load_from_disk(disk_path)
         print("Step 5 | After reload, retrieved:", metadata_store.get(item_id))
     else:
@@ -257,4 +257,3 @@ if __name__ == "__main__":
 
     # 可选：检查磁盘上确实没这个文件
     print("Step 7 | File exists after deletion?:", os.path.exists(disk_path))
-

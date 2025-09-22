@@ -5,30 +5,33 @@ This module provides the command-line interface using Typer framework
 for intuitive and powerful command-line interactions.
 """
 
-import sys
-import typer
 import importlib
-from .commands.common import console
+import sys
+
+import typer
+
 from .commands import get_apps
+from .commands.common import console
 
 # 创建主应用
 app = typer.Typer(
     name="sage-dev",
     help="🛠️ SAGE Development Toolkit - Unified development tools for SAGE project",
-    no_args_is_help=True
+    no_args_is_help=True,
 )
+
 
 # 动态添加所有命令模块的命令
 def _register_commands():
     """注册所有模块化命令"""
     apps = get_apps()
-    
+
     # 特殊处理需要作为子命令组的命令
-    subcommand_groups = {'pypi', 'package', 'test'}
-    
+    subcommand_groups = {"pypi", "package", "test"}
+
     # 需要作为独立命令（而非子命令组）添加的命令
-    standalone_commands = {'check_dependency': 'check-dependency'}
-    
+    standalone_commands = {"check_dependency": "check-dependency"}
+
     # 从各个模块添加命令到主应用
     for app_name, sub_app in apps.items():
         if app_name in subcommand_groups:
@@ -37,8 +40,10 @@ def _register_commands():
         elif app_name in standalone_commands:
             # 将这些应用作为独立命令添加（使用自定义名称）
             command_name = standalone_commands[app_name]
-            module = importlib.import_module(f".{app_name}", package="sage.common.dev.cli.commands")
-            if hasattr(module.command, 'command'):
+            module = importlib.import_module(
+                f".{app_name}", package="sage.common.dev.cli.commands"
+            )
+            if hasattr(module.command, "command"):
                 # 如果是单个命令
                 app.command(name=command_name)(module.command.command)
             else:
@@ -53,6 +58,7 @@ def _register_commands():
                 # 如果没有 registered_commands 属性，则作为子命令组添加
                 app.add_typer(sub_app, name=app_name)
 
+
 # 注册所有命令
 _register_commands()
 
@@ -61,17 +67,17 @@ _register_commands()
 def callback():
     """
     SAGE Development Toolkit - Unified development tools for SAGE project
-    
+
     🛠️ Core Features:
     • Test execution with intelligent change detection
-    • Comprehensive dependency analysis  
+    • Comprehensive dependency analysis
     • Package management across SAGE ecosystem
     • Bytecode compilation for source code protection
     • Build artifacts cleanup and management
     • PyPI package upload and publishing
     • Rich reporting with multiple output formats
     • Interactive and batch operation modes
-    
+
     📖 Common Usage Examples:
     sage-dev test --mode diff           # Run tests on changed code
     sage-dev analyze --type circular    # Check for circular dependencies
@@ -89,7 +95,7 @@ def callback():
     sage-dev clean --dry-run            # Preview build artifacts cleanup
     sage-dev clean --categories pycache # Clean Python cache files
     sage-dev report                     # Generate comprehensive report
-    
+
     🔗 More info: https://github.com/intellistream/SAGE/tree/main/dev-toolkit
     """
     pass
@@ -107,5 +113,5 @@ def main():
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

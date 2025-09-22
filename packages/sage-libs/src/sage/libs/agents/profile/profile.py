@@ -1,21 +1,21 @@
 # agent/profile/profile.py
 from dataclasses import dataclass, field
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 
 @dataclass
 class BaseProfile:
-    """
-    
-    """
-    name: str = "BaseAgent"                  # 人格名
-    role: str = "general assistant"          # 角色定位
-    goals: List[str] = field(default_factory=list)   # 长期/核心目标
-    tasks: List[str] = field(default_factory=list)   # 常见任务模板
-    backstory: str = ""                      # 人设背景
+    """ """
+
+    name: str = "BaseAgent"  # 人格名
+    role: str = "general assistant"  # 角色定位
+    goals: List[str] = field(default_factory=list)  # 长期/核心目标
+    tasks: List[str] = field(default_factory=list)  # 常见任务模板
+    backstory: str = ""  # 人设背景
 
     # 输出偏好
-    language: str = "zh"                     # "zh" / "en" / ...
-    tone: str = "concise"                    # "concise" / "detailed" / "socratic" / ...
+    language: str = "zh"  # "zh" / "en" / ...
+    tone: str = "concise"  # "concise" / "detailed" / "socratic" / ...
 
     # ========== 便捷方法 ==========
     def render_system_prompt(self) -> str:

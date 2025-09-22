@@ -1,6 +1,8 @@
 # refactor_wxh/MemoRAG/packages/sage-libs/src/sage/libs/agents/action/mcp_registry.py
 from __future__ import annotations
-from typing import Dict, Any
+
+from typing import Any, Dict
+
 
 class MCPRegistry:
     """
@@ -9,6 +11,7 @@ class MCPRegistry:
     - describe(): 给 planner 使用的工具清单（MCP 三要素）
     - call(name, arguments): 执行工具
     """
+
     def __init__(self) -> None:
         self._tools: Dict[str, Any] = {}
 

@@ -4,64 +4,77 @@ SAGE Worker Manager CLI
 Ray Worker节点管理相关命令
 """
 
-import typer
+import os
 import subprocess
 import tempfile
-import os
 import time
 from pathlib import Path
 from typing import List, Tuple
+
+import typer
 
 from ..config_manager import get_config_manager
 from ..deployment_manager import DeploymentManager
 
 app = typer.Typer(name="worker", help="Ray Worker节点管理")
 
-def execute_remote_command(host: str, port: int, command: str, timeout: int = 60) -> bool:
+
+def execute_remote_command(
+    host: str, port: int, command: str, timeout: int = 60
+) -> bool:
     """在远程主机上执行命令"""
     config_manager = get_config_manager()
     ssh_config = config_manager.get_ssh_config()
-    ssh_user = ssh_config.get('user', 'sage')
-    ssh_key_path = os.path.expanduser(ssh_config.get('key_path', '~/.ssh/id_rsa'))
-    
+    ssh_user = ssh_config.get("user", "sage")
+    ssh_key_path = os.path.expanduser(ssh_config.get("key_path", "~/.ssh/id_rsa"))
+
     typer.echo(f"🔗 连接到 {ssh_user}@{host}:{port}")
-    
+
     # 创建临时脚本文件
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as temp_script:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".sh", delete=False
+    ) as temp_script:
         temp_script.write("#!/bin/bash\n")
         temp_script.write(command)
         temp_script_path = temp_script.name
-    
+
     try:
         ssh_cmd = [
-            'ssh',
-            '-i', ssh_key_path,
-            '-p', str(port),
-            '-o', 'StrictHostKeyChecking=no',
-            '-o', 'UserKnownHostsFile=/dev/null',
-            '-o', f'ConnectTimeout={ssh_config.get("connect_timeout", 10)}',
-            '-o', 'ServerAliveInterval=60',
-            '-o', 'ServerAliveCountMax=3',
-            f'{ssh_user}@{host}',
-            'bash -s'
+            "ssh",
+            "-i",
+            ssh_key_path,
+            "-p",
+            str(port),
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "UserKnownHostsFile=/dev/null",
+            "-o",
+            f'ConnectTimeout={ssh_config.get("connect_timeout", 10)}',
+            "-o",
+            "ServerAliveInterval=60",
+            "-o",
+            "ServerAliveCountMax=3",
+            f"{ssh_user}@{host}",
+            "bash -s",
         ]
-        
-        with open(temp_script_path, 'r') as script_file:
+
+        with open(temp_script_path, "r") as script_file:
             result = subprocess.run(
                 ssh_cmd,
                 stdin=script_file,
                 capture_output=True,
                 text=True,
-                timeout=timeout
+                timeout=timeout,
             )
-        
+
         if result.stdout:
             typer.echo(result.stdout)
         if result.stderr:
             typer.echo(result.stderr, err=True)
-        
+
         return result.returncode == 0
-        
+
     except subprocess.TimeoutExpired:
         typer.echo(f"❌ Remote command timeout ({timeout}s)")
         return False
@@ -75,9 +88,10 @@ def execute_remote_command(host: str, port: int, command: str, timeout: int = 60
         except OSError:
             pass
 
+
 def get_conda_init_code(conda_env: str = "sage") -> str:
     """获取Conda环境初始化代码"""
-    return f'''
+    return f"""
 # 多种conda安装路径尝试
 for conda_path in \\
     "$HOME/miniconda3/etc/profile.d/conda.sh" \\
@@ -107,44 +121,45 @@ if ! conda activate {conda_env}; then
 fi
 
 echo "[SUCCESS] 已激活conda环境: {conda_env}"
-'''
+"""
+
 
 @app.command("start")
 def start_workers():
     """启动所有Ray Worker节点"""
     typer.echo("🚀 启动Ray Worker节点...")
-    
+
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
     worker_config = config_manager.get_worker_config()
     remote_config = config_manager.get_remote_config()
     workers = config_manager.get_workers_ssh_hosts()
-    
+
     if not workers:
         typer.echo("❌ 未配置任何worker节点")
         return  # 没有worker节点不应该视为错误
-    
-    head_host = head_config.get('host', 'localhost')
-    head_port = head_config.get('head_port', 6379)
-    worker_bind_host = worker_config.get('bind_host', 'localhost')
-    worker_temp_dir = worker_config.get('temp_dir', '/tmp/ray_worker')
-    worker_log_dir = worker_config.get('log_dir', '/tmp/sage_worker_logs')
-    
-    ray_command = remote_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
-    conda_env = remote_config.get('conda_env', 'sage')
-    
+
+    head_host = head_config.get("host", "localhost")
+    head_port = head_config.get("head_port", 6379)
+    worker_bind_host = worker_config.get("bind_host", "localhost")
+    worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
+    worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
+
+    ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
+    conda_env = remote_config.get("conda_env", "sage")
+
     typer.echo(f"📋 配置信息:")
     typer.echo(f"   Head节点: {head_host}:{head_port}")
     typer.echo(f"   Worker节点: {len(workers)} 个")
     typer.echo(f"   Worker绑定主机: {worker_bind_host}")
-    
+
     success_count = 0
     total_count = len(workers)
-    
+
     for i, (host, port) in enumerate(workers, 1):
         typer.echo(f"\n🔧 启动Worker节点 {i}/{total_count}: {host}:{port}")
-        
-        start_command = f'''set -e
+
+        start_command = f"""set -e
 export PYTHONUNBUFFERED=1
 
 # 当前主机名
@@ -251,14 +266,14 @@ else
     echo "[ERROR] Ray Worker启动失败，退出码: $RAY_EXIT_CODE" | tee -a "$LOG_DIR/worker.log"
     echo "[DEBUG] Ray启动输出: $RAY_OUTPUT" | tee -a "$LOG_DIR/worker.log"
     exit 1
-fi'''
-        
+fi"""
+
         if execute_remote_command(host, port, start_command, 120):
             typer.echo(f"✅ Worker节点 {host} 启动成功")
             success_count += 1
         else:
             typer.echo(f"❌ Worker节点 {host} 启动失败")
-    
+
     typer.echo(f"\n📊 启动结果: {success_count}/{total_count} 个节点启动成功")
     if success_count == total_count:
         typer.echo("✅ 所有Worker节点启动成功！")
@@ -266,33 +281,34 @@ fi'''
         typer.echo("⚠️  部分Worker节点启动失败")
         raise typer.Exit(1)
 
+
 @app.command("stop")
 def stop_workers(
     force: bool = typer.Option(False, "--force", "-f", help="强制停止所有Ray进程")
 ):
     """停止所有Ray Worker节点"""
     typer.echo("🛑 停止Ray Worker节点...")
-    
+
     config_manager = get_config_manager()
     worker_config = config_manager.get_worker_config()
     remote_config = config_manager.get_remote_config()
     workers = config_manager.get_workers_ssh_hosts()
-    
+
     if not workers:
         typer.echo("❌ 未配置任何worker节点")
         raise typer.Exit(1)
-    
-    worker_temp_dir = worker_config.get('temp_dir', '/tmp/ray_worker')
-    worker_log_dir = worker_config.get('log_dir', '/tmp/sage_worker_logs')
-    ray_command = remote_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
-    conda_env = remote_config.get('conda_env', 'sage')
-    
+
+    worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
+    worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
+    ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
+    conda_env = remote_config.get("conda_env", "sage")
+
     success_count = 0
     total_count = len(workers)
-    
+
     for i, (host, port) in enumerate(workers, 1):
         typer.echo(f"\n🔧 停止Worker节点 {i}/{total_count}: {host}:{port}")
-        
+
         if force:
             # 强制模式：直接杀死所有进程
             stop_command = f'''set +e
@@ -365,44 +381,45 @@ if [[ -d "$WORKER_TEMP_DIR" ]]; then
 fi
 
 echo "[SUCCESS] Ray Worker已停止 ($(date '+%Y-%m-%d %H:%M:%S'))" | tee -a "$LOG_DIR/worker.log"'''
-        
+
         if execute_remote_command(host, port, stop_command, 60):
             typer.echo(f"✅ Worker节点 {host} 停止成功")
             success_count += 1
         else:
             typer.echo(f"⚠️  Worker节点 {host} 停止完成（可能本来就未运行）")
             success_count += 1  # 停止操作通常允许失败
-    
+
     typer.echo(f"\n📊 停止结果: {success_count}/{total_count} 个节点处理完成")
     typer.echo("✅ 所有Worker节点停止操作完成！")
+
 
 @app.command("status")
 def status_workers():
     """检查所有Ray Worker节点状态"""
     typer.echo("📊 检查Ray Worker节点状态...")
-    
+
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
     worker_config = config_manager.get_worker_config()
     remote_config = config_manager.get_remote_config()
     workers = config_manager.get_workers_ssh_hosts()
-    
+
     if not workers:
         typer.echo("❌ 未配置任何worker节点")
         raise typer.Exit(1)
-    
-    head_host = head_config.get('host', 'localhost')
-    head_port = head_config.get('head_port', 6379)
-    worker_log_dir = worker_config.get('log_dir', '/tmp/sage_worker_logs')
-    ray_command = remote_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
-    conda_env = remote_config.get('conda_env', 'sage')
-    
+
+    head_host = head_config.get("host", "localhost")
+    head_port = head_config.get("head_port", 6379)
+    worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
+    ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
+    conda_env = remote_config.get("conda_env", "sage")
+
     running_count = 0
     total_count = len(workers)
-    
+
     for i, (host, port) in enumerate(workers, 1):
         typer.echo(f"\n📋 检查Worker节点 {i}/{total_count}: {host}:{port}")
-        
+
         status_command = f'''set +e
 export PYTHONUNBUFFERED=1
 
@@ -450,13 +467,13 @@ if [[ -f "$LOG_DIR/worker.log" ]]; then
 fi
 
 echo "==============================================="'''
-        
+
         if execute_remote_command(host, port, status_command, 30):
             typer.echo(f"✅ Worker节点 {host} 正在运行")
             running_count += 1
         else:
             typer.echo(f"❌ Worker节点 {host} 未运行或检查失败")
-    
+
     typer.echo(f"\n📊 状态统计: {running_count}/{total_count} 个Worker节点正在运行")
     if running_count == total_count:
         typer.echo("✅ 所有Worker节点都在正常运行！")
@@ -465,37 +482,39 @@ echo "==============================================="'''
     else:
         typer.echo("❌ 没有Worker节点在运行")
 
+
 @app.command("restart")
 def restart_workers():
     """重启所有Ray Worker节点"""
     typer.echo("🔄 重启Ray Worker节点...")
-    
+
     # 先停止
     typer.echo("第1步: 停止所有Worker节点")
     stop_workers()
-    
+
     # 等待
     typer.echo("⏳ 等待3秒后重新启动...")
     time.sleep(3)
-    
+
     # 再启动
     typer.echo("第2步: 启动所有Worker节点")
     start_workers()
-    
+
     typer.echo("✅ Worker节点重启完成！")
+
 
 @app.command("config")
 def show_config():
     """显示当前Worker配置信息"""
     typer.echo("📋 当前Worker配置信息")
-    
+
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
     worker_config = config_manager.get_worker_config()
     ssh_config = config_manager.get_ssh_config()
     remote_config = config_manager.get_remote_config()
     workers = config_manager.get_workers_ssh_hosts()
-    
+
     typer.echo(f"Head节点: {head_config.get('host', 'N/A')}")
     typer.echo(f"Head端口: {head_config.get('head_port', 'N/A')}")
     typer.echo(f"Dashboard端口: {head_config.get('dashboard_port', 'N/A')}")
@@ -513,28 +532,30 @@ def show_config():
     typer.echo(f"远程Python路径: {remote_config.get('python_path', 'N/A')}")
     typer.echo(f"远程Ray命令: {remote_config.get('ray_command', 'N/A')}")
 
+
 @app.command("deploy")
 def deploy_workers():
     """部署项目到所有Worker节点"""
     typer.echo("🚀 开始部署到Worker节点...")
-    
+
     deployment_manager = DeploymentManager()
     success_count, total_count = deployment_manager.deploy_to_all_workers()
-    
+
     if success_count == total_count:
         typer.echo("✅ 所有节点部署成功！")
     else:
         typer.echo("⚠️  部分节点部署失败")
         raise typer.Exit(1)
 
+
 @app.command("add")
 def add_worker(node: str = typer.Argument(..., help="节点地址，格式为 host:port")):
     """动态添加新的Worker节点"""
     typer.echo(f"➕ 添加新Worker节点: {node}")
-    
+
     # 解析节点地址
-    if ':' in node:
-        host, port_str = node.split(':', 1)
+    if ":" in node:
+        host, port_str = node.split(":", 1)
         try:
             port = int(port_str)
         except ValueError:
@@ -543,37 +564,37 @@ def add_worker(node: str = typer.Argument(..., help="节点地址，格式为 ho
     else:
         host = node
         port = 22
-    
+
     config_manager = get_config_manager()
-    
+
     # 添加到配置
     if config_manager.add_worker_ssh_host(host, port):
         typer.echo(f"✅ 已添加Worker节点 {host}:{port} 到配置")
     else:
         typer.echo(f"⚠️  Worker节点 {host}:{port} 已存在")
-    
+
     # 部署到新节点
     typer.echo(f"🚀 开始部署到新节点 {host}:{port}...")
     deployment_manager = DeploymentManager()
-    
+
     if deployment_manager.deploy_to_worker(host, port):
         typer.echo(f"✅ 新节点 {host}:{port} 部署成功")
-        
+
         # 启动worker
         typer.echo(f"🔧 启动新Worker节点...")
         head_config = config_manager.get_head_config()
         worker_config = config_manager.get_worker_config()
         remote_config = config_manager.get_remote_config()
-        
-        head_host = head_config.get('host', 'localhost')
-        head_port = head_config.get('head_port', 6379)
-        worker_bind_host = worker_config.get('bind_host', 'localhost')
-        worker_temp_dir = worker_config.get('temp_dir', '/tmp/ray_worker')
-        worker_log_dir = worker_config.get('log_dir', '/tmp/sage_worker_logs')
-        ray_command = remote_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
-        conda_env = remote_config.get('conda_env', 'sage')
-        
-        start_command = f'''set -e
+
+        head_host = head_config.get("host", "localhost")
+        head_port = head_config.get("head_port", 6379)
+        worker_bind_host = worker_config.get("bind_host", "localhost")
+        worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
+        worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
+        ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
+        conda_env = remote_config.get("conda_env", "sage")
+
+        start_command = f"""set -e
 export PYTHONUNBUFFERED=1
 
 CURRENT_HOST='{host}'
@@ -640,8 +661,8 @@ else
     echo "[ERROR] 新Worker节点启动失败，退出码: $RAY_EXIT_CODE" | tee -a "$LOG_DIR/worker.log"
     echo "[DEBUG] Ray启动输出: $RAY_OUTPUT" | tee -a "$LOG_DIR/worker.log"
     exit 1
-fi'''
-        
+fi"""
+
         if execute_remote_command(host, port, start_command, 30):
             typer.echo(f"✅ 新Worker节点 {host}:{port} 启动成功")
         else:
@@ -651,14 +672,15 @@ fi'''
         typer.echo(f"❌ 新节点 {host}:{port} 部署失败")
         raise typer.Exit(1)
 
+
 @app.command("remove")
 def remove_worker(node: str = typer.Argument(..., help="节点地址，格式为 host:port")):
     """移除Worker节点"""
     typer.echo(f"➖ 移除Worker节点: {node}")
-    
+
     # 解析节点地址
-    if ':' in node:
-        host, port_str = node.split(':', 1)
+    if ":" in node:
+        host, port_str = node.split(":", 1)
         try:
             port = int(port_str)
         except ValueError:
@@ -667,19 +689,19 @@ def remove_worker(node: str = typer.Argument(..., help="节点地址，格式为
     else:
         host = node
         port = 22
-    
+
     config_manager = get_config_manager()
-    
+
     # 先停止该节点上的worker
     typer.echo(f"🛑 停止Worker节点 {host}:{port}...")
     worker_config = config_manager.get_worker_config()
     remote_config = config_manager.get_remote_config()
-    
-    worker_temp_dir = worker_config.get('temp_dir', '/tmp/ray_worker')
-    worker_log_dir = worker_config.get('log_dir', '/tmp/sage_worker_logs')
-    ray_command = remote_config.get('ray_command', '/opt/conda/envs/sage/bin/ray')
-    conda_env = remote_config.get('conda_env', 'sage')
-    
+
+    worker_temp_dir = worker_config.get("temp_dir", "/tmp/ray_worker")
+    worker_log_dir = worker_config.get("log_dir", "/tmp/sage_worker_logs")
+    ray_command = remote_config.get("ray_command", "/opt/conda/envs/sage/bin/ray")
+    conda_env = remote_config.get("conda_env", "sage")
+
     stop_command = f'''set +e
 LOG_DIR='{worker_log_dir}'
 mkdir -p "$LOG_DIR"
@@ -706,38 +728,40 @@ done
 rm -rf {worker_temp_dir}/* 2>/dev/null || true
 
 echo "Worker节点已停止" | tee -a "$LOG_DIR/worker.log"'''
-    
+
     if execute_remote_command(host, port, stop_command, 60):
         typer.echo(f"✅ Worker节点 {host}:{port} 已停止")
     else:
         typer.echo(f"⚠️  Worker节点 {host}:{port} 停止可能未完全成功")
-    
+
     # 从配置中移除
     if config_manager.remove_worker_ssh_host(host, port):
         typer.echo(f"✅ 已从配置中移除Worker节点 {host}:{port}")
     else:
         typer.echo(f"⚠️  Worker节点 {host}:{port} 不在配置中")
-    
+
     typer.echo(f"✅ Worker节点 {host}:{port} 移除完成")
+
 
 @app.command("list")
 def list_workers():
     """列出所有配置的Worker节点"""
     typer.echo("📋 配置的Worker节点列表")
-    
+
     config_manager = get_config_manager()
     workers = config_manager.get_workers_ssh_hosts()
-    
+
     if not workers:
         typer.echo("❌ 未配置任何Worker节点")
         typer.echo("💡 使用 'sage worker add <host> [port]' 添加Worker节点")
         return
-    
+
     typer.echo(f"📊 共配置了 {len(workers)} 个Worker节点:")
     for i, (host, port) in enumerate(workers, 1):
         typer.echo(f"  {i}. {host}:{port}")
-    
+
     typer.echo("\n💡 使用 'sage worker status' 检查节点状态")
+
 
 @app.command("version")
 def version_command():
@@ -746,6 +770,7 @@ def version_command():
     typer.echo("Version: 1.0.1")
     typer.echo("Author: IntelliStream Team")
     typer.echo("Repository: https://github.com/intellistream/SAGE")
+
 
 if __name__ == "__main__":
     app()

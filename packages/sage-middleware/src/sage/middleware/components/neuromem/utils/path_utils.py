@@ -14,8 +14,9 @@
 #         if parent == cur_dir:
 #             raise FileNotFoundError("Could not find 'sage' directory in parent folders.")
 #         cur_dir = parent
-        
+
 import os
+
 
 def get_default_data_dir():
     # 获取当前执行程序的工作目录

@@ -2,14 +2,19 @@
 """
 调试脚本：分析队列读写问题
 """
-import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import sys
 
-from sage.extensions.sage_queue.python.sage_queue import SageQueue
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
+
+import ctypes
 import pickle
 import struct
-import ctypes
+
+from sage.extensions.sage_queue.python.sage_queue import SageQueue
+
 
 def debug_queue_operations():
     print("=== SAGE Queue 调试 ===")
@@ -45,7 +50,7 @@ def debug_queue_operations():
         result = queue._lib.ring_buffer_peek(queue._rb, len_buffer, 4)
         print(f"   PEEK 结果: {result}")
         if result == 4:
-            data_len = struct.unpack('<I', len_buffer.raw)[0]
+            data_len = struct.unpack("<I", len_buffer.raw)[0]
             print(f"   数据长度: {data_len}")
             total_len = 4 + data_len
             print(f"   总长度: {total_len}")
@@ -56,12 +61,14 @@ def debug_queue_operations():
 
                 # 尝试读取完整数据
                 full_buffer = ctypes.create_string_buffer(total_len)
-                read_result = queue._lib.ring_buffer_read(queue._rb, full_buffer, total_len)
+                read_result = queue._lib.ring_buffer_read(
+                    queue._rb, full_buffer, total_len
+                )
                 print(f"   READ 结果: {read_result}")
 
                 if read_result == total_len:
                     # 解析数据
-                    raw_data = full_buffer.raw[4:4+data_len]
+                    raw_data = full_buffer.raw[4 : 4 + data_len]
                     print(f"   原始数据长度: {len(raw_data)}")
                     try:
                         decoded_data = pickle.loads(raw_data)
@@ -86,6 +93,7 @@ def debug_queue_operations():
     print(f"   队列大小: {size_after}")
 
     queue.close()
+
 
 if __name__ == "__main__":
     debug_queue_operations()

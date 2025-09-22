@@ -2,11 +2,13 @@
 # python -m sage.core.sage.middleware.services.neuromem..storage_engine.vector_storage
 
 import json
-import numpy as np
-from typing import Any, Optional, List
+from typing import Any, List, Optional
 
-from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import BaseKVBackend
-from sage.middleware.components.neuromem.storage_engine.kv_backend.dict_kv_backend import DictKVBackend
+import numpy as np
+from sage.middleware.components.neuromem.storage_engine.kv_backend.base_kv_backend import \
+    BaseKVBackend
+from sage.middleware.components.neuromem.storage_engine.kv_backend.dict_kv_backend import \
+    DictKVBackend
 
 
 class VectorStorage:
@@ -17,16 +19,16 @@ class VectorStorage:
 
     def __init__(self, backend: Optional[BaseKVBackend] = None):
         self.backend = backend or DictKVBackend()
-        
+
     def get_all_ids(self) -> List[str]:
         return self.backend.get_all_keys()
-    
+
     def has(self, item_id: str) -> bool:
         return self.backend.has(item_id)
-    
+
     def delete(self, item_id: str):
         self.backend.delete(item_id)
-        
+
     def store(self, hash_id: str, vector: Any):
         self.backend.set(hash_id, vector)
 
@@ -54,6 +56,7 @@ class VectorStorage:
             raise NotImplementedError("Backend does not support clear_disk_data")
         self.backend.clear_disk_data(path)
 
+
 if __name__ == "__main__":
     import hashlib
 
@@ -74,7 +77,7 @@ if __name__ == "__main__":
 
     # 等待用户输入 yes 再读取
     user_input = input("Step 4 | Enter 'yes' to load data from disk: ")
-    if user_input.strip().lower() == 'yes':
+    if user_input.strip().lower() == "yes":
         vs.load_from_disk(disk_path)
         print("Step 5 | After reload, Retrieved:", vs.get(vector_id))
     else:
