@@ -58,7 +58,7 @@ if [[ "$BUILD_CPP_DEPS" == "1" ]]; then
       set +e
       SUDO_CMD=""
       if [[ $EUID -ne 0 ]]; then
-  # Try passwordless sudo; if not available, skip to avoid interactive prompt
+        # Try passwordless sudo; if not available, skip to avoid interactive prompt
         if sudo -n true 2>/dev/null; then
           SUDO_CMD="sudo"
         else
