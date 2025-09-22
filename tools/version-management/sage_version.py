@@ -279,9 +279,6 @@ class SAGEVersionManager:
             all_files.extend(self.root_dir.glob(pattern))
         
         # 错误的项目名称描述
-        wrong_descriptions = [
-            "Streaming-Augmented Generative Execution",
-            "Streaming-Augmented Generative Execution",
         ]
         
         # 邮箱替换模式
@@ -324,13 +321,13 @@ class SAGEVersionManager:
         """检查项目中仍存在的问题"""
         print("\n🔍 检查剩余问题...")
         
-        # 要检查的错误内容
-        issues_to_check = [
-            "Streaming-Augmented Generative Execution",
-            "Streaming-Augmented Generative Execution",
-            "shuhao_zhang@hust.edu.cn",
-            "shuhao_zhang@hust.edu.cn"
-        ]
+        # 要检查的错误内容（仅检查已知错误/过时信息）
+        incorrect_patterns = PROJECT_CONFIG.get("incorrect_patterns", {})
+        issues_to_check = []
+        for key in incorrect_patterns:
+            issues_to_check.extend(incorrect_patterns[key])
+        # 去重
+        issues_to_check = list(set(issues_to_check))
         
         file_patterns = ["**/*.py", "**/*.toml", "**/*.md", "**/*.yml", "**/*.yaml"]
         all_files = []
@@ -370,15 +367,14 @@ class SAGEVersionManager:
         issues_found = []
         
         # 检查错误的项目名称描述
+        # 错误的项目描述（如有已知错误项可补充）
         wrong_descriptions = [
-            "Streaming-Augmented Generative Execution",
-            "Streaming-Augmented Generative Execution",
+            # 例如："Streaming-Augmented Generative Exection", "Stream-Augmented Generative Execution"
         ]
         
-        # 检查错误的邮箱
+        # 错误的邮箱（如有已知错误项可补充）
         wrong_emails = [
-            "shuhao_zhang@hust.edu.cn",
-            "shuhao_zhang@hust.edu.cn"
+            # 例如："shuhao_zhang@hust.edu.com", "shuhao_zhang@hust.edu.cn.com"
         ]
         
         file_patterns = ["**/*.py", "**/*.toml", "**/*.md"]

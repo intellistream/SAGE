@@ -37,21 +37,28 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install build setuptools wheel tomli
-        # Install project dependencies from pyproject.toml
-        pip install -e ".[dev]"
+        
+        # Install SAGE packages in correct order (for CI environment)
+        echo "Installing SAGE packages for build..."
+        pip install -e packages/sage-common
+        pip install -e packages/sage-kernel  
+        pip install -e packages/sage-middleware
+        pip install -e packages/sage-libs
+        pip install -e .
         
     - name: Get version
       id: version
       run: |
-        # 从pyproject.toml中提取版本号 (兼容Python 3.11)
+        # 从pyproject.toml中提取版本号
         VERSION=$(python -c "
         try:
             import tomllib
         except ImportError:
             import tomli as tomllib
+        
         with open('pyproject.toml', 'rb') as f:
             data = tomllib.load(f)
-            print(data['project']['version'])
+            print(data.get('project', {}).get('version', '0.1.0'))
         " 2>/dev/null || echo "0.1.0")
         
         # 如果是tag触发，使用tag版本
@@ -64,38 +71,21 @@ jobs:
         
     - name: Build C extensions
       run: |
-        echo "🔍 Searching for C extensions..."
-        
-        # 查找可能的C扩展目录
-        found_extensions=false
-        
-        # 检查packages目录下的C扩展
-        for pkg_dir in packages/*/; do
-          if [ -d "$pkg_dir" ]; then
-            echo "Checking $pkg_dir for C extensions..."
-            if find "$pkg_dir" -name "*.c" -o -name "*.cpp" -o -name "setup.py" -o -name "build.sh" | grep -q .; then
-              echo "Found C extensions in $pkg_dir"
-              cd "$pkg_dir"
-              
-              if [ -f "build.sh" ]; then
-                echo "Running build.sh in $pkg_dir"
-                bash build.sh
-                found_extensions=true
-              elif [ -f "setup.py" ]; then
-                echo "Building with setup.py in $pkg_dir"
-                python setup.py build_ext --inplace
-                found_extensions=true
-              fi
-              
-              cd - > /dev/null
-            fi
-          fi
-        done
-        
-        if [ "$found_extensions" = false ]; then
-          echo "No C extensions found, skipping C extension build"
+        cd sage/utils/mmap_queue
+        if [ -f "build.sh" ]; then
+          bash build.sh
+        elif [ -f "Makefile" ]; then
+          make clean && make
         else
-          echo "C extensions build completed"
+          echo "No build system found, skipping C extension build"
+        fi
+        
+        # 验证so文件存在
+        if ls *.so 1> /dev/null 2>&1; then
+          echo "C extensions built successfully:"
+          ls -la *.so
+        else
+          echo "Warning: No .so files found after build"
         fi
         
     - name: Build source wheel

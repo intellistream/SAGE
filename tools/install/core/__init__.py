@@ -4,12 +4,18 @@ def _get_version_info():
     """动态获取版本信息"""
     import sys
     from pathlib import Path
+    import os
     
     current_path = Path(__file__).resolve()
-    root_path = current_path.parent.parent
-    version_file = root_path / "_version.py"
+    # Search upwards for _version.py
+    version_file = None
+    for parent in [current_path.parent] + list(current_path.parents):
+        candidate = parent / "_version.py"
+        if candidate.exists():
+            version_file = candidate
+            break
     
-    if version_file.exists():
+    if version_file and version_file.exists():
         version_globals = {}
         with open(version_file, 'r', encoding='utf-8') as f:
             exec(f.read(), version_globals)
@@ -17,8 +23,8 @@ def _get_version_info():
     return 'unknown'
 
 __version__ = _get_version_info()
-\n"""SAGE安装系统核心模块"""
 
+"""SAGE安装系统核心模块"""
 
 __author__ = "SAGE Development Team"
 

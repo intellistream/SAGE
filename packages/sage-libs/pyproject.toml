@@ -5,8 +5,7 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.dynamic]
-version = {attr = "sage.libs._version.__version__"}
+
 
 [project]
 name = "isage-libs"
@@ -116,3 +115,6 @@ python_dynamic = ["version"]
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.libs._version.__version__"}

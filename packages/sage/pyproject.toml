@@ -2,13 +2,12 @@
 requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.dynamic]
-version = {attr = "sage._version.__version__"}
+
 
 [project]
 name = "isage"
 dynamic = ["version"]
-description = "SAGE Sage - Streaming-Augmented Generative Execution"
+description = "SAGE - Streaming-Augmented Generative Execution"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -16,7 +15,8 @@ authors = [
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: System :: Distributed Computing",
 ]
@@ -71,3 +71,6 @@ where = ["src"]
 
 [tool.setuptools.package-dir]
 "" = "src"
+
+[tool.setuptools.dynamic]
+version = {attr = "sage._version.__version__"}

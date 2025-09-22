@@ -77,16 +77,31 @@ jobs:
         sudo apt-get install -y build-essential cmake pkg-config
       timeout-minutes: 10
         
-    # 安装 SAGE (使用 minimal 模式) - 专为CI设计
-    - name: Install SAGE (Minimal Mode)
+    # 安装 SAGE (使用正确的子包安装顺序) - 专为CI设计
+    - name: Install SAGE (Step by Step)
       shell: bash -l {0}
       env:
         CI: true
         PIP_CACHE_DIR: /tmp/pip-cache
       run: |
-        echo "Installing SAGE using install.py --minimal"
-        conda --version
-        python install.py --minimal
+        echo "Installing SAGE packages in correct order for CI..."
+        echo "Step 1: Install sage-common (base utilities)"
+        pip install -e packages/sage-common
+        
+        echo "Step 2: Install sage-kernel (core computation)"
+        pip install -e packages/sage-kernel
+        
+        echo "Step 3: Install sage-middleware (API services)"
+        pip install -e packages/sage-middleware
+        
+        echo "Step 4: Install sage-libs (applications and examples)"
+        pip install -e packages/sage-libs
+        
+        echo "Step 5: Install main SAGE package"
+        pip install -e .
+        
+        echo "✅ SAGE installation completed"
+        python -c "import sage; print(f'SAGE v{sage.__version__} installed successfully')"
       timeout-minutes: 15
         
     # 安装测试依赖

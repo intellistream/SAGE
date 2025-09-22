@@ -135,7 +135,7 @@ dev_reports/
 .testlogs/
 .github_token
 .pypirc
-
+temp_ci_test_env
 
 ./experiment/data
 ./experiment/results

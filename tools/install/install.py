@@ -194,8 +194,69 @@ class SAGEInstaller:
                 print(f"\n📋 {profile_name}")
                 print(f"   名称: {profile.name}")
                 print(f"   描述: {profile.description}")
-                print(f"   包数量: {len(profile.packages)}")
+                print(f"   包数量: {profile.get_total_package_count()}")
                 print(f"   子模块: {'是' if profile.install_submodules else '否'}")
+
+    def show_recent_errors(self):
+        """显示最近的安装错误"""
+        try:
+            log_path = Path("install.log")
+            if log_path.exists():
+                self.ui.show_info("📋 最近的错误信息：")
+                with open(log_path, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                    # 查找最近的ERROR行，最多显示10行
+                    error_lines = []
+                    for line in reversed(lines):
+                        if 'ERROR' in line:
+                            error_lines.append(line.strip())
+                            if len(error_lines) >= 10:
+                                break
+                    
+                    # 反转顺序，显示最早的错误在前
+                    for error_line in reversed(error_lines):
+                        # 简化错误信息显示
+                        if 'ModuleNotFoundError: No module named' in error_line:
+                            self.ui.show_error("   💥 缺少模块依赖")
+                        elif 'Requirements安装失败' in error_line:
+                            self.ui.show_error("   💥 Requirements文件安装失败")
+                        else:
+                            # 显示简化的错误信息
+                            clean_line = error_line.split(' - ')[-1] if ' - ' in error_line else error_line
+                            self.ui.show_error(f"   💥 {clean_line}")
+                
+                self.ui.show_info(f"📁 完整日志: {log_path.absolute()}")
+            else:
+                self.ui.show_warning("❌ 未找到install.log文件")
+        except Exception as e:
+            self.ui.show_error(f"读取日志文件失败: {e}")
+
+    def show_install_log(self):
+        """显示安装日志的最后部分"""
+        try:
+            log_path = Path("install.log")
+            if log_path.exists():
+                self.ui.show_info("📋 最近的安装日志（最后50行）：")
+                with open(log_path, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                    recent_lines = lines[-50:] if len(lines) > 50 else lines
+                    for line in recent_lines:
+                        if 'ERROR' in line:
+                            self.ui.show_error(line.strip())
+                        elif 'WARNING' in line:
+                            self.ui.show_warning(line.strip())
+                        else:
+                            print(line.strip())
+                self.ui.show_info(f"📁 完整日志文件位置: {log_path.absolute()}")
+            else:
+                self.ui.show_warning("❌ 未找到install.log文件")
+        except Exception as e:
+            self.ui.show_error(f"读取日志文件失败: {e}")
+        
+        try:
+            input("按 Enter 键继续...")
+        except KeyboardInterrupt:
+            pass
 
     def configure_from_args(self, args: argparse.Namespace):
         """根据命令行参数配置安装器"""
@@ -718,6 +779,21 @@ class SAGEInstaller:
                 return False
 
             if not self.install_packages():
+                self.ui.show_error("📦 包安装失败！")
+                self.ui.show_info("💡 可能的解决方案：")
+                self.ui.show_info("   1. 检查网络连接")
+                self.ui.show_info("   2. 查看install.log获取详细错误信息")
+                self.ui.show_info("   3. 尝试手动安装失败的包")
+                self.ui.show_info("   4. 选择其他安装配置文件")
+                
+                # 显示最近的错误日志
+                self.show_recent_errors()
+                
+                self.ui.show_warning("⚠️ 安装失败，但您可以继续查看菜单选项")
+                try:
+                    input("按 Enter 键返回主菜单...")
+                except KeyboardInterrupt:
+                    return False
                 return False
 
             # 第二阶段包安装（所有模式都需要）

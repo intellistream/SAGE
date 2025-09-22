@@ -5,8 +5,7 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.dynamic]
-version = {attr = "sage.middleware._version.__version__"}
+
 
 [project]
 name = "isage-middleware"
@@ -35,7 +34,8 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "Operating System :: OS Independent",    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: System :: Distributed Computing",
 ]
@@ -236,7 +236,7 @@ known_first_party = [
 ]
 
 [tool.mypy]
-python_dynamic = ["version"]
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -246,3 +246,6 @@ overrides = [
     { module = "sage.service.*", ignore_missing_imports = false },
     { module = "fastapi.*", ignore_missing_imports = true },
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "sage.middleware._version.__version__"}
