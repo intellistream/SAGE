@@ -54,7 +54,7 @@ if [[ "$BUILD_CPP_DEPS" == "1" ]]; then
   fi
   if [[ "$NEEDS_CPP" == "1" ]]; then
     if command -v apt-get >/dev/null 2>&1; then
-  echo "Installing: build-essential cmake pkg-config"
+        echo "Installing: build-essential cmake pkg-config"
       set +e
       SUDO_CMD=""
       if [[ $EUID -ne 0 ]]; then
