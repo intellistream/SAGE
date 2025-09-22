@@ -26,7 +26,7 @@ class CommercialPackageManager:
             "sage-kernel": {
                 "path": self.commercial_path / "sage-kernel",
                 "description": "High-performance kernel infrastructure",
-                "components": ["sage_queue"],
+                "components": [],
                 "dependencies": ["sage-kernel", "sage-utils"],
             },
             "sage-middleware": {

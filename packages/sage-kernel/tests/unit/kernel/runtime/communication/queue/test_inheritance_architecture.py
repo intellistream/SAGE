@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from sage.kernel.runtime.communication.queue_descriptor import (
     BaseQueueDescriptor, PythonQueueDescriptor, RayQueueDescriptor,
-    RPCQueueDescriptor, SageQueueDescriptor, resolve_descriptor)
+    RPCQueueDescriptor, resolve_descriptor)
 
 # 检查Ray是否可用
 try:
@@ -19,14 +19,6 @@ try:
     RAY_AVAILABLE = True
 except ImportError:
     RAY_AVAILABLE = False
-
-# 检查SAGE扩展是否可用
-try:
-    import sage.extensions.sage_queue.python.sage_queue
-
-    SAGE_EXT_AVAILABLE = True
-except ImportError:
-    SAGE_EXT_AVAILABLE = False
 
 
 class TestBaseQueueDescriptor:
@@ -167,47 +159,6 @@ class TestPythonQueueDescriptor:
 #             )
 
 
-class TestSageQueueDescriptor:
-    """测试SAGE队列描述符"""
-
-    @pytest.mark.skipif(
-        not SAGE_EXT_AVAILABLE,
-        reason="sage_ext module not available in test environment",
-    )
-    def test_sage_queue_creation(self):
-        """测试SAGE队列创建"""
-        # 创建描述符时不会立即创建队列实例
-        queue = SageQueueDescriptor(
-            queue_id="test_sage",
-            maxsize=1024 * 1024,
-            auto_cleanup=True,
-            namespace="test_ns",
-        )
-
-        assert queue.queue_id == "test_sage"
-        assert (
-            queue.queue_type == "sage_queue"
-        )  # 根据源码，应该是 "sage_queue" 而不是 "sage"
-        assert queue.metadata["maxsize"] == 1024 * 1024
-        assert queue.metadata["auto_cleanup"] is True
-        assert queue.metadata["namespace"] == "test_ns"
-        assert queue.can_serialize is True  # 在未初始化时可以序列化
-
-    @pytest.mark.skipif(
-        not SAGE_EXT_AVAILABLE,
-        reason="sage_ext module not available in test environment",
-    )
-    def test_sage_queue_operations(self):
-        """测试SAGE队列操作"""
-        # 这个测试需要实际的sage_ext模块，在测试环境中跳过
-        queue = SageQueueDescriptor(queue_id="test_ops")
-
-        # 测试基本属性而不是实际操作
-        assert queue.queue_id == "test_ops"
-        assert queue.queue_type == "sage_queue"
-        assert queue.can_serialize is True
-
-
 class TestRPCQueueDescriptor:
     """测试RPC队列描述符"""
 
@@ -259,7 +210,6 @@ if __name__ == "__main__":
     test_suite = [
         TestBaseQueueDescriptor(),
         TestPythonQueueDescriptor(),
-        TestSageQueueDescriptor(),
         TestRPCQueueDescriptor(),
         TestDescriptorResolution(),
         TestErrorHandling(),

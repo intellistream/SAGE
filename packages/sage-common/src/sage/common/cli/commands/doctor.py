@@ -29,7 +29,7 @@ def check():
         print("❌ SAGE未安装")
 
     # 检查扩展
-    extensions = ["sage_ext", "sage_ext.sage_queue", "sage_ext.sage_db"]
+    extensions = ["sage_ext", "sage_ext.sage_db"]
     for ext in extensions:
         try:
             __import__(ext)

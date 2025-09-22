@@ -13,13 +13,8 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from sage.common.utils.logging.custom_logger import CustomLogger
 
-# Try to import SageQueue, fallback to regular queue if not available
-try:
-    from sage.extensions.sage_queue.python.sage_queue import SageQueue
-
-    SAGE_QUEUE_AVAILABLE = True
-except ImportError:
-    SAGE_QUEUE_AVAILABLE = False
+# SageQueue has been removed
+SAGE_QUEUE_AVAILABLE = False
 
 if TYPE_CHECKING:
     from sage.core.factory.service_factory import ServiceFactory
@@ -521,7 +516,8 @@ class BaseServiceTask(ABC):
                 f"[SERVICE_TASK] Creating queue instance for: '{response_queue_name}'"
             )
             if SAGE_QUEUE_AVAILABLE:
-                response_queue = SageQueue(response_queue_name)
+                # SageQueue is no longer available
+                response_queue = queue.Queue()
             else:
                 # Fallback to using regular queue (this is a simplified fallback)
                 response_queue = queue.Queue()
