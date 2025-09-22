@@ -180,26 +180,23 @@ def test_single_stream_parallelism():
     return env
 
 
-def test_set_parallelism_method():
-    """Test the set_parallelism() method"""
+def test_direct_parallelism_specification():
+    """Test direct parallelism specification in operators"""
     print("\n" + "=" * 80)
-    print("SET_PARALLELISM() METHOD TEST")
+    print("DIRECT PARALLELISM SPECIFICATION TEST")
     print("=" * 80)
 
-    env = LocalEnvironment(name="set_parallelism_test")
+    env = LocalEnvironment(name="direct_parallelism_test")
 
     print(
-        "\n🔍 Creating pipeline using set_parallelism(): Source(1) -> Square(4) -> Filter(1) -> Sink(2)"
+        "\n🔍 Creating pipeline with direct parallelism: Source(1) -> Square(4) -> Filter(1) -> Sink(2)"
     )
 
     result = (
         env.from_collection(SimpleNumberSource, 8)
-        .set_parallelism(4)
-        .map(SquareFunction)  # 4 parallel square functions
-        .set_parallelism(1)
-        .filter(EvenFilter)  # 1 filter
-        .set_parallelism(2)
-        .sink(ResultCollector)
+        .map(SquareFunction, parallelism=4)  # 4 parallel square functions
+        .filter(EvenFilter, parallelism=1)  # 1 filter
+        .sink(ResultCollector, parallelism=2)
     )  # 2 sinks
 
     print(f"\n📋 Pipeline Analysis:")
@@ -298,7 +295,7 @@ def main():
 
     # Run all tests
     env1 = test_single_stream_parallelism()
-    env2 = test_set_parallelism_method()
+    env2 = test_direct_parallelism_specification()
     env3 = test_multi_stream_parallelism()
     env4 = test_execution_graph_validation()
 
@@ -306,7 +303,7 @@ def main():
     print("VALIDATION SUMMARY")
     print("=" * 80)
     print("✅ Single stream parallelism: Verified with observable output")
-    print("✅ set_parallelism() method: Tested with different parallelism levels")
+    print("✅ Direct parallelism specification: Tested with different parallelism levels")
     print("✅ Multi-stream CoMap: Validated parallel CoMap processing")
     print("✅ ExecutionGraph nodes: Confirmed correct node count calculation")
 
@@ -316,7 +313,7 @@ def main():
 
     print(f"\n💡 Key validations completed:")
     print(f"   ✓ Parallelism parameters correctly set on transformations")
-    print(f"   ✓ set_parallelism() method works as expected")
+    print(f"   ✓ Direct parallelism specification works as expected")
     print(f"   ✓ Multi-stream operations support parallelism")
     print(f"   ✓ ExecutionGraph will create proper parallel nodes")
     print(f"   ✓ Debug output shows instance distribution")

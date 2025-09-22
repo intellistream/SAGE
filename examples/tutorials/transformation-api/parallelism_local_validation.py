@@ -147,14 +147,12 @@ def validate_single_stream_parallelism():
         .sink(ValidationSink, parallelism=1)
     )  # 1 sink
 
-    print("\n--- Test 2: Using set_parallelism() ---")
+    print("\n--- Test 2: Using direct parallelism ---")
     result2 = (
-        source_stream.set_parallelism(4)
-        .map(ParallelProcessor, "SetMapper")  # 4 parallel mappers
-        .set_parallelism(3)
-        .filter(ParallelFilter)  # 3 parallel filters
-        .set_parallelism(1)
-        .sink(ValidationSink)
+        source_stream
+        .map(ParallelProcessor, "SetMapper", parallelism=4)  # 4 parallel mappers
+        .filter(ParallelFilter, parallelism=3)  # 3 parallel filters
+        .sink(ValidationSink, parallelism=1)
     )  # 1 sink
 
     # Analyze pipeline
@@ -195,13 +193,11 @@ def validate_multi_stream_parallelism():
         .sink(ValidationSink, parallelism=1)
     )
 
-    print("\n--- Test 2: CoMap with set_parallelism() ---")
+    print("\n--- Test 2: CoMap with direct parallelism ---")
     result2 = (
         stream1.connect(stream2)
-        .set_parallelism(3)
-        .comap(MultiStreamCoMapProcessor)  # 3 parallel CoMap processors
-        .set_parallelism(2)
-        .sink(ValidationSink)
+        .comap(MultiStreamCoMapProcessor, parallelism=3)  # 3 parallel CoMap processors
+        .sink(ValidationSink, parallelism=2)
     )  # 2 sinks
 
     # Analyze pipeline
@@ -229,10 +225,8 @@ def validate_execution_graph_nodes():
     numbers = [1, 2, 3, 4, 5]
     result = (
         env.from_collection(NumberListSource, numbers)
-        .set_parallelism(2)
-        .map(ParallelProcessor, "NodeTest")  # Should create 2 nodes
-        .set_parallelism(3)
-        .filter(ParallelFilter)  # Should create 3 nodes
+        .map(ParallelProcessor, "NodeTest", parallelism=2)  # Should create 2 nodes
+        .filter(ParallelFilter, parallelism=3)  # Should create 3 nodes
         .sink(ValidationSink, parallelism=1)
     )  # Should create 1 node
 
@@ -289,7 +283,7 @@ def main():
 
     print(f"\n💡 Key validations:")
     print(f"   - Parallelism parameters correctly passed to transformations")
-    print(f"   - set_parallelism() method works as expected")
+    print(f"   - Direct parallelism specification works as expected")
     print(f"   - Both single and multi-stream operations support parallelism")
     print(
         f"   - ExecutionGraph will create corresponding parallel nodes during execution"

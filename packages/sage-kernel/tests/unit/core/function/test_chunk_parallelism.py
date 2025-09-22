@@ -155,13 +155,11 @@ class TestChunkParallelism:
             {"content": "This is document three with more content here.", "id": "doc3"},
         ]
 
-        # 使用parallelism hints设置2个并行chunk实例
+        # 使用parallelism参数直接设置2个并行chunk实例
         result_stream = (
             env.from_collection(DocumentSource, documents)
-            .set_parallelism(2)  # 设置2个并行CharacterSplitter实例
-            .map(CharacterSplitter, chunk_size=20, overlap=5)
-            .set_parallelism(1)  # sink使用1个实例
-            .sink(ChunkCollector)
+            .map(CharacterSplitter, chunk_size=20, overlap=5, parallelism=2)
+            .sink(ChunkCollector, parallelism=1)
         )
 
         # 执行
@@ -208,10 +206,8 @@ class TestChunkParallelism:
         # 测试不同的并行度设置
         result_stream = (
             env.from_collection(DocumentSource, documents)
-            .set_parallelism(3)  # 3个并行source->splitter
-            .map(CharacterSplitter, chunk_size=15, overlap=3)
-            .set_parallelism(2)  # 2个并行splitter->sink
-            .sink(ChunkCollector)
+            .map(CharacterSplitter, chunk_size=15, overlap=3, parallelism=3)
+            .sink(ChunkCollector, parallelism=2)
         )
 
         env.submit()
@@ -254,10 +250,8 @@ class TestChunkParallelism:
         # 使用更高的并行度处理大文档
         result_stream = (
             env.from_collection(DocumentSource, documents)
-            .set_parallelism(4)  # 4个并行实例处理大文档
-            .map(CharacterSplitter, chunk_size=100, overlap=20)
-            .set_parallelism(1)
-            .sink(ChunkCollector)
+            .map(CharacterSplitter, chunk_size=100, overlap=20, parallelism=4)
+            .sink(ChunkCollector, parallelism=1)
         )
 
         env.submit()
@@ -290,8 +284,7 @@ class TestChunkParallelism:
 
         result1 = (
             env1.from_collection(DocumentSource, documents)
-            .set_parallelism(2)  # 声明式并行
-            .map(CharacterSplitter, chunk_size=10, overlap=2)
+            .map(CharacterSplitter, chunk_size=10, overlap=2, parallelism=2)
             .sink(ChunkCollector)
         )
         env1.submit()

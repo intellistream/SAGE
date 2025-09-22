@@ -174,14 +174,12 @@ def validate_remote_single_stream_parallelism():
         .sink(DistributedSink, parallelism=2)
     )  # 2 sinks across workers
 
-    print("\n--- Test 2: Distributed processing with set_parallelism() ---")
+    print("\n--- Test 2: Distributed processing with direct parallelism ---")
     result2 = (
-        source_stream.set_parallelism(3)
-        .map(DistributedProcessor, "SetDistMapper")  # 3 parallel mappers
-        .set_parallelism(2)
-        .filter(DistributedFilter)  # 2 parallel filters
-        .set_parallelism(1)
-        .sink(DistributedSink)
+        source_stream
+        .map(DistributedProcessor, "SetDistMapper", parallelism=3)  # 3 parallel mappers
+        .filter(DistributedFilter, parallelism=2)  # 2 parallel filters
+        .sink(DistributedSink, parallelism=1)
     )  # 1 sink
 
     # Analyze pipeline
@@ -227,13 +225,11 @@ def validate_remote_multi_stream_parallelism():
         .sink(DistributedSink, parallelism=2)
     )  # 2 sinks
 
-    print("\n--- Test 2: Distributed CoMap with set_parallelism() ---")
+    print("\n--- Test 2: Distributed CoMap with direct parallelism ---")
     result2 = (
         stream1.connect(stream2)
-        .set_parallelism(4)
-        .comap(DistributedCoMapProcessor)  # 4 parallel CoMap processors
-        .set_parallelism(1)
-        .sink(DistributedSink)
+        .comap(DistributedCoMapProcessor, parallelism=4)  # 4 parallel CoMap processors
+        .sink(DistributedSink, parallelism=1)
     )  # 1 sink
 
     # Analyze pipeline
@@ -268,10 +264,8 @@ def validate_ray_distributed_execution():
 
     result = (
         env.from_collection(NumberListSource, large_dataset)
-        .set_parallelism(5)
-        .map(DistributedProcessor, "DistTest")  # 5 parallel processors
-        .set_parallelism(3)
-        .filter(DistributedFilter)  # 3 parallel filters
+        .map(DistributedProcessor, "DistTest", parallelism=5)  # 5 parallel processors
+        .filter(DistributedFilter, parallelism=3)  # 3 parallel filters
         .sink(DistributedSink, parallelism=2)
     )  # 2 sinks
 
@@ -317,7 +311,7 @@ def main():
         print("✅ Remote single stream parallelism: Tested with remote workers")
         print("✅ Remote multi-stream parallelism: Tested distributed CoMap")
         print("✅ Remote distributed execution: Verified parallel worker distribution")
-        print("✅ RemoteEnvironment parallelism hints: WORKING CORRECTLY")
+        print("✅ RemoteEnvironment direct parallelism: WORKING CORRECTLY")
 
         print(f"\n📊 Total remote environments created: 3")
         print(
@@ -326,7 +320,7 @@ def main():
 
         print(f"\n💡 Key remote validations:")
         print(f"   - Parallelism settings work in distributed remote environment")
-        print(f"   - set_parallelism() method distributes work across remote workers")
+        print(f"   - Direct parallelism specification distributes work across remote workers")
         print(f"   - Multi-stream operations (CoMap) support distributed parallelism")
         print(
             f"   - RemoteEnvironment automatically handles worker assignment and coordination"

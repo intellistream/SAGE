@@ -36,7 +36,6 @@ class ConnectedStreams:
     ):
         self._environment = env
         self.transformations = transformations
-        self._parallelism_hint = 1  # 默认并行度为1
 
         # 验证输入
         if len(transformations) < 2:
@@ -69,25 +68,7 @@ class ConnectedStreams:
             }
         return self._transformation_classes
 
-    # ---------------------------------------------------------------------
-    # general datastream api
-    # ---------------------------------------------------------------------
-    def set_parallelism(self, parallelism: int) -> "ConnectedStreams":
-        """设置下一个操作的并行度提示
 
-        Args:
-            parallelism: 并行度，必须大于0
-
-        Returns:
-            self，支持链式调用
-
-        Example:
-            >>> connected_streams.set_parallelism(4).comap(MyCoMapFunction())
-        """
-        if parallelism <= 0:
-            raise ValueError("Parallelism must be greater than 0")
-        self._parallelism_hint = parallelism
-        return self
 
     def map(
         self,
@@ -99,9 +80,9 @@ class ConnectedStreams:
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "map")
 
-        # 使用传入的parallelism或者之前设置的hint
+        # 使用传入的parallelism或者默认值1
         actual_parallelism = (
-            parallelism if parallelism is not None else self._parallelism_hint
+            parallelism if parallelism is not None else 1
         )
 
         # 获取MapTransformation类
@@ -121,10 +102,8 @@ class ConnectedStreams:
         if callable(function) and not isinstance(function, type):
             function = wrap_lambda(function, "sink")
 
-        # 使用传入的parallelism或者之前设置的hint
-        actual_parallelism = (
-            parallelism if parallelism is not None else self._parallelism_hint
-        )
+        # 使用传入的parallelism或者默认值1
+        actual_parallelism = parallelism if parallelism is not None else 1
 
         # 获取SinkTransformation类
         SinkTransformation = self._get_transformation_classes()["SinkTransformation"]
@@ -280,7 +259,7 @@ class ConnectedStreams:
 
         # 使用传入的parallelism或者之前设置的hint
         actual_parallelism = (
-            parallelism if parallelism is not None else self._parallelism_hint
+            parallelism if parallelism is not None else 1
         )
 
         # Create CoMapTransformation
@@ -341,9 +320,9 @@ class ConnectedStreams:
         # self._validate_keyed_streams()
 
         # 创建transformation
-        # 使用传入的parallelism或者之前设置的hint
+        # 使用传入的parallelism或者默认值1
         actual_parallelism = (
-            parallelism if parallelism is not None else self._parallelism_hint
+            parallelism if parallelism is not None else 1
         )
         join_tr = JoinTransformation(
             self._environment, function, *args, parallelism=actual_parallelism, **kwargs

@@ -128,9 +128,6 @@ class MockTaskContext:
     def get_parallelism(self) -> int:
         return 1
 
-    def set_parallelism(self, parallelism: int):
-        pass
-
 
 class MockServiceContext:
     """ServiceContext 的开源模拟实现"""
