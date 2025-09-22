@@ -159,6 +159,7 @@ class TestPythonQueueDescriptor:
 #             )
 
 
+
 class TestRPCQueueDescriptor:
     """测试RPC队列描述符"""
 

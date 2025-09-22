@@ -10,11 +10,13 @@ source "$(dirname "${BASH_SOURCE[0]}")/../download_tools/environment_config.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/scientific_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/dev_installer.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/vllm_installer.sh"
 
 # 主安装函数
 install_sage() {
     local mode="${1:-dev}"
     local environment="${2:-conda}"
+    local install_vllm="${3:-false}"
     
     # 获取项目根目录和日志文件
     local project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
@@ -22,6 +24,9 @@ install_sage() {
     
     echo ""
     echo -e "${GEAR} 开始安装 SAGE 包 (${mode} 模式, ${environment} 环境)..."
+    if [ "$install_vllm" = "true" ]; then
+        echo -e "${PURPLE}包含 VLLM 支持${NC}"
+    fi
     echo ""
     
     # 配置安装环境（包含所有检查）
@@ -33,6 +38,7 @@ install_sage() {
     echo "SAGE 主要安装过程开始 - $(date)" >> "$log_file"
     echo "安装模式: $mode" >> "$log_file"
     echo "安装环境: $environment" >> "$log_file"
+    echo "安装 VLLM: $install_vllm" >> "$log_file"
     echo "PIP 命令: $PIP_CMD" >> "$log_file"
     echo "Python 命令: $PYTHON_CMD" >> "$log_file"
     echo "========================================" >> "$log_file"
@@ -71,8 +77,17 @@ install_sage() {
     echo ""
     echo -e "${CHECK} SAGE 安装完成！"
     
+    # 安装 VLLM（如果需要）
+    if [ "$install_vllm" = "true" ]; then
+        echo ""
+        install_vllm_packages
+    fi
+    
     # 记录安装完成
     echo "$(date): SAGE 安装完成" >> "$log_file"
+    if [ "$install_vllm" = "true" ]; then
+        echo "$(date): VLLM 安装请求已处理" >> "$log_file"
+    fi
     echo "安装结束时间: $(date)" >> "$log_file"
     echo "========================================" >> "$log_file"
     
