@@ -69,7 +69,7 @@ refiner:
   max_model_len: 25000
   budget: 2048
   gpu_device: 1  # vLLM使用GPU 1
-  score_gpu_device: 0  # score模型使用GPU 0
+  score_gpu_device: 1  # score模型使用GPU 0
   gpu_memory_utilization: 0.7
 
 evaluate:

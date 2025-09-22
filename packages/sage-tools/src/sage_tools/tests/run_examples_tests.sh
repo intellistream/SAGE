@@ -198,11 +198,13 @@ run_pytest_tests() {
         pytest_args+=("--durations=10")  # 显示最慢的10个测试的时间
         pytest_args+=("--durations-min=1.0")  # 只显示超过1秒的测试时间
     else
-        # CI环境：简化输出，减少噪音
+        # CI环境：显示详细错误信息，便于调试
         if [[ "$CI" == "true" ]]; then
-            pytest_args+=("--tb=line")  # 最简化错误输出
-            pytest_args+=("-q")  # 安静模式
-            pytest_args+=("--durations=5")  # 只显示最慢的5个测试
+            pytest_args+=("--tb=short")  # 简短但有用的错误输出
+            pytest_args+=("-v")  # 显示详细的测试名称
+            pytest_args+=("-s")  # 不捕获输出，显示print语句
+            pytest_args+=("--capture=no")  # 确保所有输出都被显示
+            pytest_args+=("--durations=10")  # 显示最慢的10个测试
             pytest_args+=("--durations-min=5.0")  # 只显示超过5秒的测试
         else
             # 本地环境：适中的输出
@@ -228,8 +230,17 @@ run_pytest_tests() {
     # 运行测试
     cd tools/tests
     
-    # 设置example运行的超时环境变量 - 统一设置为60秒
-    export SAGE_EXAMPLE_TIMEOUT="60"
+    # 设置example运行的环境变量 - 让策略决定超时时间
+    # 不在CI环境中设置固定的SAGE_EXAMPLE_TIMEOUT，让每个类别使用自己的策略超时
+    if [[ "$CI" != "true" ]]; then
+        export SAGE_EXAMPLE_TIMEOUT="${TIMEOUT}"
+    fi
+    
+    # 在CI环境中启用test mode，让示例只运行第一个例子以加快测试速度
+    if [[ "$CI" == "true" ]]; then
+        export SAGE_EXAMPLES_MODE="test"
+        export SAGE_LOG_LEVEL="ERROR"  # 减少日志输出
+    fi
     
     if [[ "$CI" == "true" ]]; then
         echo "🧪 运行Examples测试 (CI模式)"
@@ -256,6 +267,37 @@ run_pytest_tests() {
         # 直接输出到控制台
         python3 -m pytest "${pytest_args[@]}" test_examples_pytest.py
         local exit_code=$?
+    fi
+    
+    # 如果测试失败，在CI环境中打印详细的失败信息
+    if [[ $exit_code -ne 0 && "$CI" == "true" ]]; then
+        echo ""
+        echo "❌ Examples测试失败，收集详细失败信息..."
+        echo "=========================================="
+        
+        # 直接从pytest输出中提取失败信息（如果有的话）
+        echo "📋 主要错误信息已在上面显示"
+        echo ""
+        echo "� 额外调试信息:"
+        echo "  - 测试运行在CI环境: $CI"
+        echo "  - 测试模式: $SAGE_EXAMPLES_MODE"
+        echo "  - 日志级别: $SAGE_LOG_LEVEL"
+        echo ""
+        
+        # 显示一些系统信息
+        echo "🖥️ 系统信息:"
+        echo "  - Python版本: $(python3 --version)"
+        echo "  - 工作目录: $(pwd)"
+        echo "  - 示例目录存在: $(if [ -d examples ]; then echo '是'; else echo '否'; fi)"
+        echo ""
+        
+        echo "💡 可能的解决方案:"
+        echo "  - 检查API密钥是否正确配置 (OPENAI_API_KEY, etc.)"
+        echo "  - 确认外部服务（如数据库、API）是否可访问"
+        echo "  - 查看详细日志了解具体的错误原因"
+        echo "  - 某些examples可能需要特定的环境配置"
+        echo "  - 检查网络连接和外部依赖"
+        echo "=========================================="
     fi
     
     return $exit_code

@@ -88,12 +88,12 @@ def create_qa_pipeline():
     config_path = os.path.join(
         os.path.dirname(__file__), "..", "config", "config_source_local.yaml"
     )
-    
+
     # 检查配置文件是否存在
     if not os.path.exists(config_path):
         print(f"❌ 配置文件不存在: {config_path}")
         return
-        
+
     config = load_config(config_path)
 
     # 创建本地环境

@@ -104,6 +104,30 @@ class ExampleTestStrategies:
                     "SAGE_LOG_LEVEL": "WARNING",
                 },
             ),
+            "agents": TestStrategy(
+                name="agents",
+                timeout=120,
+                requires_config=True,
+                requires_data=False,
+                success_patterns=[
+                    "Agent initialized",
+                    "Task completed",
+                    "Agent response",
+                    "Processing finished",
+                ],
+                failure_patterns=[
+                    "Agent failed",
+                    "API key missing",
+                    "Connection failed",
+                    "Model not available",
+                ],
+                environment_vars={
+                    "SAGE_AGENT_MODE": "test",
+                    "SAGE_LOG_LEVEL": "ERROR",
+                    "SAGE_EXAMPLES_MODE": "test",
+                    "OPENAI_API_KEY": "test-key-placeholder",
+                },
+            ),
             "service": TestStrategy(
                 name="service",
                 timeout=90,
@@ -169,7 +193,7 @@ class ExampleTestStrategies:
             ),
             "streaming": TestStrategy(
                 name="streaming",
-                timeout=120,
+                timeout=300,  # 增加到5分钟，因为streaming示例可能运行多个环境
                 requires_config=False,
                 requires_data=False,
                 success_patterns=[
